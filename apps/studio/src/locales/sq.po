@@ -31,7 +31,7 @@ msgid "-"
 msgstr "-"
 
 msgid "—"
-msgstr ""
+msgstr "—"
 
 msgid "— none —"
 msgstr "— asnjë —"
@@ -50,7 +50,7 @@ msgstr "\"Një peizazh i formuar nga zjarri.\""
 
 #. placeholder {0}: connection.latest_version
 msgid "({0} ready to install)"
-msgstr ""
+msgstr "({0} gati për instalim)"
 
 msgid "(active)"
 msgstr "(aktiv)"
@@ -82,7 +82,7 @@ msgstr "(ky seksion)"
 
 #. placeholder {0}: publication.comment_count
 msgid "{0, plural, one {# comment} other {# comments}}"
-msgstr ""
+msgstr "{0, plural, one {# koment} other {# komente}}"
 
 #. placeholder {0}: preview.addedPageNumbers.length
 #. placeholder {0}: result.addedPages
@@ -101,7 +101,7 @@ msgstr "{0, plural, one {# faqe} other {# faqe}}"
 #. placeholder {0}: publication.version_count
 #. placeholder {1}: publication.current_version
 msgid "{0} — now serving v{1}"
-msgstr ""
+msgstr "{0} — tani shërben v{1}"
 
 #. placeholder {0}: lockedLang.name
 msgid "{0} — type country or Enter for base"
@@ -153,7 +153,7 @@ msgstr "{0} kontrolle për faqe"
 #. placeholder {0}: reader.comment_count
 #. placeholder {1}: formatPublishDate(reader.last_comment_at ?? reader.joined_at, i18n.locale)
 msgid "{0} comments · last {1}"
-msgstr ""
+msgstr "{0} komente · e fundit {1}"
 
 #. placeholder {0}: getStageLabelI18n(uiStage)
 msgid "{0} complete"
@@ -229,7 +229,7 @@ msgstr "{0} skedarë prompti që mungojnë do të krijohen. Skedarët ekzistues 
 
 #. placeholder {0}: threads.length - SHOWN
 msgid "{0} more waiting in the Storyboard"
-msgstr ""
+msgstr "{0} më shumë në pritje në Storyboard"
 
 #. placeholder {0}: String(filteredQuizzes.length)
 #. placeholder {1}: String(displayQuizzes.length)
@@ -281,7 +281,7 @@ msgstr "{0} pyetje"
 
 #. placeholder {0}: thread.replyCount
 msgid "{0} replies"
-msgstr ""
+msgstr "{0} përgjigje"
 
 #. placeholder {0}: String(group.blocks.length)
 msgid "{0} sections"
@@ -304,7 +304,7 @@ msgstr "{0} tekste"
 
 #. placeholder {0}: record.versions.length
 msgid "{0} total"
-msgstr ""
+msgstr "{0} gjithsej"
 
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
@@ -345,11 +345,11 @@ msgstr "{0}×"
 
 #. placeholder {0}: age.value
 msgid "{0}d ago"
-msgstr ""
+msgstr "{0} ditë më parë"
 
 #. placeholder {0}: age.value
 msgid "{0}h ago"
-msgstr ""
+msgstr "{0} orë më parë"
 
 #. placeholder {0}: Math.floor(elapsed / 60)
 #. placeholder {1}: elapsed % 60
@@ -366,10 +366,10 @@ msgid "{0}s ago"
 msgstr "{0}s më parë"
 
 msgid "{clock} elapsed · usually 1 to 5 minutes"
-msgstr ""
+msgstr "{clock} kaluar · zakonisht 1 deri në 5 minuta"
 
 msgid "{completed} of {total}"
-msgstr ""
+msgstr "{completed} nga {total}"
 
 msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 msgstr "{confirmCount} {confirmCount, plural, one {fletë e dyfishtë e mundshme e zbuluar} other {fletë të dyfishta të mundshme të zbuluara}}"
@@ -381,7 +381,7 @@ msgid "{count} {count, plural, one {manual review item} other {manual review ite
 msgstr "{count} {count, plural, one {element për rishikim manual} other {elemente për rishikim manual}}"
 
 msgid "{count} comments waiting for you"
-msgstr ""
+msgstr "{count} komente në pritje për ju"
 
 msgid "{count} pages failed in {stageLabel}"
 msgstr "{count} faqe dështuan te {stageLabel}"
@@ -408,13 +408,13 @@ msgid "{disabledProvidersText} is disabled — add its API key in Book settings 
 msgstr "{disabledProvidersText} është i çaktivizuar — shtoni çelësin e tij API në cilësimet e Librit për ta aktivizuar."
 
 msgid "{done} of {total} bytes"
-msgstr ""
+msgstr "{done} nga {total} byte"
 
 msgid "{done} of {total} files"
-msgstr ""
+msgstr "{done} nga {total} skedarë"
 
 msgid "{done} of {total} pages"
-msgstr ""
+msgstr "{done} nga {total} faqe"
 
 msgid "{elapsed}s"
 msgstr "{elapsed}s"
@@ -509,19 +509,19 @@ msgid "{stepLabel}: {0}"
 msgstr "{stepLabel}: {0}"
 
 msgid "{stepTitle} — {sent} of {outOf}"
-msgstr ""
+msgstr "{stepTitle} — {sent} nga {outOf}"
 
 msgid "{stepTitle} — still working"
-msgstr ""
+msgstr "{stepTitle} — ende duke punuar"
 
 msgid "{stepTitle}. {sent} of {outOf} sent."
-msgstr ""
+msgstr "{stepTitle}. {sent} nga {outOf} dërguar."
 
 msgid "{stepTitle}. Step {stepNumber} of {stepCount}."
-msgstr ""
+msgstr "{stepTitle}. Hapi {stepNumber} nga {stepCount}."
 
 msgid "{stopped} stopped or expired"
-msgstr ""
+msgstr "{stopped} ndalur ose skaduar"
 
 msgid "{target} has been downloaded."
 msgstr "{target} u shkarkua."
@@ -537,22 +537,22 @@ msgid "{title} - page {0}"
 msgstr "{title} - faqe {0}"
 
 msgid "{title} — nothing is shared until this finishes."
-msgstr ""
+msgstr "{title} — asgjë nuk ndahet deri sa kjo të përfundojë."
 
 msgid "{title} — readers stay on version {fromVersion} until this finishes."
-msgstr ""
+msgstr "{title} — lexuesit qëndrojnë në versionin {fromVersion} deri sa kjo të përfundojë."
 
 msgid "{title} — your readers keep reading until this finishes."
-msgstr ""
+msgstr "{title} — lexuesit tuaj vazhdojnë të lexojnë deri sa kjo të përfundojë."
 
 msgid "{title} is online."
-msgstr ""
+msgstr "{title} është online."
 
 msgid "{title} is ready to read."
-msgstr ""
+msgstr "{title} është gati për lexim."
 
 msgid "{title} is updated. The link now shows your latest version."
-msgstr ""
+msgstr "{title} është përditësuar. Lidhja tani tregon versionin tuaj më të fundit."
 
 msgid "{totalPages} pages"
 msgstr "{totalPages} faqe"
@@ -561,7 +561,7 @@ msgid "{totalPages} pages · {totalSections} sections"
 msgstr "{totalPages} faqe · {totalSections} seksione"
 
 msgid "{unresolved} open"
-msgstr ""
+msgstr "{unresolved} hapur"
 
 #. placeholder {0}: String(filterSectionIndex + 1)
 msgid "/ Section {0}"
@@ -586,7 +586,7 @@ msgid "0 = single pass, higher values allow iterative LLM refinement"
 msgstr "0 = kalim i vetëm, vlerat më të larta lejojnë rafinim iterativ LLM"
 
 msgid "1 comment waiting for you"
-msgstr ""
+msgstr "1 koment në pritje për ju"
 
 msgid "1 hour"
 msgstr "1 orë"
@@ -601,7 +601,7 @@ msgid "1 quiz / {frequency} pages"
 msgstr "1 kuiz / {frequency} faqe"
 
 msgid "1 reply"
-msgstr ""
+msgstr "1 përgjigje"
 
 msgid "1 section"
 msgstr "1 seksion"
@@ -628,7 +628,7 @@ msgstr "1.2 Shtrirja"
 #~ msgstr "18 skena"
 
 msgid "2 reading"
-msgstr ""
+msgstr "2 duke lexuar"
 
 msgid "2.1 Data collection"
 msgstr "2.1 Mbledhja e të dhënave"
@@ -655,7 +655,7 @@ msgid "3.2.1 — Authentication Methods"
 msgstr "3.2.1 — Metodat e Autentifikimit"
 
 msgid "30 days"
-msgstr ""
+msgstr "30 ditë"
 
 #~ msgid "36 spreads"
 #~ msgstr "36 shpërndarje"
@@ -664,19 +664,19 @@ msgstr ""
 #~ msgstr "42 figura"
 
 msgid "7 days"
-msgstr ""
+msgstr "7 ditë"
 
 #~ msgid "72 panels"
 #~ msgstr "72 panele"
 
 msgid "90 days"
-msgstr ""
+msgstr "90 ditë"
 
 msgid "99+"
-msgstr ""
+msgstr "99+"
 
 msgid "99+ open"
-msgstr ""
+msgstr "99+ hapur"
 
 msgid "A → Z"
 msgstr "A → Z"
@@ -706,10 +706,10 @@ msgid "A language is required so downstream stages can localize the book."
 msgstr "Kërkohet një gjuhë që fazat e mëvonshme të mund ta lokalizojnë librin."
 
 msgid "A last look before you publish your first book."
-msgstr ""
+msgstr "Një shikim i fundit para se të publikoni librin tuaj të parë."
 
 msgid "A login is already open"
-msgstr ""
+msgstr "Një hyrje është tashmë e hapur"
 
 msgid "A long row of shelves filled with food in a big store."
 msgstr "Një rresht i gjatë rafte të mbushur me ushqim në një dyqan të madh."
@@ -721,7 +721,7 @@ msgid "A multiple choice activity."
 msgstr "Një aktivitet me zgjedhje të shumëfishtë."
 
 msgid "A name in your Cloudflare account is already taken"
-msgstr ""
+msgstr "Një emër në llogarinë tuaj Cloudflare është tashmë i zënë"
 
 msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
 msgstr "Një seksion i ri aktiviteti do të shtohet në faqen {anchorPageNumber} ({anchorPageId}). Agjenti mund të lexojë faqe të tjera të librit për të pasqyruar strukturën e tyre."
@@ -730,7 +730,7 @@ msgstr "Një seksion i ri aktiviteti do të shtohet në faqen {anchorPageNumber}
 #~ msgstr "Një version i ri është i disponueshëm për shkarkim."
 
 msgid "A one-time access code unlocks the page — only people you share it with can open it."
-msgstr ""
+msgstr "Një kod hyrjeje një herë hap faqen — vetëm njerëzit me të cilët e ndani mund ta hapin atë."
 
 msgid "A page failed in {stageLabel}"
 msgstr "Një faqe dështoi te {stageLabel}"
@@ -739,13 +739,13 @@ msgid "A page failed in {stepLabel}"
 msgstr "Një faqe dështoi te {stepLabel}"
 
 msgid "A private web address is typed into the browser bar and the book's page fades in."
-msgstr ""
+msgstr "Një adresë private e internetit shkruhet në shiritin e shfletuesit dhe faqja e librit shfaqet."
 
 msgid "A published book open in a web browser, playing through four short moments and then staying open to explore."
-msgstr ""
+msgstr "Një libër i publikuar hapet në një shfletues web, duke kaluar nëpër katër momente të shkurtra dhe pastaj qëndron i hapur për të eksploruar."
 
 msgid "A publishing service update is waiting in Settings → Publishing. Installing it isn't urgent. Your link keeps working either way."
-msgstr ""
+msgstr "Një përditësim i shërbimit të publikimit është në pritje në Cilësimet → Publikimi. Instalimi i tij nuk është urgjent. Lidhja juaj vazhdon të funksionojë në të dyja mënyrat."
 
 msgid "A question worth asking"
 msgstr "Një pyetje që vlen të bëhet"
@@ -754,7 +754,7 @@ msgid "A quiz already sits here — add another after it or replace it"
 msgstr "Një kuiz ekziston tashmë këtu — shtoni një tjetër pas tij ose zëvendësojeni"
 
 msgid "A reviewer named Maria pins a comment on the heading while João reads alongside her."
-msgstr ""
+msgstr "Një recensues me emrin Maria vendos një koment në titull ndërsa João lexon pranë saj."
 
 #~ msgid "A scenic view at dusk."
 #~ msgstr "Një pamje piktoreske në muzg."
@@ -856,19 +856,19 @@ msgid "Accepts any answer"
 msgstr "Pranon çdo përgjigje"
 
 msgid "Access"
-msgstr ""
+msgstr "Qasje"
 
 msgid "Access code {code}. Copy it."
-msgstr ""
+msgstr "Kodi i qasjes {code}. Kopjoje atë."
 
 msgid "Access code: {accessCode}"
-msgstr ""
+msgstr "Kodi i qasjes: {accessCode}"
 
 msgid "Access code: {code}"
-msgstr ""
+msgstr "Kodi i qasjes: {code}"
 
 msgid "Access was not granted"
-msgstr ""
+msgstr "Qasja nuk u dha"
 
 msgid "Accessibility"
 msgstr "Aksesueshmëria"
@@ -904,10 +904,10 @@ msgid "Accessible textbooks"
 msgstr "Tekste shkollore të arritshme"
 
 msgid "Account"
-msgstr ""
+msgstr "Llogari"
 
 msgid "Account Settings"
-msgstr ""
+msgstr "Cilësimet e llogarisë"
 
 msgid "Actions disabled while storyboard is running"
 msgstr "Veprimet janë çaktivizuara ndërsa storyboard-i është në ekzekutim"
@@ -1031,7 +1031,7 @@ msgid "Add {0} Images"
 msgstr "Shto {0} Imazhe"
 
 msgid "Add a code"
-msgstr ""
+msgstr "Shto një kod"
 
 msgid "Add a definition…"
 msgstr "Shto një përkufizim…"
@@ -1157,7 +1157,7 @@ msgid "Add new font"
 msgstr "Shto font të ri"
 
 msgid "Add one"
-msgstr ""
+msgstr "Shto një"
 
 msgid "Add option"
 msgstr "Shto opsion"
@@ -1259,13 +1259,13 @@ msgid "Additional terminology may be introduced in later sections. All terms are
 msgstr "Terminologji shtesë mund të prezantohet në seksionet e mëvonshme. Të gjithë termat janë listuar në shtojcën e fjalorëzimit në fund të këtij dokumenti për referencë të shpejtë."
 
 msgid "Address copied."
-msgstr ""
+msgstr "Adresa u kopjua."
 
 msgid "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
 msgstr "Shton faqe glosari në libër. Termat lidhen me zërin e tyre dhe çdo zë të kthen te teksti. Funksionon në çdo lexues."
 
 msgid "Adds the tables it needs. Anything already there is left alone."
-msgstr ""
+msgstr "Shton tabelat që i duhen. Çdo gjë që është tashmë aty lihet vetëm."
 
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Shton udhëzime për Dizajnin Universal për të Nxënit (gjuhë e thjeshtë, alternativë me tastierë + klikim për tërheqjen, vlerësim aria-live, pa reagime vetëm me ngjyra). Çaktivizoje për të krahasuar rezultatin pa këto udhëzime."
@@ -1281,7 +1281,7 @@ msgid "ADT Book - {0}"
 msgstr "Libër ADT - {0}"
 
 msgid "ADT Infrastructure"
-msgstr ""
+msgstr "Infrastruktura ADT"
 
 msgid "ADT Package"
 msgstr "Paketë ADT"
@@ -1290,7 +1290,7 @@ msgstr "Paketë ADT"
 #~ msgstr "ADT Studio"
 
 msgid "ADT Studio prepares your account automatically — about a minute."
-msgstr ""
+msgstr "ADT Studio përgatit llogarinë tuaj automatikisht — rreth një minutë."
 
 #~ msgid "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
 #~ msgstr "ADT Studio përdor çelësat tuaj API për të ekzekutuar pipeline-in. Çelësat ruhen lokalisht në këtë pajisje dhe nuk dërgohen asnjëherë askund tjetër."
@@ -1302,7 +1302,7 @@ msgid "ADT_DEBUG=1"
 msgstr "ADT_DEBUG=1"
 
 msgid "adt-publish.your-school.workers.dev"
-msgstr ""
+msgstr "adt-publish.your-school.workers.dev"
 
 msgid "Advanced"
 msgstr "Avancuar"
@@ -1460,7 +1460,7 @@ msgid "Allegory"
 msgstr "Alegori"
 
 msgid "Allow"
-msgstr ""
+msgstr "Lejo"
 
 msgid "Alphabetical"
 msgstr "Alfabetik"
@@ -1469,10 +1469,10 @@ msgid "Already handed out"
 msgstr "Tashmë të shpërndara"
 
 msgid "already there"
-msgstr ""
+msgstr "tashmë aty"
 
 msgid "Also delete the publishing service and every published book from my Cloudflare account"
-msgstr ""
+msgstr "Gjithashtu fshi shërbimin e publikimit dhe çdo libër të publikuar nga llogaria ime Cloudflare"
 
 #~ msgid "Alt"
 #~ msgstr "Alt"
@@ -1520,7 +1520,7 @@ msgid "and more sections across the page"
 msgstr "dhe seksione të tjera në faqe"
 
 msgid "Another program on this computer is already signing in to Cloudflare. Close it and try again."
-msgstr ""
+msgstr "Një program tjetër në këtë kompjuter është tashmë duke u kyçur në Cloudflare. Mbylle atë dhe provo përsëri."
 
 msgid "Answer"
 msgstr "Përgjigje"
@@ -1559,10 +1559,10 @@ msgid "Any other section type."
 msgstr "Çdo lloj tjetër seksioni."
 
 msgid "Anyone with the link"
-msgstr ""
+msgstr "Kushdo me lidhjen"
 
 msgid "Anyone with the link can open it."
-msgstr ""
+msgstr "Kushdo me lidhjen mund ta hapë atë."
 
 msgid "Anything the judge should keep in mind for this book."
 msgstr "Çdo gjë që gjykatësi duhet të mbajë parasysh për këtë libër."
@@ -1708,7 +1708,7 @@ msgid "Assignment evidence"
 msgstr "Dëshmitë e caktimit"
 
 msgid "at least {storage}"
-msgstr ""
+msgstr "të paktën {storage}"
 
 #~ msgid "At the river's edge"
 #~ msgstr "Në buzë të lumit"
@@ -1981,7 +1981,7 @@ msgid "Book model overrides updated."
 msgstr "Mbivendosjet e modeleve të librit u përditësuan."
 
 msgid "Book no longer on this computer"
-msgstr ""
+msgstr "Libri nuk është më në këtë kompjuter"
 
 msgid "Book order"
 msgstr "Rendi i librit"
@@ -2089,7 +2089,7 @@ msgid "Building Storyboard..."
 msgstr "Duke ndërtuar Storyboard-in..."
 
 msgid "Building the web pages exactly as they look right now."
-msgstr ""
+msgstr "Ndërtimi i faqeve të internetit saktësisht siç duken tani."
 
 msgid "Builds a glossary of key terms and definitions found in the text."
 msgstr "Ndërton një glosar me termat kryesorë dhe përkufizimet e gjetura në tekst."
@@ -2107,7 +2107,7 @@ msgid "Bundles the rendered book into a deployable web package."
 msgstr "Paketonn librin e renderuar në një paketë ueb të vendosshme."
 
 msgid "Bundling the pages, images and audio into one file to send."
-msgstr ""
+msgstr "Paketimi i faqeve, imazheve dhe audios në një skedar për t'u dërguar."
 
 msgid "But the team kept walking up the mountain."
 msgstr "Por ekipi vazhdoi të ngjitej në mal."
@@ -2247,7 +2247,7 @@ msgid "Change"
 msgstr "Ndrysho"
 
 msgid "Change how you share"
-msgstr ""
+msgstr "Ndrysho mënyrën si ndan"
 
 msgid "Change language"
 msgstr "Ndrysho gjuhën"
@@ -2316,7 +2316,7 @@ msgstr "Tabelë / Grafik"
 #~ msgstr "Kontrollo për përditësime"
 
 msgid "Check that the Account ID belongs to the same Cloudflare account you created the token in. Nothing was created in your account."
-msgstr ""
+msgstr "Kontrolloni që ID-ja e llogarisë i përket të njëjtës llogari Cloudflare ku krijuat tokenin. Asgjë nuk u krijua në llogarinë tuaj."
 
 msgid "Checked"
 msgstr "Kontrolluar"
@@ -2325,22 +2325,22 @@ msgid "Checking accessibility"
 msgstr "Po kontrollohet aksesueshmëria"
 
 msgid "Checking everything answers"
-msgstr ""
+msgstr "Kontrollimi i gjithçkaje përgjigjet"
 
 msgid "Checking for updates…"
 msgstr "Po kontrollohet për përditësime…"
 
 msgid "Checking whether this book is shared…"
-msgstr ""
+msgstr "Kontrollimi nëse ky libër është ndarë…"
 
 msgid "Checking your account"
-msgstr ""
+msgstr "Kontrollimi i llogarisë tuaj"
 
 msgid "Checking your publishing setup…"
-msgstr ""
+msgstr "Kontrollimi i konfigurimit tuaj të publikimit…"
 
 msgid "Checking your token"
-msgstr ""
+msgstr "Kontrollimi i tokenit tuaj"
 
 msgid "Checklist item"
 msgstr "Artikull liste kontrolli"
@@ -2352,7 +2352,7 @@ msgid "Choose a beta release to install."
 msgstr "Zgjidhni një version beta për ta instaluar."
 
 msgid "Choose a format to save, send, or archive the book as a file."
-msgstr ""
+msgstr "Zgjidhni një format për të ruajtur, dërguar ose arkivuar librin si një skedar."
 
 msgid "Choose a picture for this term"
 msgstr "Zgjidh një figurë për këtë term"
@@ -2409,7 +2409,7 @@ msgid "Choose the target model. The new global prompt file will use this file co
 msgstr "Zgjidh modelin e synuar. Skedari i ri global i promptit do të përdorë përmbajtjen e këtij skedari dhe emrin normal specifik për modelin."
 
 msgid "Choose where your books will live"
-msgstr ""
+msgstr "Zgjidhni ku do të jetojnë librat tuaj"
 
 msgid "Choose which kinds of on-screen text are read aloud. Disabled types get no audio in the reader. You can also mute individual entries from the Speech and Language views."
 msgstr "Zgjidhni cilat lloje të tekstit në ekran lexohen me zë. Llojet e çaktivizuara nuk marrin audio në lexues. Mund të heshtni edhe zëra të veçantë nga pamjet e Të folurit dhe Gjuhës."
@@ -2454,7 +2454,7 @@ msgid "Clear search"
 msgstr "Pastro kërkimin"
 
 msgid "Clear the filters"
-msgstr ""
+msgstr "Pastro filtrat"
 
 msgid "Clear, descriptive captions for middle and high school readers."
 msgstr "Përshkrime të qarta dhe përshkruese për lexues të shkollave të mesme."
@@ -2463,7 +2463,7 @@ msgid "Click a start page, then an end page to set the range."
 msgstr "Klikoni një faqe fillimi, pastaj një faqe fundi për të caktuar intervalin."
 
 msgid "Click Allow"
-msgstr ""
+msgstr "Kliko Lejo"
 
 msgid "Click an image to select"
 msgstr "Klikoni një imazh për të zgjedhur"
@@ -2484,7 +2484,7 @@ msgid "Click to pick a style reference image"
 msgstr "Klikoni për të zgjedhur një imazh referimi stili"
 
 msgid "Click to pin a comment"
-msgstr ""
+msgstr "Kliko për të vendosur një koment"
 
 msgid "Click to select an image"
 msgstr "Klikoni për të zgjedhur një imazh"
@@ -2505,37 +2505,37 @@ msgid "Close style editor"
 msgstr "Mbyll redaktorin e stilit"
 
 msgid "Close the comments"
-msgstr ""
+msgstr "Mbyll komentet"
 
 msgid "Close this comment"
-msgstr ""
+msgstr "Mbyll këtë koment"
 
 msgid "Cloudflare"
-msgstr ""
+msgstr "Cloudflare"
 
 msgid "CLOUDFLARE"
-msgstr ""
+msgstr "CLOUDFLARE"
 
 msgid "Cloudflare accounts"
-msgstr ""
+msgstr "Llogaritë Cloudflare"
 
 msgid "Cloudflare didn't accept the upload, after a few tries. This is usually temporary — waiting a moment and publishing again normally works. Nothing was shared, and your book is untouched."
-msgstr ""
+msgstr "Cloudflare nuk pranoi ngarkimin, pas disa përpjekjeve. Kjo është zakonisht e përkohshme — prit një moment dhe publikimi përsëri zakonisht funksionon. Asgjë nuk u nda, dhe libri juaj është i paprekur."
 
 msgid "Cloudflare didn't recognise that Account ID"
-msgstr ""
+msgstr "Cloudflare nuk e njohu atë ID të llogarisë"
 
 msgid "Cloudflare wouldn't accept the upload"
-msgstr ""
+msgstr "Cloudflare nuk do të pranonte ngarkimin"
 
 msgid "Clownfish, sea turtles, and parrotfish are just a few of the thousands of species that depend on reefs for food, shelter, and nursery grounds."
 msgstr "Peshqit klovn, breshkat e detit dhe peshqit papagall janë vetëm disa nga mijëra speciet që varen nga rifet për ushqim, strehim dhe vendlindje."
 
 msgid "Code"
-msgstr ""
+msgstr "Kodi"
 
 msgid "Code required"
-msgstr ""
+msgstr "Kodi i kërkuar"
 
 msgid "Collapse"
 msgstr "Mbledh"
@@ -2582,23 +2582,23 @@ msgstr "Koment"
 #. placeholder {0}: pin.number
 #. placeholder {1}: pin.thread.root.author_name
 msgid "Comment {0} by {1}"
-msgstr ""
+msgstr "Komenti {0} nga {1}"
 
 #. placeholder {0}: thread.root.author_name
 msgid "Comment from {0}"
-msgstr ""
+msgstr "Koment nga {0}"
 
 msgid "Comments"
 msgstr "Komente"
 
 msgid "Comments and live presence, on the free plan"
-msgstr ""
+msgstr "Komentet dhe prania e drejtpërdrejtë, në planin falas"
 
 msgid "Comments on this page"
-msgstr ""
+msgstr "Komentet në këtë faqe"
 
 msgid "Comments to read"
-msgstr ""
+msgstr "Komentet për të lexuar"
 
 msgid "Compare"
 msgstr "Krahaso"
@@ -2685,40 +2685,40 @@ msgid "Configure voices and accents"
 msgstr "Konfiguroni zërat dhe thekset"
 
 msgid "Confirm"
-msgstr ""
+msgstr "Konfirmo"
 
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
 
 msgid "Connect a Cloudflare account once. After that you can share any finished book as a link and collect comments on it."
-msgstr ""
+msgstr "Lidhu një herë me një llogari Cloudflare. Pas kësaj mund të ndash çdo libër të përfunduar si një lidhje dhe të mbledhësh komente mbi të."
 
 msgid "Connect a Cloudflare account to publish books"
-msgstr ""
+msgstr "Lidhu me një llogari Cloudflare për të publikuar libra"
 
 msgid "Connect an account"
-msgstr ""
+msgstr "Lidhu një llogari"
 
 #~ msgid "Connect an AI provider"
 #~ msgstr "Lidheni një ofrues AI"
 
 msgid "Connect with Cloudflare"
-msgstr ""
+msgstr "Lidhu me Cloudflare"
 
 msgid "Connect your Cloudflare account"
-msgstr ""
+msgstr "Lidhu llogarinë tuaj Cloudflare"
 
 msgid "Connected"
-msgstr ""
+msgstr "I lidhur"
 
 msgid "Connected — key saved"
 msgstr "I lidhur — çelësi u ruajt"
 
 msgid "Connected via Cloudflare login"
-msgstr ""
+msgstr "I lidhur përmes hyrjes Cloudflare"
 
 msgid "Connected with API token"
-msgstr ""
+msgstr "I lidhur me tokenin API"
 
 msgid "Consulting the style council..."
 msgstr "Po konsultohet këshilli i stilit..."
@@ -2826,7 +2826,7 @@ msgid "Copy"
 msgstr "Kopjo"
 
 msgid "Copy address"
-msgstr ""
+msgstr "Kopjo adresën"
 
 msgid "Copy error details"
 msgstr "Kopjo detajet e gabimit"
@@ -2835,17 +2835,17 @@ msgid "Copy error output"
 msgstr "Kopjo daljen e gabimit"
 
 msgid "Copy link"
-msgstr ""
+msgstr "Kopjo lidhjen"
 
 msgid "Copy the access code"
-msgstr ""
+msgstr "Kopjo kodin e qasjes"
 
 #. placeholder {0}: publication.title
 msgid "Copy the link to {0}"
-msgstr ""
+msgstr "Kopjo lidhjen te {0}"
 
 msgid "Copy this message"
-msgstr ""
+msgstr "Kopjo këtë mesazh"
 
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Rifet koraliere mbulojnë më pak se 1% të dyshemesë së oqeanit, por mbështesin rreth 25% të të gjitha specieve detare. Shpesh të quajtura 'pyjet e shiut të detit', këto ekosisteme nënujore ndërtohen nga kafshë të vogla të quajtura polipe korali."
@@ -2884,7 +2884,7 @@ msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Nuk u hoqën dot {failed} nga {total} video — ju lutem provoni përsëri."
 
 msgid "Could this title be simpler for 2nd grade?"
-msgstr ""
+msgstr "A mund të jetë ky titull më i thjeshtë për klasën e 2-të?"
 
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Nuk mund të aplikohej faqet e përbashkëta — ju lutem provoni përsëri."
@@ -2893,16 +2893,16 @@ msgid "Couldn't check for updates"
 msgstr "Nuk u arrit të kontrollohen përditësimet"
 
 msgid "Couldn't copy — select the link above and copy it by hand."
-msgstr ""
+msgstr "Nuk mund të kopjohet — zgjidh lidhjen më sipër dhe kopjoje me dorë."
 
 msgid "Couldn't copy — select the text above instead."
-msgstr ""
+msgstr "Nuk mund të kopjohet — zgjidh tekstin më sipër në vend të kësaj."
 
 msgid "Couldn't copy the address."
-msgstr ""
+msgstr "Nuk mund të kopjohej adresa."
 
 msgid "Couldn't copy the link"
-msgstr ""
+msgstr "Nuk mund të kopjohej lidhja"
 
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Pamja paraprake e PDF-së nuk u ngarkua dot. Faqet mund të ndahen ende duke përdorur kontrollet."
@@ -2914,7 +2914,7 @@ msgid "Couldn't load versions."
 msgstr "Nuk u ngarkuan dot versionet."
 
 msgid "Couldn't reach your publishing service"
-msgstr ""
+msgstr "Nuk mund të arrihej shërbimi juaj i publikimit"
 
 msgid "Couldn't read this PDF"
 msgstr "Nuk mund të lexohej ky PDF"
@@ -2951,7 +2951,7 @@ msgid "Covered"
 msgstr "Mbuluar"
 
 msgid "Create a free account first"
-msgstr ""
+msgstr "Krijo një llogari falas së pari"
 
 msgid "Create a manual glossary entry that stays in the book even if AI glossary generation is rerun."
 msgstr "Krijoni një hyrje manuale glosari që mbetet në libër edhe nëse gjenerimi i glosariumit me AI riekzekutohet."
@@ -3005,13 +3005,13 @@ msgid "Creating a new glossary image changes the book's image set. The completed
 msgstr "Krijimi i një imazhi të ri të fjalorthit ndryshon grupin e imazheve të librit. Fazat e përfunduara më poshtë do të pastrohen dhe duhet të ekzekutohen përsëri."
 
 msgid "Creating the database"
-msgstr ""
+msgstr "Krijimi i bazës së të dhënave"
 
 msgid "Creating the storage space"
-msgstr ""
+msgstr "Krijimi i hapësirës së ruajtjes"
 
 msgid "Creating your share link"
-msgstr ""
+msgstr "Krijimi i lidhjes suaj të ndarjes"
 
 msgid "Creating..."
 msgstr "Po krijohet..."
@@ -3098,10 +3098,10 @@ msgid "Cut a region out of any page"
 msgstr "Prit një zonë nga çdo faqe"
 
 msgid "D1"
-msgstr ""
+msgstr "D1"
 
 msgid "dash.cloudflare.com"
-msgstr ""
+msgstr "dash.cloudflare.com"
 
 #~ msgid "Date unavailable"
 #~ msgstr "Data nuk është e disponueshme"
@@ -3110,7 +3110,7 @@ msgid "Debug mode is not enabled."
 msgstr "Modaliteti i korrigjimit nuk është aktivizuar."
 
 msgid "Decide how to share"
-msgstr ""
+msgstr "Vendos si të ndash"
 
 msgid "Decorative"
 msgstr "Dekorativ"
@@ -3276,7 +3276,7 @@ msgid "Delete option"
 msgstr "Fshi opsionin"
 
 msgid "Delete permanently"
-msgstr ""
+msgstr "Fshi përgjithmonë"
 
 msgid "Delete prompt file?"
 msgstr "Të fshihet skedari i promptit?"
@@ -3294,7 +3294,7 @@ msgid "Delete step"
 msgstr "Fshi hapin"
 
 msgid "Delete this comment?"
-msgstr ""
+msgstr "Fshi këtë koment?"
 
 msgid "Delete this quiz"
 msgstr "Fshi këtë kuiz"
@@ -3321,7 +3321,7 @@ msgid "Dense text, tables, glossaries. Best for technical material and documenta
 msgstr "Tekst i dendur, tabela, glosare. Më i mirë për materiale teknike dhe dokumentacion."
 
 msgid "Deny"
-msgstr ""
+msgstr "Moho"
 
 msgid "Describe the activity"
 msgstr "Përshkruani aktivitetin"
@@ -3444,19 +3444,19 @@ msgid "Discard unsaved prompt changes?"
 msgstr "Të hidhen poshtë ndryshimet e paruajtura të promptit?"
 
 msgid "Disconnect"
-msgstr ""
+msgstr "Shkëput"
 
 msgid "Disconnect and delete everything"
-msgstr ""
+msgstr "Shkëput dhe fshi gjithçka"
 
 msgid "Disconnect from Cloudflare?"
-msgstr ""
+msgstr "Shkëput nga Cloudflare?"
 
 msgid "Disconnected from Cloudflare."
-msgstr ""
+msgstr "I shkëputur nga Cloudflare."
 
 msgid "Disconnected. Everything was deleted from your Cloudflare account."
-msgstr ""
+msgstr "I shkëputur. Gjithçka u fshi nga llogaria juaj Cloudflare."
 
 msgid "Dismiss"
 msgstr "Hiqe"
@@ -3486,7 +3486,7 @@ msgstr "U krye"
 #~ msgstr "Kthim në version më të vjetër"
 
 msgid "Download a copy"
-msgstr ""
+msgstr "Shkarko një kopje"
 
 msgid "Download a full backup of this project"
 msgstr "Shkarko një kopje rezervë të plotë të këtij projekti"
@@ -3745,7 +3745,7 @@ msgid "Edit this section"
 msgstr "Redakto këtë seksion"
 
 msgid "Edit your comment"
-msgstr ""
+msgstr "Redakto komentin tuaj"
 
 msgid "Editable per block"
 msgstr "I redaktueshëm për çdo bllok"
@@ -3784,7 +3784,7 @@ msgid "Effort"
 msgstr "Përpjekje"
 
 msgid "Eight small things get created in your account. Nothing is charged."
-msgstr ""
+msgstr "Tetë gjëra të vogla krijohen në llogarinë tuaj. Asgjë nuk ngarkohet."
 
 msgid "Element style editor"
 msgstr "Redaktues i stilit të elementit"
@@ -3864,7 +3864,7 @@ msgid "End"
 msgstr "Fundi"
 
 msgid "End date"
-msgstr ""
+msgstr "Data e përfundimit"
 
 msgid "End of book"
 msgstr "Fundi i librit"
@@ -3877,7 +3877,7 @@ msgstr "Endpoint"
 
 #. placeholder {0}: formatPublishDate(record.expires_at, i18n.locale)
 msgid "Ends {0}"
-msgstr ""
+msgstr "Përfundon {0}"
 
 msgid "Engineering Handbook Vol. 2"
 msgstr "Doracaku i Inxhinierisë Vol. 2"
@@ -3952,7 +3952,7 @@ msgid "Evaporation"
 msgstr "Avullim"
 
 msgid "Every book you have shared from this Cloudflare account."
-msgstr ""
+msgstr "Çdo libër që keni ndarë nga kjo llogari Cloudflare."
 
 msgid "Every edit and re-run is saved as a new version, so you can always roll back."
 msgstr "Çdo redaktim dhe riekzekutim ruhet si version i ri, kështu që mund të ktheheni gjithmonë."
@@ -3961,13 +3961,13 @@ msgid "Every few pages"
 msgstr "Çdo disa faqe"
 
 msgid "Every link is live"
-msgstr ""
+msgstr "Çdo lidhje është aktive"
 
 msgid "Every notable concept and named entity."
 msgstr "Çdo koncept i rëndësishëm dhe entitet i emërtuar."
 
 msgid "Every one of your links is live."
-msgstr ""
+msgstr "Çdo lidhje e juaja është aktive."
 
 msgid "Every page has been merged back from its part — the whole book is in place."
 msgstr "Çdo faqe është bashkuar përsëri nga pjesa e saj — i gjithë libri është në vend."
@@ -3994,22 +3994,22 @@ msgid "Every Storyboard section has a sign-language video assigned. You can swit
 msgstr "Çdo seksion i Storyboard-it ka një video të gjuhës së shenjave të caktuar. Mund të kaloni te Të mbuluara ose Të gjitha për t'i rishikuar ose zëvendësuar."
 
 msgid "Everyone who already has the link sees the new copy."
-msgstr ""
+msgstr "Çdokush që tashmë ka lidhjen sheh kopjen e re."
 
 msgid "everyone."
 msgstr "të gjithë."
 
 msgid "Everything here runs on Cloudflare's <0>free plan</0> — no payment needed for normal classroom use. Your books are uploaded to your own account, not to us."
-msgstr ""
+msgstr "Gjithçka këtu funksionon në <0>planin falas</0> të Cloudflare — nuk nevojitet pagesë për përdorim normal në klasë. Librat tuaj ngarkohen në llogarinë tuaj, jo tek ne."
 
 msgid "Everything is in place in your Cloudflare account."
-msgstr ""
+msgstr "Gjithçka është në vend në llogarinë tuaj Cloudflare."
 
 msgid "Everything is included. Leave out read-aloud or video if the book is over {MAX_MEGABYTES} MB."
-msgstr ""
+msgstr "Gjithçka është përfshirë. Lini jashtë leximin me zë të lartë ose videon nëse libri është mbi {MAX_MEGABYTES} MB."
 
 msgid "Everything was installed, but Cloudflare sometimes takes a minute to switch on a brand-new web address. Wait a moment and try again."
-msgstr ""
+msgstr "Gjithçka u instalua, por Cloudflare ndonjëherë merr një minutë për të aktivizuar një adresë të re interneti. Prisni një moment dhe provoni përsëri."
 
 msgid "Example Books"
 msgstr "Libra shembull"
@@ -4055,7 +4055,7 @@ msgid "Export a part"
 msgstr "Eksporto një pjesë"
 
 msgid "Export and share"
-msgstr ""
+msgstr "Eksporto dhe ndaj"
 
 msgid "Export is not blocked by the stages below. As soon as Storyboard is done, you can ship a bundle. Enhancements, Localization, and Validation are optional ways to enrich the book — you can export again anytime later."
 msgstr "Eksporti nuk bllokohet nga fazat më poshtë. Sapo të përfundojë Storyboard-i, mund të dërgoni një paketë. Përmirësimet, Lokalizimi dhe Validimi janë mënyra opsionale për ta pasuruar librin — mund të eksportoni përsëri në çdo kohë."
@@ -4220,10 +4220,10 @@ msgid "Feedback generation failed"
 msgstr "Gjenerimi i reagimit dështoi"
 
 msgid "Feedback storage"
-msgstr ""
+msgstr "Ruajtja e komenteve"
 
 msgid "Fetching the details of your new setup."
-msgstr ""
+msgstr "Marrja e detajeve të konfigurimit tuaj të ri."
 
 #~ msgid "Fig 3.1 — The water cycle: evaporation, condensation, precipitation."
 #~ msgstr "Fig 3.1 — Cikli i ujit: avullim, kondensim, reshje."
@@ -4280,10 +4280,10 @@ msgid "Final Page"
 msgstr "Faqja e fundit"
 
 msgid "Finish"
-msgstr ""
+msgstr "Përfundo"
 
 msgid "Finish the Cloudflare login already open in your browser, or wait a moment and try again."
-msgstr ""
+msgstr "Përfundo hyrjen në Cloudflare që është tashmë e hapur në shfletuesin tuaj, ose prisni një moment dhe provoni përsëri."
 
 msgid "First images from the deep-field telescope."
 msgstr "Imazhet e para nga teleskopi i fushës së thellë."
@@ -4394,10 +4394,10 @@ msgstr "Formularë dhe kontrolle"
 #~ msgstr "FR"
 
 msgid "Free"
-msgstr ""
+msgstr "Falas"
 
 msgid "Free plan covers normal classroom use"
-msgstr ""
+msgstr "Plani falas mbulon përdorimin normal në klasë"
 
 msgid "Free rectangle — resize without skewing"
 msgstr "Drejtkëndësh i lirë — ripërmaso pa shtrembëruar"
@@ -4448,7 +4448,7 @@ msgid "Gathering the evidence"
 msgstr "Mbledhja e dëshmive"
 
 msgid "Gave a name"
-msgstr ""
+msgstr "Dha një emër"
 
 msgid "Gemini"
 msgstr "Gemini"
@@ -4639,10 +4639,10 @@ msgid "Get started"
 msgstr "Filloni"
 
 msgid "Getting your link ready…"
-msgstr ""
+msgstr "Duke përgatitur lidhjen tuaj…"
 
 msgid "GitHub Pages"
-msgstr ""
+msgstr "Faqet GitHub"
 
 msgid "Global prompt reset to default."
 msgstr "Prompti global u resetua në parazgjedhje."
@@ -4738,7 +4738,7 @@ msgid "Guidance for this book"
 msgstr "Udhëzime për këtë libër"
 
 msgid "Hand it to your readers"
-msgstr ""
+msgstr "Dorëzoje tek lexuesit tuaj"
 
 msgid "Hand out page-range parts and merge them back later."
 msgstr "Shpërndani pjesë sipas intervalit të faqeve dhe bashkojini më vonë."
@@ -4792,7 +4792,7 @@ msgid "Hide error details"
 msgstr "Fshih detajet e gabimit"
 
 msgid "Hide the steps"
-msgstr ""
+msgstr "Fshih hapat"
 
 msgid "High"
 msgstr "I lartë"
@@ -4834,7 +4834,7 @@ msgid "Hit"
 msgstr "Goditje"
 
 msgid "Holds the pages, images and audio of each published book."
-msgstr ""
+msgstr "Mban faqet, imazhet dhe audion e çdo libri të publikuar."
 
 msgid "Home"
 msgstr "Ballina"
@@ -4843,13 +4843,13 @@ msgid "Home / Chapter 1"
 msgstr "Kryefaqja / Kapitulli 1"
 
 msgid "Hosted for you — no account to set up"
-msgstr ""
+msgstr "I hostuar për ju — pa llogari për të vendosur"
 
 msgid "Hosting"
-msgstr ""
+msgstr "Hostimi"
 
 msgid "Hosting is where readers open your book; feedback storage is where their comments are kept. Both stay in accounts that belong to you — set up once."
-msgstr ""
+msgstr "Hostimi është vendi ku lexuesit hapin librin tuaj; ruajtja e komenteve është vendi ku mbahen komentet e tyre. Të dyja qëndrojnë në llogari që i përkasin juve — vendosni një herë."
 
 msgid "Hover a card to find it in the page and click to pin it — or click anything in the page to edit it here."
 msgstr "Kaloni kursorin mbi një kartë për ta gjetur në faqe dhe klikoni për ta fiksuar — ose klikoni çdo element në faqe për ta redaktuar këtu."
@@ -4876,7 +4876,7 @@ msgid "How it works"
 msgstr "Si funksionon"
 
 msgid "How long should the link work?"
-msgstr ""
+msgstr "Sa kohë duhet të funksionojë lidhja?"
 
 msgid "How many pages of content go into each quiz. A lower number means more quizzes across the book."
 msgstr "Sa faqe përmbajtjeje shkohen në çdo kuiz. Një numër më i ulët nënkupton më shumë kuize në të gjithë librin."
@@ -5109,7 +5109,7 @@ msgid "Include in render"
 msgstr "Përfshi në paraqitje"
 
 msgid "Includes the code, so nobody has to ask for it."
-msgstr ""
+msgstr "Përfshin kodin, kështu që askush nuk duhet ta kërkojë atë."
 
 msgid "Includes:"
 msgstr "Përfshin:"
@@ -5163,7 +5163,7 @@ msgid "Install on quit"
 msgstr "Instalo gjatë daljes"
 
 msgid "Install the update"
-msgstr ""
+msgstr "Instalo përditësimin"
 
 msgid "Install update"
 msgstr "Instalo përditësimin"
@@ -5175,10 +5175,10 @@ msgstr "I instaluar"
 #~ msgstr "Instalimi i një versioni më të vjetër mund të dëmtojë librat ose cilësimet e krijuara apo të modifikuara me një version më të ri. Bëni një kopje rezervë të librave tuaj përpara se të ktheheni në një version më të vjetër."
 
 msgid "Installing the publishing service"
-msgstr ""
+msgstr "Duke instaluar shërbimin e publikimit"
 
 msgid "Installing the service"
-msgstr ""
+msgstr "Duke instaluar shërbimin"
 
 msgid "Installing update…"
 msgstr "Duke instaluar përditësimin…"
@@ -5232,7 +5232,7 @@ msgid "It contains unexpected file paths. Use a .zip exported from ADT Studio."
 msgstr "Ai përmban shtigje skedarësh të papritura. Përdorni një skedar .zip të eksportuar nga ADT Studio."
 
 msgid "It was cancelled for safety. Try again — it usually takes a few seconds."
-msgstr ""
+msgstr "U anulua për siguri. Provo përsëri — zakonisht merr disa sekonda."
 
 msgid "It was created from a different PDF or settings, so it can't be merged here."
 msgstr "U krijua nga një PDF ose cilësime të ndryshme, ndaj nuk mund të bashkohet këtu."
@@ -5263,17 +5263,17 @@ msgid "its original language"
 msgstr "gjuhën e saj origjinale"
 
 msgid "Its place on the page is gone"
-msgstr ""
+msgstr "Vendi i tij në faqe është zhdukur"
 
 msgid "Jane Reviewer"
 msgstr "Jane Rishikuese"
 
 msgid "João"
-msgstr ""
+msgstr "João"
 
 #. placeholder {0}: formatPublishDate(reader.joined_at, i18n.locale)
 msgid "Joined {0}"
-msgstr ""
+msgstr "U bashkua {0}"
 
 msgid "Judge instructions"
 msgstr "Udhëzimet e gjykatësit"
@@ -5288,28 +5288,28 @@ msgid "Jump to quiz"
 msgstr "Kalo te kuizi"
 
 msgid "just now"
-msgstr ""
+msgstr "tani"
 
 msgid "Justify"
 msgstr "Justify"
 
 msgid "K7M3PQ"
-msgstr ""
+msgstr "K7M3PQ"
 
 msgid "KB"
 msgstr "KB"
 
 msgid "Keep"
-msgstr ""
+msgstr "Mbaj"
 
 msgid "Keep going"
-msgstr ""
+msgstr "Vazhdo"
 
 msgid "Keep it private."
-msgstr ""
+msgstr "Mbaje private."
 
 msgid "Keep my connection"
-msgstr ""
+msgstr "Mbaj lidhjen time"
 
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Mbaji të pandryshuara skemat e daljes dhe ID-të kur redakton promptet."
@@ -5318,13 +5318,13 @@ msgid "Keep pages whole by default, but split when distinct activity types are d
 msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur zbulohen lloje të ndryshme aktivitetesh në të njëjtën faqe."
 
 msgid "Keep sharing"
-msgstr ""
+msgstr "Vazhdo ndarjen"
 
 msgid "Keep this one or type your own. You'll see it beside the link afterwards, and you can change it whenever you like."
-msgstr ""
+msgstr "Mbaje këtë ose shkruaj tënden. Do ta shihni pranë lidhjes më pas, dhe mund ta ndryshoni kur të dëshironi."
 
 msgid "Keep working"
-msgstr ""
+msgstr "Vazhdo punën"
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Mban faqet të plota nëse llojet e përziera të aktiviteteve nuk kërkojnë ndarje."
@@ -5333,7 +5333,7 @@ msgid "Keeps the page as one section by default, but intelligently splits when i
 msgstr "Mban faqen si një seksion si parazgjedhje, por ndan me inteligjencë kur zbulon aktivitete të shumta të dallueshme - si një kombinim pyetjesh me zgjedhje të shumëfishta, të hapura dhe ushtrime renditjeje në të njëjtën faqe. Më i miri për tekstet shkollore me ushtrime të ndryshme."
 
 msgid "Keeps track of your published books and the comments people leave."
-msgstr ""
+msgstr "Mban gjurmët e librave tuaj të publikuar dhe komenteve që njerëzit lënë."
 
 msgid "Kept"
 msgstr "Mbajtur"
@@ -5401,7 +5401,7 @@ msgid "Large images, narrative flow. Best for illustrated books with high-fideli
 msgstr "Imazhe të mëdha, rrjedhje narrative. Më i miri për libra të ilustruar me zëra TTS të besnikërisë së lartë."
 
 msgid "Largest first"
-msgstr ""
+msgstr "Më i madhi i pari"
 
 #~ msgid "Last"
 #~ msgstr "I fundit"
@@ -5512,13 +5512,13 @@ msgid "Link"
 msgstr "Lidhje"
 
 msgid "Link copied"
-msgstr ""
+msgstr "Lidhja u kopjua"
 
 msgid "Link copied to the clipboard."
-msgstr ""
+msgstr "Lidhja u kopjua në kujtesën e përkohshme."
 
 msgid "Link expired"
-msgstr ""
+msgstr "Lidhja ka skaduar"
 
 msgid "Link page"
 msgstr "Faqe lidhje"
@@ -5551,7 +5551,7 @@ msgid "Live"
 msgstr "Drejtpërdrejt"
 
 msgid "Live version"
-msgstr ""
+msgstr "Versioni i drejtpërdrejtë"
 
 msgid "LLM Calls"
 msgstr "Thirrje LLM"
@@ -5698,7 +5698,7 @@ msgid "Loading text sizes…"
 msgstr "Po ngarkohen madhësitë e tekstit…"
 
 msgid "Loading the comments…"
-msgstr ""
+msgstr "Duke ngarkuar komentet…"
 
 msgid "Loading TTS normalization..."
 msgstr "Po ngarkohet normalizimi TTS..."
@@ -5731,13 +5731,13 @@ msgid "Lock to a square"
 msgstr "Kyç si katror"
 
 msgid "Locks out everyone using the old code."
-msgstr ""
+msgstr "Bllokon të gjithë që përdorin kodin e vjetër."
 
 msgid "Log in"
-msgstr ""
+msgstr "Hyr"
 
 msgid "Log in to your account"
-msgstr ""
+msgstr "Hyr në llogarinë tuaj"
 
 msgid "Logs"
 msgstr "Regjistra"
@@ -5746,7 +5746,7 @@ msgid "Long answer"
 msgstr "Përgjigje e gjatë"
 
 msgid "Looking for new feedback…"
-msgstr ""
+msgstr "Duke kërkuar për komente të reja…"
 
 msgid "Looking for the latest version…"
 msgstr "Duke kërkuar versionin më të fundit…"
@@ -5755,10 +5755,10 @@ msgid "Looking forward"
 msgstr "Duke shikuar përpara"
 
 msgid "Looking up who has joined…"
-msgstr ""
+msgstr "Duke kërkuar se kush është bashkuar…"
 
 msgid "Looking up your published books…"
-msgstr ""
+msgstr "Duke kërkuar librat tuaj të publikuar…"
 
 msgid "Lookup definitions for key terms"
 msgstr "Kërko përkufizime për termat kyç"
@@ -5776,10 +5776,10 @@ msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Sigurohuni që po ngarkoni një skedar .zip të eksportuar nga ADT Studio."
 
 msgid "Making a copy of the book"
-msgstr ""
+msgstr "Duke bërë një kopje të librit"
 
 msgid "Making sure the token works and has all four permissions."
-msgstr ""
+msgstr "Duke u siguruar që tokeni funksionon dhe ka të gjitha katër lejet."
 
 msgid "Manage all sections"
 msgstr "Menaxho të gjitha seksionet"
@@ -5812,7 +5812,7 @@ msgid "Margin"
 msgstr "Margjinë"
 
 msgid "Maria"
-msgstr ""
+msgstr "Maria"
 
 msgid "Mark as decorative"
 msgstr "Shëno si dekorativ"
@@ -6122,7 +6122,7 @@ msgid "Most books are read one page at a time. If yours has an illustration that
 msgstr "Shumica e librave lexohen faqe për faqe. Nëse i yti ka një ilustrim që shtrihet në dy faqe përballë, lidhi ato faqe që të përpunohen bashkë si një fletë e vetme e dyfishtë në vend që të ndahen në mes. Asgjë nuk ndryshon derisa të shtypni Zbato."
 
 msgid "Most open feedback"
-msgstr ""
+msgstr "Më shumë komente të hapura"
 
 msgid "Most used"
 msgstr "Më i përdorur"
@@ -6134,7 +6134,7 @@ msgid "Move up"
 msgstr "Zhvendos lart"
 
 msgid "Move your pointer over the page to pause the story and try pinning a comment yourself."
-msgstr ""
+msgstr "Lëvizni treguesin tuaj mbi faqen për të ndaluar historinë dhe provoni të vendosni një koment vetë."
 
 msgid "Multi-format publications"
 msgstr "Botime me shumë formate"
@@ -6173,7 +6173,7 @@ msgid "Narration"
 msgstr "Narracion"
 
 msgid "Narration audio — usually the largest part of a book"
-msgstr ""
+msgstr "Audio e rrëfimit — zakonisht pjesa më e madhe e një libri"
 
 msgid "Natural narration for any book — students listen while they follow along, at their own pace."
 msgstr "Narracion i natyrshëm për çdo libër — nxënësit dëgjojnë ndërsa ndjekin tekstin, me ritmin e tyre."
@@ -6212,7 +6212,7 @@ msgid "New checklist item"
 msgstr "Element i ri i listës kontrolluese"
 
 msgid "New code"
-msgstr ""
+msgstr "Kod i ri"
 
 msgid "New Entry"
 msgstr "Hyrje e re"
@@ -6333,19 +6333,19 @@ msgid "No changes flagged on this page"
 msgstr "Nuk janë sinjalizuar ndryshime në këtë faqe"
 
 msgid "No Cloudflare account to publish into"
-msgstr ""
+msgstr "Asnjë llogari Cloudflare për të publikuar"
 
 msgid "No code. Anybody the link reaches can open the book."
-msgstr ""
+msgstr "Pa kod. Kushdo që arrin lidhjen mund ta hapë librin."
 
 msgid "No colors found"
 msgstr "Nuk u gjetën ngjyra"
 
 msgid "No comments"
-msgstr ""
+msgstr "Pa komente"
 
 msgid "No comments on this page."
-msgstr ""
+msgstr "Pa komente në këtë faqe."
 
 msgid "No content processing needed"
 msgstr "Nuk nevojitet procesim i përmbajtjes"
@@ -6375,7 +6375,7 @@ msgid "No embedded text layer — text was recovered from the page image"
 msgstr "Pa shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes"
 
 msgid "No end date"
-msgstr ""
+msgstr "Pa datë përfundimi"
 
 msgid "No entries match your search"
 msgstr "Asnjë hyrje nuk përputhet me kërkimin tuaj"
@@ -6387,7 +6387,7 @@ msgid "No extracted text yet. Run the pipeline first."
 msgstr "Nuk ka tekst të nxjerrë ende. Ekzekuto fillimisht zinxhirin e procesimit."
 
 msgid "No feedback waiting — every thread on this book is resolved."
-msgstr ""
+msgstr "Pa komente në pritje — çdo temë në këtë libër është zgjidhur."
 
 msgid "No fields to add"
 msgstr "Nuk ka fusha për të shtuar"
@@ -6535,7 +6535,7 @@ msgstr "Nuk ka terma të hequr"
 
 #. placeholder {0}: query.search
 msgid "No published book matches “{0}”."
-msgstr ""
+msgstr "Asnjë libër i publikuar nuk përputhet me “{0}”."
 
 msgid "No pull requests are associated with this release."
 msgstr "Asnjë pull request nuk është i lidhur me këtë version."
@@ -6652,7 +6652,7 @@ msgstr "Nuk u gjetën versione për {node} / {itemId}"
 #~ msgstr "Asnjë version nuk përputhet me kërkimin tuaj."
 
 msgid "No versions yet — publishing this book will create the first one."
-msgstr ""
+msgstr "Ende pa versione — publikimi i këtij libri do të krijojë të parin."
 
 msgid "No videos assigned yet"
 msgstr "Nuk ka ende video të caktuara"
@@ -6667,7 +6667,7 @@ msgid "No voices found"
 msgstr "Nuk u gjet asnjë zë"
 
 msgid "Nobody has given a name yet. Readers appear here the moment they sign in at the access code or write their first comment."
-msgstr ""
+msgstr "Askush nuk ka dhënë ende një emër. Lexuesit shfaqen këtu në momentin që hyjnë me kodin e qasjes ose shkruajnë komentin e tyre të parë."
 
 msgid "Node actions"
 msgstr "Veprimet e nyjës"
@@ -6682,7 +6682,7 @@ msgid "None"
 msgstr "Asnjë"
 
 msgid "None of your links is open to readers right now."
-msgstr ""
+msgstr "Asnjë nga lidhjet tuaja nuk është e hapur për lexuesit tani."
 
 msgid "Normalization"
 msgstr "Normalizimi"
@@ -6691,10 +6691,10 @@ msgid "Normalized"
 msgstr "Normalizuar"
 
 msgid "Not answering right now"
-msgstr ""
+msgstr "Nuk po përgjigjet tani"
 
 msgid "Not available yet"
-msgstr ""
+msgstr "Ende nuk është në dispozicion"
 
 msgid "Not compatible with Fixed Layout"
 msgstr "I papajtueshëm me Paraqitjen e fiksuar"
@@ -6718,7 +6718,7 @@ msgid "Not run during the last execution — likely because its inputs weren't r
 msgstr "Nuk u ekzekutua gjatë ekzekutimit të fundit — me shumë gjasë sepse hyrjet e tij nuk ishin gati ose cilësimet e fazës e çaktivizuan."
 
 msgid "Not shared"
-msgstr ""
+msgstr "Nuk është ndarë"
 
 msgid "Not split yet"
 msgstr "Ende e pandarë"
@@ -6736,28 +6736,28 @@ msgid "Note"
 msgstr "Shënim"
 
 msgid "Nothing changed for your readers — they are still reading the copy you had."
-msgstr ""
+msgstr "Asgjë nuk ka ndryshuar për lexuesit tuaj — ata ende po lexojnë kopjen që kishit."
 
 msgid "Nothing has been shared — your book is exactly as it was."
-msgstr ""
+msgstr "Asgjë nuk është ndarë — libri juaj është saktësisht siç ishte."
 
 msgid "Nothing important is missing or added"
 msgstr "Asgjë e rëndësishme nuk mungon ose nuk është shtuar"
 
 msgid "Nothing is broken and nothing was lost. Trying again continues from where it stopped."
-msgstr ""
+msgstr "Asgjë nuk është prishur dhe asgjë nuk është humbur. Provimi përsëri vazhdon nga ku u ndal."
 
 msgid "Nothing is waiting for you — every thread is resolved."
-msgstr ""
+msgstr "Asgjë nuk është në pritje për ju — çdo temë është zgjidhur."
 
 msgid "Nothing is wrong with your book. The Studio just couldn't reach the part of itself that keeps track of published books. Try again in a moment."
-msgstr ""
+msgstr "Asgjë nuk është gabim me librin tuaj. Studio thjesht nuk mund të arrinte pjesën e vet që mban gjurmët e librave të publikuar. Provoni përsëri pas një momenti."
 
 msgid "Nothing open"
-msgstr ""
+msgstr "Asgjë e hapur"
 
 msgid "Nothing published yet"
-msgstr ""
+msgstr "Asgjë nuk është publikuar ende"
 
 msgid "Nothing to edit yet"
 msgstr "Ende s'ka asgjë për të redaktuar"
@@ -6766,13 +6766,13 @@ msgid "Nothing to show"
 msgstr "Nuk ka asgjë për të shfaqur"
 
 msgid "Nothing waiting on this page."
-msgstr ""
+msgstr "Asgjë në pritje në këtë faqe."
 
 msgid "Nothing was connected. Try again and choose <0>Allow</0> on the Cloudflare page."
-msgstr ""
+msgstr "Asgjë nuk u lidh. Provoni përsëri dhe zgjidhni <0>Lejo</0> në faqen e Cloudflare."
 
 msgid "Nothing was lost — the database is left exactly as it was. Trying again usually fixes this. If it keeps happening, send us the details below."
-msgstr ""
+msgstr "Asgjë nuk u humb — baza e të dhënave është lënë saktësisht siç ishte. Provimi përsëri zakonisht e rregullon këtë. Nëse vazhdon të ndodhë, na dërgoni detajet më poshtë."
 
 msgid "Now click the end page."
 msgstr "Tani klikoni faqen e fundit."
@@ -6800,10 +6800,10 @@ msgstr "nga"
 
 #. placeholder {0}: versions.length
 msgid "of {0} published"
-msgstr ""
+msgstr "nga {0} publikuar"
 
 msgid "of {allowance} free in R2"
-msgstr ""
+msgstr "nga {allowance} falas në R2"
 
 msgid "Off"
 msgstr "Joaktiv"
@@ -6824,10 +6824,10 @@ msgid "On"
 msgstr "Aktiv"
 
 msgid "on screen"
-msgstr ""
+msgstr "në ekran"
 
 msgid "On the whole page"
-msgstr ""
+msgstr "Në të gjithë faqen"
 
 msgid "On v{currentVersion} · latest is v{latestVersion}"
 msgstr "Në v{currentVersion} · më i fundit është v{latestVersion}"
@@ -6863,10 +6863,10 @@ msgid "Only PDF files are supported"
 msgstr "Mbështeten vetëm skedarë PDF"
 
 msgid "Only people who typed a name are listed — somebody can read the book without appearing here."
-msgstr ""
+msgstr "Vetëm njerëzit që kanë shkruar një emër janë të listuar — dikush mund ta lexojë librin pa u shfaqur këtu."
 
 msgid "Only people with this code can open it"
-msgstr ""
+msgstr "Vetëm njerëzit me këtë kod mund ta hapin atë"
 
 msgid "Only suggest replacements when the correction is high confidence"
 msgstr "Sugjero zëvendësime vetëm kur korrigjimi është me besim të lartë"
@@ -6875,7 +6875,7 @@ msgid "Only the most central vocabulary."
 msgstr "Vetëm fjalorin më qendror."
 
 msgid "Only with open feedback"
-msgstr ""
+msgstr "Vetëm me komente të hapura"
 
 msgid "Only ZIP files are supported"
 msgstr "Mbështeten vetëm skedarë ZIP"
@@ -6888,10 +6888,10 @@ msgstr "Hapni"
 
 #. placeholder {0}: publication.title
 msgid "Open {0} as readers see it"
-msgstr ""
+msgstr "Hap {0} siç e shohin lexuesit"
 
 msgid "Open a book and go to Publishing. You'll get a link to send to readers, and everything they comment on comes back here."
-msgstr ""
+msgstr "Hap një libër dhe shko te Publikimi. Do të merrni një lidhje për t'u dërguar lexuesve, dhe gjithçka që ata komentojnë kthehet këtu."
 
 msgid "Open a page in Preview to show its page-specific accessibility findings here."
 msgstr "Hapni një faqe në Pamjen Paraprake për të shfaqur këtu gjetjet e aksesueshmërisë specifike të faqes."
@@ -6926,7 +6926,7 @@ msgid "Open edit panel"
 msgstr "Hapni panelin e redaktimit"
 
 msgid "Open feedback"
-msgstr ""
+msgstr "Hap komente"
 
 msgid "Open image preview"
 msgstr "Hapni pamjen paraprake të imazhit"
@@ -6935,7 +6935,7 @@ msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Hapeni në çdo lexues EPUB 3, e-reader, ose mjet aksesueshmërie."
 
 msgid "Open it"
-msgstr ""
+msgstr "Hape atë"
 
 msgid "Open Liquid guide"
 msgstr "Hap udhëzuesin Liquid"
@@ -6947,7 +6947,7 @@ msgid "Open Preview"
 msgstr "Hapni Pamjen Paraprake"
 
 msgid "Open publishing settings"
-msgstr ""
+msgstr "Hap cilësimet e publikimit"
 
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
@@ -6957,7 +6957,7 @@ msgid "Open source PDF in a new tab"
 msgstr "Hapni PDF-in burimor në një skedë të re"
 
 msgid "Open the Cloudflare page again"
-msgstr ""
+msgstr "Hap përsëri faqen e Cloudflare"
 
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Hapni fazën Kuizet për të redaktuar këtë kuiz"
@@ -6966,13 +6966,13 @@ msgid "Open this section to tune the model, judge prompt, retry behavior, and ex
 msgstr "Hapni këtë seksion për të rregulluar modelin, nxitjen e gjykatësit, sjelljen e riprovimit dhe pragjet e sakta të rishikimit."
 
 msgid "Open to readers"
-msgstr ""
+msgstr "Hapur për lexuesit"
 
 msgid "Open Validation"
 msgstr "Hapni Vërtetimin"
 
 msgid "Open Workers & Pages"
-msgstr ""
+msgstr "Hap Workers & Pages"
 
 msgid "Open-ended — learners write a free response; there is no fixed answer."
 msgstr "Përgjigje e hapur — nxënësit shkruajnë një përgjigje të lirë; nuk ka përgjigje të fiksuar."
@@ -6984,7 +6984,7 @@ msgid "Open-source license"
 msgstr "Licencë open-source"
 
 msgid "Open: {url}"
-msgstr ""
+msgstr "Hapur: {url}"
 
 msgid "OpenAI"
 msgstr "OpenAI"
@@ -7189,7 +7189,7 @@ msgid "Packaging validation results..."
 msgstr "Rezultatet e vërtetimit të paketimit..."
 
 msgid "Packing it up"
-msgstr ""
+msgstr "Duke e paketuar"
 
 msgid "Padding"
 msgstr "Mbushje"
@@ -7226,7 +7226,7 @@ msgid "Page {n}"
 msgstr "Faqja {n}"
 
 msgid "Page {number}"
-msgstr ""
+msgstr "Faqe {number}"
 
 #~ msgid "Page {p}"
 #~ msgstr "Faqja {p}"
@@ -7436,7 +7436,7 @@ msgid "Pending..."
 msgstr "Në pritje..."
 
 msgid "People need the link and a short code you give them."
-msgstr ""
+msgstr "Njerëzit kanë nevojë për lidhjen dhe një kod të shkurtër që ju u jepni."
 
 msgid "Per Page"
 msgstr "Për Faqe"
@@ -7517,7 +7517,7 @@ msgid "Picture for {word}"
 msgstr "Figura për {word}"
 
 msgid "Pin not on this version"
-msgstr ""
+msgstr "Pin nuk është në këtë version"
 
 msgid "Pinned"
 msgstr "E fiksuar"
@@ -7648,7 +7648,7 @@ msgid "Preparing speech..."
 msgstr "Duke përgatitur audion..."
 
 msgid "Preparing the database"
-msgstr ""
+msgstr "Duke përgatitur bazën e të dhënave"
 
 msgid "Preparing…"
 msgstr "Duke u përgatitur…"
@@ -7795,31 +7795,31 @@ msgstr "Shkurtuar: {reason}"
 #~ msgstr "PT"
 
 msgid "Publish"
-msgstr ""
+msgstr "Publiko"
 
 msgid "Publish a private, shareable copy for readers and reviewers. No download or install needed."
-msgstr ""
+msgstr "Publiko një kopje private, të ndashme për lexuesit dhe recensuesit. Nuk nevojitet shkarkim ose instalim."
 
 msgid "Publish again"
-msgstr ""
+msgstr "Publiko përsëri"
 
 msgid "Publish and get a link"
-msgstr ""
+msgstr "Publiko dhe merr një lidhje"
 
 msgid "Publish from a GitHub repository"
-msgstr ""
+msgstr "Publiko nga një depo GitHub"
 
 msgid "Publish without reader comments — you can enable them later"
-msgstr ""
+msgstr "Publiko pa komente të lexuesve — mund t'i aktivizoni më vonë"
 
 msgid "Published books"
-msgstr ""
+msgstr "Librat e publikuar"
 
 msgid "Published books are stored in Cloudflare R2, and your account hasn't switched it on yet. Open R2 in your Cloudflare dashboard and follow the steps to enable it — Cloudflare asks for a payment method, but the space ADT Studio uses is within the free allowance. Then come back and try again. Nothing was created in your account."
-msgstr ""
+msgstr "Librat e publikuar ruhen në Cloudflare R2, dhe llogaria juaj nuk e ka aktivizuar ende. Hapni R2 në panelin tuaj të Cloudflare dhe ndiqni hapat për ta aktivizuar — Cloudflare kërkon një metodë pagese, por hapësira që përdor ADT Studio është brenda kufirit falas. Pastaj kthehuni dhe provoni përsëri. Asgjë nuk u krijua në llogarinë tuaj."
 
 msgid "Published books live in your own Cloudflare account, so this list is empty until the Studio is connected to one. It is free and takes a few clicks."
-msgstr ""
+msgstr "Librat e publikuar jetojnë në llogarinë tuaj Cloudflare, kështu që kjo listë është bosh deri sa Studio të lidhet me një. Është falas dhe merr disa klikime."
 
 msgid "published in"
 msgstr "botuar në"
@@ -7828,58 +7828,58 @@ msgid "Publisher"
 msgstr "Botuesi"
 
 msgid "Publishing"
-msgstr ""
+msgstr "Publikimi"
 
 msgid "Publishing {title} stopped. Nothing has been shared."
-msgstr ""
+msgstr "Publikimi i {title} ndaloi. Asgjë nuk është ndarë."
 
 msgid "Publishing {title} stopped. Your readers are still on the copy they had."
-msgstr ""
+msgstr "Publikimi i {title} ndaloi. Lexuesit tuaj janë ende në kopjen që kishin."
 
 msgid "Publishing again gets you a new address instead — the old link stays off, and you share the new one with everybody again."
-msgstr ""
+msgstr "Publikimi përsëri ju jep një adresë të re në vend të kësaj — lidhja e vjetër mbetet e fikur, dhe ju ndani të renë me të gjithë përsëri."
 
 msgid "Publishing again puts the book online as it looks right now, with a fresh link. The old link stays closed."
-msgstr ""
+msgstr "Publikimi përsëri e vendos librin online siç duket tani, me një lidhje të re. Lidhja e vjetër mbetet e mbyllur."
 
 msgid "Publishing couldn't finish"
-msgstr ""
+msgstr "Publikimi nuk mund të përfundonte"
 
 msgid "Publishing finished."
-msgstr ""
+msgstr "Publikimi përfundoi."
 
 msgid "Publishing is ready"
-msgstr ""
+msgstr "Publikimi është gati"
 
 msgid "Publishing is set up"
-msgstr ""
+msgstr "Publikimi është vendosur"
 
 msgid "Publishing isn't connected yet"
-msgstr ""
+msgstr "Publikimi ende nuk është lidhur"
 
 msgid "Publishing needs a Cloudflare account connected first. Set that up once in Settings, then come back here."
-msgstr ""
+msgstr "Publikimi ka nevojë për një llogari Cloudflare të lidhur së pari. Vendoseni atë një herë në Cilësimet, pastaj kthehuni këtu."
 
 msgid "Publishing puts a frozen copy of the book online — exactly as it looks right now — and gives you a link to share. You keep editing freely afterwards: the shared copy only changes when you choose \"Update site\"."
-msgstr ""
+msgstr "Publikimi vendos një kopje të ngrirë të librit online — saktësisht siç duket tani — dhe ju jep një lidhje për të ndarë. Ju vazhdoni të redaktoni lirshëm më pas: kopja e ndarë ndryshon vetëm kur zgjidhni \\\"Përditëso faqen\\\"."
 
 msgid "Publishing starts by exporting the book, and that step didn't finish. Try a normal export above first — it will show you what's wrong — then publish again."
-msgstr ""
+msgstr "Publikimi fillon duke eksportuar librin, dhe ai hap nuk përfundoi. Provoni një eksport normal më sipër së pari — do t'ju tregojë se çfarë është gabim — pastaj publikoni përsëri."
 
 msgid "Publishing stopped"
-msgstr ""
+msgstr "Publikimi ndaloi"
 
 msgid "Publishing stopped before it finished, and nothing was shared. Trying again is safe."
-msgstr ""
+msgstr "Publikimi ndaloi para se të përfundonte, dhe asgjë nuk u nda. Provimi përsëri është i sigurt."
 
 msgid "Publishing stopped before it finished."
-msgstr ""
+msgstr "Publikimi ndaloi para se të përfundonte."
 
 msgid "Publishing..."
-msgstr ""
+msgstr "Duke publikuar..."
 
 msgid "Publishing…"
-msgstr ""
+msgstr "Duke publikuar…"
 
 msgid "Pull requests"
 msgstr "Pull request-e"
@@ -7894,16 +7894,16 @@ msgid "Pulls the book's metadata — title, author, language — from the PDF."
 msgstr "Nxjerr metadatat e librit — titullin, autorin, gjuhën — nga PDF-ja."
 
 msgid "Put the book online for readers and reviewers, and manage the link."
-msgstr ""
+msgstr "Vendos librin online për lexuesit dhe recensuesit, dhe menaxho lidhjen."
 
 msgid "Put the book online for reviewers, or package a copy to distribute another way."
-msgstr ""
+msgstr "Vendos librin online për recensuesit, ose paketoni një kopje për ta shpërndarë në një mënyrë tjetër."
 
 msgid "Put this book online for readers and reviewers. The copy lives in your own Cloudflare account, behind a link only the people you send it to can open."
-msgstr ""
+msgstr "Vendos këtë libër online për lexuesit dhe recensuesit. Kopja jeton në llogarinë tuaj Cloudflare, pas një lidhjeje që vetëm njerëzit që ju e dërgoni mund ta hapin."
 
 msgid "Putting your book online"
-msgstr ""
+msgstr "Duke vendosur librin tuaj online"
 
 msgid "px"
 msgstr "px"
@@ -8066,10 +8066,10 @@ msgid "Re-running clears later stages"
 msgstr "Ri-ekzekutimi fshin fazat e mëvonshme"
 
 msgid "Read"
-msgstr ""
+msgstr "Lexo"
 
 msgid "Read aloud"
-msgstr ""
+msgstr "Lexo me zë të lartë"
 
 msgid "Read it in their language."
 msgstr "Lexoje në gjuhën e tyre."
@@ -8082,7 +8082,7 @@ msgstr "Lexo dokumentacionin ↗"
 
 #. placeholder {0}: publication.title
 msgid "Read the feedback on {0}"
-msgstr ""
+msgstr "Lexo komentet mbi {0}"
 
 msgid "Read the prompt aloud"
 msgstr "Lexo kërkesën me zë"
@@ -8109,13 +8109,13 @@ msgid "Reader-controlled"
 msgstr "E kontrolluar nga lexuesi"
 
 msgid "Readers"
-msgstr ""
+msgstr "Lexuesit"
 
 msgid "Readers are seeing your current work — nothing has changed since you published."
-msgstr ""
+msgstr "Lexuesit po shohin punën tuaj aktuale — asgjë nuk ka ndryshuar që kur keni publikuar."
 
 msgid "Readers joined"
-msgstr ""
+msgstr "Lexuesit u bashkuan"
 
 msgid "Readers see"
 msgstr "Lexuesit shohin"
@@ -8124,7 +8124,7 @@ msgid "Readers switch between the original and simplified text with the Easy Rea
 msgstr "Lexuesit kalojnë midis tekstit origjinal dhe të thjeshtëzuar me butonin Easy Read."
 
 msgid "Readers who joined"
-msgstr ""
+msgstr "Lexuesit që u bashkuan"
 
 msgid "Reading archive..."
 msgstr "Duke lexuar arkivin..."
@@ -8151,10 +8151,10 @@ msgid "Reads in"
 msgstr "Lexohet në"
 
 msgid "Ready to publish"
-msgstr ""
+msgstr "Gati për të publikuar"
 
 msgid "Ready when you are"
-msgstr ""
+msgstr "Gati kur të jeni"
 
 msgid "Real books processed with this preset — before and after."
 msgstr "Libra të vërtetë të procesuar me këtë paracaktim — para dhe pas."
@@ -8184,7 +8184,7 @@ msgid "Rebuilt from the page"
 msgstr "U rindërtua nga faqja"
 
 msgid "Recently updated"
-msgstr ""
+msgstr "Së fundmi përditësuar"
 
 msgid "Recommended"
 msgstr "I rekomanduar"
@@ -8215,7 +8215,7 @@ msgid "Refinement Prompt"
 msgstr "Kërkesa e Rafinimit"
 
 msgid "Refresh"
-msgstr ""
+msgstr "Rifresko"
 
 #~ msgid "Refresh beta versions"
 #~ msgstr "Rifresko versionet beta"
@@ -8369,7 +8369,7 @@ msgid "Renders each page into the storyboard layout used by the web reader."
 msgstr "Renderimi i çdo faqeje në paraqitjen e storyboard-it të përdorur nga lexuesi web."
 
 msgid "Reopen"
-msgstr ""
+msgstr "Rihap"
 
 msgid "Replace"
 msgstr "Zëvendëso"
@@ -8396,22 +8396,22 @@ msgid "Replace this audio file"
 msgstr "Zëvendëso këtë skedar audio"
 
 msgid "Reply"
-msgstr ""
+msgstr "Përgjigju"
 
 msgid "Reply to this comment"
-msgstr ""
+msgstr "Përgjigju këtij komenti"
 
 msgid "Reply to this thread"
-msgstr ""
+msgstr "Përgjigju kësaj teme"
 
 msgid "Reply…"
-msgstr ""
+msgstr "Përgjigju…"
 
 msgid "Request settings"
 msgstr "Cilësimet e kërkesës"
 
 msgid "Require an access code"
-msgstr ""
+msgstr "Kërko një kod qasjeje"
 
 msgid "Require comment on failure"
 msgstr "Kërko koment në rast dështimi"
@@ -8459,10 +8459,10 @@ msgid "Resize panel"
 msgstr "Ripërmasoni panelin"
 
 msgid "Resolve"
-msgstr ""
+msgstr "Zgjidh"
 
 msgid "Resolved"
-msgstr ""
+msgstr "Zgjidhur"
 
 msgid "Resolving source language..."
 msgstr "Duke zgjidhur gjuhën burimore..."
@@ -8495,7 +8495,7 @@ msgid "Restricted license"
 msgstr "Licencë e kufizuar"
 
 msgid "Resume sharing"
-msgstr ""
+msgstr "Vazhdo ndarjen"
 
 msgid "Resume target"
 msgstr "Rimerr synimin"
@@ -8505,7 +8505,7 @@ msgid "Resume target: page {0}"
 msgstr "Rimerr synimin: faqja {0}"
 
 msgid "Resuming…"
-msgstr ""
+msgstr "Duke vazhduar…"
 
 msgid "Retries"
 msgstr "Riprovime"
@@ -8612,7 +8612,7 @@ msgid "Reviewer checklist settings saved."
 msgstr "Cilësimet e listës kontrolluese të rishikuesit u ruajtën."
 
 msgid "Reviewer comments on this page"
-msgstr ""
+msgstr "Komentet e recensuesit në këtë faqe"
 
 msgid "Reviewer guidance"
 msgstr "Udhëzimi i rishikuesit"
@@ -8910,7 +8910,7 @@ msgid "Search books…"
 msgstr "Kërko libra…"
 
 msgid "Search by title"
-msgstr ""
+msgstr "Kërko sipas titullit"
 
 msgid "Search by title, version, or description…"
 msgstr "Kërko sipas titullit, versionit ose përshkrimit…"
@@ -8946,7 +8946,7 @@ msgid "Search original or translation…"
 msgstr "Kërko origjinalin ose përkthimin…"
 
 msgid "Search published books"
-msgstr ""
+msgstr "Kërko librat e publikuar"
 
 #~ msgid "Search questions or answers…"
 #~ msgstr "Kërko pyetje ose përgjigje…"
@@ -9079,7 +9079,7 @@ msgid "Sections"
 msgstr "Seksione"
 
 msgid "Securing the service"
-msgstr ""
+msgstr "Sigurimi i shërbimit"
 
 msgid "See examples"
 msgstr "Shiko shembuj"
@@ -9230,7 +9230,7 @@ msgid "Self-contained ADT web app"
 msgstr "Aplikacion web ADT i pavarur"
 
 msgid "Send one link."
-msgstr ""
+msgstr "Dërgo një lidhje."
 
 msgid "Send the neighboring sentence's text alongside each request so ElevenLabs can carry intonation across sentence boundaries. Changing this regenerates ElevenLabs audio on the next run."
 msgstr "Dërgon tekstin e fjalisë fqinje së bashku me çdo kërkesë në mënyrë që ElevenLabs të mund të ruajë intonacionin nëpër kufijtë e fjalive. Ndryshimi i kësaj rikrijon audion e ElevenLabs në ekzekutimin e ardhshëm."
@@ -9242,10 +9242,10 @@ msgid "Send this project archive back to the coordinator to merge into the sourc
 msgstr "Dërgojeni këtë arkiv projekti te koordinatori për ta bashkuar në librin burim."
 
 msgid "Sending it to your Cloudflare account"
-msgstr ""
+msgstr "Duke e dërguar në llogarinë tuaj Cloudflare"
 
 msgid "Sends your latest edits to the same link."
-msgstr ""
+msgstr "Dërgon redaktimet tuaja të fundit në të njëjtën lidhje."
 
 #. placeholder {0}: si + 1
 msgid "Sentence {0}"
@@ -9270,7 +9270,7 @@ msgid "Serious"
 msgstr "Serioz"
 
 msgid "Service not answering"
-msgstr ""
+msgstr "Shërbimi nuk po përgjigjet"
 
 msgid "Session comments"
 msgstr "Komente sesioni"
@@ -9294,7 +9294,7 @@ msgid "Set the editing language and choose output languages for the book."
 msgstr "Vendosni gjuhën e redaktimit dhe zgjidhni gjuhët e daljes për librin."
 
 msgid "Set up publishing"
-msgstr ""
+msgstr "Vendos publikimin"
 
 msgid "Set your API key first"
 msgstr "Vendos fillimisht çelësin tënd të API-t"
@@ -9306,13 +9306,13 @@ msgid "Sets the default layout used when a section has no specific strategy assi
 msgstr "Vendos paraqitjen e paracaktuar që përdoret kur një seksion nuk ka strategji specifike të caktuar."
 
 msgid "Setting up"
-msgstr ""
+msgstr "Duke vendosur"
 
 msgid "Setting up your web address"
-msgstr ""
+msgstr "Duke vendosur adresën tuaj të internetit"
 
 msgid "Setting up…"
-msgstr ""
+msgstr "Duke vendosur…"
 
 msgid "Settings"
 msgstr "Cilësime"
@@ -9324,37 +9324,37 @@ msgid "Settings navigation"
 msgstr "Navigimi i cilësimeve"
 
 msgid "Setup couldn't finish"
-msgstr ""
+msgstr "Vendosja nuk mund të përfundonte"
 
 msgid "Setup stopped"
-msgstr ""
+msgstr "Vendosja ndaloi"
 
 msgid "Setup stopped partway"
-msgstr ""
+msgstr "Vendosja ndaloi në mes"
 
 msgid "Shadow"
 msgstr "Hije"
 
 msgid "Share a finished book as a private website. Reviewers open it in any browser and leave their feedback right on the pages — you stay in charge of the link."
-msgstr ""
+msgstr "Ndani një libër të përfunduar si një faqe private. Recensuesit e hapin atë në çdo shfletues dhe lënë komentet e tyre direkt në faqet — ju qëndroni në kontroll të lidhjes."
 
 msgid "Share books as links"
-msgstr ""
+msgstr "Ndani libra si lidhje"
 
 msgid "Share online"
-msgstr ""
+msgstr "Ndani online"
 
 msgid "Shared prompt versions"
 msgstr "Versionet e përbashkëta të prompt-eve"
 
 msgid "Sharing couldn't be resumed, so the link is still off. Check that you're online and try again."
-msgstr ""
+msgstr "Ndarja nuk mund të vazhdohej, kështu që lidhja është ende e fikur. Kontrolloni që jeni online dhe provoni përsëri."
 
 msgid "Sharing needs a Cloudflare account connected once. It's free, and the book lives in your own account, not ours. The Studio walks you through it in a few clicks."
-msgstr ""
+msgstr "Ndarja ka nevojë për një llogari Cloudflare të lidhur një herë. Është falas, dhe libri jeton në llogarinë tuaj, jo në tonën. Studio ju udhëzon përmes saj me disa klikime."
 
 msgid "Sharing stopped"
-msgstr ""
+msgstr "Ndarja ndaloi"
 
 msgid "Ship"
 msgstr "Dërgo"
@@ -9385,7 +9385,7 @@ msgid "Show all pages"
 msgstr "Shfaq të gjitha faqet"
 
 msgid "Show all steps"
-msgstr ""
+msgstr "Trego të gjithë hapat"
 
 msgid "Show all translations"
 msgstr "Shfaq të gjitha përkthimet"
@@ -9409,7 +9409,7 @@ msgid "Show review rationale"
 msgstr "Shfaq arsyetimin e rishikimit"
 
 msgid "Show reviewer comments on this page"
-msgstr ""
+msgstr "Trego komentet e recensuesit në këtë faqe"
 
 msgid "Show reviewer validation"
 msgstr "Shfaq validimin e rishikuesit"
@@ -9423,7 +9423,7 @@ msgstr "Shfaq:"
 #. placeholder {0}: publications.length
 #. placeholder {1}: data.publications.length
 msgid "Showing {0} of {1}"
-msgstr ""
+msgstr "Duke treguar {0} nga {1}"
 
 msgid "Showing only terms you added — click to show all"
 msgstr "Po shfaqen vetëm termat që shtuat — klikoni për të shfaqur të gjitha"
@@ -9438,7 +9438,7 @@ msgid "Sign"
 msgstr "Shenjë"
 
 msgid "Sign in at Cloudflare"
-msgstr ""
+msgstr "Hyr në Cloudflare"
 
 msgid "Sign language"
 msgstr "Gjuhë shenjash"
@@ -9459,7 +9459,7 @@ msgid "Sign language videos provide access for deaf and hard of hearing readers 
 msgstr "Videot e gjuhës së shenjave ofrojnë qasje për lexuesit shurdhamutë dhe me dëgjim të kufizuar, të cilët mund të mos jenë të rrjedhshëm në gjuhën e shkruar."
 
 msgid "Signing in only works when ADT Studio and your browser run on the same computer."
-msgstr ""
+msgstr "Hyrja funksionon vetëm kur ADT Studio dhe shfletuesi juaj funksionojnë në të njëjtin kompjuter."
 
 msgid "Similarity"
 msgstr "Ngjashmëria"
@@ -9519,7 +9519,7 @@ msgid "Skipped"
 msgstr "Kaluar"
 
 msgid "Skipped for now"
-msgstr ""
+msgstr "Kaluar për tani"
 
 msgid "Sky"
 msgstr "Qiell"
@@ -9538,7 +9538,7 @@ msgid "Smart Cropping"
 msgstr "Prerje Inteligjente"
 
 msgid "So only this computer can publish or change your books."
-msgstr ""
+msgstr "Kështu që vetëm ky kompjuter mund të publikojë ose ndryshojë librat tuaj."
 
 msgid "Software update"
 msgstr "Përditësim softueri"
@@ -9556,16 +9556,16 @@ msgid "Some pages have no embedded text layer — text was recovered from the pa
 msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes. Preferoni një PDF të bazuar në tekst."
 
 msgid "Some permissions are missing"
-msgstr ""
+msgstr "Disa leje mungojnë"
 
 msgid "Something else in your account already uses the name the Studio needs. Rename it in Cloudflare, or write to us if you'd rather not — then try again."
-msgstr ""
+msgstr "Diçka tjetër në llogarinë tuaj tashmë përdor emrin që Studio ka nevojë. Riemërtoje atë në Cloudflare, ose na shkruani nëse nuk dëshironi — pastaj provoni përsëri."
 
 msgid "Something went wrong"
 msgstr "Diçka shkoi keq"
 
 msgid "Somewhere in the book"
-msgstr ""
+msgstr "Diku në libër"
 
 msgid "Soon"
 msgstr "Së shpejti"
@@ -9580,7 +9580,7 @@ msgid "Sort by"
 msgstr "Rendit sipas"
 
 msgid "Sort published books"
-msgstr ""
+msgstr "Rendit librat e publikuar"
 
 msgid "Source"
 msgstr "Burimi"
@@ -9784,7 +9784,7 @@ msgid "Step {step} of {0}"
 msgstr "Hapi {step} nga {0}"
 
 msgid "Step {stepNumber} of {stepCount}"
-msgstr ""
+msgstr "Hapi {stepNumber} nga {stepCount}"
 
 msgid "Step failed"
 msgstr "Hapi dështoi"
@@ -9802,31 +9802,31 @@ msgid "Steps"
 msgstr "Hapat"
 
 msgid "Still working — large books can take a few minutes."
-msgstr ""
+msgstr "Ende duke punuar — librat e mëdhenj mund të marrin disa minuta."
 
 msgid "Stop"
-msgstr ""
+msgstr "Ndal"
 
 msgid "Stop publishing? Nothing sent so far is kept."
-msgstr ""
+msgstr "Ndal publikimin? Asgjë e dërguar deri tani nuk ruhet."
 
 msgid "Stop sharing"
-msgstr ""
+msgstr "Ndal ndarjen"
 
 msgid "Stop sharing this book?"
-msgstr ""
+msgstr "Ndal ndarjen e këtij libri?"
 
 msgid "Stop step"
 msgstr "Ndalo hapin"
 
 msgid "Storage is the size of every published version's files in your own Cloudflare R2 bucket, measured while uploading them — earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
-msgstr ""
+msgstr "Ruajtja është madhësia e skedarëve të çdo versioni të publikuar në kovën tuaj Cloudflare R2, e matur gjatë ngarkimit të tyre — versionet e mëparshme mbajnë skedarët e tyre, kështu që përditësimi i një libri shton këtë. Sa njerëz kanë hapur lidhjet tuaja nuk tregohet këtu: leximi i kësaj kërkon lejet e analizave të Cloudflare që Studio kurrë nuk kërkon."
 
 msgid "Storage used"
-msgstr ""
+msgstr "Ruajtja e përdorur"
 
 msgid "Story chapters"
-msgstr ""
+msgstr "Kapitujt e historisë"
 
 msgid "Storyboard"
 msgstr "Storyboard"
@@ -10176,19 +10176,19 @@ msgid "Textbooks & Activities"
 msgstr "Tekste Shkollore dhe Aktivitete"
 
 msgid "That change didn't go through, so nothing changed. Try again in a moment."
-msgstr ""
+msgstr "Ajo ndryshim nuk kaloi, kështu që asgjë nuk ndryshoi. Provoni përsëri pas një momenti."
 
 msgid "That didn't finish"
-msgstr ""
+msgstr "Ajo nuk përfundoi"
 
 msgid "That didn't go through"
-msgstr ""
+msgstr "Ajo nuk kaloi"
 
 msgid "That didn't go through. Try again in a moment."
-msgstr ""
+msgstr "Ajo nuk kaloi. Provoni përsëri pas një momenti."
 
 msgid "The address every share link will start with."
-msgstr ""
+msgstr "Adresa me të cilën do të fillojë çdo lidhje ndarjeje."
 
 msgid "The AI is having a think..."
 msgstr "AI po mendon..."
@@ -10206,10 +10206,10 @@ msgid "The back cover of the book."
 msgstr "Kapaku i pasëm i librit."
 
 msgid "The book couldn't be exported"
-msgstr ""
+msgstr "Libri nuk mund të eksportohej"
 
 msgid "The book exported fine but couldn't be bundled into one file to send. Trying again usually works. If it keeps failing, check that this computer has free disk space."
-msgstr ""
+msgstr "Libri u eksportua mirë por nuk mund të paketohej në një skedar për t'u dërguar. Provimi përsëri zakonisht funksionon. Nëse vazhdon të dështojë, kontrolloni që ky kompjuter ka hapësirë të lirë në disk."
 
 msgid "The book is written in {langName}."
 msgstr "Libri është shkruar në {langName}."
@@ -10227,19 +10227,19 @@ msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the 
 msgstr "Prompt-et e integruara janë optimizuar për {DEFAULT_MODEL}. E ndryshuat LLM-në e parazgjedhur në <0>{savedModel}</0>, ndaj rekomandojmë të gjeneroni skedarë të rinj prompt-esh globale të përshtatur për të. Mund të vazhdoni edhe me prompt-et ekzistuese."
 
 msgid "The Cloudflare sign-in did not grant everything publishing needs. Disconnect, connect again, and allow every permission ADT Studio asks for. Nothing was created in your account."
-msgstr ""
+msgstr "Hyrja në Cloudflare nuk dha gjithçka që nevojitet për publikim. Shkëput, lidhu përsëri, dhe lejo çdo leje që kërkon ADT Studio. Asgjë nuk u krijua në llogarinë tuaj."
 
 msgid "The code people will type"
-msgstr ""
+msgstr "Kodi që njerëzit do të shkruajnë"
 
 msgid "The combined section will be re-rendered."
 msgstr "Seksioni i kombinuar do të ri-renderizohet."
 
 msgid "The comment is marked resolved, staying visible only to you and your reviewers."
-msgstr ""
+msgstr "Komenti është shënuar si i zgjidhur, duke qëndruar i dukshëm vetëm për ju dhe recensuesit tuaj."
 
 msgid "The comments people left are kept. You can resume sharing later on this same link, or publish again for a new address if this one leaked."
-msgstr ""
+msgstr "Komentet që njerëzit lanë mbahen. Mund të vazhdoni ndarjen më vonë në këtë lidhje të njëjtë, ose të publikoni përsëri për një adresë të re nëse kjo është rrjedhur."
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "Bashkësia e organizmave të gjallë në një vend dhe mënyra si ndërveprojnë me njëri-tjetrin dhe mjedisin e tyre."
@@ -10257,7 +10257,7 @@ msgid "The data sent within the body of a request or response message."
 msgstr "Të dhënat e dërguara brenda trupit të një mesazhi kërkese ose përgjigjeje."
 
 msgid "The database couldn't be prepared"
-msgstr ""
+msgstr "Baza e të dhënave nuk mund të përgatitej"
 
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 msgstr "Udhëzimi i parazgjedhur i TTS-së i aplikuar për çdo gjuhë, përveç rasteve kur anulohet më poshtë. OpenAI e përdor si udhëzim zëri dhe Gemini si drejtim theksi brenda kërkesës; Azure dhe ElevenLabs e injorojnë."
@@ -10269,7 +10269,7 @@ msgid "The entire page is treated as a single section - all text and images stay
 msgstr "I gjithë faqja trajtohet si një seksion i vetëm — i gjithë teksti dhe imazhet qëndrojnë bashkë si një njësi. Më e mirë për libra me tregime, libra referencë dhe çdo përmbajtje ku çdo faqe është e vetëmjaftueshme."
 
 msgid "The export couldn't be packed up"
-msgstr ""
+msgstr "Eksporti nuk mund të paketohej"
 
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "Skedari mund të jetë i dëmtuar ose i paplotë. Provo ta shkarkosh sërish nga burimi."
@@ -10299,32 +10299,32 @@ msgid "The last translation review failed before producing reliable item-level r
 msgstr "Rishikimi i fundit i përkthimit dështoi para se të prodhonte rezultate të besueshme në nivel artikulli. Ekzekutoni Rishikimin përsëri për përkthimet e dukshme."
 
 msgid "The link for this book is gone, so there was nothing to change. Publish it again to get a new link."
-msgstr ""
+msgstr "Lidhja për këtë libër është zhdukur, kështu që nuk kishte asgjë për të ndryshuar. Publikoje përsëri për të marrë një lidhje të re."
 
 msgid "The link is still live. Check that you're online and try again — nothing was changed."
-msgstr ""
+msgstr "Lidhja është ende aktive. Kontrolloni që jeni online dhe provoni përsëri — asgjë nuk u ndryshua."
 
 msgid "The link now shows your latest version"
-msgstr ""
+msgstr "Lidhja tani tregon versionin tuaj më të fundit"
 
 msgid "The link stops working and the site, every comment and every reader name are erased. This cannot be undone."
-msgstr ""
+msgstr "Lidhja ndalon së funksionuari dhe faqja, çdo koment dhe çdo emër lexuesi fshihen. Kjo nuk mund të zhbëhet."
 
 #. placeholder {0}: formatPublishDate(expiresAt, i18n.locale)
 msgid "The link stops working on {0}."
-msgstr ""
+msgstr "Lidhja ndalon së funksionuari më {0}."
 
 msgid "The link stops working straight away, for everyone who has it. Anyone who opens it will see a short message saying the book isn't shared any more."
-msgstr ""
+msgstr "Lidhja ndalon së funksionuari menjëherë, për të gjithë ata që e kanë atë. Kushdo që e hap do të shohë një mesazh të shkurtër që thotë se libri nuk është më i ndarë."
 
 msgid "The login could not be finished. Try again, or use an API token instead."
-msgstr ""
+msgstr "Hyrja nuk mund të përfundonte. Provoni përsëri, ose përdorni një token API në vend të kësaj."
 
 msgid "The login couldn't come back to the Studio"
-msgstr ""
+msgstr "Hyrja nuk mund të kthehej në Studio"
 
 msgid "The login took too long"
-msgstr ""
+msgstr "Hyrja mori shumë kohë"
 
 msgid "The Lost Forest"
 msgstr "Pylli i Humbur"
@@ -10369,7 +10369,7 @@ msgid "The prompt used by the reviewer pass to inspect and correct a candidate s
 msgstr "Udhëzimi i përdorur nga kalimi i rishikuesit për të inspektuar dhe korrigjuar një pemë seksionimi kandidate. Ndan modelin dhe cilësimet e riprovimit të udhëzimit të seksionimit."
 
 msgid "The publishing service couldn't be installed"
-msgstr ""
+msgstr "Shërbimi i publikimit nuk mund të instalohej"
 
 msgid "The quick brown fox jumps over the lazy dog 0123456789"
 msgstr "Dhelpra e shpejtë kafe kërcen mbi qenin përtac 0123456789"
@@ -10381,13 +10381,13 @@ msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "Strategjia e renderimit e përdorur për seksionet pa një hartëzim eksplicit."
 
 msgid "The request appears as <0>Wrangler</0> — Cloudflare's own tool, which ADT Studio signs in through. This is expected."
-msgstr ""
+msgstr "Kërkesa shfaqet si <0>Wrangler</0> — mjeti i vetë Cloudflare, përmes të cilit hyn ADT Studio. Kjo është e pritur."
 
 #~ msgid "The river meets the sea"
 #~ msgstr "Lumi takon detin"
 
 msgid "The same address starts working again, and all the comments are kept."
-msgstr ""
+msgstr "E njëjta adresë fillon të funksionojë përsëri, dhe të gjitha komentet mbahen."
 
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "Rishikimi i ruajtur i përkthimit është i vjetëruar. Ekzekutoni Rishikimin përsëri për përkthimet e dukshme."
@@ -10402,19 +10402,19 @@ msgid "The sections will be combined locally. Without an API key, the Storyboard
 msgstr "Seksionet do të kombinohen lokalisht. Pa një çelës API-je, Storyboard-i do të duhet të ekzekutohet përsëri për të rigjeneruar seksionin e kombinuar."
 
 msgid "The setup stopped before it finished. Nothing was lost — trying again continues from where it stopped."
-msgstr ""
+msgstr "Vendosja ndaloi para se të përfundonte. Asgjë nuk u humb — provimi përsëri vazhdon nga ku u ndal."
 
 msgid "The small program that shows your books and collects comments."
-msgstr ""
+msgstr "Programi i vogël që tregon librat tuaj dhe mbledh komentet."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "Storyboard duhet të plotësohet para gjenerimit të {stageName}. Ekzekuto fazën Storyboard fillimisht."
 
 msgid "The Studio couldn't reach the publishing service in your Cloudflare account, so nothing was sent. Your link and everything on it are untouched. It already tried a few times — check this computer's connection and try again."
-msgstr ""
+msgstr "Studio nuk mund të arrinte shërbimin e publikimit në llogarinë tuaj Cloudflare, kështu që asgjë nuk u dërgua. Lidhja juaj dhe gjithçka mbi të janë të paprekura. Ajo tashmë provoi disa herë — kontrolloni lidhjen e këtij kompjuteri dhe provoni përsëri."
 
 msgid "The Studio will now create the few things it needs inside your Cloudflare account: a place to store books, a place to keep comments, and the small service that shows them. This takes a minute or two and only happens once."
-msgstr ""
+msgstr "Studio tani do të krijojë disa gjëra që i duhen brenda llogarisë tuaj Cloudflare: një vend për të ruajtur librat, një vend për të mbajtur komentet, dhe shërbimin e vogël që i tregon ato. Kjo merr një ose dy minuta dhe ndodh vetëm një herë."
 
 msgid "The sun heats water in oceans, lakes, and rivers, turning it into vapor that rises into the atmosphere. As the vapor cools at higher altitudes, it condenses into tiny droplets that form clouds."
 msgstr "Dielli ngroh ujin në oqeane, liqene dhe lumenj, duke e kthyer në avull që ngjitet në atmosferë. Ndërsa avulli ftohet në lartësi më të mëdha, kondensohet në pika të vogla që formojnë retë."
@@ -10429,7 +10429,7 @@ msgid "The Water Cycle"
 msgstr "Cikli i Ujit"
 
 msgid "THE WATER CYCLE"
-msgstr ""
+msgstr "Cikli i Ujit"
 
 msgid "The weather was very bad."
 msgstr "Moti ishte shumë i keq."
@@ -10438,7 +10438,7 @@ msgid "The whole book has been split into parts."
 msgstr "I gjithë libri është ndarë në pjesë."
 
 msgid "The whole book is sent as a single file, and Cloudflare accepts at most {MAX_MEGABYTES} MB at a time. This book's export is bigger than that. Publishing it will need fewer or smaller videos, audio files or images — the sign-language videos are usually the heaviest part."
-msgstr ""
+msgstr "I gjithë libri dërgohet si një skedar i vetëm, dhe Cloudflare pranon maksimumi {MAX_MEGABYTES} MB në një kohë. Eksporti i këtij libri është më i madh se kaq. Publikimi i tij do të kërkojë më pak ose më të vogla video, skedarë audio ose imazhe — videot e gjuhës së shenjave janë zakonisht pjesa më e rëndë."
 
 msgid "The world before us"
 msgstr "Bota para nesh"
@@ -10474,7 +10474,7 @@ msgid "They absorb water and nutrients from the soil."
 msgstr "Ato thithin ujë dhe lëndë ushqyese nga toka."
 
 msgid "They comment right on the page."
-msgstr ""
+msgstr "Ata komentojnë direkt në faqe."
 
 msgid "They did not give up."
 msgstr "Ata nuk u dorëzuan."
@@ -10492,7 +10492,7 @@ msgid "This archive can't be opened safely"
 msgstr "Ky arkiv nuk mund të hapet në mënyrë të sigurt"
 
 msgid "This book already has a live link"
-msgstr ""
+msgstr "Ky libër tashmë ka një lidhje të drejtpërdrejtë"
 
 msgid "This book has {pageCount} pages."
 msgstr "Ky libër ka {pageCount} faqe."
@@ -10504,7 +10504,7 @@ msgid "This book has no pages. Make sure the extraction and storyboard stages pr
 msgstr "Ky libër nuk ka faqe. Sigurohu që fazat e nxjerrjes dhe storyboard kanë prodhuar përmbajtje para gjenerimit të {stageName}."
 
 msgid "This book has not been published, so there is no feedback on it yet. Publish it and reviewers' comments land here, on the pages they were left on."
-msgstr ""
+msgstr "Ky libër nuk është publikuar, kështu që nuk ka ende komente mbi të. Publikoje dhe komentet e recensuesve do të vijnë këtu, në faqet ku janë lënë."
 
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "Ky libër është një pjesë: intervali i faqeve është fiks, i përket nëngrupit të caktuar dhe nuk mund të ndryshohet."
@@ -10516,42 +10516,42 @@ msgid "This book is fully assembled"
 msgstr "Ky libër është plotësisht i montuar"
 
 msgid "This book is not on this computer"
-msgstr ""
+msgstr "Ky libër nuk është në këtë kompjuter"
 
 msgid "This book is shared, but the Studio couldn't work out its link just now. Try again in a moment. The link people already have keeps working."
-msgstr ""
+msgstr "Ky libër është ndarë, por Studio nuk mund të punonte lidhjen e tij tani. Provoni përsëri pas një momenti. Lidhja që njerëzit tashmë kanë vazhdon të funksionojë."
 
 #. placeholder {0}: book.title
 msgid "This book is titled \"{0}\"."
 msgstr "Ky libër ka titullin \"{0}\"."
 
 msgid "This book is too big to send in one piece"
-msgstr ""
+msgstr "Ky libër është shumë i madh për t'u dërguar në një pjesë"
 
 #. placeholder {0}: status.missingRanges.map(fmtRange).join(", ")
 msgid "This book isn't fully assembled yet — pages <0>{0}</0> haven't been merged back. Anything you run here covers only the merged pages, so the result will be incomplete until every part is merged."
 msgstr "Ky libër ende nuk është plotësuar — faqet <0>{0}</0> nuk janë bashkuar. Çdo gjë që ekzekutoni këtu mbulon vetëm faqet e bashkuara, ndaj rezultati do të jetë i paplotë derisa të bashkohen të gjitha pjesët."
 
 msgid "This book isn't shared right now"
-msgstr ""
+msgstr "Ky libër nuk është ndarë tani"
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ky libër shfaqet me strukturë fikse, kështu që ruan fontet origjinale të PDF-së. Fontet e bashkëngjitura gjithsesi udhëzojnë IA-në për aktivitetet dhe faqet e gjeneruara."
 
 msgid "This book was already published — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
-msgstr ""
+msgstr "Ky libër ishte publikuar tashmë — një dritare tjetër mund ta ketë bërë atë. Përdorni \\\"Përditëso faqen\\\" për të shtyrë ndryshimet tuaja të fundit në lidhjen që tashmë keni."
 
 msgid "This book's link has reached its end date and no longer opens. Publishing again gives you a new link to share."
-msgstr ""
+msgstr "Lidhja e këtij libri ka arritur datën e saj të përfundimit dhe nuk hapet më. Publikimi përsëri ju jep një lidhje të re për të ndarë."
 
 msgid "This cannot be undone. Every link you have shared will stop working, and all comments people left will be deleted."
-msgstr ""
+msgstr "Kjo nuk mund të zhbëhet. Çdo lidhje që keni ndarë do të ndalojë së funksionuari, dhe të gjitha komentet që njerëzit kanë lënë do të fshihen."
 
 msgid "This comment was deleted"
-msgstr ""
+msgstr "Ky koment u fshi"
 
 msgid "This computer will forget your token and Account ID, so you won't be able to publish or update books until you connect again. Books you have already published stay online and their links keep working."
-msgstr ""
+msgstr "Ky kompjuter do të harrojë tokenin dhe ID-në e llogarisë tuaj, kështu që nuk do të mund të publikoni ose përditësoni libra deri sa të lidheni përsëri. Librat që keni publikuar tashmë qëndrojnë online dhe lidhjet e tyre vazhdojnë të funksionojnë."
 
 msgid "This connection isn't available yet."
 msgstr "Kjo lidhje nuk është ende e disponueshme."
@@ -10584,7 +10584,7 @@ msgid "This is a project, not a book part"
 msgstr "Ky është një projekt, jo një pjesë libri"
 
 msgid "This is nearly always a passing network problem. Try again — the parts already set up are kept, so it picks up where it left off."
-msgstr ""
+msgstr "Kjo është pothuajse gjithmonë një problem kalimtar i rrjetit. Provoni përsëri — pjesët që janë vendosur tashmë mbahen, kështu që vazhdon nga ku u ndal."
 
 msgid "This is Pip! He has a wiggly tail."
 msgstr "Ky është Pip! Ai ka bisht që lëkundet."
@@ -10596,7 +10596,7 @@ msgid "This is the active version — pick another above to compare and restore 
 msgstr "Ky është versioni aktiv — zgjidhni një tjetër më lart për ta krahasuar dhe rikthyer. Gjithçka që përmban:"
 
 msgid "This is the longest step on a big book — it's safe to wait here."
-msgstr ""
+msgstr "Ky është hapi më i gjatë në një libër të madh — është i sigurt për të pritur këtu."
 
 msgid "This isn't a completed part"
 msgstr "Kjo nuk është një pjesë e përfunduar"
@@ -10608,7 +10608,7 @@ msgid "This isn't a valid part file"
 msgstr "Ky nuk është një skedar i vlefshëm pjese"
 
 msgid "This login has no account the Studio can use. Create an account in Cloudflare, then connect again."
-msgstr ""
+msgstr "Kjo hyrje nuk ka një llogari që Studio mund të përdorë. Krijoni një llogari në Cloudflare, pastaj lidheni përsëri."
 
 msgid "This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via \"View HTML source\" instead of merging."
 msgstr "Kjo bashkon një aktivitet të personalizuar. Seksioni i kombinuar ri-renderohet, gjë që do të hedhë poshtë skriptin interaktiv të vlerësimit të aktivitetit të personalizuar. Për ta ruajtur, redaktoni përmes \"Shiko burimin HTML\" në vend që të bashkoni."
@@ -10716,7 +10716,7 @@ msgid "This version is empty."
 msgstr "Ky version është bosh."
 
 msgid "This version was published before the Studio started tracking edits, so it can't tell whether your book has changed since. Updating the site makes them match."
-msgstr ""
+msgstr "Ky version u publikua para se Studio të fillonte të ndjekë redaktimet, kështu që nuk mund të tregojë nëse libri juaj ka ndryshuar që atëherë. Përditësimi i faqes i bën ato të përputhen."
 
 msgid "This voice ID is not in your ElevenLabs account."
 msgstr "Kjo ID zëri nuk është në llogarinë tuaj ElevenLabs."
@@ -10773,7 +10773,7 @@ msgid "Title"
 msgstr "Titulli"
 
 msgid "Title A–Z"
-msgstr ""
+msgstr "Titulli A–Z"
 
 msgid "Title and image with text overlaid as a caption — AI matches the source book's visual style."
 msgstr "Titulli dhe imazhi me tekst të mbivendosur si titull — AI përputhet me stilin vizual të librit burim."
@@ -10960,10 +10960,10 @@ msgid "Turn any textbook into an accessible edition — every step of the pipeli
 msgstr "Kthejeni çdo tekst shkollor në një botim të aksesueshëm — çdo hap i procesit, i integruar."
 
 msgid "Turn on R2 in Cloudflare"
-msgstr ""
+msgstr "Aktivizo R2 në Cloudflare"
 
 msgid "Turn on R2 storage in Cloudflare first"
-msgstr ""
+msgstr "Aktivizo ruajtjen R2 në Cloudflare së pari"
 
 msgid "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
 msgstr "Aktivizo këtë për të shfaqur kartën e rishikimit të Validimit në Paraparimim dhe skedën e Validimit të Rishikuesit në hapin e Validimit."
@@ -10972,7 +10972,7 @@ msgid "Turning normalization on with {elevenLabsModel} requires an ElevenLabs En
 msgstr "Aktivizimi i normalizimit me {elevenLabsModel} kërkon një plan Enterprise të ElevenLabs. Përdorni \"Off\", ose kaloni në eleven_multilingual_v2 — ai gjithsesi normalizon numrat më mirë."
 
 msgid "Turning on the link and getting it ready to open."
-msgstr ""
+msgstr "Duke aktivizuar lidhjen dhe duke e përgatitur për t'u hapur."
 
 msgid "Two authentication methods are supported: Bearer tokens passed in the Authorization header, and API keys passed as a query parameter. Bearer tokens are preferred for server-to-server requests due to their short expiry window."
 msgstr "Mbështeten dy metoda autentikimi: tokenët Bearer të kaluar në kokën Authorization dhe çelësat API të kaluar si parametër pyetjeje. Tokenët Bearer preferohen për kërkesat server-te-server për shkak të dritares së tyre të shkurtër të skadimit."
@@ -11107,7 +11107,7 @@ msgid "Unknown step: {step}"
 msgstr "Hap i panjohur: {step}"
 
 msgid "Unnamed account"
-msgstr ""
+msgstr "Llogari pa emër"
 
 msgid "Unprune image"
 msgstr "Rikthe imazhin"
@@ -11146,20 +11146,20 @@ msgid "Update ready to install"
 msgstr "Përditësimi është gati për instalim"
 
 msgid "Update site"
-msgstr ""
+msgstr "Përditëso faqen"
 
 msgid "Updated"
-msgstr ""
+msgstr "Përditësuar"
 
 #. placeholder {0}: formatPublishDate(lastPublishedAt, i18n.locale)
 msgid "updated {0}"
-msgstr ""
+msgstr "përditësuar {0}"
 
 msgid "Updating the publishing service"
-msgstr ""
+msgstr "Duke përditësuar shërbimin e publikimit"
 
 msgid "Updating the shared copy"
-msgstr ""
+msgstr "Duke përditësuar kopjen e ndarë"
 
 msgid "Upload"
 msgstr "Ngarko"
@@ -11237,7 +11237,7 @@ msgid "Uploading..."
 msgstr "Po ngarkohet..."
 
 msgid "Use 4 to 12 characters, with no spaces."
-msgstr ""
+msgstr "Përdorni 4 deri në 12 karaktere, pa hapësira."
 
 msgid "Use adjacent text as context"
 msgstr "Përdor tekstin ngjitur si kontekst"
@@ -11283,7 +11283,7 @@ msgid "Use these settings for the common review workflow."
 msgstr "Përdorni këto cilësime për rrjedhën e zakonshme të punës së rishikimit."
 
 msgid "Use this account"
-msgstr ""
+msgstr "Përdorni këtë llogari"
 
 msgid "Use this for checks you intentionally want to suppress, such as known false positives."
 msgstr "Përdor këtë për kontrollet që dëshiron t'i fshehësh me qëllim, si p.sh. pozitivët e rremë të njohur."
@@ -11340,11 +11340,11 @@ msgid "Using fallback"
 msgstr "Po përdoret fallback"
 
 msgid "usually 1 to 5 minutes"
-msgstr ""
+msgstr "zakonisht 1 deri në 5 minuta"
 
 #. placeholder {0}: root.version
 msgid "v{0}"
-msgstr ""
+msgstr "v{0}"
 
 msgid "v{hovered} preview"
 msgstr "Pamja paraprake e v{hovered}"
@@ -11383,13 +11383,13 @@ msgstr "Versioni {0}"
 #. placeholder {0}: connection.worker_version ?? "?"
 #. placeholder {1}: connection.latest_version
 msgid "Version {0} → {1}. Your published books stay online while this runs."
-msgstr ""
+msgstr "Versioni {0} → {1}. Librat tuaj të publikuar qëndrojnë online ndërsa kjo funksionon."
 
 msgid "Version {current}"
 msgstr "Versioni {current}"
 
 msgid "Version {currentVersion}"
-msgstr ""
+msgstr "Versioni {currentVersion}"
 
 msgid "Version {selected}"
 msgstr "Versioni {selected}"
@@ -11401,7 +11401,7 @@ msgid "Version history"
 msgstr "Historiku i versioneve"
 
 msgid "Version unknown"
-msgstr ""
+msgstr "Versioni i panjohur"
 
 msgid "Versioned"
 msgstr "Me version"
@@ -11413,7 +11413,7 @@ msgid "video"
 msgstr "video"
 
 msgid "Video — large, like audio"
-msgstr ""
+msgstr "Video — e madhe, si audio"
 
 msgid "videos"
 msgstr "video"
@@ -11497,7 +11497,7 @@ msgid "Wait for storyboard to complete"
 msgstr "Prit të përfundojë storyboard-i"
 
 msgid "Waiting"
-msgstr ""
+msgstr "Në pritje"
 
 #~ msgid "WAITING"
 #~ msgstr "DUKE PRITUR"
@@ -11509,10 +11509,10 @@ msgid "Waiting for page to be processed..."
 msgstr "Duke pritur të përpunohet faqja..."
 
 msgid "Waiting for your approval in the browser — choose <0>Allow</0> on the Cloudflare page. It appears as <1>Wrangler</1>; that's expected."
-msgstr ""
+msgstr "Në pritje të miratimit tuaj në shfletues — zgjidhni <0>Lejo</0> në faqen e Cloudflare. Shfaqet si <1>Wrangler</1>; kjo është e pritur."
 
 msgid "Waiting on you"
-msgstr ""
+msgstr "Në pritje të jush"
 
 msgid "Wall Clock"
 msgstr "Orë muri"
@@ -11549,25 +11549,25 @@ msgid "We compared the page edges and think these facing pages are spreads. Open
 msgstr "Krahasuam skajet e faqeve dhe mendojmë se këto faqe përballë janë fletë të dyfishta. Hap Shqyrto për të bashkuar ato që janë — anulimi nuk ndryshon asgjë."
 
 msgid "We couldn't check whether this book is shared"
-msgstr ""
+msgstr "Nuk mundëm të kontrollonim nëse ky libër është ndarë"
 
 msgid "We couldn't check your publishing setup"
-msgstr ""
+msgstr "Nuk mundëm të kontrollonim konfigurimin tuaj të publikimit"
 
 msgid "We couldn't connect to Cloudflare"
-msgstr ""
+msgstr "Nuk mundëm të lidhemi me Cloudflare"
 
 msgid "We couldn't load your published books"
-msgstr ""
+msgstr "Nuk mundëm të ngarkonim librat tuaj të publikuar"
 
 msgid "We couldn't reach your publishing service for this list."
-msgstr ""
+msgstr "Nuk mundëm të arrinim shërbimin tuaj të publikimit për këtë listë."
 
 msgid "We hit a snag while loading this view. You can try this screen again or reload the whole app."
 msgstr "Ndesh një problem gjatë ngarkimit të kësaj pamjeje. Mund të provosh këtë ekran sërish ose të ringarko të gjithë aplikacionin."
 
 msgid "We set everything up"
-msgstr ""
+msgstr "Ne vendosëm gjithçka"
 
 msgid "Web Export"
 msgstr "Eksport web"
@@ -11618,13 +11618,13 @@ msgid "What should the review focus on?"
 msgstr "Në çfarë duhet të fokusohet rishikimi?"
 
 msgid "What to include"
-msgstr ""
+msgstr "Çfarë të përfshihet"
 
 msgid "What we discovered"
 msgstr "Çfarë zbuluam"
 
 msgid "What you switch off is missing from the shared copy, not from your book. Updating the site later keeps the same choice."
-msgstr ""
+msgstr "Ajo që fikni mungon nga kopja e ndarë, jo nga libri juaj. Përditësimi i faqes më vonë mban të njëjtën zgjedhje."
 
 msgid "What's inside"
 msgstr "Çfarë ka brenda"
@@ -11657,25 +11657,25 @@ msgid "When enabled, word-level timestamps are calculated automatically during s
 msgstr "Kur aktivizohet, afatet kohore në nivel fjale llogariten automatikisht gjatë gjenerimit të të folurit në mënyrë që lexuesi të mund të theksojë fjalët ndërkohë që thuhen. Kur çaktivizohet, mund të llogarisësh afatet kohore manualisht nga pamja e të folurit."
 
 msgid "When the link should stop working"
-msgstr ""
+msgstr "Kur duhet të ndalojë së funksionuari lidhja"
 
 msgid "When your PDF isn't built around facing pages, single mode keeps every page separate: nothing is merged across a spread. That matches how most textbooks, novels, and reference books are read - one page at a time."
 msgstr "Kur PDF-i yt nuk është ndërtuar rreth faqeve ballë për ballë, modaliteti single mban çdo faqe të ndarë: asgjë nuk bashkohet nëpër një spread. Kjo përkon me mënyrën se si lexohen shumica e librave shkollorë, romaneve dhe librave referuese — një faqe në një kohë."
 
 msgid "Where does the rain come from?"
-msgstr ""
+msgstr "Nga vjen shiu?"
 
 msgid "Where it all begins"
 msgstr "Ku fillon gjithçka"
 
 msgid "Where readers open your book"
-msgstr ""
+msgstr "Ku lexuesit hapin librin tuaj"
 
 msgid "Where reviewer comments live"
-msgstr ""
+msgstr "Ku jetojnë komentet e recensuesve"
 
 msgid "Which Cloudflare account?"
-msgstr ""
+msgstr "Cila llogari Cloudflare?"
 
 msgid "Which process releases oxygen?"
 msgstr "Cili proces çliron oksigjen?"
@@ -11684,16 +11684,16 @@ msgid "While editing"
 msgstr "Gjatë redaktimit"
 
 msgid "Who can open the link?"
-msgstr ""
+msgstr "Kush mund ta hapë lidhjen?"
 
 msgid "who gave a name"
-msgstr ""
+msgstr "kush dha një emër"
 
 msgid "Whole book"
 msgstr "I gjithë libri"
 
 msgid "Whole page"
-msgstr ""
+msgstr "E gjithë faqja"
 
 msgid "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 msgstr "Kontrolle për të gjithë librin për dalje të paketuara ADT, plus gjetjet e rishikuesve të kaptura nga Parapamja."
@@ -11738,13 +11738,13 @@ msgid "words"
 msgstr "fjalë"
 
 msgid "Workers R2 Storage"
-msgstr ""
+msgstr "Ruajtja R2 e Punëtorëve"
 
 msgid "Workers Scripts"
-msgstr ""
+msgstr "Skriptet e Punëtorëve"
 
 msgid "Wrangler"
-msgstr ""
+msgstr "Wrangler"
 
 msgid "Wrap in group"
 msgstr "Mbështjell në grup"
@@ -11763,14 +11763,14 @@ msgid "Write your sentence with a {0} marker."
 msgstr "Shkruani fjalinë tuaj me një shënues {0}."
 
 msgid "Written about an older version of this page"
-msgstr ""
+msgstr "Shkruar për një version më të vjetër të kësaj faqeje"
 
 #. placeholder {0}: root.version
 msgid "Written on version {0} of this book"
-msgstr ""
+msgstr "Shkruar në versionin {0} të këtij libri"
 
 msgid "Y"
-msgstr ""
+msgstr "Y"
 
 msgid "Yes"
 msgstr "Po"
@@ -11779,14 +11779,14 @@ msgstr "Po"
 #~ msgstr "Dje"
 
 msgid "You"
-msgstr ""
+msgstr "Ju"
 
 #. placeholder {0}: formatVersion(release.version)
 msgid "You are about to install {0}. Books or settings edited with a newer version may not work as expected. Back up your books before continuing."
 msgstr "Jeni gati të instaloni {0}. Librat ose cilësimet e redaktuara me një version më të ri mund të mos funksionojnë siç pritet. Bëni kopje rezervë të librave para se të vazhdoni."
 
 msgid "You can change this later, or stop sharing at any time."
-msgstr ""
+msgstr "Mund ta ndryshoni këtë më vonë, ose të ndaloni ndarjen në çdo kohë."
 
 msgid "You can export at this stage"
 msgstr "Mund të eksportosh në këtë fazë"
@@ -11795,7 +11795,7 @@ msgid "You have changes that haven't been saved yet. If you quit now, they'll be
 msgstr "Ke ndryshime që ende nuk janë ruajtur. Nëse del tani, ato do të humbasin."
 
 msgid "You have edited this book since it was published, so readers are seeing an older copy. Update the site when you want them to catch up."
-msgstr ""
+msgstr "Ju keni redaktuar këtë libër që kur u publikua, kështu që lexuesit po shohin një kopje më të vjetër. Përditësoni faqen kur dëshironi që ata të kapin ritmin."
 
 #~ msgid "You have unsaved changes. If you leave, they'll be lost."
 #~ msgstr "Ke ndryshime të paruajtura. Nëse largohesh, ato do të humbasin."
@@ -11804,16 +11804,16 @@ msgid "You haven't added any terms manually yet"
 msgstr "Nuk ke shtuar ende asnjë term manualisht"
 
 msgid "You only had to do that once. To share a book, open it and go to its Export step — you'll find Publish there."
-msgstr ""
+msgstr "Ju vetëm duhej ta bënit atë një herë. Për të ndarë një libër, hapeni atë dhe shkoni te hapi i Eksportit — do të gjeni Publikimin atje."
 
 msgid "You stay in charge."
-msgstr ""
+msgstr "Ju qëndroni në kontroll."
 
 msgid "You stopped sharing this book, so the old link no longer opens. You can start sharing it again on the same link, or publish again for a new one."
-msgstr ""
+msgstr "Ju ndaluat ndarjen e këtij libri, kështu që lidhja e vjetër nuk hapet më. Mund të filloni ta ndani përsëri në të njëjtën lidhje, ose të publikoni përsëri për një të re."
 
 msgid "You stopped this before it finished. Nothing was sent, and publishing again starts a fresh copy — it does not resume this one."
-msgstr ""
+msgstr "Ju ndaluat këtë para se të përfundonte. Asgjë nuk u dërgua, dhe publikimi përsëri fillon një kopje të re — nuk vazhdon këtë."
 
 msgid "You're all set"
 msgstr "Je gati"
@@ -11834,13 +11834,13 @@ msgid "You're testing an early build."
 msgstr "Po testoni një version të hershëm."
 
 msgid "you@example.com"
-msgstr ""
+msgstr "ju@example.com"
 
 msgid "Young adult fiction"
 msgstr "Fiksion për të rinj"
 
 msgid "Your account needs a web address first"
-msgstr ""
+msgstr "Llogaria juaj ka nevojë për një adresë interneti së pari"
 
 msgid "Your AI, your keys."
 msgstr "IA-ja juaj, çelësat tuaj."
@@ -11852,43 +11852,43 @@ msgid "Your book"
 msgstr "Libri yt"
 
 msgid "Your book is online"
-msgstr ""
+msgstr "Libri juaj është online"
 
 msgid "Your book, one link away"
-msgstr ""
+msgstr "Libri juaj, një lidhje larg"
 
 msgid "Your Books"
 msgstr "Librat tuaj"
 
 msgid "Your books and their reviewer comments will both live in your own Cloudflare account."
-msgstr ""
+msgstr "Librat tuaj dhe komentet e tyre të recensuesve do të jetojnë të dyja në llogarinë tuaj Cloudflare."
 
 msgid "Your books are published at"
-msgstr ""
+msgstr "Librat tuaj janë publikuar në"
 
 msgid "Your books will live in your own Cloudflare account."
-msgstr ""
+msgstr "Librat tuaj do të jetojnë në llogarinë tuaj Cloudflare."
 
 msgid "Your browser opens Cloudflare's own sign-in page."
-msgstr ""
+msgstr "Shfletuesi juaj hap faqen e hyrjes së vetë Cloudflare."
 
 msgid "Your Cloudflare account hasn't chosen the web address it uses for services yet, and your share links need it. Open Workers & Pages, pick any name when it asks, then try again."
-msgstr ""
+msgstr "Llogaria juaj Cloudflare nuk ka zgjedhur ende adresën e internetit që përdor për shërbime, dhe lidhjet tuaja të ndarjes e kanë nevojë. Hapni Workers & Pages, zgjidhni çdo emër kur të kërkojë, pastaj provoni përsëri."
 
 msgid "Your Cloudflare connection is still here. The Studio just couldn't confirm what is set up in your account — try again in a moment."
-msgstr ""
+msgstr "Lidhja juaj Cloudflare është ende këtu. Studio thjesht nuk mund të konfirmonte se çfarë është vendosur në llogarinë tuaj — provoni përsëri pas një momenti."
 
 msgid "Your Cloudflare login covers more than one account. Pick the one your books should be published into — you can change it later by disconnecting and connecting again."
-msgstr ""
+msgstr "Hyrja juaj në Cloudflare mbulon më shumë se një llogari. Zgjidhni atë në të cilën librat tuaj duhet të publikohen — mund ta ndryshoni më vonë duke u shkëputur dhe lidhur përsëri."
 
 msgid "Your connection is still here, so nothing is half-forgotten. You can try again, or untick the delete option and just disconnect — then tidy up in Cloudflare yourself."
-msgstr ""
+msgstr "Lidhja juaj është ende këtu, kështu që asgjë nuk është gjysmë e harruar. Mund të provoni përsëri, ose të çaktivizoni opsionin e fshirjes dhe thjesht të shkëputeni — pastaj pastroni në Cloudflare vetë."
 
 #~ msgid "Your first ADT <0>starts here.</0>"
 #~ msgstr "ADT-ja juaj e parë <0>fillon këtu.</0>"
 
 msgid "Your first comment goes here…"
-msgstr ""
+msgstr "Komenti juaj i parë shkon këtu…"
 
 msgid "Your font has been applied to captions."
 msgstr "Fonti juaj u zbatua te përshkrimet."
@@ -11906,24 +11906,24 @@ msgid "Your fonts"
 msgstr "Fontet e tua"
 
 msgid "Your publishing service is a version behind and doesn't keep this list yet. Installing the update adds it — the names of anyone who joined before then are already stored, so nothing has been lost."
-msgstr ""
+msgstr "Shërbimi juaj i publikimit është një version prapa dhe nuk e mban ende këtë listë. Instalimi i përditësimit e shton atë — emrat e kujtdo që është bashkuar para kësaj janë tashmë të ruajtura, kështu që asgjë nuk është humbur."
 
 msgid "Your publishing service is older than this Studio and has no way to erase a book yet. Nothing was deleted. Installing the update adds it."
-msgstr ""
+msgstr "Shërbimi juaj i publikimit është më i vjetër se kjo Studio dhe nuk ka ende një mënyrë për të fshirë një libër. Asgjë nuk u fshi. Instalimi i përditësimit e shton atë."
 
 #. placeholder {0}: data.worker_version ?? "?"
 #. placeholder {1}: data.latest_version
 msgid "Your publishing service is version {0}; the Studio ships {1}. Newer features can be missing until you install it — your link and your readers are unaffected either way."
-msgstr ""
+msgstr "Shërbimi juaj i publikimit është versioni {0}; Studio dërgon {1}. Karakteristikat më të reja mund të mungojnë deri sa ta instaloni — lidhja juaj dhe lexuesit tuaj janë të paprekur në të dyja mënyrat."
 
 msgid "Your publishing service isn't answering, so this is what this computer remembers: sizes and comment counts are missing, and a book published from another computer won't be listed."
-msgstr ""
+msgstr "Shërbimi juaj i publikimit nuk po përgjigjet, kështu që kjo është ajo që ky kompjuter mban mend: madhësitë dhe numrat e komenteve mungojnë, dhe një libër i publikuar nga një kompjuter tjetër nuk do të jetë i listuar."
 
 msgid "Your publishing service isn't answering, so what this page says about versions and readers may be out of date. The link itself is usually fine."
-msgstr ""
+msgstr "Shërbimi juaj i publikimit nuk po përgjigjet, kështu që ajo që thotë kjo faqe për versionet dhe lexuesit mund të jetë e vjetëruar. Lidhja vetë është zakonisht në rregull."
 
 msgid "Your service isn't answering yet"
-msgstr ""
+msgstr "Shërbimi juaj ende nuk po përgjigjet"
 
 msgid "Z → A"
 msgstr "Z → A"
