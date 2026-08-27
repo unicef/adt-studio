@@ -3,6 +3,7 @@ import { translationsAtom } from "@/features/language/state/language.atoms"
 import { pagesAtom, currentSectionIdAtom } from "@/features/navigation/state/nav.atoms"
 import {
   confettiTriggerAtom,
+  emitActivityResult,
   skipEnabledAtom,
   skipHandlerAtom,
   submitEnabledAtom,
@@ -366,6 +367,7 @@ export function initializeMultiSelectActivity(): (() => void) | null {
     }
 
     playActivitySound(allCorrect ? "success" : "error")
+    emitActivityResult(allCorrect)
     // `total` is constructed so the toast's internal identity
     //   wrong = total − correct − unfilled
     // recovers `wrongPicks`. The label override turns the legacy "empty"

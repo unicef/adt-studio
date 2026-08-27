@@ -2,13 +2,13 @@ import { FlaskConical, DownloadCloud, Check } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { OB_PANEL_GRADIENT } from "../theme"
 
- 
+
 const BUILDS = [
   { version: "v0.9.0-beta.2", current: true, pr: null },
   { version: "v0.9.0-beta-pr-482", current: false, pr: "482" },
   { version: "v0.9.0-beta.1", current: false, pr: null },
 ]
- 
+
 
 /** Mock of the in-app beta library — the panel demo for the beta page. */
 function BetaLibraryDemo() {

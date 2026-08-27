@@ -21,6 +21,9 @@ export default defineConfig({
         resolve: {
           alias: {
             "@": fileURLToPath(new URL("./apps/studio/src", import.meta.url)),
+            "@kids-buddies": fileURLToPath(
+              new URL("./assets/adt/kids-buddies", import.meta.url),
+            ),
           },
         },
       },

@@ -5,6 +5,10 @@ import { parseBookLabel } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream } from "./zip-util.js"
+import {
+  assertKidsVoiceExportReady,
+  readKidsModeConfig,
+} from "./kids-mode-service.js"
 import { readPartInfo } from "./book-service.js"
 
 export interface ExportResult {
@@ -45,6 +49,8 @@ export interface ExportFeatures {
   readAloud?: boolean
   quizzes?: boolean
   signLanguage?: boolean
+  kidsMode?: boolean
+  kidsBuddies?: string[]
   languages?: string[]
 }
 
@@ -59,6 +65,15 @@ export interface ExportDefaultSettings {
   reduceMotion?: boolean
 }
 
+type ExportFormat = "project" | "webpub" | "scorm" | "adt" | "epub" | "pnld"
+
+/**
+ * Kids Mode currently depends on the standalone ADT runtime. Host-reader
+ * formats strip that runtime, and SCORM has not completed compatibility
+ * validation, so only the tested Web Export may opt in for now.
+ */
+const KIDS_MODE_EXPORT_FORMATS = new Set<ExportFormat>(["adt"])
+
 /**
  * Prepare export by rebuilding the adt/ (and optionally webpub/) directories.
  * Called as a separate step before the actual download so the client can show
@@ -66,7 +81,7 @@ export interface ExportDefaultSettings {
  */
 export async function prepareExport(
   label: string,
-  format: "project" | "webpub" | "scorm" | "adt" | "epub" | "pnld",
+  format: ExportFormat,
   booksDir: string,
   webAssetsDir: string,
   configPath?: string,
@@ -104,6 +119,8 @@ export async function prepareExport(
     const finalLanguages = normalizedRequested.length > 0
       ? normalizedRequested.filter((lang) => outputLanguages.includes(lang))
       : outputLanguages
+    const exportLanguages =
+      finalLanguages.length > 0 ? finalLanguages : outputLanguages
 
     const yamlDefaultSettings = config.default_settings
       ? {
@@ -142,12 +159,55 @@ export async function prepareExport(
       bookDir,
       label: safeLabel,
       language,
-      outputLanguages: finalLanguages.length > 0 ? finalLanguages : outputLanguages,
+      outputLanguages: exportLanguages,
       title,
       webAssetsDir,
       applyBodyBackground: config.apply_body_background,
       speechConfig: config.speech,
-      features,
+      // Setup stays in kids-mode.json, while each rendered export explicitly
+      // chooses its reading experience. Older callers that omit kidsMode keep
+      // the previous book-level default. Buddy ids always come from the saved
+      // setup, never from untrusted request data.
+      features: (() => {
+        const kidsConfig = readKidsModeConfig(bookDir)
+        const supportsKidsMode = KIDS_MODE_EXPORT_FORMATS.has(format)
+        const requestedKidsMode =
+          format === "project"
+            ? false
+            : supportsKidsMode
+              ? features?.kidsMode ?? kidsConfig.enabled
+              : features?.kidsMode === true
+        if (requestedKidsMode && !supportsKidsMode) {
+          throw new HTTPException(400, {
+            message:
+              "Kids Mode export is currently supported only for Web Export",
+          })
+        }
+        if (requestedKidsMode && !kidsConfig.enabled) {
+          throw new Error(
+            "Kids Mode setup must be enabled before exporting a Kids Mode book",
+          )
+        }
+        if (requestedKidsMode) {
+          assertKidsVoiceExportReady({
+            bookDir,
+            languages: exportLanguages,
+            buddies: kidsConfig.buddies,
+          })
+        }
+        const {
+          kidsMode: _kidsMode,
+          kidsBuddies: _kidsBuddies,
+          ...rest
+        } = features ?? {}
+        return {
+          ...rest,
+          kidsMode: requestedKidsMode,
+          ...(requestedKidsMode && kidsConfig.buddies.length > 0
+            ? { kidsBuddies: kidsConfig.buddies }
+            : {}),
+        }
+      })(),
       defaultSettings: mergedDefaultSettings,
       lockedSettings: config.locked_settings,
       fixedLayout: isFixedLayoutBook(config),

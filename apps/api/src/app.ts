@@ -21,6 +21,7 @@ import { createBookOutlineRoutes } from "./routes/book-outline.js"
 import { createFontRoutes } from "./routes/fonts.js"
 import { createTypographyRoutes } from "./routes/typography.js"
 import { createTTSRoutes } from "./routes/tts.js"
+import { createKidsVoiceRoutes } from "./routes/kids-voice.js"
 import { createStageRoutes } from "./routes/stages.js"
 import { createTaskRoutes } from "./routes/tasks.js"
 import { createBookEventBus } from "./services/book-event-bus.js"
@@ -112,6 +113,7 @@ app.route("/api", createFontRoutes(booksDir, promptsDir, configPath, taskService
 app.route("/api", createTypographyRoutes(booksDir))
 app.route("/api", createEditableActivitiesRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createTTSRoutes(booksDir, configPath, taskService))
+app.route("/api", createKidsVoiceRoutes(booksDir, webAssetsDir, promptsDir, configPath))
 app.route(
   "/api",
   createStageRoutes(stageService, eventBus, pageErrorDecisions, booksDir, promptsDir, webAssetsDir, configPath)

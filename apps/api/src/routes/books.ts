@@ -34,6 +34,7 @@ import {
   type ExportResult,
 } from "../services/export-service.js"
 import { importProject, previewImport } from "../services/import-service.js"
+import { readKidsModeConfig } from "../services/kids-mode-service.js"
 import {
   exportPart,
   importPart,
@@ -938,10 +939,89 @@ export function createBookRoutes(
       if (pages.length === 0) {
         throw new HTTPException(404, { message: "ADT has no pages" })
       }
-      // Preserve the version segment in the redirect
+      // Preserve the version segment and the query string in the redirect —
+      // the Studio preview rides the `kidsMode` param on the root URL that the
+      // runtime must see on the first real page load.
       const versionMatch = reqPath.match(/\/adt\/(v-[^/]+)/)
       const versionPrefix = versionMatch ? `${versionMatch[1]}/` : ""
-      return c.redirect(`/api/books/${safeLabel}/adt/${versionPrefix}${pages[0].href}`)
+      const query = new URL(c.req.url).search
+      return c.redirect(
+        `/api/books/${safeLabel}/adt/${versionPrefix}${pages[0].href}${query}`,
+      )
+    }
+
+    // Kids mode is author-time book state (kids-mode.json) that must reflect
+    // in the preview without a full re-package: patch the packaged config on
+    // the way out, and serve voice clips live from the book dir.
+    if (filePath === "assets/config.json") {
+      const packagedConfigPath = path.resolve(adtDir, "assets", "config.json")
+      if (fs.existsSync(packagedConfigPath)) {
+        const configJson = JSON.parse(
+          fs.readFileSync(packagedConfigPath, "utf-8"),
+        ) as { features?: Record<string, unknown> }
+        const kids = readKidsModeConfig(
+          path.join(path.resolve(booksDir), safeLabel),
+        )
+        configJson.features = {
+          ...configJson.features,
+          kidsMode: kids.enabled,
+          ...(kids.enabled && kids.buddies.length > 0
+            ? { kidsBuddies: kids.buddies }
+            : {}),
+        }
+        if (!kids.enabled && configJson.features) {
+          delete configJson.features.kidsBuddies
+        }
+        c.header("Content-Type", "application/json")
+        c.header("Cache-Control", "no-store")
+        return c.body(JSON.stringify(configJson))
+      }
+    }
+
+    if (filePath.startsWith("content/kids-voice/")) {
+      const voiceDir = path.join(path.resolve(booksDir), safeLabel, "kids-voice")
+      const voicePath = path.resolve(
+        voiceDir,
+        filePath.slice("content/kids-voice/".length),
+      )
+      if (!voicePath.startsWith(voiceDir + path.sep)) {
+        throw new HTTPException(400, { message: "Invalid path" })
+      }
+      if (!fs.existsSync(voicePath) || !fs.statSync(voicePath).isFile()) {
+        throw new HTTPException(404, { message: `Not found: ${filePath}` })
+      }
+      const ext = path.extname(voicePath).toLowerCase()
+      c.header("Content-Type", MIME_TYPES[ext] ?? "application/octet-stream")
+      c.header("Cache-Control", "no-store")
+      return c.body(fs.readFileSync(voicePath))
+    }
+
+    // Buddy art is only packaged into kids books, but the Studio preview can
+    // force the kids chrome on any book ("Preview kids UI"). When the packaged
+    // book lacks the buddy PNGs, serve them live from the shared web assets dir
+    // so the forced preview still renders — same rationale as kids-voice above.
+    if (filePath.startsWith("assets/kids-buddies/") && webAssetsDir) {
+      const packagedBuddy = path.resolve(adtDir, filePath)
+      const inPackage =
+        packagedBuddy.startsWith(adtDir + path.sep) &&
+        fs.existsSync(packagedBuddy) &&
+        fs.statSync(packagedBuddy).isFile()
+      if (!inPackage) {
+        const buddiesDir = path.resolve(webAssetsDir, "kids-buddies")
+        const sharedBuddy = path.resolve(
+          buddiesDir,
+          filePath.slice("assets/kids-buddies/".length),
+        )
+        if (!sharedBuddy.startsWith(buddiesDir + path.sep)) {
+          throw new HTTPException(400, { message: "Invalid path" })
+        }
+        if (fs.existsSync(sharedBuddy) && fs.statSync(sharedBuddy).isFile()) {
+          const ext = path.extname(sharedBuddy).toLowerCase()
+          c.header("Content-Type", MIME_TYPES[ext] ?? "application/octet-stream")
+          c.header("Cache-Control", "no-store")
+          return c.body(fs.readFileSync(sharedBuddy))
+        }
+      }
     }
 
     const resolvedPath = path.resolve(adtDir, filePath)

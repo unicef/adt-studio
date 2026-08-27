@@ -69,6 +69,13 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": fileURLToPath(new URL("./src", import.meta.url)),
+        // Kids buddy art lives once in the repo-shared runtime asset dir
+        // (assets/adt/kids-buddies) and is packaged into kids books by
+        // packages/pipeline. The Studio authoring UI reads the same source so
+        // the art can't drift between the editor preview and the built book.
+        "@kids-buddies": fileURLToPath(
+          new URL("../../assets/adt/kids-buddies", import.meta.url),
+        ),
       },
     },
     server: {

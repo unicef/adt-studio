@@ -11,6 +11,7 @@ import { GlossaryHighlighter } from "@/features/glossary/components/GlossaryHigh
 import { GlossaryTermPopover } from "@/features/glossary/components/GlossaryTermPopover"
 import { TutorialOverlay } from "@/features/tutorial/components/TutorialOverlay"
 import { PagePrefetcher } from "@/features/navigation/components/PagePrefetcher"
+import { kidsModeActiveAtom } from "@/features/kids/state/kids.atoms"
 
 /**
  * The React tree mounted into `<div id="interface-container">` on every
@@ -31,6 +32,7 @@ import { PagePrefetcher } from "@/features/navigation/components/PagePrefetcher"
  */
 export function ChromeRoot() {
   useThemeSync()
+  const kidsModeActive = useAtomValue(kidsModeActiveAtom)
   const embed = useAtomValue(embedModeAtom)
 
   if (embed) {
@@ -47,7 +49,7 @@ export function ChromeRoot() {
       <AdminPopup />
       <GlossaryHighlighter />
       <GlossaryTermPopover />
-      <TutorialOverlay />
+      {kidsModeActive ? null : <TutorialOverlay />}
       <PagePrefetcher />
       <Toaster position="top-center" richColors closeButton />
     </TooltipProvider>

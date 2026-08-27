@@ -19,6 +19,7 @@ import {
   translationsAtom,
 } from "@/features/language/state/language.atoms"
 import { easyReadModeAtom } from "@/shared/state/ui.atoms"
+import { kidsModeActiveAtom } from "@/features/kids/state/kids.atoms"
 import {
   clearBlockHighlight,
   clearWordHighlight,
@@ -150,6 +151,7 @@ export function useAudioPlayer(): UseAudioPlayer {
   const speed = useAtomValue(audioSpeedAtom) as number
   const volume = useAtomValue(audioVolumeAtom) as number
   const autoplayMode = useAtomValue(autoplayModeAtom) as boolean
+  const kidsModeActive = useAtomValue(kidsModeActiveAtom)
   const readAloudMode = useAtomValue(readAloudModeAtom) as boolean
   const setReadAloudMode = useSetAtom(readAloudModeAtom)
   const wordHighlightMode = useAtomValue(wordHighlightModeAtom) as boolean
@@ -159,6 +161,10 @@ export function useAudioPlayer(): UseAudioPlayer {
   const speedRef = useRef(speed)
   const volumeRef = useRef(volume)
   const initialResumeRef = useRef<boolean>(isPlaying || autoplayMode)
+  // Snapshot at first render, before any effect clears it: was narration mid
+  // playback when the previous page unloaded? Every page turn is a full
+  // document load, so this is the only trace that the child had read-aloud on.
+  const wasPlayingBeforeLoadRef = useRef<boolean>(isPlaying)
 
   wordHighlightModeRef.current = wordHighlightMode
   speedRef.current = speed
@@ -404,9 +410,15 @@ export function useAudioPlayer(): UseAudioPlayer {
     if (items.length === 0) return
     if (!readAloudMode) return
     if (!initialResumeRef.current) return
+    // Kids mode must never blast narration at a child who has not asked for it,
+    // but once they tap "Read to me" it should keep reading page after page
+    // until they stop it. Resume only when narration was actually playing as
+    // the previous page unloaded — on a first visit that flag is false, so the
+    // book still opens silently.
+    if (kidsModeActive && !wasPlayingBeforeLoadRef.current) return
     hasAutoStartedRef.current = true
     playAtIndex(0)
-  }, [items.length, readAloudMode, playAtIndex])
+  }, [items.length, readAloudMode, kidsModeActive, playAtIndex])
 
   useEffect(() => {
     if (readAloudMode) return

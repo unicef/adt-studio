@@ -21,6 +21,7 @@ import {
 } from "../../navigation/state/nav.atoms"
 import {
   confettiTriggerAtom,
+  emitActivityResult,
   skipEnabledAtom,
   skipHandlerAtom,
   submitEnabledAtom,
@@ -261,6 +262,7 @@ export function initializeTrueFalseActivity(): (() => void) | null {
     const allCorrect = total > 0 && correctCount === total
 
     playActivitySound(allCorrect ? "success" : "error")
+    emitActivityResult(allCorrect)
     showActivityProgressToast({
       total,
       correct: correctCount,

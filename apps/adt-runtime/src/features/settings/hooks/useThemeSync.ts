@@ -12,10 +12,17 @@
  * - `"system"`: follows the OS `prefers-color-scheme` media query and
  *   re-applies when the user changes their OS preference live.
  *
+ * Kids mode is the exception: its chrome is an all-light sky palette and has
+ * no dark treatment yet, but `themeAtom` defaults to `"dark"`. Anything that
+ * portals into the chrome containers — the glossary term popover, tooltips —
+ * would otherwise inherit `.dark` and render as a dark card in the middle of
+ * a light interface, so kids mode pins the containers to light.
+ *
  * Mounted once from `ChromeRoot` (always present on every page).
  */
 import { useAtomValue } from "jotai"
 import { useLayoutEffect } from "react"
+import { kidsModeActiveAtom } from "@/features/kids/state/kids.atoms"
 import { themeAtom, type Theme } from "@/shared/state/ui.atoms"
 
 /** IDs of the elements that own the React chrome subtrees. */
@@ -38,9 +45,15 @@ function applyClass(isDark: boolean): void {
 
 export function useThemeSync(): void {
   const theme = useAtomValue(themeAtom) as Theme
+  const kidsMode = useAtomValue(kidsModeActiveAtom)
 
   useLayoutEffect(() => {
     if (typeof document === "undefined") return
+
+    if (kidsMode) {
+      applyClass(false)
+      return
+    }
 
     const apply = () => {
       const isDark =
@@ -54,5 +67,5 @@ export function useThemeSync(): void {
     const mq = window.matchMedia("(prefers-color-scheme: dark)")
     mq.addEventListener("change", apply)
     return () => mq.removeEventListener("change", apply)
-  }, [theme])
+  }, [theme, kidsMode])
 }
