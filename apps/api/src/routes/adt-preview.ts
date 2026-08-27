@@ -12,7 +12,9 @@ import {
   type EasyReadOutput,
   type GlossaryOutput,
   type QuizGenerationOutput,
+  type SpeechFileEntry,
   type TTSOutput,
+  type VoiceSlot,
   type WordTimestampOutput,
   type TocGenerationOutput,
   type Quiz,
@@ -50,6 +52,7 @@ import {
   DEFAULT_QUIZ_PALETTE,
   getCoreTtsCatalog,
   getReadyCoreTtsEntries,
+  resolveNarratorLabel,
 } from "@adt/pipeline"
 
 // ---------------------------------------------------------------------------
@@ -925,12 +928,17 @@ export function createAdtPreviewRoutes(
         primary: { label: "Primary", audios: {} as Record<string, string> },
         secondary: { label: "Secondary", audios: {} as Record<string, string> },
       }
+      const bySlot: Record<VoiceSlot, SpeechFileEntry[]> = { primary: [], secondary: [] }
       for (const entry of ttsData?.entries ?? []) {
         if (!readySpeechIds.has(entry.textId) || isTtsExcluded(entry.textId, speechConfig)) continue
         const slot = resolveEntryVoiceSlot(entry)
         voices[slot].audios[entry.textId] = entry.fileName
-        voices[slot].label = entry.voiceLabel?.trim() || entry.voice
+        bySlot[slot].push(entry)
       }
+      // Same resolution the packager uses, so the preview and the exported
+      // bundle can never disagree about what a narrator is called.
+      voices.primary.label = resolveNarratorLabel(bySlot.primary, "Primary")
+      voices.secondary.label = resolveNarratorLabel(bySlot.secondary, "Secondary")
       return { defaultVoice: "primary", voices }
     })
     if (Object.keys(manifest.voices.secondary.audios).length === 0) {

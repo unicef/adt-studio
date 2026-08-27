@@ -236,6 +236,8 @@ export {
   resolveProviderForLanguage,
   resolveSpeechModel,
   resolveSpeechVoice,
+  resolvedVoiceLabel,
+  resolveNarratorLabel,
   resolveSpeechFormat,
   resolveGeminiTtsRateLimit,
   getDocumentedGeminiTtsRpm,

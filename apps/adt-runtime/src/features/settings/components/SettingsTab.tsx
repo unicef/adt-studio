@@ -51,6 +51,13 @@ export function SettingsTab() {
   const [theme, setTheme] = useAtom(themeAtom);
   const audioVoices = useAtomValue(audioVoicesAtom);
   const [narratorVoice, setNarratorVoice] = useAtom(narratorVoiceAtom);
+  // Offer the picker only when there are genuinely two voices to pick between.
+  // A manifest can carry a slot with no audio at all (every clip for it failed
+  // to generate), and rendering that as an option gives the reader a choice
+  // that plays silence under an untranslated placeholder name.
+  const hasNarratorChoice = (["primary", "secondary"] as const).every(
+    (slot) => Object.keys(audioVoices?.voices[slot]?.audios ?? {}).length > 0,
+  );
 
   const wrap =
     (name: string, setter: (v: boolean) => void) => (next: boolean) => {
@@ -79,7 +86,7 @@ export function SettingsTab() {
                 checked={readAloud}
                 onChange={wrap("ReadAloud", setReadAloud)}
               />
-              {audioVoices?.voices.secondary ? (
+              {hasNarratorChoice && audioVoices ? (
                 <SegmentedRow<NarratorVoiceSlot>
                   label={t("narrator-voice-label") || "Narrator voice"}
                   value={

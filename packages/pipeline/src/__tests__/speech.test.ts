@@ -3,7 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import os from "node:os"
 import url from "node:url"
-import { DEFAULT_ELEVENLABS_TTS_MODEL_ID, ELEVENLABS_SHIPPED_VOICE_NAMES } from "@adt/types"
+import { DEFAULT_ELEVENLABS_TTS_MODEL_ID, ELEVENLABS_SHIPPED_VOICE_NAMES, type SpeechFileEntry } from "@adt/types"
 import {
   stripEmojis,
   isSpeakableText,
@@ -25,6 +25,7 @@ import {
   classifyElevenLabsTtsError,
   elevenLabsTtsRetryDelayMs,
   parseElevenLabsErrorStatus,
+  resolveNarratorLabel,
   type VoiceMaps,
   type InstructionsMap,
 } from "../speech.js"
@@ -327,6 +328,70 @@ describe("resolveVoiceForSlot", () => {
       voice: "QK4xDwo9ESPHA4JNUpX3",
       label: "Tomás",
     })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// resolveNarratorLabel
+// ---------------------------------------------------------------------------
+
+describe("resolveNarratorLabel", () => {
+  const entry = (over: Partial<SpeechFileEntry> = {}): SpeechFileEntry => ({
+    textId: "pg001_t001",
+    language: "en",
+    fileName: "pg001_t001.mp3",
+    voice: "echo",
+    model: "gpt-4o-mini-tts",
+    cached: false,
+    ...over,
+  })
+
+  it("prefers an explicitly configured label", () => {
+    expect(resolveNarratorLabel([entry({ voiceLabel: "Mateo" })], "Primary")).toBe("Mateo")
+  })
+
+  it("falls back to the shipped ElevenLabs name for an unlabelled voice", () => {
+    expect(
+      resolveNarratorLabel(
+        [entry({ provider: "elevenlabs", voice: "QK4xDwo9ESPHA4JNUpX3" })],
+        "Primary",
+      ),
+    ).toBe("Tomás")
+  })
+
+  it("falls back to the raw voice for a provider with no name mapping", () => {
+    expect(resolveNarratorLabel([entry({ provider: "openai" })], "Primary")).toBe("echo")
+  })
+
+  it("tolerates an entry with no provider", () => {
+    expect(resolveNarratorLabel([entry()], "Primary")).toBe("echo")
+  })
+
+  // A single hand-recorded line must not rename the whole narrator: manual
+  // entries carry voice "uploaded", which is not a voice name.
+  it("skips manual uploads while a generated entry is available", () => {
+    expect(
+      resolveNarratorLabel(
+        [
+          entry({ provider: "manual", voice: "uploaded", model: "uploaded" }),
+          entry({ provider: "openai", voice: "shimmer" }),
+        ],
+        "Primary",
+      ),
+    ).toBe("shimmer")
+  })
+
+  it("uses a manual entry only when it is all there is", () => {
+    expect(
+      resolveNarratorLabel(
+        [entry({ provider: "manual", voice: "uploaded", model: "uploaded" })],
+        "Primary",
+      ),
+    ).toBe("uploaded")
+  })
+
+  it("returns the fallback for a slot that produced nothing", () => {
+    expect(resolveNarratorLabel([], "Primary")).toBe("Primary")
   })
 })
 

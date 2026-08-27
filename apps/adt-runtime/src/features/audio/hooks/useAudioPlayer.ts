@@ -17,6 +17,7 @@ import {
   audioVoicesAtom,
   currentLanguageAtom,
   narratorVoiceAtom,
+  type NarratorVoiceSlot,
   speechTextsAtom,
   translationsAtom,
 } from "@/features/language/state/language.atoms"
@@ -147,10 +148,16 @@ export function useAudioPlayer(): UseAudioPlayer {
   const primaryAudioFiles = useAtomValue(audioFilesAtom)
   const audioVoices = useAtomValue(audioVoicesAtom)
   const narratorVoiceValue = useAtomValue(narratorVoiceAtom)
-  const narratorVoice = narratorVoiceValue === "secondary" && audioVoices?.voices.secondary
-    ? "secondary"
-    : "primary"
-  const audioFiles = audioVoices?.voices[narratorVoice]?.audios ?? primaryAudioFiles
+  // A slot with an empty audios map is not a usable voice — a manifest can ship
+  // one when every clip for that slot failed to generate. `??` would happily
+  // accept `{}` and play silence, so test for content rather than presence.
+  const slotAudios = (slot: NarratorVoiceSlot): Record<string, string> | undefined => {
+    const audios = audioVoices?.voices[slot]?.audios
+    return audios && Object.keys(audios).length > 0 ? audios : undefined
+  }
+  const narratorVoice: NarratorVoiceSlot =
+    narratorVoiceValue === "secondary" && slotAudios("secondary") ? "secondary" : "primary"
+  const audioFiles = slotAudios(narratorVoice) ?? primaryAudioFiles
   const translations = useAtomValue(translationsAtom)
   const speechTexts = useAtomValue(speechTextsAtom)
   const language = useAtomValue(currentLanguageAtom) as string

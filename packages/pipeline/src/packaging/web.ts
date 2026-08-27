@@ -16,13 +16,15 @@ import type {
   BookSummaryOutput,
   BookMetadata,
   SpeechConfig,
+  SpeechFileEntry,
   TTSOutput,
   WordTimestampOutput,
   TocGenerationOutput,
   Quiz,
   ImageCaptioningOutput,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, ELEVENLABS_SHIPPED_VOICE_NAMES, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
+import { resolveNarratorLabel } from "../speech.js"
 import {
   GOOGLE_FONTS,
   googleFontsReferencedIn,
@@ -681,6 +683,14 @@ export async function packageAdtWeb(
       primary: { label: "Primary", audios: audioMap },
       secondary: { label: "Secondary", audios: {} },
     }
+    // The entries whose audio actually made it into the bundle, per slot. The
+    // narrator label is resolved from these once the copy loop is done, so a
+    // single manual upload can't rename the voice (see resolveNarratorLabel)
+    // and an entry whose file is missing on disk never names it at all.
+    const copiedBySlot: Record<"primary" | "secondary", SpeechFileEntry[]> = {
+      primary: [],
+      secondary: [],
+    }
 
     if (features?.readAloud !== false) {
       const audioDir = path.join(localeDir, "audio")
@@ -706,16 +716,13 @@ export async function packageAdtWeb(
             fs.copyFileSync(resolvedSrcFile, destFile)
             const slot = resolveEntryVoiceSlot(entry)
             audioVoices[slot].audios[entry.textId] = entry.fileName
-            audioVoices[slot].label =
-              entry.voiceLabel?.trim() ||
-              (entry.provider === "elevenlabs"
-                ? ELEVENLABS_SHIPPED_VOICE_NAMES[entry.voice]
-                : undefined) ||
-              entry.voice
+            copiedBySlot[slot].push(entry)
           }
         }
       }
     }
+    audioVoices.primary.label = resolveNarratorLabel(copiedBySlot.primary, "Primary")
+    audioVoices.secondary.label = resolveNarratorLabel(copiedBySlot.secondary, "Secondary")
     writeJson(path.join(localeDir, "audios.json"), audioMap)
     if (Object.keys(audioVoices.secondary.audios).length > 0) {
       writeJson(path.join(localeDir, "audio_voices.json"), {

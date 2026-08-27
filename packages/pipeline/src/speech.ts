@@ -140,7 +140,7 @@ export interface ResolvedVoice {
   label?: string
 }
 
-function resolvedVoiceLabel(
+export function resolvedVoiceLabel(
   provider: string,
   voice: string,
   configuredLabel?: string,
@@ -150,6 +150,31 @@ function resolvedVoiceLabel(
   return provider === "elevenlabs"
     ? ELEVENLABS_SHIPPED_VOICE_NAMES[voice]
     : undefined
+}
+
+/**
+ * The user-facing narrator name for one voice slot, derived from the entries
+ * that slot actually produced. Every consumer of the `audio_voices.json`
+ * manifest — the packaged reader and the Studio preview — must resolve the
+ * label through here so the two can never disagree about what a voice is
+ * called.
+ *
+ * Manual uploads are skipped when anything else is available: they carry
+ * `voice: "uploaded"`, and a configured voice with no label and no ElevenLabs
+ * shipped name would otherwise rename the whole narrator to "uploaded" because
+ * one line was re-recorded by hand.
+ */
+export function resolveNarratorLabel(
+  entries: readonly SpeechFileEntry[],
+  fallback: string,
+): string {
+  const named = entries.find((entry) => entry.provider !== "manual") ?? entries[0]
+  if (!named) return fallback
+  return (
+    resolvedVoiceLabel(named.provider ?? "", named.voice, named.voiceLabel) ||
+    named.voice ||
+    fallback
+  )
 }
 
 /**
