@@ -1,6 +1,7 @@
 /**
  * Loads `./content/i18n/<lang>/timecode/timecode_output.json` and writes
- * the flattened word-timestamp map into `timecodeMapAtom`.
+ * the flattened word-timestamp map into `timecodeMapsAtom`, alongside the
+ * per-narrator maps from the optional `timecode_voices.json` companion.
  *
  * The legacy on-disk format wraps each entry as `{ timecodes: [null, { word_timestamps }] }`
  * for compatibility with an earlier multi-track timecode shape. We flatten
@@ -8,7 +9,7 @@
  * with `Record<textId, WordTimestamp[]>`.
  */
 import { getDefaultStore } from "jotai"
-import { timecodeMapAtom, timecodeMapsAtom, type TimecodeMap, type WordTimestamp } from "@/features/audio/state/audio.atoms"
+import { timecodeMapsAtom, type TimecodeMap, type WordTimestamp } from "@/features/audio/state/audio.atoms"
 
 interface RawTimecodeEntry {
   timecodes?: [unknown, { word_timestamps?: WordTimestamp[] }]
@@ -25,7 +26,6 @@ export async function loadTimecodes(
     const res = await fetch(url)
     if (!res.ok) {
       getDefaultStore().set(timecodeMapsAtom, { primary: {}, secondary: {} })
-      getDefaultStore().set(timecodeMapAtom, {})
       return {}
     }
     const raw = (await res.json()) as Record<string, RawTimecodeEntry>
@@ -50,12 +50,10 @@ export async function loadTimecodes(
       // Optional for legacy and single-narrator packages.
     }
     getDefaultStore().set(timecodeMapsAtom, maps)
-    getDefaultStore().set(timecodeMapAtom, map)
     return map
   } catch (err) {
     console.warn(`[tts] failed to load ${url}`, err)
     getDefaultStore().set(timecodeMapsAtom, { primary: {}, secondary: {} })
-    getDefaultStore().set(timecodeMapAtom, {})
     return {}
   }
 }

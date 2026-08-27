@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { getDefaultStore } from "jotai"
-import { timecodeMapAtom, timecodeMapsAtom } from "@/features/audio/state/audio.atoms"
+import { timecodeMapsAtom } from "@/features/audio/state/audio.atoms"
 import { loadTimecodes } from "./tts-loader"
 
 describe("loadTimecodes", () => {
@@ -30,7 +30,6 @@ describe("loadTimecodes", () => {
     const result = await loadTimecodes("en")
 
     expect(result.pg001_t001).toEqual([{ text: "Hello", start: 0, end: 0.5 }])
-    expect(getDefaultStore().get(timecodeMapAtom)).toEqual(result)
     expect(getDefaultStore().get(timecodeMapsAtom)).toEqual({
       primary: result,
       secondary: {},
