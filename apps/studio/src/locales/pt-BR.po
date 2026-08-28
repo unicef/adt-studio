@@ -5665,6 +5665,10 @@ msgstr "Próximo Passo"
 msgid "No"
 msgstr "Não"
 
+#. placeholder {0}: PROVIDER_LABELS[provider] ?? provider
+msgid "No {0} voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Pick a voice above, or map one for {lang} in the Voices tab to share it across books."
+msgstr "Nenhuma voz do {0} está mapeada para este idioma, portanto usa-se a voz padrão em inglês e a narração terá sotaque inglês. Escolha uma voz acima ou mapeie uma para {lang} na aba Vozes para compartilhá-la entre os livros."
+
 msgid "No acceptable review results for this view."
 msgstr "Nenhum resultado de revisão aceitável para esta visualização."
 
@@ -5759,8 +5763,8 @@ msgstr "No disabled rules"
 msgid "No Easy Read for this page"
 msgstr "Sem Leitura Fácil para esta página"
 
-msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
-msgstr "Nenhuma voz do ElevenLabs está mapeada para este idioma, então ele usa a voz inglesa padrão e a narração terá sotaque inglês. Mapeie uma voz para {lang} na aba Vozes."
+#~ msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
+#~ msgstr "Nenhuma voz do ElevenLabs está mapeada para este idioma, então ele usa a voz inglesa padrão e a narração terá sotaque inglês. Mapeie uma voz para {lang} na aba Vozes."
 
 msgid "No embedded text layer — text was recovered from the page image"
 msgstr "Sem camada de texto incorporada — o texto foi recuperado a partir da imagem da página"

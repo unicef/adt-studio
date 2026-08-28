@@ -16,6 +16,7 @@ import {
   type TTSProviderConfig,
   type TTSRateLimitConfig,
   type TextCatalogEntry,
+  type PrimarySpeechVoicesConfig,
   type VoiceMapEntry,
   type VoiceSlot,
 } from "@adt/types"
@@ -328,6 +329,42 @@ export function resolveSpeechModel(
   return defaultModel?.trim() || DEFAULT_OPENAI_TTS_MODEL_ID
 }
 
+/**
+ * Lay a book's `speech.primary_voices` over the global voices.yaml map.
+ *
+ * Overriding by overlay rather than by a separate lookup means the per-book
+ * entries go through the very same exact -> base language -> default chain as
+ * the global ones, so an override set for `es` applies to an `es-UY` book
+ * exactly as a global `es` mapping would.
+ *
+ * Both maps are keyed provider -> locale, so a language rerouted to another
+ * provider falls back to that provider's global mapping instead of inheriting
+ * a voice name the new provider cannot use.
+ */
+export function overlayPrimaryVoices(
+  voiceMaps: VoiceMaps,
+  primaryVoices?: PrimarySpeechVoicesConfig,
+): VoiceMaps {
+  if (!primaryVoices || Object.keys(primaryVoices).length === 0) return voiceMaps
+
+  const merged: VoiceMaps = { ...voiceMaps }
+  for (const [provider, byLocale] of Object.entries(primaryVoices)) {
+    const languages: Record<string, VoiceMapEntry> = { ...(merged[provider] ?? {}) }
+    for (const [locale, override] of Object.entries(byLocale)) {
+      if (!override?.voice?.trim()) continue
+      // Lowercased to match how resolveVoiceForSlot normalizes its lookups.
+      languages[normalizeLocale(locale).toLowerCase()] = {
+        primary: {
+          voice: override.voice,
+          ...(override.label ? { label: override.label } : {}),
+        },
+      }
+    }
+    merged[provider] = languages
+  }
+  return merged
+}
+
 export interface ResolvedSpeechVoice {
   provider: string
   model: string
@@ -370,7 +407,7 @@ export function resolveSpeechVoice(
   const resolvedVoice = resolveVoiceForSlot(
     provider,
     languageCode,
-    voiceMaps,
+    overlayPrimaryVoices(voiceMaps, speech?.primary_voices),
     "primary",
     speech?.voice,
   )!

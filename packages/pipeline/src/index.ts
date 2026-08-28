@@ -236,6 +236,7 @@ export {
   resolveProviderForLanguage,
   resolveSpeechModel,
   resolveSpeechVoice,
+  overlayPrimaryVoices,
   resolvedVoiceLabel,
   resolveNarratorLabel,
   resolveSpeechFormat,

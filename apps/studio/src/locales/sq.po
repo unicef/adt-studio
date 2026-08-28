@@ -5667,6 +5667,10 @@ msgstr "Hapi tjetër"
 msgid "No"
 msgstr "Jo"
 
+#. placeholder {0}: PROVIDER_LABELS[provider] ?? provider
+msgid "No {0} voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Pick a voice above, or map one for {lang} in the Voices tab to share it across books."
+msgstr "Asnjë zë i {0} nuk është caktuar për këtë gjuhë, prandaj përdoret zëri i parazgjedhur në anglisht dhe narracioni do të ketë theks anglez. Zgjidh një zë më sipër, ose cakto një për {lang} te skeda Zërat për ta ndarë mes librave."
+
 msgid "No acceptable review results for this view."
 msgstr "Nuk ka rezultate të pranueshme të rishikimit për këtë pamje."
 
@@ -5761,8 +5765,8 @@ msgstr "Nuk ka rregulla të çaktiviziuara"
 msgid "No Easy Read for this page"
 msgstr "Nuk ka Lexim të Lehtë për këtë faqe"
 
-msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
-msgstr "Për këtë gjuhë nuk është caktuar asnjë zë i ElevenLabs, pra përdoret zëri i parazgjedhur anglisht dhe rrëfimi do të ketë theks anglez. Caktoni një zë për {lang} në skedën Zëra."
+#~ msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
+#~ msgstr "Për këtë gjuhë nuk është caktuar asnjë zë i ElevenLabs, pra përdoret zëri i parazgjedhur anglisht dhe rrëfimi do të ketë theks anglez. Caktoni një zë për {lang} në skedën Zëra."
 
 msgid "No embedded text layer — text was recovered from the page image"
 msgstr "Pa shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes"
