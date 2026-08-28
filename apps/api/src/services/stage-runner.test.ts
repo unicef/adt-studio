@@ -3,6 +3,7 @@ import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { PIPELINE, type AppConfig, type ProgressEvent } from "@adt/types"
+import { computeSpeechCacheKey, stripEmojis } from "@adt/pipeline"
 import { createBookStorage } from "@adt/storage"
 import {
   buildStageRunnerImageClassifyConfig,
@@ -95,6 +96,35 @@ structure_types:
   paragraph: Paragraph
 `
   )
+}
+
+function writeSecondarySpeechConfig(
+  configPath: string,
+  options: {
+    provider: "openai" | "azure" | "gemini" | "elevenlabs"
+    voice: string
+    model?: string
+    label?: string
+  },
+): void {
+  const secondaryLines = [
+    `      provider: ${options.provider}`,
+    ...(options.model ? [`      model: ${options.model}`] : []),
+    `      voice: ${options.voice}`,
+    ...(options.label ? [`      label: ${options.label}`] : []),
+  ].join("\n")
+  fs.writeFileSync(
+    configPath,
+    `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+ secondary_voices:
+   en:
+${secondaryLines}
+`,
+ )
 }
 
 function seedCaptionBook(
@@ -1659,7 +1689,7 @@ speech:
       }
       expect(data.entries.pg001_t001).toBeUndefined()
       expect(data.failed).toEqual([
-        { textId: "pg001_t001", error: expect.stringContaining("audio_too_short") },
+        { textId: "pg001_t001", error: expect.stringContaining("audio_too_short"), voiceSlot: "primary" },
       ])
     } finally {
       storage.close()
@@ -1747,7 +1777,7 @@ speech:
         failed?: Array<{ textId: string; error: string }>
       }
       expect(data.failed).toEqual([
-        { textId: "pg001_t001", error: expect.stringContaining("empty") },
+        { textId: "pg001_t001", error: expect.stringContaining("empty"), voiceSlot: "primary" },
       ])
     } finally {
       storage.close()
@@ -1834,6 +1864,410 @@ speech:
         entries: Record<string, { words: Array<{ word: string; start: number; end: number }> }>
       }).entries
       expect(entries.pg001_t001?.words).toEqual([{ word: "stale", start: 0, end: 0.9 }])
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("generates independent primary and secondary profiles with different providers", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    writeSecondarySpeechConfig(configPath, {
+      provider: "gemini",
+      model: "gemini-2.5-flash-preview-tts",
+      voice: "Puck",
+      label: "Alt Narrator",
+    })
+    fs.mkdirSync(path.join(tmpDir, "config"), { recursive: true })
+    fs.writeFileSync(
+      path.join(tmpDir, "config", "voices.yaml"),
+      `openai:
+  en:
+    primary:
+      voice: alloy
+      label: Narrator
+
+`
+    )
+    seedTextAndSpeechBook(booksDir, "speech-dual-voice")
+
+    generateSpeechFileMock.mockImplementation(async (options: {
+      bookDir: string
+      textId: string
+      language: string
+      voice: string
+      voiceSlot?: string
+      voiceLabel?: string
+      model: string
+      provider?: string
+    }) => {
+      const audioDir = path.join(options.bookDir, "audio", options.language)
+      fs.mkdirSync(audioDir, { recursive: true })
+      const slot = options.voiceSlot ?? "primary"
+      const fileName = slot === "secondary" ? `${options.textId}--secondary.mp3` : `${options.textId}.mp3`
+      fs.writeFileSync(path.join(audioDir, fileName), Buffer.from("fake-audio"))
+      return {
+        textId: options.textId,
+        language: options.language,
+        fileName,
+        voice: options.voice,
+        model: options.model,
+        cached: false,
+        provider: options.provider ?? "openai",
+        voiceSlot: slot,
+        ...(options.voiceLabel ? { voiceLabel: options.voiceLabel } : {}),
+      }
+    })
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      "speech-dual-voice",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        geminiApiKey: "gm-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    expect(
+      events.some((event) => event.type === "step-complete" && event.step === "tts")
+    ).toBe(true)
+    // One call per configured slot for the single entry.
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(2)
+    expect(generateSpeechFileMock).toHaveBeenCalledWith(
+      expect.objectContaining({ voice: "alloy", voiceSlot: "primary", voiceLabel: "Narrator" })
+    )
+    expect(generateSpeechFileMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "gemini",
+        model: "gemini-2.5-flash-preview-tts",
+        voice: "Puck",
+        voiceSlot: "secondary",
+        voiceLabel: "Alt Narrator",
+      })
+    )
+
+    const storage = createBookStorage("speech-dual-voice", booksDir)
+    try {
+      const ttsOutput = storage.getLatestNodeData("tts", "en")?.data as {
+        entries: Record<string, { fileName: string; voiceSlot?: string; voiceLabel?: string }>
+      }
+      const variants = Object.values(ttsOutput.entries).filter(
+        (entry) => entry.fileName.startsWith("pg001_t001")
+      )
+      expect(variants).toHaveLength(2)
+      expect(variants.map((entry) => entry.voiceSlot).sort()).toEqual(["primary", "secondary"])
+      const primary = variants.find((entry) => entry.voiceSlot === "primary")
+      const secondary = variants.find((entry) => entry.voiceSlot === "secondary")
+      expect(primary?.fileName).toBe("pg001_t001.mp3")
+      expect(secondary?.fileName).toBe("pg001_t001--secondary.mp3")
+      expect(primary?.voiceLabel).toBe("Narrator")
+      expect(secondary?.voiceLabel).toBe("Alt Narrator")
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("reuses cached primary/secondary variants independently across reruns", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    writeSecondarySpeechConfig(configPath, {
+      provider: "openai",
+      voice: "shimmer",
+      label: "Alt One",
+    })
+    fs.mkdirSync(path.join(tmpDir, "config"), { recursive: true })
+    fs.writeFileSync(
+      path.join(tmpDir, "config", "voices.yaml"),
+      `openai:
+  en:
+    primary:
+      voice: alloy
+
+`
+    )
+    seedTextAndSpeechBook(booksDir, "speech-dual-voice-rerun")
+
+    // Mirrors the real generateSpeechFile contract closely enough for the
+    // reuse check: it writes the output audio AND a cache entry keyed the
+    // same way canReuseSpeechEntry computes it, so a rerun can genuinely
+    // exercise the cache-hit path per slot.
+    generateSpeechFileMock.mockImplementation(async (options: {
+      bookDir: string
+      cacheDir: string
+      textId: string
+      text: string
+      language: string
+      voice: string
+      voiceSlot?: string
+      model: string
+      instructions: string
+      provider?: string
+      voiceLabel?: string
+    }) => {
+      const audioDir = path.join(options.bookDir, "audio", options.language)
+      fs.mkdirSync(audioDir, { recursive: true })
+      const slot = options.voiceSlot ?? "primary"
+      const fileName = slot === "secondary" ? `${options.textId}--secondary.mp3` : `${options.textId}.mp3`
+      fs.writeFileSync(path.join(audioDir, fileName), Buffer.from("fake-audio"))
+
+      const cacheKey = computeSpeechCacheKey({
+        text: stripEmojis(options.text).trim(),
+        voice: options.voice,
+        model: options.model,
+        instructions: options.instructions,
+        provider: options.provider,
+      })
+      const cacheDir = path.join(options.cacheDir, "tts")
+      fs.mkdirSync(cacheDir, { recursive: true })
+      fs.writeFileSync(path.join(cacheDir, `${cacheKey}.mp3`), Buffer.from("fake-audio"))
+
+      return {
+        textId: options.textId,
+        language: options.language,
+        fileName,
+        voice: options.voice,
+        model: options.model,
+        cached: false,
+        provider: options.provider ?? "openai",
+        voiceSlot: slot,
+        ...(options.voiceLabel ? { voiceLabel: options.voiceLabel } : {}),
+      }
+    })
+
+    const runner = createStageRunner()
+    await runner.run(
+      "speech-dual-voice-rerun",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(2)
+
+    // Rerun with no changes: both slots must be reused from cache, so
+    // generateSpeechFile is not called again for either variant.
+    generateSpeechFileMock.mockClear()
+    await runner.run(
+      "speech-dual-voice-rerun",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+
+    // A label-only change must keep both audio files cached while refreshing
+    // the metadata used by Studio and exported narrator selectors.
+    writeSecondarySpeechConfig(configPath, {
+      provider: "openai",
+      voice: "shimmer",
+      label: "Alt Two",
+    })
+    await runner.run(
+      "speech-dual-voice-rerun",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} },
+    )
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    const storage = createBookStorage("speech-dual-voice-rerun", booksDir)
+    try {
+      const output = storage.getLatestNodeData("tts", "en")?.data as {
+        entries: Array<{ voiceSlot?: string; voiceLabel?: string }>
+      }
+      expect(
+        output.entries.find((entry) => entry.voiceSlot === "secondary")?.voiceLabel,
+      ).toBe("Alt Two")
+    } finally {
+      storage.close()
+    }
+
+    // Now invalidate only the secondary voice's cache entry (e.g. its voice
+    // config changed) — only the secondary slot should regenerate while the
+    // primary variant is reused untouched.
+    writeSecondarySpeechConfig(configPath, {
+      provider: "openai",
+      voice: "nova",
+    })
+    generateSpeechFileMock.mockClear()
+    await runner.run(
+      "speech-dual-voice-rerun",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(1)
+    expect(generateSpeechFileMock).toHaveBeenCalledWith(
+      expect.objectContaining({ voiceSlot: "secondary" })
+    )
+
+    // Finally, invalidate only the PRIMARY voice. Reused entries are collected
+    // during the scan pass and regenerated ones after it, so the secondary is
+    // now pushed first and push order is [secondary, primary]. The persisted
+    // output must still lead with the primary voice — Studio reads the first
+    // primary entry to describe the language, and a run in flight serves this
+    // same data.
+    fs.writeFileSync(
+      path.join(tmpDir, "config", "voices.yaml"),
+      `openai:
+  en:
+    primary:
+      voice: onyx
+
+`
+    )
+    generateSpeechFileMock.mockClear()
+    await runner.run(
+      "speech-dual-voice-rerun",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(1)
+    expect(generateSpeechFileMock).toHaveBeenCalledWith(
+      expect.objectContaining({ voiceSlot: "primary" })
+    )
+    const mixedRunStorage = createBookStorage("speech-dual-voice-rerun", booksDir)
+    try {
+      const output = mixedRunStorage.getLatestNodeData("tts", "en")?.data as {
+        entries: Array<{ textId: string; voiceSlot?: string }>
+      }
+      expect(
+        output.entries.map((entry) => [entry.textId, entry.voiceSlot ?? "primary"]),
+      ).toEqual([
+        ["pg001_t001", "primary"],
+        ["pg001_t001", "secondary"],
+      ])
+    } finally {
+      mixedRunStorage.close()
+    }
+  })
+
+  it("refreshes the voice label of a reused manual-audio entry without regenerating", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+`,
+    )
+    // Primary maps to an OpenAI voice carrying a freshly renamed label.
+    fs.mkdirSync(path.join(tmpDir, "config"), { recursive: true })
+    fs.writeFileSync(
+      path.join(tmpDir, "config", "voices.yaml"),
+      `openai:
+  en:
+    primary:
+      voice: alloy
+      label: Renamed Narrator
+`,
+    )
+    seedTextAndSpeechBook(booksDir, "speech-manual-reuse-label")
+
+    // A previously uploaded manual recording carrying a now-stale label, plus
+    // its on-disk audio so the manual reuse guard (file existence) holds.
+    const label = "speech-manual-reuse-label"
+    const audioDir = path.join(booksDir, label, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_t001.mp3"), Buffer.from("manual-audio"))
+    const seedStorage = createBookStorage(label, booksDir)
+    try {
+      seedStorage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "pg001_t001.mp3",
+            voice: "alloy",
+            model: "gpt-4o-mini-tts",
+            cached: true,
+            provider: "manual",
+            voiceSlot: "primary",
+            voiceLabel: "Stale Label",
+          },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    } finally {
+      seedStorage.close()
+    }
+
+    const runner = createStageRunner()
+    await runner.run(
+      label,
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    // The manual recording is reused (never regenerated) but its persisted
+    // label is refreshed from the currently resolved primary profile.
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    const storage = createBookStorage(label, booksDir)
+    try {
+      const ttsOutput = storage.getLatestNodeData("tts", "en")?.data as {
+        entries: Record<string, { fileName: string; provider?: string; voiceLabel?: string }>
+      }
+      const entry = Object.values(ttsOutput.entries).find(
+        (e) => e.fileName === "pg001_t001.mp3",
+      )
+      expect(entry?.provider).toBe("manual")
+      expect(entry?.voiceLabel).toBe("Renamed Narrator")
     } finally {
       storage.close()
     }

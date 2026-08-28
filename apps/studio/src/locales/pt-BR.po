@@ -615,6 +615,9 @@ msgstr "Falta uma credencial obrigatória."
 #~ msgid "A scenic view at dusk."
 #~ msgstr "Uma vista cênica ao entardecer."
 
+msgid "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
+msgstr "Uma segunda voz narra cada linha novamente, portanto dobra o custo de geração de fala e de sincronização de palavras para este idioma."
+
 msgid "A section containing only images."
 msgstr "Uma seção contendo apenas imagens."
 
@@ -1008,6 +1011,9 @@ msgstr "Adicionar questionário aqui"
 
 msgid "Add reviewer guidance."
 msgstr "Adicione orientações para o revisor."
+
+msgid "Add second voice"
+msgstr "Adicionar segunda voz"
 
 msgid "Add section"
 msgstr "Adicionar seção"
@@ -1901,6 +1907,9 @@ msgstr "Mas a equipe continuou subindo a montanha."
 
 msgid "Button"
 msgstr "Botão"
+
+msgid "By"
+msgstr "Por"
 
 msgid "By Page"
 msgstr "Por página"
@@ -3864,6 +3873,9 @@ msgstr "O primeiro idioma é o padrão"
 msgid "Fit"
 msgstr "Ajustar"
 
+msgid "Fit to panel · showing {display}% of full size"
+msgstr "Ajustado ao painel · exibindo {display}% do tamanho original"
+
 msgid "Fixed layout"
 msgstr "Layout fixo"
 
@@ -5613,6 +5625,9 @@ msgstr "Nomes e termos são consistentes"
 msgid "Narration"
 msgstr "Narração"
 
+msgid "Narrator voice"
+msgstr "Voz do narrador"
+
 msgid "Natural narration for any book — students listen while they follow along, at their own pace."
 msgstr "Narração natural para qualquer livro — os alunos ouvem enquanto acompanham, no próprio ritmo."
 
@@ -7004,6 +7019,9 @@ msgstr "Slide anterior"
 msgid "Previously uploaded videos"
 msgstr "Vídeos enviados anteriormente"
 
+msgid "Primary"
+msgstr "Principal"
+
 msgid "Print a variable"
 msgstr "Exibir uma variável"
 
@@ -7516,6 +7534,9 @@ msgstr "Remover imagem"
 
 msgid "Remove placement"
 msgstr "Remover posição"
+
+msgid "Remove second voice"
+msgstr "Remover segunda voz"
 
 msgid "Remove section"
 msgstr "Remover seção"
@@ -8136,6 +8157,18 @@ msgstr "Buscar..."
 msgid "Search…"
 msgstr "Buscar…"
 
+msgid "Second voice"
+msgstr "Segunda voz"
+
+msgid "Second voice model"
+msgstr "Modelo da segunda voz"
+
+msgid "Second voice provider"
+msgstr "Provedor da segunda voz"
+
+msgid "Secondary"
+msgstr "Secundária"
+
 msgid "section"
 msgstr "seção"
 
@@ -8304,6 +8337,9 @@ msgstr "Selecione uma estratégia de renderização para pré-visualizar como as
 
 msgid "Select a reviewer session to inspect its progress and findings."
 msgstr "Selecione uma sessão de revisor para inspecionar seu progresso e descobertas."
+
+msgid "Select a second voice before saving"
+msgstr "Selecione uma segunda voz antes de salvar"
 
 msgid "Select a section mode to continue"
 msgstr "Selecione um modo de seção para continuar"

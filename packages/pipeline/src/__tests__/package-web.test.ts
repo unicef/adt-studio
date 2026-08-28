@@ -835,6 +835,7 @@ describe("packageAdtWeb", () => {
     fs.mkdirSync(audioDir, { recursive: true })
     createWebAssets(webAssetsDir)
     fs.writeFileSync(path.join(audioDir, "pg001_t001.mp3"), "audio")
+    fs.writeFileSync(path.join(audioDir, "pg001_t001--secondary.mp3"), "audio-secondary")
 
     const pages: PageData[] = [
       { pageId: "pg001", pageNumber: 1, text: "Page one" },
@@ -876,7 +877,18 @@ describe("packageAdtWeb", () => {
               textId: "pg001_t001",
               language: "en",
               fileName: "pg001_t001.mp3",
-              voice: "alloy",
+              voice: "QK4xDwo9ESPHA4JNUpX3",
+              model: "eleven_multilingual_v2",
+              provider: "elevenlabs",
+              cached: false,
+            },
+            {
+              textId: "pg001_t001",
+              language: "en",
+              fileName: "pg001_t001--secondary.mp3",
+              voice: "echo",
+              voiceLabel: "Mateo",
+              voiceSlot: "secondary",
               model: "gpt-4o-mini-tts",
               cached: false,
             },
@@ -923,6 +935,16 @@ describe("packageAdtWeb", () => {
                 { word: "world", start: 0.45, end: 0.9 },
               ],
             },
+            "pg001_t001--secondary": {
+              textId: "pg001_t001",
+              language: "en",
+              voiceSlot: "secondary",
+              duration: 0.9,
+              words: [
+                { word: "Hello", start: 0, end: 0.4 },
+                { word: "world", start: 0.4, end: 0.9 },
+              ],
+            },
           },
           generatedAt: "2026-01-01T00:00:00.000Z",
         },
@@ -958,6 +980,30 @@ describe("packageAdtWeb", () => {
         ],
       },
     })
+    const audioVoices = JSON.parse(
+      fs.readFileSync(
+        path.join(bookDir, "adt", "content", "i18n", "en", "audio_voices.json"),
+        "utf-8",
+      ),
+    )
+    expect(audioVoices.voices.primary.audios).toEqual({
+      pg001_t001: "pg001_t001.mp3",
+    })
+    expect(audioVoices.voices.primary.label).toBe("Tomás")
+    expect(audioVoices.voices.secondary).toEqual({
+      label: "Mateo",
+      audios: { pg001_t001: "pg001_t001--secondary.mp3" },
+    })
+    const voiceTimecodes = JSON.parse(
+      fs.readFileSync(
+        path.join(bookDir, "adt", "content", "i18n", "en", "timecode", "timecode_voices.json"),
+        "utf-8",
+      ),
+    )
+    expect(voiceTimecodes.secondary.pg001_t001.timecodes[1].word_timestamps).toEqual([
+      { text: "Hello", start: 0, end: 0.4 },
+      { text: "world", start: 0.4, end: 0.9 },
+    ])
 
     const configJson = JSON.parse(
       fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
@@ -1938,36 +1984,60 @@ describe("rewriteImageUrls", () => {
     expect(referencedImages).toContain("abc123")
   })
 
-  it("removes explicit width and height attributes", () => {
+  it("preserves explicit width and height attributes", () => {
     const html = `<img src="/api/books/mybook/images/abc123" width="1200" height="900">`
     const imageMap = new Map([["abc123", "photo.jpg"]])
     const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
-    expect(out).not.toMatch(/width="/)
-    expect(out).not.toMatch(/height="/)
+    expect(out).toContain('width="1200"')
+    expect(out).toContain('height="900"')
   })
 
-  it("adds max-width inline style to prevent overflow", () => {
+  it("does not inject inline layout styles", () => {
     const html = `<img src="/api/books/mybook/images/abc123">`
     const imageMap = new Map([["abc123", "photo.jpg"]])
     const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
-    expect(out).toContain("max-width: 100%")
-    expect(out).toContain("height: auto")
+    expect(out).not.toContain("style=")
   })
 
-  it("preserves existing inline styles when adding max-width", () => {
+  it("leaves a full-bleed background image to its own classes", () => {
+    const html = `<img src="/api/books/mybook/images/abc123" class="absolute inset-0 z-0 h-full w-full object-cover">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
+    expect(out).toContain('src="images/photo.jpg"')
+    expect(out).not.toContain("height: auto")
+    expect(out).not.toContain("max-width: 100%")
+  })
+
+  it("leaves ordinary in-flow image layout to the generated markup and base CSS", () => {
+    const html = `<img src="/api/books/mybook/images/abc123" class="rounded-lg shadow">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
+    expect(out).toContain('class="rounded-lg shadow"')
+    expect(out).not.toContain("style=")
+  })
+
+  it("preserves existing inline styles without adding layout declarations", () => {
     const html = `<img src="/api/books/mybook/images/abc123" style="border: 1px solid red;">`
     const imageMap = new Map([["abc123", "photo.jpg"]])
     const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
-    expect(out).toContain("border: 1px solid red")
-    expect(out).toContain("max-width: 100%")
+    expect(out).toContain('style="border: 1px solid red;"')
+    expect(out).not.toContain("max-width")
   })
 
-  it("does not duplicate max-width if style already contains it", () => {
+  it("preserves an existing max-width declaration exactly once", () => {
     const html = `<img src="/api/books/mybook/images/abc123" style="max-width: 50%;">`
     const imageMap = new Map([["abc123", "photo.jpg"]])
     const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
     const matches = (out.match(/max-width/g) ?? []).length
     expect(matches).toBe(1)
+  })
+
+  it("does not override fixed or responsive image height utilities", () => {
+    const html = `<img src="/api/books/mybook/images/abc123" class="h-48 md:h-64 w-full object-cover">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
+    expect(out).toContain('class="h-48 md:h-64 w-full object-cover"')
+    expect(out).not.toContain("height: auto")
   })
 
   it("strips legacy section role attributes while rewriting HTML", () => {
@@ -2039,8 +2109,8 @@ describe("rewriteImageUrls", () => {
       ["logo2", ""],
     ])
     const { html: out } = rewriteImageUrls(html, "mybook", imageMap, altMap)
-    expect(out).toContain('data-id="logo1" src="images/logo1.png" style="max-width: 100%; height: auto;" alt="UNICEF logo with the words for every child."')
-    expect(out).toContain('data-id="logo2" src="images/logo2.png" style="max-width: 100%; height: auto;" alt=""')
+    expect(out).toContain('data-id="logo1" src="images/logo1.png" alt="UNICEF logo with the words for every child."')
+    expect(out).toContain('data-id="logo2" src="images/logo2.png" alt=""')
   })
 
   it("marks decorative images with empty alt, role and aria-hidden, ignoring any caption", () => {

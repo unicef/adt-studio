@@ -1,9 +1,14 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, type Dispatch, type SetStateAction } from "react"
 import { Link } from "@tanstack/react-router"
-import { Lock, ArrowLeft, ChevronDown } from "lucide-react"
+import { Lock, ArrowLeft, ChevronDown, Plus, X } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { DEFAULT_IMAGE_GENERATION_MODEL_ID, type StageName } from "@adt/types"
+import {
+  DEFAULT_IMAGE_GENERATION_MODEL_ID,
+  type SecondarySpeechVoiceConfig,
+  type SpeechProvider,
+  type StageName,
+} from "@adt/types"
 import { DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL } from "@adt/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -33,6 +38,7 @@ import { tabContainerClass } from "./lib/tab-container-class"
 import { PROVIDER_LABELS } from "./lib/provider-labels"
 import { useElevenLabsVoices } from "@/hooks/use-elevenlabs-voices"
 import { ElevenLabsVoiceTuning } from "./components/ElevenLabsVoiceTuning"
+import { ElevenLabsVoiceCombobox } from "./components/ElevenLabsVoiceCombobox"
 
 const PROMPT_TABS = ["prompt", "image-translation"]
 
@@ -187,6 +193,9 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
   const [elevenLabsSpeed, setElevenLabsSpeed] = useState("")
   const [batchByPage, setBatchByPage] = useState(false)
   const [wordHighlighting, setWordHighlighting] = useState(false)
+  const [secondaryVoices, setSecondaryVoices] = useState<
+    Record<string, SecondarySpeechVoiceConfig>
+  >({})
   const [easyReadTts, setEasyReadTts] = useState(false)
   const [excludedCategories, setExcludedCategories] = useState<Set<string>>(new Set())
 
@@ -282,6 +291,15 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
     )
     setGeminiSeed(typeof speech?.seed === "number" ? String(speech.seed) : "")
     setBatchByPage(speech?.batch_by_page === true)
+    setSecondaryVoices(
+      speech?.secondary_voices && typeof speech.secondary_voices === "object"
+        ? Object.fromEntries(
+            Object.entries(
+              speech.secondary_voices as Record<string, SecondarySpeechVoiceConfig>,
+            ).map(([locale, profile]) => [normalizeLocale(locale), profile]),
+          )
+        : {},
+    )
     setElevenLabsUseContext(speech?.elevenlabs_use_context === true)
     setElevenLabsApplyTextNormalization(
       typeof speech?.elevenlabs_apply_text_normalization === "string"
@@ -420,6 +438,8 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
         format: format.trim() || undefined,
         default_provider: defaultProvider || undefined,
         providers: Object.keys(providers).length > 0 ? providers : undefined,
+        secondary_voices:
+          Object.keys(secondaryVoices).length > 0 ? secondaryVoices : undefined,
         bit_rate: bitRate.trim() || undefined,
         sample_rate: sampleRate.trim() ? Number(sampleRate.trim()) : undefined,
         temperature: geminiTemperature.trim() && Number.isFinite(tempRaw) ? Math.min(2, Math.max(0, tempRaw)) : undefined,
@@ -525,6 +545,9 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
     ...(promptDraft != null ? ["prompt"] : []),
     ...(imagePromptDraft != null ? ["image-translation"] : []),
   ].filter((tabKey, i, all) => all.indexOf(tabKey) === i)
+  const incompleteSecondaryVoice =
+    isSpeechStage &&
+    Object.values(secondaryVoices).some((profile) => !profile.voice.trim())
   useStageSettingsBar({
     stage: stageSlug as StageName,
     bookLabel,
@@ -533,6 +556,9 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
     saving: updateConfig.isPending,
     save,
     showSaveOnly: PROMPT_TABS.includes(tab),
+    disabledReason: incompleteSecondaryVoice
+      ? t`Select a second voice before saving`
+      : undefined,
   })
 
   return (
@@ -1041,6 +1067,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           elevenLabsSpeed={elevenLabsSpeed} setElevenLabsSpeed={setElevenLabsSpeed}
           batchByPage={batchByPage} setBatchByPage={setBatchByPage}
           wordHighlighting={wordHighlighting} setWordHighlighting={setWordHighlighting}
+          secondaryVoices={secondaryVoices} setSecondaryVoices={setSecondaryVoices}
           markDirty={markDirty}
         />
         <ReadAloudContentSection
@@ -1309,6 +1336,7 @@ function SpeechLanguageCards({
   elevenLabsSpeed, setElevenLabsSpeed,
   batchByPage, setBatchByPage,
   wordHighlighting, setWordHighlighting,
+  secondaryVoices, setSecondaryVoices,
   markDirty,
 }: {
   bookLabel: string
@@ -1338,6 +1366,10 @@ function SpeechLanguageCards({
   elevenLabsSpeed: string; setElevenLabsSpeed: (v: string) => void
   batchByPage: boolean; setBatchByPage: (v: boolean) => void
   wordHighlighting: boolean; setWordHighlighting: (v: boolean) => void
+  secondaryVoices: Record<string, SecondarySpeechVoiceConfig>
+  setSecondaryVoices: Dispatch<
+    SetStateAction<Record<string, SecondarySpeechVoiceConfig>>
+  >
   markDirty: (field: string) => void
 }) {
   const { t } = useLingui()
@@ -1395,6 +1427,9 @@ function SpeechLanguageCards({
   const providersInUse = new Set(
     allLanguages.map((lang) => resolveSpeechProviderForLanguage(lang, speechConfig)),
   )
+  for (const profile of Object.values(secondaryVoices)) {
+    providersInUse.add(profile.provider)
+  }
 
   // ElevenLabs disables text normalization by default on the v2.5 models to keep
   // latency low, and enabling it there needs an Enterprise plan — so this
@@ -1451,8 +1486,19 @@ function SpeechLanguageCards({
   // key on lowercase locales (`es-uy`) while these codes carry an uppercase
   // region (`es-UY`) — so the screen showed the global default voice and prompt
   // for a language the pipeline would narrate with its own.
+  const getPrimaryVoiceMap = (provider: string): Record<string, string> | undefined => {
+    const mappings = voiceMappings?.[provider]
+    if (!mappings) return undefined
+    return Object.fromEntries(
+      Object.entries(mappings).map(([locale, entry]) => [
+        locale,
+        typeof entry === "string" ? entry : entry.primary.voice,
+      ]),
+    )
+  }
+
   const resolveVoice = (lang: string, provider: string): string =>
-    resolveLocaleMapping(voiceMappings?.[provider], lang).value
+    resolveLocaleMapping(getPrimaryVoiceMap(provider), lang).value
 
   const resolveInstruction = (lang: string): string =>
     resolveLocaleMapping(speechInstructions, lang).value
@@ -1465,7 +1511,7 @@ function SpeechLanguageCards({
   // mapping for this locale or its base language.
   const usesEnglishDefaultVoice = (lang: string, provider: string): boolean => {
     if (provider !== "elevenlabs" || getBaseLanguage(normalizeLocale(lang)) === "en") return false
-    return resolveLocaleMapping(voiceMappings?.[provider], lang).source === "default"
+    return resolveLocaleMapping(getPrimaryVoiceMap(provider), lang).source === "default"
   }
 
   // Route a language to a different provider
@@ -1488,6 +1534,38 @@ function SpeechLanguageCards({
         setProviderLanguages(newProvider, langs.join(", "))
       }
     }
+    markDirty("speech")
+  }
+
+  const updateSecondaryVoice = (
+    lang: string,
+    updates: Partial<SecondarySpeechVoiceConfig>,
+  ) => {
+    setSecondaryVoices((previous) => {
+      const current = previous[lang]
+      if (!current) return previous
+      return { ...previous, [lang]: { ...current, ...updates } }
+    })
+    markDirty("speech")
+  }
+
+  const addSecondaryVoice = (lang: string, provider: string) => {
+    setSecondaryVoices((previous) => ({
+      ...previous,
+      [lang]: {
+        provider: provider as SpeechProvider,
+        voice: "",
+      },
+    }))
+    markDirty("speech")
+  }
+
+  const removeSecondaryVoice = (lang: string) => {
+    setSecondaryVoices((previous) => {
+      const next = { ...previous }
+      delete next[lang]
+      return next
+    })
     markDirty("speech")
   }
 
@@ -1595,6 +1673,7 @@ function SpeechLanguageCards({
           const voice = resolveVoice(lang, provider)
           const instruction = resolveInstruction(lang)
           const isBase = lang === baseLanguage
+          const secondaryVoice = secondaryVoices[lang]
 
           return (
             <div key={lang} className="rounded-lg border p-4 space-y-3">
@@ -1649,7 +1728,121 @@ function SpeechLanguageCards({
                     </div>
                   </div>
                 )}
+                {!secondaryVoice && (
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground"
+                      title={t`Add second voice`}
+                      onClick={() => addSecondaryVoice(lang, provider)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
+
+              {secondaryVoice && (
+                <div className="flex gap-3 rounded-md border bg-muted/10 p-3">
+                  <div className="flex flex-1 gap-3 flex-wrap">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">
+                        {t`Second voice provider`}
+                      </Label>
+                      <select
+                        value={secondaryVoice.provider}
+                        onChange={(event) =>
+                          updateSecondaryVoice(lang, {
+                            provider: event.target.value as SpeechProvider,
+                            model: undefined,
+                            voice: "",
+                            label: undefined,
+                          })
+                        }
+                        className="flex h-8 w-36 rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm"
+                      >
+                        {(["openai", "azure", "gemini", "elevenlabs"] as const).map((option) => (
+                          <option key={option} value={option}>
+                            {PROVIDER_LABELS[option]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1 flex-1 min-w-[200px]">
+                      <Label className="text-[10px] text-muted-foreground">
+                        {t`Second voice model`}
+                      </Label>
+                      <ModelSelect
+                        value={secondaryVoice.model ?? ""}
+                        onChange={(model) =>
+                          updateSecondaryVoice(lang, { model: model || undefined })
+                        }
+                        placeholder={t`Default model`}
+                        groups={MODEL_GROUPS_BY_PROVIDER[secondaryVoice.provider]}
+                        prefixProvider={false}
+                        className="w-full"
+                        inputClassName="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1 min-w-[160px]">
+                      <Label className="text-[10px] text-muted-foreground">
+                        {t`Second voice`}
+                      </Label>
+                      {secondaryVoice.provider === "elevenlabs" ? (
+                        <ElevenLabsVoiceCombobox
+                          value={secondaryVoice.voice}
+                          onChange={(voiceId, voiceName) =>
+                            updateSecondaryVoice(lang, {
+                              voice: voiceId,
+                              label:
+                                voiceName && voiceName !== voiceId
+                                  ? voiceName
+                                  : undefined,
+                            })
+                          }
+                          className="min-w-[220px]"
+                        />
+                      ) : (
+                        <Input
+                          value={secondaryVoice.voice}
+                          onChange={(event) =>
+                            updateSecondaryVoice(lang, {
+                              voice: event.target.value,
+                              label: undefined,
+                            })
+                          }
+                          placeholder={
+                            secondaryVoice.provider === "openai"
+                              ? t`e.g. alloy`
+                              : secondaryVoice.provider === "azure"
+                                ? t`e.g. en-US-JennyNeural`
+                                : t`e.g. Kore`
+                          }
+                          className="h-8 text-xs"
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                    title={t`Remove second voice`}
+                    onClick={() => removeSecondaryVoice(lang)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+
+              {secondaryVoice && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-500">
+                  {t`A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language.`}
+                </p>
+              )}
 
               {usesEnglishDefaultVoice(lang, provider) && (
                 <p className="text-[11px] text-amber-600 dark:text-amber-500">

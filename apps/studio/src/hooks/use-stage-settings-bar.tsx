@@ -15,6 +15,7 @@ export function useStageSettingsBar({
   saving,
   save,
   showSaveOnly = false,
+  disabledReason,
 }: {
   stage: StageName
   bookLabel: string
@@ -23,6 +24,7 @@ export function useStageSettingsBar({
   saving: boolean
   save: () => Promise<void>
   showSaveOnly?: boolean
+  disabledReason?: string
 }) {
   const { t } = useLingui()
   const remount = useSettingsRemount()
@@ -52,6 +54,8 @@ export function useStageSettingsBar({
       queueRun({ fromStage: stage, toStage: stage, apiKey })
     },
     onDiscard: remount,
-    rerunDisabledReason: hasStructuredTextProvider ? undefined : t`Add an API key to re-run`,
+    saveDisabledReason: disabledReason,
+    rerunDisabledReason:
+      disabledReason ?? (hasStructuredTextProvider ? undefined : t`Add an API key to re-run`),
   })
 }
