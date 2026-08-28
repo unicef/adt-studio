@@ -181,7 +181,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 4
+const PACKAGING_FORMAT_VERSION = 5
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -1850,18 +1850,6 @@ export function rewriteImageUrls(
         resolvedImageId = imageId
         img.attribs.src = `images/${filename}`
         referencedImages.push(imageId)
-        delete img.attribs.width
-        delete img.attribs.height
-        const existingStyle = img.attribs.style ?? ""
-        // Don't add responsive sizing to absolutely-positioned images (fixed-layout)
-        if (!existingStyle.includes("position:absolute")) {
-          const sizeStyle = "max-width: 100%; height: auto;"
-          if (!existingStyle.includes("max-width")) {
-            img.attribs.style = existingStyle
-              ? `${existingStyle.trimEnd().replace(/;$/, "")}; ${sizeStyle}`
-              : sizeStyle
-          }
-        }
       }
     }
     // Also handle data-id based images
@@ -1872,18 +1860,6 @@ export function rewriteImageUrls(
       img.attribs.src = `images/${filename}`
       if (!referencedImages.includes(dataId)) {
         referencedImages.push(dataId)
-      }
-      delete img.attribs.width
-      delete img.attribs.height
-      const existingStyle = img.attribs.style ?? ""
-      // Don't add responsive sizing to absolutely-positioned images (fixed-layout)
-      if (!existingStyle.includes("position:absolute")) {
-        const sizeStyle = "max-width: 100%; height: auto;"
-        if (!existingStyle.includes("max-width")) {
-          img.attribs.style = existingStyle
-            ? `${existingStyle.trimEnd().replace(/;$/, "")}; ${sizeStyle}`
-            : sizeStyle
-        }
       }
     }
 
