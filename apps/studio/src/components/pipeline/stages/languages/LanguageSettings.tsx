@@ -38,7 +38,7 @@ import { tabContainerClass } from "./lib/tab-container-class"
 import { PROVIDER_LABELS } from "./lib/provider-labels"
 import { useElevenLabsVoices } from "@/hooks/use-elevenlabs-voices"
 import { ElevenLabsVoiceTuning } from "./components/ElevenLabsVoiceTuning"
-import { ElevenLabsVoiceCombobox } from "./components/ElevenLabsVoiceCombobox"
+import { ProviderVoicePicker } from "./components/ProviderVoicePicker"
 
 const PROMPT_TABS = ["prompt", "image-translation"]
 
@@ -1790,39 +1790,19 @@ function SpeechLanguageCards({
                       <Label className="text-[10px] text-muted-foreground">
                         {t`Second voice`}
                       </Label>
-                      {secondaryVoice.provider === "elevenlabs" ? (
-                        <ElevenLabsVoiceCombobox
-                          value={secondaryVoice.voice}
-                          onChange={(voiceId, voiceName) =>
-                            updateSecondaryVoice(lang, {
-                              voice: voiceId,
-                              label:
-                                voiceName && voiceName !== voiceId
-                                  ? voiceName
-                                  : undefined,
-                            })
-                          }
-                          className="min-w-[220px]"
-                        />
-                      ) : (
-                        <Input
-                          value={secondaryVoice.voice}
-                          onChange={(event) =>
-                            updateSecondaryVoice(lang, {
-                              voice: event.target.value,
-                              label: undefined,
-                            })
-                          }
-                          placeholder={
-                            secondaryVoice.provider === "openai"
-                              ? t`e.g. alloy`
-                              : secondaryVoice.provider === "azure"
-                                ? t`e.g. en-US-JennyNeural`
-                                : t`e.g. Kore`
-                          }
-                          className="h-8 text-xs"
-                        />
-                      )}
+                      <ProviderVoicePicker
+                        provider={secondaryVoice.provider}
+                        language={lang}
+                        value={secondaryVoice.voice}
+                        onChange={(voice, voiceLabel) =>
+                          updateSecondaryVoice(lang, {
+                            voice,
+                            label:
+                              voiceLabel && voiceLabel !== voice ? voiceLabel : undefined,
+                          })
+                        }
+                        className="min-w-[220px]"
+                      />
                     </div>
                   </div>
                   <Button

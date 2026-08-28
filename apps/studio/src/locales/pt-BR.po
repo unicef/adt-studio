@@ -922,6 +922,9 @@ msgstr "Adicione uma chave de API nas configurações do Livro para executar tra
 msgid "Add an API key to re-run"
 msgstr "Adicione uma chave de API para reexecutar"
 
+msgid "Add an Azure Speech key and region in Settings to pick voices by name."
+msgstr "Adicione uma chave e uma região do Azure Speech nas Configurações para escolher vozes pelo nome."
+
 msgid "Add an ElevenLabs API key in Settings to pick voices by name."
 msgstr "Adicione uma chave de API do ElevenLabs em Configurações para escolher vozes por nome."
 
@@ -10067,6 +10070,9 @@ msgstr "Envie um ZIP ou arraste e solte"
 msgid "Uploading..."
 msgstr "Enviando..."
 
+msgid "Use \"{trimmedQuery}\""
+msgstr "Usar \"{trimmedQuery}\""
+
 msgid "Use adjacent text as context"
 msgstr "Usar texto adjacente como contexto"
 
@@ -10280,6 +10286,9 @@ msgstr "Voz"
 
 msgid "Voice Mappings"
 msgstr "Mapeamentos de voz"
+
+msgid "Voice name"
+msgstr "Nome da voz"
 
 msgid "Voice tuning (advanced)"
 msgstr "Ajuste de voz (avançado)"

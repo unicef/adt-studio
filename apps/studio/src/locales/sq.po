@@ -924,6 +924,9 @@ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar përkt
 msgid "Add an API key to re-run"
 msgstr "Shto një çelës API për të ri-ekzekutuar"
 
+msgid "Add an Azure Speech key and region in Settings to pick voices by name."
+msgstr "Shto një çelës dhe një rajon Azure Speech te Cilësimet për të zgjedhur zërat sipas emrit."
+
 msgid "Add an ElevenLabs API key in Settings to pick voices by name."
 msgstr "Shtoni një kyç API të ElevenLabs në Cilësimet për të zgjedhur zërat sipas emrit."
 
@@ -10069,6 +10072,9 @@ msgstr "Ngarko ZIP ose tërhiq dhe lësho"
 msgid "Uploading..."
 msgstr "Po ngarkohet..."
 
+msgid "Use \"{trimmedQuery}\""
+msgstr "Përdor \"{trimmedQuery}\""
+
 msgid "Use adjacent text as context"
 msgstr "Përdor tekstin ngjitur si kontekst"
 
@@ -10282,6 +10288,9 @@ msgstr "Zë"
 
 msgid "Voice Mappings"
 msgstr "Hartëzime zërash"
+
+msgid "Voice name"
+msgstr "Emri i zërit"
 
 msgid "Voice tuning (advanced)"
 msgstr "Rregullimi i zërit (i avancuar)"
