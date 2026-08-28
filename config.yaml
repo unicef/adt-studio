@@ -1,7 +1,7 @@
 # Fallback LLM for text generation and visual analysis. Image generation and
 # speech use their own task-specific defaults; step-level `model` values still
 # override this one. This can also be changed in Studio under Settings > Models.
-default_model: "google:gemini-3.5-flash"
+default_model: "openai:gpt-5.4"
 
 book_outline:
   prompt: book_outline
