@@ -46,8 +46,8 @@ export const anthropicManifest: ProviderManifest = {
     agent: { tools: true, streaming: true },
   },
   defaultModels: {
-    "structured-text": "claude-opus-4",
-    agent: "claude-opus-4",
+    "structured-text": "claude-opus-4-6",
+    agent: "claude-opus-4-6",
   },
   docsUrl: "https://console.anthropic.com/settings/keys",
 }

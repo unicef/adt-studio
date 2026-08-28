@@ -451,7 +451,7 @@ section_types:
       "assembled",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "sectioning",
@@ -531,7 +531,7 @@ section_types:
       "partial",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "sectioning",
@@ -1127,7 +1127,7 @@ output_languages:
       "regional-core-tts",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1928,8 +1928,7 @@ speech:
       "speech-dual-voice",
       {
         booksDir,
-        apiKey: "sk-test",
-        geminiApiKey: "gm-test",
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2052,7 +2051,7 @@ speech:
       "speech-dual-voice-rerun",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2069,7 +2068,7 @@ speech:
       "speech-dual-voice-rerun",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2090,7 +2089,7 @@ speech:
       "speech-dual-voice-rerun",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2123,7 +2122,7 @@ speech:
       "speech-dual-voice-rerun",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2157,7 +2156,7 @@ speech:
       "speech-dual-voice-rerun",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2246,7 +2245,7 @@ structure_types:
       label,
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
