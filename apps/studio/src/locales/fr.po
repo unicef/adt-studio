@@ -3952,6 +3952,9 @@ msgstr "Contrôle total sur les stratégies de rendu, l'élagage et les filtres.
 msgid "Full project backup & transfer"
 msgstr "Sauvegarde et transfert complet du projet"
 
+msgid "Full-bleed illustrated story · Spread sample"
+msgstr "Histoire illustrée à fond perdu · Extrait en double page"
+
 msgid "Full-size source page preview."
 msgstr "Aperçu de la page source en taille réelle."
 
@@ -4409,6 +4412,9 @@ msgstr "Si vous quittez maintenant, vos modifications non enregistrées seront p
 
 msgid "Illustrated children's books"
 msgstr "Livres illustrés pour enfants"
+
+msgid "Illustrated story · Single-page sample"
+msgstr "Histoire illustrée · Extrait en page individuelle"
 
 msgid "Illustration"
 msgstr "Illustration"
@@ -7845,11 +7851,11 @@ msgstr "S'exécute en arrière-plan — vous pouvez continuer à éditer"
 msgid "Sample"
 msgstr "Exemple"
 
-msgid "Sample processed with the recommended reference settings"
-msgstr ""
+#~ msgid "Sample processed with the recommended reference settings"
+#~ msgstr "Exemple traité avec les paramètres recommandés pour les ouvrages de référence"
 
-msgid "Sample processed with the recommended storybook settings"
-msgstr ""
+#~ msgid "Sample processed with the recommended storybook settings"
+#~ msgstr "Exemple traité avec les paramètres recommandés pour les livres d'histoires"
 
 msgid "Sample Rate"
 msgstr "Taux d'échantillonnage"
@@ -7940,6 +7946,9 @@ msgstr "Échelle"
 
 msgid "School textbooks and workbooks"
 msgstr "Manuels scolaires et cahiers d'exercices"
+
+msgid "Scientific paper · 7-page sample"
+msgstr "Article scientifique · Extrait de 7 pages"
 
 msgid "Scientific papers and journals"
 msgstr "Articles scientifiques et revues"
@@ -10426,7 +10435,7 @@ msgid "words"
 msgstr "mots"
 
 msgid "Workbook with exercises and tables · 7-page sample"
-msgstr ""
+msgstr "Cahier d'activités avec exercices et tableaux · Extrait de 7 pages"
 
 msgid "Wrap in group"
 msgstr "Encapsuler dans un groupe"
@@ -10486,6 +10495,9 @@ msgstr "Vous testez une version préliminaire."
 
 msgid "Young adult fiction"
 msgstr "fiction jeune adulte"
+
+msgid "Young-adult fiction · Single-page sample"
+msgstr "Roman pour jeunes adultes · Extrait en page individuelle"
 
 msgid "Your AI, your keys."
 msgstr "Votre IA, vos clés."

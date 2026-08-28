@@ -3952,6 +3952,9 @@ msgstr "Full control over render strategies, pruning, and filters."
 msgid "Full project backup & transfer"
 msgstr "Full project backup & transfer"
 
+msgid "Full-bleed illustrated story · Spread sample"
+msgstr "Full-bleed illustrated story · Spread sample"
+
 msgid "Full-size source page preview."
 msgstr "Full-size source page preview."
 
@@ -4409,6 +4412,9 @@ msgstr "If you leave now, your unsaved changes will be lost."
 
 msgid "Illustrated children's books"
 msgstr "Illustrated children's books"
+
+msgid "Illustrated story · Single-page sample"
+msgstr "Illustrated story · Single-page sample"
 
 msgid "Illustration"
 msgstr "Illustration"
@@ -7845,11 +7851,11 @@ msgstr "Runs in background — you can keep editing"
 msgid "Sample"
 msgstr "Sample"
 
-msgid "Sample processed with the recommended reference settings"
-msgstr "Sample processed with the recommended reference settings"
+#~ msgid "Sample processed with the recommended reference settings"
+#~ msgstr "Sample processed with the recommended reference settings"
 
-msgid "Sample processed with the recommended storybook settings"
-msgstr "Sample processed with the recommended storybook settings"
+#~ msgid "Sample processed with the recommended storybook settings"
+#~ msgstr "Sample processed with the recommended storybook settings"
 
 msgid "Sample Rate"
 msgstr "Sample Rate"
@@ -7940,6 +7946,9 @@ msgstr "Scale"
 
 msgid "School textbooks and workbooks"
 msgstr "School textbooks and workbooks"
+
+msgid "Scientific paper · 7-page sample"
+msgstr "Scientific paper · 7-page sample"
 
 msgid "Scientific papers and journals"
 msgstr "Scientific papers and journals"
@@ -10486,6 +10495,9 @@ msgstr "You're testing an early build."
 
 msgid "Young adult fiction"
 msgstr "Young adult fiction"
+
+msgid "Young-adult fiction · Single-page sample"
+msgstr "Young-adult fiction · Single-page sample"
 
 msgid "Your AI, your keys."
 msgstr "Your AI, your keys."

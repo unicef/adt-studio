@@ -192,15 +192,6 @@ export const PRESETS: PresetConfig[] = [
         pdfUrl: DEMO_PDF_URL,
         adtUrl: DEMO_ADT_URL,
       },
-      {
-        // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
-        title: "Ciências da Natureza - Ensino Fundamental",
-        comingSoon: true,
-      },
-      // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
-      { title: "História e Sociedade - Vol. 1", comingSoon: true },
-      // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
-      { title: "Língua Portuguesa - 3° Ano", comingSoon: true },
     ],
     recommendations: {
       renderStrategy: "llm",
@@ -393,21 +384,59 @@ export const PRESETS: PresetConfig[] = [
     exampleBooks: [
       {
         // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
-        title: "Sample Illustrated Story",
-        // Temporary metadata until the final preset examples are added.
-        caption: msg`Sample processed with the recommended storybook settings`,
+        title: "Hyena and Raven",
+        caption: msg`Illustrated story · Single-page sample`,
         settings: {
           renderStrategy: "two_column_story",
+          pageGrouping: "single",
+          sectioningMode: "page",
+        },
+        pdfUrl: DEMO_PDF_URL,
+        adtUrl: DEMO_ADT_URL,
+      },
+      {
+        // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
+        title: "Colouring My School",
+        caption: msg`Full-bleed illustrated story · Spread sample`,
+        settings: {
+          renderStrategy: "fixed_layout",
           pageGrouping: "spread",
           sectioningMode: "page",
         },
         pdfUrl: DEMO_PDF_URL,
         adtUrl: DEMO_ADT_URL,
       },
-      // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
-      { title: "Adventure Tales - Vol. 1", comingSoon: true },
-      // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
-      { title: "The Lost Forest", comingSoon: true },
+      {
+        title: "1930 · El viaje",
+        caption: msg`Young-adult fiction · Single-page sample`,
+        settings: {
+          renderStrategy: "llm",
+          pageGrouping: "single",
+          sectioningMode: "page",
+        },
+        pdfUrl: DEMO_PDF_URL,
+        adtUrl: DEMO_ADT_URL,
+      },
+      {
+        // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
+        title: "Hyena and Raven",
+        settings: {
+          renderStrategy: "two_column_story",
+          pageGrouping: "spread",
+          sectioningMode: "page",
+        },
+        comingSoon: true,
+      },
+      {
+        // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
+        title: "LP-4 Volcanoes",
+        settings: {
+          renderStrategy: "llm-overlay",
+          pageGrouping: "spread",
+          sectioningMode: "page",
+        },
+        comingSoon: true,
+      }
     ],
     recommendations: {
       renderStrategy: "two_column_story",
@@ -487,6 +516,7 @@ export const PRESETS: PresetConfig[] = [
     recommendedStrategies: ["single_column"],
     recommendedFor: [
       msg`Technical documentation`,
+      msg`Scientific papers and journals`,
       msg`Legal and compliance manuals`,
       msg`Medical references`,
       msg`Engineering handbooks`,
@@ -494,9 +524,8 @@ export const PRESETS: PresetConfig[] = [
     exampleBooks: [
       {
         // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
-        title: "Sample Reference Manual",
-        // Temporary metadata until the final preset examples are added.
-        caption: msg`Sample processed with the recommended reference settings`,
+        title: "Reimagining Target-Aware Molecular Generation through Retrieval-Enhanced Aligned Diffusion",
+        caption: msg`Scientific paper · 7-page sample`,
         settings: {
           renderStrategy: "single_column",
           pageGrouping: "single",
@@ -506,10 +535,6 @@ export const PRESETS: PresetConfig[] = [
         pdfUrl: DEMO_PDF_URL,
         adtUrl: DEMO_ADT_URL,
       },
-      // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
-      { title: "Engineering Handbook Vol. 2", comingSoon: true },
-      // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
-      { title: "Legal Compliance Guide", comingSoon: true },
     ],
     recommendations: {
       renderStrategy: "single_column",

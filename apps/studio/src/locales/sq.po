@@ -3952,6 +3952,9 @@ msgstr "Kontroll i plotë mbi strategjitë e renderimit, prerjes dhe filtrave."
 msgid "Full project backup & transfer"
 msgstr "Kopje rezervë dhe transferim i plotë i projektit"
 
+msgid "Full-bleed illustrated story · Spread sample"
+msgstr "Histori e ilustruar me imazh deri në skaj · Shembull me dy faqe"
+
 msgid "Full-size source page preview."
 msgstr "Pamje paraprake e faqes burimore në madhësi të plotë."
 
@@ -4409,6 +4412,9 @@ msgstr "Nëse del tani, ndryshimet e tua të paruajtura do të humbasin."
 
 msgid "Illustrated children's books"
 msgstr "Libra për fëmijë të ilustruar"
+
+msgid "Illustrated story · Single-page sample"
+msgstr "Histori e ilustruar · Shembull me një faqe"
 
 msgid "Illustration"
 msgstr "Ilustrim"
@@ -7845,11 +7851,11 @@ msgstr "Ekzekutohet në sfond — mund të vazhdoni editimin"
 msgid "Sample"
 msgstr "Shembull"
 
-msgid "Sample processed with the recommended reference settings"
-msgstr ""
+#~ msgid "Sample processed with the recommended reference settings"
+#~ msgstr "Shembull i përpunuar me cilësimet e rekomanduara për materiale reference"
 
-msgid "Sample processed with the recommended storybook settings"
-msgstr ""
+#~ msgid "Sample processed with the recommended storybook settings"
+#~ msgstr "Shembull i përpunuar me cilësimet e rekomanduara për libra me tregime"
 
 msgid "Sample Rate"
 msgstr "Shkalla e Shembullit"
@@ -7940,6 +7946,9 @@ msgstr "Shkallë"
 
 msgid "School textbooks and workbooks"
 msgstr "Tekste shkollore dhe fletore pune"
+
+msgid "Scientific paper · 7-page sample"
+msgstr "Punim shkencor · Shembull me 7 faqe"
 
 msgid "Scientific papers and journals"
 msgstr "Punime shkencore dhe revista"
@@ -10426,7 +10435,7 @@ msgid "words"
 msgstr "fjalë"
 
 msgid "Workbook with exercises and tables · 7-page sample"
-msgstr ""
+msgstr "Fletore pune me ushtrime dhe tabela · Shembull me 7 faqe"
 
 msgid "Wrap in group"
 msgstr "Mbështjell në grup"
@@ -10486,6 +10495,9 @@ msgstr "Po testoni një version të hershëm."
 
 msgid "Young adult fiction"
 msgstr "Fiksion për të rinj"
+
+msgid "Young-adult fiction · Single-page sample"
+msgstr "Letërsi për të rinj · Shembull me një faqe"
 
 msgid "Your AI, your keys."
 msgstr "IA-ja juaj, çelësat tuaj."

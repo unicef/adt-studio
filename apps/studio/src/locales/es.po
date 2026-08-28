@@ -3950,6 +3950,9 @@ msgstr "Control total sobre estrategias de renderizado, poda y filtros."
 msgid "Full project backup & transfer"
 msgstr "Respaldo y transferencia completa del proyecto"
 
+msgid "Full-bleed illustrated story · Spread sample"
+msgstr "Historia ilustrada a sangre completa · Muestra a doble página"
+
 msgid "Full-size source page preview."
 msgstr "Vista previa de página de origen a tamaño completo."
 
@@ -4407,6 +4410,9 @@ msgstr "Si sales ahora, se perderán los cambios sin guardar."
 
 msgid "Illustrated children's books"
 msgstr "Libros infantiles ilustrados"
+
+msgid "Illustrated story · Single-page sample"
+msgstr "Historia ilustrada · Muestra de página individual"
 
 msgid "Illustration"
 msgstr "Ilustración"
@@ -7843,11 +7849,11 @@ msgstr "Se ejecuta en segundo plano — puedes seguir editando"
 msgid "Sample"
 msgstr "Muestra"
 
-msgid "Sample processed with the recommended reference settings"
-msgstr ""
+#~ msgid "Sample processed with the recommended reference settings"
+#~ msgstr "Muestra procesada con la configuración recomendada para referencias"
 
-msgid "Sample processed with the recommended storybook settings"
-msgstr ""
+#~ msgid "Sample processed with the recommended storybook settings"
+#~ msgstr "Muestra procesada con la configuración recomendada para libros de cuentos"
 
 msgid "Sample Rate"
 msgstr "Tasa de muestreo"
@@ -7938,6 +7944,9 @@ msgstr "Escala"
 
 msgid "School textbooks and workbooks"
 msgstr "Libros de texto y cuadernos escolares"
+
+msgid "Scientific paper · 7-page sample"
+msgstr "Artículo científico · Muestra de 7 páginas"
 
 msgid "Scientific papers and journals"
 msgstr "Artículos científicos y revistas"
@@ -10424,7 +10433,7 @@ msgid "words"
 msgstr "palabras"
 
 msgid "Workbook with exercises and tables · 7-page sample"
-msgstr ""
+msgstr "Cuaderno de actividades con ejercicios y tablas · Muestra de 7 páginas"
 
 msgid "Wrap in group"
 msgstr "Envolver en grupo"
@@ -10484,6 +10493,9 @@ msgstr "Estás probando una versión temprana."
 
 msgid "Young adult fiction"
 msgstr "Ficción para jóvenes adultos"
+
+msgid "Young-adult fiction · Single-page sample"
+msgstr "Ficción juvenil · Muestra de página individual"
 
 msgid "Your AI, your keys."
 msgstr "Tu IA, tus claves."
