@@ -45,6 +45,28 @@ export const SecondarySpeechVoiceConfig = z.object({
 })
 export type SecondarySpeechVoiceConfig = z.infer<typeof SecondarySpeechVoiceConfig>
 
+/** A per-book primary voice override. Only the voice itself: a language's
+ *  provider and model are already book-level settings of their own. */
+export const PrimarySpeechVoiceConfig = z.object({
+  voice: z.string().trim().min(1),
+  label: z.string().trim().min(1).optional(),
+})
+export type PrimarySpeechVoiceConfig = z.infer<typeof PrimarySpeechVoiceConfig>
+
+/**
+ * Per-book overrides for the primary narrator, layered over the global
+ * `voices.yaml`. Shaped like that file — provider, then locale — so a book
+ * that reroutes a language to another provider falls back to the global
+ * mapping for the new provider instead of carrying a voice name the new
+ * provider cannot use, and gets its earlier choice back if it switches
+ * returns.
+ */
+export const PrimarySpeechVoicesConfig = z.record(
+  z.string(),
+  z.record(z.string(), PrimarySpeechVoiceConfig),
+)
+export type PrimarySpeechVoicesConfig = z.infer<typeof PrimarySpeechVoicesConfig>
+
 export const SpeechConfig = z.object({
   model: z.string().optional(),
   format: z.string().optional(),
@@ -56,6 +78,9 @@ export const SpeechConfig = z.object({
   providers: z.record(z.string(), TTSProviderConfig).optional(),
   /** Optional per-book secondary narrator profiles keyed by normalized locale. */
   secondary_voices: z.record(z.string(), SecondarySpeechVoiceConfig).optional(),
+  /** Optional per-book primary voice overrides, keyed provider → locale.
+   *  Absent means the global voices.yaml mapping applies, as it always has. */
+  primary_voices: PrimarySpeechVoicesConfig.optional(),
   bit_rate: z.string().optional(),
   sample_rate: z.number().optional(),
   /**

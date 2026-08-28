@@ -924,6 +924,9 @@ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar përkt
 msgid "Add an API key to re-run"
 msgstr "Shto një çelës API për të ri-ekzekutuar"
 
+msgid "Add an Azure Speech key and region in Settings to pick voices by name."
+msgstr "Shto një çelës dhe një rajon Azure Speech te Cilësimet për të zgjedhur zërat sipas emrit."
+
 msgid "Add an ElevenLabs API key in Settings to pick voices by name."
 msgstr "Shtoni një kyç API të ElevenLabs në Cilësimet për të zgjedhur zërat sipas emrit."
 
@@ -5664,6 +5667,10 @@ msgstr "Hapi tjetër"
 msgid "No"
 msgstr "Jo"
 
+#. placeholder {0}: PROVIDER_LABELS[provider] ?? provider
+msgid "No {0} voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Pick a voice above, or map one for {lang} in the Voices tab to share it across books."
+msgstr "Asnjë zë i {0} nuk është caktuar për këtë gjuhë, prandaj përdoret zëri i parazgjedhur në anglisht dhe narracioni do të ketë theks anglez. Zgjidh një zë më sipër, ose cakto një për {lang} te skeda Zërat për ta ndarë mes librave."
+
 msgid "No acceptable review results for this view."
 msgstr "Nuk ka rezultate të pranueshme të rishikimit për këtë pamje."
 
@@ -5758,8 +5765,8 @@ msgstr "Nuk ka rregulla të çaktiviziuara"
 msgid "No Easy Read for this page"
 msgstr "Nuk ka Lexim të Lehtë për këtë faqe"
 
-msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
-msgstr "Për këtë gjuhë nuk është caktuar asnjë zë i ElevenLabs, pra përdoret zëri i parazgjedhur anglisht dhe rrëfimi do të ketë theks anglez. Caktoni një zë për {lang} në skedën Zëra."
+#~ msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
+#~ msgstr "Për këtë gjuhë nuk është caktuar asnjë zë i ElevenLabs, pra përdoret zëri i parazgjedhur anglisht dhe rrëfimi do të ketë theks anglez. Caktoni një zë për {lang} në skedën Zëra."
 
 msgid "No embedded text layer — text was recovered from the page image"
 msgstr "Pa shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes"
@@ -10069,6 +10076,9 @@ msgstr "Ngarko ZIP ose tërhiq dhe lësho"
 msgid "Uploading..."
 msgstr "Po ngarkohet..."
 
+msgid "Use \"{trimmedQuery}\""
+msgstr "Përdor \"{trimmedQuery}\""
+
 msgid "Use adjacent text as context"
 msgstr "Përdor tekstin ngjitur si kontekst"
 
@@ -10282,6 +10292,9 @@ msgstr "Zë"
 
 msgid "Voice Mappings"
 msgstr "Hartëzime zërash"
+
+msgid "Voice name"
+msgstr "Emri i zërit"
 
 msgid "Voice tuning (advanced)"
 msgstr "Rregullimi i zërit (i avancuar)"

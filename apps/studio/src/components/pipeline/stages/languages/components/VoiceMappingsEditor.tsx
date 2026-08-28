@@ -14,7 +14,7 @@ import { useRegisterDirtyTabs } from "@/hooks/use-settings-dirty-tabs"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useLingui } from "@lingui/react/macro"
-import { ElevenLabsVoiceCombobox } from "./ElevenLabsVoiceCombobox"
+import { ProviderVoicePicker } from "./ProviderVoicePicker"
 
 interface VoiceMappingsEditorProps {
   bookLabel: string
@@ -336,27 +336,16 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
                 </td>
                 {PROVIDER_ORDER.map((key) => (
                   <td key={key} className="px-3 py-2 align-top">
-                    {key === "elevenlabs" ? (
-                      <ElevenLabsVoiceCombobox
-                        value={row[key].voice}
-                        onChange={(voiceId, voiceName) =>
-                          updateVoice(i, key, voiceId, voiceName)
-                        }
-                      />
-                    ) : (
-                      <Input
-                        value={row[key].voice}
-                        onChange={(event) => updateVoice(i, key, event.target.value)}
-                        className="h-7 text-xs"
-                        placeholder={
-                          key === "openai"
-                            ? t`e.g. alloy`
-                            : key === "azure"
-                              ? t`e.g. en-US-JennyNeural`
-                              : t`e.g. Kore`
-                        }
-                      />
-                    )}
+                    {/* The "default" row applies to every language, so its
+                        Azure voices must not be filtered to one locale. */}
+                    <ProviderVoicePicker
+                      provider={key}
+                      language={row.lang === "default" ? undefined : row.lang}
+                      value={row[key].voice}
+                      onChange={(voice, voiceLabel) =>
+                        updateVoice(i, key, voice, voiceLabel)
+                      }
+                    />
                   </td>
                 ))}
                 <td className="px-2 py-1.5 align-top">

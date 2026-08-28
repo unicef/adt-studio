@@ -26,6 +26,7 @@ import {
   elevenLabsTtsRetryDelayMs,
   parseElevenLabsErrorStatus,
   resolveNarratorLabel,
+  overlayPrimaryVoices,
   type VoiceMaps,
   type InstructionsMap,
 } from "../speech.js"
@@ -1433,5 +1434,133 @@ describe("elevenLabsTtsRetryDelayMs", () => {
     expect(elevenLabsTtsRetryDelayMs(2)).toBe(4_000)
     expect(elevenLabsTtsRetryDelayMs(3)).toBe(8_000)
     expect(elevenLabsTtsRetryDelayMs(10)).toBe(30_000)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Per-book primary voice overrides
+// ---------------------------------------------------------------------------
+
+describe("primary voice overrides", () => {
+  const voiceMaps: VoiceMaps = {
+    azure: {
+      default: "en-US-JennyNeural",
+      es: "es-MX-DaliaNeural",
+      "es-uy": "es-UY-ValentinaNeural",
+    },
+    openai: { default: "alloy" },
+  }
+
+  const resolve = (
+    language: string,
+    primary_voices: Record<string, Record<string, { voice: string; label?: string }>>,
+    speech: Record<string, unknown> = {},
+  ) =>
+    resolveSpeechVoice(
+      language,
+      "primary",
+      { default_provider: "azure", primary_voices, ...speech },
+      voiceMaps,
+    )
+
+  it("prefers a book override over the global mapping", () => {
+    expect(
+      resolve("es-UY", { azure: { "es-uy": { voice: "es-UY-MateoNeural" } } })?.voice,
+    ).toBe("es-UY-MateoNeural")
+  })
+
+  it("falls back to the global mapping when the book overrides nothing", () => {
+    expect(resolve("es-UY", {})?.voice).toBe("es-UY-ValentinaNeural")
+  })
+
+  // The override goes through the same exact -> base -> default chain as the
+  // global map, so an `es` override reaches an es-UY book.
+  it("applies a base-language override to a regional locale", () => {
+    expect(
+      resolve("es-UY", { azure: { es: { voice: "es-ES-ElviraNeural" } } })?.voice,
+    ).toBe("es-UY-ValentinaNeural")
+    expect(
+      resolve("es-AR", { azure: { es: { voice: "es-ES-ElviraNeural" } } })?.voice,
+    ).toBe("es-ES-ElviraNeural")
+  })
+
+  it("accepts an override written with an uppercase region", () => {
+    expect(
+      resolve("es-UY", { azure: { "es-UY": { voice: "es-UY-MateoNeural" } } })?.voice,
+    ).toBe("es-UY-MateoNeural")
+  })
+
+  // Keyed by provider, so rerouting a language cannot hand another provider's
+  // voice name to the new one.
+  it("ignores an override belonging to a different provider", () => {
+    const resolved = resolveSpeechVoice(
+      "es-UY",
+      "primary",
+      {
+        default_provider: "openai",
+        primary_voices: { azure: { "es-uy": { voice: "es-UY-MateoNeural" } } },
+      },
+      voiceMaps,
+    )
+    expect(resolved?.provider).toBe("openai")
+    expect(resolved?.voice).toBe("alloy")
+  })
+
+  it("carries the override's label through", () => {
+    expect(
+      resolve("es-UY", { azure: { "es-uy": { voice: "es-UY-MateoNeural", label: "Mateo" } } })
+        ?.label,
+    ).toBe("Mateo")
+  })
+
+  it("ignores a blank override rather than silencing the voice", () => {
+    expect(resolve("es-UY", { azure: { "es-uy": { voice: "  " } } })?.voice).toBe(
+      "es-UY-ValentinaNeural",
+    )
+  })
+
+  it("returns the global map untouched when there are no overrides", () => {
+    expect(overlayPrimaryVoices(voiceMaps, undefined)).toBe(voiceMaps)
+    expect(overlayPrimaryVoices(voiceMaps, {})).toBe(voiceMaps)
+  })
+
+  it("does not mutate the global map", () => {
+    overlayPrimaryVoices(voiceMaps, { azure: { "es-uy": { voice: "es-UY-MateoNeural" } } })
+    expect(voiceMaps.azure["es-uy"]).toBe("es-UY-ValentinaNeural")
+  })
+
+  // Only the primary slot is overridden. A legacy entry of the extended
+  // {primary, secondary} shape must not lose its secondary just because the
+  // book renamed the primary narrator.
+  it("keeps a legacy secondary slot when the primary is overridden", () => {
+    const withSecondary: VoiceMaps = {
+      azure: {
+        "es-uy": {
+          primary: { voice: "es-UY-ValentinaNeural" },
+          secondary: { voice: "es-UY-MateoNeural", label: "Mateo" },
+        },
+      },
+    }
+
+    const merged = overlayPrimaryVoices(withSecondary, {
+      azure: { "es-uy": { voice: "es-UY-ElviraNeural" } },
+    })
+
+    expect(merged.azure["es-uy"]).toEqual({
+      primary: { voice: "es-UY-ElviraNeural" },
+      secondary: { voice: "es-UY-MateoNeural", label: "Mateo" },
+    })
+    expect(
+      resolveVoiceForSlot("azure", "es-UY", merged, "secondary")?.voice,
+    ).toBe("es-UY-MateoNeural")
+  })
+
+  it("overrides a legacy scalar entry without inventing a secondary", () => {
+    const merged = overlayPrimaryVoices(voiceMaps, {
+      azure: { "es-uy": { voice: "es-UY-MateoNeural" } },
+    })
+
+    expect(merged.azure["es-uy"]).toEqual({ primary: { voice: "es-UY-MateoNeural" } })
+    expect(resolveVoiceForSlot("azure", "es-UY", merged, "secondary")).toBeNull()
   })
 })

@@ -43,6 +43,77 @@ const elevenLabsVoicesCache = new Map<
   { expiresAt: number; voices: ElevenLabsVoice[] }
 >()
 
+/** Subset of Azure's `GET /cognitiveservices/voices/list` entries the UI needs.
+ *  Azure voice names embed their locale (`es-UY-ValentinaNeural`), so unlike
+ *  OpenAI/Gemini these are only usable for the locale they belong to. */
+const AzureVoice = z.object({
+  ShortName: z.string(),
+  DisplayName: z.string().optional(),
+  LocalName: z.string().optional(),
+  Locale: z.string().optional(),
+  LocaleName: z.string().optional(),
+  Gender: z.string().optional(),
+  VoiceType: z.string().optional(),
+  StyleList: z.array(z.string()).optional(),
+})
+
+/** Flattened for the UI: `shortName` is what goes into voices.yaml. */
+export interface AzureVoiceSummary {
+  shortName: string
+  displayName: string
+  locale: string
+  localeName?: string
+  gender?: string
+}
+
+const AZURE_VOICES_CACHE_TTL_MS = 30 * 60_000
+const azureVoicesCache = new Map<
+  string,
+  { expiresAt: number; voices: AzureVoiceSummary[] }
+>()
+
+/** Azure ships ~500 voices and the list changes rarely, so it is cached longer
+ *  than ElevenLabs' account-scoped one. Keyed by a hash of key+region so two
+ *  regions (which expose different voice sets) never share an entry. */
+async function fetchAzureVoices(
+  apiKey: string,
+  region: string,
+): Promise<AzureVoiceSummary[]> {
+  const cacheKey = crypto.createHash("sha256").update(`${region}:${apiKey}`).digest("hex")
+  const cached = azureVoicesCache.get(cacheKey)
+  if (cached && cached.expiresAt > Date.now()) return cached.voices
+
+  // Same host and key the Azure synthesizer already uses (see @adt/llm speech.ts).
+  const url = `https://${encodeURIComponent(region)}.tts.speech.microsoft.com/cognitiveservices/voices/list`
+  const response = await fetch(url, {
+    headers: { "Ocp-Apim-Subscription-Key": apiKey },
+  })
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(
+      `Azure voices request failed (${response.status}): ${message || response.statusText}`
+    )
+  }
+
+  const voices = z
+    .array(AzureVoice)
+    .parse(await response.json())
+    .map((voice) => ({
+      shortName: voice.ShortName,
+      displayName: voice.LocalName || voice.DisplayName || voice.ShortName,
+      locale: voice.Locale ?? "",
+      localeName: voice.LocaleName,
+      gender: voice.Gender,
+    }))
+    .sort((left, right) => left.shortName.localeCompare(right.shortName))
+
+  azureVoicesCache.set(cacheKey, {
+    expiresAt: Date.now() + AZURE_VOICES_CACHE_TTL_MS,
+    voices,
+  })
+  return voices
+}
+
 async function fetchElevenLabsVoices(apiKey: string): Promise<ElevenLabsVoice[]> {
   const cacheKey = crypto.createHash("sha256").update(apiKey).digest("hex")
   const cached = elevenLabsVoicesCache.get(cacheKey)
@@ -180,6 +251,49 @@ export function createSpeechConfigRoutes(configPath: string): Hono {
       // Never log or echo the key. The message is upstream text only.
       const message = err instanceof Error ? err.message : String(err)
       console.warn(`[speech-config] failed to list ElevenLabs voices: ${message}`)
+      return c.json({ voices: [], error: message }, 502)
+    }
+  })
+
+  // GET /speech-config/azure-voices — Azure's catalogue, so the UI can offer
+  // real voice names instead of asking the user to guess
+  // `es-UY-ValentinaNeural` from memory. Optional `?language=` filters to the
+  // voices valid for that locale (Azure voices are locale-scoped, unlike
+  // OpenAI's and Gemini's).
+  //
+  // Mirrors the ElevenLabs route: an empty list rather than an error when no
+  // credentials are configured, so the UI degrades to free-text entry.
+  app.get("/speech-config/azure-voices", async (c) => {
+    const apiKey =
+      c.req.header("X-Azure-Speech-Key")?.trim() || process.env.AZURE_SPEECH_KEY
+    const region =
+      c.req.header("X-Azure-Speech-Region")?.trim() || process.env.AZURE_SPEECH_REGION
+    if (!apiKey || !region) return c.json({ voices: [] })
+
+    try {
+      const voices = await fetchAzureVoices(apiKey, region)
+      const language = c.req.query("language")?.trim()
+      if (!language) return c.json({ voices })
+
+      // Keep every voice sharing the base language — an es-UY book can
+      // sensibly narrate with any Spanish voice — but float the exact-locale
+      // ones to the top. Fall back to the full list rather than handing the
+      // user an empty picker for a locale Azure doesn't cover.
+      const normalized = language.toLowerCase().replace("_", "-")
+      const base = normalized.split("-")[0]
+      const sameLanguage = voices.filter(
+        (v) => v.locale.toLowerCase().split("-")[0] === base,
+      )
+      if (sameLanguage.length === 0) return c.json({ voices })
+      const exactFirst = [
+        ...sameLanguage.filter((v) => v.locale.toLowerCase() === normalized),
+        ...sameLanguage.filter((v) => v.locale.toLowerCase() !== normalized),
+      ]
+      return c.json({ voices: exactFirst })
+    } catch (err) {
+      // Never log or echo the key. The message is upstream text only.
+      const message = err instanceof Error ? err.message : String(err)
+      console.warn(`[speech-config] failed to list Azure voices: ${message}`)
       return c.json({ voices: [], error: message }, 502)
     }
   })
