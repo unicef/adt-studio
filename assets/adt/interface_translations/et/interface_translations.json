@@ -73,6 +73,7 @@
     "text-read-aloud-speed": "Kiirus",
     "toc-title": "Sisukord",
     "tts-label": "Tekst kõneks",
+    "narrator-voice-label": "Jutustaja hääl",
     "tutorial-closed-announcement": "Juhend suletud. Pea meeles, et saad kasutada Alt pluss Shift pluss A juurdepääsetavuse menüü avamiseks ja sulgemiseks, Alt pluss Shift pluss nooled lehekülgede vahel liikumiseks ja Alt pluss Shift pluss X navigeerimise avamiseks ja sulgemiseks. Saad juurdepääsetavuse funktsioonidele juurde pääseda paremas nurgas oleva nupuga.",
     "tutorial-completed-announcement": "Juhend lõpetatud. Pea meeles, et saad kasutada Alt pluss Shift pluss A juurdepääsetavuse menüü avamiseks ja sulgemiseks, Alt pluss Shift pluss nooled lehekülgede vahel liikumiseks ja Alt pluss Shift pluss X navigeerimise avamiseks ja sulgemiseks.",
     "tutorial-description-content": "Enne alustamist on siin kiire ringkäik, et näidata, kuidas navigeerida, menüüd kasutada ja kasulikele funktsioonidele juurde pääseda.<br> See ei võta kaua aega!",

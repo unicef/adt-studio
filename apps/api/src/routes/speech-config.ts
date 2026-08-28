@@ -4,6 +4,12 @@ import crypto from "node:crypto"
 import { Hono } from "hono"
 import yaml from "js-yaml"
 import { z } from "zod"
+import {
+  VoicesConfig,
+  normalizeVoiceMapEntry,
+  parseVoicesConfigEntries,
+  type VoiceMapEntry,
+} from "@adt/types"
 
 /** Subset of ElevenLabs' `GET /v2/voices` response we surface to the UI. The
  *  upstream payload also carries sample URLs, sharing metadata and settings we
@@ -119,17 +125,41 @@ export function createSpeechConfigRoutes(configPath: string): Hono {
       return c.json({})
     }
     const content = fs.readFileSync(filePath, "utf-8")
-    const parsed = yaml.load(content) as Record<string, Record<string, string>> | null
-    return c.json(parsed ?? {})
+    const raw = yaml.load(content)
+    const parsed = parseVoicesConfigEntries(raw ?? {})
+    for (const error of parsed.errors) {
+      const location = error.language
+        ? `${error.provider}.${error.language}`
+        : error.provider
+      console.warn(`[speech-config] invalid voices.yaml entry ${location} at ${filePath}: ${error.message}`)
+    }
+    return c.json(parsed.data)
   })
 
-  // PUT /speech-config/voices — write voices.yaml
+  // PUT /speech-config/voices — write voices.yaml. Accepts both the legacy
+  // scalar-string mapping and the canonical { primary, secondary } shape per
+  // provider/language (see VoicesConfig / VoiceMapEntry in @adt/types).
   app.put("/speech-config/voices", async (c) => {
-    const body = await c.req.json<Record<string, Record<string, string>>>()
+    const parsed = VoicesConfig.safeParse(await c.req.json())
+    if (!parsed.success) return c.json({ error: parsed.error.message }, 400)
+    const primaryOnly = Object.fromEntries(
+      Object.entries(parsed.data).map(([provider, mappings]) => [
+        provider,
+        Object.fromEntries(
+          Object.entries(mappings).map(([language, entry]: [string, VoiceMapEntry]) => {
+            const primary = normalizeVoiceMapEntry(entry).primary
+            return [
+              language,
+              primary.label ? { primary } : primary.voice,
+            ]
+          }),
+        ),
+      ]),
+    )
     const filePath = path.join(configDir, "voices.yaml")
     fs.mkdirSync(configDir, { recursive: true })
-    fs.writeFileSync(filePath, yaml.dump(body, { lineWidth: -1 }), "utf-8")
-    return c.json(body)
+    fs.writeFileSync(filePath, yaml.dump(primaryOnly, { lineWidth: -1 }), "utf-8")
+    return c.json(primaryOnly)
   })
 
   // GET /speech-config/elevenlabs-voices — human-readable names for the

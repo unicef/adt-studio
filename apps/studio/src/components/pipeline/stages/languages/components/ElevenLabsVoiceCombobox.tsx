@@ -62,7 +62,7 @@ function searchableText(voice: ElevenLabsVoice): string {
 interface ElevenLabsVoiceComboboxProps {
   /** The stored ElevenLabs voice ID (may be empty, or an ID not in this account). */
   value: string
-  onChange: (voiceId: string) => void
+  onChange: (voiceId: string, voiceName?: string) => void
   className?: string
 }
 
@@ -82,7 +82,7 @@ export function ElevenLabsVoiceCombobox({
   className,
 }: ElevenLabsVoiceComboboxProps) {
   const { t } = useLingui()
-  const { voices, describeVoice, isUnavailable, hasKey } = useElevenLabsVoices()
+  const { voices, describeVoice, voiceName, isUnavailable, hasKey } = useElevenLabsVoices()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
@@ -125,7 +125,10 @@ export function ElevenLabsVoiceCombobox({
   }
 
   const pick = (voiceId: string) => {
-    onChange(voiceId)
+    // The persisted label reaches end users in the exported reader's narrator
+    // picker, so it gets the bare name — not describeVoice's decorated
+    // "Tomás (premade, spanish)", which is for this picker's trigger only.
+    onChange(voiceId, voiceId ? voiceName(voiceId) : undefined)
     handleOpenChange(false)
   }
 

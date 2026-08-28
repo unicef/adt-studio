@@ -614,6 +614,9 @@ msgstr "A quiz already sits here — add another after it or replace it"
 #~ msgid "A scenic view at dusk."
 #~ msgstr "A scenic view at dusk."
 
+msgid "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
+msgstr "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
+
 msgid "A section containing only images."
 msgstr "A section containing only images."
 
@@ -1007,6 +1010,9 @@ msgstr "Add quiz here"
 
 msgid "Add reviewer guidance."
 msgstr "Add reviewer guidance."
+
+msgid "Add second voice"
+msgstr "Add second voice"
 
 msgid "Add section"
 msgstr "Add section"
@@ -5571,6 +5577,9 @@ msgstr "Names and terms are consistent"
 msgid "Narration"
 msgstr "Narration"
 
+msgid "Narrator voice"
+msgstr "Narrator voice"
+
 msgid "Natural narration for any book — students listen while they follow along, at their own pace."
 msgstr "Natural narration for any book — students listen while they follow along, at their own pace."
 
@@ -6959,6 +6968,9 @@ msgstr "Previous slide"
 msgid "Previously uploaded videos"
 msgstr "Previously uploaded videos"
 
+msgid "Primary"
+msgstr "Primary"
+
 msgid "Print a variable"
 msgstr "Print a variable"
 
@@ -7453,6 +7465,9 @@ msgstr "Remove picture"
 
 msgid "Remove placement"
 msgstr "Remove placement"
+
+msgid "Remove second voice"
+msgstr "Remove second voice"
 
 msgid "Remove section"
 msgstr "Remove section"
@@ -8073,6 +8088,18 @@ msgstr "Search..."
 msgid "Search…"
 msgstr "Search…"
 
+msgid "Second voice"
+msgstr "Second voice"
+
+msgid "Second voice model"
+msgstr "Second voice model"
+
+msgid "Second voice provider"
+msgstr "Second voice provider"
+
+msgid "Secondary"
+msgstr "Secondary"
+
 msgid "section"
 msgstr "section"
 
@@ -8241,6 +8268,9 @@ msgstr "Select a render strategy to preview how your book pages will be laid out
 
 msgid "Select a reviewer session to inspect its progress and findings."
 msgstr "Select a reviewer session to inspect its progress and findings."
+
+msgid "Select a second voice before saving"
+msgstr "Select a second voice before saving"
 
 msgid "Select a section mode to continue"
 msgstr "Select a section mode to continue"

@@ -614,6 +614,9 @@ msgstr "Një kuiz ekziston tashmë këtu — shtoni një tjetër pas tij ose zë
 #~ msgid "A scenic view at dusk."
 #~ msgstr "Një pamje piktoreske në muzg."
 
+msgid "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
+msgstr "Një zë i dytë e narron çdo rresht sërish, ndaj dyfishon koston e gjenerimit të të folurit dhe të sinkronizimit të fjalëve për këtë gjuhë."
+
 msgid "A section containing only images."
 msgstr "Një seksion që përmban vetëm imazhe."
 
@@ -1007,6 +1010,9 @@ msgstr "Shto kuiz këtu"
 
 msgid "Add reviewer guidance."
 msgstr "Shto udhëzime për rishikuesin."
+
+msgid "Add second voice"
+msgstr "Shto zërin e dytë"
 
 msgid "Add section"
 msgstr "Shto seksion"
@@ -5571,6 +5577,9 @@ msgstr "Emrat dhe termat janë të qëndrueshëm"
 msgid "Narration"
 msgstr "Narracion"
 
+msgid "Narrator voice"
+msgstr "Zëri i narratorit"
+
 msgid "Natural narration for any book — students listen while they follow along, at their own pace."
 msgstr "Narracion i natyrshëm për çdo libër — nxënësit dëgjojnë ndërsa ndjekin tekstin, me ritmin e tyre."
 
@@ -6959,6 +6968,9 @@ msgstr "Sllajdi i mëparshëm"
 msgid "Previously uploaded videos"
 msgstr "Video të ngarkuara më parë"
 
+msgid "Primary"
+msgstr "Kryesor"
+
 msgid "Print a variable"
 msgstr "Shfaq një variabël"
 
@@ -7453,6 +7465,9 @@ msgstr "Hiq figurën"
 
 msgid "Remove placement"
 msgstr "Hiq vendosjen"
+
+msgid "Remove second voice"
+msgstr "Hiq zërin e dytë"
 
 msgid "Remove section"
 msgstr "Hiq seksionin"
@@ -8073,6 +8088,18 @@ msgstr "Kërko..."
 msgid "Search…"
 msgstr "Kërko…"
 
+msgid "Second voice"
+msgstr "Zëri i dytë"
+
+msgid "Second voice model"
+msgstr "Modeli i zërit të dytë"
+
+msgid "Second voice provider"
+msgstr "Ofruesi i zërit të dytë"
+
+msgid "Secondary"
+msgstr "Dytësor"
+
 msgid "section"
 msgstr "seksion"
 
@@ -8241,6 +8268,9 @@ msgstr "Zgjidhni një strategji renderimi për të parë paraprakisht si do të 
 
 msgid "Select a reviewer session to inspect its progress and findings."
 msgstr "Zgjidhni një sesion rishikuesi për të inspektuar progresin dhe gjetjet e tij."
+
+msgid "Select a second voice before saving"
+msgstr "Zgjidhni një zë të dytë para se të ruani"
 
 msgid "Select a section mode to continue"
 msgstr "Zgjidhni një modalitet seksioni për të vazhduar"

@@ -231,13 +231,18 @@ export {
 } from "./easy-read.js"
 export {
   resolveVoice,
+  resolveVoiceForSlot,
   resolveInstructions,
   resolveProviderForLanguage,
   resolveSpeechModel,
+  resolveSpeechVoice,
+  resolvedVoiceLabel,
+  resolveNarratorLabel,
   resolveSpeechFormat,
   resolveGeminiTtsRateLimit,
   getDocumentedGeminiTtsRpm,
   type ResolvedGeminiTtsRateLimit,
+  type ResolvedVoice,
   isSpeakableText,
   stripEmojis,
   loadVoicesConfig,

@@ -16,13 +16,15 @@ import type {
   BookSummaryOutput,
   BookMetadata,
   SpeechConfig,
+  SpeechFileEntry,
   TTSOutput,
   WordTimestampOutput,
   TocGenerationOutput,
   Quiz,
   ImageCaptioningOutput,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
+import { resolveNarratorLabel } from "../speech.js"
 import {
   GOOGLE_FONTS,
   googleFontsReferencedIn,
@@ -149,10 +151,13 @@ function buildRuntimeTimecodeMap(
   timestamps: WordTimestampOutput | undefined,
   speechConfig?: SpeechConfig,
   readySpeechIds?: ReadonlySet<string>,
+  voiceSlot: "primary" | "secondary" = "primary",
 ): Record<string, RuntimeTimecodeEntry> {
   const map: Record<string, RuntimeTimecodeEntry> = {}
 
-  for (const [textId, entry] of Object.entries(timestamps?.entries ?? {})) {
+  for (const entry of Object.values(timestamps?.entries ?? {})) {
+    if (resolveEntryVoiceSlot(entry) !== voiceSlot) continue
+    const textId = entry.textId
     if (entry.words.length === 0) continue
     if (readySpeechIds && !readySpeechIds.has(textId)) continue
     if (isTtsExcluded(textId, speechConfig)) continue
@@ -668,8 +673,24 @@ export async function packageAdtWeb(
     const readySpeechIds = new Set(Object.keys(speechTextsMap))
     writeJson(path.join(localeDir, "speech_texts.json"), speechTextsMap)
 
-    // audios.json + copy audio files
+    // Keep audios.json as the primary map for legacy readers and EPUB. The
+    // optional audio_voices.json manifest adds selectable narrator variants.
     const audioMap: Record<string, string> = {}
+    const audioVoices: Record<
+      "primary" | "secondary",
+      { label: string; audios: Record<string, string> }
+    > = {
+      primary: { label: "Primary", audios: audioMap },
+      secondary: { label: "Secondary", audios: {} },
+    }
+    // The entries whose audio actually made it into the bundle, per slot. The
+    // narrator label is resolved from these once the copy loop is done, so a
+    // single manual upload can't rename the voice (see resolveNarratorLabel)
+    // and an entry whose file is missing on disk never names it at all.
+    const copiedBySlot: Record<"primary" | "secondary", SpeechFileEntry[]> = {
+      primary: [],
+      secondary: [],
+    }
 
     if (features?.readAloud !== false) {
       const audioDir = path.join(localeDir, "audio")
@@ -693,22 +714,39 @@ export async function packageAdtWeb(
           if (fs.existsSync(resolvedSrcFile)) {
             const destFile = path.join(audioDir, entry.fileName)
             fs.copyFileSync(resolvedSrcFile, destFile)
-            audioMap[entry.textId] = entry.fileName
+            const slot = resolveEntryVoiceSlot(entry)
+            audioVoices[slot].audios[entry.textId] = entry.fileName
+            copiedBySlot[slot].push(entry)
           }
         }
       }
     }
+    audioVoices.primary.label = resolveNarratorLabel(copiedBySlot.primary, "Primary")
+    audioVoices.secondary.label = resolveNarratorLabel(copiedBySlot.secondary, "Secondary")
     writeJson(path.join(localeDir, "audios.json"), audioMap)
+    if (Object.keys(audioVoices.secondary.audios).length > 0) {
+      writeJson(path.join(localeDir, "audio_voices.json"), {
+        defaultVoice: "primary",
+        voices: audioVoices,
+      })
+    }
 
     // timecode/timecode_output.json — word timings consumed by the reader runtime
     const timecodeDir = path.join(localeDir, "timecode")
     fs.mkdirSync(timecodeDir, { recursive: true })
-    writeJson(
-      path.join(timecodeDir, "timecode_output.json"),
-      highlightEnabled
-        ? buildRuntimeTimecodeMap(getWordTimestamps(storage, lang), speechConfig, readySpeechIds)
-        : {},
-    )
+    const timestamps = getWordTimestamps(storage, lang)
+    const primaryTimecodes = highlightEnabled
+      ? buildRuntimeTimecodeMap(timestamps, speechConfig, readySpeechIds, "primary")
+      : {}
+    writeJson(path.join(timecodeDir, "timecode_output.json"), primaryTimecodes)
+    if (Object.keys(audioVoices.secondary.audios).length > 0) {
+      writeJson(path.join(timecodeDir, "timecode_voices.json"), {
+        primary: primaryTimecodes,
+        secondary: highlightEnabled
+          ? buildRuntimeTimecodeMap(timestamps, speechConfig, readySpeechIds, "secondary")
+          : {},
+      })
+    }
 
     // videos.json — map "video-{pageIndex}" → video filename for assigned sign language videos
     // The ADT JS runtime expects keys prefixed with "video-" and files in a "video/" directory.
@@ -2411,10 +2449,12 @@ function generateOfflinePreloader(
       "texts.json",
       "speech_texts.json",
       "audios.json",
+      "audio_voices.json",
       "videos.json",
       "images.json",
       "glossary.json",
       "timecode/timecode_output.json",
+      "timecode/timecode_voices.json",
     ]) {
       const rel = `content/i18n/${lang}/${file}`
       const data = readJsonSafe(rel)

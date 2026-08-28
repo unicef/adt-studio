@@ -835,6 +835,7 @@ describe("packageAdtWeb", () => {
     fs.mkdirSync(audioDir, { recursive: true })
     createWebAssets(webAssetsDir)
     fs.writeFileSync(path.join(audioDir, "pg001_t001.mp3"), "audio")
+    fs.writeFileSync(path.join(audioDir, "pg001_t001--secondary.mp3"), "audio-secondary")
 
     const pages: PageData[] = [
       { pageId: "pg001", pageNumber: 1, text: "Page one" },
@@ -876,7 +877,18 @@ describe("packageAdtWeb", () => {
               textId: "pg001_t001",
               language: "en",
               fileName: "pg001_t001.mp3",
-              voice: "alloy",
+              voice: "QK4xDwo9ESPHA4JNUpX3",
+              model: "eleven_multilingual_v2",
+              provider: "elevenlabs",
+              cached: false,
+            },
+            {
+              textId: "pg001_t001",
+              language: "en",
+              fileName: "pg001_t001--secondary.mp3",
+              voice: "echo",
+              voiceLabel: "Mateo",
+              voiceSlot: "secondary",
               model: "gpt-4o-mini-tts",
               cached: false,
             },
@@ -923,6 +935,16 @@ describe("packageAdtWeb", () => {
                 { word: "world", start: 0.45, end: 0.9 },
               ],
             },
+            "pg001_t001--secondary": {
+              textId: "pg001_t001",
+              language: "en",
+              voiceSlot: "secondary",
+              duration: 0.9,
+              words: [
+                { word: "Hello", start: 0, end: 0.4 },
+                { word: "world", start: 0.4, end: 0.9 },
+              ],
+            },
           },
           generatedAt: "2026-01-01T00:00:00.000Z",
         },
@@ -958,6 +980,30 @@ describe("packageAdtWeb", () => {
         ],
       },
     })
+    const audioVoices = JSON.parse(
+      fs.readFileSync(
+        path.join(bookDir, "adt", "content", "i18n", "en", "audio_voices.json"),
+        "utf-8",
+      ),
+    )
+    expect(audioVoices.voices.primary.audios).toEqual({
+      pg001_t001: "pg001_t001.mp3",
+    })
+    expect(audioVoices.voices.primary.label).toBe("Tomás")
+    expect(audioVoices.voices.secondary).toEqual({
+      label: "Mateo",
+      audios: { pg001_t001: "pg001_t001--secondary.mp3" },
+    })
+    const voiceTimecodes = JSON.parse(
+      fs.readFileSync(
+        path.join(bookDir, "adt", "content", "i18n", "en", "timecode", "timecode_voices.json"),
+        "utf-8",
+      ),
+    )
+    expect(voiceTimecodes.secondary.pg001_t001.timecodes[1].word_timestamps).toEqual([
+      { text: "Hello", start: 0, end: 0.4 },
+      { text: "world", start: 0.4, end: 0.9 },
+    ])
 
     const configJson = JSON.parse(
       fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
