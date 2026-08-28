@@ -1528,4 +1528,39 @@ describe("primary voice overrides", () => {
     overlayPrimaryVoices(voiceMaps, { azure: { "es-uy": { voice: "es-UY-MateoNeural" } } })
     expect(voiceMaps.azure["es-uy"]).toBe("es-UY-ValentinaNeural")
   })
+
+  // Only the primary slot is overridden. A legacy entry of the extended
+  // {primary, secondary} shape must not lose its secondary just because the
+  // book renamed the primary narrator.
+  it("keeps a legacy secondary slot when the primary is overridden", () => {
+    const withSecondary: VoiceMaps = {
+      azure: {
+        "es-uy": {
+          primary: { voice: "es-UY-ValentinaNeural" },
+          secondary: { voice: "es-UY-MateoNeural", label: "Mateo" },
+        },
+      },
+    }
+
+    const merged = overlayPrimaryVoices(withSecondary, {
+      azure: { "es-uy": { voice: "es-UY-ElviraNeural" } },
+    })
+
+    expect(merged.azure["es-uy"]).toEqual({
+      primary: { voice: "es-UY-ElviraNeural" },
+      secondary: { voice: "es-UY-MateoNeural", label: "Mateo" },
+    })
+    expect(
+      resolveVoiceForSlot("azure", "es-UY", merged, "secondary")?.voice,
+    ).toBe("es-UY-MateoNeural")
+  })
+
+  it("overrides a legacy scalar entry without inventing a secondary", () => {
+    const merged = overlayPrimaryVoices(voiceMaps, {
+      azure: { "es-uy": { voice: "es-UY-MateoNeural" } },
+    })
+
+    expect(merged.azure["es-uy"]).toEqual({ primary: { voice: "es-UY-MateoNeural" } })
+    expect(resolveVoiceForSlot("azure", "es-UY", merged, "secondary")).toBeNull()
+  })
 })

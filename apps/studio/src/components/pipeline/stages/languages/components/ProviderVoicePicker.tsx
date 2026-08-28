@@ -37,9 +37,11 @@ export function ProviderVoicePicker({
   className,
 }: ProviderVoicePickerProps) {
   const { t } = useLingui()
-  // Hooks can't be conditional, so this runs for every provider; it no-ops
-  // without Azure credentials and its query key is shared across call sites.
-  const azure = useAzureVoices(provider === "azure" ? language : undefined)
+  // Hooks can't be conditional, so this runs for every provider — but the
+  // query only fires for Azure. Without the gate a book routed entirely to
+  // OpenAI (and every non-Azure column of the Voices tab) would still fetch
+  // Azure's whole catalogue, hitting Azure upstream for a list nothing reads.
+  const azure = useAzureVoices(language, provider === "azure")
 
   // ElevenLabs keeps its own control: its values are opaque ids that need
   // account lookup to read at all, which the others don't.
@@ -53,6 +55,9 @@ export function ProviderVoicePicker({
     const options: VoiceOption[] = azure.voices.map((voice) => ({
       value: voice.shortName,
       label: voice.gender ? `${voice.displayName} (${voice.gender})` : voice.displayName,
+      // The gender belongs in the list, not in config: the persisted label is
+      // the narrator name end users read in the exported reader.
+      name: voice.displayName,
       detail: voice.locale,
       search: `${voice.shortName} ${voice.localeName ?? ""}`,
     }))
@@ -66,6 +71,7 @@ export function ProviderVoicePicker({
         triggerLabel={known ? `${known.displayName} · ${known.locale}` : value || t`Default voice`}
         defaultOptionLabel={t`Default voice`}
         freeTextPlaceholder={t`e.g. en-US-JennyNeural`}
+        isLoading={azure.isLoading}
         unavailableHint={
           azure.hasCredentials ? undefined : (
             <Trans>

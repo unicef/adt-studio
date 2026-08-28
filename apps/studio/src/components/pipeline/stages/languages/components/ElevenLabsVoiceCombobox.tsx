@@ -45,7 +45,7 @@ export function ElevenLabsVoiceCombobox({
   className,
 }: ElevenLabsVoiceComboboxProps) {
   const { t } = useLingui()
-  const { voices, describeVoice, voiceName, hasKey } = useElevenLabsVoices()
+  const { voices, describeVoice, voiceName, isLoading, hasKey } = useElevenLabsVoices()
 
   const options: VoiceOption[] = useMemo(
     () =>
@@ -78,6 +78,7 @@ export function ElevenLabsVoiceCombobox({
       triggerLabel={triggerLabel}
       defaultOptionLabel={t`Default voice`}
       freeTextPlaceholder={t`e.g. 21m00Tcm4TlvDq8ikWAM`}
+      isLoading={isLoading}
       unavailableHint={
         hasKey ? undefined : (
           <Trans>Add an ElevenLabs API key in Settings to pick voices by name.</Trans>

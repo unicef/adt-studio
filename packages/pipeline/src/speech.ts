@@ -353,7 +353,13 @@ export function overlayPrimaryVoices(
     for (const [locale, override] of Object.entries(byLocale)) {
       if (!override?.voice?.trim()) continue
       // Lowercased to match how resolveVoiceForSlot normalizes its lookups.
-      languages[normalizeLocale(locale).toLowerCase()] = {
+      const key = normalizeLocale(locale).toLowerCase()
+      // Only the primary slot is overridden. A legacy entry of the extended
+      // {primary, secondary} shape keeps its secondary rather than losing it
+      // because the book renamed the primary narrator.
+      const existing = languages[key]
+      languages[key] = {
+        ...(existing !== undefined ? normalizeVoiceMapEntry(existing) : {}),
         primary: {
           voice: override.voice,
           ...(override.label ? { label: override.label } : {}),

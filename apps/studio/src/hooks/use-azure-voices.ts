@@ -13,7 +13,7 @@ import { useApiKey } from "./use-api-key"
  * and callers fall back to a free-text input, so this never blocks the Speech
  * settings from loading.
  */
-export function useAzureVoices(language?: string) {
+export function useAzureVoices(language?: string, enabled = true) {
   const { azureKey, azureRegion } = useApiKey()
   const hasCredentials = azureKey.length > 0 && azureRegion.length > 0
 
@@ -24,6 +24,9 @@ export function useAzureVoices(language?: string) {
         azureKey: azureKey || undefined,
         azureRegion: azureRegion || undefined,
       }),
+    // Callers routed to another provider have no use for the catalogue, and
+    // fetching it anyway would call Azure for a list nothing reads.
+    enabled,
     // Azure's catalogue changes rarely and the API server caches it too.
     staleTime: 30 * 60_000,
     // Without credentials the response is always empty — don't retry that.
@@ -34,6 +37,8 @@ export function useAzureVoices(language?: string) {
 
   return {
     voices,
+    // Already false while disabled — v5 derives isLoading from isFetching, so
+    // a query that never runs reads as settled rather than loading forever.
     isLoading: query.isLoading,
     /** True when there is no list to offer, so callers should fall back to
      *  free-text entry rather than render an empty picker. */

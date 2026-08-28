@@ -128,4 +128,58 @@ describe("VoicePicker", () => {
 
     expect(screen.getByText("Add a key")).toBeTruthy()
   })
+
+  // An empty list that is merely still in flight is not "no list". Swapping to
+  // the free-text input and back would jump the layout and drop focus from
+  // anyone already typing.
+  it("keeps the picker while the list is still loading", () => {
+    renderPicker({ options: [], isLoading: true })
+
+    expect(screen.getByRole("button")).toBeTruthy()
+    expect(screen.queryByPlaceholderText("e.g. en-US-JennyNeural")).toBeNull()
+  })
+
+  it("falls back to free text once loading finishes empty", () => {
+    renderPicker({ options: [], isLoading: false })
+
+    expect(screen.getByPlaceholderText("e.g. en-US-JennyNeural")).toBeTruthy()
+  })
+
+  // The row label may carry list-only decoration, but the persisted label is
+  // the narrator name end users read in the exported reader.
+  it("persists the bare name rather than the decorated row label", () => {
+    const { onChange } = renderPicker({
+      options: [
+        {
+          value: "es-UY-ValentinaNeural",
+          label: "Valentina (Female)",
+          name: "Valentina",
+          detail: "es-UY",
+        },
+      ],
+    })
+
+    openList()
+    fireEvent.click(screen.getByText("Valentina (Female)"))
+
+    expect(onChange).toHaveBeenCalledWith("es-UY-ValentinaNeural", "Valentina")
+  })
+
+  it("persists the bare name when picking with Enter", () => {
+    const { onChange } = renderPicker({
+      options: [
+        {
+          value: "es-UY-ValentinaNeural",
+          label: "Valentina (Female)",
+          name: "Valentina",
+        },
+      ],
+    })
+
+    openList()
+    search("valentina")
+    fireEvent.keyDown(screen.getByPlaceholderText("Search voices"), { key: "Enter" })
+
+    expect(onChange).toHaveBeenCalledWith("es-UY-ValentinaNeural", "Valentina")
+  })
 })

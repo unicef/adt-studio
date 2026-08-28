@@ -10,6 +10,11 @@ export interface VoiceOption {
   value: string
   /** What the user reads in the list. */
   label: string
+  /** The bare voice name to persist as the narrator label, when it differs
+   *  from `label`. `label` may carry list-only decoration ("Valentina
+   *  (Female)"), but the persisted label reaches end users in the exported
+   *  reader's narrator picker, so it has to stay a name. Defaults to `label`. */
+  name?: string
   /** Muted right-hand text — a locale, or a truncated id. */
   detail?: string
   /** Extra text the search box should match on beyond label and value. */
@@ -64,6 +69,10 @@ interface VoicePickerProps {
   defaultOptionLabel: string
   /** Placeholder for the free-text input used when `options` is empty. */
   freeTextPlaceholder: string
+  /** True while the caller is still fetching its list. Keeps the picker on
+   *  screen instead of flashing the free-text input and swapping back once the
+   *  voices arrive — which would also drop focus mid-keystroke. */
+  isLoading?: boolean
   /** Shown under the control when there are no options — typically why. */
   unavailableHint?: ReactNode
   /** Shown under the control when a value is set but unrecognised. */
@@ -90,6 +99,7 @@ export function VoicePicker({
   triggerLabel,
   defaultOptionLabel,
   freeTextPlaceholder,
+  isLoading = false,
   unavailableHint,
   unknownValueHint,
   className,
@@ -107,8 +117,10 @@ export function VoicePicker({
     )
   }, [options, query])
 
-  // No list to offer — a plain input so a known voice can still be typed.
-  if (options.length === 0) {
+  // No list to offer — a plain input so a known voice can still be typed. A
+  // list still in flight is not "no list": swapping controls mid-fetch would
+  // jump the layout and steal focus from anyone already typing.
+  if (options.length === 0 && !isLoading) {
     return (
       <div className="space-y-1">
         <Input
@@ -133,6 +145,11 @@ export function VoicePicker({
     onChange(nextValue, nextLabel)
     handleOpenChange(false)
   }
+
+  // `label` is what the row shows; `name` is what gets persisted. They differ
+  // wherever the list decorates a voice ("Valentina (Female)") — the persisted
+  // one reaches end users as the narrator's name, so it must stay bare.
+  const pickOption = (option: VoiceOption) => pick(option.value, option.name ?? option.label)
 
   const trimmedQuery = query.trim()
   // Offer the typed text when it matches nothing, so a voice the provider has
@@ -175,7 +192,7 @@ export function VoicePicker({
               onKeyDown={(e) => {
                 if (e.key !== "Enter") return
                 e.preventDefault()
-                if (filtered.length > 0) pick(filtered[0].value, filtered[0].label)
+                if (filtered.length > 0) pickOption(filtered[0])
                 else if (showCustom) pick(trimmedQuery)
               }}
               placeholder={t`Search voices`}
@@ -199,7 +216,7 @@ export function VoicePicker({
                 label={option.label}
                 detail={option.detail}
                 selected={option.value === value}
-                onSelect={() => pick(option.value, option.label)}
+                onSelect={() => pickOption(option)}
               />
             ))}
 
