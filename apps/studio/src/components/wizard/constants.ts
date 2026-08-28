@@ -180,6 +180,15 @@ export const PRESETS: PresetConfig[] = [
       {
         // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
         title: "Práticas de Alfabetização e de Matemática",
+        // Temporary metadata until the final preset examples are added.
+        caption: msg`Workbook with exercises and tables · 7-page sample`,
+        settings: {
+          renderStrategy: "llm",
+          pageGrouping: "single",
+          sectioningMode: "dynamic",
+          activitiesGenerator: true,
+          figureExtraction: "auto",
+        },
         pdfUrl: DEMO_PDF_URL,
         adtUrl: DEMO_ADT_URL,
       },
@@ -385,6 +394,13 @@ export const PRESETS: PresetConfig[] = [
       {
         // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
         title: "Sample Illustrated Story",
+        // Temporary metadata until the final preset examples are added.
+        caption: msg`Sample processed with the recommended storybook settings`,
+        settings: {
+          renderStrategy: "two_column_story",
+          pageGrouping: "spread",
+          sectioningMode: "page",
+        },
         pdfUrl: DEMO_PDF_URL,
         adtUrl: DEMO_ADT_URL,
       },
@@ -479,6 +495,14 @@ export const PRESETS: PresetConfig[] = [
       {
         // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
         title: "Sample Reference Manual",
+        // Temporary metadata until the final preset examples are added.
+        caption: msg`Sample processed with the recommended reference settings`,
+        settings: {
+          renderStrategy: "single_column",
+          pageGrouping: "single",
+          sectioningMode: "page",
+          figureExtraction: "auto",
+        },
         pdfUrl: DEMO_PDF_URL,
         adtUrl: DEMO_ADT_URL,
       },
@@ -638,7 +662,7 @@ export function getPresetRecommendationEntries(
   recommendations: PresetRecommendations,
 ): { label: MessageDescriptor; value: MessageDescriptor | string }[] {
   return Object.entries(recommendations)
-    .filter(([key]) => key in FIELD_LABELS)
+    .filter(([key, value]) => key in FIELD_LABELS && value !== undefined)
     .map(([key, value]) => ({
       label: FIELD_LABELS[key as keyof WizardFormValues]!,
       value: formatDefaultValue(key as keyof WizardFormValues, value),

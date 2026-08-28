@@ -12,6 +12,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { type PresetConfig, type ExampleBook } from "@/components/wizard/constants"
 import { usePdfPreviewPages } from "@/components/wizard/shared/usePdfPreviewPages"
+import { ExampleSettings } from "./ExampleSettings"
 
 type EmbedTab = "pdf" | "adt"
 
@@ -77,12 +78,13 @@ function BookItem({
   selected: boolean
   onSelect: () => void
 }) {
+  const { i18n } = useLingui()
 
   if (book.comingSoon) {
     return (
       <div className="w-full rounded-md border border-[#e5e5e5] px-3 py-2.5 opacity-50 cursor-not-allowed">
         <span className="text-sm text-[#737373] leading-snug">
-          {book.title}
+          {book.title}{" "}
           <span className="text-xs italic">
             (<Trans>coming soon</Trans>)
           </span>
@@ -102,7 +104,13 @@ function BookItem({
           : "border-[#e5e5e5] text-[#0a0a0a] hover:border-[#2b7fff]/50",
       ].join(" ")}
     >
-      {book.title}
+      <span className="block">{book.title}</span>
+
+      {selected && book.caption && (
+        <span className="mt-1 block font-normal text-[11px] text-[#737373]">
+          {i18n._(book.caption)}
+        </span>
+      )}
     </button>
   )
 }
@@ -203,20 +211,32 @@ export function ExamplesModal({ open, onClose, preset }: ExamplesModalProps) {
               onValueChange={(value) => setActiveTab(value as EmbedTab)}
               className="flex flex-1 flex-col min-h-0"
             >
-              <TabsList className="h-auto w-full justify-start rounded-none bg-transparent p-0 border-b border-[#e5e5e5] shrink-0">
-                <TabsTrigger
-                  value="pdf"
-                  className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-[#737373] shadow-none data-[state=active]:border-[#2b7fff] data-[state=active]:bg-transparent data-[state=active]:text-[#2b7fff] data-[state=active]:shadow-none"
-                >
-                  <Trans>Original PDF</Trans>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="adt"
-                  className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-[#737373] shadow-none data-[state=active]:border-[#2b7fff] data-[state=active]:bg-transparent data-[state=active]:text-[#2b7fff] data-[state=active]:shadow-none"
-                >
-                  <Trans>ADT Book</Trans>
-                </TabsTrigger>
-              </TabsList>
+              <div className="flex shrink-0 items-center border-b border-[#e5e5e5]">
+                <TabsList className="h-auto flex-1 justify-start rounded-none bg-transparent p-0">
+                  <TabsTrigger
+                    value="pdf"
+                    className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-[#737373] shadow-none data-[state=active]:border-[#2b7fff] data-[state=active]:bg-transparent data-[state=active]:text-[#2b7fff] data-[state=active]:shadow-none"
+                  >
+                    <Trans>Original PDF</Trans>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="adt"
+                    className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-[#737373] shadow-none data-[state=active]:border-[#2b7fff] data-[state=active]:bg-transparent data-[state=active]:text-[#2b7fff] data-[state=active]:shadow-none"
+                  >
+                    <Trans>ADT Book</Trans>
+                  </TabsTrigger>
+                </TabsList>
+
+                <div className="flex shrink-0 items-center gap-2 pr-3">
+                  <ExampleSettings settings={selectedBook.settings} />
+                  <DialogPrimitive.Close
+                    className="rounded-sm p-1 text-[#737373] transition-colors hover:text-[#0a0a0a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2b7fff]"
+                    aria-label={t`Close`}
+                  >
+                    <X className="h-4 w-4" />
+                  </DialogPrimitive.Close>
+                </div>
+              </div>
 
               <div className="flex-1 overflow-hidden">
                 {embedUrl ? (
@@ -244,12 +264,6 @@ export function ExamplesModal({ open, onClose, preset }: ExamplesModalProps) {
             </Tabs>
           </div>
 
-          <DialogPrimitive.Close
-            className="absolute right-3 top-3 rounded-sm p-1 text-[#737373] hover:text-[#0a0a0a] transition-colors focus:outline-none"
-            aria-label={t`Close`}
-          >
-            <X className="h-4 w-4" />
-          </DialogPrimitive.Close>
         </DialogPrimitive.Content>
       </DialogPortal>
     </Dialog>

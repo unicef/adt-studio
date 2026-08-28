@@ -1096,7 +1096,7 @@ msgstr "Añade orientaciones de Diseño Universal para el Aprendizaje (lenguaje 
 msgid "ADT Book"
 msgstr "Libro ADT"
 
-#. placeholder {0}: i18n._(selectedBook.title)
+#. placeholder {0}: selectedBook.title
 msgid "ADT Book - {0}"
 msgstr "Libro ADT - {0}"
 
@@ -6317,7 +6317,7 @@ msgstr "Idioma original"
 msgid "Original PDF"
 msgstr "PDF Original"
 
-#. placeholder {0}: i18n._(selectedBook.title)
+#. placeholder {0}: selectedBook.title
 msgid "Original PDF - {0}"
 msgstr "PDF Original - {0}"
 
@@ -7842,6 +7842,12 @@ msgstr "Se ejecuta en segundo plano — puedes seguir editando"
 
 msgid "Sample"
 msgstr "Muestra"
+
+msgid "Sample processed with the recommended reference settings"
+msgstr ""
+
+msgid "Sample processed with the recommended storybook settings"
+msgstr ""
 
 msgid "Sample Rate"
 msgstr "Tasa de muestreo"
@@ -10416,6 +10422,9 @@ msgstr "Resaltado por palabra"
 
 msgid "words"
 msgstr "palabras"
+
+msgid "Workbook with exercises and tables · 7-page sample"
+msgstr ""
 
 msgid "Wrap in group"
 msgstr "Envolver en grupo"

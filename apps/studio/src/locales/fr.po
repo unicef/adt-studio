@@ -1098,7 +1098,7 @@ msgstr "Ajoute des recommandations de Conception Universelle de l'Apprentissage 
 msgid "ADT Book"
 msgstr "ADT Livre"
 
-#. placeholder {0}: i18n._(selectedBook.title)
+#. placeholder {0}: selectedBook.title
 msgid "ADT Book - {0}"
 msgstr "ADT Livre - {0}"
 
@@ -6319,7 +6319,7 @@ msgstr "Langue originale"
 msgid "Original PDF"
 msgstr "Original PDF"
 
-#. placeholder {0}: i18n._(selectedBook.title)
+#. placeholder {0}: selectedBook.title
 msgid "Original PDF - {0}"
 msgstr "Original PDF - {0}"
 
@@ -7844,6 +7844,12 @@ msgstr "S'exécute en arrière-plan — vous pouvez continuer à éditer"
 
 msgid "Sample"
 msgstr "Exemple"
+
+msgid "Sample processed with the recommended reference settings"
+msgstr ""
+
+msgid "Sample processed with the recommended storybook settings"
+msgstr ""
 
 msgid "Sample Rate"
 msgstr "Taux d'échantillonnage"
@@ -10418,6 +10424,9 @@ msgstr "Surlignage mot à mot"
 
 msgid "words"
 msgstr "mots"
+
+msgid "Workbook with exercises and tables · 7-page sample"
+msgstr ""
 
 msgid "Wrap in group"
 msgstr "Encapsuler dans un groupe"
