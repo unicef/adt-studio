@@ -3,7 +3,6 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { AlertTriangle } from "lucide-react"
 import {
   ToolApproval,
-  ToolApprovalCode,
   type ToolApprovalParameter,
   type ToolApprovalStatus,
 } from "@/components/agents/tool-approval"
@@ -11,6 +10,7 @@ import { FileDiff } from "@/components/agents/file-diff"
 import { ThinkingShimmer } from "@/components/agents/loading-states/thinking-shimmer"
 import { useChatToolPreview } from "@/hooks/use-chat"
 import type { ChatToolPreviewBody } from "@/api/client"
+import { ChatApprovalCode } from "./ChatApprovalCode"
 import { diffLines } from "./diff-lines"
 
 export interface ChatApprovalCardProps {
@@ -44,8 +44,8 @@ function PreviewBody({ preview }: { preview: ChatToolPreviewBody }) {
               the result as a new version. The current content is:
             </Trans>
           </p>
-          {preview.note ? <ToolApprovalCode code={preview.note} language="text" /> : null}
-          <ToolApprovalCode code={preview.before || t`(empty)`} language="text" />
+          {preview.note ? <ChatApprovalCode code={preview.note} /> : null}
+          <ChatApprovalCode code={preview.before || t`(empty)`} />
         </div>
       )
     }
@@ -126,7 +126,7 @@ function PreviewBody({ preview }: { preview: ChatToolPreviewBody }) {
     )
   }
 
-  return <ToolApprovalCode code={JSON.stringify(preview.input, null, 2)} language="json" />
+  return <ChatApprovalCode code={JSON.stringify(preview.input, null, 2)} language="json" />
 }
 
 export function ChatApprovalCard({
