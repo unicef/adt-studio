@@ -1,5 +1,6 @@
 import { createChatToolRegistry, type ChatToolRegistry } from "@adt/chat"
 import type { ChatToolContext } from "./context.js"
+import { MUTATING_TOOLS } from "./tools/mutating-tools.js"
 import { READ_TOOLS } from "./tools/read-tools.js"
 
 /**
@@ -8,5 +9,5 @@ import { READ_TOOLS } from "./tools/read-tools.js"
  * user approves the call.
  */
 export function createBookChatTools(): ChatToolRegistry<ChatToolContext> {
-  return createChatToolRegistry<ChatToolContext>([...READ_TOOLS])
+  return createChatToolRegistry<ChatToolContext>([...READ_TOOLS, ...MUTATING_TOOLS])
 }

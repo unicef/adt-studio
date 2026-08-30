@@ -51,7 +51,6 @@ export function StepShell({
       canApply={canApply}
       rail={rail}
       pages={pages}
-      hasSections={frame.hasSections}
       foundations={frame.foundations}
       plugins={frame.plugins}
       bodyViewportClassName={bodyViewportClassName}

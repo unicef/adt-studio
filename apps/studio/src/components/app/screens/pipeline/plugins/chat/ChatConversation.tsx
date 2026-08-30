@@ -6,6 +6,7 @@ import type { ChatCredentials, ChatModelOption } from "@/api/client"
 import { ChatEmptyState } from "./ChatEmptyState"
 import { ChatMessages } from "./ChatMessages"
 import { AiPanelShell } from "../AiPanelShell"
+import { approvalMarker, type ToolPart } from "./message-parts"
 import { useBookChat, type ChatScreenContext } from "./useBookChat"
 
 export interface ChatConversationProps {
@@ -66,6 +67,18 @@ export function ChatConversation({
     [hasModel, messages.length, onFirstMessage, sendMessage],
   )
 
+  const { addToolResult } = chat
+  const decide = useCallback(
+    (part: ToolPart, decision: "approved" | "denied") => {
+      void addToolResult({
+        tool: part.toolName,
+        toolCallId: part.toolCallId,
+        output: approvalMarker(decision),
+      })
+    },
+    [addToolResult],
+  )
+
   const promptModels: PromptModel[] = models.map((option) => ({
     value: option.id,
     label: option.label,
@@ -96,11 +109,13 @@ export function ChatConversation({
       }
     >
       <ChatMessages
+        label={label}
         messages={chat.messages}
         isBusy={chat.isBusy}
         isStreaming={chat.status === "streaming"}
         error={chat.error}
         emptyState={<ChatEmptyState hasModel={hasModel} onStarter={submit} />}
+        onDecide={decide}
       />
     </AiPanelShell>
   )

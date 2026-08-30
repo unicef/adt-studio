@@ -28,7 +28,6 @@ export interface PluginWorkspaceProps {
   rail: React.ReactNode
   children: React.ReactNode
   pages: PipelinePage[]
-  hasSections: boolean
   foundations: DockItem[]
   plugins: DockItem[]
   onBack: () => void
@@ -45,7 +44,6 @@ export function PluginWorkspace({
   rail,
   children,
   pages,
-  hasSections,
   foundations,
   plugins,
   onBack,
@@ -174,10 +172,6 @@ export function PluginWorkspace({
 
         <AiPanel
           label={label}
-          pageId={chatPage?.pageId ?? null}
-          pageLabel={chatPage ? t`page ${chatPage.pageNumber}` : undefined}
-          sectionIndex={chatPage?.sections[0]?.sectionIndex ?? 0}
-          empty={!hasSections}
           screenContext={{
             screen: plugin.slug,
             stage: plugin.slug,

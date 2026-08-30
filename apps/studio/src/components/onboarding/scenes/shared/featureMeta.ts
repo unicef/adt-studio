@@ -3,7 +3,6 @@ import { AudioLines, Languages, HelpCircle, BookOpen, type LucideIcon } from "lu
 export type FeatureSlug = "speech" | "translate" | "quizzes" | "glossary"
 
 /** Exact pipeline-stage icon + color per feature, mirroring stage-config.ts. */
-/* eslint-disable lingui/no-unlocalized-strings -- design tokens: color hexes + gradients, never user-facing */
 export const FEATURE_META: Record<
   FeatureSlug,
   { Icon: LucideIcon; hex: string; tint: string; panel: string }
@@ -33,4 +32,3 @@ export const FEATURE_META: Record<
     panel: "linear-gradient(150deg, #a3e635 0%, #65a30d 52%, #365314 100%)",
   },
 }
-/* eslint-enable lingui/no-unlocalized-strings */

@@ -233,16 +233,6 @@ export function PipelineWorkspace({
 
         <AiPanel
           label={label}
-          pageId={activeQuiz ? null : activePage?.pageId ?? null}
-          pageLabel={
-            activeQuiz
-              ? t`quiz ${activeQuiz.quizIndex + 1}`
-              : activePage
-                ? t`page ${activePage.pageNumber}`
-                : undefined
-          }
-          sectionIndex={activePage?.sections[0]?.sectionIndex ?? 0}
-          empty={empty}
           screenContext={{
             screen: "storyboard",
             pageId: activeQuiz ? undefined : activePage?.pageId,

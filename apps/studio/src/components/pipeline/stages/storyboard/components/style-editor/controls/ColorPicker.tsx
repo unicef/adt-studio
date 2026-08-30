@@ -48,7 +48,6 @@ interface ColorPickerProps {
 }
 
 const TRANSPARENT_PATTERN =
-/* eslint-disable-next-line lingui/no-unlocalized-strings -- CSS gradient definition, not user-facing copy */
   "linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc), linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc)";
 
 

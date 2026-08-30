@@ -4,11 +4,12 @@ import { Hono } from "hono"
 import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
-import { createBookStorage, openBookDb } from "@adt/storage"
-import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody } from "@adt/types"
+import { openBookDb } from "@adt/storage"
+import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, PageErrorPolicy, DecisionBody } from "@adt/types"
 import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 import type { PageErrorDecisions } from "../services/page-error-decisions.js"
+import { makeBeforeRun } from "../services/stage-clear.js"
 
 const StageRunBody = z
   .object({
@@ -18,39 +19,6 @@ const StageRunBody = z
     pageErrorPolicy: PageErrorPolicy.optional(),
   })
   .strict()
-
-/** Build a beforeRun callback that clears downstream data for a stage.
- *  The returned function is idempotent — only runs once even if called multiple times. */
-function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string): () => void {
-  let ran = false
-  return () => {
-    if (ran) return
-    ran = true
-    const storage = createBookStorage(label, booksDir)
-    try {
-      if (fromStage === "extract") {
-        // clearExtractedData also clears step_runs
-        storage.clearExtractedData()
-      } else {
-        const nodes = getStageRerunClearNodes(fromStage, toStage)
-        if (nodes.length > 0) {
-          storage.clearNodesByType(nodes)
-        }
-        if (fromStage === "storyboard" && typeof storage.clearDebugImages === "function") {
-          storage.clearDebugImages()
-        }
-        // Clear step run records for all downstream stages
-        const stagesToClear = getStageClearOrder(fromStage)
-        const stepsToClear = PIPELINE
-          .filter((s) => stagesToClear.includes(s.name))
-          .flatMap((s) => s.steps.map((step) => step.name))
-        storage.clearStepRuns(stepsToClear)
-      }
-    } finally {
-      storage.close()
-    }
-  }
-}
 
 function formatStepErrors(stepErrors: Record<string, string>): string {
   const entries = Object.entries(stepErrors)

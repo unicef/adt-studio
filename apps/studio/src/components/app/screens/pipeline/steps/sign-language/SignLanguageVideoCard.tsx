@@ -13,7 +13,6 @@ import { tint } from "@/components/app/screens/pipeline/shared/plugins"
 import type { SectionEntry } from "@/components/pipeline/stages/sign-language/components/types"
 import { RowAction, StepCard } from "../shared/ui"
 
-/* eslint-disable-next-line lingui/no-unlocalized-strings -- Radix Select has no "empty" value, so unassigned needs a sentinel of its own. */
 export const UNASSIGNED = "__unassigned__"
 
 function formatSize(bytes: number, locale: string): string {

@@ -20,6 +20,7 @@ import {
 import { createChatService, type ChatService } from "../services/chat/chat-service.js"
 import { buildChatSystemPrompt } from "../services/chat/system-prompt.js"
 import { buildBookOverview } from "../services/chat/tools/book-overview.js"
+import { buildToolPreview } from "../services/chat/tool-preview.js"
 import { createBookChatTools } from "../services/chat/tools.js"
 import type { ChatPaths, ChatToolContext } from "../services/chat/context.js"
 import type { StageService } from "../services/stage-service.js"
@@ -48,6 +49,11 @@ const SendMessagesSchema = z.object({
   model: z.string().min(1).max(128).optional(),
   locale: z.string().min(2).max(16).optional(),
   screenContext: ScreenContextSchema.optional(),
+})
+
+const ToolPreviewSchema = z.object({
+  toolName: z.string().min(1).max(64),
+  input: z.unknown(),
 })
 
 const CreateThreadSchema = z.object({
@@ -116,6 +122,17 @@ export function createChatRoutes(
   app.get("/books/:label/chat/models", (c) => {
     service.resolveBook(c.req.param("label"))
     return c.json({ models: availableChatModels(readCredentials(c)) })
+  })
+
+  app.post("/books/:label/chat/tool-preview", async (c) => {
+    const { safeLabel } = service.resolveBook(c.req.param("label"))
+    const body = await parseBody(c, ToolPreviewSchema)
+    if (!registry.get(body.toolName)?.mutating) {
+      throw new HTTPException(400, {
+        message: `Not a mutating tool: ${body.toolName}`,
+      })
+    }
+    return c.json(buildToolPreview(paths.booksDir, safeLabel, body.toolName, body.input))
   })
 
   app.get("/books/:label/chat/threads", (c) => {

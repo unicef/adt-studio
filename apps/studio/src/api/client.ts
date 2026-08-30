@@ -2154,6 +2154,52 @@ export const api = {
       `/books/${label}/chat/threads/${threadId}/cancel`,
       { method: "POST" },
     ),
+
+  getChatToolPreview: (label: string, toolName: string, input: unknown) =>
+    request<ChatToolPreview>(`/books/${label}/chat/tool-preview`, {
+      method: "POST",
+      body: JSON.stringify({ toolName, input }),
+    }),
+}
+
+export interface ChatStageRunPreview {
+  kind: "stage-run"
+  fromStage: string
+  toStage: string
+  stagesInRange: string[]
+  clearedNodes: string[]
+  resetStages: string[]
+  clearsExtractedData: boolean
+}
+
+export interface ChatDiffPreview {
+  kind: "diff"
+  target: string
+  before: string
+  after: string | null
+  note?: string
+}
+
+export interface ChatConfigPreview {
+  kind: "config"
+  changes: Array<{ key: string; before: unknown; after: unknown }>
+}
+
+export interface ChatOpaquePreview {
+  kind: "opaque"
+  input: unknown
+}
+
+export type ChatToolPreviewBody =
+  | ChatStageRunPreview
+  | ChatDiffPreview
+  | ChatConfigPreview
+  | ChatOpaquePreview
+
+export interface ChatToolPreview {
+  toolName: string
+  runningSteps: string[]
+  preview: ChatToolPreviewBody
 }
 
 export interface ChatCredentials {

@@ -92,7 +92,6 @@ const DEFAULT_PANEL_WIDTH = 460
 const PANEL_WIDTH_STORAGE_KEY = "adt:activity-panel-width"
 const HINT_DISMISSED_STORAGE_KEY = "adt:activity-panel-hint-dismissed"
 
-// eslint-disable-next-line lingui/no-unlocalized-strings -- sentinel value, never rendered
 const NO_CHOICE_ID = "__none__"
 
 function readStoredWidth(): number {

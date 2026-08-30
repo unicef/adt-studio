@@ -14,7 +14,6 @@ import {
   type ActivityItem,
 } from "../lib/activity-answer-labels"
 
-// eslint-disable-next-line lingui/no-unlocalized-strings -- internal Select sentinel, never shown to users
 const NONE = "__none__"
 
 interface ActivityAnswersEditorProps {

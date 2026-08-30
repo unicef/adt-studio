@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { buildPromptLineDiff, type PromptDiffRow } from "./promptVersionDiff"
 
-// eslint-disable-next-line lingui/no-unlocalized-strings -- Internal selection key, not user-visible copy.
 const UNSAVED_VERSION_KEY = "__unsaved__"
 
 type PromptVersionHistoryProps = {

@@ -119,7 +119,6 @@ export function removeElementFromSourceHtml(
 
   const parser = new DOMParser()
   const doc = parser.parseFromString(`<div id="__root">${sourceHtml}</div>`, "text/html")
-  // eslint-disable-next-line lingui/no-unlocalized-strings -- Internal DOM id, not user-visible
   const syntheticRoot = doc.getElementById("__root")
   if (!syntheticRoot) return null
   const sourceRoot = doc.getElementById("content") ?? syntheticRoot
@@ -165,7 +164,6 @@ export function reconstructHtmlWithEdit(
     const el = doc.querySelector(`[data-id="${CSS.escape(dataId)}"]`)
     if (!el) return null
     el.innerHTML = editedInnerHtml
-    // eslint-disable-next-line lingui/no-unlocalized-strings -- Internal DOM id, not user-visible
     const wrapper = doc.getElementById("content") ?? doc.getElementById("__root")
     if (!wrapper) return null
     return serializeContentWrapper(wrapper)

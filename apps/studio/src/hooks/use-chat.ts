@@ -44,6 +44,21 @@ export function useChatThread(label: string, threadId: string | null) {
   })
 }
 
+export function useChatToolPreview(
+  label: string,
+  toolName: string,
+  toolCallId: string,
+  input: unknown,
+) {
+  return useQuery({
+    queryKey: ["books", label, "chat", "tool-preview", toolCallId],
+    queryFn: () => api.getChatToolPreview(label, toolName, input),
+    enabled: !!label && !!toolName,
+    staleTime: 30_000,
+    retry: false,
+  })
+}
+
 export function useChatThreadMutations(label: string) {
   const queryClient = useQueryClient()
   const threadsKey = ["books", label, "chat", "threads"]

@@ -219,6 +219,9 @@ export default [
             "useSelectContext",
             "useMorphContext",
 
+            // --- Animation key fallbacks (identifiers, not UI copy) ---
+            "getSwapKey",
+
             // --- CSS / media-query APIs ---
             "*.matches",
             "*.matchMedia",
@@ -271,10 +274,14 @@ export default [
             // CSS selectors and rule blocks (e.g. `[data-id="..."]`, `body[data-editable=...] {...}`)
             "^[\\[.]?[a-z].*\\{",
             "^\\[data-",
-            // Underscore-prefixed internal ID fragments (e.g. "_tx" in data-id template literals)
-            "^_[a-z]",
-            // CSS easing and clip-path values (e.g. "cubic-bezier(0.16, 1, 0.3, 1)", "inset(0% round 12px)")
-            "^(cubic-bezier|inset|steps|linear)\\(",
+            // Underscore-prefixed internal ID fragments (e.g. "_tx" in data-id
+            // template literals, "__adtApproval" marker keys)
+            "^_+[a-zA-Z]",
+            // CSS easing, gradient and clip-path values
+            // (e.g. "cubic-bezier(0.16, 1, 0.3, 1)", "linear-gradient(...)", "inset(0% round 12px)")
+            "^(cubic-bezier|inset|steps|linear|linear-gradient|radial-gradient|conic-gradient)\\(",
+            // Motion easing keywords (e.g. "easeInOut")
+            "^ease(In|Out|InOut)?$",
             // Stylesheet fragments injected by components (keyframes, media queries)
             "^@(keyframes|media)",
             // Tailwind class lists whose tokens may be arbitrary values

@@ -9,10 +9,8 @@ interface ColorInputProps {
   className?: string
 }
 
-/* eslint-disable lingui/no-unlocalized-strings -- CSS gradient definition, not user-facing copy */
 const TRANSPARENT_PATTERN =
   "linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc), linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc)"
-/* eslint-enable lingui/no-unlocalized-strings */
 
 /**
  * Field-row color input. The whole row is the picker trigger: it shows a

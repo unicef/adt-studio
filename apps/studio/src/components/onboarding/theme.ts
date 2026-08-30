@@ -1,4 +1,3 @@
-/* eslint-disable lingui/no-unlocalized-strings -- design tokens: color hexes and CSS gradient strings, never user-facing */
 import type { CSSProperties } from "react"
 import betaLogoSrc from "@/assets/update-icons/beta-512x512.png?url"
 import stableLogoSrc from "@/assets/update-icons/stable-512x512.png?url"

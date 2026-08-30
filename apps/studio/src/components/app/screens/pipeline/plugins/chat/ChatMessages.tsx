@@ -1,6 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro"
 import { AlertTriangle, Sparkles } from "lucide-react"
 import type { UIMessage } from "ai"
+import type { ToolApprovalStatus } from "@/components/agents/tool-approval"
 import {
   Message,
   MessageAvatar,
@@ -10,36 +11,74 @@ import {
   MessageScroller,
 } from "@/components/agents/message"
 import { ThinkingShimmer } from "@/components/agents/loading-states/thinking-shimmer"
+import { ChatApprovalCard } from "./ChatApprovalCard"
 import { ChatMarkdown } from "./ChatMarkdown"
+import { ChatToolTrace } from "./ChatToolTrace"
+import {
+  MUTATING_TOOLS,
+  messageText,
+  readApprovalMarker,
+  renderableParts,
+  type RenderablePart,
+  type ToolPart,
+} from "./message-parts"
 
 export interface ChatMessagesProps {
+  label: string
   messages: UIMessage[]
   isBusy: boolean
   isStreaming: boolean
   error?: Error
   emptyState: React.ReactNode
+  onDecide: (part: ToolPart, decision: "approved" | "denied") => void
 }
 
-function messageText(message: UIMessage): string {
-  return message.parts
-    .filter((part) => part.type === "text")
-    .map((part) => (part as { text: string }).text)
-    .join("\n")
-    .trim()
+function approvalStatus(part: ToolPart): ToolApprovalStatus {
+  if (part.state === "output-error") return "error"
+  const decision = readApprovalMarker(part.output)
+  if (decision === "denied") return "denied"
+  if (decision === "approved") return "complete"
+  if (part.state === "output-available") return "complete"
+  return "pending"
+}
+
+/** Group consecutive read-tool calls so one trace covers a burst of lookups. */
+function groupParts(parts: RenderablePart[]): Array<RenderablePart | { kind: "trace"; key: string; parts: ToolPart[] }> {
+  const grouped: Array<RenderablePart | { kind: "trace"; key: string; parts: ToolPart[] }> = []
+
+  for (const part of parts) {
+    if (part.kind === "tool" && !MUTATING_TOOLS.has(part.toolName)) {
+      const last = grouped.at(-1)
+      if (last && "kind" in last && last.kind === "trace") {
+        last.parts.push(part)
+        continue
+      }
+      grouped.push({ kind: "trace", key: `trace-${part.toolCallId}`, parts: [part] })
+      continue
+    }
+    grouped.push(part)
+  }
+
+  return grouped
 }
 
 export function ChatMessages({
+  label,
   messages,
   isBusy,
   isStreaming,
   error,
   emptyState,
+  onDecide,
 }: ChatMessagesProps) {
   const { t } = useLingui()
   const visible = messages.filter((message) => message.role !== "system")
   const lastMessage = visible.at(-1)
   const awaitingFirstToken =
-    isBusy && (!lastMessage || lastMessage.role === "user" || !messageText(lastMessage))
+    isBusy &&
+    (!lastMessage ||
+      lastMessage.role === "user" ||
+      (!messageText(lastMessage) && renderableParts(lastMessage).length === 0))
 
   if (visible.length === 0 && !isBusy) {
     return <div className="min-h-0 flex-1 overflow-y-auto">{emptyState}</div>
@@ -52,16 +91,16 @@ export function ChatMessages({
       busy={isStreaming}
       contentClassName="flex flex-col gap-3 px-3.5 py-4"
     >
-      {visible.map((message, index) => {
-        const text = messageText(message)
-        if (!text) return null
+      {visible.map((message, messageIndex) => {
         const isUser = message.role === "user"
+        const parts = groupParts(renderableParts(message))
+        if (parts.length === 0) return null
 
         return (
           <Message
             key={message.id}
             from={isUser ? "user" : "assistant"}
-            animateIn={index === visible.length - 1}
+            animateIn={messageIndex === visible.length - 1}
             className="gap-2"
           >
             {isUser ? null : (
@@ -70,14 +109,38 @@ export function ChatMessages({
               </MessageAvatar>
             )}
             <MessageContent>
-              <MessageBubble
-                variant={isUser ? "tint" : "soft"}
-                className="max-w-[258px]"
-              >
-                <MessageBubbleContent>
-                  <ChatMarkdown>{text}</ChatMarkdown>
-                </MessageBubbleContent>
-              </MessageBubble>
+              {parts.map((part) => {
+                if (part.kind === "trace") {
+                  return <ChatToolTrace key={part.key} parts={part.parts} />
+                }
+
+                if (part.kind === "tool") {
+                  return (
+                    <ChatApprovalCard
+                      key={part.key}
+                      label={label}
+                      toolName={part.toolName}
+                      toolCallId={part.toolCallId}
+                      input={part.input}
+                      status={approvalStatus(part)}
+                      onApprove={() => onDecide(part, "approved")}
+                      onDeny={() => onDecide(part, "denied")}
+                    />
+                  )
+                }
+
+                return (
+                  <MessageBubble
+                    key={part.key}
+                    variant={isUser ? "tint" : "soft"}
+                    className="max-w-[258px]"
+                  >
+                    <MessageBubbleContent>
+                      <ChatMarkdown>{part.text}</ChatMarkdown>
+                    </MessageBubbleContent>
+                  </MessageBubble>
+                )
+              })}
             </MessageContent>
           </Message>
         )

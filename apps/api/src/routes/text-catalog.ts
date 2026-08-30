@@ -19,6 +19,7 @@ import {
   invalidateCoreTtsForDisplayEntries,
   normalizeLocale,
 } from "@adt/pipeline"
+import { saveTranslationCatalog } from "../services/translation-save.js"
 
 const TranslationBody = z
   .object({
@@ -162,36 +163,12 @@ export function createTextCatalogRoutes(booksDir: string): Hono {
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const previous = storage.getLatestNodeData("text-catalog-translation", language)
-      const previousData = previous?.data && typeof previous.data === "object"
-        ? previous.data as { generatedAt?: unknown }
-        : null
-      const data = TextCatalogOutput.parse({
-        entries: parsed.data.entries,
-        generatedAt: parsed.data.generatedAt
-          ?? (typeof previousData?.generatedAt === "string" ? previousData.generatedAt : undefined)
-          ?? new Date().toISOString(),
-      })
-      const version = storage.putNodeData(
-        "text-catalog-translation",
-        language,
-        data
-      )
-
-      const normalizedLanguage = normalizeLocale(language)
-      invalidateCoreTtsForDisplayEntries({
+      const version = saveTranslationCatalog(
         storage,
-        language: normalizedLanguage,
-        entries: data.entries,
-      })
-      storage.clearNodesByType(["accessibility-assessment"])
-      storage.clearStepRuns([
-        "core-tts-catalog",
-        "tts",
-        "word-timestamps",
-        "package-web",
-        "accessibility-assessment",
-      ])
+        language,
+        parsed.data.entries,
+        parsed.data.generatedAt,
+      )
       return c.json({ version })
     } finally {
       storage.close()
