@@ -8,6 +8,7 @@ import {
   useChatThreadMutations,
   useChatThreads,
 } from "@/hooks/use-chat"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { ChatConversation } from "./ChatConversation"
 import { ChatEmptyState } from "./ChatEmptyState"
 import { AiPanelShell } from "../AiPanelShell"
@@ -159,7 +160,7 @@ export function ChatPanel({
           <div className="h-[52px] rounded-2xl border border-border/80 bg-background" />
         }
       >
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <ScrollArea className="min-h-0 flex-1">
           {modelOptions.length === 0 && models.isSuccess ? (
             <ChatEmptyState hasModel={false} onStarter={() => undefined} />
           ) : (
@@ -167,7 +168,7 @@ export function ChatPanel({
               <Trans>Loading the conversation…</Trans>
             </p>
           )}
-        </div>
+        </ScrollArea>
       </AiPanelShell>
     )
   }

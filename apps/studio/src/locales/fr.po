@@ -8910,6 +8910,9 @@ msgstr "Réinitialiser le zoom"
 msgid "Resize panel"
 msgstr "Redimensionner le panneau"
 
+msgid "Resize the AI panel"
+msgstr "Redimensionner le panneau IA"
+
 msgid "Resolving source language..."
 msgstr "Résolution de la langue source..."
 

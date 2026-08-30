@@ -8,10 +8,11 @@ import {
   MessageBubble,
   MessageBubbleContent,
   MessageContent,
-  MessageScroller,
 } from "@/components/agents/message"
 import { ThinkingShimmer } from "@/components/agents/loading-states/thinking-shimmer"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { ChatApprovalCard } from "./ChatApprovalCard"
+import { useStickToBottom } from "./useStickToBottom"
 import { ChatMarkdown } from "./ChatMarkdown"
 import { ChatToolTrace } from "./ChatToolTrace"
 import {
@@ -81,6 +82,7 @@ export function ChatMessages({
   onDecide,
 }: ChatMessagesProps) {
   const { t } = useLingui()
+  const viewportRef = useStickToBottom()
   const visible = messages.filter((message) => message.role !== "system")
   const lastMessage = visible.at(-1)
   const awaitingFirstToken =
@@ -90,100 +92,107 @@ export function ChatMessages({
       (!messageText(lastMessage) && renderableParts(lastMessage).length === 0))
 
   if (visible.length === 0 && !isBusy) {
-    return <div className="min-h-0 flex-1 overflow-y-auto">{emptyState}</div>
+    return <ScrollArea className="min-h-0 flex-1">{emptyState}</ScrollArea>
   }
 
   return (
-    <MessageScroller
+    <ScrollArea
       className="min-h-0 flex-1"
-      label={t`Chat with the assistant`}
-      busy={isStreaming}
-      contentClassName="flex flex-col gap-3 px-3.5 py-4"
+      viewportRef={viewportRef}
+      viewportClassName="[overflow-anchor:none]"
     >
-      {visible.map((message, messageIndex) => {
-        const isUser = message.role === "user"
-        const parts = groupParts(renderableParts(message))
-        if (parts.length === 0) return null
+      <div
+        role="log"
+        aria-live="polite"
+        aria-busy={isStreaming}
+        aria-label={t`Chat with the assistant`}
+        className="flex flex-col gap-3 px-3.5 py-4"
+      >
+        {visible.map((message, messageIndex) => {
+          const isUser = message.role === "user"
+          const parts = groupParts(renderableParts(message))
+          if (parts.length === 0) return null
 
-        return (
-          <Message
-            key={message.id}
-            from={isUser ? "user" : "assistant"}
-            animateIn={messageIndex === visible.length - 1}
-            className="gap-2"
-          >
-            {isUser ? null : (
-              <MessageAvatar className="bg-brand-50 text-brand-600">
-                <Sparkles aria-hidden="true" />
-              </MessageAvatar>
-            )}
-            <MessageContent>
-              {parts.map((part) => {
-                if (part.kind === "trace") {
-                  return <ChatToolTrace key={part.key} parts={part.parts} />
-                }
+          return (
+            <Message
+              key={message.id}
+              from={isUser ? "user" : "assistant"}
+              animateIn={messageIndex === visible.length - 1}
+              className="gap-2"
+            >
+              {isUser ? null : (
+                <MessageAvatar className="bg-brand-50 text-brand-600">
+                  <Sparkles aria-hidden="true" />
+                </MessageAvatar>
+              )}
+              <MessageContent>
+                {parts.map((part) => {
+                  if (part.kind === "trace") {
+                    return <ChatToolTrace key={part.key} parts={part.parts} />
+                  }
 
-                if (part.kind === "tool") {
+                  if (part.kind === "tool") {
+                    return (
+                      <ChatApprovalCard
+                        key={part.key}
+                        label={label}
+                        toolName={part.toolName}
+                        toolCallId={part.toolCallId}
+                        input={part.input}
+                        inputReady={part.state !== "input-streaming"}
+                        status={approvalStatus(
+                          part,
+                          awaitingRunCallIds.has(part.toolCallId),
+                          isBusy,
+                        )}
+                        onApprove={() => onDecide(part, "approved")}
+                        onDeny={() => onDecide(part, "denied")}
+                      />
+                    )
+                  }
+
                   return (
-                    <ChatApprovalCard
+                    <MessageBubble
                       key={part.key}
-                      label={label}
-                      toolName={part.toolName}
-                      toolCallId={part.toolCallId}
-                      input={part.input}
-                      inputReady={part.state !== "input-streaming"}
-                      status={approvalStatus(
-                        part,
-                        awaitingRunCallIds.has(part.toolCallId),
-                        isBusy,
-                      )}
-                      onApprove={() => onDecide(part, "approved")}
-                      onDeny={() => onDecide(part, "denied")}
-                    />
+                      variant={isUser ? "tint" : "soft"}
+                      className="max-w-[85%]"
+                    >
+                      <MessageBubbleContent>
+                        <ChatMarkdown>{part.text}</ChatMarkdown>
+                      </MessageBubbleContent>
+                    </MessageBubble>
                   )
-                }
+                })}
+              </MessageContent>
+            </Message>
+          )
+        })}
 
-                return (
-                  <MessageBubble
-                    key={part.key}
-                    variant={isUser ? "tint" : "soft"}
-                    className="max-w-[258px]"
-                  >
-                    <MessageBubbleContent>
-                      <ChatMarkdown>{part.text}</ChatMarkdown>
-                    </MessageBubbleContent>
-                  </MessageBubble>
-                )
-              })}
+        {awaitingFirstToken ? (
+          <Message from="assistant" className="gap-2">
+            <MessageAvatar className="bg-brand-50 text-brand-600">
+              <Sparkles aria-hidden="true" />
+            </MessageAvatar>
+            <MessageContent>
+              <ThinkingShimmer className="text-[12.5px]">
+                <Trans>Thinking…</Trans>
+              </ThinkingShimmer>
             </MessageContent>
           </Message>
-        )
-      })}
+        ) : null}
 
-      {awaitingFirstToken ? (
-        <Message from="assistant" className="gap-2">
-          <MessageAvatar className="bg-brand-50 text-brand-600">
-            <Sparkles aria-hidden="true" />
-          </MessageAvatar>
-          <MessageContent>
-            <ThinkingShimmer className="text-[12.5px]">
-              <Trans>Thinking…</Trans>
-            </ThinkingShimmer>
-          </MessageContent>
-        </Message>
-      ) : null}
-
-      {error ? (
-        <div
-          role="alert"
-          className="flex items-start gap-2 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-[11.5px] leading-relaxed text-amber-800"
-        >
-          <AlertTriangle aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-          <span className="text-pretty">
-            <Trans>The assistant could not answer: {error.message}</Trans>
-          </span>
-        </div>
-      ) : null}
-    </MessageScroller>
+        {error ? (
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-[11.5px] leading-relaxed text-amber-800"
+          >
+            <AlertTriangle aria-hidden="true" className="mt-px size-3.5 shrink-0" />
+            <span className="text-pretty">
+              <Trans>The assistant could not answer: {error.message}</Trans>
+            </span>
+          </div>
+        ) : null}
+      </div>
+    </ScrollArea>
   )
 }

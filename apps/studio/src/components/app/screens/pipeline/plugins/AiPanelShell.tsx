@@ -23,7 +23,7 @@ export function AiPanelShell({
   const { t } = useLingui()
 
   return (
-    <div className="flex h-full w-[326px] flex-col border-l bg-card">
+    <div className="flex h-full w-[var(--ai-panel-width,326px)] flex-col border-l bg-card">
       <div className="flex items-center gap-2 border-b px-3.5 py-3">
         {title}
         <span className="ml-auto min-w-0 truncate text-[11px] text-muted-foreground">

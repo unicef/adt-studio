@@ -8910,6 +8910,9 @@ msgstr "Rivendos zmadhimin"
 msgid "Resize panel"
 msgstr "Ripërmasoni panelin"
 
+msgid "Resize the AI panel"
+msgstr "Ripërmaso panelin e IA-së"
+
 msgid "Resolving source language..."
 msgstr "Duke zgjidhur gjuhën burimore..."
 

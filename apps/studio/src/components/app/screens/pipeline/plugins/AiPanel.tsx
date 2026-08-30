@@ -1,7 +1,9 @@
+import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Sparkles } from "lucide-react"
-import { useAiPanelOpen } from "@/hooks/use-ai-panel"
+import { useAiPanelOpen, useAiPanelWidth } from "@/hooks/use-ai-panel"
 import { cn } from "@/lib/utils"
+import { AiPanelResizer } from "./AiPanelResizer"
 import { ChatPanel } from "./chat/ChatPanel"
 import type { ChatScreenContext } from "./chat/useBookChat"
 
@@ -17,17 +19,26 @@ export interface AiPanelProps {
 export function AiPanel({ label, screenContext }: AiPanelProps) {
   const { t } = useLingui()
   const [open, setOpen] = useAiPanelOpen()
+  const [width, setWidth] = useAiPanelWidth()
+  const [resizing, setResizing] = useState(false)
 
   return (
     <>
       <aside
         inert={!open}
         aria-hidden={!open}
+        style={
+          { "--ai-panel-width": `${width}px`, width: open ? `${width}px` : 0 } as React.CSSProperties
+        }
         className={cn(
-          "shrink-0 overflow-hidden transition-[width,opacity] duration-300 ease-out motion-reduce:transition-none",
-          open ? "w-[326px] opacity-100" : "w-0 opacity-0",
+          "relative shrink-0 overflow-hidden ease-out motion-reduce:transition-none",
+          resizing ? "transition-none" : "transition-[width,opacity] duration-300",
+          open ? "opacity-100" : "opacity-0",
         )}
       >
+        {open ? (
+          <AiPanelResizer width={width} onWidth={setWidth} onDraggingChange={setResizing} />
+        ) : null}
         <ChatPanel
           label={label}
           open={open}
