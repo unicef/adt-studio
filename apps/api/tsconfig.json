@@ -14,6 +14,7 @@
     { "path": "../../packages/pipeline" },
     { "path": "../../packages/llm" },
     { "path": "../../packages/pdf" },
-    { "path": "../../packages/agents" }
+    { "path": "../../packages/agents" },
+    { "path": "../../packages/chat" }
   ]
 }

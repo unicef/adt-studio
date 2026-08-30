@@ -27,6 +27,7 @@ packages/          # Shared libraries (@adt/* workspace packages)
   types/           # Zod schemas — ALL types defined here
   pipeline/        # Extraction & generation — pure functions only
   llm/             # LLM client, prompts, caching, cost tracking
+  chat/            # AI chat: tool registry, thread store, streaming turn engine (ai@5)
   pdf/             # PDF extraction
   output/          # Bundle packaging
 
@@ -93,6 +94,7 @@ docker run -p 8080:80 -v ./books:/app/books adt-studio
 | `CONFIG_PATH` | `/app/config.yaml` | `-v ./config.yaml:/app/config.yaml:ro` |
 | `FONTS_CACHE_DIR` | `<BOOKS_DIR>/.fonts-cache` | Global Google Fonts cache shared across books (persists in the books volume by default) |
 | `STYLEGUIDES_DIR` | `<BOOKS_DIR>/.styleguides` | User-uploaded global style guides. LLM-generated guides live under each book's `styleguides/` directory so project exports remain self-contained. Bundled presets remain read-only. |
+| `CHATS_DIR` | `<BOOKS_DIR>/.chats` | AI chat threads, keyed by the `chat-id` file inside each book directory. Deliberately outside the book directory: a chat table in the book database would bump `SCHEMA_VERSION` and invalidate part compatibility. Consequence: chats do not travel with an exported book. |
 | `PORT` | `3001` | Internal only — nginx proxies to this |
 
 **`TEMPLATES_DIR` trap:** The Dockerfile and `docker-compose.yml` set `TEMPLATES_DIR=/app/templates` but the application **never reads this env var**. Templates dir is always derived from `path.join(path.dirname(PROMPTS_DIR), "templates")`. To use a custom templates directory, mount it as a sibling of `prompts/` — i.e. override `PROMPTS_DIR` and keep `templates/` next to it.
@@ -230,6 +232,7 @@ See [`docs/I18N_ADD_LANGUAGE.md`](docs/I18N_ADD_LANGUAGE.md).
 - API keys: header-based (`X-OpenAI-Key`), never logged, never in URLs
 - File paths: always validate against base directory (path traversal prevention)
 - SQL: parameterized queries only
+- Vercel AI SDK versions are split: `@adt/llm` and `@adt/agents` use `ai@4`, `@adt/chat` uses `ai@5`. Never import `@adt/llm` from `@adt/chat`, and keep `@adt/chat`'s public exports free of `ai` types so the two lines cannot collide.
 
 ## Full Guidelines
 

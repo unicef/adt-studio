@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@adt/agents": "workspace:*",
+    "@adt/chat": "workspace:*",
     "@adt/llm": "workspace:*",
     "@adt/pdf": "workspace:*",
     "@adt/pipeline": "workspace:*",

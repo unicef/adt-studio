@@ -32,6 +32,7 @@ import {
 } from "@adt/types"
 import type { ContentNodeData, ExtractionWarning } from "@adt/types"
 import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
+import { assertNoActivePipelineRun } from "../services/pipeline-run-guard.js"
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
 import { readCurrentNodeRow, CURRENT_VERSION_ORDER } from "@adt/storage"
@@ -647,23 +648,6 @@ function markStoryboardChainStale(
       stage.steps.map((step) => step.name)
     )
   )
-}
-
-/**
- * A running pipeline step can commit node data and mark itself complete after a
- * manual Sectioning mutation. Refuse the mutation instead of letting that stale
- * completion resurrect the downstream chain as "done".
- */
-function assertNoActivePipelineRun(storage: Storage): void {
-  const runningSteps = storage
-    .getStepRuns()
-    .filter((run) => run.status === "running")
-    .map((run) => run.step)
-  if (runningSteps.length === 0) return
-
-  throw new HTTPException(409, {
-    message: `Cannot change sectioning while pipeline steps are running: ${runningSteps.join(", ")}. Wait for the run to finish or cancel it first.`,
-  })
 }
 
 /**

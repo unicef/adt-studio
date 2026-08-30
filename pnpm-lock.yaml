@@ -152,6 +152,9 @@ importers:
       '@adt/agents':
         specifier: workspace:*
         version: link:../../packages/agents
+      '@adt/chat':
+        specifier: workspace:*
+        version: link:../../packages/chat
       '@adt/llm':
         specifier: workspace:*
         version: link:../../packages/llm
