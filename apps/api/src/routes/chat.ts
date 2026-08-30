@@ -19,6 +19,7 @@ import {
 } from "@adt/chat"
 import { createChatService, type ChatService } from "../services/chat/chat-service.js"
 import { buildChatSystemPrompt } from "../services/chat/system-prompt.js"
+import { buildBookOverview } from "../services/chat/tools/book-overview.js"
 import { createBookChatTools } from "../services/chat/tools.js"
 import type { ChatPaths, ChatToolContext } from "../services/chat/context.js"
 import type { StageService } from "../services/stage-service.js"
@@ -235,7 +236,12 @@ export function createChatRoutes(
       return streamChatTurn({
         modelId,
         credentials,
-        system: buildChatSystemPrompt({ bookLabel: safeLabel, locale, screen }),
+        system: buildChatSystemPrompt({
+          bookLabel: safeLabel,
+          locale,
+          screen,
+          bookOverview: buildBookOverview(safeLabel, paths.booksDir),
+        }),
         messages: approvals.messages,
         registry,
         context: toolContext,

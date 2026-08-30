@@ -5,6 +5,7 @@ export {
   type ChatThread,
   type ChatThreadSummary,
   type ChatTool,
+  type ChatToolSchema,
   type ChatTurnUsage,
   type ChatUiMessage,
   type ChatUiPart,

@@ -1,5 +1,6 @@
 import { createChatToolRegistry, type ChatToolRegistry } from "@adt/chat"
 import type { ChatToolContext } from "./context.js"
+import { READ_TOOLS } from "./tools/read-tools.js"
 
 /**
  * The concrete tool set, bound to the api's services. Read tools execute
@@ -7,5 +8,5 @@ import type { ChatToolContext } from "./context.js"
  * user approves the call.
  */
 export function createBookChatTools(): ChatToolRegistry<ChatToolContext> {
-  return createChatToolRegistry<ChatToolContext>()
+  return createChatToolRegistry<ChatToolContext>([...READ_TOOLS])
 }

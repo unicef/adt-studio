@@ -41,10 +41,16 @@ export interface ChatThreadSummary {
   messageCount: number
 }
 
+/**
+ * The schema's *input* type is left open so tools can use `.default()` and
+ * `.optional()` without their parsed shape having to match the wire shape.
+ */
+export type ChatToolSchema<Input> = z.ZodType<Input, z.ZodTypeDef, unknown>
+
 export interface ChatTool<Ctx = unknown, Input = never> {
   name: string
   description: string
-  inputSchema: z.ZodType<Input>
+  inputSchema: ChatToolSchema<Input>
   /** Mutating tools stream without an executor so the user approves them first. */
   mutating: boolean
   execute: (ctx: Ctx, input: Input) => Promise<unknown> | unknown
@@ -52,7 +58,7 @@ export interface ChatTool<Ctx = unknown, Input = never> {
 
 /** A tool of any input shape, as held by a registry. */
 export type AnyChatTool<Ctx> = Omit<ChatTool<Ctx, never>, "inputSchema" | "execute"> & {
-  inputSchema: z.ZodType<never>
+  inputSchema: ChatToolSchema<never>
   execute: (ctx: Ctx, input: never) => Promise<unknown> | unknown
 }
 
