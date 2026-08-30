@@ -18,6 +18,7 @@ export interface ChatApprovalCardProps {
   toolName: string
   toolCallId: string
   input: unknown
+  inputReady: boolean
   status: ToolApprovalStatus
   onApprove: () => void
   onDeny: () => void
@@ -133,12 +134,13 @@ export function ChatApprovalCard({
   toolName,
   toolCallId,
   input,
+  inputReady,
   status,
   onApprove,
   onDeny,
 }: ChatApprovalCardProps) {
   const { t } = useLingui()
-  const preview = useChatToolPreview(label, toolName, toolCallId, input)
+  const preview = useChatToolPreview(label, toolName, toolCallId, input, inputReady)
 
   const titles: Record<string, string> = {
     run_stages: t`Run pipeline stages?`,
@@ -166,10 +168,10 @@ export function ChatApprovalCard({
       status={running.length > 0 && status === "pending" ? "error" : status}
       parameters={parameters}
       defaultOpen
-      onApprove={running.length > 0 ? undefined : onApprove}
+      onApprove={running.length > 0 || !inputReady ? undefined : onApprove}
       onDeny={onDeny}
       description={
-        preview.isPending ? (
+        !inputReady || preview.isPending ? (
           <ThinkingShimmer className="text-[11.5px]">
             <Trans>Checking what this would change…</Trans>
           </ThinkingShimmer>

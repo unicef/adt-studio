@@ -122,6 +122,7 @@ export function ChatMessages({
                       toolName={part.toolName}
                       toolCallId={part.toolCallId}
                       input={part.input}
+                      inputReady={part.state !== "input-streaming"}
                       status={approvalStatus(part)}
                       onApprove={() => onDecide(part, "approved")}
                       onDeny={() => onDecide(part, "denied")}

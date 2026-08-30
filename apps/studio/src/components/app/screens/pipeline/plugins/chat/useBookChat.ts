@@ -25,6 +25,7 @@ export interface UseBookChatOptions {
   screenContext: ChatScreenContext
   initialMessages: UIMessage[]
   onError?: (error: Error) => void
+  onFinish?: () => void
 }
 
 /**
@@ -41,11 +42,12 @@ export function useBookChat({
   screenContext,
   initialMessages,
   onError,
+  onFinish,
 }: UseBookChatOptions) {
-  const latest = useRef({ model, locale, credentials, screenContext })
+  const latest = useRef({ model, locale, credentials, screenContext, onError, onFinish })
   useEffect(() => {
-    latest.current = { model, locale, credentials, screenContext }
-  }, [model, locale, credentials, screenContext])
+    latest.current = { model, locale, credentials, screenContext, onError, onFinish }
+  }, [model, locale, credentials, screenContext, onError, onFinish])
 
   const transport = useMemo(
     () =>
@@ -65,7 +67,8 @@ export function useBookChat({
     id: threadId,
     messages: initialMessages,
     transport,
-    onError,
+    onError: (error) => latest.current.onError?.(error),
+    onFinish: () => latest.current.onFinish?.(),
     // Approvals are recorded with addToolResult; once every pending call has a
     // decision the turn resumes on its own with a fresh request.
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,

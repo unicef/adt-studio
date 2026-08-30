@@ -1,8 +1,9 @@
-import { useCallback, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { useLingui } from "@lingui/react/macro"
 import type { UIMessage } from "ai"
 import { PromptInput, type PromptModel } from "@/components/agents/prompt-input"
 import type { ChatCredentials, ChatModelOption } from "@/api/client"
+import { useChatMutationRefresh } from "@/hooks/use-chat"
 import { ChatEmptyState } from "./ChatEmptyState"
 import { ChatMessages } from "./ChatMessages"
 import { AiPanelShell } from "../AiPanelShell"
@@ -42,6 +43,15 @@ export function ChatConversation({
 }: ChatConversationProps) {
   const { t, i18n } = useLingui()
   const [draft, setDraft] = useState("")
+  const refreshAfterMutation = useChatMutationRefresh(label)
+
+  const approvedTools = useRef<string[]>([])
+  const flushApprovedTools = useCallback(() => {
+    if (approvedTools.current.length === 0) return
+    const tools = approvedTools.current
+    approvedTools.current = []
+    refreshAfterMutation(tools)
+  }, [refreshAfterMutation])
 
   const chat = useBookChat({
     label,
@@ -51,6 +61,8 @@ export function ChatConversation({
     credentials,
     screenContext,
     initialMessages,
+    onFinish: flushApprovedTools,
+    onError: flushApprovedTools,
   })
 
   const { sendMessage, messages } = chat
@@ -70,6 +82,7 @@ export function ChatConversation({
   const { addToolResult } = chat
   const decide = useCallback(
     (part: ToolPart, decision: "approved" | "denied") => {
+      if (decision === "approved") approvedTools.current.push(part.toolName)
       void addToolResult({
         tool: part.toolName,
         toolCallId: part.toolCallId,
