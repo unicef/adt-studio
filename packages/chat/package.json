@@ -1,0 +1,17 @@
+{
+  "name": "@adt/chat",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "~2.0.95",
+    "@ai-sdk/google": "~2.0.89",
+    "@ai-sdk/openai": "~2.0.118",
+    "ai": "~5.0.244",
+    "zod": "^3.24.0"
+  }
+}

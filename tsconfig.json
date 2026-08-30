@@ -23,6 +23,7 @@
     { "path": "packages/storage" },
     { "path": "packages/pipeline" },
     { "path": "packages/agents" },
+    { "path": "packages/chat" },
     { "path": "apps/api" },
     { "path": "apps/studio" }
   ]
