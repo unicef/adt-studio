@@ -150,6 +150,7 @@ export function ChatApprovalCard({
     rerun_with_instructions: t`Let the AI editor rewrite this section?`,
   }
 
+  const inProgress = status === "approving" || status === "running"
   const running = preview.data?.runningSteps ?? []
   const parameters: ToolApprovalParameter[] = running.length
     ? [
@@ -180,7 +181,14 @@ export function ChatApprovalCard({
             <Trans>Could not preview this change. Approve only if you are sure.</Trans>
           </span>
         ) : preview.data ? (
-          <PreviewBody preview={preview.data.preview} />
+          <span className="flex flex-col gap-2">
+            {inProgress ? (
+              <ThinkingShimmer className="text-[11.5px]">
+                <Trans>Running this now — the result appears when it finishes…</Trans>
+              </ThinkingShimmer>
+            ) : null}
+            <PreviewBody preview={preview.data.preview} />
+          </span>
         ) : null
       }
     />

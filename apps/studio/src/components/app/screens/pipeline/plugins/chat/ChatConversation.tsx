@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import { useLingui } from "@lingui/react/macro"
 import type { UIMessage } from "ai"
 import { PromptInput, type PromptModel } from "@/components/agents/prompt-input"
@@ -45,11 +45,15 @@ export function ChatConversation({
   const [draft, setDraft] = useState("")
   const refreshAfterMutation = useChatMutationRefresh(label)
 
-  const approvedTools = useRef<string[]>([])
-  const flushApprovedTools = useCallback(() => {
-    if (approvedTools.current.length === 0) return
-    const tools = approvedTools.current
-    approvedTools.current = []
+  const [awaitingRun, setAwaitingRun] = useState<Record<string, string>>({})
+  const awaitingRunRef = useRef(awaitingRun)
+  awaitingRunRef.current = awaitingRun
+
+  const flushAwaitingRun = useCallback(() => {
+    const tools = Object.values(awaitingRunRef.current)
+    if (tools.length === 0) return
+    awaitingRunRef.current = {}
+    setAwaitingRun({})
     refreshAfterMutation(tools)
   }, [refreshAfterMutation])
 
@@ -61,8 +65,8 @@ export function ChatConversation({
     credentials,
     screenContext,
     initialMessages,
-    onFinish: flushApprovedTools,
-    onError: flushApprovedTools,
+    onFinish: flushAwaitingRun,
+    onError: flushAwaitingRun,
   })
 
   const { sendMessage, messages } = chat
@@ -82,7 +86,9 @@ export function ChatConversation({
   const { addToolResult } = chat
   const decide = useCallback(
     (part: ToolPart, decision: "approved" | "denied") => {
-      if (decision === "approved") approvedTools.current.push(part.toolName)
+      if (decision === "approved") {
+        setAwaitingRun((current) => ({ ...current, [part.toolCallId]: part.toolName }))
+      }
       void addToolResult({
         tool: part.toolName,
         toolCallId: part.toolCallId,
@@ -91,6 +97,8 @@ export function ChatConversation({
     },
     [addToolResult],
   )
+
+  const awaitingRunIds = useMemo(() => new Set(Object.keys(awaitingRun)), [awaitingRun])
 
   const promptModels: PromptModel[] = models.map((option) => ({
     value: option.id,
@@ -127,6 +135,7 @@ export function ChatConversation({
         isBusy={chat.isBusy}
         isStreaming={chat.status === "streaming"}
         error={chat.error}
+        awaitingRunCallIds={awaitingRunIds}
         emptyState={<ChatEmptyState hasModel={hasModel} onStarter={submit} />}
         onDecide={decide}
       />

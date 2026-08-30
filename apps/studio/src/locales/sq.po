@@ -9251,6 +9251,9 @@ msgstr "Ekzekutimi i Seksionimit do të ekzekutojë Ekstraktimin së pari, pasta
 msgid "Running Storyboard will run the earlier core stages it depends on first, then render the typed sections."
 msgstr "Ekzekutimi i Storyboard-it do të ekzekutojë fazat kryesore të mëparshme nga të cilat varet së pari, pastaj do të renderojë seksionet e shtypura."
 
+msgid "Running this now — the result appears when it finishes…"
+msgstr "Po ekzekutohet tani — rezultati shfaqet kur të përfundojë…"
+
 msgid "Running tools…"
 msgstr "Po ekzekutohen mjetet…"
 

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import { convertToModelMessages, stepCountIs, streamText, tool } from "ai"
 import type { ToolSet, UIMessage } from "ai"
 import type { z } from "zod"
@@ -136,6 +137,9 @@ export function streamChatTurn<Ctx>({
 
   return result.toUIMessageStreamResponse({
     originalMessages: uiMessages,
+    // Without this the SDK persists the assistant message with an empty id and
+    // the client keeps a different one, so the next request fails validation.
+    generateMessageId: () => randomUUID(),
     onFinish: async ({ messages: finalMessages, isAborted }) => {
       await onPersist?.(finalMessages as unknown as ChatUiMessage[], { aborted: isAborted })
     },

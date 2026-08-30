@@ -92,6 +92,25 @@ describe("chat thread store", () => {
     expect(() => store.getThread(CHAT_ID, "../secret")).toThrow(/Invalid chat/)
   })
 
+  it("gives messages stored without an id one on read", () => {
+    const store = createChatStore(chatsDir)
+    const created = store.createThread(CHAT_ID, { model: "m" })
+    fs.writeFileSync(
+      path.join(chatsDir, CHAT_ID, `${created.threadId}.json`),
+      JSON.stringify({
+        ...created,
+        messages: [
+          { id: "m1", role: "user", parts: [{ type: "text", text: "hi" }] },
+          { id: "", role: "assistant", parts: [{ type: "text", text: "hello" }] },
+        ],
+      }),
+      "utf8",
+    )
+
+    const loaded = store.requireThread(CHAT_ID, created.threadId)
+    expect(loaded.messages.map((message) => message.id)).toEqual(["m1", "restored-1"])
+  })
+
   it("skips unreadable thread files instead of failing the listing", () => {
     const store = createChatStore(chatsDir)
     const created = store.createThread(CHAT_ID, { model: "m", title: "good" })

@@ -9251,6 +9251,9 @@ msgstr "Lancer Sectioning exécutera d'abord Extraction, puis découpera en sect
 msgid "Running Storyboard will run the earlier core stages it depends on first, then render the typed sections."
 msgstr "Lancer Storyboard exécutera d'abord les étapes principales précédentes dont il dépend, puis affichera les sections typées."
 
+msgid "Running this now — the result appears when it finishes…"
+msgstr "Exécution en cours : le résultat apparaîtra une fois terminé…"
+
 msgid "Running tools…"
 msgstr "Exécution des outils…"
 

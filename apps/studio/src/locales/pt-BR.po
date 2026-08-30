@@ -9249,6 +9249,9 @@ msgstr "Executar Sectioning executará primeiro a Extração e depois dividirá 
 msgid "Running Storyboard will run the earlier core stages it depends on first, then render the typed sections."
 msgstr "Executar Storyboard executará primeiro as etapas principais anteriores das quais depende e depois renderizará as seções tipadas."
 
+msgid "Running this now — the result appears when it finishes…"
+msgstr "Executando agora: o resultado aparece quando terminar…"
+
 msgid "Running tools…"
 msgstr "Executando ferramentas…"
 

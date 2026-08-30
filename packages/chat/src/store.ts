@@ -55,10 +55,19 @@ function nowIso(): string {
   return new Date().toISOString()
 }
 
+function normalizeMessages(raw: unknown): ChatUiMessage[] {
+  if (!Array.isArray(raw)) return []
+  return (raw as ChatUiMessage[]).map((message, index) =>
+    typeof message?.id === "string" && message.id.length > 0
+      ? message
+      : { ...message, id: `restored-${index}` },
+  )
+}
+
 function normalizeThread(raw: unknown, chatId: string, threadId: string): ChatThread | undefined {
   if (!raw || typeof raw !== "object") return undefined
   const value = raw as Partial<ChatThread>
-  const messages = Array.isArray(value.messages) ? (value.messages as ChatUiMessage[]) : []
+  const messages = normalizeMessages(value.messages)
   const executed = Array.isArray(value.executedToolCallIds)
     ? value.executedToolCallIds.filter((id): id is string => typeof id === "string")
     : []

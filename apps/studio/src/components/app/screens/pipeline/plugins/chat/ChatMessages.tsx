@@ -30,14 +30,22 @@ export interface ChatMessagesProps {
   isStreaming: boolean
   error?: Error
   emptyState: React.ReactNode
+  awaitingRunCallIds: ReadonlySet<string>
   onDecide: (part: ToolPart, decision: "approved" | "denied") => void
 }
 
-function approvalStatus(part: ToolPart): ToolApprovalStatus {
+function approvalStatus(
+  part: ToolPart,
+  awaitingRun: boolean,
+  isBusy: boolean,
+): ToolApprovalStatus {
   if (part.state === "output-error") return "error"
   const decision = readApprovalMarker(part.output)
   if (decision === "denied") return "denied"
-  if (decision === "approved") return "complete"
+  if (decision === "approved") {
+    if (!awaitingRun) return "complete"
+    return isBusy ? "running" : "approving"
+  }
   if (part.state === "output-available") return "complete"
   return "pending"
 }
@@ -69,6 +77,7 @@ export function ChatMessages({
   isStreaming,
   error,
   emptyState,
+  awaitingRunCallIds,
   onDecide,
 }: ChatMessagesProps) {
   const { t } = useLingui()
@@ -123,7 +132,11 @@ export function ChatMessages({
                       toolCallId={part.toolCallId}
                       input={part.input}
                       inputReady={part.state !== "input-streaming"}
-                      status={approvalStatus(part)}
+                      status={approvalStatus(
+                        part,
+                        awaitingRunCallIds.has(part.toolCallId),
+                        isBusy,
+                      )}
                       onApprove={() => onDecide(part, "approved")}
                       onDeny={() => onDecide(part, "denied")}
                     />

@@ -83,7 +83,11 @@ async function parseBody<T>(c: Context, schema: z.ZodType<T>): Promise<T> {
   }
   const parsed = schema.safeParse(raw)
   if (!parsed.success) {
-    throw new HTTPException(400, { message: parsed.error.issues[0]?.message ?? "Invalid body" })
+    const issue = parsed.error.issues[0]
+    const at = issue?.path.length ? ` at ${issue.path.join(".")}` : ""
+    throw new HTTPException(400, {
+      message: issue ? `${issue.message}${at}` : "Invalid body",
+    })
   }
   return parsed.data
 }
