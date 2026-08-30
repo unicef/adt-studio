@@ -1,4 +1,3 @@
-/* eslint-disable lingui/no-unlocalized-strings -- Tailwind class identifiers, not user copy */
 
 import type { ClassMap } from "./types"
 import { makeColorClassMap } from "./_color"

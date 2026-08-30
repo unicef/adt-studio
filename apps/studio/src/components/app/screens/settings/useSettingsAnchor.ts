@@ -23,7 +23,6 @@ export function useSettingsAnchor() {
         if (attempts < MAX_FRAMES) frame = requestAnimationFrame(reveal)
         return
       }
-      // eslint-disable-next-line lingui/no-unlocalized-strings -- media query, not UI copy
       const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
       target.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" })
       target.classList.add(...FLASH_CLASSES)

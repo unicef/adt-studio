@@ -1177,6 +1177,9 @@ msgstr "Ajoutez une clé d'API ElevenLabs dans les Paramètres pour choisir les 
 msgid "Add an entry manually"
 msgstr "Ajouter une entrée manuellement"
 
+msgid "Add an OpenAI, Anthropic or Google API key in Settings → Providers to chat about this book."
+msgstr "Ajoutez une clé d'API OpenAI, Anthropic ou Google dans Paramètres → Fournisseurs pour discuter de ce livre."
+
 msgid "Add at least one output language to run translation."
 msgstr "Ajoutez au moins une langue de sortie pour exécuter la traduction."
 
@@ -1293,6 +1296,9 @@ msgstr "Ajoutez la clé API de ce fournisseur dans les paramètres du livre."
 
 msgid "Add tile"
 msgstr "Ajouter une pièce"
+
+msgid "Add to prompt"
+msgstr "Ajouter au message"
 
 msgid "Add Translations"
 msgstr "Ajouter des traductions"
@@ -1461,6 +1467,9 @@ msgstr "L'IA dispose les images et le texte par section, en correspondant le plu
 
 msgid "AI Overlay"
 msgstr "Superposition IA"
+
+msgid "AI panel mode"
+msgstr "Mode du panneau IA"
 
 msgid "AI providers"
 msgstr "Fournisseurs IA"
@@ -1789,8 +1798,17 @@ msgstr "Intelligence artificielle"
 msgid "Aside"
 msgstr "Aparté"
 
+msgid "Ask about this book"
+msgstr "Posez une question sur ce livre"
+
+msgid "Ask about this book…"
+msgstr "Posez une question sur ce livre…"
+
 msgid "Ask AI to edit..."
 msgstr "Demander à l'IA de modifier..."
+
+msgid "Ask the agent to do something…"
+msgstr "Demandez quelque chose à l'agent…"
 
 msgid "Ask the AI to edit this page…"
 msgstr "Demandez à l'IA de modifier cette page…"
@@ -2479,6 +2497,18 @@ msgstr "Titre de chapitre"
 msgid "Chart / Graph"
 msgstr "Graphique / Diagramme"
 
+msgid "Chat"
+msgstr "Discussion"
+
+msgid "Chat history"
+msgstr "Historique des discussions"
+
+msgid "Chat name"
+msgstr "Nom de la discussion"
+
+msgid "Chat with the assistant"
+msgstr "Discuter avec l'assistant"
+
 msgid "Check for updates"
 msgstr "Vérifier les mises à jour"
 
@@ -2553,6 +2583,9 @@ msgstr "Choisissez comment le contenu doit être formaté."
 
 msgid "Choose images..."
 msgstr "Choisir des images..."
+
+msgid "Choose model"
+msgstr "Choisir un modèle"
 
 msgid "Choose Provider"
 msgstr "Choisir le fournisseur"
@@ -3377,6 +3410,9 @@ msgstr "Supprimer section"
 
 msgid "Delete step"
 msgstr "Supprimer l'étape"
+
+msgid "Delete this chat"
+msgstr "Supprimer cette discussion"
 
 msgid "Delete this quiz"
 msgstr "Supprimer ce quiz"
@@ -4785,6 +4821,11 @@ msgstr "Le glossaire analyse le texte placé par Storyboard. Terminez Storyboard
 msgid "Glossary words and their definitions."
 msgstr "Mots du glossaire et leurs définitions."
 
+#. placeholder {0}: index + 1
+#. placeholder {1}: messages.length
+msgid "Go to {sender} message {0} of {1}"
+msgstr "Aller au message {sender} {0} sur {1}"
+
 msgid "Go to {stageLabel}"
 msgstr "Aller à {stageLabel}"
 
@@ -5760,6 +5801,9 @@ msgstr "Segmentation basée sur le LLM pour détecter et séparer les images com
 msgid "LMS-ready with completion tracking"
 msgstr "Prêt pour LMS avec suivi de l'achèvement"
 
+msgid "Loading"
+msgstr "Chargement"
+
 msgid "Loading accessibility summary..."
 msgstr "Chargement du résumé d'accessibilité..."
 
@@ -5867,6 +5911,9 @@ msgstr "Chargement du catalogue de texte..."
 
 msgid "Loading text sizes…"
 msgstr "Chargement des tailles de texte…"
+
+msgid "Loading the conversation…"
+msgstr "Chargement de la conversation…"
 
 msgid "Loading TTS normalization..."
 msgstr "Chargement de la normalisation TTS..."
@@ -6122,6 +6169,12 @@ msgstr "Fusion des doubles pages…"
 
 msgid "Merging…"
 msgstr "Fusion…"
+
+msgid "Message navigation"
+msgstr "Navigation entre les messages"
+
+msgid "Message the assistant"
+msgstr "Écrire à l'assistant"
 
 msgid "Message when correct (may include the answer)"
 msgstr "Message en cas de bonne réponse (peut inclure la réponse)"
@@ -6384,6 +6437,9 @@ msgstr "Nouveau"
 
 msgid "New builds land here first — from our <0>develop</0> staging branch, and from individual pull requests we stage so you can try a change and share your take before it's merged. It's a preview, so your books stay on this device and every result stays versioned."
 msgstr "Les nouvelles versions arrivent ici en premier — depuis notre branche de préparation <0>develop</0> et depuis des pull requests individuelles que nous préparons pour que vous puissiez essayer un changement et donner votre avis avant sa fusion. C'est un aperçu : vos livres restent sur cet appareil et chaque résultat est versionné."
+
+msgid "New chat"
+msgstr "Nouvelle discussion"
 
 msgid "New checklist item"
 msgstr "Nouvel élément de liste de contrôle"
@@ -6667,6 +6723,9 @@ msgstr "Aucune section correspondante"
 
 msgid "No matching sections."
 msgstr "Aucune section correspondante."
+
+msgid "No model available"
+msgstr "Aucun modèle disponible"
 
 msgid "No narration yet"
 msgstr "Pas encore de narration"
@@ -7203,6 +7262,9 @@ msgstr "Ouvrir le PDF source"
 
 msgid "Open source PDF in a new tab"
 msgstr "Ouvrir le PDF source dans un nouvel onglet"
+
+msgid "Open the AI panel"
+msgstr "Ouvrir le panneau IA"
 
 msgid "Open the debug panel"
 msgstr "Ouvrir le panneau de débogage"
@@ -8655,6 +8717,9 @@ msgstr "supprimé"
 msgid "Removed"
 msgstr "Supprimé"
 
+msgid "Rename this chat"
+msgstr "Renommer cette discussion"
+
 msgid "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
 msgstr "Rendez chaque section tapée en une page HTML interactive. Choisissez une stratégie de mise en page qui correspond au livre et laissez le storyboard gérer le reste."
 
@@ -9506,6 +9571,9 @@ msgstr "Segmentation..."
 msgid "Segmenting…"
 msgstr "Segmentation…"
 
+msgid "Select"
+msgstr "Sélectionner"
+
 msgid "Select a .zip project archive exported from ADT Studio."
 msgstr "Sélectionnez une archive de projet .zip exportée depuis ADT Studio."
 
@@ -9599,6 +9667,9 @@ msgstr "Application web ADT autonome"
 
 msgid "Send a sample notification using these settings."
 msgstr "Envoyer une notification d'exemple en utilisant ces paramètres."
+
+msgid "Send prompt"
+msgstr "Envoyer le message"
 
 msgid "Send test"
 msgstr "Envoyer un test"
@@ -9730,6 +9801,12 @@ msgstr "Afficher les détails de l'erreur"
 
 msgid "Show fewer"
 msgstr "Afficher moins"
+
+msgid "Show less"
+msgstr "Afficher moins"
+
+msgid "Show more"
+msgstr "Afficher plus"
 
 msgid "Show only entries missing audio"
 msgstr "Afficher uniquement les entrées sans audio"
@@ -10164,6 +10241,9 @@ msgstr "Aperçu de l'activité pas à pas"
 msgid "Steps"
 msgstr "Étapes"
 
+msgid "Stop generating"
+msgstr "Arrêter la génération"
+
 msgid "Stop step"
 msgstr "Arrêter l’étape"
 
@@ -10310,6 +10390,9 @@ msgstr "Comportement des suggestions"
 
 msgid "Suggestion withheld"
 msgstr "Suggestion retenue"
+
+msgid "Summarise the sections on this page"
+msgstr "Résume les sections de cette page"
 
 msgid "Summary"
 msgstr "Résumé"
@@ -10551,6 +10634,13 @@ msgstr "L'application a rencontré une erreur inattendue. Vous pouvez essayer de
 msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 msgstr "L'archive doit contenir une base de données de projet et son PDF. Réexportez-la depuis ADT Studio."
 
+msgid "The assistant can read the book and propose changes. Every change is shown for approval before it runs."
+msgstr "L'assistant peut lire le livre et proposer des modifications. Chaque modification est soumise à votre approbation avant d'être appliquée."
+
+#. placeholder {0}: error.message
+msgid "The assistant could not answer: {0}"
+msgstr "L'assistant n'a pas pu répondre : {0}"
+
 msgid "The back cover of the book."
 msgstr "La quatrième de couverture du livre."
 
@@ -10791,6 +10881,9 @@ msgstr "Elles produisent des fleurs pour attirer les pollinisateurs."
 
 msgid "They release oxygen directly into the air."
 msgstr "Elles libèrent de l'oxygène directement dans l'air."
+
+msgid "Thinking…"
+msgstr "Réflexion…"
 
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "Cette activité ne contient aucun texte ni aucune réponse adressable. Régénérez-la ou utilisez \"Modifier la mise en page\" pour modifier directement la page."
@@ -11399,6 +11492,9 @@ msgstr "Démêlage des divs imbriqués avec soin..."
 msgid "Untitled"
 msgstr "Sans titre"
 
+msgid "Untitled chat"
+msgstr "Discussion sans titre"
+
 msgid "Untitled entry"
 msgstr "Entrée sans titre"
 
@@ -11847,6 +11943,9 @@ msgstr "Ce que l'extraction récupère"
 msgid "What is the main role of a plant's roots?"
 msgstr "Quel est le rôle principal des racines d'une plante ?"
 
+msgid "What is this book about?"
+msgstr "De quoi parle ce livre ?"
+
 msgid "What sectioning produces"
 msgstr "Ce que le découpage produit"
 
@@ -11903,6 +12002,9 @@ msgstr "Quel moteur exécute le pipeline d'extraction et de génération."
 
 msgid "Which process releases oxygen?"
 msgstr "Quel processus libère de l'oxygène ?"
+
+msgid "Which stages still need to run?"
+msgstr "Quelles étapes restent à exécuter ?"
 
 msgid "While editing"
 msgstr "Pendant l'édition"

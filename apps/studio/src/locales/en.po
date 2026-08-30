@@ -1175,6 +1175,9 @@ msgstr "Add an ElevenLabs API key in Settings to pick voices by name."
 msgid "Add an entry manually"
 msgstr "Add an entry manually"
 
+msgid "Add an OpenAI, Anthropic or Google API key in Settings → Providers to chat about this book."
+msgstr "Add an OpenAI, Anthropic or Google API key in Settings → Providers to chat about this book."
+
 msgid "Add at least one output language to run translation."
 msgstr "Add at least one output language to run translation."
 
@@ -1291,6 +1294,9 @@ msgstr "Add this provider's API key in Book settings."
 
 msgid "Add tile"
 msgstr "Add tile"
+
+msgid "Add to prompt"
+msgstr "Add to prompt"
 
 msgid "Add Translations"
 msgstr "Add Translations"
@@ -1459,6 +1465,9 @@ msgstr "AI lays out images and text per section, matching the original book's de
 
 msgid "AI Overlay"
 msgstr "AI Overlay"
+
+msgid "AI panel mode"
+msgstr "AI panel mode"
 
 msgid "AI providers"
 msgstr "AI providers"
@@ -1787,8 +1796,17 @@ msgstr "Artificial intelligence"
 msgid "Aside"
 msgstr "Aside"
 
+msgid "Ask about this book"
+msgstr "Ask about this book"
+
+msgid "Ask about this book…"
+msgstr "Ask about this book…"
+
 msgid "Ask AI to edit..."
 msgstr "Ask AI to edit..."
+
+msgid "Ask the agent to do something…"
+msgstr "Ask the agent to do something…"
 
 msgid "Ask the AI to edit this page…"
 msgstr "Ask the AI to edit this page…"
@@ -2477,6 +2495,18 @@ msgstr "Chapter title"
 msgid "Chart / Graph"
 msgstr "Chart / Graph"
 
+msgid "Chat"
+msgstr "Chat"
+
+msgid "Chat history"
+msgstr "Chat history"
+
+msgid "Chat name"
+msgstr "Chat name"
+
+msgid "Chat with the assistant"
+msgstr "Chat with the assistant"
+
 msgid "Check for updates"
 msgstr "Check for updates"
 
@@ -2551,6 +2581,9 @@ msgstr "Choose how the content should be formatted."
 
 msgid "Choose images..."
 msgstr "Choose images..."
+
+msgid "Choose model"
+msgstr "Choose model"
 
 msgid "Choose Provider"
 msgstr "Choose Provider"
@@ -3375,6 +3408,9 @@ msgstr "Delete section"
 
 msgid "Delete step"
 msgstr "Delete step"
+
+msgid "Delete this chat"
+msgstr "Delete this chat"
 
 msgid "Delete this quiz"
 msgstr "Delete this quiz"
@@ -4783,6 +4819,11 @@ msgstr "Glossary scans the text Storyboard placed. Finish Storyboard before runn
 msgid "Glossary words and their definitions."
 msgstr "Glossary words and their definitions."
 
+#. placeholder {0}: index + 1
+#. placeholder {1}: messages.length
+msgid "Go to {sender} message {0} of {1}"
+msgstr "Go to {sender} message {0} of {1}"
+
 msgid "Go to {stageLabel}"
 msgstr "Go to {stageLabel}"
 
@@ -5758,6 +5799,9 @@ msgstr "LLM-based segmentation to detect and split composited images into indivi
 msgid "LMS-ready with completion tracking"
 msgstr "LMS-ready with completion tracking"
 
+msgid "Loading"
+msgstr "Loading"
+
 msgid "Loading accessibility summary..."
 msgstr "Loading accessibility summary..."
 
@@ -5865,6 +5909,9 @@ msgstr "Loading text catalog..."
 
 msgid "Loading text sizes…"
 msgstr "Loading text sizes…"
+
+msgid "Loading the conversation…"
+msgstr "Loading the conversation…"
 
 msgid "Loading TTS normalization..."
 msgstr "Loading TTS normalization..."
@@ -6120,6 +6167,12 @@ msgstr "Merging spreads…"
 
 msgid "Merging…"
 msgstr "Merging…"
+
+msgid "Message navigation"
+msgstr "Message navigation"
+
+msgid "Message the assistant"
+msgstr "Message the assistant"
 
 msgid "Message when correct (may include the answer)"
 msgstr "Message when correct (may include the answer)"
@@ -6382,6 +6435,9 @@ msgstr "New"
 
 msgid "New builds land here first — from our <0>develop</0> staging branch, and from individual pull requests we stage so you can try a change and share your take before it's merged. It's a preview, so your books stay on this device and every result stays versioned."
 msgstr "New builds land here first — from our <0>develop</0> staging branch, and from individual pull requests we stage so you can try a change and share your take before it's merged. It's a preview, so your books stay on this device and every result stays versioned."
+
+msgid "New chat"
+msgstr "New chat"
 
 msgid "New checklist item"
 msgstr "New checklist item"
@@ -6665,6 +6721,9 @@ msgstr "No matching sections"
 
 msgid "No matching sections."
 msgstr "No matching sections."
+
+msgid "No model available"
+msgstr "No model available"
 
 msgid "No narration yet"
 msgstr "No narration yet"
@@ -7201,6 +7260,9 @@ msgstr "Open source PDF"
 
 msgid "Open source PDF in a new tab"
 msgstr "Open source PDF in a new tab"
+
+msgid "Open the AI panel"
+msgstr "Open the AI panel"
 
 msgid "Open the debug panel"
 msgstr "Open the debug panel"
@@ -8653,6 +8715,9 @@ msgstr "removed"
 msgid "Removed"
 msgstr "Removed"
 
+msgid "Rename this chat"
+msgstr "Rename this chat"
+
 msgid "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
 msgstr "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
 
@@ -9504,6 +9569,9 @@ msgstr "Segmenting..."
 msgid "Segmenting…"
 msgstr "Segmenting…"
 
+msgid "Select"
+msgstr "Select"
+
 msgid "Select a .zip project archive exported from ADT Studio."
 msgstr "Select a .zip project archive exported from ADT Studio."
 
@@ -9597,6 +9665,9 @@ msgstr "Self-contained ADT web app"
 
 msgid "Send a sample notification using these settings."
 msgstr "Send a sample notification using these settings."
+
+msgid "Send prompt"
+msgstr "Send prompt"
 
 msgid "Send test"
 msgstr "Send test"
@@ -9728,6 +9799,12 @@ msgstr "Show error details"
 
 msgid "Show fewer"
 msgstr "Show fewer"
+
+msgid "Show less"
+msgstr "Show less"
+
+msgid "Show more"
+msgstr "Show more"
 
 msgid "Show only entries missing audio"
 msgstr "Show only entries missing audio"
@@ -10162,6 +10239,9 @@ msgstr "Step-by-step activity preview"
 msgid "Steps"
 msgstr "Steps"
 
+msgid "Stop generating"
+msgstr "Stop generating"
+
 msgid "Stop step"
 msgstr "Stop step"
 
@@ -10308,6 +10388,9 @@ msgstr "Suggestion behavior"
 
 msgid "Suggestion withheld"
 msgstr "Suggestion withheld"
+
+msgid "Summarise the sections on this page"
+msgstr "Summarise the sections on this page"
 
 msgid "Summary"
 msgstr "Summary"
@@ -10549,6 +10632,13 @@ msgstr "The application ran into an unexpected error. You can try reloading — 
 msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 msgstr "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 
+msgid "The assistant can read the book and propose changes. Every change is shown for approval before it runs."
+msgstr "The assistant can read the book and propose changes. Every change is shown for approval before it runs."
+
+#. placeholder {0}: error.message
+msgid "The assistant could not answer: {0}"
+msgstr "The assistant could not answer: {0}"
+
 msgid "The back cover of the book."
 msgstr "The back cover of the book."
 
@@ -10789,6 +10879,9 @@ msgstr "They produce flowers to attract pollinators."
 
 msgid "They release oxygen directly into the air."
 msgstr "They release oxygen directly into the air."
+
+msgid "Thinking…"
+msgstr "Thinking…"
 
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
@@ -11397,6 +11490,9 @@ msgstr "Untangling nested divs with care..."
 msgid "Untitled"
 msgstr "Untitled"
 
+msgid "Untitled chat"
+msgstr "Untitled chat"
+
 msgid "Untitled entry"
 msgstr "Untitled entry"
 
@@ -11845,6 +11941,9 @@ msgstr "What extraction pulls out"
 msgid "What is the main role of a plant's roots?"
 msgstr "What is the main role of a plant's roots?"
 
+msgid "What is this book about?"
+msgstr "What is this book about?"
+
 msgid "What sectioning produces"
 msgstr "What sectioning produces"
 
@@ -11901,6 +12000,9 @@ msgstr "Which engine runs the extraction and generation pipeline."
 
 msgid "Which process releases oxygen?"
 msgstr "Which process releases oxygen?"
+
+msgid "Which stages still need to run?"
+msgstr "Which stages still need to run?"
 
 msgid "While editing"
 msgstr "While editing"

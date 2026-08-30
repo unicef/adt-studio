@@ -4,7 +4,7 @@ import { TitleBarControls } from "@/components/title-bar/title-bar-controls"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { NO_DRAG_REGION } from "@/constants"
 import { cn } from "@/lib/utils"
-import { AiEditPanel } from "./AiEditPanel"
+import { AiPanel } from "./AiPanel"
 import { WorkspaceRunButton } from "./WorkspaceRunButton"
 import { DockHandle } from "@/components/app/screens/pipeline/chrome/DockHandle"
 import { PluginDockPills as PluginDock } from "./PluginDockPills"
@@ -172,12 +172,19 @@ export function PluginWorkspace({
           {children}
         </ScrollArea>
 
-        <AiEditPanel
+        <AiPanel
           label={label}
           pageId={chatPage?.pageId ?? null}
           pageLabel={chatPage ? t`page ${chatPage.pageNumber}` : undefined}
           sectionIndex={chatPage?.sections[0]?.sectionIndex ?? 0}
           empty={!hasSections}
+          screenContext={{
+            screen: plugin.slug,
+            stage: plugin.slug,
+            pageId: chatPage?.pageId ?? undefined,
+            pageLabel: chatPage ? t`page ${chatPage.pageNumber}` : undefined,
+            sectionIndex: chatPage?.sections[0]?.sectionIndex,
+          }}
         />
       </div>
 

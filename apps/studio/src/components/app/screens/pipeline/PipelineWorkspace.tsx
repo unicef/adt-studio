@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { useQuizzes } from "@/hooks/use-quizzes"
-import { AiEditPanel } from "./plugins/AiEditPanel"
+import { AiPanel } from "./plugins/AiPanel"
 import { DockHandle } from "./chrome/DockHandle"
 import { PipelineTopBar } from "./chrome/PipelineTopBar"
 import { CanvasEmptyPanel } from "./canvas/CanvasEmptyPanel"
@@ -231,7 +231,7 @@ export function PipelineWorkspace({
           )}
         </div>
 
-        <AiEditPanel
+        <AiPanel
           label={label}
           pageId={activeQuiz ? null : activePage?.pageId ?? null}
           pageLabel={
@@ -243,6 +243,12 @@ export function PipelineWorkspace({
           }
           sectionIndex={activePage?.sections[0]?.sectionIndex ?? 0}
           empty={empty}
+          screenContext={{
+            screen: "storyboard",
+            pageId: activeQuiz ? undefined : activePage?.pageId,
+            pageLabel: activePage ? t`page ${activePage.pageNumber}` : undefined,
+            sectionIndex: activePage?.sections[0]?.sectionIndex,
+          }}
         />
       </div>
 

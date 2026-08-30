@@ -213,6 +213,16 @@ export default [
 
             // --- Feature toggle callbacks (toggle key arguments are identifiers, not user-visible) ---
             "onFeatureToggleChange",
+
+            // --- React context guards: the argument is the calling component's
+            // name, used to build a developer-facing error, never UI copy ---
+            "useSelectContext",
+            "useMorphContext",
+
+            // --- CSS / media-query APIs ---
+            "*.matches",
+            "*.matchMedia",
+            "*.removeProperty",
           ],
           ignore: [
             // Single-character literals — decorative SVG glyphs (`?`, `A`, `文`, `あ`),
@@ -263,6 +273,13 @@ export default [
             "^\\[data-",
             // Underscore-prefixed internal ID fragments (e.g. "_tx" in data-id template literals)
             "^_[a-z]",
+            // CSS easing and clip-path values (e.g. "cubic-bezier(0.16, 1, 0.3, 1)", "inset(0% round 12px)")
+            "^(cubic-bezier|inset|steps|linear)\\(",
+            // Stylesheet fragments injected by components (keyframes, media queries)
+            "^@(keyframes|media)",
+            // Tailwind class lists whose tokens may be arbitrary values
+            // (e.g. "select-none [-webkit-touch-callout:none]")
+            "^(\\[[^\\]]+\\]|[a-z][a-z0-9._:/()#%,-]*)( (\\[[^\\]]+\\]|[a-z!][a-z0-9._:/()#%,-]*))*$",
           ],
         },
       ],

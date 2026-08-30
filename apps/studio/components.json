@@ -19,6 +19,7 @@
     "hooks": "@/hooks"
   },
   "registries": {
-    "@aicanvas": "https://aicanvas.me/r/{name}.json"
+    "@aicanvas": "https://aicanvas.me/r/{name}.json",
+    "@beui": "https://beui.dev/r/{name}.json"
   }
 }

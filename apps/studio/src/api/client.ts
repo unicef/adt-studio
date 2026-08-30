@@ -2114,6 +2114,90 @@ export const api = {
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })
   },
+
+  getChatModels: (label: string, credentials: ChatCredentials) =>
+    request<{ models: ChatModelOption[] }>(`/books/${label}/chat/models`, {
+      headers: chatCredentialHeaders(credentials),
+    }),
+
+  getChatThreads: (label: string) =>
+    request<{ threads: ChatThreadSummary[] }>(`/books/${label}/chat/threads`),
+
+  getChatThread: (label: string, threadId: string) =>
+    request<ChatThreadDetail>(`/books/${label}/chat/threads/${threadId}`),
+
+  createChatThread: (label: string, body: { model?: string; title?: string }) =>
+    request<ChatThreadSummary>(`/books/${label}/chat/threads`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  updateChatThread: (
+    label: string,
+    threadId: string,
+    body: { model?: string; title?: string },
+  ) =>
+    request<ChatThreadSummary>(`/books/${label}/chat/threads/${threadId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+
+  deleteChatThread: async (label: string, threadId: string): Promise<void> => {
+    const res = await fetch(`${BASE_URL}/books/${label}/chat/threads/${threadId}`, {
+      method: "DELETE",
+    })
+    if (!res.ok) throw new Error(`Failed to delete chat thread: ${res.status}`)
+  },
+
+  cancelChatTurn: (label: string, threadId: string) =>
+    request<{ cancelled: boolean }>(
+      `/books/${label}/chat/threads/${threadId}/cancel`,
+      { method: "POST" },
+    ),
+}
+
+export interface ChatCredentials {
+  openaiApiKey?: string
+  anthropicApiKey?: string
+  googleApiKey?: string
+}
+
+export interface ChatModelOption {
+  id: string
+  provider: "openai" | "anthropic" | "google"
+  label: string
+}
+
+export interface ChatThreadSummary {
+  threadId: string
+  title: string
+  model: string
+  createdAt: string
+  updatedAt: string
+  messageCount: number
+}
+
+export interface ChatThreadDetail extends ChatThreadSummary {
+  messages: unknown[]
+  executedToolCallIds: string[]
+}
+
+export function chatCredentialHeaders(
+  credentials: ChatCredentials,
+): Record<string, string> {
+  return {
+    ...(credentials.openaiApiKey ? { "X-OpenAI-Key": credentials.openaiApiKey } : {}),
+    ...(credentials.anthropicApiKey
+      ? { "X-Anthropic-API-Key": credentials.anthropicApiKey }
+      : {}),
+    ...(credentials.googleApiKey
+      ? { "X-Google-API-Key": credentials.googleApiKey }
+      : {}),
+  }
+}
+
+export function chatMessagesUrl(label: string, threadId: string): string {
+  return `${BASE_URL}/books/${label}/chat/threads/${threadId}/messages`
 }
 
 function isDesktop(): boolean {

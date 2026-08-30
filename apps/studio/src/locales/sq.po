@@ -1177,6 +1177,9 @@ msgstr "Shtoni një kyç API të ElevenLabs në Cilësimet për të zgjedhur zë
 msgid "Add an entry manually"
 msgstr "Shto një zë manualisht"
 
+msgid "Add an OpenAI, Anthropic or Google API key in Settings → Providers to chat about this book."
+msgstr "Shto një çelës API të OpenAI, Anthropic ose Google te Cilësimet → Ofruesit për të biseduar rreth këtij libri."
+
 msgid "Add at least one output language to run translation."
 msgstr "Shto të paktën një gjuhë dalëse për të ekzekutuar përkthimin."
 
@@ -1293,6 +1296,9 @@ msgstr "Shto çelësin API të këtij ofruesi në cilësimet e Librit."
 
 msgid "Add tile"
 msgstr "Shto pllakëz"
+
+msgid "Add to prompt"
+msgstr "Shto te kërkesa"
 
 msgid "Add Translations"
 msgstr "Shto Përkthime"
@@ -1461,6 +1467,9 @@ msgstr "AI vendos imazhet dhe tekstin për çdo seksion, duke iu përshtatur sa 
 
 msgid "AI Overlay"
 msgstr "Mbivendosje AI"
+
+msgid "AI panel mode"
+msgstr "Modaliteti i panelit të IA-së"
 
 msgid "AI providers"
 msgstr "Ofruesit e AI"
@@ -1789,8 +1798,17 @@ msgstr "Inteligjenca artificiale"
 msgid "Aside"
 msgstr "Shënim anësor"
 
+msgid "Ask about this book"
+msgstr "Pyet rreth këtij libri"
+
+msgid "Ask about this book…"
+msgstr "Pyet rreth këtij libri…"
+
 msgid "Ask AI to edit..."
 msgstr "Kërko nga AI të redaktojë..."
+
+msgid "Ask the agent to do something…"
+msgstr "Kërkoji agjentit të bëjë diçka…"
 
 msgid "Ask the AI to edit this page…"
 msgstr "Kërkoji IA-së ta redaktojë këtë faqe…"
@@ -2479,6 +2497,18 @@ msgstr "Titulli i kapitullit"
 msgid "Chart / Graph"
 msgstr "Tabelë / Grafik"
 
+msgid "Chat"
+msgstr "Bisedë"
+
+msgid "Chat history"
+msgstr "Historiku i bisedave"
+
+msgid "Chat name"
+msgstr "Emri i bisedës"
+
+msgid "Chat with the assistant"
+msgstr "Bisedë me asistentin"
+
 msgid "Check for updates"
 msgstr "Kontrollo për përditësime"
 
@@ -2553,6 +2583,9 @@ msgstr "Zgjidhni si duhet të formatohet përmbajtja."
 
 msgid "Choose images..."
 msgstr "Zgjidhni imazhe..."
+
+msgid "Choose model"
+msgstr "Zgjidh modelin"
 
 msgid "Choose Provider"
 msgstr "Zgjidhni Ofruesin"
@@ -3377,6 +3410,9 @@ msgstr "Fshi seksionin"
 
 msgid "Delete step"
 msgstr "Fshi hapin"
+
+msgid "Delete this chat"
+msgstr "Fshi këtë bisedë"
 
 msgid "Delete this quiz"
 msgstr "Fshi këtë kuiz"
@@ -4785,6 +4821,11 @@ msgstr "Fjalorthi skanon tekstin që vendosi Storyboard-i. Përfundoni Storyboar
 msgid "Glossary words and their definitions."
 msgstr "Fjalët e glosarit dhe përkufizimet e tyre."
 
+#. placeholder {0}: index + 1
+#. placeholder {1}: messages.length
+msgid "Go to {sender} message {0} of {1}"
+msgstr "Shko te mesazhi {sender} {0} nga {1}"
+
 msgid "Go to {stageLabel}"
 msgstr "Shko te {stageLabel}"
 
@@ -5760,6 +5801,9 @@ msgstr "Segmentim i bazuar në LLM për të zbuluar dhe ndarë imazhet e kompozu
 msgid "LMS-ready with completion tracking"
 msgstr "Gati për LMS me gjurmim të përfundimit"
 
+msgid "Loading"
+msgstr "Po ngarkohet"
+
 msgid "Loading accessibility summary..."
 msgstr "Duke ngarkuar përmbledhjen e aksesueshmërisë..."
 
@@ -5867,6 +5911,9 @@ msgstr "Duke ngarkuar katalogun e tekstit..."
 
 msgid "Loading text sizes…"
 msgstr "Po ngarkohen madhësitë e tekstit…"
+
+msgid "Loading the conversation…"
+msgstr "Po ngarkohet biseda…"
 
 msgid "Loading TTS normalization..."
 msgstr "Po ngarkohet normalizimi TTS..."
@@ -6122,6 +6169,12 @@ msgstr "Duke bashkuar fletët e dyfishta…"
 
 msgid "Merging…"
 msgstr "Po bashkohet…"
+
+msgid "Message navigation"
+msgstr "Lundrimi i mesazheve"
+
+msgid "Message the assistant"
+msgstr "Shkruaji asistentit"
 
 msgid "Message when correct (may include the answer)"
 msgstr "Mesazh kur përgjigjet saktë (mund të përfshijë përgjigjen)"
@@ -6384,6 +6437,9 @@ msgstr "E re"
 
 msgid "New builds land here first — from our <0>develop</0> staging branch, and from individual pull requests we stage so you can try a change and share your take before it's merged. It's a preview, so your books stay on this device and every result stays versioned."
 msgstr "Versionet e reja mbërrijnë këtu të parat — nga dega jonë e testimit <0>develop</0> dhe nga pull request-e individuale që i përgatisim që ju të provoni një ndryshim dhe të ndani mendimin tuaj para se të bashkohet. Është një pamje paraprake, ndaj librat tuaj mbeten në këtë pajisje dhe çdo rezultat mbetet i versionuar."
+
+msgid "New chat"
+msgstr "Bisedë e re"
 
 msgid "New checklist item"
 msgstr "Element i ri i listës kontrolluese"
@@ -6667,6 +6723,9 @@ msgstr "Nuk ka seksione përputhëse"
 
 msgid "No matching sections."
 msgstr "Asnjë seksion që përputhet."
+
+msgid "No model available"
+msgstr "Nuk ka model të disponueshëm"
 
 msgid "No narration yet"
 msgstr "Ende nuk ka narracion"
@@ -7203,6 +7262,9 @@ msgstr "Hap PDF-në burimore"
 
 msgid "Open source PDF in a new tab"
 msgstr "Hapni PDF-in burimor në një skedë të re"
+
+msgid "Open the AI panel"
+msgstr "Hap panelin e IA-së"
 
 msgid "Open the debug panel"
 msgstr "Hap panelin e korrigjimit"
@@ -8655,6 +8717,9 @@ msgstr "hequr"
 msgid "Removed"
 msgstr "Hequr"
 
+msgid "Rename this chat"
+msgstr "Riemërto këtë bisedë"
+
 msgid "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
 msgstr "Renderoni çdo seksion të shtypur në një faqe HTML interaktive. Zgjidhni një strategji paraqitjeje që përshtatet me librin dhe lini storyboard-in të kujdeset për pjesën tjetër."
 
@@ -9506,6 +9571,9 @@ msgstr "Po segmentohet..."
 msgid "Segmenting…"
 msgstr "Po segmentohet…"
 
+msgid "Select"
+msgstr "Zgjidh"
+
 msgid "Select a .zip project archive exported from ADT Studio."
 msgstr "Zgjidhni një arkivë projekti .zip të eksportuar nga ADT Studio."
 
@@ -9599,6 +9667,9 @@ msgstr "Aplikacion web ADT i pavarur"
 
 msgid "Send a sample notification using these settings."
 msgstr "Dërgo një njoftim shembull duke përdorur këto cilësime."
+
+msgid "Send prompt"
+msgstr "Dërgo mesazhin"
 
 msgid "Send test"
 msgstr "Dërgo testin"
@@ -9730,6 +9801,12 @@ msgstr "Shfaq detajet e gabimit"
 
 msgid "Show fewer"
 msgstr "Shfaq më pak"
+
+msgid "Show less"
+msgstr "Shfaq më pak"
+
+msgid "Show more"
+msgstr "Shfaq më shumë"
 
 msgid "Show only entries missing audio"
 msgstr "Shfaq vetëm hyrjet pa audio"
@@ -10164,6 +10241,9 @@ msgstr "Pamja paraprake e aktivitetit hap pas hapi"
 msgid "Steps"
 msgstr "Hapat"
 
+msgid "Stop generating"
+msgstr "Ndalo gjenerimin"
+
 msgid "Stop step"
 msgstr "Ndalo hapin"
 
@@ -10310,6 +10390,9 @@ msgstr "Sjellja e sugjerimit"
 
 msgid "Suggestion withheld"
 msgstr "Sugjerimi i mbajtur"
+
+msgid "Summarise the sections on this page"
+msgstr "Përmblidh seksionet e kësaj faqeje"
 
 msgid "Summary"
 msgstr "Përmbledhje"
@@ -10551,6 +10634,13 @@ msgstr "Aplikacioni ndeshi një gabim të papritur. Mund të provosh të ringark
 msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 msgstr "Arkivi duhet të përmbajë një bazë të dhënash projekti dhe PDF-në e tij. Eksportojeni përsëri nga ADT Studio."
 
+msgid "The assistant can read the book and propose changes. Every change is shown for approval before it runs."
+msgstr "Asistenti mund ta lexojë librin dhe të propozojë ndryshime. Çdo ndryshim shfaqet për miratim përpara se të zbatohet."
+
+#. placeholder {0}: error.message
+msgid "The assistant could not answer: {0}"
+msgstr "Asistenti nuk mundi të përgjigjej: {0}"
+
 msgid "The back cover of the book."
 msgstr "Kapaku i pasëm i librit."
 
@@ -10791,6 +10881,9 @@ msgstr "Ato prodhojnë lule për të tërhequr polenizuesit."
 
 msgid "They release oxygen directly into the air."
 msgstr "Ato lëshojnë oksigjen drejtpërdrejt në ajër."
+
+msgid "Thinking…"
+msgstr "Po mendon…"
 
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "Ky aktivitet nuk ka tekste apo përgjigje të adresueshme. Rigjeneroni atë ose përdorni \"Ndrysho paraqitjen\" për ta ndryshuar faqen drejtpërdrejt."
@@ -11399,6 +11492,9 @@ msgstr "Po zgjidhen divët e mbivendosur me kujdes..."
 msgid "Untitled"
 msgstr "Pa titull"
 
+msgid "Untitled chat"
+msgstr "Bisedë pa titull"
+
 msgid "Untitled entry"
 msgstr "Hyrje pa titull"
 
@@ -11847,6 +11943,9 @@ msgstr "Çfarë nxjerr nxjerrja"
 msgid "What is the main role of a plant's roots?"
 msgstr "Cili është roli kryesor i rrënjëve të një bime?"
 
+msgid "What is this book about?"
+msgstr "Për çfarë bën fjalë ky libër?"
+
 msgid "What sectioning produces"
 msgstr "Çfarë prodhon ndarja në seksione"
 
@@ -11903,6 +12002,9 @@ msgstr "Cili motor drejton linjën e nxjerrjes dhe gjenerimit."
 
 msgid "Which process releases oxygen?"
 msgstr "Cili proces çliron oksigjen?"
+
+msgid "Which stages still need to run?"
+msgstr "Cilat faza duhen ende ekzekutuar?"
 
 msgid "While editing"
 msgstr "Gjatë redaktimit"

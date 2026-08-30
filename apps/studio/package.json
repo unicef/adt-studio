@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@adt/types": "workspace:*",
+    "@ai-sdk/react": "~2.0.247",
     "@lingui/conf": "^6.4.0",
     "@lingui/core": "^6.4.0",
     "@lingui/format-po": "^6.4.0",
@@ -41,6 +42,7 @@
     "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-router": "^1.170.27",
     "@tanstack/react-virtual": "^3.13.23",
+    "ai": "~5.0.244",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "color": "^5.0.3",
@@ -49,6 +51,7 @@
     "embla-carousel-react": "^8.6.0",
     "lucide-react": "^0.469.0",
     "monaco-editor": "^0.55.1",
+    "motion": "^13.1.1",
     "pdfjs-dist": "^5.5.207",
     "react": "^19.0.0",
     "react-colorful": "^5.6.1",
@@ -61,7 +64,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@ai-sdk/openai": "^1.0.0",
+    "@ai-sdk/openai": "~2.0.118",
     "@lingui/babel-plugin-lingui-macro": "^6.4.0",
     "@lingui/cli": "^6.4.0",
     "@lingui/vite-plugin": "^6.4.0",
@@ -71,7 +74,6 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.0.2",
-    "ai": "^4.0.0",
     "axe-core": "^4.11.0",
     "eslint": "^9",
     "eslint-plugin-lingui": "^0.11.0",
