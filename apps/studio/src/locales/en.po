@@ -719,6 +719,9 @@ msgstr "Accepts any answer"
 msgid "Accessibility"
 msgstr "Accessibility"
 
+msgid "Accessibility Assessment"
+msgstr "Accessibility Assessment"
+
 msgid "Accessibility assessment configuration"
 msgstr "Accessibility assessment configuration"
 
@@ -926,6 +929,9 @@ msgstr "Add an API key in Book settings to run translation."
 
 msgid "Add an API key to re-run"
 msgstr "Add an API key to re-run"
+
+msgid "Add an Azure Speech key and region in Settings to pick voices by name."
+msgstr "Add an Azure Speech key and region in Settings to pick voices by name."
 
 msgid "Add an ElevenLabs API key in Settings to pick voices by name."
 msgstr "Add an ElevenLabs API key in Settings to pick voices by name."
@@ -5714,6 +5720,10 @@ msgstr "Next Step"
 msgid "No"
 msgstr "No"
 
+#. placeholder {0}: PROVIDER_LABELS[provider] ?? provider
+msgid "No {0} voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Pick a voice above, or map one for {lang} in the Voices tab to share it across books."
+msgstr "No {0} voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Pick a voice above, or map one for {lang} in the Voices tab to share it across books."
+
 msgid "No acceptable review results for this view."
 msgstr "No acceptable review results for this view."
 
@@ -5728,6 +5738,9 @@ msgstr "No AI edits yet for this section."
 
 msgid "No answer set"
 msgstr "No answer set"
+
+msgid "no API key"
+msgstr "no API key"
 
 #. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
 msgid "No API key for {0} yet. Add one in Book settings to enable this provider."
@@ -5808,8 +5821,8 @@ msgstr "No disabled rules"
 msgid "No Easy Read for this page"
 msgstr "No Easy Read for this page"
 
-msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
-msgstr "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
+#~ msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
+#~ msgstr "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
 
 msgid "No embedded text layer — text was recovered from the page image"
 msgstr "No embedded text layer — text was recovered from the page image"
@@ -8268,8 +8281,8 @@ msgstr "sections"
 msgid "Sections"
 msgstr "Sections"
 
-msgid "See examples"
-msgstr "See examples"
+#~ msgid "See examples"
+#~ msgstr "See examples"
 
 msgid "See the book & pick pages"
 msgstr "See the book & pick pages"
@@ -10173,6 +10186,9 @@ msgstr "Upload ZIP or drag and drop"
 msgid "Uploading..."
 msgstr "Uploading..."
 
+msgid "Use \"{trimmedQuery}\""
+msgstr "Use \"{trimmedQuery}\""
+
 msgid "Use adjacent text as context"
 msgstr "Use adjacent text as context"
 
@@ -10386,6 +10402,9 @@ msgstr "Voice"
 
 msgid "Voice Mappings"
 msgstr "Voice Mappings"
+
+msgid "Voice name"
+msgstr "Voice name"
 
 msgid "Voice tuning (advanced)"
 msgstr "Voice tuning (advanced)"

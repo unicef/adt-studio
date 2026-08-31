@@ -292,3 +292,135 @@ describe("GET/PUT /speech-config/voices", () => {
     warnSpy.mockRestore()
   })
 })
+
+describe("GET /speech-config/azure-voices", () => {
+  // Cached by key+region for the life of the process, so each test uses a
+  // distinct key to stay isolated.
+  let apiKey: string
+  let keyCounter = 0
+
+  const azureList = (voices: Array<Record<string, unknown>>): Response =>
+    new Response(JSON.stringify(voices), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })
+
+  const catalogue = [
+    { ShortName: "es-UY-ValentinaNeural", LocalName: "Valentina", Locale: "es-UY", Gender: "Female" },
+    { ShortName: "es-UY-MateoNeural", LocalName: "Mateo", Locale: "es-UY", Gender: "Male" },
+    { ShortName: "es-ES-ElviraNeural", LocalName: "Elvira", Locale: "es-ES", Gender: "Female" },
+    { ShortName: "en-US-JennyNeural", LocalName: "Jenny", Locale: "en-US", Gender: "Female" },
+  ]
+
+  beforeEach(() => {
+    apiKey = `az-test-${++keyCounter}`
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-speech-config-"))
+    configPath = path.join(tmpDir, "config.yaml")
+    fs.writeFileSync(configPath, "role_types: {}\n")
+    fetchMock.mockReset()
+    vi.stubGlobal("fetch", fetchMock)
+    delete process.env.AZURE_SPEECH_KEY
+    delete process.env.AZURE_SPEECH_REGION
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  const request = (query = "", headers?: Record<string, string>) =>
+    createSpeechConfigRoutes(configPath).request(
+      `/speech-config/azure-voices${query}`,
+      {
+        headers: headers ?? {
+          "X-Azure-Speech-Key": apiKey,
+          "X-Azure-Speech-Region": "eastus",
+        },
+      },
+    )
+
+  it("returns the flattened catalogue for the caller's key and region", async () => {
+    fetchMock.mockResolvedValueOnce(azureList(catalogue))
+
+    const res = await request()
+
+    expect(res.status).toBe(200)
+    expect((await res.json()).voices).toHaveLength(4)
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "https://eastus.tts.speech.microsoft.com/cognitiveservices/voices/list",
+    )
+  })
+
+  // Azure voice names embed their locale, so an es-UY book must not be offered
+  // en-US voices — this is the whole point of the language filter.
+  it("filters to the language and floats exact-locale voices first", async () => {
+    fetchMock.mockResolvedValueOnce(azureList(catalogue))
+
+    const body = await (await request("?language=es-UY")).json()
+
+    expect(body.voices.map((v: { shortName: string }) => v.shortName)).toEqual([
+      "es-UY-MateoNeural",
+      "es-UY-ValentinaNeural",
+      "es-ES-ElviraNeural",
+    ])
+  })
+
+  // No es-AR voice exists, so every Spanish voice is offered — in the
+  // catalogue's own alphabetical order, since none is an exact match.
+  it("keeps same-language voices from other regions", async () => {
+    fetchMock.mockResolvedValueOnce(azureList(catalogue))
+
+    const body = await (await request("?language=es-AR")).json()
+
+    expect(body.voices.map((v: { shortName: string }) => v.shortName)).toEqual([
+      "es-ES-ElviraNeural",
+      "es-UY-MateoNeural",
+      "es-UY-ValentinaNeural",
+    ])
+  })
+
+  // Better a full list than an empty picker for a locale Azure doesn't cover.
+  it("falls back to the whole catalogue for an unsupported language", async () => {
+    fetchMock.mockResolvedValueOnce(azureList(catalogue))
+
+    const body = await (await request("?language=sq")).json()
+
+    expect(body.voices).toHaveLength(4)
+  })
+
+  // Degrades to free-text entry in the UI rather than showing a failure.
+  it("returns an empty list when no credentials are configured", async () => {
+    const res = await request("", {})
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ voices: [] })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("returns an empty list when the region is missing", async () => {
+    const res = await request("", { "X-Azure-Speech-Key": apiKey })
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ voices: [] })
+  })
+
+  it("reports an upstream failure without echoing the key", async () => {
+    fetchMock.mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
+
+    const res = await request()
+
+    expect(res.status).toBe(502)
+    const body = await res.json()
+    expect(body.voices).toEqual([])
+    expect(JSON.stringify(body)).not.toContain(apiKey)
+  })
+
+  it("serves a second request for the same key and region from cache", async () => {
+    fetchMock.mockResolvedValueOnce(azureList(catalogue))
+
+    await request()
+    await request("?language=en-US")
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+})

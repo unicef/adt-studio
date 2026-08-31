@@ -100,6 +100,24 @@ describe("SpeechConfig exclusions", () => {
       ).toBe(true)
     })
 
+    it("accepts per-book primary overrides keyed provider then locale", () => {
+      expect(
+        SpeechConfig.safeParse({
+          primary_voices: {
+            azure: { "es-uy": { voice: "es-UY-MateoNeural", label: "Mateo" } },
+          },
+        }).success,
+      ).toBe(true)
+    })
+
+    it("rejects a primary override with an empty voice", () => {
+      expect(
+        SpeechConfig.safeParse({
+          primary_voices: { azure: { "es-uy": { voice: "" } } },
+        }).success,
+      ).toBe(false)
+    })
+
     it("rejects unsupported providers and empty voices", () => {
       expect(
         SpeechConfig.safeParse({

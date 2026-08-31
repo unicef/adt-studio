@@ -3115,6 +3115,25 @@ async function runSpeechStep(
     console.log(`[stage-run] ${label}: generating TTS for ${totalItems} entries and reusing ${reusedItems} existing entries across ${outputLanguages.length} languages (${outputLanguages.join(", ")})`)
     console.log(`[stage-run] ${label}: TTS routing — ${[...pageGroups.values()].map((g) => `${g.language}:${g.voiceSlot}→gemini`).concat(ttsWorkItems.map((item) => `${item.language}:${item.voiceSlot}→${item.provider}`)).join(", ")}`)
 
+    // Fail fast: build every synthesizer this run needs before admitting any
+    // item, so a missing credential surfaces as one clear stage error instead
+    // of one logged per-item failure for every entry that was in flight when
+    // the key turned out to be absent. getSynthesizer is memoized, so the
+    // generation loops below reuse these instances.
+    //
+    // Derived from the resolved work, not from the configured providers: a
+    // secondary narrator carries its own provider (speech.secondary_voices),
+    // so a per-language lookup would miss it, and a run whose entries are all
+    // reused needs no synthesizer at all and must not be failed here.
+    // Page groups are Gemini-only by construction (see getSynthesizer("gemini")
+    // in the batched executor below).
+    for (const provider of new Set([
+      ...ttsWorkItems.map((item) => item.provider),
+      ...(pageGroups.size > 0 ? ["gemini"] : []),
+    ])) {
+      getSynthesizer(provider)
+    }
+
     const hasGeminiTts =
       pageGroups.size > 0 || ttsWorkItems.some((item) => item.provider === "gemini")
     // Adaptive limiter: start at the documented ceiling for the selected model

@@ -34,6 +34,7 @@ import {
   loadSpeechInstructions,
   loadVoicesConfig,
   normalizeLocale,
+  overlayPrimaryVoices,
   resolveInstructions,
   resolveSpeechFormat,
   resolveSpeechModel,
@@ -896,7 +897,10 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
             elevenLabsApiKey,
             language: normalizedLanguage,
             providerConfigs,
-            voiceMaps,
+            // Overlaid the same way resolveSpeechVoice does it, so a book that
+            // overrode the fallback provider's voice narrates the retry with
+            // its own choice instead of reverting to the global mapping.
+            voiceMaps: overlayPrimaryVoices(voiceMaps, config.speech?.primary_voices),
             defaultOpenAIModel: defaultSpeechModel,
             primaryProvider: provider,
           })

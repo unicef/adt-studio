@@ -217,6 +217,17 @@ export interface ElevenLabsVoice {
   verified_languages?: Array<{ language?: string; accent?: string }>
 }
 
+/** One Azure voice, flattened by the API. `shortName` is the value stored in
+ *  voices.yaml (e.g. `es-UY-ValentinaNeural`); Azure voice names embed their
+ *  locale, so these are only valid for the locale they belong to. */
+export interface AzureVoice {
+  shortName: string
+  displayName: string
+  locale: string
+  localeName?: string
+  gender?: string
+}
+
 export interface StageRunProviderCredentials {
   /** Generic manifest-keyed values. Legacy fields below remain during migration. */
   values?: ProviderCredentialValues
@@ -2052,6 +2063,25 @@ export const api = {
     request<{ voices: ElevenLabsVoice[] }>("/speech-config/elevenlabs-voices", {
       headers: elevenLabsApiKey ? { "X-ElevenLabs-API-Key": elevenLabsApiKey } : {},
     }),
+
+  /** Azure's voice catalogue for a language. Returns an empty list when no
+   *  Azure credentials are configured, so callers fall back to free text. */
+  getAzureVoices: (
+    language?: string,
+    credentials?: { azureKey?: string; azureRegion?: string },
+  ) => {
+    const qs = new URLSearchParams()
+    if (language) qs.set("language", language)
+    const query = qs.toString()
+    return request<{ voices: AzureVoice[] }>(`/speech-config/azure-voices${query ? `?${query}` : ""}`, {
+      headers: {
+        ...(credentials?.azureKey ? { "X-Azure-Speech-Key": credentials.azureKey } : {}),
+        ...(credentials?.azureRegion
+          ? { "X-Azure-Speech-Region": credentials.azureRegion }
+          : {}),
+      },
+    })
+  },
 
   prepareExport: (
     label: string,
