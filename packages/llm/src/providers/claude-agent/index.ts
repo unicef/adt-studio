@@ -11,7 +11,7 @@ import {
 } from "./structured-text.js"
 
 export const CLAUDE_AGENT_PROVIDER_ID = "claude-agent"
-const ADAPTER_VERSION = "claude-agent-2"
+const ADAPTER_VERSION = "claude-agent-3"
 
 const credentialSchema = z
   .object({ apiKey: z.string().max(400).optional() })
@@ -30,12 +30,12 @@ const HELP_API_KEY: LocalizedText = {
 }
 
 const LOCALIZED_HELP: LocalizedText = {
-  en: "Runs prompts through the Claude Agent SDK on this machine instead of calling the Anthropic API directly, reusing the Claude Code login when no API key is set. Tools, session files and local settings are disabled so results stay reproducible.",
+  en: "Runs prompts through the Claude Code CLI installed on this machine instead of calling the Anthropic API directly, reusing its login when no API key is set. Tools, session files and local settings are disabled so results stay reproducible.",
   "pt-BR":
-    "Executa os prompts pelo Claude Agent SDK nesta máquina em vez de chamar a API da Anthropic diretamente, reaproveitando o login do Claude Code quando nenhuma chave de API é informada. Ferramentas, arquivos de sessão e configurações locais ficam desativados para manter os resultados reproduzíveis.",
-  es: "Ejecuta los prompts mediante el Claude Agent SDK en este equipo en lugar de llamar directamente a la API de Anthropic, reutilizando el inicio de sesión de Claude Code cuando no hay clave de API. Las herramientas, los archivos de sesión y la configuración local están desactivados para mantener resultados reproducibles.",
-  fr: "Exécute les prompts via le Claude Agent SDK sur cette machine au lieu d'appeler directement l'API Anthropic, en réutilisant la session Claude Code lorsqu'aucune clé d'API n'est définie. Les outils, les fichiers de session et les réglages locaux sont désactivés afin que les résultats restent reproductibles.",
-  sq: "Ekzekuton promptet përmes Claude Agent SDK në këtë makinë në vend që të thërrasë drejtpërdrejt API-n e Anthropic, duke ripërdorur hyrjen e Claude Code kur nuk është caktuar kyç API. Veglat, skedarët e sesionit dhe cilësimet lokale janë të çaktivizuara për t'i mbajtur rezultatet të riprodhueshme.",
+    "Executa os prompts pelo Claude Code CLI instalado nesta máquina em vez de chamar a API da Anthropic diretamente, reaproveitando o login dele quando nenhuma chave de API é informada. Ferramentas, arquivos de sessão e configurações locais ficam desativados para manter os resultados reproduzíveis.",
+  es: "Ejecuta los prompts mediante el CLI de Claude Code instalado en este equipo en lugar de llamar directamente a la API de Anthropic, reutilizando su inicio de sesión cuando no hay clave de API. Las herramientas, los archivos de sesión y la configuración local están desactivados para mantener resultados reproducibles.",
+  fr: "Exécute les prompts via le CLI Claude Code installé sur cette machine au lieu d'appeler directement l'API Anthropic, en réutilisant sa session lorsqu'aucune clé d'API n'est définie. Les outils, les fichiers de session et les réglages locaux sont désactivés afin que les résultats restent reproductibles.",
+  sq: "Ekzekuton promptet përmes CLI-së së Claude Code të instaluar në këtë makinë në vend që të thërrasë drejtpërdrejt API-n e Anthropic, duke ripërdorur hyrjen e saj kur nuk është caktuar kyç API. Veglat, skedarët e sesionit dhe cilësimet lokale janë të çaktivizuara për t'i mbajtur rezultatet të riprodhueshme.",
 }
 
 export const claudeAgentManifest: ProviderManifest = {
@@ -58,7 +58,7 @@ export const claudeAgentManifest: ProviderManifest = {
   ],
   capabilities: {
     "structured-text": {
-      // The CLI's `json_schema` output format has no `$ref` support, so
+      // The CLI's `--json-schema` validation has no `$ref` support, so
       // recursive schemas fall back to a schema-in-the-prompt round.
       strategies: ["native-schema", "parse-repair"],
       recursiveSchemas: false,
@@ -71,7 +71,7 @@ export const claudeAgentManifest: ProviderManifest = {
   },
   minimumRequestTimeoutMs: 600_000,
   localizedHelp: LOCALIZED_HELP,
-  docsUrl: "https://code.claude.com/docs/en/agent-sdk/overview",
+  docsUrl: "https://code.claude.com/docs/en/cli-reference",
 }
 
 export const claudeAgentProvider: ProviderModule<ClaudeAgentCredentials> = {
@@ -90,7 +90,7 @@ export const claudeAgentProvider: ProviderModule<ClaudeAgentCredentials> = {
     origin: ANTHROPIC_ORIGIN,
   }),
 
-  /** With a key the REST catalogue answers; the CLI login asks the SDK instead. */
+  /** With a key the REST catalogue answers; the CLI login gets the stable aliases. */
   listModels: (context) => {
     const apiKey = context.credentials.apiKey
     if (!apiKey) return listClaudeAgentModels(context)

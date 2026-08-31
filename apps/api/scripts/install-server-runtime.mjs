@@ -15,10 +15,8 @@ const apiRoot = path.resolve(__dirname, "..")
 const monorepoRoot = path.resolve(apiRoot, "../..")
 const dist = path.join(apiRoot, "dist-electron")
 const pipelinePkgPath = path.join(monorepoRoot, "packages/pipeline/package.json")
-const llmPkgPath = path.join(monorepoRoot, "packages/llm/package.json")
 
 const p = JSON.parse(readFileSync(pipelinePkgPath, "utf8"))
-const l = JSON.parse(readFileSync(llmPkgPath, "utf8"))
 const stub = {
   name: "api-runtime",
   version: "0.0.0",
@@ -30,7 +28,6 @@ const stub = {
     "tw-animate-css": p.dependencies["tw-animate-css"],
     postcss: p.dependencies.postcss,
     jsdom: p.dependencies.jsdom,
-    "@anthropic-ai/claude-agent-sdk": l.dependencies["@anthropic-ai/claude-agent-sdk"],
   },
 }
 

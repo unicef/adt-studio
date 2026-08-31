@@ -57,13 +57,11 @@ RUN pnpm --filter @adt/api build:server
 # with their full dependency tree into dist/node_modules/ using npm (not pnpm — npm
 # ignores the monorepo workspace config and installs freely into a non-workspace
 # directory). npm also installs @esbuild/linux-x64 automatically as esbuild's optional
-# dependency. @anthropic-ai/claude-agent-sdk is here for the same reason: it resolves its
-# platform-specific `claude` executable through its own optional dependencies. Versions are
-# read directly from the owning workspace package.json to avoid drift.
+# dependency. Versions are read directly from the owning workspace package.json to
+# avoid drift.
 RUN --mount=type=cache,target=/root/.npm \
     node -e " \
       const p = JSON.parse(require('fs').readFileSync('packages/pipeline/package.json', 'utf8')); \
-      const l = JSON.parse(require('fs').readFileSync('packages/llm/package.json', 'utf8')); \
       require('fs').writeFileSync('apps/api/dist/package.json', JSON.stringify({ \
         name: 'api-runtime', version: '0.0.0', \
         dependencies: { \
@@ -72,8 +70,7 @@ RUN --mount=type=cache,target=/root/.npm \
           '@tailwindcss/postcss': p.dependencies['@tailwindcss/postcss'], \
           postcss: p.dependencies.postcss, \
           playwright: p.dependencies.playwright, \
-          jsdom: p.dependencies.jsdom, \
-          '@anthropic-ai/claude-agent-sdk': l.dependencies['@anthropic-ai/claude-agent-sdk'] \
+          jsdom: p.dependencies.jsdom \
         } \
       })); \
     " && \
@@ -114,7 +111,7 @@ COPY --from=build /root/.cache/ms-playwright /home/appuser/.cache/ms-playwright
 RUN chown -R appuser:nodejs /home/appuser/.cache/ms-playwright
 ENV PLAYWRIGHT_BROWSERS_PATH=/home/appuser/.cache/ms-playwright
 
-# The Claude Agent SDK spawns a CLI that writes its own state under $HOME.
+# The claude-agent provider spawns the Claude Code CLI, which writes its own state under $HOME.
 RUN mkdir -p /home/appuser && chown appuser:nodejs /home/appuser
 ENV HOME=/home/appuser
 RUN npx --prefix apps/api/dist playwright install-deps chromium
@@ -179,22 +176,6 @@ WORKDIR /app
 
 # API bundle (self-contained except for external packages in dist/node_modules/)
 COPY --from=build /app/apps/api/dist ./apps/api/dist
-
-# The Claude Agent SDK ships its `claude` executable as a per-platform optional
-# dependency. The build stage is Debian, so npm resolved the glibc build there;
-# this stage is Alpine, which needs the musl build instead. Swap them rather than
-# keeping both — each binary is ~250 MB.
-# Installed into a scratch prefix and moved into place: running npm directly
-# against dist/ (which has no package.json) risks disturbing the packages the
-# build stage already installed there.
-RUN --mount=type=cache,target=/root/.npm \
-    SDK_DIR=apps/api/dist/node_modules/@anthropic-ai && \
-    SDK_VERSION="$(node -p "require('/app/${SDK_DIR}/claude-agent-sdk/package.json').version")" && \
-    npm install --prefix /tmp/musl --no-save --cache /root/.npm \
-      "@anthropic-ai/claude-agent-sdk-linux-x64-musl@${SDK_VERSION}" && \
-    rm -rf "${SDK_DIR}/claude-agent-sdk-linux-x64" && \
-    mv /tmp/musl/node_modules/@anthropic-ai/claude-agent-sdk-linux-x64-musl "${SDK_DIR}/" && \
-    rm -rf /tmp/musl
 
 # Playwright Chromium browser binary + system dependencies for screenshot rendering.
 COPY --from=build /root/.cache/ms-playwright /home/node/.cache/ms-playwright

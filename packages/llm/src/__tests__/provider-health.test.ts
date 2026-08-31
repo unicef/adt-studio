@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { z } from "zod"
 import { ProviderHealthResponse, type LocalizedText, type ProviderManifest } from "@adt/types"
 import { createProviderRegistry } from "../registry.js"
@@ -6,7 +6,11 @@ import { checkProviderConnection } from "../provider-health.js"
 import { ModelDiscoveryError } from "../model-discovery.js"
 import { AiProviderError } from "../ports/errors.js"
 import type { AnyProviderModule, ProviderModule } from "../ports/index.js"
-import { checkClaudeAgentConnection } from "../providers/claude-agent/connection.js"
+import {
+  checkClaudeAgentConnection,
+  type ClaudeVersionRunner,
+} from "../providers/claude-agent/connection.js"
+import type { ClaudeProcessResult } from "../providers/claude-agent/cli.js"
 import {
   checkCodexConnection,
   type CodexStatusRunner,
@@ -255,40 +259,92 @@ describe("checkProviderConnection", () => {
 
 describe("checkClaudeAgentConnection", () => {
   const context = { providerId: "claude-agent", credentials: {} as { apiKey?: string } }
+  const resolveCli = () => "/usr/local/bin/claude"
+
+  function versionRunner(result: Partial<ClaudeProcessResult> = {}): ClaudeVersionRunner {
+    return () =>
+      Promise.resolve({ stdout: "2.1.247 (Claude Code)\n", stderr: "", exitCode: 0, ...result })
+  }
 
   it("verifies an API key against the model catalogue", async () => {
     const result = await checkClaudeAgentConnection(
       { ...context, credentials: { apiKey: "sk-ant-test" } },
-      { listModels: async () => [{ id: "claude-sonnet-4-5" }, { id: "claude-opus-4-6" }] },
+      {
+        resolveExecutable: resolveCli,
+        runCommand: versionRunner(),
+        listModels: async () => [{ id: "claude-sonnet-4-5" }, { id: "claude-opus-4-6" }],
+      },
     )
     expect(result).toEqual({ ok: true, code: "ok", modelCount: 2 })
   })
 
   it("accepts the local Claude Code login when no key is set", async () => {
     const result = await checkClaudeAgentConnection(context, {
-      loadSdk: async () => ({}),
+      resolveExecutable: resolveCli,
+      runCommand: versionRunner(),
       hasLogin: () => true,
     })
-    expect(result).toEqual({ ok: true, code: "local-login" })
+    expect(result).toEqual({ ok: true, code: "local-login", detail: "Claude Code 2.1.247" })
   })
 
   it("reports not-logged-in when no login file exists", async () => {
     const result = await checkClaudeAgentConnection(context, {
-      loadSdk: async () => ({}),
+      resolveExecutable: resolveCli,
+      runCommand: versionRunner(),
       hasLogin: () => false,
     })
     expect(result).toEqual({ ok: false, code: "not-logged-in" })
   })
 
-  it("reports cli-not-found when the SDK is missing", async () => {
+  it("reports cli-not-found when no executable can be resolved", async () => {
     const result = await checkClaudeAgentConnection(context, {
-      loadSdk: async () => {
-        throw new Error("Cannot find module")
-      },
+      resolveExecutable: () => undefined,
       hasLogin: () => true,
     })
     expect(result.ok).toBe(false)
     expect(result.code).toBe("cli-not-found")
+    expect(result.detail).toContain("CLAUDE_AGENT_EXECUTABLE")
+  })
+
+  it("reports cli-not-found when the executable cannot be spawned", async () => {
+    const result = await checkClaudeAgentConnection(context, {
+      resolveExecutable: resolveCli,
+      runCommand: () =>
+        Promise.reject(new Error("spawn failed", { cause: { code: "ENOENT" } })),
+      hasLogin: () => true,
+    })
+    expect(result.ok).toBe(false)
+    expect(result.code).toBe("cli-not-found")
+  })
+
+  it("refuses a CLI older than the verified flag contract", async () => {
+    const result = await checkClaudeAgentConnection(context, {
+      resolveExecutable: resolveCli,
+      runCommand: versionRunner({ stdout: "1.0.17 (Claude Code)\n" }),
+      hasLogin: () => true,
+    })
+    expect(result.ok).toBe(false)
+    expect(result.code).toBe("cli-not-found")
+    expect(result.detail).toContain("claude update")
+  })
+
+  it("reports unreachable when the CLI reports no version", async () => {
+    const result = await checkClaudeAgentConnection(context, {
+      resolveExecutable: resolveCli,
+      runCommand: versionRunner({ stdout: "garbage", exitCode: 1 }),
+      hasLogin: () => true,
+    })
+    expect(result).toMatchObject({ ok: false, code: "unreachable" })
+  })
+
+  it("reports cli-not-found before spending an API-key catalogue call", async () => {
+    const listModels = vi.fn()
+    const result = await checkClaudeAgentConnection(
+      { ...context, credentials: { apiKey: "sk-ant-test" } },
+      { resolveExecutable: () => undefined, listModels },
+    )
+    expect(result.code).toBe("cli-not-found")
+    expect(listModels).not.toHaveBeenCalled()
   })
 })
 

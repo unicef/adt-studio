@@ -3,7 +3,7 @@ import {
   toJsonSchema as toSharedJsonSchema,
   type ZodLike,
 } from "../shared/json-schema.js"
-import type { ClaudeAgentContentBlock, ClaudeAgentUserMessage } from "./sdk.js"
+import type { ClaudeAgentContentBlock } from "./cli.js"
 
 export { asZodLike } from "../shared/json-schema.js"
 export type { ZodLike }
@@ -71,16 +71,6 @@ export function toPromptBlocks(messages: Message[]): ClaudeAgentContentBlock[] {
     blocks.push({ type: "text", text: ROLE_LABELS[role] }, ...toBlocks(turn.content))
   }
   return blocks
-}
-
-export async function* toPromptStream(
-  blocks: ClaudeAgentContentBlock[],
-): AsyncIterable<ClaudeAgentUserMessage> {
-  yield {
-    type: "user",
-    message: { role: "user", content: blocks },
-    parent_tool_use_id: null,
-  }
 }
 
 export function toJsonSchema(schema: unknown): Record<string, unknown> {

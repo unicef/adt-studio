@@ -1,3 +1,4 @@
+import { delimiter, join } from "node:path"
 import { describe, expect, it, vi } from "vitest"
 import { z } from "zod"
 import { ProviderManifest } from "@adt/types"
@@ -9,13 +10,18 @@ import {
   toPromptBlocks,
 } from "../providers/claude-agent/request.js"
 import { listClaudeAgentModels } from "../providers/claude-agent/models.js"
-import type {
-  ClaudeAgentMessage,
-  ClaudeAgentModelInfo,
-  ClaudeAgentQuery,
-  ClaudeAgentQueryOptions,
-  ClaudeAgentResultMessage,
-} from "../providers/claude-agent/sdk.js"
+import {
+  buildClaudeArgs,
+  readClaudeTurn,
+  type ClaudeAgentResultEvent,
+  type ClaudeAgentTurn,
+  type ClaudeCliRequest,
+  type ClaudeCliRunner,
+} from "../providers/claude-agent/cli.js"
+import {
+  findClaudeAgentExecutable,
+  resolveClaudeAgentExecutable,
+} from "../providers/claude-agent/executable.js"
 import type { BackendContext, StructuredTextRequest } from "../ports/index.js"
 import {
   isProviderConfiguredOnServer,
@@ -32,6 +38,8 @@ const context: BackendContext<{ apiKey?: string }> = {
 
 const schema = z.object({ title: z.string(), pages: z.number() })
 
+const CLI_PATH = "/usr/local/bin/claude"
+
 function makeRequest(
   overrides: Partial<StructuredTextRequest> = {},
 ): StructuredTextRequest {
@@ -43,25 +51,23 @@ function makeRequest(
   }
 }
 
-interface FakeQuery {
-  query: ClaudeAgentQuery
-  calls: ClaudeAgentQueryOptions[]
+interface FakeRunner {
+  runCli: ClaudeCliRunner
+  calls: ClaudeCliRequest[]
 }
 
-function fakeQuery(...messages: ClaudeAgentMessage[]): FakeQuery {
-  const calls: ClaudeAgentQueryOptions[] = []
-  const query: ClaudeAgentQuery = ({ options }) => {
-    if (options) calls.push(options)
-    return (async function* () {
-      yield* messages
-    })()
+function fakeRunner(turn: ClaudeAgentTurn): FakeRunner {
+  const calls: ClaudeCliRequest[] = []
+  const runCli: ClaudeCliRunner = (request) => {
+    calls.push(request)
+    return Promise.resolve(turn)
   }
-  return { query, calls }
+  return { runCli, calls }
 }
 
-function successResult(
-  overrides: Partial<ClaudeAgentResultMessage> = {},
-): ClaudeAgentResultMessage {
+function successEvent(
+  overrides: Partial<ClaudeAgentResultEvent> = {},
+): ClaudeAgentResultEvent {
   return {
     type: "result",
     subtype: "success",
@@ -72,9 +78,14 @@ function successResult(
   }
 }
 
-function backendWith(fake: FakeQuery) {
+function successTurn(overrides: Partial<ClaudeAgentResultEvent> = {}): ClaudeAgentTurn {
+  return { resultEvent: successEvent(overrides), exitCode: 0, stderr: "" }
+}
+
+function backendWith(fake: FakeRunner) {
   return createClaudeAgentStructuredTextBackend(context, {
-    loadQuery: () => Promise.resolve(fake.query),
+    runCli: fake.runCli,
+    resolveExecutable: () => CLI_PATH,
     scratchDir: "/tmp/adt-claude-agent-test",
   })
 }
@@ -113,132 +124,41 @@ describe("claude-agent manifest", () => {
     expect(isProviderConfiguredOnServer(claudeAgentProvider)).toBe(true)
     expect(validateProviderCredentials(claudeAgentProvider, {})).toEqual({})
   })
-
 })
 
 describe("listClaudeAgentModels", () => {
   const discoveryContext = { providerId: "claude-agent", credentials: {} }
 
-  function fakeModelQuery(models: ClaudeAgentModelInfo[]): {
-    query: ClaudeAgentQuery
-    calls: ClaudeAgentQueryOptions[]
-  } {
-    const calls: ClaudeAgentQueryOptions[] = []
-    const query: ClaudeAgentQuery = ({ options }) => {
-      if (options) calls.push(options)
-      const stream = (async function* (): AsyncGenerator<ClaudeAgentMessage> {})()
-      return Object.assign(stream, {
-        supportedModels: () => Promise.resolve(models),
-      })
-    }
-    return { query, calls }
-  }
+  it("serves the CLI's stable aliases through the local login", async () => {
+    const models = await listClaudeAgentModels(discoveryContext, { hasLogin: () => true })
 
-  it("lists the SDK's supported models through the CLI login", async () => {
-    const fake = fakeModelQuery([
-      { value: "default", displayName: "Default (recommended)" },
-      { value: "sonnet", displayName: "Sonnet" },
-      { value: "claude-haiku-4-5", displayName: "Haiku" },
-    ])
-
-    const models = await listClaudeAgentModels(discoveryContext, {
-      loadQuery: () => Promise.resolve(fake.query),
-      hasLogin: () => true,
-      scratchDir: "/tmp/adt-claude-agent-test",
-    })
-
-    expect(models).toEqual([
-      { id: "default", displayName: "Default (recommended)" },
-      { id: "sonnet", displayName: "Sonnet" },
-      { id: "claude-haiku-4-5", displayName: "Haiku" },
-    ])
-  })
-
-  it("spends no turn and never leaks an ambient credential", async () => {
-    const fake = fakeModelQuery([{ value: "sonnet" }])
-    vi.stubEnv("ANTHROPIC_API_KEY", "sk-ant-ambient")
-    try {
-      await listClaudeAgentModels(discoveryContext, {
-        loadQuery: () => Promise.resolve(fake.query),
-        hasLogin: () => true,
-      })
-    } finally {
-      vi.unstubAllEnvs()
-    }
-
-    const options = fake.calls[0]!
-    expect(options.maxTurns).toBe(1)
-    expect(options.tools).toEqual([])
-    expect(options.persistSession).toBe(false)
-    expect(options.env?.ANTHROPIC_API_KEY).toBeUndefined()
-  })
-
-  it("drops alias ids the app cannot round-trip as model ids", async () => {
-    const fake = fakeModelQuery([
-      { value: "opus[1m]", displayName: "Opus (1M context)" },
-      { value: "opus", displayName: "Opus" },
-    ])
-
-    const models = await listClaudeAgentModels(discoveryContext, {
-      loadQuery: () => Promise.resolve(fake.query),
-      hasLogin: () => true,
-    })
-
-    expect(models).toEqual([{ id: "opus", displayName: "Opus" }])
+    expect(models.map((model) => model.id)).toEqual(["sonnet", "opus", "haiku"])
+    expect(models.every((model) => model.displayName)).toBe(true)
   })
 
   it("reports missing-credential when neither key nor login exists", async () => {
-    const fake = fakeModelQuery([{ value: "sonnet" }])
-
     await expect(
-      listClaudeAgentModels(discoveryContext, {
-        loadQuery: () => Promise.resolve(fake.query),
-        hasLogin: () => false,
-      }),
+      listClaudeAgentModels(discoveryContext, { hasLogin: () => false }),
     ).rejects.toMatchObject({
       name: "ModelDiscoveryError",
       code: "missing-credential",
     })
   })
 
-  it("reports unreachable when the SDK is not installed", async () => {
-    await expect(
-      listClaudeAgentModels(discoveryContext, {
-        loadQuery: () => Promise.reject(new Error("Cannot find module")),
-        hasLogin: () => true,
-      }),
-    ).rejects.toMatchObject({ code: "unreachable" })
-  })
+  it("serves the aliases with an API key even without a login", async () => {
+    const models = await listClaudeAgentModels(
+      { ...discoveryContext, credentials: { apiKey: "sk-ant-x" } },
+      { hasLogin: () => false },
+    )
 
-  it("reports invalid-response when the SDK cannot enumerate models", async () => {
-    const query: ClaudeAgentQuery = () =>
-      (async function* (): AsyncGenerator<ClaudeAgentMessage> {})()
-
-    await expect(
-      listClaudeAgentModels(discoveryContext, {
-        loadQuery: () => Promise.resolve(query),
-        hasLogin: () => true,
-      }),
-    ).rejects.toMatchObject({ code: "invalid-response" })
-  })
-
-  it("reports invalid-response when every model is unusable", async () => {
-    const fake = fakeModelQuery([{ value: "opus[1m]" }])
-
-    await expect(
-      listClaudeAgentModels(discoveryContext, {
-        loadQuery: () => Promise.resolve(fake.query),
-        hasLogin: () => true,
-      }),
-    ).rejects.toMatchObject({ code: "invalid-response" })
+    expect(models.length).toBeGreaterThan(0)
   })
 })
 
 describe("createClaudeAgentStructuredTextBackend", () => {
   it("returns the structured output and the summed token usage", async () => {
-    const fake = fakeQuery(
-      { type: "assistant" },
-      successResult({
+    const fake = fakeRunner(
+      successTurn({
         usage: {
           input_tokens: 10,
           output_tokens: 4,
@@ -255,31 +175,45 @@ describe("createClaudeAgentStructuredTextBackend", () => {
     expect(result.rawText).toBe('{"title":"Atlas","pages":12}')
   })
 
-  it("runs isolated: no tools, no local settings, no session files", async () => {
-    const fake = fakeQuery(successResult())
+  it("hands the runner the resolved executable, model and scratch cwd", async () => {
+    const fake = fakeRunner(successTurn())
 
     await backendWith(fake).generateStructured(makeRequest())
 
-    const options = fake.calls[0]!
-    expect(options.tools).toEqual([])
-    expect(options.settingSources).toEqual([])
-    expect(options.persistSession).toBe(false)
-    expect(options.maxTurns).toBe(1)
-    expect(options.thinking).toEqual({ type: "disabled" })
-    expect(options.cwd).toBe("/tmp/adt-claude-agent-test")
-    expect(options.model).toBe("claude-sonnet-4-5")
+    const request = fake.calls[0]!
+    expect(request.executable).toBe(CLI_PATH)
+    expect(request.model).toBe("claude-sonnet-4-5")
+    expect(request.cwd).toBe("/tmp/adt-claude-agent-test")
+    expect(request.userMessage).toEqual({
+      type: "user",
+      message: { role: "user", content: [{ type: "text", text: "Summarize the book" }] },
+      parent_tool_use_id: null,
+    })
+  })
+
+  it("fails fast with an install hint when no CLI can be resolved", async () => {
+    const fake = fakeRunner(successTurn())
+    const backend = createClaudeAgentStructuredTextBackend(context, {
+      runCli: fake.runCli,
+      resolveExecutable: () => undefined,
+    })
+
+    await expect(backend.generateStructured(makeRequest())).rejects.toThrow(
+      /CLAUDE_AGENT_EXECUTABLE/,
+    )
+    expect(fake.calls).toHaveLength(0)
   })
 
   it("bills the resolved credential and drops an inherited OAuth token", async () => {
     vi.stubEnv("ANTHROPIC_AUTH_TOKEN", "oauth-token-from-operator")
     vi.stubEnv("CLAUDE_CODE_OAUTH_TOKEN", "oauth-token-from-parent-session")
     try {
-      const fake = fakeQuery(successResult())
+      const fake = fakeRunner(successTurn())
       await backendWith(fake).generateStructured(makeRequest())
 
-      expect(fake.calls[0]!.env?.ANTHROPIC_API_KEY).toBe("sk-ant-secret")
-      expect(fake.calls[0]!.env?.ANTHROPIC_AUTH_TOKEN).toBeUndefined()
-      expect(fake.calls[0]!.env?.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined()
+      expect(fake.calls[0]!.env.ANTHROPIC_API_KEY).toBe("sk-ant-secret")
+      expect(fake.calls[0]!.env.ANTHROPIC_AUTH_TOKEN).toBeUndefined()
+      expect(fake.calls[0]!.env.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined()
     } finally {
       vi.unstubAllEnvs()
     }
@@ -289,13 +223,13 @@ describe("createClaudeAgentStructuredTextBackend", () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "sk-ant-ambient")
     vi.stubEnv("ANTHROPIC_AUTH_TOKEN", "oauth-token-from-operator")
     try {
-      const fake = fakeQuery(successResult())
+      const fake = fakeRunner(successTurn())
       await createClaudeAgentStructuredTextBackend(
         { ...context, credentials: {} },
-        { loadQuery: () => Promise.resolve(fake.query) },
+        { runCli: fake.runCli, resolveExecutable: () => CLI_PATH },
       ).generateStructured(makeRequest())
 
-      const env = fake.calls[0]!.env!
+      const env = fake.calls[0]!.env
       expect(env.ANTHROPIC_API_KEY).toBeUndefined()
       expect(env.ANTHROPIC_AUTH_TOKEN).toBeUndefined()
       expect(env.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined()
@@ -304,51 +238,54 @@ describe("createClaudeAgentStructuredTextBackend", () => {
     }
   })
 
-  it("strips the parent Claude Code session out of the child environment", async () => {
+  it("strips the parent Claude Code session and disables thinking", async () => {
     vi.stubEnv("CLAUDECODE", "1")
     vi.stubEnv("CLAUDE_CODE_SESSION_ID", "parent-session")
     vi.stubEnv("CLAUDE_EFFORT", "xhigh")
     vi.stubEnv("CLAUDE_CONFIG_DIR", "/home/operator/.claude")
     try {
-      const fake = fakeQuery(successResult())
+      const fake = fakeRunner(successTurn())
       await backendWith(fake).generateStructured(makeRequest())
 
-      const env = fake.calls[0]!.env!
+      const env = fake.calls[0]!.env
       expect(env.CLAUDECODE).toBeUndefined()
       expect(env.CLAUDE_CODE_SESSION_ID).toBeUndefined()
       expect(env.CLAUDE_EFFORT).toBeUndefined()
       expect(env.CLAUDE_CONFIG_DIR).toBe("/home/operator/.claude")
+      expect(env.MAX_THINKING_TOKENS).toBe("0")
     } finally {
       vi.unstubAllEnvs()
     }
   })
 
-  it("passes the JSON Schema as the native output format", async () => {
-    const fake = fakeQuery(successResult())
+  it("passes the JSON Schema for native validation", async () => {
+    const fake = fakeRunner(successTurn())
 
     await backendWith(fake).generateStructured(makeRequest())
 
-    expect(fake.calls[0]!.outputFormat?.type).toBe("json_schema")
-    expect(fake.calls[0]!.outputFormat?.schema).toMatchObject({ type: "object" })
-    expect(fake.calls[0]!.outputFormat?.schema.$schema).toBeUndefined()
+    const request = fake.calls[0]!
+    expect(request.schemaJson).toBeDefined()
+    expect(JSON.parse(request.schemaJson!)).toMatchObject({ type: "object" })
+    expect(JSON.parse(request.schemaJson!).$schema).toBeUndefined()
   })
 
   it("moves the schema into the system prompt for non-native strategies", async () => {
-    const fake = fakeQuery(successResult({ structured_output: undefined }))
+    const fake = fakeRunner(successTurn({ structured_output: undefined }))
 
     const result = await backendWith(fake).generateStructured(
       makeRequest({ strategy: "parse-repair", system: "You are terse." }),
     )
 
-    expect(fake.calls[0]!.outputFormat).toBeUndefined()
-    expect(fake.calls[0]!.systemPrompt).toContain("You are terse.")
-    expect(fake.calls[0]!.systemPrompt).toContain('"title"')
+    const request = fake.calls[0]!
+    expect(request.schemaJson).toBeUndefined()
+    expect(request.systemPrompt).toContain("You are terse.")
+    expect(request.systemPrompt).toContain('"title"')
     expect(result.object).toEqual({ title: "Atlas", pages: 12 })
   })
 
-  it("parses fenced text when the SDK reports no structured output", async () => {
-    const fake = fakeQuery(
-      successResult({
+  it("parses fenced text when the CLI reports no structured output", async () => {
+    const fake = fakeRunner(
+      successTurn({
         structured_output: undefined,
         result: 'Here:\n```json\n{"title":"Atlas","pages":12}\n```',
       }),
@@ -360,7 +297,7 @@ describe("createClaudeAgentStructuredTextBackend", () => {
   })
 
   it("rejects output that does not validate against the schema", async () => {
-    const fake = fakeQuery(successResult({ structured_output: { title: "Atlas" } }))
+    const fake = fakeRunner(successTurn({ structured_output: { title: "Atlas" } }))
 
     await expect(backendWith(fake).generateStructured(makeRequest())).rejects.toThrow(
       /did not match the schema/,
@@ -368,47 +305,83 @@ describe("createClaudeAgentStructuredTextBackend", () => {
   })
 
   it("fails on a non-success result subtype", async () => {
-    const fake = fakeQuery(
-      successResult({ subtype: "error_max_turns", errors: ["turn limit"] }),
+    const fake = fakeRunner(
+      successTurn({ subtype: "error_during_execution", errors: ["turn limit"] }),
     )
 
     await expect(backendWith(fake).generateStructured(makeRequest())).rejects.toThrow(
-      /error_max_turns.*turn limit/,
+      /error_during_execution.*turn limit/,
     )
   })
 
-  it("fails when the stream ends without a result message", async () => {
-    const fake = fakeQuery({ type: "assistant" })
+  it("surfaces the exit code and stderr when no result message arrives", async () => {
+    const fake = fakeRunner({ exitCode: 1, stderr: "invalid api key" })
 
     await expect(backendWith(fake).generateStructured(makeRequest())).rejects.toThrow(
-      /without a result message/,
+      /exited with code 1.*invalid api key/,
     )
   })
 
-  it("aborts the SDK when the caller's signal aborts mid-stream", async () => {
-    const caller = new AbortController()
-    const abortedInside: boolean[] = []
-    const query: ClaudeAgentQuery = ({ options }) =>
-      (async function* () {
-        caller.abort()
-        abortedInside.push(options?.abortController?.signal.aborted ?? false)
-        yield successResult()
-      })()
-
-    const backend = createClaudeAgentStructuredTextBackend(context, {
-      loadQuery: () => Promise.resolve(query),
-    })
-
-    await backend.generateStructured(makeRequest({ signal: caller.signal }))
-    expect(abortedInside).toEqual([true])
-  })
-
-  it("aborts immediately when the caller's signal is already aborted", async () => {
-    const fake = fakeQuery(successResult())
+  it("hands the runner an already-aborted signal from the caller", async () => {
+    const fake = fakeRunner(successTurn())
 
     await backendWith(fake).generateStructured(makeRequest({ signal: AbortSignal.abort() }))
 
-    expect(fake.calls[0]!.abortController?.signal.aborted).toBe(true)
+    expect(fake.calls[0]!.signal.aborted).toBe(true)
+  })
+})
+
+describe("buildClaudeArgs", () => {
+  it("runs isolated: no tools, no settings, no MCP, no session files", () => {
+    const args = buildClaudeArgs({ model: "sonnet" })
+
+    expect(args).toContain("--print")
+    expect(args).toContain("--no-session-persistence")
+    expect(args).toContain("--strict-mcp-config")
+    expect(args).toContain("--verbose")
+    expect(args.join(" ")).toContain("--input-format stream-json")
+    expect(args.join(" ")).toContain("--output-format stream-json")
+    expect(args[args.indexOf("--tools") + 1]).toBe("")
+    expect(args[args.indexOf("--setting-sources") + 1]).toBe("")
+    expect(args[args.indexOf("--model") + 1]).toBe("sonnet")
+    expect(args).not.toContain("--system-prompt")
+    expect(args).not.toContain("--json-schema")
+  })
+
+  it("appends the system prompt and schema only when present", () => {
+    const args = buildClaudeArgs({
+      model: "sonnet",
+      systemPrompt: "Be terse.",
+      schemaJson: '{"type":"object"}',
+    })
+
+    expect(args[args.indexOf("--system-prompt") + 1]).toBe("Be terse.")
+    expect(args[args.indexOf("--json-schema") + 1]).toBe('{"type":"object"}')
+  })
+})
+
+describe("readClaudeTurn", () => {
+  it("extracts the result event and ignores other stream lines", () => {
+    const stdout = [
+      '{"type":"system","subtype":"init"}',
+      "not json",
+      '{"type":"assistant"}',
+      '{"type":"result","subtype":"success","result":"{}","is_error":false}',
+      "",
+    ].join("\n")
+
+    const turn = readClaudeTurn({ stdout, stderr: "", exitCode: 0 })
+
+    expect(turn.resultEvent).toMatchObject({ type: "result", subtype: "success" })
+    expect(turn.exitCode).toBe(0)
+  })
+
+  it("keeps exit code and stderr when no result event exists", () => {
+    const turn = readClaudeTurn({ stdout: "boom\n", stderr: "bad flag", exitCode: 2 })
+
+    expect(turn.resultEvent).toBeUndefined()
+    expect(turn.exitCode).toBe(2)
+    expect(turn.stderr).toBe("bad flag")
   })
 })
 
@@ -468,6 +441,55 @@ describe("detectImageMediaType", () => {
     expect(detectImageMediaType("R0lGODlh")).toBe("image/gif")
     expect(detectImageMediaType("UklGRiQ")).toBe("image/webp")
     expect(detectImageMediaType("unrecognized")).toBe("image/png")
+  })
+})
+
+describe("resolveClaudeAgentExecutable", () => {
+  it("prefers the explicit CLAUDE_AGENT_EXECUTABLE override", () => {
+    const executable = resolveClaudeAgentExecutable({
+      env: { CLAUDE_AGENT_EXECUTABLE: " /opt/claude/claude " },
+      fileExists: () => false,
+    })
+
+    expect(executable).toBe("/opt/claude/claude")
+  })
+
+  it("discovers claude.exe on PATH and skips .cmd shims on Windows", () => {
+    const shimDir = join("fake", "npm")
+    const binDir = join("fake", "bin")
+    const files = new Set([join(shimDir, "claude.cmd"), join(binDir, "claude.exe")])
+
+    const executable = findClaudeAgentExecutable({
+      env: { PATH: [shimDir, binDir].join(delimiter) },
+      platform: "win32",
+      homeDir: join("fake", "home"),
+      fileExists: (path) => files.has(path),
+    })
+
+    expect(executable).toBe(join(binDir, "claude.exe"))
+  })
+
+  it("falls back to the native installer location when PATH has nothing", () => {
+    const home = join("fake", "home")
+
+    const executable = findClaudeAgentExecutable({
+      env: { PATH: join("fake", "empty") },
+      platform: "linux",
+      homeDir: home,
+      fileExists: (path) => path === join(home, ".local", "bin", "claude"),
+    })
+
+    expect(executable).toBe(join(home, ".local", "bin", "claude"))
+  })
+
+  it("returns undefined when nothing resolves", () => {
+    const executable = resolveClaudeAgentExecutable({
+      env: {},
+      homeDir: join("fake", "home"),
+      fileExists: () => false,
+    })
+
+    expect(executable).toBeUndefined()
   })
 })
 

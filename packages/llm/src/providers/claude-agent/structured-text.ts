@@ -8,37 +8,30 @@ import type {
 } from "../../ports/index.js"
 import { extractJsonObject } from "../shared/ai-sdk/structured-text.js"
 import { claudeCliCredentialPaths, hasLocalCliLogin } from "../shared/local-cli-auth.js"
-import { asZodLike, toJsonSchema, toPromptBlocks, toPromptStream } from "./request.js"
 import {
-  isResultMessage,
-  loadClaudeAgentQuery,
-  type ClaudeAgentQuery,
-  type ClaudeAgentQueryOptions,
-  type ClaudeAgentResultMessage,
+  runClaudeCli,
+  type ClaudeAgentResultEvent,
   type ClaudeAgentUsage,
-} from "./sdk.js"
+  type ClaudeCliRunner,
+} from "./cli.js"
+import {
+  MISSING_CLAUDE_CLI_MESSAGE,
+  resolveClaudeAgentExecutable,
+} from "./executable.js"
+import { asZodLike, toJsonSchema, toPromptBlocks } from "./request.js"
 
 /** A type alias, not an interface: `ProviderCredentialValues` needs an implicit index signature. */
 export type ClaudeAgentCredentials = { apiKey?: string }
 
 export interface ClaudeAgentBackendOptions {
-  /** Injected by tests; production resolves the SDK lazily. */
-  loadQuery?: () => Promise<ClaudeAgentQuery>
+  /** Injected by tests; production spawns the real CLI. */
+  runCli?: ClaudeCliRunner
+  resolveExecutable?: () => string | undefined
   scratchDir?: string
 }
 
 /** Spawning the CLI on top of a cold model call needs more headroom than HTTP. */
 const DEFAULT_TIMEOUT_MS = 300_000
-
-const NO_BUILT_IN_TOOLS: string[] = []
-const NO_FILESYSTEM_SETTINGS: string[] = []
-
-/**
- * The CLI defaults to adaptive thinking, which multiplies output tokens 10–30×
- * on extraction turns without improving schema fidelity.
- */
-const NO_THINKING = { type: "disabled" } as const
-const CLIENT_APP = "adt-studio"
 
 /**
  * Describe the Claude Code session that launched this server. Inheriting them
@@ -67,58 +60,50 @@ export function createClaudeAgentStructuredTextBackend(
   context: BackendContext<ClaudeAgentCredentials>,
   options: ClaudeAgentBackendOptions = {},
 ): StructuredTextBackend {
-  const loadQuery = options.loadQuery ?? loadClaudeAgentQuery
+  const runCli = options.runCli ?? runClaudeCli
+  const resolveExecutable = options.resolveExecutable ?? resolveClaudeAgentExecutable
   const cwd = options.scratchDir ?? tmpdir()
 
   return {
     async generateStructured<T>(
       request: StructuredTextRequest,
     ): Promise<StructuredTextResult<T>> {
-      const query = await loadQuery()
-      const schema = toJsonSchema(request.schema)
-      const native = request.strategy === "native-schema"
-
-      const controller = new AbortController()
-      const abort = (): void => controller.abort()
-      const signal = buildAbortSignal(request)
-      if (signal.aborted) abort()
-      signal.addEventListener("abort", abort, { once: true })
-
-      let result: ClaudeAgentResultMessage | undefined
-      try {
-        const stream = query({
-          prompt: toPromptStream(toPromptBlocks(request.messages)),
-          options: {
-            model: context.modelId,
-            ...buildSystemPrompt(request.system, native ? undefined : schema),
-            cwd,
-            maxTurns: 1,
-            tools: NO_BUILT_IN_TOOLS,
-            settingSources: NO_FILESYSTEM_SETTINGS,
-            persistSession: false,
-            permissionMode: "default",
-            ...(native ? { outputFormat: { type: "json_schema" as const, schema } } : {}),
-            thinking: NO_THINKING,
-            abortController: controller,
-            env: buildClaudeAgentEnv(context.credentials.apiKey),
-          },
-        })
-
-        for await (const message of stream) {
-          if (isResultMessage(message)) result = message
-        }
-      } finally {
-        signal.removeEventListener("abort", abort)
+      const executable = resolveExecutable()
+      if (!executable) {
+        throw new Error(MISSING_CLAUDE_CLI_MESSAGE)
       }
 
+      const schema = toJsonSchema(request.schema)
+      const native = request.strategy === "native-schema"
+      const systemPrompt = buildSystemPrompt(request.system, native ? undefined : schema)
+
+      const turn = await runCli({
+        executable,
+        model: context.modelId,
+        userMessage: {
+          type: "user",
+          message: { role: "user", content: toPromptBlocks(request.messages) },
+          parent_tool_use_id: null,
+        },
+        ...(systemPrompt ? { systemPrompt } : {}),
+        ...(native ? { schemaJson: JSON.stringify(schema) } : {}),
+        env: buildClaudeAgentEnv(context.credentials.apiKey),
+        signal: buildAbortSignal(request),
+        cwd,
+      })
+
+      const result = turn.resultEvent
       if (!result) {
+        const stderr = turn.stderr.trim().slice(-400)
         throw new Error(
-          `Claude Agent stream ended without a result message${authFailureHint(context.credentials.apiKey)}`,
+          `Claude Code CLI exited with code ${turn.exitCode} without a result message${
+            stderr ? `: ${stderr}` : ""
+          }${authFailureHint(context.credentials.apiKey)}`,
         )
       }
       if (result.subtype !== "success" || result.is_error) {
         throw new Error(
-          `Claude Agent turn failed (${result.subtype})${formatErrors(result.errors)}${authFailureHint(context.credentials.apiKey)}`,
+          `Claude Agent turn failed (${result.subtype})${formatErrors(result)}${authFailureHint(context.credentials.apiKey)}`,
         )
       }
 
@@ -154,20 +139,20 @@ export function createClaudeAgentStructuredTextBackend(
 }
 
 /**
- * The CLI's `json_schema` output format cannot express `$ref`, so recursive and
+ * The CLI's `--json-schema` validation cannot express `$ref`, so recursive and
  * loose schemas arrive here as a non-native strategy and get the schema spelled
  * out in the system prompt instead.
  */
 function buildSystemPrompt(
   system: string | undefined,
   schema: Record<string, unknown> | undefined,
-): Pick<ClaudeAgentQueryOptions, "systemPrompt"> {
+): string | undefined {
   const instruction = schema
     ? `Reply with a single JSON object that validates against this JSON Schema. Emit no prose, no explanation and no code fences.\n\n${JSON.stringify(schema)}`
     : undefined
 
   const systemPrompt = [system, instruction].filter(Boolean).join("\n\n")
-  return systemPrompt ? { systemPrompt } : {}
+  return systemPrompt || undefined
 }
 
 /**
@@ -177,6 +162,9 @@ function buildSystemPrompt(
  * Every credential variable is dropped first: with a resolved key that key is the
  * one that must be billed, and without one the CLI's own login is the sanctioned
  * fallback — an ambient token nobody configured here must not bill a third party.
+ *
+ * `MAX_THINKING_TOKENS=0` disables the CLI's adaptive thinking, which multiplies
+ * output tokens 10–30× on extraction turns without improving schema fidelity.
  */
 export function buildClaudeAgentEnv(
   apiKey: string | undefined,
@@ -185,7 +173,7 @@ export function buildClaudeAgentEnv(
   for (const key of NESTED_SESSION_ENV_KEYS) delete env[key]
   for (const key of CLI_CREDENTIAL_ENV_KEYS) delete env[key]
   if (apiKey) env.ANTHROPIC_API_KEY = apiKey
-  env.CLAUDE_AGENT_SDK_CLIENT_APP = CLIENT_APP
+  env.MAX_THINKING_TOKENS = "0"
   return env
 }
 
@@ -200,7 +188,7 @@ function buildAbortSignal(request: StructuredTextRequest): AbortSignal {
   return request.signal ? AbortSignal.any([timeout, request.signal]) : timeout
 }
 
-/** Session-cumulative in the SDK, which equals the turn for a single round. */
+/** Session-cumulative in the CLI's result event, which equals the turn for a single round. */
 function toTokenUsage(usage: ClaudeAgentUsage | undefined): TokenUsage {
   return {
     inputTokens:
@@ -211,6 +199,8 @@ function toTokenUsage(usage: ClaudeAgentUsage | undefined): TokenUsage {
   }
 }
 
-function formatErrors(errors: string[] | undefined): string {
-  return errors?.length ? `: ${errors.join("; ")}` : ""
+function formatErrors(result: ClaudeAgentResultEvent): string {
+  if (result.errors?.length) return `: ${result.errors.join("; ")}`
+  if (result.result) return `: ${result.result.slice(0, 400)}`
+  return ""
 }
