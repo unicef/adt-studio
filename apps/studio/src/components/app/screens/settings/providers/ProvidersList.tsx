@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useLocation } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ChevronDown, Plus, RefreshCw, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -11,6 +12,7 @@ import { ComingSoon } from "../ui"
 import { ProviderCard } from "./ProviderEditor"
 import { useProviders } from "./useProviders"
 import { GroupHeading } from "./GroupHeading"
+import { providerAnchor, providerFromAnchor } from "../nav"
 
 function Row({ cardKey, open, onToggle, store, refreshToken }: { cardKey: string; open: boolean; onToggle: () => void; store: ReturnType<typeof useProviders>; refreshToken: number }) {
   const { t } = useLingui()
@@ -19,7 +21,13 @@ function Row({ cardKey, open, onToggle, store, refreshToken }: { cardKey: string
   const health = useCardHealth(cardKey, store, refreshToken)
 
   return (
-    <div className={cn(!available && "opacity-75")}>
+    <div
+      id={providerAnchor(cardKey)}
+      className={cn(
+        "scroll-mt-24 overflow-hidden first:rounded-t-2xl last:rounded-b-2xl",
+        !available && "opacity-75",
+      )}
+    >
       <div className={cn("flex items-center gap-3.5 px-4 py-3.5 transition-colors duration-150", EASE, open && "bg-muted/40")}>
         <div className="relative shrink-0">
           <ProviderTile id={card.uiId} className="size-9" />
@@ -87,9 +95,15 @@ function Row({ cardKey, open, onToggle, store, refreshToken }: { cardKey: string
 export function ProvidersList() {
   const { t } = useLingui()
   const store = useProviders()
+  const { hash } = useLocation()
   const [openId, setOpenId] = useState<string | null>(null)
   const [refreshToken, setRefreshToken] = useState(0)
   const [checked, setChecked] = useState(false)
+
+  useEffect(() => {
+    const cardKey = hash ? providerFromAnchor(hash) : null
+    if (cardKey && PROVIDER_CARDS[cardKey]) setOpenId(cardKey)
+  }, [hash])
 
   const refresh = () => {
     setRefreshToken((n) => n + 1)
@@ -159,7 +173,7 @@ export function ProvidersList() {
         {ROLE_GROUPS.map((group) => (
           <section key={group.key}>
             <GroupHeading label={group.label} hint={group.hint} />
-            <div className="divide-y overflow-hidden rounded-2xl border bg-card shadow-sm">
+            <div className="divide-y rounded-2xl border bg-card shadow-sm">
               {group.cards.map((cardKey) => (
                 <Row
                   key={cardKey}
