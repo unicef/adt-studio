@@ -5689,6 +5689,9 @@ msgstr "Nuk ka redaktime të AI ende për këtë seksion."
 msgid "No answer set"
 msgstr "Pa përgjigje të caktuar"
 
+msgid "no API key"
+msgstr "pa çelës API"
+
 #. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
 msgid "No API key for {0} yet. Add one in Book settings to enable this provider."
 msgstr "Nuk ka ende çelës API për {0}. Shto një te cilësimet e Librit për të aktivizuar këtë ofrues."
@@ -8207,8 +8210,8 @@ msgstr "seksione"
 msgid "Sections"
 msgstr "Seksione"
 
-msgid "See examples"
-msgstr "Shiko shembuj"
+#~ msgid "See examples"
+#~ msgstr "Shiko shembuj"
 
 msgid "See the book & pick pages"
 msgstr "Shihni librin dhe zgjidhni faqet"
