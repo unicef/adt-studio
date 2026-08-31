@@ -1518,6 +1518,53 @@ speech:
     )
   })
 
+  it("fails fast when only the secondary narrator's provider credential is missing", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    // The primary narrator routes to OpenAI (key present); only the secondary
+    // routes to ElevenLabs. A secondary voice carries its own provider, so
+    // deriving the pre-flight set from the language's routing would miss it
+    // entirely and fall back to one logged failure per item.
+    writeSecondarySpeechConfig(configPath, {
+      provider: "elevenlabs",
+      voice: "Rachel",
+    })
+    seedTextAndSpeechBook(booksDir, "secondary-tts-missing-key")
+    vi.stubEnv("ELEVENLABS_API_KEY", "")
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await expect(
+      runner.run(
+        "secondary-tts-missing-key",
+        {
+          booksDir,
+          apiKey: "sk-test",
+          promptsDir,
+          configPath,
+          fromStage: "translate",
+          toStage: "speech",
+        },
+        { emit: (event) => events.push(event) }
+      )
+    ).rejects.toThrow(/ElevenLabs API key is required/)
+
+    // Nothing is synthesized — not even the primary voice, whose credential is
+    // fine. One missing key fails the run before any item is admitted.
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    const db = openBookDb(
+      path.join(booksDir, "secondary-tts-missing-key", "secondary-tts-missing-key.db")
+    )
+    try {
+      expect(db.all("SELECT request_id FROM llm_log WHERE step = 'tts'")).toHaveLength(0)
+    } finally {
+      db.close()
+    }
+  })
+
   it("fails before any page-batched synthesis when the Gemini credential is missing", async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
     const booksDir = path.join(tmpDir, "books")
