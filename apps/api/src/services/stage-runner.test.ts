@@ -1481,7 +1481,7 @@ speech:
         "elevenlabs-tts-missing-key",
         {
           booksDir,
-          apiKey: "sk-test",
+          credentials: { openai: { apiKey: "sk-test" } },
           promptsDir,
           configPath,
           fromStage: "translate",
@@ -1489,7 +1489,7 @@ speech:
         },
         { emit: (event) => events.push(event) }
       )
-    ).rejects.toThrow(/ElevenLabs API key is required/)
+    ).rejects.toThrow(/Provider "elevenlabs" requires API key/)
 
     // The credential is checked once, before any item is admitted: no synthesis
     // is attempted and no per-item failure is logged.
@@ -1511,7 +1511,7 @@ speech:
     )
     expect(ttsErrors).toHaveLength(1)
     expect((ttsErrors[0] as { error: string }).error).toMatch(
-      /ElevenLabs API key is required/
+      /Provider "elevenlabs" requires API key/
     )
   })
 
@@ -1539,7 +1539,7 @@ speech:
         "secondary-tts-missing-key",
         {
           booksDir,
-          apiKey: "sk-test",
+          credentials: { openai: { apiKey: "sk-test" } },
           promptsDir,
           configPath,
           fromStage: "translate",
@@ -1547,7 +1547,7 @@ speech:
         },
         { emit: (event) => events.push(event) }
       )
-    ).rejects.toThrow(/ElevenLabs API key is required/)
+    ).rejects.toThrow(/Provider "elevenlabs" requires API key/)
 
     // Nothing is synthesized — not even the primary voice, whose credential is
     // fine. One missing key fails the run before any item is admitted.
@@ -1596,7 +1596,7 @@ speech:
         "gemini-batched-missing-key",
         {
           booksDir,
-          apiKey: "sk-test",
+          credentials: { openai: { apiKey: "sk-test" } },
           promptsDir,
           configPath,
           fromStage: "translate",
@@ -1604,7 +1604,7 @@ speech:
         },
         { emit: (event) => events.push(event) }
       )
-    ).rejects.toThrow(/Gemini API key is required/)
+    ).rejects.toThrow(/Provider "gemini" requires API key/)
 
     const db = openBookDb(
       path.join(booksDir, "gemini-batched-missing-key", "gemini-batched-missing-key.db")
@@ -1675,7 +1675,7 @@ speech:
       label,
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",

@@ -57,6 +57,7 @@ export function useApiKey() {
     ...providerState,
     apiKey,
     setApiKey,
+    hasApiKey: apiKey.length > 0,
     /** @deprecated Prefer the modality-specific availability flags. */
     hasStructuredTextProvider,
     hasAgentProvider,
