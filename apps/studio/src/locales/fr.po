@@ -516,6 +516,9 @@ msgstr "{textCount} feuilles de texte"
 msgid "{title} - page {0}"
 msgstr "{title} - page {0}"
 
+msgid "{toggleShortcut} to toggle"
+msgstr "{toggleShortcut} pour basculer"
+
 msgid "{totalPages} pages"
 msgstr "{totalPages} pages"
 
@@ -535,8 +538,8 @@ msgstr "="
 msgid "~/ADT/Books"
 msgstr "~/ADT/Livres"
 
-msgid "⌘K to toggle"
-msgstr "⌘K pour basculer"
+#~ msgid "⌘K to toggle"
+#~ msgstr "⌘K pour basculer"
 
 msgid "🌿"
 msgstr "🌿"
@@ -3917,11 +3920,11 @@ msgstr "La première langue est la langue par défaut"
 msgid "Fit"
 msgstr "Ajuster"
 
-msgid "Fix"
-msgstr "Corriger"
-
 msgid "Fit to panel · showing {display}% of full size"
 msgstr "Ajusté au panneau · affichage à {display} % de la taille réelle"
+
+msgid "Fix"
+msgstr "Corriger"
 
 msgid "Fixed layout"
 msgstr "Mise en page fixe"
@@ -3965,8 +3968,8 @@ msgstr "Fluidité"
 msgid "FNDE-ready HTML5 package (.zip)"
 msgstr "Paquet HTML5 prêt pour le FNDE (.zip)"
 
-msgid "Focus settings search"
-msgstr "Rechercher dans les paramètres de focus"
+#~ msgid "Focus settings search"
+#~ msgstr "Rechercher dans les paramètres de focus"
 
 msgid "Folder actions"
 msgstr "Actions du dossier"
@@ -4306,8 +4309,8 @@ msgstr "Aller à l'accueil"
 msgid "Go to latest"
 msgstr "Aller à la dernière"
 
-msgid "Go to Library"
-msgstr "Aller à la bibliothèque"
+#~ msgid "Go to Library"
+#~ msgstr "Aller à la bibliothèque"
 
 msgid "Go to Storyboard"
 msgstr "Aller au Storyboard"
@@ -5656,6 +5659,9 @@ msgstr "À chasse fixe"
 
 msgid "More info"
 msgstr "Plus d'infos"
+
+msgid "More shortcuts — quick navigation, adding a book, opening this dialog — are still in development."
+msgstr "Plus de raccourcis — navigation rapide, ajout d'un livre, ouverture de cette boîte de dialogue — sont encore en développement."
 
 msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle. Nothing changes until you press Apply."
 msgstr "La plupart des livres se lisent une page à la fois. Si le vôtre comporte une illustration qui s'étend sur deux pages en vis-à-vis, liez ces pages pour qu'elles soient traitées ensemble comme une seule double page au lieu d'être coupées au milieu. Rien ne change tant que vous n'appuyez pas sur Appliquer."
@@ -8277,9 +8283,6 @@ msgstr "Rechercher..."
 msgid "Search…"
 msgstr "Rechercher…"
 
-msgid "seconds"
-msgstr "secondes"
-
 msgid "Second voice"
 msgstr "Deuxième voix"
 
@@ -8291,6 +8294,9 @@ msgstr "Fournisseur de la deuxième voix"
 
 msgid "Secondary"
 msgstr "Secondaire"
+
+msgid "seconds"
+msgstr "secondes"
 
 msgid "section"
 msgstr "section"
@@ -8389,8 +8395,8 @@ msgstr "sections"
 msgid "Sections"
 msgstr "Sections"
 
-msgid "See examples"
-msgstr "Voir les exemples"
+#~ msgid "See examples"
+#~ msgstr "Voir les exemples"
 
 msgid "See the book & pick pages"
 msgstr "Voir le livre et choisir les pages"
@@ -8653,8 +8659,8 @@ msgstr "Afficher la justification de la révision"
 msgid "Show reviewer validation"
 msgstr "Afficher la validation du réviseur"
 
-msgid "Show this help"
-msgstr "Afficher cette aide"
+#~ msgid "Show this help"
+#~ msgstr "Afficher cette aide"
 
 msgid "Show unchanged"
 msgstr "Afficher les inchangés"
