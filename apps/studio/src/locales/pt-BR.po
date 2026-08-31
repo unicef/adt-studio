@@ -714,6 +714,9 @@ msgstr "Aceita qualquer resposta"
 msgid "Accessibility"
 msgstr "Accessibility"
 
+msgid "Accessibility Assessment"
+msgstr "Avaliação de acessibilidade"
+
 msgid "Accessibility assessment configuration"
 msgstr "Accessibility assessment configuration"
 
