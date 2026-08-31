@@ -56,6 +56,27 @@ function getSnapshot(): Creds {
   return snapshot
 }
 
+function emit(): void {
+  for (const listener of listeners) listener()
+}
+
+/**
+ * Unlike the single-key pref stores, credentials live under one storage key per
+ * field, so an external write is matched against the whole set.
+ */
+const CREDENTIAL_STORAGE_KEYS = new Set(
+  PROVIDER_DESCRIPTORS.flatMap((d) => d.manifest.credentialFields.map((f) => f.storageKey)),
+)
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (event) => {
+    // A null key means another window cleared the whole store.
+    if (event.key !== null && !CREDENTIAL_STORAGE_KEYS.has(event.key)) return
+    snapshot = readStorage()
+    emit()
+  })
+}
+
 function subscribe(listener: () => void): () => void {
   listeners.add(listener)
   return () => listeners.delete(listener)
@@ -76,7 +97,7 @@ function writeCredential(providerId: string, fieldKey: string, value: string): v
   if (next) providerValues[fieldKey] = next
   else delete providerValues[fieldKey]
   snapshot = { ...current, [providerId]: providerValues }
-  for (const listener of listeners) listener()
+  emit()
 }
 
 export interface Providers {
