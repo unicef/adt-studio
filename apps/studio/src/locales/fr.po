@@ -45,6 +45,10 @@ msgstr "? Cela supprimera toutes les données extraites et est irréversible."
 msgid "\"A landscape forged by fire.\""
 msgstr "\\\"Un paysage forgé par le feu.\\\""
 
+#. placeholder {0}: s.skipped
+msgid "(+{0} skipped)"
+msgstr "(+{0} ignorées)"
+
 msgid "(active)"
 msgstr "(actif)"
 

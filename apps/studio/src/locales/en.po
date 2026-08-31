@@ -43,6 +43,10 @@ msgstr "? This will remove all extracted data and cannot be undone."
 msgid "\"A landscape forged by fire.\""
 msgstr "\"A landscape forged by fire.\""
 
+#. placeholder {0}: s.skipped
+msgid "(+{0} skipped)"
+msgstr "(+{0} skipped)"
+
 msgid "(active)"
 msgstr "(active)"
 
