@@ -101,6 +101,54 @@ export function buildTtsLogEntry(options: {
   }
 }
 
+/**
+ * Build the debug-log record for a Whisper word-timestamp transcription.
+ * Sits beside {@link buildTtsLogEntry} for the same reason: four call sites
+ * feed this (the full Speech run, the two manual transcribe routes, and the
+ * page-batched alignment pass), and a hand-rolled record per site is how the
+ * TTS ones drifted.
+ *
+ * `taskType` is the real `word-timestamps` step name, so the Log tab's step
+ * filter and the step badge work with no extra wiring.
+ */
+export function buildWordTimestampsLogEntry(options: {
+  fileName: string
+  language?: string
+  prompt?: string
+  durationMs: number
+  success: boolean
+  cached: boolean
+  result?: WhisperTranscriptionResult
+  error?: string
+}): LlmLogEntry {
+  return {
+    requestId: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    taskType: "word-timestamps",
+    pageId: options.fileName,
+    promptName: "whisper-transcribe",
+    modelId: "openai/whisper-1",
+    cacheHit: options.cached,
+    success: options.success,
+    errorCount: options.success ? 0 : 1,
+    attempt: 1,
+    durationMs: options.durationMs,
+    ...(options.error ? { error: options.error } : {}),
+    params: {
+      language: options.language ?? "",
+      fileName: options.fileName,
+      hasPrompt: Boolean(options.prompt),
+      ...(options.result
+        ? { words: options.result.words.length, durationSec: options.result.duration }
+        : {}),
+    },
+    messages: [{
+      role: "user",
+      content: [{ type: "text", text: options.prompt ?? "" }],
+    }],
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Speakable text check
 // ---------------------------------------------------------------------------
@@ -1214,15 +1262,24 @@ export async function generateWordTimestamps(
 ): Promise<GenerateWordTimestampsResult> {
   const { audioBuffer, fileName, apiKey, language, prompt, cacheDir, onLog } = options
   const startedAt = Date.now()
-  const log = (success: boolean, cached: boolean, result?: WhisperTranscriptionResult, error?: string) =>
-    onLog?.({
-      requestId: crypto.randomUUID(), timestamp: new Date().toISOString(), taskType: "word-timestamps",
-      pageId: fileName, promptName: "whisper-transcribe", modelId: "openai/whisper-1", cacheHit: cached,
-      success, errorCount: success ? 0 : 1, attempt: 1, durationMs: Date.now() - startedAt,
-      ...(error ? { error } : {}),
-      params: { language: language ?? "", fileName, hasPrompt: Boolean(prompt), ...(result ? { words: result.words.length, durationSec: result.duration } : {}) },
-      messages: [{ role: "user", content: [{ type: "text", text: prompt ?? "" }] }],
-    })
+  const log = (
+    success: boolean,
+    cached: boolean,
+    result?: WhisperTranscriptionResult,
+    error?: string,
+  ) =>
+    onLog?.(
+      buildWordTimestampsLogEntry({
+        fileName,
+        language,
+        prompt,
+        durationMs: Date.now() - startedAt,
+        success,
+        cached,
+        result,
+        error,
+      }),
+    )
 
   const audioHash = crypto.createHash("sha256").update(audioBuffer).digest("hex")
   const hash = crypto
@@ -1245,8 +1302,14 @@ export async function generateWordTimestamps(
   }
 
   let result: WhisperTranscriptionResult
-  try { result = await transcribeWithWhisper(audioBuffer, fileName, apiKey, language, prompt) }
-  catch (cause) { const error = cause instanceof Error ? cause.message : String(cause); log(false, false, undefined, error); throw cause }
+  try {
+    result = await transcribeWithWhisper(audioBuffer, fileName, apiKey, language, prompt)
+  } catch (cause) {
+    // Record the failure before rethrowing — a Whisper error that leaves no
+    // trace is the black box this exists to remove.
+    log(false, false, undefined, cause instanceof Error ? cause.message : String(cause))
+    throw cause
+  }
 
   log(true, false, result)
   fs.mkdirSync(cacheRoot, { recursive: true })

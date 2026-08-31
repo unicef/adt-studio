@@ -707,6 +707,30 @@ function canReuseSpeechEntry(
   return true
 }
 
+/**
+ * Sink for Whisper word-timestamp log rows: persist, then mirror onto the live
+ * progress stream. Both halves matter — the TTS sites already pair them, so a
+ * Whisper row that only lands in the DB would be missing from the debug panel
+ * until the next reload.
+ */
+function appendWordTimestampsLog(
+  storage: Storage,
+  progress: StageRunProgress,
+): (entry: LlmLogEntry) => void {
+  return (entry) => {
+    storage.appendLlmLog(entry)
+    progress.emit({
+      type: "llm-log",
+      step: "word-timestamps",
+      itemId: entry.pageId ?? "",
+      promptName: entry.promptName,
+      modelId: entry.modelId,
+      cacheHit: entry.cacheHit,
+      durationMs: entry.durationMs,
+    })
+  }
+}
+
 interface GenerateSpeechWordTimestampsOptions {
   label: string
   bookDir: string
@@ -3187,7 +3211,7 @@ async function runSpeechStep(
                 geminiTemperature: config.speech?.temperature,
                 geminiSeed: config.speech?.seed,
                 signal: options.signal,
-                onWhisperLog: (entry) => storage.appendLlmLog(entry),
+                onWhisperLog: appendWordTimestampsLog(storage, progress),
               })
               for (const e of entries) ttsResultsByLang.get(group.language)?.push(e)
               // A page served from cache makes no request — don't reward the
@@ -3551,7 +3575,7 @@ async function runSpeechStep(
         textByLanguage,
         concurrency: effectiveConcurrency,
         progress,
-        onLog: (entry) => storage.appendLlmLog(entry),
+        onLog: appendWordTimestampsLog(storage, progress),
         signal: options.signal,
       })
       wordTimestampsByLang = generatedWordTimestamps.entriesByLanguage
