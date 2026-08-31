@@ -5684,6 +5684,9 @@ msgstr "Aún no hay ediciones con IA para esta sección."
 msgid "No answer set"
 msgstr "Sin respuesta definida"
 
+msgid "no API key"
+msgstr "sin clave de API"
+
 #. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
 msgid "No API key for {0} yet. Add one in Book settings to enable this provider."
 msgstr "Aún no hay clave API para {0}. Añade una en la configuración del libro para habilitar este proveedor."
@@ -8202,8 +8205,8 @@ msgstr "secciones"
 msgid "Sections"
 msgstr "Secciones"
 
-msgid "See examples"
-msgstr "Ver ejemplos"
+#~ msgid "See examples"
+#~ msgstr "Ver ejemplos"
 
 msgid "See the book & pick pages"
 msgstr "Ver el libro y elegir páginas"

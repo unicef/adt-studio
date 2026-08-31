@@ -5686,6 +5686,9 @@ msgstr "No AI edits yet for this section."
 msgid "No answer set"
 msgstr "No answer set"
 
+msgid "no API key"
+msgstr "no API key"
+
 #. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
 msgid "No API key for {0} yet. Add one in Book settings to enable this provider."
 msgstr "No API key for {0} yet. Add one in Book settings to enable this provider."
@@ -8204,8 +8207,8 @@ msgstr "sections"
 msgid "Sections"
 msgstr "Sections"
 
-msgid "See examples"
-msgstr "See examples"
+#~ msgid "See examples"
+#~ msgstr "See examples"
 
 msgid "See the book & pick pages"
 msgstr "See the book & pick pages"
