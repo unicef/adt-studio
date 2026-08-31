@@ -207,6 +207,17 @@ export interface ElevenLabsVoice {
   verified_languages?: Array<{ language?: string; accent?: string }>
 }
 
+/** One Azure voice, flattened by the API. `shortName` is the value stored in
+ *  voices.yaml (e.g. `es-UY-ValentinaNeural`); Azure voice names embed their
+ *  locale, so these are only valid for the locale they belong to. */
+export interface AzureVoice {
+  shortName: string
+  displayName: string
+  locale: string
+  localeName?: string
+  gender?: string
+}
+
 export interface StageRunProviderCredentials {
   anthropicApiKey?: string
   googleApiKey?: string
@@ -561,13 +572,29 @@ export interface TTSEntry {
   model: string
   cached: boolean
   provider?: string
+  voiceSlot: "primary" | "secondary"
+  voiceLabel?: string
   cacheKey?: string
 }
 
 export interface TTSFailedEntry {
   textId: string
   error: string
+  voiceSlot?: "primary" | "secondary"
 }
+
+export interface VoiceSlotConfig {
+  voice: string
+  label?: string
+}
+
+export interface VoiceSlotsConfig {
+  primary: VoiceSlotConfig
+  secondary?: VoiceSlotConfig
+}
+
+export type VoiceMapEntry = string | VoiceSlotsConfig
+export type VoiceMappings = Record<string, Record<string, VoiceMapEntry>>
 
 export interface TTSLanguageData {
   entries: TTSEntry[]
@@ -601,6 +628,7 @@ export interface WordTimestamp {
 export interface WordTimestampEntry {
   textId: string
   language: string
+  voiceSlot?: "primary" | "secondary"
   words: WordTimestamp[]
   duration: number
 }
@@ -610,7 +638,7 @@ export interface WordTimestampResponse {
   generatedAt: string | null
   /** Per-item word-timestamp failures from the last run, so the Speech view can
    * mark them for pruning or one-by-one regeneration. */
-  failed?: { textId: string; error: string }[]
+  failed?: { textId: string; error: string; voiceSlot?: "primary" | "secondary" }[]
 }
 
 // --- Debug types ---
@@ -1763,6 +1791,7 @@ export const api = {
     label: string,
     textId: string,
     language: string,
+    voiceSlot: "primary" | "secondary",
     credentials: {
       geminiApiKey: string
       openaiApiKey?: string
@@ -1779,19 +1808,21 @@ export const api = {
         ...(credentials.azure?.region ? { "X-Azure-Speech-Region": credentials.azure.region } : {}),
         ...(credentials.elevenLabsApiKey ? { "X-ElevenLabs-API-Key": credentials.elevenLabsApiKey } : {}),
       },
-      body: JSON.stringify({ textId, language }),
+      body: JSON.stringify({ textId, language, voiceSlot }),
     }),
 
   uploadTTSForItem: (
     label: string,
     textId: string,
     language: string,
+    voiceSlot: "primary" | "secondary",
     file: File,
   ) => {
     const formData = new FormData()
     formData.append("audio", file)
     formData.append("textId", textId)
     formData.append("language", language)
+    formData.append("voiceSlot", voiceSlot)
     return request<GenerateSingleTTSResponse>(`/books/${label}/tts/upload-one`, {
       method: "POST",
       body: formData,
@@ -1801,16 +1832,16 @@ export const api = {
   getWordTimestamps: (label: string, language: string) =>
     request<WordTimestampResponse>(`/books/${label}/tts/timestamps/${language}`),
 
-  transcribeOne: (label: string, textId: string, language: string, openaiApiKey: string) =>
+  transcribeOne: (label: string, textId: string, language: string, voiceSlot: "primary" | "secondary", openaiApiKey: string) =>
     request<{ entry: WordTimestampEntry }>(`/books/${label}/tts/transcribe-one`, {
       method: "POST",
       headers: {
         "X-OpenAI-Key": openaiApiKey,
       },
-      body: JSON.stringify({ textId, language }),
+      body: JSON.stringify({ textId, language, voiceSlot }),
     }),
 
-  saveWordTimestamps: (label: string, language: string, textId: string, data: { words: WordTimestamp[]; duration: number }) =>
+  saveWordTimestamps: (label: string, language: string, textId: string, data: { words: WordTimestamp[]; duration: number; voiceSlot?: "primary" | "secondary" }) =>
     request<{ ok: boolean }>(`/books/${label}/tts/timestamps/${language}/${textId}`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -1944,10 +1975,10 @@ export const api = {
     }),
 
   getVoiceMappings: () =>
-    request<Record<string, Record<string, string>>>("/speech-config/voices"),
+    request<VoiceMappings>("/speech-config/voices"),
 
-  updateVoiceMappings: (data: Record<string, Record<string, string>>) =>
-    request<Record<string, Record<string, string>>>("/speech-config/voices", {
+  updateVoiceMappings: (data: VoiceMappings) =>
+    request<VoiceMappings>("/speech-config/voices", {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -1959,6 +1990,25 @@ export const api = {
     request<{ voices: ElevenLabsVoice[] }>("/speech-config/elevenlabs-voices", {
       headers: elevenLabsApiKey ? { "X-ElevenLabs-API-Key": elevenLabsApiKey } : {},
     }),
+
+  /** Azure's voice catalogue for a language. Returns an empty list when no
+   *  Azure credentials are configured, so callers fall back to free text. */
+  getAzureVoices: (
+    language?: string,
+    credentials?: { azureKey?: string; azureRegion?: string },
+  ) => {
+    const qs = new URLSearchParams()
+    if (language) qs.set("language", language)
+    const query = qs.toString()
+    return request<{ voices: AzureVoice[] }>(`/speech-config/azure-voices${query ? `?${query}` : ""}`, {
+      headers: {
+        ...(credentials?.azureKey ? { "X-Azure-Speech-Key": credentials.azureKey } : {}),
+        ...(credentials?.azureRegion
+          ? { "X-Azure-Speech-Region": credentials.azureRegion }
+          : {}),
+      },
+    })
+  },
 
   prepareExport: (
     label: string,

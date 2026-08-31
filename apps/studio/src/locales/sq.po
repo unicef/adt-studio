@@ -655,6 +655,9 @@ msgstr "Një kuiz ekziston tashmë këtu — shtoni një tjetër pas tij ose zë
 msgid "A required credential is missing."
 msgstr "Një kredencial i kërkuar mungon."
 
+msgid "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
+msgstr "Një zë i dytë e narron çdo rresht sërish, ndaj dyfishon koston e gjenerimit të të folurit dhe të sinkronizimit të fjalëve për këtë gjuhë."
+
 msgid "A section containing only images."
 msgstr "Një seksion që përmban vetëm imazhe."
 
@@ -768,6 +771,9 @@ msgstr "Kodi i aksesit"
 
 msgid "Accessibility"
 msgstr "Aksesueshmëria"
+
+msgid "Accessibility Assessment"
+msgstr "Vlerësimi i aksesueshmërisë"
 
 msgid "Accessibility assessment configuration"
 msgstr "Konfigurimi i vlerësimit të aksesueshmërisë"
@@ -980,6 +986,9 @@ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar përkt
 msgid "Add an API key to re-run"
 msgstr "Shto një çelës API për të ri-ekzekutuar"
 
+msgid "Add an Azure Speech key and region in Settings to pick voices by name."
+msgstr "Shto një çelës dhe një rajon Azure Speech te Cilësimet për të zgjedhur zërat sipas emrit."
+
 msgid "Add an ElevenLabs API key in Settings to pick voices by name."
 msgstr "Shtoni një kyç API të ElevenLabs në Cilësimet për të zgjedhur zërat sipas emrit."
 
@@ -1066,6 +1075,9 @@ msgstr "Shto kuiz këtu"
 
 msgid "Add reviewer guidance."
 msgstr "Shto udhëzime për rishikuesin."
+
+msgid "Add second voice"
+msgstr "Shto zërin e dytë"
 
 msgid "Add section"
 msgstr "Shto seksion"
@@ -1992,6 +2004,9 @@ msgstr "Por ekipi vazhdoi të ngjitej në mal."
 
 msgid "Button"
 msgstr "Buton"
+
+msgid "By"
+msgstr "Nga"
 
 msgid "By Page"
 msgstr "Sipas faqes"
@@ -3905,6 +3920,9 @@ msgstr "Përshtat"
 msgid "Fix"
 msgstr "Rregullo"
 
+msgid "Fit to panel · showing {display}% of full size"
+msgstr "Përshtatur me panelin · duke shfaqur {display}% të madhësisë së plotë"
+
 msgid "Fixed layout"
 msgstr "Strukturë fikse"
 
@@ -5693,6 +5711,9 @@ msgstr "Emrat dhe termat janë të qëndrueshëm"
 msgid "Narration"
 msgstr "Narracion"
 
+msgid "Narrator voice"
+msgstr "Zëri i narratorit"
+
 msgid "Natural narration for any book — students listen while they follow along, at their own pace."
 msgstr "Narracion i natyrshëm për çdo libër — nxënësit dëgjojnë ndërsa ndjekin tekstin, me ritmin e tyre."
 
@@ -5786,6 +5807,10 @@ msgstr "Hapi tjetër"
 msgid "No"
 msgstr "Jo"
 
+#. placeholder {0}: PROVIDER_LABELS[provider] ?? provider
+msgid "No {0} voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Pick a voice above, or map one for {lang} in the Voices tab to share it across books."
+msgstr "Asnjë zë i {0} nuk është caktuar për këtë gjuhë, prandaj përdoret zëri i parazgjedhur në anglisht dhe narracioni do të ketë theks anglez. Zgjidh një zë më sipër, ose cakto një për {lang} te skeda Zërat për ta ndarë mes librave."
+
 msgid "No acceptable review results for this view."
 msgstr "Nuk ka rezultate të pranueshme të rishikimit për këtë pamje."
 
@@ -5874,8 +5899,8 @@ msgstr "Nuk ka rregulla të çaktiviziuara"
 msgid "No Easy Read for this page"
 msgstr "Nuk ka Lexim të Lehtë për këtë faqe"
 
-msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
-msgstr "Për këtë gjuhë nuk është caktuar asnjë zë i ElevenLabs, pra përdoret zëri i parazgjedhur anglisht dhe rrëfimi do të ketë theks anglez. Caktoni një zë për {lang} në skedën Zëra."
+#~ msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
+#~ msgstr "Për këtë gjuhë nuk është caktuar asnjë zë i ElevenLabs, pra përdoret zëri i parazgjedhur anglisht dhe rrëfimi do të ketë theks anglez. Caktoni një zë për {lang} në skedën Zëra."
 
 msgid "No embedded text layer — text was recovered from the page image"
 msgstr "Pa shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes"
@@ -7102,6 +7127,9 @@ msgstr "Sllajdi i mëparshëm"
 msgid "Previously uploaded videos"
 msgstr "Video të ngarkuara më parë"
 
+msgid "Primary"
+msgstr "Kryesor"
+
 msgid "Print a variable"
 msgstr "Shfaq një variabël"
 
@@ -7632,6 +7660,9 @@ msgstr "Hiq figurën"
 
 msgid "Remove placement"
 msgstr "Hiq vendosjen"
+
+msgid "Remove second voice"
+msgstr "Hiq zërin e dytë"
 
 msgid "Remove section"
 msgstr "Hiq seksionin"
@@ -8249,6 +8280,18 @@ msgstr "Kërko…"
 msgid "seconds"
 msgstr "sekonda"
 
+msgid "Second voice"
+msgstr "Zëri i dytë"
+
+msgid "Second voice model"
+msgstr "Modeli i zërit të dytë"
+
+msgid "Second voice provider"
+msgstr "Ofruesi i zërit të dytë"
+
+msgid "Secondary"
+msgstr "Dytësor"
+
 msgid "section"
 msgstr "seksion"
 
@@ -8405,6 +8448,9 @@ msgstr "Zgjidhni një strategji renderimi për të parë paraprakisht si do të 
 
 msgid "Select a reviewer session to inspect its progress and findings."
 msgstr "Zgjidhni një sesion rishikuesi për të inspektuar progresin dhe gjetjet e tij."
+
+msgid "Select a second voice before saving"
+msgstr "Zgjidhni një zë të dytë para se të ruani"
 
 msgid "Select a section mode to continue"
 msgstr "Zgjidhni një modalitet seksioni për të vazhduar"
@@ -10198,6 +10244,9 @@ msgstr "Ngarko ZIP ose tërhiq dhe lësho"
 msgid "Uploading..."
 msgstr "Po ngarkohet..."
 
+msgid "Use \"{trimmedQuery}\""
+msgstr "Përdor \"{trimmedQuery}\""
+
 msgid "Use adjacent text as context"
 msgstr "Përdor tekstin ngjitur si kontekst"
 
@@ -10390,6 +10439,9 @@ msgstr "Zë"
 
 msgid "Voice Mappings"
 msgstr "Hartëzime zërash"
+
+msgid "Voice name"
+msgstr "Emri i zërit"
 
 msgid "Voice tuning (advanced)"
 msgstr "Rregullimi i zërit (i avancuar)"

@@ -653,6 +653,9 @@ msgstr "Já existe um questionário aqui — adicione outro depois ou substitua-
 msgid "A required credential is missing."
 msgstr "Uma credencial necessária está faltando."
 
+msgid "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
+msgstr "Uma segunda voz narra cada linha novamente, portanto dobra o custo de geração de fala e de sincronização de palavras para este idioma."
+
 msgid "A section containing only images."
 msgstr "Uma seção contendo apenas imagens."
 
@@ -766,6 +769,9 @@ msgstr "Código de acesso"
 
 msgid "Accessibility"
 msgstr "Accessibility"
+
+msgid "Accessibility Assessment"
+msgstr "Avaliação de acessibilidade"
 
 msgid "Accessibility assessment configuration"
 msgstr "Accessibility assessment configuration"
@@ -978,6 +984,9 @@ msgstr "Adicione uma chave de API nas configurações do Livro para executar tra
 msgid "Add an API key to re-run"
 msgstr "Adicione uma chave de API para reexecutar"
 
+msgid "Add an Azure Speech key and region in Settings to pick voices by name."
+msgstr "Adicione uma chave e uma região do Azure Speech nas Configurações para escolher vozes pelo nome."
+
 msgid "Add an ElevenLabs API key in Settings to pick voices by name."
 msgstr "Adicione uma chave de API do ElevenLabs em Configurações para escolher vozes por nome."
 
@@ -1064,6 +1073,9 @@ msgstr "Adicionar questionário aqui"
 
 msgid "Add reviewer guidance."
 msgstr "Add reviewer guidance."
+
+msgid "Add second voice"
+msgstr "Adicionar segunda voz"
 
 msgid "Add section"
 msgstr "Add section"
@@ -1990,6 +2002,9 @@ msgstr "Mas a equipe continuou subindo a montanha."
 
 msgid "Button"
 msgstr "Botão"
+
+msgid "By"
+msgstr "Por"
 
 msgid "By Page"
 msgstr "Por página"
@@ -3903,6 +3918,9 @@ msgstr "Ajustar"
 msgid "Fix"
 msgstr "Corrigir"
 
+msgid "Fit to panel · showing {display}% of full size"
+msgstr "Ajustado ao painel · exibindo {display}% do tamanho original"
+
 msgid "Fixed layout"
 msgstr "Layout fixo"
 
@@ -5691,6 +5709,9 @@ msgstr "Nomes e termos são consistentes"
 msgid "Narration"
 msgstr "Narração"
 
+msgid "Narrator voice"
+msgstr "Voz do narrador"
+
 msgid "Natural narration for any book — students listen while they follow along, at their own pace."
 msgstr "Narração natural para qualquer livro — os alunos ouvem enquanto acompanham, no próprio ritmo."
 
@@ -5784,6 +5805,10 @@ msgstr "Próximo Passo"
 msgid "No"
 msgstr "Não"
 
+#. placeholder {0}: PROVIDER_LABELS[provider] ?? provider
+msgid "No {0} voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Pick a voice above, or map one for {lang} in the Voices tab to share it across books."
+msgstr "Nenhuma voz do {0} está mapeada para este idioma, portanto usa-se a voz padrão em inglês e a narração terá sotaque inglês. Escolha uma voz acima ou mapeie uma para {lang} na aba Vozes para compartilhá-la entre os livros."
+
 msgid "No acceptable review results for this view."
 msgstr "Nenhum resultado de revisão aceitável para esta visualização."
 
@@ -5872,8 +5897,8 @@ msgstr "No disabled rules"
 msgid "No Easy Read for this page"
 msgstr "Sem Leitura Fácil para esta página"
 
-msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
-msgstr "Nenhuma voz do ElevenLabs está mapeada para este idioma, então ele usa a voz inglesa padrão e a narração terá sotaque inglês. Mapeie uma voz para {lang} na aba Vozes."
+#~ msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
+#~ msgstr "Nenhuma voz do ElevenLabs está mapeada para este idioma, então ele usa a voz inglesa padrão e a narração terá sotaque inglês. Mapeie uma voz para {lang} na aba Vozes."
 
 msgid "No embedded text layer — text was recovered from the page image"
 msgstr "Sem camada de texto incorporada — o texto foi recuperado a partir da imagem da página"
@@ -7100,6 +7125,9 @@ msgstr "Slide anterior"
 msgid "Previously uploaded videos"
 msgstr "Vídeos enviados anteriormente"
 
+msgid "Primary"
+msgstr "Principal"
+
 msgid "Print a variable"
 msgstr "Exibir uma variável"
 
@@ -7630,6 +7658,9 @@ msgstr "Remover imagem"
 
 msgid "Remove placement"
 msgstr "Remover posição"
+
+msgid "Remove second voice"
+msgstr "Remover segunda voz"
 
 msgid "Remove section"
 msgstr "Remove section"
@@ -8247,6 +8278,18 @@ msgstr "Buscar…"
 msgid "seconds"
 msgstr "segundos"
 
+msgid "Second voice"
+msgstr "Segunda voz"
+
+msgid "Second voice model"
+msgstr "Modelo da segunda voz"
+
+msgid "Second voice provider"
+msgstr "Provedor da segunda voz"
+
+msgid "Secondary"
+msgstr "Secundária"
+
 msgid "section"
 msgstr "seção"
 
@@ -8403,6 +8446,9 @@ msgstr "Selecione uma estratégia de renderização para pré-visualizar como as
 
 msgid "Select a reviewer session to inspect its progress and findings."
 msgstr "Select a reviewer session to inspect its progress and findings."
+
+msgid "Select a second voice before saving"
+msgstr "Selecione uma segunda voz antes de salvar"
 
 msgid "Select a section mode to continue"
 msgstr "Selecione um modo de seção para continuar"
@@ -10196,6 +10242,9 @@ msgstr "Envie um ZIP ou arraste e solte"
 msgid "Uploading..."
 msgstr "Enviando..."
 
+msgid "Use \"{trimmedQuery}\""
+msgstr "Usar \"{trimmedQuery}\""
+
 msgid "Use adjacent text as context"
 msgstr "Usar texto adjacente como contexto"
 
@@ -10388,6 +10437,9 @@ msgstr "Voz"
 
 msgid "Voice Mappings"
 msgstr "Mapeamentos de voz"
+
+msgid "Voice name"
+msgstr "Nome da voz"
 
 msgid "Voice tuning (advanced)"
 msgstr "Ajuste de voz (avançado)"
