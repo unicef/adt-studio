@@ -45,7 +45,7 @@ export function WelcomeHero({ onOpenAdd }: WelcomeHeroProps) {
           <p className="mb-6 max-w-[62ch] text-[15px] leading-relaxed text-muted-foreground">
             <Trans>Drop in a textbook PDF and we&apos;ll extract pages, generate accessible captions, build storyboards, and assemble quizzes — every step inspectable, every result versioned.</Trans>
           </p>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Button onClick={onOpenAdd}>
               <Plus className="size-3.5" />
               <Trans>Add your first book</Trans>
