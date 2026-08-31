@@ -15,9 +15,11 @@ export function authKind(descriptor: ProviderDescriptor): AuthKind {
 
 
 export function requiredFieldsFilled(descriptor: ProviderDescriptor, creds: Record<string, string>): boolean {
+  const storedOnServer = (fieldKey: string) =>
+    descriptor.fieldStatus.some((s) => s.key === fieldKey && s.configuredOnServer)
   return descriptor.manifest.credentialFields
     .filter((f) => f.required)
-    .every((f, i) => (creds[f.key]?.trim().length ?? 0) > 0 || descriptor.fieldStatus[i]?.configuredOnServer)
+    .every((f) => (creds[f.key]?.trim().length ?? 0) > 0 || storedOnServer(f.key))
 }
 
 // ---- module-level credential store (localStorage-backed, mirrors useProviderCredentials sync) ----
