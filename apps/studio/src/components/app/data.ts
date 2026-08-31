@@ -78,12 +78,12 @@ export function formatRelative(iso: string, locale: string): string {
   const then = new Date(iso).getTime()
   if (Number.isNaN(then)) return ""
   const diffMs = Date.now() - then
-  const mins = Math.round(diffMs / 60_000)
+  const mins = Math.floor(diffMs / 60_000)
   if (mins < 1) return i18n._(msg`just now`)
   if (mins < 60) return i18n._(msg`${mins}m ago`)
-  const hours = Math.round(mins / 60)
+  const hours = Math.floor(mins / 60)
   if (hours < 24) return i18n._(msg`${hours}h ago`)
-  const days = Math.round(hours / 24)
+  const days = Math.floor(hours / 24)
   if (days === 1) return i18n._(msg`yesterday`)
   if (days < 7) return i18n._(msg`${days} days ago`)
   return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(then)
