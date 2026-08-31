@@ -19,6 +19,7 @@ import { Switch } from "@/components/ui/switch"
 import { ModelSelect, OPENAI_TTS_MODELS, AZURE_TTS_MODELS, GEMINI_TTS_MODELS, ELEVENLABS_TTS_MODELS, IMAGE_MODEL_GROUPS, LLM_MODEL_GROUPS } from "@/components/pipeline/components/ModelSelect"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
+import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
@@ -37,6 +38,10 @@ import { useLingui } from "@lingui/react/macro"
 import { displayLang } from "./lib/display-lang"
 import { tabContainerClass } from "./lib/tab-container-class"
 import { PROVIDER_LABELS } from "./lib/provider-labels"
+import {
+  isProviderOptionDisabled,
+  type ProviderKeyAvailability,
+} from "./lib/provider-availability"
 import { ElevenLabsVoiceTuning } from "./components/ElevenLabsVoiceTuning"
 import { ProviderVoicePicker } from "./components/ProviderVoicePicker"
 
@@ -1387,6 +1392,19 @@ function SpeechLanguageCards({
 }) {
   const { t } = useLingui()
 
+  // A provider with no key can be picked here but fails the whole Speech run
+  // on the first item it reaches, so mirror the Speech landing page and offer
+  // only the providers this browser actually holds a credential for.
+  const { hasApiKey, hasAzureKey, hasGeminiKey, hasElevenLabsKey } = useApiKey()
+  const providerKeyAvailable: ProviderKeyAvailability = {
+    openai: hasApiKey,
+    azure: hasAzureKey,
+    gemini: hasGeminiKey,
+    elevenlabs: hasElevenLabsKey,
+  }
+  const providerOptionDisabled = (option: string, current: string) =>
+    isProviderOptionDisabled(option, current, providerKeyAvailable)
+
   // Load voice mappings + speech instructions
   const { data: voiceMappings } = useQuery({
     queryKey: ["voice-mappings"],
@@ -1742,8 +1760,13 @@ function SpeechLanguageCards({
                     className="flex h-8 w-36 rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm"
                   >
                     {["openai", "azure", "gemini", "elevenlabs"].map((p) => (
-                      <option key={p} value={p}>
+                      <option
+                        key={p}
+                        value={p}
+                        disabled={providerOptionDisabled(p, provider)}
+                      >
                         {PROVIDER_LABELS[p]}{p === defaultProvider ? ` (${t`default`})` : ""}
+                        {providerOptionDisabled(p, provider) ? ` — ${t`no API key`}` : ""}
                       </option>
                     ))}
                   </select>
@@ -1809,8 +1832,15 @@ function SpeechLanguageCards({
                         className="flex h-8 w-36 rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm"
                       >
                         {(["openai", "azure", "gemini", "elevenlabs"] as const).map((option) => (
-                          <option key={option} value={option}>
+                          <option
+                            key={option}
+                            value={option}
+                            disabled={providerOptionDisabled(option, secondaryVoice.provider)}
+                          >
                             {PROVIDER_LABELS[option]}
+                            {providerOptionDisabled(option, secondaryVoice.provider)
+                              ? ` — ${t`no API key`}`
+                              : ""}
                           </option>
                         ))}
                       </select>
