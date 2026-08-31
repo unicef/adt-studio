@@ -716,6 +716,9 @@ msgstr "Pranon çdo përgjigje"
 msgid "Accessibility"
 msgstr "Aksesueshmëria"
 
+msgid "Accessibility Assessment"
+msgstr "Vlerësimi i aksesueshmërisë"
+
 msgid "Accessibility assessment configuration"
 msgstr "Konfigurimi i vlerësimit të aksesueshmërisë"
 
