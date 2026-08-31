@@ -25,7 +25,7 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { Kbd } from "./ui/Kbd"
+import { Kbd, MOD_KEY } from "./ui/Kbd"
 import { APP_PATHS, activeAppView } from "./nav"
 import type { AppView } from "./types"
 import { useUpdateDialog } from "@/components/updates"
@@ -112,7 +112,7 @@ export function AppSidebar({
         <span className="flex-1 text-left text-[13px]">
           <Trans>Search books…</Trans>
         </span>
-        <Kbd keys={["⌘", "K"]} />
+        <Kbd keys={[MOD_KEY, "K"]} />
       </button>
 
       <nav className="mt-2 flex flex-col gap-0.5">
@@ -201,7 +201,6 @@ export function AppSidebar({
             </MenuRow>
             <MenuRow
               icon={Keyboard}
-              trailing={<Kbd keys={["?"]} />}
               onClick={() => {
                 setHelpOpen(false)
                 onOpenShortcuts()

@@ -9,6 +9,7 @@ import type { BookSummary } from "@/api/client"
 import { toBookVM, type CoverSpec } from "./data"
 import { BookCover } from "./BookCover"
 import { Kbd } from "./ui/Kbd"
+import { useShortcutLabel } from "@/hooks/use-platform"
 import { APP_PATHS } from "./nav"
 import { rankBySearch, searchTokens } from "./search"
 import { SETTINGS_PATHS } from "./screens/settings/nav"
@@ -45,6 +46,7 @@ export interface CommandPaletteProps {
 }
 
 export function CommandPalette({ open, onClose, books, locale, onOpenAdd }: CommandPaletteProps) {
+  const toggleShortcut = useShortcutLabel("K")
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
@@ -65,7 +67,7 @@ export function CommandPalette({ open, onClose, books, locale, onOpenAdd }: Comm
             <Trans>open</Trans>
           </span>
           <span className="ml-auto font-mono text-[11px]">
-            <Trans>⌘K to toggle</Trans>
+            <Trans>{toggleShortcut} to toggle</Trans>
           </span>
         </div>
       </DialogContent>
