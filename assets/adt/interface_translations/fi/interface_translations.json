@@ -73,6 +73,7 @@
     "text-read-aloud-speed": "Nopeus",
     "toc-title": "Sisällysluettelo",
     "tts-label": "Teksti puheeksi",
+    "narrator-voice-label": "Kertojan ääni",
     "tutorial-closed-announcement": "Opastus suljettu. Muista, että voit käyttää Alt plus Shift plus A avataksesi ja sulkeaksesi saavutettavuusvalikon, Alt plus Shift plus nuolia siirtyäksesi sivujen välillä, ja Alt plus Shift plus X avataksesi ja sulkeaksesi navigointivalikon. Voit käyttää lisää saavutettavuustoimintoja oikeassa kulmassa olevalla painikkeella.",
     "tutorial-completed-announcement": "Opastus valmis. Muista, että voit käyttää Alt plus Shift plus A avataksesi ja sulkeaksesi saavutettavuusvalikon, Alt plus Shift plus nuolia siirtyäksesi sivujen välillä, ja Alt plus Shift plus X avataksesi ja sulkeaksesi navigointivalikon.",
     "tutorial-description-content": "Ennen kuin aloitat, tässä on nopea kierros, joka näyttää, miten navigoida, käyttää valikkoa ja käyttää hyödyllisiä ominaisuuksia.<br> Se ei vie kauan!",
