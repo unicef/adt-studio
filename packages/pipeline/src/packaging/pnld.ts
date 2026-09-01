@@ -13,6 +13,7 @@ import {
   injectWebpubStyles,
 } from "./web.js"
 import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
+import { sortTocEntriesByPageList } from "./toc-order.js"
 
 export type PackagePnldOptions = PackageAdtWebOptions
 
@@ -858,8 +859,10 @@ export function buildIndex(
 ): string {
   let tocItems: string
   if (llmToc && llmToc.entries.length > 0) {
+    // Reading position, not the order the stored TOC happens to hold — this nav
+    // ships alongside a spine, an NCX and a `toc.json` that all follow it.
     const sectionMap = new Map(pageList.map((p) => [p.section_id, p.href]))
-    tocItems = llmToc.entries
+    tocItems = sortTocEntriesByPageList(llmToc.entries, pageList)
       .map((e) => {
         const href = sectionMap.get(e.sectionId)
         if (!href) return ""

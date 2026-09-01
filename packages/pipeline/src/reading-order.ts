@@ -22,6 +22,9 @@ import type {
 } from "@adt/types"
 import {
   WebRenderingOutput as WebRenderingOutputSchema,
+  ReadingOrderOutput as ReadingOrderOutputSchema,
+  READING_ORDER_NODE,
+  READING_ORDER_ITEM_ID,
   ensureQuizIds,
   resolveQuizId,
 } from "@adt/types"
@@ -59,6 +62,19 @@ export interface ResolvedReadingOrder {
    * maps that consumers used to rebuild by walking the book a second time.
    */
   positionById: Map<string, number>
+  /**
+   * The full order, including slots excluded from the output: sections the user
+   * pruned, and sections the storyboard rendered nothing for. They keep their
+   * slot, so re-including one restores it where it was rather than at the end —
+   * and, more basically, so the UI has a row to offer that on at all.
+   */
+  order: ReadingOrderItem[]
+  /** A stored order supplied the sequence (rather than the source-derived one). */
+  fromStoredOrder: boolean
+  /** Version of the stored entity, for optimistic saves and the version picker. */
+  storedVersion: number | null
+  /** How the stored order differed from the book's current contents. */
+  reconcile: ReconcileResult
 }
 
 export interface ResolveReadingOrderOptions {
@@ -71,6 +87,30 @@ export interface PageEntry {
   section_id: string
   href: string
   page_number?: number
+}
+
+/**
+ * Source pages in the order the reader meets them, each appearing once, at the
+ * position of its first section.
+ *
+ * For anything that groups or counts *pages* in reading sequence — quiz
+ * batching, "every N pages" placement. Using `storage.getPages()` for that
+ * instead silently means "in source-PDF order", which stops matching the book
+ * the moment the user reorders it.
+ *
+ * Pages whose sections have been split apart by a reorder collapse to their
+ * first appearance; page-granular consumers cannot express more than that.
+ */
+export function readingOrderPageIds(resolved: ResolvedReadingOrder): string[] {
+  const seen = new Set<string>()
+  const pageIds: string[] = []
+  for (const item of resolved.items) {
+    if (item.kind !== "section") continue
+    if (seen.has(item.pageId)) continue
+    seen.add(item.pageId)
+    pageIds.push(item.pageId)
+  }
+  return pageIds
 }
 
 /** Bundle filename / preview route for an item. Always id-based, never positional. */
@@ -106,13 +146,21 @@ function readPageContexts(storage: Storage): PageContext[] {
 }
 
 /**
- * The source-derived order: pages by `page_number`, each page's rendered
- * sections by `sectionIndex`, then the quizzes anchored to that page.
+ * The source-derived order: pages by `page_number`, each page's sections in
+ * `sectionIndex` order, then the quizzes anchored to that page.
  *
- * Emits pruned sections too — reading order tracks slots, and whether a slot is
- * *shown* is a separate question answered by `isPruned`. Rendering entries with
- * no matching sectioning row are dropped: their real `sectionId` is unknowable,
- * and a positional guess could collide with a live section's id.
+ * Slots come from the *sectioning* tree, never from `web-rendering`. Those two
+ * disagree in one direction that matters: rendering skips a section that is
+ * pruned or that has nothing renderable in it, so driving the order from
+ * rendering silently loses a section's slot the moment the storyboard is
+ * re-run. Which slots exist is a question about what the book contains;
+ * whether a slot produces an output page is a separate one, answered by
+ * `isPruned` and by whether any HTML was rendered — see `resolveReadingOrder`.
+ *
+ * A rendering entry with no matching sectioning row is not a slot at all: its
+ * real `sectionId` is unknowable, and a positional guess could collide with a
+ * live section's id. Iterating sections rather than renderings makes that
+ * impossible by construction.
  */
 export function defaultReadingOrder(
   pageContexts: PageContext[],
@@ -127,9 +175,7 @@ export function defaultReadingOrder(
 
   const items: ReadingOrderItem[] = []
   for (const page of pageContexts) {
-    for (const entry of page.rendering) {
-      const section = page.sections[entry.sectionIndex]
-      if (!section) continue
+    for (const section of page.sections) {
       items.push({ kind: "section", id: section.sectionId })
     }
     for (const { quiz, index } of quizzesByAfterPageId.get(page.pageId) ?? []) {
@@ -137,6 +183,92 @@ export function defaultReadingOrder(
     }
   }
   return items
+}
+
+export interface ReconcileResult {
+  /** The effective order after folding the book's current contents in. */
+  items: ReadingOrderItem[]
+  /** Stored ids that no longer exist in the book. */
+  dropped: ReadingOrderItem[]
+  /** Ids new to the book, with the surviving item they were placed after. */
+  added: Array<{ item: ReadingOrderItem; afterId: string | null }>
+  /** `items` differs from what was stored. */
+  changed: boolean
+}
+
+/**
+ * Fold the book's current contents into a stored reading order.
+ *
+ * Rules:
+ *  1. No stored order → the default order, unchanged.
+ *  2. Stored ids the book no longer has are dropped. They are *not* kept as
+ *     tombstones: `node_data` history already is one, so restoring an earlier
+ *     version brings the exact prior list back, and if the item is genuinely
+ *     gone the next reconcile drops it again. A live tombstone list would grow
+ *     without bound and need a GC policy.
+ *  3. Ids the book has but the stored order does not are inserted at their
+ *     *default-order neighbourhood* — immediately after the nearest preceding
+ *     default-order sibling that survived, else before the nearest following
+ *     one, else appended.
+ *
+ *     This rule is why clone, split, "new page extracted" and "quiz added" need
+ *     no reading-order code of their own: a clone's default position is right
+ *     after its original, so that is where it lands. Appending to the end would
+ *     be wrong for every one of them.
+ *  4. Duplicates in the stored order: the first occurrence wins.
+ *
+ * Pure and idempotent — reconciling a reconciled order changes nothing.
+ */
+export function reconcileReadingOrder(
+  storedItems: readonly ReadingOrderItem[] | null,
+  defaultItems: readonly ReadingOrderItem[]
+): ReconcileResult {
+  if (!storedItems) {
+    return { items: [...defaultItems], dropped: [], added: [], changed: false }
+  }
+
+  const availableById = new Map(defaultItems.map((item) => [item.id, item]))
+
+  const kept: ReadingOrderItem[] = []
+  const dropped: ReadingOrderItem[] = []
+  const seen = new Set<string>()
+  for (const item of storedItems) {
+    if (seen.has(item.id)) continue
+    seen.add(item.id)
+    const available = availableById.get(item.id)
+    if (available) kept.push(available)
+    else dropped.push(item)
+  }
+
+  // Walk the default order and slot in anything the stored order didn't have,
+  // tracking the last surviving item seen so newcomers land beside the sibling
+  // they were created next to.
+  const items = [...kept]
+  const added: ReconcileResult["added"] = []
+  let lastSurvivingId: string | null = null
+  for (const item of defaultItems) {
+    if (seen.has(item.id)) {
+      lastSurvivingId = item.id
+      continue
+    }
+    const at =
+      lastSurvivingId === null
+        ? 0
+        : items.findIndex((existing) => existing.id === lastSurvivingId) + 1
+    items.splice(at, 0, item)
+    added.push({ item, afterId: lastSurvivingId })
+    // Subsequent newcomers in the same gap keep their relative order.
+    lastSurvivingId = item.id
+    seen.add(item.id)
+  }
+
+  const changed =
+    dropped.length > 0 ||
+    added.length > 0 ||
+    items.length !== storedItems.length ||
+    items.some((item, index) => item.id !== storedItems[index]?.id)
+
+  return { items, dropped, added, changed }
 }
 
 /**
@@ -158,25 +290,38 @@ export function resolveReadingOrder(
       ? []
       : ensureQuizIds(quizRow.data as QuizGenerationOutput).output.quizzes
 
-  // Phase 5 inserts the stored, user-editable order here, reconciled against
-  // this default. Until then the source-derived order is the only order.
-  const order = defaultReadingOrder(pageContexts, quizzes)
+  const defaults = defaultReadingOrder(pageContexts, quizzes)
+
+  // The user's explicit order, if they have set one, reconciled against what
+  // the book currently contains. Reconciling here — at read time, every time —
+  // rather than writing a corrected order back on every structural edit keeps
+  // the entity's version history a log of deliberate reorders instead of
+  // machine-generated churn, and means a bad reconcile can never be persisted.
+  const storedRow = storage.getLatestNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID)
+  const stored = storedRow ? ReadingOrderOutputSchema.safeParse(storedRow.data) : null
+  const reconcile = reconcileReadingOrder(stored?.success ? stored.data.items : null, defaults)
+  const order = reconcile.items
 
   const sectionsById = new Map<
     string,
-    { pageId: string; sectionIndex: number; section: PageSectioningSection; rendering: SectionRendering }
+    {
+      pageId: string
+      sectionIndex: number
+      section: PageSectioningSection
+      /** Absent when the storyboard skipped this section — pruned, or empty. */
+      rendering: SectionRendering | undefined
+    }
   >()
   for (const page of pageContexts) {
-    for (const entry of page.rendering) {
-      const section = page.sections[entry.sectionIndex]
-      if (!section) continue
+    const renderingByIndex = new Map(page.rendering.map((entry) => [entry.sectionIndex, entry]))
+    page.sections.forEach((section, sectionIndex) => {
       sectionsById.set(section.sectionId, {
         pageId: page.pageId,
-        sectionIndex: entry.sectionIndex,
+        sectionIndex,
         section,
-        rendering: entry,
+        rendering: renderingByIndex.get(sectionIndex),
       })
-    }
+    })
   }
   const quizzesById = new Map(
     quizzes.map((quiz, index) => [resolveQuizId(quiz, index), { quiz, index }])
@@ -191,7 +336,11 @@ export function resolveReadingOrder(
       continue
     }
     const hit = sectionsById.get(entry.id)
-    if (!hit || hit.section.isPruned) continue
+    // Both of these keep their slot in `order` but produce no output page: a
+    // pruned section is deliberately out of the book, and an unrendered one has
+    // no HTML to ship. Neither may be dropped from the order itself, or the
+    // user loses the row that would let them put it back.
+    if (!hit || hit.section.isPruned || !hit.rendering) continue
     items.push({
       kind: "section",
       id: entry.id,
@@ -206,5 +355,9 @@ export function resolveReadingOrder(
   return {
     items,
     positionById: new Map(items.map((item, index) => [item.id, index + 1])),
+    order,
+    fromStoredOrder: Boolean(stored?.success),
+    storedVersion: storedRow?.version ?? null,
+    reconcile,
   }
 }

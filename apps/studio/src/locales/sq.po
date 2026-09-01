@@ -42,6 +42,11 @@ msgstr ", dhe "
 msgid "? This will remove all extracted data and cannot be undone."
 msgstr "? Kjo do të heqë të gjitha të dhënat e nxjerra dhe nuk mund të zhbëhet."
 
+#. placeholder {0}: String(sectionIndex + 1)
+#. placeholder {1}: String(sectionCount)
+msgid "· part {0} of {1}"
+msgstr "· pjesa {0} nga {1}"
+
 msgid "\"A landscape forged by fire.\""
 msgstr "\"Një peizazh i formuar nga zjarri.\""
 
@@ -241,6 +246,7 @@ msgid "{0} of {1} pages had no extracted text"
 msgstr "{0} nga {1} faqe nuk kanë tekst të nxjerrë"
 
 #. placeholder {0}: String(displayPages.length)
+#. placeholder {0}: String(items.length)
 #. placeholder {0}: book.pageCount
 msgid "{0} pages"
 msgstr "{0} faqe"
@@ -943,6 +949,9 @@ msgstr "Shto të paktën një gjuhë dalëse për të ekzekutuar përkthimin."
 msgid "Add author"
 msgstr "Shto autor"
 
+msgid "Add back to book"
+msgstr "Shto përsëri në libër"
+
 msgid "Add book"
 msgstr "Shto libër"
 
@@ -1148,6 +1157,9 @@ msgstr "Tregime Aventure - Vol. 1"
 msgid "Affected pages"
 msgstr "Faqet e prekura"
 
+#~ msgid "after"
+#~ msgstr "pas"
+
 msgid "After"
 msgstr "Pas"
 
@@ -1155,7 +1167,6 @@ msgstr "Pas"
 msgid "After {0}"
 msgstr "Pas {0}"
 
-#. placeholder {0}: String(pageNumber)
 #. placeholder {0}: afterPage.pageNumber
 msgid "after page {0}"
 msgstr "pas faqes {0}"
@@ -1166,9 +1177,17 @@ msgstr "Pas faqes {afterNumber}"
 msgid "After page {placement}"
 msgstr "Pas faqes {placement}"
 
+#. placeholder {0}: String(pageNumber)
+msgid "after PDF {0}"
+msgstr "pas PDF {0}"
+
+#. placeholder {0}: String(pageNumber)
+msgid "after PDF page {0}"
+msgstr "pas faqes {0} të PDF-it"
+
 #. placeholder {0}: String(page.pageNumber)
-msgid "after pg {0}"
-msgstr "pas f. {0}"
+#~ msgid "after pg {0}"
+#~ msgstr "pas f. {0}"
 
 #~ msgid "age 8"
 #~ msgstr "mosha 8"
@@ -1479,8 +1498,8 @@ msgstr "Jeni të sigurt që dëshironi të fshini të folurit e gjeneruar?"
 msgid "Are you sure you want to delete this image? This action cannot be undone."
 msgstr "Jeni të sigurt që dëshironi të fshini këtë imazh? Ky veprim nuk mund të zhbëhet."
 
-msgid "Are you sure you want to delete this section? This action cannot be undone."
-msgstr "Jeni të sigurt që dëshironi të fshini këtë seksion? Ky veprim nuk mund të zhbëhet."
+#~ msgid "Are you sure you want to delete this section? This action cannot be undone."
+#~ msgstr "Jeni të sigurt që dëshironi të fshini këtë seksion? Ky veprim nuk mund të zhbëhet."
 
 msgid "Are you sure you want to generate word-level timestamps for {langDisplay}?"
 msgstr "Jeni të sigurt që dëshironi të gjeneroni vulat kohore në nivel fjalësh për {langDisplay}?"
@@ -1800,11 +1819,39 @@ msgstr "Struktura e librit"
 msgid "Book package ready"
 msgstr "Paketa e librit gati"
 
+#. placeholder {0}: String(position)
+msgid "Book page {0}"
+msgstr "Faqja {0} e librit"
+
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(page.pageNumber)
+msgid "Book page {0} · PDF page {1}"
+msgstr "Faqja {0} e librit · faqja {1} e PDF-it"
+
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(page.pageNumber)
+#. placeholder {2}: section.sectionType
+msgid "Book page {0} · PDF page {1} · {2}"
+msgstr "Faqja {0} e librit · faqja {1} e PDF-it · {2}"
+
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(page.pageNumber)
+#~ msgid "Book page {0} · PDF page {1} (pruned)"
+#~ msgstr "Faqja {0} e librit · faqja {1} e PDF-it (e përjashtuar)"
+
+#. placeholder {0}: String(position ?? "–")
+#. placeholder {1}: String(page.pageNumber)
+msgid "Book page {0} · quiz after PDF page {1}"
+msgstr "Faqja {0} e librit · kuiz pas faqes {1} të PDF-it"
+
 msgid "Book pages. Scroll horizontally to see more."
 msgstr "Faqet e librit. Lëviz horizontalisht për të parë më shumë."
 
 msgid "Book part"
 msgstr "Pjesë e librit"
+
+msgid "Book pg"
+msgstr "Faqe libri"
 
 msgid "Book preview"
 msgstr "Pamje paraprake e librit"
@@ -2908,6 +2955,9 @@ msgstr "Fshi dosjen"
 msgid "Delete option"
 msgstr "Fshi opsionin"
 
+msgid "Delete permanently"
+msgstr "Fshi përgjithmonë"
+
 msgid "Delete prompt file?"
 msgstr "Të fshihet skedari i promptit?"
 
@@ -2928,6 +2978,9 @@ msgstr "Fshi këtë kuiz"
 
 msgid "Delete this quiz?"
 msgstr "Fshi këtë kuiz?"
+
+msgid "Delete this section and its content permanently? This cannot be undone — use \"Remove from book\" instead to hide it while keeping it, and its place, for later."
+msgstr "Të fshihet përgjithmonë kjo pjesë dhe përmbajtja e saj? Kjo nuk mund të zhbëhet — përdor \"Hiq nga libri\" për ta fshehur duke e ruajtur, bashkë me vendin e saj, për më vonë."
 
 msgid "Delete video"
 msgstr "Fshi videon"
@@ -3968,6 +4021,10 @@ msgstr "Nga libri"
 msgid "From page"
 msgstr "Nga faqja"
 
+#. placeholder {0}: String(pageNumber)
+msgid "From page {0} of the source PDF"
+msgstr "Nga faqja {0} e PDF-it origjinal"
+
 msgid "From reference image..."
 msgstr "Nga imazhi referues..."
 
@@ -4269,6 +4326,9 @@ msgstr "Gramatika dhe rrjedhshmëria"
 
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Grupo tekstin dhe imazhet e çdo faqeje në seksione të tipizuara me një pemë të strukturuar përmbajtjeje. Seksionet drejtojnë mënyrën se si fazat pasuese renderojnë, përkthejnë dhe lexojnë librin me zë."
+
+msgid "Group rows under their source PDF page"
+msgstr "Grupo rreshtat nën faqen e tyre burimore të PDF-së"
 
 #~ msgid "Grouping content by purpose, then laying out every section as reviewable HTML."
 #~ msgstr "Grupimi i përmbajtjes sipas qëllimit, pastaj vendosja e çdo seksioni si HTML i rishikueshëm."
@@ -4995,6 +5055,9 @@ msgstr "Referencë e shpejtë Liquid"
 msgid "List"
 msgstr "Listë"
 
+msgid "List rows in reading order, where they can be moved"
+msgstr "Rendit rreshtat sipas rendit të leximit, ku mund të zhvendosen"
+
 msgid "list_item"
 msgstr "list_item"
 
@@ -5147,6 +5210,9 @@ msgstr "Duke ngarkuar katalogun e tekstit..."
 
 msgid "Loading text sizes…"
 msgstr "Po ngarkohen madhësitë e tekstit…"
+
+msgid "Loading the book order…"
+msgstr "Po ngarkohet rendi i librit…"
 
 msgid "Loading TTS normalization..."
 msgstr "Po ngarkohet normalizimi TTS..."
@@ -5548,8 +5614,22 @@ msgstr "Më i përdorur"
 msgid "Move down"
 msgstr "Zhvendos poshtë"
 
+#~ msgid "Move this page"
+#~ msgstr "Zhvendos këtë faqe"
+
+#~ msgid "Move to end"
+#~ msgstr "Zhvendos në fund"
+
+#~ msgid "Move to start"
+#~ msgstr "Zhvendos në fillim"
+
 msgid "Move up"
 msgstr "Zhvendos lart"
+
+#. placeholder {0}: String(landed)
+#. placeholder {1}: String(next.length)
+msgid "Moved to position {0} of {1}"
+msgstr "U zhvendos në pozicionin {0} nga {1}"
 
 msgid "Multi-format publications"
 msgstr "Botime me shumë formate"
@@ -6078,6 +6158,9 @@ msgstr "Normalizimi"
 msgid "Normalized"
 msgstr "Normalizuar"
 
+msgid "Not available while the storyboard is running"
+msgstr "I padisponueshëm ndërsa storyboard-i është në ekzekutim"
+
 msgid "Not compatible with Fixed Layout"
 msgstr "I papajtueshëm me Paraqitjen e fiksuar"
 
@@ -6090,8 +6173,15 @@ msgstr "Nuk u gjet në tekstin e librit"
 msgid "Not generated"
 msgstr "Nuk u gjenerua"
 
+msgid "Not in the book yet — the storyboard has not rendered this section"
+msgstr "Ende jo në libër — storyboard-i nuk e ka gjeneruar këtë seksion"
+
 msgid "Not rendered yet"
 msgstr "Nuk u gjenerua ende"
+
+#. placeholder {0}: String(page.pageNumber)
+msgid "Not rendered yet · PDF page {0}"
+msgstr "Nuk u gjenerua ende · faqja {0} e PDF-së"
 
 msgid "Not reviewed"
 msgstr "Nuk u rishikua"
@@ -6518,6 +6608,11 @@ msgstr "Titujt e faqes {0}"
 msgid "Page {0} of {1}"
 msgstr "Faqja {0} nga {1}"
 
+#. placeholder {0}: String(bookPosition)
+#. placeholder {0}: String(position)
+msgid "Page {0} of the book"
+msgstr "Faqja {0} e librit"
+
 msgid "Page {n}"
 msgstr "Faqja {n}"
 
@@ -6535,6 +6630,9 @@ msgstr "Faqja {pageNum}"
 
 msgid "page {shownStr}"
 msgstr "faqja {shownStr}"
+
+msgid "Page actions"
+msgstr "Veprime të faqes"
 
 msgid "Page context"
 msgstr "Konteksti i faqes"
@@ -6557,6 +6655,9 @@ msgstr "Imazhi i faqes"
 msgid "Page image as background with positioned text overlay. Preserves the original page composition; ideal for illustrated storybooks."
 msgstr "Imazhi i faqes si sfond me tekst të pozicionuar sipër. Ruan kompozimin origjinal të faqes; ideal për libra me ilustrime."
 
+#~ msgid "Page in the source PDF"
+#~ msgstr "Faqja në PDF-in origjinal"
+
 msgid "Page Mode"
 msgstr "Modaliteti i Faqes"
 
@@ -6565,6 +6666,9 @@ msgstr "Numri i faqes"
 
 msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
 msgstr "U zbuluan numra faqesh — do të lexohen me zë: {pageNumberPreview}. T'i heshtni të gjitha nga shndërrimi i tekstit në të folur?"
+
+msgid "Page order"
+msgstr "Renditja e faqeve"
 
 msgid "Page preview"
 msgstr "Pamja paraprake e faqes"
@@ -6701,6 +6805,10 @@ msgstr "Ngarkesa"
 msgid "PDF"
 msgstr "PDF"
 
+#. placeholder {0}: String(pageNumber)
+msgid "PDF {0}"
+msgstr "PDF {0}"
+
 msgid "PDF accepted"
 msgstr "PDF pranuar"
 
@@ -6712,6 +6820,13 @@ msgstr "Skedar PDF"
 
 msgid "PDF info"
 msgstr "Informacioni PDF"
+
+msgid "PDF order"
+msgstr "Rendi i PDF-së"
+
+#. placeholder {0}: String(pageNumber)
+msgid "PDF page {0}"
+msgstr "Faqja {0} e PDF-it"
 
 msgid "PDF page {pageLabel} preview"
 msgstr "Pamja paraprake e faqes PDF {pageLabel}"
@@ -6902,6 +7017,12 @@ msgstr "Pozicioni"
 #. placeholder {3}: Math.round(bounds.height)
 msgid "Position {0}, {1} → {2}×{3} pt"
 msgstr "Pozicioni {0}, {1} → {2}×{3} pt"
+
+#~ msgid "Position in the book"
+#~ msgstr "Pozicioni në libër"
+
+msgid "Position in the book, which differs from the source PDF page once pages are reordered"
+msgstr "Pozicioni në libër, që ndryshon nga faqja e PDF-it origjinal pasi faqet riorganizohen"
 
 #. placeholder {0}: b.pr
 msgid "PR #{0}"
@@ -7151,8 +7272,8 @@ msgid "Quiz {0}"
 msgstr "Kuiz {0}"
 
 #. placeholder {0}: page.pageNumber
-msgid "Quiz after page {0}"
-msgstr "Kuiz pas faqes {0}"
+#~ msgid "Quiz after page {0}"
+#~ msgstr "Kuiz pas faqes {0}"
 
 msgid "Quiz frequency"
 msgstr "Frekuenca e kuizit"
@@ -7328,6 +7449,12 @@ msgstr "Libra të vërtetë të procesuar me këtë paracaktim — para dhe pas.
 msgid "Realistic / Photo"
 msgstr "Realist / Foto"
 
+msgid "Rearrange"
+msgstr "Riorganizo"
+
+msgid "Rearrange pages by dragging. Each page's menu can move it without this."
+msgstr "Riorganizo faqet duke i tërhequr. Menyja e secilës faqe mund ta zhvendosë edhe pa këtë."
+
 msgid "Rearranging atoms of HTML..."
 msgstr "Duke riorganizuar atomet e HTML-it..."
 
@@ -7461,6 +7588,9 @@ msgstr "Hiq skedarin"
 msgid "Remove font {0}"
 msgstr "Hiq fontin {0}"
 
+msgid "Remove from book"
+msgstr "Hiq nga libri"
+
 msgid "Remove from group"
 msgstr "Hiq nga grupi"
 
@@ -7509,6 +7639,13 @@ msgstr "hequr"
 
 msgid "Removed"
 msgstr "Hequr"
+
+msgid "Removed from the book"
+msgstr "Hequr nga libri"
+
+#. placeholder {0}: String(page.pageNumber)
+msgid "Removed from the book · PDF page {0}"
+msgstr "Hequr nga libri · faqja {0} e PDF-it"
 
 msgid "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
 msgstr "Renderoni çdo seksion të shtypur në një faqe HTML interaktive. Zgjidhni një strategji paraqitjeje që përshtatet me librin dhe lini storyboard-in të kujdeset për pjesën tjetër."
@@ -7785,6 +7922,9 @@ msgstr "Rrotullo 90° në kahun kundërorar"
 
 msgid "Row"
 msgstr "Rresht"
+
+msgid "Row order"
+msgstr "Rendi i rreshtave"
 
 msgid "Row reverse"
 msgstr "Rresht i anasjelltë"
@@ -8145,12 +8285,11 @@ msgstr "Seksioni {0} — {1}"
 
 #. placeholder {0}: section.sectionIndex + 1
 #. placeholder {1}: section.sectionType
-msgid "Section {0} · {1}"
-msgstr "Seksioni {0} · {1}"
+#~ msgid "Section {0} · {1}"
+#~ msgstr "Seksioni {0} · {1}"
 
 #. placeholder {0}: String(i + 1)
 #. placeholder {0}: i + 1
-#. placeholder {0}: section.sectionIndex + 1
 msgid "Section {0} (pruned)"
 msgstr "Seksioni {0} (i shkurtuar)"
 
@@ -8847,6 +8986,9 @@ msgstr "Pamja paraprake e aktivitetit hap pas hapi"
 
 msgid "Steps"
 msgstr "Hapat"
+
+msgid "Stop rearranging. Each page's menu can still move it."
+msgstr "Ndalo riorganizimin. Menyja e secilës faqe mund ta zhvendosë përsëri."
 
 msgid "Stop step"
 msgstr "Ndalo hapin"

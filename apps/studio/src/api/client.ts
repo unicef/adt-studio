@@ -486,6 +486,37 @@ export interface QuizzesResponse {
   version: number | null
 }
 
+// --- Reading order types ---
+
+/** One entry of the stored order: what to show, identified by its stable id. */
+export interface ReadingOrderEntry {
+  kind: "section" | "quiz"
+  id: string
+}
+
+export interface ReadingOrderItem extends ReadingOrderEntry {
+  href: string
+  /** 1-based position in the output. */
+  position: number
+  /** Owning source page (a quiz reports its anchor). Provenance, not position. */
+  pageId: string
+  /** Printed page number from the source PDF, when known. */
+  pageNumber: number | null
+}
+
+export interface ReadingOrderResponse {
+  version: number | null
+  fromStoredOrder: boolean
+  /** The book changed under a saved order — ids were added and/or dropped. */
+  reconciled: boolean
+  added: string[]
+  dropped: string[]
+  /** Output sequence, excluding items not rendered (pruned). */
+  items: ReadingOrderItem[]
+  /** Full order including excluded items, each keeping its slot. */
+  order: ReadingOrderEntry[]
+}
+
 // --- Text Catalog types ---
 
 export interface TextCatalogEntry {
@@ -1644,6 +1675,21 @@ export const api = {
 
   getQuizzes: (label: string) =>
     request<QuizzesResponse>(`/books/${label}/quizzes`),
+
+  getReadingOrder: (label: string) =>
+    request<ReadingOrderResponse>(`/books/${label}/reading-order`),
+
+  /** Save an explicit page order. Must be a permutation of the current items;
+   *  pass `expectedVersion` so a concurrent save 409s instead of clobbering. */
+  updateReadingOrder: (
+    label: string,
+    items: ReadingOrderEntry[],
+    expectedVersion: number | null,
+  ) =>
+    request<{ version: number }>(`/books/${label}/reading-order`, {
+      method: "PUT",
+      body: JSON.stringify({ items, expectedVersion }),
+    }),
 
   updateQuizzes: (label: string, data: unknown) =>
     request<{ version: number }>(`/books/${label}/quizzes`, {

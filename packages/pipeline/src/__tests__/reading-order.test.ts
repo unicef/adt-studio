@@ -3,7 +3,8 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { createBookStorage, type Storage } from "@adt/storage"
-import { resolveReadingOrder, toPageEntry } from "../reading-order.js"
+import { resolveReadingOrder, toPageEntry, readingOrderPageIds } from "../reading-order.js"
+import { READING_ORDER_NODE, READING_ORDER_ITEM_ID } from "@adt/types"
 
 describe("reading-order resolver", () => {
   const tmpDirs: string[] = []
@@ -208,6 +209,57 @@ describe("reading-order resolver", () => {
     }
   })
 
+  it("keeps a pruned section's slot after a storyboard re-run drops its rendering", () => {
+    const storage = makeStorage()
+    try {
+      seedTwoPages(storage)
+      storage.putNodeData("page-sectioning", "pg001", {
+        reasoning: "",
+        sections: [section("pg001", 1, { isPruned: true }), section("pg001", 2)],
+      })
+      // `web-rendering` emits nothing for a pruned section, so re-running the
+      // storyboard leaves page one with a single rendered entry. The slot must
+      // survive that: without it the sidebar has no row for the section and the
+      // user can never put it back in the book.
+      storage.putNodeData("web-rendering", "pg001", rendering(1))
+
+      const { order, items } = resolveReadingOrder(storage)
+
+      expect(order.map((entry) => entry.id)).toEqual([
+        "pg001_sec001",
+        "pg001_sec002",
+        "pg002_sec001",
+        "pg002_sec002",
+      ])
+      // Still out of the output, and still in its original slot.
+      expect(items.map((item) => item.id)).not.toContain("pg001_sec001")
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("keeps the slot of a section the storyboard rendered nothing for", () => {
+    const storage = makeStorage()
+    try {
+      seedTwoPages(storage)
+      // Rendering skips sections with no renderable content too, so an empty
+      // section reaches the same state as a pruned one without being pruned.
+      storage.putNodeData("web-rendering", "pg001", rendering(1))
+
+      const { order, items } = resolveReadingOrder(storage)
+
+      expect(order.map((entry) => entry.id)).toContain("pg001_sec002")
+      // No HTML to ship, so it is not an output page.
+      expect(items.map((item) => item.id)).toEqual([
+        "pg001_sec001",
+        "pg002_sec001",
+        "pg002_sec002",
+      ])
+    } finally {
+      storage.close()
+    }
+  })
+
   it("skips rendering entries with no matching sectioning row", () => {
     const storage = makeStorage()
     try {
@@ -270,6 +322,64 @@ describe("reading-order resolver", () => {
     } finally {
       storage.close()
     }
+  })
+
+  describe("readingOrderPageIds", () => {
+    it("lists source pages in the order the reader meets them", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+          schemaVersion: 1,
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          items: [
+            { kind: "section", id: "pg002_sec001" },
+            { kind: "section", id: "pg002_sec002" },
+            { kind: "section", id: "pg001_sec001" },
+            { kind: "section", id: "pg001_sec002" },
+          ],
+        })
+
+        // Quiz batching groups "every N pages", so it has to count pages the way
+        // the reader meets them — source order would batch pg001 with pg002 in
+        // the wrong direction and anchor each quiz at an arbitrary position.
+        expect(readingOrderPageIds(resolveReadingOrder(storage))).toEqual(["pg002", "pg001"])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("lists a page once, at its first section", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        // Interleaved: page one's sections straddle page two's.
+        storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+          schemaVersion: 1,
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          items: [
+            { kind: "section", id: "pg001_sec001" },
+            { kind: "section", id: "pg002_sec001" },
+            { kind: "section", id: "pg001_sec002" },
+            { kind: "section", id: "pg002_sec002" },
+          ],
+        })
+
+        expect(readingOrderPageIds(resolveReadingOrder(storage))).toEqual(["pg001", "pg002"])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("falls back to source order when nothing has been reordered", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        expect(readingOrderPageIds(resolveReadingOrder(storage))).toEqual(["pg001", "pg002"])
+      } finally {
+        storage.close()
+      }
+    })
   })
 
   it("numbers positions 1-based over the emitted items only", () => {

@@ -40,6 +40,11 @@ msgstr ", and "
 msgid "? This will remove all extracted data and cannot be undone."
 msgstr "? This will remove all extracted data and cannot be undone."
 
+#. placeholder {0}: String(sectionIndex + 1)
+#. placeholder {1}: String(sectionCount)
+msgid "· part {0} of {1}"
+msgstr "· part {0} of {1}"
+
 msgid "\"A landscape forged by fire.\""
 msgstr "\"A landscape forged by fire.\""
 
@@ -239,6 +244,7 @@ msgid "{0} of {1} pages had no extracted text"
 msgstr "{0} of {1} pages had no extracted text"
 
 #. placeholder {0}: String(displayPages.length)
+#. placeholder {0}: String(items.length)
 #. placeholder {0}: book.pageCount
 msgid "{0} pages"
 msgstr "{0} pages"
@@ -943,6 +949,9 @@ msgstr "Add at least one output language to run translation."
 msgid "Add author"
 msgstr "Add author"
 
+msgid "Add back to book"
+msgstr "Add back to book"
+
 msgid "Add book"
 msgstr "Add book"
 
@@ -1148,6 +1157,9 @@ msgstr "Adventure Tales - Vol. 1"
 msgid "Affected pages"
 msgstr "Affected pages"
 
+#~ msgid "after"
+#~ msgstr "after"
+
 msgid "After"
 msgstr "After"
 
@@ -1155,7 +1167,6 @@ msgstr "After"
 msgid "After {0}"
 msgstr "After {0}"
 
-#. placeholder {0}: String(pageNumber)
 #. placeholder {0}: afterPage.pageNumber
 msgid "after page {0}"
 msgstr "after page {0}"
@@ -1166,9 +1177,17 @@ msgstr "After page {afterNumber}"
 msgid "After page {placement}"
 msgstr "After page {placement}"
 
+#. placeholder {0}: String(pageNumber)
+msgid "after PDF {0}"
+msgstr "after PDF {0}"
+
+#. placeholder {0}: String(pageNumber)
+msgid "after PDF page {0}"
+msgstr "after PDF page {0}"
+
 #. placeholder {0}: String(page.pageNumber)
-msgid "after pg {0}"
-msgstr "after pg {0}"
+#~ msgid "after pg {0}"
+#~ msgstr "after pg {0}"
 
 #~ msgid "age 8"
 #~ msgstr "age 8"
@@ -1479,8 +1498,8 @@ msgstr "Are you sure you want to delete generated speech?"
 msgid "Are you sure you want to delete this image? This action cannot be undone."
 msgstr "Are you sure you want to delete this image? This action cannot be undone."
 
-msgid "Are you sure you want to delete this section? This action cannot be undone."
-msgstr "Are you sure you want to delete this section? This action cannot be undone."
+#~ msgid "Are you sure you want to delete this section? This action cannot be undone."
+#~ msgstr "Are you sure you want to delete this section? This action cannot be undone."
 
 msgid "Are you sure you want to generate word-level timestamps for {langDisplay}?"
 msgstr "Are you sure you want to generate word-level timestamps for {langDisplay}?"
@@ -1800,11 +1819,39 @@ msgstr "Book Outline"
 msgid "Book package ready"
 msgstr "Book package ready"
 
+#. placeholder {0}: String(position)
+msgid "Book page {0}"
+msgstr "Book page {0}"
+
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(page.pageNumber)
+msgid "Book page {0} · PDF page {1}"
+msgstr "Book page {0} · PDF page {1}"
+
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(page.pageNumber)
+#. placeholder {2}: section.sectionType
+msgid "Book page {0} · PDF page {1} · {2}"
+msgstr "Book page {0} · PDF page {1} · {2}"
+
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(page.pageNumber)
+#~ msgid "Book page {0} · PDF page {1} (pruned)"
+#~ msgstr "Book page {0} · PDF page {1} (pruned)"
+
+#. placeholder {0}: String(position ?? "–")
+#. placeholder {1}: String(page.pageNumber)
+msgid "Book page {0} · quiz after PDF page {1}"
+msgstr "Book page {0} · quiz after PDF page {1}"
+
 msgid "Book pages. Scroll horizontally to see more."
 msgstr "Book pages. Scroll horizontally to see more."
 
 msgid "Book part"
 msgstr "Book part"
+
+msgid "Book pg"
+msgstr "Book pg"
 
 msgid "Book preview"
 msgstr "Book preview"
@@ -2908,6 +2955,9 @@ msgstr "Delete folder"
 msgid "Delete option"
 msgstr "Delete option"
 
+msgid "Delete permanently"
+msgstr "Delete permanently"
+
 msgid "Delete prompt file?"
 msgstr "Delete prompt file?"
 
@@ -2928,6 +2978,9 @@ msgstr "Delete this quiz"
 
 msgid "Delete this quiz?"
 msgstr "Delete this quiz?"
+
+msgid "Delete this section and its content permanently? This cannot be undone — use \"Remove from book\" instead to hide it while keeping it, and its place, for later."
+msgstr "Delete this section and its content permanently? This cannot be undone — use \"Remove from book\" instead to hide it while keeping it, and its place, for later."
 
 msgid "Delete video"
 msgstr "Delete video"
@@ -3968,6 +4021,10 @@ msgstr "From book"
 msgid "From page"
 msgstr "From page"
 
+#. placeholder {0}: String(pageNumber)
+msgid "From page {0} of the source PDF"
+msgstr "From page {0} of the source PDF"
+
 msgid "From reference image..."
 msgstr "From reference image..."
 
@@ -4269,6 +4326,9 @@ msgstr "Grammar and fluency"
 
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
+
+msgid "Group rows under their source PDF page"
+msgstr "Group rows under their source PDF page"
 
 #~ msgid "Grouping content by purpose, then laying out every section as reviewable HTML."
 #~ msgstr "Grouping content by purpose, then laying out every section as reviewable HTML."
@@ -4995,6 +5055,9 @@ msgstr "Liquid quick reference"
 msgid "List"
 msgstr "List"
 
+msgid "List rows in reading order, where they can be moved"
+msgstr "List rows in reading order, where they can be moved"
+
 msgid "list_item"
 msgstr "list_item"
 
@@ -5147,6 +5210,9 @@ msgstr "Loading text catalog..."
 
 msgid "Loading text sizes…"
 msgstr "Loading text sizes…"
+
+msgid "Loading the book order…"
+msgstr "Loading the book order…"
 
 msgid "Loading TTS normalization..."
 msgstr "Loading TTS normalization..."
@@ -5548,8 +5614,22 @@ msgstr "Most used"
 msgid "Move down"
 msgstr "Move down"
 
+#~ msgid "Move this page"
+#~ msgstr "Move this page"
+
+#~ msgid "Move to end"
+#~ msgstr "Move to end"
+
+#~ msgid "Move to start"
+#~ msgstr "Move to start"
+
 msgid "Move up"
 msgstr "Move up"
+
+#. placeholder {0}: String(landed)
+#. placeholder {1}: String(next.length)
+msgid "Moved to position {0} of {1}"
+msgstr "Moved to position {0} of {1}"
 
 msgid "Multi-format publications"
 msgstr "Multi-format publications"
@@ -6078,6 +6158,9 @@ msgstr "Normalization"
 msgid "Normalized"
 msgstr "Normalized"
 
+msgid "Not available while the storyboard is running"
+msgstr "Not available while the storyboard is running"
+
 msgid "Not compatible with Fixed Layout"
 msgstr "Not compatible with Fixed Layout"
 
@@ -6090,8 +6173,15 @@ msgstr "Not found in the book text"
 msgid "Not generated"
 msgstr "Not generated"
 
+msgid "Not in the book yet — the storyboard has not rendered this section"
+msgstr "Not in the book yet — the storyboard has not rendered this section"
+
 msgid "Not rendered yet"
 msgstr "Not rendered yet"
+
+#. placeholder {0}: String(page.pageNumber)
+msgid "Not rendered yet · PDF page {0}"
+msgstr "Not rendered yet · PDF page {0}"
 
 msgid "Not reviewed"
 msgstr "Not reviewed"
@@ -6518,6 +6608,11 @@ msgstr "Page {0} captions"
 msgid "Page {0} of {1}"
 msgstr "Page {0} of {1}"
 
+#. placeholder {0}: String(bookPosition)
+#. placeholder {0}: String(position)
+msgid "Page {0} of the book"
+msgstr "Page {0} of the book"
+
 msgid "Page {n}"
 msgstr "Page {n}"
 
@@ -6535,6 +6630,9 @@ msgstr "Page {pageNum}"
 
 msgid "page {shownStr}"
 msgstr "page {shownStr}"
+
+msgid "Page actions"
+msgstr "Page actions"
 
 msgid "Page context"
 msgstr "Page context"
@@ -6557,6 +6655,9 @@ msgstr "Page image"
 msgid "Page image as background with positioned text overlay. Preserves the original page composition; ideal for illustrated storybooks."
 msgstr "Page image as background with positioned text overlay. Preserves the original page composition; ideal for illustrated storybooks."
 
+#~ msgid "Page in the source PDF"
+#~ msgstr "Page in the source PDF"
+
 msgid "Page Mode"
 msgstr "Page Mode"
 
@@ -6565,6 +6666,9 @@ msgstr "Page number"
 
 msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
 msgstr "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
+
+msgid "Page order"
+msgstr "Page order"
 
 msgid "Page preview"
 msgstr "Page preview"
@@ -6701,6 +6805,10 @@ msgstr "Payload"
 msgid "PDF"
 msgstr "PDF"
 
+#. placeholder {0}: String(pageNumber)
+msgid "PDF {0}"
+msgstr "PDF {0}"
+
 msgid "PDF accepted"
 msgstr "PDF accepted"
 
@@ -6712,6 +6820,13 @@ msgstr "PDF File"
 
 msgid "PDF info"
 msgstr "PDF info"
+
+msgid "PDF order"
+msgstr "PDF order"
+
+#. placeholder {0}: String(pageNumber)
+msgid "PDF page {0}"
+msgstr "PDF page {0}"
 
 msgid "PDF page {pageLabel} preview"
 msgstr "PDF page {pageLabel} preview"
@@ -6902,6 +7017,12 @@ msgstr "Position"
 #. placeholder {3}: Math.round(bounds.height)
 msgid "Position {0}, {1} → {2}×{3} pt"
 msgstr "Position {0}, {1} → {2}×{3} pt"
+
+#~ msgid "Position in the book"
+#~ msgstr "Position in the book"
+
+msgid "Position in the book, which differs from the source PDF page once pages are reordered"
+msgstr "Position in the book, which differs from the source PDF page once pages are reordered"
 
 #. placeholder {0}: b.pr
 msgid "PR #{0}"
@@ -7151,8 +7272,8 @@ msgid "Quiz {0}"
 msgstr "Quiz {0}"
 
 #. placeholder {0}: page.pageNumber
-msgid "Quiz after page {0}"
-msgstr "Quiz after page {0}"
+#~ msgid "Quiz after page {0}"
+#~ msgstr "Quiz after page {0}"
 
 msgid "Quiz frequency"
 msgstr "Quiz frequency"
@@ -7328,6 +7449,12 @@ msgstr "Real books processed with this preset — before and after."
 msgid "Realistic / Photo"
 msgstr "Realistic / Photo"
 
+msgid "Rearrange"
+msgstr "Rearrange"
+
+msgid "Rearrange pages by dragging. Each page's menu can move it without this."
+msgstr "Rearrange pages by dragging. Each page's menu can move it without this."
+
 msgid "Rearranging atoms of HTML..."
 msgstr "Rearranging atoms of HTML..."
 
@@ -7461,6 +7588,9 @@ msgstr "Remove file"
 msgid "Remove font {0}"
 msgstr "Remove font {0}"
 
+msgid "Remove from book"
+msgstr "Remove from book"
+
 msgid "Remove from group"
 msgstr "Remove from group"
 
@@ -7509,6 +7639,13 @@ msgstr "removed"
 
 msgid "Removed"
 msgstr "Removed"
+
+msgid "Removed from the book"
+msgstr "Removed from the book"
+
+#. placeholder {0}: String(page.pageNumber)
+msgid "Removed from the book · PDF page {0}"
+msgstr "Removed from the book · PDF page {0}"
 
 msgid "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
 msgstr "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
@@ -7785,6 +7922,9 @@ msgstr "Rotate 90° counter-clockwise"
 
 msgid "Row"
 msgstr "Row"
+
+msgid "Row order"
+msgstr "Row order"
 
 msgid "Row reverse"
 msgstr "Row reverse"
@@ -8145,12 +8285,11 @@ msgstr "Section {0} — {1}"
 
 #. placeholder {0}: section.sectionIndex + 1
 #. placeholder {1}: section.sectionType
-msgid "Section {0} · {1}"
-msgstr "Section {0} · {1}"
+#~ msgid "Section {0} · {1}"
+#~ msgstr "Section {0} · {1}"
 
 #. placeholder {0}: String(i + 1)
 #. placeholder {0}: i + 1
-#. placeholder {0}: section.sectionIndex + 1
 msgid "Section {0} (pruned)"
 msgstr "Section {0} (pruned)"
 
@@ -8847,6 +8986,9 @@ msgstr "Step-by-step activity preview"
 
 msgid "Steps"
 msgstr "Steps"
+
+msgid "Stop rearranging. Each page's menu can still move it."
+msgstr "Stop rearranging. Each page's menu can still move it."
 
 msgid "Stop step"
 msgstr "Stop step"

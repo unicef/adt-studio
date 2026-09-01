@@ -416,10 +416,13 @@ export {
 export {
   resolveReadingOrder,
   defaultReadingOrder,
+  reconcileReadingOrder,
+  readingOrderPageIds,
   toPageEntry,
   readingOrderHref,
   type ResolvedItem,
   type ResolvedReadingOrder,
+  type ReconcileResult,
   type PageEntry,
 } from "./reading-order.js"
 export {

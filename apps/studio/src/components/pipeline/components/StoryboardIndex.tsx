@@ -3,14 +3,27 @@ import { createPortal } from "react-dom"
 import { useNavigate } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react"
+import { useLingui as useLinguiMacro } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
-import { AlertTriangle, ArrowLeftRight, CheckCircle2, EyeOff, FileText, HelpCircle, Loader2, Monitor, Puzzle } from "lucide-react"
+import { AlertTriangle, ArrowDown, ArrowLeftRight, ArrowUp, CheckCircle2, Eye, EyeOff, FileText, GripVertical, HelpCircle, Loader2, Monitor, MoreHorizontal, Puzzle } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { getSectionScreenshotUrl, type PageSummaryItem, type PageSummarySection } from "@/api/client"
+import { useQueryClient } from "@tanstack/react-query"
+import { ActionMenu } from "@/components/ui/action-menu"
+import { VersionPicker } from "./VersionPicker"
 import { STAGES } from "../stage-config"
+import {
+  useReadingOrder,
+  useSaveReadingOrder,
+  moveReadingOrderItem,
+  moveReadingOrderRow,
+  readingOrderKey,
+} from "@/hooks/use-reading-order"
+import { useTogglePrune } from "@/hooks/use-toggle-prune"
+import { announceToScreenReader } from "@/lib/aria-live"
 import { resolveQuizId, type Quiz } from "@adt/types"
 
 /**
@@ -34,39 +47,119 @@ export function StoryboardIndex({
 }) {
   const { data: pages } = usePages(bookLabel)
   const { data: quizzesData } = useQuizzes(bookLabel)
+  const { data: readingOrder } = useReadingOrder(bookLabel)
+  const saveOrder = useSaveReadingOrder(bookLabel)
   const navigate = useNavigate()
   const parentRef = useRef<HTMLDivElement>(null)
   const storyboardStageDef = STAGES.find((s) => s.slug === "storyboard")
+  const { t } = useLinguiMacro()
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [dropTarget, setDropTarget] = useState<{ index: number; after: boolean } | null>(null)
+  /**
+   * Dragging is off until asked for. The page list is primarily something you
+   * click through, and a drag that starts by accident silently rewrites the
+   * book's order — so rearranging by mouse is a mode you enter deliberately.
+   * Each row's menu can always move it, with no mode to remember.
+   */
+  const [dragEnabled, setDragEnabled] = useState(false)
+  const togglePrune = useTogglePrune(bookLabel)
+  const queryClient = useQueryClient()
+  const canReorder = !stageRunning
+  const dragActive = dragEnabled && canReorder
 
+  /**
+   * HTML5 drag does not scroll an `overflow-y-auto` container, so a drag can't
+   * reach a target that is off-screen. Nudge the list when the pointer nears
+   * either edge.
+   */
+  const autoScroll = useCallback((clientY: number) => {
+    const el = parentRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const zone = 48
+    if (clientY < rect.top + zone) el.scrollTop -= 12
+    else if (clientY > rect.bottom - zone) el.scrollTop += 12
+  }, [])
+
+  // The list *is* the reading order — the server resolves it, so the sidebar,
+  // the live preview and every export agree by construction rather than by
+  // separate walks being kept in step.
+  //
+  // Built from the FULL order, not just the rendered items: a page removed from
+  // the book keeps its slot here, greyed out, so the user can see where it sits
+  // and put it back. Only rendered pages take a book-page number, so the
+  // numbering the reader sees is unaffected by what has been removed.
   const items = useMemo<StoryboardListItem[]>(() => {
-    if (!pages) return []
-    // Resolve each quiz's stable id from its position in the stored array —
-    // the only place that position is meaningful — and carry it from here on.
-    const quizzesByAfterPageId = new Map<string, Array<{ quiz: Quiz; quizId: string }>>()
-    ;(quizzesData?.quizzes?.quizzes ?? []).forEach((q, i) => {
-      const list = quizzesByAfterPageId.get(q.afterPageId) ?? []
-      list.push({ quiz: q, quizId: resolveQuizId(q, i) })
-      quizzesByAfterPageId.set(q.afterPageId, list)
+    if (!pages || !readingOrder) return []
+
+    const sectionById = new Map<string, { page: PageSummaryItem; section: PageSummarySection }>()
+    for (const page of pages) {
+      for (const section of page.sections) sectionById.set(section.sectionId, { page, section })
+    }
+    const quizById = new Map<string, { quiz: Quiz; page: PageSummaryItem }>()
+    const pageById = new Map(pages.map((page) => [page.pageId, page]))
+    ;(quizzesData?.quizzes?.quizzes ?? []).forEach((quiz, i) => {
+      const page = pageById.get(quiz.afterPageId)
+      if (page) quizById.set(resolveQuizId(quiz, i), { quiz, page })
     })
 
-    const out: StoryboardListItem[] = []
-    for (const page of pages) {
-      for (const section of page.sections) {
-        out.push({
-          kind: "section",
-          page,
-          section,
-        })
+    const rendered = new Set(readingOrder.items.map((item) => item.id))
+    let bookPage = 0
+    return readingOrder.order.flatMap<StoryboardListItem>((entry) => {
+      const position = rendered.has(entry.id) ? ++bookPage : null
+      if (entry.kind === "quiz") {
+        const hit = quizById.get(entry.id)
+        return hit
+          ? [{ kind: "quiz", page: hit.page, quiz: hit.quiz, quizId: entry.id, position }]
+          : []
       }
-      const quizzes = quizzesByAfterPageId.get(page.pageId)
-      if (quizzes) {
-        for (const { quiz, quizId } of quizzes) {
-          out.push({ kind: "quiz", page, quiz, quizId })
-        }
-      }
-    }
-    return out
-  }, [pages, quizzesData])
+      const hit = sectionById.get(entry.id)
+      return hit ? [{ kind: "section", page: hit.page, section: hit.section, position }] : []
+    })
+  }, [pages, quizzesData, readingOrder])
+
+  /** Move `id` so it lands at `toIndex` of the list, then save. */
+  const moveTo = useCallback(
+    (id: string, toIndex: number) => {
+      if (!readingOrder) return
+      // Rows mirror the stored order, but an id the sidebar cannot resolve is
+      // skipped, so the target is anchored on the row at that index rather than
+      // used as a raw offset.
+      const anchor = items[Math.max(0, Math.min(toIndex, items.length))]
+      const target = anchor
+        ? readingOrder.order.findIndex((entry) => entry.id === itemIdOf(anchor))
+        : readingOrder.order.length
+      if (target < 0) return
+
+      const next = moveReadingOrderItem(readingOrder.order, id, target)
+      if (next.every((entry, i) => entry.id === readingOrder.order[i]?.id)) return
+
+      const landed = next.findIndex((entry) => entry.id === id) + 1
+      announceToScreenReader(
+        t`Moved to position ${String(landed)} of ${String(next.length)}`,
+      )
+
+      saveOrder.mutate({ items: next, expectedVersion: readingOrder.version })
+    },
+    [readingOrder, items, saveOrder, t],
+  )
+
+  /** Step a row up or down. Shared with the overview's book-order view. */
+  const moveBy = useCallback(
+    (id: string, delta: number) => {
+      if (!readingOrder) return
+      const next = moveReadingOrderRow(readingOrder.order, items.map(itemIdOf), id, delta)
+      if (!next) return
+
+      const landed = next.findIndex((entry) => entry.id === id) + 1
+      announceToScreenReader(
+        t`Moved to position ${String(landed)} of ${String(next.length)}`,
+      )
+      saveOrder.mutate({ items: next, expectedVersion: readingOrder.version })
+    },
+    [readingOrder, items, saveOrder, t],
+  )
+
 
   const selectedItemIndex = useMemo(() => {
     if (!selectedPageId || sectionIndex == null) return -1
@@ -128,7 +221,56 @@ export function StoryboardIndex({
   }
 
   return (
-    <div ref={parentRef} className="flex-1 overflow-y-auto">
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="shrink-0 flex items-center justify-between gap-2 px-2 py-1.5 border-b">
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          <Trans>{String(items.length)} pages</Trans>
+        </span>
+        <div className="flex items-center gap-1">
+          {/* Page order is a book-level entity, so its history belongs beside
+              the list rather than on any one page — and next to the control
+              that changes it, which is where someone looking to undo a
+              rearrange will look. */}
+          <VersionPicker
+            step="reading-order"
+            itemId="book"
+            bookLabel={bookLabel}
+            currentVersion={readingOrder?.version ?? null}
+            // Reordering saves on drop, so there is never a pending edit to
+            // hold or discard; this is history and rollback only.
+            saving={false}
+            dirty={false}
+            onDiscard={() => {}}
+            onRestored={() => {
+              void queryClient.invalidateQueries({ queryKey: readingOrderKey(bookLabel) })
+            }}
+          />
+          <button
+            type="button"
+            disabled={!canReorder}
+            aria-pressed={dragActive}
+            onClick={() => setDragEnabled((on) => !on)}
+            title={
+              canReorder
+                ? dragActive
+                  ? t`Stop rearranging. Each page's menu can still move it.`
+                  : t`Rearrange pages by dragging. Each page's menu can move it without this.`
+                : t`Not available while the storyboard is running`
+            }
+            className={cn(
+              "inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10px] font-medium transition-colors",
+              !canReorder && "opacity-40 cursor-not-allowed",
+              dragActive
+                ? "bg-violet-600 text-white"
+                : "bg-muted text-muted-foreground hover:bg-muted/80",
+            )}
+          >
+            <GripVertical className="h-3 w-3" />
+            <Trans>Rearrange</Trans>
+          </button>
+        </div>
+      </div>
+      <div ref={parentRef} className="flex-1 overflow-y-auto">
       <div
         style={{
           height: virtualizer.getTotalSize(),
@@ -138,11 +280,13 @@ export function StoryboardIndex({
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const item = items[virtualRow.index]
+          const itemId = itemIdOf(item)
           const isActive =
             item.kind === "section"
               ? item.page.pageId === selectedPageId &&
                 item.section.sectionIndex === (sectionIndex ?? 0)
               : item.quizId === selectedQuizId
+          const isDragging = dragId === itemId
           return (
             <div
               key={
@@ -152,6 +296,60 @@ export function StoryboardIndex({
               }
               data-index={virtualRow.index}
               ref={virtualizer.measureElement}
+              // Rows are absolutely positioned by the virtualizer and unmount
+              // when scrolled away, so the tree editor's standalone drop-zone
+              // slivers can't be reused. Each row is its own drop target and
+              // decides "before" or "after" from the pointer's position within
+              // it, drawn as a border on the matching edge.
+              draggable={dragActive}
+              onDragStart={(e) => {
+                if (!dragActive) {
+                  e.preventDefault()
+                  return
+                }
+                e.dataTransfer.effectAllowed = "move"
+                e.dataTransfer.setData(READING_ORDER_DRAG_TYPE, itemId)
+                // Defer the state change: a synchronous re-render can replace
+                // the dragged node and make some browsers abort the drag
+                // before the first dragover fires.
+                requestAnimationFrame(() => setDragId(itemId))
+              }}
+              onDragEnd={() => {
+                setDragId(null)
+                setDropTarget(null)
+              }}
+              onDragOver={(e) => {
+                if (!dragActive) return
+                if (!e.dataTransfer.types.includes(READING_ORDER_DRAG_TYPE)) return
+                e.preventDefault()
+                e.dataTransfer.dropEffect = "move"
+                const rect = e.currentTarget.getBoundingClientRect()
+                const after = e.clientY > rect.top + rect.height / 2
+                setDropTarget({ index: virtualRow.index, after })
+                autoScroll(e.clientY)
+              }}
+              onDrop={(e) => {
+                if (!dragActive) return
+                if (!e.dataTransfer.types.includes(READING_ORDER_DRAG_TYPE)) return
+                e.preventDefault()
+                const sourceId = e.dataTransfer.getData(READING_ORDER_DRAG_TYPE)
+                const rect = e.currentTarget.getBoundingClientRect()
+                const after = e.clientY > rect.top + rect.height / 2
+                setDragId(null)
+                setDropTarget(null)
+                if (sourceId) moveTo(sourceId, virtualRow.index + (after ? 1 : 0))
+              }}
+              onKeyDown={(e) => {
+                // Alt-modified, so it cannot fire from ordinary list navigation.
+                if (!e.altKey || !canReorder) return
+                if (e.key === "ArrowUp") {
+                  e.preventDefault()
+                  moveBy(itemId, -1)
+                } else if (e.key === "ArrowDown") {
+                  e.preventDefault()
+                  moveBy(itemId, 1)
+                }
+              }}
               style={{
                 position: "absolute",
                 top: 0,
@@ -159,12 +357,21 @@ export function StoryboardIndex({
                 width: "100%",
                 transform: `translateY(${virtualRow.start}px)`,
               }}
+              className={cn(
+                "group relative border-y border-transparent",
+                dragActive && "cursor-grab",
+                isDragging && "opacity-40",
+                dropTarget?.index === virtualRow.index &&
+                  !isDragging &&
+                  (dropTarget.after ? "border-b-primary" : "border-t-primary"),
+              )}
             >
               {item.kind === "section" ? (
                 <SectionRow
                   bookLabel={bookLabel}
                   page={item.page}
                   section={item.section}
+                  position={item.position}
                   isActive={isActive}
                   activeColor={storyboardStageDef?.bgLight}
                   activeText={storyboardStageDef?.textColor}
@@ -178,21 +385,178 @@ export function StoryboardIndex({
                   bookLabel={bookLabel}
                   page={item.page}
                   quiz={item.quiz}
+                  position={item.position}
                   isActive={isActive}
                   onSelect={() => handleQuizClick(item.quizId)}
                 />
               )}
+              {/* Sits over the row rather than inside it: the row is itself a
+                  button, and a button cannot contain another one. */}
+              <div
+                // Stays visible while its own menu is open — the trigger carries
+                // `data-state="open"`, so this needs no state of its own.
+                className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-data-[state=open]:opacity-100"
+                // Keep menu clicks from selecting the row underneath, and from
+                // being read as the start of a drag.
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                draggable={false}
+                onDragStart={(e) => e.preventDefault()}
+              >
+                <RowActionsMenu
+                  canMoveUp={virtualRow.index > 0}
+                  canMoveDown={virtualRow.index < items.length - 1}
+                  disabled={!canReorder || togglePrune.isPending}
+                  isRemoved={item.kind === "section" ? item.section.isPruned : false}
+                  // Quizzes have no removed state of their own yet, so the
+                  // action is offered only for sections.
+                  canRemove={item.kind === "section"}
+                  onMoveUp={() => moveBy(itemId, -1)}
+                  onMoveDown={() => moveBy(itemId, 1)}
+                  onToggleRemoved={() => {
+                    if (item.kind !== "section") return
+                    togglePrune.mutate({
+                      pageId: item.page.pageId,
+                      sectionIndex: item.section.sectionIndex,
+                    })
+                  }}
+                />
+              </div>
             </div>
           )
         })}
+      </div>
       </div>
     </div>
   )
 }
 
-type StoryboardListItem =
+/**
+ * Per-row menu — how a page is moved without entering drag mode, and how it is
+ * taken out of the book or put back.
+ */
+function RowActionsMenu({
+  canMoveUp,
+  canMoveDown,
+  disabled,
+  isRemoved,
+  canRemove,
+  onMoveUp,
+  onMoveDown,
+  onToggleRemoved,
+}: {
+  canMoveUp: boolean
+  canMoveDown: boolean
+  disabled: boolean
+  isRemoved: boolean
+  canRemove: boolean
+  onMoveUp: () => void
+  onMoveDown: () => void
+  onToggleRemoved: () => void
+}) {
+  const { t } = useLinguiMacro()
+  return (
+    <ActionMenu
+      trigger={<MoreHorizontal className="h-3.5 w-3.5" />}
+      triggerClassName="p-0.5 rounded bg-background/90 ring-1 ring-border hover:bg-accent transition-colors cursor-pointer"
+      triggerDisabled={disabled}
+      triggerAriaLabel={t`Page actions`}
+      menuClassName="min-w-[170px]"
+      align="right"
+      note={
+        disabled ? (
+          <p className="px-3 py-1.5 text-[10px] text-muted-foreground italic">
+            {t`Not available while the storyboard is running`}
+          </p>
+        ) : undefined
+      }
+      items={[
+        {
+          icon: ArrowUp,
+          label: t`Move up`,
+          onClick: onMoveUp,
+          disabled: !canMoveUp,
+        },
+        {
+          icon: ArrowDown,
+          label: t`Move down`,
+          onClick: onMoveDown,
+          disabled: !canMoveDown,
+        },
+        { separator: true },
+        {
+          icon: isRemoved ? Eye : EyeOff,
+          label: isRemoved ? t`Add back to book` : t`Remove from book`,
+          onClick: onToggleRemoved,
+          hidden: !canRemove,
+        },
+      ]}
+    />
+  )
+}
+
+type StoryboardListItem = { position: number | null } & (
   | { kind: "section"; page: PageSummaryItem; section: PageSummarySection }
   | { kind: "quiz"; page: PageSummaryItem; quiz: Quiz; quizId: string }
+)
+
+/** Custom MIME type so the list only accepts its own rows, not arbitrary drags. */
+export const READING_ORDER_DRAG_TYPE = "application/x-adt-reading-order"
+
+/**
+ * The row's two numbers, which are different things and stop agreeing as soon
+ * as the book is reordered: where the page sits in the book (the filled chip,
+ * first, because it is the order the reader meets it in) and where it came from
+ * in the PDF. The `PDF` prefix is what makes the second unambiguous — this line
+ * is only a few characters wide, so the word does the work a tooltip alone
+ * cannot.
+ */
+function RowPosition({
+  position,
+  pageNumber,
+  kind,
+  isRemoved,
+}: {
+  /**
+   * null when the page has no book page — either the user removed it, or the
+   * storyboard rendered nothing for it (a section with no renderable content).
+   */
+  position: number | null
+  pageNumber: number
+  /** A quiz sits *after* a source page rather than coming from one. */
+  kind: "section" | "quiz"
+  /** Distinguishes the two reasons a position can be missing. */
+  isRemoved?: boolean
+}) {
+  const { t } = useLinguiMacro()
+  return (
+    <>
+      <span
+        data-testid="book-page"
+        title={
+          position !== null
+            ? t`Page ${String(position)} of the book`
+            : isRemoved
+              ? t`Removed from the book`
+              : t`Not in the book yet — the storyboard has not rendered this section`
+        }
+        className="inline-flex items-center justify-center min-w-[15px] h-[13px] px-0.5 rounded bg-foreground/10 text-[9px] font-semibold leading-none tabular-nums"
+      >
+        {position ?? "–"}
+      </span>
+      <span title={t`From page ${String(pageNumber)} of the source PDF`} className="ml-1">
+        {/* One whole message per case rather than a translated word glued onto
+            a number — word order around "PDF" differs by language. */}
+        {kind === "quiz" ? t`after PDF ${String(pageNumber)}` : t`PDF ${String(pageNumber)}`}
+      </span>
+    </>
+  )
+}
+
+/** The row's stable output id — what the reading order is expressed in. */
+function itemIdOf(item: StoryboardListItem): string {
+  return item.kind === "section" ? item.section.sectionId : item.quizId
+}
 
 /* ---------- SectionRow ---------- */
 
@@ -200,6 +564,7 @@ function SectionRow({
   bookLabel,
   page,
   section,
+  position,
   isActive,
   activeColor,
   activeText,
@@ -209,6 +574,7 @@ function SectionRow({
   bookLabel: string
   page: PageSummaryItem
   section: PageSummarySection
+  position: number | null
   isActive: boolean
   activeColor?: string
   activeText?: string
@@ -216,6 +582,7 @@ function SectionRow({
   stageRunning?: boolean
 }) {
   const { i18n } = useLingui()
+  const { t } = useLinguiMacro()
   const { data: pageImageData, isLoading: pageImageLoading } = usePageImage(bookLabel, page.pageId)
   const rowRef = useRef<HTMLButtonElement>(null)
 
@@ -249,10 +616,12 @@ function SectionRow({
       onMouseLeave={hover.handleLeave}
       title={
         section.isPruned
-          ? i18n._(msg`Section ${section.sectionIndex + 1} (pruned)`)
-          : section.sectionType
-            ? i18n._(msg`Section ${section.sectionIndex + 1} · ${section.sectionType}`)
-            : i18n._(msg`Section ${section.sectionIndex + 1}`)
+          ? t`Removed from the book · PDF page ${String(page.pageNumber)}`
+          : position === null
+            ? t`Not rendered yet · PDF page ${String(page.pageNumber)}`
+            : section.sectionType
+              ? t`Book page ${String(position)} · PDF page ${String(page.pageNumber)} · ${section.sectionType}`
+              : t`Book page ${String(position)} · PDF page ${String(page.pageNumber)}`
       }
       className={cn(
         "flex items-start gap-2 px-2 py-1.5 text-left transition-colors w-full",
@@ -305,7 +674,12 @@ function SectionRow({
           {previewLabel}
         </span>
         <span className="mt-1 inline-flex items-center text-[10px] opacity-60 leading-none">
-          {`pg ${String(page.pageNumber)}`}
+          <RowPosition
+            position={position}
+            pageNumber={page.pageNumber}
+            kind="section"
+            isRemoved={section.isPruned}
+          />
           {page.sectionCount > 1 && (
             <span className="ml-1 inline-flex items-center justify-center min-w-[15px] h-[13px] px-0.5 rounded bg-black/10 text-[9px] font-semibold leading-none">
               {`${section.sectionIndex + 1}/${page.sectionCount}`}
@@ -319,8 +693,10 @@ function SectionRow({
             pos={hover.pos}
             pdfThumb={pdfThumb}
             renderedThumb={renderedThumb}
+            position={position}
             pageNumber={page.pageNumber}
             sectionIndex={section.sectionIndex}
+            sectionCount={page.sectionCount}
             sectionType={section.sectionType}
             isActivity={section.isActivity}
             isPruned={section.isPruned}
@@ -342,16 +718,19 @@ function SectionRow({
 function QuizRow({
   page,
   quiz,
+  position,
   isActive,
   onSelect,
 }: {
   bookLabel: string
   page: PageSummaryItem
   quiz: Quiz
+  position: number | null
   isActive: boolean
   onSelect: () => void
 }) {
   const { i18n } = useLingui()
+  const { t } = useLinguiMacro()
   const rowRef = useRef<HTMLButtonElement>(null)
   const hover = useHoverPreview(rowRef, { width: 420, height: 340 })
   return (
@@ -361,7 +740,7 @@ function QuizRow({
       onClick={onSelect}
       onMouseEnter={hover.handleEnter}
       onMouseLeave={hover.handleLeave}
-      title={i18n._(msg`Quiz after page ${page.pageNumber}`)}
+      title={t`Book page ${String(position ?? "–")} · quiz after PDF page ${String(page.pageNumber)}`}
       className={cn(
         "flex items-start gap-2 px-2 py-1.5 text-left transition-colors w-full",
         isActive
@@ -409,8 +788,8 @@ function QuizRow({
       </div>
       <div className="flex flex-col gap-0.5 min-w-0 flex-1 pt-0.5">
         <span className="text-[11px] leading-snug line-clamp-2">{quiz.question}</span>
-        <span className="text-[9px] font-mono opacity-50 leading-none">
-          <Trans>after pg {String(page.pageNumber)}</Trans>
+        <span className="mt-1 inline-flex items-center text-[10px] opacity-60 leading-none">
+          <RowPosition position={position} pageNumber={page.pageNumber} kind="quiz" />
         </span>
       </div>
       {hover.show &&
@@ -446,7 +825,7 @@ function QuizPreview({
             <Trans>Quiz</Trans>
           </span>
           <span className="text-xs text-muted-foreground">
-            <Trans>after page {String(pageNumber)}</Trans>
+            <Trans>after PDF page {String(pageNumber)}</Trans>
           </span>
         </div>
         {/* Question + options */}
@@ -530,8 +909,10 @@ function ComparisonPreview({
   pos,
   pdfThumb,
   renderedThumb,
+  position,
   pageNumber,
   sectionIndex,
+  sectionCount,
   sectionType,
   isActivity,
   isPruned,
@@ -540,8 +921,10 @@ function ComparisonPreview({
   pos: { top: number; left: number }
   pdfThumb: string | null
   renderedThumb: string | null
+  position: number | null
   pageNumber: number
   sectionIndex: number
+  sectionCount: number
   sectionType: string
   isActivity: boolean
   isPruned: boolean
@@ -556,13 +939,30 @@ function ComparisonPreview({
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b bg-muted/30">
           <div className="flex items-center gap-2 min-w-0">
+            {/* Two different numbers that used to read as one: where the page
+                sits in the book, and where it came from in the PDF. Naming both
+                "page" keeps them parallel and short — after a reorder they
+                simply differ. */}
             <span className="text-xs font-semibold text-foreground">
-              <Trans>Page {String(pageNumber)}</Trans>
+              {position !== null ? (
+                <Trans>Book page {String(position)}</Trans>
+              ) : isPruned ? (
+                <Trans>Removed from the book</Trans>
+              ) : (
+                <Trans>Not rendered yet</Trans>
+              )}
             </span>
             <span className="text-xs text-muted-foreground">·</span>
             <span className="text-xs text-muted-foreground">
-              <Trans>Section {String(sectionIndex + 1)}</Trans>
+              <Trans>PDF page {String(pageNumber)}</Trans>
             </span>
+            {sectionCount > 1 && (
+              <span className="text-xs text-muted-foreground">
+                <Trans>
+                  · part {String(sectionIndex + 1)} of {String(sectionCount)}
+                </Trans>
+              </span>
+            )}
             {isActivity && (
               <span className="inline-flex items-center gap-1 px-1.5 h-[18px] rounded bg-violet-100 text-violet-700 text-[10px] font-semibold">
                 <Puzzle className="w-2.5 h-2.5" />

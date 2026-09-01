@@ -33,6 +33,7 @@ import { createAdtPreviewRoutes } from "./routes/adt-preview.js"
 import { createSpeechConfigRoutes } from "./routes/speech-config.js"
 import { createReviewerValidationRoutes } from "./routes/reviewer-validation.js"
 import { createTocRoutes } from "./routes/toc.js"
+import { createReadingOrderRoutes } from "./routes/reading-order.js"
 import { createSignLanguageVideoRoutes } from "./routes/sign-language-videos.js"
 import { createEditableActivitiesRoutes } from "./routes/editable-activities.js"
 import { createAgentRoutes } from "./routes/agents.js"
@@ -100,6 +101,7 @@ app.route("/api", createBookRoutes(booksDir, webAssetsDir, configPath, taskServi
 app.route("/api", createPageRoutes(booksDir, promptsDir, webAssetsDir, configPath, taskService))
 app.route("/api", createGlossaryRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createTocRoutes(booksDir))
+app.route("/api", createReadingOrderRoutes(booksDir))
 app.route("/api", createDebugRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createQuizRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createPackageRoutes(booksDir, webAssetsDir, configPath, taskService))

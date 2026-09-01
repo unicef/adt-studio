@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { QueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
+import { readingOrderKey } from "@/hooks/use-reading-order"
 
 /** Invalidate data derived from storyboard changes. */
 export function invalidateStoryboardDependents(queryClient: QueryClient, label: string): void {
@@ -11,6 +12,14 @@ export function invalidateStoryboardDependents(queryClient: QueryClient, label: 
   queryClient.invalidateQueries({ queryKey: ["package-adt-status", label] })
   queryClient.invalidateQueries({ queryKey: ["debug", "accessibility", label] })
   queryClient.invalidateQueries({ queryKey: ["debug", "versions", label, "accessibility-assessment", "book"] })
+  // The reading order is derived too: the server resolves it from the sections
+  // that exist and the ones the storyboard has rendered, so cloning, splitting,
+  // merging, deleting, pruning or re-rendering all change either which slots
+  // there are or which of them have a book page. Every one of those operations
+  // already routes through here, which is the only reason this belongs in the
+  // shared helper rather than at each call site — and why re-adding a removed
+  // page used to leave the order stale until something unrelated refetched it.
+  queryClient.invalidateQueries({ queryKey: readingOrderKey(label) })
 }
 
 export function useSaveImageClassification(label: string, pageId: string) {

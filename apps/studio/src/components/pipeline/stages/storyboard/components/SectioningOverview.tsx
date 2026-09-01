@@ -1,9 +1,16 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useQueries, useQuery, useQueryClient, useMutation } from "@tanstack/react-query"
 import { api, BASE_URL, type PageSummaryItem, type PageDetail } from "@/api/client"
 import type { ContentNodeData, PageSectioningOutput, PageSectioningSection } from "@adt/types"
 import { collectLeafNodes, deleteNode, replaceNodeId, toggleNodePruned } from "@adt/types"
 import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
+import {
+  useReadingOrder,
+  useSaveReadingOrder,
+  moveReadingOrderRow,
+} from "@/hooks/use-reading-order"
+import { useTogglePrune } from "@/hooks/use-toggle-prune"
+import { announceToScreenReader } from "@/lib/aria-live"
 import {
   ChevronDown,
   ChevronRight,
@@ -37,13 +44,19 @@ interface SectioningOverviewProps {
 export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: SectioningOverviewProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
-  const { apiKey, hasApiKey } = useApiKey()
   const { stageState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
   const [visiblePanels, setVisiblePanels] = useState<Set<DetailPanel>>(() => new Set(ALL_PANELS))
   const [allExpanded, setAllExpanded] = useState(false)
   const [expandSignal, setExpandSignal] = useState<{ action: "expand" | "collapse"; tick: number }>({ action: "collapse", tick: 0 })
+  /**
+   * "pdf" groups rows under their source page, which is what this table is for
+   * — the structural operations all reason about neighbours within a page.
+   * "book" flattens it into reading order, which is the only arrangement where
+   * moving a row can actually be seen to move it.
+   */
+  const [orderMode, setOrderMode] = useState<"pdf" | "book">("pdf")
 
   const togglePanel = (panel: DetailPanel) => {
     setVisiblePanels((prev) => {
@@ -75,6 +88,15 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
     | Record<string, string>
     | undefined
 
+  // Reading positions come from the server-resolved order, so this table, the
+  // sidebar and every export agree on which page is which.
+  const { data: readingOrder } = useReadingOrder(bookLabel)
+  const saveReadingOrder = useSaveReadingOrder(bookLabel)
+  const readingPositions = useMemo(
+    () => new Map((readingOrder?.items ?? []).map((item) => [item.id, item.position])),
+    [readingOrder],
+  )
+
   // Fetch full page details for all pages that have sections
   const pagesWithSections = pages.filter((p) => p.sectionCount > 0)
   const pageQueries = useQueries({
@@ -92,6 +114,71 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
 
   // Build ordered list of all page IDs (including those without sections) for adjacency
   const allPageIds = pages.map((p) => p.pageId)
+
+  /**
+   * The same sections, flattened into reading order.
+   *
+   * Built from `readingOrder.order` rather than `items` so a section removed
+   * from the book still appears, in the slot it would occupy if put back —
+   * matching the sidebar. Quiz slots are skipped: this table edits sections,
+   * and a quiz has no sectioning row to draw.
+   */
+  const bookOrderRows = useMemo(() => {
+    if (!readingOrder) return []
+    const byId = new Map<
+      string,
+      { page: PageDetail; section: PageSectioningSection; sectionIndex: number; sectionCount: number }
+    >()
+    for (const page of pageDetails) {
+      const sections = page.sectioningTree?.sections ?? []
+      sections.forEach((section, sectionIndex) => {
+        byId.set(section.sectionId, { page, section, sectionIndex, sectionCount: sections.length })
+      })
+    }
+    return readingOrder.order.flatMap((entry) => {
+      const hit = entry.kind === "section" ? byId.get(entry.id) : undefined
+      return hit ? [{ id: entry.id, ...hit }] : []
+    })
+  }, [readingOrder, pageDetails])
+
+  // In "pdf" mode each page's row group owns its expand state; the flat list has
+  // no such group, so it keeps its own, keyed by sectionId rather than by index
+  // so a row stays open when a move changes its position.
+  const [expandedInBookOrder, setExpandedInBookOrder] = useState<Set<string>>(new Set())
+  const toggleBookOrderRow = useCallback((sectionId: string) => {
+    setExpandedInBookOrder((prev) => {
+      const next = new Set(prev)
+      if (next.has(sectionId)) next.delete(sectionId)
+      else next.add(sectionId)
+      return next
+    })
+  }, [])
+
+  const lastExpandTick = useRef(expandSignal.tick)
+  useEffect(() => {
+    if (expandSignal.tick === lastExpandTick.current) return
+    lastExpandTick.current = expandSignal.tick
+    setExpandedInBookOrder(
+      expandSignal.action === "expand" ? new Set(bookOrderRows.map((row) => row.id)) : new Set(),
+    )
+  }, [expandSignal, bookOrderRows])
+
+  const moveRow = useCallback(
+    (sectionId: string, delta: number) => {
+      if (!readingOrder) return
+      const next = moveReadingOrderRow(
+        readingOrder.order,
+        bookOrderRows.map((row) => row.id),
+        sectionId,
+        delta,
+      )
+      if (!next) return
+      const landed = next.findIndex((entry) => entry.id === sectionId) + 1
+      announceToScreenReader(t`Moved to position ${String(landed)} of ${String(next.length)}`)
+      saveReadingOrder.mutate({ items: next, expectedVersion: readingOrder.version })
+    },
+    [readingOrder, bookOrderRows, saveReadingOrder, t],
+  )
 
   const invalidatePages = (...pageIds: string[]) => {
     for (const pid of pageIds) {
@@ -125,52 +212,10 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
     onSuccess: (_data, vars) => invalidatePages(vars.pageId),
   })
 
-  const togglePruneMutation = useMutation({
-    mutationFn: ({ pageId, sectionIndex }: { pageId: string; sectionIndex: number }) => {
-      const page = pageDetails.find((p) => p.pageId === pageId)
-      if (!page?.sectioningTree) throw new Error("No sectioning data")
-      const updated: PageSectioningOutput = {
-        ...page.sectioningTree,
-        sections: page.sectioningTree.sections.map((s, i) =>
-          i === sectionIndex ? { ...s, isPruned: !s.isPruned } : s
-        ),
-      }
-      // Pruning only filters the section out at read time; its HTML stays in
-      // web-rendering, so the toggle leaves the storyboard current. Unpruning a
-      // section that was pruned when the storyboard ran is the case that needs
-      // work: it was skipped then, so it has no HTML and the LLM has to produce
-      // it. Render just that section rather than marking the whole stage stale —
-      // this is the normal way content gets brought in, one section at a time.
-      const wasPruned = page.sectioningTree.sections[sectionIndex]?.isPruned ?? false
-      const hasHtml = (page.rendering?.sections ?? []).some(
-        (s) => s.sectionIndex === sectionIndex && !!s.html
-      )
-      const needsRerender = wasPruned && !hasHtml
-      return api
-        .saveStoryboard(bookLabel, pageId, {
-          sectioning: updated,
-          // Without a key we cannot fill the HTML, so the stage must report it.
-          renderingInSync: !needsRerender || hasApiKey,
-        })
-        .then(async (result) => {
-          // Sectioning is saved with the section unpruned, so the re-render will
-          // actually emit it — `web-rendering` skips pruned sections. The task
-          // marks the storyboard stale itself if it fails; a rejected submission
-          // never reaches the runner, so take the completion mark back here.
-          if (!needsRerender || !hasApiKey) return result
-          try {
-            await api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex)
-          } catch (err) {
-            await api
-              .saveStoryboard(bookLabel, pageId, { sectioning: updated, renderingInSync: false })
-              .catch(() => {})
-            throw err
-          }
-          return result
-        })
-    },
-    onSuccess: (_data, vars) => invalidatePages(vars.pageId),
-  })
+  // Shared with the storyboard sidebar so both do the same thing, including the
+  // targeted re-render needed when a section that was out at render time is put
+  // back and therefore has no HTML.
+  const togglePruneMutation = useTogglePrune(bookLabel)
 
   const isMutating = storyboardRunning || mergeMutation.isPending || mergeCrossPageMutation.isPending || cloneMutation.isPending || deleteMutation.isPending || togglePruneMutation.isPending
 
@@ -213,6 +258,33 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
               {panelLabels[panel]}
             </button>
           ))}
+
+          {/* Rows can be grouped by source page or laid out in reading order.
+              Moving a page is only offered in the latter, where the row the
+              user moved visibly moves. */}
+          <div className="ml-auto flex items-center gap-1" role="group" aria-label={t`Row order`}>
+            {(["pdf", "book"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setOrderMode(mode)}
+                aria-pressed={orderMode === mode}
+                title={
+                  mode === "pdf"
+                    ? t`Group rows under their source PDF page`
+                    : t`List rows in reading order, where they can be moved`
+                }
+                className={cn(
+                  "px-2 py-1 text-xs rounded border transition-colors",
+                  orderMode === mode
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-muted-foreground border-border hover:bg-accent",
+                )}
+              >
+                {mode === "pdf" ? t`PDF order` : t`Book order`}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="border rounded-lg overflow-hidden">
@@ -237,6 +309,12 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
                     )}
                   </button>
                 </th>
+                <th
+                  className="text-left px-3 py-2 font-medium text-muted-foreground w-16 text-center"
+                  title={t`Position in the book, which differs from the source PDF page once pages are reordered`}
+                >
+                  <Trans>Book pg</Trans>
+                </th>
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground w-24">
                   <Trans>Page</Trans>
                 </th>
@@ -256,44 +334,126 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
               </tr>
             </thead>
             <tbody>
-              {pageDetails.map((page) => {
-                const pageIdx = allPageIds.indexOf(page.pageId)
-                const hasPrevPage = pageIdx > 0
-                const hasNextPage = pageIdx < allPageIds.length - 1
+              {orderMode === "book" && bookOrderRows.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-3 py-4 text-center text-muted-foreground">
+                    <Trans>Loading the book order…</Trans>
+                  </td>
+                </tr>
+              )}
 
-                return (
-                  <PageSectionRows
-                    key={page.pageId}
-                    page={page}
-                    bookLabel={bookLabel}
-                    hasPrevPage={hasPrevPage}
-                    hasNextPage={hasNextPage}
-                    onNavigateToSection={onNavigateToSection}
-                    onMerge={(sectionIndex, direction) =>
-                      mergeMutation.mutate({ pageId: page.pageId, sectionIndex, direction })
-                    }
-                    onMergeCrossPage={(sectionIndex, direction) =>
-                      mergeCrossPageMutation.mutate({ pageId: page.pageId, sectionIndex, direction })
-                    }
-                    onClone={(sectionIndex) =>
-                      cloneMutation.mutate({ pageId: page.pageId, sectionIndex })
-                    }
-                    onDelete={(sectionIndex) =>
-                      deleteMutation.mutate({ pageId: page.pageId, sectionIndex })
-                    }
-                    onTogglePrune={(sectionIndex) =>
-                      togglePruneMutation.mutate({ pageId: page.pageId, sectionIndex })
-                    }
-                    onConfirmAction={setConfirmDialog}
-                    isMutating={isMutating}
-                    visiblePanels={visiblePanels}
-                    expandSignal={expandSignal}
-                    onInvalidatePages={invalidatePages}
-                    textRoles={textRoles}
-                    containerStructures={containerStructures}
-                  />
-                )
-              })}
+              {orderMode === "book" &&
+                bookOrderRows.map((row, rowIndex) => {
+                  const pageIdx = allPageIds.indexOf(row.page.pageId)
+                  return (
+                    <SectionRow
+                      key={row.id}
+                      page={row.page}
+                      section={row.section}
+                      sectionIndex={row.sectionIndex}
+                      sectionCount={row.sectionCount}
+                      hasPrevPage={pageIdx > 0}
+                      hasNextPage={pageIdx < allPageIds.length - 1}
+                      isExpanded={expandedInBookOrder.has(row.id)}
+                      onToggle={() => toggleBookOrderRow(row.id)}
+                      renderReasoning={
+                        row.page.rendering?.sections.find((r) => r.sectionIndex === row.sectionIndex)
+                          ?.reasoning
+                      }
+                      bookPosition={readingPositions.get(row.id) ?? null}
+                      bookLabel={bookLabel}
+                      onNavigate={
+                        onNavigateToSection
+                          ? () => onNavigateToSection(row.page.pageId, row.sectionIndex)
+                          : undefined
+                      }
+                      onMoveUp={() => moveRow(row.id, -1)}
+                      onMoveDown={() => moveRow(row.id, 1)}
+                      canMoveUp={rowIndex > 0}
+                      canMoveDown={rowIndex < bookOrderRows.length - 1}
+                      onMerge={(direction) =>
+                        mergeMutation.mutate({
+                          pageId: row.page.pageId,
+                          sectionIndex: row.sectionIndex,
+                          direction,
+                        })
+                      }
+                      onMergeCrossPage={(direction) =>
+                        mergeCrossPageMutation.mutate({
+                          pageId: row.page.pageId,
+                          sectionIndex: row.sectionIndex,
+                          direction,
+                        })
+                      }
+                      onClone={() =>
+                        cloneMutation.mutate({
+                          pageId: row.page.pageId,
+                          sectionIndex: row.sectionIndex,
+                        })
+                      }
+                      onDelete={() =>
+                        deleteMutation.mutate({
+                          pageId: row.page.pageId,
+                          sectionIndex: row.sectionIndex,
+                        })
+                      }
+                      onTogglePrune={() =>
+                        togglePruneMutation.mutate({
+                          pageId: row.page.pageId,
+                          sectionIndex: row.sectionIndex,
+                        })
+                      }
+                      onConfirmAction={setConfirmDialog}
+                      isMutating={isMutating}
+                      visiblePanels={visiblePanels}
+                      renderingVersion={row.page.versions.rendering}
+                      onInvalidatePages={invalidatePages}
+                      textRoles={textRoles}
+                      containerStructures={containerStructures}
+                    />
+                  )
+                })}
+
+              {orderMode === "pdf" &&
+                pageDetails.map((page) => {
+                  const pageIdx = allPageIds.indexOf(page.pageId)
+                  const hasPrevPage = pageIdx > 0
+                  const hasNextPage = pageIdx < allPageIds.length - 1
+
+                  return (
+                    <PageSectionRows
+                      key={page.pageId}
+                      page={page}
+                      bookLabel={bookLabel}
+                      readingPositions={readingPositions}
+                      hasPrevPage={hasPrevPage}
+                      hasNextPage={hasNextPage}
+                      onNavigateToSection={onNavigateToSection}
+                      onMerge={(sectionIndex, direction) =>
+                        mergeMutation.mutate({ pageId: page.pageId, sectionIndex, direction })
+                      }
+                      onMergeCrossPage={(sectionIndex, direction) =>
+                        mergeCrossPageMutation.mutate({ pageId: page.pageId, sectionIndex, direction })
+                      }
+                      onClone={(sectionIndex) =>
+                        cloneMutation.mutate({ pageId: page.pageId, sectionIndex })
+                      }
+                      onDelete={(sectionIndex) =>
+                        deleteMutation.mutate({ pageId: page.pageId, sectionIndex })
+                      }
+                      onTogglePrune={(sectionIndex) =>
+                        togglePruneMutation.mutate({ pageId: page.pageId, sectionIndex })
+                      }
+                      onConfirmAction={setConfirmDialog}
+                      isMutating={isMutating}
+                      visiblePanels={visiblePanels}
+                      expandSignal={expandSignal}
+                      onInvalidatePages={invalidatePages}
+                      textRoles={textRoles}
+                      containerStructures={containerStructures}
+                    />
+                  )
+                })}
             </tbody>
           </table>
         </div>
@@ -361,6 +521,7 @@ function ConfirmDialog({
 function PageSectionRows({
   page,
   bookLabel,
+  readingPositions,
   hasPrevPage,
   hasNextPage,
   onNavigateToSection,
@@ -379,6 +540,8 @@ function PageSectionRows({
 }: {
   page: PageDetail
   bookLabel: string
+  /** sectionId → 1-based book page; absent when removed from the book. */
+  readingPositions: Map<string, number>
   hasPrevPage: boolean
   hasNextPage: boolean
   onNavigateToSection?: (pageId: string, sectionIndex: number) => void
@@ -429,7 +592,9 @@ function PageSectionRows({
     <>
       {/* Page reasoning header row */}
       <tr className="bg-muted/30 border-b border-t">
-        <td colSpan={7} className="px-0 py-0">
+        {/* Eight columns: expand, book page, page, section, type, content,
+            parts, actions. */}
+        <td colSpan={8} className="px-0 py-0">
           <button
             type="button"
             onClick={() => setReasoningOpen(!reasoningOpen)}
@@ -502,6 +667,7 @@ function PageSectionRows({
             isExpanded={isExpanded}
             onToggle={() => toggleSection(idx)}
             renderReasoning={renderSection?.reasoning}
+            bookPosition={readingPositions.get(section.sectionId) ?? null}
             bookLabel={bookLabel}
             onNavigate={onNavigateToSection ? () => onNavigateToSection(page.pageId, idx) : undefined}
             onMerge={(direction) => onMerge(idx, direction)}
@@ -537,8 +703,13 @@ function SectionRow({
   isExpanded,
   onToggle,
   renderReasoning,
+  bookPosition,
   bookLabel,
   onNavigate,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
   onMerge,
   onMergeCrossPage,
   onClone,
@@ -561,8 +732,15 @@ function SectionRow({
   isExpanded: boolean
   onToggle: () => void
   renderReasoning?: string
+  /** 1-based position in the book; null when removed from it. */
+  bookPosition: number | null
   bookLabel: string
   onNavigate?: () => void
+  /** Reading-order moves — only wired in book order, where the row moves too. */
+  onMoveUp?: () => void
+  onMoveDown?: () => void
+  canMoveUp?: boolean
+  canMoveDown?: boolean
   onMerge: (direction: "prev" | "next") => void
   onMergeCrossPage: (direction: "prev" | "next") => void
   onClone: () => void
@@ -605,6 +783,20 @@ function SectionRow({
             <ChevronRight className="h-3 w-3 text-muted-foreground" />
           )}
         </td>
+        <td className="px-3 py-2 text-center">
+          <span
+            className="inline-flex items-center justify-center min-w-[18px] px-1 rounded bg-foreground/10 font-semibold tabular-nums"
+            title={
+              bookPosition !== null
+                ? t`Page ${String(bookPosition)} of the book`
+                : section.isPruned
+                  ? t`Removed from the book`
+                  : t`Not in the book yet — the storyboard has not rendered this section`
+            }
+          >
+            {bookPosition ?? "–"}
+          </span>
+        </td>
         <td className="px-3 py-2">
           <span className="font-mono text-muted-foreground">
             {page.pageId}
@@ -627,7 +819,7 @@ function SectionRow({
           </button>
           {section.isPruned && (
             <span className="ml-1.5 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1 rounded">
-              <Trans>pruned</Trans>
+              <Trans>removed</Trans>
             </span>
           )}
         </td>
@@ -669,12 +861,16 @@ function SectionRow({
             isPruned={section.isPruned}
             hasPrevPage={hasPrevPage}
             hasNextPage={hasNextPage}
+            onMoveUp={onMoveUp}
+            onMoveDown={onMoveDown}
+            canMoveUp={canMoveUp}
+            canMoveDown={canMoveDown}
             onMerge={onMerge}
             onMergeCrossPage={onMergeCrossPage}
             onClone={onClone}
             onDelete={() => {
               onConfirmAction({
-                message: t`Are you sure you want to delete this section? This action cannot be undone.`,
+                message: t`Delete this section and its content permanently? This cannot be undone — use "Remove from book" instead to hide it while keeping it, and its place, for later.`,
                 onConfirm: onDelete,
               })
             }}
@@ -693,7 +889,7 @@ function SectionRow({
       {/* Expanded detail */}
       {isExpanded && (
         <tr className="border-b bg-muted/10">
-          <td colSpan={7} className="px-6 py-3">
+          <td colSpan={8} className="px-6 py-3">
             <SectionDetail
               section={section}
               sectionIndex={sectionIndex}
