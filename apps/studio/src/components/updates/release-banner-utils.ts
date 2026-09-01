@@ -4,6 +4,7 @@ export const RELEASE_BANNER_ASPECT = "aspect-[3/2]"
 export const TRUSTED_ASSET_PREFIXES = [
   "https://github.com/user-attachments/",
   "https://user-images.githubusercontent.com/",
+  "https://github.com/unicef/adt-studio/releases/download/",
 ]
 
 export function trustedAssetUrl(url?: string): string | undefined {
