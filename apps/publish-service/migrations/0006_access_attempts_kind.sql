@@ -1,0 +1,15 @@
+-- One statement, same reason as 0002/0003/0004: `ALTER TABLE ADD COLUMN` has no IF NOT EXISTS
+-- form, so a file that mixes it with anything else cannot be re-run after a partial failure.
+--
+-- `access_attempts` is shared by the two doors that verify a short, human-typed secret: the
+-- publication access code (access.ts) and the reviewer PIN claim (comments.ts). Without a
+-- discriminator, a caller's rows from one door are indistinguishable from the other's, and a
+-- correct answer at one door was clearing the failure count for both — a right access code was
+-- wiping the PIN brute-force counter it has nothing to do with.
+--
+-- Defaulted to 'access' rather than left nullable, so the column stays NOT NULL with no separate
+-- backfill UPDATE. Rows already in the table when this runs cannot be attributed to a door in
+-- retrospect — but every one of them is pruned within `ATTEMPT_WINDOW_SECONDS` (15 minutes) of
+-- the next write to either door, so a default that is merely a safe guess for a few stale rows
+-- is all this needs: nothing keyed on `kind` reads a row this old anyway.
+ALTER TABLE access_attempts ADD COLUMN kind TEXT NOT NULL DEFAULT 'access';

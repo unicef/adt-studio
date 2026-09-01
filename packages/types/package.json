@@ -9,6 +9,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./color": {
+      "types": "./dist/commenter-color.d.ts",
+      "default": "./dist/commenter-color.js"
+    },
     "./fingerprint": {
       "types": "./dist/fingerprint.d.ts",
       "default": "./dist/fingerprint.js"

@@ -96,6 +96,8 @@ export interface Storage {
   clearTranslatedImages(filter?: { sourceImageIds?: string[]; languageCodes?: string[] }): void
 
   putNodeData(node: string, itemId: string, data: unknown): number
+  /** Highest node_data version across every node but the excluded one. */
+  maxNodeVersionExcluding(excluded: string): number | null
   getLatestNodeData(node: string, itemId: string): NodeDataRow | null
   /** Point (node, itemId) at an existing version without creating a new one
    *  (rollback). Returns false if that version doesn't exist. */

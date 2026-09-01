@@ -1,0 +1,11 @@
+-- One statement, same reason as 0002 and 0003: `ALTER TABLE ADD COLUMN` has no IF NOT EXISTS
+-- form, so a file that mixes it with anything else cannot be re-run after a partial failure.
+--
+-- The bytes this version's unpacked files occupy in R2, measured by the worker as it wrote them.
+-- It lives on `versions` and not on `publications` because republishing leaves every earlier
+-- `<token>/v<N>/` prefix in the bucket: a publication's storage is the SUM over its versions, and
+-- a single column on the parent row could only ever describe the newest one.
+--
+-- NULL means "not measured" — exactly what every version published before this migration gets.
+-- The dashboard reports those totals as a floor ("at least N MB") rather than inventing a number.
+ALTER TABLE versions ADD COLUMN snapshot_bytes INTEGER;
