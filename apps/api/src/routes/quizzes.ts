@@ -6,10 +6,11 @@ import { z } from "zod"
 import {
   parseBookLabel,
   QuizGenerationOutput,
+  ensureQuizIds,
   type Quiz,
   type WebRenderingOutput,
 } from "@adt/types"
-import { openBookDb, createBookStorage, readCurrentNodeRow } from "@adt/storage"
+import { openBookDb, createBookStorage, readCurrentNodeRow, type Storage } from "@adt/storage"
 import {
   buildQuizGenerationConfig,
   generateQuiz,
@@ -28,6 +29,24 @@ function safeParseLabel(label: string): string {
       message: err instanceof Error ? err.message : String(err),
     })
   }
+}
+
+/**
+ * Every quiz id this book has ever used, across all stored versions. Reserving
+ * them means a delete-then-add cannot reissue a retired quiz's id and inherit
+ * its `${quizId}_que` / `${quizId}_o${n}` catalog entries — and with them the
+ * translations and generated audio of a quiz the user removed.
+ */
+function usedQuizIds(storage: Storage): string[] {
+  const ids: string[] = []
+  for (const row of storage.getAllNodeVersions("quiz-generation", "book")) {
+    const parsed = QuizGenerationOutput.safeParse(row.data)
+    if (!parsed.success) continue
+    for (const quiz of parsed.data.quizzes) {
+      if (quiz.quizId) ids.push(quiz.quizId)
+    }
+  }
+  return ids
 }
 
 export function createQuizRoutes(
@@ -102,7 +121,10 @@ export function createQuizRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const version = storage.putNodeData("quiz-generation", "book", parsed.data)
+      // Stamp ids on any quiz that still lacks one, so this book stops deriving
+      // them from array positions from here on.
+      const { output } = ensureQuizIds(parsed.data, usedQuizIds(storage))
+      const version = storage.putNodeData("quiz-generation", "book", output)
       return c.json({ version })
     } finally {
       storage.close()
@@ -251,12 +273,17 @@ export function createQuizRoutes(
         q.quizIndex = i
       })
 
-      const output: QuizGenerationOutput = {
-        generatedAt: existing?.generatedAt ?? new Date().toISOString(),
-        language: existing?.language ?? quizConfig.language,
-        pagesPerQuiz: existing?.pagesPerQuiz ?? quizConfig.pagesPerQuiz,
-        quizzes,
-      }
+      // Stamp ids before writing: the new quiz needs one, and any pre-existing
+      // quiz that predates `quizId` keeps the id its catalog entries already use.
+      const { output } = ensureQuizIds(
+        {
+          generatedAt: existing?.generatedAt ?? new Date().toISOString(),
+          language: existing?.language ?? quizConfig.language,
+          pagesPerQuiz: existing?.pagesPerQuiz ?? quizConfig.pagesPerQuiz,
+          quizzes,
+        },
+        usedQuizIds(storage)
+      )
 
       const version = storage.putNodeData("quiz-generation", "book", output)
       // Adding a quiz by hand produces the same output as running the stage, so

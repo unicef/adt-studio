@@ -8,7 +8,7 @@ import { StorySectionBanner } from "./StorySectionBanner"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { usePageImage, usePages } from "@/hooks/use-pages"
 import { BASE_URL } from "@/api/client"
-import type { Quiz } from "@adt/types"
+import { resolveQuizId, type Quiz } from "@adt/types"
 
 /**
  * Quiz panel rendered inside the storyboard stage when a quiz row is selected.
@@ -21,12 +21,13 @@ import type { Quiz } from "@adt/types"
  */
 export function StoryboardQuizDetail({
   bookLabel,
-  quizIndex,
+  quizId,
   navigationExtra,
   navigationArrows,
 }: {
   bookLabel: string
-  quizIndex: number
+  /** Stable quiz id (`qz001`) — also the adt-preview filename stem. */
+  quizId: string
   navigationExtra?: ReactNode
   navigationArrows?: ReactNode
 }) {
@@ -37,7 +38,7 @@ export function StoryboardQuizDetail({
   const { data: pages } = usePages(bookLabel)
 
   const quiz: Quiz | undefined = quizzesData?.quizzes?.quizzes?.find(
-    (q) => q.quizIndex === quizIndex,
+    (q, i) => resolveQuizId(q, i) === quizId,
   )
 
   const afterPage = pages?.find((p) => p.pageId === quiz?.afterPageId)
@@ -90,11 +91,6 @@ export function StoryboardQuizDetail({
       </div>
     )
   }
-
-  // Matches the backend's quiz file id: quizzes carry a contiguous quizIndex
-  // (sorted on generation), so qz{index+1} zero-padded to 3 digits is the
-  // adt-preview filename rendered by renderQuizHtml.
-  const quizId = `qz${String(quiz.quizIndex + 1).padStart(3, "0")}`
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-muted/20">
