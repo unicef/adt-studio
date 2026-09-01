@@ -74,6 +74,13 @@ const onboarding = {
     ipcRenderer.invoke('onboarding:finish', startPath),
 }
 
+const notifications = {
+  show: (payload: { title: string; body: string }): Promise<void> =>
+    ipcRenderer.invoke('notifications:show', payload),
+  isWindowFocused: (): Promise<boolean> =>
+    ipcRenderer.invoke('window:is-focused'),
+}
+
 interface SaveFileDialogOptions {
   defaultPath?: string
   filters?: Array<{ name: string; extensions: string[] }>
@@ -106,6 +113,7 @@ const api = {
   windowControls,
   updates,
   onboarding,
+  notifications,
 }
 
 if (process.contextIsolated) {

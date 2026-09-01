@@ -441,6 +441,18 @@ msgstr "{sections} seksione"
 msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
 msgstr "{spreadCount} {spreadCount, plural, one {fletë e dyfishtë e zgjedhur} other {fletë të dyfishta të zgjedhura}}"
 
+msgid "{stageLabel} completed"
+msgstr "{stageLabel} përfundoi"
+
+msgid "{stageLabel} completed in {label}"
+msgstr "{stageLabel} përfundoi në {label}"
+
+msgid "{stageLabel} failed"
+msgstr "{stageLabel} dështoi"
+
+msgid "{stageLabel} failed in {label}"
+msgstr "{stageLabel} dështoi në {label}"
+
 msgid "{stageLabel} isn't ready yet — every section in the Storyboard is currently pruned, so there's nothing to run on. Restore at least one section in Storyboard to continue."
 msgstr "{stageLabel} nuk është gati ende — çdo seksion në Storyboard është aktualisht i prerë, kështu që nuk ka asgjë për të ekzekutuar. Rivendosni të paktën një seksion në Storyboard për të vazhduar."
 
