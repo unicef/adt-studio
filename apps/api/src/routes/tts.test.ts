@@ -116,6 +116,20 @@ function seedBook(
   }
 }
 
+// The routes fall back to server-side env credentials, so a developer's real
+// keys must not leak into tests that assert missing-credential failures.
+beforeEach(() => {
+  vi.stubEnv("OPENAI_API_KEY", undefined)
+  vi.stubEnv("GEMINI_API_KEY", undefined)
+  vi.stubEnv("ELEVENLABS_API_KEY", undefined)
+  vi.stubEnv("AZURE_SPEECH_KEY", undefined)
+  vi.stubEnv("AZURE_SPEECH_REGION", undefined)
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
+
 describe("POST /books/:label/tts/generate-one", () => {
   const fetchMock = vi.fn<typeof fetch>()
 
@@ -1077,6 +1091,49 @@ describe("POST /books/:label/tts/upload-one", () => {
     expect(
       fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001.mp3"))
     ).toBe(false)
+  })
+
+  it("transcribes with the server-side OpenAI key when the request has no header", async () => {
+    const label = "manual-audio-env-key"
+    seedBook(label)
+    vi.stubEnv("OPENAI_API_KEY", "sk-env-test")
+
+    transcribeWithWhisperMock.mockResolvedValue({
+      words: [{ word: "Hello", start: 0, end: 0.5 }],
+      duration: 0.5,
+    })
+
+    const formData = new FormData()
+    formData.append("textId", "pg001_t001")
+    formData.append("language", "en")
+    formData.append(
+      "audio",
+      new File([new Uint8Array([4, 3, 2, 1])], "reader.wav", {
+        type: "audio/wav",
+      })
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const uploadRes = await app.request(`/books/${label}/tts/upload-one`, {
+      method: "POST",
+      body: formData,
+    })
+    expect(uploadRes.status).toBe(201)
+
+    const transcribeRes = await app.request(`/books/${label}/tts/transcribe-one`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+    })
+
+    expect(transcribeRes.status).toBe(200)
+    expect(transcribeWithWhisperMock).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      "pg001_t001.wav",
+      "sk-env-test",
+      "en",
+      "Hello world",
+    )
   })
 
   it("supports AI timestamp transcription for uploaded manual audio", async () => {

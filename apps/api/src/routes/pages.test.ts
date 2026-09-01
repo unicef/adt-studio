@@ -10,11 +10,16 @@ import type { TaskExecutor, TaskService } from "../services/task-service.js"
 
 describe("Page routes", () => {
   let tmpDir: string
+  let globalConfigPath: string
   let app: Hono
   const label = "test-book"
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pages-routes-"))
+    // Isolated global config: routes must never fall back to the repo's live
+    // config.yaml, which the Studio rewrites when users change settings.
+    globalConfigPath = path.join(tmpDir, "global-config.yaml")
+    fs.writeFileSync(globalConfigPath, "structure_types: {}\nrole_types: {}\n")
 
     // Create a book with extracted pages and pipeline data
     const storage = createBookStorage(label, tmpDir)
@@ -91,7 +96,7 @@ describe("Page routes", () => {
       storage.close()
     }
 
-    const routes = createPageRoutes(tmpDir, tmpDir)
+    const routes = createPageRoutes(tmpDir, tmpDir, tmpDir, globalConfigPath)
     app = new Hono()
     app.onError(errorHandler)
     app.route("/api", routes)
@@ -1501,7 +1506,7 @@ describe("Page routes", () => {
         },
         getActiveTasks: () => [],
       }
-      const routes = createPageRoutes(tmpDir, tmpDir, tmpDir, undefined, taskService)
+      const routes = createPageRoutes(tmpDir, tmpDir, tmpDir, globalConfigPath, taskService)
       const taskApp = new Hono()
       taskApp.onError(errorHandler)
       taskApp.route("/api", routes)

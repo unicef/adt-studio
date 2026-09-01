@@ -54,8 +54,8 @@ import {
 } from "@adt/pipeline"
 import { getLiveSpeechRun } from "../services/speech-progress.js"
 import {
-  credentialValue,
   readProviderCredentials,
+  serverAwareCredentialValue,
 } from "../middleware/provider-credentials.js"
 
 /**
@@ -63,7 +63,7 @@ import {
  * until the speech modality is resolved through the registry.
  */
 function requireTranscriberKey(credentials: ResolvedCredentials): string {
-  const apiKey = credentialValue(credentials, "openai", "apiKey")
+  const apiKey = serverAwareCredentialValue(credentials, "openai", "apiKey")
   if (!apiKey) {
     throw AiProviderError.missingCredential("openai", "apiKey", "API key")
   }
@@ -809,11 +809,11 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const voiceSlot: VoiceSlot = parsed.data.voiceSlot ?? "primary"
 
     const credentials = readProviderCredentials(c)
-    const geminiApiKey = credentialValue(credentials, "gemini", "apiKey")
-    const openaiApiKey = credentialValue(credentials, "openai", "apiKey")
-    const azureSpeechKey = credentialValue(credentials, "azure", "apiKey")
-    const azureSpeechRegion = credentialValue(credentials, "azure", "region")
-    const elevenLabsApiKey = credentialValue(credentials, "elevenlabs", "apiKey")
+    const geminiApiKey = serverAwareCredentialValue(credentials, "gemini", "apiKey")
+    const openaiApiKey = serverAwareCredentialValue(credentials, "openai", "apiKey")
+    const azureSpeechKey = serverAwareCredentialValue(credentials, "azure", "apiKey")
+    const azureSpeechRegion = serverAwareCredentialValue(credentials, "azure", "region")
+    const elevenLabsApiKey = serverAwareCredentialValue(credentials, "elevenlabs", "apiKey")
 
     const normalizedLanguage = normalizeLocale(parsed.data.language)
     const storage = createBookStorage(safeLabel, booksDir)
