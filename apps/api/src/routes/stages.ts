@@ -5,8 +5,8 @@ import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
-import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, DEFAULT_LLM_MODEL_ID } from "@adt/types"
-import { assertModelCredentials } from "@adt/llm"
+import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody } from "@adt/types"
+import { assertStageRunModelCredentials } from "@adt/llm"
 import { loadBookConfig } from "@adt/pipeline"
 import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
@@ -94,10 +94,15 @@ export function createStageRoutes(
     const credentials = readProviderCredentials(c)
 
     // Fail before beforeRun clears any stage data: a run that cannot make a
-    // single LLM call must not wipe the book. Keyless providers pass through.
-    assertModelCredentials(
-      "structured-text",
-      loadBookConfig(label, booksDir, configPath).default_model ?? DEFAULT_LLM_MODEL_ID,
+    // single LLM call must not wipe the book. Scoped to the stages being run —
+    // a speech-only rerun must not demand the text default's key, and a
+    // per-step model override must be credentialed too, not just the default.
+    // Keyless providers pass through.
+    const fromIndex = STAGE_ORDER.indexOf(fromStage)
+    const toIndex = STAGE_ORDER.indexOf(toStage)
+    assertStageRunModelCredentials(
+      loadBookConfig(label, booksDir, configPath),
+      fromIndex <= toIndex ? STAGE_ORDER.slice(fromIndex, toIndex + 1) : STAGE_ORDER,
       credentials,
     )
 

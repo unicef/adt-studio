@@ -25,7 +25,7 @@ export interface RunAgentOptions {
   /** Max inference turns. Default 20. */
   maxSteps?: number
   credentials?: AgentCredentials
-  /** Per-turn timeout. */
+  /** Overall run timeout, covering every inference turn and tool execution. Default 5 minutes. */
   timeoutMs?: number
   /** Must not throw — errors here are swallowed so they cannot break the agent loop. */
   onStepFinish?: (event: AgentStepEvent) => void

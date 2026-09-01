@@ -19,6 +19,7 @@ import type {
 } from "./ports/index.js"
 
 const DEFAULT_MAX_STEPS = 20
+const DEFAULT_RUN_TIMEOUT_MS = 5 * 60_000
 const AGENT_CACHE_VERSION = 2
 
 export interface AgentLogContext {
@@ -37,7 +38,7 @@ export interface RunAgentLoopOptions {
   maxSteps?: number
   temperature?: number
   maxTokens?: number
-  /** Per-turn timeout. */
+  /** Overall run timeout, covering every inference turn and tool execution. Default 5 minutes. */
   timeoutMs?: number
   signal?: AbortSignal
   registry?: ProviderRegistry
@@ -81,6 +82,22 @@ export async function runAgentLoop(
   const correlationId = options.log?.correlationId ?? randomUUID()
   const label = options.log?.taskType ?? resolved.qualifiedModelId
 
+  // One deadline bounds the whole run — cached turns, inference, and tool
+  // executions alike — so a hung tool or a model looping on tool calls cannot
+  // exceed the caller's budget by running each turn just under it.
+  const timeoutMs = options.timeoutMs ?? DEFAULT_RUN_TIMEOUT_MS
+  const deadline = Date.now() + timeoutMs
+  const timeoutSignal = AbortSignal.timeout(timeoutMs)
+  const runSignal = options.signal
+    ? AbortSignal.any([timeoutSignal, options.signal])
+    : timeoutSignal
+  const runAbortError = (): Error =>
+    new Error(
+      timeoutSignal.aborted
+        ? `Agent run timed out after ${timeoutMs}ms`
+        : "Agent run aborted",
+    )
+
   const messages: AgentMessage[] = [{ role: "user", content: options.prompt }]
   const turns: AgentTurn[] = []
   const usage = { inputTokens: 0, outputTokens: 0 }
@@ -88,6 +105,8 @@ export async function runAgentLoop(
   let finishReason = "unknown"
 
   for (let index = 0; index < maxSteps; index++) {
+    if (runSignal.aborted) throw runAbortError()
+
     const hash = computeCacheHash({
       kind: "agent-turn",
       version: AGENT_CACHE_VERSION,
@@ -116,8 +135,8 @@ export async function runAgentLoop(
           tools: toolDefinitions,
           temperature: options.temperature,
           maxTokens: options.maxTokens,
-          timeoutMs: options.timeoutMs,
-          signal: options.signal,
+          timeoutMs: Math.max(1, deadline - Date.now()),
+          signal: runSignal,
         }))
     } catch (err) {
       const message = formatProviderError(err)
@@ -153,8 +172,28 @@ export async function runAgentLoop(
         text: response.text,
         toolCalls: response.toolCalls,
       })
-      for (const call of response.toolCalls) {
-        toolResults.push(await executeToolCall(options.tools, call))
+      try {
+        for (const call of response.toolCalls) {
+          toolResults.push(
+            await raceRunAbort(executeToolCall(options.tools, call), runSignal, runAbortError),
+          )
+        }
+      } catch (err) {
+        const message = formatProviderError(err)
+        log.error(`[Agent] ${label} | turn ${index + 1} tool execution failed | ${message}`)
+        emitLog(options, {
+          correlationId,
+          modelId: resolved.qualifiedModelId,
+          index,
+          durationMs: Date.now() - t0,
+          cacheHit: cached !== null,
+          success: false,
+          errors: [message],
+          messages,
+          response,
+          toolResults,
+        })
+        throw err
       }
       messages.push({ role: "tool", results: toolResults })
     }
@@ -199,6 +238,29 @@ export async function runAgentLoop(
   }
 
   return { text, stepCount: turns.length, usage, finishReason: "max-steps", turns }
+}
+
+/**
+ * Tool executors take no abort signal, so a hung tool is raced against the run
+ * deadline rather than cancelled — the run fails and the orphaned promise is
+ * dropped.
+ */
+async function raceRunAbort<T>(
+  promise: Promise<T>,
+  signal: AbortSignal,
+  abortError: () => Error,
+): Promise<T> {
+  if (signal.aborted) throw abortError()
+  let onAbort!: () => void
+  const aborted = new Promise<never>((_, reject) => {
+    onAbort = () => reject(abortError())
+    signal.addEventListener("abort", onAbort, { once: true })
+  })
+  try {
+    return await Promise.race([promise, aborted])
+  } finally {
+    signal.removeEventListener("abort", onAbort)
+  }
 }
 
 async function executeToolCall(

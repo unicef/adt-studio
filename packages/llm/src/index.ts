@@ -115,12 +115,14 @@ export {
 
 export {
   assertModelCredentials,
+  assertStageRunModelCredentials,
   describeMissingModelCredential,
 } from "./credential-checks.js"
 
 export {
   assertConfigModels,
   collectConfigModelChecks,
+  collectStageRunModelChecks,
   validateConfigModels,
   type ConfigModelCheck,
   type ConfigModelIssue,

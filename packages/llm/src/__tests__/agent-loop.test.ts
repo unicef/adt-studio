@@ -160,6 +160,74 @@ describe("runAgentLoop", () => {
     ])
   })
 
+  it("fails the run when a tool execution outlives the run timeout", async () => {
+    const tools: AgentToolSet = {
+      hang: {
+        description: "never resolves",
+        parameters: z.object({}),
+        execute: () => new Promise(() => {}),
+      },
+    }
+    const { registry } = makeRegistry([toolTurn("hang", {})])
+
+    await expect(
+      runAgentLoop({
+        modelId: "fake:fake-1",
+        system: "sys",
+        prompt: "go",
+        tools,
+        registry,
+        timeoutMs: 50,
+        logLevel: "silent",
+      }),
+    ).rejects.toThrow("Agent run timed out after 50ms")
+  })
+
+  it("fails the run when an external abort fires during a tool execution", async () => {
+    const controller = new AbortController()
+    const tools: AgentToolSet = {
+      hang: {
+        description: "never resolves",
+        parameters: z.object({}),
+        execute: () => {
+          controller.abort()
+          return new Promise(() => {})
+        },
+      },
+    }
+    const { registry } = makeRegistry([toolTurn("hang", {})])
+
+    await expect(
+      runAgentLoop({
+        modelId: "fake:fake-1",
+        system: "sys",
+        prompt: "go",
+        tools,
+        registry,
+        signal: controller.signal,
+        logLevel: "silent",
+      }),
+    ).rejects.toThrow("Agent run aborted")
+  })
+
+  it("passes the remaining run budget and the combined signal to each turn", async () => {
+    const { registry, requests } = makeRegistry([textTurn("done")])
+
+    await runAgentLoop({
+      modelId: "fake:fake-1",
+      system: "sys",
+      prompt: "go",
+      tools: {},
+      registry,
+      timeoutMs: 60_000,
+      logLevel: "silent",
+    })
+
+    expect(requests[0]?.timeoutMs).toBeGreaterThan(0)
+    expect(requests[0]?.timeoutMs).toBeLessThanOrEqual(60_000)
+    expect(requests[0]?.signal).toBeInstanceOf(AbortSignal)
+  })
+
   it("never sends execute to the backend", async () => {
     const tools: AgentToolSet = {
       noop: { description: "noop", parameters: z.object({}), execute: async () => ({}) },

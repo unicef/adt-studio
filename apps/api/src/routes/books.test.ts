@@ -823,6 +823,99 @@ describe("POST /books/:label/stages/run", () => {
     }
   })
 
+  it("rejects a run whose per-step model override lacks credentials before clearing any data", async () => {
+    const label = "override-credential-run"
+    createTestBook(label)
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      'default_model: "ollama:llama3"\ntranslation:\n  model: "openai:gpt-4o"\n',
+    )
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("page-sectioning", "pg001", {
+        reasoning: "existing",
+        sections: [],
+      })
+      storage.markStepCompleted("page-sectioning")
+    } finally {
+      storage.close()
+    }
+
+    const savedKey = process.env.OPENAI_API_KEY
+    delete process.env.OPENAI_API_KEY
+    try {
+      let started = false
+      const stageService: StageService = {
+        getStatus: () => ({ active: null, queue: [] }),
+        getQueuedStages: () => [],
+
+        startStageRun: () => {
+          started = true
+          return { status: "started" as const, id: "run-override" }
+        },
+      }
+
+      const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "")
+      app.onError(errorHandler)
+      const res = await app.request(`/books/${label}/stages/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromStage: "sectioning", toStage: "sectioning" }),
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.code).toBe("missing-credential")
+      expect(body.error).toContain("translation.model")
+      expect(started).toBe(false)
+
+      const verifyStorage = createBookStorage(label, tmpDir)
+      try {
+        expect(verifyStorage.getLatestNodeData("page-sectioning", "pg001")).not.toBeNull()
+      } finally {
+        verifyStorage.close()
+      }
+    } finally {
+      if (savedKey !== undefined) process.env.OPENAI_API_KEY = savedKey
+    }
+  })
+
+  it("allows a speech-only rerun without the text default's credentials", async () => {
+    const label = "speech-only-run"
+    createTestBook(label)
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      'default_model: "openai:gpt-4o"\n',
+    )
+
+    const savedKey = process.env.OPENAI_API_KEY
+    delete process.env.OPENAI_API_KEY
+    try {
+      let receivedOptions: StageRunOptions | undefined
+      const stageService: StageService = {
+        getStatus: () => ({ active: null, queue: [] }),
+        getQueuedStages: () => [],
+
+        startStageRun: (_label, options) => {
+          receivedOptions = options
+          return { status: "started" as const, id: "run-speech" }
+        },
+      }
+
+      const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "")
+      const res = await app.request(`/books/${label}/stages/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromStage: "speech", toStage: "speech" }),
+      })
+
+      expect(res.status).toBe(200)
+      expect(receivedOptions?.fromStage).toBe("speech")
+    } finally {
+      if (savedKey !== undefined) process.env.OPENAI_API_KEY = savedKey
+    }
+  })
+
   it("passes manifest-declared credentials through to the stage runner options", async () => {
     const label = "gemini-stage-run"
     createTestBook(label)

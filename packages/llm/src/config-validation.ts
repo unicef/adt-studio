@@ -1,4 +1,4 @@
-import type { AiModality, AppConfig } from "@adt/types"
+import { DEFAULT_LLM_MODEL_ID, PIPELINE, type AiModality, type AppConfig, type StageName } from "@adt/types"
 import { AiProviderError } from "./ports/errors.js"
 import { resolveModelIdFor } from "./model-id.js"
 import type { ProviderRegistry } from "./registry.js"
@@ -19,6 +19,7 @@ const STRUCTURED_TEXT_STEP_FIELDS = [
   "translation",
   "metadata",
   "book_summary",
+  "book_outline",
   "quiz_generation",
   "easy_read",
   "font_assignment",
@@ -28,6 +29,7 @@ const STRUCTURED_TEXT_STEP_FIELDS = [
   "image_captioning",
   "image_segmentation",
   "image_cropping",
+  "core_tts",
 ] as const satisfies readonly (keyof AppConfig)[]
 
 export function collectConfigModelChecks(config: AppConfig): ConfigModelCheck[] {
@@ -62,6 +64,42 @@ export function collectConfigModelChecks(config: AppConfig): ConfigModelCheck[] 
     })
   }
 
+  return checks
+}
+
+/**
+ * The model checks a stage-scoped run must pass before it clears any data.
+ * Steps resolve their model through override chains that all end at
+ * `default_model`, so a run containing any LLM step validates the default plus
+ * every configured override. An override consumed only by an out-of-range step
+ * still gets checked — the chains are private to each step, and a config that
+ * names an uncredentialed provider is broken for the pipeline as a whole — but
+ * a run whose stages make no structured-text call (e.g. speech only) checks
+ * nothing. Image and TTS models are excluded: those steps guard themselves
+ * before touching existing data.
+ */
+export function collectStageRunModelChecks(
+  config: AppConfig,
+  stages: readonly StageName[],
+): ConfigModelCheck[] {
+  const steps = PIPELINE.filter((stage) => stages.includes(stage.name)).flatMap(
+    (stage) => stage.steps,
+  )
+  if (!steps.some((step) => step.modelDefault === "llm")) return []
+
+  const checks: ConfigModelCheck[] = [
+    {
+      field: "default_model",
+      modelId: config.default_model ?? DEFAULT_LLM_MODEL_ID,
+      modality: "structured-text",
+    },
+  ]
+  for (const field of STRUCTURED_TEXT_STEP_FIELDS) {
+    const step = config[field] as { model?: string } | undefined
+    if (step?.model) {
+      checks.push({ field: `${field}.model`, modelId: step.model, modality: "structured-text" })
+    }
+  }
   return checks
 }
 

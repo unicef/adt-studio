@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest"
-import type { AppConfig } from "@adt/types"
+import { DEFAULT_LLM_MODEL_ID, type AppConfig } from "@adt/types"
 import {
   assertConfigModels,
   collectConfigModelChecks,
+  collectStageRunModelChecks,
   validateConfigModels,
 } from "../config-validation.js"
 import { AiProviderError } from "../ports/errors.js"
@@ -47,6 +48,43 @@ describe("collectConfigModelChecks", () => {
 
   it("skips fields that are not set", () => {
     expect(collectConfigModelChecks(config({}))).toEqual([])
+  })
+})
+
+describe("collectStageRunModelChecks", () => {
+  it("returns no checks for a run whose stages make no structured-text call", () => {
+    const checks = collectStageRunModelChecks(
+      config({
+        default_model: "openai:gpt-5.4",
+        translation: { model: "anthropic:claude-opus-4" },
+      } as Partial<AppConfig>),
+      ["speech"],
+    )
+    expect(checks).toEqual([])
+  })
+
+  it("validates the default plus every configured override for an LLM-step run", () => {
+    const checks = collectStageRunModelChecks(
+      config({
+        default_model: "openai:gpt-5.4",
+        translation: { model: "anthropic:claude-opus-4" },
+      } as Partial<AppConfig>),
+      ["sectioning"],
+    )
+    expect(checks).toEqual([
+      { field: "default_model", modelId: "openai:gpt-5.4", modality: "structured-text" },
+      {
+        field: "translation.model",
+        modelId: "anthropic:claude-opus-4",
+        modality: "structured-text",
+      },
+    ])
+  })
+
+  it("falls back to the platform default model when the config sets none", () => {
+    expect(collectStageRunModelChecks(config({}), ["storyboard"])).toEqual([
+      { field: "default_model", modelId: DEFAULT_LLM_MODEL_ID, modality: "structured-text" },
+    ])
   })
 })
 
