@@ -296,6 +296,36 @@ describe("swapToPage", () => {
     expect(await second).toBe("ok")
   })
 
+  // `adt:page-changed` is a published contract, not an internal detail: the
+  // generated SCORM adapter re-reports `cmi.core.lesson_location` from it, and
+  // Studio's preview re-reads the current page from it (an iframe `load` event
+  // no longer fires once navigation happens in place).
+  it("announces the new section id so out-of-runtime consumers can follow along", async () => {
+    const seen: Array<string | null> = []
+    const onPageChanged = (event: Event) => {
+      seen.push((event as CustomEvent<{ sectionId: string | null }>).detail.sectionId)
+    }
+    document.addEventListener("adt:page-changed", onPageChanged)
+
+    mockFetchOnce(pageHtml({ sectionId: "pg002_sec001", title: "Page two" }))
+    await swapToPage("http://localhost/book/pg002_sec001.html")
+
+    document.removeEventListener("adt:page-changed", onPageChanged)
+    expect(seen).toEqual(["pg002_sec001"])
+  })
+
+  it("does not announce a page change when the swap fails", async () => {
+    const seen: string[] = []
+    const onPageChanged = () => seen.push("fired")
+    document.addEventListener("adt:page-changed", onPageChanged)
+
+    mockFetchOnce("", false)
+    await swapToPage("http://localhost/book/missing.html")
+
+    document.removeEventListener("adt:page-changed", onPageChanged)
+    expect(seen).toEqual([])
+  })
+
   it("reports failure without touching the DOM when the response is not ok", async () => {
     mockFetchOnce("", false)
 
