@@ -80,6 +80,29 @@ const GLOSSREF_CSS = `
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Remove the selectable secondary-narrator payload from a primary-only EPUB. */
+export function stripSecondaryNarratorAssets(oebpsDir: string): void {
+  const i18nDir = path.join(oebpsDir, "content", "i18n")
+  if (!fs.existsSync(i18nDir)) return
+
+  for (const entry of fs.readdirSync(i18nDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const localeDir = path.join(i18nDir, entry.name)
+    fs.rmSync(path.join(localeDir, "audio_voices.json"), { force: true })
+    fs.rmSync(path.join(localeDir, "timecode", "timecode_voices.json"), {
+      force: true,
+    })
+
+    const audioDir = path.join(localeDir, "audio")
+    if (!fs.existsSync(audioDir)) continue
+    for (const audioFile of fs.readdirSync(audioDir, { withFileTypes: true })) {
+      if (audioFile.isFile() && /--secondary\.[^.]+$/i.test(audioFile.name)) {
+        fs.rmSync(path.join(audioDir, audioFile.name))
+      }
+    }
+  }
+}
+
 /**
  * Package an EPUB 3 from the existing ADT web package.
  *
@@ -108,6 +131,7 @@ export function packageEpub(
 
   // Copy adt/ -> epub/OEBPS/, skipping SCORM-specific files
   copyDirRecursive(adtDir, oebpsDir, NON_READER_FILES)
+  stripSecondaryNarratorAssets(oebpsDir)
 
   // EPUB readers provide nav/settings/playback natively (read-aloud via the
   // SMIL overlays below), so drop the embedded runtime (React bundle, offline

@@ -90,6 +90,59 @@ export function formatCore(version) {
   return `${version.major}.${version.minor}.${version.patch}`;
 }
 
+export function resolvePreviousReleaseTag(tags, targetTag) {
+  const target = parseReleaseTag(targetTag);
+  if (!target) throw new Error(`Invalid release tag: ${targetTag}`);
+  const targetBetaNumber = betaNumberOf(target);
+  const targetIsStaging = isStagingBeta(target);
+  if (
+    target.prerelease != null &&
+    targetBetaNumber == null &&
+    !targetIsStaging
+  ) {
+    throw new Error(
+      `Release regeneration supports only stable, numbered beta, or staging tags: ${targetTag}`,
+    );
+  }
+
+  const candidates = tags
+    .map((tag) => ({ tag, version: parseReleaseTag(tag) }))
+    .filter(({ version }) => {
+      if (!version) return false;
+      if (target.prerelease == null) {
+        return (
+          version.prerelease == null &&
+          compareReleaseVersions(version, target) < 0
+        );
+      }
+      if (targetIsStaging) {
+        return (
+          (betaNumberOf(version) != null &&
+            compareCore(version, target) <= 0) ||
+          (version.prerelease == null && compareCore(version, target) < 0)
+        );
+      }
+
+      const candidateBetaNumber = betaNumberOf(version);
+      return (
+        (candidateBetaNumber != null &&
+          compareCore(version, target) === 0 &&
+          candidateBetaNumber < targetBetaNumber) ||
+        (version.prerelease == null && compareCore(version, target) < 0)
+      );
+    })
+    .sort((left, right) => {
+      if (targetIsStaging) {
+        const leftIsBeta = betaNumberOf(left.version) != null;
+        const rightIsBeta = betaNumberOf(right.version) != null;
+        if (leftIsBeta !== rightIsBeta) return leftIsBeta ? 1 : -1;
+      }
+      return compareReleaseVersions(left.version, right.version);
+    });
+
+  return candidates.at(-1)?.tag ?? null;
+}
+
 export function listGitTags() {
   try {
     return execFileSync("git", ["tag", "--list"], { encoding: "utf8" })
