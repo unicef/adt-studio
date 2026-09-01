@@ -495,6 +495,8 @@ function lowercaseConfigLanguages(configPath: string): void {
 const MEDIA_DEST: Record<string, { folder: string; map: string }> = {
   ".mp3": { folder: "audios", map: "audios.json" },
   ".flac": { folder: "audios", map: "audios.json" },
+  ".wav": { folder: "audios", map: "audios.json" },
+  ".ogg": { folder: "audios", map: "audios.json" },
   ".mp4": { folder: "videos", map: "videos.json" },
 }
 
@@ -543,16 +545,30 @@ export function relocateMedia(pnldDir: string): void {
     const mapPath = path.join(dataDir, "content", "i18n", lang, dest.map)
     if (!remaps.has(mapPath)) remaps.set(mapPath, new Map())
     remaps.get(mapPath)?.set(oldName, newName)
+    if (dest.map === "audios.json") {
+      const voicesMapPath = path.join(dataDir, "content", "i18n", lang, "audio_voices.json")
+      if (!remaps.has(voicesMapPath)) remaps.set(voicesMapPath, new Map())
+      remaps.get(voicesMapPath)?.set(oldName, newName)
+    }
   }
 
   for (const [mapPath, renames] of remaps) {
     if (!fs.existsSync(mapPath)) continue
-    const map = JSON.parse(fs.readFileSync(mapPath, "utf-8")) as Record<string, unknown>
-    for (const k of Object.keys(map)) {
-      const renamed = typeof map[k] === "string" ? renames.get(map[k] as string) : undefined
-      if (renamed) map[k] = renamed
+    const map = JSON.parse(fs.readFileSync(mapPath, "utf-8")) as unknown
+    const rewrite = (value: unknown): unknown => {
+      if (typeof value === "string") return renames.get(value) ?? value
+      if (Array.isArray(value)) return value.map(rewrite)
+      if (value && typeof value === "object") {
+        return Object.fromEntries(
+          Object.entries(value as Record<string, unknown>).map(([key, nested]) => [
+            key,
+            rewrite(nested),
+          ]),
+        )
+      }
+      return value
     }
-    fs.writeFileSync(mapPath, JSON.stringify(map, null, 2))
+    fs.writeFileSync(mapPath, JSON.stringify(rewrite(map), null, 2))
   }
 
   // Drop the emptied audio/video dirs; the JSON keeps resources/data alive.

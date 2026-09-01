@@ -16,13 +16,15 @@ import type {
   BookSummaryOutput,
   BookMetadata,
   SpeechConfig,
+  SpeechFileEntry,
   TTSOutput,
   WordTimestampOutput,
   TocGenerationOutput,
   Quiz,
   ImageCaptioningOutput,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE, resolveQuizId } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId } from "@adt/types"
+import { resolveNarratorLabel } from "../speech.js"
 import {
   GOOGLE_FONTS,
   googleFontsReferencedIn,
@@ -146,10 +148,13 @@ function buildRuntimeTimecodeMap(
   timestamps: WordTimestampOutput | undefined,
   speechConfig?: SpeechConfig,
   readySpeechIds?: ReadonlySet<string>,
+  voiceSlot: "primary" | "secondary" = "primary",
 ): Record<string, RuntimeTimecodeEntry> {
   const map: Record<string, RuntimeTimecodeEntry> = {}
 
-  for (const [textId, entry] of Object.entries(timestamps?.entries ?? {})) {
+  for (const entry of Object.values(timestamps?.entries ?? {})) {
+    if (resolveEntryVoiceSlot(entry) !== voiceSlot) continue
+    const textId = entry.textId
     if (entry.words.length === 0) continue
     if (readySpeechIds && !readySpeechIds.has(textId)) continue
     if (isTtsExcluded(textId, speechConfig)) continue
@@ -173,7 +178,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 4
+const PACKAGING_FORMAT_VERSION = 5
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -671,8 +676,24 @@ export async function packageAdtWeb(
     const readySpeechIds = new Set(Object.keys(speechTextsMap))
     writeJson(path.join(localeDir, "speech_texts.json"), speechTextsMap)
 
-    // audios.json + copy audio files
+    // Keep audios.json as the primary map for legacy readers and EPUB. The
+    // optional audio_voices.json manifest adds selectable narrator variants.
     const audioMap: Record<string, string> = {}
+    const audioVoices: Record<
+      "primary" | "secondary",
+      { label: string; audios: Record<string, string> }
+    > = {
+      primary: { label: "Primary", audios: audioMap },
+      secondary: { label: "Secondary", audios: {} },
+    }
+    // The entries whose audio actually made it into the bundle, per slot. The
+    // narrator label is resolved from these once the copy loop is done, so a
+    // single manual upload can't rename the voice (see resolveNarratorLabel)
+    // and an entry whose file is missing on disk never names it at all.
+    const copiedBySlot: Record<"primary" | "secondary", SpeechFileEntry[]> = {
+      primary: [],
+      secondary: [],
+    }
 
     if (features?.readAloud !== false) {
       const audioDir = path.join(localeDir, "audio")
@@ -696,22 +717,39 @@ export async function packageAdtWeb(
           if (fs.existsSync(resolvedSrcFile)) {
             const destFile = path.join(audioDir, entry.fileName)
             fs.copyFileSync(resolvedSrcFile, destFile)
-            audioMap[entry.textId] = entry.fileName
+            const slot = resolveEntryVoiceSlot(entry)
+            audioVoices[slot].audios[entry.textId] = entry.fileName
+            copiedBySlot[slot].push(entry)
           }
         }
       }
     }
+    audioVoices.primary.label = resolveNarratorLabel(copiedBySlot.primary, "Primary")
+    audioVoices.secondary.label = resolveNarratorLabel(copiedBySlot.secondary, "Secondary")
     writeJson(path.join(localeDir, "audios.json"), audioMap)
+    if (Object.keys(audioVoices.secondary.audios).length > 0) {
+      writeJson(path.join(localeDir, "audio_voices.json"), {
+        defaultVoice: "primary",
+        voices: audioVoices,
+      })
+    }
 
     // timecode/timecode_output.json — word timings consumed by the reader runtime
     const timecodeDir = path.join(localeDir, "timecode")
     fs.mkdirSync(timecodeDir, { recursive: true })
-    writeJson(
-      path.join(timecodeDir, "timecode_output.json"),
-      highlightEnabled
-        ? buildRuntimeTimecodeMap(getWordTimestamps(storage, lang), speechConfig, readySpeechIds)
-        : {},
-    )
+    const timestamps = getWordTimestamps(storage, lang)
+    const primaryTimecodes = highlightEnabled
+      ? buildRuntimeTimecodeMap(timestamps, speechConfig, readySpeechIds, "primary")
+      : {}
+    writeJson(path.join(timecodeDir, "timecode_output.json"), primaryTimecodes)
+    if (Object.keys(audioVoices.secondary.audios).length > 0) {
+      writeJson(path.join(timecodeDir, "timecode_voices.json"), {
+        primary: primaryTimecodes,
+        secondary: highlightEnabled
+          ? buildRuntimeTimecodeMap(timestamps, speechConfig, readySpeechIds, "secondary")
+          : {},
+      })
+    }
 
     // videos.json — map sectionId → video filename for assigned sign language
     // videos. Files live in a "video/" directory beside this manifest.
@@ -991,18 +1029,19 @@ body {
   opacity: 1 !important;
 }
 
-/* Force single-column layout for all section containers.
-   Side-by-side (lg:flex-row) layouts squeeze text in narrow
-   reader viewports. */
-section > div {
-  flex-direction: column !important;
-  max-width: 100% !important;
-}
+/* Force single-column layout only in narrow reader viewports. Above the
+   lg breakpoint the page's own lg:flex-row / max-w-* rules govern, so wide
+   readers (PNLD/LIP, wide EPUB) keep the authored side-by-side layout. */
+@media (max-width: 1023px) {
+  section > div {
+    flex-direction: column !important;
+    max-width: 100% !important;
+  }
 
-/* Remove max-width constraints on nested containers (max-w-6xl, max-w-xl, etc.) */
-.container,
-section [class*="max-w-"] {
-  max-width: 100% !important;
+  .container,
+  section [class*="max-w-"] {
+    max-width: 100% !important;
+  }
 }
 
 /* Responsive images */
@@ -1821,18 +1860,6 @@ export function rewriteImageUrls(
         resolvedImageId = imageId
         img.attribs.src = `images/${filename}`
         referencedImages.push(imageId)
-        delete img.attribs.width
-        delete img.attribs.height
-        const existingStyle = img.attribs.style ?? ""
-        // Don't add responsive sizing to absolutely-positioned images (fixed-layout)
-        if (!existingStyle.includes("position:absolute")) {
-          const sizeStyle = "max-width: 100%; height: auto;"
-          if (!existingStyle.includes("max-width")) {
-            img.attribs.style = existingStyle
-              ? `${existingStyle.trimEnd().replace(/;$/, "")}; ${sizeStyle}`
-              : sizeStyle
-          }
-        }
       }
     }
     // Also handle data-id based images
@@ -1843,18 +1870,6 @@ export function rewriteImageUrls(
       img.attribs.src = `images/${filename}`
       if (!referencedImages.includes(dataId)) {
         referencedImages.push(dataId)
-      }
-      delete img.attribs.width
-      delete img.attribs.height
-      const existingStyle = img.attribs.style ?? ""
-      // Don't add responsive sizing to absolutely-positioned images (fixed-layout)
-      if (!existingStyle.includes("position:absolute")) {
-        const sizeStyle = "max-width: 100%; height: auto;"
-        if (!existingStyle.includes("max-width")) {
-          img.attribs.style = existingStyle
-            ? `${existingStyle.trimEnd().replace(/;$/, "")}; ${sizeStyle}`
-            : sizeStyle
-        }
       }
     }
 
@@ -2444,10 +2459,12 @@ function generateOfflinePreloader(
       "texts.json",
       "speech_texts.json",
       "audios.json",
+      "audio_voices.json",
       "videos.json",
       "images.json",
       "glossary.json",
       "timecode/timecode_output.json",
+      "timecode/timecode_voices.json",
     ]) {
       const rel = `content/i18n/${lang}/${file}`
       const data = readJsonSafe(rel)
