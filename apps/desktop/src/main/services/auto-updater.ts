@@ -5,14 +5,18 @@ import {
   type ProgressInfo,
   type UpdateInfo,
 } from "electron-updater";
-import { stripReleaseSourceSection } from "@root/scripts/release-source-notes.mjs";
 import {
   betaReleaseDownloadUrl,
   fetchBetaReleaseCatalog,
+  fetchGitHubReleaseByVersion,
   isBetaReleaseVersion,
   type AvailableRelease,
   type BetaRelease,
 } from "./release-catalog";
+import {
+  preferredReleaseNotes,
+  type RawReleaseNotes,
+} from "./update-release-notes";
 import { recordPendingInstall } from "./update-state";
 
 export type { AvailableRelease } from "./release-catalog";
@@ -43,26 +47,16 @@ export type UpdateStatus =
 type StatusListener = (status: UpdateStatus) => void;
 
 const listeners = new Set<StatusListener>();
+const RELEASE_HYDRATION_TIMEOUT_MS = 5_000;
 let lastStatus: UpdateStatus = { phase: "idle" };
 let lastInfo: UpdateInfo | null = null;
 let cancellationToken: CancellationToken | null = null;
 let betaReleases: BetaRelease[] = [];
-let activeBetaRelease: BetaRelease | null = null;
+let activeRawReleaseNotes: RawReleaseNotes | null = null;
+let deferStableAvailability = false;
 
-function normalizeReleaseNotes(
-  notes: UpdateInfo["releaseNotes"],
-): string | undefined {
-  if (!notes) return undefined;
-  const normalized =
-    typeof notes === "string"
-      ? notes
-      : notes
-          .map((entry) =>
-            typeof entry === "string" ? entry : (entry.note ?? ""),
-          )
-          .filter(Boolean)
-          .join("\n\n");
-  return stripReleaseSourceSection(normalized);
+function releaseNotesForInfo(info: UpdateInfo): string | undefined {
+  return preferredReleaseNotes(info, activeRawReleaseNotes);
 }
 
 function emit(status: UpdateStatus): void {
@@ -79,9 +73,7 @@ function emitAvailableFromLastInfo(): void {
     phase: "available",
     version: lastInfo.version,
     releaseDate: lastInfo.releaseDate,
-    releaseNotes:
-      normalizeReleaseNotes(lastInfo.releaseNotes) ??
-      activeBetaRelease?.releaseNotes,
+    releaseNotes: releaseNotesForInfo(lastInfo),
     totalBytes: lastInfo.files?.[0]?.size,
   });
 }
@@ -128,24 +120,25 @@ function configure(): void {
     // `allowPrerelease = false`, so this guard only matters for beta builds.
     if (isBeta && !isBetaReleaseVersion(info.version)) {
       lastInfo = null;
+      activeRawReleaseNotes = null;
       emit({ phase: "not-available" });
       return;
     }
     lastInfo = info;
+    if (!isBeta && deferStableAvailability) return;
     const totalBytes = info.files?.[0]?.size;
     emit({
       phase: "available",
       version: info.version,
       releaseDate: info.releaseDate,
-      releaseNotes:
-        normalizeReleaseNotes(info.releaseNotes) ??
-        activeBetaRelease?.releaseNotes,
+      releaseNotes: releaseNotesForInfo(info),
       totalBytes,
     });
   });
 
   autoUpdater.on("update-not-available", () => {
     lastInfo = null;
+    activeRawReleaseNotes = null;
     emit({ phase: "not-available" });
   });
 
@@ -162,9 +155,7 @@ function configure(): void {
 
   autoUpdater.on("update-downloaded", (info: UpdateInfo) => {
     lastInfo = info;
-    const releaseNotes =
-      normalizeReleaseNotes(info.releaseNotes) ??
-      activeBetaRelease?.releaseNotes;
+    const releaseNotes = releaseNotesForInfo(info);
     recordPendingInstall(info.version, releaseNotes);
     emit({
       phase: "downloaded",
@@ -207,8 +198,34 @@ export async function checkForUpdates(): Promise<UpdateStatus> {
       return await checkBetaRelease(newestUpgrade);
     }
 
-    activeBetaRelease = null;
-    await autoUpdater.checkForUpdates();
+    activeRawReleaseNotes = null;
+    deferStableAvailability = true;
+    try {
+      await autoUpdater.checkForUpdates();
+      if (lastInfo) {
+        try {
+          const release = await fetchGitHubReleaseByVersion(
+            lastInfo.version,
+            fetch,
+            AbortSignal.timeout(RELEASE_HYDRATION_TIMEOUT_MS),
+          );
+          if (release) {
+            activeRawReleaseNotes = {
+              version: lastInfo.version,
+              releaseNotes: release.rawReleaseNotes,
+            };
+          }
+        } catch (err) {
+          console.warn(
+            "Failed to load the complete GitHub release notes; using updater feed notes",
+            err,
+          );
+        }
+      }
+    } finally {
+      deferStableAvailability = false;
+    }
+    if (lastInfo) emitAvailableFromLastInfo();
     return lastStatus;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -224,8 +241,12 @@ export async function listAvailableVersions(
 
   betaReleases = await fetchBetaReleaseCatalog(app.getVersion(), { force });
   return betaReleases.map(
-    ({ tagName: _tagName, updaterChannel: _updaterChannel, ...release }) =>
-      release,
+    ({
+      tagName: _tagName,
+      updaterChannel: _updaterChannel,
+      rawReleaseNotes: _rawReleaseNotes,
+      ...release
+    }) => release,
   );
 }
 
@@ -255,7 +276,10 @@ export async function selectVersion(version: string): Promise<UpdateStatus> {
 
 async function checkBetaRelease(target: BetaRelease): Promise<UpdateStatus> {
   lastInfo = null;
-  activeBetaRelease = target;
+  activeRawReleaseNotes = {
+    version: target.version,
+    releaseNotes: target.rawReleaseNotes ?? target.releaseNotes,
+  };
   autoUpdater.allowPrerelease = true;
   autoUpdater.allowDowngrade = true;
   autoUpdater.channel = target.updaterChannel;
