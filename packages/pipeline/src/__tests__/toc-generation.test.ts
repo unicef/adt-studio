@@ -53,6 +53,7 @@ function makeStorageWithSection(opts: {
   tocSection?: boolean
 }): Storage {
   return {
+    getPages: () => [{ pageId: "pg001", pageNumber: 1, text: "" }],
     getLatestNodeData: (node: string) => {
       if (node === "page-sectioning") {
         return {
@@ -178,6 +179,7 @@ describe("generateToc", () => {
     // Fixed-layout: the render (positioned) tree has only text/image roles;
     // the heading lives in the semantic page-sectioning tree.
     const storage = {
+      getPages: () => [{ pageId: "pg001", pageNumber: 1, text: "" }],
       getLatestNodeData: (node: string) => {
         if (node === "fixed-layout-sectioning") {
           return {
