@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest"
-import { reconstructHtmlWithEdit, serializeContentWrapper } from "./iframe-html"
+import {
+  reconstructHtmlWithEdit,
+  removeElementFromSourceHtml,
+  serializeContentWrapper,
+  usesViewportHeight,
+} from "./iframe-html"
 
 // jsdom does not implement CSS.escape, which reconstructHtmlWithEdit relies on
 // (present in real browsers / Electron). The fixtures use plain-identifier
@@ -111,5 +116,61 @@ describe("reconstructHtmlWithEdit", () => {
 
   it("returns null when the data-id is not found", () => {
     expect(reconstructHtmlWithEdit(FIXED_LAYOUT, "missing", "x")).toBeNull()
+  })
+})
+
+describe("usesViewportHeight", () => {
+  it.each([
+    `<section class="min-h-screen"></section>`,
+    `<section class="md:h-screen"></section>`,
+    `<section class="lg:max-h-dvh"></section>`,
+    `<section class="min-h-[calc(100dvh-100px)]"></section>`,
+    `<section class="min-h-[var(--page-height)]"></section>`,
+    `<section style="min-height: 80svh"></section>`,
+    `<img style="max-height: var(--page-height, 100vh)">`,
+  ])("detects viewport-dependent layout in attributes", (html) => {
+    expect(usesViewportHeight(html)).toBe(true)
+  })
+
+  it("ignores viewport utility names in visible prose", () => {
+    expect(usesViewportHeight(`<p>Use min-h-screen to fill the viewport.</p>`)).toBe(false)
+  })
+
+  it("ignores fixed-height layout", () => {
+    expect(usesViewportHeight(`<section class="min-h-[520px] h-96"></section>`)).toBe(false)
+  })
+})
+
+describe("removeElementFromSourceHtml", () => {
+  it("removes the matching source wrapper while preserving scripts and LaTeX", () => {
+    const source = `<div id="content" class="container"><section>
+  <div class="keep"><p data-id="keep">The area is $\\pi r^2$</p></div>
+  <script>window.adtRegisterCustomActivity(section, { validate: () => true })</script>
+  <div class="bg-orange-100"><span data-id="remove">Remove me</span></div>
+</section></div>`
+    const live = wrapperFrom(`<div id="content" class="container"><section>
+  <div class="keep"><p data-id="keep">The area is <math><mi>π</mi></math></p></div>
+  <div class="bg-orange-100" data-id="_el1"><span data-id="remove">Remove me</span></div>
+</section></div>`)
+    const target = live.querySelector('[data-id="_el1"]')
+    if (!target) throw new Error("no transient target in fixture")
+
+    const result = removeElementFromSourceHtml(source, live, target)
+
+    expect(result).not.toBeNull()
+    expect(result?.removedDataIds).toEqual(["remove"])
+    expect(result?.html).not.toContain("Remove me")
+    expect(result?.html).toContain("$\\pi r^2$")
+    expect(result?.html).not.toContain("<math")
+    expect(result?.html).toContain("window.adtRegisterCustomActivity")
+  })
+
+  it("refuses to remove when the live subtree cannot be matched to the source", () => {
+    const source = `<div id="content" class="container"><div><span data-id="source">Source</span></div></div>`
+    const live = wrapperFrom(`<div id="content" class="container"><div data-id="_el1"><span data-id="other">Other</span></div></div>`)
+    const target = live.querySelector('[data-id="_el1"]')
+    if (!target) throw new Error("no transient target in fixture")
+
+    expect(removeElementFromSourceHtml(source, live, target)).toBeNull()
   })
 })

@@ -82,6 +82,7 @@ import {
 import { toast } from "sonner"
 import { Puzzle, ListChecks } from "lucide-react"
 import { StyleEditorPanel } from "./style-editor"
+import { FitScaleIndicator } from "./FitScaleIndicator"
 import { ViewportToggle } from "./style-editor/ViewportToggle"
 import {
   DEVICE_WIDTHS,
@@ -502,6 +503,7 @@ export function StoryboardSectionDetail({
   >(null)
   const [deviceView, setDeviceView] = useDeviceView(bookLabel, "desktop")
   const [previewVisibleWidth, setPreviewVisibleWidth] = useState(0)
+  const [previewScale, setPreviewScale] = useState(1)
   const previewFrameRef = useRef<BookPreviewFrameHandle>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -1467,17 +1469,35 @@ export function StoryboardSectionDetail({
   // Delete selected block from rendered HTML and remove the matching leaf from sectioning.
   const handleDeleteBlock = useCallback(
     (dataId: string) => {
-      removeElementsFromRendering([dataId])
+      const treeIds = new Set([dataId])
+      if (!removeElementsFromRendering([dataId])) {
+        // Containers the renderer emitted without a data-id carry a transient
+        // `_el#` id that exists only in the live iframe DOM, so the stored-HTML
+        // removal above can't find them. Remove from the iframe and queue the
+        // serialized result the same way class/style edits do — the deselect
+        // below flushes it into pendingRendering. The subtree's real data-ids
+        // are deleted from the sectioning tree as well; leaving them behind
+        // would resurrect the content on the next LLM re-render and keep it in
+        // the text catalog and TTS.
+        const removed = previewFrameRef.current?.removeElement(dataId)
+        if (removed) {
+          pendingHtmlRef.current = { html: removed.html, sectionIndex }
+          setHasUnflushedEdits(true)
+          markPending("elements")
+          for (const id of removed.removedDataIds) treeIds.add(id)
+        }
+      }
       const sBase = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
       if (sBase && section) {
-        const nextNodes = deleteNode(section.nodes, dataId)
+        let nextNodes = section.nodes
+        for (const id of treeIds) nextNodes = deleteNode(nextNodes, id)
         if (nextNodes !== section.nodes) {
           setPendingSectioning(withSectionNodes(sBase, sectionIndex, nextNodes))
         }
       }
       setSelectedElement(null)
     },
-    [removeElementsFromRendering, pendingSectioning, page.sectioningTree, sectionIndex, section]
+    [removeElementsFromRendering, pendingSectioning, page.sectioningTree, sectionIndex, section, markPending]
   )
 
   // Replace the current section with an updated copy (from SectionTreeEditor).
@@ -2269,6 +2289,7 @@ export function StoryboardSectionDetail({
       tagName: tag,
       textType: leaf && !isImage ? leaf.role : undefined,
       isPruned: leaf?.isPruned ?? false,
+      hasTreeNode: leaf != null,
       imageSrc: isImage ? `${BASE_URL}/books/${bookLabel}/images/${dataId}` : undefined,
     }
   }
@@ -2625,6 +2646,18 @@ export function StoryboardSectionDetail({
     )
   }
 
+  // Single source of truth for which preview the section body renders. Both the
+  // render tree below and the fit-scale pill gate switch on this, so the two can
+  // never disagree about whether the scalable BookPreviewFrame is on screen.
+  const previewMode: "none" | "stepper" | "classic-activity" | "book-frame" =
+    !section || !renderedSection?.html
+      ? "none"
+      : stepperEnabled && editableEntry
+        ? "stepper"
+        : isActivitySection && activityPreviewMode && !editActivityPanelOpen
+          ? "classic-activity"
+          : "book-frame"
+
   return (
     <>
     {headerSlotEl && createPortal(headerControls, headerSlotEl)}
@@ -2693,6 +2726,7 @@ export function StoryboardSectionDetail({
         className="flex-1 overflow-auto px-4 py-4 relative [scrollbar-gutter:stable]"
         ref={scrollContainerRef}
       >
+        {previewMode === "book-frame" && <FitScaleIndicator scale={previewScale} />}
         {!section ? (
           <StageEmptyState
             icon={LayoutGrid}
@@ -2794,9 +2828,9 @@ export function StoryboardSectionDetail({
                 }
               />
             )}
-            {stepperEnabled && editableEntry ? (
+            {previewMode === "stepper" ? (
               <>
-                {editableEntry.sourceRenderingVersion !== undefined &&
+                {editableEntry?.sourceRenderingVersion !== undefined &&
                   (page.versions.rendering ?? 0) !== editableEntry.sourceRenderingVersion && (
                     <div className="mb-2 flex justify-center">
                       <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded">
@@ -2810,7 +2844,7 @@ export function StoryboardSectionDetail({
                   deviceView={deviceView}
                 />
               </>
-            ) : isActivitySection && activityPreviewMode && !editActivityPanelOpen ? (
+            ) : previewMode === "classic-activity" ? (
               <>
                 {renderingDirty && (
                   <div className="mb-2 flex justify-center">
@@ -2846,6 +2880,7 @@ export function StoryboardSectionDetail({
                   onLinkSelect={handleLinkSelectFromPage}
                   onLinkHover={handleAnchorHover}
                   onVisibleWidthChange={setPreviewVisibleWidth}
+                  onScaleChange={setPreviewScale}
                   bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
                 />
             )}
@@ -3185,8 +3220,13 @@ export function StoryboardSectionDetail({
                   storyboardRunning || selectedInfo.isContainer
                     ? undefined
                     : handleToolbarChangeTextType,
+                // Containers with a sectioning-tree node prune like any leaf
+                // (inherited prune greys and strips their contents at save).
+                // Decoration containers the renderer invented have no tree
+                // node to hold prune state, so they get no prune toggle —
+                // Delete is their removal path.
                 onTogglePrune:
-                  storyboardRunning || selectedInfo.isContainer
+                  storyboardRunning || (selectedInfo.isContainer && !selectedInfo.hasTreeNode)
                     ? undefined
                     : handleToolbarPrune,
                 onCrop:

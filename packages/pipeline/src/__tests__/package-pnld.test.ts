@@ -389,8 +389,22 @@ describe("relocateMedia", () => {
       fs.mkdirSync(path.join(dataDir, "content", "i18n", lang, "audio"), { recursive: true })
       fs.mkdirSync(path.join(dataDir, "content", "i18n", lang, "video"), { recursive: true })
       fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "audio", "p1.mp3"), lang)
+      fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "audio", "p2--secondary.wav"), lang)
+      fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "audio", "p3--secondary.ogg"), lang)
       fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "video", "sl1.mp4"), lang)
       fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "audios.json"), JSON.stringify({ a1: "p1.mp3" }))
+      fs.writeFileSync(
+        path.join(dataDir, "content", "i18n", lang, "audio_voices.json"),
+        JSON.stringify({
+          voices: {
+            primary: { label: "Primary", audios: { a1: "p1.mp3" } },
+            secondary: {
+              label: "Secondary",
+              audios: { a2: "p2--secondary.wav", a3: "p3--secondary.ogg" },
+            },
+          },
+        }),
+      )
       fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "videos.json"), JSON.stringify({ v1: "sl1.mp4" }))
       fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "texts.json"), JSON.stringify({ t: "x" }))
     }
@@ -399,15 +413,58 @@ describe("relocateMedia", () => {
     // Media lands in the flat per-type folders, disambiguated by language.
     expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__p1.mp3"))).toBe(true)
     expect(fs.existsSync(path.join(dir, "resources", "audios", "en-us__p1.mp3"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__p2--secondary.wav"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__p3--secondary.ogg"))).toBe(true)
     expect(fs.existsSync(path.join(dir, "resources", "videos", "pt-br__sl1.mp4"))).toBe(true)
     expect(fs.existsSync(path.join(dir, "resources", "videos", "en-us__sl1.mp4"))).toBe(true)
     // The JSON stays in resources/data, with map values rewritten to the new names.
     expect(readJson(path.join(dataDir, "content", "i18n", "pt-br", "audios.json")).a1).toBe("pt-br__p1.mp3")
+    expect(
+      readJson(path.join(dataDir, "content", "i18n", "pt-br", "audio_voices.json")),
+    ).toMatchObject({
+      voices: {
+        secondary: {
+          audios: {
+            a2: "pt-br__p2--secondary.wav",
+            a3: "pt-br__p3--secondary.ogg",
+          },
+        },
+      },
+    })
     expect(readJson(path.join(dataDir, "content", "i18n", "en-us", "videos.json")).v1).toBe("en-us__sl1.mp4")
     expect(readJson(path.join(dataDir, "content", "i18n", "pt-br", "texts.json")).t).toBe("x")
     // resources/data survives (it still holds the JSON); the emptied audio/video dirs are gone.
     expect(fs.existsSync(dataDir)).toBe(true)
     expect(fs.existsSync(path.join(dataDir, "content", "i18n", "pt-br", "audio"))).toBe(false)
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  // Gemini synthesises wav, so adding .wav/.ogg to MEDIA_DEST changed the
+  // export layout for every single-voice Gemini book, not just dual-voice ones.
+  // Those books have no audio_voices.json at all — pin that path explicitly.
+  it("relocates wav audio for a single-voice book with no voices manifest", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-c-"))
+    const dataDir = path.join(dir, "resources", "data")
+    const langDir = path.join(dataDir, "content", "i18n", "pt-br")
+    fs.mkdirSync(path.join(langDir, "audio"), { recursive: true })
+    fs.writeFileSync(path.join(langDir, "audio", "pg001_t001.wav"), "wav")
+    fs.writeFileSync(path.join(langDir, "audio", "pg001_t002.ogg"), "ogg")
+    fs.writeFileSync(
+      path.join(langDir, "audios.json"),
+      JSON.stringify({ pg001_t001: "pg001_t001.wav", pg001_t002: "pg001_t002.ogg" }),
+    )
+
+    relocateMedia(dir)
+
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__pg001_t001.wav"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__pg001_t002.ogg"))).toBe(true)
+    expect(readJson(path.join(langDir, "audios.json"))).toEqual({
+      pg001_t001: "pt-br__pg001_t001.wav",
+      pg001_t002: "pt-br__pg001_t002.ogg",
+    })
+    // A missing audio_voices.json must not stop the audios.json rewrite.
+    expect(fs.existsSync(path.join(langDir, "audio_voices.json"))).toBe(false)
+    expect(fs.existsSync(path.join(langDir, "audio"))).toBe(false)
     fs.rmSync(dir, { recursive: true, force: true })
   })
 

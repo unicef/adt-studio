@@ -1,5 +1,13 @@
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
 import { describe, it, expect } from "vitest"
-import { mirrorDataIdToId, wrapWordSpans, buildNavDocument } from "../packaging/epub.js"
+import {
+  mirrorDataIdToId,
+  stripSecondaryNarratorAssets,
+  wrapWordSpans,
+  buildNavDocument,
+} from "../packaging/epub.js"
 import type { PageEntry } from "../packaging/web.js"
 
 describe("buildNavDocument", () => {
@@ -40,6 +48,36 @@ describe("buildNavDocument", () => {
     // it must not have displaced a real entry on the way there.
     expect(nav).toContain("Beta")
     expect(nav).not.toContain("Ghost")
+  })
+})
+
+describe("stripSecondaryNarratorAssets", () => {
+  it("keeps primary audio and removes secondary-only reader payloads", () => {
+    const oebpsDir = fs.mkdtempSync(path.join(os.tmpdir(), "epub-voices-"))
+    const localeDir = path.join(oebpsDir, "content", "i18n", "es-UY")
+    const audioDir = path.join(localeDir, "audio")
+    const timecodeDir = path.join(localeDir, "timecode")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.mkdirSync(timecodeDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "text.mp3"), "primary")
+    fs.writeFileSync(path.join(audioDir, "text--secondary.wav"), "secondary")
+    fs.writeFileSync(path.join(localeDir, "audios.json"), "{}")
+    fs.writeFileSync(path.join(localeDir, "audio_voices.json"), "{}")
+    fs.writeFileSync(path.join(timecodeDir, "timecode_output.json"), "{}")
+    fs.writeFileSync(path.join(timecodeDir, "timecode_voices.json"), "{}")
+
+    try {
+      stripSecondaryNarratorAssets(oebpsDir)
+
+      expect(fs.existsSync(path.join(audioDir, "text.mp3"))).toBe(true)
+      expect(fs.existsSync(path.join(localeDir, "audios.json"))).toBe(true)
+      expect(fs.existsSync(path.join(timecodeDir, "timecode_output.json"))).toBe(true)
+      expect(fs.existsSync(path.join(audioDir, "text--secondary.wav"))).toBe(false)
+      expect(fs.existsSync(path.join(localeDir, "audio_voices.json"))).toBe(false)
+      expect(fs.existsSync(path.join(timecodeDir, "timecode_voices.json"))).toBe(false)
+    } finally {
+      fs.rmSync(oebpsDir, { recursive: true, force: true })
+    }
   })
 })
 

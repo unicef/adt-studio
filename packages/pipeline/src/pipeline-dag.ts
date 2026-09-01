@@ -24,9 +24,10 @@ import type {
   EasyReadOutput,
   SpeechFileEntry,
   TTSOutput,
+  VoiceSlot,
   WebRenderingOutput,
 } from "@adt/types"
-import { isTtsExcluded } from "@adt/types"
+import { isTtsExcluded, voiceSlotEntryId } from "@adt/types"
 import { extractPDF, figureExtractionFlags, resolveFigureExtractionMode } from "./pdf-extraction.js"
 import {
   resolveFontsCacheDir,
@@ -85,19 +86,19 @@ import { normalizeLocale } from "./language-context.js"
 import {
   loadVoicesConfig,
   loadSpeechInstructions,
-  resolveVoice,
+  resolveSpeechVoice,
   resolveInstructions,
-  resolveProviderForLanguage,
-  resolveSpeechModel,
   resolveSpeechFormat,
   generateSpeechFile,
+  buildTtsLogEntry,
+  buildElevenLabsTtsLogParams,
+  NO_SPEAKABLE_TEXT_REASON,
   findAdjacentSpeechText,
   elevenLabsVoiceSettingsFromConfig,
   classifyElevenLabsTtsError,
   elevenLabsTtsRetryDelayMs,
   ELEVENLABS_TTS_MAX_CONCURRENCY,
   ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES,
-  type ProviderRouting,
 } from "./speech.js"
 import { packageAdtWeb } from "./packaging/web.js"
 import { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
@@ -1019,9 +1020,6 @@ export async function runFullPipeline(
       const instructionsMap = loadSpeechInstructions(configDir)
       const speechModel =
         config.speech?.model ?? config.default_speech_generation_model
-      const defaultProvider = config.speech?.default_provider ?? "openai"
-      const providerConfigs = config.speech?.providers ?? {}
-      const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
 
       const synthesizers = new Map<string, TTSSynthesizer>()
       function getSynthesizer(providerName: string): TTSSynthesizer {
@@ -1056,71 +1054,129 @@ export async function runFullPipeline(
         return synth
       }
 
-      interface TTSWorkItem { textId: string; text: string; language: string; previousText?: string; nextText?: string }
+      interface TTSWorkItem {
+        textId: string
+        text: string
+        language: string
+        previousText?: string
+        nextText?: string
+        voiceSlot: VoiceSlot
+        provider: string
+        model: string
+        voice: string
+        voiceLabel?: string
+      }
       const workItems: TTSWorkItem[] = []
       const resultsByLang = new Map<string, SpeechFileEntry[]>()
       for (const lang of outputLanguages) resultsByLang.set(lang, [])
       for (const lang of outputLanguages) {
         const entries = getReadyCoreTtsEntries(storage, lang)
-        const provider = resolveProviderForLanguage(lang, routing)
         const legacyLang = lang.replace("-", "_")
         const existingRow =
           storage.getLatestNodeData("tts", lang) ??
           storage.getLatestNodeData("tts", legacyLang)
+        // Keyed by the slot-qualified id so primary/secondary variants of the
+        // same textId are independently reusable/retryable.
         const existingById = new Map(
           ((existingRow?.data as TTSOutput | undefined)?.entries ?? []).map(
-            (entry) => [entry.textId, entry],
+            (entry) => [voiceSlotEntryId(entry.textId, entry.voiceSlot), entry],
           ),
         )
+        const configuredVoices = (["primary", "secondary"] as const)
+          .map((slot) => ({
+            slot,
+            profile: resolveSpeechVoice(lang, slot, config.speech, voiceMaps, speechModel),
+          }))
+          .filter(
+            (item): item is {
+              slot: VoiceSlot
+              profile: NonNullable<ReturnType<typeof resolveSpeechVoice>>
+            } => item.profile !== null,
+          )
         for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
           const entry = entries[entryIndex]
           if (isTtsExcluded(entry.id, config.speech)) continue
-          const existing = existingById.get(entry.id)
-          if (existing?.provider === "manual") {
-            const normalizedPath = path.join(
-              path.resolve(booksRoot),
-              label,
-              "audio",
-              lang,
-              existing.fileName,
-            )
-            const legacyPath = path.join(
-              path.resolve(booksRoot),
-              label,
-              "audio",
-              legacyLang,
-              existing.fileName,
-            )
-            if (fs.existsSync(normalizedPath) || fs.existsSync(legacyPath)) {
-              resultsByLang.get(lang)!.push(existing)
-              continue
+
+          for (const { slot, profile } of configuredVoices) {
+            const {
+              provider,
+              model,
+              voice,
+              label: voiceLabel,
+            } = profile
+            const slotEntryId = voiceSlotEntryId(entry.id, slot)
+            const existing = existingById.get(slotEntryId)
+            if (existing?.provider === "manual") {
+              const normalizedPath = path.join(
+                path.resolve(booksRoot),
+                label,
+                "audio",
+                lang,
+                existing.fileName,
+              )
+              const legacyPath = path.join(
+                path.resolve(booksRoot),
+                label,
+                "audio",
+                legacyLang,
+                existing.fileName,
+              )
+              if (fs.existsSync(normalizedPath) || fs.existsSync(legacyPath)) {
+                resultsByLang.get(lang)!.push(existing)
+                continue
+              }
             }
+            // ElevenLabs-only: adjacent-entry context, opt-in via
+            // elevenlabs_use_context. Must resolve identically to stage-runner.ts
+            // so the shared cache key (computeSpeechCacheKey) stays in sync.
+            const previousText =
+              provider === "elevenlabs" && config.speech?.elevenlabs_use_context
+                ? findAdjacentSpeechText(entries, entryIndex, -1, config.speech)
+                : undefined
+            const nextText =
+              provider === "elevenlabs" && config.speech?.elevenlabs_use_context
+                ? findAdjacentSpeechText(entries, entryIndex, 1, config.speech)
+                : undefined
+            workItems.push({
+              textId: entry.id,
+              text: entry.text,
+              language: lang,
+              previousText,
+              nextText,
+              voiceSlot: slot,
+              provider,
+              model,
+              voice,
+              voiceLabel,
+            })
           }
-          // ElevenLabs-only: adjacent-entry context, opt-in via
-          // elevenlabs_use_context. Must resolve identically to stage-runner.ts
-          // so the shared cache key (computeSpeechCacheKey) stays in sync.
-          const previousText =
-            provider === "elevenlabs" && config.speech?.elevenlabs_use_context
-              ? findAdjacentSpeechText(entries, entryIndex, -1, config.speech)
-              : undefined
-          const nextText =
-            provider === "elevenlabs" && config.speech?.elevenlabs_use_context
-              ? findAdjacentSpeechText(entries, entryIndex, 1, config.speech)
-              : undefined
-          workItems.push({ textId: entry.id, text: entry.text, language: lang, previousText, nextText })
         }
       }
 
       const totalItems = workItems.length
       let completedItems = 0
 
+      // Fail fast: build every synthesizer this run needs before admitting any
+      // item, so a missing credential surfaces as one clear stage error instead
+      // of one logged per-item failure for every entry that was in flight when
+      // the key turned out to be absent. getSynthesizer is memoized, so
+      // runTtsItem below reuses these instances. Derived from the resolved
+      // work items, so a secondary narrator on its own provider is covered and
+      // a run whose entries are all reused builds nothing.
+      for (const provider of new Set(workItems.map((item) => item.provider))) {
+        getSynthesizer(provider)
+      }
+
       const elevenLabsVoiceSettings = elevenLabsVoiceSettingsFromConfig(config.speech)
 
       const runTtsItem = async (item: TTSWorkItem) => {
-        const provider = resolveProviderForLanguage(item.language, routing)
-        const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
+        const startedAt = Date.now()
+        // Resolved per item rather than per language: a secondary narrator may
+        // use a different provider and model than the language's primary.
+        const provider = item.provider
+        const providerModel = item.model
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
-        const voice = resolveVoice(provider, item.language, voiceMaps, config.speech?.voice)
+        const voice = item.voice
         // OpenAI + Gemini both receive resolved instructions (Gemini embeds them in
         // the prompt text); Azure has no instruction channel. Must match stage-runner.ts
         // and tts.ts so the shared TTS cache key (computeSpeechCacheKey) stays consistent.
@@ -1128,9 +1184,25 @@ export async function runFullPipeline(
           provider === "openai" || provider === "gemini"
             ? resolveInstructions(item.language, instructionsMap)
             : ""
-        const ttsSynthesizer = getSynthesizer(provider)
-        const generate = () =>
-          generateSpeechFile({
+        const logParams = provider === "elevenlabs"
+          ? buildElevenLabsTtsLogParams({
+              model: providerModel,
+              voice,
+              language: item.language,
+              format: outputFormat,
+              sampleRate: config.speech?.sample_rate,
+              bitRate: config.speech?.bit_rate,
+              applyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+              previousText: item.previousText,
+              nextText: item.nextText,
+              ...elevenLabsVoiceSettings,
+            })
+          : undefined
+        let attemptCount = 0
+        const generate = () => {
+          attemptCount++
+          const ttsSynthesizer = getSynthesizer(provider)
+          return generateSpeechFile({
             textId: item.textId,
             text: item.text,
             language: item.language,
@@ -1142,6 +1214,8 @@ export async function runFullPipeline(
             cacheDir,
             ttsSynthesizer,
             provider,
+            voiceSlot: item.voiceSlot,
+            voiceLabel: item.voiceLabel,
             geminiTemperature: config.speech?.temperature,
             geminiSeed: config.speech?.seed,
             elevenLabsPreviousText: item.previousText,
@@ -1149,36 +1223,55 @@ export async function runFullPipeline(
             elevenLabsApplyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
             ...elevenLabsVoiceSettings,
           })
+        }
 
         // ElevenLabs throttles on concurrent requests, so a burst returns 429s
         // that would otherwise fail the entry outright. Retry 429/5xx with the
         // same backoff the API stage-runner uses.
         let entry: Awaited<ReturnType<typeof generateSpeechFile>>
-        if (provider === "elevenlabs") {
-          for (let attemptCount = 1; ; attemptCount++) {
-            try {
-              entry = await generate()
-              break
-            } catch (err) {
-              const message = err instanceof Error ? err.message : String(err)
-              if (
-                classifyElevenLabsTtsError(message) === "permanent" ||
-                attemptCount > ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES
-              ) {
-                throw err
+        try {
+          if (provider === "elevenlabs") {
+            for (let retryCount = 1; ; retryCount++) {
+              try {
+                entry = await generate()
+                break
+              } catch (err) {
+                const message = err instanceof Error ? err.message : String(err)
+                if (
+                  classifyElevenLabsTtsError(message) === "permanent" ||
+                  retryCount > ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES
+                ) throw err
+                const delayMs = elevenLabsTtsRetryDelayMs(retryCount)
+                console.warn(
+                  `[pipeline] ElevenLabs TTS failed for ${item.textId} (${item.language}); retrying ${retryCount + 1}/${ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${delayMs}ms: ${message}`
+                )
+                await new Promise((resolve) => setTimeout(resolve, delayMs))
               }
-              const delayMs = elevenLabsTtsRetryDelayMs(attemptCount)
-              console.warn(
-                `[pipeline] ElevenLabs TTS failed for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${delayMs}ms: ${message}`
-              )
-              await new Promise((resolve) => setTimeout(resolve, delayMs))
             }
+          } else {
+            entry = await generate()
           }
-        } else {
-          entry = await generate()
+        } catch (cause) {
+          const error = cause instanceof Error ? cause.message : String(cause)
+          onLlmLog(buildTtsLogEntry({
+            textId: item.textId, language: item.language, voice, model: providerModel,
+            provider, text: item.text, durationMs: Date.now() - startedAt,
+            success: false, cached: false, attempt: attemptCount, error, params: logParams,
+          }))
+          throw cause
         }
 
-        if (entry) resultsByLang.get(item.language)!.push(entry)
+        onLlmLog(buildTtsLogEntry({
+          textId: item.textId, language: item.language, voice, model: providerModel,
+          provider, text: item.text, durationMs: Date.now() - startedAt,
+          success: true, cached: entry?.cached ?? false, attempt: attemptCount, params: logParams,
+          // No entry means generateSpeechFile found nothing speakable (e.g. an
+          // "—" entry) and never called the provider.
+          ...(entry ? {} : { skippedReason: NO_SPEAKABLE_TEXT_REASON }),
+        }))
+        if (entry) {
+          resultsByLang.get(item.language)!.push(entry)
+        }
         completedItems++
         p.emit({
           type: "step-progress",
@@ -1194,10 +1287,10 @@ export async function runFullPipeline(
       // capped pass. Everything else keeps full concurrency — the two passes run
       // together so a mixed book doesn't throttle its non-ElevenLabs languages.
       const elevenLabsItems = workItems.filter(
-        (item) => resolveProviderForLanguage(item.language, routing) === "elevenlabs"
+        (item) => item.provider === "elevenlabs"
       )
       const otherItems = workItems.filter(
-        (item) => resolveProviderForLanguage(item.language, routing) !== "elevenlabs"
+        (item) => item.provider !== "elevenlabs"
       )
       await Promise.all([
         processWithConcurrency(otherItems, effectiveConcurrency, runTtsItem),
