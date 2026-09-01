@@ -43,6 +43,10 @@ msgstr "? This will remove all extracted data and cannot be undone."
 msgid "\"A landscape forged by fire.\""
 msgstr "\"A landscape forged by fire.\""
 
+#. placeholder {0}: s.skipped
+msgid "(+{0} skipped)"
+msgstr "(+{0} skipped)"
+
 msgid "(active)"
 msgstr "(active)"
 
@@ -9444,6 +9448,9 @@ msgstr "This book renders fixed-layout, so it keeps the original PDF fonts. Atta
 
 msgid "This connection isn't available yet."
 msgstr "This connection isn't available yet."
+
+msgid "This entry has no speakable text, so no audio was generated and no request was sent to the provider."
+msgstr "This entry has no speakable text, so no audio was generated and no request was sent to the provider."
 
 msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
