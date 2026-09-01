@@ -1,5 +1,5 @@
 import { useId } from "react"
-import { Info, Settings } from "lucide-react"
+import { Settings } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import {
   HoverCard,
@@ -126,20 +126,10 @@ export function PresetCard({
         </span>
 
         <div
-          className="flex items-center justify-between mt-1"
+          className="flex items-center justify-end mt-1"
           style={{ visibility: preset.id === "custom" ? "hidden" : "visible" }}
         >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              onShowExamples(preset.id)
-            }}
-            className="flex items-center gap-1.5 text-xs font-medium text-[#2b7fff] hover:underline w-fit cursor-pointer"
-          >
-            <Info className="h-3.5 w-3.5 shrink-0" />
-            <Trans>See examples</Trans>
-          </button>
+          {/* "See examples" hidden for now */}
 
           <HoverCard openDelay={150} closeDelay={100}>
             <HoverCardTrigger asChild>
