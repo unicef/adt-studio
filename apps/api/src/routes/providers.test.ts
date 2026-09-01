@@ -69,9 +69,75 @@ describe("GET /providers", () => {
   it("falls back to built-in defaults when config.yaml is absent", async () => {
     const body = await getProviders()
     expect(body.defaults["structured-text"]).toBe("openai:gpt-5.4")
+    expect(body.defaults.agent).toBe("openai:gpt-5.5")
     expect(body.defaults.image).toBe("openai:gpt-image-2")
     expect(body.defaults.tts).toBe("openai:gpt-4o-mini-tts")
     expect(body.defaults.stt).toBe("openai:whisper-1")
+  })
+
+  it("advertises the agents runtime default, not default_model, when agents.model is unset", async () => {
+    fs.writeFileSync(
+      configPath,
+      [
+        "structure_types: {}",
+        "role_types: {}",
+        "default_model: anthropic:claude-opus-4",
+      ].join("\n"),
+      "utf-8",
+    )
+
+    const body = await getProviders()
+    expect(body.defaults["structured-text"]).toBe("anthropic:claude-opus-4")
+    expect(body.defaults.agent).toBe("openai:gpt-5.5")
+  })
+
+  it("derives the tts default from speech.default_provider", async () => {
+    fs.writeFileSync(
+      configPath,
+      [
+        "structure_types: {}",
+        "role_types: {}",
+        "speech:",
+        "  default_provider: azure",
+      ].join("\n"),
+      "utf-8",
+    )
+
+    const body = await getProviders()
+    expect(body.defaults.tts).toBe("azure:default")
+  })
+
+  it("uses the tts provider's manifest default model when the config names none", async () => {
+    fs.writeFileSync(
+      configPath,
+      [
+        "structure_types: {}",
+        "role_types: {}",
+        "speech:",
+        "  default_provider: elevenlabs",
+      ].join("\n"),
+      "utf-8",
+    )
+
+    const body = await getProviders()
+    expect(body.defaults.tts).toBe("elevenlabs:eleven_multilingual_v2")
+  })
+
+  it("qualifies a configured speech model with the default speech provider", async () => {
+    fs.writeFileSync(
+      configPath,
+      [
+        "structure_types: {}",
+        "role_types: {}",
+        "speech:",
+        "  default_provider: gemini",
+        "  model: gemini-2.5-flash-preview-tts",
+      ].join("\n"),
+      "utf-8",
+    )
+
+    const body = await getProviders()
+    expect(body.defaults.tts).toBe("gemini:gemini-2.5-flash-preview-tts")
   })
 
   it("qualifies configured defaults and prefers the agents model for agents", async () => {

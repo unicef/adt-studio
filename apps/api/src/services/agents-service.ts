@@ -20,8 +20,13 @@ export interface AgentCredentialOptions {
   credentials: AgentCredentials
 }
 
-/** Model the agent prompts are tuned for. Used when a book sets no override. */
-const DEFAULT_AGENT_MODEL = "openai:gpt-5.5"
+/**
+ * Model the agent prompts are tuned for. Used when a book sets no override —
+ * deliberately not `default_model`, which tunes the pipeline steps. The
+ * /providers route advertises this same fallback so UI availability gates on
+ * the provider that will actually run.
+ */
+export const DEFAULT_AGENT_MODEL = "openai:gpt-5.5"
 
 /**
  * Resolve the model id for the agents from book config, falling back to a

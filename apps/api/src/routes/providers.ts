@@ -20,6 +20,7 @@ import {
   type ProviderRegistry,
 } from "@adt/llm"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
+import { DEFAULT_AGENT_MODEL } from "../services/agents-service.js"
 
 const OPENAI_TRANSCRIPTION_MODEL_ID = "openai:whisper-1"
 
@@ -32,7 +33,29 @@ function safeNormalize(rawModelId: string | undefined): string | undefined {
   }
 }
 
-function resolveDefaults(configPath: string): Partial<Record<AiModality, string>> {
+/**
+ * The speech stage routes synthesis to `speech.default_provider`, so tts
+ * availability must gate on that provider — not on the OpenAI-era model
+ * fields. The model part is informational: voice-driven providers (azure)
+ * declare no model id and fall through to the literal "default".
+ */
+function resolveTtsDefault(
+  config: ReturnType<typeof AppConfig.parse> | undefined,
+  registry: ProviderRegistry,
+): string {
+  const provider = config?.speech?.default_provider?.trim() || "openai"
+  const model =
+    config?.speech?.model ??
+    config?.default_speech_generation_model ??
+    registry.modules().find((m) => m.manifest.id === provider)?.manifest.defaultModels?.tts ??
+    "default"
+  return safeNormalize(`${provider}:${model}`) ?? normalizeModelId(DEFAULT_OPENAI_TTS_MODEL_ID)
+}
+
+function resolveDefaults(
+  configPath: string,
+  registry: ProviderRegistry,
+): Partial<Record<AiModality, string>> {
   let config: ReturnType<typeof AppConfig.parse> | undefined
   if (fs.existsSync(configPath)) {
     try {
@@ -45,16 +68,14 @@ function resolveDefaults(configPath: string): Partial<Record<AiModality, string>
   const defaults: Partial<Record<AiModality, string>> = {
     "structured-text":
       safeNormalize(config?.default_model) ?? normalizeModelId(DEFAULT_LLM_MODEL_ID),
-    agent:
-      safeNormalize(config?.agents?.model) ??
-      safeNormalize(config?.default_model) ??
-      normalizeModelId(DEFAULT_LLM_MODEL_ID),
+    // agents-service ignores default_model on purpose (its prompts are tuned
+    // for DEFAULT_AGENT_MODEL), so the advertised default must match what a
+    // run would actually resolve.
+    agent: safeNormalize(config?.agents?.model) ?? normalizeModelId(DEFAULT_AGENT_MODEL),
     image:
       safeNormalize(config?.default_image_generation_model) ??
       normalizeModelId(DEFAULT_IMAGE_GENERATION_MODEL_ID),
-    tts:
-      safeNormalize(config?.default_speech_generation_model) ??
-      normalizeModelId(DEFAULT_OPENAI_TTS_MODEL_ID),
+    tts: resolveTtsDefault(config, registry),
     stt: OPENAI_TRANSCRIPTION_MODEL_ID,
   }
 
@@ -71,7 +92,7 @@ export function createProviderRoutes(
   app.get("/providers", (c) => {
     const payload = ProvidersResponse.parse({
       providers: registry.descriptors(),
-      defaults: resolveDefaults(configPath),
+      defaults: resolveDefaults(configPath, registry),
     })
     return c.json(payload)
   })
