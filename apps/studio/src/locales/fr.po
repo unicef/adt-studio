@@ -48,6 +48,10 @@ msgstr ".zip → ajouté tel quel"
 msgid "\"A landscape forged by fire.\""
 msgstr "\\\"Un paysage forgé par le feu.\\\""
 
+#. placeholder {0}: s.skipped
+msgid "(+{0} skipped)"
+msgstr "(+{0} ignorées)"
+
 msgid "(active)"
 msgstr "(actif)"
 
@@ -5832,6 +5836,9 @@ msgstr "Aucune modification IA pour cette section pour l'instant."
 msgid "No answer set"
 msgstr "Aucune réponse définie"
 
+msgid "no API key"
+msgstr "pas de clé API"
+
 #. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
 msgid "No API key for {0} yet. Add one in Book settings to enable this provider."
 msgstr "Pas encore de clé API pour {0}. Ajoutez-en une dans les paramètres du livre pour activer ce fournisseur."
@@ -9636,6 +9643,9 @@ msgstr "Cet ordinateur"
 
 msgid "This connection isn't available yet."
 msgstr "Cette connexion n'est pas encore disponible."
+
+msgid "This entry has no speakable text, so no audio was generated and no request was sent to the provider."
+msgstr "Cette entrée ne contient aucun texte prononçable : aucun audio n'a été généré et aucune requête n'a été envoyée au fournisseur."
 
 msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Cette fonctionnalité n'est pas compatible avec la mise en page fixe. Si vous continuez, vous pourriez obtenir des résultats indésirables."

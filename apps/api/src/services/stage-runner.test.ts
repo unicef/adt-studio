@@ -4,7 +4,7 @@ import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { PIPELINE, type AppConfig, type ProgressEvent } from "@adt/types"
 import { computeSpeechCacheKey, stripEmojis } from "@adt/pipeline"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, openBookDb } from "@adt/storage"
 import {
   buildStageRunnerImageClassifyConfig,
   createStageRunner,
@@ -1167,6 +1167,7 @@ describe("createStageRunner speech Gemini partial failures", () => {
   })
 
   afterEach(() => {
+    vi.unstubAllEnvs()
     if (tmpDir) {
       fs.rmSync(tmpDir, { recursive: true, force: true })
       tmpDir = ""
@@ -1449,6 +1450,247 @@ speech:
     } finally {
       storage.close()
     }
+  })
+
+  it("fails the speech step before any synthesis when a provider credential is missing", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: elevenlabs
+  providers:
+    elevenlabs:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "elevenlabs-tts-missing-key")
+    // The synthesizer factory falls back to the ambient key, so a developer
+    // machine with one exported would otherwise pass the pre-flight.
+    vi.stubEnv("ELEVENLABS_API_KEY", "")
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await expect(
+      runner.run(
+        "elevenlabs-tts-missing-key",
+        {
+          booksDir,
+          apiKey: "sk-test",
+          promptsDir,
+          configPath,
+          fromStage: "translate",
+          toStage: "speech",
+        },
+        { emit: (event) => events.push(event) }
+      )
+    ).rejects.toThrow(/ElevenLabs API key is required/)
+
+    // The credential is checked once, before any item is admitted: no synthesis
+    // is attempted and no per-item failure is logged.
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    const db = openBookDb(
+      path.join(booksDir, "elevenlabs-tts-missing-key", "elevenlabs-tts-missing-key.db")
+    )
+    try {
+      expect(db.all("SELECT request_id FROM llm_log WHERE step = 'tts'")).toHaveLength(0)
+    } finally {
+      db.close()
+    }
+
+    // The Speech view is driven by step-error, not by the rejection: assert the
+    // step goes red carrying the provider message, so the user sees one
+    // actionable error rather than a bare run failure with no step highlighted.
+    const ttsErrors = events.filter(
+      (event) => event.type === "step-error" && event.step === "tts"
+    )
+    expect(ttsErrors).toHaveLength(1)
+    expect((ttsErrors[0] as { error: string }).error).toMatch(
+      /ElevenLabs API key is required/
+    )
+  })
+
+  it("fails fast when only the secondary narrator's provider credential is missing", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    // The primary narrator routes to OpenAI (key present); only the secondary
+    // routes to ElevenLabs. A secondary voice carries its own provider, so
+    // deriving the pre-flight set from the language's routing would miss it
+    // entirely and fall back to one logged failure per item.
+    writeSecondarySpeechConfig(configPath, {
+      provider: "elevenlabs",
+      voice: "Rachel",
+    })
+    seedTextAndSpeechBook(booksDir, "secondary-tts-missing-key")
+    vi.stubEnv("ELEVENLABS_API_KEY", "")
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await expect(
+      runner.run(
+        "secondary-tts-missing-key",
+        {
+          booksDir,
+          apiKey: "sk-test",
+          promptsDir,
+          configPath,
+          fromStage: "translate",
+          toStage: "speech",
+        },
+        { emit: (event) => events.push(event) }
+      )
+    ).rejects.toThrow(/ElevenLabs API key is required/)
+
+    // Nothing is synthesized — not even the primary voice, whose credential is
+    // fine. One missing key fails the run before any item is admitted.
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    const db = openBookDb(
+      path.join(booksDir, "secondary-tts-missing-key", "secondary-tts-missing-key.db")
+    )
+    try {
+      expect(db.all("SELECT request_id FROM llm_log WHERE step = 'tts'")).toHaveLength(0)
+    } finally {
+      db.close()
+    }
+  })
+
+  it("fails before any page-batched synthesis when the Gemini credential is missing", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    // batch_by_page routes page-scoped Gemini entries into pageGroups, which
+    // deliberately skip the per-entry reuse check — so this is the path that
+    // reaches the pre-flight via the pageGroups half of its provider set.
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  batch_by_page: true
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-batched-missing-key")
+    vi.stubEnv("GEMINI_API_KEY", "")
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await expect(
+      runner.run(
+        "gemini-batched-missing-key",
+        {
+          booksDir,
+          apiKey: "sk-test",
+          promptsDir,
+          configPath,
+          fromStage: "translate",
+          toStage: "speech",
+        },
+        { emit: (event) => events.push(event) }
+      )
+    ).rejects.toThrow(/Gemini API key is required/)
+
+    const db = openBookDb(
+      path.join(booksDir, "gemini-batched-missing-key", "gemini-batched-missing-key.db")
+    )
+    try {
+      expect(db.all("SELECT request_id FROM llm_log WHERE step = 'tts'")).toHaveLength(0)
+    } finally {
+      db.close()
+    }
+    expect(transcribeWithWhisperMock).not.toHaveBeenCalled()
+  })
+
+  it("does not require a credential when every entry is reused and there is no work", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: elevenlabs
+  providers:
+    elevenlabs:
+      languages:
+        - en
+`
+    )
+    const label = "elevenlabs-tts-all-reused"
+    seedTextAndSpeechBook(booksDir, label)
+
+    // A manual recording with its audio file present is reusable outright, so
+    // the entry never becomes a work item. With nothing to generate, the
+    // pre-flight's provider set is empty and no synthesizer is built — a run
+    // that needs no credential must not be failed by the fail-fast check.
+    const bookDir = path.join(booksDir, label)
+    const audioDir = path.join(bookDir, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_t001.mp3"), Buffer.from("fake-audio"))
+    const storage = createBookStorage(label, booksDir)
+    try {
+      storage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "pg001_t001.mp3",
+            voice: "manual",
+            model: "manual",
+            cached: true,
+            provider: "manual",
+          },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    } finally {
+      storage.close()
+    }
+    vi.stubEnv("ELEVENLABS_API_KEY", "")
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      label,
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    expect(
+      events.filter((event) => event.type === "step-error" && event.step === "tts")
+    ).toHaveLength(0)
   })
 
   it("stops admitting TTS items and unwinds without step errors when the run is cancelled", async () => {
@@ -2274,6 +2516,84 @@ structure_types:
       expect(entry?.voiceLabel).toBe("Renamed Narrator")
     } finally {
       storage.close()
+    }
+  })
+
+  it("marks a page-batched group with no speakable text as skipped", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  batch_by_page: true
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-page-batch-skip")
+
+    // Replace the seeded entry with punctuation only. generatePageSpeechFiles
+    // filters it out and returns [] without ever reaching the provider, which
+    // is the row that used to be logged as an ordinary success.
+    const seed = createBookStorage("gemini-page-batch-skip", booksDir)
+    try {
+      seed.putNodeData("text-catalog", "book", {
+        entries: [{ id: "pg001_t001", text: "—" }],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      seed.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        entries: [readyCoreTtsEntry("pg001_t001", "—")],
+      })
+    } finally {
+      seed.close()
+    }
+
+    const runner = createStageRunner()
+    await runner.run(
+      "gemini-page-batch-skip",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        geminiApiKey: "gm-test",
+        promptsDir,
+        configPath,
+        fromStage: "speech",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    const db = openBookDb(
+      path.join(booksDir, "gemini-page-batch-skip", "gemini-page-batch-skip.db")
+    )
+    try {
+      const rows = db.all("SELECT data FROM llm_log WHERE step = 'tts'") as {
+        data: string
+      }[]
+      expect(rows).toHaveLength(1)
+      const entry = JSON.parse(rows[0].data) as {
+        success: boolean
+        cacheHit: boolean
+        skippedReason?: string
+      }
+      // Kept, not dropped — an unexplained gap is worse than a marked one —
+      // but marked so it isn't read as a synthesis that happened.
+      expect(entry.success).toBe(true)
+      expect(entry.skippedReason).toBe("no-speakable-text")
+    } finally {
+      db.close()
     }
   })
 })
