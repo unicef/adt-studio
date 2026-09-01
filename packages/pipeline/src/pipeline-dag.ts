@@ -91,6 +91,7 @@ import {
   generateSpeechFile,
   buildTtsLogEntry,
   buildElevenLabsTtsLogParams,
+  NO_SPEAKABLE_TEXT_REASON,
   findAdjacentSpeechText,
   elevenLabsVoiceSettingsFromConfig,
   classifyElevenLabsTtsError,
@@ -1259,6 +1260,9 @@ export async function runFullPipeline(
           textId: item.textId, language: item.language, voice, model: providerModel,
           provider, text: item.text, durationMs: Date.now() - startedAt,
           success: true, cached: entry?.cached ?? false, attempt: attemptCount, params: logParams,
+          // No entry means generateSpeechFile found nothing speakable (e.g. an
+          // "—" entry) and never called the provider.
+          ...(entry ? {} : { skippedReason: NO_SPEAKABLE_TEXT_REASON }),
         }))
         if (entry) {
           resultsByLang.get(item.language)!.push(entry)

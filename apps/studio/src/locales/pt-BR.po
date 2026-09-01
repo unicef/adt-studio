@@ -43,6 +43,10 @@ msgstr "? Isso removerá todos os dados extraídos e não poderá ser desfeito."
 msgid "\"A landscape forged by fire.\""
 msgstr "\\\"Uma paisagem forjada pelo fogo.\\\""
 
+#. placeholder {0}: s.skipped
+msgid "(+{0} skipped)"
+msgstr "(+{0} ignoradas)"
+
 msgid "(active)"
 msgstr "(ativo)"
 
@@ -9534,6 +9538,9 @@ msgstr "Este livro é renderizado em layout fixo, então mantém as fontes origi
 
 msgid "This connection isn't available yet."
 msgstr "Esta conexão ainda não está disponível."
+
+msgid "This entry has no speakable text, so no audio was generated and no request was sent to the provider."
+msgstr "Esta entrada não tem texto pronunciável, portanto nenhum áudio foi gerado e nenhuma solicitação foi enviada ao provedor."
 
 msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Este recurso não é compatível com Layout Fixo. Se você continuar, poderá obter resultados indesejados."

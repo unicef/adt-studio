@@ -736,6 +736,10 @@ export interface LlmLogEntry {
     /** Final status of this individual attempt. Older log entries may omit it. */
     success?: boolean
     error?: string
+    /** Why no provider call was made (e.g. TTS text with nothing speakable in
+     *  it). Present only on deliberately skipped calls, which produced no
+     *  output at all — unlike a cache hit, which has one. */
+    skippedReason?: string
     durationMs: number
     usage?: { inputTokens: number; outputTokens: number }
     validationErrors?: string[]
@@ -767,6 +771,9 @@ export interface StepStats {
   outputTokens: number
   avgDurationMs: number
   errorCount: number
+  /** Rows that produced no output on purpose and never reached a provider, so
+   *  they are excluded from `calls`, the cache counts, and `avgDurationMs`. */
+  skipped: number
 }
 
 export interface PipelineStatsResponse {
@@ -778,6 +785,7 @@ export interface PipelineStatsResponse {
     inputTokens: number
     outputTokens: number
     errorCount: number
+    skipped: number
   }
   pipelineRun: {
     status: string

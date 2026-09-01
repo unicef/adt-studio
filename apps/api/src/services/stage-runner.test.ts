@@ -2513,6 +2513,83 @@ structure_types:
       storage.close()
     }
   })
+
+  it("marks a page-batched group with no speakable text as skipped", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  batch_by_page: true
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-page-batch-skip")
+
+    // Replace the seeded entry with punctuation only. generatePageSpeechFiles
+    // filters it out and returns [] without ever reaching the provider, which
+    // is the row that used to be logged as an ordinary success.
+    const seed = createBookStorage("gemini-page-batch-skip", booksDir)
+    try {
+      seed.putNodeData("text-catalog", "book", {
+        entries: [{ id: "pg001_t001", text: "—" }],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      seed.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        entries: [readyCoreTtsEntry("pg001_t001", "—")],
+      })
+    } finally {
+      seed.close()
+    }
+
+    const runner = createStageRunner()
+    await runner.run(
+      "gemini-page-batch-skip",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "speech",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    const db = openBookDb(
+      path.join(booksDir, "gemini-page-batch-skip", "gemini-page-batch-skip.db")
+    )
+    try {
+      const rows = db.all("SELECT data FROM llm_log WHERE step = 'tts'") as {
+        data: string
+      }[]
+      expect(rows).toHaveLength(1)
+      const entry = JSON.parse(rows[0].data) as {
+        success: boolean
+        cacheHit: boolean
+        skippedReason?: string
+      }
+      // Kept, not dropped — an unexplained gap is worse than a marked one —
+      // but marked so it isn't read as a synthesis that happened.
+      expect(entry.success).toBe(true)
+      expect(entry.skippedReason).toBe("no-speakable-text")
+    } finally {
+      db.close()
+    }
+  })
 })
 
 describe("processWithConcurrency launch ramp", () => {

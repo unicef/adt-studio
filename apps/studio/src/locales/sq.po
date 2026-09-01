@@ -45,6 +45,10 @@ msgstr "? Kjo do të heqë të gjitha të dhënat e nxjerra dhe nuk mund të zhb
 msgid "\"A landscape forged by fire.\""
 msgstr "\"Një peizazh i formuar nga zjarri.\""
 
+#. placeholder {0}: s.skipped
+msgid "(+{0} skipped)"
+msgstr "(+{0} të anashkaluara)"
+
 msgid "(active)"
 msgstr "(aktiv)"
 
@@ -9536,6 +9540,9 @@ msgstr "Ky libër shfaqet me strukturë fikse, kështu që ruan fontet origjinal
 
 msgid "This connection isn't available yet."
 msgstr "Kjo lidhje nuk është ende e disponueshme."
+
+msgid "This entry has no speakable text, so no audio was generated and no request was sent to the provider."
+msgstr "Kjo hyrje nuk ka tekst të shqiptueshëm, kështu që nuk u krijua audio dhe nuk u dërgua asnjë kërkesë tek ofruesi."
 
 msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Kjo veçori nuk është e pajtueshme me Paraqitjen e fiksuar. Nëse vazhdoni, mund të merrni rezultate të padëshiruara."

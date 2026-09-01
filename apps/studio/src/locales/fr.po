@@ -45,6 +45,10 @@ msgstr "? Cela supprimera toutes les données extraites et est irréversible."
 msgid "\"A landscape forged by fire.\""
 msgstr "\\\"Un paysage forgé par le feu.\\\""
 
+#. placeholder {0}: s.skipped
+msgid "(+{0} skipped)"
+msgstr "(+{0} ignorées)"
+
 msgid "(active)"
 msgstr "(actif)"
 
@@ -9536,6 +9540,9 @@ msgstr "Ce livre est rendu en mise en page fixe, il conserve donc les polices d'
 
 msgid "This connection isn't available yet."
 msgstr "Cette connexion n'est pas encore disponible."
+
+msgid "This entry has no speakable text, so no audio was generated and no request was sent to the provider."
+msgstr "Cette entrée ne contient aucun texte prononçable : aucun audio n'a été généré et aucune requête n'a été envoyée au fournisseur."
 
 msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Cette fonctionnalité n'est pas compatible avec la mise en page fixe. Si vous continuez, vous pourriez obtenir des résultats indésirables."
