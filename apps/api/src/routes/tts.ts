@@ -1428,6 +1428,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         language: baseLanguage,
         prompt: textPrompt,
         cacheDir: path.join(bookDir, ".cache"),
+        onLog: (entry) => storage.appendLlmLog(entry),
       })
 
       const timestampEntry: WordTimestampEntry = {
@@ -1582,6 +1583,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 language: baseLanguage,
                 prompt: textPrompt,
                 cacheDir: path.join(bookDir, ".cache"),
+                onLog: (entry) => storage.appendLlmLog(entry),
               })
 
               const entry: WordTimestampEntry = {
