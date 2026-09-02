@@ -10,6 +10,9 @@ import { ProviderConnectionStatus } from "./ProviderConnectionStatus"
 vi.mock("@/api/client", () => ({ getProviderHealth: vi.fn() }))
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: ReactNode }) => <>{children}</>,
+  Plural: ({ value, one, other }: { value: number; one: string; other: string }) => (
+    <>{(value === 1 ? one : other).replace("#", String(value))}</>
+  ),
   useLingui: () => ({
     t: (strings: TemplateStringsArray, ...values: unknown[]) =>
       strings.reduce((text, part, index) => text + part + String(values[index] ?? ""), ""),

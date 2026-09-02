@@ -91,6 +91,10 @@ msgstr "{0, plural, one {# faqe e zëvendësuar} other {# faqe të zëvendësuar
 msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# faqe} other {# faqe}}"
 
+#. placeholder {0}: health.modelCount
+msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
+msgstr "{0, plural, one {Lidhja u krye me sukses — # model në dispozicion.} other {Lidhja u krye me sukses — # modele në dispozicion.}}"
+
 #. placeholder {0}: lockedLang.name
 msgid "{0} — type country or Enter for base"
 msgstr "{0} — shkruani vendin ose Enter për bazë"
@@ -2424,8 +2428,8 @@ msgid "Connected — key saved"
 msgstr "I lidhur — çelësi u ruajt"
 
 #. placeholder {0}: health.modelCount
-msgid "Connected successfully — {0} models available."
-msgstr "Lidhja u krye me sukses — {0} modele në dispozicion."
+#~ msgid "Connected successfully — {0} models available."
+#~ msgstr "Lidhja u krye me sukses — {0} modele në dispozicion."
 
 msgid "Connected successfully."
 msgstr "Lidhja u krye me sukses."

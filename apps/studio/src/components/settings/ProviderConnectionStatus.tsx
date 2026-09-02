@@ -1,6 +1,7 @@
+import type { ReactNode } from "react"
 import { AlertCircle, CheckCircle2, HelpCircle, Loader2, RefreshCw } from "lucide-react"
 import type { ProviderHealthCode, ProviderHealthResponse } from "@adt/types"
-import { Trans, useLingui } from "@lingui/react/macro"
+import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { Button } from "@/components/ui/button"
 import { useProviderHealth } from "@/hooks/use-provider-health"
 
@@ -21,12 +22,18 @@ export function ProviderConnectionStatus({
   )
 
   /** The API returns stable codes, never prose, so every message is translated here. */
-  const describe = (health: ProviderHealthResponse): string => {
+  const describe = (health: ProviderHealthResponse): ReactNode => {
     switch (health.code) {
       case "ok":
-        return health.modelCount === undefined
-          ? t`Connected successfully.`
-          : t`Connected successfully — ${health.modelCount} models available.`
+        return health.modelCount === undefined ? (
+          t`Connected successfully.`
+        ) : (
+          <Plural
+            value={health.modelCount}
+            one="Connected successfully — # model available."
+            other="Connected successfully — # models available."
+          />
+        )
       case "local-login":
         return t`Connected through the login already present on this machine.`
       case "configured":

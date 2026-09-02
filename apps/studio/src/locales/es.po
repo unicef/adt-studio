@@ -89,6 +89,10 @@ msgstr "{0, plural, one {# página reemplazada} other {# páginas reemplazadas}}
 msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# página} other {# páginas}}"
 
+#. placeholder {0}: health.modelCount
+msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
+msgstr "{0, plural, one {Conectado correctamente: # modelo disponible.} other {Conectado correctamente: # modelos disponibles.}}"
+
 #. placeholder {0}: lockedLang.name
 msgid "{0} — type country or Enter for base"
 msgstr "{0} — escribe el país o pulsa Enter para el básico"
@@ -2422,8 +2426,8 @@ msgid "Connected — key saved"
 msgstr "Conectado — clave guardada"
 
 #. placeholder {0}: health.modelCount
-msgid "Connected successfully — {0} models available."
-msgstr "Conectado correctamente: {0} modelos disponibles."
+#~ msgid "Connected successfully — {0} models available."
+#~ msgstr "Conectado correctamente: {0} modelos disponibles."
 
 msgid "Connected successfully."
 msgstr "Conectado correctamente."
