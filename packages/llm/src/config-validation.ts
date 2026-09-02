@@ -32,6 +32,27 @@ const STRUCTURED_TEXT_STEP_FIELDS = [
   "core_tts",
 ] as const satisfies readonly (keyof AppConfig)[]
 
+const LLM_RENDER_TYPES: readonly string[] = ["llm", "activity"]
+
+/**
+ * The web-rendering step resolves `render_strategies.<name>.config.model`
+ * before `default_model`, so those overrides must be credentialed too.
+ * Template and fixed-layout strategies never route to a model and are skipped.
+ */
+function collectRenderStrategyChecks(config: AppConfig): ConfigModelCheck[] {
+  const checks: ConfigModelCheck[] = []
+  for (const [name, strategy] of Object.entries(config.render_strategies ?? {})) {
+    if (LLM_RENDER_TYPES.includes(strategy.render_type) && strategy.config?.model) {
+      checks.push({
+        field: `render_strategies.${name}.config.model`,
+        modelId: strategy.config.model,
+        modality: "structured-text",
+      })
+    }
+  }
+  return checks
+}
+
 export function collectConfigModelChecks(config: AppConfig): ConfigModelCheck[] {
   const checks: ConfigModelCheck[] = []
 
@@ -55,6 +76,7 @@ export function collectConfigModelChecks(config: AppConfig): ConfigModelCheck[] 
       checks.push({ field: `${field}.model`, modelId: step.model, modality: "structured-text" })
     }
   }
+  checks.push(...collectRenderStrategyChecks(config))
 
   if (config.image_translation?.image_model) {
     checks.push({
@@ -100,6 +122,7 @@ export function collectStageRunModelChecks(
       checks.push({ field: `${field}.model`, modelId: step.model, modality: "structured-text" })
     }
   }
+  checks.push(...collectRenderStrategyChecks(config))
   return checks
 }
 

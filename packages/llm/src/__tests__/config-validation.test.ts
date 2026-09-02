@@ -86,6 +86,47 @@ describe("collectStageRunModelChecks", () => {
       { field: "default_model", modelId: DEFAULT_LLM_MODEL_ID, modality: "structured-text" },
     ])
   })
+
+  it("validates render-strategy model overrides, which web-rendering resolves before the default", () => {
+    const checks = collectStageRunModelChecks(
+      config({
+        default_model: "openai:gpt-5.4",
+        render_strategies: {
+          storybook: { render_type: "llm", config: { model: "anthropic:claude-opus-4" } },
+          quiz: { render_type: "activity", config: { model: "google:gemini-2.5-pro" } },
+        },
+      } as Partial<AppConfig>),
+      ["storyboard"],
+    )
+    expect(checks).toEqual(
+      expect.arrayContaining([
+        {
+          field: "render_strategies.storybook.config.model",
+          modelId: "anthropic:claude-opus-4",
+          modality: "structured-text",
+        },
+        {
+          field: "render_strategies.quiz.config.model",
+          modelId: "google:gemini-2.5-pro",
+          modality: "structured-text",
+        },
+      ]),
+    )
+  })
+
+  it("skips render strategies whose type never routes to a model", () => {
+    const checks = collectStageRunModelChecks(
+      config({
+        render_strategies: {
+          plain: { render_type: "template", config: { model: "bogus:unused" } },
+        },
+      } as Partial<AppConfig>),
+      ["storyboard"],
+    )
+    expect(checks).toEqual([
+      { field: "default_model", modelId: DEFAULT_LLM_MODEL_ID, modality: "structured-text" },
+    ])
+  })
 })
 
 describe("validateConfigModels", () => {
