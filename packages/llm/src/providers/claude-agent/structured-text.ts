@@ -7,7 +7,7 @@ import type {
   TokenUsage,
 } from "../../ports/index.js"
 import { extractJsonObject } from "../shared/ai-sdk/structured-text.js"
-import { claudeCliCredentialPaths, hasLocalCliLogin } from "../shared/local-cli-auth.js"
+import { hasClaudeCliLogin } from "../shared/local-cli-auth.js"
 import {
   runClaudeCli,
   type ClaudeAgentResultEvent,
@@ -179,7 +179,7 @@ export function buildClaudeAgentEnv(
 
 /** Existence check only, and only once a turn has already failed. */
 function authFailureHint(apiKey: string | undefined): string {
-  if (apiKey || hasLocalCliLogin(claudeCliCredentialPaths())) return ""
+  if (apiKey || hasClaudeCliLogin()) return ""
   return ". No API key is configured and no Claude CLI login was found — run `claude login` on this machine or set an API key"
 }
 

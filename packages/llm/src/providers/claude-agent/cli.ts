@@ -1,4 +1,6 @@
 import { spawn } from "node:child_process"
+import { mkdtemp, rm, writeFile } from "node:fs/promises"
+import { join } from "node:path"
 
 export interface ClaudeAgentTextBlock {
   type: "text"
@@ -57,15 +59,16 @@ export type ClaudeCliRunner = (request: ClaudeCliRequest) => Promise<ClaudeAgent
 
 /**
  * The verified flag-contract floor: `--json-schema`, `--tools ""`,
- * `--setting-sources ""`, `--system-prompt` and `--no-session-persistence` are
- * all present on the 2.1 line. The connection check refuses older CLIs so
- * turns fail there with an actionable message instead of on an unknown flag.
+ * `--setting-sources ""`, `--system-prompt-file` (shipped in 1.0.55, far
+ * below this floor) and `--no-session-persistence` are all present on the
+ * 2.1 line. The connection check refuses older CLIs so turns fail there with
+ * an actionable message instead of on an unknown flag.
  */
 export const MINIMUM_CLAUDE_CLI_VERSION = "2.1.0"
 
 export interface ClaudeCliArgsOptions {
   model: string
-  systemPrompt?: string
+  systemPromptPath?: string
   schemaJson?: string
 }
 
@@ -94,27 +97,48 @@ export function buildClaudeArgs(options: ClaudeCliArgsOptions): string[] {
     "--no-session-persistence",
   ]
 
-  if (options.systemPrompt) args.push("--system-prompt", options.systemPrompt)
+  if (options.systemPromptPath) args.push("--system-prompt-file", options.systemPromptPath)
   if (options.schemaJson) args.push("--json-schema", options.schemaJson)
   return args
 }
 
+/**
+ * The system prompt embeds a rendered template (and, for non-native
+ * strategies, the serialized schema) and routinely exceeds the Windows
+ * 32,767-char argv cap, so it travels by file. `--json-schema` has no file
+ * variant, but the schemas that reach the native strategy are strict,
+ * non-recursive and small.
+ */
 export const runClaudeCli: ClaudeCliRunner = async (request) => {
-  const args = buildClaudeArgs({
-    model: request.model,
-    ...(request.systemPrompt ? { systemPrompt: request.systemPrompt } : {}),
-    ...(request.schemaJson ? { schemaJson: request.schemaJson } : {}),
-  })
+  let workDir: string | undefined
+  let systemPromptPath: string | undefined
+  if (request.systemPrompt) {
+    workDir = await mkdtemp(join(request.cwd, "adt-claude-"))
+    systemPromptPath = join(workDir, "system-prompt.txt")
+    await writeFile(systemPromptPath, request.systemPrompt, "utf-8")
+  }
 
-  const outcome = await spawnClaudeCommand(
-    request.executable,
-    args,
-    request.env,
-    request.signal,
-    `${JSON.stringify(request.userMessage)}\n`,
-    request.cwd,
-  )
-  return readClaudeTurn(outcome)
+  try {
+    const args = buildClaudeArgs({
+      model: request.model,
+      ...(systemPromptPath ? { systemPromptPath } : {}),
+      ...(request.schemaJson ? { schemaJson: request.schemaJson } : {}),
+    })
+
+    const outcome = await spawnClaudeCommand(
+      request.executable,
+      args,
+      request.env,
+      request.signal,
+      `${JSON.stringify(request.userMessage)}\n`,
+      request.cwd,
+    )
+    return readClaudeTurn(outcome)
+  } finally {
+    // A cleanup failure (Windows can briefly hold the file while a killed
+    // child exits) must never mask the turn's own error.
+    if (workDir) await rm(workDir, { recursive: true, force: true }).catch(() => {})
+  }
 }
 
 export interface ClaudeProcessResult {

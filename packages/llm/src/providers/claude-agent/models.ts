@@ -1,6 +1,6 @@
 import type { DiscoveredModel, ModelListContext } from "../../ports/index.js"
 import { ModelDiscoveryError } from "../../model-discovery.js"
-import { claudeCliCredentialPaths, hasLocalCliLogin } from "../shared/local-cli-auth.js"
+import { hasClaudeCliLogin } from "../shared/local-cli-auth.js"
 import type { ClaudeAgentCredentials } from "./structured-text.js"
 
 export interface ClaudeAgentModelDiscoveryProbe {
@@ -24,7 +24,7 @@ export function listClaudeAgentModels(
   probe: ClaudeAgentModelDiscoveryProbe = {},
 ): Promise<DiscoveredModel[]> {
   const apiKey = context.credentials.apiKey
-  const hasLogin = probe.hasLogin ?? (() => hasLocalCliLogin(claudeCliCredentialPaths()))
+  const hasLogin = probe.hasLogin ?? (() => hasClaudeCliLogin())
   if (!apiKey && !hasLogin()) {
     return Promise.reject(
       new ModelDiscoveryError(

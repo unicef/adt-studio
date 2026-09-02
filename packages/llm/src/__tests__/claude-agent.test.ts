@@ -344,18 +344,23 @@ describe("buildClaudeArgs", () => {
     expect(args[args.indexOf("--tools") + 1]).toBe("")
     expect(args[args.indexOf("--setting-sources") + 1]).toBe("")
     expect(args[args.indexOf("--model") + 1]).toBe("sonnet")
-    expect(args).not.toContain("--system-prompt")
+    expect(args).not.toContain("--system-prompt-file")
     expect(args).not.toContain("--json-schema")
   })
 
-  it("appends the system prompt and schema only when present", () => {
+  it("appends the system prompt file and schema only when present", () => {
     const args = buildClaudeArgs({
       model: "sonnet",
-      systemPrompt: "Be terse.",
+      systemPromptPath: "/tmp/adt-claude-x/system-prompt.txt",
       schemaJson: '{"type":"object"}',
     })
 
-    expect(args[args.indexOf("--system-prompt") + 1]).toBe("Be terse.")
+    // By file, not by value: a rendered system prompt can exceed the Windows
+    // 32k argv cap (`--system-prompt-file` has shipped since CLI 1.0.55).
+    expect(args[args.indexOf("--system-prompt-file") + 1]).toBe(
+      "/tmp/adt-claude-x/system-prompt.txt",
+    )
+    expect(args).not.toContain("--system-prompt")
     expect(args[args.indexOf("--json-schema") + 1]).toBe('{"type":"object"}')
   })
 })

@@ -1,6 +1,6 @@
 import type { ConnectionCheckContext, ProviderConnectionStatus } from "../../ports/index.js"
 import { listAnthropicModels } from "../shared/anthropic-rest/models.js"
-import { claudeCliCredentialPaths, hasLocalCliLogin } from "../shared/local-cli-auth.js"
+import { hasClaudeCliLogin } from "../shared/local-cli-auth.js"
 import {
   isMissingClaudeExecutable,
   MINIMUM_CLAUDE_CLI_VERSION,
@@ -92,7 +92,7 @@ export async function checkClaudeAgentConnection(
     return { ok: true, code: "ok", modelCount: models.length }
   }
 
-  const hasLogin = probe.hasLogin ?? (() => hasLocalCliLogin(claudeCliCredentialPaths()))
+  const hasLogin = probe.hasLogin ?? (() => hasClaudeCliLogin())
   return hasLogin()
     ? { ok: true, code: "local-login", detail: `Claude Code ${version}` }
     : { ok: false, code: "not-logged-in" }

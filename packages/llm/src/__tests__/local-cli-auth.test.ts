@@ -3,6 +3,7 @@ import { join } from "node:path"
 import {
   claudeCliCredentialPaths,
   codexCliCredentialPaths,
+  hasClaudeCliLogin,
   hasLocalCliLogin,
 } from "../providers/shared/local-cli-auth.js"
 
@@ -54,5 +55,59 @@ describe("hasLocalCliLogin", () => {
 
   it("is false when none exists", () => {
     expect(hasLocalCliLogin(["/a", "/b"], { fileExists: () => false })).toBe(false)
+  })
+})
+
+describe("hasClaudeCliLogin", () => {
+  it("accepts the file store without probing the keychain", () => {
+    expect(
+      hasClaudeCliLogin({
+        env: {},
+        homeDir,
+        fileExists: () => true,
+        platform: "darwin",
+        keychainHasItem: () => {
+          throw new Error("keychain must not be probed when the file exists")
+        },
+      }),
+    ).toBe(true)
+  })
+
+  it("falls back to the macOS keychain, where Claude Code stores its login", () => {
+    expect(
+      hasClaudeCliLogin({
+        env: {},
+        homeDir,
+        fileExists: () => false,
+        platform: "darwin",
+        keychainHasItem: (service) => service === "Claude Code-credentials",
+      }),
+    ).toBe(true)
+  })
+
+  it("is false on darwin when neither store has a credential", () => {
+    expect(
+      hasClaudeCliLogin({
+        env: {},
+        homeDir,
+        fileExists: () => false,
+        platform: "darwin",
+        keychainHasItem: () => false,
+      }),
+    ).toBe(false)
+  })
+
+  it("never probes the keychain off darwin", () => {
+    expect(
+      hasClaudeCliLogin({
+        env: {},
+        homeDir,
+        fileExists: () => false,
+        platform: "linux",
+        keychainHasItem: () => {
+          throw new Error("keychain probe is darwin-only")
+        },
+      }),
+    ).toBe(false)
   })
 })
