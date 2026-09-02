@@ -22,17 +22,14 @@ import {
   normalizePromptModelInput,
 } from "@/components/pipeline/stages/book/GlobalPromptsSettings/promptSettings"
 import { promptModelForSelectedModel } from "@/components/pipeline/components/PromptViewer/promptModel"
+import { normalizeQualifiedModelInput } from "@/lib/model-id"
+import { checkModelModalitySupport } from "@/api/provider-credentials"
+import { useProviderCredentials } from "@/hooks/use-provider-credentials"
+import { useDiscoveredModelIds } from "@/hooks/use-discovered-models"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import { getStepLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { cn } from "@/lib/utils"
-
-function normalizeDefaultModelInput(value: string): string {
-  const normalized = normalizePromptModelInput(value)
-  return normalized && !normalized.includes(":")
-    ? `openai:${normalized}`
-    : normalized
-}
 
 function normalizeSpeechModelInput(value: string): string {
   return value.trim().replace(/^openai:/i, "").toLowerCase()
@@ -68,6 +65,7 @@ function TaskList({
 export function DefaultModelSettings() {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const { providers } = useProviderCredentials()
   const [draft, setDraft] = useState(DEFAULT_MODEL)
   const [imageDraft, setImageDraft] = useState(
     DEFAULT_IMAGE_GENERATION_MODEL_ID,
@@ -90,12 +88,13 @@ export function DefaultModelSettings() {
   })
 
   const savedModel = defaultModelQuery.data?.model ?? DEFAULT_MODEL
+  const discoveredModelIds = useDiscoveredModelIds("structured-text")
   const modelGroups = useMemo(
     () => mergePromptModelGroups(
       LLM_MODEL_GROUPS,
-      [...(promptModelsQuery.data?.models ?? []), savedModel],
+      [...(promptModelsQuery.data?.models ?? []), ...discoveredModelIds, savedModel],
     ),
-    [promptModelsQuery.data?.models, savedModel],
+    [promptModelsQuery.data?.models, discoveredModelIds, savedModel],
   )
 
   useEffect(() => {
@@ -110,7 +109,7 @@ export function DefaultModelSettings() {
 
   const mutation = useMutation({
     mutationFn: () => {
-      const model = normalizeDefaultModelInput(draft)
+      const model = normalizeQualifiedModelInput(draft)
       if (!model) throw new Error(t`Enter a model id.`)
       return api.updateDefaultModel(model)
     },
@@ -121,6 +120,7 @@ export function DefaultModelSettings() {
         queryClient.invalidateQueries({ queryKey: ["global-config"] }),
         queryClient.invalidateQueries({ queryKey: ["prompts"] }),
         queryClient.invalidateQueries({ queryKey: ["debug", "config"] }),
+        queryClient.invalidateQueries({ queryKey: ["providers"] }),
       ])
       toast.success(t`Default LLM updated.`)
     },
@@ -135,7 +135,7 @@ export function DefaultModelSettings() {
 
   const specializedMutation = useMutation({
     mutationFn: () => {
-      const imageGeneration = normalizeDefaultModelInput(imageDraft)
+      const imageGeneration = normalizeQualifiedModelInput(imageDraft)
       const speechGeneration = normalizeSpeechModelInput(speechDraft)
       if (!imageGeneration || !speechGeneration) {
         throw new Error(t`Enter a model id for each task.`)
@@ -152,6 +152,7 @@ export function DefaultModelSettings() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["global-config"] }),
         queryClient.invalidateQueries({ queryKey: ["debug", "config"] }),
+        queryClient.invalidateQueries({ queryKey: ["providers"] }),
       ])
       toast.success(t`Task-specific model defaults updated.`)
     },
@@ -172,19 +173,44 @@ export function DefaultModelSettings() {
   )
   const showPromptWarning = savedModelRequiresPrompts && !hasPromptsForSavedModel
 
-  const normalizedDraft = normalizeDefaultModelInput(draft)
+  const normalizedDraft = normalizeQualifiedModelInput(draft)
   const isDirty = normalizedDraft.length > 0 && normalizedDraft !== savedModel
   const savedSpecializedDefaults = specializedDefaultsQuery.data ?? {
     imageGeneration: DEFAULT_IMAGE_GENERATION_MODEL_ID,
     speechGeneration: DEFAULT_OPENAI_TTS_MODEL_ID,
   }
-  const normalizedImageDraft = normalizeDefaultModelInput(imageDraft)
+  const normalizedImageDraft = normalizeQualifiedModelInput(imageDraft)
   const normalizedSpeechDraft = normalizeSpeechModelInput(speechDraft)
   const specializedIsDirty =
     normalizedImageDraft !== savedSpecializedDefaults.imageGeneration ||
     normalizedSpeechDraft !== savedSpecializedDefaults.speechGeneration
   const isLoading = defaultModelQuery.isLoading || promptModelsQuery.isLoading
   const specializedIsLoading = specializedDefaultsQuery.isLoading
+
+  const providersLoaded = providers.length > 0
+  const defaultModelSupport =
+    providersLoaded && normalizedDraft
+      ? checkModelModalitySupport(providers, normalizedDraft, "structured-text")
+      : null
+  const imageModelSupport =
+    providersLoaded && normalizedImageDraft
+      ? checkModelModalitySupport(providers, normalizedImageDraft, "image")
+      : null
+  const defaultModelUnsupported = defaultModelSupport?.ok === false
+  const imageModelUnsupported = imageModelSupport?.ok === false
+
+  const unsupportedMessage = (
+    providerId: string,
+    reason: "unknown-provider" | "unsupported-modality",
+    modality: "text" | "image",
+  ): string => {
+    if (reason === "unknown-provider") {
+      return t`Provider "${providerId}" is not registered. Add its API keys in Settings or choose another model.`
+    }
+    return modality === "image"
+      ? t`Provider "${providerId}" does not support image generation.`
+      : t`Provider "${providerId}" does not support text generation.`
+  }
 
   return (
     <div className="flex w-full flex-col p-5 antialiased">
@@ -218,7 +244,7 @@ export function DefaultModelSettings() {
             <Button
               type="button"
               className="h-11 shrink-0 transition-[background-color,transform] duration-150 ease-out motion-safe:active:scale-[0.96]"
-              disabled={isLoading || mutation.isPending || !isDirty}
+              disabled={isLoading || mutation.isPending || !isDirty || defaultModelUnsupported}
               onClick={() => mutation.mutate()}
             >
               {mutation.isPending && (
@@ -230,6 +256,11 @@ export function DefaultModelSettings() {
           {defaultModelQuery.isError && (
             <p role="alert" className="border-t px-5 py-3 text-sm text-destructive">
               <Trans>Unable to load the default LLM.</Trans>
+            </p>
+          )}
+          {defaultModelSupport?.ok === false && (
+            <p role="alert" className="border-t px-5 py-3 text-sm text-destructive">
+              {unsupportedMessage(defaultModelSupport.providerId, defaultModelSupport.reason, "text")}
             </p>
           )}
           {showPromptWarning && (
@@ -288,7 +319,8 @@ export function DefaultModelSettings() {
             disabled={
               specializedIsLoading ||
               specializedMutation.isPending ||
-              !specializedIsDirty
+              !specializedIsDirty ||
+              imageModelUnsupported
             }
             onClick={() => specializedMutation.mutate()}
           >
@@ -323,6 +355,11 @@ export function DefaultModelSettings() {
               disabled={specializedIsLoading || specializedMutation.isPending}
               commitOnInput
             />
+            {imageModelSupport?.ok === false && (
+              <p role="alert" className="mt-2 text-sm text-destructive">
+                {unsupportedMessage(imageModelSupport.providerId, imageModelSupport.reason, "image")}
+              </p>
+            )}
             <p className="mt-5 text-pretty text-sm leading-6 text-muted-foreground">
               <Trans>Used for AI image generation, editing, and these pipeline tasks:</Trans>
             </p>

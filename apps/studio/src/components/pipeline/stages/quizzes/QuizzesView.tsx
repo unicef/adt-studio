@@ -38,7 +38,7 @@ import { QuizzesHintBanner } from "./components/QuizzesHintBanner";
 import { QuizJumper, type QuizJumperEntry } from "./components/QuizJumper";
 import { PageLightbox } from "../../components/PageLightbox";
 import { AddQuizDialog } from "./AddQuizDialog";
-import { useApiKey } from "@/hooks/use-api-key";
+import { useBookStructuredTextAvailability } from "@/hooks/use-api-key";
 import { useStageStatus } from "@/hooks/use-stage-status";
 import { useLingui } from "@lingui/react/macro";
 
@@ -133,7 +133,7 @@ export function QuizzesView({
   const { data, isLoading } = useQuizzes(bookLabel);
   const { data: pages } = usePages(bookLabel);
   const { setExtra } = useStepHeader();
-  const { hasApiKey } = useApiKey();
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel);
   const quizzesStatus = useStageStatus("quizzes");
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -541,9 +541,9 @@ export function QuizzesView({
               <Button
                 size="sm"
                 className="h-8 gap-1.5 bg-orange-600 text-xs text-white hover:bg-orange-700"
-                disabled={!hasApiKey || quizzesStatus.isRunning}
+                disabled={!hasStructuredTextProvider || quizzesStatus.isRunning}
                 title={
-                  !hasApiKey
+                  !hasStructuredTextProvider
                     ? t`Add an API key in Book settings to add a quiz.`
                     : quizzesStatus.isRunning
                       ? t`Quizzes are generating. Wait for the run to finish before adding a quiz.`

@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useStyleguides, useStyleguidePreview, useTemplates, useGenerateStyleguide } from "@/hooks/use-presets"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { api } from "@/api/client"
@@ -145,7 +145,8 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const queryClient = useQueryClient()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
 
   // Form state
   const [defaultRenderStrategy, setDefaultRenderStrategy] = useState("")
@@ -231,7 +232,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
   }
 
   const handleGenerate = () => {
-    if (selectedPageIds.size === 0 || !hasApiKey) return
+    if (selectedPageIds.size === 0 || !hasStructuredTextProvider) return
     generateStyleguideMutation.mutate(
       { label: bookLabel, pageIds: Array.from(selectedPageIds), apiKey },
       {
@@ -984,7 +985,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
               </Button>
               <Button
                 onClick={handleGenerate}
-                disabled={selectedPageIds.size === 0 || !hasApiKey || generateStyleguideMutation.isPending}
+                disabled={selectedPageIds.size === 0 || !hasStructuredTextProvider || generateStyleguideMutation.isPending}
               >
                 {generateStyleguideMutation.isPending ? (
                   <>

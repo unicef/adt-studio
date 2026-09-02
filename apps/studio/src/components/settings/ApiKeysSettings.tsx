@@ -1,37 +1,7 @@
-import { useMemo } from "react"
 import { Trans } from "@lingui/react/macro"
-import { useApiKey } from "@/hooks/use-api-key"
 import { ApiKeyDialog } from "./ApiKeyDialog"
 
 export function ApiKeysSettings() {
-  const {
-    apiKey,
-    setApiKey,
-    anthropicKey,
-    setAnthropicKey,
-    googleKey,
-    setGoogleKey,
-    customBaseUrl,
-    setCustomBaseUrl,
-    customApiKey,
-    setCustomApiKey,
-    azureKey,
-    setAzureKey,
-    azureRegion,
-    setAzureRegion,
-    setGeminiKey,
-    elevenLabsKey,
-    setElevenLabsKey,
-  } = useApiKey()
-
-  const saveGoogleKey = useMemo(
-    () => (key: string) => {
-      setGoogleKey(key)
-      setGeminiKey(key)
-    },
-    [setGeminiKey, setGoogleKey],
-  )
-
   return (
     <div className="mx-auto flex w-full flex-col gap-6 p-5">
       <header>
@@ -47,22 +17,6 @@ export function ApiKeysSettings() {
         embedded
         open
         onOpenChange={() => {}}
-        apiKey={apiKey}
-        onSaveApiKey={setApiKey}
-        anthropicKey={anthropicKey}
-        onSaveAnthropicKey={setAnthropicKey}
-        googleKey={googleKey}
-        onSaveGoogleKey={saveGoogleKey}
-        customBaseUrl={customBaseUrl}
-        onSaveCustomBaseUrl={setCustomBaseUrl}
-        customApiKey={customApiKey}
-        onSaveCustomApiKey={setCustomApiKey}
-        azureKey={azureKey}
-        onSaveAzureKey={setAzureKey}
-        azureRegion={azureRegion}
-        onSaveAzureRegion={setAzureRegion}
-        elevenLabsKey={elevenLabsKey}
-        onSaveElevenLabsKey={setElevenLabsKey}
       />
     </div>
   )
