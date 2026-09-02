@@ -1720,14 +1720,17 @@ msgstr "Kapaku i pasëm"
 msgid "Back to beta versions"
 msgstr "Kthehu te versionet beta"
 
-msgid "Back to books"
-msgstr "Kthehu te librat"
+#~ msgid "Back to books"
+#~ msgstr "Kthehu te librat"
 
 msgid "Back to classic activity"
 msgstr "Kthehu te aktiviteti klasik"
 
 msgid "Back to home"
 msgstr "Kthehu në shtëpi"
+
+msgid "Back to library"
+msgstr "Kthehu te biblioteka"
 
 msgid "Back to preview"
 msgstr "Kthehu te pamja paraprake"
@@ -9190,8 +9193,8 @@ msgstr "Kapituj dhe ushtrime të strukturuara. Më i miri për përmbajtje eduka
 msgid "Structures each page into a tree of sections and nodes."
 msgstr "Strukturon çdo faqe në një pemë seksionesh dhe nyjesh."
 
-msgid "Studio actions"
-msgstr "Veprimet e studios"
+#~ msgid "Studio actions"
+#~ msgstr "Veprimet e studios"
 
 msgid "Style"
 msgstr "Stili"

@@ -1720,14 +1720,17 @@ msgstr "Quatrième de couverture"
 msgid "Back to beta versions"
 msgstr "Retour aux versions bêta"
 
-msgid "Back to books"
-msgstr "Retour aux livres"
+#~ msgid "Back to books"
+#~ msgstr "Retour aux livres"
 
 msgid "Back to classic activity"
 msgstr "Revenir à l'activité classique"
 
 msgid "Back to home"
 msgstr "Retour à l'accueil"
+
+msgid "Back to library"
+msgstr "Retour à la bibliothèque"
 
 msgid "Back to preview"
 msgstr "Retour à l'aperçu"
@@ -9190,8 +9193,8 @@ msgstr "Chapitres structurés, exercices. Idéal pour le contenu éducatif avec 
 msgid "Structures each page into a tree of sections and nodes."
 msgstr "Structure chaque page en un arbre de sections et de nœuds."
 
-msgid "Studio actions"
-msgstr "Actions du studio"
+#~ msgid "Studio actions"
+#~ msgstr "Actions du studio"
 
 msgid "Style"
 msgstr "Style"

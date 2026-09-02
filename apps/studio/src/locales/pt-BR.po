@@ -1718,14 +1718,17 @@ msgstr "Contracapa"
 msgid "Back to beta versions"
 msgstr "Voltar às versões beta"
 
-msgid "Back to books"
-msgstr "Voltar aos livros"
+#~ msgid "Back to books"
+#~ msgstr "Voltar aos livros"
 
 msgid "Back to classic activity"
 msgstr "Voltar à atividade clássica"
 
 msgid "Back to home"
 msgstr "Voltar para início"
+
+msgid "Back to library"
+msgstr "Voltar à biblioteca"
 
 msgid "Back to preview"
 msgstr "Voltar para pré-visualização"
@@ -9188,8 +9191,8 @@ msgstr "Capítulos estruturados, exercícios. Melhor para conteúdo educacional 
 msgid "Structures each page into a tree of sections and nodes."
 msgstr "Estrutura cada página em uma árvore de seções e nós."
 
-msgid "Studio actions"
-msgstr "Ações do estúdio"
+#~ msgid "Studio actions"
+#~ msgstr "Ações do estúdio"
 
 msgid "Style"
 msgstr "Estilo"
