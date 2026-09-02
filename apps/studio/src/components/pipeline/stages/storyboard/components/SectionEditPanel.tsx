@@ -1,4 +1,4 @@
-﻿import { useState, type ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import { ImagePlus, Loader2, RefreshCw, X } from "lucide-react"
 import { SectionActionsDropdown } from "./SectionActionsDropdown"
 import { ActivityAnswersEditor } from "./ActivityAnswersEditor"

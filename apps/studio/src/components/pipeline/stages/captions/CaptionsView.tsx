@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Image as ImageIcon, Search, X } from "lucide-react"
 import { useQueries } from "@tanstack/react-query"
 import { api } from "@/api/client"

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { ChevronDown, Loader2, Plus, RotateCcw, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"

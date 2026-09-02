@@ -1,4 +1,4 @@
-﻿import { useCallback } from "react"
+import { useCallback } from "react"
 import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useBookRun } from "@/hooks/use-book-run"

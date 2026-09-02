@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CMS-style editor for a step-by-step (editable) activity, presented as a
  * slide-out side panel (same pattern as SectionEditPanel) so the storyboard
  * preview area stays a plain preview with working device viewports.

@@ -1,4 +1,4 @@
-﻿import { useNavigate } from "@tanstack/react-router"
+import { useNavigate } from "@tanstack/react-router"
 import type { StageName } from "@adt/types"
 import { useFloatingSave } from "@/components/pipeline/components/floating-save"
 import { useSettingsRemount } from "./use-settings-remount"

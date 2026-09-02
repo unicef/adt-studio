@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { BookOpen, GraduationCap, Sprout } from "lucide-react"
 import { CustomInstructionsField } from "@/components/pipeline/components/CustomInstructionsField"
 import { Trans, useLingui } from "@lingui/react/macro"

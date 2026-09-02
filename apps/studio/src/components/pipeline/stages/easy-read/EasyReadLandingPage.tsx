@@ -1,4 +1,4 @@
-﻿import { ArrowDown, PencilLine, ToggleRight, History } from "lucide-react"
+import { ArrowDown, PencilLine, ToggleRight, History } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
 import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"

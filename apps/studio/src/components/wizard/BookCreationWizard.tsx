@@ -1,4 +1,4 @@
-﻿
+
 import { useState, useEffect, useRef, type CSSProperties } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Eye, ArrowLeft, ArrowRight, Zap, Loader2 } from "lucide-react"
