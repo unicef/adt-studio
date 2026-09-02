@@ -20,7 +20,10 @@ import {
   type ProviderRegistry,
 } from "@adt/llm"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
-import { DEFAULT_AGENT_MODEL } from "../services/agents-service.js"
+import {
+  agentModelForDefaultModel,
+  DEFAULT_AGENT_MODEL,
+} from "../services/agents-service.js"
 
 const OPENAI_TRANSCRIPTION_MODEL_ID = "openai:whisper-1"
 
@@ -68,10 +71,13 @@ function resolveDefaults(
   const defaults: Partial<Record<AiModality, string>> = {
     "structured-text":
       safeNormalize(config?.default_model) ?? normalizeModelId(DEFAULT_LLM_MODEL_ID),
-    // agents-service ignores default_model on purpose (its prompts are tuned
-    // for DEFAULT_AGENT_MODEL), so the advertised default must match what a
-    // run would actually resolve.
-    agent: safeNormalize(config?.agents?.model) ?? normalizeModelId(DEFAULT_AGENT_MODEL),
+    // Mirrors agents-service's resolution chain (agents.model, then the
+    // default model's provider, then DEFAULT_AGENT_MODEL) so the advertised
+    // default matches what a run would actually resolve.
+    agent:
+      safeNormalize(config?.agents?.model) ??
+      safeNormalize(agentModelForDefaultModel(config?.default_model)) ??
+      normalizeModelId(DEFAULT_AGENT_MODEL),
     image:
       safeNormalize(config?.default_image_generation_model) ??
       normalizeModelId(DEFAULT_IMAGE_GENERATION_MODEL_ID),

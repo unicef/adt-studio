@@ -75,7 +75,7 @@ describe("GET /providers", () => {
     expect(body.defaults.stt).toBe("openai:whisper-1")
   })
 
-  it("advertises the agents runtime default, not default_model, when agents.model is unset", async () => {
+  it("follows default_model's provider for the agent default when agents.model is unset", async () => {
     fs.writeFileSync(
       configPath,
       [
@@ -88,6 +88,23 @@ describe("GET /providers", () => {
 
     const body = await getProviders()
     expect(body.defaults["structured-text"]).toBe("anthropic:claude-opus-4")
+    // The provider's declared agent default, so a user with only an Anthropic
+    // key gets working agent features instead of a gate on an OpenAI model.
+    expect(body.defaults.agent).toBe("anthropic:claude-opus-4-6")
+  })
+
+  it("keeps the agents runtime default when default_model's provider cannot run agents", async () => {
+    fs.writeFileSync(
+      configPath,
+      [
+        "structure_types: {}",
+        "role_types: {}",
+        "default_model: claude-agent:sonnet",
+      ].join("\n"),
+      "utf-8",
+    )
+
+    const body = await getProviders()
     expect(body.defaults.agent).toBe("openai:gpt-5.5")
   })
 

@@ -1,6 +1,8 @@
-﻿import { useCallback } from "react"
+import { useCallback } from "react"
+import { safeParseModelId } from "@adt/types"
 import { useProviderCredentials } from "./use-provider-credentials"
 import { useEffectiveDefaultModel } from "./use-effective-default-model"
+import { useActiveConfig } from "./use-debug"
 
 /**
  * Structured-text availability resolved against the book's effective default
@@ -12,6 +14,40 @@ export function useBookStructuredTextAvailability(bookLabel: string): boolean {
   const { isAvailable } = useProviderCredentials()
   const effectiveModel = useEffectiveDefaultModel(bookLabel)
   return isAvailable("structured-text", effectiveModel)
+}
+
+/**
+ * Agent availability resolved against the model an agent run of this book
+ * actually uses. Mirrors agents-service's chain: the merged config's
+ * `agents.model` (a documented per-book override), else the default model's
+ * provider's declared agent default, else the server-advertised default.
+ * Prefer this in any component with a book in scope, or agent features vanish
+ * for books that run agents on a non-default provider.
+ */
+export function useBookAgentAvailability(bookLabel: string): boolean {
+  const { providers, isAvailable } = useProviderCredentials()
+  const merged = useActiveConfig(bookLabel).data?.merged
+  const agents = merged?.agents as { model?: unknown } | undefined
+  const explicit =
+    typeof agents?.model === "string" && agents.model.trim() ? agents.model : undefined
+  const model = explicit ?? agentModelForDefaultModel(merged?.default_model, providers)
+  return isAvailable("agent", model)
+}
+
+/** The agent model a book's default model implies — same provider, its declared agent default. */
+function agentModelForDefaultModel(
+  defaultModel: unknown,
+  providers: ReturnType<typeof useProviderCredentials>["providers"],
+): string | undefined {
+  if (typeof defaultModel !== "string" || !defaultModel.trim()) return undefined
+  const parsed = safeParseModelId(defaultModel)
+  if (!parsed.ok) return undefined
+  const manifest = providers.find(
+    ({ manifest }) => manifest.id === parsed.value.providerId,
+  )?.manifest
+  const agentDefault = manifest?.defaultModels?.agent
+  if (!manifest?.modalities.includes("agent") || !agentDefault) return undefined
+  return `${manifest.id}:${agentDefault}`
 }
 
 /**

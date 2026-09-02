@@ -8,6 +8,8 @@ import type {
   ActivityGenMode,
 } from "@adt/agents"
 import { loadBookConfig } from "@adt/pipeline"
+import { getDefaultProviderRegistry } from "@adt/llm"
+import { safeParseModelId } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
 
 /**
@@ -21,12 +23,34 @@ export interface AgentCredentialOptions {
 }
 
 /**
- * Model the agent prompts are tuned for. Used when a book sets no override —
- * deliberately not `default_model`, which tunes the pipeline steps. The
- * /providers route advertises this same fallback so UI availability gates on
- * the provider that will actually run.
+ * Model the agent prompts are tuned for. Used when neither `agents.model` nor
+ * the default model's provider can pick one. The /providers route advertises
+ * the same resolution chain so UI availability gates on the provider that
+ * will actually run.
  */
 export const DEFAULT_AGENT_MODEL = "openai:gpt-5.5"
+
+/**
+ * The agent model a `default_model` implies when `agents.model` is unset:
+ * the same provider's declared agent default. A user who configured only a
+ * Gemini or Anthropic key (with a matching default model) gets working agent
+ * features instead of a hidden button demanding an OpenAI key. Providers that
+ * cannot run the agent loop (e.g. claude-agent, ollama) return undefined and
+ * fall through to DEFAULT_AGENT_MODEL.
+ */
+export function agentModelForDefaultModel(
+  defaultModel: string | undefined,
+): string | undefined {
+  if (!defaultModel?.trim()) return undefined
+  const parsed = safeParseModelId(defaultModel)
+  if (!parsed.ok) return undefined
+  const registry = getDefaultProviderRegistry()
+  if (!registry.has(parsed.value.providerId)) return undefined
+  const manifest = registry.get(parsed.value.providerId).manifest
+  const agentDefault = manifest.defaultModels?.agent
+  if (!manifest.modalities.includes("agent") || !agentDefault) return undefined
+  return `${manifest.id}:${agentDefault}`
+}
 
 /**
  * Resolve the model id for the agents from book config, falling back to a
@@ -44,7 +68,11 @@ function resolveAgentModelId(
   // `google:gemini-2.5-pro`. The matching provider key must be sent with the
   // request (X-OpenAI-Key / X-Anthropic-API-Key / X-Google-API-Key) or the
   // call fails to authenticate.
-  return config.agents?.model ?? DEFAULT_AGENT_MODEL
+  return (
+    config.agents?.model ??
+    agentModelForDefaultModel(config.default_model) ??
+    DEFAULT_AGENT_MODEL
+  )
 }
 
 function resolveStyleguide(
