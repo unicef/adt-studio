@@ -8,9 +8,9 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { ReleaseFallbackBanner } from "./ReleaseFallbackBanner"
+import { ReleaseCoverBanner } from "./ReleaseCoverBanner"
 import { ReleaseNotesMarkdown } from "./ReleaseNotesMarkdown"
-import { formatVersion, releaseNotesHaveImage } from "./release-banner-utils"
+import { formatVersion } from "./release-banner-utils"
 
 export interface PostUpdateDialogProps {
   open: boolean
@@ -58,11 +58,10 @@ export function PostUpdateContent({
   TitleTag = "h2",
 }: PostUpdateContentProps) {
   const label = formatVersion(version)
-  const showFallbackBanner = !releaseNotesHaveImage(releaseNotes)
   const notes = releaseNotes?.trim()
 
   return (
-    <div className="flex h-160 max-h-[calc(100vh-2rem)] flex-col">
+    <div className="flex max-h-[calc(100vh-4rem)] flex-col">
       <div className="flex shrink-0 items-center gap-3 px-6 pb-4 pt-6">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Sparkles className="size-5" />
@@ -77,15 +76,13 @@ export function PostUpdateContent({
         </div>
       </div>
 
-      {showFallbackBanner && (
-        <div className="shrink-0 px-6 pb-5">
-          <ReleaseFallbackBanner version={version} />
-        </div>
-      )}
+      <div className="shrink-0 px-6 pb-5">
+        <ReleaseCoverBanner version={version} notes={releaseNotes} />
+      </div>
 
       {notes ? (
         <div className="min-h-0 flex-1 overflow-auto border-y px-6 py-4">
-          <ReleaseNotesMarkdown>{notes}</ReleaseNotesMarkdown>
+          <ReleaseNotesMarkdown hideImages>{notes}</ReleaseNotesMarkdown>
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 items-start px-6 pt-1">

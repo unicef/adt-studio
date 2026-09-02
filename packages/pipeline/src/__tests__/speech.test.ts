@@ -22,6 +22,7 @@ import {
   elevenLabsVoiceSettingsFromConfig,
   buildElevenLabsTtsLogParams,
   buildTtsLogEntry,
+  buildWordTimestampsLogEntry,
   classifyElevenLabsTtsError,
   elevenLabsTtsRetryDelayMs,
   parseElevenLabsErrorStatus,
@@ -1410,6 +1411,75 @@ describe("buildTtsLogEntry", () => {
     })
 
     expect(entry).not.toHaveProperty("skippedReason")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// buildWordTimestampsLogEntry
+// ---------------------------------------------------------------------------
+
+describe("buildWordTimestampsLogEntry", () => {
+  it("records a successful transcription under the word-timestamps step", () => {
+    const entry = buildWordTimestampsLogEntry({
+      fileName: "pg001_t001.mp3",
+      language: "en",
+      prompt: "Hello world",
+      durationMs: 420,
+      success: true,
+      cached: false,
+      result: {
+        text: "Hello world",
+        words: [
+          { word: "Hello", start: 0, end: 0.4 },
+          { word: "world", start: 0.4, end: 0.9 },
+        ],
+        duration: 0.9,
+      },
+    })
+
+    // taskType is the real step name, so the Log tab's step filter and the
+    // step badge work with no extra wiring.
+    expect(entry).toMatchObject({
+      taskType: "word-timestamps",
+      pageId: "pg001_t001.mp3",
+      promptName: "whisper-transcribe",
+      modelId: "openai/whisper-1",
+      cacheHit: false,
+      success: true,
+      errorCount: 0,
+    })
+    expect(entry.params).toEqual({
+      language: "en",
+      fileName: "pg001_t001.mp3",
+      hasPrompt: true,
+      words: 2,
+      durationSec: 0.9,
+    })
+  })
+
+  it("marks a cache hit and a provider failure distinctly", () => {
+    const cached = buildWordTimestampsLogEntry({
+      fileName: "pg001_t001.mp3",
+      durationMs: 1,
+      success: true,
+      cached: true,
+    })
+    expect(cached.cacheHit).toBe(true)
+    // No result and no prompt — the row still says so rather than omitting it.
+    expect(cached.params).toEqual({ language: "", fileName: "pg001_t001.mp3", hasPrompt: false })
+
+    const failed = buildWordTimestampsLogEntry({
+      fileName: "pg001_t001.mp3",
+      durationMs: 30,
+      success: false,
+      cached: false,
+      error: "Whisper request failed (401): invalid api key",
+    })
+    expect(failed).toMatchObject({
+      success: false,
+      errorCount: 1,
+      error: "Whisper request failed (401): invalid api key",
+    })
   })
 })
 

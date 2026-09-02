@@ -43,13 +43,13 @@ const FEATURE_STAGES: {
   bgLight: string
   borderColor: string
 }[] = [
-  { name: "storyboard", label: msg`Storyboard`, icon: LayoutDashboard, textColor: "text-indigo-600", bgLight: "bg-indigo-50", borderColor: "border-indigo-200" },
-  { name: "quizzes", label: msg`Quizzes`, icon: HelpCircle, textColor: "text-orange-600", bgLight: "bg-orange-50", borderColor: "border-orange-200" },
-  { name: "captions", label: msg`Image Captions`, icon: Image, textColor: "text-teal-600", bgLight: "bg-teal-50", borderColor: "border-teal-200" },
-  { name: "glossary", label: msg`Glossary`, icon: BookOpen, textColor: "text-lime-600", bgLight: "bg-lime-50", borderColor: "border-lime-200" },
-  { name: "toc", label: msg`Table of Contents`, icon: List, textColor: "text-amber-600", bgLight: "bg-amber-50", borderColor: "border-amber-200" },
-  { name: "translate", label: msg`Translate`, icon: Languages, textColor: "text-blue-600", bgLight: "bg-blue-50", borderColor: "border-blue-200" },
-  { name: "speech", label: msg`Speech`, icon: AudioLines, textColor: "text-rose-600", bgLight: "bg-rose-50", borderColor: "border-rose-200" },
+  { name: "storyboard", label: msg`Storyboard`, icon: LayoutDashboard, textColor: "text-indigo-600 dark:text-indigo-300", bgLight: "bg-indigo-500/10", borderColor: "border-indigo-500/30" },
+  { name: "quizzes", label: msg`Quizzes`, icon: HelpCircle, textColor: "text-orange-600 dark:text-orange-300", bgLight: "bg-orange-500/10", borderColor: "border-orange-500/30" },
+  { name: "captions", label: msg`Image Captions`, icon: Image, textColor: "text-teal-600 dark:text-teal-300", bgLight: "bg-teal-500/10", borderColor: "border-teal-500/30" },
+  { name: "glossary", label: msg`Glossary`, icon: BookOpen, textColor: "text-lime-600 dark:text-lime-300", bgLight: "bg-lime-500/10", borderColor: "border-lime-500/30" },
+  { name: "toc", label: msg`Table of Contents`, icon: List, textColor: "text-amber-600 dark:text-amber-300", bgLight: "bg-amber-500/10", borderColor: "border-amber-500/30" },
+  { name: "translate", label: msg`Translate`, icon: Languages, textColor: "text-blue-600 dark:text-blue-300", bgLight: "bg-blue-500/10", borderColor: "border-blue-500/30" },
+  { name: "speech", label: msg`Speech`, icon: AudioLines, textColor: "text-rose-600 dark:text-rose-300", bgLight: "bg-rose-500/10", borderColor: "border-rose-500/30" },
 ]
 
 function FeatureChip({
@@ -72,7 +72,7 @@ function FeatureChip({
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-medium transition-colors ${
         done
           ? `${bgLight} ${borderColor} ${textColor}`
-          : "bg-slate-50 border-slate-200 text-slate-400"
+          : "bg-muted/50 border-border text-muted-foreground"
       }`}
     >
       <Icon className="w-3 h-3 shrink-0" />
@@ -88,47 +88,47 @@ function PreviewCard({ preview, fileName, fileSize }: { preview: ImportPreview; 
   const doneFeatures = FEATURE_STAGES.filter((f) => preview.stages[f.name]?.status === "done").length
 
   return (
-    <div className="w-full max-w-2xl border border-slate-200 rounded-lg overflow-hidden grid grid-cols-[2fr_1fr]">
+    <div className="w-full max-w-2xl border border-border rounded-lg overflow-hidden grid grid-cols-[2fr_1fr] bg-card">
       {/* Left — Info */}
       <div className="flex flex-col">
         <div className="px-5 pt-5 pb-3 space-y-1">
-          <p className="font-semibold text-lg leading-snug line-clamp-2 text-slate-900">
+          <p className="font-semibold text-lg leading-snug line-clamp-2 text-foreground">
             {displayTitle}
           </p>
           {authors && (
-            <p className="text-slate-600 text-xs leading-tight line-clamp-1">{authors}</p>
+            <p className="text-foreground/80 text-xs leading-tight line-clamp-1">{authors}</p>
           )}
-          <p className="text-[11px] text-slate-400 truncate">{fileName} &middot; {formatBytes(fileSize)}</p>
+          <p className="text-[11px] text-muted-foreground truncate">{fileName} &middot; {formatBytes(fileSize)}</p>
         </div>
 
         {preview.validationError && (
-          <div className="mx-5 mb-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+          <div className="mx-5 mb-3 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">
             <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
             <p className="text-[11px] leading-tight text-amber-700">{preview.validationError}</p>
           </div>
         )}
 
         <div className="px-5 pb-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             <Trans>Book info</Trans>
           </p>
-          <div className="space-y-2 text-xs text-slate-500">
+          <div className="space-y-2 text-xs text-muted-foreground">
             {preview.publisher && (
               <div className="flex items-center gap-2">
-                <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 <span className="truncate">{preview.publisher}</span>
               </div>
             )}
             {preview.pageCount > 0 && (
               <div className="flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 <span>{preview.pageCount} {preview.pageCount === 1 ? t`page` : t`pages`}</span>
               </div>
             )}
             {preview.languageCode && (
               <div className="flex items-center gap-2">
-                <Globe className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span className="inline-flex items-center rounded-md bg-slate-200/70 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 ring-1 ring-slate-300/50">
+                <Globe className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-foreground ring-1 ring-border">
                   {preview.languageCode.toUpperCase()}
                 </span>
               </div>
@@ -136,13 +136,13 @@ function PreviewCard({ preview, fileName, fileSize }: { preview: ImportPreview; 
             <div className="flex items-center gap-3">
               {preview.imageCount > 0 && (
                 <span className="flex items-center gap-1.5">
-                  <Image className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <Image className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   {preview.imageCount} {preview.imageCount === 1 ? t`image` : t`images`}
                 </span>
               )}
               {preview.videoCount > 0 && (
                 <span className="flex items-center gap-1.5">
-                  <Video className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <Video className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   {preview.videoCount} {preview.videoCount === 1 ? t`video` : t`videos`}
                 </span>
               )}
@@ -152,7 +152,7 @@ function PreviewCard({ preview, fileName, fileSize }: { preview: ImportPreview; 
 
         {/* Pipeline features */}
         <div className="px-5 pb-4 mt-auto">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             <Trans>Pipeline features</Trans> &middot; {doneFeatures}/{FEATURE_STAGES.length}
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -182,17 +182,17 @@ function PreviewCard({ preview, fileName, fileSize }: { preview: ImportPreview; 
 
 function PreviewCover({ coverBase64, alt }: { coverBase64: string | null; alt: string }) {
   return (
-    <div className="flex flex-col justify-center items-center border-l border-slate-200 bg-slate-50/50 p-5">
+    <div className="flex flex-col justify-center items-center border-l border-border bg-muted/40 p-5">
       {coverBase64 ? (
         <img
           src={`data:image/png;base64,${coverBase64}`}
           alt={alt}
-          className="w-full max-w-[160px] rounded-sm border border-slate-200 shadow-md object-contain"
+          className="w-full max-w-[160px] rounded-sm border border-border shadow-md object-contain"
         />
       ) : (
-        <div className="w-full aspect-[3/4] max-w-[160px] rounded-sm border border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center justify-center gap-3 shadow-md">
-          <BookOpen className="w-10 h-10 text-slate-300" />
-          <p className="text-[11px] text-slate-400 font-medium px-4 text-center leading-tight">
+        <div className="w-full aspect-[3/4] max-w-[160px] rounded-sm border border-border bg-gradient-to-br from-muted to-muted/60 flex flex-col items-center justify-center gap-3 shadow-md">
+          <BookOpen className="w-10 h-10 text-muted-foreground/60" />
+          <p className="text-[11px] text-muted-foreground font-medium px-4 text-center leading-tight">
             <Trans>No cover available</Trans>
           </p>
         </div>
@@ -207,34 +207,34 @@ function PartPreviewCard({ preview, fileName, fileSize }: { preview: PartImportP
   const windowSize = preview.range.endPage - preview.range.startPage + 1
 
   return (
-    <div className="w-full max-w-2xl border border-slate-200 rounded-lg overflow-hidden grid grid-cols-[2fr_1fr]">
+    <div className="w-full max-w-2xl border border-border rounded-lg overflow-hidden grid grid-cols-[2fr_1fr] bg-card">
       {/* Left — Info */}
       <div className="flex flex-col">
         <div className="px-5 pt-5 pb-3 space-y-1">
-          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">
+          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">
             <Scissors className="w-3 h-3" />
             <Trans>Book part</Trans>
           </span>
-          <p className="font-semibold text-lg leading-snug line-clamp-2 text-slate-900">
+          <p className="font-semibold text-lg leading-snug line-clamp-2 text-foreground">
             {displayTitle}
           </p>
-          <p className="text-[11px] text-slate-400 truncate">{fileName} &middot; {formatBytes(fileSize)}</p>
+          <p className="text-[11px] text-muted-foreground truncate">{fileName} &middot; {formatBytes(fileSize)}</p>
         </div>
 
         <div className="px-5 pb-4 mt-auto">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             <Trans>Part info</Trans>
           </p>
-          <div className="space-y-2 text-xs text-slate-500">
+          <div className="space-y-2 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
-              <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               <span>
                 <Trans>
                   Pages {preview.range.startPage}–{preview.range.endPage} of {preview.pageCount}
                 </Trans>
               </span>
             </div>
-            <p className="text-[11px] leading-relaxed text-slate-400">
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
               <Trans>
                 Importing creates a new book limited to {windowSize} pages. Run the
                 per-page stages, then export it as a project to merge back into the
@@ -367,20 +367,20 @@ export function ImportProject() {
         errorLabel={<Trans>Only ZIP files are supported</Trans>}
       />
 
-      <div className="flex flex-1 min-h-0 w-full bg-white flex-col items-center justify-center gap-6 sm:gap-8 px-4 py-10">
+      <div className="flex flex-1 min-h-0 w-full bg-background flex-col items-center justify-center gap-6 sm:gap-8 px-4 py-10">
         <div className="flex flex-col items-center gap-1">
-          <h1 className="text-2xl sm:text-[30px] font-semibold leading-tight sm:leading-9 tracking-[-0.75px] text-[#030303] text-center">
+          <h1 className="text-2xl sm:text-[30px] font-semibold leading-tight sm:leading-9 tracking-[-0.75px] text-foreground text-center">
             <Trans>Import a Project</Trans>
           </h1>
           <div className="max-w-xl grid [&>*]:col-start-1 [&>*]:row-start-1">
             <p className={cn(
-              "text-center text-sm text-[#525252] transition-opacity duration-300 ease-out",
+              "text-center text-sm text-muted-foreground transition-opacity duration-300 ease-out",
               showPreview ? "opacity-0 pointer-events-none" : "opacity-100",
             )}>
               <Trans>Upload an ADT Studio project archive (.zip) exported by you or shared by a colleague.</Trans>
             </p>
             <p className={cn(
-              "text-center text-sm text-[#525252] transition-opacity duration-300 ease-out",
+              "text-center text-sm text-muted-foreground transition-opacity duration-300 ease-out",
               showPreview ? "opacity-100" : "opacity-0 pointer-events-none",
             )}>
               <Trans>Review the project details below and confirm the import.</Trans>
@@ -390,7 +390,7 @@ export function ImportProject() {
             "transition-all duration-300 ease-out overflow-hidden",
             !zipFile && !hasError ? "opacity-100 max-h-10 mt-0" : "opacity-0 max-h-0",
           )}>
-            <p className="text-center text-xs text-slate-400">
+            <p className="text-center text-xs text-muted-foreground">
               <Trans>Don't have a project yet?</Trans>{" "}
               <Link to="/books/new" className="text-blue-500 hover:text-blue-600 underline underline-offset-2 transition-colors">
                 <Trans>Create a new book from a PDF</Trans>
@@ -416,7 +416,7 @@ export function ImportProject() {
               : "opacity-0 max-h-0 scale-95 overflow-hidden pointer-events-none",
           )}>
             {(activeError || deferredError) && (
-              <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50/60 px-4 py-3">
+              <div className="flex items-start gap-3 rounded-lg border border-red-400/40 bg-red-500/10 px-4 py-3">
                 <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-red-700">{(activeError ?? deferredError)!.title}</p>
@@ -444,12 +444,12 @@ export function ImportProject() {
                 className={cn(
                   "flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg w-full max-w-md h-full cursor-pointer transition-colors duration-300",
                   accepted
-                    ? "border-emerald-400 bg-emerald-50/40"
+                    ? "border-emerald-400 bg-emerald-500/10"
                     : previewLoading
                       ? "border-amber-400/60 bg-amber-500/[0.02]"
                       : hasError
-                        ? "border-red-300 hover:border-red-400 bg-red-50/30 hover:bg-red-50/50"
-                        : "border-[#d4d4d4] hover:border-amber-500/60 hover:bg-amber-500/[0.02]",
+                        ? "border-red-400/50 hover:border-red-400 bg-red-500/10 hover:bg-red-500/15"
+                        : "border-border hover:border-amber-500/60 hover:bg-amber-500/[0.06]",
                 )}
               >
                 <div className="grid place-items-center [&>*]:col-start-1 [&>*]:row-start-1">
@@ -458,7 +458,7 @@ export function ImportProject() {
                     "flex items-center gap-2 transition-all duration-300 ease-out",
                     accepted ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none",
                   )}>
-                    <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <div className="w-5 h-5 rounded-full bg-emerald-500/15 flex items-center justify-center">
                       <svg className="w-3 h-3 text-emerald-600" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </div>
                     <span className="text-sm font-medium text-emerald-600">
@@ -471,7 +471,7 @@ export function ImportProject() {
                     previewLoading && !accepted ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none",
                   )}>
                     <Loader2 className="h-5 w-5 text-amber-500 animate-spin" />
-                    <span className="text-sm text-[#737373]">
+                    <span className="text-sm text-muted-foreground">
                       <Trans>Reading archive...</Trans>
                     </span>
                   </div>
@@ -480,8 +480,8 @@ export function ImportProject() {
                     "flex flex-col items-center gap-2 transition-all duration-300 ease-out",
                     !previewLoading && !accepted ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none",
                   )}>
-                    <Upload className={cn("h-5 w-5", hasError ? "text-red-400" : "text-[#737373]")} />
-                    <span className={cn("text-sm", hasError ? "text-red-500" : "text-[#737373]")}>
+                    <Upload className={cn("h-5 w-5", hasError ? "text-red-400" : "text-muted-foreground")} />
+                    <span className={cn("text-sm", hasError ? "text-red-500" : "text-muted-foreground")}>
                       {hasError
                         ? <Trans>Try another file</Trans>
                         : <Trans>Upload ZIP or drag and drop</Trans>}
@@ -508,7 +508,7 @@ export function ImportProject() {
                   <button
                     type="button"
                     onClick={clearFile}
-                    className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-white border border-[#e5e5e5] text-[#737373] hover:text-[#ef4444] hover:border-[#ef4444]/50 transition-colors shadow-sm"
+                    className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-card border border-border text-muted-foreground hover:text-destructive hover:border-destructive/50 transition-colors shadow-sm"
                     aria-label={t`Remove file`}
                   >
                     <Trash2 className="h-3 w-3" />
@@ -523,7 +523,7 @@ export function ImportProject() {
           <Button
             variant="secondary"
             onClick={() => navigate({ to: "/" })}
-            className="h-9 px-3 py-2 bg-[#f5f5f5] text-[#262626] hover:bg-[#e5e5e5] border-0"
+            className="h-9 px-3 py-2 bg-muted text-foreground hover:bg-muted/70 border-0"
           >
             <ArrowLeft className="h-4 w-4 mr-1.5" />
             <Trans>Back</Trans>

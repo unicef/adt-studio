@@ -4,7 +4,7 @@ import { useFloatingSave } from "@/components/pipeline/components/floating-save"
 import { useSettingsRemount } from "./use-settings-remount"
 import { useRegisterDirtyTabs } from "./use-settings-dirty-tabs"
 import { useBookRun } from "./use-book-run"
-import { useApiKey } from "./use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "./use-api-key"
 import { useLingui } from "@lingui/react/macro"
 
 export function useStageSettingsBar({
@@ -29,7 +29,8 @@ export function useStageSettingsBar({
   const { t } = useLingui()
   const remount = useSettingsRemount()
   const { queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const navigate = useNavigate()
 
   useRegisterDirtyTabs(`settings:${stage}`, stage, dirtyTabs)
@@ -55,6 +56,6 @@ export function useStageSettingsBar({
     onDiscard: remount,
     saveDisabledReason: disabledReason,
     rerunDisabledReason:
-      disabledReason ?? (hasApiKey ? undefined : t`Add an API key to re-run`),
+      disabledReason ?? (hasStructuredTextProvider ? undefined : t`Add an API key to re-run`),
   })
 }

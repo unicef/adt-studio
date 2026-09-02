@@ -451,7 +451,7 @@ section_types:
       "assembled",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "sectioning",
@@ -531,7 +531,7 @@ section_types:
       "partial",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "sectioning",
@@ -591,7 +591,7 @@ describe("createStageRunner captions step", () => {
       "with-summary",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "captions",
@@ -622,7 +622,7 @@ describe("createStageRunner captions step", () => {
       "without-summary",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "captions",
@@ -673,7 +673,7 @@ describe("createStageRunner captions step", () => {
     const runner = createStageRunner()
     await runner.run(
       "rerun-manual",
-      { booksDir, apiKey: "sk-test", promptsDir, configPath, fromStage: "captions", toStage: "captions" },
+      { booksDir, credentials: { openai: { apiKey: "sk-test" } }, promptsDir, configPath, fromStage: "captions", toStage: "captions" },
       { emit: () => {} }
     )
 
@@ -726,7 +726,7 @@ describe("createStageRunner captions step", () => {
     const runner = createStageRunner()
     await runner.run(
       "rerun-ai",
-      { booksDir, apiKey: "sk-test", promptsDir, configPath, fromStage: "captions", toStage: "captions" },
+      { booksDir, credentials: { openai: { apiKey: "sk-test" } }, promptsDir, configPath, fromStage: "captions", toStage: "captions" },
       { emit: () => {} }
     )
 
@@ -771,7 +771,7 @@ describe("createStageRunner storyboard render-only", () => {
       "render-only",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "storyboard",
@@ -830,7 +830,7 @@ describe("createStageRunner easy read step", () => {
       "explicit-easy-read",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "easy-read",
@@ -952,7 +952,7 @@ output_languages:
       "translate-no-catalog",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1068,7 +1068,7 @@ output_languages:
       "translate-empty-catalog",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1127,7 +1127,7 @@ output_languages:
       "regional-core-tts",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1211,7 +1211,7 @@ output_languages:
         "catalog-translation-failure",
         {
           booksDir,
-          apiKey: "sk-test",
+          credentials: { openai: { apiKey: "sk-test" } },
           promptsDir,
           configPath,
           fromStage: "translate",
@@ -1276,8 +1276,7 @@ speech:
       "gemini-tts-failure",
       {
         booksDir,
-        apiKey: "sk-test",
-        geminiApiKey: "gm-test",
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1349,8 +1348,7 @@ speech:
       "gemini-tts-retry",
       {
         booksDir,
-        apiKey: "sk-test",
-        geminiApiKey: "gm-test",
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1421,8 +1419,7 @@ speech:
       "gemini-tts-transient",
       {
         booksDir,
-        apiKey: "sk-test",
-        geminiApiKey: "gm-test",
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1484,7 +1481,7 @@ speech:
         "elevenlabs-tts-missing-key",
         {
           booksDir,
-          apiKey: "sk-test",
+          credentials: { openai: { apiKey: "sk-test" } },
           promptsDir,
           configPath,
           fromStage: "translate",
@@ -1492,7 +1489,7 @@ speech:
         },
         { emit: (event) => events.push(event) }
       )
-    ).rejects.toThrow(/ElevenLabs API key is required/)
+    ).rejects.toThrow(/Provider "elevenlabs" requires API key/)
 
     // The credential is checked once, before any item is admitted: no synthesis
     // is attempted and no per-item failure is logged.
@@ -1514,7 +1511,7 @@ speech:
     )
     expect(ttsErrors).toHaveLength(1)
     expect((ttsErrors[0] as { error: string }).error).toMatch(
-      /ElevenLabs API key is required/
+      /Provider "elevenlabs" requires API key/
     )
   })
 
@@ -1542,7 +1539,7 @@ speech:
         "secondary-tts-missing-key",
         {
           booksDir,
-          apiKey: "sk-test",
+          credentials: { openai: { apiKey: "sk-test" } },
           promptsDir,
           configPath,
           fromStage: "translate",
@@ -1550,7 +1547,7 @@ speech:
         },
         { emit: (event) => events.push(event) }
       )
-    ).rejects.toThrow(/ElevenLabs API key is required/)
+    ).rejects.toThrow(/Provider "elevenlabs" requires API key/)
 
     // Nothing is synthesized — not even the primary voice, whose credential is
     // fine. One missing key fails the run before any item is admitted.
@@ -1599,7 +1596,7 @@ speech:
         "gemini-batched-missing-key",
         {
           booksDir,
-          apiKey: "sk-test",
+          credentials: { openai: { apiKey: "sk-test" } },
           promptsDir,
           configPath,
           fromStage: "translate",
@@ -1607,7 +1604,7 @@ speech:
         },
         { emit: (event) => events.push(event) }
       )
-    ).rejects.toThrow(/Gemini API key is required/)
+    ).rejects.toThrow(/Provider "gemini" requires API key/)
 
     const db = openBookDb(
       path.join(booksDir, "gemini-batched-missing-key", "gemini-batched-missing-key.db")
@@ -1678,7 +1675,7 @@ speech:
       label,
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1750,8 +1747,7 @@ speech:
         "gemini-tts-cancel",
         {
           booksDir,
-          apiKey: "sk-test",
-          geminiApiKey: "gm-test",
+          credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
           promptsDir,
           configPath,
           fromStage: "speech",
@@ -1818,7 +1814,7 @@ speech:
       "speech-word-timestamps",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1902,7 +1898,7 @@ speech:
       "speech-word-timestamps-fail",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2004,7 +2000,7 @@ speech:
       "speech-empty-slice",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2089,7 +2085,7 @@ speech:
       "speech-word-highlight-disabled",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2174,8 +2170,7 @@ speech:
       "speech-dual-voice",
       {
         booksDir,
-        apiKey: "sk-test",
-        geminiApiKey: "gm-test",
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2298,7 +2293,7 @@ speech:
       "speech-dual-voice-rerun",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2315,7 +2310,7 @@ speech:
       "speech-dual-voice-rerun",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2336,7 +2331,7 @@ speech:
       "speech-dual-voice-rerun",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2369,7 +2364,7 @@ speech:
       "speech-dual-voice-rerun",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2403,7 +2398,7 @@ speech:
       "speech-dual-voice-rerun",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2492,7 +2487,7 @@ structure_types:
       label,
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -2565,8 +2560,7 @@ speech:
       "gemini-page-batch-skip",
       {
         booksDir,
-        apiKey: "sk-test",
-        geminiApiKey: "gm-test",
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
         promptsDir,
         configPath,
         fromStage: "speech",

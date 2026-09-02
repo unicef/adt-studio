@@ -12,9 +12,11 @@ declare global {
   }
 }
 
+const LOOPBACK_ONLY_HOST = "127.0.0.1"
+
 type ServerInfo = { port: number }
 type ServeFn = (
-  options: { fetch: typeof app.fetch; port: number },
+  options: { fetch: typeof app.fetch; port: number; hostname?: string },
   onListen?: (info: ServerInfo) => void
 ) => unknown
 
@@ -44,8 +46,15 @@ export function startServer(options: StartServerOptions = {}): unknown {
     ADT_ENVIRONMENT: process.env.ADT_ENVIRONMENT
   })
 
-  return serveFn({ fetch: fetchHandler, port }, (info) => {
-    log(`API server running on http://localhost:${info.port}`)
-    process.parentPort?.postMessage({ type: "api-ready", port: info.port })
-  })
+  return serveFn(
+    {
+      fetch: fetchHandler,
+      port,
+      ...(isDesktop ? { hostname: LOOPBACK_ONLY_HOST } : {}),
+    },
+    (info) => {
+      log(`API server running on http://localhost:${info.port}`)
+      process.parentPort?.postMessage({ type: "api-ready", port: info.port })
+    },
+  )
 }

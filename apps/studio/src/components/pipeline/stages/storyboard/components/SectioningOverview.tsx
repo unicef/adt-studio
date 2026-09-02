@@ -19,7 +19,7 @@ import { SectionEditToolbar } from "./SectionEditToolbar"
 import { ImageCropDialog, pageBoundsToCropRect } from "./ImageCropDialog"
 import { AiImageDialog } from "./AiImageDialog"
 import { SectionTreeEditor } from "@/components/section-tree-editor/SectionTreeEditor"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
@@ -37,7 +37,8 @@ interface SectioningOverviewProps {
 export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: SectioningOverviewProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { stageState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
@@ -150,14 +151,14 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
         .saveStoryboard(bookLabel, pageId, {
           sectioning: updated,
           // Without a key we cannot fill the HTML, so the stage must report it.
-          renderingInSync: !needsRerender || hasApiKey,
+          renderingInSync: !needsRerender || hasStructuredTextProvider,
         })
         .then(async (result) => {
           // Sectioning is saved with the section unpruned, so the re-render will
           // actually emit it — `web-rendering` skips pruned sections. The task
           // marks the storyboard stale itself if it fails; a rejected submission
           // never reaches the runner, so take the completion mark back here.
-          if (!needsRerender || !hasApiKey) return result
+          if (!needsRerender || !hasStructuredTextProvider) return result
           try {
             await api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex)
           } catch (err) {
@@ -753,7 +754,7 @@ function SectionDetail({
   isMutating: boolean
 }) {
   const { t } = useLingui()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasImageProvider } = useApiKey()
   const { stageState: detailStageState } = useBookRun()
   const storyboardRunning = detailStageState("storyboard") === "running" || detailStageState("storyboard") === "queued"
   const queryClient = useQueryClient()
@@ -1030,7 +1031,7 @@ function SectionDetail({
             onCrop={!storyboardRunning ? handleCrop : undefined}
             onRecropFromPage={!storyboardRunning ? handleRecropFromPage : undefined}
             onReplace={!storyboardRunning ? handleReplace : undefined}
-            onAiImage={hasApiKey && !storyboardRunning ? handleAiImage : undefined}
+            onAiImage={hasImageProvider && !storyboardRunning ? handleAiImage : undefined}
             onDelete={!storyboardRunning ? (dataId) => {
               onConfirmAction({
                 message: t`Are you sure you want to delete this image? This action cannot be undone.`,

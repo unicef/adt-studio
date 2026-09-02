@@ -116,6 +116,54 @@ export function buildTtsLogEntry(options: {
   }
 }
 
+/**
+ * Build the debug-log record for a Whisper word-timestamp transcription.
+ * Sits beside {@link buildTtsLogEntry} for the same reason: four call sites
+ * feed this (the full Speech run, the two manual transcribe routes, and the
+ * page-batched alignment pass), and a hand-rolled record per site is how the
+ * TTS ones drifted.
+ *
+ * `taskType` is the real `word-timestamps` step name, so the Log tab's step
+ * filter and the step badge work with no extra wiring.
+ */
+export function buildWordTimestampsLogEntry(options: {
+  fileName: string
+  language?: string
+  prompt?: string
+  durationMs: number
+  success: boolean
+  cached: boolean
+  result?: WhisperTranscriptionResult
+  error?: string
+}): LlmLogEntry {
+  return {
+    requestId: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    taskType: "word-timestamps",
+    pageId: options.fileName,
+    promptName: "whisper-transcribe",
+    modelId: "openai/whisper-1",
+    cacheHit: options.cached,
+    success: options.success,
+    errorCount: options.success ? 0 : 1,
+    attempt: 1,
+    durationMs: options.durationMs,
+    ...(options.error ? { error: options.error } : {}),
+    params: {
+      language: options.language ?? "",
+      fileName: options.fileName,
+      hasPrompt: Boolean(options.prompt),
+      ...(options.result
+        ? { words: options.result.words.length, durationSec: options.result.duration }
+        : {}),
+    },
+    messages: [{
+      role: "user",
+      content: [{ type: "text", text: options.prompt ?? "" }],
+    }],
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Speakable text check
 // ---------------------------------------------------------------------------
@@ -1049,6 +1097,7 @@ export interface GeneratePageSpeechFilesOptions {
   geminiTemperature?: number
   geminiSeed?: number
   signal?: AbortSignal
+  onWhisperLog?: (entry: LlmLogEntry) => void
 }
 
 /**
@@ -1071,7 +1120,7 @@ export async function generatePageSpeechFiles(
   const {
     entries, language, model, voice, instructions, format, bookDir, cacheDir,
     ttsSynthesizer, whisperApiKey, rateLimiter, provider, voiceSlot, voiceLabel,
-    geminiTemperature, geminiSeed, signal,
+    geminiTemperature, geminiSeed, signal, onWhisperLog,
   } = options
   const slot: VoiceSlot = voiceSlot ?? "primary"
 
@@ -1147,6 +1196,7 @@ export async function generatePageSpeechFiles(
     language: getBaseLanguage(language),
     prompt: transcript,
     cacheDir,
+    onLog: onWhisperLog,
   })
 
   // 3) Slice the page audio into per-entry files at sentence boundaries.
@@ -1211,6 +1261,7 @@ export interface GenerateWordTimestampsOptions {
   language?: string
   prompt?: string
   cacheDir: string
+  onLog?: (entry: LlmLogEntry) => void
 }
 
 export interface GenerateWordTimestampsResult extends WhisperTranscriptionResult {
@@ -1224,7 +1275,26 @@ export interface GenerateWordTimestampsResult extends WhisperTranscriptionResult
 export async function generateWordTimestamps(
   options: GenerateWordTimestampsOptions,
 ): Promise<GenerateWordTimestampsResult> {
-  const { audioBuffer, fileName, apiKey, language, prompt, cacheDir } = options
+  const { audioBuffer, fileName, apiKey, language, prompt, cacheDir, onLog } = options
+  const startedAt = Date.now()
+  const log = (
+    success: boolean,
+    cached: boolean,
+    result?: WhisperTranscriptionResult,
+    error?: string,
+  ) =>
+    onLog?.(
+      buildWordTimestampsLogEntry({
+        fileName,
+        language,
+        prompt,
+        durationMs: Date.now() - startedAt,
+        success,
+        cached,
+        result,
+        error,
+      }),
+    )
 
   const audioHash = crypto.createHash("sha256").update(audioBuffer).digest("hex")
   const hash = crypto
@@ -1239,14 +1309,24 @@ export async function generateWordTimestamps(
   if (fs.existsSync(cachePath)) {
     try {
       const parsed = JSON.parse(fs.readFileSync(cachePath, "utf-8")) as WhisperTranscriptionResult
+      log(true, true, parsed)
       return { ...parsed, cached: true }
     } catch {
       // Fall through to regenerate on parse failure
     }
   }
 
-  const result = await transcribeWithWhisper(audioBuffer, fileName, apiKey, language, prompt)
+  let result: WhisperTranscriptionResult
+  try {
+    result = await transcribeWithWhisper(audioBuffer, fileName, apiKey, language, prompt)
+  } catch (cause) {
+    // Record the failure before rethrowing — a Whisper error that leaves no
+    // trace is the black box this exists to remove.
+    log(false, false, undefined, cause instanceof Error ? cause.message : String(cause))
+    throw cause
+  }
 
+  log(true, false, result)
   fs.mkdirSync(cacheRoot, { recursive: true })
   fs.writeFileSync(cachePath, JSON.stringify(result, null, 2) + "\n")
 

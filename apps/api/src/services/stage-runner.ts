@@ -3,7 +3,16 @@ import fs from "node:fs"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRateLimiter, renderLiquidTemplate } from "@adt/llm"
+import {
+  AiProviderError,
+  createLLMModel,
+  createPromptEngine,
+  createRateLimiter,
+  createAdaptiveRateLimiter,
+  getDefaultProviderRegistry,
+  renderLiquidTemplate,
+  resolveProviderCredentials,
+} from "@adt/llm"
 import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
 import {
   extractPDF,
@@ -708,6 +717,30 @@ function canReuseSpeechEntry(
   return true
 }
 
+/**
+ * Sink for Whisper word-timestamp log rows: persist, then mirror onto the live
+ * progress stream. Both halves matter — the TTS sites already pair them, so a
+ * Whisper row that only lands in the DB would be missing from the debug panel
+ * until the next reload.
+ */
+function appendWordTimestampsLog(
+  storage: Storage,
+  progress: StageRunProgress,
+): (entry: LlmLogEntry) => void {
+  return (entry) => {
+    storage.appendLlmLog(entry)
+    progress.emit({
+      type: "llm-log",
+      step: "word-timestamps",
+      itemId: entry.pageId ?? "",
+      promptName: entry.promptName,
+      modelId: entry.modelId,
+      cacheHit: entry.cacheHit,
+      durationMs: entry.durationMs,
+    })
+  }
+}
+
 interface GenerateSpeechWordTimestampsOptions {
   label: string
   bookDir: string
@@ -718,6 +751,7 @@ interface GenerateSpeechWordTimestampsOptions {
   textByLanguage: Map<string, Map<string, string>>
   concurrency: number
   progress: StageRunProgress
+  onLog?: (entry: LlmLogEntry) => void
   /** Run cancel — stops admitting new transcription items. */
   signal?: AbortSignal
 }
@@ -742,6 +776,7 @@ async function generateSpeechWordTimestamps(
     textByLanguage,
     concurrency,
     progress,
+    onLog,
     signal,
   } = options
 
@@ -812,6 +847,7 @@ async function generateSpeechWordTimestamps(
           language: getBaseLanguage(language),
           prompt,
           cacheDir,
+          onLog,
         })
         if (result.cached) {
           console.log(`[stage-run] ${label}: word timestamps cache hit for ${entry.textId} (${language})`)
@@ -947,12 +983,32 @@ export function createStageRunner(): StageRunner {
  * Build request-scoped provider credentials for LLM calls.
  */
 function buildLLMCredentials(options: StageRunOptions) {
-  return {
-    openaiApiKey: options.apiKey,
-    anthropicApiKey: options.anthropicApiKey,
-    googleApiKey: options.googleApiKey,
-    customBaseUrl: options.customBaseUrl,
-    customApiKey: options.customApiKey,
+  return options.credentials
+}
+
+/** Resolve a legacy call site's field through the selected provider schema,
+ * including server-side environment fallback. Keep this bridge local until
+ * image and speech use their registry ports end to end. */
+function resolveCredentialField(
+  options: StageRunOptions,
+  providerId: string,
+  fieldKey: string,
+): string {
+  const provider = getDefaultProviderRegistry().get(providerId)
+  const values = resolveProviderCredentials(provider, options.credentials)
+  return values[fieldKey] ?? ""
+}
+
+function tryResolveCredentialField(
+  options: StageRunOptions,
+  providerId: string,
+  fieldKey: string,
+): string | undefined {
+  try {
+    return resolveCredentialField(options, providerId, fieldKey) || undefined
+  } catch (err) {
+    if (AiProviderError.is(err)) return undefined
+    throw err
   }
 }
 
@@ -1036,7 +1092,7 @@ async function runExtractStep(
     const metadataConfig = buildMetadataConfig(config)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1065,7 +1121,7 @@ async function runExtractStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
 
@@ -1102,7 +1158,7 @@ async function runExtractStep(
         promptEngine,
         rateLimiter,
         onLog: onLlmLog,
-        credentials: llmCredentials,
+        providerCredentials: llmCredentials,
         signal: options.signal,
       })
       const summaryPages = pages.map((page) => ({
@@ -1132,7 +1188,7 @@ async function runExtractStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
     await generateAndStoreBookOutline(
@@ -1159,7 +1215,7 @@ async function runExtractStep(
           promptEngine,
           rateLimiter,
           onLog: onLlmLog,
-          credentials: llmCredentials,
+          providerCredentials: llmCredentials,
           signal: options.signal,
         })
       : null
@@ -1171,7 +1227,7 @@ async function runExtractStep(
           promptEngine,
           rateLimiter,
           onLog: onLlmLog,
-          credentials: llmCredentials,
+          providerCredentials: llmCredentials,
           signal: options.signal,
         })
       : null
@@ -1183,7 +1239,7 @@ async function runExtractStep(
           promptEngine,
           rateLimiter,
           onLog: onLlmLog,
-          credentials: llmCredentials,
+          providerCredentials: llmCredentials,
           signal: options.signal,
         })
       : null
@@ -1271,7 +1327,7 @@ async function runSectioningStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1307,7 +1363,7 @@ async function runSectioningStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
 
@@ -1318,7 +1374,7 @@ async function runSectioningStep(
           promptEngine,
           rateLimiter,
           onLog: onLlmLog,
-          credentials: llmCredentials,
+          providerCredentials: llmCredentials,
           signal: options.signal,
         })
       : null
@@ -1353,7 +1409,7 @@ async function runSectioningStep(
         promptEngine,
         rateLimiter,
         onLog: onLlmLog,
-        credentials: llmCredentials,
+        providerCredentials: llmCredentials,
         signal: options.signal,
       })
       bookOutline = await generateAndStoreBookOutline(
@@ -1489,7 +1545,7 @@ async function runStoryboardStep(
     // Shared infrastructure for LLM calls
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1527,7 +1583,7 @@ async function runStoryboardStep(
         promptEngine,
         rateLimiter,
         onLog: onLlmLog,
-        credentials: llmCredentials,
+        providerCredentials: llmCredentials,
         signal: options.signal,
       })
       renderModels.set(modelId, model)
@@ -1734,7 +1790,7 @@ async function runQuizzesStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1775,7 +1831,7 @@ async function runQuizzesStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
 
@@ -1878,7 +1934,7 @@ async function runCaptionsStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1924,7 +1980,7 @@ async function runCaptionsStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
 
@@ -2077,7 +2133,7 @@ async function runGlossaryStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2112,7 +2168,7 @@ async function runGlossaryStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
 
@@ -2170,7 +2226,7 @@ async function runTocStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2204,7 +2260,7 @@ async function runTocStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
 
@@ -2251,7 +2307,7 @@ async function runEasyReadStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2333,7 +2389,7 @@ async function runEasyReadStep(
           promptEngine,
           rateLimiter,
           onLog: onLlmLog,
-          credentials: llmCredentials,
+          providerCredentials: llmCredentials,
           signal: options.signal,
         })
         const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
@@ -2391,7 +2447,7 @@ async function runTranslateStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2468,7 +2524,7 @@ async function runTranslateStep(
         promptEngine,
         rateLimiter,
         onLog: onLlmLog,
-        credentials: llmCredentials,
+        providerCredentials: llmCredentials,
         signal: options.signal,
       })
 
@@ -2555,7 +2611,7 @@ async function runTranslateStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
     const coreTtsConfigDir = configPath
@@ -2635,12 +2691,7 @@ async function runTranslateStep(
 
       // Validate prerequisites BEFORE clearing existing variants — a missing
       // API key shouldn't wipe prior work.
-      if (!options.apiKey) {
-        throw new StepError(
-          "image-translation",
-          "Image translation requires an OpenAI API key"
-        )
-      }
+      const openaiApiKey = resolveCredentialField(options, "openai", "apiKey")
 
       const promptName = config.image_translation?.prompt ?? "image_translation"
       const bookPromptPath = path.join(
@@ -2723,7 +2774,7 @@ async function runTranslateStep(
           try {
             const buffer = fs.readFileSync(item.diskPath)
             const result = await translateImage({
-              apiKey: options.apiKey,
+              apiKey: openaiApiKey,
               modelId: imageModelId,
               prompt: promptText,
               sourceLanguage: language,
@@ -2835,6 +2886,7 @@ async function runSpeechStep(
     const defaultProvider = config.speech?.default_provider ?? "openai"
     const providerConfigs = config.speech?.providers ?? {}
     const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
+    const openaiApiKey = tryResolveCredentialField(options, "openai", "apiKey")
     // ElevenLabs voice_settings overrides, resolved once for the whole step.
     // Shared helper so the reuse check, the generation call, and the other two
     // execution paths all hash the same cache key.
@@ -2843,45 +2895,39 @@ async function runSpeechStep(
     console.log(`[stage-run] ${label}: TTS configDir=${configDir} voiceMaps=${Object.keys(voiceMaps).join(",")||"(empty)"}`)
     console.log(`[stage-run] ${label}: TTS config — defaultProvider=${defaultProvider} model=${speechModel ?? "(provider default)"} format=${config.speech?.format ?? "(provider default)"}`)
     console.log(`[stage-run] ${label}: TTS providers=${JSON.stringify(providerConfigs)}`)
-    console.log(`[stage-run] ${label}: TTS azureKey=${options.azureSpeechKey ? "set" : "NOT SET"} azureRegion=${options.azureSpeechRegion ?? "NOT SET"} geminiKey=${options.geminiApiKey ? "set" : "NOT SET"} elevenLabsKey=${options.elevenLabsApiKey ? "set" : "NOT SET"}`)
+    console.log(`[stage-run] ${label}: TTS credentialProviders=${Object.keys(options.credentials).join(",") || "(none)"}`)
 
     const synthesizers = new Map<string, TTSSynthesizer>()
     function getSynthesizer(providerName: string): TTSSynthesizer {
       if (synthesizers.has(providerName)) return synthesizers.get(providerName)!
       console.log(`[stage-run] ${label}: creating TTS synthesizer for provider="${providerName}"`)
       if (providerName === "azure") {
-        if (!options.azureSpeechKey || !options.azureSpeechRegion) {
-          throw new Error("Azure Speech key and region are required for Azure TTS provider. Set them in the API Keys dialog (gear icon).")
-        }
+        const subscriptionKey = resolveCredentialField(options, "azure", "apiKey")
+        const region = resolveCredentialField(options, "azure", "region")
         const synth = createAzureTTSSynthesizer(
-          { subscriptionKey: options.azureSpeechKey, region: options.azureSpeechRegion },
+          { subscriptionKey, region },
           { sampleRate: config.speech?.sample_rate, bitRate: config.speech?.bit_rate }
         )
         synthesizers.set("azure", synth)
         return synth
       }
       if (providerName === "gemini") {
-        if (!options.geminiApiKey && !process.env.GEMINI_API_KEY) {
-          throw new Error("Gemini API key is required for Gemini TTS provider. Set it in the API Keys dialog (gear icon).")
-        }
-        const synth = createGeminiTTSSynthesizer(
-          options.geminiApiKey ? { apiKey: options.geminiApiKey } : undefined
-        )
+        const apiKey = resolveCredentialField(options, "gemini", "apiKey")
+        const synth = createGeminiTTSSynthesizer({ apiKey })
         synthesizers.set("gemini", synth)
         return synth
       }
       if (providerName === "elevenlabs") {
-        if (!options.elevenLabsApiKey && !process.env.ELEVENLABS_API_KEY) {
-          throw new Error("ElevenLabs API key is required for ElevenLabs TTS provider. Set it in the API Keys dialog (gear icon).")
-        }
+        const apiKey = resolveCredentialField(options, "elevenlabs", "apiKey")
         const synth = createElevenLabsTTSSynthesizer(
-          options.elevenLabsApiKey ? { apiKey: options.elevenLabsApiKey } : undefined,
+          { apiKey },
           { sampleRate: config.speech?.sample_rate, bitRate: config.speech?.bit_rate }
         )
         synthesizers.set("elevenlabs", synth)
         return synth
       }
-      const synth = createTTSSynthesizer(options.apiKey)
+      const apiKey = resolveCredentialField(options, "openai", "apiKey")
+      const synth = createTTSSynthesizer(apiKey)
       synthesizers.set(providerName, synth)
       return synth
     }
@@ -2907,8 +2953,8 @@ async function runSpeechStep(
     // synthesized in one request then sliced back into per-entry files, which
     // needs an OpenAI key for the Whisper alignment pass. Non-page entries
     // (glossary, quiz, easy-read) and non-Gemini languages keep per-entry.
-    const batchByPage = config.speech?.batch_by_page === true && !!options.apiKey?.trim()
-    if (config.speech?.batch_by_page === true && !options.apiKey?.trim()) {
+    const batchByPage = config.speech?.batch_by_page === true && !!openaiApiKey
+    if (config.speech?.batch_by_page === true && !openaiApiKey) {
       console.warn(`[stage-run] ${label}: batch_by_page is enabled but no OpenAI key was provided; falling back to per-entry TTS (the Whisper alignment pass needs an OpenAI key)`)
     }
     interface PageGroup {
@@ -3197,7 +3243,7 @@ async function runSpeechStep(
                 bookDir,
                 cacheDir,
                 ttsSynthesizer: getSynthesizer("gemini"),
-                whisperApiKey: options.apiKey!,
+                whisperApiKey: openaiApiKey!,
                 rateLimiter: geminiTtsRateLimiter,
                 provider: "gemini",
                 voiceSlot: group.voiceSlot,
@@ -3205,6 +3251,7 @@ async function runSpeechStep(
                 geminiTemperature: config.speech?.temperature,
                 geminiSeed: config.speech?.seed,
                 signal: options.signal,
+                onWhisperLog: appendWordTimestampsLog(storage, progress),
               })
               for (const e of entries) ttsResultsByLang.get(group.language)?.push(e)
               // A page served from cache makes no request — don't reward the
@@ -3573,12 +3620,13 @@ async function runSpeechStep(
         label,
         bookDir,
         cacheDir,
-        apiKey: options.apiKey,
+        apiKey: openaiApiKey,
         outputLanguages,
         ttsResultsByLang,
         textByLanguage,
         concurrency: effectiveConcurrency,
         progress,
+        onLog: appendWordTimestampsLog(storage, progress),
         signal: options.signal,
       })
       wordTimestampsByLang = generatedWordTimestamps.entriesByLanguage
