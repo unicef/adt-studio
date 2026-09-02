@@ -24,7 +24,7 @@ import { cn, formatBytes } from "@/lib/utils"
 import { useWizard } from "@/components/wizard"
 import { useWizardForm } from "@/components/wizard/wizardForm"
 import { useBooks } from "@/hooks/use-books"
-import { StudioTopBar } from "@/components/StudioTopBar"
+import { FlowTopBar } from "@/components/FlowTopBar"
 import {
   suggestLabel,
   suggestUniqueLabel,
@@ -61,24 +61,24 @@ function PdfPreviewCard({
   const displayTitle = suggestLabel(file) || file.name
 
   return (
-    <div className={cn("w-full max-w-2xl border border-slate-200 rounded-lg overflow-hidden grid grid-cols-3 bg-white", CARD_HEIGHT)}>
+    <div className={cn("w-full max-w-2xl border border-border rounded-lg overflow-hidden grid grid-cols-3 bg-card", CARD_HEIGHT)}>
       <div className="flex flex-col col-span-2">
         <div className="px-5 pt-5 pb-3 space-y-1">
-          <p className="font-semibold text-lg leading-snug line-clamp-2 text-slate-900">
+          <p className="font-semibold text-lg leading-snug line-clamp-2 text-foreground">
             {displayTitle}
           </p>
-          <p className="text-[11px] text-slate-400 truncate">
+          <p className="text-[11px] text-muted-foreground truncate">
             {file.name} &middot; {formatBytes(file.size)}
           </p>
         </div>
 
         <div className="px-5 pb-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             <Trans>PDF info</Trans>
           </p>
-          <div className="space-y-2 text-xs text-slate-500">
+          <div className="space-y-2 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
-              <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               <span>
                 {t`${pageCount} {pageCount, plural, one {page} other {pages}}`}
               </span>
@@ -100,19 +100,19 @@ function PdfPreviewCard({
         </div>
       </div>
 
-      <div className="flex flex-col justify-center items-center border-l border-slate-200 bg-slate-50/50 p-5">
+      <div className="flex flex-col justify-center items-center border-l border-border bg-muted/40 p-5">
         {cover ? (
           <img
             src={cover}
             alt={displayTitle}
-            className="w-full max-w-[160px] rounded-sm border border-slate-200 shadow-md object-contain"
+            className="w-full max-w-[160px] rounded-sm border border-border shadow-md object-contain"
           />
         ) : (
-          <div className="w-full aspect-[3/4] max-w-[160px] rounded-sm border border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center justify-center gap-3 shadow-md">
+          <div className="w-full aspect-[3/4] max-w-[160px] rounded-sm border border-border bg-gradient-to-br from-muted to-muted/60 flex flex-col items-center justify-center gap-3 shadow-md">
             {isLoading ? (
-              <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+              <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
             ) : (
-              <BookOpen className="w-10 h-10 text-slate-300" />
+              <BookOpen className="w-10 h-10 text-muted-foreground/60" />
             )}
           </div>
         )}
@@ -245,8 +245,8 @@ export function StepUpload() {
   }
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col h-full bg-white">
-      <StudioTopBar brandLinksHome trailingTitle={t`Add Book`} />
+    <div className="flex flex-1 min-h-0 flex-col h-full bg-background">
+      <FlowTopBar title={t`Add Book`} />
       <FileDropOverlay
         overlay={overlay}
         dropLabel={<Trans>Drop PDF here</Trans>}
@@ -263,13 +263,13 @@ export function StepUpload() {
         )}
       >
         <div className="flex flex-col items-center gap-1">
-          <h1 className="text-2xl sm:text-[30px] font-semibold leading-tight sm:leading-9 tracking-[-0.75px] text-[#030303] text-center">
+          <h1 className="text-2xl sm:text-[30px] font-semibold leading-tight sm:leading-9 tracking-[-0.75px] text-foreground text-center">
             <Trans>Convert a PDF</Trans>
           </h1>
           <div className="max-w-xl grid [&>*]:col-start-1 [&>*]:row-start-1">
             <p
               className={cn(
-                "text-center text-sm text-[#525252] transition-opacity duration-300 ease-out",
+                "text-center text-sm text-muted-foreground transition-opacity duration-300 ease-out",
                 showPreview ? "opacity-0 pointer-events-none" : "opacity-100",
               )}
             >
@@ -280,7 +280,7 @@ export function StepUpload() {
             </p>
             <p
               className={cn(
-                "text-center text-sm text-[#525252] transition-opacity duration-300 ease-out",
+                "text-center text-sm text-muted-foreground transition-opacity duration-300 ease-out",
                 showPreview ? "opacity-100" : "opacity-0 pointer-events-none",
               )}
             >
@@ -310,7 +310,7 @@ export function StepUpload() {
             )}
           >
             {previewError && (
-              <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50/60 px-4 py-3">
+              <div className="flex items-start gap-3 rounded-lg border border-red-400/40 bg-red-500/10 px-4 py-3">
                 <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-red-700">
@@ -343,9 +343,9 @@ export function StepUpload() {
                   "group relative flex h-full w-full max-w-md cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[24px] border bg-card/50 px-8 text-center outline-none backdrop-blur-[1px] transition-all duration-300",
                   "focus-visible:ring-2 focus-visible:ring-brand-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   accepted
-                    ? "border-emerald-400 bg-emerald-50/50"
+                    ? "border-emerald-400 bg-emerald-500/10"
                     : hasError
-                      ? "border-stage-quizzes/60 bg-stage-quizzes-50/40"
+                      ? "border-stage-quizzes/60 bg-stage-quizzes/10"
                       : "border-border/70 shadow-sm hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md",
                 )}
               >
@@ -365,10 +365,10 @@ export function StepUpload() {
                       accepted ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none",
                     )}
                   >
-                    <span className="grid size-7 place-items-center rounded-full bg-emerald-100 text-emerald-600">
+                    <span className="grid size-7 place-items-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                       <Check className="size-4" strokeWidth={2.5} />
                     </span>
-                    <span className="text-sm font-medium text-emerald-600">
+                    <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
                       <Trans>PDF accepted</Trans>
                     </span>
                   </div>
@@ -434,7 +434,7 @@ export function StepUpload() {
                   <button
                     type="button"
                     onClick={clearFile}
-                    className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-white border border-[#e5e5e5] text-[#737373] hover:text-[#ef4444] hover:border-[#ef4444]/50 transition-colors shadow-sm"
+                    className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-card border border-border text-muted-foreground hover:text-destructive hover:border-destructive/50 transition-colors shadow-sm"
                     aria-label={t`Remove PDF`}
                   >
                     <Trash2 className="h-3 w-3" />
@@ -449,7 +449,7 @@ export function StepUpload() {
           <Button
             variant="secondary"
             onClick={() => navigate({ to: "/" })}
-            className="h-9 px-3 py-2 bg-[#f5f5f5] text-[#262626] hover:bg-[#e5e5e5] border-0"
+            className="h-9 px-3 py-2 bg-muted text-foreground hover:bg-muted/70 border-0"
           >
             <ArrowLeft className="h-4 w-4 mr-1.5" />
             <Trans>Back</Trans>
@@ -457,7 +457,7 @@ export function StepUpload() {
           <Button
             disabled={!hasPreview || previewLoading}
             onClick={handleContinue}
-            className="h-9 px-3 py-2 text-white bg-[#2b7fff] hover:bg-[#2b7fff]/90 disabled:opacity-50 border-0"
+            className="h-9 px-3 py-2 text-white bg-brand-600 hover:bg-brand-600/90 disabled:opacity-50 border-0"
           >
             <Trans>Continue</Trans>
             <ArrowRight className="h-4 w-4 ml-1.5" />

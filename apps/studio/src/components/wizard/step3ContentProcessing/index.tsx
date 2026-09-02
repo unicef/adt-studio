@@ -64,7 +64,7 @@ function SegmentationThresholdPanel({
     <div
       id={id}
       className={cn(
-        "mt-3 rounded-lg border border-border bg-white px-4 py-3 shadow-sm transition-colors",
+        "mt-3 rounded-lg border border-border bg-card px-4 py-3 shadow-sm transition-colors",
         !disabled && "hover:bg-muted hover:border-input",
       )}
       onMouseEnter={() => {
@@ -110,7 +110,7 @@ export function Step3() {
 
   const watermarkSettings = (
     <div className="flex flex-col gap-3">
-      <p className="text-xs font-semibold text-[#737373]">
+      <p className="text-xs font-semibold text-muted-foreground">
         <Trans>Watermarks</Trans>
       </p>
       <ImageProcessingFeatureSwitch
@@ -133,15 +133,15 @@ export function Step3() {
           className="rounded-lg border border-dashed px-5 py-6"
           style={{ borderColor: accent.bg, backgroundColor: `${accent.bg}0d` }}
         >
-          <h3 className="text-sm font-semibold text-[#0a0a0a]">
+          <h3 className="text-sm font-semibold text-foreground">
             <Trans>No content processing needed</Trans>
           </h3>
-          <p className="mt-2 text-sm text-[#525252]">
+          <p className="mt-2 text-sm text-foreground/80">
             <Trans>
               Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout.
             </Trans>
           </p>
-          <p className="mt-2 text-sm text-[#525252]">
+          <p className="mt-2 text-sm text-foreground/80">
             <Trans>Click Next to continue to language settings.</Trans>
           </p>
         </div>
@@ -154,7 +154,7 @@ export function Step3() {
       {watermarkSettings}
 
       <div className="flex flex-col gap-3">
-        <p className="text-xs font-semibold text-[#737373]">
+        <p className="text-xs font-semibold text-muted-foreground">
           <Trans>Activities</Trans>
         </p>
         <ImageProcessingFeatureSwitch
@@ -171,7 +171,7 @@ export function Step3() {
       </div>
 
       <div className="flex flex-col gap-3">
-        <p className="text-xs font-semibold text-[#737373]">
+        <p className="text-xs font-semibold text-muted-foreground">
           <Trans>Images</Trans>
         </p>
 
@@ -239,7 +239,7 @@ export function Step3() {
 
         <div
           className={cn(
-            "rounded-lg border border-border bg-white px-4 py-3 shadow-sm transition-colors",
+            "rounded-lg border border-border bg-card px-4 py-3 shadow-sm transition-colors",
             "hover:bg-muted hover:border-input",
           )}
           onMouseEnter={filterSizeHover.onMouseEnter}
