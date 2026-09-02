@@ -2,6 +2,7 @@ import { spawn } from "node:child_process"
 import { mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { imageFileExtension } from "../shared/image-media-type.js"
 
 export interface CodexCliUsage {
   input_tokens?: number
@@ -21,10 +22,18 @@ export interface CodexCliTurn {
   advisoryErrors: string[]
 }
 
+/** A base64 image the runner writes to the scratch directory and attaches with `--image`. */
+export interface CodexCliImage {
+  /** Raw base64 payload, data-URL prefix removed. */
+  data: string
+  mediaType: string
+}
+
 export interface CodexCliRequest {
   model: string
   prompt: string
   schema?: Record<string, unknown>
+  images?: readonly CodexCliImage[]
   env: Record<string, string>
   signal: AbortSignal
   executable?: string
@@ -43,6 +52,7 @@ export interface CodexArgsOptions {
   model: string
   workDir: string
   schemaPath?: string
+  imagePaths?: readonly string[]
 }
 
 export function buildCodexArgs(options: CodexArgsOptions): string[] {
@@ -58,13 +68,21 @@ export function buildCodexArgs(options: CodexArgsOptions): string[] {
     "--ignore-user-config",
     "--cd",
     options.workDir,
+  ]
+
+  // `--image` is variadic in the CLI, so each file gets its own flag and
+  // `--model` follows immediately: the trailing `-` positional must never be
+  // read as one more image path.
+  for (const imagePath of options.imagePaths ?? []) args.push("--image", imagePath)
+
+  args.push(
     "--model",
     options.model,
     "-c",
     'approval_policy="never"',
     "-c",
     "tools.web_search=false",
-  ]
+  )
 
   if (options.schemaPath) args.push("--output-schema", options.schemaPath)
   args.push("-")
@@ -82,10 +100,15 @@ export const runCodexCli: CodexCliRunner = async (request) => {
       await writeFile(schemaPath, JSON.stringify(request.schema), "utf-8")
     }
 
+    const imagePaths = request.images?.length
+      ? await writeCodexImages(workDir, request.images)
+      : []
+
     const args = buildCodexArgs({
       model: request.model,
       workDir,
       ...(schemaPath ? { schemaPath } : {}),
+      ...(imagePaths.length ? { imagePaths } : {}),
     })
 
     const outcome = await spawnCodexCommand(
@@ -99,6 +122,23 @@ export const runCodexCli: CodexCliRunner = async (request) => {
   } finally {
     await rm(workDir, { recursive: true, force: true })
   }
+}
+
+/**
+ * Images live in the per-turn scratch directory, which `runCodexCli` removes
+ * once the turn ends, and are named by media type so the CLI recognises them.
+ */
+export async function writeCodexImages(
+  workDir: string,
+  images: readonly CodexCliImage[],
+): Promise<string[]> {
+  const paths: string[] = []
+  for (const [index, image] of images.entries()) {
+    const imagePath = join(workDir, `image-${index + 1}.${imageFileExtension(image.mediaType)}`)
+    await writeFile(imagePath, Buffer.from(image.data, "base64"))
+    paths.push(imagePath)
+  }
+  return paths
 }
 
 export interface CodexProcessResult {

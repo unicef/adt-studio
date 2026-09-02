@@ -10,7 +10,7 @@ import { asZodLike } from "../shared/json-schema.js"
 import { codexCliCredentialPaths, hasLocalCliLogin } from "../shared/local-cli-auth.js"
 import { runCodexCli, type CodexCliRunner, type CodexCliTurn, type CodexCliUsage } from "./cli.js"
 import { buildCodexEnv } from "./env.js"
-import { toJsonSchema, toPromptText } from "./request.js"
+import { toJsonSchema, toPromptInput } from "./request.js"
 
 /** A type alias, not an interface: `ProviderCredentialValues` needs an implicit index signature. */
 export type CodexCredentials = { apiKey?: string }
@@ -38,12 +38,18 @@ export function createCodexStructuredTextBackend(
       const apiKey = context.credentials.apiKey
       const schema = toJsonSchema(request.schema)
       const native = request.strategy === "native-schema"
+      const { prompt, images } = toPromptInput(
+        request.system,
+        request.messages,
+        native ? undefined : schema,
+      )
 
       let turn: CodexCliTurn
       try {
         turn = await runTurn({
           model: context.modelId,
-          prompt: toPromptText(request.system, request.messages, native ? undefined : schema),
+          prompt,
+          ...(images.length ? { images } : {}),
           ...(native ? { schema } : {}),
           env: buildCodexEnv(apiKey),
           signal: buildAbortSignal(request),

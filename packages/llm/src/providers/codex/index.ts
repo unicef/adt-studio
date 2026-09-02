@@ -59,8 +59,10 @@ export const codexManifest: ProviderManifest = {
       // so recursive schemas fall back to a schema-in-the-prompt round.
       strategies: ["native-schema", "parse-repair"],
       recursiveSchemas: false,
-      // The CLI only accepts images as file paths, and the port carries base64.
-      imageInput: false,
+      // The CLI only accepts images as file paths, so the runner writes each
+      // inline image to the turn's scratch directory and attaches it with
+      // `--image`.
+      imageInput: true,
       temperature: false,
     },
   },
