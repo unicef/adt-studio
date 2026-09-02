@@ -265,9 +265,12 @@ export const LLM_MODEL_GROUPS: ModelGroup[] = [
   {
     provider: "codex",
     models: [
-      "gpt-5.1",
-      "gpt-5-mini",
-      "gpt-5.1-codex",
+      "gpt-5.6-sol",
+      "gpt-5.6-terra",
+      "gpt-5.6-luna",
+      "gpt-5.6-pro",
+      "gpt-5.5",
+      "gpt-5.3-codex",
     ],
   },
   {

@@ -3,6 +3,7 @@ import type { LocalizedText, ProviderManifest } from "@adt/types"
 import type { ProviderModule } from "../../ports/index.js"
 import { LABEL_API_KEY } from "../shared/i18n.js"
 import { checkCodexConnection } from "./connection.js"
+import { listCodexModels } from "./models.js"
 import { createCodexStructuredTextBackend, type CodexCredentials } from "./structured-text.js"
 
 export const CODEX_PROVIDER_ID = "codex"
@@ -64,7 +65,7 @@ export const codexManifest: ProviderManifest = {
     },
   },
   defaultModels: {
-    "structured-text": "gpt-5.1",
+    "structured-text": "gpt-5.6-sol",
   },
   minimumRequestTimeoutMs: 600_000,
   localizedHelp: LOCALIZED_HELP,
@@ -86,6 +87,8 @@ export const codexProvider: ProviderModule<CodexCredentials> = {
     adapterVersion: ADAPTER_VERSION,
     origin: CODEX_ORIGIN,
   }),
+
+  listModels: (context) => listCodexModels(context),
 
   checkConnection: (context) => checkCodexConnection(context),
 

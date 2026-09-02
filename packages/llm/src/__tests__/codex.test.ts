@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 import { z } from "zod"
 import { ProviderManifest } from "@adt/types"
 import { codexManifest, codexProvider } from "../providers/codex/index.js"
+import { listCodexModels } from "../providers/codex/models.js"
 import { createCodexStructuredTextBackend } from "../providers/codex/structured-text.js"
 import { toJsonSchema, toPromptText } from "../providers/codex/request.js"
 import {
@@ -112,14 +113,53 @@ describe("codex manifest", () => {
     expect(validateProviderCredentials(codexProvider, {})).toEqual({})
   })
 
-  it("offers no model discovery because the CLI has no catalogue", () => {
-    expect(codexProvider.listModels).toBeUndefined()
+  it("serves a curated model list because the CLI has no catalogue command", () => {
+    expect(codexProvider.listModels).toBeTypeOf("function")
   })
 
   it("documents the CLI instead of the unused SDK", () => {
     for (const help of Object.values(codexManifest.localizedHelp ?? {})) {
       expect(help).not.toContain("codex-sdk")
     }
+  })
+})
+
+describe("listCodexModels", () => {
+  const discoveryContext = { providerId: "codex", credentials: {} }
+
+  it("serves the current model generation through the local login", async () => {
+    const models = await listCodexModels(discoveryContext, { hasLogin: () => true })
+
+    expect(models.map((model) => model.id)).toContain("gpt-5.6-sol")
+    expect(models.map((model) => model.id)).toContain("gpt-5.6-terra")
+    expect(models.map((model) => model.id)).toContain("gpt-5.6-luna")
+    expect(models.every((model) => model.displayName)).toBe(true)
+  })
+
+  it("includes the manifest's default model so the picker never hides it", async () => {
+    const models = await listCodexModels(discoveryContext, { hasLogin: () => true })
+
+    expect(models.map((model) => model.id)).toContain(
+      codexManifest.defaultModels?.["structured-text"],
+    )
+  })
+
+  it("reports missing-credential when neither key nor login exists", async () => {
+    await expect(
+      listCodexModels(discoveryContext, { hasLogin: () => false }),
+    ).rejects.toMatchObject({
+      name: "ModelDiscoveryError",
+      code: "missing-credential",
+    })
+  })
+
+  it("serves the list with an API key even without a login", async () => {
+    const models = await listCodexModels(
+      { ...discoveryContext, credentials: { apiKey: "sk-x" } },
+      { hasLogin: () => false },
+    )
+
+    expect(models.length).toBeGreaterThan(0)
   })
 })
 
