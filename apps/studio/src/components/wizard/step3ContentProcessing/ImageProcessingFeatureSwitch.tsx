@@ -52,10 +52,10 @@ export function ImageProcessingFeatureSwitch({
       tabIndex={disabled ? -1 : 0}
       className={cn(
         "flex w-full cursor-pointer select-none items-center justify-center gap-2.5 rounded-lg border px-4 py-3 shadow-sm transition-colors",
-        "bg-white border-border",
+        "bg-card border-border",
         "hover:bg-muted hover:border-input",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        disabled && "cursor-not-allowed opacity-60 hover:bg-white hover:border-border",
+        disabled && "cursor-not-allowed opacity-60 hover:bg-card hover:border-border",
       )}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

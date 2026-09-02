@@ -1718,14 +1718,17 @@ msgstr "Back Cover"
 msgid "Back to beta versions"
 msgstr "Back to beta versions"
 
-msgid "Back to books"
-msgstr "Back to books"
+#~ msgid "Back to books"
+#~ msgstr "Back to books"
 
 msgid "Back to classic activity"
 msgstr "Back to classic activity"
 
 msgid "Back to home"
 msgstr "Back to home"
+
+msgid "Back to library"
+msgstr "Back to library"
 
 msgid "Back to preview"
 msgstr "Back to preview"
@@ -9188,8 +9191,8 @@ msgstr "Structured chapters, exercises. Best for educational content with comple
 msgid "Structures each page into a tree of sections and nodes."
 msgstr "Structures each page into a tree of sections and nodes."
 
-msgid "Studio actions"
-msgstr "Studio actions"
+#~ msgid "Studio actions"
+#~ msgstr "Studio actions"
 
 msgid "Style"
 msgstr "Style"

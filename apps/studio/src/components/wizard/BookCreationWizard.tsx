@@ -17,7 +17,7 @@ import { buildConfigOverrides } from "./bookCreationConfig"
 import { getPresetAccent, type PresetAccent } from "./constants"
 import { Step0Preset } from "./step0preset"
 import { StepUpload } from "./stepUpload"
-import { StudioTopBar } from "@/components/StudioTopBar"
+import { FlowTopBar } from "@/components/FlowTopBar"
 import { PdfCoverPreview } from "./shared/PdfCoverPreview"
 import { LayoutPreview, getPreviewWidth } from "./step2LayoutOptions/LayoutPreview"
 import { ImageProcessingPreviewPane } from "./step3ContentProcessing/ImageProcessingPreviewPane"
@@ -33,7 +33,7 @@ function WizardHeader({ step, accent }: { step: number; accent: PresetAccent }) 
     <div className="flex flex-col gap-3 px-8 pt-6">
       <div className="flex items-center justify-between">
         {def.hasRequiredFields ? (
-          <span className="inline-flex items-center bg-[#fef2f2] text-[#ef4444] text-[12px] font-semibold leading-4 px-[10px] py-[4px] rounded-[4px]">
+          <span className="inline-flex items-center bg-destructive/10 text-destructive text-[12px] font-semibold leading-4 px-[10px] py-[4px] rounded-[4px]">
             {t`Required Fields`}
           </span>
         ) : (
@@ -54,11 +54,11 @@ function WizardHeader({ step, accent }: { step: number; accent: PresetAccent }) 
           id="wizard-step-heading"
           tabIndex={-1}
           aria-describedby="wizard-step-position"
-          className="text-[30px] font-semibold leading-9 tracking-[-0.75px] text-black outline-none"
+          className="text-[30px] font-semibold leading-9 tracking-[-0.75px] text-foreground outline-none"
         >
           {i18n._(def.title)}
         </h1>
-        <p className="text-[14px] font-medium text-[#737373]">{i18n._(def.description)}</p>
+        <p className="text-[14px] font-medium text-muted-foreground">{i18n._(def.description)}</p>
       </div>
     </div>
   )
@@ -104,7 +104,7 @@ function WizardFooter({
   }
 
   return (
-    <div className="border-t border-[#e5e5e5] px-6 py-4 flex flex-col gap-2">
+    <div className="border-t border-border px-6 py-4 flex flex-col gap-2">
       <div
         className={cn(
           "grid transition-[grid-template-rows,opacity] duration-200 ease-in-out motion-reduce:transition-none",
@@ -271,8 +271,8 @@ export function BookCreationWizard() {
 
   if (currentStep === 0) {
     return (
-      <div className="flex flex-1 min-h-0 flex-col h-full bg-white">
-        <StudioTopBar brandLinksHome trailingTitle={<Trans>Add Book</Trans>} />
+      <div className="flex flex-1 min-h-0 flex-col h-full bg-background">
+        <FlowTopBar title={<Trans>Add Book</Trans>} />
         <div className="flex flex-1 min-h-0 flex-col overflow-y-auto overflow-x-hidden">
           <Step0Preset />
         </div>
@@ -380,7 +380,7 @@ export function BookCreationWizard() {
       return <LanguagesPreviewPane editingLanguage={editingLanguage} outputLanguages={outputLanguages} />
     if (currentStep === 5)
       return <StyleguidePreviewPane styleguide={styleguide} />
-    return <span className="text-sm text-[#a3a3a3]">{t`Book preview`}</span>
+    return <span className="text-sm text-muted-foreground">{t`Book preview`}</span>
   }
 
   const previewDesktop = (
@@ -396,11 +396,11 @@ export function BookCreationWizard() {
   )
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col h-full bg-[#f5f5f5]">
-      <StudioTopBar brandLinksHome trailingTitle={<Trans>Add Book</Trans>} />
+    <div className="flex flex-1 min-h-0 flex-col h-full bg-muted">
+      <FlowTopBar title={<Trans>Add Book</Trans>} />
       <div className="flex flex-1 min-h-0 lg:gap-[10px] overflow-hidden">
-        <aside className="bg-white flex flex-col w-full lg:w-[633px] lg:shrink-0 overflow-hidden">
-          <div className="flex items-center justify-end px-4 py-2.5 border-b border-[#e5e5e5] lg:hidden">
+        <aside className="bg-background flex flex-col w-full lg:w-[633px] lg:shrink-0 overflow-hidden">
+          <div className="flex items-center justify-end px-4 py-2.5 border-b border-border lg:hidden">
             <button
               type="button"
               onClick={() => setPreviewOpen(true)}
@@ -427,7 +427,7 @@ export function BookCreationWizard() {
 
 
           {(submitError || createMutation.isError) && (
-            <p className="px-6 pb-3 text-sm text-center text-[#ef4444] animate-btn-label-enter">
+            <p className="px-6 pb-3 text-sm text-center text-destructive animate-btn-label-enter">
               {submitError ?? createMutation.error?.message ?? t`Failed to create book.`}
             </p>
           )}
@@ -451,7 +451,7 @@ export function BookCreationWizard() {
         </main>
       </div>
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="flex max-h-[96dvh] w-full max-w-[min(97vw,calc(100vw-0.5rem))] flex-col overflow-hidden border-0 bg-[#f5f5f5] p-3 sm:p-5 rounded-lg">
+        <DialogContent className="flex max-h-[96dvh] w-full max-w-[min(97vw,calc(100vw-0.5rem))] flex-col overflow-hidden border-0 bg-muted p-3 sm:p-5 rounded-lg">
           <DialogTitle className="sr-only">{t`Book Preview`}</DialogTitle>
           <DialogDescription className="sr-only">
             {t`This is a preview of the options you have selected for your book, each option affects the preview in a different way.`}

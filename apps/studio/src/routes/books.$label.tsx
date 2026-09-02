@@ -22,6 +22,7 @@ import { useExportWatcherSetup, ExportWatcherProvider } from "@/hooks/use-export
 import { usePlatform } from "@/hooks/use-platform"
 import { useWindowControls } from "@/hooks/use-window-controls"
 import { usePageTitle } from "@/hooks/use-page-title"
+import { useForceLightTheme } from "@/hooks/use-force-light-theme"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { MacOSTrafficLightSpacer } from "@/components/title-bar"
 import { BookApiKeyDialogProvider } from "@/components/settings/BookApiKeyDialogProvider"
@@ -45,6 +46,8 @@ export const Route = createFileRoute("/books/$label")({
 function BookLayout() {
   const { label } = Route.useParams()
   const bookRun = useBookRunStatus(label)
+  // Temporary: the pipeline is not themed yet — see the hook.
+  useForceLightTheme()
 
   return (
     <BookApiKeyDialogProvider>

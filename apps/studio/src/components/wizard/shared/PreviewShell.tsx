@@ -15,7 +15,7 @@ export function PreviewShell({
   return (
     <div
       className={cn(
-        "@container flex h-full min-h-0 w-full flex-col overflow-hidden rounded-md bg-white shadow-[0px_17px_38px_0px_rgba(0,0,0,0.1),0px_69px_69px_0px_rgba(0,0,0,0.09),0px_155px_93px_0px_rgba(0,0,0,0.05)]",
+        "@container flex h-full min-h-0 w-full flex-col overflow-hidden rounded-md bg-card shadow-[0px_17px_38px_0px_rgba(0,0,0,0.1),0px_69px_69px_0px_rgba(0,0,0,0.09),0px_155px_93px_0px_rgba(0,0,0,0.05)]",
         className,
       )}
     >
@@ -27,7 +27,7 @@ export function PreviewShell({
           {label}
         </p>
       </div>
-      <div className={cn("min-h-0 flex-1 overflow-auto bg-[#fafafa] flex flex-col", bodyClassName)}>
+      <div className={cn("min-h-0 flex-1 overflow-auto bg-muted/40 flex flex-col", bodyClassName)}>
         {children}
       </div>
     </div>
