@@ -6216,6 +6216,9 @@ msgstr "No sections"
 msgid "No sections for this page"
 msgstr "No sections for this page"
 
+msgid "No sections found"
+msgstr "No sections found"
+
 msgid "No sections on this page"
 msgstr "No sections on this page"
 
@@ -8386,6 +8389,9 @@ msgstr "Search questions or options…"
 
 msgid "Search questions, answers, or explanations…"
 msgstr "Search questions, answers, or explanations…"
+
+msgid "Search sections"
+msgstr "Search sections"
 
 msgid "Search sections..."
 msgstr "Search sections..."

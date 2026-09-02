@@ -6218,6 +6218,9 @@ msgstr "Nuk ka seksione"
 msgid "No sections for this page"
 msgstr "Nuk ka seksione për këtë faqe"
 
+msgid "No sections found"
+msgstr "Nuk u gjetën seksione"
+
 msgid "No sections on this page"
 msgstr "Nuk ka seksione në këtë faqe"
 
@@ -8388,6 +8391,9 @@ msgstr "Kërko pyetje ose opsione…"
 
 msgid "Search questions, answers, or explanations…"
 msgstr "Kërko pyetje, përgjigje ose shpjegime…"
+
+msgid "Search sections"
+msgstr "Kërko seksione"
 
 msgid "Search sections..."
 msgstr "Kërko seksione..."
