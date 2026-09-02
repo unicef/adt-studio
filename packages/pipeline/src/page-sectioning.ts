@@ -146,7 +146,7 @@ async function generateInitial(
 ): Promise<LLMStructuringResult> {
   const result = await llmModel.generateObject<LLMStructuringResult>({
     schema: buildPageSectioningLLMSchema(),
-    mode: "json",
+    recursiveSchema: true,
     prompt: config.promptName,
     context: {
       page: {
@@ -189,7 +189,7 @@ async function generateReview(
 ): Promise<LLMRefinementResult> {
   const result = await llmModel.generateObject<LLMRefinementResult>({
     schema: buildPageSectioningRefinementLLMSchema(),
-    mode: "json",
+    recursiveSchema: true,
     prompt: config.refinementPromptName,
     context: {
       page: {

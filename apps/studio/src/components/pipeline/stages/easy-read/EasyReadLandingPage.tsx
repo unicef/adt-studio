@@ -13,12 +13,12 @@ import { useRunEasyRead } from "./use-run-easy-read"
 
 export function EasyReadLandingPage({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
-  const { runEasyRead, hasApiKey } = useRunEasyRead(bookLabel)
+  const { runEasyRead, hasStructuredTextProvider } = useRunEasyRead(bookLabel)
   const status = useStageStatus("easy-read")
   const storyboardReady = useStageStatus("storyboard").isCompleted
   const isFixedLayout = useIsFixedLayout(bookLabel)
 
-  const disabledReason = !hasApiKey ? (
+  const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Add an API key in Book settings to generate Easy Read content.</Trans>
   ) : !storyboardReady ? (
     <Trans>Run Storyboard first — Easy Read simplifies the text it places on each page.</Trans>
@@ -36,7 +36,7 @@ export function EasyReadLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || !storyboardReady}
+      extraDisabled={!hasStructuredTextProvider || !storyboardReady}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Easy Read</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}

@@ -17,7 +17,7 @@ import { useActiveConfig } from "@/hooks/use-debug"
 import { useBookConfig } from "@/hooks/use-book-config"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { QuizzesPreview } from "./components/QuizzesPreview"
 import { AddQuizDialog } from "./AddQuizDialog"
@@ -31,7 +31,8 @@ export function QuizzesLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { queueRun } = useBookRun()
   const status = useStageStatus("quizzes")
   const storyboardStatus = useStageStatus("storyboard")
@@ -71,11 +72,11 @@ export function QuizzesLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !storyboardReady || status.isRunning) return
+    if (!hasStructuredTextProvider || !storyboardReady || status.isRunning) return
     queueRun({ fromStage: "quizzes", toStage: "quizzes", apiKey, viewAfter: true })
   }
 
-  const disabledReason = !hasApiKey ? (
+  const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Add an API key in Book settings to generate quizzes.</Trans>
   ) : !storyboardReady ? (
     <Trans>
@@ -103,7 +104,7 @@ export function QuizzesLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || !storyboardReady}
+      extraDisabled={!hasStructuredTextProvider || !storyboardReady}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Quizzes</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
@@ -197,7 +198,7 @@ export function QuizzesLandingPage({ bookLabel }: { bookLabel: string }) {
           >
             <Button
               onClick={() => setShowAddQuiz(true)}
-              disabled={!hasApiKey || !storyboardReady || status.isRunning}
+              disabled={!hasStructuredTextProvider || !storyboardReady || status.isRunning}
               className="h-10 gap-1.5 border-0 bg-orange-600 px-4 text-white hover:bg-orange-700"
             >
               <Plus className="h-4 w-4" />

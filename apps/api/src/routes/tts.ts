@@ -21,10 +21,12 @@ import {
 } from "@adt/types"
 import { openBookDb, createBookStorage } from "@adt/storage"
 import {
+  AiProviderError,
   createAzureTTSSynthesizer,
   createGeminiTTSSynthesizer,
   createElevenLabsTTSSynthesizer,
   createTTSSynthesizer,
+  type ResolvedCredentials,
 } from "@adt/llm"
 import {
   getBaseLanguage,
@@ -51,6 +53,22 @@ import {
   type VoiceMaps,
 } from "@adt/pipeline"
 import { getLiveSpeechRun } from "../services/speech-progress.js"
+import {
+  readProviderCredentials,
+  serverAwareCredentialValue,
+} from "../middleware/provider-credentials.js"
+
+/**
+ * Word timestamps come from Whisper, so the transcription provider is fixed
+ * until the speech modality is resolved through the registry.
+ */
+function requireTranscriberKey(credentials: ResolvedCredentials): string {
+  const apiKey = serverAwareCredentialValue(credentials, "openai", "apiKey")
+  if (!apiKey) {
+    throw AiProviderError.missingCredential("openai", "apiKey", "API key")
+  }
+  return apiKey
+}
 
 const GenerateSingleTTSBody = z
   .object({
@@ -790,11 +808,12 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
     const voiceSlot: VoiceSlot = parsed.data.voiceSlot ?? "primary"
 
-    const geminiApiKey = c.req.header("X-Gemini-API-Key")?.trim()
-    const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim()
-    const azureSpeechKey = c.req.header("X-Azure-Speech-Key")?.trim()
-    const azureSpeechRegion = c.req.header("X-Azure-Speech-Region")?.trim()
-    const elevenLabsApiKey = c.req.header("X-ElevenLabs-API-Key")?.trim()
+    const credentials = readProviderCredentials(c)
+    const geminiApiKey = serverAwareCredentialValue(credentials, "gemini", "apiKey")
+    const openaiApiKey = serverAwareCredentialValue(credentials, "openai", "apiKey")
+    const azureSpeechKey = serverAwareCredentialValue(credentials, "azure", "apiKey")
+    const azureSpeechRegion = serverAwareCredentialValue(credentials, "azure", "region")
+    const elevenLabsApiKey = serverAwareCredentialValue(credentials, "elevenlabs", "apiKey")
 
     const normalizedLanguage = normalizeLocale(parsed.data.language)
     const storage = createBookStorage(safeLabel, booksDir)
@@ -1376,12 +1395,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
     const voiceSlot: VoiceSlot = parsed.data.voiceSlot ?? "primary"
 
-    const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim()
-    if (!openaiApiKey) {
-      throw new HTTPException(400, {
-        message: "OpenAI API key required for Whisper transcription. Set X-OpenAI-Key header.",
-      })
-    }
+    const openaiApiKey = requireTranscriberKey(readProviderCredentials(c))
 
     const normalizedLanguage = normalizeLocale(parsed.data.language)
     const storage = createBookStorage(safeLabel, booksDir)
@@ -1494,12 +1508,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       })
     }
 
-    const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim()
-    if (!openaiApiKey) {
-      throw new HTTPException(400, {
-        message: "OpenAI API key required for Whisper transcription. Set X-OpenAI-Key header.",
-      })
-    }
+    const openaiApiKey = requireTranscriberKey(readProviderCredentials(c))
 
     const normalizedLanguage = normalizeLocale(parsed.data.language)
 
