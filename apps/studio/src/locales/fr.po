@@ -1812,6 +1812,9 @@ msgstr "Idéal pour votre préréglage"
 msgid "Beta"
 msgstr "Beta"
 
+msgid "Beta {version}"
+msgstr "Bêta {version}"
+
 msgid "Beta channel"
 msgstr "Canal bêta"
 
@@ -3215,6 +3218,9 @@ msgstr "terminé"
 msgid "Done"
 msgstr "Terminé"
 
+msgid "Download"
+msgstr "Télécharger"
+
 msgid "Download a full backup of this project"
 msgstr "Télécharger une sauvegarde complète de ce projet"
 
@@ -3229,6 +3235,9 @@ msgstr "Télécharger la mise à jour"
 
 msgid "Downloaded"
 msgstr "Téléchargée"
+
+msgid "Downloading"
+msgstr "Téléchargement"
 
 msgid "Downloading update…"
 msgstr "Téléchargement de la mise à jour…"
@@ -7579,6 +7588,9 @@ msgstr "Lit en"
 msgid "Ready"
 msgstr "Prêt"
 
+msgid "Ready to install"
+msgstr "Prêt à installer"
+
 msgid "Real books processed with this preset — before and after."
 msgstr "De vrais livres traités avec ce préréglage — avant et après."
 
@@ -7690,6 +7702,9 @@ msgstr "Détendu"
 
 msgid "Release"
 msgstr "Version"
+
+msgid "Release {version}"
+msgstr "Version {version}"
 
 msgid "Release notes"
 msgstr "Notes de version"
@@ -7880,6 +7895,9 @@ msgstr "Résolution de la langue source..."
 
 msgid "Respiration"
 msgstr "Respiration"
+
+msgid "Restart"
+msgstr "Redémarrer"
 
 msgid "Restart and install"
 msgstr "Redémarrer et installer"
@@ -8479,6 +8497,9 @@ msgstr "Sections"
 
 #~ msgid "See examples"
 #~ msgstr "Voir les exemples"
+
+msgid "See release notes"
+msgstr "Voir les notes de version"
 
 msgid "See the book & pick pages"
 msgstr "Voir le livre et choisir les pages"

@@ -1812,6 +1812,9 @@ msgstr "Më i mirë për presetin tuaj"
 msgid "Beta"
 msgstr "Beta"
 
+msgid "Beta {version}"
+msgstr "Beta {version}"
+
 msgid "Beta channel"
 msgstr "Kanali beta"
 
@@ -3215,6 +3218,9 @@ msgstr "u krye"
 msgid "Done"
 msgstr "U krye"
 
+msgid "Download"
+msgstr "Shkarko"
+
 msgid "Download a full backup of this project"
 msgstr "Shkarko një kopje rezervë të plotë të këtij projekti"
 
@@ -3229,6 +3235,9 @@ msgstr "Shkarko përditësimin"
 
 msgid "Downloaded"
 msgstr "E shkarkuar"
+
+msgid "Downloading"
+msgstr "Duke shkarkuar"
 
 msgid "Downloading update…"
 msgstr "Duke shkarkuar përditësimin…"
@@ -7579,6 +7588,9 @@ msgstr "Lexohet në"
 msgid "Ready"
 msgstr "Gati"
 
+msgid "Ready to install"
+msgstr "Gati për instalim"
+
 msgid "Real books processed with this preset — before and after."
 msgstr "Libra të vërtetë të procesuar me këtë paracaktim — para dhe pas."
 
@@ -7690,6 +7702,9 @@ msgstr "I relaksuar"
 
 msgid "Release"
 msgstr "Publikim"
+
+msgid "Release {version}"
+msgstr "Versioni {version}"
 
 msgid "Release notes"
 msgstr "Shënimet e versionit"
@@ -7880,6 +7895,9 @@ msgstr "Duke zgjidhur gjuhën burimore..."
 
 msgid "Respiration"
 msgstr "Frymëmarrja"
+
+msgid "Restart"
+msgstr "Rinis"
 
 msgid "Restart and install"
 msgstr "Rinis dhe instalo"
@@ -8479,6 +8497,9 @@ msgstr "Seksione"
 
 #~ msgid "See examples"
 #~ msgstr "Shiko shembuj"
+
+msgid "See release notes"
+msgstr "Shih shënimet e versionit"
 
 msgid "See the book & pick pages"
 msgstr "Shihni librin dhe zgjidhni faqet"
