@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { useCallback, useEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef } from "react"
 import {
   activeMediaAtom,
   audioSpeedAtom,
@@ -439,14 +439,18 @@ export function useAudioPlayer(): UseAudioPlayer {
   // Self-contained rather than delegating to the auto-start effect below,
   // whose `items.length` dependency does not change between two pages that
   // happen to hold the same number of readable blocks.
-  useEffect(() => {
-    if (pageEpoch <= 1) return
+  const onPageTurned = useEffectEvent(() => {
     stopAndClear()
     setCurrentIndex(0)
     hasAutoStartedRef.current = false
     if (!readAloudMode || !isPlaying) return
     hasAutoStartedRef.current = true
     playAtIndex(0)
+  })
+
+  useEffect(() => {
+    if (pageEpoch <= 1) return
+    onPageTurned()
   }, [pageEpoch])
 
   useEffect(() => {

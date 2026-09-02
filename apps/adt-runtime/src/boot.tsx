@@ -10,7 +10,7 @@ import {
   subscribeLanguageChanges,
   subscribePreviewSettings,
 } from "@/app/lifecycle"
-import { subscribeSoftNavHistory } from "@/features/navigation/lib/page-swap"
+import { claimPageHeadNodes, subscribeSoftNavHistory } from "@/features/navigation/lib/page-swap"
 import { describeInitError, showErrorToast, showMainContent } from "@/shared/lib/errors"
 
 const sharedStore = getDefaultStore()
@@ -38,6 +38,7 @@ function ensureContainer(id: string): HTMLElement | null {
 
 function mount(): void {
   if (window.__adtRuntime?.booted) return
+  claimPageHeadNodes()
   const interfaceContainer = ensureContainer("interface-container")
   const navContainer = ensureContainer("nav-container")
   if (!interfaceContainer || !navContainer) return

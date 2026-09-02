@@ -13,7 +13,7 @@ import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { cn } from "@/shared/lib/utils";
 import { ScrollArea } from "@/shared/ui/scroll-area";
 import { DockContent } from "@/features/dock/components/DockLayout";
-import { navigateToPage } from "@/features/navigation/lib/page-swap"
+import { navigateToPage, prefetchPage } from "@/features/navigation/lib/page-swap"
 
 export function TocContent() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -64,7 +64,7 @@ export function TocContent() {
         </TabsList>
 
         <TabsContent value="toc" className="min-h-0">
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full overflow-hidden">
             <TocList entries={filteredTocEntries} currentSectionId={currentSectionId} />
           </ScrollArea>
         </TabsContent>
@@ -104,6 +104,8 @@ function TocList({
               onClick={() => {
                 navigateToPage(entry.href);
               }}
+              onPointerEnter={() => prefetchPage(entry.href)}
+              onFocus={() => prefetchPage(entry.href)}
               className={cn(
                 "w-full text-left rounded-md px-2.5 py-1.5 text-base",
                 "hover:bg-accent hover:text-accent-foreground",
@@ -198,6 +200,8 @@ function PageList({
                 onClick={() => {
                   navigateToPage(page.href);
                 }}
+                onPointerEnter={() => prefetchPage(page.href)}
+                onFocus={() => prefetchPage(page.href)}
                 aria-label={ariaLabel}
                 title={ariaLabel}
                 aria-current={active ? "page" : undefined}

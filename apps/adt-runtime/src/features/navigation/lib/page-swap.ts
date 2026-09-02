@@ -30,6 +30,15 @@ function isSharedStylesheet(href: string | null): boolean {
   return SHARED_STYLESHEETS.includes(file)
 }
 
+const PAGE_HEAD_ATTR = "data-adt-page-head"
+
+export function claimPageHeadNodes(): void {
+  if (typeof document === "undefined") return
+  for (const el of Array.from(document.head.querySelectorAll("style:not([data-vite-dev-id])"))) {
+    el.setAttribute(PAGE_HEAD_ATTR, "")
+  }
+}
+
 /**
  * `<head>` nodes belonging to one specific page, which a swap must replace: the
  * title, the metas the runtime reads, the fixed-layout viewport override, and
@@ -37,12 +46,15 @@ function isSharedStylesheet(href: string | null): boolean {
  *
  * Deliberately narrow. The head also holds nodes this module must not touch —
  * `<meta charset>`, `<meta name="adt-base">`, the favicons `addFavicons()`
- * injects, and the `<link rel="prefetch">` / `speculationrules` that
- * `PagePrefetcher` owns and cleans up itself.
+ * injects, the `<link rel="prefetch">` / `speculationrules` that
+ * `PagePrefetcher` owns and cleans up itself, and every `<style>` the runtime
+ * added after boot (see `PAGE_HEAD_ATTR`). A freshly fetched page only carries
+ * its own styles, so on the incoming side every `<style>` is page-scoped.
  */
-function isPageScopedHeadNode(el: Element): boolean {
+function isPageScopedHeadNode(el: Element, source: "current" | "incoming"): boolean {
   const tag = el.tagName.toLowerCase()
-  if (tag === "title" || tag === "style") return true
+  if (tag === "title") return true
+  if (tag === "style") return source === "incoming" || el.hasAttribute(PAGE_HEAD_ATTR)
   if (tag === "meta") {
     const name = el.getAttribute("name")
     return name === "title-id" || name === "page-section-id" || name === "viewport"
@@ -133,12 +145,31 @@ export function canSoftNavigate(): boolean {
   return true
 }
 
+const prefetchedPages = new Set<string>()
+
+export function prefetchPage(href: string): void {
+  if (!canSoftNavigate()) return
+  const url = new URL(href, window.location.href)
+  url.hash = ""
+  const current = new URL(window.location.href)
+  current.hash = ""
+  if (url.href === current.href || prefetchedPages.has(url.href)) return
+  prefetchedPages.add(url.href)
+  const link = document.createElement("link")
+  link.rel = "prefetch"
+  link.href = url.href
+  document.head.appendChild(link)
+}
+
 function swapHead(next: Document): void {
   for (const el of Array.from(document.head.children)) {
-    if (isPageScopedHeadNode(el)) el.remove()
+    if (isPageScopedHeadNode(el, "current")) el.remove()
   }
   for (const el of Array.from(next.head.children)) {
-    if (isPageScopedHeadNode(el)) document.head.appendChild(el.cloneNode(true))
+    if (!isPageScopedHeadNode(el, "incoming")) continue
+    const clone = el.cloneNode(true) as Element
+    if (clone.tagName.toLowerCase() === "style") clone.setAttribute(PAGE_HEAD_ATTR, "")
+    document.head.appendChild(clone)
   }
 }
 
@@ -240,9 +271,19 @@ let inFlight: AbortController | null = null
  */
 export type SwapResult = "ok" | "failed" | "aborted"
 
+interface SoftNavHistoryState {
+  adtSoftNav?: boolean
+  adtScrollY?: number
+}
+
+function readHistoryState(): SoftNavHistoryState {
+  const state: unknown = window.history.state
+  return state && typeof state === "object" ? (state as SoftNavHistoryState) : {}
+}
+
 export async function swapToPage(
   href: string,
-  opts: { pushUrl?: boolean } = {},
+  opts: { pushUrl?: boolean; scrollY?: number } = {},
 ): Promise<SwapResult> {
   inFlight?.abort()
   const controller = new AbortController()
@@ -268,14 +309,18 @@ export async function swapToPage(
 
     const commit = () => {
       if (opts.pushUrl) {
-        window.history.pushState({ adtSoftNav: true }, "", href)
+        window.history.replaceState(
+          { ...readHistoryState(), adtScrollY: window.scrollY },
+          "",
+        )
+        window.history.pushState({ adtSoftNav: true } satisfies SoftNavHistoryState, "", href)
       }
       swapHead(next)
       swapBodyAttributes(next)
       swapMain(next)
       runPageScripts(next)
       initializePageContent()
-      window.scrollTo({ top: 0, behavior: "instant" })
+      window.scrollTo({ top: opts.scrollY ?? 0, behavior: "instant" })
       moveReadingPosition()
       trackSpaPageView(window.location.href, document.title, fromUrl)
       trackNavigation(fromSection, toSection)
@@ -327,16 +372,28 @@ export function navigateToPage(href: string): void {
 /**
  * Back / forward across soft-navigated pages. Installed once from boot;
  * returns its own disposer.
+ *
+ * Scroll restoration is taken over from the browser: the swap lands the new
+ * DOM asynchronously, after the browser would have restored the position onto
+ * the old one, so the departing entry's `scrollY` is recorded in its history
+ * state and re-applied once the destination page is in place.
  */
 export function subscribeSoftNavHistory(): () => void {
   if (!canSoftNavigate()) return () => {}
 
-  const onPopState = () => {
-    void swapToPage(window.location.href).then((result) => {
+  const previousScrollRestoration = window.history.scrollRestoration
+  window.history.scrollRestoration = "manual"
+
+  const onPopState = (event: PopStateEvent) => {
+    const state = (event.state ?? {}) as SoftNavHistoryState
+    void swapToPage(window.location.href, { scrollY: state.adtScrollY }).then((result) => {
       if (result === "failed") window.location.reload()
     })
   }
 
   window.addEventListener("popstate", onPopState)
-  return () => window.removeEventListener("popstate", onPopState)
+  return () => {
+    window.removeEventListener("popstate", onPopState)
+    window.history.scrollRestoration = previousScrollRestoration
+  }
 }

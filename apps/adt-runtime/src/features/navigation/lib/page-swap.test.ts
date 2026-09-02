@@ -11,7 +11,8 @@ vi.mock("@/shared/lib/analytics", () => ({
   trackSpaPageView: vi.fn(),
 }))
 
-const { canSoftNavigate, swapToPage } = await import("@/features/navigation/lib/page-swap")
+const { canSoftNavigate, claimPageHeadNodes, prefetchPage, subscribeSoftNavHistory, swapToPage } =
+  await import("@/features/navigation/lib/page-swap")
 
 /** A page as `renderPageHtml` emits one: shared stylesheets, page-scoped head
  *  nodes, and the inline scripts a swap has to re-execute. */
@@ -56,6 +57,7 @@ function pageHtml(opts: {
 function installDocument(html: string): void {
   const parsed = new DOMParser().parseFromString(html, "text/html")
   document.documentElement.replaceWith(parsed.documentElement.cloneNode(true) as HTMLElement)
+  claimPageHeadNodes()
 }
 
 function mockFetchOnce(html: string, ok = true): void {
@@ -159,6 +161,52 @@ describe("swapToPage", () => {
 
     expect(document.querySelector('link[rel="prefetch"]')).toBe(prefetch)
     expect(document.querySelector('link[rel="icon"]')).toBe(favicon)
+  })
+
+  // Base UI's ScrollArea hides the native scrollbars through a <style> it
+  // appends to <head> after mount; Sonner ships its toast CSS the same way.
+  // Removing those with the page's own styles brings the native scrollbars
+  // back on the first page turn.
+  it("keeps styles the runtime injected after boot while replacing the page's own", async () => {
+    installDocument(
+      pageHtml({
+        sectionId: "pg001_sec001",
+        title: "Page one",
+        headStyle: '<style id="page-one-font">body { font-family: Lora; }</style>',
+      }),
+    )
+    const runtimeStyle = document.createElement("style")
+    runtimeStyle.id = "scroll-area-rules"
+    runtimeStyle.textContent = "[data-viewport]::-webkit-scrollbar { display: none }"
+    document.head.appendChild(runtimeStyle)
+
+    mockFetchOnce(
+      pageHtml({
+        sectionId: "pg002_sec001",
+        title: "Page two",
+        headStyle: '<style id="page-two-font">body { font-family: Inter; }</style>',
+      }),
+    )
+    await swapToPage("http://localhost/book/pg002_sec001.html")
+
+    expect(document.getElementById("scroll-area-rules")).toBe(runtimeStyle)
+    expect(document.getElementById("page-one-font")).toBeNull()
+    expect(document.getElementById("page-two-font")).not.toBeNull()
+  })
+
+  it("treats a swapped-in page style as page-scoped on the following swap", async () => {
+    mockFetchOnce(
+      pageHtml({
+        sectionId: "pg002_sec001",
+        title: "Page two",
+        headStyle: '<style id="page-two-font">body { font-family: Inter; }</style>',
+      }),
+    )
+    await swapToPage("http://localhost/book/pg002_sec001.html")
+    mockFetchOnce(pageHtml({ sectionId: "pg003_sec001", title: "Page three" }))
+    await swapToPage("http://localhost/book/pg003_sec001.html")
+
+    expect(document.getElementById("page-two-font")).toBeNull()
   })
 
   it("carries the body presentation attributes over", async () => {
@@ -314,6 +362,37 @@ describe("swapToPage", () => {
     expect(seen).toEqual(["pg002_sec001"])
   })
 
+  it("lands at the offset it was asked to restore instead of the top", async () => {
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {})
+    mockFetchOnce(pageHtml({ sectionId: "pg002_sec001", title: "Page two" }))
+
+    await swapToPage("http://localhost/book/pg002_sec001.html", { scrollY: 240 })
+
+    expect(scrollTo).toHaveBeenCalledWith({ top: 240, behavior: "instant" })
+    scrollTo.mockRestore()
+  })
+
+  it("records the departing scroll offset on the history entry being left", async () => {
+    const replaceState = vi.spyOn(window.history, "replaceState").mockImplementation(() => {})
+    const pushState = vi.spyOn(window.history, "pushState").mockImplementation(() => {})
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {})
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 240 })
+    mockFetchOnce(pageHtml({ sectionId: "pg002_sec001", title: "Page two" }))
+
+    await swapToPage("http://localhost/book/pg002_sec001.html", { pushUrl: true })
+
+    expect(replaceState).toHaveBeenCalledWith(expect.objectContaining({ adtScrollY: 240 }), "")
+    expect(pushState).toHaveBeenCalledWith(
+      { adtSoftNav: true },
+      "",
+      "http://localhost/book/pg002_sec001.html",
+    )
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "instant" })
+    replaceState.mockRestore()
+    pushState.mockRestore()
+    scrollTo.mockRestore()
+  })
+
   it("does not announce a page change when the swap fails", async () => {
     const seen: string[] = []
     const onPageChanged = () => seen.push("fired")
@@ -341,5 +420,47 @@ describe("swapToPage", () => {
 
     expect(await swapToPage("http://localhost/book/pg002_sec001.html")).toBe("failed")
     expect(document.getElementById("content")?.textContent).toContain("body of pg001_sec001")
+  })
+})
+
+describe("subscribeSoftNavHistory", () => {
+  it("takes over scroll restoration and re-applies the recorded offset on back/forward", async () => {
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {})
+    mockFetchOnce(pageHtml({ sectionId: "pg001_sec001", title: "Page one" }))
+
+    const unsubscribe = subscribeSoftNavHistory()
+    expect(window.history.scrollRestoration).toBe("manual")
+
+    window.dispatchEvent(
+      new PopStateEvent("popstate", { state: { adtSoftNav: true, adtScrollY: 240 } }),
+    )
+    await vi.waitFor(() => {
+      expect(scrollTo).toHaveBeenCalledWith({ top: 240, behavior: "instant" })
+    })
+    expect(initializePageContent).toHaveBeenCalledTimes(1)
+
+    unsubscribe()
+    scrollTo.mockRestore()
+  })
+})
+
+describe("prefetchPage", () => {
+  it("adds one prefetch hint per page and never for the page already open", () => {
+    prefetchPage("pg002_sec001.html")
+    prefetchPage("./pg002_sec001.html#glossary=term")
+    prefetchPage("pg001_sec001.html")
+
+    const hrefs = Array.from(document.head.querySelectorAll('link[rel="prefetch"]')).map((el) =>
+      el.getAttribute("href"),
+    )
+    expect(hrefs).toEqual(["http://localhost/book/pg002_sec001.html"])
+  })
+
+  it("is a no-op where soft navigation is unavailable", () => {
+    setLocation("file:///Users/someone/book/pg001_sec001.html")
+
+    prefetchPage("pg009_sec001.html")
+
+    expect(document.head.querySelector('link[rel="prefetch"]')).toBeNull()
   })
 })

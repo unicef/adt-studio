@@ -5,7 +5,7 @@ import { useTranslation } from "@/features/language/hooks/useTranslation"
 import { cn } from "@/shared/lib/utils"
 import { ScrollArea } from "@/shared/ui/scroll-area"
 import { DockContent } from "@/features/dock/components/DockLayout"
-import { navigateToPage } from "@/features/navigation/lib/page-swap"
+import { navigateToPage, prefetchPage } from "@/features/navigation/lib/page-swap"
 
 function isActivitySectionId(id: string): boolean {
   return id.startsWith("qz")
@@ -43,6 +43,8 @@ export function ActivityListContent() {
                     onClick={() => {
                       navigateToPage(page.href)
                     }}
+                    onPointerEnter={() => prefetchPage(page.href)}
+                    onFocus={() => prefetchPage(page.href)}
                     aria-current={active ? "page" : undefined}
                     title={label}
                     className={cn(
