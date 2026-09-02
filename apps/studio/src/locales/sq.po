@@ -2867,6 +2867,9 @@ msgstr "Faqja aktuale e pamjes paraprake"
 msgid "Current version (v{currentVersion})"
 msgstr "Versioni aktual (v{currentVersion})"
 
+msgid "Currently active"
+msgstr "Aktiv aktualisht"
+
 msgid "Custom"
 msgstr "I personalizuar"
 
@@ -2890,6 +2893,9 @@ msgstr "Prit një zonë nga çdo faqe"
 
 msgid "Dark"
 msgstr "E errët"
+
+msgid "Date added"
+msgstr "Data e shtimit"
 
 msgid "Date created"
 msgstr "Data e krijimit"
@@ -4420,6 +4426,9 @@ msgstr "Grup"
 msgid "Group by attention"
 msgstr "Grup sipas vëmendjes"
 
+msgid "Group by needs attention"
+msgstr "Gruponi sipas kërkon vëmendje"
+
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Grupo tekstin dhe imazhet e çdo faqeje në seksione të tipizuara me një pemë të strukturuar përmbajtjeje. Seksionet drejtojnë mënyrën se si fazat pasuese renderojnë, përkthejnë dhe lexojnë librin me zë."
 
@@ -5049,6 +5058,9 @@ msgstr "Gjuha"
 msgid "Language"
 msgstr "Gjuhë"
 
+msgid "language locale translation"
+msgstr "gjuha lokaliteti përkthimi"
+
 msgid "language locale translation region"
 msgstr "gjuha lokalizimi përkthimi rajoni"
 
@@ -5148,8 +5160,17 @@ msgstr "Biblioteka"
 msgid "Library apps"
 msgstr "Aplikacione biblioteke"
 
+msgid "library group needs attention"
+msgstr "biblioteka grupo kërkon vëmendje"
+
 msgid "Library guide"
 msgstr "Udhëzuesi i bibliotekës"
+
+msgid "library sort order"
+msgstr "biblioteka rendit rendi klasifikimi"
+
+msgid "library view layout grid list"
+msgstr "biblioteka pamja shtrirja rrjetë listë"
 
 msgid "Life in the Coral Reef"
 msgstr "Jeta në Rifin Koral"
@@ -5471,6 +5492,9 @@ msgstr "Përputhni çdo fazë të ciklit të ujit me përkufizimin e saj:"
 
 msgid "Match Source"
 msgstr "Përputhje me Burimin"
+
+msgid "Match system theme"
+msgstr "Ndiq temën e sistemit"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Përputhet me dizajnin origjinal të librit me pak fleksibilitet."
@@ -6022,6 +6046,9 @@ msgstr "Nuk u gjet asnjë font"
 
 msgid "No fonts match your search."
 msgstr "Asnjë font nuk përputhet me kërkimin tuaj."
+
+msgid "No grouping"
+msgstr "Pa grupim"
 
 msgid "No image"
 msgstr "Pa imazh"
@@ -8910,6 +8937,10 @@ msgstr "Rendit"
 msgid "Sort by"
 msgstr "Rendit sipas"
 
+#. placeholder {0}: i18n._(SORT_LABELS[sort])
+msgid "Sort library by {0}"
+msgstr "Rendit bibliotekën sipas {0}"
+
 msgid "Source"
 msgstr "Burimi"
 
@@ -9285,6 +9316,12 @@ msgstr "Diell"
 
 msgid "Switch languages in a tap."
 msgstr "Ndërro gjuhë me një prekje."
+
+msgid "Switch to dark theme"
+msgstr "Kalo në temën e errët"
+
+msgid "Switch to light theme"
+msgstr "Kalo në temën e ndritshme"
 
 msgid "Switching presentation failed"
 msgstr "Ndryshimi i prezantimit dështoi"
@@ -9671,6 +9708,12 @@ msgstr "Tema"
 
 msgid "theme appearance dark light colors interface"
 msgstr "tema pamja ngjyrat e errëta të lehta ndërfaqe"
+
+msgid "theme appearance dark light mode"
+msgstr "tema pamja e errët e ndritshme mënyra"
+
+msgid "theme appearance system automatic"
+msgstr "tema pamja sistemi automatik"
 
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "Këto ndryshime nuk janë zbatuar ende. Nëse del, do të humbasin — ose ruaji dhe ri-ekzekuto për t'i zbatuar. Ekzekutimi vazhdon në sfond ndërsa ti punon."

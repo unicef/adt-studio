@@ -2865,6 +2865,9 @@ msgstr "Current Preview Page"
 msgid "Current version (v{currentVersion})"
 msgstr "Current version (v{currentVersion})"
 
+msgid "Currently active"
+msgstr "Currently active"
+
 msgid "Custom"
 msgstr "Custom"
 
@@ -2888,6 +2891,9 @@ msgstr "Cut a region out of any page"
 
 msgid "Dark"
 msgstr "Dark"
+
+msgid "Date added"
+msgstr "Date added"
 
 msgid "Date created"
 msgstr "Date created"
@@ -4418,6 +4424,9 @@ msgstr "Group"
 msgid "Group by attention"
 msgstr "Group by attention"
 
+msgid "Group by needs attention"
+msgstr "Group by needs attention"
+
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 
@@ -5047,6 +5056,9 @@ msgstr "Lang"
 msgid "Language"
 msgstr "Language"
 
+msgid "language locale translation"
+msgstr "language locale translation"
+
 msgid "language locale translation region"
 msgstr "language locale translation region"
 
@@ -5146,8 +5158,17 @@ msgstr "Library"
 msgid "Library apps"
 msgstr "Library apps"
 
+msgid "library group needs attention"
+msgstr "library group needs attention"
+
 msgid "Library guide"
 msgstr "Library guide"
+
+msgid "library sort order"
+msgstr "library sort order"
+
+msgid "library view layout grid list"
+msgstr "library view layout grid list"
 
 msgid "Life in the Coral Reef"
 msgstr "Life in the Coral Reef"
@@ -5469,6 +5490,9 @@ msgstr "Match each stage of the water cycle to its definition:"
 
 msgid "Match Source"
 msgstr "Match Source"
+
+msgid "Match system theme"
+msgstr "Match system theme"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Matches the original book design with some flexibility."
@@ -6020,6 +6044,9 @@ msgstr "No fonts found"
 
 msgid "No fonts match your search."
 msgstr "No fonts match your search."
+
+msgid "No grouping"
+msgstr "No grouping"
 
 msgid "No image"
 msgstr "No image"
@@ -8908,6 +8935,10 @@ msgstr "Sort"
 msgid "Sort by"
 msgstr "Sort by"
 
+#. placeholder {0}: i18n._(SORT_LABELS[sort])
+msgid "Sort library by {0}"
+msgstr "Sort library by {0}"
+
 msgid "Source"
 msgstr "Source"
 
@@ -9283,6 +9314,12 @@ msgstr "Sun"
 
 msgid "Switch languages in a tap."
 msgstr "Switch languages in a tap."
+
+msgid "Switch to dark theme"
+msgstr "Switch to dark theme"
+
+msgid "Switch to light theme"
+msgstr "Switch to light theme"
 
 msgid "Switching presentation failed"
 msgstr "Switching presentation failed"
@@ -9669,6 +9706,12 @@ msgstr "Theme"
 
 msgid "theme appearance dark light colors interface"
 msgstr "theme appearance dark light colors interface"
+
+msgid "theme appearance dark light mode"
+msgstr "theme appearance dark light mode"
+
+msgid "theme appearance system automatic"
+msgstr "theme appearance system automatic"
 
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."

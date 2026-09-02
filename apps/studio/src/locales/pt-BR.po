@@ -2865,6 +2865,9 @@ msgstr "Página Atual da Pré-visualização"
 msgid "Current version (v{currentVersion})"
 msgstr "Versão atual (v{currentVersion})"
 
+msgid "Currently active"
+msgstr "Ativo no momento"
+
 msgid "Custom"
 msgstr "Personalizado"
 
@@ -2888,6 +2891,9 @@ msgstr "Recorte uma região de qualquer página"
 
 msgid "Dark"
 msgstr "Escuro"
+
+msgid "Date added"
+msgstr "Data de adição"
 
 msgid "Date created"
 msgstr "Data de criação"
@@ -4418,6 +4424,9 @@ msgstr "Agrupar"
 msgid "Group by attention"
 msgstr "Agrupar por atenção"
 
+msgid "Group by needs attention"
+msgstr "Agrupar por precisa de atenção"
+
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Agrupe o texto e as imagens de cada página em seções classificadas com uma árvore de conteúdo estruturada. As seções determinam como as etapas posteriores renderizam, traduzem e leem o livro em voz alta."
 
@@ -5047,6 +5056,9 @@ msgstr "Idioma"
 msgid "Language"
 msgstr "Idioma"
 
+msgid "language locale translation"
+msgstr "idioma localidade tradução língua"
+
 msgid "language locale translation region"
 msgstr "idioma local tradução região"
 
@@ -5146,8 +5158,17 @@ msgstr "Biblioteca"
 msgid "Library apps"
 msgstr "Aplicativos de biblioteca"
 
+msgid "library group needs attention"
+msgstr "biblioteca agrupar precisa de atenção"
+
 msgid "Library guide"
 msgstr "Guia da biblioteca"
+
+msgid "library sort order"
+msgstr "biblioteca ordenar ordem classificação"
+
+msgid "library view layout grid list"
+msgstr "biblioteca visualização layout grade lista"
 
 msgid "Life in the Coral Reef"
 msgstr "Vida no Recife de Coral"
@@ -5469,6 +5490,9 @@ msgstr "Associe cada estágio do ciclo da água à sua definição:"
 
 msgid "Match Source"
 msgstr "Corresponder à Fonte"
+
+msgid "Match system theme"
+msgstr "Acompanhar o tema do sistema"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Corresponde ao design original do livro com alguma flexibilidade."
@@ -6020,6 +6044,9 @@ msgstr "Nenhuma fonte encontrada"
 
 msgid "No fonts match your search."
 msgstr "Nenhuma fonte corresponde à sua busca."
+
+msgid "No grouping"
+msgstr "Sem agrupamento"
 
 msgid "No image"
 msgstr "Sem imagem"
@@ -8908,6 +8935,10 @@ msgstr "Ordenar"
 msgid "Sort by"
 msgstr "Ordenar por"
 
+#. placeholder {0}: i18n._(SORT_LABELS[sort])
+msgid "Sort library by {0}"
+msgstr "Ordenar a biblioteca por {0}"
+
 msgid "Source"
 msgstr "Fonte"
 
@@ -9283,6 +9314,12 @@ msgstr "Sol"
 
 msgid "Switch languages in a tap."
 msgstr "Troque de idioma com um toque."
+
+msgid "Switch to dark theme"
+msgstr "Mudar para o tema escuro"
+
+msgid "Switch to light theme"
+msgstr "Mudar para o tema claro"
 
 msgid "Switching presentation failed"
 msgstr "Falha ao mudar a apresentação"
@@ -9669,6 +9706,12 @@ msgstr "Tema"
 
 msgid "theme appearance dark light colors interface"
 msgstr "tema aparência escuro claro cores interface"
+
+msgid "theme appearance dark light mode"
+msgstr "tema aparência escuro claro modo"
+
+msgid "theme appearance system automatic"
+msgstr "tema aparência sistema automático"
 
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "Estas alterações ainda não foram aplicadas. Se você sair, serão perdidas — ou salve e reexecute para aplicá-las. A execução continua em segundo plano enquanto você trabalha."
