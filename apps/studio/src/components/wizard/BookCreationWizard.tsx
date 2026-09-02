@@ -208,7 +208,7 @@ export function BookCreationWizard() {
   const { phase, currentStep, setCurrentStep, stepDirection, previewFocus } = useWizard()
   const form = useWizardForm()
   const createMutation = useCreateBook()
-  const { apiKey, hasApiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
   const { data: books, isPending: booksLoading } = useBooks()
   const [previewOpen, setPreviewOpen] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -308,7 +308,7 @@ export function BookCreationWizard() {
       // scope we skip it: each contributor extracts their own page-range part,
       // so extracting the full book on this machine would be the very cost the
       // split feature avoids.
-      if (values.scope !== "split" && hasApiKey) {
+      if (values.scope !== "split" && hasStructuredTextProvider) {
         // Seed the run status the book page reads, so it paints "Extract
         // queued" on first render. Without this the page mounts with a cold
         // cache and shows an idle pipeline until its own step-status fetch

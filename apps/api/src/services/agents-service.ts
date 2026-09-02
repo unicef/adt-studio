@@ -8,30 +8,49 @@ import type {
   ActivityGenMode,
 } from "@adt/agents"
 import { loadBookConfig } from "@adt/pipeline"
+import { getDefaultProviderRegistry } from "@adt/llm"
+import { safeParseModelId } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
 
 /**
- * Per-provider API keys forwarded from the request headers. Each provider is
- * authenticated with its own key — they are never cross-wired — so a book that
- * overrides `agents.model` to an `anthropic:` or `google:` model works as long
- * as the matching key was sent.
+ * Request-scoped credentials for every registered provider. Each provider is
+ * authenticated with its own values — they are never cross-wired — so a book
+ * that overrides `agents.model` to any provider works as long as that
+ * provider's credentials were sent or configured on the server.
  */
-export interface AgentApiKeys {
-  openaiApiKey?: string
-  anthropicApiKey?: string
-  googleApiKey?: string
+export interface AgentCredentialOptions {
+  credentials: AgentCredentials
 }
 
-function toCredentials(keys: AgentApiKeys): AgentCredentials {
-  return {
-    ...(keys.openaiApiKey ? { openaiApiKey: keys.openaiApiKey } : {}),
-    ...(keys.anthropicApiKey ? { anthropicApiKey: keys.anthropicApiKey } : {}),
-    ...(keys.googleApiKey ? { googleApiKey: keys.googleApiKey } : {}),
-  }
-}
+/**
+ * Model the agent prompts are tuned for. Used when neither `agents.model` nor
+ * the default model's provider can pick one. The /providers route advertises
+ * the same resolution chain so UI availability gates on the provider that
+ * will actually run.
+ */
+export const DEFAULT_AGENT_MODEL = "openai:gpt-5.5"
 
-/** Model the agent prompts are tuned for. Used when a book sets no override. */
-const DEFAULT_AGENT_MODEL = "openai:gpt-5.5"
+/**
+ * The agent model a `default_model` implies when `agents.model` is unset:
+ * the same provider's declared agent default. A user who configured only a
+ * Gemini or Anthropic key (with a matching default model) gets working agent
+ * features instead of a hidden button demanding an OpenAI key. Providers that
+ * cannot run the agent loop (e.g. claude-agent, ollama) return undefined and
+ * fall through to DEFAULT_AGENT_MODEL.
+ */
+export function agentModelForDefaultModel(
+  defaultModel: string | undefined,
+): string | undefined {
+  if (!defaultModel?.trim()) return undefined
+  const parsed = safeParseModelId(defaultModel)
+  if (!parsed.ok) return undefined
+  const registry = getDefaultProviderRegistry()
+  if (!registry.has(parsed.value.providerId)) return undefined
+  const manifest = registry.get(parsed.value.providerId).manifest
+  const agentDefault = manifest.defaultModels?.agent
+  if (!manifest.modalities.includes("agent") || !agentDefault) return undefined
+  return `${manifest.id}:${agentDefault}`
+}
 
 /**
  * Resolve the model id for the agents from book config, falling back to a
@@ -49,7 +68,11 @@ function resolveAgentModelId(
   // `google:gemini-2.5-pro`. The matching provider key must be sent with the
   // request (X-OpenAI-Key / X-Anthropic-API-Key / X-Google-API-Key) or the
   // call fails to authenticate.
-  return config.agents?.model ?? DEFAULT_AGENT_MODEL
+  return (
+    config.agents?.model ??
+    agentModelForDefaultModel(config.default_model) ??
+    DEFAULT_AGENT_MODEL
+  )
 }
 
 function resolveStyleguide(
@@ -65,7 +88,7 @@ function resolveStyleguide(
   return loadStyleguideContent(name, configPath, booksDir, label)
 }
 
-export interface LayoutMirrorServiceOptions extends AgentApiKeys {
+export interface LayoutMirrorServiceOptions extends AgentCredentialOptions {
   label: string
   booksDir: string
   configPath?: string
@@ -85,6 +108,7 @@ export async function layoutMirrorService(
     source,
     targets,
     instruction,
+    credentials,
     onProgress,
   } = options
 
@@ -99,7 +123,7 @@ export async function layoutMirrorService(
       targets,
       instruction,
       modelId,
-      credentials: toCredentials(options),
+      credentials,
       onProgress,
     })
 
@@ -120,7 +144,7 @@ export async function layoutMirrorService(
   }
 }
 
-export interface GenerateActivityServiceOptions extends AgentApiKeys {
+export interface GenerateActivityServiceOptions extends AgentCredentialOptions {
   label: string
   booksDir: string
   promptsDir: string
@@ -147,6 +171,7 @@ export async function generateActivityService(
     description,
     inclusiveDesign,
     mode,
+    credentials,
     onProgress,
   } = options
 
@@ -166,7 +191,7 @@ export async function generateActivityService(
       mode,
       modelId,
       styleguide,
-      credentials: toCredentials(options),
+      credentials,
       onProgress,
     })
 

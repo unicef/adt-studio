@@ -251,6 +251,7 @@ export {
   computeSpeechCacheKey,
   findAdjacentSpeechText,
   buildTtsLogEntry,
+  buildWordTimestampsLogEntry,
   NO_SPEAKABLE_TEXT_REASON,
   elevenLabsVoiceSettingsFromConfig,
   buildElevenLabsTtsLogParams,

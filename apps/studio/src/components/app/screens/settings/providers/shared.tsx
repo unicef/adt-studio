@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import {
   CheckCircle2,
@@ -20,17 +20,23 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { toast } from "@/components/ui/sonner"
-import type { AiModality, LocalizedText, ProviderDescriptor, ProviderHealthCode, ProviderHealthResponse } from "./contract"
-import { PROVIDER_CARDS, PROVIDER_DESCRIPTORS } from "./data"
+import type {
+  AiModality,
+  LocalizedText,
+  ProviderDescriptor,
+  ProviderHealthCode,
+  ProviderHealthResponse,
+} from "@adt/types"
+import { useProviderHealth } from "@/hooks/use-provider-health"
+import { PROVIDER_CARDS } from "./data"
 import { PROVIDER_BRAND } from "./providerLogos"
-import { authKind, requiredFieldsFilled, useProviderHealthMock, type Providers } from "./useProviders"
-import { ComingSoon } from "../ui"
+import { authKind, requiredFieldsFilled, type Providers } from "./useProviders"
 
 export const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]"
 
 /** Resolve server-localized manifest text for the active locale (falls back to English). */
 export function localize(text: LocalizedText, locale: string): string {
-  return text[locale] ?? text.en
+  return text[locale as keyof LocalizedText] ?? text.en
 }
 
 type Tone = "ok" | "warn" | "error" | "muted"
@@ -169,21 +175,82 @@ export interface Draft {
   dirty: boolean
   canSave: boolean
   hasStored: boolean
+  errors: Map<string, string>
   save: () => void
   remove: () => void
+}
+
+/**
+ * Client-side echo of the provider's Zod schema, so a malformed endpoint or an
+ * over-long region is caught before it reaches a request header. The server
+ * schema stays the authority.
+ */
+function useFieldErrors(
+  descriptor: ProviderDescriptor,
+  values: Record<string, string>,
+): Map<string, string> {
+  const { t } = useLingui()
+  return useMemo(() => {
+    const errors = new Map<string, string>()
+    for (const field of descriptor.manifest.credentialFields) {
+      const value = (values[field.key] ?? "").trim()
+      if (!value) continue
+      if (field.maxLength && value.length > field.maxLength) {
+        errors.set(field.key, t`Maximum length is ${field.maxLength} characters.`)
+        continue
+      }
+      if (field.kind === "url") {
+        try {
+          const url = new URL(value)
+          if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
+            errors.set(field.key, t`Enter a valid HTTP or HTTPS URL.`)
+            continue
+          }
+        } catch {
+          errors.set(field.key, t`Enter a valid HTTP or HTTPS URL.`)
+          continue
+        }
+      }
+      if (field.pattern) {
+        try {
+          if (!new RegExp(field.pattern).test(value)) errors.set(field.key, t`Invalid value.`)
+        } catch {
+          // The manifest was already server-validated; ignore an unsupported
+          // client RegExp feature and let the server schema decide.
+        }
+      }
+    }
+    return errors
+  }, [descriptor, values, t])
 }
 
 export function useDraft(descriptor: ProviderDescriptor, store: Providers, onSaved?: () => void): Draft {
   const { t } = useLingui()
   const id = descriptor.manifest.id
   const stored = useMemo(
-    () => Object.fromEntries(descriptor.manifest.credentialFields.map((f) => [f.key, store.credentialValue(id, f.key)])),
+    () =>
+      Object.fromEntries(
+        descriptor.manifest.credentialFields.map((f) => [f.key, store.credentialValue(id, f.key)]),
+      ),
     [descriptor, store, id],
   )
   const [values, setValues] = useState<Record<string, string>>(stored)
   const [revealed, setRevealed] = useState(false)
 
-  const dirty = descriptor.manifest.credentialFields.some((f) => (values[f.key] ?? "").trim() !== (stored[f.key] ?? "").trim())
+  // `stored` starts empty while /providers is pending and fills in once the
+  // manifests arrive, so an untouched draft has to follow it.
+  const dirtyRef = useRef(false)
+  const storedSignature = JSON.stringify(stored)
+  useEffect(() => {
+    if (dirtyRef.current) return
+    setValues(JSON.parse(storedSignature) as Record<string, string>)
+  }, [storedSignature])
+
+  const errors = useFieldErrors(descriptor, values)
+  const dirty = descriptor.manifest.credentialFields.some(
+    (f) => (values[f.key] ?? "").trim() !== (stored[f.key] ?? "").trim(),
+  )
+  dirtyRef.current = dirty
   const hasStored = Object.values(stored).some((v) => v.length > 0)
 
   return {
@@ -193,8 +260,9 @@ export function useDraft(descriptor: ProviderDescriptor, store: Providers, onSav
     revealed,
     toggleReveal: () => setRevealed((p) => !p),
     dirty,
-    canSave: dirty,
+    canSave: dirty && errors.size === 0,
     hasStored,
+    errors,
     save: () => {
       for (const field of descriptor.manifest.credentialFields) store.setCredential(id, field.key, (values[field.key] ?? "").trim())
       toast.success(t`Provider credentials saved.`)
@@ -253,7 +321,17 @@ export function CredentialFields({ draft, onSubmit }: { draft: Draft; onSubmit?:
                 </Button>
               )}
             </div>
-            {field.help && <p className="text-[11.5px] leading-normal text-muted-foreground">{localize(field.help, i18n.locale)}</p>}
+            {draft.errors.has(field.key) ? (
+              <p role="alert" className="text-[11.5px] leading-normal text-destructive">
+                {draft.errors.get(field.key)}
+              </p>
+            ) : (
+              field.help && (
+                <p className="text-[11.5px] leading-normal text-muted-foreground">
+                  {localize(field.help, i18n.locale)}
+                </p>
+              )
+            )}
           </div>
         )
       })}
@@ -266,16 +344,14 @@ export function AuthModeToggle({
   mode,
   onChange,
   cliLabel,
-  cliSoon,
 }: {
   mode: "cli" | "api-key"
   onChange: (mode: "cli" | "api-key") => void
   cliLabel?: ReactNode
-  cliSoon?: boolean
 }) {
   const options = [
-    { id: "cli" as const, label: cliLabel ?? <Trans>CLI</Trans>, Icon: Terminal, soon: cliSoon },
-    { id: "api-key" as const, label: <Trans>API key</Trans>, Icon: KeyRound, soon: false },
+    { id: "cli" as const, label: cliLabel ?? <Trans>CLI</Trans>, Icon: Terminal },
+    { id: "api-key" as const, label: <Trans>API key</Trans>, Icon: KeyRound },
   ]
   const activeIndex = mode === "cli" ? 0 : 1
   return (
@@ -285,7 +361,7 @@ export function AuthModeToggle({
         className={cn("absolute inset-y-1 w-[calc(50%-2px)] rounded-lg bg-card ring-1 ring-border shadow-sm transition-transform duration-300 motion-reduce:transition-none dark:bg-accent", EASE)}
         style={{ transform: `translateX(${activeIndex * 100}%)` }}
       />
-      {options.map(({ id, label, Icon, soon }) => (
+      {options.map(({ id, label, Icon }) => (
         <button
           key={id}
           type="button"
@@ -297,10 +373,7 @@ export function AuthModeToggle({
           )}
         >
           <Icon className="size-4" />
-          <span className="flex items-center gap-1.5">
-            {label}
-            {soon && <ComingSoon />}
-          </span>
+          <span className="flex items-center gap-1.5">{label}</span>
         </button>
       ))}
     </div>
@@ -399,9 +472,7 @@ export function SaveRow({ draft }: { draft: Draft }) {
   )
 }
 
-export function descriptorById(id: string): ProviderDescriptor {
-  return PROVIDER_DESCRIPTORS.find((d) => d.manifest.id === id)!
-}
+
 
 function ModalityLabel({ modality }: { modality: AiModality }) {
   switch (modality) {
@@ -438,8 +509,9 @@ export function ModalityBadges({ modalities }: { modalities: AiModality[] }) {
 export function defaultCardMode(cardKey: string, store: Providers): "api-key" | "cli" {
   const card = PROVIDER_CARDS[cardKey]
   if (!card.apiKeyProviderId || !card.cliProviderId) return "api-key"
-  if (!isProviderAvailable(card.cliProviderId)) return "api-key"
-  const apiDesc = descriptorById(card.apiKeyProviderId)
+  if (!store.isRegistered(card.cliProviderId)) return "api-key"
+  const apiDesc = store.descriptorById(card.apiKeyProviderId)
+  if (!apiDesc) return "cli"
   return requiredFieldsFilled(apiDesc, store.credentials[card.apiKeyProviderId] ?? {}) ? "api-key" : "cli"
 }
 
@@ -454,9 +526,9 @@ interface CardHealth {
  * local badge, no probe); if the vendor has no key but a CLI/local backend, probe that so a
  * live login still reads "Connected". Backs both the rail dot and the auth line from one probe.
  */
-export function useCardHealth(cardKey: string, store: Providers, refreshToken = 0): CardHealth {
+export function useCardHealth(cardKey: string, store: Providers): CardHealth {
   const card = PROVIDER_CARDS[cardKey]
-  const apiDesc = card.apiKeyProviderId ? descriptorById(card.apiKeyProviderId) : undefined
+  const apiDesc = card.apiKeyProviderId ? store.descriptorById(card.apiKeyProviderId) : undefined
   const apiConfigured = apiDesc ? requiredFieldsFilled(apiDesc, store.credentials[apiDesc.manifest.id] ?? {}) : false
 
   let probeId = card.apiKeyProviderId ?? card.cliProviderId ?? card.localProviderId!
@@ -464,16 +536,20 @@ export function useCardHealth(cardKey: string, store: Providers, refreshToken = 
   let fallbackConfigured = false
   if (card.localProviderId) {
     probeId = card.localProviderId
-    enabled = isProviderAvailable(card.localProviderId)
+    enabled = store.isRegistered(card.localProviderId)
   } else if (apiConfigured) {
     fallbackConfigured = true
-  } else if (card.cliProviderId && isProviderAvailable(card.cliProviderId)) {
+  } else if (card.cliProviderId && store.isRegistered(card.cliProviderId)) {
     probeId = card.cliProviderId
     enabled = true
   }
 
-  const health = useProviderHealthMock(probeId, store.credentials[probeId] ?? {}, enabled, refreshToken)
-  return { data: enabled ? health.data : null, isFetching: enabled && health.isFetching, fallbackConfigured }
+  const health = useProviderHealth(probeId, store.credentials[probeId], enabled)
+  return {
+    data: enabled ? (health.data ?? null) : null,
+    isFetching: enabled && health.isFetching,
+    fallbackConfigured,
+  }
 }
 
 /** Dot-only status mark, sized to sit on a provider icon (T3-Code style). */
@@ -516,22 +592,11 @@ export function AuthLineFromHealth({ data, isFetching, fallbackConfigured }: Car
   }
 }
 
-/**
- * Providers the shipping app already supports (this branch's `useApiKey`: OpenAI, Anthropic,
- * Google, Custom, Azure, Gemini, ElevenLabs). Only the new CLI backends (codex, claude-agent)
- * and local ollama arrive with `feature/ai-agnostic`; those are shown but marked "Coming soon".
- */
-const AVAILABLE_PROVIDERS = new Set(["openai", "anthropic", "google", "custom", "azure", "gemini", "elevenlabs"])
-
-export function isProviderAvailable(providerId: string): boolean {
-  return AVAILABLE_PROVIDERS.has(providerId)
-}
-
-/** A card is available when its primary (API-key or local) backend already ships. */
-export function isCardAvailable(cardKey: string): boolean {
+/** A card is usable when its primary (API-key or local) backend is registered on the server. */
+export function isCardRegistered(cardKey: string, store: Providers): boolean {
   const card = PROVIDER_CARDS[cardKey]
   const primary = card.apiKeyProviderId ?? card.localProviderId
-  return primary ? isProviderAvailable(primary) : false
+  return primary ? store.isRegistered(primary) : false
 }
 
 export { authKind }

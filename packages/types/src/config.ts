@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { QualifiedModelId } from "./model-id.js"
 import { ImageFilters } from "./image-filtering.js"
 import { SpeechConfig } from "./speech.js"
 import { CoreTtsConfig } from "./core-tts.js"
@@ -102,11 +103,14 @@ export const DEFAULT_ELEVENLABS_VOICE_SETTINGS = {
   use_speaker_boost: true,
 } as const
 
-export const LLMModelId = z
-  .string()
-  .trim()
-  .regex(/^[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z0-9][a-zA-Z0-9_.-]{0,159}$/)
-  .transform((value) => value.toLowerCase())
+/**
+ * Model the un-suffixed base prompt templates are authored for. A pipeline step
+ * running on this model uses the base prompt directly; any other model resolves
+ * its own prompt-variant folder first. Overridable via `base_prompt_model`.
+ */
+export const DEFAULT_BASE_PROMPT_MODEL_ID = "openai:gpt-5.4"
+
+export const LLMModelId = QualifiedModelId
 export type LLMModelId = z.infer<typeof LLMModelId>
 
 export const SpeechGenerationModelId = z
@@ -277,6 +281,9 @@ export const AppConfig = z
     default_model: LLMModelId.optional(),
     default_image_generation_model: LLMModelId.optional(),
     default_speech_generation_model: SpeechGenerationModelId.optional(),
+    /** Model the base (un-suffixed) prompt templates target. Defaults to
+     *  DEFAULT_BASE_PROMPT_MODEL_ID. Steps on this model skip variant lookup. */
+    base_prompt_model: LLMModelId.optional(),
     structure_types: z.record(z.string(), z.string()),
     role_types: z.record(z.string(), z.string()),
     section_types: z.record(z.string(), z.string()).optional(),

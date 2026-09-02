@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react"
-import type { CredentialFieldManifest, ProviderDescriptor, ProviderHealthResponse } from "./contract"
-import { PROVIDER_DESCRIPTORS, SIM_ENV, type SimEnv } from "./data"
+import { useCallback, useMemo } from "react"
+import type { ProviderDescriptor } from "@adt/types"
+import { isProviderAvailable } from "@/api/provider-credentials"
+import { useProviderCredentials } from "@/hooks/use-provider-credentials"
 
 export type AuthKind = "api-key" | "cli" | "local"
 
@@ -13,180 +14,53 @@ export function authKind(descriptor: ProviderDescriptor): AuthKind {
   return "api-key"
 }
 
-
-export function requiredFieldsFilled(descriptor: ProviderDescriptor, creds: Record<string, string>): boolean {
-  const storedOnServer = (fieldKey: string) =>
-    descriptor.fieldStatus.some((s) => s.key === fieldKey && s.configuredOnServer)
-  return descriptor.manifest.credentialFields
-    .filter((f) => f.required)
-    .every((f) => (creds[f.key]?.trim().length ?? 0) > 0 || storedOnServer(f.key))
-}
-
-// ---- module-level credential store (localStorage-backed, mirrors useProviderCredentials sync) ----
-
-type Creds = Record<string, Record<string, string>>
-
-const listeners = new Set<() => void>()
-let snapshot: Creds | null = null
-
-function fieldByKey(providerId: string, fieldKey: string): CredentialFieldManifest | undefined {
-  return PROVIDER_DESCRIPTORS.find((d) => d.manifest.id === providerId)?.manifest.credentialFields.find((f) => f.key === fieldKey)
-}
-
-function readStorage(): Creds {
-  const out: Creds = {}
-  for (const descriptor of PROVIDER_DESCRIPTORS) {
-    const values: Record<string, string> = {}
-    for (const field of descriptor.manifest.credentialFields) {
-      let stored: string | null = null
-      try {
-        stored = window.localStorage.getItem(field.storageKey)
-      } catch {
-        stored = null
-      }
-      if (stored) values[field.key] = stored
-    }
-    out[descriptor.manifest.id] = values
-  }
-  return out
-}
-
-function getSnapshot(): Creds {
-  if (snapshot === null) snapshot = readStorage()
-  return snapshot
-}
-
-function emit(): void {
-  for (const listener of listeners) listener()
-}
-
-/**
- * Unlike the single-key pref stores, credentials live under one storage key per
- * field, so an external write is matched against the whole set.
- */
-const CREDENTIAL_STORAGE_KEYS = new Set(
-  PROVIDER_DESCRIPTORS.flatMap((d) => d.manifest.credentialFields.map((f) => f.storageKey)),
-)
-
-if (typeof window !== "undefined") {
-  window.addEventListener("storage", (event) => {
-    // A null key means another window cleared the whole store.
-    if (event.key !== null && !CREDENTIAL_STORAGE_KEYS.has(event.key)) return
-    snapshot = readStorage()
-    emit()
-  })
-}
-
-function subscribe(listener: () => void): () => void {
-  listeners.add(listener)
-  return () => listeners.delete(listener)
-}
-
-function writeCredential(providerId: string, fieldKey: string, value: string): void {
-  const field = fieldByKey(providerId, fieldKey)
-  if (!field) return
-  const next = value.trim()
-  try {
-    if (next) window.localStorage.setItem(field.storageKey, next)
-    else window.localStorage.removeItem(field.storageKey)
-  } catch {
-    /* ignore */
-  }
-  const current = getSnapshot()
-  const providerValues = { ...(current[providerId] ?? {}) }
-  if (next) providerValues[fieldKey] = next
-  else delete providerValues[fieldKey]
-  snapshot = { ...current, [providerId]: providerValues }
-  emit()
+/** Per-provider view of {@link isProviderAvailable}: typed-in values or server-stored ones. */
+export function requiredFieldsFilled(
+  descriptor: ProviderDescriptor,
+  creds: Record<string, string>,
+): boolean {
+  return isProviderAvailable(descriptor, { [descriptor.manifest.id]: creds })
 }
 
 export interface Providers {
   descriptors: ProviderDescriptor[]
-  credentials: Creds
+  credentials: Record<string, Record<string, string>>
   credentialValue: (providerId: string, fieldKey: string) => string
   setCredential: (providerId: string, fieldKey: string, value: string) => void
-}
-
-export function useProviders(): Providers {
-  const credentials = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
-  const credentialValue = useCallback(
-    (providerId: string, fieldKey: string) => credentials[providerId]?.[fieldKey] ?? "",
-    [credentials],
-  )
-  return { descriptors: PROVIDER_DESCRIPTORS, credentials, credentialValue, setCredential: writeCredential }
-}
-
-// ---- mock health probe (stands in for useProviderHealth + GET /providers/:id/health) ----
-
-function computeHealth(providerId: string, creds: Record<string, string>, sim: SimEnv): ProviderHealthResponse {
-  const descriptor = PROVIDER_DESCRIPTORS.find((d) => d.manifest.id === providerId)!
-  const kind = authKind(descriptor)
-  const base = { providerId, modelCount: sim.modelCount }
-
-  if (kind === "cli") {
-    // eslint-disable-next-line lingui/no-unlocalized-strings -- server-side health diagnostic (non-localized by contract)
-    if ((creds.apiKey?.trim().length ?? 0) > 0) return { ...base, ok: true, code: "ok", detail: "API key" }
-    if (!sim.cliInstalled) return { providerId, ok: false, code: "cli-not-found" }
-    if (!sim.cliLoggedIn) return { providerId, ok: false, code: "not-logged-in" }
-    return { ...base, ok: true, code: "local-login", detail: sim.loginLabel }
-  }
-  if (kind === "local") {
-    return sim.reachable
-      ? { ...base, ok: true, code: "ok" }
-      : { providerId, ok: false, code: "unreachable" }
-  }
-  // api-key
-  if (!requiredFieldsFilled(descriptor, creds)) return { providerId, ok: false, code: "missing-credential" }
-  if (sim.rejectsKey) return { providerId, ok: false, code: "invalid-credential" }
-  return { ...base, ok: true, code: "ok" }
-}
-
-export interface HealthState {
-  data: ProviderHealthResponse | null
-  isFetching: boolean
-  refetch: () => void
+  descriptorById: (providerId: string) => ProviderDescriptor | undefined
+  isRegistered: (providerId: string) => boolean
+  isLoading: boolean
+  isError: boolean
 }
 
 /**
- * Lazy mock probe: fires when `enabled` first turns true and on `refetch()`, never on
- * keystrokes — matching the real `useProviderHealth` (id-keyed, manual, 30s cache).
+ * The providers screen's view of `/providers`: live manifests plus the local
+ * credential store they declare. Manifests are the authority for which backends
+ * exist and which fields each one needs.
  */
-export function useProviderHealthMock(
-  providerId: string,
-  draftCreds: Record<string, string>,
-  enabled: boolean,
-  refreshToken = 0,
-): HealthState {
-  const [data, setData] = useState<ProviderHealthResponse | null>(null)
-  const [isFetching, setIsFetching] = useState(false)
-  const draftRef = useRef(draftCreds)
-  draftRef.current = draftCreds
-  const ranRef = useRef(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+export function useProviders(): Providers {
+  const { providers, credentials, credentialValue, setCredential, isLoading, error } =
+    useProviderCredentials()
 
-  const run = useCallback(() => {
-    setIsFetching(true)
-    if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => {
-      setData(computeHealth(providerId, draftRef.current, SIM_ENV[providerId] ?? {}))
-      setIsFetching(false)
-    }, 520)
-  }, [providerId])
+  const byId = useMemo(
+    () => new Map(providers.map((provider) => [provider.manifest.id, provider])),
+    [providers],
+  )
 
-  useEffect(() => {
-    if (enabled && !ranRef.current) {
-      ranRef.current = true
-      run()
-    }
-  }, [enabled, run])
+  const descriptorById = useCallback(
+    (providerId: string) => byId.get(providerId),
+    [byId],
+  )
+  const isRegistered = useCallback((providerId: string) => byId.has(providerId), [byId])
 
-  useEffect(() => {
-    if (enabled && ranRef.current) run()
-  }, [enabled, refreshToken, run])
-
-  useEffect(() => () => {
-    if (timerRef.current) clearTimeout(timerRef.current)
-  }, [])
-
-  return { data, isFetching, refetch: run }
+  return {
+    descriptors: providers as ProviderDescriptor[],
+    credentials,
+    credentialValue,
+    setCredential,
+    descriptorById,
+    isRegistered,
+    isLoading,
+    isError: Boolean(error),
+  }
 }

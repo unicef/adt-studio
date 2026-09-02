@@ -15,7 +15,7 @@ import { LoadingState } from "../../components/LoadingState"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
 import { StageEmptyState } from "../../components/StageEmptyState"
 import { useVirtualizer } from "@tanstack/react-virtual"
@@ -291,7 +291,9 @@ export function LanguageView({
   const { isTaskRunning, tasks } = useBookTasks(bookLabel);
   const {
     apiKey,
-    hasApiKey,
+    hasSpeechProvider,
+    hasTranscriber,
+    isAvailable,
     azureKey,
     azureRegion,
     geminiKey,
@@ -301,6 +303,7 @@ export function LanguageView({
     customBaseUrl,
     customApiKey,
   } = useApiKey();
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel);
   // Resolve opaque ElevenLabs voice IDs to names for the speech summary chip.
   const { describeVoice: describeElevenLabsVoice } = useElevenLabsVoices();
   const translateState = stageState("translate");
@@ -309,9 +312,12 @@ export function LanguageView({
   const stageDone = activeState === "done";
   const hasStageError = activeState === "error";
   const isRunning = activeState === "running" || activeState === "queued";
+  const canRunStage =
+    hasStructuredTextProvider && (!isSpeechStage || hasSpeechProvider);
+  const geminiTtsAvailable = isAvailable("tts", "gemini:default");
 
   const handleRun = useCallback(() => {
-    if (!hasApiKey || isRunning) return;
+    if (!canRunStage || isRunning) return;
     // Speech depends on translate, so always start from translate when running
     // speech — new catalog entries (e.g. from a glossary addition) need their
     // translations populated before TTS can synthesize them. The per-item cache
@@ -321,7 +327,7 @@ export function LanguageView({
       toStage: stageSlug as "translate" | "speech",
       apiKey,
     });
-  }, [hasApiKey, isRunning, apiKey, queueRun, stageSlug]);
+  }, [canRunStage, isRunning, apiKey, queueRun, stageSlug]);
 
   const stageMissing = useStageMissingCounts(bookLabel);
   const missingForCurrentStage = isSpeechStage
@@ -1225,7 +1231,7 @@ export function LanguageView({
 
   const generateAudioMutation = useMutation({
     mutationFn: async (variables: { textId: string; language: string; voiceSlot: VoiceSlot }) => {
-      if (!geminiKey) {
+      if (!geminiTtsAvailable) {
         throw new Error(
           i18n._(msg`Gemini API key is required to generate audio.`),
         );
@@ -1344,7 +1350,7 @@ export function LanguageView({
 
   const transcribeMutation = useMutation({
     mutationFn: async (variables: { textId: string; language: string; voiceSlot: VoiceSlot }) => {
-      if (!apiKey) throw new Error("OpenAI API key required for transcription");
+      if (!hasTranscriber) throw new Error(t`Transcription provider is not configured`);
       return api.transcribeOne(
         bookLabel,
         variables.textId,
@@ -1362,7 +1368,7 @@ export function LanguageView({
 
   const transcribeAllMutation = useMutation({
     mutationFn: async (language: string) => {
-      if (!apiKey) throw new Error("OpenAI API key required for transcription");
+      if (!hasTranscriber) throw new Error(t`Transcription provider is not configured`);
       return api.transcribeAll(bookLabel, language, apiKey);
     },
   });
@@ -1635,14 +1641,14 @@ export function LanguageView({
       <button
         type="button"
         onClick={() => {
-          if (!hasApiKey || isRunning) return;
+          if (!canRunStage || isRunning) return;
           queueRun({
             fromStage: "translate",
             toStage: stageSlug as "translate" | "speech",
             apiKey,
           });
         }}
-        disabled={!hasApiKey || isRunning}
+        disabled={!canRunStage || isRunning}
         title={isSpeechStage ? t`Re-run speech` : t`Re-run translation`}
         className="text-white/60 hover:text-white transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-default"
       >
@@ -1664,16 +1670,16 @@ export function LanguageView({
               transcribeAllMutation.mutate(audioLang);
             }}
             disabled={
-              !apiKey ||
+              !hasTranscriber ||
               totalAudioFiles === 0 ||
               isRunning ||
               transcribeAllMutation.isPending ||
               isTaskRunning("transcribe-timestamps")
             }
             title={
-              apiKey
+              hasTranscriber
                 ? t`Calculate word timestamps for all entries`
-                : t`OpenAI key required`
+                : t`Transcription provider required`
             }
             className="text-white/60 hover:text-white transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-default"
           >
@@ -1735,7 +1741,7 @@ export function LanguageView({
             isRunning={isRunning}
             completed={stageDone}
             onRun={handleRun}
-            disabled={!hasApiKey || isRunning}
+            disabled={!canRunStage || isRunning}
           >
             {!isSpeechStage ? (
               <div className="space-y-3">
@@ -1880,7 +1886,7 @@ export function LanguageView({
                 variant="outline"
                 className="h-7 px-3 text-xs border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
                 onClick={handleRun}
-                disabled={!hasApiKey || isRunning}
+                disabled={!canRunStage || isRunning}
               >
                 <RotateCcw className="mr-1 h-3 w-3" />
                 {isSpeechStage ? t`Re-run speech` : t`Re-run translation`}
@@ -2486,7 +2492,7 @@ export function LanguageView({
                                 bookLabel={bookLabel}
                                 textId={entry.id}
                                 canGenerate={currentLanguageUsesGemini}
-                                hasGeminiKey={geminiKey.length > 0}
+                                hasGeminiKey={geminiTtsAvailable}
                                 onGenerate={handleGenerateAudio}
                                 isGenerating={
                                   generateAudioMutation.isPending &&
@@ -2514,7 +2520,7 @@ export function LanguageView({
                                   transcribeMutation.variables?.textId ===
                                     entry.id
                                 }
-                                hasOpenaiKey={!!apiKey}
+                                hasTranscriber={hasTranscriber}
                                 onTimeUpdate={(time) => {
                                   setPlaybackTime(time);
                                   setPlayingEntryId(entry.id);
@@ -2733,7 +2739,7 @@ export function LanguageView({
                                     bookLabel={bookLabel}
                                     textId={entry.id}
                                     canGenerate={currentLanguageUsesGemini}
-                                    hasGeminiKey={geminiKey.length > 0}
+                                    hasGeminiKey={geminiTtsAvailable}
                                     onGenerate={handleGenerateAudio}
                                     isGenerating={
                                       generateAudioMutation.isPending &&
@@ -2761,7 +2767,7 @@ export function LanguageView({
                                       transcribeMutation.variables?.textId ===
                                         entry.id
                                     }
-                                    hasOpenaiKey={!!apiKey}
+                                    hasTranscriber={hasTranscriber}
                                     onTimeUpdate={(time) => {
                                       setPlaybackTime(time);
                                       setPlayingEntryId(entry.id);
@@ -3360,7 +3366,7 @@ function AudioAction({
   timestamps,
   onTranscribe,
   isTranscribing,
-  hasOpenaiKey,
+  hasTranscriber,
   onTimeUpdate,
   onPlayingChange,
   onSaveTimestamps,
@@ -3381,7 +3387,7 @@ function AudioAction({
   timestamps?: WordTimestampEntry;
   onTranscribe?: (textId: string) => void;
   isTranscribing?: boolean;
-  hasOpenaiKey?: boolean;
+  hasTranscriber?: boolean;
   onTimeUpdate?: (time: number) => void;
   onPlayingChange?: (playing: boolean) => void;
   onSaveTimestamps?: (words: WordTimestamp[], duration: number) => void;
@@ -3462,12 +3468,12 @@ function AudioAction({
             <button
               type="button"
               onClick={() => onTranscribe(textId)}
-              disabled={isTranscribing || !hasOpenaiKey}
+              disabled={isTranscribing || !hasTranscriber}
               className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 cursor-pointer disabled:cursor-default"
               title={
-                hasOpenaiKey
+                hasTranscriber
                   ? t`Generate word timestamps`
-                  : t`OpenAI key required`
+                  : t`Transcription provider required`
               }
             >
               {isTranscribing ? (

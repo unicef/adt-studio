@@ -254,6 +254,26 @@ export const LLM_MODEL_GROUPS: ModelGroup[] = [
     ],
   },
   {
+    provider: "claude-agent",
+    models: [
+      "claude-opus-4-6",
+      "claude-sonnet-4-6",
+      "claude-sonnet-4-5",
+      "claude-haiku-4-5",
+    ],
+  },
+  {
+    provider: "codex",
+    models: [
+      "gpt-5.6-sol",
+      "gpt-5.6-terra",
+      "gpt-5.6-luna",
+      "gpt-5.6-pro",
+      "gpt-5.5",
+      "gpt-5.3-codex",
+    ],
+  },
+  {
     provider: "google",
     models: [
       "gemini-2.5-pro",

@@ -57,8 +57,8 @@ RUN pnpm --filter @adt/api build:server
 # with their full dependency tree into dist/node_modules/ using npm (not pnpm — npm
 # ignores the monorepo workspace config and installs freely into a non-workspace
 # directory). npm also installs @esbuild/linux-x64 automatically as esbuild's optional
-# dependency. Versions are read directly from packages/pipeline/package.json to avoid
-# drift.
+# dependency. Versions are read directly from the owning workspace package.json to
+# avoid drift.
 RUN --mount=type=cache,target=/root/.npm \
     node -e " \
       const p = JSON.parse(require('fs').readFileSync('packages/pipeline/package.json', 'utf8')); \
@@ -110,6 +110,10 @@ COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /root/.cache/ms-playwright /home/appuser/.cache/ms-playwright
 RUN chown -R appuser:nodejs /home/appuser/.cache/ms-playwright
 ENV PLAYWRIGHT_BROWSERS_PATH=/home/appuser/.cache/ms-playwright
+
+# The claude-agent provider spawns the Claude Code CLI, which writes its own state under $HOME.
+RUN mkdir -p /home/appuser && chown appuser:nodejs /home/appuser
+ENV HOME=/home/appuser
 RUN npx --prefix apps/api/dist playwright install-deps chromium
 
 # Baked-in defaults (overridable via volume mounts at runtime).

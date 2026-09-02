@@ -1,9 +1,10 @@
-import { useState, type ReactNode } from "react"
+import { useState } from "react"
 import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowRight } from "lucide-react"
+import type { ProviderDescriptor } from "@adt/types"
 import { cn } from "@/lib/utils"
-import type { ProviderDescriptor } from "./contract"
+import { useProviderHealth } from "@/hooks/use-provider-health"
 import { PROVIDER_CARDS } from "./data"
 import {
   AuthModeToggle,
@@ -16,14 +17,10 @@ import {
   SaveRow,
   authKind,
   defaultCardMode,
-  descriptorById,
-  isCardAvailable,
-  isProviderAvailable,
   localize,
   useDraft,
 } from "./shared"
-import { ComingSoonBanner } from "../ui"
-import { useProviderHealthMock, type Providers } from "./useProviders"
+import type { Providers } from "./useProviders"
 
 function Handles({ descriptor }: { descriptor: ProviderDescriptor }) {
   return (
@@ -63,10 +60,10 @@ function HelpText({ descriptor }: { descriptor: ProviderDescriptor }) {
 /** API-key (and local base-URL) backend: editable credential form + status. */
 function ApiKeyPanel({ descriptor, store, active }: { descriptor: ProviderDescriptor; store: Providers; active: boolean }) {
   const draft = useDraft(descriptor, store)
-  const health = useProviderHealthMock(descriptor.manifest.id, draft.values, active)
+  const health = useProviderHealth(descriptor.manifest.id, draft.values, active)
   return (
     <div className="flex flex-col gap-4">
-      <HealthLine health={health.data} isFetching={health.isFetching} onRefresh={health.refetch} />
+      <HealthLine health={health.data ?? null} isFetching={health.isFetching} onRefresh={() => void health.refetch()} />
       <Handles descriptor={descriptor} />
       <CredentialFields draft={draft} onSubmit={draft.canSave ? draft.save : undefined} />
       <SaveRow draft={draft} />
@@ -78,11 +75,11 @@ function ApiKeyPanel({ descriptor, store, active }: { descriptor: ProviderDescri
 
 /** CLI/SDK backend: login is detected, not entered — status + guidance, no key field. */
 function CliPanel({ descriptor, store, active }: { descriptor: ProviderDescriptor; store: Providers; active: boolean }) {
-  const health = useProviderHealthMock(descriptor.manifest.id, store.credentials[descriptor.manifest.id] ?? {}, active)
+  const health = useProviderHealth(descriptor.manifest.id, store.credentials[descriptor.manifest.id], active)
   const deadEnd = health.data && (health.data.code === "not-logged-in" || health.data.code === "cli-not-found")
   return (
     <div className="flex flex-col gap-4">
-      <HealthLine health={health.data} isFetching={health.isFetching} onRefresh={health.refetch} />
+      <HealthLine health={health.data ?? null} isFetching={health.isFetching} onRefresh={() => void health.refetch()} />
       <Handles descriptor={descriptor} />
       {deadEnd && <CliGuidance providerId={descriptor.manifest.id} code={health.data!.code} />}
       <HelpText descriptor={descriptor} />
@@ -91,59 +88,52 @@ function CliPanel({ descriptor, store, active }: { descriptor: ProviderDescripto
   )
 }
 
-/** Dims a backend that's designed but not yet shipping, with a "coming" banner above it. */
-function ComingWrap({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-3">
-      <ComingSoonBanner />
-      <div className="pointer-events-none select-none opacity-60">{children}</div>
-    </div>
+function Panel({ descriptor, store, active }: { descriptor: ProviderDescriptor; store: Providers; active: boolean }) {
+  return authKind(descriptor) === "cli" ? (
+    <CliPanel descriptor={descriptor} store={store} active={active} />
+  ) : (
+    <ApiKeyPanel descriptor={descriptor} store={store} active={active} />
   )
 }
 
 /**
  * A vendor. Vendors offering both an API and a local CLI (OpenAI→Codex, Anthropic→Claude
  * Agent) show a CLI ↔ API-key toggle that swaps which backend you configure; each mode keeps
- * its own modalities and connection state. Single-backend vendors render one panel. Backends
- * that don't ship yet (the CLI ones, and the new speech/local providers) are previewed dimmed
- * behind a "coming" banner.
+ * its own modalities and connection state. Single-backend vendors render one panel. A backend
+ * the server does not register is left out of the toggle entirely.
  */
 export function ProviderCard({ cardKey, store, active }: { cardKey: string; store: Providers; active: boolean }) {
   const card = PROVIDER_CARDS[cardKey]
-  const dual = Boolean(card.apiKeyProviderId && card.cliProviderId)
+  const apiDesc = card.apiKeyProviderId ? store.descriptorById(card.apiKeyProviderId) : undefined
+  const cliDesc = card.cliProviderId ? store.descriptorById(card.cliProviderId) : undefined
+  const localDesc = card.localProviderId ? store.descriptorById(card.localProviderId) : undefined
   const [mode, setMode] = useState<"api-key" | "cli">(() => defaultCardMode(cardKey, store))
 
-  if (dual) {
-    const apiDesc = descriptorById(card.apiKeyProviderId!)
-    const cliDesc = descriptorById(card.cliProviderId!)
-    const cliAvailable = isProviderAvailable(card.cliProviderId!)
+  if (apiDesc && cliDesc) {
     return (
       <div className="flex flex-col gap-4">
         <div>
           <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
             <Trans>Authentication</Trans>
           </div>
-          <AuthModeToggle mode={mode} onChange={setMode} cliLabel={card.cliLabel} cliSoon={!cliAvailable} />
+          <AuthModeToggle mode={mode} onChange={setMode} cliLabel={card.cliLabel} />
         </div>
         {mode === "api-key" ? (
           <ApiKeyPanel descriptor={apiDesc} store={store} active={active} />
-        ) : cliAvailable ? (
-          <CliPanel descriptor={cliDesc} store={store} active={active} />
         ) : (
-          <ComingWrap>
-            <CliPanel descriptor={cliDesc} store={store} active={false} />
-          </ComingWrap>
+          <CliPanel descriptor={cliDesc} store={store} active={active} />
         )}
       </div>
     )
   }
 
-  const only = descriptorById(card.apiKeyProviderId ?? card.localProviderId!)
-  const panel =
-    authKind(only) === "cli" ? (
-      <CliPanel descriptor={only} store={store} active={isCardAvailable(cardKey) && active} />
-    ) : (
-      <ApiKeyPanel descriptor={only} store={store} active={isCardAvailable(cardKey) && active} />
+  const only = apiDesc ?? localDesc ?? cliDesc
+  if (!only) {
+    return (
+      <p className="text-[12.5px] text-muted-foreground">
+        <Trans>This provider is not registered on the server, so it cannot be configured here.</Trans>
+      </p>
     )
-  return isCardAvailable(cardKey) ? panel : <ComingWrap>{panel}</ComingWrap>
+  }
+  return <Panel descriptor={only} store={store} active={active} />
 }

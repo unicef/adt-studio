@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
-import type { CredentialFieldManifest, ProviderDescriptor } from "./contract"
+import type { CredentialFieldManifest, ProviderDescriptor } from "@adt/types"
 
 vi.mock("@lingui/core/macro", () => ({
   msg(strings: TemplateStringsArray, ...values: unknown[]) {
@@ -12,49 +12,45 @@ vi.mock("@lingui/core/macro", () => ({
   },
 }))
 
-const { requiredFieldsFilled } = await import("./useProviders")
-const { PROVIDER_DESCRIPTORS } = await import("./data")
+const { authKind, requiredFieldsFilled } = await import("./useProviders")
 
 function field(key: string, required: boolean): CredentialFieldManifest {
   return {
     key,
     kind: key === "baseUrl" ? "url" : "secret",
-    label: { en: key },
+    label: { en: key, "pt-BR": key, es: key, fr: key, sq: key },
     required,
     header: `X-${key}`,
+    legacyHeaders: [],
     storageKey: `test-${key}`,
+    legacyStorageKeys: [],
   }
 }
 
-function descriptor(fields: CredentialFieldManifest[], onServer: Record<string, boolean>): ProviderDescriptor {
+function descriptor(
+  fields: CredentialFieldManifest[],
+  onServer: Record<string, boolean>,
+): ProviderDescriptor {
   return {
     manifest: {
       id: "probe",
       displayName: "Probe",
       modalities: ["structured-text"],
       credentialFields: fields,
+      capabilities: {
+        "structured-text": {
+          strategies: ["json-schema"],
+          recursiveSchemas: true,
+          imageInput: false,
+          temperature: true,
+        },
+      },
       defaultModels: {},
     },
     configuredOnServer: Object.values(onServer).some(Boolean),
     fieldStatus: fields.map((f) => ({ key: f.key, configuredOnServer: onServer[f.key] ?? false })),
   }
 }
-
-describe("requiredFieldsFilled — masking preconditions in the bundled descriptors", () => {
-  it("marks no bundled field as configuredOnServer, so the fieldStatus branch is dead today", () => {
-    const onServer = PROVIDER_DESCRIPTORS.flatMap((d) => d.fieldStatus).filter((s) => s.configuredOnServer)
-    expect(onServer).toEqual([])
-  })
-
-  it("lists required fields before optional ones in every bundled mixed manifest", () => {
-    const misordered = PROVIDER_DESCRIPTORS.filter((d) => {
-      const required = d.manifest.credentialFields.map((f) => f.required)
-      if (!required.includes(true) || !required.includes(false)) return false
-      return required.indexOf(true) > required.indexOf(false)
-    }).map((d) => d.manifest.id)
-    expect(misordered).toEqual([])
-  })
-})
 
 describe("requiredFieldsFilled — fieldStatus alignment", () => {
   it("counts a typed-in value as filled regardless of ordering", () => {
@@ -75,5 +71,19 @@ describe("requiredFieldsFilled — fieldStatus alignment", () => {
   it("optional-first ordering: a server-stored optional field does not satisfy the required one", () => {
     const d = descriptor([field("baseUrl", false), field("apiKey", true)], { baseUrl: true })
     expect(requiredFieldsFilled(d, {})).toBe(false)
+  })
+})
+
+describe("authKind", () => {
+  it("treats an all-optional manifest with a secret as a CLI backend", () => {
+    expect(authKind(descriptor([field("apiKey", false)], {}))).toBe("cli")
+  })
+
+  it("treats an all-optional manifest without a secret as a local backend", () => {
+    expect(authKind(descriptor([field("baseUrl", false)], {}))).toBe("local")
+  })
+
+  it("treats any required field as an API-key backend", () => {
+    expect(authKind(descriptor([field("apiKey", true)], {}))).toBe("api-key")
   })
 })
