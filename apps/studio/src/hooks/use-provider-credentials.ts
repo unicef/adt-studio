@@ -17,6 +17,32 @@ const CREDENTIALS_CHANGED_EVENT = "adt-provider-credentials-changed"
 const EMPTY_PROVIDERS: ProvidersResponse["providers"] = []
 const EMPTY_DEFAULTS: ProvidersResponse["defaults"] = {}
 
+// Writes made before /providers resolves cannot be mapped to a manifest
+// storage key yet. They are buffered here (module scope, shared across hook
+// instances) and flushed once the manifest list arrives, so first-launch key
+// entry — onboarding calls the setters on every keystroke and on paste —
+// never throws and never drops input.
+const pendingWrites = new Map<string, string>()
+
+const pendingKey = (providerId: string, fieldKey: string) => `${providerId}:${fieldKey}`
+
+function flushPendingWrites(providers: ProvidersResponse["providers"]): boolean {
+  let flushed = false
+  for (const [key, value] of pendingWrites) {
+    const [providerId, fieldKey] = key.split(":")
+    const provider = providers.find(({ manifest }) => manifest.id === providerId)
+    if (!provider) continue
+    pendingWrites.delete(key)
+    try {
+      writeProviderCredentialToStorage(provider, fieldKey, value, browserCredentialStorage)
+      flushed = true
+    } catch (error) {
+      console.warn(`Dropping buffered credential for "${providerId}"`, error)
+    }
+  }
+  return flushed
+}
+
 export function useProviderCredentials() {
   const providersQuery = useQuery({
     queryKey: ["providers"],
@@ -42,20 +68,32 @@ export function useProviderCredentials() {
     [providers, storageRevision],
   )
 
+  // Flush any keystrokes buffered while /providers was still loading.
+  useEffect(() => {
+    if (providers.length === 0 || pendingWrites.size === 0) return
+    if (flushPendingWrites(providers)) {
+      window.dispatchEvent(new Event(CREDENTIALS_CHANGED_EVENT))
+    }
+  }, [providers])
+
   const setCredential = useCallback(
     (providerId: string, fieldKey: string, value: string) => {
       const provider = providers.find(({ manifest }) => manifest.id === providerId)
       if (!provider) {
-        throw new Error(`Unknown provider "${providerId}"`)
+        pendingWrites.set(pendingKey(providerId, fieldKey), value)
+      } else {
+        writeProviderCredentialToStorage(provider, fieldKey, value, browserCredentialStorage)
       }
-      writeProviderCredentialToStorage(provider, fieldKey, value, browserCredentialStorage)
       window.dispatchEvent(new Event(CREDENTIALS_CHANGED_EVENT))
     },
     [providers],
   )
 
   const credentialValue = useCallback(
-    (providerId: string, fieldKey: string) => credentials[providerId]?.[fieldKey] ?? "",
+    (providerId: string, fieldKey: string) =>
+      pendingWrites.get(pendingKey(providerId, fieldKey)) ??
+      credentials[providerId]?.[fieldKey] ??
+      "",
     [credentials],
   )
 
