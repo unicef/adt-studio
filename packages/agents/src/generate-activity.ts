@@ -208,7 +208,9 @@ export async function generateActivity(
 
   // Run-level summary alongside the per-turn entries the agent loop already
   // emitted; the shared correlationId groups them in the "LLM Logs" tab. Only
-  // this entry knows whether a write actually landed.
+  // this entry knows whether a write actually landed. No `usage` here: the
+  // per-turn entries already carry it, and the stats endpoint sums usage
+  // across all rows — a run total on this row would double-count every token.
   try {
     const trajectoryLines: string[] = []
     trajectoryLines.push(`User request: ${opts.description.trim()}`)
@@ -242,7 +244,6 @@ export async function generateActivity(
       errorCount: bookTools.calls.filter((c) => c.error).length,
       attempt: 0,
       durationMs,
-      usage: run.usage,
       messages: [
         { role: "user", content: [{ type: "text", text: userPrompt }] },
         {
