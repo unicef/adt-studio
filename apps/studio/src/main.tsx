@@ -14,6 +14,7 @@ import { messages as esMessages } from "./locales/es.po"
 import { messages as frMessages } from "./locales/fr.po"
 import { messages as sqMessages } from "./locales/sq.po"
 import { getReleaseChannel } from "@/components/updates/release-banner-utils"
+import { initTheme } from "@/lib/theme"
 import { routeTree } from "./routeTree.gen"
 import "./styles/globals.css"
 import { LOCALES, activateLocale, getStoredLocale, matchSupportedLocale } from "./i18n/locales"
@@ -87,6 +88,9 @@ function PreviewSettingsListener(): null {
   usePreviewSettingsListener()
   return null
 }
+
+// Apply the user's stored theme and follow the OS while set to "system".
+initTheme()
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

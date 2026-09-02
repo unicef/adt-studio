@@ -479,6 +479,35 @@
   }
 }
 
+/* App-wide scrollbars: slim, themed, and out of the way. The thumb is drawn
+   inside a transparent border so it reads as a floating pill rather than a
+   full-height bar, and the track never paints a light strip on dark surfaces. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
 .wizard-scroll {
   scrollbar-width: thin;
   scrollbar-color: oklch(0.7 0 0 / 0.2) transparent;
@@ -638,9 +667,18 @@
   --brand-800: oklch(0.45 0.16 260);
   --brand-900: oklch(0.3 0.12 260);
   --brand-950: oklch(0.18 0.07 260);
+
+  /* Native scrollbars, form controls and text selection follow this. Without it
+     Chromium paints a light scrollbar over dark surfaces. */
+  color-scheme: light;
+  --scrollbar-thumb: oklch(0 0 0 / 0.18);
+  --scrollbar-thumb-hover: oklch(0 0 0 / 0.32);
 }
 
 .dark {
+  color-scheme: dark;
+  --scrollbar-thumb: oklch(1 0 0 / 0.18);
+  --scrollbar-thumb-hover: oklch(1 0 0 / 0.34);
   --background: oklch(0.15 0.02 250);
   --foreground: oklch(0.93 0.01 250);
   --card: oklch(0.17 0.02 250);
