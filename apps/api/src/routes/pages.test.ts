@@ -1369,14 +1369,20 @@ describe("Page routes", () => {
   })
 
   describe("sectionId stability across structural ops", () => {
-    /** Seed page 1 with `count` sections, ids `_sec001.._secNNN`. */
-    function seedSections(count: number, pageId = `${label}_p1`) {
+    /**
+     * Seed a page with sections carrying exactly these id sequence numbers.
+     * A gap in `seqs` models a page that has already been edited, which is the
+     * only state where a renumbering bug is visible: renumbering a *dense*
+     * sequence is the identity, so a test seeded densely can pass against the
+     * very bug it is meant to catch. Returns the version written.
+     */
+    function seedSectionSeqs(seqs: number[], pageId = `${label}_p1`): number {
       const storage = createBookStorage(label, tmpDir)
       try {
-        storage.putNodeData("page-sectioning", pageId, {
+        return storage.putNodeData("page-sectioning", pageId, {
           reasoning: "sectioned",
-          sections: Array.from({ length: count }, (_, i) => ({
-            sectionId: `${pageId}_sec${String(i + 1).padStart(3, "0")}`,
+          sections: seqs.map((seq) => ({
+            sectionId: `${pageId}_sec${String(seq).padStart(3, "0")}`,
             sectionType: "content",
             backgroundColor: "#ffffff",
             textColor: "#000000",
@@ -1384,10 +1390,10 @@ describe("Page routes", () => {
             isPruned: false,
             nodes: [
               {
-                nodeId: `${pageId}_n000${i + 1}`,
+                nodeId: `${pageId}_n000${seq}`,
                 isPruned: false,
                 role: "text",
-                text: `Section ${i + 1}`,
+                text: `Section ${seq}`,
               },
             ],
           })),
@@ -1395,6 +1401,15 @@ describe("Page routes", () => {
       } finally {
         storage.close()
       }
+    }
+
+    /** Seed page 1 with `count` sections, ids `_sec001.._secNNN`. Returns the
+     *  version written, so a test can restore back to it. */
+    function seedSections(count: number, pageId = `${label}_p1`): number {
+      return seedSectionSeqs(
+        Array.from({ length: count }, (_, i) => i + 1),
+        pageId
+      )
     }
 
     function readSectionIds(pageId = `${label}_p1`): string[] {
@@ -1470,6 +1485,87 @@ describe("Page routes", () => {
         `${label}_p1_sec004`,
         `${label}_p1_sec002`,
       ])
+    })
+
+    it("keeps the surviving ids on BOTH pages across a cross-page merge", async () => {
+      // Both pages start with gaps, so wholesale renumbering would be visible
+      // on each of them. Seeding densely hides the bug: removing the last
+      // section of a dense page and renumbering the rest is a no-op.
+      seedSectionSeqs([1, 4, 5], `${label}_p1`)
+      seedSectionSeqs([1, 3], `${label}_p2`)
+
+      // Move p2's first section back into p1's last. This is the op that used
+      // to renumber both pages wholesale — reassigning every later section's
+      // TOC entry, sign-language video and answer-text catalog keys on two
+      // pages at once. The existing tests for this endpoint use single-section
+      // pages, so nothing there could have caught it.
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p2/sections/0/merge-cross-page?direction=prev`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(200)
+
+      // Target: every id untouched. The receiving section absorbed nodes, not a
+      // new identity, and its neighbours kept their own.
+      expect(readSectionIds(`${label}_p1`)).toEqual([
+        `${label}_p1_sec001`,
+        `${label}_p1_sec004`,
+        `${label}_p1_sec005`,
+      ])
+      // Source: only the moved section's id retires; the survivor keeps `_sec003`
+      // rather than sliding down into the vacated `_sec001`.
+      expect(readSectionIds(`${label}_p2`)).toEqual([`${label}_p2_sec003`])
+
+      // The content really did move — otherwise the ids above would be stable
+      // for the trivial reason that nothing happened.
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const tgt = verify.getLatestNodeData("page-sectioning", `${label}_p1`)
+          ?.data as { sections: Array<{ nodes: Array<{ nodeId: string }> }> }
+        expect(tgt.sections[2].nodes.map((n) => n.nodeId)).toContain(
+          `${label}_p2_n0001`
+        )
+      } finally {
+        verify.close()
+      }
+    })
+
+    it("does not reissue a spent id after an earlier sectioning version is restored", async () => {
+      const seededVersion = seedSections(3)
+
+      const clone = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
+        { method: "POST" }
+      )
+      expect(clone.status).toBe(200)
+      expect(readSectionIds()).toContain(`${label}_p1_sec004`)
+
+      // Roll the node back to before `_sec004` existed. Restoring only moves
+      // the current-version pointer, so `_sec004` remains in history and must
+      // stay spent. A counter stored on the entity would have been rewound
+      // along with it and reissued `_sec004` to different content.
+      const restore = await app.request(
+        `/api/books/${label}/versions/page-sectioning/${label}_p1/restore`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ version: seededVersion }),
+        }
+      )
+      expect(restore.status).toBe(200)
+
+      const second = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
+        { method: "POST" }
+      )
+      expect(second.status).toBe(200)
+
+      // Structural ops currently read the latest version rather than the
+      // restored pointer, so today this holds for that reason too. The
+      // assertion is on the id space regardless: whoever makes a restore
+      // authoritative for these ops must keep the factory's history-wide
+      // high-water mark, or this fails.
+      expect(readSectionIds()).toContain(`${label}_p1_sec005`)
     })
 
     it("keeps a sign-language video attached to its section across a merge, and unassigns the retired one", async () => {
