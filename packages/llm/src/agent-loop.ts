@@ -220,7 +220,7 @@ export async function runAgentLoop(
       durationMs: Date.now() - t0,
       cacheHit: cached !== null,
       success: true,
-      errors: toolResults.filter((r) => r.isError).map((r) => String(r.result)),
+      errors: toolResults.filter((r) => r.isError).map(describeToolError),
       messages,
       response,
       toolResults,
@@ -286,6 +286,12 @@ async function executeToolCall(
       isError: true,
     }
   }
+}
+
+/** `isError` results always carry `{ error: string }` (see executeToolCall). */
+function describeToolError(result: AgentToolResult): string {
+  const error = (result.result as { error?: unknown } | null)?.error
+  return typeof error === "string" ? error : JSON.stringify(result.result)
 }
 
 interface TurnLogInput {
