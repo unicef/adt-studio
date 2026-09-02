@@ -23,6 +23,33 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-brand-950: var(--brand-950);
+
+  /* Pipeline stage palette (solid + light tint) — used by stage discs,
+   * badges, and the first-run feature tour. Hexes match stage-config.ts. */
+  --color-stage-extract: #2563eb;      --color-stage-extract-50: #eff6ff;
+  --color-stage-sectioning: #0284c7;   --color-stage-sectioning-50: #f0f9ff;
+  --color-stage-storyboard: #7c3aed;   --color-stage-storyboard-50: #f5f3ff;
+  --color-stage-captions: #0d9488;     --color-stage-captions-50: #f0fdfa;
+  --color-stage-quizzes: #ea580c;      --color-stage-quizzes-50: #fff7ed;
+  --color-stage-glossary: #65a30d;     --color-stage-glossary-50: #f7fee7;
+  --color-stage-toc: #d97706;          --color-stage-toc-50: #fffbeb;
+  --color-stage-translate: #db2777;    --color-stage-translate-50: #fdf2f8;
+  --color-stage-speech: #e11d48;       --color-stage-speech-50: #fff1f2;
+  --color-stage-sign: #0891b2;         --color-stage-sign-50: #ecfeff;
+  --color-stage-easy-read: #c026d3;    --color-stage-easy-read-50: #fdf4ff;
+  --color-stage-validation: #059669;   --color-stage-validation-50: #ecfdf5;
+  --color-stage-export: #4338ca;       --color-stage-export-50: #eef2ff;
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -69,6 +96,12 @@
   --animate-preview-label-enter: preview-label-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-onboarding-fade-up: onboarding-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-onboarding-fade-in: onboarding-fade-in 0.8s ease-out both;
+  --animate-hero-drift: hero-drift 14s ease-in-out infinite;
+  --animate-menu-in: menu-in 140ms cubic-bezier(0.23, 1, 0.32, 1);
+  --animate-content-in: content-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
+  --animate-eq: eq 1s ease-in-out infinite;
+  --animate-float-y: float-y 6s ease-in-out infinite;
+  --animate-flow-dot: flow-dot 3.4s ease-in-out infinite;
   --animate-onboarding-drift-a: onboarding-drift-a 22s ease-in-out infinite;
   --animate-onboarding-drift-b: onboarding-drift-b 28s ease-in-out infinite;
   --animate-onboarding-icon-float: onboarding-icon-float 5s ease-in-out infinite;
@@ -230,6 +263,32 @@
   }
 }
 
+@keyframes hero-drift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(20px, -14px); }
+}
+@keyframes menu-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes content-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes eq {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes flow-dot {
+  0% { left: 0; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
 @keyframes onboarding-drift-a {
   0%,
   100% {
@@ -412,6 +471,12 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  label[for],
+  summary {
+    cursor: pointer;
+  }
 }
 
 .wizard-scroll {
@@ -558,6 +623,21 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
   --radius: 0.625rem;
+
+  /* Brand blue ramp — the single hue that carries the product. --brand-600
+   * matches --primary; the lighter/darker steps power tints, chips and
+   * active states in the redesigned app shell. */
+  --brand-50: oklch(0.97 0.025 260);
+  --brand-100: oklch(0.94 0.05 260);
+  --brand-200: oklch(0.88 0.09 260);
+  --brand-300: oklch(0.8 0.13 260);
+  --brand-400: oklch(0.72 0.17 260);
+  --brand-500: oklch(0.66 0.189 260);
+  --brand-600: oklch(0.623 0.189 260);
+  --brand-700: oklch(0.55 0.18 260);
+  --brand-800: oklch(0.45 0.16 260);
+  --brand-900: oklch(0.3 0.12 260);
+  --brand-950: oklch(0.18 0.07 260);
 }
 
 .dark {
@@ -575,10 +655,13 @@
   --muted-foreground: oklch(0.65 0.03 250);
   --accent: oklch(0.25 0.03 250);
   --accent-foreground: oklch(0.93 0.01 250);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.28 0.03 250);
-  --input: oklch(0.25 0.03 250);
+  --destructive: oklch(0.645 0.203 25.5);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.34 0.03 250);
+  --input: oklch(0.32 0.03 250);
+  /* Stage glyphs that fail 3:1 on the dark card footer — lightened for dark only. */
+  --color-stage-storyboard: #a78bfa;
+  --color-stage-export: #818cf8;
   --ring: oklch(0.72 0.189 260);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
@@ -593,6 +676,56 @@
   --sidebar-accent-foreground: oklch(0.93 0.01 250);
   --sidebar-border: oklch(0.26 0.03 250);
   --sidebar-ring: oklch(0.45 0.04 250);
+
+  /* Brand ramp remapped for dark: lighter blues read as text/links, dark
+   * blues as tint surfaces. */
+  --brand-50: oklch(0.26 0.05 260);
+  --brand-100: oklch(0.31 0.07 260);
+  --brand-200: oklch(0.37 0.09 260);
+  --brand-300: oklch(0.45 0.12 260);
+  --brand-400: oklch(0.55 0.15 260);
+  --brand-500: oklch(0.66 0.189 260);
+  --brand-600: oklch(0.72 0.189 260);
+  --brand-700: oklch(0.8 0.13 260);
+  --brand-800: oklch(0.86 0.11 260);
+  --brand-900: oklch(0.92 0.08 260);
+  --brand-950: oklch(0.96 0.04 260);
+}
+
+/* Beta builds swap the brand hue to the beta purple (matches the beta app
+ * icon and release banner). The `beta` class is set on <html> at boot when
+ * the running version is on the beta channel. */
+.beta {
+  --primary: oklch(0.558 0.25 303);
+  --ring: oklch(0.558 0.25 303);
+  --brand-50: oklch(0.975 0.016 305);
+  --brand-100: oklch(0.945 0.035 305);
+  --brand-200: oklch(0.89 0.07 304);
+  --brand-300: oklch(0.81 0.12 304);
+  --brand-400: oklch(0.7 0.19 304);
+  --brand-500: oklch(0.62 0.24 303);
+  --brand-600: oklch(0.558 0.25 303);
+  --brand-700: oklch(0.49 0.24 302);
+  --brand-800: oklch(0.42 0.2 303);
+  --brand-900: oklch(0.36 0.16 304);
+  --brand-950: oklch(0.28 0.12 303);
+}
+
+.dark.beta {
+  --primary: oklch(0.7 0.19 304);
+  --ring: oklch(0.7 0.19 304);
+  --sidebar-primary: oklch(0.7 0.19 304);
+  --brand-50: oklch(0.27 0.09 303);
+  --brand-100: oklch(0.32 0.11 303);
+  --brand-200: oklch(0.38 0.14 303);
+  --brand-300: oklch(0.46 0.18 303);
+  --brand-400: oklch(0.56 0.22 303);
+  --brand-500: oklch(0.64 0.21 304);
+  --brand-600: oklch(0.7 0.19 304);
+  --brand-700: oklch(0.79 0.13 305);
+  --brand-800: oklch(0.86 0.09 305);
+  --brand-900: oklch(0.92 0.06 306);
+  --brand-950: oklch(0.96 0.03 306);
 }
 
 .drag-region {

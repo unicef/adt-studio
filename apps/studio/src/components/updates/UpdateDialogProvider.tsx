@@ -16,11 +16,13 @@ import { isElectron } from "@/lib/utils"
 
 interface UpdateDialogContextValue {
   openUpdateDialog: () => void
+  showWhatsNew: () => void
   hasPendingUpdate: boolean
 }
 
 const UpdateDialogContext = createContext<UpdateDialogContextValue>({
   openUpdateDialog: () => {},
+  showWhatsNew: () => {},
   hasPendingUpdate: false,
 })
 
@@ -37,6 +39,8 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
   const [postUpdate, setPostUpdate] = useState<ElectronPostUpdateInfo | null>(
     null,
   )
+  const [currentRelease, setCurrentRelease] =
+    useState<ElectronAvailableRelease | null>(null)
   const [whatsNewOpen, setWhatsNewOpen] = useState(false)
 
   const phase = status.phase
@@ -71,15 +75,27 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
   const showWhatsNew = useCallback(() => {
     setOpen(false)
     setWhatsNewOpen(true)
-  }, [])
+    if (currentRelease || !isElectron() || !window.api?.updates?.listVersions)
+      return
+    window.api.updates
+      .listVersions()
+      .then((releases) => {
+        const current =
+          releases.find((r) => r.direction === "current") ??
+          releases.find((r) => r.version === currentVersion) ??
+          null
+        if (current) setCurrentRelease(current)
+      })
+      .catch(() => {})
+  }, [currentRelease, currentVersion])
 
   const value = useMemo(
-    () => ({ openUpdateDialog, hasPendingUpdate }),
-    [openUpdateDialog, hasPendingUpdate],
+    () => ({ openUpdateDialog, showWhatsNew, hasPendingUpdate }),
+    [openUpdateDialog, showWhatsNew, hasPendingUpdate],
   )
 
   const whatsNewVersion = postUpdate?.version ?? currentVersion ?? ""
-  const whatsNewNotes = postUpdate?.releaseNotes
+  const whatsNewNotes = postUpdate?.releaseNotes ?? currentRelease?.releaseNotes
   const showPostUpdate = Boolean(postUpdate) || whatsNewOpen
 
   return (

@@ -23,7 +23,7 @@ import {
   configurePromptEditor,
   PROMPT_EDITOR_LANGUAGE,
   PROMPT_EDITOR_OPTIONS,
-  PROMPT_EDITOR_THEME,
+  promptEditorTheme,
 } from "./promptEditor"
 import {
   promptModelForSelectedModel,
@@ -31,6 +31,7 @@ import {
 } from "./promptModel"
 import type { PromptViewerProps } from "./types"
 import { useEffectiveDefaultModel } from "@/hooks/use-effective-default-model"
+import { useIsDarkMode } from "@/hooks/use-dark-mode"
 import { useEffectiveBasePromptModel } from "@/hooks/use-effective-base-prompt-model"
 
 export function PromptViewer({
@@ -52,6 +53,7 @@ export function PromptViewer({
 }: PromptViewerProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const isDark = useIsDarkMode()
   const effectiveDefaultModel = useEffectiveDefaultModel(bookLabel)
   const effectiveBasePromptModel = useEffectiveBasePromptModel(bookLabel)
   const resolvedModelPlaceholder = modelPlaceholder ?? effectiveDefaultModel
@@ -151,7 +153,7 @@ export function PromptViewer({
     <Editor
       value={displayContent}
       language={PROMPT_EDITOR_LANGUAGE}
-      theme={PROMPT_EDITOR_THEME}
+      theme={promptEditorTheme(isDark)}
       beforeMount={configurePromptEditor}
       height="100%"
       width="100%"

@@ -13,6 +13,7 @@ import { messages as ptBRMessages } from "./locales/pt-BR.po"
 import { messages as esMessages } from "./locales/es.po"
 import { messages as frMessages } from "./locales/fr.po"
 import { messages as sqMessages } from "./locales/sq.po"
+import { getReleaseChannel } from "@/components/updates/release-banner-utils"
 import { routeTree } from "./routeTree.gen"
 import "./styles/globals.css"
 import { LOCALES, activateLocale, getStoredLocale, matchSupportedLocale } from "./i18n/locales"
@@ -37,6 +38,11 @@ function detectLocale(): AppLocale {
 i18n.load({ en: enMessages, "pt-BR": ptBRMessages, es: esMessages, fr: frMessages, sq: sqMessages })
 // activateLocale also sets <html lang> so screen readers use the correct voice.
 activateLocale(detectLocale())
+
+const appVersion = window.api?.version
+if (appVersion && getReleaseChannel(appVersion) === "beta") {
+  document.documentElement.classList.add("beta")
+}
 
 if (import.meta.env.VITE_WORKSPACE_NAME) {
   // eslint-disable-next-line lingui/no-unlocalized-strings -- dev-only tab label; env var is unset in production builds
