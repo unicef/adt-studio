@@ -169,7 +169,7 @@ export function PageGroupingMode() {
         onValueChange={(v) => form.setFieldValue("pageGrouping", v)}
         color={accent.bg}
       />
-      {recommendedOption && preset && (
+      {recommendedOption && preset?.id === "storybook" && (
         <p className="text-xs text-[#737373]">
           <Trans>
             For {i18n._(preset.title)}, we recommend {recommendedOption.label}.
@@ -178,4 +178,5 @@ export function PageGroupingMode() {
       )}
     </div>
   )
+  
 }
