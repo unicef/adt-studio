@@ -247,7 +247,7 @@ describe("Package routes", () => {
       const assignedPackage = await packageBook()
       expect(assignedPackage.version).not.toBe(unassignedPackage.version)
       expect(JSON.parse(fs.readFileSync(videosPath, "utf-8"))).toEqual({
-        "video-1": "sl_pg001_sec001.mp4",
+        pg001_sec001: "sl_pg001_sec001.mp4",
       })
       expect(JSON.parse(fs.readFileSync(configPath, "utf-8")).features.signLanguage).toBe(true)
 
