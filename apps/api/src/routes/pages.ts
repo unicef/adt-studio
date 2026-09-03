@@ -736,6 +736,34 @@ function migrateEditableActivities(
 }
 
 /**
+ * Every `${pageId}_sec${NNN}` id that appears in *any* stored version of this
+ * page's sectioning — the ids that are spent and must never be handed out
+ * again.
+ *
+ * Scanned out of the raw JSON rather than off parsed rows on purpose. A version
+ * that no longer satisfies today's schema (a legacy row with no `sectionId`
+ * field, a shape from before a migration) still burned the ids it contains, and
+ * skipping it because `safeParse` failed would let them be reissued. Matching
+ * text is a non-risk in the other direction: an incidental `_secNNN` inside
+ * some node's text only makes the set larger, which can never cause reuse.
+ */
+function collectSpentSectionIds(storage: Storage, pageId: string): Set<string> {
+  const spent = new Set<string>()
+  const pattern = new RegExp(
+    `${pageId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_sec\\d+`,
+    "g"
+  )
+  for (const node of [PAGE_SECTIONING_NODE, FIXED_LAYOUT_SECTIONING_NODE]) {
+    for (const row of storage.getAllNodeVersions(node, pageId)) {
+      for (const match of JSON.stringify(row.data).matchAll(pattern)) {
+        spent.add(match[0])
+      }
+    }
+  }
+  return spent
+}
+
+/**
  * Mint `${pageId}_sec${NNN}` ids that no version of this page's sectioning has
  * ever used, so a section's id is immutable for its whole life and a retired id
  * is never handed out again.
@@ -751,18 +779,12 @@ function migrateEditableActivities(
  * counter back and reissue every id allocated since.
  */
 function createSectionIdFactory(storage: Storage, pageId: string): () => string {
-  const used = new Set<number>()
-  for (const node of [PAGE_SECTIONING_NODE, FIXED_LAYOUT_SECTIONING_NODE]) {
-    for (const row of storage.getAllNodeVersions(node, pageId)) {
-      const parsed = PageSectioningOutput.safeParse(row.data)
-      if (!parsed.success) continue
-      for (const section of parsed.data.sections) {
-        const id = parseSectionId(section.sectionId)
-        if (id) used.add(id.seq)
-      }
-    }
+  let highWaterMark = 0
+  for (const id of collectSpentSectionIds(storage, pageId)) {
+    const parsed = parseSectionId(id)
+    if (parsed) highWaterMark = Math.max(highWaterMark, parsed.seq)
   }
-  let next = (used.size > 0 ? Math.max(...used) : 0) + 1
+  let next = highWaterMark + 1
   return () => {
     if (next > MAX_SECTION_SEQ) {
       // Unreachable in practice: each structural op allocates one id, so this
@@ -1424,6 +1446,18 @@ export function createPageRoutes(
         )
       }
     }
+    // Retire before deleting, and in one pass so the whole reconcile costs a
+    // single `toc-generation` version. `deletePage` drops the page's entire
+    // node_data history, including the sectioning the id factory reads its
+    // high-water mark from — so a page later re-created under the same id
+    // restarts at `_sec001`. Any `toc-generation` entry or sign-language video
+    // still pointing at an id that page spent would then silently reattach to
+    // unrelated content, which is exactly what id immutability prevents
+    // everywhere else.
+    const spentOnRemovedPages = toRemove.flatMap((id) => [
+      ...collectSpentSectionIds(storage, id),
+    ])
+    retireSectionIds(storage, spentOnRemovedPages)
     for (const id of toRemove) storage.deletePage(id)
 
     return c.json({

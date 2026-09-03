@@ -1568,6 +1568,33 @@ describe("Page routes", () => {
       expect(readSectionIds()).toContain(`${label}_p1_sec005`)
     })
 
+    it("counts ids from history versions that no longer satisfy the schema", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        // A stored version that fails `PageSectioningOutput` today — a legacy
+        // row, or a shape from before a migration. It still spent `_sec005`.
+        // Reading the high-water mark off parsed rows only would skip it and
+        // reissue that id onto unrelated content.
+        storage.putNodeData("page-sectioning", `${label}_p1`, {
+          sections: [{ sectionId: `${label}_p1_sec005`, legacyShape: true }],
+        })
+      } finally {
+        storage.close()
+      }
+      seedSections(1)
+
+      const clone = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
+        { method: "POST" }
+      )
+      expect(clone.status).toBe(200)
+
+      expect(readSectionIds()).toEqual([
+        `${label}_p1_sec001`,
+        `${label}_p1_sec006`,
+      ])
+    })
+
     it("keeps a sign-language video attached to its section across a merge, and unassigns the retired one", async () => {
       seedSections(3)
 

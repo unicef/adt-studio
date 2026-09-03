@@ -1720,6 +1720,76 @@ describe("packageAdtWeb", () => {
     expect(configJson.features.activities).toBe(true)
   })
 
+  it("warns instead of silently dropping a rendered section with no sectioning row", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const pages: PageData[] = [
+      { pageId: "pg001", pageNumber: 1, text: "Page one" },
+    ]
+
+    // Rendering has two entries, sectioning only one — the state a
+    // `page-sectioning` version restore leaves behind, since restoring does not
+    // resync `web-rendering`. Index 1 has no id to package under.
+    const storage = createMockStorage(pages, {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "ok", html: "<section><p>Kept</p></section>" },
+            { sectionIndex: 1, sectionType: "content", reasoning: "ok", html: "<section><p>Orphan</p></section>" },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+      },
+    })
+
+    const messages: string[] = []
+    await packageAdtWeb(
+      storage,
+      {
+        bookDir,
+        label: "book",
+        language: "en",
+        outputLanguages: ["en"],
+        title: "Book Title",
+        webAssetsDir,
+      },
+      {
+        emit: (event) => {
+          if (event.type === "step-progress") messages.push(event.message)
+        },
+      },
+    )
+
+    // The orphan is still skipped — a positional `_sec002` guess could collide
+    // with a real id — but the drop is now reported rather than invisible.
+    const pageList = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "pages.json"), "utf-8"),
+    ) as Array<{ section_id: string }>
+    expect(pageList.map((p) => p.section_id)).toEqual(["pg001_sec001"])
+
+    const warning = messages.find((m) => m.startsWith("Warning:"))
+    expect(warning).toContain("skipped 1 rendered section(s) with no sectioning row")
+    expect(warning).toContain("pg001[1]")
+  })
+
   it("converts LaTeX math to MathML in output HTML and does not include MathJax script", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")

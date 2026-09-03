@@ -360,6 +360,10 @@ export async function packageAdtWeb(
   let hasActivitySections = false
   const copiedImages = new Set<string>()
   const sectionIdToPageIndex = new Map<string, number>()
+  // Rendering entries with no sectioning row behind them. They are dropped from
+  // the bundle (see the skip below), which is silent otherwise — the page just
+  // isn't there. Reported at the end so a stale rendering is diagnosable.
+  const orphanedRenderings: string[] = []
 
   // Build a map from afterPageId -> quizzes for interleaving
   const quizzesByAfterPageId = new Map<string, Quiz[]>()
@@ -395,10 +399,14 @@ export async function packageAdtWeb(
           // sync. sectionIds are allocated once and never reused, so a guessed
           // `_secNNN` could collide with a real section and have two pages write
           // the same file. Skip the orphan entry instead.
-          if (!sectionMeta || sectionMeta.isPruned) continue
+          if (!sectionMeta) {
+            orphanedRenderings.push(`${page.pageId}[${rs.sectionIndex}]`)
+            continue
+          }
+          if (sectionMeta.isPruned) continue
           const sectionId = sectionMeta.sectionId
 
-          if (rs.sectionType.startsWith("activity_") || sectionMeta?.sectionType.startsWith("activity_")) {
+          if (rs.sectionType.startsWith("activity_") || sectionMeta.sectionType.startsWith("activity_")) {
             hasActivitySections = true
           }
 
@@ -538,6 +546,17 @@ export async function packageAdtWeb(
 
       pageList.push({ section_id: quizId, href: quizFilename })
     }
+  }
+
+  if (orphanedRenderings.length > 0) {
+    progress.emit({
+      type: "step-progress",
+      step,
+      message:
+        `Warning: skipped ${orphanedRenderings.length} rendered section(s) with no sectioning row ` +
+        `(${orphanedRenderings.join(", ")}). They are absent from the bundle. ` +
+        `Re-run the storyboard render for these pages to bring rendering back in sync with sectioning.`,
+    })
   }
 
   // ------------------------------------------------------------------
