@@ -374,6 +374,13 @@ export {
 } from "./toc.js"
 
 export {
+  READING_ORDER_NODE,
+  READING_ORDER_ITEM_ID,
+  ReadingOrderItem,
+  ReadingOrderOutput,
+} from "./reading-order.js"
+
+export {
   AccessibilityNodeResult,
   AccessibilityFinding,
   AccessibilityPageResult,

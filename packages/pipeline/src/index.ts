@@ -414,6 +414,15 @@ export {
   PAGE_SECTIONING_NODE,
 } from "./render-sectioning.js"
 export {
+  resolveReadingOrder,
+  defaultReadingOrder,
+  toPageEntry,
+  readingOrderHref,
+  type ResolvedItem,
+  type ResolvedReadingOrder,
+  type PageEntry,
+} from "./reading-order.js"
+export {
   extractEditableActivity,
   supportsEditableActivity,
   type ExtractResult,
