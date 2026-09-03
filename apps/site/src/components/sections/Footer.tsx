@@ -59,7 +59,7 @@ const COLUMNS: LinkCol[] = [
         href: "https://github.com/unicef/adt-studio/blob/main/docs/DECISIONS.md",
         external: true,
       },
-      { label: msg`License`, href: "https://opensource.org/licenses/MIT", external: true },
+      { label: msg`License`, href: "https://www.gnu.org/licenses/agpl-3.0.html", external: true },
     ],
   },
 ];
@@ -127,7 +127,7 @@ export function Footer() {
         <div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-[color:var(--color-border)] pt-6 text-xs text-[color:var(--color-muted-foreground)] sm:flex-row sm:items-center">
           <div>
             <Trans>
-              &copy; {new Date().getFullYear()} ADT Studio — MIT licensed.
+              &copy; {new Date().getFullYear()} ADT Studio — AGPL-3.0 licensed.
             </Trans>
           </div>
           <div className="flex items-center gap-2 font-mono">

@@ -26,8 +26,8 @@ msgid "{0} latest is <0>{1}</0> — the project is on <1>{2}</1>. A {3} build fo
 msgstr "La última versión de {0} es <0>{1}</0> — el proyecto está en <1>{2}</1>. Aún no hay un build de {3} para la nueva etiqueta."
 
 #. placeholder {0}: new Date().getFullYear()
-msgid "© {0} ADT Studio — MIT licensed."
-msgstr "© {0} ADT Studio — Licencia MIT."
+msgid "© {0} ADT Studio — AGPL-3.0 licensed."
+msgstr "© {0} ADT Studio — Licencia AGPL-3.0."
 
 msgid "4 languages"
 msgstr "4 idiomas"
@@ -64,6 +64,9 @@ msgstr "ADT Studio está actualmente en"
 
 msgid "ADT Studio takes one PDF and rebuilds it as a fully-editable, fully-yours accessible book — with the pieces that used to take a team of specialists."
 msgstr "ADT Studio toma un PDF y lo reconstruye como un libro accesible completamente editable y tuyo — con las piezas que solían requerir un equipo de especialistas."
+
+msgid "AGPL-3.0 licensed"
+msgstr "Licencia AGPL-3.0"
 
 msgid "AI providers & cost"
 msgstr "Proveedores de IA y costes"
@@ -170,9 +173,6 @@ msgstr "Cerrar menú"
 msgid "Coming soon"
 msgstr "Próximamente"
 
-#~ msgid "Community & Support"
-#~ msgstr "Comunidad y soporte"
-
 msgid "Configure each stage — extract, storyboard, layout — then let ADT Studio build the book. Review the output, correct anything that needs a human touch."
 msgstr "Configura cada etapa — extracción, storyboard, diseño — luego deja que ADT Studio construya el libro. Revisa el resultado, corrige cualquier cosa que necesite un toque humano."
 
@@ -188,9 +188,6 @@ msgstr "Convierte un PDF en un ADT"
 msgid "Converting"
 msgstr "Conversión"
 
-#~ msgid "Core Concepts"
-#~ msgstr "Conceptos básicos"
-
 msgid "Couldn’t load the changelog"
 msgstr "No se pudo cargar el registro de cambios"
 
@@ -199,9 +196,6 @@ msgstr "No se pudo acceder a GitHub"
 
 msgid "Cover · Chapter 1"
 msgstr "Portada · Capítulo 1"
-
-#~ msgid "Create a New Project"
-#~ msgstr "Crear un proyecto nuevo"
 
 msgid "Custom"
 msgstr "Personalizado"
@@ -427,9 +421,6 @@ msgstr "Agrupando contenido por propósito, luego diseñando cada sección como 
 msgid "Guidelines"
 msgstr "Directrices"
 
-#~ msgid "Help"
-#~ msgstr "Ayuda"
-
 msgid "Here's what shipped in the latest version — and there are plenty more where this came from."
 msgstr "Esto es lo que llegó en la última versión — y hay mucho más de donde vino esto."
 
@@ -475,9 +466,6 @@ msgstr "Instalación"
 msgid "Interactive activities"
 msgstr "Actividades interactivas"
 
-#~ msgid "Introduction"
-#~ msgstr "Introducción"
-
 msgid "Issues"
 msgstr "Problemas"
 
@@ -502,9 +490,6 @@ msgstr "Suma traducciones, texto a voz y un glosario — todo inspeccionable, al
 msgid "Laying out spreads"
 msgstr "Diseñando pliegos"
 
-#~ msgid "Learn"
-#~ msgstr "Aprender"
-
 msgid "License"
 msgstr "Licencia"
 
@@ -514,9 +499,6 @@ msgstr "Escucha el libro, página por página."
 msgid "LIVE"
 msgstr "EN VIVO"
 
-#~ msgid "LLM Providers & API Keys"
-#~ msgstr "Proveedores de LLM y claves de API"
-
 msgid "Localize your ADT"
 msgstr "Localiza tu ADT"
 
@@ -525,9 +507,6 @@ msgstr "Hecho posible gracias a"
 
 msgid "Math that reads aloud"
 msgstr "Matemáticas que se leen en voz alta"
-
-msgid "MIT licensed"
-msgstr "Licencia MIT"
 
 msgid "Narration · 0:42"
 msgstr "Narración · 0:42"
@@ -608,9 +587,6 @@ msgstr "Pipeline de escritorio de código abierto para convertir PDFs en libros 
 msgid "Output"
 msgstr "Salida"
 
-#~ msgid "Output Bundles"
-#~ msgstr "Paquetes de salida"
-
 msgid "Overview"
 msgstr "Descripción general"
 
@@ -641,17 +617,11 @@ msgstr "Personaliza aún más"
 msgid "Pick a preset"
 msgstr "Elige un preset"
 
-#~ msgid "Pipeline"
-#~ msgstr "Pipeline"
-
 msgid "Pipeline · extract"
 msgstr "Pipeline · extracción"
 
 msgid "Pipeline · storyboard"
 msgstr "Pipeline · storyboard"
-
-#~ msgid "Pipeline Overview"
-#~ msgstr "Descripción del pipeline"
 
 msgid "Play"
 msgstr "Reproducir"
@@ -685,9 +655,6 @@ msgstr "Proyecto"
 
 msgid "Project Archive"
 msgstr "Archivo del proyecto"
-
-#~ msgid "Quick Start"
-#~ msgstr "Inicio rápido"
 
 msgid "Quickstart"
 msgstr "Inicio rápido"
@@ -837,12 +804,6 @@ msgstr "Con el apoyo de"
 
 msgid "Table of contents"
 msgstr "Índice"
-
-#~ msgid "Table of Contents"
-#~ msgstr "Tabla de contenidos"
-
-#~ msgid "Templates"
-#~ msgstr "Plantillas"
 
 msgid "Text and sign language, side by side."
 msgstr "Texto y lengua de signos, lado a lado."

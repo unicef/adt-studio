@@ -26,8 +26,8 @@ msgid "{0} latest is <0>{1}</0> — the project is on <1>{2}</1>. A {3} build fo
 msgstr "La dernière version de {0} est <0>{1}</0> — le projet est sur <1>{2}</1>. Un build {3} pour le nouveau tag n'est pas encore disponible."
 
 #. placeholder {0}: new Date().getFullYear()
-msgid "© {0} ADT Studio — MIT licensed."
-msgstr "© {0} ADT Studio — sous licence MIT."
+msgid "© {0} ADT Studio — AGPL-3.0 licensed."
+msgstr "© {0} ADT Studio — sous licence AGPL-3.0."
 
 msgid "4 languages"
 msgstr "4 langues"
@@ -64,6 +64,9 @@ msgstr "ADT Studio est actuellement en"
 
 msgid "ADT Studio takes one PDF and rebuilds it as a fully-editable, fully-yours accessible book — with the pieces that used to take a team of specialists."
 msgstr "ADT Studio prend un PDF et le reconstruit en un livre accessible entièrement éditable, entièrement à vous — avec les éléments qui nécessitaient auparavant une équipe de spécialistes."
+
+msgid "AGPL-3.0 licensed"
+msgstr "Sous licence AGPL-3.0"
 
 msgid "AI providers & cost"
 msgstr "Fournisseurs d'IA et coûts"
@@ -170,9 +173,6 @@ msgstr "Fermer le menu"
 msgid "Coming soon"
 msgstr "Bientôt disponible"
 
-#~ msgid "Community & Support"
-#~ msgstr "Communauté et assistance"
-
 msgid "Configure each stage — extract, storyboard, layout — then let ADT Studio build the book. Review the output, correct anything that needs a human touch."
 msgstr "Configurez chaque étape — extraction, storyboard, mise en page — puis laissez ADT Studio construire le livre. Vérifiez le résultat, corrigez tout ce qui nécessite une intervention humaine."
 
@@ -188,9 +188,6 @@ msgstr "Convertir un PDF en ADT"
 msgid "Converting"
 msgstr "Conversion"
 
-#~ msgid "Core Concepts"
-#~ msgstr "Concepts clés"
-
 msgid "Couldn’t load the changelog"
 msgstr "Impossible de charger le journal des modifications"
 
@@ -199,9 +196,6 @@ msgstr "Impossible d'atteindre GitHub"
 
 msgid "Cover · Chapter 1"
 msgstr "Couverture · Chapitre 1"
-
-#~ msgid "Create a New Project"
-#~ msgstr "Créer un nouveau projet"
 
 msgid "Custom"
 msgstr "Personnalisé"
@@ -427,9 +421,6 @@ msgstr "Regrouper le contenu par objectif, puis disposer chaque section en HTML 
 msgid "Guidelines"
 msgstr "Directives"
 
-#~ msgid "Help"
-#~ msgstr "Aide"
-
 msgid "Here's what shipped in the latest version — and there are plenty more where this came from."
 msgstr "Voici ce qui a été livré dans la dernière version — et ce n'est qu'un début."
 
@@ -475,9 +466,6 @@ msgstr "Installation"
 msgid "Interactive activities"
 msgstr "Activités interactives"
 
-#~ msgid "Introduction"
-#~ msgstr "Introduction"
-
 msgid "Issues"
 msgstr "Problèmes"
 
@@ -502,9 +490,6 @@ msgstr "Ajoutez des traductions, de la synthèse vocale et un glossaire — tous
 msgid "Laying out spreads"
 msgstr "Mise en page des doubles pages"
 
-#~ msgid "Learn"
-#~ msgstr "Apprendre"
-
 msgid "License"
 msgstr "Licence"
 
@@ -514,9 +499,6 @@ msgstr "Écoutez le livre, page par page."
 msgid "LIVE"
 msgstr "EN DIRECT"
 
-#~ msgid "LLM Providers & API Keys"
-#~ msgstr "Fournisseurs de LLM et clés d'API"
-
 msgid "Localize your ADT"
 msgstr "Localisez votre ADT"
 
@@ -525,9 +507,6 @@ msgstr "Rendu possible par"
 
 msgid "Math that reads aloud"
 msgstr "Des maths lues à voix haute"
-
-msgid "MIT licensed"
-msgstr "Sous licence MIT"
 
 msgid "Narration · 0:42"
 msgstr "Narration · 0:42"
@@ -608,9 +587,6 @@ msgstr "Pipeline de bureau open-source pour transformer les PDF en livres access
 msgid "Output"
 msgstr "Sortie"
 
-#~ msgid "Output Bundles"
-#~ msgstr "Paquets de sortie"
-
 msgid "Overview"
 msgstr "Aperçu"
 
@@ -641,17 +617,11 @@ msgstr "Personnaliser davantage"
 msgid "Pick a preset"
 msgstr "Choisir un préréglage"
 
-#~ msgid "Pipeline"
-#~ msgstr "Pipeline"
-
 msgid "Pipeline · extract"
 msgstr "Pipeline · extraction"
 
 msgid "Pipeline · storyboard"
 msgstr "Pipeline · storyboard"
-
-#~ msgid "Pipeline Overview"
-#~ msgstr "Aperçu du pipeline"
 
 msgid "Play"
 msgstr "Lire"
@@ -685,9 +655,6 @@ msgstr "Projet"
 
 msgid "Project Archive"
 msgstr "Archive du projet"
-
-#~ msgid "Quick Start"
-#~ msgstr "Démarrage rapide"
 
 msgid "Quickstart"
 msgstr "Démarrage rapide"
@@ -837,12 +804,6 @@ msgstr "Avec le soutien de"
 
 msgid "Table of contents"
 msgstr "Table des matières"
-
-#~ msgid "Table of Contents"
-#~ msgstr "Table des matières"
-
-#~ msgid "Templates"
-#~ msgstr "Modèles"
 
 msgid "Text and sign language, side by side."
 msgstr "Texte et langue des signes, côte à côte."
