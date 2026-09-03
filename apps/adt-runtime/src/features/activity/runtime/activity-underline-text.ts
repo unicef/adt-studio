@@ -13,6 +13,7 @@ import {
 import { playActivitySound } from "@/features/activity/runtime/sounds"
 import { showActivityProgressToast } from "@/features/activity/lib/progress-toast"
 import { announceToScreenReader } from "@/shared/lib/aria-live"
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 // :not([data-activity-variant="stepper"]) — sections converted to the
 // step-by-step presentation are rendered by activity-stepper.tsx instead.
@@ -315,7 +316,7 @@ export function initializeUnderlineTextActivity(): (() => void) | null {
     const state = store.get(submitStateAtom)
     if (state === "next") {
       const href = findNextPageHref()
-      if (href) window.location.href = href
+      if (href) navigateToPage(href)
       return
     }
     if (!anySelected()) return
@@ -409,7 +410,7 @@ export function initializeUnderlineTextActivity(): (() => void) | null {
 
   function handleSkip(): void {
     const href = findNextPageHref()
-    if (href) window.location.href = href
+    if (href) navigateToPage(href)
   }
 
   section.setAttribute("role", "group")

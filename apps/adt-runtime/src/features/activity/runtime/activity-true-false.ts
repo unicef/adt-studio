@@ -31,6 +31,7 @@ import {
 import { playActivitySound } from "./sounds"
 import { showActivityProgressToast } from "../lib/progress-toast"
 import { announceToScreenReader } from "../../../shared/lib/aria-live"
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 // :not([data-activity-variant="stepper"]) — sections converted to the
 // step-by-step presentation are rendered by activity-stepper.tsx instead.
@@ -251,7 +252,7 @@ export function initializeTrueFalseActivity(): (() => void) | null {
     const state = store.get(submitStateAtom)
     if (state === "next") {
       const href = findNextPageHref()
-      if (href) window.location.href = href
+      if (href) navigateToPage(href)
       return
     }
 
@@ -296,7 +297,7 @@ export function initializeTrueFalseActivity(): (() => void) | null {
 
   function handleSkip(): void {
     const href = findNextPageHref()
-    if (href) window.location.href = href
+    if (href) navigateToPage(href)
   }
 
   attachRadioListeners()

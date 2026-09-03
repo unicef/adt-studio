@@ -9,6 +9,7 @@ import {
 import { dockMenuValueAtom } from "@/shared/state/ui.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { DockIconButton } from "@/features/dock/components/DockIconButton";
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 /**
  * Section IDs encode their page range, e.g.:
@@ -70,7 +71,7 @@ export function PageNav() {
     // rather than re-opening. Playback resumes independently via the
     // persisted `isPlaying` flag, so audio keeps reading the new page.
     if (dockMenuValue === "audio") setDockMenuValue("");
-    window.location.href = href;
+    navigateToPage(href);
   };
 
   return (
@@ -84,8 +85,19 @@ export function PageNav() {
         <ChevronRight />
       </DockIconButton>
 
+      {/* Reserve the widest page number this book can reach. `tabular-nums`
+          makes every digit one `ch` wide, so the reservation is exact. Without
+          it the counter gains a digit at page 10 (and again at 100) and both
+          arrows visibly jump outwards mid-book. Inline rather than a utility
+          class: each book ships a stylesheet generated when it was packaged, so
+          a newly introduced Tailwind class is absent from books already built. */}
       <div className="order-3 min-w-12 flex text-base tabular-nums px-2 text-foreground/80 select-none">
-        <span className="font-medium text-foreground">{pageNumber ?? ""}</span>
+        <span
+          className="font-medium text-foreground text-right"
+          style={{ minWidth: `${String(totalPages || 1).length}ch` }}
+        >
+          {pageNumber ?? ""}
+        </span>
         <span className="text-muted-foreground"> /</span>
         {totalPages > 0 && (
           <span className="text-muted-foreground">{totalPages}</span>

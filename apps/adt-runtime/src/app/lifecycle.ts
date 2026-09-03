@@ -49,6 +49,7 @@ import { glossaryDataAtom } from "@/features/glossary/state/glossary.atoms"
 import {
   currentPageNumberAtom,
   currentSectionIdAtom,
+  pageEpochAtom,
   pagesAtom,
   tocAtom,
 } from "@/features/navigation/state/nav.atoms"
@@ -156,6 +157,74 @@ function readPersistedLanguage(): string | null {
   }
 }
 
+let activityDisposers: Array<() => void> = []
+
+/**
+ * Release the previous page's activity initializers.
+ *
+ * Most initializers only bind to nodes inside `#content`, which a swap throws
+ * away — but the word-bank, quiz, and stepper types also attach `keydown` /
+ * drag handlers to `document`, which outlives the swap. Without this the
+ * listeners accumulate one set per page turn and the discarded ones keep
+ * responding to keystrokes on behalf of a page the reader has left.
+ */
+function disposeActivityInitializers(): void {
+  for (const dispose of activityDisposers) {
+    try {
+      dispose()
+    } catch (err) {
+      console.warn("Activity teardown error", err)
+    }
+  }
+  activityDisposers = []
+}
+
+/**
+ * Bind the runtime to whatever page content is currently in the DOM: read the
+ * per-page metas into atoms, apply translations / glossary highlights, reveal
+ * `#content`, then hand each activity type its initializer.
+ *
+ * Called once from `bootRuntime` and again after every in-place page swap
+ * (see `features/navigation/lib/page-swap.ts`), so everything here must be safe
+ * to re-run against a fresh `#content` subtree.
+ */
+export function initializePageContent(): void {
+  const store = getDefaultStore()
+  store.set(currentSectionIdAtom, readCurrentSectionId())
+  store.set(currentPageNumberAtom, readCurrentPageNumber())
+  // Page-type signal (fixed for this page) + initial mode toggle.
+  const isActivity = readIsActivityPage()
+  store.set(isActivityPageAtom, isActivity)
+  store.set(activityModeAtom, isActivity)
+
+  applyDOMTranslations()
+
+  showMainContent()
+  processGlossaryLocateHint()
+
+  disposeActivityInitializers()
+  // Stepper first — sections it owns carry data-activity-variant="stepper"
+  // and are excluded from the classic initializers' selectors.
+  activityDisposers = [
+    initializeStepperActivity(),
+    initializeQuizActivity(),
+    initializeMultiSelectActivity(),
+    initializeUnderlineTextActivity(),
+    initializeFillInTheBlankActivity(),
+    initializeOpenEndedActivity(),
+    initializeTrueFalseActivity(),
+    initializeSortingActivity(),
+    initializeOrderingActivity(),
+    initializeMatchingActivity(),
+    initializeCustomActivity(),
+    initializeWordBankActivity(),
+  ].filter((dispose): dispose is () => void => dispose !== null)
+
+  // Last: consumers that cache nodes out of #content (read-aloud) rebuild off
+  // this, and must not do so until the new DOM is fully wired.
+  store.set(pageEpochAtom, store.get(pageEpochAtom) + 1)
+}
+
 export async function bootRuntime(): Promise<void> {
   installShowContentFallback()
   addFavicons()
@@ -184,32 +253,8 @@ export async function bootRuntime(): Promise<void> {
     ])
     store.set(pagesAtom, pages)
     store.set(tocAtom, toc)
-    store.set(currentSectionIdAtom, readCurrentSectionId())
-    store.set(currentPageNumberAtom, readCurrentPageNumber())
-    // Page-type signal (fixed for the document) + initial mode toggle.
-    const isActivity = readIsActivityPage()
-    store.set(isActivityPageAtom, isActivity)
-    store.set(activityModeAtom, isActivity)
-
-    applyDOMTranslations()
-
     initAnalytics(config.analytics)
-    showMainContent()
-    processGlossaryLocateHint()
-    // Stepper first — sections it owns carry data-activity-variant="stepper"
-    // and are excluded from the classic initializers' selectors.
-    initializeStepperActivity()
-    initializeQuizActivity()
-    initializeMultiSelectActivity()
-    initializeUnderlineTextActivity()
-    initializeFillInTheBlankActivity()
-    initializeOpenEndedActivity()
-    initializeTrueFalseActivity()
-    initializeSortingActivity()
-    initializeOrderingActivity()
-    initializeMatchingActivity()
-    initializeCustomActivity()
-    initializeWordBankActivity()
+    initializePageContent()
   } finally {
     // Always clear the dock skeleton — even on partial-load failures the dock
     // should reveal whatever data DID make it into atoms.

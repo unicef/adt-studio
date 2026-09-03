@@ -1162,10 +1162,18 @@ function fixedLayoutWebFit(dockReserveFallbackPx: number): { headStyle: string; 
           c.style.transform = "translate(-50%, -50%) scale(" + s + ")";
           c.style.visibility = "visible";
         }
+        // Re-executed on every in-place page swap, so drop the previous
+        // page's listeners (they close over a detached #content) first.
+        if (window.__adtFlFitDispose) window.__adtFlFitDispose();
         fit();
         window.addEventListener("resize", fit);
         window.addEventListener("load", fit);
         window.addEventListener("adt:dock-resize", fit);
+        window.__adtFlFitDispose = function () {
+          window.removeEventListener("resize", fit);
+          window.removeEventListener("load", fit);
+          window.removeEventListener("adt:dock-resize", fit);
+        };
       })();
     </script>`
   return { headStyle, bodyScript }
@@ -2570,6 +2578,20 @@ function generateScormAdapter(
   }
 
   API.LMSCommit('');
+
+  // --- Soft navigation ---
+  // Served bundles turn pages in place (no document load), so the location
+  // has to be re-reported and progress committed on every page change instead
+  // of only on unload.
+  document.addEventListener('adt:page-changed', function (event) {
+    var nextId = event && event.detail ? event.detail.sectionId : null;
+    if (nextId) {
+      pageId = nextId;
+      API.LMSSetValue('cmi.core.lesson_location', pageId);
+    }
+    if (hasActivities) applyStatus();
+    API.LMSCommit('');
+  });
 
   // --- Session close ---
   window.addEventListener('beforeunload', function () {
