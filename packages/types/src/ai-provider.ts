@@ -210,6 +210,8 @@ export const ProviderDescriptor = z.object({
   manifest: ProviderManifest,
   configuredOnServer: z.boolean(),
   fieldStatus: z.array(ProviderFieldStatus),
+  /** The backend's CLI can be signed in from Studio (see `ProviderCliLoginStatus`). */
+  supportsCliLogin: z.boolean().optional(),
 })
 export type ProviderDescriptor = z.infer<typeof ProviderDescriptor>
 
@@ -292,3 +294,21 @@ export const ProviderHealthResponse = z.object({
   detail: z.string().max(200).optional(),
 })
 export type ProviderHealthResponse = z.infer<typeof ProviderHealthResponse>
+
+export const PROVIDER_CLI_LOGIN_STATES = ["idle", "pending", "done", "failed"] as const
+export const ProviderCliLoginState = z.enum(PROVIDER_CLI_LOGIN_STATES)
+export type ProviderCliLoginState = z.infer<typeof ProviderCliLoginState>
+
+/**
+ * A CLI sign-in driven from Studio. `url` is the provider's sign-in page for
+ * when the browser did not open on its own; it is a one-time value, never a
+ * credential — the CLI keeps the tokens in its own files, which the ADT never reads.
+ */
+export const ProviderCliLoginStatus = z.object({
+  providerId: ProviderId,
+  state: ProviderCliLoginState,
+  url: z.string().url().optional(),
+  /** Non-secret diagnostic, set for the failed state. */
+  detail: z.string().max(400).optional(),
+})
+export type ProviderCliLoginStatus = z.infer<typeof ProviderCliLoginStatus>
