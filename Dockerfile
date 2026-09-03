@@ -18,6 +18,7 @@ FROM base AS deps
 # package.json while preserving directory structure — no edits needed when
 # packages or apps are added to the workspace.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches ./patches
 RUN --mount=type=bind,source=.,target=/ctx \
     find /ctx/packages /ctx/apps -maxdepth 2 -name "package.json" \
          -not -path "*/node_modules/*" \
