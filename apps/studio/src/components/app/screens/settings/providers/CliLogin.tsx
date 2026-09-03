@@ -4,7 +4,21 @@ import type { ProviderDescriptor, ProviderHealthResponse } from "@adt/types"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useCliLogin } from "@/hooks/use-cli-login"
+import { PROVIDER_BRAND } from "./providerLogos"
 import { EASE } from "./shared"
+
+/** The vendor's own mark, sized for a button and inheriting its text colour. */
+function BrandGlyph({ providerId }: { providerId: string }) {
+  const brand = PROVIDER_BRAND[providerId] ?? PROVIDER_BRAND.custom
+  if (!brand.logoSvg) return <LogIn className="size-4 shrink-0" />
+  return (
+    <span
+      aria-hidden
+      className="grid size-4 shrink-0 place-items-center [&>svg]:size-full! [&>svg]:fill-current"
+      dangerouslySetInnerHTML={{ __html: brand.logoSvg }}
+    />
+  )
+}
 
 /**
  * Sign a CLI-backed provider in or out without leaving Studio. The server runs
@@ -76,13 +90,28 @@ export function CliLoginControls({
           </div>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2">
           {!signedIn && !cliMissing && (
-            <Button type="button" size="sm" onClick={login.start} disabled={login.isStarting}>
+            <Button
+              type="button"
+              onClick={login.start}
+              disabled={login.isStarting}
+              aria-busy={login.isStarting}
+              className={cn(
+                "group relative h-10 w-full overflow-hidden rounded-lg bg-foreground text-[13px] font-semibold text-background shadow-sm",
+                "transition-[background-color,box-shadow,transform] duration-200 hover:bg-foreground/90 hover:shadow-md",
+                "disabled:cursor-wait disabled:bg-foreground/85 disabled:opacity-100",
+                EASE,
+              )}
+            >
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 left-0 w-1/4 -translate-x-full skew-x-12 bg-background/25 blur-md transition-transform duration-700 group-hover:translate-x-[400%] motion-reduce:hidden"
+              />
               {login.isStarting ? (
-                <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" />
+                <Loader2 className="size-4 shrink-0 animate-spin motion-reduce:animate-none" />
               ) : (
-                <LogIn className="size-3.5" />
+                <BrandGlyph providerId={providerId} />
               )}
               {providerId === "codex" ? <Trans>Sign in with ChatGPT</Trans> : <Trans>Sign in</Trans>}
             </Button>
