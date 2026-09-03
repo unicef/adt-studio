@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { QualifiedModelId } from "./model-id.js"
 import { ImageFilters } from "./image-filtering.js"
 import { SpeechConfig } from "./speech.js"
 import { CoreTtsConfig } from "./core-tts.js"
@@ -51,6 +52,32 @@ export const ELEVENLABS_SHIPPED_VOICE_NAMES: Record<string, string> = {
 }
 
 /**
+ * OpenAI's built-in TTS voices. Short, stable, and the same set for every
+ * language — OpenAI voices are multilingual, so these must never be filtered
+ * by locale the way Azure's are.
+ *
+ * Bundled rather than fetched: OpenAI exposes no voice-list endpoint, and the
+ * set changes rarely enough that a constant beats a network call. The picker
+ * always allows free text, so a voice added upstream is still reachable.
+ */
+export const OPENAI_TTS_VOICES = [
+  "alloy", "ash", "ballad", "coral", "echo", "fable",
+  "nova", "onyx", "sage", "shimmer", "verse",
+] as const
+
+/**
+ * Gemini's prebuilt TTS voices. Like OpenAI's these are multilingual — one
+ * voice speaks any supported language — so they are offered unfiltered.
+ */
+export const GEMINI_TTS_VOICES = [
+  "Achernar", "Achird", "Algenib", "Algieba", "Alnilam", "Aoede", "Autonoe",
+  "Callirrhoe", "Charon", "Despina", "Enceladus", "Erinome", "Fenrir", "Gacrux",
+  "Iapetus", "Kore", "Laomedeia", "Leda", "Orus", "Puck", "Pulcherrima",
+  "Rasalgethi", "Sadachbia", "Sadaltager", "Schedar", "Sulafat", "Umbriel",
+  "Vindemiatrix", "Zephyr", "Zubenelgenubi",
+] as const
+
+/**
  * Narration-oriented ElevenLabs `voice_settings` defaults, matching ElevenLabs'
  * own audiobook/narration recommendation.
  *
@@ -76,11 +103,14 @@ export const DEFAULT_ELEVENLABS_VOICE_SETTINGS = {
   use_speaker_boost: true,
 } as const
 
-export const LLMModelId = z
-  .string()
-  .trim()
-  .regex(/^[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z0-9][a-zA-Z0-9_.-]{0,159}$/)
-  .transform((value) => value.toLowerCase())
+/**
+ * Model the un-suffixed base prompt templates are authored for. A pipeline step
+ * running on this model uses the base prompt directly; any other model resolves
+ * its own prompt-variant folder first. Overridable via `base_prompt_model`.
+ */
+export const DEFAULT_BASE_PROMPT_MODEL_ID = "openai:gpt-5.4"
+
+export const LLMModelId = QualifiedModelId
 export type LLMModelId = z.infer<typeof LLMModelId>
 
 export const SpeechGenerationModelId = z
@@ -251,6 +281,9 @@ export const AppConfig = z
     default_model: LLMModelId.optional(),
     default_image_generation_model: LLMModelId.optional(),
     default_speech_generation_model: SpeechGenerationModelId.optional(),
+    /** Model the base (un-suffixed) prompt templates target. Defaults to
+     *  DEFAULT_BASE_PROMPT_MODEL_ID. Steps on this model skip variant lookup. */
+    base_prompt_model: LLMModelId.optional(),
     structure_types: z.record(z.string(), z.string()),
     role_types: z.record(z.string(), z.string()),
     section_types: z.record(z.string(), z.string()).optional(),

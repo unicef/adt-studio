@@ -13,7 +13,7 @@ import { useSplitStatus } from "@/hooks/use-parts"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SectioningModeVisual } from "./components/SectioningModeVisual"
 import { SectioningPreview } from "./components/SectioningPreview"
@@ -28,7 +28,8 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: splitStatus, isLoading: splitStatusLoading } = useSplitStatus(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { queueRun } = useBookRun()
   const status = useStageStatus("sectioning")
   const extractStatus = useStageStatus("extract")
@@ -87,7 +88,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasApiKey || status.isRunning || resolvingStoredState) return
+    if (!hasStructuredTextProvider || status.isRunning || resolvingStoredState) return
     // Cue from here even if Extract hasn't run yet. If Extract is already
     // done/running/queued it will produce its output, so queue Sectioning
     // behind it; only pull Extract into the run when it isn't covered.
@@ -106,7 +107,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
     [t],
   )
 
-  const disabledReason = !hasApiKey ? (
+  const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Add an API key in Book settings to run sectioning.</Trans>
   ) : undefined
 
@@ -122,7 +123,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || resolvingStoredState}
+      extraDisabled={!hasStructuredTextProvider || resolvingStoredState}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Sectioning</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}

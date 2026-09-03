@@ -6,7 +6,12 @@ vi.mock("@/lib/utils", () => ({
 }))
 
 import { isElectron } from "@/lib/utils"
-import { resolveBaseUrl } from "./client.js"
+import {
+  cancelProviderCliLogin,
+  logoutProviderCli,
+  resolveBaseUrl,
+  startProviderCliLogin,
+} from "./client.js"
 
 const mockedIsElectron = vi.mocked(isElectron)
 
@@ -32,28 +37,48 @@ describe("resolveBaseUrl", () => {
       delete (window as { api?: unknown }).api
     })
 
-    it("returns http://localhost:<port>/api using window.api.apiPort", () => {
+    it("targets the loopback address the API binds to, using window.api.apiPort", () => {
       ;(window as { api: { apiPort: number } }).api = { apiPort: 5421 }
-      expect(resolveBaseUrl()).toBe("http://localhost:5421/api")
+      expect(resolveBaseUrl()).toBe("http://127.0.0.1:5421/api")
     })
 
     it("ignores location and uses the Electron port", () => {
       ;(window as { api: { apiPort: number } }).api = { apiPort: 5421 }
       expect(resolveBaseUrl({ protocol: "https:", hostname: "example.com" })).toBe(
-        "http://localhost:5421/api",
+        "http://127.0.0.1:5421/api",
       )
     })
 
     it("reflects the current apiPort on each call", () => {
       ;(window as { api: { apiPort: number } }).api = { apiPort: 9000 }
-      expect(resolveBaseUrl()).toBe("http://localhost:9000/api")
+      expect(resolveBaseUrl()).toBe("http://127.0.0.1:9000/api")
       ;(window as { api: { apiPort: number } }).api = { apiPort: 9001 }
-      expect(resolveBaseUrl()).toBe("http://localhost:9001/api")
+      expect(resolveBaseUrl()).toBe("http://127.0.0.1:9001/api")
     })
 
     it("falls back to /api when the Electron bridge is not available", () => {
       delete (window as { api?: unknown }).api
       expect(resolveBaseUrl({ protocol: "http:", hostname: "localhost" })).toBe("/api")
     })
+  })
+})
+
+describe("CLI sign-in requests", () => {
+  it("adds the required action header to every state-changing request", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      new Response(JSON.stringify({ providerId: "codex", state: "idle" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    )
+
+    await startProviderCliLogin("codex")
+    await cancelProviderCliLogin("codex")
+    await logoutProviderCli("codex")
+
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
+    for (const [, init] of fetchSpy.mock.calls) {
+      expect(new Headers(init?.headers).get("X-ADT-CLI-Action")).toBe("1")
+    }
   })
 })

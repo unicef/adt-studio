@@ -279,14 +279,17 @@ function buildAzureOutputFormat(
   return `audio-${srKhz}khz-${br}-mono-mp3`
 }
 
-function buildSSML(voice: string, text: string): string {
-  const escaped = text
+function escapeXml(text: string): string {
+  return text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;")
-  return `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='${voice}'>${escaped}</voice></speak>`
+}
+
+function buildSSML(voice: string, text: string): string {
+  return `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='${escapeXml(voice)}'>${escapeXml(text)}</voice></speak>`
 }
 
 function wrapPcmAsWave(
@@ -379,9 +382,9 @@ function buildGeminiShortTextRetryInput(input: string): string | null {
   if (/[.!?؟۔。！？।]$/u.test(trimmed)) return null
 
   const suffix =
-    /[\u0600-\u08FF]/u.test(trimmed) ? "۔"
-      : /[\u0900-\u097F]/u.test(trimmed) ? "।"
-        : /[\u3040-\u30FF\u3400-\u9FFF]/u.test(trimmed) ? "。"
+    /\p{Script=Arabic}/u.test(trimmed) ? "۔"
+      : /\p{Script=Devanagari}/u.test(trimmed) ? "।"
+        : /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u.test(trimmed) ? "。"
           : "."
 
   return `${trimmed}${suffix}`
@@ -421,7 +424,7 @@ export function createAzureTTSSynthesizer(
       const ssml = buildSSML(options.voice, options.input)
       const url = `https://${config.region}.tts.speech.microsoft.com/cognitiveservices/v1`
 
-      console.log(`[azure-tts] POST ${url} voice=${options.voice} format=${outputFormat} text=${options.input.slice(0, 60)}...`)
+      console.log(`[azure-tts] POST ${url} voice=${options.voice} format=${outputFormat}`)
 
       const response = await fetch(url, {
         method: "POST",
@@ -449,9 +452,11 @@ export function createAzureTTSSynthesizer(
 
 /**
  * Create a minimal TTS client using OpenAI's speech endpoint.
- * API key defaults to OPENAI_API_KEY if omitted.
+ * API key defaults to OPENAI_API_KEY if omitted. `baseUrl` defaults to the
+ * hosted OpenAI API and exists so OpenAI-compatible endpoints can reuse this
+ * synthesizer.
  */
-export function createTTSSynthesizer(apiKey?: string): TTSSynthesizer {
+export function createTTSSynthesizer(apiKey?: string, baseUrl?: string): TTSSynthesizer {
   return {
     async synthesize(options: SynthesizeSpeechOptions): Promise<Uint8Array> {
       const resolvedApiKey = apiKey ?? process.env.OPENAI_API_KEY
@@ -459,7 +464,8 @@ export function createTTSSynthesizer(apiKey?: string): TTSSynthesizer {
         throw new Error("OPENAI_API_KEY is required for TTS synthesis")
       }
 
-      const response = await fetch("https://api.openai.com/v1/audio/speech", {
+      const resolvedBaseUrl = (baseUrl ?? "https://api.openai.com/v1").replace(/\/$/, "")
+      const response = await fetch(`${resolvedBaseUrl}/audio/speech`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${resolvedApiKey}`,
