@@ -104,6 +104,22 @@ describe("GET /providers", () => {
     expect(body.defaults.agent).toBe("anthropic:claude-opus-4-6")
   })
 
+  it("uses Google's current Pro model for agents when a Gemini model is the default", async () => {
+    fs.writeFileSync(
+      configPath,
+      [
+        "structure_types: {}",
+        "role_types: {}",
+        "default_model: google:gemini-3.5-flash",
+      ].join("\n"),
+      "utf-8",
+    )
+
+    const body = await getProviders()
+    expect(body.defaults["structured-text"]).toBe("google:gemini-3.5-flash")
+    expect(body.defaults.agent).toBe("google:gemini-3.1-pro-preview")
+  })
+
   it("keeps the agents runtime default when default_model's provider cannot run agents", async () => {
     fs.writeFileSync(
       configPath,
