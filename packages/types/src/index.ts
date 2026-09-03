@@ -510,5 +510,8 @@ export {
   ModelDiscoveryResponse,
   PROVIDER_HEALTH_CODES,
   ProviderHealthCode,
+  PROVIDER_CLI_LOGIN_STATES,
+  ProviderCliLoginState,
+  ProviderCliLoginStatus,
   ProviderHealthResponse,
 } from "./ai-provider.js"
