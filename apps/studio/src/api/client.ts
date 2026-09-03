@@ -20,6 +20,7 @@ import type {
   TranslationEvaluationResult,
   ProvidersResponse,
   ModelDiscoveryResponse,
+  ProviderCliLoginStatus,
   ProviderHealthResponse,
   AiModality,
 } from "@adt/types"
@@ -32,6 +33,8 @@ import {
 } from "./provider-credentials"
 
 export type { BookSummary, BookDetail }
+
+const CLI_ACTION_HEADERS = { "X-ADT-CLI-Action": "1" } as const
 
 export function resolveBaseUrl(
   _loc: Pick<Location, "protocol" | "hostname"> = window.location,
@@ -348,6 +351,36 @@ export async function getProviderHealth(
     `/providers/${encodeURIComponent(providerId)}/health`,
     { headers },
   )
+}
+
+/**
+ * Studio-driven CLI sign-in for a provider. The server runs the CLI's own
+ * browser login and only relays the sign-in URL as a fallback link; the CLI
+ * keeps the tokens.
+ */
+export async function startProviderCliLogin(providerId: string): Promise<ProviderCliLoginStatus> {
+  return request<ProviderCliLoginStatus>(
+    `/providers/${encodeURIComponent(providerId)}/cli-login`,
+    { method: "POST", headers: CLI_ACTION_HEADERS },
+  )
+}
+
+export async function getProviderCliLogin(providerId: string): Promise<ProviderCliLoginStatus> {
+  return request<ProviderCliLoginStatus>(`/providers/${encodeURIComponent(providerId)}/cli-login`)
+}
+
+export async function cancelProviderCliLogin(providerId: string): Promise<ProviderCliLoginStatus> {
+  return request<ProviderCliLoginStatus>(
+    `/providers/${encodeURIComponent(providerId)}/cli-login`,
+    { method: "DELETE", headers: CLI_ACTION_HEADERS },
+  )
+}
+
+export async function logoutProviderCli(providerId: string): Promise<void> {
+  await request<{ ok: boolean }>(`/providers/${encodeURIComponent(providerId)}/cli-logout`, {
+    method: "POST",
+    headers: CLI_ACTION_HEADERS,
+  })
 }
 
 export interface PendingDecision {

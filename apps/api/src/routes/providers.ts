@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import { Hono } from "hono"
 import yaml from "js-yaml"
+import { z } from "zod"
 import {
   AI_MODALITIES,
   AppConfig,
@@ -8,6 +9,7 @@ import {
   DEFAULT_LLM_MODEL_ID,
   DEFAULT_OPENAI_TTS_MODEL_ID,
   ModelDiscoveryResponse,
+  ProviderCliLoginStatus,
   ProviderHealthResponse,
   ProvidersResponse,
   normalizeModelId,
@@ -21,11 +23,33 @@ import {
 } from "@adt/llm"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import {
+  CliLoginUnsupportedError,
+  createCliLoginService,
+  type CliLoginService,
+} from "../services/cli-login-service.js"
+import {
   agentModelForDefaultModel,
   DEFAULT_AGENT_MODEL,
 } from "../services/agents-service.js"
 
 const OPENAI_TRANSCRIPTION_MODEL_ID = "openai:whisper-1"
+export const CLI_ACTION_HEADER = "X-ADT-CLI-Action"
+export const CLI_ACTION_HEADER_VALUE = "1"
+
+const CliActionHeader = z.literal(CLI_ACTION_HEADER_VALUE)
+
+export interface ProviderRouteOptions {
+  /** The browser OAuth callback is usable only when Studio and the API run locally. */
+  cliLoginEnabled?: boolean
+}
+
+function cliLoginEnabledByDefault(): boolean {
+  return process.env.ADT_ENVIRONMENT === "electron" || process.env.NODE_ENV !== "production"
+}
+
+function hasValidCliActionHeader(value: string | undefined): boolean {
+  return CliActionHeader.safeParse(value).success
+}
 
 function safeNormalize(rawModelId: string | undefined): string | undefined {
   if (!rawModelId) return undefined
@@ -92,12 +116,20 @@ function resolveDefaults(
 export function createProviderRoutes(
   configPath: string,
   registry: ProviderRegistry = getDefaultProviderRegistry(),
+  cliLogins: CliLoginService = createCliLoginService(registry),
+  options: ProviderRouteOptions = {},
 ): Hono {
   const app = new Hono()
+  const cliLoginEnabled = options.cliLoginEnabled ?? cliLoginEnabledByDefault()
+  const supportsCliLogin = (providerId: string) =>
+    cliLoginEnabled && cliLogins.supports(providerId)
 
   app.get("/providers", (c) => {
     const payload = ProvidersResponse.parse({
-      providers: registry.descriptors(),
+      providers: registry.descriptors().map((provider) => ({
+        ...provider,
+        supportsCliLogin: cliLoginEnabled && provider.supportsCliLogin === true,
+      })),
       defaults: resolveDefaults(configPath, registry),
     })
     return c.json(payload)
@@ -136,6 +168,69 @@ export function createProviderRoutes(
     })
 
     return c.json(ProviderHealthResponse.parse(result))
+  })
+
+  // Studio-driven CLI sign-in. The payload carries only the sign-in URL for
+  // the user to open; the CLI keeps the resulting tokens.
+  app.post("/providers/:id/cli-login", async (c) => {
+    const providerId = c.req.param("id")
+    if (!registry.has(providerId)) {
+      return c.json({ error: `Unknown provider "${providerId}"` }, 404)
+    }
+    if (!supportsCliLogin(providerId)) {
+      return c.json({ error: `Provider "${providerId}" has no CLI sign-in` }, 400)
+    }
+    if (!hasValidCliActionHeader(c.req.header(CLI_ACTION_HEADER))) {
+      return c.json({ error: `A valid ${CLI_ACTION_HEADER} header is required` }, 403)
+    }
+    const status = await cliLogins.start(providerId, readProviderCredentials(c, registry))
+    return c.json(ProviderCliLoginStatus.parse(status))
+  })
+
+  app.get("/providers/:id/cli-login", (c) => {
+    const providerId = c.req.param("id")
+    if (!registry.has(providerId)) {
+      return c.json({ error: `Unknown provider "${providerId}"` }, 404)
+    }
+    if (!supportsCliLogin(providerId)) {
+      return c.json({ error: `Provider "${providerId}" has no CLI sign-in` }, 400)
+    }
+    return c.json(ProviderCliLoginStatus.parse(cliLogins.status(providerId)))
+  })
+
+  app.delete("/providers/:id/cli-login", (c) => {
+    const providerId = c.req.param("id")
+    if (!registry.has(providerId)) {
+      return c.json({ error: `Unknown provider "${providerId}"` }, 404)
+    }
+    if (!supportsCliLogin(providerId)) {
+      return c.json({ error: `Provider "${providerId}" has no CLI sign-in` }, 400)
+    }
+    if (!hasValidCliActionHeader(c.req.header(CLI_ACTION_HEADER))) {
+      return c.json({ error: `A valid ${CLI_ACTION_HEADER} header is required` }, 403)
+    }
+    return c.json(ProviderCliLoginStatus.parse(cliLogins.cancel(providerId)))
+  })
+
+  app.post("/providers/:id/cli-logout", async (c) => {
+    const providerId = c.req.param("id")
+    if (!registry.has(providerId)) {
+      return c.json({ error: `Unknown provider "${providerId}"` }, 404)
+    }
+    if (!supportsCliLogin(providerId)) {
+      return c.json({ error: `Provider "${providerId}" has no CLI sign-in` }, 400)
+    }
+    if (!hasValidCliActionHeader(c.req.header(CLI_ACTION_HEADER))) {
+      return c.json({ error: `A valid ${CLI_ACTION_HEADER} header is required` }, 403)
+    }
+    try {
+      await cliLogins.logout(providerId, readProviderCredentials(c, registry))
+    } catch (error) {
+      if (error instanceof CliLoginUnsupportedError) return c.json({ error: error.message }, 400)
+      const message = error instanceof Error ? error.message : String(error)
+      return c.json({ error: message }, 500)
+    }
+    return c.json({ ok: true })
   })
 
   return app

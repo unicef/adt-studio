@@ -181,6 +181,10 @@ msgstr "{0} completado"
 msgid "{0} decorative"
 msgstr "{0} decorativo"
 
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "{0} did not start"
+msgstr "{0} no se inició"
+
 #. placeholder {0}: book.languageCode.toUpperCase()
 msgid "{0} EDITION"
 msgstr "{0} EDICIÓN"
@@ -1399,6 +1403,9 @@ msgstr "Una actividad en la que el estudiante subraya una o más palabras, frase
 msgid "An AI image is being generated. Cancel it and navigate?"
 msgstr "Se está generando una imagen con IA. ¿Cancelar y navegar?"
 
+msgid "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
+msgstr "Una clave de API definida en el entorno del servidor tiene prioridad sobre este inicio de sesión. Elimínela allí para usar la cuenta con la que ha iniciado sesión."
+
 msgid "An open-ended answer activity."
 msgstr "Una actividad de respuesta abierta."
 
@@ -1980,6 +1987,9 @@ msgstr "Explorar documentación"
 
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Explora cada sección del Storyboard y sube, reemplaza o elimina su video de lenguaje de señas."
+
+msgid "Browser didn't open? Use this link"
+msgstr "¿No se abrió el navegador? Use este enlace"
 
 msgid "Build"
 msgstr "Compilación"
@@ -2689,6 +2699,14 @@ msgstr "No se pudo leer este PDF. El archivo puede estar dañado o protegido con
 
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "No se pudieron eliminar {failed} de {total} videos — por favor, inténtalo de nuevo."
+
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "Could not start {0}: {detail}"
+msgstr "No se pudo iniciar {0}: {detail}"
+
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "Could not start {0}."
+msgstr "No se pudo iniciar {0}."
 
 msgid "Couldn't apply the spreads — please try again."
 msgstr "No se pudieron aplicar las dobles páginas — por favor, inténtalo de nuevo."
@@ -3947,6 +3965,9 @@ msgstr "Filtra imágenes decorativas o sin contenido en cada página."
 
 msgid "Final Page"
 msgstr "Página Final"
+
+msgid "Finish signing in with ChatGPT in the browser window that just opened."
+msgstr "Termine de iniciar sesión con ChatGPT en la ventana del navegador que se acaba de abrir."
 
 msgid "Fire a real notification with these settings."
 msgstr "Lanzar una notificación real con estos ajustes."
@@ -8766,8 +8787,14 @@ msgstr "Imagen y narrativa lado a lado."
 msgid "Sign"
 msgstr "Señas"
 
+msgid "Sign in"
+msgstr "Iniciar sesión"
+
 msgid "Sign in outside the app, then Refresh — this screen detects the login automatically:"
 msgstr "Inicia sesión fuera de la aplicación, luego Actualiza — esta pantalla detecta el inicio de sesión automáticamente:"
+
+msgid "Sign in with ChatGPT"
+msgstr "Iniciar sesión con ChatGPT"
 
 msgid "Sign Language"
 msgstr "Lengua de Señas"
@@ -8784,8 +8811,21 @@ msgstr "Superposiciones de video en lengua de señas para cada página"
 msgid "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
 msgstr "Los videos en lenguaje de señas brindan acceso a lectores sordos y con dificultades auditivas que pueden no ser fluidos en el lenguaje escrito."
 
+msgid "Sign out"
+msgstr "Cerrar sesión"
+
+#. placeholder {0}: status.detail
+msgid "Sign-in failed: {0}"
+msgstr "Error al iniciar sesión: {0}"
+
 msgid "Sign-language video linked to each page."
 msgstr "Video en lenguaje de señas vinculado a cada página."
+
+msgid "Signed in."
+msgstr "Sesión iniciada."
+
+msgid "Signed out."
+msgstr "Sesión cerrada."
 
 msgid "Similarity"
 msgstr "Similitud"
@@ -10191,6 +10231,12 @@ msgstr "No se pudo guardar el prompt global."
 
 msgid "Unable to select prompt version."
 msgstr "No se pudo seleccionar la versión del prompt."
+
+msgid "Unable to sign out."
+msgstr "No se pudo cerrar la sesión."
+
+msgid "Unable to start the sign-in."
+msgstr "No se pudo iniciar el inicio de sesión."
 
 msgid "Unable to update the book model overrides."
 msgstr "No se pudieron actualizar las sustituciones de modelos del libro."

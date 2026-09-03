@@ -245,7 +245,6 @@ export const PRESETS: PresetConfig[] = [
           config: {
             prompt: "activity_underline_text",
             answer_prompt: "activity_underline_text_answers",
-            model: "openai:gpt-5.4",
             max_retries: 5,
             timeout: 180,
             temperature: 0.3,

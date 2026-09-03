@@ -183,6 +183,10 @@ msgstr "{0} terminé"
 msgid "{0} decorative"
 msgstr "{0} décoratif"
 
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "{0} did not start"
+msgstr "{0} n'a pas démarré"
+
 #. placeholder {0}: book.languageCode.toUpperCase()
 msgid "{0} EDITION"
 msgstr "{0} ÉDITION"
@@ -1401,6 +1405,9 @@ msgstr "Une activité où l'apprenant souligne un ou plusieurs mots, expressions
 msgid "An AI image is being generated. Cancel it and navigate?"
 msgstr "Une image IA est en cours de génération. Annuler et naviguer ?"
 
+msgid "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
+msgstr "Une clé d'API définie dans l'environnement du serveur a la priorité sur cette connexion. Supprimez-la à cet endroit pour utiliser le compte connecté."
+
 msgid "An open-ended answer activity."
 msgstr "Une activité à réponse ouverte."
 
@@ -1982,6 +1989,9 @@ msgstr "Parcourir la documentation"
 
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Parcourez chaque section du Storyboard et téléchargez, remplacez ou supprimez sa vidéo en langue des signes."
+
+msgid "Browser didn't open? Use this link"
+msgstr "Le navigateur ne s'est pas ouvert ? Utilisez ce lien"
 
 msgid "Build"
 msgstr "Build"
@@ -2691,6 +2701,14 @@ msgstr "Impossible de lire ce PDF. Le fichier est peut-être corrompu ou protég
 
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Impossible de supprimer {failed} vidéos sur {total} — veuillez réessayer."
+
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "Could not start {0}: {detail}"
+msgstr "Impossible de démarrer {0} : {detail}"
+
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "Could not start {0}."
+msgstr "Impossible de démarrer {0}."
 
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Impossible d'appliquer les fusions — veuillez réessayer."
@@ -3949,6 +3967,9 @@ msgstr "Filtre les images décoratives ou non pertinentes sur chaque page."
 
 msgid "Final Page"
 msgstr "Page finale"
+
+msgid "Finish signing in with ChatGPT in the browser window that just opened."
+msgstr "Terminez la connexion avec ChatGPT dans la fenêtre du navigateur qui vient de s'ouvrir."
 
 msgid "Fire a real notification with these settings."
 msgstr "Envoyer une vraie notification avec ces paramètres."
@@ -8768,8 +8789,14 @@ msgstr "Image et narration côte à côte."
 msgid "Sign"
 msgstr "Signes"
 
+msgid "Sign in"
+msgstr "Se connecter"
+
 msgid "Sign in outside the app, then Refresh — this screen detects the login automatically:"
 msgstr "Connectez-vous en dehors de l'application, puis rafraîchissez — cet écran détecte automatiquement la connexion :"
+
+msgid "Sign in with ChatGPT"
+msgstr "Se connecter avec ChatGPT"
 
 msgid "Sign Language"
 msgstr "Langue des signes"
@@ -8786,8 +8813,21 @@ msgstr "Superpositions vidéo en langue des signes pour chaque page"
 msgid "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
 msgstr "Les vidéos en langue des signes offrent un accès aux lecteurs sourds et malentendants qui peuvent ne pas être à l'aise avec la langue écrite."
 
+msgid "Sign out"
+msgstr "Se déconnecter"
+
+#. placeholder {0}: status.detail
+msgid "Sign-in failed: {0}"
+msgstr "Échec de la connexion : {0}"
+
 msgid "Sign-language video linked to each page."
 msgstr "Vidéo en langue des signes liée à chaque page."
+
+msgid "Signed in."
+msgstr "Connexion réussie."
+
+msgid "Signed out."
+msgstr "Déconnexion effectuée."
 
 msgid "Similarity"
 msgstr "Ressemblance"
@@ -10193,6 +10233,12 @@ msgstr "Impossible d'enregistrer le prompt global."
 
 msgid "Unable to select prompt version."
 msgstr "Impossible de sélectionner la version du prompt."
+
+msgid "Unable to sign out."
+msgstr "Impossible de se déconnecter."
+
+msgid "Unable to start the sign-in."
+msgstr "Impossible de démarrer la connexion."
 
 msgid "Unable to update the book model overrides."
 msgstr "Impossible de mettre à jour les remplacements de modèles du livre."

@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { imageFileExtension } from "../shared/image-media-type.js"
+import { CODEX_CLI_INSTALL_HINT, resolveCodexExecutable } from "./executable.js"
 
 export interface CodexCliUsage {
   input_tokens?: number
@@ -44,8 +45,12 @@ export type CodexCliRunner = (request: CodexCliRequest) => Promise<CodexCliTurn>
 
 const DEFAULT_EXECUTABLE = "codex"
 
-export function codexExecutable(env: NodeJS.ProcessEnv = process.env): string {
-  return env.CODEX_EXECUTABLE?.trim() || DEFAULT_EXECUTABLE
+/**
+ * Discovery first (override, PATH, common install dirs, the ChatGPT desktop app),
+ * then the bare name so a missing CLI still surfaces as the actionable ENOENT message.
+ */
+export function locateCodexExecutable(env: NodeJS.ProcessEnv = process.env): string {
+  return resolveCodexExecutable({ env }) ?? DEFAULT_EXECUTABLE
 }
 
 export interface CodexArgsOptions {
@@ -90,7 +95,7 @@ export function buildCodexArgs(options: CodexArgsOptions): string[] {
 }
 
 export const runCodexCli: CodexCliRunner = async (request) => {
-  const executable = request.executable ?? codexExecutable(request.env)
+  const executable = request.executable ?? locateCodexExecutable(request.env)
   const workDir = await mkdtemp(join(request.scratchDir ?? tmpdir(), "adt-codex-"))
 
   try {
@@ -183,13 +188,12 @@ export function spawnCodexCommand(
   })
 }
 
-function describeSpawnFailure(executable: string, cause: unknown): Error {
+export function describeSpawnFailure(executable: string, cause: unknown): Error {
   const code = (cause as { code?: string }).code
   if (code === "ENOENT") {
-    return new Error(
-      `Codex CLI not found: "${executable}" is not on PATH. Install the Codex CLI and run \`codex login\`, or set CODEX_EXECUTABLE to its full path.`,
-      { cause },
-    )
+    return new Error(`Codex CLI not found (tried "${executable}"). ${CODEX_CLI_INSTALL_HINT}`, {
+      cause,
+    })
   }
   return new Error(
     `Codex CLI could not be started: ${cause instanceof Error ? cause.message : String(cause)}`,

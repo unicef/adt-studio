@@ -181,6 +181,10 @@ msgstr "{0} complete"
 msgid "{0} decorative"
 msgstr "{0} decorative"
 
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "{0} did not start"
+msgstr "{0} did not start"
+
 #. placeholder {0}: book.languageCode.toUpperCase()
 msgid "{0} EDITION"
 msgstr "{0} EDITION"
@@ -1399,6 +1403,9 @@ msgstr "An activity where the learner underlines one or more words, phrases, or 
 msgid "An AI image is being generated. Cancel it and navigate?"
 msgstr "An AI image is being generated. Cancel it and navigate?"
 
+msgid "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
+msgstr "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
+
 msgid "An open-ended answer activity."
 msgstr "An open-ended answer activity."
 
@@ -1980,6 +1987,9 @@ msgstr "Browse documentation"
 
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Browse every Storyboard section and upload, replace, or remove its sign-language video."
+
+msgid "Browser didn't open? Use this link"
+msgstr "Browser didn't open? Use this link"
 
 msgid "Build"
 msgstr "Build"
@@ -2689,6 +2699,14 @@ msgstr "Could not read this PDF. The file may be corrupted or password-protected
 
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Could not remove {failed} of {total} videos. Please try again."
+
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "Could not start {0}: {detail}"
+msgstr "Could not start {0}: {detail}"
+
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "Could not start {0}."
+msgstr "Could not start {0}."
 
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Couldn't apply the spreads — please try again."
@@ -3947,6 +3965,9 @@ msgstr "Filters out decorative or non-content images on each page."
 
 msgid "Final Page"
 msgstr "Final Page"
+
+msgid "Finish signing in with ChatGPT in the browser window that just opened."
+msgstr "Finish signing in with ChatGPT in the browser window that just opened."
 
 msgid "Fire a real notification with these settings."
 msgstr "Fire a real notification with these settings."
@@ -8766,8 +8787,14 @@ msgstr "Side-by-side image and narrative."
 msgid "Sign"
 msgstr "Sign"
 
+msgid "Sign in"
+msgstr "Sign in"
+
 msgid "Sign in outside the app, then Refresh — this screen detects the login automatically:"
 msgstr "Sign in outside the app, then Refresh — this screen detects the login automatically:"
+
+msgid "Sign in with ChatGPT"
+msgstr "Sign in with ChatGPT"
 
 msgid "Sign Language"
 msgstr "Sign Language"
@@ -8784,8 +8811,21 @@ msgstr "Sign language video overlays for each page"
 msgid "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
 msgstr "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
 
+msgid "Sign out"
+msgstr "Sign out"
+
+#. placeholder {0}: status.detail
+msgid "Sign-in failed: {0}"
+msgstr "Sign-in failed: {0}"
+
 msgid "Sign-language video linked to each page."
 msgstr "Sign-language video linked to each page."
+
+msgid "Signed in."
+msgstr "Signed in."
+
+msgid "Signed out."
+msgstr "Signed out."
 
 msgid "Similarity"
 msgstr "Similarity"
@@ -10191,6 +10231,12 @@ msgstr "Unable to save global prompt."
 
 msgid "Unable to select prompt version."
 msgstr "Unable to select prompt version."
+
+msgid "Unable to sign out."
+msgstr "Unable to sign out."
+
+msgid "Unable to start the sign-in."
+msgstr "Unable to start the sign-in."
 
 msgid "Unable to update the book model overrides."
 msgstr "Unable to update the book model overrides."

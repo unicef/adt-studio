@@ -10,7 +10,6 @@ import { createCodexStructuredTextBackend } from "../providers/codex/structured-
 import { toJsonSchema, toPromptInput } from "../providers/codex/request.js"
 import {
   buildCodexArgs,
-  codexExecutable,
   readCodexTurn,
   runCodexCli,
   spawnCodexCommand,
@@ -307,6 +306,38 @@ describe("createCodexStructuredTextBackend", () => {
     )
   })
 
+  it("names the configured API key when OpenAI rejects it", async () => {
+    const fake = fakeCli(() => {
+      throw new Error(
+        "Codex CLI exited with code 1: unexpected status 401 Unauthorized: Incorrect API key provided: sk-secret",
+      )
+    })
+
+    await expect(backendWith(fake).generateStructured(makeRequest())).rejects.toThrow(
+      /rejected the API key configured for the Codex provider.*CODEX_API_KEY.*takes precedence/s,
+    )
+  })
+
+  it("does not call a key rejected when 401 merely appears in unrelated text", async () => {
+    const fake = fakeCli(() => {
+      throw new Error("Codex CLI exited with code 1: expected 401 items in the response")
+    })
+
+    await expect(backendWith(fake).generateStructured(makeRequest())).rejects.not.toThrow(
+      /rejected the API key/,
+    )
+  })
+
+  it("points at the CLI login when OpenAI rejects it and no key is configured", async () => {
+    const fake = fakeCli(() => {
+      throw new Error("Codex CLI exited with code 1: unexpected status 401 Unauthorized")
+    })
+
+    await expect(backendWith(fake, {}).generateStructured(makeRequest())).rejects.toThrow(
+      /rejected the Codex CLI's own login.*Settings/s,
+    )
+  })
+
   it("wraps a failed turn and keeps the cause", async () => {
     const fake = fakeCli(() => {
       throw new Error("Codex CLI exited with code 1: unexpected status 404 Not Found")
@@ -528,16 +559,6 @@ describe("readCodexTurn", () => {
     )
 
     expect(turn.finalMessage).toBe("done")
-  })
-})
-
-describe("codexExecutable", () => {
-  it("defaults to the PATH lookup and honours an override", () => {
-    expect(codexExecutable({})).toBe("codex")
-    expect(codexExecutable({ CODEX_EXECUTABLE: "  " })).toBe("codex")
-    expect(codexExecutable({ CODEX_EXECUTABLE: " C:\\tools\\codex.cmd " })).toBe(
-      "C:\\tools\\codex.cmd",
-    )
   })
 })
 

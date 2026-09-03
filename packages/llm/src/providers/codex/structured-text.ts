@@ -59,7 +59,7 @@ export function createCodexStructuredTextBackend(
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : String(cause)
         throw new Error(
-          `Codex turn failed: ${redactSecret(message, apiKey)}${authFailureHint(apiKey)}`,
+          `Codex turn failed: ${redactSecret(message, apiKey)}${authFailureHint(apiKey, message)}`,
           { cause },
         )
       }
@@ -95,10 +95,20 @@ function redactSecret(message: string, apiKey: string | undefined): string {
   return apiKey ? message.split(apiKey).join("[redacted]") : message
 }
 
-/** Existence check only, and only once a turn has already failed. */
-function authFailureHint(apiKey: string | undefined): string {
+/**
+ * Names the credential the CLI actually used when OpenAI rejects it, because
+ * that is rarely the one the user is looking at: a server-side CODEX_API_KEY
+ * silently outranks the CLI's own login. The login check is existence only,
+ * and only runs once a turn has already failed.
+ */
+function authFailureHint(apiKey: string | undefined, message: string): string {
+  if (/\b401 unauthorized\b|\bstatus 401\b|invalid_api_key|incorrect api key/i.test(message)) {
+    return apiKey
+      ? ". OpenAI rejected the API key configured for the Codex provider — a Studio setting or the server's CODEX_API_KEY variable, either of which takes precedence over the Codex CLI login. Fix or remove that key"
+      : ". OpenAI rejected the Codex CLI's own login — sign in again from Settings → Providers or with `codex login`"
+  }
   if (apiKey || hasLocalCliLogin(codexCliCredentialPaths())) return ""
-  return ". No API key is configured and no Codex CLI login was found — run `codex login` on this machine or set an API key"
+  return ". No API key is configured and no Codex CLI login was found — sign in from Settings → Providers, run `codex login` on this machine, or set an API key"
 }
 
 function formatAdvisoryErrors(messages: readonly string[]): string {
