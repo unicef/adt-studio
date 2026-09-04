@@ -211,6 +211,56 @@ describe("buildTextCatalog", () => {
     ])
   })
 
+  it("keys quiz entries by the stored quizId, so inserting a quiz cannot steal them", async () => {
+    // Two quizzes with stable ids, stored with the newcomer FIRST in the array.
+    // Before quizIds, the array position drove the key: the new quiz would have
+    // taken `qz001_*` and inherited the existing quiz's translations and audio.
+    const storage = createMockStorage({
+      "quiz-generation": {
+        book: {
+          generatedAt: "2024-01-01T00:00:00.000Z",
+          language: "en",
+          pagesPerQuiz: 3,
+          quizzes: [
+            {
+              quizId: "qz002",
+              quizIndex: 0,
+              afterPageId: "pg001",
+              pageIds: ["pg001"],
+              question: "Inserted first?",
+              options: [
+                { text: "a", explanation: "" },
+                { text: "b", explanation: "" },
+                { text: "c", explanation: "" },
+              ],
+              answerIndex: 0,
+              reasoning: "...",
+            },
+            {
+              quizId: "qz001",
+              quizIndex: 1,
+              afterPageId: "pg003",
+              pageIds: ["pg003"],
+              question: "Original?",
+              options: [
+                { text: "a", explanation: "" },
+                { text: "b", explanation: "" },
+                { text: "c", explanation: "" },
+              ],
+              answerIndex: 0,
+              reasoning: "...",
+            },
+          ],
+        },
+      },
+    })
+
+    const result = await buildTextCatalog(storage, [])
+
+    expect(result.entries.find((e) => e.id === "qz001_que")?.text).toBe("Original?")
+    expect(result.entries.find((e) => e.id === "qz002_que")?.text).toBe("Inserted first?")
+  })
+
   it("skips empty text nodes", async () => {
     const storage = createMockStorage({
       "web-rendering": {

@@ -16,6 +16,7 @@ import { useSectionNav } from "@/routes/books.$label"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { useHasUnsavedChanges } from "../../components/floating-save"
+import { formatQuizId } from "@adt/types"
 
 
 export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
@@ -62,12 +63,20 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const isGeneratingRef = useRef(false)
   const handleGeneratingChange = useCallback((g: boolean) => { isGeneratingRef.current = g }, [])
 
-  // Quizzes appear in the sidebar with a synthetic pageId of `quiz-{index}`.
+  // Quizzes appear in the sidebar with a synthetic pageId of `quiz-{quizId}`.
   // When that pageId is in the URL we render the quiz panel instead of loading
   // page detail — calling usePage with a fake id would 404.
-  const quizMatch = selectedPageIdProp?.match(/^quiz-(\d+)$/)
-  const selectedQuizIndex = quizMatch ? parseInt(quizMatch[1], 10) : null
-  const isQuizRoute = selectedQuizIndex != null
+  //
+  // Links made before quizzes had stable ids carry `quiz-{arrayIndex}`; those
+  // resolve to the id that index derived back then, so old tabs and bookmarks
+  // keep working.
+  const quizMatch = selectedPageIdProp?.match(/^quiz-(.+)$/)
+  const selectedQuizId = quizMatch
+    ? /^\d+$/.test(quizMatch[1])
+      ? formatQuizId(parseInt(quizMatch[1], 10) + 1)
+      : quizMatch[1]
+    : null
+  const isQuizRoute = selectedQuizId != null
 
   // Auto-select first page when no page is selected
   useEffect(() => {
@@ -440,12 +449,12 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     )
   }
 
-  // Quiz route: pseudo-pageId is `quiz-{index}`. Render the quiz panel.
-  if (isQuizRoute && selectedQuizIndex != null) {
+  // Quiz route: pseudo-pageId is `quiz-{quizId}`. Render the quiz panel.
+  if (isQuizRoute && selectedQuizId != null) {
     return (
       <StoryboardQuizDetail
         bookLabel={bookLabel}
-        quizIndex={selectedQuizIndex}
+        quizId={selectedQuizId}
         navigationArrows={
           <div className="flex gap-1">{overviewToggle}{outlineToggle}</div>
         }
