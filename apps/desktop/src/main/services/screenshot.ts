@@ -1,11 +1,31 @@
+import { DEFAULT_SCREENSHOT_TIMEOUT_MS } from "@adt/types";
 import { BrowserWindow } from "electron";
 import { randomUUID } from "node:crypto";
 import { htmlStore } from "../protocols/html-render";
 
 const windows = new Set<InstanceType<typeof BrowserWindow>>();
+
+function withDeadline<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${message} (${timeoutMs}ms)`)),
+      timeoutMs,
+    );
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  }) as Promise<T>;
+}
+
 async function screenshot(
   html: string,
   viewport: { width: number; height: number },
+  timeoutMs: number = DEFAULT_SCREENSHOT_TIMEOUT_MS,
 ): Promise<string> {
   const id = randomUUID();
   htmlStore.set(id, html);
@@ -18,6 +38,9 @@ async function screenshot(
   });
   windows.add(win);
 
+  const deadline = Date.now() + timeoutMs;
+  const remaining = () => Math.max(1, deadline - Date.now());
+
   try {
     const loadPromise = new Promise<void>((resolve, reject) => {
       win.webContents.once("did-finish-load", resolve);
@@ -26,10 +49,24 @@ async function screenshot(
       );
     });
 
-    await win.loadURL(`html-render://${id}`);
-    await loadPromise;
+    loadPromise.catch(() => {});
 
-    const image = await win.webContents.capturePage();
+    await withDeadline(
+      win.loadURL(`html-render://${id}`),
+      remaining(),
+      "Timed out loading the screenshot page",
+    );
+    await withDeadline(
+      loadPromise,
+      remaining(),
+      "Screenshot page never finished loading",
+    );
+
+    const image = await withDeadline(
+      win.webContents.capturePage(),
+      remaining(),
+      "Timed out capturing the screenshot",
+    );
     return image.toPNG().toString("base64");
   } finally {
     windows.delete(win);

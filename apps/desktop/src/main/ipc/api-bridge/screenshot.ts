@@ -27,6 +27,7 @@ export function handleScreenshotMessages(apiProcess: Electron.UtilityProcess) {
         const base64 = await screenshot(
           m.html,
           m.viewport ?? { width: 1024, height: 768 },
+          m.timeoutMs,
         );
         apiProcess.postMessage(
           screenshotIpcReplySuccessSchema.parse({
