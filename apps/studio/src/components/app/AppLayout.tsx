@@ -13,16 +13,14 @@ import { CommandPalette } from "./CommandPalette"
 import { AddBookDialog } from "./AddBookDialog"
 import { AppShellContext } from "./AppShellContext"
 import { useAppBooks } from "./use-app-books"
-import { Kbd } from "./ui/Kbd"
+import { Kbd, MOD_KEY } from "./ui/Kbd"
+import { ComingSoonBanner } from "./screens/settings/ui"
 import { isFullBleedAppView } from "./nav"
 
+// Only the palette has a handler; the rest are still unimplemented, so the
+// dialog advertises this one and says the others are coming.
 const SHORTCUTS: { keys: string[]; label: MessageDescriptor }[] = [
-  { keys: ["⌘", "K"], label: msg`Open command palette` },
-  { keys: ["/"], label: msg`Focus settings search` },
-  { keys: ["G", "H"], label: msg`Go to Home` },
-  { keys: ["G", "L"], label: msg`Go to Library` },
-  { keys: ["N"], label: msg`Add a book` },
-  { keys: ["?"], label: msg`Show this help` },
+  { keys: [MOD_KEY, "K"], label: msg`Open command palette` },
 ]
 
 export function AppLayout() {
@@ -102,6 +100,12 @@ export function AppLayout() {
                   <Kbd keys={s.keys} className="ml-auto" />
                 </div>
               ))}
+              <ComingSoonBanner className="mt-2.5">
+                <Trans>
+                  More shortcuts — quick navigation, adding a book, opening this dialog — are still
+                  in development.
+                </Trans>
+              </ComingSoonBanner>
             </div>
           </DialogContent>
         </Dialog>

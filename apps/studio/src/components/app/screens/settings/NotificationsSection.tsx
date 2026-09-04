@@ -33,6 +33,7 @@ const POS_CLASS: Record<ToastPosition, string> = {
   "bottom-center": "bottom-3 left-1/2 -translate-x-1/2",
   "bottom-right": "bottom-3 right-3",
 }
+
 const BAR_POS: Record<ToastPosition, string> = {
   "top-left": "top-[2.5px] left-[2px]",
   "top-center": "top-[2.5px] left-1/2 -translate-x-1/2",
@@ -41,6 +42,7 @@ const BAR_POS: Record<ToastPosition, string> = {
   "bottom-center": "bottom-[2.5px] left-1/2 -translate-x-1/2",
   "bottom-right": "bottom-[2.5px] right-[2px]",
 }
+/* eslint-enable lingui/no-unlocalized-strings */
 
 const isTop = (p: ToastPosition) => p.startsWith("top")
 

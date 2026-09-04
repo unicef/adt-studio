@@ -18,9 +18,14 @@ export function ComingSoon({ label, title, className }: { label?: ReactNode; tit
   )
 }
 
-export function ComingSoonBanner({ children }: { children?: ReactNode }) {
+export function ComingSoonBanner({ children, className }: { children?: ReactNode; className?: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-dashed border-amber-400/50 bg-amber-500/5 px-3 py-2 text-[12px] text-amber-700 dark:text-amber-300">
+    <div
+      className={cn(
+        "flex items-center gap-2 rounded-lg border border-dashed border-amber-400/50 bg-amber-500/5 px-3 py-2 text-[12px] text-amber-700 dark:text-amber-300",
+        className,
+      )}
+    >
       <Clock className="size-3.5 shrink-0" />
       <span>{children ?? <Trans>Previewed here — enabled once the AI-agnostic update ships.</Trans>}</span>
     </div>

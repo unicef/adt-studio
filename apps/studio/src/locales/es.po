@@ -625,6 +625,9 @@ msgstr "{textCount} hojas de texto"
 msgid "{title} - page {0}"
 msgstr "{title} - página {0}"
 
+msgid "{toggleShortcut} to toggle"
+msgstr "{toggleShortcut} para alternar"
+
 msgid "{total} blocks"
 msgstr "{total} bloques"
 
@@ -675,8 +678,8 @@ msgstr "="
 msgid "~/ADT/Books"
 msgstr "~/ADT/Libros"
 
-msgid "⌘K to toggle"
-msgstr "⌘K para alternar"
+#~ msgid "⌘K to toggle"
+#~ msgstr "⌘K para alternar"
 
 msgid "🌿"
 msgstr "🌿"
@@ -4512,8 +4515,8 @@ msgstr "Fluidez"
 msgid "FNDE-ready HTML5 package (.zip)"
 msgstr "Paquete HTML5 listo para el FNDE (.zip)"
 
-msgid "Focus settings search"
-msgstr "Buscar en configuraciones de enfoque"
+#~ msgid "Focus settings search"
+#~ msgstr "Buscar en configuraciones de enfoque"
 
 msgid "Folder actions"
 msgstr "Acciones de la carpeta"
@@ -4881,8 +4884,8 @@ msgstr "Ir al inicio"
 msgid "Go to latest"
 msgstr "Ir a la última"
 
-msgid "Go to Library"
-msgstr "Ir a la Biblioteca"
+#~ msgid "Go to Library"
+#~ msgstr "Ir a la Biblioteca"
 
 msgid "Go to Storyboard"
 msgstr "Ir al Storyboard"
@@ -6387,6 +6390,9 @@ msgstr "Monoespaciada"
 
 msgid "More info"
 msgstr "Más información"
+
+msgid "More shortcuts — quick navigation, adding a book, opening this dialog — are still in development."
+msgstr "Más atajos — navegación rápida, añadir un libro, abrir este diálogo — están en desarrollo."
 
 msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle. Nothing changes until you press Apply."
 msgstr "La mayoría de los libros se leen una página a la vez. Si el tuyo tiene una ilustración que abarca dos páginas enfrentadas, enlaza esas páginas para que se procesen juntas como una sola doble página en lugar de dividirse por la mitad. Nada cambia hasta que pulses Aplicar."
@@ -9937,8 +9943,8 @@ msgstr "Mostrar la barra"
 msgid "Show the sidebar"
 msgstr "Mostrar la barra lateral"
 
-msgid "Show this help"
-msgstr "Mostrar esta ayuda"
+#~ msgid "Show this help"
+#~ msgstr "Mostrar esta ayuda"
 
 msgid "Show unchanged"
 msgstr "Mostrar sin cambios"

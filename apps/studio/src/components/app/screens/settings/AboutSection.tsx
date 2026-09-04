@@ -124,7 +124,18 @@ export function AboutSection() {
             <Trans>Replay the guided introduction to ADT Studio.</Trans>
           </p>
           <Button asChild variant="outline" size="sm" className="mt-3">
-            <Link to="/onboarding">
+            <Link
+              to="/onboarding"
+              onClick={(e) => {
+                // On desktop the tour has its own right-sized window; the in-app
+                // route is the web fallback.
+                const bridge = typeof window !== "undefined" ? window.api?.onboarding : undefined
+                if (bridge?.open) {
+                  e.preventDefault()
+                  void bridge.open()
+                }
+              }}
+            >
               <RotateCcw className="size-3.5" />
               <Trans>Restart tour</Trans>
             </Link>

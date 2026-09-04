@@ -625,6 +625,9 @@ msgstr "{textCount} text leaves"
 msgid "{title} - page {0}"
 msgstr "{title} - page {0}"
 
+msgid "{toggleShortcut} to toggle"
+msgstr "{toggleShortcut} to toggle"
+
 msgid "{total} blocks"
 msgstr "{total} blocks"
 
@@ -675,8 +678,8 @@ msgstr "="
 msgid "~/ADT/Books"
 msgstr "~/ADT/Books"
 
-msgid "⌘K to toggle"
-msgstr "⌘K to toggle"
+#~ msgid "⌘K to toggle"
+#~ msgstr "⌘K to toggle"
 
 msgid "🌿"
 msgstr "🌿"
@@ -4512,8 +4515,8 @@ msgstr "Fluency"
 msgid "FNDE-ready HTML5 package (.zip)"
 msgstr "FNDE-ready HTML5 package (.zip)"
 
-msgid "Focus settings search"
-msgstr "Focus settings search"
+#~ msgid "Focus settings search"
+#~ msgstr "Focus settings search"
 
 msgid "Folder actions"
 msgstr "Folder actions"
@@ -4881,8 +4884,8 @@ msgstr "Go to Home"
 msgid "Go to latest"
 msgstr "Go to latest"
 
-msgid "Go to Library"
-msgstr "Go to Library"
+#~ msgid "Go to Library"
+#~ msgstr "Go to Library"
 
 msgid "Go to Storyboard"
 msgstr "Go to Storyboard"
@@ -6387,6 +6390,9 @@ msgstr "Monospace"
 
 msgid "More info"
 msgstr "More info"
+
+msgid "More shortcuts — quick navigation, adding a book, opening this dialog — are still in development."
+msgstr "More shortcuts — quick navigation, adding a book, opening this dialog — are still in development."
 
 msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle. Nothing changes until you press Apply."
 msgstr "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle. Nothing changes until you press Apply."
@@ -9937,8 +9943,8 @@ msgstr "Show the dock"
 msgid "Show the sidebar"
 msgstr "Show the sidebar"
 
-msgid "Show this help"
-msgstr "Show this help"
+#~ msgid "Show this help"
+#~ msgstr "Show this help"
 
 msgid "Show unchanged"
 msgstr "Show unchanged"

@@ -627,6 +627,9 @@ msgstr "{textCount} gjethe teksti"
 msgid "{title} - page {0}"
 msgstr "{title} - faqe {0}"
 
+msgid "{toggleShortcut} to toggle"
+msgstr "{toggleShortcut} për të ndërruar"
+
 msgid "{total} blocks"
 msgstr "{total} blloqe"
 
@@ -677,8 +680,8 @@ msgstr "="
 msgid "~/ADT/Books"
 msgstr "~/ADT/Libra"
 
-msgid "⌘K to toggle"
-msgstr "⌘K për të ndërruar"
+#~ msgid "⌘K to toggle"
+#~ msgstr "⌘K për të ndërruar"
 
 msgid "🌿"
 msgstr "🌿"
@@ -4514,8 +4517,8 @@ msgstr "Rrjedhshmëria"
 msgid "FNDE-ready HTML5 package (.zip)"
 msgstr "Paketë HTML5 e gatshme për FNDE (.zip)"
 
-msgid "Focus settings search"
-msgstr "Kërko cilësimet e fokusit"
+#~ msgid "Focus settings search"
+#~ msgstr "Kërko cilësimet e fokusit"
 
 msgid "Folder actions"
 msgstr "Veprimet e dosjes"
@@ -4883,8 +4886,8 @@ msgstr "Shko te Ballina"
 msgid "Go to latest"
 msgstr "Shko te më i fundit"
 
-msgid "Go to Library"
-msgstr "Shko te Biblioteka"
+#~ msgid "Go to Library"
+#~ msgstr "Shko te Biblioteka"
 
 msgid "Go to Storyboard"
 msgstr "Shko te Storyboard"
@@ -6389,6 +6392,9 @@ msgstr "Monospace"
 
 msgid "More info"
 msgstr "Më shumë informacion"
+
+msgid "More shortcuts — quick navigation, adding a book, opening this dialog — are still in development."
+msgstr "Më shumë shkurtore — navigim i shpejtë, shtimi i një libri, hapja e këtij dialogu — janë ende në zhvillim."
 
 msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle. Nothing changes until you press Apply."
 msgstr "Shumica e librave lexohen faqe për faqe. Nëse i yti ka një ilustrim që shtrihet në dy faqe përballë, lidhi ato faqe që të përpunohen bashkë si një fletë e vetme e dyfishtë në vend që të ndahen në mes. Asgjë nuk ndryshon derisa të shtypni Zbato."
@@ -9939,8 +9945,8 @@ msgstr "Shfaq shiritin"
 msgid "Show the sidebar"
 msgstr "Shfaq shiritin anÃ«sor"
 
-msgid "Show this help"
-msgstr "Shfaq këtë ndihmë"
+#~ msgid "Show this help"
+#~ msgstr "Shfaq këtë ndihmë"
 
 msgid "Show unchanged"
 msgstr "Shfaq të pandryshuarat"
