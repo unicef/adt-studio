@@ -5,7 +5,10 @@ import {
   listGitTags,
   parseReleaseTag,
 } from "./release-version.mjs";
-import { formatReleaseSourceSection } from "./release-source-notes.mjs";
+import {
+  formatReleaseSourceSection,
+  wrapFactualReleaseNotes,
+} from "./release-source-notes.mjs";
 
 const RELEASE_CONTROL_PATTERN =
   /^RELEASE:\s*(major|minor|patch|beta|beta-minor|beta-major)\s*$/;
@@ -289,7 +292,8 @@ export function composeReleaseNotes(
   noteArgs.push("--jq", ".body");
   const generatedNotes = runGh(noteArgs);
   const section = formatReleaseSourceSection(source);
-  return `${generatedNotes.trimEnd()}${section ? `\n\n${section}` : ""}`.trim();
+  const factualNotes = wrapFactualReleaseNotes(generatedNotes);
+  return `${factualNotes}${section ? `\n\n${section}` : ""}`.trim();
 }
 
 function main() {

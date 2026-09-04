@@ -46,6 +46,10 @@ msgstr ".zip → adicionado como está"
 msgid "\"A landscape forged by fire.\""
 msgstr "\\\"Uma paisagem forjada pelo fogo.\\\""
 
+#. placeholder {0}: s.skipped
+msgid "(+{0} skipped)"
+msgstr "(+{0} ignoradas)"
+
 msgid "(active)"
 msgstr "(ativo)"
 
@@ -110,12 +114,16 @@ msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# página} other {# páginas}}"
 
 #. placeholder {0}: discs.length
-#~ msgid "{0, plural, one {# stage} other {# stages}}"
-#~ msgstr "{0, plural, one {# etapa} other {# etapas}}"
+msgid "{0, plural, one {# stage} other {# stages}}"
+msgstr "{0, plural, one {# etapa} other {# etapas}}"
 
 #. placeholder {0}: llmSteps.length
 msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
 msgstr "{0, plural, one {# tarefa herda este modelo} other {# tarefas herdam este modelo}}"
+
+#. placeholder {0}: health.modelCount
+msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
+msgstr "{0, plural, one {Conectado com sucesso — # modelo disponível.} other {Conectado com sucesso — # modelos disponíveis.}}"
 
 #. placeholder {0}: steps.length
 msgid "{0, plural, one {Used by # task} other {Used by # tasks}}"
@@ -184,6 +192,10 @@ msgstr "{0} concluído"
 #. placeholder {0}: String(p.stats.decorative)
 msgid "{0} decorative"
 msgstr "{0} decorativo"
+
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "{0} did not start"
+msgstr "{0} não foi iniciado"
 
 #. placeholder {0}: book.languageCode.toUpperCase()
 msgid "{0} EDITION"
@@ -819,6 +831,9 @@ msgstr "Já existe um questionário aqui — adicione outro depois ou substitua-
 msgid "A required credential is missing."
 msgstr "Uma credencial necessária está faltando."
 
+msgid "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
+msgstr "Uma segunda voz narra cada linha novamente, portanto dobra o custo de geração de fala e de sincronização de palavras para este idioma."
+
 msgid "A section containing only images."
 msgstr "Uma seção contendo apenas imagens."
 
@@ -938,6 +953,9 @@ msgstr "Código de acesso"
 
 msgid "Accessibility"
 msgstr "Accessibility"
+
+msgid "Accessibility Assessment"
+msgstr "Avaliação de acessibilidade"
 
 msgid "Accessibility assessment configuration"
 msgstr "Accessibility assessment configuration"
@@ -1169,6 +1187,9 @@ msgstr "Adicione uma chave de API nas configurações do Livro para executar tra
 msgid "Add an API key to re-run"
 msgstr "Adicione uma chave de API para reexecutar"
 
+msgid "Add an Azure Speech key and region in Settings to pick voices by name."
+msgstr "Adicione uma chave e uma região do Azure Speech nas Configurações para escolher vozes pelo nome."
+
 msgid "Add an ElevenLabs API key in Settings to pick voices by name."
 msgstr "Adicione uma chave de API do ElevenLabs em Configurações para escolher vozes por nome."
 
@@ -1258,6 +1279,9 @@ msgstr "Adicionar questionário aqui"
 
 msgid "Add reviewer guidance."
 msgstr "Add reviewer guidance."
+
+msgid "Add second voice"
+msgstr "Adicionar segunda voz"
 
 msgid "Add section"
 msgstr "Add section"
@@ -1460,6 +1484,9 @@ msgstr "IA organiza imagens e texto por seção, correspondendo ao design do liv
 msgid "AI Overlay"
 msgstr "Sobreposição por IA"
 
+msgid "AI provider credentials"
+msgstr "Credenciais de provedores de IA"
+
 msgid "AI providers"
 msgstr "Provedores de IA"
 
@@ -1475,8 +1502,8 @@ msgstr "IA"
 msgid "AI-powered layout that preserves the original page as a background with text overlay."
 msgstr "Layout impulsionado por IA que preserva a página original como fundo com sobreposição de texto."
 
-msgid "AIza..."
-msgstr "AIza..."
+#~ msgid "AIza..."
+#~ msgstr "AIza..."
 
 msgid "Albanian"
 msgstr "Albanês"
@@ -1599,6 +1626,9 @@ msgstr "Uma atividade em que o aluno sublinha uma ou mais palavras, expressões 
 msgid "An AI image is being generated. Cancel it and navigate?"
 msgstr "Uma imagem com IA está sendo gerada. Cancelar e navegar?"
 
+msgid "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
+msgstr "Uma chave de API definida no ambiente do servidor tem prioridade sobre este login. Remova-a de lá para usar a conta conectada."
+
 msgid "An open-ended answer activity."
 msgstr "Uma atividade de resposta aberta."
 
@@ -1641,17 +1671,20 @@ msgstr "Respostas"
 msgid "Answers revealed in activities."
 msgstr "Respostas reveladas nas atividades."
 
-msgid "Anthropic"
-msgstr "Anthropic"
+#~ msgid "Anthropic"
+#~ msgstr "Anthropic"
 
-msgid "Anthropic API Key"
-msgstr "Chave de API da Anthropic"
+#~ msgid "Anthropic API Key"
+#~ msgstr "Chave de API da Anthropic"
 
 msgid "Any content type"
 msgstr "Qualquer tipo de conteúdo"
 
-msgid "Any OpenAI-compatible endpoint (Ollama, vLLM, Together AI, etc.). Use the \"custom:\" prefix when selecting models, e.g. custom:llama3."
-msgstr "Qualquer endpoint compatível com OpenAI (Ollama, vLLM, Together AI, etc.). Use o prefixo \"custom:\" ao selecionar modelos, ex. custom:llama3."
+#~ msgid "Any OpenAI-compatible endpoint (Ollama, vLLM, Together AI, etc.). Use the \"custom:\" prefix when selecting models, e.g. custom:llama3."
+#~ msgstr "Qualquer endpoint compatível com OpenAI (Ollama, vLLM, Together AI, etc.). Use o prefixo \"custom:\" ao selecionar modelos, ex. custom:llama3."
+
+msgid "Any OpenAI-compatible endpoint (vLLM, LM Studio, Together AI, etc.). Use the \"custom:\" prefix when selecting models, e.g. custom:llama3."
+msgstr "Qualquer endpoint compatível com OpenAI (vLLM, LM Studio, Together AI, etc.). Use o prefixo \"custom:\" ao selecionar modelos, por exemplo custom:llama3."
 
 msgid "Any other section type."
 msgstr "Qualquer outro tipo de seção."
@@ -1668,8 +1701,8 @@ msgstr "Chave de API"
 msgid "API Key"
 msgstr "Chave de API"
 
-msgid "API Key (optional)"
-msgstr "Chave de API (opcional)"
+#~ msgid "API Key (optional)"
+#~ msgstr "Chave de API (opcional)"
 
 msgid "api key credentials provider token openai gemini"
 msgstr "chave api credenciais provedor token openai gemini"
@@ -1692,8 +1725,8 @@ msgstr "Chaves de API"
 msgid "API Keys"
 msgstr "Chaves de API"
 
-msgid "API keys saved."
-msgstr "Chaves de API salvas."
+#~ msgid "API keys saved."
+#~ msgstr "Chaves de API salvas."
 
 msgid "API Logs"
 msgstr "Logs de API"
@@ -1909,8 +1942,8 @@ msgstr "Adapta automaticamente o layout com base no conteúdo de cada página us
 msgid "Automatically create quizzes across the whole book at a set frequency."
 msgstr "Crie questionários automaticamente em todo o livro com uma frequência definida."
 
-msgid "Available with the AI-agnostic update"
-msgstr "Disponível com a atualização AI-agnostic"
+#~ msgid "Available with the AI-agnostic update"
+#~ msgstr "Disponível com a atualização AI-agnostic"
 
 msgid "Avg Duration"
 msgstr "Duração média"
@@ -1924,11 +1957,11 @@ msgstr "axe-core · não gerado por IA"
 msgid "Azure"
 msgstr "Azure"
 
-msgid "Azure Speech subscription key"
-msgstr "Chave de assinatura do Azure Speech"
+#~ msgid "Azure Speech subscription key"
+#~ msgstr "Chave de assinatura do Azure Speech"
 
-msgid "Azure Speech Subscription Key"
-msgstr "Chave de assinatura do Azure Speech"
+#~ msgid "Azure Speech Subscription Key"
+#~ msgstr "Chave de assinatura do Azure Speech"
 
 msgid "Azure TTS voices · subscription key + region."
 msgstr "Vozes Azure TTS · chave de assinatura + região."
@@ -1945,8 +1978,8 @@ msgstr "Contracapa"
 msgid "Back to beta versions"
 msgstr "Voltar às versões beta"
 
-msgid "Back to books"
-msgstr "Voltar aos livros"
+#~ msgid "Back to books"
+#~ msgstr "Voltar aos livros"
 
 msgid "Back to classic activity"
 msgstr "Voltar à atividade clássica"
@@ -2045,6 +2078,9 @@ msgstr "Melhor para seu predefinido"
 
 msgid "Beta"
 msgstr "Beta"
+
+msgid "Beta {version}"
+msgstr "Beta {version}"
 
 msgid "Beta channel"
 msgstr "Canal beta"
@@ -2235,6 +2271,9 @@ msgstr "Navegar na documentação"
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Navegue por cada seção do Storyboard e faça upload, substitua ou remova seu vídeo em linguagem de sinais."
 
+msgid "Browser didn't open? Use this link"
+msgstr "O navegador não abriu? Use este link"
+
 msgid "Build"
 msgstr "Compilação"
 
@@ -2288,6 +2327,9 @@ msgstr "Mas a equipe continuou subindo a montanha."
 
 msgid "Button"
 msgstr "Botão"
+
+msgid "By"
+msgstr "Por"
 
 msgid "By Page"
 msgstr "Por página"
@@ -2489,8 +2531,8 @@ msgstr "Checked"
 msgid "Checked before every export."
 msgstr "Verificado antes de cada exportação."
 
-msgid "Checked just now"
-msgstr "Verificado agora mesmo"
+#~ msgid "Checked just now"
+#~ msgstr "Verificado agora mesmo"
 
 msgid "Checking accessibility"
 msgstr "Checking accessibility"
@@ -2783,8 +2825,8 @@ msgstr "Configuração"
 msgid "Configure activity detection and image processing options for extracted content. Hover any setting to see how it affects the preview."
 msgstr "Configure as opções de detecção de atividade e processamento de imagem para o conteúdo extraído. Passe o mouse sobre qualquer configuração para ver como ela afeta a visualização."
 
-msgid "Configure API keys for AI pipeline features."
-msgstr "Configure as chaves de API para os recursos de IA."
+#~ msgid "Configure API keys for AI pipeline features."
+#~ msgstr "Configure as chaves de API para os recursos de IA."
 
 msgid "Configure basic document information and file paths"
 msgstr "Configurar informações básicas do documento e caminhos de arquivos"
@@ -2792,11 +2834,17 @@ msgstr "Configurar informações básicas do documento e caminhos de arquivos"
 msgid "Configure features to include in the export"
 msgstr "Configure as funcionalidades a incluir na exportação"
 
+msgid "Configure the credentials used by AI features on this device."
+msgstr "Configure as credenciais usadas pelos recursos de IA neste dispositivo."
+
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Configure as credenciais dos provedores usadas quando o ADT Studio executa etapas da pipeline de IA nesta máquina."
 
 msgid "Configure voices and accents"
 msgstr "Configurar vozes e sotaques"
+
+msgid "Configured on server"
+msgstr "Configurado no servidor"
 
 msgid "Confirm merge"
 msgstr "Confirmar mesclagem"
@@ -2952,6 +3000,9 @@ msgstr "Corrija os dados extraídos do documento original."
 msgid "Correct the metadata extracted from the document."
 msgstr "Corrija os metadados extraídos do documento."
 
+msgid "Could not load the AI provider catalogue."
+msgstr "Não foi possível carregar o catálogo de provedores de IA."
+
 msgid "Could not load the book outline."
 msgstr "Não foi possível carregar a estrutura do livro."
 
@@ -2973,6 +3024,14 @@ msgstr "Não foi possível remover {failed} de {total} vídeos — tente novamen
 
 msgid "Could not save your change: {message}"
 msgstr "Não foi possível salvar sua alteração: {message}"
+
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "Could not start {0}: {detail}"
+msgstr "Não foi possível iniciar {0}: {detail}"
+
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "Could not start {0}."
+msgstr "Não foi possível iniciar {0}."
 
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Não foi possível aplicar os spreads — tente novamente."
@@ -3158,6 +3217,9 @@ msgstr "Current Preview Page"
 msgid "Current version (v{currentVersion})"
 msgstr "Versão atual (v{currentVersion})"
 
+msgid "Currently active"
+msgstr "Ativo no momento"
+
 msgid "Custom"
 msgstr "Personalizado"
 
@@ -3181,6 +3243,9 @@ msgstr "Recorte uma região de qualquer página"
 
 msgid "Dark"
 msgstr "Escuro"
+
+msgid "Date added"
+msgstr "Data de adição"
 
 msgid "Date created"
 msgstr "Data de criação"
@@ -3535,6 +3600,9 @@ msgstr "concluído"
 msgid "Done"
 msgstr "Concluído"
 
+msgid "Download"
+msgstr "Baixar"
+
 msgid "Download a full backup of this project"
 msgstr "Baixar um backup completo deste projeto"
 
@@ -3549,6 +3617,9 @@ msgstr "Baixar atualização"
 
 msgid "Downloaded"
 msgstr "Baixada"
+
+msgid "Downloading"
+msgstr "Baixando"
 
 msgid "Downloading update…"
 msgstr "Baixando atualização…"
@@ -3646,8 +3717,8 @@ msgstr "ex.: alloy"
 msgid "e.g. early readers"
 msgstr "ex.: leitores iniciantes"
 
-msgid "e.g. eastus, westeurope"
-msgstr "ex.: eastus, westeurope"
+#~ msgid "e.g. eastus, westeurope"
+#~ msgstr "ex.: eastus, westeurope"
 
 msgid "e.g. emphasize cultural context, avoid technical jargon, mention colors when relevant…"
 msgstr "ex.: enfatizar contexto cultural, evitar jargão técnico, mencionar cores quando relevante…"
@@ -3661,8 +3732,8 @@ msgstr "ex.: focar em vocabulário científico, pular nomes de lugares, definir 
 msgid "e.g. fr, es-mx"
 msgstr "ex.: fr, es-mx"
 
-msgid "e.g. http://localhost:11434/v1"
-msgstr "ex. http://localhost:11434/v1"
+#~ msgid "e.g. http://localhost:11434/v1"
+#~ msgstr "ex. http://localhost:11434/v1"
 
 msgid "e.g. keep a warm children's-book tone"
 msgstr "ex.: manter um tom acolhedor de livro infantil"
@@ -3857,11 +3928,11 @@ msgstr "Elementos"
 msgid "ElevenLabs"
 msgstr "ElevenLabs"
 
-msgid "ElevenLabs API key"
-msgstr "Chave de API do ElevenLabs"
+#~ msgid "ElevenLabs API key"
+#~ msgstr "Chave de API do ElevenLabs"
 
-msgid "ElevenLabs API Key"
-msgstr "Chave de API do ElevenLabs"
+#~ msgid "ElevenLabs API Key"
+#~ msgstr "Chave de API do ElevenLabs"
 
 msgid "ElevenLabs cannot produce the \"{normalizedFormat}\" format, so every ElevenLabs entry will fail. Use mp3, opus, wav, or pcm — the Format field above applies to all providers."
 msgstr "O ElevenLabs não pode gerar o formato \"{normalizedFormat}\", portanto todas as entradas do ElevenLabs falharão. Use mp3, opus, wav ou pcm: o campo Formato acima se aplica a todos os provedores."
@@ -3948,6 +4019,9 @@ msgstr "Informe um ID de modelo para cada tarefa."
 
 msgid "Enter a model id."
 msgstr "Informe um id de modelo."
+
+msgid "Enter a valid HTTP or HTTPS URL."
+msgstr "Insira uma URL HTTP ou HTTPS válida."
 
 msgid "Enter a valid minimum dimension (whole number ≥ 0)"
 msgstr "Insira uma dimensão mínima válida (número inteiro ≥ 0)"
@@ -4154,6 +4228,9 @@ msgstr "Exportando"
 
 msgid "Exporting..."
 msgstr "Exportando..."
+
+msgid "Expressive TTS voices for narration."
+msgstr "Vozes de TTS expressivas para narração."
 
 msgid "Extract"
 msgstr "Extração"
@@ -4369,6 +4446,9 @@ msgstr "Filtra imagens decorativas ou sem conteúdo em cada página."
 msgid "Final Page"
 msgstr "Página Final"
 
+msgid "Finish signing in with ChatGPT in the browser window that just opened."
+msgstr "Conclua o login com o ChatGPT na janela do navegador que acabou de abrir."
+
 msgid "Finish Storyboard first — validation checks the packaged book."
 msgstr "Conclua o Storyboard primeiro — a validação verifica o livro empacotado."
 
@@ -4383,6 +4463,9 @@ msgstr "O primeiro idioma é o padrão"
 
 msgid "Fit"
 msgstr "Ajustar"
+
+msgid "Fit to panel · showing {display}% of full size"
+msgstr "Ajustado ao painel · exibindo {display}% do tamanho original"
 
 msgid "Fix"
 msgstr "Corrigir"
@@ -4813,17 +4896,20 @@ msgstr "Boa noite"
 msgid "Good morning"
 msgstr "Bom dia"
 
-msgid "Google"
-msgstr "Google"
+#~ msgid "Google"
+#~ msgstr "Google"
 
-msgid "Google AI API Key"
-msgstr "Chave de API do Google AI"
+#~ msgid "Google AI API Key"
+#~ msgstr "Chave de API do Google AI"
 
 msgid "Google font added."
 msgstr "Fonte do Google adicionada."
 
 msgid "Google Fonts"
 msgstr "Google Fonts"
+
+msgid "Google TTS voices."
+msgstr "Vozes de TTS do Google."
 
 msgid "Google's voices with strong intonation for narrative content."
 msgstr "Vozes do Google com forte entonação para conteúdo narrativo."
@@ -4851,6 +4937,9 @@ msgstr "Agrupar"
 
 msgid "Group by attention"
 msgstr "Agrupar por atenção"
+
+msgid "Group by needs attention"
+msgstr "Agrupar por precisa de atenção"
 
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Agrupe o texto e as imagens de cada página em seções classificadas com uma árvore de conteúdo estruturada. As seções determinam como as etapas posteriores renderizam, traduzem e leem o livro em voz alta."
@@ -4922,8 +5011,8 @@ msgstr "Ocultar"
 msgid "Hide AI edit history"
 msgstr "Ocultar histórico de edições com IA"
 
-msgid "Hide API key"
-msgstr "Ocultar chave de API"
+#~ msgid "Hide API key"
+#~ msgstr "Ocultar chave de API"
 
 msgid "Hide credential"
 msgstr "Ocultar credencial"
@@ -5404,6 +5493,9 @@ msgstr "Arquivo de projeto inválido"
 msgid "Invalid range"
 msgstr "Intervalo inválido"
 
+msgid "Invalid value."
+msgstr "Valor inválido."
+
 msgid "Isolated asset"
 msgstr "Recurso isolado"
 
@@ -5492,8 +5584,8 @@ msgstr "Mantém a página como uma seção por padrão, mas divide inteligenteme
 msgid "Kept"
 msgstr "Mantido"
 
-msgid "Key must start with \"sk-\""
-msgstr "A chave deve começar com \"sk-\""
+#~ msgid "Key must start with \"sk-\""
+#~ msgstr "A chave deve começar com \"sk-\""
 
 msgid "Key terms"
 msgstr "Termos-chave"
@@ -5547,6 +5639,9 @@ msgstr "Idioma"
 
 msgid "language locale region translation"
 msgstr "idioma localidade região tradução"
+
+msgid "language locale translation"
+msgstr "idioma localidade tradução língua"
 
 msgid "language locale translation region"
 msgstr "idioma local tradução região"
@@ -5608,8 +5703,8 @@ msgstr "Menos usado"
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Deixe em Nenhum para executar segmentação em todas as imagens qualificadas (sujeito às regras do pipeline)."
 
-msgid "Leave empty if not required"
-msgstr "Deixe vazio se não for necessário"
+#~ msgid "Leave empty if not required"
+#~ msgstr "Deixe vazio se não for necessário"
 
 msgid "Leave empty to output only in the book language."
 msgstr "Deixe vazio para gerar apenas no idioma do livro."
@@ -5656,8 +5751,17 @@ msgstr "Biblioteca"
 msgid "Library apps"
 msgstr "Aplicativos de biblioteca"
 
+msgid "library group needs attention"
+msgstr "biblioteca agrupar precisa de atenção"
+
 msgid "Library guide"
 msgstr "Guia da biblioteca"
+
+msgid "library sort order"
+msgstr "biblioteca ordenar ordem classificação"
+
+msgid "library view layout grid list"
+msgstr "biblioteca visualização layout grade lista"
 
 msgid "Life in the Coral Reef"
 msgstr "Vida no Recife de Coral"
@@ -5761,6 +5865,9 @@ msgstr "Pronto para LMS com rastreamento de conclusão"
 msgid "Loading accessibility summary..."
 msgstr "Loading accessibility summary..."
 
+msgid "Loading AI providers…"
+msgstr "Carregando provedores de IA…"
+
 msgid "Loading beta versions…"
 msgstr "Carregando versões beta…"
 
@@ -5827,6 +5934,9 @@ msgstr "Carregando pré-visualização..."
 msgid "Loading prompt..."
 msgstr "Loading prompt..."
 
+msgid "Loading providers…"
+msgstr "Carregando provedores…"
+
 msgid "Loading quiz..."
 msgstr "Carregando questionário..."
 
@@ -5886,6 +5996,9 @@ msgstr "Carregando…"
 
 msgid "Local account"
 msgstr "Conta local"
+
+msgid "Local Ollama server. Use the \"ollama:\" prefix when selecting models, e.g. ollama:llama3."
+msgstr "Servidor Ollama local. Use o prefixo \"ollama:\" ao selecionar modelos, por exemplo ollama:llama3."
 
 msgid "Localization"
 msgstr "Localização"
@@ -5996,6 +6109,9 @@ msgstr "Associe cada estágio do ciclo da água à sua definição:"
 msgid "Match Source"
 msgstr "Corresponder à Fonte"
 
+msgid "Match system theme"
+msgstr "Acompanhar o tema do sistema"
+
 msgid "Matches the original book design with some flexibility."
 msgstr "Corresponde ao design original do livro com alguma flexibilidade."
 
@@ -6022,6 +6138,10 @@ msgstr "Largura máx"
 
 msgid "Maximize"
 msgstr "Maximizar"
+
+#. placeholder {0}: field.maxLength
+msgid "Maximum length is {0} characters."
+msgstr "O comprimento máximo é de {0} caracteres."
 
 msgid "Meaning"
 msgstr "Significado"
@@ -6253,6 +6373,9 @@ msgstr "Modelos e raciocínio"
 msgid "models llm image speech"
 msgstr "modelos llm imagem fala"
 
+msgid "Models running locally, no API key."
+msgstr "Modelos executados localmente, sem chave de API."
+
 msgid "moderate"
 msgstr "moderate"
 
@@ -6324,6 +6447,9 @@ msgstr "Narração"
 
 msgid "Narration languages"
 msgstr "Idiomas da narração"
+
+msgid "Narrator voice"
+msgstr "Voz do narrador"
 
 msgid "Natural narration for any book — students listen while they follow along, at their own pace."
 msgstr "Narração natural para qualquer livro — os alunos ouvem enquanto acompanham, no próprio ritmo."
@@ -6431,6 +6557,10 @@ msgstr "Próximo Passo"
 msgid "No"
 msgstr "Não"
 
+#. placeholder {0}: PROVIDER_LABELS[provider] ?? provider
+msgid "No {0} voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Pick a voice above, or map one for {lang} in the Voices tab to share it across books."
+msgstr "Nenhuma voz do {0} está mapeada para este idioma, portanto usa-se a voz padrão em inglês e a narração terá sotaque inglês. Escolha uma voz acima ou mapeie uma para {lang} na aba Vozes para compartilhá-la entre os livros."
+
 msgid "No acceptable review results for this view."
 msgstr "Nenhum resultado de revisão aceitável para esta visualização."
 
@@ -6448,6 +6578,9 @@ msgstr "Ainda não há edições com IA para esta seção."
 
 msgid "No answer set"
 msgstr "Sem resposta definida"
+
+msgid "no API key"
+msgstr "sem chave de API"
 
 #. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
 msgid "No API key for {0} yet. Add one in Book settings to enable this provider."
@@ -6540,8 +6673,8 @@ msgstr "Sem Leitura Fácil para esta página"
 msgid "No Easy Read text yet"
 msgstr "Ainda não há texto em Leitura Fácil"
 
-msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
-msgstr "Nenhuma voz do ElevenLabs está mapeada para este idioma, então ele usa a voz inglesa padrão e a narração terá sotaque inglês. Mapeie uma voz para {lang} na aba Vozes."
+#~ msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
+#~ msgstr "Nenhuma voz do ElevenLabs está mapeada para este idioma, então ele usa a voz inglesa padrão e a narração terá sotaque inglês. Mapeie uma voz para {lang} na aba Vozes."
 
 msgid "No embedded text layer — text was recovered from the page image"
 msgstr "Sem camada de texto incorporada — o texto foi recuperado a partir da imagem da página"
@@ -6584,6 +6717,9 @@ msgstr "Nenhuma fonte encontrada"
 
 msgid "No fonts match your search."
 msgstr "Nenhuma fonte corresponde à sua busca."
+
+msgid "No grouping"
+msgstr "Sem agrupamento"
 
 msgid "no history"
 msgstr "sem histórico"
@@ -6783,6 +6919,9 @@ msgstr "Nenhuma seção"
 msgid "No sections for this page"
 msgstr "Sem seções para esta página"
 
+msgid "No sections found"
+msgstr "Nenhuma seção encontrada"
+
 msgid "No sections on this page"
 msgstr "Sem seções nesta página"
 
@@ -6921,11 +7060,14 @@ msgstr "Normalizado"
 msgid "not applied"
 msgstr "não aplicado"
 
+msgid "Not available on this server"
+msgstr "Não disponível neste servidor"
+
 msgid "Not checked"
 msgstr "Não verificado"
 
-msgid "Not checked yet"
-msgstr "Ainda não verificado"
+#~ msgid "Not checked yet"
+#~ msgstr "Ainda não verificado"
 
 msgid "Not compatible with Fixed Layout"
 msgstr "Não compatível com Layout Fixo"
@@ -7035,8 +7177,8 @@ msgstr "Deslocamento"
 msgid "Ollama, vLLM, Together — any endpoint."
 msgstr "Ollama, vLLM, Together — qualquer endpoint."
 
-msgid "Ollama, vLLM, Together AI — any compatible endpoint."
-msgstr "Ollama, vLLM, Together AI — qualquer endpoint compatível."
+#~ msgid "Ollama, vLLM, Together AI — any compatible endpoint."
+#~ msgstr "Ollama, vLLM, Together AI — qualquer endpoint compatível."
 
 msgid "Omission or addition"
 msgstr "Omissão ou adição"
@@ -7229,8 +7371,8 @@ msgstr "Licença open-source"
 msgid "OpenAI"
 msgstr "OpenAI"
 
-msgid "OpenAI API Key"
-msgstr "Chave de API da OpenAI"
+#~ msgid "OpenAI API Key"
+#~ msgstr "Chave de API da OpenAI"
 
 msgid "OpenAI API key is required for transcription."
 msgstr "É necessária uma chave de API da OpenAI para a transcrição."
@@ -7238,8 +7380,8 @@ msgstr "É necessária uma chave de API da OpenAI para a transcrição."
 msgid "OpenAI image-edit model used to regenerate each image with translated text."
 msgstr "Modelo de edição de imagens da OpenAI usado para regenerar cada imagem com o texto traduzido."
 
-msgid "OpenAI key required"
-msgstr "Chave da OpenAI necessária"
+#~ msgid "OpenAI key required"
+#~ msgstr "Chave da OpenAI necessária"
 
 msgid "OpenAI Voice"
 msgstr "Voz OpenAI"
@@ -8044,6 +8186,9 @@ msgstr "Slide anterior"
 msgid "Previously uploaded videos"
 msgstr "Vídeos enviados anteriormente"
 
+msgid "Primary"
+msgstr "Principal"
+
 msgid "Print a variable"
 msgstr "Exibir uma variável"
 
@@ -8104,11 +8249,20 @@ msgstr "prompts templates instruções"
 msgid "Provider"
 msgstr "Provedor"
 
-msgid "Provider available"
-msgstr "Provedor disponível"
+msgid "Provider \"{providerId}\" does not support image generation."
+msgstr "O provedor \"{providerId}\" não oferece suporte à geração de imagens."
 
-msgid "Provider coming soon"
-msgstr "Provedor em breve"
+msgid "Provider \"{providerId}\" does not support text generation."
+msgstr "O provedor \"{providerId}\" não oferece suporte à geração de texto."
+
+msgid "Provider \"{providerId}\" is not registered. Add its API keys in Settings or choose another model."
+msgstr "O provedor \"{providerId}\" não está registrado. Adicione as chaves de API dele em Configurações ou escolha outro modelo."
+
+#~ msgid "Provider available"
+#~ msgstr "Provedor disponível"
+
+#~ msgid "Provider coming soon"
+#~ msgstr "Provedor em breve"
 
 msgid "Provider credentials"
 msgstr "Credenciais do provedor"
@@ -8119,11 +8273,14 @@ msgstr "Credenciais do provedor salvas."
 msgid "Provider documentation"
 msgstr "Documentação do provedor"
 
-msgid "Provider version — available after the backend merge."
-msgstr "Versão do provedor — disponível após a mesclagem do backend."
+#~ msgid "Provider version — available after the backend merge."
+#~ msgstr "Versão do provedor — disponível após a mesclagem do backend."
 
 msgid "providers api key credentials endpoint"
 msgstr "provedores chave api credenciais endpoint"
+
+msgid "Providers unavailable"
+msgstr "Provedores indisponíveis"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Fornece padrões HTML/CSS consistentes para páginas geradas por LLM."
@@ -8456,6 +8613,9 @@ msgstr "Lê em"
 #~ msgid "Ready"
 #~ msgstr "Pronto"
 
+msgid "Ready to install"
+msgstr "Pronto para instalar"
+
 msgid "Real books processed with this preset — before and after."
 msgstr "Livros reais processados com este predefinido — antes e depois."
 
@@ -8571,6 +8731,9 @@ msgstr "Leve"
 msgid "Release"
 msgstr "Lançamento"
 
+msgid "Release {version}"
+msgstr "Versão {version}"
+
 msgid "Release notes"
 msgstr "Notas da versão"
 
@@ -8628,6 +8791,9 @@ msgstr "Remover imagem"
 
 msgid "Remove placement"
 msgstr "Remover posição"
+
+msgid "Remove second voice"
+msgstr "Remover segunda voz"
 
 msgid "Remove section"
 msgstr "Remove section"
@@ -8760,6 +8926,9 @@ msgstr "Resolvendo idioma de origem..."
 
 msgid "Respiration"
 msgstr "Respiração"
+
+msgid "Restart"
+msgstr "Reiniciar"
 
 msgid "Restart and install"
 msgstr "Reiniciar e instalar"
@@ -9327,6 +9496,18 @@ msgstr "Buscar..."
 msgid "Search…"
 msgstr "Buscar…"
 
+msgid "Second voice"
+msgstr "Segunda voz"
+
+msgid "Second voice model"
+msgstr "Modelo da segunda voz"
+
+msgid "Second voice provider"
+msgstr "Provedor da segunda voz"
+
+msgid "Secondary"
+msgstr "Secundária"
+
 msgid "seconds"
 msgstr "segundos"
 
@@ -9462,8 +9643,11 @@ msgstr "As seções aparecem na coluna da esquerda conforme cada página é estr
 msgid "Sediment carried downstream settles where the current slows, building fertile land at the river mouth."
 msgstr "Os sedimentos levados pela correnteza se depositam onde ela perde força, formando terra fértil na foz do rio."
 
-msgid "See examples"
-msgstr "Ver exemplos"
+#~ msgid "See examples"
+#~ msgstr "Ver exemplos"
+
+msgid "See release notes"
+msgstr "Ver notas da versão"
 
 msgid "See the book & pick pages"
 msgstr "Ver o livro e escolher páginas"
@@ -9524,6 +9708,9 @@ msgstr "Selecione uma estratégia de renderização para pré-visualizar como as
 
 msgid "Select a reviewer session to inspect its progress and findings."
 msgstr "Select a reviewer session to inspect its progress and findings."
+
+msgid "Select a second voice before saving"
+msgstr "Selecione uma segunda voz antes de salvar"
 
 msgid "Select a section mode to continue"
 msgstr "Selecione um modo de seção para continuar"
@@ -9717,8 +9904,8 @@ msgstr "Mostrar todas as páginas"
 msgid "Show all translations"
 msgstr "Mostrar todas as traduções"
 
-msgid "Show API key"
-msgstr "Mostrar chave de API"
+#~ msgid "Show API key"
+#~ msgstr "Mostrar chave de API"
 
 msgid "Show credential"
 msgstr "Mostrar credencial"
@@ -9759,8 +9946,8 @@ msgstr "Mostrar inalterados"
 msgid "Show:"
 msgstr "Mostrar:"
 
-#~ msgid "Showing {start}–{end} of {totalItems} books"
-#~ msgstr "Mostrando {start}–{end} de {totalItems} livros"
+msgid "Showing {start}–{end} of {totalItems} books"
+msgstr "Mostrando {start}–{end} de {totalItems} livros"
 
 msgid "Showing only terms you added — click to show all"
 msgstr "Mostrando apenas os termos que você adicionou — clique para mostrar todos"
@@ -9780,8 +9967,14 @@ msgstr "Imagem e narrativa lado a lado."
 msgid "Sign"
 msgstr "Sinais"
 
+msgid "Sign in"
+msgstr "Entrar"
+
 msgid "Sign in outside the app, then Refresh — this screen detects the login automatically:"
 msgstr "Faça login fora do aplicativo, depois Atualize — esta tela detecta o login automaticamente:"
+
+msgid "Sign in with ChatGPT"
+msgstr "Entrar com o ChatGPT"
 
 msgid "Sign language"
 msgstr "Língua de sinais"
@@ -9801,8 +9994,21 @@ msgstr "Sobreposições de vídeo em língua de sinais para cada página"
 msgid "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
 msgstr "Vídeos em língua de sinais oferecem acesso para leitores surdos e com deficiência auditiva que podem não ser fluentes em linguagem escrita."
 
+msgid "Sign out"
+msgstr "Sair"
+
+#. placeholder {0}: status.detail
+msgid "Sign-in failed: {0}"
+msgstr "Falha ao entrar: {0}"
+
 msgid "Sign-language video linked to each page."
 msgstr "Vídeo em linguagem de sinais vinculado a cada página."
+
+msgid "Signed in."
+msgstr "Login realizado."
+
+msgid "Signed out."
+msgstr "Você saiu da conta."
 
 msgid "Similarity"
 msgstr "Semelhança"
@@ -9849,11 +10055,11 @@ msgstr "Tamanho"
 msgid "Sizing"
 msgstr "Dimensionamento"
 
-msgid "sk-..."
-msgstr "sk-..."
+#~ msgid "sk-..."
+#~ msgstr "sk-..."
 
-msgid "sk-ant-..."
-msgstr "sk-ant-..."
+#~ msgid "sk-ant-..."
+#~ msgstr "sk-ant-..."
 
 msgid "Skip for now"
 msgstr "Pular por enquanto"
@@ -9918,6 +10124,10 @@ msgstr "Ordenar"
 
 msgid "Sort by"
 msgstr "Ordenar por"
+
+#. placeholder {0}: i18n._(SORT_LABELS[sort])
+msgid "Sort library by {0}"
+msgstr "Ordenar a biblioteca por {0}"
 
 msgid "Source"
 msgstr "Fonte"
@@ -10225,8 +10435,8 @@ msgstr "Capítulos estruturados, exercícios. Melhor para conteúdo educacional 
 msgid "Structures each page into a tree of sections and nodes."
 msgstr "Estrutura cada página em uma árvore de seções e nós."
 
-msgid "Studio actions"
-msgstr "Ações do estúdio"
+#~ msgid "Studio actions"
+#~ msgstr "Ações do estúdio"
 
 msgid "Style"
 msgstr "Estilo"
@@ -10323,6 +10533,12 @@ msgstr "Alterne entre a nova tela do pipeline e a clássica."
 
 msgid "Switch languages in a tap."
 msgstr "Troque de idioma com um toque."
+
+msgid "Switch to dark theme"
+msgstr "Mudar para o tema escuro"
+
+msgid "Switch to light theme"
+msgstr "Mudar para o tema claro"
 
 msgid "Switching presentation failed"
 msgstr "Falha ao mudar a apresentação"
@@ -10466,6 +10682,9 @@ msgstr "Termos foram selecionados por IA do livro. Edite uma definição ou seus
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Termos, nomes de personagens ou frases que o juiz deve preservar ou preferir."
 
+msgid "Test connection"
+msgstr "Testar conexão"
+
 msgid "Test notification"
 msgstr "Notificação de teste"
 
@@ -10581,6 +10800,9 @@ msgstr "As etapas concluídas abaixo serão redefinidas e precisarão ser execut
 
 msgid "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
 msgstr "As etapas concluídas abaixo serão redefinidas e precisarão ser executadas novamente para usar o novo idioma. Suas seções de página são mantidas."
+
+msgid "The connection check could not be completed."
+msgstr "Não foi possível concluir a verificação da conexão."
 
 msgid "The credentials ADT Studio uses when it runs AI steps for this book."
 msgstr "As credenciais que o ADT Studio usa ao executar as etapas de IA deste livro."
@@ -10751,6 +10973,12 @@ msgstr "Tema"
 msgid "theme appearance dark light colors interface"
 msgstr "tema aparência escuro claro cores interface"
 
+msgid "theme appearance dark light mode"
+msgstr "tema aparência escuro claro modo"
+
+msgid "theme appearance system automatic"
+msgstr "tema aparência sistema automático"
+
 msgid "There are no rendered pages to package, so there is nothing to check yet. Run Storyboard first."
 msgstr "Não há páginas renderizadas para empacotar, então ainda não há o que verificar. Rode o Storyboard primeiro."
 
@@ -10836,6 +11064,9 @@ msgstr "Este computador"
 
 msgid "This connection isn't available yet."
 msgstr "Esta conexão ainda não está disponível."
+
+msgid "This entry has no speakable text, so no audio was generated and no request was sent to the provider."
+msgstr "Esta entrada não tem texto pronunciável, portanto nenhum áudio foi gerado e nenhuma solicitação foi enviada ao provedor."
 
 msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Este recurso não é compatível com Layout Fixo. Se você continuar, poderá obter resultados indesejados."
@@ -10966,8 +11197,14 @@ msgstr "Esta posição já tem um questionário. Adicione outro logo depois ou s
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Este prompt instrui o LLM sobre como avaliar o HTML renderizado em relação à página original. A seleção acima controla qual modelo é usado."
 
+msgid "This provider does not require local credentials."
+msgstr "Este provedor não requer credenciais locais."
+
 msgid "This provider has no automatic connection check."
 msgstr "Este provedor não possui verificação automática de conexão."
+
+msgid "This provider is not registered on the server, so it cannot be configured here."
+msgstr "Este provedor não está registrado no servidor, por isso não pode ser configurado aqui."
 
 msgid "This provider's command-line tool isn't installed on this machine. Install it, then run its login:"
 msgstr "A ferramenta de linha de comando deste provedor não está instalada nesta máquina. Instale-a, depois execute seu login:"
@@ -11112,6 +11349,12 @@ msgstr "Track reviewer progress and review findings captured from Preview."
 
 msgid "Transcription"
 msgstr "Transcrição"
+
+msgid "Transcription provider is not configured"
+msgstr "O provedor de transcrição não está configurado"
+
+msgid "Transcription provider required"
+msgstr "É necessário um provedor de transcrição"
 
 msgid "Translate"
 msgstr "Traduzir"
@@ -11310,6 +11553,9 @@ msgstr "Não foi possível carregar o LLM padrão."
 msgid "Unable to load the model settings."
 msgstr "Não foi possível carregar as configurações de modelos."
 
+msgid "Unable to load the provider list. Check that the local API is running, then refresh."
+msgstr "Não foi possível carregar a lista de provedores. Verifique se a API local está em execução e atualize."
+
 msgid "Unable to load the task-specific model defaults."
 msgstr "Não foi possível carregar os padrões de modelos específicos por tarefa."
 
@@ -11324,6 +11570,12 @@ msgstr "Não foi possível salvar o prompt global."
 
 msgid "Unable to select prompt version."
 msgstr "Não foi possível selecionar a versão do prompt."
+
+msgid "Unable to sign out."
+msgstr "Não foi possível sair."
+
+msgid "Unable to start the sign-in."
+msgstr "Não foi possível iniciar o login."
 
 msgid "Unable to update the book model overrides."
 msgstr "Não foi possível atualizar as substituições de modelos do livro."
@@ -11511,6 +11763,9 @@ msgstr "enviado · não gerado por IA"
 msgid "Uploading..."
 msgstr "Enviando..."
 
+msgid "Use \"{trimmedQuery}\""
+msgstr "Usar \"{trimmedQuery}\""
+
 msgid "Use adjacent text as context"
 msgstr "Usar texto adjacente como contexto"
 
@@ -11578,11 +11833,17 @@ msgstr "Utilizada para o provedor de TTS do Azure Speech."
 msgid "Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)"
 msgstr "Utilizada para modelos Claude (claude-opus-4-6, claude-sonnet-4-6, etc.)"
 
+msgid "Used for ElevenLabs text-to-speech."
+msgstr "Usado para a conversão de texto em fala do ElevenLabs."
+
 msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
 msgstr "Utilizada para modelos Gemini — tanto LLM (gemini-2.5-pro, etc.) quanto TTS (gemini-2.5-pro-preview-tts, etc.)"
 
-msgid "Used for the ElevenLabs TTS provider."
-msgstr "Usado para o provedor de TTS ElevenLabs."
+msgid "Used for Gemini text-to-speech."
+msgstr "Usado para a conversão de texto em fala do Gemini."
+
+#~ msgid "Used for the ElevenLabs TTS provider."
+#~ msgstr "Usado para o provedor de TTS ElevenLabs."
 
 msgid "Used for this quiz"
 msgstr "Usada neste questionário"
@@ -11721,6 +11982,9 @@ msgstr "revisão visual verificação de qualidade"
 msgid "Visual style editing isn't available for fixed-layout pages yet. You can still edit text inline, swap or crop images, and prune elements."
 msgstr "A edição visual de estilos ainda não está disponível para páginas de layout fixo. Você ainda pode editar texto inline, substituir ou recortar imagens e remover elementos."
 
+msgid "vLLM, LM Studio, Together AI — any compatible endpoint."
+msgstr "vLLM, LM Studio, Together AI — qualquer endpoint compatível."
+
 msgid "Voice"
 msgstr "Voz"
 
@@ -11729,6 +11993,9 @@ msgstr "voz · velocidade de leitura 1,0×"
 
 msgid "Voice Mappings"
 msgstr "Mapeamentos de voz"
+
+msgid "Voice name"
+msgstr "Nome da voz"
 
 msgid "Voice tuning (advanced)"
 msgstr "Ajuste de voz (avançado)"

@@ -32,6 +32,7 @@ import {
 import type { PromptViewerProps } from "./types"
 import { useEffectiveDefaultModel } from "@/hooks/use-effective-default-model"
 import { useIsDarkMode } from "@/hooks/use-dark-mode"
+import { useEffectiveBasePromptModel } from "@/hooks/use-effective-base-prompt-model"
 
 export function PromptViewer({
   promptName,
@@ -54,10 +55,11 @@ export function PromptViewer({
   const queryClient = useQueryClient()
   const isDark = useIsDarkMode()
   const effectiveDefaultModel = useEffectiveDefaultModel(bookLabel)
+  const effectiveBasePromptModel = useEffectiveBasePromptModel(bookLabel)
   const resolvedModelPlaceholder = modelPlaceholder ?? effectiveDefaultModel
   const promptModelId = hideModel
     ? null
-    : promptModelForSelectedModel(model)
+    : promptModelForSelectedModel(model, effectiveBasePromptModel)
 
   const { data: promptData, isLoading } = useQuery({
     queryKey: ["prompts", promptName, bookLabel, promptModelId],
@@ -79,7 +81,7 @@ export function PromptViewer({
   const hasUnsavedPromptDraft = displayDraft != null && displayDraft !== currentContent
   const hasBookPromptOverride = bookLabel != null && promptData?.source === "book"
   const expectedModelPromptName = promptModelId
-    ? promptNameForSelectedModel(promptName, promptModelId)
+    ? promptNameForSelectedModel(promptName, promptModelId, effectiveBasePromptModel)
     : null
 
   const isUsingModelFallback = Boolean(
@@ -101,7 +103,7 @@ export function PromptViewer({
       return
     }
 
-    const nextPromptModelId = promptModelForSelectedModel(nextModel)
+    const nextPromptModelId = promptModelForSelectedModel(nextModel, effectiveBasePromptModel)
     setDraft(null)
     onContentChange?.(null, nextPromptModelId)
     onModelChange?.(nextModel)

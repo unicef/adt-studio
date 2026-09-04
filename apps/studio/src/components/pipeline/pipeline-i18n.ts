@@ -1,6 +1,7 @@
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { i18n } from "@lingui/core"
+import type { StepName } from "@adt/types"
 
 /**
  * Stage label messages keyed by stage slug.
@@ -59,7 +60,7 @@ export const STAGE_DESCRIPTION_MESSAGES: Record<string, MessageDescriptor> = {
   export: msg`Export the packaged book and related artifacts for delivery.`,
 }
 
-export const STEP_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
+export const STEP_LABEL_MESSAGES: Record<StepName, MessageDescriptor> = {
   extract: msg`PDF Extraction`,
   metadata: msg`Metadata`,
   "book-summary": msg`Book Summary`,
@@ -78,10 +79,12 @@ export const STEP_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
   "text-catalog": msg`Text Catalog`,
   "easy-read": msg`Easy Read`,
   "catalog-translation": msg`Catalog Translation`,
+  "core-tts-catalog": msg`TTS Normalization`,
   "image-translation": msg`Image Translation`,
   tts: msg`Speech Generation`,
   "word-timestamps": msg`Word Highlighting`,
   "package-web": msg`Web Package`,
+  "accessibility-assessment": msg`Accessibility Assessment`,
 }
 
 export const STEP_DESCRIPTION_MESSAGES: Record<string, MessageDescriptor> = {
@@ -162,7 +165,7 @@ export function getStageDescriptionI18n(slug: string): string | undefined {
 
 /** Resolve a step label message descriptor to a translated string. Safe to call outside React. */
 export function getStepLabelI18n(slug: string): string {
-  const descriptor = STEP_LABEL_MESSAGES[slug]
+  const descriptor = STEP_LABEL_MESSAGES[slug as StepName]
   return descriptor ? i18n._(descriptor) : slug
 }
 

@@ -7,6 +7,7 @@ import {
   STEPS_BY_DEFAULT_MODEL_KIND,
   type StepDef,
 } from "@adt/types"
+import type { ModelModalitySupport } from "@/api/provider-credentials"
 import {
   ALL_TTS_MODEL_GROUPS,
   IMAGE_MODEL_GROUPS,
@@ -23,6 +24,35 @@ import {
   useDefaultLlmSetting,
   useSpecializedDefaults,
 } from "./modelDefaults"
+
+/**
+ * Advisory manifest check surfaced next to the picker: the backend validates
+ * provider/modality again on save, so this only saves a round trip.
+ */
+function UnsupportedModelNotice({
+  support,
+  modality,
+  className,
+}: {
+  support: ModelModalitySupport | null
+  modality: "text" | "image"
+  className?: string
+}) {
+  const { t } = useLingui()
+  if (!support || support.ok) return null
+  const { providerId } = support
+  const message =
+    support.reason === "unknown-provider"
+      ? t`Provider "${providerId}" is not registered. Add its API keys in Settings or choose another model.`
+      : modality === "image"
+        ? t`Provider "${providerId}" does not support image generation.`
+        : t`Provider "${providerId}" does not support text generation.`
+  return (
+    <p role="alert" className={cn("text-[12.5px] text-destructive", className)}>
+      {message}
+    </p>
+  )
+}
 
 function TaskChips({ steps }: { steps: readonly StepDef[] }) {
   return (
@@ -77,6 +107,7 @@ function SpecializedCard({
   disabled,
   prefixProvider,
   steps,
+  support,
 }: {
   anchorId: string
   icon: typeof ImageIcon
@@ -91,6 +122,7 @@ function SpecializedCard({
   disabled: boolean
   prefixProvider?: boolean
   steps: readonly StepDef[]
+  support?: ModelModalitySupport | null
 }) {
   return (
     <article id={anchorId} className="flex scroll-mt-24 flex-col rounded-2xl border bg-card p-[18px] shadow-sm">
@@ -117,6 +149,7 @@ function SpecializedCard({
         commitOnInput
         prefixProvider={prefixProvider}
       />
+      <UnsupportedModelNotice support={support ?? null} modality="image" className="mt-2" />
       <div className="mt-4 border-t pt-3.5">
         <div className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           <Plural value={steps.length} one="Used by # task" other="Used by # tasks" />
@@ -179,11 +212,17 @@ export function ModelsSection() {
             />
           </div>
           <SaveButton
-            disabled={llm.isLoading || llm.isSaving || !llm.isDirty}
+            disabled={llm.isLoading || llm.isSaving || !llm.isDirty || llm.support?.ok === false}
             saving={llm.isSaving}
             onClick={llm.save}
           />
         </div>
+
+        {llm.support?.ok === false && (
+          <div className="border-t px-[18px] py-3">
+            <UnsupportedModelNotice support={llm.support} modality="text" />
+          </div>
+        )}
 
         {llm.isError && (
           <p role="alert" className="border-t px-[18px] py-3 text-[12.5px] text-destructive">
@@ -244,7 +283,12 @@ export function ModelsSection() {
           </p>
         </div>
         <SaveButton
-          disabled={specialized.isLoading || specialized.isSaving || !specialized.isDirty}
+          disabled={
+            specialized.isLoading ||
+            specialized.isSaving ||
+            !specialized.isDirty ||
+            specialized.imageSupport?.ok === false
+          }
           saving={specialized.isSaving}
           onClick={specialized.save}
         />
@@ -263,6 +307,7 @@ export function ModelsSection() {
           placeholder={DEFAULT_IMAGE_GENERATION_MODEL_ID}
           groups={IMAGE_MODEL_GROUPS}
           disabled={specialized.isLoading || specialized.isSaving}
+          support={specialized.imageSupport}
           steps={STEPS_BY_DEFAULT_MODEL_KIND["image-generation"]}
         />
         <SpecializedCard

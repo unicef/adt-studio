@@ -1,8 +1,16 @@
-import { Sparkles, Server, AudioLines, type LucideIcon } from "lucide-react"
+import { Sparkles, Server, AudioLines, Cpu, type LucideIcon } from "lucide-react"
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 
-export type ProviderId = "openai" | "anthropic" | "google" | "custom" | "azure"
+export type ProviderId =
+  | "openai"
+  | "anthropic"
+  | "google"
+  | "custom"
+  | "ollama"
+  | "azure"
+  | "elevenlabs"
+  | "gemini"
 
 export interface ProviderMeta {
   name: string
@@ -12,7 +20,16 @@ export interface ProviderMeta {
   tile: string
 }
 
-export const PROVIDER_IDS = ["openai", "anthropic", "google", "custom", "azure"] as const satisfies readonly ProviderId[]
+export const PROVIDER_IDS = [
+  "openai",
+  "anthropic",
+  "google",
+  "custom",
+  "ollama",
+  "azure",
+  "elevenlabs",
+  "gemini",
+] as const satisfies readonly ProviderId[]
 
 export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   openai: {
@@ -37,9 +54,16 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   },
   custom: {
     name: "Custom (OpenAI-compatible)",
-    desc: msg`Ollama, vLLM, Together AI — any compatible endpoint.`,
-    hint: msg`Any OpenAI-compatible endpoint (Ollama, vLLM, Together AI, etc.). Use the "custom:" prefix when selecting models, e.g. custom:llama3.`,
+    desc: msg`vLLM, LM Studio, Together AI — any compatible endpoint.`,
+    hint: msg`Any OpenAI-compatible endpoint (vLLM, LM Studio, Together AI, etc.). Use the "custom:" prefix when selecting models, e.g. custom:llama3.`,
     icon: Server,
+    tile: "bg-muted text-muted-foreground",
+  },
+  ollama: {
+    name: "Ollama",
+    desc: msg`Models running locally, no API key.`,
+    hint: msg`Local Ollama server. Use the "ollama:" prefix when selecting models, e.g. ollama:llama3.`,
+    icon: Cpu,
     tile: "bg-muted text-muted-foreground",
   },
   azure: {
@@ -48,5 +72,19 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     hint: msg`Used for Azure Speech TTS provider.`,
     icon: AudioLines,
     tile: "bg-indigo-50 text-indigo-600",
+  },
+  elevenlabs: {
+    name: "ElevenLabs",
+    desc: msg`Expressive TTS voices for narration.`,
+    hint: msg`Used for ElevenLabs text-to-speech.`,
+    icon: AudioLines,
+    tile: "bg-muted text-muted-foreground",
+  },
+  gemini: {
+    name: "Gemini Speech",
+    desc: msg`Google TTS voices.`,
+    hint: msg`Used for Gemini text-to-speech.`,
+    icon: AudioLines,
+    tile: "bg-blue-50 text-blue-600",
   },
 }

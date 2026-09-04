@@ -22,7 +22,7 @@ export function AudioAction({
   timestamps,
   onTranscribe,
   isTranscribing,
-  hasOpenaiKey,
+  hasTranscriber,
   onTimeUpdate,
   onPlayingChange,
   onSaveTimestamps,
@@ -44,7 +44,7 @@ export function AudioAction({
   timestamps?: WordTimestampEntry;
   onTranscribe?: (textId: string) => void;
   isTranscribing?: boolean;
-  hasOpenaiKey?: boolean;
+  hasTranscriber?: boolean;
   onTimeUpdate?: (time: number) => void;
   onPlayingChange?: (playing: boolean) => void;
   onSaveTimestamps?: (words: WordTimestamp[], duration: number) => void;
@@ -128,12 +128,12 @@ export function AudioAction({
             <button
               type="button"
               onClick={() => onTranscribe(textId)}
-              disabled={isTranscribing || !hasOpenaiKey}
+              disabled={isTranscribing || !hasTranscriber}
               className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 cursor-pointer disabled:cursor-default"
               title={
-                hasOpenaiKey
+                hasTranscriber
                   ? t`Generate word timestamps`
-                  : t`OpenAI key required`
+                  : t`Transcription provider required`
               }
             >
               {isTranscribing ? (

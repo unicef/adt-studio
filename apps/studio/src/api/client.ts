@@ -18,17 +18,30 @@ import type {
   ReviewerValidationSection,
   ReviewerValidationSession,
   TranslationEvaluationResult,
+  ProvidersResponse,
+  ModelDiscoveryResponse,
+  ProviderCliLoginStatus,
+  ProviderHealthResponse,
+  AiModality,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
+import {
+  browserCredentialStorage,
+  buildProviderCredentialHeaders,
+  readProviderCredentialsFromStorage,
+  type ProviderCredentialValues,
+} from "./provider-credentials"
 
 export type { BookSummary, BookDetail }
+
+const CLI_ACTION_HEADERS = { "X-ADT-CLI-Action": "1" } as const
 
 export function resolveBaseUrl(
   _loc: Pick<Location, "protocol" | "hostname"> = window.location,
 ): string {
   if (isElectron() && typeof window.api?.apiPort === "number") {
     const apiPort = window.api.apiPort
-    return `http://localhost:${apiPort}/api`
+    return `http://127.0.0.1:${apiPort}/api`
   }
 
   return "/api"
@@ -207,7 +220,20 @@ export interface ElevenLabsVoice {
   verified_languages?: Array<{ language?: string; accent?: string }>
 }
 
+/** One Azure voice, flattened by the API. `shortName` is the value stored in
+ *  voices.yaml (e.g. `es-UY-ValentinaNeural`); Azure voice names embed their
+ *  locale, so these are only valid for the locale they belong to. */
+export interface AzureVoice {
+  shortName: string
+  displayName: string
+  locale: string
+  localeName?: string
+  gender?: string
+}
+
 export interface StageRunProviderCredentials {
+  /** Generic manifest-keyed values. Legacy fields below remain during migration. */
+  values?: ProviderCredentialValues
   anthropicApiKey?: string
   googleApiKey?: string
   customBaseUrl?: string
@@ -227,36 +253,134 @@ export interface RunStagesOptions {
   pageErrorPolicy?: "ask" | "stop"
 }
 
-function buildApiHeaders(
+export function getProviders(): Promise<ProvidersResponse> {
+  return request<ProvidersResponse>("/providers")
+}
+
+/** Manifests never change at runtime, so they are safe to cache for the whole
+ *  session — unlike `defaults`, which follow the mutable global config and
+ *  must be re-fetched through the `["providers"]` query. */
+let providerManifestsPromise: Promise<ProvidersResponse["providers"]> | null = null
+
+function getProviderManifests(): Promise<ProvidersResponse["providers"]> {
+  if (!providerManifestsPromise) {
+    providerManifestsPromise = getProviders()
+      .then((response) => response.providers)
+      .catch((error) => {
+        providerManifestsPromise = null
+        throw error
+      })
+  }
+  return providerManifestsPromise
+}
+
+function toProviderCredentialValues(
   apiKey: string,
-  providerCredentials?: StageRunProviderCredentials
-): Record<string, string> {
-  const headers: Record<string, string> = { "X-OpenAI-Key": apiKey }
-  if (providerCredentials?.anthropicApiKey) {
-    headers["X-Anthropic-API-Key"] = providerCredentials.anthropicApiKey
+  legacy?: StageRunProviderCredentials,
+  stored: ProviderCredentialValues = {},
+): ProviderCredentialValues {
+  const values: ProviderCredentialValues = structuredClone(stored)
+  for (const [providerId, fields] of Object.entries(legacy?.values ?? {})) {
+    values[providerId] = { ...values[providerId], ...fields }
   }
-  if (providerCredentials?.googleApiKey) {
-    headers["X-Google-API-Key"] = providerCredentials.googleApiKey
+  const put = (providerId: string, fieldKey: string, value: string | undefined) => {
+    if (!value?.trim()) return
+    values[providerId] = { ...values[providerId], [fieldKey]: value }
   }
-  if (providerCredentials?.customBaseUrl) {
-    headers["X-Custom-Base-URL"] = providerCredentials.customBaseUrl
-  }
-  if (providerCredentials?.customApiKey) {
-    headers["X-Custom-API-Key"] = providerCredentials.customApiKey
-  }
-  if (providerCredentials?.azure?.key) {
-    headers["X-Azure-Speech-Key"] = providerCredentials.azure.key
-  }
-  if (providerCredentials?.azure?.region) {
-    headers["X-Azure-Speech-Region"] = providerCredentials.azure.region
-  }
-  if (providerCredentials?.geminiApiKey) {
-    headers["X-Gemini-API-Key"] = providerCredentials.geminiApiKey
-  }
-  if (providerCredentials?.elevenLabsApiKey) {
-    headers["X-ElevenLabs-API-Key"] = providerCredentials.elevenLabsApiKey
-  }
-  return headers
+
+  /* eslint-disable lingui/no-unlocalized-strings -- canonical provider and credential field identifiers */
+  put("openai", "apiKey", apiKey)
+  put("anthropic", "apiKey", legacy?.anthropicApiKey)
+  put("google", "apiKey", legacy?.googleApiKey)
+  put("custom", "baseUrl", legacy?.customBaseUrl)
+  put("custom", "apiKey", legacy?.customApiKey)
+  put("azure", "apiKey", legacy?.azure?.key)
+  put("azure", "region", legacy?.azure?.region)
+  put("gemini", "apiKey", legacy?.geminiApiKey)
+  /* eslint-enable lingui/no-unlocalized-strings */
+  return values
+}
+
+async function buildApiHeaders(
+  apiKey: string,
+  providerCredentials?: StageRunProviderCredentials,
+): Promise<Record<string, string>> {
+  const providers = await getProviderManifests()
+  const stored = readProviderCredentialsFromStorage(
+    providers,
+    browserCredentialStorage,
+  )
+  return buildProviderCredentialHeaders(
+    providers,
+    toProviderCredentialValues(apiKey, providerCredentials, stored),
+  )
+}
+
+/**
+ * Advisory live model catalogue for a provider. Never authoritative — the
+ * server degrades to `{ supported: false }` on any failure, and selecting a
+ * discovered model still runs through normal validation.
+ */
+export async function getProviderModels(
+  providerId: string,
+  modality?: AiModality,
+): Promise<ModelDiscoveryResponse> {
+  const headers = await buildApiHeaders("")
+  const params = new URLSearchParams()
+  if (modality) params.set("modality", modality)
+  const query = params.toString()
+  return request<ModelDiscoveryResponse>(
+    `/providers/${encodeURIComponent(providerId)}/models${query ? `?${query}` : ""}`,
+    { headers },
+  )
+}
+
+/**
+ * Live connection check for a provider. `draftCredentials` lets the settings
+ * dialog verify values the user has typed but not saved yet.
+ */
+export async function getProviderHealth(
+  providerId: string,
+  draftCredentials?: Record<string, string>,
+): Promise<ProviderHealthResponse> {
+  const headers = await buildApiHeaders(
+    "",
+    draftCredentials ? { values: { [providerId]: draftCredentials } } : undefined,
+  )
+  return request<ProviderHealthResponse>(
+    `/providers/${encodeURIComponent(providerId)}/health`,
+    { headers },
+  )
+}
+
+/**
+ * Studio-driven CLI sign-in for a provider. The server runs the CLI's own
+ * browser login and only relays the sign-in URL as a fallback link; the CLI
+ * keeps the tokens.
+ */
+export async function startProviderCliLogin(providerId: string): Promise<ProviderCliLoginStatus> {
+  return request<ProviderCliLoginStatus>(
+    `/providers/${encodeURIComponent(providerId)}/cli-login`,
+    { method: "POST", headers: CLI_ACTION_HEADERS },
+  )
+}
+
+export async function getProviderCliLogin(providerId: string): Promise<ProviderCliLoginStatus> {
+  return request<ProviderCliLoginStatus>(`/providers/${encodeURIComponent(providerId)}/cli-login`)
+}
+
+export async function cancelProviderCliLogin(providerId: string): Promise<ProviderCliLoginStatus> {
+  return request<ProviderCliLoginStatus>(
+    `/providers/${encodeURIComponent(providerId)}/cli-login`,
+    { method: "DELETE", headers: CLI_ACTION_HEADERS },
+  )
+}
+
+export async function logoutProviderCli(providerId: string): Promise<void> {
+  await request<{ ok: boolean }>(`/providers/${encodeURIComponent(providerId)}/cli-logout`, {
+    method: "POST",
+    headers: CLI_ACTION_HEADERS,
+  })
 }
 
 export interface PendingDecision {
@@ -570,13 +694,29 @@ export interface TTSEntry {
   model: string
   cached: boolean
   provider?: string
+  voiceSlot: "primary" | "secondary"
+  voiceLabel?: string
   cacheKey?: string
 }
 
 export interface TTSFailedEntry {
   textId: string
   error: string
+  voiceSlot?: "primary" | "secondary"
 }
+
+export interface VoiceSlotConfig {
+  voice: string
+  label?: string
+}
+
+export interface VoiceSlotsConfig {
+  primary: VoiceSlotConfig
+  secondary?: VoiceSlotConfig
+}
+
+export type VoiceMapEntry = string | VoiceSlotsConfig
+export type VoiceMappings = Record<string, Record<string, VoiceMapEntry>>
 
 export interface TTSLanguageData {
   entries: TTSEntry[]
@@ -610,6 +750,7 @@ export interface WordTimestamp {
 export interface WordTimestampEntry {
   textId: string
   language: string
+  voiceSlot?: "primary" | "secondary"
   words: WordTimestamp[]
   duration: number
 }
@@ -619,7 +760,7 @@ export interface WordTimestampResponse {
   generatedAt: string | null
   /** Per-item word-timestamp failures from the last run, so the Speech view can
    * mark them for pruning or one-by-one regeneration. */
-  failed?: { textId: string; error: string }[]
+  failed?: { textId: string; error: string; voiceSlot?: "primary" | "secondary" }[]
 }
 
 // --- Debug types ---
@@ -637,6 +778,10 @@ export interface LlmLogEntry {
     /** Final status of this individual attempt. Older log entries may omit it. */
     success?: boolean
     error?: string
+    /** Why no provider call was made (e.g. TTS text with nothing speakable in
+     *  it). Present only on deliberately skipped calls, which produced no
+     *  output at all — unlike a cache hit, which has one. */
+    skippedReason?: string
     durationMs: number
     usage?: { inputTokens: number; outputTokens: number }
     validationErrors?: string[]
@@ -668,6 +813,9 @@ export interface StepStats {
   outputTokens: number
   avgDurationMs: number
   errorCount: number
+  /** Rows that produced no output on purpose and never reached a provider, so
+   *  they are excluded from `calls`, the cache counts, and `avgDurationMs`. */
+  skipped: number
 }
 
 export interface PipelineStatsResponse {
@@ -679,6 +827,7 @@ export interface PipelineStatsResponse {
     inputTokens: number
     outputTokens: number
     errorCount: number
+    skipped: number
   }
   pipelineRun: {
     status: string
@@ -873,12 +1022,12 @@ export const api = {
       },
     ),
 
-  regenerateBookSummary: (label: string, apiKey: string) =>
+  regenerateBookSummary: async (label: string, apiKey: string) =>
     request<{ taskId?: string; status?: string; version?: number }>(
       `/books/${label}/book-summary/regenerate`,
       {
         method: "POST",
-        headers: { "X-OpenAI-Key": apiKey },
+        headers: await buildApiHeaders(apiKey),
       },
     ),
 
@@ -941,7 +1090,7 @@ export const api = {
       { method: "POST", body: JSON.stringify({ enabled }) },
     ),
 
-  generateEditableActivityFeedback: (
+  generateEditableActivityFeedback: async (
     label: string,
     pageId: string,
     sectionIndex: number,
@@ -955,7 +1104,7 @@ export const api = {
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/generate-feedback`,
       {
         method: "POST",
-        headers: buildApiHeaders(apiKey, providerCredentials),
+        headers: await buildApiHeaders(apiKey, providerCredentials),
         body: JSON.stringify(activity ? { activity } : {}),
       },
     ),
@@ -1002,12 +1151,12 @@ export const api = {
   deleteBookFont: (label: string, fontId: string) =>
     request<BookFontsResponse>(`/books/${label}/fonts/${fontId}`, { method: "DELETE" }),
 
-  analyzeBookFonts: (label: string, apiKey: string) =>
+  analyzeBookFonts: async (label: string, apiKey: string) =>
     request<{ taskId?: string; status?: string; version?: number }>(
       `/books/${label}/fonts/analyze`,
       {
         method: "POST",
-        headers: { "X-OpenAI-Key": apiKey },
+        headers: await buildApiHeaders(apiKey),
       },
     ),
 
@@ -1084,7 +1233,7 @@ export const api = {
     })
   },
 
-  runStages: (
+  runStages: async (
     label: string,
     apiKey: string,
     options: RunStagesOptions,
@@ -1094,7 +1243,7 @@ export const api = {
       `/books/${label}/stages/run`,
       {
         method: "POST",
-        headers: buildApiHeaders(apiKey, providerCredentials),
+        headers: await buildApiHeaders(apiKey, providerCredentials),
         body: JSON.stringify(options),
       }
     ),
@@ -1257,29 +1406,29 @@ export const api = {
       method: "DELETE",
     }),
 
-  reRenderPage: (label: string, pageId: string, apiKey: string, sectionIndex?: number, prompt?: string) =>
+  reRenderPage: async (label: string, pageId: string, apiKey: string, sectionIndex?: number, prompt?: string) =>
     request<{ taskId?: string; status?: string; version?: number; rendering?: { sections: SectionRendering[] } }>(
       `/books/${label}/pages/${pageId}/re-render${sectionIndex !== undefined ? `?sectionIndex=${sectionIndex}` : ""}`,
       {
         method: "POST",
-        headers: { "X-OpenAI-Key": apiKey },
+        headers: await buildApiHeaders(apiKey),
         ...(prompt ? { body: JSON.stringify({ prompt }) } : {}),
         signal: AbortSignal.timeout(30_000), // Just submitting a task now
       }
     ),
 
-  reRenderPages: (label: string, pageIds: string[], apiKey: string) =>
+  reRenderPages: async (label: string, pageIds: string[], apiKey: string) =>
     request<{ taskId?: string; status?: string; results?: unknown[] }>(
       `/books/${label}/pages/re-render`,
       {
         method: "POST",
-        headers: { "X-OpenAI-Key": apiKey },
+        headers: await buildApiHeaders(apiKey),
         body: JSON.stringify({ pageIds }),
         signal: AbortSignal.timeout(30_000),
       }
     ),
 
-  aiEditSection: (
+  aiEditSection: async (
     label: string,
     pageId: string,
     sectionIndex: number,
@@ -1297,7 +1446,7 @@ export const api = {
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/ai-edit`,
       {
         method: "POST",
-        headers: { "X-OpenAI-Key": apiKey },
+        headers: await buildApiHeaders(apiKey),
         body: JSON.stringify({ instruction, currentHtml }),
         signal: AbortSignal.timeout(30_000),
       }
@@ -1308,7 +1457,7 @@ export const api = {
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/ai-edit-history`,
     ),
 
-  agentLayoutMirror: (
+  agentLayoutMirror: async (
     label: string,
     source: { pageId: string; sectionIndex: number },
     targets: Array<{ pageId: string; sectionIndex: number }>,
@@ -1320,13 +1469,13 @@ export const api = {
       `/books/${label}/agents/layout-mirror`,
       {
         method: "POST",
-        headers: buildApiHeaders(apiKey, providerCredentials),
+        headers: await buildApiHeaders(apiKey, providerCredentials),
         body: JSON.stringify({ source, targets, instruction }),
         signal: AbortSignal.timeout(30_000),
       },
     ),
 
-  agentGenerateActivity: (
+  agentGenerateActivity: async (
     label: string,
     anchorPageId: string,
     description: string,
@@ -1338,7 +1487,7 @@ export const api = {
       `/books/${label}/agents/generate-activity`,
       {
         method: "POST",
-        headers: buildApiHeaders(apiKey, providerCredentials),
+        headers: await buildApiHeaders(apiKey, providerCredentials),
         body: JSON.stringify({
           anchorPageId,
           description,
@@ -1405,7 +1554,7 @@ export const api = {
     )
   },
 
-  aiGenerateImage: (
+  aiGenerateImage: async (
     label: string,
     pageId: string,
     prompt: string,
@@ -1419,7 +1568,7 @@ export const api = {
       `/books/${label}/images/ai-generate?pageId=${pageId}`,
       {
         method: "POST",
-        headers: { "X-OpenAI-Key": apiKey },
+        headers: await buildApiHeaders(apiKey),
         body: JSON.stringify({
           prompt,
           targetImageId,
@@ -1434,7 +1583,7 @@ export const api = {
       }
     ),
 
-  segmentImage: (label: string, imageId: string, pageId: string, apiKey: string, signal?: AbortSignal) =>
+  segmentImage: async (label: string, imageId: string, pageId: string, apiKey: string, signal?: AbortSignal) =>
     request<{
       segmented: boolean
       imageWidth?: number
@@ -1444,7 +1593,7 @@ export const api = {
       `/books/${label}/images/${imageId}/segment?pageId=${pageId}`,
       {
         method: "POST",
-        headers: { "X-OpenAI-Key": apiKey },
+        headers: await buildApiHeaders(apiKey),
         signal: signal ?? AbortSignal.timeout(120_000),
       }
     ),
@@ -1624,7 +1773,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  generateQuiz: (
+  generateQuiz: async (
     label: string,
     apiKey: string,
     body: {
@@ -1638,7 +1787,7 @@ export const api = {
       `/books/${label}/quizzes/generate-one`,
       {
         method: "POST",
-        headers: buildApiHeaders(apiKey, providerCredentials),
+        headers: await buildApiHeaders(apiKey, providerCredentials),
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(120_000),
       }
@@ -1656,7 +1805,7 @@ export const api = {
       },
     ),
 
-  generateGlossaryItem: (
+  generateGlossaryItem: async (
     label: string,
     apiKey: string,
     body: { word: string; context?: string; candidateVariations?: string[] }
@@ -1665,7 +1814,7 @@ export const api = {
       `/books/${label}/glossary/generate-one`,
       {
         method: "POST",
-        headers: { "X-OpenAI-Key": apiKey },
+        headers: await buildApiHeaders(apiKey),
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(60_000),
       }
@@ -1695,10 +1844,10 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  regenerateEasyRead: (label: string, apiKey: string) =>
+  regenerateEasyRead: async (label: string, apiKey: string) =>
     request<EasyReadResponse>(`/books/${label}/easy-read/regenerate`, {
       method: "POST",
-      headers: { "X-OpenAI-Key": apiKey },
+      headers: await buildApiHeaders(apiKey),
     }),
 
   updateTranslation: (label: string, language: string, data: unknown) =>
@@ -1729,7 +1878,7 @@ export const api = {
 
   // The judge model is configurable, so send every provider credential the user
   // has — the server picks the one matching the configured model.
-  runTranslationEvaluation: (
+  runTranslationEvaluation: async (
     label: string,
     language: string,
     apiKey: string,
@@ -1738,7 +1887,7 @@ export const api = {
   ) =>
     request<TranslationEvaluationRunResponse>(`/books/${label}/evaluations/translations/${language}/run`, {
       method: "POST",
-      headers: buildApiHeaders(apiKey, providerCredentials),
+      headers: await buildApiHeaders(apiKey, providerCredentials),
       body: JSON.stringify({
         ...(scope.pageId ? { page_id: scope.pageId } : {}),
         ...(scope.entryIds && scope.entryIds.length > 0 ? { entry_ids: scope.entryIds } : {}),
@@ -1768,10 +1917,11 @@ export const api = {
   deleteTTS: (label: string) =>
     request<{ ok: boolean }>(`/books/${label}/tts`, { method: "DELETE" }),
 
-  generateGeminiTTSForItem: (
+  generateGeminiTTSForItem: async (
     label: string,
     textId: string,
     language: string,
+    voiceSlot: "primary" | "secondary",
     credentials: {
       geminiApiKey: string
       openaiApiKey?: string
@@ -1781,26 +1931,25 @@ export const api = {
   ) =>
     request<GenerateSingleTTSResponse>(`/books/${label}/tts/generate-one`, {
       method: "POST",
-      headers: {
-        "X-Gemini-API-Key": credentials.geminiApiKey,
-        ...(credentials.openaiApiKey ? { "X-OpenAI-Key": credentials.openaiApiKey } : {}),
-        ...(credentials.azure?.key ? { "X-Azure-Speech-Key": credentials.azure.key } : {}),
-        ...(credentials.azure?.region ? { "X-Azure-Speech-Region": credentials.azure.region } : {}),
-        ...(credentials.elevenLabsApiKey ? { "X-ElevenLabs-API-Key": credentials.elevenLabsApiKey } : {}),
-      },
-      body: JSON.stringify({ textId, language }),
+      headers: await buildApiHeaders(credentials.openaiApiKey ?? "", {
+        geminiApiKey: credentials.geminiApiKey,
+        azure: credentials.azure,
+      }),
+      body: JSON.stringify({ textId, language, voiceSlot }),
     }),
 
   uploadTTSForItem: (
     label: string,
     textId: string,
     language: string,
+    voiceSlot: "primary" | "secondary",
     file: File,
   ) => {
     const formData = new FormData()
     formData.append("audio", file)
     formData.append("textId", textId)
     formData.append("language", language)
+    formData.append("voiceSlot", voiceSlot)
     return request<GenerateSingleTTSResponse>(`/books/${label}/tts/upload-one`, {
       method: "POST",
       body: formData,
@@ -1810,27 +1959,23 @@ export const api = {
   getWordTimestamps: (label: string, language: string) =>
     request<WordTimestampResponse>(`/books/${label}/tts/timestamps/${language}`),
 
-  transcribeOne: (label: string, textId: string, language: string, openaiApiKey: string) =>
+  transcribeOne: async (label: string, textId: string, language: string, voiceSlot: "primary" | "secondary", openaiApiKey: string) =>
     request<{ entry: WordTimestampEntry }>(`/books/${label}/tts/transcribe-one`, {
       method: "POST",
-      headers: {
-        "X-OpenAI-Key": openaiApiKey,
-      },
-      body: JSON.stringify({ textId, language }),
+      headers: await buildApiHeaders(openaiApiKey),
+      body: JSON.stringify({ textId, language, voiceSlot }),
     }),
 
-  saveWordTimestamps: (label: string, language: string, textId: string, data: { words: WordTimestamp[]; duration: number }) =>
+  saveWordTimestamps: (label: string, language: string, textId: string, data: { words: WordTimestamp[]; duration: number; voiceSlot?: "primary" | "secondary" }) =>
     request<{ ok: boolean }>(`/books/${label}/tts/timestamps/${language}/${textId}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
 
-  transcribeAll: (label: string, language: string, openaiApiKey: string) =>
+  transcribeAll: async (label: string, language: string, openaiApiKey: string) =>
     request<{ taskId: string | null; count?: number; skipped?: number }>(`/books/${label}/tts/transcribe-all`, {
       method: "POST",
-      headers: {
-        "X-OpenAI-Key": openaiApiKey,
-      },
+      headers: await buildApiHeaders(openaiApiKey),
       body: JSON.stringify({ language }),
     }),
 
@@ -1875,12 +2020,12 @@ export const api = {
     })
   },
 
-  generateStyleguide: (label: string, pageIds: string[], apiKey: string, signal?: AbortSignal) =>
+  generateStyleguide: async (label: string, pageIds: string[], apiKey: string, signal?: AbortSignal) =>
     request<{ name: string; content: string; reasoning: string }>(
       `/books/${label}/generate-styleguide`,
       {
         method: "POST",
-        headers: { "X-OpenAI-Key": apiKey },
+        headers: await buildApiHeaders(apiKey),
         body: JSON.stringify({ pageIds }),
         signal: signal ?? AbortSignal.timeout(180_000),
       }
@@ -1956,10 +2101,10 @@ export const api = {
     }),
 
   getVoiceMappings: () =>
-    request<Record<string, Record<string, string>>>("/speech-config/voices"),
+    request<VoiceMappings>("/speech-config/voices"),
 
-  updateVoiceMappings: (data: Record<string, Record<string, string>>) =>
-    request<Record<string, Record<string, string>>>("/speech-config/voices", {
+  updateVoiceMappings: (data: VoiceMappings) =>
+    request<VoiceMappings>("/speech-config/voices", {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -1971,6 +2116,25 @@ export const api = {
     request<{ voices: ElevenLabsVoice[] }>("/speech-config/elevenlabs-voices", {
       headers: elevenLabsApiKey ? { "X-ElevenLabs-API-Key": elevenLabsApiKey } : {},
     }),
+
+  /** Azure's voice catalogue for a language. Returns an empty list when no
+   *  Azure credentials are configured, so callers fall back to free text. */
+  getAzureVoices: (
+    language?: string,
+    credentials?: { azureKey?: string; azureRegion?: string },
+  ) => {
+    const qs = new URLSearchParams()
+    if (language) qs.set("language", language)
+    const query = qs.toString()
+    return request<{ voices: AzureVoice[] }>(`/speech-config/azure-voices${query ? `?${query}` : ""}`, {
+      headers: {
+        ...(credentials?.azureKey ? { "X-Azure-Speech-Key": credentials.azureKey } : {}),
+        ...(credentials?.azureRegion
+          ? { "X-Azure-Speech-Region": credentials.azureRegion }
+          : {}),
+      },
+    })
+  },
 
   prepareExport: (
     label: string,

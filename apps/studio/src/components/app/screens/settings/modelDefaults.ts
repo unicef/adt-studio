@@ -6,6 +6,7 @@ import {
   DEFAULT_OPENAI_TTS_MODEL_ID,
 } from "@adt/types"
 import { api } from "@/api/client"
+import { checkModelModalitySupport, type ModelModalitySupport } from "@/api/provider-credentials"
 import { LLM_MODEL_GROUPS, type ModelGroup } from "@/components/pipeline/components/ModelSelect"
 import {
   DEFAULT_MODEL,
@@ -14,13 +15,11 @@ import {
 } from "@/components/pipeline/stages/book/GlobalPromptsSettings/promptSettings"
 import { promptModelForSelectedModel } from "@/components/pipeline/components/PromptViewer/promptModel"
 import { toast } from "@/components/ui/sonner"
+import { useDiscoveredModelIds } from "@/hooks/use-discovered-models"
+import { useProviderCredentials } from "@/hooks/use-provider-credentials"
+import { normalizeQualifiedModelInput } from "@/lib/model-id"
 
 export { DEFAULT_MODEL }
-
-export function normalizeDefaultModelInput(value: string): string {
-  const normalized = normalizePromptModelInput(value)
-  return normalized && !normalized.includes(":") ? `openai:${normalized}` : normalized
-}
 
 export function normalizeSpeechModelInput(value: string): string {
   return value.trim().replace(/^openai:/i, "").toLowerCase()
@@ -36,12 +35,16 @@ export interface DefaultLlmSetting {
   isError: boolean
   isSaving: boolean
   showPromptWarning: boolean
+  /** Advisory manifest check for the drafted model; null until `/providers` resolves. */
+  support: ModelModalitySupport | null
   save: () => void
 }
 
 export function useDefaultLlmSetting(): DefaultLlmSetting {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const { providers } = useProviderCredentials()
+  const discoveredModelIds = useDiscoveredModelIds("structured-text")
   const [draft, setDraft] = useState(DEFAULT_MODEL)
 
   const defaultModelQuery = useQuery({
@@ -63,14 +66,15 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
     () =>
       mergePromptModelGroups(LLM_MODEL_GROUPS, [
         ...(promptModelsQuery.data?.models ?? []),
+        ...discoveredModelIds,
         savedModel,
       ]),
-    [promptModelsQuery.data?.models, savedModel],
+    [promptModelsQuery.data?.models, discoveredModelIds, savedModel],
   )
 
   const mutation = useMutation({
     mutationFn: () => {
-      const model = normalizeDefaultModelInput(draft)
+      const model = normalizeQualifiedModelInput(draft)
       if (!model) throw new Error(t`Enter a model id.`)
       return api.updateDefaultModel(model)
     },
@@ -81,6 +85,7 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
         queryClient.invalidateQueries({ queryKey: ["global-config"] }),
         queryClient.invalidateQueries({ queryKey: ["prompts"] }),
         queryClient.invalidateQueries({ queryKey: ["debug", "config"] }),
+        queryClient.invalidateQueries({ queryKey: ["providers"] }),
       ])
       toast.success(t`Default LLM updated.`)
     },
@@ -97,7 +102,11 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
     (model) => normalizePromptModelInput(model) === normalizePromptModelInput(savedModel),
   )
 
-  const normalizedDraft = normalizeDefaultModelInput(draft)
+  const normalizedDraft = normalizeQualifiedModelInput(draft)
+  const support =
+    providers.length > 0 && normalizedDraft
+      ? checkModelModalitySupport(providers, normalizedDraft, "structured-text")
+      : null
 
   return {
     draft,
@@ -109,6 +118,7 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
     isError: defaultModelQuery.isError,
     isSaving: mutation.isPending,
     showPromptWarning: savedModelRequiresPrompts && !hasPromptsForSavedModel,
+    support,
     save: () => mutation.mutate(),
   }
 }
@@ -122,12 +132,15 @@ export interface SpecializedDefaults {
   isLoading: boolean
   isError: boolean
   isSaving: boolean
+  /** Advisory manifest check for the drafted image model; null until `/providers` resolves. */
+  imageSupport: ModelModalitySupport | null
   save: () => void
 }
 
 export function useSpecializedDefaults(): SpecializedDefaults {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const { providers } = useProviderCredentials()
   const [imageDraft, setImageDraft] = useState(DEFAULT_IMAGE_GENERATION_MODEL_ID)
   const [speechDraft, setSpeechDraft] = useState(DEFAULT_OPENAI_TTS_MODEL_ID)
 
@@ -144,7 +157,7 @@ export function useSpecializedDefaults(): SpecializedDefaults {
 
   const mutation = useMutation({
     mutationFn: () => {
-      const imageGeneration = normalizeDefaultModelInput(imageDraft)
+      const imageGeneration = normalizeQualifiedModelInput(imageDraft)
       const speechGeneration = normalizeSpeechModelInput(speechDraft)
       if (!imageGeneration || !speechGeneration) {
         throw new Error(t`Enter a model id for each task.`)
@@ -158,6 +171,7 @@ export function useSpecializedDefaults(): SpecializedDefaults {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["global-config"] }),
         queryClient.invalidateQueries({ queryKey: ["debug", "config"] }),
+        queryClient.invalidateQueries({ queryKey: ["providers"] }),
       ])
       toast.success(t`Task-specific model defaults updated.`)
     },
@@ -175,17 +189,24 @@ export function useSpecializedDefaults(): SpecializedDefaults {
     speechGeneration: DEFAULT_OPENAI_TTS_MODEL_ID,
   }
 
+  const normalizedImageDraft = normalizeQualifiedModelInput(imageDraft)
+  const imageSupport =
+    providers.length > 0 && normalizedImageDraft
+      ? checkModelModalitySupport(providers, normalizedImageDraft, "image")
+      : null
+
   return {
     imageDraft,
     setImageDraft,
     speechDraft,
     setSpeechDraft,
     isDirty:
-      normalizeDefaultModelInput(imageDraft) !== saved.imageGeneration ||
+      normalizedImageDraft !== saved.imageGeneration ||
       normalizeSpeechModelInput(speechDraft) !== saved.speechGeneration,
     isLoading: query.isLoading,
     isError: query.isError,
     isSaving: mutation.isPending,
+    imageSupport,
     save: () => mutation.mutate(),
   }
 }

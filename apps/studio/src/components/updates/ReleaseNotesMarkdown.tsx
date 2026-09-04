@@ -5,20 +5,27 @@ import { RELEASE_BANNER_ASPECT, trustedAssetUrl } from "./release-banner-utils"
 export interface ReleaseNotesMarkdownProps {
   children: string
   className?: string
+  hideImages?: boolean
 }
 
 type Block =
   | { type: "heading"; text: string }
   | { type: "paragraph"; text: string }
   | { type: "list"; items: string[] }
-  | { type: "image"; src: string; alt: string }
+  | { type: "image"; src: string; darkSrc?: string; alt: string }
   | { type: "rule" }
 
 export function ReleaseNotesMarkdown({
   children,
   className,
+  hideImages,
 }: ReleaseNotesMarkdownProps) {
-  const blocks = parseBlocks(children)
+  const parsed = looksLikeHtml(children)
+    ? parseHtmlBlocks(children)
+    : parseBlocks(children)
+  const blocks = hideImages
+    ? parsed.filter((block) => block.type !== "image")
+    : parsed
 
   return (
     <div className={cn("space-y-3 text-sm leading-relaxed", className)}>
@@ -54,16 +61,31 @@ export function ReleaseNotesMarkdown({
 
         if (block.type === "image") {
           return (
-            <img
+            <div
               key={index}
-              src={block.src}
-              alt={block.alt}
-              loading="lazy"
               className={cn(
-                "w-full rounded-lg border bg-muted/30 object-cover",
+                "relative w-full overflow-hidden rounded-lg border bg-muted/30",
                 RELEASE_BANNER_ASPECT,
               )}
-            />
+            >
+              <img
+                src={block.src}
+                alt={block.alt}
+                loading="lazy"
+                className={cn(
+                  "size-full object-contain",
+                  block.darkSrc && "dark:hidden",
+                )}
+              />
+              {block.darkSrc && (
+                <img
+                  src={block.darkSrc}
+                  alt={block.alt}
+                  loading="lazy"
+                  className="hidden size-full object-contain dark:block"
+                />
+              )}
+            </div>
           )
         }
 
@@ -74,7 +96,8 @@ export function ReleaseNotesMarkdown({
 }
 
 function parseBlocks(markdown: string): Block[] {
-  const lines = normalizeImages(markdown).split(/\r?\n/)
+  const normalized = normalizeImages(markdown)
+  const lines = normalized.markdown.split(/\r?\n/)
   const blocks: Block[] = []
   let paragraph: string[] = []
   let list: string[] = []
@@ -97,6 +120,15 @@ function parseBlocks(markdown: string): Block[] {
     if (!line) {
       flushParagraph()
       flushList()
+      continue
+    }
+
+    const picture = line.match(/^@@adt-release-picture:(\d+)@@$/)
+    if (picture) {
+      flushParagraph()
+      flushList()
+      const image = normalized.pictures[Number(picture[1])]
+      if (image) blocks.push(image)
       continue
     }
 
@@ -140,16 +172,162 @@ function parseBlocks(markdown: string): Block[] {
   return blocks
 }
 
-function normalizeImages(markdown: string): string {
-  return markdown
+// Match a *closing* block tag rather than any opening tag name. GitHub's rendered
+// release notes always close their blocks (</h2>, </ul>, </li>, </p>…), while a
+// Markdown note that merely mentions a tag in prose or a code span (`<div>`)
+// almost never does — so this avoids routing real Markdown through the HTML path.
+const HTML_BLOCK_TAGS =
+  /<\/(?:h[1-6]|ul|ol|li|p|blockquote|pre|table|thead|tbody|tr|td)>/i
+
+function looksLikeHtml(value: string): boolean {
+  return HTML_BLOCK_TAGS.test(value)
+}
+
+function parseHtmlBlocks(html: string): Block[] {
+  if (typeof DOMParser === "undefined") {
+    return parseBlocks(html.replace(/<[^>]+>/g, " "))
+  }
+  const doc = new DOMParser().parseFromString(html, "text/html")
+  const blocks: Block[] = []
+  collectHtmlBlocks(doc.body, blocks)
+  return blocks
+}
+
+function collectHtmlBlocks(root: ParentNode, blocks: Block[]): void {
+  for (const node of Array.from(root.childNodes)) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = collapse(node.textContent ?? "")
+      if (text) blocks.push({ type: "paragraph", text })
+      continue
+    }
+
+    if (!(node instanceof Element)) continue
+    const tag = node.tagName.toLowerCase()
+
+    if (/^h[1-6]$/.test(tag)) {
+      const text = htmlInlineToText(node)
+      if (text) blocks.push({ type: "heading", text })
+      continue
+    }
+
+    if (tag === "ul" || tag === "ol") {
+      const items = Array.from(node.children)
+        .filter((child) => child.tagName.toLowerCase() === "li")
+        .map((li) => htmlInlineToText(li))
+        .filter(Boolean)
+      if (items.length) blocks.push({ type: "list", items })
+      continue
+    }
+
+    if (tag === "img" || tag === "picture") {
+      const src = htmlImageSrc(node)
+      if (src) blocks.push({ type: "image", src, alt: htmlImageAlt(node) })
+      continue
+    }
+
+    if (tag === "hr") {
+      blocks.push({ type: "rule" })
+      continue
+    }
+
+    if (tag === "p" || tag === "blockquote") {
+      const image = node.querySelector("img")
+      const src = image ? htmlImageSrc(image) : undefined
+      if (src) blocks.push({ type: "image", src, alt: htmlImageAlt(image!) })
+      const text = htmlInlineToText(node)
+      if (text) blocks.push({ type: "paragraph", text })
+      continue
+    }
+
+    collectHtmlBlocks(node, blocks)
+  }
+}
+
+function htmlInlineToText(root: Node): string {
+  let out = ""
+  for (const node of Array.from(root.childNodes)) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      out += node.textContent ?? ""
+      continue
+    }
+    if (!(node instanceof Element)) continue
+    const tag = node.tagName.toLowerCase()
+    if (tag === "br") {
+      out += " "
+      continue
+    }
+    if (tag === "img") continue
+    if (tag === "a") {
+      const href = node.getAttribute("href") ?? ""
+      const label = htmlInlineToText(node)
+      out += /^https?:\/\//i.test(href) && label ? `[${label}](${href})` : label
+      continue
+    }
+    out += htmlInlineToText(node)
+  }
+  return collapse(out)
+}
+
+function htmlImageSrc(node: Element): string | undefined {
+  if (node.tagName.toLowerCase() === "img") {
+    return trustedAssetUrl(node.getAttribute("src") ?? undefined)
+  }
+  const source = node.querySelector("source[srcset]")
+  const fromSource = source?.getAttribute("srcset")?.trim().split(/\s+/)[0]
+  const img = node.querySelector("img")
+  return trustedAssetUrl(fromSource ?? img?.getAttribute("src") ?? undefined)
+}
+
+function htmlImageAlt(node: Element): string {
+  const img = node.tagName.toLowerCase() === "img" ? node : node.querySelector("img")
+  return img?.getAttribute("alt") ?? ""
+}
+
+function collapse(value: string): string {
+  return value.replace(/\s+/g, " ").trim()
+}
+
+function normalizeImages(markdown: string): {
+  markdown: string
+  pictures: Extract<Block, { type: "image" }>[]
+} {
+  const pictures: Extract<Block, { type: "image" }>[] = []
+  const normalized = markdown
+    .replace(/<!--[\s\S]*?-->/g, "\n")
     .replace(/<picture[\s\S]*?<\/picture>/gi, (match) => {
-      const src = firstHtmlImage(match)
-      return src ? `\n![](${src})\n` : "\n"
+      const picture = htmlPicture(match)
+      if (!picture) return "\n"
+      const index = pictures.push(picture) - 1
+      return `\n@@adt-release-picture:${index}@@\n`
     })
     .replace(/<img[^>]*>/gi, (match) => {
       const src = firstHtmlImage(match)
       return src ? `\n![](${src})\n` : "\n"
     })
+  return { markdown: normalized, pictures }
+}
+
+function htmlPicture(
+  html: string,
+): Extract<Block, { type: "image" }> | undefined {
+  const sources = html.match(/<source\b[^>]*>/gi) ?? []
+  const image = html.match(/<img\b[^>]*>/i)?.[0] ?? ""
+  const lightSource = sources.find((source) =>
+    attribute(source, "media")?.includes("prefers-color-scheme: light"),
+  )
+  const darkSource = sources.find((source) =>
+    attribute(source, "media")?.includes("prefers-color-scheme: dark"),
+  )
+  const src = trustedAssetUrl(
+    attribute(lightSource ?? "", "srcset") ?? attribute(image, "src"),
+  )
+  if (!src) return undefined
+  return {
+    type: "image",
+    src,
+    darkSrc: trustedAssetUrl(attribute(darkSource ?? "", "srcset")),
+    alt: decodeHtmlAttribute(attribute(image, "alt")) ?? "",
+  }
 }
 
 function firstHtmlImage(html: string): string | undefined {
@@ -158,6 +336,21 @@ function firstHtmlImage(html: string): string | undefined {
   const img = html.match(/<img[^>]*\ssrc=["']([^"']+)["'][^>]*>/i)
   return img?.[1]
 }
+
+/* eslint-disable lingui/no-unlocalized-strings -- HTML attribute syntax and entity names are parser tokens, not UI copy. */
+function attribute(tag: string, name: string): string | undefined {
+  return tag.match(new RegExp(`\\s${name}=(["'])(.*?)\\1`, "i"))?.[2]
+}
+
+function decodeHtmlAttribute(value?: string): string | undefined {
+  return value
+    ?.replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&amp;", "&")
+}
+/* eslint-enable lingui/no-unlocalized-strings */
 
 function stripInlineMarkdown(value: string): string {
   return value

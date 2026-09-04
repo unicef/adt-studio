@@ -1,10 +1,13 @@
-const BASE_PROMPT_MODEL_ID = "openai:gpt-5.4"
+import { DEFAULT_BASE_PROMPT_MODEL_ID } from "@adt/types"
 
-export function promptModelForSelectedModel(modelId: string | undefined): string | null {
+export function promptModelForSelectedModel(
+  modelId: string | undefined,
+  basePromptModelId: string = DEFAULT_BASE_PROMPT_MODEL_ID,
+): string | null {
   if (!modelId) return null
   const normalized = modelId.trim().toLowerCase()
   const canonical = normalized.includes(":") ? normalized : `openai:${normalized}`
-  if (canonical === BASE_PROMPT_MODEL_ID) return null
+  if (canonical === basePromptModelId.trim().toLowerCase()) return null
 
   return canonical
 }
@@ -12,8 +15,9 @@ export function promptModelForSelectedModel(modelId: string | undefined): string
 export function promptNameForSelectedModel(
   promptName: string,
   modelId: string,
+  basePromptModelId: string = DEFAULT_BASE_PROMPT_MODEL_ID,
 ): string {
-  return promptModelForSelectedModel(modelId)
+  return promptModelForSelectedModel(modelId, basePromptModelId)
     ? `${promptName}__${sanitizePromptModelId(modelId)}`
     : promptName
 }

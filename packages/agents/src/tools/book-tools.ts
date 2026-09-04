@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { tool, type CoreTool } from "ai"
+import type { AgentToolSet } from "@adt/llm"
 import type { Storage } from "@adt/storage"
 import {
   PageSectioningOutput,
@@ -17,7 +17,7 @@ import {
 } from "./activity-schema.js"
 import { renderSyntheticActivity } from "./render-section.js"
 import { extractAnswersFromHtml } from "./extract-custom-answers.js"
-import type { AgentCredentials } from "../resolve-model.js"
+import type { AgentCredentials } from "../credentials.js"
 
 const activityAnswersSchema = z
   .record(z.string(), z.union([z.string(), z.boolean(), z.number()]))
@@ -58,7 +58,7 @@ export interface BookToolCallRecord {
 }
 
 export interface BookToolsResult {
-  tools: Record<string, CoreTool>
+  tools: AgentToolSet
   /** Ordered log of tool invocations made during the agent run. */
   calls: BookToolCallRecord[]
   /** Set of pageIds the agent wrote to. */
@@ -165,8 +165,8 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
     }
   }
 
-  const tools: Record<string, CoreTool> = {
-    listPages: tool({
+  const tools: AgentToolSet = {
+    listPages: {
       description:
         "List every page in this book with its page number, section count, and section types. Use to understand what already exists before generating a new activity.",
       parameters: z.object({}),
@@ -193,9 +193,9 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           return { pages: summaries }
         },
       ),
-    }),
+    },
 
-    getPage: tool({
+    getPage: {
       description:
         "Get the full sectioning and rendering for a page: every section's HTML, sectionType, sectionId, and the data-ids used. Use to inspect a page before editing or to find layout to mimic.",
       parameters: z.object({
@@ -234,9 +234,9 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           sections,
         }
       }),
-    }),
+    },
 
-    getSection: tool({
+    getSection: {
       description:
         "Get a single section's HTML and metadata. Cheaper than getPage when you know exactly which section you need.",
       parameters: z.object({
@@ -264,9 +264,9 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           dataIds: extractDataIds(r.html),
         }
       }),
-    }),
+    },
 
-    listPageImages: tool({
+    listPageImages: {
       description:
         "List image ids available on a page (these are the only image src values you may reference; do not invent image ids).",
       parameters: z.object({
@@ -287,9 +287,9 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           })),
         }
       }),
-    }),
+    },
 
-    updateSection: tool({
+    updateSection: {
       description:
         "Rewrite a section's HTML. Creates a new version (the previous version is preserved). Preserve existing data-id values on any element you keep. Use this when you want to modify a section in place.",
       parameters: z.object({
@@ -386,9 +386,9 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           return { ok: true, version, sectionIndex }
         },
       ),
-    }),
+    },
 
-    createTemplatedActivity: tool({
+    createTemplatedActivity: {
       description:
         `PREFERRED tool for known activity types. Use this whenever the user's request maps to one of: ${TEMPLATED_ACTIVITY_TYPES.join(", ")}. You provide the sectioning tree as a JSON-encoded string (activity / activity_option containers, activity_question / activity_number / activity_fill_in_the_blank / activity_open_ended_answer / text leaves) and the pipeline's renderer produces HTML that follows the book's styleguide and the activity templates' built-in accessibility patterns. The activityAnswers key is extracted automatically — do not supply it.`,
       parameters: z.object({
@@ -523,9 +523,9 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           }
         },
       ),
-    }),
+    },
 
-    createCustomSection: tool({
+    createCustomSection: {
       description:
         "ESCAPE HATCH for fully-interactive custom activities. Use when the user wants something that does NOT map to a templated activity type (crossword, word search, drag-and-drop, custom widget). The sectionType MUST start with 'activity_custom' (e.g. activity_custom_drag_drop). The HTML must include an embedded <script> that calls window.adtRegisterCustomActivity(section, { validate, reset }) — the runtime dispatches custom-activity sections to that registration. See the 'Custom-section rules' part of the system prompt for the full contract and a worked example.",
       parameters: z.object({
@@ -641,7 +641,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           }
         },
       ),
-    }),
+    },
   }
 
   // Restrict the create surface so a forced mode is deterministic — the agent

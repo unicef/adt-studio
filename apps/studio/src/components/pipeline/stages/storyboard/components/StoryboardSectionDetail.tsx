@@ -44,7 +44,11 @@ import {
   setLeafRole,
   toggleNodePruned,
 } from "@adt/types"
-import { useApiKey } from "@/hooks/use-api-key"
+import {
+  useApiKey,
+  useBookAgentAvailability,
+  useBookStructuredTextAvailability,
+} from "@/hooks/use-api-key"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { usePage } from "@/hooks/use-pages"
 import { useBookTasks } from "@/hooks/use-book-tasks"
@@ -82,6 +86,7 @@ import {
 import { toast } from "sonner"
 import { Puzzle, ListChecks } from "lucide-react"
 import { StyleEditorPanel } from "./style-editor"
+import { FitScaleIndicator } from "./FitScaleIndicator"
 import { ViewportToggle } from "./style-editor/ViewportToggle"
 import {
   DEVICE_WIDTHS,
@@ -435,11 +440,14 @@ export function StoryboardSectionDetail({
 }) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
-  const { apiKey, hasApiKey, anthropicKey, googleKey } = useApiKey()
-  // The agent endpoints accept an OpenAI, Anthropic, or Google key (whichever
-  // matches the book's configured agents.model), so gate those features on
-  // having ANY provider key — not just OpenAI like the rest of the panel.
-  const hasAnyAgentKey = hasApiKey || !!anthropicKey || !!googleKey
+  const {
+    apiKey,
+    hasImageProvider,
+    anthropicKey,
+    googleKey,
+  } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
+  const hasAgentProvider = useBookAgentAvailability(bookLabel)
   const { headerSlotEl } = useStepHeader()
   const { stageState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
@@ -502,6 +510,7 @@ export function StoryboardSectionDetail({
   >(null)
   const [deviceView, setDeviceView] = useDeviceView(bookLabel, "desktop")
   const [previewVisibleWidth, setPreviewVisibleWidth] = useState(0)
+  const [previewScale, setPreviewScale] = useState(1)
   const previewFrameRef = useRef<BookPreviewFrameHandle>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -868,7 +877,7 @@ export function StoryboardSectionDetail({
     // in sync at all: no API key, or a custom activity whose inline grading
     // script a re-render would flatten.
     const isCustomActivity = section?.sectionType?.startsWith("activity_custom") ?? false
-    const willRerender = shouldRerender && hasApiKey && !isCustomActivity
+    const willRerender = shouldRerender && hasStructuredTextProvider && !isCustomActivity
     const renderingInSync = !shouldRerender || willRerender
     try {
       const minDelay = new Promise((r) => setTimeout(r, 400))
@@ -1066,7 +1075,7 @@ export function StoryboardSectionDetail({
         pageId,
         sectionIndex,
         direction,
-        hasApiKey,
+        hasStructuredTextProvider,
       )
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
@@ -1075,7 +1084,7 @@ export function StoryboardSectionDetail({
       onNavigateSection?.(result.mergedSectionIndex)
 
       // Auto re-render the merged section so the LLM generates proper HTML for the combined content
-      if (hasApiKey) {
+      if (hasStructuredTextProvider) {
         api.reRenderPage(bookLabel, pageId, apiKey, result.mergedSectionIndex).catch(() => {})
       }
     } catch (err) {
@@ -1108,7 +1117,7 @@ export function StoryboardSectionDetail({
       // Navigate to the previous section or 0 since the current section was removed
       onNavigateSection?.(Math.max(0, sectionIndex - 1))
 
-      if (hasApiKey) {
+      if (hasStructuredTextProvider) {
         try {
           await api.reRenderPages(
             bookLabel,
@@ -1158,7 +1167,7 @@ export function StoryboardSectionDetail({
       action: () => executeMergeSection(direction),
       label,
       warning: buildMergeWarning(neighbor?.sectionType),
-      consequence: hasApiKey
+      consequence: hasStructuredTextProvider
         ? t`The combined section will be re-rendered.`
         : t`The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section.`,
     })
@@ -1175,7 +1184,7 @@ export function StoryboardSectionDetail({
       warning: buildMergeWarning(),
       // Unlike a same-page merge this clears both pages' renderings entirely,
       // so say which pages go and who puts them back.
-      consequence: hasApiKey
+      consequence: hasStructuredTextProvider
         ? t`Both pages lose their rendering and will be re-rendered automatically.`
         : t`Both pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running.`,
     })
@@ -1208,7 +1217,7 @@ export function StoryboardSectionDetail({
   // If there are pending rendering edits, diff them against the saved version
   // and inject structured instructions so the LLM preserves the user's changes.
   const handleRerender = (prompt?: string) => {
-    if (hasActiveTask || storyboardRunning || dirty || renderingDirty || saving || !hasApiKey) return
+    if (hasActiveTask || storyboardRunning || dirty || renderingDirty || saving || !hasStructuredTextProvider) return
     // Custom activities can't be re-rendered: the renderer rebuilds from the
     // flat, script-less sectioning tree and would discard the inline grading
     // script and bespoke markup. The button is disabled for them, but guard
@@ -1921,7 +1930,7 @@ export function StoryboardSectionDetail({
   // Run LLM segmentation analysis on a single image (phase 1: get bounding boxes)
   const handleSegment = useCallback(
     async (dataId: string) => {
-      if (!hasApiKey) return
+      if (!hasStructuredTextProvider) return
       setSegmenting(true)
 
       try {
@@ -1948,7 +1957,7 @@ export function StoryboardSectionDetail({
         setSegmenting(false)
       }
     },
-    [bookLabel, pageId, apiKey, hasApiKey]
+    [bookLabel, pageId, apiKey, hasStructuredTextProvider]
   )
 
   // Apply confirmed segmentation (phase 2: crop and save)
@@ -2206,7 +2215,7 @@ export function StoryboardSectionDetail({
 
   // AI edit handler
   const handleAiEdit = async () => {
-    if (!aiInstruction.trim() || !hasApiKey || hasActiveTask || storyboardRunning) return
+    if (!aiInstruction.trim() || !hasStructuredTextProvider || hasActiveTask || storyboardRunning) return
     setAiError(null)
 
     const currentHtml = renderedSection?.html
@@ -2230,7 +2239,7 @@ export function StoryboardSectionDetail({
     instruction: string | undefined,
   ) => {
     setLayoutMirrorOpen(false)
-    if (!hasAnyAgentKey) return
+    if (!hasAgentProvider) return
     setAiError(null)
     api
       .agentLayoutMirror(
@@ -2254,7 +2263,7 @@ export function StoryboardSectionDetail({
     options: { inclusiveDesign: boolean; mode: "auto" | "templated" | "custom" },
   ) => {
     setGenerateActivityOpen(false)
-    if (!hasAnyAgentKey) return
+    if (!hasAgentProvider) return
     setAiError(null)
     api
       .agentGenerateActivity(bookLabel, pageId, description, apiKey, options, {
@@ -2551,7 +2560,7 @@ export function StoryboardSectionDetail({
         onChange={setDeviceView}
         currentWidth={previewVisibleWidth}
       />
-      {renderedSection?.html && hasApiKey ? (
+      {renderedSection?.html && hasStructuredTextProvider ? (
         <div className="relative flex-1 min-w-[100px]">
           <Sparkles className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
           <Input
@@ -2571,7 +2580,7 @@ export function StoryboardSectionDetail({
       ) : (
         <div className="flex-1" />
       )}
-      {renderedSection?.html && hasApiKey && (
+      {renderedSection?.html && hasStructuredTextProvider && (
         <button
           type="button"
           onClick={() => setShowAiHistory((v) => !v)}
@@ -2583,7 +2592,7 @@ export function StoryboardSectionDetail({
           <MessageSquare className="h-3.5 w-3.5" />
         </button>
       )}
-      {renderedSection?.html && hasAnyAgentKey && (
+      {renderedSection?.html && hasAgentProvider && (
         <button
           type="button"
           onClick={() => setLayoutMirrorOpen(true)}
@@ -2594,7 +2603,7 @@ export function StoryboardSectionDetail({
           <LayoutGrid className="h-3.5 w-3.5" />
         </button>
       )}
-      {hasAnyAgentKey && (
+      {hasAgentProvider && (
         <button
           type="button"
           onClick={() => setGenerateActivityOpen(true)}
@@ -2643,6 +2652,18 @@ export function StoryboardSectionDetail({
       </div>
     )
   }
+
+  // Single source of truth for which preview the section body renders. Both the
+  // render tree below and the fit-scale pill gate switch on this, so the two can
+  // never disagree about whether the scalable BookPreviewFrame is on screen.
+  const previewMode: "none" | "stepper" | "classic-activity" | "book-frame" =
+    !section || !renderedSection?.html
+      ? "none"
+      : stepperEnabled && editableEntry
+        ? "stepper"
+        : isActivitySection && activityPreviewMode && !editActivityPanelOpen
+          ? "classic-activity"
+          : "book-frame"
 
   return (
     <>
@@ -2712,6 +2733,7 @@ export function StoryboardSectionDetail({
         className="flex-1 overflow-auto px-4 py-4 relative [scrollbar-gutter:stable]"
         ref={scrollContainerRef}
       >
+        {previewMode === "book-frame" && <FitScaleIndicator scale={previewScale} />}
         {!section ? (
           <StageEmptyState
             icon={LayoutGrid}
@@ -2813,9 +2835,9 @@ export function StoryboardSectionDetail({
                 }
               />
             )}
-            {stepperEnabled && editableEntry ? (
+            {previewMode === "stepper" ? (
               <>
-                {editableEntry.sourceRenderingVersion !== undefined &&
+                {editableEntry?.sourceRenderingVersion !== undefined &&
                   (page.versions.rendering ?? 0) !== editableEntry.sourceRenderingVersion && (
                     <div className="mb-2 flex justify-center">
                       <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded">
@@ -2829,7 +2851,7 @@ export function StoryboardSectionDetail({
                   deviceView={deviceView}
                 />
               </>
-            ) : isActivitySection && activityPreviewMode && !editActivityPanelOpen ? (
+            ) : previewMode === "classic-activity" ? (
               <>
                 {renderingDirty && (
                   <div className="mb-2 flex justify-center">
@@ -2865,6 +2887,7 @@ export function StoryboardSectionDetail({
                   onLinkSelect={handleLinkSelectFromPage}
                   onLinkHover={handleAnchorHover}
                   onVisibleWidthChange={setPreviewVisibleWidth}
+                  onScaleChange={setPreviewScale}
                   bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
                 />
             )}
@@ -3098,7 +3121,7 @@ export function StoryboardSectionDetail({
           onChangeType={changeSectionType}
           onRegenerate={() => handleRerender()}
           canRegenerate={
-            hasApiKey && !hasActiveTask && !storyboardRunning && !saving && !renderingDirty && !dirty
+            hasStructuredTextProvider && !hasActiveTask && !storyboardRunning && !saving && !renderingDirty && !dirty
           }
           onTextEdited={handleActivityPanelTextEdited}
           onAnswerEdited={updateAnswer}
@@ -3172,7 +3195,7 @@ export function StoryboardSectionDetail({
         rerendering={hasActiveTask}
         dirty={dirty}
         renderingDirty={renderingDirty}
-        hasApiKey={hasApiKey}
+        hasStructuredTextProvider={hasStructuredTextProvider}
       />
       )}
 
@@ -3230,11 +3253,11 @@ export function StoryboardSectionDetail({
                     ? handleReplaceFromBook
                     : undefined,
                 onAiImage:
-                  selectedInfo.isImage && hasApiKey && !storyboardRunning
+                  selectedInfo.isImage && hasImageProvider && !storyboardRunning
                     ? handleAiImage
                     : undefined,
                 onSegment:
-                  selectedInfo.isImage && hasApiKey && !storyboardRunning
+                  selectedInfo.isImage && hasStructuredTextProvider && !storyboardRunning
                     ? handleSegment
                     : undefined,
                 onDelete: !storyboardRunning ? handleDeleteBlock : undefined,
@@ -3314,7 +3337,7 @@ export function StoryboardSectionDetail({
         bookLabel={bookLabel}
         onSelectExisting={handleAddExistingImage}
         onUpload={handleAddImageUpload}
-        onGenerate={handleAddImageGenerate}
+        onGenerate={hasImageProvider ? handleAddImageGenerate : undefined}
         onClose={() => setAddImageDialogOpen(false)}
       />
     )}
