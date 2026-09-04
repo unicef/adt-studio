@@ -147,6 +147,55 @@ describe("Package routes", () => {
       expect(body.error).toContain("web rendering")
     })
 
+    it("returns no warnings when rendering and sectioning agree", { timeout: 20_000 }, async () => {
+      createRenderedBook("book-clean")
+      createWebAssets()
+
+      const res = await app.request("/api/books/book-clean/package-adt", { method: "POST" })
+
+      expect(res.status).toBe(200)
+      const body = await res.json() as { warnings?: unknown[] }
+      expect(body.warnings).toEqual([])
+    })
+
+    it("reports sections omitted from the bundle, and still reports them on a cache hit", { timeout: 30_000 }, async () => {
+      createRenderedBook("book-orphan")
+      createWebAssets()
+
+      // Give the page a second rendering entry with no sectioning row behind
+      // it — the state restoring an older `page-sectioning` version leaves,
+      // since that does not resync `web-rendering`. Packaging cannot invent a
+      // sectionId for it (ids are never reused, so a positional guess could
+      // name a real section) so it drops the section.
+      const storage = createBookStorage("book-orphan", tmpDir)
+      storage.putNodeData("web-rendering", "pg001", {
+        sections: [
+          { sectionIndex: 0, sectionType: "content", reasoning: "ok", html: "<main><p>Kept</p></main>" },
+          { sectionIndex: 1, sectionType: "content", reasoning: "ok", html: "<main><p>Orphan</p></main>" },
+        ],
+      })
+      storage.close()
+
+      const res = await app.request("/api/books/book-orphan/package-adt", { method: "POST" })
+      expect(res.status).toBe(200)
+      const body = await res.json() as {
+        warnings?: Array<{ kind: string; pageId: string; sectionIndex: number }>
+      }
+      expect(body.warnings).toEqual([
+        { kind: "orphaned-rendering", pageId: "pg001", sectionIndex: 1 },
+      ])
+
+      // Packaging again hits the build cache and skips the work. The bundle on
+      // disk is still short, so the warning has to come back with it — reading
+      // it off the cached sidecar rather than vanishing.
+      const cached = await app.request("/api/books/book-orphan/package-adt", { method: "POST" })
+      expect(cached.status).toBe(200)
+      const cachedBody = await cached.json() as {
+        warnings?: Array<{ kind: string; pageId: string; sectionIndex: number }>
+      }
+      expect(cachedBody.warnings).toEqual(body.warnings)
+    })
+
     it("stores accessibility assessment output after packaging", { timeout: 20_000 }, async () => {
       createRenderedBook("book-a11y")
       createWebAssets()

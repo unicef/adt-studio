@@ -25,7 +25,11 @@ export interface RenderSyntheticActivityInput {
   anchorPageId: string
   /** The section index this activity will occupy after createSection's storage write. */
   sectionIndex: number
-  /** Stable section id, e.g. `${pageId}_s${nextIndex}`. */
+  /**
+   * The section's immutable id, e.g. `pg001_sec004`. Allocate it with
+   * `createSectionIdFactory` from `@adt/pipeline` — never derive it from an
+   * array index, which is reused as soon as a delete leaves a gap.
+   */
   sectionId: string
   sectionType: string
   /** The agent-emitted sectioning nodes. */

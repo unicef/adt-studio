@@ -28,8 +28,6 @@ import {
   EDITABLE_ACTIVITY_NODE,
   TocGenerationOutput,
   formatSectionId,
-  parseSectionId,
-  MAX_SECTION_SEQ,
   CoreTtsCatalogOutput,
   TextCatalogOutput,
   type TTSOutput,
@@ -52,8 +50,9 @@ import {
   remapEditableActivities,
   invalidateCoreTtsForDisplayEntries,
   resolveFigureExtractionMode,
-  PAGE_SECTIONING_NODE,
-  FIXED_LAYOUT_SECTIONING_NODE,
+  createSectionIdFactory,
+  collectSpentSectionIds,
+  SectionIdExhaustedError,
 } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
@@ -736,65 +735,20 @@ function migrateEditableActivities(
 }
 
 /**
- * Every `${pageId}_sec${NNN}` id that appears in *any* stored version of this
- * page's sectioning — the ids that are spent and must never be handed out
- * again.
+ * Allocate one section id, mapping the pipeline's exhaustion error onto a 400.
  *
- * Scanned out of the raw JSON rather than off parsed rows on purpose. A version
- * that no longer satisfies today's schema (a legacy row with no `sectionId`
- * field, a shape from before a migration) still burned the ids it contains, and
- * skipping it because `safeParse` failed would let them be reissued. Matching
- * text is a non-risk in the other direction: an incidental `_secNNN` inside
- * some node's text only makes the set larger, which can never cause reuse.
+ * The factory itself lives in `@adt/pipeline` so the agent activity tools mint
+ * ids the same way these routes do — an id derived from `sections.length`
+ * collides as soon as a delete leaves a gap.
  */
-function collectSpentSectionIds(storage: Storage, pageId: string): Set<string> {
-  const spent = new Set<string>()
-  const pattern = new RegExp(
-    `${pageId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_sec\\d+`,
-    "g"
-  )
-  for (const node of [PAGE_SECTIONING_NODE, FIXED_LAYOUT_SECTIONING_NODE]) {
-    for (const row of storage.getAllNodeVersions(node, pageId)) {
-      for (const match of JSON.stringify(row.data).matchAll(pattern)) {
-        spent.add(match[0])
-      }
+function mintSectionId(storage: Storage, pageId: string): string {
+  try {
+    return createSectionIdFactory(storage, pageId)()
+  } catch (err) {
+    if (err instanceof SectionIdExhaustedError) {
+      throw new HTTPException(400, { message: err.message })
     }
-  }
-  return spent
-}
-
-/**
- * Mint `${pageId}_sec${NNN}` ids that no version of this page's sectioning has
- * ever used, so a section's id is immutable for its whole life and a retired id
- * is never handed out again.
- *
- * The high-water mark comes from *history*, not just the current version. Delete
- * `_sec003`, then split `_sec002`, and a max-of-current counter would reissue
- * `_sec003` — silently adopting the deleted section's `toc-generation` entry,
- * sign-language video and text-catalog `${sectionId}_ans_*` keys (and therefore
- * their translations and generated audio) onto unrelated content.
- *
- * A counter stored on the entity would be worse: it would live inside the very
- * thing it counts, so restoring an older sectioning version would roll the
- * counter back and reissue every id allocated since.
- */
-function createSectionIdFactory(storage: Storage, pageId: string): () => string {
-  let highWaterMark = 0
-  for (const id of collectSpentSectionIds(storage, pageId)) {
-    const parsed = parseSectionId(id)
-    if (parsed) highWaterMark = Math.max(highWaterMark, parsed.seq)
-  }
-  let next = highWaterMark + 1
-  return () => {
-    if (next > MAX_SECTION_SEQ) {
-      // Unreachable in practice: each structural op allocates one id, so this
-      // needs ~1000 edits to a single page. Capped so the `_sec(\d{3})` shape
-      // every consumer parses stays valid rather than silently widening.
-      throw new HTTPException(400, {
-        message: `Page ${pageId} has allocated all ${MAX_SECTION_SEQ} of its section ids. Split this page's content across pages, or re-extract it, before editing its sections further.`,
-      })
-    }
-    return formatSectionId(pageId, next++)
+    throw err
   }
 }
 
@@ -2278,7 +2232,7 @@ export function createPageRoutes(
       const containerIdMap = new Map<string, string>()
       const clonedSection = {
         ...sectioning.sections[idx],
-        sectionId: createSectionIdFactory(storage, pageId)(),
+        sectionId: mintSectionId(storage, pageId),
         nodes: cloneNodesWithFreshContainerIds(
           sectioning.sections[idx].nodes,
           createNodeIdFactory(pageId, sectioning.sections),
@@ -2480,7 +2434,7 @@ export function createPageRoutes(
       // `section`); only the new second half gets a fresh one.
       const movedSection = {
         ...section,
-        sectionId: createSectionIdFactory(storage, pageId)(),
+        sectionId: mintSectionId(storage, pageId),
         nodes: movedNodes,
         ...(movedPlacement ? { placement: movedPlacement } : {}),
       }

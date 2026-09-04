@@ -3,7 +3,12 @@ import type { I18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import { useLingui } from "@lingui/react"
 import { useMutation } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { api } from "@/api/client"
+import {
+  readPackagingWarnings,
+  describePackagingWarnings,
+} from "@/lib/packaging-warnings"
 import { isElectron } from "@/lib/utils"
 import { useBookTasks } from "./use-book-tasks"
 import type { ExportFeatureToggles } from "./use-export-features"
@@ -65,6 +70,14 @@ export function useExportWatcherSetup(label: string): ExportWatcherValue {
     if (task.status === "completed") {
       const format = pendingExport.format
       setPendingExport(null)
+      // The rebuild skips rendered sections whose sectionId cannot be
+      // resolved. The export still succeeds, so warn before the download
+      // starts rather than handing over a quietly short bundle.
+      const omitted = describePackagingWarnings(
+        readPackagingWarnings(task.result),
+        i18n,
+      )
+      if (omitted) toast.warning(omitted)
       runDownload(format)
     } else if (task.status === "failed") {
       setError({

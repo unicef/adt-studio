@@ -23,7 +23,22 @@ const StageRunBody = z
   .strict()
 
 /** Build a beforeRun callback that clears downstream data for a stage.
- *  The returned function is idempotent — only runs once even if called multiple times. */
+ *  The returned function is idempotent — only runs once even if called multiple times.
+ *
+ *  KNOWN GAP (tracked separately): both branches below delete *every* version of
+ *  the nodes they clear, `page-sectioning` included. That resets the history the
+ *  section-id high-water mark is read from, so `finalizePageSectioning` re-mints
+ *  densely from `_sec001` and a re-section can hand a retired id to unrelated
+ *  content — the reuse that `createSectionIdFactory` exists to prevent.
+ *
+ *  `toc-generation` and `text-catalog` reference sectionIds but live in
+ *  `node_data` and are wiped by the same clear, so they self-heal. The one
+ *  reference that survives is `sign_language_videos.section_id`, a separate
+ *  table nothing here reconciles — so a video stays pinned to an id the new
+ *  sectioning has reissued. The fix is to unassign videos for the pages being
+ *  re-sectioned, the way `retireSectionIds` does in `pages.ts` (see the page
+ *  reconcile route, which already handles this identical hazard around
+ *  `deletePage`). */
 function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string): () => void {
   let ran = false
   return () => {

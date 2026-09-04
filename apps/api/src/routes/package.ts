@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel } from "@adt/types"
+import { parseBookLabel, PackagingWarning } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import {
   packageAdtWeb,
@@ -32,6 +32,7 @@ interface PackagingStatus {
 
 interface PackagingResult {
   version: string
+  warnings: PackagingWarning[]
 }
 
 function packageVersionFromHash(hash: string): string {
@@ -44,6 +45,34 @@ function getBuildHashPath(bookDir: string): string {
 
 function getBuildVersionPath(bookDir: string): string {
   return path.join(bookDir, "adt", ".build-version")
+}
+
+function getBuildWarningsPath(bookDir: string): string {
+  return path.join(bookDir, "adt", ".build-warnings")
+}
+
+/**
+ * Cached alongside the build hash so a cache hit reports the same omissions as
+ * the build that produced the bundle. Without this, packaging a second time
+ * short-circuits and the bundle looks clean while still missing pages.
+ */
+function writeBuildWarnings(bookDir: string, warnings: PackagingWarning[]): void {
+  fs.writeFileSync(getBuildWarningsPath(bookDir), JSON.stringify(warnings), "utf-8")
+}
+
+function readBuildWarnings(bookDir: string): PackagingWarning[] {
+  const warningsPath = getBuildWarningsPath(bookDir)
+  if (!fs.existsSync(warningsPath)) return []
+  try {
+    const parsed = PackagingWarning.array().safeParse(
+      JSON.parse(fs.readFileSync(warningsPath, "utf-8")) as unknown,
+    )
+    return parsed.success ? parsed.data : []
+  } catch {
+    // A truncated or hand-edited sidecar is not worth failing a package over —
+    // the warning is diagnostic, and the next real build rewrites it.
+    return []
+  }
 }
 
 function readBuildVersion(bookDir: string, fallbackHash: string): string {
@@ -157,10 +186,17 @@ export function createPackageRoutes(
         })
       }
 
-      // Fast path: skip task submission entirely when build cache is valid
+      // Fast path: skip task submission entirely when build cache is valid.
+      // The bundle on disk is whatever the cached build produced, omissions
+      // included, so replay that build's warnings rather than reporting none.
       cacheState = getPackagingCacheState(storage, safeLabel, booksDir, bookDir, webAssetsDir, configPath)
       if (cacheState.cached) {
-        return c.json({ status: "completed", label: safeLabel, version: cacheState.version })
+        return c.json({
+          status: "completed",
+          label: safeLabel,
+          version: cacheState.version,
+          warnings: readBuildWarnings(bookDir),
+        })
       }
     } finally {
       storage.close()
@@ -193,7 +229,14 @@ export function createPackageRoutes(
 
     try {
       const result = await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath)
-      return c.json({ status: "completed", label: safeLabel, version: result.version })
+      return c.json({
+        status: "completed",
+        label: safeLabel,
+        version: result.version,
+        // Anything packaging had to omit. The run still succeeds, so a caller
+        // that ignores this cannot tell a short bundle from a complete one.
+        warnings: result.warnings,
+      })
     } catch (err) {
       if (err instanceof HTTPException) throw err
       const message = err instanceof Error ? err.message : String(err)
@@ -254,10 +297,13 @@ async function runPackaging(
     const preHash = computePackagingInputHash(hashOptions)
     const bundleVersion = packageVersionFromHash(preHash)
     if (fs.existsSync(hashPath) && fs.readFileSync(hashPath, "utf-8").trim() === preHash) {
-      return { version: readBuildVersion(bookDir, preHash) }
+      return {
+        version: readBuildVersion(bookDir, preHash),
+        warnings: readBuildWarnings(bookDir),
+      }
     }
 
-    await packageAdtWeb(storage, {
+    const { warnings } = await packageAdtWeb(storage, {
       bookDir,
       label: safeLabel,
       language,
@@ -272,6 +318,7 @@ async function runPackaging(
       quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
     })
     fs.writeFileSync(versionPath, bundleVersion, "utf-8")
+    writeBuildWarnings(bookDir, warnings)
 
     const baseAccessibility = await runAccessibilityAssessment({
       bookDir,
@@ -297,7 +344,7 @@ async function runPackaging(
     const postHash = computePackagingInputHash(hashOptions)
     fs.writeFileSync(hashPath, postHash, "utf-8")
     fs.writeFileSync(versionPath, bundleVersion, "utf-8")
-    return { version: bundleVersion }
+    return { version: bundleVersion, warnings }
   } finally {
     storage.close()
   }
