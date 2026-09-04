@@ -35,6 +35,25 @@ The screenshots show a **single section**, which is typically only a SUBSET of t
 - The rendered section will typically occupy the full viewport width, even if in the original it only takes up a column, a strip, or a small portion of the page. This is correct and expected — do NOT reject for this.
 - Other content visible in the original page image (other sections, headers, footers, page numbers, surrounding text, neighboring images) is NOT part of this section and MUST NOT appear in the rendering. Do NOT flag missing content that belongs to a different section.
 - Match layout, hierarchy, alignment, and styling against the corresponding region only. For example, if the section is a two-column block within a larger page, compare its column structure to that block — not to the page as a whole.
+
+{% if layout_type == "textbook" %}
+## TEXTBOOK IMAGE-INTEGRITY REVIEW
+- **The current HTML is the authority for image admission.** The generator has already triaged every image candidate. A source-page image node that is absent from the current HTML was intentionally omitted.
+- Image membership is monotonic during review: a correction MAY remove an existing `<img>`, but MUST NEVER add one, restore one removed in an earlier iteration, change an image `data-id`, or invent/change its `src`. Every corrected image set must be a subset of the current HTML's image set.
+- Generated crop membership and its stable coordinate system are immutable during review. Never remove a `data-textbook-crop="true"` wrapper or its `<img>`. You MAY tighten the crop after screenshot comparison, but must recompute the wrapper `aspect-[W/H]` plus the image percentage `w-[…%]`, `left-[…%]`, and `top-[…%]` together from one revised native-image rectangle. Keep `relative overflow-hidden` on the wrapper and `absolute max-w-none h-auto` on the image. Never use inline styles, `object-cover`, `object-position`, `h-full`, `w-full`, or breakpoint-specific crop coordinates. State the revised approximate rectangle in your reasoning.
+- `sr-only` transcription decisions are monotonic: you MAY add `sr-only` to a proven baked-text duplicate, but MUST NEVER remove it from a text `data-id` that already has it.
+- Never report an image as missing merely because it appears in the content tree or original page. If its `<img>` is absent from the current HTML, review the semantic adaptation without it.
+- Reject a full or near-full page raster rendered visibly as a whole inside this section. A page-sized source is acceptable only inside a `data-textbook-crop="true"` exact-aspect-ratio wrapper that reveals one tight, essential figure and never exposes adjacent printed content at any viewport. Reject crop leakage or fixed-height/object-position geometry. Tighten a leaking crop only with one newly calculated invariant rectangle as described above; if you cannot calculate that safely, return empty correction content rather than removing the crop.
+- Crop leakage includes even a clipped fragment of a caption, instruction, heading, paragraph, answer line, or neighboring section at an edge. Do not approve a crop merely because most of the duplicate text is hidden.
+- Reject a visible worksheet/form composite when the HTML also reconstructs its instructions, questions, table, or controls. Keep the semantic HTML and remove the duplicate raster composite.
+- Reject visible duplicate labels: if a retained figure already contains a legible label and the same supplied leaf is drawn again, keep the essential figure and make only the matching transcription leaf `sr-only`. This includes baked-in `a)`, `b)`, and `c)` labels on activity option figures.
+- For activities, keep instructions, questions, choices, tables, and controls visible as semantic HTML. An individual evidence/option figure may remain when it is needed to answer; hide only its exact duplicate transcription leaves, never the controls or prompt.
+- For every retained activity figure, compare the text leaves in its `image_group` against the pixels. Reject visible duplicates of baked option markers, card/form titles, printed labels, prices, units, and captions; make only those exact transcription leaves `sr-only`.
+- When a retained figure contains a printed blank/line/box, reject a semantic input duplicated below or beside the image. The semantic control must overlay that exact writable area: position it absolutely inside one `relative` wrapper with the image's exact aspect ratio and percentage coordinates shared by all viewports.
+- Reject empty image stand-ins: a blank image-sized panel, skeleton, empty aspect-ratio box, or fabricated CSS illustration/card grid left where generation omitted an image. Remove the stand-in rather than pretending the source visual was reconstructed.
+- An anchored overlay is valid only when the anchor is a section-level figure and its image plus overlays share one exact aspect-ratio wrapper. Reject coordinate drift caused by positioning against a larger container or letterboxed image.
+{% include "_textbook_review_checklist" %}
+{% endif %}
 {% if has_merged_content %}
 ## MERGED CONTENT FROM ANOTHER PAGE
 This section combines content merged from MORE THAN ONE original page (for example an activity or passage that continues across a page break). Additional continuation page images are provided after the primary page image. When locating this section's content, check ALL of the provided page images — part of the rendering appears only in a continuation page image. Do NOT flag that content as extraneous, hallucinated, or missing from the original merely because it is absent from the primary page image, and do NOT remove it.
@@ -52,7 +71,10 @@ This section combines content merged from MORE THAN ONE original page (for examp
 - Text hidden behind images — text overlays MUST have `z-10` or higher so they always render above images. Different browsers may stack elements differently, so explicit z-index is required
 - Content that is cut off or accidentally hidden (EXCEPTION: text intentionally hidden with `sr-only` — e.g. a transcription of words already baked into an image — is NOT a defect; leave it hidden, do not surface it)
 - Text that is genuinely unreadable — but do NOT treat the book's large accessible type as a defect, and NEVER shrink it (see the typography rule under RULES). The intentionally large text is required, even if the original page used smaller text
-- Images that are missing, broken, wildly misplaced, or distorted (stretched to the wrong aspect ratio — keep `h-auto` so proportions are preserved)
+{% if layout_type == "textbook" %}- Images already admitted in the current HTML that are broken, wildly misplaced, or distorted (stretched to the wrong aspect ratio — keep `h-auto` so proportions are preserved). Do not add an omitted image.
+- A page replica or text-bearing worksheet/form crop displayed behind or beside the same reconstructed content
+- Labels, headings, questions, or instructions visibly duplicated because they exist both inside a raster and as HTML
+- Blank image placeholders or invented CSS diagrams/cards standing in for an omitted source figure{% else %}- Images that are missing, broken, wildly misplaced, or distorted (stretched to the wrong aspect ratio — keep `h-auto` so proportions are preserved){% endif %}
 - Content images (photos, diagrams, illustrations) rendered as small thumbnails when the original shows them filling much of the page — enlarge them to fill the content column (`w-full h-auto`); modest upscaling of a low-resolution source is fine and preferable to a tiny image
 - A header/banner whose title or badge is misaligned or clipped — the banner background may span the full width, but its text must sit in the same centered `max-w-5xl` reading column as the body and must never be cut off
 - Text alignment that differs from the original — body text and headings that are left-aligned in the original should NOT be centered (and vice versa)
@@ -83,8 +105,9 @@ The base (no-prefix) classes are the DESKTOP design — overlay and side-by-side
 - The normal data-id rule is that an element WITH a `data-id` attribute contains only literal text. The sole exception is a `table_of_contents` entry, which may contain unlabelled title, dotted-leader, and page-number child spans as described above. Its combined text content must still match exactly.
 - A plain wrapper element WITHOUT its own `data-id` (e.g. a `<p>`, `<div>`, `<li>`, or `<section>`) MAY contain multiple data-id-bearing children (typically `<span data-id="...">…</span>` fragments flowing inline). That is the intended shape for a paragraph or list item whose text is split across several leaves — do NOT flag or rewrite it. Only flag cases where an element that itself has a `data-id` also has child tags inside it.
 - Preserve ALL text content exactly — do not change, add, or remove any words
-- Preserve ALL image tags and their data-id attributes
-- Only change layout and styling: Tailwind CSS classes, inline styles, spacing, positioning
+{% if layout_type == "textbook" %}- Preserve legitimate figure image tags and their data-id attributes. You MAY remove an `<img>` only when comparison with the original proves it is a visible whole-page/worksheet duplicate or an unsafe leaking crop. Never add, restore, or replace an image.
+- Change layout and styling as needed. Apart from removing a proven duplicate raster or applying `sr-only` to its matching transcription, preserve the content structure.{% else %}- Preserve ALL image tags and their data-id attributes
+- Only change layout and styling: Tailwind CSS classes, inline styles, spacing, positioning{% endif %}
 - Do NOT change font SIZE. Preserve EVERY `adt-*` class (`adt-h1` through `adt-h6`, `adt-body`, and `adt-caption`) exactly as it appears in the input — never remove or rename them, and never add a `text-xs`…`text-9xl`, `text-[..]`, or inline `font-size` to a text element. The book's type scale is fixed and deterministic; changing it here breaks page-to-page consistency. If a heading/body looks "too big" vs the original, that is INTENTIONAL — leave it. Adjust only layout, positioning, spacing, and color.
 - Keep the <section> wrapper and its role/data-section-type/data-section-id attributes
 - Do NOT add <script>, <iframe>, <object>, or <embed> tags
@@ -95,6 +118,8 @@ The base (no-prefix) classes are the DESKTOP design — overlay and side-by-side
 - "approved": true if the rendering is visually acceptable, false if it needs changes
 - "reasoning": Brief explanation of your assessment (what looks good, what needs fixing)
 - "content": If not approved, provide the corrected HTML fragment. If approved, return an empty string.
+- "geometry_updates": Exact native-pixel crop refinements from the mandatory audit, or an empty array. When this array is non-empty, `approved` must be false; `content` may be empty if crop geometry is the only change.
+- "transcription_updates": Proven baked raster/HTML duplicates as `{ "image_id": "…", "text_id": "…" }`, or an empty array. When non-empty, `approved` must be false; `content` may be empty.
 
 ## WHEN YOU CANNOT IMPROVE THE HTML
 If you have identified a defect but cannot produce a fix that respects the data-id rules and structural constraints — for example, the source HTML is missing required elements, or the fix would require text/markup that isn't allowed — return `approved: false` with an **empty `content` string**. This signals that the loop should stop. Do NOT submit a token revision (e.g. the same HTML you already returned, or a near-identical variant) just to fill the field — that wastes iterations without making progress.

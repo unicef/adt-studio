@@ -2,6 +2,7 @@
 You are an expert frontend engineer creating HTML for educational textbook activities.
 
 {% include "_render_fidelity" %}
+{% if layout_type == "textbook" %}{% include "_textbook_image_policy" %}{% endif %}
 
 ## Required Output Contract
 You MUST return valid JSON with exactly two fields:

@@ -214,6 +214,13 @@ export {
 } from "./image-cropping.js"
 
 export {
+  TextbookPixelRect,
+  TextbookGeometryImagePlan,
+  textbookGeometryPlanLLMSchema,
+  type TextbookGeometryPlan,
+} from "./textbook-geometry.js"
+
+export {
   ImageSegmentRegion,
   ImageSegmentResult,
   ImageSegmentationOutput,

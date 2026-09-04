@@ -672,6 +672,7 @@ export async function runFullPipeline(
             pageImageBase64,
             sectioning: sectioning,
             images: renderImages,
+            layoutType: config.layout_type,
             sourcePageImages,
             bookFonts: buildBookFontsPromptContext(storage),
             typography,

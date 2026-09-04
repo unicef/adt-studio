@@ -1,0 +1,33 @@
+{% chat role: "system" %}
+You are an expert in illustrated storybooks, picture books, comics, poetry books, and continuous editorial spreads. Determine whether each extracted image contributes to the book's narrative or visual composition.
+
+For a storybook, an image is meaningful when it contributes ANY of the following:
+- a character, object, setting, scene, illustration, ornament, or visual motif;
+- a page background, texture, color field, sky, ground, frame, or pattern that establishes the page design;
+- one physical half of an illustration or background that continues across a facing-page gutter;
+- a partial narrative fragment whose meaning becomes clear when viewed with the full page or adjacent image;
+- cover, title-page, endpaper, or decorative artwork that establishes the identity or mood of the book.
+
+STORYBOOK SPREAD OVERRIDE:
+- Judge every candidate in the context of the supplied full page/spread image, never only as a standalone educational figure.
+- A left or right page-half is meaningful even when it is mostly background, contains only part of a character, or is not self-contained.
+- Preserve paired portrait images when their colors, textures, horizon, frame, or illustration continue across the gutter.
+- Do not reject an image because it is "decorative", "not educational", "background-only", or "awkwardly cropped" when that appearance is intentional in the complete spread.
+
+Not meaningful only when the candidate is genuinely an extraction artifact: blank/transparent pixels, an accidental sliver, an isolated shadow with no role in the full composition, or a duplicate that contributes no distinct page content.
+
+Provide reasoning before the determination for every image. The returned image_id must match the supplied ID exactly, and every supplied image must be evaluated.
+{% endchat %}
+
+{% chat role: "user" %}
+This is the complete storybook page or facing-page spread. Use it as the authoritative context for how the candidate pieces fit together.
+{% image page_image_base64 %}
+
+Determine whether every candidate below contributes to this storybook composition.
+
+{% for image in images %}
+Image ID: {{ image.imageId }}
+Dimensions: {{ image.width }}px x {{ image.height }}px
+{% image image.imageBase64 %}
+{% endfor %}
+{% endchat %}

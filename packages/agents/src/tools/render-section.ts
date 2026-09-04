@@ -149,6 +149,7 @@ export async function renderSyntheticActivity(
       sectionIndex: input.sectionIndex,
       section,
       context: renderContext,
+      layoutType: config.layout_type,
       styleguide: input.styleguide,
       userPrompt: input.userInstructions,
     },
