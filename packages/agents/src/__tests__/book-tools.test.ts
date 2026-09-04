@@ -96,13 +96,15 @@ describe("createCustomSection — sectionIndex assignment", () => {
 
     expect(res.ok).toBe(true)
     expect(res.sectionIndex).toBe(3)
-    expect(res.sectionId).toBe("pg001_s3")
+    // The index is positional; the id is allocated above the page's high-water
+    // mark (`_sec002`), so the two deliberately do not match.
+    expect(res.sectionId).toBe("pg001_sec003")
 
     // The new section is appended to sectioning at index 3 (no overwrite).
     const sectioning = storage.getLatestNodeData("page-sectioning", pageId)!
       .data as { sections: Array<{ sectionId: string }> }
     expect(sectioning.sections).toHaveLength(4)
-    expect(sectioning.sections[3]?.sectionId).toBe("pg001_s3")
+    expect(sectioning.sections[3]?.sectionId).toBe("pg001_sec003")
 
     // And the rendering keeps a single section at index 2 — the append did not
     // collide with the pre-existing section.
@@ -158,5 +160,113 @@ describe("createCustomSection — sectionIndex assignment", () => {
     expect(res.error).toMatch(/<script>/)
     // Nothing was written.
     expect(touchedPageIds.has(pageId)).toBe(false)
+  })
+})
+
+describe("createCustomSection — sectionId allocation", () => {
+  /** Append one custom activity section to `pageId`, returning its new id. */
+  async function createSection(
+    storage: ReturnType<typeof tempStorage>,
+    pageId: string,
+  ): Promise<string> {
+    const { tools } = createBookTools({
+      storage,
+      bookLabel: "test-book",
+      booksDir: "",
+      promptsDir: "",
+      credentials: {},
+      restrictWritesToPageId: pageId,
+      activityMode: "custom",
+    })
+    const execute = tools.createCustomSection!.execute as (
+      args: unknown,
+      options: unknown,
+    ) => Promise<{ ok: boolean; sectionId: string; error?: string }>
+    const res = await execute(
+      {
+        pageId,
+        sectionType: "activity_custom_test",
+        html: `<section data-section-type="activity_custom_test"><p>Q</p><script>window.adtRegisterCustomActivity(document.currentScript.closest('section'),{validate:()=>true});</script></section>`,
+        reasoning: "test",
+        activityAnswers: null,
+      },
+      {},
+    )
+    expect(res.error).toBeUndefined()
+    expect(res.ok).toBe(true)
+    return res.sectionId
+  }
+
+  it("does not reissue an id after a deletion leaves a gap in the array", async () => {
+    const storage = tempStorage()
+    const pageId = "pg001"
+    storage.putNodeData("page-sectioning", pageId, {
+      reasoning: "seed",
+      sections: [sectioningSection("pg001_sec001", "text_only")],
+    })
+    storage.putNodeData("web-rendering", pageId, {
+      sections: [renderingSection(0, "text_only")],
+    })
+
+    const first = await createSection(storage, pageId)
+    expect(first).toBe("pg001_sec002")
+
+    // Delete the original section the way the structural routes do: splice the
+    // array, leave every survivor's id alone. The array is now length 1 again,
+    // but `_sec002` is spent.
+    const afterCreate = storage.getLatestNodeData("page-sectioning", pageId)!
+      .data as { reasoning: string; sections: Array<{ sectionId: string }> }
+    storage.putNodeData("page-sectioning", pageId, {
+      ...afterCreate,
+      sections: afterCreate.sections.slice(1),
+    })
+
+    // Pre-fix this minted `${pageId}_s1` a second time, because the id came
+    // from `sections.length`. Two sections sharing an id are ambiguous in the
+    // pages manifest and overwrite each other's `${sectionId}.html` on package.
+    const second = await createSection(storage, pageId)
+    expect(second).toBe("pg001_sec003")
+    expect(second).not.toBe(first)
+
+    const sectioning = storage.getLatestNodeData("page-sectioning", pageId)!
+      .data as { sections: Array<{ sectionId: string }> }
+    const ids = sectioning.sections.map((s) => s.sectionId)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it("allocates canonical `_secNNN` ids, so previews and bundles can resolve them", async () => {
+    const storage = tempStorage()
+    const pageId = "pg001"
+    storage.putNodeData("page-sectioning", pageId, {
+      reasoning: "seed",
+      sections: [sectioningSection("pg001_sec001", "text_only")],
+    })
+    storage.putNodeData("web-rendering", pageId, {
+      sections: [renderingSection(0, "text_only")],
+    })
+
+    // The legacy `${pageId}_s${index}` shape does not satisfy the `_sec\d+`
+    // form that adt-preview and the packaging manifest parse, so activities
+    // minted that way were unreachable in preview.
+    expect(await createSection(storage, pageId)).toMatch(/^pg001_sec\d{3}$/)
+  })
+
+  it("counts a legacy `_sN` id already in history, so it is never shadowed", async () => {
+    const storage = tempStorage()
+    const pageId = "pg001"
+    // A page edited before the tools used the factory: `_s2` is spent, and the
+    // canonical high-water mark alone would not see it.
+    storage.putNodeData("page-sectioning", pageId, {
+      reasoning: "seed",
+      sections: [
+        sectioningSection("pg001_sec001", "text_only"),
+        sectioningSection("pg001_s2", "text_only"),
+      ],
+    })
+    storage.putNodeData("web-rendering", pageId, {
+      sections: [renderingSection(0, "text_only"), renderingSection(1, "text_only")],
+    })
+
+    expect(await createSection(storage, pageId)).toBe("pg001_sec003")
   })
 })

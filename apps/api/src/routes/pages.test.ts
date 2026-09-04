@@ -971,7 +971,7 @@ describe("Page routes", () => {
       }
     })
 
-    it("splits a section before a top-level node and renumbers sectionIds", async () => {
+    it("splits a section, keeping the first half's id and leaving the untouched section alone", async () => {
       seedThreeNodeSection({ rendering: true })
 
       const res = await app.request(
@@ -998,10 +998,14 @@ describe("Page routes", () => {
           }>
         }
         expect(sectioning.sections).toHaveLength(3)
+        // The first half keeps `_sec001`; the new second half mints `_sec003`;
+        // the pre-existing `_sec002` keeps its id even though it moved to index
+        // 2. Renumbering it would silently hand its TOC entry, sign-language
+        // video and answer-text catalog keys to the newly created half.
         expect(sectioning.sections.map((s) => s.sectionId)).toEqual([
           `${label}_p1_sec001`,
-          `${label}_p1_sec002`,
           `${label}_p1_sec003`,
+          `${label}_p1_sec002`,
         ])
         expect(sectioning.sections[0].nodes.map((n) => n.nodeId)).toEqual([
           `${label}_p1_n0001`,
@@ -1018,8 +1022,9 @@ describe("Page routes", () => {
           `${label}_p1_n0005`,
         ])
 
-        // Rendering: split section's entry dropped, other section shifted +1
-        // with its data-section-id rewritten.
+        // Rendering: the split section's entry is dropped and the untouched
+        // section's index shifts +1, but its HTML keeps its own section id —
+        // the split must not rewrite another section's markup.
         const renderingRow = verify.getLatestNodeData("web-rendering", `${label}_p1`)
         const rendering = renderingRow?.data as {
           sections: Array<{ sectionIndex: number; html: string }>
@@ -1027,7 +1032,7 @@ describe("Page routes", () => {
         expect(rendering.sections).toHaveLength(1)
         expect(rendering.sections[0].sectionIndex).toBe(2)
         expect(rendering.sections[0].html).toContain(
-          `data-section-id="${label}_p1_sec003"`
+          `data-section-id="${label}_p1_sec002"`
         )
       } finally {
         verify.close()
@@ -1357,6 +1362,311 @@ describe("Page routes", () => {
           `${label}_p1_n0002`,
         ])
         expect(sectioning.sections[0].viewport).toEqual({ width: 595, height: 842 })
+      } finally {
+        verify.close()
+      }
+    })
+  })
+
+  describe("sectionId stability across structural ops", () => {
+    /**
+     * Seed a page with sections carrying exactly these id sequence numbers.
+     * A gap in `seqs` models a page that has already been edited, which is the
+     * only state where a renumbering bug is visible: renumbering a *dense*
+     * sequence is the identity, so a test seeded densely can pass against the
+     * very bug it is meant to catch. Returns the version written.
+     */
+    function seedSectionSeqs(seqs: number[], pageId = `${label}_p1`): number {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        return storage.putNodeData("page-sectioning", pageId, {
+          reasoning: "sectioned",
+          sections: seqs.map((seq) => ({
+            sectionId: `${pageId}_sec${String(seq).padStart(3, "0")}`,
+            sectionType: "content",
+            backgroundColor: "#ffffff",
+            textColor: "#000000",
+            pageNumber: 1,
+            isPruned: false,
+            nodes: [
+              {
+                nodeId: `${pageId}_n000${seq}`,
+                isPruned: false,
+                role: "text",
+                text: `Section ${seq}`,
+              },
+            ],
+          })),
+        })
+      } finally {
+        storage.close()
+      }
+    }
+
+    /** Seed page 1 with `count` sections, ids `_sec001.._secNNN`. Returns the
+     *  version written, so a test can restore back to it. */
+    function seedSections(count: number, pageId = `${label}_p1`): number {
+      return seedSectionSeqs(
+        Array.from({ length: count }, (_, i) => i + 1),
+        pageId
+      )
+    }
+
+    function readSectionIds(pageId = `${label}_p1`): string[] {
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const row = verify.getLatestNodeData("page-sectioning", pageId)
+        const data = row?.data as { sections: Array<{ sectionId: string }> }
+        return data.sections.map((s) => s.sectionId)
+      } finally {
+        verify.close()
+      }
+    }
+
+    it("keeps every surviving id when a middle section is deleted", async () => {
+      seedSections(4)
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/1`,
+        { method: "DELETE" }
+      )
+      expect(res.status).toBe(200)
+
+      // `_sec002` is retired and leaves a gap; nothing is renumbered into it.
+      expect(readSectionIds()).toEqual([
+        `${label}_p1_sec001`,
+        `${label}_p1_sec003`,
+        `${label}_p1_sec004`,
+      ])
+    })
+
+    it("keeps every surviving id when a middle section is cloned", async () => {
+      seedSections(3)
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(200)
+
+      // The clone lands after its original with a fresh id; the sections it
+      // pushed down keep theirs.
+      expect(readSectionIds()).toEqual([
+        `${label}_p1_sec001`,
+        `${label}_p1_sec004`,
+        `${label}_p1_sec002`,
+        `${label}_p1_sec003`,
+      ])
+    })
+
+    it("never reissues a retired id, even after the deletion is no longer visible", async () => {
+      seedSections(3)
+
+      const del = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/2`,
+        { method: "DELETE" }
+      )
+      expect(del.status).toBe(200)
+      expect(readSectionIds()).toEqual([`${label}_p1_sec001`, `${label}_p1_sec002`])
+
+      // A max-of-current counter would hand out `_sec003` again here, silently
+      // adopting the deleted section's TOC entry, sign-language video and
+      // answer-text catalog keys. The id space is tracked across all versions.
+      const clone = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
+        { method: "POST" }
+      )
+      expect(clone.status).toBe(200)
+
+      const ids = readSectionIds()
+      expect(ids).not.toContain(`${label}_p1_sec003`)
+      expect(ids).toEqual([
+        `${label}_p1_sec001`,
+        `${label}_p1_sec004`,
+        `${label}_p1_sec002`,
+      ])
+    })
+
+    it("keeps the surviving ids on BOTH pages across a cross-page merge", async () => {
+      // Both pages start with gaps, so wholesale renumbering would be visible
+      // on each of them. Seeding densely hides the bug: removing the last
+      // section of a dense page and renumbering the rest is a no-op.
+      seedSectionSeqs([1, 4, 5], `${label}_p1`)
+      seedSectionSeqs([1, 3], `${label}_p2`)
+
+      // Move p2's first section back into p1's last. This is the op that used
+      // to renumber both pages wholesale — reassigning every later section's
+      // TOC entry, sign-language video and answer-text catalog keys on two
+      // pages at once. The existing tests for this endpoint use single-section
+      // pages, so nothing there could have caught it.
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p2/sections/0/merge-cross-page?direction=prev`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(200)
+
+      // Target: every id untouched. The receiving section absorbed nodes, not a
+      // new identity, and its neighbours kept their own.
+      expect(readSectionIds(`${label}_p1`)).toEqual([
+        `${label}_p1_sec001`,
+        `${label}_p1_sec004`,
+        `${label}_p1_sec005`,
+      ])
+      // Source: only the moved section's id retires; the survivor keeps `_sec003`
+      // rather than sliding down into the vacated `_sec001`.
+      expect(readSectionIds(`${label}_p2`)).toEqual([`${label}_p2_sec003`])
+
+      // The content really did move — otherwise the ids above would be stable
+      // for the trivial reason that nothing happened.
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const tgt = verify.getLatestNodeData("page-sectioning", `${label}_p1`)
+          ?.data as { sections: Array<{ nodes: Array<{ nodeId: string }> }> }
+        expect(tgt.sections[2].nodes.map((n) => n.nodeId)).toContain(
+          `${label}_p2_n0001`
+        )
+      } finally {
+        verify.close()
+      }
+    })
+
+    it("does not reissue a spent id after an earlier sectioning version is restored", async () => {
+      const seededVersion = seedSections(3)
+
+      const clone = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
+        { method: "POST" }
+      )
+      expect(clone.status).toBe(200)
+      expect(readSectionIds()).toContain(`${label}_p1_sec004`)
+
+      // Roll the node back to before `_sec004` existed. Restoring only moves
+      // the current-version pointer, so `_sec004` remains in history and must
+      // stay spent. A counter stored on the entity would have been rewound
+      // along with it and reissued `_sec004` to different content.
+      const restore = await app.request(
+        `/api/books/${label}/versions/page-sectioning/${label}_p1/restore`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ version: seededVersion }),
+        }
+      )
+      expect(restore.status).toBe(200)
+
+      const second = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
+        { method: "POST" }
+      )
+      expect(second.status).toBe(200)
+
+      // Structural ops currently read the latest version rather than the
+      // restored pointer, so today this holds for that reason too. The
+      // assertion is on the id space regardless: whoever makes a restore
+      // authoritative for these ops must keep the factory's history-wide
+      // high-water mark, or this fails.
+      expect(readSectionIds()).toContain(`${label}_p1_sec005`)
+    })
+
+    it("counts ids from history versions that no longer satisfy the schema", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        // A stored version that fails `PageSectioningOutput` today — a legacy
+        // row, or a shape from before a migration. It still spent `_sec005`.
+        // Reading the high-water mark off parsed rows only would skip it and
+        // reissue that id onto unrelated content.
+        storage.putNodeData("page-sectioning", `${label}_p1`, {
+          sections: [{ sectionId: `${label}_p1_sec005`, legacyShape: true }],
+        })
+      } finally {
+        storage.close()
+      }
+      seedSections(1)
+
+      const clone = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
+        { method: "POST" }
+      )
+      expect(clone.status).toBe(200)
+
+      expect(readSectionIds()).toEqual([
+        `${label}_p1_sec001`,
+        `${label}_p1_sec006`,
+      ])
+    })
+
+    it("keeps a sign-language video attached to its section across a merge, and unassigns the retired one", async () => {
+      seedSections(3)
+
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putSignLanguageVideo("vid-keep", Buffer.from("a"), "keep.mp4", "video/mp4")
+        storage.putSignLanguageVideo("vid-gone", Buffer.from("b"), "gone.mp4", "video/mp4")
+        storage.assignSignLanguageVideo("vid-keep", `${label}_p1_sec003`)
+        storage.assignSignLanguageVideo("vid-gone", `${label}_p1_sec002`)
+      } finally {
+        storage.close()
+      }
+
+      // Merge sections 0 and 1: `_sec001` survives, `_sec002` is retired.
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/merge?direction=next`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const byId = new Map(
+          verify.getSignLanguageVideos().map((v) => [v.videoId, v.sectionId])
+        )
+        // The untouched section kept its id, so its video is still attached —
+        // renumbering used to slide this video onto a different section.
+        expect(byId.get("vid-keep")).toBe(`${label}_p1_sec003`)
+        // The merged-away section's video is unassigned, not deleted, so the
+        // user can reattach the upload they made.
+        expect(byId.get("vid-gone")).toBeNull()
+        expect(verify.getSignLanguageVideoPath("vid-gone")).not.toBeNull()
+      } finally {
+        verify.close()
+      }
+    })
+
+    it("drops toc entries for retired sections and keeps the rest", async () => {
+      seedSections(3)
+
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("toc-generation", "book", {
+          pageCount: 3,
+          generatedAt: "2026-01-01T00:00:00.000Z",
+          entries: [1, 2, 3].map((n) => ({
+            id: `toc_00${n}`,
+            title: `Section ${n}`,
+            sectionId: `${label}_p1_sec00${n}`,
+            href: `${label}_p1_sec00${n}.html`,
+            chapterId: "ch1",
+            level: 1,
+          })),
+        })
+      } finally {
+        storage.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/1`,
+        { method: "DELETE" }
+      )
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const row = verify.getLatestNodeData("toc-generation", "book")
+        const toc = row?.data as { entries: Array<{ sectionId: string }> }
+        expect(toc.entries.map((e) => e.sectionId)).toEqual([
+          `${label}_p1_sec001`,
+          `${label}_p1_sec003`,
+        ])
       } finally {
         verify.close()
       }

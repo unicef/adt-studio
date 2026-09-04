@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
+import type { PackagingWarning } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream } from "./zip-util.js"
@@ -59,6 +60,11 @@ export interface ExportDefaultSettings {
   reduceMotion?: boolean
 }
 
+/** What the rebuild had to leave out of the exported bundle. */
+export interface PrepareExportResult {
+  warnings: PackagingWarning[]
+}
+
 /**
  * Prepare export by rebuilding the adt/ (and optionally webpub/) directories.
  * Called as a separate step before the actual download so the client can show
@@ -72,7 +78,7 @@ export async function prepareExport(
   configPath?: string,
   features?: ExportFeatures,
   defaultSettingsOverride?: ExportDefaultSettings,
-): Promise<void> {
+): Promise<PrepareExportResult> {
   const safeLabel = parseBookLabel(label)
   const resolvedDir = path.resolve(booksDir)
   const bookDir = path.join(resolvedDir, safeLabel)
@@ -157,7 +163,7 @@ export async function prepareExport(
       epubGlossary: config.epub_glossary,
     }
 
-    await packageAdtWeb(storage, opts)
+    const { warnings } = await packageAdtWeb(storage, opts)
 
     if (format === "webpub") {
       packageWebpub(storage, opts)
@@ -166,6 +172,8 @@ export async function prepareExport(
     } else if (format === "pnld") {
       packagePnld(storage, opts)
     }
+
+    return { warnings }
   } finally {
     storage.close()
   }

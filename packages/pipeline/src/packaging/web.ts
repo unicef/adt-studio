@@ -22,6 +22,7 @@ import type {
   TocGenerationOutput,
   Quiz,
   ImageCaptioningOutput,
+  PackagingWarning,
 } from "@adt/types"
 import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
 import { resolveNarratorLabel } from "../speech.js"
@@ -258,16 +259,27 @@ function hashValue(value: unknown): string {
 // Public API
 // ---------------------------------------------------------------------------
 
+/** What packaging had to leave out. Empty on a clean run. */
+export interface PackageAdtWebResult {
+  warnings: PackagingWarning[]
+}
+
 /**
  * Package all pipeline outputs into a standalone web application at
  * `{bookDir}/adt/`. The output is a self-contained directory that can be
  * opened directly in a browser (file://) or served by any static HTTP server.
+ *
+ * Anything omitted from the bundle comes back in `warnings`. Callers on a
+ * user-facing path must surface them: a silently short bundle is
+ * indistinguishable from a correct one. `progress` is a diagnostic trail only —
+ * the CLI sink drops messages without page counters, and it defaults to
+ * `nullProgress`.
  */
 export async function packageAdtWeb(
   storage: Storage,
   options: PackageAdtWebOptions,
   progress: Progress = nullProgress,
-): Promise<void> {
+): Promise<PackageAdtWebResult> {
   const {
     bookDir,
     label,
@@ -360,6 +372,11 @@ export async function packageAdtWeb(
   let hasActivitySections = false
   const copiedImages = new Set<string>()
   const sectionIdToPageIndex = new Map<string, number>()
+  // Rendering entries with no sectioning row behind them. They are dropped from
+  // the bundle (see the skip below), which is silent otherwise — the page just
+  // isn't there. Returned to the caller so the packaging and export flows can
+  // surface it; a `progress` message alone reaches no live sink.
+  const orphanedRenderings: PackagingWarning[] = []
 
   // Build a map from afterPageId -> quizzes for interleaving
   const quizzesByAfterPageId = new Map<string, Quiz[]>()
@@ -391,10 +408,22 @@ export async function packageAdtWeb(
         const sections = [...rendering.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
         for (const rs of sections) {
           const sectionMeta = sectioning?.sections[rs.sectionIndex]
-          if (sectionMeta?.isPruned) continue
-          const sectionId = sectionMeta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
+          // No sectioning row for this rendering entry means the two are out of
+          // sync. sectionIds are allocated once and never reused, so a guessed
+          // `_secNNN` could collide with a real section and have two pages write
+          // the same file. Skip the orphan entry instead.
+          if (!sectionMeta) {
+            orphanedRenderings.push({
+              kind: "orphaned-rendering",
+              pageId: page.pageId,
+              sectionIndex: rs.sectionIndex,
+            })
+            continue
+          }
+          if (sectionMeta.isPruned) continue
+          const sectionId = sectionMeta.sectionId
 
-          if (rs.sectionType.startsWith("activity_") || sectionMeta?.sectionType.startsWith("activity_")) {
+          if (rs.sectionType.startsWith("activity_") || sectionMeta.sectionType.startsWith("activity_")) {
             hasActivitySections = true
           }
 
@@ -534,6 +563,21 @@ export async function packageAdtWeb(
 
       pageList.push({ section_id: quizId, href: quizFilename })
     }
+  }
+
+  if (orphanedRenderings.length > 0) {
+    // Also emitted as progress so a CLI/log trace records it. The returned
+    // `warnings` are the load-bearing channel — the CLI progress sink drops
+    // messages with no page counters, and the API flows pass no sink at all.
+    progress.emit({
+      type: "step-progress",
+      step,
+      message:
+        `Warning: skipped ${orphanedRenderings.length} rendered section(s) with no sectioning row ` +
+        `(${orphanedRenderings.map((w) => `${w.pageId}[${w.sectionIndex}]`).join(", ")}). ` +
+        `They are absent from the bundle. ` +
+        `Re-run the storyboard render for these pages to bring rendering back in sync with sectioning.`,
+    })
   }
 
   // ------------------------------------------------------------------
@@ -983,6 +1027,8 @@ export async function packageAdtWeb(
   }
 
   progress.emit({ type: "step-complete", step })
+
+  return { warnings: orphanedRenderings }
 }
 
 // ---------------------------------------------------------------------------

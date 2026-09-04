@@ -391,12 +391,53 @@ describe("buildTextCatalog", () => {
           ],
         },
       },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "activity_fill_in_the_blank",
+              nodes: [],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+      },
     })
 
     const result = await buildTextCatalog(storage, [pages[0]])
 
     expect(result.entries).toContainEqual({ id: "pg001_sec001_ans_item-1", text: "true" })
     expect(result.entries).toContainEqual({ id: "pg001_sec001_ans_item-2", text: "42" })
+  })
+
+  it("skips activity answers when no sectioning row resolves the section id", async () => {
+    // sectionIds are allocated once and never reused, so they cannot be derived
+    // from `sectionIndex`. Emitting a guessed id would attach these answers'
+    // translations and generated audio to whichever section owns that id.
+    const storage = createMockStorage({
+      "web-rendering": {
+        pg001: {
+          sections: [
+            {
+              sectionIndex: 0,
+              sectionType: "activity_fill_in_the_blank",
+              reasoning: "",
+              html: '<section><p data-id="pg001_gp001_tx001">Text</p></section>',
+              activityAnswers: { "item-1": "sun" },
+            },
+          ],
+        },
+      },
+    })
+
+    const result = await buildTextCatalog(storage, [pages[0]])
+
+    expect(result.entries.filter((e) => e.id.includes("_ans_"))).toEqual([])
   })
 
   it("skips sections without activity answers", async () => {
