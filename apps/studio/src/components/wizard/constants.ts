@@ -152,7 +152,7 @@ export interface PresetConfig {
 
 // ─── Demo URLs (shared across all presets until per-preset assets are ready) ─
 
-const DEMO_PDF_URL =
+export const DEMO_PDF_URL =
   "https://ontheline.trincoll.edu/images/bookdown/sample-local-pdf.pdf";
 const DEMO_ADT_URL =
   "https://elasticsounds.github.io/adt-brazil-demo/index.html";

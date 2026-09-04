@@ -3525,6 +3525,9 @@ msgstr "Toutes les quelques pages"
 msgid "Every notable concept and named entity."
 msgstr "Chaque concept notable et entité nommée."
 
+msgid "Every page becomes its own screen, one after another."
+msgstr "Chaque page devient son propre écran, l’une après l’autre."
+
 msgid "Every page has been merged back from its part — the whole book is in place."
 msgstr "Toutes les pages ont été fusionnées depuis leur partie — le livre complet est en place."
 
@@ -3679,6 +3682,9 @@ msgstr "Extrait le texte et les données d'image de chaque page du PDF."
 
 msgid "Extracts the correct answer key from the generated activity HTML."
 msgstr "Extrait la clé de réponse correcte du HTML d'activité généré."
+
+msgid "Facing pages join into one wide screen, so a picture across the gutter stays whole."
+msgstr "Les pages en vis-à-vis sont réunies en un seul écran large, afin qu’une image traversant le pli central reste entière."
 
 msgid "failed"
 msgstr "échoué"
@@ -5186,8 +5192,8 @@ msgstr "Révision manuelle"
 msgid "Manually edited"
 msgstr "Modifié manuellement"
 
-msgid "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
-msgstr "Beaucoup de livres imprimés sont conçus avec des pages en regard — des illustrations qui s'étendent sur deux pages, ou du texte qui coule sur une double page. Le mode double page fusionne chaque paire de pages en regard pour que le contenu ne soit pas séparé. La couverture reste seule, puis les pages sont appariées : 2+3, 4+5, etc."
+#~ msgid "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
+#~ msgstr "Beaucoup de livres imprimés sont conçus avec des pages en regard — des illustrations qui s'étendent sur deux pages, ou du texte qui coule sur une double page. Le mode double page fusionne chaque paire de pages en regard pour que le contenu ne soit pas séparé. La couverture reste seule, puis les pages sont appariées : 2+3, 4+5, etc."
 
 msgid "Map"
 msgstr "Carte"
@@ -5624,6 +5630,9 @@ msgstr "Prochaine section manquante"
 
 msgid "Next page"
 msgstr "Page suivante"
+
+msgid "Next pages"
+msgstr "Pages suivantes"
 
 msgid "Next slide"
 msgstr "Diapositive suivante"
@@ -6669,6 +6678,9 @@ msgstr "Infos PDF"
 msgid "PDF page {pageLabel} preview"
 msgstr "Aperçu de la page PDF {pageLabel}"
 
+msgid "PDF page {pageNumber} preview"
+msgstr "Aperçu de la page {pageNumber} du PDF"
+
 msgid "Pencil Sketch"
 msgstr "Croquis au crayon"
 
@@ -6746,6 +6758,9 @@ msgstr "Choisissez une des images du livre, recadrez une région d'une page ou t
 
 #~ msgid "Pick page range"
 #~ msgstr "Choisir la plage de pages"
+
+msgid "Pick Single here. Later, in the Extract stage, you merge just the few pairs that really are spreads."
+msgstr "Choisissez Simple ici. Plus tard, à l’étape d’extraction, fusionnez uniquement les quelques paires qui forment réellement des doubles pages."
 
 msgid "Pick the languages you want to translate to. The book's original language stays as-is."
 msgstr "Choisissez les langues vers lesquelles vous souhaitez traduire. La langue originale du livre reste inchangée."
@@ -6928,6 +6943,9 @@ msgstr "Image précédente"
 
 msgid "Previous page"
 msgstr "Page précédente"
+
+msgid "Previous pages"
+msgstr "Pages précédentes"
 
 msgid "Previous slide"
 msgstr "Diapositive précédente"
@@ -7851,6 +7869,9 @@ msgstr "S'exécute en arrière-plan — vous pouvez continuer à éditer"
 msgid "Sample"
 msgstr "Exemple"
 
+msgid "Sample PDF"
+msgstr "PDF d’exemple"
+
 #~ msgid "Sample processed with the recommended reference settings"
 #~ msgstr "Exemple traité avec les paramètres recommandés pour les ouvrages de référence"
 
@@ -8470,6 +8491,9 @@ msgstr "Variantes de texte simplifiées en Lecture Facile."
 msgid "Single"
 msgstr "Simple"
 
+msgid "Single + merge later"
+msgstr "Simple + fusionner plus tard"
+
 msgid "Single Column"
 msgstr "Colonne unique"
 
@@ -8543,8 +8567,8 @@ msgstr "Mise à jour logicielle"
 msgid "Software update status"
 msgstr "Statut de la mise à jour logicielle"
 
-msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
-msgstr "Certains livres sont principalement composés de pages simples mais ont quelques illustrations qui s'étendent sur deux pages en vis-à-vis. Choisissez Simple ici — puis, après l'extraction, la vue d'extraction détecte ces fusions et vous permet de fusionner uniquement ces paires tandis que chaque autre page reste seule."
+#~ msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
+#~ msgstr "Certains livres sont principalement composés de pages simples mais ont quelques illustrations qui s'étendent sur deux pages en vis-à-vis. Choisissez Simple ici — puis, après l'extraction, la vue d'extraction détecte ces fusions et vous permet de fusionner uniquement ces paires tandis que chaque autre page reste seule."
 
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Certaines pages n'ont pas de couche de texte intégrée — le texte a été récupéré à partir de l'image de la page. Préférez un PDF basé sur du texte."
@@ -9205,6 +9229,9 @@ msgstr "La première de couverture du livre."
 msgid "The glossary scans the typed sections that Storyboard places into pages. Finish Storyboard before running this stage."
 msgstr "Le glossaire scanne les sections tapées que le Storyboard place dans les pages. Terminez le Storyboard avant d'exécuter cette étape."
 
+msgid "the gutter"
+msgstr "le pli central"
+
 msgid "The ideal choice for novels, focused on a clean and continuous reading experience."
 msgstr "Le choix idéal pour les romans, axé sur une expérience de lecture fluide et continue."
 
@@ -9841,6 +9868,9 @@ msgstr "Impossible de charger les modèles par défaut propres à chaque tâche.
 msgid "Unable to render PDF preview."
 msgstr "Impossible d'afficher l'aperçu du PDF."
 
+msgid "Unable to render the PDF preview."
+msgstr "Impossible d’afficher l’aperçu du PDF."
+
 msgid "Unable to reset global prompt."
 msgstr "Impossible de réinitialiser le prompt global."
 
@@ -10377,8 +10407,8 @@ msgstr "Lorsqu'activé, les images sélectionnées ci-dessous sont régénérée
 msgid "When enabled, word-level timestamps are calculated automatically during speech generation so the reader can highlight words as they're spoken. When disabled, you can still calculate timestamps manually from the speech view."
 msgstr "Lorsque cette option est activée, les horodatages au niveau du mot sont calculés automatiquement pendant la génération de la voix afin que le lecteur puisse surligner les mots à mesure qu'ils sont prononcés. Lorsqu'elle est désactivée, vous pouvez toujours calculer les horodatages manuellement depuis la vue voix."
 
-msgid "When your PDF isn't built around facing pages, single mode keeps every page separate: nothing is merged across a spread. That matches how most textbooks, novels, and reference books are read - one page at a time."
-msgstr "Lorsque votre PDF n'est pas conçu pour des pages en regard, le mode simple garde chaque page séparée : rien n'est fusionné sur une double page. Cela correspond à la lecture de la plupart des manuels, romans et ouvrages de référence — une page à la fois."
+#~ msgid "When your PDF isn't built around facing pages, single mode keeps every page separate: nothing is merged across a spread. That matches how most textbooks, novels, and reference books are read - one page at a time."
+#~ msgstr "Lorsque votre PDF n'est pas conçu pour des pages en regard, le mode simple garde chaque page séparée : rien n'est fusionné sur une double page. Cela correspond à la lecture de la plupart des manuels, romans et ouvrages de référence — une page à la fois."
 
 msgid "Where it all begins"
 msgstr "Où tout commence"
@@ -10528,6 +10558,9 @@ msgstr "Votre police a été appliquée à tout le livre."
 
 msgid "Your fonts"
 msgstr "Vos polices"
+
+msgid "Your pages {displayStart}–{displayEnd}"
+msgstr "Vos pages {displayStart}–{displayEnd}"
 
 msgid "Z → A"
 msgstr "Z → A"

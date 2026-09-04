@@ -3525,6 +3525,9 @@ msgstr "Çdo disa faqe"
 msgid "Every notable concept and named entity."
 msgstr "Çdo koncept i rëndësishëm dhe entitet i emërtuar."
 
+msgid "Every page becomes its own screen, one after another."
+msgstr "Çdo faqe bëhet një ekran më vete, njëra pas tjetrës."
+
 msgid "Every page has been merged back from its part — the whole book is in place."
 msgstr "Çdo faqe është bashkuar përsëri nga pjesa e saj — i gjithë libri është në vend."
 
@@ -3679,6 +3682,9 @@ msgstr "Nxjerr të dhëna teksti dhe imazhi nga çdo faqe e PDF-it."
 
 msgid "Extracts the correct answer key from the generated activity HTML."
 msgstr "Nxjerr çelësin e saktë të përgjigjeve nga HTML-i i gjeneruar i aktivitetit."
+
+msgid "Facing pages join into one wide screen, so a picture across the gutter stays whole."
+msgstr "Faqet përballë bashkohen në një ekran të gjerë, në mënyrë që një figurë që kalon përmes palosjes qendrore të mbetet e plotë."
 
 msgid "failed"
 msgstr "dështoi"
@@ -5186,8 +5192,8 @@ msgstr "Rishikim manual"
 msgid "Manually edited"
 msgstr "Redaktuar manualisht"
 
-msgid "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
-msgstr "Shumë libra të shtypur janë projektuar me faqet ballë për ballë në mendje - ilustrime që shtrihen në dy faqe, ose tekst që rrjedh nëpër një hapje. Modaliteti i hapjes bashkon çdo çift faqesh ballë për ballë që përmbajtja të mos ndahet. Kapaku qëndron i pavarur, pastaj faqet çiftohen: 2+3, 4+5, etj."
+#~ msgid "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
+#~ msgstr "Shumë libra të shtypur janë projektuar me faqet ballë për ballë në mendje - ilustrime që shtrihen në dy faqe, ose tekst që rrjedh nëpër një hapje. Modaliteti i hapjes bashkon çdo çift faqesh ballë për ballë që përmbajtja të mos ndahet. Kapaku qëndron i pavarur, pastaj faqet çiftohen: 2+3, 4+5, etj."
 
 msgid "Map"
 msgstr "Hartë"
@@ -5624,6 +5630,9 @@ msgstr "Seksioni tjetër që mungon"
 
 msgid "Next page"
 msgstr "Faqja tjetër"
+
+msgid "Next pages"
+msgstr "Faqet e ardhshme"
 
 msgid "Next slide"
 msgstr "Sllajdi tjetër"
@@ -6669,6 +6678,9 @@ msgstr "Informacioni PDF"
 msgid "PDF page {pageLabel} preview"
 msgstr "Pamja paraprake e faqes PDF {pageLabel}"
 
+msgid "PDF page {pageNumber} preview"
+msgstr "Pamja paraprake e faqes {pageNumber} të PDF-së"
+
 msgid "Pencil Sketch"
 msgstr "Skicë me Laps"
 
@@ -6746,6 +6758,9 @@ msgstr "Zgjidh një nga figurat e librit, prit një zonë nga një faqe ose ngar
 
 #~ msgid "Pick page range"
 #~ msgstr "Zgjidhni intervalin e faqeve"
+
+msgid "Pick Single here. Later, in the Extract stage, you merge just the few pairs that really are spreads."
+msgstr "Zgjidhni Të vetëm këtu. Më vonë, në fazën e Nxjerrjes, bashkoni vetëm ato pak çifte që janë vërtet faqe dyshe."
 
 msgid "Pick the languages you want to translate to. The book's original language stays as-is."
 msgstr "Zgjidhni gjuhët në të cilat dëshironi të përktheni. Gjuha origjinale e librit mbetet ashtu siç është."
@@ -6928,6 +6943,9 @@ msgstr "Imazhi i mëparshëm"
 
 msgid "Previous page"
 msgstr "Faqja e mëparshme"
+
+msgid "Previous pages"
+msgstr "Faqet e mëparshme"
 
 msgid "Previous slide"
 msgstr "Sllajdi i mëparshëm"
@@ -7851,6 +7869,9 @@ msgstr "Ekzekutohet në sfond — mund të vazhdoni editimin"
 msgid "Sample"
 msgstr "Shembull"
 
+msgid "Sample PDF"
+msgstr "PDF shembull"
+
 #~ msgid "Sample processed with the recommended reference settings"
 #~ msgstr "Shembull i përpunuar me cilësimet e rekomanduara për materiale reference"
 
@@ -8470,6 +8491,9 @@ msgstr "Variante të thjeshtuara të tekstit Easy Read."
 msgid "Single"
 msgstr "Të vetëm"
 
+msgid "Single + merge later"
+msgstr "Të vetëm + bashko më vonë"
+
 msgid "Single Column"
 msgstr "Kolonë e Vetme"
 
@@ -8543,8 +8567,8 @@ msgstr "Përditësim softueri"
 msgid "Software update status"
 msgstr "Gjendja e përditësimit të softuerit"
 
-msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
-msgstr "Disa libra janë kryesisht faqe të vetme, por kanë disa ilustrime që shtrihen në dy faqe përballë. Zgjidhni e Vetme këtu — pastaj, pas ekstraktimit, pamja e Ekstraktit zbulon ato faqe të përbashkëta dhe ju lejon të bashkoni vetëm ato çifte ndërsa çdo faqe tjetër mbetet më vete."
+#~ msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
+#~ msgstr "Disa libra janë kryesisht faqe të vetme, por kanë disa ilustrime që shtrihen në dy faqe përballë. Zgjidhni e Vetme këtu — pastaj, pas ekstraktimit, pamja e Ekstraktit zbulon ato faqe të përbashkëta dhe ju lejon të bashkoni vetëm ato çifte ndërsa çdo faqe tjetër mbetet më vete."
 
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes. Preferoni një PDF të bazuar në tekst."
@@ -9205,6 +9229,9 @@ msgstr "Kapaku i përparmë i librit."
 msgid "The glossary scans the typed sections that Storyboard places into pages. Finish Storyboard before running this stage."
 msgstr "Fjalori skanon seksionet e shtypura që Storyboard vendos në faqe. Përfundo Storyboard para se të ekzekutosh këtë fazë."
 
+msgid "the gutter"
+msgstr "palosja qendrore"
+
 msgid "The ideal choice for novels, focused on a clean and continuous reading experience."
 msgstr "Zgjedhja ideale për romane, e fokusuar në një përvojë leximi të pastër dhe të vazhdueshme."
 
@@ -9841,6 +9868,9 @@ msgstr "Parazgjedhjet e modeleve sipas detyrës nuk mund të ngarkoheshin."
 msgid "Unable to render PDF preview."
 msgstr "Pamja paraprake e PDF nuk mund të shfaqet."
 
+msgid "Unable to render the PDF preview."
+msgstr "Pamja paraprake e PDF-së nuk mund të gjenerohej."
+
 msgid "Unable to reset global prompt."
 msgstr "Nuk mund të resetohet prompti global."
 
@@ -10377,8 +10407,8 @@ msgstr "Kur aktivizohet, imazhet e zgjedhura më poshtë rigjenerohen për çdo 
 msgid "When enabled, word-level timestamps are calculated automatically during speech generation so the reader can highlight words as they're spoken. When disabled, you can still calculate timestamps manually from the speech view."
 msgstr "Kur aktivizohet, afatet kohore në nivel fjale llogariten automatikisht gjatë gjenerimit të të folurit në mënyrë që lexuesi të mund të theksojë fjalët ndërkohë që thuhen. Kur çaktivizohet, mund të llogarisësh afatet kohore manualisht nga pamja e të folurit."
 
-msgid "When your PDF isn't built around facing pages, single mode keeps every page separate: nothing is merged across a spread. That matches how most textbooks, novels, and reference books are read - one page at a time."
-msgstr "Kur PDF-i yt nuk është ndërtuar rreth faqeve ballë për ballë, modaliteti single mban çdo faqe të ndarë: asgjë nuk bashkohet nëpër një spread. Kjo përkon me mënyrën se si lexohen shumica e librave shkollorë, romaneve dhe librave referuese — një faqe në një kohë."
+#~ msgid "When your PDF isn't built around facing pages, single mode keeps every page separate: nothing is merged across a spread. That matches how most textbooks, novels, and reference books are read - one page at a time."
+#~ msgstr "Kur PDF-i yt nuk është ndërtuar rreth faqeve ballë për ballë, modaliteti single mban çdo faqe të ndarë: asgjë nuk bashkohet nëpër një spread. Kjo përkon me mënyrën se si lexohen shumica e librave shkollorë, romaneve dhe librave referuese — një faqe në një kohë."
 
 msgid "Where it all begins"
 msgstr "Ku fillon gjithçka"
@@ -10528,6 +10558,9 @@ msgstr "Fonti juaj u zbatua në të gjithë librin."
 
 msgid "Your fonts"
 msgstr "Fontet e tua"
+
+msgid "Your pages {displayStart}–{displayEnd}"
+msgstr "Faqet tuaja {displayStart}–{displayEnd}"
 
 msgid "Z → A"
 msgstr "Z → A"

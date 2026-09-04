@@ -3523,6 +3523,9 @@ msgstr "A cada poucas páginas"
 msgid "Every notable concept and named entity."
 msgstr "Todo conceito notável e entidade nomeada."
 
+msgid "Every page becomes its own screen, one after another."
+msgstr "Cada página se torna sua própria tela, uma após a outra."
+
 msgid "Every page has been merged back from its part — the whole book is in place."
 msgstr "Todas as páginas foram mescladas de volta a partir de sua parte — o livro inteiro está no lugar."
 
@@ -3677,6 +3680,9 @@ msgstr "Extrai texto e dados de imagem de cada página do PDF."
 
 msgid "Extracts the correct answer key from the generated activity HTML."
 msgstr "Extrai a chave de resposta correta do HTML da atividade gerada."
+
+msgid "Facing pages join into one wide screen, so a picture across the gutter stays whole."
+msgstr "As páginas opostas são unidas em uma única tela ampla, para que uma imagem que atravesse a medianiz permaneça inteira."
 
 msgid "failed"
 msgstr "falhou"
@@ -5184,8 +5190,8 @@ msgstr "Revisão manual"
 msgid "Manually edited"
 msgstr "Editado manualmente"
 
-msgid "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
-msgstr "Muitos livros impressos são pensados em duplas de páginas — ilustrações que atravessam a abertura ou texto que segue de uma página à outra. No modo de duplas, cada par de páginas opostas é tratado junto, para o conteúdo não ser cortado no meio. A capa fica sozinha; em seguida, as páginas são emparelhadas: 2+3, 4+5 etc."
+#~ msgid "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
+#~ msgstr "Muitos livros impressos são pensados em duplas de páginas — ilustrações que atravessam a abertura ou texto que segue de uma página à outra. No modo de duplas, cada par de páginas opostas é tratado junto, para o conteúdo não ser cortado no meio. A capa fica sozinha; em seguida, as páginas são emparelhadas: 2+3, 4+5 etc."
 
 msgid "Map"
 msgstr "Mapa"
@@ -5622,6 +5628,9 @@ msgstr "Próxima seção faltante"
 
 msgid "Next page"
 msgstr "Próxima página"
+
+msgid "Next pages"
+msgstr "Próximas páginas"
 
 msgid "Next slide"
 msgstr "Próximo slide"
@@ -6667,6 +6676,9 @@ msgstr "Informações do PDF"
 msgid "PDF page {pageLabel} preview"
 msgstr "Pré-visualização da página PDF {pageLabel}"
 
+msgid "PDF page {pageNumber} preview"
+msgstr "Prévia da página {pageNumber} do PDF"
+
 msgid "Pencil Sketch"
 msgstr "Desenho a lápis"
 
@@ -6744,6 +6756,9 @@ msgstr "Escolha uma das imagens do livro, recorte uma região de uma página ou 
 
 #~ msgid "Pick page range"
 #~ msgstr "Escolher intervalo de páginas"
+
+msgid "Pick Single here. Later, in the Extract stage, you merge just the few pairs that really are spreads."
+msgstr "Escolha Individual aqui. Depois, na etapa de Extração, una apenas os poucos pares que realmente formam páginas duplas."
 
 msgid "Pick the languages you want to translate to. The book's original language stays as-is."
 msgstr "Escolha os idiomas para os quais deseja traduzir. O idioma original do livro permanece como está."
@@ -6926,6 +6941,9 @@ msgstr "Imagem anterior"
 
 msgid "Previous page"
 msgstr "Página anterior"
+
+msgid "Previous pages"
+msgstr "Páginas anteriores"
 
 msgid "Previous slide"
 msgstr "Slide anterior"
@@ -7849,6 +7867,9 @@ msgstr "Executa em segundo plano — você pode continuar editando"
 msgid "Sample"
 msgstr "Amostra"
 
+msgid "Sample PDF"
+msgstr "PDF de exemplo"
+
 #~ msgid "Sample processed with the recommended reference settings"
 #~ msgstr "Amostra processada com as configurações recomendadas para referências"
 
@@ -8468,6 +8489,9 @@ msgstr "Variantes de texto simplificadas de Leitura Fácil."
 msgid "Single"
 msgstr "Individual"
 
+msgid "Single + merge later"
+msgstr "Individual + unir depois"
+
 msgid "Single Column"
 msgstr "Coluna Única"
 
@@ -8541,8 +8565,8 @@ msgstr "Atualização de software"
 msgid "Software update status"
 msgstr "Status da atualização de software"
 
-msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
-msgstr "Alguns livros são principalmente de páginas únicas, mas têm algumas ilustrações que se estendem por duas páginas opostas. Escolha Único aqui — então, após a extração, a visualização de Extração detecta esses spreads e permite que você mescle apenas esses pares enquanto todas as outras páginas permanecem sozinhas."
+#~ msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
+#~ msgstr "Alguns livros são principalmente de páginas únicas, mas têm algumas ilustrações que se estendem por duas páginas opostas. Escolha Único aqui — então, após a extração, a visualização de Extração detecta esses spreads e permite que você mescle apenas esses pares enquanto todas as outras páginas permanecem sozinhas."
 
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Algumas páginas não têm camada de texto incorporada — o texto foi recuperado a partir da imagem da página. Prefira um PDF baseado em texto."
@@ -9203,6 +9227,9 @@ msgstr "A capa do livro."
 msgid "The glossary scans the typed sections that Storyboard places into pages. Finish Storyboard before running this stage."
 msgstr "O glossário escaneia as seções classificadas que o Storyboard coloca nas páginas. Termine o Storyboard antes de executar esta etapa."
 
+msgid "the gutter"
+msgstr "a medianiz"
+
 msgid "The ideal choice for novels, focused on a clean and continuous reading experience."
 msgstr "A escolha ideal para romances, focada em uma experiência de leitura limpa e contínua."
 
@@ -9839,6 +9866,9 @@ msgstr "Não foi possível carregar os padrões de modelos específicos por tare
 msgid "Unable to render PDF preview."
 msgstr "Não foi possível renderizar a pré-visualização do PDF."
 
+msgid "Unable to render the PDF preview."
+msgstr "Não foi possível renderizar a prévia do PDF."
+
 msgid "Unable to reset global prompt."
 msgstr "Não foi possível resetar o prompt global."
 
@@ -10375,8 +10405,8 @@ msgstr "Quando ativado, as imagens selecionadas abaixo são regeneradas para cad
 msgid "When enabled, word-level timestamps are calculated automatically during speech generation so the reader can highlight words as they're spoken. When disabled, you can still calculate timestamps manually from the speech view."
 msgstr "Quando ativado, as marcações de tempo por palavra são calculadas automaticamente durante a geração de fala, para que o leitor destaque as palavras conforme são faladas. Quando desativado, ainda é possível calcular as marcações manualmente na visualização de fala."
 
-msgid "When your PDF isn't built around facing pages, single mode keeps every page separate: nothing is merged across a spread. That matches how most textbooks, novels, and reference books are read - one page at a time."
-msgstr "Quando o PDF não foi feito em torno de páginas opostas, o modo individual mantém cada página separada: nada é unido como numa dupla. É o jeito usual de ler livros didáticos, romances e obras de referência — uma página por vez."
+#~ msgid "When your PDF isn't built around facing pages, single mode keeps every page separate: nothing is merged across a spread. That matches how most textbooks, novels, and reference books are read - one page at a time."
+#~ msgstr "Quando o PDF não foi feito em torno de páginas opostas, o modo individual mantém cada página separada: nada é unido como numa dupla. É o jeito usual de ler livros didáticos, romances e obras de referência — uma página por vez."
 
 msgid "Where it all begins"
 msgstr "Onde tudo começa"
@@ -10526,6 +10556,9 @@ msgstr "Sua fonte foi aplicada ao livro todo."
 
 msgid "Your fonts"
 msgstr "Suas fontes"
+
+msgid "Your pages {displayStart}–{displayEnd}"
+msgstr "Suas páginas {displayStart}–{displayEnd}"
 
 msgid "Z → A"
 msgstr "Z → A"

@@ -3525,6 +3525,9 @@ msgstr "Every few pages"
 msgid "Every notable concept and named entity."
 msgstr "Every notable concept and named entity."
 
+msgid "Every page becomes its own screen, one after another."
+msgstr "Every page becomes its own screen, one after another."
+
 msgid "Every page has been merged back from its part — the whole book is in place."
 msgstr "Every page has been merged back from its part — the whole book is in place."
 
@@ -3679,6 +3682,9 @@ msgstr "Extracts text and image data from each page of the PDF."
 
 msgid "Extracts the correct answer key from the generated activity HTML."
 msgstr "Extracts the correct answer key from the generated activity HTML."
+
+msgid "Facing pages join into one wide screen, so a picture across the gutter stays whole."
+msgstr "Facing pages join into one wide screen, so a picture across the gutter stays whole."
 
 msgid "failed"
 msgstr "failed"
@@ -5186,8 +5192,8 @@ msgstr "Manual review"
 msgid "Manually edited"
 msgstr "Manually edited"
 
-msgid "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
-msgstr "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
+#~ msgid "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
+#~ msgstr "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
 
 msgid "Map"
 msgstr "Map"
@@ -5624,6 +5630,9 @@ msgstr "Next missing section"
 
 msgid "Next page"
 msgstr "Next page"
+
+msgid "Next pages"
+msgstr "Next pages"
 
 msgid "Next slide"
 msgstr "Next slide"
@@ -6669,6 +6678,9 @@ msgstr "PDF info"
 msgid "PDF page {pageLabel} preview"
 msgstr "PDF page {pageLabel} preview"
 
+msgid "PDF page {pageNumber} preview"
+msgstr "PDF page {pageNumber} preview"
+
 msgid "Pencil Sketch"
 msgstr "Pencil Sketch"
 
@@ -6746,6 +6758,9 @@ msgstr "Pick one of the book's images, crop a region from a page, or upload your
 
 #~ msgid "Pick page range"
 #~ msgstr "Pick page range"
+
+msgid "Pick Single here. Later, in the Extract stage, you merge just the few pairs that really are spreads."
+msgstr "Pick Single here. Later, in the Extract stage, you merge just the few pairs that really are spreads."
 
 msgid "Pick the languages you want to translate to. The book's original language stays as-is."
 msgstr "Pick the languages you want to translate to. The book's original language stays as-is."
@@ -6928,6 +6943,9 @@ msgstr "Previous image"
 
 msgid "Previous page"
 msgstr "Previous page"
+
+msgid "Previous pages"
+msgstr "Previous pages"
 
 msgid "Previous slide"
 msgstr "Previous slide"
@@ -7851,6 +7869,9 @@ msgstr "Runs in background — you can keep editing"
 msgid "Sample"
 msgstr "Sample"
 
+msgid "Sample PDF"
+msgstr "Sample PDF"
+
 #~ msgid "Sample processed with the recommended reference settings"
 #~ msgstr "Sample processed with the recommended reference settings"
 
@@ -8470,6 +8491,9 @@ msgstr "Simplified Easy Read text variants."
 msgid "Single"
 msgstr "Single"
 
+msgid "Single + merge later"
+msgstr "Single + merge later"
+
 msgid "Single Column"
 msgstr "Single Column"
 
@@ -8543,8 +8567,8 @@ msgstr "Software update"
 msgid "Software update status"
 msgstr "Software update status"
 
-msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
-msgstr "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
+#~ msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
+#~ msgstr "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
 
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
@@ -9205,6 +9229,9 @@ msgstr "The front cover of the book."
 msgid "The glossary scans the typed sections that Storyboard places into pages. Finish Storyboard before running this stage."
 msgstr "The glossary scans the typed sections that Storyboard places into pages. Finish Storyboard before running this stage."
 
+msgid "the gutter"
+msgstr "the gutter"
+
 msgid "The ideal choice for novels, focused on a clean and continuous reading experience."
 msgstr "The ideal choice for novels, focused on a clean and continuous reading experience."
 
@@ -9841,6 +9868,9 @@ msgstr "Unable to load the task-specific model defaults."
 msgid "Unable to render PDF preview."
 msgstr "Unable to render PDF preview."
 
+msgid "Unable to render the PDF preview."
+msgstr "Unable to render the PDF preview."
+
 msgid "Unable to reset global prompt."
 msgstr "Unable to reset global prompt."
 
@@ -10377,8 +10407,8 @@ msgstr "When enabled, the selected images below are regenerated for every output
 msgid "When enabled, word-level timestamps are calculated automatically during speech generation so the reader can highlight words as they're spoken. When disabled, you can still calculate timestamps manually from the speech view."
 msgstr "When enabled, word-level timestamps are calculated automatically during speech generation so the reader can highlight words as they're spoken. When disabled, you can still calculate timestamps manually from the speech view."
 
-msgid "When your PDF isn't built around facing pages, single mode keeps every page separate: nothing is merged across a spread. That matches how most textbooks, novels, and reference books are read - one page at a time."
-msgstr "When your PDF isn't built around facing pages, single mode keeps every page separate: nothing is merged across a spread. That matches how most textbooks, novels, and reference books are read - one page at a time."
+#~ msgid "When your PDF isn't built around facing pages, single mode keeps every page separate: nothing is merged across a spread. That matches how most textbooks, novels, and reference books are read - one page at a time."
+#~ msgstr "When your PDF isn't built around facing pages, single mode keeps every page separate: nothing is merged across a spread. That matches how most textbooks, novels, and reference books are read - one page at a time."
 
 msgid "Where it all begins"
 msgstr "Where it all begins"
@@ -10528,6 +10558,9 @@ msgstr "Your font has been applied to the whole book."
 
 msgid "Your fonts"
 msgstr "Your fonts"
+
+msgid "Your pages {displayStart}–{displayEnd}"
+msgstr "Your pages {displayStart}–{displayEnd}"
 
 msgid "Z → A"
 msgstr "Z → A"

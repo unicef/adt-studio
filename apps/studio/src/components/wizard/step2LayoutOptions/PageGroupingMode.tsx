@@ -1,14 +1,19 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useStore } from "@tanstack/react-form"
 import { Link2 } from "lucide-react"
 import { msg } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Label } from "@/components/ui/label"
+import { Popover } from "@/components/ui/popover"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useWizardForm } from "@/components/wizard/wizardForm"
 import { usePresetRecommendations } from "@/components/wizard/usePresetRecommendations"
 import { PRESETS, getPresetAccent } from "@/components/wizard/constants"
-import { InfoCarousel, type CarouselSlide } from "@/components/ui/info-carousel"
+import {
+  PageGroupingHelpPanel,
+  PageGroupingHelpTrigger,
+  type CarouselSlide,
+} from "./PageGroupingPopover"
 
 const GROUPING_OPTION_SPREAD_LABEL = msg`Spread`
 const GROUPING_OPTION_SINGLE_LABEL = msg`Single`
@@ -16,13 +21,13 @@ const GROUPING_OPTION_SINGLE_LABEL = msg`Single`
 const INFO_CAROUSEL_LABEL = msg`About page grouping`
 
 const CAROUSEL_SPREAD_TITLE = msg`Spread Mode`
-const CAROUSEL_SPREAD_DESCRIPTION = msg`Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc.`
+const CAROUSEL_SPREAD_DESCRIPTION = msg`Facing pages join into one wide screen, so a picture across the gutter stays whole.`
 
 const CAROUSEL_SINGLE_TITLE = msg`Single Mode`
-const CAROUSEL_SINGLE_DESCRIPTION = msg`When your PDF isn't built around facing pages, single mode keeps every page separate: nothing is merged across a spread. That matches how most textbooks, novels, and reference books are read - one page at a time.`
+const CAROUSEL_SINGLE_DESCRIPTION = msg`Every page becomes its own screen, one after another.`
 
 const CAROUSEL_MIXED_TITLE = msg`A few spreads in a single book`
-const CAROUSEL_MIXED_DESCRIPTION = msg`Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own.`
+const CAROUSEL_MIXED_DESCRIPTION = msg`Pick Single here. Later, in the Extract stage, you merge just the few pairs that really are spreads.`
 
 function SpreadDiagram() {
   return (
@@ -110,6 +115,8 @@ function MixedDiagram() {
 
 export function PageGroupingMode() {
   const form = useWizardForm()
+  const [helpOpen, setHelpOpen] = useState(false)
+  const file = useStore(form.store, (s) => s.values.file)
   const pageGrouping = useStore(form.store, (s) => s.values.pageGrouping)
   const selectedPresetId = useStore(form.store, (s) => s.values.selectedPreset)
   const { i18n } = useLingui()
@@ -153,30 +160,40 @@ export function PageGroupingMode() {
   )
 
   return (
-    <div id="wizard-page-grouping" className="flex w-full flex-col gap-3">
-      <div className="flex items-center gap-1">
-        <Label className="text-sm font-medium text-foreground">
-          <Trans>Page Grouping Mode</Trans>
-        </Label>
-        <span className="text-sm font-medium text-destructive" aria-hidden>
-          *
-        </span>
-        <InfoCarousel label={i18n._(INFO_CAROUSEL_LABEL)} slides={slides} />
+    <Popover open={helpOpen} onOpenChange={setHelpOpen}>
+      <div id="wizard-page-grouping" className="flex w-full flex-col gap-3">
+        <div className="flex items-center gap-1">
+          <Label className="text-sm font-medium text-foreground">
+            <Trans>Page Grouping Mode</Trans>
+          </Label>
+          <span className="text-sm font-medium text-destructive" aria-hidden>
+            *
+          </span>
+          <PageGroupingHelpTrigger label={i18n._(INFO_CAROUSEL_LABEL)} />
+        </div>
+
+        <SegmentedControl
+          options={groupingOptions}
+          value={pageGrouping}
+          onValueChange={(v) => form.setFieldValue("pageGrouping", v)}
+          color={accent.bg}
+        />
+        {recommendedOption && preset?.id === "storybook" && (
+          <p className="text-xs font-normal leading-relaxed text-[#737373]">
+            <Trans>
+              For {i18n._(preset.title)}, we recommend {recommendedOption.label}.
+            </Trans>
+          </p>
+        )}
       </div>
-      <SegmentedControl
-        options={groupingOptions}
-        value={pageGrouping}
-        onValueChange={(v) => form.setFieldValue("pageGrouping", v)}
-        color={accent.bg}
+
+      <PageGroupingHelpPanel
+        label={i18n._(INFO_CAROUSEL_LABEL)}
+        slides={slides}
+        file={file}
+        open={helpOpen}
       />
-      {recommendedOption && preset?.id === "storybook" && (
-        <p className="text-xs text-[#737373]">
-          <Trans>
-            For {i18n._(preset.title)}, we recommend {recommendedOption.label}.
-          </Trans>
-        </p>
-      )}
-    </div>
+    </Popover>
   )
   
 }
