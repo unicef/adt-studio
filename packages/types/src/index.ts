@@ -242,6 +242,7 @@ export {
 } from "./book-outline.js"
 
 export { ExtractionWarning } from "./extraction-warning.js"
+export { PackagingWarning } from "./packaging-warning.js"
 
 export {
   FIXED_LAYOUT_MAX_SCALE,

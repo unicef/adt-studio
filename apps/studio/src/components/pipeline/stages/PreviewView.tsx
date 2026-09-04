@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import type { AccessibilityFinding } from "@adt/types"
 import { Trans } from "@lingui/react/macro"
+import { useLingui } from "@lingui/react"
+import { toast } from "sonner"
+import {
+  readPackagingWarnings,
+  describePackagingWarnings,
+} from "@/lib/packaging-warnings"
 import { StageBlockedState } from "@/components/pipeline/components/StageBlockedState"
 import { LoadingState } from "@/components/pipeline/components/LoadingState"
 import { useAllPagesPruned } from "@/hooks/use-all-pages-pruned"
@@ -34,6 +40,7 @@ const HIGHLIGHT_SEVERITY_ATTR = "data-adt-a11y-hover-severity"
 const HIGHLIGHT_PAGE_ATTR = "data-adt-a11y-hover-page"
 
 export function PreviewView({ bookLabel }: { bookLabel: string }) {
+  const { i18n } = useLingui()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as { previewHref?: string }
@@ -157,6 +164,14 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
       ]).then(() => {
         setVersion(readPackageVersion(task.result) ?? createPreviewVersion())
         setReady(true)
+        // Packaging skips rendered sections it cannot resolve a sectionId for.
+        // The bundle is short but the task still succeeds, so without this the
+        // omission is invisible.
+        const omitted = describePackagingWarnings(
+          readPackagingWarnings(task.result),
+          i18n,
+        )
+        if (omitted) toast.warning(omitted)
       })
     } else if (task.status === "failed") {
       setPendingTaskId(null)
@@ -166,7 +181,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
         setError(task.error ?? "Packaging failed")
       }
     }
-  }, [pendingTaskId, getTask, bookLabel, queryClient, ready])
+  }, [pendingTaskId, getTask, bookLabel, queryClient, ready, i18n])
 
   useEffect(() => {
     if (!pendingVersion || ready) return

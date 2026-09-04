@@ -8966,6 +8966,10 @@ msgstr "Estado de la actualización de software"
 msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
 msgstr "Algunos libros son principalmente de páginas individuales pero tienen algunas ilustraciones que abarcan dos páginas enfrentadas. Elige Individual aquí — luego, después de la extracción, la vista de Extracción detecta esas dobles páginas y te permite fusionar solo esos pares mientras que cada otra página permanece por su cuenta."
 
+#. placeholder {0}: warnings.length
+msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no sectioning row, so they could not be included. Re-run the storyboard render for those pages, then package again."
+msgstr "Parte del contenido quedó fuera del paquete: {0} sección(es) renderizada(s) en {pageList} no tienen fila de seccionamiento, por lo que no se pudieron incluir. Vuelve a ejecutar la renderización del storyboard para esas páginas y empaqueta de nuevo."
+
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Algunas páginas no tienen capa de texto incrustado — el texto se recuperó a partir de la imagen de la página. Usa preferentemente un PDF basado en texto."
 
