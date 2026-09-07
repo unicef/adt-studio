@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest"
-import { formatSectionId, parseSectionId, MAX_SECTION_SEQ } from "../page-sectioning.js"
+import {
+  formatSectionId,
+  parseSectionId,
+  parseAnySectionId,
+  MAX_SECTION_SEQ,
+} from "../page-sectioning.js"
 
 describe("formatSectionId", () => {
   it("zero-pads the sequence to three digits", () => {
@@ -33,5 +38,38 @@ describe("parseSectionId", () => {
     expect(parseSectionId("toc_001")).toBeNull()
     expect(parseSectionId("pg003")).toBeNull()
     expect(parseSectionId("pg003_sec")).toBeNull()
+  })
+})
+
+describe("parseAnySectionId", () => {
+  it("parses canonical ids and reports them as such", () => {
+    expect(parseAnySectionId("pg003_sec007")).toEqual({ pageId: "pg003", seq: 7, legacy: false })
+  })
+
+  it("parses the legacy `_sN` shape the agent tools used to mint", () => {
+    expect(parseAnySectionId("pg003_s2")).toEqual({ pageId: "pg003", seq: 2, legacy: true })
+  })
+
+  it("splits at the last separator, so page ids containing `_s` survive", () => {
+    expect(parseAnySectionId("bk_stuff_p1_sec002")).toEqual({
+      pageId: "bk_stuff_p1",
+      seq: 2,
+      legacy: false,
+    })
+    expect(parseAnySectionId("bk_stuff_p1_s2")).toEqual({
+      pageId: "bk_stuff_p1",
+      seq: 2,
+      legacy: true,
+    })
+  })
+
+  it("still rejects ids of other kinds", () => {
+    // Widening the shape must not start accepting quiz or glossary ids.
+    expect(parseAnySectionId("qz001")).toBeNull()
+    expect(parseAnySectionId("glp001")).toBeNull()
+    expect(parseAnySectionId("gl001")).toBeNull()
+    expect(parseAnySectionId("pg003")).toBeNull()
+    expect(parseAnySectionId("pg003_sec")).toBeNull()
+    expect(parseAnySectionId("pg003_slide3")).toBeNull()
   })
 })

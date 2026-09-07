@@ -225,6 +225,30 @@ export function parseSectionId(id: string): { pageId: string; seq: number } | nu
   return { pageId: match[1], seq: Number(match[2]) }
 }
 
+/**
+ * As `parseSectionId`, but also accepts the legacy `${pageId}_s${N}` shape that
+ * `packages/agents` minted before it allocated through `createSectionIdFactory`.
+ *
+ * Use this on *read* paths that need to find the page an already-stored id
+ * belongs to — a book upgraded from a version that shipped those ids still has
+ * them, and rejecting one strands its section with no resolvable URL. Writers
+ * keep using `formatSectionId`, and `parseSectionId` stays the canonical-only
+ * guard for anything that must not accept a legacy id.
+ *
+ * Widening the parse is not the same as guessing: the caller still matches the
+ * id exactly against stored ids. `legacy` is reported so a caller that cares
+ * (the high-water mark) can treat the sequence number as spent-but-positional.
+ */
+export function parseAnySectionId(
+  id: string
+): { pageId: string; seq: number; legacy: boolean } | null {
+  // Greedy `(.+)` so a pageId that itself contains `_s` splits at the *last*
+  // separator: `bk_stuff_p1_sec002` is page `bk_stuff_p1`, not `bk`.
+  const match = /^(.+)_s(ec)?(\d+)$/.exec(id)
+  if (!match) return null
+  return { pageId: match[1], seq: Number(match[3]), legacy: match[2] === undefined }
+}
+
 // ── LLM-facing schemas ──────────────────────────────────────────
 // Recursive via z.lazy() so the JSON schema produced for OpenAI
 // structured outputs has proper `items` on `children` (OpenAI strict

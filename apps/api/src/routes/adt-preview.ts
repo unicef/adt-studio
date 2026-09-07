@@ -4,7 +4,13 @@ import { createHash } from "node:crypto"
 import { pathToFileURL } from "node:url"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { isHeadingRole, isTtsExcluded, parseBookLabel, parseSectionId, resolveEntryVoiceSlot } from "@adt/types"
+import {
+  isHeadingRole,
+  isTtsExcluded,
+  parseBookLabel,
+  parseAnySectionId,
+  resolveEntryVoiceSlot,
+} from "@adt/types"
 import {
   WebRenderingOutput,
   type SpeechConfig,
@@ -1158,9 +1164,12 @@ export function createAdtPreviewRoutes(
         return c.body(html)
       }
 
-      // Content page — require sectionId format (e.g. pg001_sec001).
-      // This prevents ambiguous fallback to unrelated sections.
-      const parsedSectionId = parseSectionId(pageId)
+      // Content page — the id must have a section shape (e.g. pg001_sec001) so
+      // this cannot fall back to an unrelated section. The legacy `_sN` shape is
+      // accepted too: books upgraded from a version whose agent tools minted
+      // those still store them, and the section is matched exactly below either
+      // way, so widening the parse resolves them without guessing anything.
+      const parsedSectionId = parseAnySectionId(pageId)
       if (!parsedSectionId) {
         throw new HTTPException(404, { message: `Section not found: ${pageId}` })
       }

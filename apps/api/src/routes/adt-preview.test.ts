@@ -191,6 +191,48 @@ describe("ADT preview routes", () => {
     expect(res.status).toBe(404)
   })
 
+  it("resolves a stored legacy `_sN` section id", async () => {
+    // Books upgraded from a version whose agent tools minted `_sN` ids still
+    // store them, and the UI builds the preview URL from the stored id. The
+    // section is still matched exactly — only the owner-page parse is widened.
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("page-sectioning", `${label}_p1`, {
+        reasoning: "ok",
+        sections: [
+          {
+            sectionId: `${label}_p1_sec001`,
+            sectionType: "content",
+            backgroundColor: "#fff",
+            textColor: "#000",
+            pageNumber: 1,
+            isPruned: false,
+            nodes: [],
+          },
+          {
+            sectionId: `${label}_p1_s2`,
+            sectionType: "content",
+            backgroundColor: "#fff",
+            textColor: "#000",
+            pageNumber: 1,
+            isPruned: false,
+            nodes: [],
+          },
+        ],
+      })
+    } finally {
+      storage.close()
+    }
+
+    const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
+    const res = await app.request(`/books/${label}/adt-preview/${label}_p1_s2.html`)
+
+    expect(res.status).toBe(200)
+    const html = await res.text()
+    expect(html).toContain("Second section body")
+    expect(html).not.toContain("First section body")
+  })
+
 
   it("applies shared section-role cleanup and image alt fallbacks in preview output", async () => {
     const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))

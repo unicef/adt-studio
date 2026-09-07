@@ -5,9 +5,15 @@ import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
+import type { Storage } from "@adt/storage"
 import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
-import { loadBookConfig } from "@adt/pipeline"
+import {
+  loadBookConfig,
+  collectSpentSectionIds,
+  unassignSignLanguageVideos,
+  PAGE_SECTIONING_NODE,
+} from "@adt/pipeline"
 import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 import type { PageErrorDecisions } from "../services/page-error-decisions.js"
@@ -22,23 +28,73 @@ const StageRunBody = z
   })
   .strict()
 
+/**
+ * Does this rerun delete the `page-sectioning` history that section ids are
+ * allocated from?
+ *
+ * Only that node. `fixed-layout-sectioning` is cleared by a storyboard rerun
+ * too, but its id is not allocated — `sectionFixedLayoutPage` derives the page's
+ * single section id from the pageId alone, so regenerating it produces the same
+ * id and nothing pinned to it was ever at risk. Retiring those ids would detach
+ * every pinned video on each storyboard rerun of a fixed-layout book, and on a
+ * reflowable book carrying a stale fixed-layout row it would retire a `_sec001`
+ * the live `page-sectioning` still owns.
+ */
+function clearsSectionIdHistory(fromStage: StageName, toStage: StageName): boolean {
+  // `clearExtractedData` drops every node except the font ones, sectioning included.
+  if (fromStage === "extract") return true
+  const cleared: string[] = getStageRerunClearNodes(fromStage, toStage)
+  return cleared.includes(PAGE_SECTIONING_NODE)
+}
+
+/**
+ * Retire the sectionIds a rerun is about to invalidate, and report how many
+ * sign-language videos that unassigned.
+ *
+ * Clearing a stage deletes *every* version of the nodes it clears. When
+ * `page-sectioning` is among them the section-id high-water mark goes with it,
+ * so the re-section re-mints densely from `_sec001` and hands out ids that named
+ * different content a moment ago.
+ *
+ * That is only harmful while something still points at the old ids, and one
+ * thing does: `sign_language_videos.section_id` is the sole sectionId reference
+ * outside `node_data`, so the clear does not reach it and a pinned video would
+ * silently reappear on whatever unrelated section inherits its id. Unassigning
+ * it here is what makes the dense re-mint safe — every other reference
+ * (`toc-generation`, `text-catalog` and the audio derived from it,
+ * `editable-activity`) is deleted by the same clear, and audio filenames that
+ * repeat are rewritten from the new text because TTS is cached on a content
+ * hash, never served stale.
+ *
+ * Videos are unassigned rather than deleted, as in the structural edit routes:
+ * the upload is the user's. Same shape as the `spreads/apply` reconcile, which
+ * retires ids before `deletePage` drops the history for the identical reason.
+ *
+ * Must run *before* the clear: it reads the sectioning history the ids come
+ * from, and the `pages` table itself, both of which the extract branch deletes.
+ */
+export function retireVideosForClearedSectioning(
+  storage: Storage,
+  fromStage: StageName,
+  toStage: StageName
+): number {
+  if (!clearsSectionIdHistory(fromStage, toStage)) return 0
+  // Scanning every stored sectioning version of every page is not free, and
+  // most books have nothing pinned at all.
+  if (!storage.getSignLanguageVideos().some((video) => video.sectionId !== null)) return 0
+
+  const retired = new Set<string>()
+  for (const page of storage.getPages()) {
+    for (const id of collectSpentSectionIds(storage, page.pageId, [PAGE_SECTIONING_NODE])) {
+      retired.add(id)
+    }
+  }
+  // Page-scoped by construction, so glossary assignments (`gl001`…) are untouched.
+  return unassignSignLanguageVideos(storage, retired)
+}
+
 /** Build a beforeRun callback that clears downstream data for a stage.
- *  The returned function is idempotent — only runs once even if called multiple times.
- *
- *  KNOWN GAP (tracked separately): both branches below delete *every* version of
- *  the nodes they clear, `page-sectioning` included. That resets the history the
- *  section-id high-water mark is read from, so `finalizePageSectioning` re-mints
- *  densely from `_sec001` and a re-section can hand a retired id to unrelated
- *  content — the reuse that `createSectionIdFactory` exists to prevent.
- *
- *  `toc-generation` and `text-catalog` reference sectionIds but live in
- *  `node_data` and are wiped by the same clear, so they self-heal. The one
- *  reference that survives is `sign_language_videos.section_id`, a separate
- *  table nothing here reconciles — so a video stays pinned to an id the new
- *  sectioning has reissued. The fix is to unassign videos for the pages being
- *  re-sectioned, the way `retireSectionIds` does in `pages.ts` (see the page
- *  reconcile route, which already handles this identical hazard around
- *  `deletePage`). */
+ *  The returned function is idempotent — only runs once even if called multiple times. */
 function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string): () => void {
   let ran = false
   return () => {
@@ -46,6 +102,13 @@ function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, 
     ran = true
     const storage = createBookStorage(label, booksDir)
     try {
+      const unassigned = retireVideosForClearedSectioning(storage, fromStage, toStage)
+      if (unassigned > 0) {
+        console.warn(
+          `[stages] ${label}: unassigned ${unassigned} sign-language video(s) — the sections they were pinned to are being regenerated. The uploads are kept and can be reattached.`
+        )
+      }
+
       if (fromStage === "extract") {
         // clearExtractedData also clears step_runs
         storage.clearExtractedData()

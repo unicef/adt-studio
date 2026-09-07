@@ -169,6 +169,7 @@ export {
   NodePlacement,
   formatSectionId,
   parseSectionId,
+  parseAnySectionId,
   MAX_SECTION_SEQ,
 } from "./page-sectioning.js"
 

@@ -75,6 +75,21 @@ function readBuildWarnings(bookDir: string): PackagingWarning[] {
   }
 }
 
+/**
+ * Whether the bundle on disk can be served without rebuilding.
+ *
+ * The inputs must be unchanged *and* the warnings sidecar must exist. A cache
+ * entry that cannot say what its build left out is not usable: builds cached
+ * before the sidecar existed would otherwise pass the hash check and report a
+ * clean run while the bundle on disk is still missing pages. Treating those as
+ * stale costs one rebuild per book on upgrade, once.
+ */
+function isBuildCacheValid(bookDir: string, hash: string): boolean {
+  const hashPath = getBuildHashPath(bookDir)
+  if (!fs.existsSync(hashPath) || fs.readFileSync(hashPath, "utf-8").trim() !== hash) return false
+  return fs.existsSync(getBuildWarningsPath(bookDir))
+}
+
 function readBuildVersion(bookDir: string, fallbackHash: string): string {
   const versionPath = getBuildVersionPath(bookDir)
   if (fs.existsSync(versionPath)) {
@@ -99,7 +114,6 @@ function getPackagingCacheState(
   webAssetsDir: string,
   configPath?: string,
 ): PackagingCacheState {
-  const hashPath = getBuildHashPath(bookDir)
   const { language, outputLanguages, title, config } = resolvePackagingParams(
     storage, safeLabel, booksDir, configPath,
   )
@@ -108,7 +122,7 @@ function getPackagingCacheState(
     webAssetsDir, applyBodyBackground: config.apply_body_background,
     config: config as unknown as Record<string, unknown>,
   })
-  const cached = fs.existsSync(hashPath) && fs.readFileSync(hashPath, "utf-8").trim() === hash
+  const cached = isBuildCacheValid(bookDir, hash)
   return {
     cached,
     version: cached ? readBuildVersion(bookDir, hash) : packageVersionFromHash(hash),
@@ -296,7 +310,7 @@ async function runPackaging(
     const versionPath = getBuildVersionPath(bookDir)
     const preHash = computePackagingInputHash(hashOptions)
     const bundleVersion = packageVersionFromHash(preHash)
-    if (fs.existsSync(hashPath) && fs.readFileSync(hashPath, "utf-8").trim() === preHash) {
+    if (isBuildCacheValid(bookDir, preHash)) {
       return {
         version: readBuildVersion(bookDir, preHash),
         warnings: readBuildWarnings(bookDir),

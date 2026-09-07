@@ -417,6 +417,8 @@ export {
 export {
   createSectionIdFactory,
   collectSpentSectionIds,
+  retireSectionIds,
+  unassignSignLanguageVideos,
   SectionIdExhaustedError,
 } from "./section-ids.js"
 export {

@@ -12,6 +12,7 @@ import type {
   EditableActivity,
   FontAssignmentOutput,
   ExtractionWarning,
+  PackagingWarning,
   ReviewerPageValidationRecord,
   ReviewerValidationIdentificationField,
   ReviewerValidationInstruction,
@@ -1970,11 +1971,18 @@ export const api = {
       body: JSON.stringify({ language }),
     }),
 
+  // `warnings` is present whenever packaging completed inline (a cache hit, or a
+  // server with no task service). When it returns a taskId the warnings ride the
+  // task result instead. Either way the caller must surface them — a short
+  // bundle otherwise looks like a clean one.
   packageAdt: (label: string) =>
-    request<{ status: string; label: string; taskId?: string; version?: string }>(
-      `/books/${label}/package-adt`,
-      { method: "POST" }
-    ),
+    request<{
+      status: string
+      label: string
+      taskId?: string
+      version?: string
+      warnings?: PackagingWarning[]
+    }>(`/books/${label}/package-adt`, { method: "POST" }),
 
   getTasks: (label: string) =>
     request<{ tasks: TaskInfoResponse[] }>(`/books/${label}/tasks`),
@@ -2138,7 +2146,12 @@ export const api = {
     const body: Record<string, unknown> = {}
     if (features) body.features = features
     if (defaultSettings) body.defaultSettings = defaultSettings
-    return request<{ taskId?: string; status: string; label: string }>(
+    return request<{
+      taskId?: string
+      status: string
+      label: string
+      warnings?: PackagingWarning[]
+    }>(
       `/books/${label}/prepare-export?format=${format}`,
       {
         method: "POST",

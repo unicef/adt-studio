@@ -26,7 +26,6 @@ import {
   getStageClearOrder,
   getStageDependents,
   EDITABLE_ACTIVITY_NODE,
-  TocGenerationOutput,
   formatSectionId,
   CoreTtsCatalogOutput,
   TextCatalogOutput,
@@ -52,6 +51,7 @@ import {
   resolveFigureExtractionMode,
   createSectionIdFactory,
   collectSpentSectionIds,
+  retireSectionIds,
   SectionIdExhaustedError,
 } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
@@ -749,37 +749,6 @@ function mintSectionId(storage: Storage, pageId: string): string {
       throw new HTTPException(400, { message: err.message })
     }
     throw err
-  }
-}
-
-/**
- * Drop book-level references to sections that no longer exist. Called by every
- * op that removes a section; without it a merge or delete leaves a dangling
- * `toc-generation` entry (a broken href in the EPUB nav) or a sign-language
- * video pinned to an id nothing resolves.
- *
- * Videos are *unassigned*, not deleted: the upload is the user's, and they can
- * reattach it to the surviving section.
- */
-function retireSectionIds(storage: Storage, retired: string[]): void {
-  if (retired.length === 0) return
-  const retiredIds = new Set(retired)
-
-  const tocRow = storage.getLatestNodeData("toc-generation", "book")
-  if (tocRow) {
-    const parsed = TocGenerationOutput.safeParse(tocRow.data)
-    if (parsed.success) {
-      const entries = parsed.data.entries.filter((entry) => !retiredIds.has(entry.sectionId))
-      if (entries.length !== parsed.data.entries.length) {
-        storage.putNodeData("toc-generation", "book", { ...parsed.data, entries })
-      }
-    }
-  }
-
-  for (const video of storage.getSignLanguageVideos()) {
-    if (video.sectionId && retiredIds.has(video.sectionId)) {
-      storage.assignSignLanguageVideo(video.videoId, null)
-    }
   }
 }
 

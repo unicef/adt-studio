@@ -194,6 +194,18 @@ describe("Package routes", () => {
         warnings?: Array<{ kind: string; pageId: string; sectionIndex: number }>
       }
       expect(cachedBody.warnings).toEqual(body.warnings)
+
+      // A build cached before the sidecar existed — the state every book is in
+      // on upgrade. The hash still matches, so without treating a missing
+      // sidecar as a stale cache this returns a clean result over the same
+      // short bundle.
+      fs.rmSync(path.join(tmpDir, "book-orphan", "adt", ".build-warnings"))
+      const upgraded = await app.request("/api/books/book-orphan/package-adt", { method: "POST" })
+      expect(upgraded.status).toBe(200)
+      const upgradedBody = await upgraded.json() as {
+        warnings?: Array<{ kind: string; pageId: string; sectionIndex: number }>
+      }
+      expect(upgradedBody.warnings).toEqual(body.warnings)
     })
 
     it("stores accessibility assessment output after packaging", { timeout: 20_000 }, async () => {

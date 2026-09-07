@@ -2,11 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import type { AccessibilityFinding } from "@adt/types"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react"
-import { toast } from "sonner"
-import {
-  readPackagingWarnings,
-  describePackagingWarnings,
-} from "@/lib/packaging-warnings"
+import { toastPackagingWarnings } from "@/lib/packaging-warnings"
 import { StageBlockedState } from "@/components/pipeline/components/StageBlockedState"
 import { LoadingState } from "@/components/pipeline/components/LoadingState"
 import { useAllPagesPruned } from "@/hooks/use-all-pages-pruned"
@@ -167,11 +163,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
         // Packaging skips rendered sections it cannot resolve a sectionId for.
         // The bundle is short but the task still succeeds, so without this the
         // omission is invisible.
-        const omitted = describePackagingWarnings(
-          readPackagingWarnings(task.result),
-          i18n,
-        )
-        if (omitted) toast.warning(omitted)
+        toastPackagingWarnings(task.result, i18n)
       })
     } else if (task.status === "failed") {
       setPendingTaskId(null)
@@ -216,12 +208,15 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
         ])
         setVersion(result.version ?? createPreviewVersion())
         setReady(true)
+        // A cache hit replays the warnings of the build that produced the
+        // bundle on disk, so this branch omits exactly as much as the task one.
+        toastPackagingWarnings(result, i18n)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Packaging failed")
       setIsSubmittingPackage(false)
     }
-  }, [bookLabel, queryClient])
+  }, [bookLabel, queryClient, i18n])
 
   // Only trigger packaging when storyboard is done
   useEffect(() => {
