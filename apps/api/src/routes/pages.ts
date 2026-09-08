@@ -1373,10 +1373,12 @@ export function createPageRoutes(
     // single `toc-generation` version. `deletePage` drops the page's entire
     // node_data history, including the sectioning the id factory reads its
     // high-water mark from — so a page later re-created under the same id
-    // restarts at `_sec001`. Any `toc-generation` entry or sign-language video
-    // still pointing at an id that page spent would then silently reattach to
-    // unrelated content, which is exactly what id immutability prevents
-    // everywhere else.
+    // restarts at `_sec001`. Any `toc-generation` entry, sign-language video or
+    // speech manifest entry still pointing at an id that page spent would then
+    // silently reattach to unrelated content, which is exactly what id
+    // immutability prevents everywhere else. The speech manifests are the ones
+    // `deletePage` cannot reach on its own: they are keyed by language, not by
+    // page.
     const spentOnRemovedPages = toRemove.flatMap((id) => [
       ...collectSpentSectionIds(storage, id),
     ])

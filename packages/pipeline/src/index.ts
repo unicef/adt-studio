@@ -420,6 +420,9 @@ export {
   retireSectionIds,
   unassignSignLanguageVideos,
   SectionIdExhaustedError,
+  NOTHING_RETIRED,
+  type SectionIdRetirementResult,
+  type DetachedRecording,
 } from "./section-ids.js"
 export {
   extractEditableActivity,

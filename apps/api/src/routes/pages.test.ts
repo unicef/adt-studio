@@ -1632,6 +1632,59 @@ describe("Page routes", () => {
       }
     })
 
+    it("clears the speech manifests wholesale, so no entry outlives a retired id", async () => {
+      // This is why `retireSectionIds`' speech prune is moot on the section-level
+      // ops but load-bearing on `spreads/apply` and the stage rerun: those two
+      // drop a page's sectioning history without clearing the manifests, while
+      // every op that goes through `saveStoryboardNode` wipes them entirely
+      // (`clearCaptionData`). If that ever stops being true, the prune is the
+      // only thing standing between a re-minted id and the old recording — so
+      // pin the behaviour rather than leaving it implied.
+      seedSections(3)
+
+      const audioDir = path.join(tmpDir, label, "audio", "en")
+      fs.mkdirSync(audioDir, { recursive: true })
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("tts", "en", {
+          entries: [`${label}_p1_sec002_ans_a`, `${label}_p1_sec003_ans_a`].map((textId) => {
+            fs.writeFileSync(path.join(audioDir, `${textId}.mp3`), "fake-audio")
+            return {
+              textId,
+              language: "en",
+              fileName: `${textId}.mp3`,
+              voice: "uploaded",
+              model: "uploaded",
+              cached: false,
+              provider: "manual",
+              voiceSlot: "primary" as const,
+            }
+          }),
+          generatedAt: "2026-01-01T00:00:00.000Z",
+        })
+      } finally {
+        storage.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/1`,
+        { method: "DELETE" }
+      )
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        expect(verify.getNodeItemIds("tts")).toEqual([])
+        expect(verify.getNodeItemIds("tts-timestamps")).toEqual([])
+      } finally {
+        verify.close()
+      }
+      // The manifests go; the uploads never do.
+      for (const textId of [`${label}_p1_sec002_ans_a`, `${label}_p1_sec003_ans_a`]) {
+        expect(fs.existsSync(path.join(audioDir, `${textId}.mp3`))).toBe(true)
+      }
+    })
+
     it("drops toc entries for retired sections and keeps the rest", async () => {
       seedSections(3)
 

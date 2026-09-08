@@ -3,7 +3,7 @@ import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { PIPELINE, type AppConfig, type ProgressEvent } from "@adt/types"
-import { computeSpeechCacheKey, stripEmojis } from "@adt/pipeline"
+import { computeSpeechCacheKey, stripEmojis, retireSectionIds } from "@adt/pipeline"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import {
   buildStageRunnerImageClassifyConfig,
@@ -2513,6 +2513,216 @@ structure_types:
       )
       expect(entry?.provider).toBe("manual")
       expect(entry?.voiceLabel).toBe("Renamed Narrator")
+    } finally {
+      storage.close()
+    }
+  })
+
+  /**
+   * A rerun that re-sections a page re-mints its ids densely, so
+   * `pg001_sec001_ans_a` can come back naming a different activity answer. The
+   * `tts` manifest survives that rerun (`getStageRerunClearNodes` preserves it
+   * whenever Speech is in range) and `canReuseSpeechEntry` accepts a manual
+   * entry on file existence alone — never comparing the text — so without
+   * retirement the old recording is served for the new answer.
+   */
+  function seedRetiredAnswerRecording(booksDir: string, label: string): string {
+    seedTextAndSpeechBook(booksDir, label)
+    const audioDir = path.join(booksDir, label, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_sec001_ans_a.mp3"), Buffer.from("old-recording"))
+
+    const storage = createBookStorage(label, booksDir)
+    try {
+      // The re-minted `_sec001` now names a *different* activity answer. Seeded
+      // through rendering + sectioning rather than straight onto the catalog,
+      // because the catalog steps rebuild themselves from these on every run.
+      storage.putNodeData("page-sectioning", "pg001", {
+        reasoning: "re-sectioned",
+        sections: [
+          {
+            sectionId: "pg001_sec001",
+            sectionType: "activity",
+            backgroundColor: "#ffffff",
+            textColor: "#000000",
+            pageNumber: 1,
+            isPruned: false,
+            nodes: [
+              { nodeId: "pg001_n0001", isPruned: false, role: "text", text: "Question" },
+            ],
+          },
+        ],
+      })
+      storage.putNodeData("web-rendering", "pg001", {
+        sections: [
+          {
+            sectionIndex: 0,
+            sectionType: "activity",
+            reasoning: "",
+            html: '<p data-id="pg001_t001">Hello world</p>',
+            activityAnswers: { a: "New answer" },
+          },
+        ],
+      })
+      storage.putNodeData("text-catalog", "book", {
+        entries: [
+          { id: "pg001_t001", text: "Hello world" },
+          { id: "pg001_sec001_ans_a", text: "New answer" },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      storage.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        entries: [
+          readyCoreTtsEntry("pg001_t001", "Hello world"),
+          readyCoreTtsEntry("pg001_sec001_ans_a", "New answer"),
+        ],
+      })
+      storage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_sec001_ans_a",
+            language: "en",
+            fileName: "pg001_sec001_ans_a.mp3",
+            voice: "uploaded",
+            model: "uploaded",
+            cached: false,
+            provider: "manual",
+            voiceSlot: "primary",
+          },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    } finally {
+      storage.close()
+    }
+    return audioDir
+  }
+
+  function writeSpeechConfig(tmpDir: string, configPath: string): void {
+    fs.mkdirSync(path.join(tmpDir, "prompts"), { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+`,
+    )
+  }
+
+  it("regenerates a manual recording whose section id was retired", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    writeSpeechConfig(tmpDir, configPath)
+    const label = "speech-retired-answer"
+    seedRetiredAnswerRecording(booksDir, label)
+
+    // What the rerun's beforeRun does before clearing the sectioning history.
+    const retireStorage = createBookStorage(label, booksDir)
+    try {
+      const retired = retireSectionIds(retireStorage, ["pg001_sec001"])
+      expect(retired.detachedRecordings).toHaveLength(1)
+    } finally {
+      retireStorage.close()
+    }
+
+    generateSpeechFileMock.mockClear()
+    // The suite default resolves `undefined` ("no audio produced"), which would
+    // leave no entry at all and make the assertions below vacuous. Return a real
+    // generated entry so "replaced by a generated one" is actually observable.
+    generateSpeechFileMock.mockImplementation(
+      async ({ textId, language, voice, model }: {
+        textId: string
+        language: string
+        voice: string
+        model: string
+      }) => ({
+        textId,
+        language,
+        fileName: `${textId}.mp3`,
+        voice,
+        model,
+        cached: false,
+        provider: "openai",
+        voiceSlot: "primary",
+      })
+    )
+    const runner = createStageRunner()
+    await runner.run(
+      label,
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    // Generated from the answer the id now names, not reused from the old one.
+    expect(generateSpeechFileMock).toHaveBeenCalledWith(
+      expect.objectContaining({ textId: "pg001_sec001_ans_a", text: "New answer" })
+    )
+    const storage = createBookStorage(label, booksDir)
+    try {
+      const output = storage.getLatestNodeData("tts", "en")?.data as {
+        entries: Array<{ textId: string; provider?: string }>
+      }
+      const entry = output.entries.find((e) => e.textId === "pg001_sec001_ans_a")
+      expect(entry).toBeDefined()
+      expect(entry?.provider).toBe("openai")
+    } finally {
+      storage.close()
+    }
+    // Note: retirement itself does no file I/O. Preserving the upload from the
+    // regeneration that reuses its filename is `parkDetachedRecordings`' job on
+    // the rerun path, covered in `stages.test.ts` — asserting the file here
+    // would only be testing that this mock does not write to disk.
+  })
+
+  it("reuses a manual recording when no section id was retired", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    writeSpeechConfig(tmpDir, configPath)
+    const label = "speech-kept-answer"
+    seedRetiredAnswerRecording(booksDir, label)
+
+    // The control: identical state, no retirement. An ordinary rerun must not
+    // throw away a recording that still describes its own section.
+    generateSpeechFileMock.mockClear()
+    const runner = createStageRunner()
+    await runner.run(
+      label,
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    expect(generateSpeechFileMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ textId: "pg001_sec001_ans_a" })
+    )
+    const storage = createBookStorage(label, booksDir)
+    try {
+      const output = storage.getLatestNodeData("tts", "en")?.data as {
+        entries: Array<{ textId: string; fileName: string; provider?: string }>
+      }
+      const entry = output.entries.find((e) => e.textId === "pg001_sec001_ans_a")
+      expect(entry?.provider).toBe("manual")
+      expect(entry?.fileName).toBe("pg001_sec001_ans_a.mp3")
     } finally {
       storage.close()
     }

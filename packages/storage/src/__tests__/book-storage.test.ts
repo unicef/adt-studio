@@ -557,6 +557,24 @@ describe("putNodeData / getLatestNodeData", () => {
     storage.close()
   })
 
+  it("getNodeItemIds lists each item once, regardless of version count", () => {
+    const { storage } = createTempStorage()
+
+    // `tts` is keyed by language, and both the canonical and legacy spellings
+    // can coexist — a caller reconciling the whole book has to reach both.
+    storage.putNodeData("tts", "pt-BR", { entries: [] })
+    storage.putNodeData("tts", "pt-BR", { entries: [], generatedAt: "later" })
+    storage.putNodeData("tts", "pt_BR", { entries: [] })
+    storage.putNodeData("tts", "en", { entries: [] })
+    storage.putNodeData("tts-timestamps", "en", { entries: {} })
+
+    expect(storage.getNodeItemIds("tts")).toEqual(["en", "pt-BR", "pt_BR"])
+    expect(storage.getNodeItemIds("tts-timestamps")).toEqual(["en"])
+    expect(storage.getNodeItemIds("page-sectioning")).toEqual([])
+
+    storage.close()
+  })
+
   it("handles different nodes independently", () => {
     const { storage } = createTempStorage()
 

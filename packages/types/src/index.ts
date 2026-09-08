@@ -306,6 +306,9 @@ export {
   TextCatalogOutput,
   TextCatalogCategory,
   getTextCatalogCategory,
+  ANSWER_ID_SEPARATOR,
+  answerTextId,
+  sectionIdOfAnswerTextId,
 } from "./text-catalog.js"
 
 export {

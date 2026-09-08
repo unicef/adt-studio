@@ -6,14 +6,16 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody } from "@adt/types"
+import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig,
   collectSpentSectionIds,
-  unassignSignLanguageVideos,
+  retireSectionIds,
+  NOTHING_RETIRED,
   PAGE_SECTIONING_NODE,
 } from "@adt/pipeline"
+import type { SectionIdRetirementResult, DetachedRecording } from "@adt/pipeline"
 import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 import type { PageErrorDecisions } from "../services/page-error-decisions.js"
@@ -48,40 +50,102 @@ function clearsSectionIdHistory(fromStage: StageName, toStage: StageName): boole
 }
 
 /**
- * Retire the sectionIds a rerun is about to invalidate, and report how many
- * sign-language videos that unassigned.
+ * Does any speech manifest hold audio keyed to a section at all?
+ *
+ * Only `${sectionId}_ans_*` entries can ever be retired, so a book whose audio
+ * is all page text, glossary and quiz content has nothing at stake no matter how
+ * its sections are renumbered. Reads the rows rather than merely checking that
+ * they exist, which is what makes the fast path below still worth having.
+ */
+function hasAnswerSpeechEntries(storage: Storage): boolean {
+  const isAnswer = (textId: string): boolean => sectionIdOfAnswerTextId(textId) !== null
+  for (const itemId of storage.getNodeItemIds("tts")) {
+    const parsed = TTSOutput.safeParse(storage.getLatestNodeData("tts", itemId)?.data)
+    // An unreadable row cannot be ruled out, so treat it as a reason to look.
+    if (!parsed.success) return true
+    // `failed` counts as much as `entries`: the prune reconciles both, so a row
+    // whose only answer reference is a failed item still has work to do.
+    if (parsed.data.entries.some((entry) => isAnswer(entry.textId))) return true
+    if (parsed.data.failed?.some((entry) => isAnswer(entry.textId))) return true
+  }
+  for (const itemId of storage.getNodeItemIds("tts-timestamps")) {
+    const parsed = WordTimestampOutput.safeParse(
+      storage.getLatestNodeData("tts-timestamps", itemId)?.data
+    )
+    if (!parsed.success) return true
+    if (
+      Object.keys(parsed.data.entries).some((key) =>
+        isAnswer(parseVoiceSlotEntryId(key).textId)
+      )
+    ) {
+      return true
+    }
+    if (parsed.data.failed?.some((entry) => isAnswer(entry.textId))) return true
+  }
+  return false
+}
+
+/**
+ * Retire every sectionId a rerun is about to invalidate, and report what that
+ * reconciled.
  *
  * Clearing a stage deletes *every* version of the nodes it clears. When
  * `page-sectioning` is among them the section-id high-water mark goes with it,
  * so the re-section re-mints densely from `_sec001` and hands out ids that named
  * different content a moment ago.
  *
- * That is only harmful while something still points at the old ids, and one
- * thing does: `sign_language_videos.section_id` is the sole sectionId reference
- * outside `node_data`, so the clear does not reach it and a pinned video would
- * silently reappear on whatever unrelated section inherits its id. Unassigning
- * it here is what makes the dense re-mint safe — every other reference
- * (`toc-generation`, `text-catalog` and the audio derived from it,
- * `editable-activity`) is deleted by the same clear, and audio filenames that
- * repeat are rewritten from the new text because TTS is cached on a content
- * hash, never served stale.
+ * That is only harmful while something still points at the old ids, and the
+ * clear does not reach everything:
  *
- * Videos are unassigned rather than deleted, as in the structural edit routes:
- * the upload is the user's. Same shape as the `spreads/apply` reconcile, which
- * retires ids before `deletePage` drops the history for the identical reason.
+ * - `sign_language_videos.section_id` lives in a table, not `node_data`, so a
+ *   pinned video would reappear on whatever unrelated section inherits its id.
+ * - The speech manifests are keyed by *language*, not by page. `tts` is
+ *   deliberately preserved by `getStageRerunClearNodes` whenever Speech is in
+ *   the rerun range, and `tts-timestamps` is in no clear list at all — the node
+ *   name differs from the `word-timestamps` step name that
+ *   `STAGE_OUTPUT_NODES` is derived from. Generated audio still heals itself on
+ *   `computeSpeechCacheKey`, but `canReuseSpeechEntry` accepts a
+ *   `provider: "manual"` entry on file existence alone, so a re-minted id would
+ *   inherit a recording of the old content.
+ *
+ * Retiring here is what makes the dense re-mint safe. Everything else keyed by
+ * sectionId (`toc-generation`, `text-catalog`, `editable-activity`) is deleted
+ * by the same clear.
+ *
+ * Nothing the user uploaded is deleted, as in the structural edit routes: a
+ * video is unassigned in place, and a recording is parked by the caller (see
+ * `parkDetachedRecordings`, which is needed because audio filenames — unlike
+ * video paths — are derived from the very id being reissued). Same shape as the
+ * `spreads/apply` reconcile, which retires ids before `deletePage` drops the
+ * history for the identical reason — and it goes through the same
+ * `retireSectionIds`, because the two paths previously reconciled different
+ * reference sets and that divergence is how the speech manifests were missed.
  *
  * Must run *before* the clear: it reads the sectioning history the ids come
  * from, and the `pages` table itself, both of which the extract branch deletes.
+ * The pruned `tts` version it writes has to survive that clear, which it does
+ * precisely because neither speech node is in `getStageRerunClearNodes`. On the
+ * extract branch `clearExtractedData` does delete them, making the write moot —
+ * but not special-cased, because "the clear will get it anyway" is the reasoning
+ * that produced the stale claim this doc comment replaces.
  */
-export function retireVideosForClearedSectioning(
+export function retireSectionIdsForClearedSectioning(
   storage: Storage,
   fromStage: StageName,
   toStage: StageName
-): number {
-  if (!clearsSectionIdHistory(fromStage, toStage)) return 0
-  // Scanning every stored sectioning version of every page is not free, and
-  // most books have nothing pinned at all.
-  if (!storage.getSignLanguageVideos().some((video) => video.sectionId !== null)) return 0
+): SectionIdRetirementResult {
+  if (!clearsSectionIdHistory(fromStage, toStage)) return NOTHING_RETIRED
+  // Scanning every stored sectioning version of every page is not free —
+  // `JSON.stringify` plus a global regex per version — so establish that
+  // *something* could be retired before paying for it. "Any book that has run
+  // speech" would be too coarse a guard to be worth having: the manifests are
+  // small and in memory, so ask them whether they hold any answer audio at all.
+  if (
+    !storage.getSignLanguageVideos().some((video) => video.sectionId !== null) &&
+    !hasAnswerSpeechEntries(storage)
+  ) {
+    return NOTHING_RETIRED
+  }
 
   const retired = new Set<string>()
   for (const page of storage.getPages()) {
@@ -90,22 +154,80 @@ export function retireVideosForClearedSectioning(
     }
   }
   // Page-scoped by construction, so glossary assignments (`gl001`…) are untouched.
-  return unassignSignLanguageVideos(storage, retired)
+  return retireSectionIds(storage, retired)
+}
+
+/** Where a detached upload is parked, relative to the book directory. */
+export const DETACHED_AUDIO_DIR = path.join("audio", ".detached")
+
+/**
+ * Move uploaded recordings out of the way of the run that is about to reissue
+ * their filenames, and return where each landed.
+ *
+ * Necessary because audio filenames are derived from the textId: the re-section
+ * re-mints the id, the catalog rebuilds `${sectionId}_ans_*` under it, and Speech
+ * writes generated audio to `audio/<lang>/<textId>.<ext>` — the upload's own
+ * path. Dropping the manifest entry stops the recording being *served* for
+ * content it was never made for, but on its own it would leave the file to be
+ * overwritten minutes later, so "the upload is the user's" would be a promise
+ * this code breaks. Parking it under a dot-directory keeps it out of the
+ * language dirs that `resolveSpeechAudioPath` probes, and packaging copies
+ * individual files named by manifest entries rather than walking `audio/`, so
+ * nothing here can reach a bundle.
+ *
+ * Best-effort: a book whose audio has already been cleared from disk has nothing
+ * to move, and failing to park a file must not abort the run the user asked for.
+ */
+function parkDetachedRecordings(
+  bookDir: string,
+  detached: readonly DetachedRecording[]
+): string[] {
+  const parked: string[] = []
+  // One stamp for the whole batch, so a single run's detachments stay together
+  // and a later run cannot overwrite an earlier one's.
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-")
+  for (const { language, fileName } of detached) {
+    const source = path.join(bookDir, "audio", language, fileName)
+    if (!fs.existsSync(source)) continue
+    const targetDir = path.join(bookDir, DETACHED_AUDIO_DIR, stamp, language)
+    try {
+      fs.mkdirSync(targetDir, { recursive: true })
+      fs.renameSync(source, path.join(targetDir, fileName))
+      parked.push(path.join(DETACHED_AUDIO_DIR, stamp, language, fileName))
+    } catch (err) {
+      console.warn(
+        `[stages] could not preserve detached recording ${fileName} (${language}): ${String(err)}`
+      )
+    }
+  }
+  return parked
 }
 
 /** Build a beforeRun callback that clears downstream data for a stage.
- *  The returned function is idempotent — only runs once even if called multiple times. */
-function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string): () => void {
+ *  The returned function is idempotent — only runs once even if called multiple times.
+ *  Exported so tests can pin the retire-park-clear ordering it depends on. */
+export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string): () => void {
   let ran = false
   return () => {
     if (ran) return
     ran = true
     const storage = createBookStorage(label, booksDir)
     try {
-      const unassigned = retireVideosForClearedSectioning(storage, fromStage, toStage)
-      if (unassigned > 0) {
+      const retired = retireSectionIdsForClearedSectioning(storage, fromStage, toStage)
+      if (retired.videos > 0) {
         console.warn(
-          `[stages] ${label}: unassigned ${unassigned} sign-language video(s) — the sections they were pinned to are being regenerated. The uploads are kept and can be reattached.`
+          `[stages] ${label}: unassigned ${retired.videos} sign-language video(s) — the sections they were pinned to are being regenerated. The uploads are kept and can be reattached.`
+        )
+      }
+      if (retired.detachedRecordings.length > 0) {
+        // Park them before the clear, for the same reason the retirement runs
+        // before it: this reads the manifest the clear may delete.
+        const parked = parkDetachedRecordings(
+          path.join(path.resolve(booksDir), label),
+          retired.detachedRecordings
+        )
+        console.warn(
+          `[stages] ${label}: detached ${retired.detachedRecordings.length} uploaded audio recording(s) — the sections their text belonged to are being regenerated, so the recordings no longer match. ${parked.length} file(s) moved to ${DETACHED_AUDIO_DIR}/ so this run cannot overwrite them; re-upload the ones you still want.`
         )
       }
 

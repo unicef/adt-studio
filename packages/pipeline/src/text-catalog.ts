@@ -11,6 +11,7 @@ import type {
 } from "@adt/types"
 import {
   WebRenderingOutput as WebRenderingOutputSchema,
+  answerTextId,
 } from "@adt/types"
 import type { Storage, PageData } from "@adt/storage"
 import { getGlossaryItemTextId } from "./glossary.js"
@@ -143,7 +144,7 @@ function extractAnswerEntries(
   for (const [key, value] of Object.entries(answers)) {
     const text = String(value)
     if (text.length > 0) {
-      entries.push({ id: `${sectionId}_ans_${key}`, text })
+      entries.push({ id: answerTextId(sectionId, key), text })
     }
   }
   return entries
