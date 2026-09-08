@@ -342,6 +342,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     // identical but written separately.
     const retiredSection = formatSectionId(pageId, 3)
     seedTts("en", [{ textId: "pg001_t001" }], [`${retiredSection}_ans_a`])
+    withStorage((storage) => storage.markStepCompleted("tts"))
 
     withStorage((storage) =>
       retireSectionIdsForClearedSectioning(storage, "sectioning", "speech")
@@ -350,6 +351,11 @@ describe("retireSectionIdsForClearedSectioning", () => {
     expect(
       withStorage((storage) => storage.getLatestNodeData("tts", "en")?.data)
     ).not.toHaveProperty("failed")
+    // The row was rewritten, so Speech must not stay marked complete over it —
+    // a counter-driven guard would miss this, since no delivered entry dropped.
+    expect(withStorage((storage) => storage.getStepRuns().map((run) => run.step))).not.toContain(
+      "tts"
+    )
   })
 
   it("parks a detached recording so the run cannot overwrite it, then clears", () => {

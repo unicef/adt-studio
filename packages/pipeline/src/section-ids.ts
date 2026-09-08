@@ -168,8 +168,12 @@ export type SectionIdRetirementResult = {
    * a retired id also regenerates audio straight over the upload's path — unlike
    * a sign-language video, which is stored under its own `videoId` and survives
    * unassignment untouched. Dropping the entry alone would destroy the file.
-   * Retirement itself does no file I/O; moving the upload out of the way is the
-   * caller's job, because only the rerun path regenerates into the same names.
+   *
+   * Retirement itself does no file I/O, so every caller that does not delete the
+   * audio outright has to park these (`parkDetachedRecordings`): the stage rerun,
+   * and `spreads/apply`, where un-applying the spread re-creates the page under
+   * its old id and re-mints the same names. Once the entry is gone nothing
+   * downstream knows the orphaned file exists, so it cannot be rescued later.
    */
   detachedRecordings: DetachedRecording[]
   /** `tts-timestamps` map entries dropped, across every language. */
@@ -227,6 +231,11 @@ function pruneSpeechForRetiredSections(
 
   let speechEntries = 0
   let wordTimestamps = 0
+  // Tracked separately from the counters: a row rewritten *only* because a
+  // `failed` item named a retired section still has to invalidate the steps that
+  // produced it, but it dropped no delivered audio, so counting it as a dropped
+  // entry would misreport what the user lost.
+  let rewroteAnyRow = false
   const detachedRecordings: DetachedRecording[] = []
   const generatedAt = new Date().toISOString()
 
@@ -254,6 +263,7 @@ function pruneSpeechForRetiredSections(
     const droppedFailed = (priorFailed?.length ?? 0) - (failed?.length ?? 0)
     if (droppedEntries + droppedFailed === 0) continue
 
+    rewroteAnyRow = true
     speechEntries += droppedEntries
     for (const entry of priorEntries) {
       if (entry.provider === "manual" && ownedByRetiredSection(entry.textId)) {
@@ -293,6 +303,7 @@ function pruneSpeechForRetiredSections(
     const droppedFailed = (priorFailed?.length ?? 0) - (failed?.length ?? 0)
     if (droppedEntries + droppedFailed === 0) continue
 
+    rewroteAnyRow = true
     wordTimestamps += droppedEntries
     storage.putNodeData("tts-timestamps", itemId, {
       ...rest,
@@ -307,7 +318,7 @@ function pruneSpeechForRetiredSections(
   // `text-catalog.ts`). Without this, `spreads/apply` leaves Speech marked
   // complete over a manifest with holes — the rerun path clears step runs a
   // moment later anyway, so this only ever adds information.
-  if (speechEntries > 0 || wordTimestamps > 0) {
+  if (rewroteAnyRow) {
     storage.clearStepRuns(["tts", "word-timestamps"])
   }
 

@@ -1632,6 +1632,90 @@ describe("Page routes", () => {
       }
     })
 
+    it("parks a removed page's recording, since re-applying remints its ids", async () => {
+      // `spreads/apply` is the structural path that clears no manifests, so the
+      // prune is load-bearing here — and because `deletePage` drops the page's
+      // sectioning history, un-applying the spread re-creates it under the same
+      // id starting at `_sec001` and regenerates straight over any recording
+      // left at `audio/<lang>/${sectionId}_ans_*`. Once the entry is pruned
+      // nothing knows the file is orphaned, so parking has to happen here.
+      //
+      // Pinned to `end_page: 1` so the only desired page already exists: that
+      // makes `toAdd` empty and skips real PDF extraction, leaving the fixture
+      // pages as the ones to remove.
+      fs.writeFileSync(
+        path.join(tmpDir, label, "config.yaml"),
+        "start_page: 1\nend_page: 1\n"
+      )
+      fs.copyFileSync(
+        path.resolve(import.meta.dirname, "../../../../tests/fixtures/raven.pdf"),
+        path.join(tmpDir, label, `${label}.pdf`)
+      )
+
+      const audioDir = path.join(tmpDir, label, "audio", "en")
+      fs.mkdirSync(audioDir, { recursive: true })
+      const fileName = `${label}_p1_sec001_ans_a.mp3`
+      fs.writeFileSync(path.join(audioDir, fileName), "uploaded-audio")
+
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putExtractedPage({
+          pageId: "pg001",
+          pageNumber: 1,
+          text: "Kept page",
+          pageImage: {
+            imageId: "pg001_page",
+            buffer: Buffer.from("fake-png-data"),
+            format: "png" as const,
+            hash: "keep123",
+            width: 800,
+            height: 600,
+          },
+          images: [],
+        })
+        storage.putNodeData("tts", "en", {
+          entries: [
+            {
+              textId: `${label}_p1_sec001_ans_a`,
+              language: "en",
+              fileName,
+              voice: "uploaded",
+              model: "uploaded",
+              cached: false,
+              provider: "manual",
+              voiceSlot: "primary" as const,
+            },
+          ],
+          generatedAt: "2026-01-01T00:00:00.000Z",
+        })
+      } finally {
+        storage.close()
+      }
+
+      const res = await app.request(`/api/books/${label}/spreads/apply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spreadPairs: [] }),
+      })
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const tts = verify.getLatestNodeData("tts", "en")?.data as {
+          entries: Array<{ textId: string }>
+        }
+        expect(tts.entries).toEqual([])
+      } finally {
+        verify.close()
+      }
+      // Moved out of the path a re-mint regenerates into, and not deleted.
+      expect(fs.existsSync(path.join(audioDir, fileName))).toBe(false)
+      const parked = path.join(tmpDir, label, "audio", ".detached")
+      expect(
+        fs.readdirSync(parked).flatMap((stamp) => fs.readdirSync(path.join(parked, stamp, "en")))
+      ).toEqual([fileName])
+    })
+
     it("clears the speech manifests wholesale, so no entry outlives a retired id", async () => {
       // This is why `retireSectionIds`' speech prune is moot on the section-level
       // ops but load-bearing on `spreads/apply` and the stage rerun: those two

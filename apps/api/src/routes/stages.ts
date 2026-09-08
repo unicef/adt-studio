@@ -15,11 +15,12 @@ import {
   NOTHING_RETIRED,
   PAGE_SECTIONING_NODE,
 } from "@adt/pipeline"
-import type { SectionIdRetirementResult, DetachedRecording } from "@adt/pipeline"
+import type { SectionIdRetirementResult } from "@adt/pipeline"
 import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 import type { PageErrorDecisions } from "../services/page-error-decisions.js"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
+import { parkDetachedRecordings, DETACHED_AUDIO_DIR } from "../services/detached-audio.js"
 
 const StageRunBody = z
   .object({
@@ -155,52 +156,6 @@ export function retireSectionIdsForClearedSectioning(
   }
   // Page-scoped by construction, so glossary assignments (`gl001`…) are untouched.
   return retireSectionIds(storage, retired)
-}
-
-/** Where a detached upload is parked, relative to the book directory. */
-export const DETACHED_AUDIO_DIR = path.join("audio", ".detached")
-
-/**
- * Move uploaded recordings out of the way of the run that is about to reissue
- * their filenames, and return where each landed.
- *
- * Necessary because audio filenames are derived from the textId: the re-section
- * re-mints the id, the catalog rebuilds `${sectionId}_ans_*` under it, and Speech
- * writes generated audio to `audio/<lang>/<textId>.<ext>` — the upload's own
- * path. Dropping the manifest entry stops the recording being *served* for
- * content it was never made for, but on its own it would leave the file to be
- * overwritten minutes later, so "the upload is the user's" would be a promise
- * this code breaks. Parking it under a dot-directory keeps it out of the
- * language dirs that `resolveSpeechAudioPath` probes, and packaging copies
- * individual files named by manifest entries rather than walking `audio/`, so
- * nothing here can reach a bundle.
- *
- * Best-effort: a book whose audio has already been cleared from disk has nothing
- * to move, and failing to park a file must not abort the run the user asked for.
- */
-function parkDetachedRecordings(
-  bookDir: string,
-  detached: readonly DetachedRecording[]
-): string[] {
-  const parked: string[] = []
-  // One stamp for the whole batch, so a single run's detachments stay together
-  // and a later run cannot overwrite an earlier one's.
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-")
-  for (const { language, fileName } of detached) {
-    const source = path.join(bookDir, "audio", language, fileName)
-    if (!fs.existsSync(source)) continue
-    const targetDir = path.join(bookDir, DETACHED_AUDIO_DIR, stamp, language)
-    try {
-      fs.mkdirSync(targetDir, { recursive: true })
-      fs.renameSync(source, path.join(targetDir, fileName))
-      parked.push(path.join(DETACHED_AUDIO_DIR, stamp, language, fileName))
-    } catch (err) {
-      console.warn(
-        `[stages] could not preserve detached recording ${fileName} (${language}): ${String(err)}`
-      )
-    }
-  }
-  return parked
 }
 
 /** Build a beforeRun callback that clears downstream data for a stage.

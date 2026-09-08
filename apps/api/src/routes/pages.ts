@@ -83,6 +83,7 @@ import {
 import { AiProviderError, assertModelCredentials, createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache } from "@adt/llm"
 import type { ResolvedCredentials } from "@adt/llm"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
+import { parkDetachedRecordings, DETACHED_AUDIO_DIR } from "../services/detached-audio.js"
 
 /**
  * Lazily-initialized shared Playwright renderer for section screenshots.
@@ -1382,7 +1383,21 @@ export function createPageRoutes(
     const spentOnRemovedPages = toRemove.flatMap((id) => [
       ...collectSpentSectionIds(storage, id),
     ])
-    retireSectionIds(storage, spentOnRemovedPages)
+    const retired = retireSectionIds(storage, spentOnRemovedPages)
+    // Park before `deletePage`, for the same reason retirement runs before it.
+    // Un-applying the spread re-creates these pages under their old ids with no
+    // history to allocate past, so they re-mint `_sec001` and Speech regenerates
+    // straight over any recording left at `audio/<lang>/${sectionId}_ans_*`. The
+    // manifest entry is gone by then, so nothing downstream could rescue it.
+    if (retired.detachedRecordings.length > 0) {
+      const parked = parkDetachedRecordings(
+        path.join(path.resolve(booksDir), safeLabel),
+        retired.detachedRecordings
+      )
+      console.warn(
+        `[pages] ${safeLabel}: detached ${retired.detachedRecordings.length} uploaded audio recording(s) from removed page(s); ${parked.length} file(s) moved to ${DETACHED_AUDIO_DIR}/ so a later re-section cannot overwrite them.`
+      )
+    }
     for (const id of toRemove) storage.deletePage(id)
 
     return c.json({
