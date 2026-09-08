@@ -1,17 +1,11 @@
 import type { ReactNode } from "react";
-import { Nav } from "@/components/sections/Nav";
+import { SiteNav } from "@/components/nav/SiteNav";
 import { Footer } from "@/components/sections/Footer";
 
-export function LandingShell({
-  children,
-  isHome = false,
-}: {
-  children: ReactNode;
-  isHome?: boolean;
-}) {
+export function LandingShell({ children }: { children: ReactNode }) {
   return (
-    <div className="landing-light min-h-screen bg-[color:var(--color-background)] text-[color:var(--color-foreground)]">
-      <Nav isHome={isHome} />
+    <div className="site-shell min-h-screen bg-white font-sans text-ink antialiased">
+      <SiteNav />
       <main>{children}</main>
       <Footer />
     </div>

@@ -227,3 +227,14 @@ export function stripMarkdown(md: string | null | undefined): string {
     .replace(/\n{2,}/g, "\n")
     .trim();
 }
+
+/**
+ * The release's own headline: the first markdown heading in the notes body
+ * (e.g. "A More Flexible Studio"), falling back to the release name.
+ */
+export function releaseHeadline(release: GithubRelease): string {
+  const body = (release.body ?? "").replace(/<!--[\s\S]*?-->/g, "").replace(/\r\n?/g, "\n");
+  const match = /^#{1,3}\s+(.+?)\s*$/m.exec(body);
+  const heading = match?.[1]?.replace(/[*_`]/g, "").trim();
+  return heading || release.name?.trim() || release.tag_name;
+}

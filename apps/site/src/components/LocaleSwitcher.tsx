@@ -14,7 +14,18 @@ const LOCALE_LABEL_MESSAGES: Record<AppLocale, MessageDescriptor> = {
   fr: msg`French`,
 };
 
-export function LocaleSwitcher({ className }: { className?: string }) {
+function localeCode(locale: AppLocale): string {
+  return locale.split("-")[0].toUpperCase();
+}
+
+export function LocaleSwitcher({
+  className,
+  variant = "icon",
+}: {
+  className?: string;
+  /** `pill` is the landing navbar style (flag + language code); `icon` is the docs chrome style. */
+  variant?: "icon" | "pill";
+}) {
   const { i18n } = useLingui();
   const currentLocale = (
     LOCALES.includes(i18n.locale as AppLocale) ? i18n.locale : "en"
@@ -53,9 +64,23 @@ export function LocaleSwitcher({ className }: { className?: string }) {
         aria-label={i18n._(msg`Change language`)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-card)] text-[color:var(--color-muted-foreground)] transition-colors duration-200 hover:bg-[color:var(--color-accent)] hover:text-[color:var(--color-foreground)]"
+        className={
+          variant === "pill"
+            ? cn(
+                "inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-3 text-[15px] font-bold text-ink transition-colors duration-200 hover:bg-brand-tint",
+                open && "bg-brand-tint text-brand-deep",
+              )
+            : "grid h-9 w-9 cursor-pointer place-items-center rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-card)] text-[color:var(--color-muted-foreground)] transition-colors duration-200 hover:bg-[color:var(--color-accent)] hover:text-[color:var(--color-foreground)]"
+        }
       >
-        <Globe className="h-4 w-4" />
+        {variant === "pill" ? (
+          <>
+            <span aria-hidden className="text-base leading-none">{LOCALE_FLAGS[currentLocale]}</span>
+            {localeCode(currentLocale)}
+          </>
+        ) : (
+          <Globe className="h-4 w-4" />
+        )}
       </button>
       <div
         role="listbox"
