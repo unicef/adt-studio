@@ -26,7 +26,7 @@ const SAMPLE_COPY: Record<string, MessageDescriptor> = {
   "webpub:content/i18n/en-US/glossary.json": msg`Glossary terms, keyed by word. variations are the inflected forms to match in the text; image and video are optional per-term extras.`,
   "webpub:content/i18n/en-US/audios.json": msg`Read-aloud clips, mapping node id to file name. The files live alongside in audio/.`,
   "webpub:content/i18n/en-US/videos.json": msg`Sign-language clips. This is the one file not keyed by node id: ignore the video-<n> key and read the section id from the filename instead.`,
-  "webpub:content/i18n/en-US/images.json": msg`Localized image variants, for images whose content was translated. It is empty in this book because no image needed a translated variant.`,
+  "webpub:content/i18n/pt-BR/images.json": msg`Localized image variants. The key is the image node\u0027s data-id and the value is the translated file, which sits beside the original. Shown for pt-BR because variants exist for target languages; the source-language map is always empty.`,
   "epub:META-INF/container.xml": msg`Standard OCF entry point. It points at the OPF, which fixes the ADT data base at OEBPS/.`,
   "epub:OEBPS/content.opf": msg`The package document. In a reflowable book every content document carries properties="scripted", not just activity pages. When a book has word timings, media-overlay appears on each content document's manifest item, never on the spine itemref. This book has none.`,
   "epub:OEBPS/glossary.xhtml": msg`The glossary lowered into the EPUB 3 Dictionaries and Glossaries model. In-text terms link here as epub:type="glossref", and a landmarks entry lets readers surface a Glossary tab. Because it is lowered, glossary.json is removed from EPUB language folders.`,

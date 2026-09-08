@@ -14,21 +14,11 @@ Une visionneuse ou un zoom est la présentation naturelle, car elle laisse de la
 
 La table est facultative. `features.describeImages` peut être `true` lorsqu’il existe des descriptions mais aucune image traduite ; conservez le `src` original si la table ou son id est absent.
 
-### Une table renseignée
+Les variantes existent pour les langues cibles, jamais pour la langue source : la table vit donc sous chaque locale traduite :
 
-Le package de référence ci-dessous n’a aucune image traduite, sa table vaut donc `{}`. Dans un livre qui en contient, chaque entrée associe l’id d’image porté par la page à la variante produite pour cette langue :
-
-```jsonc
-// content/i18n/pt-BR/images.json
-{
-  "pg005_im001": "pg005_im001_tr_pt-BR.png",
-  "pg009_im002": "pg009_im002_tr_pt-BR.png"
-}
-```
+<PackageSnippet path="content/i18n/pt-BR/images.json" />
 
 La clé est le `data-id` de l’`<img>` ; la valeur est un fichier situé dans le même répertoire `images/` que l’original. Passer en pt-BR revient à remplacer le `src` de ces deux images exactement et à laisser toutes les autres inchangées : une image absente de la table n’a pas de version traduite et conserve son fichier d’origine.
-
-<PackageSnippet title="Référence de la table d’images localisées" path="content/i18n/en-US/images.json" />
 
 <PackageSnippet title="Configuration de description d’image" path="assets/config.json" />
 

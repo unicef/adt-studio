@@ -14,24 +14,14 @@ A apresentação natural é uma caixa de luz ou zoom, onde há espaço para leit
 
 O mapa é opcional. `features.describeImages` pode ser `true` quando há descrições, mas não há recurso de imagem traduzido; mantenha o `src` original sempre que o mapa ou seu id estiver ausente.
 
-### Um mapa preenchido
+Variantes existem para idiomas de destino, nunca para o idioma-fonte, então o mapa fica sob cada locale traduzido:
 
-O pacote de referência abaixo não tem imagens traduzidas, por isso o mapa dele é `{}`. Em um livro que tenha, cada entrada liga o id da imagem presente na página à variante gerada para aquele idioma:
+<PackageSnippet path="content/i18n/pt-BR/images.json" />
 
-```jsonc
-// content/i18n/pt-BR/images.json
-{
-  "pg005_im001": "pg005_im001_tr_pt-BR.png",
-  "pg009_im002": "pg009_im002_tr_pt-BR.png"
-}
-```
-
-A chave é o `data-id` da `<img>`; o valor é um arquivo no mesmo diretório `images/` do original. Trocar para pt-BR significa substituir o `src` exatamente dessas duas imagens e deixar todas as outras intactas — uma imagem ausente do mapa não tem versão traduzida e mantém o arquivo original.
-
-<PackageSnippet title="Referência do mapa de imagens localizadas" path="content/i18n/en-US/images.json" />
+A chave é o `data-id` da `<img>`; o valor é um arquivo que fica ao lado do original em `images/`. Trocar para pt-BR significa substituir o `src` exatamente dessas seis imagens e deixar todas as outras intactas.
 
 <PackageSnippet title="Configuração do recurso de descrição de imagem" path="assets/config.json" />
 
 <Callout title="Um mapa vazio é válido">
-A exportação de referência não precisa de variantes localizadas de imagem. Mantenha a fonte original quando um id estiver ausente do mapa.
+A maioria dos livros não precisa de imagens traduzidas e envia `{}`. Mantenha a fonte original sempre que o mapa, ou o id de uma imagem dentro dele, estiver ausente.
 </Callout>

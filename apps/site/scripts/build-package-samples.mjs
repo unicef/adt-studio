@@ -95,9 +95,12 @@ const FORMATS = [
         mode: { type: "full" },
       },
       {
-        path: `content/i18n/${LANG}/images.json`,
+        // Taken from an export of the same book built with image localization
+        // enabled. Shown for pt-BR because variants only exist for target
+        // languages — the source-language map is always `{}`.
+        path: "content/i18n/pt-BR/images.json",
         lang: "json",
-        note: "Localized image variants — images whose content was translated. Empty in this book: nothing needed a translated variant.",
+        note: "Localized image variants. The key is the image node's data-id; the value is the translated file, which sits beside the original in images/. Images absent from the map have no translated version and keep their original src.",
         mode: { type: "full" },
       },
     ],
