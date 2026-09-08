@@ -14,6 +14,20 @@ The natural presentation is an image lightbox or zoom view, where readers have s
 
 The map is optional. `features.describeImages` can be true when the export has descriptions but no translated image asset, so leave the original `src` in place whenever the map or its id is absent.
 
+### A populated map
+
+The reference export below has no translated images, so its map is `{}`. In a book that does have them, each entry pairs the image id carried by the page with the variant built for that language:
+
+```jsonc
+// content/i18n/pt-BR/images.json
+{
+  "pg005_im001": "pg005_im001_tr_pt-BR.png",
+  "pg009_im002": "pg009_im002_tr_pt-BR.png"
+}
+```
+
+The key is the `data-id` on the `<img>`; the value is a file sitting in the same `images/` directory as the original. Switching to pt-BR means swapping `src` on exactly those two images and leaving every other image untouched — an image absent from the map has no translated version and keeps its original asset.
+
 <PackageSnippet title="Localized-image map reference" path="content/i18n/en-US/images.json" />
 
 <PackageSnippet title="Image-description feature configuration" path="assets/config.json" />

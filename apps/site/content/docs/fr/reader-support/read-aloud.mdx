@@ -14,13 +14,35 @@ icon: AudioLines
 
 N’affichez la commande que lorsque `features.readAloud` est `true` **et** que la page actuelle possède des extraits. L’indicateur dit que le livre a des données de narration, ce n’est pas une préférence du lecteur.
 
-Avec la Lecture facile active, préférez un extrait `_easy_read` s’il existe, puis l’extrait normal. Gardez la lecture séquentielle même sans minutage par mot.
+Avec la Lecture facile active, lisez l’extrait `_easy_read` du nœud dès qu’il existe et n’utilisez l’extrait standard que s’il n’y en a pas. Gardez la lecture séquentielle même sans minutage par mot.
 
 ## Surlignage des mots
 
-Le contrat public V1 ne définit pas de données de minutage par mot. Pour la narration ADT, gardez une synchronisation au niveau du nœud, sauf si le package documente une extension compatible.
+L’origine des minutages dépend du format.
 
-Dans un EPUB, vérifiez d’abord `media-overlay` sur le `<item>` du document de contenu dans le manifeste OPF. Lorsqu’il existe, utilisez les Media Overlays SMIL natifs d’EPUB plutôt que de reconstruire la synchronisation depuis des sidecars.
+**EPUB.** Vérifiez `media-overlay` sur le `<item>` du document de contenu dans le manifeste OPF. Lorsqu’il existe, utilisez les Media Overlays SMIL natifs d’EPUB plutôt que de reconstruire la synchronisation vous-même.
+
+**Le sidecar.** `content/i18n/<lang>/timecode/timecode_output.json` porte les minutages par mot, indexés par l’id du nœud de contenu :
+
+```jsonc
+{
+  "pg003_n0002": {
+    "timecodes": [
+      null,
+      {
+        "word_timestamps": [
+          { "text": "One", "start": 0.0,  "end": 0.22 },
+          { "text": "day", "start": 0.22, "end": 0.41 }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`start` et `end` sont des secondes comptées depuis le début du **clip du nœud lui-même**, et non depuis le début de la page. Les mots sont en ordre de lecture : alignez-les par position sur les mots que vous affichez plutôt que par id.
+
+Le fichier est souvent `{}` — il n’est rempli que si le livre a été narré avec le surlignage des mots activé. Vérifiez-le avant de vous appuyer dessus et gardez la lecture au niveau du nœud fonctionnelle lorsqu’il est vide.
 
 <Callout type="info" title="Traitez la synchronisation comme une amélioration progressive">
 La narration fonctionne sans minutage par mot. Ne bloquez pas la lecture lorsque le livre a des extraits mais pas de Media Overlays.

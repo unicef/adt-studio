@@ -14,13 +14,35 @@ icon: AudioLines
 
 Muestra el control solo cuando `features.readAloud` sea `true` **y** la página actual tenga clips. La flag indica si el libro tiene datos de narración, no una preferencia del lector.
 
-Con Lectura Fácil activa, prefiere un clip `_easy_read` cuando exista y, si no, usa el clip normal. Mantén la reproducción secuencial incluso sin tiempos por palabra.
+Con Lectura Fácil activa, reproduce el clip `_easy_read` del nodo siempre que exista y recurre al clip estándar solo cuando no lo haya. Mantén la reproducción secuencial incluso sin tiempos por palabra.
 
 ## Resaltado de palabras
 
-El contrato público V1 no define datos de tiempo por palabra. Para la narración ADT, conserva la sincronización a nivel de nodo salvo que el paquete documente una extensión compatible.
+De dónde salen los tiempos depende del formato.
 
-En EPUB, comprueba primero `media-overlay` en el `<item>` del documento de contenido del manifiesto OPF. Cuando exista, usa los Media Overlays SMIL nativos de EPUB en lugar de reconstruir la sincronización desde sidecars.
+**EPUB.** Comprueba `media-overlay` en el `<item>` del documento de contenido del manifiesto OPF. Cuando exista, usa los Media Overlays SMIL nativos de EPUB en lugar de reconstruir la sincronización por tu cuenta.
+
+**El sidecar.** `content/i18n/<lang>/timecode/timecode_output.json` contiene los tiempos por palabra, indexados por el id del nodo de contenido:
+
+```jsonc
+{
+  "pg003_n0002": {
+    "timecodes": [
+      null,
+      {
+        "word_timestamps": [
+          { "text": "One", "start": 0.0,  "end": 0.22 },
+          { "text": "day", "start": 0.22, "end": 0.41 }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`start` y `end` son segundos desde el inicio del **clip del propio nodo**, no desde el inicio de la página. Las palabras están en orden de lectura, así que alinéalas por posición con las palabras que renderizas, en vez de emparejarlas por id.
+
+El archivo suele venir `{}`: solo se rellena cuando el libro se narró con el resaltado de palabras activado. Compruébalo antes de depender de él y mantén la reproducción a nivel de nodo cuando esté vacío.
 
 <Callout type="info" title="Trata la sincronización como mejora progresiva">
 La narración funciona sin tiempos por palabra. No bloquees la reproducción cuando el libro tenga clips pero no tenga Media Overlays.

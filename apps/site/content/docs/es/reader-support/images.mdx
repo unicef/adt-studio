@@ -14,6 +14,20 @@ La presentación natural es una caja de luz o zoom, donde hay espacio para leer.
 
 El mapa es opcional. `features.describeImages` puede ser `true` cuando hay descripciones pero no un recurso de imagen traducido; conserva el `src` original si el mapa o su id no existen.
 
+### Un mapa con contenido
+
+El paquete de referencia de abajo no tiene imágenes traducidas, así que su mapa es `{}`. En un libro que sí las tenga, cada entrada asocia el id de la imagen que lleva la página con la variante creada para ese idioma:
+
+```jsonc
+// content/i18n/pt-BR/images.json
+{
+  "pg005_im001": "pg005_im001_tr_pt-BR.png",
+  "pg009_im002": "pg009_im002_tr_pt-BR.png"
+}
+```
+
+La clave es el `data-id` de la `<img>`; el valor es un archivo en el mismo directorio `images/` que el original. Cambiar a pt-BR significa sustituir el `src` de esas dos imágenes exactamente y dejar el resto intactas: una imagen ausente del mapa no tiene versión traducida y conserva su archivo original.
+
 <PackageSnippet title="Referencia del mapa de imágenes localizadas" path="content/i18n/en-US/images.json" />
 
 <PackageSnippet title="Configuración de descripción de imagen" path="assets/config.json" />

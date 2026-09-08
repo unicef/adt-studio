@@ -1,49 +1,208 @@
 ---
 title: "Intégration du lecteur"
-description: "Les changements concrets, fonctionnalité par fonctionnalité, pour brancher la couche ADT dans un lecteur."
+description: "Les changements concrets, fonction par fonction : où la couche ADT s’insère et les pièges rencontrés par une intégration réelle."
 icon: Wrench
 ---
 
-Cette page part d’une structure courante : le contenu est rendu dans un cadre dont l’application possède le cycle de vie, tandis que l’application contrôle l’interface autour. Le cadre doit être same-origin, prétraité avant affichage ou exposer un pont d’injection.
+Cette page part de la structure qu’ont déjà la plupart des lecteurs : **le contenu est rendu dans un frame dont votre application possède le cycle de vie** — une iframe, une webview, une WKWebView — pendant que l’application gère l’interface autour. La couche ADT s’insère exactement à cette jonction.
 
-## Structure de l’intégration
+Le frame doit être de même origine, prétraité avant l’affichage, ou exposer un pont d’injection. Un frame d’origine différente sans pont ne permet pas le travail sur le DOM décrit ci-dessous.
 
-1. Une API de ressources de confiance qui lit les fichiers du package.
-2. Un contrôleur de fonctionnalités qui charge les données du livre et de la langue actuelle.
-3. Une injection dans le cadre de contenu : texte, narration et images se joignent par `data-id`.
+## La forme de l’intégration
+
+Trois pièces, par ordre de dépendance :
+
+1. **Une API de ressources** du côté de confiance de votre application (processus principal, service worker, backend), capable de lire les fichiers du package.
+2. **Un contrôleur de fonctions** dans votre couche d’interface, qui charge les données du livre et de la langue courants et les garde synchronisées avec la page affichée.
+3. **L’injection dans le frame de contenu** — les tables de texte, de narration et d’images se relient aux éléments rendus via `data-id` ; les autres fonctions utilisent leurs propres marqueurs documentés.
+
+Tout ce qui suit repose sur ces trois pièces.
+
+## L’API de ressources
+
+Les frames de contenu sont isolés et les fichiers du package sont sur disque (ou derrière une URL que le frame ne peut pas atteindre) : la couche de rendu a donc besoin d’un canal étroit et explicite. Trois appels couvrent toutes les fonctions :
 
 ```ts
 getAdtMetadata(bookHandle)
-  → { isAdt, features, languages, paths }
+  → { isAdt, features, languages: { available, default }, paths: { dataRoot, audioBase, videoBase } }
+
 readAdtResource(bookHandle, language, resource)
-  → { status: "ok", data } | { status: "absent" | "invalid" }
+  // resource: "texts" | "audios" | "videos" | "glossary" | "images"
+  → { status: "ok", data, language, paths } | { status: "absent" | "invalid" }
+
 readAdtAsset(bookHandle, language, type, fileName)
+  // type: "audio" | "video"
   → { status: "ok", contentType, dataUrl } | { status: "absent" | "invalid" }
 ```
 
-`bookHandle` doit être opaque et créé du côté de confiance. Validez-le, ainsi que la langue, la ressource, le type et le nom de fichier au moyen de listes autorisées. N’exposez jamais un chemin brut du package au cadre.
+`bookHandle` est une valeur opaque créée lorsque le côté de confiance ouvre un package. Validez-la, ainsi que `language`, `resource`, `type` et `fileName`, avec des listes d’autorisation. N’exposez jamais un chemin brut du package au frame de contenu.
+
+`getAdtMetadata` est l’endroit où vivent la [détection](/docs/reader-support/packages#detect-an-adt) et la résolution du chemin de base, afin qu’aucune autre couche n’ait à savoir si elle a affaire à une arborescence WebPub ou EPUB.
 
 <Callout type="error" title="Protégez le chemin">
-Chaque valeur qui influence un chemin provient d’un package fourni par l’utilisateur. Résolvez chaque chemin candidat et vérifiez qu’il reste dans la racine du package avant toute lecture.
+Toute valeur qui influence un chemin provient d’un package fourni par l’utilisateur. Résolvez chaque chemin candidat et vérifiez qu’il reste à l’intérieur de la racine du package avant de lire. C’est le seul point d’une intégration ADT ayant une véritable conséquence de sécurité.
 </Callout>
 
-## Ordre d’implémentation
+### Soyez tolérant sur ce que vous acceptez
 
-Choisissez la langue enregistrée si elle est encore dans `languages.available`, sinon utilisez `languages.default`. Chargez en parallèle `texts`, `audios`, `videos`, `glossary` et `images` ; un sidecar absent est attendu et ne doit pas empêcher l’ouverture du livre.
+Deux recherches ont besoin de solutions de repli, et les deux ne coûtent rien :
 
-À chaque page, réappliquez `texts.json` aux éléments ayant un `data-id`, en préférant `_easy_read` pour la Lecture facile et en écrivant `alt` pour les images. Les ids sont locaux au package et ne servent pas d’état permanent.
+**Dossiers de langue.** Essayez, dans cet ordre : la langue exacte, en minuscules, la forme avec tiret bas (`pt_BR`), en majuscules, puis chaque entrée de `languages.available`. Des exports peuvent traîner d’anciennes formes avec tiret bas, et la langue enregistrée par le lecteur peut ne pas correspondre à la casse du dossier.
 
-Lorsqu’un EPUB a des Media Overlays, gardez intact le DOM de la langue d’exportation et utilisez SMIL. Pour une autre langue, appliquez la table de texte seulement si elle préserve des limites DOM sûres ; ne remplacez jamais un élément entier contenant des cibles SMIL. Sans Media Overlay, utilisez les extraits `audios.json` au niveau du nœud lorsqu’ils existent.
+**Fichiers multimédias.** Interrogez d’abord le répertoire V1 par langue : `content/i18n/<lang>/audio/` pour la narration et `content/i18n/<lang>/video/` pour la langue des signes. Un futur export pourra annoncer une autre base via des métadonnées ; n’en devinez pas une lorsqu’elle est absente.
 
-## Fonctionnalités et pages spéciales
+## Le travail, fonction par fonction
 
-- Marquez les termes de glossaire et leurs `variations` dans les nœuds de texte visibles ; avant de réappliquer, retirez les anciens marqueurs, infobulles, styles et handlers.
-- Affichez les longues descriptions d’image dans une surface du lecteur, comme un zoom ou une visionneuse.
-- Résolvez l’extrait de langue des signes à partir de la section actuelle et affichez-le en picture-in-picture sans déplacer la page.
-- Détectez les activités avec `[data-section-type^="activity_"]`, masquez `#nav-container` et déléguez le bouton du lecteur au bouton embarqué. Le moteur reste propriétaire de la validation et de l’avancement.
+<Steps>
 
-## Mise en page, recherche et vérification
+<Step>
+### Chargez les métadonnées et choisissez la langue
 
-La référence publique est refluable, pas un contrat de mise en page fixe. Laissez le moteur de lecture contrôler la pagination fixe déclarée par les métadonnées standard. Excluez les pages ADT des anciennes heuristiques qui agrandissent les pages courtes avec de grandes images, car elles sont déjà adaptatives.
+À l’ouverture d’un livre, appelez `getAdtMetadata`. Si `isAdt` est faux, c’est terminé : affichez-le comme la publication ordinaire qu’il est aussi.
 
-Si la recherche utilise le HTML livré, appliquez la même table de texte à l’index et réindexez après un changement de langue ou de Lecture facile. Testez le même livre en WebPub et EPUB, changez de langue pendant la lecture, testez le repli sans extraits et terminez une activité. Seules les réponses de texte libre survivent à un rechargement ; la réinitialisation des quiz est attendue.
+Sinon, choisissez la langue : la préférence enregistrée si elle figure toujours dans `languages.available`, sinon `languages.default`. Tentez ensuite de charger `texts`, `audios`, `videos`, `glossary` et `images` pour cette langue en parallèle, et rechargez-les à chaque changement de langue. Un sidecar absent est attendu et ne doit pas empêcher l’ouverture du livre.
+</Step>
+
+<Step>
+### Appliquez la table de texte
+
+Pour chaque élément portant un `data-id`, écrivez la valeur issue de `texts.json` (en privilégiant la variante `_easy_read` lorsque la Lecture facile est active). Écrivez dans `alt` pour les images ; écrivez dans le premier span enfant, en supprimant les autres, lorsque le nœud a déjà été découpé par la segmentation de la lecture à voix haute.
+
+Réappliquez à **chaque** navigation, et pas seulement au chargement : une nouvelle page dans le même frame est un nouveau document, avec le texte d’origine remis en place.
+</Step>
+
+<Step>
+### Privilégiez le comportement natif d’EPUB avant d’injecter du texte
+
+Utilisez cette règle de priorité lorsqu’un EPUB dispose de Media Overlays natifs :
+
+| Situation | Texte affiché | Narration et surlignage |
+|---|---|---|
+| La langue choisie est la langue d’export de l’EPUB | Laissez le DOM de l’EPUB intact | Utilisez les Media Overlays SMIL natifs |
+| La langue choisie diffère de la langue d’export | N’appliquez la table de texte correspondante que si elle préserve des limites sûres du DOM | N’utilisez pas le SMIL de la langue d’origine pour le surlignage par mot ; utilisez les extraits ADT disponibles au niveau du nœud, ou laissez la narration indisponible |
+| Pas de Media Overlay | Appliquez la table de texte ADT | Utilisez les extraits de `audios.json` au niveau du nœud lorsqu’ils existent |
+
+Ne remplacez jamais un élément entier contenant des cibles SMIL. Si votre lecteur ne peut pas mettre à jour ses nœuds de texte en toute sécurité, conservez la langue d’export de l’EPUB plutôt que de casser la synchronisation native.
+</Step>
+
+<Step>
+### Ajoutez le glossaire
+
+Marquez les occurrences de chaque terme (et de ses `variations`) dans le texte rendu, et ouvrez une infobulle de définition au clic. Attachez vos propres gestionnaires de clic et de clavier au niveau du document, pour que les personnes au clavier puissent y accéder, et donnez aux marqueurs un repère visible : le soulignement pointillé est le signal conventionnel « appuyez pour la définition ».
+
+Nettoyez avant chaque réapplication : défaites les marqueurs existants, supprimez l’infobulle, supprimez la feuille de style injectée. Sans cela, les marqueurs s’imbriquent les uns dans les autres au second passage.
+</Step>
+
+<Step>
+### Exposez les descriptions d’image
+
+Attachez la description à chaque image (sous forme d’attribut, puis relisez-la dans votre propre interface) et affichez-la là où il y a de la place : une visionneuse ou une vue zoomée est son emplacement naturel. Conditionnez à `features.describeImages`.
+
+</Step>
+
+<Step>
+### Branchez la lecture à voix haute
+
+Rassemblez les valeurs `data-id` et `data-section-id` présentes dans le document courant, faites-les correspondre via `audios.json`, puis lisez les extraits obtenus à la suite. Suivez si la page courante possède le moindre audio, afin de masquer le contrôle plutôt que de l’afficher inopérant.
+
+Le contrat public V1 ne fournit pas de sidecar de minutage par mot : surlignez donc au niveau du nœud. En EPUB, utilisez les overlays SMIL lorsque votre prise en charge des Media Overlays les gère déjà. Traitez la synchronisation comme optionnelle et gardez la lecture simple fonctionnelle sans elle.
+</Step>
+
+<Step>
+### Ajoutez le lecteur de langue des signes
+
+Résolvez l’extrait de la page courante via `videos.json` (voir [Langue des signes](/docs/reader-support/sign-language)) et lisez-le dans une surface en incrustation qui ne déplace pas la page. Fermez-la automatiquement lorsque la personne navigue vers une page sans extrait.
+</Step>
+
+<Step>
+### Gérez les pages d’activité
+
+Les pages d’activité embarquent leur propre runtime et leur propre bouton de validation, qui ne correspondra pas à l’interface de votre lecteur. L’arrangement qui fonctionne :
+
+- Détectez la page avec `document.querySelector("[data-section-type^='activity_']")`.
+- Masquez le contrôle intégré (`#nav-container`) avec une feuille de style injectée.
+- Affichez **votre propre** bouton de validation dans votre barre inférieure et faites-lui cliquer le bouton intégré.
+
+Le runtime intégré reste maître de la validation et de l’avancement du livre : vous ne faites que rhabiller le déclencheur. Comme il n’existe pas de canal `postMessage`, surveillez l’emplacement du frame par rapport à l’ordre de lecture pour savoir qu’il a avancé.
+</Step>
+
+<Step>
+### Persistez l’état du lecteur
+
+Par livre et par utilisateur, enregistrez les réglages qui sont **les vôtres** : langue, Lecture facile activée/désactivée, glossaire activé/désactivé, lecture automatique. Les gens rouvrent les livres souvent, et perdre la préférence de Lecture facile d’une session à l’autre se remarque immédiatement.
+
+Les réponses aux activités ne sont **pas** à vous de persister : le bundle à l’intérieur du frame en est propriétaire, ne conserve que celles en texte libre et n’expose rien. Voir [Activités](/docs/reader-support/activities). Indexez votre stockage sur le livre, pas sur des valeurs `data-id`, qui [ne sont pas stables d’un export à l’autre](/docs/reader-support/text).
+</Step>
+
+</Steps>
+
+## Corrections de mise en page et de rendu
+
+Elles sont petites et faciles à manquer, et font la différence entre « ça s’ouvre » et « ça s’affiche correctement ».
+
+**Laissez les doubles pages ADT occuper la largeur disponible.** Le contenu ADT peut brider `#content` avec une classe de conteneur ou se réduire à sa largeur intrinsèque. Reliez toute la chaîne — `html`, `body`, `main`, `#content` et l’élément de section — à la fenêtre, sans toucher aux largeurs de texte définies par l’auteur :
+
+```css
+html:has(#content [data-section-id]),
+body:has(#content [data-section-id]),
+body:has(#content [data-section-id]) > main,
+#content:has(> [data-section-id]),
+#content > [data-section-id] {
+  width: 100% !important;
+  max-width: none !important;
+  margin-inline: 0 !important;
+}
+```
+
+Notez que les pages de quiz générées peuvent porter `data-section-type` et `data-id` sans `data-section-id`. Ne supposez pas que chaque activité possède le même jeu de marqueurs qu’une section de contenu rendue.
+
+**Dimensionnez les doubles pages uniquement composées d’images selon la fenêtre.** Les sections avec `data-section-type="images_only"` doivent remplir la zone de lecture et se centrer, plutôt que de se coller au bord supérieur. Lorsque deux images se côtoient, limitez chacune à la moitié de la largeur.
+
+**Traitez la mise en page fixe comme une capacité distincte.** La référence publique actuelle est en flux et n’établit pas de contrat ADT pour la mise en page fixe. Lorsqu’un export déclare une mise en page fixe via les métadonnées standard WebPub ou EPUB, laissez la prise en charge de la mise en page fixe du moteur de lecture gérer la pagination et l’échelle. Ajoutez un package de test dédié et des consignes de compatibilité avant de vous appuyer sur des scripts d’ajustement propres à ADT ou sur des surcharges de mise en page injectées.
+
+**Excluez les pages ADT des heuristiques héritées.** Les lecteurs détectent souvent le contenu de type « page image numérisée » en cherchant peu de texte plus une grande image, puis agrandissent toute la page quand la taille du texte change. Les pages ADT ont cette forme mais sont responsives par conception : l’heuristique agrandit alors des doubles pages entières. Sortez tôt lorsque le document contient `[data-section-id][data-section-type]`.
+
+## Recherche
+
+Si votre lecteur effectue la recherche dans le HTML livré, il cherche dans un texte qui n’est plus à l’écran : le texte affiché vient de `texts.json`. Appliquez la même table de texte au document que vous confiez au moteur de recherche, avec la langue active et l’état de la Lecture facile, et réindexez dès que l’un des deux change.
+
+## Pièges
+
+<Accordions>
+
+<Accordion title="L’injection s’exécute avant que la page soit prête">
+Appliquer la table de texte une seule fois au `dom-ready` ne suffit pas : le contenu et les images se stabilisent ensuite. Appliquez immédiatement, réessayez vers 150 ms et 500 ms, et annulez les tentatives en attente lors d’une navigation. Marquer les éléments déjà traités (`data-adt-reader-applied`) rend les répétitions inoffensives.
+</Accordion>
+
+<Accordion title="Réappliquer sans nettoyer">
+Les marqueurs de glossaire, les infobulles, les feuilles de style injectées et les gestionnaires d’événements doivent tous être démontés explicitement avant le passage suivant. Sinon, les marqueurs s’imbriquent, les gestionnaires s’empilent et un clic sur un terme se déclenche plusieurs fois. Conservez les références des gestionnaires sur un global connu pour que le nettoyage puisse les retrouver.
+</Accordion>
+
+<Accordion title="Se fier au href pour identifier une page">
+Associer audio et vidéo par le préfixe du nom de fichier (`pg007…`) fonctionne jusqu’à ce que ça ne fonctionne plus : `index.html` est la page un sous un autre nom, et les pages d’activité utilisent leur propre préfixe. Rassemblez d’abord les identifiants réellement présents dans le document et n’utilisez le préfixe du href qu’en dernier recours.
+</Accordion>
+
+<Accordion title="Traiter les indicateurs de fonction comme des préférences">
+`features.readAloud: false` signifie qu’il n’y a aucune donnée de narration. Le relier à un interrupteur produit un contrôle qui ne fait rien. Conditionnez l’*existence* de l’élément à l’indicateur, et son *état actif* à la présence de données sur la page courante.
+</Accordion>
+
+<Accordion title="Des médias que le frame de contenu ne peut pas charger">
+Sous un bac à sable ou une CSP stricte, une URL `file://` du package peut être inaccessible depuis le frame. Lire le fichier côté confiance et renvoyer une data URL contourne le problème, avec un repli sur l’URL directe du package lorsque le fichier n’est pas là où vous l’attendiez.
+</Accordion>
+
+<Accordion title="Supposer une seule casse pour le dossier de langue">
+Un même livre peut porter `pt-BR` dans `config.json` et `pt_BR` dans un export ancien. Résolvez toujours via la liste de candidats, jamais via la chaîne enregistrée.
+</Accordion>
+
+</Accordions>
+
+## Vérifier l’intégration
+
+Un passage rapide qui attrape la plupart des régressions :
+
+- Ouvrez le même livre exporté en **WebPub et en EPUB** : l’ensemble des fonctions doit paraître identique là où le format fournit la fonction nativement ou via la couche ADT.
+- Changez de langue en cours de livre, puis naviguez : texte, images, audio et glossaire doivent suivre.
+- Basculez la Lecture facile sur une page qui a des variantes, puis sur une page qui n’en a pas : la seconde doit se replier silencieusement, pas se vider.
+- Ouvrez un livre avec `readAloud: false` et vérifiez qu’aucun contrôle de lecture n’apparaît nulle part.
+- Terminez une activité et vérifiez que le livre avance. (Seules les réponses en texte libre survivent à un rechargement ; que les quiz se réinitialisent est attendu, pas un défaut de votre intégration.)
+- Ouvrez l’EPUB dans un lecteur générique gérant les Media Overlays (Thorium, par exemple) et vérifiez que la narration fonctionne sans aucune prise en charge ADT — à condition que le livre porte des minutages par mot. Le glossaire via `glossref` vise les lecteurs qui implémentent la spécification de glossaire EPUB 3, ce que Thorium ne fait pas ; testez cette voie dans un lecteur qui l’implémente, ou utilisez le mode pages de glossaire en flux.

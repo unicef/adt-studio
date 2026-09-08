@@ -45,6 +45,12 @@ jobs:
         # stub. Also fails on structural errors (orphans, missing title, unknown
         # locale folder). Drop --strict to only report coverage.
         run: node apps/site/scripts/check-translations.mjs --strict
+      - name: Check translations match English structure
+        # check-translations.mjs only proves a translated file exists. This
+        # compares structure — headings, code blocks, callouts, steps, tables,
+        # snippets, doc links — so a rewritten English page or a condensed
+        # translation fails loudly instead of reporting as 100% translated.
+        run: node apps/site/scripts/check-doc-parity.mjs --strict
       # Build first: the Vite plugin generates src/routeTree.gen.ts (gitignored)
       # which the type-check needs — there's no standalone generator for it.
       - name: Build

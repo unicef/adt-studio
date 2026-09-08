@@ -43,6 +43,12 @@ OEBPS/
 
 </Tabs>
 
+## Prérequis du lecteur
+
+Votre lecteur doit pouvoir inspecter et modifier le document de contenu rendu. Utilisez une iframe de même origine, un pont d’injection de webview, ou un prétraitement avant l’affichage. Une iframe d’origine différente sans pont d’injection ne peut appliquer ni la table de texte ADT, ni les marqueurs de glossaire, ni les comportements de fonctions au niveau de la page.
+
+Considérez un package ouvert comme non fiable. Gardez son chemin de fichier ou son handle ZIP du côté de confiance de l’application ; l’interface doit recevoir un handle de livre, jamais un chemin arbitraire fourni par le contenu de la page.
+
 ## Inspectez des références d’exportation
 
 Ces extraits choisis et colorés syntaxiquement proviennent d’exportations ADT vérifiées. Ce sont des artefacts de référence, et non des noms de fichiers qu’un lecteur doit reproduire. Sélectionnez un fichier pour comprendre son rôle ; la coloration est produite à la compilation depuis l’exemple versionné, aucun coloriseur n’est donc envoyé au navigateur du lecteur. La collection peut accueillir d’autres exportations à mesure que les formats évoluent.
@@ -54,13 +60,46 @@ Ces extraits choisis et colorés syntaxiquement proviennent d’exportations ADT
 Une publication est un ADT lorsqu’elle possède un fichier de configuration lisible avec un objet `features` et un point d’entrée WebPub ou EPUB reconnaissable :
 
 ```ts
+const dataBase = await exists(join(packageRoot, "OEBPS/content.opf"))
+  ? join(packageRoot, "OEBPS")
+  : packageRoot;
+
 const config = await readJson(join(dataBase, "assets/config.json"));
 const isAdt = Boolean(
-  config?.features && (exists("manifest.json") || exists("content.opf")),
+  config?.features &&
+    (await exists(join(dataBase, "manifest.json")) ||
+      await exists(join(dataBase, "content.opf"))),
 );
 ```
 
 `dataBase` est la racine du package pour WebPub et `OEBPS/` pour EPUB. Gardez une détection légère : lisez un fichier de configuration et vérifiez seulement les points d’entrée attendus. Les indicateurs décrivent les données produites ; lorsqu’un indicateur vaut `false`, masquez le contrôle au lieu d’afficher une commande inopérante.
+
+## Contrat de sidecars V1
+
+`assets/config.json` porte `bundleVersion`. Les exports de référence de cette page utilisent la version `1`. Un lecteur devrait traiter une version future inconnue comme un nouveau contrat, conserver la lecture WebPub ou EPUB de base, et éviter d’activer les améliorations ADT tant qu’il ne prend pas cette version en charge.
+
+Tous les sidecars sont facultatifs, même lorsque l’indicateur de fonction est vrai. Un indicateur signifie que l’export *peut* fournir une capacité ; encore faut-il que la langue et la page courantes disposent de données exploitables.
+
+| Ressource | Chemin sous la racine de données | Forme | Emplacement du fichier |
+|---|---|---|---|
+| Texte | `content/i18n/<lang>/texts.json` | `Record<data-id, string>` ; les clés `_easy_read` sont des variantes facultatives | — |
+| Narration | `content/i18n/<lang>/audios.json` | `Record<data-id, fileName>` | `content/i18n/<lang>/audio/<fileName>` |
+| Langue des signes | `content/i18n/<lang>/videos.json` | `Record<video-<pageIndex>, fileName>` | `content/i18n/<lang>/video/<fileName>` |
+| Glossaire WebPub | `content/i18n/<lang>/glossary.json` | `Record<word, { word, definition, variations, id, image?, video? }>` | Intégré par terme lorsqu’il existe |
+| Images localisées | `content/i18n/<lang>/images.json` | `Record<data-id, fileName>` | Emplacement propre à l’export |
+
+La référence EPUB actuelle inclut la table de texte et le balisage natif `glossref`. Elle ne démontre pas tous les sidecars WebPub. N’en déduisez pas une parité de sidecars entre formats. Le minutage par mot n’est **pas garanti** par la V1 : lorsqu’un livre en porte, il arrive sous forme de sidecar `timecode/`, et un EPUB peut exposer des Media Overlays natifs. Traitez l’un comme l’autre en amélioration progressive et gardez la narration fonctionnelle au niveau du nœud sans eux — voir [Lecture à voix haute](/docs/reader-support/read-aloud).
+
+## Ce que couvrent les références publiques
+
+Les extraits de code de cette page démontrent les formes ci-dessous, mais ne sont pas des packages de test complets et téléchargeables. Servez-vous-en pour comprendre le contrat ; utilisez vos propres tests au niveau du package avant de livrer.
+
+| Référence | Démontre | Ne démontre pas encore |
+|---|---|---|
+| WebPub V1 | Configuration, table de texte, table de narration, table de langue des signes, forme du glossaire, une table d’images localisées vide et une page d’activité | Fichiers médias, minutage par mot, mise en page fixe |
+| EPUB V1 | Emplacement OCF, racine de données `OEBPS/`, table de texte, balisage natif de glossaire et une page d’activité | Sidecars ADT audio/vidéo, Media Overlays, mise en page fixe |
+
+Lorsqu’un nouveau format ou une nouvelle capacité publique est ajouté, fournissez avec lui un package de test publiable et une matrice de résultats attendus. Les packages PNLD sont hors du périmètre de ce contrat public.
 
 ## Marqueurs structurels
 

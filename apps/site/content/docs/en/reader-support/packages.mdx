@@ -88,7 +88,7 @@ All sidecars are optional, even when a feature flag is true. A flag means the ex
 | WebPub glossary | `content/i18n/<lang>/glossary.json` | `Record<word, { word, definition, variations, id, image?, video? }>` | Embedded per term when present |
 | Localized images | `content/i18n/<lang>/images.json` | `Record<data-id, fileName>` | Export-specific image location |
 
-The current EPUB reference includes the text map and native `glossref` markup. It does not demonstrate every WebPub sidecar. Do not infer sidecar parity between formats. Word-timing data is not part of this public V1 contract; use native EPUB Media Overlays when they are present, and otherwise keep narration at node level.
+The current EPUB reference includes the text map and native `glossref` markup. It does not demonstrate every WebPub sidecar. Do not infer sidecar parity between formats. Word timing is **not guaranteed** by V1: when a book carries it, it ships as a `timecode/` sidecar, and an EPUB may instead expose native Media Overlays. Treat either as progressive enhancement and keep narration working at node level without them — see [Read-aloud](/docs/reader-support/read-aloud).
 
 ## What the public references cover
 
@@ -99,7 +99,7 @@ The code excerpts on this page prove the shapes below, but they are not complete
 | WebPub V1 | Config, text map, narration map, sign-language map, glossary shape, an empty localized-image map, and a quiz activity page | Media files, word timing, fixed layout |
 | EPUB V1 | OCF location, `OEBPS/` data root, text map, native glossary markup, and a quiz activity page | ADT audio/video sidecars, Media Overlays, fixed layout |
 
-When a new public format or capability is added, include a publishable fixture package and expected-results matrix with it. PNLD references remain LIP-only and are not part of this public contract.
+When a new public format or capability is added, include a publishable fixture package and expected-results matrix with it. PNLD packages are out of scope for this public contract.
 
 ## Structural markers
 
