@@ -3,21 +3,21 @@ import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import {
   ArrowRight,
   BookOpen,
+  ChevronDown,
   Download,
-  Menu,
   Play,
   Rocket,
   Search,
   Sparkles,
   Tag,
   Workflow,
-  X,
   type LucideIcon,
 } from "lucide-react";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { MessageDescriptor } from "@lingui/core";
 import { useSearchContext } from "fumadocs-ui/contexts/search";
+import { DownloadButton } from "@/components/DownloadButton";
 import { GithubIcon } from "@/components/icons/GithubIcon";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import {
@@ -216,7 +216,9 @@ export function SiteNav() {
               className="ml-auto flex items-center gap-1"
               onMouseEnter={() => open && scheduleClose()}
             >
-              <LocaleSwitcher variant="pill" />
+              <div className="hidden md:block">
+                <LocaleSwitcher variant="pill" />
+              </div>
               <a
                 href={GITHUB_URL}
                 target="_blank"
@@ -242,7 +244,7 @@ export function SiteNav() {
                 type="button"
                 whileTap={{ scale: 0.9 }}
                 transition={SPRING_PRESS}
-                className="grid size-10 place-items-center rounded-full text-ink hover:bg-brand-tint md:hidden"
+                className="relative grid size-10 shrink-0 place-items-center rounded-full text-ink hover:bg-brand-tint md:hidden"
                 onClick={() => {
                   setSheet(null);
                   setMobileOpen((value) => !value);
@@ -250,7 +252,18 @@ export function SiteNav() {
                 aria-label={mobileOpen ? t`Close menu` : t`Open menu`}
                 aria-expanded={mobileOpen}
               >
-                {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+                <motion.span
+                  aria-hidden
+                  className="absolute h-0.5 w-5 rounded-full bg-current"
+                  animate={mobileOpen ? { rotate: 45, y: 0 } : { rotate: 0, y: -3 }}
+                  transition={SPRING_PRESS}
+                />
+                <motion.span
+                  aria-hidden
+                  className="absolute h-0.5 w-5 rounded-full bg-current"
+                  animate={mobileOpen ? { rotate: -45, y: 0 } : { rotate: 0, y: 3 }}
+                  transition={SPRING_PRESS}
+                />
               </motion.button>
             </div>
           </div>
@@ -274,13 +287,21 @@ export function SiteNav() {
           {mobileOpen ? (
             <motion.div
               data-sheet="mobile"
-              className="border-t border-ink-line bg-white shadow-sheet md:hidden"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: DURATION.sheet, ease: EASE_OUT }}
+              className="overflow-hidden bg-white shadow-sheet md:hidden"
+              initial={{ height: 0 }}
+              animate={{ height: "calc(100dvh - 72px)" }}
+              exit={{ height: 0, transition: { duration: 0.25, ease: SHEET_EASE } }}
+              transition={{ height: { duration: 0.35, ease: SHEET_EASE } }}
             >
-              <MobileMenu onNavigate={closeAll} />
+              <motion.div
+                className="h-[calc(100dvh-72px)]"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: { duration: 0.15, ease: EASE_OUT } }}
+                transition={{ duration: 0.35, delay: 0.15, ease: EASE_OUT }}
+              >
+                <MobileMenu onNavigate={closeAll} />
+              </motion.div>
             </motion.div>
           ) : null}
         </AnimatePresence>
@@ -602,95 +623,242 @@ function ReleasesSheet({ onNavigate }: { onNavigate: () => void }) {
 
 function MobileMenu({ onNavigate }: { onNavigate: () => void }) {
   const { i18n } = useLingui();
+  const [openGroup, setOpenGroup] = useState<SheetId>("product");
   const { releases } = useStableReleases();
   const latest = releases?.[0];
+
+  const toggle = (id: SheetId) => setOpenGroup(id);
+
   return (
-    <div className="mx-auto flex max-h-[calc(100dvh-72px)] max-w-[1200px] flex-col overflow-y-auto px-5 pb-8 pt-3 sm:px-8">
-      <MobileGroup label={i18n._(SHEET_LABELS.product)} defaultOpen>
-        {MODES.map((mode) => (
-          <MobileLink key={mode.key} href={withBase("/#features")} onClick={onNavigate}>
-            {i18n._(mode.label)}
-          </MobileLink>
-        ))}
-        {EXPLORE_LINKS.map((link) => (
-          <MobileLink key={link.label.id} href={withBase(link.href)} onClick={onNavigate}>
-            {i18n._(link.label)}
-          </MobileLink>
-        ))}
-      </MobileGroup>
-      <MobileGroup label={i18n._(SHEET_LABELS.docs)}>
-        {[...DOC_GUIDES, ...DOC_HELP].map((link) => (
-          <MobileLink key={link.href} href={withBase(link.href)} onClick={onNavigate}>
-            {i18n._(link.label)}
-          </MobileLink>
-        ))}
-      </MobileGroup>
-      <MobileGroup label={i18n._(SHEET_LABELS.releases)}>
-        {latest ? (
-          <MobileLink
-            href={withBase(`/releases/${encodeURIComponent(latest.tag_name)}`)}
+    <div className="flex h-full flex-col">
+      <div className="flex-1 overflow-y-auto">
+        <MobileAccordion
+          id="product"
+          label={i18n._(SHEET_LABELS.product)}
+          isOpen={openGroup === "product"}
+          onToggle={() => toggle("product")}
+        >
+          <MobileGroupLabel>
+            <Trans>What readers get</Trans>
+          </MobileGroupLabel>
+          {MODES.map((mode) => (
+            <MobileSubLink
+              key={mode.key}
+              href={withBase("/#features")}
+              icon={mode.icon}
+              hex={mode.hex}
+              onClick={onNavigate}
+            >
+              {i18n._(mode.label)}
+            </MobileSubLink>
+          ))}
+          <MobileGroupLabel>
+            <Trans>Explore</Trans>
+          </MobileGroupLabel>
+          {EXPLORE_LINKS.map((link) => (
+            <MobileSubLink
+              key={link.label.id}
+              href={withBase(link.href)}
+              icon={link.icon}
+              onClick={onNavigate}
+            >
+              {i18n._(link.label)}
+            </MobileSubLink>
+          ))}
+        </MobileAccordion>
+
+        <MobileAccordion
+          id="docs"
+          label={i18n._(SHEET_LABELS.docs)}
+          isOpen={openGroup === "docs"}
+          onToggle={() => toggle("docs")}
+        >
+          <MobileGroupLabel>
+            <Trans>Guides</Trans>
+          </MobileGroupLabel>
+          {DOC_GUIDES.map((link) => (
+            <MobileSubLink key={link.href} href={withBase(link.href)} icon={link.icon} onClick={onNavigate}>
+              {i18n._(link.label)}
+            </MobileSubLink>
+          ))}
+          <MobileGroupLabel>
+            <Trans>Help</Trans>
+          </MobileGroupLabel>
+          {DOC_HELP.map((link) => (
+            <MobileSubLink key={link.href} href={withBase(link.href)} icon={link.icon} onClick={onNavigate}>
+              {i18n._(link.label)}
+            </MobileSubLink>
+          ))}
+        </MobileAccordion>
+
+        <MobileAccordion
+          id="releases"
+          label={i18n._(SHEET_LABELS.releases)}
+          isOpen={openGroup === "releases"}
+          onToggle={() => toggle("releases")}
+        >
+          {latest ? (
+            <a
+              href={withBase(`/releases/${encodeURIComponent(latest.tag_name)}`)}
+              onClick={onNavigate}
+              className="mx-5 mb-3 flex flex-col gap-1.5 overflow-hidden rounded-2xl border border-ink-line bg-white p-4"
+            >
+              {firstImageFromBody(latest.body) ? (
+                <img
+                  src={firstImageFromBody(latest.body) ?? undefined}
+                  alt=""
+                  className="-mx-4 -mt-4 mb-2 block aspect-[16/9] w-[calc(100%+2rem)] max-w-none object-cover"
+                />
+              ) : null}
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1 rounded-full bg-brand-tint px-2 py-0.5 font-mono text-[12px] font-bold text-brand-deep">
+                  <Tag className="size-3" />
+                  {latest.tag_name}
+                </span>
+                <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                  <Trans>Latest</Trans>
+                </span>
+              </span>
+              <span className="text-[15px] font-bold leading-snug text-ink">
+                {releaseHeadline(latest)}
+              </span>
+              <span className="text-xs text-ink-soft">{formatRelativeDate(latest.published_at)}</span>
+            </a>
+          ) : null}
+          <a
+            href={withBase("/releases")}
             onClick={onNavigate}
+            className="mx-5 mb-2 inline-flex items-center gap-1.5 text-sm font-bold text-ink hover:text-brand-deep"
           >
-            <span className="font-mono">{latest.tag_name}</span>
-            <span className="ml-2 rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-              <Trans>Latest</Trans>
+            <Trans>All releases</Trans>
+            <ArrowRight className="size-4" />
+          </a>
+          <MobileGroupLabel>
+            <Trans>Download</Trans>
+          </MobileGroupLabel>
+          {PLATFORMS.map((platform) => {
+            const resolved = findLatestForPlatform(releases, platform.key);
+            const Icon = platform.icon;
+            const href = resolved?.asset.browser_download_url ?? withBase("/download");
+            return (
+              <a
+                key={platform.key}
+                href={href}
+                onClick={() => {
+                  onNavigate();
+                  if (resolved) trackDownload(platform.key, resolved.asset.name);
+                }}
+                className="flex min-h-11 items-center gap-3 px-5 py-1.5 active:bg-brand-tint/60"
+              >
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-tint text-brand">
+                  <Icon className="size-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-bold text-ink">{platform.label}</span>
+                  <span className="block truncate text-xs text-ink-soft">
+                    {resolved
+                      ? `${resolved.release.tag_name} · ${formatSize(resolved.asset.size)}`
+                      : platform.fallbackHint}
+                  </span>
+                </span>
+              </a>
+            );
+          })}
+        </MobileAccordion>
+      </div>
+
+      <div className="sticky bottom-0 border-t border-ink-line bg-white p-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <DownloadButton source="nav_mobile" size="md" className="w-full justify-center" />
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <LocaleSwitcher variant="pill" />
+          <span className="flex items-center gap-3">
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-ink hover:text-brand-deep"
+            >
+              <GithubIcon className="size-4" />
+              <Trans>GitHub</Trans>
+            </a>
+            <span className="text-xs text-ink-soft">
+              <Trans>AGPL-3.0 · Free & open source</Trans>
             </span>
-          </MobileLink>
-        ) : null}
-        <MobileLink href={withBase("/releases")} onClick={onNavigate}>
-          <Trans>All releases</Trans>
-        </MobileLink>
-      </MobileGroup>
-      <div className="my-3 h-px bg-ink-line" />
-      <a
-        href={GITHUB_URL}
-        target="_blank"
-        rel="noreferrer noopener"
-        className="flex items-center gap-3 rounded-full px-4 py-3 text-[16px] font-bold text-ink hover:bg-brand-tint"
-      >
-        <GithubIcon className="size-4" />
-        <Trans>GitHub</Trans>
-      </a>
-      <a
-        href={withBase("/download")}
-        onClick={() => {
-          onNavigate();
-          trackEvent("cta", "download_click", "nav_mobile");
-        }}
-        className="mt-3 inline-flex h-12 items-center justify-center rounded-full bg-brand px-6 text-[16px] font-bold text-white hover:bg-brand-deep"
-      >
-        <Trans>Download</Trans>
-      </a>
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
 
-function MobileGroup({
+function MobileAccordion({
+  id,
   label,
-  defaultOpen = false,
+  isOpen,
+  onToggle,
   children,
 }: {
+  id: SheetId;
   label: string;
-  defaultOpen?: boolean;
+  isOpen: boolean;
+  onToggle: () => void;
   children: ReactNode;
 }) {
   return (
-    <details open={defaultOpen} className="group border-b border-ink-line py-1">
-      <summary className="flex cursor-pointer list-none items-center justify-between rounded-full px-4 py-3 text-[16px] font-bold text-ink [&::-webkit-details-marker]:hidden">
+    <div className="border-b border-ink-line">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-controls={`nav-mobile-group-${id}`}
+        className="flex min-h-14 w-full items-center justify-between px-5 text-left font-display text-[17px] font-bold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+      >
         {label}
-        <ArrowRight className="size-4 transition-transform duration-200 group-open:rotate-90" />
-      </summary>
-      <div className="flex flex-col pb-2">{children}</div>
-    </details>
+        <motion.span
+          aria-hidden
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={SPRING_LAYOUT}
+          className="text-ink-soft"
+        >
+          <ChevronDown className="size-5" />
+        </motion.span>
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen ? (
+          <motion.div
+            id={`nav-mobile-group-${id}`}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.28, ease: EASE_OUT }}
+            className="overflow-hidden"
+          >
+            <div className="pb-3">{children}</div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
   );
 }
 
-function MobileLink({
+function MobileGroupLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="px-5 pb-1 pt-3 text-xs font-bold uppercase tracking-wide text-ink-mute first:pt-1">
+      {children}
+    </p>
+  );
+}
+
+function MobileSubLink({
   href,
+  icon: Icon,
+  hex,
   onClick,
   children,
 }: {
   href: string;
+  icon: LucideIcon;
+  hex?: string;
   onClick: () => void;
   children: ReactNode;
 }) {
@@ -698,9 +866,15 @@ function MobileLink({
     <a
       href={href}
       onClick={onClick}
-      className="rounded-full px-6 py-2.5 text-[15px] font-semibold text-ink-soft hover:bg-brand-tint hover:text-ink"
+      className="flex min-h-11 items-center gap-3 px-5 py-1.5 active:bg-brand-tint/60"
     >
-      {children}
+      <span
+        className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-tint text-brand"
+        style={hex ? { backgroundColor: `${hex}1a`, color: hex } : undefined}
+      >
+        <Icon className="size-4" />
+      </span>
+      <span className="text-[15px] font-bold text-ink">{children}</span>
     </a>
   );
 }

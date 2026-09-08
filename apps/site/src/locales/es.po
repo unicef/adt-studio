@@ -119,6 +119,9 @@ msgstr "ADT Studio está actualmente en"
 #~ msgid "ADT Studio turns any textbook into a digital book every student can read, hear, see and understand: narration, easy-read, translations, sign language, quizzes and more. Free, open source, and it runs on your computer."
 #~ msgstr "ADT Studio convierte cualquier libro de texto en un libro digital que todo estudiante puede leer, escuchar, ver y entender: narración, lectura fácil, traducciones, lengua de señas, cuestionarios y más. Gratuito, de código abierto y funciona en tu computadora."
 
+msgid "AGPL-3.0 · Free & open source"
+msgstr "AGPL-3.0 · Gratuito y de código abierto"
+
 msgid "AGPL-3.0 license"
 msgstr "Licencia AGPL-3.0"
 
