@@ -8,10 +8,13 @@
 
 import { randomUUID } from "node:crypto"
 import {
+  DEFAULT_SCREENSHOT_TIMEOUT_MS,
   screenshotIpcCloseSchema,
   screenshotIpcReplySchema,
   screenshotIpcRequestSchema,
 } from "@adt/types"
+
+export { DEFAULT_SCREENSHOT_TIMEOUT_MS }
 
 export const SCREENSHOT_VIEWPORTS = [
   { label: "desktop", width: 1280, height: 800 },
@@ -38,7 +41,12 @@ export interface ScreenshotRenderer {
   screenshot(
     html: string,
     viewport?: { width: number; height: number },
-    options?: { signal?: AbortSignal },
+    options?: {
+      signal?: AbortSignal
+      /** Budget for the whole capture. Honored by the Electron renderer; the
+       *  Playwright renderer is bounded by Playwright's own per-operation timeouts. */
+      timeoutMs?: number
+    },
   ): Promise<string>
   /** Release browser resources. */
   close(): Promise<void>
@@ -128,6 +136,10 @@ function utilityParentPort(): ParentPortLike | null {
   return p
 }
 
+/** Extra slack on top of the capture budget so main's own bounded failure — which
+ *  carries a descriptive error — normally wins the race against this backstop. */
+const SCREENSHOT_REPLY_GRACE_MS = 5_000
+
 /**
  * Electron `utilityProcess.fork` child: talk to main via `process.parentPort`.
  * `process.send` / `process.on("message")` are for Node `child_process.fork` only — they do not wire to main here.
@@ -144,12 +156,23 @@ export async function _createElectronScreenshotRenderer(): Promise<ScreenshotRen
     async screenshot(
       html: string,
       viewport = { width: 1024, height: 768 },
-      options: { signal?: AbortSignal } = {},
+      options: { signal?: AbortSignal; timeoutMs?: number } = {},
     ): Promise<string> {
       throwIfAborted(options.signal)
       const id = randomUUID()
+      const timeoutMs = options.timeoutMs ?? DEFAULT_SCREENSHOT_TIMEOUT_MS
+      const replyTimeoutMs = timeoutMs + SCREENSHOT_REPLY_GRACE_MS
+      const payload = screenshotIpcRequestSchema.parse({
+        type: "screenshot-base64",
+        id,
+        html,
+        viewport,
+        timeoutMs,
+      })
       return new Promise((resolve, reject) => {
+        let timer: ReturnType<typeof setTimeout> | undefined
         const cleanup = () => {
+          if (timer) clearTimeout(timer)
           parentPort.off("message", onMessage)
           options.signal?.removeEventListener("abort", onAbort)
         }
@@ -172,12 +195,14 @@ export async function _createElectronScreenshotRenderer(): Promise<ScreenshotRen
         }
         parentPort.on("message", onMessage)
         options.signal?.addEventListener("abort", onAbort, { once: true })
-        const payload = screenshotIpcRequestSchema.parse({
-          type: "screenshot-base64",
-          id,
-          html,
-          viewport,
-        })
+        timer = setTimeout(() => {
+          cleanup()
+          reject(
+            new Error(
+              `Screenshot timed out after ${replyTimeoutMs}ms: the main process never replied`
+            )
+          )
+        }, replyTimeoutMs)
         parentPort.postMessage(payload)
       })
     },
