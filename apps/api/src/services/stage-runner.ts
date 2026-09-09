@@ -1733,6 +1733,7 @@ async function runStoryboardStep(
               pageImageBase64,
               sectioning: sectioning,
               images: renderImages,
+              layoutType: config.layout_type,
               sourcePageImages,
               styleguide: styleguideContent,
               bookFonts: buildBookFontsPromptContext(storage),

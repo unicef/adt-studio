@@ -13,6 +13,27 @@ The screenshots show a **single section**, which is typically only a SUBSET of t
 - **Locate the corresponding region** in the original page image that matches this section's content (by matching the text, images, and headings present in the rendered screenshot). Use that region as a reference for what content belongs here — NOT for what it should look like.
 - The rendered section will typically occupy the full viewport width, even if in the original it only takes up a column, a strip, or a small portion of the page. This is correct and expected — do NOT reject for this.
 - Other content visible in the original page image (other sections, headers, footers, page numbers, surrounding text, neighboring images) is NOT part of this section and MUST NOT appear in the rendering. Do NOT flag missing content that belongs to a different section.
+
+{% if layout_type == "textbook" %}
+## TEXTBOOK IMAGE-INTEGRITY REVIEW
+Even during a user-directed redesign, these are functional defects rather than stylistic differences:
+- a full/near-full page raster visibly embedded as a whole in one section, or a `data-textbook-crop="true"` source crop that leaks adjacent printed content at any viewport;
+- a worksheet or form screenshot shown together with semantic HTML that repeats its prompts, labels, table, or controls;
+- a text-bearing raster and visibly duplicated HTML transcription;
+- overlay percentages positioned against a container that is not the anchor image's exact aspect-ratio box;
+- a blank image-sized placeholder or invented CSS diagram/card grid standing in for an omitted image.
+
+Remove a proven visible page-replica/worksheet `<img>` and keep the semantic content. A page-sized source may remain only as one tight, invariant, exact-aspect-ratio crop of an essential figure. For any retained labelled figure, keep the figure and make only its duplicate transcription (including baked option labels) `sr-only`. For activities, keep semantic instructions, questions, tables, choices, and controls visible; an individual evidence/option figure may remain when it is required to answer.
+
+Reject a crop when even a clipped fragment of a caption, instruction, heading, paragraph, answer line, or neighboring section leaks at an edge. For a retained activity figure, compare its `image_group` text leaves against the pixels: baked option markers, titles, labels, prices, units, and captions must be `sr-only`. If the figure has a printed blank/line/box, the semantic control must overlay that exact writable area in one exact-aspect-ratio relative wrapper; reject a duplicate field detached below or beside the image.
+
+**The current HTML is the authority for image admission.** The generator has already triaged the candidates. A correction MAY remove an existing `<img>`, but MUST NEVER add one, restore one removed in an earlier iteration, change an image `data-id`, or invent/change its `src`. An image absent from the current HTML is intentionally omitted even if it appears in the content tree or original page; never report or repair that omission as missing content.
+
+Generated crop membership and its stable coordinate system are immutable during review. Never remove a `data-textbook-crop="true"` wrapper or its `<img>`. You MAY tighten the crop after screenshot comparison, but must recompute the wrapper `aspect-[W/H]` plus the image percentage `w-[…%]`, `left-[…%]`, and `top-[…%]` together from one revised native-image rectangle. Keep `relative overflow-hidden` on the wrapper and `absolute max-w-none h-auto` on the image. Never use inline styles, `object-cover`, `object-position`, `h-full`, `w-full`, or breakpoint-specific crop coordinates. State the revised approximate rectangle in your reasoning.
+
+`sr-only` transcription decisions are monotonic: you MAY add `sr-only` to a proven baked-text duplicate, but MUST NEVER remove it from a text `data-id` that already has it.
+{% include "_textbook_review_checklist" %}
+{% endif %}
 {% if user_instructions != blank %}
 ## USER INSTRUCTIONS (HIGHEST PRIORITY)
 This section was re-rendered with explicit instructions from the user:
@@ -48,7 +69,8 @@ This is a web textbook. The print original is a *reference for content*, not a *
 Reject ONLY when one of these is clearly true:
 - **Visible placeholder tokens** — literal text like `[placeholder:]`, {% raw %}`{{ ... }}`{% endraw %}, `[blank]`, or other unrendered template tokens visible in the screenshot
 - **Duplicate content** — the same text or element rendered twice when it should appear once (e.g., both a hidden runtime text node and a visible duplicate showing simultaneously)
-- **Missing content** — text or images that should be in this section (per the matching region in the original) are entirely absent from the rendering
+{% if layout_type == "textbook" %}- **Duplicate raster reconstruction** — a page replica or worksheet/form composite visibly repeats the semantic HTML in the same section
+- **Missing content** — required text or an image already admitted in the current HTML is accidentally lost. An image omitted by generation triage is not missing content and must not be added.{% else %}- **Missing content** — text or images that should be in this section (per the matching region in the original) are entirely absent from the rendering{% endif %}
 - **Overlapping text or elements** — elements visibly stacked on top of each other in a way that makes content unreadable
 - **Text hidden behind images** — text overlays MUST have `z-10` or higher so they always render above images. Different browsers stack elements differently, so explicit z-index is required
 - **Content cut off or clipped** — text or images cropped at viewport edges or container boundaries (especially on mobile)
@@ -69,8 +91,9 @@ On mobile only (no prefix), favor a single-column stacked layout. At tablet (`md
 - The normal data-id rule is that an element WITH a `data-id` attribute contains only literal text. The sole exception is a `table_of_contents` leaf that owns both title and page number; it may contain the direct marked title, leader, and page-number spans described above while keeping exactly the same combined text.
 - A plain wrapper element WITHOUT its own `data-id` (e.g. a `<p>`, `<div>`, `<li>`, or `<section>`) MAY contain multiple data-id-bearing children (typically `<span data-id="...">…</span>` fragments flowing inline). That is the intended shape for a paragraph or list item whose text is split across several leaves — do NOT flag or rewrite it. Only flag cases where an element that itself has a `data-id` also has child tags inside it.
 - Preserve ALL text content exactly — do not change, add, or remove any words
-- Preserve ALL image tags and their data-id attributes
-- Only change layout and styling: Tailwind CSS classes, inline styles, spacing, positioning
+{% if layout_type == "textbook" %}- Preserve legitimate figure image tags and their data-id attributes. You MAY remove an `<img>` only when it is a proven visible page replica, worksheet/form duplicate, or unsafe leaking crop; never add, restore, or replace an image.
+- Change layout and styling as needed. Apart from removing a proven duplicate raster or applying `sr-only` to its matching transcription, preserve the content structure.{% else %}- Preserve ALL image tags and their data-id attributes
+- Only change layout and styling: Tailwind CSS classes, inline styles, spacing, positioning{% endif %}
 - Preserve every native heading tag and every existing `adt-h1` through `adt-h6`, `adt-body`, and `adt-caption` class. Never add a `text-*` size utility or inline `font`/`font-size` to a heading or its descendants.
 - Keep the <section> wrapper and its role/data-section-type/data-section-id attributes
 - Do NOT add <script>, <iframe>, <object>, or <embed> tags
@@ -81,6 +104,8 @@ On mobile only (no prefix), favor a single-column stacked layout. At tablet (`md
 - "approved": true if the rendering is functionally correct and readable, false ONLY if there is a real functional defect from the rejection list above
 - "reasoning": Brief explanation. If approving, note what works. If rejecting, identify the specific functional defect (cite the rejection list) — do NOT reject for stylistic differences from the original.
 - "content": If not approved, provide the corrected HTML fragment. If approved, return an empty string.
+- "geometry_updates": Exact native-pixel crop refinements, or an empty array. When non-empty, `approved` must be false; `content` may be empty if crop geometry is the only change.
+- "transcription_updates": Proven baked raster/HTML duplicates as `{ "image_id": "…", "text_id": "…" }`, or an empty array. When non-empty, `approved` must be false; `content` may be empty.
 
 ## WHEN YOU CANNOT IMPROVE THE HTML
 If you have identified a defect but cannot produce a fix that respects the data-id rules and structural constraints — for example, the source HTML is missing required elements, or the fix would require text/markup that isn't allowed — return `approved: false` with an **empty `content` string**. This signals that the loop should stop. Do NOT submit a token revision (e.g. the same HTML you already returned, or a near-identical variant) just to fill the field — that wastes iterations without making progress.

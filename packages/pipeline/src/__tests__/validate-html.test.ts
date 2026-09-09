@@ -37,6 +37,26 @@ describe("validateSectionHtml", () => {
     expect(result.errors).toEqual([])
   })
 
+  it("allows an unsafe candidate image to be omitted from semantic HTML", () => {
+    const html = `
+      <div id="content" class="container">
+        <section data-section-type="text_and_single_image">
+          <p data-id="pg001_tx001">Semantic textbook content</p>
+        </section>
+      </div>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["pg001_tx001"],
+      ["pg001_im001"],
+      undefined,
+      { expectedContentIdOrder: ["pg001_im001", "pg001_tx001"] },
+    )
+
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
   it("still requires non-optional text-ids when optionalTextIds is set", () => {
     const html = `
       <section data-section-type="activity_fill_in_the_blank">

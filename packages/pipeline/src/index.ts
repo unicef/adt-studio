@@ -130,6 +130,8 @@ export {
 } from "./visual-review.js"
 export {
   createScreenshotRenderer,
+  limitScreenshotConcurrency,
+  DEFAULT_SCREENSHOT_CONCURRENCY,
   SCREENSHOT_VIEWPORTS,
   getViewportBreakpoints,
   type ScreenshotRenderer,
