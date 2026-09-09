@@ -2,14 +2,14 @@ import type { ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
-import { Bell, CheckCircle2, Volume2, Timer, X } from "lucide-react"
+import { Bell, CheckCircle2, Volume2, Timer, X, MonitorSmartphone } from "lucide-react"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import { useNotificationPrefs, type ToastPosition } from "@/hooks/use-notification-prefs"
 import { usePlatform, type DesktopOS } from "@/hooks/use-platform"
-import { cn } from "@/lib/utils"
+import { cn, isElectron } from "@/lib/utils"
 import { SettingsHeading, SettingsLead } from "./ui"
 import { SETTINGS_ANCHORS } from "./nav"
 
@@ -143,6 +143,9 @@ export function NotificationsSection() {
   const { i18n, t } = useLingui()
   const os = usePlatform()
   const [prefs, setPrefs] = useNotificationPrefs()
+  // OS notifications only exist behind the Electron bridge; the web build has
+  // no way to raise them, so the tile stays hidden there.
+  const showOsAlerts = isElectron()
 
 
   const sendTestToast = () => {
@@ -214,7 +217,7 @@ export function NotificationsSection() {
         </div>
       </section>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className={cn("mt-4 grid gap-3", showOsAlerts ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3")}>
         <ControlTile
           icon={Volume2}
           anchorId={SETTINGS_ANCHORS.notificationSound}
@@ -250,6 +253,25 @@ export function NotificationsSection() {
             onValueChange={(v) => (v === "off" ? setPrefs({ autoDismiss: false }) : setPrefs({ autoDismiss: true, autoDelay: Number(v) }))}
           />
         </ControlTile>
+
+        {showOsAlerts && (
+          <ControlTile
+            icon={MonitorSmartphone}
+            anchorId={SETTINGS_ANCHORS.notificationOsAlerts}
+            title={<Trans>Desktop alerts</Trans>}
+            description={<Trans>A system notification when the window is in the background.</Trans>}
+          >
+            <SegmentedControl
+              className="w-full"
+              options={[
+                { value: "off", label: t`Off` },
+                { value: "on", label: t`On` },
+              ]}
+              value={prefs.osNotifications ? "on" : "off"}
+              onValueChange={(v) => setPrefs({ osNotifications: v === "on" })}
+            />
+          </ControlTile>
+        )}
 
         <ControlTile
           icon={Bell}

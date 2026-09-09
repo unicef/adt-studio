@@ -736,6 +736,9 @@ msgstr "Një udhëzues stili ofron modele të qëndrueshme HTML dhe CSS që LLM 
 msgid "A supermarket aisle with shelves of colorful cereal boxes and packaged goods, lit by overhead lights, with a single shopper in the distance."
 msgstr "Një koridor supermarketi me rafte me kuti drithërash me ngjyra dhe mallra të paketuara, i ndriçuar nga dritat sipër, me një blerës të vetëm në distancë."
 
+msgid "A system notification when the window is in the background."
+msgstr "Një njoftim i sistemit kur dritarja është në sfond."
+
 msgid "A table-filling activity."
 msgstr "Një aktivitet me plotësim tabele."
 
@@ -3157,6 +3160,9 @@ msgstr "Hiq zgjedhjen e të gjithave"
 
 msgid "Desktop"
 msgstr "Desktop"
+
+msgid "Desktop alerts"
+msgstr "Alerte në desktop"
 
 msgid "Despite the inclement weather, the expedition pressed on toward the summit, undeterred by the mounting obstacles in their path."
 msgstr "Pavarësisht motit të keq, ekspedita vazhdoi drejt majës, pa u tërhequr nga pengesat në rritje në rrugën e tyre."
@@ -6422,8 +6428,11 @@ msgstr "Nuk ka asgjë për të shfaqur"
 msgid "Notifications"
 msgstr "Njoftime"
 
-msgid "notifications toasts alerts sound"
-msgstr "njoftime alarme zë"
+#~ msgid "notifications toasts alerts sound"
+#~ msgstr "njoftime alarme zë"
+
+msgid "notifications toasts alerts sound desktop system"
+msgstr "njoftime alerte tingull desktop sistem"
 
 msgid "Now click the end page."
 msgstr "Tani klikoni faqen e fundit."
@@ -6695,6 +6704,9 @@ msgstr "PDF origjinal"
 #. placeholder {0}: i18n._(selectedBook.title)
 msgid "Original PDF - {0}"
 msgstr "PDF origjinal - {0}"
+
+msgid "os native system desktop banner background unfocused"
+msgstr "os vendas sistem desktop banderolë sfond pa fokus"
 
 msgid "Other"
 msgstr "Tjetër"

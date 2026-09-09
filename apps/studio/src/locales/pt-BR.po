@@ -734,6 +734,9 @@ msgstr "Um guia de estilo fornece padrões consistentes de HTML e CSS que o LLM 
 msgid "A supermarket aisle with shelves of colorful cereal boxes and packaged goods, lit by overhead lights, with a single shopper in the distance."
 msgstr "Um corredor de supermercado com prateleiras de caixas de cereais coloridas e produtos embalados, iluminado por luzes superiores, com um único comprador à distância."
 
+msgid "A system notification when the window is in the background."
+msgstr "Uma notificação do sistema quando a janela está em segundo plano."
+
 msgid "A table-filling activity."
 msgstr "Uma atividade de preenchimento de tabela."
 
@@ -3155,6 +3158,9 @@ msgstr "Desmarcar tudo"
 
 msgid "Desktop"
 msgstr "Desktop"
+
+msgid "Desktop alerts"
+msgstr "Alertas do desktop"
 
 msgid "Despite the inclement weather, the expedition pressed on toward the summit, undeterred by the mounting obstacles in their path."
 msgstr "Apesar do mau tempo, a expedição seguiu em frente rumo ao cume, sem se deixar abater pelos crescentes obstáculos em seu caminho."
@@ -6420,8 +6426,11 @@ msgstr "Nada para mostrar"
 msgid "Notifications"
 msgstr "Notificações"
 
-msgid "notifications toasts alerts sound"
-msgstr "notificações alertas sons"
+#~ msgid "notifications toasts alerts sound"
+#~ msgstr "notificações alertas sons"
+
+msgid "notifications toasts alerts sound desktop system"
+msgstr "notificações avisos alertas som desktop sistema"
 
 msgid "Now click the end page."
 msgstr "Agora clique na página final."
@@ -6693,6 +6702,9 @@ msgstr "PDF Original"
 #. placeholder {0}: i18n._(selectedBook.title)
 msgid "Original PDF - {0}"
 msgstr "PDF Original - {0}"
+
+msgid "os native system desktop banner background unfocused"
+msgstr "so nativo sistema desktop banner segundo plano sem foco"
 
 msgid "Other"
 msgstr "Outro"

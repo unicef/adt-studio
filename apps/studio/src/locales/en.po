@@ -734,6 +734,9 @@ msgstr "A style guide provides consistent HTML and CSS patterns that the LLM use
 msgid "A supermarket aisle with shelves of colorful cereal boxes and packaged goods, lit by overhead lights, with a single shopper in the distance."
 msgstr "A supermarket aisle with shelves of colorful cereal boxes and packaged goods, lit by overhead lights, with a single shopper in the distance."
 
+msgid "A system notification when the window is in the background."
+msgstr "A system notification when the window is in the background."
+
 msgid "A table-filling activity."
 msgstr "A table-filling activity."
 
@@ -3155,6 +3158,9 @@ msgstr "Deselect all"
 
 msgid "Desktop"
 msgstr "Desktop"
+
+msgid "Desktop alerts"
+msgstr "Desktop alerts"
 
 msgid "Despite the inclement weather, the expedition pressed on toward the summit, undeterred by the mounting obstacles in their path."
 msgstr "Despite the inclement weather, the expedition pressed on toward the summit, undeterred by the mounting obstacles in their path."
@@ -6420,8 +6426,11 @@ msgstr "Nothing to show"
 msgid "Notifications"
 msgstr "Notifications"
 
-msgid "notifications toasts alerts sound"
-msgstr "notifications toasts alerts sound"
+#~ msgid "notifications toasts alerts sound"
+#~ msgstr "notifications toasts alerts sound"
+
+msgid "notifications toasts alerts sound desktop system"
+msgstr "notifications toasts alerts sound desktop system"
 
 msgid "Now click the end page."
 msgstr "Now click the end page."
@@ -6693,6 +6702,9 @@ msgstr "Original PDF"
 #. placeholder {0}: i18n._(selectedBook.title)
 msgid "Original PDF - {0}"
 msgstr "Original PDF - {0}"
+
+msgid "os native system desktop banner background unfocused"
+msgstr "os native system desktop banner background unfocused"
 
 msgid "Other"
 msgstr "Other"

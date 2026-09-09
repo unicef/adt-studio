@@ -2,10 +2,11 @@ import { useEffect, useRef } from "react"
 import { useNavigate, useRouterState } from "@tanstack/react-router"
 import { i18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/sonner"
 import { BASE_URL } from "@/api/client"
 import { isElectron } from "@/lib/utils"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
+import { getNotificationPrefs } from "@/hooks/use-notification-prefs"
 
 interface StageTerminalEvent {
   type: "stage-complete" | "stage-error"
@@ -13,6 +14,9 @@ interface StageTerminalEvent {
   stage?: string
   error?: string
 }
+
+const RECONNECT_BASE_DELAY_MS = 1_000
+const RECONNECT_MAX_DELAY_MS = 30_000
 
 /**
  * Always-on notification listener for pipeline runs.
@@ -40,8 +44,6 @@ export function useGlobalRunNotifications(): void {
   useEffect(() => {
     if (typeof window === "undefined") return
 
-    const es = new EventSource(`${BASE_URL}/books/events`)
-
     const handleStageFinished = async (
       label: string,
       stage: string,
@@ -56,7 +58,9 @@ export function useGlobalRunNotifications(): void {
         : document.hasFocus()
 
       if (!focused) {
-        if (notifications) {
+        // Native OS notifications are opt-out in Settings → Notifications; the
+        // SSE subscription and the in-app toasts below are unaffected.
+        if (notifications && getNotificationPrefs().osNotifications) {
           await notifications.show({
             title: failed
               ? i18n._(msg`${stageLabel} failed`)
@@ -123,10 +127,53 @@ export function useGlobalRunNotifications(): void {
       void handleStageFinished(label, stage, data.type === "stage-error")
     }
 
-    es.addEventListener("progress", handleProgress)
+    let eventSource: EventSource | null = null
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined
+    let reconnectAttempt = 0
+    let disposed = false
+
+    const scheduleReconnect = () => {
+      if (disposed || reconnectTimer !== undefined) return
+
+      const delay = Math.min(RECONNECT_MAX_DELAY_MS, RECONNECT_BASE_DELAY_MS * 2 ** reconnectAttempt++)
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = undefined
+        connect()
+      }, delay)
+    }
+
+    // A fatal response (502/503, a non-SSE content type) moves an EventSource to
+    // CLOSED for good, so without this the session would silently lose all
+    // cross-book notifications. Transient drops keep using the browser's own
+    // retry, which never reaches CLOSED.
+    const connect = () => {
+      if (disposed) return
+
+      const source = new EventSource(`${BASE_URL}/books/events`)
+      eventSource = source
+
+      source.addEventListener("open", () => {
+        reconnectAttempt = 0
+      })
+
+      source.addEventListener("progress", handleProgress)
+
+      source.addEventListener("error", () => {
+        if (disposed || eventSource !== source || source.readyState !== EventSource.CLOSED) {
+          return
+        }
+        scheduleReconnect()
+      })
+    }
+
+    connect()
 
     return () => {
-      es.close()
+      disposed = true
+      clearTimeout(reconnectTimer)
+      reconnectTimer = undefined
+      eventSource?.close()
+      eventSource = null
     }
   }, [])
 }
