@@ -19,14 +19,14 @@ export function EasyReadEditor({
   selectedPageId,
   onSelectPage,
   isRunning,
-  hasApiKey,
+  hasStructuredTextProvider,
   onRegenerate,
 }: {
   bookLabel: string
   selectedPageId?: string
   onSelectPage?: (pageId: string | null) => void
   isRunning: boolean
-  hasApiKey: boolean
+  hasStructuredTextProvider: boolean
   onRegenerate: () => void
 }) {
   const { t } = useLingui()
@@ -205,7 +205,7 @@ export function EasyReadEditor({
 
   const currentVersion = data?.version ?? null
   const saving = saveMutation.isPending
-  const regenerateDisabled = !hasApiKey || isRunning || dirty
+  const regenerateDisabled = !hasStructuredTextProvider || isRunning || dirty
 
   useEffect(() => {
     setExtra(

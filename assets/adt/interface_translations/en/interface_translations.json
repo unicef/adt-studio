@@ -5,6 +5,7 @@
     "language-search-empty": "No matches",
     "nav-label": "Navigation menu",
     "tts-label": "Text to speech",
+    "narrator-voice-label": "Narrator voice",
     "activate-tts-label": "Activate text to speech",
     "deactivate-tts-label": "Deactivate text to speech",
     "eli5-label": "Explain to me",

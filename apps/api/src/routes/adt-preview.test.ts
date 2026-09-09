@@ -332,15 +332,24 @@ describe("ADT preview routes", () => {
         ],
         generatedAt: "2026-01-01T00:00:00.000Z",
       })
-      storage.putNodeData("tts", "en", {
-        entries: ["pg001_tx001", "pg001_tx002"].map((textId) => ({
+      const primaryEntries = ["pg001_tx001", "pg001_tx002"].map((textId) => ({
           textId,
           language: "en",
           fileName: `${textId}.mp3`,
           voice: "alloy",
           model: "gpt-4o-mini-tts",
           cached: false,
-        })),
+        }))
+      storage.putNodeData("tts", "en", {
+        entries: [
+          ...primaryEntries,
+          {
+            ...primaryEntries[0],
+            fileName: "pg001_tx001--secondary.mp3",
+            voice: "shimmer",
+            voiceSlot: "secondary",
+          },
+        ],
         generatedAt: "2026-01-01T00:00:00.000Z",
       })
     } finally {
@@ -353,6 +362,98 @@ describe("ADT preview routes", () => {
 
     expect(await speechRes.json()).toEqual({ pg001_tx001: "x squared" })
     expect(await audioRes.json()).toEqual({ pg001_tx001: "pg001_tx001.mp3" })
+  })
+
+  // The preview manifest must resolve narrator names exactly the way the
+  // packaged bundle does — otherwise the Speech view shows an opaque voice ID
+  // for a voice the export names properly.
+  describe("audio_voices.json", () => {
+    const requestManifest = async () => {
+      const app = createAdtPreviewRoutes(
+        tmpDir,
+        webAssetsDir,
+        path.resolve(process.cwd(), "config.yaml"),
+      )
+      return app.request(`/books/${label}/adt-preview/content/i18n/en/audio_voices.json`)
+    }
+
+    const putTts = (entries: Record<string, unknown>[]) => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        putReadyCoreTts(storage, "pg001_tx001")
+        storage.putNodeData("tts", "en", {
+          entries,
+          generatedAt: "2026-01-01T00:00:00.000Z",
+        })
+      } finally {
+        storage.close()
+      }
+    }
+
+    const primary = {
+      textId: "pg001_tx001",
+      language: "en",
+      fileName: "pg001_tx001.mp3",
+      voice: "QK4xDwo9ESPHA4JNUpX3",
+      model: "eleven_multilingual_v2",
+      provider: "elevenlabs",
+      cached: false,
+    }
+    const secondary = {
+      textId: "pg001_tx001",
+      language: "en",
+      fileName: "pg001_tx001--secondary.mp3",
+      voice: "shimmer",
+      voiceLabel: "Mateo",
+      voiceSlot: "secondary",
+      model: "gpt-4o-mini-tts",
+      cached: false,
+    }
+
+    it("names an unlabelled ElevenLabs voice from the shipped voice names", async () => {
+      putTts([primary, secondary])
+
+      const body = await (await requestManifest()).json()
+
+      expect(body.voices.primary.label).toBe("Tomás")
+      expect(body.voices.secondary.label).toBe("Mateo")
+      expect(body.voices.primary.audios).toEqual({ pg001_tx001: "pg001_tx001.mp3" })
+      expect(body.voices.secondary.audios).toEqual({
+        pg001_tx001: "pg001_tx001--secondary.mp3",
+      })
+    })
+
+    // An OpenAI primary, so the only thing under test is the manual entry —
+    // "alloy" has no shipped-name mapping to mask a regression.
+    it("does not let a manual upload rename the narrator", async () => {
+      const openaiPrimary = {
+        ...primary,
+        voice: "alloy",
+        model: "gpt-4o-mini-tts",
+        provider: "openai",
+      }
+      putTts([
+        { ...openaiPrimary, provider: "manual", voice: "uploaded", model: "uploaded" },
+        { ...openaiPrimary, textId: "pg001_tx002", fileName: "pg001_tx002.mp3" },
+        secondary,
+      ])
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        putReadyCoreTts(storage, "pg001_tx001", "pg001_tx002")
+      } finally {
+        storage.close()
+      }
+
+      const body = await (await requestManifest()).json()
+
+      expect(body.voices.primary.label).toBe("alloy")
+    })
+
+    it("404s when the language has no secondary narrator", async () => {
+      putTts([primary])
+
+      expect((await requestManifest()).status).toBe(404)
+    })
   })
 
   it("includes quiz pages anchored to pages without rendered sections in pages.json", async () => {

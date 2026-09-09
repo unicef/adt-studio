@@ -272,7 +272,9 @@ export function useFloatingSaveLeaveAction(): FloatingSaveLeaveAction {
     store ? store.getVersion : () => 0,
   )
   const entries = store ? store.active() : []
-  const canSave = entries.length > 0 && entries.every((e) => e.onSaveStay || e.onSave)
+  const canSave =
+    entries.length > 0 &&
+    entries.every((e) => !e.saveDisabledReason && (e.onSaveStay || e.onSave))
   const willRerun = entries.some((e) => e.onSaveAndRerun)
   const resetStageSet = new Set(entries.flatMap((e) => e.resetStages ?? []))
   const resetStages = STAGE_ORDER.filter((stage) => resetStageSet.has(stage))

@@ -4,7 +4,7 @@ import { z } from "zod"
 import type { Storage } from "@adt/storage"
 import { WebRenderingOutput, PageSectioningOutput } from "@adt/types"
 import { createLLMModel } from "@adt/llm"
-import type { AgentCredentials } from "./resolve-model.js"
+import type { AgentCredentials } from "./credentials.js"
 import { buildSectioningSectionFromHtml } from "./tools/build-sectioning.js"
 import {
   LAYOUT_MIRROR_SYSTEM_PROMPT,
@@ -132,7 +132,7 @@ export async function mirrorLayout(
     modelId,
     cacheDir: path.join(path.resolve(opts.booksDir), opts.bookLabel, ".cache"),
     onLog: (entry) => storage.appendLlmLog(entry),
-    credentials,
+    providerCredentials: credentials,
   })
   // One correlationId groups every target's call under a single mirror run.
   const correlationId = randomUUID()

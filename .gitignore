@@ -90,3 +90,4 @@ PLAN*.md
 prompts/.versions
 prompts/.models.json
 .codex
+.tanstack

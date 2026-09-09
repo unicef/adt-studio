@@ -84,7 +84,7 @@ function DynamicDiagram() {
             <div className="h-0.5 w-3/4 rounded-full bg-primary/40" />
           </div>
         </div>
-        <div className="flex h-[30px] w-[52px] flex-col justify-center gap-0.5 rounded border-2 border-amber-400/40 bg-amber-50 px-1.5">
+        <div className="flex h-[30px] w-[52px] flex-col justify-center gap-0.5 rounded border-2 border-amber-400/40 bg-amber-500/10 px-1.5">
           <div className="h-0.5 w-full rounded-full bg-amber-400/50" />
           <div className="mt-0.5 h-px w-full border-b border-amber-400/30" />
           <div className="mt-0.5 h-px w-full border-b border-amber-400/30" />

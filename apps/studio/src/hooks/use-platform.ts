@@ -27,3 +27,23 @@ function resolveDesktopOS(): DesktopOS {
 export function usePlatform(): DesktopOS {
   return useMemo(() => resolveDesktopOS(), [])
 }
+
+// eslint-disable-next-line lingui/no-unlocalized-strings -- key glyphs, same in every locale
+const MODIFIER_LABEL: Record<DesktopOS, string> = { macos: "⌘", windows: "Ctrl", linux: "Ctrl" }
+
+/**
+ * The primary shortcut modifier as it is printed in shortcut hints — the Command
+ * glyph on macOS, `Ctrl` everywhere else. Handlers accept both regardless.
+ */
+export function useModifierKey(): string {
+  return MODIFIER_LABEL[usePlatform()]
+}
+
+/**
+ * A modifier combo as one printable token: the Command glyph sits flush against
+ * the key ("⌘K"), while a spelled-out modifier needs a separator ("Ctrl+K").
+ */
+export function useShortcutLabel(key: string): string {
+  const os = usePlatform()
+  return os === "macos" ? `${MODIFIER_LABEL[os]}${key}` : `${MODIFIER_LABEL[os]}+${key}`
+}

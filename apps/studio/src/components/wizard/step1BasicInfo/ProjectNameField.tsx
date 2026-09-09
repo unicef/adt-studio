@@ -39,9 +39,9 @@ export function ProjectNameField({
     <div className="flex flex-col gap-2">
       <Label
         htmlFor={inputId}
-        className="cursor-pointer text-sm font-medium text-[#0a0a0a]"
+        className="cursor-pointer text-sm font-medium text-foreground"
       >
-        <Trans>Project Name</Trans> <span className="text-[#ef4444]">*</span>
+        <Trans>Project Name</Trans> <span className="text-destructive">*</span>
       </Label>
       <Input
         id={inputId}
@@ -49,7 +49,7 @@ export function ProjectNameField({
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
         placeholder={i18n._(t`my-book-slug`)}
-        className={hasError ? "border-[#ef4444]" : ""}
+        className={hasError ? "border-destructive" : ""}
         aria-invalid={hasError}
         aria-describedby={hasError ? errorId : hintId}
       />
@@ -58,7 +58,7 @@ export function ProjectNameField({
           id={hintId}
           aria-hidden={hasError}
           className={cn(
-            "col-start-1 row-start-1 text-xs leading-relaxed text-[#737373] transition-opacity duration-300 ease-out",
+            "col-start-1 row-start-1 text-xs leading-relaxed text-muted-foreground transition-opacity duration-300 ease-out",
             hasError ? "pointer-events-none opacity-0" : "opacity-100",
           )}
         >
@@ -69,7 +69,7 @@ export function ProjectNameField({
           role={hasError ? "alert" : undefined}
           aria-hidden={!hasError}
           className={cn(
-            "col-start-1 row-start-1 text-xs leading-relaxed text-[#ef4444] transition-opacity duration-300 ease-out",
+            "col-start-1 row-start-1 text-xs leading-relaxed text-destructive transition-opacity duration-300 ease-out",
             hasError ? "opacity-100" : "pointer-events-none opacity-0",
           )}
         >

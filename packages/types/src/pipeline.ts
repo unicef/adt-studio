@@ -188,6 +188,24 @@ export const PIPELINE: StageDef[] = [
 /** Ordered stage names */
 export const STAGE_ORDER: StageName[] = PIPELINE.map((s) => s.name)
 
+export const CORE_STAGE_ORDER: StageName[] = (() => {
+  const stages: StageName[] = []
+  const roots = PIPELINE.filter((stage) => stage.dependsOn.length === 0)
+  let current = roots.length === 1 ? roots[0] : undefined
+
+  while (current) {
+    const currentName = current.name
+    stages.push(currentName)
+    const dependents = PIPELINE.filter((stage) => stage.dependsOn.includes(currentName))
+    current =
+      dependents.length === 1 && dependents[0].dependsOn.length === 1
+        ? dependents[0]
+        : undefined
+  }
+
+  return stages
+})()
+
 /** Map step name → parent stage name */
 export const STEP_TO_STAGE: Record<StepName, StageName> = Object.fromEntries(
   PIPELINE.flatMap((stage) => stage.steps.map((step) => [step.name, stage.name]))

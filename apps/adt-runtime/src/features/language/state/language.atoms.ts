@@ -19,6 +19,17 @@ export const translationsAtom = ephemeralAtom<Record<string, string>>({})
 /** Prepared provider wording; kept separate so display text never changes. */
 export const speechTextsAtom = ephemeralAtom<Record<string, string>>({})
 export const audioFilesAtom = ephemeralAtom<Record<string, string>>({})
+export type NarratorVoiceSlot = "primary" | "secondary"
+export interface NarratorVoice {
+  label: string
+  audios: Record<string, string>
+}
+export interface AudioVoicesManifest {
+  defaultVoice: NarratorVoiceSlot
+  voices: Record<NarratorVoiceSlot, NarratorVoice>
+}
+export const audioVoicesAtom = ephemeralAtom<AudioVoicesManifest | null>(null)
+export const narratorVoiceAtom = persistedStringAtom("narratorVoice", "primary")
 export const videoFilesAtom = ephemeralAtom<Record<string, string>>({})
 export const imageFilesAtom = ephemeralAtom<Record<string, string>>({})
 

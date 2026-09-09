@@ -73,6 +73,7 @@
     "text-read-aloud-speed": "Greičio",
     "toc-title": "Turinys",
     "tts-label": "Tekstas į kalbą",
+    "narrator-voice-label": "Pasakotojo balsas",
     "tutorial-closed-announcement": "Vadovas uždarytas. Atminkite, kad galite naudoti Alt plius Shift plius A, kad atidarytumėte ir uždarytumėte prieinamumo meniu, Alt plius Shift plius rodyklės, kad naršytumėte tarp puslapių, ir Alt plius Shift plius X, kad atidarytumėte ir uždarytumėte navigacijos meniu. Daugiau prieinamumo funkcijų galite pasiekti su mygtuku dešiniajame kampe.",
     "tutorial-completed-announcement": "Vadovas baigtas. Atminkite, kad galite naudoti Alt plius Shift plius A, kad atidarytumėte ir uždarytumėte prieinamumo meniu, Alt plius Shift plius rodyklės, kad naršytumėte tarp puslapių, ir Alt plius Shift plius X, kad atidarytumėte ir uždarytumėte navigacijos meniu.",
     "tutorial-description-content": "Prieš pradėdami, pateikiame trumpą turą, kuris parodys, kaip naršyti, naudotis meniu ir pasiekti naudingas funkcijas.<br> Tai neužtruks ilgai!",

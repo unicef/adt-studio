@@ -13,6 +13,7 @@ import {
   promptFileNameForModel,
   promptTreeKey,
 } from "./promptSettings"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 type PromptSummary = {
   name: string
@@ -137,7 +138,7 @@ export function PromptFileTree({
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-auto p-2">
+    <ScrollArea type="hover">
       <div className="flex flex-col gap-0.5">
         {visibleFolders.map((folder) => {
           const isOpen = openFolders.has(folder.modelId) || normalizedFilter.length > 0
@@ -231,7 +232,7 @@ export function PromptFileTree({
           )
         })}
       </div>
-    </div>
+    </ScrollArea>
   )
 }
 

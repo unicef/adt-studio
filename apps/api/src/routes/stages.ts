@@ -6,9 +6,12 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody } from "@adt/types"
+import { assertStageRunModelCredentials } from "@adt/llm"
+import { loadBookConfig } from "@adt/pipeline"
 import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 import type { PageErrorDecisions } from "../services/page-error-decisions.js"
+import { readProviderCredentials } from "../middleware/provider-credentials.js"
 
 const StageRunBody = z
   .object({
@@ -72,13 +75,6 @@ export function createStageRoutes(
   // POST /books/:label/stages/run — Start or queue a stage-scoped run
   app.post("/books/:label/stages/run", async (c) => {
     const { label } = c.req.param()
-    const apiKey = c.req.header("X-OpenAI-Key")
-
-    if (!apiKey) {
-      throw new HTTPException(400, {
-        message: "API key required. Set X-OpenAI-Key header.",
-      })
-    }
 
     let body: unknown
     try {
@@ -95,27 +91,31 @@ export function createStageRoutes(
     }
 
     const { fromStage, toStage, renderOnly, pageErrorPolicy } = parsed.data
+    const credentials = readProviderCredentials(c)
 
-    const anthropicApiKey = c.req.header("X-Anthropic-API-Key") || undefined
-    const googleApiKey = c.req.header("X-Google-API-Key") || undefined
-    const customBaseUrl = c.req.header("X-Custom-Base-URL") || undefined
-    const customApiKey = c.req.header("X-Custom-API-Key") || undefined
-    const azureSpeechKey = c.req.header("X-Azure-Speech-Key") || undefined
-    const azureSpeechRegion = c.req.header("X-Azure-Speech-Region") || undefined
-    const geminiApiKey = c.req.header("X-Gemini-API-Key") || undefined
-    const elevenLabsApiKey = c.req.header("X-ElevenLabs-API-Key") || undefined
+    // Fail before beforeRun clears any stage data: a run that cannot make a
+    // single LLM call must not wipe the book. Scoped to the stages being run —
+    // a speech-only rerun must not demand the text default's key, and a
+    // per-step model override must be credentialed too, not just the default.
+    // Keyless providers pass through.
+    const fromIndex = STAGE_ORDER.indexOf(fromStage)
+    const toIndex = STAGE_ORDER.indexOf(toStage)
+    assertStageRunModelCredentials(
+      loadBookConfig(label, booksDir, configPath),
+      fromIndex <= toIndex ? STAGE_ORDER.slice(fromIndex, toIndex + 1) : STAGE_ORDER,
+      credentials,
+    )
 
-    console.log(`[stages] ${label}: ${fromStage}→${toStage}${renderOnly ? " (render-only)" : ""} azureKey=${azureSpeechKey ? "set" : "NOT SET"} azureRegion=${azureSpeechRegion ?? "NOT SET"} geminiKey=${geminiApiKey ? "set" : "NOT SET"} elevenLabsKey=${elevenLabsApiKey ? "set" : "NOT SET"}`)
+    console.log(
+      `[stages] ${label}: ${fromStage}→${toStage}${renderOnly ? " (render-only)" : ""} ` +
+      `credentialProviders=${Object.keys(credentials).join(",") || "(none)"}`,
+    )
 
     const clearData = makeBeforeRun(label, fromStage, toStage, booksDir)
 
     const result = stageService.startStageRun(label, {
       booksDir,
-      apiKey,
-      anthropicApiKey,
-      googleApiKey,
-      customBaseUrl,
-      customApiKey,
+      credentials,
       promptsDir,
       webAssetsDir,
       configPath,
@@ -123,10 +123,6 @@ export function createStageRoutes(
       toStage,
       renderOnly,
       pageErrorPolicy,
-      azureSpeechKey,
-      azureSpeechRegion,
-      geminiApiKey,
-      elevenLabsApiKey,
       // Queued jobs clear data when they start executing
       beforeRun: clearData,
     })

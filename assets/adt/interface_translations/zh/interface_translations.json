@@ -73,6 +73,7 @@
     "text-read-aloud-speed": "速度",
     "toc-title": "目录",
     "tts-label": "文字转语音",
+    "narrator-voice-label": "旁白语音",
     "tutorial-closed-announcement": "教程已关闭。记住你可以使用Alt加Shift加A打开和关闭无障碍菜单，Alt加Shift加箭头键在页面之间导航，Alt加Shift加X打开和关闭导航菜单。你可以使用右上角的按钮访问更多无障碍功能。",
     "tutorial-completed-announcement": "教程已完成。记住你可以使用Alt加Shift加A打开和关闭无障碍菜单，Alt加Shift加箭头键在页面之间导航，Alt加Shift加X打开和关闭导航菜单。",
     "tutorial-description-content": "在你开始之前，这里有一个快速导览，向你展示如何导航、使用菜单和访问有用功能。<br>不会花太长时间！",

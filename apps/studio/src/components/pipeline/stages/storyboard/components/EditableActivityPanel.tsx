@@ -35,7 +35,7 @@ import {
   useGenerateActivityFeedback,
   useSaveEditableActivities,
 } from "@/hooks/use-editable-activities"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { Input } from "@/components/ui/input"
 import {
   PendingChip,
@@ -123,8 +123,9 @@ export function EditableActivityPanel({
   const [draft, setDraft] = useState<EditableActivity>(activity)
   const save = useSaveEditableActivities(bookLabel, pageId)
   const generateFeedback = useGenerateActivityFeedback(bookLabel, pageId)
-  const { apiKey, hasApiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, geminiKey } =
+  const { apiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, geminiKey } =
     useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
 
   const dirty = useMemo(
     () => JSON.stringify(draft) !== JSON.stringify(activity),
@@ -715,9 +716,9 @@ export function EditableActivityPanel({
             <button
               type="button"
               onClick={handleGenerateFeedback}
-              disabled={!hasApiKey || generateFeedback.isPending}
+              disabled={!hasStructuredTextProvider || generateFeedback.isPending}
               title={
-                hasApiKey
+                hasStructuredTextProvider
                   ? t`Write correct/incorrect feedback for every step with AI`
                   : t`Add your OpenAI API key first`
               }

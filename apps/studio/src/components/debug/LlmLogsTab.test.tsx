@@ -39,7 +39,7 @@ vi.mock("@lingui/react/macro", () => ({
   }),
 }))
 
-const { ParamGrid } = await import("./LlmLogsTab")
+const { ParamGrid, getStatus } = await import("./LlmLogsTab")
 
 function renderGrid(data: Record<string, unknown>) {
   return render(<ParamGrid title="Request settings" data={data} />)
@@ -108,5 +108,29 @@ describe("ParamGrid", () => {
     const { container } = renderGrid({})
 
     expect(container.textContent).toBe("")
+  })
+})
+
+describe("getStatus", () => {
+  const entry = (data: Record<string, unknown>) =>
+    ({ data } as Parameters<typeof getStatus>[0])
+
+  it("marks a no-audio row as skipped rather than a successful call", () => {
+    expect(
+      getStatus(entry({ success: true, cacheHit: false, skippedReason: "no-speakable-text" }))
+    ).toBe("skipped")
+  })
+
+  // A failure still reads as a failure: a row can carry both a reason and an
+  // error, and the error is the thing the user has to act on.
+  it("keeps error precedence over a skipped reason", () => {
+    expect(
+      getStatus(entry({ success: false, skippedReason: "no-speakable-text" }))
+    ).toBe("error")
+  })
+
+  it("leaves ordinary rows unchanged", () => {
+    expect(getStatus(entry({ success: true, cacheHit: false }))).toBe("success")
+    expect(getStatus(entry({ success: true, cacheHit: true }))).toBe("cached")
   })
 })

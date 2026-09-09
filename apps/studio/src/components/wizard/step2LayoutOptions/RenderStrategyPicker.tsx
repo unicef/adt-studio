@@ -50,7 +50,7 @@ function StrategyRadio({
       className={cn(
         "flex w-full cursor-pointer items-stretch gap-2 rounded-lg p-2 text-left",
         "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background",
-        selected ? "border" : "border border-[#e5e5e5] bg-white hover:bg-[#fafafa]",
+        selected ? "border" : "border border-border bg-card hover:bg-muted/40",
       )}
       style={
         selected
@@ -70,7 +70,7 @@ function StrategyRadio({
       />
       <div className="flex size-14 shrink-0 items-center justify-center">
         <Icon
-          className={cn("size-10 shrink-0", !selected && "text-[#a3a3a3]")}
+          className={cn("size-10 shrink-0", !selected && "text-muted-foreground/70")}
           style={selected ? { color: accent.text, transition: "color 0.4s ease" } : { transition: "color 0.4s ease" }}
           strokeWidth={1.5}
           aria-hidden
@@ -78,19 +78,19 @@ function StrategyRadio({
       </div>
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 pr-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-          <span className="text-sm font-semibold leading-5 text-black">{i18n._(title)}</span>
+          <span className="text-sm font-semibold leading-5 text-foreground">{i18n._(title)}</span>
           <span
             className={cn(
               "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-medium leading-none",
               category === "template"
                 ? "border-border bg-muted/60 text-muted-foreground"
-                : "border-[#bfdbfe] bg-[#eff6ff] text-[#1d4ed8]",
+                : "border-brand-200 bg-brand-50 text-brand-700",
             )}
           >
             {i18n._(chip)}
           </span>
         </div>
-        <span className="text-xs font-normal leading-4 text-[#737373] whitespace-normal">
+        <span className="text-xs font-normal leading-4 text-muted-foreground whitespace-normal">
           {i18n._(description)}
         </span>
       </div>
@@ -131,25 +131,25 @@ export function RenderStrategyPicker() {
   return (
     <fieldset id="wizard-render-strategy" className="flex w-full flex-col gap-2 border-0 p-0">
       <legend className="flex w-full items-center gap-1 pb-2">
-        <span className="text-sm font-medium leading-[14px] text-[#0a0a0a]">
+        <span className="text-sm font-medium leading-[14px] text-foreground">
           <Trans>Render Strategy</Trans>
         </span>
-        <span className="text-sm font-medium leading-[14px] text-[#ef4444]" aria-hidden>
+        <span className="text-sm font-medium leading-[14px] text-destructive" aria-hidden>
           *
         </span>
       </legend>
-      <p className="pb-1 text-xs leading-relaxed text-[#737373]">
+      <p className="pb-1 text-xs leading-relaxed text-muted-foreground">
         <Trans>Pick one layout approach.</Trans>{" "}
-        <span className="text-[#525252]">{i18n._(STRATEGY_CATEGORIES.template.label)}</span>{" "}
+        <span className="text-foreground/80">{i18n._(STRATEGY_CATEGORIES.template.label)}</span>{" "}
         <Trans>options are deterministic;</Trans>{" "}
-        <span className="text-[#525252]">{i18n._(STRATEGY_CATEGORIES.ai.label)}</span>{" "}
+        <span className="text-foreground/80">{i18n._(STRATEGY_CATEGORIES.ai.label)}</span>{" "}
         <Trans>options generate a fresh layout per page.</Trans>
       </p>
 
       <div className="flex flex-col gap-3">
         {recommendedStrategies.length > 0 && (
-          <div className="flex flex-col gap-2 rounded-xl border border-dashed border-[#d4d4d4] bg-[#fafafa] p-3">
-            <p className="flex items-center gap-1.5 px-1 text-xs font-medium text-[#525252]">
+          <div className="flex flex-col gap-2 rounded-xl border border-dashed border-border bg-muted/40 p-3">
+            <p className="flex items-center gap-1.5 px-1 text-xs font-medium text-foreground/80">
               <span aria-hidden>↓</span>
               {presetLabel
                 ? t`Best for ${i18n._(presetLabel)}`
@@ -175,11 +175,11 @@ export function RenderStrategyPicker() {
           <div className="flex flex-col gap-2">
             {recommendedStrategies.length > 0 && (
               <div className="flex items-center gap-2 px-1">
-                <div className="h-px flex-1 bg-[#e5e5e5]" />
-                <span className="text-[11px] font-medium text-[#a3a3a3]">
+                <div className="h-px flex-1 bg-muted" />
+                <span className="text-[11px] font-medium text-muted-foreground/70">
                   <Trans>Other options</Trans>
                 </span>
-                <div className="h-px flex-1 bg-[#e5e5e5]" />
+                <div className="h-px flex-1 bg-muted" />
               </div>
             )}
             {otherStrategies.map((strategy) => (

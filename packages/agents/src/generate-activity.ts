@@ -1,3 +1,4 @@
+import path from "node:path"
 import { randomUUID } from "node:crypto"
 import type { Storage } from "@adt/storage"
 import { runAgent, type AgentStepEvent } from "./runner.js"
@@ -5,7 +6,7 @@ import { createBookTools, type BookToolCallRecord } from "./tools/book-tools.js"
 import { buildActivityGenerationSystemPrompt } from "./prompts/activity-generation.js"
 import { FRONTEND_DESIGN_CHILDREN_PROMPT } from "./prompts/frontend-design-children.js"
 import type { ActivityGenMode } from "./tools/activity-schema.js"
-import type { AgentCredentials } from "./resolve-model.js"
+import type { AgentCredentials } from "./credentials.js"
 
 export interface GenerateActivityOptions {
   storage: Storage
@@ -189,6 +190,14 @@ export async function generateActivity(
     // can take noticeably longer than the agent-loop default. Default to
     // 10 minutes here unless the caller overrides.
     timeoutMs: opts.timeoutMs ?? 10 * 60_000,
+    cacheDir: path.join(path.resolve(opts.booksDir), opts.bookLabel, ".cache"),
+    onLog: (entry) => opts.storage.appendLlmLog(entry),
+    log: {
+      taskType: "generate-activity",
+      promptName: "activity-generation",
+      pageId: opts.anchorPageId,
+      correlationId,
+    },
     onStepFinish: (step) => {
       const msg = describeStep(step)
       if (msg) opts.onProgress?.(msg)
@@ -197,11 +206,11 @@ export async function generateActivity(
 
   const durationMs = Date.now() - t0
 
-  // Append a single summary entry to the per-book LLM log so the run shows up
-  // in the existing debug "LLM Logs" tab. We synthesise a "messages" array
-  // describing the agent's tool-call trajectory rather than the raw chat
-  // completions — the chat completions live behind generateText and aren't
-  // exposed by the SDK. The trajectory is the more useful artefact anyway.
+  // Run-level summary alongside the per-turn entries the agent loop already
+  // emitted; the shared correlationId groups them in the "LLM Logs" tab. Only
+  // this entry knows whether a write actually landed. No `usage` here: the
+  // per-turn entries already carry it, and the stats endpoint sums usage
+  // across all rows — a run total on this row would double-count every token.
   try {
     const trajectoryLines: string[] = []
     trajectoryLines.push(`User request: ${opts.description.trim()}`)
@@ -235,14 +244,6 @@ export async function generateActivity(
       errorCount: bookTools.calls.filter((c) => c.error).length,
       attempt: 0,
       durationMs,
-      ...(run.usage
-        ? {
-            usage: {
-              inputTokens: run.usage.inputTokens,
-              outputTokens: run.usage.outputTokens,
-            },
-          }
-        : {}),
       messages: [
         { role: "user", content: [{ type: "text", text: userPrompt }] },
         {

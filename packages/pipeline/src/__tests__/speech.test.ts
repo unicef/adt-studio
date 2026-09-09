@@ -3,13 +3,15 @@ import fs from "node:fs"
 import path from "node:path"
 import os from "node:os"
 import url from "node:url"
-import { ELEVENLABS_SHIPPED_VOICE_NAMES } from "@adt/types"
+import { DEFAULT_ELEVENLABS_TTS_MODEL_ID, ELEVENLABS_SHIPPED_VOICE_NAMES, type SpeechFileEntry } from "@adt/types"
 import {
   stripEmojis,
   isSpeakableText,
   resolveVoice,
+  resolveVoiceForSlot,
   resolveInstructions,
   resolveSpeechModel,
+  resolveSpeechVoice,
   resolveSpeechFormat,
   resolveGeminiTtsRateLimit,
   getDocumentedGeminiTtsRpm,
@@ -20,9 +22,12 @@ import {
   elevenLabsVoiceSettingsFromConfig,
   buildElevenLabsTtsLogParams,
   buildTtsLogEntry,
+  buildWordTimestampsLogEntry,
   classifyElevenLabsTtsError,
   elevenLabsTtsRetryDelayMs,
   parseElevenLabsErrorStatus,
+  resolveNarratorLabel,
+  overlayPrimaryVoices,
   type VoiceMaps,
   type InstructionsMap,
 } from "../speech.js"
@@ -160,6 +165,235 @@ describe("resolveVoice", () => {
 
   it("does not reuse the OpenAI alloy fallback for ElevenLabs voices", () => {
     expect(resolveVoice("elevenlabs", "en", {}, "alloy")).toBe("21m00Tcm4TlvDq8ikWAM")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// resolveVoiceForSlot
+// ---------------------------------------------------------------------------
+
+describe("resolveVoiceForSlot", () => {
+  const voiceMaps: VoiceMaps = {
+    openai: {
+      default: "alloy",
+      en: { primary: { voice: "alloy", label: "Alloy" }, secondary: { voice: "shimmer", label: "Shimmer" } },
+      es: "coral",
+    },
+  }
+
+  it("resolves the primary slot from a legacy scalar entry", () => {
+    expect(resolveVoiceForSlot("openai", "es", voiceMaps, "primary")).toEqual({ voice: "coral" })
+  })
+
+  describe("resolveSpeechVoice", () => {
+    const voices: VoiceMaps = {
+      openai: { "es-uy": "coral" },
+    }
+
+    it("uses global routing and voices for the primary narrator", () => {
+      expect(
+        resolveSpeechVoice(
+          "es-UY",
+          "primary",
+          {
+            default_provider: "openai",
+            providers: { openai: { model: "primary-model" } },
+          },
+          voices,
+        ),
+      ).toEqual({
+        provider: "openai",
+        model: "primary-model",
+        voice: "coral",
+        label: undefined,
+      })
+    })
+
+    it("uses the per-book provider, model, and voice for the secondary narrator", () => {
+      expect(
+        resolveSpeechVoice(
+          "es-UY",
+          "secondary",
+          {
+            secondary_voices: {
+              "es-UY": {
+                provider: "gemini",
+                model: "gemini-custom-tts",
+                voice: "Puck",
+              },
+            },
+          },
+          voices,
+        ),
+      ).toEqual({
+        provider: "gemini",
+        model: "gemini-custom-tts",
+        voice: "Puck",
+        label: undefined,
+      })
+    })
+
+    it("does not apply a secondary narrator to a different regional locale", () => {
+      expect(
+        resolveSpeechVoice(
+          "es-AR",
+          "secondary",
+          {
+            secondary_voices: {
+              "es-UY": { provider: "gemini", voice: "Puck" },
+            },
+          },
+          voices,
+        ),
+      ).toBeNull()
+    })
+
+    it("names an unlabeled secondary ElevenLabs voice from the shipped list", () => {
+      expect(
+        resolveSpeechVoice(
+          "es-UY",
+          "secondary",
+          {
+            secondary_voices: {
+              "es-UY": { provider: "elevenlabs", voice: "QK4xDwo9ESPHA4JNUpX3" },
+            },
+          },
+          voices,
+        ),
+      ).toEqual({
+        provider: "elevenlabs",
+        model: DEFAULT_ELEVENLABS_TTS_MODEL_ID,
+        voice: "QK4xDwo9ESPHA4JNUpX3",
+        label: "Tomás",
+      })
+    })
+
+    it("prefers an explicit secondary label over the shipped name", () => {
+      expect(
+        resolveSpeechVoice(
+          "es-UY",
+          "secondary",
+          {
+            secondary_voices: {
+              "es-UY": {
+                provider: "elevenlabs",
+                voice: "QK4xDwo9ESPHA4JNUpX3",
+                label: "Narrador dos",
+              },
+            },
+          },
+          voices,
+        )?.label,
+      ).toBe("Narrador dos")
+    })
+  })
+
+  it("resolves the primary slot from a canonical slot-object entry", () => {
+    expect(resolveVoiceForSlot("openai", "en", voiceMaps, "primary")).toEqual({
+      voice: "alloy",
+      label: "Alloy",
+    })
+  })
+
+  it("resolves the secondary slot when configured", () => {
+    expect(resolveVoiceForSlot("openai", "en", voiceMaps, "secondary")).toEqual({
+      voice: "shimmer",
+      label: "Shimmer",
+    })
+  })
+
+  it("returns null for the secondary slot when a legacy scalar entry has no secondary", () => {
+    expect(resolveVoiceForSlot("openai", "es", voiceMaps, "secondary")).toBeNull()
+  })
+
+  it("returns null for the secondary slot when nothing is configured at all", () => {
+    expect(resolveVoiceForSlot("openai", "fr", voiceMaps, "secondary")).toBeNull()
+  })
+
+  it("still falls back to the hardcoded provider default for the primary slot", () => {
+    expect(resolveVoiceForSlot("gemini", "en", {}, "primary")).toEqual({ voice: "Kore" })
+    expect(resolveVoiceForSlot("elevenlabs", "en", {}, "primary")).toEqual({
+      voice: "21m00Tcm4TlvDq8ikWAM",
+      label: "Rachel",
+    })
+  })
+
+  it("adds the shipped display name to a legacy ElevenLabs scalar mapping", () => {
+    expect(
+      resolveVoiceForSlot(
+        "elevenlabs",
+        "es-UY",
+        { elevenlabs: { "es-uy": "QK4xDwo9ESPHA4JNUpX3" } },
+        "primary",
+      ),
+    ).toEqual({
+      voice: "QK4xDwo9ESPHA4JNUpX3",
+      label: "Tomás",
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// resolveNarratorLabel
+// ---------------------------------------------------------------------------
+
+describe("resolveNarratorLabel", () => {
+  const entry = (over: Partial<SpeechFileEntry> = {}): SpeechFileEntry => ({
+    textId: "pg001_t001",
+    language: "en",
+    fileName: "pg001_t001.mp3",
+    voice: "echo",
+    model: "gpt-4o-mini-tts",
+    cached: false,
+    ...over,
+  })
+
+  it("prefers an explicitly configured label", () => {
+    expect(resolveNarratorLabel([entry({ voiceLabel: "Mateo" })], "Primary")).toBe("Mateo")
+  })
+
+  it("falls back to the shipped ElevenLabs name for an unlabelled voice", () => {
+    expect(
+      resolveNarratorLabel(
+        [entry({ provider: "elevenlabs", voice: "QK4xDwo9ESPHA4JNUpX3" })],
+        "Primary",
+      ),
+    ).toBe("Tomás")
+  })
+
+  it("falls back to the raw voice for a provider with no name mapping", () => {
+    expect(resolveNarratorLabel([entry({ provider: "openai" })], "Primary")).toBe("echo")
+  })
+
+  it("tolerates an entry with no provider", () => {
+    expect(resolveNarratorLabel([entry()], "Primary")).toBe("echo")
+  })
+
+  // A single hand-recorded line must not rename the whole narrator: manual
+  // entries carry voice "uploaded", which is not a voice name.
+  it("skips manual uploads while a generated entry is available", () => {
+    expect(
+      resolveNarratorLabel(
+        [
+          entry({ provider: "manual", voice: "uploaded", model: "uploaded" }),
+          entry({ provider: "openai", voice: "shimmer" }),
+        ],
+        "Primary",
+      ),
+    ).toBe("shimmer")
+  })
+
+  it("uses a manual entry only when it is all there is", () => {
+    expect(
+      resolveNarratorLabel(
+        [entry({ provider: "manual", voice: "uploaded", model: "uploaded" })],
+        "Primary",
+      ),
+    ).toBe("uploaded")
+  })
+
+  it("returns the fallback for a slot that produced nothing", () => {
+    expect(resolveNarratorLabel([], "Primary")).toBe("Primary")
   })
 })
 
@@ -324,6 +558,45 @@ describe("loadVoicesConfig", () => {
   it("returns empty object when file does not exist", () => {
     expect(loadVoicesConfig(tmpDir)).toEqual({})
   })
+
+  it("loads a canonical primary/secondary slot mapping alongside legacy scalars", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, "voices.yaml"),
+      [
+        "openai:",
+        "  default: alloy",
+        "  en:",
+        "    primary:",
+        "      voice: alloy",
+        "      label: Alloy",
+        "    secondary:",
+        "      voice: shimmer",
+        "      label: Shimmer",
+        "",
+      ].join("\n")
+    )
+    const result = loadVoicesConfig(tmpDir)
+    expect(result).toEqual({
+      openai: {
+        default: "alloy",
+        en: {
+          primary: { voice: "alloy", label: "Alloy" },
+          secondary: { voice: "shimmer", label: "Shimmer" },
+        },
+      },
+    })
+  })
+
+  it("preserves valid mappings and warns for invalid entries", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+    fs.writeFileSync(
+      path.join(tmpDir, "voices.yaml"),
+      "openai:\n  es: coral\n  en:\n    primary: 5\n",
+    )
+    expect(loadVoicesConfig(tmpDir)).toEqual({ openai: { es: "coral" } })
+    expect(warnSpy).toHaveBeenCalled()
+    warnSpy.mockRestore()
+  })
 })
 
 describe("loadSpeechInstructions", () => {
@@ -405,6 +678,7 @@ describe("generateSpeechFile", () => {
       voice: "alloy",
       model: "gpt-4o-mini-tts",
       cached: false,
+      voiceSlot: "primary",
     })
 
     // Verify file was written
@@ -424,6 +698,40 @@ describe("generateSpeechFile", () => {
       responseFormat: "mp3",
       instructions: "Speak cheerfully.",
     })
+  })
+
+  it("suffixes the filename and stamps voiceSlot/voiceLabel for the secondary slot", async () => {
+    const result = await generateSpeechFile({
+      textId: "p001_t001",
+      text: "Hello world",
+      language: "en",
+      model: "gpt-4o-mini-tts",
+      voice: "shimmer",
+      instructions: "Speak cheerfully.",
+      format: "mp3",
+      bookDir,
+      cacheDir,
+      ttsSynthesizer: mockSynthesizer,
+      voiceSlot: "secondary",
+      voiceLabel: "Shimmer",
+    })
+
+    expect(result).toEqual({
+      textId: "p001_t001",
+      language: "en",
+      fileName: "p001_t001--secondary.mp3",
+      voice: "shimmer",
+      model: "gpt-4o-mini-tts",
+      cached: false,
+      voiceSlot: "secondary",
+      voiceLabel: "Shimmer",
+    })
+
+    const audioPath = path.join(bookDir, "audio", "en", "p001_t001--secondary.mp3")
+    expect(fs.existsSync(audioPath)).toBe(true)
+    // Primary file for the same textId must not exist / be untouched.
+    const primaryAudioPath = path.join(bookDir, "audio", "en", "p001_t001.mp3")
+    expect(fs.existsSync(primaryAudioPath)).toBe(false)
   })
 
   it("writes locale audio using normalized locale casing", async () => {
@@ -1062,6 +1370,117 @@ describe("buildTtsLogEntry", () => {
       text: `[en] voice=en-US-JennyNeural\n${text}`,
     })
   })
+
+  it("marks an entry that produced no audio so it isn't read as a synthesis", () => {
+    const entry = buildTtsLogEntry({
+      textId: "pg001_t002",
+      language: "en",
+      voice: "en-US-JennyNeural",
+      model: "azure-tts",
+      provider: "azure",
+      text: "—",
+      durationMs: 0,
+      success: true,
+      cached: false,
+      attempt: 1,
+      skippedReason: "no-speakable-text",
+    })
+
+    // Still a success (nothing went wrong) but distinguishable from an entry
+    // that actually reached the provider.
+    expect(entry).toMatchObject({
+      success: true,
+      errorCount: 0,
+      cacheHit: false,
+      skippedReason: "no-speakable-text",
+    })
+  })
+
+  it("omits skippedReason for an entry that really was synthesized", () => {
+    const entry = buildTtsLogEntry({
+      textId: "pg001_t001",
+      language: "en",
+      voice: "en-US-JennyNeural",
+      model: "azure-tts",
+      provider: "azure",
+      text: "Hello world",
+      durationMs: 250,
+      success: true,
+      cached: false,
+      attempt: 1,
+    })
+
+    expect(entry).not.toHaveProperty("skippedReason")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// buildWordTimestampsLogEntry
+// ---------------------------------------------------------------------------
+
+describe("buildWordTimestampsLogEntry", () => {
+  it("records a successful transcription under the word-timestamps step", () => {
+    const entry = buildWordTimestampsLogEntry({
+      fileName: "pg001_t001.mp3",
+      language: "en",
+      prompt: "Hello world",
+      durationMs: 420,
+      success: true,
+      cached: false,
+      result: {
+        text: "Hello world",
+        words: [
+          { word: "Hello", start: 0, end: 0.4 },
+          { word: "world", start: 0.4, end: 0.9 },
+        ],
+        duration: 0.9,
+      },
+    })
+
+    // taskType is the real step name, so the Log tab's step filter and the
+    // step badge work with no extra wiring.
+    expect(entry).toMatchObject({
+      taskType: "word-timestamps",
+      pageId: "pg001_t001.mp3",
+      promptName: "whisper-transcribe",
+      modelId: "openai/whisper-1",
+      cacheHit: false,
+      success: true,
+      errorCount: 0,
+    })
+    expect(entry.params).toEqual({
+      language: "en",
+      fileName: "pg001_t001.mp3",
+      hasPrompt: true,
+      words: 2,
+      durationSec: 0.9,
+    })
+  })
+
+  it("marks a cache hit and a provider failure distinctly", () => {
+    const cached = buildWordTimestampsLogEntry({
+      fileName: "pg001_t001.mp3",
+      durationMs: 1,
+      success: true,
+      cached: true,
+    })
+    expect(cached.cacheHit).toBe(true)
+    // No result and no prompt — the row still says so rather than omitting it.
+    expect(cached.params).toEqual({ language: "", fileName: "pg001_t001.mp3", hasPrompt: false })
+
+    const failed = buildWordTimestampsLogEntry({
+      fileName: "pg001_t001.mp3",
+      durationMs: 30,
+      success: false,
+      cached: false,
+      error: "Whisper request failed (401): invalid api key",
+    })
+    expect(failed).toMatchObject({
+      success: false,
+      errorCount: 1,
+      error: "Whisper request failed (401): invalid api key",
+    })
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -1127,5 +1546,133 @@ describe("elevenLabsTtsRetryDelayMs", () => {
     expect(elevenLabsTtsRetryDelayMs(2)).toBe(4_000)
     expect(elevenLabsTtsRetryDelayMs(3)).toBe(8_000)
     expect(elevenLabsTtsRetryDelayMs(10)).toBe(30_000)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Per-book primary voice overrides
+// ---------------------------------------------------------------------------
+
+describe("primary voice overrides", () => {
+  const voiceMaps: VoiceMaps = {
+    azure: {
+      default: "en-US-JennyNeural",
+      es: "es-MX-DaliaNeural",
+      "es-uy": "es-UY-ValentinaNeural",
+    },
+    openai: { default: "alloy" },
+  }
+
+  const resolve = (
+    language: string,
+    primary_voices: Record<string, Record<string, { voice: string; label?: string }>>,
+    speech: Record<string, unknown> = {},
+  ) =>
+    resolveSpeechVoice(
+      language,
+      "primary",
+      { default_provider: "azure", primary_voices, ...speech },
+      voiceMaps,
+    )
+
+  it("prefers a book override over the global mapping", () => {
+    expect(
+      resolve("es-UY", { azure: { "es-uy": { voice: "es-UY-MateoNeural" } } })?.voice,
+    ).toBe("es-UY-MateoNeural")
+  })
+
+  it("falls back to the global mapping when the book overrides nothing", () => {
+    expect(resolve("es-UY", {})?.voice).toBe("es-UY-ValentinaNeural")
+  })
+
+  // The override goes through the same exact -> base -> default chain as the
+  // global map, so an `es` override reaches an es-UY book.
+  it("applies a base-language override to a regional locale", () => {
+    expect(
+      resolve("es-UY", { azure: { es: { voice: "es-ES-ElviraNeural" } } })?.voice,
+    ).toBe("es-UY-ValentinaNeural")
+    expect(
+      resolve("es-AR", { azure: { es: { voice: "es-ES-ElviraNeural" } } })?.voice,
+    ).toBe("es-ES-ElviraNeural")
+  })
+
+  it("accepts an override written with an uppercase region", () => {
+    expect(
+      resolve("es-UY", { azure: { "es-UY": { voice: "es-UY-MateoNeural" } } })?.voice,
+    ).toBe("es-UY-MateoNeural")
+  })
+
+  // Keyed by provider, so rerouting a language cannot hand another provider's
+  // voice name to the new one.
+  it("ignores an override belonging to a different provider", () => {
+    const resolved = resolveSpeechVoice(
+      "es-UY",
+      "primary",
+      {
+        default_provider: "openai",
+        primary_voices: { azure: { "es-uy": { voice: "es-UY-MateoNeural" } } },
+      },
+      voiceMaps,
+    )
+    expect(resolved?.provider).toBe("openai")
+    expect(resolved?.voice).toBe("alloy")
+  })
+
+  it("carries the override's label through", () => {
+    expect(
+      resolve("es-UY", { azure: { "es-uy": { voice: "es-UY-MateoNeural", label: "Mateo" } } })
+        ?.label,
+    ).toBe("Mateo")
+  })
+
+  it("ignores a blank override rather than silencing the voice", () => {
+    expect(resolve("es-UY", { azure: { "es-uy": { voice: "  " } } })?.voice).toBe(
+      "es-UY-ValentinaNeural",
+    )
+  })
+
+  it("returns the global map untouched when there are no overrides", () => {
+    expect(overlayPrimaryVoices(voiceMaps, undefined)).toBe(voiceMaps)
+    expect(overlayPrimaryVoices(voiceMaps, {})).toBe(voiceMaps)
+  })
+
+  it("does not mutate the global map", () => {
+    overlayPrimaryVoices(voiceMaps, { azure: { "es-uy": { voice: "es-UY-MateoNeural" } } })
+    expect(voiceMaps.azure["es-uy"]).toBe("es-UY-ValentinaNeural")
+  })
+
+  // Only the primary slot is overridden. A legacy entry of the extended
+  // {primary, secondary} shape must not lose its secondary just because the
+  // book renamed the primary narrator.
+  it("keeps a legacy secondary slot when the primary is overridden", () => {
+    const withSecondary: VoiceMaps = {
+      azure: {
+        "es-uy": {
+          primary: { voice: "es-UY-ValentinaNeural" },
+          secondary: { voice: "es-UY-MateoNeural", label: "Mateo" },
+        },
+      },
+    }
+
+    const merged = overlayPrimaryVoices(withSecondary, {
+      azure: { "es-uy": { voice: "es-UY-ElviraNeural" } },
+    })
+
+    expect(merged.azure["es-uy"]).toEqual({
+      primary: { voice: "es-UY-ElviraNeural" },
+      secondary: { voice: "es-UY-MateoNeural", label: "Mateo" },
+    })
+    expect(
+      resolveVoiceForSlot("azure", "es-UY", merged, "secondary")?.voice,
+    ).toBe("es-UY-MateoNeural")
+  })
+
+  it("overrides a legacy scalar entry without inventing a secondary", () => {
+    const merged = overlayPrimaryVoices(voiceMaps, {
+      azure: { "es-uy": { voice: "es-UY-MateoNeural" } },
+    })
+
+    expect(merged.azure["es-uy"]).toEqual({ primary: { voice: "es-UY-MateoNeural" } })
+    expect(resolveVoiceForSlot("azure", "es-UY", merged, "secondary")).toBeNull()
   })
 })

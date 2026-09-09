@@ -1,6 +1,7 @@
 import { STAGE_ORDER, type ProgressEvent } from "@adt/types"
 import type { StageName, StepName, PageErrorPolicy, PageErrorAction } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
+import type { ResolvedCredentials } from "@adt/llm"
 import type { BookEventBus } from "./book-event-bus.js"
 import type { PageErrorDecisions } from "./page-error-decisions.js"
 
@@ -43,7 +44,8 @@ export interface BookRunStatus {
 
 export interface StageRunOptions {
   booksDir: string
-  apiKey: string
+  /** Request-scoped provider credentials. Values are never persisted. */
+  credentials: ResolvedCredentials
   promptsDir: string
   webAssetsDir?: string
   configPath?: string
@@ -51,14 +53,6 @@ export interface StageRunOptions {
   toStage: string
   /** When true, skip page-sectioning and only re-render from existing section data. */
   renderOnly?: boolean
-  anthropicApiKey?: string
-  googleApiKey?: string
-  customBaseUrl?: string
-  customApiKey?: string
-  azureSpeechKey?: string
-  azureSpeechRegion?: string
-  geminiApiKey?: string
-  elevenLabsApiKey?: string
   beforeRun?: () => void
   /** Cancellation signal for the run. Aborts in-flight LLM calls and stops the
    *  runner at the next checkpoint. Set by the service per job. */

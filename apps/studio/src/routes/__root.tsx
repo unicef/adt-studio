@@ -5,9 +5,9 @@ import {
   useNavigate,
   type ErrorComponentProps,
 } from "@tanstack/react-router"
+import { AppToaster } from "@/components/AppToaster"
 import { ErrorScreen } from "@/components/ErrorScreen"
 import type { SettingsSection } from "@/components/settings/settingsSections"
-import { Toaster } from "@/components/ui/sonner"
 import { UpdateDialogProvider } from "@/components/updates"
 import { useGlobalRunNotifications } from "@/hooks/use-global-run-notifications"
 
@@ -35,7 +35,9 @@ function RootLayout() {
   useGlobalRunNotifications()
   const openSettings = useCallback(
     (section: SettingsSection = "default-model") => {
-      void navigate({ to: "/settings", search: { section } })
+      if (section === "api-keys") void navigate({ to: "/settings/providers" })
+      else if (section === "prompts") void navigate({ to: "/settings/prompts" })
+      else void navigate({ to: "/settings/models" })
     },
     [navigate],
   )
@@ -47,7 +49,7 @@ function RootLayout() {
           <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <Outlet />
           </main>
-          <Toaster position="top-center" richColors closeButton />
+          <AppToaster />
         </div>
       </UpdateDialogProvider>
     </SettingsContext>

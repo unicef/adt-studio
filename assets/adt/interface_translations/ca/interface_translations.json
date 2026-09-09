@@ -73,6 +73,7 @@
     "text-read-aloud-speed": "Velocitat",
     "toc-title": "Índex",
     "tts-label": "Text a veu",
+    "narrator-voice-label": "Veu del narrador",
     "tutorial-closed-announcement": "Tutorial tancat. Recorda que pots utilitzar Alt més Majúscules més A per obrir i tancar el menú d'accessibilitat, Alt més Majúscules més fletxes per navegar entre pàgines, i Alt més Majúscules més X per obrir i tancar el menú de navegació. Pots accedir a més funcions d'accessibilitat amb el botó a la cantonada dreta.",
     "tutorial-completed-announcement": "Tutorial completat. Recorda que pots utilitzar Alt més Majúscules més A per obrir i tancar el menú d'accessibilitat, Alt més Majúscules més fletxes per navegar entre pàgines, i Alt més Majúscules més X per obrir i tancar el menú de navegació.",
     "tutorial-description-content": "Abans de començar, aquí tens una breu visita guiada per mostrar-te com navegar, utilitzar el menú i accedir a funcions útils.<br> No trigarà gaire!",

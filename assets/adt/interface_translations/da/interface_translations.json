@@ -73,6 +73,7 @@
     "text-read-aloud-speed": "Hastighed",
     "toc-title": "Indeks",
     "tts-label": "Tekst til tale",
+    "narrator-voice-label": "Fortællerstemme",
     "tutorial-closed-announcement": "Tutorial lukket. Husk du kan bruge Alt plus Shift plus A for at åbne og lukke tilgængeligheds menuen, Alt plus Shift plus pile for at navigere mellem sider, og Alt plus Shift plus X for at åbne og lukke navigation menuen. Du kan få adgang til flere tilgængelighedsfunktioner med knappen i højre hjørne.",
     "tutorial-completed-announcement": "Tutorial fuldført. Husk du kan bruge Alt plus Shift plus A for at åbne og lukke tilgængeligheds menuen, Alt plus Shift plus pile for at navigere mellem sider, og Alt plus Shift plus X for at åbne og lukke navigation menuen.",
     "tutorial-description-content": "Før du starter, her er en hurtig rundvisning for at vise dig, hvordan du navigerer, bruger menuen og får adgang til nyttige funktioner.<br> Det tager ikke lang tid!",

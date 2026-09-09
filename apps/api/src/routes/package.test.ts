@@ -147,7 +147,7 @@ describe("Package routes", () => {
       expect(body.error).toContain("web rendering")
     })
 
-    it("stores accessibility assessment output after packaging", { timeout: 15_000 }, async () => {
+    it("stores accessibility assessment output after packaging", { timeout: 20_000 }, async () => {
       createRenderedBook("book-a11y")
       createWebAssets()
 

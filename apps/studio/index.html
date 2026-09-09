@@ -5,6 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <title>ADT Studio</title>
+    <script>
+      // Paint the stored theme before the first frame, so the app never flashes
+      // the wrong palette on launch. src/lib/theme.ts owns it from then on and
+      // reads the same key; keep the two in step.
+      (function () {
+        try {
+          var mode = localStorage.getItem("adt.theme") || "light";
+          var dark =
+            mode === "dark" ||
+            (mode === "system" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.classList.toggle("dark", dark);
+        } catch (err) {
+          /* private mode or storage disabled — fall back to light */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

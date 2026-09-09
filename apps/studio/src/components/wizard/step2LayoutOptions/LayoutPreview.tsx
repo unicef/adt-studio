@@ -62,10 +62,10 @@ function DynamicPreview() {
   const { i18n } = useLingui()
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto px-3 py-4 text-[#0a0a0a] @min-[420px]:px-5 @min-[420px]:py-6 @min-[540px]:px-8 @min-[540px]:py-8 @min-[620px]:px-10 @min-[620px]:py-10">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto px-3 py-4 text-foreground @min-[420px]:px-5 @min-[420px]:py-6 @min-[540px]:px-8 @min-[540px]:py-8 @min-[620px]:px-10 @min-[620px]:py-10">
       {/* Chapter heading */}
-      <div className="mb-2 flex items-center gap-2 border-b-2 border-[#2b7fff]/30 pb-2 @min-[540px]:mb-3 @min-[540px]:pb-3">
-        <div className="flex size-5 shrink-0 items-center justify-center rounded bg-[#2b7fff] text-[8px] font-bold text-white @min-[540px]:size-6 @min-[540px]:text-[10px]">
+      <div className="mb-2 flex items-center gap-2 border-b-2 border-brand-600/30 pb-2 @min-[540px]:mb-3 @min-[540px]:pb-3">
+        <div className="flex size-5 shrink-0 items-center justify-center rounded bg-brand-600 text-[8px] font-bold text-white @min-[540px]:size-6 @min-[540px]:text-[10px]">
           5
         </div>
         <h2 className="text-sm font-bold tracking-tight @min-[420px]:text-base @min-[540px]:text-lg @min-[620px]:text-xl">
@@ -74,7 +74,7 @@ function DynamicPreview() {
       </div>
 
       {/* Intro paragraph */}
-      <p className="mb-2 text-[8px] leading-[12px] text-[#525252] @min-[420px]:text-[9px] @min-[420px]:leading-[13px] @min-[540px]:mb-3 @min-[540px]:text-[10px] @min-[540px]:leading-[14px] @min-[620px]:text-xs @min-[620px]:leading-4">
+      <p className="mb-2 text-[8px] leading-[12px] text-foreground/80 @min-[420px]:text-[9px] @min-[420px]:leading-[13px] @min-[540px]:mb-3 @min-[540px]:text-[10px] @min-[540px]:leading-[14px] @min-[620px]:text-xs @min-[620px]:leading-4">
         <Trans>
           Water is always moving. It travels from the oceans into the sky, falls as
           rain or snow, flows through rivers, and eventually returns to the sea. This
@@ -113,13 +113,13 @@ function DynamicPreview() {
           </svg>
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <p className="text-[7px] font-medium italic text-[#737373] @min-[420px]:text-[8px] @min-[540px]:text-[9px]">
+          <p className="text-[7px] font-medium italic text-muted-foreground @min-[420px]:text-[8px] @min-[540px]:text-[9px]">
             <Trans>
               Figure 5.1 - The water cycle: evaporation from oceans, condensation
               into clouds, precipitation as rain, and runoff back to the sea.
             </Trans>
           </p>
-          <p className="text-[8px] leading-[12px] text-[#525252] @min-[420px]:text-[9px] @min-[420px]:leading-[13px] @min-[540px]:text-[10px] @min-[540px]:leading-[14px] @min-[620px]:text-xs @min-[620px]:leading-4">
+          <p className="text-[8px] leading-[12px] text-foreground/80 @min-[420px]:text-[9px] @min-[420px]:leading-[13px] @min-[540px]:text-[10px] @min-[540px]:leading-[14px] @min-[620px]:text-xs @min-[620px]:leading-4">
             <Trans>
               The sun heats water in oceans, lakes, and rivers, turning it into
               vapor that rises into the atmosphere. As the vapor cools at higher
@@ -130,21 +130,21 @@ function DynamicPreview() {
       </div>
 
       {/* Exercise box */}
-      <div className="mb-2 rounded-lg border border-[#2b7fff]/25 bg-[#eff6ff] px-2.5 py-2 @min-[420px]:px-3 @min-[540px]:mb-3 @min-[540px]:px-4 @min-[540px]:py-3">
+      <div className="mb-2 rounded-lg border border-brand-600/25 bg-brand-50 px-2.5 py-2 @min-[420px]:px-3 @min-[540px]:mb-3 @min-[540px]:px-4 @min-[540px]:py-3">
         <div className="mb-1 flex items-center gap-1.5">
-          <Sparkles className="h-3 w-3 text-[#2b7fff] @min-[540px]:h-3.5 @min-[540px]:w-3.5" strokeWidth={2} />
-          <span className="text-[9px] font-bold uppercase tracking-wide text-[#2b7fff] @min-[420px]:text-[10px] @min-[540px]:text-[11px]">
+          <Sparkles className="h-3 w-3 text-brand-600 @min-[540px]:h-3.5 @min-[540px]:w-3.5" strokeWidth={2} />
+          <span className="text-[9px] font-bold uppercase tracking-wide text-brand-600 @min-[420px]:text-[10px] @min-[540px]:text-[11px]">
             <Trans>Activity 5.1</Trans>
           </span>
         </div>
-        <p className="mb-1.5 text-[8px] leading-[11px] text-[#525252] @min-[420px]:text-[9px] @min-[420px]:leading-[12px] @min-[540px]:text-[10px] @min-[540px]:leading-[13px]">
+        <p className="mb-1.5 text-[8px] leading-[11px] text-foreground/80 @min-[420px]:text-[9px] @min-[420px]:leading-[12px] @min-[540px]:text-[10px] @min-[540px]:leading-[13px]">
           <Trans>Match each stage of the water cycle to its definition:</Trans>
         </p>
         <div className="flex flex-col gap-1">
           {DYNAMIC_PREVIEW_STAGE_LABELS.map((labelMsg, idx) => (
             <div key={idx} className="flex items-center gap-2">
-              <div className="h-3.5 w-3.5 shrink-0 rounded border border-[#2b7fff]/30 bg-white @min-[540px]:h-4 @min-[540px]:w-4" />
-              <span className="text-[8px] text-[#525252] @min-[420px]:text-[9px] @min-[540px]:text-[10px]">
+              <div className="h-3.5 w-3.5 shrink-0 rounded border border-brand-600/30 bg-white @min-[540px]:h-4 @min-[540px]:w-4" />
+              <span className="text-[8px] text-foreground/80 @min-[420px]:text-[9px] @min-[540px]:text-[10px]">
                 {i18n._(labelMsg)}
               </span>
             </div>
@@ -153,11 +153,11 @@ function DynamicPreview() {
       </div>
 
       {/* Did-you-know callout */}
-      <div className="rounded-lg border border-amber-300/40 bg-amber-50/60 px-2.5 py-2 @min-[420px]:px-3 @min-[540px]:px-4 @min-[540px]:py-2.5">
-        <span className="text-[9px] font-bold text-amber-700 @min-[420px]:text-[10px] @min-[540px]:text-[11px]">
+      <div className="rounded-lg border border-amber-400/40 bg-amber-500/10 px-2.5 py-2 @min-[420px]:px-3 @min-[540px]:px-4 @min-[540px]:py-2.5">
+        <span className="text-[9px] font-bold text-amber-700 dark:text-amber-300 @min-[420px]:text-[10px] @min-[540px]:text-[11px]">
           <Trans>Did you know?</Trans>
         </span>
-        <p className="mt-0.5 text-[8px] leading-[11px] text-amber-900/70 @min-[420px]:text-[9px] @min-[420px]:leading-[12px] @min-[540px]:text-[10px] @min-[540px]:leading-[13px]">
+        <p className="mt-0.5 text-[8px] leading-[11px] text-amber-900/70 dark:text-amber-100/80 @min-[420px]:text-[9px] @min-[420px]:leading-[12px] @min-[540px]:text-[10px] @min-[540px]:leading-[13px]">
           <Trans>
             A single water molecule can take over 3,000 years to complete one full
             trip through the water cycle - from ocean to sky to river and back again.
@@ -323,11 +323,11 @@ function SingleColumnPreview() {
   const { i18n } = useLingui()
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto px-4 py-5 text-[#0a0a0a] @min-[420px]:px-6 @min-[420px]:py-6 @min-[540px]:px-10 @min-[540px]:py-8 @min-[620px]:px-14 @min-[620px]:py-10">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto px-4 py-5 text-foreground @min-[420px]:px-6 @min-[420px]:py-6 @min-[540px]:px-10 @min-[540px]:py-8 @min-[620px]:px-14 @min-[620px]:py-10">
 
       {/* Section heading */}
-      <div className="mb-3 border-b border-[#e5e5e5] pb-2 @min-[540px]:mb-4 @min-[540px]:pb-3">
-        <p className="text-[8px] font-semibold uppercase tracking-widest text-[#737373] @min-[420px]:text-[9px] @min-[540px]:text-[10px]">
+      <div className="mb-3 border-b border-border pb-2 @min-[540px]:mb-4 @min-[540px]:pb-3">
+        <p className="text-[8px] font-semibold uppercase tracking-widest text-muted-foreground @min-[420px]:text-[9px] @min-[540px]:text-[10px]">
           <Trans>Section 3.2</Trans>
         </p>
         <h2 className="text-sm font-bold leading-tight @min-[420px]:text-base @min-[540px]:text-lg @min-[620px]:text-xl">
@@ -336,7 +336,7 @@ function SingleColumnPreview() {
       </div>
 
       {/* Intro paragraph */}
-      <p className="mb-3 text-[8px] leading-[13px] text-[#525252] @min-[420px]:text-[9px] @min-[420px]:leading-[14px] @min-[540px]:mb-4 @min-[540px]:text-[10px] @min-[540px]:leading-[15px] @min-[620px]:text-xs @min-[620px]:leading-4">
+      <p className="mb-3 text-[8px] leading-[13px] text-foreground/80 @min-[420px]:text-[9px] @min-[420px]:leading-[14px] @min-[540px]:mb-4 @min-[540px]:text-[10px] @min-[540px]:leading-[15px] @min-[620px]:text-xs @min-[620px]:leading-4">
         <Trans>
           The following terms are used throughout this manual. Familiarity with these definitions is
           required before proceeding to the implementation chapters.
@@ -344,16 +344,16 @@ function SingleColumnPreview() {
       </p>
 
       {/* Definition list */}
-      <div className="mb-3 flex flex-col divide-y divide-[#f0f0f0] rounded-lg border border-[#e5e5e5] @min-[540px]:mb-4">
+      <div className="mb-3 flex flex-col divide-y divide-border rounded-lg border border-border @min-[540px]:mb-4">
         {SINGLE_COLUMN_DEFINITIONS.map(({ term, definition }, idx) => (
           <div
             key={idx}
             className="flex gap-2 px-2.5 py-1.5 @min-[540px]:gap-3 @min-[540px]:px-3 @min-[540px]:py-2"
           >
-            <span className="w-14 shrink-0 text-[8px] font-bold text-[#0a0a0a] @min-[420px]:w-16 @min-[420px]:text-[9px] @min-[540px]:w-20 @min-[540px]:text-[10px] @min-[620px]:text-xs">
+            <span className="w-14 shrink-0 text-[8px] font-bold text-foreground @min-[420px]:w-16 @min-[420px]:text-[9px] @min-[540px]:w-20 @min-[540px]:text-[10px] @min-[620px]:text-xs">
               {i18n._(term)}
             </span>
-            <span className="text-[8px] leading-[12px] text-[#525252] @min-[420px]:text-[9px] @min-[420px]:leading-[13px] @min-[540px]:text-[10px] @min-[540px]:leading-[14px] @min-[620px]:text-xs @min-[620px]:leading-4">
+            <span className="text-[8px] leading-[12px] text-foreground/80 @min-[420px]:text-[9px] @min-[420px]:leading-[13px] @min-[540px]:text-[10px] @min-[540px]:leading-[14px] @min-[620px]:text-xs @min-[620px]:leading-4">
               {i18n._(definition)}
             </span>
           </div>
@@ -361,11 +361,11 @@ function SingleColumnPreview() {
       </div>
 
       {/* Note callout */}
-      <div className="mb-3 rounded border-l-2 border-[#737373] bg-[#f5f5f5] px-2.5 py-1.5 @min-[540px]:mb-4 @min-[540px]:px-3 @min-[540px]:py-2">
-        <p className="text-[8px] font-semibold text-[#404040] @min-[420px]:text-[9px] @min-[540px]:text-[10px] @min-[620px]:text-xs">
+      <div className="mb-3 rounded border-l-2 border-muted-foreground bg-muted px-2.5 py-1.5 @min-[540px]:mb-4 @min-[540px]:px-3 @min-[540px]:py-2">
+        <p className="text-[8px] font-semibold text-foreground @min-[420px]:text-[9px] @min-[540px]:text-[10px] @min-[620px]:text-xs">
           <Trans>Note</Trans>
         </p>
-        <p className="mt-0.5 text-[8px] leading-[12px] text-[#525252] @min-[420px]:text-[9px] @min-[420px]:leading-[13px] @min-[540px]:text-[10px] @min-[540px]:leading-[14px] @min-[620px]:text-xs @min-[620px]:leading-4">
+        <p className="mt-0.5 text-[8px] leading-[12px] text-foreground/80 @min-[420px]:text-[9px] @min-[420px]:leading-[13px] @min-[540px]:text-[10px] @min-[540px]:leading-[14px] @min-[620px]:text-xs @min-[620px]:leading-4">
           <Trans>
             Terms marked with an asterisk (*) are defined by the ISO standard and may differ from
             colloquial usage in other fields.
@@ -374,10 +374,10 @@ function SingleColumnPreview() {
       </div>
 
       {/* Sub-section */}
-      <h3 className="mb-1.5 text-[9px] font-bold uppercase tracking-wide text-[#0a0a0a] @min-[420px]:text-[10px] @min-[540px]:mb-2 @min-[540px]:text-[11px] @min-[620px]:text-xs">
+      <h3 className="mb-1.5 text-[9px] font-bold uppercase tracking-wide text-foreground @min-[420px]:text-[10px] @min-[540px]:mb-2 @min-[540px]:text-[11px] @min-[620px]:text-xs">
         <Trans>3.2.1 — Authentication Methods</Trans>
       </h3>
-      <p className="mb-3 text-[8px] leading-[13px] text-[#525252] @min-[420px]:text-[9px] @min-[420px]:leading-[14px] @min-[540px]:mb-4 @min-[540px]:text-[10px] @min-[540px]:leading-[15px] @min-[620px]:text-xs @min-[620px]:leading-4">
+      <p className="mb-3 text-[8px] leading-[13px] text-foreground/80 @min-[420px]:text-[9px] @min-[420px]:leading-[14px] @min-[540px]:mb-4 @min-[540px]:text-[10px] @min-[540px]:leading-[15px] @min-[620px]:text-xs @min-[620px]:leading-4">
         <Trans>
           Two authentication methods are supported: Bearer tokens passed in the Authorization
           header, and API keys passed as a query parameter. Bearer tokens are preferred for
@@ -386,21 +386,21 @@ function SingleColumnPreview() {
       </p>
 
       {/* Table */}
-      <div className="mb-3 overflow-hidden rounded-lg border border-[#e5e5e5] @min-[540px]:mb-4">
-        <div className="grid grid-cols-3 divide-x divide-[#e5e5e5] bg-[#f5f5f5]">
+      <div className="mb-3 overflow-hidden rounded-lg border border-border @min-[540px]:mb-4">
+        <div className="grid grid-cols-3 divide-x divide-border bg-muted">
           {SINGLE_COLUMN_TABLE_HEADERS.map((h, idx) => (
             <div key={idx} className="px-2 py-1 @min-[540px]:px-3 @min-[540px]:py-1.5">
-              <span className="text-[7px] font-bold uppercase tracking-wide text-[#404040] @min-[420px]:text-[8px] @min-[540px]:text-[9px] @min-[620px]:text-[10px]">
+              <span className="text-[7px] font-bold uppercase tracking-wide text-foreground @min-[420px]:text-[8px] @min-[540px]:text-[9px] @min-[620px]:text-[10px]">
                 {i18n._(h)}
               </span>
             </div>
           ))}
         </div>
         {SINGLE_COLUMN_TABLE_ROWS.map((row, rowIdx) => (
-          <div key={rowIdx} className="grid grid-cols-3 divide-x divide-[#f0f0f0] border-t border-[#f0f0f0]">
+          <div key={rowIdx} className="grid grid-cols-3 divide-x divide-border border-t border-border">
             {row.map((cell, colIdx) => (
               <div key={`${rowIdx}-${colIdx}`} className="px-2 py-1 @min-[540px]:px-3 @min-[540px]:py-1.5">
-                <span className="text-[7px] text-[#525252] @min-[420px]:text-[8px] @min-[540px]:text-[9px] @min-[620px]:text-[10px]">
+                <span className="text-[7px] text-foreground/80 @min-[420px]:text-[8px] @min-[540px]:text-[9px] @min-[620px]:text-[10px]">
                   {i18n._(cell)}
                 </span>
               </div>
@@ -410,7 +410,7 @@ function SingleColumnPreview() {
       </div>
 
       {/* Closing paragraph */}
-      <p className="text-[8px] leading-[13px] text-[#525252] @min-[420px]:text-[9px] @min-[420px]:leading-[14px] @min-[540px]:text-[10px] @min-[540px]:leading-[15px] @min-[620px]:text-xs @min-[620px]:leading-4">
+      <p className="text-[8px] leading-[13px] text-foreground/80 @min-[420px]:text-[9px] @min-[420px]:leading-[14px] @min-[540px]:text-[10px] @min-[540px]:leading-[15px] @min-[620px]:text-xs @min-[620px]:leading-4">
         <Trans>
           Additional terminology may be introduced in later sections. All terms are listed in the
           glossary appendix at the end of this document for quick reference.
@@ -426,7 +426,7 @@ function TwoColumnPreview() {
   const body = LOREM
 
   return (
-    <div className="flex h-full min-h-0 flex-row gap-2 px-2 py-4 text-[#0a0a0a] @min-[420px]:gap-3 @min-[420px]:px-3 @min-[420px]:py-6 @min-[540px]:gap-4 @min-[540px]:px-5 @min-[620px]:px-[30px] @min-[620px]:py-[66px]">
+    <div className="flex h-full min-h-0 flex-row gap-2 px-2 py-4 text-foreground @min-[420px]:gap-3 @min-[420px]:px-3 @min-[420px]:py-6 @min-[540px]:gap-4 @min-[540px]:px-5 @min-[620px]:px-[30px] @min-[620px]:py-[66px]">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1 overflow-y-hidden px-1 @min-[420px]:gap-1.5 @min-[420px]:px-2 @min-[540px]:gap-2 @min-[620px]:gap-[10px] @min-[620px]:px-4">
         <p className="text-center text-sm font-semibold leading-tight tracking-[-0.6px] @min-[420px]:text-base @min-[420px]:leading-snug @min-[540px]:text-lg @min-[540px]:leading-7 @min-[620px]:text-2xl @min-[620px]:leading-8">
           <Trans>Chapter One</Trans>
@@ -470,7 +470,7 @@ function TwoColumnStoryPreview() {
         />
       </div>
       <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center px-1 @min-[420px]:px-2 @min-[620px]:px-4">
-        <p className="text-pretty text-center text-[11px] font-semibold leading-snug tracking-[0.3px] text-[#0a0a0a] @min-[380px]:text-xs @min-[380px]:leading-snug @min-[480px]:text-sm @min-[480px]:leading-normal @min-[540px]:text-base @min-[540px]:leading-7 @min-[620px]:text-2xl @min-[620px]:leading-9 @min-[760px]:text-[30px] @min-[760px]:leading-10">
+        <p className="text-pretty text-center text-[11px] font-semibold leading-snug tracking-[0.3px] text-foreground @min-[380px]:text-xs @min-[380px]:leading-snug @min-[480px]:text-sm @min-[480px]:leading-normal @min-[540px]:text-base @min-[540px]:leading-7 @min-[620px]:text-2xl @min-[620px]:leading-9 @min-[760px]:text-[30px] @min-[760px]:leading-10">
           <Trans>
             This is Pip! He is a happy caramel dog with a very wiggly tail. Pip loves the green
             grass, the bright yellow sun, and making new friends in his garden.
@@ -490,7 +490,7 @@ function FixedLayoutPreview() {
           src="/previews/two-column-story.png"
           className="pointer-events-none absolute inset-0 h-full w-full object-contain"
         />
-        <div className="absolute left-[8%] top-[58%] right-[8%] rounded-md bg-white/85 px-3 py-2 text-center text-[11px] font-semibold leading-snug tracking-[0.3px] text-[#0a0a0a] shadow-sm @min-[420px]:px-4 @min-[420px]:py-2.5 @min-[420px]:text-xs @min-[480px]:text-sm @min-[540px]:px-5 @min-[540px]:py-3 @min-[540px]:text-base @min-[620px]:text-lg @min-[760px]:text-xl">
+        <div className="absolute left-[8%] top-[58%] right-[8%] rounded-md bg-white/85 px-3 py-2 text-center text-[11px] font-semibold leading-snug tracking-[0.3px] text-[#1a1a1a] shadow-sm @min-[420px]:px-4 @min-[420px]:py-2.5 @min-[420px]:text-xs @min-[480px]:text-sm @min-[540px]:px-5 @min-[540px]:py-3 @min-[540px]:text-base @min-[620px]:text-lg @min-[760px]:text-xl">
           <Trans>This is Pip! He has a wiggly tail.</Trans>
         </div>
       </div>
@@ -528,7 +528,7 @@ export function LayoutPreview({ strategy }: { strategy: string }) {
   return (
     <PreviewShell label={label}>
       <div className="flex min-h-[280px] flex-1 flex-col items-center justify-center gap-6 px-6 py-8">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-border bg-white text-muted-foreground">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-border bg-card text-muted-foreground">
           <LayoutTemplate className="h-7 w-7" />
         </div>
         <div className="max-w-[280px] text-center">

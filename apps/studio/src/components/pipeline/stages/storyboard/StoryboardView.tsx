@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
 import { LoadingState } from "../../components/LoadingState"
 import { StageEmptyState } from "../../components/StageEmptyState"
@@ -27,7 +27,8 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const hasUnsavedChanges = useHasUnsavedChanges()
   const { setExtra, setOnLabelClick } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const storyboardState = stageState("storyboard")
   const storyboardDone = storyboardState === "done"
   const storyboardRunning = storyboardState === "running" || storyboardState === "queued"
@@ -49,9 +50,9 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     : !storyboardDone && !hasRenderingData
 
   const handleRunStoryboard = useCallback(() => {
-    if (!hasApiKey || !sectioningReady || storyboardRunning) return
+    if (!hasStructuredTextProvider || !sectioningReady || storyboardRunning) return
     queueRun({ fromStage: "storyboard", toStage: "storyboard", apiKey })
-  }, [hasApiKey, sectioningReady, storyboardRunning, apiKey, queueRun])
+  }, [hasStructuredTextProvider, sectioningReady, storyboardRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
   const { sectionIndex, setSectionIndex, skipNextResetRef } = useSectionNav()
@@ -371,7 +372,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
             variant="outline"
             className="h-7 shrink-0 border-amber-300 bg-white px-3 text-xs text-amber-900 hover:bg-amber-100"
             onClick={handleRunStoryboard}
-            disabled={!hasApiKey || !sectioningReady || storyboardRunning}
+            disabled={!hasStructuredTextProvider || !sectioningReady || storyboardRunning}
           >
             <RotateCcw className="mr-1 h-3 w-3" />
             <Trans>Re-run Storyboard</Trans>
@@ -391,7 +392,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={storyboardRunning}
           completed={storyboardDone}
           onRun={handleRunStoryboard}
-          disabled={!hasApiKey || !sectioningReady || storyboardRunning}
+          disabled={!hasStructuredTextProvider || !sectioningReady || storyboardRunning}
         />
       </div>
     )
@@ -467,7 +468,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={storyboardRunning}
           completed={storyboardDone}
           onRun={handleRunStoryboard}
-          disabled={!hasApiKey || !sectioningReady || storyboardRunning}
+          disabled={!hasStructuredTextProvider || !sectioningReady || storyboardRunning}
         />
       </div>
     )

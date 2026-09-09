@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest"
-import { SpeechConfig, TTSOutput, isTtsExcluded } from "../speech.js"
+import {
+  SpeechConfig,
+  SpeechFileEntry,
+  SpeechFailedEntry,
+  TTSOutput,
+  VoiceMapEntry,
+  VoiceSlots,
+  VoicesConfig,
+  parseVoicesConfigEntries,
+  isTtsExcluded,
+  normalizeVoiceMapEntry,
+  resolveEntryVoiceSlot,
+  voiceSlotEntryId,
+  parseVoiceSlotEntryId,
+  sortSpeechEntries,
+} from "../speech.js"
 import { getTextCatalogCategory } from "../text-catalog.js"
 
 describe("getTextCatalogCategory", () => {
@@ -66,7 +81,52 @@ describe("SpeechConfig exclusions", () => {
       excluded_categories: ["captions", "easy-read"],
       excluded_text_ids: ["pg001_t001"],
     })
+
     expect(result.success).toBe(true)
+  })
+
+  describe("SpeechConfig secondary voices", () => {
+    it("accepts a per-language secondary provider, model, and voice", () => {
+      expect(
+        SpeechConfig.safeParse({
+          secondary_voices: {
+            "es-UY": {
+              provider: "gemini",
+              model: "gemini-2.5-flash-preview-tts",
+              voice: "Puck",
+            },
+          },
+        }).success,
+      ).toBe(true)
+    })
+
+    it("accepts per-book primary overrides keyed provider then locale", () => {
+      expect(
+        SpeechConfig.safeParse({
+          primary_voices: {
+            azure: { "es-uy": { voice: "es-UY-MateoNeural", label: "Mateo" } },
+          },
+        }).success,
+      ).toBe(true)
+    })
+
+    it("rejects a primary override with an empty voice", () => {
+      expect(
+        SpeechConfig.safeParse({
+          primary_voices: { azure: { "es-uy": { voice: "" } } },
+        }).success,
+      ).toBe(false)
+    })
+
+    it("rejects unsupported providers and empty voices", () => {
+      expect(
+        SpeechConfig.safeParse({
+          secondary_voices: {
+            "es-UY": { provider: "unsupported", voice: "" },
+          },
+        }).success,
+      ).toBe(false)
+    })
   })
 
   it("rejects unknown categories", () => {
@@ -165,5 +225,242 @@ describe("TTSOutput", () => {
     if (result.success) {
       expect(result.data.failed).toHaveLength(1)
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Dual voice slots
+// ---------------------------------------------------------------------------
+
+describe("voiceSlotEntryId / parseVoiceSlotEntryId", () => {
+  it("preserves the bare textId for the primary slot (legacy compatible)", () => {
+    expect(voiceSlotEntryId("pg001_t001", "primary")).toBe("pg001_t001")
+    expect(voiceSlotEntryId("pg001_t001")).toBe("pg001_t001")
+    expect(voiceSlotEntryId("pg001_t001", undefined)).toBe("pg001_t001")
+    expect(voiceSlotEntryId("pg001_t001", null)).toBe("pg001_t001")
+  })
+
+  it("suffixes the secondary slot", () => {
+    expect(voiceSlotEntryId("pg001_t001", "secondary")).toBe("pg001_t001--secondary")
+  })
+
+  it("round-trips through parseVoiceSlotEntryId", () => {
+    expect(parseVoiceSlotEntryId("pg001_t001")).toEqual({
+      textId: "pg001_t001",
+      voiceSlot: "primary",
+    })
+    expect(parseVoiceSlotEntryId("pg001_t001--secondary")).toEqual({
+      textId: "pg001_t001",
+      voiceSlot: "secondary",
+    })
+  })
+})
+
+describe("normalizeVoiceMapEntry", () => {
+  it("normalizes a legacy scalar string to a primary-only mapping", () => {
+    expect(normalizeVoiceMapEntry("alloy")).toEqual({ primary: { voice: "alloy" } })
+  })
+
+  it("passes through a canonical slots object unchanged", () => {
+    const entry: VoiceMapEntry = {
+      primary: { voice: "alloy", label: "Alloy" },
+      secondary: { voice: "shimmer", label: "Shimmer" },
+    }
+    expect(normalizeVoiceMapEntry(entry)).toEqual(entry)
+  })
+})
+
+describe("resolveEntryVoiceSlot", () => {
+  it("treats a missing voiceSlot as primary", () => {
+    expect(resolveEntryVoiceSlot(undefined)).toBe("primary")
+    expect(resolveEntryVoiceSlot(null)).toBe("primary")
+    expect(resolveEntryVoiceSlot({})).toBe("primary")
+  })
+
+  it("returns the explicit voiceSlot when set", () => {
+    expect(resolveEntryVoiceSlot({ voiceSlot: "secondary" })).toBe("secondary")
+    expect(resolveEntryVoiceSlot({ voiceSlot: "primary" })).toBe("primary")
+  })
+})
+
+describe("VoiceSlots / VoiceMapEntry schema", () => {
+  it("accepts a canonical primary/secondary mapping", () => {
+    const result = VoiceSlots.safeParse({
+      primary: { voice: "alloy", label: "Alloy" },
+      secondary: { voice: "shimmer", label: "Shimmer" },
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it("requires a primary voice", () => {
+    const result = VoiceSlots.safeParse({ secondary: { voice: "shimmer" } })
+    expect(result.success).toBe(false)
+  })
+
+  it("rejects empty voice identifiers and labels", () => {
+    expect(VoiceSlots.safeParse({ primary: { voice: " " } }).success).toBe(false)
+    expect(
+      VoiceSlots.safeParse({ primary: { voice: "alloy", label: " " } }).success,
+    ).toBe(false)
+  })
+
+  it("VoiceMapEntry accepts both legacy scalars and canonical objects", () => {
+    expect(VoiceMapEntry.safeParse("alloy").success).toBe(true)
+    expect(
+      VoiceMapEntry.safeParse({ primary: { voice: "alloy" } }).success
+    ).toBe(true)
+  })
+})
+
+describe("VoicesConfig", () => {
+  it("parses a whole voices.yaml document mixing legacy and canonical entries", () => {
+    const result = VoicesConfig.safeParse({
+      openai: {
+        default: "alloy",
+        en: { primary: { voice: "alloy" }, secondary: { voice: "shimmer" } },
+        es: "coral",
+      },
+    })
+
+    expect(result.success).toBe(true)
+  })
+})
+
+describe("parseVoicesConfigEntries", () => {
+  it("preserves valid mappings when a sibling entry is invalid", () => {
+    const result = parseVoicesConfigEntries({
+      openai: {
+        es: "coral",
+        en: { secondary: { voice: "shimmer" } },
+      },
+    })
+    expect(result.data).toEqual({ openai: { es: "coral" } })
+    expect(result.errors).toHaveLength(1)
+    expect(result.errors[0]).toEqual(
+      expect.objectContaining({ provider: "openai", language: "en" }),
+    )
+  })
+})
+
+describe("SpeechFileEntry voiceSlot/voiceLabel", () => {
+  it("accepts legacy entries without voiceSlot/voiceLabel", () => {
+    const result = SpeechFileEntry.safeParse({
+      textId: "pg001_t001",
+      language: "en",
+      fileName: "pg001_t001.mp3",
+      voice: "alloy",
+      model: "gpt-4o-mini-tts",
+      cached: false,
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it("accepts a secondary entry with a voiceLabel", () => {
+    const result = SpeechFileEntry.safeParse({
+      textId: "pg001_t001",
+      language: "en",
+      fileName: "pg001_t001--secondary.mp3",
+      voice: "shimmer",
+      model: "gpt-4o-mini-tts",
+      cached: false,
+      voiceSlot: "secondary",
+      voiceLabel: "Shimmer",
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it("rejects an invalid voiceSlot value", () => {
+    const result = SpeechFileEntry.safeParse({
+      textId: "pg001_t001",
+      language: "en",
+      fileName: "pg001_t001.mp3",
+      voice: "alloy",
+      model: "gpt-4o-mini-tts",
+      cached: false,
+      voiceSlot: "tertiary",
+    })
+    expect(result.success).toBe(false)
+  })
+})
+
+describe("SpeechFailedEntry voiceSlot", () => {
+  it("accepts a failure without voiceSlot (legacy)", () => {
+    expect(
+      SpeechFailedEntry.safeParse({ textId: "pg001_t002", error: "boom" }).success
+    ).toBe(true)
+  })
+
+  it("accepts a failure with an explicit secondary voiceSlot", () => {
+    expect(
+      SpeechFailedEntry.safeParse({
+        textId: "pg001_t002",
+        error: "boom",
+        voiceSlot: "secondary",
+      }).success
+    ).toBe(true)
+  })
+})
+
+describe("sortSpeechEntries", () => {
+  const entry = (textId: string, voiceSlot?: "primary" | "secondary") => ({
+    textId,
+    ...(voiceSlot ? { voiceSlot } : {}),
+  })
+  const shape = (entries: ReturnType<typeof entry>[]) =>
+    entries.map((e) => [e.textId, e.voiceSlot ?? "primary"])
+
+  it("orders by catalog position, primary before its secondary", () => {
+    // Interleaved the way a mixed reuse/regenerate run produces them.
+    const sorted = sortSpeechEntries(
+      [
+        entry("pg001_t002", "secondary"),
+        entry("pg001_t001", "secondary"),
+        entry("pg001_t002"),
+        entry("pg001_t001"),
+      ],
+      ["pg001_t001", "pg001_t002"],
+    )
+
+    expect(shape(sorted)).toEqual([
+      ["pg001_t001", "primary"],
+      ["pg001_t001", "secondary"],
+      ["pg001_t002", "primary"],
+      ["pg001_t002", "secondary"],
+    ])
+  })
+
+  it("treats a missing voiceSlot as primary", () => {
+    const sorted = sortSpeechEntries(
+      [entry("pg001_t001", "secondary"), entry("pg001_t001")],
+      ["pg001_t001"],
+    )
+
+    expect(shape(sorted)).toEqual([
+      ["pg001_t001", "primary"],
+      ["pg001_t001", "secondary"],
+    ])
+  })
+
+  it("sorts ids missing from the catalog to the tail, keeping their order", () => {
+    const sorted = sortSpeechEntries(
+      [entry("orphan_b"), entry("pg001_t001"), entry("orphan_a")],
+      ["pg001_t001"],
+    )
+
+    expect(sorted.map((e) => e.textId)).toEqual(["pg001_t001", "orphan_b", "orphan_a"])
+  })
+
+  it("handles an empty catalog without reordering", () => {
+    const sorted = sortSpeechEntries([entry("b"), entry("a")], [])
+
+    expect(sorted.map((e) => e.textId)).toEqual(["b", "a"])
+  })
+
+  it("does not mutate the input array", () => {
+    const input = [entry("pg001_t002"), entry("pg001_t001")]
+
+    sortSpeechEntries(input, ["pg001_t001", "pg001_t002"])
+
+    expect(input.map((e) => e.textId)).toEqual(["pg001_t002", "pg001_t001"])
   })
 })

@@ -13,7 +13,7 @@ import type {
 } from "@adt/types"
 import type { Storage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
-import type { AgentCredentials } from "../resolve-model.js"
+import type { AgentCredentials } from "../credentials.js"
 
 export interface RenderSyntheticActivityInput {
   storage: Storage
@@ -130,13 +130,13 @@ export async function renderSyntheticActivity(
     input.bookLabel,
     "prompts",
   )
-  const promptEngine = createPromptEngine([bookPromptsDir, input.promptsDir])
+  const promptEngine = createPromptEngine([bookPromptsDir, input.promptsDir], { basePromptModelId: config.base_prompt_model })
   const llmModel = createLLMModel({
     modelId: renderConfig.modelId,
     cacheDir,
     promptEngine,
     onLog: (entry) => input.storage.appendLlmLog(entry),
-    credentials: input.credentials,
+    providerCredentials: input.credentials,
   })
 
   const renderContext = buildRenderContext(section, images, input.bookLabel)

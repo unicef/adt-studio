@@ -6,6 +6,11 @@ const COVER_URL_PREFIXES = [
   "https://github.com/user-attachments/",
   "https://user-images.githubusercontent.com/",
 ];
+// Official release covers are uploaded as GitHub release assets under the repo's
+// own release-download host, which is fully GitHub/repo controlled.
+const COVER_URL_PATTERNS = [
+  /^https:\/\/github\.com\/[^/]+\/[^/]+\/releases\/download\//,
+];
 const GENERIC_RELEASE_TITLES = new Set([
   "what's changed",
   "whats changed",
@@ -252,7 +257,10 @@ function plainInlineText(value) {
 }
 
 function isAllowedCoverUrl(value) {
-  return COVER_URL_PREFIXES.some((prefix) => value.startsWith(prefix));
+  return (
+    COVER_URL_PREFIXES.some((prefix) => value.startsWith(prefix)) ||
+    COVER_URL_PATTERNS.some((pattern) => pattern.test(value))
+  );
 }
 
 function validEditorialTitle(value) {

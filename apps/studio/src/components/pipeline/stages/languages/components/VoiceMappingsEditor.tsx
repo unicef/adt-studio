@@ -5,7 +5,7 @@ import { Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { api } from "@/api/client"
+import { api, type VoiceMapEntry } from "@/api/client"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useFloatingSave } from "@/components/pipeline/components/floating-save"
@@ -14,7 +14,7 @@ import { useRegisterDirtyTabs } from "@/hooks/use-settings-dirty-tabs"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useLingui } from "@lingui/react/macro"
-import { ElevenLabsVoiceCombobox } from "./ElevenLabsVoiceCombobox"
+import { ProviderVoicePicker } from "./ProviderVoicePicker"
 
 interface VoiceMappingsEditorProps {
   bookLabel: string
@@ -27,18 +27,31 @@ type VoiceProviderKey = (typeof PROVIDER_ORDER)[number]
 
 interface VoiceRow {
   lang: string
-  openai: string
-  azure: string
-  gemini: string
-  elevenlabs: string
+  openai: VoiceCell
+  azure: VoiceCell
+  gemini: VoiceCell
+  elevenlabs: VoiceCell
 }
+
+interface VoiceCell {
+  voice: string
+  label?: string
+}
+
+const primaryVoice = (entry?: VoiceMapEntry): VoiceCell =>
+  typeof entry === "string"
+    ? { voice: entry }
+    : {
+        voice: entry?.primary.voice ?? "",
+        label: entry?.primary.label,
+      }
 
 export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
   const remount = useSettingsRemount()
   const { queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasSpeechProvider } = useApiKey()
   const navigate = useNavigate()
   const { data: bookConfigData, isLoading: isBookConfigLoading } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
@@ -72,10 +85,10 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
     for (const lang of allLangs) {
       built.push({
         lang,
-        openai: openai[lang] ?? "",
-        azure: azure[lang] ?? "",
-        gemini: gemini[lang] ?? "",
-        elevenlabs: elevenlabs[lang] ?? "",
+        openai: primaryVoice(openai[lang]),
+        azure: primaryVoice(azure[lang]),
+        gemini: primaryVoice(gemini[lang]),
+        elevenlabs: primaryVoice(elevenlabs[lang]),
       })
     }
     // Sort with "default" first, then alphabetical
@@ -99,8 +112,22 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
     setDefaultVoice(typeof voice === "string" ? voice : "")
   }, [activeConfigData, dirtyDefaultVoice])
 
-  const updateRow = (index: number, field: VoiceProviderKey, value: string) => {
-    setRows((prev) => prev.map((r, i) => i === index ? { ...r, [field]: value } : r))
+  const updateVoice = (
+    index: number,
+    provider: VoiceProviderKey,
+    voice: string,
+    label?: string,
+  ) => {
+    setRows((prev) => prev.map((row, i) => {
+      if (i !== index) return row
+      return {
+        ...row,
+        [provider]: {
+          voice,
+          ...(label && label !== voice ? { label } : {}),
+        },
+      }
+    }))
     setDirtyMappings(true)
   }
 
@@ -112,7 +139,13 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
   const addLanguage = () => {
     const key = newLangKey.trim().toLowerCase()
     if (!key || rows.some((r) => r.lang === key)) return
-    setRows((prev) => [...prev, { lang: key, openai: "", azure: "", gemini: "", elevenlabs: "" }])
+    setRows((prev) => [...prev, {
+      lang: key,
+      openai: { voice: "" },
+      azure: { voice: "" },
+      gemini: { voice: "" },
+      elevenlabs: { voice: "" },
+    }])
     setNewLangKey("")
     setShowAddLang(false)
     setDirtyMappings(true)
@@ -124,12 +157,17 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
       const saves: Promise<unknown>[] = []
 
       if (dirtyMappings) {
-        const nextMappings: Record<string, Record<string, string>> = {}
+        const nextMappings: Record<string, Record<string, VoiceMapEntry>> = {}
         for (const key of PROVIDER_ORDER) {
-          const values: Record<string, string> = {}
+          const values: Record<string, VoiceMapEntry> = {}
           for (const row of rows) {
-            const value = row[key].trim()
-            if (value) values[row.lang] = value
+            const voice = row[key].voice.trim()
+            if (!voice) continue
+            const label =
+              key === "elevenlabs" ? row[key].label?.trim() : undefined
+            values[row.lang] = label
+              ? { primary: { voice, label } }
+              : voice
           }
           if (Object.keys(values).length > 0) {
             nextMappings[key] = values
@@ -193,7 +231,7 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
       queueRun({ fromStage: "speech", toStage: "speech", apiKey })
     },
     onDiscard: remount,
-    rerunDisabledReason: !hasApiKey
+    rerunDisabledReason: !hasSpeechProvider
       ? t`Add an API key to re-run`
       : dirtyDefaultVoice && isBookConfigLoading
         ? t`Loading book config…`
@@ -293,37 +331,25 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
           <tbody>
             {rows.map((row, i) => (
               <tr key={row.lang} className="border-b last:border-b-0 hover:bg-muted/30">
-                <td className="px-3 py-1.5 font-medium text-muted-foreground">
+                <td className="px-3 py-2 align-top font-medium text-muted-foreground">
                   {row.lang}
                 </td>
                 {PROVIDER_ORDER.map((key) => (
-                  <td key={key} className="px-3 py-1.5">
-                    {/* ElevenLabs voices are opaque IDs, so they get a picker
-                        that resolves names. The other providers use readable
-                        names already (alloy, Kore, en-US-JennyNeural). */}
-                    {key === "elevenlabs" ? (
-                      <ElevenLabsVoiceCombobox
-                        value={row[key]}
-                        onChange={(voiceId) => updateRow(i, key, voiceId)}
-                      />
-                    ) : (
-                      <Input
-                        value={row[key]}
-                        onChange={(e) => updateRow(i, key, e.target.value)}
-                        className="h-7 text-xs"
-                        placeholder={
-                          key === "openai"
-                            ? t`e.g. alloy`
-                            : key === "azure"
-                              ? t`e.g. en-US-JennyNeural`
-                              : t`e.g. Kore`
-                        }
-                      />
-                    )}
+                  <td key={key} className="px-3 py-2 align-top">
+                    {/* The "default" row applies to every language, so its
+                        Azure voices must not be filtered to one locale. */}
+                    <ProviderVoicePicker
+                      provider={key}
+                      language={row.lang === "default" ? undefined : row.lang}
+                      value={row[key].voice}
+                      onChange={(voice, voiceLabel) =>
+                        updateVoice(i, key, voice, voiceLabel)
+                      }
+                    />
                   </td>
                 ))}
-                <td className="px-2 py-1.5">
-                  {row.lang !== "default" && (
+                <td className="px-2 py-1.5 align-top">
+                  {row.lang !== "default" ? (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -332,7 +358,7 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
                     >
                       <X className="h-3.5 w-3.5" />
                     </Button>
-                  )}
+                  ) : null}
                 </td>
               </tr>
             ))}
