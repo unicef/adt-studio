@@ -20,7 +20,7 @@ import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 import type { PageErrorDecisions } from "../services/page-error-decisions.js"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
-import { parkDetachedRecordings, DETACHED_AUDIO_DIR } from "../services/detached-audio.js"
+import { retireWithPreservedRecordings, DETACHED_AUDIO_DIR } from "../services/detached-audio.js"
 
 const StageRunBody = z
   .object({
@@ -114,8 +114,8 @@ function hasAnswerSpeechEntries(storage: Storage): boolean {
  * by the same clear.
  *
  * Nothing the user uploaded is deleted, as in the structural edit routes: a
- * video is unassigned in place, and a recording is parked by the caller (see
- * `parkDetachedRecordings`, which is needed because audio filenames — unlike
+ * video is unassigned in place, and a recording is backed up by the caller (see
+ * `retireWithPreservedRecordings`, which is needed because audio filenames — unlike
  * video paths — are derived from the very id being reissued). Same shape as the
  * `spreads/apply` reconcile, which retires ids before `deletePage` drops the
  * history for the identical reason — and it goes through the same
@@ -160,29 +160,28 @@ export function retireSectionIdsForClearedSectioning(
 
 /** Build a beforeRun callback that clears downstream data for a stage.
  *  The returned function is idempotent — only runs once even if called multiple times.
- *  Exported so tests can pin the retire-park-clear ordering it depends on. */
+ *  Exported so tests can pin the preserve-retirement-clear boundary. */
 export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string): () => void {
   let ran = false
   return () => {
     if (ran) return
-    ran = true
     const storage = createBookStorage(label, booksDir)
     try {
-      const retired = retireSectionIdsForClearedSectioning(storage, fromStage, toStage)
+      const { retired, preserved } = retireWithPreservedRecordings(
+        storage,
+        path.join(path.resolve(booksDir), label),
+        () => retireSectionIdsForClearedSectioning(storage, fromStage, toStage)
+      )
+      // A failed preservation rolls retirement back and must remain retryable.
+      ran = true
       if (retired.videos > 0) {
         console.warn(
           `[stages] ${label}: unassigned ${retired.videos} sign-language video(s) — the sections they were pinned to are being regenerated. The uploads are kept and can be reattached.`
         )
       }
       if (retired.detachedRecordings.length > 0) {
-        // Park them before the clear, for the same reason the retirement runs
-        // before it: this reads the manifest the clear may delete.
-        const parked = parkDetachedRecordings(
-          path.join(path.resolve(booksDir), label),
-          retired.detachedRecordings
-        )
         console.warn(
-          `[stages] ${label}: detached ${retired.detachedRecordings.length} uploaded audio recording(s) — the sections their text belonged to are being regenerated, so the recordings no longer match. ${parked.length} file(s) moved to ${DETACHED_AUDIO_DIR}/ so this run cannot overwrite them; re-upload the ones you still want.`
+          `[stages] ${label}: detached ${retired.detachedRecordings.length} uploaded audio recording(s) — the sections their text belonged to are being regenerated, so the recordings no longer match. ${preserved.length} file(s) backed up to ${DETACHED_AUDIO_DIR}/ so this run cannot overwrite the backups; re-upload the ones you still want.`
         )
       }
 

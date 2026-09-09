@@ -2681,7 +2681,7 @@ structure_types:
       storage.close()
     }
     // Note: retirement itself does no file I/O. Preserving the upload from the
-    // regeneration that reuses its filename is `parkDetachedRecordings`' job on
+    // regeneration that reuses its filename is `preserveDetachedRecordings`' job on
     // the rerun path, covered in `stages.test.ts` — asserting the file here
     // would only be testing that this mock does not write to disk.
   })

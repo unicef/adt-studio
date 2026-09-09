@@ -170,10 +170,12 @@ export type SectionIdRetirementResult = {
    * unassignment untouched. Dropping the entry alone would destroy the file.
    *
    * Retirement itself does no file I/O, so every caller that does not delete the
-   * audio outright has to park these (`parkDetachedRecordings`): the stage rerun,
-   * and `spreads/apply`, where un-applying the spread re-creates the page under
+   * audio outright has to back these up (`retireWithPreservedRecordings`): the
+   * stage rerun and `spreads/apply`, where un-applying the spread re-creates the page under
    * its old id and re-mints the same names. Once the entry is gone nothing
    * downstream knows the orphaned file exists, so it cannot be rescued later.
+   * Those callers wrap retirement and backup in one storage transaction so a
+   * failed copy rolls the associations back, leaving the originals retryable.
    */
   detachedRecordings: DetachedRecording[]
   /** `tts-timestamps` map entries dropped, across every language. */

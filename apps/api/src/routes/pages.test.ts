@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import path from "node:path"
 import os from "node:os"
@@ -1632,7 +1632,7 @@ describe("Page routes", () => {
       }
     })
 
-    it("parks a removed page's recording, since re-applying remints its ids", async () => {
+    it.each([false, true])("backs up a removed page's recording (retry after failure: %s)", async (failFirst) => {
       // `spreads/apply` is the structural path that clears no manifests, so the
       // prune is load-bearing here — and because `deletePage` drops the page's
       // sectioning history, un-applying the spread re-creates it under the same
@@ -1692,11 +1692,32 @@ describe("Page routes", () => {
         storage.close()
       }
 
-      const res = await app.request(`/api/books/${label}/spreads/apply`, {
+      const request = () => app.request(`/api/books/${label}/spreads/apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ spreadPairs: [] }),
       })
+      if (failFirst) {
+        const copy = vi.spyOn(fs, "copyFileSync").mockImplementationOnce(() => {
+          throw Object.assign(new Error("disk full"), { code: "ENOSPC" })
+        })
+        try {
+          expect((await request()).status).toBe(500)
+        } finally {
+          copy.mockRestore()
+        }
+        const failed = createBookStorage(label, tmpDir)
+        try {
+          expect(failed.getPages().some((page) => page.pageId === `${label}_p1`)).toBe(true)
+          expect(failed.getLatestNodeData("tts", "en")?.data).toMatchObject({
+            entries: [{ textId: `${label}_p1_sec001_ans_a`, provider: "manual" }],
+          })
+        } finally {
+          failed.close()
+        }
+        expect(fs.readFileSync(path.join(audioDir, fileName), "utf8")).toBe("uploaded-audio")
+      }
+      const res = await request()
       expect(res.status).toBe(200)
 
       const verify = createBookStorage(label, tmpDir)
@@ -1708,8 +1729,9 @@ describe("Page routes", () => {
       } finally {
         verify.close()
       }
-      // Moved out of the path a re-mint regenerates into, and not deleted.
-      expect(fs.existsSync(path.join(audioDir, fileName))).toBe(false)
+      // Keep the original as well as the backup, so transaction rollback never
+      // leaves the old manifest pointing to a missing upload.
+      expect(fs.existsSync(path.join(audioDir, fileName))).toBe(true)
       const parked = path.join(tmpDir, label, "audio", ".detached")
       expect(
         fs.readdirSync(parked).flatMap((stamp) => fs.readdirSync(path.join(parked, stamp, "en")))

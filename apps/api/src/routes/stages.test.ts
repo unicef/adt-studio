@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import path from "node:path"
 import os from "node:os"
@@ -358,9 +358,9 @@ describe("retireSectionIdsForClearedSectioning", () => {
     )
   })
 
-  it("parks a detached recording so the run cannot overwrite it, then clears", () => {
+  it("backs up a detached recording before the run can overwrite it, then clears", () => {
     // The ordering `makeBeforeRun` depends on, end to end: retire, move the
-    // upload out of the path the re-mint will regenerate into, then clear — and
+    // upload to a separate path the re-mint cannot regenerate into, then clear — and
     // the pruned `tts` row has to survive that clear, which is the only reason
     // pruning it was worth doing.
     const retiredSection = formatSectionId(pageId, 3)
@@ -369,8 +369,9 @@ describe("retireSectionIdsForClearedSectioning", () => {
 
     makeBeforeRun(label, "sectioning", "speech", tmpDir)()
 
-    // Moved aside, not deleted, and out of the language dir the run writes into.
-    expect(audioExists("en", fileName)).toBe(false)
+    // The original remains usable if a later step fails; its backup is safe
+    // outside the language dir that regeneration writes into.
+    expect(audioExists("en", fileName)).toBe(true)
     const parked = path.join(tmpDir, label, "audio", ".detached")
     const found = fs
       .readdirSync(parked)
@@ -380,6 +381,52 @@ describe("retireSectionIdsForClearedSectioning", () => {
     expect(withStorage((storage) => storage.getLatestNodeData("page-sectioning", pageId))).toBeNull()
     expect(ttsTextIds("en")).toEqual(["pg001_t001"])
   })
+
+  it.each(["sectioning", "extract"] as const)(
+    "rolls back retirement when backup fails on a %s rerun, and can retry",
+    (fromStage) => {
+      const section = formatSectionId(pageId, 3)
+      const textId = `${section}_ans_a`
+      const fileName = `${textId}.mp3`
+      seedTts("en", [{ textId, manual: true }])
+      seedTimestamps("en", [textId])
+      withStorage((storage) => {
+        storage.putSignLanguageVideo("retry-video", Buffer.from("video"), "retry.mp4", "video/mp4")
+        storage.assignSignLanguageVideo("retry-video", section)
+      })
+      const before = withStorage((storage) => storage.getNodeVersionFingerprint())
+      const run = makeBeforeRun(label, fromStage, "speech", tmpDir)
+      const copy = vi.spyOn(fs, "copyFileSync").mockImplementationOnce(() => {
+        throw Object.assign(new Error("permission denied"), { code: "EACCES" })
+      })
+      try {
+        expect(run).toThrow("Could not preserve uploaded recording")
+      } finally {
+        copy.mockRestore()
+      }
+      expect(withStorage((storage) => storage.getNodeVersionFingerprint())).toEqual(before)
+      expect(sectionIdsByVideo().get("retry-video")).toBe(section)
+      expect(ttsTextIds("en")).toEqual([textId])
+      expect(timestampKeys("en")).toEqual([textId])
+      expect(fs.readFileSync(path.join(tmpDir, label, "audio", "en", fileName), "utf8")).toBe("fake-audio")
+
+      // Reuse the same callback: failed preservation must not trip its once guard.
+      expect(run).not.toThrow()
+      expect(ttsTextIds("en")).toEqual([])
+      expect(sectionIdsByVideo().get("retry-video")).toBeNull()
+      expect(withStorage((storage) => storage.getLatestNodeData("page-sectioning", pageId))).toBeNull()
+      const backupRoot = path.join(tmpDir, label, "audio", ".detached")
+      const backups = fs.readdirSync(backupRoot)
+        .map((batch) => path.join(backupRoot, batch, "en", fileName))
+        .filter((file) => fs.existsSync(file))
+      expect(backups).toHaveLength(1)
+      fs.writeFileSync(path.join(tmpDir, label, "audio", "en", fileName), "new generated audio")
+      expect(fs.readFileSync(backups[0], "utf8")).toBe("fake-audio")
+      const completed = withStorage((storage) => storage.getNodeVersionFingerprint())
+      run()
+      expect(withStorage((storage) => storage.getNodeVersionFingerprint())).toEqual(completed)
+    }
+  )
 
   it("reconciles both the canonical and legacy language row spellings", () => {
     const retiredSection = formatSectionId(pageId, 3)
