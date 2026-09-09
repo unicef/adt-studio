@@ -579,6 +579,11 @@ export interface QuizOption {
 }
 
 export interface QuizItem {
+  /** Stable output-page id (`qz001`). Filled in by GET /quizzes; optional only
+   *  because a book written before it existed has none stored. Round-trip it on
+   *  every write — it keys the quiz's catalog entries, translations and audio. */
+  quizId?: string
+  /** @deprecated Positional, renumbered on every add/delete. Not an identity. */
   quizIndex: number
   afterPageId: string
   pageIds: string[]

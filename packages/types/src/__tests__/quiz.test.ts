@@ -2,8 +2,12 @@ import { describe, it, expect } from "vitest"
 import {
   formatQuizId,
   parseQuizId,
+  parseQuizRouteId,
   resolveQuizId,
+  withResolvedQuizIds,
   ensureQuizIds,
+  QuizIdExhaustedError,
+  MAX_QUIZ_SEQ,
   type Quiz,
   type QuizGenerationOutput,
 } from "../quiz.js"
@@ -102,5 +106,109 @@ describe("ensureQuizIds", () => {
     )
 
     expect(result.quizzes.map((q) => q.quizId)).toEqual(["qz001", "qz004"])
+  })
+
+  it("throws rather than minting a 4-digit id when every number is spent", () => {
+    const reserved = Array.from({ length: MAX_QUIZ_SEQ }, (_, i) =>
+      formatQuizId(i + 1)
+    )
+
+    expect(() => ensureQuizIds(output([quiz("one")]), reserved)).toThrow(
+      QuizIdExhaustedError
+    )
+  })
+})
+
+describe("withResolvedQuizIds", () => {
+  it("pins legacy ids to the positions their catalog entries were written for", () => {
+    const result = withResolvedQuizIds(
+      output([quiz("one"), quiz("two"), quiz("three")])
+    )
+
+    expect(result.quizzes.map((q) => q.quizId)).toEqual([
+      "qz001",
+      "qz002",
+      "qz003",
+    ])
+  })
+
+  it("is a no-op when every quiz already has an id", () => {
+    const input = output([quiz("one", { quizId: "qz009" })])
+
+    expect(withResolvedQuizIds(input)).toBe(input)
+  })
+
+  it("agrees with resolveQuizId, which is what the read paths use", () => {
+    const stored = output([quiz("one"), quiz("two")])
+    const resolved = withResolvedQuizIds(stored)
+
+    expect(resolved.quizzes.map((q) => q.quizId)).toEqual(
+      stored.quizzes.map((q, i) => resolveQuizId(q, i))
+    )
+  })
+
+  it("protects a legacy quiz's ids when the edit that follows reorders the array", () => {
+    // The gap `ensureQuizIds` alone leaves: a book with no stored ids, edited by
+    // deleting its first quiz. Stamping the post-delete array would give the
+    // survivors qz001/qz002 — the ids of the quizzes *before* them, and with
+    // them those quizzes' translations and generated audio. Resolving in stored
+    // order first pins each id before anything moves.
+    const stored = withResolvedQuizIds(
+      output([quiz("one"), quiz("two"), quiz("three")])
+    )
+
+    const afterDelete = ensureQuizIds({
+      ...stored,
+      quizzes: stored.quizzes.slice(1),
+    })
+
+    expect(afterDelete.changed).toBe(false)
+    expect(afterDelete.output.quizzes.map((q) => q.quizId)).toEqual([
+      "qz002",
+      "qz003",
+    ])
+  })
+
+  it("protects them on a mid-book insert too, and the newcomer takes a fresh id", () => {
+    const stored = withResolvedQuizIds(
+      output([quiz("one"), quiz("two"), quiz("three")])
+    )
+
+    // Insert at index 1, as `generate-one` does after sorting by page number.
+    const { output: result } = ensureQuizIds({
+      ...stored,
+      quizzes: [stored.quizzes[0], quiz("new"), ...stored.quizzes.slice(1)],
+    })
+
+    expect(result.quizzes.map((q) => q.question)).toEqual([
+      "one",
+      "new",
+      "two",
+      "three",
+    ])
+    expect(result.quizzes.map((q) => q.quizId)).toEqual([
+      "qz001",
+      "qz004",
+      "qz002",
+      "qz003",
+    ])
+  })
+})
+
+describe("parseQuizRouteId", () => {
+  it("reads the canonical route shape", () => {
+    expect(parseQuizRouteId("quiz-qz003")).toBe("qz003")
+  })
+
+  it("maps a legacy numeric route to the id that index used to derive", () => {
+    // Links minted before quizzes had stable ids carry `quiz-{arrayIndex}`.
+    expect(parseQuizRouteId("quiz-0")).toBe("qz001")
+    expect(parseQuizRouteId("quiz-4")).toBe("qz005")
+  })
+
+  it("returns null for pageIds that aren't quiz routes", () => {
+    expect(parseQuizRouteId("pg001")).toBeNull()
+    expect(parseQuizRouteId("pg001_sec001")).toBeNull()
+    expect(parseQuizRouteId("quiz-")).toBeNull()
   })
 })

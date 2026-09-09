@@ -7,6 +7,8 @@ import {
   parseBookLabel,
   QuizGenerationOutput,
   ensureQuizIds,
+  withResolvedQuizIds,
+  QuizIdExhaustedError,
   type Quiz,
   type WebRenderingOutput,
 } from "@adt/types"
@@ -48,6 +50,21 @@ function usedQuizIds(storage: Storage): string[] {
     }
   }
   return ids
+}
+
+/** `ensureQuizIds` with the exhaustion error surfaced as a 400. */
+function stampQuizIds(
+  output: QuizGenerationOutput,
+  storage: Storage
+): QuizGenerationOutput {
+  try {
+    return ensureQuizIds(output, usedQuizIds(storage)).output
+  } catch (err) {
+    if (err instanceof QuizIdExhaustedError) {
+      throw new HTTPException(400, { message: err.message })
+    }
+    throw err
+  }
 }
 
 export function createQuizRoutes(
@@ -98,8 +115,13 @@ export function createQuizRoutes(
         })
       }
 
+      // Resolve ids on the way out so the client always holds them and can send
+      // them back on a PUT. Deliberately a plain positional resolve — no
+      // reserved-id allocation and no write: this is exactly what every read
+      // path derives from the same stored array, so the ids the UI shows can
+      // never diverge from the ids the pipeline uses.
       return c.json({
-        quizzes: validated.data,
+        quizzes: withResolvedQuizIds(validated.data),
         version: row.version,
       })
     } finally {
@@ -122,9 +144,11 @@ export function createQuizRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      // Stamp ids on any quiz that still lacks one, so this book stops deriving
-      // them from array positions from here on.
-      const { output } = ensureQuizIds(parsed.data, usedQuizIds(storage))
+      // Safety net for bodies that arrive without ids. GET resolves them on the
+      // way out, so the studio's own edits already carry each quiz's id and
+      // nothing is allocated here; a direct API caller that omits them gets the
+      // positional back-compat instead.
+      const output = stampQuizIds(parsed.data, storage)
       const version = storage.putNodeData("quiz-generation", "book", output)
       return c.json({ version })
     } finally {
@@ -245,9 +269,15 @@ export function createQuizRoutes(
       // Then re-order by book position and renumber so quizIndex stays sequential.
       // The sort is stable, so quizzes sharing an afterPageId keep their relative
       // order and the appended quiz stays last among them.
+      //
+      // The stored set's ids are pinned *before* the insert, not after: a book
+      // that predates `quizId` derives its catalog keys from array position, so
+      // stamping after the sort would hand the newcomer whichever id used to
+      // belong to the quiz at its index — along with that quiz's translations
+      // and generated audio.
       const existingRow = storage.getLatestNodeData("quiz-generation", "book")
       const existing = existingRow
-        ? (existingRow.data as QuizGenerationOutput)
+        ? withResolvedQuizIds(existingRow.data as QuizGenerationOutput)
         : null
 
       const priorQuizzes =
@@ -264,16 +294,17 @@ export function createQuizRoutes(
         q.quizIndex = i
       })
 
-      // Stamp ids before writing: the new quiz needs one, and any pre-existing
-      // quiz that predates `quizId` keeps the id its catalog entries already use.
-      const { output } = ensureQuizIds(
+      // Only the newcomer still lacks an id; `usedQuizIds` keeps it off every
+      // id this book has ever issued, so it cannot adopt a retired quiz's
+      // catalog entries.
+      const output = stampQuizIds(
         {
           generatedAt: existing?.generatedAt ?? new Date().toISOString(),
           language: existing?.language ?? quizConfig.language,
           pagesPerQuiz: existing?.pagesPerQuiz ?? quizConfig.pagesPerQuiz,
           quizzes,
         },
-        usedQuizIds(storage)
+        storage
       )
 
       const version = storage.putNodeData("quiz-generation", "book", output)

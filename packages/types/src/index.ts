@@ -301,8 +301,11 @@ export {
   quizLLMSchema,
   formatQuizId,
   parseQuizId,
+  parseQuizRouteId,
   resolveQuizId,
+  withResolvedQuizIds,
   ensureQuizIds,
+  QuizIdExhaustedError,
   MAX_QUIZ_SEQ,
 } from "./quiz.js"
 

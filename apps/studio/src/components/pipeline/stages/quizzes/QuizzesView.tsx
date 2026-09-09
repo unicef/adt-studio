@@ -167,7 +167,9 @@ export function QuizzesView({
   } = usePendingChanges({
     prev: data?.quizzes?.quizzes ?? [],
     next: pending?.quizzes,
-    keyOf: (q) => String(q.quizIndex),
+    // quizId is stable across add/delete; quizIndex is renumbered, so it would
+    // report an unrelated quiz as edited after a single removal.
+    keyOf: (q) => q.quizId ?? String(q.quizIndex),
     isEqual: (a, b) =>
       a.question === b.question &&
       a.answerIndex === b.answerIndex &&
@@ -274,6 +276,11 @@ export function QuizzesView({
   // Remove a quiz from the book. Operates on the currently visible list (so any
   // unsaved edits are preserved), renumbers quizIndex, and persists immediately.
   // A removed quiz can still be recovered from version history.
+  //
+  // The spread must carry `quizId` through untouched: only quizIndex is
+  // positional. Rebuilding these objects field-by-field would drop the ids and
+  // let the server re-derive them from the post-delete positions, handing each
+  // survivor the previous quiz's translations and generated audio.
   const deleteQuiz = useCallback(
     async (idx: number) => {
       const base = pending ?? data?.quizzes;
@@ -315,12 +322,16 @@ export function QuizzesView({
           diff={{
             unifiedList: true,
             items: (d) => (d as QuizData | null)?.quizzes ?? [],
-            // quizIndex is positional (renumbered 0..n on add/delete), so it's
-            // not a stable cross-version identity — a single delete would shift
-            // every index and mis-report the whole set as changed. Key by the
-            // question text instead so add/delete read correctly (trade-off: an
-            // edited question reads as remove+add rather than a single edit).
-            keyOf: (q) => (q as QuizData["quizzes"][number]).question,
+            // quizId is the stable cross-version identity — quizIndex is
+            // positional (renumbered 0..n on add/delete), so a single delete
+            // would shift every index and mis-report the whole set as changed.
+            // Versions written before quizId existed fall back to the question
+            // text, which reads add/delete correctly but shows an edited
+            // question as remove+add rather than a single edit.
+            keyOf: (q) => {
+              const quiz = q as QuizData["quizzes"][number]
+              return quiz.quizId ?? quiz.question
+            },
             isEqual: (a, b) => {
               const x = a as QuizData["quizzes"][number]
               const y = b as QuizData["quizzes"][number]

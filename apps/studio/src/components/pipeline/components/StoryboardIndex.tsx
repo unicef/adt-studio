@@ -11,7 +11,7 @@ import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { getSectionScreenshotUrl, type PageSummaryItem, type PageSummarySection } from "@/api/client"
 import { STAGES } from "../stage-config"
-import { resolveQuizId, type Quiz } from "@adt/types"
+import { parseQuizRouteId, resolveQuizId, type Quiz } from "@adt/types"
 
 /**
  * Sidebar list shown only on the storyboard stage. Lists every section
@@ -93,10 +93,10 @@ export function StoryboardIndex({
 
   // Quizzes are routed via a synthetic pageId of `quiz-{quizId}` so we can
   // reuse the existing route shape (`/books/$label/$step/$pageId`). The
-  // storyboard view detects that prefix and renders the quiz panel.
-  const selectedQuizId = selectedPageId?.startsWith("quiz-")
-    ? selectedPageId.slice("quiz-".length)
-    : null
+  // storyboard view detects that prefix and renders the quiz panel; it parses
+  // the id with the same helper, so a legacy `quiz-{arrayIndex}` link highlights
+  // the row it renders.
+  const selectedQuizId = selectedPageId ? parseQuizRouteId(selectedPageId) : null
   const handleQuizClick = useCallback(
     (quizId: string) => {
       navigate({

@@ -61,12 +61,70 @@ export function parseQuizId(id: string): number | null {
 }
 
 /**
+ * Thrown when a book has burned all `MAX_QUIZ_SEQ` sequence numbers.
+ *
+ * A named error rather than an HTTP exception so this module stays usable from
+ * the pipeline; the route layer maps it to a 400. Mirrors
+ * `SectionIdExhaustedError`.
+ */
+export class QuizIdExhaustedError extends Error {
+  constructor() {
+    super(
+      `This book has allocated all ${MAX_QUIZ_SEQ} of its quiz ids. Remove some quiz history, or re-run quiz generation, before adding more quizzes.`
+    )
+    this.name = "QuizIdExhaustedError"
+  }
+}
+
+/**
  * The quiz's stable id, falling back to the value every consumer derived before
  * `quizId` existed: `qz${arrayIndex + 1}`. `index` must be the quiz's position
  * in `QuizGenerationOutput.quizzes`.
+ *
+ * Only meaningful on an array that is *wholly* stamped or *wholly* unstamped —
+ * the state `ensureQuizIds` and `withResolvedQuizIds` both guarantee, since they
+ * stamp every quiz or none. On a half-stamped array the positional fallback can
+ * collide with a stored id (`[X: "qz002", Y: undefined]` resolves Y to `qz002`
+ * too), which would key two catalog entries and two output pages the same.
  */
 export function resolveQuizId(quiz: Quiz, index: number): string {
   return quiz.quizId ?? formatQuizId(index + 1)
+}
+
+/**
+ * Every quiz's id filled in from `resolveQuizId`, so callers downstream can
+ * treat `quizId` as given. Unlike `ensureQuizIds` this allocates nothing: the
+ * result is exactly what the read paths (text catalog, packaging, adt-preview)
+ * derive from the same array, which is what makes it safe on a read path.
+ *
+ * Use it before *mutating* a stored quiz set, so legacy ids get pinned to the
+ * positions their catalog entries were written for rather than to the positions
+ * they happen to land on after the edit.
+ */
+export function withResolvedQuizIds(
+  output: QuizGenerationOutput
+): QuizGenerationOutput {
+  if (output.quizzes.every((q) => q.quizId)) return output
+  return {
+    ...output,
+    quizzes: output.quizzes.map((quiz, index) => ({
+      ...quiz,
+      quizId: resolveQuizId(quiz, index),
+    })),
+  }
+}
+
+/**
+ * The quiz id a storyboard route param refers to, or null if `pageId` isn't a
+ * quiz route. Routes are `quiz-{quizId}`; links minted before quizzes had
+ * stable ids carry `quiz-{arrayIndex}`, so a bare number resolves to the id
+ * that index derived back then and old tabs and bookmarks keep working.
+ */
+export function parseQuizRouteId(pageId: string): string | null {
+  const match = /^quiz-(.+)$/.exec(pageId)
+  if (!match) return null
+  const legacy = match[1]
+  return /^\d+$/.test(legacy) ? formatQuizId(Number(legacy) + 1) : legacy
 }
 
 /**
@@ -80,8 +138,16 @@ export function resolveQuizId(quiz: Quiz, index: number): string {
  * `reservedIds` should carry ids used by *previous* stored versions so a
  * delete-then-add cannot resurrect a retired quiz's catalog entries.
  *
+ * Positional back-compat only holds if `output.quizzes` is still in its *stored*
+ * order. Callers that reorder, insert or delete must run `withResolvedQuizIds`
+ * on the stored set first, so legacy ids are pinned before the edit moves
+ * anything — otherwise the newcomer inherits the catalog entries, translations
+ * and audio of whichever quiz used to sit at its index.
+ *
  * `changed` tells the caller whether persisting a new version is worthwhile;
  * readers can ignore it and use the returned value in memory.
+ *
+ * @throws {QuizIdExhaustedError} when every sequence number is spent.
  */
 export function ensureQuizIds(
   output: QuizGenerationOutput,
@@ -102,6 +168,12 @@ export function ensureQuizIds(
     if (quiz.quizId) return quiz
     let seq = index + 1
     while (used.has(seq)) seq += 1
+    if (seq > MAX_QUIZ_SEQ) {
+      // Unreachable in practice: this needs ~1000 quizzes to have existed in
+      // one book. Capped so the `qz\d{3}` shape every consumer parses stays
+      // valid rather than silently widening to `qz1000`.
+      throw new QuizIdExhaustedError()
+    }
     used.add(seq)
     changed = true
     return { ...quiz, quizId: formatQuizId(seq) }
