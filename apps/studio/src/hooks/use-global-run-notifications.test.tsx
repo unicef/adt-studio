@@ -100,8 +100,16 @@ async function flush() {
   await Promise.resolve()
 }
 
-function stageEvent(type: "stage-complete" | "stage-error") {
-  return { data: JSON.stringify({ type, label: "my-book", stage: "sectioning" }) }
+function stageEvent(type: "stage-complete" | "stage-error", stage = "sectioning") {
+  return { data: JSON.stringify({ type, label: "my-book", stage }) }
+}
+
+const runSettled = { data: JSON.stringify({ label: "my-book" }) }
+
+/** The events a single multi-stage Run produces: one per stage, then one run. */
+function emitRun(source: FakeEventSource, stages: string[]) {
+  for (const stage of stages) source.emit("progress", stageEvent("stage-complete", stage))
+  source.emit("complete", runSettled)
 }
 
 function Harness() {
@@ -214,7 +222,7 @@ describe("useGlobalRunNotifications", () => {
 
   it("fires an OS notification when the window is unfocused", async () => {
     const view = render(<Harness />)
-    FakeEventSource.instances[0].emit("progress", stageEvent("stage-complete"))
+    emitRun(FakeEventSource.instances[0], ["sectioning"])
     await flush()
 
     expect(showNotification).toHaveBeenCalledWith(
@@ -229,7 +237,7 @@ describe("useGlobalRunNotifications", () => {
     setNotificationPrefs({ osNotifications: false })
 
     const view = render(<Harness />)
-    FakeEventSource.instances[0].emit("progress", stageEvent("stage-complete"))
+    emitRun(FakeEventSource.instances[0], ["sectioning"])
     await flush()
 
     expect(showNotification).not.toHaveBeenCalled()
@@ -242,7 +250,7 @@ describe("useGlobalRunNotifications", () => {
     showNotification.mockImplementation(() => Promise.resolve(false))
 
     const view = render(<Harness />)
-    FakeEventSource.instances[0].emit("progress", stageEvent("stage-complete"))
+    emitRun(FakeEventSource.instances[0], ["sectioning"])
     await flush()
 
     expect(showNotification).toHaveBeenCalledOnce()
@@ -256,7 +264,7 @@ describe("useGlobalRunNotifications", () => {
     Object.defineProperty(navigator, "userAgent", { configurable: true, value: "Mozilla/5.0 Chrome" })
 
     const view = render(<Harness />)
-    FakeEventSource.instances[0].emit("progress", stageEvent("stage-complete"))
+    emitRun(FakeEventSource.instances[0], ["sectioning"])
 
     await vi.waitFor(() => expect(toastSuccess).toHaveBeenCalled())
     expect(showNotification).not.toHaveBeenCalled()
@@ -271,11 +279,76 @@ describe("useGlobalRunNotifications", () => {
     const view = render(<Harness />)
     expect(FakeEventSource.instances).toHaveLength(1)
 
-    FakeEventSource.instances[0].emit("progress", stageEvent("stage-complete"))
+    emitRun(FakeEventSource.instances[0], ["sectioning"])
     await flush()
 
     expect(showNotification).not.toHaveBeenCalled()
     await vi.waitFor(() => expect(toastSuccess).toHaveBeenCalled())
+
+    view.unmount()
+  })
+
+  it("notifies once for a run that spans several stages", async () => {
+    const view = render(<Harness />)
+
+    emitRun(FakeEventSource.instances[0], ["extract", "sectioning", "storyboard"])
+    await flush()
+
+    expect(showNotification).toHaveBeenCalledOnce()
+    expect(showNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ stage: "storyboard" }),
+    )
+
+    view.unmount()
+  })
+
+  it("says nothing when a run is cancelled", async () => {
+    const view = render(<Harness />)
+    const es = FakeEventSource.instances[0]
+
+    es.emit("progress", stageEvent("stage-complete", "extract"))
+    es.emit("cancelled", runSettled)
+    es.emit("complete", runSettled)
+    await Promise.resolve()
+
+    expect(showNotification).not.toHaveBeenCalled()
+    expect(toastSuccess).not.toHaveBeenCalled()
+
+    view.unmount()
+  })
+
+  it("reports a failure as soon as the stage errors", async () => {
+    const view = render(<Harness />)
+
+    FakeEventSource.instances[0].emit("progress", stageEvent("stage-error"))
+    await flush()
+
+    expect(showNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ stage: "sectioning" }),
+    )
+
+    view.unmount()
+  })
+
+  it("offers no View action for a stage with no view", async () => {
+    isWindowFocused.mockImplementation(() => Promise.resolve(true))
+    const view = render(<Harness />)
+
+    emitRun(FakeEventSource.instances[0], ["package"])
+    await flush()
+
+    await vi.waitFor(() => expect(toastSuccess).toHaveBeenCalled())
+    expect(toastSuccess.mock.calls[0][1]).toMatchObject({ action: undefined })
+
+    view.unmount()
+  })
+
+  it("ignores an activation for a stage with no view", () => {
+    const view = render(<Harness />)
+
+    activate?.({ label: "my-book", stage: "package" })
+
+    expect(navigate).not.toHaveBeenCalled()
 
     view.unmount()
   })
@@ -299,7 +372,7 @@ describe("useGlobalRunNotifications", () => {
     isWindowFocused.mockImplementation(() => Promise.resolve(true))
 
     const view = render(<Harness />)
-    FakeEventSource.instances[0].emit("progress", stageEvent("stage-complete"))
+    emitRun(FakeEventSource.instances[0], ["sectioning"])
     await flush()
 
     expect(toastSuccess).not.toHaveBeenCalled()

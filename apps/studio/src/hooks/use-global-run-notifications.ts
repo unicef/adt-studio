@@ -6,6 +6,7 @@ import { toast } from "@/components/ui/sonner"
 import { BASE_URL } from "@/api/client"
 import { isElectron } from "@/lib/utils"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
+import { STAGES } from "@/components/pipeline/stage-config"
 import { getNotificationPrefs } from "@/hooks/use-notification-prefs"
 
 interface StageTerminalEvent {
@@ -60,7 +61,12 @@ export function useGlobalRunNotifications(): void {
       if (!focused) {
         if (notifications && !getNotificationPrefs().osNotifications) return
 
-        const shown = notifications
+        // `supported` only tells us the platform has a notification service at
+        // all — the web build has no bridge, a Linux box without a daemon says
+        // false. It cannot tell us the user granted this app permission, which
+        // Electron does not expose; the Desktop alert test button in Settings
+        // is how that gets discovered.
+        const supported = notifications
           ? await notifications
               .show({
                 title: failed
@@ -73,10 +79,7 @@ export function useGlobalRunNotifications(): void {
               .catch(() => false)
           : false
 
-        // Nothing reached the OS — the web build has no bridge, and a desktop
-        // without a notification daemon reports false — so fall through to the
-        // toast rather than finishing the run with no feedback at all.
-        if (shown) return
+        if (supported) return
       }
 
       // Same book + same section: the existing per-book hook already gives
@@ -96,14 +99,19 @@ export function useGlobalRunNotifications(): void {
         ? i18n._(msg`${stageLabel} failed in ${label}`)
         : i18n._(msg`${stageLabel} completed in ${label}`)
 
-      const viewAction = {
-        label: i18n._(msg`View`),
-        onClick: () =>
-          navigateRef.current({
-            to: "/books/$label/$step",
-            params: { label, step: stage },
-          }),
-      }
+      // Pipeline stage names and routable UI slugs are not the same set:
+      // "package" runs in the API but has no view, so it gets no View action
+      // instead of a route that renders "Unknown step".
+      const viewAction = STAGES.some((s) => s.slug === stage)
+        ? {
+            label: i18n._(msg`View`),
+            onClick: () =>
+              navigateRef.current({
+                to: "/books/$label/$step",
+                params: { label, step: stage },
+              }),
+          }
+        : undefined
 
       if (failed) {
         toast.error(message, {
@@ -117,6 +125,12 @@ export function useGlobalRunNotifications(): void {
         })
       }
     }
+
+    // A single Run can span several stages (Storyboard on a fresh book queues
+    // extract→storyboard), and each one emits its own stage-complete. Only the
+    // run-level "complete" event means the user's action is done, so the last
+    // stage seen is remembered and announced then — one notification per run.
+    const lastStageByLabel = new Map<string, string>()
 
     const handleProgress = (e: MessageEvent) => {
       let data: StageTerminalEvent
@@ -132,7 +146,37 @@ export function useGlobalRunNotifications(): void {
       const stage = typeof data.stage === "string" ? data.stage : ""
       if (!label || !stage) return
 
-      void handleStageFinished(label, stage, data.type === "stage-error")
+      if (data.type === "stage-complete") {
+        lastStageByLabel.set(label, stage)
+        return
+      }
+
+      // A failure ends the run, so it is already terminal and names the stage.
+      lastStageByLabel.delete(label)
+      void handleStageFinished(label, stage, true)
+    }
+
+    const handleRunSettled = (e: MessageEvent) => {
+      let label = ""
+      try {
+        label = (JSON.parse(e.data) as { label?: string }).label ?? ""
+      } catch {
+        return
+      }
+
+      const stage = lastStageByLabel.get(label)
+      lastStageByLabel.delete(label)
+      if (!label || !stage) return
+
+      void handleStageFinished(label, stage, false)
+    }
+
+    const handleRunCancelled = (e: MessageEvent) => {
+      try {
+        lastStageByLabel.delete((JSON.parse(e.data) as { label?: string }).label ?? "")
+      } catch {
+        /* a malformed cancel event leaves the entry for the next terminal event */
+      }
     }
 
     let eventSource: EventSource | null = null
@@ -164,6 +208,8 @@ export function useGlobalRunNotifications(): void {
       })
 
       source.addEventListener("progress", handleProgress)
+      source.addEventListener("complete", handleRunSettled)
+      source.addEventListener("cancelled", handleRunCancelled)
 
       source.addEventListener("error", () => {
         if (disposed || eventSource !== source || source.readyState !== EventSource.CLOSED) {
@@ -189,6 +235,7 @@ export function useGlobalRunNotifications(): void {
     if (!notifications?.onActivated) return
 
     return notifications.onActivated(({ label, stage }) => {
+      if (!STAGES.some((s) => s.slug === stage)) return
       navigateRef.current({
         to: "/books/$label/$step",
         params: { label, step: stage },

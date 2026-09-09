@@ -6793,6 +6793,9 @@ msgstr "p. 7"
 msgid "p{0}"
 msgstr "p{0}"
 
+msgid "Package"
+msgstr "Paquete"
+
 msgid "Package and preview the final ADT web application."
 msgstr "Empaqueta y previsualiza la aplicación web ADT final."
 
@@ -10027,6 +10030,9 @@ msgstr "Esta sección está podada y no se renderiza."
 
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "Esta sesión usa una instantánea anterior de la lista de verificación del revisor. La configuración más reciente se aplicará solo a las nuevas sesiones de revisor."
+
+msgid "This system cannot show desktop notifications."
+msgstr "Este sistema no puede mostrar notificaciones de escritorio."
 
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Este texto solo es perceptible para tecnologías de asistencia."

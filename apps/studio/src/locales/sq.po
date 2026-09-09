@@ -6795,6 +6795,9 @@ msgstr "f. 7"
 msgid "p{0}"
 msgstr "f{0}"
 
+msgid "Package"
+msgstr "Paketë"
+
 msgid "Package and preview the final ADT web application."
 msgstr "Paketoni dhe shikoni paraprakisht aplikacionin web përfundimtar ADT."
 
@@ -10029,6 +10032,9 @@ msgstr "Ky seksion është prerë dhe nuk renderizohet."
 
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "Kjo sesion po përdor një fotografi të vjetër të listës së kontrollit të rishikuesit. Cilësimet e reja të listës do të zbatohen vetëm për sesionet e rishikuesit të krijuara rishtazi."
+
+msgid "This system cannot show desktop notifications."
+msgstr "Ky sistem nuk mund të shfaqë njoftime në desktop."
 
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Ky tekst perceptohet vetëm nga teknologjitë ndihmëse."

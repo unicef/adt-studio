@@ -11,6 +11,28 @@ import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
  * notification purposes (OS notification when unfocused, toast when the user
  * is elsewhere in the app) regardless of the current route.
  */
+/** The notification client only reacts to terminal run events, so the rest of
+ *  the progress firehose — per-page step-progress, whole llm-log payloads — is
+ *  dropped here instead of being serialised to every connected Studio. */
+function isNotifiable(event: BookSSEEvent): boolean {
+  if (event.type === "progress") {
+    return event.data.type === "stage-complete" || event.data.type === "stage-error"
+  }
+  return (
+    event.type === "stage-run-complete" ||
+    event.type === "stage-run-error" ||
+    event.type === "stage-run-cancelled"
+  )
+}
+
+/** A client that stops reading must not grow this queue without bound. */
+const MAX_QUEUED_EVENTS = 500
+
+/** Idle by design, so it needs a heartbeat: nginx closes a silent upstream
+ *  after proxy_read_timeout and a run finishing inside the reconnect gap would
+ *  notify nobody. */
+const KEEPALIVE_EVERY_MS = 25_000
+
 export function createBookEventsRoutes(eventBus: BookEventBus): Hono {
   const app = new Hono()
 
@@ -26,9 +48,12 @@ export function createBookEventsRoutes(eventBus: BookEventBus): Hono {
     return streamSSE(c, async (stream) => {
       const queue: Array<{ label: string; event: BookSSEEvent }> = []
       let done = false
+      let lastWrite = Date.now()
 
       const unsubscribe = eventBus.addGlobalListener((label, event) => {
         if (done) return
+        if (!isNotifiable(event)) return
+        if (queue.length >= MAX_QUEUED_EVENTS) queue.shift()
         queue.push({ label, event })
       })
 
@@ -46,6 +71,7 @@ export function createBookEventsRoutes(eventBus: BookEventBus): Hono {
               event: sse.name,
               data: JSON.stringify(sse.data),
             })
+            lastWrite = Date.now()
           } catch {
             done = true
             break
@@ -54,6 +80,15 @@ export function createBookEventsRoutes(eventBus: BookEventBus): Hono {
 
         if (!done) {
           await new Promise((resolve) => setTimeout(resolve, 50))
+
+          if (Date.now() - lastWrite >= KEEPALIVE_EVERY_MS) {
+            lastWrite = Date.now()
+            try {
+              await stream.writeSSE({ event: "keepalive", data: "" })
+            } catch {
+              done = true
+            }
+          }
         }
       }
 

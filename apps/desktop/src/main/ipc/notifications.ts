@@ -8,8 +8,11 @@ export interface StageNotificationPayload {
 }
 
 // Electron destroys the native banner when its wrapper is collected, taking the
-// click handler with it, so every pending notification is held here until the
-// user dismisses or activates it.
+// click handler with it, so pending notifications are held here until the user
+// dismisses or activates them. macOS does not always emit "close" for a banner
+// the user ignores, hence the bound: nobody clicks through to a stage that
+// finished this many runs ago.
+const PENDING_LIMIT = 32;
 const pending = new Set<Notification>();
 
 /**
@@ -23,6 +26,9 @@ export function registerNotificationsIpc(): void {
       const title = typeof payload?.title === "string" ? payload.title : "";
       const body = typeof payload?.body === "string" ? payload.body : "";
 
+      // Reports only whether the platform has a notification service. Electron
+      // exposes no way to see a per-app permission denial (macOS), so a denied
+      // banner still reports true.
       if (!title && !body) return false;
       if (!Notification.isSupported()) return false;
 
@@ -34,6 +40,11 @@ export function registerNotificationsIpc(): void {
         body,
       });
       pending.add(notification);
+      while (pending.size > PENDING_LIMIT) {
+        const oldest = pending.values().next();
+        if (oldest.done) break;
+        pending.delete(oldest.value);
+      }
 
       const release = () => pending.delete(notification);
       notification.on("close", release);

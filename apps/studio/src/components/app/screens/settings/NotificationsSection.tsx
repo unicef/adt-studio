@@ -155,11 +155,19 @@ export function NotificationsSection() {
     })
   }
 
-  const sendTestDesktopAlert = () => {
-    void window.api?.notifications?.show({
-      title: t`Test notification`,
-      body: t`Desktop alerts are working.`,
-    })
+  // Ignores the Desktop alerts switch on purpose: an explicit test is the only
+  // way to discover whether the OS granted this app notification permission.
+  const sendTestDesktopAlert = async () => {
+    const supported = await window.api?.notifications
+      ?.show({
+        title: t`Test notification`,
+        body: t`Desktop alerts are working.`,
+      })
+      .catch(() => false)
+
+    if (!supported) {
+      toast.error(t`This system cannot show desktop notifications.`)
+    }
   }
 
   return (
@@ -293,7 +301,7 @@ export function NotificationsSection() {
               <Trans>In-app toast</Trans>
             </Button>
             {showOsAlerts && (
-              <Button size="sm" variant="outline" onClick={sendTestDesktopAlert} className={TEST_BUTTON}>
+              <Button size="sm" variant="outline" onClick={() => void sendTestDesktopAlert()} className={TEST_BUTTON}>
                 <MonitorSmartphone className="size-3.5" />
                 <Trans>Desktop alert</Trans>
               </Button>
