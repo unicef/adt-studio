@@ -1,6 +1,7 @@
 import { z } from "zod"
+import { COMMENTER_NAME_MAX_LENGTH } from "./publication-limits.js"
 
-export const COMMENTER_NAME_MAX_LENGTH = 60
+export { COMMENTER_NAME_MAX_LENGTH }
 
 /** One definition for every route that takes a commenter's display name — the session routes
  *  and, since worker 0.5.1, the access door that collects it on the way in. It sits in its own

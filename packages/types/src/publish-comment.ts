@@ -1,18 +1,25 @@
 import { z } from "zod"
-import { COMMENTER_NAME_MAX_LENGTH, CommenterDisplayName } from "./commenter-name.js"
+import { CommenterDisplayName } from "./commenter-name.js"
+import {
+  COMMENTER_NAME_MAX_LENGTH,
+  COMMENTER_PIN_MAX_LENGTH,
+  COMMENTER_PIN_MIN_LENGTH,
+  PUBLISH_COMMENT_BODY_MAX_LENGTH,
+} from "./publication-limits.js"
 import { PublicationToken } from "./publication.js"
 
 export const COMMENTER_SESSION_COOKIE = "adt_pub_session"
 
-export const COMMENTER_PIN_MIN_LENGTH = 4
-
-export const COMMENTER_PIN_MAX_LENGTH = 12
+export {
+  COMMENTER_PIN_MIN_LENGTH,
+  COMMENTER_PIN_MAX_LENGTH,
+  PUBLISH_COMMENT_BODY_MAX_LENGTH,
+} from "./publication-limits.js"
 
 /** 90 days. A reviewer who set a PIN can reclaim the identity anywhere; the long-lived
  *  cookie is what keeps the PIN prompt rare rather than every-visit. */
 export const COMMENTER_SESSION_MAX_AGE_SECONDS = 90 * 24 * 60 * 60
 
-export const PUBLISH_COMMENT_BODY_MAX_LENGTH = 2000
 
 /** Optional display name for the `MGMT_SECRET`-derived author session. The Studio has no
  *  user names yet, so the worker falls back to `PUBLISH_AUTHOR_DEFAULT_NAME`. */

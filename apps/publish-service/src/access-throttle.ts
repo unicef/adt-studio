@@ -30,7 +30,7 @@ export const CLIENT_ATTEMPT_LIMIT = 10
  * still caps a distributed guess at roughly 5,760 a day, which against 32^6 is not a threat,
  * while sitting far above what thirty people mistyping a code will ever produce.
  */
-export const TOKEN_ATTEMPT_LIMIT = 60
+const TOKEN_ATTEMPT_LIMIT = 60
 
 /** Cooldown after the limit trips, doubling per further failure, capped. Returned as
  *  `Retry-After`, so a polite client waits rather than hammering. */

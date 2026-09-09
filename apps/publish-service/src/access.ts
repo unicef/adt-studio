@@ -108,7 +108,7 @@ export interface GatePageOptions {
  * Since worker 0.5.1 it also asks for the visitor's name, so commenter identity is established
  * at the door and the pin composer never has to interrupt a half-typed comment to ask.
  */
-export function gatePage(publication: Publication, options: GatePageOptions = {}): string {
+function gatePage(publication: Publication, options: GatePageOptions = {}): string {
   const title = escapeHtml(publication.title)
   const wrong = options.wrongCode === true
   const waiting = options.waiting === true
@@ -369,4 +369,4 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
   })
 }
 
-export const WRONG_CODE_MESSAGE = "That code does not open this book"
+const WRONG_CODE_MESSAGE = "That code does not open this book"

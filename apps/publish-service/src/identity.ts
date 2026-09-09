@@ -143,7 +143,7 @@ export async function hashPin(pin: string): Promise<string> {
 
 /** Trim + upper-case on both sides of the comparison: the code travels by voice and by
  *  handwriting before it is typed, so case is not part of the secret. */
-export function normalizeAccessCode(code: string): string {
+function normalizeAccessCode(code: string): string {
   return code.trim().toUpperCase()
 }
 

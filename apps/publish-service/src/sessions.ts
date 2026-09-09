@@ -33,7 +33,7 @@ export interface SessionDeps {
   newId: () => string
 }
 
-export function commenterOf(session: StoredCommenterSession): CommenterSession {
+function commenterOf(session: StoredCommenterSession): CommenterSession {
   return { id: session.id, name: session.name, color: session.color, is_author: false }
 }
 

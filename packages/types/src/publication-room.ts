@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { COMMENTER_NAME_MAX_LENGTH } from "./commenter-name.js"
+import { COMMENTER_NAME_MAX_LENGTH, ROOM_COMMENT_EVENTS } from "./publication-limits.js"
 import { PublishComment } from "./publish-comment.js"
 
 /**
@@ -11,51 +11,19 @@ import { PublishComment } from "./publish-comment.js"
  * runtime type-imports them so zod never reaches a reader's bundle.
  */
 
-/** Refused politely beyond this many concurrent sockets per publication. A classroom is the
- *  target size; a room that grows past it is a sign of a leaked link, not of demand. */
-export const PUBLICATION_ROOM_MAX_PEERS = 64
-
-/** Anything larger is dropped unparsed. A cursor frame is ~140 bytes. */
-export const PUBLICATION_ROOM_MAX_FRAME_BYTES = 4096
-
-/** The author's join credential is single-purpose and lives for one minute — long enough for
- *  a browser to open a socket, short enough that a copied URL is worthless. */
-export const PUBLICATION_ROOM_TICKET_TTL_SECONDS = 60
-
-export const PUBLICATION_ROOM_TICKET_PARAM = "ticket"
-
-/**
- * Query param carrying the reader's *tab*, so a peer keeps one identity across a page turn.
- *
- * Every navigation in a published book is a document reload, and the peer id used to be minted
- * fresh per connection — so turning a page looked, to everybody else in the room, like a reader
- * leaving and a stranger arriving. The roster blinked, and anything keyed on a peer had to key
- * on a display name instead, which is why two readers called Ana were indistinguishable.
- *
- * Only the *tab* comes from the client. The identity it is combined with is taken from the
- * connection's own credentials, server-side, so supplying somebody else's tab cannot borrow
- * their name: the worst a client can do is split or merge its own tabs.
- */
-export const PUBLICATION_ROOM_TAB_PARAM = "tab"
-
-/** Bounds what is accepted from the client, since it lands in a header and a roster key. */
-export const PUBLICATION_ROOM_TAB_PATTERN = /^[A-Za-z0-9_-]{1,32}$/
-
-/** Minimum gap between outgoing cursor frames. 30ms is ~33/s: smooth to the eye and an order
- *  of magnitude below what a pointer device reports. */
-export const PUBLICATION_ROOM_CURSOR_THROTTLE_MS = 30
-
-/** A cursor with no update for this long is hidden. Covers the cases no frame reports: a
- *  pointer that left the window, a laptop lid closing, a socket dying without a close. */
-export const PUBLICATION_ROOM_CURSOR_STALE_MS = 5000
-
-/** A reader who never commented has no session and therefore no name. They are still a
- *  presence — hiding them would be a lie about who is in the room. */
-export const PUBLISH_ANONYMOUS_NAME = "Someone"
-
-/** Neutral zinc, deliberately outside `COMMENTER_COLORS` and distinct from the author's grey:
- *  an unnamed peer must not look like a named one whose name failed to load. */
-export const PUBLISH_ANONYMOUS_COLOR = "#a1a1aa"
+export {
+  PUBLICATION_ROOM_MAX_PEERS,
+  PUBLICATION_ROOM_MAX_FRAME_BYTES,
+  PUBLICATION_ROOM_TICKET_TTL_SECONDS,
+  PUBLICATION_ROOM_TICKET_PARAM,
+  PUBLICATION_ROOM_TAB_PARAM,
+  PUBLICATION_ROOM_TAB_PATTERN,
+  PUBLICATION_ROOM_CURSOR_THROTTLE_MS,
+  PUBLICATION_ROOM_CURSOR_STALE_MS,
+  PUBLISH_ANONYMOUS_NAME,
+  PUBLISH_ANONYMOUS_COLOR,
+  ROOM_COMMENT_EVENTS,
+} from "./publication-limits.js"
 
 /** The width a peer is reading at. `full` is a real window; the other two mean they are using
  *  the device preview. Travels with presence so a follower can match it — following somebody
@@ -172,13 +140,6 @@ export const RoomPeerViewportFrame = z.object({
   yOffsetPct: z.number().min(0).max(100),
 })
 export type RoomPeerViewportFrame = z.infer<typeof RoomPeerViewportFrame>
-
-export const ROOM_COMMENT_EVENTS = [
-  "comment-created",
-  "comment-updated",
-  "comment-deleted",
-  "comment-resolved",
-] as const
 
 export const RoomCommentEvent = z.enum(ROOM_COMMENT_EVENTS)
 export type RoomCommentEvent = z.infer<typeof RoomCommentEvent>

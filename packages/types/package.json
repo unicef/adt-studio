@@ -16,6 +16,10 @@
     "./fingerprint": {
       "types": "./dist/fingerprint.d.ts",
       "default": "./dist/fingerprint.js"
+    },
+    "./limits": {
+      "types": "./dist/publication-limits.d.ts",
+      "default": "./dist/publication-limits.js"
     }
   },
   "dependencies": {

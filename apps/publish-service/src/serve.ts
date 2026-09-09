@@ -64,7 +64,7 @@ export const MEDIA_CACHE_CONTROL = "public, max-age=3600"
 export const PRIVATE_IMMUTABLE_CACHE_CONTROL = "private, max-age=31536000, immutable"
 export const PRIVATE_MEDIA_CACHE_CONTROL = "private, max-age=3600"
 
-export function extensionOf(pathname: string): string {
+function extensionOf(pathname: string): string {
   const name = pathname.slice(pathname.lastIndexOf("/") + 1)
   const dot = name.lastIndexOf(".")
   return dot <= 0 ? "" : name.slice(dot + 1).toLowerCase()
@@ -100,11 +100,6 @@ export function conditionalEtag(header: string | undefined): string | undefined 
     return strong.slice(1, -1)
   }
   return strong
-}
-
-export function isHtmlRequest(pathname: string): boolean {
-  const extension = extensionOf(pathname)
-  return extension === "" || extension === "html" || extension === "htm"
 }
 
 /** Splits `/p/<token>/some/path` into the snapshot-relative path, defaulting bare and
