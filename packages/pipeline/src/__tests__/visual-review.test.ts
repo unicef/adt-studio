@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import type { GenerateObjectResult, LLMModel } from "@adt/llm"
 import { runVisualReviewLoop } from "../visual-review.js"
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe("runVisualReviewLoop", () => {
   it("applies a validated revision and returns approved result", async () => {
@@ -191,5 +195,190 @@ describe("runVisualReviewLoop", () => {
     expect(fourthCall[0]).not.toContain("Initial")
     expect(fourthCall[0]).not.toContain("v1")
     expect(fourthCall[0]).not.toContain("v2")
+  })
+
+  it("skips refinement instead of failing when screenshots cannot be rendered", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    let generateCalls = 0
+    const fakeModel: LLMModel = {
+      renderPrompt: async () => [{ role: "system", content: "You are a reviewer." }],
+      generateObject: async <T>() => {
+        generateCalls++
+        return {
+          object: { approved: true, reasoning: "unused", content: "" } as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+
+    const initialHtml = '<section data-section-id="s1">Initial</section>'
+    let screenshotCalls = 0
+    const result = await runVisualReviewLoop({
+      initialHtml,
+      label: "book",
+      pageId: "pg001",
+      images: new Map(),
+      deps: {
+        llmModel: fakeModel,
+        screenshotRenderer: {
+          screenshot: async () => {
+            screenshotCalls++
+            throw new Error("page.screenshot: Timeout 30000ms exceeded.")
+          },
+          close: async () => {},
+        },
+        webAssetsDir: "/tmp/nonexistent",
+      },
+      promptName: "visual_review",
+      maxIterations: 3,
+      timeoutMs: 1000,
+      firstIterationScreenshotsText: "first set",
+      nextIterationScreenshotsText: "next set",
+      trailingContextText: "Section type: text_only",
+      validateHtml: () => ({ valid: true, errors: [] }),
+    })
+
+    // The page keeps its generated HTML — the failure is not propagated.
+    expect(result.html).toBe(initialHtml)
+    expect(result.approved).toBe(false)
+    // No review call is made without screenshots, and the loop doesn't spin
+    // through the remaining iterations.
+    expect(generateCalls).toBe(0)
+    expect(screenshotCalls).toBe(6) // 3 viewports × one retry
+    expect(warn).toHaveBeenCalled()
+  })
+
+  it("skips refinement when one viewport fails permanently and the others succeed", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+    let generateCalls = 0
+    const fakeModel: LLMModel = {
+      renderPrompt: async () => [{ role: "system", content: "You are a reviewer." }],
+      generateObject: async <T>() => {
+        generateCalls++
+        return {
+          object: { approved: true, reasoning: "unused", content: "" } as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+
+    const initialHtml = '<section data-section-id="s1">Initial</section>'
+    const attemptsByWidth = new Map<number, number>()
+    const result = await runVisualReviewLoop({
+      initialHtml,
+      label: "book",
+      pageId: "pg001",
+      images: new Map(),
+      deps: {
+        llmModel: fakeModel,
+        screenshotRenderer: {
+          screenshot: async (_html, viewport) => {
+            const width = viewport?.width ?? 0
+            attemptsByWidth.set(width, (attemptsByWidth.get(width) ?? 0) + 1)
+            // Only the desktop viewport is broken — tablet and mobile capture fine.
+            if (width === 1280) throw new Error("page.screenshot: Timeout 60000ms exceeded.")
+            return "aGVsbG8="
+          },
+          close: async () => {},
+        },
+        webAssetsDir: "/tmp/nonexistent",
+      },
+      promptName: "visual_review",
+      maxIterations: 3,
+      timeoutMs: 1000,
+      firstIterationScreenshotsText: "first set",
+      nextIterationScreenshotsText: "next set",
+      trailingContextText: "Section type: text_only",
+      validateHtml: () => ({ valid: true, errors: [] }),
+    })
+
+    // The reviewer prompt needs all three viewports, so a partial set is no more
+    // usable than an empty one — skip refinement and keep the generated HTML.
+    expect(result.html).toBe(initialHtml)
+    expect(result.approved).toBe(false)
+    expect(generateCalls).toBe(0)
+    // The broken viewport retried once; the healthy ones were not re-captured.
+    expect(attemptsByWidth.get(1280)).toBe(2)
+    expect(attemptsByWidth.get(768)).toBe(1)
+    expect(attemptsByWidth.get(390)).toBe(1)
+  })
+
+  it("retries a transient screenshot failure before giving up", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+    const fakeModel: LLMModel = {
+      renderPrompt: async () => [{ role: "system", content: "You are a reviewer." }],
+      generateObject: async <T>() =>
+        ({
+          object: { approved: true, reasoning: "looks good", content: "" } as T,
+        }) as GenerateObjectResult<T>,
+    }
+
+    let screenshotCalls = 0
+    const result = await runVisualReviewLoop({
+      initialHtml: '<section data-section-id="s1">Initial</section>',
+      label: "book",
+      pageId: "pg001",
+      images: new Map(),
+      deps: {
+        llmModel: fakeModel,
+        screenshotRenderer: {
+          screenshot: async () => {
+            screenshotCalls++
+            if (screenshotCalls === 1) throw new Error("Target page closed")
+            return "aGVsbG8="
+          },
+          close: async () => {},
+        },
+        webAssetsDir: "/tmp/nonexistent",
+      },
+      promptName: "visual_review",
+      maxIterations: 2,
+      timeoutMs: 1000,
+      firstIterationScreenshotsText: "first set",
+      nextIterationScreenshotsText: "next set",
+      trailingContextText: "Section type: text_only",
+      validateHtml: () => ({ valid: true, errors: [] }),
+    })
+
+    expect(result.approved).toBe(true)
+    // Three viewports, and only the one that failed is retried.
+    expect(screenshotCalls).toBe(4)
+  })
+
+  it("propagates cancellation rather than treating it as a screenshot failure", async () => {
+    const fakeModel: LLMModel = {
+      renderPrompt: async () => [{ role: "system", content: "You are a reviewer." }],
+      generateObject: async <T>() =>
+        ({
+          object: { approved: true, reasoning: "unused", content: "" } as T,
+        }) as GenerateObjectResult<T>,
+    }
+
+    const controller = new AbortController()
+    await expect(
+      runVisualReviewLoop({
+        initialHtml: '<section data-section-id="s1">Initial</section>',
+        label: "book",
+        pageId: "pg001",
+        images: new Map(),
+        deps: {
+          llmModel: fakeModel,
+          screenshotRenderer: {
+            screenshot: async () => {
+              controller.abort()
+              throw new Error("Operation aborted")
+            },
+            close: async () => {},
+          },
+          webAssetsDir: "/tmp/nonexistent",
+        },
+        promptName: "visual_review",
+        maxIterations: 2,
+        timeoutMs: 1000,
+        firstIterationScreenshotsText: "first set",
+        nextIterationScreenshotsText: "next set",
+        trailingContextText: "Section type: text_only",
+        validateHtml: () => ({ valid: true, errors: [] }),
+        signal: controller.signal,
+      })
+    ).rejects.toThrow()
   })
 })
