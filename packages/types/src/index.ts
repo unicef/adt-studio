@@ -167,6 +167,10 @@ export {
   ImagePartBounds,
   SectionViewport,
   NodePlacement,
+  formatSectionId,
+  parseSectionId,
+  parseAnySectionId,
+  MAX_SECTION_SEQ,
 } from "./page-sectioning.js"
 
 export {
@@ -239,6 +243,7 @@ export {
 } from "./book-outline.js"
 
 export { ExtractionWarning } from "./extraction-warning.js"
+export { PackagingWarning } from "./packaging-warning.js"
 
 export {
   FIXED_LAYOUT_MAX_SCALE,
@@ -301,6 +306,9 @@ export {
   TextCatalogOutput,
   TextCatalogCategory,
   getTextCatalogCategory,
+  ANSWER_ID_SEPARATOR,
+  answerTextId,
+  sectionIdOfAnswerTextId,
 } from "./text-catalog.js"
 
 export {

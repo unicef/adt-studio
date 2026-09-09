@@ -241,8 +241,20 @@ export function getStageRerunClearNodes(
   const speechIndex = STAGE_ORDER.indexOf("speech")
   if (speechIndex >= fromIndex && speechIndex <= toIndex) {
     // The speech runner merges valid cached entries and manual recordings into
-    // the replacement version. Keep only the prior audio manifest available
-    // for that merge; timestamps are regenerated from the replacement output.
+    // the replacement version, so keep the prior audio manifest available for
+    // that merge.
+    //
+    // A preserved manifest outlives the sectioning history its
+    // `${sectionId}_ans_*` ids came from, so anything that clears
+    // `page-sectioning` must retire those entries first — see
+    // `retireSectionIds` in @adt/pipeline.
+    //
+    // Timestamps are not listed here and are not cleared either: the node is
+    // `tts-timestamps` while STAGE_OUTPUT_NODES is derived from the step name
+    // `word-timestamps`, so no clear list names it. That is load-bearing rather
+    // than accidental — with `word_highlighting` off the runner deliberately
+    // leaves those rows alone to preserve hand-calculated timings — which is
+    // why they, too, are retired explicitly.
     preservedNodes.add("tts")
   }
 

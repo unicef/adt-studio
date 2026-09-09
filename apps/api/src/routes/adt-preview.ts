@@ -4,7 +4,13 @@ import { createHash } from "node:crypto"
 import { pathToFileURL } from "node:url"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { isHeadingRole, isTtsExcluded, parseBookLabel, resolveEntryVoiceSlot } from "@adt/types"
+import {
+  isHeadingRole,
+  isTtsExcluded,
+  parseBookLabel,
+  parseAnySectionId,
+  resolveEntryVoiceSlot,
+} from "@adt/types"
 import {
   WebRenderingOutput,
   type SpeechConfig,
@@ -310,10 +316,9 @@ function buildSectionIdToPageIndex(storage: Storage): Map<string, number> {
         const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
         for (const rs of sections) {
           const sectionMeta = sectioning?.sections?.[rs.sectionIndex]
-          if (sectionMeta?.isPruned) continue
+          if (!sectionMeta || sectionMeta.isPruned) continue
           index++
-          const sectionId = sectionMeta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
-          map.set(sectionId, index)
+          map.set(sectionMeta.sectionId, index)
         }
       }
     }
@@ -354,9 +359,11 @@ function buildPagesManifest(storage: Storage): Array<{ section_id: string; href:
         const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
         for (const rs of sections) {
           const sectionMeta = sectioning?.sections?.[rs.sectionIndex]
-          // Skip sections that are pruned in the sectioning data
-          if (sectionMeta?.isPruned) continue
-          const sectionId = sectionMeta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
+          // Skip sections that are pruned, and orphan rendering entries with no
+          // sectioning row — their real sectionId is unknowable and a positional
+          // guess could collide with another section's id.
+          if (!sectionMeta || sectionMeta.isPruned) continue
+          const sectionId = sectionMeta.sectionId
           const entry: { section_id: string; href: string; page_number?: number } = {
             section_id: sectionId,
             href: `${sectionId}.html`,
@@ -441,7 +448,7 @@ function buildHeadingBasedToc(storage: Storage): Array<{ section_id: string; hre
       const sectionMeta = sectioning?.sections?.[rs.sectionIndex]
       if (!sectionMeta || sectionMeta.isPruned) continue
 
-      const sectionId = sectionMeta.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
+      const sectionId = sectionMeta.sectionId
 
       const heading = findFirstHeadingLeaf(sectionMeta.nodes)
       if (heading) {
@@ -1157,14 +1164,16 @@ export function createAdtPreviewRoutes(
         return c.body(html)
       }
 
-      // Content page — require sectionId format (e.g. pg001_sec001).
-      // This prevents ambiguous fallback to unrelated sections.
-      const sectionIdMatch = pageId.match(/^(.+)_sec(\d{3})$/)
-      if (!sectionIdMatch) {
+      // Content page — the id must have a section shape (e.g. pg001_sec001) so
+      // this cannot fall back to an unrelated section. The legacy `_sN` shape is
+      // accepted too: books upgraded from a version whose agent tools minted
+      // those still store them, and the section is matched exactly below either
+      // way, so widening the parse resolves them without guessing anything.
+      const parsedSectionId = parseAnySectionId(pageId)
+      if (!parsedSectionId) {
         throw new HTTPException(404, { message: `Section not found: ${pageId}` })
       }
-      const ownerPageId = sectionIdMatch[1]
-      const fallbackSectionIndex = parseInt(sectionIdMatch[2], 10) - 1
+      const ownerPageId = parsedSectionId.pageId
 
       const renderRow = storage.getLatestNodeData("web-rendering", ownerPageId)
       if (!renderRow) {
@@ -1176,12 +1185,14 @@ export function createAdtPreviewRoutes(
         throw new HTTPException(500, { message: "Invalid rendering data" })
       }
 
-      // Get sectioning to look up sectionId → sectionIndex mapping
+      // Get sectioning to look up sectionId → sectionIndex mapping. The id's
+      // sequence number is NOT its array position (ids are allocated once and
+      // never reused), so there is no positional fallback — an unresolvable id
+      // is a 404 rather than a guess that would serve a different section.
       const sectioning = getRenderSectioning(storage, ownerPageId)
-      const resolvedIndex = sectioning
+      const targetSectionIndex = sectioning
         ? sectioning.sections.findIndex((s) => s.sectionId === pageId)
         : -1
-      const targetSectionIndex = resolvedIndex >= 0 ? resolvedIndex : fallbackSectionIndex
       const renderedSection = parsed.data.sections.find((s) => s.sectionIndex === targetSectionIndex)
 
       if (!renderedSection || targetSectionIndex < 0) {

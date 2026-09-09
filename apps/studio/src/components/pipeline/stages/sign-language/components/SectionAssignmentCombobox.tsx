@@ -112,6 +112,19 @@ export function SectionAssignmentCombobox({
               className="flex w-full items-center gap-2 rounded px-2 py-1.5 pl-8 text-left text-[12px] transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
             >
               <span className="truncate">{section.sectionLabel}</span>
+              {/* A whitespace-only text node between flex items is not
+                  rendered, so this changes no layout — but without it the
+                  accessible name runs the two spans together as
+                  "Page 3 — Section 2pg003_sec005". */}
+              {" "}
+              {/* The label counts positions ("Section 2"); the id does not —
+                  ids are allocated once and never reused, so after a split or
+                  delete `Section 2` may well be `_sec005`. Showing it is what
+                  lets someone tell two sections apart, match a video back to
+                  the section it was pinned to, and search by id. */}
+              <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">
+                {section.sectionId}
+              </span>
             </button>
           ))}
           {matchingSections.length === 0 ? (

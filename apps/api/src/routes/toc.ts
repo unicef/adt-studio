@@ -125,10 +125,12 @@ export function createTocRoutes(booksDir: string): Hono {
 
         for (const rs of renderParsed.data.sections) {
           const meta = sectioning?.sections?.[rs.sectionIndex]
-          if (meta?.isPruned) continue
+          // Orphan rendering entries have no resolvable sectionId — a positional
+          // guess could name a different section, so skip them.
+          if (!meta || meta.isPruned) continue
 
-          const sectionId = meta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
-          const title = meta ? (findFirstHeadingText(meta.nodes) ?? sectionId) : sectionId
+          const sectionId = meta.sectionId
+          const title = findFirstHeadingText(meta.nodes) ?? sectionId
 
           sections.push({
             sectionId,

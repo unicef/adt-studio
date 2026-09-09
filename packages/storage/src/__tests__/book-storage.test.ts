@@ -536,6 +536,45 @@ describe("putNodeData / getLatestNodeData", () => {
     storage.close()
   })
 
+  it("getAllNodeVersions returns every version oldest-first, past the current pointer", () => {
+    const { storage } = createTempStorage()
+
+    storage.putNodeData("page-sectioning", "pg001", { reasoning: "v1" })
+    storage.putNodeData("page-sectioning", "pg001", { reasoning: "v2" })
+    storage.putNodeData("page-sectioning", "pg001", { reasoning: "v3" })
+    // Rolling the pointer back must not hide the versions after it — id
+    // allocation reads history so a restore can't make a fresh id collide
+    // with one a later version already used.
+    expect(storage.setCurrentNodeVersion("page-sectioning", "pg001", 1)).toBe(true)
+
+    expect(storage.getAllNodeVersions("page-sectioning", "pg001")).toEqual([
+      { version: 1, data: { reasoning: "v1" } },
+      { version: 2, data: { reasoning: "v2" } },
+      { version: 3, data: { reasoning: "v3" } },
+    ])
+    expect(storage.getAllNodeVersions("page-sectioning", "pg999")).toEqual([])
+
+    storage.close()
+  })
+
+  it("getNodeItemIds lists each item once, regardless of version count", () => {
+    const { storage } = createTempStorage()
+
+    // `tts` is keyed by language, and both the canonical and legacy spellings
+    // can coexist — a caller reconciling the whole book has to reach both.
+    storage.putNodeData("tts", "pt-BR", { entries: [] })
+    storage.putNodeData("tts", "pt-BR", { entries: [], generatedAt: "later" })
+    storage.putNodeData("tts", "pt_BR", { entries: [] })
+    storage.putNodeData("tts", "en", { entries: [] })
+    storage.putNodeData("tts-timestamps", "en", { entries: {} })
+
+    expect(storage.getNodeItemIds("tts")).toEqual(["en", "pt-BR", "pt_BR"])
+    expect(storage.getNodeItemIds("tts-timestamps")).toEqual(["en"])
+    expect(storage.getNodeItemIds("page-sectioning")).toEqual([])
+
+    storage.close()
+  })
+
   it("handles different nodes independently", () => {
     const { storage } = createTempStorage()
 

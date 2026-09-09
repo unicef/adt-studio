@@ -352,6 +352,7 @@ export {
   packageAdtWeb,
   computePackagingInputHash,
   type PackageAdtWebOptions,
+  type PackageAdtWebResult,
   type ComputePackagingInputHashOptions,
   renderPageHtml,
   resolveReflowableFontChain,
@@ -413,6 +414,16 @@ export {
   FIXED_LAYOUT_SECTIONING_NODE,
   PAGE_SECTIONING_NODE,
 } from "./render-sectioning.js"
+export {
+  createSectionIdFactory,
+  collectSpentSectionIds,
+  retireSectionIds,
+  unassignSignLanguageVideos,
+  SectionIdExhaustedError,
+  NOTHING_RETIRED,
+  type SectionIdRetirementResult,
+  type DetachedRecording,
+} from "./section-ids.js"
 export {
   extractEditableActivity,
   supportsEditableActivity,
