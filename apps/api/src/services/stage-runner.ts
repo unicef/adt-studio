@@ -1639,6 +1639,13 @@ async function runStoryboardStep(
       `[stage-run] ${label}: rendering storyboard for ${totalPages} pages (concurrency=${effectiveConcurrency})`
     )
 
+    // Mark the step running before any page work begins. Without this the
+    // step_runs row (and the sidebar) only flip to "running" on the first
+    // step-progress event, i.e. after the first page has completed its full
+    // render + visual-refinement loop — which reads as a minutes-long
+    // "Starting…" on slow or retry-heavy models.
+    progress.emit({ type: "step-start", step: "web-rendering" })
+
     await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksDir))
 
     let completedRendering = 0

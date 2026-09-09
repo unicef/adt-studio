@@ -65,9 +65,9 @@ function resolveAgentModelId(
   const config = loadBookConfig(label, booksDir, configPath)
   // Override per-book by setting `agents.model` in the book's config.yaml —
   // e.g. `openai:gpt-4o`, `anthropic:claude-sonnet-4-6`, or
-  // `google:gemini-2.5-pro`. The matching provider key must be sent with the
-  // request (X-OpenAI-Key / X-Anthropic-API-Key / X-Google-API-Key) or the
-  // call fails to authenticate.
+  // `google:gemini-3.1-pro-preview`. The matching provider key must be sent
+  // with the request (X-OpenAI-Key / X-Anthropic-API-Key / X-Google-API-Key)
+  // or the call fails to authenticate.
   return (
     config.agents?.model ??
     agentModelForDefaultModel(config.default_model) ??

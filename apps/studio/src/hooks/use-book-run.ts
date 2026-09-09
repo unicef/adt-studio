@@ -761,10 +761,26 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         try {
           // The Studio always opts into interactive page-error handling.
           await api.runStages(label, apiKey, { fromStage, toStage, renderOnly, pageErrorPolicy: "ask" }, providerCredentials)
-          // Refetch to reconcile — backend cleared step_runs
+        } catch (error) {
+          // The server refused to start (e.g. a model in the run's range has no
+          // credential). Nothing ran, so say why instead of silently snapping
+          // the optimistic "queued" state back to idle; other stages may still
+          // be running or queued, so nothing else is reset.
+          const detail = error instanceof Error && error.message ? error.message : null
+          toast.error(
+            detail
+              ? i18n._(msg`Could not start ${getStageLabelI18n(fromStage)}: ${detail}`)
+              : i18n._(msg`Could not start ${getStageLabelI18n(fromStage)}.`),
+            { id: `run-start:${label}:${fromStage}`, duration: 12_000 },
+          )
+          announceRef.current(i18n._(msg`${getStageLabelI18n(fromStage)} did not start`), "assertive")
+          // The optimistic wipe above emptied the page caches for a run that
+          // never happened — bring the real pages back.
+          queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
+        } finally {
+          // Refetch to reconcile — the backend either cleared step_runs or
+          // never touched them.
           queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
-        } catch {
-          // Don't reset — other stages may still be running/queued
         }
       })
     },

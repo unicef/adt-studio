@@ -183,6 +183,10 @@ msgstr "{0} u krye"
 msgid "{0} decorative"
 msgstr "{0} dekorative"
 
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "{0} did not start"
+msgstr "{0} nuk nisi"
+
 #. placeholder {0}: book.languageCode.toUpperCase()
 msgid "{0} EDITION"
 msgstr "{0} BOTIMI"
@@ -1401,6 +1405,9 @@ msgstr "Një aktivitet ku nxënësi nënvizon një ose më shumë fjalë, fraza 
 msgid "An AI image is being generated. Cancel it and navigate?"
 msgstr "Po gjenerohet një imazh me AI. Ta anulosh dhe të vazhdosh?"
 
+msgid "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
+msgstr "Një kyç API i caktuar në mjedisin e serverit ka përparësi ndaj kësaj hyrjeje. Hiqeni atje për të përdorur llogarinë me të cilën keni hyrë."
+
 msgid "An open-ended answer activity."
 msgstr "Një aktivitet me përgjigje të hapur."
 
@@ -1988,6 +1995,9 @@ msgstr "Shfleto dokumentacionin"
 
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Shfleto çdo seksion të Storyboard-it dhe ngarko, zëvendëso ose hiq videon e gjuhës së shenjave."
+
+msgid "Browser didn't open? Use this link"
+msgstr "Shfletuesi nuk u hap? Përdorni këtë lidhje"
 
 msgid "Build"
 msgstr "Ndërtim"
@@ -2697,6 +2707,14 @@ msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i m
 
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Nuk u hoqën dot {failed} nga {total} video — ju lutem provoni përsëri."
+
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "Could not start {0}: {detail}"
+msgstr "Nuk u arrit të niset {0}: {detail}"
+
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "Could not start {0}."
+msgstr "Nuk u arrit të niset {0}."
 
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Nuk mund të aplikohej faqet e përbashkëta — ju lutem provoni përsëri."
@@ -3967,6 +3985,9 @@ msgstr "Filtron imazhet dekorative ose pa përmbajtje nga çdo faqe."
 
 msgid "Final Page"
 msgstr "Faqja e fundit"
+
+msgid "Finish signing in with ChatGPT in the browser window that just opened."
+msgstr "Përfundoni hyrjen me ChatGPT në dritaren e shfletuesit që sapo u hap."
 
 msgid "Fire a real notification with these settings."
 msgstr "Dërgo një njoftim real me këto cilësime."
@@ -8825,8 +8846,14 @@ msgstr "Imazh dhe narrativë krah për krah."
 msgid "Sign"
 msgstr "Shenjë"
 
+msgid "Sign in"
+msgstr "Hyni"
+
 msgid "Sign in outside the app, then Refresh — this screen detects the login automatically:"
 msgstr "Hyni jashtë aplikacionit, pastaj Rifresko — kjo ekran zbulon hyrjen automatikisht:"
+
+msgid "Sign in with ChatGPT"
+msgstr "Hyni me ChatGPT"
 
 msgid "Sign Language"
 msgstr "Gjuha e Shenjave"
@@ -8843,8 +8870,21 @@ msgstr "Mbivendosje videosh të gjuhës së shenjave për çdo faqe"
 msgid "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
 msgstr "Videot e gjuhës së shenjave ofrojnë qasje për lexuesit shurdhamutë dhe me dëgjim të kufizuar, të cilët mund të mos jenë të rrjedhshëm në gjuhën e shkruar."
 
+msgid "Sign out"
+msgstr "Dilni"
+
+#. placeholder {0}: status.detail
+msgid "Sign-in failed: {0}"
+msgstr "Hyrja dështoi: {0}"
+
 msgid "Sign-language video linked to each page."
 msgstr "Video në gjuhën e shenjave e lidhur me çdo faqe."
+
+msgid "Signed in."
+msgstr "Hytë me sukses."
+
+msgid "Signed out."
+msgstr "Dolët nga llogaria."
 
 msgid "Similarity"
 msgstr "Ngjashmëria"
@@ -10266,6 +10306,12 @@ msgstr "Nuk mund të ruhet prompti global."
 
 msgid "Unable to select prompt version."
 msgstr "Nuk mund të zgjidhet versioni i promptit."
+
+msgid "Unable to sign out."
+msgstr "Nuk u arrit të dilni."
+
+msgid "Unable to start the sign-in."
+msgstr "Nuk u arrit të niset hyrja."
 
 msgid "Unable to update the book model overrides."
 msgstr "Mbivendosjet e modeleve të librit nuk mund të përditësoheshin."

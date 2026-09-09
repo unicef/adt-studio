@@ -225,6 +225,7 @@ export function createProviderRegistry(): MutableProviderRegistry {
         manifest: module.manifest,
         configuredOnServer: isProviderConfiguredOnServer(module),
         fieldStatus: providerFieldStatus(module),
+        supportsCliLogin: typeof module.cliLogin?.start === "function",
       })),
 
     providersFor: (modality) =>

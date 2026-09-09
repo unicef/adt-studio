@@ -1,4 +1,4 @@
-import { DEFAULT_LLM_MODEL_ID, PIPELINE, type AiModality, type AppConfig, type StageName } from "@adt/types"
+import { DEFAULT_LLM_MODEL_ID, PIPELINE, STEP_TO_STAGE, type AiModality, type AppConfig, type StageName } from "@adt/types"
 import { AiProviderError } from "./ports/errors.js"
 import { resolveModelIdFor } from "./model-id.js"
 import type { ProviderRegistry } from "./registry.js"
@@ -93,12 +93,15 @@ export function collectConfigModelChecks(config: AppConfig): ConfigModelCheck[] 
  * The model checks a stage-scoped run must pass before it clears any data.
  * Steps resolve their model through override chains that all end at
  * `default_model`, so a run containing any LLM step validates the default plus
- * every configured override. An override consumed only by an out-of-range step
- * still gets checked — the chains are private to each step, and a config that
- * names an uncredentialed provider is broken for the pipeline as a whole — but
- * a run whose stages make no structured-text call (e.g. speech only) checks
- * nothing. Image and TTS models are excluded: those steps guard themselves
- * before touching existing data.
+ * every configured step override. An override consumed only by an out-of-range
+ * step still gets checked — the chains are private to each step, and a config
+ * that names an uncredentialed provider is broken for the pipeline as a whole —
+ * but a run whose stages make no structured-text call (e.g. speech only)
+ * checks nothing. Render-strategy models are the exception: only the storyboard
+ * stage renders, and the shipped config pins one activity strategy to an
+ * OpenAI model, so demanding that key from an Extract run on a keyless default
+ * (Codex, Claude Code) would block runs that never touch it. Image and TTS
+ * models are excluded: those steps guard themselves before touching existing data.
  */
 export function collectStageRunModelChecks(
   config: AppConfig,
@@ -122,7 +125,9 @@ export function collectStageRunModelChecks(
       checks.push({ field: `${field}.model`, modelId: step.model, modality: "structured-text" })
     }
   }
-  checks.push(...collectRenderStrategyChecks(config))
+  if (stages.includes(STEP_TO_STAGE["web-rendering"])) {
+    checks.push(...collectRenderStrategyChecks(config))
+  }
   return checks
 }
 

@@ -787,12 +787,16 @@ describe("createStageRunner storyboard render-only", () => {
     expect(renderPageMock.mock.calls[0]?.[5]).toEqual({
       signal: controller.signal,
     })
-    expect(
-      events.some(
-        (event) =>
-          event.type === "step-complete" && event.step === "web-rendering"
-      )
-    ).toBe(true)
+    // The step must be marked running before any page work, otherwise the UI
+    // shows "Starting…" until the first page completes its full render loop.
+    const renderStartIndex = events.findIndex(
+      (event) => event.type === "step-start" && event.step === "web-rendering"
+    )
+    const renderCompleteIndex = events.findIndex(
+      (event) => event.type === "step-complete" && event.step === "web-rendering"
+    )
+    expect(renderStartIndex).toBeGreaterThanOrEqual(0)
+    expect(renderCompleteIndex).toBeGreaterThan(renderStartIndex)
     // page-sectioning is not part of the storyboard stage (it lives in the
     // sectioning stage), so running storyboard in render-only mode should
     // neither complete nor emit any events for page-sectioning.

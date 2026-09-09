@@ -181,6 +181,10 @@ msgstr "{0} concluído"
 msgid "{0} decorative"
 msgstr "{0} decorativo"
 
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "{0} did not start"
+msgstr "{0} não foi iniciado"
+
 #. placeholder {0}: book.languageCode.toUpperCase()
 msgid "{0} EDITION"
 msgstr "EDIÇÃO {0}"
@@ -1399,6 +1403,9 @@ msgstr "Uma atividade em que o aluno sublinha uma ou mais palavras, expressões 
 msgid "An AI image is being generated. Cancel it and navigate?"
 msgstr "Uma imagem com IA está sendo gerada. Cancelar e navegar?"
 
+msgid "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
+msgstr "Uma chave de API definida no ambiente do servidor tem prioridade sobre este login. Remova-a de lá para usar a conta conectada."
+
 msgid "An open-ended answer activity."
 msgstr "Uma atividade de resposta aberta."
 
@@ -1986,6 +1993,9 @@ msgstr "Navegar na documentação"
 
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Navegue por cada seção do Storyboard e faça upload, substitua ou remova seu vídeo em linguagem de sinais."
+
+msgid "Browser didn't open? Use this link"
+msgstr "O navegador não abriu? Use este link"
 
 msgid "Build"
 msgstr "Compilação"
@@ -2695,6 +2705,14 @@ msgstr "Não foi possível ler este PDF. O arquivo pode estar corrompido ou prot
 
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Não foi possível remover {failed} de {total} vídeos — tente novamente."
+
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "Could not start {0}: {detail}"
+msgstr "Não foi possível iniciar {0}: {detail}"
+
+#. placeholder {0}: getStageLabelI18n(fromStage)
+msgid "Could not start {0}."
+msgstr "Não foi possível iniciar {0}."
 
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Não foi possível aplicar os spreads — tente novamente."
@@ -3965,6 +3983,9 @@ msgstr "Filtra imagens decorativas ou sem conteúdo em cada página."
 
 msgid "Final Page"
 msgstr "Página Final"
+
+msgid "Finish signing in with ChatGPT in the browser window that just opened."
+msgstr "Conclua o login com o ChatGPT na janela do navegador que acabou de abrir."
 
 msgid "Fire a real notification with these settings."
 msgstr "Disparar uma notificação real com estas configurações."
@@ -8823,8 +8844,14 @@ msgstr "Imagem e narrativa lado a lado."
 msgid "Sign"
 msgstr "Sinais"
 
+msgid "Sign in"
+msgstr "Entrar"
+
 msgid "Sign in outside the app, then Refresh — this screen detects the login automatically:"
 msgstr "Faça login fora do aplicativo, depois Atualize — esta tela detecta o login automaticamente:"
+
+msgid "Sign in with ChatGPT"
+msgstr "Entrar com o ChatGPT"
 
 msgid "Sign Language"
 msgstr "Língua de Sinais"
@@ -8841,8 +8868,21 @@ msgstr "Sobreposições de vídeo em língua de sinais para cada página"
 msgid "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
 msgstr "Vídeos em língua de sinais oferecem acesso para leitores surdos e com deficiência auditiva que podem não ser fluentes em linguagem escrita."
 
+msgid "Sign out"
+msgstr "Sair"
+
+#. placeholder {0}: status.detail
+msgid "Sign-in failed: {0}"
+msgstr "Falha ao entrar: {0}"
+
 msgid "Sign-language video linked to each page."
 msgstr "Vídeo em linguagem de sinais vinculado a cada página."
+
+msgid "Signed in."
+msgstr "Login realizado."
+
+msgid "Signed out."
+msgstr "Você saiu da conta."
 
 msgid "Similarity"
 msgstr "Semelhança"
@@ -10264,6 +10304,12 @@ msgstr "Não foi possível salvar o prompt global."
 
 msgid "Unable to select prompt version."
 msgstr "Não foi possível selecionar a versão do prompt."
+
+msgid "Unable to sign out."
+msgstr "Não foi possível sair."
+
+msgid "Unable to start the sign-in."
+msgstr "Não foi possível iniciar o login."
 
 msgid "Unable to update the book model overrides."
 msgstr "Não foi possível atualizar as substituições de modelos do livro."

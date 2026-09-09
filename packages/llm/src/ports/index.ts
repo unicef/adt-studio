@@ -62,4 +62,6 @@ export {
   type CapabilitiesFor,
   type ModalityCapabilities,
   type ProviderModule,
+  type CliLoginPort,
+  type CliLoginSession,
 } from "./provider-module.js"

@@ -21,6 +21,7 @@ import {
   useDraft,
 } from "./shared"
 import type { Providers } from "./useProviders"
+import { CliLoginControls } from "./CliLogin"
 
 function Handles({ descriptor }: { descriptor: ProviderDescriptor }) {
   return (
@@ -73,15 +74,23 @@ function ApiKeyPanel({ descriptor, store, active }: { descriptor: ProviderDescri
   )
 }
 
-/** CLI/SDK backend: login is detected, not entered — status + guidance, no key field. */
+/**
+ * CLI/SDK backend: login is detected, not entered — status, an in-app sign-in
+ * when the backend offers one, and terminal guidance otherwise. No key field.
+ */
 function CliPanel({ descriptor, store, active }: { descriptor: ProviderDescriptor; store: Providers; active: boolean }) {
   const health = useProviderHealth(descriptor.manifest.id, store.credentials[descriptor.manifest.id], active)
-  const deadEnd = health.data && (health.data.code === "not-logged-in" || health.data.code === "cli-not-found")
+  const code = health.data?.code
+  const canSignInHere = descriptor.supportsCliLogin === true
+  // The in-app sign-in replaces the "run this in a terminal" guidance for a
+  // missing login; a missing CLI still needs the install instructions.
+  const showGuidance = code === "cli-not-found" || (code === "not-logged-in" && !canSignInHere)
   return (
     <div className="flex flex-col gap-4">
       <HealthLine health={health.data ?? null} isFetching={health.isFetching} onRefresh={() => void health.refetch()} />
       <Handles descriptor={descriptor} />
-      {deadEnd && <CliGuidance providerId={descriptor.manifest.id} code={health.data!.code} />}
+      {showGuidance && code && <CliGuidance providerId={descriptor.manifest.id} code={code} />}
+      {active && <CliLoginControls descriptor={descriptor} health={health.data ?? null} />}
       <HelpText descriptor={descriptor} />
       <CardFooter descriptor={descriptor} />
     </div>

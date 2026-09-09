@@ -1,7 +1,7 @@
 import type { ConnectionCheckContext, ProviderConnectionStatus } from "../../ports/index.js"
 import {
-  codexExecutable,
   isMissingCodexExecutable,
+  locateCodexExecutable,
   spawnCodexCommand,
   type CodexProcessResult,
 } from "./cli.js"
@@ -33,7 +33,7 @@ export async function checkCodexConnection(
   probe: CodexConnectionProbe = {},
 ): Promise<ProviderConnectionStatus> {
   const apiKey = context.credentials.apiKey?.trim()
-  const executable = probe.executable ?? codexExecutable()
+  const executable = probe.executable ?? locateCodexExecutable()
   const runCommand = probe.runCommand ?? spawnCodexCommand
 
   let result: CodexProcessResult
@@ -49,7 +49,7 @@ export async function checkCodexConnection(
       return {
         ok: false,
         code: "cli-not-found",
-        detail: `"${executable}" is not on PATH`,
+        detail: `"${executable}" was not found on PATH, in the common install locations or in the ChatGPT app`,
       }
     }
     return { ok: false, code: "unreachable", detail: "Codex CLI could not be started" }
