@@ -1,35 +1,52 @@
-import { motion, useReducedMotion } from "motion/react";
-import type { ReactNode } from "react";
-
-const EASE_OUT_QUINT = [0.22, 1, 0.36, 1] as const;
+import { createElement, useEffect, useRef, useState, type ReactNode } from "react";
+import { cn } from "@/lib/cn";
 
 /**
- * In-view entrance shared by the landing scenes: fade + small rise, once,
- * exponential ease-out. Under `prefers-reduced-motion` the content renders
- * static and always visible (no transform, no fade).
+ * In-view entrance shared by the landing sections: fade + small rise, once.
+ * Server-rendered markup is fully visible (no baked-in opacity:0); on the
+ * client, only elements still below the fold at mount are hidden and then
+ * revealed when they scroll into view. Reduced-motion users get no animation.
  */
 export function Reveal({
   children,
   delay = 0,
-  y = 24,
   className,
+  as = "div",
 }: {
   children: ReactNode;
   delay?: number;
-  y?: number;
   className?: string;
+  as?: "div" | "section" | "li" | "article";
 }) {
-  const reduced = useReducedMotion();
-  if (reduced) return <div className={className}>{children}</div>;
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-64px" }}
-      transition={{ duration: 0.7, delay, ease: EASE_OUT_QUINT }}
-    >
-      {children}
-    </motion.div>
+  const ref = useRef<HTMLElement>(null);
+  const [state, setState] = useState<"static" | "hidden" | "shown">("static");
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (el.getBoundingClientRect().top < window.innerHeight * 0.92) return;
+    setState("hidden");
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setState("shown");
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "0px 0px -8% 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return createElement(
+    as,
+    {
+      ref,
+      className: cn(className, state !== "static" && "reveal", state === "shown" && "reveal-in"),
+      style: delay ? { transitionDelay: `${delay}s` } : undefined,
+    },
+    children,
   );
 }

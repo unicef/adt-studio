@@ -1,9 +1,13 @@
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { MessageDescriptor } from "@lingui/core";
+import { ArrowUpRight } from "lucide-react";
 import { GithubIcon } from "@/components/icons/GithubIcon";
-import { SupportersStrip } from "@/components/sections/SupportersStrip";
+import { GITHUB_URL } from "@/components/nav/SiteNav";
+import { DOC_GUIDES, DOC_HELP } from "@/data/docsNav";
+import { SUPPORTERS } from "@/data/supporters";
 import { withBase } from "@/lib/href";
+import { trackEvent } from "@/lib/matomo";
 
 type LinkCol = {
   title: MessageDescriptor;
@@ -14,52 +18,32 @@ const COLUMNS: LinkCol[] = [
   {
     title: msg`Product`,
     links: [
-      {
-        label: msg`Download`,
-        href: "https://github.com/unicef/adt-studio/releases/latest",
-        external: true,
-      },
-      { label: msg`What it does`, href: "/#pitch" },
-      { label: msg`How it works`, href: "/#carousel" },
-      { label: msg`Get started`, href: "/#finale" },
-    ],
-  },
-  {
-    title: msg`Project`,
-    links: [
-      {
-        label: msg`GitHub`,
-        href: "https://github.com/unicef/adt-studio",
-        external: true,
-      },
-      {
-        label: msg`Issues`,
-        href: "https://github.com/unicef/adt-studio/issues",
-        external: true,
-      },
-      {
-        label: msg`Releases`,
-        href: "https://github.com/unicef/adt-studio/releases",
-        external: true,
-      },
+      { label: msg`What readers get`, href: "/#features" },
+      { label: msg`See it in action`, href: "/#demos" },
+      { label: msg`How it works`, href: "/#how" },
+      { label: msg`Bring your own AI`, href: "/#providers" },
+      { label: msg`Download`, href: "/download" },
     ],
   },
   {
     title: msg`Docs`,
     links: [
-      { label: msg`Documentation`, href: "/docs" },
-      { label: msg`Quickstart`, href: "/docs/quickstart" },
+      ...DOC_GUIDES.map((guide) => ({ label: guide.label, href: guide.href })),
+      ...DOC_HELP.map((link) => ({ label: link.label, href: link.href })),
+    ],
+  },
+  {
+    title: msg`Project`,
+    links: [
+      { label: msg`GitHub`, href: GITHUB_URL, external: true },
+      { label: msg`Releases`, href: "/releases" },
+      { label: msg`Report an issue`, href: `${GITHUB_URL}/issues`, external: true },
       {
-        label: msg`Guidelines`,
-        href: "https://github.com/unicef/adt-studio/blob/main/docs/GUIDELINES.md",
+        label: msg`Architecture decisions`,
+        href: `${GITHUB_URL}/blob/main/docs/DECISIONS.md`,
         external: true,
       },
-      {
-        label: msg`Architecture`,
-        href: "https://github.com/unicef/adt-studio/blob/main/docs/DECISIONS.md",
-        external: true,
-      },
-      { label: msg`License`, href: "https://www.gnu.org/licenses/agpl-3.0.html", external: true },
+      { label: msg`AGPL-3.0 license`, href: "https://www.gnu.org/licenses/agpl-3.0.html", external: true },
     ],
   },
 ];
@@ -67,55 +51,62 @@ const COLUMNS: LinkCol[] = [
 export function Footer() {
   const { i18n } = useLingui();
   return (
-    <footer className="border-t border-[color:var(--color-border)] bg-[color:var(--color-muted)]/40">
-      <div className="mx-auto w-full max-w-6xl px-6 pb-10 pt-16">
-        <SupportersStrip />
-        <div className="mt-14 grid grid-cols-1 gap-10 md:grid-cols-[1.2fr_1fr_1fr_1fr]">
-          <div className="flex flex-col gap-4">
-            <a href={withBase("/#top")} className="flex items-center gap-2.5">
+    <footer className="snap-start bg-ink-deep text-white">
+      <div className="mx-auto w-full max-w-[1200px] px-5 pb-10 pt-16 sm:px-8">
+        <div className="grid grid-cols-1 gap-12 md:grid-cols-[1.3fr_1fr_1fr_1fr]">
+          <div className="flex flex-col gap-5">
+            <a href={withBase("/")} className="flex items-center gap-2.5">
               <img
                 src={`${import.meta.env.BASE_URL}logo.png`}
                 alt=""
-                width={28}
-                height={28}
-                className="rounded-md"
+                width={30}
+                height={30}
+                className="rounded-[9px]"
               />
-              <span className="text-[15px] font-bold tracking-tight">
-                ADT Studio
-              </span>
+              <span className="font-display text-[19px] font-extrabold tracking-tight">ADT Studio</span>
             </a>
-            <p className="max-w-xs text-sm leading-relaxed text-[color:var(--color-muted-foreground)]">
+            <p className="max-w-xs text-sm leading-relaxed text-white/65">
               <Trans>
-                Open-source desktop pipeline for turning PDFs into accessible
-                books — built with UNICEF.
+                Free, open-source desktop software that turns PDFs into
+                accessible digital textbooks. Built with UNICEF.
               </Trans>
             </p>
-            <a
-              href="https://github.com/unicef/adt-studio"
-              target="_blank"
-              rel="noreferrer noopener"
-              className="inline-flex w-fit items-center gap-2 rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-card)] px-3 py-2 text-xs font-semibold text-[color:var(--color-foreground)] transition-colors hover:bg-[color:var(--color-accent)]"
-            >
-              <GithubIcon className="h-3.5 w-3.5" />
-              <Trans>Star on GitHub</Trans>
-            </a>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={withBase("/download")}
+                onClick={() => trackEvent("cta", "download_click", "footer")}
+                className="inline-flex h-10 items-center rounded-full bg-white px-5 text-sm font-bold text-ink transition-colors hover:bg-brand-tint"
+              >
+                <Trans>Download</Trans>
+              </a>
+              <a
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-white/20 px-4 text-sm font-bold text-white transition-colors hover:bg-white/10"
+              >
+                <GithubIcon className="size-4" />
+                <Trans>Star on GitHub</Trans>
+              </a>
+            </div>
           </div>
 
           {COLUMNS.map((col) => (
             <div key={col.title.id} className="flex flex-col gap-3">
-              <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[color:var(--color-foreground)]">
-                {i18n._(col.title)}
-              </div>
-              <ul className="flex flex-col gap-2">
-                {col.links.map((l) => (
-                  <li key={l.href}>
+              <div className="text-sm text-white/55">{i18n._(col.title)}</div>
+              <ul className="flex flex-col gap-2.5">
+                {col.links.map((link) => (
+                  <li key={link.href + link.label.id}>
                     <a
-                      href={l.external ? l.href : withBase(l.href)}
-                      target={l.external ? "_blank" : undefined}
-                      rel={l.external ? "noreferrer noopener" : undefined}
-                      className="text-sm text-[color:var(--color-muted-foreground)] transition-colors hover:text-[color:var(--color-foreground)]"
+                      href={link.external ? link.href : withBase(link.href)}
+                      target={link.external ? "_blank" : undefined}
+                      rel={link.external ? "noreferrer noopener" : undefined}
+                      className="group inline-flex items-center gap-1 text-[15px] font-semibold text-white/90 transition-colors hover:text-white"
                     >
-                      {i18n._(l.label)}
+                      <span className="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-left-bottom bg-no-repeat pb-0.5 transition-[background-size] duration-300 ease-out-quart group-hover:bg-[length:100%_1px]">
+                        {i18n._(link.label)}
+                      </span>
+                      {link.external ? <ArrowUpRight className="size-3.5 text-white/50" /> : null}
                     </a>
                   </li>
                 ))}
@@ -124,15 +115,30 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-[color:var(--color-border)] pt-6 text-xs text-[color:var(--color-muted-foreground)] sm:flex-row sm:items-center">
-          <div>
-            <Trans>
-              &copy; {new Date().getFullYear()} ADT Studio — AGPL-3.0 licensed.
-            </Trans>
+        <div className="mt-14 flex flex-col gap-6 border-t border-white/10 pt-8 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+            <span className="text-xs font-bold uppercase tracking-[0.16em] text-white/45">
+              <Trans>Made possible by</Trans>
+            </span>
+            {SUPPORTERS.map((supporter) => (
+              <a
+                key={supporter.name}
+                href={supporter.href}
+                target="_blank"
+                rel="noreferrer noopener"
+                title={supporter.name}
+                className="inline-flex items-center opacity-70 transition-opacity duration-300 hover:opacity-100"
+              >
+                <img
+                  src={`${import.meta.env.BASE_URL}${supporter.src}`}
+                  alt={supporter.name}
+                  className={`${supporter.heightClass} w-auto object-contain brightness-0 invert`}
+                />
+              </a>
+            ))}
           </div>
-          <div className="flex items-center gap-2 font-mono">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[color:var(--color-primary)]" />
-            <Trans>Every book, every learner.</Trans>
+          <div className="text-xs text-white/50">
+            <Trans>&copy; {new Date().getFullYear()} ADT Studio · AGPL-3.0</Trans>
           </div>
         </div>
       </div>

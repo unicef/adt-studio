@@ -154,6 +154,7 @@ export function detectArch(name: string): string | null {
 export function summarizeBody(body: string | null | undefined): string[] {
   if (!body) return [];
   const cleaned = body
+    .replace(/\r\n?/g, "\n")
     .replace(/```[\s\S]*?```/g, "")
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<[^>]+>/g, "");
