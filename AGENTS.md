@@ -65,6 +65,29 @@ The `PIPELINE` constant in `@adt/types` defines all stages, their steps, labels,
 
 **Never hardcode stage/step ordering, names, or groupings outside of `PIPELINE`.** If you need a new derived lookup, add it to `packages/types/src/pipeline.ts` alongside the existing ones (`STAGE_ORDER`, `STEP_TO_STAGE`, `STAGE_BY_NAME`, `ALL_STEP_NAMES`).
 
+### Screenshot capture concurrency
+
+The Storyboard visual-refinement pass renders pages through one shared Chromium
+instance (`createScreenshotRenderer()` in `packages/pipeline/src/screenshot.ts`).
+Page concurrency (`config.concurrency`, default 32) multiplied by the three
+viewports in `SCREENSHOT_VIEWPORTS` would otherwise open ~96 browser contexts at
+once — captures then contend for the same browser and each one gets slower, which
+is what drove them past their timeout budget.
+
+`createScreenshotRenderer()` therefore wraps every renderer in a process-wide
+semaphore so at most `ADT_SCREENSHOT_CONCURRENCY` captures run simultaneously.
+The cap is shared across renderer instances on purpose: a stage run and an
+interactive page edit compete for the same machine, not just the same browser
+object. Queued captures wait rather than compete.
+
+Playwright's per-operation timeouts only start once an operation actually runs,
+so queue time does not eat a capture's budget. If you ever add an outer timeout
+around a capture, apply it **inside** the semaphore for the same reason —
+wrapping the whole `screenshot()` call would charge queue time against it.
+
+Set `ADT_SCREENSHOT_DEBUG=1` to log queue wait, capture duration, and semaphore
+occupancy per capture when tuning the limit for a given machine.
+
 ## Docker
 
 Three build targets in `Dockerfile`:
@@ -94,6 +117,8 @@ docker run -p 8080:80 -v ./books:/app/books adt-studio
 | `FONTS_CACHE_DIR` | `<BOOKS_DIR>/.fonts-cache` | Global Google Fonts cache shared across books (persists in the books volume by default) |
 | `STYLEGUIDES_DIR` | `<BOOKS_DIR>/.styleguides` | User-uploaded global style guides. LLM-generated guides live under each book's `styleguides/` directory so project exports remain self-contained. Bundled presets remain read-only. |
 | `PORT` | `3001` | Internal only — nginx proxies to this |
+| `ADT_SCREENSHOT_CONCURRENCY` | `min(8, max(2, cores - 1))` | Max simultaneous Chromium captures process-wide (see [Screenshot capture concurrency](#screenshot-capture-concurrency)) |
+| `ADT_SCREENSHOT_DEBUG` | unset | Set to any value to log per-capture queue wait, capture duration, and semaphore occupancy |
 
 **`TEMPLATES_DIR` trap:** The Dockerfile and `docker-compose.yml` set `TEMPLATES_DIR=/app/templates` but the application **never reads this env var**. Templates dir is always derived from `path.join(path.dirname(PROMPTS_DIR), "templates")`. To use a custom templates directory, mount it as a sibling of `prompts/` — i.e. override `PROMPTS_DIR` and keep `templates/` next to it.
 

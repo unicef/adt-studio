@@ -7,11 +7,13 @@
  */
 
 import { randomUUID } from "node:crypto"
+import os from "node:os"
 import {
   screenshotIpcCloseSchema,
   screenshotIpcReplySchema,
   screenshotIpcRequestSchema,
 } from "@adt/types"
+import { createSemaphore, type Semaphore } from "./concurrency.js"
 
 export const SCREENSHOT_VIEWPORTS = [
   { label: "desktop", width: 1280, height: 800 },
@@ -100,11 +102,79 @@ export async function _createScreenshotRenderer(): Promise<ScreenshotRenderer> {
 }
 
 
+function detectCpuCount(): number {
+  const runtime = os as typeof os & { availableParallelism?: () => number }
+  const count = runtime.availableParallelism?.() ?? os.cpus().length
+  return Number.isFinite(count) && count > 0 ? count : 4
+}
+
+/**
+ * Captures per browser instance, capped independently of page concurrency.
+ * A whole book run can have dozens of pages in flight, each asking for three
+ * viewport captures — all served by one Chromium. Above a handful of
+ * simultaneous contexts they just contend and every capture gets slower, which
+ * is what pushed captures past their timeout budget. Tuned to cores, with
+ * `ADT_SCREENSHOT_CONCURRENCY` as an escape hatch.
+ */
+export function resolveScreenshotConcurrency(): number {
+  const override = Number(process.env?.ADT_SCREENSHOT_CONCURRENCY)
+  if (Number.isFinite(override) && override >= 1) return Math.floor(override)
+  return Math.min(8, Math.max(2, detectCpuCount() - 1))
+}
+
+let captureSemaphore: Semaphore | null = null
+
+function getCaptureSemaphore(): Semaphore {
+  if (!captureSemaphore) captureSemaphore = createSemaphore(resolveScreenshotConcurrency())
+  return captureSemaphore
+}
+
+/** Test seam — resets the process-wide capture limit. */
+export function _resetCaptureSemaphore(): void {
+  captureSemaphore = null
+}
+
+function logCapture(waitMs: number, captureMs: number, outcome: "ok" | "error"): void {
+  if (!process.env?.ADT_SCREENSHOT_DEBUG) return
+  const sem = getCaptureSemaphore()
+  console.log(
+    `[screenshot] ${outcome} wait=${Math.round(waitMs)}ms capture=${Math.round(captureMs)}ms ` +
+      `active=${sem.active}/${sem.limit} queued=${sem.queued}`
+  )
+}
+
+/**
+ * Bound concurrent captures process-wide. The limit is shared across every
+ * renderer instance because the contention is for machine resources, not for
+ * one browser object — a stage run and an interactive page edit compete too.
+ */
+export function _withCaptureLimit(renderer: ScreenshotRenderer): ScreenshotRenderer {
+  return {
+    async screenshot(html, viewport, options): Promise<string> {
+      throwIfAborted(options?.signal)
+      const queuedAt = performance.now()
+      return getCaptureSemaphore().run(async () => {
+        const startedAt = performance.now()
+        throwIfAborted(options?.signal)
+        try {
+          const result = await renderer.screenshot(html, viewport, options)
+          logCapture(startedAt - queuedAt, performance.now() - startedAt, "ok")
+          return result
+        } catch (err) {
+          logCapture(startedAt - queuedAt, performance.now() - startedAt, "error")
+          throw err
+        }
+      }, options?.signal)
+    },
+    close: () => renderer.close(),
+  }
+}
+
 export async function createScreenshotRenderer(): Promise<ScreenshotRenderer> {
   if (process.env?.ADT_ENVIRONMENT === 'electron') {
-    return _createElectronScreenshotRenderer()
+    return _withCaptureLimit(await _createElectronScreenshotRenderer())
   }
-  return _createScreenshotRenderer()
+  return _withCaptureLimit(await _createScreenshotRenderer())
 }
 
 type ParentPortLike = {
