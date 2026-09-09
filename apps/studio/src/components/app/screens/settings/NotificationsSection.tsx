@@ -15,6 +15,8 @@ import { SETTINGS_ANCHORS } from "./nav"
 
 const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]"
 
+const TEST_BUTTON = "h-auto min-h-9 w-full whitespace-normal py-1.5 text-center leading-tight"
+
 const POSITIONS: { key: ToastPosition; label: MessageDescriptor }[] = [
   { key: "top-left", label: msg`Top left` },
   { key: "top-center", label: msg`Top center` },
@@ -143,14 +145,20 @@ export function NotificationsSection() {
   const { i18n, t } = useLingui()
   const os = usePlatform()
   const [prefs, setPrefs] = useNotificationPrefs()
-  // OS notifications only exist behind the Electron bridge; the web build has
-  // no way to raise them, so the tile stays hidden there.
+  // The web build has no bridge to raise OS notifications at all.
   const showOsAlerts = isElectron()
 
 
   const sendTestToast = () => {
     toast.success(t`Test notification`, {
       description: t`This is how notifications will look and sound.`,
+    })
+  }
+
+  const sendTestDesktopAlert = () => {
+    void window.api?.notifications?.show({
+      title: t`Test notification`,
+      body: t`Desktop alerts are working.`,
     })
   }
 
@@ -277,16 +285,20 @@ export function NotificationsSection() {
           icon={Bell}
           anchorId={SETTINGS_ANCHORS.notificationTest}
           title={<Trans>Try it out</Trans>}
-          description={<Trans>Fire a real notification with these settings.</Trans>}
+          description={<Trans>Fire a real notification to check each channel.</Trans>}
         >
-          <Button
-            size="sm"
-            onClick={sendTestToast}
-            className="w-full"
-          >
-            <Bell className="size-3.5" />
-            <Trans>Send test</Trans>
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button size="sm" onClick={sendTestToast} className={TEST_BUTTON}>
+              <Bell className="size-3.5" />
+              <Trans>In-app toast</Trans>
+            </Button>
+            {showOsAlerts && (
+              <Button size="sm" variant="outline" onClick={sendTestDesktopAlert} className={TEST_BUTTON}>
+                <MonitorSmartphone className="size-3.5" />
+                <Trans>Desktop alert</Trans>
+              </Button>
+            )}
+          </div>
         </ControlTile>
       </div>
     </>

@@ -3161,8 +3161,14 @@ msgstr "Hiq zgjedhjen e të gjithave"
 msgid "Desktop"
 msgstr "Desktop"
 
+msgid "Desktop alert"
+msgstr "Alertë në desktop"
+
 msgid "Desktop alerts"
 msgstr "Alerte në desktop"
+
+msgid "Desktop alerts are working."
+msgstr "Alertet në desktop funksionojnë."
 
 msgid "Despite the inclement weather, the expedition pressed on toward the summit, undeterred by the mounting obstacles in their path."
 msgstr "Pavarësisht motit të keq, ekspedita vazhdoi drejt majës, pa u tërhequr nga pengesat në rritje në rrugën e tyre."
@@ -4007,8 +4013,11 @@ msgstr "Faqja e fundit"
 msgid "Finish signing in with ChatGPT in the browser window that just opened."
 msgstr "Përfundoni hyrjen me ChatGPT në dritaren e shfletuesit që sapo u hap."
 
-msgid "Fire a real notification with these settings."
-msgstr "Dërgo një njoftim real me këto cilësime."
+msgid "Fire a real notification to check each channel."
+msgstr "Dërgo një njoftim të vërtetë për të provuar secilin kanal."
+
+#~ msgid "Fire a real notification with these settings."
+#~ msgstr "Dërgo një njoftim real me këto cilësime."
 
 msgid "First images from the deep-field telescope."
 msgstr "Imazhet e para nga teleskopi i fushës së thellë."
@@ -4859,6 +4868,9 @@ msgstr "Në progres"
 
 msgid "in the book"
 msgstr "në libër"
+
+msgid "In-app toast"
+msgstr "Njoftim në aplikacion"
 
 msgid "Include in read-aloud"
 msgstr "Përfshi në leximin me zë"
@@ -8712,8 +8724,8 @@ msgstr "Aplikacion web ADT i pavarur"
 msgid "Send a sample notification using these settings."
 msgstr "Dërgo një njoftim shembull duke përdorur këto cilësime."
 
-msgid "Send test"
-msgstr "Dërgo testin"
+#~ msgid "Send test"
+#~ msgstr "Dërgo testin"
 
 msgid "Send the neighboring sentence's text alongside each request so ElevenLabs can carry intonation across sentence boundaries. Changing this regenerates ElevenLabs audio on the next run."
 msgstr "Dërgon tekstin e fjalisë fqinje së bashku me çdo kërkesë në mënyrë që ElevenLabs të mund të ruajë intonacionin nëpër kufijtë e fjalive. Ndryshimi i kësaj rikrijon audion e ElevenLabs në ekzekutimin e ardhshëm."

@@ -58,17 +58,25 @@ export function useGlobalRunNotifications(): void {
         : document.hasFocus()
 
       if (!focused) {
-        // Native OS notifications are opt-out in Settings → Notifications; the
-        // SSE subscription and the in-app toasts below are unaffected.
-        if (notifications && getNotificationPrefs().osNotifications) {
-          await notifications.show({
-            title: failed
-              ? i18n._(msg`${stageLabel} failed`)
-              : i18n._(msg`${stageLabel} completed`),
-            body: label,
-          })
-        }
-        return
+        if (notifications && !getNotificationPrefs().osNotifications) return
+
+        const shown = notifications
+          ? await notifications
+              .show({
+                title: failed
+                  ? i18n._(msg`${stageLabel} failed`)
+                  : i18n._(msg`${stageLabel} completed`),
+                body: label,
+                label,
+                stage,
+              })
+              .catch(() => false)
+          : false
+
+        // Nothing reached the OS — the web build has no bridge, and a desktop
+        // without a notification daemon reports false — so fall through to the
+        // toast rather than finishing the run with no feedback at all.
+        if (shown) return
       }
 
       // Same book + same section: the existing per-book hook already gives
@@ -142,10 +150,9 @@ export function useGlobalRunNotifications(): void {
       }, delay)
     }
 
-    // A fatal response (502/503, a non-SSE content type) moves an EventSource to
-    // CLOSED for good, so without this the session would silently lose all
-    // cross-book notifications. Transient drops keep using the browser's own
-    // retry, which never reaches CLOSED.
+    // A fatal response (502/503, a non-SSE body) parks an EventSource at CLOSED
+    // for good; only those need our own retry, transient drops keep using the
+    // browser's.
     const connect = () => {
       if (disposed) return
 
@@ -175,6 +182,18 @@ export function useGlobalRunNotifications(): void {
       eventSource?.close()
       eventSource = null
     }
+  }, [])
+
+  useEffect(() => {
+    const notifications = isElectron() ? window.api?.notifications : undefined
+    if (!notifications?.onActivated) return
+
+    return notifications.onActivated(({ label, stage }) => {
+      navigateRef.current({
+        to: "/books/$label/$step",
+        params: { label, step: stage },
+      })
+    })
   }, [])
 }
 

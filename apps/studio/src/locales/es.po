@@ -3159,8 +3159,14 @@ msgstr "Deseleccionar todo"
 msgid "Desktop"
 msgstr "Escritorio"
 
+msgid "Desktop alert"
+msgstr "Alerta de escritorio"
+
 msgid "Desktop alerts"
 msgstr "Alertas de escritorio"
+
+msgid "Desktop alerts are working."
+msgstr "Las alertas de escritorio funcionan."
 
 msgid "Despite the inclement weather, the expedition pressed on toward the summit, undeterred by the mounting obstacles in their path."
 msgstr "A pesar del mal tiempo, la expedición siguió avanzando hacia la cumbre, sin dejarse frenar por los crecientes obstáculos en su camino."
@@ -4005,8 +4011,11 @@ msgstr "Página Final"
 msgid "Finish signing in with ChatGPT in the browser window that just opened."
 msgstr "Termine de iniciar sesión con ChatGPT en la ventana del navegador que se acaba de abrir."
 
-msgid "Fire a real notification with these settings."
-msgstr "Lanzar una notificación real con estos ajustes."
+msgid "Fire a real notification to check each channel."
+msgstr "Envía una notificación real para probar cada canal."
+
+#~ msgid "Fire a real notification with these settings."
+#~ msgstr "Lanzar una notificación real con estos ajustes."
 
 msgid "First images from the deep-field telescope."
 msgstr "Primeras imágenes del telescopio de campo profundo."
@@ -4857,6 +4866,9 @@ msgstr "En progreso"
 
 msgid "in the book"
 msgstr "en el libro"
+
+msgid "In-app toast"
+msgstr "Notificación en la app"
 
 msgid "Include in read-aloud"
 msgstr "Incluir en la lectura en voz alta"
@@ -8710,8 +8722,8 @@ msgstr "Aplicación web ADT autónoma"
 msgid "Send a sample notification using these settings."
 msgstr "Enviar una notificación de muestra usando estos ajustes."
 
-msgid "Send test"
-msgstr "Enviar prueba"
+#~ msgid "Send test"
+#~ msgstr "Enviar prueba"
 
 msgid "Send the neighboring sentence's text alongside each request so ElevenLabs can carry intonation across sentence boundaries. Changing this regenerates ElevenLabs audio on the next run."
 msgstr "Envía el texto de la oración vecina junto con cada solicitud para que ElevenLabs pueda mantener la entonación entre los límites de las oraciones. Cambiar esta opción regenera el audio de ElevenLabs en la próxima ejecución."

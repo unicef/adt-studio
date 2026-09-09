@@ -14,11 +14,13 @@ import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 export function createBookEventsRoutes(eventBus: BookEventBus): Hono {
   const app = new Hono()
 
-  app.get("/books/events", (c) => {
+  app.get("/books/events", async (c, next) => {
     const accept = c.req.header("accept") ?? ""
 
+    // This route is mounted ahead of /books/:label, so a plain request has to
+    // fall through or it would shadow a book actually labelled "events".
     if (!accept.includes("text/event-stream")) {
-      return c.json({ error: "This endpoint only supports text/event-stream" }, 400)
+      return next()
     }
 
     return streamSSE(c, async (stream) => {

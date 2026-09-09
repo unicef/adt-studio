@@ -50,8 +50,17 @@ export interface SplashControlsApi {
 }
 
 export interface NotificationsApi {
-  show: (payload: { title: string; body: string }) => Promise<void>
+  /** Resolves false when the OS cannot raise notifications at all. */
+  show: (payload: {
+    title: string
+    body: string
+    label?: string
+    stage?: string
+  }) => Promise<boolean>
   isWindowFocused: () => Promise<boolean>
+  onActivated: (
+    cb: (target: { label: string; stage: string }) => void,
+  ) => () => void
 }
 
 declare global {

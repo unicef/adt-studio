@@ -74,21 +74,25 @@ class FakeEventSource {
     for (const listener of this.listeners.get(type) ?? []) listener(event)
   }
 
-  /** A fatal, non-retriable response: the browser parks the source at CLOSED. */
   failFatally() {
     this.readyState = FakeEventSource.CLOSED
     this.emit("error", {})
   }
 
-  /** A transient drop: the browser retries on its own, state stays CONNECTING. */
   dropTransiently() {
     this.readyState = FakeEventSource.CONNECTING
     this.emit("error", {})
   }
 }
 
-const showNotification = vi.fn(() => Promise.resolve())
+const showNotification = vi.fn(() => Promise.resolve(true))
 const isWindowFocused = vi.fn(() => Promise.resolve(false))
+const unsubscribeActivated = vi.fn()
+let activate: ((target: { label: string; stage: string }) => void) | undefined
+const onActivated = vi.fn((cb: (target: { label: string; stage: string }) => void) => {
+  activate = cb
+  return unsubscribeActivated
+})
 
 async function flush() {
   await vi.waitFor(() => expect(isWindowFocused).toHaveBeenCalled())
@@ -112,8 +116,12 @@ beforeEach(() => {
   toastSuccess.mockClear()
   toastError.mockClear()
   showNotification.mockClear()
+  showNotification.mockImplementation(() => Promise.resolve(true))
   isWindowFocused.mockClear()
   isWindowFocused.mockImplementation(() => Promise.resolve(false))
+  onActivated.mockClear()
+  unsubscribeActivated.mockClear()
+  activate = undefined
   mocks.pathname.value = "/library"
   localStorage.clear()
 
@@ -123,7 +131,7 @@ beforeEach(() => {
     value: "Mozilla/5.0 adt-studio/1.0 Electron/30.0.0",
   })
   ;(window as unknown as { api: unknown }).api = {
-    notifications: { show: showNotification, isWindowFocused },
+    notifications: { show: showNotification, isWindowFocused, onActivated },
   }
 
   setNotificationPrefs({ osNotifications: true })
@@ -158,7 +166,6 @@ describe("useGlobalRunNotifications", () => {
   it("caps the backoff at 30s", () => {
     const view = render(<Harness />)
 
-    // 1s, 2s, 4s … 512s uncapped would leave the stream dead for ~8 minutes.
     for (let attempt = 0; attempt < 10; attempt += 1) {
       FakeEventSource.instances.at(-1)!.failFatally()
       vi.advanceTimersByTime(30_000)
@@ -211,20 +218,47 @@ describe("useGlobalRunNotifications", () => {
     await flush()
 
     expect(showNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ body: "my-book" }),
+      expect.objectContaining({ body: "my-book", label: "my-book", stage: "sectioning" }),
     )
     expect(toastSuccess).not.toHaveBeenCalled()
 
     view.unmount()
   })
 
-  it("skips the OS notification when the preference is off", async () => {
+  it("stays silent while unfocused when the preference is off", async () => {
     setNotificationPrefs({ osNotifications: false })
 
     const view = render(<Harness />)
     FakeEventSource.instances[0].emit("progress", stageEvent("stage-complete"))
     await flush()
 
+    expect(showNotification).not.toHaveBeenCalled()
+    expect(toastSuccess).not.toHaveBeenCalled()
+
+    view.unmount()
+  })
+
+  it("falls back to a toast when the OS cannot raise notifications", async () => {
+    showNotification.mockImplementation(() => Promise.resolve(false))
+
+    const view = render(<Harness />)
+    FakeEventSource.instances[0].emit("progress", stageEvent("stage-complete"))
+    await flush()
+
+    expect(showNotification).toHaveBeenCalledOnce()
+    await vi.waitFor(() => expect(toastSuccess).toHaveBeenCalled())
+
+    view.unmount()
+  })
+
+  it("toasts while unfocused in the web build, which has no bridge", async () => {
+    delete (window as unknown as { api?: unknown }).api
+    Object.defineProperty(navigator, "userAgent", { configurable: true, value: "Mozilla/5.0 Chrome" })
+
+    const view = render(<Harness />)
+    FakeEventSource.instances[0].emit("progress", stageEvent("stage-complete"))
+
+    await vi.waitFor(() => expect(toastSuccess).toHaveBeenCalled())
     expect(showNotification).not.toHaveBeenCalled()
 
     view.unmount()
@@ -244,6 +278,20 @@ describe("useGlobalRunNotifications", () => {
     await vi.waitFor(() => expect(toastSuccess).toHaveBeenCalled())
 
     view.unmount()
+  })
+
+  it("navigates to the stage when the OS notification is clicked", () => {
+    const view = render(<Harness />)
+
+    activate?.({ label: "my-book", stage: "sectioning" })
+
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/books/$label/$step",
+      params: { label: "my-book", step: "sectioning" },
+    })
+
+    view.unmount()
+    expect(unsubscribeActivated).toHaveBeenCalled()
   })
 
   it("does not duplicate feedback for the stage the user is already watching", async () => {

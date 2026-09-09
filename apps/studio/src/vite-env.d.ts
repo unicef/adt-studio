@@ -145,10 +145,17 @@ interface ElectronUpdatesApi {
 }
 
 interface ElectronNotificationsApi {
-  /** Show an OS-level notification via the Electron main process. */
-  show: (payload: { title: string; body: string }) => Promise<void>
-  /** Whether the Electron window that hosts this renderer is focused. */
+  /** Resolves false when the OS cannot raise notifications at all. */
+  show: (payload: {
+    title: string
+    body: string
+    label?: string
+    stage?: string
+  }) => Promise<boolean>
   isWindowFocused: () => Promise<boolean>
+  onActivated: (
+    cb: (target: { label: string; stage: string }) => void,
+  ) => () => void
 }
 
 interface Window {

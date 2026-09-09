@@ -3159,8 +3159,14 @@ msgstr "Deselect all"
 msgid "Desktop"
 msgstr "Desktop"
 
+msgid "Desktop alert"
+msgstr "Desktop alert"
+
 msgid "Desktop alerts"
 msgstr "Desktop alerts"
+
+msgid "Desktop alerts are working."
+msgstr "Desktop alerts are working."
 
 msgid "Despite the inclement weather, the expedition pressed on toward the summit, undeterred by the mounting obstacles in their path."
 msgstr "Despite the inclement weather, the expedition pressed on toward the summit, undeterred by the mounting obstacles in their path."
@@ -4005,8 +4011,11 @@ msgstr "Final Page"
 msgid "Finish signing in with ChatGPT in the browser window that just opened."
 msgstr "Finish signing in with ChatGPT in the browser window that just opened."
 
-msgid "Fire a real notification with these settings."
-msgstr "Fire a real notification with these settings."
+msgid "Fire a real notification to check each channel."
+msgstr "Fire a real notification to check each channel."
+
+#~ msgid "Fire a real notification with these settings."
+#~ msgstr "Fire a real notification with these settings."
 
 msgid "First images from the deep-field telescope."
 msgstr "First images from the deep-field telescope."
@@ -4857,6 +4866,9 @@ msgstr "In progress"
 
 msgid "in the book"
 msgstr "in the book"
+
+msgid "In-app toast"
+msgstr "In-app toast"
 
 msgid "Include in read-aloud"
 msgstr "Include in read-aloud"
@@ -8710,8 +8722,8 @@ msgstr "Self-contained ADT web app"
 msgid "Send a sample notification using these settings."
 msgstr "Send a sample notification using these settings."
 
-msgid "Send test"
-msgstr "Send test"
+#~ msgid "Send test"
+#~ msgstr "Send test"
 
 msgid "Send the neighboring sentence's text alongside each request so ElevenLabs can carry intonation across sentence boundaries. Changing this regenerates ElevenLabs audio on the next run."
 msgstr "Send the neighboring sentence's text alongside each request so ElevenLabs can carry intonation across sentence boundaries. Changing this regenerates ElevenLabs audio on the next run."

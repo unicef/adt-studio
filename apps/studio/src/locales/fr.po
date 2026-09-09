@@ -3161,8 +3161,14 @@ msgstr "Tout désélectionner"
 msgid "Desktop"
 msgstr "Bureau"
 
+msgid "Desktop alert"
+msgstr "Alerte du bureau"
+
 msgid "Desktop alerts"
 msgstr "Alertes du bureau"
+
+msgid "Desktop alerts are working."
+msgstr "Les alertes du bureau fonctionnent."
 
 msgid "Despite the inclement weather, the expedition pressed on toward the summit, undeterred by the mounting obstacles in their path."
 msgstr "Malgré le mauvais temps, l'expédition a poursuivi sa route vers le sommet, sans se laisser décourager par les obstacles croissants sur son chemin."
@@ -4007,8 +4013,11 @@ msgstr "Page finale"
 msgid "Finish signing in with ChatGPT in the browser window that just opened."
 msgstr "Terminez la connexion avec ChatGPT dans la fenêtre du navigateur qui vient de s'ouvrir."
 
-msgid "Fire a real notification with these settings."
-msgstr "Envoyer une vraie notification avec ces paramètres."
+msgid "Fire a real notification to check each channel."
+msgstr "Envoyez une vraie notification pour tester chaque canal."
+
+#~ msgid "Fire a real notification with these settings."
+#~ msgstr "Envoyer une vraie notification avec ces paramètres."
 
 msgid "First images from the deep-field telescope."
 msgstr "Premières images du télescope à champ profond."
@@ -4859,6 +4868,9 @@ msgstr "En cours"
 
 msgid "in the book"
 msgstr "dans le livre"
+
+msgid "In-app toast"
+msgstr "Notification dans l'app"
 
 msgid "Include in read-aloud"
 msgstr "Inclure dans la lecture à voix haute"
@@ -8712,8 +8724,8 @@ msgstr "Application web ADT autonome"
 msgid "Send a sample notification using these settings."
 msgstr "Envoyer une notification d'exemple en utilisant ces paramètres."
 
-msgid "Send test"
-msgstr "Envoyer un test"
+#~ msgid "Send test"
+#~ msgstr "Envoyer un test"
 
 msgid "Send the neighboring sentence's text alongside each request so ElevenLabs can carry intonation across sentence boundaries. Changing this regenerates ElevenLabs audio on the next run."
 msgstr "Envoie le texte de la phrase voisine avec chaque requête afin qu'ElevenLabs puisse conserver l'intonation d'une phrase à l'autre. La modification de ce paramètre régénère l'audio ElevenLabs lors de la prochaine exécution."
