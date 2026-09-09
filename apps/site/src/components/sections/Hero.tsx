@@ -1,4 +1,5 @@
-import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform, type MotionValue } from "motion/react";
 import { ArrowRight, Cloud } from "lucide-react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { DownloadButton } from "@/components/DownloadButton";
@@ -48,26 +49,60 @@ function MobileTile({ provider, rotate }: { provider: Provider; rotate: number }
   );
 }
 
-function ProviderTile({ provider, mx, my }: { provider: Provider; mx: ReturnType<typeof useSpring>; my: ReturnType<typeof useSpring> }) {
-  const x = useTransform(mx, (value) => value * provider.depth * 120);
-  const y = useTransform(my, (value) => value * provider.depth * 120);
+type Delta = { x: number; y: number };
+
+const easeInOutCubic = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+
+function ProviderTile({
+  provider,
+  index,
+  mx,
+  my,
+  dock,
+  delta,
+  tileRef,
+  entrance,
+}: {
+  provider: Provider;
+  index: number;
+  mx: MotionValue<number>;
+  my: MotionValue<number>;
+  dock: MotionValue<number>;
+  delta: Delta | null;
+  tileRef: (el: HTMLDivElement | null) => void;
+  entrance: boolean;
+}) {
+  const dx = delta?.x ?? 0;
+  const dy = delta?.y ?? 0;
+  const travel = useTransform(dock, (d) => Math.min(1, d / 0.88));
+  const x = useTransform([mx, travel], ([m, d]) => (m as number) * provider.depth * 120 * (1 - (d as number)) + dx * (d as number));
+  const y = useTransform([my, travel], ([m, d]) => (m as number) * provider.depth * 120 * (1 - (d as number)) + dy * (d as number));
+  const scale = useTransform(travel, (d) => 1 - 0.42 * d);
+  const rotate = useTransform(travel, (d) => provider.rotate * (1 - d));
+  const opacity = useTransform(dock, [0, 0.97, 1], [1, 1, 0]);
+
   return (
     <motion.div
       aria-hidden
       className="absolute hidden lg:block"
-      style={{ ...provider.style, x, y }}
+      style={provider.style}
+      initial={entrance ? { opacity: 0, scale: 0.55 } : false}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: "spring", stiffness: 280, damping: 20, mass: 0.7, delay: 0.25 + index * 0.08 }}
     >
-      <div
-        className="hero-float grid size-[72px] place-items-center rounded-[22px] border border-ink-line bg-white text-ink shadow-[0_1px_2px_rgb(18_27_43/0.06),0_18px_40px_-18px_rgb(18_27_43/0.35)] transition-transform duration-300 ease-out-quart hover:scale-105"
-        style={{ rotate: `${provider.rotate}deg`, animationDelay: `${provider.delay}s`, color: provider.color }}
-        title={provider.name}
-      >
-        {provider.svg ? (
-          <span className="size-8 [&>svg]:size-full [&>svg]:fill-current" dangerouslySetInnerHTML={{ __html: provider.svg }} />
-        ) : (
-          <Cloud className="size-8" strokeWidth={2} />
-        )}
-      </div>
+      <motion.div ref={tileRef} style={{ x, y, scale, rotate, opacity }}>
+        <div
+          className="hero-float grid size-[72px] place-items-center rounded-[22px] border border-ink-line bg-white text-ink shadow-[0_1px_2px_rgb(18_27_43/0.06),0_18px_40px_-18px_rgb(18_27_43/0.35)] transition-transform duration-300 ease-out-quart hover:scale-105"
+          style={{ animationDelay: `${provider.delay}s`, color: provider.color }}
+          title={provider.name}
+        >
+          {provider.svg ? (
+            <span className="size-8 [&>svg]:size-full [&>svg]:fill-current" dangerouslySetInnerHTML={{ __html: provider.svg }} />
+          ) : (
+            <Cloud className="size-8" strokeWidth={2} />
+          )}
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
@@ -94,6 +129,52 @@ export function Hero() {
     myRaw.set(0);
   };
 
+  const tileRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const figureRef = useRef<HTMLElement>(null);
+  const [deltas, setDeltas] = useState<Delta[] | null>(null);
+  const [dockDistance, setDockDistance] = useState(600);
+  const { scrollY } = useScroll();
+  const progress = useTransform(scrollY, [0, dockDistance], [0, 1], { clamp: true });
+  const dock = useTransform(progress, (p) => (reduced || !deltas ? 0 : easeInOutCubic(p)));
+  const pulseOpacity = useTransform(dock, [0, 0.78, 0.94, 1], [0, 0, 1, 0.55]);
+  const pulseScale = useTransform(dock, [0.78, 1], [0.2, 1]);
+  const glowOpacity = useTransform(dock, [0.85, 1], [0, 1]);
+
+  useEffect(() => {
+    if (reduced) return;
+    const measure = () => {
+      const figure = figureRef.current;
+      if (!figure || window.innerWidth < 1024) {
+        setDeltas(null);
+        return;
+      }
+      const wasScrolled = window.scrollY;
+      const figureRect = figure.getBoundingClientRect();
+      const figureTop = figureRect.top + wasScrolled;
+      const slotSpacing = 84;
+      const count = PROVIDERS.length;
+      const next = tileRefs.current.map((el, index) => {
+        if (!el) return { x: 0, y: 0 };
+        const rect = el.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2 + wasScrolled;
+        const slotX = figureRect.left + figureRect.width / 2 + (index - (count - 1) / 2) * slotSpacing;
+        const slotY = figureTop - 26;
+        return { x: slotX - centerX, y: slotY - centerY };
+      });
+      setDeltas(next);
+      setDockDistance(Math.max(240, figureTop - 150));
+    };
+    const raf = window.requestAnimationFrame(measure);
+    window.addEventListener("resize", measure);
+    const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
+    fonts?.ready.then(measure).catch(() => undefined);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener("resize", measure);
+    };
+  }, [reduced]);
+
   return (
     <section
       id="top"
@@ -112,22 +193,40 @@ export function Hero() {
 
       <div className="relative mx-auto flex w-full max-w-[1200px] flex-col justify-center px-5 pt-[104px] sm:px-8 sm:pt-[144px]">
         <div className="relative mx-auto flex w-full max-w-[1040px] flex-col items-center text-center">
-          {PROVIDERS.map((provider) => (
-            <ProviderTile key={provider.name} provider={provider} mx={mx} my={my} />
+          {PROVIDERS.map((provider, index) => (
+            <ProviderTile
+              key={provider.name}
+              provider={provider}
+              index={index}
+              mx={mx}
+              my={my}
+              dock={dock}
+              delta={deltas?.[index] ?? null}
+              tileRef={(el) => {
+                tileRefs.current[index] = el;
+              }}
+              entrance={!reduced}
+            />
           ))}
 
           <ul aria-label="AI providers" className="mb-8 flex w-full items-start justify-between px-1 sm:px-8 lg:hidden">
             {PROVIDERS.slice(0, 4).map((provider, index) => (
-              <li
+              <motion.li
                 key={provider.name}
-                className="hero-float"
-                style={{
-                  translate: `0 ${[0, 18, 6, 22][index]}px`,
-                  animationDelay: `${provider.delay}s`,
-                }}
+                initial={reduced ? false : { opacity: 0, scale: 0.55 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", stiffness: 280, damping: 20, mass: 0.7, delay: 0.2 + index * 0.08 }}
               >
-                <MobileTile provider={provider} rotate={[-8, 6, -5, 7][index]} />
-              </li>
+                <span
+                  className="hero-float block"
+                  style={{
+                    translate: `0 ${[0, 18, 6, 22][index]}px`,
+                    animationDelay: `${provider.delay}s`,
+                  }}
+                >
+                  <MobileTile provider={provider} rotate={[-8, 6, -5, 7][index]} />
+                </span>
+              </motion.li>
             ))}
           </ul>
 
@@ -194,7 +293,20 @@ export function Hero() {
             aria-hidden
             className="pointer-events-none absolute -inset-x-[50vw] bottom-0 top-[18%] -z-10 bg-[linear-gradient(to_bottom,transparent,color-mix(in_oklch,var(--color-brand)_9%,white)_30%,color-mix(in_oklch,var(--color-brand)_14%,white))]"
           />
-          <figure className="relative mx-auto w-full max-w-[900px] rounded-2xl ring-1 ring-ink/10 shadow-[0_2px_4px_rgb(18_27_43/0.05),0_40px_90px_-30px_rgb(18_27_43/0.45)]">
+          <figure
+            ref={figureRef}
+            className="relative mx-auto w-full max-w-[900px] rounded-2xl ring-1 ring-ink/10 shadow-[0_2px_4px_rgb(18_27_43/0.05),0_40px_90px_-30px_rgb(18_27_43/0.45)]"
+          >
+            <motion.span
+              aria-hidden
+              className="pointer-events-none absolute -inset-1 -z-10 rounded-[20px] bg-[radial-gradient(60%_40%_at_50%_0%,color-mix(in_oklch,var(--color-brand)_45%,transparent),transparent_70%)] blur-xl"
+              style={{ opacity: glowOpacity }}
+            />
+            <motion.span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-[6%] -top-[2px] z-10 h-[3px] rounded-full bg-[linear-gradient(90deg,transparent,var(--color-brand),transparent)]"
+              style={{ opacity: pulseOpacity, scaleX: pulseScale }}
+            />
             <img
               src={screenSrc(SCREENS.homeEmpty)}
               alt={i18n._(SCREENS.homeEmpty.alt)}
