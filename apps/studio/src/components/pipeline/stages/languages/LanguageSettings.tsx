@@ -1696,44 +1696,6 @@ function SpeechLanguageCards({
             />
           </div>
         </div>
-        {/* Gemini sampling. Neither parameter is documented for Gemini's TTS
-            models and neither controls voice identity; below ~0.5 temperature
-            makes them return no audio at all (see GEMINI_TTS_MIN_USABLE_TEMPERATURE).
-            The value is honoured rather than clamped — it's the user's setting —
-            but it is warned about here and named in the resulting error. */}
-        <div className="space-y-2 pt-2">
-          <Label className="text-[11px] font-medium text-muted-foreground">
-            {t`Gemini sampling`}
-          </Label>
-          <div className="flex gap-4 flex-wrap">
-            <div className="space-y-1.5">
-              <Label className="text-xs">{t`Temperature`}</Label>
-              <Input
-                value={geminiTemperature}
-                onChange={(e) => { setGeminiTemperature(e.target.value); markDirty("speech") }}
-                inputMode="decimal"
-                className="w-24 h-8 text-xs"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">{t`Seed`}</Label>
-              <Input
-                value={geminiSeed}
-                onChange={(e) => { setGeminiSeed(e.target.value); markDirty("speech") }}
-                inputMode="numeric"
-                className="w-24 h-8 text-xs"
-              />
-            </div>
-          </div>
-          {isBelowGeminiTemperatureFloor && (
-            <p className="text-[11px] text-destructive">
-              {t`A temperature below ${GEMINI_TTS_MIN_USABLE_TEMPERATURE} makes Gemini's text-to-speech models return no audio at all, so speech generation will fail for every Gemini language. Use ${GEMINI_TTS_MIN_USABLE_TEMPERATURE} or above, or leave it empty.`}
-            </p>
-          )}
-          <p className="text-[11px] text-muted-foreground">
-            {t`Neither setting is documented for Gemini's speech models, and neither controls which voice you get — that comes from the voice you pick. Leave both empty unless you have a specific reason. Only affects languages routed to Gemini; OpenAI and Azure ignore them. Changing either value regenerates Gemini audio on the next run.`}
-          </p>
-        </div>
         <div className="flex items-start gap-3 pt-2">
           <Switch
             id="word-highlighting"
@@ -1965,6 +1927,45 @@ function SpeechLanguageCards({
           <p className="text-[11px] text-muted-foreground">
             {t`Applies to every language routed to Gemini.`}
           </p>
+          {/* Sampling lives inside this Gemini-only card: neither parameter
+              is documented for Gemini's TTS models, neither controls voice
+              identity, and below ~0.5 temperature they return no audio at all
+              (GEMINI_TTS_MIN_USABLE_TEMPERATURE). The value is honoured rather
+              than clamped — it is the user's setting — but warned about here
+              and named in the resulting error. */}
+          <div className="space-y-2">
+            <Label className="text-[11px] font-medium text-muted-foreground">
+              {t`Sampling`}
+            </Label>
+            <div className="flex gap-4 flex-wrap">
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t`Temperature`}</Label>
+                <Input
+                  value={geminiTemperature}
+                  onChange={(e) => { setGeminiTemperature(e.target.value); markDirty("speech") }}
+                  inputMode="decimal"
+                  className="w-24 h-8 text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t`Seed`}</Label>
+                <Input
+                  value={geminiSeed}
+                  onChange={(e) => { setGeminiSeed(e.target.value); markDirty("speech") }}
+                  inputMode="numeric"
+                  className="w-24 h-8 text-xs"
+                />
+              </div>
+            </div>
+            {isBelowGeminiTemperatureFloor && (
+              <p className="text-[11px] text-destructive">
+                {t`A temperature below ${GEMINI_TTS_MIN_USABLE_TEMPERATURE} makes Gemini's text-to-speech models return no audio at all, so speech generation will fail for every Gemini language. Use ${GEMINI_TTS_MIN_USABLE_TEMPERATURE} or above, or leave it empty.`}
+              </p>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              {t`Neither setting is documented for Gemini's speech models, and neither controls which voice you get — that comes from the voice you pick. Leave both empty unless you have a specific reason. Changing either value regenerates Gemini audio on the next run.`}
+            </p>
+          </div>
           <div className="flex items-start gap-3 pt-1">
             <Switch
               id="batch-by-page"

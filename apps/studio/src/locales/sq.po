@@ -4178,8 +4178,8 @@ msgstr "Çelësi API i Gemini është i nevojshëm për të gjeneruar audio."
 msgid "Gemini models + TTS voices."
 msgstr "Modele Gemini + zëra TTS."
 
-msgid "Gemini sampling"
-msgstr "Kampionimi i Gemini-t"
+#~ msgid "Gemini sampling"
+#~ msgstr "Kampionimi i Gemini-t"
 
 msgid "Gemini settings"
 msgstr "Cilësimet e Gemini"
@@ -5886,8 +5886,11 @@ msgstr "Kërkon rindërtim"
 msgid "needs update"
 msgstr "nevojitet përditësim"
 
-msgid "Neither setting is documented for Gemini's speech models, and neither controls which voice you get — that comes from the voice you pick. Leave both empty unless you have a specific reason. Only affects languages routed to Gemini; OpenAI and Azure ignore them. Changing either value regenerates Gemini audio on the next run."
-msgstr "Asnjë nga këto cilësime nuk është i dokumentuar për modelet e të folurit të Gemini-t dhe asnjëri nuk përcakton se cilin zë merrni — kjo varet nga zëri që zgjidhni. Lërini të dyja bosh, veç nëse keni një arsye të veçantë. Prek vetëm gjuhët që kalojnë nëpër Gemini; OpenAI dhe Azure i shpërfillin. Ndryshimi i njërës prej tyre rigjeneron audion e Gemini-t në ekzekutimin e ardhshëm."
+msgid "Neither setting is documented for Gemini's speech models, and neither controls which voice you get — that comes from the voice you pick. Leave both empty unless you have a specific reason. Changing either value regenerates Gemini audio on the next run."
+msgstr "Asnjë nga këto cilësime nuk është i dokumentuar për modelet e të folurit të Gemini-t dhe asnjëri nuk përcakton se cilin zë merrni — kjo varet nga zëri që zgjidhni. Lërini të dyja bosh, veç nëse keni një arsye të veçantë. Ndryshimi i njërës prej tyre rigjeneron audion e Gemini-t në ekzekutimin e ardhshëm."
+
+#~ msgid "Neither setting is documented for Gemini's speech models, and neither controls which voice you get — that comes from the voice you pick. Leave both empty unless you have a specific reason. Only affects languages routed to Gemini; OpenAI and Azure ignore them. Changing either value regenerates Gemini audio on the next run."
+#~ msgstr "Asnjë nga këto cilësime nuk është i dokumentuar për modelet e të folurit të Gemini-t dhe asnjëri nuk përcakton se cilin zë merrni — kjo varet nga zëri që zgjidhni. Lërini të dyja bosh, veç nëse keni një arsye të veçantë. Prek vetëm gjuhët që kalojnë nëpër Gemini; OpenAI dhe Azure i shpërfillin. Ndryshimi i njërës prej tyre rigjeneron audion e Gemini-t në ekzekutimin e ardhshëm."
 
 msgid "Never"
 msgstr "Kurrë"
@@ -8268,6 +8271,9 @@ msgstr "Manual Referues Shembull"
 
 msgid "Sample shown for illustration. The actual languages used come from your Output Languages list above."
 msgstr "Shembull për ilustrim. Gjuhët aktuale të përdorura vijnë nga lista juaj e Gjuhëve të Daljes më lart."
+
+msgid "Sampling"
+msgstr "Kampionimi"
 
 msgid "sans serif"
 msgstr "pa serif"
