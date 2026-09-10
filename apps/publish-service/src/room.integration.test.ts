@@ -1,6 +1,5 @@
 import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test"
 import { afterEach, describe, expect, it } from "vitest"
-import { zipSync } from "fflate"
 import {
   COMMENTER_SESSION_COOKIE,
   PUBLICATION_ACCESS_COOKIE,
@@ -16,6 +15,7 @@ import {
   type RoomServerFrame,
 } from "@adt/types"
 import { createApp } from "./app.js"
+import { publishSnapshot } from "../test/fixtures.js"
 
 /**
  * The realtime room against real workerd: real Durable Objects, real WebSockets, real D1.
@@ -44,32 +44,19 @@ function app() {
   return createApp()
 }
 
-function snapshot(): File {
-  const zipped = zipSync({ "index.html": new TextEncoder().encode("<h1>page one</h1>") })
-  return new File([zipped], "snapshot.zip", { type: "application/zip" })
-}
-
 async function publish(accessCode?: string): Promise<string> {
   const token = nextToken()
-  const body = new FormData()
-  body.set(
-    "metadata",
-    JSON.stringify({
-      token,
-      title: "Raven and the Sun",
-      book_label: "raven",
-      page_manifest: MANIFEST,
-      ...(accessCode === undefined ? {} : { access_code: accessCode }),
-    }),
-  )
-  body.set("snapshot", snapshot())
-
-  const res = await app().request(
-    `${BASE}/api/publications`,
-    { method: "POST", headers: { Authorization: `Bearer ${SECRET}` }, body },
-    env,
-  )
-  expect(res.status).toBe(201)
+  await publishSnapshot((input, init) => app().request(input, init, env), BASE, SECRET, {
+    token,
+    title: "Raven and the Sun",
+    bookLabel: "raven",
+    pageManifest: MANIFEST,
+    files: {
+      "index.html": "<h1>page one</h1>",
+      "pg002_sec001.html": "<h1>page two</h1>",
+    },
+    ...(accessCode === undefined ? {} : { accessCode }),
+  })
   return token
 }
 

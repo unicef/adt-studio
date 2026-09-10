@@ -89,6 +89,7 @@ describe("publication schemas", () => {
       title: "Raven and the Sun",
       book_label: "raven",
       page_manifest: [{ section_id: "sec-1", href: "content/pages/page-1.html" }],
+      snapshot_bytes: 2048,
     })
     expect(parsed.expires_at).toBeUndefined()
 
@@ -98,8 +99,24 @@ describe("publication schemas", () => {
         title: "",
         book_label: "raven",
         page_manifest: [],
+        snapshot_bytes: 2048,
       }).success,
     ).toBe(false)
+  })
+
+  it("insists the request says what the uploaded files came to", () => {
+    const base = {
+      token,
+      title: "Raven and the Sun",
+      book_label: "raven",
+      page_manifest: [{ section_id: "sec-1", href: "content/pages/page-1.html" }],
+    }
+    /** Files are streamed one request each before the version is named, so this is the only
+     *  account of the snapshot's size the worker ever gets — and zero would name a version
+     *  with nothing behind it. */
+    expect(PublicationCreateRequest.safeParse(base).success).toBe(false)
+    expect(PublicationCreateRequest.safeParse({ ...base, snapshot_bytes: 0 }).success).toBe(false)
+    expect(PublicationCreateRequest.safeParse({ ...base, snapshot_bytes: 1 }).success).toBe(true)
   })
 })
 

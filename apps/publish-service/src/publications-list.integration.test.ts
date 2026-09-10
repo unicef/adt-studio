@@ -1,6 +1,5 @@
 import { env } from "cloudflare:test"
 import { beforeEach, describe, expect, it } from "vitest"
-import { zipSync } from "fflate"
 import {
   COMMENTER_SESSION_COOKIE,
   type CommenterSessionResponse,
@@ -12,6 +11,7 @@ import {
   type PublishCommentResponse,
 } from "@adt/types"
 import { createApp } from "./app.js"
+import { publishSnapshot } from "../test/fixtures.js"
 
 /**
  * §4.18 — the account-wide list the Publications dashboard reads. Everything here runs against
@@ -35,21 +35,6 @@ function app() {
   return createApp()
 }
 
-function snapshot(files: Record<string, string>): File {
-  const encoder = new TextEncoder()
-  const zipped = zipSync(
-    Object.fromEntries(Object.entries(files).map(([name, body]) => [name, encoder.encode(body)])),
-  )
-  return new File([zipped], "snapshot.zip", { type: "application/zip" })
-}
-
-function form(metadata: unknown, files: Record<string, string>): FormData {
-  const body = new FormData()
-  body.set("metadata", JSON.stringify(metadata))
-  body.set("snapshot", snapshot(files))
-  return body
-}
-
 interface PublishOptions {
   title?: string
   bookLabel?: string
@@ -60,40 +45,24 @@ interface PublishOptions {
 
 async function publish(options: PublishOptions = {}): Promise<string> {
   const token = nextToken()
-  const res = await app().request(
-    `${BASE}/api/publications`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${SECRET}` },
-      body: form(
-        {
-          token,
-          title: options.title ?? "Raven and the Sun",
-          book_label: options.bookLabel ?? "raven",
-          page_manifest: MANIFEST,
-          ...(options.expiresAt === undefined ? {} : { expires_at: options.expiresAt }),
-          ...(options.accessCode === undefined ? {} : { access_code: options.accessCode }),
-        },
-        options.files ?? { "index.html": "<h1>page one</h1>" },
-      ),
-    },
-    env,
-  )
-  expect(res.status).toBe(201)
+  await publishSnapshot((input, init) => app().request(input, init, env), BASE, SECRET, {
+    token,
+    title: options.title ?? "Raven and the Sun",
+    bookLabel: options.bookLabel ?? "raven",
+    pageManifest: MANIFEST,
+    files: options.files ?? { "index.html": "<h1>page one</h1>" },
+    ...(options.expiresAt === undefined ? {} : { expiresAt: options.expiresAt }),
+    ...(options.accessCode === undefined ? {} : { accessCode: options.accessCode }),
+  })
   return token
 }
 
 async function republish(token: string, files: Record<string, string>): Promise<void> {
-  const res = await app().request(
-    `${BASE}/api/publications/${token}/versions`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${SECRET}` },
-      body: form({ page_manifest: MANIFEST }, files),
-    },
-    env,
-  )
-  expect(res.status).toBe(201)
+  await publishSnapshot((input, init) => app().request(input, init, env), BASE, SECRET, {
+    token,
+    pageManifest: MANIFEST,
+    files,
+  })
 }
 
 async function post(path: string): Promise<Response> {
@@ -422,12 +391,22 @@ describe("DELETE /api/publications/:token", () => {
     const token = await publish({ files: { "index.html": "<h1>v1</h1>" } })
     await republish(token, { "index.html": "<h1>v2</h1>" })
 
-    const before = await env.SNAPSHOTS.list({ prefix: `${token}/` })
-    expect(before.objects.length).toBeGreaterThan(1)
+    const prefixes = await env.DB.prepare(
+      "SELECT snapshot_prefix FROM versions WHERE token = ? ORDER BY version",
+    ).bind(token).all<{ snapshot_prefix: string }>()
+    const before = await Promise.all(
+      (prefixes.results ?? []).map(({ snapshot_prefix }) => env.SNAPSHOTS.list({ prefix: snapshot_prefix })),
+    )
+    const beforeCount = before.reduce((count, page) => count + page.objects.length, 0)
+    expect(beforeCount).toBeGreaterThan(1)
 
     const body = (await (await del(token)).json()) as { objects_deleted: number }
-    expect(body.objects_deleted).toBe(before.objects.length)
-    expect((await env.SNAPSHOTS.list({ prefix: `${token}/` })).objects).toHaveLength(0)
+    expect(body.objects_deleted).toBe(beforeCount)
+    await Promise.all(
+      (prefixes.results ?? []).map(async ({ snapshot_prefix }) => {
+        expect((await env.SNAPSHOTS.list({ prefix: snapshot_prefix })).objects).toHaveLength(0)
+      }),
+    )
   })
 
   it("takes the comments and reader names with it", async () => {
@@ -454,7 +433,7 @@ describe("DELETE /api/publications/:token", () => {
     const list = await listPublications()
     expect(list.publications).toHaveLength(1)
     expect(entryFor(list, kept).publication.token).toBe(kept)
-    expect((await env.SNAPSHOTS.list({ prefix: `${kept}/` })).objects.length).toBeGreaterThan(0)
+    expect((await env.SNAPSHOTS.list()).objects.length).toBeGreaterThan(0)
   })
 
   it("answers 200 for a token that is already gone, so a retry is not an error", async () => {

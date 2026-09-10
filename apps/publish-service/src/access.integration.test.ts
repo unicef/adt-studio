@@ -1,7 +1,6 @@
 import { CLIENT_ATTEMPT_LIMIT } from "./access-throttle.js"
 import { env } from "cloudflare:test"
 import { beforeEach, describe, expect, it } from "vitest"
-import { zipSync } from "fflate"
 import {
   COMMENTER_SESSION_COOKIE,
   PUBLICATION_ACCESS_COOKIE,
@@ -11,6 +10,7 @@ import {
   type PublishCommentListResponse,
 } from "@adt/types"
 import { createApp } from "./app.js"
+import { publishSnapshot } from "../test/fixtures.js"
 
 /**
  * The access gate against real workerd, D1 and R2 — the whole point of the gate is what the
@@ -34,38 +34,15 @@ function app() {
   return createApp()
 }
 
-function snapshot(): File {
-  const encoder = new TextEncoder()
-  const zipped = zipSync({
-    "index.html": encoder.encode("<h1>page one</h1>"),
-    "assets/app.css": encoder.encode("h1{color:red}"),
-  })
-  return new File([zipped], "snapshot.zip", { type: "application/zip" })
-}
-
 async function publish(accessCode?: string | null): Promise<string> {
   const token = nextToken()
-  const body = new FormData()
-  body.set(
-    "metadata",
-    JSON.stringify({
-      token,
-      title: "Raven & the <Sun>",
-      book_label: "raven",
-      page_manifest: MANIFEST,
-      ...(accessCode === undefined ? {} : { access_code: accessCode }),
-    }),
-  )
-  body.set("snapshot", snapshot())
-
-  const res = await app().request(
-    `${BASE}/api/publications`,
-    { method: "POST", headers: { Authorization: `Bearer ${SECRET}` }, body },
-    env,
-  )
-  expect(res.status).toBe(201)
-  await expect(res.json()).resolves.toMatchObject({
-    has_access_code: accessCode !== undefined && accessCode !== null,
+  await publishSnapshot((input, init) => app().request(input, init, env), BASE, SECRET, {
+    token,
+    title: "Raven & the <Sun>",
+    bookLabel: "raven",
+    pageManifest: MANIFEST,
+    files: { "index.html": "<h1>page one</h1>", "assets/app.css": "h1{color:red}" },
+    ...(accessCode === undefined ? {} : { accessCode: accessCode ?? undefined }),
   })
   return token
 }
@@ -520,21 +497,21 @@ describe("access-code gate", () => {
   })
 
   it("refuses a create whose access code is too short", async () => {
-    const body = new FormData()
-    body.set(
-      "metadata",
-      JSON.stringify({
-        token: nextToken(),
-        title: "Raven",
-        book_label: "raven",
-        page_manifest: MANIFEST,
-        access_code: "ab",
-      }),
-    )
-    body.set("snapshot", snapshot())
     const res = await app().request(
-      `${BASE}/api/publications`,
-      { method: "POST", headers: { Authorization: `Bearer ${SECRET}` }, body },
+      `${BASE}/api/publication-uploads`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${SECRET}`, "content-type": "application/json" },
+        body: JSON.stringify({
+          kind: "create",
+          token: nextToken(),
+          title: "Raven",
+          book_label: "raven",
+          page_manifest: MANIFEST,
+          access_code: "ab",
+          files: [],
+        }),
+      },
       env,
     )
     expect(res.status).toBe(400)

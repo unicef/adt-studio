@@ -7,7 +7,10 @@ export const PUBLISH_WORKER_VERSION = "0.13.0"
  *  never to claim a usage number we did not measure ourselves. */
 export const R2_FREE_TIER_BYTES = 10 * 1024 * 1024 * 1024
 
-export const PUBLICATION_SNAPSHOT_MAX_BYTES = 100 * 1024 * 1024
+/** Limits apply to the expanded file tree declared when an upload starts. */
+export const PUBLICATION_SNAPSHOT_MAX_FILES = 20_000
+export const PUBLICATION_SNAPSHOT_MAX_FILE_BYTES = 32 * 1024 * 1024
+export const PUBLICATION_SNAPSHOT_MAX_BYTES = 512 * 1024 * 1024
 
 export const PUBLICATION_TOKEN_LENGTH = 32
 
@@ -67,35 +70,70 @@ export const Publication = z.object({
 })
 export type Publication = z.infer<typeof Publication>
 
-export const PublicationCreateRequest = z.object({
-  token: PublicationToken,
-  title: z.string().min(1),
-  book_label: z.string().min(1),
-  page_manifest: z.array(PublicationPageEntry),
-  expires_at: z.string().datetime().nullable().optional(),
-  /** Plaintext in the HTTPS body, PBKDF2 at rest — the worker never stores what was sent. */
-  access_code: PublicationAccessCode.nullable().optional(),
-  /** What the files already streamed to `PUT …/files/…` came to, when the Studio uploaded them
-   *  itself. Absent for a request that still carries a zip, where the worker counts as it
-   *  unpacks. */
-  snapshot_bytes: z.number().int().min(0).optional(),
+export const PublicationUploadFile = z.object({
+  path: z.string().min(1),
+  bytes: z.number().int().min(0).max(PUBLICATION_SNAPSHOT_MAX_FILE_BYTES),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
 })
-export type PublicationCreateRequest = z.infer<typeof PublicationCreateRequest>
+export type PublicationUploadFile = z.infer<typeof PublicationUploadFile>
 
-/**
- * One file of a version, streamed on its own.
- *
- * The zip upload puts a whole book through a single worker request: it is unpacked inside a
- * 128 MB sandbox and written file by file, so one request carries hundreds of subrequests and
- * seconds of CPU, and the body is measured against the account's 100 MB request cap. Every one
- * of those limits is *per request*, so sending one file per request makes all of them moot — and
- * a failure costs that file rather than the whole book.
- */
-export const PublicationFileUploadResponse = z.object({
+const PublicationUploadFiles = z
+  .array(PublicationUploadFile)
+  .min(1)
+  .max(PUBLICATION_SNAPSHOT_MAX_FILES)
+  .superRefine((files, ctx) => {
+    const seen = new Set<string>()
+    let total = 0
+    for (const [index, file] of files.entries()) {
+      if (seen.has(file.path)) {
+        ctx.addIssue({ code: "custom", path: [index, "path"], message: "Duplicate file path" })
+      }
+      seen.add(file.path)
+      total += file.bytes
+    }
+    if (total < 1 || total > PUBLICATION_SNAPSHOT_MAX_BYTES) {
+      ctx.addIssue({
+        code: "custom",
+        message: `Snapshot size must be between 1 and ${PUBLICATION_SNAPSHOT_MAX_BYTES} bytes`,
+      })
+    }
+  })
+
+const PublicationUploadBase = {
+  token: PublicationToken,
+  page_manifest: z.array(PublicationPageEntry),
+  files: PublicationUploadFiles,
+}
+
+export const PublicationUploadStartRequest = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("create"),
+    ...PublicationUploadBase,
+    title: z.string().min(1),
+    book_label: z.string().min(1),
+    expires_at: z.string().datetime().nullable().optional(),
+    /** Plaintext in HTTPS; the Worker stores only its PBKDF2 hash. */
+    access_code: PublicationAccessCode.nullable().optional(),
+  }),
+  z.object({ kind: z.literal("version"), ...PublicationUploadBase }),
+])
+export type PublicationUploadStartRequest = z.infer<typeof PublicationUploadStartRequest>
+
+export const PublicationUploadStatus = z.enum(["open", "committed", "aborted"])
+export type PublicationUploadStatus = z.infer<typeof PublicationUploadStatus>
+
+export const PublicationUploadStartResponse = z.object({
+  upload_id: z.string().min(1),
+  token: PublicationToken,
+  version: z.number().int().min(1),
+})
+export type PublicationUploadStartResponse = z.infer<typeof PublicationUploadStartResponse>
+
+export const PublicationUploadFileResponse = z.object({
   path: z.string().min(1),
   bytes: z.number().int().min(0),
 })
-export type PublicationFileUploadResponse = z.infer<typeof PublicationFileUploadResponse>
+export type PublicationUploadFileResponse = z.infer<typeof PublicationUploadFileResponse>
 
 export const PublicationCreateResponse = z.object({
   publication: Publication,
@@ -105,17 +143,23 @@ export const PublicationCreateResponse = z.object({
 })
 export type PublicationCreateResponse = z.infer<typeof PublicationCreateResponse>
 
-export const PublicationVersionCreateRequest = z.object({
-  page_manifest: z.array(PublicationPageEntry),
-  snapshot_bytes: z.number().int().min(0).optional(),
-})
-export type PublicationVersionCreateRequest = z.infer<typeof PublicationVersionCreateRequest>
-
 export const PublicationVersionCreateResponse = z.object({
   publication: Publication,
   version: PublicationVersion,
 })
 export type PublicationVersionCreateResponse = z.infer<typeof PublicationVersionCreateResponse>
+
+export const PublicationUploadCommitResponse = PublicationCreateResponse.extend({
+  upload_id: z.string().min(1),
+})
+export type PublicationUploadCommitResponse = z.infer<typeof PublicationUploadCommitResponse>
+
+export const PublicationUploadAbortResponse = z.object({
+  upload_id: z.string().min(1),
+  state: z.literal("aborted"),
+  objects_deleted: z.number().int().min(0),
+})
+export type PublicationUploadAbortResponse = z.infer<typeof PublicationUploadAbortResponse>
 
 export const PublicationExpiryUpdateRequest = z.object({
   expires_at: z.string().datetime().nullable(),

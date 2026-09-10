@@ -1,21 +1,15 @@
 import { Hono } from "hono"
 import type { Context } from "hono"
-import type { z } from "zod"
 import {
-  PUBLICATION_SNAPSHOT_MAX_BYTES,
   PUBLISH_WORKER_VERSION,
-  PublicationCreateRequest,
   PublicationToken,
+  PublicationUploadStartRequest,
   PublicationUpdateRequest,
-  PublicationVersionCreateRequest,
   type Publication,
-  type PublicationCreateResponse,
   type PublicationDetail,
-  type PublicationFileUploadResponse,
   type PublicationList,
   type PublicationReaderList,
   type PublicationResponse,
-  type PublicationVersionCreateResponse,
   type PublishWorkerHealth,
 } from "@adt/types"
 import { accessGate, registerAccessRoute } from "./access.js"
@@ -36,122 +30,26 @@ import {
 } from "./serve.js"
 import {
   deleteSnapshotObjects,
-  isSnapshotUnpackError,
   normalizeSnapshotPath,
   SNAPSHOT_LIMITS,
-  unpackSnapshotToR2,
   type SnapshotLimits,
 } from "./snapshot.js"
 import type { PublicationStore } from "./store.js"
-
-const METADATA_FIELD = "metadata"
-const SNAPSHOT_FIELD = "snapshot"
 
 export type AppEnv = { Bindings: Env; Variables: PublicationVariables }
 
 export interface AppOptions {
   store?: PublicationStore
   createStore?: (env: Env) => PublicationStore
-  maxSnapshotBytes?: number
   snapshotLimits?: SnapshotLimits
   now?: () => Date
   newId?: () => string
-}
-
-type SnapshotUpload<T> =
-  /** `snapshot` is absent when the Studio streamed the files itself through
-   *  `PUT …/files/…`, which is the path that avoids putting a whole book through one request. */
-  | { ok: true; metadata: T; snapshot: File | null }
-  | { ok: false; code: "invalid_request"; status: 400; message: string }
-  | { ok: false; code: "payload_too_large"; status: 413; message: string }
-
-async function readSnapshotUpload<S extends z.ZodTypeAny>(
-  c: Context,
-  schema: S,
-  maxSnapshotBytes: number,
-): Promise<SnapshotUpload<z.infer<S>>> {
-  let body: Record<string, unknown>
-  try {
-    body = await c.req.parseBody()
-  } catch {
-    return {
-      ok: false,
-      code: "invalid_request",
-      status: 400,
-      message: "Expected a multipart/form-data body",
-    }
-  }
-
-  const rawMetadata = body[METADATA_FIELD]
-  if (typeof rawMetadata !== "string") {
-    return {
-      ok: false,
-      code: "invalid_request",
-      status: 400,
-      message: `Missing "${METADATA_FIELD}" form field`,
-    }
-  }
-
-  let metadata: unknown
-  try {
-    metadata = JSON.parse(rawMetadata)
-  } catch {
-    return {
-      ok: false,
-      code: "invalid_request",
-      status: 400,
-      message: `The "${METADATA_FIELD}" form field is not valid JSON`,
-    }
-  }
-
-  const parsed = schema.safeParse(metadata)
-  if (!parsed.success) {
-    return { ok: false, code: "invalid_request", status: 400, message: parsed.error.message }
-  }
-
-  const snapshot = body[SNAPSHOT_FIELD]
-  if (snapshot === undefined) {
-    /** No zip is only legal as the pre-uploaded path, and `snapshot_bytes` is how that path
-     *  announces itself: the Studio counted the files as it streamed them. Without either, the
-     *  request names a version that has no content anywhere, which used to be caught here and
-     *  would otherwise surface later as a publication serving nothing. */
-    const declared = (parsed.data as { snapshot_bytes?: number }).snapshot_bytes
-    if (declared === undefined) {
-      return {
-        ok: false,
-        code: "invalid_request",
-        status: 400,
-        message: `Missing "${SNAPSHOT_FIELD}" form file — send one, or "snapshot_bytes" for files already uploaded`,
-      }
-    }
-    return { ok: true, metadata: parsed.data, snapshot: null }
-  }
-  if (!(snapshot instanceof File)) {
-    return {
-      ok: false,
-      code: "invalid_request",
-      status: 400,
-      message: `The "${SNAPSHOT_FIELD}" form field is not a file`,
-    }
-  }
-
-  if (snapshot.size > maxSnapshotBytes) {
-    return {
-      ok: false,
-      code: "payload_too_large",
-      status: 413,
-      message: `Snapshot exceeds the ${maxSnapshotBytes} byte upload limit`,
-    }
-  }
-
-  return { ok: true, metadata: parsed.data, snapshot }
 }
 
 export function createApp(options: AppOptions = {}): Hono<AppEnv> {
   const injected = options.store
   const resolveStore = (env: Env): PublicationStore =>
     injected ?? (options.createStore ?? ((e: Env) => createD1PublicationStore(e.DB)))(env)
-  const maxSnapshotBytes = options.maxSnapshotBytes ?? PUBLICATION_SNAPSHOT_MAX_BYTES
   const now = options.now ?? (() => new Date())
   const timestamp = (): string => now().toISOString()
   const requirePublication = publicationLookup(resolveStore)
@@ -167,64 +65,6 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     publication,
     has_access_code: ((await store.findRecord(publication.token))?.accessCode ?? null) !== null,
   })
-
-  /**
-   * Drops a failed version's objects before the request returns.
-   *
-   * An unpack that fails partway has already written whatever it got through, and nothing in D1
-   * will ever point at those keys: the Studio mints a fresh token for the next attempt, so the
-   * prefix is unreachable from the app and stays billed to the author's own R2. The case that
-   * triggers it is the one authors hit most — a book over the entry or total cap, retried with
-   * fewer features — so every attempt at trimming used to leave another partial snapshot behind.
-   *
-   * Scoped to the single version on purpose: `${token}/` would take a live v1 down with a
-   * failed v2. A cleanup that fails must not replace the error the caller is already reporting.
-   */
-  const discardVersion = async (
-    c: Context<AppEnv>,
-    token: string,
-    version: number,
-  ): Promise<void> => {
-    try {
-      await deleteSnapshotObjects(c.env.SNAPSHOTS, `${token}/v${version}`)
-    } catch {
-      /** The unpack failure is the one worth answering with. */
-    }
-  }
-
-  /** The unpacked byte total is the publication's real R2 occupancy, and the unpacker already
-   *  counts it on the way past — so it is carried out of here and stored on the version rather
-   *  than discarded and later guessed at from the zip's compressed size. */
-  const unpack = async (
-    c: Context<AppEnv>,
-    token: string,
-    version: number,
-    snapshot: File,
-  ): Promise<{ ok: true; totalBytes: number } | { ok: false; response: Response }> => {
-    try {
-      const result = await unpackSnapshotToR2({
-        bucket: c.env.SNAPSHOTS,
-        prefix: `${token}/v${version}`,
-        zip: snapshot.stream() as ReadableStream<Uint8Array>,
-        ...(options.snapshotLimits === undefined ? {} : { limits: options.snapshotLimits }),
-      })
-      return { ok: true, totalBytes: result.totalBytes }
-    } catch (error) {
-      await discardVersion(c, token, version)
-      if (isSnapshotUnpackError(error)) {
-        return {
-          ok: false,
-          response: errorResponse(
-            c,
-            error.code,
-            error.code === "payload_too_large" ? 413 : 400,
-            error.message,
-          ),
-        }
-      }
-      throw error
-    }
-  }
 
   const app = new Hono<AppEnv>()
 
@@ -256,167 +96,73 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     return c.json(body)
   })
 
-  /**
-   * One file of a version, streamed straight into R2.
-   *
-   * The zip route puts a whole book through a single request — unpacked in a 128 MB sandbox,
-   * written file by file, weighed against the account's request cap — so it spends hundreds of
-   * subrequests and seconds of CPU on one invocation. On the Workers free plan that is fifty
-   * subrequests and ten milliseconds, which no real book fits inside; on paid it still fails
-   * whole when the edge refuses once. Every one of those ceilings is per request, so one file
-   * per request steps around all of them and makes a failure cost one file.
-   *
-   * Deliberately writes before any row exists: the version is not real until the create or
-   * versions call names it, and a set of objects nobody committed is cleaned up with the rest of
-   * the token's prefix when the publication is deleted.
-   */
-  app.put("/api/publications/:token/files/:version/*", async (c) => {
-    const token = PublicationToken.safeParse(c.req.param("token"))
-    if (!token.success) {
-      return errorResponse(c, "invalid_request", 400, token.error.message)
+  app.post("/api/publication-uploads", async (c) => {
+    const body = await readJsonBody(c, PublicationUploadStartRequest)
+    if (!body.ok) return errorResponse(c, "invalid_request", 400, body.message)
+    for (const file of body.data.files) {
+      if (normalizeSnapshotPath(file.path) !== file.path) {
+        return errorResponse(c, "invalid_request", 400, `Unsafe file path: ${file.path}`)
+      }
     }
-
-    const version = Number(c.req.param("version"))
-    if (!Number.isInteger(version) || version < 1) {
-      return errorResponse(c, "invalid_request", 400, "Version must be a positive integer")
+    const declared = new Set(body.data.files.map((file) => file.path))
+    if (body.data.page_manifest.some((page) => !declared.has(page.href))) {
+      return errorResponse(c, "invalid_request", 400, "Every page manifest href must be uploaded")
     }
-
-    const prefix = `/api/publications/${token.data}/files/${c.req.param("version")}/`
-    const index = c.req.path.indexOf(prefix)
-    const raw = index === -1 ? "" : decodeURIComponent(c.req.path.slice(index + prefix.length))
-
-    /** The same guard the unpacker applies to a zip entry: a path that escapes the prefix would
-     *  let a caller write over another publication's files. */
-    const path = normalizeSnapshotPath(raw)
-    if (path === null) {
-      return errorResponse(c, "invalid_request", 400, "Unsafe file path")
-    }
-
-    const declared = Number(c.req.header("content-length") ?? Number.NaN)
-    if (Number.isFinite(declared) && declared > SNAPSHOT_LIMITS.maxEntryBytes) {
-      return errorResponse(
-        c,
-        "payload_too_large",
-        413,
-        `Files are limited to ${SNAPSHOT_LIMITS.maxEntryBytes} bytes`,
-      )
-    }
-
-    const body = await c.req.arrayBuffer()
-    if (body.byteLength > SNAPSHOT_LIMITS.maxEntryBytes) {
-      return errorResponse(
-        c,
-        "payload_too_large",
-        413,
-        `Files are limited to ${SNAPSHOT_LIMITS.maxEntryBytes} bytes`,
-      )
-    }
-
-    await c.env.SNAPSHOTS.put(`${token.data}/v${version}/${path}`, body)
-
-    const response: PublicationFileUploadResponse = { path, bytes: body.byteLength }
-    return c.json(response)
-  })
-
-  app.post("/api/publications", async (c) => {
-    const upload = await readSnapshotUpload(c, PublicationCreateRequest, maxSnapshotBytes)
-    if (!upload.ok) {
-      return errorResponse(c, upload.code, upload.status, upload.message)
-    }
-
-    const store = resolveStore(c.env)
-    const { token, title, book_label, page_manifest, expires_at, access_code } = upload.metadata
-
-    if (await store.findByToken(token)) {
-      return errorResponse(
-        c,
-        "invalid_request",
-        400,
-        "A publication already exists for this token — republish through POST /api/publications/:token/versions",
-      )
-    }
-
-    /** A pre-uploaded version has nothing to unpack; its size is what the Studio counted as it
-     *  streamed the files, since the worker never saw them. */
-    let snapshotBytes: number | null = upload.metadata.snapshot_bytes ?? null
-    if (upload.snapshot !== null) {
-      const unpacked = await unpack(c, token, 1, upload.snapshot)
-      if (!unpacked.ok) return unpacked.response
-      snapshotBytes = unpacked.totalBytes
-    }
-
-    const publication: Publication = {
-      token,
-      title,
-      book_label,
-      current_version: 1,
-      created_at: timestamp(),
-      expires_at: expires_at ?? null,
-      revoked_at: null,
-    }
-
-    const accessCode = access_code ? await hashAccessCode(access_code) : null
-    const version = await store.create({
-      publication,
-      pageManifest: page_manifest,
+    const uploadId = (options.newId ?? (() => randomId()))()
+    const accessCode = body.data.kind === "create" && body.data.access_code
+      ? await hashAccessCode(body.data.access_code)
+      : null
+    const result = await resolveStore(c.env).startUpload({
+      uploadId,
+      snapshotPrefix: `uploads/${uploadId}`,
+      request: body.data,
       accessCode,
-      snapshotBytes,
+      createdAt: timestamp(),
     })
-    const body: PublicationCreateResponse = {
-      publication,
-      version,
-      url: shareUrl(c, token),
-      has_access_code: accessCode !== null,
-    }
-    return c.json(body, 201)
+    if (!result.ok) return errorResponse(c, result.reason === "not_found" ? "not_found" : "invalid_request", result.reason === "not_found" ? 404 : 409)
+    return c.json({ upload_id: uploadId, token: result.upload.token, version: result.upload.version }, 201)
   })
 
-  app.post("/api/publications/:token/versions", async (c) => {
-    const token = PublicationToken.safeParse(c.req.param("token"))
-    if (!token.success) {
-      return errorResponse(c, "invalid_request", 400, token.error.message)
-    }
-    const upload = await readSnapshotUpload(c, PublicationVersionCreateRequest, maxSnapshotBytes)
-    if (!upload.ok) {
-      return errorResponse(c, upload.code, upload.status, upload.message)
-    }
-
+  app.put("/api/publication-uploads/:uploadId/files/*", async (c) => {
+    const uploadId = c.req.param("uploadId")
+    const routePrefix = `/api/publication-uploads/${uploadId}/files/`
+    let raw: string
+    try { raw = decodeURIComponent(c.req.path.slice(c.req.path.indexOf(routePrefix) + routePrefix.length)) } catch { return errorResponse(c, "invalid_request", 400, "Invalid file path") }
+    const path = normalizeSnapshotPath(raw)
+    if (path === null) return errorResponse(c, "invalid_request", 400, "Unsafe file path")
     const store = resolveStore(c.env)
-    const existing = await store.findByToken(token.data)
-    if (!existing) {
-      return errorResponse(c, "not_found", 404)
+    const upload = await store.findUpload(uploadId)
+    if (!upload) return errorResponse(c, "not_found", 404)
+    if (upload.state !== "open") return errorResponse(c, "invalid_request", 409, "Upload is no longer open")
+    const expected = await store.findUploadFile(uploadId, path)
+    if (!expected) return errorResponse(c, "invalid_request", 400, "File was not declared")
+    const body = await c.req.arrayBuffer()
+    if (body.byteLength > SNAPSHOT_LIMITS.maxEntryBytes) return errorResponse(c, "payload_too_large", 413, `Files are limited to ${SNAPSHOT_LIMITS.maxEntryBytes} bytes`)
+    const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", body))).map((byte) => byte.toString(16).padStart(2, "0")).join("")
+    if (body.byteLength !== expected.bytes || digest !== expected.sha256) return errorResponse(c, "invalid_request", 400, "File does not match its declared size and digest")
+    if (expected.completedAt !== null) return c.json({ path, bytes: expected.bytes })
+    await c.env.SNAPSHOTS.put(`${upload.snapshotPrefix}/${path}`, body)
+    if (!(await store.completeUploadFile(uploadId, path, timestamp()))) {
+      await c.env.SNAPSHOTS.delete(`${upload.snapshotPrefix}/${path}`)
+      return errorResponse(c, "invalid_request", 409, "Upload is no longer open")
     }
+    return c.json({ path, bytes: expected.bytes })
+  })
 
-    const version = existing.current_version + 1
-    let snapshotBytes: number | null = upload.metadata.snapshot_bytes ?? null
-    if (upload.snapshot !== null) {
-      const unpacked = await unpack(c, token.data, version, upload.snapshot)
-      if (!unpacked.ok) return unpacked.response
-      snapshotBytes = unpacked.totalBytes
-    }
+  app.post("/api/publication-uploads/:uploadId/commit", async (c) => {
+    const result = await resolveStore(c.env).commitUpload(c.req.param("uploadId"), timestamp())
+    if (!result.ok) return errorResponse(c, result.reason === "not_found" ? "not_found" : "invalid_request", result.reason === "not_found" ? 404 : result.reason === "incomplete" ? 400 : 409)
+    return c.json({ upload_id: c.req.param("uploadId"), ...result.committed, url: shareUrl(c, result.committed.publication.token) }, 201)
+  })
 
-    const result = await store.addVersion({
-      token: token.data,
-      version,
-      pageManifest: upload.metadata.page_manifest,
-      createdAt: timestamp(),
-      snapshotBytes,
-    })
-    if (!result) {
-      await discardVersion(c, token.data, version)
-      return errorResponse(
-        c,
-        "invalid_request",
-        400,
-        "The publication changed while this version was uploading — try again",
-      )
-    }
-
-    const body: PublicationVersionCreateResponse = {
-      publication: result.publication,
-      version: result.version,
-    }
-    return c.json(body, 201)
+  app.delete("/api/publication-uploads/:uploadId", async (c) => {
+    const store = resolveStore(c.env)
+    const upload = await store.findUpload(c.req.param("uploadId"))
+    if (!upload) return errorResponse(c, "not_found", 404)
+    const state = await store.abortUpload(upload.uploadId)
+    if (state === "committed") return errorResponse(c, "invalid_request", 409, "Committed uploads cannot be aborted")
+    const objectsDeleted = await deleteSnapshotObjects(c.env.SNAPSHOTS, upload.snapshotPrefix)
+    return c.json({ upload_id: upload.uploadId, state: "aborted", objects_deleted: objectsDeleted })
   })
 
   app.post("/api/publications/:token/revoke", async (c) => {
@@ -467,13 +213,16 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     }
 
     const store = resolveStore(c.env)
-    const objectsDeleted = await deleteSnapshotObjects(c.env.SNAPSHOTS, token.data)
+    const prefixes = await store.listSnapshotPrefixes(token.data)
+    const deletedCounts = await Promise.all(
+      prefixes.map((prefix) => deleteSnapshotObjects(c.env.SNAPSHOTS, prefix)),
+    )
     const publication = await store.deletePublication(token.data)
 
     return c.json({
       token: token.data,
       deleted: publication !== null,
-      objects_deleted: objectsDeleted,
+      objects_deleted: deletedCounts.reduce((total, count) => total + count, 0),
     })
   })
 
@@ -562,7 +311,13 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
       return errorResponse(c, "not_found", 404)
     }
 
-    const key = `${publication.token}/v${publication.current_version}/${relative}`
+    const prefix = await resolveStore(c.env).findSnapshotPrefix(
+      publication.token,
+      publication.current_version,
+      relative,
+    )
+    if (prefix === null) return errorResponse(c, "not_found", 404)
+    const key = `${prefix}/${relative}`
     const ifNoneMatch = conditionalEtag(c.req.header("If-None-Match"))
     const object = await c.env.SNAPSHOTS.get(
       key,

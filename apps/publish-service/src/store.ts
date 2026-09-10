@@ -4,6 +4,8 @@ import type {
   Publication,
   PublicationPageEntry,
   PublicationReader,
+  PublicationUploadStartRequest,
+  PublicationUploadStatus,
   PublicationVersion,
   PublishComment,
 } from "@adt/types"
@@ -53,6 +55,56 @@ export interface AddVersionResult {
   publication: Publication
   version: PublicationVersion
 }
+
+export interface StoredPublicationUpload {
+  uploadId: string
+  kind: PublicationUploadStartRequest["kind"]
+  token: string
+  version: number
+  state: PublicationUploadStatus
+  title: string | null
+  bookLabel: string | null
+  pageManifest: PublicationPageEntry[]
+  snapshotPrefix: string
+  snapshotBytes: number
+  expectedFiles: number
+  expiresAt: string | null
+  accessCode: string | null
+  createdAt: string
+  committedAt: string | null
+  committedResult: CommittedPublicationUpload | null
+}
+
+export interface StoredPublicationUploadFile {
+  uploadId: string
+  path: string
+  bytes: number
+  sha256: string
+  completedAt: string | null
+}
+
+export interface CommittedPublicationUpload {
+  publication: Publication
+  version: PublicationVersion
+  hasAccessCode: boolean
+}
+
+export interface StartPublicationUploadInput {
+  uploadId: string
+  snapshotPrefix: string
+  request: PublicationUploadStartRequest
+  /** Packed access-code hash for create, never plaintext. */
+  accessCode: string | null
+  createdAt: string
+}
+
+export type StartPublicationUploadResult =
+  | { ok: true; upload: StoredPublicationUpload }
+  | { ok: false; reason: "not_found" | "conflict" }
+
+export type CommitPublicationUploadResult =
+  | { ok: true; committed: CommittedPublicationUpload }
+  | { ok: false; reason: "not_found" | "aborted" | "incomplete" | "conflict" }
 
 export interface StoredCommenterSession extends CommenterSession {
   token: string
@@ -117,6 +169,16 @@ export interface UpdateCommentInput {
 }
 
 export interface PublicationStore {
+  startUpload(input: StartPublicationUploadInput): Promise<StartPublicationUploadResult>
+  findUpload(uploadId: string): Promise<StoredPublicationUpload | null>
+  findUploadFile(uploadId: string, path: string): Promise<StoredPublicationUploadFile | null>
+  completeUploadFile(uploadId: string, path: string, completedAt: string): Promise<boolean>
+  commitUpload(uploadId: string, committedAt: string): Promise<CommitPublicationUploadResult>
+  abortUpload(uploadId: string): Promise<PublicationUploadStatus | null>
+  /** The committed object's prefix only when this exact path belongs to its immutable manifest. */
+  findSnapshotPrefix(token: string, version: number, path: string): Promise<string | null>
+  /** Includes open uploads so deleting a publication token cannot strand an upload prefix. */
+  listSnapshotPrefixes(token: string): Promise<string[]>
   findByToken(token: string): Promise<Publication | null>
   /** One read for the ladder *and* the access gate, so gating costs no extra round trip per
    *  asset request. */

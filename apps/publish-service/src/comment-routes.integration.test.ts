@@ -267,7 +267,15 @@ describe("comment route shapes", () => {
   })
 
   it("leaves neighbouring snapshot paths to the serve catch-all", async () => {
-    const { app } = await harness()
+    const { store } = await harness()
+    const app = createApp({
+      store: {
+        ...store,
+        async findSnapshotPrefix(token, version, path) {
+          return token === TOKEN && version === 1 && path === "comments.html" ? `${TOKEN}/v1` : null
+        },
+      },
+    })
     const bucket = testBucket
     await bucket.put(`${TOKEN}/v1/comments.html`, "<h1>a page called comments</h1>")
 

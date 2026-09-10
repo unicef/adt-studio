@@ -324,9 +324,6 @@ importers:
       '@adt/types':
         specifier: workspace:*
         version: link:../../packages/types
-      fflate:
-        specifier: ^0.8.2
-        version: 0.8.2
       hono:
         specifier: ^4.12.25
         version: 4.12.25
