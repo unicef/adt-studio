@@ -84,24 +84,6 @@ async function tagFor(sessionId: string, secret: string): Promise<string> {
   return base64url(new Uint8Array(signature))
 }
 
-/** The cookie carries `<session id>.<HMAC tag>` rather than the bare id: `session_id` is
- *  public in every `PublishComment` payload, so the id alone cannot be the credential or
- *  any reviewer could impersonate another from a comment listing. */
-export async function sessionCookieValue(sessionId: string, secret: string): Promise<string> {
-  return `${sessionId}.${await tagFor(sessionId, secret)}`
-}
-
-export async function sessionIdFromCookie(
-  cookie: string,
-  secret: string,
-): Promise<string | null> {
-  const separator = cookie.lastIndexOf(".")
-  if (separator <= 0) return null
-  const sessionId = cookie.slice(0, separator)
-  const tag = cookie.slice(separator + 1)
-  return constantTimeEqual(tag, await tagFor(sessionId, secret)) ? sessionId : null
-}
-
 const PIN_SCHEME = "pbkdf2-sha256"
 
 const PIN_ITERATIONS = 100_000

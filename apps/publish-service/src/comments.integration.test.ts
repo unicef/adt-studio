@@ -1,7 +1,6 @@
 import { CLIENT_ATTEMPT_LIMIT } from "./access-throttle.js"
 import { env } from "cloudflare:test"
 import { beforeEach, describe, expect, it } from "vitest"
-import { zipSync } from "fflate"
 import {
   COMMENTER_SESSION_COOKIE,
   COMMENTER_SESSION_MAX_AGE_SECONDS,
@@ -13,7 +12,9 @@ import {
   type PublishCommentResponse,
 } from "@adt/types"
 import { createApp } from "./app.js"
-import { sessionCookieValue } from "./identity.js"
+import { publishSnapshot } from "../test/fixtures.js"
+import { Hono } from "hono"
+import { issueSessionCookie } from "./sessions.js"
 
 const SECRET = "local-dev-secret"
 const BASE = "https://adt-publish.example.workers.dev"
@@ -36,50 +37,30 @@ function app() {
   return createApp()
 }
 
-function snapshot(): File {
-  const encoder = new TextEncoder()
-  const zipped = zipSync({ "index.html": encoder.encode("<h1>page one</h1>") })
-  return new File([zipped], "snapshot.zip", { type: "application/zip" })
-}
-
-function form(metadata: unknown): FormData {
-  const body = new FormData()
-  body.set("metadata", JSON.stringify(metadata))
-  body.set("snapshot", snapshot())
-  return body
-}
-
 async function publish(): Promise<string> {
   const token = nextToken()
-  const res = await app().request(
-    `${BASE}/api/publications`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${SECRET}` },
-      body: form({
-        token,
-        title: "Raven and the Sun",
-        book_label: "raven",
-        page_manifest: MANIFEST,
-      }),
+  await publishSnapshot((input, init) => app().request(input, init, env), BASE, SECRET, {
+    token,
+    title: "Raven and the Sun",
+    bookLabel: "raven",
+    pageManifest: MANIFEST,
+    files: {
+      "index.html": "<h1>page one</h1>",
+      "pg002_sec001.html": "<h1>page two</h1>",
     },
-    env,
-  )
-  expect(res.status).toBe(201)
+  })
   return token
 }
 
 async function republish(token: string): Promise<void> {
-  const res = await app().request(
-    `${BASE}/api/publications/${token}/versions`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${SECRET}` },
-      body: form({ page_manifest: MANIFEST }),
+  await publishSnapshot((input, init) => app().request(input, init, env), BASE, SECRET, {
+    token,
+    pageManifest: MANIFEST,
+    files: {
+      "index.html": "<h1>page one</h1>",
+      "pg002_sec001.html": "<h1>page two</h1>",
     },
-    env,
-  )
-  expect(res.status).toBe(201)
+  })
 }
 
 function cookieFrom(response: Response): string {
@@ -87,6 +68,15 @@ function cookieFrom(response: Response): string {
   const value = /adt_pub_session=([^;]+)/.exec(header)?.[1]
   expect(value).toBeDefined()
   return value as string
+}
+
+async function signedCookie(token: string, sessionId: string): Promise<string> {
+  const cookieApp = new Hono<{ Bindings: { MGMT_SECRET: string } }>()
+  cookieApp.get("/", async (c) => {
+    await issueSessionCookie(c, token, sessionId, SECRET)
+    return c.text("ok")
+  })
+  return cookieFrom(await cookieApp.request("https://cookies.example/", {}, env))
 }
 
 interface Reviewer {
@@ -1255,7 +1245,7 @@ describe("reviewer PINs and identity reclaim", () => {
       .run()
 
     const legacy: Reviewer = {
-      cookie: await sessionCookieValue("legacy-session", SECRET),
+      cookie: await signedCookie(token, "legacy-session"),
       session: {
         id: "legacy-session",
         name: "Legacy Maria",

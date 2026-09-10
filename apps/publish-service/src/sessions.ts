@@ -1,5 +1,5 @@
 import type { Context } from "hono"
-import { getCookie, setCookie } from "hono/cookie"
+import { getSignedCookie, setSignedCookie } from "hono/cookie"
 import {
   COMMENTER_SESSION_COOKIE,
   COMMENTER_SESSION_MAX_AGE_SECONDS,
@@ -10,8 +10,6 @@ import {
   commenterColor,
   hashPin,
   nameKey,
-  sessionCookieValue,
-  sessionIdFromCookie,
 } from "./identity.js"
 import type { PublicationVariables } from "./middleware/publication-lookup.js"
 import { PinnedNameConflictError, type PublicationStore, type StoredCommenterSession } from "./store.js"
@@ -41,17 +39,16 @@ function commenterOf(session: StoredCommenterSession): CommenterSession {
  *  `MGMT_SECRET` alone, because `session_id` is public in every comment payload. */
 export async function storedCommenterFromCookie(
   c: SessionContext,
-  store: PublicationStore,
+  store: Pick<PublicationStore, "findSession">,
   token: string,
 ): Promise<StoredCommenterSession | null> {
   const secret = c.env?.MGMT_SECRET
-  const cookie = getCookie(c, COMMENTER_SESSION_COOKIE)
-  if (!secret || cookie === undefined) return null
+  if (!secret) return null
 
-  const sessionId = await sessionIdFromCookie(cookie, secret)
-  if (sessionId === null) return null
+  const signedSessionId = await getSignedCookie(c, secret, COMMENTER_SESSION_COOKIE)
+  if (typeof signedSessionId !== "string") return null
 
-  const session = await store.findSession(sessionId)
+  const session = await store.findSession(signedSessionId)
   if (!session || session.token !== token || session.is_author) return null
 
   return session
@@ -59,7 +56,7 @@ export async function storedCommenterFromCookie(
 
 export async function commenterFromCookie(
   c: SessionContext,
-  store: PublicationStore,
+  store: Pick<PublicationStore, "findSession">,
   token: string,
 ): Promise<CommenterSession | null> {
   const session = await storedCommenterFromCookie(c, store, token)
@@ -72,7 +69,7 @@ export async function issueSessionCookie(
   sessionId: string,
   secret: string,
 ): Promise<void> {
-  setCookie(c, COMMENTER_SESSION_COOKIE, await sessionCookieValue(sessionId, secret), {
+  await setSignedCookie(c, COMMENTER_SESSION_COOKIE, sessionId, secret, {
     path: `/p/${token}`,
     httpOnly: true,
     secure: true,
