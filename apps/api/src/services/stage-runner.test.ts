@@ -1296,11 +1296,13 @@ speech:
         (event) => event.type === "step-complete" && event.step === "tts"
       )
     ).toBe(true)
-    expect(
-      events.some(
-        (event) => event.type === "step-error" && event.step === "tts"
-      )
-    ).toBe(false)
+    // ...but the failure is still reported. Gemini used to be the one provider
+    // whose failures emitted nothing at all, which is how issue #846's reporter
+    // ended up with silently missing audio and no explanation.
+    const ttsErrors = events.filter(
+      (event) => event.type === "step-error" && event.step === "tts"
+    )
+    expect(ttsErrors.length).toBeGreaterThan(0)
 
     const storage = createBookStorage("gemini-tts-failure", booksDir)
     try {
@@ -1451,6 +1453,65 @@ speech:
     } finally {
       storage.close()
     }
+  })
+
+  // Issue #846: a 200 carrying no audio is Gemini declining to synthesize, and
+  // it declines identically every time — most often because temperature is
+  // below the floor its TTS models need. Retrying it four more times bought
+  // nothing and cost four more calls, each slow (the reporter's failing run
+  // logged 128s), which is where their token-spend complaint came from.
+  it("does not retry a Gemini no-audio response, which never clears", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  temperature: 0
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-tts-no-audio")
+
+    generateSpeechFileMock.mockRejectedValue(
+      new Error(
+        "Gemini TTS response did not include audio data. Response summary: finishReason=OTHER"
+      )
+    )
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      "gemini-tts-no-audio",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    // Exactly one attempt per item — no retry storm.
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(1)
+    // And the reason reaches the user rather than dying in the debug log.
+    const ttsErrors = events.filter(
+      (event) => event.type === "step-error" && event.step === "tts"
+    )
+    expect(ttsErrors.length).toBeGreaterThan(0)
+    expect(JSON.stringify(ttsErrors)).toMatch(/finishReason=OTHER/)
   })
 
   it("fails the speech step before any synthesis when a provider credential is missing", async () => {

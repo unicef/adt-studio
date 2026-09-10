@@ -386,8 +386,21 @@ image_filters:
 # concurrent-request cap instead (its plans limit concurrency, not
 # requests/minute), and Azure/OpenAI have no adaptive limiter.
 #
+# `batch_by_page` sends a whole page in one Gemini request so tone flows across
+# sentences; `batch_max_chars` caps how long any one of those requests gets,
+# splitting longer pages at sentence boundaries. Gemini's voice drifts once a
+# single recording runs past a few minutes, so a cap keeps a long page sounding
+# like one narrator. Unset = one request per page, however long.
+#
+# `temperature`/`seed` are NOT recommended. Neither is documented for Gemini's
+# TTS models and neither controls voice identity, and a temperature below 0.5
+# makes them return no audio at all:
+# https://discuss.ai.google.dev/t/gemini-2-5-tts-model-not-working-at-low-temperatures/137850
+#
 # speech:
 #   default_provider: gemini
+#   batch_by_page: true
+#   batch_max_chars: 1200
 #   providers:
 #     gemini:
 #       model: gemini-2.5-flash-preview-tts   # or gemini-2.5-pro-preview-tts

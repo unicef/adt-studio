@@ -1,4 +1,6 @@
-import { DEFAULT_ELEVENLABS_VOICE_SETTINGS } from "@adt/types"
+import { DEFAULT_ELEVENLABS_VOICE_SETTINGS, GEMINI_TTS_MIN_USABLE_TEMPERATURE } from "@adt/types"
+
+export { GEMINI_TTS_MIN_USABLE_TEMPERATURE }
 
 /**
  * ElevenLabs `voice_settings` overrides, in our camelCase option naming.
@@ -21,10 +23,18 @@ export interface SynthesizeSpeechOptions extends ElevenLabsVoiceSettingsOverride
   responseFormat: string
   instructions?: string
   /**
-   * Gemini sampling controls. Lower `temperature` → less prosodic variance
-   * between the independent per-sentence requests; fixed `seed` → reproducible
-   * delivery. Ignored by the OpenAI/Azure synthesizers. When omitted, neither
-   * is sent and Gemini uses its own defaults (i.e. sampling is disabled).
+   * Gemini sampling controls, passed through best-effort. Ignored by the
+   * OpenAI/Azure synthesizers. When omitted, neither is sent and Gemini uses
+   * its own defaults.
+   *
+   * Neither parameter is documented for Gemini's TTS models, and neither
+   * controls voice identity — that comes from `voice` and from the
+   * performance notes in the prompt. Do not reach for them to stop a voice
+   * drifting between requests; it won't work.
+   *
+   * `temperature` below GEMINI_TTS_MIN_USABLE_TEMPERATURE reproducibly
+   * returns *no audio at all* (see that constant). It is honoured rather than
+   * clamped, but it is warned about up front and named in the resulting error.
    */
   temperature?: number
   seed?: number
@@ -210,9 +220,27 @@ interface GeminiInlineData {
   mimeType?: string
 }
 
+interface GeminiSafetyRating {
+  category?: string
+  probability?: string
+  blocked?: boolean
+}
+
 interface GeminiGenerateContentPayload {
   error?: { message?: string } | string
+  /** Present when the *prompt* was rejected outright; `candidates` is then
+   *  absent entirely, which is why a summary built only from candidates used
+   *  to come back empty. */
+  promptFeedback?: {
+    blockReason?: string
+    blockReasonMessage?: string
+    safetyRatings?: GeminiSafetyRating[]
+  }
   candidates?: Array<{
+    /** "STOP" on success. Anything else — notably "OTHER" — means no audio.
+     *  See GEMINI_TTS_MIN_USABLE_TEMPERATURE for the common cause. */
+    finishReason?: string
+    safetyRatings?: GeminiSafetyRating[]
     content?: {
       parts?: Array<{
         text?: string
@@ -220,6 +248,29 @@ interface GeminiGenerateContentPayload {
       }>
     }
   }>
+}
+
+/** Why a 200 response carried no audio. `blocked` is a hard content refusal
+ *  that will never clear on retry; the others are Gemini declining to
+ *  synthesize (typically the low-temperature bug above). None of them are
+ *  worth retrying, which is what separates them from a 429 or a 5xx. */
+export type GeminiNoAudioKind = "blocked" | "text-returned" | "empty"
+
+export class GeminiNoAudioError extends Error {
+  readonly kind: GeminiNoAudioKind
+  readonly blockReason?: string
+  readonly finishReason?: string
+
+  constructor(
+    message: string,
+    details: { kind: GeminiNoAudioKind; blockReason?: string; finishReason?: string }
+  ) {
+    super(message)
+    this.name = "GeminiNoAudioError"
+    this.kind = details.kind
+    this.blockReason = details.blockReason
+    this.finishReason = details.finishReason
+  }
 }
 
 const GEMINI_PCM_SAMPLE_RATE = 24_000
@@ -344,12 +395,44 @@ function extractGeminiAudioData(
   return fallbackAudioData
 }
 
+function formatSafetyRatings(ratings?: GeminiSafetyRating[]): string | null {
+  const formatted = (ratings ?? [])
+    .filter((rating) => rating.category || rating.probability)
+    .map(
+      (rating) =>
+        `${rating.category ?? "UNKNOWN"}:${rating.probability ?? "UNKNOWN"}${rating.blocked ? "(blocked)" : ""}`
+    )
+  return formatted.length > 0 ? `safety=[${formatted.join(", ")}]` : null
+}
+
+/**
+ * Describe *why* a 200 response carried no audio.
+ *
+ * Must never return null when the payload says anything at all: a bare
+ * "did not include audio data" is exactly the black box that made issue #846
+ * unactionable — the reporter could only say "an Other block reason" because
+ * that was all our error ever told them. `blockReason` and `finishReason` in
+ * particular arrive with no `candidates`/`parts` at all, so a summary built
+ * only from parts came back empty precisely in the cases that mattered most.
+ */
 function summarizeGeminiResponse(
   payload: GeminiGenerateContentPayload
 ): string | null {
   const details: string[] = []
 
+  const feedback = payload.promptFeedback
+  if (feedback?.blockReason) details.push(`blockReason=${feedback.blockReason}`)
+  if (feedback?.blockReasonMessage) {
+    details.push(`blockReasonMessage="${feedback.blockReasonMessage.slice(0, 160)}"`)
+  }
+  const promptSafety = formatSafetyRatings(feedback?.safetyRatings)
+  if (promptSafety) details.push(promptSafety)
+
   for (const candidate of payload.candidates ?? []) {
+    if (candidate.finishReason) details.push(`finishReason=${candidate.finishReason}`)
+    const candidateSafety = formatSafetyRatings(candidate.safetyRatings)
+    if (candidateSafety) details.push(candidateSafety)
+
     for (const part of candidate.content?.parts ?? []) {
       const text = part.text?.trim()
       if (text) {
@@ -366,11 +449,37 @@ function summarizeGeminiResponse(
     }
   }
 
+  // No signal at all still deserves a statement of fact rather than silence.
   if (details.length === 0) {
-    return null
+    return (payload.candidates?.length ?? 0) === 0 ? "candidates=0" : null
   }
 
-  return details.slice(0, 3).join("; ")
+  return details.slice(0, 6).join("; ")
+}
+
+/** Hard content refusals never clear on retry; everything else here is Gemini
+ *  declining to synthesize, which retrying also won't fix. */
+const HARD_BLOCK_REASONS = new Set(["SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST"])
+
+function classifyGeminiNoAudio(
+  payload: GeminiGenerateContentPayload
+): { kind: GeminiNoAudioKind; blockReason?: string; finishReason?: string } {
+  const blockReason = payload.promptFeedback?.blockReason
+  const finishReason = payload.candidates?.find((c) => c.finishReason)?.finishReason
+
+  const blocked =
+    (blockReason !== undefined && HARD_BLOCK_REASONS.has(blockReason)) ||
+    (finishReason !== undefined && HARD_BLOCK_REASONS.has(finishReason))
+
+  const hasText = (payload.candidates ?? []).some((candidate) =>
+    (candidate.content?.parts ?? []).some((part) => part.text?.trim())
+  )
+
+  return {
+    kind: blocked ? "blocked" : hasText ? "text-returned" : "empty",
+    blockReason,
+    finishReason,
+  }
 }
 
 function buildGeminiShortTextRetryInput(input: string): string | null {
@@ -514,6 +623,18 @@ export function createGeminiTTSSynthesizer(
         )
       }
 
+      // Warn before spending the request, not just after it fails: below the
+      // floor every call comes back empty, so a whole book's worth of
+      // synthesis can burn out on a setting we could flag in one line.
+      if (
+        options.temperature !== undefined &&
+        options.temperature < GEMINI_TTS_MIN_USABLE_TEMPERATURE
+      ) {
+        console.warn(
+          `[gemini-tts] speech.temperature=${options.temperature} is below ${GEMINI_TTS_MIN_USABLE_TEMPERATURE}; Gemini's TTS models are reported to return no audio at this setting. Raise it to ${GEMINI_TTS_MIN_USABLE_TEMPERATURE}+ or leave it unset.`
+        )
+      }
+
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(options.model)}:generateContent`
       const synthesizeInput = async (transcript: string): Promise<GeminiGenerateContentPayload> => {
         const response = await fetch(url, {
@@ -536,8 +657,8 @@ export function createGeminiTTSSynthesizer(
               responseModalities: ["AUDIO"],
               // Sampling is opt-in per book (SpeechConfig temperature/seed).
               // Only send each param when set; when unset we send neither so
-              // Gemini uses its own defaults. Pinning a low temperature + fixed
-              // seed keeps tone consistent across the per-sentence requests.
+              // Gemini uses its own defaults. Neither is documented for TTS
+              // and neither pins voice identity — see SynthesizeSpeechOptions.
               ...(options.temperature !== undefined ? { temperature: options.temperature } : {}),
               ...(options.seed !== undefined ? { seed: options.seed } : {}),
               speechConfig: {
@@ -586,11 +707,22 @@ export function createGeminiTTSSynthesizer(
 
       if (!audioData) {
         const responseSummary = summarizeGeminiResponse(payload)
-        throw new Error(
-          responseSummary
-            ? `Gemini TTS response did not include audio data. Response summary: ${responseSummary}`
-            : "Gemini TTS response did not include audio data"
-        )
+        // Keep this prefix byte-identical: stage-runner and the tts routes
+        // still regex it as a fallback for errors raised outside this path.
+        const parts = ["Gemini TTS response did not include audio data"]
+        if (responseSummary) parts.push(`Response summary: ${responseSummary}`)
+        // The single most actionable thing we can say. Below the floor this
+        // failure is deterministic, so without naming it the user just sees
+        // an unexplained refusal and retries into the same wall.
+        if (
+          options.temperature !== undefined &&
+          options.temperature < GEMINI_TTS_MIN_USABLE_TEMPERATURE
+        ) {
+          parts.push(
+            `The configured temperature ${options.temperature} is below ${GEMINI_TTS_MIN_USABLE_TEMPERATURE}, which Gemini's TTS models are reported to reject without producing audio. Raise speech.temperature to ${GEMINI_TTS_MIN_USABLE_TEMPERATURE} or above, or leave it unset.`
+          )
+        }
+        throw new GeminiNoAudioError(parts.join(". "), classifyGeminiNoAudio(payload))
       }
 
       const pcmBytes = new Uint8Array(Buffer.from(audioData, "base64"))

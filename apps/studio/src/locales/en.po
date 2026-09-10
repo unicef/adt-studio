@@ -725,6 +725,9 @@ msgstr "A supermarket aisle with shelves of colorful cereal boxes and packaged g
 msgid "A table-filling activity."
 msgstr "A table-filling activity."
 
+msgid "A temperature below {GEMINI_TTS_MIN_USABLE_TEMPERATURE} makes Gemini's text-to-speech models return no audio at all, so speech generation will fail for every Gemini language. Use {GEMINI_TTS_MIN_USABLE_TEMPERATURE} or above, or leave it empty."
+msgstr "A temperature below {GEMINI_TTS_MIN_USABLE_TEMPERATURE} makes Gemini's text-to-speech models return no audio at all, so speech generation will fail for every Gemini language. Use {GEMINI_TTS_MIN_USABLE_TEMPERATURE} or above, or leave it empty."
+
 msgid "A true or false activity."
 msgstr "A true or false activity."
 
@@ -4167,11 +4170,14 @@ msgstr "Gemini — LLM and TTS voices."
 msgid "Gemini API key is required to generate audio."
 msgstr "Gemini API key is required to generate audio."
 
-msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
-msgstr "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+#~ msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+#~ msgstr "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
 
 msgid "Gemini models + TTS voices."
 msgstr "Gemini models + TTS voices."
+
+msgid "Gemini sampling"
+msgstr "Gemini sampling"
 
 msgid "Gemini settings"
 msgstr "Gemini settings"
@@ -4179,8 +4185,8 @@ msgstr "Gemini settings"
 msgid "Gemini Voice"
 msgstr "Gemini Voice"
 
-msgid "Gemini voice consistency"
-msgstr "Gemini voice consistency"
+#~ msgid "Gemini voice consistency"
+#~ msgstr "Gemini voice consistency"
 
 msgid "General"
 msgstr "General"
@@ -5878,6 +5884,9 @@ msgstr "Needs rebuild"
 msgid "needs update"
 msgstr "needs update"
 
+msgid "Neither setting is documented for Gemini's speech models, and neither controls which voice you get — that comes from the voice you pick. Leave both empty unless you have a specific reason. Only affects languages routed to Gemini; OpenAI and Azure ignore them. Changing either value regenerates Gemini audio on the next run."
+msgstr "Neither setting is documented for Gemini's speech models, and neither controls which voice you get — that comes from the voice you pick. Leave both empty unless you have a specific reason. Only affects languages routed to Gemini; OpenAI and Azure ignore them. Changing either value regenerates Gemini audio on the next run."
+
 msgid "Never"
 msgstr "Never"
 
@@ -6917,6 +6926,9 @@ msgstr "pages {shownStr}"
 
 msgid "Pages in the selected range"
 msgstr "Pages in the selected range"
+
+msgid "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. Leave empty to send each page as one request however long it is."
+msgstr "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. Leave empty to send each page as one request however long it is."
 
 msgid "pages per quiz"
 msgstr "pages per quiz"
@@ -9101,6 +9113,9 @@ msgstr "Split part · pages {0}–{1}"
 
 msgid "Split preview"
 msgstr "Split preview"
+
+msgid "Split requests longer than (characters)"
+msgstr "Split requests longer than (characters)"
 
 msgid "Split section"
 msgstr "Split section"

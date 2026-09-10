@@ -727,6 +727,9 @@ msgstr "Një koridor supermarketi me rafte me kuti drithërash me ngjyra dhe mal
 msgid "A table-filling activity."
 msgstr "Një aktivitet me plotësim tabele."
 
+msgid "A temperature below {GEMINI_TTS_MIN_USABLE_TEMPERATURE} makes Gemini's text-to-speech models return no audio at all, so speech generation will fail for every Gemini language. Use {GEMINI_TTS_MIN_USABLE_TEMPERATURE} or above, or leave it empty."
+msgstr "Një temperaturë nën {GEMINI_TTS_MIN_USABLE_TEMPERATURE} bën që modelet e Gemini-t për tekst-në-të-folur të mos kthejnë fare audio, prandaj gjenerimi i të folurit do të dështojë për çdo gjuhë që kalon nëpër Gemini. Përdorni {GEMINI_TTS_MIN_USABLE_TEMPERATURE} ose më shumë, ose lëreni bosh."
+
 msgid "A true or false activity."
 msgstr "Një aktivitet i vërtetë ose i gabuar."
 
@@ -4169,11 +4172,14 @@ msgstr "Gemini — Zërat LLM dhe TTS."
 msgid "Gemini API key is required to generate audio."
 msgstr "Çelësi API i Gemini është i nevojshëm për të gjeneruar audio."
 
-msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
-msgstr "Gemini e gjeneron çdo fjali në kërkesën e vet, prandaj toni mund të ndryshojë nga një fjali te tjetra. Vendos një temperaturë më të ulët (p.sh. 0.4) për ta zvogëluar këtë variacion dhe një farë të fiksuar për ta bërë leximin të riprodhueshëm; lëri të dyja bosh për t'i çaktivizuar dhe për të përdorur vlerat e paracaktuara të Gemini-t. Prek vetëm gjuhët e drejtuara te Gemini — OpenAI dhe Azure i shpërfillin. Ndryshimi i secilës vlerë e rigjeneron audion e Gemini në ekzekutimin e ardhshëm."
+#~ msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+#~ msgstr "Gemini e gjeneron çdo fjali në kërkesën e vet, prandaj toni mund të ndryshojë nga një fjali te tjetra. Vendos një temperaturë më të ulët (p.sh. 0.4) për ta zvogëluar këtë variacion dhe një farë të fiksuar për ta bërë leximin të riprodhueshëm; lëri të dyja bosh për t'i çaktivizuar dhe për të përdorur vlerat e paracaktuara të Gemini-t. Prek vetëm gjuhët e drejtuara te Gemini — OpenAI dhe Azure i shpërfillin. Ndryshimi i secilës vlerë e rigjeneron audion e Gemini në ekzekutimin e ardhshëm."
 
 msgid "Gemini models + TTS voices."
 msgstr "Modele Gemini + zëra TTS."
+
+msgid "Gemini sampling"
+msgstr "Kampionimi i Gemini-t"
 
 msgid "Gemini settings"
 msgstr "Cilësimet e Gemini"
@@ -4181,8 +4187,8 @@ msgstr "Cilësimet e Gemini"
 msgid "Gemini Voice"
 msgstr "Zëri Gemini"
 
-msgid "Gemini voice consistency"
-msgstr "Qëndrueshmëria e zërit të Gemini"
+#~ msgid "Gemini voice consistency"
+#~ msgstr "Qëndrueshmëria e zërit të Gemini"
 
 msgid "General"
 msgstr "Të përgjithshme"
@@ -5880,6 +5886,9 @@ msgstr "Kërkon rindërtim"
 msgid "needs update"
 msgstr "nevojitet përditësim"
 
+msgid "Neither setting is documented for Gemini's speech models, and neither controls which voice you get — that comes from the voice you pick. Leave both empty unless you have a specific reason. Only affects languages routed to Gemini; OpenAI and Azure ignore them. Changing either value regenerates Gemini audio on the next run."
+msgstr "Asnjë nga këto cilësime nuk është i dokumentuar për modelet e të folurit të Gemini-t dhe asnjëri nuk përcakton se cilin zë merrni — kjo varet nga zëri që zgjidhni. Lërini të dyja bosh, veç nëse keni një arsye të veçantë. Prek vetëm gjuhët që kalojnë nëpër Gemini; OpenAI dhe Azure i shpërfillin. Ndryshimi i njërës prej tyre rigjeneron audion e Gemini-t në ekzekutimin e ardhshëm."
+
 msgid "Never"
 msgstr "Kurrë"
 
@@ -6919,6 +6928,9 @@ msgstr "faqet {shownStr}"
 
 msgid "Pages in the selected range"
 msgstr "Faqet në intervalin e zgjedhur"
+
+msgid "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. Leave empty to send each page as one request however long it is."
+msgstr "Faqet më të gjata se kjo ndahen në disa kërkesa, në kufijtë e fjalive. Zëri i Gemini-t priret të ndryshojë kur një regjistrim i vetëm i kalon disa minuta, prandaj kufizimi i gjatësisë bën që një faqe e gjatë të tingëllojë si një narrator i vetëm. Lëreni bosh që çdo faqe të dërgohet si një kërkesë e vetme, sado e gjatë të jetë."
 
 msgid "pages per quiz"
 msgstr "faqe për kuiz"
@@ -9103,6 +9115,9 @@ msgstr "Nda pjesën · faqet {0}–{1}"
 
 msgid "Split preview"
 msgstr "Pamja paraprake e ndarjes"
+
+msgid "Split requests longer than (characters)"
+msgstr "Ndaji kërkesat më të gjata se (karaktere)"
 
 msgid "Split section"
 msgstr "Ndaj seksionin"

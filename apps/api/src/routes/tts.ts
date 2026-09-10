@@ -86,8 +86,6 @@ const UploadSingleTTSFields = z
   })
   .strict()
 
-const GEMINI_FLASH_PREVIEW_TTS_MODEL = "gemini-2.5-flash-preview-tts"
-const GEMINI_PRO_PREVIEW_TTS_MODEL = "gemini-2.5-pro-preview-tts"
 const SAFE_AUDIO_LANGUAGE_RE = /^[A-Za-z0-9_-]+$/
 const SAFE_AUDIO_TEXT_ID_RE = /^[A-Za-z0-9._-]+$/
 const AUDIO_UPLOAD_FORMAT_BY_MIME: Record<string, "mp3" | "wav" | "ogg"> = {
@@ -280,15 +278,14 @@ function getTtsCompletionSummary(
   }
 }
 
-function getGeminiFallbackModel(model: string): string | null {
-  if (model === GEMINI_FLASH_PREVIEW_TTS_MODEL) {
-    return GEMINI_PRO_PREVIEW_TTS_MODEL
-  }
-  if (model === GEMINI_PRO_PREVIEW_TTS_MODEL) {
-    return GEMINI_FLASH_PREVIEW_TTS_MODEL
-  }
-  return null
-}
+// TODO(#846 follow-up): the cross-provider fallback below
+// (`getSingleItemFallbackAttempts` / `fallbackAttempts`) is the same kind of
+// silent substitution as the flash<->pro model swap that was removed here: it
+// re-narrates the entry with a different provider AND a different voice, so
+// the user gets audio in a voice they did not pick, with no say in it. It is
+// left in place for now only because removing it is a wider behaviour change
+// than issue #846 covers. Decide whether to drop it or surface it explicitly
+// (the SpeechFileEntry already records the provider/voice actually used).
 
 // Retries for a single-item ElevenLabs regeneration. Much lower than the batch
 // paths' ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES (5, backing off to 30s) because
@@ -1057,36 +1054,18 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
       try {
         let usedProvider = provider
-        let usedModel = model
+        const usedModel = model
         let usedVoice = voice
-        let entry: Awaited<ReturnType<typeof generateEntry>>
-
-        try {
-          entry = await generateEntry({
-            targetProvider: provider,
-            targetModel: model,
-            targetVoice: voice,
-          })
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err)
-          const fallbackModel = getGeminiFallbackModel(model)
-          if (
-            fallbackModel &&
-            /did not include audio data/i.test(message)
-          ) {
-            console.warn(
-              `[tts] ${safeLabel}: retrying ${textEntry.id} with fallback Gemini model ${fallbackModel} after ${model} returned no audio`
-            )
-            usedModel = fallbackModel
-            entry = await generateEntry({
-              targetProvider: provider,
-              targetModel: fallbackModel,
-              targetVoice: voice,
-            })
-          } else {
-            throw err
-          }
-        }
+        // No silent flash<->pro swap on a no-audio response. Handing back
+        // audio from a model the user did not choose takes control of the
+        // output away from them and hides the real problem — which is usually
+        // a fixable setting (see GEMINI_TTS_MIN_USABLE_TEMPERATURE), now named
+        // in the error itself. A user who wants the other model can select it.
+        const entry = await generateEntry({
+          targetProvider: provider,
+          targetModel: model,
+          targetVoice: voice,
+        })
 
         if (!entry) {
           throw new HTTPException(422, {
