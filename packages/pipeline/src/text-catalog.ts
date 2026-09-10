@@ -11,6 +11,7 @@ import type {
 } from "@adt/types"
 import {
   WebRenderingOutput as WebRenderingOutputSchema,
+  answerTextId,
 } from "@adt/types"
 import type { Storage, PageData } from "@adt/storage"
 import { getGlossaryItemTextId } from "./glossary.js"
@@ -132,15 +133,18 @@ function extractAnswerEntries(
   const answers = section.activityAnswers
   if (!answers || Object.keys(answers).length === 0) return []
 
-  const sectionId =
-    sectioning?.sections[section.sectionIndex]?.sectionId ??
-    `${pageId}_sec${pad3(section.sectionIndex + 1)}`
+  // sectionIds are allocated once and never reused, so they cannot be derived
+  // from an array position. With no sectioning row to read the real id from,
+  // a guessed `_secNNN` would likely belong to a *different* section — and
+  // these ids key the answers' translations and generated audio. Skip instead.
+  const sectionId = sectioning?.sections[section.sectionIndex]?.sectionId
+  if (!sectionId) return []
 
   const entries: TextCatalogEntry[] = []
   for (const [key, value] of Object.entries(answers)) {
     const text = String(value)
     if (text.length > 0) {
-      entries.push({ id: `${sectionId}_ans_${key}`, text })
+      entries.push({ id: answerTextId(sectionId, key), text })
     }
   }
   return entries

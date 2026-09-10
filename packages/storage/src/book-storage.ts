@@ -478,6 +478,24 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       }
     },
 
+    getAllNodeVersions(node: string, itemId: string): NodeDataRow[] {
+      const rows = db.all(
+        "SELECT version, data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version",
+        [node, itemId]
+      ) as Array<{ version: number; data: string }>
+      return rows.map((row) => ({ version: row.version, data: JSON.parse(row.data) }))
+    },
+
+    getNodeItemIds(node: string): string[] {
+      // node_data's primary key is (node, item_id, version), so this is a range
+      // scan over one node's slice rather than a scan of the whole table.
+      const rows = db.all(
+        "SELECT DISTINCT item_id FROM node_data WHERE node = ? ORDER BY item_id",
+        [node]
+      ) as Array<{ item_id: string }>
+      return rows.map((row) => row.item_id)
+    },
+
     getNodeVersionFingerprint(excludeNodes: string[] = []): Array<{ node: string; itemId: string; version: number }> {
       // Fingerprint off the *current* version so switching back to an older
       // version invalidates downstream caches / packaged output.

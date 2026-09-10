@@ -7,6 +7,7 @@ import type { SignLanguageVideo } from "@/api/client"
 export function SectionRow({
   bookLabel,
   label,
+  sectionId,
   video,
   onUpload,
   onUnassign,
@@ -17,6 +18,9 @@ export function SectionRow({
 }: {
   bookLabel: string
   label: ReactNode
+  /** Shown beside the label so a row names the section a video is pinned to,
+   *  not just its position on the page. */
+  sectionId: string
   video: SignLanguageVideo | null
   onUpload: () => void
   onUnassign: (videoId: string) => void
@@ -29,8 +33,16 @@ export function SectionRow({
 
   return (
     <div className="flex items-center gap-2 bg-white px-2.5 py-2 transition-colors hover:bg-[#fafafa]">
-      <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-[#0a0a0a]">
-        {label}
+      <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
+        <span className="truncate text-[12.5px] font-medium text-[#0a0a0a]">
+          {label}
+        </span>
+        {/* Whitespace between flex items is not rendered, so this costs no
+            layout but keeps the accessible name from running together. */}
+        {" "}
+        <span className="shrink-0 font-mono text-[10px] text-[#a3a3a3]">
+          {sectionId}
+        </span>
       </span>
 
       {video ? (

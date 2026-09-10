@@ -8968,6 +8968,10 @@ msgstr "Gjendja e përditësimit të softuerit"
 msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
 msgstr "Disa libra janë kryesisht faqe të vetme, por kanë disa ilustrime që shtrihen në dy faqe përballë. Zgjidhni e Vetme këtu — pastaj, pas ekstraktimit, pamja e Ekstraktit zbulon ato faqe të përbashkëta dhe ju lejon të bashkoni vetëm ato çifte ndërsa çdo faqe tjetër mbetet më vete."
 
+#. placeholder {0}: warnings.length
+msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no sectioning row, so they could not be included. Re-run the storyboard render for those pages, then package again."
+msgstr "Një pjesë e përmbajtjes u lë jashtë paketës: {0} seksion(e) të vizatuar(a) në {pageList} nuk kanë rresht seksionimi, kështu që nuk mund të përfshihen. Ekzekutoni përsëri vizatimin e storyboard-it për ato faqe, pastaj paketoni sërish."
+
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes. Preferoni një PDF të bazuar në tekst."
 
