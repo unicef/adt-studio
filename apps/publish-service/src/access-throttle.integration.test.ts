@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it } from "vitest"
 import {
   attemptGate,
   callerIp,
@@ -6,7 +6,9 @@ import {
   CLIENT_ATTEMPT_LIMIT,
   cooldownFor,
 } from "./access-throttle.js"
-import { createMemoryPublicationStore } from "./testing.js"
+import { createTestStore, resetBindings } from "../test/fixtures.js"
+
+beforeEach(resetBindings)
 
 const SECRET = "local-dev-secret"
 const IP = "203.0.113.1"
@@ -26,7 +28,7 @@ describe("attemptGate", () => {
    * query reads, not a snapshot taken before A ran.
    */
   it("counts a racer's own attempt before it can be read by the next one", async () => {
-    const store = createMemoryPublicationStore()
+    const store = createTestStore()
     const client = await clientHandle(IP, SECRET)
     for (let i = 0; i < CLIENT_ATTEMPT_LIMIT - 1; i += 1) {
       await store.recordAccessFailure({ token: TOKEN, client, kind: "access", at: NOW.toISOString() })
@@ -45,7 +47,7 @@ describe("attemptGate", () => {
    *  again. Recording every attempt — refused ones included — gives `cooldownFor` a real,
    *  growing count to escalate from. */
   it("keeps doubling Retry-After the longer a caller knocks after the limit", async () => {
-    const store = createMemoryPublicationStore()
+    const store = createTestStore()
     for (let i = 0; i < CLIENT_ATTEMPT_LIMIT; i += 1) {
       await attemptGate({ store, secret: SECRET, ip: IP, token: TOKEN, kind: "access", now: NOW })
     }
@@ -64,7 +66,7 @@ describe("attemptGate", () => {
   /** A correct answer at one door must not touch the other's counter — see store.ts's
    *  `AccessAttemptKind` and migration 0006. */
   it("keeps the access-code and PIN counters apart", async () => {
-    const store = createMemoryPublicationStore()
+    const store = createTestStore()
     for (let i = 0; i < CLIENT_ATTEMPT_LIMIT; i += 1) {
       await attemptGate({ store, secret: SECRET, ip: IP, token: TOKEN, kind: "pin", now: NOW })
     }

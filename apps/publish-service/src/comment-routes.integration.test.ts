@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it } from "vitest"
 import {
   COMMENTER_SESSION_COOKIE,
   type CommenterSessionResponse,
@@ -7,8 +7,10 @@ import {
 } from "@adt/types"
 import { createApp } from "./app.js"
 import { filterCommentThreads } from "./comment-threads.js"
-import { createMemoryPublicationStore, createMemoryR2Bucket } from "./testing.js"
+import { createTestStore, resetBindings, testBucket } from "../test/fixtures.js"
 import type { PublicationStore } from "./store.js"
+
+beforeEach(resetBindings)
 
 const TOKEN = "aBcDeFgHiJkLmNoPqRsTuVwXyZ012345"
 const SECRET = "mgmt-secret-value"
@@ -18,7 +20,7 @@ const ANCHOR = { selector: "#content [data-id='b1']", xOffsetPct: 10, yOffsetPct
 const env = { MGMT_SECRET: SECRET }
 
 async function harness(): Promise<{ app: ReturnType<typeof createApp>; store: PublicationStore }> {
-  const store = createMemoryPublicationStore()
+  const store = createTestStore()
   await store.create({
     publication: {
       token: TOKEN,
@@ -266,7 +268,7 @@ describe("comment route shapes", () => {
 
   it("leaves neighbouring snapshot paths to the serve catch-all", async () => {
     const { app } = await harness()
-    const bucket = createMemoryR2Bucket()
+    const bucket = testBucket
     await bucket.put(`${TOKEN}/v1/comments.html`, "<h1>a page called comments</h1>")
 
     const res = await app.request(

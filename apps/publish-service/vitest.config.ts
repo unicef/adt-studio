@@ -6,11 +6,7 @@ import { defineProject } from "vitest/config"
 const root = path.dirname(fileURLToPath(import.meta.url))
 const migrations = await readD1Migrations(path.join(root, "migrations"))
 
-/**
- * The worker's integration project: real workerd, real D1, real R2 via miniflare.
- * The route-shape suite (`src/app.test.ts`) stays on the plain node project in the root
- * config; only `*.integration.test.ts` runs here.
- */
+/** Route and storage tests run against local workerd, D1 and R2. */
 export default defineProject({
   plugins: [
     cloudflareTest({

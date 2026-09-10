@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it } from "vitest"
 import { zipSync } from "fflate"
 import { PUBLISH_WORKER_VERSION, type Publication } from "@adt/types"
 import { createApp } from "./app.js"
 import { type PublicationStore } from "./store.js"
-import { emptyPublicationStore } from "./testing.js"
-import { createMemoryPublicationStore, createMemoryR2Bucket } from "./testing.js"
+import { createTestStore, resetBindings, testBucket } from "../test/fixtures.js"
+
+beforeEach(resetBindings)
 
 const TOKEN = "aBcDeFgHiJkLmNoPqRsTuVwXyZ012345"
 const SECRET = "mgmt-secret-value"
@@ -28,7 +29,7 @@ function storeOf(record: Publication | null, accessCode: string | null = null): 
   const of = (token: string): Publication | null =>
     record && record.token === token ? record : null
   return {
-    ...emptyPublicationStore,
+    ...createTestStore(),
     async findByToken(token) {
       return of(token)
     },
@@ -78,13 +79,13 @@ function mgmt(body?: BodyInit): RequestInit {
 interface Harness {
   app: ReturnType<typeof createApp>
   env: { MGMT_SECRET: string; SNAPSHOTS: R2Bucket }
-  bucket: ReturnType<typeof createMemoryR2Bucket>
+  bucket: R2Bucket
   store: PublicationStore
 }
 
 function harness(): Harness {
-  const bucket = createMemoryR2Bucket()
-  const store = createMemoryPublicationStore()
+  const bucket = testBucket
+  const store = createTestStore()
   const app = createApp({ store, now: () => new Date("2026-08-03T10:00:00.000Z") })
   return { app, env: { MGMT_SECRET: SECRET, SNAPSHOTS: bucket as R2Bucket }, bucket, store }
 }
@@ -180,7 +181,7 @@ describe("POST /api/publications", () => {
     expect(body.version.version).toBe(1)
     expect(body.version.page_manifest).toEqual(createMetadata.page_manifest)
     expect(body.url).toBe(`http://localhost/p/${TOKEN}/`)
-    expect(bucket.keys()).toEqual([
+    expect((await bucket.list()).objects.map(({ key }) => key).sort()).toEqual([
       `${TOKEN}/v1/assets/app.js`,
       `${TOKEN}/v1/index.html`,
     ])
@@ -231,13 +232,13 @@ describe("POST /api/publications", () => {
     )
     expect(res.status).toBe(400)
     await expect(res.json()).resolves.toMatchObject({ error: "invalid_request" })
-    expect(bucket.keys()).toEqual([])
+    expect((await bucket.list()).objects.map(({ key }) => key).sort()).toEqual([])
   })
 
   it("rejects an entry that expands past the per-entry cap", async () => {
-    const bucket = createMemoryR2Bucket()
+    const bucket = testBucket
     const app = createApp({
-      store: createMemoryPublicationStore(),
+      store: createTestStore(),
       snapshotLimits: { maxEntries: 10, maxEntryBytes: 8, maxTotalBytes: 1024 },
     })
     const res = await app.request(
@@ -314,7 +315,7 @@ describe("POST /api/publications/:token/versions", () => {
       publication: { current_version: 2 },
       version: { version: 2 },
     })
-    expect(bucket.keys()).toEqual([`${TOKEN}/v1/index.html`, `${TOKEN}/v2/index.html`])
+    expect((await bucket.list()).objects.map(({ key }) => key).sort()).toEqual([`${TOKEN}/v1/index.html`, `${TOKEN}/v2/index.html`])
   })
 
   it("returns 404 for an unknown publication", async () => {
@@ -643,7 +644,7 @@ describe("GET /p/:token/*", () => {
 
     const res = await app.request(`/p/${TOKEN}/index.html`, {}, bindings)
     await expect(res.text()).resolves.toBe("version two")
-    expect(bucket.text(`${TOKEN}/v1/index.html`)).toBe("version one")
+    expect(await (await bucket.get(`${TOKEN}/v1/index.html`))?.text()).toBe("version one")
   })
 
   it("returns 404 json for a file that is not in the snapshot", async () => {

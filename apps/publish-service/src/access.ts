@@ -1,6 +1,7 @@
 import type { Context, Hono } from "hono"
 import { getCookie, setCookie } from "hono/cookie"
 import { createMiddleware } from "hono/factory"
+import { html } from "hono/html"
 import {
   COMMENTER_NAME_MAX_LENGTH,
   PUBLICATION_ACCESS_COOKIE,
@@ -52,15 +53,6 @@ function wantsHtml(c: AccessContext): boolean {
   return accept.includes("text/html")
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;")
-}
-
 /** The place to send the reader once the code is accepted, rebuilt from scratch rather than
  *  echoed: the value goes through the same zip-slip normaliser as a snapshot path and is
  *  re-prefixed with this publication's own root, so it can never become an open redirect. */
@@ -108,11 +100,11 @@ export interface GatePageOptions {
  * Since worker 0.5.1 it also asks for the visitor's name, so commenter identity is established
  * at the door and the pin composer never has to interrupt a half-typed comment to ask.
  */
-function gatePage(publication: Publication, options: GatePageOptions = {}): string {
-  const title = escapeHtml(publication.title)
+function gatePage(publication: Publication, options: GatePageOptions = {}) {
+  const title = publication.title
   const wrong = options.wrongCode === true
   const waiting = options.waiting === true
-  return `<!doctype html>
+  return html`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title}</title>
 <style>
@@ -155,24 +147,24 @@ function gatePage(publication: Publication, options: GatePageOptions = {}): stri
   </div>
   <h1>${title}</h1>
   <p>This book is shared with an access code. Add your name and enter the code you were given to open it.</p>
-  <form method="post" action="/p/${escapeHtml(publication.token)}/access">
-    <input type="hidden" name="${NEXT_FIELD}" value="${escapeHtml(options.next ?? "")}">
+  <form method="post" action="/p/${publication.token}/access">
+    <input type="hidden" name="${NEXT_FIELD}" value="${options.next ?? ""}">
     <div class="field">
       <label for="name">Your name</label>
       <input id="name" name="${NAME_FIELD}" autofocus required autocomplete="name"
              spellcheck="false" enterkeyhint="next" maxlength="${COMMENTER_NAME_MAX_LENGTH}"
-             value="${escapeHtml(options.name ?? "")}">
+             value="${options.name ?? ""}">
     </div>
     <div class="field">
       <label for="code">Access code</label>
       <input id="code" name="${CODE_FIELD}" required autocomplete="off" autocapitalize="characters"
-             spellcheck="false" enterkeyhint="go" maxlength="12"${wrong ? ' aria-invalid="true"' : ""}>
+             spellcheck="false" enterkeyhint="go" maxlength="12"${wrong ? html` aria-invalid="true"` : ""}>
     </div>
     ${
       waiting
-        ? `<p class="error" role="alert">Too many tries. Wait a moment, then enter the code again.</p>`
+        ? html`<p class="error" role="alert">Too many tries. Wait a moment, then enter the code again.</p>`
         : wrong
-          ? `<p class="error" role="alert">That code doesn't open this book. Check it and try again.</p>`
+          ? html`<p class="error" role="alert">That code doesn't open this book. Check it and try again.</p>`
           : ""
     }
     <button type="submit">Open the book</button>
