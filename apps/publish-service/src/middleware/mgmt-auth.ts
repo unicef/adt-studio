@@ -2,17 +2,9 @@ import type { Context, Env as HonoEnv } from "hono"
 import { createMiddleware } from "hono/factory"
 import type { Env } from "../env.js"
 import { errorResponse } from "../errors.js"
+import { constantTimeEqual } from "../identity.js"
 
 const BEARER_PREFIX = "Bearer "
-
-function constantTimeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let mismatch = 0
-  for (let i = 0; i < a.length; i += 1) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  }
-  return mismatch === 0
-}
 
 export function mgmtSecretPresented<E extends HonoEnv>(c: Context<E>): boolean {
   const secret = (c.env as Env | undefined)?.MGMT_SECRET

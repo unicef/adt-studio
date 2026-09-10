@@ -201,7 +201,10 @@ function describe(error: unknown): string {
 const DELETE_BATCH = 1000
 
 /**
- * Removes every object a publication ever wrote — all versions, not just the current one.
+ * Removes every object under a snapshot prefix.
+ *
+ * Pass a token to drop a whole publication, or `<token>/v<N>` to drop one version — a failed
+ * version has to be cleaned without touching the live one beside it.
  *
  * Paginates rather than assuming one listing covers the book: `list` truncates at 1000 keys
  * and a picture-heavy book passes that in a single version. Stopping early would leave the
@@ -209,13 +212,13 @@ const DELETE_BATCH = 1000
  */
 export async function deleteSnapshotObjects(
   bucket: R2Bucket,
-  token: string,
+  prefix: string,
 ): Promise<number> {
   let cursor: string | undefined
   let deleted = 0
 
   for (;;) {
-    const listed = await bucket.list({ prefix: `${token}/`, cursor, limit: DELETE_BATCH })
+    const listed = await bucket.list({ prefix: `${prefix}/`, cursor, limit: DELETE_BATCH })
     const keys = listed.objects.map((object) => object.key)
     if (keys.length > 0) {
       await bucket.delete(keys)

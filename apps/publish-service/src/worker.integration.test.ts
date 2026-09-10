@@ -444,3 +444,57 @@ describe("uploading a version file by file", () => {
     expect(await r2Text(`${token}/v1/index.html`)).toBe("<h1>zipped</h1>")
   })
 })
+
+describe("a version that fails to unpack leaves nothing behind", () => {
+  /** Small enough that the second file trips it after the first is already in R2. */
+  const TINY_ENTRY = { maxEntries: 20_000, maxEntryBytes: 64, maxTotalBytes: 512 * 1024 * 1024 }
+
+  function strictApp() {
+    return createApp({ snapshotLimits: TINY_ENTRY })
+  }
+
+  async function keysUnder(prefix: string): Promise<string[]> {
+    const listing = await env.SNAPSHOTS.list({ prefix })
+    return listing.objects.map((object) => object.key).sort()
+  }
+
+  it("cleans up the partial snapshot when the create fails", async () => {
+    const token = nextToken()
+    const res = await strictApp().request(
+      `${BASE}/api/publications`,
+      mgmt(
+        form({ token, title: "Too big", book_label: "too-big", page_manifest: [] }, {
+          "small.html": "ok",
+          "big.html": "x".repeat(500),
+        }),
+      ),
+      env,
+    )
+
+    expect(res.status).toBe(413)
+    /** The publication was never created, so nothing in D1 will ever reference these keys and
+     *  no delete route will be called for this token — they would be billed forever. */
+    await expect(keysUnder(`${token}/`)).resolves.toEqual([])
+  })
+
+  it("does not take the live version down with a failed one", async () => {
+    const token = nextToken()
+    expect((await publish(token, { "index.html": "live v1" })).status).toBe(201)
+    const before = await keysUnder(`${token}/v1/`)
+    expect(before).toEqual([`${token}/v1/index.html`])
+
+    const res = await strictApp().request(
+      `${BASE}/api/publications/${token}/versions`,
+      mgmt(form({ page_manifest: [] }, { "small.html": "ok", "big.html": "x".repeat(500) })),
+      env,
+    )
+    expect(res.status).toBe(413)
+
+    await expect(keysUnder(`${token}/v2/`)).resolves.toEqual([])
+    /** The whole point of scoping the cleanup to one version: a failed v2 must not blank v1. */
+    await expect(keysUnder(`${token}/v1/`)).resolves.toEqual(before)
+    const still = await app().request(`${BASE}/p/${token}`, {}, env)
+    expect(still.status).toBe(200)
+    await expect(still.text()).resolves.toContain("live v1")
+  })
+})

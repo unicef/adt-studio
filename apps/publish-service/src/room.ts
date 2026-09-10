@@ -123,8 +123,9 @@ export class PublicationRoom {
 
     /** Comment events reach every peer, whatever page they are on: a reader's dock badge and
      *  the author's whole-publication panel both care about pages nobody is looking at. */
+    const encoded = JSON.stringify(frame.data)
     for (const socket of this.state.getWebSockets()) {
-      send(socket, frame.data)
+      sendRaw(socket, encoded)
     }
 
     return new Response(null, { status: 204 })
@@ -162,10 +163,11 @@ export class PublicationRoom {
       }
       /** Same page only. A cursor is a position inside a document; relaying it to somebody
        *  reading a different one would resolve the selector against the wrong DOM. */
+      const payload = JSON.stringify(relay)
       for (const socket of this.state.getWebSockets()) {
         if (socket === ws) continue
-        if (attachmentOf(socket)?.page_section_id !== frame.section_id) continue
-        send(socket, relay)
+        if (sectionOf(socket) !== frame.section_id) continue
+        sendRaw(socket, payload)
       }
       return
     }
@@ -181,10 +183,11 @@ export class PublicationRoom {
         xOffsetPct: frame.xOffsetPct,
         yOffsetPct: frame.yOffsetPct,
       }
+      const payload = JSON.stringify(relay)
       for (const socket of this.state.getWebSockets()) {
         if (socket === ws) continue
-        if (attachmentOf(socket)?.page_section_id !== frame.section_id) continue
-        send(socket, relay)
+        if (sectionOf(socket) !== frame.section_id) continue
+        sendRaw(socket, payload)
       }
       return
     }
@@ -262,17 +265,50 @@ function attachmentOf(socket: WebSocket): PeerAttachment | null {
   }
 }
 
+/**
+ * The page one socket is on, read straight off its attachment.
+ *
+ * The cursor and viewport relays need this single field, and the attachment is a value this
+ * object wrote itself through `serializeAttachment` — running the whole `RoomPeer` schema over
+ * it once per recipient per frame is work for nothing. At the documented ceiling (64 peers, a
+ * cursor frame every 30ms each) that validation ran on the order of 130k times a second inside
+ * one Durable Object thread. `attachmentOf` still validates everywhere the whole peer is used.
+ *
+ * `null` covers both a peer who has not sent `hello` yet and an attachment that cannot be read;
+ * a cursor's `section_id` is always a non-empty string, so either way the comparison skips them.
+ */
+function sectionOf(socket: WebSocket): string | null {
+  try {
+    const raw: unknown = socket.deserializeAttachment()
+    if (typeof raw !== "object" || raw === null) return null
+    const value = (raw as { page_section_id?: unknown }).page_section_id
+    return typeof value === "string" ? value : null
+  } catch {
+    return null
+  }
+}
+
 /** A close code echoed back has to be one the runtime will accept; 1005 ("no status") and the
  *  reserved range below 1000 are not. */
 function closeCodeFor(code: number): number {
   return code >= 1000 && code !== 1005 && code < 5000 ? code : CLOSE_GOING_AWAY
 }
 
-function send(socket: WebSocket, frame: unknown): void {
+/**
+ * One already-serialized frame to one socket.
+ *
+ * Separate from `send` so a fan-out can stringify once and hand the same string to every
+ * recipient, rather than re-encoding an identical payload per socket.
+ */
+function sendRaw(socket: WebSocket, payload: string): void {
   try {
-    socket.send(JSON.stringify(frame))
+    socket.send(payload)
   } catch {
     /** A socket that died between the roster read and this send is not an error worth
      *  failing a comment POST or another peer's frame over. */
   }
+}
+
+function send(socket: WebSocket, frame: unknown): void {
+  sendRaw(socket, JSON.stringify(frame))
 }

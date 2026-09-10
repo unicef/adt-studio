@@ -168,6 +168,30 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     has_access_code: ((await store.findRecord(publication.token))?.accessCode ?? null) !== null,
   })
 
+  /**
+   * Drops a failed version's objects before the request returns.
+   *
+   * An unpack that fails partway has already written whatever it got through, and nothing in D1
+   * will ever point at those keys: the Studio mints a fresh token for the next attempt, so the
+   * prefix is unreachable from the app and stays billed to the author's own R2. The case that
+   * triggers it is the one authors hit most — a book over the entry or total cap, retried with
+   * fewer features — so every attempt at trimming used to leave another partial snapshot behind.
+   *
+   * Scoped to the single version on purpose: `${token}/` would take a live v1 down with a
+   * failed v2. A cleanup that fails must not replace the error the caller is already reporting.
+   */
+  const discardVersion = async (
+    c: Context<AppEnv>,
+    token: string,
+    version: number,
+  ): Promise<void> => {
+    try {
+      await deleteSnapshotObjects(c.env.SNAPSHOTS, `${token}/v${version}`)
+    } catch {
+      /** The unpack failure is the one worth answering with. */
+    }
+  }
+
   /** The unpacked byte total is the publication's real R2 occupancy, and the unpacker already
    *  counts it on the way past — so it is carried out of here and stored on the version rather
    *  than discarded and later guessed at from the zip's compressed size. */
@@ -186,6 +210,7 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
       })
       return { ok: true, totalBytes: result.totalBytes }
     } catch (error) {
+      await discardVersion(c, token, version)
       if (isSnapshotUnpackError(error)) {
         return {
           ok: false,
@@ -378,6 +403,7 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
       snapshotBytes,
     })
     if (!result) {
+      await discardVersion(c, token.data, version)
       return errorResponse(
         c,
         "invalid_request",

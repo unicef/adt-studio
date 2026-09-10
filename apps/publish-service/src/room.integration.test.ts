@@ -479,6 +479,25 @@ describe("cursors", () => {
     expect(elsewhere.frames.some((frame) => frame.t === "cursor")).toBe(false)
   })
 
+  it("does not relay a cursor to a peer who has not said which page they are on", async () => {
+    const token = await publish()
+    const pointer = await join(token, { section: "pg001_sec001" })
+    const silent = await join(token, { section: null })
+    const alongside = await join(token, { section: "pg001_sec001" })
+    await presenceWith(alongside, 3)
+
+    pointer.send(CURSOR)
+    await waitFor(
+      () => alongside.frames.find((frame) => frame.t === "cursor") ?? null,
+      "the same-page relay",
+    )
+
+    /** A peer with no page cannot resolve the selector against anything, so the relay skips
+     *  them. The fan-out reads `page_section_id` off the raw attachment rather than validating
+     *  the whole peer per frame; `null` has to keep meaning "not on this page". */
+    expect(silent.frames.some((frame) => frame.t === "cursor")).toBe(false)
+  })
+
   it("drops malformed, oversized and non-JSON frames without dropping the socket", async () => {
     const token = await publish()
     const pointer = await join(token, { section: "pg001_sec001" })
