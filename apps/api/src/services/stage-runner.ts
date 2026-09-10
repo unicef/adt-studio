@@ -127,6 +127,7 @@ import {
   MIN_TRANSCRIBABLE_SECONDS,
   chunkBatchEntries,
 } from "@adt/pipeline"
+import { GEMINI_TTS_MIN_USABLE_TEMPERATURE } from "@adt/types"
 import type { BookOutlineConfig, PageSectioningConfig, TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig, CroppingConfig, SegmentationConfig, VisualRefinementDeps } from "@adt/pipeline"
 import type { ElevenLabsVoiceSettingsOverrides } from "@adt/llm"
 import { loadStyleguideContent } from "./styleguide.js"
@@ -3247,6 +3248,41 @@ async function runSpeechStep(
     const failedItems: string[] = []
     const geminiFailedItems: string[] = []
 
+    // A Gemini no-audio failure caused by something that applies to EVERY
+    // request in this run — currently only a temperature below the floor its
+    // TTS models need. Once one request has proven it, the rest would each
+    // spend another ~2.4 minutes (Gemini is slow to refuse) rediscovering the
+    // same thing, so they are failed with the reason instead of re-sent.
+    //
+    // Deliberately NOT tripped by every no-audio failure: a content-specific
+    // refusal on one sentence says nothing about the others, and aborting the
+    // run over it would turn one bad sentence into a book with no audio.
+    const geminiTemperatureBelowFloor =
+      config.speech?.temperature !== undefined &&
+      config.speech.temperature < GEMINI_TTS_MIN_USABLE_TEMPERATURE
+    let geminiSystemicFailure: string | null = null
+    const notePossiblySystemicFailure = (noAudio: boolean, msg: string): void => {
+      if (!noAudio || !geminiTemperatureBelowFloor || geminiSystemicFailure) return
+      geminiSystemicFailure = msg
+      console.warn(
+        `[stage-run] ${label}: Gemini returned no audio with speech.temperature=${config.speech?.temperature}; skipping the remaining Gemini items in this run rather than repeating a request that cannot succeed`,
+      )
+    }
+    const skippedForSystemicFailure = (): string =>
+      `Not attempted: an earlier Gemini request in this run returned no audio. ${geminiSystemicFailure}`
+
+    const failPageGroup = (group: PageGroup, reason: string): void => {
+      for (const e of group.entries) {
+        failedItems.push(`${e.id}: ${reason}`)
+        failedByLang.get(group.language)?.push({
+          textId: e.id,
+          error: reason,
+          voiceSlot: group.voiceSlot,
+        })
+        geminiFailedItems.push(`${e.id}: ${reason}`)
+      }
+    }
+
     // ── Page-batched pre-pass (Gemini) ──────────────────────────────
     // One synthesis request per page (consistent tone), sliced into per-entry
     // files. Shares the adaptive rate limiter, cancellation, and progress with
@@ -3285,6 +3321,15 @@ async function runSpeechStep(
             storage.appendLlmLog(logEntry)
             progress.emit({ type: "llm-log", step: "tts", itemId: group.pageKey, promptName: logEntry.promptName, modelId: logEntry.modelId, cacheHit: o.cacheHit, durationMs: logEntry.durationMs })
           }
+          if (geminiSystemicFailure) {
+            const reason = skippedForSystemicFailure()
+            failPageGroup(group, reason)
+            emitPageLog({ success: false, cacheHit: false, attempt: 0, error: reason })
+            completedItems += group.entries.length
+            emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
+            return
+          }
+
           let attempt = 0
           while (true) {
             attempt++
@@ -3375,15 +3420,8 @@ async function runSpeechStep(
               }
               console.error(`[stage-run] ${label}: page-batched TTS failed for ${group.pageKey} (${group.language}): ${msg}`)
               emitPageLog({ success: false, cacheHit: false, attempt, error: msg })
-              for (const e of group.entries) {
-                failedItems.push(`${e.id}: ${msg}`)
-                failedByLang.get(group.language)?.push({
-                  textId: e.id,
-                  error: msg,
-                  voiceSlot: group.voiceSlot,
-                })
-                geminiFailedItems.push(`${e.id}: ${msg}`)
-              }
+              notePossiblySystemicFailure(noAudio, msg)
+              failPageGroup(group, msg)
               break
             }
           }
@@ -3417,6 +3455,11 @@ async function runSpeechStep(
     const processTtsWorkItem = async (item: TTSWorkItem) => {
       const startMs = Date.now()
       const provider = item.provider
+      // Skipped, not re-sent: an earlier request already proved these settings
+      // cannot produce audio, and each retry costs another slow call. Routed
+      // through the normal catch below so it is recorded and reported exactly
+      // like any other per-item failure.
+      const skipForSystemicFailure = provider === "gemini" && geminiSystemicFailure !== null
       const providerModel = item.model
       const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
       const voice = item.voice
@@ -3446,9 +3489,13 @@ async function runSpeechStep(
           : undefined
       let attemptCount = 0
 
-      console.log(`[stage-run] ${label}: TTS ${item.textId} (${item.voiceSlot}) → provider=${provider} voice=${voice} model=${providerModel} format=${outputFormat}`)
+      if (!skipForSystemicFailure) {
+        console.log(`[stage-run] ${label}: TTS ${item.textId} (${item.voiceSlot}) → provider=${provider} voice=${voice} model=${providerModel} format=${outputFormat}`)
+      }
 
       try {
+        if (skipForSystemicFailure) throw new Error(skippedForSystemicFailure())
+
         const ttsSynthesizer = getSynthesizer(provider)
         let entry: SpeechFileEntry | null
 
@@ -3598,6 +3645,7 @@ async function runSpeechStep(
         }
         const msg = toErrorMessage(err)
         const durationMs = Date.now() - startMs
+        notePossiblySystemicFailure(provider === "gemini" && isGeminiNoAudioFailure(err, msg), msg)
         console.error(`[stage-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
         failedItems.push(`${item.textId}: ${msg}`)
         failedByLang.get(item.language)?.push({ textId: item.textId, error: msg, voiceSlot: item.voiceSlot })

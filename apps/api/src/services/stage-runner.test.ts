@@ -297,7 +297,11 @@ function readyCoreTtsEntry(id: string, text: string) {
   }
 }
 
-function seedTextAndSpeechBook(booksDir: string, label: string): void {
+function seedTextAndSpeechBook(
+  booksDir: string,
+  label: string,
+  extraEntries: Array<{ id: string; text: string }> = [],
+): void {
   const storage = createBookStorage(label, booksDir)
   try {
     storage.putExtractedPage({
@@ -315,25 +319,33 @@ function seedTextAndSpeechBook(booksDir: string, label: string): void {
       images: [],
     })
 
+    // The text catalog is rebuilt from the rendered HTML, so extra entries have
+    // to exist here too or they vanish when the translate stage re-runs.
     storage.putNodeData("web-rendering", "pg001", {
       sections: [
         {
           sectionIndex: 0,
           sectionType: "content",
           reasoning: "",
-          html: '<p data-id="pg001_t001">Hello world</p>',
+          html: [
+            '<p data-id="pg001_t001">Hello world</p>',
+            ...extraEntries.map((e) => `<p data-id="${e.id}">${e.text}</p>`),
+          ].join(""),
         },
       ],
     })
 
     storage.putNodeData("text-catalog", "book", {
-      entries: [{ id: "pg001_t001", text: "Hello world" }],
+      entries: [{ id: "pg001_t001", text: "Hello world" }, ...extraEntries],
       generatedAt: "2026-01-01T00:00:00.000Z",
     })
     storage.putNodeData("core-tts-catalog", "en", {
       language: "en",
       generatedAt: "2026-01-01T00:00:00.000Z",
-      entries: [readyCoreTtsEntry("pg001_t001", "Hello world")],
+      entries: [
+        readyCoreTtsEntry("pg001_t001", "Hello world"),
+        ...extraEntries.map((e) => readyCoreTtsEntry(e.id, e.text)),
+      ],
     })
   } finally {
     storage.close()
@@ -1512,6 +1524,130 @@ speech:
     )
     expect(ttsErrors.length).toBeGreaterThan(0)
     expect(JSON.stringify(ttsErrors)).toMatch(/finishReason=OTHER/)
+  })
+
+  // Gemini takes ~2.4 minutes to refuse a request at too low a temperature
+  // (issue #846's own run logged 142794ms). Every item would independently pay
+  // that to learn the same thing, so once one has proven it, the rest are
+  // failed with the reason instead of re-sent.
+  it("stops re-sending Gemini items once a no-audio failure proves the temperature is too low", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  temperature: 0
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-tts-systemic", [
+      { id: "pg001_t002", text: "Second sentence" },
+      { id: "pg001_t003", text: "Third sentence" },
+    ])
+
+    generateSpeechFileMock.mockRejectedValue(
+      new Error(
+        "Gemini TTS response did not include audio data. Response summary: finishReason=OTHER. The configured temperature 0 is below 0.5, which Gemini's TTS models are reported to reject without producing audio."
+      )
+    )
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      "gemini-tts-systemic",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    // Three entries, but only the first reaches the provider.
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(1)
+
+    // The other two are still reported — skipped is not the same as silently
+    // fine, and the user needs to see they have no audio.
+    const storage = createBookStorage("gemini-tts-systemic", booksDir)
+    try {
+      const output = storage.getLatestNodeData("tts", "en")?.data as
+        | { failed?: Array<{ textId: string; error: string }> }
+        | undefined
+      expect(output?.failed).toHaveLength(3)
+      const skipped = output!.failed!.filter((f) => /Not attempted/.test(f.error))
+      expect(skipped).toHaveLength(2)
+      // ...and each carries the reason, not just "skipped".
+      expect(skipped.every((f) => /temperature 0 is below 0\.5/.test(f.error))).toBe(true)
+    } finally {
+      storage.close()
+    }
+  })
+
+  // A refusal about one sentence's content says nothing about the others, so
+  // it must fail only that sentence — the abort above is scoped to a cause
+  // that provably applies to every request.
+  it("keeps synthesizing when a no-audio failure is not caused by the temperature", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-tts-content-block", [
+      { id: "pg001_t002", text: "Second sentence" },
+      { id: "pg001_t003", text: "Third sentence" },
+    ])
+
+    generateSpeechFileMock.mockRejectedValueOnce(
+      new Error(
+        "Gemini TTS response did not include audio data. Response summary: finishReason=SAFETY"
+      )
+    )
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      "gemini-tts-content-block",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    // All three attempted: one bad sentence must not cost the other two.
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(3)
   })
 
   it("fails the speech step before any synthesis when a provider credential is missing", async () => {
