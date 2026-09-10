@@ -204,6 +204,41 @@ describe("a legacy book's first edit", () => {
     expect(audioAfter).not.toContain("qz001_que.mp3")
   })
 
+  it("does not later hand a newcomer the audio of the quiz that first edit deleted", async () => {
+    // The delete above orphans qz001's .mp3 files, and the legacy version that
+    // spent qz001 never recorded it — the id lived only as an array position.
+    // A quiz added afterwards must still not be able to claim it, or it
+    // inherits a removed quiz's read-aloud in the packaged bundle.
+    seedLegacyBook([quiz("one"), quiz("two"), quiz("three")])
+    const audioBefore = await expectedAudioFilenames()
+
+    const fetched = await getQuizzes()
+    await putQuizzes({ ...fetched, quizzes: fetched.quizzes.slice(2) })
+
+    // A quiz on an earlier page sorts to the front, so it asks for the lowest
+    // free sequence number — qz001 unless qz001 is known to be spent.
+    const afterDelete = await getQuizzes()
+    await putQuizzes({
+      ...afterDelete,
+      quizzes: [quiz("newcomer"), ...afterDelete.quizzes],
+    })
+
+    const after = await quizCatalog()
+    expect(after).toEqual({
+      ...entriesFor("qz004", "newcomer"),
+      ...entriesFor("qz003", "three"),
+    })
+
+    // Said as the filenames, which is where the damage would be visible: the
+    // newcomer must not be voiced by any file the deleted quizzes left behind.
+    const newcomerAudio = Object.keys(entriesFor("qz004", "newcomer")).map(
+      (id) => `${id}.mp3`
+    )
+    for (const file of newcomerAudio) {
+      expect(audioBefore).not.toContain(file)
+    }
+  })
+
   it("keeps them when a quiz is inserted mid-book, and gives the newcomer fresh files", async () => {
     seedLegacyBook([quiz("one"), quiz("two"), quiz("three")])
     const before = await quizCatalog()

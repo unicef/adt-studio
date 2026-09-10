@@ -8,6 +8,7 @@ import {
   QuizGenerationOutput,
   ensureQuizIds,
   withResolvedQuizIds,
+  formatQuizId,
   QuizIdExhaustedError,
   type Quiz,
   type WebRenderingOutput,
@@ -35,19 +36,42 @@ function safeParseLabel(label: string): string {
 }
 
 /**
- * Every quiz id this book has ever used, across all stored versions. Reserving
+ * Every quiz id this book has ever spent, across all stored versions. Reserving
  * them means a delete-then-add cannot reissue a retired quiz's id and inherit
  * its `${quizId}_que` / `${quizId}_o${n}` catalog entries — and with them the
  * translations and generated audio of a quiz the user removed.
+ *
+ * A version stored before `quizId` existed carries no ids, but it still spent
+ * the positional ones every consumer derived for its slots, so those are
+ * reserved too — otherwise the *first* edit on a legacy book retires an id that
+ * was never written down anywhere, and the next quiz added can be handed it.
+ *
+ * The one exception is the current version. It is the base an incoming body is
+ * presumed to descend from, so a caller that sends quizzes with no ids is still
+ * claiming its positional ids rather than asking for fresh ones — that is the
+ * positional back-compat `ensureQuizIds` provides. Only *superseded* versions
+ * have their positional ids retired for good.
+ *
+ * Read leniently rather than through `QuizGenerationOutput.safeParse`: a
+ * version that no longer satisfies today's schema still burned the ids it
+ * holds, and skipping it would let them be reissued. Reserving too much can
+ * only push an allocation forward; reserving too little corrupts a book.
  */
 function usedQuizIds(storage: Storage): string[] {
+  const currentVersion =
+    storage.getLatestNodeData("quiz-generation", "book")?.version ?? null
   const ids: string[] = []
   for (const row of storage.getAllNodeVersions("quiz-generation", "book")) {
-    const parsed = QuizGenerationOutput.safeParse(row.data)
-    if (!parsed.success) continue
-    for (const quiz of parsed.data.quizzes) {
-      if (quiz.quizId) ids.push(quiz.quizId)
-    }
+    const quizzes = (row.data as { quizzes?: unknown } | null)?.quizzes
+    if (!Array.isArray(quizzes)) continue
+    quizzes.forEach((quiz, index) => {
+      const stored = (quiz as { quizId?: unknown } | null)?.quizId
+      if (typeof stored === "string" && stored.length > 0) {
+        ids.push(stored)
+      } else if (row.version !== currentVersion) {
+        ids.push(formatQuizId(index + 1))
+      }
+    })
   }
   return ids
 }
