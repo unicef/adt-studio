@@ -256,6 +256,31 @@ describe("buildIndex", () => {
 
     expect(withToc.indexOf("First")).toBeLessThan(withToc.indexOf("Second"))
   })
+
+  it("moves a parent and its descendants together rather than scattering them", () => {
+    // Same contract as the EPUB nav: a group's position is its earliest
+    // resolved section, so "Part One" leads the chapter that sits before it.
+    // A position-only sort would put the level-2 "Chapter Two" first, and a
+    // flat TOC read back by level would then nest it under the wrong part.
+    const nested: PageEntry[] = [
+      { section_id: "pg002_sec001", href: "content/pg002_sec001.html", page_number: 2 },
+      { section_id: "pg001_sec001", href: "content/pg001_sec001.html", page_number: 1 },
+      { section_id: "pg003_sec001", href: "content/pg003_sec001.html", page_number: 3 },
+    ]
+
+    const nav = buildIndex("My Book", "pt-BR", ["Ada Lovelace"], nested, {
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      pageCount: 3,
+      entries: [
+        { id: "p1", title: "Part One", sectionId: "pg001_sec001", href: "x.html", chapterId: "c1", level: 1 },
+        { id: "c2", title: "Chapter Two", sectionId: "pg002_sec001", href: "x.html", chapterId: "c1", level: 2 },
+        { id: "p2", title: "Part Two", sectionId: "pg003_sec001", href: "x.html", chapterId: "c2", level: 1 },
+      ],
+    })
+
+    expect(nav.indexOf("Part One")).toBeLessThan(nav.indexOf("Chapter Two"))
+    expect(nav.indexOf("Chapter Two")).toBeLessThan(nav.indexOf("Part Two"))
+  })
 })
 
 describe("ensureJpegCover", () => {

@@ -64,6 +64,37 @@ describe("buildNavDocument", () => {
     expect(nav.indexOf("Beta")).toBeLessThan(nav.indexOf("Alpha"))
   })
 
+  it("moves a parent and its descendants together rather than scattering them", () => {
+    // A group's position is its earliest resolved section, so a parent whose
+    // own page sits late still leads the children that come before it. Sorting
+    // the flat list by position instead would emit "Chapter Two" (level 2)
+    // ahead of "Part One" (level 1), and a flat TOC is read back by level —
+    // so the chapter would end up under the wrong part, or under none.
+    //
+    // This is what separates `orderTocEntries` from the position-only sort
+    // that preceded it; without this case the two are indistinguishable.
+    const nested: PageEntry[] = [
+      { section_id: "pg002_sec001", href: "pg002_sec001.xhtml", page_number: 2 },
+      { section_id: "pg001_sec001", href: "pg001_sec001.xhtml", page_number: 1 },
+      { section_id: "pg003_sec001", href: "pg003_sec001.xhtml", page_number: 3 },
+    ]
+
+    const nav = buildNavDocument("en", "Book", nested, {
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      pageCount: 3,
+      entries: [
+        // Part One's own page is at reading position 1...
+        { id: "p1", title: "Part One", sectionId: "pg001_sec001", href: "x", chapterId: "c1", level: 1 },
+        // ...but its chapter is at position 0.
+        { id: "c2", title: "Chapter Two", sectionId: "pg002_sec001", href: "x", chapterId: "c1", level: 2 },
+        { id: "p2", title: "Part Two", sectionId: "pg003_sec001", href: "x", chapterId: "c2", level: 1 },
+      ],
+    })
+
+    expect(nav.indexOf("Part One")).toBeLessThan(nav.indexOf("Chapter Two"))
+    expect(nav.indexOf("Chapter Two")).toBeLessThan(nav.indexOf("Part Two"))
+  })
+
   it("keeps an entry whose section is not in the book at the end rather than dropping it silently", () => {
     const nav = buildNavDocument("en", "Book", pages, {
       generatedAt: "2026-01-01T00:00:00.000Z",
