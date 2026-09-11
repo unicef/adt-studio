@@ -73,6 +73,14 @@ const SIDEBAR_LABELS: Record<string, MessageDescriptor> = {
   "Export your ADT": msg`Export your ADT`,
   Formats: msg`Formats`,
   "Personalize further": msg`Personalize further`,
+  // Reader support
+  "Reader support": msg`Reader support`,
+  "Package and startup": msg`Package and startup`,
+  "Text and language": msg`Text and language`,
+  "Read-aloud": msg`Read-aloud`,
+  "Image descriptions": msg`Image descriptions`,
+  Activities: msg`Activities`,
+  "Reader integration": msg`Reader integration`,
   // Help
   "Troubleshooting & FAQ": msg`Troubleshooting & FAQ`,
   "Reporting Issues": msg`Reporting Issues`,

@@ -32,8 +32,17 @@ msgstr "© {0} ADT Studio — Licencia AGPL-3.0."
 msgid "4 languages"
 msgstr "4 idiomas"
 
+msgid "A content page, body only. Note data-section-type and data-section-id on the section, and data-id on every text and image node. Those ids are the join key for the data layer."
+msgstr "Una página de contenido, solo el cuerpo. Observa data-section-type y data-section-id en la sección, y data-id en cada nodo de texto e imagen. Esos ids son la clave de unión de la capa de datos."
+
 msgid "A map through every chapter."
 msgstr "Un recorrido por cada capítulo."
+
+msgid "A quiz activity page. The activity runtime reads its data-section-type, answer keys, and option data attributes; the page also contains its own nav container, which a host reader can replace with its own chrome."
+msgstr "Una página de actividad de cuestionario. El tiempo de ejecución de la actividad lee data-section-type, las claves de respuesta y los atributos de datos de las opciones; la página también contiene su propio contenedor de navegación, que el lector anfitrión puede sustituir por su propia interfaz."
+
+msgid "A standard EPUB 3 container. The same data layer rides inside OEBPS/, and two features are lowered into EPUB-native constructs."
+msgstr "Un contenedor EPUB 3 estándar. La misma capa de datos vive dentro de OEBPS/, y dos funciones se convierten en construcciones nativas de EPUB."
 
 msgid "Accessibility"
 msgstr "Accesibilidad"
@@ -46,6 +55,9 @@ msgstr "libros accesibles."
 
 msgid "Accessible by design"
 msgstr "Accesible por diseño"
+
+msgid "Activities"
+msgstr "Actividades"
 
 msgid "ADT Studio"
 msgstr "ADT Studio"
@@ -76,6 +88,9 @@ msgstr "Proveedores de IA y costos"
 
 msgid "Also available on"
 msgstr "También disponible en"
+
+msgid "Also identical to the WebPub copy. A loader that resolves the base path once needs no further per-format branching."
+msgstr "También es idéntico a la copia WebPub. Un cargador que resuelve la ruta base una vez no necesita más ramificaciones por formato."
 
 msgid "Alt"
 msgstr "Alt"
@@ -339,6 +354,9 @@ msgstr "Se conserva cada versión. Puedes volver a cualquier resultado anterior 
 msgid "Everything in one place"
 msgstr "Todo en un mismo lugar"
 
+msgid "excerpt"
+msgstr "extracto"
+
 msgid "Export to a reader"
 msgstr "Exportar a un lector"
 
@@ -411,6 +429,9 @@ msgstr "GitHub"
 msgid "Glossary"
 msgstr "Glosario"
 
+msgid "Glossary terms, keyed by word. variations are the inflected forms to match in the text; image and video are optional per-term extras."
+msgstr "Términos del glosario, indexados por palabra. variations son las formas flexionadas que se deben encontrar en el texto; la imagen y el vídeo son extras opcionales por término."
+
 #. placeholder {0}: i18n._(d.title)
 msgid "Go to {0}"
 msgstr "Ir a {0}"
@@ -439,6 +460,12 @@ msgstr "Si tu dispositivo ha sido detectado incorrectamente, <0>ver todas las de
 msgid "Image captions"
 msgstr "Descripciones de imágenes"
 
+msgid "Image descriptions"
+msgstr "Descripciones de imágenes"
+
+msgid "Images"
+msgstr "Imágenes"
+
 msgid "Import"
 msgstr "Importar"
 
@@ -462,6 +489,9 @@ msgstr "Instalación y requisitos mínimos"
 
 msgid "Installing"
 msgstr "Instalación"
+
+msgid "Integration"
+msgstr "Integración"
 
 msgid "Interactive activities"
 msgstr "Actividades interactivas"
@@ -493,6 +523,9 @@ msgstr "Diseñando pliegos"
 msgid "License"
 msgstr "Licencia"
 
+msgid "lines"
+msgstr "líneas"
+
 msgid "Listen to the book, page by page."
 msgstr "Escucha el libro, página por página."
 
@@ -501,6 +534,9 @@ msgstr "EN VIVO"
 
 msgid "Localize your ADT"
 msgstr "Localiza tu ADT"
+
+msgid "Localized image variants. The key is the image node's data-id and the value is the translated file, which sits beside the original. Shown for pt-BR because variants exist for target languages; the source-language map is always empty."
+msgstr "Variantes localizadas de imagen. La clave es el data-id del nodo de imagen y el valor es el archivo traducido, que se encuentra junto al original. Se muestra para pt-BR porque las variantes existen para los idiomas de destino; el mapa del idioma de origen siempre está vacío."
 
 msgid "Made possible by"
 msgstr "Hecho posible gracias a"
@@ -593,6 +629,9 @@ msgstr "Descripción general"
 msgid "Package"
 msgstr "Empaquetado"
 
+msgid "Package and startup"
+msgstr "Paquete e inicio"
+
 msgid "Package the finished book with every accessibility feature baked in — ready for a kid to open, listen, and read along."
 msgstr "Empaqueta el libro terminado con todas las características de accesibilidad integradas — listo para que un niño lo abra, escuche y lea."
 
@@ -678,8 +717,20 @@ msgstr "Leer versión {0}"
 msgid "Read this release"
 msgstr "Leer esta versión"
 
+msgid "Read-aloud"
+msgstr "Lectura en voz alta"
+
+msgid "Read-aloud clips, mapping node id to file name. The files live alongside in audio/."
+msgstr "Clips de lectura en voz alta, que asignan el id del nodo al nombre de archivo. Los archivos están junto a ellos en audio/."
+
 msgid "Read-aloud with word highlighting"
 msgstr "Lectura en voz alta con resaltado de palabras"
+
+msgid "Reader integration"
+msgstr "Integración del lector"
+
+msgid "Reader support"
+msgstr "Compatibilidad con lectores"
 
 msgid "Real books, before & after"
 msgstr "Libros reales, antes y después"
@@ -763,6 +814,9 @@ msgstr "Señas"
 msgid "Sign language"
 msgstr "Lengua de señas"
 
+msgid "Sign-language clips. This is the one file not keyed by node id: ignore the video-<n> key and read the section id from the filename instead."
+msgstr "Clips de lengua de señas. Este es el único archivo no indexado por id de nodo: ignora la clave video-<n> y lee el id de sección del nombre de archivo."
+
 msgid "Soon"
 msgstr "Pronto"
 
@@ -771,6 +825,9 @@ msgstr "Español"
 
 msgid "Speech"
 msgstr "Voz"
+
+msgid "Standard OCF entry point. It points at the OPF, which fixes the ADT data base at OEBPS/."
+msgstr "Punto de entrada OCF estándar. Apunta al OPF, que fija la base de datos ADT en OEBPS/."
 
 msgid "Star"
 msgstr "Star"
@@ -805,23 +862,56 @@ msgstr "Con el apoyo de"
 msgid "Table of contents"
 msgstr "Índice"
 
+msgid "Text"
+msgstr "Texto"
+
+msgid "Text and language"
+msgstr "Texto e idioma"
+
 msgid "Text and sign language, side by side."
 msgstr "Texto y lengua de signos, lado a lado."
 
 msgid "Textbooks & Activities"
 msgstr "Libros de texto y actividades"
 
+msgid "The ADT data layer sits at the package root. EPUB is derived from this shape."
+msgstr "La capa de datos de ADT está en la raíz del paquete. EPUB deriva de esta estructura."
+
+msgid "The ADT manifest. Read this first. Every features flag tells you whether data exists for that capability; false means nothing was produced, so hide the control rather than showing a dead one."
+msgstr "El manifiesto ADT. Léelo primero. Cada flag de features indica si existen datos para esa capacidad; false significa que no se produjo nada, así que oculta el control en vez de mostrar uno inactivo."
+
 msgid "The documentation walks you through ADT Studio end to end — from installing the app to mastering every step of building an accessible book."
 msgstr "La documentación te guía por ADT Studio de principio a fin: desde instalar la aplicación hasta dominar cada paso de la creación de un libro accesible."
 
+msgid "The entry point. Build navigation from readingOrder, toc, and pageList rather than from file names. metadata.conformsTo declares the Readium EPUB profile, which Readium's own toolkits use to gate fixed-layout handling."
+msgstr "El punto de entrada. Crea la navegación a partir de readingOrder, toc y pageList, no de los nombres de archivo. metadata.conformsTo declara el perfil EPUB de Readium, que sus propias herramientas usan para habilitar el tratamiento de diseño fijo."
+
+msgid "The glossary lowered into the EPUB 3 Dictionaries and Glossaries model. In-text terms link here as epub:type=\"glossref\", and a landmarks entry lets readers surface a Glossary tab. Because it is lowered, glossary.json is removed from EPUB language folders."
+msgstr "El glosario convertido al modelo Dictionaries and Glossaries de EPUB 3. Los términos en el texto enlazan aquí como epub:type=\"glossref\", y una entrada de landmarks permite a los lectores mostrar una pestaña Glosario. Al convertirse, glossary.json se elimina de las carpetas de idioma de EPUB."
+
 msgid "The output"
 msgstr "La salida"
+
+msgid "The package document. In a reflowable book every content document carries properties=\"scripted\", not just activity pages. When a book has word timings, media-overlay appears on each content document's manifest item, never on the spine itemref. This book has none."
+msgstr "El documento del paquete. En un libro de diseño fluido, cada documento de contenido lleva properties=\"scripted\", no solo las páginas de actividad. Cuando un libro tiene tiempos por palabra, media-overlay aparece en el item del manifiesto de cada documento de contenido, nunca en el itemref de spine. Este libro no tiene ninguno."
+
+msgid "The reading-order source: one entry per rendered section, with the printed page number where the book had one."
+msgstr "La fuente del orden de lectura: una entrada por sección renderizada, con el número de página impreso cuando el libro lo tiene."
 
 msgid "The same book reflows from desktop to phone without losing audio, structure or activities."
 msgstr "El mismo libro se adapta del ordenador al teléfono sin perder audio, estructura ni actividades."
 
 msgid "The same content, in plainer language."
 msgstr "El mismo contenido, en un lenguaje más sencillo."
+
+msgid "The same file one directory deeper. Only the WebPub packager forces showNavigationControls and showTutorial to false, so compare this with the WebPub tab."
+msgstr "El mismo archivo, un directorio más profundo. Solo el empaquetador WebPub fuerza showNavigationControls y showTutorial a false, así que compáralo con la pestaña WebPub."
+
+msgid "The same page as the WebPub tab, converted to XHTML. The markup and data-id values are identical; only the file extension and glossref anchors differ."
+msgstr "La misma página de la pestaña WebPub, convertida a XHTML. El marcado y los valores data-id son idénticos; solo cambian la extensión de archivo y los anclajes glossref."
+
+msgid "The text map. Swapping these values into matching data-id elements powers both language switching and Easy Read. Keys ending _easy_read are simplified variants of the same node."
+msgstr "El mapa de texto. Sustituir estos valores en los elementos data-id correspondientes permite tanto el cambio de idioma como Lectura Fácil. Las claves que terminan en _easy_read son variantes simplificadas del mismo nodo."
 
 msgid "Three real textbooks (Cuaderno 5, Momo and Katko) turned from flat PDFs into accessible interactive books."
 msgstr "Tres libros de texto reales (Cuaderno 5, Momo y Katko) convertidos de PDF planos en libros interactivos accesibles."
@@ -852,6 +942,9 @@ msgstr "Validar"
 
 msgid "Validate and preview"
 msgstr "Validar y previsualizar"
+
+msgid "Verified export excerpt"
+msgstr "Extracto de exportación verificada"
 
 msgid "View release on GitHub"
 msgstr "Ver versión en GitHub"

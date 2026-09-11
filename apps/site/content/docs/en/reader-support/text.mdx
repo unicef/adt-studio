@@ -1,0 +1,36 @@
+---
+title: "Text and language"
+description: "Apply language and Easy Read text to the rendered content without losing the connection to the book."
+icon: Languages
+---
+
+Every meaningful element in an ADT page has a `data-id`. That id is the join key between the content HTML and the feature data.
+
+<PackageSnippet title="Text-map reference" path="content/i18n/en-US/texts.json" />
+
+## Select the display text
+
+Load `content/i18n/<lang>/texts.json` for the active language. For each element in the page, replace its text with the matching value. Easy Read values use the same id with an `_easy_read` suffix.
+
+```ts
+const easyReadValue = texts[`${id}_easy_read`];
+const value = easyRead && typeof easyReadValue === "string"
+  ? easyReadValue
+  : texts[id];
+```
+
+For images, set `alt` instead of text content. Re-apply the map after every navigation: a newly loaded document contains the original shipped text.
+
+## Keep ids package-local
+
+`data-id` values are ordinal and can change when the book is re-exported. Use them to join data within the package currently open, never as permanent keys for bookmarks, notes, highlights, or reader state.
+
+<Callout type="warn" title="Respect EPUB Media Overlay targets">
+EPUB content can contain word spans targeted by SMIL. Replacing a node’s whole HTML removes those targets and breaks synchronisation. Preserve them when using Media Overlays, or use the book’s export-language text without replacing it.
+</Callout>
+
+## Discover the available languages
+
+Read `languages.available` and `languages.default` from `assets/config.json`. The same file carries every feature flag; a `false` value means that no data was generated for that capability.
+
+<PackageSnippet title="Feature and language configuration" path="assets/config.json" />

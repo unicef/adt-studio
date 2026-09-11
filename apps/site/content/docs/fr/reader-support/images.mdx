@@ -1,0 +1,27 @@
+---
+title: "Descriptions d’image"
+description: "Affichez de longues descriptions d’image et échangez les variantes localisées lorsqu’un lecteur change de langue."
+icon: Image
+---
+
+Les descriptions longues utilisent la même table de texte que le reste de la page. Pour un nœud image, utilisez l’entrée `texts.json` de son `data-id`, puis la description de page, `alt` ou `figcaption` en repli.
+
+Une visionneuse ou un zoom est la présentation naturelle, car elle laisse de la place pour lire. Ne l’affichez que lorsque `features.describeImages` est `true`.
+
+## Variantes d’image localisées
+
+`images.json` associe un id d’image à une ressource de remplacement lorsque l’image contient elle-même du contenu traduit, comme un diagramme légendé. Lors d’un changement de langue, remplacez le `src` des nœuds image correspondants.
+
+La table est facultative. `features.describeImages` peut être `true` lorsqu’il existe des descriptions mais aucune image traduite ; conservez le `src` original si la table ou son id est absent.
+
+Les variantes existent pour les langues cibles, jamais pour la langue source : la table vit donc sous chaque locale traduite :
+
+<PackageSnippet path="content/i18n/pt-BR/images.json" />
+
+La clé est le `data-id` de l’`<img>` ; la valeur est un fichier situé dans le même répertoire `images/` que l’original. Passer en pt-BR revient à remplacer le `src` de ces deux images exactement et à laisser toutes les autres inchangées : une image absente de la table n’a pas de version traduite et conserve son fichier d’origine.
+
+<PackageSnippet title="Configuration de description d’image" path="assets/config.json" />
+
+<Callout title="Une table vide est valide">
+L’export de référence n’a besoin d’aucune variante d’image localisée. Conservez la source originale lorsqu’un id manque dans la table.
+</Callout>

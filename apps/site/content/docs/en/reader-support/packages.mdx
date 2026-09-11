@@ -1,0 +1,116 @@
+---
+title: "Package and startup"
+description: "Open an ADT WebPub or EPUB, find its data layer, and discover the features the book actually contains."
+icon: FolderTree
+---
+
+WebPub and EPUB have different containers, but both expose an ADT data root. Resolve that root once, then load only the sidecars that are actually present. The root is shared; the available feature files can differ by format and export.
+
+## The two package shapes
+
+<Tabs items={["WebPub", "EPUB"]}>
+
+<Tab value="WebPub">
+
+The ADT data layer sits at the package root. `manifest.json` is the source of truth for the reading order, TOC, page list, and presentation metadata.
+
+```
+webpub/
+  manifest.json
+  assets/config.json
+  content/pages.json
+  content/i18n/<lang>/
+  pg002_sec001.html …
+```
+
+</Tab>
+
+<Tab value="EPUB">
+
+EPUB is a standard OCF container. Its package document and the whole ADT data layer sit under `OEBPS/`.
+
+```
+META-INF/container.xml
+OEBPS/
+  content.opf
+  assets/config.json
+  content/pages.json
+  content/i18n/<lang>/
+  pg002_sec001.xhtml …
+```
+
+</Tab>
+
+</Tabs>
+
+## Reader prerequisites
+
+Your reader must be able to inspect and update the rendered content document. Use a same-origin iframe, a webview injection bridge, or preprocessing before display. A cross-origin iframe without an injection bridge cannot apply the ADT text map, glossary markers, or page-level feature behavior.
+
+Treat an opened package as untrusted. Keep its filesystem path or ZIP handle on the trusted side of your application; the UI should receive a book handle, never an arbitrary path supplied by page content.
+
+## Inspect export references
+
+These syntax-highlighted excerpts come from verified ADT exports. They are reference artifacts, not file names that a reader must reproduce. Select a file to see why it matters; the highlighting is produced at build time from the committed sample, so no highlighter is sent to the reader’s browser. The collection can grow with additional exports as the formats evolve.
+
+<PackageExplorer />
+
+## Detect an ADT
+
+A publication is an ADT when it has a readable configuration file with a `features` object and a recognisable WebPub or EPUB entry point:
+
+```ts
+const dataBase = await exists(join(packageRoot, "OEBPS/content.opf"))
+  ? join(packageRoot, "OEBPS")
+  : packageRoot;
+
+const config = await readJson(join(dataBase, "assets/config.json"));
+const isAdt = Boolean(
+  config?.features &&
+    (await exists(join(dataBase, "manifest.json")) ||
+      await exists(join(dataBase, "content.opf"))),
+);
+```
+
+`dataBase` is the package root for WebPub and `OEBPS/` for EPUB. Keep detection cheap: read one config file and stat only the expected entry points. Feature flags describe data that was produced; when a flag is `false`, hide the control rather than showing an affordance that cannot work. Invalid JSON or a missing config means “not an ADT,” not a reader error.
+
+## V1 sidecar contract
+
+`assets/config.json` carries `bundleVersion`. The reference exports on this page use version `1`. A reader should treat an unknown future version as a new contract, retain baseline WebPub or EPUB reading, and avoid activating ADT enhancements until it supports that version.
+
+All sidecars are optional, even when a feature flag is true. A flag means the export can provide a capability; the current language and page must still have usable data.
+
+| Resource | Path below the data root | Shape | Asset location |
+|---|---|---|---|
+| Text | `content/i18n/<lang>/texts.json` | `Record<data-id, string>`; `_easy_read` keys are optional variants | — |
+| Narration | `content/i18n/<lang>/audios.json` | `Record<data-id, fileName>` | `content/i18n/<lang>/audio/<fileName>` |
+| Sign language | `content/i18n/<lang>/videos.json` | `Record<video-<pageIndex>, fileName>` | `content/i18n/<lang>/video/<fileName>` |
+| WebPub glossary | `content/i18n/<lang>/glossary.json` | `Record<word, { word, definition, variations, id, image?, video? }>` | Embedded per term when present |
+| Localized images | `content/i18n/<lang>/images.json` | `Record<data-id, fileName>` | Export-specific image location |
+
+The current EPUB reference includes the text map and native `glossref` markup. It does not demonstrate every WebPub sidecar. Do not infer sidecar parity between formats. Word timing is **not guaranteed** by V1: when a book carries it, it ships as a `timecode/` sidecar, and an EPUB may instead expose native Media Overlays. Treat either as progressive enhancement and keep narration working at node level without them — see [Read-aloud](/docs/reader-support/read-aloud).
+
+## What the public references cover
+
+The code excerpts on this page prove the shapes below, but they are not complete downloadable test packages. Use them to understand the contract; use your own package-level tests before shipping.
+
+| Reference | Demonstrates | Does not yet demonstrate |
+|---|---|---|
+| WebPub V1 | Config, text map, narration map, sign-language map, glossary shape, a localized-image map, and a quiz activity page | Media files, word timing, fixed layout |
+| EPUB V1 | OCF location, `OEBPS/` data root, text map, native glossary markup, and a quiz activity page | ADT audio/video sidecars, Media Overlays, fixed layout |
+
+When a new public format or capability is added, include a publishable fixture package and expected-results matrix with it. PNLD packages are out of scope for this public contract.
+
+## Structural markers
+
+The rendered HTML has the joining information your reader needs:
+
+| Attribute | Meaning |
+|---|---|
+| `data-id` | Content node id — the key for feature data |
+| `data-section-id` | Rendered section id |
+| `data-section-type` | Section kind, such as `images_only` or `activity_*` |
+| `data-segments` | Fixed-layout text runs |
+| `data-adt-fit` | Fixed-layout text fitted to a box |
+
+Use these markers rather than file names when deciding how to render a page.

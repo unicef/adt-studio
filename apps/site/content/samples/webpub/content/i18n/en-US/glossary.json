@@ -1,0 +1,36 @@
+{
+  "body": {
+    "word": "body",
+    "definition": "the whole physical person or animal",
+    "variations": [
+      "body",
+      "bodies"
+    ],
+    "emoji": "🧍🐾",
+    "id": "gl001"
+  },
+  "broken": {
+    "word": "broken",
+    "definition": "damaged so that something is not whole or working properly",
+    "variations": [
+      "broken",
+      "break",
+      "breaks",
+      "broke"
+    ],
+    "emoji": "🩹💔",
+    "id": "gl002"
+  },
+  "cloud": {
+    "word": "cloud",
+    "definition": "a white or gray shape in the sky made of tiny drops of water",
+    "variations": [
+      "cloud",
+      "clouds"
+    ],
+    "emoji": "☁️🌥️",
+    "id": "gl003"
+  },
+
+  // … 17 more entries
+}

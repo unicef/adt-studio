@@ -1,0 +1,27 @@
+---
+title: "Activities"
+description: "Integrate the embedded activity runtime with reader-owned navigation while respecting its state boundaries."
+icon: Puzzle
+---
+
+Activity and quiz pages carry a bundled runtime that renders the interaction, validates answers, and advances the content frame when the learner completes it.
+
+<PackageSnippet title="WebPub quiz-activity reference" path="qz001.html" />
+
+The public reference set includes this quiz page in both WebPub and EPUB. It is an excerpt, rather than a complete downloadable fixture, so validate the full interaction against your own package-level test before shipping.
+
+## Coordinate with reader chrome
+
+Detect activity pages with `[data-section-type^="activity_"]`. Your reader can hide the embedded `#nav-container`, provide its own submit button in the surrounding chrome, and make that button click the embedded one. Track progress by watching the content frame’s location against your reading order.
+
+There is no `postMessage` contract between the embedded runtime and the host reader.
+
+Keep keyboard focus in the content frame when the reader-owned submit control proxies a click. If the frame does not navigate after submission, leave focus on the activity and expose its validation state there. Treat frame navigation as a fallback signal only; it is not a durable completion API.
+
+## Keep state expectations clear
+
+The runtime owns activity state. It persists only free-text answers in the content frame’s `localStorage`; other answer types reset on reload, and none are exposed to the host reader. Store reader settings yourself, but do not promise durable activity answers unless you build that capability independently.
+
+<Callout type="warn" title="Activities are practice, not secure assessment">
+Answer keys are present in the exported page. Do not use this runtime alone for graded or high-stakes assessment.
+</Callout>

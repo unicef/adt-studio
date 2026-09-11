@@ -70,6 +70,28 @@ const SECTIONS: Record<string, Pill[]> = {
     ["export/project-archive", "export/web", "export/scorm", "export/webpub", "export/epub"],
     [msg`Project Archive`, msg`Web`, msg`SCORM`, msg`WebPub`, msg`EPUB`],
   ),
+  "reader-support": pillsFromSlugs(
+    [
+      "reader-support/packages",
+      "reader-support/text",
+      "reader-support/read-aloud",
+      "reader-support/glossary",
+      "reader-support/images",
+      "reader-support/sign-language",
+      "reader-support/activities",
+      "reader-support/adapting",
+    ],
+    [
+      msg`Package`,
+      msg`Text`,
+      msg`Read-aloud`,
+      msg`Glossary`,
+      msg`Images`,
+      msg`Sign language`,
+      msg`Activities`,
+      msg`Integration`,
+    ],
+  ),
   faq: [
     { label: msg`General`, icon: Sparkles, hex: "" },
     { label: msg`Installing`, icon: Download, hex: "" },
@@ -85,8 +107,8 @@ const SECTIONS: Record<string, Pill[]> = {
  * Toned-down sibling of the Overview's `GetStartedBanner` — same gradient +
  * grid + glass-pill treatment (deliberately unlike anything in the app's own
  * UI), scoped to a section's own brand color and its sub-pages. Reserved for
- * the five first-layer nav pages (Get Started, Convert a PDF, Enhance,
- * Export, Troubleshooting & FAQ) — sub-pages don't get one of these.
+ * the first-layer nav pages (Get Started, Convert a PDF, Enhance, Export,
+ * Reader support, Troubleshooting & FAQ) — sub-pages don't get one of these.
  *
  * `isolate` is load-bearing for the same reason as in `GetStartedBanner`:
  * it keeps the inner `z-10` layers from tying with the sticky docs navbar and

@@ -1,0 +1,49 @@
+---
+title: "Leitura em voz alta"
+description: "Reproduza clipes de narração, sincronize palavras quando possível e use Media Overlays EPUB quando existirem."
+icon: AudioLines
+---
+
+`audios.json` mapeia cada id de nó de conteúdo a um clipe. Para reproduzir uma página, colete os `data-id` no documento renderizado, procure-os em ordem e reproduza os clipes resultantes em sequência.
+
+<PackageSnippet title="Referência do mapa de narração" path="content/i18n/en-US/audios.json" />
+
+<PackageSnippet title="Configuração do recurso de leitura em voz alta" path="assets/config.json" />
+
+## Torne a reprodução resiliente
+
+Mostre o controle apenas quando `features.readAloud` for `true` **e** a página atual tiver clipes. A flag informa se o livro possui narração, não é uma preferência do leitor.
+
+Com Leitura Fácil ativa, reproduza o clipe `_easy_read` do nó sempre que ele existir e recorra ao clipe padrão apenas quando não houver. Mantenha a reprodução sequencial mesmo sem tempos por palavra.
+
+## Destaque de palavras
+
+De onde vêm os tempos depende do formato.
+
+**EPUB.** Verifique `media-overlay` no `<item>` do documento de conteúdo no manifesto OPF. Quando existir, use os Media Overlays SMIL nativos do EPUB em vez de reconstruir a sincronização por conta própria.
+
+**O sidecar.** `content/i18n/<lang>/timecode/timecode_output.json` traz os tempos por palavra, com chave no id do nó de conteúdo:
+
+```jsonc
+{
+  "pg003_n0002": {
+    "timecodes": [
+      null,
+      {
+        "word_timestamps": [
+          { "text": "One", "start": 0.0,  "end": 0.22 },
+          { "text": "day", "start": 0.22, "end": 0.41 }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`start` e `end` são segundos contados a partir do início do **clipe do próprio nó**, não do início da página. As palavras vêm em ordem de leitura, então alinhe-as por posição com as palavras que você renderiza, em vez de casar por id.
+
+O arquivo costuma vir `{}` — ele só é preenchido quando o livro foi narrado com o destaque de palavras ativado. Verifique antes de depender dele e mantenha a reprodução no nível do nó funcionando quando estiver vazio.
+
+<Callout type="info" title="Trate a sincronização como aprimoramento progressivo">
+A narração continua funcionando sem tempos por palavra. Não bloqueie a reprodução quando o livro tiver clipes, mas não tiver Media Overlays.
+</Callout>

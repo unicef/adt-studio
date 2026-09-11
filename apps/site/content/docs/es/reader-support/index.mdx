@@ -1,0 +1,63 @@
+---
+title: "Soporte para lectores"
+description: "Una guía de integración por funciones para aplicaciones de lectura compatibles con las exportaciones ADT WebPub y EPUB."
+icon: BookOpenCheck
+---
+
+Esta sección está dirigida a **desarrolladores de aplicaciones de lectura**. Un ADT, un libro de texto digital accesible, es una publicación enriquecida con narración, variantes de idioma, descripciones de imágenes, lengua de señas, datos de glosario y actividades. Esta guía explica cómo un lector puede poner esas funciones a disposición de sus usuarios.
+
+<SectionBanner slug="reader-support" />
+
+<Callout type="idea" title="El modelo de integración">
+Una exportación ADT tiene dos capas: un WebPub o EPUB estándar que un lector compatible puede abrir, y una capa compacta de datos ADT que enriquece el contenido renderizado. El lector puede adoptar una función a la vez.
+</Callout>
+
+## Lo que funciona sin compatibilidad con ADT
+
+| Función | EPUB | WebPub |
+|---|---|---|
+| Apertura, navegación, índice y números de página | Nativo | Nativo |
+| Lectura en voz alta | Media Overlays nativos cuando están presentes; de lo contrario, datos ADT | Datos ADT |
+| Glosario | Marcado de glosario EPUB nativo | Datos ADT |
+| Cambio de idioma y Lectura fácil | Datos ADT | Datos ADT |
+| Descripciones de imágenes, lengua de señas y actividades | Datos ADT | Datos ADT |
+
+**EPUB ofrece más a un lector sin modificar.** Puede incluir SMIL Media Overlays y marcado de glosario EPUB nativo. WebPub conserva los datos de las funciones como archivos auxiliares, por lo que el lector anfitrión controla la interfaz y el comportamiento.
+
+## Empiece en este orden
+
+<Steps>
+<Step>
+### Abra e identifique el paquete
+
+Localice `assets/config.json`, resuelva la ruta base del paquete y use las marcas de funciones para decidir qué controles existen. Consulte [Paquete e inicio](/docs/reader-support/packages).
+</Step>
+<Step>
+### Renderice la capa de texto
+
+Aplique el mapa `texts.json` del idioma activo a los elementos de la página renderizada. Esto establece la unión entre la publicación y los datos ADT. Consulte [Texto e idioma](/docs/reader-support/text).
+</Step>
+<Step>
+### Añada las funciones que su lector pueda ofrecer
+
+La lectura en voz alta, el glosario, las descripciones de imágenes, la lengua de señas y las actividades son adiciones independientes. Cada guía incluye los datos reales exportados que consume.
+</Step>
+<Step>
+### Intégrelo con la estructura de su lector
+
+Mantenga la carga de datos, la inyección en la página, los controles, la limpieza y la validación en capas claras. Consulte [Integración del lector](/docs/reader-support/adapting).
+</Step>
+</Steps>
+
+## Encuentre una función
+
+<StageCards>
+  <StageCard slug="reader-support/packages" href="reader-support/packages" title="Paquete e inicio" description="Abra un ADT, encuentre su capa de datos y descubra las funciones disponibles." />
+  <StageCard slug="reader-support/text" href="reader-support/text" title="Texto e idioma" description="Cambio de idioma, Lectura fácil, ids de nodos de contenido y texto localizado." />
+  <StageCard slug="reader-support/read-aloud" href="reader-support/read-aloud" title="Lectura en voz alta" description="Clips de audio, temporización de palabras y EPUB Media Overlays." />
+  <StageCard slug="reader-support/glossary" href="reader-support/glossary" title="Glosario" description="Mapas de términos en WebPub y marcado de glosario nativo en EPUB." />
+  <StageCard slug="reader-support/images" href="reader-support/images" title="Descripciones de imágenes" description="Descripciones largas y variantes de imágenes localizadas." />
+  <StageCard slug="reader-support/sign-language" href="reader-support/sign-language" title="Lengua de señas" description="Clips por página y una superficie de imagen en imagen controlada por el lector." />
+  <StageCard slug="reader-support/activities" href="reader-support/activities" title="Actividades" description="Runtime de actividades integrado, estructura del lector y limitaciones de estado." />
+  <StageCard slug="reader-support/adapting" href="reader-support/adapting" title="Integración del lector" description="Arquitectura, correcciones de diseño, limpieza y una lista de verificación de integración." />
+</StageCards>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id">
+<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier>urn:uuid:fc64fda0-9801-40fa-badf-a689573aa99a</dc:identifier>
+    <dc:title>Hyena and Raven</dc:title>
+    <dc:language>en-US</dc:language>
+    <meta property="dcterms:modified">2026-08-27T21:29:34Z</meta>
+    <dc:creator>Tony Lelliott</dc:creator>
+    <dc:creator>Wiehan de Jager</dc:creator>
+    <dc:publisher>African Storybook</dc:publisher>
+    <meta name="cover" content="cover-image"/>
+  </metadata>
+  <manifest>
+    <item id="nav" href="toc.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+    <item id="item-1" href="assets/activities.bundle.local.js" media-type="application/javascript"/>
+    <item id="item-2" href="assets/auto-fit.js" media-type="application/javascript"/>
+    <!-- … 348 more items -->
+  </manifest>
+  <spine toc="ncx">
+    <itemref idref="item-335"/>
+    <itemref idref="item-336"/>
+    <itemref idref="item-337"/>
+    <itemref idref="item-338"/>
+    <!-- … 12 more itemrefs -->
+  </spine>
+</package>

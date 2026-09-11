@@ -1,0 +1,39 @@
+{
+  "title": "Hyena and Raven",
+  "bundleVersion": "1",
+  "languages": {
+    "available": [
+      "en-US",
+      "pt-BR"
+    ],
+    "default": "en-US"
+  },
+  "features": {
+    "signLanguage": true,
+    "easyRead": true,
+    "glossary": true,
+    "eli5": false,
+    "readAloud": true,
+    "autoplay": true,
+    "showTutorial": false,
+    "showNavigationControls": false,
+    "describeImages": true,
+    "notepad": false,
+    "state": true,
+    "characterDisplay": false,
+    "highlight": false,
+    "activities": true
+  },
+  "analytics": {
+    "enabled": false,
+    "siteId": 0,
+    "trackerUrl": "https://unisitetracker.unicef.io/matomo.php",
+    "srcUrl": "https://unisitetracker.unicef.io/matomo.js"
+  },
+  "lockedSettings": [
+    "dockLayout",
+    "theme",
+    "iconSize",
+    "reduceMotion"
+  ]
+}

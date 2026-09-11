@@ -1,0 +1,207 @@
+---
+title: "Reader integration"
+description: "The concrete changes, feature by feature — where the ADT layer plugs in, and the pitfalls a real integration ran into."
+icon: Wrench
+---
+
+This page assumes the shape most readers already have: **content renders in a frame whose lifecycle your application owns** — an iframe, a webview, a WKWebView — while your application owns the chrome around it. The ADT layer plugs into exactly that seam.
+
+The frame must be same-origin, preprocessed before display, or expose an injection bridge. A cross-origin frame with no bridge cannot support the DOM work described below.
+
+## The shape of the integration
+
+Three pieces, in order of dependency:
+
+1. **A resource API** on the trusted side of your app (main process, service worker, backend) that can read files out of the package.
+2. **A feature controller** in your UI layer that loads the data for the current book and language and keeps it in sync with the page being shown.
+3. **Injection into the content frame** — text, narration, and image maps join to rendered elements through `data-id`; other features use their own documented markers.
+
+Everything below hangs off those three.
+
+## The resource API
+
+Content frames are sandboxed and package files are on disk (or behind a URL your frame cannot reach), so the rendering layer needs a narrow, explicit channel. Three calls cover every feature:
+
+```ts
+getAdtMetadata(bookHandle)
+  → { isAdt, features, languages: { available, default }, paths: { dataRoot, audioBase, videoBase } }
+
+readAdtResource(bookHandle, language, resource)
+  // resource: "texts" | "audios" | "videos" | "glossary" | "images"
+  → { status: "ok", data, language, paths } | { status: "absent" | "invalid" }
+
+readAdtAsset(bookHandle, language, type, fileName)
+  // type: "audio" | "video"
+  → { status: "ok", contentType, dataUrl } | { status: "absent" | "invalid" }
+```
+
+`bookHandle` is an opaque value created when the trusted side opens a package. Validate it, `language`, `resource`, `type`, and `fileName` against allowlists. Do not expose a raw package path to the content frame.
+
+`getAdtMetadata` is where [detection](/docs/reader-support/packages#detecting-an-adt) and base-path resolution live, so no other layer has to know whether it is looking at a WebPub or EPUB tree.
+
+<Callout type="error" title="Guard the path">
+Every value that influences a path comes from a user-provided package. Resolve every candidate path and assert it is still inside the package root before reading. This is the one place in an ADT integration with a real security consequence.
+</Callout>
+
+### Be liberal in what you accept
+
+Two lookups need fallbacks, and both cost nothing to add:
+
+**Language folders.** Try, in order: the exact language, lowercase, the underscore form (`pt_BR`), uppercase, then every entry in `languages.available`. Exports may carry legacy underscore forms, and the language a reader stores may not match the folder's casing.
+
+**Media files.** Probe the V1 per-language directory first: `content/i18n/<lang>/audio/` for narration and `content/i18n/<lang>/video/` for sign language. A future export may advertise another base through metadata; do not guess one when it is absent.
+
+## The work, feature by feature
+
+<Steps>
+
+<Step>
+### Load metadata and pick a language
+
+On opening a book, call `getAdtMetadata`. If `isAdt` is false, you are done — render it as the ordinary publication it also is.
+
+Otherwise choose the language: stored preference if it is still in `languages.available`, else `languages.default`. Then attempt to load `texts`, `audios`, `videos`, `glossary`, and `images` for that language in parallel, and reload them whenever the language changes. An absent sidecar is expected and must not fail opening the book.
+</Step>
+
+<Step>
+### Apply the text map
+
+For every element with a `data-id`, write the value from `texts.json` (preferring the `_easy_read` variant when Easy Read is on). Write to `alt` for images; write into the first child span, removing the others, when the node was pre-split by read-aloud segmentation.
+
+Re-apply on **every** navigation, not just on load — a new page in the same frame is a fresh document with the shipped text back in place.
+</Step>
+
+<Step>
+### Choose native EPUB behavior before injecting text
+
+Use this precedence rule when an EPUB has native Media Overlays:
+
+| Situation | Display text | Narration and highlighting |
+|---|---|---|
+| Selected language is the EPUB export language | Keep the EPUB DOM intact | Use native SMIL Media Overlays |
+| Selected language differs from the EPUB export language | Apply the matching ADT text map only when it preserves safe DOM boundaries | Do not use the original-language SMIL for word highlighting; use available ADT clips at node level or leave narration unavailable |
+| No Media Overlay | Apply the ADT text map | Use `audios.json` clips at node level when present |
+
+Never replace a whole element that contains SMIL targets. If your reader cannot safely update its text nodes, retain the EPUB export language instead of breaking native synchronization.
+</Step>
+
+<Step>
+### Add the glossary
+
+Mark occurrences of each term (and its `variations`) in the rendered text, and open a definition popover on click. Attach your own document-level click and keydown handlers so keyboard users can reach it, and give markers a visible affordance — a dotted underline is the conventional "tap for a definition" signal.
+
+Clean up before every re-application: unwrap existing markers, remove the popover, remove the injected stylesheet. Otherwise markers nest inside markers on the second pass.
+</Step>
+
+<Step>
+### Surface image descriptions
+
+Attach the description to each image (as an attribute, then read it back in your own UI) and show it where there is room — a lightbox or zoom view is the natural home. Gate on `features.describeImages`.
+</Step>
+
+<Step>
+### Wire read-aloud
+
+Collect the `data-id` and `data-section-id` values present in the current document, map them through `audios.json`, and play the resulting clips in sequence. Track whether the current page has any audio at all so the control can be hidden rather than shown dead.
+
+The public V1 contract supplies no word-timing sidecar, so highlight at node level. In EPUB, use SMIL overlays when your Media Overlay support already handles them. Treat synchronization as optional and keep plain playback working without it.
+</Step>
+
+<Step>
+### Add the sign-language player
+
+Resolve the clip for the current page from `videos.json` (see [Sign language](/docs/reader-support/sign-language)) and play it in a picture-in-picture surface that does not displace the page. Close it automatically when the reader navigates to a page with no clip.
+</Step>
+
+<Step>
+### Handle activity pages
+
+Activity pages carry their own runtime and their own submit control, which will not match your reader's chrome. The working arrangement:
+
+- Detect the page with `document.querySelector("[data-section-type^='activity_']")`.
+- Hide the embedded control (`#nav-container`) with an injected stylesheet.
+- Render **your own** submit button in your bottom bar, and have it click the embedded one.
+
+The embedded runtime still owns validation and advancing the book — you are only re-skinning the trigger. Since there is no `postMessage` channel, watch the frame's location against the reading order to know when it advanced.
+</Step>
+
+<Step>
+### Persist reader state
+
+Per book and per user, store the settings **you** own: language, Easy Read on/off, glossary on/off, autoplay. Readers open books repeatedly and losing an Easy Read preference between sessions is immediately noticeable.
+
+Activity answers are **not** yours to persist — the in-frame bundle owns them, persists only free-text ones, and exposes nothing. See [Activities](/docs/reader-support/activities). Key your storage on the book, not on `data-id` values, which are [not stable across re-exports](/docs/reader-support/text).
+</Step>
+
+</Steps>
+
+## Layout and rendering fixes
+
+These are small and easy to miss, and they are the difference between "opens" and "looks right".
+
+**Let ADT spreads use the available width.** ADT content may cap `#content` with a container class or shrink to its intrinsic width. Tie the whole chain — `html`, `body`, `main`, `#content`, and the section element — to the viewport, while leaving authored inner text widths alone:
+
+```css
+html:has(#content [data-section-id]),
+body:has(#content [data-section-id]),
+body:has(#content [data-section-id]) > main,
+#content:has(> [data-section-id]),
+#content > [data-section-id] {
+  width: 100% !important;
+  max-width: none !important;
+  margin-inline: 0 !important;
+}
+```
+
+Note that generated quiz pages can carry `data-section-type` and `data-id` without `data-section-id`. Do not assume every activity has the same marker set as a rendered content section.
+
+**Size image-only spreads to the viewport.** Sections with `data-section-type="images_only"` should fill the reading area and centre, rather than pinning to the top edge. Where two images sit side by side, cap each at half the width.
+
+**Treat fixed layout as a separate capability.** The current public reference is reflowable and does not establish a fixed-layout ADT contract. When an export declares fixed layout through standard WebPub or EPUB metadata, let the reading engine’s fixed-layout support own pagination and scale. Add a dedicated fixture and compatibility guidance before relying on ADT-specific fit scripts or injected layout overrides.
+
+**Exclude ADT pages from legacy heuristics.** Readers commonly detect "scanned image page" content by looking for short body text plus a large image, then scale the whole page when the user changes text size. ADT pages match that shape but are responsive by design, so the heuristic scales entire spreads. Bail out early when the document contains `[data-section-id][data-section-type]`.
+
+## Search
+
+If your reader searches the shipped HTML, it searches text that is no longer on screen — the displayed text came from `texts.json`. Apply the same text map to the document you hand the search engine, using the active language and Easy Read state, and re-index when either changes.
+
+## Pitfalls
+
+<Accordions>
+
+<Accordion title="Injection runs before the page is ready">
+Applying the text map once on `dom-ready` is not enough; content and images settle afterwards. Apply immediately, then retry at roughly 150 ms and 500 ms, and cancel outstanding retries on navigation. Marking applied elements (`data-adt-reader-applied`) keeps repeats harmless.
+</Accordion>
+
+<Accordion title="Re-applying without cleaning up">
+Glossary markers, popovers, injected stylesheets, and event handlers all need explicit teardown before the next pass. Without it, markers nest, handlers stack, and clicking a term fires several times. Keep handler references on a known global so cleanup can find them.
+</Accordion>
+
+<Accordion title="Trusting the href to identify a page">
+Matching audio and video by filename prefix (`pg007…`) works until it doesn't — `index.html` is page one under a different name, and activity pages use their own prefix. Collect the ids actually present in the document first and use the href prefix only as a fallback.
+</Accordion>
+
+<Accordion title="Feature flags treated as user settings">
+`features.readAloud: false` means there is no narration data. Wiring it to a toggle produces a control that does nothing. Gate the *existence* of the affordance on the flag, and the *enabled state* on whether the current page has data.
+</Accordion>
+
+<Accordion title="Media that the content frame cannot load">
+Under a strict sandbox or CSP, a `file://` URL from the package may be unreachable from the frame. Reading the asset on the trusted side and handing back a data URL sidesteps it — with a fallback to the direct package URL when the file is not where you expected.
+</Accordion>
+
+<Accordion title="Assuming one language folder casing">
+The same book can carry `pt-BR` in `config.json` and `pt_BR` in a legacy export. Always resolve through the candidate list rather than the stored string.
+</Accordion>
+
+</Accordions>
+
+## Verifying the integration
+
+A quick pass that catches most regressions:
+
+- Open the same book exported as **WebPub and EPUB** — the feature set should look identical where the format provides the feature natively or through the ADT layer.
+- Switch language mid-book, then navigate: text, images, audio, and glossary should all follow.
+- Toggle Easy Read on a page that has variants, and on one that does not — the second should fall back silently, not blank out.
+- Open a book with `readAloud: false` and confirm no playback control appears anywhere.
+- Complete an activity and confirm the book advances. (Only free-text answers survive a reload — quizzes resetting is expected, not a bug in your integration.)
+- Open the EPUB in a generic Media-Overlay reader (Thorium, for example) and confirm narration works with no ADT support at all — assuming the book carries word timings. The `glossref` glossary is aimed at readers implementing the EPUB 3 glossary spec, which Thorium does not; test that path in a reader that does, or use the in-flow glossary-pages mode.

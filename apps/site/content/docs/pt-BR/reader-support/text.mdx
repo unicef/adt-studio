@@ -1,0 +1,36 @@
+---
+title: "Texto e idioma"
+description: "Aplique texto por idioma e Leitura Fácil ao conteúdo renderizado sem perder a ligação com o livro."
+icon: Languages
+---
+
+Cada elemento relevante de uma página ADT tem um `data-id`. Esse id liga o HTML de conteúdo aos dados de recursos.
+
+<PackageSnippet title="Referência do mapa de texto" path="content/i18n/en-US/texts.json" />
+
+## Selecione o texto exibido
+
+Carregue `content/i18n/<lang>/texts.json` para o idioma ativo. Para cada elemento da página, substitua o texto pelo valor correspondente. Valores de Leitura Fácil usam o mesmo id com o sufixo `_easy_read`.
+
+```ts
+const easyReadValue = texts[`${id}_easy_read`];
+const value = easyRead && typeof easyReadValue === "string"
+  ? easyReadValue
+  : texts[id];
+```
+
+Para imagens, defina `alt` em vez de `textContent`. Reaplique o mapa após cada navegação: um documento novo contém o texto original do pacote.
+
+## Mantenha ids locais ao pacote
+
+Valores de `data-id` são ordinais e podem mudar quando o livro é reexportado. Use-os apenas para unir dados dentro do pacote aberto, nunca como chaves permanentes de favoritos, anotações, destaques ou estado do leitor.
+
+<Callout type="warn" title="Respeite os alvos de Media Overlay do EPUB">
+O conteúdo EPUB pode conter spans por palavra apontados por SMIL. Substituir todo o HTML de um nó remove esses alvos e quebra a sincronização. Preserve-os ao usar Media Overlays ou mantenha o texto no idioma de exportação.
+</Callout>
+
+## Descubra os idiomas disponíveis
+
+Leia `languages.available` e `languages.default` em `assets/config.json`. O mesmo arquivo reúne as flags dos recursos; `false` significa que não foram gerados dados para aquela capacidade.
+
+<PackageSnippet title="Configuração de recurso e idioma" path="assets/config.json" />

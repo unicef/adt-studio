@@ -1,0 +1,25 @@
+---
+title: "Actividades"
+description: "Integra el runtime de actividad incluido con la navegación del lector respetando sus límites de estado."
+icon: Puzzle
+---
+
+Las páginas de actividad y cuestionario incluyen un runtime que renderiza la interacción, valida respuestas y avanza el marco de contenido cuando la persona termina la actividad.
+
+<PackageSnippet title="Referencia de cuestionario WebPub" path="qz001.html" />
+
+El conjunto público incluye esta página de cuestionario en WebPub y EPUB. Es un extracto, no un paquete de pruebas completo descargable; valida la interacción completa en tu propio paquete antes de publicar.
+
+## Coordina con la interfaz del lector
+
+Detecta las páginas de actividad con `[data-section-type^="activity_"]`. El lector puede ocultar `#nav-container`, ofrecer su propio botón de envío en la interfaz exterior y hacer que ese botón pulse el integrado. Sigue el progreso observando la ubicación del marco frente al orden de lectura.
+
+No existe un contrato `postMessage` entre el runtime integrado y el lector anfitrión. Mantén el foco del teclado en el marco cuando el botón exterior delegue un clic y trata la navegación del marco solo como señal de respaldo, no como API de finalización duradera.
+
+## Aclara las expectativas de estado
+
+El runtime posee el estado de la actividad. Solo conserva respuestas de texto libre en el `localStorage` del marco; otros tipos de respuesta se reinician al recargar y ninguno se expone al lector anfitrión. Guarda la configuración del lector, pero no prometas respuestas duraderas sin implementarlas por separado.
+
+<Callout type="warn" title="Las actividades son práctica, no evaluación segura">
+Las respuestas correctas están presentes en la página exportada. No uses este runtime por sí solo para evaluación calificada o de alto riesgo.
+</Callout>

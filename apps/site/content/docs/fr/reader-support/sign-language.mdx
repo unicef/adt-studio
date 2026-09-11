@@ -1,0 +1,27 @@
+---
+title: "Langue des signes"
+description: "Trouvez l’extrait de la section actuelle et présentez-le sans déplacer la page de lecture."
+icon: Hand
+---
+
+`videos.json` contient les extraits de langue des signes. Contrairement aux autres sidecars, ses clés sont des index de pages ; utilisez l’id de section inclus dans le nom de fichier pour l’associer au `data-section-id` du document courant.
+
+<PackageSnippet title="Référence de la table de langue des signes" path="content/i18n/en-US/videos.json" />
+
+```ts
+const sectionId = fileName
+  .replace(/^sl_/, "")
+  .replace(/\.(mp4|webm)$/, "");
+```
+
+Comparez cet id avec la page affichée. Il n’est pas nécessaire de reproduire l’indexation de pages de l’exporteur.
+
+En V1, les clés sont `video-<pageIndex>` et les fichiers utilisent `sl_<sectionId>.mp4` ou `sl_<sectionId>.webm`. Traitez une clé absente, un nom inattendu ou une ressource indisponible comme l’absence d’extrait pour cette page.
+
+## Choisissez une surface du lecteur
+
+Les extraits décrivent le contexte de la page actuelle : un lecteur picture-in-picture est donc un bon choix. Fermez-le lorsque le lecteur navigue vers une page sans extrait. Les vidéos des termes de glossaire sont distinctes : elles arrivent dans l’entrée de glossaire, pas dans `videos.json`.
+
+<Callout type="warn" title="N’affichez pas une commande inactive">
+Affichez le lecteur seulement lorsque `features.signLanguage` est vrai et qu’un extrait existe pour la section courante.
+</Callout>

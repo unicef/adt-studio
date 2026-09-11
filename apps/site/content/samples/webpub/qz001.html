@@ -1,0 +1,44 @@
+<body class="min-h-screen flex items-center justify-center">
+    <main class="w-full">
+      <h1 class="sr-only" id="page-heading">Why couldn't Hyena fly?</h1>
+      <style>
+    #simple-main {
+        --quiz-accent: #F89B12;
+        --quiz-accent-soft: rgba(248, 155, 18, 0.16);
+        --quiz-header-text: #1F2937;
+        --quiz-body: #FEF1DE;
+        --quiz-option: #FFF8EE;
+        --quiz-option-text: #000000;
+        --quiz-selected-text: #1F2937;
+        --quiz-submit: #FABE65;
+        --quiz-submit-text: #1F2937;
+    }
+    #simple-main .quiz-card { background-color: var(--quiz-body); box-shadow: 0 12px 34px rgba(0, 0, 0, 0.10); }
+    #simple-main .quiz-header { background-color: var(--quiz-accent); }
+    #simple-main .quiz-question { color: var(--quiz-header-text); }
+    #simple-main .activity-option {
+        background-color: var(--quiz-option);
+        border-color: var(--quiz-accent);
+        color: var(--quiz-option-text);
+        box-shadow: 0 6px 0 0 rgba(0, 0, 0, 0.10);
+    }
+    /* Quiz options read larger than body copy — the adt-body scale bottoms
+       out at 16px, which is too small for a tappable answer. Floor at 20px. */
+    #simple-main .activity-option,
+    #simple-main .activity-option .option-text {
+        font-size: 20px;
+    }
+    #simple-main .activity-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 0 0 rgba(0, 0, 0, 0.12);
+    }
+    #simple-main .activity-option:focus,
+    #simple-main .activity-option:focus-within {
+        outline: 3px solid #2563eb;
+        outline-offset: 2px;
+    }
+    #simple-main .activity-option.selected-option {
+        border-color: var(--quiz-accent);
+        border-width: 4px;
+
+<!-- … 154 more lines -->
