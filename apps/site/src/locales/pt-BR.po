@@ -26,8 +26,8 @@ msgid "{0} latest is <0>{1}</0> — the project is on <1>{2}</1>. A {3} build fo
 msgstr "A versão mais recente de {0} é <0>{1}</0> — o projeto está em <1>{2}</1>. Ainda não há uma build de {3} para a tag mais nova."
 
 #. placeholder {0}: new Date().getFullYear()
-msgid "© {0} ADT Studio — MIT licensed."
-msgstr "© {0} ADT Studio — Licença MIT."
+msgid "© {0} ADT Studio — AGPL-3.0 licensed."
+msgstr "© {0} ADT Studio — Licença AGPL-3.0."
 
 msgid "4 languages"
 msgstr "4 idiomas"
@@ -76,6 +76,9 @@ msgstr "ADT Studio está atualmente em"
 
 msgid "ADT Studio takes one PDF and rebuilds it as a fully-editable, fully-yours accessible book — with the pieces that used to take a team of specialists."
 msgstr "ADT Studio pega um PDF e o reconstrói como um livro acessível totalmente editável e seu — com as partes que costumavam exigir uma equipe de especialistas."
+
+msgid "AGPL-3.0 licensed"
+msgstr "Licença AGPL-3.0"
 
 msgid "AI providers & cost"
 msgstr "Provedores de IA e custos"
@@ -185,9 +188,6 @@ msgstr "Fechar menu"
 msgid "Coming soon"
 msgstr "Em breve"
 
-#~ msgid "Community & Support"
-#~ msgstr "Comunidade e suporte"
-
 msgid "Configure each stage — extract, storyboard, layout — then let ADT Studio build the book. Review the output, correct anything that needs a human touch."
 msgstr "Configure cada etapa — extração, storyboard, layout — e deixe o ADT Studio construir o livro. Revise o resultado, corrija qualquer coisa que precise de um toque humano."
 
@@ -203,9 +203,6 @@ msgstr "Converter um PDF em um ADT"
 msgid "Converting"
 msgstr "Conversão"
 
-#~ msgid "Core Concepts"
-#~ msgstr "Conceitos centrais"
-
 msgid "Couldn’t load the changelog"
 msgstr "Não foi possível carregar o registro de alterações"
 
@@ -214,9 +211,6 @@ msgstr "Não foi possível acessar o GitHub"
 
 msgid "Cover · Chapter 1"
 msgstr "Capa · Capítulo 1"
-
-#~ msgid "Create a New Project"
-#~ msgstr "Criar um novo projeto"
 
 msgid "Custom"
 msgstr "Personalizado"
@@ -363,9 +357,6 @@ msgstr "Tudo em um só lugar"
 msgid "excerpt"
 msgstr "trecho"
 
-#~ msgid "Excerpt from a real book"
-#~ msgstr "Trecho de um livro real"
-
 msgid "Export to a reader"
 msgstr "Exportar para um leitor"
 
@@ -451,9 +442,6 @@ msgstr "Agrupando conteúdo por propósito, depois organizando cada seção como
 msgid "Guidelines"
 msgstr "Diretrizes"
 
-#~ msgid "Help"
-#~ msgstr "Ajuda"
-
 msgid "Here's what shipped in the latest version — and there are plenty more where this came from."
 msgstr "Aqui está o que foi enviado na última versão — e há muito mais de onde isso veio."
 
@@ -508,9 +496,6 @@ msgstr "Integração"
 msgid "Interactive activities"
 msgstr "Atividades interativas"
 
-#~ msgid "Introduction"
-#~ msgstr "Introdução"
-
 msgid "Issues"
 msgstr "Problemas"
 
@@ -535,9 +520,6 @@ msgstr "Camada de traduções, texto-para-fala e um glossário — tudo inspecio
 msgid "Laying out spreads"
 msgstr "Diagramando spreads"
 
-#~ msgid "Learn"
-#~ msgstr "Aprender"
-
 msgid "License"
 msgstr "Licença"
 
@@ -550,23 +532,17 @@ msgstr "Ouça o livro, página por página."
 msgid "LIVE"
 msgstr "AO VIVO"
 
-#~ msgid "LLM Providers & API Keys"
-#~ msgstr "Provedores de LLM e chaves de API"
-
 msgid "Localize your ADT"
 msgstr "Localize seu ADT"
 
-msgid "Localized image variants, for images whose content was translated. It is empty in this book because no image needed a translated variant."
-msgstr "Variantes localizadas de imagem, para imagens cujo conteúdo foi traduzido. Está vazio neste livro porque nenhuma imagem precisou de uma variante traduzida."
+msgid "Localized image variants. The key is the image node's data-id and the value is the translated file, which sits beside the original. Shown for pt-BR because variants exist for target languages; the source-language map is always empty."
+msgstr "Variantes localizadas de imagem. A chave é o data-id do nó de imagem e o valor é o arquivo traduzido, que fica ao lado do original. Mostrado para pt-BR porque as variantes existem para idiomas de destino; o mapa do idioma-fonte está sempre vazio."
 
 msgid "Made possible by"
 msgstr "Tornado possível por"
 
 msgid "Math that reads aloud"
 msgstr "Matemática que é lida em voz alta"
-
-msgid "MIT licensed"
-msgstr "Licença MIT"
 
 msgid "Narration · 0:42"
 msgstr "Narração · 0:42"
@@ -647,9 +623,6 @@ msgstr "Pipeline de desktop de código aberto para transformar PDFs em livros ac
 msgid "Output"
 msgstr "Saída"
 
-#~ msgid "Output Bundles"
-#~ msgstr "Pacotes de saída"
-
 msgid "Overview"
 msgstr "Visão geral"
 
@@ -683,17 +656,11 @@ msgstr "Personalize ainda mais"
 msgid "Pick a preset"
 msgstr "Escolha um preset"
 
-#~ msgid "Pipeline"
-#~ msgstr "Pipeline"
-
 msgid "Pipeline · extract"
 msgstr "Pipeline · extrair"
 
 msgid "Pipeline · storyboard"
 msgstr "Pipeline · storyboard"
-
-#~ msgid "Pipeline Overview"
-#~ msgstr "Visão geral do pipeline"
 
 msgid "Play"
 msgstr "Reproduzir"
@@ -727,9 +694,6 @@ msgstr "Projeto"
 
 msgid "Project Archive"
 msgstr "Arquivo do projeto"
-
-#~ msgid "Quick Start"
-#~ msgstr "Início rápido"
 
 msgid "Quickstart"
 msgstr "Início rápido"
@@ -897,12 +861,6 @@ msgstr "Com o apoio de"
 
 msgid "Table of contents"
 msgstr "Sumário"
-
-#~ msgid "Table of Contents"
-#~ msgstr "Sumário"
-
-#~ msgid "Templates"
-#~ msgstr "Modelos"
 
 msgid "Text"
 msgstr "Texto"

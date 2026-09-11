@@ -138,7 +138,7 @@ export function WelcomeScene() {
             style={{ transitionDelay: "650ms" }}
           >
             <span className="font-mono">
-              <Trans>MIT licensed</Trans>
+              <Trans>AGPL-3.0 licensed</Trans>
             </span>
             <span className="h-1 w-1 rounded-full bg-[color:var(--color-border)]" />
             <span className="font-mono">
