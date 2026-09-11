@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
+import { runInNewContext } from "node:vm"
+import { JSDOM } from "jsdom"
 import type { Storage, PageData } from "@adt/storage"
 import {
   computePackagingInputHash,
@@ -2110,7 +2112,29 @@ describe("packageAdtWeb", () => {
     const stub = fs.readFileSync(path.join(adtDir, "index.html"), "utf-8")
     expect(stub).toContain('content="0; url=pg001_sec001.html"')
     expect(stub).toContain('href="pg001_sec001.html"')
-    expect(stub).toContain('location.replace("pg001_sec001.html")')
+    const dom = new JSDOM(stub)
+    const document = dom.window.document
+    // A static refresh must not compete with the URL-preserving JS redirect.
+    const refresh = document.querySelector('meta[http-equiv="refresh"]')
+    expect(refresh?.parentElement?.tagName).toBe("NOSCRIPT")
+    expect(refresh?.getAttribute("content")).toBe("0; url=pg001_sec001.html")
+    const script = document.querySelector("script")!.textContent!
+    for (const [search, hash] of [
+      ["", ""],
+      ["?embed=1", ""],
+      ["", "#pg001_n001"],
+      ["?embed=1&v=42", "#glossary=Hello%20world"],
+    ]) {
+      const destinations: string[] = []
+      runInNewContext(script, {
+        document,
+        location: { search, hash, replace: (url: string) => destinations.push(url) },
+      })
+      const expected = `pg001_sec001.html${search}${hash}`
+      expect(destinations).toEqual([expected])
+      expect(document.getElementById("entry-link")?.getAttribute("href")).toBe(expected)
+    }
+    dom.window.close()
     // It is a redirect, not a copy of the page.
     expect(stub).not.toContain("<p>First</p>")
   })

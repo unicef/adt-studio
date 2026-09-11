@@ -179,7 +179,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 5
+const PACKAGING_FORMAT_VERSION = 6
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -2868,6 +2868,8 @@ function renderEntryRedirectHtml(
   language: string,
   title: string,
 ): string {
+  // Only no-JS readers use the static refresh. With JS, preserve URL state
+  // (embed mode and first-page anchors) without a competing bare-URL refresh.
   const href = escapeAttr(firstHref)
   // The link text is the book's own title rather than an invented English
   // phrase: this file ships in every language and has no interface catalogue.
@@ -2876,12 +2878,18 @@ function renderEntryRedirectHtml(
 <html lang="${escapeAttr(language)}">
 <head>
 <meta charset="utf-8" />
-<meta http-equiv="refresh" content="0; url=${href}" />
+<noscript><meta http-equiv="refresh" content="0; url=${href}" /></noscript>
 <title>${label}</title>
-<script>location.replace(${JSON.stringify(firstHref)})</script>
 </head>
 <body>
-<p><a href="${href}">${label}</a></p>
+<p><a id="entry-link" href="${href}">${label}</a></p>
+<script>
+(function () {
+  var target = ${JSON.stringify(firstHref)} + location.search + location.hash;
+  document.getElementById("entry-link").href = target;
+  location.replace(target);
+})();
+</script>
 </body>
 </html>
 `
