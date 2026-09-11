@@ -5008,6 +5008,9 @@ msgstr "Invalid range"
 msgid "Invalid value."
 msgstr "Invalid value."
 
+msgid "Invalidated"
+msgstr "Invalidated"
+
 msgid "Isolated asset"
 msgstr "Isolated asset"
 

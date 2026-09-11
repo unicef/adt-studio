@@ -16,7 +16,7 @@ import {
 } from "./web.js"
 import { htmlToXhtml } from "../html-semantics.js"
 import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
-import { sortTocEntriesByPageList } from "./toc-order.js"
+import { orderTocEntries } from "../toc-reading-order.js"
 
 /**
  * Canonical word-id format used by SMIL fragment refs, EPUB packaging
@@ -848,7 +848,8 @@ export function buildNavDocument(
     // editing) left it in, and a nav document that disagrees with the spine
     // and the NCX beside it is a broken EPUB.
     const sectionMap = new Map(pageList.map((p) => [p.section_id, p.href]))
-    const items = sortTocEntriesByPageList(llmToc.entries, pageList)
+    const positionById = new Map(pageList.map((p, i) => [p.section_id, i]))
+    const items = orderTocEntries(llmToc.entries, positionById)
       .map((e) => {
         const href = sectionMap.get(e.sectionId)
         if (!href) return ""

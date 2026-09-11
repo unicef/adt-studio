@@ -5,7 +5,7 @@ import path from "node:path"
 import { Hono } from "hono"
 import { createBookStorage } from "@adt/storage"
 import { errorHandler } from "../middleware/error-handler.js"
-import { createQuizRoutes, insertQuizAtPosition } from "./quizzes.js"
+import { createQuizRoutes, orderQuizzesForInsert } from "./quizzes.js"
 import type { Quiz, QuizGenerationOutput } from "@adt/types"
 
 const label = "quiz-book"
@@ -56,6 +56,28 @@ function storedQuizzes(): Quiz[] {
   }
 }
 
+/** Write straight to storage, bypassing the route — the only way to set up a
+ *  book whose stored quizzes have no ids, as every book did before `quizId`. */
+function seedQuizzes(body: QuizGenerationOutput) {
+  seedRaw(body)
+}
+
+/** `seedQuizzes` without the schema, for versions today's schema rejects. */
+function seedRaw(body: unknown) {
+  const storage = createBookStorage(label, tmpDir)
+  try {
+    storage.putNodeData("quiz-generation", "book", body)
+  } finally {
+    storage.close()
+  }
+}
+
+async function getQuizzes(): Promise<QuizGenerationOutput> {
+  const res = await app.request(`/api/books/${label}/quizzes`)
+  expect(res.status).toBe(200)
+  return (await res.json()).quizzes as QuizGenerationOutput
+}
+
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-quiz-route-"))
   const storage = createBookStorage(label, tmpDir)
@@ -95,6 +117,45 @@ describe("PUT /api/books/:label/quizzes", () => {
     expect(saved.map((q) => q.quizId)).toEqual(["qz003", "qz001", "qz002"])
   })
 
+  it("reserves ids held by a version today's schema no longer accepts", async () => {
+    // A superseded version whose quizzes don't satisfy the current schema (here
+    // two options where three are required) still burned the ids it holds. If
+    // the reservation validates each version and skips the ones that fail, that
+    // version's ids look free and get handed straight back out.
+    seedRaw({
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      language: "en",
+      pagesPerQuiz: 3,
+      quizzes: [
+        {
+          quizId: "qz002",
+          quizIndex: 0,
+          afterPageId: "pg001",
+          pageIds: ["pg001"],
+          question: "retired",
+          options: [
+            { text: "a", explanation: "" },
+            { text: "b", explanation: "" },
+          ],
+          answerIndex: 0,
+          reasoning: "",
+        },
+      ],
+    })
+    seedQuizzes(output([quiz("one", { quizId: "qz001" })]))
+
+    const fetched = await getQuizzes()
+    const res = await putQuizzes({
+      ...fetched,
+      quizzes: [...fetched.quizzes, quiz("newcomer")],
+    })
+    expect(res.status).toBe(200)
+
+    const ids = storedQuizzes().map((q) => q.quizId)
+    expect(ids).toEqual(["qz001", "qz003"])
+    expect(ids).not.toContain("qz002")
+  })
+
   it("does not reissue the id of a quiz deleted in an earlier version", async () => {
     await putQuizzes(output([quiz("one"), quiz("two")]))
     const [first] = storedQuizzes()
@@ -110,9 +171,113 @@ describe("PUT /api/books/:label/quizzes", () => {
   })
 })
 
-describe("insertQuizAtPosition", () => {
-  const FALLBACK = { generatedAt: "2026-02-01T00:00:00.000Z", language: "en", pagesPerQuiz: 3 }
+describe("GET /api/books/:label/quizzes", () => {
+  it("resolves ids for a book stored before quizId existed", async () => {
+    seedQuizzes(output([quiz("one"), quiz("two")]))
 
+    const got = await getQuizzes()
+
+    // Exactly the ids `resolveQuizId` derives, so the catalog keys the UI shows
+    // match the ones packaging and the text catalog already use.
+    expect(got.quizzes.map((q) => q.quizId)).toEqual(["qz001", "qz002"])
+  })
+
+  it("does not persist a version just for being read", async () => {
+    seedQuizzes(output([quiz("one")]))
+    const before = storedQuizzes()
+
+    await getQuizzes()
+
+    expect(storedQuizzes()).toEqual(before)
+    expect(storedQuizzes()[0].quizId).toBeUndefined()
+  })
+})
+
+describe("legacy books whose first edit reorders the quizzes", () => {
+  it("keeps each survivor's id when the first of three quizzes is deleted", async () => {
+    // The regression this exists to prevent. A book with no stored ids: its
+    // catalog entries, translations and audio are keyed qz001/qz002/qz003 by
+    // array position. Deleting the first quiz shifts the survivors up, so
+    // stamping the post-delete array would give them qz001/qz002 — the ids of
+    // the quizzes that used to precede them.
+    seedQuizzes(output([quiz("one"), quiz("two"), quiz("three")]))
+
+    // The studio round-trips what GET handed it, minus the deleted quiz.
+    const fetched = await getQuizzes()
+    const res = await putQuizzes({
+      ...fetched,
+      quizzes: fetched.quizzes.slice(1),
+    })
+    expect(res.status).toBe(200)
+
+    const saved = storedQuizzes()
+    expect(saved.map((q) => q.question)).toEqual(["two", "three"])
+    expect(saved.map((q) => q.quizId)).toEqual(["qz002", "qz003"])
+  })
+
+  it("keeps them when a quiz is inserted mid-book, and gives the newcomer a fresh id", async () => {
+    seedQuizzes(output([quiz("one"), quiz("two"), quiz("three")]))
+
+    const fetched = await getQuizzes()
+    const res = await putQuizzes({
+      ...fetched,
+      quizzes: [fetched.quizzes[0], quiz("new"), ...fetched.quizzes.slice(1)],
+    })
+    expect(res.status).toBe(200)
+
+    const saved = storedQuizzes()
+    expect(saved.map((q) => q.question)).toEqual(["one", "new", "two", "three"])
+    expect(saved.map((q) => q.quizId)).toEqual([
+      "qz001",
+      "qz004",
+      "qz002",
+      "qz003",
+    ])
+  })
+
+  it("does not reissue an id the legacy version spent but never stored", async () => {
+    // A legacy version records no quizIds at all, so the ids it spent exist
+    // only as array positions. Deleting those quizzes on the *first* edit
+    // retires qz001/qz002 without ever writing them into a stored version —
+    // and a reservation that reads only stored `quizId` fields cannot see them.
+    seedQuizzes(output([quiz("one"), quiz("two"), quiz("three")]))
+
+    const fetched = await getQuizzes()
+    await putQuizzes({ ...fetched, quizzes: fetched.quizzes.slice(2) })
+    expect(storedQuizzes().map((q) => q.quizId)).toEqual(["qz003"])
+
+    // Now add a quiz on an earlier page, so it sorts to the front and asks for
+    // the lowest free sequence number.
+    const afterDelete = await getQuizzes()
+    const res = await putQuizzes({
+      ...afterDelete,
+      quizzes: [quiz("newcomer"), ...afterDelete.quizzes],
+    })
+    expect(res.status).toBe(200)
+
+    const saved = storedQuizzes()
+    expect(saved.map((q) => q.question)).toEqual(["newcomer", "three"])
+    // qz001 and qz002 belong to the deleted quizzes for good — their
+    // translations and generated audio are still on disk under those keys.
+    expect(saved.map((q) => q.quizId)).toEqual(["qz004", "qz003"])
+  })
+
+  it("still stamps positional ids when an unstamped body re-saves the current version", async () => {
+    // The counterpart to the test above: retiring a superseded version's
+    // positional ids must not retire the *current* version's. A direct API
+    // caller that PUTs the quizzes it has without ids is claiming this book's
+    // existing qz001/qz002 — the keys its catalog is already written against —
+    // not asking for two fresh ones.
+    seedQuizzes(output([quiz("one"), quiz("two")]))
+
+    const res = await putQuizzes(output([quiz("one"), quiz("two")]))
+    expect(res.status).toBe(200)
+
+    expect(storedQuizzes().map((q) => q.quizId)).toEqual(["qz001", "qz002"])
+  })
+})
+
+describe("orderQuizzesForInsert", () => {
   /** The reader meets pg003 first, then pg002, then pg001 — a reordered book. */
   const REVERSED = new Map([
     ["pg003", 0],
@@ -120,85 +285,71 @@ describe("insertQuizAtPosition", () => {
     ["pg001", 2],
   ])
 
-  function insert(
-    existing: QuizGenerationOutput | null,
+  function order(
+    existing: Quiz[],
     newQuiz: Quiz,
-    over: Partial<Parameters<typeof insertQuizAtPosition>[0]> = {},
+    over: Partial<Parameters<typeof orderQuizzesForInsert>[0]> = {},
   ) {
-    return insertQuizAtPosition({
+    return orderQuizzesForInsert({
       existing,
       newQuiz,
       placement: "after",
       afterPageId: newQuiz.afterPageId,
       readingRank: REVERSED,
-      reservedIds: [],
-      fallback: FALLBACK,
       ...over,
     })
   }
 
-  it("keeps the ids of quizzes that predate quizId when the book has been reordered", () => {
-    // A book saved before `quizId` existed: each quiz's catalog entries,
-    // translations and audio are keyed by its array position — "a" owns qz001.
-    // The reading order reverses those positions, so stamping after the sort
-    // would give "a" the id whose audio belongs to "b".
-    const legacy = output([
-      quiz("a", { afterPageId: "pg001" }),
-      quiz("b", { afterPageId: "pg002" }),
-    ])
-
-    const result = insert(legacy, quiz("new", { afterPageId: "pg003" }))
-
-    const byQuestion = new Map(result.quizzes.map((q) => [q.question, q.quizId]))
-    expect(byQuestion.get("a")).toBe("qz001")
-    expect(byQuestion.get("b")).toBe("qz002")
-    // The newcomer takes a fresh id rather than one already spoken for.
-    expect(byQuestion.get("new")).toBe("qz003")
-  })
-
   it("orders the set by reading position, not by source page", () => {
-    const legacy = output([
-      quiz("a", { afterPageId: "pg001" }),
-      quiz("b", { afterPageId: "pg002" }),
-    ])
+    const existing = [
+      quiz("a", { afterPageId: "pg001", quizId: "qz001" }),
+      quiz("b", { afterPageId: "pg002", quizId: "qz002" }),
+    ]
 
-    const result = insert(legacy, quiz("new", { afterPageId: "pg003" }))
+    const result = order(existing, quiz("new", { afterPageId: "pg003" }))
 
-    expect(result.quizzes.map((q) => q.question)).toEqual(["new", "b", "a"])
-    expect(result.quizzes.map((q) => q.quizIndex)).toEqual([0, 1, 2])
+    expect(result.map((q) => q.question)).toEqual(["new", "b", "a"])
   })
 
-  it("does not hand a replaced quiz's id to the quiz replacing it", () => {
-    const legacy = output([
-      quiz("a", { afterPageId: "pg001" }),
-      quiz("b", { afterPageId: "pg002" }),
-    ])
+  it("drops the quizzes already at a position when replacing it", () => {
+    const existing = [
+      quiz("a", { afterPageId: "pg001", quizId: "qz001" }),
+      quiz("b", { afterPageId: "pg002", quizId: "qz002" }),
+    ]
 
-    const result = insert(legacy, quiz("new", { afterPageId: "pg001" }), {
+    const result = order(existing, quiz("new", { afterPageId: "pg001" }), {
       placement: "replace",
       afterPageId: "pg001",
     })
 
-    // "a" is gone; the newcomer must not inherit qz001's catalog entries.
-    expect(result.quizzes.map((q) => q.question)).toEqual(["b", "new"])
-    expect(result.quizzes.map((q) => q.quizId)).toEqual(["qz002", "qz003"])
+    expect(result.map((q) => q.question)).toEqual(["b", "new"])
+  })
+
+  it("keeps quizzes sharing an anchor in order, with the newcomer last", () => {
+    const existing = [
+      quiz("first", { afterPageId: "pg002", quizId: "qz001" }),
+      quiz("second", { afterPageId: "pg002", quizId: "qz002" }),
+    ]
+
+    const result = order(existing, quiz("new", { afterPageId: "pg002" }))
+
+    expect(result.map((q) => q.question)).toEqual(["first", "second", "new"])
   })
 
   it("sorts a quiz whose anchor page is gone to the end", () => {
-    const existing = output([
+    const existing = [
       quiz("orphan", { afterPageId: "pg404", quizId: "qz001" }),
       quiz("kept", { afterPageId: "pg002", quizId: "qz002" }),
-    ])
+    ]
 
-    const result = insert(existing, quiz("new", { afterPageId: "pg003" }))
+    const result = order(existing, quiz("new", { afterPageId: "pg003" }))
 
-    expect(result.quizzes.map((q) => q.question)).toEqual(["new", "kept", "orphan"])
+    expect(result.map((q) => q.question)).toEqual(["new", "kept", "orphan"])
   })
 
   it("starts a fresh set when the book has no quizzes yet", () => {
-    const result = insert(null, quiz("first", { afterPageId: "pg001" }))
+    const result = order([], quiz("first", { afterPageId: "pg001" }))
 
-    expect(result.quizzes.map((q) => q.quizId)).toEqual(["qz001"])
-    expect(result.generatedAt).toBe(FALLBACK.generatedAt)
+    expect(result.map((q) => q.question)).toEqual(["first"])
   })
 })

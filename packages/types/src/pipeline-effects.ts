@@ -225,13 +225,12 @@ export function getStageClearNodes(stage: StageName): PipelineNodeName[] {
   return nodes
 }
 
-/** Stages whose handler merges its own prior output on re-run (e.g. glossary
- * preserves manual, edited, and pruned terms) rather than replacing it. */
-const STAGES_PRESERVING_OWN_OUTPUT: readonly StageName[] = ["glossary"]
+/** Keep prior output until these stages successfully write a new version.
+ * Quizzes also use their history to reserve IDs across full regeneration. */
+const STAGES_PRESERVING_OWN_OUTPUT: readonly StageName[] = ["glossary", "quizzes"]
 
-/** Like getStageClearNodes(fromStage), but keeps a merge-preserving stage's own
- * output when that stage is inside the [fromStage, toStage] run range so its
- * handler can re-merge the prior version. Outside the range it is still cleared. */
+/** Like getStageClearNodes(fromStage), but retains selected stages' prior output
+ * until their handlers save a new version. Outside the run range it is cleared. */
 export function getStageRerunClearNodes(
   fromStage: StageName,
   toStage: StageName

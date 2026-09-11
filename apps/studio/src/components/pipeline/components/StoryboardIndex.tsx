@@ -25,6 +25,7 @@ import {
 import { useTogglePrune } from "@/hooks/use-toggle-prune"
 import { announceToScreenReader } from "@/lib/aria-live"
 import { resolveQuizId, type Quiz } from "@adt/types"
+import { parseQuizRouteId } from "@/lib/quiz-route"
 
 /**
  * Sidebar list shown only on the storyboard stage. Lists every section
@@ -98,6 +99,9 @@ export function StoryboardIndex({
     }
     const quizById = new Map<string, { quiz: Quiz; page: PageSummaryItem }>()
     const pageById = new Map(pages.map((page) => [page.pageId, page]))
+    // The API resolves legacy ids before returning quizzes, so `quizId` is
+    // populated in practice; `resolveQuizId` keeps this total without a
+    // non-null assertion, since the type still allows it to be absent.
     ;(quizzesData?.quizzes?.quizzes ?? []).forEach((quiz, i) => {
       const page = pageById.get(quiz.afterPageId)
       if (page) quizById.set(resolveQuizId(quiz, i), { quiz, page })
@@ -186,10 +190,10 @@ export function StoryboardIndex({
 
   // Quizzes are routed via a synthetic pageId of `quiz-{quizId}` so we can
   // reuse the existing route shape (`/books/$label/$step/$pageId`). The
-  // storyboard view detects that prefix and renders the quiz panel.
-  const selectedQuizId = selectedPageId?.startsWith("quiz-")
-    ? selectedPageId.slice("quiz-".length)
-    : null
+  // storyboard view detects that prefix and renders the quiz panel; it parses
+  // the id with the same helper, so a legacy `quiz-{arrayIndex}` link highlights
+  // the row it renders.
+  const selectedQuizId = selectedPageId ? parseQuizRouteId(selectedPageId) : null
   const handleQuizClick = useCallback(
     (quizId: string) => {
       navigate({

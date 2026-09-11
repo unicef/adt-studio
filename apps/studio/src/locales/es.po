@@ -5008,6 +5008,9 @@ msgstr "Intervalo no válido"
 msgid "Invalid value."
 msgstr "Valor no válido."
 
+msgid "Invalidated"
+msgstr "Invalidado"
+
 msgid "Isolated asset"
 msgstr "Recurso aislado"
 

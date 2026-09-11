@@ -174,6 +174,46 @@ describe("reading-order resolver", () => {
     }
   })
 
+  it.each([
+    ["qz002", undefined],
+    ["qz001", "qz001"],
+    ["../outside", "qz002"],
+  ])("rejects inconsistent stored quiz identities (%s, %s)", (first, second) => {
+    const storage = makeStorage()
+    try {
+      seedTwoPages(storage)
+      storage.putNodeData("quiz-generation", "book", quizGeneration([
+        { quizId: first, afterPageId: "pg001" },
+        { quizId: second, afterPageId: "pg002" },
+      ]))
+      expect(() => resolveReadingOrder(storage)).toThrow(/quiz id/i)
+      expect(resolveReadingOrder(storage, { includeQuizzes: false }).items).toHaveLength(4)
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("resolves legacy IDs after rollback without writing a new version", () => {
+    const storage = makeStorage()
+    try {
+      seedTwoPages(storage)
+      const legacyVersion = storage.putNodeData("quiz-generation", "book", quizGeneration([
+        { afterPageId: "pg001" }, { afterPageId: "pg002" },
+      ]))
+      storage.putNodeData("quiz-generation", "book", quizGeneration([
+        { quizId: "qz009", afterPageId: "pg001" },
+      ]))
+      storage.setCurrentNodeVersion("quiz-generation", "book", legacyVersion)
+      const before = storage.getNodeVersionFingerprint()
+      expect(resolveReadingOrder(storage).items.filter((i) => i.kind === "quiz").map((i) => i.id))
+        .toEqual(["qz001", "qz002"])
+      expect(storage.getNodeVersionFingerprint()).toEqual(before)
+      expect(storage.getAllNodeVersions("quiz-generation", "book")).toHaveLength(2)
+    } finally {
+      storage.close()
+    }
+  })
+
   it("drops quiz items when quizzes are disabled", () => {
     const storage = makeStorage()
     try {

@@ -16,7 +16,7 @@ import { useSectionNav } from "@/routes/books.$label"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { useHasUnsavedChanges } from "../../components/floating-save"
-import { formatQuizId } from "@adt/types"
+import { parseQuizRouteId } from "@/lib/quiz-route"
 
 
 export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
@@ -65,16 +65,11 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   // Quizzes appear in the sidebar with a synthetic pageId of `quiz-{quizId}`.
   // When that pageId is in the URL we render the quiz panel instead of loading
-  // page detail — calling usePage with a fake id would 404.
-  //
-  // Links made before quizzes had stable ids carry `quiz-{arrayIndex}`; those
-  // resolve to the id that index derived back then, so old tabs and bookmarks
-  // keep working.
-  const quizMatch = selectedPageIdProp?.match(/^quiz-(.+)$/)
-  const selectedQuizId = quizMatch
-    ? /^\d+$/.test(quizMatch[1])
-      ? formatQuizId(parseInt(quizMatch[1], 10) + 1)
-      : quizMatch[1]
+  // page detail — calling usePage with a fake id would 404. `parseQuizRouteId`
+  // also carries the legacy `quiz-{arrayIndex}` shape, and StoryboardIndex uses
+  // it too so the sidebar highlights the same row this renders.
+  const selectedQuizId = selectedPageIdProp
+    ? parseQuizRouteId(selectedPageIdProp)
     : null
   const isQuizRoute = selectedQuizId != null
 

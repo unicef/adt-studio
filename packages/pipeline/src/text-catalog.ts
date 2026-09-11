@@ -13,6 +13,7 @@ import {
   WebRenderingOutput as WebRenderingOutputSchema,
   answerTextId,
   resolveQuizId,
+  withResolvedQuizIds,
 } from "@adt/types"
 import type { Storage, PageData } from "@adt/storage"
 import { getGlossaryItemTextId } from "./glossary.js"
@@ -199,8 +200,9 @@ function buildQuizEntries(storage: Storage): TextCatalogEntry[] {
   const row = storage.getLatestNodeData("quiz-generation", "book")
   if (!row) return []
 
-  const data = row.data as QuizGenerationOutput
-  if (!data.quizzes) return []
+  const stored = row.data as QuizGenerationOutput
+  if (!stored.quizzes) return []
+  const data = withResolvedQuizIds(stored)
 
   const entries: TextCatalogEntry[] = []
   for (let i = 0; i < data.quizzes.length; i++) {

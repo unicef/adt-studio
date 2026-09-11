@@ -6,7 +6,9 @@ import { z } from "zod"
 import {
   parseBookLabel,
   QuizGenerationOutput,
-  ensureQuizIds,
+  withResolvedQuizIds,
+  QuizIdExhaustedError,
+  QuizIdentityError,
   type Quiz,
   type WebRenderingOutput,
 } from "@adt/types"
@@ -16,6 +18,8 @@ import {
   readingOrderPageIds,
   buildQuizGenerationConfig,
   generateQuiz,
+  saveQuizOutput,
+  assertQuizGenerationCapacity,
   loadBookConfig,
   normalizeLocale,
   getRenderSectioning,
@@ -34,69 +38,60 @@ function safeParseLabel(label: string): string {
   }
 }
 
-/**
- * Every quiz id this book has ever used, across all stored versions. Reserving
- * them means a delete-then-add cannot reissue a retired quiz's id and inherit
- * its `${quizId}_que` / `${quizId}_o${n}` catalog entries — and with them the
- * translations and generated audio of a quiz the user removed.
- */
-function usedQuizIds(storage: Storage): string[] {
-  const ids: string[] = []
-  for (const row of storage.getAllNodeVersions("quiz-generation", "book")) {
-    const parsed = QuizGenerationOutput.safeParse(row.data)
-    if (!parsed.success) continue
-    for (const quiz of parsed.data.quizzes) {
-      if (quiz.quizId) ids.push(quiz.quizId)
+/** Surface identity validation and allocation failures as client errors. */
+function withQuizIdentityErrors<T>(operation: () => T): T {
+  try {
+    return operation()
+  } catch (err) {
+    if (err instanceof QuizIdExhaustedError || err instanceof QuizIdentityError) {
+      throw new HTTPException(400, { message: err.message })
     }
+    throw err
   }
-  return ids
+}
+
+function assertQuizzesIdle(storage: Storage): void {
+  if (storage.getStepRuns().some((run) => run.step === "quiz-generation" && run.status === "running")) {
+    throw new HTTPException(409, { message: "Quiz generation is currently running. Wait for it to finish before editing quizzes." })
+  }
 }
 
 /**
- * Place a hand-added quiz in the book's quiz set.
+ * Order the book's quiz set around a hand-added quiz.
  *
  * A position can hold several quizzes shown one after another: `"after"`
  * appends the newcomer behind any already there, `"replace"` drops them first.
- * The set is then ordered by where the reader meets each quiz's anchor page and
- * `quizIndex` renumbered to stay sequential.
+ * The set is then ordered by where the reader *meets* each quiz's anchor page,
+ * not by that page's source number — a reordered book puts the two in different
+ * orders, and batching or placing by source order groups non-adjacent pages and
+ * spaces the quizzes unevenly.
  *
- * The ordering of the two id-stamping passes is the load-bearing part. A quiz
- * that predates `quizId` derives its id — and so its `${quizId}_que` catalog
- * entries, their translations and their generated audio — from its position in
- * the stored array. Stamping after the sort would therefore hand such a quiz
- * whichever id used to belong to the quiz now sitting in its place. That was
- * harmless while the sort key was the source page number, which matched the
- * derivation order; it stopped being harmless when the key became reading rank,
- * because a reordered book puts the two in different orders.
+ * Ordering only. Identity is the caller's job, and the sequence matters: the
+ * stored set must already be id-resolved (`withResolvedQuizIds`) *before* it
+ * reaches this function. A quiz predating `quizId` derives its id — and so its
+ * `${quizId}_que` catalog entries, their translations and their generated audio
+ * — from its position in the stored array, so stamping after this sort would
+ * hand such a quiz whichever id used to belong to the quiz now in its place.
+ * `saveQuizOutput(..., "insert")` allocates the newcomer's id and renumbers
+ * `quizIndex` afterwards.
  *
- * Extracted from the route so this is testable without an LLM call.
+ * Extracted from the route so the ordering is testable without an LLM call.
  */
-export function insertQuizAtPosition(opts: {
-  existing: QuizGenerationOutput | null
+export function orderQuizzesForInsert(opts: {
+  /** The stored set, already id-resolved. */
+  existing: readonly Quiz[]
   newQuiz: Quiz
   placement: "replace" | "after"
   afterPageId: string
   /** pageId → position in the book. Absent means the book has no such page. */
-  readingRank: Map<string, number>
-  /** Ids used by previous stored versions, so a retired id is not reissued. */
-  reservedIds: string[]
-  fallback: { generatedAt: string; language: string; pagesPerQuiz: number }
-}): QuizGenerationOutput {
-  const { existing, newQuiz, placement, afterPageId, readingRank, reservedIds, fallback } = opts
-
-  // Stamp the stored set while it is still in its stored order — see above.
-  const stampedExisting = existing ? ensureQuizIds(existing, reservedIds).output.quizzes : []
-  // Ids stamped just now count as taken even for a quiz this call drops, so the
-  // newcomer cannot land on a removed quiz's id and inherit its entries.
-  const reserved = [
-    ...reservedIds,
-    ...stampedExisting.flatMap((quiz) => (quiz.quizId ? [quiz.quizId] : [])),
-  ]
+  readingRank: ReadonlyMap<string, number>
+}): Quiz[] {
+  const { existing, newQuiz, placement, afterPageId, readingRank } = opts
 
   const priorQuizzes =
     placement === "after"
-      ? stampedExisting
-      : stampedExisting.filter((quiz) => quiz.afterPageId !== afterPageId)
+      ? existing
+      : existing.filter((quiz) => quiz.afterPageId !== afterPageId)
 
   const quizzes = [...priorQuizzes, newQuiz]
   quizzes.sort((a, b) => {
@@ -110,20 +105,7 @@ export function insertQuizAtPosition(opts: {
     const rankB = readingRank.get(b.afterPageId) ?? Infinity
     return rankA === rankB ? 0 : rankA - rankB
   })
-  quizzes.forEach((quiz, index) => {
-    quiz.quizIndex = index
-  })
-
-  // Only the newcomer still needs an id; everything else already has one.
-  return ensureQuizIds(
-    {
-      generatedAt: existing?.generatedAt ?? fallback.generatedAt,
-      language: existing?.language ?? fallback.language,
-      pagesPerQuiz: existing?.pagesPerQuiz ?? fallback.pagesPerQuiz,
-      quizzes,
-    },
-    reserved
-  ).output
+  return quizzes
 }
 
 export function createQuizRoutes(
@@ -152,10 +134,11 @@ export function createQuizRoutes(
     const db = openBookDb(dbPath)
     try {
       // Current-pointer version (falls back to MAX) so a rollback is reflected.
-      const row = readCurrentNodeRow(db, "quiz-generation", "book")
+      const row = readCurrentNodeRow(db, "quiz-generation", "book", { includeInvalidated: true })
 
-      if (!row) {
-        return c.json({ quizzes: null, version: null })
+      if (!row || row.data === "null") {
+        // History selection survives invalidation; active output stays absent.
+        return c.json({ quizzes: null, version: null, historyVersion: row?.version ?? null })
       }
 
       let parsed: unknown
@@ -174,9 +157,15 @@ export function createQuizRoutes(
         })
       }
 
+      // Resolve ids on the way out so the client always holds them and can send
+      // them back on a PUT. Deliberately a plain positional resolve — no
+      // reserved-id allocation and no write: this is exactly what every read
+      // path derives from the same stored array, so the ids the UI shows can
+      // never diverge from the ids the pipeline uses.
       return c.json({
-        quizzes: validated.data,
+        quizzes: withResolvedQuizIds(validated.data),
         version: row.version,
+        historyVersion: row.version,
       })
     } finally {
       db.close()
@@ -198,10 +187,8 @@ export function createQuizRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      // Stamp ids on any quiz that still lacks one, so this book stops deriving
-      // them from array positions from here on.
-      const { output } = ensureQuizIds(parsed.data, usedQuizIds(storage))
-      const version = storage.putNodeData("quiz-generation", "book", output)
+      assertQuizzesIdle(storage)
+      const { version } = withQuizIdentityErrors(() => saveQuizOutput(storage, parsed.data, "edit"))
       return c.json({ version })
     } finally {
       storage.close()
@@ -245,15 +232,7 @@ export function createQuizRoutes(
       // A running quiz-generation stage rewrites the entire quiz set when it
       // finishes, so a quiz added mid-run would be silently clobbered. Reject
       // until the run completes (the UI also hides the entry points).
-      const quizStep = storage
-        .getStepRuns()
-        .find((r) => r.step === "quiz-generation")
-      if (quizStep?.status === "running") {
-        throw new HTTPException(409, {
-          message:
-            "Quiz generation is currently running. Wait for it to finish before adding a quiz.",
-        })
-      }
+      assertQuizzesIdle(storage)
 
       const appConfig = loadBookConfig(safeLabel, booksDir, configPath)
       const metadataRow = storage.getLatestNodeData("metadata", "book")
@@ -279,9 +258,15 @@ export function createQuizRoutes(
       )
 
       // Gather rendering + sectioning for the selected pages, in reading order.
-      const orderedPageIds = [...new Set(pageIds)].sort(
-        (a, b) => (readingRank.get(a) ?? 0) - (readingRank.get(b) ?? 0)
-      )
+      // A page with no reading position sorts last, matching the placement sort
+      // in `orderQuizzesForInsert` — the two disagreeing would feed the LLM its
+      // source pages in one order and anchor the resulting quiz by another.
+      // Equality first: `Infinity - Infinity` is NaN.
+      const orderedPageIds = [...new Set(pageIds)].sort((a, b) => {
+        const rankA = readingRank.get(a) ?? Infinity
+        const rankB = readingRank.get(b) ?? Infinity
+        return rankA === rankB ? 0 : rankA - rankB
+      })
       const batch: QuizPageInput[] = []
       for (const pageId of orderedPageIds) {
         const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
@@ -312,35 +297,57 @@ export function createQuizRoutes(
         providerCredentials: credentials,
       })
 
+      withQuizIdentityErrors(() => assertQuizGenerationCapacity(storage, 1))
       const generated = await generateQuiz(batch, 0, quizConfig, llmModel)
       // The user chooses where the quiz lands, independent of its source pages.
       const newQuiz: Quiz = { ...generated, afterPageId }
 
-      const existingRow = storage.getLatestNodeData("quiz-generation", "book")
-      const existing = existingRow
-        ? (existingRow.data as QuizGenerationOutput)
-        : null
+      // Add to the existing quiz set (or start a fresh one). A position can hold
+      // multiple quizzes shown one after another. With placement "after" the new
+      // quiz is appended so it lands after any quizzes already at this position;
+      // with "replace" the quiz(zes) currently at this position are dropped first.
+      // Then re-order by book position and renumber so quizIndex stays sequential.
+      //
+      // The stored set's ids are pinned *before* the insert, not after: a book
+      // that predates `quizId` derives its catalog keys from array position, so
+      // stamping after the sort would hand the newcomer whichever id used to
+      // belong to the quiz at its index — along with that quiz's translations
+      // and generated audio.
+      return storage.transaction(() => {
+        assertQuizzesIdle(storage)
+        const existingRow = storage.getLatestNodeData("quiz-generation", "book")
+        const existing = existingRow
+          ? withResolvedQuizIds(existingRow.data as QuizGenerationOutput)
+          : null
 
-      const output = insertQuizAtPosition({
-        existing,
-        newQuiz,
-        placement,
-        afterPageId,
-        readingRank,
-        reservedIds: usedQuizIds(storage),
-        fallback: {
-          generatedAt: new Date().toISOString(),
-          language: quizConfig.language,
-          pagesPerQuiz: quizConfig.pagesPerQuiz,
-        },
+        const quizzes = orderQuizzesForInsert({
+          existing: existing?.quizzes ?? [],
+          newQuiz,
+          placement,
+          afterPageId,
+          readingRank,
+        })
+
+        // Only the newcomer still lacks an id; allocation reserves every
+        // id this book has ever issued, so it cannot adopt a retired quiz's
+        // catalog entries.
+        const { output, version } = withQuizIdentityErrors(() => saveQuizOutput(
+          storage,
+          {
+            generatedAt: existing?.generatedAt ?? new Date().toISOString(),
+            language: existing?.language ?? quizConfig.language,
+            pagesPerQuiz: existing?.pagesPerQuiz ?? quizConfig.pagesPerQuiz,
+            quizzes,
+          },
+          "insert"
+        ))
+
+        // Adding a quiz by hand produces the same output as running the stage, so
+        // mark the step done — otherwise the quizzes stage never lights up as
+        // completed for books whose quizzes were all added one at a time.
+        storage.markStepCompleted("quiz-generation")
+        return c.json({ quiz: output.quizzes[quizzes.indexOf(newQuiz)], version })
       })
-
-      const version = storage.putNodeData("quiz-generation", "book", output)
-      // Adding a quiz by hand produces the same output as running the stage, so
-      // mark the step done — otherwise the quizzes stage never lights up as
-      // completed for books whose quizzes were all added one at a time.
-      storage.markStepCompleted("quiz-generation")
-      return c.json({ quiz: newQuiz, version })
     } finally {
       storage.close()
     }

@@ -25,7 +25,7 @@ import {
   ReadingOrderOutput as ReadingOrderOutputSchema,
   READING_ORDER_NODE,
   READING_ORDER_ITEM_ID,
-  ensureQuizIds,
+  withResolvedQuizIds,
   resolveQuizId,
 } from "@adt/types"
 import { getRenderSectioning } from "./render-sectioning.js"
@@ -288,7 +288,7 @@ export function resolveReadingOrder(
   const quizzes =
     options.includeQuizzes === false || !quizRow
       ? []
-      : ensureQuizIds(quizRow.data as QuizGenerationOutput).output.quizzes
+      : withResolvedQuizIds(quizRow.data as QuizGenerationOutput).quizzes
 
   const defaults = defaultReadingOrder(pageContexts, quizzes)
 

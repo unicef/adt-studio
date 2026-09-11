@@ -8,7 +8,7 @@ import { StorySectionBanner } from "./StorySectionBanner"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { usePageImage, usePages } from "@/hooks/use-pages"
 import { BASE_URL } from "@/api/client"
-import { resolveQuizId, type Quiz } from "@adt/types"
+import type { Quiz } from "@adt/types"
 
 /**
  * Quiz panel rendered inside the storyboard stage when a quiz row is selected.
@@ -38,7 +38,7 @@ export function StoryboardQuizDetail({
   const { data: pages } = usePages(bookLabel)
 
   const quiz: Quiz | undefined = quizzesData?.quizzes?.quizzes?.find(
-    (q, i) => resolveQuizId(q, i) === quizId,
+    (q) => q.quizId === quizId,
   )
 
   const afterPage = pages?.find((p) => p.pageId === quiz?.afterPageId)

@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
+import { runInNewContext } from "node:vm"
+import { JSDOM } from "jsdom"
 import type { Storage, PageData } from "@adt/storage"
 import {
   computePackagingInputHash,
@@ -851,6 +853,122 @@ describe("packageAdtWeb", () => {
     // SCORM adapter should include the quiz activity ID
     const scorm = fs.readFileSync(path.join(bookDir, "adt", "assets", "scorm.js"), "utf-8")
     expect(scorm).toContain('"qz001"')
+  })
+
+  it("names quiz pages by their stored id, not their position in the array", async () => {
+    // A book that has had quizzes added and deleted: ids are sparse and no
+    // longer ascend with the array. Everything the bundle exposes — filenames,
+    // pages.json, the answer keys and the SCORM activity list — has to follow
+    // the stored id, because that is what the book's already-generated
+    // translations and audio files are named after.
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const pages: PageData[] = [
+      { pageId: "pg001", pageNumber: 1, text: "Page one" },
+      { pageId: "pg002", pageNumber: 2, text: "Page two" },
+    ]
+
+    const section = (sectionId: string, pageNumber: number | null) => ({
+      reasoning: "ok",
+      sections: [
+        {
+          sectionId,
+          sectionType: "content",
+          nodes: [],
+          backgroundColor: "#fff",
+          textColor: "#000",
+          pageNumber,
+          isPruned: false,
+        },
+      ],
+    })
+
+    const quiz = (quizId: string, afterPageId: string, question: string) => ({
+      quizId,
+      quizIndex: 0,
+      afterPageId,
+      pageIds: [afterPageId],
+      question,
+      options: [
+        { text: "3", explanation: "Nope" },
+        { text: "4", explanation: "Yes" },
+      ],
+      answerIndex: 1,
+      reasoning: "...",
+    })
+
+    const storage = createMockStorage(pages, {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "ok", html: "<div>One</div>" },
+          ],
+        },
+        pg002: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "ok", html: "<div>Two</div>" },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: section("pg001_sec001", 1),
+        pg002: section("pg002_sec001", 2),
+      },
+      "quiz-generation": {
+        book: {
+          generatedAt: "2026-01-01T00:00:00.000Z",
+          language: "en",
+          pagesPerQuiz: 3,
+          quizzes: [
+            // qz001 and qz002 were deleted at some point; qz004 was added
+            // before qz003 and so sits earlier in the array.
+            quiz("qz004", "pg001", "Which came later?"),
+            quiz("qz003", "pg002", "Which came first?"),
+          ],
+        },
+      },
+    })
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    const pagesJson = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "pages.json"), "utf-8"),
+    ) as Array<{ section_id: string; href: string }>
+
+    // Reading order still follows the book; the *names* follow the stored ids.
+    expect(pagesJson).toEqual([
+      { section_id: "pg001_sec001", href: "pg001_sec001.html", page_number: 1 },
+      { section_id: "qz004", href: "qz004.html" },
+      { section_id: "pg002_sec001", href: "pg002_sec001.html", page_number: 2 },
+      { section_id: "qz003", href: "qz003.html" },
+    ])
+
+    // The positional names must not exist at all — a `qz001.html` here would be
+    // this book's first quiz served under a deleted quiz's identity.
+    expect(fs.existsSync(path.join(bookDir, "adt", "qz004.html"))).toBe(true)
+    expect(fs.existsSync(path.join(bookDir, "adt", "qz003.html"))).toBe(true)
+    expect(fs.existsSync(path.join(bookDir, "adt", "qz001.html"))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, "adt", "qz002.html"))).toBe(false)
+
+    // Answer keys are catalog ids too, so they carry the same id.
+    const quizHtml = fs.readFileSync(path.join(bookDir, "adt", "qz004.html"), "utf-8")
+    expect(quizHtml).toContain('data-activity-item="qz004_o0"')
+    expect(quizHtml).not.toContain("qz001_o0")
+
+    const scorm = fs.readFileSync(path.join(bookDir, "adt", "assets", "scorm.js"), "utf-8")
+    expect(scorm).toContain('"qz004"')
+    expect(scorm).toContain('"qz003"')
+    expect(scorm).not.toContain('"qz001"')
   })
 
   it("packages reader timecodes and enables word highlighting when timestamps exist", async () => {
@@ -2110,7 +2228,29 @@ describe("packageAdtWeb", () => {
     const stub = fs.readFileSync(path.join(adtDir, "index.html"), "utf-8")
     expect(stub).toContain('content="0; url=pg001_sec001.html"')
     expect(stub).toContain('href="pg001_sec001.html"')
-    expect(stub).toContain('location.replace("pg001_sec001.html")')
+    const dom = new JSDOM(stub)
+    const document = dom.window.document
+    // A static refresh must not compete with the URL-preserving JS redirect.
+    const refresh = document.querySelector('meta[http-equiv="refresh"]')
+    expect(refresh?.parentElement?.tagName).toBe("NOSCRIPT")
+    expect(refresh?.getAttribute("content")).toBe("0; url=pg001_sec001.html")
+    const script = document.querySelector("script")!.textContent!
+    for (const [search, hash] of [
+      ["", ""],
+      ["?embed=1", ""],
+      ["", "#pg001_n001"],
+      ["?embed=1&v=42", "#glossary=Hello%20world"],
+    ]) {
+      const destinations: string[] = []
+      runInNewContext(script, {
+        document,
+        location: { search, hash, replace: (url: string) => destinations.push(url) },
+      })
+      const expected = `pg001_sec001.html${search}${hash}`
+      expect(destinations).toEqual([expected])
+      expect(document.getElementById("entry-link")?.getAttribute("href")).toBe(expected)
+    }
+    dom.window.close()
     // It is a redirect, not a copy of the page.
     expect(stub).not.toContain("<p>First</p>")
   })

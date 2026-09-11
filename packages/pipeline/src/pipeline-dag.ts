@@ -67,7 +67,8 @@ import { createTemplateEngine } from "./render-template.js"
 import { captionPageImages, buildCaptionConfig, collectCaptionImageIds, groupGlossaryImageIdsByPage } from "./image-captioning.js"
 import { regenerateGlossaryPreservingEdits, buildGlossaryConfig } from "./glossary.js"
 import { generateToc, buildTocGenerationConfig } from "./toc-generation.js"
-import { generateAllQuizzes, buildQuizGenerationConfig, type QuizPageInput } from "./quiz-generation.js"
+import { generateAllQuizzes, buildQuizGenerationConfig, batchPages, type QuizPageInput } from "./quiz-generation.js"
+import { saveQuizOutput, assertQuizGenerationCapacity } from "./quiz-ids.js"
 import { resolveReadingOrder, readingOrderPageIds } from "./reading-order.js"
 import { buildTextCatalog } from "./text-catalog.js"
 import { buildEasyReadConfig, buildEasyReadSourceBlocks, createEmptyEasyReadOutput, generateEasyRead, flattenEasyReadEntries, isDeterministicEmptyEasyReadOutput } from "./easy-read.js"
@@ -722,6 +723,7 @@ export async function runFullPipeline(
         })
       }
       if (quizPages.length > 0) {
+        assertQuizGenerationCapacity(storage, batchPages(quizPages, quizConfig.pagesPerQuiz, quizConfig.quizSectionTypes).length)
         const result = await generateAllQuizzes(quizPages, quizConfig, model, {
           concurrency: effectiveConcurrency,
           onQuizComplete: (completed, total) => {
@@ -734,7 +736,12 @@ export async function runFullPipeline(
             })
           },
         })
-        storage.putNodeData("quiz-generation", "book", result)
+        saveQuizOutput(storage, result, "replace")
+      } else {
+        saveQuizOutput(storage, {
+          generatedAt: new Date().toISOString(), language: quizConfig.language,
+          pagesPerQuiz: quizConfig.pagesPerQuiz, quizzes: [],
+        }, "replace")
       }
     })
 
