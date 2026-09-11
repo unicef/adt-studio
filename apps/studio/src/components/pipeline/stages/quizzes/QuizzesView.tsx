@@ -304,13 +304,14 @@ export function QuizzesView({
   );
 
   useEffect(() => {
-    if (!data?.quizzes) return;
+    if (!data || (data.historyVersion ?? data.version) == null) return;
     setExtra(
       <div className="flex items-center gap-1.5 ml-auto">
         <VersionPicker
           step="quiz-generation"
           itemId="book"
-          currentVersion={data.version}
+          currentVersion={data.historyVersion ?? data.version}
+          currentVersionInactive={data.quizzes === null}
           saving={saving}
           dirty={dirty}
           bookLabel={bookLabel}

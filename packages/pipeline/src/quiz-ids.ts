@@ -1,6 +1,7 @@
 import type { Storage } from "@adt/storage"
 import {
   ensureQuizIds,
+  assertQuizIdCapacity,
   formatQuizId,
   parseQuizId,
   withResolvedQuizIds,
@@ -23,6 +24,12 @@ export function collectSpentQuizIds(storage: Storage): Set<string> {
     })
   }
   return ids
+}
+
+/** Advisory preflight only: saveQuizOutput rechecks in its transaction because
+ * another write can consume IDs while a model request is in flight. */
+export function assertQuizGenerationCapacity(storage: Storage, requested: number): void {
+  assertQuizIdCapacity(collectSpentQuizIds(storage).size, requested)
 }
 
 function contentKey(quiz: Quiz): string {

@@ -1,7 +1,14 @@
 import { z } from "zod"
 
-/** Canonical, filename-safe quiz identity. */
-export const QuizId = z.string().length(5).regex(/^qz(?!000)\d{3}$/, "Expected a quiz id from qz001 through qz999")
+/** IDs retain their three-digit minimum padding and grow without renumbering. */
+export const MAX_QUIZ_SEQ = Number.MAX_SAFE_INTEGER
+
+/** Canonical equality rejects alternate padding, whitespace, exponents, paths,
+ * and unsafe integers, while keeping every existing ID byte-for-byte stable. */
+export const QuizId = z.string().max(String(MAX_QUIZ_SEQ).length + 2).refine((id) => {
+  const seq = Number(id.slice(2))
+  return Number.isSafeInteger(seq) && seq > 0 && id === `qz${String(seq).padStart(3, "0")}`
+}, "Expected a canonical quiz id with a positive safe-integer sequence")
 
 export class QuizIdentityError extends Error {
   constructor(message: string) {
@@ -18,7 +25,7 @@ export type QuizOption = z.infer<typeof QuizOption>
 
 export const Quiz = z.object({
   /**
-   * Stable output-page id (`qz001`, …), allocated once and never reused. Names
+   * Stable output-page id (`qz001`, …), permanently reserved by retained history. Names
    * the quiz's HTML file and, through `${quizId}_que` / `${quizId}_o${n}`, its
    * text-catalog entries — and therefore its translations and generated audio.
    *
@@ -56,13 +63,9 @@ export type QuizGenerationOutput = z.infer<typeof QuizGenerationOutput>
 
 // ── Quiz identity ───────────────────────────────────────────────
 
-/** Sequence numbers are zero-padded to 3 digits, so this is the ceiling. */
-export const MAX_QUIZ_SEQ = 999
-
 /** Build the canonical quiz id for a sequence number. */
 export function formatQuizId(seq: number): string {
-  if (seq > MAX_QUIZ_SEQ) throw new QuizIdExhaustedError()
-  if (!Number.isInteger(seq) || seq < 1) throw new QuizIdentityError("Invalid quiz sequence number")
+  if (!Number.isSafeInteger(seq) || seq < 1) throw new QuizIdentityError("Invalid quiz sequence number")
   return `qz${String(seq).padStart(3, "0")}`
 }
 
@@ -72,19 +75,30 @@ export function parseQuizId(id: string): number | null {
 }
 
 /**
- * Thrown when a book has burned all `MAX_QUIZ_SEQ` sequence numbers.
+ * Thrown when the requested allocation exceeds the remaining capacity.
  *
  * A named error rather than an HTTP exception so this module stays usable from
  * the pipeline; the route layer maps it to a 400. Mirrors
  * `SectionIdExhaustedError`.
  */
 export class QuizIdExhaustedError extends Error {
-  constructor() {
-    super(
-      `This book has allocated all ${MAX_QUIZ_SEQ} of its quiz ids. New quizzes cannot be allocated without reusing an existing identity.`
+  constructor(requested?: number, remaining?: number) {
+    super(requested !== undefined && remaining !== undefined
+      ? `Not enough quiz IDs available: ${requested} requested, ${remaining} remaining.`
+      : "Quiz identity capacity exceeded. Existing identities cannot be reused."
     )
     this.name = "QuizIdExhaustedError"
   }
+}
+
+/** Check counts without adding them (the sum itself could be unsafe).
+ * Used before expensive generation and again at the allocation boundary. */
+export function assertQuizIdCapacity(allocated: number, requested: number): void {
+  if (!Number.isSafeInteger(allocated) || allocated < 0 || !Number.isSafeInteger(requested) || requested < 0) {
+    throw new QuizIdentityError("Invalid quiz allocation count")
+  }
+  const remaining = MAX_QUIZ_SEQ - allocated
+  if (requested > remaining) throw new QuizIdExhaustedError(requested, remaining)
 }
 
 /**
@@ -147,7 +161,7 @@ export function withResolvedQuizIds(
  * `changed` tells the caller whether persisting a new version is worthwhile;
  * readers can ignore it and use the returned value in memory.
  *
- * @throws {QuizIdExhaustedError} when every sequence number is spent.
+ * @throws {QuizIdExhaustedError} when there are too few unspent sequence numbers.
  */
 export function ensureQuizIds(
   output: QuizGenerationOutput,
@@ -169,6 +183,7 @@ export function ensureQuizIds(
     if (seq !== null) used.add(seq)
   }
 
+  assertQuizIdCapacity(used.size, output.quizzes.filter((quiz) => !quiz.quizId).length)
   let changed = false
   const quizzes = output.quizzes.map((quiz, index) => {
     if (quiz.quizId) return quiz

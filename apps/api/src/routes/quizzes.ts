@@ -17,6 +17,7 @@ import {
   buildQuizGenerationConfig,
   generateQuiz,
   saveQuizOutput,
+  assertQuizGenerationCapacity,
   loadBookConfig,
   normalizeLocale,
   getRenderSectioning,
@@ -36,9 +37,9 @@ function safeParseLabel(label: string): string {
 }
 
 /** Surface identity validation and allocation failures as client errors. */
-function saveQuizzes(storage: Storage, output: QuizGenerationOutput, mode: "edit" | "insert") {
+function withQuizIdentityErrors<T>(operation: () => T): T {
   try {
-    return saveQuizOutput(storage, output, mode)
+    return operation()
   } catch (err) {
     if (err instanceof QuizIdExhaustedError || err instanceof QuizIdentityError) {
       throw new HTTPException(400, { message: err.message })
@@ -79,10 +80,11 @@ export function createQuizRoutes(
     const db = openBookDb(dbPath)
     try {
       // Current-pointer version (falls back to MAX) so a rollback is reflected.
-      const row = readCurrentNodeRow(db, "quiz-generation", "book")
+      const row = readCurrentNodeRow(db, "quiz-generation", "book", { includeInvalidated: true })
 
-      if (!row) {
-        return c.json({ quizzes: null, version: null })
+      if (!row || row.data === "null") {
+        // History selection survives invalidation; active output stays absent.
+        return c.json({ quizzes: null, version: null, historyVersion: row?.version ?? null })
       }
 
       let parsed: unknown
@@ -109,6 +111,7 @@ export function createQuizRoutes(
       return c.json({
         quizzes: withResolvedQuizIds(validated.data),
         version: row.version,
+        historyVersion: row.version,
       })
     } finally {
       db.close()
@@ -131,7 +134,7 @@ export function createQuizRoutes(
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       assertQuizzesIdle(storage)
-      const { version } = saveQuizzes(storage, parsed.data, "edit")
+      const { version } = withQuizIdentityErrors(() => saveQuizOutput(storage, parsed.data, "edit"))
       return c.json({ version })
     } finally {
       storage.close()
@@ -232,6 +235,7 @@ export function createQuizRoutes(
         providerCredentials: credentials,
       })
 
+      withQuizIdentityErrors(() => assertQuizGenerationCapacity(storage, 1))
       const generated = await generateQuiz(batch, 0, quizConfig, llmModel)
       // The user chooses where the quiz lands, independent of its source pages.
       const newQuiz: Quiz = { ...generated, afterPageId }
@@ -273,7 +277,7 @@ export function createQuizRoutes(
         // Only the newcomer still lacks an id; allocation reserves every
         // id this book has ever issued, so it cannot adopt a retired quiz's
         // catalog entries.
-        const { output, version } = saveQuizzes(
+        const { output, version } = withQuizIdentityErrors(() => saveQuizOutput(
           storage,
           {
             generatedAt: existing?.generatedAt ?? new Date().toISOString(),
@@ -282,7 +286,7 @@ export function createQuizRoutes(
             quizzes,
           },
           "insert"
-        )
+        ))
 
         // Adding a quiz by hand produces the same output as running the stage, so
         // mark the step done — otherwise the quizzes stage never lights up as

@@ -1,6 +1,8 @@
 # Quiz identity
 
-A quiz owns a book-local `quizId` from `qz001` through `qz999`. The ID names
+A quiz owns a book-local `quizId`: `qz001`, `qz002`, …, `qz999`, `qz1000`, and
+onward up to `qz9007199254740991` (JavaScript's maximum safe integer). Padding
+has a minimum width of three digits; existing IDs never change. The ID names
 its HTML page and its question/answer catalog keys, which also identify
 translations and audio files. `quizIndex` is a compatibility position field;
 it is normalized on save and never determines identity after allocation.
@@ -18,9 +20,13 @@ version and versions newer than a restored version.
   fresh IDs. Identical or cached model output does not reuse an old identity.
 - Restoring a version selects its existing quizzes and IDs. It does not allocate
   new entities or release IDs used by later versions.
-- Exhaustion fails without a partial save. Removing quizzes, restoring a version,
-  or rerunning extraction does not release IDs. The current three-digit output
-  contract supports 999 distinct quiz identities over a book's retained lifetime.
+- Removing quizzes, restoring a version, or rerunning extraction does not
+  release IDs. Allocation continues past 999 without renumbering earlier IDs.
+- Full generation and generate-one check remaining capacity before calling the
+  model. Allocation rechecks inside the save transaction, including any IDs
+  consumed while generation was in flight. Insufficient capacity reports the
+  requested and remaining counts without a partial save. Counting uses
+  subtraction to avoid overflowing the safe-integer bound.
 
 Full quiz reruns keep prior quiz output until successful persistence. A failed
 run leaves that output available; a successful run with no eligible pages saves
@@ -48,6 +54,15 @@ a book with an older archive cannot be reconstructed by this change.
 position without writing a backfill version. Clients should retain those IDs
 when saving edits. PUT accepts only canonical, unique IDs and rejects an
 explicit retired ID unless its version has first been restored.
+Alternate spellings such as `qz0001`, exponent notation, whitespace, and unsafe
+integers are rejected. Existing three-digit IDs and filenames remain valid.
+
+The response includes `historyVersion`, the selected version even when it is an
+invalidation marker. In that case `quizzes` and the active `version` remain
+`null`. Studio uses `historyVersion` to keep the picker available, labels null
+versions as **Invalidated**, and lets the user restore retained output. A book
+without quiz history has all three fields set to `null` and no picker. Restoring
+an invalidation marker makes active output absent again.
 
 For older clients that omit IDs, unchanged quizzes are matched against the
 current set by their complete content and provenance. Unambiguous retries,
@@ -72,8 +87,13 @@ books imported directly from storage as well as API-created content.
 
 `apps/api/src/routes/quiz-identity-regressions.test.ts` exercises real routes,
 SQLite, stage reset, quiz generation, catalogs, preview, packaging, and Speech
-file writing. Only remote model responses and synthesized audio bytes are
-stubbed. It checks rollback, full regeneration, legacy replacement, retries,
-exhaustion, corrupt imports, export containment, comparison normalization, and
-preservation of manual recording bytes. Storage tests additionally cover
-invalidation transaction rollback and both current-row readers.
+file writing. Remote model responses and synthesized audio bytes are stubbed;
+capacity-failure tests inject the guard's error to exercise preflight handling
+without allocating trillions of records. Boundary arithmetic is tested directly
+in the types package. Coverage includes rollback, full regeneration beyond 999,
+concurrent allocation, legacy replacement, retries, corrupt imports, export
+containment, comparison normalization, and preservation of manual recording
+bytes across web, WebPub, and EPUB output. Storage tests additionally cover
+invalidation transaction rollback and both current-row readers. A Studio
+component test exercises the real quiz view and version picker through restore,
+restore failure, and selection of an invalidation version.

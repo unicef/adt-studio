@@ -601,6 +601,8 @@ export interface QuizGenerationOutput {
 }
 
 export interface QuizzesResponse {
+  /** Selected history version, including an inactive quiz version. */
+  historyVersion: number | null
   quizzes: (Omit<QuizGenerationOutput, "quizzes"> & { quizzes: Array<QuizItem & { quizId: string }> }) | null
   version: number | null
 }

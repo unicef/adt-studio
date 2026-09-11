@@ -308,6 +308,7 @@ export {
   QuizId,
   QuizIdentityError,
   MAX_QUIZ_SEQ,
+  assertQuizIdCapacity,
 } from "./quiz.js"
 
 export {

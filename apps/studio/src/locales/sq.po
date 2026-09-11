@@ -4947,6 +4947,9 @@ msgstr "Interval i pavlefshëm"
 msgid "Invalid value."
 msgstr "Vlerë e pavlefshme."
 
+msgid "Invalidated"
+msgstr "I zhvlerësuar"
+
 msgid "Isolated asset"
 msgstr "Asete e izoluar"
 

@@ -4,17 +4,23 @@ import os from "node:os"
 import path from "node:path"
 import { Hono } from "hono"
 import { createBookStorage } from "@adt/storage"
-import { buildTextCatalog, packageAdtWeb, saveQuizOutput } from "@adt/pipeline"
-import { formatQuizId, type Quiz, type QuizGenerationOutput } from "@adt/types"
+import { buildTextCatalog, packageAdtWeb, packageWebpub, packageEpub, saveQuizOutput, assertQuizGenerationCapacity } from "@adt/pipeline"
+import { formatQuizId, QuizIdExhaustedError, type Quiz, type QuizGenerationOutput } from "@adt/types"
 import { createQuizRoutes } from "./quizzes.js"
+import { createPageRoutes } from "./pages.js"
 import { createAdtPreviewRoutes } from "./adt-preview.js"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createDebugRoutes } from "./debug.js"
 import { makeBeforeRun } from "./stages.js"
 import { createStageRunner } from "../services/stage-runner.js"
 
-// Only the remote model is stubbed. Generation, routes, SQLite, catalog,
-// HTML rendering and packaging remain production implementations.
+// Providers are stubbed. Capacity-failure tests additionally inject a guard
+// failure rather than materializing an impossible number of stored quizzes.
+// Normal scenarios call the real guard; SQLite, generation and exports are real.
+vi.mock("@adt/pipeline", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@adt/pipeline")>()
+  return { ...original, assertQuizGenerationCapacity: vi.fn(original.assertQuizGenerationCapacity) }
+})
 vi.mock("@adt/llm", async (importOriginal) => {
   const original = await importOriginal<typeof import("@adt/llm")>()
   return {
@@ -82,6 +88,7 @@ async function exportBook() {
   } finally { storage.close() }
 }
 beforeEach(() => {
+  vi.mocked(assertQuizGenerationCapacity).mockReset()
   generateObjectMock.mockReset().mockResolvedValue(generatedResponse)
   synthesizeMock.mockReset().mockImplementation(async ({ input }: { input: string }) => Buffer.from(`AUDIO-FIXTURE: ${input}`))
   root = fs.mkdtempSync(path.join(os.tmpdir(), "adt-quiz-identity-"))
@@ -203,7 +210,7 @@ function history() {
 }
 
 describe("quiz identity validation and legacy compatibility", () => {
-  it.each(["qz000", "qz1", "qz1000", "", "../qz001", "qz001\n", "qz001\r"])("rejects noncanonical id %j without a version write", async (id) => {
+  it.each(["qz000", "qz1", "qz0001", "qz9007199254740992", "", "../qz001", "qz001\n", "qz1000\n", "qz001\r"])("rejects noncanonical id %j without a version write", async (id) => {
     seed([quiz("Original", "qz001")])
     expect((await put([quiz("Changed", id)])).status).toBe(400)
     expect(history()).toHaveLength(1)
@@ -286,12 +293,12 @@ describe("quiz identity validation and legacy compatibility", () => {
     expect(history()).toHaveLength(1)
   })
 
-  it("fails allocation atomically when all 999 identities are spent", async () => {
+  it("allocates qz1000 after the first 999 identities have been retired", async () => {
     seed(Array.from({ length: 999 }, (_, i) => quiz(`Question ${i}`, formatQuizId(i + 1))))
     expect((await put([])).status).toBe(200)
-    expect((await put([quiz("New")])).status).toBe(400)
-    expect(history()).toHaveLength(2)
-    expect(stored().quizzes).toEqual([])
+    expect((await put([quiz("New")])).status).toBe(200)
+    expect(history()).toHaveLength(3)
+    expect(stored().quizzes).toEqual([expect.objectContaining({ quizId: "qz1000" })])
   })
 
   it("normalizes history comparison without rewriting legacy debug data", async () => {
@@ -346,12 +353,16 @@ describe("full-stage quiz regeneration", () => {
     expect(generateObjectMock).not.toHaveBeenCalled()
   })
 
-  it("does not replace prior output if a full rerun exhausts the ID space", async () => {
+  it("regenerates past qz999 while retaining every prior version", async () => {
     seed(Array.from({ length: 999 }, (_, i) => quiz(`Question ${i}`, formatQuizId(i + 1))))
     makeBeforeRun(label, "quizzes", "quizzes", root)()
-    await expect(runStage("quizzes")).rejects.toThrow("allocated all 999")
-    expect(history()).toHaveLength(1)
-    expect(stored().quizzes).toHaveLength(999)
+    await runStage("quizzes")
+    expect(history()).toHaveLength(2)
+    expect(stored().quizzes[0].quizId).toBe("qz1000")
+    makeBeforeRun(label, "quizzes", "quizzes", root)()
+    await runStage("quizzes")
+    expect(stored().quizzes[0].quizId).toBe("qz1001")
+    expect(history()).toHaveLength(3)
   })
 
   it("reserves a removed legacy singleton and IDs from versions newer than a rollback", async () => {
@@ -421,5 +432,126 @@ describe("full-stage quiz regeneration", () => {
     useStorage((s) => s.setCurrentNodeVersion("quiz-generation", "book", 1))
     expect(stored().quizzes[0].question).toBe("Original question")
     expect(fs.readFileSync(path.join(audioDir, "qz001_que.mp3"), "utf8")).toBe("ORIGINAL MANUAL RECORDING")
+  })
+})
+
+
+describe("recoverable inactive quiz history", () => {
+  it("exposes history while keeping invalidated output absent, and restores without allocating IDs", async () => {
+    app.route("/", createPageRoutes(root, path.resolve("prompts"), assets, configPath))
+    seed([quiz("Original", "qz1000")])
+    makeBeforeRun(label, "storyboard", "storyboard", root)()
+    expect(await (await app.request(`/books/${label}/quizzes`)).json()).toEqual({
+      quizzes: null, version: null, historyVersion: 2,
+    })
+    const restore = await app.request(`/books/${label}/versions/quiz-generation/book/restore`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 1 }),
+    })
+    expect(restore.status).toBe(200)
+    expect(await (await app.request(`/books/${label}/quizzes`)).json()).toMatchObject({
+      version: 1, historyVersion: 1, quizzes: { quizzes: [{ quizId: "qz1000" }] },
+    })
+    expect(history()).toHaveLength(2)
+    useStorage((s) => s.setCurrentNodeVersion("quiz-generation", "book", 2))
+    expect(await (await app.request(`/books/${label}/quizzes`)).json()).toEqual({
+      quizzes: null, version: null, historyVersion: 2,
+    })
+  })
+})
+
+
+describe("quiz allocation preflight", () => {
+  it("rejects full generation before model calls or writes when capacity is insufficient", async () => {
+    seed([quiz("Original", "qz001")])
+    vi.mocked(assertQuizGenerationCapacity).mockImplementationOnce(() => { throw new QuizIdExhaustedError(1, 0) })
+    makeBeforeRun(label, "quizzes", "quizzes", root)()
+    await expect(runStage("quizzes")).rejects.toThrow("Not enough quiz IDs available: 1 requested, 0 remaining.")
+    expect(assertQuizGenerationCapacity).toHaveBeenCalledWith(expect.anything(), 1)
+    expect(generateObjectMock).not.toHaveBeenCalled()
+    expect(history()).toHaveLength(1)
+    expect(stored().quizzes[0].question).toBe("Original")
+  })
+
+  it("rejects generate-one before its model call, with a client error", async () => {
+    seed([quiz("Original", "qz001")])
+    vi.mocked(assertQuizGenerationCapacity).mockImplementationOnce(() => { throw new QuizIdExhaustedError(1, 0) })
+    const response = await app.request(`/books/${label}/quizzes/generate-one`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pageIds: ["pg001"], afterPageId: "pg001", placement: "replace" }),
+    })
+    expect(response.status).toBe(400)
+    expect(generateObjectMock).not.toHaveBeenCalled()
+    expect(history()).toHaveLength(1)
+  })
+
+  it("re-reads reservations at persistence if another write occurs during generation", async () => {
+    generateObjectMock.mockImplementationOnce(async () => {
+      useStorage((s) => saveQuizOutput(s, output([quiz("Concurrent")]), "replace"))
+      return generatedResponse
+    })
+    await runStage("quizzes")
+    expect(stored().quizzes[0].quizId).toBe("qz002")
+    expect(history()).toHaveLength(2)
+  })
+})
+
+describe("wide quiz IDs in output formats", () => {
+  it("keeps old IDs and carries qz1000/qz1001 through preview, web, WebPub and EPUB", async () => {
+    const ids = ["qz999", "qz1000", "qz1001"]
+    expect((await put(ids.map((id) => quiz(`Question ${id}`, id)))).status).toBe(200)
+    const audioDir = path.join(root, label, "audio/en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    for (const id of ids) fs.writeFileSync(path.join(audioDir, `${id}_que.mp3`), `AUDIO: ${id}`)
+    useStorage((s) => {
+      s.putNodeData("core-tts-catalog", "en", {
+        language: "en", generatedAt: "2026-01-01T00:00:00.000Z", entries: ids.map((id) => ({
+          id: `${id}_que`, displayText: `Question ${id}`, speechText: `Question ${id}`,
+          changed: false, transformations: [], status: "ready",
+          generation: { mode: "unchanged", generatedAt: "2026-01-01T00:00:00.000Z", enabledTransformations: [], sourceTextHash: id, contextHash: id },
+        })),
+      })
+      s.putNodeData("tts", "en", { entries: ids.map((id) => ({
+        textId: `${id}_que`, language: "en", fileName: `${id}_que.mp3`, voice: "manual",
+        model: "manual", provider: "manual", voiceSlot: "primary", cached: false,
+      })) })
+    })
+    for (const id of ids) {
+      const preview = await app.request(`/books/${label}/adt-preview/${id}.html`)
+      expect(preview.status).toBe(200)
+      expect(await preview.text()).toContain(`Question ${id}`)
+    }
+    await exportBook()
+    const bookDir = path.join(root, label)
+    for (const id of ids) {
+      const html = fs.readFileSync(path.join(bookDir, "adt", `${id}.html`), "utf8")
+      expect(html).toContain(`${id}_que`)
+      expect(html).toContain(`${id}_o0`)
+      const locale = path.join(bookDir, "adt/content/i18n/en")
+      const audioMap = JSON.parse(fs.readFileSync(path.join(locale, "audios.json"), "utf8"))
+      expect(audioMap[`${id}_que`]).toBe(`${id}_que.mp3`)
+      expect(fs.readFileSync(path.join(locale, "audio", audioMap[`${id}_que`]), "utf8")).toBe(`AUDIO: ${id}`)
+      expect(fs.readFileSync(path.join(audioDir, `${id}_que.mp3`), "utf8")).toBe(`AUDIO: ${id}`)
+    }
+    const storage = createBookStorage(label, root)
+    const options = { bookDir, label, language: "en", title: "Identity boundaries", webAssetsDir: assets }
+    try {
+      packageWebpub(storage, options)
+      const manifest = JSON.parse(fs.readFileSync(path.join(bookDir, "webpub/manifest.json"), "utf8"))
+      for (const id of ids) expect(manifest.readingOrder).toContainEqual(expect.objectContaining({ href: `${id}.html` }))
+      packageEpub(storage, options)
+      const pages = JSON.parse(fs.readFileSync(path.join(bookDir, "epub/OEBPS/content/pages.json"), "utf8"))
+      for (const id of ids) {
+        expect(pages).toContainEqual(expect.objectContaining({ section_id: id, href: `${id}.xhtml` }))
+        expect(fs.readFileSync(path.join(bookDir, "epub/OEBPS", `${id}.xhtml`), "utf8")).toContain(`${id}_que`)
+      }
+      for (const formatRoot of ["webpub", "epub/OEBPS"]) {
+        const locale = path.join(bookDir, formatRoot, "content/i18n/en")
+        const audioMap = JSON.parse(fs.readFileSync(path.join(locale, "audios.json"), "utf8"))
+        for (const id of ids) {
+          expect(audioMap[`${id}_que`]).toBe(`${id}_que.mp3`)
+          expect(fs.readFileSync(path.join(locale, "audio", audioMap[`${id}_que`]), "utf8")).toBe(`AUDIO: ${id}`)
+        }
+      }
+    } finally { storage.close() }
   })
 })

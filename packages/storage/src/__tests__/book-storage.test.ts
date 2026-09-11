@@ -771,9 +771,11 @@ describe("quiz history retention on invalidation", () => {
       const db = openBookDb(paths.dbPath)
       try {
         expect(readCurrentNodeRow(db, "quiz-generation", "book")).toBeNull()
+        expect(readCurrentNodeRow(db, "quiz-generation", "book", { includeInvalidated: true })).toEqual({ version: 3, data: "null" })
         // A book without a pointer must not fall back past the tombstone.
         db.run("DELETE FROM node_current WHERE node = ?", ["quiz-generation"])
         expect(readCurrentNodeRow(db, "quiz-generation", "book")).toBeNull()
+        expect(readCurrentNodeRow(db, "quiz-generation", "book", { includeInvalidated: true })).toEqual({ version: 3, data: "null" })
       } finally { db.close() }
       expect(storage.getLatestNodeData("quiz-generation", "book")).toBeNull()
       expect(storage.setCurrentNodeVersion("quiz-generation", "book", 1)).toBe(true)

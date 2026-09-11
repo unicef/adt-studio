@@ -49,6 +49,8 @@ import {
   buildTocGenerationConfig,
   generateAllQuizzes,
   saveQuizOutput,
+  assertQuizGenerationCapacity,
+  batchPages,
   buildQuizGenerationConfig,
   // Master step imports
   getRenderSectioning,
@@ -1882,6 +1884,7 @@ async function runQuizzesStep(
     )
 
     if (quizPages.length > 0) {
+      assertQuizGenerationCapacity(storage, batchPages(quizPages, quizConfig.pagesPerQuiz, quizConfig.quizSectionTypes).length)
       const quizResult = await generateAllQuizzes(quizPages, quizConfig, quizModel, {
         concurrency: effectiveConcurrency,
         onQuizComplete: (completed, total) => {

@@ -7,6 +7,7 @@ import {
   ensureQuizIds,
   QuizIdExhaustedError,
   MAX_QUIZ_SEQ,
+  assertQuizIdCapacity,
   type Quiz,
   type QuizGenerationOutput,
 } from "../quiz.js"
@@ -107,15 +108,12 @@ describe("ensureQuizIds", () => {
     expect(result.quizzes.map((q) => q.quizId)).toEqual(["qz001", "qz004"])
   })
 
-  it("throws rather than minting a 4-digit id when every number is spent", () => {
-    const reserved = Array.from({ length: MAX_QUIZ_SEQ }, (_, i) =>
-      formatQuizId(i + 1)
-    )
-
-    expect(() => ensureQuizIds(output([quiz("one")]), reserved)).toThrow(
-      QuizIdExhaustedError
-    )
+  it("allocates beyond qz999 without changing previous IDs", () => {
+    const reserved = Array.from({ length: 999 }, (_, i) => formatQuizId(i + 1))
+    const result = ensureQuizIds(output([quiz("New"), quiz("Next")]), reserved).output
+    expect(result.quizzes.map((q) => q.quizId)).toEqual(["qz1000", "qz1001"])
   })
+
 })
 
 describe("withResolvedQuizIds", () => {
@@ -196,7 +194,7 @@ describe("withResolvedQuizIds", () => {
 
 
 describe("quiz identity boundary validation", () => {
-  it.each(["qz000", "qz1", "qz1000", "", "../qz001", "qz001\n", "qz001\r"])("rejects invalid explicit id %j in allocation and reads", (quizId) => {
+  it.each(["qz000", "qz1", "qz0001", "qz01e3", "qz9007199254740992", "", "../qz001", "qz001\n", "qz1000\n", "qz001\r"])("rejects invalid explicit id %j in allocation and reads", (quizId) => {
     expect(parseQuizId(quizId)).toBeNull()
     const input = output([quiz("Invalid", { quizId })])
     expect(() => ensureQuizIds(input)).toThrow(/Invalid quiz id/)
@@ -210,11 +208,30 @@ describe("quiz identity boundary validation", () => {
     expect(() => withResolvedQuizIds(output([quiz("Explicit", { quizId: "qz002" }), quiz("Legacy")]))).toThrow("Duplicate quiz id")
   })
 
-  it("uses a lower unspent slot before reporting exhaustion on a sparse book", () => {
+  it("keeps sparse explicit IDs while allocating past the old width", () => {
     const reserved = Array.from({ length: 997 }, (_, i) => formatQuizId(i + 3))
     const result = ensureQuizIds(output([
       quiz("Existing", { quizId: "qz998" }), quiz("Existing 2", { quizId: "qz999" }), quiz("New"),
     ]), reserved).output
-    expect(result.quizzes[2].quizId).toBe("qz001")
+    expect(result.quizzes[2].quizId).toBe("qz1000")
+  })
+})
+
+describe("quiz capacity and safe integer boundaries", () => {
+  it.each([1, 999, 1000, 1001, MAX_QUIZ_SEQ])("round-trips sequence %s exactly", (sequence) => {
+    expect(parseQuizId(formatQuizId(sequence))).toBe(sequence)
+  })
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, MAX_QUIZ_SEQ + 1])("rejects unsafe sequence %s", (sequence) => {
+    expect(() => formatQuizId(sequence)).toThrow("Invalid quiz sequence number")
+  })
+  it("checks capacity without overflowing or claiming all IDs are already spent", () => {
+    expect(() => assertQuizIdCapacity(MAX_QUIZ_SEQ - 1, 1)).not.toThrow()
+    expect(() => assertQuizIdCapacity(MAX_QUIZ_SEQ - 1, 2)).toThrow("Not enough quiz IDs available: 2 requested, 1 remaining.")
+    expect(() => assertQuizIdCapacity(MAX_QUIZ_SEQ, 1)).toThrow(QuizIdExhaustedError)
+    expect(() => assertQuizIdCapacity(MAX_QUIZ_SEQ, 0)).not.toThrow()
+  })
+  it.each([-1, 1.5, Number.POSITIVE_INFINITY, MAX_QUIZ_SEQ + 1])("rejects invalid allocation count %s", (count) => {
+    expect(() => assertQuizIdCapacity(count, 1)).toThrow("Invalid quiz allocation count")
+    expect(() => assertQuizIdCapacity(1, count)).toThrow("Invalid quiz allocation count")
   })
 })
