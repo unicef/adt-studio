@@ -426,6 +426,16 @@ export {
   type DetachedRecording,
 } from "./section-ids.js"
 export {
+  resolveReadingOrder,
+  defaultReadingOrder,
+  toPageEntry,
+  readingOrderHref,
+  type ResolvedItem,
+  type ResolvedReadingOrder,
+  type PageEntry,
+} from "./reading-order.js"
+export { orderTocEntries } from "./toc-reading-order.js"
+export {
   extractEditableActivity,
   supportsEditableActivity,
   type ExtractResult,
