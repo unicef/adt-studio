@@ -299,6 +299,16 @@ export {
   Quiz,
   QuizGenerationOutput,
   quizLLMSchema,
+  formatQuizId,
+  parseQuizId,
+  resolveQuizId,
+  withResolvedQuizIds,
+  ensureQuizIds,
+  QuizIdExhaustedError,
+  QuizId,
+  QuizIdentityError,
+  MAX_QUIZ_SEQ,
+  assertQuizIdCapacity,
 } from "./quiz.js"
 
 export {

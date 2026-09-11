@@ -24,7 +24,7 @@ import type {
   ImageCaptioningOutput,
   PackagingWarning,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
 import { resolveNarratorLabel } from "../speech.js"
 import {
   GOOGLE_FONTS,
@@ -314,6 +314,10 @@ export async function packageAdtWeb(
   const stepperBasePalette = quizPalette ?? DEFAULT_QUIZ_PALETTE
 
   const step = "package-web" as const
+  // Validate stored/imported quiz identities before deleting or writing any
+  // bundle files. API validation alone cannot protect imported book databases.
+  const quizRow = storage.getLatestNodeData("quiz-generation", "book")
+  const quizData = quizRow ? withResolvedQuizIds(quizRow.data as QuizGenerationOutput) : undefined
   progress.emit({ type: "step-start", step })
   progress.emit({ type: "step-progress", step, message: "Setting up directories..." })
 
@@ -344,9 +348,6 @@ export async function packageAdtWeb(
 
   const glossaryRow = storage.getLatestNodeData("glossary", "book")
   const glossary = glossaryRow?.data as GlossaryOutput | undefined
-
-  const quizRow = storage.getLatestNodeData("quiz-generation", "book")
-  const quizData = quizRow?.data as QuizGenerationOutput | undefined
 
   const metadataRow = storage.getLatestNodeData("metadata", "book")
   const metadata = metadataRow?.data as { title?: string | null; cover_page_number?: number | null } | undefined
@@ -538,8 +539,7 @@ export async function packageAdtWeb(
 
     // Insert quiz pages after this page (even if page content was skipped)
     for (const quiz of quizzes) {
-      const quizIndex = quizData!.quizzes.indexOf(quiz)
-      const quizId = `qz${pad3(quizIndex + 1)}`
+      const quizId = resolveQuizId(quiz, quizData!.quizzes.indexOf(quiz))
 
       const isFirstPage = pageList.length === 0
       const quizFilename = isFirstPage ? "index.html" : `${quizId}.html`
@@ -559,7 +559,11 @@ export async function packageAdtWeb(
         applyBodyBackground,
         bodyFontFamily,
       })
-      fs.writeFileSync(path.join(adtDir, quizFilename), quizPageHtml)
+      const quizPath = path.resolve(adtDir, quizFilename)
+      if (path.dirname(quizPath) !== path.resolve(adtDir)) {
+        throw new Error("Quiz output must remain inside the book's export directory")
+      }
+      fs.writeFileSync(quizPath, quizPageHtml)
 
       pageList.push({ section_id: quizId, href: quizFilename })
     }
@@ -2378,7 +2382,10 @@ async function renderAgentsMd(
   let sampleQuiz: Record<string, unknown> | undefined
   if (ctx.quizData?.quizzes?.length) {
     const quiz = ctx.quizData.quizzes[0]
-    const quizId = "qz001"
+    // Not "qz001": ids are allocated once and never reused, so the first quiz
+    // in the array may be `qz004`. Hardcoding it would document catalog keys
+    // and audio filenames that aren't in the bundle.
+    const quizId = resolveQuizId(quiz, 0)
     const correctAnswers: Record<string, boolean> = {}
     const explanations: Record<string, string> = {}
     const options = quiz.options.map((opt, i) => {

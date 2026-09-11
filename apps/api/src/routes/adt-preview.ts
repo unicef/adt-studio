@@ -10,6 +10,9 @@ import {
   parseBookLabel,
   parseAnySectionId,
   resolveEntryVoiceSlot,
+  parseQuizId,
+  resolveQuizId,
+  withResolvedQuizIds,
 } from "@adt/types"
 import {
   WebRenderingOutput,
@@ -42,7 +45,6 @@ import {
   buildQuizAnswers,
   buildTextCatalog,
   flattenEasyReadEntries,
-  pad3,
   loadBookConfig,
   buildPreferredImageAltMap,
   buildDecorativeImageIdSet,
@@ -197,7 +199,7 @@ function getGlossary(storage: Storage): GlossaryOutput | undefined {
 
 function getQuizData(storage: Storage): QuizGenerationOutput | undefined {
   const row = storage.getLatestNodeData("quiz-generation", "book")
-  return row?.data as QuizGenerationOutput | undefined
+  return row ? withResolvedQuizIds(row.data as QuizGenerationOutput) : undefined
 }
 
 function buildTextsMap(
@@ -380,8 +382,7 @@ function buildPagesManifest(storage: Storage): Array<{ section_id: string; href:
     const quizzes = quizzesByAfterPageId.get(page.pageId)
     if (quizzes) {
       for (const quiz of quizzes) {
-        const quizIndex = quizData!.quizzes.indexOf(quiz)
-        const quizId = `qz${pad3(quizIndex + 1)}`
+        const quizId = resolveQuizId(quiz, quizData!.quizzes.indexOf(quiz))
         list.push({ section_id: quizId, href: `${quizId}.html` })
       }
     }
@@ -763,7 +764,7 @@ export function createAdtPreviewRoutes(
         const catalog = await getTextCatalog(storage)
         if (quizData?.quizzes) {
           for (let i = 0; i < quizData.quizzes.length; i++) {
-            const quizId = `qz${pad3(i + 1)}`
+            const quizId = resolveQuizId(quizData.quizzes[i], i)
             allHtml += renderQuizHtml(quizData.quizzes[i], quizId, catalog) + "\n"
           }
         }
@@ -1123,15 +1124,17 @@ export function createAdtPreviewRoutes(
         reflowableFont: config.reflowable_font,
       })
 
-      // Check if this is a quiz page (qzNNN)
-      const quizMatch = pageId.match(/^qz(\d{3})$/)
-      if (quizMatch) {
-        const quizIndex = parseInt(quizMatch[1], 10) - 1
+      // Check if this is a quiz page (qzNNN). The id's number is NOT the quiz's
+      // array position — ids are allocated once and never reused — so resolve by
+      // id rather than indexing into the array.
+      if (parseQuizId(pageId) !== null) {
         const quizData = getQuizData(storage)
-        if (!quizData?.quizzes || quizIndex < 0 || quizIndex >= quizData.quizzes.length) {
+        const quiz = quizData?.quizzes?.find(
+          (q, i) => resolveQuizId(q, i) === pageId
+        )
+        if (!quiz) {
           throw new HTTPException(404, { message: `No quiz data for: ${pageId}` })
         }
-        const quiz = quizData.quizzes[quizIndex]
         const catalog = await getTextCatalog(storage)
 
         const quizPalette = (config.quiz_generation?.match_book_style ?? true)
