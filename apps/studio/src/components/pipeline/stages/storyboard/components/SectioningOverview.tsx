@@ -10,7 +10,7 @@ import {
   moveReadingOrderRow,
 } from "@/hooks/use-reading-order"
 import { useTogglePrune } from "@/hooks/use-toggle-prune"
-import { announceToScreenReader } from "@/lib/aria-live"
+import { useAnnouncer } from "@/components/a11y/LiveRegionAnnouncer"
 import {
   ChevronDown,
   ChevronRight,
@@ -43,6 +43,7 @@ interface SectioningOverviewProps {
 
 export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: SectioningOverviewProps) {
   const { t } = useLingui()
+  const { announce } = useAnnouncer()
   const queryClient = useQueryClient()
   const { stageState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
@@ -174,10 +175,10 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
       )
       if (!next) return
       const landed = next.findIndex((entry) => entry.id === sectionId) + 1
-      announceToScreenReader(t`Moved to position ${String(landed)} of ${String(next.length)}`)
+      announce(t`Moved to position ${String(landed)} of ${String(next.length)}`)
       saveReadingOrder.mutate({ items: next, expectedVersion: readingOrder.version })
     },
-    [readingOrder, bookOrderRows, saveReadingOrder, t],
+    [readingOrder, bookOrderRows, saveReadingOrder, t, announce],
   )
 
   const invalidatePages = (...pageIds: string[]) => {

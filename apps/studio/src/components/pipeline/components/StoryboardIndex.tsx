@@ -23,7 +23,7 @@ import {
   readingOrderKey,
 } from "@/hooks/use-reading-order"
 import { useTogglePrune } from "@/hooks/use-toggle-prune"
-import { announceToScreenReader } from "@/lib/aria-live"
+import { useAnnouncer } from "@/components/a11y/LiveRegionAnnouncer"
 import { resolveQuizId, type Quiz } from "@adt/types"
 import { parseQuizRouteId } from "@/lib/quiz-route"
 
@@ -54,6 +54,7 @@ export function StoryboardIndex({
   const parentRef = useRef<HTMLDivElement>(null)
   const storyboardStageDef = STAGES.find((s) => s.slug === "storyboard")
   const { t } = useLinguiMacro()
+  const { announce } = useAnnouncer()
   const [dragId, setDragId] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<{ index: number; after: boolean } | null>(null)
   /**
@@ -139,13 +140,11 @@ export function StoryboardIndex({
       if (next.every((entry, i) => entry.id === readingOrder.order[i]?.id)) return
 
       const landed = next.findIndex((entry) => entry.id === id) + 1
-      announceToScreenReader(
-        t`Moved to position ${String(landed)} of ${String(next.length)}`,
-      )
+      announce(t`Moved to position ${String(landed)} of ${String(next.length)}`)
 
       saveOrder.mutate({ items: next, expectedVersion: readingOrder.version })
     },
-    [readingOrder, items, saveOrder, t],
+    [readingOrder, items, saveOrder, t, announce],
   )
 
   /** Step a row up or down. Shared with the overview's book-order view. */
@@ -156,12 +155,10 @@ export function StoryboardIndex({
       if (!next) return
 
       const landed = next.findIndex((entry) => entry.id === id) + 1
-      announceToScreenReader(
-        t`Moved to position ${String(landed)} of ${String(next.length)}`,
-      )
+      announce(t`Moved to position ${String(landed)} of ${String(next.length)}`)
       saveOrder.mutate({ items: next, expectedVersion: readingOrder.version })
     },
-    [readingOrder, items, saveOrder, t],
+    [readingOrder, items, saveOrder, t, announce],
   )
 
 
