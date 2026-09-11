@@ -57,6 +57,7 @@ import { flattenEasyReadEntries } from "../easy-read.js"
 import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "../core-tts.js"
 import { getRenderSectioning } from "../render-sectioning.js"
 import { resolveReadingOrder, toPageEntry, type PageEntry } from "../reading-order.js"
+import { orderTocEntries } from "../toc-reading-order.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
 import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.js"
 import { buildTailwindCss } from "../tailwind.js"
@@ -441,9 +442,9 @@ export async function packageAdtWeb(
       fs.writeFileSync(quizPath, quizPageHtml)
 
       // Phase 4 drops the index.html special case; until then the first page
-    // keeps that name, so the entry's href is overridden here rather than in
-    // the resolver (which is already position-independent).
-    pageList.push({ ...toPageEntry(item), href: filename })
+      // keeps that name, so the entry's href is overridden here rather than in
+      // the resolver (which is already position-independent).
+      pageList.push({ ...toPageEntry(item), href: filename })
       continue
     }
 
@@ -574,25 +575,13 @@ export async function packageAdtWeb(
 
   writeJson(path.join(contentDir, "pages.json"), pageList)
 
-  // Table of contents — prefer LLM-generated TOC, fallback to heading-based
+  // Table of contents — prefer stored TOC (generated or edited), fallback to headings
   if (llmToc && llmToc.entries.length > 0) {
-    // Map LLM entries to the flat format expected by the runtime, resolving
+    // Preserve stored parent-child groups in the runtime TOC, resolving
     // hrefs from the page list (the first page is always index.html)
     const hrefMap = new Map(pageList.map((p) => [p.section_id, p.href]))
-    const tocJson = llmToc.entries
-      // The LLM returns entries in its own order, which is independent of the
-      // reading order. Downstream consumers require document order: WebPub's
-      // nav nests a flat list by `level` as it walks it, and EPUB/PNLD NCX
-      // `playOrder` must increase monotonically. Sort by resolved position, and
-      // keep entries whose section is not in the reading order at the end
-      // rather than silently dropping them.
-      .map((entry, index) => ({ entry, index }))
-      .sort((a, b) => {
-        const posA = readingOrder.positionById.get(a.entry.sectionId) ?? Infinity
-        const posB = readingOrder.positionById.get(b.entry.sectionId) ?? Infinity
-        return posA === posB ? a.index - b.index : posA - posB
-      })
-      .map(({ entry: e }) => ({
+    const tocJson = orderTocEntries(llmToc.entries, readingOrder.positionById)
+      .map((e) => ({
         section_id: e.sectionId,
         href: hrefMap.get(e.sectionId) ?? e.href,
         title: e.title,

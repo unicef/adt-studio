@@ -434,6 +434,7 @@ export {
   type ResolvedReadingOrder,
   type PageEntry,
 } from "./reading-order.js"
+export { orderTocEntries } from "./toc-reading-order.js"
 export {
   extractEditableActivity,
   supportsEditableActivity,
