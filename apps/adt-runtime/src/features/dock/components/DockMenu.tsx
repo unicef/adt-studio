@@ -145,7 +145,7 @@ export function DockMenu({ className }: DockMenuProps) {
       {isMobile ? (
         <DockMobileTools tools={tools} label={t("tutorial-smart-utility-sidebar-label") || "Accessibility menu"} />
       ) : (
-        <div className={cn("flex items-center justify-end gap-2 pl-1", className)}>
+        <div className={cn("flex items-center justify-end gap-2", className)}>
           {features.glossary ? (
             <DockIconButton
               ref={glossaryBtnRef}

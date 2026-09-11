@@ -10,6 +10,7 @@ import {
   validateHandlerAtom,
 } from "@/features/activity/state/activity.atoms"
 import { playActivitySound } from "@/features/activity/runtime/sounds"
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 /**
  * `activity_custom_*` — the escape hatch for fully-interactive activities that
@@ -183,7 +184,7 @@ export function initializeCustomActivity(): (() => void) | null {
     // Post-success: the button is now "Next" — advance to the next page.
     if (store.get(submitStateAtom) === "next") {
       const href = findNextPageHref()
-      if (href) window.location.href = href
+      if (href) navigateToPage(href)
       return
     }
     void runValidation()
@@ -191,7 +192,7 @@ export function initializeCustomActivity(): (() => void) | null {
 
   const handleSkip = () => {
     const href = findNextPageHref()
-    if (href) window.location.href = href
+    if (href) navigateToPage(href)
   }
 
   const wire = () => {
