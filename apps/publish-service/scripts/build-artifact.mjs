@@ -28,11 +28,6 @@ if (!compatibilityDate) {
   throw new Error("Could not read compatibility_date from wrangler.toml")
 }
 
-const migrationTag = wranglerToml.match(/^tag\s*=\s*"([^"]+)"/m)?.[1]
-if (!migrationTag) {
-  throw new Error("Could not read the durable object migration tag from wrangler.toml")
-}
-
 const d1Migrations = fs
   .readdirSync(migrationsDir)
   .filter((file) => file.endsWith(".sql"))
@@ -76,21 +71,11 @@ const metadata = {
       description: "Frozen book snapshots, keyed <token>/v<N>/<path>",
     },
     {
-      type: "durable_object_namespace",
-      name: "PUBLICATION_ROOM",
-      class_name: "PublicationRoom",
-      description: "One realtime room per publication (websocket presence and pin events)",
-    },
-    {
       type: "secret_text",
       name: "MGMT_SECRET",
       description: "Shared secret for every management call; generated at provision time",
     },
   ],
-  migrations: {
-    new_tag: migrationTag,
-    new_sqlite_classes: ["PublicationRoom"],
-  },
   d1_migrations: d1Migrations,
 }
 
