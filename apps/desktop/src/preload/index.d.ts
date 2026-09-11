@@ -49,6 +49,20 @@ export interface SplashControlsApi {
   readonly version: string
 }
 
+export interface NotificationsApi {
+  /** Resolves false when the OS cannot raise notifications at all. */
+  show: (payload: {
+    title: string
+    body: string
+    label?: string
+    stage?: string
+  }) => Promise<boolean>
+  isWindowFocused: () => Promise<boolean>
+  onActivated: (
+    cb: (target: { label: string; stage: string }) => void,
+  ) => () => void
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
@@ -64,6 +78,7 @@ declare global {
       version: string
       windowControls: WindowControlsApi
       updates: UpdatesApi
+      notifications: NotificationsApi
     }
     splashControls?: SplashControlsApi
   }

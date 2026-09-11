@@ -6,11 +6,16 @@ import type {
   UpdateStatus,
 } from '../main/services/auto-updater'
 import type { PostUpdateInfo } from '../main/services/update-state'
+import type { StageNotificationPayload } from '../main/ipc/notifications'
 
 type ApiLogCallback = (entry: ApiLogEntry) => void
 type MaximizeChangeCallback = (isMaximized: boolean) => void
 type FullscreenChangeCallback = (isFullscreen: boolean) => void
 type UpdateStatusCallback = (status: UpdateStatus) => void
+type NotificationActivatedCallback = (target: {
+  label: string
+  stage: string
+}) => void
 
 export type ElectronPlatform = NodeJS.Platform
 
@@ -75,6 +80,21 @@ const onboarding = {
     ipcRenderer.invoke('onboarding:finish', startPath),
 }
 
+const notifications = {
+  show: (payload: StageNotificationPayload): Promise<boolean> =>
+    ipcRenderer.invoke('notifications:show', payload),
+  isWindowFocused: (): Promise<boolean> =>
+    ipcRenderer.invoke('window:is-focused'),
+  onActivated: (cb: NotificationActivatedCallback): (() => void) => {
+    const handler = (
+      _: Electron.IpcRendererEvent,
+      target: { label: string; stage: string },
+    ) => cb(target)
+    ipcRenderer.on('notifications:activated', handler)
+    return () => ipcRenderer.off('notifications:activated', handler)
+  },
+}
+
 interface SaveFileDialogOptions {
   defaultPath?: string
   filters?: Array<{ name: string; extensions: string[] }>
@@ -107,6 +127,7 @@ const api = {
   windowControls,
   updates,
   onboarding,
+  notifications,
 }
 
 if (process.contextIsolated) {
