@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
+import { JSDOM } from "jsdom"
 import type { Storage, PageData } from "@adt/storage"
 import {
   computePackagingInputHash,
@@ -151,6 +152,35 @@ describe("renderPageHtml", () => {
     // are not flattened into the surrounding body/heading color.
     expect(html).toContain('!d.closest("a")')
     expect(html).toContain('!d.closest("[data-adt-manual-text-color]")')
+  })
+
+  it("preserves explicit child colors under a legacy section-level default", () => {
+    const html = renderPageHtml({
+      content: `<section data-section-id="section-1" data-text-color="#3D2B1F"><h1 style="color:#8B2252">Heading</h1><p>Body</p></section>`,
+      language: "en",
+      sectionId: "section-1",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+    const dom = new JSDOM(html, { runScripts: "outside-only" })
+    const script = Array.from(dom.window.document.querySelectorAll("script")).find(
+      (candidate) => candidate.textContent?.includes(
+        'querySelectorAll("[data-text-color]")',
+      ),
+    )
+    expect(script).toBeDefined()
+    dom.window.eval(script!.textContent!)
+    dom.window.document.dispatchEvent(new dom.window.Event("DOMContentLoaded"))
+
+    const section = dom.window.document.querySelector<HTMLElement>("section")!
+    const heading = dom.window.document.querySelector<HTMLElement>("h1")!
+    const paragraph = dom.window.document.querySelector<HTMLElement>("p")!
+    expect(section.style.getPropertyPriority("color")).toBe("important")
+    expect(heading.style.getPropertyValue("color")).toBe("rgb(139, 34, 82)")
+    expect(heading.style.getPropertyPriority("color")).toBe("")
+    expect(paragraph.style.getPropertyValue("color")).toBe("")
   })
 
   it("omits the data-text-color apply script when no element carries the attribute", () => {

@@ -20,11 +20,11 @@ Generate a complete styleguide Markdown document following this exact structure.
    - Accent colors (badges, decorations, highlights)
    - Use actual hex codes observed in the images
 
-3. **Required Container Structure** — MUST include this exact outer structure (adjust colors only):
+3. **Required Container Structure** — MUST include this exact outer structure (adjust the background color only):
 ```html
 <div class="container content mx-auto flex min-h-screen w-full items-start justify-center px-6 py-12"
     data-background-color="BACKGROUND_COLOR" id="content">
-  <section class="w-full" data-section-id="SECTION_ID" data-section-type="SECTION_TYPE" data-text-color="TEXT_COLOR"
+  <section class="w-full" data-section-id="SECTION_ID" data-section-type="SECTION_TYPE"
       id="simple-main">
     <!-- Content goes here -->
   </section>
@@ -32,12 +32,15 @@ Generate a complete styleguide Markdown document following this exact structure.
 ```
 Keep this container IDENTICAL on every page — same alignment, padding, and max-width — so the reading column sits in the same place throughout the book; only the colors may change. Top-align content (`items-start`); reserve vertical centering (`items-center`) for cover / title pages ONLY.
 
+   **Never put `data-text-color` on the outer section or another shared container.** Heading, body, caption, instruction, and callout colors may differ. Put `data-text-color="#RRGGBB"` directly on each text-bearing heading, paragraph, caption, or span using the color for that text role. A template with an intentional custom color may use its own explicit color instead, but it must not be overridden by a container-wide marker.
+
 4. **Inner Container** — Use ONE fixed max-width for the reading column on EVERY page (`mx-auto w-full max-w-5xl`) with the same horizontal padding everywhere. Do NOT use a different max-width (e.g. max-w-2xl/3xl/4xl) on different page types — a single consistent measure keeps text in the same position page to page.
 
-5. **Text Styles** — A table mapping each text_type to an HTML element and Tailwind classes. Required text_types:
+5. **Visual Defaults and Text Styles** — State the book-wide heading and body defaults separately, including text color, alignment, emphasis, and line-height, then provide a table mapping each text_type to an HTML element and Tailwind classes. Required text_types:
    - book_title, book_subtitle, chapter_title, section_heading, activity_title
    - section_text, instruction_text, standalone_text, image_associated_text
    For FONT SIZE, when a typography scale is provided in the input, set the size via the shared classes (`adt-h1`/`adt-h2`/`adt-h3` for headings, `adt-body` for body/instruction/standalone text, `adt-caption` for captions and image-associated text) instead of choosing per-type `text-*` sizes — the size is fixed book-wide by these classes and keeps every page identical. Choose font weights and colors that match the original style. If no typography scale is provided, choose sizes that match the original.
+   Every concrete text example and Page Template must put its role's hex color in `data-text-color` on that individual text element. Keep the stated Visual Defaults consistent with the actual alignment, emphasis, and line-height classes used by the examples.
 
 6. **Image Styles** — A table defining classes for single images, multiple images, and image grid containers.
 
@@ -49,6 +52,7 @@ Keep this container IDENTICAL on every page — same alignment, padding, and max
 8. **Page Templates** — Complete HTML examples for:
    - Chapter Start Page
    - Regular Content Page with a callout/sidebar (e.g. Vocabulary, Big Question)
+   - Text-Only Page for `section_type: "text_only"` (prose only, no images or activities)
    - Text and Image Side by Side
    - Table of Contents
 
@@ -61,7 +65,8 @@ Keep this container IDENTICAL on every page — same alignment, padding, and max
 - Elements with content MUST use `data-id="ID"` placeholders
 - Images MUST use `data-id="ID"` and `src="images/ID.jpg"`
 - The outer container MUST use `data-background-color` for page backgrounds
-- The section element MUST have `data-section-id` and `data-section-type` attributes, and MUST NOT add `role="article"`
+- The section element MUST have `data-section-id` and `data-section-type` attributes, MUST NOT have `data-text-color`, and MUST NOT add `role="article"`
+- Put `data-text-color` directly on each text-bearing element using the color for that role; do not use one marker to govern headings and body text together
 - Color values should be specific hex codes extracted from the images, not generic Tailwind color names
 - Text sizes should be appropriate for the target audience (larger for children, standard for adults)
 - Keep running body text as ONE continuous column. For a callout/sidebar beside body text, float the panel (float-right, fixed width, stacking on small screens via `max-lg:float-none max-lg:w-full`) so text wraps beside it and continues full-width below — never a side-by-side row followed by a separate full-width block, which leaves empty gaps

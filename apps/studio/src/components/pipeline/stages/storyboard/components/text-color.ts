@@ -6,6 +6,27 @@ export const MANUAL_TEXT_COLOR_ATTRIBUTE = "data-adt-manual-text-color"
 export interface ElementClassChangeOptions {
   removeAttributes?: readonly string[]
   setAttributes?: readonly string[]
+  removeStyleProperties?: readonly string[]
+  /** When a semantic default is removed by a responsive class edit, preserve
+   *  that default as an unprefixed class so wider viewports do not regress. */
+  preserveDefaultClass?: boolean
+}
+
+export function applyElementClassChange(
+  el: HTMLElement,
+  classes: string[],
+  options: ElementClassChangeOptions = {},
+): void {
+  el.className = classes.join(" ")
+  for (const attribute of options.removeAttributes ?? []) {
+    el.removeAttribute(attribute)
+  }
+  for (const attribute of options.setAttributes ?? []) {
+    el.setAttribute(attribute, "")
+  }
+  for (const property of options.removeStyleProperties ?? []) {
+    el.style.removeProperty(property)
+  }
 }
 
 // Preview-only inline styles must be reversible because the editor serializes
@@ -43,6 +64,13 @@ export function applyTextColors(doc: Document): void {
     if (!color || el.hasAttribute(MANUAL_TEXT_COLOR_ATTRIBUTE)) continue
     rememberOriginalColor(el)
     el.style.setProperty("color", color, "important")
+    // Older/generated StyleGuides put the semantic default on the section and
+    // use explicit colors for headings, badges, and callouts below it. Treat
+    // that shape as normal CSS inheritance: unstyled descendants inherit the
+    // section color, while intentional child declarations remain intact. New
+    // StyleGuides put data-text-color on each text element, where the forced
+    // descendant pass is still needed for incidental nested utility classes.
+    if (el.tagName === "SECTION" || el.hasAttribute("data-section-id")) continue
     const descendants = el.querySelectorAll<HTMLElement>("*")
     for (const descendant of descendants) {
       if (

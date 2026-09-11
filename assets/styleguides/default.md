@@ -44,9 +44,9 @@ These are the book-wide defaults for this styleguide. They take precedence over 
 | Property | Default | Notes |
 |----------|---------|-------|
 | Text color | `#111827` | Applied to headings (`heading`, `chapter_title`, `section_heading`, etc.) via `data-text-color` — does not affect the other role. |
-| Text alignment | Center | Only applies to headings (`heading`, `chapter_title`, `section_heading`, etc.). Only center/right-align where a template below explicitly shows it (e.g. cover/title pages, the Table of Contents). |
+| Text alignment | Left | Only applies to headings (`heading`, `chapter_title`, `section_heading`, etc.). Only center/right-align where a template below explicitly shows it (e.g. cover/title pages, the Table of Contents). |
 | Bold / Italic / Underline | Bold | Controls whether headings (`heading`, `chapter_title`, `section_heading`, etc.) is bold/italic/underlined by default. |
-| Line-height | `leading-loose` | Applies to headings (`heading`, `chapter_title`, `section_heading`, etc.). Keep it consistent across all pages. |
+| Line-height | `leading-tight` | Applies to headings (`heading`, `chapter_title`, `section_heading`, etc.). Keep it consistent across all pages. |
 
 ### Body Text
 
@@ -54,7 +54,7 @@ These are the book-wide defaults for this styleguide. They take precedence over 
 |----------|---------|-------|
 | Text color | `#1F2937` | Applied to body text (`section_text`, `standalone_text`) via `data-text-color` — does not affect the other role. |
 | Text alignment | Left | Only applies to body text (`section_text`, `standalone_text`). Only center/right-align where a template below explicitly shows it (e.g. cover/title pages, the Table of Contents). |
-| Bold / Italic / Underline | Italic | Controls whether body text (`section_text`, `standalone_text`) is bold/italic/underlined by default. |
+| Bold / Italic / Underline | Normal | Body text (`section_text`, `standalone_text`) is not bold, italic, or underlined by default. |
 | Line-height | `leading-relaxed` | Applies to body text (`section_text`, `standalone_text`). Keep it consistent across all pages. |
 
 ## Inner Container (REQUIRED for all content pages)

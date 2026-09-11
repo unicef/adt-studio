@@ -32,6 +32,7 @@ import {
   type ActivityAnchor,
 } from "./activity-link"
 import {
+  applyElementClassChange,
   applyTextColors,
   restoreAppliedTextColors,
   type ElementClassChangeOptions,
@@ -238,14 +239,11 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       if (!doc) return null
       const el = doc.querySelector(`[data-id="${CSS.escape(dataId)}"]`) as HTMLElement | null
       if (!el) return null
-      el.className = classes.join(" ")
-      for (const attribute of options.removeAttributes ?? []) {
-        el.removeAttribute(attribute)
-      }
-      for (const attribute of options.setAttributes ?? []) {
-        el.setAttribute(attribute, "")
-      }
+      // Restore preview-only !important colors before applying the edit. In
+      // particular, a manual color change must be able to remove the source
+      // inline color rather than having restoration put it back afterward.
       restoreAppliedTextColors(doc)
+      applyElementClassChange(el, classes, options)
       // Don't strip `_el#` data-ids here — the inspector relies on them across
       // edits in a session. They're stripped only at API persist time.
       stripTransientAttributes(doc)

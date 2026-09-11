@@ -164,7 +164,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 4
+const PACKAGING_FORMAT_VERSION = 5
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -1302,12 +1302,14 @@ ${fallbackHeadingHtml}${contentBlock}
   // `data-text-color` is a semantic marker the styleguide/LLM stamps onto
   // headings/paragraphs — by itself it has no visual effect. Apply it as a
   // real, cascading color at runtime: force it (!important) on every
-  // element carrying the attribute, and force any descendant that does NOT
-  // have its own `data-text-color` to inherit it (!important) too, so it
+  // text element carrying the attribute, and force any descendant that does
+  // NOT have its own `data-text-color` to inherit it (!important) too, so it
   // wins over incidental Tailwind color utility classes (e.g. `text-black`)
   // the LLM may have added on its own. Anchors (`<a>`) and their contents are
   // deliberately excluded so links keep their own (usually distinct) color
   // instead of being flattened into the surrounding body/heading color.
+  // Legacy section-level markers use normal CSS inheritance so intentional
+  // child colors in existing/generated StyleGuides remain authoritative.
   // Elements marked by a manual Storyboard color edit are also excluded so
   // their persisted Tailwind color class remains authoritative.
   //
@@ -1317,7 +1319,7 @@ ${fallbackHeadingHtml}${contentBlock}
   // share one implementation because the frontend may not import from
   // `packages/*` (see the layer rule in AGENTS.md); keep both in sync by hand.
   const textColorScript = /data-text-color=/.test(normalizedContent)
-    ? `\n    <script>(function(){function apply(){document.querySelectorAll("[data-text-color]").forEach(function(el){var c=el.getAttribute("data-text-color");if(!c||el.hasAttribute("data-adt-manual-text-color"))return;el.style.setProperty("color",c,"important");el.querySelectorAll("*").forEach(function(d){if(d.closest("[data-text-color]")===el&&!d.closest("a")&&!d.closest("[data-adt-manual-text-color]")){d.style.setProperty("color","inherit","important")}})})}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",apply)}else{apply()}})();</script>`
+    ? `\n    <script>(function(){function apply(){document.querySelectorAll("[data-text-color]").forEach(function(el){var c=el.getAttribute("data-text-color");if(!c||el.hasAttribute("data-adt-manual-text-color"))return;el.style.setProperty("color",c,"important");if(el.tagName==="SECTION"||el.hasAttribute("data-section-id"))return;el.querySelectorAll("*").forEach(function(d){if(d.closest("[data-text-color]")===el&&!d.closest("a")&&!d.closest("[data-adt-manual-text-color]")){d.style.setProperty("color","inherit","important")}})})}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",apply)}else{apply()}})();</script>`
     : ""
 
   // In embed mode, hide non-essential chrome. The React runtime mounts the

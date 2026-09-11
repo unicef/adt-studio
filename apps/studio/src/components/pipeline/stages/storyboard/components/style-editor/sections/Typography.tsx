@@ -46,6 +46,8 @@ const EMPTY_DECOR: string[] = []
 const TEXT_COLOR_CHANGE_OPTIONS = {
   removeAttributes: ["data-text-color"],
   setAttributes: [MANUAL_TEXT_COLOR_ATTRIBUTE],
+  removeStyleProperties: ["color"],
+  preserveDefaultClass: true,
 } as const
 
 export function TypographySection() {

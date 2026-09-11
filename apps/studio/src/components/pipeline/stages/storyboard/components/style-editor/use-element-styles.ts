@@ -120,9 +120,19 @@ export function useElementStyles<TValue>(
       const isRedundant = arraysEqual(widerClasses, newClasses)
 
       let merged = stripped
+      if (
+        changeOptions?.preserveDefaultClass &&
+        currentPrefix !== "" &&
+        resolveAt([""]) === null
+      ) {
+        // Removing a non-responsive semantic/inline default for a tablet or
+        // mobile override must not change the desktop rendering. Materialize
+        // the currently rendered default as an unprefixed class first.
+        merged = [...merged, ...classMap.toClasses(defaultValue)]
+      }
       if (!isRedundant && newClasses.length > 0) {
         const additions = newClasses.map((c) => `${currentPrefix}${c}`)
-        merged = [...stripped, ...additions]
+        merged = [...merged, ...additions]
       }
 
       onClassesChange(dataId, merged, changeOptions)
@@ -142,18 +152,26 @@ export function useElementStyles<TValue>(
 
   const reset = useCallback(() => {
     if (currentPrefix === "") return
-    const stripped = classes.filter((c) => {
+    let stripped = classes.filter((c) => {
       if (!c.startsWith(currentPrefix)) return true
       return !classMap.matches(c.slice(currentPrefix.length))
     })
+    if (
+      changeOptions?.preserveDefaultClass &&
+      resolveAt([""]) === null
+    ) {
+      stripped = [...stripped, ...classMap.toClasses(defaultValue)]
+    }
     onClassesChange(dataId, stripped, changeOptions)
   }, [
     classes,
     classMap,
     currentPrefix,
     dataId,
+    defaultValue,
     onClassesChange,
     changeOptions,
+    resolveAt,
   ])
 
   const override = useMemo<OverrideInfo | null>(() => {

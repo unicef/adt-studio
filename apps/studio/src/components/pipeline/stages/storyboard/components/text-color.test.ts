@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest"
 import {
+  applyElementClassChange,
   applyTextColors,
   MANUAL_TEXT_COLOR_ATTRIBUTE,
   restoreAppliedTextColors,
@@ -10,7 +11,7 @@ import {
 describe("semantic text colors", () => {
   it("restores source styles before a manual color edit is serialized", () => {
     document.body.innerHTML = `
-      <p class="text-black" data-id="body" data-text-color="#111827">
+      <p class="text-black" data-id="body" data-text-color="#111827" style="color: rgb(220, 38, 38)">
         Body <span class="font-bold">emphasis</span>
       </p>
     `
@@ -22,10 +23,12 @@ describe("semantic text colors", () => {
     expect(body.style.getPropertyPriority("color")).toBe("important")
     expect(emphasis.style.getPropertyValue("color")).toBe("inherit")
 
-    body.className = "text-blue-600"
-    body.removeAttribute("data-text-color")
-    body.setAttribute(MANUAL_TEXT_COLOR_ATTRIBUTE, "")
     restoreAppliedTextColors(document)
+    applyElementClassChange(body, ["text-blue-600"], {
+      removeAttributes: ["data-text-color"],
+      setAttributes: [MANUAL_TEXT_COLOR_ATTRIBUTE],
+      removeStyleProperties: ["color"],
+    })
     const serialized = document.body.innerHTML
     applyTextColors(document)
 
@@ -33,8 +36,28 @@ describe("semantic text colors", () => {
     expect(serialized).not.toContain("data-text-color")
     expect(serialized).not.toContain("data-adt-original-color")
     expect(serialized).toContain(MANUAL_TEXT_COLOR_ATTRIBUTE)
+    expect(serialized).not.toContain("rgb(220, 38, 38)")
     expect(body.style.getPropertyValue("color")).toBe("")
     expect(emphasis.style.getPropertyValue("color")).toBe("")
+  })
+
+  it("keeps explicit child colors under a legacy section-level default", () => {
+    document.body.innerHTML = `
+      <section data-section-id="section-1" data-text-color="#3D2B1F">
+        <h1 style="color: #8B2252">Intentional heading color</h1>
+        <p>Inherited body color</p>
+      </section>
+    `
+    const section = document.querySelector<HTMLElement>("section")!
+    const heading = document.querySelector<HTMLElement>("h1")!
+    const paragraph = document.querySelector<HTMLElement>("p")!
+
+    applyTextColors(document)
+
+    expect(section.style.getPropertyPriority("color")).toBe("important")
+    expect(heading.style.getPropertyValue("color")).toBe("rgb(139, 34, 82)")
+    expect(heading.style.getPropertyPriority("color")).toBe("")
+    expect(paragraph.style.getPropertyValue("color")).toBe("")
   })
 
   it("does not override a manual color on a descendant", () => {

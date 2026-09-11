@@ -1,3 +1,4 @@
+import fs from "node:fs"
 import path from "node:path"
 import { describe, expect, it } from "vitest"
 import { createPromptEngine } from "@adt/llm"
@@ -80,5 +81,37 @@ describe("web rendering reading-order prompts", () => {
     expect(prompt.indexOf('heading id=rescue_heading "Rescue"')).toBeLessThan(
       prompt.indexOf('heading id=sense_heading "Sense"'),
     )
+  })
+})
+
+describe("styleguide color contract", () => {
+  it("generates per-role colors and a text-only template", async () => {
+    const messages = await promptEngine.renderPrompt("styleguide_generation", {
+      page_images: [],
+      book_fonts: [],
+      typography: [],
+    })
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain(
+      "Never put `data-text-color` on the outer section",
+    )
+    expect(prompt).toContain(
+      'Text-Only Page for `section_type: "text_only"`',
+    )
+    expect(prompt).toContain(
+      "Put `data-text-color` directly on each text-bearing element",
+    )
+  })
+
+  it("keeps the default guide declarations aligned with its templates", () => {
+    const guide = fs.readFileSync(
+      path.join(process.cwd(), "assets", "styleguides", "default.md"),
+      "utf-8",
+    )
+
+    expect(guide).toContain("| Text alignment | Left |")
+    expect(guide).toContain("| Line-height | `leading-tight` |")
+    expect(guide).toContain("| Bold / Italic / Underline | Normal |")
   })
 })
