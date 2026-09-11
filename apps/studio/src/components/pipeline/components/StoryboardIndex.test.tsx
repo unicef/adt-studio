@@ -119,14 +119,21 @@ vi.mock("@/hooks/use-pages", () => ({
   usePages: () => ({ data: PAGES }),
   usePageImage: () => ({ data: null, isLoading: false }),
 }))
-vi.mock("@/hooks/use-quizzes", () => ({ useQuizzes: () => ({ data: null }) }))
+/**
+ * Overridable per test: most cases want the plain three-section book above,
+ * but quiz rows and the announcement need a different one.
+ */
+let quizzesData: unknown = null
+let readingOrderData: ReadingOrderResponse = READING_ORDER
+
+vi.mock("@/hooks/use-quizzes", () => ({ useQuizzes: () => ({ data: quizzesData }) }))
 vi.mock("@/hooks/use-reading-order", async () => {
   const actual = await vi.importActual<typeof import("@/hooks/use-reading-order")>(
     "@/hooks/use-reading-order",
   )
   return {
     ...actual,
-    useReadingOrder: () => ({ data: READING_ORDER }),
+    useReadingOrder: () => ({ data: readingOrderData }),
     useSaveReadingOrder: () => ({ mutate: saveMutate, isPending: false }),
   }
 })
@@ -140,6 +147,7 @@ vi.mock("@tanstack/react-query", () => ({
 }))
 
 const { StoryboardIndex, READING_ORDER_DRAG_TYPE } = await import("./StoryboardIndex")
+const { LiveRegionAnnouncer } = await import("@/components/a11y/LiveRegionAnnouncer")
 
 function createDataTransfer() {
   const values = new Map<string, string>()
@@ -213,6 +221,8 @@ afterEach(() => {
   cleanup()
   saveMutate.mockReset()
   pruneMutate.mockReset()
+  quizzesData = null
+  readingOrderData = READING_ORDER
   vi.restoreAllMocks()
 })
 
@@ -371,5 +381,138 @@ describe("StoryboardIndex reordering", () => {
     fireEvent.keyDown(rows()[0], { key: "ArrowDown", altKey: true })
     expect(saveMutate).not.toHaveBeenCalled()
     expect(rows()[0].getAttribute("draggable")).toBe("false")
+  })
+
+  it("moves a row back with Alt+ArrowUp", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    fireEvent.keyDown(rows()[2], { key: "ArrowUp", altKey: true })
+
+    expect(saveMutate).toHaveBeenCalledTimes(1)
+    expect(saveMutate.mock.calls[0][0].items.map((i: { id: string }) => i.id)).toEqual([
+      "pg001_sec001",
+      "pg002_sec001",
+      "pg003_sec001",
+    ])
+  })
+
+  it("turns dragging back off", () => {
+    // The mode is deliberate in both directions: leaving it on after one drag
+    // is how a stray drag later rewrites the book.
+    render(<StoryboardIndex bookLabel="book" />)
+    const toggle = screen.getByRole("button", { name: "Rearrange" })
+
+    enableRearrange()
+    expect(toggle.getAttribute("aria-pressed")).toBe("true")
+    expect(rows()[0].getAttribute("draggable")).toBe("true")
+
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute("aria-pressed")).toBe("false")
+    expect(rows()[0].getAttribute("draggable")).toBe("false")
+  })
+
+  it("offers no move past either end of the list", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+    const triggers = screen.getAllByRole("button", { name: "Page actions" })
+
+    fireEvent.pointerDown(triggers[0], { button: 0, ctrlKey: false })
+    expect(
+      screen.getByRole("menuitem", { name: "Move up" }).getAttribute("aria-disabled"),
+    ).toBe("true")
+    fireEvent.keyDown(document.body, { key: "Escape" })
+
+    fireEvent.pointerDown(triggers[2], { button: 0, ctrlKey: false })
+    expect(
+      screen.getByRole("menuitem", { name: "Move down" }).getAttribute("aria-disabled"),
+    ).toBe("true")
+  })
+})
+
+describe("StoryboardIndex quiz rows", () => {
+  const QUIZ = {
+    quizId: "qz001",
+    quizIndex: 0,
+    afterPageId: "pg001",
+    pageIds: ["pg001"],
+    question: "What did you read?",
+    options: [{ text: "a", explanation: "" }],
+    answerIndex: 0,
+    reasoning: "",
+  }
+
+  /** The same book with a quiz sitting second in the reading order. */
+  function withQuiz() {
+    quizzesData = { quizzes: { quizzes: [QUIZ] } }
+    readingOrderData = {
+      ...READING_ORDER,
+      items: [
+        READING_ORDER.items[0],
+        { kind: "quiz", id: "qz001", href: "qz001.html", position: 2, pageId: "pg001", pageNumber: null },
+        { ...READING_ORDER.items[1], position: 3 },
+      ],
+      order: [
+        { kind: "section", id: "pg001_sec001" },
+        { kind: "quiz", id: "qz001" },
+        { kind: "section", id: "pg003_sec001" },
+        { kind: "section", id: "pg002_sec001" },
+      ],
+    }
+  }
+
+  it("lists a quiz in its reading-order slot, numbered like any other page", () => {
+    withQuiz()
+    render(<StoryboardIndex bookLabel="book" />)
+
+    expect(rows()).toHaveLength(4)
+    const labels = rows().map(
+      (row) => row.querySelector('[data-testid="book-page"]')?.textContent,
+    )
+    // The quiz takes book page 2; the removed section still takes none.
+    expect(labels).toEqual(["1", "2", "–", "3"])
+  })
+
+  it("moves a quiz like any other row", () => {
+    // #660 requires quizzes to be movable independently of their anchor page.
+    withQuiz()
+    render(<StoryboardIndex bookLabel="book" />)
+
+    fireEvent.keyDown(rows()[1], { key: "ArrowDown", altKey: true })
+
+    expect(saveMutate).toHaveBeenCalledTimes(1)
+    expect(saveMutate.mock.calls[0][0].items.map((i: { id: string }) => i.id)).toEqual([
+      "pg001_sec001",
+      "pg003_sec001",
+      "qz001",
+      "pg002_sec001",
+    ])
+  })
+
+  it("announces where the moved row landed", () => {
+    // Moving by keyboard gives no visual feedback a screen-reader user can
+    // perceive, so the live region is the only signal that anything happened.
+    withQuiz()
+    render(
+      <LiveRegionAnnouncer>
+        <StoryboardIndex bookLabel="book" />
+      </LiveRegionAnnouncer>,
+    )
+
+    fireEvent.keyDown(rows()[1], { key: "ArrowDown", altKey: true })
+
+    const live = document.querySelector('[aria-live="polite"]')
+    expect(live?.textContent).toContain("Moved to position 3 of 4")
+  })
+
+  it("does not offer to remove a quiz from the book", () => {
+    // Sections got reversible removal; quizzes have no `isPruned`, so the only
+    // way out is a real deletion — which does not belong on this menu.
+    withQuiz()
+    render(<StoryboardIndex bookLabel="book" />)
+
+    const triggers = screen.getAllByRole("button", { name: "Page actions" })
+    fireEvent.pointerDown(triggers[1], { button: 0, ctrlKey: false })
+
+    expect(screen.getByRole("menuitem", { name: "Move down" })).toBeTruthy()
+    expect(screen.queryByRole("menuitem", { name: "Remove from book" })).toBeNull()
   })
 })
