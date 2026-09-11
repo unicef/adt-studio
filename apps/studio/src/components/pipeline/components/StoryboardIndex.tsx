@@ -11,7 +11,8 @@ import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { getSectionScreenshotUrl, type PageSummaryItem, type PageSummarySection } from "@/api/client"
 import { STAGES } from "../stage-config"
-import { parseQuizRouteId, resolveQuizId, type Quiz } from "@adt/types"
+import type { Quiz } from "@adt/types"
+import { parseQuizRouteId } from "@/lib/quiz-route"
 
 /**
  * Sidebar list shown only on the storyboard stage. Lists every section
@@ -40,12 +41,11 @@ export function StoryboardIndex({
 
   const items = useMemo<StoryboardListItem[]>(() => {
     if (!pages) return []
-    // Resolve each quiz's stable id from its position in the stored array —
-    // the only place that position is meaningful — and carry it from here on.
+    // The API resolves legacy IDs before returning quizzes.
     const quizzesByAfterPageId = new Map<string, Array<{ quiz: Quiz; quizId: string }>>()
-    ;(quizzesData?.quizzes?.quizzes ?? []).forEach((q, i) => {
+    ;(quizzesData?.quizzes?.quizzes ?? []).forEach((q) => {
       const list = quizzesByAfterPageId.get(q.afterPageId) ?? []
-      list.push({ quiz: q, quizId: resolveQuizId(q, i) })
+      list.push({ quiz: q, quizId: q.quizId })
       quizzesByAfterPageId.set(q.afterPageId, list)
     })
 

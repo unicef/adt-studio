@@ -6,10 +6,9 @@ import { z } from "zod"
 import {
   parseBookLabel,
   QuizGenerationOutput,
-  ensureQuizIds,
   withResolvedQuizIds,
-  formatQuizId,
   QuizIdExhaustedError,
+  QuizIdentityError,
   type Quiz,
   type WebRenderingOutput,
 } from "@adt/types"
@@ -17,6 +16,7 @@ import { openBookDb, createBookStorage, readCurrentNodeRow, type Storage } from 
 import {
   buildQuizGenerationConfig,
   generateQuiz,
+  saveQuizOutput,
   loadBookConfig,
   normalizeLocale,
   getRenderSectioning,
@@ -35,59 +35,21 @@ function safeParseLabel(label: string): string {
   }
 }
 
-/**
- * Every quiz id this book has ever spent, across all stored versions. Reserving
- * them means a delete-then-add cannot reissue a retired quiz's id and inherit
- * its `${quizId}_que` / `${quizId}_o${n}` catalog entries — and with them the
- * translations and generated audio of a quiz the user removed.
- *
- * A version stored before `quizId` existed carries no ids, but it still spent
- * the positional ones every consumer derived for its slots, so those are
- * reserved too — otherwise the *first* edit on a legacy book retires an id that
- * was never written down anywhere, and the next quiz added can be handed it.
- *
- * The one exception is the current version. It is the base an incoming body is
- * presumed to descend from, so a caller that sends quizzes with no ids is still
- * claiming its positional ids rather than asking for fresh ones — that is the
- * positional back-compat `ensureQuizIds` provides. Only *superseded* versions
- * have their positional ids retired for good.
- *
- * Read leniently rather than through `QuizGenerationOutput.safeParse`: a
- * version that no longer satisfies today's schema still burned the ids it
- * holds, and skipping it would let them be reissued. Reserving too much can
- * only push an allocation forward; reserving too little corrupts a book.
- */
-function usedQuizIds(storage: Storage): string[] {
-  const currentVersion =
-    storage.getLatestNodeData("quiz-generation", "book")?.version ?? null
-  const ids: string[] = []
-  for (const row of storage.getAllNodeVersions("quiz-generation", "book")) {
-    const quizzes = (row.data as { quizzes?: unknown } | null)?.quizzes
-    if (!Array.isArray(quizzes)) continue
-    quizzes.forEach((quiz, index) => {
-      const stored = (quiz as { quizId?: unknown } | null)?.quizId
-      if (typeof stored === "string" && stored.length > 0) {
-        ids.push(stored)
-      } else if (row.version !== currentVersion) {
-        ids.push(formatQuizId(index + 1))
-      }
-    })
-  }
-  return ids
-}
-
-/** `ensureQuizIds` with the exhaustion error surfaced as a 400. */
-function stampQuizIds(
-  output: QuizGenerationOutput,
-  storage: Storage
-): QuizGenerationOutput {
+/** Surface identity validation and allocation failures as client errors. */
+function saveQuizzes(storage: Storage, output: QuizGenerationOutput, mode: "edit" | "insert") {
   try {
-    return ensureQuizIds(output, usedQuizIds(storage)).output
+    return saveQuizOutput(storage, output, mode)
   } catch (err) {
-    if (err instanceof QuizIdExhaustedError) {
+    if (err instanceof QuizIdExhaustedError || err instanceof QuizIdentityError) {
       throw new HTTPException(400, { message: err.message })
     }
     throw err
+  }
+}
+
+function assertQuizzesIdle(storage: Storage): void {
+  if (storage.getStepRuns().some((run) => run.step === "quiz-generation" && run.status === "running")) {
+    throw new HTTPException(409, { message: "Quiz generation is currently running. Wait for it to finish before editing quizzes." })
   }
 }
 
@@ -168,12 +130,8 @@ export function createQuizRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      // Safety net for bodies that arrive without ids. GET resolves them on the
-      // way out, so the studio's own edits already carry each quiz's id and
-      // nothing is allocated here; a direct API caller that omits them gets the
-      // positional back-compat instead.
-      const output = stampQuizIds(parsed.data, storage)
-      const version = storage.putNodeData("quiz-generation", "book", output)
+      assertQuizzesIdle(storage)
+      const { version } = saveQuizzes(storage, parsed.data, "edit")
       return c.json({ version })
     } finally {
       storage.close()
@@ -217,15 +175,7 @@ export function createQuizRoutes(
       // A running quiz-generation stage rewrites the entire quiz set when it
       // finishes, so a quiz added mid-run would be silently clobbered. Reject
       // until the run completes (the UI also hides the entry points).
-      const quizStep = storage
-        .getStepRuns()
-        .find((r) => r.step === "quiz-generation")
-      if (quizStep?.status === "running") {
-        throw new HTTPException(409, {
-          message:
-            "Quiz generation is currently running. Wait for it to finish before adding a quiz.",
-        })
-      }
+      assertQuizzesIdle(storage)
 
       const appConfig = loadBookConfig(safeLabel, booksDir, configPath)
       const metadataRow = storage.getLatestNodeData("metadata", "book")
@@ -299,44 +249,47 @@ export function createQuizRoutes(
       // stamping after the sort would hand the newcomer whichever id used to
       // belong to the quiz at its index — along with that quiz's translations
       // and generated audio.
-      const existingRow = storage.getLatestNodeData("quiz-generation", "book")
-      const existing = existingRow
-        ? withResolvedQuizIds(existingRow.data as QuizGenerationOutput)
-        : null
+      return storage.transaction(() => {
+        assertQuizzesIdle(storage)
+        const existingRow = storage.getLatestNodeData("quiz-generation", "book")
+        const existing = existingRow
+          ? withResolvedQuizIds(existingRow.data as QuizGenerationOutput)
+          : null
 
-      const priorQuizzes =
-        placement === "after"
-          ? (existing?.quizzes ?? [])
-          : (existing?.quizzes ?? []).filter((q) => q.afterPageId !== afterPageId)
-      const quizzes = [...priorQuizzes, newQuiz]
-      quizzes.sort(
-        (a, b) =>
-          (pageNumberById.get(a.afterPageId) ?? 0) -
-          (pageNumberById.get(b.afterPageId) ?? 0)
-      )
-      quizzes.forEach((q, i) => {
-        q.quizIndex = i
+        const priorQuizzes =
+          placement === "after"
+            ? (existing?.quizzes ?? [])
+            : (existing?.quizzes ?? []).filter((q) => q.afterPageId !== afterPageId)
+        const quizzes = [...priorQuizzes, newQuiz]
+        quizzes.sort(
+          (a, b) =>
+            (pageNumberById.get(a.afterPageId) ?? 0) -
+            (pageNumberById.get(b.afterPageId) ?? 0)
+        )
+        quizzes.forEach((q, i) => {
+          q.quizIndex = i
+        })
+
+        // Only the newcomer still lacks an id; allocation reserves every
+        // id this book has ever issued, so it cannot adopt a retired quiz's
+        // catalog entries.
+        const { output, version } = saveQuizzes(
+          storage,
+          {
+            generatedAt: existing?.generatedAt ?? new Date().toISOString(),
+            language: existing?.language ?? quizConfig.language,
+            pagesPerQuiz: existing?.pagesPerQuiz ?? quizConfig.pagesPerQuiz,
+            quizzes,
+          },
+          "insert"
+        )
+
+        // Adding a quiz by hand produces the same output as running the stage, so
+        // mark the step done — otherwise the quizzes stage never lights up as
+        // completed for books whose quizzes were all added one at a time.
+        storage.markStepCompleted("quiz-generation")
+        return c.json({ quiz: output.quizzes[quizzes.indexOf(newQuiz)], version })
       })
-
-      // Only the newcomer still lacks an id; `usedQuizIds` keeps it off every
-      // id this book has ever issued, so it cannot adopt a retired quiz's
-      // catalog entries.
-      const output = stampQuizIds(
-        {
-          generatedAt: existing?.generatedAt ?? new Date().toISOString(),
-          language: existing?.language ?? quizConfig.language,
-          pagesPerQuiz: existing?.pagesPerQuiz ?? quizConfig.pagesPerQuiz,
-          quizzes,
-        },
-        storage
-      )
-
-      const version = storage.putNodeData("quiz-generation", "book", output)
-      // Adding a quiz by hand produces the same output as running the stage, so
-      // mark the step done — otherwise the quizzes stage never lights up as
-      // completed for books whose quizzes were all added one at a time.
-      storage.markStepCompleted("quiz-generation")
-      return c.json({ quiz: newQuiz, version })
     } finally {
       storage.close()
     }

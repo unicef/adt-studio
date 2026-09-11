@@ -322,16 +322,9 @@ export function QuizzesView({
           diff={{
             unifiedList: true,
             items: (d) => (d as QuizData | null)?.quizzes ?? [],
-            // quizId is the stable cross-version identity — quizIndex is
-            // positional (renumbered 0..n on add/delete), so a single delete
-            // would shift every index and mis-report the whole set as changed.
-            // Versions written before quizId existed fall back to the question
-            // text, which reads add/delete correctly but shows an edited
-            // question as remove+add rather than a single edit.
-            keyOf: (q) => {
-              const quiz = q as QuizData["quizzes"][number]
-              return quiz.quizId ?? quiz.question
-            },
+            // VersionPicker requests IDs resolved within each historical array,
+            // so legacy and stamped versions use the same comparison keys.
+            keyOf: (q) => (q as QuizData["quizzes"][number]).quizId!,
             isEqual: (a, b) => {
               const x = a as QuizData["quizzes"][number]
               const y = b as QuizData["quizzes"][number]

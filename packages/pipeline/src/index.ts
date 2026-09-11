@@ -4,6 +4,7 @@ export {
   createConsoleProgress,
 } from "./progress.js"
 export { processWithConcurrency } from "./concurrency.js"
+export { collectSpentQuizIds, saveQuizOutput } from "./quiz-ids.js"
 export {
   extractPDF,
   resolveFigureExtractionMode,

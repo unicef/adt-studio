@@ -1,5 +1,15 @@
 import { z } from "zod"
 
+/** Canonical, filename-safe quiz identity. */
+export const QuizId = z.string().length(5).regex(/^qz(?!000)\d{3}$/, "Expected a quiz id from qz001 through qz999")
+
+export class QuizIdentityError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "QuizIdentityError"
+  }
+}
+
 export const QuizOption = z.object({
   text: z.string(),
   explanation: z.string(),
@@ -12,10 +22,10 @@ export const Quiz = z.object({
    * the quiz's HTML file and, through `${quizId}_que` / `${quizId}_o${n}`, its
    * text-catalog entries — and therefore its translations and generated audio.
    *
-   * Optional because books written before this field exists don't have one.
-   * Always read it through `resolveQuizId` / `ensureQuizIds`, never directly.
+   * Optional for legacy data and quizzes awaiting allocation. Stored data must
+   * pass `withResolvedQuizIds` before consumers use identity.
    */
-  quizId: z.string().optional(),
+  quizId: QuizId.optional(),
   /**
    * @deprecated Positional. Kept so older readers keep working, and normalized
    * to the array position on write, but never read for identity — inserting a
@@ -51,13 +61,14 @@ export const MAX_QUIZ_SEQ = 999
 
 /** Build the canonical quiz id for a sequence number. */
 export function formatQuizId(seq: number): string {
+  if (seq > MAX_QUIZ_SEQ) throw new QuizIdExhaustedError()
+  if (!Number.isInteger(seq) || seq < 1) throw new QuizIdentityError("Invalid quiz sequence number")
   return `qz${String(seq).padStart(3, "0")}`
 }
 
 /** Sequence number of a quiz id, or null if `id` isn't one. */
 export function parseQuizId(id: string): number | null {
-  const match = /^qz(\d+)$/.exec(id)
-  return match ? Number(match[1]) : null
+  return QuizId.safeParse(id).success ? Number(id.slice(2)) : null
 }
 
 /**
@@ -70,7 +81,7 @@ export function parseQuizId(id: string): number | null {
 export class QuizIdExhaustedError extends Error {
   constructor() {
     super(
-      `This book has allocated all ${MAX_QUIZ_SEQ} of its quiz ids. Remove some quiz history, or re-run quiz generation, before adding more quizzes.`
+      `This book has allocated all ${MAX_QUIZ_SEQ} of its quiz ids. New quizzes cannot be allocated without reusing an existing identity.`
     )
     this.name = "QuizIdExhaustedError"
   }
@@ -81,14 +92,14 @@ export class QuizIdExhaustedError extends Error {
  * `quizId` existed: `qz${arrayIndex + 1}`. `index` must be the quiz's position
  * in `QuizGenerationOutput.quizzes`.
  *
- * Only meaningful on an array that is *wholly* stamped or *wholly* unstamped —
- * the state `ensureQuizIds` and `withResolvedQuizIds` both guarantee, since they
- * stamp every quiz or none. On a half-stamped array the positional fallback can
- * collide with a stored id (`[X: "qz002", Y: undefined]` resolves Y to `qz002`
- * too), which would key two catalog entries and two output pages the same.
+ * Validate the whole array with `withResolvedQuizIds` before consuming it:
+ * a partially stamped array can otherwise give a legacy positional fallback
+ * the same ID as an explicit entry.
  */
 export function resolveQuizId(quiz: Quiz, index: number): string {
-  return quiz.quizId ?? formatQuizId(index + 1)
+  const id = quiz.quizId ?? formatQuizId(index + 1)
+  if (!QuizId.safeParse(id).success) throw new QuizIdentityError(`Invalid quiz id: ${id}`)
+  return id
 }
 
 /**
@@ -104,27 +115,16 @@ export function resolveQuizId(quiz: Quiz, index: number): string {
 export function withResolvedQuizIds(
   output: QuizGenerationOutput
 ): QuizGenerationOutput {
+  const ids = output.quizzes.map(resolveQuizId)
+  assertUniqueQuizIds(ids)
   if (output.quizzes.every((q) => q.quizId)) return output
   return {
     ...output,
     quizzes: output.quizzes.map((quiz, index) => ({
       ...quiz,
-      quizId: resolveQuizId(quiz, index),
+      quizId: ids[index],
     })),
   }
-}
-
-/**
- * The quiz id a storyboard route param refers to, or null if `pageId` isn't a
- * quiz route. Routes are `quiz-{quizId}`; links minted before quizzes had
- * stable ids carry `quiz-{arrayIndex}`, so a bare number resolves to the id
- * that index derived back then and old tabs and bookmarks keep working.
- */
-export function parseQuizRouteId(pageId: string): string | null {
-  const match = /^quiz-(.+)$/.exec(pageId)
-  if (!match) return null
-  const legacy = match[1]
-  return /^\d+$/.test(legacy) ? formatQuizId(Number(legacy) + 1) : legacy
 }
 
 /**
@@ -135,8 +135,8 @@ export function parseQuizRouteId(pageId: string): string | null {
  * keyed by them — stay byte-identical. Only when that number is taken does it
  * take a fresh one.
  *
- * `reservedIds` should carry ids used by *previous* stored versions so a
- * delete-then-add cannot resurrect a retired quiz's catalog entries.
+ * `reservedIds` must carry ids used by all stored versions, including the current
+ * version, so a delete-then-add cannot resurrect a retired quiz's catalog entries.
  *
  * Positional back-compat only holds if `output.quizzes` is still in its *stored*
  * order. Callers that reorder, insert or delete must run `withResolvedQuizIds`
@@ -153,6 +153,12 @@ export function ensureQuizIds(
   output: QuizGenerationOutput,
   reservedIds: Iterable<string> = []
 ): { output: QuizGenerationOutput; changed: boolean } {
+  const explicitIds = output.quizzes.flatMap((quiz) => {
+    if (quiz.quizId === undefined) return []
+    if (!QuizId.safeParse(quiz.quizId).success) throw new QuizIdentityError(`Invalid quiz id: ${quiz.quizId}`)
+    return [quiz.quizId]
+  })
+  assertUniqueQuizIds(explicitIds)
   const used = new Set<number>()
   for (const id of reservedIds) {
     const seq = parseQuizId(id)
@@ -169,10 +175,11 @@ export function ensureQuizIds(
     let seq = index + 1
     while (used.has(seq)) seq += 1
     if (seq > MAX_QUIZ_SEQ) {
-      // Unreachable in practice: this needs ~1000 quizzes to have existed in
-      // one book. Capped so the `qz\d{3}` shape every consumer parses stays
-      // valid rather than silently widening to `qz1000`.
-      throw new QuizIdExhaustedError()
+      // Sparse explicit IDs can leave a lower unused slot. Search it before
+      // reporting exhaustion; retired slots remain in `used` forever.
+      seq = 1
+      while (used.has(seq)) seq += 1
+      if (seq > MAX_QUIZ_SEQ) throw new QuizIdExhaustedError()
     }
     used.add(seq)
     changed = true
@@ -180,6 +187,14 @@ export function ensureQuizIds(
   })
 
   return { output: changed ? { ...output, quizzes } : output, changed }
+}
+
+function assertUniqueQuizIds(ids: string[]): void {
+  const seen = new Set<string>()
+  for (const id of ids) {
+    if (seen.has(id)) throw new QuizIdentityError(`Duplicate quiz id: ${id}`)
+    seen.add(id)
+  }
 }
 
 /** Schema for what the LLM returns (simpler than the stored Quiz type) */

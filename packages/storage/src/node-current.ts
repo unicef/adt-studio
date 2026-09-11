@@ -21,7 +21,9 @@ export function readCurrentNodeRow(
      LIMIT 1`,
     [node, itemId]
   ) as Array<{ version: number; data: string }>
-  return rows[0] ?? null
+  // A null version invalidates the active output without deleting its history.
+  // Do not filter null rows in SQL: that would resurrect an older version.
+  return rows[0]?.data === "null" ? null : rows[0] ?? null
 }
 
 /**

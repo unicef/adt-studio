@@ -263,7 +263,7 @@ export function VersionPicker({
       if (versions == null) setLoadingVersions(true)
       setLoadError(false)
       try {
-        const res = await api.getVersionHistory(bookLabel, step, itemId, true)
+        const res = await api.getVersionHistory(bookLabel, step, itemId, true, step === "quiz-generation")
         setVersions(res.versions)
       } catch {
         setLoadError(true)

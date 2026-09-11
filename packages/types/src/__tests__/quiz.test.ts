@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest"
 import {
   formatQuizId,
   parseQuizId,
-  parseQuizRouteId,
   resolveQuizId,
   withResolvedQuizIds,
   ensureQuizIds,
@@ -195,20 +194,27 @@ describe("withResolvedQuizIds", () => {
   })
 })
 
-describe("parseQuizRouteId", () => {
-  it("reads the canonical route shape", () => {
-    expect(parseQuizRouteId("quiz-qz003")).toBe("qz003")
+
+describe("quiz identity boundary validation", () => {
+  it.each(["qz000", "qz1", "qz1000", "", "../qz001", "qz001\n", "qz001\r"])("rejects invalid explicit id %j in allocation and reads", (quizId) => {
+    expect(parseQuizId(quizId)).toBeNull()
+    const input = output([quiz("Invalid", { quizId })])
+    expect(() => ensureQuizIds(input)).toThrow(/Invalid quiz id/)
+    expect(() => withResolvedQuizIds(input)).toThrow(/Invalid quiz id/)
   })
 
-  it("maps a legacy numeric route to the id that index used to derive", () => {
-    // Links minted before quizzes had stable ids carry `quiz-{arrayIndex}`.
-    expect(parseQuizRouteId("quiz-0")).toBe("qz001")
-    expect(parseQuizRouteId("quiz-4")).toBe("qz005")
+  it("rejects supplied duplicates and ambiguous partial legacy arrays", () => {
+    const duplicate = output([quiz("One", { quizId: "qz002" }), quiz("Two", { quizId: "qz002" })])
+    expect(() => ensureQuizIds(duplicate)).toThrow("Duplicate quiz id")
+    expect(() => withResolvedQuizIds(duplicate)).toThrow("Duplicate quiz id")
+    expect(() => withResolvedQuizIds(output([quiz("Explicit", { quizId: "qz002" }), quiz("Legacy")]))).toThrow("Duplicate quiz id")
   })
 
-  it("returns null for pageIds that aren't quiz routes", () => {
-    expect(parseQuizRouteId("pg001")).toBeNull()
-    expect(parseQuizRouteId("pg001_sec001")).toBeNull()
-    expect(parseQuizRouteId("quiz-")).toBeNull()
+  it("uses a lower unspent slot before reporting exhaustion on a sparse book", () => {
+    const reserved = Array.from({ length: 997 }, (_, i) => formatQuizId(i + 3))
+    const result = ensureQuizIds(output([
+      quiz("Existing", { quizId: "qz998" }), quiz("Existing 2", { quizId: "qz999" }), quiz("New"),
+    ]), reserved).output
+    expect(result.quizzes[2].quizId).toBe("qz001")
   })
 })

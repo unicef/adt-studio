@@ -16,7 +16,7 @@ import { useSectionNav } from "@/routes/books.$label"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { useHasUnsavedChanges } from "../../components/floating-save"
-import { parseQuizRouteId } from "@adt/types"
+import { parseQuizRouteId } from "@/lib/quiz-route"
 
 
 export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {

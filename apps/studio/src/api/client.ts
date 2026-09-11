@@ -601,7 +601,7 @@ export interface QuizGenerationOutput {
 }
 
 export interface QuizzesResponse {
-  quizzes: QuizGenerationOutput | null
+  quizzes: (Omit<QuizGenerationOutput, "quizzes"> & { quizzes: Array<QuizItem & { quizId: string }> }) | null
   version: number | null
 }
 
@@ -1669,10 +1669,11 @@ export const api = {
     label: string,
     node: string,
     itemId: string,
-    includeData?: boolean
+    includeData?: boolean,
+    resolveQuizIds?: boolean,
   ) =>
     request<VersionListResponse>(
-      `/books/${label}/debug/versions/${node}/${itemId}${includeData ? "?includeData=true" : ""}`
+      `/books/${label}/debug/versions/${node}/${itemId}${includeData ? `?includeData=true${resolveQuizIds ? "&resolveQuizIds=true" : ""}` : ""}`
     ),
 
   getBookOutline: (label: string) =>

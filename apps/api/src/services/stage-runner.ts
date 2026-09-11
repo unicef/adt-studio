@@ -48,6 +48,7 @@ import {
   generateToc,
   buildTocGenerationConfig,
   generateAllQuizzes,
+  saveQuizOutput,
   buildQuizGenerationConfig,
   // Master step imports
   getRenderSectioning,
@@ -1893,7 +1894,8 @@ async function runQuizzesStep(
           })
         },
       })
-      storage.putNodeData("quiz-generation", "book", quizResult)
+      options.signal?.throwIfAborted()
+      saveQuizOutput(storage, quizResult, "replace")
       console.log(
         `[stage-run] ${label}: generated ${quizResult.quizzes.length} quiz(zes) from ${quizPages.length} page(s)`
       )
@@ -1903,6 +1905,13 @@ async function runQuizzesStep(
         message: `${quizResult.quizzes.length} quizzes from ${quizPages.length} pages`,
       })
     } else {
+      // A successful empty rerun must not leave the preserved previous quizzes
+      // active. Keep their history, but publish the now-empty result.
+      options.signal?.throwIfAborted()
+      saveQuizOutput(storage, {
+        generatedAt: new Date().toISOString(), language: quizConfig.language,
+        pagesPerQuiz: quizConfig.pagesPerQuiz, quizzes: [],
+      }, "replace")
       // Nothing to generate. This is the silent "finished instantly, no quizzes"
       // case — surface it loudly instead of completing green with no output.
       console.warn(

@@ -68,6 +68,7 @@ import { captionPageImages, buildCaptionConfig, collectCaptionImageIds, groupGlo
 import { regenerateGlossaryPreservingEdits, buildGlossaryConfig } from "./glossary.js"
 import { generateToc, buildTocGenerationConfig } from "./toc-generation.js"
 import { generateAllQuizzes, buildQuizGenerationConfig, type QuizPageInput } from "./quiz-generation.js"
+import { saveQuizOutput } from "./quiz-ids.js"
 import { buildTextCatalog } from "./text-catalog.js"
 import { buildEasyReadConfig, buildEasyReadSourceBlocks, createEmptyEasyReadOutput, generateEasyRead, flattenEasyReadEntries, isDeterministicEmptyEasyReadOutput } from "./easy-read.js"
 import { translateCatalogBatch, buildCatalogTranslationConfig, getTargetLanguages } from "./catalog-translation.js"
@@ -729,7 +730,12 @@ export async function runFullPipeline(
             })
           },
         })
-        storage.putNodeData("quiz-generation", "book", result)
+        saveQuizOutput(storage, result, "replace")
+      } else {
+        saveQuizOutput(storage, {
+          generatedAt: new Date().toISOString(), language: quizConfig.language,
+          pagesPerQuiz: quizConfig.pagesPerQuiz, quizzes: [],
+        }, "replace")
       }
     })
 

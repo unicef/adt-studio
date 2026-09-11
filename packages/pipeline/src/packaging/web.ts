@@ -24,7 +24,7 @@ import type {
   ImageCaptioningOutput,
   PackagingWarning,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
 import { resolveNarratorLabel } from "../speech.js"
 import {
   GOOGLE_FONTS,
@@ -314,6 +314,10 @@ export async function packageAdtWeb(
   const stepperBasePalette = quizPalette ?? DEFAULT_QUIZ_PALETTE
 
   const step = "package-web" as const
+  // Validate stored/imported quiz identities before deleting or writing any
+  // bundle files. API validation alone cannot protect imported book databases.
+  const quizRow = storage.getLatestNodeData("quiz-generation", "book")
+  const quizData = quizRow ? withResolvedQuizIds(quizRow.data as QuizGenerationOutput) : undefined
   progress.emit({ type: "step-start", step })
   progress.emit({ type: "step-progress", step, message: "Setting up directories..." })
 
@@ -344,9 +348,6 @@ export async function packageAdtWeb(
 
   const glossaryRow = storage.getLatestNodeData("glossary", "book")
   const glossary = glossaryRow?.data as GlossaryOutput | undefined
-
-  const quizRow = storage.getLatestNodeData("quiz-generation", "book")
-  const quizData = quizRow?.data as QuizGenerationOutput | undefined
 
   const metadataRow = storage.getLatestNodeData("metadata", "book")
   const metadata = metadataRow?.data as { title?: string | null; cover_page_number?: number | null } | undefined
@@ -558,7 +559,11 @@ export async function packageAdtWeb(
         applyBodyBackground,
         bodyFontFamily,
       })
-      fs.writeFileSync(path.join(adtDir, quizFilename), quizPageHtml)
+      const quizPath = path.resolve(adtDir, quizFilename)
+      if (path.dirname(quizPath) !== path.resolve(adtDir)) {
+        throw new Error("Quiz output must remain inside the book's export directory")
+      }
+      fs.writeFileSync(quizPath, quizPageHtml)
 
       pageList.push({ section_id: quizId, href: quizFilename })
     }

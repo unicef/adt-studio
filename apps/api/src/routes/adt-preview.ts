@@ -12,6 +12,7 @@ import {
   resolveEntryVoiceSlot,
   parseQuizId,
   resolveQuizId,
+  withResolvedQuizIds,
 } from "@adt/types"
 import {
   WebRenderingOutput,
@@ -198,7 +199,7 @@ function getGlossary(storage: Storage): GlossaryOutput | undefined {
 
 function getQuizData(storage: Storage): QuizGenerationOutput | undefined {
   const row = storage.getLatestNodeData("quiz-generation", "book")
-  return row?.data as QuizGenerationOutput | undefined
+  return row ? withResolvedQuizIds(row.data as QuizGenerationOutput) : undefined
 }
 
 function buildTextsMap(
