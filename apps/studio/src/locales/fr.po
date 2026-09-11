@@ -727,6 +727,9 @@ msgstr "Une allée de supermarché avec des étagères de boîtes de céréales 
 msgid "A table-filling activity."
 msgstr "Une activité de remplissage de tableau."
 
+msgid "A temperature below {GEMINI_TTS_MIN_USABLE_TEMPERATURE} makes Gemini's text-to-speech models return no audio at all, so speech generation will fail for every Gemini language. Use {GEMINI_TTS_MIN_USABLE_TEMPERATURE} or above, or leave it empty."
+msgstr "Une température inférieure à {GEMINI_TTS_MIN_USABLE_TEMPERATURE} empêche les modèles de synthèse vocale de Gemini de renvoyer le moindre audio : la génération de voix échouera pour toutes les langues confiées à Gemini. Utilisez {GEMINI_TTS_MIN_USABLE_TEMPERATURE} ou plus, ou laissez le champ vide."
+
 msgid "A true or false activity."
 msgstr "Une activité vrai ou faux."
 
@@ -4169,11 +4172,14 @@ msgstr "Gemini — Voix LLM et TTS."
 msgid "Gemini API key is required to generate audio."
 msgstr "La clé API Gemini est requise pour générer l'audio."
 
-msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
-msgstr "Gemini génère chaque phrase dans sa propre requête, si bien que son ton peut varier d'une phrase à l'autre. Définissez une température plus basse (p. ex. 0,4) pour réduire cette variation et une graine fixe pour rendre la lecture reproductible ; laissez les deux vides pour les désactiver et utiliser les valeurs par défaut de Gemini. Ne concerne que les langues acheminées vers Gemini — OpenAI et Azure les ignorent. Modifier l'une de ces valeurs régénère l'audio Gemini lors de la prochaine exécution."
+#~ msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+#~ msgstr "Gemini génère chaque phrase dans sa propre requête, si bien que son ton peut varier d'une phrase à l'autre. Définissez une température plus basse (p. ex. 0,4) pour réduire cette variation et une graine fixe pour rendre la lecture reproductible ; laissez les deux vides pour les désactiver et utiliser les valeurs par défaut de Gemini. Ne concerne que les langues acheminées vers Gemini — OpenAI et Azure les ignorent. Modifier l'une de ces valeurs régénère l'audio Gemini lors de la prochaine exécution."
 
 msgid "Gemini models + TTS voices."
 msgstr "Modèles Gemini + voix TTS."
+
+#~ msgid "Gemini sampling"
+#~ msgstr "Échantillonnage Gemini"
 
 msgid "Gemini settings"
 msgstr "Paramètres Gemini"
@@ -4181,8 +4187,8 @@ msgstr "Paramètres Gemini"
 msgid "Gemini Voice"
 msgstr "Gemini Voix"
 
-msgid "Gemini voice consistency"
-msgstr "Cohérence de la voix Gemini"
+#~ msgid "Gemini voice consistency"
+#~ msgstr "Cohérence de la voix Gemini"
 
 msgid "General"
 msgstr "Général"
@@ -5883,6 +5889,12 @@ msgstr "Reconstruction nécessaire"
 msgid "needs update"
 msgstr "à mettre à jour"
 
+msgid "Neither setting is documented for Gemini's speech models, and neither controls which voice you get — that comes from the voice you pick. Leave both empty unless you have a specific reason. Changing either value regenerates Gemini audio on the next run."
+msgstr "Aucun de ces réglages n'est documenté pour les modèles vocaux de Gemini, et aucun ne détermine la voix obtenue — cela dépend de la voix choisie. Laissez-les vides sauf raison particulière. Modifier l'une ou l'autre régénère l'audio Gemini à la prochaine exécution."
+
+#~ msgid "Neither setting is documented for Gemini's speech models, and neither controls which voice you get — that comes from the voice you pick. Leave both empty unless you have a specific reason. Only affects languages routed to Gemini; OpenAI and Azure ignore them. Changing either value regenerates Gemini audio on the next run."
+#~ msgstr "Aucun de ces réglages n'est documenté pour les modèles vocaux de Gemini, et aucun ne détermine la voix obtenue — cela dépend de la voix choisie. Laissez-les vides sauf raison particulière. N'affecte que les langues confiées à Gemini ; OpenAI et Azure les ignorent. Modifier l'une ou l'autre régénère l'audio Gemini à la prochaine exécution."
+
 msgid "Never"
 msgstr "Jamais"
 
@@ -6922,6 +6934,9 @@ msgstr "pages {shownStr}"
 
 msgid "Pages in the selected range"
 msgstr "Pages de la plage sélectionnée"
+
+msgid "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. Leave empty to send each page as one request however long it is."
+msgstr "Les pages plus longues que cette valeur sont réparties sur plusieurs requêtes, aux frontières de phrases. La voix de Gemini a tendance à dériver dès qu'un même enregistrement dépasse quelques minutes ; limiter la longueur permet à une page longue de garder un seul narrateur. Laissez vide pour envoyer chaque page en une seule requête, quelle que soit sa longueur."
 
 msgid "pages per quiz"
 msgstr "pages par quiz"
@@ -8260,6 +8275,9 @@ msgstr "Exemple de manuel de référence"
 msgid "Sample shown for illustration. The actual languages used come from your Output Languages list above."
 msgstr "Exemple montré à titre d'illustration. Les langues réellement utilisées proviennent de votre liste de langues de sortie ci-dessus."
 
+msgid "Sampling"
+msgstr "Échantillonnage"
+
 msgid "sans serif"
 msgstr "sans empattement"
 
@@ -9106,6 +9124,9 @@ msgstr "Diviser la partie · pages {0}–{1}"
 
 msgid "Split preview"
 msgstr "Aperçu de la division"
+
+msgid "Split requests longer than (characters)"
+msgstr "Scinder les requêtes dépassant (caractères)"
 
 msgid "Split section"
 msgstr "Diviser la section"

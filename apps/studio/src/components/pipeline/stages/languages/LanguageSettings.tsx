@@ -10,7 +10,7 @@ import {
   type SpeechProvider,
   type StageName,
 } from "@adt/types"
-import { DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL } from "@adt/types"
+import { DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL, GEMINI_TTS_MIN_USABLE_TEMPERATURE } from "@adt/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -197,6 +197,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
   const [elevenLabsUseSpeakerBoost, setElevenLabsUseSpeakerBoost] = useState("")
   const [elevenLabsSpeed, setElevenLabsSpeed] = useState("")
   const [batchByPage, setBatchByPage] = useState(false)
+  const [batchMaxChars, setBatchMaxChars] = useState("")
   const [wordHighlighting, setWordHighlighting] = useState(false)
   const [secondaryVoices, setSecondaryVoices] = useState<
     Record<string, SecondarySpeechVoiceConfig>
@@ -298,6 +299,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
     )
     setGeminiSeed(typeof speech?.seed === "number" ? String(speech.seed) : "")
     setBatchByPage(speech?.batch_by_page === true)
+    setBatchMaxChars(speech?.batch_max_chars !== undefined ? String(speech.batch_max_chars) : "")
     setPrimaryVoices(
       speech?.primary_voices && typeof speech.primary_voices === "object"
         ? (speech.primary_voices as PrimarySpeechVoicesConfig)
@@ -459,6 +461,10 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
         temperature: geminiTemperature.trim() && Number.isFinite(tempRaw) ? Math.min(2, Math.max(0, tempRaw)) : undefined,
         seed: geminiSeed.trim() && Number.isFinite(seedRaw) ? Math.trunc(seedRaw) : undefined,
         batch_by_page: batchByPage || undefined,
+        batch_max_chars:
+          batchByPage && batchMaxChars.trim() !== "" && Number.isFinite(Number(batchMaxChars))
+            ? Math.max(120, Math.trunc(Number(batchMaxChars)))
+            : undefined,
         word_highlighting: wordHighlighting,
         excluded_categories: Array.from(excludedCategories),
         elevenlabs_use_context: elevenLabsUseContext || undefined,
@@ -1080,6 +1086,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           elevenLabsUseSpeakerBoost={elevenLabsUseSpeakerBoost} setElevenLabsUseSpeakerBoost={setElevenLabsUseSpeakerBoost}
           elevenLabsSpeed={elevenLabsSpeed} setElevenLabsSpeed={setElevenLabsSpeed}
           batchByPage={batchByPage} setBatchByPage={setBatchByPage}
+          batchMaxChars={batchMaxChars} setBatchMaxChars={setBatchMaxChars}
           wordHighlighting={wordHighlighting} setWordHighlighting={setWordHighlighting}
           secondaryVoices={secondaryVoices} setSecondaryVoices={setSecondaryVoices}
           primaryVoices={primaryVoices} setPrimaryVoices={setPrimaryVoices}
@@ -1350,6 +1357,7 @@ function SpeechLanguageCards({
   elevenLabsUseSpeakerBoost, setElevenLabsUseSpeakerBoost,
   elevenLabsSpeed, setElevenLabsSpeed,
   batchByPage, setBatchByPage,
+  batchMaxChars, setBatchMaxChars,
   wordHighlighting, setWordHighlighting,
   secondaryVoices, setSecondaryVoices,
   primaryVoices, setPrimaryVoices,
@@ -1381,6 +1389,7 @@ function SpeechLanguageCards({
   elevenLabsUseSpeakerBoost: string; setElevenLabsUseSpeakerBoost: (v: string) => void
   elevenLabsSpeed: string; setElevenLabsSpeed: (v: string) => void
   batchByPage: boolean; setBatchByPage: (v: boolean) => void
+  batchMaxChars: string; setBatchMaxChars: (v: string) => void
   wordHighlighting: boolean; setWordHighlighting: (v: boolean) => void
   secondaryVoices: Record<string, SecondarySpeechVoiceConfig>
   setSecondaryVoices: Dispatch<
@@ -1391,6 +1400,15 @@ function SpeechLanguageCards({
   markDirty: (field: string) => void
 }) {
   const { t } = useLingui()
+
+  // Gemini returns no audio at all below this temperature, so warn as soon as
+  // the value is typed rather than after a whole run has failed. Blank is
+  // fine — unset means Gemini's own default.
+  const parsedGeminiTemperature = Number.parseFloat(geminiTemperature)
+  const isBelowGeminiTemperatureFloor =
+    geminiTemperature.trim() !== "" &&
+    Number.isFinite(parsedGeminiTemperature) &&
+    parsedGeminiTemperature < GEMINI_TTS_MIN_USABLE_TEMPERATURE
 
   // A provider with no key can be picked here but fails the whole Speech run
   // on the first item it reaches, so mirror the Speech landing page and offer
@@ -1678,38 +1696,6 @@ function SpeechLanguageCards({
             />
           </div>
         </div>
-        {/* Gemini sampling — keeps prosody consistent across the independent
-            per-sentence requests. Only applies to Gemini-routed languages. */}
-        <div className="space-y-2 pt-2">
-          <Label className="text-[11px] font-medium text-muted-foreground">
-            {t`Gemini voice consistency`}
-          </Label>
-          <div className="flex gap-4 flex-wrap">
-            <div className="space-y-1.5">
-              <Label className="text-xs">{t`Temperature`}</Label>
-              <Input
-                value={geminiTemperature}
-                onChange={(e) => { setGeminiTemperature(e.target.value); markDirty("speech") }}
-                placeholder="0.4"
-                inputMode="decimal"
-                className="w-24 h-8 text-xs"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">{t`Seed`}</Label>
-              <Input
-                value={geminiSeed}
-                onChange={(e) => { setGeminiSeed(e.target.value); markDirty("speech") }}
-                placeholder="42"
-                inputMode="numeric"
-                className="w-24 h-8 text-xs"
-              />
-            </div>
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            {t`Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run.`}
-          </p>
-        </div>
         <div className="flex items-start gap-3 pt-2">
           <Switch
             id="word-highlighting"
@@ -1941,6 +1927,45 @@ function SpeechLanguageCards({
           <p className="text-[11px] text-muted-foreground">
             {t`Applies to every language routed to Gemini.`}
           </p>
+          {/* Sampling lives inside this Gemini-only card: neither parameter
+              is documented for Gemini's TTS models, neither controls voice
+              identity, and below ~0.5 temperature they return no audio at all
+              (GEMINI_TTS_MIN_USABLE_TEMPERATURE). The value is honoured rather
+              than clamped — it is the user's setting — but warned about here
+              and named in the resulting error. */}
+          <div className="space-y-2">
+            <Label className="text-[11px] font-medium text-muted-foreground">
+              {t`Sampling`}
+            </Label>
+            <div className="flex gap-4 flex-wrap">
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t`Temperature`}</Label>
+                <Input
+                  value={geminiTemperature}
+                  onChange={(e) => { setGeminiTemperature(e.target.value); markDirty("speech") }}
+                  inputMode="decimal"
+                  className="w-24 h-8 text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t`Seed`}</Label>
+                <Input
+                  value={geminiSeed}
+                  onChange={(e) => { setGeminiSeed(e.target.value); markDirty("speech") }}
+                  inputMode="numeric"
+                  className="w-24 h-8 text-xs"
+                />
+              </div>
+            </div>
+            {isBelowGeminiTemperatureFloor && (
+              <p className="text-[11px] text-destructive">
+                {t`A temperature below ${GEMINI_TTS_MIN_USABLE_TEMPERATURE} makes Gemini's text-to-speech models return no audio at all, so speech generation will fail for every Gemini language. Use ${GEMINI_TTS_MIN_USABLE_TEMPERATURE} or above, or leave it empty.`}
+              </p>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              {t`Neither setting is documented for Gemini's speech models, and neither controls which voice you get — that comes from the voice you pick. Leave both empty unless you have a specific reason. Changing either value regenerates Gemini audio on the next run.`}
+            </p>
+          </div>
           <div className="flex items-start gap-3 pt-1">
             <Switch
               id="batch-by-page"
@@ -1954,6 +1979,20 @@ function SpeechLanguageCards({
               </p>
             </div>
           </div>
+          {batchByPage && (
+            <div className="space-y-1.5 pt-2">
+              <Label className="text-xs">{t`Split requests longer than (characters)`}</Label>
+              <Input
+                value={batchMaxChars}
+                onChange={(e) => { setBatchMaxChars(e.target.value); markDirty("speech") }}
+                inputMode="numeric"
+                className="w-32 h-8 text-xs"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                {t`Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. Leave empty to send each page as one request however long it is.`}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

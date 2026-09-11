@@ -34,6 +34,17 @@ export const TTSProviderConfig = z.object({
 })
 export type TTSProviderConfig = z.infer<typeof TTSProviderConfig>
 
+/**
+ * Below this temperature Gemini's TTS models return no audio at all —
+ * reproducibly, whatever the input. Reported upstream (fails at <= 0.4, works
+ * from 0.5):
+ * https://discuss.ai.google.dev/t/gemini-2-5-tts-model-not-working-at-low-temperatures/137850
+ *
+ * We honour a lower value rather than clamping it — it is the user's setting —
+ * but warn before the run and name it in the resulting error.
+ */
+export const GEMINI_TTS_MIN_USABLE_TEMPERATURE = 0.5
+
 export const SpeechProvider = z.enum(["openai", "azure", "gemini", "elevenlabs"])
 export type SpeechProvider = z.infer<typeof SpeechProvider>
 
@@ -84,13 +95,20 @@ export const SpeechConfig = z.object({
   bit_rate: z.string().optional(),
   sample_rate: z.number().optional(),
   /**
-   * Gemini TTS sampling controls. Each sentence is synthesized in its own
-   * stateless request, so the model re-derives prosody every call and the tone
-   * can drift between sentences. A low temperature reduces that variance and a
-   * fixed seed makes delivery reproducible — together they keep the voice
-   * consistent across sentences. Ignored by OpenAI/Azure (their APIs have no
-   * such parameter). When unset, neither is sent and Gemini uses its own
-   * defaults — i.e. sampling control is disabled.
+   * Gemini TTS sampling controls, passed through best-effort. Ignored by
+   * OpenAI/Azure (their APIs have no such parameter). When unset, neither is
+   * sent and Gemini uses its own defaults.
+   *
+   * Neither parameter is documented for Gemini's TTS models, and **neither
+   * controls voice identity** — that comes from the voice name and from the
+   * performance notes in the prompt. Reaching for a low temperature or a fixed
+   * seed to stop a voice drifting between sentences does not work.
+   *
+   * Worse, a `temperature` below ~0.5 makes Gemini's TTS models return no
+   * audio at all, reproducibly, whatever the input:
+   * https://discuss.ai.google.dev/t/gemini-2-5-tts-model-not-working-at-low-temperatures/137850
+   * The value is honoured rather than clamped — it is the user's setting — but
+   * it is warned about before a run and named in the resulting error.
    */
   temperature: z.number().min(0).max(2).optional(),
   seed: z.number().int().optional(),
@@ -134,6 +152,19 @@ export const SpeechConfig = z.object({
    * languages keep the per-entry path.
    */
   batch_by_page: z.boolean().optional(),
+  /**
+   * Cap (in characters) on a single page-batched request's transcript. When a
+   * page exceeds it, the page is split into several requests at entry
+   * boundaries — never mid-entry, which would desync the alignment pass from
+   * the entry ids.
+   *
+   * Unset means one request per page however long it is, which is the old
+   * behaviour. Google recommends splitting transcripts into smaller chunks
+   * because "speech quality and consistency may begin to drift with generated
+   * outputs that are longer than a few minutes" — a multi-minute page is a
+   * common source of the voice changing partway through.
+   */
+  batch_max_chars: z.number().int().min(120).optional(),
   /** Text categories excluded from read-aloud (no audio generated or packaged) */
   excluded_categories: z.array(TextCatalogCategory).optional(),
   /** Individual text ids excluded from read-aloud; also mutes their `_easy_read` variants */
