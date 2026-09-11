@@ -5,6 +5,7 @@ import path from "node:path"
 import { runInNewContext } from "node:vm"
 import { JSDOM } from "jsdom"
 import type { Storage, PageData } from "@adt/storage"
+import { createMockStorage, createWebAssets } from "./helpers/mock-storage.js"
 import {
   computePackagingInputHash,
   buildGlossaryJson,
@@ -34,36 +35,6 @@ function readFirstPage(dir: string): string {
 }
 import { deriveQuizPalette } from "../quiz-palette.js"
 
-function createMockStorage(
-  pages: PageData[],
-  nodeData: Record<string, Record<string, unknown>>,
-): Storage {
-  return {
-    getLatestNodeData(node: string, itemId: string) {
-      const data = nodeData[node]?.[itemId]
-      return data !== undefined ? { version: 1, data } : null
-    },
-    getPages: () => pages,
-    getPageImageBase64: () => "",
-    getImageBase64: () => "",
-    getPageImages: () => [],
-    putNodeData: () => 1,
-    clearExtractedData: () => {},
-    putExtractedPage: () => {},
-    appendLlmLog: () => {},
-    getSignLanguageVideos: () => [],
-    getSignLanguageVideoPath: () => null,
-    getNodeVersionFingerprint: (excludeNodes: string[] = []) =>
-      Object.entries(nodeData)
-        .filter(([node]) => !excludeNodes.includes(node))
-        .flatMap(([node, items]) =>
-          Object.keys(items).map((itemId) => ({ node, itemId, version: 1 })),
-        )
-        .sort((a, b) => a.node.localeCompare(b.node) || a.itemId.localeCompare(b.itemId)),
-    close: () => {},
-  }
-}
-
 function readyCoreTtsCatalog(...ids: string[]) {
   return {
     language: "en",
@@ -84,26 +55,6 @@ function readyCoreTtsCatalog(...ids: string[]) {
     })),
     generatedAt: "2026-01-01T00:00:00.000Z",
   }
-}
-
-function createWebAssets(webAssetsDir: string): void {
-  fs.mkdirSync(webAssetsDir, { recursive: true })
-  // Pre-built runtime bundles. In production these come from
-  // apps/adt-runtime/build.config.mjs; in tests we write them directly so
-  // buildJsBundle's "copy from webAssetsDir" path is exercised without
-  // pulling in the real React build.
-  const bundleStub = 'window.__ADT_BUNDLE_TEST__ = "ok";\n'
-  fs.writeFileSync(path.join(webAssetsDir, "base.bundle.min.js"), bundleStub)
-  fs.writeFileSync(path.join(webAssetsDir, "base.bundle.local.js"), bundleStub)
-  fs.writeFileSync(
-    path.join(webAssetsDir, "base.bundle.min.js.map"),
-    '{"version":3,"sources":["base.tsx"],"mappings":""}',
-  )
-  fs.writeFileSync(path.join(webAssetsDir, "fonts.css"), "body { font-family: serif; }")
-  fs.writeFileSync(
-    path.join(webAssetsDir, "tailwind_css.css"),
-    "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n",
-  )
 }
 
 function createMinimalStorage(): Storage {
