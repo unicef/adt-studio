@@ -78,12 +78,12 @@ describe("TOC hierarchy across saved data, preview and export", () => {
       await packageAdtWeb(storage, options)
       packageWebpub(storage, options)
       const packagedToc = JSON.parse(fs.readFileSync(path.join(bookDir, "adt/content/toc.json"), "utf8"))
-      // The first packaged page uses index.html; preview uses the section URL.
+      // Packaged pages and preview share stable section URLs.
       expect(packagedToc.map((e: { title: string; level: number }) => [e.title, e.level]))
         .toEqual(previewToc.map((e: { title: string; level: number }) => [e.title, e.level]))
       const manifest = JSON.parse(fs.readFileSync(path.join(bookDir, "webpub/manifest.json"), "utf8"))
       expect(manifest.toc).toEqual([
-        { title: "Unit one", href: parentId ? `${parentId}.html` : "", children: [{ title: "Chapter one", href: "index.html" }] },
+        { title: "Unit one", href: parentId ? `${parentId}.html` : "", children: [{ title: "Chapter one", href: "pg001_sec001.html" }] },
         { title: "Unit two", href: "pg003_sec001.html", children: [{ title: "Chapter two", href: "pg003_sec001.html" }] },
       ])
       expect(await readSaved()).toEqual(entries)
