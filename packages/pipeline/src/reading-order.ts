@@ -22,7 +22,7 @@ import type {
 } from "@adt/types"
 import {
   WebRenderingOutput as WebRenderingOutputSchema,
-  ensureQuizIds,
+  withResolvedQuizIds,
   resolveQuizId,
 } from "@adt/types"
 import { getRenderSectioning } from "./render-sectioning.js"
@@ -156,7 +156,7 @@ export function resolveReadingOrder(
   const quizzes =
     options.includeQuizzes === false || !quizRow
       ? []
-      : ensureQuizIds(quizRow.data as QuizGenerationOutput).output.quizzes
+      : withResolvedQuizIds(quizRow.data as QuizGenerationOutput).quizzes
 
   // Phase 5 inserts the stored, user-editable order here, reconciled against
   // this default. Until then the source-derived order is the only order.

@@ -7,6 +7,7 @@ import type { LlmLogEntry } from "@adt/llm"
 import { parseBookLabel } from "@adt/types"
 import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
 import { openBookDb } from "./db.js"
+import { readCurrentNodeRow } from "./node-current.js"
 
 export interface BookPaths {
   bookDir: string
@@ -74,10 +75,15 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
 
     clearNodesByType(nodes: string[]): void {
       if (nodes.length === 0) return
-      const placeholders = nodes.map(() => "?").join(", ")
       transaction(() => {
-        db.run(`DELETE FROM node_data WHERE node IN (${placeholders})`, nodes)
-        db.run(`DELETE FROM node_current WHERE node IN (${placeholders})`, nodes)
+        // Quiz history is also the permanent record of spent catalog/audio
+        // identities. Invalidate its current output, never erase that record.
+        if (nodes.includes("quiz-generation")) invalidateQuizOutput(db)
+        const deletable = nodes.filter((node) => node !== "quiz-generation")
+        if (deletable.length === 0) return
+        const placeholders = deletable.map(() => "?").join(", ")
+        db.run(`DELETE FROM node_data WHERE node IN (${placeholders})`, deletable)
+        db.run(`DELETE FROM node_current WHERE node IN (${placeholders})`, deletable)
       })
     },
 
@@ -452,19 +458,11 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     /** Returns the *current* version's row — the version pointed at by
      *  node_current, or MAX(version) when no pointer is set (or it dangles). */
     getLatestNodeData(node: string, itemId: string): NodeDataRow | null {
-      const rows = db.all(
-        `SELECT nd.version AS version, nd.data AS data
-         FROM node_data nd
-         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
-         WHERE nd.node = ? AND nd.item_id = ?
-         ORDER BY (nd.version = nc.version) DESC, nd.version DESC
-         LIMIT 1`,
-        [node, itemId]
-      ) as Array<{ version: number; data: string }>
-      if (rows.length === 0) return null
+      const row = readCurrentNodeRow(db, node, itemId)
+      if (!row) return null
       return {
-        version: rows[0].version,
-        data: JSON.parse(rows[0].data),
+        version: row.version,
+        data: JSON.parse(row.data),
       }
     },
 
@@ -605,8 +603,9 @@ function clearImageFiles(imagesDir: string): void {
 function clearExtractedRows(db: sqlite.Database): void {
   db.exec("BEGIN IMMEDIATE")
   try {
-    db.run("DELETE FROM node_data WHERE node NOT IN ('font-registry', 'font-assignment')")
-    db.run("DELETE FROM node_current WHERE node NOT IN ('font-registry', 'font-assignment')")
+    invalidateQuizOutput(db)
+    db.run("DELETE FROM node_data WHERE node NOT IN ('font-registry', 'font-assignment', 'quiz-generation')")
+    db.run("DELETE FROM node_current WHERE node NOT IN ('font-registry', 'font-assignment', 'quiz-generation')")
     db.run("DELETE FROM images")
     db.run("DELETE FROM pages")
     db.run("DELETE FROM step_runs")
@@ -614,6 +613,27 @@ function clearExtractedRows(db: sqlite.Database): void {
   } catch (err) {
     db.exec("ROLLBACK")
     throw err
+  }
+}
+
+/** Called inside the clearing transaction. The null version hides stale quiz
+ * output after an upstream reset while retaining every version for allocation
+ * and rollback. A repeated clear does not create another null version. */
+function invalidateQuizOutput(db: sqlite.Database): void {
+  const node = "quiz-generation"
+  const items = db.all("SELECT DISTINCT item_id FROM node_data WHERE node = ?", [node]) as Array<{ item_id: string }>
+  for (const { item_id: itemId } of items) {
+    if (!readCurrentNodeRow(db, node, itemId)) continue
+    const [{ version }] = db.all(
+      "SELECT MAX(version) + 1 AS version FROM node_data WHERE node = ? AND item_id = ?",
+      [node, itemId]
+    ) as Array<{ version: number }>
+    db.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)", [node, itemId, version, "null"])
+    db.run(
+      `INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?)
+       ON CONFLICT (node, item_id) DO UPDATE SET version = excluded.version`,
+      [node, itemId, version]
+    )
   }
 }
 

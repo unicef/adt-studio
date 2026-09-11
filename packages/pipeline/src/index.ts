@@ -4,6 +4,7 @@ export {
   createConsoleProgress,
 } from "./progress.js"
 export { processWithConcurrency } from "./concurrency.js"
+export { collectSpentQuizIds, assertQuizGenerationCapacity, saveQuizOutput } from "./quiz-ids.js"
 export {
   extractPDF,
   resolveFigureExtractionMode,
@@ -433,6 +434,7 @@ export {
   type ResolvedReadingOrder,
   type PageEntry,
 } from "./reading-order.js"
+export { orderTocEntries } from "./toc-reading-order.js"
 export {
   extractEditableActivity,
   supportsEditableActivity,

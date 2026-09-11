@@ -56,6 +56,28 @@ function storedQuizzes(): Quiz[] {
   }
 }
 
+/** Write straight to storage, bypassing the route — the only way to set up a
+ *  book whose stored quizzes have no ids, as every book did before `quizId`. */
+function seedQuizzes(body: QuizGenerationOutput) {
+  seedRaw(body)
+}
+
+/** `seedQuizzes` without the schema, for versions today's schema rejects. */
+function seedRaw(body: unknown) {
+  const storage = createBookStorage(label, tmpDir)
+  try {
+    storage.putNodeData("quiz-generation", "book", body)
+  } finally {
+    storage.close()
+  }
+}
+
+async function getQuizzes(): Promise<QuizGenerationOutput> {
+  const res = await app.request(`/api/books/${label}/quizzes`)
+  expect(res.status).toBe(200)
+  return (await res.json()).quizzes as QuizGenerationOutput
+}
+
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-quiz-route-"))
   const storage = createBookStorage(label, tmpDir)
@@ -95,6 +117,45 @@ describe("PUT /api/books/:label/quizzes", () => {
     expect(saved.map((q) => q.quizId)).toEqual(["qz003", "qz001", "qz002"])
   })
 
+  it("reserves ids held by a version today's schema no longer accepts", async () => {
+    // A superseded version whose quizzes don't satisfy the current schema (here
+    // two options where three are required) still burned the ids it holds. If
+    // the reservation validates each version and skips the ones that fail, that
+    // version's ids look free and get handed straight back out.
+    seedRaw({
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      language: "en",
+      pagesPerQuiz: 3,
+      quizzes: [
+        {
+          quizId: "qz002",
+          quizIndex: 0,
+          afterPageId: "pg001",
+          pageIds: ["pg001"],
+          question: "retired",
+          options: [
+            { text: "a", explanation: "" },
+            { text: "b", explanation: "" },
+          ],
+          answerIndex: 0,
+          reasoning: "",
+        },
+      ],
+    })
+    seedQuizzes(output([quiz("one", { quizId: "qz001" })]))
+
+    const fetched = await getQuizzes()
+    const res = await putQuizzes({
+      ...fetched,
+      quizzes: [...fetched.quizzes, quiz("newcomer")],
+    })
+    expect(res.status).toBe(200)
+
+    const ids = storedQuizzes().map((q) => q.quizId)
+    expect(ids).toEqual(["qz001", "qz003"])
+    expect(ids).not.toContain("qz002")
+  })
+
   it("does not reissue the id of a quiz deleted in an earlier version", async () => {
     await putQuizzes(output([quiz("one"), quiz("two")]))
     const [first] = storedQuizzes()
@@ -107,5 +168,111 @@ describe("PUT /api/books/:label/quizzes", () => {
     const ids = storedQuizzes().map((q) => q.quizId)
     expect(ids).toEqual(["qz001", "qz003"])
     expect(ids).not.toContain("qz002")
+  })
+})
+
+describe("GET /api/books/:label/quizzes", () => {
+  it("resolves ids for a book stored before quizId existed", async () => {
+    seedQuizzes(output([quiz("one"), quiz("two")]))
+
+    const got = await getQuizzes()
+
+    // Exactly the ids `resolveQuizId` derives, so the catalog keys the UI shows
+    // match the ones packaging and the text catalog already use.
+    expect(got.quizzes.map((q) => q.quizId)).toEqual(["qz001", "qz002"])
+  })
+
+  it("does not persist a version just for being read", async () => {
+    seedQuizzes(output([quiz("one")]))
+    const before = storedQuizzes()
+
+    await getQuizzes()
+
+    expect(storedQuizzes()).toEqual(before)
+    expect(storedQuizzes()[0].quizId).toBeUndefined()
+  })
+})
+
+describe("legacy books whose first edit reorders the quizzes", () => {
+  it("keeps each survivor's id when the first of three quizzes is deleted", async () => {
+    // The regression this exists to prevent. A book with no stored ids: its
+    // catalog entries, translations and audio are keyed qz001/qz002/qz003 by
+    // array position. Deleting the first quiz shifts the survivors up, so
+    // stamping the post-delete array would give them qz001/qz002 — the ids of
+    // the quizzes that used to precede them.
+    seedQuizzes(output([quiz("one"), quiz("two"), quiz("three")]))
+
+    // The studio round-trips what GET handed it, minus the deleted quiz.
+    const fetched = await getQuizzes()
+    const res = await putQuizzes({
+      ...fetched,
+      quizzes: fetched.quizzes.slice(1),
+    })
+    expect(res.status).toBe(200)
+
+    const saved = storedQuizzes()
+    expect(saved.map((q) => q.question)).toEqual(["two", "three"])
+    expect(saved.map((q) => q.quizId)).toEqual(["qz002", "qz003"])
+  })
+
+  it("keeps them when a quiz is inserted mid-book, and gives the newcomer a fresh id", async () => {
+    seedQuizzes(output([quiz("one"), quiz("two"), quiz("three")]))
+
+    const fetched = await getQuizzes()
+    const res = await putQuizzes({
+      ...fetched,
+      quizzes: [fetched.quizzes[0], quiz("new"), ...fetched.quizzes.slice(1)],
+    })
+    expect(res.status).toBe(200)
+
+    const saved = storedQuizzes()
+    expect(saved.map((q) => q.question)).toEqual(["one", "new", "two", "three"])
+    expect(saved.map((q) => q.quizId)).toEqual([
+      "qz001",
+      "qz004",
+      "qz002",
+      "qz003",
+    ])
+  })
+
+  it("does not reissue an id the legacy version spent but never stored", async () => {
+    // A legacy version records no quizIds at all, so the ids it spent exist
+    // only as array positions. Deleting those quizzes on the *first* edit
+    // retires qz001/qz002 without ever writing them into a stored version —
+    // and a reservation that reads only stored `quizId` fields cannot see them.
+    seedQuizzes(output([quiz("one"), quiz("two"), quiz("three")]))
+
+    const fetched = await getQuizzes()
+    await putQuizzes({ ...fetched, quizzes: fetched.quizzes.slice(2) })
+    expect(storedQuizzes().map((q) => q.quizId)).toEqual(["qz003"])
+
+    // Now add a quiz on an earlier page, so it sorts to the front and asks for
+    // the lowest free sequence number.
+    const afterDelete = await getQuizzes()
+    const res = await putQuizzes({
+      ...afterDelete,
+      quizzes: [quiz("newcomer"), ...afterDelete.quizzes],
+    })
+    expect(res.status).toBe(200)
+
+    const saved = storedQuizzes()
+    expect(saved.map((q) => q.question)).toEqual(["newcomer", "three"])
+    // qz001 and qz002 belong to the deleted quizzes for good — their
+    // translations and generated audio are still on disk under those keys.
+    expect(saved.map((q) => q.quizId)).toEqual(["qz004", "qz003"])
+  })
+
+  it("still stamps positional ids when an unstamped body re-saves the current version", async () => {
+    // The counterpart to the test above: retiring a superseded version's
+    // positional ids must not retire the *current* version's. A direct API
+    // caller that PUTs the quizzes it has without ids is claiming this book's
+    // existing qz001/qz002 — the keys its catalog is already written against —
+    // not asking for two fresh ones.
+    seedQuizzes(output([quiz("one"), quiz("two")]))
+
+    const res = await putQuizzes(output([quiz("one"), quiz("two")]))
+    expect(res.status).toBe(200)
+
+    expect(storedQuizzes().map((q) => q.quizId)).toEqual(["qz001", "qz002"])
   })
 })

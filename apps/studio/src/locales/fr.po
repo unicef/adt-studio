@@ -4947,6 +4947,9 @@ msgstr "Plage non valide"
 msgid "Invalid value."
 msgstr "Valeur non valide."
 
+msgid "Invalidated"
+msgstr "Invalidé"
+
 msgid "Isolated asset"
 msgstr "Ressource isolée"
 

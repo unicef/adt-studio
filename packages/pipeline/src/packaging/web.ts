@@ -24,7 +24,7 @@ import type {
   ImageCaptioningOutput,
   PackagingWarning,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
 import { resolveNarratorLabel } from "../speech.js"
 import {
   GOOGLE_FONTS,
@@ -57,6 +57,7 @@ import { flattenEasyReadEntries } from "../easy-read.js"
 import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "../core-tts.js"
 import { getRenderSectioning } from "../render-sectioning.js"
 import { resolveReadingOrder, toPageEntry, type PageEntry } from "../reading-order.js"
+import { orderTocEntries } from "../toc-reading-order.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
 import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.js"
 import { buildTailwindCss } from "../tailwind.js"
@@ -311,6 +312,10 @@ export async function packageAdtWeb(
   const stepperBasePalette = quizPalette ?? DEFAULT_QUIZ_PALETTE
 
   const step = "package-web" as const
+  // Validate stored/imported quiz identities before deleting or writing any
+  // bundle files. API validation alone cannot protect imported book databases.
+  const quizRow = storage.getLatestNodeData("quiz-generation", "book")
+  const quizData = quizRow ? withResolvedQuizIds(quizRow.data as QuizGenerationOutput) : undefined
   progress.emit({ type: "step-start", step })
   progress.emit({ type: "step-progress", step, message: "Setting up directories..." })
 
@@ -341,9 +346,6 @@ export async function packageAdtWeb(
 
   const glossaryRow = storage.getLatestNodeData("glossary", "book")
   const glossary = glossaryRow?.data as GlossaryOutput | undefined
-
-  const quizRow = storage.getLatestNodeData("quiz-generation", "book")
-  const quizData = quizRow?.data as QuizGenerationOutput | undefined
 
   const metadataRow = storage.getLatestNodeData("metadata", "book")
   const metadata = metadataRow?.data as { title?: string | null; cover_page_number?: number | null } | undefined
@@ -436,7 +438,11 @@ export async function packageAdtWeb(
         applyBodyBackground,
         bodyFontFamily,
       })
-      fs.writeFileSync(path.join(adtDir, filename), quizPageHtml)
+      const quizPath = path.resolve(adtDir, filename)
+      if (path.dirname(quizPath) !== path.resolve(adtDir)) {
+        throw new Error("Quiz output must remain inside the book's export directory")
+      }
+      fs.writeFileSync(quizPath, quizPageHtml)
 
       pageList.push(toPageEntry(item))
       continue
@@ -577,25 +583,13 @@ export async function packageAdtWeb(
 
   writeJson(path.join(contentDir, "pages.json"), pageList)
 
-  // Table of contents — prefer LLM-generated TOC, fallback to heading-based
+  // Table of contents — prefer stored TOC (generated or edited), fallback to headings
   if (llmToc && llmToc.entries.length > 0) {
-    // Map LLM entries to the flat format expected by the runtime, resolving
+    // Preserve stored parent-child groups in the runtime TOC, resolving
     // hrefs from the page list (the first page is always index.html)
     const hrefMap = new Map(pageList.map((p) => [p.section_id, p.href]))
-    const tocJson = llmToc.entries
-      // The LLM returns entries in its own order, which is independent of the
-      // reading order. Downstream consumers require document order: WebPub's
-      // nav nests a flat list by `level` as it walks it, and EPUB/PNLD NCX
-      // `playOrder` must increase monotonically. Sort by resolved position, and
-      // keep entries whose section is not in the reading order at the end
-      // rather than silently dropping them.
-      .map((entry, index) => ({ entry, index }))
-      .sort((a, b) => {
-        const posA = readingOrder.positionById.get(a.entry.sectionId) ?? Infinity
-        const posB = readingOrder.positionById.get(b.entry.sectionId) ?? Infinity
-        return posA === posB ? a.index - b.index : posA - posB
-      })
-      .map(({ entry: e }) => ({
+    const tocJson = orderTocEntries(llmToc.entries, readingOrder.positionById)
+      .map((e) => ({
         section_id: e.sectionId,
         href: hrefMap.get(e.sectionId) ?? e.href,
         title: e.title,
@@ -2389,7 +2383,10 @@ async function renderAgentsMd(
   let sampleQuiz: Record<string, unknown> | undefined
   if (ctx.quizData?.quizzes?.length) {
     const quiz = ctx.quizData.quizzes[0]
-    const quizId = "qz001"
+    // Not "qz001": ids are allocated once and never reused, so the first quiz
+    // in the array may be `qz004`. Hardcoding it would document catalog keys
+    // and audio filenames that aren't in the bundle.
+    const quizId = resolveQuizId(quiz, 0)
     const correctAnswers: Record<string, boolean> = {}
     const explanations: Record<string, string> = {}
     const options = quiz.options.map((opt, i) => {

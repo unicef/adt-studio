@@ -579,6 +579,11 @@ export interface QuizOption {
 }
 
 export interface QuizItem {
+  /** Stable output-page id (`qz001`). Filled in by GET /quizzes; optional only
+   *  because a book written before it existed has none stored. Round-trip it on
+   *  every write — it keys the quiz's catalog entries, translations and audio. */
+  quizId?: string
+  /** @deprecated Positional, renumbered on every add/delete. Not an identity. */
   quizIndex: number
   afterPageId: string
   pageIds: string[]
@@ -596,7 +601,9 @@ export interface QuizGenerationOutput {
 }
 
 export interface QuizzesResponse {
-  quizzes: QuizGenerationOutput | null
+  /** Selected history version, including an inactive quiz version. */
+  historyVersion: number | null
+  quizzes: (Omit<QuizGenerationOutput, "quizzes"> & { quizzes: Array<QuizItem & { quizId: string }> }) | null
   version: number | null
 }
 
@@ -1664,10 +1671,11 @@ export const api = {
     label: string,
     node: string,
     itemId: string,
-    includeData?: boolean
+    includeData?: boolean,
+    resolveQuizIds?: boolean,
   ) =>
     request<VersionListResponse>(
-      `/books/${label}/debug/versions/${node}/${itemId}${includeData ? "?includeData=true" : ""}`
+      `/books/${label}/debug/versions/${node}/${itemId}${includeData ? `?includeData=true${resolveQuizIds ? "&resolveQuizIds=true" : ""}` : ""}`
     ),
 
   getBookOutline: (label: string) =>

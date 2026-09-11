@@ -12,6 +12,7 @@ import {
   resolveEntryVoiceSlot,
   parseQuizId,
   resolveQuizId,
+  withResolvedQuizIds,
 } from "@adt/types"
 import {
   WebRenderingOutput,
@@ -31,6 +32,7 @@ import {
 import { createBookStorage, type Storage } from "@adt/storage"
 import {
   resolveReadingOrder,
+  orderTocEntries,
   toPageEntry,
   readingOrderHref,
   type PageEntry,
@@ -202,7 +204,7 @@ function getGlossary(storage: Storage): GlossaryOutput | undefined {
 
 function getQuizData(storage: Storage): QuizGenerationOutput | undefined {
   const row = storage.getLatestNodeData("quiz-generation", "book")
-  return row?.data as QuizGenerationOutput | undefined
+  return row ? withResolvedQuizIds(row.data as QuizGenerationOutput) : undefined
 }
 
 function buildTextsMap(
@@ -329,17 +331,8 @@ function buildTocManifest(storage: Storage): Array<{ section_id: string; href: s
       // Build href map from pages manifest for accurate hrefs
       const readingOrder = resolveReadingOrder(storage)
       const hrefMap = new Map(readingOrder.items.map((i) => [i.id, readingOrderHref(i)]))
-      // Sort into document order — the LLM's entry order is its own, and the
-      // nav panel nests a flat list by `level` as it walks it. Entries whose
-      // section is not in the reading order keep their relative order at the end.
-      return tocData.entries
-        .map((entry, index) => ({ entry, index }))
-        .sort((a, b) => {
-          const posA = readingOrder.positionById.get(a.entry.sectionId) ?? Infinity
-          const posB = readingOrder.positionById.get(b.entry.sectionId) ?? Infinity
-          return posA === posB ? a.index - b.index : posA - posB
-        })
-        .map(({ entry: e }) => ({
+      return orderTocEntries(tocData.entries, readingOrder.positionById)
+        .map((e) => ({
           section_id: e.sectionId,
           href: hrefMap.get(e.sectionId) ?? e.href,
           title: e.title,
