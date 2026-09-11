@@ -98,10 +98,12 @@ export interface Storage {
   putNodeData(node: string, itemId: string, data: unknown): number
   /** Highest node_data version across every node but the excluded one. */
   maxNodeVersionExcluding(excluded: string): number | null
+  /** Current output, or null when absent or explicitly invalidated. */
   getLatestNodeData(node: string, itemId: string): NodeDataRow | null
   /**
    * Every stored version for (node, itemId), oldest first — including versions
-   * the current pointer has moved past. Used to allocate ids that were never
+   * the current pointer has moved past and null invalidation versions.
+   * Used to allocate ids that were never
    * used by *any* version, so a rollback can't make a fresh id collide with a
    * retired one.
    */

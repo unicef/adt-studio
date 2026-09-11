@@ -303,6 +303,16 @@ export {
   Quiz,
   QuizGenerationOutput,
   quizLLMSchema,
+  formatQuizId,
+  parseQuizId,
+  resolveQuizId,
+  withResolvedQuizIds,
+  ensureQuizIds,
+  QuizIdExhaustedError,
+  QuizId,
+  QuizIdentityError,
+  MAX_QUIZ_SEQ,
+  assertQuizIdCapacity,
 } from "./quiz.js"
 
 export {
@@ -376,6 +386,13 @@ export {
   TocGenerationOutput,
   tocLLMSchema,
 } from "./toc.js"
+
+export {
+  READING_ORDER_NODE,
+  READING_ORDER_ITEM_ID,
+  ReadingOrderItem,
+  ReadingOrderOutput,
+} from "./reading-order.js"
 
 export {
   AccessibilityNodeResult,

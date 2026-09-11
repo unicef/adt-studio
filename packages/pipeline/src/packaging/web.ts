@@ -24,7 +24,7 @@ import type {
   ImageCaptioningOutput,
   PackagingWarning,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
 import { resolveNarratorLabel } from "../speech.js"
 import {
   GOOGLE_FONTS,
@@ -56,6 +56,8 @@ import { buildTextCatalog } from "../text-catalog.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
 import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "../core-tts.js"
 import { getRenderSectioning } from "../render-sectioning.js"
+import { resolveReadingOrder, toPageEntry, type PageEntry } from "../reading-order.js"
+import { orderTocEntries } from "../toc-reading-order.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
 import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.js"
 import { buildTailwindCss } from "../tailwind.js"
@@ -105,11 +107,7 @@ export function pageNeedsActivitiesBundle(html: string): boolean {
   )
 }
 
-export interface PageEntry {
-  section_id: string
-  href: string
-  page_number?: number
-}
+export type { PageEntry } from "../reading-order.js"
 
 interface RuntimeTimecodeEntry {
   timecodes: [null, {
@@ -182,7 +180,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 5
+const PACKAGING_FORMAT_VERSION = 6
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -314,6 +312,10 @@ export async function packageAdtWeb(
   const stepperBasePalette = quizPalette ?? DEFAULT_QUIZ_PALETTE
 
   const step = "package-web" as const
+  // Validate stored/imported quiz identities before deleting or writing any
+  // bundle files. API validation alone cannot protect imported book databases.
+  const quizRow = storage.getLatestNodeData("quiz-generation", "book")
+  const quizData = quizRow ? withResolvedQuizIds(quizRow.data as QuizGenerationOutput) : undefined
   progress.emit({ type: "step-start", step })
   progress.emit({ type: "step-progress", step, message: "Setting up directories..." })
 
@@ -345,9 +347,6 @@ export async function packageAdtWeb(
   const glossaryRow = storage.getLatestNodeData("glossary", "book")
   const glossary = glossaryRow?.data as GlossaryOutput | undefined
 
-  const quizRow = storage.getLatestNodeData("quiz-generation", "book")
-  const quizData = quizRow?.data as QuizGenerationOutput | undefined
-
   const metadataRow = storage.getLatestNodeData("metadata", "book")
   const metadata = metadataRow?.data as { title?: string | null; cover_page_number?: number | null } | undefined
 
@@ -371,197 +370,183 @@ export async function packageAdtWeb(
   let hasMath = false
   let hasActivitySections = false
   const copiedImages = new Set<string>()
-  const sectionIdToPageIndex = new Map<string, number>()
-  // Rendering entries with no sectioning row behind them. They are dropped from
-  // the bundle (see the skip below), which is silent otherwise — the page just
-  // isn't there. Returned to the caller so the packaging and export flows can
-  // surface it; a `progress` message alone reaches no live sink.
+  // Keep reporting orphaned renderings even though the shared order resolver
+  // correctly omits entries without a real sectionId.
   const orphanedRenderings: PackagingWarning[] = []
-
-  // Build a map from afterPageId -> quizzes for interleaving
-  const quizzesByAfterPageId = new Map<string, Quiz[]>()
-  if ((features?.quizzes !== false) && quizData?.quizzes) {
-    for (const quiz of quizData.quizzes) {
-      const existing = quizzesByAfterPageId.get(quiz.afterPageId) ?? []
-      existing.push(quiz)
-      quizzesByAfterPageId.set(quiz.afterPageId, existing)
+  for (const page of pages) {
+    const sectioning = getRenderSectioning(storage, page.pageId)
+    const row = storage.getLatestNodeData("web-rendering", page.pageId)
+    const parsed = row ? WebRenderingOutputSchema.safeParse(row.data) : null
+    if (!parsed?.success) continue
+    for (const rendering of [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)) {
+      if (!sectioning?.sections[rendering.sectionIndex]) {
+        orphanedRenderings.push({
+          kind: "orphaned-rendering",
+          pageId: page.pageId,
+          sectionIndex: rendering.sectionIndex,
+        })
+      }
     }
   }
 
-  for (const page of pages) {
-    const quizzes = quizzesByAfterPageId.get(page.pageId) ?? []
+  // The book's output sequence — the same resolver the live preview uses, so
+  // the two cannot drift.
+  const readingOrder = resolveReadingOrder(storage, {
+    includeQuizzes: features?.quizzes !== false,
+  })
 
-    // Resolver: fixed-layout books package from the positioned tree (its ids +
-    // 1-section/page shape match the rendered HTML the runtime hydrates).
-    const sectioning = getRenderSectioning(storage, page.pageId)
-    const imageCaptionMap = loadImageCaptionMap(storage, page.pageId)
-    const decorativeImageIds = buildDecorativeImageIdSet(storage, page.pageId)
-
-    const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
-    const editableActivities = readEditableActivities(storage, page.pageId)
-    if (renderRow) {
-      const parsed = WebRenderingOutputSchema.safeParse(renderRow.data)
-      if (parsed.success) {
-        const rendering = parsed.data
-
-        // One HTML file per rendered section (stable by sectionIndex), skip pruned
-        const sections = [...rendering.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
-        for (const rs of sections) {
-          const sectionMeta = sectioning?.sections[rs.sectionIndex]
-          // No sectioning row for this rendering entry means the two are out of
-          // sync. sectionIds are allocated once and never reused, so a guessed
-          // `_secNNN` could collide with a real section and have two pages write
-          // the same file. Skip the orphan entry instead.
-          if (!sectionMeta) {
-            orphanedRenderings.push({
-              kind: "orphaned-rendering",
-              pageId: page.pageId,
-              sectionIndex: rs.sectionIndex,
-            })
-            continue
-          }
-          if (sectionMeta.isPruned) continue
-          const sectionId = sectionMeta.sectionId
-
-          if (rs.sectionType.startsWith("activity_") || sectionMeta.sectionType.startsWith("activity_")) {
-            hasActivitySections = true
-          }
-
-          // Step-by-step override: an enabled editable activity replaces the
-          // stored LLM HTML with the stepper shell (structured JSON + palette).
-          const stepperActivity = enabledEditableActivity(
-            editableActivities,
-            rs.sectionIndex,
-            rs.sectionType,
-          )
-
-          // Rewrite image URLs and copy referenced images
-          const preferredImageAltMap = buildPreferredImageAltMap(storage, page.pageId, sectionMeta)
-          let rewrittenHtml: string
-          let referencedImages: string[]
-          if (stepperActivity) {
-            const resolved = resolveEditableActivityImages(stepperActivity, imageMap, {
-              preferredAltMap: preferredImageAltMap,
-              decorativeImageIds,
-            })
-            rewrittenHtml = renderEditableActivityHtml(resolved.activity, {
-              palette: stepperBasePalette,
-            })
-            referencedImages = resolved.referencedImages
-          } else {
-            ;({ html: rewrittenHtml, referencedImages } = rewriteImageUrls(
-              rs.html,
-              label,
-              imageMap,
-              preferredImageAltMap,
-              decorativeImageIds,
-            ))
-          }
-
-          for (const imageId of referencedImages) {
-            if (!copiedImages.has(imageId)) {
-              const filename = imageMap.get(imageId)
-              if (filename) {
-                fs.copyFileSync(
-                  path.join(bookDir, "images", filename),
-                  path.join(imageDir, filename),
-                )
-                copiedImages.add(imageId)
-              }
-            }
-          }
-
-          // Convert LaTeX math to MathML (stepper shells are JSON — leave untouched)
-          const sectionHasMath = !stepperActivity && containsMathContent(rewrittenHtml)
-          if (sectionHasMath) {
-            hasMath = true
-            rewrittenHtml = convertLatexToMathml(rewrittenHtml)
-          }
-
-          const isFirstPage = pageList.length === 0
-          const filename = isFirstPage ? "index.html" : `${sectionId}.html`
-
-          const headingText = sectionMeta ? findHeadingText(sectionMeta) : null
-
-          // For fixed-layout pages, extract viewport from the rendered content div.
-          // Viewport matches content dimensions (2x render scale) exactly — no
-          // transform needed, Apple Books scales the viewport to fit the screen.
-          let fixedViewport: { width: number; height: number } | undefined
-          if (fixedLayout) {
-            const vp = rewrittenHtml.match(/width:(\d+)px;height:(\d+)px/)
-            if (vp) {
-              fixedViewport = { width: parseInt(vp[1], 10), height: parseInt(vp[2], 10) }
-            }
-          }
-
-          const pageHtml = renderPageHtml({
-            content: rewrittenHtml,
-            language,
-            sectionId,
-            pageTitle: title,
-            pageHeading: headingText?.text ?? title,
-            pageIndex: pageList.length + 1,
-            // Stepper answers travel inside the embedded JSON payload.
-            activityAnswers: stepperActivity ? undefined : rs.activityAnswers,
-            hasMath: sectionHasMath,
-            bundleVersion,
-            applyBodyBackground,
-            fixedViewport,
-            bodyFontFamily,
-          })
-          fs.writeFileSync(path.join(adtDir, filename), pageHtml)
-
-          const entry: PageEntry = {
-            section_id: sectionId,
-            href: filename,
-          }
-          if (sectionMeta?.pageNumber !== null && sectionMeta?.pageNumber !== undefined) {
-            entry.page_number = sectionMeta.pageNumber
-          }
-          pageList.push(entry)
-
-          // Track sectionId → pageIndex for sign language video mapping
-          sectionIdToPageIndex.set(sectionId, pageList.length) // pageIndex = pageList.length (1-based, already pushed)
-
-          // Build TOC entry from first heading text in this section
-          if (headingText) {
-            tocEntries.push({
-              section_id: sectionId,
-              href: filename,
-              title: headingText.text,
-              chapter_id: headingText.textId,
-            })
-          }
-        }
-      }
+  // Reading order revisits a page once per section, so per-page reads are
+  // memoized instead of hoisted out of a page-grouped loop.
+  const decorativeImageIdsByPage = new Map<string, Set<string>>()
+  const editableActivitiesByPage = new Map<string, ReturnType<typeof readEditableActivities>>()
+  const decorativeImageIdsFor = (pageId: string) => {
+    let ids = decorativeImageIdsByPage.get(pageId)
+    if (!ids) {
+      ids = buildDecorativeImageIdSet(storage, pageId)
+      decorativeImageIdsByPage.set(pageId, ids)
     }
+    return ids
+  }
+  const editableActivitiesFor = (pageId: string) => {
+    if (!editableActivitiesByPage.has(pageId)) {
+      editableActivitiesByPage.set(pageId, readEditableActivities(storage, pageId))
+    }
+    return editableActivitiesByPage.get(pageId)!
+  }
 
-    // Insert quiz pages after this page (even if page content was skipped)
-    for (const quiz of quizzes) {
-      const quizIndex = quizData!.quizzes.indexOf(quiz)
-      const quizId = `qz${pad3(quizIndex + 1)}`
+  for (const item of readingOrder.items) {
+    // Every page is named by its stable id. Nothing is named for its position,
+    // so a page keeps its URL no matter where it sits in the reading order —
+    // `index.html` is written separately below as a redirect to whatever page
+    // is currently first.
+    const filename = `${item.id}.html`
+    const pageIndex = pageList.length + 1
 
-      const isFirstPage = pageList.length === 0
-      const quizFilename = isFirstPage ? "index.html" : `${quizId}.html`
-
-      const quizHtmlContent = renderQuizHtml(quiz, quizId, catalog, quizStyle)
+    if (item.kind === "quiz") {
+      const quizHtmlContent = renderQuizHtml(item.quiz, item.id, catalog, quizStyle)
       const quizPageHtml = renderPageHtml({
         content: quizHtmlContent,
         language,
-        sectionId: quizId,
+        sectionId: item.id,
         pageTitle: title,
-        pageHeading: quiz.question,
-        pageIndex: pageList.length + 1,
-        activityAnswers: buildQuizAnswers(quiz, quizId),
+        pageHeading: item.quiz.question,
+        pageIndex,
+        activityAnswers: buildQuizAnswers(item.quiz, item.id),
         hasMath: false,
         bundleVersion,
         skipContentWrapper: true,
         applyBodyBackground,
         bodyFontFamily,
       })
-      fs.writeFileSync(path.join(adtDir, quizFilename), quizPageHtml)
+      const quizPath = path.resolve(adtDir, filename)
+      if (path.dirname(quizPath) !== path.resolve(adtDir)) {
+        throw new Error("Quiz output must remain inside the book's export directory")
+      }
+      fs.writeFileSync(quizPath, quizPageHtml)
 
-      pageList.push({ section_id: quizId, href: quizFilename })
+      pageList.push(toPageEntry(item))
+      continue
+    }
+
+    const { pageId, section: sectionMeta, rendering: rs, id: sectionId } = item
+    const decorativeImageIds = decorativeImageIdsFor(pageId)
+    const editableActivities = editableActivitiesFor(pageId)
+
+    if (rs.sectionType.startsWith("activity_") || sectionMeta.sectionType.startsWith("activity_")) {
+      hasActivitySections = true
+    }
+
+    // Step-by-step override: an enabled editable activity replaces the
+    // stored LLM HTML with the stepper shell (structured JSON + palette).
+    const stepperActivity = enabledEditableActivity(
+      editableActivities,
+      rs.sectionIndex,
+      rs.sectionType,
+    )
+
+    // Rewrite image URLs and copy referenced images
+    const preferredImageAltMap = buildPreferredImageAltMap(storage, pageId, sectionMeta)
+    let rewrittenHtml: string
+    let referencedImages: string[]
+    if (stepperActivity) {
+      const resolved = resolveEditableActivityImages(stepperActivity, imageMap, {
+        preferredAltMap: preferredImageAltMap,
+        decorativeImageIds,
+      })
+      rewrittenHtml = renderEditableActivityHtml(resolved.activity, {
+        palette: stepperBasePalette,
+      })
+      referencedImages = resolved.referencedImages
+    } else {
+      ;({ html: rewrittenHtml, referencedImages } = rewriteImageUrls(
+        rs.html,
+        label,
+        imageMap,
+        preferredImageAltMap,
+        decorativeImageIds,
+      ))
+    }
+
+    for (const imageId of referencedImages) {
+      if (!copiedImages.has(imageId)) {
+        const imageFilename = imageMap.get(imageId)
+        if (imageFilename) {
+          fs.copyFileSync(
+            path.join(bookDir, "images", imageFilename),
+            path.join(imageDir, imageFilename),
+          )
+          copiedImages.add(imageId)
+        }
+      }
+    }
+
+    // Convert LaTeX math to MathML (stepper shells are JSON — leave untouched)
+    const sectionHasMath = !stepperActivity && containsMathContent(rewrittenHtml)
+    if (sectionHasMath) {
+      hasMath = true
+      rewrittenHtml = convertLatexToMathml(rewrittenHtml)
+    }
+
+    const headingText = findHeadingText(sectionMeta)
+
+    // For fixed-layout pages, extract viewport from the rendered content div.
+    // Viewport matches content dimensions (2x render scale) exactly — no
+    // transform needed, Apple Books scales the viewport to fit the screen.
+    let fixedViewport: { width: number; height: number } | undefined
+    if (fixedLayout) {
+      const vp = rewrittenHtml.match(/width:(\d+)px;height:(\d+)px/)
+      if (vp) {
+        fixedViewport = { width: parseInt(vp[1], 10), height: parseInt(vp[2], 10) }
+      }
+    }
+
+    const pageHtml = renderPageHtml({
+      content: rewrittenHtml,
+      language,
+      sectionId,
+      pageTitle: title,
+      pageHeading: headingText?.text ?? title,
+      pageIndex,
+      // Stepper answers travel inside the embedded JSON payload.
+      activityAnswers: stepperActivity ? undefined : rs.activityAnswers,
+      hasMath: sectionHasMath,
+      bundleVersion,
+      applyBodyBackground,
+      fixedViewport,
+      bodyFontFamily,
+    })
+    fs.writeFileSync(path.join(adtDir, filename), pageHtml)
+
+    pageList.push(toPageEntry(item))
+
+    // Build TOC entry from first heading text in this section
+    if (headingText) {
+      tocEntries.push({
+        section_id: sectionId,
+        href: filename,
+        title: headingText.text,
+        chapter_id: headingText.textId,
+      })
     }
   }
 
@@ -585,22 +570,35 @@ export async function packageAdtWeb(
   // ------------------------------------------------------------------
   progress.emit({ type: "step-progress", step, message: "Writing manifests..." })
 
+  // Entry point. Pages are named by id, so the bundle needs something at a
+  // predictable path for "open this folder" / SCORM / the dev server to land on.
+  // A redirect keeps that convenience without giving one page two URLs or
+  // renaming a file when the reading order changes.
+  if (pageList.length > 0) {
+    fs.writeFileSync(
+      path.join(adtDir, "index.html"),
+      renderEntryRedirectHtml(pageList[0].href, language, title),
+    )
+  }
+
   writeJson(path.join(contentDir, "pages.json"), pageList)
 
-  // Table of contents — prefer LLM-generated TOC, fallback to heading-based
+  // Table of contents — prefer stored TOC (generated or edited), fallback to headings
   if (llmToc && llmToc.entries.length > 0) {
-    // Map LLM entries to the flat format expected by the runtime, resolving
+    // Preserve stored parent-child groups in the runtime TOC, resolving
     // hrefs from the page list (the first page is always index.html)
     const hrefMap = new Map(pageList.map((p) => [p.section_id, p.href]))
-    const tocJson = llmToc.entries.map((e) => ({
-      section_id: e.sectionId,
-      href: hrefMap.get(e.sectionId) ?? e.href,
-      title: e.title,
-      chapter_id: e.chapterId,
-      level: e.level,
-    }))
+    const tocJson = orderTocEntries(llmToc.entries, readingOrder.positionById)
+      .map((e) => ({
+        section_id: e.sectionId,
+        href: hrefMap.get(e.sectionId) ?? e.href,
+        title: e.title,
+        chapter_id: e.chapterId,
+        level: e.level,
+      }))
     writeJson(path.join(contentDir, "toc.json"), tocJson)
   } else {
+    // Already accumulated in reading order.
     writeJson(path.join(contentDir, "toc.json"), tocEntries)
   }
 
@@ -792,9 +790,8 @@ export async function packageAdtWeb(
       })
     }
 
-    // videos.json — map "video-{pageIndex}" → video filename for assigned sign language videos
-    // The ADT JS runtime expects keys prefixed with "video-" and files in a "video/" directory.
-    // Each video is assigned to a sectionId which maps 1:1 to a pageIndex.
+    // videos.json — map sectionId → video filename for assigned sign language
+    // videos. Files live in a "video/" directory beside this manifest.
     const videosMap: Record<string, string> = {}
     // Glossary term id → bundle-relative video href, surfaced through
     // glossary.json so the runtime popover/panel can embed the sign video.
@@ -806,7 +803,7 @@ export async function packageAdtWeb(
       // glossary-item videos (sectionId = `gl001`…) feed the glossary
       // popover/panel instead and stay out of the page map.
       const pageVideos = allVideos.filter(
-        (v) => v.sectionId && sectionIdToPageIndex.has(v.sectionId),
+        (v) => v.sectionId && readingOrder.positionById.has(v.sectionId),
       )
       const glossaryVideos = allVideos.filter(
         (v) => v.sectionId && glossaryTextIds.has(v.sectionId),
@@ -821,7 +818,11 @@ export async function packageAdtWeb(
         const srcPath = storage.getSignLanguageVideoPath(video.videoId)
         if (srcPath && fs.existsSync(srcPath)) {
           fs.copyFileSync(srcPath, path.join(videoDir, filename))
-          videosMap[`video-${sectionIdToPageIndex.get(video.sectionId!)}`] = filename
+          // Keyed by sectionId, matching the video's own filename. Keying by
+          // reading position meant this map and the position baked into each
+          // page had to be computed identically and stay in step; the id is
+          // what the assignment was actually made against.
+          videosMap[video.sectionId!] = filename
         }
       }
       for (const video of glossaryVideos) {
@@ -879,7 +880,7 @@ export async function packageAdtWeb(
   // Only page-section videos light up the runtime PIP player; glossary-item
   // videos (sectionId = `gl001`…) are an EPUB glossary-page concern.
   const hasSignLanguageVideos = (features?.signLanguage !== false) &&
-    storage.getSignLanguageVideos().some((v) => v.sectionId !== null && sectionIdToPageIndex.has(v.sectionId))
+    storage.getSignLanguageVideos().some((v) => v.sectionId !== null && readingOrder.positionById.has(v.sectionId))
 
   const configJson: Record<string, unknown> = {
     title,
@@ -1462,6 +1463,10 @@ ${fallbackHeadingHtml}${contentBlock}
     <meta name="viewport" content="${opts.fixedViewport ? `width=${opts.fixedViewport.width}, height=${opts.fixedViewport.height}` : "width=device-width, initial-scale=1"}" />
     <title>${escapeHtml(opts.pageTitle)}</title>
     <meta name="title-id" content="${escapeAttr(opts.sectionId)}" />
+    <!-- Despite the name, this is the page's 1-based position in the reading
+         order, not a section id and not the printed page number. It drives the
+         "N of M" dock counter and is re-emitted on every package, so it tracks
+         the current order. Identity lives in title-id above. -->
     <meta name="page-section-id" content="${opts.pageIndex}" />
     <link href="./content/tailwind_output.css" rel="stylesheet">
     <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
@@ -2378,7 +2383,10 @@ async function renderAgentsMd(
   let sampleQuiz: Record<string, unknown> | undefined
   if (ctx.quizData?.quizzes?.length) {
     const quiz = ctx.quizData.quizzes[0]
-    const quizId = "qz001"
+    // Not "qz001": ids are allocated once and never reused, so the first quiz
+    // in the array may be `qz004`. Hardcoding it would document catalog keys
+    // and audio filenames that aren't in the bundle.
+    const quizId = resolveQuizId(quiz, 0)
     const correctAnswers: Record<string, boolean> = {}
     const explanations: Record<string, string> = {}
     const options = quiz.options.map((opt, i) => {
@@ -2702,8 +2710,9 @@ function generateImsManifest(
   const identifier = `ADT_${label.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`
   const escapedTitle = escapeHtml(title)
 
+  // Pages are all id-named; `index.html` is the redirect stub, listed above as
+  // the SCO entry point and absent from pageList.
   const fileEntries = pageList
-    .filter((p) => p.href !== "index.html") // index.html already listed above
     .map((p) => `      <file href="${escapeAttr(p.href)}"/>`)
     .join("\n")
 
@@ -2827,6 +2836,61 @@ function pickDefaultLanguage(
  * the `skip` set when copying `adt/` into an export directory.
  */
 export const NON_READER_FILES = new Set(["imsmanifest.xml", "AGENTS.md"])
+
+/**
+ * The bundle's entry point: a redirect to the first page of the reading order.
+ *
+ * Kept deliberately dumb — no runtime, no bundle — because it exists only so
+ * opening the bundle root lands somewhere sensible. The `<meta refresh>` covers
+ * readers with no JS, `location.replace` keeps it out of the back-button
+ * history, and the visible link is the fallback when neither runs.
+ *
+ * Manifest-driven exports drop it via {@link isEntryRedirectStub} rather than a
+ * blanket skip, so bundles packaged before this change — where `index.html` is
+ * a real content page listed in pages.json — still export correctly.
+ */
+/**
+ * Is `index.html` in this bundle the entry redirect, rather than a content page?
+ *
+ * Decided by the reading order, not by inspecting the file: a stub is by
+ * definition absent from pages.json, and a bundle packaged before pages were
+ * id-named has its first content page there under that name.
+ */
+export function isEntryRedirectStub(pageList: Array<{ href: string }>): boolean {
+  return !pageList.some((page) => page.href === "index.html")
+}
+
+function renderEntryRedirectHtml(
+  firstHref: string,
+  language: string,
+  title: string,
+): string {
+  // Only no-JS readers use the static refresh. With JS, preserve URL state
+  // (embed mode and first-page anchors) without a competing bare-URL refresh.
+  const href = escapeAttr(firstHref)
+  // The link text is the book's own title rather than an invented English
+  // phrase: this file ships in every language and has no interface catalogue.
+  const label = escapeHtml(title)
+  return `<!DOCTYPE html>
+<html lang="${escapeAttr(language)}">
+<head>
+<meta charset="utf-8" />
+<noscript><meta http-equiv="refresh" content="0; url=${href}" /></noscript>
+<title>${label}</title>
+</head>
+<body>
+<p><a id="entry-link" href="${href}">${label}</a></p>
+<script>
+(function () {
+  var target = ${JSON.stringify(firstHref)} + location.search + location.hash;
+  document.getElementById("entry-link").href = target;
+  location.replace(target);
+})();
+</script>
+</body>
+</html>
+`
+}
 
 /**
  * File-extension → MIME type for the resources listed in an export manifest

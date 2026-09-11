@@ -4945,6 +4945,9 @@ msgstr "Intervalo inválido"
 msgid "Invalid value."
 msgstr "Valor inválido."
 
+msgid "Invalidated"
+msgstr "Invalidado"
+
 msgid "Isolated asset"
 msgstr "Recurso isolado"
 
