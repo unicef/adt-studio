@@ -21,9 +21,10 @@ export function readCurrentNodeRow(
      LIMIT 1`,
     [node, itemId]
   ) as Array<{ version: number; data: string }>
-  // A null version invalidates the active output without deleting its history.
+  // Quiz invalidation retains history behind a null current version. Keep this
+  // interpretation local to quizzes; other nodes retain their nullable payloads.
   // Do not filter null rows in SQL: that would resurrect an older version.
-  return rows[0]?.data === "null" ? null : rows[0] ?? null
+  return node === "quiz-generation" && rows[0]?.data === "null" ? null : rows[0] ?? null
 }
 
 /**

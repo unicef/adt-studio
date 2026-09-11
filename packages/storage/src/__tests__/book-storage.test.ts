@@ -781,6 +781,18 @@ describe("quiz history retention on invalidation", () => {
     } finally { storage.close() }
   })
 
+  it("preserves nullable payload semantics for nodes outside quiz invalidation", () => {
+    const { storage, paths } = createTempStorage()
+    try {
+      storage.putNodeData("metadata", "book", null)
+      expect(storage.getLatestNodeData("metadata", "book")).toEqual({ version: 1, data: null })
+      const db = openBookDb(paths.dbPath)
+      try {
+        expect(readCurrentNodeRow(db, "metadata", "book")).toEqual({ version: 1, data: "null" })
+      } finally { db.close() }
+    } finally { storage.close() }
+  })
+
   it("rolls quiz invalidation and dependent deletion back with a failed transaction", () => {
     const { storage } = createTempStorage()
     try {
