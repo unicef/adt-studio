@@ -287,9 +287,11 @@ export async function provisionCloudflare(
   const uploadedMigrationTag = await runStep("upload-worker", async () => {
     const scripts = await client.listWorkerScripts().catch(() => [])
     const scriptExists = scripts.some((script) => script.id === CLOUDFLARE_WORKER_NAME)
-    const migrationTag = artifact.metadata.migrations.new_tag
+    const workerMigrations = artifact.metadata.migrations
+    const migrationTag = workerMigrations?.new_tag ?? null
     const needsMigrations =
-      !scriptExists || existing?.worker_migration_tag !== migrationTag
+      workerMigrations !== undefined &&
+      (!scriptExists || existing?.worker_migration_tag !== migrationTag)
 
     const bindings = resolveWorkerBindings(artifact.metadata.bindings, {
       d1DatabaseUuid: database.uuid,
@@ -307,12 +309,12 @@ export async function provisionCloudflare(
       await client.uploadWorkerScript({
         name: CLOUDFLARE_WORKER_NAME,
         script: artifact.script,
-        metadata: withMigrations
+        metadata: withMigrations && workerMigrations
           ? {
               ...baseMetadata,
               migrations: {
                 new_tag: migrationTag,
-                new_sqlite_classes: artifact.metadata.migrations.new_sqlite_classes,
+                new_sqlite_classes: workerMigrations.new_sqlite_classes,
               },
             }
           : baseMetadata,

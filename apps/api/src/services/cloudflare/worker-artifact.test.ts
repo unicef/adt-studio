@@ -15,7 +15,10 @@ afterEach(() => {
   fs.rmSync(dir, { recursive: true, force: true })
 })
 
-function writeArtifact(version: string): { artifactDir: string; migrationsDir: string } {
+function writeArtifact(
+  version: string,
+  options: { durableObjectMigrations?: boolean } = {},
+): { artifactDir: string; migrationsDir: string } {
   const migrationsDir = path.join(dir, "migrations")
   fs.mkdirSync(migrationsDir, { recursive: true })
   fs.writeFileSync(path.join(migrationsDir, "0001_init.sql"), "SELECT 1;")
@@ -27,7 +30,9 @@ function writeArtifact(version: string): { artifactDir: string; migrationsDir: s
       main_module: "worker.js",
       compatibility_date: "2026-07-01",
       bindings: [{ type: "d1", name: "DB" }],
-      migrations: { new_tag: "v1", new_sqlite_classes: ["PublicationRoom"] },
+      ...(options.durableObjectMigrations
+        ? { migrations: { new_tag: "v1", new_sqlite_classes: ["PublicationRoom"] } }
+        : {}),
       d1_migrations: ["0001_init.sql"],
     }),
   )
@@ -39,6 +44,11 @@ describe("loadWorkerArtifact", () => {
     const artifact = loadWorkerArtifact(writeArtifact(PUBLISH_WORKER_VERSION))
     expect(artifact.metadata.version).toBe(PUBLISH_WORKER_VERSION)
     expect(artifact.migrations).toHaveLength(1)
+  })
+
+  it("loads the current worker artifact without Durable Object migrations", () => {
+    const artifact = loadWorkerArtifact(writeArtifact(PUBLISH_WORKER_VERSION))
+    expect(artifact.metadata.migrations).toBeUndefined()
   })
 
   it("rejects a stale artifact instead of deploying the old version", () => {
