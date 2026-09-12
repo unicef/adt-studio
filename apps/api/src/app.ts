@@ -40,6 +40,7 @@ import { createAgentRoutes } from "./routes/agents.js"
 import { createTranslationEvaluationRoutes } from "./routes/translation-evaluations.js"
 import { createProviderRoutes } from "./routes/providers.js"
 import { createCloudflareRoutes } from "./routes/cloudflare.js"
+import { createPublishRoutes } from "./routes/publications.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
 const projectRoot = path.resolve(
@@ -135,6 +136,14 @@ app.route(
   createCloudflareRoutes({
     booksDir,
     projectRoot,
+  }),
+)
+app.route(
+  "/api",
+  createPublishRoutes({
+    booksDir,
+    webAssetsDir,
+    configPath,
   }),
 )
 
