@@ -158,6 +158,22 @@ afterEach(() => {
 })
 
 describe("PublishingSettings — connect wizard", () => {
+  it("resumes OAuth provisioning after a refresh without asking the user to sign in again", async () => {
+    localStorage.setItem(AUTH_METHOD_KEY, "oauth")
+    getCloudflareConnection.mockResolvedValue({
+      ...disconnectedStatus(),
+      auth_method: "oauth",
+    })
+
+    renderSettings()
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /^set up publishing$/i })).toBeTruthy(),
+    )
+    expect(screen.queryByRole("button", { name: /connect with cloudflare/i })).toBeNull()
+    expect(startCloudflareOAuth).not.toHaveBeenCalled()
+  })
+
   it("walks from the intro to a finished setup", async () => {
     startCloudflareOAuth.mockResolvedValue({
       auth_url: "https://dash.cloudflare.com/oauth2/auth?client_id=test",
@@ -179,18 +195,6 @@ describe("PublishingSettings — connect wizard", () => {
     })
 
     renderSettings()
-
-    expect(screen.getByRole("heading", { level: 3 }).textContent).toContain(
-      "Your book, one link away",
-    )
-
-    fireEvent.click(screen.getByRole("button", { name: /get started/i }))
-
-    expect(screen.getByRole("heading", { level: 2 }).textContent).toContain(
-      "Choose Cloudflare for hosting",
-    )
-
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }))
 
     expect(screen.getByRole("heading", { level: 2 }).textContent).toContain(
       "Connect your Cloudflare account",
@@ -257,11 +261,7 @@ describe("PublishingSettings — connect wizard", () => {
 
     renderSettings()
 
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /get started/i })).toBeTruthy(),
-    )
-    fireEvent.click(screen.getByRole("button", { name: /get started/i }))
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }))
+    expect(screen.getByRole("button", { name: /connect with cloudflare/i })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /set up publishing/i })).toBeTruthy(),
@@ -321,8 +321,6 @@ describe("PublishingSettings — connect with Cloudflare (OAuth)", () => {
 
     renderSettings()
 
-    fireEvent.click(screen.getByRole("button", { name: /get started/i }))
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }))
     fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
 
     await waitFor(() => expect(screen.getByTestId("oauth-waiting")).toBeTruthy())
@@ -355,6 +353,33 @@ describe("PublishingSettings — connect with Cloudflare (OAuth)", () => {
     expect(provisionCloudflare.mock.calls[0][0]).toEqual({})
   })
 
+  it("signs out from setup without deleting Cloudflare resources", async () => {
+    startCloudflareOAuth.mockResolvedValue({ auth_url: AUTH_URL, state: "state-sign-out" })
+    getCloudflareOAuthStatus.mockResolvedValue({
+      status: "complete",
+      account_choice_required: false,
+      account_id: "acct-123",
+    })
+    disconnectCloudflare.mockResolvedValue({
+      forgotten: false,
+      deleted_resources: false,
+      oauth_cleared: true,
+      connection: disconnectedStatus(),
+    })
+
+    renderSettings()
+    fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /^sign out$/i })).toBeTruthy(),
+    )
+    fireEvent.click(screen.getByRole("button", { name: /^sign out$/i }))
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /connect with cloudflare/i })).toBeTruthy())
+    expect(disconnectCloudflare).toHaveBeenCalledWith({}, { deleteResources: false })
+    expect(localStorage.getItem(AUTH_METHOD_KEY)).toBeNull()
+  })
+
   it("asks which account to use when the login covers several", async () => {
     startCloudflareOAuth.mockResolvedValue({ auth_url: AUTH_URL, state: "state-2" })
     const status = deferredStatus()
@@ -365,8 +390,6 @@ describe("PublishingSettings — connect with Cloudflare (OAuth)", () => {
 
     renderSettings()
 
-    fireEvent.click(screen.getByRole("button", { name: /get started/i }))
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }))
     fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
     await waitFor(() => expect(screen.getByTestId("oauth-waiting")).toBeTruthy())
 
@@ -402,8 +425,6 @@ describe("PublishingSettings — connect with Cloudflare (OAuth)", () => {
 
     renderSettings()
 
-    fireEvent.click(screen.getByRole("button", { name: /get started/i }))
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }))
     fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
     await waitFor(() => expect(screen.getByTestId("oauth-waiting")).toBeTruthy())
 
@@ -431,8 +452,6 @@ describe("PublishingSettings — connect with Cloudflare (OAuth)", () => {
 
     renderSettings()
 
-    fireEvent.click(screen.getByRole("button", { name: /get started/i }))
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }))
     fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
 
     await waitFor(() => expect(screen.getByTestId("oauth-error-oauth_port_busy")).toBeTruthy())
@@ -468,7 +487,7 @@ describe("PublishingSettings — already connected", () => {
     renderSettings()
 
     await waitFor(() => expect(document.body.textContent).toContain("Publishing is ready"))
-    expect(document.body.textContent).toContain("https://adt-publish.escola-azul.workers.dev")
+    expect(document.body.textContent).toContain("open it and go to its Export step")
     expect(screen.getByRole("button", { name: /disconnect/i })).toBeTruthy()
     expect(screen.queryByRole("button", { name: /connect with cloudflare/i })).toBeNull()
   })
@@ -494,8 +513,6 @@ describe("PublishingSettings — already connected", () => {
       "Request failed: 404",
     )
     expect(localStorage.getItem(TOKEN_KEY)).toBe("cf-token")
-    fireEvent.click(screen.getByRole("button", { name: /get started/i }))
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }))
     expect(screen.getByRole("button", { name: /connect with cloudflare/i })).toBeTruthy()
   })
 })
