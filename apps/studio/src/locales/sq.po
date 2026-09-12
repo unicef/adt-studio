@@ -1205,8 +1205,8 @@ msgstr "Gjuhë Shtesë"
 msgid "Additional terminology may be introduced in later sections. All terms are listed in the glossary appendix at the end of this document for quick reference."
 msgstr "Terminologji shtesë mund të prezantohet në seksionet e mëvonshme. Të gjithë termat janë listuar në shtojcën e fjalorëzimit në fund të këtij dokumenti për referencë të shpejtë."
 
-msgid "Address copied."
-msgstr "Adresa u kopjua."
+#~ msgid "Address copied."
+#~ msgstr "Adresa u kopjua."
 
 msgid "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
 msgstr "Shton faqe glosari në libër. Termat lidhen me zërin e tyre dhe çdo zë të kthen te teksti. Funksionon në çdo lexues."
@@ -1402,6 +1402,9 @@ msgstr "Të gjitha seksionet janë fshirë"
 
 msgid "All set"
 msgstr "Gjithçka gati"
+
+msgid "All set up"
+msgstr "Gjithçka është gati"
 
 msgid "All Severities"
 msgstr "Të gjitha nivelet e ashpërsisë"
@@ -2756,8 +2759,8 @@ msgstr "Kopjuar"
 msgid "Copy"
 msgstr "Kopjo"
 
-msgid "Copy address"
-msgstr "Kopjo adresën"
+#~ msgid "Copy address"
+#~ msgstr "Kopjo adresën"
 
 msgid "Copy command"
 msgstr "Kopjo komandën"
@@ -2821,8 +2824,8 @@ msgstr "Nuk mund të aplikohej faqet e përbashkëta — ju lutem provoni përs�
 msgid "Couldn't check for updates"
 msgstr "Nuk u arrit të kontrollohen përditësimet"
 
-msgid "Couldn't copy the address."
-msgstr "Nuk mund të kopjohej adresa."
+#~ msgid "Couldn't copy the address."
+#~ msgstr "Nuk mund të kopjohej adresa."
 
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Pamja paraprake e PDF-së nuk u ngarkua dot. Faqet mund të ndahen ende duke përdorur kontrollet."
@@ -4684,8 +4687,8 @@ msgstr "Fshih kredencialin"
 msgid "Hide error details"
 msgstr "Fshih detajet e gabimit"
 
-msgid "Hide the steps"
-msgstr "Fshih hapat"
+#~ msgid "Hide the steps"
+#~ msgstr "Fshih hapat"
 
 msgid "Hide toasts automatically after a delay."
 msgstr "Fshih njoftimet automatikisht pas një vonese."
@@ -6551,8 +6554,8 @@ msgstr "Nuk po përgjigjet tani"
 msgid "Not available on this server"
 msgstr "Jo i disponueshëm në këtë server"
 
-msgid "Not available yet"
-msgstr "Ende nuk është në dispozicion"
+#~ msgid "Not available yet"
+#~ msgstr "Ende nuk është në dispozicion"
 
 msgid "Not checked"
 msgstr "Nuk është kontrolluar"
@@ -9068,8 +9071,8 @@ msgstr "Shfaq të gjitha hyrjet"
 msgid "Show all pages"
 msgstr "Shfaq të gjitha faqet"
 
-msgid "Show all steps"
-msgstr "Trego të gjithë hapat"
+#~ msgid "Show all steps"
+#~ msgstr "Trego të gjithë hapat"
 
 msgid "Show all translations"
 msgstr "Shfaq të gjitha përkthimet"
@@ -10388,6 +10391,9 @@ msgstr "Deri te faqja"
 msgid "To replace an image, use \"Edit layout\" and click the image."
 msgstr "Për të zëvendësuar një imazh, përdorni \\\"Modifiko strukturën\\\" dhe klikoni mbi imazh."
 
+msgid "To share a book, open it and go to its Export step — you'll find Publish there."
+msgstr "Për të ndarë një libër, hapeni dhe shkoni te hapi i tij i Eksportimit — aty do të gjeni Publiko."
+
 msgid "to stream API logs here."
 msgstr "për të transmetuar regjistrat API këtu."
 
@@ -11377,8 +11383,8 @@ msgstr "Libri yt"
 msgid "Your book, one link away"
 msgstr "Libri juaj, një lidhje larg"
 
-msgid "Your books are published at"
-msgstr "Librat tuaj janë publikuar në"
+#~ msgid "Your books are published at"
+#~ msgstr "Librat tuaj janë publikuar në"
 
 msgid "Your books will live in your own Cloudflare account."
 msgstr "Librat tuaj do të jetojnë në llogarinë tuaj Cloudflare."
