@@ -46,6 +46,10 @@ msgstr ".zip → added as-is"
 msgid "\"A landscape forged by fire.\""
 msgstr "\"A landscape forged by fire.\""
 
+#. placeholder {0}: connection.latest_version
+msgid "({0} ready to install)"
+msgstr "({0} ready to install)"
+
 #. placeholder {0}: s.skipped
 msgid "(+{0} skipped)"
 msgstr "(+{0} skipped)"
@@ -376,6 +380,9 @@ msgstr "{0}s ago"
 msgid "{commentCount, plural, one {# comment to review} other {# comments to review}}"
 msgstr "{commentCount, plural, one {# comment to review} other {# comments to review}}"
 
+msgid "{completed} of {total}"
+msgstr "{completed} of {total}"
+
 msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 msgstr "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 
@@ -641,6 +648,12 @@ msgstr "A glossary term with this word already exists."
 msgid "A language is required so downstream stages can localize the book."
 msgstr "A language is required so downstream stages can localize the book."
 
+msgid "A last look before you publish your first book."
+msgstr "A last look before you publish your first book."
+
+msgid "A login is already open"
+msgstr "A login is already open"
+
 msgid "A long row of shelves filled with food in a big store."
 msgstr "A long row of shelves filled with food in a big store."
 
@@ -649,6 +662,9 @@ msgstr "A matching activity where students connect related items."
 
 msgid "A multiple choice activity."
 msgstr "A multiple choice activity."
+
+msgid "A name in your Cloudflare account is already taken"
+msgstr "A name in your Cloudflare account is already taken"
 
 msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
 msgstr "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
@@ -785,6 +801,9 @@ msgstr "Accepts any answer"
 msgid "Access code"
 msgstr "Access code"
 
+msgid "Access was not granted"
+msgstr "Access was not granted"
+
 msgid "Accessibility"
 msgstr "Accessibility"
 
@@ -817,6 +836,12 @@ msgstr "Accessible sizes"
 
 msgid "Accessible textbooks"
 msgstr "Accessible textbooks"
+
+msgid "Account"
+msgstr "Account"
+
+msgid "Account Settings"
+msgstr "Account Settings"
 
 msgid "Actions"
 msgstr "Actions"
@@ -1178,8 +1203,14 @@ msgstr "Additional Languages"
 msgid "Additional terminology may be introduced in later sections. All terms are listed in the glossary appendix at the end of this document for quick reference."
 msgstr "Additional terminology may be introduced in later sections. All terms are listed in the glossary appendix at the end of this document for quick reference."
 
+msgid "Address copied."
+msgstr "Address copied."
+
 msgid "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
 msgstr "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
+
+msgid "Adds the tables it needs. Anything already there is left alone."
+msgstr "Adds the tables it needs. Anything already there is left alone."
 
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
@@ -1199,6 +1230,9 @@ msgstr "ADT Studio"
 
 msgid "ADT STUDIO"
 msgstr "ADT STUDIO"
+
+msgid "ADT Studio prepares your account automatically — about a minute."
+msgstr "ADT Studio prepares your account automatically — about a minute."
 
 msgid "ADT Studio turns PDFs into accessible digital textbooks."
 msgstr "ADT Studio turns PDFs into accessible digital textbooks."
@@ -1376,11 +1410,20 @@ msgstr "All steps"
 msgid "Allegory"
 msgstr "Allegory"
 
+msgid "Allow"
+msgstr "Allow"
+
 msgid "Alphabetical"
 msgstr "Alphabetical"
 
 msgid "Already handed out"
 msgstr "Already handed out"
+
+msgid "already there"
+msgstr "already there"
+
+msgid "Also delete the publishing service and every published book from my Cloudflare account"
+msgstr "Also delete the publishing service and every published book from my Cloudflare account"
 
 msgid "Among the Stars"
 msgstr "Among the Stars"
@@ -1426,6 +1469,9 @@ msgstr "and many more blocks across the entire book"
 
 msgid "and more sections across the page"
 msgstr "and more sections across the page"
+
+msgid "Another program on this computer is already signing in to Cloudflare. Close it and try again."
+msgstr "Another program on this computer is already signing in to Cloudflare. Close it and try again."
 
 msgid "Answer"
 msgstr "Answer"
@@ -2227,6 +2273,9 @@ msgstr "Chart / Graph"
 msgid "Check for updates"
 msgstr "Check for updates"
 
+msgid "Check that the Account ID belongs to the same Cloudflare account you created the token in. Nothing was created in your account."
+msgstr "Check that the Account ID belongs to the same Cloudflare account you created the token in. Nothing was created in your account."
+
 msgid "Checked"
 msgstr "Checked"
 
@@ -2242,11 +2291,23 @@ msgstr "Checking accessibility"
 msgid "Checking connection…"
 msgstr "Checking connection…"
 
+msgid "Checking everything answers"
+msgstr "Checking everything answers"
+
 msgid "Checking for updates…"
 msgstr "Checking for updates…"
 
 msgid "Checking the connection…"
 msgstr "Checking the connection…"
+
+msgid "Checking your account"
+msgstr "Checking your account"
+
+msgid "Checking your publishing setup…"
+msgstr "Checking your publishing setup…"
+
+msgid "Checking your token"
+msgstr "Checking your token"
 
 msgid "Checklist item"
 msgstr "Checklist item"
@@ -2274,6 +2335,9 @@ msgstr "Choose an existing image from this project"
 
 msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
 msgstr "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
+
+msgid "Choose Cloudflare for hosting"
+msgstr "Choose Cloudflare for hosting"
 
 msgid "Choose features to include in this export"
 msgstr "Choose features to include in this export"
@@ -2362,6 +2426,9 @@ msgstr "CLI not found"
 msgid "Click a start page, then an end page to set the range."
 msgstr "Click a start page, then an end page to set the range."
 
+msgid "Click Allow"
+msgstr "Click Allow"
+
 msgid "Click an image to select"
 msgstr "Click an image to select"
 
@@ -2397,6 +2464,18 @@ msgstr "Close edit panel"
 
 msgid "Close style editor"
 msgstr "Close style editor"
+
+msgid "Cloudflare"
+msgstr "Cloudflare"
+
+msgid "CLOUDFLARE"
+msgstr "CLOUDFLARE"
+
+msgid "Cloudflare accounts"
+msgstr "Cloudflare accounts"
+
+msgid "Cloudflare didn't recognise that Account ID"
+msgstr "Cloudflare didn't recognise that Account ID"
 
 msgid "Clownfish, sea turtles, and parrotfish are just a few of the thousands of species that depend on reefs for food, shelter, and nursery grounds."
 msgstr "Clownfish, sea turtles, and parrotfish are just a few of the thousands of species that depend on reefs for food, shelter, and nursery grounds."
@@ -2536,8 +2615,20 @@ msgstr "Configured on server"
 msgid "Confirm merge"
 msgstr "Confirm merge"
 
+msgid "Connect a Cloudflare account to host finished books as private websites."
+msgstr "Connect a Cloudflare account to host finished books as private websites."
+
 msgid "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 msgstr "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
+
+msgid "Connect with Cloudflare"
+msgstr "Connect with Cloudflare"
+
+msgid "Connect your Cloudflare account"
+msgstr "Connect your Cloudflare account"
+
+msgid "Connected"
+msgstr "Connected"
 
 #. placeholder {0}: health.modelCount
 msgid "Connected — {0} models available."
@@ -2555,6 +2646,12 @@ msgstr "Connected successfully."
 
 msgid "Connected through the login already present on this machine."
 msgstr "Connected through the login already present on this machine."
+
+msgid "Connected via Cloudflare login"
+msgstr "Connected via Cloudflare login"
+
+msgid "Connected with API token"
+msgstr "Connected with API token"
 
 msgid "Connection not checked yet."
 msgstr "Connection not checked yet."
@@ -2658,6 +2755,9 @@ msgstr "Copied"
 msgid "Copy"
 msgstr "Copy"
 
+msgid "Copy address"
+msgstr "Copy address"
+
 msgid "Copy command"
 msgstr "Copy command"
 
@@ -2720,6 +2820,9 @@ msgstr "Couldn't apply the spreads — please try again."
 msgid "Couldn't check for updates"
 msgstr "Couldn't check for updates"
 
+msgid "Couldn't copy the address."
+msgstr "Couldn't copy the address."
+
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Couldn't load the PDF preview. The pages can still be split using the controls."
 
@@ -2762,6 +2865,9 @@ msgstr "Coverage"
 
 msgid "Covered"
 msgstr "Covered"
+
+msgid "Create a free account first"
+msgstr "Create a free account first"
 
 msgid "Create a manual glossary entry that stays in the book even if AI glossary generation is rerun."
 msgstr "Create a manual glossary entry that stays in the book even if AI glossary generation is rerun."
@@ -2810,6 +2916,12 @@ msgstr "Creates a ZIP archive of the full project — database, source PDF, and 
 
 msgid "Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again."
 msgstr "Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again."
+
+msgid "Creating the database"
+msgstr "Creating the database"
+
+msgid "Creating the storage space"
+msgstr "Creating the storage space"
 
 msgid "Creating..."
 msgstr "Creating..."
@@ -2907,8 +3019,14 @@ msgstr "Custom section {index}"
 msgid "Cut a region out of any page"
 msgstr "Cut a region out of any page"
 
+msgid "D1"
+msgstr "D1"
+
 msgid "Dark"
 msgstr "Dark"
+
+msgid "dash.cloudflare.com"
+msgstr "dash.cloudflare.com"
 
 msgid "Date added"
 msgstr "Date added"
@@ -3111,6 +3229,9 @@ msgstr "Deleting…"
 msgid "Dense text, tables, glossaries. Best for technical material and documentation."
 msgstr "Dense text, tables, glossaries. Best for technical material and documentation."
 
+msgid "Deny"
+msgstr "Deny"
+
 msgid "Describe the activity"
 msgstr "Describe the activity"
 
@@ -3221,6 +3342,21 @@ msgstr "Discard & leave"
 
 msgid "Discard unsaved prompt changes?"
 msgstr "Discard unsaved prompt changes?"
+
+msgid "Disconnect"
+msgstr "Disconnect"
+
+msgid "Disconnect and delete everything"
+msgstr "Disconnect and delete everything"
+
+msgid "Disconnect from Cloudflare?"
+msgstr "Disconnect from Cloudflare?"
+
+msgid "Disconnected from Cloudflare."
+msgstr "Disconnected from Cloudflare."
+
+msgid "Disconnected. Everything was deleted from your Cloudflare account."
+msgstr "Disconnected. Everything was deleted from your Cloudflare account."
 
 msgid "Dismiss"
 msgstr "Dismiss"
@@ -3520,6 +3656,9 @@ msgstr "Edits go to this Tailwind variant prefix"
 msgid "Effort"
 msgstr "Effort"
 
+msgid "Eight small things get created in your account. Nothing is charged."
+msgstr "Eight small things get created in your account. Nothing is charged."
+
 msgid "Element style editor"
 msgstr "Element style editor"
 
@@ -3722,6 +3861,15 @@ msgstr "Every way to read."
 
 msgid "everyone."
 msgstr "everyone."
+
+msgid "Everything here runs on Cloudflare's <0>free plan</0> — no payment needed for normal classroom use. Your books are uploaded to your own account, not to us."
+msgstr "Everything here runs on Cloudflare's <0>free plan</0> — no payment needed for normal classroom use. Your books are uploaded to your own account, not to us."
+
+msgid "Everything is in place in your Cloudflare account."
+msgstr "Everything is in place in your Cloudflare account."
+
+msgid "Everything was installed, but Cloudflare sometimes takes a minute to switch on a brand-new web address. Wait a moment and try again."
+msgstr "Everything was installed, but Cloudflare sometimes takes a minute to switch on a brand-new web address. Wait a moment and try again."
 
 msgid "Example Books"
 msgstr "Example Books"
@@ -3933,6 +4081,9 @@ msgstr "Feedback generated — review it and save"
 msgid "Feedback generation failed"
 msgstr "Feedback generation failed"
 
+msgid "Fetching the details of your new setup."
+msgstr "Fetching the details of your new setup."
+
 msgid "figure"
 msgstr "figure"
 
@@ -3984,8 +4135,14 @@ msgstr "Filters out decorative or non-content images on each page."
 msgid "Final Page"
 msgstr "Final Page"
 
+msgid "Finish"
+msgstr "Finish"
+
 msgid "Finish signing in with ChatGPT in the browser window that just opened."
 msgstr "Finish signing in with ChatGPT in the browser window that just opened."
+
+msgid "Finish the Cloudflare login already open in your browser, or wait a moment and try again."
+msgstr "Finish the Cloudflare login already open in your browser, or wait a moment and try again."
 
 msgid "Fire a real notification with these settings."
 msgstr "Fire a real notification with these settings."
@@ -4106,6 +4263,9 @@ msgstr "FR"
 
 msgid "Français"
 msgstr "Français"
+
+msgid "Free"
+msgstr "Free"
 
 msgid "Free rectangle — resize without skewing"
 msgstr "Free rectangle — resize without skewing"
@@ -4337,6 +4497,9 @@ msgstr "Generation Prompt"
 msgid "Get a key"
 msgstr "Get a key"
 
+msgid "Get started"
+msgstr "Get started"
+
 msgid "Global prompt reset to default."
 msgstr "Global prompt reset to default."
 
@@ -4520,6 +4683,9 @@ msgstr "Hide credential"
 msgid "Hide error details"
 msgstr "Hide error details"
 
+msgid "Hide the steps"
+msgstr "Hide the steps"
+
 msgid "Hide toasts automatically after a delay."
 msgstr "Hide toasts automatically after a delay."
 
@@ -4565,6 +4731,9 @@ msgstr "História e Sociedade - Vol. 1"
 msgid "Hit"
 msgstr "Hit"
 
+msgid "Holds the pages, images and audio of each published book."
+msgstr "Holds the pages, images and audio of each published book."
+
 msgid "Home"
 msgstr "Home"
 
@@ -4573,6 +4742,9 @@ msgstr "Home / Chapter 1"
 
 msgid "Home guide"
 msgstr "Home guide"
+
+msgid "Hosting"
+msgstr "Hosting"
 
 msgid "Hover a card to find it in the page and click to pin it — or click anything in the page to edit it here."
 msgstr "Hover a card to find it in the page and click to pin it — or click anything in the page to edit it here."
@@ -4897,11 +5069,20 @@ msgstr "Install older version"
 msgid "Install on quit"
 msgstr "Install on quit"
 
+msgid "Install the update"
+msgstr "Install the update"
+
 msgid "Install update"
 msgstr "Install update"
 
 msgid "Installed"
 msgstr "Installed"
+
+msgid "Installing the publishing service"
+msgstr "Installing the publishing service"
+
+msgid "Installing the service"
+msgstr "Installing the service"
 
 msgid "Installing update…"
 msgstr "Installing update…"
@@ -4963,6 +5144,9 @@ msgstr "Issues only"
 msgid "It contains unexpected file paths. Use a .zip exported from ADT Studio."
 msgstr "It contains unexpected file paths. Use a .zip exported from ADT Studio."
 
+msgid "It was cancelled for safety. Try again — it usually takes a few seconds."
+msgstr "It was cancelled for safety. Try again — it usually takes a few seconds."
+
 msgid "It was created from a different PDF or settings, so it can't be merged here."
 msgstr "It was created from a different PDF or settings, so it can't be merged here."
 
@@ -5015,6 +5199,9 @@ msgstr "Justify"
 msgid "KB"
 msgstr "KB"
 
+msgid "Keep my connection"
+msgstr "Keep my connection"
+
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Keep output schemas and IDs unchanged when editing prompts."
 
@@ -5026,6 +5213,9 @@ msgstr "Keeps pages whole unless mixed activity types require splitting."
 
 msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
 msgstr "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
+
+msgid "Keeps track of your published books."
+msgstr "Keeps track of your published books."
 
 msgid "Kept"
 msgstr "Kept"
@@ -5431,6 +5621,12 @@ msgstr "Lock the current aspect ratio"
 msgid "Lock to a square"
 msgstr "Lock to a square"
 
+msgid "Log in"
+msgstr "Log in"
+
+msgid "Log in to your account"
+msgstr "Log in to your account"
+
 msgid "Logs"
 msgstr "Logs"
 
@@ -5460,6 +5656,9 @@ msgstr "Lower values produce more consistent styling across pages."
 
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Make sure you're uploading a .zip file exported from ADT Studio."
+
+msgid "Making sure the token works and has all four permissions."
+msgstr "Making sure the token works and has all four permissions."
 
 msgid "Manage all sections"
 msgstr "Manage all sections"
@@ -6006,6 +6205,9 @@ msgstr "no changes"
 msgid "No changes flagged on this page"
 msgstr "No changes flagged on this page"
 
+msgid "No Cloudflare account to publish into"
+msgstr "No Cloudflare account to publish into"
+
 msgid "No colors found"
 msgstr "No colors found"
 
@@ -6342,8 +6544,14 @@ msgstr "Normalization"
 msgid "Normalized"
 msgstr "Normalized"
 
+msgid "Not answering right now"
+msgstr "Not answering right now"
+
 msgid "Not available on this server"
 msgstr "Not available on this server"
+
+msgid "Not available yet"
+msgstr "Not available yet"
 
 msgid "Not checked"
 msgstr "Not checked"
@@ -6399,6 +6607,9 @@ msgstr "Note"
 msgid "Nothing important is missing or added"
 msgstr "Nothing important is missing or added"
 
+msgid "Nothing is broken and nothing was lost. Trying again continues from where it stopped."
+msgstr "Nothing is broken and nothing was lost. Trying again continues from where it stopped."
+
 msgid "Nothing split yet"
 msgstr "Nothing split yet"
 
@@ -6407,6 +6618,12 @@ msgstr "Nothing to edit yet"
 
 msgid "Nothing to show"
 msgstr "Nothing to show"
+
+msgid "Nothing was connected. Try again and choose <0>Allow</0> on the Cloudflare page."
+msgstr "Nothing was connected. Try again and choose <0>Allow</0> on the Cloudflare page."
+
+msgid "Nothing was lost — the database is left exactly as it was. Trying again usually fixes this. If it keeps happening, send us the details below."
+msgstr "Nothing was lost — the database is left exactly as it was. Trying again usually fixes this. If it keeps happening, send us the details below."
 
 msgid "Notifications"
 msgstr "Notifications"
@@ -6567,6 +6784,9 @@ msgstr "Open pull request {0}"
 msgid "Open source PDF in a new tab"
 msgstr "Open source PDF in a new tab"
 
+msgid "Open the Cloudflare page again"
+msgstr "Open the Cloudflare page again"
+
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Open the Quizzes stage to edit this quiz"
 
@@ -6578,6 +6798,9 @@ msgstr "Open this section to tune the model, judge prompt, retry behavior, and e
 
 msgid "Open Validation"
 msgstr "Open Validation"
+
+msgid "Open Workers & Pages"
+msgstr "Open Workers & Pages"
 
 msgid "Open-ended — learners write a free response; there is no fixed answer."
 msgstr "Open-ended — learners write a free response; there is no fixed answer."
@@ -7213,6 +7436,9 @@ msgstr "Prepared speech text"
 msgid "Preparing speech..."
 msgstr "Preparing speech..."
 
+msgid "Preparing the database"
+msgstr "Preparing the database"
+
 msgid "Preparing…"
 msgstr "Preparing…"
 
@@ -7396,6 +7622,9 @@ msgstr "PT"
 msgid "Publish for review"
 msgstr "Publish for review"
 
+msgid "Published books are stored in Cloudflare R2, and your account hasn't switched it on yet. Open R2 in your Cloudflare dashboard and follow the steps to enable it — Cloudflare asks for a payment method, but the space ADT Studio uses is within the free allowance. Then come back and try again. Nothing was created in your account."
+msgstr "Published books are stored in Cloudflare R2, and your account hasn't switched it on yet. Open R2 in your Cloudflare dashboard and follow the steps to enable it — Cloudflare asks for a payment method, but the space ADT Studio uses is within the free allowance. Then come back and try again. Nothing was created in your account."
+
 msgid "Published for review"
 msgstr "Published for review"
 
@@ -7404,6 +7633,18 @@ msgstr "published in"
 
 msgid "Publisher"
 msgstr "Publisher"
+
+msgid "Publishing"
+msgstr "Publishing"
+
+msgid "publishing Cloudflare hosting deployment"
+msgstr "publishing Cloudflare hosting deployment"
+
+msgid "Publishing is ready"
+msgstr "Publishing is ready"
+
+msgid "Publishing is set up"
+msgstr "Publishing is set up"
 
 msgid "Pull requests"
 msgstr "Pull requests"
@@ -7577,6 +7818,9 @@ msgstr "Re-run translation"
 msgid "Re-running clears later stages"
 msgstr "Re-running clears later stages"
 
+msgid "Read"
+msgstr "Read"
+
 msgid "Read it in their language."
 msgstr "Read it in their language."
 
@@ -7645,6 +7889,9 @@ msgstr "Ready"
 
 msgid "Ready to install"
 msgstr "Ready to install"
+
+msgid "Ready when you are"
+msgstr "Ready when you are"
 
 msgid "Real books processed with this preset — before and after."
 msgstr "Real books processed with this preset — before and after."
@@ -8553,6 +8800,9 @@ msgstr "sections"
 msgid "Sections"
 msgstr "Sections"
 
+msgid "Securing the service"
+msgstr "Securing the service"
+
 #~ msgid "See examples"
 #~ msgstr "See examples"
 
@@ -8741,6 +8991,9 @@ msgstr "Set manually"
 msgid "Set the editing language and choose output languages for the book."
 msgstr "Set the editing language and choose output languages for the book."
 
+msgid "Set up publishing"
+msgstr "Set up publishing"
+
 msgid "Set your API key first"
 msgstr "Set your API key first"
 
@@ -8749,6 +9002,15 @@ msgstr "Set your API key to auto-generate"
 
 msgid "Sets the default layout used when a section has no specific strategy assigned."
 msgstr "Sets the default layout used when a section has no specific strategy assigned."
+
+msgid "Setting up"
+msgstr "Setting up"
+
+msgid "Setting up your web address"
+msgstr "Setting up your web address"
+
+msgid "Setting up…"
+msgstr "Setting up…"
 
 msgid "Settings"
 msgstr "Settings"
@@ -8759,8 +9021,20 @@ msgstr "Settings for this step are not yet available."
 msgid "Settings guide"
 msgstr "Settings guide"
 
+msgid "Setup couldn't finish"
+msgstr "Setup couldn't finish"
+
+msgid "Setup stopped"
+msgstr "Setup stopped"
+
+msgid "Setup stopped partway"
+msgstr "Setup stopped partway"
+
 msgid "Shadow"
 msgstr "Shadow"
+
+msgid "Share a finished book as a private website. You stay in charge of the link and the Cloudflare account that hosts it."
+msgstr "Share a finished book as a private website. You stay in charge of the link and the Cloudflare account that hosts it."
 
 msgid "Shared"
 msgstr "Shared"
@@ -8792,6 +9066,9 @@ msgstr "Show all entries"
 
 msgid "Show all pages"
 msgstr "Show all pages"
+
+msgid "Show all steps"
+msgstr "Show all steps"
 
 msgid "Show all translations"
 msgstr "Show all translations"
@@ -8850,6 +9127,9 @@ msgstr "Sign"
 msgid "Sign in"
 msgstr "Sign in"
 
+msgid "Sign in at Cloudflare"
+msgstr "Sign in at Cloudflare"
+
 msgid "Sign in outside the app, then Refresh — this screen detects the login automatically:"
 msgstr "Sign in outside the app, then Refresh — this screen detects the login automatically:"
 
@@ -8886,6 +9166,9 @@ msgstr "Signed in."
 
 msgid "Signed out."
 msgstr "Signed out."
+
+msgid "Signing in only works when ADT Studio and your browser run on the same computer."
+msgstr "Signing in only works when ADT Studio and your browser run on the same computer."
 
 msgid "Similarity"
 msgstr "Similarity"
@@ -8960,6 +9243,9 @@ msgstr "Small"
 msgid "Smart Cropping"
 msgstr "Smart Cropping"
 
+msgid "So only this computer can publish or change your books."
+msgstr "So only this computer can publish or change your books."
+
 msgid "Software update"
 msgstr "Software update"
 
@@ -8975,6 +9261,12 @@ msgstr "Some content was left out of the bundle: {0} rendered section(s) on {pag
 
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
+
+msgid "Some permissions are missing"
+msgstr "Some permissions are missing"
+
+msgid "Something else in your account already uses the name the Studio needs. Rename it in Cloudflare, or write to us if you'd rather not — then try again."
+msgstr "Something else in your account already uses the name the Studio needs. Rename it in Cloudflare, or write to us if you'd rather not — then try again."
 
 msgid "Something went wrong"
 msgstr "Something went wrong"
@@ -9202,6 +9494,9 @@ msgstr "Step {0}"
 #. placeholder {0}: STEPS.length
 msgid "Step {step} of {0}"
 msgstr "Step {step} of {0}"
+
+msgid "Step {stepNumber} of {stepCount}"
+msgstr "Step {stepNumber} of {stepCount}"
 
 msgid "Step failed"
 msgstr "Step failed"
@@ -9568,6 +9863,12 @@ msgstr "Text-to-speech engines that narrate the finished book."
 msgid "Textbooks & Activities"
 msgstr "Textbooks & Activities"
 
+msgid "That didn't finish"
+msgstr "That didn't finish"
+
+msgid "The address every share link will start with."
+msgstr "The address every share link will start with."
+
 msgid "The AI is having a think..."
 msgstr "The AI is having a think..."
 
@@ -9598,6 +9899,9 @@ msgstr "The book's title and metadata arrive with the part that contains page 1 
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 
+msgid "The Cloudflare sign-in did not grant everything publishing needs. Disconnect, connect again, and allow every permission ADT Studio asks for. Nothing was created in your account."
+msgstr "The Cloudflare sign-in did not grant everything publishing needs. Disconnect, connect again, and allow every permission ADT Studio asks for. Nothing was created in your account."
+
 msgid "The combined section will be re-rendered."
 msgstr "The combined section will be re-rendered."
 
@@ -9622,6 +9926,9 @@ msgstr "The credits page."
 msgid "The data sent within the body of a request or response message."
 msgstr "The data sent within the body of a request or response message."
 
+msgid "The database couldn't be prepared"
+msgstr "The database couldn't be prepared"
+
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 msgstr "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 
@@ -9640,6 +9947,9 @@ msgstr "The following terms are used throughout this manual. Familiarity with th
 msgid "The foreword or introduction."
 msgstr "The foreword or introduction."
 
+msgid "The free plan covers normal classroom use and keeps your books in an account you control."
+msgstr "The free plan covers normal classroom use and keeps your books in an account you control."
+
 msgid "The front cover of the book."
 msgstr "The front cover of the book."
 
@@ -9654,6 +9964,15 @@ msgstr "The inside cover of the book."
 
 msgid "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
 msgstr "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
+
+msgid "The login could not be finished. Try again, or use an API token instead."
+msgstr "The login could not be finished. Try again, or use an API token instead."
+
+msgid "The login couldn't come back to the Studio"
+msgstr "The login couldn't come back to the Studio"
+
+msgid "The login took too long"
+msgstr "The login took too long"
 
 msgid "The Lost Forest"
 msgstr "The Lost Forest"
@@ -9706,6 +10025,9 @@ msgstr "The provider could not be reached."
 msgid "The provider rejected these credentials."
 msgstr "The provider rejected these credentials."
 
+msgid "The publishing service couldn't be installed"
+msgstr "The publishing service couldn't be installed"
+
 msgid "The quick brown fox jumps over the lazy dog 0123456789"
 msgstr "The quick brown fox jumps over the lazy dog 0123456789"
 
@@ -9717,6 +10039,9 @@ msgstr "The reader experience"
 
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "The rendering strategy used for sections without an explicit mapping."
+
+msgid "The request appears as <0>Wrangler</0> — Cloudflare's own tool, which ADT Studio signs in through. This is expected."
+msgstr "The request appears as <0>Wrangler</0> — Cloudflare's own tool, which ADT Studio signs in through. This is expected."
 
 msgid "The same edition in every language."
 msgstr "The same edition in every language."
@@ -9730,8 +10055,17 @@ msgstr "The section was edited after conversion — use \"Rebuild from page\" to
 msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
 msgstr "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
 
+msgid "The setup stopped before it finished. Nothing was lost — trying again continues from where it stopped."
+msgstr "The setup stopped before it finished. Nothing was lost — trying again continues from where it stopped."
+
+msgid "The small program that shows your books."
+msgstr "The small program that shows your books."
+
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
+
+msgid "The Studio will create the storage and small web service it needs inside your Cloudflare account. This takes a minute or two and only happens once."
+msgstr "The Studio will create the storage and small web service it needs inside your Cloudflare account. This takes a minute or two and only happens once."
 
 msgid "The sun heats water in oceans, lakes, and rivers, turning it into vapor that rises into the atmosphere. As the vapor cools at higher altitudes, it condenses into tiny droplets that form clouds."
 msgstr "The sun heats water in oceans, lakes, and rivers, turning it into vapor that rises into the atmosphere. As the vapor cools at higher altitudes, it condenses into tiny droplets that form clouds."
@@ -9837,8 +10171,14 @@ msgstr "This book isn't fully assembled yet — pages <0>{0}</0> haven't been me
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 
+msgid "This cannot be undone. Every link you have shared will stop working."
+msgstr "This cannot be undone. Every link you have shared will stop working."
+
 msgid "This computer"
 msgstr "This computer"
+
+msgid "This computer will forget your token and Account ID, so you won't be able to publish or update books until you connect again. Books you have already published stay online and their links keep working."
+msgstr "This computer will forget your token and Account ID, so you won't be able to publish or update books until you connect again. Books you have already published stay online and their links keep working."
 
 msgid "This connection isn't available yet."
 msgstr "This connection isn't available yet."
@@ -9873,6 +10213,9 @@ msgstr "This is a project, not a book part"
 msgid "This is how notifications will look and sound."
 msgstr "This is how notifications will look and sound."
 
+msgid "This is nearly always a passing network problem. Try again — the parts already set up are kept, so it picks up where it left off."
+msgstr "This is nearly always a passing network problem. Try again — the parts already set up are kept, so it picks up where it left off."
+
 msgid "This is Pip! He has a wiggly tail."
 msgstr "This is Pip! He has a wiggly tail."
 
@@ -9890,6 +10233,9 @@ msgstr "This isn't a valid ADT Studio project"
 
 msgid "This isn't a valid part file"
 msgstr "This isn't a valid part file"
+
+msgid "This login has no account the Studio can use. Create an account in Cloudflare, then connect again."
+msgstr "This login has no account the Studio can use. Create an account in Cloudflare, then connect again."
 
 msgid "This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via \"View HTML source\" instead of merging."
 msgstr "This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via \"View HTML source\" instead of merging."
@@ -10231,6 +10577,12 @@ msgstr "Turn any educational PDF into an accessible, interactive learning bundle
 msgid "Turn any textbook into an accessible edition — every step of the pipeline, built in."
 msgstr "Turn any textbook into an accessible edition — every step of the pipeline, built in."
 
+msgid "Turn on R2 in Cloudflare"
+msgstr "Turn on R2 in Cloudflare"
+
+msgid "Turn on R2 storage in Cloudflare first"
+msgstr "Turn on R2 storage in Cloudflare first"
+
 msgid "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
 msgstr "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
 
@@ -10372,6 +10724,9 @@ msgstr "Unknown step slug: {step}"
 msgid "Unknown step: {step}"
 msgstr "Unknown step: {step}"
 
+msgid "Unnamed account"
+msgstr "Unnamed account"
+
 msgid "Unprune image"
 msgstr "Unprune image"
 
@@ -10404,6 +10759,9 @@ msgstr "Update available"
 
 msgid "Update ready to install"
 msgstr "Update ready to install"
+
+msgid "Updating the publishing service"
+msgstr "Updating the publishing service"
 
 msgid "Upload"
 msgstr "Upload"
@@ -10526,6 +10884,9 @@ msgstr "Use these names inside double braces or Liquid tags. Nested fields use d
 msgid "Use these settings for the common review workflow."
 msgstr "Use these settings for the common review workflow."
 
+msgid "Use this account"
+msgstr "Use this account"
+
 msgid "Use this for checks you intentionally want to suppress, such as known false positives."
 msgstr "Use this for checks you intentionally want to suppress, such as known false positives."
 
@@ -10613,8 +10974,14 @@ msgstr "Verified applied"
 
 #. placeholder {0}: String(data.version)
 #. placeholder {0}: String(version)
+#. placeholder {0}: connection.worker_version
 msgid "Version {0}"
 msgstr "Version {0}"
+
+#. placeholder {0}: connection.worker_version ?? "?"
+#. placeholder {1}: connection.latest_version
+msgid "Version {0} → {1}. Your published books stay online while this runs."
+msgstr "Version {0} → {1}. Your published books stay online while this runs."
 
 msgid "Version {current}"
 msgstr "Version {current}"
@@ -10624,6 +10991,9 @@ msgstr "Version {selected}"
 
 msgid "Version history"
 msgstr "Version history"
+
+msgid "Version unknown"
+msgstr "Version unknown"
 
 msgid "version update release"
 msgstr "version update release"
@@ -10727,6 +11097,9 @@ msgstr "Waiting for API output…"
 msgid "Waiting for page to be processed..."
 msgstr "Waiting for page to be processed..."
 
+msgid "Waiting for your approval in the browser — choose <0>Allow</0> on the Cloudflare page. It appears as <1>Wrangler</1>; that's expected."
+msgstr "Waiting for your approval in the browser — choose <0>Allow</0> on the Cloudflare page. It appears as <1>Wrangler</1>; that's expected."
+
 msgid "Wall Clock"
 msgstr "Wall Clock"
 
@@ -10761,8 +11134,17 @@ msgstr "wcag2a\n"
 msgid "We compared the page edges and think these facing pages are spreads. Open Review to merge the ones that are — cancelling changes nothing."
 msgstr "We compared the page edges and think these facing pages are spreads. Open Review to merge the ones that are — cancelling changes nothing."
 
+msgid "We couldn't check your publishing setup"
+msgstr "We couldn't check your publishing setup"
+
+msgid "We couldn't connect to Cloudflare"
+msgstr "We couldn't connect to Cloudflare"
+
 msgid "We hit a snag while loading this view. You can try this screen again or reload the whole app."
 msgstr "We hit a snag while loading this view. You can try this screen again or reload the whole app."
+
+msgid "We set everything up"
+msgstr "We set everything up"
 
 msgid "Web Export"
 msgstr "Web Export"
@@ -10851,6 +11233,9 @@ msgstr "Where it all begins"
 msgid "Where toasts appear on screen."
 msgstr "Where toasts appear on screen."
 
+msgid "Which Cloudflare account?"
+msgstr "Which Cloudflare account?"
+
 msgid "Which engine runs the extraction and generation pipeline."
 msgstr "Which engine runs the extraction and generation pipeline."
 
@@ -10905,6 +11290,15 @@ msgstr "Word-level highlighting"
 msgid "words"
 msgstr "words"
 
+msgid "Workers R2 Storage"
+msgstr "Workers R2 Storage"
+
+msgid "Workers Scripts"
+msgstr "Workers Scripts"
+
+msgid "Wrangler"
+msgstr "Wrangler"
+
 msgid "Wrap in group"
 msgstr "Wrap in group"
 
@@ -10943,6 +11337,9 @@ msgstr "You haven't added any terms manually yet"
 msgid "You haven't split any books"
 msgstr "You haven't split any books"
 
+msgid "You only had to do that once. To share a book, open it and go to its Export step — you'll find Publish there."
+msgstr "You only had to do that once. To share a book, open it and go to its Export step — you'll find Publish there."
+
 msgid "You're all set"
 msgstr "You're all set"
 
@@ -10961,14 +11358,47 @@ msgstr "You're running the latest version of ADT Studio."
 msgid "You're testing an early build."
 msgstr "You're testing an early build."
 
+msgid "you@example.com"
+msgstr "you@example.com"
+
 msgid "Young adult fiction"
 msgstr "Young adult fiction"
+
+msgid "Your account needs a web address first"
+msgstr "Your account needs a web address first"
 
 msgid "Your AI, your keys."
 msgstr "Your AI, your keys."
 
 msgid "Your book"
 msgstr "Your book"
+
+msgid "Your book, one link away"
+msgstr "Your book, one link away"
+
+msgid "Your books are published at"
+msgstr "Your books are published at"
+
+msgid "Your books will live in your own Cloudflare account."
+msgstr "Your books will live in your own Cloudflare account."
+
+msgid "Your browser opens Cloudflare's own sign-in page."
+msgstr "Your browser opens Cloudflare's own sign-in page."
+
+msgid "Your Cloudflare account hasn't chosen the web address it uses for services yet, and your share links need it. Open Workers & Pages, pick any name when it asks, then try again."
+msgstr "Your Cloudflare account hasn't chosen the web address it uses for services yet, and your share links need it. Open Workers & Pages, pick any name when it asks, then try again."
+
+msgid "Your Cloudflare connection is still here. Try again in a moment."
+msgstr "Your Cloudflare connection is still here. Try again in a moment."
+
+msgid "Your Cloudflare login covers more than one account. Pick the one your books should be published into — you can change it later by disconnecting and connecting again."
+msgstr "Your Cloudflare login covers more than one account. Pick the one your books should be published into — you can change it later by disconnecting and connecting again."
+
+msgid "Your connection is still here, so nothing is half-forgotten. You can try again, or untick the delete option and just disconnect — then tidy up in Cloudflare yourself."
+msgstr "Your connection is still here, so nothing is half-forgotten. You can try again, or untick the delete option and just disconnect — then tidy up in Cloudflare yourself."
+
+msgid "Your finished books will live in your own Cloudflare account."
+msgstr "Your finished books will live in your own Cloudflare account."
 
 msgid "Your font has been applied to captions."
 msgstr "Your font has been applied to captions."
@@ -10984,6 +11414,9 @@ msgstr "Your font has been applied to the whole book."
 
 msgid "Your fonts"
 msgstr "Your fonts"
+
+msgid "Your service isn't answering yet"
+msgstr "Your service isn't answering yet"
 
 msgid "Z → A"
 msgstr "Z → A"
