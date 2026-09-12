@@ -139,7 +139,7 @@ function JourneyCard({
 }) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border bg-card">
-      <div className="relative h-44 border-b bg-zinc-50/70 mh:h-24">
+      <div className="relative h-56 border-b bg-zinc-50/70 mh:h-32">
         <span className="absolute left-2.5 top-2.5 z-10 flex size-5 items-center justify-center rounded-full bg-indigo-700 text-[11px] font-semibold text-white">
           {number}
         </span>
@@ -213,7 +213,7 @@ export function ConnectStep({
         </div>
 
         {showJourney && (
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid flex-1 auto-rows-fr gap-3 sm:grid-cols-3">
           <JourneyCard
             number="1"
             scene={<SceneSignIn />}
