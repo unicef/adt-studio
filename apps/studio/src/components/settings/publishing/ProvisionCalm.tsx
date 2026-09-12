@@ -1,4 +1,5 @@
-import { useLingui } from "@lingui/react/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
+import { Button } from "@/components/ui/button"
 import type { ProvisionStepStatus } from "@/api/client"
 import type { ProvisionStatus } from "@/hooks/use-cloudflare-provision"
 import { CalmStepLoader } from "@/components/settings/publishing/CalmStepLoader"
@@ -9,6 +10,7 @@ interface ProvisionCalmProps {
   stepStates: readonly ProvisionStepStatus[]
   activeStep: number | null
   elapsedMs: number
+  onStart?: () => void
 }
 
 /** Provisioning's half of the shared loader — the eight steps and the words that belong to
@@ -18,6 +20,7 @@ export function ProvisionCalm({
   stepStates,
   activeStep,
   elapsedMs,
+  onStart,
 }: ProvisionCalmProps) {
   const { t } = useLingui()
 
@@ -36,6 +39,11 @@ export function ProvisionCalm({
         idle: t`Ready when you are`,
         idleDetail: t`Eight small things get created in your account. Nothing is charged.`,
       }}
+      idleAction={onStart ? (
+        <Button className="min-w-52 shadow-sm" size="lg" onClick={onStart}>
+          <Trans>Set up publishing</Trans>
+        </Button>
+      ) : undefined}
     />
   )
 }

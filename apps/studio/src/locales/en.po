@@ -1203,8 +1203,8 @@ msgstr "Additional Languages"
 msgid "Additional terminology may be introduced in later sections. All terms are listed in the glossary appendix at the end of this document for quick reference."
 msgstr "Additional terminology may be introduced in later sections. All terms are listed in the glossary appendix at the end of this document for quick reference."
 
-msgid "Address copied."
-msgstr "Address copied."
+#~ msgid "Address copied."
+#~ msgstr "Address copied."
 
 msgid "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
 msgstr "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
@@ -1400,6 +1400,9 @@ msgstr "All sections have been deleted"
 
 msgid "All set"
 msgstr "All set"
+
+msgid "All set up"
+msgstr "All set up"
 
 msgid "All Severities"
 msgstr "All Severities"
@@ -2755,8 +2758,8 @@ msgstr "Copied"
 msgid "Copy"
 msgstr "Copy"
 
-msgid "Copy address"
-msgstr "Copy address"
+#~ msgid "Copy address"
+#~ msgstr "Copy address"
 
 msgid "Copy command"
 msgstr "Copy command"
@@ -2820,8 +2823,8 @@ msgstr "Couldn't apply the spreads — please try again."
 msgid "Couldn't check for updates"
 msgstr "Couldn't check for updates"
 
-msgid "Couldn't copy the address."
-msgstr "Couldn't copy the address."
+#~ msgid "Couldn't copy the address."
+#~ msgstr "Couldn't copy the address."
 
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Couldn't load the PDF preview. The pages can still be split using the controls."
@@ -4683,8 +4686,8 @@ msgstr "Hide credential"
 msgid "Hide error details"
 msgstr "Hide error details"
 
-msgid "Hide the steps"
-msgstr "Hide the steps"
+#~ msgid "Hide the steps"
+#~ msgstr "Hide the steps"
 
 msgid "Hide toasts automatically after a delay."
 msgstr "Hide toasts automatically after a delay."
@@ -6550,8 +6553,8 @@ msgstr "Not answering right now"
 msgid "Not available on this server"
 msgstr "Not available on this server"
 
-msgid "Not available yet"
-msgstr "Not available yet"
+#~ msgid "Not available yet"
+#~ msgstr "Not available yet"
 
 msgid "Not checked"
 msgstr "Not checked"
@@ -9067,8 +9070,8 @@ msgstr "Show all entries"
 msgid "Show all pages"
 msgstr "Show all pages"
 
-msgid "Show all steps"
-msgstr "Show all steps"
+#~ msgid "Show all steps"
+#~ msgstr "Show all steps"
 
 msgid "Show all translations"
 msgstr "Show all translations"
@@ -10387,6 +10390,9 @@ msgstr "To page"
 msgid "To replace an image, use \"Edit layout\" and click the image."
 msgstr "To replace an image, use \"Edit layout\" and click the image."
 
+msgid "To share a book, open it and go to its Export step — you'll find Publish there."
+msgstr "To share a book, open it and go to its Export step — you'll find Publish there."
+
 msgid "to stream API logs here."
 msgstr "to stream API logs here."
 
@@ -11376,8 +11382,8 @@ msgstr "Your book"
 msgid "Your book, one link away"
 msgstr "Your book, one link away"
 
-msgid "Your books are published at"
-msgstr "Your books are published at"
+#~ msgid "Your books are published at"
+#~ msgstr "Your books are published at"
 
 msgid "Your books will live in your own Cloudflare account."
 msgstr "Your books will live in your own Cloudflare account."

@@ -21,7 +21,7 @@ function SceneSignIn() {
         </span>
       </div>
       <div className="flex flex-1 items-center justify-center">
-        <div className="flex w-full max-w-44 flex-col gap-1.5 rounded-lg border bg-white p-3 shadow-md">
+        <div className="flex w-[72%] max-w-64 flex-col gap-1.5 rounded-lg border bg-white p-3 shadow-md">
           <div className="flex items-center justify-center gap-1">
             <Cloud className="size-4 shrink-0" style={{ color: "#f6821f" }} aria-hidden="true" />
             <span className="text-[10px] font-bold tracking-tight text-zinc-800">
@@ -49,7 +49,7 @@ function SceneSignIn() {
 function SceneAllow() {
   return (
     <div className="flex h-full items-center justify-center p-3">
-      <div className="flex w-full max-w-52 flex-col gap-2 rounded-lg border bg-white p-3.5 shadow-md">
+      <div className="flex w-[78%] max-w-72 flex-col gap-2 rounded-lg border bg-white p-3.5 shadow-md">
         <div className="flex items-center gap-1.5">
           <Cloud className="size-4.5 shrink-0" style={{ color: "#f6821f" }} aria-hidden="true" />
           <span className="text-[11px] font-semibold leading-4 text-zinc-700">
@@ -82,7 +82,7 @@ function SceneSetup() {
 
   return (
     <div className="flex h-full items-center justify-center p-3">
-      <div className="flex w-full max-w-52 flex-col gap-2 rounded-lg border bg-white p-3 shadow-md">
+      <div className="flex w-[78%] max-w-72 flex-col gap-2 rounded-lg border bg-white p-3 shadow-md">
         <div className="flex items-center justify-between">
           <span className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
             <Trans>Setting up</Trans>
@@ -139,13 +139,13 @@ function JourneyCard({
 }) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border bg-card">
-      <div className="relative h-56 border-b bg-zinc-50/70 mh:h-32">
+      <div className="relative min-h-52 flex-1 border-b bg-zinc-50/70 mh:min-h-32">
         <span className="absolute left-2.5 top-2.5 z-10 flex size-5 items-center justify-center rounded-full bg-indigo-700 text-[11px] font-semibold text-white">
           {number}
         </span>
         {scene}
       </div>
-      <div className="flex flex-1 flex-col gap-1 p-4">
+      <div className="flex min-h-24 shrink-0 flex-col gap-1 p-4">
         <span className="text-sm font-semibold tracking-tight text-foreground">{title}</span>
         <span className="text-xs leading-5 text-muted-foreground">{caption}</span>
       </div>
@@ -158,7 +158,6 @@ interface ConnectStepProps {
   oauthErrorCode: CloudflareOAuthErrorCode | "unknown" | null
   oauthErrorMessage: string | null
   authUrl: string | null
-  onBack: () => void
   onConnectWithCloudflare: () => void
   onCancelOAuth: () => void
 }
@@ -168,7 +167,6 @@ export function ConnectStep({
   oauthErrorCode,
   oauthErrorMessage,
   authUrl,
-  onBack,
   onConnectWithCloudflare,
   onCancelOAuth,
 }: ConnectStepProps) {
@@ -182,10 +180,6 @@ export function ConnectStep({
         <Trans>Your books will live in your own Cloudflare account.</Trans>
       }
       footer={
-        <>
-          <Button variant="ghost" onClick={onBack} disabled={isBusy}>
-            <Trans>Back</Trans>
-          </Button>
           <Button className="group ml-auto" onClick={onConnectWithCloudflare} disabled={isBusy}>
             {isBusy ? (
               <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
@@ -198,7 +192,6 @@ export function ConnectStep({
               />
             )}
           </Button>
-        </>
       }
     >
       <div className="flex flex-1 flex-col gap-5 pt-1 mh:gap-4">

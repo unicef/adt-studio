@@ -62,6 +62,29 @@ describe("cloudflare client", () => {
     await expect(clientFor(fetchFn).listR2Buckets()).rejects.toBeInstanceOf(CloudflareApiError)
   })
 
+  it("retries a rate-limited R2 object delete before removing its bucket", async () => {
+    const fake = createFakeCloudflare({
+      buckets: ["adt-publish-snapshots"],
+      bucketObjects: { "adt-publish-snapshots": ["books/one/index.html"] },
+    })
+    let rateLimited = false
+    const fetchFn: FetchLike = async (url, init) => {
+      if (!rateLimited && init?.method === "DELETE" && url.includes("/objects/")) {
+        rateLimited = true
+        return new Response(
+          JSON.stringify({ success: false, errors: [{ code: 10000, message: "rate limited" }] }),
+          { status: 429, headers: { "Retry-After": "0" } },
+        )
+      }
+      return fake.fetchFn(url, init)
+    }
+
+    await clientFor(fetchFn).deleteR2Bucket("adt-publish-snapshots")
+
+    expect(rateLimited).toBe(true)
+    expect(fake.state.buckets).toEqual([])
+  })
+
   it("uploads the worker as multipart with a metadata part and the main module", async () => {
     const fake = createFakeCloudflare()
     await clientFor(fake.fetchFn).uploadWorkerScript({

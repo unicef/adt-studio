@@ -1203,8 +1203,8 @@ msgstr "Idiomas adicionais"
 msgid "Additional terminology may be introduced in later sections. All terms are listed in the glossary appendix at the end of this document for quick reference."
 msgstr "Terminologia adicional pode ser introduzida em seções posteriores. Todos os termos estão listados no apêndice do glossário no final deste documento para referência rápida."
 
-msgid "Address copied."
-msgstr "Endereço copiado."
+#~ msgid "Address copied."
+#~ msgstr "Endereço copiado."
 
 msgid "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
 msgstr "Adiciona páginas de glossário ao livro. Os termos levam à sua entrada e cada entrada leva de volta ao texto. Funciona em qualquer leitor."
@@ -1399,6 +1399,9 @@ msgid "All sections have been deleted"
 msgstr "Todas as seções foram excluídas"
 
 msgid "All set"
+msgstr "Tudo pronto"
+
+msgid "All set up"
 msgstr "Tudo pronto"
 
 msgid "All Severities"
@@ -2754,8 +2757,8 @@ msgstr "Copiado"
 msgid "Copy"
 msgstr "Copiar"
 
-msgid "Copy address"
-msgstr "Copiar endereço"
+#~ msgid "Copy address"
+#~ msgstr "Copiar endereço"
 
 msgid "Copy command"
 msgstr "Copiar comando"
@@ -2819,8 +2822,8 @@ msgstr "Não foi possível aplicar os spreads — tente novamente."
 msgid "Couldn't check for updates"
 msgstr "Não foi possível verificar atualizações"
 
-msgid "Couldn't copy the address."
-msgstr "Não foi possível copiar o endereço."
+#~ msgid "Couldn't copy the address."
+#~ msgstr "Não foi possível copiar o endereço."
 
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Não foi possível carregar a pré-visualização do PDF. As páginas ainda podem ser divididas usando os controles."
@@ -4682,8 +4685,8 @@ msgstr "Ocultar credencial"
 msgid "Hide error details"
 msgstr "Ocultar detalhes do erro"
 
-msgid "Hide the steps"
-msgstr "Ocultar os passos"
+#~ msgid "Hide the steps"
+#~ msgstr "Ocultar os passos"
 
 msgid "Hide toasts automatically after a delay."
 msgstr "Ocultar notificações automaticamente após um atraso."
@@ -6549,8 +6552,8 @@ msgstr "Não respondendo agora"
 msgid "Not available on this server"
 msgstr "Não disponível neste servidor"
 
-msgid "Not available yet"
-msgstr "Ainda não disponível"
+#~ msgid "Not available yet"
+#~ msgstr "Ainda não disponível"
 
 msgid "Not checked"
 msgstr "Não verificado"
@@ -9066,8 +9069,8 @@ msgstr "Mostrar todas as entradas"
 msgid "Show all pages"
 msgstr "Mostrar todas as páginas"
 
-msgid "Show all steps"
-msgstr "Mostrar todos os passos"
+#~ msgid "Show all steps"
+#~ msgstr "Mostrar todos os passos"
 
 msgid "Show all translations"
 msgstr "Mostrar todas as traduções"
@@ -10386,6 +10389,9 @@ msgstr "Até a página"
 msgid "To replace an image, use \"Edit layout\" and click the image."
 msgstr "Para substituir uma imagem, use \\\"Editar layout\\\" e clique na imagem."
 
+msgid "To share a book, open it and go to its Export step — you'll find Publish there."
+msgstr "Para compartilhar um livro, abra-o e vá até a etapa Exportar — lá você encontrará Publicar."
+
 msgid "to stream API logs here."
 msgstr "para transmitir logs de API aqui."
 
@@ -11375,8 +11381,8 @@ msgstr "Seu livro"
 msgid "Your book, one link away"
 msgstr "Seu livro, a um link de distância"
 
-msgid "Your books are published at"
-msgstr "Seus livros são publicados em"
+#~ msgid "Your books are published at"
+#~ msgstr "Seus livros são publicados em"
 
 msgid "Your books will live in your own Cloudflare account."
 msgstr "Seus livros viverão na sua própria conta Cloudflare."
