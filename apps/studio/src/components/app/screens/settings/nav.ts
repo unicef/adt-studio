@@ -6,6 +6,7 @@ import {
   Brain,
   ScrollText,
   Info,
+  Globe,
   type LucideIcon,
 } from "lucide-react"
 import { msg } from "@lingui/core/macro"
@@ -19,6 +20,7 @@ export const SETTINGS_PATHS = {
   models: "/settings/models",
   prompts: "/settings/prompts",
   about: "/settings/about",
+  publishing: "/settings/publishing",
 } as const
 
 export type SettingsSection = keyof typeof SETTINGS_PATHS
@@ -58,7 +60,10 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   {
     key: "application",
     label: msg`Application`,
-    tabs: [{ key: "about", label: msg`About`, icon: Info }],
+    tabs: [
+      { key: "publishing", label: msg`Publishing`, icon: Globe, fullWidth: true },
+      { key: "about", label: msg`About`, icon: Info },
+    ],
   },
 ]
 
