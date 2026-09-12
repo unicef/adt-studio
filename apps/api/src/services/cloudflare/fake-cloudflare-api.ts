@@ -12,6 +12,7 @@ export interface FakeUploadedScript {
 export interface FakeCloudflareState {
   databases: Array<{ uuid: string; name: string }>
   buckets: string[]
+  bucketObjects: Map<string, string[]>
   scripts: Map<string, FakeUploadedScript>
   subdomainEnabledFor: string[]
   migrationRows: Array<{ name: string; applied_at: string }>
@@ -35,6 +36,7 @@ export interface FakeCloudflareOptions {
   subdomain?: string | null
   databases?: Array<{ uuid: string; name: string }>
   buckets?: string[]
+  bucketObjects?: Record<string, string[]>
   scripts?: string[]
   migrationRows?: Array<{ name: string; applied_at: string }>
   createdDatabaseUuid?: string
@@ -95,6 +97,9 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
   const state: FakeCloudflareState = {
     databases: [...(options.databases ?? [])],
     buckets: [...(options.buckets ?? [])],
+    bucketObjects: new Map(
+      Object.entries(options.bucketObjects ?? {}).map(([bucket, keys]) => [bucket, [...keys]]),
+    ),
     scripts: new Map((options.scripts ?? []).map((name) => [name, { script: "", metadata: {} }])),
     subdomainEnabledFor: [],
     migrationRows: [...(options.migrationRows ?? [])],
@@ -271,9 +276,36 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
       }
     }
 
+    const bucketObjectsMatch = path.match(/^\/r2\/buckets\/([^/]+)\/objects(?:\/(.*))?$/)
+    if (bucketObjectsMatch) {
+      const bucket = decodeURIComponent(bucketObjectsMatch[1])
+      const keys = state.bucketObjects.get(bucket) ?? []
+      if (method === "GET") {
+        const query = new URL(input).searchParams
+        const startAfter = query.get("start_after")
+        const nextIndex = startAfter ? keys.findIndex((key) => key > startAfter) : 0
+        const startIndex = nextIndex < 0 ? keys.length : nextIndex
+        const limit = Number(query.get("per_page") ?? "1000")
+        return ok(keys.slice(startIndex, startIndex + limit).map((key) => ({ key })))
+      }
+      if (method === "DELETE" && bucketObjectsMatch[2]) {
+        const key = bucketObjectsMatch[2]
+          .split("/")
+          .map((segment) => decodeURIComponent(segment))
+          .join("/")
+        state.bucketObjects.set(bucket, keys.filter((entry) => entry !== key))
+        return ok(null)
+      }
+    }
+
     const bucketDeleteMatch = path.match(/^\/r2\/buckets\/([^/]+)$/)
     if (bucketDeleteMatch && method === "DELETE") {
-      state.buckets = state.buckets.filter((name) => name !== bucketDeleteMatch[1])
+      const bucket = decodeURIComponent(bucketDeleteMatch[1])
+      if ((state.bucketObjects.get(bucket) ?? []).length > 0) {
+        return fail(409, 10014, "The bucket you tried to delete is not empty")
+      }
+      state.buckets = state.buckets.filter((name) => name !== bucket)
+      state.bucketObjects.delete(bucket)
       return ok(null)
     }
 

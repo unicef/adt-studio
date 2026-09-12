@@ -5,15 +5,11 @@ import { cn } from "@/lib/utils"
 import { AccountPickerStep } from "./AccountPickerStep"
 import { DoneStep } from "./DoneStep"
 import { ConnectStep } from "./ConnectStep"
-import { IntroStep } from "./IntroStep"
-import { WelcomeStep } from "./WelcomeStep"
 import { ProvisionStep } from "./ProvisionStep"
 import { WIZARD_STEP_HEADING_ID } from "./WizardStepShell"
 import { openExternalUrl } from "./open-external"
 
-const WIZARD_STATE_KEY = "adt-studio-publishing-wizard"
-
-type WizardStep = "welcome" | "intro" | "connect" | "account" | "provision" | "done"
+type WizardStep = "connect" | "account" | "provision" | "done"
 
 interface ConnectCloudflareWizardProps {
   connection: CloudflareConnectionStatus | undefined
@@ -32,27 +28,7 @@ export function ConnectCloudflareWizard({
   onRefreshConnection,
   onDisconnected,
 }: ConnectCloudflareWizardProps) {
-  const [restored] = useState(() => {
-    try {
-      const raw = localStorage.getItem(WIZARD_STATE_KEY)
-      if (!raw) return null
-      return JSON.parse(raw) as { step?: string }
-    } catch {
-      return null
-    }
-  })
-  const [step, setStep] = useState<WizardStep>(() => {
-    switch (restored?.step) {
-      case "intro":
-      case "connect":
-        return restored.step
-      case "account":
-      case "provision":
-        return "connect"
-      default:
-        return "welcome"
-    }
-  })
+  const [step, setStep] = useState<WizardStep>("connect")
   const [direction, setDirection] = useState<"forward" | "back">("forward")
   const hasMountedRef = useRef(false)
 
@@ -60,14 +36,6 @@ export function ConnectCloudflareWizard({
     setDirection(nextDirection)
     setStep(next)
   }, [])
-
-  useEffect(() => {
-    try {
-    localStorage.setItem(WIZARD_STATE_KEY, JSON.stringify({ step }))
-    } catch {
-      /* private-mode storage failures must never break the wizard */
-    }
-  }, [step])
 
   const oauth = useCloudflareOAuth({
     onConnected: () => {
@@ -90,6 +58,11 @@ export function ConnectCloudflareWizard({
     }
   }, [goTo, oauth.phase, step])
 
+  useEffect(() => {
+    if (connection?.connected || connection?.auth_method !== "oauth" || step !== "connect") return
+    goTo("provision", "forward")
+  }, [connection?.auth_method, connection?.connected, goTo, step])
+
   const openedAuthUrlRef = useRef<string | null>(null)
   useEffect(() => {
     if (oauth.phase !== "waiting" || !oauth.authUrl) return
@@ -110,25 +83,12 @@ export function ConnectCloudflareWizard({
         direction === "forward" ? "animate-step-enter-forward" : "animate-step-enter-back",
       )}
     >
-      {step === "welcome" && <WelcomeStep onStart={() => goTo("intro", "forward")} />}
-
-      {step === "intro" && (
-        <IntroStep
-          onBack={() => goTo("welcome", "back")}
-          onContinue={() => goTo("connect", "forward")}
-        />
-      )}
-
       {step === "connect" && (
         <ConnectStep
           oauthPhase={oauth.phase}
           oauthErrorCode={oauth.errorCode}
           oauthErrorMessage={oauth.errorMessage}
           authUrl={oauth.authUrl}
-          onBack={() => {
-            oauth.reset()
-            goTo("intro", "back")
-          }}
           onConnectWithCloudflare={() => {
             openedAuthUrlRef.current = null
             oauth.start()
@@ -152,7 +112,11 @@ export function ConnectCloudflareWizard({
         <ProvisionStep
           stepNumber={stepNumber}
           stepCount={stepCount}
-          onBack={() => goTo("connect", "back")}
+          onSignOut={() => {
+            oauth.reset()
+            onDisconnected()
+            goTo("connect", "back")
+          }}
           onProvisioned={() => {
             onProvisioned()
             goTo("done", "forward")
@@ -168,7 +132,7 @@ export function ConnectCloudflareWizard({
           onDisconnected={() => {
             oauth.reset()
             onDisconnected()
-            goTo("welcome", "back")
+            goTo("connect", "back")
           }}
         />
       )}
