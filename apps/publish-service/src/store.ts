@@ -151,9 +151,6 @@ export interface PublicationStore {
     kind: AccessAttemptKind
     at: string
   }): Promise<void>
-  /** Called on every success, so a reader who mistypes twice and then gets in leaves no
-   *  residue for the next person behind the same address — but only at the door they just
-   *  passed. */
   clearAccessFailures(input: { token: string; client: string; kind: AccessAttemptKind }): Promise<void>
 
   /** Erases the publication and all of its versions.

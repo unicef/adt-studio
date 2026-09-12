@@ -36,9 +36,7 @@ const CODE_FIELD = "code"
 
 const NEXT_FIELD = "next"
 
-/** A browser navigating to a page gets the code prompt; anything else — an image the page
- *  pulled in, `fetch` for the comments API, a script — gets the JSON envelope, because an
- *  HTML page substituted for a stylesheet is worse than an honest 401. */
+/** Return HTML only for document navigations; assets receive a JSON 401. */
 function wantsHtml(c: AccessContext): boolean {
   if (c.req.header("sec-fetch-mode") === "navigate") return true
   if (c.req.header("sec-fetch-dest") === "document") return true
@@ -46,9 +44,7 @@ function wantsHtml(c: AccessContext): boolean {
   return accept.includes("text/html")
 }
 
-/** The place to send the reader once the code is accepted, rebuilt from scratch rather than
- *  echoed: the value goes through the same zip-slip normaliser as a snapshot path and is
- *  re-prefixed with this publication's own root, so it can never become an open redirect. */
+/** Rebuild the in-publication destination to prevent open redirects. */
 function safeNext(token: string, raw: string | undefined): string {
   const root = `/p/${token}/`
   if (raw === undefined || raw.length === 0) return root
@@ -57,7 +53,6 @@ function safeNext(token: string, raw: string | undefined): string {
   return `${root}${relative}`
 }
 
-/** What `safeNext` will accept back: the request path with the `/p/<token>/` prefix removed. */
 function currentRelative(c: AccessContext, token: string): string {
   const { pathname } = new URL(c.req.url)
   const prefix = `/p/${token}`
@@ -66,29 +61,14 @@ function currentRelative(c: AccessContext, token: string): string {
   return normalizeSnapshotPath(rest) === null ? "" : rest
 }
 
-/** Vague on purpose about which limit tripped and how many tries are left: an attacker learns
- *  the shape of the limit from that, and a reviewer only needs to know to wait. */
 const TOO_MANY_ATTEMPTS_MESSAGE = "Too many attempts. Wait a moment and try again."
 
 export interface GatePageOptions {
   wrongCode?: boolean
-  /** Path inside the publication the reader was heading for, so the code prompt does not
-   *  swallow the deep link they followed. */
   next?: string | undefined
-  /** Refused for guessing too often. A different message from a wrong code, because the reader
-   *  who has simply mistyped a few times needs to know that waiting is the answer and that
-   *  nothing is broken — not to be told once more that the code is wrong. */
   waiting?: boolean
 }
 
-/**
- * The access-code page: a whole document in one response, inline-styled and script-free, so it
- * renders identically whether the reader arrived before any of the snapshot's own assets
- * loaded or after the link was locked mid-visit. Deliberately English (the M1a.5 callback-page
- * precedent — worker-served pages sit outside the Lingui catalogs); see the contract's §4.15
- * note for the localisation follow-up.
- *
- */
 function gatePage(publication: Publication, options: GatePageOptions = {}) {
   const title = publication.title
   const wrong = options.wrongCode === true
@@ -156,17 +136,6 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
 `
 }
 
-/**
- * Everything under `/p/:token/` is behind this once the publication has a code: pages, assets
- * and the comments API alike. It runs *after* the lookup ladder, so a revoked link still
- * answers `410` rather than asking for a code it would refuse anyway, and `MGMT_SECRET` walks
- * straight through — the author reads their own feedback through these routes.
- */
-/**
- * "Is this request allowed past the door?" — the gate's own condition, factored out so the
- * realtime room route (§4.16), which has to sit *ahead* of the middleware to accept its own
- * alternative credential, can ask exactly the same question rather than a similar one.
- */
 export async function accessGranted(c: AccessContext): Promise<boolean> {
   const packed = c.get("accessCodeHash")
   if (packed === null || c.get("isAuthor")) return true
@@ -231,7 +200,7 @@ async function readSubmission(c: AccessContext): Promise<AccessSubmission> {
 }
 
 export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDeps): void {
-  /** Registered before `accessGate` on purpose: the door cannot be behind the lock. */
+  /** This route must be registered before the gate it unlocks. */
   app.post("/p/:token/access", async (c) => {
     const publication = c.get("publication")
     const packed = c.get("accessCodeHash")
@@ -239,16 +208,7 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
     const { code, next } = await readSubmission(c)
     const isForm = !(c.req.header("content-type") ?? "").includes("json")
 
-    /**
-     * Checked before the comparison, for the same reason the comparison always runs: a refused
-     * attempt must cost the same as any other and reveal nothing by how long it took. The code
-     * *is* the door here — unauthenticated by construction — so 32^6 is only worth what the
-     * worker's willingness to keep answering makes it.
-     *
-     * Skipped entirely when there is no code (`packed === null`): a link with no door to force
-     * has nothing to throttle, and starting a counter for it anyway would refuse a codeless
-     * publication's own visitors for no reason once enough of them passed through.
-     */
+    /** Record attempts before comparison so every request has the same throttle path. */
     const gate =
       packed === null || secret === undefined
         ? null
@@ -268,8 +228,6 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
         : errorResponse(c, "rate_limited", 429, TOO_MANY_ATTEMPTS_MESSAGE)
     }
 
-    /** Runs even when there is nothing to verify against, so how long the answer takes never
-     *  says whether this publication has a code or whether the code was close. */
     const verified = await verifyAccessCode(code, packed)
 
     if (packed === null) {
@@ -283,8 +241,6 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
     }
 
     if (!verified) {
-      /** No explicit "record this failure" call: `attemptGate` above already wrote this
-       *  attempt's own row before it told us whether we were refused — see access-throttle.ts. */
       return isForm
         ? c.html(gatePage(publication, { wrongCode: true, next }), 401)
         : errorResponse(c, "unauthorized", 401, WRONG_CODE_MESSAGE)
@@ -304,8 +260,6 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
       },
     )
 
-    /** `c.body`, never a bare `new Response`: both cookies live in the context's prepared
-     *  headers until the response is built through it. */
     return isForm
       ? c.redirect(safeNext(publication.token, next), 303)
       : c.body(null, 204)

@@ -73,8 +73,7 @@ function pruneBefore(at: string): string {
   return new Date(Date.parse(at) - ATTEMPT_WINDOW_SECONDS * 1000).toISOString()
 }
 
-/** The dashboard list keeps the comment fields for the shared response shape. Feedback owns
- * those aggregates and will populate them when its routes are added in a later stack. */
+/** Keep comment fields at zero until feedback is added in a later stack. */
 const PUBLICATION_LIST_SQL = `
   SELECT p.token, p.title, p.book_label, p.current_version, p.created_at, p.expires_at,
          p.revoked_at, p.access_code,
