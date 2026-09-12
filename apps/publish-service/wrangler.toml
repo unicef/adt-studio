@@ -1,0 +1,16 @@
+name = "adt-publish"
+main = "src/index.ts"
+compatibility_date = "2026-07-01"
+
+[vars]
+MGMT_SECRET = "local-dev-secret"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "adt-publish"
+database_id = "local-dev"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "SNAPSHOTS"
+bucket_name = "adt-publish-snapshots"
