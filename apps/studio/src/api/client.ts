@@ -1,4 +1,6 @@
 import { isElectron } from "@/lib/utils"
+import { readEventStream } from "@/api/sse"
+import { CLOUDFLARE_ACCOUNT_ID_HEADER, CLOUDFLARE_TOKEN_HEADER } from "@adt/types"
 import type {
   AccessibilityAssessmentOutput,
   BookDetail,
@@ -24,6 +26,21 @@ import type {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
   AiModality,
+  CloudflareAuthMethod,
+  CloudflareConnectionDeleteResponse,
+  CloudflareConnectionResources,
+  CloudflareConnectionStatus,
+  CloudflareOAuthAccount,
+  CloudflareOAuthAccountResponse,
+  CloudflareOAuthErrorCode,
+  CloudflareOAuthStartResponse,
+  CloudflareOAuthStatusResponse,
+  CloudflareTokenScope,
+  CloudflareVerifyResponse,
+  ProvisionErrorCode,
+  ProvisionProgressEvent,
+  ProvisionStepId,
+  ProvisionStepStatus,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 import {
@@ -121,6 +138,52 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   return res.json()
+}
+
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number, readonly code: string | null = null) {
+    super(message)
+    this.name = "ApiError"
+  }
+}
+
+export function apiErrorCode(error: unknown): string | null {
+  return error instanceof ApiError ? error.code : null
+}
+
+async function postEventStream<TEvent>(path: string, body: Record<string, unknown>, options: {
+  headers?: Record<string, string>
+  onEvent: (event: TEvent) => void
+  signal?: AbortSignal
+}): Promise<void> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: { ...options.headers, "Content-Type": "application/json", Accept: "text/event-stream" },
+    body: JSON.stringify(body),
+    signal: options.signal,
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => "")
+    let message: string | undefined
+    let code: string | null = null
+    try {
+      const parsed = JSON.parse(text) as { error?: string; code?: string }
+      message = parsed.error
+      code = typeof parsed.code === "string" ? parsed.code : null
+    } catch { message = text || undefined }
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- HTTP response fallback.
+    throw new ApiError(message ?? `Request failed: ${res.status}`, res.status, code)
+  }
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- HTTP response fallback.
+  if (!res.body) throw new ApiError(`Request failed: ${res.status}`, res.status)
+  await readEventStream(res.body, ({ event, data }) => {
+    if (!data) return
+    try {
+      const payload = JSON.parse(data) as Record<string, unknown>
+      const type = typeof payload.type === "string" ? payload.type : event
+      options.onEvent({ ...payload, type } as TEvent)
+    } catch { /* Ignore malformed progress events. */ }
+  })
 }
 
 export interface ImportPreview {
@@ -991,6 +1054,28 @@ export function getBookFontFileUrl(label: string, fontId: string, file: string):
 }
 
 // --- Task types ---
+
+export type {
+  CloudflareAuthMethod, CloudflareConnectionDeleteResponse, CloudflareConnectionResources,
+  CloudflareConnectionStatus, CloudflareOAuthAccount, CloudflareOAuthAccountResponse,
+  CloudflareOAuthErrorCode, CloudflareOAuthStartResponse, CloudflareOAuthStatusResponse,
+  CloudflareTokenScope, CloudflareVerifyResponse, ProvisionErrorCode, ProvisionProgressEvent,
+  ProvisionStepId, ProvisionStepStatus,
+}
+
+export interface CloudflareCredentials { token: string; accountId: string }
+export interface ProvisionOptions {
+  onEvent: (event: ProvisionProgressEvent) => void
+  resumeFromStep?: number
+  signal?: AbortSignal
+}
+
+function buildCloudflareHeaders(credentials?: Partial<CloudflareCredentials>): Record<string, string> {
+  const headers: Record<string, string> = {}
+  if (credentials?.token) headers[CLOUDFLARE_TOKEN_HEADER] = credentials.token
+  if (credentials?.accountId) headers[CLOUDFLARE_ACCOUNT_ID_HEADER] = credentials.accountId
+  return headers
+}
 
 export interface TaskInfoResponse {
   taskId: string
@@ -2266,6 +2351,26 @@ export const api = {
     }
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })
+  },
+
+  startCloudflareOAuth: () => request<CloudflareOAuthStartResponse>("/cloudflare/oauth/start", { method: "POST" }),
+
+  getCloudflareOAuthStatus: (state: string) => request<CloudflareOAuthStatusResponse>(`/cloudflare/oauth/status?state=${encodeURIComponent(state)}`),
+
+  pickCloudflareOAuthAccount: (state: string, accountId: string) => request<CloudflareOAuthAccountResponse>("/cloudflare/oauth/account", {
+    method: "POST", body: JSON.stringify({ state, account_id: accountId }),
+  }),
+
+  getCloudflareConnection: (credentials?: Partial<CloudflareCredentials>) => request<CloudflareConnectionStatus>("/cloudflare/connection", { headers: buildCloudflareHeaders(credentials) }),
+
+  disconnectCloudflare: (credentials: Partial<CloudflareCredentials>, options?: { deleteResources?: boolean }) => request<CloudflareConnectionDeleteResponse>(
+    `/cloudflare/connection${options?.deleteResources ? "?delete_resources=1" : ""}`, { method: "DELETE", headers: buildCloudflareHeaders(credentials) },
+  ),
+
+  provisionCloudflare: async (credentials: Partial<CloudflareCredentials>, options: ProvisionOptions): Promise<void> => {
+    await postEventStream<ProvisionProgressEvent>("/cloudflare/provision", options.resumeFromStep ? { resume_from_step: options.resumeFromStep } : {}, {
+      headers: buildCloudflareHeaders(credentials), onEvent: options.onEvent, signal: options.signal,
+    })
   },
 
   exportPnld: async (label: string): Promise<Blob | null> => {
