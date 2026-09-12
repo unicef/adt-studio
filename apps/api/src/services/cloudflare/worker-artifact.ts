@@ -24,7 +24,7 @@ export const WorkerArtifactMetadata = z.object({
   migrations: z.object({
     new_tag: z.string().min(1),
     new_sqlite_classes: z.array(z.string().min(1)),
-  }),
+  }).optional(),
   d1_migrations: z.array(z.string().min(1)).default([]),
 })
 export type WorkerArtifactMetadata = z.infer<typeof WorkerArtifactMetadata>
