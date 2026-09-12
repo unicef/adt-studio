@@ -2,12 +2,12 @@ import type { AccessAttemptKind, PublicationStore } from "./store.js"
 
 /**
  * Brute-force limits for the two doors that verify a short, human-typed secret: the access
- * code on `POST /p/:token/access` and the reviewer PIN on `POST /p/:token/session/claim`.
+ * code on `POST /p/:token/access`.
  *
  * Both are unauthenticated by construction — the code *is* the door — so their strength is
  * not the keyspace but how long the worker is willing to keep answering. A six-character
  * code is 32^6 ≈ 10^9, which is ample against a throttled attacker and nothing at all
- * against an unthrottled one. A four-digit reviewer PIN is 10^4 and needs this far more.
+ * against an unthrottled one.
  */
 
 /** How far back failures are counted. */

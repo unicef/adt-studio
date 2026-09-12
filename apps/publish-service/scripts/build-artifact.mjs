@@ -63,7 +63,7 @@ const metadata = {
     {
       type: "d1",
       name: "DB",
-      description: "Publications, versions, commenter sessions and comments",
+      description: "Publications, immutable versions, and access-controlled snapshots",
     },
     {
       type: "r2_bucket",

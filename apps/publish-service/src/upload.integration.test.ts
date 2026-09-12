@@ -49,8 +49,6 @@ beforeEach(async () => {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM publication_upload_files"),
     env.DB.prepare("DELETE FROM publication_uploads"),
-    env.DB.prepare("DELETE FROM comments"),
-    env.DB.prepare("DELETE FROM sessions"),
     env.DB.prepare("DELETE FROM versions"),
     env.DB.prepare("DELETE FROM publications"),
   ])

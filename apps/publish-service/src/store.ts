@@ -1,13 +1,9 @@
 import type {
-  CommentAnchor,
-  CommenterSession,
   Publication,
   PublicationPageEntry,
-  PublicationReader,
   PublicationUploadStartRequest,
   PublicationUploadStatus,
   PublicationVersion,
-  PublishComment,
 } from "@adt/types"
 
 export interface CreatePublicationInput {
@@ -108,13 +104,6 @@ export type CommitPublicationUploadResult =
 
 export type AccessAttemptKind = "access"
 
-export interface StoredCommenterSession extends CommenterSession { token: string; pin: string | null }
-export class PinnedNameConflictError extends Error { constructor(public readonly pinnedName: string) { super(`Pinned name "${pinnedName}" is already claimed on this publication`); this.name = "PinnedNameConflictError" } }
-export interface CreateSessionInput { id: string; token: string; name: string; color: string; isAuthor: boolean; createdAt: string; pin?: string | null }
-export interface CommentListFilter { token: string; pageSectionId?: string }
-export interface CreateCommentInput { id: string; token: string; version: number; pageSectionId: string; parentId: string | null; sessionId: string; body: string; anchor: CommentAnchor | null; createdAt: string }
-export interface UpdateCommentInput { token: string; id: string; body?: string; anchor?: CommentAnchor | null; editedAt?: string }
-
 export interface PublicationStore {
   startUpload(input: StartPublicationUploadInput): Promise<StartPublicationUploadResult>
   findUpload(uploadId: string): Promise<StoredPublicationUpload | null>
@@ -147,8 +136,7 @@ export interface PublicationStore {
   /** Counts recent failures at one door, for one caller and for the publication as a whole.
    *  Both numbers are needed: the per-caller one does the enforcing, and the per-token one is
    *  the backstop against a distributed guess. Scoped to `kind` throughout — the access code and
-   *  the reviewer PIN are different secrets of very different strength, and a reader who fumbles
-   *  one must not be throttled out of the other. */
+   *  the access code is the only secret tracked by this worker. */
   countAccessFailures(input: {
     token: string
     client: string
@@ -165,8 +153,7 @@ export interface PublicationStore {
   }): Promise<void>
   /** Called on every success, so a reader who mistypes twice and then gets in leaves no
    *  residue for the next person behind the same address — but only at the door they just
-   *  passed: a correct access code must not clear a reviewer PIN counter it has nothing to do
-   *  with, and vice versa. */
+   *  passed. */
   clearAccessFailures(input: { token: string; client: string; kind: AccessAttemptKind }): Promise<void>
 
   /** Erases the publication and all of its versions.
@@ -179,20 +166,5 @@ export interface PublicationStore {
    *  cookie stops verifying, because the cookie's tag is keyed over the value replaced here. */
   setAccessCode(token: string, accessCode: string | null): Promise<Publication | null>
 
-  createSession(input: CreateSessionInput): Promise<CommenterSession>
-  ensureAuthorSession(input: CreateSessionInput): Promise<CommenterSession>
-  findAuthorSession(token: string): Promise<CommenterSession | null>
-  findSession(id: string): Promise<StoredCommenterSession | null>
-  listCommenterSessions(token: string): Promise<StoredCommenterSession[]>
-  listReaders(token: string): Promise<PublicationReader[]>
-  renameSession(id: string, name: string): Promise<CommenterSession | null>
-  setSessionPin(id: string, pin: string): Promise<CommenterSession | null>
-  countCommenterSessions(token: string): Promise<number>
-  createComment(input: CreateCommentInput): Promise<PublishComment>
-  findComment(token: string, id: string): Promise<PublishComment | null>
-  listComments(filter: CommentListFilter): Promise<PublishComment[]>
-  updateComment(input: UpdateCommentInput): Promise<PublishComment | null>
-  softDeleteComment(token: string, id: string, deletedAt: string): Promise<PublishComment | null>
-  setCommentResolved(token: string, id: string, resolvedAt: string | null): Promise<PublishComment | null>
 
 }

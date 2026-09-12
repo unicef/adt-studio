@@ -4,8 +4,6 @@ import { createD1PublicationStore } from "../src/d1-store.js"
 /** Fresh bindings for route tests, using the same D1/R2 implementation as the Worker. */
 export async function resetBindings(): Promise<void> {
   await env.DB.batch([
-    env.DB.prepare("DELETE FROM comments"),
-    env.DB.prepare("DELETE FROM sessions"),
     env.DB.prepare("DELETE FROM publication_upload_files"),
     env.DB.prepare("DELETE FROM publication_uploads"),
     env.DB.prepare("DELETE FROM versions"),
