@@ -106,67 +106,14 @@ export type CommitPublicationUploadResult =
   | { ok: true; committed: CommittedPublicationUpload }
   | { ok: false; reason: "not_found" | "aborted" | "incomplete" | "conflict" }
 
-export interface StoredCommenterSession extends CommenterSession {
-  token: string
-  /** `pbkdf2-sha256$<iterations>$<salt>$<hash>`, or `null` for the pinless sessions every
-   *  reviewer had before M2.5 — those keep working, they just cannot be reclaimed. */
-  pin: string | null
-}
+export type AccessAttemptKind = "access"
 
-/** The two doors that guess a short, human-typed secret and share the `access_attempts` table —
- *  see access-throttle.ts. Kept apart so a correct answer at one door cannot excuse, or be
- *  excused by, failures counted at the other. */
-export type AccessAttemptKind = "access" | "pin"
-
-/** Thrown by a store's session-writing methods when the write would create a second pinned
- *  session sharing a (token, normalized name) — the unique index's way of catching what
- *  `pinnedHolderOf`'s read-then-write check in sessions.ts cannot close by itself: two requests
- *  racing the same name and PIN can both pass that read before either has written. `pinnedName`
- *  is the name that collided, for the caller to build the same "already taken" response the
- *  read-based check produces. Named apart from `Error#name` on purpose — that stays the class
- *  name for stack traces. */
-export class PinnedNameConflictError extends Error {
-  constructor(public readonly pinnedName: string) {
-    super(`Pinned name "${pinnedName}" is already claimed on this publication`)
-    this.name = "PinnedNameConflictError"
-  }
-}
-
-export interface CreateSessionInput {
-  id: string
-  token: string
-  name: string
-  color: string
-  isAuthor: boolean
-  createdAt: string
-  pin?: string | null
-}
-
-export interface CommentListFilter {
-  token: string
-  pageSectionId?: string
-}
-
-export interface CreateCommentInput {
-  id: string
-  token: string
-  version: number
-  pageSectionId: string
-  parentId: string | null
-  sessionId: string
-  body: string
-  anchor: CommentAnchor | null
-  createdAt: string
-}
-
-export interface UpdateCommentInput {
-  token: string
-  id: string
-  body?: string
-  anchor?: CommentAnchor | null
-  /** Absent for anchor-only updates: moving a pin is not an edit. */
-  editedAt?: string
-}
+export interface StoredCommenterSession extends CommenterSession { token: string; pin: string | null }
+export class PinnedNameConflictError extends Error { constructor(public readonly pinnedName: string) { super(`Pinned name "${pinnedName}" is already claimed on this publication`); this.name = "PinnedNameConflictError" } }
+export interface CreateSessionInput { id: string; token: string; name: string; color: string; isAuthor: boolean; createdAt: string; pin?: string | null }
+export interface CommentListFilter { token: string; pageSectionId?: string }
+export interface CreateCommentInput { id: string; token: string; version: number; pageSectionId: string; parentId: string | null; sessionId: string; body: string; anchor: CommentAnchor | null; createdAt: string }
+export interface UpdateCommentInput { token: string; id: string; body?: string; anchor?: CommentAnchor | null; editedAt?: string }
 
 export interface PublicationStore {
   startUpload(input: StartPublicationUploadInput): Promise<StartPublicationUploadResult>
@@ -222,7 +169,7 @@ export interface PublicationStore {
    *  with, and vice versa. */
   clearAccessFailures(input: { token: string; client: string; kind: AccessAttemptKind }): Promise<void>
 
-  /** Erases the publication and everything hanging off it — versions, sessions, comments.
+  /** Erases the publication and all of its versions.
    *  Unlike `revoke`, there is nothing to resume afterwards: the token stops resolving and
    *  the reviewers' names and threads go with it. Returns the row as it was, so the caller
    *  can report what it removed, or `null` when the token was already gone. */
@@ -233,29 +180,19 @@ export interface PublicationStore {
   setAccessCode(token: string, accessCode: string | null): Promise<Publication | null>
 
   createSession(input: CreateSessionInput): Promise<CommenterSession>
-  /** Find-or-create for the single `is_author = 1` session of a publication. */
   ensureAuthorSession(input: CreateSessionInput): Promise<CommenterSession>
   findAuthorSession(token: string): Promise<CommenterSession | null>
   findSession(id: string): Promise<StoredCommenterSession | null>
-  /** Every commenter (`is_author = 0`) row of a publication, so name matching can run on the
-   *  Unicode-aware key `nameKey()` builds instead of SQLite's ASCII-only `lower()`. */
   listCommenterSessions(token: string): Promise<StoredCommenterSession[]>
-  /** The same rows as `listCommenterSessions`, joined to what each one wrote, for the author's
-   *  reader list. Separate because it costs a join the name-matching path has no use for. */
   listReaders(token: string): Promise<PublicationReader[]>
   renameSession(id: string, name: string): Promise<CommenterSession | null>
   setSessionPin(id: string, pin: string): Promise<CommenterSession | null>
   countCommenterSessions(token: string): Promise<number>
-
   createComment(input: CreateCommentInput): Promise<PublishComment>
-  /** Returns soft-deleted rows too — visibility is a route concern, not a storage one. */
   findComment(token: string, id: string): Promise<PublishComment | null>
   listComments(filter: CommentListFilter): Promise<PublishComment[]>
   updateComment(input: UpdateCommentInput): Promise<PublishComment | null>
   softDeleteComment(token: string, id: string, deletedAt: string): Promise<PublishComment | null>
-  setCommentResolved(
-    token: string,
-    id: string,
-    resolvedAt: string | null,
-  ): Promise<PublishComment | null>
+  setCommentResolved(token: string, id: string, resolvedAt: string | null): Promise<PublishComment | null>
+
 }

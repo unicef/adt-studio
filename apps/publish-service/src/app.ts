@@ -8,12 +8,10 @@ import {
   type Publication,
   type PublicationDetail,
   type PublicationList,
-  type PublicationReaderList,
   type PublicationResponse,
   type PublishWorkerHealth,
 } from "@adt/types"
 import { accessGate, registerAccessRoute } from "./access.js"
-import { registerCommentRoutes } from "./comments.js"
 import { createD1PublicationStore } from "./d1-store.js"
 import type { Env } from "./env.js"
 import { errorResponse } from "./errors.js"
@@ -284,24 +282,6 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     return c.json(body)
   })
 
-  /** Who has been through this publication's door — see `PublicationReader` for why that is a
-   *  shorter list than "who opened the link". Behind `mgmtAuth` like everything under `/api`:
-   *  reviewers can see each other's names on the comments they wrote, never the roster. */
-  app.get("/api/publications/:token/readers", async (c) => {
-    const token = PublicationToken.safeParse(c.req.param("token"))
-    if (!token.success) {
-      return errorResponse(c, "invalid_request", 400, token.error.message)
-    }
-
-    const store = resolveStore(c.env)
-    if (!(await store.findByToken(token.data))) {
-      return errorResponse(c, "not_found", 404)
-    }
-
-    const body: PublicationReaderList = { readers: await store.listReaders(token.data) }
-    return c.json(body)
-  })
-
   const serveSnapshot = async (c: Context<AppEnv>): Promise<Response> => {
     const publication = c.get("publication")
     const requested = snapshotPathFromUrl(c.req.url, publication.token)
@@ -344,27 +324,21 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
   app.use("/p/:token", requirePublication)
   app.use("/p/:token/*", requirePublication)
 
-  /** Order is load-bearing three times over. The lookup ladder runs first, so an unknown token
+  /** The lookup ladder runs first, so an unknown token
    *  is still `404` and a revoked one still `410` — the gate only ever guards requests that
    *  would otherwise be served. `POST /access` is registered *before* the gate, because a
    *  handler that answers without calling `next()` ends the chain: the code prompt's own form
-   *  target cannot sit behind the prompt. Everything after the gate — comments included — is
-   *  reachable only with a valid grant or `MGMT_SECRET`.
-   *
-   *  The door shares the comment routes' deps because it now mints commenter sessions too: the
-   *  gate collects the visitor's name, so both cookies are set on the one response. */
-  const sessionDeps = {
+   *  target cannot sit behind the prompt. Everything after the gate is reachable only with a
+   *  valid grant or `MGMT_SECRET`. */
+  const accessDeps = {
     resolveStore,
     timestamp,
-    newId: options.newId ?? (() => randomId()),
   }
 
-  registerAccessRoute(app, sessionDeps)
+  registerAccessRoute(app, accessDeps)
 
   app.use("/p/:token", accessGate)
   app.use("/p/:token/*", accessGate)
-
-  registerCommentRoutes(app, sessionDeps)
 
   app.get("/p/:token", serveSnapshot)
   app.get("/p/:token/*", serveSnapshot)
