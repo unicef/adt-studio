@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   PUBLISH_WORKER_VERSION,
   Publication,
-  PublicationCreateRequest,
+  PublicationUploadStartRequest,
   PublicationToken,
   PublicationVersion,
   publicationStateAt,
@@ -83,40 +83,43 @@ describe("publication schemas", () => {
     ).toBe("revoked")
   })
 
-  it("validates the publish request metadata envelope", () => {
-    const parsed = PublicationCreateRequest.parse({
+  it("validates staged upload metadata", () => {
+    const parsed = PublicationUploadStartRequest.parse({
+      kind: "create",
       token,
       title: "Raven and the Sun",
       book_label: "raven",
       page_manifest: [{ section_id: "sec-1", href: "content/pages/page-1.html" }],
-      snapshot_bytes: 2048,
+      files: [{ path: "content/pages/page-1.html", bytes: 2048, sha256: "a".repeat(64) }],
     })
     expect(parsed.expires_at).toBeUndefined()
 
     expect(
-      PublicationCreateRequest.safeParse({
+      PublicationUploadStartRequest.safeParse({
+        kind: "create",
         token,
         title: "",
         book_label: "raven",
         page_manifest: [],
-        snapshot_bytes: 2048,
+        files: [],
       }).success,
     ).toBe(false)
   })
 
-  it("insists the request says what the uploaded files came to", () => {
+  it("requires a non-empty file manifest", () => {
     const base = {
+      kind: "create" as const,
       token,
       title: "Raven and the Sun",
       book_label: "raven",
       page_manifest: [{ section_id: "sec-1", href: "content/pages/page-1.html" }],
+      files: [{ path: "content/pages/page-1.html", bytes: 0, sha256: "a".repeat(64) }],
     }
-    /** Files are streamed one request each before the version is named, so this is the only
-     *  account of the snapshot's size the worker ever gets — and zero would name a version
-     *  with nothing behind it. */
-    expect(PublicationCreateRequest.safeParse(base).success).toBe(false)
-    expect(PublicationCreateRequest.safeParse({ ...base, snapshot_bytes: 0 }).success).toBe(false)
-    expect(PublicationCreateRequest.safeParse({ ...base, snapshot_bytes: 1 }).success).toBe(true)
+    expect(PublicationUploadStartRequest.safeParse(base).success).toBe(false)
+    expect(PublicationUploadStartRequest.safeParse({
+      ...base,
+      files: [{ ...base.files[0], bytes: 1 }],
+    }).success).toBe(true)
   })
 })
 
