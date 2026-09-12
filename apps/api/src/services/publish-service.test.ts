@@ -1,0 +1,255 @@
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { openBookDb } from "@adt/storage"
+import type { PublishProgressEvent } from "@adt/types"
+import type { CloudflareConnectionRecord } from "./cloudflare/connection-store.js"
+import { createFakePublishWorker, type FakePublishWorker } from "./fake-publish-worker.js"
+import {
+  isPublishStepError,
+  publishBook,
+  readPublicationRecord,
+  republishBook,
+} from "./publish-service.js"
+import { createPublishWorkerClient } from "./publish-worker-client.js"
+
+const LABEL = "raven"
+const TOKEN = "TokenRavenTokenRavenTokenRaven12"
+const NOW = "2026-08-03T12:00:00.000Z"
+
+let tmpDir: string
+
+beforeEach(() => {
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-publish-service-"))
+  createBook(LABEL, "Raven")
+})
+
+afterEach(() => {
+  fs.rmSync(tmpDir, { recursive: true, force: true })
+})
+
+const CONFIG = { features: { glossary: true }, title: "Raven" }
+
+function createBook(label: string, title: string): void {
+  const bookDir = path.join(tmpDir, label)
+  fs.mkdirSync(path.join(bookDir, "adt", "content"), { recursive: true })
+  fs.mkdirSync(path.join(bookDir, "adt", "assets"), { recursive: true })
+
+  const db = openBookDb(path.join(bookDir, `${label}.db`))
+  db.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)", [
+    "metadata",
+    "book",
+    1,
+    JSON.stringify({ title, authors: ["Author"], language_code: "en" }),
+  ])
+  db.close()
+
+  writeAdt(label)
+}
+
+function writeAdt(label: string): void {
+  const adtDir = path.join(tmpDir, label, "adt")
+  fs.writeFileSync(path.join(adtDir, "index.html"), "<!doctype html><title>Raven</title>")
+  fs.writeFileSync(
+    path.join(adtDir, "content", "pages.json"),
+    JSON.stringify([{ section_id: "pg001_sec001", href: "index.html", page_number: 1 }]),
+  )
+  fs.writeFileSync(
+    path.join(adtDir, "assets", "config.json"),
+    `${JSON.stringify(CONFIG, null, 2)}\n`,
+  )
+  fs.writeFileSync(
+    path.join(adtDir, "assets", "offline-preloader.js"),
+    `const files = {"./assets/config.json":${JSON.stringify(CONFIG)}};\n`,
+  )
+}
+
+function connection(worker: FakePublishWorker): CloudflareConnectionRecord {
+  return {
+    account_id: "acct",
+    account_name: "Account",
+    worker_name: "adt-publish",
+    worker_url: worker.baseUrl,
+    worker_version: "0.13.0",
+    worker_migration_tag: null,
+    workers_dev_subdomain: "example",
+    d1_database_name: "adt-publish",
+    d1_database_uuid: "uuid",
+    r2_bucket_name: "adt-publish",
+    mgmt_secret: "fake-mgmt-secret",
+    provisioned_at: NOW,
+    updated_at: NOW,
+  }
+}
+
+function harness() {
+  const worker = createFakePublishWorker({ now: NOW })
+  const events: PublishProgressEvent[] = []
+  const options = {
+    label: LABEL,
+    booksDir: tmpDir,
+    webAssetsDir: path.join(tmpDir, "assets-web"),
+    connection: connection(worker),
+    emit: async (event: PublishProgressEvent) => {
+      events.push(event)
+    },
+    prepareExportFn: (async () => ({})) as never,
+    generateToken: () => TOKEN,
+    sleep: async () => {},
+    createClient: () =>
+      createPublishWorkerClient({
+        workerUrl: worker.baseUrl,
+        mgmtSecret: "fake-mgmt-secret",
+        fetchFn: worker.fetchFn,
+      }),
+  }
+  return { worker, events, options }
+}
+
+function uploadedFiles(worker: FakePublishWorker, version: number) {
+  return worker.state.versions.get(TOKEN)?.find((entry) => entry.version === version)?.files ?? []
+}
+
+describe("publishing a book", () => {
+  it("uploads the snapshot, registers it, and records the link", async () => {
+    const { worker, events, options } = harness()
+
+    const result = await publishBook(options)
+
+    expect(result.publication.token).toBe(TOKEN)
+    expect(result.version.version).toBe(1)
+    expect(result.url).toBe(worker.shareUrl(TOKEN))
+
+    const paths = uploadedFiles(worker, 1).map((file) => file.path)
+    expect(paths).toContain("index.html")
+    expect(paths).toContain("assets/config.json")
+    expect(paths).toContain("content/pages.json")
+    const config = uploadedFiles(worker, 1).find((file) => file.path === "assets/config.json")
+    expect(JSON.parse(config!.text)).toEqual(CONFIG)
+
+    const record = readPublicationRecord(LABEL, tmpDir)
+    expect(record?.token).toBe(TOKEN)
+    expect(record?.base_url).toBe(worker.shareUrl(TOKEN))
+    expect(record?.versions).toHaveLength(1)
+    expect(record?.versions[0]?.page_count).toBe(1)
+
+    expect(events.at(-1)).toMatchObject({ type: "complete" })
+  })
+
+  it("reports every step in order and finishes each one", async () => {
+    const { events, options } = harness()
+    await publishBook(options)
+
+    const done = events
+      .filter((event) => event.type === "step" && event.status === "done")
+      .map((event) => (event as { id: string }).id)
+
+    expect(done).toEqual(["export", "package", "upload", "register"])
+  })
+
+  it("carries the access code and expiry into the publication", async () => {
+    const { worker, options } = harness()
+
+    const result = await publishBook({
+      ...options,
+      accessCode: "RAVEN7",
+      expiresAt: "2027-01-01T00:00:00.000Z",
+    })
+
+    expect(result.publication.expires_at).toBe("2027-01-01T00:00:00.000Z")
+    expect(worker.state.accessCodes.get(TOKEN)).toBe("RAVEN7")
+    expect(readPublicationRecord(LABEL, tmpDir)?.access_code).toBe("RAVEN7")
+  })
+})
+
+describe("updating a published book", () => {
+  it("adds a version and keeps the original share link", async () => {
+    const { worker, options } = harness()
+    const first = await publishBook(options)
+
+    fs.writeFileSync(
+      path.join(tmpDir, LABEL, "adt", "index.html"),
+      "<!doctype html><title>Raven, revised</title>",
+    )
+
+    const second = await republishBook({ ...options, record: first.record })
+
+    expect(second.version.version).toBe(2)
+    expect(second.url).toBe(first.url)
+    expect(second.record.versions.map((version) => version.version)).toEqual([1, 2])
+
+    const served = uploadedFiles(worker, 2).find((file) => file.path === "index.html")
+    expect(served?.text).toContain("revised")
+  })
+
+  it("repeats the feature selection the first publish was made with", async () => {
+    const { options } = harness()
+    const first = await publishBook({ ...options, features: { readAloud: false } })
+    expect(first.record.features).toEqual({ readAloud: false })
+
+    const seen: unknown[] = []
+    await republishBook({
+      ...options,
+      record: first.record,
+      prepareExportFn: (async (
+        _label: string,
+        _format: string,
+        _booksDir: string,
+        _assets: string,
+        _config: string | undefined,
+        features: unknown,
+      ) => {
+        seen.push(features)
+        return {}
+      }) as never,
+    })
+
+    expect(seen).toEqual([{ readAloud: false }])
+  })
+})
+
+describe("when the upload goes wrong", () => {
+  it("abandons the staged upload rather than leaving it open", async () => {
+    const { worker, options } = harness()
+    const client = createPublishWorkerClient({
+      workerUrl: worker.baseUrl,
+      mgmtSecret: "fake-mgmt-secret",
+      fetchFn: worker.fetchFn,
+    })
+
+    const error = await publishBook({
+      ...options,
+      createClient: () => ({
+        ...client,
+        commitUpload: () => Promise.reject(new Error("commit exploded")),
+      }),
+    }).catch((caught: unknown) => caught)
+
+    expect(isPublishStepError(error)).toBe(true)
+    expect([...worker.state.uploads.values()].map((upload) => upload.state)).toEqual(["aborted"])
+    expect(worker.state.publications.has(TOKEN)).toBe(false)
+  })
+
+  it("fails the export step when the export itself fails", async () => {
+    const { options } = harness()
+
+    const error = await publishBook({
+      ...options,
+      prepareExportFn: (() => Promise.reject(new Error("no pipeline output"))) as never,
+    }).catch((caught: unknown) => caught)
+
+    expect(isPublishStepError(error)).toBe(true)
+    expect((error as { code: string }).code).toBe("export_failed")
+    expect((error as { stepId: string | null }).stepId).toBe("export")
+  })
+
+  it("fails the package step when the export produced no page manifest", async () => {
+    const { options } = harness()
+    fs.rmSync(path.join(tmpDir, LABEL, "adt", "content", "pages.json"))
+
+    const error = await publishBook(options).catch((caught: unknown) => caught)
+
+    expect((error as { code: string }).code).toBe("package_failed")
+  })
+})
