@@ -183,6 +183,16 @@ describe("Page routes", () => {
       expect(typeof body.imageBase64).toBe("string")
     })
 
+    it("serves the raw image when requested", async () => {
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/image?raw=1`
+      )
+
+      expect(res.status).toBe(200)
+      expect(res.headers.get("content-type")).toBe("image/png")
+      expect((await res.arrayBuffer()).byteLength).toBeGreaterThan(0)
+    })
+
     it("returns 404 for nonexistent page image", async () => {
       const res = await app.request(
         `/api/books/${label}/pages/fake-page/image`

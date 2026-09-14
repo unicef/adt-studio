@@ -4,6 +4,7 @@ import {
   PublicationDeleteResult,
   PublicationReaderList,
   PublicationResponse,
+  PublicationRoomTicketResponse,
   PublicationUploadAbortResponse,
   PublicationUploadCommitResponse,
   PublicationUploadFileResponse,
@@ -66,6 +67,7 @@ export interface PublishWorkerClient {
   listPublications(): Promise<PublicationList>
   deletePublication(token: string): Promise<PublicationDeleteResult>
   listReaders(token: string): Promise<PublicationReaderList>
+  roomTicket(token: string): Promise<PublicationRoomTicketResponse>
   listComments(
     token: string,
     query?: PublishCommentListQuery,
@@ -380,6 +382,14 @@ export function createPublishWorkerClient({
         `/api/publications/${encodeURIComponent(token)}/readers`,
         { method: "GET" },
         PublicationReaderList,
+      )
+    },
+
+    roomTicket(token) {
+      return request(
+        `/api/publications/${encodeURIComponent(token)}/room-ticket`,
+        { method: "POST" },
+        PublicationRoomTicketResponse,
       )
     },
 
