@@ -225,6 +225,25 @@ describe("staged upload requests", () => {
 })
 
 describe("feedback requests", () => {
+  it("requests an author room ticket with management authorization", async () => {
+    const fetchFn = vi.fn(async (url: string, init: RequestInit) => {
+      expect(url).toBe(
+        `${WORKER_URL}/api/publications/${PUBLICATION.token}/room-ticket`,
+      )
+      expect(init.method).toBe("POST")
+      expect((init.headers as Record<string, string>).Authorization).toBe("Bearer secret")
+      return ok({
+        ticket: "v1.1893456000.nonce.tag",
+        ws_url: `${WORKER_URL}/p/${PUBLICATION.token}/room`,
+        expires_at: "2029-12-31T00:00:00.000Z",
+      })
+    })
+
+    const ticket = await client(fetchFn).roomTicket(PUBLICATION.token)
+
+    expect(ticket.ws_url).toBe(`${WORKER_URL}/p/${PUBLICATION.token}/room`)
+  })
+
   it("uses the management authorization only on server-side feedback calls", async () => {
     const fetchFn = vi.fn(async (url: string, init: RequestInit) => {
       expect((init.headers as Record<string, string>).Authorization).toBe("Bearer secret")

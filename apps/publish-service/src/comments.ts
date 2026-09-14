@@ -21,6 +21,7 @@ import { errorResponse } from "./errors.js"
 import { exceedsLength, readJsonBody } from "./http.js"
 import { authorSessionMarker, normalizeDisplayName, verifyPin } from "./identity.js"
 import type { PublicationVariables } from "./middleware/publication-lookup.js"
+import { notifyRoom } from "./room-notify.js"
 import {
   commenterFromCookie,
   issueSessionCookie,
@@ -299,6 +300,8 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
       createdAt: deps.timestamp(),
     })
 
+    notifyRoom(c, publication.token, "comment-created", comment)
+
     const response: PublishCommentResponse = { comment }
     return c.json(response, 201)
   })
@@ -355,6 +358,8 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
       return errorResponse(c, "not_found", 404)
     }
 
+    notifyRoom(c, publication.token, "comment-updated", updated)
+
     const response: PublishCommentResponse = { comment: updated }
     return c.json(response)
   })
@@ -391,6 +396,8 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
     if (!deleted) {
       return errorResponse(c, "not_found", 404)
     }
+
+    notifyRoom(c, publication.token, "comment-deleted", deleted)
 
     const response: PublishCommentResponse = { comment: deleted }
     return c.json(response)
@@ -434,6 +441,8 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
     if (!resolved) {
       return errorResponse(c, "not_found", 404)
     }
+
+    notifyRoom(c, publication.token, "comment-resolved", resolved)
 
     const response: PublishCommentResponse = { comment: resolved }
     return c.json(response)
