@@ -311,13 +311,16 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
                   </button>
                 </th>
                 <th
-                  className="text-left px-3 py-2 font-medium text-muted-foreground w-16 text-center"
+                  className="text-left px-3 py-2 font-medium text-muted-foreground w-20 text-center"
                   title={t`Position in the book, which differs from the source PDF page once pages are reordered`}
                 >
-                  <Trans>Book pg</Trans>
+                  <Trans>Book page</Trans>
                 </th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground w-24">
-                  <Trans>Page</Trans>
+                <th
+                  className="text-left px-3 py-2 font-medium text-muted-foreground w-20 text-center"
+                  title={t`Page number in the source PDF, which never changes when pages are reordered`}
+                >
+                  <Trans>PDF page</Trans>
                 </th>
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground w-40">
                   <Trans>Section</Trans>
@@ -798,9 +801,19 @@ function SectionRow({
             {bookPosition ?? "–"}
           </span>
         </td>
-        <td className="px-3 py-2">
-          <span className="font-mono text-muted-foreground">
-            {page.pageId}
+        {/* Provenance, not position: the number the reader sees on the page in
+            the source PDF. The page's id is still on every row, in the section
+            id beside this. */}
+        <td className="px-3 py-2 text-center">
+          <span
+            className="text-muted-foreground tabular-nums"
+            title={
+              section.pageNumber != null
+                ? t`From page ${String(section.pageNumber)} of the source PDF`
+                : t`This section's source page is unknown`
+            }
+          >
+            {section.pageNumber ?? "–"}
           </span>
         </td>
         <td className="px-3 py-2">
