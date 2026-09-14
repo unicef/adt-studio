@@ -114,6 +114,14 @@ describe("GET /api/books/:label/reading-order", () => {
     expect(body.reconciled).toBe(false)
   })
 
+  it("404s on an unknown book instead of creating one", async () => {
+    // `createBookStorage` mkdirs unconditionally, so an unguarded route turns a
+    // typo into a real empty book directory and a 200 describing nothing.
+    const res = await app.request("/api/books/no-such-book/reading-order")
+    expect(res.status).toBe(404)
+    expect(fs.existsSync(path.join(tmpDir, "no-such-book"))).toBe(false)
+  })
+
   it("returns a saved order, and reports when the book has changed under it", async () => {
     const reordered = [ALL_IDS[3], ALL_IDS[0], ALL_IDS[1], ALL_IDS[2]]
     expect((await put({ items: items(reordered) })).status).toBe(200)
@@ -155,6 +163,16 @@ describe("PUT /api/books/:label/reading-order", () => {
     const res = await put({ items: items(ALL_IDS.slice(0, 3)) })
     expect(res.status).toBe(400)
     expect(await res.text()).toContain("missing")
+  })
+
+  it("404s on an unknown book instead of creating one", async () => {
+    const res = await app.request("/api/books/no-such-book/reading-order", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: items(ALL_IDS) }),
+    })
+    expect(res.status).toBe(404)
+    expect(fs.existsSync(path.join(tmpDir, "no-such-book"))).toBe(false)
   })
 
   it("rejects an order containing an unknown id", async () => {

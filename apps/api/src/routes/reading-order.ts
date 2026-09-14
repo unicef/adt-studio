@@ -1,3 +1,5 @@
+import fs from "node:fs"
+import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
@@ -17,6 +19,19 @@ function safeParseLabel(label: string): string {
     throw new HTTPException(400, {
       message: err instanceof Error ? err.message : String(err),
     })
+  }
+}
+
+/**
+ * `createBookStorage` mkdirs unconditionally, so calling it straight from a
+ * request parameter turns a typo'd label into a real (empty) book directory and
+ * a 200 describing a book that does not exist. Check first, the way the package
+ * and preview routes do.
+ */
+function assertBookExists(safeLabel: string, booksDir: string): void {
+  const bookDir = path.join(path.resolve(booksDir), safeLabel)
+  if (!fs.existsSync(path.join(bookDir, `${safeLabel}.db`))) {
+    throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
   }
 }
 
@@ -43,6 +58,7 @@ export function createReadingOrderRoutes(booksDir: string): Hono {
   // order (if any) no longer lines up with.
   app.get("/books/:label/reading-order", (c) => {
     const safeLabel = safeParseLabel(c.req.param("label"))
+    assertBookExists(safeLabel, booksDir)
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       const resolved = resolveReadingOrder(storage)
@@ -74,6 +90,7 @@ export function createReadingOrderRoutes(booksDir: string): Hono {
   // PUT /books/:label/reading-order — save an explicit order.
   app.put("/books/:label/reading-order", async (c) => {
     const safeLabel = safeParseLabel(c.req.param("label"))
+    assertBookExists(safeLabel, booksDir)
 
     const Body = z.object({
       items: z.array(ReadingOrderItem),
@@ -96,50 +113,60 @@ export function createReadingOrderRoutes(booksDir: string): Hono {
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      assertNoActivePipelineRun(storage)
+      // Validate and write inside one transaction. Within a single API process
+      // the block below is synchronous, so requests cannot interleave — but the
+      // save is two writes (the new version, then the dependents it
+      // invalidates), and a failure between them would leave a reordered book
+      // still pointing at a bundle built for the old sequence. It also makes
+      // the `expectedVersion` check binding against another process holding the
+      // same book open, where "read then write" genuinely can interleave.
+      const version = storage.transaction(() => {
+        assertNoActivePipelineRun(storage)
 
-      const resolved = resolveReadingOrder(storage)
-      if (
-        parsed.data.expectedVersion !== undefined &&
-        parsed.data.expectedVersion !== resolved.storedVersion
-      ) {
-        throw new HTTPException(409, {
-          message: `The reading order changed since you loaded it (expected version ${String(parsed.data.expectedVersion)}, found ${String(resolved.storedVersion)}). Reload and try again.`,
-        })
-      }
-
-      // The body must be a permutation of what the book currently holds.
-      // Reordering may not add or remove pages — that is what the structural
-      // operations and pruning are for — so a mismatch is rejected rather than
-      // silently dropping or resurrecting items.
-      const expected = new Set(resolved.order.map((item) => item.id))
-      const received = new Set<string>()
-      for (const item of parsed.data.items) {
-        if (received.has(item.id)) {
-          throw new HTTPException(400, {
-            message: `Reading order lists ${item.id} more than once`,
+        const resolved = resolveReadingOrder(storage)
+        if (
+          parsed.data.expectedVersion !== undefined &&
+          parsed.data.expectedVersion !== resolved.storedVersion
+        ) {
+          throw new HTTPException(409, {
+            message: `The reading order changed since you loaded it (expected version ${String(parsed.data.expectedVersion)}, found ${String(resolved.storedVersion)}). Reload and try again.`,
           })
         }
-        received.add(item.id)
-        if (!expected.has(item.id)) {
+
+        // The body must be a permutation of what the book currently holds.
+        // Reordering may not add or remove pages — that is what the structural
+        // operations and pruning are for — so a mismatch is rejected rather than
+        // silently dropping or resurrecting items.
+        const expected = new Set(resolved.order.map((item) => item.id))
+        const received = new Set<string>()
+        for (const item of parsed.data.items) {
+          if (received.has(item.id)) {
+            throw new HTTPException(400, {
+              message: `Reading order lists ${item.id} more than once`,
+            })
+          }
+          received.add(item.id)
+          if (!expected.has(item.id)) {
+            throw new HTTPException(400, {
+              message: `Reading order references ${item.id}, which is not in this book`,
+            })
+          }
+        }
+        const missing = [...expected].filter((id) => !received.has(id))
+        if (missing.length > 0) {
           throw new HTTPException(400, {
-            message: `Reading order references ${item.id}, which is not in this book`,
+            message: `Reading order is missing ${String(missing.length)} item(s): ${missing.slice(0, 5).join(", ")}`,
           })
         }
-      }
-      const missing = [...expected].filter((id) => !received.has(id))
-      if (missing.length > 0) {
-        throw new HTTPException(400, {
-          message: `Reading order is missing ${String(missing.length)} item(s): ${missing.slice(0, 5).join(", ")}`,
-        })
-      }
 
-      const version = storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
-        schemaVersion: 1,
-        items: parsed.data.items,
-        updatedAt: new Date().toISOString(),
+        const saved = storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+          schemaVersion: 1,
+          items: parsed.data.items,
+          updatedAt: new Date().toISOString(),
+        })
+        clearReadingOrderDependents(storage)
+        return saved
       })
-      clearReadingOrderDependents(storage)
 
       return c.json({ version })
     } finally {
