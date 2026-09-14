@@ -4193,7 +4193,6 @@ msgid "From page"
 msgstr "De la page"
 
 #. placeholder {0}: String(pageNumber)
-#. placeholder {0}: String(section.pageNumber)
 msgid "From page {0} of the source PDF"
 msgstr "Depuis la page {0} du PDF source"
 
@@ -7418,6 +7417,10 @@ msgstr "Principale"
 msgid "Print a variable"
 msgstr "Afficher une variable"
 
+#. placeholder {0}: String(sections[0].pageNumber)
+msgid "Printed as page {0} in the book"
+msgstr "Imprimée comme page {0} dans le livre"
+
 msgid "Process every page on this machine."
 msgstr "Traiter toutes les pages sur cette machine."
 
@@ -8934,6 +8937,15 @@ msgstr "Ombre"
 msgid "Shared"
 msgstr "Partagé"
 
+#. placeholder {0}: String(page.pageNumber)
+msgid "Sheet {0} of the PDF"
+msgstr "Feuillet {0} du PDF"
+
+#. placeholder {0}: String(page.pageNumber)
+#. placeholder {1}: String(section.pageNumber)
+msgid "Sheet {0} of the PDF, printed as page {1}"
+msgstr "Feuillet {0} du PDF, imprimé comme page {1}"
+
 msgid "Ship"
 msgstr "Livrer"
 
@@ -10168,8 +10180,8 @@ msgstr "Cette section n'a pas encore de rendu de scénarimage"
 msgid "This section is pruned and isn't rendered."
 msgstr "Cette section est élaguée et n'est pas rendue."
 
-msgid "This section's source page is unknown"
-msgstr "La page source de cette section est inconnue"
+#~ msgid "This section's source page is unknown"
+#~ msgstr "La page source de cette section est inconnue"
 
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "Cette session utilise un ancien instantané de la liste de contrôle du réviseur. Les nouveaux paramètres de liste de contrôle ne s'appliqueront qu'aux sessions de révision nouvellement créées."

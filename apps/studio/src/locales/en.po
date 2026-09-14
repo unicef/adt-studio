@@ -4191,7 +4191,6 @@ msgid "From page"
 msgstr "From page"
 
 #. placeholder {0}: String(pageNumber)
-#. placeholder {0}: String(section.pageNumber)
 msgid "From page {0} of the source PDF"
 msgstr "From page {0} of the source PDF"
 
@@ -7416,6 +7415,10 @@ msgstr "Primary"
 msgid "Print a variable"
 msgstr "Print a variable"
 
+#. placeholder {0}: String(sections[0].pageNumber)
+msgid "Printed as page {0} in the book"
+msgstr "Printed as page {0} in the book"
+
 msgid "Process every page on this machine."
 msgstr "Process every page on this machine."
 
@@ -8932,6 +8935,15 @@ msgstr "Shadow"
 msgid "Shared"
 msgstr "Shared"
 
+#. placeholder {0}: String(page.pageNumber)
+msgid "Sheet {0} of the PDF"
+msgstr "Sheet {0} of the PDF"
+
+#. placeholder {0}: String(page.pageNumber)
+#. placeholder {1}: String(section.pageNumber)
+msgid "Sheet {0} of the PDF, printed as page {1}"
+msgstr "Sheet {0} of the PDF, printed as page {1}"
+
 msgid "Ship"
 msgstr "Ship"
 
@@ -10166,8 +10178,8 @@ msgstr "This section has no storyboard rendering yet"
 msgid "This section is pruned and isn't rendered."
 msgstr "This section is pruned and isn't rendered."
 
-msgid "This section's source page is unknown"
-msgstr "This section's source page is unknown"
+#~ msgid "This section's source page is unknown"
+#~ msgstr "This section's source page is unknown"
 
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."

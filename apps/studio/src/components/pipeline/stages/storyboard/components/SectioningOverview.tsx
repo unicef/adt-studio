@@ -606,8 +606,15 @@ function PageSectionRows({
           >
             <span className="font-medium text-xs">
               {page.pageId}
+              {/* The number *printed* on the page, which is not the sheet number
+                  in the `PDF page` column — front matter is unnumbered, so the
+                  two run out of step. Spelled out on hover so the pair cannot be
+                  read as a contradiction. */}
               {sections[0]?.pageNumber != null && (
-                <span className="text-muted-foreground font-normal ml-1.5">
+                <span
+                  className="text-muted-foreground font-normal ml-1.5"
+                  title={t`Printed as page ${String(sections[0].pageNumber)} in the book`}
+                >
                   <Trans>(p.{sections[0].pageNumber})</Trans>
                 </span>
               )}
@@ -801,19 +808,22 @@ function SectionRow({
             {bookPosition ?? "–"}
           </span>
         </td>
-        {/* Provenance, not position: the number the reader sees on the page in
-            the source PDF. The page's id is still on every row, in the section
-            id beside this. */}
+        {/* Which sheet of the PDF this came from — `page.pageNumber`, the same
+            number the sidebar shows, and the one you can turn to in a PDF
+            reader. Deliberately NOT `section.pageNumber`, which is the number
+            *printed* on the page: front matter has none at all, and a book
+            whose numbering starts after four unnumbered leaves prints "1" on
+            its fifth sheet. Where the two differ, the tooltip says so. */}
         <td className="px-3 py-2 text-center">
           <span
             className="text-muted-foreground tabular-nums"
             title={
-              section.pageNumber != null
-                ? t`From page ${String(section.pageNumber)} of the source PDF`
-                : t`This section's source page is unknown`
+              section.pageNumber != null && section.pageNumber !== page.pageNumber
+                ? t`Sheet ${String(page.pageNumber)} of the PDF, printed as page ${String(section.pageNumber)}`
+                : t`Sheet ${String(page.pageNumber)} of the PDF`
             }
           >
-            {section.pageNumber ?? "–"}
+            {page.pageNumber}
           </span>
         </td>
         <td className="px-3 py-2">

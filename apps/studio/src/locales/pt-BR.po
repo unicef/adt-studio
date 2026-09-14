@@ -4191,7 +4191,6 @@ msgid "From page"
 msgstr "Da página"
 
 #. placeholder {0}: String(pageNumber)
-#. placeholder {0}: String(section.pageNumber)
 msgid "From page {0} of the source PDF"
 msgstr "Da página {0} do PDF original"
 
@@ -7416,6 +7415,10 @@ msgstr "Principal"
 msgid "Print a variable"
 msgstr "Exibir uma variável"
 
+#. placeholder {0}: String(sections[0].pageNumber)
+msgid "Printed as page {0} in the book"
+msgstr "Impressa como página {0} no livro"
+
 msgid "Process every page on this machine."
 msgstr "Processar todas as páginas nesta máquina."
 
@@ -8932,6 +8935,15 @@ msgstr "Sombra"
 msgid "Shared"
 msgstr "Compartilhado"
 
+#. placeholder {0}: String(page.pageNumber)
+msgid "Sheet {0} of the PDF"
+msgstr "Folha {0} do PDF"
+
+#. placeholder {0}: String(page.pageNumber)
+#. placeholder {1}: String(section.pageNumber)
+msgid "Sheet {0} of the PDF, printed as page {1}"
+msgstr "Folha {0} do PDF, impressa como página {1}"
+
 msgid "Ship"
 msgstr "Entregar"
 
@@ -10166,8 +10178,8 @@ msgstr "Esta seção ainda não tem renderização de storyboard"
 msgid "This section is pruned and isn't rendered."
 msgstr "Esta seção foi removida e não é renderizada."
 
-msgid "This section's source page is unknown"
-msgstr "A página de origem desta seção é desconhecida"
+#~ msgid "This section's source page is unknown"
+#~ msgstr "A página de origem desta seção é desconhecida"
 
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "Esta sessão usa um snapshot antigo da lista de verificação do revisor. Configurações mais recentes valerão apenas para novas sessões de revisor."

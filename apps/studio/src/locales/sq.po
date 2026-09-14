@@ -4193,7 +4193,6 @@ msgid "From page"
 msgstr "Nga faqja"
 
 #. placeholder {0}: String(pageNumber)
-#. placeholder {0}: String(section.pageNumber)
 msgid "From page {0} of the source PDF"
 msgstr "Nga faqja {0} e PDF-it origjinal"
 
@@ -7418,6 +7417,10 @@ msgstr "Kryesor"
 msgid "Print a variable"
 msgstr "Shfaq një variabël"
 
+#. placeholder {0}: String(sections[0].pageNumber)
+msgid "Printed as page {0} in the book"
+msgstr "E shtypur si faqja {0} në libër"
+
 msgid "Process every page on this machine."
 msgstr "Përpunoni çdo faqe në këtë makinë."
 
@@ -8934,6 +8937,15 @@ msgstr "Hije"
 msgid "Shared"
 msgstr "E ndarë"
 
+#. placeholder {0}: String(page.pageNumber)
+msgid "Sheet {0} of the PDF"
+msgstr "Fleta {0} e PDF-së"
+
+#. placeholder {0}: String(page.pageNumber)
+#. placeholder {1}: String(section.pageNumber)
+msgid "Sheet {0} of the PDF, printed as page {1}"
+msgstr "Fleta {0} e PDF-së, e shtypur si faqja {1}"
+
 msgid "Ship"
 msgstr "Dërgo"
 
@@ -10168,8 +10180,8 @@ msgstr "Ky seksion nuk ka ende renderim storyboard"
 msgid "This section is pruned and isn't rendered."
 msgstr "Ky seksion është prerë dhe nuk renderizohet."
 
-msgid "This section's source page is unknown"
-msgstr "Faqja burimore e këtij seksioni nuk dihet"
+#~ msgid "This section's source page is unknown"
+#~ msgstr "Faqja burimore e këtij seksioni nuk dihet"
 
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "Kjo sesion po përdor një fotografi të vjetër të listës së kontrollit të rishikuesit. Cilësimet e reja të listës do të zbatohen vetëm për sesionet e rishikuesit të krijuara rishtazi."

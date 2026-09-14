@@ -78,7 +78,16 @@ vi.mock("@/api/client", () => ({ api: {}, BASE_URL: "http://localhost" }))
  * The table renders from the per-page details it fetches, not from the `pages`
  * summaries, so `useQueries` has to hand back real sectioning trees.
  */
-function pageDetail(pageId: string, sections: Array<{ id: string; pruned: boolean }>) {
+function pageDetail(
+  pageId: string,
+  sections: Array<{ id: string; pruned: boolean }>,
+  /**
+   * The number *printed* on the page, which is not the sheet number. Defaults
+   * to absent, as it is on unnumbered front matter — the case that showed the
+   * `PDF page` column reading these two as interchangeable.
+   */
+  printedPageNumber: number | null = null,
+) {
   return {
     pageId,
     pageNumber: Number(pageId.slice(2)),
@@ -90,7 +99,7 @@ function pageDetail(pageId: string, sections: Array<{ id: string; pruned: boolea
         isPruned: pruned,
         backgroundColor: "#fff",
         textColor: "#000",
-        pageNumber: Number(pageId.slice(2)),
+        pageNumber: printedPageNumber,
         nodes: [],
       })),
     },
@@ -107,12 +116,18 @@ function pageDetail(pageId: string, sections: Array<{ id: string; pruned: boolea
   }
 }
 
+/**
+ * Shaped like a real book's front matter: the first sheet carries no printed
+ * number at all, and printed numbering starts on the second. So the sheet
+ * number and the printed number never agree, which is what makes a column
+ * reading the wrong one visible.
+ */
 const PAGE_DETAILS = [
   pageDetail("pg001", [
     { id: "pg001_sec001", pruned: false },
     { id: "pg001_sec002", pruned: true },
   ]),
-  pageDetail("pg002", [{ id: "pg002_sec001", pruned: false }]),
+  pageDetail("pg002", [{ id: "pg002_sec001", pruned: false }], 1),
 ]
 
 vi.mock("@tanstack/react-query", () => ({
@@ -230,6 +245,13 @@ function bookPageCells(): (string | null)[] {
   ).map((el) => el.textContent)
 }
 
+/** The `PDF page` cells, in row order. */
+function pdfPageCells(): (string | null)[] {
+  return Array.from(document.querySelectorAll('span[title^="Sheet "]')).map(
+    (el) => el.textContent,
+  )
+}
+
 /** Move buttons in row order; only book order supplies them. */
 function moveButtons(direction: "up" | "down"): HTMLButtonElement[] {
   return Array.from(
@@ -265,6 +287,20 @@ describe("SectioningOverview row order", () => {
     toBookOrder()
     // Flat, in reading order, and the removed section still shows a dash.
     expect(bookPageCells()).toEqual(["1", "3", "–"])
+  })
+
+  it("counts PDF pages by sheet, not by the number printed on them", () => {
+    // The column has to be the sheet you can turn to in a PDF reader — the
+    // same number the sidebar shows. Reading the *printed* number instead left
+    // every unnumbered front-matter page showing a dash, and offset the rest:
+    // a book with four unnumbered leaves prints "1" on its fifth sheet.
+    show()
+    expect(pdfPageCells()).toEqual(["1", "1", "2"])
+
+    toBookOrder()
+    // Reading order is pg002, pg001, then pg001's removed section — and each
+    // still reports the sheet it came from, which a reorder never changes.
+    expect(pdfPageCells()).toEqual(["2", "1", "1"])
   })
 
   it("leaves quiz slots out of the table", () => {
