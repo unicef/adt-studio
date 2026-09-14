@@ -12,6 +12,7 @@ import type {
   EditableActivity,
   FontAssignmentOutput,
   ExtractionWarning,
+  PackagingWarning,
   ReviewerPageValidationRecord,
   ReviewerValidationIdentificationField,
   ReviewerValidationInstruction,
@@ -587,6 +588,11 @@ export interface QuizOption {
 }
 
 export interface QuizItem {
+  /** Stable output-page id (`qz001`). Filled in by GET /quizzes; optional only
+   *  because a book written before it existed has none stored. Round-trip it on
+   *  every write — it keys the quiz's catalog entries, translations and audio. */
+  quizId?: string
+  /** @deprecated Positional, renumbered on every add/delete. Not an identity. */
   quizIndex: number
   afterPageId: string
   pageIds: string[]
@@ -604,7 +610,9 @@ export interface QuizGenerationOutput {
 }
 
 export interface QuizzesResponse {
-  quizzes: QuizGenerationOutput | null
+  /** Selected history version, including an inactive quiz version. */
+  historyVersion: number | null
+  quizzes: (Omit<QuizGenerationOutput, "quizzes"> & { quizzes: Array<QuizItem & { quizId: string }> }) | null
   version: number | null
 }
 
@@ -1672,10 +1680,11 @@ export const api = {
     label: string,
     node: string,
     itemId: string,
-    includeData?: boolean
+    includeData?: boolean,
+    resolveQuizIds?: boolean,
   ) =>
     request<VersionListResponse>(
-      `/books/${label}/debug/versions/${node}/${itemId}${includeData ? "?includeData=true" : ""}`
+      `/books/${label}/debug/versions/${node}/${itemId}${includeData ? `?includeData=true${resolveQuizIds ? "&resolveQuizIds=true" : ""}` : ""}`
     ),
 
   getBookOutline: (label: string) =>
@@ -1979,11 +1988,18 @@ export const api = {
       body: JSON.stringify({ language }),
     }),
 
+  // `warnings` is present whenever packaging completed inline (a cache hit, or a
+  // server with no task service). When it returns a taskId the warnings ride the
+  // task result instead. Either way the caller must surface them — a short
+  // bundle otherwise looks like a clean one.
   packageAdt: (label: string) =>
-    request<{ status: string; label: string; taskId?: string; version?: string }>(
-      `/books/${label}/package-adt`,
-      { method: "POST" }
-    ),
+    request<{
+      status: string
+      label: string
+      taskId?: string
+      version?: string
+      warnings?: PackagingWarning[]
+    }>(`/books/${label}/package-adt`, { method: "POST" }),
 
   getTasks: (label: string) =>
     request<{ tasks: TaskInfoResponse[] }>(`/books/${label}/tasks`),
@@ -2150,7 +2166,12 @@ export const api = {
     const body: Record<string, unknown> = {}
     if (features) body.features = features
     if (defaultSettings) body.defaultSettings = defaultSettings
-    return request<{ taskId?: string; status: string; label: string }>(
+    return request<{
+      taskId?: string
+      status: string
+      label: string
+      warnings?: PackagingWarning[]
+    }>(
       `/books/${label}/prepare-export?format=${format}`,
       {
         method: "POST",

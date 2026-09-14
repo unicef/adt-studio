@@ -3,7 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { AccessibilityAssessmentOutput, parseBookLabel } from "@adt/types"
+import { AccessibilityAssessmentOutput, parseBookLabel, withResolvedQuizIds, type QuizGenerationOutput } from "@adt/types"
 import { openBookDb } from "@adt/storage"
 
 function getDbPath(label: string, booksDir: string): string {
@@ -284,10 +284,16 @@ export function createDebugRoutes(
           [node, itemId]
         ) as Array<{ version: number; data: string }>
 
-        const versions = rows.map((row) => ({
-          version: row.version,
-          data: JSON.parse(row.data),
-        }))
+        const versions = rows.map((row) => {
+          const data = JSON.parse(row.data)
+          // Opt-in read model for the version picker. Debug's default remains
+          // the exact stored JSON, and no read creates a backfill version.
+          const resolveIds = node === "quiz-generation" && c.req.query("resolveQuizIds") === "true"
+          return {
+            version: row.version,
+            data: resolveIds && data ? withResolvedQuizIds(data as QuizGenerationOutput) : data,
+          }
+        })
         return c.json({ versions })
       } else {
         const rows = db.all(

@@ -167,6 +167,10 @@ export {
   ImagePartBounds,
   SectionViewport,
   NodePlacement,
+  formatSectionId,
+  parseSectionId,
+  parseAnySectionId,
+  MAX_SECTION_SEQ,
 } from "./page-sectioning.js"
 
 export {
@@ -239,6 +243,7 @@ export {
 } from "./book-outline.js"
 
 export { ExtractionWarning } from "./extraction-warning.js"
+export { PackagingWarning } from "./packaging-warning.js"
 
 export {
   FIXED_LAYOUT_MAX_SCALE,
@@ -294,6 +299,16 @@ export {
   Quiz,
   QuizGenerationOutput,
   quizLLMSchema,
+  formatQuizId,
+  parseQuizId,
+  resolveQuizId,
+  withResolvedQuizIds,
+  ensureQuizIds,
+  QuizIdExhaustedError,
+  QuizId,
+  QuizIdentityError,
+  MAX_QUIZ_SEQ,
+  assertQuizIdCapacity,
 } from "./quiz.js"
 
 export {
@@ -301,6 +316,9 @@ export {
   TextCatalogOutput,
   TextCatalogCategory,
   getTextCatalogCategory,
+  ANSWER_ID_SEPARATOR,
+  answerTextId,
+  sectionIdOfAnswerTextId,
 } from "./text-catalog.js"
 
 export {
@@ -364,6 +382,13 @@ export {
   TocGenerationOutput,
   tocLLMSchema,
 } from "./toc.js"
+
+export {
+  READING_ORDER_NODE,
+  READING_ORDER_ITEM_ID,
+  ReadingOrderItem,
+  ReadingOrderOutput,
+} from "./reading-order.js"
 
 export {
   AccessibilityNodeResult,

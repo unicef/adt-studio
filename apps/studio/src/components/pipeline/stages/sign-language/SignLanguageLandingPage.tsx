@@ -369,8 +369,16 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-cyan-700">
                           <Trans>Next missing section</Trans>
                         </span>
-                        <span className="truncate text-[13px] font-semibold text-[#0a0a0a]">
-                          {nextMissing.sectionLabel}
+                        <span className="flex items-baseline gap-1.5">
+                          <span className="truncate text-[13px] font-semibold text-[#0a0a0a]">
+                            {nextMissing.sectionLabel}
+                          </span>
+                          {/* Keeps the two spans from running together in the
+                              accessible name; not rendered as layout. */}
+                          {" "}
+                          <span className="shrink-0 font-mono text-[10px] font-normal text-[#737373]">
+                            {nextMissing.sectionId}
+                          </span>
                         </span>
                       </span>
                       <Plus
