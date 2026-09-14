@@ -126,13 +126,26 @@ describe("publishing a book", () => {
     expect(paths).toContain("assets/config.json")
     expect(paths).toContain("content/pages.json")
     const config = uploadedFiles(worker, 1).find((file) => file.path === "assets/config.json")
-    expect(JSON.parse(config!.text)).toEqual(CONFIG)
+    expect(JSON.parse(config!.text)).toEqual({
+      ...CONFIG,
+      features: { ...CONFIG.features, comments: true },
+    })
 
     const record = readPublicationRecord(LABEL, tmpDir)
     expect(record?.token).toBe(TOKEN)
     expect(record?.base_url).toBe(worker.shareUrl(TOKEN))
     expect(record?.versions).toHaveLength(1)
     expect(record?.versions[0]?.page_count).toBe(1)
+
+    expect(fs.readFileSync(path.join(tmpDir, LABEL, "adt", "assets", "config.json"), "utf-8")).toBe(
+      `${JSON.stringify(CONFIG, null, 2)}\n`,
+    )
+    expect(
+      fs.readFileSync(
+        path.join(tmpDir, LABEL, "adt", "assets", "offline-preloader.js"),
+        "utf-8",
+      ),
+    ).toBe(`const files = {"./assets/config.json":${JSON.stringify(CONFIG)}};\n`)
 
     expect(events.at(-1)).toMatchObject({ type: "complete" })
   })
@@ -160,6 +173,19 @@ describe("publishing a book", () => {
     expect(result.publication.expires_at).toBe("2027-01-01T00:00:00.000Z")
     expect(worker.state.accessCodes.get(TOKEN)).toBe("RAVEN7")
     expect(readPublicationRecord(LABEL, tmpDir)?.access_code).toBe("RAVEN7")
+  })
+
+  it("fails before staging when the preloader cannot be patched safely", async () => {
+    const { options } = harness()
+    fs.writeFileSync(
+      path.join(tmpDir, LABEL, "adt", "assets", "offline-preloader.js"),
+      "const files = {};\n",
+    )
+
+    await expect(publishBook(options)).rejects.toMatchObject({
+      name: "PublishStepError",
+      code: "package_failed",
+    })
   })
 })
 
