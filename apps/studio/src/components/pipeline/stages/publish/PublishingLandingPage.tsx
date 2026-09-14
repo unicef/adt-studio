@@ -157,6 +157,7 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
             <PublishingFreshness
               contentRevision={status.data?.content_revision ?? null}
               liveVersion={newest}
+              workerReachable={status.data?.worker_reachable ?? true}
             />
 
             <PublishingEngineNotice />

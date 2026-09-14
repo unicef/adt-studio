@@ -74,7 +74,9 @@ export function PublicationReaders({
 }: PublicationReadersProps) {
   const query = usePublicationReaders(token, enabled)
   const readers = query.data?.readers
-  const outdated = apiErrorCode(query.error) === "worker_outdated"
+  const errorCode = apiErrorCode(query.error)
+  const outdated = errorCode === "worker_outdated"
+  const notConnected = errorCode === "publish_not_connected"
 
   return (
     <div className="flex flex-col gap-1">
@@ -109,10 +111,18 @@ export function PublicationReaders({
           </PublishingSettingsLink>
         </div>
       ) : readers === undefined ? (
-        <span className="flex items-start gap-2 py-2 text-xs leading-5 text-amber-700">
+        /* Never `query.error.message`: that is the transport's own sentence, and it put a bare
+         * "404 Not Found" on a dashboard whose header says "Service not answering" three inches
+         * above. One degraded state, said the same way everywhere. */
+        <span
+          data-testid="publication-readers-unavailable"
+          className="flex items-start gap-2 py-2 text-xs leading-5 text-amber-700"
+        >
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-          {query.error?.message ?? (
-            <Trans>We couldn't reach your publishing service for this list.</Trans>
+          {notConnected ? (
+            <Trans>Connect a Cloudflare account to see who has joined.</Trans>
+          ) : (
+            <Trans>Service not answering — this list will fill in once it does.</Trans>
           )}
         </span>
       ) : readers.length === 0 ? (
