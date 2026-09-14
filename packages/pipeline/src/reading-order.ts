@@ -208,8 +208,11 @@ export interface ReconcileResult {
  *     without bound and need a GC policy.
  *  3. Ids the book has but the stored order does not are inserted at their
  *     *default-order neighbourhood* — immediately after the nearest preceding
- *     default-order sibling that survived, else before the nearest following
- *     one, else appended.
+ *     default-order sibling that survived. A newcomer with no surviving
+ *     predecessor goes to the front of the stored order, which is what the
+ *     default order says about it: nothing in the book comes before it. Note
+ *     that this is the front of the *user's* sequence, not of the default one —
+ *     for a book the user has reversed, "first" is still first.
  *
  *     This rule is why clone, split, "new page extracted" and "quiz added" need
  *     no reading-order code of their own: a clone's default position is right

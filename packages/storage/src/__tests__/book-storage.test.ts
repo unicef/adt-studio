@@ -830,4 +830,29 @@ describe("quiz history retention on invalidation", () => {
       ])
     } finally { storage.close() }
   })
+
+  it("clears the reading order, because re-extraction rebuilds what its ids name", () => {
+    // `reading-order` is deliberately exempt from every *stage's* clear list —
+    // it is the user's own arrangement, not stage output, and a storyboard
+    // re-run must never delete it. Re-extraction is the one exception, and it
+    // is not an oversight: section ids are derived from page ids, so a fresh
+    // extraction reuses `pg001_sec001` for whatever now happens to be the first
+    // section of the first page. A surviving order would silently bind to
+    // different content; falling back to the fresh default order is correct.
+    const { storage } = createTempStorage()
+    try {
+      storage.putExtractedPage(makePage(1))
+      storage.putNodeData("reading-order", "book", {
+        schemaVersion: 1,
+        items: [{ kind: "section", id: "pg001_sec001" }],
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      expect(storage.getLatestNodeData("reading-order", "book")).not.toBeNull()
+
+      storage.clearExtractedData()
+
+      expect(storage.getLatestNodeData("reading-order", "book")).toBeNull()
+      expect(storage.getAllNodeVersions("reading-order", "book")).toEqual([])
+    } finally { storage.close() }
+  })
 })
