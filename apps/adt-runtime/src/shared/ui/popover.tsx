@@ -22,11 +22,18 @@ function PopoverContent({
   sideOffset = 4,
   anchor,
   positionMethod,
+  collisionPadding,
   ...props
 }: PopoverPrimitive.Popup.Props &
   Pick<
     PopoverPrimitive.Positioner.Props,
-    "align" | "alignOffset" | "side" | "sideOffset" | "anchor" | "positionMethod"
+    | "align"
+    | "alignOffset"
+    | "side"
+    | "sideOffset"
+    | "anchor"
+    | "positionMethod"
+    | "collisionPadding"
   >) {
   return (
     <PopoverPrimitive.Portal container={getChromePortalContainer()}>
@@ -37,6 +44,7 @@ function PopoverContent({
         sideOffset={sideOffset}
         anchor={anchor}
         positionMethod={positionMethod}
+        collisionPadding={collisionPadding}
         className="isolate z-50"
       >
         <PopoverPrimitive.Popup
