@@ -1238,8 +1238,14 @@ export function createPageRoutes(
         throw new HTTPException(400, { message: "Invalid image path" })
       }
 
-      const imageBase64 = fs.readFileSync(imagePath).toString("base64")
-      return c.json({ imageBase64 })
+      const image = fs.readFileSync(imagePath)
+      if (c.req.query("raw") === "1") {
+        const extension = path.extname(imagePath).toLowerCase()
+        const contentType = extension === ".jpg" || extension === ".jpeg" ? "image/jpeg" : "image/png"
+        return c.body(image, 200, { "Content-Type": contentType })
+      }
+
+      return c.json({ imageBase64: image.toString("base64") })
     } finally {
       db.close()
     }
