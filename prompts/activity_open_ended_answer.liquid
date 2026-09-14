@@ -65,7 +65,7 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 1. Include exactly ONE top-level `<section>` with `data-section-type` equal to the provided section type and `data-section-id` equal to the provided section ID. Do NOT add `role="activity"`
 2. Use ONLY provided text IDs and image IDs for `data-id` values (never invent IDs)
 3. ALL text must have `data-id` matching provided text IDs
-4. ALL images must have `data-id` matching provided image IDs
+4. Every image you choose to use must have `data-id` matching a provided image ID.{% if layout_type == "textbook" %} Omit page replicas and worksheet/form composites under the textbook image-triage policy.{% endif %}
 5. Text for each text ID must match the provided text exactly (no paraphrasing, no added text, no punctuation changes). EXCEPTION: if a provided text contains runs of underscores (`___`) or dots (`...`) representing a blank line for writing, omit that placeholder from the rendered text and emit a `<textarea>` or `<input type="text">` after the surrounding sentence instead — the editable element replaces the visual blank.
 6. NO stray visible text outside elements with valid provided `data-id`
 7. The page MUST contain at least one editable element — either a `<textarea>` or an `<input type="text">`. An open-ended-answer activity without an editable input is invalid. Each editable element must have a unique `data-aria-id` for accessibility.

@@ -199,8 +199,14 @@ export function buildMeaningfulnessConfig(
   const model = appConfig.image_meaningfulness?.model ?? appConfig.default_model
   if (!model) return null
 
+  const configuredPrompt = appConfig.image_meaningfulness?.prompt
+  const promptName = appConfig.layout_type === "storybook" &&
+    (configuredPrompt == null || configuredPrompt === "image_meaningfulness")
+    ? "image_meaningfulness_storybook"
+    : configuredPrompt ?? "image_meaningfulness"
+
   return {
-    promptName: appConfig.image_meaningfulness?.prompt ?? "image_meaningfulness",
+    promptName,
     modelId: model,
     figureExtractionMode: resolveFigureExtractionMode(appConfig),
     maxRetries:

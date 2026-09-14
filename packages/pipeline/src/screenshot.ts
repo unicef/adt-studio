@@ -19,6 +19,14 @@ export const SCREENSHOT_VIEWPORTS = [
   { label: "mobile",  width: 390,  height: 844 },
 ] as const
 
+/**
+ * A visual review requests three screenshots at once. Page processing can run
+ * dozens of reviews concurrently, so keep the shared browser below the point
+ * where Chromium starts timing out while waiting for fonts or image capture.
+ */
+export const DEFAULT_SCREENSHOT_CONCURRENCY = 6
+const SCREENSHOT_TIMEOUT_MS = 60_000
+
 /** Derive Tailwind responsive prefixes from viewport widths.
  *  Desktop-first: the default (no prefix) targets desktop, and `max-*`
  *  prefixes scale down to tablet and mobile. This matches the editor's
@@ -47,6 +55,77 @@ export interface ScreenshotRenderer {
 function throwIfAborted(signal?: AbortSignal): void {
   if (!signal?.aborted) return
   throw signal.reason instanceof Error ? signal.reason : new Error("Operation aborted")
+}
+
+/** Apply one global concurrency limit to every capture made by a renderer. */
+export function limitScreenshotConcurrency(
+  renderer: ScreenshotRenderer,
+  maxConcurrency = DEFAULT_SCREENSHOT_CONCURRENCY,
+): ScreenshotRenderer {
+  if (!Number.isInteger(maxConcurrency) || maxConcurrency < 1) {
+    throw new Error("Screenshot concurrency must be a positive integer")
+  }
+
+  type Waiter = {
+    resolve: () => void
+    reject: (error: Error) => void
+    signal?: AbortSignal
+    onAbort?: () => void
+  }
+
+  let active = 0
+  const queue: Waiter[] = []
+
+  const release = () => {
+    active -= 1
+    while (queue.length > 0) {
+      const waiter = queue.shift()!
+      waiter.signal?.removeEventListener("abort", waiter.onAbort!)
+      if (waiter.signal?.aborted) {
+        waiter.reject(
+          waiter.signal.reason instanceof Error
+            ? waiter.signal.reason
+            : new Error("Operation aborted"),
+        )
+        continue
+      }
+      active += 1
+      waiter.resolve()
+      return
+    }
+  }
+
+  const acquire = (signal?: AbortSignal): Promise<void> => {
+    throwIfAborted(signal)
+    if (active < maxConcurrency) {
+      active += 1
+      return Promise.resolve()
+    }
+
+    return new Promise((resolve, reject) => {
+      const waiter: Waiter = { resolve, reject, signal }
+      waiter.onAbort = () => {
+        const index = queue.indexOf(waiter)
+        if (index >= 0) queue.splice(index, 1)
+        signal?.removeEventListener("abort", waiter.onAbort!)
+        reject(signal?.reason instanceof Error ? signal.reason : new Error("Operation aborted"))
+      }
+      signal?.addEventListener("abort", waiter.onAbort, { once: true })
+      queue.push(waiter)
+    })
+  }
+
+  return {
+    async screenshot(html, viewport, options = {}): Promise<string> {
+      await acquire(options.signal)
+      try {
+        return await renderer.screenshot(html, viewport, options)
+      } finally {
+        release()
+      }
+    },
+    close: () => renderer.close(),
+  }
 }
 
 /**
@@ -84,7 +163,11 @@ export async function _createScreenshotRenderer(): Promise<ScreenshotRenderer> {
         // Wait for web fonts to finish loading before screenshotting
         await page.waitForFunction("document.fonts.ready")
         throwIfAborted(options.signal)
-        const buffer = await page.screenshot({ fullPage: true, type: "png" })
+        const buffer = await page.screenshot({
+          fullPage: true,
+          type: "png",
+          timeout: SCREENSHOT_TIMEOUT_MS,
+        })
         throwIfAborted(options.signal)
         return buffer.toString("base64")
       } finally {
@@ -101,10 +184,13 @@ export async function _createScreenshotRenderer(): Promise<ScreenshotRenderer> {
 
 
 export async function createScreenshotRenderer(): Promise<ScreenshotRenderer> {
+  let renderer: ScreenshotRenderer
   if (process.env?.ADT_ENVIRONMENT === 'electron') {
-    return _createElectronScreenshotRenderer()
+    renderer = await _createElectronScreenshotRenderer()
+  } else {
+    renderer = await _createScreenshotRenderer()
   }
-  return _createScreenshotRenderer()
+  return limitScreenshotConcurrency(renderer)
 }
 
 type ParentPortLike = {
@@ -202,5 +288,5 @@ interface PlaywrightContext {
 interface PlaywrightPage {
   setContent(html: string, opts?: { waitUntil?: string }): Promise<void>
   waitForFunction(expression: string): Promise<unknown>
-  screenshot(opts?: { fullPage?: boolean; type?: string }): Promise<Buffer>
+  screenshot(opts?: { fullPage?: boolean; type?: string; timeout?: number }): Promise<Buffer>
 }

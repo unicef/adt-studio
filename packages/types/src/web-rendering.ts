@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { TextbookPixelRect } from "./textbook-geometry.js"
 
 /**
  * Max upscale for a fixed-layout page filling its viewport. Shared by the
@@ -44,6 +45,18 @@ export const visualReviewLLMSchema = z.object({
   approved: z.boolean(),
   reasoning: z.string(),
   content: z.string(),
+  geometry_updates: z.array(
+    z.object({
+      image_id: z.string(),
+      crop: TextbookPixelRect,
+    }),
+  ),
+  transcription_updates: z.array(
+    z.object({
+      image_id: z.string(),
+      text_id: z.string(),
+    }),
+  ),
 })
 
 export const editVerifyLLMSchema = z.object({

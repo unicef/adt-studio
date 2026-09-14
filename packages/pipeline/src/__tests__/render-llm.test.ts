@@ -158,7 +158,10 @@ describe("renderSectionLlm visual review routing", () => {
       }) as GenerateObjectResult<T>,
   }
 
-  function makeInput(userPrompt?: string): RenderSectionInput {
+  function makeInput(
+    userPrompt?: string,
+    layoutType?: RenderSectionInput["layoutType"],
+  ): RenderSectionInput {
     return {
       label: "book",
       pageId: "pg001",
@@ -179,6 +182,7 @@ describe("renderSectionLlm visual review routing", () => {
         image_refs: [],
         group_ids: [],
       },
+      ...(layoutType && { layoutType }),
       ...(userPrompt !== undefined && { userPrompt }),
     }
   }
@@ -264,5 +268,166 @@ describe("renderSectionLlm visual review routing", () => {
     expect(calls).toHaveLength(1)
     expect(calls[0].promptName).toBe("visual_review")
     expect(calls[0].context.user_instructions).toBe("")
+  })
+
+  it("routes both built-in review modes to the storybook reviewer", async () => {
+    for (const promptName of ["visual_review", "visual_review_flexible"] as const) {
+      const { model, calls } = makeReviewModel()
+      await renderSectionLlm(
+        makeInput("Keep the facing pages together.", "storybook"),
+        {
+          ...config,
+          visualRefinement: { ...config.visualRefinement!, promptName },
+        },
+        renderModel,
+        makeDeps(model),
+      )
+
+      expect(calls).toHaveLength(1)
+      expect(calls[0].promptName).toBe("visual_review_storybook")
+      expect(calls[0].context.user_instructions).toBe(
+        "Keep the facing pages together.",
+      )
+    }
+  })
+})
+
+describe("renderSectionLlm layout policy isolation", () => {
+  const IMAGE_HTML =
+    '<div id="content" class="container"><section data-section-type="images_only" data-section-id="s1"><img data-id="i1" src="/api/books/book/images/i1" alt="Illustration"></section></div>'
+
+  const config: RenderConfig = {
+    renderType: "llm",
+    promptName: "web_generation_html",
+    modelId: "openai:gpt-5.4",
+    maxRetries: 1,
+    timeoutMs: 1000,
+    temperature: 0.2,
+    answerPromptName: "",
+    templateName: "",
+  }
+
+  function makeImageInput(layoutType: RenderSectionInput["layoutType"]): RenderSectionInput {
+    return {
+      label: "book",
+      pageId: "pg001",
+      pageImageBase64: "cGFnZQ==",
+      sectionIndex: 0,
+      layoutType,
+      section: {
+        sectionId: "s1",
+        sectionType: "images_only",
+        backgroundColor: "#fff",
+        textColor: "#000",
+        pageNumber: 1,
+        isPruned: false,
+        nodes: [],
+      },
+      context: {
+        nodes: [{ node_id: "i1", role: "image", image_id: "i1" }],
+        leaf_texts: [],
+        image_refs: [{
+          image_id: "i1",
+          image_url: "/api/books/book/images/i1",
+          image_base64: "aW1hZ2U=",
+          width: 1200,
+          height: 800,
+        }],
+        group_ids: [],
+      },
+    }
+  }
+
+  function makePolicyModel(calls: string[]): LLMModel {
+    return {
+      renderPrompt: async () => [{ role: "system", content: "prompt" }],
+      generateObject: async <T>(options) => {
+        const promptName = String(options.prompt ?? "")
+        calls.push(promptName)
+        if (promptName === "textbook_geometry_plan" || promptName === "textbook_geometry_review") {
+          return {
+            object: {
+              reasoning: "Keep the standalone figure.",
+              images: [{
+                image_id: "i1",
+                role: "clean_figure",
+                keep_visible: true,
+                crop: null,
+                baked_text_ids: [],
+                text_regions: [],
+                writable_regions: [],
+                reasoning: "Complete illustration.",
+              }],
+            } as T,
+          } as GenerateObjectResult<T>
+        }
+        return {
+          object: { reasoning: "rendered", content: IMAGE_HTML } as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+  }
+
+  it("runs textbook geometry only for textbook layouts", async () => {
+    const calls: string[] = []
+    await renderSectionLlm(
+      makeImageInput("textbook"),
+      config,
+      makePolicyModel(calls),
+    )
+
+    expect(calls).toEqual([
+      "textbook_geometry_plan",
+      "textbook_geometry_review",
+      "web_generation_html",
+    ])
+  })
+
+  it("routes the built-in overlay strategy through the textbook overlay prompt", async () => {
+    const calls: string[] = []
+    await renderSectionLlm(
+      makeImageInput("textbook"),
+      { ...config, promptName: "web_generation_html_overlay" },
+      makePolicyModel(calls),
+    )
+
+    expect(calls).toEqual([
+      "textbook_geometry_plan",
+      "textbook_geometry_review",
+      "web_generation_textbook_html_overlay",
+    ])
+  })
+
+  it("uses the storybook prompt without textbook geometry calls", async () => {
+    const calls: string[] = []
+    await renderSectionLlm(
+      makeImageInput("storybook"),
+      config,
+      makePolicyModel(calls),
+    )
+
+    expect(calls).toEqual(["web_generation_storybook_html"])
+  })
+
+  it("routes the built-in overlay strategy through the storybook prompt", async () => {
+    const calls: string[] = []
+    await renderSectionLlm(
+      makeImageInput("storybook"),
+      { ...config, promptName: "web_generation_html_overlay" },
+      makePolicyModel(calls),
+    )
+
+    expect(calls).toEqual(["web_generation_storybook_html"])
+  })
+
+  it("preserves an explicit custom prompt for storybooks", async () => {
+    const calls: string[] = []
+    await renderSectionLlm(
+      makeImageInput("storybook"),
+      { ...config, promptName: "custom_storybook_prompt" },
+      makePolicyModel(calls),
+    )
+
+    expect(calls).toEqual(["custom_storybook_prompt"])
   })
 })
