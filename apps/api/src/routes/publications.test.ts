@@ -220,9 +220,10 @@ describe("publication feedback proxy routes", () => {
     const { app } = routes({ clientOverrides: overrides })
     await publishOnce(app)
 
-    const readers = await app.request(`/books/${LABEL}/publication/readers`)
+    const readers = await app.request(`/publications/${TOKEN}/readers`)
     expect(readers.status).toBe(200)
     expect(await readers.json()).toEqual({ readers: [] })
+    expect(overrides.listReaders).toHaveBeenCalledWith(TOKEN)
 
     const roomTicket = await app.request(`/books/${LABEL}/publication/room-ticket`, {
       method: "POST",

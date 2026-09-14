@@ -744,9 +744,14 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
   })
 
-  app.get("/books/:label/publication/readers", async (c) => {
-    const label = parseBookLabel(c.req.param("label"))
-    requireBook(label)
+  /* Keyed by token, not by book label, because the publications shelf lists rosters for books
+   * that have left this computer (`book_exists: false`) — a label would have nothing to resolve.
+   * Same shape as `DELETE /publications/:token` for that reason. */
+  app.get("/publications/:token/readers", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return c.json({ error: "That is not a publication token", code: "not_published" }, 404)
+    }
 
     const connection = requireConnection(
       c,
@@ -755,11 +760,8 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     )
     if (connection instanceof Response) return connection
 
-    const record = readPublicationRecord(label, deps.booksDir)
-    if (!record) return failure(c, 409, "not_published", "This book has never been published")
-
     try {
-      return c.json(await clientFor(connection).listReaders(record.token))
+      return c.json(await clientFor(connection).listReaders(token.data))
     } catch (error) {
       return proxyFailure(c, error)
     }

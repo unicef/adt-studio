@@ -167,12 +167,19 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!res.ok) {
     const text = await res.text().catch(() => "")
     let message: string | undefined
+    let code: string | null = null
     try {
-      message = (JSON.parse(text) as { error?: string }).error
+      const parsed = JSON.parse(text) as { error?: string; code?: string }
+      message = parsed.error
+      code = typeof parsed.code === "string" ? parsed.code : null
     } catch {
       message = text || undefined
     }
-    throw new Error(message ?? `Request failed: ${res.status}`)
+    /* `ApiError`, not `Error`: callers branch on `code` to tell "not connected yet" from "the
+     * worker didn't answer", and a bare Error left them printing the transport text instead —
+     * which is how a raw "404 Not Found" reached the publishing dashboard. */
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- HTTP response fallback.
+    throw new ApiError(message ?? `Request failed: ${res.status}`, res.status, code)
   }
 
   return res.json()
