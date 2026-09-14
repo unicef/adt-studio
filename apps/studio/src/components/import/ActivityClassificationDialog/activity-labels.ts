@@ -66,33 +66,33 @@ export function activityTypeVisual(type: string | null): {
   icon: LucideIcon
   tileClassName: string
 } {
-  if (type === null) return { icon: Ban, tileClassName: "bg-slate-100 text-slate-600" }
+  if (type === null) return { icon: Ban, tileClassName: "bg-muted text-muted-foreground" }
   if (type === "activity_quiz") {
-    return { icon: CircleHelp, tileClassName: "bg-orange-50 text-orange-700" }
+    return { icon: CircleHelp, tileClassName: "bg-orange-500/15 text-orange-700 dark:text-orange-300" }
   }
   if (type === "activity_multiple_choice" || type === "activity_multi_select") {
-    return { icon: ListChecks, tileClassName: "bg-violet-50 text-violet-700" }
+    return { icon: ListChecks, tileClassName: "bg-violet-500/15 text-violet-700 dark:text-violet-300" }
   }
   if (type === "activity_true_false") {
-    return { icon: ToggleLeft, tileClassName: "bg-violet-50 text-violet-700" }
+    return { icon: ToggleLeft, tileClassName: "bg-violet-500/15 text-violet-700 dark:text-violet-300" }
   }
   if (type === "activity_fill_in_the_blank") {
-    return { icon: Type, tileClassName: "bg-violet-50 text-violet-700" }
+    return { icon: Type, tileClassName: "bg-violet-500/15 text-violet-700 dark:text-violet-300" }
   }
   if (type === "activity_fill_in_a_table") {
-    return { icon: Table2, tileClassName: "bg-violet-50 text-violet-700" }
+    return { icon: Table2, tileClassName: "bg-violet-500/15 text-violet-700 dark:text-violet-300" }
   }
   if (type === "activity_open_ended_answer") {
-    return { icon: MessageSquareText, tileClassName: "bg-violet-50 text-violet-700" }
+    return { icon: MessageSquareText, tileClassName: "bg-violet-500/15 text-violet-700 dark:text-violet-300" }
   }
   if (type === "activity_underline_text") {
-    return { icon: Underline, tileClassName: "bg-violet-50 text-violet-700" }
+    return { icon: Underline, tileClassName: "bg-violet-500/15 text-violet-700 dark:text-violet-300" }
   }
   if (type === "activity_matching") {
-    return { icon: Link2, tileClassName: "bg-violet-50 text-violet-700" }
+    return { icon: Link2, tileClassName: "bg-violet-500/15 text-violet-700 dark:text-violet-300" }
   }
   if (type === "activity_sorting") {
-    return { icon: ArrowDownAZ, tileClassName: "bg-violet-50 text-violet-700" }
+    return { icon: ArrowDownAZ, tileClassName: "bg-violet-500/15 text-violet-700 dark:text-violet-300" }
   }
-  return { icon: Puzzle, tileClassName: "bg-violet-50 text-violet-700" }
+  return { icon: Puzzle, tileClassName: "bg-violet-500/15 text-violet-700 dark:text-violet-300" }
 }

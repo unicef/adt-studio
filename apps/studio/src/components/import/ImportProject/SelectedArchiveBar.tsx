@@ -2,7 +2,7 @@ import { Trans } from "@lingui/react/macro"
 import { FileArchive, FileUp } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { cn, formatBytes } from "@/lib/utils"
+import { formatBytes } from "@/lib/utils"
 
 export function SelectedArchiveBar({
   file,
@@ -16,23 +16,25 @@ export function SelectedArchiveBar({
   onReplace: () => void
 }) {
   return (
-    <div className="mb-3 flex min-h-10 items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white px-3 py-2">
+    <div className="mb-3 flex min-h-12 items-center justify-between gap-4 rounded-lg border border-border bg-card px-3 py-2 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200">
       <div className="flex min-w-0 items-center gap-2.5">
-        <FileArchive className="h-4 w-4 shrink-0 text-slate-500" />
+        <span className="grid size-8 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
+          <FileArchive className="size-4" />
+        </span>
         <div className="min-w-0">
-          <p className="truncate text-xs font-medium text-slate-800">{file.name}</p>
-          <p className="text-[11px] text-slate-500">{formatBytes(displaySize)}</p>
+          <p className="truncate text-xs font-medium text-foreground">{file.name}</p>
+          <p className="text-[11px] tabular-nums text-muted-foreground">{formatBytes(displaySize)}</p>
         </div>
       </div>
       <Button
         type="button"
-        variant="ghost"
+        variant="outline"
         size="sm"
         onClick={onReplace}
         disabled={disabled}
-        className="shrink-0 text-slate-600"
+        className="h-8 shrink-0 px-3 text-xs"
       >
-        <FileUp className="h-4 w-4" />
+        <FileUp className="size-3.5" />
         <Trans>Replace archive</Trans>
       </Button>
     </div>

@@ -1,37 +1,89 @@
 import { useCallback, useRef, useState } from "react"
 import { Link, useNavigate } from "@tanstack/react-router"
-import {
-  ArrowLeft,
-  Upload,
-  Loader2,
-  FileUp,
-  AlertCircle,
-  FileArchive,
-  Check,
-} from "lucide-react"
+import { ArrowLeft, FileUp, Loader2, TriangleAlert, Upload } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { toast } from "@/components/ui/sonner"
 import { ActivityClassificationDialog } from "@/components/import/ActivityClassificationDialog"
 import { ImportReview } from "@/components/import/ImportReview/ImportReview"
 import { FileDropOverlay, useFileDropZone } from "@/components/ui/file-drop-overlay"
-import { cn, formatBytes, isZipFile } from "@/lib/utils"
+import { cn, isZipFile } from "@/lib/utils"
 import { useImportAdtProject, useImportBook } from "@/hooks/use-books"
-import { useFriendlyArchiveError, type FriendlyError } from "@/hooks/use-archive-error"
+import { useFriendlyArchiveError } from "@/hooks/use-archive-error"
 import { api, isAdtBundleImportPreview, isPartImportPreview } from "@/api/client"
-import type { AdtBundleImportPreview, AnyImportPreview } from "@/api/client"
+import type { AnyImportPreview } from "@/api/client"
 import { ImportProgress } from "./ImportProgress"
 import { ImportStatus } from "./ImportStatus"
 import { ArchiveReviewSkeleton } from "./ArchiveReviewSkeleton"
 import { SelectedArchiveBar } from "./SelectedArchiveBar"
 import { EMPTY_ACTIVITY_REVIEW, isReadyImportPreview, type ImportPhase } from "./helpers"
+
+const ENTER = "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:fill-mode-both motion-safe:duration-300"
+
+function ArchiveDropZone({
+  hasError,
+  onOpen,
+}: {
+  hasError: boolean
+  onOpen: () => void
+}) {
+  const { t } = useLingui()
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault()
+          onOpen()
+        }
+      }}
+      aria-label={t`Upload ZIP or drag and drop`}
+      className={cn(
+        "group relative mx-auto flex min-h-[300px] w-full max-w-md flex-1 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[24px] border bg-card px-8 py-10 text-center outline-none backdrop-blur-[1px] transition-[border-color,background-color,box-shadow,translate] duration-300 sm:max-h-[380px]",
+        "focus-visible:ring-2 focus-visible:ring-brand-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        hasError
+          ? "border-destructive/50 bg-destructive/5"
+          : "border-border/70 shadow-sm hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md",
+      )}
+    >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 size-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.08] blur-[80px]"
+        style={{ background: "radial-gradient(circle, var(--brand-500) 0%, transparent 68%)" }}
+      />
+      <span aria-hidden className="relative mb-6 block h-[76px] w-[96px]">
+        <span className="absolute inset-x-2.5 bottom-0 h-[62px] translate-y-1 -rotate-6 rounded-lg border bg-card shadow-sm transition-transform duration-300 group-hover:-rotate-[9deg]" />
+        <span className="absolute inset-x-2.5 bottom-0 h-[62px] rotate-3 rounded-lg border bg-card shadow-sm transition-transform duration-300 group-hover:rotate-[6deg]" />
+        <span
+          className={cn(
+            "absolute inset-x-2 bottom-1 grid h-[64px] place-items-center rounded-xl border bg-card shadow-md transition-[translate,border-color,color] duration-300",
+            hasError
+              ? "border-destructive/50 text-destructive"
+              : "text-muted-foreground group-hover:-translate-y-1 group-hover:border-brand-300 group-hover:text-brand-600",
+          )}
+        >
+          {hasError ? <TriangleAlert className="size-6" /> : <FileUp className="size-6" />}
+        </span>
+      </span>
+      <p className="text-[15px] font-semibold text-foreground">
+        {hasError ? <Trans>Choose another archive</Trans> : <Trans>Select a ZIP archive</Trans>}
+      </p>
+      <p className="mt-1.5 max-w-[400px] text-[12.5px] leading-relaxed text-muted-foreground text-pretty">
+        <Trans>Click to browse, or drag and drop a ZIP anywhere in this window.</Trans>
+      </p>
+      <p className="mt-3 text-xs font-medium text-muted-foreground/80">
+        <Trans>ZIP archive · Maximum 512 MiB</Trans>
+      </p>
+      <div className="mt-6 flex flex-wrap justify-center gap-2 text-xs text-muted-foreground">
+        <span className="rounded-full border border-border bg-muted px-2.5 py-1"><Trans>Project backup</Trans></span>
+        <span className="rounded-full border border-border bg-muted px-2.5 py-1"><Trans>Completed book part</Trans></span>
+        <span className="rounded-full border border-border bg-muted px-2.5 py-1"><Trans>Exported ADT Web ZIP</Trans></span>
+      </div>
+    </div>
+  )
+}
 
 export function ImportProject() {
   const { t } = useLingui()
@@ -215,18 +267,15 @@ export function ImportProject() {
         />
       ) : null}
 
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-slate-50/40 p-4 sm:p-6">
-        {/* One size for every step. Sizing the card to its current phase made it
-            jump between selecting, reviewing and importing; the review step needs
-            the most room, so that size is the size. */}
-        <div className="flex h-full max-h-[1040px] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm 2xl:max-w-7xl">
-          <header className="shrink-0 px-6 pt-8 pb-3 text-center">
-            <h1 className="text-2xl font-semibold tracking-[-0.5px] text-slate-950 sm:text-[28px]">
-              <Trans>Import a book</Trans>
-            </h1>
-            <p className="mx-auto mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">
-              <Trans>Bring in an ADT Studio project, a completed book part, or an exported ADT publication.</Trans>
-            </p>
+      <div className="flex min-h-0 flex-1 flex-col bg-background overflow-auto">
+        <header className={cn("shrink-0 px-6 pt-8 pb-2 text-center", ENTER)}>
+          <h1 className="text-2xl font-semibold leading-tight tracking-[-0.75px] text-foreground text-balance sm:text-[30px] sm:leading-9">
+            <Trans>Import a book</Trans>
+          </h1>
+          <p className="mx-auto mt-1.5 max-w-2xl text-sm text-muted-foreground text-pretty">
+            <Trans>Bring in an ADT Studio project, a completed book part, or an exported ADT publication.</Trans>
+          </p>
+          <div className={cn(ENTER, "motion-safe:delay-100")}>
             <ImportProgress
               phase={phase}
               hasPreviewError={Boolean(
@@ -238,143 +287,106 @@ export function ImportProject() {
                 unsupportedAdt || unresolvedActivityCount > 0 || previewValidationInReview
               )}
             />
-          </header>
+          </div>
+        </header>
 
-          <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-6 pb-6 pt-2">
-            <div className="flex min-h-0 w-full flex-1 flex-col">
-              {zipFile ? (
-                <SelectedArchiveBar
-                  file={zipFile}
-                  displaySize={zipFile.size}
-                  disabled={importPending}
-                  onReplace={() => fileInputRef.current?.click()}
-                />
-              ) : null}
-              {statusError ? (
-                <div className="mb-3">
-                  <ImportStatus
-                    error={statusError}
-                    rawError={rawStatusError}
-                  />
-                </div>
-              ) : null}
-              {previewLoading ? (
-                <ArchiveReviewSkeleton />
-              ) : hasPreview && zipFile && preview ? (
-                <div aria-busy={importPending} className="flex min-h-0 flex-1 flex-col">
-                  <ImportReview
-                    key={zipFile.name}
-                    preview={preview}
-                    unresolvedActivityCount={unresolvedActivityCount}
-                    onReviewActivities={() => setActivityDialogOpen(true)}
-                  />
-                </div>
-              ) : (
-                <div className="flex min-h-0 flex-1 flex-col justify-center gap-4">
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => fileInputRef.current?.click()}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault()
-                        fileInputRef.current?.click()
-                      }
-                    }}
-                    aria-label={t`Upload ZIP or drag and drop`}
-                    className={cn(
-                      "group relative mx-auto flex min-h-[300px] w-full max-w-3xl flex-1 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed bg-white px-8 py-10 text-center shadow-sm transition-[border-color,background-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:max-h-[420px]",
-                      friendlyPreviewError
-                        ? "border-red-300 bg-red-50/30 hover:border-red-400 hover:bg-red-50/50"
-                        : "border-slate-300 hover:border-primary/60 hover:bg-primary/[0.025] hover:shadow-md",
-                    )}
-                  >
-                    <span className={cn(
-                      "flex size-[70px] items-center justify-center rounded-[20px] shadow-[0_30px_60px_-20px_rgba(43,127,255,0.25),0_4px_14px_rgba(0,0,0,0.08)] transition-transform duration-200 motion-safe:group-hover:scale-[1.02]",
-                      friendlyPreviewError
-                        ? "bg-red-100 text-red-600"
-                        : "bg-primary text-primary-foreground",
-                    )}>
-                      <Upload className="size-[34px]" />
-                    </span>
-                    <p className="mt-5 text-[19px] font-bold tracking-[-0.01em] text-slate-950">
-                      {friendlyPreviewError
-                        ? <Trans>Choose another archive</Trans>
-                        : <Trans>Select a ZIP archive</Trans>}
-                    </p>
-                    <p className="mt-2 max-w-[400px] text-[13px] leading-relaxed text-slate-600">
-                      <Trans>Click to browse, or drag and drop a ZIP anywhere in this window.</Trans>
-                    </p>
-                    <p className="mt-3 text-xs font-medium text-slate-500">
-                      <Trans>ZIP archive · Maximum 512 MiB</Trans>
-                    </p>
-                    <div className="mt-6 flex flex-wrap justify-center gap-2 text-xs text-slate-600">
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1"><Trans>Project backup</Trans></span>
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1"><Trans>Completed book part</Trans></span>
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1"><Trans>Exported ADT Web ZIP</Trans></span>
-                    </div>
-                  </div>
-                  {!zipFile ? (
-                    <p className="text-center text-xs text-slate-500">
-                      <Trans>Starting from a PDF?</Trans>{" "}
-                      <Link
-                        to="/books/new"
-                        className="font-medium text-primary underline underline-offset-2 hover:text-primary/80"
-                      >
-                        <Trans>Create a new book</Trans>
-                      </Link>
-                    </p>
-                  ) : null}
-                </div>
-              )}
-            </div>
-          </main>
-
-          <footer className="shrink-0 border-t border-slate-200 bg-slate-50/70 px-6 py-4">
-            <div className="flex w-full items-center justify-between gap-4">
-              <Button
-                variant="secondary"
-                onClick={() => navigate({ to: "/" })}
+        <main className={cn("flex min-h-0 flex-1 flex-col overflow-auto px-4 pb-6 pt-4 sm:px-6", ENTER, "motion-safe:delay-150")}>
+          <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col 2xl:max-w-7xl">
+            {zipFile ? (
+              <SelectedArchiveBar
+                file={zipFile}
+                displaySize={zipFile.size}
                 disabled={importPending}
-                className="h-9 border-0 bg-slate-200/70 px-3 text-slate-800 hover:bg-slate-200"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <Trans>Back</Trans>
-              </Button>
-              <Button
-                disabled={
-                  !preview ||
-                  (!isPartImportPreview(preview) && !isAdtBundleImportPreview(preview) && !!preview.validationError) ||
-                  importPending
-                }
-                onClick={unsupportedAdt ? () => fileInputRef.current?.click() : handleImport}
-                className="h-9 border-0 bg-primary px-4 text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              >
-                {importPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" />
-                    <Trans>Importing...</Trans>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4" />
-                    {unsupportedAdt
-                      ? <Trans>Choose repaired ZIP</Trans>
-                      : preview && isAdtBundleImportPreview(preview)
-                        ? unresolvedActivityCount > 0
-                        ? <Trans>Review {unresolvedActivityCount} activities</Trans>
-                        : friendlyImportError
-                          ? <Trans>Try import again</Trans>
-                          : <Trans>Import as new project</Trans>
-                      : preview
-                        ? <Trans>Import as new project</Trans>
-                        : <Trans>Import</Trans>}
-                  </>
-                )}
-              </Button>
-            </div>
-          </footer>
-        </div>
+                onReplace={() => fileInputRef.current?.click()}
+              />
+            ) : null}
+            {statusError ? (
+              <div className="mb-3">
+                <ImportStatus
+                  error={statusError}
+                  rawError={rawStatusError}
+                />
+              </div>
+            ) : null}
+            {previewLoading ? (
+              <ArchiveReviewSkeleton />
+            ) : hasPreview && zipFile && preview ? (
+              <div aria-busy={importPending} className="flex min-h-0 flex-1 flex-col">
+                <ImportReview
+                  key={zipFile.name}
+                  preview={preview}
+                  unresolvedActivityCount={unresolvedActivityCount}
+                  onReviewActivities={() => setActivityDialogOpen(true)}
+                />
+              </div>
+            ) : (
+              <div className="flex min-h-0 flex-1 flex-col justify-center gap-4 py-4">
+                <ArchiveDropZone
+                  hasError={Boolean(friendlyPreviewError)}
+                  onOpen={() => fileInputRef.current?.click()}
+                />
+                {!zipFile ? (
+                  <p className="text-center text-xs text-muted-foreground">
+                    <Trans>Starting from a PDF?</Trans>{" "}
+                    <Link
+                      to="/books/new"
+                      className="font-medium text-brand-600 underline underline-offset-2 transition-colors hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+                    >
+                      <Trans>Create a new book</Trans>
+                    </Link>
+                  </p>
+                ) : null}
+              </div>
+            )}
+          </div>
+        </main>
+
+        <footer className="shrink-0 border-t border-border bg-background px-6 py-4">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 2xl:max-w-7xl">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate({ to: "/" })}
+              disabled={importPending}
+              className="h-10 px-4 font-medium"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <Trans>Back</Trans>
+            </Button>
+            <Button
+              type="button"
+              disabled={
+                !preview ||
+                (!isPartImportPreview(preview) && !isAdtBundleImportPreview(preview) && !!preview.validationError) ||
+                importPending
+              }
+              onClick={unsupportedAdt ? () => fileInputRef.current?.click() : handleImport}
+              className="h-10 min-w-[180px] px-4 font-medium"
+            >
+              {importPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" />
+                  <Trans>Importing...</Trans>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  {unsupportedAdt
+                    ? <Trans>Choose repaired ZIP</Trans>
+                    : preview && isAdtBundleImportPreview(preview)
+                      ? unresolvedActivityCount > 0
+                      ? <Trans>Review {unresolvedActivityCount} activities</Trans>
+                      : friendlyImportError
+                        ? <Trans>Try import again</Trans>
+                        : <Trans>Import as new project</Trans>
+                    : preview
+                      ? <Trans>Import as new project</Trans>
+                      : <Trans>Import</Trans>}
+                </>
+              )}
+            </Button>
+          </div>
+        </footer>
       </div>
     </>
   )

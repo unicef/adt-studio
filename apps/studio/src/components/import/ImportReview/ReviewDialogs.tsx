@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
 
 export function ValidationDialog({
   preview,
@@ -33,16 +32,16 @@ export function ValidationDialog({
             <Trans>Use these file paths and issue codes when repairing the archive.</Trans>
           </DialogDescription>
         </DialogHeader>
-        <div className="min-h-0 overflow-y-auto rounded-lg border border-slate-200">
+        <div className="min-h-0 overflow-y-auto rounded-lg border border-border bg-muted/30">
           {projectError ? (
-            <p className="break-words p-4 font-mono text-xs leading-relaxed text-slate-700">{projectError}</p>
+            <p className="break-words p-4 font-mono text-xs leading-relaxed text-foreground">{projectError}</p>
           ) : (
-            <ul className="divide-y divide-slate-200">
+            <ul className="divide-y divide-border">
               {issues.map((issue, index) => (
                 <li key={`${issue.code}:${issue.pageHref}:${index}`} className="grid gap-1 p-4 text-xs sm:grid-cols-[minmax(8rem,0.45fr)_minmax(0,1fr)_auto] sm:gap-4">
-                  <span className="font-mono font-semibold text-slate-900">{issue.pageHref}</span>
-                  <span className="break-words text-slate-600">{issue.detail ?? issue.code}</span>
-                  <code className="text-[10px] text-slate-500">{issue.code}</code>
+                  <span className="font-mono font-semibold text-foreground">{issue.pageHref}</span>
+                  <span className="break-words text-muted-foreground">{issue.detail ?? issue.code}</span>
+                  <code className="text-[10px] text-muted-foreground/80">{issue.code}</code>
                 </li>
               ))}
             </ul>
@@ -82,7 +81,7 @@ export function GuideDialog({
             </CopyTextButton>
           ) : null}
         </div>
-        <pre className="min-h-0 overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-4 text-[11px] leading-relaxed text-slate-100">
+        <pre className="min-h-0 overflow-auto rounded-lg border border-zinc-800 bg-zinc-950 p-4 text-[11px] leading-relaxed text-zinc-100">
           <code>{preview.agentGuide.currentGuide}</code>
         </pre>
       </DialogContent>

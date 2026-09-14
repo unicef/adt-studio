@@ -1,5 +1,4 @@
-import { Trans, useLingui } from "@lingui/react/macro"
-import { Check } from "lucide-react"
+import { useLingui } from "@lingui/react/macro"
 
 import {
   Select,
@@ -78,9 +77,9 @@ export function ActivityClassificationSelect({
       <SelectTrigger
         aria-label={t`Classification for ${item.href}`}
         className={cn(
-          "h-10 w-full rounded-lg border-slate-300 bg-white text-sm shadow-sm hover:border-primary/40 data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/15",
-          hasSelection && value === "activity_quiz" && "text-orange-700",
-          hasSelection && value !== null && value !== undefined && value !== "activity_quiz" && "text-violet-800",
+          "h-10 w-full rounded-lg border-input bg-background text-sm shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-primary/40 data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/15",
+          hasSelection && value === "activity_quiz" && "text-orange-700 dark:text-orange-300",
+          hasSelection && value !== null && value !== undefined && value !== "activity_quiz" && "text-violet-800 dark:text-violet-300",
         )}
       >
         <SelectValue placeholder={t`Choose classification`}>
@@ -103,15 +102,15 @@ export function ActivityClassificationSelect({
             className={cn(
               "py-2.5 text-sm",
               type === "activity_quiz"
-                ? "text-orange-700 focus:bg-orange-50 focus:text-orange-800"
-                : "text-violet-800 focus:bg-violet-50 focus:text-violet-900",
+                ? "text-orange-700 focus:bg-orange-500/10 focus:text-orange-800 dark:text-orange-300 dark:focus:text-orange-200"
+                : "text-violet-800 focus:bg-violet-500/10 focus:text-violet-900 dark:text-violet-300 dark:focus:text-violet-200",
             )}
           >
             <ClassificationOption type={type} label={activityTypeLabel(type)} />
           </SelectItem>
         ))}
         <SelectSeparator />
-        <SelectItem value={notAnActivityValue} className="py-2.5 text-sm text-slate-700 focus:bg-slate-100">
+        <SelectItem value={notAnActivityValue} className="py-2.5 text-sm text-foreground focus:bg-muted">
           <ClassificationOption type={null} label={t`Not an activity`} />
         </SelectItem>
       </SelectContent>

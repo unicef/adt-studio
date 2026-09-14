@@ -1,8 +1,7 @@
 import { useState } from "react"
 import { Trans } from "@lingui/react/macro"
-import { AlertCircle, Loader2 } from "lucide-react"
+import { AlertCircle } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -11,7 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { FriendlyError } from "@/hooks/use-archive-error"
-import { cn } from "@/lib/utils"
 
 export function ImportStatus({
   error,
@@ -24,12 +22,12 @@ export function ImportStatus({
 
   return (
     <div aria-live="polite">
-      <div className="flex min-h-[56px] items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-red-800 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200">
-        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+      <div className="flex min-h-[56px] items-start gap-3 rounded-lg border border-red-400/40 bg-red-500/10 px-4 py-2.5 text-red-800 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200 dark:text-red-200">
+        <AlertCircle className="mt-0.5 size-4 shrink-0 text-red-500" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">{error.title}</p>
           {error.hint ? (
-            <p className="mt-0.5 max-w-3xl text-xs leading-relaxed opacity-80">{error.hint}</p>
+            <p className="mt-0.5 max-w-3xl text-xs leading-relaxed text-pretty opacity-80">{error.hint}</p>
           ) : null}
           {rawError ? (
             <div className="mt-1.5 text-xs">
@@ -37,7 +35,7 @@ export function ImportStatus({
                 type="button"
                 onClick={() => setShowDetails(true)}
                 aria-haspopup="dialog"
-                className="inline-flex items-center gap-1 font-medium underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+                className="inline-flex min-h-6 items-center gap-1 rounded-sm font-medium underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <Trans>Show error details</Trans>
               </button>
@@ -52,7 +50,7 @@ export function ImportStatus({
               <DialogTitle><Trans>Error details</Trans></DialogTitle>
               <DialogDescription>{error.hint}</DialogDescription>
             </DialogHeader>
-            <p className="max-h-[50vh] overflow-auto break-words rounded-lg border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-relaxed text-slate-700">
+            <p className="max-h-[50vh] overflow-auto break-words rounded-lg border border-border bg-muted p-4 font-mono text-xs leading-relaxed text-foreground">
               {rawError}
             </p>
           </DialogContent>

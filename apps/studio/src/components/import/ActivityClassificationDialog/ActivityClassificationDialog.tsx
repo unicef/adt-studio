@@ -16,12 +16,10 @@ import { cn } from "@/lib/utils"
 
 import { ActivityClassificationSelect } from "./ActivityClassificationSelect"
 import {
-  activityTypeVisual,
   hasDecision,
   useActivityReasonLabel,
   useActivityTypeLabel,
   type ActivityReview,
-  type ActivityReviewItem,
 } from "./activity-labels"
 
 export function ActivityClassificationDialog({
@@ -71,10 +69,10 @@ export function ActivityClassificationDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[min(820px,calc(100vh-2rem))] w-[calc(100vw-2rem)] max-w-6xl flex-col gap-0 overflow-hidden p-0">
-        <DialogHeader className="shrink-0 gap-1 border-b border-slate-200 px-6 py-5 pr-16 text-left">
+        <DialogHeader className="shrink-0 gap-1 border-b border-border px-6 py-5 pr-16 text-left">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100 text-violet-700">
-              <Puzzle className="h-4 w-4" />
+            <span className="flex size-8 items-center justify-center rounded-lg bg-violet-500/15 text-violet-700 dark:text-violet-300">
+              <Puzzle className="size-4" />
             </span>
             <div>
               <DialogTitle className="text-base"><Trans>Review activity pages</Trans></DialogTitle>
@@ -90,23 +88,24 @@ export function ActivityClassificationDialog({
               aria-valuemin={0}
               aria-valuemax={items.length}
               aria-valuenow={classifiedCount}
-              className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100"
+              className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
             >
               <div
-                className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
+                className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out motion-reduce:transition-none"
                 style={{ width: `${items.length > 0 ? (classifiedCount / items.length) * 100 : 100}%` }}
               />
             </div>
-            <span className="shrink-0 text-xs font-medium text-slate-600">
+            <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
               <Trans>{classifiedCount} of {items.length} classified</Trans>
             </span>
           </div>
         </DialogHeader>
 
         <div className="flex min-h-0 flex-1">
-          <aside className="flex w-72 shrink-0 flex-col border-r border-slate-200 bg-slate-50/70">
-            <div className="border-b border-slate-200 px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          <aside className="flex w-72 shrink-0 flex-col border-r border-border bg-muted/40">
+            <div className="border-b border-border px-4 py-3">
+              <p className="flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                <span className="h-px w-6 shrink-0 bg-current opacity-50" />
                 <Trans>Pages to review</Trans>
               </p>
             </div>
@@ -125,21 +124,21 @@ export function ActivityClassificationDialog({
                       className={cn(
                         "h-auto w-full justify-start whitespace-normal rounded-lg border px-3 py-2.5 text-left shadow-none",
                         selected
-                          ? "border-primary/30 bg-primary/5 text-slate-950 hover:bg-primary/5"
-                          : "border-transparent bg-transparent text-slate-700 hover:border-slate-200 hover:bg-white",
+                          ? "border-primary/30 bg-primary/5 text-foreground hover:bg-primary/5"
+                          : "border-transparent bg-transparent text-foreground/80 hover:border-border hover:bg-card",
                       )}
                     >
                       <span className={cn(
-                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-md",
+                        "flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold tabular-nums transition-colors duration-200",
                         classified
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-amber-100 text-amber-700",
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                          : "bg-amber-500/15 text-amber-700 dark:text-amber-400",
                       )}>
-                        {classified ? <Check className="h-3.5 w-3.5" /> : <span>{index + 1}</span>}
+                        {classified ? <Check className="size-3.5" /> : <span>{index + 1}</span>}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-xs font-semibold">{item.href}</span>
-                        <span className="mt-0.5 block truncate text-[11px] font-normal text-slate-500">
+                        <span className="mt-0.5 block truncate text-[11px] font-normal text-muted-foreground">
                           {classified
                             ? decisions[item.sectionId] === null
                               ? t`Not an activity`
@@ -155,42 +154,42 @@ export function ActivityClassificationDialog({
           </aside>
 
           {activeItem ? (
-            <section className="flex min-w-0 flex-1 flex-col bg-white">
-              <div className="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200 px-5 py-3">
+            <section className="flex min-w-0 flex-1 flex-col bg-background">
+              <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-5 py-3">
                 <div className="flex min-w-0 items-center gap-2">
-                  <FileText className="h-4 w-4 shrink-0 text-slate-500" />
-                  <span className="truncate text-sm font-medium text-slate-800">{activeItem.href}</span>
+                  <FileText className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate text-sm font-medium text-foreground">{activeItem.href}</span>
                 </div>
-                <span className="shrink-0 text-xs text-slate-500">
+                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                   <Trans>Page {activeIndex + 1} of {items.length}</Trans>
                 </span>
               </div>
 
-              <div className="min-h-0 flex-1 bg-slate-100 p-4">
+              <div className="min-h-0 flex-1 bg-muted p-4">
                 {activeItem.previewHtml ? (
                   <iframe
                     srcDoc={activeItem.previewHtml}
                     sandbox=""
                     title={t`Preview of ${activeItem.href}`}
-                    className="h-full w-full rounded-lg border border-slate-200 bg-white shadow-sm"
+                    className="h-full w-full rounded-lg border border-border bg-white shadow-sm"
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white text-sm text-slate-500">
+                  <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-card text-sm text-muted-foreground">
                     <Trans>This page is unavailable in the imported archive.</Trans>
                   </div>
                 )}
               </div>
 
-              <div className="grid shrink-0 gap-4 border-t border-slate-200 bg-white px-5 py-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-end">
+              <div className="grid shrink-0 gap-4 border-t border-border bg-background px-5 py-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-end">
                 <div className="flex min-w-0 items-start gap-2.5">
-                  <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                  <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
                   <div>
-                    <p className="text-xs font-semibold text-slate-800"><Trans>Why this needs review</Trans></p>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                    <p className="text-xs font-semibold text-foreground"><Trans>Why this needs review</Trans></p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground text-pretty">
                       {activityReasonLabel(activeItem.reasons[0])}
                     </p>
                     {activeItem.textPreview ? (
-                      <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-slate-500">
+                      <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground/80">
                         {activeItem.textPreview}
                       </p>
                     ) : null}
@@ -198,7 +197,7 @@ export function ActivityClassificationDialog({
                 </div>
 
                 <div>
-                  <p className="mb-1.5 text-xs font-semibold text-slate-700">
+                  <p className="mb-1.5 text-xs font-semibold text-foreground">
                     <Trans>Classification</Trans>
                   </p>
                   <ActivityClassificationSelect
@@ -214,7 +213,7 @@ export function ActivityClassificationDialog({
           ) : null}
         </div>
 
-        <DialogFooter className="shrink-0 flex-row items-center justify-between space-x-0 border-t border-slate-200 bg-slate-50/80 px-5 py-3">
+        <DialogFooter className="shrink-0 flex-row items-center justify-between space-x-0 border-t border-border bg-muted/40 px-5 py-3">
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -223,7 +222,7 @@ export function ActivityClassificationDialog({
               disabled={activeIndex === 0}
               onClick={() => selectItem(activeIndex - 1)}
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="size-4" />
               <Trans>Previous</Trans>
             </Button>
             <Button
@@ -234,7 +233,7 @@ export function ActivityClassificationDialog({
               onClick={() => selectItem(activeIndex + 1)}
             >
               <Trans>Next</Trans>
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="size-4" />
             </Button>
           </div>
           <Button
@@ -242,9 +241,8 @@ export function ActivityClassificationDialog({
             size="sm"
             disabled={!allClassified}
             onClick={() => onOpenChange(false)}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            <Check className="h-4 w-4" />
+            <Check className="size-4" />
             {allClassified ? <Trans>Finish review</Trans> : <Trans>Classify every page</Trans>}
           </Button>
         </DialogFooter>

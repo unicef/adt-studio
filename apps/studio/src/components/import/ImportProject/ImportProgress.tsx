@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro"
-import { AlertCircle, Check, Loader2 } from "lucide-react"
+import { AlertCircle, Check } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -33,45 +33,45 @@ export function ImportProgress({
               <span
                 aria-hidden="true"
                 className={cn(
-                  "absolute left-1/2 top-3 h-px w-full transition-colors duration-150",
-                  complete ? "bg-primary" : "bg-slate-200",
+                  "absolute left-1/2 top-3 h-px w-full transition-colors duration-300",
+                  complete ? "bg-primary" : "bg-border",
                 )}
               />
             ) : null}
             <span
               className={cn(
-                "relative z-10 flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors duration-150",
+                "relative z-10 flex size-6 items-center justify-center rounded-full border text-[11px] font-semibold tabular-nums transition-[color,background-color,border-color,box-shadow] duration-300",
                 failed
-                  ? "border-red-500 bg-red-50 text-red-600"
+                  ? "border-destructive bg-destructive/10 text-destructive"
                   : needsAttention
-                    ? "border-amber-500 bg-amber-50 text-amber-700 ring-4 ring-amber-100/70"
+                    ? "border-amber-500 bg-amber-500/10 text-amber-700 ring-4 ring-amber-500/15 dark:text-amber-400"
                   : complete
                     ? "border-primary bg-primary text-primary-foreground"
                     : current
-                      ? "border-primary bg-white text-primary ring-4 ring-primary/15"
-                      : "border-slate-300 bg-white text-slate-400",
+                      ? "border-primary bg-background text-primary ring-4 ring-primary/15"
+                      : "border-border bg-background text-muted-foreground",
               )}
               aria-current={current ? "step" : undefined}
             >
               {failed || needsAttention ? (
                 <>
-                  <AlertCircle aria-hidden="true" className="h-3 w-3" />
+                  <AlertCircle aria-hidden="true" className="size-3" />
                   <span className="sr-only">
                     {failed ? <Trans>Failed</Trans> : <Trans>Needs attention</Trans>}
                   </span>
                 </>
               ) : complete ? (
                 <>
-                  <Check aria-hidden="true" className="h-3 w-3" />
+                  <Check aria-hidden="true" className="size-3" />
                   <span className="sr-only"><Trans>Completed</Trans></span>
                 </>
               ) : index + 1}
             </span>
             <span className={cn(
-              "relative z-10 whitespace-nowrap text-xs",
-              current || complete ? "font-medium text-slate-800" : "text-slate-500",
-              failed && "font-medium text-red-700",
-              needsAttention && "font-medium text-amber-800",
+              "relative z-10 whitespace-nowrap text-xs transition-colors duration-300",
+              current || complete ? "font-medium text-foreground" : "text-muted-foreground",
+              failed && "font-medium text-destructive",
+              needsAttention && "font-medium text-amber-800 dark:text-amber-300",
             )}>
               {label}
             </span>
