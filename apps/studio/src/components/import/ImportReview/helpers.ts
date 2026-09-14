@@ -64,9 +64,10 @@ export function needsReview(preview: AnyImportPreview, unresolvedActivityCount: 
 export type FeatureStatus = "recovered" | "needs-regeneration" | "available"
 
 /** The API reports what the import will actually produce. A published archive
- * can *use* a feature whose pipeline data cannot be rebuilt from it (Easy Read,
- * quizzes, sign language) — those have to be generated again in Studio, so they
- * must not be presented as carried over. */
+ * can *use* a feature whose pipeline data it does not carry (a quiz without its
+ * answer key, an Easy Read or sign-language flag with no texts or videos behind
+ * it) — those have to be generated again in Studio, so they must not be
+ * presented as carried over. */
 export function featureStatus(preview: AnyImportPreview, slug: string): FeatureStatus {
   if (isPartImportPreview(preview)) return "available"
   if (isAdtBundleImportPreview(preview)) {

@@ -4,4 +4,6 @@ export { seedImportedStoryboard, warnOnUndetectedFixedLayout } from "./storyboar
 export { seedImportedFeatures } from "./features.js"
 export { seedImportedImages } from "./images.js"
 export { seedImportedSpeech } from "./speech.js"
+export { seedImportedEasyRead } from "./easy-read.js"
+export { seedImportedSignLanguage } from "./sign-language.js"
 export type { ImportedAdtSeedResult } from "./types.js"

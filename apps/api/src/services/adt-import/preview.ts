@@ -12,22 +12,24 @@ import {
   hasSourceChanges,
   recoveredPageCount,
 } from "./catalog.js"
+import { recoverableEasyReadIds } from "./easy-read.js"
 import { AdtImportError } from "./error.js"
 import { createAdtImportRepairGuide } from "./repair-guide.js"
 import { recoverImportedQuizzes } from "./quiz.js"
+import { recoverImportedSignLanguageVideos } from "./sign-language.js"
 
 /**
  * How each pipeline feature will actually come out of this archive.
  *
  * The archive's `assets/config.json` says which features its *runtime* had
  * switched on, which is not the same question as whether the importer can
- * rebuild them as pipeline entities. Easy Read and sign language have no
- * recoverable entity representation at all: their runtime data is baked into the
- * published bundle, so the import drops them and `packageAdtWeb` writes
- * `easyRead: false` on the way back out. Reporting them as "included" promised
- * the user something the exporter then removed. Quizzes are the opposite case:
- * they look baked-in but rebuild cleanly, so they are judged on whether the
- * rebuild actually succeeded rather than on the runtime flag.
+ * rebuild them as pipeline entities. Easy Read lives in `texts.json` as
+ * `<id>_easy_read` companions and sign language as `videos.json` plus the video
+ * files, so both are judged on what the archive actually carries; the runtime
+ * flag alone only earns a "needs-regeneration" entry. Reporting a flag as
+ * "included" promised the user something `packageAdtWeb` then switched off on
+ * the way back out. Quizzes look baked-in but rebuild cleanly, so they too are
+ * judged on whether the rebuild actually succeeded rather than on the flag.
  *
  * `recovered` means an entity is seeded and the feature works after import.
  * `needs-regeneration` means the source publication had it, but it has to be
@@ -45,6 +47,8 @@ export function planImportedFeatureRecovery(
     declaredQuizCount: number
     recoverableQuizCount: number
     speechRecoverable: boolean
+    easyReadEntryCount: number
+    signLanguageVideoCount: number
   },
 ): Record<string, AdtImportFeatureRecovery> {
   const plan: Record<string, AdtImportFeatureRecovery> = {}
@@ -69,8 +73,10 @@ export function planImportedFeatureRecovery(
       ? "recovered"
       : "needs-regeneration"
   }
-  if (bundle.runtimeFeatures.easyRead) plan["easy-read"] = "needs-regeneration"
-  if (bundle.runtimeFeatures.signLanguage) plan["sign-language"] = "needs-regeneration"
+  if (counts.easyReadEntryCount > 0) plan["easy-read"] = "recovered"
+  else if (bundle.runtimeFeatures.easyRead) plan["easy-read"] = "needs-regeneration"
+  if (counts.signLanguageVideoCount > 0) plan["sign-language"] = "recovered"
+  else if (bundle.runtimeFeatures.signLanguage) plan["sign-language"] = "needs-regeneration"
   return plan
 }
 
@@ -175,6 +181,11 @@ export function previewAdtRecoveryImport(
       declaredQuizCount: recoveredQuizzes.declaredCount,
       recoverableQuizCount: recoveredQuizzes.quizzes.length,
       speechRecoverable: hasRecoverableSpeech(bundle, files, contentChanged),
+      easyReadEntryCount: recoverableEasyReadIds(
+        sourceTexts,
+        new Set(catalog.entries.map((entry) => entry.id)),
+      ).length,
+      signLanguageVideoCount: recoverImportedSignLanguageVideos(bundle, files).length,
     }),
     agentGuide: createAdtImportRepairGuide(bundle, compatibility, template, activityReview),
   }

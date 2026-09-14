@@ -344,3 +344,47 @@ export function makeFixedLayoutBundle(): Buffer {
     ),
   }))
 }
+
+/** The unchanged-catalog archive published with Easy Read and sign language:
+ * an `_easy_read` companion text, a page-section video, a glossary-term video,
+ * and a video pinned to a section this archive does not have. */
+export function makeBundleWithEasyReadAndSignLanguage(): Buffer {
+  const files = unzipSync(makeBundleWithUnchangedHtmlCatalog())
+  files["assets/config.json"] = json({
+    title: "Hyena and Raven",
+    features: { readAloud: true, highlight: true, easyRead: true, signLanguage: true },
+  })
+  files["content/i18n/en/texts.json"] = json({
+    pg001_n001: "Edited outside Studio",
+    "new-unstable-id": "New text without a catalog id",
+    pg001_im001: "A raven",
+    gl001: "Hyena",
+    gl001_def: "An animal",
+    pg001_n001_easy_read: "Simple text",
+  })
+  files["content/i18n/es/texts.json"] = json({
+    pg001_n001: "Texto anterior",
+    pg001_n002: "Eliminado fuera de Studio",
+    gl001: "Hiena",
+    gl001_def: "Un animal",
+    pg001_n001_easy_read: "Texto simple",
+  })
+  files["content/i18n/en/glossary.json"] = json({
+    Hyena: {
+      word: "Hyena",
+      definition: "An animal",
+      variations: [],
+      emoji: "",
+      id: "gl001",
+      video: "content/i18n/en/video/sl_gl001.mp4",
+    },
+  })
+  files["content/i18n/en/videos.json"] = json({
+    pg001_sec001: "sl_pg001_sec001.mp4",
+    pg002_sec001: "sl_pg002_sec001.mp4",
+  })
+  files["content/i18n/en/video/sl_pg001_sec001.mp4"] = strToU8("page video")
+  files["content/i18n/en/video/sl_pg002_sec001.mp4"] = strToU8("orphan video")
+  files["content/i18n/en/video/sl_gl001.mp4"] = strToU8("glossary video")
+  return Buffer.from(zipSync(files))
+}

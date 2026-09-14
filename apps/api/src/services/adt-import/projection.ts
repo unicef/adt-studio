@@ -9,8 +9,10 @@ import { analyzeImportedActivities } from "./activity-reconciliation.js"
 import { AdtImportError } from "./error.js"
 import { applyFixedLayoutBookConfig } from "./fixed-layout.js"
 import {
+  seedImportedEasyRead,
   seedImportedFeatures,
   seedImportedImages,
+  seedImportedSignLanguage,
   seedImportedStoryboard,
   seedPages,
   warnOnUndetectedFixedLayout,
@@ -35,7 +37,7 @@ function readCurrentImportedAdtSource(label: string, booksDir: string): Buffer {
   }
 }
 
-export const ADT_IMPORT_PROJECTION_VERSION = 4
+export const ADT_IMPORT_PROJECTION_VERSION = 5
 
 
 /**
@@ -128,8 +130,11 @@ export function ensureImportedAdtProjectProjection(label: string, booksDir: stri
     activityReview,
     activityDecisions,
   )
-  seedImportedFeatures(safeLabel, booksDir, bundle, new Date().toISOString())
+  const generatedAt = new Date().toISOString()
+  seedImportedFeatures(safeLabel, booksDir, bundle, generatedAt)
+  seedImportedEasyRead(safeLabel, booksDir, bundle, generatedAt)
   seedImportedImages(safeLabel, booksDir, bundle, files)
+  seedImportedSignLanguage(safeLabel, booksDir, bundle, files)
   warnOnUndetectedFixedLayout(bundle, storyboard.fixedLayoutPageCount)
   if (storyboard.fixedLayoutPageCount > 0) {
     applyFixedLayoutBookConfig(bookDir)
