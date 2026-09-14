@@ -19,6 +19,7 @@ export const STAGE_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
   "easy-read": msg`Easy Read`,
   translate: msg`Language`,
   speech: msg`Speech`,
+  package: msg`Package`,
   "sign-language": msg`Sign Language`,
   validation: msg`Validation`,
   preview: msg`Preview`,

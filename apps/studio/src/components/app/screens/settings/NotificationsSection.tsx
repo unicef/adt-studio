@@ -2,18 +2,20 @@ import type { ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
-import { Bell, CheckCircle2, Volume2, Timer, X } from "lucide-react"
+import { Bell, CheckCircle2, Volume2, Timer, X, MonitorSmartphone } from "lucide-react"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import { useNotificationPrefs, type ToastPosition } from "@/hooks/use-notification-prefs"
 import { usePlatform, type DesktopOS } from "@/hooks/use-platform"
-import { cn } from "@/lib/utils"
+import { cn, isElectron } from "@/lib/utils"
 import { SettingsHeading, SettingsLead } from "./ui"
 import { SETTINGS_ANCHORS } from "./nav"
 
 const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]"
+
+const TEST_BUTTON = "h-auto min-h-9 w-full whitespace-normal py-1.5 text-center leading-tight"
 
 const POSITIONS: { key: ToastPosition; label: MessageDescriptor }[] = [
   { key: "top-left", label: msg`Top left` },
@@ -143,12 +145,29 @@ export function NotificationsSection() {
   const { i18n, t } = useLingui()
   const os = usePlatform()
   const [prefs, setPrefs] = useNotificationPrefs()
+  // The web build has no bridge to raise OS notifications at all.
+  const showOsAlerts = isElectron()
 
 
   const sendTestToast = () => {
     toast.success(t`Test notification`, {
       description: t`This is how notifications will look and sound.`,
     })
+  }
+
+  // Ignores the Desktop alerts switch on purpose: an explicit test is the only
+  // way to discover whether the OS granted this app notification permission.
+  const sendTestDesktopAlert = async () => {
+    const supported = await window.api?.notifications
+      ?.show({
+        title: t`Test notification`,
+        body: t`Desktop alerts are working.`,
+      })
+      .catch(() => false)
+
+    if (!supported) {
+      toast.error(t`This system cannot show desktop notifications.`)
+    }
   }
 
   return (
@@ -214,7 +233,7 @@ export function NotificationsSection() {
         </div>
       </section>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className={cn("mt-4 grid gap-3", showOsAlerts ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3")}>
         <ControlTile
           icon={Volume2}
           anchorId={SETTINGS_ANCHORS.notificationSound}
@@ -251,20 +270,43 @@ export function NotificationsSection() {
           />
         </ControlTile>
 
+        {showOsAlerts && (
+          <ControlTile
+            icon={MonitorSmartphone}
+            anchorId={SETTINGS_ANCHORS.notificationOsAlerts}
+            title={<Trans>Desktop alerts</Trans>}
+            description={<Trans>A system notification when the window is in the background.</Trans>}
+          >
+            <SegmentedControl
+              className="w-full"
+              options={[
+                { value: "off", label: t`Off` },
+                { value: "on", label: t`On` },
+              ]}
+              value={prefs.osNotifications ? "on" : "off"}
+              onValueChange={(v) => setPrefs({ osNotifications: v === "on" })}
+            />
+          </ControlTile>
+        )}
+
         <ControlTile
           icon={Bell}
           anchorId={SETTINGS_ANCHORS.notificationTest}
           title={<Trans>Try it out</Trans>}
-          description={<Trans>Fire a real notification with these settings.</Trans>}
+          description={<Trans>Fire a real notification to check each channel.</Trans>}
         >
-          <Button
-            size="sm"
-            onClick={sendTestToast}
-            className="w-full"
-          >
-            <Bell className="size-3.5" />
-            <Trans>Send test</Trans>
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button size="sm" onClick={sendTestToast} className={TEST_BUTTON}>
+              <Bell className="size-3.5" />
+              <Trans>In-app toast</Trans>
+            </Button>
+            {showOsAlerts && (
+              <Button size="sm" variant="outline" onClick={() => void sendTestDesktopAlert()} className={TEST_BUTTON}>
+                <MonitorSmartphone className="size-3.5" />
+                <Trans>Desktop alert</Trans>
+              </Button>
+            )}
+          </div>
         </ControlTile>
       </div>
     </>

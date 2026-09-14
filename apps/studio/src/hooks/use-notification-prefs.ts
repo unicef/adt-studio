@@ -18,6 +18,8 @@ export interface NotificationPrefs {
   sound: boolean
   autoDismiss: boolean
   autoDelay: number
+  /** Whether a native OS notification fires when the desktop window is unfocused. */
+  osNotifications: boolean
 }
 
 const STORAGE_KEY = "adt.notifications"
@@ -27,6 +29,7 @@ const DEFAULTS: NotificationPrefs = {
   sound: true,
   autoDismiss: true,
   autoDelay: 4,
+  osNotifications: true,
 }
 
 function read(): NotificationPrefs {
@@ -43,6 +46,8 @@ function read(): NotificationPrefs {
       autoDelay: AUTO_DISMISS_DELAYS.includes(parsed.autoDelay as (typeof AUTO_DISMISS_DELAYS)[number])
         ? (parsed.autoDelay as number)
         : DEFAULTS.autoDelay,
+      osNotifications:
+        typeof parsed.osNotifications === "boolean" ? parsed.osNotifications : DEFAULTS.osNotifications,
     }
   } catch {
     return DEFAULTS

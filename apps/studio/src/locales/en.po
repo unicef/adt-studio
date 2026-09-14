@@ -503,6 +503,18 @@ msgstr "{sections} sections"
 msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
 msgstr "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
 
+msgid "{stageLabel} completed"
+msgstr "{stageLabel} completed"
+
+msgid "{stageLabel} completed in {label}"
+msgstr "{stageLabel} completed in {label}"
+
+msgid "{stageLabel} failed"
+msgstr "{stageLabel} failed"
+
+msgid "{stageLabel} failed in {label}"
+msgstr "{stageLabel} failed in {label}"
+
 msgid "{stageLabel} isn't ready yet — every section in the Storyboard is currently pruned, so there's nothing to run on. Restore at least one section in Storyboard to continue."
 msgstr "{stageLabel} isn't ready yet — every section in the Storyboard is currently pruned, so there's nothing to run on. Restore at least one section in Storyboard to continue."
 
@@ -721,6 +733,9 @@ msgstr "A style guide provides consistent HTML and CSS patterns that the LLM use
 
 msgid "A supermarket aisle with shelves of colorful cereal boxes and packaged goods, lit by overhead lights, with a single shopper in the distance."
 msgstr "A supermarket aisle with shelves of colorful cereal boxes and packaged goods, lit by overhead lights, with a single shopper in the distance."
+
+msgid "A system notification when the window is in the background."
+msgstr "A system notification when the window is in the background."
 
 msgid "A table-filling activity."
 msgstr "A table-filling activity."
@@ -3144,6 +3159,15 @@ msgstr "Deselect all"
 msgid "Desktop"
 msgstr "Desktop"
 
+msgid "Desktop alert"
+msgstr "Desktop alert"
+
+msgid "Desktop alerts"
+msgstr "Desktop alerts"
+
+msgid "Desktop alerts are working."
+msgstr "Desktop alerts are working."
+
 msgid "Despite the inclement weather, the expedition pressed on toward the summit, undeterred by the mounting obstacles in their path."
 msgstr "Despite the inclement weather, the expedition pressed on toward the summit, undeterred by the mounting obstacles in their path."
 
@@ -3987,8 +4011,11 @@ msgstr "Final Page"
 msgid "Finish signing in with ChatGPT in the browser window that just opened."
 msgstr "Finish signing in with ChatGPT in the browser window that just opened."
 
-msgid "Fire a real notification with these settings."
-msgstr "Fire a real notification with these settings."
+msgid "Fire a real notification to check each channel."
+msgstr "Fire a real notification to check each channel."
+
+#~ msgid "Fire a real notification with these settings."
+#~ msgstr "Fire a real notification with these settings."
 
 msgid "First images from the deep-field telescope."
 msgstr "First images from the deep-field telescope."
@@ -4839,6 +4866,9 @@ msgstr "In progress"
 
 msgid "in the book"
 msgstr "in the book"
+
+msgid "In-app toast"
+msgstr "In-app toast"
 
 msgid "Include in read-aloud"
 msgstr "Include in read-aloud"
@@ -6411,8 +6441,11 @@ msgstr "Nothing to show"
 msgid "Notifications"
 msgstr "Notifications"
 
-msgid "notifications toasts alerts sound"
-msgstr "notifications toasts alerts sound"
+#~ msgid "notifications toasts alerts sound"
+#~ msgstr "notifications toasts alerts sound"
+
+msgid "notifications toasts alerts sound desktop system"
+msgstr "notifications toasts alerts sound desktop system"
 
 msgid "Now click the end page."
 msgstr "Now click the end page."
@@ -6685,6 +6718,9 @@ msgstr "Original PDF"
 msgid "Original PDF - {0}"
 msgstr "Original PDF - {0}"
 
+msgid "os native system desktop banner background unfocused"
+msgstr "os native system desktop banner background unfocused"
+
 msgid "Other"
 msgstr "Other"
 
@@ -6759,6 +6795,9 @@ msgstr "p. 7"
 #. placeholder {0}: pageMatch[1]
 msgid "p{0}"
 msgstr "p{0}"
+
+msgid "Package"
+msgstr "Package"
 
 msgid "Package and preview the final ADT web application."
 msgstr "Package and preview the final ADT web application."
@@ -8689,8 +8728,8 @@ msgstr "Self-contained ADT web app"
 msgid "Send a sample notification using these settings."
 msgstr "Send a sample notification using these settings."
 
-msgid "Send test"
-msgstr "Send test"
+#~ msgid "Send test"
+#~ msgstr "Send test"
 
 msgid "Send the neighboring sentence's text alongside each request so ElevenLabs can carry intonation across sentence boundaries. Changing this regenerates ElevenLabs audio on the next run."
 msgstr "Send the neighboring sentence's text alongside each request so ElevenLabs can carry intonation across sentence boundaries. Changing this regenerates ElevenLabs audio on the next run."
@@ -9998,6 +10037,9 @@ msgstr "This section is pruned and isn't rendered."
 
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
+
+msgid "This system cannot show desktop notifications."
+msgstr "This system cannot show desktop notifications."
 
 msgid "This text is only perceptible to assistive technologies."
 msgstr "This text is only perceptible to assistive technologies."
