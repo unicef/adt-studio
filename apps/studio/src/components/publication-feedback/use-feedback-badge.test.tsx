@@ -96,6 +96,9 @@ describe("useFeedbackBadge", () => {
     })
     expect(getPublicationComments).not.toHaveBeenCalled()
     expect(result.current.loaded).toBe(false)
+    /** An unpublished book has nothing to be unavailable *about* — the tile shows no count at
+     *  all there, rather than a dash that implies a number it failed to fetch. */
+    expect(result.current.unavailable).toBe(false)
   })
 
   it("skips the fetch when Cloudflare is not connected", async () => {
@@ -108,6 +111,25 @@ describe("useFeedbackBadge", () => {
       expect(result.current.published).toBe(true)
     })
     expect(getPublicationComments).not.toHaveBeenCalled()
+    await waitFor(() => {
+      expect(result.current.unavailable).toBe(true)
+    })
+  })
+
+  /**
+   * `loaded` alone cannot tell "still arriving" from "will never arrive", and the Open feedback
+   * tile read it as the former: a disconnected account or a worker that refused left a skeleton
+   * pulsing on the dashboard forever.
+   */
+  it("reports the count as unavailable when the list refuses", async () => {
+    getBookPublication.mockResolvedValue(status({ record: publishedRecord() }))
+    getPublicationComments.mockRejectedValue(new Error("nope"))
+    const { result } = renderHook(() => useFeedbackBadge("raven"), { wrapper })
+
+    await waitFor(() => {
+      expect(result.current.unavailable).toBe(true)
+    })
+    expect(result.current.loaded).toBe(false)
   })
 
   it("counts only the open roots once the list answers", async () => {

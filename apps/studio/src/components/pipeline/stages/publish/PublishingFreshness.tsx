@@ -7,6 +7,10 @@ interface PublishingFreshnessProps {
   contentRevision: number | null
   /** The version currently being served. */
   liveVersion: BookPublicationVersionRecord | null
+  /** Whether the publishing service answered. Every "readers are seeing…" sentence below is a
+   *  claim about a service that did not, so when this is false the banner says what this
+   *  machine knows and stops short of speaking for readers. */
+  workerReachable: boolean
 }
 
 /**
@@ -25,8 +29,32 @@ interface PublishingFreshnessProps {
 export function PublishingFreshness({
   contentRevision,
   liveVersion,
+  workerReachable,
 }: PublishingFreshnessProps) {
   const published = liveVersion?.content_revision ?? null
+
+  if (!workerReachable) {
+    const edited = contentRevision !== null && published !== null && contentRevision > published
+    return (
+      <p
+        data-testid="publish-freshness-unreachable"
+        className="flex items-start gap-2 rounded-xl border bg-muted/30 px-3.5 py-2.5 text-xs leading-5 text-muted-foreground"
+      >
+        <PencilLine className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+        {edited ? (
+          <Trans>
+            Service not answering, so what readers see can't be checked. You have edited this
+            book since the last update.
+          </Trans>
+        ) : (
+          <Trans>
+            Service not answering, so what readers see can't be checked. Nothing on this machine
+            has changed since the last update.
+          </Trans>
+        )}
+      </p>
+    )
+  }
 
   if (contentRevision === null || published === null) {
     return (
