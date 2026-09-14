@@ -203,6 +203,79 @@ export function readPageManifest(bookDir: string): PublicationPageEntryType[] {
   return parsed.data
 }
 
+/** `features.comments` is a publish-only capability. Keep it out of the author's local export,
+ * but enable it in the bytes declared and uploaded to the publication worker. */
+export const PUBLISH_CONFIG_RELATIVE_PATH = path.join("adt", "assets", "config.json")
+export const PUBLISH_PRELOADER_RELATIVE_PATH = path.join("adt", "assets", "offline-preloader.js")
+
+const PRELOADER_CONFIG_KEY = '"./assets/config.json":'
+
+function inlineFeaturesComments(
+  source: string,
+  originalConfig: unknown,
+  patchedConfig: unknown,
+): string | null {
+  const needle = `${PRELOADER_CONFIG_KEY}${JSON.stringify(originalConfig)}`
+  if (!source.includes(needle)) return null
+  return source.replace(needle, `${PRELOADER_CONFIG_KEY}${JSON.stringify(patchedConfig)}`)
+}
+
+async function withPublishConfig<T>(bookDir: string, run: () => Promise<T>): Promise<T> {
+  const configPath = path.join(bookDir, PUBLISH_CONFIG_RELATIVE_PATH)
+  if (!fs.existsSync(configPath)) {
+    throw new PublishStepError(
+      "package_failed",
+      "package",
+      "The web export produced no assets/config.json — run the pipeline for this book first",
+    )
+  }
+
+  const original = fs.readFileSync(configPath)
+  let parsed: Record<string, unknown>
+  try {
+    parsed = JSON.parse(original.toString("utf-8")) as Record<string, unknown>
+  } catch (error) {
+    throw new PublishStepError(
+      "package_failed",
+      "package",
+      `assets/config.json is not readable JSON: ${describe(error)}`,
+    )
+  }
+
+  const features =
+    typeof parsed.features === "object" && parsed.features !== null
+      ? (parsed.features as Record<string, unknown>)
+      : {}
+  const patched = { ...parsed, features: { ...features, comments: true } }
+
+  const preloaderPath = path.join(bookDir, PUBLISH_PRELOADER_RELATIVE_PATH)
+  const preloaderOriginal = fs.existsSync(preloaderPath) ? fs.readFileSync(preloaderPath) : null
+  let preloaderPatched: string | null = null
+  if (preloaderOriginal) {
+    preloaderPatched = inlineFeaturesComments(
+      preloaderOriginal.toString("utf-8"),
+      parsed,
+      patched,
+    )
+    if (preloaderPatched === null) {
+      throw new PublishStepError(
+        "package_failed",
+        "package",
+        "assets/offline-preloader.js does not inline this book's config.json in the expected shape — the publish flag would be dropped",
+      )
+    }
+  }
+
+  try {
+    fs.writeFileSync(configPath, `${JSON.stringify(patched, null, 2)}\n`)
+    if (preloaderPatched !== null) fs.writeFileSync(preloaderPath, preloaderPatched)
+    return await run()
+  } finally {
+    fs.writeFileSync(configPath, original)
+    if (preloaderOriginal) fs.writeFileSync(preloaderPath, preloaderOriginal)
+  }
+}
+
 const UPLOAD_CONCURRENCY = 6
 
 interface AdtFileEntry {
@@ -528,35 +601,37 @@ async function stageAndCommit(
   emit: PublishEmit,
   sleep: (ms: number) => Promise<void>,
 ): Promise<StagedCommit> {
-  const declared = declareSnapshotFiles(bookDir, files)
-  const started = await uploadWithRetry(
-    () => start(declared),
-    emit,
-    sleep,
-    isRetryableRegistration,
-  )
-
-  try {
-    await uploadStagedFiles(client, started.upload_id, bookDir, declared, emit, sleep)
-    await emit(stepEvent("upload", "done"))
-
-    await emit(stepEvent("register", "running"))
-    const committed = await uploadWithRetry(
-      () => client.commitUpload(started.upload_id),
+  return withPublishConfig(bookDir, async () => {
+    const declared = declareSnapshotFiles(bookDir, files)
+    const started = await uploadWithRetry(
+      () => start(declared),
       emit,
       sleep,
       isRetryableRegistration,
     )
-    return {
-      publication: committed.publication,
-      version: committed.version,
-      url: committed.url,
-      hasAccessCode: committed.has_access_code,
+
+    try {
+      await uploadStagedFiles(client, started.upload_id, bookDir, declared, emit, sleep)
+      await emit(stepEvent("upload", "done"))
+
+      await emit(stepEvent("register", "running"))
+      const committed = await uploadWithRetry(
+        () => client.commitUpload(started.upload_id),
+        emit,
+        sleep,
+        isRetryableRegistration,
+      )
+      return {
+        publication: committed.publication,
+        version: committed.version,
+        url: committed.url,
+        hasAccessCode: committed.has_access_code,
+      }
+    } catch (error) {
+      await abortQuietly(client, started.upload_id)
+      throw error
     }
-  } catch (error) {
-    await abortQuietly(client, started.upload_id)
-    throw error
-  }
+  })
 }
 
 export async function publishBook(options: PublishBookOptions): Promise<PublishBookResult> {
