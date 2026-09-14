@@ -209,6 +209,34 @@ describe("PUT /api/books/:label/reading-order", () => {
     expect(res.status).toBe(409)
   })
 
+  it("allows a save while a step that cannot move pages is running", async () => {
+    // Captions, glossary, translation and speech only add material to pages
+    // that already have their place. Refusing here — as this used to — failed a
+    // drag the sidebar had not even greyed out, so it looked like a bug.
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.markStepStarted("image-captioning")
+    } finally {
+      storage.close()
+    }
+
+    const res = await put({ items: items([...ALL_IDS].reverse()) })
+    expect(res.status).toBe(200)
+  })
+
+  it("refuses a save while quiz generation is rewriting the quiz slots", async () => {
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.markStepStarted("quiz-generation")
+    } finally {
+      storage.close()
+    }
+
+    const res = await put({ items: items([...ALL_IDS].reverse()) })
+    expect(res.status).toBe(409)
+    expect(await res.text()).toContain("quiz-generation")
+  })
+
   it("versions each save so it can be rolled back", async () => {
     const first = [...ALL_IDS].reverse()
     expect((await put({ items: items(first) })).status).toBe(200)

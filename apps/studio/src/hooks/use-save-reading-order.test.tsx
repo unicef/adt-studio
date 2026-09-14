@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
+import { toast } from "sonner"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { api, type ReadingOrderEntry, type ReadingOrderResponse } from "@/api/client"
 import { readingOrderKey, useSaveReadingOrder, useResetReadingOrder } from "./use-reading-order"
@@ -10,6 +11,20 @@ import { readingOrderKey, useSaveReadingOrder, useResetReadingOrder } from "./us
 vi.mock("@/api/client", () => ({
   api: { updateReadingOrder: vi.fn(), resetReadingOrder: vi.fn() },
 }))
+
+// This file is not compiled with the lingui macro plugin, so the macro has to
+// be stubbed the way the component tests stub it.
+vi.mock("@lingui/react/macro", () => ({
+  useLingui: () => ({
+    t(strings: TemplateStringsArray, ...values: unknown[]) {
+      return strings.reduce(
+        (text, part, i) => text + part + (i < values.length ? String(values[i]) : ""),
+        "",
+      )
+    },
+  }),
+}))
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 
 const label = "test-book"
 
@@ -125,6 +140,23 @@ describe("useSaveReadingOrder", () => {
     const keys = invalidateQueries.mock.calls.map((c) => JSON.stringify(c[0]))
     expect(keys.some((k) => k.includes("text-catalog"))).toBe(false)
     expect(keys.some((k) => k.includes("tts"))).toBe(false)
+  })
+
+  it("says why a save was refused instead of silently sliding the row back", async () => {
+    // The rollback alone reads as the drag having missed. The server's 409
+    // names the steps in the way, so it is the message worth showing.
+    vi.mocked(api.updateReadingOrder).mockRejectedValue(
+      new Error("Cannot change the reading order while these steps are running: web-rendering."),
+    )
+
+    const { result } = setup()
+    result.current.mutate({ items: entries("c b a"), expectedVersion: 4 })
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "Cannot change the reading order while these steps are running: web-rendering.",
+      )
+    })
   })
 
   it("still refreshes after a failed save", async () => {

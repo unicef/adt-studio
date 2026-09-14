@@ -1928,6 +1928,9 @@ msgstr "Plan du livre"
 msgid "Book package ready"
 msgstr "Paquet du livre prêt"
 
+msgid "Book page"
+msgstr "Page du livre"
+
 #. placeholder {0}: String(position)
 msgid "Book page {0}"
 msgstr "Page {0} du livre"
@@ -1959,8 +1962,8 @@ msgstr "Pages du livre. Faites défiler horizontalement pour voir plus."
 msgid "Book part"
 msgstr "Partie du livre"
 
-msgid "Book pg"
-msgstr "Page livre"
+#~ msgid "Book pg"
+#~ msgstr "Page livre"
 
 msgid "Book preview"
 msgstr "Livre aperçu"
@@ -2781,8 +2784,14 @@ msgstr "Impossible de charger les versions."
 msgid "Couldn't read this PDF"
 msgstr "Impossible de lire ce PDF"
 
+msgid "Couldn't restore the original page order. Please try again."
+msgstr "Impossible de restaurer l'ordre d'origine des pages. Veuillez réessayer."
+
 msgid "Couldn't restore v{version}. Please try again."
 msgstr "Impossible de restaurer la v{version}. Veuillez réessayer."
+
+msgid "Couldn't save the new page order. Please try again."
+msgstr "Impossible d'enregistrer le nouvel ordre des pages. Veuillez réessayer."
 
 msgid "Counting occurrences…"
 msgstr "Comptage des occurrences…"
@@ -4184,6 +4193,7 @@ msgid "From page"
 msgstr "De la page"
 
 #. placeholder {0}: String(pageNumber)
+#. placeholder {0}: String(section.pageNumber)
 msgid "From page {0} of the source PDF"
 msgstr "Depuis la page {0} du PDF source"
 
@@ -6966,6 +6976,9 @@ msgstr "Mode de page"
 msgid "Page number"
 msgstr "Numéro de page"
 
+msgid "Page number in the source PDF, which never changes when pages are reordered"
+msgstr "Numéro de page dans le PDF source, qui ne change jamais lors d'une réorganisation"
+
 msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
 msgstr "Numéros de page détectés — ils seront lus à voix haute : {pageNumberPreview}. Tout couper de la synthèse vocale ?"
 
@@ -7119,6 +7132,9 @@ msgstr "Infos PDF"
 
 msgid "PDF order"
 msgstr "Ordre du PDF"
+
+msgid "PDF page"
+msgstr "Page du PDF"
 
 #. placeholder {0}: String(pageNumber)
 msgid "PDF page {0}"
@@ -10151,6 +10167,9 @@ msgstr "Cette section n'a pas encore de rendu de scénarimage"
 
 msgid "This section is pruned and isn't rendered."
 msgstr "Cette section est élaguée et n'est pas rendue."
+
+msgid "This section's source page is unknown"
+msgstr "La page source de cette section est inconnue"
 
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "Cette session utilise un ancien instantané de la liste de contrôle du réviseur. Les nouveaux paramètres de liste de contrôle ne s'appliqueront qu'aux sessions de révision nouvellement créées."

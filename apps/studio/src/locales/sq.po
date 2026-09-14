@@ -1928,6 +1928,9 @@ msgstr "Struktura e librit"
 msgid "Book package ready"
 msgstr "Paketa e librit gati"
 
+msgid "Book page"
+msgstr "Faqja e librit"
+
 #. placeholder {0}: String(position)
 msgid "Book page {0}"
 msgstr "Faqja {0} e librit"
@@ -1959,8 +1962,8 @@ msgstr "Faqet e librit. Lëviz horizontalisht për të parë më shumë."
 msgid "Book part"
 msgstr "Pjesë e librit"
 
-msgid "Book pg"
-msgstr "Faqe libri"
+#~ msgid "Book pg"
+#~ msgstr "Faqe libri"
 
 msgid "Book preview"
 msgstr "Pamje paraprake e librit"
@@ -2781,8 +2784,14 @@ msgstr "Nuk u ngarkuan dot versionet."
 msgid "Couldn't read this PDF"
 msgstr "Nuk mund të lexohej ky PDF"
 
+msgid "Couldn't restore the original page order. Please try again."
+msgstr "Rendi origjinal i faqeve nuk u rikthye dot. Provoni sërish."
+
 msgid "Couldn't restore v{version}. Please try again."
 msgstr "Nuk u rikthye dot v{version}. Ju lutemi provoni përsëri."
+
+msgid "Couldn't save the new page order. Please try again."
+msgstr "Rendi i ri i faqeve nuk u ruajt dot. Provoni sërish."
 
 msgid "Counting occurrences…"
 msgstr "Po numërohen ndodhitë…"
@@ -4184,6 +4193,7 @@ msgid "From page"
 msgstr "Nga faqja"
 
 #. placeholder {0}: String(pageNumber)
+#. placeholder {0}: String(section.pageNumber)
 msgid "From page {0} of the source PDF"
 msgstr "Nga faqja {0} e PDF-it origjinal"
 
@@ -6966,6 +6976,9 @@ msgstr "Modaliteti i Faqes"
 msgid "Page number"
 msgstr "Numri i faqes"
 
+msgid "Page number in the source PDF, which never changes when pages are reordered"
+msgstr "Numri i faqes në PDF-në burimore, që nuk ndryshon kurrë kur faqet riorganizohen"
+
 msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
 msgstr "U zbuluan numra faqesh — do të lexohen me zë: {pageNumberPreview}. T'i heshtni të gjitha nga shndërrimi i tekstit në të folur?"
 
@@ -7119,6 +7132,9 @@ msgstr "Informacioni PDF"
 
 msgid "PDF order"
 msgstr "Rendi i PDF-së"
+
+msgid "PDF page"
+msgstr "Faqja e PDF-së"
 
 #. placeholder {0}: String(pageNumber)
 msgid "PDF page {0}"
@@ -10151,6 +10167,9 @@ msgstr "Ky seksion nuk ka ende renderim storyboard"
 
 msgid "This section is pruned and isn't rendered."
 msgstr "Ky seksion është prerë dhe nuk renderizohet."
+
+msgid "This section's source page is unknown"
+msgstr "Faqja burimore e këtij seksioni nuk dihet"
 
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "Kjo sesion po përdor një fotografi të vjetër të listës së kontrollit të rishikuesit. Cilësimet e reja të listës do të zbatohen vetëm për sesionet e rishikuesit të krijuara rishtazi."

@@ -1926,6 +1926,9 @@ msgstr "Book Outline"
 msgid "Book package ready"
 msgstr "Book package ready"
 
+msgid "Book page"
+msgstr "Book page"
+
 #. placeholder {0}: String(position)
 msgid "Book page {0}"
 msgstr "Book page {0}"
@@ -1957,8 +1960,8 @@ msgstr "Book pages. Scroll horizontally to see more."
 msgid "Book part"
 msgstr "Book part"
 
-msgid "Book pg"
-msgstr "Book pg"
+#~ msgid "Book pg"
+#~ msgstr "Book pg"
 
 msgid "Book preview"
 msgstr "Book preview"
@@ -2779,8 +2782,14 @@ msgstr "Couldn't load versions."
 msgid "Couldn't read this PDF"
 msgstr "Couldn't read this PDF"
 
+msgid "Couldn't restore the original page order. Please try again."
+msgstr "Couldn't restore the original page order. Please try again."
+
 msgid "Couldn't restore v{version}. Please try again."
 msgstr "Couldn't restore v{version}. Please try again."
+
+msgid "Couldn't save the new page order. Please try again."
+msgstr "Couldn't save the new page order. Please try again."
 
 msgid "Counting occurrences…"
 msgstr "Counting occurrences…"
@@ -4182,6 +4191,7 @@ msgid "From page"
 msgstr "From page"
 
 #. placeholder {0}: String(pageNumber)
+#. placeholder {0}: String(section.pageNumber)
 msgid "From page {0} of the source PDF"
 msgstr "From page {0} of the source PDF"
 
@@ -6964,6 +6974,9 @@ msgstr "Page Mode"
 msgid "Page number"
 msgstr "Page number"
 
+msgid "Page number in the source PDF, which never changes when pages are reordered"
+msgstr "Page number in the source PDF, which never changes when pages are reordered"
+
 msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
 msgstr "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
 
@@ -7117,6 +7130,9 @@ msgstr "PDF info"
 
 msgid "PDF order"
 msgstr "PDF order"
+
+msgid "PDF page"
+msgstr "PDF page"
 
 #. placeholder {0}: String(pageNumber)
 msgid "PDF page {0}"
@@ -10149,6 +10165,9 @@ msgstr "This section has no storyboard rendering yet"
 
 msgid "This section is pruned and isn't rendered."
 msgstr "This section is pruned and isn't rendered."
+
+msgid "This section's source page is unknown"
+msgstr "This section's source page is unknown"
 
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."

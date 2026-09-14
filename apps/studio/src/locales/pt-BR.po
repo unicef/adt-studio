@@ -1926,6 +1926,9 @@ msgstr "Estrutura do livro"
 msgid "Book package ready"
 msgstr "Pacote do livro pronto"
 
+msgid "Book page"
+msgstr "Página do livro"
+
 #. placeholder {0}: String(position)
 msgid "Book page {0}"
 msgstr "Página {0} do livro"
@@ -1957,8 +1960,8 @@ msgstr "Páginas do livro. Role horizontalmente para ver mais."
 msgid "Book part"
 msgstr "Parte do livro"
 
-msgid "Book pg"
-msgstr "Pág. livro"
+#~ msgid "Book pg"
+#~ msgstr "Pág. livro"
 
 msgid "Book preview"
 msgstr "Pré-visualização do livro"
@@ -2779,8 +2782,14 @@ msgstr "Não foi possível carregar as versões."
 msgid "Couldn't read this PDF"
 msgstr "Não foi possível ler este PDF"
 
+msgid "Couldn't restore the original page order. Please try again."
+msgstr "Não foi possível restaurar a ordem original das páginas. Tente novamente."
+
 msgid "Couldn't restore v{version}. Please try again."
 msgstr "Não foi possível restaurar a v{version}. Tente novamente."
+
+msgid "Couldn't save the new page order. Please try again."
+msgstr "Não foi possível salvar a nova ordem das páginas. Tente novamente."
 
 msgid "Counting occurrences…"
 msgstr "Contando ocorrências…"
@@ -4182,6 +4191,7 @@ msgid "From page"
 msgstr "Da página"
 
 #. placeholder {0}: String(pageNumber)
+#. placeholder {0}: String(section.pageNumber)
 msgid "From page {0} of the source PDF"
 msgstr "Da página {0} do PDF original"
 
@@ -6964,6 +6974,9 @@ msgstr "Modo de Página"
 msgid "Page number"
 msgstr "Número da página"
 
+msgid "Page number in the source PDF, which never changes when pages are reordered"
+msgstr "Número da página no PDF de origem, que nunca muda quando as páginas são reordenadas"
+
 msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
 msgstr "Números de página detectados — serão lidos em voz alta: {pageNumberPreview}. Silenciar todos na conversão de texto em fala?"
 
@@ -7117,6 +7130,9 @@ msgstr "Informações do PDF"
 
 msgid "PDF order"
 msgstr "Ordem do PDF"
+
+msgid "PDF page"
+msgstr "Página do PDF"
 
 #. placeholder {0}: String(pageNumber)
 msgid "PDF page {0}"
@@ -10149,6 +10165,9 @@ msgstr "Esta seção ainda não tem renderização de storyboard"
 
 msgid "This section is pruned and isn't rendered."
 msgstr "Esta seção foi removida e não é renderizada."
+
+msgid "This section's source page is unknown"
+msgstr "A página de origem desta seção é desconhecida"
 
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "Esta sessão usa um snapshot antigo da lista de verificação do revisor. Configurações mais recentes valerão apenas para novas sessões de revisor."

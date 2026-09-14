@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useLingui } from "@lingui/react/macro"
+import { toast } from "sonner"
 import { api, type ReadingOrderEntry, type ReadingOrderResponse } from "@/api/client"
 
 export function readingOrderKey(label: string) {
@@ -70,6 +72,7 @@ export function moveReadingOrderRow(
  */
 export function useSaveReadingOrder(label: string) {
   const queryClient = useQueryClient()
+  const { t } = useLingui()
 
   return useMutation({
     mutationFn: ({
@@ -103,10 +106,18 @@ export function useSaveReadingOrder(label: string) {
       return { previous }
     },
 
-    onError: (_error, _vars, context) => {
+    onError: (error, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(readingOrderKey(label), context.previous)
       }
+      // Without this the row just slides back to where it was, which reads as
+      // the drag having missed rather than the save having been refused. The
+      // server's message says which steps are in the way, so pass it through.
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : t`Couldn't save the new page order. Please try again.`,
+      )
     },
 
     onSettled: () => {
@@ -132,9 +143,17 @@ export function useSaveReadingOrder(label: string) {
  */
 export function useResetReadingOrder(label: string) {
   const queryClient = useQueryClient()
+  const { t } = useLingui()
 
   return useMutation({
     mutationFn: () => api.resetReadingOrder(label),
+    onError: (error) => {
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : t`Couldn't restore the original page order. Please try again.`,
+      )
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: readingOrderKey(label) })
       void queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })

@@ -8,6 +8,8 @@ import {
   ReadingOrderItem,
   READING_ORDER_NODE,
   READING_ORDER_ITEM_ID,
+  READING_ORDER_BLOCKING_STEPS,
+  type StepName,
 } from "@adt/types"
 import { createBookStorage, type Storage } from "@adt/storage"
 import { resolveReadingOrder, readingOrderHref } from "@adt/pipeline"
@@ -39,15 +41,21 @@ function assertBookExists(safeLabel: string, booksDir: string): void {
  * A pipeline step writing sectioning or rendering mid-save would change what the
  * order refers to underneath us. Refuse rather than persist an order built from
  * a book that is being rewritten.
+ *
+ * Only the steps that actually change the slots block — see
+ * `READING_ORDER_BLOCKING_STEPS`. Blocking on *any* running step, as this used
+ * to, refused a reorder during a captions or speech run that could not possibly
+ * affect it, and the sidebar (which greys out only for the storyboard) did not
+ * even show it as unavailable, so the save just failed.
  */
 function assertNoActivePipelineRun(storage: Storage): void {
   const running = storage
     .getStepRuns()
-    .filter((run) => run.status === "running")
+    .filter((run) => run.status === "running" && READING_ORDER_BLOCKING_STEPS.has(run.step as StepName))
     .map((run) => run.step)
   if (running.length === 0) return
   throw new HTTPException(409, {
-    message: `Cannot change the reading order while pipeline steps are running: ${running.join(", ")}. Wait for the run to finish or cancel it first.`,
+    message: `Cannot change the reading order while these steps are running: ${running.join(", ")}. Wait for the run to finish or cancel it first.`,
   })
 }
 
