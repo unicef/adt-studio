@@ -15,6 +15,7 @@ import { DebugPanelStateProvider, type DebugTabValue } from "@/components/debug/
 import { StageSidebar } from "@/components/pipeline/components/StageSidebar"
 import { PageErrorDecisionDialog } from "@/components/pipeline/components/PageErrorDecisionDialog"
 import { FloatingSaveProvider } from "@/components/pipeline/components/floating-save"
+import { ReadingOrderDraftProvider } from "@/hooks/use-reading-order-draft"
 import { UnsavedChangesGuard } from "@/components/pipeline/components/UnsavedChangesGuard"
 import { SettingsDirtyTabsProvider } from "@/hooks/use-settings-dirty-tabs"
 import { useBookRunStatus, BookRunProvider } from "@/hooks/use-book-run"
@@ -152,6 +153,10 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
     <DebugPanelStateProvider value={debugPanelState}>
       <FloatingSaveProvider>
         <SettingsDirtyTabsProvider>
+        {/* Inside FloatingSaveProvider so it can register the pending order,
+            and above both the sidebar and the stage views, which can each
+            rearrange the book and must share one draft. */}
+        <ReadingOrderDraftProvider bookLabel={label}>
         <UnsavedChangesGuard />
         <SectionNavCtx.Provider value={sectionNav}>
           <div className="flex min-h-0 flex-1 flex-col">
@@ -217,6 +222,7 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
             </Button>
           )}
         </SectionNavCtx.Provider>
+        </ReadingOrderDraftProvider>
         </SettingsDirtyTabsProvider>
       </FloatingSaveProvider>
     </DebugPanelStateProvider>

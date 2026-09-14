@@ -17,12 +17,12 @@ import { VersionPicker } from "./VersionPicker"
 import { STAGES } from "../stage-config"
 import {
   useReadingOrder,
-  useSaveReadingOrder,
   useResetReadingOrder,
   moveReadingOrderItem,
   moveReadingOrderRow,
   readingOrderKey,
 } from "@/hooks/use-reading-order"
+import { useReadingOrderDraft } from "@/hooks/use-reading-order-draft"
 import { useTogglePrune } from "@/hooks/use-toggle-prune"
 import { useAnnouncer } from "@/components/a11y/LiveRegionAnnouncer"
 import { resolveQuizId, type Quiz } from "@adt/types"
@@ -50,7 +50,14 @@ export function StoryboardIndex({
   const { data: pages } = usePages(bookLabel)
   const { data: quizzesData } = useQuizzes(bookLabel)
   const { data: readingOrder } = useReadingOrder(bookLabel)
-  const saveOrder = useSaveReadingOrder(bookLabel)
+  // Moves are held as a pending change and committed from the shared save bar,
+  // the same as every other edit in the app. The draft lives above this
+  // component because the overview table can rearrange the same book.
+  const { draft, setDraft } = useReadingOrderDraft()
+  const effectiveOrder = useMemo(
+    () => draft ?? readingOrder?.order ?? [],
+    [draft, readingOrder],
+  )
   const resetOrder = useResetReadingOrder(bookLabel)
   const navigate = useNavigate()
   const parentRef = useRef<HTMLDivElement>(null)
@@ -112,7 +119,9 @@ export function StoryboardIndex({
 
     const rendered = new Set(readingOrder.items.map((item) => item.id))
     let bookPage = 0
-    return readingOrder.order.flatMap<StoryboardListItem>((entry) => {
+    // The pending arrangement when there is one — the same slots, resequenced,
+    // so which of them reach the reader is still the server's answer.
+    return effectiveOrder.flatMap<StoryboardListItem>((entry) => {
       const position = rendered.has(entry.id) ? ++bookPage : null
       if (entry.kind === "quiz") {
         const hit = quizById.get(entry.id)
@@ -123,9 +132,9 @@ export function StoryboardIndex({
       const hit = sectionById.get(entry.id)
       return hit ? [{ kind: "section", page: hit.page, section: hit.section, position }] : []
     })
-  }, [pages, quizzesData, readingOrder])
+  }, [pages, quizzesData, readingOrder, effectiveOrder])
 
-  /** Move `id` so it lands at `toIndex` of the list, then save. */
+  /** Move `id` so it lands at `toIndex` of the list. Held, not saved. */
   const moveTo = useCallback(
     (id: string, toIndex: number) => {
       if (!readingOrder) return
@@ -134,33 +143,33 @@ export function StoryboardIndex({
       // used as a raw offset.
       const anchor = items[Math.max(0, Math.min(toIndex, items.length))]
       const target = anchor
-        ? readingOrder.order.findIndex((entry) => entry.id === itemIdOf(anchor))
-        : readingOrder.order.length
+        ? effectiveOrder.findIndex((entry) => entry.id === itemIdOf(anchor))
+        : effectiveOrder.length
       if (target < 0) return
 
-      const next = moveReadingOrderItem(readingOrder.order, id, target)
-      if (next.every((entry, i) => entry.id === readingOrder.order[i]?.id)) return
+      const next = moveReadingOrderItem(effectiveOrder, id, target)
+      if (next.every((entry, i) => entry.id === effectiveOrder[i]?.id)) return
 
       const landed = next.findIndex((entry) => entry.id === id) + 1
       announce(t`Moved to position ${String(landed)} of ${String(next.length)}`)
 
-      saveOrder.mutate({ items: next, expectedVersion: readingOrder.version })
+      setDraft(next)
     },
-    [readingOrder, items, saveOrder, t, announce],
+    [readingOrder, effectiveOrder, items, setDraft, t, announce],
   )
 
   /** Step a row up or down. Shared with the overview's book-order view. */
   const moveBy = useCallback(
     (id: string, delta: number) => {
       if (!readingOrder) return
-      const next = moveReadingOrderRow(readingOrder.order, items.map(itemIdOf), id, delta)
+      const next = moveReadingOrderRow(effectiveOrder, items.map(itemIdOf), id, delta)
       if (!next) return
 
       const landed = next.findIndex((entry) => entry.id === id) + 1
       announce(t`Moved to position ${String(landed)} of ${String(next.length)}`)
-      saveOrder.mutate({ items: next, expectedVersion: readingOrder.version })
+      setDraft(next)
     },
-    [readingOrder, items, saveOrder, t, announce],
+    [readingOrder, effectiveOrder, items, setDraft, t, announce],
   )
 
 
@@ -239,8 +248,10 @@ export function StoryboardIndex({
             itemId="book"
             bookLabel={bookLabel}
             currentVersion={readingOrder?.version ?? null}
-            // Reordering saves on drop, so there is never a pending edit to
-            // hold or discard; this is history and rollback only.
+            // The pending arrangement is registered with the shared save bar by
+            // ReadingOrderDraftProvider, not here — this picker is history and
+            // rollback only, and a second registration for the same change
+            // would put it on the bar twice.
             saving={false}
             dirty={false}
             onDiscard={() => {}}

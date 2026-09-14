@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import type { PageSummaryItem, ReadingOrderResponse } from "@/api/client"
 
-const saveMutate = vi.fn()
+const setDraft = vi.fn()
 
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children?: React.ReactNode }) => children ?? null,
@@ -217,10 +217,13 @@ vi.mock("@/hooks/use-reading-order", async () => {
   return {
     ...actual,
     useReadingOrder: () => ({ data: READING_ORDER }),
-    useSaveReadingOrder: () => ({ mutate: saveMutate, isPending: false }),
     useResetReadingOrder: () => ({ mutate: vi.fn(), isPending: false }),
   }
 })
+// Moves are held as a pending change now, not saved on the spot.
+vi.mock("@/hooks/use-reading-order-draft", () => ({
+  useReadingOrderDraft: () => ({ draft: null, setDraft, discard: vi.fn(), saving: false }),
+}))
 vi.mock("@/components/pipeline/components/VersionPicker", () => ({
   VersionPicker: () => <div data-testid="order-history" />,
 }))
@@ -265,7 +268,7 @@ function moveButtons(direction: "up" | "down"): HTMLButtonElement[] {
 
 afterEach(() => {
   cleanup()
-  saveMutate.mockReset()
+  setDraft.mockReset()
 })
 
 describe("SectioningOverview row order", () => {
@@ -352,16 +355,13 @@ describe("SectioningOverview row order", () => {
     // Row 0 in book order is pg002_sec001.
     fireEvent.click(moveButtons("down")[0])
 
-    expect(saveMutate).toHaveBeenCalledTimes(1)
-    expect(saveMutate.mock.calls[0][0]).toEqual({
-      expectedVersion: 7,
-      items: [
+    expect(setDraft).toHaveBeenCalledTimes(1)
+    expect(setDraft.mock.calls[0][0]).toEqual([
         { kind: "quiz", id: "qz001" },
         { kind: "section", id: "pg001_sec001" },
         { kind: "section", id: "pg002_sec001" },
         { kind: "section", id: "pg001_sec002" },
-      ],
-    })
+      ])
   })
 
   it("offers no move past either end of the visible list", () => {

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import type { ReadingOrderResponse } from "@/api/client"
 
-const saveMutate = vi.fn()
+const setDraft = vi.fn()
 const pruneMutate = vi.fn()
 const resetMutate = vi.fn()
 
@@ -135,10 +135,14 @@ vi.mock("@/hooks/use-reading-order", async () => {
   return {
     ...actual,
     useReadingOrder: () => ({ data: readingOrderData }),
-    useSaveReadingOrder: () => ({ mutate: saveMutate, isPending: false }),
     useResetReadingOrder: () => ({ mutate: resetMutate, isPending: false }),
   }
 })
+// Moves are held as a pending change now, not saved on the spot, so what each
+// interaction is asserted to produce is the draft it hands up.
+vi.mock("@/hooks/use-reading-order-draft", () => ({
+  useReadingOrderDraft: () => ({ draft: null, setDraft, discard: vi.fn(), saving: false }),
+}))
 vi.mock("@/api/client", () => ({ getSectionScreenshotUrl: () => "screenshot.png" }))
 vi.mock("@/hooks/use-toggle-prune", () => ({
   useTogglePrune: () => ({ mutate: pruneMutate, isPending: false }),
@@ -221,7 +225,7 @@ function useRowMenu(rowIndex: number, action: string) {
 
 afterEach(() => {
   cleanup()
-  saveMutate.mockReset()
+  setDraft.mockReset()
   pruneMutate.mockReset()
   quizzesData = null
   readingOrderData = READING_ORDER
@@ -259,15 +263,12 @@ describe("StoryboardIndex reordering", () => {
     fireDrag(third, "dragover", dataTransfer, 130)
     fireDrag(third, "drop", dataTransfer, 130)
 
-    expect(saveMutate).toHaveBeenCalledTimes(1)
-    expect(saveMutate.mock.calls[0][0]).toEqual({
-      expectedVersion: 4,
-      items: [
+    expect(setDraft).toHaveBeenCalledTimes(1)
+    expect(setDraft.mock.calls[0][0]).toEqual([
         { kind: "section", id: "pg003_sec001" },
         { kind: "section", id: "pg002_sec001" },
         { kind: "section", id: "pg001_sec001" },
-      ],
-    })
+      ])
   })
 
   it("drops above a row when the pointer is in its upper half", () => {
@@ -283,7 +284,7 @@ describe("StoryboardIndex reordering", () => {
     fireDrag(third, "dragover", dataTransfer, 105)
     fireDrag(third, "drop", dataTransfer, 105)
 
-    expect(saveMutate.mock.calls[0][0].items.map((i: { id: string }) => i.id)).toEqual([
+    expect(setDraft.mock.calls[0][0].map((i: { id: string }) => i.id)).toEqual([
       "pg003_sec001",
       "pg001_sec001",
       "pg002_sec001",
@@ -304,7 +305,7 @@ describe("StoryboardIndex reordering", () => {
 
     stubRect(third, 100, 40)
     fireDrag(third, "drop", dataTransfer, 130)
-    expect(saveMutate).not.toHaveBeenCalled()
+    expect(setDraft).not.toHaveBeenCalled()
 
     // Switching it on makes the rows draggable.
     enableRearrange()
@@ -316,8 +317,8 @@ describe("StoryboardIndex reordering", () => {
 
     useRowMenu(0, "Move down")
 
-    expect(saveMutate).toHaveBeenCalledTimes(1)
-    expect(saveMutate.mock.calls[0][0].items.map((i: { id: string }) => i.id)).toEqual([
+    expect(setDraft).toHaveBeenCalledTimes(1)
+    expect(setDraft.mock.calls[0][0].map((i: { id: string }) => i.id)).toEqual([
       "pg003_sec001",
       "pg001_sec001",
       "pg002_sec001",
@@ -331,7 +332,7 @@ describe("StoryboardIndex reordering", () => {
 
     expect(pruneMutate).toHaveBeenCalledWith({ pageId: "pg001", sectionIndex: 0 })
     // Removal is not a reordering, so the order itself is untouched.
-    expect(saveMutate).not.toHaveBeenCalled()
+    expect(setDraft).not.toHaveBeenCalled()
   })
 
   it("offers to add a removed page back", () => {
@@ -361,7 +362,7 @@ describe("StoryboardIndex reordering", () => {
 
     fireDrag(rows()[2], "drop", foreign, 130)
 
-    expect(saveMutate).not.toHaveBeenCalled()
+    expect(setDraft).not.toHaveBeenCalled()
   })
 
   it("moves a row with Alt+ArrowDown", () => {
@@ -369,8 +370,8 @@ describe("StoryboardIndex reordering", () => {
 
     fireEvent.keyDown(rows()[0], { key: "ArrowDown", altKey: true })
 
-    expect(saveMutate).toHaveBeenCalledTimes(1)
-    expect(saveMutate.mock.calls[0][0].items.map((i: { id: string }) => i.id)).toEqual([
+    expect(setDraft).toHaveBeenCalledTimes(1)
+    expect(setDraft.mock.calls[0][0].map((i: { id: string }) => i.id)).toEqual([
       "pg003_sec001",
       "pg001_sec001",
       "pg002_sec001",
@@ -381,7 +382,7 @@ describe("StoryboardIndex reordering", () => {
     render(<StoryboardIndex bookLabel="book" stageRunning />)
 
     fireEvent.keyDown(rows()[0], { key: "ArrowDown", altKey: true })
-    expect(saveMutate).not.toHaveBeenCalled()
+    expect(setDraft).not.toHaveBeenCalled()
     expect(rows()[0].getAttribute("draggable")).toBe("false")
   })
 
@@ -390,8 +391,8 @@ describe("StoryboardIndex reordering", () => {
 
     fireEvent.keyDown(rows()[2], { key: "ArrowUp", altKey: true })
 
-    expect(saveMutate).toHaveBeenCalledTimes(1)
-    expect(saveMutate.mock.calls[0][0].items.map((i: { id: string }) => i.id)).toEqual([
+    expect(setDraft).toHaveBeenCalledTimes(1)
+    expect(setDraft.mock.calls[0][0].map((i: { id: string }) => i.id)).toEqual([
       "pg001_sec001",
       "pg002_sec001",
       "pg003_sec001",
@@ -480,8 +481,8 @@ describe("StoryboardIndex quiz rows", () => {
 
     fireEvent.keyDown(rows()[1], { key: "ArrowDown", altKey: true })
 
-    expect(saveMutate).toHaveBeenCalledTimes(1)
-    expect(saveMutate.mock.calls[0][0].items.map((i: { id: string }) => i.id)).toEqual([
+    expect(setDraft).toHaveBeenCalledTimes(1)
+    expect(setDraft.mock.calls[0][0].map((i: { id: string }) => i.id)).toEqual([
       "pg001_sec001",
       "pg003_sec001",
       "qz001",

@@ -6,11 +6,11 @@ import { collectLeafNodes, deleteNode, replaceNodeId, toggleNodePruned } from "@
 import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import {
   useReadingOrder,
-  useSaveReadingOrder,
   useResetReadingOrder,
   moveReadingOrderRow,
   readingOrderKey,
 } from "@/hooks/use-reading-order"
+import { useReadingOrderDraft } from "@/hooks/use-reading-order-draft"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
 import { useTogglePrune } from "@/hooks/use-toggle-prune"
 import { useAnnouncer } from "@/components/a11y/LiveRegionAnnouncer"
@@ -109,12 +109,27 @@ export function SectioningOverview({
   // Reading positions come from the server-resolved order, so this table, the
   // sidebar and every export agree on which page is which.
   const { data: readingOrder } = useReadingOrder(bookLabel)
-  const saveReadingOrder = useSaveReadingOrder(bookLabel)
   const resetReadingOrder = useResetReadingOrder(bookLabel)
-  const readingPositions = useMemo(
-    () => new Map((readingOrder?.items ?? []).map((item) => [item.id, item.position])),
-    [readingOrder],
+  // Held as a pending change and committed from the shared save bar. The draft
+  // is shared with the storyboard sidebar, which edits the same book.
+  const { draft, setDraft } = useReadingOrderDraft()
+  const effectiveOrder = useMemo(
+    () => draft ?? readingOrder?.order ?? [],
+    [draft, readingOrder],
   )
+  const readingPositions = useMemo(() => {
+    // Renumbered over the pending order, so the `Book page` column moves with
+    // the row the user just moved rather than waiting for a save. Which slots
+    // are numbered at all is still the server's answer — a reorder changes
+    // where a page sits, never whether it reaches the reader.
+    const rendered = new Set((readingOrder?.items ?? []).map((item) => item.id))
+    const positions = new Map<string, number>()
+    let bookPage = 0
+    for (const entry of effectiveOrder) {
+      if (rendered.has(entry.id)) positions.set(entry.id, ++bookPage)
+    }
+    return positions
+  }, [readingOrder, effectiveOrder])
 
   // Fetch full page details for all pages that have sections
   const pagesWithSections = pages.filter((p) => p.sectionCount > 0)
@@ -154,11 +169,11 @@ export function SectioningOverview({
         byId.set(section.sectionId, { page, section, sectionIndex, sectionCount: sections.length })
       })
     }
-    return readingOrder.order.flatMap((entry) => {
+    return effectiveOrder.flatMap((entry) => {
       const hit = entry.kind === "section" ? byId.get(entry.id) : undefined
       return hit ? [{ id: entry.id, ...hit }] : []
     })
-  }, [readingOrder, pageDetails])
+  }, [readingOrder, effectiveOrder, pageDetails])
 
   // In "pdf" mode each page's row group owns its expand state; the flat list has
   // no such group, so it keeps its own, keyed by sectionId rather than by index
@@ -186,7 +201,7 @@ export function SectioningOverview({
     (sectionId: string, delta: number) => {
       if (!readingOrder) return
       const next = moveReadingOrderRow(
-        readingOrder.order,
+        effectiveOrder,
         bookOrderRows.map((row) => row.id),
         sectionId,
         delta,
@@ -194,9 +209,9 @@ export function SectioningOverview({
       if (!next) return
       const landed = next.findIndex((entry) => entry.id === sectionId) + 1
       announce(t`Moved to position ${String(landed)} of ${String(next.length)}`)
-      saveReadingOrder.mutate({ items: next, expectedVersion: readingOrder.version })
+      setDraft(next)
     },
-    [readingOrder, bookOrderRows, saveReadingOrder, t, announce],
+    [readingOrder, effectiveOrder, bookOrderRows, setDraft, t, announce],
   )
 
   const invalidatePages = (...pageIds: string[]) => {
