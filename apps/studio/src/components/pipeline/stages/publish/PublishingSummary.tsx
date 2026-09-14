@@ -16,6 +16,10 @@ const TONE = {
   emerald: "bg-emerald-50 text-emerald-600 ring-emerald-100",
 } as const
 
+/** What every tile shows when its number cannot be known — the same mark the live version
+ *  already used, so an unreachable service reads one way across the row instead of four. */
+const UNKNOWN = "—"
+
 function Tile({
   icon: Icon,
   tone,
@@ -111,17 +115,19 @@ export function PublishingSummary({
         icon={Users}
         tone="violet"
         label={<Trans>Readers joined</Trans>}
-        value={readers.data?.readers.length ?? 0}
-        loading={token !== null && readers.isPending}
-        hint={<Trans>Gave a name</Trans>}
+        value={readers.data ? readers.data.readers.length : UNKNOWN}
+        loading={token !== null && readers.isPending && !readers.isError}
+        hint={readers.isError ? <Trans>Can't check right now</Trans> : <Trans>Gave a name</Trans>}
       />
       <Tile
         icon={MessagesSquare}
         tone="amber"
         label={<Trans>Open feedback</Trans>}
-        value={feedback.unresolvedCount}
-        loading={!feedback.loaded}
-        hint={<Trans>Waiting on you</Trans>}
+        value={feedback.loaded ? feedback.unresolvedCount : UNKNOWN}
+        loading={!feedback.loaded && !feedback.unavailable}
+        hint={
+          feedback.unavailable ? <Trans>Can't check right now</Trans> : <Trans>Waiting on you</Trans>
+        }
       />
       <Tile
         icon={hasAccessCode ? KeyRound : Unlock}

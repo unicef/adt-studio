@@ -8,6 +8,10 @@ export interface FeedbackBadge {
   unresolvedCount: number
   /** The comment list has answered at least once; until then "0 open" is not a claim. */
   loaded: boolean
+  /** The count cannot be known right now — no account connected, or the service did not
+   *  answer. Distinct from `!loaded`, which means "still arriving": a caller that treats the
+   *  two alike draws a spinner that never stops. */
+  unavailable: boolean
 }
 
 /**
@@ -18,11 +22,13 @@ export interface FeedbackBadge {
 export function useFeedbackBadge(bookLabel: string): FeedbackBadge {
   const { data: status } = useBookPublication(bookLabel)
   const published = (status?.record ?? null) !== null
-  const { data } = usePublicationComments(bookLabel, published && (status?.connected ?? false))
+  const enabled = published && (status?.connected ?? false)
+  const { data, isError } = usePublicationComments(bookLabel, enabled)
 
   return {
     published,
     unresolvedCount: data ? unresolvedThreadCount(data.comments) : 0,
     loaded: data !== undefined,
+    unavailable: published && data === undefined && (isError || !enabled),
   }
 }
