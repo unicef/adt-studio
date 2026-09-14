@@ -207,6 +207,11 @@ describe("publication feedback proxy routes", () => {
       updateComment: vi.fn().mockResolvedValue({ comment }),
       deleteComment: vi.fn().mockResolvedValue({ comment: { ...comment, deleted_at: NOW } }),
       resolveComment: vi.fn().mockResolvedValue({ comment: { ...comment, resolved_at: NOW } }),
+      roomTicket: vi.fn().mockResolvedValue({
+        ticket: "v1.1893456000.nonce.tag",
+        ws_url: "wss://worker.example/p/token/room",
+        expires_at: "2029-12-31T00:00:00.000Z",
+      }),
     } satisfies Partial<PublishWorkerClient>
   }
 
@@ -218,6 +223,15 @@ describe("publication feedback proxy routes", () => {
     const readers = await app.request(`/books/${LABEL}/publication/readers`)
     expect(readers.status).toBe(200)
     expect(await readers.json()).toEqual({ readers: [] })
+
+    const roomTicket = await app.request(`/books/${LABEL}/publication/room-ticket`, {
+      method: "POST",
+    })
+    expect(roomTicket.status).toBe(200)
+    expect(await roomTicket.json()).toMatchObject({
+      ws_url: "wss://worker.example/p/token/room",
+    })
+    expect(overrides.roomTicket).toHaveBeenCalledWith(TOKEN)
 
     const comments = await app.request(
       `/books/${LABEL}/publication/comments?include_resolved=true`,

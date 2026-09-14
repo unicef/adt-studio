@@ -744,6 +744,27 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
   })
 
+  app.post("/books/:label/publication/room-ticket", async (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    requireBook(label)
+
+    const connection = requireConnection(
+      c,
+      store,
+      "Connect a Cloudflare account before joining this publication's live review",
+    )
+    if (connection instanceof Response) return connection
+
+    const record = readPublicationRecord(label, deps.booksDir)
+    if (!record) return failure(c, 409, "not_published", "This book has never been published")
+
+    try {
+      return c.json(await clientFor(connection).roomTicket(record.token))
+    } catch (error) {
+      return proxyFailure(c, error)
+    }
+  })
+
   app.get("/books/:label/publication/comments", async (c) => {
     const label = parseBookLabel(c.req.param("label"))
     requireBook(label)

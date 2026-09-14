@@ -21,6 +21,7 @@ import { readJsonBody } from "./http.js"
 import { hashAccessCode, randomId } from "./identity.js"
 import { mgmtAuth } from "./middleware/mgmt-auth.js"
 import { publicationLookup, type PublicationVariables } from "./middleware/publication-lookup.js"
+import { registerRoomRoutes } from "./room-routes.js"
 import {
   cacheControlFor,
   conditionalEtag,
@@ -360,6 +361,9 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
   }
 
   registerAccessRoute(app, sessionDeps)
+
+  /** Ahead of the gate because a room ticket is an alternative credential to the reader grant. */
+  registerRoomRoutes(app, sessionDeps)
 
   app.use("/p/:token", accessGate)
   app.use("/p/:token/*", accessGate)
