@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react"
-import { useLingui } from "@lingui/react/macro"
 import type { ReadingOrderEntry } from "@/api/client"
 import { useFloatingSave } from "@/components/pipeline/components/floating-save"
+import { useStepPendingLabel } from "@/components/pipeline/components/VersionPicker"
 import { useReadingOrder, useSaveReadingOrder } from "./use-reading-order"
 
 /**
@@ -41,7 +41,7 @@ export function ReadingOrderDraftProvider({
   bookLabel: string
   children: ReactNode
 }) {
-  const { t } = useLingui()
+  const pendingLabel = useStepPendingLabel("reading-order")
   const [draft, setDraftState] = useState<ReadingOrderEntry[] | null>(null)
   const { data: readingOrder } = useReadingOrder(bookLabel)
   const saveOrder = useSaveReadingOrder(bookLabel)
@@ -81,7 +81,9 @@ export function ReadingOrderDraftProvider({
     id: `reading-order:${bookLabel}`,
     dirty: draft != null,
     saving: saveOrder.isPending,
-    label: t`Page order`,
+    // The same icon-and-label pill every other pending change shows, rather
+    // than a bare string, which rendered as oversized body text beside them.
+    label: pendingLabel,
     stage: "storyboard",
     // A reorder re-sequences the bundle and the assessment that walks it, and
     // nothing else — the same two things the server clears.

@@ -22,6 +22,14 @@ vi.mock("./use-reading-order", () => ({
   useSaveReadingOrder: () => ({ mutate: saveMutate, isPending: false }),
 }))
 
+// The chip shown in the save bar comes from VersionPicker's per-step table, so
+// the pending order looks like every other pending change rather than like bare
+// body text. Stubbed to a sentinel here: that the provider asks for it is the
+// contract; what it renders is VersionPicker's business.
+vi.mock("@/components/pipeline/components/VersionPicker", () => ({
+  useStepPendingLabel: (step: string) => `chip:${step}`,
+}))
+
 /**
  * Stands in for the floating-save registry, exposing the entry as buttons so a
  * test can press Save and Discard the way the shared bar does.
@@ -129,6 +137,13 @@ describe("ReadingOrderDraftProvider", () => {
       expect(screen.getByTestId("draft").textContent).toBe("none")
     })
     expect(entry?.dirty).toBe(false)
+  })
+
+  it("labels itself with the shared per-step chip", () => {
+    // Passing a bare string here is what made it render as oversized body text
+    // beside every other stage's icon-and-label pill.
+    show()
+    expect(entry?.label).toBe("chip:reading-order")
   })
 
   it("declares the reorder as resetting only the package stage", () => {

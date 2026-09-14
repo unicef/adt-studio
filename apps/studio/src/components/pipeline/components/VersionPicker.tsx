@@ -96,6 +96,23 @@ const STEP_PENDING: Partial<
   "reading-order": { icon: ListOrdered, label: msg`Page order` },
 }
 
+/**
+ * The chip a step shows in the floating save bar — icon plus short label, the
+ * same one the picker registers for its own pending edits.
+ *
+ * Exported because the reading order registers its pending change from a
+ * provider rather than from a picker (both the sidebar and the overview can
+ * rearrange the book, so the draft lives above them). Building the chip there
+ * by hand is how it ended up as unstyled body text next to everything else's
+ * pill.
+ */
+export function useStepPendingLabel(step: VersionedStep): ReactNode | undefined {
+  const { i18n } = useLingui()
+  const stepPending = STEP_PENDING[step]
+  if (!stepPending) return undefined
+  return <PendingChip icon={stepPending.icon}>{i18n._(stepPending.label)}</PendingChip>
+}
+
 interface VersionPickerProps {
   step: VersionedStep
   itemId: string
