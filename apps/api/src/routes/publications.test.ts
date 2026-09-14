@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { openBookDb } from "@adt/storage"
 import type { PublishProgressEvent } from "@adt/types"
 import { createConnectionStore } from "../services/cloudflare/connection-store.js"
@@ -12,6 +12,7 @@ import {
 } from "../services/fake-publish-worker.js"
 import { readPublicationRecord } from "../services/publish-service.js"
 import { createPublishWorkerClient } from "../services/publish-worker-client.js"
+import type { PublishWorkerClient } from "../services/publish-worker-client.js"
 import { createPublishRoutes } from "./publications.js"
 
 const LABEL = "raven"
@@ -82,7 +83,13 @@ function connectionRecord(worker: FakePublishWorker): CloudflareConnectionRecord
   }
 }
 
-function routes(options: { connected?: boolean; worker?: FakePublishWorker } = {}) {
+function routes(
+  options: {
+    connected?: boolean
+    worker?: FakePublishWorker
+    clientOverrides?: Partial<PublishWorkerClient>
+  } = {},
+) {
   const worker = options.worker ?? createFakePublishWorker({ now: NOW })
   if (options.connected !== false) {
     createConnectionStore(stateDir).write(connectionRecord(worker))
@@ -96,11 +103,14 @@ function routes(options: { connected?: boolean; worker?: FakePublishWorker } = {
     sleep: async () => {},
     prepareExportFn: (async () => ({})) as never,
     createClient: () =>
-      createPublishWorkerClient({
-        workerUrl: worker.baseUrl,
-        mgmtSecret: SECRET,
-        fetchFn: worker.fetchFn,
-      }),
+      Object.assign(
+        createPublishWorkerClient({
+          workerUrl: worker.baseUrl,
+          mgmtSecret: SECRET,
+          fetchFn: worker.fetchFn,
+        }),
+        options.clientOverrides,
+      ),
   })
   return { app, worker }
 }
@@ -165,6 +175,72 @@ describe("the publications dashboard", () => {
     expect(await response.json()).toMatchObject({ token: TOKEN, deleted: true })
     expect(worker.state.publications.has(TOKEN)).toBe(false)
     expect(readPublicationRecord(LABEL, tmpDir)).toBeNull()
+  })
+})
+
+describe("publication feedback proxy routes", () => {
+  const comment = {
+    id: "comment-1",
+    token: TOKEN,
+    version: 1,
+    page_section_id: "pg001_sec001",
+    parent_id: null,
+    session_id: "author",
+    author_name: "Author",
+    author_color: "#8d8d8d",
+    body: "Looks good",
+    anchor: null,
+    resolved_at: null,
+    edited_at: null,
+    deleted_at: null,
+    created_at: NOW,
+  }
+
+  function feedbackOverrides() {
+    return {
+      listReaders: vi.fn().mockResolvedValue({ readers: [] }),
+      listComments: vi.fn().mockResolvedValue({
+        comments: [comment],
+        session: { id: "author", name: "Author", color: "#8d8d8d", is_author: true },
+      }),
+      createComment: vi.fn().mockResolvedValue({ comment }),
+      updateComment: vi.fn().mockResolvedValue({ comment }),
+      deleteComment: vi.fn().mockResolvedValue({ comment: { ...comment, deleted_at: NOW } }),
+      resolveComment: vi.fn().mockResolvedValue({ comment: { ...comment, resolved_at: NOW } }),
+    } satisfies Partial<PublishWorkerClient>
+  }
+
+  it("proxies author feedback without returning the management secret", async () => {
+    const overrides = feedbackOverrides()
+    const { app } = routes({ clientOverrides: overrides })
+    await publishOnce(app)
+
+    const readers = await app.request(`/books/${LABEL}/publication/readers`)
+    expect(readers.status).toBe(200)
+    expect(await readers.json()).toEqual({ readers: [] })
+
+    const comments = await app.request(
+      `/books/${LABEL}/publication/comments?include_resolved=true`,
+    )
+    expect(comments.status).toBe(200)
+    const payload = await comments.json()
+    expect(payload).toMatchObject({ comments: [{ id: "comment-1" }] })
+    expect(JSON.stringify(payload)).not.toContain(SECRET)
+
+    const resolved = await app.request(`/books/${LABEL}/publication/comments/comment-1/resolve`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ resolved: true }),
+    })
+    expect(resolved.status).toBe(200)
+    expect(overrides.resolveComment).toHaveBeenCalledWith(TOKEN, "comment-1", { resolved: true })
+  })
+
+  it("rejects feedback access when the book has no publication", async () => {
+    const { app } = routes({ clientOverrides: feedbackOverrides() })
+    const response = await app.request(`/books/${LABEL}/publication/comments`)
+    expect(response.status).toBe(409)
+    expect(await response.json()).toMatchObject({ code: "not_published" })
   })
 })
 

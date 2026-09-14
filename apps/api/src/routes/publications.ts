@@ -10,6 +10,10 @@ import {
   BookPublishRequest,
   PublicationToken,
   PublicationUpdateRequest,
+  PublishCommentCreateRequest,
+  PublishCommentListQuery,
+  PublishCommentResolveRequest,
+  PublishCommentUpdateRequest,
   parseBookLabel,
   publicationStateAt,
   type BookPublicationRecord,
@@ -714,6 +718,154 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       )
       const pages: PublicationPageEntry[] = current?.page_manifest ?? []
       return c.json({ current_version: detail.publication.current_version, pages })
+    } catch (error) {
+      return proxyFailure(c, error)
+    }
+  })
+
+  app.get("/books/:label/publication/readers", async (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    requireBook(label)
+
+    const connection = requireConnection(
+      c,
+      store,
+      "Connect a Cloudflare account before reading this publication's readers",
+    )
+    if (connection instanceof Response) return connection
+
+    const record = readPublicationRecord(label, deps.booksDir)
+    if (!record) return failure(c, 409, "not_published", "This book has never been published")
+
+    try {
+      return c.json(await clientFor(connection).listReaders(record.token))
+    } catch (error) {
+      return proxyFailure(c, error)
+    }
+  })
+
+  app.get("/books/:label/publication/comments", async (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    requireBook(label)
+
+    const query = PublishCommentListQuery.safeParse(c.req.query())
+    if (!query.success) {
+      return c.json({ error: query.error.message, code: "invalid_request" }, 400)
+    }
+
+    const connection = requireConnection(
+      c,
+      store,
+      "Connect a Cloudflare account before reading this publication's comments",
+    )
+    if (connection instanceof Response) return connection
+
+    const record = readPublicationRecord(label, deps.booksDir)
+    if (!record) return failure(c, 409, "not_published", "This book has never been published")
+
+    try {
+      return c.json(await clientFor(connection).listComments(record.token, query.data))
+    } catch (error) {
+      return proxyFailure(c, error)
+    }
+  })
+
+  app.post("/books/:label/publication/comments", async (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    requireBook(label)
+    const body = PublishCommentCreateRequest.safeParse(await readBody(c))
+    if (!body.success) {
+      return c.json({ error: body.error.message, code: "invalid_request" }, 400)
+    }
+
+    const connection = requireConnection(
+      c,
+      store,
+      "Connect a Cloudflare account before adding publication comments",
+    )
+    if (connection instanceof Response) return connection
+    const record = readPublicationRecord(label, deps.booksDir)
+    if (!record) return failure(c, 409, "not_published", "This book has never been published")
+
+    try {
+      return c.json(await clientFor(connection).createComment(record.token, body.data), 201)
+    } catch (error) {
+      return proxyFailure(c, error)
+    }
+  })
+
+  app.patch("/books/:label/publication/comments/:commentId", async (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    requireBook(label)
+    const body = PublishCommentUpdateRequest.safeParse(await readBody(c))
+    if (!body.success) {
+      return c.json({ error: body.error.message, code: "invalid_request" }, 400)
+    }
+
+    const connection = requireConnection(
+      c,
+      store,
+      "Connect a Cloudflare account before editing publication comments",
+    )
+    if (connection instanceof Response) return connection
+    const record = readPublicationRecord(label, deps.booksDir)
+    if (!record) return failure(c, 409, "not_published", "This book has never been published")
+
+    try {
+      return c.json(
+        await clientFor(connection).updateComment(record.token, c.req.param("commentId"), body.data),
+      )
+    } catch (error) {
+      return proxyFailure(c, error)
+    }
+  })
+
+  app.delete("/books/:label/publication/comments/:commentId", async (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    requireBook(label)
+    const connection = requireConnection(
+      c,
+      store,
+      "Connect a Cloudflare account before deleting publication comments",
+    )
+    if (connection instanceof Response) return connection
+    const record = readPublicationRecord(label, deps.booksDir)
+    if (!record) return failure(c, 409, "not_published", "This book has never been published")
+
+    try {
+      return c.json(
+        await clientFor(connection).deleteComment(record.token, c.req.param("commentId")),
+      )
+    } catch (error) {
+      return proxyFailure(c, error)
+    }
+  })
+
+  app.post("/books/:label/publication/comments/:commentId/resolve", async (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    requireBook(label)
+    const body = PublishCommentResolveRequest.safeParse(await readBody(c))
+    if (!body.success) {
+      return c.json({ error: body.error.message, code: "invalid_request" }, 400)
+    }
+
+    const connection = requireConnection(
+      c,
+      store,
+      "Connect a Cloudflare account before resolving publication comments",
+    )
+    if (connection instanceof Response) return connection
+    const record = readPublicationRecord(label, deps.booksDir)
+    if (!record) return failure(c, 409, "not_published", "This book has never been published")
+
+    try {
+      return c.json(
+        await clientFor(connection).resolveComment(
+          record.token,
+          c.req.param("commentId"),
+          body.data,
+        ),
+      )
     } catch (error) {
       return proxyFailure(c, error)
     }

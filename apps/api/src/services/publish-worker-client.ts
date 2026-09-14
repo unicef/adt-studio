@@ -2,12 +2,19 @@ import {
   PublicationDetail,
   PublicationList,
   PublicationDeleteResult,
+  PublicationReaderList,
   PublicationResponse,
   PublicationUploadAbortResponse,
   PublicationUploadCommitResponse,
   PublicationUploadFileResponse,
   PublicationUploadStartResponse,
   PublishErrorResponse,
+  PublishCommentCreateRequest,
+  PublishCommentListQuery,
+  PublishCommentListResponse,
+  PublishCommentResolveRequest,
+  PublishCommentResponse,
+  PublishCommentUpdateRequest,
   type PublicationUploadStartRequest,
   type PublicationUpdateRequest,
   type PublishErrorCode,
@@ -58,6 +65,30 @@ export interface PublishWorkerClient {
   getPublication(token: string): Promise<PublicationDetail>
   listPublications(): Promise<PublicationList>
   deletePublication(token: string): Promise<PublicationDeleteResult>
+  listReaders(token: string): Promise<PublicationReaderList>
+  listComments(
+    token: string,
+    query?: PublishCommentListQuery,
+    authorName?: string,
+  ): Promise<PublishCommentListResponse>
+  createComment(
+    token: string,
+    body: PublishCommentCreateRequest,
+    authorName?: string,
+  ): Promise<PublishCommentResponse>
+  updateComment(
+    token: string,
+    commentId: string,
+    body: PublishCommentUpdateRequest,
+    authorName?: string,
+  ): Promise<PublishCommentResponse>
+  deleteComment(token: string, commentId: string, authorName?: string): Promise<PublishCommentResponse>
+  resolveComment(
+    token: string,
+    commentId: string,
+    body: PublishCommentResolveRequest,
+    authorName?: string,
+  ): Promise<PublishCommentResponse>
   fetchSnapshotFile(
     token: string,
     filePath: string,
@@ -248,6 +279,21 @@ export function createPublishWorkerClient({
     body: JSON.stringify(body),
   })
 
+  const authorHeaders = (authorName: string | undefined): Record<string, string> =>
+    authorName === undefined ? {} : { "X-Adt-Author-Name": authorName }
+
+  const commentQuery = (query: PublishCommentListQuery | undefined): string => {
+    if (query === undefined) return ""
+    const params = new URLSearchParams()
+    if (query.page_section_id !== undefined) params.set("page_section_id", query.page_section_id)
+    if (query.version !== undefined) params.set("version", String(query.version))
+    if (query.include_resolved !== undefined) {
+      params.set("include_resolved", String(query.include_resolved))
+    }
+    const encoded = params.toString()
+    return encoded.length === 0 ? "" : `?${encoded}`
+  }
+
   return {
     startUpload(startRequest) {
       return request(
@@ -326,6 +372,54 @@ export function createPublishWorkerClient({
         `/api/publications/${encodeURIComponent(token)}`,
         { method: "DELETE" },
         PublicationDeleteResult,
+      )
+    },
+
+    listReaders(token) {
+      return request(
+        `/api/publications/${encodeURIComponent(token)}/readers`,
+        { method: "GET" },
+        PublicationReaderList,
+      )
+    },
+
+    listComments(token, query, authorName) {
+      return request(
+        `/p/${encodeURIComponent(token)}/comments${commentQuery(query)}`,
+        { method: "GET", headers: authorHeaders(authorName) },
+        PublishCommentListResponse,
+      )
+    },
+
+    createComment(token, body, authorName) {
+      return request(
+        `/p/${encodeURIComponent(token)}/comments`,
+        jsonBody("POST", body, authorHeaders(authorName)),
+        PublishCommentResponse,
+      )
+    },
+
+    updateComment(token, commentId, body, authorName) {
+      return request(
+        `/p/${encodeURIComponent(token)}/comments/${encodeURIComponent(commentId)}`,
+        jsonBody("PATCH", body, authorHeaders(authorName)),
+        PublishCommentResponse,
+      )
+    },
+
+    deleteComment(token, commentId, authorName) {
+      return request(
+        `/p/${encodeURIComponent(token)}/comments/${encodeURIComponent(commentId)}`,
+        { method: "DELETE", headers: authorHeaders(authorName) },
+        PublishCommentResponse,
+      )
+    },
+
+    resolveComment(token, commentId, body, authorName) {
+      return request(
+        `/p/${encodeURIComponent(token)}/comments/${encodeURIComponent(commentId)}/resolve`,
+        jsonBody("POST", body, authorHeaders(authorName)),
+        PublishCommentResponse,
       )
     },
 
