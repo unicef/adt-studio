@@ -228,6 +228,46 @@ describe("PUT /api/books/:label/reading-order", () => {
     expect((await getOrder()).items.map((i) => i.id)).toEqual(first)
   })
 
+  it("resets to source-PDF order as a new version, keeping the arrangement it replaced", async () => {
+    // The entity does not exist until the first reorder, so its v1 is already a
+    // rearrangement — there is no stored version holding the original order.
+    const reversed = [...ALL_IDS].reverse()
+    expect((await put({ items: items(reversed) })).status).toBe(200)
+    expect((await getOrder()).items.map((i) => i.id)).toEqual(reversed)
+
+    const res = await app.request(`/api/books/${label}/reading-order/reset`, { method: "POST" })
+    expect(res.status).toBe(200)
+    expect(((await res.json()) as { version: number }).version).toBe(2)
+
+    const after = await getOrder()
+    expect(after.items.map((i) => i.id)).toEqual(ALL_IDS)
+    expect(after.version).toBe(2)
+    // The reversed order is still v1, so the reset itself can be undone.
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      expect(storage.getAllNodeVersions(READING_ORDER_NODE, READING_ORDER_ITEM_ID)).toHaveLength(2)
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("refuses to reset while a pipeline step is running", async () => {
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.markStepStarted("web-rendering")
+    } finally {
+      storage.close()
+    }
+    const res = await app.request(`/api/books/${label}/reading-order/reset`, { method: "POST" })
+    expect(res.status).toBe(409)
+  })
+
+  it("404s a reset for an unknown book instead of creating one", async () => {
+    const res = await app.request("/api/books/no-such-book/reading-order/reset", { method: "POST" })
+    expect(res.status).toBe(404)
+    expect(fs.existsSync(path.join(tmpDir, "no-such-book"))).toBe(false)
+  })
+
   it("invalidates the packaged bundle but not the storyboard chain", async () => {
     const storage = createBookStorage(label, tmpDir)
     try {

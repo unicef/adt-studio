@@ -5,6 +5,7 @@ import type { ReadingOrderResponse } from "@/api/client"
 
 const saveMutate = vi.fn()
 const pruneMutate = vi.fn()
+const resetMutate = vi.fn()
 
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children?: React.ReactNode }) => children ?? null,
@@ -135,6 +136,7 @@ vi.mock("@/hooks/use-reading-order", async () => {
     ...actual,
     useReadingOrder: () => ({ data: readingOrderData }),
     useSaveReadingOrder: () => ({ mutate: saveMutate, isPending: false }),
+    useResetReadingOrder: () => ({ mutate: resetMutate, isPending: false }),
   }
 })
 vi.mock("@/api/client", () => ({ getSectionScreenshotUrl: () => "screenshot.png" }))

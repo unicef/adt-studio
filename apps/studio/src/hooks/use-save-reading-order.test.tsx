@@ -5,10 +5,10 @@ import { renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { api, type ReadingOrderEntry, type ReadingOrderResponse } from "@/api/client"
-import { readingOrderKey, useSaveReadingOrder } from "./use-reading-order"
+import { readingOrderKey, useSaveReadingOrder, useResetReadingOrder } from "./use-reading-order"
 
 vi.mock("@/api/client", () => ({
-  api: { updateReadingOrder: vi.fn() },
+  api: { updateReadingOrder: vi.fn(), resetReadingOrder: vi.fn() },
 }))
 
 const label = "test-book"
@@ -138,5 +138,66 @@ describe("useSaveReadingOrder", () => {
     await waitFor(() => {
       expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: readingOrderKey(label) })
     })
+  })
+})
+
+describe("useResetReadingOrder", () => {
+  function setupReset() {
+    const queryClient = new QueryClient({
+      defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
+    })
+    queryClient.setQueryData(readingOrderKey(label), cached())
+    const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries")
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+    const { result } = renderHook(() => useResetReadingOrder(label), { wrapper })
+    const read = () => queryClient.getQueryData<ReadingOrderResponse>(readingOrderKey(label))!
+    return { result, invalidateQueries, read }
+  }
+
+  it("refetches the order rather than guessing it", async () => {
+    // Which sequence a reset produces is the server's to decide — it recomputes
+    // the source-derived order from what the book currently holds. Predicting
+    // it here would mean a second copy of `defaultReadingOrder` in the client.
+    vi.mocked(api.resetReadingOrder).mockResolvedValue({ version: 5 })
+
+    const { result, invalidateQueries, read } = setupReset()
+    result.current.mutate()
+
+    await waitFor(() => {
+      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: readingOrderKey(label) })
+    })
+    expect(api.resetReadingOrder).toHaveBeenCalledWith(label)
+    // The cache was left alone until the refetch — no optimistic rewrite.
+    expect(read().order.map((e) => e.id)).toEqual(["a", "b", "c"])
+  })
+
+  it("invalidates the bundle but not the storyboard chain", async () => {
+    // A reset re-sequences the book; it changes no text, no catalog id and no
+    // audio, exactly like any other reorder.
+    vi.mocked(api.resetReadingOrder).mockResolvedValue({ version: 5 })
+
+    const { result, invalidateQueries } = setupReset()
+    result.current.mutate()
+
+    await waitFor(() => {
+      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["package-adt-status", label] })
+    })
+    const keys = invalidateQueries.mock.calls.map((c) => JSON.stringify(c[0]))
+    expect(keys.some((k) => k.includes("text-catalog"))).toBe(false)
+    expect(keys.some((k) => k.includes("tts"))).toBe(false)
+  })
+
+  it("leaves the cached order untouched when the reset fails", async () => {
+    vi.mocked(api.resetReadingOrder).mockRejectedValue(new Error("step running"))
+
+    const { result, read } = setupReset()
+    result.current.mutate()
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true)
+    })
+    expect(read().order.map((e) => e.id)).toEqual(["a", "b", "c"])
   })
 })

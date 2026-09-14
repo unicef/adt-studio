@@ -11,6 +11,7 @@ import {
   List,
   ListOrdered,
   Loader2,
+  RotateCcw,
   type LucideIcon,
 } from "lucide-react"
 import { msg } from "@lingui/core/macro"
@@ -114,6 +115,20 @@ interface VersionPickerProps {
   /** Legacy: load a version's data as a pending edit. Used by steps not yet
    *  migrated to restore (onRestored). Ignored when onRestored is set. */
   onPreview?: (data: unknown) => void
+  /**
+   * An extra row below the version list, for a state the history cannot reach.
+   *
+   * The reading order needs this: the entity is not written until the user's
+   * first rearrangement, so its v1 is already a rearrangement and no version
+   * holds the order the book started in. The action computes that state and
+   * saves it as a new version.
+   */
+  footerAction?: {
+    label: string
+    /** Tooltip / accessible description of what picking it will do. */
+    description?: string
+    onSelect: () => void
+  }
   onSave?: () => void
   onDiscard: () => void
   saveDisabledReason?: string
@@ -173,6 +188,7 @@ export function VersionPicker({
   bookLabel,
   onRestored,
   onPreview,
+  footerAction,
   onSave,
   onDiscard,
   saveDisabledReason,
@@ -638,26 +654,45 @@ export function VersionPicker({
             ) : diff ? (
               richPopover(diffRow, { scrollClassName: "max-h-64 overflow-auto p-1" })
             ) : (
-              versions.map((v) => {
-                const isCurrent = v.version === currentVersion
-                return (
-                  <button
-                    key={v.version}
-                    type="button"
-                    onClick={() => handlePick(v)}
-                    className={`flex w-full items-center gap-1.5 text-left px-3 py-1 text-xs rounded hover:bg-accent transition-colors ${
-                      isCurrent ? "font-semibold text-foreground" : "text-muted-foreground"
-                    }`}
-                  >
-                    {isCurrent ? (
-                      <Check className="h-3 w-3 shrink-0" strokeWidth={2.5} />
-                    ) : (
-                      <span className="w-3 shrink-0" />
-                    )}
-                    v{v.version}
-                  </button>
-                )
-              })
+              <>
+                {versions.map((v) => {
+                  const isCurrent = v.version === currentVersion
+                  return (
+                    <button
+                      key={v.version}
+                      type="button"
+                      onClick={() => handlePick(v)}
+                      className={`flex w-full items-center gap-1.5 text-left px-3 py-1 text-xs rounded hover:bg-accent transition-colors ${
+                        isCurrent ? "font-semibold text-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      {isCurrent ? (
+                        <Check className="h-3 w-3 shrink-0" strokeWidth={2.5} />
+                      ) : (
+                        <span className="w-3 shrink-0" />
+                      )}
+                      v{v.version}
+                    </button>
+                  )
+                })}
+                {footerAction ? (
+                  <>
+                    <div className="my-1 border-t" />
+                    <button
+                      type="button"
+                      title={footerAction.description}
+                      onClick={() => {
+                        setOpen(false)
+                        footerAction.onSelect()
+                      }}
+                      className="flex w-full items-center gap-1.5 text-left px-3 py-1 text-xs rounded text-muted-foreground hover:bg-accent transition-colors"
+                    >
+                      <RotateCcw className="h-3 w-3 shrink-0" />
+                      {footerAction.label}
+                    </button>
+                  </>
+                ) : null}
+              </>
             )
           ) : (
             <div className="px-3 py-1 text-xs text-muted-foreground">

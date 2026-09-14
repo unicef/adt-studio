@@ -18,6 +18,7 @@ import { STAGES } from "../stage-config"
 import {
   useReadingOrder,
   useSaveReadingOrder,
+  useResetReadingOrder,
   moveReadingOrderItem,
   moveReadingOrderRow,
   readingOrderKey,
@@ -50,6 +51,7 @@ export function StoryboardIndex({
   const { data: quizzesData } = useQuizzes(bookLabel)
   const { data: readingOrder } = useReadingOrder(bookLabel)
   const saveOrder = useSaveReadingOrder(bookLabel)
+  const resetOrder = useResetReadingOrder(bookLabel)
   const navigate = useNavigate()
   const parentRef = useRef<HTMLDivElement>(null)
   const storyboardStageDef = STAGES.find((s) => s.slug === "storyboard")
@@ -244,6 +246,20 @@ export function StoryboardIndex({
             onDiscard={() => {}}
             onRestored={() => {
               void queryClient.invalidateQueries({ queryKey: readingOrderKey(bookLabel) })
+            }}
+            // The entity is not written until the first rearrangement, so v1 is
+            // already a rearrangement and the history has nothing representing
+            // the order the book started in. This is the way back to it.
+            footerAction={{
+              label: t`Original — PDF order`,
+              description: t`Put every page back where the source PDF had it, saved as a new version`,
+              onSelect: () => {
+                resetOrder.mutate(undefined, {
+                  onSuccess: () => {
+                    announce(t`Reset to the original PDF order`)
+                  },
+                })
+              },
             }}
           />
           <button

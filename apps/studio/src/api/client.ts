@@ -1813,6 +1813,12 @@ export const api = {
       body: JSON.stringify({ items, expectedVersion }),
     }),
 
+  /** Put the book back in source-PDF order, saved as a new version. */
+  resetReadingOrder: (label: string) =>
+    request<{ version: number }>(`/books/${label}/reading-order/reset`, {
+      method: "POST",
+    }),
+
   updateQuizzes: (label: string, data: unknown) =>
     request<{ version: number }>(`/books/${label}/quizzes`, {
       method: "PUT",

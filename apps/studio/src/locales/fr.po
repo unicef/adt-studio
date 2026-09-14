@@ -6770,6 +6770,9 @@ msgstr "ou cliquez pour parcourir vos fichiers"
 msgid "Original"
 msgstr "Original"
 
+msgid "Original — PDF order"
+msgstr "Original — ordre du PDF"
+
 msgid "Original language"
 msgstr "Langue originale"
 
@@ -7543,6 +7546,9 @@ msgstr "Extrayez le texte, les images et la structure de n'importe quel PDF."
 msgid "Pulls the book's metadata — title, author, language — from the PDF."
 msgstr "Extrait les métadonnées du livre — titre, auteur, langue — du PDF."
 
+msgid "Put every page back where the source PDF had it, saved as a new version"
+msgstr "Remet chaque page à la place qu'elle occupait dans le PDF source, enregistré comme nouvelle version"
+
 msgid "px"
 msgstr "px"
 
@@ -8080,6 +8086,9 @@ msgstr "Réinitialiser aux valeurs par défaut héritées"
 
 msgid "Reset to the book's accent"
 msgstr "Rétablir la couleur d'accent du livre"
+
+msgid "Reset to the original PDF order"
+msgstr "Rétabli dans l'ordre d'origine du PDF"
 
 msgid "Reset zoom"
 msgstr "Réinitialiser le zoom"

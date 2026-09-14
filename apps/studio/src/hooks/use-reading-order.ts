@@ -118,3 +118,27 @@ export function useSaveReadingOrder(label: string) {
     },
   })
 }
+
+/**
+ * Put the book back in source-PDF order.
+ *
+ * The entity does not exist until the first reorder, so its v1 is already a
+ * rearrangement and the version history has nothing representing the order the
+ * book started in. This is the way back, and it saves a new version rather than
+ * deleting the entity so the arrangement it replaces stays recoverable.
+ *
+ * No optimistic update: the resulting order is the server's to compute, and
+ * guessing it here would mean duplicating `defaultReadingOrder` in the client.
+ */
+export function useResetReadingOrder(label: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: () => api.resetReadingOrder(label),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: readingOrderKey(label) })
+      void queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
+      void queryClient.invalidateQueries({ queryKey: ["package-adt-status", label] })
+    },
+  })
+}

@@ -6770,6 +6770,9 @@ msgstr "ose kliko për të shfletuar skedarët"
 msgid "Original"
 msgstr "Origjinal"
 
+msgid "Original — PDF order"
+msgstr "Origjinali — rendi i PDF-së"
+
 msgid "Original language"
 msgstr "Gjuha origjinale"
 
@@ -7543,6 +7546,9 @@ msgstr "Nxirr tekst, imazhe dhe strukturë nga çdo PDF."
 msgid "Pulls the book's metadata — title, author, language — from the PDF."
 msgstr "Nxjerr metadatat e librit — titullin, autorin, gjuhën — nga PDF-ja."
 
+msgid "Put every page back where the source PDF had it, saved as a new version"
+msgstr "Kthen çdo faqe aty ku e kishte PDF-ja burimore, e ruajtur si version i ri"
+
 msgid "px"
 msgstr "px"
 
@@ -8080,6 +8086,9 @@ msgstr "Rivendos në paracaktimet e trashëguara"
 
 msgid "Reset to the book's accent"
 msgstr "Rikthe ngjyrën e theksit të librit"
+
+msgid "Reset to the original PDF order"
+msgstr "U rikthye në rendin origjinal të PDF-së"
 
 msgid "Reset zoom"
 msgstr "Rivendos zmadhimin"

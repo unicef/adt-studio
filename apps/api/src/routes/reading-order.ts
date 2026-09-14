@@ -174,6 +174,42 @@ export function createReadingOrderRoutes(booksDir: string): Hono {
     }
   })
 
+  // POST /books/:label/reading-order/reset — put the book back in source-PDF
+  // order.
+  //
+  // Saved as a new version rather than by deleting the entity, so the
+  // arrangement being replaced stays in the history and the reset itself can be
+  // rolled back. It is also why there is no version representing the original
+  // order to begin with: the entity does not exist until the first reorder, so
+  // its v1 is already a rearrangement. This is how the user gets back.
+  //
+  // The order is recomputed now, not recovered from v1 — "PDF order" is a
+  // question about what the book currently contains, so a page added since the
+  // first reorder belongs in it.
+  app.post("/books/:label/reading-order/reset", (c) => {
+    const safeLabel = safeParseLabel(c.req.param("label"))
+    assertBookExists(safeLabel, booksDir)
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const version = storage.transaction(() => {
+        assertNoActivePipelineRun(storage)
+        const defaults = resolveReadingOrder(storage, { ignoreStored: true })
+        const saved = storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+          schemaVersion: 1,
+          items: defaults.order,
+          updatedAt: new Date().toISOString(),
+        })
+        clearReadingOrderDependents(storage)
+        return saved
+      })
+
+      return c.json({ version })
+    } finally {
+      storage.close()
+    }
+  })
+
   return app
 }
 

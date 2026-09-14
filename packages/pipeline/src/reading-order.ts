@@ -80,6 +80,15 @@ export interface ResolvedReadingOrder {
 export interface ResolveReadingOrderOptions {
   /** Drop quiz pages entirely (packaging with the quizzes feature disabled). */
   includeQuizzes?: boolean
+  /**
+   * Ignore any stored order and resolve the source-derived one instead — what
+   * the book would read like if the user had never rearranged it.
+   *
+   * Only for offering that order back to the user ("reset to PDF order"). Every
+   * consumer that asks what the book's sequence *is* must leave this off, or it
+   * will silently disagree with the rest of the book.
+   */
+  ignoreStored?: boolean
 }
 
 /** The `content/pages.json` entry shape, built in exactly one place. */
@@ -300,7 +309,9 @@ export function resolveReadingOrder(
   // rather than writing a corrected order back on every structural edit keeps
   // the entity's version history a log of deliberate reorders instead of
   // machine-generated churn, and means a bad reconcile can never be persisted.
-  const storedRow = storage.getLatestNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID)
+  const storedRow = options.ignoreStored
+    ? null
+    : storage.getLatestNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID)
   const stored = storedRow ? ReadingOrderOutputSchema.safeParse(storedRow.data) : null
   const reconcile = reconcileReadingOrder(stored?.success ? stored.data.items : null, defaults)
   const order = reconcile.items
