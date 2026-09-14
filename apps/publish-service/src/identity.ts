@@ -1,4 +1,11 @@
-import { PUBLICATION_ACCESS_MAX_AGE_SECONDS } from "@adt/types"
+import {
+  COMMENTER_COLORS,
+  COMMENTER_NAME_MAX_LENGTH,
+  PUBLICATION_ACCESS_MAX_AGE_SECONDS,
+  PUBLISH_AUTHOR_COLOR,
+  PUBLISH_AUTHOR_DEFAULT_NAME,
+  type CommenterSession,
+} from "@adt/types"
 
 const encoder = new TextEncoder()
 
@@ -14,6 +21,33 @@ export function randomId(byteLength = 24): string {
   const bytes = new Uint8Array(byteLength)
   crypto.getRandomValues(bytes)
   return base64url(bytes)
+}
+
+export function commenterColor(existingCommenters: number): string {
+  return COMMENTER_COLORS[existingCommenters % COMMENTER_COLORS.length] as string
+}
+
+export function authorSessionId(token: string): string {
+  return `author-${token}`
+}
+
+export function authorSessionMarker(token: string, name?: string | null): CommenterSession {
+  return {
+    id: authorSessionId(token),
+    name: name ?? PUBLISH_AUTHOR_DEFAULT_NAME,
+    color: PUBLISH_AUTHOR_COLOR,
+    is_author: true,
+  }
+}
+
+export function normalizeDisplayName(value: string | undefined): string | null {
+  if (value === undefined) return null
+  const trimmed = value.trim()
+  return trimmed.length === 0 || trimmed.length > COMMENTER_NAME_MAX_LENGTH ? null : trimmed
+}
+
+export function nameKey(value: string): string {
+  return value.trim().normalize("NFC").toLowerCase()
 }
 
 export function constantTimeEqual(a: string, b: string): boolean {
