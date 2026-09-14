@@ -218,13 +218,17 @@ vi.mock("@/hooks/use-reading-order", async () => {
     ...actual,
     useReadingOrder: () => ({ data: READING_ORDER }),
     useSaveReadingOrder: () => ({ mutate: saveMutate, isPending: false }),
+    useResetReadingOrder: () => ({ mutate: vi.fn(), isPending: false }),
   }
 })
+vi.mock("@/components/pipeline/components/VersionPicker", () => ({
+  VersionPicker: () => <div data-testid="order-history" />,
+}))
 
 const { SectioningOverview } = await import("./SectioningOverview")
 
-function show() {
-  render(<SectioningOverview bookLabel="book" pages={PAGES} />)
+function show(props: { showOrderHistory?: boolean } = {}) {
+  render(<SectioningOverview bookLabel="book" pages={PAGES} {...props} />)
 }
 
 function toBookOrder() {
@@ -287,6 +291,19 @@ describe("SectioningOverview row order", () => {
     toBookOrder()
     // Flat, in reading order, and the removed section still shows a dash.
     expect(bookPageCells()).toEqual(["1", "3", "–"])
+  })
+
+  it("carries the page-order history only where there is no sidebar to hold it", () => {
+    // Rows can be moved from this table in either stage, so a reorder made in
+    // sectioning has to be undoable from sectioning. The storyboard's sidebar
+    // already carries the history, and two pickers on one screen is worse than
+    // none.
+    show()
+    expect(screen.queryByTestId("order-history")).toBeNull()
+
+    cleanup()
+    show({ showOrderHistory: true })
+    expect(screen.getByTestId("order-history")).toBeTruthy()
   })
 
   it("counts PDF pages by sheet, not by the number printed on them", () => {

@@ -7,8 +7,11 @@ import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import {
   useReadingOrder,
   useSaveReadingOrder,
+  useResetReadingOrder,
   moveReadingOrderRow,
+  readingOrderKey,
 } from "@/hooks/use-reading-order"
+import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
 import { useTogglePrune } from "@/hooks/use-toggle-prune"
 import { useAnnouncer } from "@/components/a11y/LiveRegionAnnouncer"
 import {
@@ -39,9 +42,23 @@ interface SectioningOverviewProps {
   bookLabel: string
   pages: PageSummaryItem[]
   onNavigateToSection?: (pageId: string, sectionIndex: number) => void
+  /**
+   * Show the page-order history beside the order toggle.
+   *
+   * Rows can be moved from this table in either stage, but the history lives in
+   * the storyboard sidebar — which the sectioning stage does not have. Without
+   * it, a reorder made here could not be undone from here. Off by default so
+   * the storyboard's overview does not end up with two pickers on screen.
+   */
+  showOrderHistory?: boolean
 }
 
-export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: SectioningOverviewProps) {
+export function SectioningOverview({
+  bookLabel,
+  pages,
+  onNavigateToSection,
+  showOrderHistory = false,
+}: SectioningOverviewProps) {
   const { t } = useLingui()
   const { announce } = useAnnouncer()
   const queryClient = useQueryClient()
@@ -93,6 +110,7 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
   // sidebar and every export agree on which page is which.
   const { data: readingOrder } = useReadingOrder(bookLabel)
   const saveReadingOrder = useSaveReadingOrder(bookLabel)
+  const resetReadingOrder = useResetReadingOrder(bookLabel)
   const readingPositions = useMemo(
     () => new Map((readingOrder?.items ?? []).map((item) => [item.id, item.position])),
     [readingOrder],
@@ -285,6 +303,33 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
                 {mode === "pdf" ? t`PDF order` : t`Book order`}
               </button>
             ))}
+            {/* Next to the control that changes the order, which is where
+                someone looking to undo a rearrange will look. */}
+            {showOrderHistory && (
+              <VersionPicker
+                step="reading-order"
+                itemId="book"
+                bookLabel={bookLabel}
+                currentVersion={readingOrder?.version ?? null}
+                saving={false}
+                dirty={false}
+                onDiscard={() => {}}
+                onRestored={() => {
+                  void queryClient.invalidateQueries({ queryKey: readingOrderKey(bookLabel) })
+                }}
+                footerAction={{
+                  label: t`Original — PDF order`,
+                  description: t`Put every page back where the source PDF had it, saved as a new version`,
+                  onSelect: () => {
+                    resetReadingOrder.mutate(undefined, {
+                      onSuccess: () => {
+                        announce(t`Reset to the original PDF order`)
+                      },
+                    })
+                  },
+                }}
+              />
+            )}
           </div>
         </div>
 
