@@ -3,10 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { createBookStorage, type Storage } from "@adt/storage"
-import type { WebRenderingOutput } from "@adt/types"
-import { resolveReadingOrder, readingOrderPageIds } from "../reading-order.js"
-import { getSemanticSectioning } from "../render-sectioning.js"
-import { batchPages, type QuizPageInput } from "../quiz-generation.js"
+import { batchPages, gatherQuizPageInputs } from "../quiz-generation.js"
 
 /**
  * Which pages end up in a quiz together, once the book has been reordered.
@@ -19,10 +16,11 @@ import { batchPages, type QuizPageInput } from "../quiz-generation.js"
  * content, spaced unevenly through the book.
  *
  * Generating a quiz needs an LLM, so what is pinned here is the part that
- * decides the grouping: the exact expression both executors use to turn a
- * book into batches. It is deliberately written out rather than imported,
- * because there is no shared helper — if either runner stops matching this,
- * that divergence is the bug.
+ * decides the grouping: `gatherQuizPageInputs` + `batchPages`, which is
+ * literally what both executors call. Exercising the real helper rather than a
+ * copy of it is the point — an earlier version of this file re-implemented the
+ * loop, drifted from it (it dropped the `quizSectionTypes` argument), and would
+ * have stayed green through exactly the regression it was written to catch.
  */
 
 const label = "quiz-batching-book"
@@ -71,27 +69,17 @@ function seed(storage: Storage) {
 }
 
 /**
- * The quiz executors' page-gathering loop, verbatim in structure.
- * See `stage-runner.ts` and `pipeline-dag.ts`, executor `quiz-generation`.
+ * The grouping both quiz executors perform, called exactly as they call it —
+ * `quizSectionTypes` included, since that argument is part of what decides
+ * which pages count as content.
  */
-function gatherQuizPages(storage: Storage): QuizPageInput[] {
-  const pages = readingOrderPageIds(resolveReadingOrder(storage, { includeQuizzes: false }))
-  const quizPages: QuizPageInput[] = []
-  for (const pageId of pages) {
-    const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
-    const sectioning = getSemanticSectioning(storage, pageId)
-    if (!renderingRow || !sectioning) continue
-    quizPages.push({
-      pageId,
-      rendering: renderingRow.data as WebRenderingOutput,
-      sectioning,
-    })
-  }
-  return quizPages
-}
-
-function batchIds(storage: Storage, pagesPerQuiz: number): string[][] {
-  return batchPages(gatherQuizPages(storage), pagesPerQuiz).map((batch) =>
+function batchIds(
+  storage: Storage,
+  pagesPerQuiz: number,
+  quizSectionTypes?: string[],
+): string[][] {
+  const { quizPages } = gatherQuizPageInputs(storage)
+  return batchPages(quizPages, pagesPerQuiz, quizSectionTypes).map((batch) =>
     batch.map((p) => p.pageId),
   )
 }
@@ -171,6 +159,31 @@ describe("quiz batching follows the reading order", () => {
     expect(withStorage((s) => batchIds(s, 3))).toEqual([
       ["pg006", "pg005", "pg003"],
       ["pg002", "pg001"],
+    ])
+  })
+
+  it("applies quizSectionTypes on top of the reading order", () => {
+    // Both runners pass `quizConfig.quizSectionTypes` as batchPages' third
+    // argument. A page whose section type is not eligible drops out of the
+    // batches while the surviving pages still group in reading order.
+    withStorage((s) => {
+      storeOrder(s, [...PAGE_IDS].reverse())
+      const row = s.getLatestNodeData("page-sectioning", "pg005")
+      const data = row?.data as { reasoning: string; sections: Array<Record<string, unknown>> }
+      s.putNodeData("page-sectioning", "pg005", {
+        ...data,
+        sections: data.sections.map((sec) => ({ ...sec, sectionType: "cover" })),
+      })
+    })
+
+    expect(withStorage((s) => batchIds(s, 3, ["content"]))).toEqual([
+      ["pg006", "pg004", "pg003"],
+      ["pg002", "pg001"],
+    ])
+    // Without the filter the cover page is just another content page.
+    expect(withStorage((s) => batchIds(s, 3))).toEqual([
+      ["pg006", "pg005", "pg004"],
+      ["pg003", "pg002", "pg001"],
     ])
   })
 })

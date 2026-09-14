@@ -196,8 +196,10 @@ export {
   extractTextFromHtml,
   isContentPage,
   batchPages,
+  gatherQuizPageInputs,
   type QuizConfig,
   type QuizPageInput,
+  type QuizPageGathering,
 } from "./quiz-generation.js"
 export { buildTextCatalog } from "./text-catalog.js"
 export {

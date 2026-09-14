@@ -67,9 +67,8 @@ import { createTemplateEngine } from "./render-template.js"
 import { captionPageImages, buildCaptionConfig, collectCaptionImageIds, groupGlossaryImageIdsByPage } from "./image-captioning.js"
 import { regenerateGlossaryPreservingEdits, buildGlossaryConfig } from "./glossary.js"
 import { generateToc, buildTocGenerationConfig } from "./toc-generation.js"
-import { generateAllQuizzes, buildQuizGenerationConfig, batchPages, type QuizPageInput } from "./quiz-generation.js"
+import { generateAllQuizzes, buildQuizGenerationConfig, batchPages, gatherQuizPageInputs, type QuizPageInput } from "./quiz-generation.js"
 import { saveQuizOutput, assertQuizGenerationCapacity } from "./quiz-ids.js"
-import { resolveReadingOrder, readingOrderPageIds } from "./reading-order.js"
 import { buildTextCatalog } from "./text-catalog.js"
 import { buildEasyReadConfig, buildEasyReadSourceBlocks, createEmptyEasyReadOutput, generateEasyRead, flattenEasyReadEntries, isDeterministicEmptyEasyReadOutput } from "./easy-read.js"
 import { translateCatalogBatch, buildCatalogTranslationConfig, getTargetLanguages } from "./catalog-translation.js"
@@ -103,7 +102,7 @@ import {
 } from "./speech.js"
 import { packageAdtWeb } from "./packaging/web.js"
 import { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
-import { getRenderSectioning, getSemanticSectioning } from "./render-sectioning.js"
+import { getRenderSectioning } from "./render-sectioning.js"
 import { runAccessibilityAssessment } from "./accessibility-assessment.js"
 import { loadBookConfig } from "./config.js"
 import { nullProgress, type Progress } from "./progress.js"
@@ -701,27 +700,9 @@ export async function runFullPipeline(
       const quizConfig = buildQuizGenerationConfig(config, language)
       if (!quizConfig) return
       const model = getModel(quizConfig.modelId)
-      // Reading order, not source-PDF order — see the note in stage-runner's
-      // quiz executor: batching by source order after a reorder groups
-      // non-adjacent pages and spaces the quizzes unevenly.
-      const pages = readingOrderPageIds(resolveReadingOrder(storage, { includeQuizzes: false }))
-      const quizPages: QuizPageInput[] = []
-      for (const pageId of pages) {
-        const page = { pageId }
-        const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-        // Filter by the SEMANTIC sectioning (real section types like
-        // `text_and_single_image`), not the render sectioning — in fixed-layout
-        // the latter is the positioned tree whose only type is
-        // `fixed-layout-page`, which never matches `quiz_section_types`, so no
-        // quizzes would ever generate.
-        const sectioning = getSemanticSectioning(storage, page.pageId)
-        if (!renderingRow || !sectioning) continue
-        quizPages.push({
-          pageId: page.pageId,
-          rendering: renderingRow.data as WebRenderingOutput,
-          sectioning,
-        })
-      }
+      // Reading order, not source-PDF order — see `gatherQuizPageInputs`, which
+      // this executor shares with stage-runner's.
+      const { quizPages } = gatherQuizPageInputs(storage)
       if (quizPages.length > 0) {
         assertQuizGenerationCapacity(storage, batchPages(quizPages, quizConfig.pagesPerQuiz, quizConfig.quizSectionTypes).length)
         const result = await generateAllQuizzes(quizPages, quizConfig, model, {

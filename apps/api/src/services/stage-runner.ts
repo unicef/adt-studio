@@ -48,15 +48,13 @@ import {
   generateToc,
   buildTocGenerationConfig,
   generateAllQuizzes,
-  resolveReadingOrder,
-  readingOrderPageIds,
+  gatherQuizPageInputs,
   saveQuizOutput,
   assertQuizGenerationCapacity,
   batchPages,
   buildQuizGenerationConfig,
   // Master step imports
   getRenderSectioning,
-  getSemanticSectioning,
   buildTextCatalog,
   buildEasyReadConfig,
   buildEasyReadSourceBlocks,
@@ -1851,43 +1849,14 @@ async function runQuizzesStep(
 
     progress.emit({ type: "step-start", step: "quiz-generation" })
 
-    // Gather page data for quiz generation. A page is eligible only when it has
-    // BOTH a web-rendering and a render-sectioning node — the quiz LLM reads
-    // rendered text, and batching counts sectioned content pages.
-    // Batch in READING order, not source-PDF order: quizzes are placed every N
-    // pages, so the pages a quiz covers — and where it lands — have to follow
-    // the sequence the reader actually meets. Using source order after a
-    // reorder groups pages that are no longer adjacent and anchors each quiz to
-    // an arbitrary position, which shows up as uneven spacing in the book.
-    const pages = readingOrderPageIds(resolveReadingOrder(storage, { includeQuizzes: false }))
-    const quizPages: QuizPageInput[] = []
-    let missingRendering = 0
-    let missingSectioning = 0
-    for (const pageId of pages) {
-      const page = { pageId }
-      const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-      // Filter by the SEMANTIC sectioning (real types like `text_and_single_image`),
-      // not the render sectioning — in fixed-layout the render tree is positioned
-      // and its only section type is `fixed-layout-page`, which never matches
-      // `quiz_section_types`, so no page would qualify and no quiz would generate.
-      const sectioning = getSemanticSectioning(storage, page.pageId)
-      if (!renderingRow) {
-        missingRendering++
-        continue
-      }
-      if (!sectioning) {
-        missingSectioning++
-        continue
-      }
-      quizPages.push({
-        pageId: page.pageId,
-        rendering: renderingRow.data as WebRenderingOutput,
-        sectioning,
-      })
-    }
+    // Gather page data for quiz generation, in reading order — see
+    // `gatherQuizPageInputs`, which both quiz runners share.
+    const { quizPages, bookPageCount, inReadingOrder, missingSectioning } =
+      gatherQuizPageInputs(storage)
     console.log(
-      `[stage-run] ${label}: quiz input — ${quizPages.length}/${pages.length} pages ready ` +
-        `(missing web-rendering: ${missingRendering}, missing sectioning: ${missingSectioning}); ` +
+      `[stage-run] ${label}: quiz input — ${quizPages.length}/${bookPageCount} pages ready ` +
+        `(not in the book's reading order: ${bookPageCount - inReadingOrder}, ` +
+        `missing semantic sectioning: ${missingSectioning}); ` +
         `pages_per_quiz=${quizConfig.pagesPerQuiz}`
     )
 
@@ -1926,14 +1895,14 @@ async function runQuizzesStep(
       // Nothing to generate. This is the silent "finished instantly, no quizzes"
       // case — surface it loudly instead of completing green with no output.
       console.warn(
-        `[stage-run] ${label}: quiz-generation produced NOTHING — 0 of ${pages.length} pages ` +
-          `had both web-rendering and render-sectioning. Re-run the Storyboard stage first ` +
-          `(fixed-layout writes both there), then Quizzes.`
+        `[stage-run] ${label}: quiz-generation produced NOTHING — 0 of ${bookPageCount} pages ` +
+          `reached the reader with both web-rendering and render-sectioning. Re-run the ` +
+          `Storyboard stage first (fixed-layout writes both there), then Quizzes.`
       )
       progress.emit({
         type: "step-progress",
         step: "quiz-generation",
-        message: `No quizzes: 0/${pages.length} pages had rendering + sectioning`,
+        message: `No quizzes: 0/${bookPageCount} pages had rendering + sectioning`,
       })
     }
 
