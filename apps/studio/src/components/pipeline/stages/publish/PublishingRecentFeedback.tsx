@@ -1,7 +1,8 @@
 import { useMemo } from "react"
 import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { ArrowRight, CheckCircle2, Loader2, MessagesSquare } from "lucide-react"
+import { AlertTriangle, ArrowRight, CheckCircle2, Loader2, MessagesSquare } from "lucide-react"
+import { apiErrorCode } from "@/api/client"
 import {
   buildThreads,
   filterThreads,
@@ -53,8 +54,24 @@ export function PublishingRecentFeedback({ bookLabel }: { bookLabel: string }) {
     )
   }
 
+  /* Returning null here left a headed section with nothing under it — indistinguishable from
+   * "no feedback", which is the opposite claim. The section says what it doesn't know, in the
+   * same words the rest of the dashboard uses. */
   if (comments.isError) {
-    return null
+    const notConnected = apiErrorCode(comments.error) === "publish_not_connected"
+    return (
+      <div
+        data-testid="publish-feedback-unavailable"
+        className="flex items-start gap-2 text-xs leading-5 text-amber-700"
+      >
+        <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+        {notConnected ? (
+          <Trans>Connect a Cloudflare account to see reader feedback.</Trans>
+        ) : (
+          <Trans>Service not answering — feedback will appear once it does.</Trans>
+        )}
+      </div>
+    )
   }
 
   if (threads.length === 0) {

@@ -109,12 +109,12 @@ afterEach(() => {
 
 describe("PublishingFreshness", () => {
   it("says readers are current when nothing has been written since the publish", () => {
-    render(<PublishingFreshness contentRevision={40} liveVersion={version()} />)
+    render(<PublishingFreshness contentRevision={40} liveVersion={version()} workerReachable />)
     expect(screen.getByTestId("publish-freshness-current")).toBeTruthy()
   })
 
   it("warns when the book has moved on", () => {
-    render(<PublishingFreshness contentRevision={41} liveVersion={version()} />)
+    render(<PublishingFreshness contentRevision={41} liveVersion={version()} workerReachable />)
     expect(screen.getByTestId("publish-freshness-stale")).toBeTruthy()
     expect(document.body.textContent).toContain("readers are seeing an older copy")
   })
@@ -124,13 +124,35 @@ describe("PublishingFreshness", () => {
    * saying "up to date" there would be a guess about the one fact the author is relying on.
    */
   it("admits it cannot tell rather than claiming the link is current", () => {
-    render(<PublishingFreshness contentRevision={40} liveVersion={version({ content_revision: null })} />)
+    render(<PublishingFreshness
+        contentRevision={40}
+        liveVersion={version({ content_revision: null })}
+        workerReachable
+      />)
     expect(screen.getByTestId("publish-freshness-unknown")).toBeTruthy()
     expect(screen.queryByTestId("publish-freshness-current")).toBeNull()
 
     cleanup()
-    render(<PublishingFreshness contentRevision={null} liveVersion={version()} />)
+    render(<PublishingFreshness contentRevision={null} liveVersion={version()} workerReachable />)
     expect(screen.getByTestId("publish-freshness-unknown")).toBeTruthy()
+  })
+
+  /**
+   * Every other branch is a sentence about what readers are seeing. When the service did not
+   * answer, that is a claim this machine cannot make — and it used to make it anyway, in green,
+   * directly under a header that said the service was down.
+   */
+  it("stops speaking for readers when the service is not answering", () => {
+    render(<PublishingFreshness contentRevision={40} liveVersion={version()} workerReachable={false} />)
+    expect(screen.getByTestId("publish-freshness-unreachable")).toBeTruthy()
+    expect(screen.queryByTestId("publish-freshness-current")).toBeNull()
+    expect(document.body.textContent).not.toContain("Readers are seeing your current work")
+
+    cleanup()
+    render(<PublishingFreshness contentRevision={41} liveVersion={version()} workerReachable={false} />)
+    expect(screen.getByTestId("publish-freshness-unreachable")).toBeTruthy()
+    expect(screen.queryByTestId("publish-freshness-stale")).toBeNull()
+    expect(document.body.textContent).toContain("You have edited this book since the last update")
   })
 })
 
