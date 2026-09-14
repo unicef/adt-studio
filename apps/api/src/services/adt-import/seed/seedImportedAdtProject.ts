@@ -20,6 +20,7 @@ import { AdtImportError } from "../error.js"
 import { FIXED_LAYOUT_CONFIG } from "../fixed-layout.js"
 import { ADT_IMPORT_IN_PROGRESS_MARKER } from "../marker.js"
 
+import { seedImportedCoreTts } from "./core-tts.js"
 import { seedImportedEasyRead } from "./easy-read.js"
 import { seedImportedFeatures } from "./features.js"
 import { seedImportedImages } from "./images.js"
@@ -132,9 +133,10 @@ export function seedImportedAdtProject(
   )
   seedImportedFeatures(label, booksDir, bundle, createdAt)
   seedImportedEasyRead(label, booksDir, bundle, createdAt)
+  seedImportedCoreTts(label, booksDir, bundle, files, createdAt)
   seedImportedImages(label, booksDir, bundle, files)
   seedImportedSignLanguage(label, booksDir, bundle, files)
-  seedImportedSpeech(label, booksDir, bundle, files, sourceContentChanged, createdAt)
+  seedImportedSpeech(label, booksDir, bundle, files, createdAt)
   warnOnUndetectedFixedLayout(bundle, storyboard.fixedLayoutPageCount)
   fs.writeFileSync(path.join(bookDir, "config.yaml"), yaml.dump({
     editing_language: sourceLanguage,

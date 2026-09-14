@@ -4,8 +4,10 @@ import path from "node:path"
 
 import { describe, expect, it } from "vitest"
 import { strToU8, unzipSync, zipSync } from "fflate"
+import { getReadyCoreTtsEntries } from "@adt/pipeline"
 import { createBookStorage } from "@adt/storage"
 
+import { getBook } from "../../book-service.js"
 import { getImportedAdtFeaturesNeedingRegeneration } from "../presentation.js"
 import { previewAdtRecoveryImport } from "../preview.js"
 import {
@@ -16,6 +18,8 @@ import {
   json,
   makeBundle,
   makeBundleWithEasyReadAndSignLanguage,
+  makeBundleWithPartiallyStableNarration,
+  makeBundleWithSpeechTexts,
   makeBundleWithUnchangedHtmlCatalog,
   makeFixedLayoutBundle,
   seedFromArchive,
@@ -239,5 +243,120 @@ describe("imported Easy Read and sign language recovery", () => {
     } finally {
       upgraded.close()
     }
+  })
+})
+
+describe("imported translation and speech stage completion", () => {
+  function importedProject(archive: Buffer) {
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-translate-speech-"))
+    temporaryRoots.push(booksDir)
+    const session = seedFromArchive(archive, booksDir)
+    const bookDir = path.join(booksDir, session.label)
+    const revisionDir = path.join(bookDir, ".adt-imports", "speech-revision")
+    fs.mkdirSync(revisionDir, { recursive: true })
+    fs.writeFileSync(path.join(revisionDir, "source.zip"), archive)
+    const writeCurrent = (projectionVersion: number) => fs.writeFileSync(
+      path.join(bookDir, ".adt-import-current.json"),
+      JSON.stringify({ version: 1, revisionId: "speech-revision", projectionVersion }),
+    )
+    writeCurrent(ADT_IMPORT_PROJECTION_VERSION)
+    return { booksDir, session, writeCurrent }
+  }
+
+  it("completes the translate and speech stages from the archive's data", () => {
+    const { booksDir, session } = importedProject(makeBundleWithUnchangedHtmlCatalog())
+
+    expect(getBook(session.label, booksDir).completedStages)
+      .toEqual(expect.arrayContaining(["translate", "speech"]))
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      expect(storage.getStepRuns()).toEqual(expect.arrayContaining([
+        expect.objectContaining({ step: "core-tts-catalog", status: "done" }),
+        expect.objectContaining({ step: "tts", status: "done" }),
+        expect.objectContaining({ step: "word-timestamps", status: "done" }),
+      ]))
+      expect(getReadyCoreTtsEntries(storage, "en")).toContainEqual({
+        id: "pg001_n001",
+        text: "Edited outside Studio",
+      })
+      expect(getReadyCoreTtsEntries(storage, "es")).toContainEqual({
+        id: "pg001_n001",
+        text: "Texto anterior",
+      })
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("skips word timestamps when the archive has narration but no timecodes", () => {
+    const files = unzipSync(makeBundleWithUnchangedHtmlCatalog())
+    files["content/i18n/en/timecode/timecode_output.json"] = json({})
+    const { booksDir, session } = importedProject(Buffer.from(zipSync(files)))
+
+    expect(getBook(session.label, booksDir).completedStages).toContain("speech")
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      expect(storage.getStepRuns()).toEqual(expect.arrayContaining([
+        expect.objectContaining({ step: "tts", status: "done" }),
+        expect.objectContaining({ step: "word-timestamps", status: "skipped" }),
+      ]))
+      expect(storage.getLatestNodeData("tts-timestamps", "en")).toBeNull()
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("recovers the exporter's speech text and falls back to display text", () => {
+    const { booksDir, session } = importedProject(makeBundleWithSpeechTexts())
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      const entries = getReadyCoreTtsEntries(storage, "en")
+      expect(entries).toContainEqual({
+        id: "pg001_n001",
+        text: "Edited outside Studio, spoken plainly",
+      })
+      expect(entries).toContainEqual({ id: "gl001", text: "Hyena" })
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("adopts narration only for texts the archive left unchanged", () => {
+    const archive = makeBundleWithPartiallyStableNarration()
+    expect(previewAdtRecoveryImport(archive).featureRecovery.speech).toBe("recovered")
+
+    const { booksDir, session } = importedProject(archive)
+    expect(session.contentChanged).toBe(true)
+    expect(getImportedAdtFeaturesNeedingRegeneration(session.label, booksDir)).toEqual([])
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      expect(storage.getLatestNodeData("tts", "en")?.data).toMatchObject({
+        entries: [expect.objectContaining({ textId: "gl001", fileName: "hyena.mp3" })],
+      })
+      expect(fs.existsSync(path.join(booksDir, session.label, "audio", "en", "original.mp3"))).toBe(false)
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("adds no speech or Core TTS versions on a re-projection", () => {
+    const { booksDir, session, writeCurrent } = importedProject(makeBundleWithUnchangedHtmlCatalog())
+    const before = createBookStorage(session.label, booksDir)
+    const ttsVersion = before.getLatestNodeData("tts", "en")!.version
+    const coreTtsVersion = before.getLatestNodeData("core-tts-catalog", "en")!.version
+    before.close()
+    writeCurrent(ADT_IMPORT_PROJECTION_VERSION - 1)
+
+    expect(ensureImportedAdtProjectProjection(session.label, booksDir)).toBe(true)
+
+    const after = createBookStorage(session.label, booksDir)
+    try {
+      expect(after.getLatestNodeData("tts", "en")!.version).toBe(ttsVersion)
+      expect(after.getLatestNodeData("core-tts-catalog", "en")!.version).toBe(coreTtsVersion)
+    } finally {
+      after.close()
+    }
+    expect(getBook(session.label, booksDir).completedStages)
+      .toEqual(expect.arrayContaining(["translate", "speech"]))
   })
 })

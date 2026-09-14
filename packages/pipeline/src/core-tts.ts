@@ -510,3 +510,43 @@ export function invalidateCoreTtsEntriesById(options: {
 
   return updatedCatalogs
 }
+
+/**
+ * Provider-text catalog for a book projected from a published ADT. The
+ * archive's `speech_texts.json` is the exporter's own `speechText`, so an
+ * entry it names round-trips as a manual choice; anything else speaks its
+ * display text. No LLM is involved, so no profile or model is recorded.
+ */
+export function createImportedCoreTtsCatalog(options: {
+  language: string
+  entries: TextCatalogEntry[]
+  speechTexts: Record<string, string>
+  generatedAt: string
+}): CoreTtsCatalogOutput {
+  const language = normalizeLocale(options.language)
+  return {
+    language,
+    generatedAt: options.generatedAt,
+    entries: options.entries.map((entry) => {
+      const archived = options.speechTexts[entry.id]
+      const speechText = typeof archived === "string" && archived.trim().length > 0
+        ? archived
+        : entry.text
+      return {
+        id: entry.id,
+        displayText: entry.text,
+        speechText,
+        changed: speechText !== entry.text,
+        transformations: [],
+        status: "ready",
+        generation: {
+          mode: "manual",
+          generatedAt: options.generatedAt,
+          enabledTransformations: [],
+          sourceTextHash: hash(entry.text),
+          contextHash: hash({ language, displayText: entry.text, speechText, imported: true }),
+        },
+      }
+    }),
+  }
+}

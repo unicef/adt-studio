@@ -388,3 +388,25 @@ export function makeBundleWithEasyReadAndSignLanguage(): Buffer {
   files["content/i18n/en/video/sl_gl001.mp4"] = strToU8("glossary video")
   return Buffer.from(zipSync(files))
 }
+
+/** The unchanged-catalog archive with the exporter's own speech text for one
+ * entry, so Core TTS recovery can be told apart from the display-text fallback. */
+export function makeBundleWithSpeechTexts(): Buffer {
+  const files = unzipSync(makeBundleWithUnchangedHtmlCatalog())
+  files["content/i18n/en/speech_texts.json"] = json({
+    pg001_n001: "Edited outside Studio, spoken plainly",
+  })
+  return Buffer.from(zipSync(files))
+}
+
+/** The legacy archive whose narrated paragraph was edited outside Studio, plus
+ * narration for a glossary term whose text is unchanged. */
+export function makeBundleWithPartiallyStableNarration(): Buffer {
+  const files = unzipSync(makeBundle())
+  files["content/i18n/en/audios.json"] = json({
+    pg001_n001: "original.mp3",
+    gl001: "hyena.mp3",
+  })
+  files["content/i18n/en/audio/hyena.mp3"] = strToU8("hyena audio")
+  return Buffer.from(zipSync(files))
+}

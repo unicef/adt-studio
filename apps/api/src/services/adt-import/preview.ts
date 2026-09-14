@@ -1,5 +1,3 @@
-import path from "node:path"
-
 import { normalizeLocale, readAdtAgentGuideTemplate } from "@adt/pipeline"
 import type { AdtBundleImportPreview, AdtImportFeatureRecovery } from "@adt/types"
 
@@ -17,6 +15,7 @@ import { AdtImportError } from "./error.js"
 import { createAdtImportRepairGuide } from "./repair-guide.js"
 import { recoverImportedQuizzes } from "./quiz.js"
 import { recoverImportedSignLanguageVideos } from "./sign-language.js"
+import { recoverImportedAudio, stableImportedTextIds } from "./speech.js"
 
 /**
  * How each pipeline feature will actually come out of this archive.
@@ -80,31 +79,20 @@ export function planImportedFeatureRecovery(
   return plan
 }
 
-/** Whether this archive carries narration audio the importer can adopt. */
+/** Whether this archive carries narration audio the importer can adopt: the
+ * same per-entry rule `seedImportedSpeech` applies, so a manifest alone is not
+ * enough — at least one present file must narrate a text that is unchanged. */
 function hasRecoverableSpeech(
   bundle: ReadAdtBundle,
   files: Record<string, Uint8Array>,
-  contentChanged: boolean,
+  catalogEntries: ReadonlyArray<{ id: string; text: string }>,
+  sourceTexts: Record<string, string>,
 ): boolean {
-  if (!bundle.runtimeFeatures.readAloud || contentChanged) return false
-  // Mirror `seedImportedSpeech`: a manifest is not enough — the map has to parse
-  // and at least one narration file it names has to be present in the archive.
-  return bundle.manifest.languages.output.some((language) => {
-    const bytes = files[`${bundle.root}content/i18n/${language}/audios.json`]
-    if (!bytes) return false
-    let audioMap: unknown
-    try {
-      audioMap = JSON.parse(new TextDecoder().decode(bytes))
-    } catch {
-      return false
-    }
-    if (!audioMap || typeof audioMap !== "object" || Array.isArray(audioMap)) return false
-    return Object.values(audioMap as Record<string, unknown>).some((fileName) => (
-      typeof fileName === "string"
-      && path.basename(fileName) === fileName
-      && files[`${bundle.root}content/i18n/${language}/audio/${fileName}`] !== undefined
-    ))
-  })
+  return recoverImportedAudio(
+    bundle,
+    files,
+    stableImportedTextIds(catalogEntries, sourceTexts),
+  ).length > 0
 }
 
 export function previewAdtRecoveryImport(
@@ -180,7 +168,7 @@ export function previewAdtRecoveryImport(
       quizCount: activityReview.quizCount,
       declaredQuizCount: recoveredQuizzes.declaredCount,
       recoverableQuizCount: recoveredQuizzes.quizzes.length,
-      speechRecoverable: hasRecoverableSpeech(bundle, files, contentChanged),
+      speechRecoverable: hasRecoverableSpeech(bundle, files, catalog.entries, sourceTexts),
       easyReadEntryCount: recoverableEasyReadIds(
         sourceTexts,
         new Set(catalog.entries.map((entry) => entry.id)),

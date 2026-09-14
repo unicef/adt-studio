@@ -245,6 +245,7 @@ export {
   getCoreTtsCatalog,
   getReadyCoreTtsEntries,
   buildCoreTtsSourceContext,
+  createImportedCoreTtsCatalog,
   invalidateCoreTtsForDisplayEntries,
   invalidateCoreTtsEntriesById,
   type CoreTtsProfiles,
