@@ -73,6 +73,7 @@
     "text-read-aloud-speed": "Sebesség",
     "toc-title": "Tartalomjegyzék",
     "tts-label": "Szöveg felolvasása",
+    "narrator-voice-label": "Narrátor hangja",
     "tutorial-closed-announcement": "Bemutató bezárva. Ne feledd, hogy az Alt plusz Shift plusz A használatával nyithatod és zárhatod az akadálymentességi menüt, az Alt plusz Shift plusz nyilakkal navigálhatsz az oldalak között, és az Alt plusz Shift plusz X-szel nyithatod és zárhatod a navigációs menüt. További akadálymentességi funkciók eléréséhez használd a jobb sarokban lévő gombot.",
     "tutorial-completed-announcement": "Bemutató befejezve. Ne feledd, hogy az Alt plusz Shift plusz A-val nyithatod és zárhatod az akadálymentességi menüt, az Alt plusz Shift plusz nyilakkal navigálhatsz az oldalak között, és az Alt plusz Shift plusz X-szel nyithatod és zárhatod a navigációs menüt.",
     "tutorial-description-content": "Mielőtt elkezdenéd, itt van egy gyors túra, hogy megmutassuk, hogyan navigálj, használd a menüt és férj hozzá a hasznos funkciókhoz.<br> Nem fog sokáig tartani!",

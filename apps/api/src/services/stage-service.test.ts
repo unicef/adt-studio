@@ -74,7 +74,7 @@ function controllableRunner() {
 
 const baseOptions = (label: string): StageRunOptions => ({
   booksDir: tmpDir,
-  apiKey: "sk-test",
+  credentials: { openai: { apiKey: "sk-test" } },
   promptsDir: "",
   fromStage: "storyboard",
   toStage: "storyboard",

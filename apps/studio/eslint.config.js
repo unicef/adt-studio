@@ -106,6 +106,8 @@ export default [
             "label",
 
             // --- Pipeline / config identifiers ---
+            // AI model/provider brand identifiers shown as pills (e.g. "GPT-4o", "Claude Opus") — proper nouns, not translated
+            "models",
             "slug",
             "stageSlug",
             "promptName",

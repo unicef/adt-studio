@@ -73,6 +73,7 @@
     "text-read-aloud-speed": "Brzina",
     "toc-title": "Indeks",
     "tts-label": "Tekst u govor",
+    "narrator-voice-label": "Glas pripovjedača",
     "tutorial-closed-announcement": "Vodič zatvoren. Zapamtite da možete koristiti Alt plus Shift plus A za otvaranje i zatvaranje izbornika pristupačnosti, Alt plus Shift plus strelice za navigaciju između stranica, i Alt plus Shift plus X za otvaranje i zatvaranje navigacijskog izbornika. Možete pristupiti više funkcija pristupačnosti pomoću gumba u desnom kutu.",
     "tutorial-completed-announcement": "Vodič završen. Zapamtite da možete koristiti Alt plus Shift plus A za otvaranje i zatvaranje izbornika pristupačnosti, Alt plus Shift plus strelice za navigaciju između stranica, i Alt plus Shift plus X za otvaranje i zatvaranje navigacijskog izbornika.",
     "tutorial-description-content": "Prije nego što počnete, evo kratkog obilaska kako biste vidjeli kako navigirati, koristiti izbornik i pristupiti korisnim značajkama.<br> Neće dugo trajati!",

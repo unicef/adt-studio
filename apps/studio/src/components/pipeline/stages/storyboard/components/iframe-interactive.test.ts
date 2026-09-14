@@ -1,6 +1,13 @@
 import { JSDOM } from "jsdom"
 import { describe, expect, it } from "vitest"
-import { INTERACTIVE_SCRIPT } from "./iframe-interactive"
+import { INTERACTIVE_SCRIPT, INTERACTIVE_STYLES } from "./iframe-interactive"
+
+describe("storyboard interaction styles", () => {
+  it("do not override image positioning or stacking", () => {
+    expect(INTERACTIVE_STYLES).not.toMatch(/img\[data-id\][^}]*position:/)
+    expect(INTERACTIVE_STYLES).not.toMatch(/img\[data-id\][^}]*z-index:/)
+  })
+})
 
 describe("storyboard word-bank interaction", () => {
   function documentWithWordBank() {

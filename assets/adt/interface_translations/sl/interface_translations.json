@@ -73,6 +73,7 @@
     "text-read-aloud-speed": "Hitrost",
     "toc-title": "Kazalo",
     "tts-label": "Besedilo v govor",
+    "narrator-voice-label": "Glas pripovedovalca",
     "tutorial-closed-announcement": "Vodič zaprt. Ne pozabite, da lahko uporabite Alt plus Shift plus A za odpiranje in zapiranje menija dostopnosti, Alt plus Shift plus puščice za navigacijo med stranmi, in Alt plus Shift plus X za odpiranje in zapiranje navigacijskega menija. Več funkcij dostopnosti lahko dostopate z gumbom v desnem kotu.",
     "tutorial-completed-announcement": "Vodič zaključen. Ne pozabite, da lahko uporabite Alt plus Shift plus A za odpiranje in zapiranje menija dostopnosti, Alt plus Shift plus puščice za navigacijo med stranmi, in Alt plus Shift plus X za odpiranje in zapiranje navigacijskega menija.",
     "tutorial-description-content": "Preden začnete, tukaj je kratek ogled, ki vam pokaže, kako navigirati, uporabljati meni in dostopati do uporabnih funkcij.<br> Ne bo trajalo dolgo!",

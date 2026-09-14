@@ -3,25 +3,24 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
+  applyReleaseNotice,
   buildDarkThemePrompt,
   buildEditorialPrompt,
   buildImagePrompt,
-  buildReleaseLocalizations,
   buildTextRequest,
-  buildTranslationRequest,
   editImage,
   generateEditorial,
   generateImage,
-  generateLocalizations,
   inferPipelineStage,
+  isBetaReleaseTag,
   pairedCoverAssets,
   replaceReleaseCoverUrls,
   resolveCoverPalette,
   runCli,
   updateReleaseBody,
   validateEditorial,
-  validateReleaseLocalizations,
 } from "./generate-ai-release-assets.mjs";
+import { parseReleaseSourceSection } from "./release-source-notes.mjs";
 
 const editorialPayload = {
   title: "Books That Travel",
@@ -34,33 +33,7 @@ const editorialPayload = {
   image_prompt: "An open book flowing into a neatly packaged publication",
 };
 
-const translatedLocales = Object.fromEntries(
-  ["pt-BR", "es", "fr", "sq"].map((locale) => [
-    locale,
-    {
-      title: `Livros em movimento ${locale}`,
-      summary: `Resumo localizado para ${locale}.`,
-      coverAlt: `Descrição localizada para ${locale}`,
-      sections: {
-        added: {
-          heading: `Adicionado ${locale}`,
-          items: [`Exportação localizada para ${locale}.`],
-        },
-        improved: { heading: `Melhorado ${locale}`, items: [] },
-        fixed: {
-          heading: `Corrigido ${locale}`,
-          items: [`Ordem de leitura estável para ${locale}.`],
-        },
-      },
-    },
-  ]),
-);
-
 const editorial = validateEditorial(editorialPayload);
-const releaseLocalizations = buildReleaseLocalizations(
-  editorial,
-  translatedLocales,
-);
 
 describe("AI release assets", () => {
   it("keeps the requested hero feature separated as untrusted data", () => {
@@ -87,18 +60,6 @@ describe("AI release assets", () => {
     });
     expect(request.text.format.schema.additionalProperties).toBe(false);
 
-    const translationRequest = buildTranslationRequest({ editorial });
-    expect(translationRequest.text.format).toMatchObject({
-      type: "json_schema",
-      name: "adt_release_translations",
-      strict: true,
-    });
-    expect(translationRequest.text.format.schema.required).toEqual([
-      "pt-BR",
-      "es",
-      "fr",
-      "sq",
-    ]);
   });
 
   it("validates and bounds editorial output", () => {
@@ -171,139 +132,6 @@ describe("AI release assets", () => {
       "https://api.openai.com/v1/responses",
       expect.objectContaining({ method: "POST" }),
     );
-  });
-
-  it("builds and validates all supported release localizations", async () => {
-    expect(releaseLocalizations.defaultLocale).toBe("en");
-    expect(Object.keys(releaseLocalizations.locales)).toEqual([
-      "en",
-      "pt-BR",
-      "es",
-      "fr",
-      "sq",
-    ]);
-    expect(releaseLocalizations.locales.en.title).toBe(editorial.title);
-    expect(() =>
-      validateReleaseLocalizations(
-        {
-          ...releaseLocalizations,
-          locales: {
-            ...releaseLocalizations.locales,
-            fr: {
-              ...releaseLocalizations.locales.fr,
-              sections: {
-                ...releaseLocalizations.locales.fr.sections,
-                added: {
-                  ...releaseLocalizations.locales.fr.sections.added,
-                  items: [],
-                },
-              },
-            },
-          },
-        },
-        editorial,
-      ),
-    ).toThrow(/item count/);
-
-    const fetchImpl = vi.fn(async () => ({
-      ok: true,
-      json: async () => ({
-        output: [
-          {
-            type: "message",
-            content: [
-              {
-                type: "output_text",
-                text: JSON.stringify(translatedLocales),
-              },
-            ],
-          },
-        ],
-      }),
-    }));
-    const result = await generateLocalizations({
-      request: buildTranslationRequest({ editorial }),
-      editorial,
-      apiKey: "test-key",
-      fetchImpl,
-    });
-    expect(result.locales.sq.sections.fixed.items).toHaveLength(1);
-  });
-
-  it("retries localization output that fails application validation", async () => {
-    const invalidTranslations = structuredClone(translatedLocales);
-    invalidTranslations["pt-BR"].sections.fixed.items[0] = Array.from(
-      { length: 31 },
-      () => "palavra",
-    ).join(" ");
-    const payloads = [invalidTranslations, translatedLocales];
-    const fetchImpl = vi.fn(async () => ({
-      ok: true,
-      json: async () => ({
-        output: [
-          {
-            type: "message",
-            content: [
-              {
-                type: "output_text",
-                text: JSON.stringify(payloads.shift()),
-              },
-            ],
-          },
-        ],
-      }),
-    }));
-
-    const result = await generateLocalizations({
-      request: buildTranslationRequest({ editorial }),
-      editorial,
-      apiKey: "test-key",
-      fetchImpl,
-    });
-
-    expect(result.locales["pt-BR"].sections.fixed.items[0]).toBe(
-      translatedLocales["pt-BR"].sections.fixed.items[0],
-    );
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
-    const retryRequest = JSON.parse(fetchImpl.mock.calls[1][1].body);
-    expect(retryRequest.input.at(-1).content).toContain(
-      "pt-BR.sections.fixed.items[0] must contain at most 30 words",
-    );
-  });
-
-  it("stops retrying invalid output at the configured limit", async () => {
-    const invalidTranslations = structuredClone(translatedLocales);
-    invalidTranslations["pt-BR"].sections.fixed.items[0] = Array.from(
-      { length: 31 },
-      () => "palavra",
-    ).join(" ");
-    const fetchImpl = vi.fn(async () => ({
-      ok: true,
-      json: async () => ({
-        output: [
-          {
-            type: "message",
-            content: [
-              {
-                type: "output_text",
-                text: JSON.stringify(invalidTranslations),
-              },
-            ],
-          },
-        ],
-      }),
-    }));
-
-    await expect(
-      generateLocalizations({
-        request: buildTranslationRequest({ editorial }),
-        editorial,
-        apiKey: "test-key",
-        fetchImpl,
-        maxAttempts: 2,
-      }),
-    ).rejects.toThrow(/failed validation after 2 attempts/);
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it("decodes image data and uses the requested image endpoint", async () => {
@@ -405,7 +233,6 @@ describe("AI release assets", () => {
     const initial = updateReleaseBody({
       existingBody: "Manual preface",
       editorial,
-      localizations: releaseLocalizations,
       from: "v0.7.4",
       tag: "v0.7.5",
       repo: "unicef/adt-studio",
@@ -413,7 +240,7 @@ describe("AI release assets", () => {
       coverDarkUrl: "https://example.test/one-dark.png",
       regenerate: "both",
     });
-    const manual = initial.replace("Manual preface", "Human-edited preface");
+    const manual = `${initial.replace("Manual preface", "Human-edited preface")}\n<!-- adt-release-i18n\n{"legacy":true}\n-->`;
     const imageOnly = updateReleaseBody({
       existingBody: manual,
       editorial,
@@ -430,15 +257,141 @@ describe("AI release assets", () => {
     expect(imageOnly).not.toContain("one-light.png");
     expect(imageOnly).toContain("prefers-color-scheme: dark");
     expect(imageOnly).toContain("Books That Travel");
-    expect(imageOnly).toContain("adt-release-i18n");
-    expect(imageOnly).toContain('"pt-BR"');
+    expect(imageOnly).not.toContain("adt-release-i18n");
+  });
+
+  it("replaces factual fallback notes but keeps manual text and release provenance", () => {
+    const releaseSource = [
+      "### Release source",
+      "",
+      "- Branch: `develop`",
+      "- Compare: [v0.7.5-beta.1...v0.7.5-beta.2](https://github.com/unicef/adt-studio/compare/v0.7.5-beta.1...v0.7.5-beta.2)",
+    ].join("\n");
+    const body = [
+      "Manual beta warning",
+      "",
+      "<!-- adt-factual-notes:start -->",
+      "## What's Changed",
+      "",
+      "* Factual fallback entry",
+      "",
+      "**Full Changelog**: https://github.com/unicef/adt-studio/compare/a...b",
+      "<!-- adt-factual-notes:end -->",
+      "",
+      releaseSource,
+    ].join("\n");
+
+    const enriched = updateReleaseBody({
+      existingBody: body,
+      editorial,
+      from: "v0.7.5-beta.1",
+      tag: "v0.7.5-beta.2",
+      repo: "unicef/adt-studio",
+      regenerate: "notes",
+    });
+
+    expect(enriched).toContain("Manual beta warning");
+    expect(enriched).not.toContain("Factual fallback entry");
+    expect(enriched).not.toContain("adt-factual-notes");
+    expect(enriched).toContain("Books That Travel");
+    expect(enriched).toContain(releaseSource);
+    expect(enriched.indexOf("<!-- adt-ai-notes:end -->")).toBeLessThan(
+      enriched.indexOf("### Release source"),
+    );
+    const parsed = parseReleaseSourceSection(enriched);
+    expect(parsed.source?.branch).toBe("develop");
+    expect(parsed.notes).toContain("Books That Travel");
+  });
+
+  it("upgrades legacy unmarked GitHub notes without losing manual text", () => {
+    const legacyBody = [
+      "Manual beta warning",
+      "",
+      "## What's Changed",
+      "",
+      "* Legacy factual entry",
+      "",
+      "**Full Changelog**: https://github.com/unicef/adt-studio/compare/a...b",
+      "",
+      "### Release source",
+      "",
+      "- Branch: `feature/test`",
+    ].join("\n");
+
+    const enriched = updateReleaseBody({
+      existingBody: legacyBody,
+      editorial,
+      from: "v0.7.5-beta.2",
+      tag: "0.7.6-beta-pr-803",
+      repo: "unicef/adt-studio",
+      regenerate: "notes",
+    });
+
+    expect(enriched).toContain("Manual beta warning");
+    expect(enriched).not.toContain("Legacy factual entry");
+    expect(enriched).toContain("- Branch: `feature/test`");
+  });
+
+  it("keeps an exact release notice as the first visible line", () => {
+    const notice =
+      "Windows users: reinstall this release because automatic updates will not work.";
+    const initial = updateReleaseBody({
+      existingBody: "Manual preface",
+      editorial,
+      releaseNotice: notice,
+      from: "v0.7.4",
+      tag: "v0.7.5",
+      repo: "unicef/adt-studio",
+      coverLightUrl: "https://example.test/light.png",
+      coverDarkUrl: "https://example.test/dark.png",
+      regenerate: "both",
+    });
+
+    expect(initial).toMatch(
+      /^<!-- adt-release-notice:start -->\n\*\*Windows users:/,
+    );
+    expect(initial.match(/Windows users:/g)).toHaveLength(1);
+
+    const regenerated = updateReleaseBody({
+      existingBody: initial,
+      editorial,
+      releaseNotice: "Windows users: download and reinstall ADT Studio manually.",
+      from: "v0.7.4",
+      tag: "v0.7.5",
+      repo: "unicef/adt-studio",
+      regenerate: "notes",
+    });
+    expect(regenerated).toContain(
+      "**Windows users: download and reinstall ADT Studio manually.**",
+    );
+    expect(regenerated.match(/Windows users:/g)).toHaveLength(1);
+
+    const imageRegenerated = updateReleaseBody({
+      existingBody: initial,
+      editorial,
+      from: "v0.7.4",
+      tag: "v0.7.5",
+      repo: "unicef/adt-studio",
+      coverLightUrl: "https://example.test/new-light.png",
+      coverDarkUrl: "https://example.test/new-dark.png",
+      regenerate: "image",
+    });
+    expect(imageRegenerated).toMatch(
+      /^<!-- adt-release-notice:start -->\n\*\*Windows users:/,
+    );
+    expect(imageRegenerated.indexOf("adt-release-notice:start")).toBeLessThan(
+      imageRegenerated.indexOf("adt-ai-cover:start"),
+    );
+
+    expect(applyReleaseNotice("Existing notes", notice)).toMatch(
+      /^<!-- adt-release-notice:start -->\n\*\*Windows users:/,
+    );
   });
 
   it("replaces placeholder cover URLs with uploaded release asset URLs", () => {
     const initial = updateReleaseBody({
       existingBody: "Manual preface",
       editorial,
-      localizations: releaseLocalizations,
       from: "v0.7.4",
       tag: "v0.7.5",
       repo: "unicef/adt-studio",
@@ -466,25 +419,6 @@ describe("AI release assets", () => {
     ).toThrow("generated cover block");
   });
 
-  it("escapes comment terminators inside embedded localization JSON", () => {
-    const unsafeLocalizations = structuredClone(releaseLocalizations);
-    unsafeLocalizations.locales.fr.summary =
-      "A localized summary containing --> as source text.";
-    const body = updateReleaseBody({
-      editorial,
-      localizations: unsafeLocalizations,
-      from: "v0.7.4",
-      tag: "v0.7.5",
-      repo: "unicef/adt-studio",
-      coverLightUrl: "light.png",
-      coverDarkUrl: "dark.png",
-      regenerate: "both",
-    });
-    const embedded = body.slice(body.indexOf("<!-- adt-release-i18n"));
-    expect(embedded).toContain("--\\u003e");
-    expect(embedded.match(/-->/g)).toHaveLength(1);
-  });
-
   it("builds an on-brand editorial cover with exact release copy", () => {
     const prompt = buildImagePrompt(
       validateEditorial(editorialPayload),
@@ -499,9 +433,43 @@ describe("AI release assets", () => {
     expect(prompt).toContain("pipeline violet");
     expect(prompt).toContain("#7C3AED");
     expect(prompt).toContain(editorialPayload.image_prompt);
+    expect(prompt).toContain("all three exact text blocks");
+    expect(prompt).not.toContain('Channel badge: "BETA"');
     expect(
       buildDarkThemePrompt(resolveCoverPalette("storyboard", "v0.7.5")),
     ).toContain("Change only its color theme from light to dark");
+  });
+
+  it("gives beta and staging covers the established beta identity", () => {
+    const palette = resolveCoverPalette("storyboard", "v0.8.0-beta.1");
+    const betaPrompt = buildImagePrompt(
+      editorial,
+      "v0.8.0-beta.1",
+      palette,
+    );
+    const stagingPrompt = buildImagePrompt(
+      editorial,
+      "0.8.0-beta-pr-803",
+      palette,
+    );
+    const darkPrompt = buildDarkThemePrompt(palette, "v0.8.0-beta.1");
+
+    expect(isBetaReleaseTag("v0.8.0-beta.1")).toBe(true);
+    expect(isBetaReleaseTag("0.8.0-beta-pr-803")).toBe(true);
+    expect(isBetaReleaseTag("v0.8.0")).toBe(false);
+    for (const prompt of [betaPrompt, stagingPrompt]) {
+      expect(prompt).toContain('Channel badge: "BETA"');
+      expect(prompt).toContain("all four exact text blocks");
+      expect(prompt).toContain("BETA RELEASE");
+      expect(prompt).toContain("oklch(0.70 0.28 307)");
+      expect(prompt).toContain("never white, pale lavender");
+      expect(prompt).toContain("physically attached to the tile");
+      expect(prompt).toContain("saturated beta violet");
+      expect(prompt).toContain("pipeline violet");
+    }
+    expect(darkPrompt).toContain("oklch(0.11 0.04 260)");
+    expect(darkPrompt).toContain("integrated BETA capsule");
+    expect(darkPrompt).toContain("main feature tile in saturated beta violet");
   });
 
   it("supports a true dry run and an API-free text-only preview", async () => {
@@ -514,7 +482,7 @@ describe("AI release assets", () => {
         "--to",
         "HEAD",
         "--tag",
-        "v9.9.9",
+        "0.7.6-beta-pr-803",
         "--output",
         dryRun,
         "--dry-run",
@@ -524,12 +492,7 @@ describe("AI release assets", () => {
       );
 
       const editorialFile = path.join(root, "editorial.json");
-      const localizationsFile = path.join(root, "release-i18n.json");
       await writeFile(editorialFile, JSON.stringify(editorialPayload));
-      await writeFile(
-        localizationsFile,
-        JSON.stringify(releaseLocalizations),
-      );
       const textOnly = path.join(root, "text");
       await runCli([
         "--from",
@@ -538,22 +501,30 @@ describe("AI release assets", () => {
         "HEAD",
         "--tag",
         "v9.9.9",
+        "--notice",
+        "Windows users: reinstall this release manually.",
         "--editorial-file",
         editorialFile,
-        "--localizations-file",
-        localizationsFile,
         "--no-image",
         "--output",
         textOnly,
       ]);
-      expect(
-        await readFile(path.join(textOnly, "release-notes.md"), "utf8"),
-      ).toContain("Books That Travel");
+      const generatedNotes = await readFile(
+        path.join(textOnly, "release-notes.md"),
+        "utf8",
+      );
+      expect(generatedNotes).toMatch(
+        /^<!-- adt-release-notice:start -->\n\*\*Windows users:/,
+      );
+      expect(generatedNotes).toContain("Books That Travel");
       expect(
         JSON.parse(
-          await readFile(path.join(textOnly, "release-i18n.json"), "utf8"),
-        ).locales.fr.title,
-      ).toBe(translatedLocales.fr.title);
+          await readFile(path.join(textOnly, "release-context.json"), "utf8"),
+        ).releaseNotice,
+      ).toBe("Windows users: reinstall this release manually.");
+      await expect(
+        readFile(path.join(textOnly, "release-i18n.json"), "utf8"),
+      ).rejects.toMatchObject({ code: "ENOENT" });
       await expect(
         readFile(path.join(textOnly, "release-cover-light.png")),
       ).rejects.toMatchObject({ code: "ENOENT" });
@@ -565,16 +536,20 @@ describe("AI release assets", () => {
     }
   });
 
-  it("preserves the approved cover concept during notes-only regeneration", async () => {
+  it("preserves cover-facing copy from approved visual metadata during notes-only regeneration", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "adt-release-assets-"));
     try {
-      const preservedFile = path.join(root, "preserved-editorial.json");
+      const existingBodyFile = path.join(root, "existing-release.md");
       await writeFile(
-        preservedFile,
-        JSON.stringify({
-          ...editorialPayload,
-          coverPalette: resolveCoverPalette("storyboard", "v0.7.5"),
-          imagePrompts: { light: "approved light", dark: "approved dark" },
+        existingBodyFile,
+        updateReleaseBody({
+          editorial,
+          from: "v0.7.4",
+          tag: "v0.7.5",
+          repo: "unicef/adt-studio",
+          coverLightUrl: "approved-light.png",
+          coverDarkUrl: "approved-dark.png",
+          regenerate: "both",
         }),
       );
       const newEditorialPayload = {
@@ -585,21 +560,12 @@ describe("AI release assets", () => {
         image_alt: "A different cover description",
         image_prompt: "A completely different visual concept",
       };
-      const combinedEditorial = validateEditorial({
-        ...newEditorialPayload,
-        title: editorialPayload.title,
-        cover_subtitle: editorialPayload.cover_subtitle,
-        image_alt: editorialPayload.image_alt,
-        image_prompt: editorialPayload.image_prompt,
-      });
       const newEditorialFile = path.join(root, "new-editorial.json");
-      const newLocalizationsFile = path.join(root, "new-i18n.json");
+      const approvedVisualsFile = path.join(root, "approved-visuals.json");
       await writeFile(newEditorialFile, JSON.stringify(newEditorialPayload));
       await writeFile(
-        newLocalizationsFile,
-        JSON.stringify(
-          buildReleaseLocalizations(combinedEditorial, translatedLocales),
-        ),
+        approvedVisualsFile,
+        JSON.stringify(editorialPayload),
       );
 
       const output = path.join(root, "notes-only");
@@ -612,10 +578,10 @@ describe("AI release assets", () => {
         "v9.9.9",
         "--editorial-file",
         newEditorialFile,
-        "--localizations-file",
-        newLocalizationsFile,
         "--preserve-visuals-from",
-        preservedFile,
+        approvedVisualsFile,
+        "--existing-notes-file",
+        existingBodyFile,
         "--regenerate",
         "notes",
         "--no-image",
@@ -627,12 +593,15 @@ describe("AI release assets", () => {
       );
       expect(metadata.title).toBe(editorialPayload.title);
       expect(metadata.summary).toBe(newEditorialPayload.summary);
+      expect(metadata.imageAlt).toBe(editorialPayload.image_alt);
       expect(metadata.imagePrompt).toBe(editorialPayload.image_prompt);
-      expect(metadata.imagePrompts).toEqual({
-        light: "approved light",
-        dark: "approved dark",
-      });
-      expect(metadata.coverPalette.name).toBe("storyboard");
+      const notes = await readFile(
+        path.join(output, "release-notes.md"),
+        "utf8",
+      );
+      expect(notes).toContain("approved-light.png");
+      expect(notes).toContain("approved-dark.png");
+      expect(notes).toContain(`## ${editorialPayload.title}`);
     } finally {
       await rm(root, { recursive: true, force: true });
     }

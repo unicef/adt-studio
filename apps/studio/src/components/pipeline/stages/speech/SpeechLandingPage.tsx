@@ -19,7 +19,6 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { useBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SpeechPreview } from "./components/SpeechPreview"
-import { hasSpeechProviderCredentials } from "@/lib/speech-routing"
 
 type ProviderKey = "openai" | "azure" | "gemini" | "elevenlabs"
 
@@ -46,7 +45,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey, azureKey, azureRegion, geminiKey, elevenLabsKey } = useApiKey()
+  const { apiKey, hasApiKey, isAvailable } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("speech")
   const translateStatus = useStageStatus("translate")
@@ -54,6 +53,10 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const [wordHighlighting, setWordHighlighting] = useState(false)
   const [provider, setProvider] = useState<ProviderKey>("openai")
+
+  const providerAvailable = (providerId: ProviderKey) =>
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- qualified model identifier, never rendered
+    isAvailable("tts", `${providerId}:default`)
 
   useEffect(() => {
     if (!activeConfigData) return
@@ -91,16 +94,15 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    const providerReady = providerKeyAvailable[provider]
-    if (!providerReady || (wordHighlighting && !hasApiKey) || !translateReady || status.isRunning) return
+    if (!providerAvailable(provider) || (wordHighlighting && !hasApiKey) || !translateReady || status.isRunning) return
     queueRun({ fromStage: "speech", toStage: "speech", apiKey, viewAfter: true })
   }
 
   const providerKeyAvailable: Record<ProviderKey, boolean> = {
-    openai: hasSpeechProviderCredentials("openai", { openaiKey: apiKey }),
-    azure: hasSpeechProviderCredentials("azure", { azureKey, azureRegion }),
-    gemini: hasSpeechProviderCredentials("gemini", { geminiKey }),
-    elevenlabs: Boolean(elevenLabsKey.trim()),
+    openai: providerAvailable("openai"),
+    azure: providerAvailable("azure"),
+    gemini: providerAvailable("gemini"),
+    elevenlabs: providerAvailable("elevenlabs"),
   }
 
   const providerOptions = useMemo(
@@ -110,7 +112,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
         {
           value: "openai" as const,
           label: linguiI18n._(PROVIDER_LABELS.openai),
-          disabled: !hasApiKey,
+          disabled: !providerKeyAvailable.openai,
           disabledHint,
         },
         {
@@ -135,7 +137,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
     },
     [
       t,
-      hasApiKey,
+      providerKeyAvailable.openai,
       providerKeyAvailable.azure,
       providerKeyAvailable.gemini,
       providerKeyAvailable.elevenlabs,

@@ -28,13 +28,13 @@ vi.mock("@/api/client", () => ({ BASE_URL: "" }))
 vi.mock("@/hooks/use-api-key", () => ({
   useApiKey: () => ({
     apiKey: "",
-    hasApiKey: false,
     anthropicKey: "",
     googleKey: "",
     customBaseUrl: "",
     customApiKey: "",
     geminiKey: "",
   }),
+  useBookStructuredTextAvailability: () => false,
 }))
 
 vi.mock("@/hooks/use-editable-activities", () => ({

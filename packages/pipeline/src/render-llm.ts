@@ -88,7 +88,7 @@ export async function renderSectionLlm(
     context: promptContext,
     validate: validateWebRendering,
     maxRetries: config.maxRetries,
-    maxTokens: 16384,
+    maxTokens: 32768,
     temperature: config.temperature,
     timeoutMs: config.timeoutMs,
     signal: options.signal,
@@ -195,6 +195,14 @@ export async function renderSectionLlm(
       answers: Array<{ id: string; value: string | boolean | number }>
     }>({
       schema: activityAnswersLLMSchema,
+      // `value` is a scalar union (string | boolean | number) that a strict
+      // native response schema can't express on every provider — Gemini's
+      // response_schema rejects the multi-type field outright ("Proto field is
+      // not repeating"). Mark the schema loose so the strategy selector routes
+      // this call through non-strict JSON mode, which keeps the union intact
+      // (booleans stay booleans for the runtime answer scorer) while dropping
+      // the strict schema that Gemini refuses.
+      looseSchema: true,
       prompt: config.answerPromptName,
       context: {
         ...promptContext,

@@ -15,6 +15,7 @@ import {
   reconstructHtmlWithEdit,
   removeElementFromSourceHtml,
   serializeContentWrapper,
+  usesViewportHeight,
 } from "./iframe-html"
 import {
   type ComputedTypographyStyles,
@@ -137,6 +138,9 @@ export interface BookPreviewFrameProps {
   /** Reports the iframe's current on-screen width in CSS pixels (renderWidth × scale).
    *  Updates whenever the canvas resizes — useful for showing the active viewport size. */
   onVisibleWidthChange?: (width: number) => void
+  /** Reports the CSS transform applied to the authored page. Unlike visible
+   *  width, this remains accurate for fixed-layout pages with custom dimensions. */
+  onScaleChange?: (scale: number) => void
   /** Link mode — clicks resolve to an activity anchor and are reported via
    *  `onLinkSelect` instead of opening the inline editor. Mutually exclusive
    *  with `editable`; the page becomes a click-to-locate map. */
@@ -196,6 +200,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   maxVisibleHeight,
   deviceView,
   onVisibleWidthChange,
+  onScaleChange,
   linkMode = false,
   linkedAnchor,
   previewAnchor,
@@ -380,6 +385,10 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   const sanitizedHtml = useMemo(
     () => DOMPurify.sanitize(html, { FORBID_ATTR: ["contenteditable"] }),
     [html],
+  )
+  const viewportSizedContent = useMemo(
+    () => usesViewportHeight(sanitizedHtml),
+    [sanitizedHtml],
   )
   // Convert LaTeX to MathML for display via the API — the underlying data stays as LaTeX.
   // Start with sanitized HTML immediately, then update when the API responds.
@@ -741,18 +750,18 @@ ${autoFitScript}
     stamp(linkedKey, "data-adt-linked")
   }, [linkedKey, previewKey, displayHtml, iframeReady])
 
-  // Suppress the iframe's own scrollbar in desktop view (where the iframe is
-  // sized to its content and the host container provides the scroll). Phone
-  // and tablet frames keep the default since their fixed-height chrome relies
-  // on internal scrolling.
+  // Suppress the iframe's own scrollbar only when desktop content is sized to
+  // its measured height. Viewport-dependent pages keep a stable viewport and
+  // scroll internally when min-height content grows beyond it, matching the
+  // packaged reader instead of clipping the overflow.
   useEffect(() => {
     const doc = iframeRef.current?.contentDocument
     if (!doc) return
     const desktop = !deviceView || deviceView === "desktop"
-    const value = desktop ? "hidden" : ""
+    const value = desktop && !viewportSizedContent ? "hidden" : "auto"
     if (doc.documentElement) doc.documentElement.style.overflow = value
     if (doc.body) doc.body.style.overflow = value
-  }, [deviceView, iframeReady])
+  }, [deviceView, iframeReady, viewportSizedContent])
 
   // Fixed-layout pages overlay positioned text on top of full-page images
   // via DOM order. The editable-mode `img[data-id] { z-index: 1 }` rule (used
@@ -859,7 +868,6 @@ ${autoFitScript}
     // eslint-disable-next-line lingui/no-unlocalized-strings
     styleEl.textContent = `
 ${selectors} {
-  position: relative;
   box-shadow: -3px 0 0 0 rgba(245, 158, 11, 0.6);
   transition: box-shadow 0.3s;
 }
@@ -928,7 +936,7 @@ ${selectors}:hover {
         ? 1
         : targetVisibleWidth / baseWidth
     const naturalHeight =
-      deviceView === "desktop" || deviceView === undefined
+      (deviceView === "desktop" || deviceView === undefined) && !viewportSizedContent
         ? contentHeight
         : frame.chromeHeight
     const heightScale =
@@ -945,6 +953,7 @@ ${selectors}:hover {
     contentHeight,
     frame.chromeHeight,
     maxVisibleHeight,
+    viewportSizedContent,
   ])
 
   // Ref callback so the iframe re-initializes whenever the conditional
@@ -991,6 +1000,9 @@ ${selectors}:hover {
   useEffect(() => {
     onVisibleWidthChange?.(visibleWidth)
   }, [visibleWidth, onVisibleWidthChange])
+  useEffect(() => {
+    onScaleChange?.(scale)
+  }, [scale, onScaleChange])
 
   // Keep onReady in a ref so the reveal effect can fire it without re-running
   // (and re-POSTing the CSS recompile) on every render.
@@ -1032,11 +1044,12 @@ ${selectors}:hover {
   // `min-h-screen flex items-center` produces when a section is shorter than
   // the canvas.
   const isDesktop = !deviceView || deviceView === "desktop"
+  const contentTall = isDesktop && !viewportSizedContent
   const iframeWidth = fixedLayoutSize?.width ?? frame.screenWidth
-  const iframeHeight = fixedLayoutSize?.height ?? (isDesktop ? contentHeight : frame.screenHeight)
+  const iframeHeight = fixedLayoutSize?.height ?? (contentTall ? contentHeight : frame.screenHeight)
   const visibleHeight = fixedLayoutSize
     ? fixedLayoutSize.height * scale
-    : isDesktop
+    : contentTall
       ? contentHeight * scale
       : frame.chromeHeight * scale
 

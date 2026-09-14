@@ -78,6 +78,18 @@ describe("PUT /prompt-models", () => {
     expect(readBody.models).toEqual(["openai:gpt-6", "custom:local-model"])
   })
 
+  it("accepts hyphenated provider ids like claude-agent", async () => {
+    const res = await app().request("/prompt-models", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ models: ["claude-agent:sonnet"] }),
+    })
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.models).toEqual(["claude-agent:sonnet"])
+  })
+
   it("rejects invalid prompt model ids", async () => {
     const res = await app().request("/prompt-models", {
       method: "PUT",

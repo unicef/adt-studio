@@ -7,6 +7,7 @@ import type {
   QuizGenerationOutput,
   TextCatalogOutput,
 } from "@adt/types"
+import { resolveQuizId } from "@adt/types"
 
 import { getGlossaryItemTextId } from "../glossary.js"
 import { ACTIVITY_CLASSIFICATION_GUIDE } from "./activity.js"
@@ -90,7 +91,10 @@ export function renderAdtAgentGuide(
   let sampleQuiz: Record<string, unknown> | undefined
   if (ctx.quizData?.quizzes?.length) {
     const quiz = ctx.quizData.quizzes[0]
-    const quizId = "qz001"
+    // Not "qz001": ids are allocated once and never reused, so the first quiz
+    // in the array may be `qz004`. Hardcoding it would document catalog keys
+    // and audio filenames that aren't in the bundle.
+    const quizId = resolveQuizId(quiz, 0)
     const correctAnswers: Record<string, boolean> = {}
     const explanations: Record<string, string> = {}
     const options = quiz.options.map((option, index) => {

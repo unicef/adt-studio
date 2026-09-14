@@ -46,6 +46,15 @@ export function useElevenLabsVoices() {
      * only when we genuinely don't know the name.
      */
     describeVoice: (voiceId: string): string => describeElevenLabsVoice(voiceId, byId),
+    /**
+     * The bare voice name ("Tomás"), with none of the "(premade, spanish)"
+     * decoration `describeVoice` adds. This is what gets persisted as a voice
+     * label and rendered to end users in the exported reader's narrator
+     * picker, so it must stay a name rather than a description. Undefined when
+     * we don't know the name — callers then keep the raw ID.
+     */
+    voiceName: (voiceId: string): string | undefined =>
+      byId.get(voiceId)?.name || ELEVENLABS_SHIPPED_VOICE_NAMES[voiceId],
     isLoading: query.isLoading,
     /** True when we have no list to offer, so callers should fall back to
      *  free-text entry rather than render an empty picker. */

@@ -15,7 +15,7 @@ export { ACTIVITY_GEN_MODES } from "./tools/activity-schema.js"
 export type { ActivityGenMode } from "./tools/activity-schema.js"
 
 export { runAgent } from "./runner.js"
-export type { RunAgentOptions, RunAgentResult } from "./runner.js"
+export type { RunAgentOptions, RunAgentResult, AgentStepEvent } from "./runner.js"
 
 export { createBookTools } from "./tools/book-tools.js"
 export type {
@@ -24,8 +24,7 @@ export type {
   BookToolCallRecord,
 } from "./tools/book-tools.js"
 
-export { resolveAgentModel } from "./resolve-model.js"
-export type { AgentCredentials } from "./resolve-model.js"
+export type { AgentCredentials } from "./credentials.js"
 
 export {
   ACTIVITY_GENERATION_SYSTEM_PROMPT,

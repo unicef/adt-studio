@@ -5,12 +5,14 @@ import type sqlite from "node-sqlite3-wasm"
  * handle: the version pointed at by `node_current`, or MAX(version) when no
  * pointer is set (or it dangles). Mirrors `Storage.getLatestNodeData` for
  * routes that use `openBookDb` instead of the full storage wrapper, so both
- * agree on which version is current.
+ * agree on which version is current. History consumers can opt into receiving
+ * a selected invalidation row, while ordinary consumers still see absent output.
  */
 export function readCurrentNodeRow(
   db: sqlite.Database,
   node: string,
-  itemId: string
+  itemId: string,
+  options: { includeInvalidated?: boolean } = {},
 ): { version: number; data: string } | null {
   const rows = db.all(
     `SELECT nd.version AS version, nd.data AS data
@@ -21,7 +23,10 @@ export function readCurrentNodeRow(
      LIMIT 1`,
     [node, itemId]
   ) as Array<{ version: number; data: string }>
-  return rows[0] ?? null
+  // Quiz invalidation retains history behind a null current version. Keep this
+  // interpretation local to quizzes; other nodes retain their nullable payloads.
+  // Do not filter null rows in SQL: that would resurrect an older version.
+  return !options.includeInvalidated && node === "quiz-generation" && rows[0]?.data === "null" ? null : rows[0] ?? null
 }
 
 /**

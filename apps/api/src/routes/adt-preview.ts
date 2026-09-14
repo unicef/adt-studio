@@ -4,7 +4,16 @@ import { createHash } from "node:crypto"
 import { pathToFileURL } from "node:url"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { isHeadingRole, isTtsExcluded, parseBookLabel } from "@adt/types"
+import {
+  isHeadingRole,
+  isTtsExcluded,
+  parseBookLabel,
+  parseAnySectionId,
+  resolveEntryVoiceSlot,
+  parseQuizId,
+  resolveQuizId,
+  withResolvedQuizIds,
+} from "@adt/types"
 import {
   WebRenderingOutput,
   type SpeechConfig,
@@ -12,7 +21,9 @@ import {
   type EasyReadOutput,
   type GlossaryOutput,
   type QuizGenerationOutput,
+  type SpeechFileEntry,
   type TTSOutput,
+  type VoiceSlot,
   type WordTimestampOutput,
   type TocGenerationOutput,
   type Quiz,
@@ -20,6 +31,11 @@ import {
 } from "@adt/types"
 import { createBookStorage, type Storage } from "@adt/storage"
 import {
+  resolveReadingOrder,
+  orderTocEntries,
+  toPageEntry,
+  readingOrderHref,
+  type PageEntry,
   renderPageHtml,
   NAV_HTML,
   buildPreviewTailwindCss,
@@ -34,7 +50,6 @@ import {
   buildQuizAnswers,
   buildTextCatalog,
   flattenEasyReadEntries,
-  pad3,
   loadBookConfig,
   buildPreferredImageAltMap,
   buildDecorativeImageIdSet,
@@ -50,6 +65,7 @@ import {
   DEFAULT_QUIZ_PALETTE,
   getCoreTtsCatalog,
   getReadyCoreTtsEntries,
+  resolveNarratorLabel,
 } from "@adt/pipeline"
 import { getImportedAdtPresentationAssets } from "../services/adt-import/presentation.js"
 
@@ -189,7 +205,7 @@ function getGlossary(storage: Storage): GlossaryOutput | undefined {
 
 function getQuizData(storage: Storage): QuizGenerationOutput | undefined {
   const row = storage.getLatestNodeData("quiz-generation", "book")
-  return row?.data as QuizGenerationOutput | undefined
+  return row ? withResolvedQuizIds(row.data as QuizGenerationOutput) : undefined
 }
 
 function buildTextsMap(
@@ -249,6 +265,7 @@ function buildRuntimeTimecodeMap(
   timestamps: WordTimestampOutput | undefined,
   speechConfig?: SpeechConfig,
   readySpeechIds?: ReadonlySet<string>,
+  voiceSlot: "primary" | "secondary" = "primary",
 ): Record<string, {
   timecodes: [null, {
     word_timestamps: Array<{ text: string; start: number; end: number }>
@@ -260,7 +277,9 @@ function buildRuntimeTimecodeMap(
     }]
   }> = {}
 
-  for (const [textId, entry] of Object.entries(timestamps?.entries ?? {})) {
+  for (const entry of Object.values(timestamps?.entries ?? {})) {
+    if (resolveEntryVoiceSlot(entry) !== voiceSlot) continue
+    const textId = entry.textId
     if (entry.words.length === 0) continue
     if (readySpeechIds && !readySpeechIds.has(textId)) continue
     if (isTtsExcluded(textId, speechConfig)) continue
@@ -281,100 +300,9 @@ function buildRuntimeTimecodeMap(
   return map
 }
 
-/** Build a map from sectionId → 1-based pageIndex matching the manifest order */
-function buildSectionIdToPageIndex(storage: Storage): Map<string, number> {
-  const pages = storage.getPages()
-  const quizData = getQuizData(storage)
-  const quizzesByAfterPageId = new Map<string, Quiz[]>()
-  if (quizData?.quizzes) {
-    for (const quiz of quizData.quizzes) {
-      const existing = quizzesByAfterPageId.get(quiz.afterPageId) ?? []
-      existing.push(quiz)
-      quizzesByAfterPageId.set(quiz.afterPageId, existing)
-    }
-  }
-
-  const map = new Map<string, number>()
-  let index = 0
-  for (const page of pages) {
-    const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
-    if (renderRow) {
-      const parsed = WebRenderingOutput.safeParse(renderRow.data)
-      if (parsed.success && parsed.data.sections.length > 0) {
-        const sectioning = getRenderSectioning(storage, page.pageId)
-        const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
-        for (const rs of sections) {
-          const sectionMeta = sectioning?.sections?.[rs.sectionIndex]
-          if (sectionMeta?.isPruned) continue
-          index++
-          const sectionId = sectionMeta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
-          map.set(sectionId, index)
-        }
-      }
-    }
-    // Quiz pages also increment the index but aren't tied to a sectionId for video purposes
-    const quizzes = quizzesByAfterPageId.get(page.pageId)
-    if (quizzes) {
-      index += quizzes.length
-    }
-  }
-  return map
-}
-
-/** Build the pages.json manifest — one entry per rendered section, interleaving quiz pages */
-function buildPagesManifest(storage: Storage): Array<{ section_id: string; href: string; page_number?: number }> {
-  const pages = storage.getPages()
-  const quizData = getQuizData(storage)
-
-  // Build a map from afterPageId -> quizzes for interleaving
-  const quizzesByAfterPageId = new Map<string, Quiz[]>()
-  if (quizData?.quizzes) {
-    for (const quiz of quizData.quizzes) {
-      const existing = quizzesByAfterPageId.get(quiz.afterPageId) ?? []
-      existing.push(quiz)
-      quizzesByAfterPageId.set(quiz.afterPageId, existing)
-    }
-  }
-
-  const list: Array<{ section_id: string; href: string; page_number?: number }> = []
-  for (const page of pages) {
-    const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
-    if (renderRow) {
-      const parsed = WebRenderingOutput.safeParse(renderRow.data)
-      if (parsed.success && parsed.data.sections.length > 0) {
-        // Get sectioning data for sectionIds and page numbers
-        const sectioning = getRenderSectioning(storage, page.pageId)
-
-        // One entry per rendered section (stable by sectionIndex), skip pruned
-        const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
-        for (const rs of sections) {
-          const sectionMeta = sectioning?.sections?.[rs.sectionIndex]
-          // Skip sections that are pruned in the sectioning data
-          if (sectionMeta?.isPruned) continue
-          const sectionId = sectionMeta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
-          const entry: { section_id: string; href: string; page_number?: number } = {
-            section_id: sectionId,
-            href: `${sectionId}.html`,
-          }
-          if (sectionMeta?.pageNumber !== null && sectionMeta?.pageNumber !== undefined) {
-            entry.page_number = sectionMeta.pageNumber
-          }
-          list.push(entry)
-        }
-      }
-    }
-
-    // Insert quiz pages after this page
-    const quizzes = quizzesByAfterPageId.get(page.pageId)
-    if (quizzes) {
-      for (const quiz of quizzes) {
-        const quizIndex = quizData!.quizzes.indexOf(quiz)
-        const quizId = `qz${pad3(quizIndex + 1)}`
-        list.push({ section_id: quizId, href: `${quizId}.html` })
-      }
-    }
-  }
-  return list
+/** Build the pages.json manifest — one entry per output page, in reading order. */
+function buildPagesManifest(storage: Storage): PageEntry[] {
+  return resolveReadingOrder(storage).items.map(toPageEntry)
 }
 
 /** DFS-find the first non-pruned heading leaf in a content-node tree. */
@@ -402,15 +330,16 @@ function buildTocManifest(storage: Storage): Array<{ section_id: string; href: s
     const tocData = tocRow.data as TocGenerationOutput
     if (tocData.entries.length > 0) {
       // Build href map from pages manifest for accurate hrefs
-      const pagesManifest = buildPagesManifest(storage)
-      const hrefMap = new Map(pagesManifest.map((p) => [p.section_id, p.href]))
-      return tocData.entries.map((e) => ({
-        section_id: e.sectionId,
-        href: hrefMap.get(e.sectionId) ?? e.href,
-        title: e.title,
-        chapter_id: e.chapterId,
-        level: e.level,
-      }))
+      const readingOrder = resolveReadingOrder(storage)
+      const hrefMap = new Map(readingOrder.items.map((i) => [i.id, readingOrderHref(i)]))
+      return orderTocEntries(tocData.entries, readingOrder.positionById)
+        .map((e) => ({
+          section_id: e.sectionId,
+          href: hrefMap.get(e.sectionId) ?? e.href,
+          title: e.title,
+          chapter_id: e.chapterId,
+          level: e.level,
+        }))
     }
   }
 
@@ -420,33 +349,18 @@ function buildTocManifest(storage: Storage): Array<{ section_id: string; href: s
 
 /** Fallback TOC: one entry per section that contains a heading */
 function buildHeadingBasedToc(storage: Storage): Array<{ section_id: string; href: string; title: string; chapter_id: string }> {
-  const pages = storage.getPages()
   const toc: Array<{ section_id: string; href: string; title: string; chapter_id: string }> = []
 
-  for (const page of pages) {
-    const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
-    if (!renderRow) continue
-    const parsed = WebRenderingOutput.safeParse(renderRow.data)
-    if (!parsed.success || parsed.data.sections.length === 0) continue
-
-    const sectioning = getRenderSectioning(storage, page.pageId)
-
-    const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
-    for (const rs of sections) {
-      const sectionMeta = sectioning?.sections?.[rs.sectionIndex]
-      if (!sectionMeta || sectionMeta.isPruned) continue
-
-      const sectionId = sectionMeta.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
-
-      const heading = findFirstHeadingLeaf(sectionMeta.nodes)
-      if (heading) {
-        toc.push({
-          section_id: sectionId,
-          href: `${sectionId}.html`,
-          title: heading.text,
-          chapter_id: heading.nodeId,
-        })
-      }
+  for (const item of resolveReadingOrder(storage).items) {
+    if (item.kind !== "section") continue
+    const heading = findFirstHeadingLeaf(item.section.nodes)
+    if (heading) {
+      toc.push({
+        section_id: item.id,
+        href: readingOrderHref(item),
+        title: heading.text,
+        chapter_id: heading.nodeId,
+      })
     }
   }
 
@@ -760,7 +674,7 @@ export function createAdtPreviewRoutes(
         const catalog = await getTextCatalog(storage)
         if (quizData?.quizzes) {
           for (let i = 0; i < quizData.quizzes.length; i++) {
-            const quizId = `qz${pad3(i + 1)}`
+            const quizId = resolveQuizId(quizData.quizzes[i], i)
             allHtml += renderQuizHtml(quizData.quizzes[i], quizId, catalog) + "\n"
           }
         }
@@ -901,6 +815,7 @@ export function createAdtPreviewRoutes(
         for (const entry of ttsData.entries) {
           if (!readySpeechIds.has(entry.textId)) continue
           if (isTtsExcluded(entry.textId, speechConfig)) continue
+          if (resolveEntryVoiceSlot(entry) !== "primary") continue
           map[entry.textId] = entry.fileName
         }
       }
@@ -909,6 +824,46 @@ export function createAdtPreviewRoutes(
     setNoStoreHeaders(c)
     c.header("Content-Type", "application/json")
     return c.body(JSON.stringify(audioMap))
+  })
+
+  app.get("/books/:label/adt-preview/content/i18n/:lang/audio_voices.json", (c) => {
+    const lang = normalizeLocale(c.req.param("lang"))
+    const manifest = withStorage(c.req.param("label"), (storage) => {
+      const speechConfig = loadBookConfig(
+        parseBookLabel(c.req.param("label")),
+        booksDir,
+        configPath,
+      ).speech
+      const legacyLang = lang.replace("-", "_")
+      const ttsData = (
+        storage.getLatestNodeData("tts", lang) ??
+        storage.getLatestNodeData("tts", legacyLang)
+      )?.data as TTSOutput | undefined
+      const readySpeechIds = new Set(
+        getReadyCoreTtsEntries(storage, lang).map((entry) => entry.id),
+      )
+      const voices = {
+        primary: { label: "Primary", audios: {} as Record<string, string> },
+        secondary: { label: "Secondary", audios: {} as Record<string, string> },
+      }
+      const bySlot: Record<VoiceSlot, SpeechFileEntry[]> = { primary: [], secondary: [] }
+      for (const entry of ttsData?.entries ?? []) {
+        if (!readySpeechIds.has(entry.textId) || isTtsExcluded(entry.textId, speechConfig)) continue
+        const slot = resolveEntryVoiceSlot(entry)
+        voices[slot].audios[entry.textId] = entry.fileName
+        bySlot[slot].push(entry)
+      }
+      // Same resolution the packager uses, so the preview and the exported
+      // bundle can never disagree about what a narrator is called.
+      voices.primary.label = resolveNarratorLabel(bySlot.primary, "Primary")
+      voices.secondary.label = resolveNarratorLabel(bySlot.secondary, "Secondary")
+      return { defaultVoice: "primary", voices }
+    })
+    if (Object.keys(manifest.voices.secondary.audios).length === 0) {
+      return c.json({ error: "Secondary narrator not configured" }, 404)
+    }
+    setNoStoreHeaders(c)
+    return c.json(manifest)
   })
 
   // /content/i18n/:lang/timecode/timecode_output.json — word-level read-aloud timings
@@ -933,21 +888,38 @@ export function createAdtPreviewRoutes(
     return c.body(JSON.stringify(timecodes))
   })
 
-  // /content/i18n/:lang/videos.json — Sign language video mapping
-  // The ADT JS runtime expects keys like "video-{pageIndex}" and files served from "video/" path.
-  // Each video is assigned to a sectionId which maps 1:1 to a pageIndex.
+  app.get("/books/:label/adt-preview/content/i18n/:lang/timecode/timecode_voices.json", (c) => {
+    const lang = normalizeLocale(c.req.param("lang"))
+    const safeLabel = parseBookLabel(c.req.param("label"))
+    const bookConfig = loadBookConfig(safeLabel, booksDir, configPath)
+    const timecodes = withStorage(c.req.param("label"), (storage) => {
+      const readySpeechIds = new Set(
+        getReadyCoreTtsEntries(storage, lang).map((entry) => entry.id),
+      )
+      const timestamps = getWordTimestamps(storage, lang)
+      return {
+        primary: bookConfig.speech?.word_highlighting === true
+          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, readySpeechIds, "primary")
+          : {},
+        secondary: bookConfig.speech?.word_highlighting === true
+          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, readySpeechIds, "secondary")
+          : {},
+      }
+    })
+    setNoStoreHeaders(c)
+    return c.json(timecodes)
+  })
+
+  // /content/i18n/:lang/videos.json — Sign language video mapping, keyed by
+  // sectionId. Files are served from the sibling "video/" path.
   app.get("/books/:label/adt-preview/content/i18n/:lang/videos.json", (c) => {
     const videosMap = withStorage(c.req.param("label"), (storage) => {
       const map: Record<string, string> = {}
-      const sectionToIndex = buildSectionIdToPageIndex(storage)
+      const inReadingOrder = resolveReadingOrder(storage).positionById
       for (const video of storage.getSignLanguageVideos()) {
-        if (video.sectionId) {
+        if (video.sectionId && inReadingOrder.has(video.sectionId)) {
           const ext = video.mimeType === "video/webm" ? ".webm" : ".mp4"
-          const filename = `sl_${video.sectionId}${ext}`
-          const idx = sectionToIndex.get(video.sectionId)
-          if (idx !== undefined) {
-            map[`video-${idx}`] = filename
-          }
+          map[video.sectionId] = `sl_${video.sectionId}${ext}`
         }
       }
       return map
@@ -1057,15 +1029,17 @@ export function createAdtPreviewRoutes(
         reflowableFont: config.reflowable_font,
       })
 
-      // Check if this is a quiz page (qzNNN)
-      const quizMatch = pageId.match(/^qz(\d{3})$/)
-      if (quizMatch) {
-        const quizIndex = parseInt(quizMatch[1], 10) - 1
+      // Check if this is a quiz page (qzNNN). The id's number is NOT the quiz's
+      // array position — ids are allocated once and never reused — so resolve by
+      // id rather than indexing into the array.
+      if (parseQuizId(pageId) !== null) {
         const quizData = getQuizData(storage)
-        if (!quizData?.quizzes || quizIndex < 0 || quizIndex >= quizData.quizzes.length) {
+        const quiz = quizData?.quizzes?.find(
+          (q, i) => resolveQuizId(q, i) === pageId
+        )
+        if (!quiz) {
           throw new HTTPException(404, { message: `No quiz data for: ${pageId}` })
         }
-        const quiz = quizData.quizzes[quizIndex]
         const catalog = await getTextCatalog(storage)
 
         const quizPalette = (config.quiz_generation?.match_book_style ?? true)
@@ -1098,14 +1072,16 @@ export function createAdtPreviewRoutes(
         return c.body(html)
       }
 
-      // Content page — require sectionId format (e.g. pg001_sec001).
-      // This prevents ambiguous fallback to unrelated sections.
-      const sectionIdMatch = pageId.match(/^(.+)_sec(\d{3})$/)
-      if (!sectionIdMatch) {
+      // Content page — the id must have a section shape (e.g. pg001_sec001) so
+      // this cannot fall back to an unrelated section. The legacy `_sN` shape is
+      // accepted too: books upgraded from a version whose agent tools minted
+      // those still store them, and the section is matched exactly below either
+      // way, so widening the parse resolves them without guessing anything.
+      const parsedSectionId = parseAnySectionId(pageId)
+      if (!parsedSectionId) {
         throw new HTTPException(404, { message: `Section not found: ${pageId}` })
       }
-      const ownerPageId = sectionIdMatch[1]
-      const fallbackSectionIndex = parseInt(sectionIdMatch[2], 10) - 1
+      const ownerPageId = parsedSectionId.pageId
 
       const renderRow = storage.getLatestNodeData("web-rendering", ownerPageId)
       if (!renderRow) {
@@ -1117,12 +1093,14 @@ export function createAdtPreviewRoutes(
         throw new HTTPException(500, { message: "Invalid rendering data" })
       }
 
-      // Get sectioning to look up sectionId → sectionIndex mapping
+      // Get sectioning to look up sectionId → sectionIndex mapping. The id's
+      // sequence number is NOT its array position (ids are allocated once and
+      // never reused), so there is no positional fallback — an unresolvable id
+      // is a 404 rather than a guess that would serve a different section.
       const sectioning = getRenderSectioning(storage, ownerPageId)
-      const resolvedIndex = sectioning
+      const targetSectionIndex = sectioning
         ? sectioning.sections.findIndex((s) => s.sectionId === pageId)
         : -1
-      const targetSectionIndex = resolvedIndex >= 0 ? resolvedIndex : fallbackSectionIndex
       const renderedSection = parsed.data.sections.find((s) => s.sectionIndex === targetSectionIndex)
 
       if (!renderedSection || targetSectionIndex < 0) {

@@ -156,18 +156,79 @@ describe("Package routes", () => {
         JSON.stringify({ version: 1, revisionId: "revision", importedAt: "2026-01-01T00:00:00.000Z" }),
       )
       fs.mkdirSync(path.join(bookDir, "adt"), { recursive: true })
-      fs.writeFileSync(path.join(bookDir, "adt", "index.html"), "edited HTML")
+      fs.writeFileSync(path.join(bookDir, "adt", "pg001_sec001.html"), "edited HTML")
 
       const res = await app.request("/api/books/imported-preview/package-adt", {
         method: "POST",
       })
 
       expect(res.status).toBe(200)
-      expect(fs.readFileSync(path.join(bookDir, "adt", "index.html"), "utf8"))
+      expect(fs.readFileSync(path.join(bookDir, "adt", "pg001_sec001.html"), "utf8"))
         .toContain('<main><img src="cover.png"></main>')
     })
 
-    it("stores accessibility assessment output after packaging", { timeout: 15_000 }, async () => {
+    it("returns no warnings when rendering and sectioning agree", { timeout: 20_000 }, async () => {
+      createRenderedBook("book-clean")
+      createWebAssets()
+
+      const res = await app.request("/api/books/book-clean/package-adt", { method: "POST" })
+
+      expect(res.status).toBe(200)
+      const body = await res.json() as { warnings?: unknown[] }
+      expect(body.warnings).toEqual([])
+    })
+
+    it("reports sections omitted from the bundle, and still reports them on a cache hit", { timeout: 30_000 }, async () => {
+      createRenderedBook("book-orphan")
+      createWebAssets()
+
+      // Give the page a second rendering entry with no sectioning row behind
+      // it — the state restoring an older `page-sectioning` version leaves,
+      // since that does not resync `web-rendering`. Packaging cannot invent a
+      // sectionId for it (ids are never reused, so a positional guess could
+      // name a real section) so it drops the section.
+      const storage = createBookStorage("book-orphan", tmpDir)
+      storage.putNodeData("web-rendering", "pg001", {
+        sections: [
+          { sectionIndex: 0, sectionType: "content", reasoning: "ok", html: "<main><p>Kept</p></main>" },
+          { sectionIndex: 1, sectionType: "content", reasoning: "ok", html: "<main><p>Orphan</p></main>" },
+        ],
+      })
+      storage.close()
+
+      const res = await app.request("/api/books/book-orphan/package-adt", { method: "POST" })
+      expect(res.status).toBe(200)
+      const body = await res.json() as {
+        warnings?: Array<{ kind: string; pageId: string; sectionIndex: number }>
+      }
+      expect(body.warnings).toEqual([
+        { kind: "orphaned-rendering", pageId: "pg001", sectionIndex: 1 },
+      ])
+
+      // Packaging again hits the build cache and skips the work. The bundle on
+      // disk is still short, so the warning has to come back with it — reading
+      // it off the cached sidecar rather than vanishing.
+      const cached = await app.request("/api/books/book-orphan/package-adt", { method: "POST" })
+      expect(cached.status).toBe(200)
+      const cachedBody = await cached.json() as {
+        warnings?: Array<{ kind: string; pageId: string; sectionIndex: number }>
+      }
+      expect(cachedBody.warnings).toEqual(body.warnings)
+
+      // A build cached before the sidecar existed — the state every book is in
+      // on upgrade. The hash still matches, so without treating a missing
+      // sidecar as a stale cache this returns a clean result over the same
+      // short bundle.
+      fs.rmSync(path.join(tmpDir, "book-orphan", "adt", ".build-warnings"))
+      const upgraded = await app.request("/api/books/book-orphan/package-adt", { method: "POST" })
+      expect(upgraded.status).toBe(200)
+      const upgradedBody = await upgraded.json() as {
+        warnings?: Array<{ kind: string; pageId: string; sectionIndex: number }>
+      }
+      expect(upgradedBody.warnings).toEqual(body.warnings)
+    })
+
+    it("stores accessibility assessment output after packaging", { timeout: 20_000 }, async () => {
       createRenderedBook("book-a11y")
       createWebAssets()
 
@@ -267,7 +328,7 @@ describe("Package routes", () => {
       const assignedPackage = await packageBook()
       expect(assignedPackage.version).not.toBe(unassignedPackage.version)
       expect(JSON.parse(fs.readFileSync(videosPath, "utf-8"))).toEqual({
-        "video-1": "sl_pg001_sec001.mp4",
+        pg001_sec001: "sl_pg001_sec001.mp4",
       })
       expect(JSON.parse(fs.readFileSync(configPath, "utf-8")).features.signLanguage).toBe(true)
 

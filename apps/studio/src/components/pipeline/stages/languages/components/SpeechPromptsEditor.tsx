@@ -23,7 +23,7 @@ export function SpeechPromptsEditor({ bookLabel }: SpeechPromptsEditorProps) {
   const queryClient = useQueryClient()
   const remount = useSettingsRemount()
   const { queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasSpeechProvider } = useApiKey()
   const navigate = useNavigate()
   const { data, isLoading } = useQuery({
     queryKey: ["speech-instructions"],
@@ -94,7 +94,7 @@ export function SpeechPromptsEditor({ bookLabel }: SpeechPromptsEditorProps) {
       queueRun({ fromStage: "speech", toStage: "speech", apiKey })
     },
     onDiscard: remount,
-    rerunDisabledReason: hasApiKey ? undefined : t`Add an API key to re-run`,
+    rerunDisabledReason: hasSpeechProvider ? undefined : t`Add an API key to re-run`,
   })
 
   if (isLoading) {

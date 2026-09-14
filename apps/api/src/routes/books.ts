@@ -11,7 +11,14 @@ import {
   LLMModelId,
   SpeechGenerationModelId,
   AdtActivityImportDecision,
+  type AiModality,
 } from "@adt/types"
+import {
+  AiProviderError,
+  getDefaultProviderRegistry,
+  resolveModelIdFor,
+  type ProviderRegistry,
+} from "@adt/llm"
 import { CURRENT_VERSION_ORDER, openBookDb, createBookStorage } from "@adt/storage"
 import { countPdfPages, renderPdfCover } from "@adt/pdf"
 import { normalizeLocale, getBaseLanguage } from "@adt/pipeline"
@@ -69,6 +76,22 @@ import {
 import { AdtActivityReviewError } from "../services/adt-import/activity-reconciliation.js"
 import { readAdtAgentGuideTemplate } from "@adt/pipeline"
 
+function assertModelSupported(
+  registry: ProviderRegistry,
+  modelId: string | undefined,
+  modality: AiModality,
+): void {
+  if (!modelId) return
+  try {
+    resolveModelIdFor(registry, modelId, modality)
+  } catch (error) {
+    if (AiProviderError.is(error)) {
+      throw new HTTPException(400, { message: error.message })
+    }
+    throw error
+  }
+}
+
 const BookConfigUpdateRequest = z.object({
   config: z
     .object({
@@ -117,6 +140,7 @@ export function createBookRoutes(
   webAssetsDir?: string,
   configPath?: string,
   taskService?: TaskService,
+  registry: ProviderRegistry = getDefaultProviderRegistry(),
 ): Hono {
   const app = new Hono()
 
@@ -401,6 +425,9 @@ export function createBookRoutes(
     }
     const body = parsed.data
 
+    assertModelSupported(registry, body.config.default_model, "structured-text")
+    assertModelSupported(registry, body.config.default_image_generation_model, "image")
+
     try {
       // A part's page window is fixed — never let a config update move it.
       const partInfo = getPartInfo(label, booksDir)
@@ -557,16 +584,18 @@ export function createBookRoutes(
         safeLabel,
         "prepare-export",
         `Preparing ${format} export`,
-        async () => {
-          await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings)
-        },
+        // Returned so the task result carries any pages packaging had to omit
+        // — the export otherwise completes looking clean while the bundle is
+        // short.
+        async () =>
+          await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings),
         { url: `/books/${safeLabel}/export-${format}` }
       )
       return c.json({ status: "submitted", taskId, label: safeLabel })
     }
 
-    await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings)
-    return c.json({ status: "completed", label: safeLabel })
+    const { warnings } = await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings)
+    return c.json({ status: "completed", label: safeLabel, warnings })
   })
 
   // Export download routes — each format delegates to its service function,

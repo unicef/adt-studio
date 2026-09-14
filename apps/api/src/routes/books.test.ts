@@ -17,14 +17,20 @@ import { createBookRoutes } from "./books.js"
 import { createStageRoutes } from "./stages.js"
 import { ADT_IMPORT_IN_PROGRESS_MARKER } from "../services/adt-import/marker.js"
 import { getBook } from "../services/book-service.js"
+import { errorHandler } from "../middleware/error-handler.js"
 
 const mockEventBus = createBookEventBus()
 const mockDecisions = createPageErrorDecisions(mockEventBus)
 
 let tmpDir: string
+let globalConfigPath: string
 
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-books-route-"))
+  // Isolated global config: routes must never fall back to the repo's live
+  // config.yaml, which the Studio rewrites when users change settings.
+  globalConfigPath = path.join(tmpDir, "global-config.yaml")
+  fs.writeFileSync(globalConfigPath, "structure_types: {}\nrole_types: {}\n")
 })
 
 afterEach(() => {
@@ -317,8 +323,8 @@ describe("PUT /books/:label/config", () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({
       config: {
-        default_model: "anthropic:claude-sonnet-4-6",
-        default_image_generation_model: "openai:dall-e-3",
+        default_model: "anthropic:Claude-Sonnet-4-6",
+        default_image_generation_model: "openai:DALL-E-3",
         default_speech_generation_model: "tts-1-hd",
       },
     })
@@ -706,9 +712,13 @@ function addExtractNodes(label: string, count: number, includeSummary = true): v
 }
 
 describe("POST /books/:label/stages/run", () => {
-  it("passes renderOnly and preserves page sectioning data for storyboard reruns", async () => {
+  it("starts without an API key when the default model's provider is keyless and preserves page sectioning data for storyboard reruns", async () => {
     const label = "render-only-route"
     createTestBook(label)
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      'default_model: "ollama:llama3"\n',
+    )
     const storage = createBookStorage(label, tmpDir)
     try {
       storage.putNodeData("page-sectioning", "pg001", {
@@ -735,12 +745,11 @@ describe("POST /books/:label/stages/run", () => {
       },
     }
 
-    const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "")
+    const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
     const res = await app.request(`/books/${label}/stages/run`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-OpenAI-Key": "sk-test",
       },
       body: JSON.stringify({
         fromStage: "storyboard",
@@ -751,6 +760,7 @@ describe("POST /books/:label/stages/run", () => {
 
     expect(res.status).toBe(200)
     expect(receivedOptions?.renderOnly).toBe(true)
+    expect(receivedOptions?.credentials).toEqual({})
 
     const verifyStorage = createBookStorage(label, tmpDir)
     try {
@@ -764,7 +774,157 @@ describe("POST /books/:label/stages/run", () => {
     }
   })
 
-  it("passes Gemini credentials through to the stage runner options", async () => {
+  it("rejects a keyless run for a credentialed default model before clearing any data", async () => {
+    const label = "missing-credential-run"
+    createTestBook(label)
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      'default_model: "openai:gpt-4o"\n',
+    )
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("web-rendering", "pg001", {
+        sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>x</p>" }],
+      })
+      storage.markStepCompleted("web-rendering")
+    } finally {
+      storage.close()
+    }
+
+    const savedKey = process.env.OPENAI_API_KEY
+    delete process.env.OPENAI_API_KEY
+    try {
+      let started = false
+      const stageService: StageService = {
+        getStatus: () => ({ active: null, queue: [] }),
+        getQueuedStages: () => [],
+
+        startStageRun: () => {
+          started = true
+          return { status: "started" as const, id: "run-reject" }
+        },
+      }
+
+      const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
+      app.onError(errorHandler)
+      const res = await app.request(`/books/${label}/stages/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromStage: "storyboard", toStage: "storyboard" }),
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.code).toBe("missing-credential")
+      expect(started).toBe(false)
+
+      const verifyStorage = createBookStorage(label, tmpDir)
+      try {
+        expect(verifyStorage.getLatestNodeData("web-rendering", "pg001")).not.toBeNull()
+        const runs = new Map(verifyStorage.getStepRuns().map((r) => [r.step, r.status]))
+        expect(runs.get("web-rendering")).toBe("done")
+      } finally {
+        verifyStorage.close()
+      }
+    } finally {
+      if (savedKey !== undefined) process.env.OPENAI_API_KEY = savedKey
+    }
+  })
+
+  it("rejects a run whose per-step model override lacks credentials before clearing any data", async () => {
+    const label = "override-credential-run"
+    createTestBook(label)
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      'default_model: "ollama:llama3"\ntranslation:\n  model: "openai:gpt-4o"\n',
+    )
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("page-sectioning", "pg001", {
+        reasoning: "existing",
+        sections: [],
+      })
+      storage.markStepCompleted("page-sectioning")
+    } finally {
+      storage.close()
+    }
+
+    const savedKey = process.env.OPENAI_API_KEY
+    delete process.env.OPENAI_API_KEY
+    try {
+      let started = false
+      const stageService: StageService = {
+        getStatus: () => ({ active: null, queue: [] }),
+        getQueuedStages: () => [],
+
+        startStageRun: () => {
+          started = true
+          return { status: "started" as const, id: "run-override" }
+        },
+      }
+
+      const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
+      app.onError(errorHandler)
+      const res = await app.request(`/books/${label}/stages/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromStage: "sectioning", toStage: "sectioning" }),
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.code).toBe("missing-credential")
+      expect(body.error).toContain("translation.model")
+      expect(started).toBe(false)
+
+      const verifyStorage = createBookStorage(label, tmpDir)
+      try {
+        expect(verifyStorage.getLatestNodeData("page-sectioning", "pg001")).not.toBeNull()
+      } finally {
+        verifyStorage.close()
+      }
+    } finally {
+      if (savedKey !== undefined) process.env.OPENAI_API_KEY = savedKey
+    }
+  })
+
+  it("allows a speech-only rerun without the text default's credentials", async () => {
+    const label = "speech-only-run"
+    createTestBook(label)
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      'default_model: "openai:gpt-4o"\n',
+    )
+
+    const savedKey = process.env.OPENAI_API_KEY
+    delete process.env.OPENAI_API_KEY
+    try {
+      let receivedOptions: StageRunOptions | undefined
+      const stageService: StageService = {
+        getStatus: () => ({ active: null, queue: [] }),
+        getQueuedStages: () => [],
+
+        startStageRun: (_label, options) => {
+          receivedOptions = options
+          return { status: "started" as const, id: "run-speech" }
+        },
+      }
+
+      const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
+      const res = await app.request(`/books/${label}/stages/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromStage: "speech", toStage: "speech" }),
+      })
+
+      expect(res.status).toBe(200)
+      expect(receivedOptions?.fromStage).toBe("speech")
+    } finally {
+      if (savedKey !== undefined) process.env.OPENAI_API_KEY = savedKey
+    }
+  })
+
+  it("passes manifest-declared credentials through to the stage runner options", async () => {
     const label = "gemini-stage-run"
     createTestBook(label)
 
@@ -779,13 +939,14 @@ describe("POST /books/:label/stages/run", () => {
       },
     }
 
-    const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "")
+    const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
     const res = await app.request(`/books/${label}/stages/run`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-OpenAI-Key": "sk-test",
         "X-Gemini-API-Key": "gm-test",
+        "X-ADT-Provider-Ollama-Base-URL": "http://localhost:11434/v1",
       },
       body: JSON.stringify({
         fromStage: "translate",
@@ -794,7 +955,11 @@ describe("POST /books/:label/stages/run", () => {
     })
 
     expect(res.status).toBe(200)
-    expect(receivedOptions?.geminiApiKey).toBe("gm-test")
+    expect(receivedOptions?.credentials).toEqual({
+      openai: { apiKey: "sk-test" },
+      gemini: { apiKey: "gm-test" },
+      ollama: { baseUrl: "http://localhost:11434/v1" },
+    })
   })
 
   it("blocks imported source regeneration but allows downstream feature runs", async () => {
@@ -900,7 +1065,7 @@ describe("GET /books/:label/step-status", () => {
   }
 
   it("returns all stages/steps idle when DB is missing and no run state exists", async () => {
-    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
     const res = await app.request("/books/missing-db/step-status")
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -923,7 +1088,8 @@ describe("GET /books/:label/step-status", () => {
       mockDecisions,
       tmpDir,
       "",
-      ""
+      "",
+      globalConfigPath
     )
     const res = await app.request("/books/missing-db-queued/step-status")
     expect(res.status).toBe(200)
@@ -944,7 +1110,8 @@ describe("GET /books/:label/step-status", () => {
       mockDecisions,
       tmpDir,
       "",
-      ""
+      "",
+      globalConfigPath
     )
     const res = await app.request("/books/status-error/step-status")
     expect(res.status).toBe(200)
@@ -974,7 +1141,8 @@ describe("GET /books/:label/step-status", () => {
       mockDecisions,
       tmpDir,
       "",
-      ""
+      "",
+      globalConfigPath
     )
 
     const res = await app.request("/books/failed-running-step/step-status")
@@ -994,7 +1162,7 @@ describe("GET /books/:label/step-status", () => {
     } finally {
       storage.close()
     }
-    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
 
     const res = await app.request("/books/extract-incomplete/step-status")
     expect(res.status).toBe(200)
@@ -1009,7 +1177,7 @@ describe("GET /books/:label/step-status", () => {
   it("marks extract complete when all extract steps are done", async () => {
     createTestBook("extract-complete")
     markExtractStageComplete("extract-complete")
-    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
 
     const res = await app.request("/books/extract-complete/step-status")
     expect(res.status).toBe(200)
@@ -1028,7 +1196,8 @@ describe("GET /books/:label/step-status", () => {
       mockDecisions,
       tmpDir,
       "",
-      ""
+      "",
+      globalConfigPath
     )
 
     const res = await app.request("/books/extract-complete-queued/step-status")
@@ -1047,7 +1216,7 @@ describe("GET /books/:label/step-status", () => {
     } finally {
       storage.close()
     }
-    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
 
     const res = await app.request("/books/step-error-test/step-status")
     expect(res.status).toBe(200)
@@ -1066,7 +1235,7 @@ describe("GET /books/:label/step-status", () => {
     } finally {
       storage.close()
     }
-    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
 
     const res = await app.request("/books/step-running-test/step-status")
     expect(res.status).toBe(200)
@@ -1084,7 +1253,7 @@ describe("GET /books/:label/step-status", () => {
     } finally {
       storage.close()
     }
-    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
 
     const res = await app.request("/books/step-message-test/step-status")
     expect(res.status).toBe(200)
@@ -1111,7 +1280,8 @@ describe("GET /books/:label/step-status", () => {
       mockDecisions,
       tmpDir,
       "",
-      ""
+      "",
+      globalConfigPath
     )
 
     const res = await app.request("/books/active-range/step-status")
@@ -1135,7 +1305,8 @@ describe("GET /books/:label/step-status", () => {
       mockDecisions,
       tmpDir,
       "",
-      ""
+      "",
+      globalConfigPath
     )
 
     const res = await app.request("/books/active-range-done/step-status")
@@ -1150,7 +1321,7 @@ describe("GET /books/:label/step-status", () => {
   it("returns null stepErrors when no errors exist", async () => {
     createTestBook("no-errors")
     markExtractStageComplete("no-errors")
-    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
 
     const res = await app.request("/books/no-errors/step-status")
     expect(res.status).toBe(200)
@@ -1166,7 +1337,7 @@ describe("GET /books/:label/step-status", () => {
     } finally {
       storage.close()
     }
-    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
 
     const res = await app.request("/books/derived-error/step-status")
     expect(res.status).toBe(200)
@@ -1188,7 +1359,7 @@ describe("GET /books/:label/step-status", () => {
     } finally {
       storage.close()
     }
-    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
 
     const res = await app.request("/books/skipped-steps/step-status")
     expect(res.status).toBe(200)
@@ -1200,7 +1371,7 @@ describe("GET /books/:label/step-status", () => {
     createTestBook("preview-done")
     fs.mkdirSync(path.join(tmpDir, "preview-done", "adt"), { recursive: true })
 
-    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
     const res = await app.request("/books/preview-done/step-status")
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -1208,7 +1379,7 @@ describe("GET /books/:label/step-status", () => {
   })
 
   it("returns 400 for invalid book labels", async () => {
-    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
     const res = await app.request("/books/-bad/step-status")
     expect(res.status).toBe(400)
   })
@@ -1839,7 +2010,7 @@ describe("POST /books/import-adt", () => {
       method: "POST",
     })
     expect(prepareRes.status).toBe(200)
-    expect(fs.readFileSync(path.join(bookDir, "adt", "index.html"), "utf8")).toContain("Hello")
+    expect(fs.readFileSync(path.join(bookDir, "adt", "pg001_sec001.html"), "utf8")).toContain("Hello")
     expect(fs.readFileSync(path.join(bookDir, "adt", "assets", "scorm.js"), "utf8"))
       .toContain("SCORM 1.2 adapter")
     const reexportedManifest = JSON.parse(

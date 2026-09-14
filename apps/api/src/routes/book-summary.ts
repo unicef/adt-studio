@@ -11,6 +11,8 @@ import {
   normalizeLocale,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine, createRateLimiter } from "@adt/llm"
+import type { ResolvedCredentials } from "@adt/llm"
+import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import type { TaskService } from "../services/task-service.js"
 
 export function createBookSummaryRoutes(
@@ -22,7 +24,10 @@ export function createBookSummaryRoutes(
   const app = new Hono()
 
   /** Regenerate only the book summary in the current book language. */
-  async function regenerate(safeLabel: string, apiKey: string): Promise<{ version: number }> {
+  async function regenerate(
+    safeLabel: string,
+    credentials: ResolvedCredentials,
+  ): Promise<{ version: number }> {
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       const config = loadBookConfig(safeLabel, booksDir, configPath)
@@ -42,33 +47,24 @@ export function createBookSummaryRoutes(
 
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
       const rateLimiter = config.rate_limit
         ? createRateLimiter(config.rate_limit.requests_per_minute)
         : undefined
 
-      const previousKey = process.env.OPENAI_API_KEY
-      process.env.OPENAI_API_KEY = apiKey
-      try {
-        const model = createLLMModel({
-          modelId: summaryConfig.modelId,
-          cacheDir,
-          promptEngine,
-          rateLimiter,
-          onLog: (entry) => storage.appendLlmLog(entry),
-        })
-        const result = await generateBookSummary(summaryPages, summaryConfig, model)
-        const version = storage.putNodeData("book-summary", "book", result)
-        // Keep the Extract stage complete — this is a targeted refresh.
-        storage.markStepCompleted("book-summary")
-        return { version }
-      } finally {
-        if (previousKey !== undefined) {
-          process.env.OPENAI_API_KEY = previousKey
-        } else {
-          delete process.env.OPENAI_API_KEY
-        }
-      }
+      const model = createLLMModel({
+        modelId: summaryConfig.modelId,
+        cacheDir,
+        promptEngine,
+        rateLimiter,
+        onLog: (entry) => storage.appendLlmLog(entry),
+        providerCredentials: credentials,
+      })
+      const result = await generateBookSummary(summaryPages, summaryConfig, model)
+      const version = storage.putNodeData("book-summary", "book", result)
+      // Keep the Extract stage complete — this is a targeted refresh.
+      storage.markStepCompleted("book-summary")
+      return { version }
     } finally {
       storage.close()
     }
@@ -81,25 +77,20 @@ export function createBookSummaryRoutes(
   app.post("/books/:label/book-summary/regenerate", async (c) => {
     const { label } = c.req.param()
     const safeLabel = parseBookLabel(label)
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, {
-        message: "API key required. Set X-OpenAI-Key header.",
-      })
-    }
+    const credentials = readProviderCredentials(c)
 
     if (taskService) {
       const { taskId } = taskService.submitTask(
         safeLabel,
         "book-summary",
         "Regenerating book summary",
-        async () => regenerate(safeLabel, apiKey),
+        async () => regenerate(safeLabel, credentials),
       )
       return c.json({ taskId, status: "submitted" })
     }
 
     // Fallback: run synchronously when no task service is wired.
-    const result = await regenerate(safeLabel, apiKey)
+    const result = await regenerate(safeLabel, credentials)
     return c.json(result)
   })
 

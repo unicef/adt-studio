@@ -73,6 +73,7 @@
     "text-read-aloud-speed": "Kecepatan",
     "toc-title": "Indeks",
     "tts-label": "Teks ke suara",
+    "narrator-voice-label": "Suara narator",
     "tutorial-closed-announcement": "Tutorial ditutup. Ingat Anda dapat menggunakan Alt plus Shift plus A untuk membuka dan menutup menu aksesibilitas, Alt plus Shift plus panah untuk menavigasi antar halaman, dan Alt plus Shift plus X untuk membuka dan menutup menu navigasi. Anda dapat mengakses lebih banyak fungsi aksesibilitas dengan tombol di sudut kanan.",
     "tutorial-completed-announcement": "Tutorial selesai. Ingat Anda dapat menggunakan Alt plus Shift plus A untuk membuka dan menutup menu aksesibilitas, Alt plus Shift plus panah untuk menavigasi antar halaman, dan Alt plus Shift plus X untuk membuka dan menutup menu navigasi.",
     "tutorial-description-content": "Sebelum Anda mulai, berikut adalah tur singkat untuk menunjukkan cara menavigasi, menggunakan menu, dan mengakses fitur berguna.<br> Ini tidak akan lama!",

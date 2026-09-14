@@ -21,7 +21,7 @@ import { useBookConfig } from "@/hooks/use-book-config"
 import { usePartInfo } from "@/hooks/use-parts"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { PageGroupingVisual } from "./components/PageGroupingVisual"
 import { ExtractPreview } from "./components/ExtractPreview"
@@ -32,7 +32,8 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { queueRun } = useBookRun()
   const status = useStageStatus("extract")
   const { data: book } = useBook(bookLabel)
@@ -112,11 +113,11 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
   const pageRangeDisabled = sourcePdfPending || !totalPages
 
   const handleRun = () => {
-    if (!hasApiKey || status.isRunning) return
+    if (!hasStructuredTextProvider || status.isRunning) return
     queueRun({ fromStage: "extract", toStage: "extract", apiKey, viewAfter: true })
   }
 
-  const disabledReason = !hasApiKey ? (
+  const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Add an API key in Book settings to run extraction.</Trans>
   ) : undefined
 
@@ -132,7 +133,7 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey}
+      extraDisabled={!hasStructuredTextProvider}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Extract</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}

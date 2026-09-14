@@ -93,9 +93,9 @@ const accentMap = {
     text: "text-amber-600",
   },
   blue: {
-    border: "border-primary/60",
-    icon: "text-primary",
-    text: "text-primary",
+    border: "border-blue-400/60",
+    icon: "text-brand-600",
+    text: "text-brand-600",
   },
 } as const
 
@@ -114,9 +114,9 @@ export function FileDropOverlay({
         "transition-[opacity,background-color,border-color,backdrop-filter] duration-300 ease-out",
         overlay === "idle" && "border-2 border-transparent opacity-0",
         overlay === "dragging" &&
-          cn("border-2 border-dashed bg-white/50 backdrop-blur-[2px] opacity-100", colors.border),
+          cn("border-2 border-dashed bg-background/60 backdrop-blur-[2px] opacity-100", colors.border),
         overlay === "error" &&
-          "border-2 border-dashed border-red-400/60 bg-white/50 backdrop-blur-[2px] opacity-100",
+          "border-2 border-dashed border-red-400/60 bg-background/60 backdrop-blur-[2px] opacity-100",
       )}
       aria-hidden
     >
@@ -148,8 +148,8 @@ export function FileDropOverlay({
               : "pointer-events-none scale-95 opacity-0",
           )}
         >
-          <XCircle className="h-10 w-10 text-[#ef4444]" />
-          <span className="text-center text-base font-semibold text-[#ef4444]">
+          <XCircle className="h-10 w-10 text-destructive" />
+          <span className="text-center text-base font-semibold text-destructive">
             {errorLabel}
           </span>
         </div>

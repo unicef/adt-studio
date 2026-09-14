@@ -8,6 +8,7 @@ import {
   DEFAULT_LLM_MODEL_ID,
   buildPageSectioningLLMSchema,
   buildPageSectioningRefinementLLMSchema,
+  formatSectionId,
 } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import type { PageOutlineContext } from "./book-outline.js"
@@ -145,7 +146,7 @@ async function generateInitial(
 ): Promise<LLMStructuringResult> {
   const result = await llmModel.generateObject<LLMStructuringResult>({
     schema: buildPageSectioningLLMSchema(),
-    mode: "json",
+    recursiveSchema: true,
     prompt: config.promptName,
     context: {
       page: {
@@ -188,7 +189,7 @@ async function generateReview(
 ): Promise<LLMRefinementResult> {
   const result = await llmModel.generateObject<LLMRefinementResult>({
     schema: buildPageSectioningRefinementLLMSchema(),
-    mode: "json",
+    recursiveSchema: true,
     prompt: config.refinementPromptName,
     context: {
       page: {
@@ -649,7 +650,7 @@ export function finalizePageSectioning(
   const counter = { n: 0 }
 
   const sections: PageSectioningSection[] = raw.sections.map((section, sIdx) => {
-    const sectionId = `${input.pageId}_sec${String(sIdx + 1).padStart(3, "0")}`
+    const sectionId = formatSectionId(input.pageId, sIdx + 1)
     const nodes = section.nodes.map((node) =>
       toContentNode(node, input.pageId, counter, prunedRoles)
     )

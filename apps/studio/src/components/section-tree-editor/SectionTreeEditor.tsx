@@ -285,20 +285,27 @@ export function SectionTreeEditor({
 
   const handleDrop = useCallback(
     (sourceNodeId: string, target: DropIntent) => {
-      // Disallow dropping a node inside its own subtree.
-      if (target.parentNodeId) {
-        const ancestor = findNode(section.nodes, sourceNodeId)
-        if (ancestor && containsNode(ancestor, target.parentNodeId)) {
-          return
+      try {
+        // Disallow dropping a node inside its own subtree.
+        if (target.parentNodeId) {
+          const ancestor = findNode(section.nodes, sourceNodeId)
+          if (ancestor && containsNode(ancestor, target.parentNodeId)) {
+            return
+          }
         }
-      }
-      const next = moveNode(section.nodes, sourceNodeId, {
-        parentNodeId: target.parentNodeId,
-        index: target.index,
-      })
-      if (next !== section.nodes) {
-        applyNodes(next)
-        onStructuralChange?.()
+        const next = moveNode(section.nodes, sourceNodeId, {
+          parentNodeId: target.parentNodeId,
+          index: target.index,
+        })
+        if (next !== section.nodes) {
+          applyNodes(next)
+          onStructuralChange?.()
+        }
+      } finally {
+        // Moving a node can replace its source DOM element before native
+        // dragend fires. Clear the visual drag state here as well so the
+        // moved node is not left looking excluded.
+        setDrag(null)
       }
     },
     [section.nodes, applyNodes, onStructuralChange]

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useBook } from "@/hooks/use-books"
 import { isImportedAdtStageRerunnable } from "../../stage-config"
 import { StageRunCard } from "../../components/StageRunCard"
@@ -18,6 +18,7 @@ import { useSectionNav } from "@/routes/books.$label"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { useHasUnsavedChanges } from "../../components/floating-save"
+import { parseQuizRouteId } from "@/lib/quiz-route"
 
 
 export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
@@ -29,7 +30,8 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const hasUnsavedChanges = useHasUnsavedChanges()
   const { setExtra, setOnLabelClick } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { data: book } = useBook(bookLabel)
   const storyboardState = stageState("storyboard")
   const storyboardDone = storyboardState === "done"
@@ -55,9 +57,9 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const canRegenerate = isImportedAdtStageRerunnable("storyboard")
     || book?.workingSource !== "imported-adt"
   const handleRunStoryboard = useCallback(() => {
-    if (!canRegenerate || !hasApiKey || !sectioningReady || storyboardRunning) return
+    if (!canRegenerate || !hasStructuredTextProvider || !sectioningReady || storyboardRunning) return
     queueRun({ fromStage: "storyboard", toStage: "storyboard", apiKey })
-  }, [canRegenerate, hasApiKey, sectioningReady, storyboardRunning, apiKey, queueRun])
+  }, [canRegenerate, hasStructuredTextProvider, sectioningReady, storyboardRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
   const { sectionIndex, setSectionIndex, skipNextResetRef } = useSectionNav()
@@ -67,12 +69,15 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const isGeneratingRef = useRef(false)
   const handleGeneratingChange = useCallback((g: boolean) => { isGeneratingRef.current = g }, [])
 
-  // Quizzes appear in the sidebar with a synthetic pageId of `quiz-{index}`.
+  // Quizzes appear in the sidebar with a synthetic pageId of `quiz-{quizId}`.
   // When that pageId is in the URL we render the quiz panel instead of loading
-  // page detail — calling usePage with a fake id would 404.
-  const quizMatch = selectedPageIdProp?.match(/^quiz-(\d+)$/)
-  const selectedQuizIndex = quizMatch ? parseInt(quizMatch[1], 10) : null
-  const isQuizRoute = selectedQuizIndex != null
+  // page detail — calling usePage with a fake id would 404. `parseQuizRouteId`
+  // also carries the legacy `quiz-{arrayIndex}` shape, and StoryboardIndex uses
+  // it too so the sidebar highlights the same row this renders.
+  const selectedQuizId = selectedPageIdProp
+    ? parseQuizRouteId(selectedPageIdProp)
+    : null
+  const isQuizRoute = selectedQuizId != null
 
   // Auto-select first page when no page is selected
   useEffect(() => {
@@ -377,7 +382,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
             variant="outline"
             className="h-7 shrink-0 border-amber-300 bg-white px-3 text-xs text-amber-900 hover:bg-amber-100"
             onClick={handleRunStoryboard}
-            disabled={!canRegenerate || !hasApiKey || !sectioningReady || storyboardRunning}
+            disabled={!canRegenerate || !hasStructuredTextProvider || !sectioningReady || storyboardRunning}
           >
             <RotateCcw className="mr-1 h-3 w-3" />
             <Trans>Re-run Storyboard</Trans>
@@ -397,7 +402,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={storyboardRunning}
           completed={storyboardDone}
           onRun={handleRunStoryboard}
-          disabled={!canRegenerate || !hasApiKey || !sectioningReady || storyboardRunning}
+          disabled={!canRegenerate || !hasStructuredTextProvider || !sectioningReady || storyboardRunning}
         />
       </div>
     )
@@ -445,12 +450,12 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     )
   }
 
-  // Quiz route: pseudo-pageId is `quiz-{index}`. Render the quiz panel.
-  if (isQuizRoute && selectedQuizIndex != null) {
+  // Quiz route: pseudo-pageId is `quiz-{quizId}`. Render the quiz panel.
+  if (isQuizRoute && selectedQuizId != null) {
     return (
       <StoryboardQuizDetail
         bookLabel={bookLabel}
-        quizIndex={selectedQuizIndex}
+        quizId={selectedQuizId}
         navigationArrows={
           <div className="flex gap-1">{overviewToggle}{outlineToggle}</div>
         }
@@ -473,7 +478,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={storyboardRunning}
           completed={storyboardDone}
           onRun={handleRunStoryboard}
-          disabled={!canRegenerate || !hasApiKey || !sectioningReady || storyboardRunning}
+          disabled={!canRegenerate || !hasStructuredTextProvider || !sectioningReady || storyboardRunning}
         />
       </div>
     )
