@@ -1,6 +1,10 @@
 import { isElectron } from "@/lib/utils"
 import { readEventStream } from "@/api/sse"
-import { CLOUDFLARE_ACCOUNT_ID_HEADER, CLOUDFLARE_TOKEN_HEADER } from "@adt/types"
+import {
+  CLOUDFLARE_ACCOUNT_ID_HEADER,
+  CLOUDFLARE_TOKEN_HEADER,
+  PUBLISH_AUTHOR_NAME_HEADER,
+} from "@adt/types"
 import type {
   AccessibilityAssessmentOutput,
   BookDetail,
@@ -41,6 +45,22 @@ import type {
   ProvisionProgressEvent,
   ProvisionStepId,
   ProvisionStepStatus,
+  BookPublicationStatus,
+  BookPublicationRecord,
+  BookPublicationVersionRecord,
+  PublicationPageEntry,
+  PublicationResponse,
+  PublicationReaderList,
+  PublicationDeleteResult,
+  PublicationsOverview,
+  PublishCommentListResponse,
+  PublishCommentResponse,
+  PublishProgressEvent,
+  PublishFeatureSelection,
+  CommentAnchor,
+  PublishComment,
+  PublishStepId,
+  PublishStepStatus,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 import {
@@ -51,6 +71,20 @@ import {
 } from "./provider-credentials"
 
 export type { BookSummary, BookDetail }
+export type {
+  BookPublicationRecord,
+  BookPublicationStatus,
+  BookPublicationVersionRecord,
+  CommentAnchor,
+  PublicationPageEntry,
+  PublicationResponse,
+  PublishComment,
+  PublishCommentListResponse,
+  PublishCommentResponse,
+  PublishProgressEvent,
+  PublishStepId,
+  PublishStepStatus,
+}
 
 const CLI_ACTION_HEADERS = { "X-ADT-CLI-Action": "1" } as const
 
@@ -105,6 +139,10 @@ export function getSectionScreenshotUrl(
 
 export function getSourcePdfUrl(label: string): string {
   return `${BASE_URL}/books/${label}/source-pdf`
+}
+
+export function getPageImageUrl(label: string, pageId: string): string {
+  return `${BASE_URL}/books/${encodeURIComponent(label)}/pages/${encodeURIComponent(pageId)}/image?raw=1`
 }
 
 export function getBookCoverUrl(label: string, cacheKey?: string): string {
@@ -1091,6 +1129,57 @@ export interface TaskInfoResponse {
   progressMessage?: string
   progressPercent?: number
 }
+
+export interface PublicationPageManifest {
+  pages: PublicationPageEntry[]
+}
+
+export interface PublicationCommentQuery {
+  includeResolved?: boolean
+  pageSectionId?: string
+  version?: number
+}
+
+function authorNameHeader(authorName?: string | null): Record<string, string> {
+  const trimmed = authorName?.trim() ?? ""
+  return trimmed.length === 0 ? {} : { [PUBLISH_AUTHOR_NAME_HEADER]: trimmed }
+}
+
+function commentQueryString(query: PublicationCommentQuery = {}): string {
+  const params = new URLSearchParams()
+  if (query.includeResolved !== undefined) {
+    params.set("include_resolved", query.includeResolved ? "true" : "false")
+  }
+  if (query.pageSectionId !== undefined) params.set("page_section_id", query.pageSectionId)
+  if (query.version !== undefined) params.set("version", String(query.version))
+  const search = params.toString()
+  return search.length === 0 ? "" : `?${search}`
+}
+
+/** Same-origin preview URL for a file in the publication snapshot. */
+export function getPublicationPreviewUrl(label: string, filePath = ""): string {
+  const encoded = filePath
+    .split("/")
+    .filter((segment) => segment.length > 0)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/")
+  return `${BASE_URL}/books/${encodeURIComponent(label)}/publication/preview/${encoded}`
+}
+
+export interface PublishStreamOptions {
+  onEvent: (event: PublishProgressEvent) => void
+  signal?: AbortSignal
+}
+
+const streamPublishEvents = (
+  path: string,
+  body: Record<string, unknown>,
+  options: PublishStreamOptions,
+): Promise<void> =>
+  postEventStream<PublishProgressEvent>(path, body, {
+    onEvent: options.onEvent,
+    ...(options.signal ? { signal: options.signal } : {}),
+  })
 
 export const api = {
   getBooks: () => request<BookSummary[]>("/books"),
@@ -2372,6 +2461,120 @@ export const api = {
       headers: buildCloudflareHeaders(credentials), onEvent: options.onEvent, signal: options.signal,
     })
   },
+
+  // --- Book publication ---
+
+  getBookPublication: (label: string) =>
+    request<BookPublicationStatus>(`/books/${encodeURIComponent(label)}/publication`),
+
+  getPublications: () => request<PublicationsOverview>("/publications"),
+
+  getPublicationReaders: (token: string) =>
+    request<PublicationReaderList>(`/publications/${encodeURIComponent(token)}/readers`),
+
+  deletePublication: (token: string) =>
+    request<PublicationDeleteResult>(`/publications/${encodeURIComponent(token)}`, { method: "DELETE" }),
+
+  publishBook: (
+    label: string,
+    options: PublishStreamOptions & {
+      expiresAt?: string | null
+      accessCode?: string | null
+      features?: PublishFeatureSelection
+    },
+  ): Promise<void> =>
+    streamPublishEvents(
+      `/books/${encodeURIComponent(label)}/publication`,
+      {
+        ...(options.expiresAt === undefined ? {} : { expires_at: options.expiresAt }),
+        ...(options.accessCode === undefined ? {} : { access_code: options.accessCode }),
+        ...(options.features === undefined ? {} : { features: options.features }),
+      },
+      options,
+    ),
+
+  publishBookVersion: (label: string, options: PublishStreamOptions): Promise<void> =>
+    streamPublishEvents(`/books/${encodeURIComponent(label)}/publication/versions`, {}, options),
+
+  revokeBookPublication: (label: string) =>
+    request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication/revoke`, {
+      method: "POST",
+    }),
+
+  resumeBookPublication: (label: string) =>
+    request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication/resume`, {
+      method: "POST",
+    }),
+
+  setBookPublicationExpiry: (label: string, expiresAt: string | null) =>
+    request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication`, {
+      method: "PATCH",
+      body: JSON.stringify({ expires_at: expiresAt }),
+    }),
+
+  setBookPublicationAccessCode: (label: string, accessCode: string | null) =>
+    request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication`, {
+      method: "PATCH",
+      body: JSON.stringify({ access_code: accessCode }),
+    }),
+
+  // --- Publication feedback ---
+
+  getPublicationPages: (label: string) =>
+    request<PublicationPageManifest>(`/books/${encodeURIComponent(label)}/publication/pages`),
+
+  getPublicationComments: (label: string, query: PublicationCommentQuery = {}) =>
+    request<PublishCommentListResponse>(
+      `/books/${encodeURIComponent(label)}/publication/comments${commentQueryString(query)}`,
+    ),
+
+  createPublicationComment: (
+    label: string,
+    body: { pageSectionId: string; body: string; parentId?: string | null; anchor?: CommentAnchor | null },
+    authorName?: string | null,
+  ) =>
+    request<PublishCommentResponse>(`/books/${encodeURIComponent(label)}/publication/comments`, {
+      method: "POST",
+      headers: authorNameHeader(authorName),
+      body: JSON.stringify({
+        page_section_id: body.pageSectionId,
+        body: body.body,
+        ...(body.parentId === undefined ? {} : { parent_id: body.parentId }),
+        ...(body.anchor === undefined ? {} : { anchor: body.anchor }),
+      }),
+    }),
+
+  resolvePublicationComment: (
+    label: string,
+    id: string,
+    resolved: boolean,
+    authorName?: string | null,
+  ) =>
+    request<PublishCommentResponse>(
+      `/books/${encodeURIComponent(label)}/publication/comments/${encodeURIComponent(id)}/resolve`,
+      {
+        method: "POST",
+        headers: authorNameHeader(authorName),
+        body: JSON.stringify({ resolved }),
+      },
+    ),
+
+  updatePublicationComment: (
+    label: string,
+    id: string,
+    body: string,
+    authorName?: string | null,
+  ) =>
+    request<PublishCommentResponse>(
+      `/books/${encodeURIComponent(label)}/publication/comments/${encodeURIComponent(id)}`,
+      { method: "PATCH", headers: authorNameHeader(authorName), body: JSON.stringify({ body }) },
+    ),
+
+  deletePublicationComment: (label: string, id: string, authorName?: string | null) =>
+    request<PublishCommentResponse>(
+      `/books/${encodeURIComponent(label)}/publication/comments/${encodeURIComponent(id)}`,
+      { method: "DELETE", headers: authorNameHeader(authorName) },
+    ),
 
   exportPnld: async (label: string): Promise<Blob | null> => {
     if (!isDesktop()) {
