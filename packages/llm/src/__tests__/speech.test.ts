@@ -315,6 +315,27 @@ describe("createGeminiTTSSynthesizer", () => {
     })
   })
 
+  it("does not retry short text when the configured temperature makes Gemini TTS deterministically fail", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ candidates: [{ finishReason: "OTHER" }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    )
+
+    await expect(
+      createGeminiTTSSynthesizer({ apiKey: "gm-test" }).synthesize({
+        model: "gemini-2.5-flash-preview-tts",
+        voice: "Puck",
+        input: "Hola",
+        responseFormat: "wav",
+        temperature: 0,
+      })
+    ).rejects.toThrow(/temperature 0 is below 0\.5/)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
   it("rejects non-wav Gemini output requests", async () => {
     const synth = createGeminiTTSSynthesizer({ apiKey: "gm-test" })
 

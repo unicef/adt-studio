@@ -1818,6 +1818,69 @@ speech:
     expect(transcribeWithWhisperMock).not.toHaveBeenCalled()
   })
 
+  it("emits a live TTS error when a page-batched Gemini request returns no audio", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  batch_by_page: true
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-batched-no-audio", [
+      { id: "pg001_t002", text: "Second sentence" },
+      { id: "pg001_t003", text: "Third sentence" },
+    ])
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ candidates: [{ finishReason: "OTHER" }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const events: ProgressEvent[] = []
+    try {
+      await createStageRunner().run(
+        "gemini-batched-no-audio",
+        {
+          booksDir,
+          credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
+          promptsDir,
+          configPath,
+          fromStage: "translate",
+          toStage: "speech",
+        },
+        { emit: (event) => events.push(event) }
+      )
+    } finally {
+      vi.unstubAllGlobals()
+    }
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const ttsErrors = events.filter((event) =>
+      event.type === "step-error" && event.step === "tts"
+    )
+    expect(ttsErrors).toHaveLength(1)
+    expect(ttsErrors).toContainEqual(expect.objectContaining({
+      type: "step-error",
+      step: "tts",
+      error: expect.stringContaining("finishReason=OTHER"),
+    }))
+  })
+
   it("does not require a credential when every entry is reused and there is no work", async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
     const booksDir = path.join(tmpDir, "books")

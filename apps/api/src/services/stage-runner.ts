@@ -3271,6 +3271,17 @@ async function runSpeechStep(
     const skippedForSystemicFailure = (): string =>
       `Not attempted: an earlier Gemini request in this run returned no audio. ${geminiSystemicFailure}`
 
+    // Keep page-batched and per-entry failures equally visible to the live
+    // pipeline UI. Both paths persist failed entries, but the progress event is
+    // what prevents a batch failure from looking like an unexplained green run.
+    const emitTtsFailure = (textId: string, reason: string): void => {
+      progress.emit({
+        type: "step-error",
+        step: "tts",
+        error: `${textId} failed: ${reason}`,
+      })
+    }
+
     const failPageGroup = (group: PageGroup, reason: string): void => {
       for (const e of group.entries) {
         failedItems.push(`${e.id}: ${reason}`)
@@ -3281,6 +3292,11 @@ async function runSpeechStep(
         })
         geminiFailedItems.push(`${e.id}: ${reason}`)
       }
+      // The request and its failure are page-scoped even though its affected
+      // output records are per-entry. The client aggregates step errors as
+      // failed pages, so emit one event rather than calling a 15-entry page
+      // fifteen failed pages.
+      emitTtsFailure(group.pageKey, reason)
     }
 
     // ── Page-batched pre-pass (Gemini) ──────────────────────────────
@@ -3369,6 +3385,13 @@ async function runSpeechStep(
                   error: u.reason,
                   voiceSlot: group.voiceSlot,
                 })
+              }
+              if (unaligned.length > 0) {
+                const reason =
+                  unaligned.length === 1
+                    ? unaligned[0].reason
+                    : `${unaligned.length} entries could not be split reliably: ${unaligned.map((u) => u.textId).join(", ")}`
+                emitTtsFailure(group.pageKey, reason)
               }
               // A page served from cache makes no request — don't reward the
               // limiter for it (mirrors the per-entry `!entry.cached` guard).
@@ -3679,15 +3702,9 @@ async function runSpeechStep(
         })
         // Gemini used to be excluded here, so its failures reached the user
         // as nothing at all — the stage finished "with gaps" and the reason
-        // lived only in the debug log. That is how issue #846's reporter ended
-        // up unable to say more than "an Other block reason". Every provider
-        // reports the same way now; the parsed Gemini reason rides along in
-        // `msg`.
-        progress.emit({
-          type: "step-error",
-          step: "tts",
-          error: `${item.textId} failed: ${msg}`,
-        })
+        // lived only in the debug log. Every provider now reports through the
+        // same helper as page-batched failures.
+        emitTtsFailure(item.textId, msg)
       }
 
       completedItems++

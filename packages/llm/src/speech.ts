@@ -697,7 +697,13 @@ export function createGeminiTTSSynthesizer(
       let payload = await synthesizeInput(options.input)
       let audioData = extractGeminiAudioData(payload)
 
-      if (!audioData) {
+      // A low Gemini temperature is a known deterministic no-audio condition.
+      // Do not spend a second request on the short-text punctuation workaround
+      // in that case: changing punctuation cannot make this setting usable.
+      const canRetryShortText =
+        options.temperature === undefined ||
+        options.temperature >= GEMINI_TTS_MIN_USABLE_TEMPERATURE
+      if (!audioData && canRetryShortText) {
         const retryInput = buildGeminiShortTextRetryInput(options.input)
         if (retryInput) {
           payload = await synthesizeInput(retryInput)
