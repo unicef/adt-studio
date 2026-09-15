@@ -263,6 +263,32 @@ export function StoryboardIndex({
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
+      {/* Data the server could not read leaves the book in an order nobody
+          chose, and every packaged bundle follows it. It belongs next to the
+          order itself — the alternative is finding it in the output. */}
+      {readingOrder.unreadable.length > 0 && (
+        <div
+          role="alert"
+          className="shrink-0 flex gap-1.5 px-2 py-1.5 border-b border-amber-300 bg-amber-50 text-[10px] leading-snug text-amber-900"
+        >
+          <AlertTriangle className="h-3 w-3 shrink-0 mt-px" />
+          <span>
+            <Trans>
+              This book's pages may not be in the right order: the saved data
+              below could not be read and was ignored.
+            </Trans>
+            {/* Each entity on its own line: these are ids to look up, not prose,
+                and a separator between them would be an untranslatable string
+                pretending to be one. */}
+            <span className="mt-0.5 flex flex-col font-mono">
+              {readingOrder.unreadable.map((row) => {
+                const entityId = `${row.node}/${row.itemId} v${String(row.version)}`
+                return <span key={entityId}>{entityId}</span>
+              })}
+            </span>
+          </span>
+        </div>
+      )}
       <div className="shrink-0 flex items-center justify-between gap-2 px-2 py-1.5 border-b">
         <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
           <Trans>{String(items.length)} pages</Trans>

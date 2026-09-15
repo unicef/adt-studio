@@ -432,4 +432,101 @@ describe("reading-order resolver", () => {
       storage.close()
     }
   })
+
+  /**
+   * Stored data that will not parse — corrupt, hand-edited, or written by a
+   * newer schema — used to be swallowed. The resolver carried on with the
+   * source-derived order, or with a page's sections missing, and said nothing:
+   * the book simply came out in a different sequence than the user left it in,
+   * and the packaged bundle followed suit.
+   */
+  describe("stored data it cannot read", () => {
+    it("reports nothing unreadable for a healthy book", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        expect(resolveReadingOrder(storage).unreadable).toEqual([])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("does not call a book with no stored order unreadable", () => {
+      // Never reordered is the ordinary case, not a fault: there is no stored
+      // row to fail to read.
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        const resolved = resolveReadingOrder(storage)
+        expect(resolved.fromStoredOrder).toBe(false)
+        expect(resolved.unreadable).toEqual([])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("reports a stored order it cannot read, and does not pass it off as the user's", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+          schemaVersion: 99,
+          items: [{ kind: "section" }],
+        } as never)
+
+        const resolved = resolveReadingOrder(storage)
+
+        expect(resolved.unreadable).toEqual([
+          { node: READING_ORDER_NODE, itemId: READING_ORDER_ITEM_ID, version: 1 },
+        ])
+        // Still falls back to the source order — there is nothing else to show
+        // — but no longer claims the sequence is the one the user saved.
+        expect(resolved.fromStoredOrder).toBe(false)
+        expect(resolved.items.map((i) => i.id)).toEqual([
+          "pg001_sec001",
+          "pg001_sec002",
+          "pg002_sec001",
+          "pg002_sec002",
+        ])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("reports a rendering it cannot read, rather than dropping the page in silence", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        storage.putNodeData("web-rendering", "pg001", { sections: "not-an-array" } as never)
+
+        const resolved = resolveReadingOrder(storage)
+
+        expect(resolved.unreadable).toEqual([
+          { node: "web-rendering", itemId: "pg001", version: 2 },
+        ])
+        // pg001's sections keep their slots but ship nothing, exactly as an
+        // unrendered page does — the difference is that this is now said out loud.
+        expect(resolved.items.map((i) => i.id)).toEqual(["pg002_sec001", "pg002_sec002"])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("reports a sectioning tree it cannot read", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        storage.putNodeData("page-sectioning", "pg002", { sections: 42 } as never)
+
+        const resolved = resolveReadingOrder(storage)
+
+        expect(resolved.unreadable).toEqual([
+          { node: "page-sectioning", itemId: "pg002", version: 2 },
+        ])
+        expect(resolved.items.map((i) => i.id)).toEqual(["pg001_sec001", "pg001_sec002"])
+      } finally {
+        storage.close()
+      }
+    })
+  })
 })

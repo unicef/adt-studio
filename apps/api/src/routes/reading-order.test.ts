@@ -81,6 +81,7 @@ async function getOrder() {
     reconciled: boolean
     added: string[]
     dropped: string[]
+    unreadable: Array<{ node: string; itemId: string; version: number }>
     items: Array<{ id: string; position: number; href: string }>
   }
 }
@@ -155,6 +156,34 @@ describe("GET /api/books/:label/reading-order", () => {
     // Pruning is not a reading-order change — the id keeps its slot.
     expect(body.reconciled).toBe(false)
     expect(body.dropped).toEqual([])
+  })
+
+  it("reports nothing unreadable for a healthy book", async () => {
+    expect((await getOrder()).unreadable).toEqual([])
+  })
+
+  it("says so when a saved order cannot be read, instead of quietly ignoring it", async () => {
+    // A corrupt or future-schema row leaves the book in source order. That is
+    // the only thing it *can* do, but doing it in silence means the user's
+    // arrangement stops being applied — to the preview and to every packaged
+    // bundle — with nothing anywhere to say why.
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+        schemaVersion: 99,
+        items: [{ kind: "section" }],
+      } as never)
+    } finally {
+      storage.close()
+    }
+
+    const body = await getOrder()
+
+    expect(body.unreadable).toEqual([
+      { node: READING_ORDER_NODE, itemId: READING_ORDER_ITEM_ID, version: 1 },
+    ])
+    expect(body.fromStoredOrder).toBe(false)
+    expect(body.items.map((i) => i.id)).toEqual(ALL_IDS)
   })
 })
 

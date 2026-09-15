@@ -115,6 +115,7 @@ const READING_ORDER: ReadingOrderResponse = {
   reconciled: false,
   added: [],
   dropped: [],
+  unreadable: [],
   // pg003_sec001 is removed from the book: it holds a slot but is not rendered.
   items: [
     { kind: "section", id: "pg001_sec001", href: "pg001_sec001.html", position: 1, pageId: "pg001", pageNumber: 1 },
@@ -442,6 +443,29 @@ describe("StoryboardIndex reordering", () => {
     render(<StoryboardIndex bookLabel="book" />)
 
     expect(screen.getByText(/No sections yet/)).toBeTruthy()
+  })
+
+  // Data the server could not read leaves the book in an order nobody chose.
+  // It has to be visible where the order is: the alternative is discovering it
+  // in the packaged bundle, or not at all.
+  it("warns when the server could not read the saved order", () => {
+    readingOrderData = {
+      ...READING_ORDER,
+      fromStoredOrder: false,
+      unreadable: [{ node: "reading-order", itemId: "book", version: 3 }],
+    }
+    render(<StoryboardIndex bookLabel="book" />)
+
+    expect(screen.getByRole("alert").textContent).toContain("reading-order")
+    // And the list is still usable — the warning explains the order, it does
+    // not replace it.
+    expect(rows()).toHaveLength(3)
+  })
+
+  it("shows no warning for a healthy book", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    expect(screen.queryByRole("alert")).toBeNull()
   })
 
   it("drops a pending arrangement when a version is restored", () => {

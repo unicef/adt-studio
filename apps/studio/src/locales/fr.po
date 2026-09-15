@@ -10031,6 +10031,9 @@ msgstr "Ce livre n'est pas encore complet — les pages <0>{0}</0> n'ont pas ét
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ce livre est rendu en mise en page fixe, il conserve donc les polices d'origine du PDF. Les polices jointes guident tout de même l'IA pour les activités et les pages générées."
 
+msgid "This book's pages may not be in the right order: the saved data below could not be read and was ignored."
+msgstr "Les pages de ce livre ne sont peut-être pas dans le bon ordre : les données enregistrées ci-dessous n'ont pas pu être lues et ont été ignorées."
+
 msgid "This computer"
 msgstr "Cet ordinateur"
 

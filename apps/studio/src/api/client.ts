@@ -632,6 +632,13 @@ export interface ReadingOrderResponse {
   reconciled: boolean
   added: string[]
   dropped: string[]
+  /**
+   * Stored rows the server could not read and therefore did not apply. Each one
+   * means the book is not in the order it should be — a saved arrangement being
+   * ignored, or a page missing from the output — so it is surfaced rather than
+   * left to be discovered in the packaged bundle.
+   */
+  unreadable: Array<{ node: string; itemId: string; version: number }>
   /** Output sequence, excluding items not rendered (pruned). */
   items: ReadingOrderItem[]
   /** Full order including excluded items, each keeping its slot. */

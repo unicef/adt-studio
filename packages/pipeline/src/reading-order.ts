@@ -22,13 +22,14 @@ import type {
 } from "@adt/types"
 import {
   WebRenderingOutput as WebRenderingOutputSchema,
+  PageSectioningOutput as PageSectioningOutputSchema,
   ReadingOrderOutput as ReadingOrderOutputSchema,
   READING_ORDER_NODE,
   READING_ORDER_ITEM_ID,
   withResolvedQuizIds,
   resolveQuizId,
 } from "@adt/types"
-import { getRenderSectioning } from "./render-sectioning.js"
+import { getRenderSectioningRow } from "./render-sectioning.js"
 
 /** One output page, in reading order. */
 export type ResolvedItem =
@@ -75,6 +76,25 @@ export interface ResolvedReadingOrder {
   storedVersion: number | null
   /** How the stored order differed from the book's current contents. */
   reconcile: ReconcileResult
+  /**
+   * Stored rows that exist but would not parse, and were therefore not
+   * honoured. Empty for a healthy book.
+   *
+   * Each of these failures degrades silently on its own terms — an unreadable
+   * reading order leaves the book in source order, an unreadable sectioning or
+   * rendering row drops a page out of the output — and every one of them is
+   * indistinguishable, downstream, from the stage simply not having run. Saying
+   * so is the difference between a bundle that is wrong and a bundle that is
+   * wrong and nobody noticed.
+   */
+  unreadable: UnreadableNode[]
+}
+
+/** A stored row the resolver could not read. */
+export interface UnreadableNode {
+  node: string
+  itemId: string
+  version: number
 }
 
 export interface ResolveReadingOrderOptions {
@@ -143,14 +163,38 @@ interface PageContext {
   rendering: SectionRendering[]
 }
 
-function readPageContexts(storage: Storage): PageContext[] {
+function readPageContexts(storage: Storage, unreadable: UnreadableNode[]): PageContext[] {
   return storage.getPages().map((page) => {
-    const sectioning = getRenderSectioning(storage, page.pageId)
+    // Both reads below fall back to "this page has nothing", which is also what
+    // a page legitimately awaiting the stage looks like. The two are
+    // indistinguishable downstream, so a row that exists and will not parse is
+    // recorded here — otherwise corrupt data removes a page from the book and
+    // from its packaged bundle without anyone being told.
+    const sectioningRow = getRenderSectioningRow(storage, page.pageId)
+    const sectioning = sectioningRow
+      ? PageSectioningOutputSchema.safeParse(sectioningRow.data)
+      : null
+    if (sectioningRow && !sectioning?.success) {
+      unreadable.push({
+        node: sectioningRow.node,
+        itemId: page.pageId,
+        version: sectioningRow.version,
+      })
+    }
+
     const row = storage.getLatestNodeData("web-rendering", page.pageId)
     const parsed = row ? WebRenderingOutputSchema.safeParse(row.data) : null
+    if (row && !parsed?.success) {
+      unreadable.push({ node: "web-rendering", itemId: page.pageId, version: row.version })
+    }
+
     const rendering = parsed?.success ? [...parsed.data.sections] : []
     rendering.sort((a, b) => a.sectionIndex - b.sectionIndex)
-    return { pageId: page.pageId, sections: sectioning?.sections ?? [], rendering }
+    return {
+      pageId: page.pageId,
+      sections: sectioning?.success ? sectioning.data.sections : [],
+      rendering,
+    }
   })
 }
 
@@ -294,7 +338,8 @@ export function resolveReadingOrder(
   storage: Storage,
   options: ResolveReadingOrderOptions = {}
 ): ResolvedReadingOrder {
-  const pageContexts = readPageContexts(storage)
+  const unreadable: UnreadableNode[] = []
+  const pageContexts = readPageContexts(storage, unreadable)
 
   const quizRow = storage.getLatestNodeData("quiz-generation", "book")
   const quizzes =
@@ -313,6 +358,17 @@ export function resolveReadingOrder(
     ? null
     : storage.getLatestNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID)
   const stored = storedRow ? ReadingOrderOutputSchema.safeParse(storedRow.data) : null
+  // A stored order that will not parse is not the same as never having been
+  // reordered. Both fall back to the source-derived sequence, because there is
+  // nothing else to show, but only one of them is a fault — and it is the one
+  // where the user's saved arrangement is quietly not being applied.
+  if (storedRow && !stored?.success) {
+    unreadable.push({
+      node: READING_ORDER_NODE,
+      itemId: READING_ORDER_ITEM_ID,
+      version: storedRow.version,
+    })
+  }
   const reconcile = reconcileReadingOrder(stored?.success ? stored.data.items : null, defaults)
   const order = reconcile.items
 
@@ -373,5 +429,6 @@ export function resolveReadingOrder(
     fromStoredOrder: Boolean(stored?.success),
     storedVersion: storedRow?.version ?? null,
     reconcile,
+    unreadable,
   }
 }

@@ -70,9 +70,21 @@ export function createReadingOrderRoutes(booksDir: string): Hono {
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       const resolved = resolveReadingOrder(storage)
+      // Loud on the server as well as in the response: a book can be packaged
+      // from the CLI or by a scheduled run, where nobody is looking at the UI.
+      for (const row of resolved.unreadable) {
+        console.error(
+          `[reading-order] ${safeLabel}: ${row.node}/${row.itemId} v${String(row.version)} ` +
+          `could not be read and was ignored — the book is not in the order it should be`,
+        )
+      }
       return c.json({
         version: resolved.storedVersion,
         fromStoredOrder: resolved.fromStoredOrder,
+        // Stored rows that exist but would not parse. Never silently skipped:
+        // each one means the book is being assembled from something other than
+        // what it holds, and the UI has to be able to say so.
+        unreadable: resolved.unreadable,
         // True when the book changed under a stored order — the UI can say so
         // rather than silently showing a different sequence than last time.
         reconciled: resolved.reconcile.changed,

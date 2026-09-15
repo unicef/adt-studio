@@ -10031,6 +10031,9 @@ msgstr "Ky libër ende nuk është plotësuar — faqet <0>{0}</0> nuk janë bas
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ky libër shfaqet me strukturë fikse, kështu që ruan fontet origjinale të PDF-së. Fontet e bashkëngjitura gjithsesi udhëzojnë IA-në për aktivitetet dhe faqet e gjeneruara."
 
+msgid "This book's pages may not be in the right order: the saved data below could not be read and was ignored."
+msgstr "Faqet e këtij libri mund të mos jenë në rendin e duhur: të dhënat e ruajtura më poshtë nuk mund të lexoheshin dhe u shpërfillën."
+
 msgid "This computer"
 msgstr "Ky kompjuter"
 

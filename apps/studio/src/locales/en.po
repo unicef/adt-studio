@@ -10029,6 +10029,9 @@ msgstr "This book isn't fully assembled yet — pages <0>{0}</0> haven't been me
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 
+msgid "This book's pages may not be in the right order: the saved data below could not be read and was ignored."
+msgstr "This book's pages may not be in the right order: the saved data below could not be read and was ignored."
+
 msgid "This computer"
 msgstr "This computer"
 
