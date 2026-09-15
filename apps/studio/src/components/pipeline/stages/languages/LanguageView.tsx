@@ -7,6 +7,7 @@ import { DEFAULT_OPENAI_TTS_MODEL_ID, DEFAULT_ELEVENLABS_TTS_MODEL_ID, DEFAULT_E
 import { api, getAudioUrl, BASE_URL } from "@/api/client"
 import type { CoreTtsCatalogEntry, TextCatalogEntry, TranslationEvaluationStatusResponse, WordTimestamp, WordTimestampEntry } from "@/api/client"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
+import { useFloatingSave } from "@/components/pipeline/components/floating-save"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useBook } from "@/hooks/use-books"
@@ -21,7 +22,10 @@ import { StageEmptyState } from "../../components/StageEmptyState"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { normalizeLocale } from "@/lib/languages"
-import { languageUsesSpeechProvider, resolveSpeechProviderForLanguage } from "@/lib/speech-routing"
+import {
+  languageUsesSpeechProvider,
+  resolveSpeechProviderForLanguage,
+} from "@/lib/speech-routing"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -57,6 +61,15 @@ type ReviewFilter =
   | "acceptable"
   | "accepted-anyway";
 
+interface TimestampDraft {
+  textId: string;
+  language: string;
+  words: WordTimestamp[];
+}
+
+function timestampDraftKey(language: string, textId: string): string {
+  return `${language}:${textId}`;
+}
 type VoiceSlot = "primary" | "secondary";
 
 function TranslationReviewInline({
@@ -291,6 +304,7 @@ export function LanguageView({
   const { isTaskRunning, tasks } = useBookTasks(bookLabel);
   const {
     apiKey,
+    hasApiKey,
     hasSpeechProvider,
     hasTranscriber,
     isAvailable,
@@ -312,22 +326,7 @@ export function LanguageView({
   const stageDone = activeState === "done";
   const hasStageError = activeState === "error";
   const isRunning = activeState === "running" || activeState === "queued";
-  const canRunStage =
-    hasStructuredTextProvider && (!isSpeechStage || hasSpeechProvider);
   const geminiTtsAvailable = isAvailable("tts", "gemini:default");
-
-  const handleRun = useCallback(() => {
-    if (!canRunStage || isRunning) return;
-    // Speech depends on translate, so always start from translate when running
-    // speech — new catalog entries (e.g. from a glossary addition) need their
-    // translations populated before TTS can synthesize them. The per-item cache
-    // makes already-translated entries near-instant.
-    queueRun({
-      fromStage: "translate",
-      toStage: stageSlug as "translate" | "speech",
-      apiKey,
-    });
-  }, [canRunStage, isRunning, apiKey, queueRun, stageSlug]);
 
   const stageMissing = useStageMissingCounts(bookLabel);
   const missingForCurrentStage = isSpeechStage
@@ -387,6 +386,38 @@ export function LanguageView({
     isTranslationEvaluationEnabled(merged?.translation_evaluation);
   const wordHighlightingEnabled =
     speechConfigRecord?.word_highlighting === true;
+  const canRunStage = isSpeechStage
+    ? hasSpeechProvider && (!wordHighlightingEnabled || hasApiKey)
+    : hasStructuredTextProvider;
+  const handleRun = useCallback(() => {
+    if (!canRunStage || isRunning) return;
+    // Speech depends on translate, so always start from translate when running
+    // speech — new catalog entries (e.g. from a glossary addition) need their
+    // translations populated before TTS can synthesize them. The per-item cache
+    // makes already-translated entries near-instant. The exception is a
+    // recovered bundle: it already has its translated catalog and cannot safely
+    // rebuild Translate without the original Storyboard entities, and so is a
+    // book with no structured-text provider to rebuild it with.
+    const fromStage =
+      isSpeechStage &&
+      (!hasStructuredTextProvider || book?.workingSource === "imported-adt")
+        ? "speech"
+        : "translate";
+    queueRun({
+      fromStage,
+      toStage: stageSlug as "translate" | "speech",
+      apiKey,
+    });
+  }, [
+    apiKey,
+    canRunStage,
+    book?.workingSource,
+    hasStructuredTextProvider,
+    isRunning,
+    isSpeechStage,
+    queueRun,
+    stageSlug,
+  ]);
   const configExcludedTextIds = useMemo(
     () =>
       Array.isArray(speechConfigRecord?.excluded_text_ids)
@@ -433,6 +464,10 @@ export function LanguageView({
   const hasExplicitOutputLanguages = outputLanguages.length > 0;
 
   const [selectedLang, setSelectedLang] = useState<string | null>(null);
+  const [timestampDrafts, setTimestampDrafts] = useState<
+    Record<string, TimestampDraft>
+  >({});
+  const [savingTimestampDrafts, setSavingTimestampDrafts] = useState(false);
   const [selectedVoiceSlot, setSelectedVoiceSlot] = useState<VoiceSlot>("primary");
   const [categoryFilter, setCategoryFilter] = useState<CatalogCategory>("all");
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
@@ -1400,18 +1435,92 @@ export function LanguageView({
   });
 
   const handleSaveTimestamps = useCallback(
-    (textId: string, words: WordTimestamp[], duration: number) => {
-      if (!audioLang) return;
-      saveTimestampsMutation.mutate({
+    async (
+      textId: string,
+      language: string,
+      words: WordTimestamp[],
+      duration: number,
+    ) => {
+      await saveTimestampsMutation.mutateAsync({
         textId,
-        language: audioLang,
+        language,
         voiceSlot: selectedVoiceSlot,
         words,
         duration,
       });
+      const key = timestampDraftKey(language, textId);
+      setTimestampDrafts((current) => {
+        if (current[key]?.words !== words) return current;
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
     },
-    [audioLang, saveTimestampsMutation, selectedVoiceSlot],
+    [saveTimestampsMutation, selectedVoiceSlot],
   );
+
+  const updateTimestampDraft = useCallback(
+    (textId: string, language: string, words: WordTimestamp[] | null) => {
+      const key = timestampDraftKey(language, textId);
+      setTimestampDrafts((current) => {
+        if (words === null) {
+          if (!(key in current)) return current;
+          const next = { ...current };
+          delete next[key];
+          return next;
+        }
+        return {
+          ...current,
+          [key]: { textId, language, words },
+        };
+      });
+    },
+    [],
+  );
+
+  const saveAllTimestampDrafts = useCallback(async () => {
+    const drafts = Object.values(timestampDrafts);
+    if (drafts.length === 0) return;
+
+    setSavingTimestampDrafts(true);
+    try {
+      await Promise.all(
+        drafts.map((draft) =>
+          api.saveWordTimestamps(bookLabel, draft.language, draft.textId, {
+            words: draft.words,
+            duration: draft.words.reduce(
+              (max, word) => Math.max(max, word.end),
+              0,
+            ),
+          }),
+        ),
+      );
+      setTimestampDrafts((current) => {
+        const next = { ...current };
+        for (const draft of drafts) {
+          const key = timestampDraftKey(draft.language, draft.textId);
+          if (next[key]?.words === draft.words) delete next[key];
+        }
+        return next;
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["books", bookLabel, "tts-timestamps"],
+      });
+    } finally {
+      setSavingTimestampDrafts(false);
+    }
+  }, [bookLabel, queryClient, timestampDrafts]);
+
+  useFloatingSave({
+    id: `speech-timestamp-drafts:${bookLabel}`,
+    dirty: Object.keys(timestampDrafts).length > 0,
+    saving: savingTimestampDrafts || saveTimestampsMutation.isPending,
+    stage: "speech",
+    label: <span>{t`Speech timestamps`}</span>,
+    onSave: saveAllTimestampDrafts,
+    onSaveStay: saveAllTimestampDrafts,
+    onDiscard: () => setTimestampDrafts({}),
+  });
 
   const handleTranscribe = useCallback(
     (textId: string) => {
@@ -1635,19 +1744,12 @@ export function LanguageView({
                   : hasReviewResults
                     ? t`Reviewed`
                     : t`Review`}
-          </button>
-        )}
+        </button>
+      )}
       <div className="w-px h-4 bg-white/20" />
       <button
         type="button"
-        onClick={() => {
-          if (!canRunStage || isRunning) return;
-          queueRun({
-            fromStage: "translate",
-            toStage: stageSlug as "translate" | "speech",
-            apiKey,
-          });
-        }}
+        onClick={handleRun}
         disabled={!canRunStage || isRunning}
         title={isSpeechStage ? t`Re-run speech` : t`Re-run translation`}
         className="text-white/60 hover:text-white transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-default"
@@ -2530,7 +2632,31 @@ export function LanguageView({
                                   else setPlayingEntryId(entry.id);
                                 }}
                                 onSaveTimestamps={(words, dur) =>
-                                  handleSaveTimestamps(entry.id, words, dur)
+                                  audioLang
+                                    ? handleSaveTimestamps(
+                                        entry.id,
+                                        audioLang,
+                                        words,
+                                        dur,
+                                      )
+                                    : Promise.resolve()
+                                }
+                                timestampDraftWords={
+                                  audioLang
+                                    ? timestampDrafts[
+                                        timestampDraftKey(audioLang, entry.id)
+                                      ]?.words
+                                    : undefined
+                                }
+                                onTimestampDraftChange={
+                                  audioLang
+                                    ? (words) =>
+                                        updateTimestampDraft(
+                                          entry.id,
+                                          audioLang,
+                                          words,
+                                        )
+                                    : undefined
                                 }
                                 isSavingTimestamps={
                                   saveTimestampsMutation.isPending &&
@@ -2777,7 +2903,34 @@ export function LanguageView({
                                       else setPlayingEntryId(entry.id);
                                     }}
                                     onSaveTimestamps={(words, dur) =>
-                                      handleSaveTimestamps(entry.id, words, dur)
+                                      audioLang
+                                        ? handleSaveTimestamps(
+                                            entry.id,
+                                            audioLang,
+                                            words,
+                                            dur,
+                                          )
+                                        : Promise.resolve()
+                                    }
+                                    timestampDraftWords={
+                                      audioLang
+                                        ? timestampDrafts[
+                                            timestampDraftKey(
+                                              audioLang,
+                                              entry.id,
+                                            )
+                                          ]?.words
+                                        : undefined
+                                    }
+                                    onTimestampDraftChange={
+                                      audioLang
+                                        ? (words) =>
+                                            updateTimestampDraft(
+                                              entry.id,
+                                              audioLang,
+                                              words,
+                                            )
+                                        : undefined
                                     }
                                     isSavingTimestamps={
                                       saveTimestampsMutation.isPending &&
@@ -3144,27 +3297,29 @@ function WordTimestampViewer({
   timestamps,
   onSave,
   isSaving,
+  draftWords,
+  onDraftWordsChange,
   columns = 2,
 }: {
   timestamps: WordTimestampEntry;
-  onSave?: (words: WordTimestamp[], duration: number) => void;
+  onSave?: (words: WordTimestamp[], duration: number) => void | Promise<void>;
   isSaving?: boolean;
+  draftWords?: WordTimestamp[];
+  onDraftWordsChange: (words: WordTimestamp[] | null) => void;
   columns?: number;
 }) {
   const { t } = useLingui();
   const [expanded, setExpanded] = useState(false);
-  const [editWords, setEditWords] = useState<WordTimestamp[] | null>(null);
 
-  const words = editWords ?? timestamps.words;
-  const dirty = editWords != null;
+  const words = draftWords ?? timestamps.words;
+  const dirty = draftWords != null;
 
   const handleExpand = () => {
     setExpanded(!expanded);
-    setEditWords(null);
   };
 
   const updateWord = (index: number, field: "start" | "end", value: number) => {
-    const base = editWords ?? [...timestamps.words];
+    const base = draftWords ?? [...timestamps.words];
     const current = base[index];
     // Clamp to keep boundaries non-overlapping: start ≥ prev.end and ≤ own end;
     // end ≥ own start and ≤ next.start. First word's lower bound is 0; last
@@ -3183,14 +3338,13 @@ function WordTimestampViewer({
     const updated = base.map((w, i) =>
       i === index ? { ...w, [field]: clamped } : w,
     );
-    setEditWords(updated);
+    onDraftWordsChange(updated);
   };
 
-  const handleSave = () => {
-    if (!editWords || !onSave) return;
-    const maxEnd = editWords.reduce((max, w) => Math.max(max, w.end), 0);
-    onSave(editWords, maxEnd);
-    setEditWords(null);
+  const handleSave = async () => {
+    if (!draftWords || !onSave) return;
+    const maxEnd = draftWords.reduce((max, w) => Math.max(max, w.end), 0);
+    await onSave(draftWords, maxEnd);
   };
 
   // Split words into column chunks for multi-column layout
@@ -3285,7 +3439,7 @@ function WordTimestampViewer({
             <div className="flex items-center justify-end gap-1.5 px-2 py-1.5 border-t bg-muted/30">
               <button
                 type="button"
-                onClick={() => setEditWords(null)}
+                onClick={() => onDraftWordsChange(null)}
                 className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               >
                 <X className="h-3 w-3" />
@@ -3293,7 +3447,7 @@ function WordTimestampViewer({
               </button>
               <button
                 type="button"
-                onClick={handleSave}
+                onClick={() => { void handleSave().catch(() => undefined); }}
                 disabled={isSaving}
                 className="flex items-center gap-1 text-[10px] font-medium text-pink-600 hover:text-pink-700 transition-colors cursor-pointer disabled:opacity-40"
               >
@@ -3370,6 +3524,8 @@ function AudioAction({
   onTimeUpdate,
   onPlayingChange,
   onSaveTimestamps,
+  timestampDraftWords,
+  onTimestampDraftChange,
   isSavingTimestamps,
   timestampColumns = 2,
 }: {
@@ -3390,7 +3546,9 @@ function AudioAction({
   hasTranscriber?: boolean;
   onTimeUpdate?: (time: number) => void;
   onPlayingChange?: (playing: boolean) => void;
-  onSaveTimestamps?: (words: WordTimestamp[], duration: number) => void;
+  onSaveTimestamps?: (words: WordTimestamp[], duration: number) => void | Promise<void>;
+  timestampDraftWords?: WordTimestamp[];
+  onTimestampDraftChange?: (words: WordTimestamp[] | null) => void;
   isSavingTimestamps?: boolean;
   timestampColumns?: number;
 }) {
@@ -3452,9 +3610,11 @@ function AudioAction({
           onTimeUpdate={onTimeUpdate}
           onPlayingChange={onPlayingChange}
         />
-        {timestamps ? (
+        {timestamps && onTimestampDraftChange ? (
           <WordTimestampViewer
             timestamps={timestamps}
+            draftWords={timestampDraftWords}
+            onDraftWordsChange={onTimestampDraftChange}
             onSave={
               onSaveTimestamps
                 ? (words, duration) => onSaveTimestamps(words, duration)

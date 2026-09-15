@@ -66,7 +66,8 @@ export function createMainWindow(startPath = "/"): BrowserWindow {
     mainWindow.webContents.send("window:fullscreen-change", false),
   );
 
-  const STUDIO_DEV_URL = "http://localhost:5173";
+  // Override for parallel dev workspaces where another instance holds :5173.
+  const STUDIO_DEV_URL = process.env.ADT_STUDIO_DEV_URL ?? "http://localhost:5173";
 
   if (is.dev && process.env.NODE_ENV === "development") {
     mainWindow.loadURL(`${STUDIO_DEV_URL}${normalizedStartPath}`);

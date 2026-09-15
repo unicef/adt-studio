@@ -1,363 +1,197 @@
-# {{ title }} — ADT Bundle Reference
+<!-- adt-studio-agent-guide: {{ agentGuideVersion }} -->
+# Editing {{ title }}
 
-This document describes the structure of this Accessible Digital Textbook (ADT) bundle. Use it to orient yourself when doing post-processing.
+This is an exported Accessible Digital Textbook (ADT), not an ADT Studio project. You may edit its page HTML, then re-import the bundle into ADT Studio to regenerate Speech and other supported features.
 
-## About This Book
+## Round-trip compatibility
 
-**{{ title }}**{% if summary %} — {{ summary }}{% endif %}
+This bundle declares ADT Studio editing contract version `{{ editingContractVersion }}`. If the user may re-import it, the rules in this section are mandatory.
 
-- **Source language**: `{{ language }}`
-- **Available languages in this bundle**: {% for lang in outputLanguages %}`{{ lang }}`{% unless forloop.last %}, {% endunless %}{% endfor %}
-- **Total pages**: {{ totalPages }}{% if hasQuiz %}
-- **Quizzes**: yes{% endif %}{% if hasGlossary %}
-- **Glossary**: yes{% endif %}
+### Supported changes
 
-## Quick Overview
+- Edit visible text inside an existing element that has a `data-id`. Update the same key in `content/i18n/{{ language }}/texts.json` so the exported reader shows the edit before re-import.
+- Edit layout with existing Tailwind utility classes or an element's inline `style` attribute.
+- Replace or add image files under `images/` and reference them with relative paths such as `images/example.png`.
+- Update an image's `alt` text while preserving its `data-id`.
+- Add, remove, or reorder page HTML when all page indexes described below are updated together.
+- Add or change activities and classify interactive content using the activity audit below.
+- Preview the book through its existing `index.html` and runtime files.
 
-An ADT bundle is a self-contained, offline-capable web app for reading a book. It has:
+### Non-negotiable invariants
 
-- One HTML file per page/section and per quiz
-- A localization system (`i18n`) for text, audio, and glossary — keyed by stable IDs
-- A `pages.json` manifest that defines reading order
-- A shared `assets/` directory with JS runtime, fonts, and UI resources
+- Preserve existing `data-id` values. New editable elements need new book-wide unique `data-id` values.
+- Every page HTML file must stay at the bundle root and contain exactly one `#content` root and one canonical `section[data-section-id]` matching `content/pages.json`.
+- Existing page filenames and section IDs are stable identities. Do not rename them; create new identities for new pages.
+- Do not add custom stylesheet files or `<link rel="stylesheet">` tags.
+- Do not add custom script files or `<script src="...">` tags.
+- Do not put page images in `assets/`, a custom folder, or a remote URL. Page media belongs in `images/`.
+- Do not edit compiled runtime files under `assets/` or `content/tailwind_output.css`.
+- Do not change `manifest.json` fields outside `editingContract.pageOrder`, `editingContract.pageDataIds`, `editingContract.activities`, and `editingContract.nonActivities`.
+- Never change the editing contract version or the `frozen` baseline fields.
 
-The `adt/` subdirectory is the self-contained web app. Other top-level files (`.db`, `.pdf`, `images/`, `audio/`, `.cache/`) are pipeline artifacts and not part of the reader.
+If a requested change requires breaking one of these rules, tell the user that the result will no longer be re-importable into ADT Studio and ask before proceeding.
 
-## Directory Structure
+### Adding, removing, or reordering pages
 
-```
-{{ label }}/
-├── adt/                              # THE WEB APP
-│   ├── index.html                    # Redirects to first page
-│   ├── cover.png                     # Book cover image
-│   ├── pg001_sec001.html             # Page HTML files (one per section)
-│   ├── pg002_sec001.html
-│   ├── ...
-│   ├── qz001.html                    # Quiz HTML files
-│   ├── qz002.html
-│   ├── ...
-│   │
-│   ├── images/                       # Images referenced by page HTML
-│   │   ├── pg001_im001.png
-│   │   └── pg002_im002.png
-│   │
-│   ├── content/
-│   │   ├── pages.json                # Reading order manifest
-│   │   ├── toc.json                  # Table of contents
-│   │   ├── tailwind_output.css       # Compiled Tailwind CSS
-│   │   ├── navigation/
-│   │   │   └── nav.html              # Navigation sidebar fragment
-│   │   └── i18n/
-│   │       └── {lang}/               # One directory per language: {% for lang in outputLanguages %}{{ lang }}{% unless forloop.last %}, {% endunless %}{% endfor %}
-│   │           ├── texts.json        # All text content (textId → string)
-│   │           ├── speech_texts.json # Prepared read-aloud text (textId → string)
-│   │           ├── audios.json       # Audio mappings (textId → mp3 filename)
-│   │           ├── videos.json       # Video mappings (currently unused)
-│   │           ├── glossary.json     # Glossary entries (word → object)
-│   │           └── audio/            # MP3 files for read-aloud / TTS
-│   │
-│   └── assets/                       # Shared runtime (JS, fonts, icons)
-│       ├── config.json               # Book title, languages, feature flags
-│       ├── base.bundle.min.js        # Main JS runtime (do not edit)
-│       ├── interface.html            # Accessibility sidebar template
-│       ├── fonts/                    # Font files
-│       ├── libs/fontawesome/         # Icon library
-│       ├── modules/                  # JS feature modules (do not edit)
-│       ├── sounds/                   # UI feedback sounds
-│       └── interface_translations/
-│           └── {lang}/
-│               └── interface_translations.json
-│
-├── images/                           # Raw extracted images and page renders (pipeline artifact)
-│   ├── pg001_page.png                # Full-page render from PDF (useful for visual reference)
-│   ├── pg001_im001.png               # Extracted image from page
-│   └── ...
-├── audio/                            # Source audio files (pipeline artifact)
-│   └── {lang}/                       # TTS audio per language
-├── {{ label }}.db                    # SQLite database (pipeline state)
-├── {{ label }}.pdf                   # Original source PDF
-└── config.yaml                       # Pipeline configuration
-```
+Treat the following files as one transaction. A structural edit is valid only when they agree:
 
-## Page Images (Visual Reference)
+1. Create or remove the root-level page HTML file.
+2. Update `content/pages.json`. Each entry needs a unique `section_id`, unique root-level `href`, and the intended reading order.
+3. Mirror that exact order in `manifest.json` under `editingContract.pageOrder`, using `{ "sectionId", "href" }`.
+4. Set `editingContract.pageDataIds[href]` to every `data-id` in that page, in document order. Remove this key when removing a page.
+5. Add visible text from new `data-id` elements to `content/i18n/{{ language }}/texts.json`. Remove text only when its owning content is intentionally removed.
+6. Update `content/toc.json` when the navigation structure changes.
+7. Update the activity classifications described below for added or removed pages.
 
-The `images/` directory at the top level (outside `adt/`) contains raw renders of each original PDF page. These are useful as visual reference when editing content — you can see exactly what the original page looked like.
+New pages should use a new filename and section ID following the existing convention, for example `pg042_sec001.html` and `pg042_sec001`. Start with `data-section-type="content"` unless the whole page is an activity. Do not add the new page to `frozen.pageHtmlFingerprints`; frozen values describe the original Studio export.
 
-Page renders follow the pattern `pg{NNN}_page.png`:
+### Activity classification
 
-{% for img in pageImages %}- `images/{{ img }}`
+An activity asks the learner to provide, select, arrange, or manipulate an answer. Navigation links, language controls, media playback, accessibility controls, and ordinary content are not learning activities merely because they are interactive.
+
+Use these exact Studio activity types:
+
+| Type | Use when |
+| --- | --- |
+{% for activity in activityClassificationGuide %}| `{{ activity.type }}` | {{ activity.description }} |
 {% endfor %}
-## The Text ID System
 
-Every piece of displayable text has a unique, stable **text ID**. This ID is the key that connects everything together. The same ID can appear in four places:
+For an activity made outside Studio that does not fit a known type, use `activity_custom_<descriptive_slug>`, for example `activity_custom_crossword`. Custom activities are preserved during round-trip export, but Studio may not provide a dedicated editor or generator for them.
 
-1. As a `data-id` attribute on HTML elements in page files
-2. As a key in `content/i18n/{lang}/texts.json` (the string value)
-3. As a key in `content/i18n/{lang}/speech_texts.json` (the prepared read-aloud wording)
-4. As a key in `content/i18n/{lang}/audios.json` (the audio filename)
+#### Positive classification
 
-### ID Naming Conventions
-
-| Pattern | What it is | Example |
-|---|---|---|
-| `pg{NNN}_gp{NNN}_tx{NNN}` | Page body text | `{{ sampleBodyText.id }}` |
-| `pg{NNN}_im{NNN}` | Image alt text / description | `{{ sampleImageText.id }}` |{% if hasGlossary %}
-| `gl{NNN}` | Glossary word | `{{ sampleGlossary.id }}` |
-| `gl{NNN}_def` | Glossary definition | `{{ sampleGlossary.defId }}` |{% endif %}{% if hasQuiz %}
-| `qz{NNN}_que` | Quiz question | `{{ sampleQuiz.id }}_que` |
-| `qz{NNN}_o{N}` | Quiz option | `{{ sampleQuiz.options[0].id }}` |
-| `qz{NNN}_o{N}_exp` | Quiz option explanation | `{{ sampleQuiz.options[0].expId }}` |{% endif %}
-
-Page/group/text numbers are zero-padded to 3 digits. Quiz option numbers are single digits.
-
-## Key Files in Detail
-
-### `content/pages.json` — Reading Order
-
-An ordered array that defines the navigation spine. Every page section and quiz appears here in reading order. Here are the first entries from this book:
-
-```json
-[
-{% for page in firstPages %}  { "section_id": "{{ page.section_id }}", "href": "{{ page.href }}"{% if page.page_number %}, "page_number": {{ page.page_number }}{% endif %} }{% unless forloop.last %},{% endunless %}
-{% endfor %}]
-```
-
-- `section_id` — matches the `<meta name="title-id">` in the HTML file
-- `href` — relative path to the HTML file from the `adt/` root
-- `page_number` — original PDF page number (omitted for cover pages, quizzes, etc.)
-
-Quizzes are interleaved after their anchor content page.
-
-### `content/i18n/{lang}/texts.json` — All Text Content
-
-A flat `Record<textId, string>` containing every piece of text in the book. Example entries from this book:
-
-```json
-{
-  "{{ sampleBodyText.id }}": "{{ sampleBodyText.text }}",
-  "{{ sampleImageText.id }}": "{{ sampleImageText.text }}"{% if hasGlossary %},
-  "{{ sampleGlossary.id }}": "{{ sampleGlossary.word }}",
-  "{{ sampleGlossary.defId }}": "{{ sampleGlossary.definition }}"{% endif %}{% if hasQuiz %},
-  "{{ sampleQuiz.id }}_que": "{{ sampleQuiz.question }}",
-  "{{ sampleQuiz.options[0].id }}": "{{ sampleQuiz.options[0].text }}",
-  "{{ sampleQuiz.options[0].expId }}": "{{ sampleQuiz.options[0].expText }}"{% endif %}
-}
-```
-
-### `content/i18n/{lang}/speech_texts.json` — Prepared Read-Aloud Text
-
-`speech_texts.json` maps the same IDs to the exact wording synthesized for
-read-aloud. It may differ from `texts.json` after LaTeX conversion or
-language-specific normalization; missing IDs are intentionally withheld from TTS.
-
-### `content/i18n/{lang}/audios.json` — Audio Mappings
-
-Maps each text ID to its MP3 filename in the `audio/` subdirectory:
-
-```json
-{
-  "{{ sampleBodyText.id }}": "{{ sampleBodyText.id }}.mp3"{% if hasGlossary %},
-  "{{ sampleGlossary.id }}": "{{ sampleGlossary.id }}.mp3"{% endif %}{% if hasQuiz %},
-  "{{ sampleQuiz.id }}_que": "{{ sampleQuiz.id }}_que.mp3"{% endif %}
-}
-```
-
-Audio files live at `content/i18n/{lang}/audio/{filename}.mp3`.
-{% if hasGlossary %}
-### `content/i18n/{lang}/glossary.json` — Glossary
-
-Keyed by word (lowercase). Each entry has the word, a simple definition, inflected variations for matching, and decorative emoji. Example from this book:
-
-```json
-{
-  "{{ sampleGlossary.word }}": {
-    "word": "{{ sampleGlossary.word }}",
-    "definition": "{{ sampleGlossary.definition }}",
-    "variations": {{ sampleGlossary.variationsJson }},
-    "emoji": "{{ sampleGlossary.emoji }}"
-  }
-}
-```
-
-The runtime uses `variations` to match and highlight glossary words anywhere in the page text.
-{% endif %}
-### `assets/config.json` — Feature Flags and Languages
-
-Controls which features the reader UI enables. This book's config:
-
-```json
-{{ configJsonFormatted }}
-```
-
-## Page HTML Structure
-
-Each page is a standalone HTML file at the root of `adt/`. Key structural elements:
+Every activity must be represented by the page's canonical `<section>` element:
 
 ```html
-<!DOCTYPE html>
-<html lang="{{ language }}">
-<head>
-    <meta name="title-id" content="{{ samplePageId }}" />      <!-- section identity -->
-    <meta name="page-section-id" content="2" />           <!-- 1-based index in pages.json -->
-    <link href="./content/tailwind_output.css" rel="stylesheet">
-    <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
-    <link href="./assets/fonts.css" rel="stylesheet">
-</head>
-<body>
-    <div id="content" class="opacity-0">
-        <section role="article" data-section-type="text_and_single_image"
-                 data-section-id="{{ samplePageId }}">
-            <!-- Images use relative paths and carry data-id for alt text lookup -->
-            <img data-id="{{ sampleImageText.id }}" src="images/{{ sampleImageText.id }}.png" ...>
-
-            <!-- Text elements carry data-id for i18n and TTS -->
-            <span data-id="{{ sampleBodyText.id }}">{{ sampleBodyText.text }}</span>
-        </section>
-    </div>
-
-    <div id="interface-container"></div>
-    <div id="nav-container"></div>
-    <script src="./assets/base.bundle.min.js?v=1" type="module"></script>
-</body>
-</html>
-```
-
-Key conventions:
-
-- **`data-id` on text elements** links to `texts.json`, `speech_texts.json`, and `audios.json` — the runtime preserves display text from `texts.json` while using prepared wording for read-aloud
-- **`data-id` on images** links to image description text and audio
-- **Images** use relative paths: `images/{filename}`
-- **`page-section-id`** meta tag is the 1-based numeric index of this page's position in `pages.json` — the runtime uses this for navigation
-- **Content starts `opacity-0`** — the JS runtime fades it in after loading the interface
-{% if hasQuiz %}
-## Quiz HTML Structure
-
-Quiz pages use `role="activity"` and embed correct answers in multiple places:
-
-```html
-<section role="activity" data-section-type="activity_quiz" data-id="{{ sampleQuiz.id }}"
-    data-correct-answers='{{ sampleQuiz.correctAnswersJson }}'
-    data-option-explanations='{{ sampleQuiz.explanationsJson }}'>
-
-    <p data-id="{{ sampleQuiz.id }}_que">{{ sampleQuiz.question }}</p>
-
-    <label data-activity-item="{{ sampleQuiz.options[0].id }}"
-           data-explanation="{{ sampleQuiz.options[0].expText }}" data-explanation-id="{{ sampleQuiz.options[0].expId }}">
-        <input type="radio" name="{{ sampleQuiz.id }}" value="{{ sampleQuiz.options[0].id }}" class="sr-only" />
-        <span data-id="{{ sampleQuiz.options[0].id }}">{{ sampleQuiz.options[0].text }}</span>
-    </label>
-    <!-- more options... -->
+<section
+  data-section-id="pg004_sec002"
+  data-section-type="activity_multiple_choice"
+>
+  ...
 </section>
-
-<!-- Answers also embedded as JSON and in window.correctAnswers -->
-<script type="application/json" id="quiz-correct-answers">{{ sampleQuiz.correctAnswersJson }}</script>
-<script type="application/json" id="quiz-explanations">{{ sampleQuiz.explanationsJson }}</script>
-<script>window.correctAnswers = JSON.parse('{{ sampleQuiz.correctAnswersJson }}');</script>
 ```
-{% endif %}
-## How to Edit Text
 
-To change text content for a given language, update the display text independently from its read-aloud wording:
+- Remove `data-adt-non-activity` when classifying the section as an activity.
+- Preserve existing `data-section-type="activity_*"` values unless the learning mechanic itself changes.
+- A new custom activity must use `data-section-type="activity_custom_<descriptive_slug>"`, for example `activity_custom_crossword`.
+- Keep the existing `data-section-id`; it is the activity's stable identity.
+- Interactive controls must have accessible names and keyboard support. Feedback must be exposed through a status element with `role="status"` and `aria-live="polite"`.
+- Custom behavior must register through an inline call to `window.adtRegisterCustomActivity(section, { validate, reset })`. Do not add an external script file. ADT Studio preserves this documented registration script during export but never executes it inside the editor.
+- Do not disguise an activity as a normal content section. ADT Studio statically inspects these markers during re-import and asks the user to review unmarked interactive content.
+- Custom activities may be preserved during re-import, but ADT Studio can only regenerate activity types supported by its current pipeline.
 
-1. **`texts.json`** — Change the value in `content/i18n/{lang}/texts.json` for the text ID.
-2. **The HTML file** — The text also appears inline in the page HTML. Update the inner text of the element with the matching `data-id`. The runtime replaces this on load, but the inline text serves as fallback.
-3. **Speech text** (if applicable) — Update `speech_texts.json` with the exact wording to synthesize without changing display text.
-4. **Audio** (if applicable) — Regenerate the MP3 at `content/i18n/{lang}/audio/{textId}.mp3` and verify `audios.json` maps the text ID to the correct filename.
-{% if hasQuiz %}
-### Editing Quiz Text
+Add every activity to `editingContract.activities` with its stable identity and exact type:
 
-For quiz content, you must additionally update:
+```json
+{
+  "sectionId": "pg004_sec002",
+  "href": "pg004_sec002.html",
+  "type": "activity_multiple_choice"
+}
+```
 
-- The `data-explanation` attribute on the `<label>` element (inline explanation text)
-- The `data-correct-answers` attribute on the `<section>` element
-- The `data-option-explanations` attribute on the `<section>` element
-- The `<script type="application/json" id="quiz-correct-answers">` block
-- The `<script type="application/json" id="quiz-explanations">` block
-- The `window.correctAnswers` inline script
-{% endif %}{% if hasGlossary %}
-### Editing Glossary
+Remove the same section from `editingContract.nonActivities`. Never remove unrelated classifications.
 
-Update both:
+#### Negative classification
 
-- `content/i18n/{lang}/glossary.json` — the glossary entry for the word
-- `content/i18n/{lang}/texts.json` — the `gl{NNN}` and `gl{NNN}_def` entries
-{% endif %}
-## How to Add a New Page
+Interactive content that is intentionally not a learning activity must retain a non-activity `data-section-type` such as `content` and set an explicit marker on its canonical section:
 
-1. **Create the HTML file** — Copy an existing page as a template. Name it `pg{NNN}_sec001.html` following the sequential numbering pattern.
+```html
+<section
+  data-section-id="pg006_sec001"
+  data-section-type="content"
+  data-adt-non-activity="true"
+>
+  ...
+</section>
+```
 
-2. **Set the `title-id` meta tag** — `<meta name="title-id" content="pg012_sec001">`.
+When `manifest.json` has an `editingContract`, also list the page in `editingContract.nonActivities`:
 
-3. **Add text with `data-id` attributes** — Use the naming pattern `pg{NNN}_gp{NNN}_tx{NNN}` for each text element.
+```json
+{
+  "sectionId": "pg006_sec001",
+  "href": "pg006_sec001.html"
+}
+```
 
-4. **Add images** — Place image files in `images/` and reference them with relative paths. Give each `<img>` a `data-id` attribute (e.g. `pg012_im001`).
+Remove the same section from `editingContract.activities`. For a legacy bundle without an editing contract, the HTML marker is sufficient for ADT Studio to recognize the decision and carry it into the manifest on the next export. Ordinary static pages do not need a negative marker or declaration; use them only when controls, dragging, or activity-like data attributes would otherwise trigger review.
 
-5. **Update `pages.json`** — Insert the new entry at the correct position in reading order:
-   ```json
-   { "section_id": "pg012_sec001", "href": "pg012_sec001.html", "page_number": 11 }
-   ```
+#### AI activity audit
 
-6. **Renumber `page-section-id`** — Update the `<meta name="page-section-id">` in every HTML file that comes after the insertion point (this is a 1-based index into `pages.json`).
+When the user asks an AI to classify the book, the AI must:
 
-7. **Add text entries** — Add entries for every `data-id` in the new page to `content/i18n/{lang}/texts.json` for each language.
+1. Read every entry in `content/pages.json` and inspect its matching canonical section.
+2. Classify the page using the definitions above, based on the learning mechanic rather than filenames or styling.
+3. For an activity, set the exact `activity_*` section type, remove `data-adt-non-activity`, add or update its `editingContract.activities` entry when the editing contract exists, and remove any negative entry.
+4. For interactive non-activity content, use a non-activity section type, set `data-adt-non-activity="true"`, add its `editingContract.nonActivities` entry when the editing contract exists, and remove any positive entry.
+5. When an editing contract exists, ensure no section appears twice or in both arrays, and every classification has the same `sectionId` and `href` as `editingContract.pageOrder`.
+6. Leave uncertain cases unchanged and report them to the user instead of guessing.
 
-8. **Add audio entries** — Map each new text ID in `content/i18n/{lang}/audios.json` and place MP3 files in `content/i18n/{lang}/audio/`.
+Suggested user request:
 
-## How to Add a New Language
+> Audit every page for learning activities using the Activity classification section in AGENTS.md. Update each page section type and its `data-adt-non-activity` marker. When an editing contract exists, also update `editingContract.activities` and `editingContract.nonActivities`. Do not change the learning content. Report any uncertain pages.
 
-1. Create `content/i18n/{lang}/` with all required files:
-   - `texts.json` — translated strings for every text ID
-   - `audios.json` — audio filename mappings (can reuse the same naming pattern)
-   - `glossary.json` — translated glossary entries
-   - `videos.json` — `{}` (placeholder)
-   - `audio/` — MP3 files for each text ID
+## Canonical structure
 
-2. Add the language code to `languages.available` in `assets/config.json`.
+```text
+./
+├── manifest.json
+├── index.html
+├── pg*_sec*.html                 # page HTML stays at the bundle root
+├── images/                       # all page image files
+├── content/
+│   ├── pages.json                # reading order; preserve it
+│   ├── toc.json
+│   ├── tailwind_output.css       # generated; do not edit
+│   └── i18n/{language}/
+│       ├── texts.json
+│       ├── speech_texts.json     # exact prepared read-aloud wording
+│       ├── audios.json           # data-id to audio filename mapping
+│       └── audio/                # generated speech files
+└── assets/                       # ADT runtime; do not edit
+```
 
-3. Optionally add UI translations at `assets/interface_translations/{lang}/interface_translations.json`.
+The page shell must retain this relationship:
 
-## Where to Find Things
+```html
+<div id="content">
+  <section data-section-id="pg001_sec001" data-section-type="content">
+    <p data-id="pg001_gp001_tx001">Editable text</p>
+    <img data-id="pg001_im001" src="images/pg001_im001.png" alt="Description">
+  </section>
+</div>
+```
 
-| What you need | Where to look |
-|---|---|
-| Rendered page HTML | `adt/pg{NNN}_sec{NNN}.html` |{% if hasQuiz %}
-| Quiz HTML | `adt/qz{NNN}.html` |{% endif %}
-| Entry point | `adt/index.html` (redirects to first page) |
-| Page images | `adt/images/` |
-| All text content | `adt/content/i18n/{lang}/texts.json` |
-| Prepared read-aloud text | `adt/content/i18n/{lang}/speech_texts.json` |
-| Audio file mappings | `adt/content/i18n/{lang}/audios.json` |
-| Audio MP3 files | `adt/content/i18n/{lang}/audio/` |{% if hasGlossary %}
-| Glossary | `adt/content/i18n/{lang}/glossary.json` |{% endif %}
-| Reading order | `adt/content/pages.json` |
-| Table of contents | `adt/content/toc.json` |
-| Book config & features | `adt/assets/config.json` |
-| CSS styles | `adt/content/tailwind_output.css` |
-| JS runtime | `adt/assets/base.bundle.min.js` |
-| UI string translations | `adt/assets/interface_translations/{lang}/` |
-| Cover image | `adt/cover.png` |
-| Original PDF | `{{ label }}.pdf` |
-| Pipeline database | `{{ label }}.db` (SQLite) |
-| Raw page renders | `images/pg{NNN}_page.png` (visual reference for original pages) |
-| Raw extracted images | `images/pg{NNN}_im{NNN}.png` (pipeline artifact) |
-| Source TTS audio | `audio/{lang}/` (pipeline artifact) |
+`data-id` is the stable link between page HTML, translations, Speech audio, highlighting, and other generated features. Preserve it even when changing the element's text, classes, or inline styles.
 
-## Audio Naming Conventions
+### Speech and localization files
 
-| Pattern | What it is |
-|---|---|
-| `pg{NNN}_gp{NNN}_tx{NNN}.mp3` | Page body text read-aloud |
-| `pg{NNN}_im{NNN}.mp3` | Image description read-aloud |{% if hasGlossary %}
-| `gl{NNN}.mp3` | Glossary word pronunciation |
-| `gl{NNN}_def.mp3` | Glossary definition read-aloud |{% endif %}{% if hasQuiz %}
-| `qz{NNN}_que.mp3` | Quiz question read-aloud |
-| `qz{NNN}_o{N}.mp3` | Quiz option read-aloud |
-| `qz{NNN}_o{N}_exp.mp3` | Quiz explanation read-aloud |{% endif %}
+- `texts.json` controls displayed text for each language.
+- `speech_texts.json` contains the exact wording prepared for read-aloud and may intentionally differ from displayed text.
+- `audios.json` maps stable text IDs to files under the matching `audio/` directory.
+- When visible text changes, preserve the IDs and use ADT Studio after re-import to regenerate Speech. Do not fabricate replacement audio or timestamps unless the user explicitly requests it.
 
-## Important: What Not to Edit
+## Book details
 
-- **`assets/base.bundle.min.js`** and **`assets/modules/`** — compiled JS runtime; do not modify
-- **`assets/libs/`** — vendored third-party libraries (FontAwesome, MathJax)
-- **`assets/fonts/`** — font files
-- **`assets/sounds/`** — UI feedback sounds
-- **`content/tailwind_output.css`** — compiled from all HTML files; if you add new Tailwind classes to HTML, this file must be regenerated
+- Title: **{{ title }}**
+- Source language: `{{ language }}`
+- Languages in this bundle: {% for lang in outputLanguages %}`{{ lang }}`{% unless forloop.last %}, {% endunless %}{% endfor %}
+- Pages: {{ totalPages }}
+
+## Before handing the bundle back
+
+1. Confirm `content/pages.json` and `editingContract.pageOrder` contain the same pages in the same order.
+2. Confirm every page exists at the bundle root and has a matching `editingContract.pageDataIds` entry.
+3. Confirm each page has exactly one `#content` root and its matching `section[data-section-id]`.
+4. Search the whole book for duplicate or missing `data-id` values.
+5. Confirm every `activities` and `nonActivities` entry matches `pageOrder`, with no duplicate or conflicting classifications.
+6. Confirm page images resolve from `images/`.
+7. Confirm no custom or remote stylesheets and no custom external scripts were added.
+
+Do not create a zip or any other archive inside this folder. If you package the
+bundle, write the archive outside the folder — a stray archive left inside gets
+swept into the bundle when the folder is compressed and is flagged as an
+unexpected bundle entry on re-import. Leave packaging to the user unless asked.
+
+ADT Studio performs the same checks during import and will explain any incompatibility instead of trying to guess how a custom structure should map back into the pipeline.
