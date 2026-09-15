@@ -1,8 +1,20 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react"
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react"
 import type { ReadingOrderEntry } from "@/api/client"
 import { useFloatingSave } from "@/components/pipeline/components/floating-save"
 import { useStepPendingLabel } from "@/components/pipeline/components/VersionPicker"
-import { useReadingOrder, useSaveReadingOrder } from "./use-reading-order"
+import {
+  rebaseReadingOrderDraft,
+  useReadingOrder,
+  useSaveReadingOrder,
+} from "./use-reading-order"
 
 /**
  * The page order the user is arranging, before they commit it.
@@ -45,6 +57,20 @@ export function ReadingOrderDraftProvider({
   const [draft, setDraftState] = useState<ReadingOrderEntry[] | null>(null)
   const { data: readingOrder } = useReadingOrder(bookLabel)
   const saveOrder = useSaveReadingOrder(bookLabel)
+
+  /**
+   * Keep a pending arrangement seated on the book's current slots.
+   *
+   * Structural edits save immediately while a rearrangement waits, so a clone
+   * or a delete can change what the book holds mid-arrangement. Left alone the
+   * draft would name slots the book no longer has — a save the server refuses
+   * for good, with Discard the only way out.
+   */
+  useEffect(() => {
+    if (!draft || !readingOrder) return
+    const rebased = rebaseReadingOrderDraft(draft, readingOrder.order)
+    if (rebased) setDraftState(rebased)
+  }, [draft, readingOrder])
 
   const discard = useCallback(() => {
     setDraftState(null)

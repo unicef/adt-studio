@@ -5,7 +5,17 @@ import type { ReactNode } from "react"
 import type { ReadingOrderEntry } from "@/api/client"
 
 const saveMutate = vi.fn()
-const readingOrder = { version: 4, order: [{ kind: "section", id: "a" }] }
+/**
+ * Overridable per test. A draft is always a permutation of these slots, so the
+ * fixture holds both of the ids the surface below arranges.
+ */
+let readingOrder: { version: number; order: ReadingOrderEntry[] } = {
+  version: 4,
+  order: [
+    { kind: "section", id: "a" },
+    { kind: "section", id: "b" },
+  ],
+}
 
 vi.mock("@lingui/react/macro", () => ({
   useLingui: () => ({
@@ -17,10 +27,16 @@ vi.mock("@lingui/react/macro", () => ({
     },
   }),
 }))
-vi.mock("./use-reading-order", () => ({
-  useReadingOrder: () => ({ data: readingOrder }),
-  useSaveReadingOrder: () => ({ mutate: saveMutate, isPending: false }),
-}))
+vi.mock("./use-reading-order", async () => {
+  const actual = await vi.importActual<typeof import("./use-reading-order")>(
+    "./use-reading-order",
+  )
+  return {
+    ...actual,
+    useReadingOrder: () => ({ data: readingOrder }),
+    useSaveReadingOrder: () => ({ mutate: saveMutate, isPending: false }),
+  }
+})
 
 // The chip shown in the save bar comes from VersionPicker's per-step table, so
 // the pending order looks like every other pending change rather than like bare
@@ -73,6 +89,13 @@ afterEach(() => {
   cleanup()
   saveMutate.mockReset()
   entry = null
+  readingOrder = {
+    version: 4,
+    order: [
+      { kind: "section", id: "a" },
+      { kind: "section", id: "b" },
+    ],
+  }
 })
 
 describe("ReadingOrderDraftProvider", () => {
@@ -152,5 +175,66 @@ describe("ReadingOrderDraftProvider", () => {
     // saving a drag destroys their speech and translations — and it would.
     show()
     expect(entry?.resetStages).toEqual(["package"])
+  })
+
+  // A clone or a split saves straight away while the arrangement waits. The
+  // draft then named the book's old slots, and the save was refused for good
+  // ("missing 1 item(s)") — no drag could add the id, so Discard was the only
+  // way out and the arrangement was lost.
+  it("takes in a slot the book gained while the arrangement was pending", async () => {
+    const { rerender } = render(
+      <ReadingOrderDraftProvider bookLabel="book">
+        <Surface />
+      </ReadingOrderDraftProvider>,
+    )
+    fireEvent.click(screen.getByText("move"))
+    expect(screen.getByTestId("draft").textContent).toBe("b,a")
+
+    // A clone lands: the server now has a third slot, seated after `a`.
+    readingOrder = {
+      version: 5,
+      order: [
+        { kind: "section", id: "a" },
+        { kind: "section", id: "a2" },
+        { kind: "section", id: "b" },
+      ],
+    }
+    rerender(
+      <ReadingOrderDraftProvider bookLabel="book">
+        <Surface />
+      </ReadingOrderDraftProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("draft").textContent).toBe("b,a,a2")
+    })
+
+    // And the save it now sends is a permutation the server will accept.
+    ;(entry?.onSave as () => void)()
+    expect(saveMutate.mock.calls[0][0].items.map((e: ReadingOrderEntry) => e.id)).toEqual([
+      "b",
+      "a",
+      "a2",
+    ])
+  })
+
+  it("lets go of a slot the book lost while the arrangement was pending", async () => {
+    const { rerender } = render(
+      <ReadingOrderDraftProvider bookLabel="book">
+        <Surface />
+      </ReadingOrderDraftProvider>,
+    )
+    fireEvent.click(screen.getByText("move"))
+
+    readingOrder = { version: 5, order: [{ kind: "section", id: "a" }] }
+    rerender(
+      <ReadingOrderDraftProvider bookLabel="book">
+        <Surface />
+      </ReadingOrderDraftProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("draft").textContent).toBe("a")
+    })
   })
 })

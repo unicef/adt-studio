@@ -10,6 +10,49 @@ export function readingOrderKey(label: string) {
 }
 
 /**
+ * Re-seat a pending arrangement on the book's current slots, or null when it
+ * already sits on them.
+ *
+ * A structural edit — clone, split, merge, delete — writes to the server
+ * immediately, while a rearrangement is held as a pending change. So the book
+ * can gain or lose a slot while the draft is a list of the slots it *used to*
+ * have. The save is then refused for good, because the PUT demands an exact
+ * permutation, and no amount of further dragging can add the missing id: the
+ * only way out was Discard, which threw the arrangement away.
+ *
+ * The server's order is consulted only for which slots exist and for where to
+ * seat a new one — next to the slot it follows there. Everything the user
+ * arranged keeps the order they gave it.
+ */
+export function rebaseReadingOrderDraft(
+  draft: readonly ReadingOrderEntry[],
+  order: readonly ReadingOrderEntry[],
+): ReadingOrderEntry[] | null {
+  const live = new Set(order.map((entry) => entry.id))
+  const seated = draft.filter((entry) => live.has(entry.id))
+  const seatedIds = new Set(seated.map((entry) => entry.id))
+  if (seated.length === draft.length && seatedIds.size === live.size) return null
+
+  const next = [...seated]
+  order.forEach((entry, index) => {
+    if (seatedIds.has(entry.id)) return
+    // The nearest slot before it that the draft already holds. Anchoring to a
+    // neighbour rather than to a raw index keeps a run of new slots together
+    // and in the order the server gave them.
+    let at = 0
+    for (let i = index - 1; i >= 0; i--) {
+      const anchor = order[i]
+      if (!seatedIds.has(anchor.id)) continue
+      at = next.findIndex((seat) => seat.id === anchor.id) + 1
+      break
+    }
+    next.splice(at, 0, entry)
+    seatedIds.add(entry.id)
+  })
+  return next
+}
+
+/**
  * The running step that makes the server refuse a reorder, or null when
  * rearranging is allowed.
  *
