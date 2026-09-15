@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@import "./publish-anim-export.css";
+@import "./publish-anim-package.css";
+@import "./publish-anim-upload.css";
+@import "./publish-anim-register.css";
+
 /* Dark mode is driven by a `.dark` class (see the `.dark { … }` token block
  * below), not the OS. Without this, Tailwind v4 defaults the `dark:` variant to
  * `@media (prefers-color-scheme: dark)`, so `dark:` utilities would fire on a
