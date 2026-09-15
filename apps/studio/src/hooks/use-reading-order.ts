@@ -32,6 +32,17 @@ export function moveReadingOrderItem(
 }
 
 /**
+ * Position in `order` just after the last row a screen draws, or -1 when there
+ * is no such row to anchor to.
+ */
+function afterLastRow(order: readonly ReadingOrderEntry[], rowIds: readonly string[]): number {
+  const lastId = rowIds[rowIds.length - 1]
+  if (lastId == null) return -1
+  const index = order.findIndex((entry) => entry.id === lastId)
+  return index < 0 ? -1 : index + 1
+}
+
+/**
  * Move `id` by `delta` rows of a displayed list, expressed against the stored
  * order. Returns null when the move is a no-op.
  *
@@ -57,7 +68,14 @@ export function moveReadingOrderRow(
   // before being reinserted, so landing "after the next row" is index from + 2.
   const toRow = delta > 0 ? from + 2 : from - 1
   const anchorId = rowIds[Math.max(0, Math.min(toRow, rowIds.length))]
-  const target = anchorId != null ? order.findIndex((entry) => entry.id === anchorId) : order.length
+  // Stepping onto the last displayed row leaves no row to anchor to. Land just
+  // after that row rather than at the end of `order`: a slot trailing the last
+  // visible row — an end-of-book quiz, say — belongs after the row that moved,
+  // and the screen that made the move could not show it being jumped.
+  const target =
+    anchorId != null
+      ? order.findIndex((entry) => entry.id === anchorId)
+      : afterLastRow(order, rowIds)
   if (target < 0) return null
 
   const next = moveReadingOrderItem(order, id, target)

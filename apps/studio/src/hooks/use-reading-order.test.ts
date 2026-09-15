@@ -87,6 +87,19 @@ describe("moveReadingOrderRow", () => {
     expect(move("a hidden b", "a b", "b", -1)).toBe("b a hidden")
   })
 
+  // A step down onto the last displayed row has no row after it to anchor to.
+  // It must still land immediately after that row, not at the end of the stored
+  // order — a slot trailing the last visible row (an end-of-book quiz, say)
+  // belongs after the row that moved, and jumping it would reorder the book
+  // in a way the table that made the move cannot show.
+  it("does not overshoot slots trailing the last displayed row", () => {
+    expect(move("a b trailing", "a b", "a", 1)).toBe("b a trailing")
+  })
+
+  it("is a no-op stepping the last displayed row down over a trailing slot", () => {
+    expect(move("a b trailing", "a b", "b", 1)).toBeNull()
+  })
+
   it("keeps every slot exactly once, including the skipped ones", () => {
     const result = moveReadingOrderRow(order("a x b y c"), rows("a b c"), "a", 1)
     expect([...result!].map((e) => e.id).sort()).toEqual(["a", "b", "c", "x", "y"])
