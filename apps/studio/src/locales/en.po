@@ -5473,6 +5473,9 @@ msgstr "Loading text sizes…"
 msgid "Loading the book order…"
 msgstr "Loading the book order…"
 
+msgid "Loading the page order…"
+msgstr "Loading the page order…"
+
 msgid "Loading TTS normalization..."
 msgstr "Loading TTS normalization..."
 
@@ -9846,6 +9849,9 @@ msgstr "The Lost Forest"
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "The model detects bounding boxes so each visual element can be stored and laid out separately."
+
+msgid "The page order could not be loaded."
+msgstr "The page order could not be loaded."
 
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "The process plants use to turn sunlight, water, and carbon dioxide into food."

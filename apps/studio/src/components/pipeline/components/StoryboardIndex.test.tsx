@@ -137,6 +137,12 @@ vi.mock("@/hooks/use-pages", () => ({
  */
 let quizzesData: unknown = null
 let readingOrderData: ReadingOrderResponse = READING_ORDER
+/** Overridable per test, for the in-flight and failed cases. */
+let readingOrderState: {
+  data: ReadingOrderResponse | undefined
+  isLoading: boolean
+  isError: boolean
+} | null = null
 
 vi.mock("@/hooks/use-quizzes", () => ({ useQuizzes: () => ({ data: quizzesData }) }))
 vi.mock("@/hooks/use-reading-order", async () => {
@@ -145,7 +151,8 @@ vi.mock("@/hooks/use-reading-order", async () => {
   )
   return {
     ...actual,
-    useReadingOrder: () => ({ data: readingOrderData }),
+    useReadingOrder: () =>
+      readingOrderState ?? { data: readingOrderData, isLoading: false, isError: false },
     useResetReadingOrder: () => ({ mutate: resetMutate, isPending: false }),
   }
 })
@@ -248,6 +255,7 @@ afterEach(() => {
   pickerProps = {}
   quizzesData = null
   readingOrderData = READING_ORDER
+  readingOrderState = null
   vi.restoreAllMocks()
 })
 
@@ -411,6 +419,31 @@ describe("StoryboardIndex reordering", () => {
   // draft, not the server's answer — and the next Save would write it back
   // over the version just restored, so the reset would look like it did
   // nothing at all.
+  // The list is built from the reading order, so before that query lands there
+  // are no rows to show. Reporting that as "no sections" told a user looking at
+  // a fully rendered book to go and run the stage that produced it.
+  it("does not claim the book is empty while the reading order loads", () => {
+    readingOrderState = { data: undefined, isLoading: true, isError: false }
+    render(<StoryboardIndex bookLabel="book" />)
+
+    expect(screen.queryByText(/No sections yet/)).toBeNull()
+  })
+
+  it("says so when the reading order could not be loaded", () => {
+    readingOrderState = { data: undefined, isLoading: false, isError: true }
+    render(<StoryboardIndex bookLabel="book" />)
+
+    expect(screen.queryByText(/No sections yet/)).toBeNull()
+    expect(screen.getByText(/could not be loaded/)).toBeTruthy()
+  })
+
+  it("still reports a genuinely empty book", () => {
+    readingOrderData = { ...READING_ORDER, items: [], order: [] }
+    render(<StoryboardIndex bookLabel="book" />)
+
+    expect(screen.getByText(/No sections yet/)).toBeTruthy()
+  })
+
   it("drops a pending arrangement when a version is restored", () => {
     render(<StoryboardIndex bookLabel="book" />)
 

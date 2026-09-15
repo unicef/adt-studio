@@ -5475,6 +5475,9 @@ msgstr "Po ngarkohen madhësitë e tekstit…"
 msgid "Loading the book order…"
 msgstr "Po ngarkohet rendi i librit…"
 
+msgid "Loading the page order…"
+msgstr "Po ngarkohet rendi i faqeve…"
+
 msgid "Loading TTS normalization..."
 msgstr "Po ngarkohet normalizimi TTS..."
 
@@ -9848,6 +9851,9 @@ msgstr "Pylli i Humbur"
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të ruhet dhe të vendoset veçmas."
+
+msgid "The page order could not be loaded."
+msgstr "Rendi i faqeve nuk mund të ngarkohej."
 
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "Procesi që bimët përdorin për të kthyer dritën e diellit, ujin dhe dioksidin e karbonit në ushqim."

@@ -58,7 +58,11 @@ export function StoryboardIndex({
 }) {
   const { data: pages } = usePages(bookLabel)
   const { data: quizzesData } = useQuizzes(bookLabel)
-  const { data: readingOrder } = useReadingOrder(bookLabel)
+  const {
+    data: readingOrder,
+    isLoading: readingOrderLoading,
+    isError: readingOrderFailed,
+  } = useReadingOrder(bookLabel)
   // Moves are held as a pending change and committed from the shared save bar,
   // the same as every other edit in the app. The draft lives above this
   // component because the overview table can rearrange the same book.
@@ -229,6 +233,22 @@ export function StoryboardIndex({
     return (
       <div className="flex-1 overflow-y-auto px-3 py-4 text-xs text-muted-foreground text-center">
         <Trans>No pages extracted yet</Trans>
+      </div>
+    )
+  }
+
+  // The list is built from the reading order, so it is empty until that query
+  // lands — which is not the same as the book being empty. Saying "no sections"
+  // there told a user looking at a fully rendered book to run the stage that
+  // rendered it, and said it permanently if the request had failed.
+  if (!readingOrder) {
+    return (
+      <div className="flex-1 overflow-y-auto px-3 py-4 text-xs text-muted-foreground text-center">
+        {readingOrderFailed ? (
+          <Trans>The page order could not be loaded.</Trans>
+        ) : readingOrderLoading ? (
+          <Trans>Loading the page order…</Trans>
+        ) : null}
       </div>
     )
   }

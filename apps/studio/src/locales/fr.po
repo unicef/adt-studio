@@ -5475,6 +5475,9 @@ msgstr "Chargement des tailles de texte…"
 msgid "Loading the book order…"
 msgstr "Chargement de l'ordre du livre…"
 
+msgid "Loading the page order…"
+msgstr "Chargement de l'ordre des pages…"
+
 msgid "Loading TTS normalization..."
 msgstr "Chargement de la normalisation TTS..."
 
@@ -9848,6 +9851,9 @@ msgstr "La forêt perdue"
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Le modèle détecte les zones de délimitation afin que chaque élément visuel puisse être stocké et disposé séparément."
+
+msgid "The page order could not be loaded."
+msgstr "Impossible de charger l'ordre des pages."
 
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "Le processus que les plantes utilisent pour transformer la lumière du soleil, l'eau et le dioxyde de carbone en nourriture."
