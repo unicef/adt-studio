@@ -3,13 +3,13 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-15 12:41-0400\n"
+"POT-Creation-Date: \n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: \n"
 "X-Generator: @lingui/cli\n"
@@ -47,6 +47,10 @@ msgstr ".zip → ajouté tel quel"
 
 msgid "\"A landscape forged by fire.\""
 msgstr "\\\"Un paysage forgé par le feu.\\\""
+
+#. placeholder {0}: connection.latest_version
+msgid "({0} ready to install)"
+msgstr "({0} prêt à installer)"
 
 #. placeholder {0}: s.skipped
 msgid "(+{0} skipped)"
@@ -378,6 +382,9 @@ msgstr "il y a {0} s"
 msgid "{commentCount, plural, one {# comment to review} other {# comments to review}}"
 msgstr "{commentCount, plural, one {# commentaire à revoir} other {# commentaires à revoir}}"
 
+msgid "{completed} of {total}"
+msgstr "{completed} sur {total}"
+
 msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 msgstr "{confirmCount} {confirmCount, plural, one {double page possible détectée} other {doubles pages possibles détectées}}"
 
@@ -643,6 +650,12 @@ msgstr "Un terme du glossaire avec ce mot existe déjà."
 msgid "A language is required so downstream stages can localize the book."
 msgstr "Une langue est requise pour que les étapes en aval puissent localiser le livre."
 
+msgid "A last look before you publish your first book."
+msgstr "Un dernier regard avant de publier votre premier livre."
+
+msgid "A login is already open"
+msgstr "Une connexion est déjà ouverte"
+
 msgid "A long row of shelves filled with food in a big store."
 msgstr "Une longue rangée d'étagères remplies de nourriture dans un grand magasin."
 
@@ -651,6 +664,9 @@ msgstr "Une activité d'appariement où les élèves relient des éléments conn
 
 msgid "A multiple choice activity."
 msgstr "Une activité à choix multiple."
+
+msgid "A name in your Cloudflare account is already taken"
+msgstr "Un nom dans votre compte Cloudflare est déjà pris"
 
 msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
 msgstr "Une nouvelle section d'activité sera ajoutée à la page {anchorPageNumber} ({anchorPageId}). L'agent peut lire d'autres pages du livre pour reproduire leur mise en page."
@@ -787,6 +803,9 @@ msgstr "Accepte n'importe quelle réponse"
 msgid "Access code"
 msgstr "Code d'accès"
 
+msgid "Access was not granted"
+msgstr "Accès non accordé"
+
 msgid "Accessibility"
 msgstr "Accessibilité"
 
@@ -819,6 +838,12 @@ msgstr "Tailles accessibles"
 
 msgid "Accessible textbooks"
 msgstr "Manuels accessibles"
+
+msgid "Account"
+msgstr "Compte"
+
+msgid "Account Settings"
+msgstr "Paramètres du compte"
 
 msgid "Actions"
 msgstr "Actions"
@@ -1180,8 +1205,14 @@ msgstr "Langues supplémentaires"
 msgid "Additional terminology may be introduced in later sections. All terms are listed in the glossary appendix at the end of this document for quick reference."
 msgstr "Des termes supplémentaires pourront être introduits dans les sections ultérieures. Tous les termes sont répertoriés dans le glossaire en annexe à la fin de ce document pour référence rapide."
 
+#~ msgid "Address copied."
+#~ msgstr "Adresse copiée."
+
 msgid "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
 msgstr "Ajoute des pages de glossaire au livre. Les termes renvoient à leur entrée et chaque entrée renvoie au texte. Fonctionne dans tous les lecteurs."
+
+msgid "Adds the tables it needs. Anything already there is left alone."
+msgstr "Ajoute les tables nécessaires. Tout ce qui est déjà là est laissé tel quel."
 
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Ajoute des recommandations de Conception Universelle de l'Apprentissage (langage clair, alternative au glisser-déposer par clavier et clic, retour de correction via aria-live, pas de retour uniquement par la couleur). Désactivez pour comparer le résultat sans cette orientation."
@@ -1201,6 +1232,9 @@ msgstr "ADT Studio"
 
 msgid "ADT STUDIO"
 msgstr "ADT STUDIO"
+
+msgid "ADT Studio prepares your account automatically — about a minute."
+msgstr "ADT Studio prépare votre compte automatiquement — environ une minute."
 
 msgid "ADT Studio turns PDFs into accessible digital textbooks."
 msgstr "ADT Studio transforme les PDF en manuels numériques accessibles."
@@ -1369,6 +1403,9 @@ msgstr "Toutes les sections ont été supprimées"
 msgid "All set"
 msgstr "Tout est prêt"
 
+msgid "All set up"
+msgstr "Tout est prêt"
+
 msgid "All Severities"
 msgstr "Toutes les sévérités"
 
@@ -1378,11 +1415,20 @@ msgstr "Toutes les étapes"
 msgid "Allegory"
 msgstr "Allégorie"
 
+msgid "Allow"
+msgstr "Autoriser"
+
 msgid "Alphabetical"
 msgstr "Alphabétique"
 
 msgid "Already handed out"
 msgstr "Déjà distribuées"
+
+msgid "already there"
+msgstr "déjà là"
+
+msgid "Also delete the publishing service and every published book from my Cloudflare account"
+msgstr "Supprimer également le service de publication et chaque livre publié de mon compte Cloudflare"
 
 msgid "Among the Stars"
 msgstr "Parmi les étoiles"
@@ -1428,6 +1474,9 @@ msgstr "et bien d'autres blocs à travers tout le livre"
 
 msgid "and more sections across the page"
 msgstr "et plus de sections sur la page"
+
+msgid "Another program on this computer is already signing in to Cloudflare. Close it and try again."
+msgstr "Un autre programme sur cet ordinateur est déjà en train de se connecter à Cloudflare. Fermez-le et réessayez."
 
 msgid "Answer"
 msgstr "Réponse"
@@ -2229,6 +2278,9 @@ msgstr "Graphique / Diagramme"
 msgid "Check for updates"
 msgstr "Vérifier les mises à jour"
 
+msgid "Check that the Account ID belongs to the same Cloudflare account you created the token in. Nothing was created in your account."
+msgstr "Vérifiez que l'ID de compte appartient au même compte Cloudflare dans lequel vous avez créé le jeton. Rien n'a été créé dans votre compte."
+
 msgid "Checked"
 msgstr "Vérifié"
 
@@ -2244,11 +2296,23 @@ msgstr "Checking accessibilité"
 msgid "Checking connection…"
 msgstr "Vérification de la connexion…"
 
+msgid "Checking everything answers"
+msgstr "Vérification de toutes les réponses"
+
 msgid "Checking for updates…"
 msgstr "Vérification des mises à jour…"
 
 msgid "Checking the connection…"
 msgstr "Vérification de la connexion…"
+
+msgid "Checking your account"
+msgstr "Vérification de votre compte"
+
+msgid "Checking your publishing setup…"
+msgstr "Vérification de votre configuration de publication…"
+
+msgid "Checking your token"
+msgstr "Vérification de votre jeton"
 
 msgid "Checklist item"
 msgstr "Élément de liste de contrôle"
@@ -2276,6 +2340,9 @@ msgstr "Choisissez une image existante de ce projet"
 
 msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
 msgstr "Choisissez un modèle existant ou saisissez un nouvel id provider:model. La création de fichiers enregistre le modèle dans les paramètres globaux des prompts et copie le contenu actuel du prompt de base dans les versions propres au modèle qui manquent."
+
+msgid "Choose Cloudflare for hosting"
+msgstr "Choisissez Cloudflare pour l’hébergement"
 
 msgid "Choose features to include in this export"
 msgstr "Choisissez les fonctionnalités à inclure dans cette exportation"
@@ -2364,6 +2431,9 @@ msgstr "CLI non trouvé"
 msgid "Click a start page, then an end page to set the range."
 msgstr "Cliquez sur une page de début, puis sur une page de fin pour définir la plage."
 
+msgid "Click Allow"
+msgstr "Cliquez sur Autoriser"
+
 msgid "Click an image to select"
 msgstr "Cliquez sur une image pour la sélectionner"
 
@@ -2399,6 +2469,18 @@ msgstr "Fermer le panneau de modification"
 
 msgid "Close style editor"
 msgstr "Fermer l'éditeur de style"
+
+msgid "Cloudflare"
+msgstr "Cloudflare"
+
+msgid "CLOUDFLARE"
+msgstr "CLOUDFLARE"
+
+msgid "Cloudflare accounts"
+msgstr "Comptes Cloudflare"
+
+msgid "Cloudflare didn't recognise that Account ID"
+msgstr "Cloudflare n'a pas reconnu cet ID de compte"
 
 msgid "Clownfish, sea turtles, and parrotfish are just a few of the thousands of species that depend on reefs for food, shelter, and nursery grounds."
 msgstr "Les poissons-clowns, les tortues de mer et les poissons-perroquets ne sont que quelques-unes des milliers d'espèces qui dépendent des récifs pour se nourrir, s'abriter et se reproduire."
@@ -2538,8 +2620,20 @@ msgstr "Configuré sur le serveur"
 msgid "Confirm merge"
 msgstr "Confirmer la fusion"
 
+msgid "Connect a Cloudflare account to host finished books as private websites."
+msgstr "Connectez un compte Cloudflare pour héberger des livres terminés sous forme de sites web privés."
+
 msgid "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 msgstr "Connectez les moteurs qui exécutent le pipeline et narrent les livres. Les clés restent sur cette machine ; les fournisseurs CLI réutilisent la connexion déjà présente."
+
+msgid "Connect with Cloudflare"
+msgstr "Connecter avec Cloudflare"
+
+msgid "Connect your Cloudflare account"
+msgstr "Connectez votre compte Cloudflare"
+
+msgid "Connected"
+msgstr "Connecté"
 
 #. placeholder {0}: health.modelCount
 msgid "Connected — {0} models available."
@@ -2548,7 +2642,6 @@ msgstr "Connecté — {0} modèles disponibles."
 msgid "Connected — key saved"
 msgstr "Connecté — clé enregistrée"
 
-#. placeholder {0}: health.modelCount
 #~ msgid "Connected successfully — {0} models available."
 #~ msgstr "Connexion réussie — {0} modèles disponibles."
 
@@ -2557,6 +2650,12 @@ msgstr "Connecté avec succès."
 
 msgid "Connected through the login already present on this machine."
 msgstr "Connecté via la connexion déjà présente sur cette machine."
+
+msgid "Connected via Cloudflare login"
+msgstr "Connecté via la connexion Cloudflare"
+
+msgid "Connected with API token"
+msgstr "Connecté avec un jeton API"
 
 msgid "Connection not checked yet."
 msgstr "Connexion pas encore vérifiée."
@@ -2660,6 +2759,9 @@ msgstr "Copié"
 msgid "Copy"
 msgstr "Copier"
 
+#~ msgid "Copy address"
+#~ msgstr "Copier l'adresse"
+
 msgid "Copy command"
 msgstr "Copier la commande"
 
@@ -2722,6 +2824,9 @@ msgstr "Impossible d'appliquer les fusions — veuillez réessayer."
 msgid "Couldn't check for updates"
 msgstr "Impossible de rechercher des mises à jour"
 
+#~ msgid "Couldn't copy the address."
+#~ msgstr "Impossible de copier l'adresse."
+
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Impossible de charger l'aperçu du PDF. Les pages peuvent toujours être divisées à l'aide des commandes."
 
@@ -2764,6 +2869,9 @@ msgstr "Couverture"
 
 msgid "Covered"
 msgstr "Couvert"
+
+msgid "Create a free account first"
+msgstr "Créez d'abord un compte gratuit"
 
 msgid "Create a manual glossary entry that stays in the book even if AI glossary generation is rerun."
 msgstr "Créez une entrée de glossaire manuelle qui reste dans le livre même si la génération du glossaire par IA est relancée."
@@ -2812,6 +2920,12 @@ msgstr "Crée une archive ZIP du projet complet — base de données, PDF source
 
 msgid "Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again."
 msgstr "La création d’une nouvelle image de glossaire modifie l’ensemble des images du livre. Les étapes terminées ci-dessous seront effacées et devront être exécutées de nouveau."
+
+msgid "Creating the database"
+msgstr "Création de la base de données"
+
+msgid "Creating the storage space"
+msgstr "Création de l'espace de stockage"
 
 msgid "Creating..."
 msgstr "Création..."
@@ -2909,8 +3023,14 @@ msgstr "Section personnalisée {index}"
 msgid "Cut a region out of any page"
 msgstr "Découpez une région de n'importe quelle page"
 
+msgid "D1"
+msgstr "D1"
+
 msgid "Dark"
 msgstr "Sombre"
+
+msgid "dash.cloudflare.com"
+msgstr "dash.cloudflare.com"
 
 msgid "Date added"
 msgstr "Date d'ajout"
@@ -3113,6 +3233,9 @@ msgstr "Suppression…"
 msgid "Dense text, tables, glossaries. Best for technical material and documentation."
 msgstr "Texte dense, tableaux, glossaires. Idéal pour les documents techniques et la documentation."
 
+msgid "Deny"
+msgstr "Refuser"
+
 msgid "Describe the activity"
 msgstr "Décrivez l'activité"
 
@@ -3223,6 +3346,21 @@ msgstr "Abandonner et quitter"
 
 msgid "Discard unsaved prompt changes?"
 msgstr "Abandonner les modifications non enregistrées du prompt ?"
+
+msgid "Disconnect"
+msgstr "Déconnecter"
+
+msgid "Disconnect and delete everything"
+msgstr "Déconnecter et tout supprimer"
+
+msgid "Disconnect from Cloudflare?"
+msgstr "Se déconnecter de Cloudflare ?"
+
+msgid "Disconnected from Cloudflare."
+msgstr "Déconnecté de Cloudflare."
+
+msgid "Disconnected. Everything was deleted from your Cloudflare account."
+msgstr "Déconnecté. Tout a été supprimé de votre compte Cloudflare."
 
 msgid "Dismiss"
 msgstr "Ignorer"
@@ -3522,6 +3660,9 @@ msgstr "Les modifications vont à ce préfixe de variante Tailwind"
 msgid "Effort"
 msgstr "Effort"
 
+msgid "Eight small things get created in your account. Nothing is charged."
+msgstr "Huit petites choses sont créées dans votre compte. Rien n'est facturé."
+
 msgid "Element style editor"
 msgstr "Éditeur de style d'élément"
 
@@ -3724,6 +3865,15 @@ msgstr "Toutes les façons de lire."
 
 msgid "everyone."
 msgstr "tout le monde."
+
+msgid "Everything here runs on Cloudflare's <0>free plan</0> — no payment needed for normal classroom use. Your books are uploaded to your own account, not to us."
+msgstr "Tout ici fonctionne sur le <0>plan gratuit</0> de Cloudflare — aucun paiement n'est nécessaire pour une utilisation normale en classe. Vos livres sont téléchargés sur votre propre compte, pas chez nous."
+
+msgid "Everything is in place in your Cloudflare account."
+msgstr "Tout est en place dans votre compte Cloudflare."
+
+msgid "Everything was installed, but Cloudflare sometimes takes a minute to switch on a brand-new web address. Wait a moment and try again."
+msgstr "Tout a été installé, mais Cloudflare prend parfois une minute pour activer une nouvelle adresse web. Attendez un moment et réessayez."
 
 msgid "Example Books"
 msgstr "Exemple Livres"
@@ -3935,6 +4085,9 @@ msgstr "Retour généré — relisez-le puis enregistrez"
 msgid "Feedback generation failed"
 msgstr "Échec de la génération du retour"
 
+msgid "Fetching the details of your new setup."
+msgstr "Récupération des détails de votre nouvelle configuration."
+
 msgid "figure"
 msgstr "figure"
 
@@ -3986,8 +4139,14 @@ msgstr "Filtre les images décoratives ou non pertinentes sur chaque page."
 msgid "Final Page"
 msgstr "Page finale"
 
+msgid "Finish"
+msgstr "Terminer"
+
 msgid "Finish signing in with ChatGPT in the browser window that just opened."
 msgstr "Terminez la connexion avec ChatGPT dans la fenêtre du navigateur qui vient de s'ouvrir."
+
+msgid "Finish the Cloudflare login already open in your browser, or wait a moment and try again."
+msgstr "Terminez la connexion Cloudflare déjà ouverte dans votre navigateur, ou attendez un moment et réessayez."
 
 msgid "Fire a real notification with these settings."
 msgstr "Envoyer une vraie notification avec ces paramètres."
@@ -4108,6 +4267,9 @@ msgstr "FR"
 
 msgid "Français"
 msgstr "Français"
+
+msgid "Free"
+msgstr "Gratuit"
 
 msgid "Free rectangle — resize without skewing"
 msgstr "Rectangle libre — redimensionner sans déformer"
@@ -4339,6 +4501,9 @@ msgstr "Génération Invite"
 msgid "Get a key"
 msgstr "Obtenir une clé"
 
+msgid "Get started"
+msgstr "Commencer"
+
 msgid "Global prompt reset to default."
 msgstr "Prompt global réinitialisé par défaut."
 
@@ -4522,6 +4687,9 @@ msgstr "Masquer l’identifiant"
 msgid "Hide error details"
 msgstr "Masquer les détails de l'erreur"
 
+#~ msgid "Hide the steps"
+#~ msgstr "Masquer les étapes"
+
 msgid "Hide toasts automatically after a delay."
 msgstr "Masquer les notifications automatiquement après un délai."
 
@@ -4567,6 +4735,9 @@ msgstr "História e Sociedade - Vol. 1"
 msgid "Hit"
 msgstr "Hit"
 
+msgid "Holds the pages, images and audio of each published book."
+msgstr "Contient les pages, images et audio de chaque livre publié."
+
 msgid "Home"
 msgstr "Accueil"
 
@@ -4575,6 +4746,9 @@ msgstr "Accueil / Chapitre 1"
 
 msgid "Home guide"
 msgstr "Guide d'accueil"
+
+msgid "Hosting"
+msgstr "Hébergement"
 
 msgid "Hover a card to find it in the page and click to pin it — or click anything in the page to edit it here."
 msgstr "Survolez une carte pour la localiser dans la page et cliquez pour l'épingler — ou cliquez sur n'importe quel élément de la page pour le modifier ici."
@@ -4899,11 +5073,20 @@ msgstr "Installer une version antérieure"
 msgid "Install on quit"
 msgstr "Installer à la fermeture"
 
+msgid "Install the update"
+msgstr "Installer la mise à jour"
+
 msgid "Install update"
 msgstr "Installer la mise à jour"
 
 msgid "Installed"
 msgstr "Installée"
+
+msgid "Installing the publishing service"
+msgstr "Installation du service de publication"
+
+msgid "Installing the service"
+msgstr "Installation du service"
 
 msgid "Installing update…"
 msgstr "Installation de la mise à jour…"
@@ -4965,6 +5148,9 @@ msgstr "Problèmes uniquement"
 msgid "It contains unexpected file paths. Use a .zip exported from ADT Studio."
 msgstr "Il contient des chemins de fichiers inattendus. Utilisez un fichier .zip exporté depuis ADT Studio."
 
+msgid "It was cancelled for safety. Try again — it usually takes a few seconds."
+msgstr "Il a été annulé pour des raisons de sécurité. Réessayez — cela prend généralement quelques secondes."
+
 msgid "It was created from a different PDF or settings, so it can't be merged here."
 msgstr "Elle a été créée à partir d'un PDF ou de paramètres différents, elle ne peut donc pas être fusionnée ici."
 
@@ -5017,6 +5203,9 @@ msgstr "Justifier"
 msgid "KB"
 msgstr "KB"
 
+msgid "Keep my connection"
+msgstr "Garder ma connexion"
+
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Gardez les schémas de sortie et les ID inchangés lorsque vous modifiez des prompts."
 
@@ -5028,6 +5217,9 @@ msgstr "Garde les pages entières sauf si des types d'activités mixtes nécessi
 
 msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
 msgstr "Garde la page comme une seule section par défaut, mais la divise intelligemment lorsqu'elle détecte plusieurs activités distinctes — comme un mélange de QCM, questions ouvertes et exercices de classement sur la même page. Idéal pour les manuels avec des exercices variés."
+
+msgid "Keeps track of your published books."
+msgstr "Garde la trace de vos livres publiés."
 
 msgid "Kept"
 msgstr "Conservé"
@@ -5433,6 +5625,12 @@ msgstr "Verrouiller le rapport d'aspect actuel"
 msgid "Lock to a square"
 msgstr "Verrouiller en carré"
 
+msgid "Log in"
+msgstr "Se connecter"
+
+msgid "Log in to your account"
+msgstr "Connectez-vous à votre compte"
+
 msgid "Logs"
 msgstr "Journaux"
 
@@ -5462,6 +5660,9 @@ msgstr "Les valeurs plus basses produisent un style plus cohérent entre les pag
 
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Assurez-vous de télécharger un fichier .zip exporté depuis ADT Studio."
+
+msgid "Making sure the token works and has all four permissions."
+msgstr "S'assurer que le jeton fonctionne et a les quatre autorisations."
 
 msgid "Manage all sections"
 msgstr "Gérer toutes les sections"
@@ -6008,6 +6209,9 @@ msgstr "aucune modification"
 msgid "No changes flagged on this page"
 msgstr "Aucune modification signalée sur cette page"
 
+msgid "No Cloudflare account to publish into"
+msgstr "Aucun compte Cloudflare pour publier"
+
 msgid "No colors found"
 msgstr "Aucune couleur trouvée"
 
@@ -6344,8 +6548,14 @@ msgstr "Normalisation"
 msgid "Normalized"
 msgstr "Normalisé"
 
+msgid "Not answering right now"
+msgstr "Ne répond pas pour le moment"
+
 msgid "Not available on this server"
 msgstr "Non disponible sur ce serveur"
+
+#~ msgid "Not available yet"
+#~ msgstr "Pas encore disponible"
 
 msgid "Not checked"
 msgstr "Non vérifié"
@@ -6401,6 +6611,9 @@ msgstr "Note"
 msgid "Nothing important is missing or added"
 msgstr "Rien d'important n'est manquant ou ajouté"
 
+msgid "Nothing is broken and nothing was lost. Trying again continues from where it stopped."
+msgstr "Rien n'est cassé et rien n'a été perdu. Réessayer continue là où cela s'est arrêté."
+
 msgid "Nothing split yet"
 msgstr "Rien de divisé pour l'instant"
 
@@ -6409,6 +6622,12 @@ msgstr "Rien à modifier pour l'instant"
 
 msgid "Nothing to show"
 msgstr "Rien à afficher"
+
+msgid "Nothing was connected. Try again and choose <0>Allow</0> on the Cloudflare page."
+msgstr "Rien n'a été connecté. Réessayez et choisissez <0>Autoriser</0> sur la page Cloudflare."
+
+msgid "Nothing was lost — the database is left exactly as it was. Trying again usually fixes this. If it keeps happening, send us the details below."
+msgstr "Rien n'a été perdu — la base de données est laissée exactement telle qu'elle était. Réessayer corrige généralement cela. Si cela continue, envoyez-nous les détails ci-dessous."
 
 msgid "Notifications"
 msgstr "Notifications"
@@ -6569,6 +6788,9 @@ msgstr "Ouvrir la demande de tirage {0}"
 msgid "Open source PDF in a new tab"
 msgstr "Ouvrir le PDF source dans un nouvel onglet"
 
+msgid "Open the Cloudflare page again"
+msgstr "Ouvrez à nouveau la page Cloudflare"
+
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Ouvrir l'étape des quiz pour modifier ce quiz"
 
@@ -6580,6 +6802,9 @@ msgstr "Ouvrez cette section pour régler le modèle, le prompt du juge, le comp
 
 msgid "Open Validation"
 msgstr "Ouvrir la validation"
+
+msgid "Open Workers & Pages"
+msgstr "Ouvrir Workers & Pages"
 
 msgid "Open-ended — learners write a free response; there is no fixed answer."
 msgstr "Réponse ouverte — les élèves rédigent une réponse libre ; il n’y a pas de réponse fixe."
@@ -7215,6 +7440,9 @@ msgstr "Texte préparé pour la synthèse vocale"
 msgid "Preparing speech..."
 msgstr "Préparation de la synthèse vocale..."
 
+msgid "Preparing the database"
+msgstr "Préparation de la base de données"
+
 msgid "Preparing…"
 msgstr "Préparation…"
 
@@ -7398,6 +7626,9 @@ msgstr "PT"
 msgid "Publish for review"
 msgstr "Publier pour révision"
 
+msgid "Published books are stored in Cloudflare R2, and your account hasn't switched it on yet. Open R2 in your Cloudflare dashboard and follow the steps to enable it — Cloudflare asks for a payment method, but the space ADT Studio uses is within the free allowance. Then come back and try again. Nothing was created in your account."
+msgstr "Les livres publiés sont stockés dans Cloudflare R2, et votre compte ne l'a pas encore activé. Ouvrez R2 dans votre tableau de bord Cloudflare et suivez les étapes pour l'activer — Cloudflare demande un moyen de paiement, mais l'espace utilisé par ADT Studio est dans la limite gratuite. Ensuite, revenez et réessayez. Rien n'a été créé dans votre compte."
+
 msgid "Published for review"
 msgstr "Publié pour révision"
 
@@ -7406,6 +7637,18 @@ msgstr "publié en"
 
 msgid "Publisher"
 msgstr "Éditeur"
+
+msgid "Publishing"
+msgstr "Publication"
+
+msgid "publishing Cloudflare hosting deployment"
+msgstr "publication hébergement déploiement Cloudflare"
+
+msgid "Publishing is ready"
+msgstr "La publication est prête"
+
+msgid "Publishing is set up"
+msgstr "La publication est configurée"
 
 msgid "Pull requests"
 msgstr "Pull requests"
@@ -7579,6 +7822,9 @@ msgstr "Relancer la traduction"
 msgid "Re-running clears later stages"
 msgstr "Relancer efface les étapes ultérieures"
 
+msgid "Read"
+msgstr "Lire"
+
 msgid "Read it in their language."
 msgstr "Lire dans leur langue."
 
@@ -7647,6 +7893,9 @@ msgstr "Prêt"
 
 msgid "Ready to install"
 msgstr "Prêt à installer"
+
+msgid "Ready when you are"
+msgstr "Prêt quand vous l'êtes"
 
 msgid "Real books processed with this preset — before and after."
 msgstr "De vrais livres traités avec ce préréglage — avant et après."
@@ -8555,6 +8804,9 @@ msgstr "sections"
 msgid "Sections"
 msgstr "Sections"
 
+msgid "Securing the service"
+msgstr "Sécurisation du service"
+
 #~ msgid "See examples"
 #~ msgstr "Voir les exemples"
 
@@ -8743,6 +8995,9 @@ msgstr "Définie manuellement"
 msgid "Set the editing language and choose output languages for the book."
 msgstr "Définissez la langue d'édition et choisissez les langues de sortie pour le livre."
 
+msgid "Set up publishing"
+msgstr "Configurer la publication"
+
 msgid "Set your API key first"
 msgstr "Configurez d'abord votre clé API"
 
@@ -8751,6 +9006,15 @@ msgstr "Définissez votre clé API pour générer automatiquement"
 
 msgid "Sets the default layout used when a section has no specific strategy assigned."
 msgstr "Définit la mise en page par défaut utilisée lorsqu'une section n'a pas de stratégie spécifique assignée."
+
+msgid "Setting up"
+msgstr "Configuration"
+
+msgid "Setting up your web address"
+msgstr "Configuration de votre adresse web"
+
+msgid "Setting up…"
+msgstr "Configuration…"
 
 msgid "Settings"
 msgstr "Paramètres"
@@ -8761,8 +9025,20 @@ msgstr "Les paramètres pour cette étape ne sont pas encore disponibles."
 msgid "Settings guide"
 msgstr "Guide des paramètres"
 
+msgid "Setup couldn't finish"
+msgstr "La configuration n'a pas pu se terminer"
+
+msgid "Setup stopped"
+msgstr "Configuration arrêtée"
+
+msgid "Setup stopped partway"
+msgstr "Configuration arrêtée en cours de route"
+
 msgid "Shadow"
 msgstr "Ombre"
+
+msgid "Share a finished book as a private website. You stay in charge of the link and the Cloudflare account that hosts it."
+msgstr "Partagez un livre terminé comme site web privé. Vous gardez le contrôle du lien et du compte Cloudflare qui l’héberge."
 
 msgid "Shared"
 msgstr "Partagé"
@@ -8794,6 +9070,9 @@ msgstr "Afficher toutes les entrées"
 
 msgid "Show all pages"
 msgstr "Afficher toutes les pages"
+
+#~ msgid "Show all steps"
+#~ msgstr "Afficher toutes les étapes"
 
 msgid "Show all translations"
 msgstr "Afficher toutes les traductions"
@@ -8852,6 +9131,9 @@ msgstr "Signes"
 msgid "Sign in"
 msgstr "Se connecter"
 
+msgid "Sign in at Cloudflare"
+msgstr "Connectez-vous à Cloudflare"
+
 msgid "Sign in outside the app, then Refresh — this screen detects the login automatically:"
 msgstr "Connectez-vous en dehors de l'application, puis rafraîchissez — cet écran détecte automatiquement la connexion :"
 
@@ -8888,6 +9170,9 @@ msgstr "Connexion réussie."
 
 msgid "Signed out."
 msgstr "Déconnexion effectuée."
+
+msgid "Signing in only works when ADT Studio and your browser run on the same computer."
+msgstr "La connexion ne fonctionne que lorsque ADT Studio et votre navigateur fonctionnent sur le même ordinateur."
 
 msgid "Similarity"
 msgstr "Ressemblance"
@@ -8962,6 +9247,9 @@ msgstr "Petit"
 msgid "Smart Cropping"
 msgstr "Recadrage intelligent"
 
+msgid "So only this computer can publish or change your books."
+msgstr "Ainsi, seul cet ordinateur peut publier ou modifier vos livres."
+
 msgid "Software update"
 msgstr "Mise à jour logicielle"
 
@@ -8977,6 +9265,12 @@ msgstr "Une partie du contenu a été exclue du paquet : {0} section(s) rendue(s
 
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Certaines pages n'ont pas de couche de texte intégrée — le texte a été récupéré à partir de l'image de la page. Préférez un PDF basé sur du texte."
+
+msgid "Some permissions are missing"
+msgstr "Certaines autorisations manquent"
+
+msgid "Something else in your account already uses the name the Studio needs. Rename it in Cloudflare, or write to us if you'd rather not — then try again."
+msgstr "Quelque chose d'autre dans votre compte utilise déjà le nom dont le Studio a besoin. Renommez-le dans Cloudflare, ou écrivez-nous si vous préférez ne pas le faire — puis réessayez."
 
 msgid "Something went wrong"
 msgstr "Quelque chose s'est mal passé"
@@ -9204,6 +9498,9 @@ msgstr "Étape {0}"
 #. placeholder {0}: STEPS.length
 msgid "Step {step} of {0}"
 msgstr "Étape {step} sur {0}"
+
+msgid "Step {stepNumber} of {stepCount}"
+msgstr "Étape {stepNumber} sur {stepCount}"
 
 msgid "Step failed"
 msgstr "L'étape a échoué"
@@ -9570,6 +9867,12 @@ msgstr "Moteurs de synthèse vocale qui narrent le livre terminé."
 msgid "Textbooks & Activities"
 msgstr "Manuels et activités"
 
+msgid "That didn't finish"
+msgstr "Cela n'a pas été terminé"
+
+msgid "The address every share link will start with."
+msgstr "L'adresse avec laquelle chaque lien de partage commencera."
+
 msgid "The AI is having a think..."
 msgstr "L'IA est en train de réfléchir..."
 
@@ -9600,6 +9903,9 @@ msgstr "Le titre et les métadonnées du livre arrivent avec la partie qui conti
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "Les prompts intégrés sont optimisés pour {DEFAULT_MODEL}. Vous avez remplacé le LLM par défaut par <0>{savedModel}</0> ; nous vous recommandons donc de générer de nouveaux fichiers de prompts globaux adaptés à ce modèle. Vous pouvez aussi continuer avec les prompts existants."
 
+msgid "The Cloudflare sign-in did not grant everything publishing needs. Disconnect, connect again, and allow every permission ADT Studio asks for. Nothing was created in your account."
+msgstr "La connexion Cloudflare n'a pas accordé tout ce dont la publication a besoin. Déconnectez-vous, reconnectez-vous et autorisez toutes les permissions demandées par ADT Studio. Rien n'a été créé dans votre compte."
+
 msgid "The combined section will be re-rendered."
 msgstr "La section combinée sera re-rendue."
 
@@ -9624,6 +9930,9 @@ msgstr "La page de crédits."
 msgid "The data sent within the body of a request or response message."
 msgstr "Les données envoyées dans le corps d'un message de requête ou de réponse."
 
+msgid "The database couldn't be prepared"
+msgstr "La base de données n'a pas pu être préparée"
+
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 msgstr "L'instruction TTS par défaut appliquée à chaque langue sauf si elle est remplacée ci-dessous. OpenAI l'utilise comme instruction vocale et Gemini comme guidage d'accent dans le prompt ; Azure et ElevenLabs l'ignorent."
 
@@ -9642,6 +9951,9 @@ msgstr "Les termes suivants sont utilisés tout au long de ce manuel. La connais
 msgid "The foreword or introduction."
 msgstr "L'avant-propos ou l'introduction."
 
+msgid "The free plan covers normal classroom use and keeps your books in an account you control."
+msgstr "Le forfait gratuit couvre une utilisation normale en classe et conserve vos livres dans un compte que vous contrôlez."
+
 msgid "The front cover of the book."
 msgstr "La première de couverture du livre."
 
@@ -9656,6 +9968,15 @@ msgstr "La page de garde du livre."
 
 msgid "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
 msgstr "La dernière révision de traduction a échoué avant de produire des résultats fiables par élément. Relancez Réviser pour les traductions visibles."
+
+msgid "The login could not be finished. Try again, or use an API token instead."
+msgstr "La connexion n'a pas pu être terminée. Réessayez, ou utilisez un jeton API à la place."
+
+msgid "The login couldn't come back to the Studio"
+msgstr "La connexion n'a pas pu revenir au Studio"
+
+msgid "The login took too long"
+msgstr "La connexion a pris trop de temps"
 
 msgid "The Lost Forest"
 msgstr "La forêt perdue"
@@ -9708,6 +10029,9 @@ msgstr "Le fournisseur n'a pas pu être atteint."
 msgid "The provider rejected these credentials."
 msgstr "Le fournisseur a renvoyé une réponse inattendue."
 
+msgid "The publishing service couldn't be installed"
+msgstr "Le service de publication n'a pas pu être installé"
+
 msgid "The quick brown fox jumps over the lazy dog 0123456789"
 msgstr "Portez ce vieux whisky au juge blond qui fume 0123456789"
 
@@ -9719,6 +10043,9 @@ msgstr "L'expérience du lecteur"
 
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "La stratégie de rendu utilisée pour les sections sans correspondance explicite."
+
+msgid "The request appears as <0>Wrangler</0> — Cloudflare's own tool, which ADT Studio signs in through. This is expected."
+msgstr "La demande apparaît comme <0>Wrangler</0> — l'outil propre de Cloudflare, par lequel ADT Studio se connecte. C'est attendu."
 
 msgid "The same edition in every language."
 msgstr "La même édition dans chaque langue."
@@ -9732,8 +10059,17 @@ msgstr "La section a été modifiée après la conversion — utilisez « Recons
 msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
 msgstr "Les sections seront fusionnées localement. Sans clé API, le storyboard devra être réexécuté pour régénérer la section fusionnée."
 
+msgid "The setup stopped before it finished. Nothing was lost — trying again continues from where it stopped."
+msgstr "La configuration s'est arrêtée avant d'être terminée. Rien n'a été perdu — réessayer continue là où cela s'est arrêté."
+
+msgid "The small program that shows your books."
+msgstr "Le petit programme qui affiche vos livres."
+
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "Le storyboard doit être complété avant de générer {stageName}. Exécutez d'abord l'étape du storyboard."
+
+msgid "The Studio will create the storage and small web service it needs inside your Cloudflare account. This takes a minute or two and only happens once."
+msgstr "Studio créera le stockage et le petit service web dont il a besoin dans votre compte Cloudflare. Cela prend une ou deux minutes et ne se produit qu’une fois."
 
 msgid "The sun heats water in oceans, lakes, and rivers, turning it into vapor that rises into the atmosphere. As the vapor cools at higher altitudes, it condenses into tiny droplets that form clouds."
 msgstr "Le soleil chauffe l'eau des océans, des lacs et des rivières, la transformant en vapeur qui s'élève dans l'atmosphère. Lorsque la vapeur se refroidit en altitude, elle se condense en gouttelettes minuscules qui forment les nuages."
@@ -9839,8 +10175,14 @@ msgstr "Ce livre n'est pas encore complet — les pages <0>{0}</0> n'ont pas ét
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ce livre est rendu en mise en page fixe, il conserve donc les polices d'origine du PDF. Les polices jointes guident tout de même l'IA pour les activités et les pages générées."
 
+msgid "This cannot be undone. Every link you have shared will stop working."
+msgstr "Cette action est irréversible. Tous les liens que vous avez partagés cesseront de fonctionner."
+
 msgid "This computer"
 msgstr "Cet ordinateur"
+
+msgid "This computer will forget your token and Account ID, so you won't be able to publish or update books until you connect again. Books you have already published stay online and their links keep working."
+msgstr "Cet ordinateur oubliera votre jeton et votre ID de compte, donc vous ne pourrez pas publier ou mettre à jour des livres jusqu'à ce que vous vous reconnectiez. Les livres que vous avez déjà publiés restent en ligne et leurs liens continuent de fonctionner."
 
 msgid "This connection isn't available yet."
 msgstr "Cette connexion n'est pas encore disponible."
@@ -9875,6 +10217,9 @@ msgstr "Ceci est un projet, pas une partie de livre"
 msgid "This is how notifications will look and sound."
 msgstr "Voici à quoi ressembleront et sonneront les notifications."
 
+msgid "This is nearly always a passing network problem. Try again — the parts already set up are kept, so it picks up where it left off."
+msgstr "C'est presque toujours un problème de réseau passager. Réessayez — les parties déjà configurées sont conservées, donc cela reprend là où cela s'est arrêté."
+
 msgid "This is Pip! He has a wiggly tail."
 msgstr "Voici Pip ! Il a une queue frétillante."
 
@@ -9892,6 +10237,9 @@ msgstr "Ce n'est pas un projet ADT Studio valide"
 
 msgid "This isn't a valid part file"
 msgstr "Ce n'est pas un fichier de partie valide"
+
+msgid "This login has no account the Studio can use. Create an account in Cloudflare, then connect again."
+msgstr "Cette connexion n'a pas de compte que le Studio peut utiliser. Créez un compte dans Cloudflare, puis reconnectez-vous."
 
 msgid "This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via \"View HTML source\" instead of merging."
 msgstr "Cette opération fusionne une activité personnalisée. La section combinée est régénérée, ce qui supprimera le script de notation interactif de l'activité personnalisée. Pour le conserver, modifiez-la via « Voir la source HTML » au lieu de fusionner."
@@ -10042,6 +10390,9 @@ msgstr "À la page"
 
 msgid "To replace an image, use \"Edit layout\" and click the image."
 msgstr "Pour remplacer une image, utilisez \\\"Modifier la mise en page\\\" et cliquez sur l'image."
+
+msgid "To share a book, open it and go to its Export step — you'll find Publish there."
+msgstr "Pour partager un livre, ouvrez-le et accédez à son étape Exporter ; vous y trouverez Publier."
 
 msgid "to stream API logs here."
 msgstr "pour diffuser les journaux API ici."
@@ -10233,6 +10584,12 @@ msgstr "Transformez n'importe quel PDF éducatif en un ensemble d'apprentissage 
 msgid "Turn any textbook into an accessible edition — every step of the pipeline, built in."
 msgstr "Transformez n'importe quel manuel en une édition accessible — chaque étape du pipeline, intégrée."
 
+msgid "Turn on R2 in Cloudflare"
+msgstr "Activez R2 dans Cloudflare"
+
+msgid "Turn on R2 storage in Cloudflare first"
+msgstr "Activez d'abord le stockage R2 dans Cloudflare"
+
 msgid "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
 msgstr "Activez cette option pour afficher la carte de révision Validation dans l'Aperçu et l'onglet Validation du réviseur dans l'étape Validation."
 
@@ -10374,6 +10731,9 @@ msgstr "Identifiant d'étape inconnu : {step}"
 msgid "Unknown step: {step}"
 msgstr "Étape inconnue : {step}"
 
+msgid "Unnamed account"
+msgstr "Compte sans nom"
+
 msgid "Unprune image"
 msgstr "Restaurer l'image"
 
@@ -10406,6 +10766,9 @@ msgstr "Mise à jour disponible"
 
 msgid "Update ready to install"
 msgstr "Mise à jour prête à être installée"
+
+msgid "Updating the publishing service"
+msgstr "Mise à jour du service de publication"
 
 msgid "Upload"
 msgstr "Téléverser"
@@ -10528,6 +10891,9 @@ msgstr "Utilisez ces noms entre doubles accolades ou dans des balises Liquid. Le
 msgid "Use these settings for the common review workflow."
 msgstr "Utilisez ces paramètres pour le flux de révision courant."
 
+msgid "Use this account"
+msgstr "Utiliser ce compte"
+
 msgid "Use this for checks you intentionally want to suppress, such as known false positives."
 msgstr "Utilisez ceci pour les vérifications que vous souhaitez intentionnellement supprimer, comme les faux positifs connus."
 
@@ -10615,8 +10981,14 @@ msgstr "Application vérifiée"
 
 #. placeholder {0}: String(data.version)
 #. placeholder {0}: String(version)
+#. placeholder {0}: connection.worker_version
 msgid "Version {0}"
 msgstr "Version {0}"
+
+#. placeholder {0}: connection.worker_version ?? "?"
+#. placeholder {1}: connection.latest_version
+msgid "Version {0} → {1}. Your published books stay online while this runs."
+msgstr "Version {0} → {1}. Vos livres publiés restent en ligne pendant que cela fonctionne."
 
 msgid "Version {current}"
 msgstr "Version {current}"
@@ -10626,6 +10998,9 @@ msgstr "Version {selected}"
 
 msgid "Version history"
 msgstr "Historique des versions"
+
+msgid "Version unknown"
+msgstr "Version inconnue"
 
 msgid "version update release"
 msgstr "version mise à jour publication"
@@ -10729,6 +11104,9 @@ msgstr "En attente de la sortie API…"
 msgid "Waiting for page to be processed..."
 msgstr "En attente du traitement de la page..."
 
+msgid "Waiting for your approval in the browser — choose <0>Allow</0> on the Cloudflare page. It appears as <1>Wrangler</1>; that's expected."
+msgstr "En attente de votre approbation dans le navigateur — choisissez <0>Autoriser</0> sur la page Cloudflare. Cela apparaît comme <1>Wrangler</1> ; c'est attendu."
+
 msgid "Wall Clock"
 msgstr "Temps réel"
 
@@ -10763,8 +11141,17 @@ msgstr "wcag2a\n"
 msgid "We compared the page edges and think these facing pages are spreads. Open Review to merge the ones that are — cancelling changes nothing."
 msgstr "Nous avons comparé les bords des pages et pensons que ces pages en vis-à-vis sont des doubles pages. Ouvrez Examiner pour fusionner celles qui le sont — annuler ne change rien."
 
+msgid "We couldn't check your publishing setup"
+msgstr "Nous n'avons pas pu vérifier votre configuration de publication"
+
+msgid "We couldn't connect to Cloudflare"
+msgstr "Nous n'avons pas pu nous connecter à Cloudflare"
+
 msgid "We hit a snag while loading this view. You can try this screen again or reload the whole app."
 msgstr "Nous avons rencontré un problème lors du chargement de cette vue. Vous pouvez réessayer cet écran ou recharger l'application entière."
+
+msgid "We set everything up"
+msgstr "Nous avons tout configuré"
 
 msgid "Web Export"
 msgstr "Exportation Web"
@@ -10853,6 +11240,9 @@ msgstr "Où tout commence"
 msgid "Where toasts appear on screen."
 msgstr "Où les notifications apparaissent à l'écran."
 
+msgid "Which Cloudflare account?"
+msgstr "Quel compte Cloudflare ?"
+
 msgid "Which engine runs the extraction and generation pipeline."
 msgstr "Quel moteur exécute le pipeline d'extraction et de génération."
 
@@ -10907,6 +11297,15 @@ msgstr "Surlignage mot à mot"
 msgid "words"
 msgstr "mots"
 
+msgid "Workers R2 Storage"
+msgstr "Stockage R2 des Workers"
+
+msgid "Workers Scripts"
+msgstr "Scripts des Workers"
+
+msgid "Wrangler"
+msgstr "Wrangler"
+
 msgid "Wrap in group"
 msgstr "Encapsuler dans un groupe"
 
@@ -10945,6 +11344,9 @@ msgstr "Vous n'avez pas encore ajouté de termes manuellement"
 msgid "You haven't split any books"
 msgstr "Vous n'avez divisé aucun livre"
 
+msgid "You only had to do that once. To share a book, open it and go to its Export step — you'll find Publish there."
+msgstr "Vous n'aviez à le faire qu'une seule fois. Pour partager un livre, ouvrez-le et allez à son étape d'exportation — vous trouverez Publier là-bas."
+
 msgid "You're all set"
 msgstr "Vous êtes à jour"
 
@@ -10963,14 +11365,47 @@ msgstr "Vous utilisez la dernière version d’ADT Studio."
 msgid "You're testing an early build."
 msgstr "Vous testez une version préliminaire."
 
+msgid "you@example.com"
+msgstr "vous@exemple.com"
+
 msgid "Young adult fiction"
 msgstr "fiction jeune adulte"
+
+msgid "Your account needs a web address first"
+msgstr "Votre compte a besoin d'une adresse web d'abord"
 
 msgid "Your AI, your keys."
 msgstr "Votre IA, vos clés."
 
 msgid "Your book"
 msgstr "Votre livre"
+
+msgid "Your book, one link away"
+msgstr "Votre livre, à un lien de distance"
+
+#~ msgid "Your books are published at"
+#~ msgstr "Vos livres sont publiés à"
+
+msgid "Your books will live in your own Cloudflare account."
+msgstr "Vos livres vivront dans votre propre compte Cloudflare."
+
+msgid "Your browser opens Cloudflare's own sign-in page."
+msgstr "Votre navigateur ouvre la page de connexion propre à Cloudflare."
+
+msgid "Your Cloudflare account hasn't chosen the web address it uses for services yet, and your share links need it. Open Workers & Pages, pick any name when it asks, then try again."
+msgstr "Votre compte Cloudflare n'a pas encore choisi l'adresse web qu'il utilise pour les services, et vos liens de partage en ont besoin. Ouvrez Workers & Pages, choisissez n'importe quel nom lorsqu'il le demande, puis réessayez."
+
+msgid "Your Cloudflare connection is still here. Try again in a moment."
+msgstr "Votre connexion Cloudflare est toujours là. Réessayez dans un instant."
+
+msgid "Your Cloudflare login covers more than one account. Pick the one your books should be published into — you can change it later by disconnecting and connecting again."
+msgstr "Votre connexion Cloudflare couvre plus d'un compte. Choisissez celui dans lequel vos livres doivent être publiés — vous pouvez le changer plus tard en vous déconnectant et en vous reconnectant."
+
+msgid "Your connection is still here, so nothing is half-forgotten. You can try again, or untick the delete option and just disconnect — then tidy up in Cloudflare yourself."
+msgstr "Votre connexion est toujours là, donc rien n'est à moitié oublié. Vous pouvez réessayer, ou décocher l'option de suppression et simplement vous déconnecter — puis ranger dans Cloudflare vous-même."
+
+msgid "Your finished books will live in your own Cloudflare account."
+msgstr "Vos livres terminés seront hébergés dans votre propre compte Cloudflare."
 
 msgid "Your font has been applied to captions."
 msgstr "Votre police a été appliquée aux légendes."
@@ -10986,6 +11421,9 @@ msgstr "Votre police a été appliquée à tout le livre."
 
 msgid "Your fonts"
 msgstr "Vos polices"
+
+msgid "Your service isn't answering yet"
+msgstr "Votre service ne répond pas encore"
 
 msgid "Z → A"
 msgstr "Z → A"

@@ -3,7 +3,12 @@ import {
   type CloudflareAuthMethod,
   type CloudflareConnectionStatus,
 } from "@adt/types"
-import { fetchWorkerHealth, type CloudflareClient, type FetchLike } from "./client.js"
+import {
+  CloudflareApiError,
+  fetchWorkerHealth,
+  type CloudflareClient,
+  type FetchLike,
+} from "./client.js"
 import type { CloudflareConnectionRecord, ConnectionStore } from "./connection-store.js"
 import { describeError } from "./errors.js"
 
@@ -124,6 +129,10 @@ export async function teardownCloudflareResources(
       await step.run()
       deleted.push(step.label)
     } catch (error) {
+      if (error instanceof CloudflareApiError && error.isNotFound) {
+        deleted.push(step.label)
+        continue
+      }
       failures.push(`${step.label}: ${describeError(error)}`)
     }
   }
