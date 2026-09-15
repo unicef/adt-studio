@@ -6930,8 +6930,11 @@ msgstr "pages {shownStr}"
 msgid "Pages in the selected range"
 msgstr "Pages in the selected range"
 
-msgid "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. Leave empty to send each page as one request however long it is."
-msgstr "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. Leave empty to send each page as one request however long it is."
+#~ msgid "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. Leave empty to send each page as one request however long it is."
+#~ msgstr "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. Leave empty to send each page as one request however long it is."
+
+msgid "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. The trade-off is more requests: Gemini's voice can also differ between separate requests, so a low cap can cause the very drift you are trying to avoid. Leave empty to send each page as one request however long it is."
+msgstr "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. The trade-off is more requests: Gemini's voice can also differ between separate requests, so a low cap can cause the very drift you are trying to avoid. Leave empty to send each page as one request however long it is."
 
 msgid "pages per quiz"
 msgstr "pages per quiz"
@@ -10616,6 +10619,9 @@ msgstr "Validation"
 #. placeholder {0}: data.validationErrors.length
 msgid "Validation Errors ({0})"
 msgstr "Validation Errors ({0})"
+
+msgid "Values below {MIN_BATCH_MAX_CHARS} are raised to {MIN_BATCH_MAX_CHARS} when you save — below that a page splits into so many requests that the voice is more likely to change, not less."
+msgstr "Values below {MIN_BATCH_MAX_CHARS} are raised to {MIN_BATCH_MAX_CHARS} when you save — below that a page splits into so many requests that the voice is more likely to change, not less."
 
 msgid "Variables"
 msgstr "Variables"

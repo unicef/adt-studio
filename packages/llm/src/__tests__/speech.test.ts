@@ -573,9 +573,15 @@ describe("createGeminiTTSSynthesizer", () => {
 
     const sentText = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))
       .contents[0].parts[0].text as string
-    // Instructions go above the transcript delimiter, transcript below it.
+    // A prompt whose first line is a heading of performance notes, with nothing
+    // asking for speech at all, is what Google's own prompting guide warns gets
+    // classifier-rejected or read aloud as instructions. Some books prepend
+    // hundreds of characters of pronunciation rules here (issue #846's book
+    // prepends 824), so the notes dominate the prompt and the ask disappears.
+    // State the ask first; instructions above the delimiter, transcript below.
     expect(sentText).toBe(
-      "### PERFORMANCE\nSpeak with a Pristina, Kosovo accent.\n\n#### TRANSCRIPT\nPërshëndetje!"
+      "Read the text under #### TRANSCRIPT aloud. Do not read the notes above it, and do not change the words.\n\n" +
+        "### PERFORMANCE\nSpeak with a Pristina, Kosovo accent.\n\n#### TRANSCRIPT\nPërshëndetje!"
     )
     // The model must never receive a systemInstruction (rejected by the TTS models).
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).not.toHaveProperty(
@@ -645,7 +651,10 @@ describe("createGeminiTTSSynthesizer", () => {
     // Retry appends terminal punctuation to the transcript, still inside the wrapper.
     expect(
       JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)).contents[0].parts[0].text
-    ).toBe("### PERFORMANCE\nKosovo accent.\n\n#### TRANSCRIPT\nPo.")
+    ).toBe(
+      "Read the text under #### TRANSCRIPT aloud. Do not read the notes above it, and do not change the words.\n\n" +
+        "### PERFORMANCE\nKosovo accent.\n\n#### TRANSCRIPT\nPo."
+    )
   })
 })
 

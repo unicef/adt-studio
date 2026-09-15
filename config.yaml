@@ -392,6 +392,11 @@ image_filters:
 # single recording runs past a few minutes, so a cap keeps a long page sounding
 # like one narrator. Unset = one request per page, however long.
 #
+# The cap cuts both ways: each split is another independent request, and
+# Gemini's voice can also differ BETWEEN requests. Set it high enough that only
+# genuinely long pages split (1200 ≈ a screenful), never as a general fix for a
+# voice changing mid-book — below 120 it is rejected outright.
+#
 # `temperature`/`seed` are NOT recommended. Neither is documented for Gemini's
 # TTS models and neither controls voice identity, and a temperature below 0.5
 # makes them return no audio at all:

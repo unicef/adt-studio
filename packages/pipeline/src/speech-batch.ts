@@ -140,7 +140,13 @@ export function computeEntryTimeRanges(
 ): EntryTimeRange[] {
   if (entries.length === 0) return []
   if (entries.length === 1) {
-    const matched = whisperWords.length > 0 ? tokenize(entries[0].text).length : 0
+    // There is no boundary to find with one entry, but `matchedTokens` still
+    // has to be true: it decides whether the user is told "none of its words
+    // were heard" or "the slice is too short". Counting how many of the
+    // entry's tokens appear anywhere in the transcript is enough for that
+    // question — the ordering an LCS would add buys nothing with one entry.
+    const heard = new Set(whisperWords.map((w) => normalizeToken(w.word)))
+    const matched = tokenize(entries[0].text).filter((tok) => heard.has(tok)).length
     return [
       {
         id: entries[0].id,
@@ -225,8 +231,12 @@ export function computeEntryTimeRanges(
     // An empty span means this entry's audio was never located — either its
     // words weren't heard, or the clamp above pushed its boundary onto the
     // previous one. Either way the slice would be silence.
+    // Entry 0's start is 0 by construction, not by measurement, so it used to
+    // be called "aligned" whether or not Whisper heard a word of it. It is
+    // still written — the audio at the top of the file really is its audio —
+    // but the label must not claim a provenance we don't have.
     const alignment: EntryAlignment =
-      end <= start ? "collapsed" : onset[k] !== undefined || k === 0 ? "aligned" : "interpolated"
+      end <= start ? "collapsed" : onset[k] !== undefined ? "aligned" : "interpolated"
     return { id: entry.id, start, end, alignment, matchedTokens: matchedTokens[k] }
   })
 }

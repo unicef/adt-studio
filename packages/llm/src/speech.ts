@@ -500,6 +500,17 @@ function buildGeminiShortTextRetryInput(input: string): string | null {
 }
 
 /**
+ * Opens the instructions form of the prompt. Google's prompting guide warns
+ * that a prompt which never asks for speech can be classifier-rejected or read
+ * aloud as if it were the text — and without this line the prompt's first token
+ * is a heading of performance notes. Books that supply long pronunciation
+ * blocks make that worse: issue #846's book prepends 824 characters of rules
+ * and IPA, so the notes are ~94% of a typical prompt and the ask is nowhere.
+ */
+const GEMINI_SYNTHESIS_PREAMBLE =
+  "Read the text under #### TRANSCRIPT aloud. Do not read the notes above it, and do not change the words."
+
+/**
  * Wrap transcript text in the structured "performance + transcript" layout the
  * native Gemini TTS models use for accent/style steering.
  *
@@ -512,8 +523,11 @@ function buildGeminiShortTextRetryInput(input: string): string | null {
  */
 function buildGeminiSpeechPrompt(transcript: string, instructions?: string): string {
   const performance = instructions?.trim()
+  // No instructions means no notes to be confused by, so the bare transcript
+  // stays bare — it is already unambiguous, and adding a preamble there would
+  // change every request for every book that sets no instructions.
   if (!performance) return transcript
-  return `### PERFORMANCE\n${performance}\n\n#### TRANSCRIPT\n${transcript}`
+  return `${GEMINI_SYNTHESIS_PREAMBLE}\n\n### PERFORMANCE\n${performance}\n\n#### TRANSCRIPT\n${transcript}`
 }
 
 /**

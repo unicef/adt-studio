@@ -13,7 +13,6 @@ import {
   VoiceSlot,
   type SpeechFileEntry,
   type SpeechFailedEntry,
-  type TTSProviderConfig,
   type TextCatalogEntry,
   type TextCatalogOutput,
   type WordTimestampEntry,
@@ -34,12 +33,9 @@ import {
   loadSpeechInstructions,
   loadVoicesConfig,
   normalizeLocale,
-  overlayPrimaryVoices,
   resolveInstructions,
   resolveSpeechFormat,
-  resolveSpeechModel,
   resolveSpeechVoice,
-  resolveVoice,
   generateSpeechFile,
   generateWordTimestamps,
   getCoreTtsCatalog,
@@ -99,12 +95,6 @@ const AUDIO_UPLOAD_FORMAT_BY_MIME: Record<string, "mp3" | "wav" | "ogg"> = {
   "application/ogg": "ogg",
 }
 const AUDIO_UPLOAD_EXTENSIONS = new Set([".mp3", ".wav", ".ogg"])
-
-interface SingleItemFallbackAttempt {
-  provider: "openai" | "azure" | "elevenlabs"
-  model: string
-  voice: string
-}
 
 function safeParseLabel(label: string): string {
   try {
@@ -278,14 +268,12 @@ function getTtsCompletionSummary(
   }
 }
 
-// TODO(#846 follow-up): the cross-provider fallback below
-// (`getSingleItemFallbackAttempts` / `fallbackAttempts`) is the same kind of
-// silent substitution as the flash<->pro model swap that was removed here: it
-// re-narrates the entry with a different provider AND a different voice, so
-// the user gets audio in a voice they did not pick, with no say in it. It is
-// left in place for now only because removing it is a wider behaviour change
-// than issue #846 covers. Decide whether to drop it or surface it explicitly
-// (the SpeechFileEntry already records the provider/voice actually used).
+// There is deliberately no cross-provider fallback here (issue #846). Re-running
+// a failed entry against whichever other provider happened to have a key handed
+// the user a sentence narrated by a voice they never picked, in the middle of a
+// book read by someone else — and said nothing about it. Holding an OpenAI key
+// is not consent to narrate with OpenAI. The failure is reported with the
+// provider's own reason instead, and the user chooses what to do about it.
 
 // Retries for a single-item ElevenLabs regeneration. Much lower than the batch
 // paths' ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES (5, backing off to 30s) because
@@ -327,52 +315,6 @@ function getMissingProviderKeyMessage(
         ? null
         : "OpenAI API key required. Set X-OpenAI-Key header."
   }
-}
-
-function getSingleItemFallbackAttempts(options: {
-  openaiApiKey?: string
-  azureSpeechKey?: string
-  azureSpeechRegion?: string
-  elevenLabsApiKey?: string
-  language: string
-  providerConfigs: Record<string, TTSProviderConfig>
-  voiceMaps: VoiceMaps
-  defaultOpenAIModel?: string
-  /** The provider already tried as the primary attempt — excluded so a
-   *  failure isn't retried against the same provider that just failed. */
-  primaryProvider?: string
-}): SingleItemFallbackAttempt[] {
-  const attempts: SingleItemFallbackAttempt[] = []
-
-  if (options.openaiApiKey) {
-    attempts.push({
-      provider: "openai",
-      model: resolveSpeechModel(
-        "openai",
-        options.providerConfigs,
-        options.defaultOpenAIModel,
-      ),
-      voice: resolveVoice("openai", options.language, options.voiceMaps),
-    })
-  }
-
-  if (options.azureSpeechKey && options.azureSpeechRegion) {
-    attempts.push({
-      provider: "azure",
-      model: resolveSpeechModel("azure", options.providerConfigs),
-      voice: resolveVoice("azure", options.language, options.voiceMaps),
-    })
-  }
-
-  if (options.elevenLabsApiKey) {
-    attempts.push({
-      provider: "elevenlabs",
-      model: resolveSpeechModel("elevenlabs", options.providerConfigs),
-      voice: resolveVoice("elevenlabs", options.language, options.voiceMaps),
-    })
-  }
-
-  return attempts.filter((attempt) => attempt.provider !== options.primaryProvider)
 }
 
 function resolveUploadedAudioFormat(file: File): "mp3" | "wav" | "ogg" {
@@ -829,8 +771,6 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         })
       }
 
-      const providerConfigs: Record<string, TTSProviderConfig> =
-        config.speech?.providers ?? {}
       const configDir = getConfigDir(configPath)
       const voiceMaps = loadVoicesConfig(configDir)
       const defaultSpeechModel =
@@ -881,27 +821,6 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
       const instructionsMap = loadSpeechInstructions(configDir)
       const format = resolveSpeechFormat(provider, config.speech?.format)
-      // Cross-provider fallback is deliberately primary-only. A secondary
-      // narrator is a specific voice the user picked for this book; retrying it
-      // against another provider would quietly narrate the line in a different
-      // voice than the one they chose, which is worse than reporting the
-      // failure and letting them regenerate it.
-      const fallbackAttempts = voiceSlot === "primary"
-        ? getSingleItemFallbackAttempts({
-            openaiApiKey,
-            azureSpeechKey,
-            azureSpeechRegion,
-            elevenLabsApiKey,
-            language: normalizedLanguage,
-            providerConfigs,
-            // Overlaid the same way resolveSpeechVoice does it, so a book that
-            // overrode the fallback provider's voice narrates the retry with
-            // its own choice instead of reverting to the global mapping.
-            voiceMaps: overlayPrimaryVoices(voiceMaps, config.speech?.primary_voices),
-            defaultOpenAIModel: defaultSpeechModel,
-            primaryProvider: provider,
-          })
-        : []
       const bookDir = path.join(path.resolve(booksDir), safeLabel)
       const cacheDir = path.join(bookDir, ".cache")
 
@@ -1053,9 +972,6 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       }
 
       try {
-        let usedProvider = provider
-        const usedModel = model
-        let usedVoice = voice
         // No silent flash<->pro swap on a no-audio response. Handing back
         // audio from a model the user did not choose takes control of the
         // output away from them and hides the real problem — which is usually
@@ -1076,15 +992,15 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         appendSingleTtsLog(storage, {
           textId: textEntry.id,
           language: normalizedLanguage,
-          voice: usedVoice,
-          model: usedModel,
-          provider: usedProvider,
+          voice,
+          model,
+          provider,
           text: textEntry.text,
           durationMs: Date.now() - startMs,
           success: true,
           cached: entry.cached,
           attempt: synthesisAttempts,
-          params: logParamsFor(usedProvider, usedModel, usedVoice),
+          params: logParamsFor(provider, model, voice),
         })
 
         const mergedEntries = mergeSpeechEntry(
@@ -1131,116 +1047,31 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         }
 
         const message = err instanceof Error ? err.message : String(err)
-        let fallbackFailureMessage = message
-        let failedProvider = provider
-        let failedModel = model
-        let failedVoice = voice
-
-        if (/did not include audio data/i.test(message)) {
-          for (const attempt of fallbackAttempts) {
-            try {
-              console.warn(
-                `[tts] ${safeLabel}: retrying ${textEntry.id} with fallback provider ${attempt.provider} after Gemini returned no audio`
-              )
-              const entry = await generateEntry({
-                targetProvider: attempt.provider,
-                targetModel: attempt.model,
-                targetVoice: attempt.voice,
-              })
-
-              if (!entry) {
-                throw new HTTPException(422, {
-                  message: `Text entry is not speakable: ${textEntry.id}`,
-                })
-              }
-
-              appendSingleTtsLog(storage, {
-                textId: textEntry.id,
-                language: normalizedLanguage,
-                voice: attempt.voice,
-                model: attempt.model,
-                provider: attempt.provider,
-                text: textEntry.text,
-                durationMs: Date.now() - startMs,
-                success: true,
-                cached: entry.cached,
-                attempt: synthesisAttempts,
-                params: logParamsFor(attempt.provider, attempt.model, attempt.voice),
-              })
-
-              const mergedEntries = mergeSpeechEntry(
-                getLatestTtsEntries(storage, normalizedLanguage),
-                entry,
-                languageEntries.map((item) => item.id)
-              )
-
-              const version = storage.putNodeData(
-                "tts",
-                normalizedLanguage,
-                buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id, voiceSlot)
-              )
-
-              const completion = getTtsCompletionSummary(
-                storage,
-                config,
-                sourceLanguage,
-                voiceMaps
-              )
-              if (completion.allComplete) {
-                storage.markStepCompleted("tts")
-              } else {
-                const currentStatus = storage
-                  .getStepRuns()
-                  .find((step) => step.step === "tts")?.status
-                if (currentStatus === "error") {
-                  storage.recordStepError(
-                    "tts",
-                    `${completion.remainingItems} audio item(s) still need generation.`
-                  )
-                }
-              }
-
-              return c.json({
-                entry,
-                version,
-                completed: completion.allComplete,
-                remainingItems: completion.remainingItems,
-              })
-            } catch (fallbackErr) {
-              if (fallbackErr instanceof HTTPException) {
-                throw fallbackErr
-              }
-              const fallbackMessage =
-                fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)
-              fallbackFailureMessage = `${message}. Fallback ${attempt.provider} failed: ${fallbackMessage}`
-              failedProvider = attempt.provider
-              failedModel = attempt.model
-              failedVoice = attempt.voice
-            }
-          }
-        }
 
         appendSingleTtsLog(storage, {
           textId: textEntry.id,
           language: normalizedLanguage,
-          voice: failedVoice,
-          model: failedModel,
-          provider: failedProvider,
+          voice,
+          model,
+          provider,
           text: textEntry.text,
           durationMs: Date.now() - startMs,
           success: false,
           cached: false,
           attempt: synthesisAttempts,
-          error: fallbackFailureMessage,
-          params: logParamsFor(failedProvider, failedModel, failedVoice),
+          error: message,
+          params: logParamsFor(provider, model, voice),
         })
+        // Name the provider that actually failed. This used to say "Gemini"
+        // unconditionally, which was wrong for every other provider and sent
+        // users looking at the wrong API key.
         storage.recordStepError(
           "tts",
-          `Gemini audio generation failed for ${textEntry.id}: ${fallbackFailureMessage}`
+          `${provider} audio generation failed for ${textEntry.id}: ${message}`
         )
 
-        const status = /\(429\)|quota|rate limit/i.test(fallbackFailureMessage) ? 429 : 502
-        return c.json({ error: fallbackFailureMessage }, status)
+        const status = /\(429\)|quota|rate limit/i.test(message) ? 429 : 502
+        return c.json({ error: message }, status)
       }
     } finally {
       storage.close()

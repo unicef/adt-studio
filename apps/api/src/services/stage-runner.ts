@@ -3256,13 +3256,21 @@ async function runSpeechStep(
     //
     // Deliberately NOT tripped by every no-audio failure: a content-specific
     // refusal on one sentence says nothing about the others, and aborting the
-    // run over it would turn one bad sentence into a book with no audio.
+    // run over it would turn one bad sentence into a book with no audio. So the
+    // trip needs BOTH halves — a setting that applies to every request, and a
+    // refusal that isn't about this one request's text.
     const geminiTemperatureBelowFloor =
       config.speech?.temperature !== undefined &&
       config.speech.temperature < GEMINI_TTS_MIN_USABLE_TEMPERATURE
     let geminiSystemicFailure: string | null = null
-    const notePossiblySystemicFailure = (noAudio: boolean, msg: string): void => {
-      if (!noAudio || !geminiTemperatureBelowFloor || geminiSystemicFailure) return
+    const notePossiblySystemicFailure = (err: unknown, msg: string): void => {
+      if (!geminiTemperatureBelowFloor || geminiSystemicFailure) return
+      if (!isGeminiNoAudioFailure(err, msg)) return
+      // A hard content refusal (SAFETY/PROHIBITED_CONTENT/BLOCKLIST) is about
+      // the text of this one request. Having a low temperature configured at
+      // the same time does not make it systemic, and treating it as systemic
+      // would cost the book every remaining item over one blocked sentence.
+      if (err instanceof GeminiNoAudioError && err.kind === "blocked") return
       geminiSystemicFailure = msg
       console.warn(
         `[stage-run] ${label}: Gemini returned no audio with speech.temperature=${config.speech?.temperature}; skipping the remaining Gemini items in this run rather than repeating a request that cannot succeed`,
@@ -3282,7 +3290,11 @@ async function runSpeechStep(
       })
     }
 
-    const failPageGroup = (group: PageGroup, reason: string): void => {
+    const failPageGroup = (
+      group: PageGroup,
+      reason: string,
+      options: { announce?: boolean } = {},
+    ): void => {
       for (const e of group.entries) {
         failedItems.push(`${e.id}: ${reason}`)
         failedByLang.get(group.language)?.push({
@@ -3296,7 +3308,12 @@ async function runSpeechStep(
       // output records are per-entry. The client aggregates step errors as
       // failed pages, so emit one event rather than calling a 15-entry page
       // fifteen failed pages.
-      emitTtsFailure(group.pageKey, reason)
+      //
+      // `announce: false` is for work skipped after a systemic failure: the
+      // reason was already reported once by the request that proved it, and
+      // every extra step-error costs a toast, an assertive screen-reader
+      // announcement and a TTS refetch on the client.
+      if (options.announce !== false) emitTtsFailure(group.pageKey, reason)
     }
 
     // ── Page-batched pre-pass (Gemini) ──────────────────────────────
@@ -3339,7 +3356,7 @@ async function runSpeechStep(
           }
           if (geminiSystemicFailure) {
             const reason = skippedForSystemicFailure()
-            failPageGroup(group, reason)
+            failPageGroup(group, reason, { announce: false })
             emitPageLog({ success: false, cacheHit: false, attempt: 0, error: reason })
             completedItems += group.entries.length
             emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
@@ -3386,21 +3403,27 @@ async function runSpeechStep(
                   voiceSlot: group.voiceSlot,
                 })
               }
-              if (unaligned.length > 0) {
-                const reason =
-                  unaligned.length === 1
+              const unalignedReason =
+                unaligned.length === 0
+                  ? null
+                  : unaligned.length === 1
                     ? unaligned[0].reason
                     : `${unaligned.length} entries could not be split reliably: ${unaligned.map((u) => u.textId).join(", ")}`
-                emitTtsFailure(group.pageKey, reason)
-              }
+              if (unalignedReason) emitTtsFailure(group.pageKey, unalignedReason)
               // A page served from cache makes no request — don't reward the
               // limiter for it (mirrors the per-entry `!entry.cached` guard).
               const pageCached = entries.length > 0 && entries.every((e) => e.cached)
               if (entries.length > 0 && !pageCached) geminiTtsRateLimiter?.reward()
               emitPageLog({
-                success: true,
+                // Gemini answered, so the *call* worked — but a page that
+                // yielded no usable audio at all is a failed page from the only
+                // perspective that matters here, and the log must not show it
+                // green. A page with some usable entries stays a success and
+                // carries the unaligned ones as its error detail.
+                success: entries.length > 0 || unaligned.length === 0,
                 cacheHit: pageCached,
                 attempt,
+                ...(unalignedReason ? { error: unalignedReason } : {}),
                 // No entries AND nothing unaligned means every text in the
                 // group was unspeakable, so generatePageSpeechFiles returned
                 // early without calling the provider (speech.ts,
@@ -3443,7 +3466,7 @@ async function runSpeechStep(
               }
               console.error(`[stage-run] ${label}: page-batched TTS failed for ${group.pageKey} (${group.language}): ${msg}`)
               emitPageLog({ success: false, cacheHit: false, attempt, error: msg })
-              notePossiblySystemicFailure(noAudio, msg)
+              notePossiblySystemicFailure(err, msg)
               failPageGroup(group, msg)
               break
             }
@@ -3668,7 +3691,7 @@ async function runSpeechStep(
         }
         const msg = toErrorMessage(err)
         const durationMs = Date.now() - startMs
-        notePossiblySystemicFailure(provider === "gemini" && isGeminiNoAudioFailure(err, msg), msg)
+        if (provider === "gemini") notePossiblySystemicFailure(err, msg)
         console.error(`[stage-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
         failedItems.push(`${item.textId}: ${msg}`)
         failedByLang.get(item.language)?.push({ textId: item.textId, error: msg, voiceSlot: item.voiceSlot })
@@ -3704,7 +3727,12 @@ async function runSpeechStep(
         // as nothing at all — the stage finished "with gaps" and the reason
         // lived only in the debug log. Every provider now reports through the
         // same helper as page-batched failures.
-        emitTtsFailure(item.textId, msg)
+        //
+        // The exception is work skipped after a systemic failure: that reason
+        // was already announced by the request that proved it, and repeating it
+        // per entry would fire hundreds of toasts and refetches for one cause.
+        // The skip is still recorded in `failed` and in the progress summary.
+        if (!skipForSystemicFailure) emitTtsFailure(item.textId, msg)
       }
 
       completedItems++

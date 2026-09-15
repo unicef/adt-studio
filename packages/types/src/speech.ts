@@ -45,6 +45,14 @@ export type TTSProviderConfig = z.infer<typeof TTSProviderConfig>
  */
 export const GEMINI_TTS_MIN_USABLE_TEMPERATURE = 0.5
 
+/**
+ * Floor for `speech.batch_max_chars`. Below this a page splits into so many
+ * separate requests that the cap works against itself: Gemini's voice can
+ * differ between requests, so over-splitting reintroduces the drift the cap
+ * exists to prevent.
+ */
+export const MIN_BATCH_MAX_CHARS = 120
+
 export const SpeechProvider = z.enum(["openai", "azure", "gemini", "elevenlabs"])
 export type SpeechProvider = z.infer<typeof SpeechProvider>
 
@@ -164,7 +172,7 @@ export const SpeechConfig = z.object({
    * outputs that are longer than a few minutes" — a multi-minute page is a
    * common source of the voice changing partway through.
    */
-  batch_max_chars: z.number().int().min(120).optional(),
+  batch_max_chars: z.number().int().min(MIN_BATCH_MAX_CHARS).optional(),
   /** Text categories excluded from read-aloud (no audio generated or packaged) */
   excluded_categories: z.array(TextCatalogCategory).optional(),
   /** Individual text ids excluded from read-aloud; also mutes their `_easy_read` variants */

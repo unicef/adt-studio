@@ -415,7 +415,11 @@ describe("POST /books/:label/tts/generate-one", () => {
     expect(await res.text()).toMatch(/finishReason=OTHER/)
   })
 
-  it("falls back to OpenAI when Gemini returns no audio", async () => {
+  // Issue #846, second half of the same principle: the ADT used to re-narrate a
+  // failed entry with whatever other provider had a key, in that provider's own
+  // voice. The user then had one sentence of their book read by a narrator they
+  // never chose, with nothing to tell them so. A failure is reported instead.
+  it("does not substitute another provider when Gemini returns no audio", async () => {
     const label = "gemini-audio-openai-fallback"
     seedBook(label)
     fs.writeFileSync(
@@ -423,30 +427,12 @@ describe("POST /books/:label/tts/generate-one", () => {
       "default_speech_generation_model: tts-1-hd\n",
     )
 
-    fetchMock
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            candidates: [
-              {
-                content: {
-                  parts: [{ text: "No audio returned for this request." }],
-                },
-              },
-            ],
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
-        )
-      )
-      .mockResolvedValueOnce(
-        new Response(new Uint8Array([17, 18, 19, 20]), {
-          status: 200,
-          headers: { "Content-Type": "audio/wav" },
-        })
-      )
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ candidates: [{ finishReason: "OTHER" }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    )
 
     const app = createTTSRoutes(tmpDir, configPath)
     const res = await app.request(`/books/${label}/tts/generate-one`, {
@@ -459,54 +445,24 @@ describe("POST /books/:label/tts/generate-one", () => {
       body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
     })
 
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.entry.fileName).toBe("pg001_t001.wav")
-    expect(body.entry.provider).toBe("openai")
-    expect(body.entry.model).toBe("tts-1-hd")
-    // Two calls, not three: Gemini is tried once (no silent flash<->pro swap)
-    // before the configured cross-provider fallback takes over.
-    expect(fetchMock).toHaveBeenCalledTimes(2)
-
-    const [firstUrl] = fetchMock.mock.calls[0]
-    const [thirdUrl, thirdInit] = fetchMock.mock.calls[1]
-    expect(String(firstUrl)).toContain("gemini-2.5-flash-preview-tts")
-    expect(String(thirdUrl)).toBe("https://api.openai.com/v1/audio/speech")
-    expect(thirdInit?.headers).toMatchObject({
-      Authorization: "Bearer sk-test",
-      "Content-Type": "application/json",
-    })
-    expect(JSON.parse(String(thirdInit?.body))).toMatchObject({ model: "tts-1-hd" })
+    expect(res.status).toBe(502)
+    // One call, to Gemini. An OpenAI key being present is not consent to use it.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(String(fetchMock.mock.calls[0][0])).toContain("gemini-2.5-flash-preview-tts")
+    // And the user is told what Gemini actually said.
+    expect(await res.text()).toMatch(/finishReason=OTHER/)
   })
 
-  it("falls back to ElevenLabs when Gemini has no audio and no OpenAI/Azure keys are configured", async () => {
+  it("does not substitute ElevenLabs when Gemini returns no audio", async () => {
     const label = "gemini-audio-elevenlabs-fallback"
     seedBook(label)
 
-    fetchMock
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            candidates: [
-              {
-                content: {
-                  parts: [{ text: "No audio returned for this request." }],
-                },
-              },
-            ],
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
-        )
-      )
-      .mockResolvedValueOnce(
-        new Response(new Uint8Array([21, 22, 23, 24]), {
-          status: 200,
-          headers: { "Content-Type": "audio/mpeg" },
-        })
-      )
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ candidates: [{ finishReason: "OTHER" }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    )
 
     const app = createTTSRoutes(tmpDir, configPath)
     const res = await app.request(`/books/${label}/tts/generate-one`, {
@@ -519,15 +475,11 @@ describe("POST /books/:label/tts/generate-one", () => {
       body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
     })
 
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.entry.provider).toBe("elevenlabs")
-    // Gemini is tried once — no silent flash<->pro swap before the fallback.
-    expect(fetchMock).toHaveBeenCalledTimes(2)
-
-    const [thirdUrl, thirdInit] = fetchMock.mock.calls[1]
-    expect(String(thirdUrl)).toContain("https://api.elevenlabs.io/v1/text-to-speech/")
-    expect(thirdInit?.headers).toMatchObject({ "xi-api-key": "el-test" })
+    expect(res.status).toBe(502)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(
+      fetchMock.mock.calls.some(([url]) => String(url).includes("api.elevenlabs.io"))
+    ).toBe(false)
   })
 
   // Single-item regeneration used to hard-fail for every provider but Gemini,

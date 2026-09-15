@@ -126,6 +126,48 @@ describe("computeEntryTimeRanges alignment reporting", () => {
     expect(ranges.map((r) => r.matchedTokens)).toEqual([2, 2])
   })
 
+  // matchedTokens drives the wording the user is shown ("none of its words were
+  // heard" vs "the slice is too short"), so it has to be counted, not assumed.
+  it("reports 0 matched tokens for a lone entry whose words were never heard", () => {
+    const ranges = computeEntryTimeRanges(
+      [{ id: "solo", text: "uno dos tres" }],
+      [W("completely", 0, 0.4), W("different", 0.4, 0.8)],
+      2.0,
+    )
+
+    expect(ranges[0].matchedTokens).toBe(0)
+  })
+
+  it("counts only the tokens a lone entry actually shares with the audio", () => {
+    const ranges = computeEntryTimeRanges(
+      [{ id: "solo", text: "uno dos tres" }],
+      [W("uno", 0, 0.4), W("tres", 0.4, 0.8)],
+      2.0,
+    )
+
+    expect(ranges[0].matchedTokens).toBe(2)
+  })
+
+  // Entry 0 always starts at 0 whether or not Whisper heard it, so it used to
+  // be labelled "aligned" unconditionally — claiming a provenance it doesn't
+  // have. It still gets written (its audio really is at the top of the file);
+  // the label just stops overstating what we know.
+  it("does not claim a first entry is aligned when none of its words were heard", () => {
+    const ranges = computeEntryTimeRanges(
+      [
+        { id: "a", text: "never narrated" },
+        { id: "b", text: "Goodbye now" },
+      ],
+      [W("Goodbye", 1.0, 1.4), W("now", 1.4, 1.8)],
+      2.0,
+    )
+
+    expect(ranges[0].matchedTokens).toBe(0)
+    expect(ranges[0].alignment).toBe("interpolated")
+    // Still written — this is a labelling fix, not a new refusal.
+    expect(ranges[0].end).toBeGreaterThan(ranges[0].start)
+  })
+
   it("interpolates, rather than collapsing, an entry Whisper simply missed", () => {
     const ranges = computeEntryTimeRanges(
       [

@@ -6932,8 +6932,11 @@ msgstr "faqet {shownStr}"
 msgid "Pages in the selected range"
 msgstr "Faqet në intervalin e zgjedhur"
 
-msgid "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. Leave empty to send each page as one request however long it is."
-msgstr "Faqet më të gjata se kjo ndahen në disa kërkesa, në kufijtë e fjalive. Zëri i Gemini-t priret të ndryshojë kur një regjistrim i vetëm i kalon disa minuta, prandaj kufizimi i gjatësisë bën që një faqe e gjatë të tingëllojë si një narrator i vetëm. Lëreni bosh që çdo faqe të dërgohet si një kërkesë e vetme, sado e gjatë të jetë."
+#~ msgid "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. Leave empty to send each page as one request however long it is."
+#~ msgstr "Faqet më të gjata se kjo ndahen në disa kërkesa, në kufijtë e fjalive. Zëri i Gemini-t priret të ndryshojë kur një regjistrim i vetëm i kalon disa minuta, prandaj kufizimi i gjatësisë bën që një faqe e gjatë të tingëllojë si një narrator i vetëm. Lëreni bosh që çdo faqe të dërgohet si një kërkesë e vetme, sado e gjatë të jetë."
+
+msgid "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. The trade-off is more requests: Gemini's voice can also differ between separate requests, so a low cap can cause the very drift you are trying to avoid. Leave empty to send each page as one request however long it is."
+msgstr "Faqet më të gjata se kjo ndahen në disa kërkesa, në kufijtë e fjalive. Zëri i Gemini-t priret të ndryshojë kur një regjistrim i vetëm i kalon disa minuta, prandaj kufizimi i gjatësisë bën që një faqe e gjatë të tingëllojë si një narrator i vetëm. Shkëmbimi është më shumë kërkesa: zëri i Gemini-t mund të ndryshojë edhe mes kërkesave të veçanta, ndaj një kufi i ulët mund të shkaktojë pikërisht ndryshimin që po përpiqeni ta shmangni. Lëreni bosh që çdo faqe të dërgohet si një kërkesë e vetme, sado e gjatë të jetë."
 
 msgid "pages per quiz"
 msgstr "faqe për kuiz"
@@ -10618,6 +10621,9 @@ msgstr "Vërtetim"
 #. placeholder {0}: data.validationErrors.length
 msgid "Validation Errors ({0})"
 msgstr "Gabime vërtetimi ({0})"
+
+msgid "Values below {MIN_BATCH_MAX_CHARS} are raised to {MIN_BATCH_MAX_CHARS} when you save — below that a page splits into so many requests that the voice is more likely to change, not less."
+msgstr "Vlerat nën {MIN_BATCH_MAX_CHARS} ngrihen në {MIN_BATCH_MAX_CHARS} kur ruani — nën atë vlerë një faqe ndahet në aq shumë kërkesa sa zëri ka më shumë gjasa të ndryshojë, jo më pak."
 
 msgid "Variables"
 msgstr "Variabla"

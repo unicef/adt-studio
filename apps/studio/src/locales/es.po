@@ -6930,8 +6930,11 @@ msgstr "páginas {shownStr}"
 msgid "Pages in the selected range"
 msgstr "Páginas del intervalo seleccionado"
 
-msgid "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. Leave empty to send each page as one request however long it is."
-msgstr "Las páginas más largas que esto se dividen en varias solicitudes, en los límites de las frases. La voz de Gemini tiende a variar cuando una misma grabación supera unos minutos, así que limitar la longitud hace que una página larga suene como un solo narrador. Déjalo vacío para enviar cada página en una sola solicitud, sea cual sea su longitud."
+#~ msgid "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. Leave empty to send each page as one request however long it is."
+#~ msgstr "Las páginas más largas que esto se dividen en varias solicitudes, en los límites de las frases. La voz de Gemini tiende a variar cuando una misma grabación supera unos minutos, así que limitar la longitud hace que una página larga suene como un solo narrador. Déjalo vacío para enviar cada página en una sola solicitud, sea cual sea su longitud."
+
+msgid "Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. The trade-off is more requests: Gemini's voice can also differ between separate requests, so a low cap can cause the very drift you are trying to avoid. Leave empty to send each page as one request however long it is."
+msgstr "Las páginas más largas que esto se dividen en varias solicitudes, en los límites de las frases. La voz de Gemini tiende a variar cuando una misma grabación supera unos minutos, así que limitar la longitud hace que una página larga suene como un solo narrador. La contrapartida son más solicitudes: la voz de Gemini también puede variar entre solicitudes distintas, así que un límite bajo puede provocar justo la variación que intentas evitar. Déjalo vacío para enviar cada página en una sola solicitud, sea cual sea su longitud."
 
 msgid "pages per quiz"
 msgstr "páginas por cuestionario"
@@ -10616,6 +10619,9 @@ msgstr "Validación"
 #. placeholder {0}: data.validationErrors.length
 msgid "Validation Errors ({0})"
 msgstr "Errores de validación ({0})"
+
+msgid "Values below {MIN_BATCH_MAX_CHARS} are raised to {MIN_BATCH_MAX_CHARS} when you save — below that a page splits into so many requests that the voice is more likely to change, not less."
+msgstr "Los valores inferiores a {MIN_BATCH_MAX_CHARS} se elevan a {MIN_BATCH_MAX_CHARS} al guardar: por debajo de esa cifra, una página se divide en tantas solicitudes que es más probable que la voz cambie, no menos."
 
 msgid "Variables"
 msgstr "Variables"

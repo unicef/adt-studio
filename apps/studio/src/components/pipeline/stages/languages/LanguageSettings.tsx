@@ -10,7 +10,7 @@ import {
   type SpeechProvider,
   type StageName,
 } from "@adt/types"
-import { DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL, GEMINI_TTS_MIN_USABLE_TEMPERATURE } from "@adt/types"
+import { DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL, GEMINI_TTS_MIN_USABLE_TEMPERATURE, MIN_BATCH_MAX_CHARS } from "@adt/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -461,8 +461,12 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
         temperature: geminiTemperature.trim() && Number.isFinite(tempRaw) ? Math.min(2, Math.max(0, tempRaw)) : undefined,
         seed: geminiSeed.trim() && Number.isFinite(seedRaw) ? Math.trunc(seedRaw) : undefined,
         batch_by_page: batchByPage || undefined,
+        // Saved independently of batch_by_page. The field is only *shown* when
+        // page batching is on, but dropping the value when the switch goes off
+        // would silently lose a setting the user typed — they'd turn batching
+        // back on and find it gone. It is inert while batching is off anyway.
         batch_max_chars:
-          batchByPage && batchMaxChars.trim() !== "" && Number.isFinite(Number(batchMaxChars))
+          batchMaxChars.trim() !== "" && Number.isFinite(Number(batchMaxChars))
             ? Math.max(120, Math.trunc(Number(batchMaxChars)))
             : undefined,
         word_highlighting: wordHighlighting,
@@ -1410,6 +1414,14 @@ function SpeechLanguageCards({
     Number.isFinite(parsedGeminiTemperature) &&
     parsedGeminiTemperature < GEMINI_TTS_MIN_USABLE_TEMPERATURE
 
+  // Saving clamps to the schema minimum. Say so while it's being typed rather
+  // than changing the number under the user after they hit save.
+  const parsedBatchMaxChars = Number.parseFloat(batchMaxChars)
+  const isBelowBatchMaxCharsFloor =
+    batchMaxChars.trim() !== "" &&
+    Number.isFinite(parsedBatchMaxChars) &&
+    parsedBatchMaxChars < MIN_BATCH_MAX_CHARS
+
   // A provider with no key can be picked here but fails the whole Speech run
   // on the first item it reaches, so mirror the Speech landing page and offer
   // only the providers this browser actually holds a credential for.
@@ -1988,8 +2000,13 @@ function SpeechLanguageCards({
                 inputMode="numeric"
                 className="w-32 h-8 text-xs"
               />
+              {isBelowBatchMaxCharsFloor && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-500">
+                  {t`Values below ${MIN_BATCH_MAX_CHARS} are raised to ${MIN_BATCH_MAX_CHARS} when you save — below that a page splits into so many requests that the voice is more likely to change, not less.`}
+                </p>
+              )}
               <p className="text-[11px] text-muted-foreground">
-                {t`Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. Leave empty to send each page as one request however long it is.`}
+                {t`Pages longer than this are split into several requests, at sentence boundaries. Gemini's voice tends to drift once a single recording runs past a few minutes, so capping the length keeps a long page sounding like one narrator. The trade-off is more requests: Gemini's voice can also differ between separate requests, so a low cap can cause the very drift you are trying to avoid. Leave empty to send each page as one request however long it is.`}
               </p>
             </div>
           )}
