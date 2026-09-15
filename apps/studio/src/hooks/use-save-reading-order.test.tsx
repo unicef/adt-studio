@@ -1,0 +1,235 @@
+// @vitest-environment jsdom
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { renderHook, waitFor } from "@testing-library/react"
+import type { ReactNode } from "react"
+import { toast } from "sonner"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import { api, type ReadingOrderEntry, type ReadingOrderResponse } from "@/api/client"
+import { readingOrderKey, useSaveReadingOrder, useResetReadingOrder } from "./use-reading-order"
+
+vi.mock("@/api/client", () => ({
+  api: { updateReadingOrder: vi.fn(), resetReadingOrder: vi.fn() },
+}))
+
+// This file is not compiled with the lingui macro plugin, so the macro has to
+// be stubbed the way the component tests stub it.
+vi.mock("@lingui/react/macro", () => ({
+  useLingui: () => ({
+    t(strings: TemplateStringsArray, ...values: unknown[]) {
+      return strings.reduce(
+        (text, part, i) => text + part + (i < values.length ? String(values[i]) : ""),
+        "",
+      )
+    },
+  }),
+}))
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+
+const label = "test-book"
+
+function entries(ids: string): ReadingOrderEntry[] {
+  return ids.split(" ").map((id) => ({ kind: "section", id }))
+}
+
+/**
+ * Three slots, of which "b" is out of the book: it holds a place in `order`
+ * but has no rendered item and takes no book-page number. That asymmetry is
+ * the whole reason the optimistic update cannot simply mirror the saved list.
+ */
+function cached(): ReadingOrderResponse {
+  return {
+    version: 4,
+    fromStoredOrder: true,
+    reconciled: false,
+    added: [],
+    dropped: [],
+    items: [
+      { kind: "section", id: "a", href: "a.html", position: 1, pageId: "pg001", pageNumber: 1 },
+      { kind: "section", id: "c", href: "c.html", position: 2, pageId: "pg003", pageNumber: 3 },
+    ],
+    order: entries("a b c"),
+  }
+}
+
+function setup() {
+  const queryClient = new QueryClient({
+    defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
+  })
+  queryClient.setQueryData(readingOrderKey(label), cached())
+  const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries")
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+  const { result } = renderHook(() => useSaveReadingOrder(label), { wrapper })
+  const read = () => queryClient.getQueryData<ReadingOrderResponse>(readingOrderKey(label))!
+  return { result, queryClient, invalidateQueries, read }
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
+
+describe("useSaveReadingOrder", () => {
+  it("moves the row in the cache before the request lands", async () => {
+    // Without this the row visibly snaps back to its old slot until the
+    // refetch arrives, which reads as the drag having failed.
+    let resolveSave: (value: { version: number }) => void = () => {}
+    vi.mocked(api.updateReadingOrder).mockReturnValue(
+      new Promise((resolve) => {
+        resolveSave = resolve
+      }),
+    )
+
+    const { result, read } = setup()
+    result.current.mutate({ items: entries("c b a"), expectedVersion: 4 })
+
+    await waitFor(() => {
+      expect(read().order.map((e) => e.id)).toEqual(["c", "b", "a"])
+    })
+    // Still in flight, and the cache already shows the new sequence.
+    expect(vi.mocked(api.updateReadingOrder)).toHaveBeenCalledWith(label, entries("c b a"), 4)
+
+    resolveSave({ version: 5 })
+  })
+
+  it("renumbers only the pages the book actually shows", async () => {
+    vi.mocked(api.updateReadingOrder).mockResolvedValue({ version: 5 })
+
+    const { result, read } = setup()
+    result.current.mutate({ items: entries("c b a"), expectedVersion: 4 })
+
+    await waitFor(() => {
+      // "b" is out of the book: it keeps its slot in `order` but never appears
+      // in `items`, and the positions run 1..n over what is left.
+      expect(read().items.map((i) => `${i.id}@${String(i.position)}`)).toEqual(["c@1", "a@2"])
+    })
+  })
+
+  it("puts the previous order back when the save fails", async () => {
+    // A rejected save (a 409 from a concurrent edit, most likely) must not
+    // leave the sidebar showing an order the server does not have.
+    vi.mocked(api.updateReadingOrder).mockRejectedValue(new Error("conflict"))
+
+    const { result, read } = setup()
+    result.current.mutate({ items: entries("c b a"), expectedVersion: 4 })
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true)
+    })
+    expect(read().order.map((e) => e.id)).toEqual(["a", "b", "c"])
+    expect(read().items.map((i) => i.id)).toEqual(["a", "c"])
+  })
+
+  it("refreshes the order and the two things a reorder invalidates", async () => {
+    vi.mocked(api.updateReadingOrder).mockResolvedValue({ version: 5 })
+
+    const { result, invalidateQueries } = setup()
+    result.current.mutate({ items: entries("c b a"), expectedVersion: 4 })
+
+    await waitFor(() => {
+      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: readingOrderKey(label) })
+    })
+    // The bundle and its accessibility assessment are stale server-side.
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["books", label, "step-status"],
+    })
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["package-adt-status", label] })
+    // Nothing else about the book changed: a reorder must not throw away the
+    // user's generated speech, translations or glossary.
+    const keys = invalidateQueries.mock.calls.map((c) => JSON.stringify(c[0]))
+    expect(keys.some((k) => k.includes("text-catalog"))).toBe(false)
+    expect(keys.some((k) => k.includes("tts"))).toBe(false)
+  })
+
+  it("says why a save was refused instead of silently sliding the row back", async () => {
+    // The rollback alone reads as the drag having missed. The server's 409
+    // names the steps in the way, so it is the message worth showing.
+    vi.mocked(api.updateReadingOrder).mockRejectedValue(
+      new Error("Cannot change the reading order while these steps are running: web-rendering."),
+    )
+
+    const { result } = setup()
+    result.current.mutate({ items: entries("c b a"), expectedVersion: 4 })
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "Cannot change the reading order while these steps are running: web-rendering.",
+      )
+    })
+  })
+
+  it("still refreshes after a failed save", async () => {
+    // onSettled, not onSuccess — otherwise a failure leaves the cache holding
+    // the rolled-back order with no refetch to correct it.
+    vi.mocked(api.updateReadingOrder).mockRejectedValue(new Error("conflict"))
+
+    const { result, invalidateQueries } = setup()
+    result.current.mutate({ items: entries("c b a"), expectedVersion: 4 })
+
+    await waitFor(() => {
+      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: readingOrderKey(label) })
+    })
+  })
+})
+
+describe("useResetReadingOrder", () => {
+  function setupReset() {
+    const queryClient = new QueryClient({
+      defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
+    })
+    queryClient.setQueryData(readingOrderKey(label), cached())
+    const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries")
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+    const { result } = renderHook(() => useResetReadingOrder(label), { wrapper })
+    const read = () => queryClient.getQueryData<ReadingOrderResponse>(readingOrderKey(label))!
+    return { result, invalidateQueries, read }
+  }
+
+  it("refetches the order rather than guessing it", async () => {
+    // Which sequence a reset produces is the server's to decide — it recomputes
+    // the source-derived order from what the book currently holds. Predicting
+    // it here would mean a second copy of `defaultReadingOrder` in the client.
+    vi.mocked(api.resetReadingOrder).mockResolvedValue({ version: 5 })
+
+    const { result, invalidateQueries, read } = setupReset()
+    result.current.mutate()
+
+    await waitFor(() => {
+      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: readingOrderKey(label) })
+    })
+    expect(api.resetReadingOrder).toHaveBeenCalledWith(label)
+    // The cache was left alone until the refetch — no optimistic rewrite.
+    expect(read().order.map((e) => e.id)).toEqual(["a", "b", "c"])
+  })
+
+  it("invalidates the bundle but not the storyboard chain", async () => {
+    // A reset re-sequences the book; it changes no text, no catalog id and no
+    // audio, exactly like any other reorder.
+    vi.mocked(api.resetReadingOrder).mockResolvedValue({ version: 5 })
+
+    const { result, invalidateQueries } = setupReset()
+    result.current.mutate()
+
+    await waitFor(() => {
+      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["package-adt-status", label] })
+    })
+    const keys = invalidateQueries.mock.calls.map((c) => JSON.stringify(c[0]))
+    expect(keys.some((k) => k.includes("text-catalog"))).toBe(false)
+    expect(keys.some((k) => k.includes("tts"))).toBe(false)
+  })
+
+  it("leaves the cached order untouched when the reset fails", async () => {
+    vi.mocked(api.resetReadingOrder).mockRejectedValue(new Error("step running"))
+
+    const { result, read } = setupReset()
+    result.current.mutate()
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true)
+    })
+    expect(read().order.map((e) => e.id)).toEqual(["a", "b", "c"])
+  })
+})

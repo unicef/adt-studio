@@ -1,0 +1,248 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useLingui } from "@lingui/react/macro"
+import { toast } from "sonner"
+import { READING_ORDER_BLOCKING_STEPS, type StepName } from "@adt/types"
+import { api, type ReadingOrderEntry, type ReadingOrderResponse } from "@/api/client"
+import type { StepState } from "./use-book-run"
+
+export function readingOrderKey(label: string) {
+  return ["books", label, "reading-order"] as const
+}
+
+/**
+ * Re-seat a pending arrangement on the book's current slots, or null when it
+ * already sits on them.
+ *
+ * A structural edit — clone, split, merge, delete — writes to the server
+ * immediately, while a rearrangement is held as a pending change. So the book
+ * can gain or lose a slot while the draft is a list of the slots it *used to*
+ * have. The save is then refused for good, because the PUT demands an exact
+ * permutation, and no amount of further dragging can add the missing id: the
+ * only way out was Discard, which threw the arrangement away.
+ *
+ * The server's order is consulted only for which slots exist and for where to
+ * seat a new one — next to the slot it follows there. Everything the user
+ * arranged keeps the order they gave it.
+ */
+export function rebaseReadingOrderDraft(
+  draft: readonly ReadingOrderEntry[],
+  order: readonly ReadingOrderEntry[],
+): ReadingOrderEntry[] | null {
+  const live = new Set(order.map((entry) => entry.id))
+  const seated = draft.filter((entry) => live.has(entry.id))
+  const seatedIds = new Set(seated.map((entry) => entry.id))
+  if (seated.length === draft.length && seatedIds.size === live.size) return null
+
+  const next = [...seated]
+  order.forEach((entry, index) => {
+    if (seatedIds.has(entry.id)) return
+    // The nearest slot before it that the draft already holds. Anchoring to a
+    // neighbour rather than to a raw index keeps a run of new slots together
+    // and in the order the server gave them.
+    let at = 0
+    for (let i = index - 1; i >= 0; i--) {
+      const anchor = order[i]
+      if (!seatedIds.has(anchor.id)) continue
+      at = next.findIndex((seat) => seat.id === anchor.id) + 1
+      break
+    }
+    next.splice(at, 0, entry)
+    seatedIds.add(entry.id)
+  })
+  return next
+}
+
+/**
+ * The running step that makes the server refuse a reorder, or null when
+ * rearranging is allowed.
+ *
+ * Reads the very set the API's save guard reads, so the controls grey out
+ * exactly when a save would be refused. Gating on "the storyboard stage is
+ * running" instead — which is what both surfaces used to do — offered the
+ * controls during a quiz, extract or sectioning run and then failed on Save.
+ *
+ * Takes `stepState` (from `useBookRun`) rather than reading the context itself,
+ * so the rule is testable without a provider and this module stays free of the
+ * run-state import.
+ */
+export function blockingReadingOrderStep(
+  stepState: (step: string) => StepState,
+): StepName | null {
+  for (const step of READING_ORDER_BLOCKING_STEPS) {
+    if (stepState(step) === "running") return step
+  }
+  return null
+}
+
+export function useReadingOrder(label: string) {
+  return useQuery({
+    queryKey: readingOrderKey(label),
+    queryFn: () => api.getReadingOrder(label),
+    enabled: !!label,
+  })
+}
+
+/** Move `id` to `toIndex` within `order`, accounting for the removal shift. */
+export function moveReadingOrderItem(
+  order: readonly ReadingOrderEntry[],
+  id: string,
+  toIndex: number,
+): ReadingOrderEntry[] {
+  const from = order.findIndex((entry) => entry.id === id)
+  if (from === -1) return [...order]
+  const next = [...order]
+  const [moved] = next.splice(from, 1)
+  // Removing the item first shifts every later position down by one, so a
+  // target that was after the original index has to come back by one too.
+  next.splice(from < toIndex ? toIndex - 1 : toIndex, 0, moved)
+  return next
+}
+
+/**
+ * Position in `order` just after the last row a screen draws, or -1 when there
+ * is no such row to anchor to.
+ */
+function afterLastRow(order: readonly ReadingOrderEntry[], rowIds: readonly string[]): number {
+  const lastId = rowIds[rowIds.length - 1]
+  if (lastId == null) return -1
+  const index = order.findIndex((entry) => entry.id === lastId)
+  return index < 0 ? -1 : index + 1
+}
+
+/**
+ * Move `id` by `delta` rows of a displayed list, expressed against the stored
+ * order. Returns null when the move is a no-op.
+ *
+ * The two are not the same list: `order` holds every slot, while `rowIds` is
+ * what a given screen could actually resolve and draw. So a step is measured in
+ * rows the user can see and then anchored back onto the row it should land
+ * beside, rather than applied to `order` as a raw offset — otherwise a slot the
+ * screen skipped would silently swallow the step.
+ *
+ * Shared by the storyboard sidebar and the overview's book-order view, which
+ * display different subsets and must still agree on what "move down" means.
+ */
+export function moveReadingOrderRow(
+  order: readonly ReadingOrderEntry[],
+  rowIds: readonly string[],
+  id: string,
+  delta: number,
+): ReadingOrderEntry[] | null {
+  const from = rowIds.indexOf(id)
+  if (from < 0) return null
+
+  // Stepping down needs +1 on top of the step: the item leaves its own slot
+  // before being reinserted, so landing "after the next row" is index from + 2.
+  const toRow = delta > 0 ? from + 2 : from - 1
+  const anchorId = rowIds[Math.max(0, Math.min(toRow, rowIds.length))]
+  // Stepping onto the last displayed row leaves no row to anchor to. Land just
+  // after that row rather than at the end of `order`: a slot trailing the last
+  // visible row — an end-of-book quiz, say — belongs after the row that moved,
+  // and the screen that made the move could not show it being jumped.
+  const target =
+    anchorId != null
+      ? order.findIndex((entry) => entry.id === anchorId)
+      : afterLastRow(order, rowIds)
+  if (target < 0) return null
+
+  const next = moveReadingOrderItem(order, id, target)
+  if (next.every((entry, index) => entry.id === order[index]?.id)) return null
+  return next
+}
+
+/**
+ * Save a reordering, updating the cache before the request lands so the row
+ * doesn't visibly snap back to its old slot while the save is in flight.
+ * Restores the previous cache entry if the save fails.
+ */
+export function useSaveReadingOrder(label: string) {
+  const queryClient = useQueryClient()
+  const { t } = useLingui()
+
+  return useMutation({
+    mutationFn: ({
+      items,
+      expectedVersion,
+    }: {
+      items: ReadingOrderEntry[]
+      expectedVersion: number | null
+    }) => api.updateReadingOrder(label, items, expectedVersion),
+
+    onMutate: async ({ items }) => {
+      await queryClient.cancelQueries({ queryKey: readingOrderKey(label) })
+      const previous = queryClient.getQueryData<ReadingOrderResponse>(readingOrderKey(label))
+      if (previous) {
+        const byId = new Map(previous.items.map((item) => [item.id, item]))
+        // Excluded (pruned) ids hold a slot in `order` but have no rendered
+        // item, so the visible list is the saved order filtered through what
+        // was actually being shown.
+        const nextItems = items
+          .flatMap((entry) => {
+            const item = byId.get(entry.id)
+            return item ? [item] : []
+          })
+          .map((item, index) => ({ ...item, position: index + 1 }))
+        queryClient.setQueryData<ReadingOrderResponse>(readingOrderKey(label), {
+          ...previous,
+          items: nextItems,
+          order: items,
+        })
+      }
+      return { previous }
+    },
+
+    onError: (error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(readingOrderKey(label), context.previous)
+      }
+      // Without this the row just slides back to where it was, which reads as
+      // the drag having missed rather than the save having been refused. The
+      // server's message says which steps are in the way, so pass it through.
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : t`Couldn't save the new page order. Please try again.`,
+      )
+    },
+
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: readingOrderKey(label) })
+      // The packaged bundle and its accessibility assessment were invalidated
+      // server-side; nothing else about the book changed.
+      void queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
+      void queryClient.invalidateQueries({ queryKey: ["package-adt-status", label] })
+    },
+  })
+}
+
+/**
+ * Put the book back in source-PDF order.
+ *
+ * The entity does not exist until the first reorder, so its v1 is already a
+ * rearrangement and the version history has nothing representing the order the
+ * book started in. This is the way back, and it saves a new version rather than
+ * deleting the entity so the arrangement it replaces stays recoverable.
+ *
+ * No optimistic update: the resulting order is the server's to compute, and
+ * guessing it here would mean duplicating `defaultReadingOrder` in the client.
+ */
+export function useResetReadingOrder(label: string) {
+  const queryClient = useQueryClient()
+  const { t } = useLingui()
+
+  return useMutation({
+    mutationFn: () => api.resetReadingOrder(label),
+    onError: (error) => {
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : t`Couldn't restore the original page order. Please try again.`,
+      )
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: readingOrderKey(label) })
+      void queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
+      void queryClient.invalidateQueries({ queryKey: ["package-adt-status", label] })
+    },
+  })
+}

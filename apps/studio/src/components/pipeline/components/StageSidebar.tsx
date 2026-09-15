@@ -17,7 +17,9 @@ import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
+import type { StepName } from "@adt/types"
 import { useBookRun } from "@/hooks/use-book-run"
+import { blockingReadingOrderStep } from "@/hooks/use-reading-order"
 import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
@@ -78,7 +80,11 @@ export function StageSidebar({
   const { i18n } = useLingui()
   const matchRoute = useMatchRoute()
   const search = useSearch({ strict: false }) as { tab?: string }
-  const { stageState, cancelRun, isCancelling } = useBookRun()
+  const { stageState, stepState, cancelRun, isCancelling } = useBookRun()
+  // Which running step, if any, would make the server refuse a reorder. Read
+  // from the shared set rather than from this stage's own state, so the
+  // controls grey out exactly when a save would be refused.
+  const reorderBlockedBy = blockingReadingOrderStep(stepState)
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
   const { data: signLanguageData } = useSignLanguageVideos(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel)
@@ -430,6 +436,7 @@ export function StageSidebar({
                 sectionIndex={sectionIndex}
                 onSelectSection={onSelectSection}
                 stageRunning={currentState === "running"}
+                reorderBlockedBy={reorderBlockedBy}
               />
             ) : (
               <PageIndex
@@ -636,6 +643,7 @@ function StoryboardSidebarBridge({
   sectionIndex,
   onSelectSection,
   stageRunning,
+  reorderBlockedBy,
 }: {
   bookLabel: string
   selectedPageId?: string
@@ -643,6 +651,7 @@ function StoryboardSidebarBridge({
   sectionIndex?: number
   onSelectSection?: (index: number) => void
   stageRunning?: boolean
+  reorderBlockedBy?: StepName | null
 }) {
   const { i18n } = useLingui()
   const navigate = useNavigate()
@@ -692,6 +701,7 @@ function StoryboardSidebarBridge({
       sectionIndex={sectionIndex}
       onSelectSection={handleSelectSection}
       stageRunning={stageRunning}
+      reorderBlockedBy={reorderBlockedBy}
     />
   )
 }

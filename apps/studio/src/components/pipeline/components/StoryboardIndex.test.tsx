@@ -1,0 +1,660 @@
+// @vitest-environment jsdom
+import { afterEach, describe, expect, it, vi } from "vitest"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import type { ReadingOrderResponse } from "@/api/client"
+
+const setDraft = vi.fn()
+const pruneMutate = vi.fn()
+const resetMutate = vi.fn()
+const discard = vi.fn()
+
+/**
+ * The last props the picker was rendered with, so a test can fire the two
+ * entry points that leave the sidebar entirely: restoring a version and the
+ * "Original — PDF order" footer action.
+ */
+let pickerProps: {
+  onRestored?: () => void
+  footerAction?: { onSelect: () => void }
+} = {}
+
+vi.mock("@lingui/react/macro", () => ({
+  Trans: ({ children }: { children?: React.ReactNode }) => children ?? null,
+  useLingui: () => ({
+    t(strings: TemplateStringsArray, ...values: unknown[]) {
+      return strings.reduce(
+        (text, part, i) => text + part + (i < values.length ? String(values[i]) : ""),
+        "",
+      )
+    },
+  }),
+}))
+vi.mock("@lingui/react", () => ({
+  useLingui: () => ({ i18n: { _: (m: { message?: string }) => m.message ?? "" } }),
+}))
+vi.mock("@lingui/core/macro", () => ({ msg: (s: unknown) => ({ message: String(s) }) }))
+
+vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }))
+
+// The list is virtualized off a scroll container, and jsdom gives every element
+// zero height — so the real virtualizer would render no rows at all. Render them
+// all instead; this test is about the drag arithmetic, not windowing.
+vi.mock("@tanstack/react-virtual", () => ({
+  useVirtualizer: ({ count }: { count: number }) => ({
+    getTotalSize: () => count * 76,
+    getVirtualItems: () =>
+      Array.from({ length: count }, (_, index) => ({ index, key: index, start: index * 76 })),
+    measureElement: () => {},
+    scrollToIndex: () => {},
+  }),
+}))
+
+const PAGES = [
+  {
+    pageId: "pg001",
+    pageNumber: 1,
+    sectionCount: 1,
+    hasRendering: true,
+    renderingVersion: 1,
+    sectioningVersion: 1,
+    prunedSections: [],
+    sections: [
+      {
+        sectionId: "pg001_sec001",
+        sectionIndex: 0,
+        sectionType: "content",
+        isActivity: false,
+        isPruned: false,
+        textPreview: "First page",
+      },
+    ],
+  },
+  {
+    pageId: "pg002",
+    pageNumber: 2,
+    sectionCount: 1,
+    hasRendering: true,
+    renderingVersion: 1,
+    sectioningVersion: 1,
+    prunedSections: [],
+    sections: [
+      {
+        sectionId: "pg002_sec001",
+        sectionIndex: 0,
+        sectionType: "content",
+        isActivity: false,
+        isPruned: false,
+        textPreview: "Second page",
+      },
+    ],
+  },
+  {
+    pageId: "pg003",
+    pageNumber: 3,
+    sectionCount: 1,
+    hasRendering: true,
+    renderingVersion: 1,
+    sectioningVersion: 1,
+    prunedSections: [],
+    sections: [
+      {
+        sectionId: "pg003_sec001",
+        sectionIndex: 0,
+        sectionType: "content",
+        isActivity: false,
+        isPruned: true,
+        textPreview: "Removed page",
+      },
+    ],
+  },
+]
+
+const READING_ORDER: ReadingOrderResponse = {
+  version: 4,
+  fromStoredOrder: true,
+  reconciled: false,
+  added: [],
+  dropped: [],
+  unreadable: [],
+  // pg003_sec001 is removed from the book: it holds a slot but is not rendered.
+  items: [
+    { kind: "section", id: "pg001_sec001", href: "pg001_sec001.html", position: 1, pageId: "pg001", pageNumber: 1 },
+    { kind: "section", id: "pg002_sec001", href: "pg002_sec001.html", position: 2, pageId: "pg002", pageNumber: 2 },
+  ],
+  order: [
+    { kind: "section", id: "pg001_sec001" },
+    { kind: "section", id: "pg003_sec001" },
+    { kind: "section", id: "pg002_sec001" },
+  ],
+}
+
+vi.mock("@/hooks/use-pages", () => ({
+  usePages: () => ({ data: PAGES }),
+  usePageImage: () => ({ data: null, isLoading: false }),
+}))
+/**
+ * Overridable per test: most cases want the plain three-section book above,
+ * but quiz rows and the announcement need a different one.
+ */
+let quizzesData: unknown = null
+let readingOrderData: ReadingOrderResponse = READING_ORDER
+/** Overridable per test, for the in-flight and failed cases. */
+let readingOrderState: {
+  data: ReadingOrderResponse | undefined
+  isLoading: boolean
+  isError: boolean
+} | null = null
+
+vi.mock("@/hooks/use-quizzes", () => ({ useQuizzes: () => ({ data: quizzesData }) }))
+vi.mock("@/hooks/use-reading-order", async () => {
+  const actual = await vi.importActual<typeof import("@/hooks/use-reading-order")>(
+    "@/hooks/use-reading-order",
+  )
+  return {
+    ...actual,
+    useReadingOrder: () =>
+      readingOrderState ?? { data: readingOrderData, isLoading: false, isError: false },
+    useResetReadingOrder: () => ({ mutate: resetMutate, isPending: false }),
+  }
+})
+// Moves are held as a pending change now, not saved on the spot, so what each
+// interaction is asserted to produce is the draft it hands up.
+vi.mock("@/hooks/use-reading-order-draft", () => ({
+  useReadingOrderDraft: () => ({ draft: null, setDraft, discard, saving: false }),
+}))
+vi.mock("@/api/client", () => ({ getSectionScreenshotUrl: () => "screenshot.png" }))
+vi.mock("@/hooks/use-toggle-prune", () => ({
+  useTogglePrune: () => ({ mutate: pruneMutate, isPending: false }),
+}))
+vi.mock("./VersionPicker", () => ({
+  VersionPicker: (props: typeof pickerProps) => {
+    pickerProps = props
+    return null
+  },
+}))
+vi.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+}))
+
+const { StoryboardIndex, READING_ORDER_DRAG_TYPE } = await import("./StoryboardIndex")
+const { LiveRegionAnnouncer } = await import("@/components/a11y/LiveRegionAnnouncer")
+
+function createDataTransfer() {
+  const values = new Map<string, string>()
+  return {
+    effectAllowed: "none",
+    dropEffect: "none",
+    get types() {
+      return [...values.keys()]
+    },
+    setData(type: string, value: string) {
+      values.set(type, value)
+    },
+    getData(type: string) {
+      return values.get(type) ?? ""
+    },
+  }
+}
+
+/** Row wrappers are the draggable elements; each wraps one row button. */
+function rows(): HTMLElement[] {
+  return Array.from(document.querySelectorAll<HTMLElement>("[data-index]"))
+}
+
+/**
+ * jsdom has no DragEvent constructor, so `fireEvent.drop(el, { clientY })` never
+ * reaches the handler — build the event explicitly instead. The before/after
+ * split is the whole behaviour under test, so it has to be stated exactly.
+ */
+function fireDrag(
+  el: HTMLElement,
+  type: "dragstart" | "dragover" | "drop",
+  dataTransfer: ReturnType<typeof createDataTransfer>,
+  clientY = 0,
+) {
+  const event = new Event(type, { bubbles: true })
+  Object.defineProperty(event, "dataTransfer", { value: dataTransfer })
+  Object.defineProperty(event, "clientY", { value: clientY })
+  fireEvent(el, event)
+}
+
+/** jsdom rects are all zero, so state the midpoint explicitly. */
+function stubRect(el: HTMLElement, top: number, height: number) {
+  vi.spyOn(el, "getBoundingClientRect").mockReturnValue({
+    top,
+    height,
+    bottom: top + height,
+    left: 0,
+    right: 0,
+    width: 100,
+    x: 0,
+    y: top,
+    toJSON: () => ({}),
+  } as DOMRect)
+}
+
+/** Dragging is opt-in; enter the mode the way a user does. */
+function enableRearrange() {
+  fireEvent.click(screen.getByRole("button", { name: "Rearrange" }))
+}
+
+/** Open a row's menu and click one of its actions. */
+function useRowMenu(rowIndex: number, action: string) {
+  const triggers = screen.getAllByRole("button", { name: "Page actions" })
+  // `ActionMenu` is a portalled Radix dropdown: it opens on pointerdown rather
+  // than click, and its actions are menuitems outside the row's subtree.
+  fireEvent.pointerDown(triggers[rowIndex], { button: 0, ctrlKey: false })
+  fireEvent.click(screen.getByRole("menuitem", { name: action }))
+}
+
+afterEach(() => {
+  cleanup()
+  setDraft.mockReset()
+  pruneMutate.mockReset()
+  resetMutate.mockReset()
+  discard.mockReset()
+  pickerProps = {}
+  quizzesData = null
+  readingOrderData = READING_ORDER
+  readingOrderState = null
+  vi.restoreAllMocks()
+})
+
+describe("StoryboardIndex reordering", () => {
+  it("lists every slot in reading order, numbering only the pages in the book", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    // Reading order, not source page order: the removed page sits second.
+    expect(screen.getByText("First page")).toBeTruthy()
+    expect(screen.getByText("Removed page")).toBeTruthy()
+    expect(rows()).toHaveLength(3)
+
+    // Book pages are 1 and 2; the removed slot shows a dash and consumes no number.
+    const labels = rows().map(
+      (row) => row.querySelector('[data-testid="book-page"]')?.textContent,
+    )
+    expect(labels).toEqual(["1", "–", "2"])
+  })
+
+  it("saves a reordering when a row is dropped below another", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+    const [first, , third] = rows()
+
+    enableRearrange()
+
+    const dataTransfer = createDataTransfer()
+    fireDrag(first, "dragstart", dataTransfer)
+    expect(dataTransfer.getData(READING_ORDER_DRAG_TYPE)).toBe("pg001_sec001")
+
+    // Drop on the lower half of the last row → land after it.
+    stubRect(third, 100, 40)
+    fireDrag(third, "dragover", dataTransfer, 130)
+    fireDrag(third, "drop", dataTransfer, 130)
+
+    expect(setDraft).toHaveBeenCalledTimes(1)
+    expect(setDraft.mock.calls[0][0]).toEqual([
+        { kind: "section", id: "pg003_sec001" },
+        { kind: "section", id: "pg002_sec001" },
+        { kind: "section", id: "pg001_sec001" },
+      ])
+  })
+
+  it("drops above a row when the pointer is in its upper half", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+    const [, , third] = rows()
+
+    enableRearrange()
+
+    const dataTransfer = createDataTransfer()
+    fireDrag(rows()[0], "dragstart", dataTransfer)
+
+    stubRect(third, 100, 40)
+    fireDrag(third, "dragover", dataTransfer, 105)
+    fireDrag(third, "drop", dataTransfer, 105)
+
+    expect(setDraft.mock.calls[0][0].map((i: { id: string }) => i.id)).toEqual([
+      "pg003_sec001",
+      "pg001_sec001",
+      "pg002_sec001",
+    ])
+  })
+
+  it("does not reorder by dragging until rearranging is switched on", () => {
+    // The whole point of the mode: the page list is something you click
+    // through, so a stray drag must not silently rewrite the book.
+    render(<StoryboardIndex bookLabel="book" />)
+    const [first, , third] = rows()
+
+    expect(first.getAttribute("draggable")).toBe("false")
+
+    const dataTransfer = createDataTransfer()
+    fireDrag(first, "dragstart", dataTransfer)
+    expect(dataTransfer.getData(READING_ORDER_DRAG_TYPE)).toBe("")
+
+    stubRect(third, 100, 40)
+    fireDrag(third, "drop", dataTransfer, 130)
+    expect(setDraft).not.toHaveBeenCalled()
+
+    // Switching it on makes the rows draggable.
+    enableRearrange()
+    expect(rows()[0].getAttribute("draggable")).toBe("true")
+  })
+
+  it("moves a page from its own menu without entering the mode", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    useRowMenu(0, "Move down")
+
+    expect(setDraft).toHaveBeenCalledTimes(1)
+    expect(setDraft.mock.calls[0][0].map((i: { id: string }) => i.id)).toEqual([
+      "pg003_sec001",
+      "pg001_sec001",
+      "pg002_sec001",
+    ])
+  })
+
+  it("removes a page from the book via its menu", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    useRowMenu(0, "Remove from book")
+
+    expect(pruneMutate).toHaveBeenCalledWith({ pageId: "pg001", sectionIndex: 0 })
+    // Removal is not a reordering, so the order itself is untouched.
+    expect(setDraft).not.toHaveBeenCalled()
+  })
+
+  it("offers to add a removed page back", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    // Row 1 is the removed page.
+    useRowMenu(1, "Add back to book")
+
+    expect(pruneMutate).toHaveBeenCalledWith({ pageId: "pg003", sectionIndex: 0 })
+  })
+
+  it("disables the row menu while the storyboard is running", () => {
+    render(
+      <StoryboardIndex bookLabel="book" stageRunning reorderBlockedBy="web-rendering" />,
+    )
+
+    const triggers = screen.getAllByRole("button", { name: "Page actions" })
+    expect((triggers[0] as HTMLButtonElement).disabled).toBe(true)
+    expect(
+      (screen.getByRole("button", { name: "Rearrange" }) as HTMLButtonElement).disabled,
+    ).toBe(true)
+  })
+
+  // The server refuses a reorder during extract, sectioning, web-rendering and
+  // quiz-generation alike. The sidebar used to grey out only for its own stage,
+  // so a quiz run left the controls live and the save failed afterwards.
+  it("disables rearranging during a blocking step outside the storyboard", () => {
+    render(<StoryboardIndex bookLabel="book" reorderBlockedBy="quiz-generation" />)
+
+    const toggle = screen.getByRole("button", { name: "Rearrange" }) as HTMLButtonElement
+    expect(toggle.disabled).toBe(true)
+    expect(toggle.title).toContain("quiz-generation")
+    expect(
+      (screen.getAllByRole("button", { name: "Page actions" })[0] as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
+  })
+
+  it("does not move a row by keyboard while a blocking step runs", () => {
+    render(<StoryboardIndex bookLabel="book" reorderBlockedBy="quiz-generation" />)
+
+    fireEvent.keyDown(rows()[0], { key: "ArrowDown", altKey: true })
+
+    expect(setDraft).not.toHaveBeenCalled()
+  })
+
+  it("leaves rearranging alone during a step that cannot move anything", () => {
+    render(<StoryboardIndex bookLabel="book" reorderBlockedBy={null} />)
+
+    expect(
+      (screen.getByRole("button", { name: "Rearrange" }) as HTMLButtonElement).disabled,
+    ).toBe(false)
+  })
+
+  // Both of these replace the stored order wholesale. A pending arrangement
+  // left behind would keep rendering over the result — the list shows the
+  // draft, not the server's answer — and the next Save would write it back
+  // over the version just restored, so the reset would look like it did
+  // nothing at all.
+  // The list is built from the reading order, so before that query lands there
+  // are no rows to show. Reporting that as "no sections" told a user looking at
+  // a fully rendered book to go and run the stage that produced it.
+  it("does not claim the book is empty while the reading order loads", () => {
+    readingOrderState = { data: undefined, isLoading: true, isError: false }
+    render(<StoryboardIndex bookLabel="book" />)
+
+    expect(screen.queryByText(/No sections yet/)).toBeNull()
+  })
+
+  it("says so when the reading order could not be loaded", () => {
+    readingOrderState = { data: undefined, isLoading: false, isError: true }
+    render(<StoryboardIndex bookLabel="book" />)
+
+    expect(screen.queryByText(/No sections yet/)).toBeNull()
+    expect(screen.getByText(/could not be loaded/)).toBeTruthy()
+  })
+
+  it("still reports a genuinely empty book", () => {
+    readingOrderData = { ...READING_ORDER, items: [], order: [] }
+    render(<StoryboardIndex bookLabel="book" />)
+
+    expect(screen.getByText(/No sections yet/)).toBeTruthy()
+  })
+
+  // Data the server could not read leaves the book in an order nobody chose.
+  // It has to be visible where the order is: the alternative is discovering it
+  // in the packaged bundle, or not at all.
+  it("warns when the server could not read the saved order", () => {
+    readingOrderData = {
+      ...READING_ORDER,
+      fromStoredOrder: false,
+      unreadable: [{ node: "reading-order", itemId: "book", version: 3 }],
+    }
+    render(<StoryboardIndex bookLabel="book" />)
+
+    expect(screen.getByRole("alert").textContent).toContain("reading-order")
+    // And the list is still usable — the warning explains the order, it does
+    // not replace it.
+    expect(rows()).toHaveLength(3)
+  })
+
+  it("shows no warning for a healthy book", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    expect(screen.queryByRole("alert")).toBeNull()
+  })
+
+  it("drops a pending arrangement when a version is restored", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    pickerProps.onRestored?.()
+
+    expect(discard).toHaveBeenCalledTimes(1)
+  })
+
+  it("drops a pending arrangement when the order is reset to the PDF's", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    pickerProps.footerAction?.onSelect()
+
+    expect(resetMutate).toHaveBeenCalledTimes(1)
+    // Only once the reset is stored: a refused reset must keep the draft,
+    // which is exactly when the user most needs it kept.
+    expect(discard).not.toHaveBeenCalled()
+    resetMutate.mock.calls[0][1].onSuccess()
+    expect(discard).toHaveBeenCalledTimes(1)
+  })
+
+  it("ignores drags that are not reading-order rows", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+    enableRearrange()
+    const foreign = createDataTransfer()
+    foreign.setData("text/plain", "something else")
+
+    fireDrag(rows()[2], "drop", foreign, 130)
+
+    expect(setDraft).not.toHaveBeenCalled()
+  })
+
+  it("moves a row with Alt+ArrowDown", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    fireEvent.keyDown(rows()[0], { key: "ArrowDown", altKey: true })
+
+    expect(setDraft).toHaveBeenCalledTimes(1)
+    expect(setDraft.mock.calls[0][0].map((i: { id: string }) => i.id)).toEqual([
+      "pg003_sec001",
+      "pg001_sec001",
+      "pg002_sec001",
+    ])
+  })
+
+  it("does not reorder while the storyboard stage is running", () => {
+    // `web-rendering` is the storyboard's own blocking step, so this is what
+    // the sidebar is handed while that stage runs.
+    render(
+      <StoryboardIndex bookLabel="book" stageRunning reorderBlockedBy="web-rendering" />,
+    )
+
+    fireEvent.keyDown(rows()[0], { key: "ArrowDown", altKey: true })
+    expect(setDraft).not.toHaveBeenCalled()
+    expect(rows()[0].getAttribute("draggable")).toBe("false")
+  })
+
+  it("moves a row back with Alt+ArrowUp", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    fireEvent.keyDown(rows()[2], { key: "ArrowUp", altKey: true })
+
+    expect(setDraft).toHaveBeenCalledTimes(1)
+    expect(setDraft.mock.calls[0][0].map((i: { id: string }) => i.id)).toEqual([
+      "pg001_sec001",
+      "pg002_sec001",
+      "pg003_sec001",
+    ])
+  })
+
+  it("turns dragging back off", () => {
+    // The mode is deliberate in both directions: leaving it on after one drag
+    // is how a stray drag later rewrites the book.
+    render(<StoryboardIndex bookLabel="book" />)
+    const toggle = screen.getByRole("button", { name: "Rearrange" })
+
+    enableRearrange()
+    expect(toggle.getAttribute("aria-pressed")).toBe("true")
+    expect(rows()[0].getAttribute("draggable")).toBe("true")
+
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute("aria-pressed")).toBe("false")
+    expect(rows()[0].getAttribute("draggable")).toBe("false")
+  })
+
+  it("offers no move past either end of the list", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+    const triggers = screen.getAllByRole("button", { name: "Page actions" })
+
+    fireEvent.pointerDown(triggers[0], { button: 0, ctrlKey: false })
+    expect(
+      screen.getByRole("menuitem", { name: "Move up" }).getAttribute("aria-disabled"),
+    ).toBe("true")
+    fireEvent.keyDown(document.body, { key: "Escape" })
+
+    fireEvent.pointerDown(triggers[2], { button: 0, ctrlKey: false })
+    expect(
+      screen.getByRole("menuitem", { name: "Move down" }).getAttribute("aria-disabled"),
+    ).toBe("true")
+  })
+})
+
+describe("StoryboardIndex quiz rows", () => {
+  const QUIZ = {
+    quizId: "qz001",
+    quizIndex: 0,
+    afterPageId: "pg001",
+    pageIds: ["pg001"],
+    question: "What did you read?",
+    options: [{ text: "a", explanation: "" }],
+    answerIndex: 0,
+    reasoning: "",
+  }
+
+  /** The same book with a quiz sitting second in the reading order. */
+  function withQuiz() {
+    quizzesData = { quizzes: { quizzes: [QUIZ] } }
+    readingOrderData = {
+      ...READING_ORDER,
+      items: [
+        READING_ORDER.items[0],
+        { kind: "quiz", id: "qz001", href: "qz001.html", position: 2, pageId: "pg001", pageNumber: null },
+        { ...READING_ORDER.items[1], position: 3 },
+      ],
+      order: [
+        { kind: "section", id: "pg001_sec001" },
+        { kind: "quiz", id: "qz001" },
+        { kind: "section", id: "pg003_sec001" },
+        { kind: "section", id: "pg002_sec001" },
+      ],
+    }
+  }
+
+  it("lists a quiz in its reading-order slot, numbered like any other page", () => {
+    withQuiz()
+    render(<StoryboardIndex bookLabel="book" />)
+
+    expect(rows()).toHaveLength(4)
+    const labels = rows().map(
+      (row) => row.querySelector('[data-testid="book-page"]')?.textContent,
+    )
+    // The quiz takes book page 2; the removed section still takes none.
+    expect(labels).toEqual(["1", "2", "–", "3"])
+  })
+
+  it("moves a quiz like any other row", () => {
+    // #660 requires quizzes to be movable independently of their anchor page.
+    withQuiz()
+    render(<StoryboardIndex bookLabel="book" />)
+
+    fireEvent.keyDown(rows()[1], { key: "ArrowDown", altKey: true })
+
+    expect(setDraft).toHaveBeenCalledTimes(1)
+    expect(setDraft.mock.calls[0][0].map((i: { id: string }) => i.id)).toEqual([
+      "pg001_sec001",
+      "pg003_sec001",
+      "qz001",
+      "pg002_sec001",
+    ])
+  })
+
+  it("announces where the moved row landed", () => {
+    // Moving by keyboard gives no visual feedback a screen-reader user can
+    // perceive, so the live region is the only signal that anything happened.
+    withQuiz()
+    render(
+      <LiveRegionAnnouncer>
+        <StoryboardIndex bookLabel="book" />
+      </LiveRegionAnnouncer>,
+    )
+
+    fireEvent.keyDown(rows()[1], { key: "ArrowDown", altKey: true })
+
+    const live = document.querySelector('[aria-live="polite"]')
+    expect(live?.textContent).toContain("Moved to position 3 of 4")
+  })
+
+  it("does not offer to remove a quiz from the book", () => {
+    // Sections got reversible removal; quizzes have no `isPruned`, so the only
+    // way out is a real deletion — which does not belong on this menu.
+    withQuiz()
+    render(<StoryboardIndex bookLabel="book" />)
+
+    const triggers = screen.getAllByRole("button", { name: "Page actions" })
+    fireEvent.pointerDown(triggers[1], { button: 0, ctrlKey: false })
+
+    expect(screen.getByRole("menuitem", { name: "Move down" })).toBeTruthy()
+    expect(screen.queryByRole("menuitem", { name: "Remove from book" })).toBeNull()
+  })
+})

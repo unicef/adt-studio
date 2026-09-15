@@ -196,8 +196,10 @@ export {
   extractTextFromHtml,
   isContentPage,
   batchPages,
+  gatherQuizPageInputs,
   type QuizConfig,
   type QuizPageInput,
+  type QuizPageGathering,
 } from "./quiz-generation.js"
 export { buildTextCatalog } from "./text-catalog.js"
 export {
@@ -428,10 +430,13 @@ export {
 export {
   resolveReadingOrder,
   defaultReadingOrder,
+  reconcileReadingOrder,
+  readingOrderPageIds,
   toPageEntry,
   readingOrderHref,
   type ResolvedItem,
   type ResolvedReadingOrder,
+  type ReconcileResult,
   type PageEntry,
 } from "./reading-order.js"
 export { orderTocEntries } from "./toc-reading-order.js"
