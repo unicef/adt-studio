@@ -4,6 +4,7 @@ import {
   createElevenLabsTTSSynthesizer,
   createGeminiTTSSynthesizer,
   createTTSSynthesizer,
+  GeminiNoAudioError,
   transcribeWithWhisper,
 } from "../speech.js"
 
@@ -314,6 +315,27 @@ describe("createGeminiTTSSynthesizer", () => {
     })
   })
 
+  it("does not retry short text when the configured temperature makes Gemini TTS deterministically fail", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ candidates: [{ finishReason: "OTHER" }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    )
+
+    await expect(
+      createGeminiTTSSynthesizer({ apiKey: "gm-test" }).synthesize({
+        model: "gemini-2.5-flash-preview-tts",
+        voice: "Puck",
+        input: "Hola",
+        responseFormat: "wav",
+        temperature: 0,
+      })
+    ).rejects.toThrow(/temperature 0 is below 0\.5/)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
   it("rejects non-wav Gemini output requests", async () => {
     const synth = createGeminiTTSSynthesizer({ apiKey: "gm-test" })
 
@@ -366,6 +388,157 @@ describe("createGeminiTTSSynthesizer", () => {
     )
   })
 
+  // The exact payload Gemini returns when TTS is called below its usable
+  // temperature floor — see the upstream report at
+  // https://discuss.ai.google.dev/t/gemini-2-5-tts-model-not-working-at-low-temperatures/137850
+  // (fails at <= 0.4, works from 0.5): a lone candidate carrying only
+  // `finishReason: "OTHER"`, with no `content` and no audio.
+  it("reports finishReason when Gemini returns a candidate with no content", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ candidates: [{ finishReason: "OTHER", index: 0 }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    )
+
+    const synth = createGeminiTTSSynthesizer({ apiKey: "gm-test" })
+
+    await expect(
+      synth.synthesize({
+        model: "gemini-2.5-flash-preview-tts",
+        voice: "Puck",
+        input: "Hola mundo entero",
+        responseFormat: "wav",
+        temperature: 0,
+      })
+    ).rejects.toThrow(/did not include audio data\. Response summary: finishReason=OTHER/)
+  })
+
+  it("reports promptFeedback.blockReason when Gemini returns no candidates", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          promptFeedback: {
+            blockReason: "OTHER",
+            blockReasonMessage: "Blocked for an unspecified reason.",
+          },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    )
+
+    const synth = createGeminiTTSSynthesizer({ apiKey: "gm-test" })
+
+    await expect(
+      synth.synthesize({
+        model: "gemini-2.5-flash-preview-tts",
+        voice: "Puck",
+        input: "Hola mundo entero",
+        responseFormat: "wav",
+      })
+    ).rejects.toThrow(
+      /blockReason=OTHER; blockReasonMessage="Blocked for an unspecified reason\."/
+    )
+  })
+
+  it("reports safety ratings when a candidate is blocked", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              finishReason: "SAFETY",
+              content: { parts: [] },
+              safetyRatings: [
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", probability: "HIGH", blocked: true },
+              ],
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    )
+
+    const synth = createGeminiTTSSynthesizer({ apiKey: "gm-test" })
+
+    await expect(
+      synth.synthesize({
+        model: "gemini-2.5-flash-preview-tts",
+        voice: "Puck",
+        input: "Hola mundo entero",
+        responseFormat: "wav",
+      })
+    ).rejects.toThrow(/finishReason=SAFETY.*HARM_CATEGORY_DANGEROUS_CONTENT:HIGH\(blocked\)/s)
+  })
+
+  it("reports an empty candidate list rather than a bare message", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({}), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    )
+
+    const synth = createGeminiTTSSynthesizer({ apiKey: "gm-test" })
+
+    await expect(
+      synth.synthesize({
+        model: "gemini-2.5-flash-preview-tts",
+        voice: "Puck",
+        input: "Hola mundo entero",
+        responseFormat: "wav",
+      })
+    ).rejects.toThrow(/did not include audio data\. Response summary: candidates=0/)
+  })
+
+  it("names the temperature floor when no audio comes back below it", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ candidates: [{ finishReason: "OTHER", index: 0 }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    )
+
+    const synth = createGeminiTTSSynthesizer({ apiKey: "gm-test" })
+
+    await expect(
+      synth.synthesize({
+        model: "gemini-2.5-flash-preview-tts",
+        voice: "Puck",
+        input: "Hola mundo entero",
+        responseFormat: "wav",
+        temperature: 0,
+      })
+    ).rejects.toThrow(/temperature 0 is below/i)
+  })
+
+  it("classifies a no-audio response as a GeminiNoAudioError", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({ candidates: [{ finishReason: "SAFETY", content: { parts: [] } }] }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    )
+
+    const synth = createGeminiTTSSynthesizer({ apiKey: "gm-test" })
+
+    const error = await synth
+      .synthesize({
+        model: "gemini-2.5-flash-preview-tts",
+        voice: "Puck",
+        input: "Hola mundo entero",
+        responseFormat: "wav",
+      })
+      .then(
+        () => null,
+        (err: unknown) => err
+      )
+
+    expect(error).toBeInstanceOf(GeminiNoAudioError)
+    expect((error as GeminiNoAudioError).kind).toBe("blocked")
+    expect((error as GeminiNoAudioError).finishReason).toBe("SAFETY")
+  })
+
   it("embeds instructions as a Director's Chair prompt when provided", async () => {
     const pcmBytes = new Uint8Array([1, 2, 3, 4])
     fetchMock.mockResolvedValue(
@@ -400,9 +573,15 @@ describe("createGeminiTTSSynthesizer", () => {
 
     const sentText = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))
       .contents[0].parts[0].text as string
-    // Instructions go above the transcript delimiter, transcript below it.
+    // A prompt whose first line is a heading of performance notes, with nothing
+    // asking for speech at all, is what Google's own prompting guide warns gets
+    // classifier-rejected or read aloud as instructions. Some books prepend
+    // hundreds of characters of pronunciation rules here (issue #846's book
+    // prepends 824), so the notes dominate the prompt and the ask disappears.
+    // State the ask first; instructions above the delimiter, transcript below.
     expect(sentText).toBe(
-      "### PERFORMANCE\nSpeak with a Pristina, Kosovo accent.\n\n#### TRANSCRIPT\nPërshëndetje!"
+      "Read the text under #### TRANSCRIPT aloud. Do not read the notes above it, and do not change the words.\n\n" +
+        "### PERFORMANCE\nSpeak with a Pristina, Kosovo accent.\n\n#### TRANSCRIPT\nPërshëndetje!"
     )
     // The model must never receive a systemInstruction (rejected by the TTS models).
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).not.toHaveProperty(
@@ -472,7 +651,10 @@ describe("createGeminiTTSSynthesizer", () => {
     // Retry appends terminal punctuation to the transcript, still inside the wrapper.
     expect(
       JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)).contents[0].parts[0].text
-    ).toBe("### PERFORMANCE\nKosovo accent.\n\n#### TRANSCRIPT\nPo.")
+    ).toBe(
+      "Read the text under #### TRANSCRIPT aloud. Do not read the notes above it, and do not change the words.\n\n" +
+        "### PERFORMANCE\nKosovo accent.\n\n#### TRANSCRIPT\nPo."
+    )
   })
 })
 

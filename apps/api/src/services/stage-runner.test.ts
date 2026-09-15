@@ -4,6 +4,7 @@ import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { PIPELINE, type AppConfig, type ProgressEvent } from "@adt/types"
 import { computeSpeechCacheKey, stripEmojis, retireSectionIds } from "@adt/pipeline"
+import { GeminiNoAudioError } from "@adt/llm"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import {
   buildStageRunnerImageClassifyConfig,
@@ -297,7 +298,11 @@ function readyCoreTtsEntry(id: string, text: string) {
   }
 }
 
-function seedTextAndSpeechBook(booksDir: string, label: string): void {
+function seedTextAndSpeechBook(
+  booksDir: string,
+  label: string,
+  extraEntries: Array<{ id: string; text: string }> = [],
+): void {
   const storage = createBookStorage(label, booksDir)
   try {
     storage.putExtractedPage({
@@ -315,25 +320,33 @@ function seedTextAndSpeechBook(booksDir: string, label: string): void {
       images: [],
     })
 
+    // The text catalog is rebuilt from the rendered HTML, so extra entries have
+    // to exist here too or they vanish when the translate stage re-runs.
     storage.putNodeData("web-rendering", "pg001", {
       sections: [
         {
           sectionIndex: 0,
           sectionType: "content",
           reasoning: "",
-          html: '<p data-id="pg001_t001">Hello world</p>',
+          html: [
+            '<p data-id="pg001_t001">Hello world</p>',
+            ...extraEntries.map((e) => `<p data-id="${e.id}">${e.text}</p>`),
+          ].join(""),
         },
       ],
     })
 
     storage.putNodeData("text-catalog", "book", {
-      entries: [{ id: "pg001_t001", text: "Hello world" }],
+      entries: [{ id: "pg001_t001", text: "Hello world" }, ...extraEntries],
       generatedAt: "2026-01-01T00:00:00.000Z",
     })
     storage.putNodeData("core-tts-catalog", "en", {
       language: "en",
       generatedAt: "2026-01-01T00:00:00.000Z",
-      entries: [readyCoreTtsEntry("pg001_t001", "Hello world")],
+      entries: [
+        readyCoreTtsEntry("pg001_t001", "Hello world"),
+        ...extraEntries.map((e) => readyCoreTtsEntry(e.id, e.text)),
+      ],
     })
   } finally {
     storage.close()
@@ -1296,11 +1309,13 @@ speech:
         (event) => event.type === "step-complete" && event.step === "tts"
       )
     ).toBe(true)
-    expect(
-      events.some(
-        (event) => event.type === "step-error" && event.step === "tts"
-      )
-    ).toBe(false)
+    // ...but the failure is still reported. Gemini used to be the one provider
+    // whose failures emitted nothing at all, which is how issue #846's reporter
+    // ended up with silently missing audio and no explanation.
+    const ttsErrors = events.filter(
+      (event) => event.type === "step-error" && event.step === "tts"
+    )
+    expect(ttsErrors.length).toBeGreaterThan(0)
 
     const storage = createBookStorage("gemini-tts-failure", booksDir)
     try {
@@ -1448,6 +1463,264 @@ speech:
     try {
       const ttsStep = storage.getStepRuns().find((step) => step.step === "tts")
       expect(ttsStep?.status).toBe("done")
+    } finally {
+      storage.close()
+    }
+  })
+
+  // Issue #846: a 200 carrying no audio is Gemini declining to synthesize, and
+  // it declines identically every time — most often because temperature is
+  // below the floor its TTS models need. Retrying it four more times bought
+  // nothing and cost four more calls, each slow (the reporter's failing run
+  // logged 128s), which is where their token-spend complaint came from.
+  it("does not retry a Gemini no-audio response, which never clears", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  temperature: 0
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-tts-no-audio")
+
+    generateSpeechFileMock.mockRejectedValue(
+      new Error(
+        "Gemini TTS response did not include audio data. Response summary: finishReason=OTHER"
+      )
+    )
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      "gemini-tts-no-audio",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    // Exactly one attempt per item — no retry storm.
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(1)
+    // And the reason reaches the user rather than dying in the debug log.
+    const ttsErrors = events.filter(
+      (event) => event.type === "step-error" && event.step === "tts"
+    )
+    expect(ttsErrors.length).toBeGreaterThan(0)
+    expect(JSON.stringify(ttsErrors)).toMatch(/finishReason=OTHER/)
+  })
+
+  // Gemini takes ~2.4 minutes to refuse a request at too low a temperature
+  // (issue #846's own run logged 142794ms). Every item would independently pay
+  // that to learn the same thing, so once one has proven it, the rest are
+  // failed with the reason instead of re-sent.
+  it("stops re-sending Gemini items once a no-audio failure proves the temperature is too low", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  temperature: 0
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-tts-systemic", [
+      { id: "pg001_t002", text: "Second sentence" },
+      { id: "pg001_t003", text: "Third sentence" },
+    ])
+
+    generateSpeechFileMock.mockRejectedValue(
+      new Error(
+        "Gemini TTS response did not include audio data. Response summary: finishReason=OTHER. The configured temperature 0 is below 0.5, which Gemini's TTS models are reported to reject without producing audio."
+      )
+    )
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      "gemini-tts-systemic",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    // Three entries, but only the first reaches the provider.
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(1)
+
+    // One live error, not one per skipped item. The cause is already stated by
+    // the failure that proved it; re-announcing it for every remaining entry
+    // would fire a toast, an assertive screen-reader announcement and a TTS
+    // refetch per entry — hundreds of them on a real book, for one root cause.
+    const ttsStepErrors = events.filter(
+      (event) => event.type === "step-error" && event.step === "tts"
+    )
+    expect(ttsStepErrors).toHaveLength(1)
+
+    // The other two are still reported — skipped is not the same as silently
+    // fine, and the user needs to see they have no audio.
+    const storage = createBookStorage("gemini-tts-systemic", booksDir)
+    try {
+      const output = storage.getLatestNodeData("tts", "en")?.data as
+        | { failed?: Array<{ textId: string; error: string }> }
+        | undefined
+      expect(output?.failed).toHaveLength(3)
+      const skipped = output!.failed!.filter((f) => /Not attempted/.test(f.error))
+      expect(skipped).toHaveLength(2)
+      // ...and each carries the reason, not just "skipped".
+      expect(skipped.every((f) => /temperature 0 is below 0\.5/.test(f.error))).toBe(true)
+    } finally {
+      storage.close()
+    }
+  })
+
+  // A refusal about one sentence's content says nothing about the others, so
+  // it must fail only that sentence — the abort above is scoped to a cause
+  // that provably applies to every request.
+  it("keeps synthesizing when a no-audio failure is not caused by the temperature", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-tts-content-block", [
+      { id: "pg001_t002", text: "Second sentence" },
+      { id: "pg001_t003", text: "Third sentence" },
+    ])
+
+    generateSpeechFileMock.mockRejectedValueOnce(
+      new Error(
+        "Gemini TTS response did not include audio data. Response summary: finishReason=SAFETY"
+      )
+    )
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      "gemini-tts-content-block",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    // All three attempted: one bad sentence must not cost the other two.
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(3)
+  })
+
+  // The run-wide abort is justified by a cause that provably applies to every
+  // request. A hard content refusal is the opposite: it is about one sentence.
+  // Having a low temperature configured at the same time does not make it
+  // systemic, so the abort must read the refusal, not just the setting —
+  // otherwise one blocked sentence silently costs the book all its audio.
+  it("keeps synthesizing after a content block even when the temperature is below the floor", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  temperature: 0
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-tts-blocked-low-temp", [
+      { id: "pg001_t002", text: "Second sentence" },
+      { id: "pg001_t003", text: "Third sentence" },
+    ])
+
+    generateSpeechFileMock.mockRejectedValueOnce(
+      new GeminiNoAudioError(
+        "Gemini TTS response did not include audio data. Response summary: finishReason=SAFETY",
+        { kind: "blocked", finishReason: "SAFETY" }
+      )
+    )
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      "gemini-tts-blocked-low-temp",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(3)
+    // And nothing was recorded as "Not attempted".
+    const storage = createBookStorage("gemini-tts-blocked-low-temp", booksDir)
+    try {
+      const output = storage.getLatestNodeData("tts", "en")?.data as
+        | { failed?: Array<{ textId: string; error: string }> }
+        | undefined
+      expect(output?.failed?.some((f) => /Not attempted/.test(f.error))).toBeFalsy()
     } finally {
       storage.close()
     }
@@ -1619,6 +1892,69 @@ speech:
       db.close()
     }
     expect(transcribeWithWhisperMock).not.toHaveBeenCalled()
+  })
+
+  it("emits a live TTS error when a page-batched Gemini request returns no audio", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  batch_by_page: true
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-batched-no-audio", [
+      { id: "pg001_t002", text: "Second sentence" },
+      { id: "pg001_t003", text: "Third sentence" },
+    ])
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ candidates: [{ finishReason: "OTHER" }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const events: ProgressEvent[] = []
+    try {
+      await createStageRunner().run(
+        "gemini-batched-no-audio",
+        {
+          booksDir,
+          credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
+          promptsDir,
+          configPath,
+          fromStage: "translate",
+          toStage: "speech",
+        },
+        { emit: (event) => events.push(event) }
+      )
+    } finally {
+      vi.unstubAllGlobals()
+    }
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const ttsErrors = events.filter((event) =>
+      event.type === "step-error" && event.step === "tts"
+    )
+    expect(ttsErrors).toHaveLength(1)
+    expect(ttsErrors).toContainEqual(expect.objectContaining({
+      type: "step-error",
+      step: "tts",
+      error: expect.stringContaining("finishReason=OTHER"),
+    }))
   })
 
   it("does not require a credential when every entry is reused and there is no work", async () => {
