@@ -451,6 +451,17 @@ describe("POST /books/:label/tts/generate-one", () => {
     expect(String(fetchMock.mock.calls[0][0])).toContain("gemini-2.5-flash-preview-tts")
     // And the user is told what Gemini actually said.
     expect(await res.text()).toMatch(/finishReason=OTHER/)
+
+    // The step error names the provider by its display name. It used to say
+    // "Gemini" for every provider, sending users to the wrong API key.
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      const ttsStep = storage.getStepRuns().find((step) => step.step === "tts")
+      expect(ttsStep?.status).toBe("error")
+      expect(ttsStep?.error).toMatch(/^Audio generation failed for pg001_t001 \(Gemini Speech\):/)
+    } finally {
+      storage.close()
+    }
   })
 
   it("does not substitute ElevenLabs when Gemini returns no audio", async () => {

@@ -21,6 +21,7 @@ import {
 import { openBookDb, createBookStorage } from "@adt/storage"
 import {
   AiProviderError,
+  getDefaultProviderRegistry,
   createAzureTTSSynthesizer,
   createGeminiTTSSynthesizer,
   createElevenLabsTTSSynthesizer,
@@ -1064,10 +1065,14 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         })
         // Name the provider that actually failed. This used to say "Gemini"
         // unconditionally, which was wrong for every other provider and sent
-        // users looking at the wrong API key.
+        // users looking at the wrong API key. The name goes in parentheses
+        // because the manifest's display names are noun phrases ("Azure
+        // Speech", "Gemini Speech") that don't read as a sentence subject.
+        const providerName =
+          getDefaultProviderRegistry().tryGet(provider)?.manifest.displayName ?? provider
         storage.recordStepError(
           "tts",
-          `${provider} audio generation failed for ${textEntry.id}: ${message}`
+          `Audio generation failed for ${textEntry.id} (${providerName}): ${message}`
         )
 
         const status = /\(429\)|quota|rate limit/i.test(message) ? 429 : 502
