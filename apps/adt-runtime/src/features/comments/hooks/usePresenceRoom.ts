@@ -1,0 +1,388 @@
+import { useAtomValue, useSetAtom, useStore } from "jotai"
+import { useEffect, useRef } from "react"
+import { currentSectionIdAtom } from "@/features/navigation/state/nav.atoms"
+import { devicePreviewAtom, type DevicePreview } from "@/shared/state/ui.atoms"
+import { anchorFromPoint } from "@/features/comments/lib/anchor"
+import {
+  applyCommentFrame,
+  applyCursor,
+  CURSOR_OFFSCREEN_STALE_MS,
+  cursorFromFrame,
+  PRESENCE_GRACE_MS,
+  pruneCursors,
+  stickyRoster,
+} from "@/features/comments/lib/presence"
+import {
+  isCommentEvent,
+  PUBLICATION_ROOM_TAB_PARAM,
+  PUBLICATION_ROOM_TAB_PATTERN,
+  ROOM_CURSOR_THROTTLE_MS,
+} from "@/features/comments/lib/room-protocol"
+import { createRoomSocket, type RoomSocket } from "@/features/comments/lib/room-socket"
+import type { CommentsRuntimeContext } from "@/features/comments/hooks/useCommentsContext"
+import {
+  commentsAtom,
+  settlingPinIdAtom,
+  showResolvedAtom,
+} from "@/features/comments/state/comments.atoms"
+import {
+  peerCursorsAtom,
+  peerViewportsAtom,
+  roomPeersAtom,
+  seenPeersAtom,
+  roomStatusAtom,
+  selfPeerIdAtom,
+} from "@/features/comments/state/presence.atoms"
+
+/** How often dead cursors are swept. Coarse on purpose: it is a fallback for peers who stopped
+ *  reporting, not the mechanism that makes a moving cursor smooth. */
+const PRUNE_INTERVAL_MS = 1000
+
+const TAB_STORAGE_KEY = "adtRoomTab"
+
+/**
+ * A handle for *this tab*, stable across page turns and unique per window.
+ *
+ * `sessionStorage` is the exact lifetime wanted: every navigation in a published book reloads
+ * the document, so this cannot live in memory, and it must not be shared with another tab or
+ * two windows would collapse into one peer. Refused storage falls back to a per-load value,
+ * which simply restores the old blink rather than breaking the room.
+ */
+function tabId(): string | null {
+  try {
+    const existing = window.sessionStorage.getItem(TAB_STORAGE_KEY)
+    if (existing && PUBLICATION_ROOM_TAB_PATTERN.test(existing)) return existing
+    const minted = Math.random().toString(36).slice(2, 12)
+    window.sessionStorage.setItem(TAB_STORAGE_KEY, minted)
+    return minted
+  } catch {
+    return null
+  }
+}
+
+function roomUrl(apiBase: string): string | null {
+  if (typeof window === "undefined") return null
+  try {
+    const url = new URL(`${apiBase}room`, window.location.href)
+    url.protocol = url.protocol === "http:" ? "ws:" : "wss:"
+    const tab = tabId()
+    if (tab) url.searchParams.set(PUBLICATION_ROOM_TAB_PARAM, tab)
+    return url.toString()
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Live cursors and live pins for the published reader.
+ *
+ * One socket per document (each page turn is a reload, so the room sees a leave and a join —
+ * cheap, and it keeps the roster's page column honest without any extra protocol).
+ *
+ * **Cursors are sent whenever the tab is visible, not only in comment mode.** Figma shows who
+ * is where regardless of what tool anyone is holding, and that is most of the value: a teacher
+ * and a reviewer reading the same page want to see each other move. Comment mode stays what it
+ * always was — the thing that turns a click into a pin.
+ *
+ * Reads go through the jotai store directly rather than through subscribed values: this hook
+ * mutates state in socket callbacks that outlive several renders, and a captured `comments`
+ * array would apply every frame to a stale list.
+ */
+export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
+  const store = useStore()
+  const sectionId = useAtomValue(currentSectionIdAtom)
+  const device = useAtomValue(devicePreviewAtom) as DevicePreview
+  const setStatus = useSetAtom(roomStatusAtom)
+  const setPeers = useSetAtom(roomPeersAtom)
+  const setSelfId = useSetAtom(selfPeerIdAtom)
+  const setCursors = useSetAtom(peerCursorsAtom)
+  const setViewports = useSetAtom(peerViewportsAtom)
+  const setComments = useSetAtom(commentsAtom)
+  const setSettling = useSetAtom(settlingPinIdAtom)
+
+  const socketRef = useRef<RoomSocket | null>(null)
+  const sectionRef = useRef<string | null>(sectionId ?? null)
+  /** Where the pointer was last seen, so a scroll can re-anchor from it. Survives the
+   *  effect, because a reader who scrolls without touching the mouse still has one. */
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null)
+  sectionRef.current = sectionId ?? null
+  const deviceRef = useRef<DevicePreview>(device)
+  deviceRef.current = device
+
+  useEffect(() => {
+    if (!context) return
+    const url = roomUrl(context.apiBase)
+    if (url === null) return
+
+    const socket = createRoomSocket({
+      resolveUrl: async () => url,
+      onStatus: (status) => setStatus(status),
+      onOpen: () => {
+        socket.send({ t: "hello", section_id: sectionRef.current, device: deviceRef.current })
+      },
+      onFrame: (frame) => {
+        if (frame.t === "presence") {
+          setSelfId(frame.self_id)
+          /**
+           * The roster is held steady rather than mirrored. A page turn reaches the room as a
+           * departure and then an arrival, so mirroring it made everybody blink out of the list
+           * whenever anybody turned a page — and now that a peer's id survives the turn, the
+           * arrival is recognisably the same person rather than a stranger.
+           */
+          {
+            const now = Date.now()
+            const { display, seen } = stickyRoster(frame.peers, store.get(seenPeersAtom), now)
+            store.set(seenPeersAtom, seen)
+            setPeers(display)
+          }
+          const ids = new Set(frame.peers.map((peer) => peer.id))
+          /** The long window here too. Every join, leave and page turn produces a presence
+           *  frame — and a page turn is a reload, so it produces two — which meant this line
+           *  quietly deleted the off-screen cursors the long window exists to keep, in exactly
+           *  the busy rooms where the markers matter most. */
+          setCursors((cursors) =>
+            pruneCursors(cursors, Date.now(), ids, CURSOR_OFFSCREEN_STALE_MS),
+          )
+          setViewports((seen) =>
+            pruneCursors(seen, Date.now(), ids, CURSOR_OFFSCREEN_STALE_MS),
+          )
+          return
+        }
+
+        if (frame.t === "cursor") {
+          setCursors((cursors) => applyCursor(cursors, cursorFromFrame(frame, Date.now())))
+          return
+        }
+
+        if (frame.t === "viewport") {
+          setViewports((seen) => applyCursor(seen, cursorFromFrame(frame, Date.now())))
+          return
+        }
+
+        if (!isCommentEvent(frame.t)) return
+
+        const outcome = applyCommentFrame(store.get(commentsAtom), frame.comment, {
+          sectionId: sectionRef.current,
+          showResolved: store.get(showResolvedAtom) as boolean,
+        })
+        if (!outcome.changed) return
+        setComments(outcome.comments)
+        if (outcome.arrivedRootId !== null) setSettling(outcome.arrivedRootId)
+      },
+    })
+
+    socketRef.current = socket
+
+    return () => {
+      socketRef.current = null
+      socket.close()
+      setStatus("closed")
+      setPeers([])
+      setSelfId(null)
+      setCursors([])
+    }
+  }, [context, setComments, setCursors, setPeers, setSelfId, setSettling, setStatus, store])
+
+  /** A page turn is normally a reload, but the runtime also swaps sections in place in some
+   *  layouts, so the room is told either way. */
+  useEffect(() => {
+    socketRef.current?.send({ t: "page", section_id: sectionId ?? null })
+  }, [sectionId])
+
+  /** The width this reader is at, so anybody following them can match it. Its own frame: a
+   *  reader can resize without turning a page for an hour. */
+  useEffect(() => {
+    socketRef.current?.send({ t: "device", device })
+  }, [device])
+
+  useEffect(() => {
+    if (!context) return
+
+    let lastSentAt = 0
+    let pending: { x: number; y: number } | null = null
+    let timer: number | null = null
+
+    const flush = (): void => {
+      timer = null
+      const point = pending
+      pending = null
+      if (!point) return
+      if (document.visibilityState === "hidden") return
+      const section = sectionRef.current
+      if (section === null) return
+
+      const anchor = anchorFromPoint(point.x, point.y)
+      if (!anchor) return
+
+      lastSentAt = Date.now()
+      socketRef.current?.send({
+        t: "cursor",
+        section_id: section,
+        selector: anchor.selector,
+        xOffsetPct: anchor.xOffsetPct,
+        yOffsetPct: anchor.yOffsetPct,
+      })
+    }
+
+    const queue = (point: { x: number; y: number }): void => {
+      pending = point
+      if (timer !== null) return
+      const wait = Math.max(0, ROOM_CURSOR_THROTTLE_MS - (Date.now() - lastSentAt))
+      timer = window.setTimeout(flush, wait)
+    }
+
+    const onPointerMove = (event: PointerEvent): void => {
+      lastPointRef.current = { x: event.clientX, y: event.clientY }
+      queue(lastPointRef.current)
+    }
+
+    /**
+     * Scrolling moves the page under a stationary pointer, so the word being pointed at changes
+     * without a single `pointermove`. Re-sending on scroll is therefore not a refresh hack: the
+     * anchor genuinely has changed, and without it a reader who scrolls away simply expires out
+     * of everyone else's view five seconds later — which is precisely the person the edge
+     * markers exist to show.
+     */
+    const onScroll = (): void => {
+      const point = lastPointRef.current
+      if (!point) return
+      queue(point)
+    }
+
+    /** A pointer that has left the window is not pointing at anything, so the scroll re-send
+     *  must stop speaking for it. Without this the last position it held would be renewed on
+     *  every scroll for as long as the tab stayed open — an arrow kept alive by a mouse that is
+     *  no longer there, which is the opposite of what the stale window is for. */
+    const onPointerGone = (): void => {
+      lastPointRef.current = null
+    }
+
+    document.addEventListener("pointermove", onPointerMove, { passive: true })
+    window.addEventListener("scroll", onScroll, { passive: true })
+    document.addEventListener("pointerleave", onPointerGone)
+    window.addEventListener("blur", onPointerGone)
+    return () => {
+      document.removeEventListener("pointermove", onPointerMove)
+      window.removeEventListener("scroll", onScroll)
+      document.removeEventListener("pointerleave", onPointerGone)
+      window.removeEventListener("blur", onPointerGone)
+      if (timer !== null) window.clearTimeout(timer)
+    }
+  }, [context])
+
+  /**
+   * Show the previous page's roster straight away, then let the socket correct it.
+   *
+   * Without this the reader's own chip is empty for as long as the new connection takes, which
+   * on every page turn is the blink they reported. Entries older than the grace window are
+   * dropped rather than shown, so a tab reopened tomorrow does not claim a room full of people.
+   */
+  useEffect(() => {
+    if (!context) return
+    const now = Date.now()
+    const remembered = store
+      .get(seenPeersAtom)
+      .filter((entry) => now - entry.lastSeenMs < PRESENCE_GRACE_MS)
+    if (remembered.length === 0) return
+    store.set(seenPeersAtom, remembered)
+    setPeers(remembered.map((entry) => entry.peer))
+  }, [context, setPeers, store])
+
+  /** Nothing arrives to say "their grace has run out", so the lingering entries are swept on the
+   *  same beat the cursors are. */
+  /**
+   * Report where this reader is looking, which is the half of presence a pointer cannot supply.
+   *
+   * A cursor only exists while a mouse moves, so a reader on a tablet has never had one and a
+   * reader who has settled down to read loses theirs in five seconds — and those are precisely
+   * the people the edge markers exist to place. The viewport is reported whenever the page moves
+   * under them and once on arrival, so somebody sitting still three screens down is still
+   * somewhere rather than nowhere.
+   *
+   * The anchor is taken from the middle of the screen, walking a little way down the centre line
+   * when that exact point lands in a gap between blocks — which it often does, since the middle
+   * of a page is as likely to be margin as text.
+   */
+  useEffect(() => {
+    if (!context) return
+
+    let timer: number | null = null
+
+    const report = (): void => {
+      timer = null
+      if (document.visibilityState === "hidden") return
+      const section = sectionRef.current
+      if (section === null) return
+
+      const x = window.innerWidth / 2
+      for (const fraction of [0.5, 0.4, 0.6, 0.3, 0.7]) {
+        const anchor = anchorFromPoint(x, window.innerHeight * fraction)
+        if (!anchor) continue
+        socketRef.current?.send({
+          t: "viewport",
+          section_id: section,
+          selector: anchor.selector,
+          xOffsetPct: anchor.xOffsetPct,
+          yOffsetPct: anchor.yOffsetPct,
+        })
+        return
+      }
+    }
+
+    /** Coarser than the cursor's 30ms: this answers "which part of the page", and a reader
+     *  cannot scroll somewhere meaningfully different thirty times a second. */
+    const schedule = (): void => {
+      if (timer !== null) return
+      timer = window.setTimeout(report, 250)
+    }
+
+    schedule()
+    window.addEventListener("scroll", schedule, { passive: true })
+    window.addEventListener("resize", schedule, { passive: true })
+    return () => {
+      window.removeEventListener("scroll", schedule)
+      window.removeEventListener("resize", schedule)
+      if (timer !== null) window.clearTimeout(timer)
+    }
+  }, [context])
+
+  useEffect(() => {
+    if (!context) return
+    const interval = window.setInterval(() => {
+      const now = Date.now()
+      const seen = store.get(seenPeersAtom)
+      const kept = seen.filter((entry) => now - entry.lastSeenMs < PRESENCE_GRACE_MS)
+      if (kept.length === seen.length) return
+      store.set(seenPeersAtom, kept)
+      setPeers(kept.map((entry) => entry.peer))
+    }, 1000)
+    return () => window.clearInterval(interval)
+  }, [context, setPeers, store])
+
+  useEffect(() => {
+    if (!context) return
+    const interval = window.setInterval(() => {
+      setViewports((seen) =>
+        pruneCursors(
+          seen,
+          Date.now(),
+          new Set(store.get(roomPeersAtom).map((peer) => peer.id)),
+          CURSOR_OFFSCREEN_STALE_MS,
+        ),
+      )
+      setCursors((cursors) =>
+        /** Kept for the *longer* of the two display windows. The overlay decides what to draw
+         *  from a cursor's age; dropping it from state at the arrow's window would leave the
+         *  edge markers with nothing to show, since a peer reading three screens down has by
+         *  definition stopped moving their pointer. */
+        pruneCursors(
+          cursors,
+          Date.now(),
+          new Set(store.get(roomPeersAtom).map((peer) => peer.id)),
+          CURSOR_OFFSCREEN_STALE_MS,
+        ),
+      )
+    }, PRUNE_INTERVAL_MS)
+    return () => window.clearInterval(interval)
+  }, [context, setCursors, store])
+}

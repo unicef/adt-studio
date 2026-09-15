@@ -223,3 +223,91 @@ describe("staged upload requests", () => {
     expect((init.headers as Record<string, string>)["content-type"]).toBe("application/json")
   })
 })
+
+describe("feedback requests", () => {
+  it("requests an author room ticket with management authorization", async () => {
+    const fetchFn = vi.fn(async (url: string, init: RequestInit) => {
+      expect(url).toBe(
+        `${WORKER_URL}/api/publications/${PUBLICATION.token}/room-ticket`,
+      )
+      expect(init.method).toBe("POST")
+      expect((init.headers as Record<string, string>).Authorization).toBe("Bearer secret")
+      return ok({
+        ticket: "v1.1893456000.nonce.tag",
+        ws_url: `${WORKER_URL}/p/${PUBLICATION.token}/room`,
+        expires_at: "2029-12-31T00:00:00.000Z",
+      })
+    })
+
+    const ticket = await client(fetchFn).roomTicket(PUBLICATION.token)
+
+    expect(ticket.ws_url).toBe(`${WORKER_URL}/p/${PUBLICATION.token}/room`)
+  })
+
+  it("uses the management authorization only on server-side feedback calls", async () => {
+    const fetchFn = vi.fn(async (url: string, init: RequestInit) => {
+      expect((init.headers as Record<string, string>).Authorization).toBe("Bearer secret")
+      expect((init.headers as Record<string, string>)["X-Adt-Author-Name"]).toBe("Editor")
+      expect(url).toBe(`${WORKER_URL}/p/${PUBLICATION.token}/comments?include_resolved=true`)
+      return ok({
+        comments: [],
+        session: { id: "author", name: "Editor", color: "#8d8d8d", is_author: true },
+      })
+    })
+
+    const result = await client(fetchFn).listComments(
+      PUBLICATION.token,
+      { include_resolved: true },
+      "Editor",
+    )
+    expect(result.comments).toEqual([])
+  })
+
+  it("encodes comment identifiers and validates reader responses", async () => {
+    const fetchFn = vi.fn(async (url: string) => {
+      if (url.includes("/readers")) {
+        return ok({
+          readers: [
+            {
+              id: "reader-1",
+              name: "Maria",
+              color: "#e5484d",
+              joined_at: "2026-08-01T09:00:00.000Z",
+              comment_count: 1,
+              last_comment_at: "2026-08-01T09:01:00.000Z",
+            },
+          ],
+        })
+      }
+      return ok({
+        comment: {
+          id: "comment/1",
+          token: PUBLICATION.token,
+          version: 1,
+          page_section_id: "pg001_sec001",
+          parent_id: null,
+          session_id: "author",
+          author_name: "Author",
+          author_color: "#8d8d8d",
+          body: "Looks good",
+          anchor: null,
+          resolved_at: null,
+          edited_at: null,
+          deleted_at: null,
+          created_at: "2026-08-01T09:00:00.000Z",
+        },
+      })
+    })
+
+    const readers = await client(fetchFn).listReaders(PUBLICATION.token)
+    expect(readers.readers[0]?.name).toBe("Maria")
+    await client(fetchFn).resolveComment(
+      PUBLICATION.token,
+      "comment/1",
+      { resolved: true },
+    )
+    expect(fetchFn.mock.calls.at(-1)?.[0]).toBe(
+      `${WORKER_URL}/p/${PUBLICATION.token}/comments/comment%2F1/resolve`,
+    )
+  })
+})
