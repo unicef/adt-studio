@@ -461,6 +461,7 @@ export {
 } from "./translation-evaluation.js"
 
 export {
+  DEFAULT_SCREENSHOT_TIMEOUT_MS,
   screenshotIpcViewportSchema,
   screenshotIpcRequestSchema,
   screenshotIpcCloseSchema,
