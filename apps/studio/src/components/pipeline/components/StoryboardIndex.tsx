@@ -62,7 +62,7 @@ export function StoryboardIndex({
   // Moves are held as a pending change and committed from the shared save bar,
   // the same as every other edit in the app. The draft lives above this
   // component because the overview table can rearrange the same book.
-  const { draft, setDraft } = useReadingOrderDraft()
+  const { draft, setDraft, discard } = useReadingOrderDraft()
   const effectiveOrder = useMemo(
     () => draft ?? readingOrder?.order ?? [],
     [draft, readingOrder],
@@ -264,7 +264,12 @@ export function StoryboardIndex({
             saving={false}
             dirty={false}
             onDiscard={() => {}}
+            // A restore replaces the stored order outright, so any pending
+            // arrangement has to go with it: the list renders the draft in
+            // preference to the server's answer, so one left behind would hide
+            // the restore and then overwrite it on the next Save.
             onRestored={() => {
+              discard()
               void queryClient.invalidateQueries({ queryKey: readingOrderKey(bookLabel) })
             }}
             // The entity is not written until the first rearrangement, so v1 is
@@ -275,7 +280,10 @@ export function StoryboardIndex({
               description: t`Put every page back where the source PDF had it, saved as a new version`,
               onSelect: () => {
                 resetOrder.mutate(undefined, {
+                  // Only once the reset is stored — a refused one must leave
+                  // the pending arrangement intact, as a refused save does.
                   onSuccess: () => {
+                    discard()
                     announce(t`Reset to the original PDF order`)
                   },
                 })

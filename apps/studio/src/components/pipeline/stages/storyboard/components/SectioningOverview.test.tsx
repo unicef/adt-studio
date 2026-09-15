@@ -4,6 +4,14 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import type { PageSummaryItem, ReadingOrderResponse } from "@/api/client"
 
 const setDraft = vi.fn()
+const discard = vi.fn()
+const resetMutate = vi.fn()
+
+/** Last props the picker rendered with, so a test can fire its two actions. */
+let pickerProps: {
+  onRestored?: () => void
+  footerAction?: { onSelect: () => void }
+} = {}
 
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children?: React.ReactNode }) => children ?? null,
@@ -222,15 +230,18 @@ vi.mock("@/hooks/use-reading-order", async () => {
   return {
     ...actual,
     useReadingOrder: () => ({ data: READING_ORDER }),
-    useResetReadingOrder: () => ({ mutate: vi.fn(), isPending: false }),
+    useResetReadingOrder: () => ({ mutate: resetMutate, isPending: false }),
   }
 })
 // Moves are held as a pending change now, not saved on the spot.
 vi.mock("@/hooks/use-reading-order-draft", () => ({
-  useReadingOrderDraft: () => ({ draft: null, setDraft, discard: vi.fn(), saving: false }),
+  useReadingOrderDraft: () => ({ draft: null, setDraft, discard, saving: false }),
 }))
 vi.mock("@/components/pipeline/components/VersionPicker", () => ({
-  VersionPicker: () => <div data-testid="order-history" />,
+  VersionPicker: (props: typeof pickerProps) => {
+    pickerProps = props
+    return <div data-testid="order-history" />
+  },
 }))
 
 const { SectioningOverview } = await import("./SectioningOverview")
@@ -274,6 +285,9 @@ function moveButtons(direction: "up" | "down"): HTMLButtonElement[] {
 afterEach(() => {
   cleanup()
   setDraft.mockReset()
+  discard.mockReset()
+  resetMutate.mockReset()
+  pickerProps = {}
   runningStep = null
 })
 
@@ -399,5 +413,27 @@ describe("SectioningOverview row order", () => {
     toBookOrder()
 
     expect(moveButtons("down")[0].disabled).toBe(false)
+  })
+
+  // This table renders the draft in preference to the stored order, exactly as
+  // the sidebar does, so a pending arrangement left behind would hide the
+  // restore and be written back over it on the next Save.
+  it("drops a pending arrangement when a version is restored", () => {
+    show({ showOrderHistory: true })
+
+    pickerProps.onRestored?.()
+
+    expect(discard).toHaveBeenCalledTimes(1)
+  })
+
+  it("drops a pending arrangement when the order is reset to the PDF's", () => {
+    show({ showOrderHistory: true })
+
+    pickerProps.footerAction?.onSelect()
+
+    expect(resetMutate).toHaveBeenCalledTimes(1)
+    expect(discard).not.toHaveBeenCalled()
+    resetMutate.mock.calls[0][1].onSuccess()
+    expect(discard).toHaveBeenCalledTimes(1)
   })
 })

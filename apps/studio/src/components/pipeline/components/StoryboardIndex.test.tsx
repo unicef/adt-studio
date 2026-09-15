@@ -6,6 +6,17 @@ import type { ReadingOrderResponse } from "@/api/client"
 const setDraft = vi.fn()
 const pruneMutate = vi.fn()
 const resetMutate = vi.fn()
+const discard = vi.fn()
+
+/**
+ * The last props the picker was rendered with, so a test can fire the two
+ * entry points that leave the sidebar entirely: restoring a version and the
+ * "Original — PDF order" footer action.
+ */
+let pickerProps: {
+  onRestored?: () => void
+  footerAction?: { onSelect: () => void }
+} = {}
 
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children?: React.ReactNode }) => children ?? null,
@@ -141,13 +152,18 @@ vi.mock("@/hooks/use-reading-order", async () => {
 // Moves are held as a pending change now, not saved on the spot, so what each
 // interaction is asserted to produce is the draft it hands up.
 vi.mock("@/hooks/use-reading-order-draft", () => ({
-  useReadingOrderDraft: () => ({ draft: null, setDraft, discard: vi.fn(), saving: false }),
+  useReadingOrderDraft: () => ({ draft: null, setDraft, discard, saving: false }),
 }))
 vi.mock("@/api/client", () => ({ getSectionScreenshotUrl: () => "screenshot.png" }))
 vi.mock("@/hooks/use-toggle-prune", () => ({
   useTogglePrune: () => ({ mutate: pruneMutate, isPending: false }),
 }))
-vi.mock("./VersionPicker", () => ({ VersionPicker: () => null }))
+vi.mock("./VersionPicker", () => ({
+  VersionPicker: (props: typeof pickerProps) => {
+    pickerProps = props
+    return null
+  },
+}))
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }))
@@ -227,6 +243,9 @@ afterEach(() => {
   cleanup()
   setDraft.mockReset()
   pruneMutate.mockReset()
+  resetMutate.mockReset()
+  discard.mockReset()
+  pickerProps = {}
   quizzesData = null
   readingOrderData = READING_ORDER
   vi.restoreAllMocks()
@@ -385,6 +404,32 @@ describe("StoryboardIndex reordering", () => {
     expect(
       (screen.getByRole("button", { name: "Rearrange" }) as HTMLButtonElement).disabled,
     ).toBe(false)
+  })
+
+  // Both of these replace the stored order wholesale. A pending arrangement
+  // left behind would keep rendering over the result — the list shows the
+  // draft, not the server's answer — and the next Save would write it back
+  // over the version just restored, so the reset would look like it did
+  // nothing at all.
+  it("drops a pending arrangement when a version is restored", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    pickerProps.onRestored?.()
+
+    expect(discard).toHaveBeenCalledTimes(1)
+  })
+
+  it("drops a pending arrangement when the order is reset to the PDF's", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    pickerProps.footerAction?.onSelect()
+
+    expect(resetMutate).toHaveBeenCalledTimes(1)
+    // Only once the reset is stored: a refused reset must keep the draft,
+    // which is exactly when the user most needs it kept.
+    expect(discard).not.toHaveBeenCalled()
+    resetMutate.mock.calls[0][1].onSuccess()
+    expect(discard).toHaveBeenCalledTimes(1)
   })
 
   it("ignores drags that are not reading-order rows", () => {

@@ -116,7 +116,7 @@ export function SectioningOverview({
   const resetReadingOrder = useResetReadingOrder(bookLabel)
   // Held as a pending change and committed from the shared save bar. The draft
   // is shared with the storyboard sidebar, which edits the same book.
-  const { draft, setDraft } = useReadingOrderDraft()
+  const { draft, setDraft, discard } = useReadingOrderDraft()
   const effectiveOrder = useMemo(
     () => draft ?? readingOrder?.order ?? [],
     [draft, readingOrder],
@@ -333,7 +333,12 @@ export function SectioningOverview({
                 saving={false}
                 dirty={false}
                 onDiscard={() => {}}
+                // Both of these replace the stored order outright, so a pending
+                // arrangement has to go with it — this table renders the draft
+                // in preference to the server's answer, so one left behind
+                // would hide the change and overwrite it on the next Save.
                 onRestored={() => {
+                  discard()
                   void queryClient.invalidateQueries({ queryKey: readingOrderKey(bookLabel) })
                 }}
                 footerAction={{
@@ -341,7 +346,9 @@ export function SectioningOverview({
                   description: t`Put every page back where the source PDF had it, saved as a new version`,
                   onSelect: () => {
                     resetReadingOrder.mutate(undefined, {
+                      // Only once stored: a refused reset keeps the draft.
                       onSuccess: () => {
+                        discard()
                         announce(t`Reset to the original PDF order`)
                       },
                     })
