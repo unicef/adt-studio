@@ -1,10 +1,34 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
 import { toast } from "sonner"
+import { READING_ORDER_BLOCKING_STEPS, type StepName } from "@adt/types"
 import { api, type ReadingOrderEntry, type ReadingOrderResponse } from "@/api/client"
+import type { StepState } from "./use-book-run"
 
 export function readingOrderKey(label: string) {
   return ["books", label, "reading-order"] as const
+}
+
+/**
+ * The running step that makes the server refuse a reorder, or null when
+ * rearranging is allowed.
+ *
+ * Reads the very set the API's save guard reads, so the controls grey out
+ * exactly when a save would be refused. Gating on "the storyboard stage is
+ * running" instead — which is what both surfaces used to do — offered the
+ * controls during a quiz, extract or sectioning run and then failed on Save.
+ *
+ * Takes `stepState` (from `useBookRun`) rather than reading the context itself,
+ * so the rule is testable without a provider and this module stays free of the
+ * run-state import.
+ */
+export function blockingReadingOrderStep(
+  stepState: (step: string) => StepState,
+): StepName | null {
+  for (const step of READING_ORDER_BLOCKING_STEPS) {
+    if (stepState(step) === "running") return step
+  }
+  return null
 }
 
 export function useReadingOrder(label: string) {

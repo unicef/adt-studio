@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { moveReadingOrderItem, moveReadingOrderRow } from "./use-reading-order"
+import { READING_ORDER_BLOCKING_STEPS } from "@adt/types"
+import {
+  blockingReadingOrderStep,
+  moveReadingOrderItem,
+  moveReadingOrderRow,
+} from "./use-reading-order"
 import type { ReadingOrderEntry } from "@/api/client"
 
 function order(ids: string): ReadingOrderEntry[] {
@@ -103,5 +108,38 @@ describe("moveReadingOrderRow", () => {
   it("keeps every slot exactly once, including the skipped ones", () => {
     const result = moveReadingOrderRow(order("a x b y c"), rows("a b c"), "a", 1)
     expect([...result!].map((e) => e.id).sort()).toEqual(["a", "b", "c", "x", "y"])
+  })
+})
+
+describe("blockingReadingOrderStep", () => {
+  const running =
+    (...steps: string[]) =>
+    (step: string) =>
+      steps.includes(step) ? ("running" as const) : ("idle" as const)
+
+  it("names the running step the server would refuse the save for", () => {
+    // The set itself lives in @adt/types and is what the API's guard reads, so
+    // asserting against its members keeps the two ends provably in step.
+    for (const step of READING_ORDER_BLOCKING_STEPS) {
+      expect(blockingReadingOrderStep(running(step))).toBe(step)
+    }
+  })
+
+  it("allows rearranging during a step that cannot move anything", () => {
+    // Captions, glossary, translation, speech and packaging only add material
+    // to pages that already have their place — the server lets these through.
+    expect(blockingReadingOrderStep(running("image-captioning"))).toBeNull()
+    expect(blockingReadingOrderStep(running("glossary"))).toBeNull()
+    expect(blockingReadingOrderStep(running("tts"))).toBeNull()
+    expect(blockingReadingOrderStep(running("package-web"))).toBeNull()
+  })
+
+  it("allows rearranging when nothing is running", () => {
+    expect(blockingReadingOrderStep(running())).toBeNull()
+  })
+
+  it("does not block on a blocking step that has already finished", () => {
+    expect(blockingReadingOrderStep(() => "done")).toBeNull()
+    expect(blockingReadingOrderStep(() => "error")).toBeNull()
   })
 })

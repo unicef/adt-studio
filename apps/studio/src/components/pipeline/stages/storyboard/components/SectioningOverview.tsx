@@ -7,6 +7,7 @@ import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import {
   useReadingOrder,
   useResetReadingOrder,
+  blockingReadingOrderStep,
   moveReadingOrderRow,
   readingOrderKey,
 } from "@/hooks/use-reading-order"
@@ -62,8 +63,11 @@ export function SectioningOverview({
   const { t } = useLingui()
   const { announce } = useAnnouncer()
   const queryClient = useQueryClient()
-  const { stageState } = useBookRun()
+  const { stageState, stepState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
+  // Reordering is refused by the server during more than just this stage — a
+  // quiz run rewrites the quiz slots. Same rule the sidebar and the API read.
+  const reorderBlockedBy = blockingReadingOrderStep(stepState)
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
   const [visiblePanels, setVisiblePanels] = useState<Set<DetailPanel>>(() => new Set(ALL_PANELS))
   const [allExpanded, setAllExpanded] = useState(false)
@@ -199,7 +203,7 @@ export function SectioningOverview({
 
   const moveRow = useCallback(
     (sectionId: string, delta: number) => {
-      if (!readingOrder) return
+      if (!readingOrder || reorderBlockedBy) return
       const next = moveReadingOrderRow(
         effectiveOrder,
         bookOrderRows.map((row) => row.id),
@@ -211,7 +215,7 @@ export function SectioningOverview({
       announce(t`Moved to position ${String(landed)} of ${String(next.length)}`)
       setDraft(next)
     },
-    [readingOrder, effectiveOrder, bookOrderRows, setDraft, t, announce],
+    [readingOrder, reorderBlockedBy, effectiveOrder, bookOrderRows, setDraft, t, announce],
   )
 
   const invalidatePages = (...pageIds: string[]) => {
@@ -433,8 +437,10 @@ export function SectioningOverview({
                       }
                       onMoveUp={() => moveRow(row.id, -1)}
                       onMoveDown={() => moveRow(row.id, 1)}
-                      canMoveUp={rowIndex > 0}
-                      canMoveDown={rowIndex < bookOrderRows.length - 1}
+                      canMoveUp={!reorderBlockedBy && rowIndex > 0}
+                      canMoveDown={
+                        !reorderBlockedBy && rowIndex < bookOrderRows.length - 1
+                      }
                       onMerge={(direction) =>
                         mergeMutation.mutate({
                           pageId: row.page.pageId,

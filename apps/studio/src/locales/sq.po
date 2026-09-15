@@ -6439,6 +6439,10 @@ msgstr "Normalizuar"
 msgid "Not available on this server"
 msgstr "Jo i disponueshëm në këtë server"
 
+#. placeholder {0}: String(reorderBlockedBy)
+msgid "Not available while {0} is running"
+msgstr "I padisponueshëm ndërsa {0} është në ekzekutim"
+
 msgid "Not available while the storyboard is running"
 msgstr "I padisponueshëm ndërsa storyboard-i është në ekzekutim"
 

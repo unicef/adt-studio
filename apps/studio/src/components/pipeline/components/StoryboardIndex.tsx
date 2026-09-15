@@ -7,6 +7,7 @@ import { useLingui as useLinguiMacro } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import { AlertTriangle, ArrowDown, ArrowLeftRight, ArrowUp, CheckCircle2, Eye, EyeOff, FileText, GripVertical, HelpCircle, Loader2, Monitor, MoreHorizontal, Puzzle } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
+import type { StepName } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useQuizzes } from "@/hooks/use-quizzes"
@@ -40,12 +41,20 @@ export function StoryboardIndex({
   sectionIndex,
   onSelectSection,
   stageRunning,
+  reorderBlockedBy,
 }: {
   bookLabel: string
   selectedPageId?: string
   sectionIndex?: number
   onSelectSection?: (pageId: string, sectionIndex: number) => void
   stageRunning?: boolean
+  /**
+   * The running step the server would refuse a reorder for, or null/undefined
+   * when rearranging is allowed. Separate from `stageRunning`, which is about
+   * this stage's own progress: a quiz run blocks reordering without the
+   * storyboard running, and a captions run does neither.
+   */
+  reorderBlockedBy?: StepName | null
 }) {
   const { data: pages } = usePages(bookLabel)
   const { data: quizzesData } = useQuizzes(bookLabel)
@@ -75,7 +84,7 @@ export function StoryboardIndex({
   const [dragEnabled, setDragEnabled] = useState(false)
   const togglePrune = useTogglePrune(bookLabel)
   const queryClient = useQueryClient()
-  const canReorder = !stageRunning
+  const canReorder = !reorderBlockedBy
   const dragActive = dragEnabled && canReorder
 
   /**
@@ -283,7 +292,7 @@ export function StoryboardIndex({
                 ? dragActive
                   ? t`Stop rearranging. Each page's menu can still move it.`
                   : t`Rearrange pages by dragging. Each page's menu can move it without this.`
-                : t`Not available while the storyboard is running`
+                : t`Not available while ${String(reorderBlockedBy)} is running`
             }
             className={cn(
               "inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10px] font-medium transition-colors",

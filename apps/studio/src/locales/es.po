@@ -6437,6 +6437,10 @@ msgstr "Normalizado"
 msgid "Not available on this server"
 msgstr "No disponible en este servidor"
 
+#. placeholder {0}: String(reorderBlockedBy)
+msgid "Not available while {0} is running"
+msgstr "No disponible mientras {0} se está ejecutando"
+
 msgid "Not available while the storyboard is running"
 msgstr "No disponible mientras el storyboard se está ejecutando"
 

@@ -345,13 +345,46 @@ describe("StoryboardIndex reordering", () => {
   })
 
   it("disables the row menu while the storyboard is running", () => {
-    render(<StoryboardIndex bookLabel="book" stageRunning />)
+    render(
+      <StoryboardIndex bookLabel="book" stageRunning reorderBlockedBy="web-rendering" />,
+    )
 
     const triggers = screen.getAllByRole("button", { name: "Page actions" })
     expect((triggers[0] as HTMLButtonElement).disabled).toBe(true)
     expect(
       (screen.getByRole("button", { name: "Rearrange" }) as HTMLButtonElement).disabled,
     ).toBe(true)
+  })
+
+  // The server refuses a reorder during extract, sectioning, web-rendering and
+  // quiz-generation alike. The sidebar used to grey out only for its own stage,
+  // so a quiz run left the controls live and the save failed afterwards.
+  it("disables rearranging during a blocking step outside the storyboard", () => {
+    render(<StoryboardIndex bookLabel="book" reorderBlockedBy="quiz-generation" />)
+
+    const toggle = screen.getByRole("button", { name: "Rearrange" }) as HTMLButtonElement
+    expect(toggle.disabled).toBe(true)
+    expect(toggle.title).toContain("quiz-generation")
+    expect(
+      (screen.getAllByRole("button", { name: "Page actions" })[0] as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
+  })
+
+  it("does not move a row by keyboard while a blocking step runs", () => {
+    render(<StoryboardIndex bookLabel="book" reorderBlockedBy="quiz-generation" />)
+
+    fireEvent.keyDown(rows()[0], { key: "ArrowDown", altKey: true })
+
+    expect(setDraft).not.toHaveBeenCalled()
+  })
+
+  it("leaves rearranging alone during a step that cannot move anything", () => {
+    render(<StoryboardIndex bookLabel="book" reorderBlockedBy={null} />)
+
+    expect(
+      (screen.getByRole("button", { name: "Rearrange" }) as HTMLButtonElement).disabled,
+    ).toBe(false)
   })
 
   it("ignores drags that are not reading-order rows", () => {
@@ -379,7 +412,11 @@ describe("StoryboardIndex reordering", () => {
   })
 
   it("does not reorder while the storyboard stage is running", () => {
-    render(<StoryboardIndex bookLabel="book" stageRunning />)
+    // `web-rendering` is the storyboard's own blocking step, so this is what
+    // the sidebar is handed while that stage runs.
+    render(
+      <StoryboardIndex bookLabel="book" stageRunning reorderBlockedBy="web-rendering" />,
+    )
 
     fireEvent.keyDown(rows()[0], { key: "ArrowDown", altKey: true })
     expect(setDraft).not.toHaveBeenCalled()

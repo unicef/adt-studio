@@ -231,10 +231,14 @@ export const ALL_STEP_NAMES: ReadonlySet<StepName> = new Set(
  * captions, glossary, translation, speech, packaging — only adds material to
  * pages that already have their place, and cannot move anything.
  *
- * Shared by the API's save guard and the UI that greys out the controls, so the
- * two cannot disagree about when rearranging is allowed. They previously did:
- * the server refused during *any* running step while the sidebar only greyed
- * out for the storyboard, so reordering during a captions run failed silently.
+ * Shared by the API's save guard (`assertNoActivePipelineRun`) and, via
+ * `blockingReadingOrderStep`, by both UI surfaces that grey out the controls —
+ * so the two cannot disagree about when rearranging is allowed. They have twice
+ * drifted apart: first the server refused during *any* running step while the
+ * sidebar only greyed out for the storyboard, so a captions run failed the save
+ * silently; then the sidebar still gated on its own stage, so a quiz run left
+ * the controls live and refused the save afterwards. Read this set on both ends
+ * rather than inferring the answer from a stage's state.
  */
 export const READING_ORDER_BLOCKING_STEPS: ReadonlySet<StepName> = new Set<StepName>([
   "extract",

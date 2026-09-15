@@ -65,8 +65,13 @@ vi.mock("@/hooks/use-api-key", () => ({
   useApiKey: () => ({ apiKey: "sk-test" }),
   useBookStructuredTextAvailability: () => true,
 }))
+/** Overridable per test: the reorder guard reads step state, not stage state. */
+let runningStep: string | null = null
 vi.mock("@/hooks/use-book-run", () => ({
-  useBookRun: () => ({ stageState: () => "idle" }),
+  useBookRun: () => ({
+    stageState: () => "idle",
+    stepState: (step: string) => (step === runningStep ? "running" : "idle"),
+  }),
 }))
 vi.mock("@/hooks/use-toggle-prune", () => ({
   useTogglePrune: () => ({ mutate: vi.fn(), isPending: false }),
@@ -269,6 +274,7 @@ function moveButtons(direction: "up" | "down"): HTMLButtonElement[] {
 afterEach(() => {
   cleanup()
   setDraft.mockReset()
+  runningStep = null
 })
 
 describe("SectioningOverview row order", () => {
@@ -373,5 +379,25 @@ describe("SectioningOverview row order", () => {
     expect(ups[0].disabled).toBe(true)
     expect(ups[1].disabled).toBe(false)
     expect(downs[downs.length - 1].disabled).toBe(true)
+  })
+
+  // The server refuses a reorder while quiz generation rewrites the quiz slots,
+  // so the table must not offer one and then fail on Save.
+  it("offers no move while a blocking step runs outside this stage", () => {
+    runningStep = "quiz-generation"
+    show()
+    toBookOrder()
+
+    for (const button of [...moveButtons("up"), ...moveButtons("down")]) {
+      expect(button.disabled).toBe(true)
+    }
+  })
+
+  it("still offers a move during a step that cannot move anything", () => {
+    runningStep = "image-captioning"
+    show()
+    toBookOrder()
+
+    expect(moveButtons("down")[0].disabled).toBe(false)
   })
 })
