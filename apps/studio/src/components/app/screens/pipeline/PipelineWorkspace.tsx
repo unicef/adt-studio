@@ -1,15 +1,25 @@
 import { useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { AlertTriangle } from "lucide-react"
 import { useQuizzes } from "@/hooks/use-quizzes"
-import { AiEditPanel } from "./plugins/AiEditPanel"
+import { FloatingSaveProvider } from "@/components/pipeline/components/floating-save"
+import { UnsavedChangesGuard } from "@/components/pipeline/components/UnsavedChangesGuard"
 import { DockHandle } from "./chrome/DockHandle"
 import { PipelineTopBar } from "./chrome/PipelineTopBar"
 import { CanvasEmptyPanel } from "./canvas/CanvasEmptyPanel"
 import { CanvasViewportControls } from "./canvas/CanvasViewportControls"
-import { PageCanvas } from "./canvas/PageCanvas"
+import { PageEmptyState } from "./canvas/PageEmptyState"
 import { QuizCanvas } from "./canvas/QuizCanvas"
-import { PagesRail } from "./rail/PagesRail"
-import { PagesRailEmpty } from "./rail/PagesRailEmpty"
+import { EditorCanvas } from "./editor/EditorCanvas"
+import { EditorEmpty, EditorError, EditorSkeleton } from "./editor/EditorStatus"
+import { LeaveEditorDialog } from "./editor/LeaveEditorDialog"
+import { SaveState } from "./editor/SaveState"
+import { StoryboardShell } from "./editor/StoryboardShell"
+import { useEditorGate } from "./editor/useEditorGate"
+import { useEditorSaveBar } from "./editor/useEditorSaveBar"
+import { useStoryboardEditor } from "./editor/useStoryboardEditor"
+import { WorkspacePanel } from "./panel/WorkspacePanel"
+import { WorkspaceRail } from "./rail/WorkspaceRail"
 import { SideRail } from "./rail/SideRail"
 import { PluginDockPills as PluginDock } from "./plugins/PluginDockPills"
 import type { StoryboardPhase } from "./canvas/StoryboardEmptyState"
@@ -48,7 +58,16 @@ export interface PipelineWorkspaceProps {
   onOpenBookInfo: () => void
 }
 
-export function PipelineWorkspace({
+export function PipelineWorkspace(props: PipelineWorkspaceProps) {
+  return (
+    <FloatingSaveProvider barClassName="bottom-27">
+      <UnsavedChangesGuard />
+      <WorkspaceBody {...props} />
+    </FloatingSaveProvider>
+  )
+}
+
+function WorkspaceBody({
   label,
   state,
   run,
@@ -92,10 +111,24 @@ export function PipelineWorkspace({
     [quizzes, selectedQuizIndex],
   )
 
-  const selectPage = (nextPageId: string) => {
-    setSelectedQuizIndex(null)
-    onSelectPage(nextPageId)
-  }
+  const empty = !state.hasSections || !state.hasRendering
+  const editablePage = !empty && !activeQuiz ? activePage : null
+  const session = useStoryboardEditor({
+    label,
+    page: editablePage,
+    enabled: editablePage !== null,
+  })
+  const gate = useEditorGate(session)
+  useEditorSaveBar(editablePage, session)
+  const editing = session.status === "ready"
+
+  const selectPage = (nextPageId: string) =>
+    gate.guard(() => {
+      setSelectedQuizIndex(null)
+      onSelectPage(nextPageId)
+    })
+
+  const selectQuiz = (quizIndex: number) => gate.guard(() => setSelectedQuizIndex(quizIndex))
 
   useCanvasNavigation({
     pages: state.pages,
@@ -104,10 +137,9 @@ export function PipelineWorkspace({
     activeQuizIndex: activeQuiz?.quizIndex ?? null,
     enabled: navigationEnabled,
     onSelectPage: selectPage,
-    onSelectQuiz: setSelectedQuizIndex,
+    onSelectQuiz: selectQuiz,
   })
 
-  const empty = !state.hasSections || !state.hasRendering
   const phase: StoryboardPhase = state.hasSections ? "render" : "sections"
   const emptyRun = phase === "render" ? storyboardRun : sectioningRun
   const foundationRunning = extractActivity.isActive
@@ -134,90 +166,67 @@ export function PipelineWorkspace({
         version={empty || !activeQuiz ? null : quizzesQuery.data?.version ?? null}
         versionPicker={
           !empty && !activeQuiz && activePage ? (
-            <StoryboardVersionPicker
-              label={label}
-              page={activePage}
-              viewport={viewport}
-            />
+            <StoryboardVersionPicker label={label} page={activePage} viewport={viewport} />
           ) : undefined
         }
+        status={editing ? <SaveState dirty={session.dirty} saving={session.saving} /> : undefined}
         rerun={<StageRerunButton slug="storyboard" rerun={storyboardRerun} variant="topbar" />}
         onPreview={() =>
-          onOpenPreview(
-            previewSectionId(activePage?.sections, activeQuiz?.quizIndex ?? null),
-          )
+          onOpenPreview(previewSectionId(activePage?.sections, activeQuiz?.quizIndex ?? null))
         }
         previewDisabled={empty}
         onOpenBookInfo={onOpenBookInfo}
       />
 
-      <div className="relative flex min-h-0 flex-1">
-        <SideRail widthClass="w-64">
-          {empty ? (
-            <PagesRailEmpty
-              pageCount={state.pages.length}
-              imageCount={state.imageCount}
-              extracting={extractActivity.isActive}
-            />
-          ) : (
-            <PagesRail
+      <StoryboardShell session={session}>
+        <div className="flex min-h-0 w-full flex-1">
+          <SideRail widthClass="w-72">
+            <WorkspaceRail
               label={label}
               pages={state.pages}
               quizzes={quizzes}
               activePageId={activePage?.pageId ?? null}
               activeQuizIndex={activeQuiz?.quizIndex ?? null}
               onSelect={selectPage}
-              onSelectQuiz={setSelectedQuizIndex}
+              onSelectQuiz={selectQuiz}
               storyboardRunning={storyboardActivity.isActive}
               outdatedPageIds={staleness.outdatedPageIds}
+              empty={empty}
+              imageCount={state.imageCount}
+              extracting={extractActivity.isActive}
+              editable={editing}
             />
-          )}
-        </SideRail>
+          </SideRail>
 
-        <div className="relative flex min-w-0 flex-1 flex-col items-center overflow-hidden bg-accent">
-          {staleness.isStale && (
-            <StoryboardStaleBanner
-              rerun={storyboardRerun}
-              outdatedCount={staleness.outdatedCount}
-            />
-          )}
-          {empty ? (
-            <CanvasEmptyPanel
-              run={run}
-              foundationRunning={foundationRunning}
-              phase={phase}
-              pageCount={state.pages.length}
-              sectionCount={state.sectionCount}
-              emptyRun={emptyRun}
-              onOpenSettings={() => onOpenSettings("storyboard")}
-            />
-          ) : (
-            (activeQuiz || activePage) && (
+          <div className="relative flex min-w-0 flex-1 flex-col items-center overflow-hidden bg-accent">
+            {staleness.isStale && (
+              <StoryboardStaleBanner
+                rerun={storyboardRerun}
+                outdatedCount={staleness.outdatedCount}
+              />
+            )}
+
+            {empty ? (
+              <CanvasEmptyPanel
+                run={run}
+                foundationRunning={foundationRunning}
+                phase={phase}
+                pageCount={state.pages.length}
+                sectionCount={state.sectionCount}
+                emptyRun={emptyRun}
+                onOpenSettings={() => onOpenSettings("storyboard")}
+              />
+            ) : activeQuiz ? (
               <>
-                {activeQuiz ? (
-                  <QuizCanvas
-                    label={label}
-                    quiz={activeQuiz}
-                    version={quizzesQuery.data?.version ?? null}
-                    pages={state.pages}
-                    viewport={viewport}
-                    zoom={zoom}
-                    onZoomChange={setZoom}
-                  />
-                ) : (
-                  activePage && (
-                    <PageCanvas
-                      label={label}
-                      page={activePage}
-                      viewport={viewport}
-                      zoom={zoom}
-                      onZoomChange={setZoom}
-                      sectioning={sectioningRun}
-                      storyboardRunning={storyboardActivity.isActive}
-                      onOpenSectioning={() => onOpenStep("sectioning")}
-                    />
-                  )
-                )}
+                <QuizCanvas
+                  label={label}
+                  quiz={activeQuiz}
+                  version={quizzesQuery.data?.version ?? null}
+                  pages={state.pages}
+                  viewport={viewport}
+                  zoom={zoom}
+                  onZoomChange={setZoom}
+                />
                 <CanvasViewportControls
                   viewport={viewport}
                   onViewportChange={setViewport}
@@ -227,24 +236,49 @@ export function PipelineWorkspace({
                   onToggleChrome={() => setChromeHidden((hidden) => !hidden)}
                 />
               </>
-            )
-          )}
-        </div>
+            ) : session.status === "loading" ? (
+              <EditorSkeleton />
+            ) : session.status === "error" ? (
+              <EditorError message={session.error?.message} />
+            ) : activePage && editing ? (
+              <>
+                {activePage.missingCaptions > 0 && (
+                  <div className="flex w-full items-center gap-2 border-b border-amber-200 bg-amber-50 px-3.5 py-2 text-[12px] font-medium text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+                    <AlertTriangle className="size-3.5 shrink-0" />
+                    <Trans>This page has images without an alternative description.</Trans>
+                  </div>
+                )}
+                <EditorCanvas
+                  pageId={activePage.pageId}
+                  session={session}
+                  viewport={viewport}
+                  onViewportChange={setViewport}
+                />
+              </>
+            ) : activePage ? (
+              <div className="flex min-h-0 w-full flex-1 items-center justify-center px-6 pb-24">
+                <PageEmptyState
+                  label={label}
+                  page={activePage}
+                  sectioning={sectioningRun}
+                  storyboardRunning={storyboardActivity.isActive}
+                  onOpenSectioning={() => onOpenStep("sectioning")}
+                />
+              </div>
+            ) : (
+              <EditorEmpty />
+            )}
+          </div>
 
-        <AiEditPanel
-          label={label}
-          pageId={activeQuiz ? null : activePage?.pageId ?? null}
-          pageLabel={
-            activeQuiz
-              ? t`quiz ${activeQuiz.quizIndex + 1}`
-              : activePage
-                ? t`page ${activePage.pageNumber}`
-                : undefined
-          }
-          sectionIndex={activePage?.sections[0]?.sectionIndex ?? 0}
-          empty={empty}
-        />
-      </div>
+          <WorkspacePanel
+            label={label}
+            pageId={activeQuiz ? null : activePage?.pageId ?? null}
+            sectionIndex={session.activeSection?.sectionIndex ?? 0}
+            empty={empty}
+            editable={editing}
+          />
+        </div>
+      </StoryboardShell>
 
       <PluginDock
         foundations={state.foundations}
@@ -255,6 +289,8 @@ export function PipelineWorkspace({
         onMinimize={() => setDockMinimized(true)}
       />
       <DockHandle visible={dockMinimized} onShow={() => setDockMinimized(false)} />
+
+      <LeaveEditorDialog {...gate.dialog} />
     </div>
   )
 }

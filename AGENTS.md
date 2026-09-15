@@ -221,6 +221,51 @@ The `lingui/no-unlocalized-strings` rule in `apps/studio/eslint.config.js` flags
 ### Adding a new language
 See [`docs/I18N_ADD_LANGUAGE.md`](docs/I18N_ADD_LANGUAGE.md).
 
+## Storyboard HTML editor (`adt-html-editor`)
+
+The Storyboard workspace in the new pipeline UI **is** a visual HTML editor —
+there is no preview/edit toggle. It is backed by **`adt-html-editor`**, a
+separate repo consumed through a `link:` dependency
+(`../../../../../personal/adt-html-editor`), not from npm. Its `shadcn` entry
+point is used so the editor chrome inherits the Studio's own theme tokens.
+
+The editor's panels are spread across the workspace rather than living in one
+box, so `StoryboardShell` (`editor/StoryboardShell.tsx`) mounts the library
+provider around the whole body:
+
+| Region | Tabs | Source |
+|--------|------|--------|
+| Left rail | Pages, Layers, Blocks | `rail/WorkspaceRail.tsx` |
+| Canvas | section tabs + history + zoom/viewport | `editor/EditorCanvas.tsx` |
+| Right panel | Styles, AI | `panel/WorkspacePanel.tsx` |
+
+- **The library must be built before the Studio can run** — the `link:` points
+  at its `dist/`. Run `bun run build` in the library after changing it.
+- **The provider is controlled, never keyed.** `StoryboardShell` passes the
+  section HTML as `value`, so switching section or page replaces the document
+  in place; remounting it would tear down the rail and the panel with it.
+- **Editing is per section.** The canvas holds one section, picked by the tabs
+  in its toolbar, and a save writes the whole page's `web-rendering` node
+  through `api.saveStoryboard` — a new version, never an overwrite.
+- **Quizzes are not editable.** They keep the iframe preview (`QuizCanvas`), so
+  Layers, Blocks and Styles turn off while one is open.
+- **Image sources round-trip.** Stored HTML uses relative `/api/...` srcs; in
+  the desktop build the API lives on another origin, so `imageUrlCodec` makes
+  them absolute for the canvas and relative again on save.
+- **Fixed-layout pages.** The stored HTML is a fragment with no `<head>`, so the
+  page box is read off the content wrapper's inline style (`fixedPageSize`) and
+  passed as `fixedLayout.page`; the canvas composition follows the library's
+  detected layout mode (`useLayoutMode`).
+- **Skin CSS.** The skin's classes are compiled by the Studio's own Tailwind
+  (`@source` in `globals.css`). It expects a few custom variants that ship with
+  the `shadcn` CLI package; only the ones it uses are vendored into
+  `apps/studio/src/styles/adt-html-editor.css`. `adt-html-editor/style.css`
+  carries the canvas internals (selection overlay, ghosts, guides, resize
+  handles) as CSS modules and is imported by `StoryboardShell` — without it the
+  canvas collapses to a few pixels tall.
+- **`cn` is exempt from `minimumReleaseAge`** in `pnpm-workspace.yaml` — the
+  skin depends on it and only a recent version exists.
+
 ## Key Rules
 
 - All types defined as Zod schemas in `packages/types/`, infer TS types with `z.infer<>`

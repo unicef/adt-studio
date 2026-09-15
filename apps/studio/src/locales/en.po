@@ -1044,10 +1044,6 @@ msgstr "Activity Detection"
 msgid "Activity generation failed"
 msgstr "Activity generation failed"
 
-#. placeholder {0}: sectionIndex + 1
-msgid "Activity in section {0}"
-msgstr "Activity in section {0}"
-
 msgid "activity interactive exercise rendering"
 msgstr "activity interactive exercise rendering"
 
@@ -2112,6 +2108,9 @@ msgstr "Blank reference"
 msgid "Blocked"
 msgstr "Blocked"
 
+msgid "Blocks"
+msgstr "Blocks"
+
 msgid "Blocks by page"
 msgstr "Blocks by page"
 
@@ -2147,6 +2146,9 @@ msgstr "Book hierarchy needs rebuilding"
 
 msgid "Book images"
 msgstr "Book images"
+
+msgid "Book index"
+msgstr "Book index"
 
 msgid "Book info"
 msgstr "Book info"
@@ -3636,6 +3638,9 @@ msgstr "Draft"
 msgid "Drag & drop font files here"
 msgstr "Drag & drop font files here"
 
+msgid "Drag a block onto the page to insert it."
+msgstr "Drag a block onto the page to insert it."
+
 msgid "Drag the handles to crop a rectangle. Drag inside to move."
 msgstr "Drag the handles to crop a rectangle. Drag inside to move."
 
@@ -5029,6 +5034,9 @@ msgstr "Hide the AI panel"
 msgid "Hide the controls"
 msgstr "Hide the controls"
 
+msgid "Hide the panel"
+msgstr "Hide the panel"
+
 msgid "Hide the sidebar"
 msgstr "Hide the sidebar"
 
@@ -5569,6 +5577,9 @@ msgstr "Justify"
 msgid "KB"
 msgstr "KB"
 
+msgid "Keep editing"
+msgstr "Keep editing"
+
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Keep output schemas and IDs unchanged when editing prompts."
 
@@ -5684,6 +5695,9 @@ msgstr "LaTeX converted"
 
 msgid "Launch the app with"
 msgstr "Launch the app with"
+
+msgid "Layers"
+msgstr "Layers"
 
 msgid "Layout"
 msgstr "Layout"
@@ -5981,6 +5995,9 @@ msgstr "Loading text catalog..."
 
 msgid "Loading text sizes…"
 msgstr "Loading text sizes…"
+
+msgid "Loading the page HTML…"
+msgstr "Loading the page HTML…"
 
 msgid "Loading TTS normalization..."
 msgstr "Loading TTS normalization..."
@@ -6859,9 +6876,6 @@ msgstr "No preview available"
 msgid "No preview available."
 msgstr "No preview available."
 
-msgid "No preview rendered for this section yet"
-msgstr "No preview rendered for this section yet"
-
 msgid "No prompt files for this model."
 msgstr "No prompt files for this model."
 
@@ -7273,6 +7287,24 @@ msgstr "Open a page to review"
 msgid "Open a page to see page-level findings"
 msgstr "Open a page to see page-level findings"
 
+msgid "Open a rendered page to add blocks"
+msgstr "Open a rendered page to add blocks"
+
+msgid "Open a rendered page to drag blocks into it."
+msgstr "Open a rendered page to drag blocks into it."
+
+msgid "Open a rendered page to see its elements"
+msgstr "Open a rendered page to see its elements"
+
+msgid "Open a rendered page to style it"
+msgstr "Open a rendered page to style it"
+
+msgid "Open a rendered page to style its elements."
+msgstr "Open a rendered page to style its elements."
+
+msgid "Open a rendered page to work on its elements."
+msgstr "Open a rendered page to work on its elements."
+
 msgid "Open AI providers"
 msgstr "Open AI providers"
 
@@ -7616,7 +7648,6 @@ msgstr "page"
 msgid "Page"
 msgstr "Page"
 
-#. placeholder {0}: activePage.pageNumber
 #. placeholder {0}: chatPage.pageNumber
 msgid "page {0}"
 msgstr "page {0}"
@@ -7688,6 +7719,9 @@ msgstr "Page {pageNum}"
 
 msgid "Page {pageNumber}"
 msgstr "Page {pageNumber}"
+
+msgid "Page {pageNumber} HTML"
+msgstr "Page {pageNumber} HTML"
 
 msgid "page {shownStr}"
 msgstr "page {shownStr}"
@@ -8408,10 +8442,6 @@ msgstr "quiz"
 
 msgid "Quiz"
 msgstr "Quiz"
-
-#. placeholder {0}: activeQuiz.quizIndex + 1
-msgid "quiz {0}"
-msgstr "quiz {0}"
 
 #. placeholder {0}: String(activeQuiz.index + 1)
 #. placeholder {0}: String(item.index + 1)
@@ -9319,6 +9349,9 @@ msgstr "Save activity"
 msgid "Save activity (⌘S)"
 msgstr "Save activity (⌘S)"
 
+msgid "Save and continue"
+msgstr "Save and continue"
+
 msgid "Save changes"
 msgstr "Save changes"
 
@@ -9363,6 +9396,9 @@ msgstr "Save text sizes"
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Save your work first if you want to keep these changes."
+
+msgid "Saved"
+msgstr "Saved"
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
@@ -9435,6 +9471,12 @@ msgstr "Search colors"
 
 msgid "Search display or speech text…"
 msgstr "Search display or speech text…"
+
+msgid "Search elements"
+msgstr "Search elements"
+
+msgid "Search elements…"
+msgstr "Search elements…"
 
 msgid "Search entries…"
 msgstr "Search entries…"
@@ -9942,6 +9984,9 @@ msgstr "Show the controls"
 
 msgid "Show the dock"
 msgstr "Show the dock"
+
+msgid "Show the panel"
+msgstr "Show the panel"
 
 msgid "Show the sidebar"
 msgstr "Show the sidebar"
@@ -10493,6 +10538,9 @@ msgstr "Styleguide Preview — {styleguide}"
 msgid "styles"
 msgstr "styles"
 
+msgid "Styles"
+msgstr "Styles"
+
 msgid "Subheading"
 msgstr "Subheading"
 
@@ -10871,6 +10919,9 @@ msgstr "The model detects bounding boxes so each visual element can be stored an
 msgid "The page has content, but sectioning did not split it into sections. Run the step again to give it another pass."
 msgstr "The page has content, but sectioning did not split it into sections. Run the step again to give it another pass."
 
+msgid "The page HTML could not be loaded."
+msgstr "The page HTML could not be loaded."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "The process plants use to turn sunlight, water, and carbon dioxide into food."
 
@@ -11156,6 +11207,9 @@ msgstr "This page doesn't exist in this version."
 msgid "This page has an interactive activity"
 msgstr "This page has an interactive activity"
 
+msgid "This page has HTML edits that were not saved. Save them before leaving, or discard them to continue."
+msgstr "This page has HTML edits that were not saved. Save them before leaving, or discard them to continue."
+
 msgid "This page has images without an alternative description."
 msgstr "This page has images without an alternative description."
 
@@ -11170,6 +11224,9 @@ msgstr "This page has no embedded text layer — the text below was recovered fr
 
 msgid "This page has no entries to synthesize"
 msgstr "This page has no entries to synthesize"
+
+msgid "This page has no rendered sections to edit yet."
+msgstr "This page has no rendered sections to edit yet."
 
 msgid "This page has no sectioning output"
 msgstr "This page has no sectioning output"
