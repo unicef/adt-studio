@@ -33,12 +33,23 @@ export function getViewportBreakpoints() {
   }))
 }
 
+/**
+ * Whole-capture Chromium budget, matching Playwright's own per-operation default.
+ * Interactive callers (thumbnail route, AI-edit previews) want to fail fast;
+ * background callers that can afford to wait pass a longer `timeoutMs`.
+ */
+export const DEFAULT_SCREENSHOT_TIMEOUT_MS = 30_000
+
 export interface ScreenshotRenderer {
   /** Render HTML to a PNG screenshot and return it as base64. */
   screenshot(
     html: string,
     viewport?: { width: number; height: number },
-    options?: { signal?: AbortSignal },
+    options?: {
+      signal?: AbortSignal
+      /** Budget for the whole capture, not per step. Honored by the Playwright renderer. */
+      timeoutMs?: number
+    },
   ): Promise<string>
   /** Release browser resources. */
   close(): Promise<void>
@@ -68,9 +79,14 @@ export async function _createScreenshotRenderer(): Promise<ScreenshotRenderer> {
     async screenshot(
       html: string,
       viewport = { width: 1024, height: 768 },
-      options: { signal?: AbortSignal } = {},
+      options: { signal?: AbortSignal; timeoutMs?: number } = {},
     ): Promise<string> {
       throwIfAborted(options.signal)
+      // One budget for the whole capture. Passing the same `timeout` to each
+      // Playwright call instead would let a slow page spend it three times over.
+      // Floor at 1ms: Playwright reads `timeout: 0` as "wait forever".
+      const deadline = Date.now() + (options.timeoutMs ?? DEFAULT_SCREENSHOT_TIMEOUT_MS)
+      const remaining = () => Math.max(1, deadline - Date.now())
       const context = await browser.newContext({ viewport })
       const onAbort = () => {
         void context.close().catch(() => {})
@@ -79,12 +95,22 @@ export async function _createScreenshotRenderer(): Promise<ScreenshotRenderer> {
       try {
         throwIfAborted(options.signal)
         const page = await context.newPage()
-        await page.setContent(html, { waitUntil: "load" })
+        await page.setContent(html, { waitUntil: "load", timeout: remaining() })
         throwIfAborted(options.signal)
         // Wait for web fonts to finish loading before screenshotting
-        await page.waitForFunction("document.fonts.ready")
+        await page.waitForFunction("document.fonts.ready", undefined, { timeout: remaining() })
         throwIfAborted(options.signal)
-        const buffer = await page.screenshot({ fullPage: true, type: "png" })
+        // `animations: "disabled"` fast-forwards finite CSS animations and transitions
+        // to their end state (and pauses infinite ones), so the capture shows a settled
+        // page rather than whatever frame it happened to land on. Playwright's default
+        // leaves animations untouched. This applies to every caller, review captures
+        // and the thumbnail route alike — both want a deterministic image.
+        const buffer = await page.screenshot({
+          fullPage: true,
+          type: "png",
+          animations: "disabled",
+          timeout: remaining(),
+        })
         throwIfAborted(options.signal)
         return buffer.toString("base64")
       } finally {
@@ -144,7 +170,9 @@ export async function _createElectronScreenshotRenderer(): Promise<ScreenshotRen
     async screenshot(
       html: string,
       viewport = { width: 1024, height: 768 },
-      options: { signal?: AbortSignal } = {},
+      // timeoutMs is Playwright-only — the Electron renderer captures via
+      // BrowserWindow, which has no equivalent per-operation budget.
+      options: { signal?: AbortSignal; timeoutMs?: number } = {},
     ): Promise<string> {
       throwIfAborted(options.signal)
       const id = randomUUID()
@@ -200,7 +228,16 @@ interface PlaywrightContext {
 }
 
 interface PlaywrightPage {
-  setContent(html: string, opts?: { waitUntil?: string }): Promise<void>
-  waitForFunction(expression: string): Promise<unknown>
-  screenshot(opts?: { fullPage?: boolean; type?: string }): Promise<Buffer>
+  setContent(html: string, opts?: { waitUntil?: string; timeout?: number }): Promise<void>
+  waitForFunction(
+    expression: string,
+    arg?: unknown,
+    opts?: { timeout?: number }
+  ): Promise<unknown>
+  screenshot(opts?: {
+    fullPage?: boolean
+    type?: string
+    animations?: "disabled" | "allow"
+    timeout?: number
+  }): Promise<Buffer>
 }
