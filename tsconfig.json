@@ -24,7 +24,6 @@
     { "path": "packages/pipeline" },
     { "path": "packages/agents" },
     { "path": "apps/api" },
-    { "path": "apps/publish-service" },
     { "path": "apps/studio" }
   ]
 }
