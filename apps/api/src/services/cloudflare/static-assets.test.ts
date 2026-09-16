@@ -140,6 +140,80 @@ describe("static asset manifest", () => {
     expect(fake.state.staticAssetUploadPartTypes).toEqual([{ [hash]: "application/null" }])
   })
 
+  /**
+   * A book large enough to be split across buckets, which is every real one: `triste` is 2,403
+   * addresses over five.
+   *
+   * Two things only show up here. Cloudflare issues the completion token once the collection is
+   * whole, so every earlier bucket answers `202 Accepted` carrying nothing — and each bucket is
+   * authorised with the session's token, not the previous response's. A suite where every book
+   * fitted in one bucket could not tell either apart.
+   */
+  it("uploads a collection split across several buckets", async () => {
+    const assets = Array.from({ length: 6 }, (_, index) => ({
+      path: `/uploads/one/page-${index}.html`,
+      content: encoder.encode(`page ${index}`),
+    }))
+    const hashes = assets.map((asset) => staticAssetHash(asset.path, asset.content))
+    const buckets = [hashes.slice(0, 2), hashes.slice(2, 4), hashes.slice(4)]
+    const fake = createFakeCloudflare({ assetUploadBuckets: buckets })
+    const client = createCloudflareClient({ token: "account-token", accountId: "acct-1", fetchFn: fake.fetchFn })
+
+    const prepared = await prepareStaticAssets(client, "adt-publish", assets)
+
+    expect(prepared.completionJwt).toBe("asset-complete-jwt")
+    expect(fake.state.staticAssetUploads).toHaveLength(3)
+    expect(fake.state.staticAssetUploads.flatMap((upload) => Object.keys(upload)).sort())
+      .toEqual([...hashes].sort())
+    /** The account token opens the session; every bucket after that presents the session's
+     *  own token, never a token minted by the previous bucket. */
+    expect(fake.state.bearerTokens).toEqual([
+      "account-token",
+      "asset-upload-jwt",
+      "asset-upload-jwt",
+      "asset-upload-jwt",
+    ])
+  })
+
+  /** A book goes up in bucket-sized pieces over minutes, so one gateway hiccup partway
+   *  through would otherwise discard every piece already accepted. Cloudflare's own uploader
+   *  allows five attempts per bucket for the same reason. */
+  it("retries a bucket Cloudflare temporarily refuses", async () => {
+    const content = encoder.encode("one")
+    const hash = staticAssetHash("/uploads/one/index.html", content)
+    const fake = createFakeCloudflare({
+      assetUploadBuckets: [[hash]],
+      assetUploadTransientFailures: 2,
+    })
+    const client = createCloudflareClient({ token: "account-token", accountId: "acct-1", fetchFn: fake.fetchFn })
+
+    const prepared = await prepareStaticAssets(
+      client,
+      "adt-publish",
+      [{ path: "/uploads/one/index.html", content }],
+      { sleep: async () => {} },
+    )
+
+    expect(prepared.completionJwt).toBe("asset-complete-jwt")
+    expect(fake.state.staticAssetUploads).toHaveLength(1)
+  })
+
+  /** Retrying a request Cloudflare will refuse identically however often it is sent only makes
+   *  the author wait longer for the same answer. */
+  it("does not retry a batch Cloudflare refuses outright", async () => {
+    const content = encoder.encode("one")
+    const hash = staticAssetHash("/uploads/one/index.html", content)
+    const fake = createFakeCloudflare({
+      assetUploadBuckets: [[hash]],
+      assetUploadErrorMessage: "asset upload unavailable",
+    })
+    const client = createCloudflareClient({ token: "account-token", accountId: "acct-1", fetchFn: fake.fetchFn })
+
+    await expect(prepareStaticAssets(client, "adt-publish", [
+      { path: "/uploads/one/index.html", content },
+    ], { sleep: async () => {} })).rejects.toThrow("asset upload unavailable")
+  })
+
   it("identifies whether Cloudflare rejected the manifest or an asset batch", async () => {
     const manifestFailure = createFakeCloudflare({ assetSessionErrorMessage: "manifest unavailable" })
     const manifestClient = createCloudflareClient({ token: "account-token", accountId: "acct-1", fetchFn: manifestFailure.fetchFn })

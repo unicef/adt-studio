@@ -1,5 +1,5 @@
 import crypto from "node:crypto"
-import { retryCloudflareOperation, type CloudflareClient } from "./client.js"
+import { CloudflareApiError, retryCloudflareOperation, type CloudflareClient } from "./client.js"
 
 export interface StaticAsset {
   path: string
@@ -112,14 +112,46 @@ export interface PreparedStaticAssets {
 /** Registers a complete Worker asset collection and uploads only the content-addresses that
  * Cloudflare says it does not already hold. The caller attaches `completionJwt` to the Worker
  * upload metadata, which makes the collection live atomically with that Worker version. */
+/** Cloudflare's own uploader allows five attempts per bucket, for good reason: a book is sent
+ *  in bucket-sized pieces over minutes, and one gateway hiccup in the middle would otherwise
+ *  throw away every piece already accepted. A 5xx is the edge in trouble, not the request. */
+const UPLOAD_ATTEMPTS = 5
+const UPLOAD_BACKOFF_MS = [1_000, 2_000, 4_000, 8_000]
+
+function isRetryableUpload(error: unknown): boolean {
+  if (!(error instanceof CloudflareApiError)) return false
+  return error.status >= 500 || error.status === 429
+}
+
+async function uploadBucketWithRetry(
+  client: CloudflareClient,
+  sessionJwt: string,
+  payload: Record<string, string>,
+  sleep: (ms: number) => Promise<void>,
+): Promise<string | null> {
+  let lastError: unknown
+  for (let attempt = 0; attempt < UPLOAD_ATTEMPTS; attempt += 1) {
+    try {
+      return await client.uploadStaticAssetBucket(sessionJwt, payload)
+    } catch (error) {
+      lastError = error
+      if (!isRetryableUpload(error) || attempt === UPLOAD_ATTEMPTS - 1) throw error
+      const retryAfter = error instanceof CloudflareApiError ? error.retryAfterMs : null
+      await sleep(retryAfter ?? UPLOAD_BACKOFF_MS[attempt] ?? 8_000)
+    }
+  }
+  throw lastError
+}
+
 export async function prepareStaticAssets(
   client: CloudflareClient,
   workerName: string,
   assets: StaticAsset[],
   options: { sleep?: (ms: number) => Promise<void> } = {},
 ): Promise<PreparedStaticAssets> {
+  const sleep = options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)))
   const manifest = createStaticAssetManifest(assets)
-  const retry = { sleep: options.sleep, attempts: 5 }
+  const retry = { sleep, attempts: 5 }
   let session: Awaited<ReturnType<CloudflareClient["createStaticAssetUploadSession"]>>
   try {
     session = await retryCloudflareOperation(
@@ -129,17 +161,30 @@ export async function prepareStaticAssets(
   } catch (error) {
     throw new StaticAssetError(`Cloudflare rejected the static asset manifest: ${error instanceof Error ? error.message : String(error)}`)
   }
-  let completionJwt = session.jwt
+  /**
+   * Every bucket is authorised with the *session's* token, not the previous response's.
+   *
+   * The session token is what says "these uploads belong to this collection"; the completion
+   * token is the collection's receipt, and only the response that finishes the collection
+   * carries one. Feeding each response's token into the next request happened to work while
+   * there was exactly one bucket — which is every book small enough to test with.
+   */
+  let completionJwt: string | null = session.buckets.length === 0 ? session.jwt : null
   const payloads = createStaticAssetUploadPayloads(session.buckets, assets)
   for (const [index, payload] of payloads.entries()) {
     try {
-      completionJwt = await retryCloudflareOperation(
-        () => client.uploadStaticAssetBucket(session.jwt, payload),
-        retry,
-      )
+      completionJwt =
+        (await uploadBucketWithRetry(client, session.jwt, payload, sleep)) ?? completionJwt
     } catch (error) {
       throw new StaticAssetError(`Cloudflare rejected static asset batch ${index + 1} of ${payloads.length}: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
+
+  if (completionJwt === null) {
+    throw new StaticAssetError(
+      `Cloudflare accepted all ${payloads.length} static asset batches but never issued the token that completes the collection.`,
+    )
+  }
+
   return { manifest, completionJwt }
 }
