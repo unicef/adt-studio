@@ -404,11 +404,31 @@ describe("provisionCloudflare — error taxonomy", () => {
     expect(uploadedMetadata(fake).migrations).toBeUndefined()
   })
 
-  it("reports no_workers_subdomain when the account has none", async () => {
+  /** Stops at the first step, not the sixth where the subdomain is finally used. Cloudflare
+   *  refuses the *script upload* without one, three steps earlier, with a message that reads
+   *  like a transient upload failure — so a run that got that far told the author to try again
+   *  and kept doing it. Nothing downstream can succeed, so nothing downstream runs. */
+  it("stops at the first step when the account has no workers.dev subdomain", async () => {
     const { error, fake } = await run({ fake: { subdomain: null } })
     expect(error?.code).toBe("no_workers_subdomain")
-    expect(error?.resumeFromStep).toBe(6)
-    expect(fake.state.scripts.has(CLOUDFLARE_WORKER_NAME)).toBe(true)
+    expect(error?.resumeFromStep).toBe(1)
+    expect(fake.state.scripts.has(CLOUDFLARE_WORKER_NAME)).toBe(false)
+    expect(fake.state.databases).toEqual([])
+  })
+
+  /** The belt to that brace: if the account gains and loses a subdomain between the probe and
+   *  the upload, or Cloudflare refuses for a reason the probe cannot see, the upload's own
+   *  error still has to land on the step that explains it rather than on upload_failed. */
+  it("recognises Cloudflare's own words when the upload is refused for want of one", async () => {
+    const { error } = await run({
+      fake: {
+        uploadErrorMessage:
+          "You need a workers.dev subdomain in order to proceed. Please go to the dashboard and open the Workers menu.",
+      },
+    })
+
+    expect(error?.code).toBe("no_workers_subdomain")
+    expect(error?.message).not.toMatch(/passing network/i)
   })
 
   it("reports stale_deployment when the deployed version does not match", async () => {

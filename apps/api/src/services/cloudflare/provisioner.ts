@@ -57,6 +57,16 @@ function alreadyExists(error: unknown): boolean {
   return error instanceof CloudflareApiError && /already exists|duplicate/i.test(error.message)
 }
 
+const NO_SUBDOMAIN_MESSAGE =
+  "This Cloudflare account has no workers.dev subdomain yet. Open Workers & Pages in the Cloudflare dashboard — opening it for the first time creates one — then try again."
+
+/** Cloudflare refuses a script upload on an account with no workers.dev subdomain, and says so
+ *  in the upload's own error. Recognised so it lands on the step that explains it instead of on
+ *  `upload_failed`, whose copy tells the reader this is a passing network problem. */
+function mentionsMissingSubdomain(error: unknown): boolean {
+  return /workers\.dev subdomain/i.test(describeError(error))
+}
+
 function mentionsMigration(error: unknown): boolean {
   return error instanceof CloudflareApiError && /migration/i.test(error.message)
 }
@@ -175,6 +185,17 @@ export async function provisionCloudflare(
             ? `This Cloudflare login is missing these permissions: ${probe.missingScopes.join(", ")}. Disconnect and connect again, and allow every permission ADT Studio asks for.`
             : `The Cloudflare API token is missing these permissions: ${probe.missingScopes.join(", ")}.`,
         missingScopes: probe.missingScopes,
+      })
+    }
+    /** Checked here rather than at `enable-workers-dev`, where it is finally used, because
+     *  Cloudflare refuses the *script upload* without one — three steps earlier — with a
+     *  message that reads like a transient upload failure. Nothing downstream can succeed, so
+     *  the run stops at the top with the one action that fixes it. */
+    if (probe.workersDevSubdomain === null) {
+      throw new ProvisionError({
+        code: "no_workers_subdomain",
+        stepId: "verify-token",
+        message: NO_SUBDOMAIN_MESSAGE,
       })
     }
     stepMessage = probe.accountName ? `Account ${probe.accountName}` : undefined
@@ -324,12 +345,28 @@ export async function provisionCloudflare(
     try {
       await upload(needsMigrations)
     } catch (error) {
+      if (mentionsMissingSubdomain(error)) {
+        throw new ProvisionError({
+          code: "no_workers_subdomain",
+          stepId: "upload-worker",
+          message: NO_SUBDOMAIN_MESSAGE,
+          cause: error,
+        })
+      }
       if (needsMigrations && mentionsMigration(error)) {
         try {
           await upload(false)
           stepMessage = `Uploaded worker v${artifact.metadata.version}`
           return migrationTag
         } catch (retryError) {
+          if (mentionsMissingSubdomain(retryError)) {
+            throw new ProvisionError({
+              code: "no_workers_subdomain",
+              stepId: "upload-worker",
+              message: NO_SUBDOMAIN_MESSAGE,
+              cause: retryError,
+            })
+          }
           throw new ProvisionError({
             code: "upload_failed",
             stepId: "upload-worker",
