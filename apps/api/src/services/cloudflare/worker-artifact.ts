@@ -5,6 +5,8 @@ import { PUBLISH_WORKER_VERSION } from "@adt/types"
 
 const WORKER_ARTIFACT_SCRIPT_FILE = "worker.js"
 const WORKER_ARTIFACT_METADATA_FILE = "metadata.json"
+const BOOK_HOST_SCRIPT_FILE = "book-host.js"
+const BOOK_HOST_METADATA_FILE = "book-host-metadata.json"
 const WORKER_ARTIFACT_BUILD_COMMAND =
   "pnpm --filter @adt/publish-service build:artifact"
 
@@ -95,10 +97,17 @@ export function resolveWorkerArtifactPaths(
   return { artifactDir, migrationsDir }
 }
 
-export function loadWorkerArtifact(paths: WorkerArtifactPaths): WorkerArtifact {
-  const { artifactDir, migrationsDir } = paths
-  const scriptPath = path.join(artifactDir, WORKER_ARTIFACT_SCRIPT_FILE)
-  const metadataPath = path.join(artifactDir, WORKER_ARTIFACT_METADATA_FILE)
+/** Reads and validates one script/metadata pair. Shared so the book host cannot drift into a
+ * different staleness check than the control plane — deploying a v0.13 book host against a
+ * v0.14 control plane would fail its health check for reasons that look like anything but a
+ * version mismatch. */
+function readArtifact(
+  artifactDir: string,
+  scriptFile: string,
+  metadataFile: string,
+): { script: string; metadata: WorkerArtifactMetadata } {
+  const scriptPath = path.join(artifactDir, scriptFile)
+  const metadataPath = path.join(artifactDir, metadataFile)
 
   const missing = [scriptPath, metadataPath].filter((file) => !fs.existsSync(file))
   if (missing.length > 0) {
@@ -106,29 +115,52 @@ export function loadWorkerArtifact(paths: WorkerArtifactPaths): WorkerArtifact {
       `Publish worker artifact is missing (${missing.join(", ")}). ` +
         `Build it with \`${WORKER_ARTIFACT_BUILD_COMMAND}\`, or point ` +
         `PUBLISH_WORKER_ARTIFACT_DIR at a directory containing ` +
-        `${WORKER_ARTIFACT_SCRIPT_FILE} and ${WORKER_ARTIFACT_METADATA_FILE}.`,
+        `${scriptFile} and ${metadataFile}.`,
     )
   }
 
-  const parsedMetadata = WorkerArtifactMetadata.safeParse(
+  const parsed = WorkerArtifactMetadata.safeParse(
     JSON.parse(fs.readFileSync(metadataPath, "utf-8")),
   )
-  if (!parsedMetadata.success) {
+  if (!parsed.success) {
     throw new WorkerArtifactError(
-      `Publish worker ${WORKER_ARTIFACT_METADATA_FILE} is invalid: ${parsedMetadata.error.message}`,
+      `Publish worker ${metadataFile} is invalid: ${parsed.error.message}`,
     )
   }
-  const metadata = parsedMetadata.data
 
-  if (metadata.version !== PUBLISH_WORKER_VERSION) {
+  if (parsed.data.version !== PUBLISH_WORKER_VERSION) {
     throw new WorkerArtifactError(
-      `Publish worker artifact is stale: it was built as v${metadata.version} but this ` +
+      `Publish worker artifact is stale: it was built as v${parsed.data.version} but this ` +
         `Studio ships v${PUBLISH_WORKER_VERSION}. Uploading it would deploy the old version ` +
         `and the install would fail its final check. Rebuild it with ` +
         `\`${WORKER_ARTIFACT_BUILD_COMMAND}\` (restarting \`pnpm dev\` also rebuilds it), ` +
         `then try again.`,
     )
   }
+
+  return { script: fs.readFileSync(scriptPath, "utf-8"), metadata: parsed.data }
+}
+
+export interface BookHostArtifact {
+  script: string
+  metadata: WorkerArtifactMetadata
+}
+
+/**
+ * The per-book host. No migrations of its own: it declares no Durable Object class and the
+ * control plane owns the D1 database, so there is nothing for a book publish to apply.
+ */
+export function loadBookHostArtifact(artifactDir: string): BookHostArtifact {
+  return readArtifact(artifactDir, BOOK_HOST_SCRIPT_FILE, BOOK_HOST_METADATA_FILE)
+}
+
+export function loadWorkerArtifact(paths: WorkerArtifactPaths): WorkerArtifact {
+  const { artifactDir, migrationsDir } = paths
+  const { script, metadata } = readArtifact(
+    artifactDir,
+    WORKER_ARTIFACT_SCRIPT_FILE,
+    WORKER_ARTIFACT_METADATA_FILE,
+  )
 
   const migrationNames =
     metadata.d1_migrations.length > 0
@@ -155,7 +187,7 @@ export function loadWorkerArtifact(paths: WorkerArtifactPaths): WorkerArtifact {
   })
 
   return {
-    script: fs.readFileSync(scriptPath, "utf-8"),
+    script,
     metadata,
     migrations,
     artifactDir,
