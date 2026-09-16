@@ -53,6 +53,11 @@ export interface FakeCloudflareOptions {
   healthFailures?: number
   healthUnreachable?: boolean
   assetUploadBuckets?: string[][]
+  /** Ask for every hash in the manifest, which is what a real account does on a first publish
+   *  when it holds none of the content yet. */
+  assetUploadAllBuckets?: boolean
+  assetSessionErrorMessage?: string
+  assetUploadErrorMessage?: string
   /** Accounts the OAuth grant can see. Defaults to the single configured account. */
   oauthAccounts?: Array<{ id: string; name: string }> | null
   accountsListForbidden?: boolean
@@ -354,12 +359,25 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
       if (denied.has("Workers Scripts:Edit")) {
         return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
       }
+      if (options.assetSessionErrorMessage) {
+        return fail(500, 10001, options.assetSessionErrorMessage)
+      }
       const body = JSON.parse(String(init?.body ?? "{}")) as { manifest?: Record<string, unknown> }
-      state.staticAssetManifests.push(body.manifest ?? {})
-      return ok({ jwt: "asset-upload-jwt", buckets: options.assetUploadBuckets ?? [] })
+      const manifest = (body.manifest ?? {}) as Record<string, { hash?: string }>
+      state.staticAssetManifests.push(manifest)
+      const everyHash = Object.values(manifest).flatMap((entry) =>
+        typeof entry?.hash === "string" ? [entry.hash] : [],
+      )
+      const buckets =
+        options.assetUploadBuckets ??
+        (options.assetUploadAllBuckets && everyHash.length > 0 ? [everyHash] : [])
+      return ok({ jwt: "asset-upload-jwt", buckets })
     }
 
     if (path === "/workers/assets/upload" && method === "POST") {
+      if (options.assetUploadErrorMessage) {
+        return fail(500, 10001, options.assetUploadErrorMessage)
+      }
       const body = await readFormText(init?.body, "body")
       state.staticAssetUploads.push(JSON.parse(body || "{}") as Record<string, string>)
       return ok({ jwt: "asset-complete-jwt" })

@@ -127,8 +127,8 @@ await build({
 /**
  * One book's host. Three deliberate absences:
  *
- * - no MGMT_SECRET, because a book host serves public reader traffic and has no management
- *   route that could need one;
+ * - no *account* secret: MGMT_SECRET here is derived per book, because the worker decides
+ *   isAuthor from it and a book host has no management route for it to unlock;
  * - no `migrations`, because it declares no Durable Object class — it binds the control
  *   plane's across scripts, and the Free plan caps classes and Workers at 100 each, so a class
  *   per book would exhaust both at the same book;
@@ -149,6 +149,12 @@ const bookHostMetadata = {
       class_name: className,
       description: "Bound across scripts to the control plane; not declared here",
     })),
+    {
+      type: "secret_text",
+      name: "MGMT_SECRET",
+      description:
+        "Per-book author secret, derived from the control plane's at deploy time. Only decides isAuthor; unlocks no management route here",
+    },
   ],
   d1_migrations: [],
 }
