@@ -18,11 +18,16 @@ export interface FakeCloudflareState {
   /** The account's workers.dev subdomain, which a provision may register. */
   subdomain: string | null
   subdomainsCreated: string[]
+  /** Counts down the transient upload failures still owed. */
+  assetUploadFailuresLeft: number
   migrationRows: Array<{ name: string; applied_at: string }>
   executedSql: string[]
   uploadCount: number
   staticAssetManifests: Array<Record<string, unknown>>
   staticAssetUploads: Array<Record<string, string>>
+  /** Per upload call, the `Content-Type` carried by each asset part — the value Cloudflare
+   * would replay when serving that asset. */
+  staticAssetUploadPartTypes: Array<Record<string, string>>
   healthCalls: number
   calls: Array<{ method: string; url: string }>
   tokenRequests: Array<Record<string, string>>
@@ -68,6 +73,8 @@ export interface FakeCloudflareOptions {
   assetUploadAllBuckets?: boolean
   assetSessionErrorMessage?: string
   assetUploadErrorMessage?: string
+  /** Fail this many bucket uploads with a 5xx before accepting any, to exercise the retry. */
+  assetUploadTransientFailures?: number
   /** Accounts the OAuth grant can see. Defaults to the single configured account. */
   oauthAccounts?: Array<{ id: string; name: string }> | null
   accountsListForbidden?: boolean
@@ -107,6 +114,27 @@ async function readFormText(body: unknown, field: string): Promise<string> {
   return typeof value === "string" ? value : await value.text()
 }
 
+interface StaticAssetParts {
+  assets: Record<string, string>
+  partTypes: Record<string, string>
+}
+
+/** Cloudflare's direct-upload format: one part per asset, whose field name *and* filename are
+ * the content hash, carrying the base64 body and the type to serve it as. Returning null for
+ * anything else is the point of this helper — a shape the live API would reject has to fail
+ * here too, or the suite goes green on a request that cannot work against real Cloudflare. */
+async function readStaticAssetParts(body: unknown): Promise<StaticAssetParts | null> {
+  if (!(body instanceof FormData)) return null
+  const assets: Record<string, string> = {}
+  const partTypes: Record<string, string> = {}
+  for (const [name, value] of body.entries()) {
+    if (typeof value === "string" || value.name !== name) return null
+    assets[name] = await value.text()
+    partTypes[name] = value.type
+  }
+  return { assets, partTypes }
+}
+
 export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeCloudflare {
   const accountId = options.accountId ?? "acct-1"
   const accountName = options.accountName ?? "Test Account"
@@ -122,11 +150,13 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
     subdomainEnabledFor: [],
     subdomain: options.subdomain === undefined ? "teacher" : options.subdomain,
     subdomainsCreated: [],
+    assetUploadFailuresLeft: options.assetUploadTransientFailures ?? 0,
     migrationRows: [...(options.migrationRows ?? [])],
     executedSql: [],
     uploadCount: 0,
     staticAssetManifests: [],
     staticAssetUploads: [],
+    staticAssetUploadPartTypes: [],
     healthCalls: 0,
     calls: [],
     tokenRequests: [],
@@ -406,8 +436,24 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
       if (options.assetUploadErrorMessage) {
         return fail(500, 10001, options.assetUploadErrorMessage)
       }
-      const body = await readFormText(init?.body, "body")
-      state.staticAssetUploads.push(JSON.parse(body || "{}") as Record<string, string>)
+      if (state.assetUploadFailuresLeft > 0) {
+        state.assetUploadFailuresLeft -= 1
+        return fail(503, 10001, "Service temporarily unavailable")
+      }
+      const parts = await readStaticAssetParts(init?.body)
+      if (!parts) {
+        return fail(400, 10047, "Each asset must be a file part named after its content hash")
+      }
+      state.staticAssetUploads.push(parts.assets)
+      state.staticAssetUploadPartTypes.push(parts.partTypes)
+
+      /** Cloudflare's asset upload service issues the completion token only once the whole
+       *  collection has arrived; every earlier bucket answers `202 Accepted` carrying nothing.
+       *  Handing one back every time hid a real multi-bucket upload failure behind a suite
+       *  where every book fitted in a single bucket. */
+      const expected = (options.assetUploadBuckets ?? []).length
+      const outstanding = expected > 0 && state.staticAssetUploads.length < expected
+      if (outstanding) return json({ success: true, errors: [], messages: [], result: {} }, 202)
       return ok({ jwt: "asset-complete-jwt" })
     }
 
