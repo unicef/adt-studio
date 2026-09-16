@@ -15,7 +15,8 @@ import { createPublishWorkerClient } from "../services/publish-worker-client.js"
 import type { PublishWorkerClient } from "../services/publish-worker-client.js"
 import { createPublishRoutes } from "./publications.js"
 import { createFakeBookHost } from "../services/cloudflare/fake-book-host.js"
-import { bookHostAuthorSecret } from "../services/cloudflare/book-host.js"
+import type { FakeCloudflareOptions } from "../services/cloudflare/fake-cloudflare-api.js"
+import { bookHostAuthorSecret, bookWorkerName } from "../services/cloudflare/book-host.js"
 
 const LABEL = "raven"
 const TOKEN = "TokenRavenTokenRavenTokenRaven12"
@@ -93,6 +94,8 @@ function routes(
     /** Answers requests the API makes to a book's own Worker, which is a different origin
      *  from the control plane now that book hosts serve the reader routes. */
     bookHostFetch?: FetchLike
+    /** Passed to the fake Cloudflare account behind this book's own Worker. */
+    cloudflare?: FakeCloudflareOptions
   } = {},
 ) {
   const worker = options.worker ?? createFakePublishWorker({ now: NOW })
@@ -101,7 +104,7 @@ function routes(
   }
   /** Publishing deploys this book's own Worker now, so the routes need account credentials
    *  and the book-host artifact as well as the control plane's management secret. */
-  const bookHost = createFakeBookHost()
+  const bookHost = createFakeBookHost(options.cloudflare ?? {})
   const app = createPublishRoutes({
     booksDir: tmpDir,
     webAssetsDir: path.join(tmpDir, "assets-web"),
@@ -185,6 +188,32 @@ describe("the publications dashboard", () => {
     expect(await response.json()).toMatchObject({ token: TOKEN, deleted: true })
     expect(worker.state.publications.has(TOKEN)).toBe(false)
     expect(readPublicationRecord(LABEL, tmpDir)).toBeNull()
+  })
+
+  /** An account may host ~99 live books, so a permanent delete has to give the slot back —
+   *  and must not leave a public Worker serving a book nothing remembers. */
+  it("removes the book\u2019s own Worker so the slot is free again", async () => {
+    const { app, cloudflare } = routes()
+    await publishOnce(app)
+    expect(cloudflare.state.scripts.has(bookWorkerName(TOKEN))).toBe(true)
+
+    const response = await app.request(`/publications/${TOKEN}`, { method: "DELETE" })
+
+    expect(response.status).toBe(200)
+    expect(cloudflare.state.scripts.has(bookWorkerName(TOKEN))).toBe(false)
+  })
+
+  /** The Worker goes first, so a failure there leaves a book that is still recorded and still
+   *  reachable rather than one that is unreachable and unfindable. */
+  it("keeps the publication when its Worker cannot be removed", async () => {
+    const { app, worker } = routes({ cloudflare: { workerDeleteFails: true } })
+    await publishOnce(app)
+
+    const response = await app.request(`/publications/${TOKEN}`, { method: "DELETE" })
+
+    expect(response.status).toBe(502)
+    expect(worker.state.publications.has(TOKEN)).toBe(true)
+    expect(readPublicationRecord(LABEL, tmpDir)).not.toBeNull()
   })
 })
 
