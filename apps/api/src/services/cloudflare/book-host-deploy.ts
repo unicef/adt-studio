@@ -153,6 +153,26 @@ export async function deployBookHost(
   return { workerName: name, url: workersDevUrl(name, workersDevSubdomain) }
 }
 
+/**
+ * Frees the Worker slot a book was occupying.
+ *
+ * Called before the control plane forgets the publication, so a failure here leaves a book
+ * that is still recorded and still reachable rather than a public Worker serving a book
+ * nothing remembers. A Worker that is already gone is a completed step, not an error, so a
+ * retried delete finishes the half it has left.
+ */
+export async function deleteBookHost(client: CloudflareClient, token: string): Promise<void> {
+  try {
+    await client.deleteWorkerScript(bookWorkerName(token))
+  } catch (error) {
+    if (error instanceof CloudflareApiError && error.isNotFound) return
+    throw new BookHostDeployError(
+      `Cloudflare would not remove this book's Worker: ${describe(error)}`,
+      error,
+    )
+  }
+}
+
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }

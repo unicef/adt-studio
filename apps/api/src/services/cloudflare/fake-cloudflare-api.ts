@@ -50,6 +50,8 @@ export interface FakeCloudflareOptions {
   rejectMigrationTag?: boolean
   workerVersion?: string
   workerCreateConflict?: boolean
+  /** Refuses every script deletion, for testing a teardown that only half succeeds. */
+  workerDeleteFails?: boolean
   healthFailures?: number
   healthUnreachable?: boolean
   assetUploadBuckets?: string[][]
@@ -406,6 +408,9 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
     }
 
     if (scriptMatch && method === "DELETE") {
+      if (options.workerDeleteFails) {
+        return fail(500, 10001, "Worker could not be deleted")
+      }
       state.scripts.delete(decodeURIComponent(scriptMatch[1]))
       return ok(null)
     }

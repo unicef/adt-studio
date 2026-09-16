@@ -47,7 +47,8 @@ import {
   type LocalBookSnapshot,
 } from "../services/publish-service.js"
 import { bookHostAuthorSecret } from "../services/cloudflare/book-host.js"
-import { createCloudflareClient } from "../services/cloudflare/client.js"
+import { deleteBookHost } from "../services/cloudflare/book-host-deploy.js"
+import { createCloudflareClient, type CloudflareClient } from "../services/cloudflare/client.js"
 import { resolveCloudflareCredentials } from "../services/cloudflare/credentials.js"
 import { createCloudflareOAuthService } from "../services/cloudflare/oauth.js"
 import {
@@ -170,6 +171,21 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
    * What a publish needs beyond the control plane's management secret, now that it deploys
    * this book's own Worker: account credentials, and the artifact to deploy.
    */
+  /** Account-level credentials. Managing a book's own Worker needs these; the control plane's
+   *  management secret cannot create or remove a Worker. */
+  const cloudflareClientFor = async (
+    c: Context,
+    connection: CloudflareConnectionRecord,
+  ): Promise<CloudflareClient> => {
+    if (deps.bookHost) return (await deps.bookHost(c, connection)).client
+    const credentials = await resolveCloudflareCredentials(c, { store, oauth })
+    return createCloudflareClient({
+      token: credentials.token,
+      accountId: credentials.accountId,
+      ...(deps.fetchFn === undefined ? {} : { fetchFn: deps.fetchFn }),
+    })
+  }
+
   const bookHostFor = async (
     c: Context,
     connection: CloudflareConnectionRecord,
@@ -183,17 +199,12 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       })
     }
 
-    const credentials = await resolveCloudflareCredentials(c, { store, oauth })
     const { artifactDir } = resolveWorkerArtifactPaths(deps.projectRoot ?? process.cwd(), {
       ...(deps.artifactDir === undefined ? {} : { artifactDir: deps.artifactDir }),
     })
 
     return {
-      client: createCloudflareClient({
-        token: credentials.token,
-        accountId: credentials.accountId,
-        ...(deps.fetchFn === undefined ? {} : { fetchFn: deps.fetchFn }),
-      }),
+      client: await cloudflareClientFor(c, connection),
       artifact: loadBookHostArtifact(artifactDir),
       d1DatabaseUuid: connection.d1_database_uuid,
       workersDevSubdomain: connection.workers_dev_subdomain,
@@ -459,6 +470,22 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       "Connect a Cloudflare account to manage published books",
     )
     if (connection instanceof Response) return connection
+
+    /** Before the control plane forgets it: a failure here leaves a book that is still
+     *  recorded and still reachable, rather than a public Worker serving a book nothing
+     *  remembers and no one can find to delete. */
+    try {
+      await deleteBookHost(await cloudflareClientFor(c, connection), token.data)
+    } catch (error) {
+      return failure(
+        c,
+        502,
+        "worker_unreachable",
+        `This book's own web service could not be removed, so nothing was deleted: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      )
+    }
 
     const client = clientFor(connection)
     let result: PublicationDeleteResult
