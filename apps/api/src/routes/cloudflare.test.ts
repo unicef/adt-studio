@@ -483,8 +483,10 @@ describe("cloudflare routes", () => {
       expect(last?.type).toBe("error")
       if (last?.type !== "error") throw new Error("expected an error event")
       expect(last.code).toBe("no_workers_subdomain")
-      expect(last.step_id).toBe("enable-workers-dev")
-      expect(last.resume_from_step).toBe(6)
+      expect(last.step_id).toBe("verify-token")
+      expect(last.resume_from_step).toBe(
+        PROVISION_STEPS.find((step) => step.id === "verify-token")?.number,
+      )
     })
 
     it("reports the missing scopes on the error event", async () => {
