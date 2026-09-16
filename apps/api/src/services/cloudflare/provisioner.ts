@@ -26,6 +26,7 @@ import { ProvisionError, describeError, isProvisionError } from "./errors.js"
 import { toConnectionStatus } from "./status.js"
 import type { WorkerArtifact, WorkerArtifactBinding } from "./worker-artifact.js"
 import { prepareStaticAssets } from "./static-assets.js"
+import { ensureWorkersDevSubdomain } from "./workers-subdomain.js"
 
 const MIGRATIONS_TABLE = "_migrations"
 const MGMT_SECRET_BYTES = 32
@@ -58,7 +59,7 @@ function alreadyExists(error: unknown): boolean {
 }
 
 const NO_SUBDOMAIN_MESSAGE =
-  "This Cloudflare account has no workers.dev subdomain yet. Open Workers & Pages in the Cloudflare dashboard — opening it for the first time creates one — then try again."
+  "This Cloudflare account has no workers.dev subdomain, and Cloudflare would not let the Studio reserve one. Open Workers & Pages in the Cloudflare dashboard — opening it for the first time creates one — then try again."
 
 /** Cloudflare refuses a script upload on an account with no workers.dev subdomain, and says so
  *  in the upload's own error. Recognised so it lands on the step that explains it instead of on
@@ -187,16 +188,27 @@ export async function provisionCloudflare(
         missingScopes: probe.missingScopes,
       })
     }
-    /** Checked here rather than at `enable-workers-dev`, where it is finally used, because
+    /** Handled here rather than at `enable-workers-dev`, where it is finally used, because
      *  Cloudflare refuses the *script upload* without one — three steps earlier — with a
-     *  message that reads like a transient upload failure. Nothing downstream can succeed, so
-     *  the run stops at the top with the one action that fixes it. */
+     *  message that reads like a transient upload failure.
+     *
+     *  Registered rather than asked for. Cloudflare creates one silently the first time anyone
+     *  opens the Workers dashboard, so sending someone there is sending them to fetch a name
+     *  Cloudflare would have chosen for them anyway. If it refuses, that is when the person
+     *  has to do it, and the message says so. */
     if (probe.workersDevSubdomain === null) {
-      throw new ProvisionError({
-        code: "no_workers_subdomain",
-        stepId: "verify-token",
-        message: NO_SUBDOMAIN_MESSAGE,
-      })
+      try {
+        const ensured = await ensureWorkersDevSubdomain(client)
+        stepMessage = `Reserved ${ensured.subdomain}.workers.dev`
+        return probe.accountName
+      } catch (error) {
+        throw new ProvisionError({
+          code: "no_workers_subdomain",
+          stepId: "verify-token",
+          message: NO_SUBDOMAIN_MESSAGE,
+          cause: error,
+        })
+      }
     }
     stepMessage = probe.accountName ? `Account ${probe.accountName}` : undefined
     return probe.accountName

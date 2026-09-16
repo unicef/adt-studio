@@ -15,6 +15,9 @@ export interface FakeCloudflareState {
   bucketObjects: Map<string, string[]>
   scripts: Map<string, FakeUploadedScript>
   subdomainEnabledFor: string[]
+  /** The account's workers.dev subdomain, which a provision may register. */
+  subdomain: string | null
+  subdomainsCreated: string[]
   migrationRows: Array<{ name: string; applied_at: string }>
   executedSql: string[]
   uploadCount: number
@@ -52,6 +55,11 @@ export interface FakeCloudflareOptions {
   workerCreateConflict?: boolean
   /** Refuses every script deletion, for testing a teardown that only half succeeds. */
   workerDeleteFails?: boolean
+  /** Cloudflare refuses to register a workers.dev subdomain — reported on some accounts, and
+   *  the case that sends the author to the dashboard by hand. */
+  subdomainCreateForbidden?: boolean
+  /** Labels already claimed elsewhere on workers.dev, to exercise the collision retry. */
+  subdomainsTaken?: string[]
   healthFailures?: number
   healthUnreachable?: boolean
   assetUploadBuckets?: string[][]
@@ -102,7 +110,6 @@ async function readFormText(body: unknown, field: string): Promise<string> {
 export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeCloudflare {
   const accountId = options.accountId ?? "acct-1"
   const accountName = options.accountName ?? "Test Account"
-  const subdomain = options.subdomain === undefined ? "teacher" : options.subdomain
   const denied = new Set(options.denyScopes ?? [])
 
   const state: FakeCloudflareState = {
@@ -113,6 +120,8 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
     ),
     scripts: new Map((options.scripts ?? []).map((name) => [name, { script: "", metadata: {} }])),
     subdomainEnabledFor: [],
+    subdomain: options.subdomain === undefined ? "teacher" : options.subdomain,
+    subdomainsCreated: [],
     migrationRows: [...(options.migrationRows ?? [])],
     executedSql: [],
     uploadCount: 0,
@@ -345,8 +354,25 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
       if (denied.has("Workers Scripts:Edit")) {
         return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
       }
-      if (subdomain === null) return ok({ subdomain: null })
-      return ok({ subdomain })
+      if (state.subdomain === null) return ok({ subdomain: null })
+      return ok({ subdomain: state.subdomain })
+    }
+
+    if (path === "/workers/subdomain" && method === "PUT") {
+      if (denied.has("Workers Scripts:Edit")) {
+        return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
+      }
+      if (options.subdomainCreateForbidden) {
+        return fail(403, 10000, "Authentication error")
+      }
+      const body = JSON.parse(String(init?.body ?? "{}")) as { subdomain?: string }
+      if (!body.subdomain) return fail(400, 10013, "A subdomain is required")
+      if ((options.subdomainsTaken ?? []).includes(body.subdomain)) {
+        return fail(409, 10035, `The subdomain ${body.subdomain} is already taken`)
+      }
+      state.subdomain = body.subdomain
+      state.subdomainsCreated.push(body.subdomain)
+      return ok({ subdomain: body.subdomain })
     }
 
     const subdomainMatch = path.match(/^\/workers\/scripts\/([^/]+)\/subdomain$/)
