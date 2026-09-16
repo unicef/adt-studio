@@ -36,6 +36,56 @@ describe("static asset manifest", () => {
     }])
   })
 
+  it("uploads an empty file when Cloudflare requests its hash", () => {
+    const content = new Uint8Array()
+    const hash = staticAssetHash("/__adt_publish_bootstrap", content)
+
+    expect(createStaticAssetUploadPayloads([[hash]], [
+      { path: "/__adt_publish_bootstrap", content },
+    ])).toEqual([{ [hash]: "" }])
+  })
+
+  /**
+   * Books repeat content constantly: the same narration serves a paragraph and its easy-read
+   * version, an identical images.json ships in every locale. A real 2,530-file export has 119
+   * such groups. They hash to one content address on purpose — that is what lets Cloudflare
+   * ask only for what it lacks — and treating the second one as a collision refused to publish
+   * the book at all.
+   */
+  it("sends repeated content once instead of refusing it", () => {
+    const audio = encoder.encode("identical narration bytes")
+    const assets = [
+      { path: "/audio/pg001_n0018.mp3", content: audio },
+      { path: "/audio/pg001_n0018_easy_read.mp3", content: audio },
+      { path: "/audio/other.mp3", content: encoder.encode("different") },
+    ]
+
+    const manifest = createStaticAssetManifest(assets)
+    expect(manifest["/audio/pg001_n0018.mp3"]?.hash)
+      .toBe(manifest["/audio/pg001_n0018_easy_read.mp3"]?.hash)
+
+    const hashes = [...new Set(Object.values(manifest).map((entry) => entry.hash))]
+    expect(hashes).toHaveLength(2)
+
+    const [payload] = createStaticAssetUploadPayloads([hashes], assets)
+    expect(Object.keys(payload ?? {})).toHaveLength(2)
+    expect(payload?.[hashes[0] as string]).toBe(Buffer.from(audio).toString("base64"))
+  })
+
+  /** Cloudflare asks only for the addresses it does not already hold, so encoding the whole
+   *  book up front builds hundreds of megabytes of base64 to send a handful of files. */
+  it("encodes only what Cloudflare asked for", () => {
+    const assets = Array.from({ length: 50 }, (_, index) => ({
+      path: `/page-${index}.html`,
+      content: encoder.encode(`page ${index}`),
+    }))
+    const wanted = staticAssetHash(assets[7]!.path, assets[7]!.content)
+
+    const [payload] = createStaticAssetUploadPayloads([[wanted]], assets)
+
+    expect(Object.keys(payload ?? {})).toEqual([wanted])
+  })
+
   it("rejects unsafe paths, duplicate paths and unexpected upload requests", () => {
     const content = encoder.encode("x")
     expect(() => createStaticAssetManifest([{ path: "index.html", content }])).toThrow(StaticAssetError)
@@ -70,7 +120,42 @@ describe("static asset manifest", () => {
     ])
 
     expect(prepared.completionJwt).toBe("asset-complete-jwt")
-    expect(fake.state.staticAssetUploads).toHaveLength(1)
+    expect(fake.state.staticAssetUploads).toEqual([{ [hash]: Buffer.from(content).toString("base64") }])
     expect(fake.state.bearerTokens).toEqual(["account-token", "asset-upload-jwt"])
+  })
+
+  /** The publish Worker re-derives every content type from the snapshot path, so an asset that
+   * arrives carrying its own type gives the deployment a second answer that can contradict the
+   * one readers get. Cloudflare reads `application/null` as "serve this with no Content-Type". */
+  it("uploads each asset with no content type of its own", async () => {
+    const content = encoder.encode("one")
+    const hash = staticAssetHash("/uploads/one/index.html", content)
+    const fake = createFakeCloudflare({ assetUploadBuckets: [[hash]] })
+    const client = createCloudflareClient({ token: "account-token", accountId: "acct-1", fetchFn: fake.fetchFn })
+
+    await prepareStaticAssets(client, "adt-publish", [
+      { path: "/uploads/one/index.html", content },
+    ])
+
+    expect(fake.state.staticAssetUploadPartTypes).toEqual([{ [hash]: "application/null" }])
+  })
+
+  it("identifies whether Cloudflare rejected the manifest or an asset batch", async () => {
+    const manifestFailure = createFakeCloudflare({ assetSessionErrorMessage: "manifest unavailable" })
+    const manifestClient = createCloudflareClient({ token: "account-token", accountId: "acct-1", fetchFn: manifestFailure.fetchFn })
+    await expect(prepareStaticAssets(manifestClient, "adt-publish", [
+      { path: "/index.html", content: encoder.encode("one") },
+    ])).rejects.toThrow("static asset manifest: manifest unavailable")
+
+    const content = encoder.encode("one")
+    const hash = staticAssetHash("/index.html", content)
+    const uploadFailure = createFakeCloudflare({
+      assetUploadBuckets: [[hash]],
+      assetUploadErrorMessage: "asset upload unavailable",
+    })
+    const uploadClient = createCloudflareClient({ token: "account-token", accountId: "acct-1", fetchFn: uploadFailure.fetchFn })
+    await expect(prepareStaticAssets(uploadClient, "adt-publish", [
+      { path: "/index.html", content },
+    ])).rejects.toThrow("static asset batch 1 of 1: asset upload unavailable")
   })
 })

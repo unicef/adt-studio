@@ -55,26 +55,52 @@ export function createStaticAssetManifest(assets: StaticAsset[]): StaticAssetMan
   return manifest
 }
 
+function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.byteLength !== b.byteLength) return false
+  return Buffer.from(a).equals(Buffer.from(b))
+}
+
 /** The upload-session response returns hashes rather than paths. Convert those buckets back
  * into the compact base64 maps accepted by the file-upload endpoint. */
 export function createStaticAssetUploadPayloads(
   buckets: string[][],
   assets: StaticAsset[],
 ): Array<Record<string, string>> {
-  const byHash = new Map<string, string>()
+  /**
+   * Keyed by content address, so one entry per distinct file rather than per path.
+   *
+   * Books repeat content as a matter of course — the same narration for a paragraph and its
+   * easy-read version, an identical `images.json` in every locale. Those paths hash to one
+   * address and the bytes travel once, which is the entire point of a content-addressed
+   * manifest: Cloudflare asks only for the addresses it does not already hold.
+   */
+  const byHash = new Map<string, Uint8Array>()
   for (const asset of assets) {
-    const path = normalizedPath(asset.path)
-    const hash = staticAssetHash(path, asset.content)
-    if (byHash.has(hash)) {
-      throw new StaticAssetError(`Multiple assets have the same Cloudflare hash: ${hash}`)
+    const hash = staticAssetHash(normalizedPath(asset.path), asset.content)
+    const seen = byHash.get(hash)
+    if (seen !== undefined) {
+      /** One address for two *different* files would be a truncated-SHA-256 collision, and
+       *  would serve one file's content under the other's name. Vanishingly unlikely, and
+       *  silent if it ever happened, so it is worth the comparison. */
+      if (!sameBytes(seen, asset.content)) {
+        throw new StaticAssetError(
+          `Two different files share the Cloudflare content address ${hash}: ${asset.path}`,
+        )
+      }
+      continue
     }
-    byHash.set(hash, Buffer.from(asset.content).toString("base64"))
+    byHash.set(hash, asset.content)
   }
 
+  /** Encoded per bucket rather than up front. Cloudflare asks only for what it lacks, and
+   *  base64 is a third larger again than the bytes — encoding a whole book to send a handful
+   *  of files is hundreds of megabytes of strings built for nothing. */
   return buckets.map((bucket) => Object.fromEntries(bucket.map((hash) => {
     const content = byHash.get(hash)
-    if (!content) throw new StaticAssetError(`Cloudflare requested an unknown asset hash: ${hash}`)
-    return [hash, content]
+    if (content === undefined) {
+      throw new StaticAssetError(`Cloudflare requested an unknown asset hash: ${hash}`)
+    }
+    return [hash, Buffer.from(content).toString("base64")]
   })))
 }
 
@@ -94,16 +120,26 @@ export async function prepareStaticAssets(
 ): Promise<PreparedStaticAssets> {
   const manifest = createStaticAssetManifest(assets)
   const retry = { sleep: options.sleep, attempts: 5 }
-  const session = await retryCloudflareOperation(
-    () => client.createStaticAssetUploadSession(workerName, manifest),
-    retry,
-  )
-  let completionJwt = session.jwt
-  for (const payload of createStaticAssetUploadPayloads(session.buckets, assets)) {
-    completionJwt = await retryCloudflareOperation(
-      () => client.uploadStaticAssetBucket(session.jwt, payload),
+  let session: Awaited<ReturnType<CloudflareClient["createStaticAssetUploadSession"]>>
+  try {
+    session = await retryCloudflareOperation(
+      () => client.createStaticAssetUploadSession(workerName, manifest),
       retry,
     )
+  } catch (error) {
+    throw new StaticAssetError(`Cloudflare rejected the static asset manifest: ${error instanceof Error ? error.message : String(error)}`)
+  }
+  let completionJwt = session.jwt
+  const payloads = createStaticAssetUploadPayloads(session.buckets, assets)
+  for (const [index, payload] of payloads.entries()) {
+    try {
+      completionJwt = await retryCloudflareOperation(
+        () => client.uploadStaticAssetBucket(session.jwt, payload),
+        retry,
+      )
+    } catch (error) {
+      throw new StaticAssetError(`Cloudflare rejected static asset batch ${index + 1} of ${payloads.length}: ${error instanceof Error ? error.message : String(error)}`)
+    }
   }
   return { manifest, completionJwt }
 }
