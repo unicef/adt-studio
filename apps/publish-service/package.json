@@ -7,7 +7,8 @@
     "dev": "wrangler dev",
     "build:artifact": "node scripts/build-artifact.mjs",
     "migrate:local": "wrangler d1 migrations apply DB --local",
-    "typecheck": "tsc --build"
+    "typecheck": "tsc --build",
+    "e2e": "node scripts/e2e-published-book.mjs"
   },
   "dependencies": {
     "@adt/types": "workspace:*",
@@ -18,6 +19,7 @@
     "@cloudflare/vitest-pool-workers": "0.18.8",
     "@cloudflare/workers-types": "^5.20260727.1",
     "esbuild": "^0.25.0",
+    "miniflare": "4.20260722.0",
     "wrangler": "^4.114.0"
   }
 }
