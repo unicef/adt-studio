@@ -330,6 +330,7 @@ export function SectioningOverview({
                 itemId="book"
                 bookLabel={bookLabel}
                 currentVersion={readingOrder?.version ?? null}
+            staleBefore={readingOrder?.sectioningGeneration}
                 saving={false}
                 dirty={false}
                 onDiscard={() => {}}

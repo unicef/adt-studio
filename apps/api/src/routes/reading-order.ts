@@ -93,6 +93,10 @@ export function createReadingOrderRoutes(booksDir: string): Hono {
         // space the book has thrown away. Distinct from `unreadable` (the row is
         // fine) and from never having reordered (there is history to show).
         staleGeneration: resolved.staleGeneration,
+        // The book's current section-id generation. The version picker needs it
+        // to tell which stored versions are restorable: a version stamped below
+        // this names sections that no longer exist.
+        sectioningGeneration: readSectioningGeneration(storage),
         // Stored rows that exist but would not parse. Never silently skipped:
         // each one means the book is being assembled from something other than
         // what it holds, and the UI has to be able to say so.

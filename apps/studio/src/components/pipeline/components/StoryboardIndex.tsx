@@ -303,6 +303,7 @@ export function StoryboardIndex({
             itemId="book"
             bookLabel={bookLabel}
             currentVersion={readingOrder?.version ?? null}
+            staleBefore={readingOrder?.sectioningGeneration}
             // The pending arrangement is registered with the shared save bar by
             // ReadingOrderDraftProvider, not here — this picker is history and
             // rollback only, and a second registration for the same change

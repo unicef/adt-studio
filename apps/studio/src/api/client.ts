@@ -639,6 +639,20 @@ export interface ReadingOrderResponse {
    * left to be discovered in the packaged bundle.
    */
   unreadable: Array<{ node: string; itemId: string; version: number }>
+  /**
+   * Set when a saved order exists and parsed, but was written against section
+   * ids the book has since rebuilt and re-minted — so it was not applied, and
+   * cannot be restored. Distinct from `unreadable` (the row is fine) and from
+   * never having reordered (there is history the user can still see).
+   */
+  staleGeneration: { stored: number; current: number } | null
+  /**
+   * The book's current section-id generation. A stored version stamped below
+   * this one refers to sections that have since been rebuilt, so it is not
+   * restorable — which is what lets the version picker say so up front rather
+   * than after a refused request.
+   */
+  sectioningGeneration: number
   /** Output sequence, excluding items not rendered (pruned). */
   items: ReadingOrderItem[]
   /** Full order including excluded items, each keeping its slot. */

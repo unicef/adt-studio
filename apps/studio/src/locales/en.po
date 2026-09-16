@@ -5539,6 +5539,9 @@ msgstr "Low"
 msgid "Lower values produce more consistent styling across pages."
 msgstr "Lower values produce more consistent styling across pages."
 
+msgid "Made before the book's sections were rebuilt, so it refers to sections that no longer exist"
+msgstr "Made before the book's sections were rebuilt, so it refers to sections that no longer exist"
+
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Make sure you're uploading a .zip file exported from ADT Studio."
 
@@ -9996,6 +9999,12 @@ msgstr "They release oxygen directly into the air."
 
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
+
+msgid "This also deletes the book's page order and its history, so the book returns to PDF order."
+msgstr "This also deletes the book's page order and its history, so the book returns to PDF order."
+
+msgid "This also replaces the sections the current page order refers to, so the book returns to PDF order. Earlier page orders stay in the history but can no longer be restored."
+msgstr "This also replaces the sections the current page order refers to, so the book returns to PDF order. Earlier page orders stay in the history but can no longer be restored."
 
 msgid "This archive can't be opened safely"
 msgstr "This archive can't be opened safely"

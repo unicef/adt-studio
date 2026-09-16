@@ -5541,6 +5541,9 @@ msgstr "Faible"
 msgid "Lower values produce more consistent styling across pages."
 msgstr "Les valeurs plus basses produisent un style plus cohérent entre les pages."
 
+msgid "Made before the book's sections were rebuilt, so it refers to sections that no longer exist"
+msgstr "Créé avant la reconstruction des sections du livre : il renvoie donc à des sections qui n'existent plus"
+
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Assurez-vous de télécharger un fichier .zip exporté depuis ADT Studio."
 
@@ -9998,6 +10001,12 @@ msgstr "Elles libèrent de l'oxygène directement dans l'air."
 
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "Cette activité ne contient aucun texte ni aucune réponse adressable. Régénérez-la ou utilisez \"Modifier la mise en page\" pour modifier directement la page."
+
+msgid "This also deletes the book's page order and its history, so the book returns to PDF order."
+msgstr "Cela supprime également l'ordre des pages du livre et son historique : le livre revient donc à l'ordre du PDF."
+
+msgid "This also replaces the sections the current page order refers to, so the book returns to PDF order. Earlier page orders stay in the history but can no longer be restored."
+msgstr "Cela remplace également les sections auxquelles renvoie l'ordre des pages actuel : le livre revient donc à l'ordre du PDF. Les ordres de pages précédents restent dans l'historique, mais ne peuvent plus être restaurés."
 
 msgid "This archive can't be opened safely"
 msgstr "Cette archive ne peut pas être ouverte en toute sécurité"

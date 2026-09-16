@@ -5541,6 +5541,9 @@ msgstr "I ulët"
 msgid "Lower values produce more consistent styling across pages."
 msgstr "Vlerat më të ulëta prodhojnë stil më konsistent nëpër faqe."
 
+msgid "Made before the book's sections were rebuilt, so it refers to sections that no longer exist"
+msgstr "U krijua para se seksionet e librit të rindërtoheshin, prandaj i referohet seksioneve që nuk ekzistojnë më"
+
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Sigurohuni që po ngarkoni një skedar .zip të eksportuar nga ADT Studio."
 
@@ -9998,6 +10001,12 @@ msgstr "Ato lëshojnë oksigjen drejtpërdrejt në ajër."
 
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "Ky aktivitet nuk ka tekste apo përgjigje të adresueshme. Rigjeneroni atë ose përdorni \"Ndrysho paraqitjen\" për ta ndryshuar faqen drejtpërdrejt."
+
+msgid "This also deletes the book's page order and its history, so the book returns to PDF order."
+msgstr "Kjo fshin edhe radhën e faqeve të librit dhe historikun e saj, prandaj libri kthehet në radhën e PDF-së."
+
+msgid "This also replaces the sections the current page order refers to, so the book returns to PDF order. Earlier page orders stay in the history but can no longer be restored."
+msgstr "Kjo zëvendëson edhe seksionet të cilave u referohet radha aktuale e faqeve, prandaj libri kthehet në radhën e PDF-së. Radhët e mëparshme të faqeve mbeten në historik, por nuk mund të rikthehen më."
 
 msgid "This archive can't be opened safely"
 msgstr "Ky arkiv nuk mund të hapet në mënyrë të sigurt"

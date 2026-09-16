@@ -133,6 +133,16 @@ interface VersionPickerProps {
    *  migrated to restore (onRestored). Ignored when onRestored is set. */
   onPreview?: (data: unknown) => void
   /**
+   * Versions stamped with a `sectioningGeneration` below this one are shown but
+   * not selectable, with the reason on hover.
+   *
+   * The reading order needs this: a full Sectioning rebuild re-mints section
+   * ids, so an older arrangement names sections that no longer exist. The
+   * server refuses those restores either way — offering them and then failing
+   * reads as a bug rather than as the history being out of date.
+   */
+  staleBefore?: number
+  /**
    * An extra row below the version list, for a state the history cannot reach.
    *
    * The reading order needs this: the entity is not written until the user's
@@ -206,6 +216,7 @@ export function VersionPicker({
   onRestored,
   onPreview,
   footerAction,
+  staleBefore,
   onSave,
   onDiscard,
   saveDisabledReason,
@@ -320,6 +331,17 @@ export function VersionPicker({
     }
   }
 
+  // A version made before the book's sections were rebuilt refers to sections
+  // that no longer exist. `staleBefore` is the current generation; an unstamped
+  // version predates the stamp and stays restorable, matching the server.
+  const isStaleVersion = (v: VersionEntry): boolean => {
+    if (staleBefore == null) return false
+    const stamp = (v.data as { sectioningGeneration?: unknown } | undefined)
+      ?.sectioningGeneration
+    return typeof stamp === "number" && stamp < staleBefore
+  }
+  const staleReason = t`Made before the book's sections were rebuilt, so it refers to sections that no longer exist`
+
   // Roll back to an existing version: move the pointer (no new version) and
   // refresh. Shared by the list rows and the compare dialog.
   const restoreTo = async (version: number) => {
@@ -339,10 +361,15 @@ export function VersionPicker({
       await Promise.all(invalidations)
       onRestored?.()
       toast.success(t`Restored to v${version}`)
-    } catch {
+    } catch (err) {
       // Never throw to callers (they close popovers/dialogs after this) — a
       // failed restore surfaces as a toast, not an unhandled rejection.
-      toast.error(t`Couldn't restore v${version}. Please try again.`)
+      //
+      // A refusal the server can explain is repeated verbatim: "please try
+      // again" is actively misleading for one that will never succeed, such as
+      // an order made against sections the book has since rebuilt.
+      const reason = err instanceof Error ? err.message.trim() : ""
+      toast.error(reason || t`Couldn't restore v${version}. Please try again.`)
     } finally {
       setRestoring(false)
     }
@@ -674,12 +701,19 @@ export function VersionPicker({
               <>
                 {versions.map((v) => {
                   const isCurrent = v.version === currentVersion
+                  const isStale = isStaleVersion(v)
                   return (
                     <button
                       key={v.version}
                       type="button"
+                      disabled={isStale}
+                      title={isStale ? staleReason : undefined}
                       onClick={() => handlePick(v)}
-                      className={`flex w-full items-center gap-1.5 text-left px-3 py-1 text-xs rounded hover:bg-accent transition-colors ${
+                      className={`flex w-full items-center gap-1.5 text-left px-3 py-1 text-xs rounded transition-colors ${
+                        isStale
+                          ? "text-muted-foreground/50 cursor-not-allowed line-through"
+                          : "hover:bg-accent"
+                      } ${
                         isCurrent ? "font-semibold text-foreground" : "text-muted-foreground"
                       }`}
                     >

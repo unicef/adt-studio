@@ -88,6 +88,7 @@ export {
   getStageDependents,
   getStageClearNodes,
   getStageRerunClearNodes,
+  rebuildsSectionIds,
   getCacheResourcesForNode,
   getCacheResourcesForNodes,
   getCacheResourcesForStageOutput,

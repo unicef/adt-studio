@@ -274,6 +274,36 @@ export function getStageRerunClearNodes(
   return clearNodes.filter((node) => !preservedNodes.has(node))
 }
 
+/**
+ * Does this rerun throw away the section-id history, so the re-run re-mints
+ * ids densely from `_sec001`?
+ *
+ * Section ids are allocated from a high-water mark read out of the stored
+ * `page-sectioning` versions, so clearing that node is what makes the next run
+ * reuse ids for different content. Two things hang off this: retiring the
+ * references the clear does not reach (`retireSectionIds`), and bumping the
+ * `sectioning-generation` that tells a saved reading order which id space it
+ * was written against.
+ *
+ * Only `page-sectioning` counts. `fixed-layout-sectioning` is cleared by a
+ * storyboard rerun too, but its id is not allocated — `sectionFixedLayoutPage`
+ * derives the page's single section id from the pageId alone, so regenerating
+ * it produces the same id and nothing pinned to it was ever at risk. Treating
+ * that as a rebuild would detach every pinned video on each storyboard rerun of
+ * a fixed-layout book, and on a reflowable book carrying a stale fixed-layout
+ * row it would retire a `_sec001` the live `page-sectioning` still owns.
+ *
+ * Lives here, beside the clear lists it is derived from, because the API and
+ * the UI both have to agree on it — the UI has to warn about exactly the reruns
+ * the backend will actually reset. A set defined on one side and re-guessed on
+ * the other is how the reorder-blocking rule came to disagree with itself.
+ */
+export function rebuildsSectionIds(fromStage: StageName, toStage: StageName): boolean {
+  // `clearExtractedData` drops every node except the font ones, sectioning included.
+  if (fromStage === "extract") return true
+  return getStageRerunClearNodes(fromStage, toStage).includes("page-sectioning")
+}
+
 /** Resource tags that should be refreshed when a node is updated or cleared. */
 export function getCacheResourcesForNode(node: PipelineNodeName): PipelineCacheResource[] {
   return [...NODE_CACHE_RESOURCES[node]]
