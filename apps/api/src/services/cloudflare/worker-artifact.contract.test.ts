@@ -57,14 +57,23 @@ describe("control plane artifact", () => {
 describe("book host artifact", () => {
   const bookHost = metadata("book-host-metadata.json")
 
-  it("binds the database, its own assets and the shared room", () => {
-    expect(bindingNames(bookHost)).toEqual(["DB", "ASSETS", "PUBLICATION_ROOM"])
+  it("binds the database, its own assets, the shared room and an author secret", () => {
+    expect(bindingNames(bookHost)).toEqual(["DB", "ASSETS", "PUBLICATION_ROOM", "MGMT_SECRET"])
   })
 
-  /** A book host serves public reader traffic and has no management route, so the secret would
-   *  be a credential sitting on a public surface for no reason. */
-  it("carries no management secret", () => {
-    expect(bindingNames(bookHost)).not.toContain("MGMT_SECRET")
+  /** The declaration is the same shape as the control plane's; what differs is the value the
+   *  deploy puts in it, which resolveBookHostBindings derives per book. The account's own
+   *  secret authorises every management call, so ~99 public Workers must not each hold it. */
+  it("declares the secret without shipping a value for it", () => {
+    const secret = bookHost.bindings.find((binding) => binding.name === "MGMT_SECRET")
+    expect(secret?.type).toBe("secret_text")
+
+    const raw = JSON.parse(
+      fs.readFileSync(path.join(distDir, "book-host-metadata.json"), "utf-8"),
+    ) as { bindings: Array<Record<string, unknown>> }
+    const rawSecret = raw.bindings.find((binding) => binding.name === "MGMT_SECRET")
+    expect(rawSecret).toBeDefined()
+    expect(rawSecret).not.toHaveProperty("text")
   })
 
   /** Workers Free allows 100 Durable Object classes and 100 Workers. One class per book host

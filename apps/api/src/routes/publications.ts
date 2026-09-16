@@ -46,6 +46,15 @@ import {
   toPublishErrorEvent,
   type LocalBookSnapshot,
 } from "../services/publish-service.js"
+import { bookHostAuthorSecret } from "../services/cloudflare/book-host.js"
+import { createCloudflareClient } from "../services/cloudflare/client.js"
+import { resolveCloudflareCredentials } from "../services/cloudflare/credentials.js"
+import { createCloudflareOAuthService } from "../services/cloudflare/oauth.js"
+import {
+  loadBookHostArtifact,
+  resolveWorkerArtifactPaths,
+} from "../services/cloudflare/worker-artifact.js"
+import type { BookHostDeps } from "../services/publish-service.js"
 import {
   createPublishWorkerClient,
   isPublishWorkerError,
@@ -57,6 +66,11 @@ export interface PublishRoutesDeps {
   webAssetsDir: string
   configPath?: string
   stateDir?: string
+  projectRoot?: string
+  artifactDir?: string
+  /** Injected by tests. Publishing now deploys this book's own Worker, which needs account
+   *  credentials and the book-host artifact — neither of which a worker-only test has. */
+  bookHost?: (c: Context, connection: CloudflareConnectionRecord) => Promise<BookHostDeps>
   fetchFn?: FetchLike
   now?: () => Date
   generateToken?: () => string
@@ -146,6 +160,63 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
   const store: ConnectionStore = createConnectionStore(
     deps.stateDir ?? resolvePublishStateDir(deps.booksDir),
   )
+
+  const oauth = createCloudflareOAuthService({
+    store,
+    ...(deps.fetchFn === undefined ? {} : { fetchFn: deps.fetchFn }),
+  })
+
+  /**
+   * What a publish needs beyond the control plane's management secret, now that it deploys
+   * this book's own Worker: account credentials, and the artifact to deploy.
+   */
+  const bookHostFor = async (
+    c: Context,
+    connection: CloudflareConnectionRecord,
+  ): Promise<BookHostDeps> => {
+    if (deps.bookHost) return deps.bookHost(c, connection)
+
+    if (connection.workers_dev_subdomain === null) {
+      throw new HTTPException(412, {
+        message:
+          "This Cloudflare account has no workers.dev subdomain yet, so a published book would have no web address. Pick one in the Cloudflare dashboard under Workers & Pages, then publish again.",
+      })
+    }
+
+    const credentials = await resolveCloudflareCredentials(c, { store, oauth })
+    const { artifactDir } = resolveWorkerArtifactPaths(deps.projectRoot ?? process.cwd(), {
+      ...(deps.artifactDir === undefined ? {} : { artifactDir: deps.artifactDir }),
+    })
+
+    return {
+      client: createCloudflareClient({
+        token: credentials.token,
+        accountId: credentials.accountId,
+        ...(deps.fetchFn === undefined ? {} : { fetchFn: deps.fetchFn }),
+      }),
+      artifact: loadBookHostArtifact(artifactDir),
+      d1DatabaseUuid: connection.d1_database_uuid,
+      workersDevSubdomain: connection.workers_dev_subdomain,
+      controlPlaneSecret: connection.mgmt_secret,
+      controlPlaneName: connection.worker_name,
+    }
+  }
+
+  /** Reader routes are served by the book's own Worker, so previewing a published snapshot
+   *  talks to that host rather than the control plane — and authenticates with the per-book
+   *  author secret, which is all that host will recognise. */
+  const bookHostClientFor = (
+    connection: CloudflareConnectionRecord,
+    record: BookPublicationRecord,
+  ): PublishWorkerClient => {
+    /** Deliberately not `deps.createClient`: that stands in for the control plane, and a book
+     *  host is a different origin with a different credential. */
+    return createPublishWorkerClient({
+      workerUrl: new URL(record.base_url).origin,
+      mgmtSecret: bookHostAuthorSecret(connection.mgmt_secret, record.token),
+      ...(deps.fetchFn === undefined ? {} : { fetchFn: deps.fetchFn }),
+    })
+  }
 
   const clientFor = (connection: CloudflareConnectionRecord): PublishWorkerClient =>
     deps.createClient
@@ -511,6 +582,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
         await publishBook({
           ...publishDeps(label),
           connection,
+          bookHost: await bookHostFor(c, connection),
           emit,
           expiresAt: body.data.expires_at ?? null,
           accessCode: body.data.access_code ?? null,
@@ -569,6 +641,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
         await republishBook({
           ...publishDeps(label),
           connection,
+          bookHost: await bookHostFor(c, connection),
           emit,
           record,
           ...(body.data.features ? { features: body.data.features } : {}),
@@ -939,7 +1012,9 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
 
     let upstream: Response
     try {
-      upstream = await clientFor(connection).fetchSnapshotFile(
+      /** The bytes live on this book's own host, not the control plane, and that host knows
+       *  the author by a secret derived for this book alone. */
+      upstream = await bookHostClientFor(connection, record).fetchSnapshotFile(
         record.token,
         decodedPath,
         forwarded,

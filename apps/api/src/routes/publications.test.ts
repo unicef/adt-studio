@@ -14,6 +14,8 @@ import { readPublicationRecord } from "../services/publish-service.js"
 import { createPublishWorkerClient } from "../services/publish-worker-client.js"
 import type { PublishWorkerClient } from "../services/publish-worker-client.js"
 import { createPublishRoutes } from "./publications.js"
+import { createFakeBookHost } from "../services/cloudflare/fake-book-host.js"
+import { bookHostAuthorSecret } from "../services/cloudflare/book-host.js"
 
 const LABEL = "raven"
 const TOKEN = "TokenRavenTokenRavenTokenRaven12"
@@ -88,12 +90,18 @@ function routes(
     connected?: boolean
     worker?: FakePublishWorker
     clientOverrides?: Partial<PublishWorkerClient>
+    /** Answers requests the API makes to a book's own Worker, which is a different origin
+     *  from the control plane now that book hosts serve the reader routes. */
+    bookHostFetch?: FetchLike
   } = {},
 ) {
   const worker = options.worker ?? createFakePublishWorker({ now: NOW })
   if (options.connected !== false) {
     createConnectionStore(stateDir).write(connectionRecord(worker))
   }
+  /** Publishing deploys this book's own Worker now, so the routes need account credentials
+   *  and the book-host artifact as well as the control plane's management secret. */
+  const bookHost = createFakeBookHost()
   const app = createPublishRoutes({
     booksDir: tmpDir,
     webAssetsDir: path.join(tmpDir, "assets-web"),
@@ -102,6 +110,8 @@ function routes(
     generateToken: () => TOKEN,
     sleep: async () => {},
     prepareExportFn: (async () => ({})) as never,
+    bookHost: async () => bookHost.deps,
+    ...(options.bookHostFetch === undefined ? {} : { fetchFn: options.bookHostFetch }),
     createClient: () =>
       Object.assign(
         createPublishWorkerClient({
@@ -112,7 +122,7 @@ function routes(
         options.clientOverrides,
       ),
   })
-  return { app, worker }
+  return { app, worker, cloudflare: bookHost.fake }
 }
 
 /** `streamSSE` runs its callback independently of the promise the handler returns, so the body
@@ -266,7 +276,13 @@ describe("publishing a book over SSE", () => {
     const events = await publishOnce(app)
 
     const complete = events.at(-1)
-    expect(complete).toMatchObject({ type: "complete", url: worker.shareUrl(TOKEN) })
+    /** The share link points at this book's own Worker, which is what serves the reader. */
+    expect(complete).toMatchObject({
+      type: "complete",
+      url: expect.stringMatching(
+        new RegExp(`^https://adt-book-[0-9a-f]{32}\\.teacher\\.workers\\.dev/p/${TOKEN}/$`),
+      ),
+    })
     expect(
       events.filter((event) => event.type === "step" && event.status === "done").length,
     ).toBe(4)
@@ -306,7 +322,12 @@ describe("publishing a book over SSE", () => {
       await app.request(`/books/${LABEL}/publication/versions`, { method: "POST" }),
     )
 
-    expect(events.at(-1)).toMatchObject({ type: "complete", url: worker.shareUrl(TOKEN) })
+    expect(events.at(-1)).toMatchObject({
+      type: "complete",
+      url: expect.stringMatching(
+        new RegExp(`^https://adt-book-[0-9a-f]{32}\\.teacher\\.workers\\.dev/p/${TOKEN}/$`),
+      ),
+    })
     expect(worker.state.versions.get(TOKEN)).toHaveLength(2)
   })
 
@@ -411,13 +432,33 @@ describe("managing a live publication", () => {
 })
 
 describe("previewing the published snapshot", () => {
-  it("serves the exact bytes that were published", async () => {
-    const { app } = routes()
+  /** The control plane no longer holds the bytes, so preview reads them from the book's own
+   *  Worker — and that host only recognises the author by a secret derived for this book, never
+   *  the account's own. Byte fidelity itself is covered where a real book host serves a real
+   *  asset, in book-host.integration.test.ts. */
+  it("reads the snapshot from the book\u2019s own host, as its author", async () => {
+    const asked: Array<{ url: string; authorization: string | null }> = []
+    const { app } = routes({
+      bookHostFetch: async (url, init) => {
+        asked.push({ url, authorization: new Headers(init?.headers).get("Authorization") })
+        return new Response("<!doctype html><title>Raven</title>", { status: 200 })
+      },
+    })
     await publishOnce(app)
 
     const response = await app.request(`/books/${LABEL}/publication/preview/index.html`)
+
     expect(response.status).toBe(200)
     expect(await response.text()).toBe("<!doctype html><title>Raven</title>")
+    const request = asked.at(-1)
+    expect(request?.url).toMatch(
+      new RegExp(`^https://adt-book-[0-9a-f]{32}\\.teacher\\.workers\\.dev/p/${TOKEN}/index.html$`),
+    )
+    expect(request?.authorization).toBe(
+      `Bearer ${bookHostAuthorSecret(SECRET, TOKEN)}`,
+    )
+    /** Never the account's own secret. */
+    expect(request?.authorization).not.toContain(SECRET)
   })
 
   it("refuses a traversal smuggled through an encoded separator", async () => {
