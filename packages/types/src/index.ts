@@ -389,6 +389,9 @@ export {
   READING_ORDER_ITEM_ID,
   ReadingOrderItem,
   ReadingOrderOutput,
+  SECTIONING_GENERATION_NODE,
+  SECTIONING_GENERATION_ITEM_ID,
+  SectioningGenerationOutput,
 } from "./reading-order.js"
 
 export {

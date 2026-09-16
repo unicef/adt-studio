@@ -434,10 +434,13 @@ export {
   readingOrderPageIds,
   toPageEntry,
   readingOrderHref,
+  readSectioningGeneration,
+  bumpSectioningGeneration,
   type ResolvedItem,
   type ResolvedReadingOrder,
   type ReconcileResult,
   type PageEntry,
+  type StaleGeneration,
 } from "./reading-order.js"
 export { orderTocEntries } from "./toc-reading-order.js"
 export {

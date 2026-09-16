@@ -29,6 +29,8 @@ import {
   formatSectionId,
   CoreTtsCatalogOutput,
   TextCatalogOutput,
+  READING_ORDER_NODE,
+  ReadingOrderOutput,
   type TTSOutput,
   type WordTimestampOutput,
 } from "@adt/types"
@@ -79,6 +81,7 @@ import {
   createScreenshotRenderer,
   SCREENSHOT_VIEWPORTS,
   isFixedLayoutBook,
+  readSectioningGeneration,
   type ScreenshotRenderer,
 } from "@adt/pipeline"
 import { AiProviderError, assertModelCredentials, createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache } from "@adt/llm"
@@ -635,6 +638,48 @@ function clearRestoredNodeDependents(
     case "reading-order":
       clearReadingOrderDependents(storage)
   }
+}
+
+/**
+ * Refuse to restore a reading order written against section ids the book has
+ * since thrown away.
+ *
+ * A full Sectioning rebuild re-mints ids densely from `_sec001`, so an order
+ * from before it names slots that now hold different content. It reconciles
+ * perfectly — nothing is missing, so nothing downstream would complain — which
+ * is why this has to be a refusal at the boundary rather than something the
+ * reconciler could be taught to spot.
+ *
+ * An unstamped version predates the stamp and is honoured: those arrangements
+ * are no more suspect than they were, and invalidating them on upgrade would
+ * cost users real work. Only nodes whose identity depends on the section-id
+ * space are checked, which today is `reading-order` alone.
+ */
+function assertRestorableGeneration(
+  storage: Storage,
+  node: RestorableNode,
+  itemId: string,
+  version: number
+): void {
+  if (node !== READING_ORDER_NODE) return
+
+  const row = storage
+    .getAllNodeVersions(node, itemId)
+    .find((candidate) => candidate.version === version)
+  if (!row) return // The 404 below says this better than we can here.
+
+  const parsed = ReadingOrderOutput.safeParse(row.data)
+  if (!parsed.success || parsed.data.sectioningGeneration === undefined) return
+
+  const current = readSectioningGeneration(storage)
+  if (parsed.data.sectioningGeneration >= current) return
+
+  throw new HTTPException(409, {
+    message:
+      `Version ${String(version)} was made before the book's sections were rebuilt, ` +
+      `so it refers to sections that no longer exist. Restoring it would put pages ` +
+      `in an order that no longer matches their content.`,
+  })
 }
 
 /**
@@ -1717,6 +1762,7 @@ export function createPageRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
+      assertRestorableGeneration(storage, node, itemId, version)
       const previousData = storage.getLatestNodeData(node, itemId)?.data
       const ok = storage.setCurrentNodeVersion(node, itemId, version)
       if (!ok) {

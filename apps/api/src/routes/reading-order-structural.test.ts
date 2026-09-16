@@ -4,6 +4,8 @@ import os from "node:os"
 import path from "node:path"
 import { Hono } from "hono"
 import { createBookStorage, type Storage } from "@adt/storage"
+import { bumpSectioningGeneration } from "@adt/pipeline"
+import { READING_ORDER_NODE, READING_ORDER_ITEM_ID } from "@adt/types"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createReadingOrderRoutes } from "./reading-order.js"
 import { createPageRoutes } from "./pages.js"
@@ -439,5 +441,81 @@ describe("reading-order versions can be rolled back over HTTP", () => {
     } finally {
       after.close()
     }
+  })
+
+  /**
+   * A full Sectioning rebuild re-mints section ids densely from `_sec001`, so
+   * an order saved before it names ids that now hold other content. It
+   * reconciles cleanly — nothing is missing — which is exactly why the restore
+   * has to be refused rather than left to the reconciler to notice.
+   */
+  it("refuses to restore an order made against a superseded section-id generation", async () => {
+    const first = [...DEFAULT_IDS].reverse()
+    const { version: v1 } = await saveOrder(first, null)
+    await saveOrder([...DEFAULT_IDS], v1)
+
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      bumpSectioningGeneration(storage)
+    } finally {
+      storage.close()
+    }
+
+    const res = await post(`/versions/reading-order/book/restore`, { version: v1 })
+
+    expect(res.status).toBe(409)
+    const body = (await res.json()) as { error?: string; message?: string }
+    expect(JSON.stringify(body)).toMatch(/sections/i)
+
+    // And the pointer did not move.
+    const after = createBookStorage(label, tmpDir)
+    try {
+      expect(after.getLatestNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID)?.version).toBe(2)
+    } finally {
+      after.close()
+    }
+  })
+
+  it("still allows restoring a version from the current generation", async () => {
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      bumpSectioningGeneration(storage)
+    } finally {
+      storage.close()
+    }
+
+    const first = [...DEFAULT_IDS].reverse()
+    const { version: v1 } = await saveOrder(first, null)
+    await saveOrder([...DEFAULT_IDS], v1)
+
+    const res = await post(`/versions/reading-order/book/restore`, { version: v1 })
+
+    expect(res.status).toBe(200)
+    expect(await orderIds()).toEqual(first)
+  })
+
+  it("still allows restoring an unstamped legacy version", async () => {
+    // Written before the stamp existed. Refusing these would strand real
+    // arrangements on upgrade, and they are no more suspect than they were.
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+        schemaVersion: 1,
+        items: items([...DEFAULT_IDS].reverse()),
+        updatedAt: new Date().toISOString(),
+      })
+      storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+        schemaVersion: 1,
+        items: items(DEFAULT_IDS),
+        updatedAt: new Date().toISOString(),
+      })
+      bumpSectioningGeneration(storage)
+    } finally {
+      storage.close()
+    }
+
+    const res = await post(`/versions/reading-order/book/restore`, { version: 1 })
+
+    expect(res.status).toBe(200)
   })
 })

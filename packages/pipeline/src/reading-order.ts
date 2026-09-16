@@ -26,6 +26,9 @@ import {
   ReadingOrderOutput as ReadingOrderOutputSchema,
   READING_ORDER_NODE,
   READING_ORDER_ITEM_ID,
+  SectioningGenerationOutput as SectioningGenerationOutputSchema,
+  SECTIONING_GENERATION_NODE,
+  SECTIONING_GENERATION_ITEM_ID,
   withResolvedQuizIds,
   resolveQuizId,
 } from "@adt/types"
@@ -88,6 +91,15 @@ export interface ResolvedReadingOrder {
    * wrong and nobody noticed.
    */
   unreadable: UnreadableNode[]
+  /**
+   * Set when a stored order exists and parsed, but was written against a
+   * section-id space the book has since thrown away — so it was *not* applied.
+   *
+   * Distinct from `unreadable` (the row is fine) and from having no stored
+   * order at all (there is one, and the user can still see its history). The
+   * UI needs all three apart to say the right thing.
+   */
+  staleGeneration: StaleGeneration | null
 }
 
 /** A stored row the resolver could not read. */
@@ -95,6 +107,46 @@ export interface UnreadableNode {
   node: string
   itemId: string
   version: number
+}
+
+/** A stored order from a superseded section-id generation. */
+export interface StaleGeneration {
+  stored: number
+  current: number
+}
+
+/**
+ * The book's current section-id generation. `0` for a book that has never had
+ * its sections rebuilt — and for one whose counter was wiped along with
+ * everything else by a re-extract, which is correct: that clears the reading
+ * order too, so there is nothing left to be stale against.
+ */
+export function readSectioningGeneration(storage: Storage): number {
+  const row = storage.getLatestNodeData(
+    SECTIONING_GENERATION_NODE,
+    SECTIONING_GENERATION_ITEM_ID
+  )
+  if (!row) return 0
+  const parsed = SectioningGenerationOutputSchema.safeParse(row.data)
+  // An unreadable counter must not read as "generation 0", which would silently
+  // un-stale every order the book has. Treating it as the highest generation
+  // any stored order could claim keeps the guard fail-closed.
+  return parsed.success ? parsed.data.generation : Number.MAX_SAFE_INTEGER
+}
+
+/**
+ * Record that the book's section ids are about to be re-minted, and return the
+ * new generation.
+ *
+ * Called at the rebuild boundary, before the clear — the counter is an ordinary
+ * node, so it has to be written by something the clear does not delete.
+ */
+export function bumpSectioningGeneration(storage: Storage): number {
+  const next = readSectioningGeneration(storage) + 1
+  storage.putNodeData(SECTIONING_GENERATION_NODE, SECTIONING_GENERATION_ITEM_ID, {
+    generation: next,
+  })
+  return next
 }
 
 export interface ResolveReadingOrderOptions {
@@ -369,7 +421,21 @@ export function resolveReadingOrder(
       version: storedRow.version,
     })
   }
-  const reconcile = reconcileReadingOrder(stored?.success ? stored.data.items : null, defaults)
+  // An order written against section ids the book has since re-minted names
+  // slots that now hold different content. It reconciles perfectly — that is
+  // the danger — so the generation is the only thing that can tell the two
+  // apart. Ignore it rather than apply it; the row survives so its history
+  // stays visible and the UI can say why it is not in force.
+  let staleGeneration: StaleGeneration | null = null
+  if (stored?.success && stored.data.sectioningGeneration !== undefined) {
+    const current = readSectioningGeneration(storage)
+    if (stored.data.sectioningGeneration < current) {
+      staleGeneration = { stored: stored.data.sectioningGeneration, current }
+    }
+  }
+  const honoured = stored?.success && !staleGeneration ? stored.data.items : null
+
+  const reconcile = reconcileReadingOrder(honoured, defaults)
   const order = reconcile.items
 
   const sectionsById = new Map<
@@ -426,9 +492,10 @@ export function resolveReadingOrder(
     items,
     positionById: new Map(items.map((item, index) => [item.id, index + 1])),
     order,
-    fromStoredOrder: Boolean(stored?.success),
+    fromStoredOrder: honoured !== null,
     storedVersion: storedRow?.version ?? null,
     reconcile,
     unreadable,
+    staleGeneration,
   }
 }

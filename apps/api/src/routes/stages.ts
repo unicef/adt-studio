@@ -14,6 +14,7 @@ import {
   retireSectionIds,
   NOTHING_RETIRED,
   PAGE_SECTIONING_NODE,
+  bumpSectioningGeneration,
 } from "@adt/pipeline"
 import type { SectionIdRetirementResult } from "@adt/pipeline"
 import type { StageService } from "../services/stage-service.js"
@@ -174,6 +175,17 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
       )
       // A failed preservation rolls retirement back and must remain retryable.
       ran = true
+
+      // Same predicate as the retirement above, called directly rather than
+      // inferred from its result: `retireSectionIdsForClearedSectioning`
+      // short-circuits when the book has no pinned video or answer audio, and
+      // the ids are re-minted either way. Before the clear, so it reads the
+      // pre-rebuild counter — and so the extract branch, which deletes every
+      // node including this one, wipes it back to zero along with the reading
+      // order it would otherwise be stale against.
+      if (clearsSectionIdHistory(fromStage, toStage)) {
+        bumpSectioningGeneration(storage)
+      }
       if (retired.videos > 0) {
         console.warn(
           `[stages] ${label}: unassigned ${retired.videos} sign-language video(s) — the sections they were pinned to are being regenerated. The uploads are kept and can be reattached.`

@@ -12,7 +12,7 @@ import {
   type StepName,
 } from "@adt/types"
 import { createBookStorage, type Storage } from "@adt/storage"
-import { resolveReadingOrder, readingOrderHref } from "@adt/pipeline"
+import { resolveReadingOrder, readingOrderHref, readSectioningGeneration } from "@adt/pipeline"
 
 function safeParseLabel(label: string): string {
   try {
@@ -78,9 +78,21 @@ export function createReadingOrderRoutes(booksDir: string): Hono {
           `could not be read and was ignored — the book is not in the order it should be`,
         )
       }
+      if (resolved.staleGeneration) {
+        console.warn(
+          `[reading-order] ${safeLabel}: stored order was made against sectioning ` +
+          `generation ${String(resolved.staleGeneration.stored)}, the book is now on ` +
+          `${String(resolved.staleGeneration.current)} — the arrangement names section ids ` +
+          `that have since been re-minted, so it was ignored`,
+        )
+      }
       return c.json({
         version: resolved.storedVersion,
         fromStoredOrder: resolved.fromStoredOrder,
+        // Set when a stored order exists and parsed but describes a section-id
+        // space the book has thrown away. Distinct from `unreadable` (the row is
+        // fine) and from never having reordered (there is history to show).
+        staleGeneration: resolved.staleGeneration,
         // Stored rows that exist but would not parse. Never silently skipped:
         // each one means the book is being assembled from something other than
         // what it holds, and the UI has to be able to say so.
@@ -183,6 +195,10 @@ export function createReadingOrderRoutes(booksDir: string): Hono {
           schemaVersion: 1,
           items: parsed.data.items,
           updatedAt: new Date().toISOString(),
+          // Which section-id space this arrangement names. A later rebuild
+          // re-mints those ids for other content, and the stamp is the only
+          // thing that can tell the resulting order apart from a valid one.
+          sectioningGeneration: readSectioningGeneration(storage),
         })
         clearReadingOrderDependents(storage)
         return saved
@@ -219,6 +235,7 @@ export function createReadingOrderRoutes(booksDir: string): Hono {
           schemaVersion: 1,
           items: defaults.order,
           updatedAt: new Date().toISOString(),
+          sectioningGeneration: readSectioningGeneration(storage),
         })
         clearReadingOrderDependents(storage)
         return saved

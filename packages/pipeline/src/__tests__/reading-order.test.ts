@@ -3,7 +3,13 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { createBookStorage, type Storage } from "@adt/storage"
-import { resolveReadingOrder, toPageEntry, readingOrderPageIds } from "../reading-order.js"
+import {
+  resolveReadingOrder,
+  toPageEntry,
+  readingOrderPageIds,
+  bumpSectioningGeneration,
+  readSectioningGeneration,
+} from "../reading-order.js"
 import { READING_ORDER_NODE, READING_ORDER_ITEM_ID } from "@adt/types"
 
 describe("reading-order resolver", () => {
@@ -524,6 +530,110 @@ describe("reading-order resolver", () => {
           { node: "page-sectioning", itemId: "pg002", version: 2 },
         ])
         expect(resolved.items.map((i) => i.id)).toEqual(["pg001_sec001", "pg001_sec002"])
+      } finally {
+        storage.close()
+      }
+    })
+  })
+
+  describe("a stored order made against an older sectioning generation", () => {
+    /** Reverse the book, saved as the user's explicit arrangement. */
+    function saveReversedOrder(storage: Storage, sectioningGeneration?: number) {
+      storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+        schemaVersion: 1,
+        items: [
+          { kind: "section", id: "pg002_sec002" },
+          { kind: "section", id: "pg002_sec001" },
+          { kind: "section", id: "pg001_sec002" },
+          { kind: "section", id: "pg001_sec001" },
+        ],
+        updatedAt: new Date().toISOString(),
+        ...(sectioningGeneration === undefined ? {} : { sectioningGeneration }),
+      })
+    }
+
+    it("honours an order stamped with the current generation", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        bumpSectioningGeneration(storage)
+        saveReversedOrder(storage, 1)
+
+        const resolved = resolveReadingOrder(storage)
+
+        expect(resolved.fromStoredOrder).toBe(true)
+        expect(resolved.staleGeneration).toBeNull()
+        expect(resolved.items.map((i) => i.id)).toEqual([
+          "pg002_sec002",
+          "pg002_sec001",
+          "pg001_sec002",
+          "pg001_sec001",
+        ])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("ignores an order whose generation predates the current sections", () => {
+      // The hazard this guards: a full sectioning rerun re-mints ids densely
+      // from `_sec001`, so a surviving arrangement matches by id string and
+      // silently rebinds to whatever content now holds those ids.
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        saveReversedOrder(storage, 0)
+        bumpSectioningGeneration(storage)
+
+        const resolved = resolveReadingOrder(storage)
+
+        expect(resolved.fromStoredOrder).toBe(false)
+        expect(resolved.staleGeneration).toEqual({ stored: 0, current: 1 })
+        expect(resolved.items.map((i) => i.id)).toEqual([
+          "pg001_sec001",
+          "pg001_sec002",
+          "pg002_sec001",
+          "pg002_sec002",
+        ])
+        // Stale is not unreadable: the row parsed fine, it just describes a
+        // book that no longer exists.
+        expect(resolved.unreadable).toEqual([])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("honours an unstamped order, rather than invalidating it retroactively", () => {
+      // Every order saved before the stamp existed has no generation. Treating
+      // those as stale would throw away real arrangements on upgrade.
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        saveReversedOrder(storage)
+        bumpSectioningGeneration(storage)
+
+        const resolved = resolveReadingOrder(storage)
+
+        expect(resolved.fromStoredOrder).toBe(true)
+        expect(resolved.staleGeneration).toBeNull()
+        expect(resolved.items[0].id).toBe("pg002_sec002")
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("still offers the stale order's slots, so its versions stay listable", () => {
+      // The row is not deleted — the version picker must still be able to show
+      // it, greyed, and say why it cannot be restored.
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        saveReversedOrder(storage, 0)
+        bumpSectioningGeneration(storage)
+
+        expect(readSectioningGeneration(storage)).toBe(1)
+        expect(
+          storage.getLatestNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID)
+        ).not.toBeNull()
       } finally {
         storage.close()
       }
