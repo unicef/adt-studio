@@ -1448,6 +1448,50 @@ export const api = {
       { method: "POST" }
     ),
 
+  /**
+   * Merge two sections named by their ids, whether or not they share a page.
+   *
+   * For callers whose list is the reading order: the row after a section there
+   * can belong to another source page, or sit before it in the PDF, so the
+   * index-and-direction form would merge a different pair than the one shown.
+   * `direction` says where the removed section sat relative to the kept one in
+   * that list, so their content concatenates the way the user saw it.
+   *
+   * The response is the same-page or the cross-page shape depending on where
+   * the two sections turned out to live.
+   */
+  mergeSectionsById: (
+    label: string,
+    keepSectionId: string,
+    removeSectionId: string,
+    direction: "next" | "prev" = "next",
+    renderingInSync = false
+  ) =>
+    request<
+      | {
+          mergedSectionIndex: number
+          sectioningVersion: number
+          renderingVersion: number | null
+        }
+      | {
+          sourcePageId: string
+          targetPageId: string
+          targetSectionIndex: number
+          sourceSectioningVersion: number
+          targetSectioningVersion: number
+          sourceRenderingVersion: number | null
+          targetRenderingVersion: number | null
+        }
+    >(`/books/${label}/sections/merge`, {
+      method: "POST",
+      body: JSON.stringify({
+        keepSectionId,
+        removeSectionId,
+        direction,
+        ...(renderingInSync ? { renderingInSync: true } : {}),
+      }),
+    }),
+
   deleteSection: (label: string, pageId: string, sectionIndex: number) =>
     request<{
       sectioningVersion: number

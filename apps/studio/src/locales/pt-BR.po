@@ -1954,6 +1954,11 @@ msgstr "Página {0} do livro · página {1} do PDF · {2}"
 msgid "Book page {0} · quiz after PDF page {1}"
 msgstr "Página {0} do livro · quiz após a página {1} do PDF"
 
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(pageNumber)
+msgid "book page {0} (PDF page {1})"
+msgstr "página {0} do livro (página {1} do PDF)"
+
 msgid "Book pages. Scroll horizontally to see more."
 msgstr "Páginas do livro. Role horizontalmente para ver mais."
 
@@ -5688,6 +5693,11 @@ msgstr "mesclar esta seção com a primeira seção da próxima página"
 
 msgid "merge this section into the last section of the previous page"
 msgstr "mesclar esta seção com a última seção da página anterior"
+
+#. placeholder {0}: displayedNeighbours.next.label
+#. placeholder {0}: displayedNeighbours.prev.label
+msgid "merge with {0}"
+msgstr "mesclar com {0}"
 
 msgid "Merge with first section of next page"
 msgstr "Mesclar com a primeira seção da próxima página"
@@ -9918,6 +9928,10 @@ msgstr "A mesma edição em todos os idiomas."
 
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "A revisão de tradução salva está desatualizada. Execute Revisar novamente para as traduções visíveis."
+
+#. placeholder {0}: String(pageNumber)
+msgid "the section on PDF page {0}"
+msgstr "a seção da página {0} do PDF"
 
 msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 msgstr "A seção foi editada após a conversão — use «Reconstruir a partir da página» para atualizar as etapas."

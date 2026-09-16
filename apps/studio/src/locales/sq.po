@@ -1956,6 +1956,11 @@ msgstr "Faqja {0} e librit · faqja {1} e PDF-it · {2}"
 msgid "Book page {0} · quiz after PDF page {1}"
 msgstr "Faqja {0} e librit · kuiz pas faqes {1} të PDF-it"
 
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(pageNumber)
+msgid "book page {0} (PDF page {1})"
+msgstr "faqja {0} e librit (faqja {1} e PDF-së)"
+
 msgid "Book pages. Scroll horizontally to see more."
 msgstr "Faqet e librit. Lëviz horizontalisht për të parë më shumë."
 
@@ -5690,6 +5695,11 @@ msgstr "bashkoni këtë seksion me seksionin e parë të faqes tjetër"
 
 msgid "merge this section into the last section of the previous page"
 msgstr "bashkoni këtë seksion me seksionin e fundit të faqes së mëparshme"
+
+#. placeholder {0}: displayedNeighbours.next.label
+#. placeholder {0}: displayedNeighbours.prev.label
+msgid "merge with {0}"
+msgstr "bashko me {0}"
 
 msgid "Merge with first section of next page"
 msgstr "Bashko me seksionin e parë të faqes tjetër"
@@ -9920,6 +9930,10 @@ msgstr "I njëjti botim në çdo gjuhë."
 
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "Rishikimi i ruajtur i përkthimit është i vjetëruar. Ekzekutoni Rishikimin përsëri për përkthimet e dukshme."
+
+#. placeholder {0}: String(pageNumber)
+msgid "the section on PDF page {0}"
+msgstr "seksioni në faqen {0} të PDF-së"
 
 msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 msgstr "Seksioni u ndryshua pas konvertimit — përdor «Rindërto nga faqja» për të rifreskuar hapat."

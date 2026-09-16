@@ -297,6 +297,145 @@ describe("a stored reading order survives structural edits", () => {
     ])
   })
 
+  /**
+   * Merging by id, so the operation can target the neighbour the user actually
+   * saw. In `Book order` the row after A is whatever the reading order puts
+   * there — which may be a section from another source page, or one that sits
+   * *before* A in the PDF. The index-and-direction form can only ever name a
+   * source-order neighbour, so it merged the wrong pair.
+   */
+  describe("merging by section id", () => {
+    /** Node texts of a section, in order, so a merge's content can be checked. */
+    async function nodeTextsOf(pageId: string, sectionId: string): Promise<string[]> {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        const row = storage.getLatestNodeData("page-sectioning", pageId)
+        const data = row?.data as
+          | { sections: Array<{ sectionId: string; nodes: Array<{ text?: string }> }> }
+          | undefined
+        const section = data?.sections.find((s) => s.sectionId === sectionId)
+        return (section?.nodes ?? []).map((n) => n.text ?? "")
+      } finally {
+        storage.close()
+      }
+    }
+
+    function mergeById(
+      keepSectionId: string,
+      removeSectionId: string,
+      direction: "next" | "prev" = "next"
+    ) {
+      return post("/sections/merge", { keepSectionId, removeSectionId, direction })
+    }
+
+    it("merges two sections that are not adjacent in the source page", async () => {
+      // Book order puts pg001_sec002 first, so from pg001_sec001 the displayed
+      // "next" is neither sec002 nor anything the source order would name.
+      await saveOrder(
+        [
+          "pg001_sec002",
+          "pg001_sec001",
+          "pg003_sec001",
+          "pg002_sec001",
+          "pg002_sec002",
+          "pg003_sec002",
+        ],
+        null
+      )
+
+      const res = await mergeById("pg001_sec001", "pg003_sec001")
+      expect(res.status).toBe(200)
+
+      // The destination keeps its id and its slot; the source's id is retired.
+      expect(await sectionIdsOf("pg001")).toEqual(["pg001_sec001", "pg001_sec002"])
+      expect(await sectionIdsOf("pg003")).toEqual(["pg003_sec002"])
+
+      const got = await getOrder()
+      expect(got.dropped).toEqual(["pg003_sec001"])
+      expect(got.order.map((e) => e.id)).toEqual([
+        "pg001_sec002",
+        "pg001_sec001",
+        "pg002_sec001",
+        "pg002_sec002",
+        "pg003_sec002",
+      ])
+    })
+
+    it("merges two sections of one page that the source order separates", async () => {
+      // Three sections on a page, merging the first with the third. The one
+      // between them is untouched and keeps its id.
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        const row = storage.getLatestNodeData("page-sectioning", "pg001")
+        const data = row!.data as { reasoning: string; sections: unknown[] }
+        storage.putNodeData("page-sectioning", "pg001", {
+          ...data,
+          sections: [
+            ...data.sections,
+            {
+              sectionId: "pg001_sec003",
+              sectionType: "content",
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+              nodes: [{ nodeId: "pg001_sec003_n1", isPruned: false, role: "paragraph", text: "third" }],
+            },
+          ],
+        })
+      } finally {
+        storage.close()
+      }
+
+      const res = await mergeById("pg001_sec001", "pg001_sec003")
+      expect(res.status).toBe(200)
+
+      expect(await sectionIdsOf("pg001")).toEqual(["pg001_sec001", "pg001_sec002"])
+      expect(await nodeTextsOf("pg001", "pg001_sec001")).toEqual([
+        "pg001 1 first",
+        "pg001 1 second",
+        "third",
+      ])
+    })
+
+    it("puts the removed content first when it was displayed before the target", async () => {
+      const res = await mergeById("pg001_sec002", "pg001_sec001", "prev")
+      expect(res.status).toBe(200)
+
+      expect(await sectionIdsOf("pg001")).toEqual(["pg001_sec002"])
+      expect(await nodeTextsOf("pg001", "pg001_sec002")).toEqual([
+        "pg001 1 first",
+        "pg001 1 second",
+        "pg001 2 first",
+        "pg001 2 second",
+      ])
+    })
+
+    it("puts the removed content first across pages too", async () => {
+      const res = await mergeById("pg002_sec001", "pg001_sec002", "prev")
+      expect(res.status).toBe(200)
+
+      expect(await sectionIdsOf("pg001")).toEqual(["pg001_sec001"])
+      expect(await sectionIdsOf("pg002")).toEqual(["pg002_sec001", "pg002_sec002"])
+      expect(await nodeTextsOf("pg002", "pg002_sec001")).toEqual([
+        "pg001 2 first",
+        "pg001 2 second",
+        "pg002 1 first",
+        "pg002 1 second",
+      ])
+    })
+
+    it("refuses to merge a section into itself", async () => {
+      const res = await mergeById("pg001_sec001", "pg001_sec001")
+      expect(res.status).toBe(400)
+    })
+
+    it("404s on an id the book does not have", async () => {
+      const res = await mergeById("pg001_sec001", "pg009_sec001")
+      expect(res.status).toBe(404)
+    })
+  })
+
   it("retires only the deleted id on a hard delete", async () => {
     const custom = ["pg003_sec001", ...DEFAULT_IDS.filter((id) => id !== "pg003_sec001")]
     await saveOrder(custom, null)

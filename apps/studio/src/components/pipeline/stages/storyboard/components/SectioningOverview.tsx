@@ -179,6 +179,30 @@ export function SectioningOverview({
     })
   }, [readingOrder, effectiveOrder, pageDetails])
 
+  /** The page a sectionId sits on, from the rows already built for the table. */
+  const pageIdOfSection = (sectionId: string): string | undefined =>
+    bookOrderRows.find((row) => row.id === sectionId)?.page.pageId
+
+  /**
+   * Name a merge destination the way the user can find it on screen: its book
+   * position, plus the source page when that differs from the row they are on.
+   * "merge with next section" is wrong here — the next row need not be the next
+   * section, and may not even be on this page.
+   */
+  const neighbourLabel = (
+    neighbour: (typeof bookOrderRows)[number] | undefined
+  ): { label: string } | null => {
+    if (!neighbour) return null
+    const position = readingPositions.get(neighbour.id)
+    const pageNumber = neighbour.page.pageNumber
+    return {
+      label:
+        position != null
+          ? t`book page ${String(position)} (PDF page ${String(pageNumber)})`
+          : t`the section on PDF page ${String(pageNumber)}`,
+    }
+  }
+
   // In "pdf" mode each page's row group owns its expand state; the flat list has
   // no such group, so it keeps its own, keyed by sectionId rather than by index
   // so a row stays open when a move changes its position.
@@ -218,8 +242,9 @@ export function SectioningOverview({
     [readingOrder, reorderBlockedBy, effectiveOrder, bookOrderRows, setDraft, t, announce],
   )
 
-  const invalidatePages = (...pageIds: string[]) => {
+  const invalidatePages = (...pageIds: Array<string | undefined>) => {
     for (const pid of pageIds) {
+      if (!pid) continue
       queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pid] })
     }
     queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
@@ -236,6 +261,28 @@ export function SectioningOverview({
     mutationFn: ({ pageId, sectionIndex, direction }: { pageId: string; sectionIndex: number; direction: "prev" | "next" }) =>
       api.mergeSectionCrossPage(bookLabel, pageId, sectionIndex, direction),
     onSuccess: (data) => invalidatePages(data.sourcePageId, data.targetPageId),
+  })
+
+  // Book order merges by id: the row the user saw next can be a section of
+  // another page, or one that precedes this in the PDF, and only the ids say
+  // which two sections they actually meant.
+  const mergeByIdMutation = useMutation({
+    mutationFn: ({
+      keepSectionId,
+      removeSectionId,
+      direction,
+    }: {
+      keepSectionId: string
+      removeSectionId: string
+      direction: "prev" | "next"
+    }) => api.mergeSectionsById(bookLabel, keepSectionId, removeSectionId, direction),
+    // Either page may have changed, and a same-page merge reports only one of
+    // them, so refresh both ids' pages rather than reading the response shape.
+    onSuccess: (_data, vars) =>
+      invalidatePages(
+        pageIdOfSection(vars.keepSectionId),
+        pageIdOfSection(vars.removeSectionId)
+      ),
   })
 
   const cloneMutation = useMutation({
@@ -255,7 +302,7 @@ export function SectioningOverview({
   // back and therefore has no HTML.
   const togglePruneMutation = useTogglePrune(bookLabel)
 
-  const isMutating = storyboardRunning || mergeMutation.isPending || mergeCrossPageMutation.isPending || cloneMutation.isPending || deleteMutation.isPending || togglePruneMutation.isPending
+  const isMutating = storyboardRunning || mergeMutation.isPending || mergeCrossPageMutation.isPending || mergeByIdMutation.isPending || cloneMutation.isPending || deleteMutation.isPending || togglePruneMutation.isPending
 
   if (isLoading) {
     return (
@@ -449,20 +496,24 @@ export function SectioningOverview({
                       canMoveDown={
                         !reorderBlockedBy && rowIndex < bookOrderRows.length - 1
                       }
-                      onMerge={(direction) =>
-                        mergeMutation.mutate({
-                          pageId: row.page.pageId,
-                          sectionIndex: row.sectionIndex,
+                      // The neighbour is the row above or below *here*, which
+                      // may be a section of another page or one that precedes
+                      // this in the PDF — so the merge is addressed by id, and
+                      // the cross-page variant is not a separate action.
+                      displayedNeighbours={{
+                        prev: neighbourLabel(bookOrderRows[rowIndex - 1]),
+                        next: neighbourLabel(bookOrderRows[rowIndex + 1]),
+                      }}
+                      onMerge={(direction) => {
+                        const neighbour =
+                          bookOrderRows[direction === "next" ? rowIndex + 1 : rowIndex - 1]
+                        if (!neighbour) return
+                        mergeByIdMutation.mutate({
+                          keepSectionId: row.id,
+                          removeSectionId: neighbour.id,
                           direction,
                         })
-                      }
-                      onMergeCrossPage={(direction) =>
-                        mergeCrossPageMutation.mutate({
-                          pageId: row.page.pageId,
-                          sectionIndex: row.sectionIndex,
-                          direction,
-                        })
-                      }
+                      }}
                       onClone={() =>
                         cloneMutation.mutate({
                           pageId: row.page.pageId,
@@ -797,6 +848,7 @@ function SectionRow({
   canMoveDown,
   onMerge,
   onMergeCrossPage,
+  displayedNeighbours,
   onClone,
   onDelete,
   onTogglePrune,
@@ -827,7 +879,13 @@ function SectionRow({
   canMoveUp?: boolean
   canMoveDown?: boolean
   onMerge: (direction: "prev" | "next") => void
-  onMergeCrossPage: (direction: "prev" | "next") => void
+  /** Omitted in a displayed order, where `onMerge` already reaches other pages. */
+  onMergeCrossPage?: (direction: "prev" | "next") => void
+  /** See `SectionActionsDropdown`. Set only by the reading-order list. */
+  displayedNeighbours?: {
+    prev?: { label: string } | null
+    next?: { label: string } | null
+  }
   onClone: () => void
   onDelete: () => void
   onTogglePrune: () => void
@@ -965,6 +1023,7 @@ function SectionRow({
             canMoveDown={canMoveDown}
             onMerge={onMerge}
             onMergeCrossPage={onMergeCrossPage}
+            displayedNeighbours={displayedNeighbours}
             onClone={onClone}
             onDelete={() => {
               onConfirmAction({

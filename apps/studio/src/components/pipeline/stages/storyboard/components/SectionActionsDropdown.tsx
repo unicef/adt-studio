@@ -29,6 +29,21 @@ export interface SectionActionsDropdownProps {
   onMoveDown?: () => void
   canMoveUp?: boolean
   canMoveDown?: boolean
+  /**
+   * The rows either side of this one *as displayed*, for a list whose order is
+   * not the source-PDF order.
+   *
+   * In `Book order` the neighbour can be a section of another page, or one that
+   * precedes this in the PDF, so `sectionIndex`/`sectionCount` do not describe
+   * who "next" is. When supplied, these decide whether each merge is offered,
+   * name the destination in the confirmation, and replace the separate
+   * cross-page items — `onMerge` handles both cases, because from the reading
+   * order's point of view there is only one kind of neighbour.
+   */
+  displayedNeighbours?: {
+    prev?: { label: string } | null
+    next?: { label: string } | null
+  }
 }
 
 /**
@@ -61,13 +76,21 @@ export function SectionActionsDropdown({
   onMoveDown,
   canMoveUp,
   canMoveDown,
+  displayedNeighbours,
 }: SectionActionsDropdownProps) {
   const { t } = useLingui()
 
-  const canMergePrev = sectionIndex > 0
-  const canMergeNext = sectionIndex < sectionCount - 1
-  const canMergeCrossPagePrev = !canMergePrev && !!hasPrevPage && !!onMergeCrossPage
-  const canMergeCrossPageNext = !canMergeNext && !!hasNextPage && !!onMergeCrossPage
+  // With a displayed order, the neighbour is whatever that list shows; without
+  // one, the list is the source page and position within it decides.
+  const byDisplay = displayedNeighbours != null
+  const canMergePrev = byDisplay ? !!displayedNeighbours.prev : sectionIndex > 0
+  const canMergeNext = byDisplay ? !!displayedNeighbours.next : sectionIndex < sectionCount - 1
+  // A cross-page merge is only a separate action while "next" means the next
+  // source section. In a displayed order `onMerge` already reaches other pages.
+  const canMergeCrossPagePrev =
+    !byDisplay && !canMergePrev && !!hasPrevPage && !!onMergeCrossPage
+  const canMergeCrossPageNext =
+    !byDisplay && !canMergeNext && !!hasNextPage && !!onMergeCrossPage
 
   const confirmable = (label: string, action: () => void) => () => {
     if (onConfirmMerge) onConfirmMerge(label, action)
@@ -114,7 +137,12 @@ export function SectionActionsDropdown({
         {
           icon: Merge,
           label: t`Merge with previous`,
-          onClick: confirmable(t`merge with previous section`, () => onMerge("prev")),
+          onClick: confirmable(
+            displayedNeighbours?.prev
+              ? t`merge with ${displayedNeighbours.prev.label}`
+              : t`merge with previous section`,
+            () => onMerge("prev")
+          ),
           hidden: !canMergePrev,
           disabled,
         },
@@ -132,7 +160,12 @@ export function SectionActionsDropdown({
           icon: Merge,
           iconClassName: "rotate-180",
           label: t`Merge with next`,
-          onClick: confirmable(t`merge with next section`, () => onMerge("next")),
+          onClick: confirmable(
+            displayedNeighbours?.next
+              ? t`merge with ${displayedNeighbours.next.label}`
+              : t`merge with next section`,
+            () => onMerge("next")
+          ),
           hidden: !canMergeNext,
           disabled,
         },
