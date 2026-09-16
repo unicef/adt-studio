@@ -1,5 +1,5 @@
 import { CLOUDFLARE_WORKER_NAME, workersDevUrl } from "@adt/types"
-import { bookWorkerName } from "./book-host.js"
+import { bookHostAuthorSecret, bookWorkerName } from "./book-host.js"
 import { CloudflareApiError, type CloudflareClient } from "./client.js"
 import { prepareStaticAssets, type StaticAsset } from "./static-assets.js"
 import type { WorkerArtifactBinding, BookHostArtifact } from "./worker-artifact.js"
@@ -21,13 +21,13 @@ function alreadyExists(error: unknown): boolean {
  * - the room is bound with `script_name`, so the class stays declared once on the control
  *   plane. Workers Free allows 100 Durable Object classes and 100 Workers, so a class per book
  *   would reach both caps at the same book.
- * - there is no `secret_text` case. A book host serves public reader traffic and has no
- *   management route, so a secret reaching one would be a credential on a public surface —
- *   this throws rather than forwards it.
+ * - `secret_text` gets the per-book author secret, never the account's own. The worker reads
+ *   it only to decide `isAuthor`; a book host has no management route for it to unlock, and a
+ *   leak from one host cannot be replayed against the control plane.
  */
 export function resolveBookHostBindings(
   bindings: WorkerArtifactBinding[],
-  context: { d1DatabaseUuid: string; controlPlaneName: string },
+  context: { d1DatabaseUuid: string; controlPlaneName: string; authorSecret: string },
 ): Array<Record<string, unknown>> {
   return bindings.map((binding) => {
     switch (binding.type) {
@@ -42,6 +42,8 @@ export function resolveBookHostBindings(
           class_name: binding.class_name,
           script_name: context.controlPlaneName,
         }
+      case "secret_text":
+        return { type: "secret_text", name: binding.name, text: context.authorSecret }
       default:
         throw new BookHostDeployError(
           `A book host must not carry a ${binding.type} binding (${binding.name}).`,
@@ -58,6 +60,9 @@ export interface DeployBookHostOptions {
   assets: StaticAsset[]
   d1DatabaseUuid: string
   workersDevSubdomain: string
+  /** The control plane's management secret. Never deployed as-is — the per-book author secret
+   *  is derived from it. */
+  controlPlaneSecret: string
   /** Defaults to the control plane, which is where `PublicationRoom` is declared. */
   controlPlaneName?: string
 }
@@ -86,6 +91,7 @@ export async function deployBookHost(
     assets,
     d1DatabaseUuid,
     workersDevSubdomain,
+    controlPlaneSecret,
     controlPlaneName = CLOUDFLARE_WORKER_NAME,
   } = options
 
@@ -111,6 +117,7 @@ export async function deployBookHost(
   const bindings = resolveBookHostBindings(artifact.metadata.bindings, {
     d1DatabaseUuid,
     controlPlaneName,
+    authorSecret: bookHostAuthorSecret(controlPlaneSecret, token),
   })
 
   try {

@@ -34,3 +34,20 @@ export function bookWorkerName(token: string): string {
   const digest = crypto.createHash("sha256").update(token).digest("hex")
   return `${BOOK_WORKER_NAME_PREFIX}${digest.slice(0, NAME_DIGEST_LENGTH)}`
 }
+
+/**
+ * What the author presents to one book's host to be recognised as the author.
+ *
+ * The worker decides `isAuthor` by comparing the request against its own `MGMT_SECRET`, and
+ * the author needs that to preview a book behind an access code, to read and resolve feedback
+ * through `/p/*`, and to reach a revoked book past its 410. So a book host needs *a* secret.
+ *
+ * It must not be the account's own. That secret authorises every management call on the
+ * control plane, and handing the same value to ~99 public Workers means any one of them
+ * leaking it costs the whole account. This is derived per book instead: a leak from one book
+ * host authorises nothing beyond that book, and cannot be replayed against the control plane's
+ * management API at all.
+ */
+export function bookHostAuthorSecret(controlPlaneSecret: string, token: string): string {
+  return crypto.createHmac("sha256", controlPlaneSecret).update(token).digest("hex")
+}

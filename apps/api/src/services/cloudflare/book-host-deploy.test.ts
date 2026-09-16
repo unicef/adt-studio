@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { CLOUDFLARE_WORKER_NAME } from "@adt/types"
-import { bookWorkerName } from "./book-host.js"
+import { bookHostAuthorSecret, bookWorkerName } from "./book-host.js"
 import {
   BookHostDeployError,
   deployBookHost,
@@ -13,6 +13,7 @@ import type { BookHostArtifact } from "./worker-artifact.js"
 
 const encoder = new TextEncoder()
 const TOKEN = "bookHostDeployTokenAbcdefghijk12"
+const CONTROL_PLANE_SECRET = "control-plane-mgmt-secret"
 
 const ARTIFACT: BookHostArtifact = {
   script: "export default { fetch() {} }",
@@ -24,6 +25,7 @@ const ARTIFACT: BookHostArtifact = {
       { type: "d1", name: "DB" },
       { type: "assets", name: "ASSETS" },
       { type: "durable_object_namespace", name: "PUBLICATION_ROOM", class_name: "PublicationRoom" },
+      { type: "secret_text", name: "MGMT_SECRET" },
     ],
     d1_migrations: [],
   },
@@ -46,6 +48,7 @@ function deploy(fake: ReturnType<typeof createFakeCloudflare>, overrides = {}) {
     assets: ASSETS,
     d1DatabaseUuid: "db-uuid-1",
     workersDevSubdomain: "teacher",
+    controlPlaneSecret: CONTROL_PLANE_SECRET,
     ...overrides,
   })
 }
@@ -57,6 +60,7 @@ describe("resolveBookHostBindings", () => {
     const bindings = resolveBookHostBindings(ARTIFACT.metadata.bindings, {
       d1DatabaseUuid: "db-uuid-1",
       controlPlaneName: CLOUDFLARE_WORKER_NAME,
+      authorSecret: "derived-secret",
     })
 
     expect(bindings).toEqual([
@@ -68,16 +72,21 @@ describe("resolveBookHostBindings", () => {
         class_name: "PublicationRoom",
         script_name: CLOUDFLARE_WORKER_NAME,
       },
+      { type: "secret_text", name: "MGMT_SECRET", text: "derived-secret" },
     ])
   })
 
-  /** A book host serves public reader traffic and has no management route, so a secret
-   *  reaching one would be a credential sitting on a public surface. */
-  it("refuses to hand a book host a secret", () => {
+  /** Anything the book host was not designed to hold is a mistake worth failing on rather than
+   *  forwarding to a public Worker. */
+  it("refuses a binding a book host has no business carrying", () => {
     expect(() =>
       resolveBookHostBindings(
-        [{ type: "secret_text", name: "MGMT_SECRET" }],
-        { d1DatabaseUuid: "db-uuid-1", controlPlaneName: CLOUDFLARE_WORKER_NAME },
+        [{ type: "kv_namespace", name: "SESSIONS" }],
+        {
+          d1DatabaseUuid: "db-uuid-1",
+          controlPlaneName: CLOUDFLARE_WORKER_NAME,
+          authorSecret: "derived-secret",
+        },
       ),
     ).toThrow(BookHostDeployError)
   })
@@ -110,12 +119,18 @@ describe("deployBookHost", () => {
     expect(assets.config?.run_worker_first).toBe(true)
   })
 
-  it("carries no management secret onto the public host", async () => {
+  /** The account's secret authorises every management call on the control plane. Handing the
+   *  same value to a public per-book Worker would mean any one of ~99 of them leaking it costs
+   *  the whole account, so what ships is derived from it and scoped to this book. */
+  it("never puts the account\u2019s own secret on a book host", async () => {
     const fake = createFakeCloudflare()
     await deploy(fake)
 
-    const bindings = fake.state.scripts.get(bookWorkerName(TOKEN))?.metadata.bindings
-    expect(JSON.stringify(bindings)).not.toContain("MGMT_SECRET")
+    const bindings = JSON.stringify(
+      fake.state.scripts.get(bookWorkerName(TOKEN))?.metadata.bindings,
+    )
+    expect(bindings).not.toContain(CONTROL_PLANE_SECRET)
+    expect(bindings).toContain(bookHostAuthorSecret(CONTROL_PLANE_SECRET, TOKEN))
   })
 
   /** Republishing hits an existing Worker. Creation conflicting is the normal path, not a
