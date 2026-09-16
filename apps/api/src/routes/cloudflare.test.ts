@@ -501,7 +501,9 @@ describe("cloudflare routes", () => {
     })
 
     it("emits a taxonomy error event instead of failing the stream", async () => {
-      const { app } = buildApp({ subdomain: null })
+      /** Registering is refused, which is the one case where the author has to open the
+       *  dashboard — an account with simply no subdomain now gets one reserved for it. */
+      const { app } = buildApp({ subdomain: null, subdomainCreateForbidden: true })
       const res = await app.request("/api/cloudflare/provision", { method: "POST", headers: AUTH })
 
       const events = parseSSE(await res.text())
