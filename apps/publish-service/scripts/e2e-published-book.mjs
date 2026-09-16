@@ -81,9 +81,14 @@ for (const sql of migrations) {
   }
 }
 
+/** `narration.mp3` and `narration-easy-read.mp3` are byte-identical, as a real book's paragraph
+ *  audio and its easy-read version routinely are. They share one content address, so the
+ *  manifest names two paths and the upload carries the bytes once. */
 const files = [
   { path: "index.html", body: PAGE },
   { path: "images/cover.png", body: IMG },
+  { path: "audio/narration.mp3", body: "identical narration bytes" },
+  { path: "audio/narration-easy-read.mp3", body: "identical narration bytes" },
 ].map((f) => ({
   path: f.path,
   body: f.body,
@@ -117,6 +122,11 @@ const committed = await control.dispatchFetch(
   `${BASE}/api/publication-uploads/${uploadId}/commit`, { method: "POST", headers: mgmt })
 const commitBody = await committed.text()
 check("commits the version", committed.status < 300, `status ${committed.status} ${commitBody.slice(0, 80)}`)
+
+const addresses = new Set(files.map((f) => f.asset_hash))
+check("repeated content shares one address rather than failing the publish",
+  addresses.size === files.length - 1,
+  `${files.length} files, ${addresses.size} addresses`)
 await control.dispose()
 
 // The assets a publish would have sent to Cloudflare, at the paths it would have used.
@@ -173,6 +183,12 @@ const asReader = await get(`/p/${TOKEN}/index.html`, { headers: { Cookie: cookie
 const readerBody = await asReader.text()
 check("an authorised reader gets the real bytes", readerBody.includes("page one"),
   `status ${asReader.status}`)
+
+for (const dup of ["audio/narration.mp3", "audio/narration-easy-read.mp3"]) {
+  const res = await get(`/p/${TOKEN}/${dup}`, { headers: { Cookie: cookie } })
+  check(`both paths of repeated content serve (${dup})`,
+    (await res.text()).includes("identical narration bytes"), `status ${res.status}`)
+}
 
 const asAuthor = await get(`/p/${TOKEN}/index.html`, {
   headers: { Authorization: `Bearer ${authorSecret}` },
