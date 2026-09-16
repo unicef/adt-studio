@@ -3,6 +3,7 @@ import { CLOUDFLARE_WORKER_NAME } from "@adt/types"
 import { bookHostAuthorSecret, bookWorkerName } from "./book-host.js"
 import {
   BookHostDeployError,
+  MAX_LIVE_BOOK_HOSTS,
   deployBookHost,
   resolveBookHostBindings,
 } from "./book-host-deploy.js"
@@ -145,6 +146,32 @@ describe("deployBookHost", () => {
     const fake = createFakeCloudflare({ assetSessionErrorMessage: "manifest unavailable" })
 
     await expect(deploy(fake)).rejects.toThrow(/manifest unavailable/)
+  })
+
+  /** Reaching the cap used to surface as whatever Cloudflare says when a Worker create is
+   *  refused — after the author had waited through a whole export. */
+  it("says the account is full before doing any of the work", async () => {
+    const full = Array.from(
+      { length: MAX_LIVE_BOOK_HOSTS },
+      (_, index) => `adt-book-${String(index).padStart(32, "0")}`,
+    )
+    const fake = createFakeCloudflare({ scripts: [CLOUDFLARE_WORKER_NAME, ...full] })
+
+    await expect(deploy(fake)).rejects.toThrow(/as many as the free plan allows/)
+    expect(fake.state.staticAssetManifests).toEqual([])
+  })
+
+  /** Republishing an existing book is not a new slot, so a full account must not block it. */
+  it("still updates a book that already has a host when the account is full", async () => {
+    const full = Array.from(
+      { length: MAX_LIVE_BOOK_HOSTS - 1 },
+      (_, index) => `adt-book-${String(index).padStart(32, "0")}`,
+    )
+    const fake = createFakeCloudflare({
+      scripts: [CLOUDFLARE_WORKER_NAME, bookWorkerName(TOKEN), ...full],
+    })
+
+    await expect(deploy(fake)).resolves.toMatchObject({ workerName: bookWorkerName(TOKEN) })
   })
 
   it("refuses to deploy a host with nothing to serve", async () => {

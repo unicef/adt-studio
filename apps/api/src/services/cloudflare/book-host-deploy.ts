@@ -1,5 +1,5 @@
 import { CLOUDFLARE_WORKER_NAME, workersDevUrl } from "@adt/types"
-import { bookHostAuthorSecret, bookWorkerName } from "./book-host.js"
+import { BOOK_WORKER_NAME_PREFIX, bookHostAuthorSecret, bookWorkerName } from "./book-host.js"
 import { CloudflareApiError, type CloudflareClient } from "./client.js"
 import { prepareStaticAssets, type StaticAsset } from "./static-assets.js"
 import type { WorkerArtifactBinding, BookHostArtifact } from "./worker-artifact.js"
@@ -10,6 +10,11 @@ export class BookHostDeployError extends Error {
     this.name = "BookHostDeployError"
   }
 }
+
+/** Workers Free allows 100 Workers per account. The control plane holds one, so the rest is
+ *  the ceiling on books that can be live at once. Deleting a book gives its slot back. */
+export const FREE_PLAN_WORKER_LIMIT = 100
+export const MAX_LIVE_BOOK_HOSTS = FREE_PLAN_WORKER_LIMIT - 1
 
 function alreadyExists(error: unknown): boolean {
   return error instanceof CloudflareApiError && /already exists|duplicate/i.test(error.message)
@@ -101,14 +106,35 @@ export async function deployBookHost(
 
   const name = bookWorkerName(token)
 
-  try {
-    await client.createWorker(name)
-  } catch (error) {
-    if (!alreadyExists(error)) {
+  /** One listing answers both questions: whether this book already has a host, and whether
+   *  there is room for another. Without the second, reaching the cap surfaces as whatever
+   *  Cloudflare says when a Worker create is refused, after the whole export has run. */
+  const scripts = await client.listWorkerScripts().catch(() => null)
+  const alreadyDeployed = scripts?.some((script) => script.id === name) ?? false
+
+  if (scripts && !alreadyDeployed) {
+    const liveBooks = scripts.filter((script) =>
+      script.id.startsWith(BOOK_WORKER_NAME_PREFIX),
+    ).length
+    if (liveBooks >= MAX_LIVE_BOOK_HOSTS) {
       throw new BookHostDeployError(
-        `Cloudflare would not create the Worker for this book: ${describe(error)}`,
-        error,
+        `This Cloudflare account is already hosting ${liveBooks} published books, which is as ` +
+          `many as the free plan allows. Delete a book you no longer need — that frees its ` +
+          `slot — then publish this one again.`,
       )
+    }
+  }
+
+  if (!alreadyDeployed) {
+    try {
+      await client.createWorker(name)
+    } catch (error) {
+      if (!alreadyExists(error)) {
+        throw new BookHostDeployError(
+          `Cloudflare would not create the Worker for this book: ${describe(error)}`,
+          error,
+        )
+      }
     }
   }
 
