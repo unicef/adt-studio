@@ -95,6 +95,10 @@ export interface CloudflareClient {
   uploadWorkerScript(upload: WorkerScriptUpload): Promise<void>
   deleteWorkerScript(name: string): Promise<void>
   getWorkersDevSubdomain(): Promise<string | null>
+  /** Registers the account's workers.dev subdomain. Account-global and awkward to change
+   *  afterwards, so the caller picks the name deliberately. Returns what Cloudflare recorded,
+   *  which is not always what was asked for. */
+  createWorkersDevSubdomain(subdomain: string): Promise<string>
   enableScriptSubdomain(name: string): Promise<void>
 }
 
@@ -390,6 +394,15 @@ export function createCloudflareClient(
         }
         throw error
       }
+    },
+
+    async createWorkersDevSubdomain(subdomain) {
+      const result = await requestJson<{ subdomain?: string | null }>(
+        `${account}/workers/subdomain`,
+        "PUT",
+        { subdomain },
+      )
+      return result?.subdomain || subdomain
     },
 
     async enableScriptSubdomain(name) {
