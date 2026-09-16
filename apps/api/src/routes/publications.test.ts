@@ -217,6 +217,45 @@ describe("the publications dashboard", () => {
   })
 })
 
+/**
+ * The book remembers its publication; the machine remembers the connection. Connect a
+ * different Cloudflare account and they part company — the book still points at a link on the
+ * old account's subdomain, which the new account has never heard of.
+ *
+ * That used to be a dead end with no way out: "Publish" was refused because a record existed,
+ * and "Update site" asked the new worker for a version of a publication it did not have and
+ * got a 404 dressed up as "Cloudflare wouldn't accept the upload… this is usually temporary".
+ */
+describe("a book published from a different Cloudflare account", () => {
+  async function publishedElsewhere() {
+    const first = routes()
+    await publishOnce(first.app)
+    expect(readPublicationRecord(LABEL, tmpDir)?.token).toBe(TOKEN)
+
+    /** A second account: same Studio, same book, a worker that has never seen this token. */
+    const otherWorker = createFakePublishWorker({ now: NOW, baseUrl: "https://adt-publish.other.workers.dev" })
+    return routes({ worker: otherWorker })
+  }
+
+  it("reports the book as unpublished rather than offering to update a link that is gone", async () => {
+    const { app } = await publishedElsewhere()
+
+    const status = await (await app.request(`/books/${LABEL}/publication`)).json()
+
+    expect(status.record).toBeNull()
+    expect(status.url).toBeNull()
+  })
+
+  it("lets it be published again instead of refusing as already published", async () => {
+    const { app, worker } = await publishedElsewhere()
+
+    const events = await publishOnce(app)
+
+    expect(events.at(-1)?.type).toBe("complete")
+    expect(worker.state.publications.size).toBe(1)
+  })
+})
+
 describe("publication feedback proxy routes", () => {
   const comment = {
     id: "comment-1",

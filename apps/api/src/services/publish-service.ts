@@ -561,6 +561,12 @@ function uploadFailure(error: unknown): PublishStepError {
     if (error.code === "payload_too_large") {
       return new PublishStepError("snapshot_too_large", "upload", error.message)
     }
+    /** The worker answered, and answered that it has no such publication — so there is nothing
+     *  to add a version to. Never `upload_failed`, whose copy promises that waiting a moment
+     *  and publishing again normally works; this one needs a fresh link, not patience. */
+    if (error.status === 404) {
+      return new PublishStepError("not_published", "upload", error.message)
+    }
     return new PublishStepError("upload_failed", "upload", error.message)
   }
   return new PublishStepError("upload_failed", "upload", describe(error))

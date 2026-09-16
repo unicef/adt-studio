@@ -104,10 +104,33 @@ function requireConnection(
   return failure(c, 412, "publish_not_connected", message)
 }
 
+/**
+ * Whether a stored publication belongs to the account that is connected now.
+ *
+ * The record is kept in the book, and the connection is kept on the machine, so they part
+ * company whenever someone connects a different Cloudflare account — the book still remembers
+ * a link on the old account's subdomain, which the new account has never heard of. Left
+ * unchecked that book cannot be published at all: "Publish" is refused because a record
+ * exists, and "Update site" asks the new worker for a version of a publication it does not
+ * have and gets a 404.
+ */
+function belongsToConnection(
+  record: BookPublicationRecord | null,
+  connection: CloudflareConnectionRecord,
+): boolean {
+  return record !== null && record.worker_url === connection.worker_url
+}
+
 /** A revoked publication is terminal — the Studio offers "Publish again", which mints a fresh
- *  token. Expiry is not: it can be lifted with PATCH, so an expired record still counts. */
-function isActiveRecord(record: BookPublicationRecord | null): record is BookPublicationRecord {
-  return record !== null && record.revoked_at === null
+ *  token. Expiry is not: it can be lifted with PATCH, so an expired record still counts.
+ *
+ *  A record from another account does not count either: on *this* account the book has never
+ *  been published, which is exactly what the author is offered. */
+function isActiveRecord(
+  record: BookPublicationRecord | null,
+  connection: CloudflareConnectionRecord,
+): record is BookPublicationRecord {
+  return belongsToConnection(record, connection) && record!.revoked_at === null
 }
 
 /**
@@ -543,7 +566,12 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       ...over,
     })
 
-    if (!connection || !record) return c.json(statusOf({}))
+    /** A record from another account describes a link on a subdomain this account does not
+     *  own, so reporting it would offer "Update site" for a publication the connected worker
+     *  has never heard of. On this account the book is simply unpublished. */
+    if (!connection || !record || !belongsToConnection(record, connection)) {
+      return c.json(statusOf(record && connection ? { record: null, url: null } : {}))
+    }
 
     try {
       const detail = await clientFor(connection).getPublication(record.token)
@@ -611,7 +639,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
 
     const record = readPublicationRecord(label, deps.booksDir)
-    if (isActiveRecord(record)) {
+    if (isActiveRecord(record, connection)) {
       release()
       return failure(
         c,
@@ -670,7 +698,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
 
     const record = readPublicationRecord(label, deps.booksDir)
-    if (!isActiveRecord(record)) {
+    if (!isActiveRecord(record, connection)) {
       release()
       return failure(
         c,
