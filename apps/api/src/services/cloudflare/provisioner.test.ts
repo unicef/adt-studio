@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 import {
   CLOUDFLARE_D1_DATABASE_NAME,
-  CLOUDFLARE_R2_BUCKET_NAME,
   CLOUDFLARE_WORKER_NAME,
   PROVISION_STEPS,
   PUBLISH_WORKER_VERSION,
@@ -50,7 +49,7 @@ function artifact(
       compatibility_date: "2026-07-01",
       bindings: [
         { type: "d1", name: "DB" },
-        { type: "r2_bucket", name: "SNAPSHOTS" },
+        { type: "assets", name: "ASSETS" },
         {
           type: "durable_object_namespace",
           name: "PUBLICATION_ROOM",
@@ -131,13 +130,13 @@ function uploadedMetadata(fake: RunResult["fake"]): Record<string, unknown> {
 }
 
 describe("provisionCloudflare — happy path", () => {
-  it("runs all eight steps in order and returns a connected status", async () => {
+  it("runs all seven steps in order and returns a connected status", async () => {
     const { events, status, error } = await run()
 
     expect(error).toBeNull()
     const done = stepEvents(events).filter((event) => event.status === "done")
     expect(done.map((event) => event.id)).toEqual(PROVISION_STEPS.map((step) => step.id))
-    expect(done.map((event) => event.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+    expect(done.map((event) => event.number)).toEqual([1, 2, 3, 4, 5, 6, 7])
     expect(events.at(-1)).toMatchObject({ type: "complete" })
     expect(status).toMatchObject({
       connected: true,
@@ -151,7 +150,6 @@ describe("provisionCloudflare — happy path", () => {
       account_id: "acct-1",
       account_name: "Test Account",
       d1_database_name: CLOUDFLARE_D1_DATABASE_NAME,
-      r2_bucket_name: CLOUDFLARE_R2_BUCKET_NAME,
       workers_dev_subdomain: "teacher",
     })
   })
@@ -160,7 +158,6 @@ describe("provisionCloudflare — happy path", () => {
     const { fake } = await run()
 
     expect(fake.state.databases).toEqual([{ uuid: "db-uuid-1", name: CLOUDFLARE_D1_DATABASE_NAME }])
-    expect(fake.state.buckets).toEqual([CLOUDFLARE_R2_BUCKET_NAME])
     expect(fake.state.executedSql).toHaveLength(1)
     expect(fake.state.migrationRows.map((row) => row.name)).toEqual(["0001_init.sql"])
     expect(fake.state.subdomainEnabledFor).toEqual([CLOUDFLARE_WORKER_NAME])
@@ -177,7 +174,7 @@ describe("provisionCloudflare — happy path", () => {
     })
     expect(metadata.bindings).toEqual([
       { type: "d1", name: "DB", id: "db-uuid-1" },
-      { type: "r2_bucket", name: "SNAPSHOTS", bucket_name: CLOUDFLARE_R2_BUCKET_NAME },
+      { type: "assets", name: "ASSETS" },
       {
         type: "durable_object_namespace",
         name: "PUBLICATION_ROOM",
@@ -199,7 +196,6 @@ describe("provisionCloudflare — happy path", () => {
       workers_dev_subdomain: "teacher",
       d1_database_name: CLOUDFLARE_D1_DATABASE_NAME,
       d1_database_uuid: "db-uuid-1",
-      r2_bucket_name: CLOUDFLARE_R2_BUCKET_NAME,
       mgmt_secret: "mgmt-secret-1",
       provisioned_at: NOW.toISOString(),
       updated_at: NOW.toISOString(),
@@ -218,7 +214,6 @@ describe("provisionCloudflare — idempotent re-run", () => {
       secret: "a-different-secret",
       fake: {
         databases: [{ uuid: "db-uuid-1", name: CLOUDFLARE_D1_DATABASE_NAME }],
-        buckets: [CLOUDFLARE_R2_BUCKET_NAME],
         scripts: [CLOUDFLARE_WORKER_NAME],
         migrationRows: [{ name: "0001_init.sql", applied_at: NOW.toISOString() }],
       },
@@ -226,7 +221,6 @@ describe("provisionCloudflare — idempotent re-run", () => {
 
     expect(second.error).toBeNull()
     expect(second.fake.state.databases).toHaveLength(1)
-    expect(second.fake.state.buckets).toEqual([CLOUDFLARE_R2_BUCKET_NAME])
     expect(second.fake.state.executedSql).toEqual([])
     expect(second.fake.state.uploadCount).toBe(1)
     expect(uploadedMetadata(second.fake).migrations).toBeUndefined()
@@ -242,7 +236,6 @@ describe("provisionCloudflare — idempotent re-run", () => {
       secret: "secret-that-must-not-be-used",
       fake: {
         databases: [{ uuid: "db-uuid-1", name: CLOUDFLARE_D1_DATABASE_NAME }],
-        buckets: [CLOUDFLARE_R2_BUCKET_NAME],
         scripts: [CLOUDFLARE_WORKER_NAME],
         migrationRows: [{ name: "0001_init.sql", applied_at: NOW.toISOString() }],
       },
@@ -309,7 +302,6 @@ describe("provisionCloudflare — idempotent re-run", () => {
       artifact: artifact(migrations),
       fake: {
         databases: [{ uuid: "db-uuid-1", name: CLOUDFLARE_D1_DATABASE_NAME }],
-        buckets: [CLOUDFLARE_R2_BUCKET_NAME],
         scripts: [CLOUDFLARE_WORKER_NAME],
         migrationRows: MIGRATION_NAMES.map((name) => ({
           name,
@@ -333,7 +325,6 @@ describe("provisionCloudflare — idempotent re-run", () => {
       store: memoryStore({ ...record, provisioned_at: earlier, updated_at: earlier }),
       fake: {
         databases: [{ uuid: "db-uuid-1", name: CLOUDFLARE_D1_DATABASE_NAME }],
-        buckets: [CLOUDFLARE_R2_BUCKET_NAME],
         scripts: [CLOUDFLARE_WORKER_NAME],
         migrationRows: [{ name: "0001_init.sql", applied_at: earlier }],
       },
@@ -346,21 +337,12 @@ describe("provisionCloudflare — idempotent re-run", () => {
 
 describe("provisionCloudflare — error taxonomy", () => {
   it("reports bad_token_scope with the exact missing scopes", async () => {
-    const { error, events } = await run({ fake: { denyScopes: ["D1:Edit", "R2:Edit"] } })
+    const { error, events } = await run({ fake: { denyScopes: ["D1:Edit"] } })
 
     expect(error?.code).toBe("bad_token_scope")
-    expect(error?.missingScopes).toEqual(["D1:Edit", "R2:Edit"])
+    expect(error?.missingScopes).toEqual(["D1:Edit"])
     expect(error?.resumeFromStep).toBe(1)
-    expect(error?.message).toContain("D1:Edit, R2:Edit")
-    expect(stepEvents(events).at(-1)).toMatchObject({ id: "verify-token", status: "error" })
-  })
-
-  it("reports r2_not_enabled when the account has never activated R2", async () => {
-    const { error, events } = await run({ fake: { r2NotEnabled: true } })
-
-    expect(error?.code).toBe("r2_not_enabled")
-    expect(error?.missingScopes ?? []).toEqual([])
-    expect(error?.message).toContain("R2")
+    expect(error?.message).toContain("D1:Edit")
     expect(stepEvents(events).at(-1)).toMatchObject({ id: "verify-token", status: "error" })
   })
 
@@ -371,8 +353,7 @@ describe("provisionCloudflare — error taxonomy", () => {
       "Account:Read",
       "Workers Scripts:Edit",
       "D1:Edit",
-      "R2:Edit",
-    ])
+      ])
   })
 
   it("reports account_not_found for an unknown account id", async () => {
@@ -395,17 +376,10 @@ describe("provisionCloudflare — error taxonomy", () => {
     expect(error?.message).toContain("0001_init.sql")
   })
 
-  it("treats an existing R2 bucket as success", async () => {
-    const { error, events } = await run({ fake: { bucketCreateConflict: true } })
-    expect(error).toBeNull()
-    const step = finishedStep(events, "find-or-create-r2")
-    expect(step?.message).toContain("Reusing bucket")
-  })
-
   it("reports upload_failed when the script upload is rejected", async () => {
     const { error } = await run({ fake: { uploadErrorMessage: "script exceeded size limit" } })
     expect(error?.code).toBe("upload_failed")
-    expect(error?.resumeFromStep).toBe(5)
+    expect(error?.resumeFromStep).toBe(4)
     expect(error?.message).toContain("size limit")
   })
 
@@ -419,21 +393,21 @@ describe("provisionCloudflare — error taxonomy", () => {
   it("reports no_workers_subdomain when the account has none", async () => {
     const { error, fake } = await run({ fake: { subdomain: null } })
     expect(error?.code).toBe("no_workers_subdomain")
-    expect(error?.resumeFromStep).toBe(7)
+    expect(error?.resumeFromStep).toBe(6)
     expect(fake.state.scripts.has(CLOUDFLARE_WORKER_NAME)).toBe(true)
   })
 
   it("reports stale_deployment when the deployed version does not match", async () => {
     const { error } = await run({ fake: { workerVersion: "0.0.1" } })
     expect(error?.code).toBe("stale_deployment")
-    expect(error?.resumeFromStep).toBe(8)
+    expect(error?.resumeFromStep).toBe(7)
     expect(error?.message).toContain("0.0.1")
   })
 
   it("reports partial_provision when the worker is not reachable yet", async () => {
     const { error, store } = await run({ fake: { healthUnreachable: true } })
     expect(error?.code).toBe("partial_provision")
-    expect(error?.resumeFromStep).toBe(8)
+    expect(error?.resumeFromStep).toBe(7)
     expect(store.read()).toBeNull()
   })
 
@@ -448,14 +422,13 @@ describe("provisionCloudflare — resuming after a partial provision", () => {
   it("completes on the next run without duplicating resources", async () => {
     const store = memoryStore()
     const first = await run({ store, fake: { healthUnreachable: true } })
-    expect(first.error?.resumeFromStep).toBe(8)
+    expect(first.error?.resumeFromStep).toBe(7)
     expect(store.read()).toBeNull()
 
     const second = await run({
       store,
       fake: {
         databases: [{ uuid: "db-uuid-1", name: CLOUDFLARE_D1_DATABASE_NAME }],
-        buckets: [CLOUDFLARE_R2_BUCKET_NAME],
         scripts: [CLOUDFLARE_WORKER_NAME],
         migrationRows: [{ name: "0001_init.sql", applied_at: NOW.toISOString() }],
       },
@@ -463,7 +436,6 @@ describe("provisionCloudflare — resuming after a partial provision", () => {
 
     expect(second.error).toBeNull()
     expect(second.fake.state.databases).toHaveLength(1)
-    expect(second.fake.state.buckets).toHaveLength(1)
     expect(second.fake.state.executedSql).toEqual([])
     expect(store.read()?.mgmt_secret).toBe("mgmt-secret-1")
   })
@@ -476,7 +448,6 @@ describe("provisionCloudflare — resuming after a partial provision", () => {
       secret: "secret-b",
       fake: {
         databases: [{ uuid: "db-uuid-1", name: CLOUDFLARE_D1_DATABASE_NAME }],
-        buckets: [CLOUDFLARE_R2_BUCKET_NAME],
         scripts: [CLOUDFLARE_WORKER_NAME],
         migrationRows: [{ name: "0001_init.sql", applied_at: NOW.toISOString() }],
       },

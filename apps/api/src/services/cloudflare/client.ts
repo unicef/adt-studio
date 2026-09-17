@@ -270,7 +270,6 @@ export function createCloudflareClient(
           response.status,
           normalizeIssues(envelope?.errors),
           `Cloudflare static asset upload failed with status ${response.status}`,
-          retryAfterMs(response),
         )
       }
       return envelope.result.jwt

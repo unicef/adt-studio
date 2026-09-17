@@ -14,7 +14,6 @@ export const CloudflareConnectionRecord = z.object({
   workers_dev_subdomain: z.string().nullable(),
   d1_database_name: z.string().min(1),
   d1_database_uuid: z.string().min(1),
-  r2_bucket_name: z.string().min(1),
   mgmt_secret: z.string().min(1),
   provisioned_at: z.string().datetime(),
   updated_at: z.string().datetime(),
