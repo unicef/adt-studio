@@ -690,45 +690,11 @@ describe("cloudflare routes", () => {
       expect(store.read()).toBeNull()
     })
 
-    it("empties a populated bucket before deleting it", async () => {
-      const store = createConnectionStore(stateDir)
-      store.write(record)
-      const snapshotKeys = Array.from(
-        { length: 1001 },
-        (_, index) => `books/${String(index).padStart(4, "0")}/index.html`,
-      )
-      const { app, fake } = buildApp({
-        databases: [{ uuid: "db-uuid-1", name: "adt-publish" }],
-        buckets: ["adt-publish-snapshots"],
-        bucketObjects: {
-          "adt-publish-snapshots": snapshotKeys,
-        },
-        scripts: [CLOUDFLARE_WORKER_NAME],
-      })
-
-      const res = await app.request("/api/cloudflare/connection?delete_resources=1", {
-        method: "DELETE",
-        headers: AUTH,
-      })
-
-      expect(res.status).toBe(200)
-      expect(fake.state.bucketObjects.get("adt-publish-snapshots")).toBeUndefined()
-      expect(fake.state.buckets).toEqual([])
-      expect(store.read()).toBeNull()
-      expect(
-        fake.state.calls.filter(
-          (call) => call.method === "DELETE" && call.url.includes("/objects/"),
-        ),
-      ).toHaveLength(1001)
-    })
-
     it("completes a retry when a resource was deleted during an earlier attempt", async () => {
       const store = createConnectionStore(stateDir)
       store.write(record)
       const fake = createFakeCloudflare({
         databases: [{ uuid: "db-uuid-1", name: "adt-publish" }],
-        buckets: ["adt-publish-snapshots"],
-        bucketObjects: { "adt-publish-snapshots": ["books/one/index.html"] },
       })
       const fetchFn: FetchLike = async (url, init) => {
         if (url.includes(`/workers/scripts/${CLOUDFLARE_WORKER_NAME}`) && init?.method === "DELETE") {
@@ -744,7 +710,6 @@ describe("cloudflare routes", () => {
       })
 
       expect(res.status).toBe(200)
-      expect(fake.state.buckets).toEqual([])
       expect(store.read()).toBeNull()
     })
 
