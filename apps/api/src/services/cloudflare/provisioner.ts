@@ -1,7 +1,6 @@
 import crypto from "node:crypto"
 import {
   CLOUDFLARE_D1_DATABASE_NAME,
-  CLOUDFLARE_R2_BUCKET_NAME,
   CLOUDFLARE_WORKER_NAME,
   PUBLISH_WORKER_VERSION,
   type CloudflareAuthMethod,
@@ -25,6 +24,7 @@ import {
 import { ProvisionError, describeError, isProvisionError } from "./errors.js"
 import { toConnectionStatus } from "./status.js"
 import type { WorkerArtifact, WorkerArtifactBinding } from "./worker-artifact.js"
+import { prepareStaticAssets } from "./static-assets.js"
 
 const MIGRATIONS_TABLE = "_migrations"
 const MGMT_SECRET_BYTES = 32
@@ -62,14 +62,14 @@ function mentionsMigration(error: unknown): boolean {
 
 function resolveWorkerBindings(
   bindings: WorkerArtifactBinding[],
-  context: { d1DatabaseUuid: string; r2BucketName: string; mgmtSecret: string },
+  context: { d1DatabaseUuid: string; mgmtSecret: string },
 ): Array<Record<string, unknown>> {
   return bindings.map((binding) => {
     switch (binding.type) {
       case "d1":
         return { type: "d1", name: binding.name, id: context.d1DatabaseUuid }
-      case "r2_bucket":
-        return { type: "r2_bucket", name: binding.name, bucket_name: context.r2BucketName }
+      case "assets":
+        return { type: "assets", name: binding.name }
       case "durable_object_namespace":
         return {
           type: "durable_object_namespace",
@@ -176,14 +176,6 @@ export async function provisionCloudflare(
         missingScopes: probe.missingScopes,
       })
     }
-    if (probe.r2NotEnabled) {
-      throw new ProvisionError({
-        code: "r2_not_enabled",
-        stepId: "verify-token",
-        message:
-          "R2 storage has not been enabled on this Cloudflare account yet. Enable R2 in the Cloudflare dashboard, then try again.",
-      })
-    }
     stepMessage = probe.accountName ? `Account ${probe.accountName}` : undefined
     return probe.accountName
   })
@@ -267,21 +259,6 @@ export async function provisionCloudflare(
         : `Applied ${pending.map((migration) => migration.name).join(", ")}`
   })
 
-  await runStep("find-or-create-r2", async () => {
-    const buckets = await client.listR2Buckets()
-    if (buckets.some((bucket) => bucket.name === CLOUDFLARE_R2_BUCKET_NAME)) {
-      stepMessage = `Reusing bucket ${CLOUDFLARE_R2_BUCKET_NAME}`
-      return
-    }
-    try {
-      await client.createR2Bucket(CLOUDFLARE_R2_BUCKET_NAME)
-      stepMessage = `Created bucket ${CLOUDFLARE_R2_BUCKET_NAME}`
-    } catch (error) {
-      if (!alreadyExists(error)) throw error
-      stepMessage = `Reusing bucket ${CLOUDFLARE_R2_BUCKET_NAME}`
-    }
-  })
-
   const mgmtSecret = existing?.mgmt_secret ?? generateSecret()
 
   const uploadedMigrationTag = await runStep("upload-worker", async () => {
@@ -295,14 +272,17 @@ export async function provisionCloudflare(
 
     const bindings = resolveWorkerBindings(artifact.metadata.bindings, {
       d1DatabaseUuid: database.uuid,
-      r2BucketName: CLOUDFLARE_R2_BUCKET_NAME,
       mgmtSecret,
     })
+    const staticAssets = await prepareStaticAssets(client, CLOUDFLARE_WORKER_NAME, [
+      { path: "/__adt_publish_bootstrap", content: new Uint8Array() },
+    ])
 
     const baseMetadata: Record<string, unknown> = {
       main_module: artifact.metadata.main_module,
       compatibility_date: artifact.metadata.compatibility_date,
       bindings,
+      assets: { jwt: staticAssets.completionJwt, config: { run_worker_first: ["/api/*", "/p/*", "/health"] } },
     }
 
     const upload = async (withMigrations: boolean) => {
@@ -415,7 +395,6 @@ export async function provisionCloudflare(
     workers_dev_subdomain: subdomain,
     d1_database_name: database.name,
     d1_database_uuid: database.uuid,
-    r2_bucket_name: CLOUDFLARE_R2_BUCKET_NAME,
     mgmt_secret: mgmtSecret,
     provisioned_at: existing?.provisioned_at ?? timestamp,
     updated_at: timestamp,

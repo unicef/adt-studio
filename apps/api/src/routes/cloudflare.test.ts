@@ -43,7 +43,6 @@ const record: CloudflareConnectionRecord = {
   workers_dev_subdomain: "teacher",
   d1_database_name: "adt-publish",
   d1_database_uuid: "db-uuid-1",
-  r2_bucket_name: "adt-publish-snapshots",
   mgmt_secret: "mgmt-secret-1",
   provisioned_at: "2026-08-03T12:00:00.000Z",
   updated_at: "2026-08-03T12:00:00.000Z",
@@ -57,7 +56,7 @@ const METADATA = {
   compatibility_date: "2026-07-01",
   bindings: [
     { type: "d1", name: "DB" },
-    { type: "r2_bucket", name: "SNAPSHOTS" },
+    { type: "assets", name: "ASSETS" },
     {
       type: "durable_object_namespace",
       name: "PUBLICATION_ROOM",
@@ -420,17 +419,16 @@ describe("cloudflare routes", () => {
         account_name: "Test Account",
         missing_scopes: [],
         workers_dev_subdomain: "teacher",
-        r2_not_enabled: false,
       })
     })
 
     it("lists the missing scopes and a null subdomain", async () => {
-      const { app } = buildApp({ denyScopes: ["R2:Edit"], subdomain: null })
+      const { app } = buildApp({ denyScopes: ["D1:Edit"], subdomain: null })
       const res = await app.request("/api/cloudflare/verify", { method: "POST", headers: AUTH })
 
       const body = (await res.json()) as CloudflareVerifyResponse
       expect(body.ok).toBe(false)
-      expect(body.missing_scopes).toEqual(["R2:Edit"])
+      expect(body.missing_scopes).toEqual(["D1:Edit"])
       expect(body.workers_dev_subdomain).toBeNull()
     })
 
@@ -443,7 +441,7 @@ describe("cloudflare routes", () => {
   })
 
   describe("POST /cloudflare/provision", () => {
-    it("streams the eight steps and a complete event", async () => {
+    it("streams the seven steps and a complete event", async () => {
       const { app } = buildApp()
       const res = await app.request("/api/cloudflare/provision", { method: "POST", headers: AUTH })
 
@@ -453,7 +451,7 @@ describe("cloudflare routes", () => {
       const body = await res.text()
       const events = parseSSE(body)
       const done = events.filter((event) => event.type === "step" && event.status === "done")
-      expect(done).toHaveLength(8)
+      expect(done).toHaveLength(7)
       const last = events.at(-1)
       expect(last?.type).toBe("complete")
       if (last?.type !== "complete") throw new Error("expected a complete event")
@@ -486,7 +484,7 @@ describe("cloudflare routes", () => {
       if (last?.type !== "error") throw new Error("expected an error event")
       expect(last.code).toBe("no_workers_subdomain")
       expect(last.step_id).toBe("enable-workers-dev")
-      expect(last.resume_from_step).toBe(7)
+      expect(last.resume_from_step).toBe(6)
     })
 
     it("reports the missing scopes on the error event", async () => {
@@ -672,12 +670,11 @@ describe("cloudflare routes", () => {
       expect((await res.json()).error).toContain(CLOUDFLARE_TOKEN_HEADER)
     })
 
-    it("tears down the worker, database and bucket", async () => {
+    it("tears down the worker and database", async () => {
       const store = createConnectionStore(stateDir)
       store.write(record)
       const { app, fake } = buildApp({
         databases: [{ uuid: "db-uuid-1", name: "adt-publish" }],
-        buckets: ["adt-publish-snapshots"],
         scripts: [CLOUDFLARE_WORKER_NAME],
       })
 
@@ -690,7 +687,6 @@ describe("cloudflare routes", () => {
       expect(await res.json()).toMatchObject({ forgotten: true, deleted_resources: true })
       expect(fake.state.scripts.size).toBe(0)
       expect(fake.state.databases).toEqual([])
-      expect(fake.state.buckets).toEqual([])
       expect(store.read()).toBeNull()
     })
 
@@ -699,13 +695,12 @@ describe("cloudflare routes", () => {
       store.write(record)
       const fake = createFakeCloudflare({
         databases: [{ uuid: "db-uuid-1", name: "adt-publish" }],
-        buckets: ["adt-publish-snapshots"],
         scripts: [CLOUDFLARE_WORKER_NAME],
       })
       const fetchFn: FetchLike = async (url, init) => {
-        if (url.includes("/r2/buckets/") && init?.method === "DELETE") {
+        if (url.includes("/d1/database/") && init?.method === "DELETE") {
           return new Response(
-            JSON.stringify({ success: false, errors: [{ code: 10014, message: "bucket not empty" }] }),
+            JSON.stringify({ success: false, errors: [{ code: 10014, message: "database is not empty" }] }),
             { status: 409 },
           )
         }
@@ -719,7 +714,7 @@ describe("cloudflare routes", () => {
       })
 
       expect(res.status).toBe(502)
-      expect((await res.json()).error).toContain("bucket not empty")
+      expect((await res.json()).error).toContain("database is not empty")
       expect(store.read()).toEqual(record)
     })
   })

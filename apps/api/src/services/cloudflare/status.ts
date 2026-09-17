@@ -48,7 +48,6 @@ export function toConnectionStatus(
       workers_dev_subdomain: record.workers_dev_subdomain,
       d1_database_name: record.d1_database_name,
       d1_database_uuid: record.d1_database_uuid,
-      r2_bucket_name: record.r2_bucket_name,
     },
     provisioned_at: record.provisioned_at,
     updated_at: record.updated_at,
@@ -112,10 +111,6 @@ export async function teardownCloudflareResources(
     {
       label: `D1 database ${record.d1_database_name}`,
       run: () => client.deleteD1Database(record.d1_database_uuid),
-    },
-    {
-      label: `R2 bucket ${record.r2_bucket_name}`,
-      run: () => client.deleteR2Bucket(record.r2_bucket_name),
     },
   ]
 
