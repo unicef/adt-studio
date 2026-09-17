@@ -167,8 +167,13 @@ let activityDisposers: Array<() => void> = []
  * drag handlers to `document`, which outlives the swap. Without this the
  * listeners accumulate one set per page turn and the discarded ones keep
  * responding to keystrokes on behalf of a page the reader has left.
+ *
+ * Exported so a page swap can run it *before* replacing the DOM. A disposer
+ * that restores state it captured on mount — the stepper puts back the body
+ * background it found — would otherwise run after the incoming page is already
+ * in place and overwrite it with the departing page's value.
  */
-function disposeActivityInitializers(): void {
+export function disposeActivityInitializers(): void {
   for (const dispose of activityDisposers) {
     try {
       dispose()

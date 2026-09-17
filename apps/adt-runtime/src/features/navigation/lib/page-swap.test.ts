@@ -4,9 +4,10 @@ import { getDefaultStore } from "jotai"
 import { reduceMotionAtom } from "@/shared/state/ui.atoms"
 
 const initializePageContent = vi.fn()
+const disposeActivityInitializers = vi.fn()
 const announceToScreenReader = vi.fn()
 
-vi.mock("@/app/lifecycle", () => ({ initializePageContent }))
+vi.mock("@/app/lifecycle", () => ({ initializePageContent, disposeActivityInitializers }))
 vi.mock("@/shared/lib/aria-live", () => ({ announceToScreenReader }))
 vi.mock("@/shared/lib/analytics", () => ({
   trackNavigation: vi.fn(),
@@ -108,6 +109,7 @@ beforeEach(() => {
   setLocation("http://localhost/book/pg001_sec001.html")
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })))
   initializePageContent.mockClear()
+  disposeActivityInitializers.mockClear()
   announceToScreenReader.mockClear()
 })
 
@@ -331,6 +333,38 @@ describe("swapToPage", () => {
 
     expect(document.activeElement).toBe(document.querySelector("main"))
     expect(announceToScreenReader).toHaveBeenCalledWith("Chapter two")
+  })
+
+  /**
+   * Disposers run before anything is replaced. The stepper's cleanup restores
+   * the body background it captured when it mounted, so if it runs after
+   * `swapBodyAttributes` it repaints the incoming page in the departing page's
+   * colour.
+   */
+  it("disposes the previous page's activities before the incoming body lands", async () => {
+    installDocument(
+      pageHtml({
+        sectionId: "pg001_sec001",
+        title: "Page one",
+        bodyStyle: "background-color: rgb(255, 0, 0)",
+      }),
+    )
+    const capturedOnMount = document.body.style.backgroundColor
+    disposeActivityInitializers.mockImplementationOnce(() => {
+      document.body.style.backgroundColor = capturedOnMount
+    })
+    mockFetchOnce(
+      pageHtml({
+        sectionId: "pg002_sec001",
+        title: "Page two",
+        bodyStyle: "background-color: rgb(0, 0, 255)",
+      }),
+    )
+
+    await swapToPage("http://localhost/book/pg002_sec001.html")
+
+    expect(disposeActivityInitializers).toHaveBeenCalledOnce()
+    expect(document.body.style.backgroundColor).toBe("rgb(0, 0, 255)")
   })
 
   it("clears the previous page's appended scripts instead of stacking them", async () => {

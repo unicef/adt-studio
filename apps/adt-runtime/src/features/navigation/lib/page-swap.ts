@@ -17,7 +17,7 @@
  * double-clicking `index.html` behaves exactly as it does today.
  */
 import { getDefaultStore } from "jotai"
-import { initializePageContent } from "@/app/lifecycle"
+import { disposeActivityInitializers, initializePageContent } from "@/app/lifecycle"
 import { announceToScreenReader } from "@/shared/lib/aria-live"
 import { trackNavigation, trackSpaPageView } from "@/shared/lib/analytics"
 import { reduceMotionAtom } from "@/shared/state/ui.atoms"
@@ -238,8 +238,13 @@ function runPageScripts(next: Document): void {
  * that anything changed (WCAG 4.1.3 Status Messages / 2.4.3 Focus Order).
  *
  * Focus goes to `<main>` rather than the heading so the whole page is in the
- * virtual cursor's path. `<main>` is not interactive, so `:focus-visible` does
- * not match and sighted mouse users see no focus ring.
+ * virtual cursor's path.
+ *
+ * The outline is cleared because `:focus-visible` *does* match here: it keys
+ * off the reader's last input, not the focused element, so a keyboard page turn
+ * rings the content column while a mouse turn does not. Safe only because
+ * `<main>` is `tabindex="-1"` — nothing else can focus it, so no reachable
+ * control loses its indicator.
  */
 function moveReadingPosition(): void {
   const main = document.querySelector("main")
@@ -323,6 +328,12 @@ export async function swapToPage(
         )
         window.history.pushState({ adtSoftNav: true } satisfies SoftNavHistoryState, "", href)
       }
+      // Before anything is replaced, so each disposer still sees the DOM and
+      // the global state it bound to. `initializePageContent` disposes too, but
+      // by then `<main>` is gone and any disposer that restores what it found
+      // on mount — the stepper puts back the body background — would write the
+      // departing page's value over the incoming page's.
+      disposeActivityInitializers()
       swapHead(next)
       swapBodyAttributes(next)
       swapMain(next)
