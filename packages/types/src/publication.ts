@@ -3,13 +3,10 @@ import { CommenterDisplayName } from "./commenter-name.js"
 
 export const PUBLISH_WORKER_VERSION = "0.13.0"
 
-/** R2's free allowance. Used only to give the dashboard's storage total a sense of scale —
- *  never to claim a usage number we did not measure ourselves. */
-export const R2_FREE_TIER_BYTES = 10 * 1024 * 1024 * 1024
-
 /** Limits apply to the expanded file tree declared when an upload starts. */
 export const PUBLICATION_SNAPSHOT_MAX_FILES = 20_000
-export const PUBLICATION_SNAPSHOT_MAX_FILE_BYTES = 32 * 1024 * 1024
+/** Workers Static Assets accepts files up to 25 MiB on every plan. */
+export const PUBLICATION_SNAPSHOT_MAX_FILE_BYTES = 25 * 1024 * 1024
 export const PUBLICATION_SNAPSHOT_MAX_BYTES = 512 * 1024 * 1024
 
 export const PUBLICATION_TOKEN_LENGTH = 32

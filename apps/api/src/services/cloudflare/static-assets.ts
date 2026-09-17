@@ -147,7 +147,10 @@ export async function prepareStaticAssets(
   client: CloudflareClient,
   workerName: string,
   assets: StaticAsset[],
-  options: { sleep?: (ms: number) => Promise<void> } = {},
+  options: {
+    sleep?: (ms: number) => Promise<void>
+    onProgress?: (progress: { done: number; total: number }) => void | Promise<void>
+  } = {},
 ): Promise<PreparedStaticAssets> {
   const sleep = options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)))
   const manifest = createStaticAssetManifest(assets)
@@ -167,6 +170,8 @@ export async function prepareStaticAssets(
    */
   let completionJwt: string | null = session.buckets.length === 0 ? session.jwt : null
   const payloads = createStaticAssetUploadPayloads(session.buckets, assets)
+  const total = session.buckets.reduce((count, bucket) => count + bucket.length, 0)
+  let done = 0
   for (const [index, payload] of payloads.entries()) {
     try {
       completionJwt =
@@ -174,6 +179,8 @@ export async function prepareStaticAssets(
     } catch (error) {
       throw new StaticAssetError(`Cloudflare rejected static asset batch ${index + 1} of ${payloads.length}: ${error instanceof Error ? error.message : String(error)}`)
     }
+    done += session.buckets[index]?.length ?? 0
+    await options.onProgress?.({ done, total })
   }
 
   if (completionJwt === null) {

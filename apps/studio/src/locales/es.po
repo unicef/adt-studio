@@ -344,6 +344,10 @@ msgstr "{0} secciones"
 msgid "{0} selected images are no longer in the storyboard."
 msgstr "{0} imágenes seleccionadas ya no están en el guion gráfico."
 
+#. placeholder {0}: PROVISION_STEP_COPY.length
+msgid "{0} small things get created in your account. Nothing is charged."
+msgstr "Se crearán {0} elementos pequeños en tu cuenta. No se cobrará nada."
+
 #. placeholder {0}: String(visibleCount)
 msgid "{0} terms"
 msgstr "{0} términos"
@@ -953,6 +957,9 @@ msgstr "Cuenta"
 msgid "Account Settings"
 msgstr "Configuración de la cuenta"
 
+msgid "across every published version"
+msgstr "en todas las versiones publicadas"
+
 msgid "Actions"
 msgstr "Acciones"
 
@@ -1517,8 +1524,8 @@ msgstr "Todas las secciones han sido eliminadas"
 msgid "All set"
 msgstr "Todo listo"
 
-msgid "All set up"
-msgstr "Todo listo"
+#~ msgid "All set up"
+#~ msgstr "Todo listo"
 
 msgid "All Severities"
 msgstr "Todas las Severidades"
@@ -3120,8 +3127,8 @@ msgstr "Crear una nueva imagen de glosario cambia el conjunto de imágenes del l
 msgid "Creating the database"
 msgstr "Creando la base de datos"
 
-msgid "Creating the storage space"
-msgstr "Creando el espacio de almacenamiento"
+#~ msgid "Creating the storage space"
+#~ msgstr "Creando el espacio de almacenamiento"
 
 msgid "Creating your share link"
 msgstr "Creando tu enlace para compartir"
@@ -3753,6 +3760,9 @@ msgstr "Cada pólipo secreta un esqueleto duro de carbonato de calcio. Durante c
 msgid "Each prompt is applied to whichever provider its language is routed to — for example, Albanian (sq) routed to Gemini receives this as its accent steering."
 msgstr "Cada instrucción se aplica al proveedor al que se enruta su idioma; por ejemplo, el albanés (sq) enrutado a Gemini recibe esto como su guía de acento."
 
+msgid "Each published book runs as its own small service in your Cloudflare account, which is why there is a limit on how many can be live at once — deleting a book you no longer share frees its place immediately. Storage is the size of every published version's files, measured while uploading them; earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
+msgstr "Cada libro publicado se ejecuta como un pequeño servicio en tu cuenta de Cloudflare. Por eso hay un límite de libros que pueden estar activos a la vez. Eliminar un libro que ya no compartes libera su lugar de inmediato. El almacenamiento es el tamaño de los archivos de todas las versiones publicadas, medido durante la carga. Las versiones anteriores conservan sus archivos, por lo que actualizar un libro aumenta este total. Aquí no se muestra cuántas personas abrieron tus enlaces porque eso requiere permisos de analítica de Cloudflare que Studio no solicita."
+
 msgid "Each section introduces a new theme with worked examples, followed by short practice activities at the end of the page."
 msgstr "Cada sección introduce un nuevo tema con ejemplos trabajados, seguido de actividades prácticas cortas al final de la página."
 
@@ -3871,8 +3881,8 @@ msgstr "Las ediciones van a este prefijo de variante Tailwind"
 msgid "Effort"
 msgstr "Esfuerzo"
 
-msgid "Eight small things get created in your account. Nothing is charged."
-msgstr "Ocho pequeñas cosas se crean en tu cuenta. No se cobra nada."
+#~ msgid "Eight small things get created in your account. Nothing is charged."
+#~ msgstr "Ocho pequeñas cosas se crean en tu cuenta. No se cobra nada."
 
 msgid "Element style editor"
 msgstr "Editor de estilo de elemento"
@@ -4074,6 +4084,9 @@ msgstr "Cada página traducida y sincronizada — portugués, español, francés
 
 msgid "Every page, read aloud."
 msgstr "Cada página, leída en voz alta."
+
+msgid "Every published book runs as its own small service in your Cloudflare account, and the free plan allows a fixed number of them. Yours are all in use. Deleting a book you no longer share — from the Published books list — frees its place straight away, and then this one will publish."
+msgstr "Cada libro publicado se ejecuta como un pequeño servicio en tu cuenta de Cloudflare, y el plan gratuito permite una cantidad fija de ellos. Todos tus lugares están en uso. Eliminar un libro que ya no compartes desde la lista de libros publicados libera su lugar de inmediato y entonces este libro se publicará."
 
 msgid "Every section has a video"
 msgstr "Cada sección tiene un video"
@@ -4974,8 +4987,8 @@ msgstr "Historia y Sociedad - Vol. 1"
 msgid "Hit"
 msgstr "Hit"
 
-msgid "Holds the pages, images and audio of each published book."
-msgstr "Contiene las páginas, imágenes y audio de cada libro publicado."
+#~ msgid "Holds the pages, images and audio of each published book."
+#~ msgstr "Contiene las páginas, imágenes y audio de cada libro publicado."
 
 msgid "Home"
 msgstr "Inicio"
@@ -4985,6 +4998,9 @@ msgstr "Inicio / Capítulo 1"
 
 msgid "Home guide"
 msgstr "Guía de inicio"
+
+msgid "Hosted books"
+msgstr "Libros alojados"
 
 msgid "Hosting"
 msgstr "Alojamiento"
@@ -5958,8 +5974,11 @@ msgstr "Asegúrese de subir un archivo .zip exportado desde ADT Studio."
 msgid "Making a copy of the book"
 msgstr "Haciendo una copia del libro"
 
-msgid "Making sure the token works and has all four permissions."
-msgstr "Asegurándose de que el token funcione y tenga los cuatro permisos."
+#~ msgid "Making sure the token works and has all four permissions."
+#~ msgstr "Asegurándose de que el token funcione y tenga los cuatro permisos."
+
+msgid "Making sure the token works and has every permission it needs."
+msgstr "Comprobando que el token funciona y tiene todos los permisos necesarios."
 
 msgid "Manage all sections"
 msgstr "Gestionar todas las secciones"
@@ -6756,6 +6775,9 @@ msgstr "No hay resultados de revisión para esta vista."
 msgid "No reviewer validation sessions have been started yet. Open Preview to create a reviewer session and begin recording page-level findings."
 msgstr "Aún no se ha iniciado ninguna sesión de validación de revisor. Abra la Vista previa para crear una sesión de revisor y comenzar a registrar hallazgos por página."
 
+msgid "No room for another until you delete one"
+msgstr "No hay espacio para otro hasta que elimines uno"
+
 msgid "No saved prompt versions yet."
 msgstr "Aún no hay versiones de prompt guardadas."
 
@@ -6942,6 +6964,9 @@ msgstr "Aún sin dividir:"
 msgid "Note"
 msgstr "Nota"
 
+msgid "Nothing after this step ran. Setup picks up where it left off when you try again."
+msgstr "No se ejecutó nada después de este paso. La configuración continuará donde se quedó cuando lo intentes de nuevo."
+
 msgid "Nothing changed for your readers — they are still reading the copy you had."
 msgstr "Nada cambió para tus lectores — todavía están leyendo la copia que tenías."
 
@@ -7009,8 +7034,8 @@ msgstr "de"
 msgid "of {0} published"
 msgstr "de {0} publicado"
 
-msgid "of {allowance} free in R2"
-msgstr "de {allowance} gratis en R2"
+#~ msgid "of {allowance} free in R2"
+#~ msgstr "de {allowance} gratis en R2"
 
 msgid "Off"
 msgstr "Apagado"
@@ -8039,8 +8064,8 @@ msgstr "Publicar para revisión"
 msgid "Published books"
 msgstr "Libros publicados"
 
-msgid "Published books are stored in Cloudflare R2, and your account hasn't switched it on yet. Open R2 in your Cloudflare dashboard and follow the steps to enable it — Cloudflare asks for a payment method, but the space ADT Studio uses is within the free allowance. Then come back and try again. Nothing was created in your account."
-msgstr "Los libros publicados se almacenan en Cloudflare R2, y tu cuenta aún no lo ha activado. Abre R2 en tu panel de Cloudflare y sigue los pasos para habilitarlo — Cloudflare pide un método de pago, pero el espacio que usa ADT Studio está dentro de la asignación gratuita. Luego regresa e inténtalo de nuevo. No se creó nada en tu cuenta."
+#~ msgid "Published books are stored in Cloudflare R2, and your account hasn't switched it on yet. Open R2 in your Cloudflare dashboard and follow the steps to enable it — Cloudflare asks for a payment method, but the space ADT Studio uses is within the free allowance. Then come back and try again. Nothing was created in your account."
+#~ msgstr "Los libros publicados se almacenan en Cloudflare R2, y tu cuenta aún no lo ha activado. Abre R2 en tu panel de Cloudflare y sigue los pasos para habilitarlo — Cloudflare pide un método de pago, pero el espacio que usa ADT Studio está dentro de la asignación gratuita. Luego regresa e inténtalo de nuevo. No se creó nada en tu cuenta."
 
 msgid "Published books live in your own Cloudflare account, so this list is empty until the Studio is connected to one. It is free and takes a few clicks."
 msgstr "Los libros publicados viven en tu propia cuenta de Cloudflare, por lo que esta lista está vacía hasta que el Studio esté conectado a una. Es gratis y toma unos pocos clics."
@@ -8900,6 +8925,9 @@ msgstr "El aumento de las temperaturas oceánicas causa el blanqueamiento de cor
 msgid "Role"
 msgstr "Rol"
 
+msgid "Room for {remaining} more"
+msgstr "Espacio para {remaining} más"
+
 msgid "Rotate"
 msgstr "Rotar"
 
@@ -9594,6 +9622,9 @@ msgstr "Sombra"
 msgid "Share a finished book as a private website. You stay in charge of the link and the Cloudflare account that hosts it."
 msgstr "Comparte un libro terminado como un sitio web privado. Mantienes el control del enlace y de la cuenta de Cloudflare que lo aloja."
 
+msgid "Share links live under a web address your Cloudflare account picks once, and this account hasn't chosen one yet. Open Workers & Pages, pick any name when it asks, then publish again. Nothing was shared."
+msgstr "Los enlaces compartidos se publican en una dirección web que tu cuenta de Cloudflare elige una vez, y esta cuenta todavía no ha elegido una. Abre Workers & Pages, elige cualquier nombre cuando se solicite y vuelve a publicar. No se compartió nada."
+
 msgid "Share online"
 msgstr "Compartir en línea"
 
@@ -10115,8 +10146,8 @@ msgstr "¿Detener la compartición de este libro?"
 msgid "Stop step"
 msgstr "Detener paso"
 
-msgid "Storage is the size of every published version's files in your own Cloudflare R2 bucket, measured while uploading them — earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
-msgstr "El almacenamiento es el tamaño de los archivos de cada versión publicada en tu propio bucket de Cloudflare R2, medido mientras los subes — las versiones anteriores mantienen sus archivos, por lo que actualizar un libro suma a esto. Cuántas personas abrieron tus enlaces no se muestra aquí: leer eso necesita permisos de análisis de Cloudflare que el Studio nunca solicita."
+#~ msgid "Storage is the size of every published version's files in your own Cloudflare R2 bucket, measured while uploading them — earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
+#~ msgstr "El almacenamiento es el tamaño de los archivos de cada versión publicada en tu propio bucket de Cloudflare R2, medido mientras los subes — las versiones anteriores mantienen sus archivos, por lo que actualizar un libro suma a esto. Cuántas personas abrieron tus enlaces no se muestra aquí: leer eso necesita permisos de análisis de Cloudflare que el Studio nunca solicita."
 
 msgid "Storage used"
 msgstr "Almacenamiento usado"
@@ -11074,8 +11105,8 @@ msgstr "Hasta la página"
 msgid "To replace an image, use \"Edit layout\" and click the image."
 msgstr "Para reemplazar una imagen, usa \\\"Editar diseño\\\" y haz clic en la imagen."
 
-msgid "To share a book, open it and go to its Export step — you'll find Publish there."
-msgstr "Para compartir un libro, ábrelo y ve a su paso de Exportación; allí encontrarás Publicar."
+#~ msgid "To share a book, open it and go to its Export step — you'll find Publish there."
+#~ msgstr "Para compartir un libro, ábrelo y ve a su paso de Exportación; allí encontrarás Publicar."
 
 msgid "to stream API logs here."
 msgstr "para transmitir registros de API aquí."
@@ -11267,11 +11298,11 @@ msgstr "Convierte cualquier PDF educativo en un paquete de aprendizaje accesible
 msgid "Turn any textbook into an accessible edition — every step of the pipeline, built in."
 msgstr "Convierte cualquier libro de texto en una edición accesible — cada paso del proceso, ya integrado."
 
-msgid "Turn on R2 in Cloudflare"
-msgstr "Activa R2 en Cloudflare"
+#~ msgid "Turn on R2 in Cloudflare"
+#~ msgstr "Activa R2 en Cloudflare"
 
-msgid "Turn on R2 storage in Cloudflare first"
-msgstr "Activa primero el almacenamiento R2 en Cloudflare"
+#~ msgid "Turn on R2 storage in Cloudflare first"
+#~ msgstr "Activa primero el almacenamiento R2 en Cloudflare"
 
 msgid "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
 msgstr "Actívelo para mostrar la tarjeta de revisión de Validación en la Vista previa y la pestaña Validación del Revisor en el paso de Validación."
@@ -11543,6 +11574,9 @@ msgstr "Sube un ZIP o arrastra y suelta"
 
 msgid "Uploading..."
 msgstr "Subiendo..."
+
+msgid "Usage and sharing controls for books hosted in this Cloudflare account."
+msgstr "Uso y controles para compartir los libros alojados en esta cuenta de Cloudflare."
 
 msgid "Use \"{trimmedQuery}\""
 msgstr "Usar \"{trimmedQuery}\""
@@ -12039,8 +12073,8 @@ msgstr "Resaltado por palabra"
 msgid "words"
 msgstr "palabras"
 
-msgid "Workers R2 Storage"
-msgstr "Almacenamiento R2 de Workers"
+#~ msgid "Workers R2 Storage"
+#~ msgstr "Almacenamiento R2 de Workers"
 
 msgid "Workers Scripts"
 msgstr "Scripts de Workers"
@@ -12155,6 +12189,9 @@ msgstr "Tu navegador abre la página de inicio de sesión de Cloudflare."
 
 msgid "Your Cloudflare account hasn't chosen the web address it uses for services yet, and your share links need it. Open Workers & Pages, pick any name when it asks, then try again."
 msgstr "Tu cuenta de Cloudflare aún no ha elegido la dirección web que usa para servicios, y tus enlaces para compartir la necesitan. Abre Workers & Pages, elige cualquier nombre cuando lo pida, luego inténtalo de nuevo."
+
+msgid "Your Cloudflare account is full"
+msgstr "Tu cuenta de Cloudflare está llena"
 
 msgid "Your Cloudflare connection is still here. Try again in a moment."
 msgstr "Tu conexión de Cloudflare sigue aquí. Inténtalo de nuevo en un momento."
