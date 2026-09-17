@@ -69,6 +69,7 @@ interface UploadFileRow {
   path: string
   bytes: number
   sha256: string
+  asset_hash: string | null
   completed_at: string | null
 }
 
@@ -231,7 +232,7 @@ function toUpload(row: UploadRow): StoredPublicationUpload {
 }
 
 function toUploadFile(row: UploadFileRow): StoredPublicationUploadFile {
-  return { uploadId: row.upload_id, path: row.path, bytes: row.bytes, sha256: row.sha256, completedAt: row.completed_at }
+  return { uploadId: row.upload_id, path: row.path, bytes: row.bytes, sha256: row.sha256, assetHash: row.asset_hash, completedAt: row.completed_at }
 }
 
 export function createD1PublicationStore(db: D1Database): PublicationStore {
@@ -288,8 +289,8 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
             input.accessCode, input.createdAt,
           ),
           ...request.files.map((file) => db.prepare(
-            `INSERT INTO publication_upload_files (upload_id, path, bytes, sha256) VALUES (?, ?, ?, ?)`,
-          ).bind(input.uploadId, file.path, file.bytes, file.sha256)),
+            `INSERT INTO publication_upload_files (upload_id, path, bytes, sha256, asset_hash) VALUES (?, ?, ?, ?, ?)`,
+          ).bind(input.uploadId, file.path, file.bytes, file.sha256, file.asset_hash ?? null)),
         ])
       } catch {
         return { ok: false, reason: "conflict" }
@@ -314,6 +315,16 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
          WHERE upload_id = ? AND path = ?
            AND EXISTS (SELECT 1 FROM publication_uploads WHERE upload_id = ? AND state = 'open')`,
       ).bind(completedAt, uploadId, path, uploadId).run()
+      return (result.meta.changes ?? 0) > 0
+    },
+
+    async completeStaticAssetUpload(uploadId, completedAt) {
+      const result = await db.prepare(
+        `UPDATE publication_upload_files SET completed_at = COALESCE(completed_at, ?)
+         WHERE upload_id = ?
+           AND EXISTS (SELECT 1 FROM publication_uploads WHERE upload_id = ? AND state = 'open')
+           AND NOT EXISTS (SELECT 1 FROM publication_upload_files WHERE upload_id = ? AND asset_hash IS NULL)`,
+      ).bind(completedAt, uploadId, uploadId, uploadId).run()
       return (result.meta.changes ?? 0) > 0
     },
 
@@ -379,6 +390,23 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
         `SELECT snapshot_prefix FROM publication_uploads WHERE token = ? UNION SELECT snapshot_prefix FROM versions WHERE token = ?`,
       ).bind(token, token).all<{ snapshot_prefix: string | null }>()
       return (rows.results ?? []).flatMap((row) => row.snapshot_prefix === null ? [] : [row.snapshot_prefix])
+    },
+
+    async listCurrentStaticAssets() {
+      const rows = await db.prepare(
+        `SELECT u.snapshot_prefix, f.path, f.asset_hash, f.bytes
+         FROM publications p
+         JOIN versions v ON v.token = p.token AND v.version = p.current_version
+         JOIN publication_uploads u ON u.upload_id = v.upload_id
+         JOIN publication_upload_files f ON f.upload_id = u.upload_id
+         WHERE p.revoked_at IS NULL AND f.completed_at IS NOT NULL AND f.asset_hash IS NOT NULL
+         ORDER BY u.snapshot_prefix ASC, f.path ASC`,
+      ).all<{ snapshot_prefix: string; path: string; asset_hash: string; bytes: number }>()
+      return (rows.results ?? []).map((row) => ({
+        path: `/${row.snapshot_prefix}/${row.path}`,
+        hash: row.asset_hash,
+        bytes: row.bytes,
+      }))
     },
 
     findByToken: readPublication,
