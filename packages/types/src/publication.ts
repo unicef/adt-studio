@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { CommenterDisplayName } from "./commenter-name.js"
 
 export const PUBLISH_WORKER_VERSION = "0.13.0"
 
@@ -73,6 +74,9 @@ export const PublicationUploadFile = z.object({
   path: z.string().min(1),
   bytes: z.number().int().min(0).max(PUBLICATION_SNAPSHOT_MAX_FILE_BYTES),
   sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  /** Workers Static Assets uses a different, 32-character content address. Optional while
+   * old R2-backed workers remain readable during the storage migration. */
+  asset_hash: z.string().regex(/^[0-9a-f]{32}$/).optional(),
 })
 export type PublicationUploadFile = z.infer<typeof PublicationUploadFile>
 
@@ -178,10 +182,13 @@ export const PublicationUpdateRequest = z
   )
 export type PublicationUpdateRequest = z.infer<typeof PublicationUpdateRequest>
 
-/** The code a reader types. Deliberately lenient — a wrong code is `401`, never a `400`, so the
- *  route cannot be used to probe the code's length. */
+/** The code a reviewer types, and the name they type beside it. Deliberately lenient — a wrong
+ *  code is `401`, never a `400`, so the route cannot be used to probe the code's length. `name`
+ *  is optional for API compatibility: without it the door only grants admission, and the
+ *  reader's composer asks for a name at the first comment instead. */
 export const PublicationAccessRequest = z.object({
   code: z.string().max(256),
+  name: CommenterDisplayName.optional(),
 })
 export type PublicationAccessRequest = z.infer<typeof PublicationAccessRequest>
 
@@ -325,6 +332,13 @@ export const PublishErrorCodeStudio = z.enum([
    *  `not_published` (it answered *our* 404), because the only cure is installing the update. */
   "worker_outdated",
   "snapshot_too_large",
+  /** The Cloudflare account is already hosting as many books as its plan allows. Each live
+   *  book has its own Worker, so the ceiling is the account's Worker limit. Permanent until
+   *  the author deletes a book, which is why it must not read like a retryable upload. */
+  "account_book_limit",
+  /** The account has never picked a workers.dev subdomain, so a published book would have no
+   *  web address. A one-time action in the Cloudflare dashboard. */
+  "no_workers_subdomain",
   "not_revoked",
   /** A publish or "Update site" is already running for this book. The read-patch-restore of
    *  `assets/config.json` and the worker's own version numbering are not safe to interleave, so
