@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import {
   AlertTriangle,
   CloudOff,
   Globe,
   Link2,
+  Link2Off,
   Loader2,
   MessagesSquare,
   RefreshCw,
@@ -49,6 +50,34 @@ interface Query {
 }
 
 const EMPTY_QUERY: Query = { filter: "all", sort: "recent", search: "", unresolvedOnly: false }
+
+function FilteredEmptyState({
+  icon,
+  title,
+  onClear,
+}: {
+  icon: typeof Globe
+  title: ReactNode
+  onClear: () => void
+}) {
+  return (
+    <div
+      data-testid="publications-filter-empty"
+      className="flex min-h-64 flex-col rounded-xl border border-dashed bg-muted/20 px-5 py-10"
+    >
+      <StageEmptyState
+        icon={icon}
+        color="violet"
+        title={title}
+        cta={
+          <Button type="button" variant="ghost" size="sm" onClick={onClear}>
+            <Trans>Clear the filters</Trans>
+          </Button>
+        }
+      />
+    </div>
+  )
+}
 
 function matchesSearch(publication: PublicationSummary, search: string): boolean {
   const needle = search.trim().toLocaleLowerCase()
@@ -308,12 +337,18 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
             </div>
 
             {publications.length === 0 ? (
-              <div
-                data-testid="publications-filter-empty"
-                className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed bg-muted/30 py-12 text-center text-xs text-muted-foreground"
-              >
-                <p>
-                  {query.search.trim().length > 0 ? (
+              <FilteredEmptyState
+                icon={
+                  query.search.trim().length > 0
+                    ? Search
+                    : query.unresolvedOnly
+                      ? MessagesSquare
+                      : query.filter === "live"
+                        ? Globe
+                        : Link2Off
+                }
+                title={
+                  query.search.trim().length > 0 ? (
                     <Trans>No published book matches “{query.search}”.</Trans>
                   ) : query.unresolvedOnly ? (
                     <Trans>Nothing is waiting for you — every thread is resolved.</Trans>
@@ -321,18 +356,10 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
                     <Trans>None of your links is open to readers right now.</Trans>
                   ) : (
                     <Trans>Every one of your links is live.</Trans>
-                  )}
-                </p>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={() => setQuery(EMPTY_QUERY)}
-                >
-                  <Trans>Clear the filters</Trans>
-                </Button>
-              </div>
+                  )
+                }
+                onClear={() => setQuery(EMPTY_QUERY)}
+              />
             ) : (
               <ul
                 aria-label={t`Published books`}

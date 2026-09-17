@@ -56,6 +56,8 @@ vi.mock("@/components/ui/sonner", () => ({
 }))
 
 const getCloudflareConnection = vi.fn()
+const getPublications = vi.fn()
+const getBookCoverUrl = vi.fn((label: string) => `/api/books/${label}/cover`)
 const provisionCloudflare = vi.fn()
 const disconnectCloudflare = vi.fn()
 const startCloudflareOAuth = vi.fn()
@@ -76,12 +78,14 @@ class MockApiError extends Error {
 vi.mock("@/api/client", () => ({
   api: {
     getCloudflareConnection,
+    getPublications,
     provisionCloudflare,
     disconnectCloudflare,
     startCloudflareOAuth,
     getCloudflareOAuthStatus,
     pickCloudflareOAuthAccount,
   },
+  getBookCoverUrl,
   ApiError: MockApiError,
   apiErrorCode: (error: unknown) =>
     error instanceof MockApiError ? error.code : null,
@@ -148,6 +152,17 @@ function renderSettings() {
 beforeEach(() => {
   localStorage.clear()
   getCloudflareConnection.mockResolvedValue(disconnectedStatus())
+  getPublications.mockResolvedValue({
+    worker_reachable: true,
+    publications: [],
+    totals: {
+      published_count: 0,
+      active_count: 0,
+      total_snapshot_bytes: 0,
+      snapshot_bytes_complete: true,
+      total_unresolved: 0,
+    },
+  })
   vi.stubGlobal("open", vi.fn())
 })
 
@@ -593,9 +608,55 @@ describe("PublishingSettings — already connected", () => {
     renderSettings()
 
     await waitFor(() => expect(document.body.textContent).toContain("Publishing is ready"))
-    expect(document.body.textContent).toContain("open it and go to its Export step")
+    await waitFor(() => expect(document.body.textContent).toContain("Nothing published yet"))
+    expect(document.body.textContent).toContain("Hosted books")
     expect(screen.getByRole("button", { name: /disconnect/i })).toBeTruthy()
     expect(screen.queryByRole("button", { name: /connect with cloudflare/i })).toBeNull()
+  })
+
+
+  it("shows account usage and hosted books", async () => {
+    getCloudflareConnection.mockResolvedValue(connectionStatus())
+    getPublications.mockResolvedValue({
+      worker_reachable: true,
+      publications: [
+        {
+        token: "TokenRavenTokenRavenTokenRaven12",
+        title: "A book for readers",
+        book_label: "reader-book",
+        book_exists: true,
+        url: "https://adt-book-example.workers.dev/p/TokenRavenTokenRavenTokenRaven12",
+        current_version: 2,
+        version_count: 2,
+        created_at: "2026-08-03T10:00:00.000Z",
+        last_published_at: "2026-08-04T10:00:00.000Z",
+        expires_at: null,
+        revoked_at: null,
+        has_access_code: false,
+        access_code: null,
+        comment_count: 3,
+        unresolved_count: 1,
+        snapshot_bytes: 2048,
+          source: "worker",
+        },
+      ],
+      totals: {
+        published_count: 1,
+        active_count: 1,
+        total_snapshot_bytes: 2048,
+        snapshot_bytes_complete: true,
+        total_unresolved: 1,
+      },
+    })
+
+    renderSettings()
+
+    await waitFor(() => expect(screen.getByText("A book for readers")).toBeTruthy())
+    expect(screen.getByText("Published books")).toBeTruthy()
+    expect(screen.getByText("Room for 98 more")).toBeTruthy()
+    expect(
+      screen.getByRole("button", { name: /copy the link to a book for readers/i }),
+    ).toBeTruthy()
   })
 
   it("offers the upgrade when a newer service version is available", async () => {

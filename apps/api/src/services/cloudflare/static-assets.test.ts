@@ -159,7 +159,10 @@ describe("static asset manifest", () => {
     const fake = createFakeCloudflare({ assetUploadBuckets: buckets })
     const client = createCloudflareClient({ token: "account-token", accountId: "acct-1", fetchFn: fake.fetchFn })
 
-    const prepared = await prepareStaticAssets(client, "adt-publish", assets)
+    const progress: Array<{ done: number; total: number }> = []
+    const prepared = await prepareStaticAssets(client, "adt-publish", assets, {
+      onProgress: (event) => progress.push(event),
+    })
 
     expect(prepared.completionJwt).toBe("asset-complete-jwt")
     expect(fake.state.staticAssetUploads).toHaveLength(3)
@@ -172,6 +175,11 @@ describe("static asset manifest", () => {
       "asset-upload-jwt",
       "asset-upload-jwt",
       "asset-upload-jwt",
+    ])
+    expect(progress).toEqual([
+      { done: 2, total: 6 },
+      { done: 4, total: 6 },
+      { done: 6, total: 6 },
     ])
   })
 

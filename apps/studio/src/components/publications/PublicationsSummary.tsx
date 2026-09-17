@@ -1,9 +1,9 @@
 import type { ReactNode } from "react"
 import { HardDrive, Globe, MessagesSquare, Radio } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { R2_FREE_TIER_BYTES, type PublicationsTotals } from "@adt/types"
+import type { PublicationsTotals } from "@adt/types"
 import { cn } from "@/lib/utils"
-import { formatStorage, freeTierFraction } from "./format"
+import { formatStorage } from "./format"
 
 function Tile({
   icon,
@@ -44,7 +44,6 @@ export function PublicationsSummary({
   const unknown = t`—`
   const stopped = totals.published_count - totals.active_count
   const storage = formatStorage(totals.total_snapshot_bytes, i18n.locale)
-  const allowance = formatStorage(R2_FREE_TIER_BYTES, i18n.locale)
 
   return (
     <div className="flex flex-col gap-3">
@@ -53,6 +52,7 @@ export function PublicationsSummary({
           icon={<Globe className="size-3.5" aria-hidden="true" />}
           label={<Trans>Published books</Trans>}
           value={totals.published_count}
+          hint={<Trans>Room for {Math.max(0, 99 - totals.published_count)} more</Trans>}
         />
         <Tile
           icon={<Radio className="size-3.5" aria-hidden="true" />}
@@ -80,20 +80,8 @@ export function PublicationsSummary({
               <span className="text-muted-foreground">{unknown}</span>
             )
           }
-          hint={countsKnown ? <Trans>of {allowance} free in R2</Trans> : undefined}
-        >
-          {countsKnown ? (
-            <div
-              className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"
-              role="presentation"
-            >
-              <div
-                className="h-full rounded-full bg-primary/70 transition-[width] duration-500 motion-reduce:transition-none"
-                style={{ width: `${freeTierFraction(totals.total_snapshot_bytes) * 100}%` }}
-              />
-            </div>
-          ) : null}
-        </Tile>
+          hint={countsKnown ? <Trans>Across all published versions</Trans> : undefined}
+        />
         <Tile
           icon={<MessagesSquare className="size-3.5" aria-hidden="true" />}
           label={<Trans>Comments to read</Trans>}
@@ -113,10 +101,10 @@ export function PublicationsSummary({
       </div>
       <p className={cn("text-xs leading-5 text-muted-foreground", "mh:leading-4")}>
         <Trans>
-          Storage is the size of every published version's files in your own Cloudflare R2
-          bucket, measured while uploading them — earlier versions keep their files, so updating
-          a book adds to this. How many people opened your links is not shown here: reading that
-          needs Cloudflare analytics permissions the Studio never asks for.
+          Storage is the size of every published version's files in Cloudflare Static Assets.
+          Earlier versions keep their files, so updating a book adds to this. How many people
+          opened your links is not shown here: reading that needs Cloudflare analytics permissions
+          the Studio never asks for.
         </Trans>
       </p>
     </div>
