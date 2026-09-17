@@ -20,9 +20,6 @@ directory = "./assets"
 [[r2_buckets]]
 binding = "SNAPSHOTS"
 bucket_name = "adt-publish-test-snapshots"
-=======
-bucket_name = "adt-publish-snapshots"
->>>>>>> 13ef2ef99 (feat(publish): add rooms and page artwork support)
 
 [[durable_objects.bindings]]
 name = "PUBLICATION_ROOM"
