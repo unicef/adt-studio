@@ -7,6 +7,7 @@ import {
   CLOUDFLARE_ACCOUNT_ID_HEADER,
   CLOUDFLARE_TOKEN_HEADER,
   CLOUDFLARE_WORKER_NAME,
+  PROVISION_STEPS,
   PUBLISH_WORKER_VERSION,
   type CloudflareVerifyResponse,
   type ProvisionProgressEvent,
@@ -475,7 +476,9 @@ describe("cloudflare routes", () => {
     })
 
     it("emits a taxonomy error event instead of failing the stream", async () => {
-      const { app } = buildApp({ subdomain: null })
+      /** Registering is refused, which is the one case where the author has to open the
+       *  dashboard — an account with simply no subdomain now gets one reserved for it. */
+      const { app } = buildApp({ subdomain: null, subdomainCreateForbidden: true })
       const res = await app.request("/api/cloudflare/provision", { method: "POST", headers: AUTH })
 
       const events = parseSSE(await res.text())
@@ -483,8 +486,10 @@ describe("cloudflare routes", () => {
       expect(last?.type).toBe("error")
       if (last?.type !== "error") throw new Error("expected an error event")
       expect(last.code).toBe("no_workers_subdomain")
-      expect(last.step_id).toBe("enable-workers-dev")
-      expect(last.resume_from_step).toBe(6)
+      expect(last.step_id).toBe("verify-token")
+      expect(last.resume_from_step).toBe(
+        PROVISION_STEPS.find((step) => step.id === "verify-token")?.number,
+      )
     })
 
     it("reports the missing scopes on the error event", async () => {

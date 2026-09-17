@@ -16,6 +16,7 @@ import type { CloudflareConnectionRecord, ConnectionStore } from "./connection-s
 import { ProvisionError } from "./errors.js"
 import { createFakeCloudflare, type FakeCloudflareOptions } from "./fake-cloudflare-api.js"
 import { provisionCloudflare } from "./provisioner.js"
+import { suggestedWorkersDevSubdomain } from "./workers-subdomain.js"
 import type { WorkerArtifact } from "./worker-artifact.js"
 
 const NOW = new Date("2026-08-03T12:00:00.000Z")
@@ -402,11 +403,57 @@ describe("provisionCloudflare — error taxonomy", () => {
     expect(uploadedMetadata(fake).migrations).toBeUndefined()
   })
 
-  it("reports no_workers_subdomain when the account has none", async () => {
-    const { error, fake } = await run({ fake: { subdomain: null } })
+  /** Cloudflare creates a workers.dev subdomain silently the first time anyone opens the
+   *  Workers dashboard, so sending the author there is sending them to fetch a name Cloudflare
+   *  would have picked anyway. The run reserves one and carries on. */
+  it("reserves a workers.dev subdomain when the account has none", async () => {
+    const { error, fake, status } = await run({ fake: { subdomain: null } })
+
+    expect(error).toBeNull()
+    expect(fake.state.subdomainsCreated).toHaveLength(1)
+    expect(fake.state.subdomainsCreated[0]).toMatch(/^adt-[0-9a-f]{10}$/)
+    expect(status?.resources?.workers_dev_subdomain).toBe(fake.state.subdomainsCreated[0])
+  })
+
+  /** These labels are unique across the whole of workers.dev, not just this account, so a
+   *  derived name can collide however unlikely that is. */
+  it("asks for another name when the first is already taken", async () => {
+    const { fake, error } = await run({
+      fake: { subdomain: null, subdomainsTaken: [suggestedWorkersDevSubdomain("acct-1")] },
+    })
+
+    expect(error).toBeNull()
+    expect(fake.state.subdomainsCreated[0]).not.toBe(suggestedWorkersDevSubdomain("acct-1"))
+  })
+
+  /** Registering is reported to fail on some accounts. That is the one case where the author
+   *  really does have to open the dashboard, and the message says so rather than blaming the
+   *  upload that would have failed next. */
+  it("falls back to asking the author when Cloudflare refuses to reserve one", async () => {
+    const { error, fake } = await run({
+      fake: { subdomain: null, subdomainCreateForbidden: true },
+    })
+
     expect(error?.code).toBe("no_workers_subdomain")
-    expect(error?.resumeFromStep).toBe(6)
-    expect(fake.state.scripts.has(CLOUDFLARE_WORKER_NAME)).toBe(true)
+    expect(error?.resumeFromStep).toBe(1)
+    expect(error?.message).toContain("Workers & Pages")
+    expect(fake.state.scripts.has(CLOUDFLARE_WORKER_NAME)).toBe(false)
+    expect(fake.state.databases).toEqual([])
+  })
+
+  /** The belt to that brace: if the account gains and loses a subdomain between the probe and
+   *  the upload, or Cloudflare refuses for a reason the probe cannot see, the upload's own
+   *  error still has to land on the step that explains it rather than on upload_failed. */
+  it("recognises Cloudflare's own words when the upload is refused for want of one", async () => {
+    const { error } = await run({
+      fake: {
+        uploadErrorMessage:
+          "You need a workers.dev subdomain in order to proceed. Please go to the dashboard and open the Workers menu.",
+      },
+    })
+
+    expect(error?.code).toBe("no_workers_subdomain")
+    expect(error?.message).not.toMatch(/passing network/i)
   })
 
   it("reports stale_deployment when the deployed version does not match", async () => {
@@ -454,7 +501,7 @@ describe("provisionCloudflare — resuming after a partial provision", () => {
 
   it("leaves the stored secret matching the last uploaded secret", async () => {
     const store = memoryStore()
-    await run({ store, secret: "secret-a", fake: { subdomain: null } })
+    await run({ store, secret: "secret-a", fake: { subdomain: null, subdomainCreateForbidden: true } })
     const second = await run({
       store,
       secret: "secret-b",

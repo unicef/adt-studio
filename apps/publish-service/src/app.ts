@@ -12,22 +12,14 @@ import {
   type PublicationResponse,
   type PublishWorkerHealth,
 } from "@adt/types"
-import { accessGate, registerAccessRoute } from "./access.js"
-import { registerCommentRoutes } from "./comments.js"
 import { createD1PublicationStore } from "./d1-store.js"
 import type { Env } from "./env.js"
 import { errorResponse } from "./errors.js"
 import { readJsonBody } from "./http.js"
 import { hashAccessCode, randomId } from "./identity.js"
 import { mgmtAuth } from "./middleware/mgmt-auth.js"
-import { publicationLookup, type PublicationVariables } from "./middleware/publication-lookup.js"
-import { registerRoomRoutes } from "./room-routes.js"
-import {
-  cacheControlFor,
-  conditionalEtag,
-  contentTypeFor,
-  snapshotPathFromUrl,
-} from "./serve.js"
+import { type PublicationVariables } from "./middleware/publication-lookup.js"
+import { registerReaderRoutes } from "./reader-routes.js"
 import {
   deleteSnapshotObjects,
   normalizeSnapshotPath,
@@ -52,7 +44,6 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     injected ?? (options.createStore ?? ((e: Env) => createD1PublicationStore(e.DB)))(env)
   const now = options.now ?? (() => new Date())
   const timestamp = (): string => now().toISOString()
-  const requirePublication = publicationLookup(resolveStore)
 
   const shareUrl = (c: Context, token: string): string =>
     `${new URL(c.req.url).origin}/p/${token}/`
@@ -324,87 +315,12 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     return c.json(body)
   })
 
-  const serveSnapshot = async (c: Context<AppEnv>): Promise<Response> => {
-    const publication = c.get("publication")
-    const requested = snapshotPathFromUrl(c.req.url, publication.token)
-    const relative = normalizeSnapshotPath(requested)
-    if (relative === null) {
-      return errorResponse(c, "not_found", 404)
-    }
-
-    const prefix = await resolveStore(c.env).findSnapshotPrefix(
-      publication.token,
-      publication.current_version,
-      relative,
-    )
-    if (prefix === null) return errorResponse(c, "not_found", 404)
-    const key = `${prefix}/${relative}`
-
-    if (c.env.ASSETS) {
-      const assetUrl = new URL(`/${key}`, c.req.url)
-      const asset = await c.env.ASSETS.fetch(new Request(assetUrl, c.req.raw))
-      if (asset.status !== 404) {
-        const headers = new Headers(asset.headers)
-        headers.set("content-type", contentTypeFor(relative))
-        headers.set("cache-control", cacheControlFor(relative, c.get("accessCodeHash") !== null))
-        return new Response(asset.body, { status: asset.status, statusText: asset.statusText, headers })
-      }
-    }
-
-    const ifNoneMatch = conditionalEtag(c.req.header("If-None-Match"))
-    const object = await c.env.SNAPSHOTS.get(
-      key,
-      ifNoneMatch === undefined ? undefined : { onlyIf: { etagDoesNotMatch: ifNoneMatch } },
-    )
-
-    if (!object) {
-      return errorResponse(c, "not_found", 404)
-    }
-
-    const headers = new Headers({
-      "content-type": contentTypeFor(relative),
-      "cache-control": cacheControlFor(relative, c.get("accessCodeHash") !== null),
-      etag: object.httpEtag,
-    })
-
-    if (!("body" in object)) {
-      return new Response(null, { status: 304, headers })
-    }
-
-    headers.set("content-length", String(object.size))
-    return new Response(object.body, { headers })
-  }
-
-  app.use("/p/:token", requirePublication)
-  app.use("/p/:token/*", requirePublication)
-
-  /** Order is load-bearing three times over. The lookup ladder runs first, so an unknown token
-   *  is still `404` and a revoked one still `410` — the gate only ever guards requests that
-   *  would otherwise be served. `POST /access` is registered *before* the gate, because a
-   *  handler that answers without calling `next()` ends the chain: the code prompt's own form
-   *  target cannot sit behind the prompt. Everything after the gate — comments included — is
-   *  reachable only with a valid grant or `MGMT_SECRET`.
-   *
-   *  The door shares the comment routes' deps because it now mints commenter sessions too: the
-   *  gate collects the visitor's name, so both cookies are set on the one response. */
-  const sessionDeps = {
+  registerReaderRoutes(app, {
     resolveStore,
     timestamp,
     newId: options.newId ?? (() => randomId()),
-  }
+  })
 
-  registerAccessRoute(app, sessionDeps)
-
-  /** Ahead of the gate because a room ticket is an alternative credential to the reader grant. */
-  registerRoomRoutes(app, sessionDeps)
-
-  app.use("/p/:token", accessGate)
-  app.use("/p/:token/*", accessGate)
-
-  registerCommentRoutes(app, sessionDeps)
-
-  app.get("/p/:token", serveSnapshot)
-  app.get("/p/:token/*", serveSnapshot)
 
   app.notFound((c) => errorResponse(c, "not_found", 404))
 

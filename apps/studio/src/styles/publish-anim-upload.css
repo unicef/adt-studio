@@ -1,0 +1,467 @@
+/* Keyframes for the `upload` step — "Sending it to your Cloudflare account".
+ *
+ * One candidate survives — The Assembly Line (up-cv-), the owner's pick; The Ascent, The Doorway
+ * and The Far Shelf are archived in `.context/publish-progress/rejected/`. Everything
+ * in the block below is a property of the step, not an opinion about how to draw it, and it is the
+ * law this file is written under.
+ *
+ * ── what the step is ────────────────────────────────────────────────────────────────────────────
+ *
+ * One to four minutes on a real book — by far the longest of the four, and roughly three quarters
+ * of the whole run. Whatever goes here is looked at 30 to 100 times over.
+ *
+ * ── what the wire carries ───────────────────────────────────────────────────────────────────────
+ *
+ * `{done, total, unit:"files"}`, at roughly 1.4 events per second, and **never which file**. Nothing
+ * drawn here may imply per-item truth, because the stream cannot support it.
+ *
+ * ── the two clocks ──────────────────────────────────────────────────────────────────────────────
+ *
+ * Aggregate geometry may be driven by the count. Any per-item state change must be driven by a
+ * clock. Two clocks that never speak: an *ambient* clock (CSS keyframes, infinite, long
+ * near-coprime periods from 7/11/13/23/31/41/47s, never resets, never references progress) and a
+ * *progress channel* (event-driven, monotonic, compositor-safe). A stall freezes the second and
+ * never the first — a frozen picture is how an author four minutes in reads a hung app.
+ *
+ * Binding technique: React writes a concrete `transform`/`opacity`/`clip-path` inline; CSS
+ * transitions it. Never `transition` a registered `@property` var consumed inside a `transform` —
+ * registered custom properties animate on the main thread and repaint every frame. Where a
+ * progress-driven transform and an ambient transform want the same node, they get two nested nodes:
+ * an animation outranks an inline style for the property it animates, so one element would silently
+ * drop the progress channel on the floor.
+ *
+ * The progress channel appears nowhere in this file. The node it writes to — the Assembly Line's
+ * sight-glass level — carries an inline transform and **no keyframe here may name it**; its
+ * ambient life lives on nested children.
+ *
+ * ── reduced motion ──────────────────────────────────────────────────────────────────────────────
+ *
+ * `globals.css` kills all animation under `prefers-reduced-motion` for `[data-publish-run]` with
+ * `!important`. Nothing here may rely on `fill-mode` to hold a final frame — pair a *base*
+ * declaration (the resting state, which survives `animation-duration: 0s !important`) with
+ * keyframes that depart from it. Never `fill-mode`. The base states below therefore compose the
+ * reduced-motion still: parked pages at authored positions along the belt, one past the machine
+ * with its cloud stamp shown, the sight glass at the current level.
+ */
+
+/* ── shared ─────────────────────────────────────────────────────────────────────────────────── */
+
+/* Page images decoding in the same frame is a visible mount jank. `@starting-style` rather than a
+ * keyframe because a keyframe would have to hold its final frame — which is exactly what reduced
+ * motion forbids. Under reduced motion the transition collapses to 0s and the image is simply
+ * there. */
+.up-fade {
+  opacity: 1;
+  transition: opacity 520ms cubic-bezier(0.33, 0, 0.15, 1);
+}
+
+@starting-style {
+  .up-fade {
+    opacity: 0;
+  }
+}
+
+/* The one thing a stall is allowed to add: the light goes cool. Nothing stops — every drift and
+ * breath below runs on, which is the difference between "holding" and "hung". */
+.up-stall {
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  background: radial-gradient(
+    62% 62% at 50% 46%,
+    rgba(148, 163, 184, 0.3),
+    rgba(148, 163, 184, 0) 76%
+  );
+  opacity: 0;
+  transition: opacity 2600ms linear;
+}
+
+[data-stalled] .up-stall {
+  opacity: 1;
+}
+
+/* The belt scene bleeds far past its authored box, so its stall light has to reach as far. */
+.up-cv-scene .up-stall {
+  inset: -30% -700px;
+}
+
+/* ── The Assembly Line ──────────────────────────────────────────────────────────────────────────
+ *
+ * One physical clock. Pages (40s ride over the long run), strap texture (1.92s) and roller rims
+ * (2.41s) all move at the same 26px/s — the short periods are *derived from the belt speed*, not chosen as rhythms,
+ * which is the conveyor exemption: continuous uniform motion has no beat, and a texture loop whose
+ * travel equals its repeat length has no seam. The ride keyframe reads `--cv-from`/`--cv-to` per
+ * page; those are authored so the parked `left` cancels out of the moving picture — the park
+ * position exists only for the reduced-motion still.
+ *
+ * The sight-glass level is the progress channel's node and nothing here may name it.
+ */
+
+/* No clipping of its own: the scene bleeds past the authored box on purpose, and the card the
+ * run screen draws it on does the cutting — so the belt ends at the page's own edge, not at an
+ * invisible rectangle floating inside it. */
+.up-cv-scene {
+  position: absolute;
+  inset: 0;
+}
+
+.up-cv-floor {
+  position: absolute;
+  left: -620px;
+  right: -620px;
+  top: 196px;
+  height: 18px;
+  background: linear-gradient(180deg, rgba(183, 201, 216, 0.35), rgba(183, 201, 216, 0));
+}
+
+.up-cv-strap {
+  position: absolute;
+  left: -620px;
+  right: -620px;
+  top: 168px;
+  height: 12px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #7e93a6 0%, #66798c 100%);
+  box-shadow: 0 2px 4px rgba(46, 68, 92, 0.18);
+}
+
+/* The strap's surface, sliding. Travel per loop = one repeat, so the wrap is invisible. */
+.up-cv-track {
+  position: absolute;
+  left: -670px;
+  top: 170px;
+  width: 1790px;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(250, 253, 255, 0.45) 0 4px,
+    rgba(250, 253, 255, 0) 4px 50px
+  );
+  animation: up-cv-track 1.92s linear infinite;
+}
+
+@keyframes up-cv-track {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(50px);
+  }
+}
+
+.up-cv-wheel {
+  position: absolute;
+  top: 180px;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: linear-gradient(163deg, #ecf1f6, #d8e1ea);
+  outline: 1.4px solid rgba(58, 82, 108, 0.5);
+  outline-offset: -1.4px;
+  animation: up-cv-wheel 2.41s linear infinite;
+}
+
+@keyframes up-cv-wheel {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.up-cv-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 9999px;
+  background: rgba(58, 82, 108, 0.55);
+}
+
+.up-cv-notch {
+  position: absolute;
+  left: 50%;
+  top: 3px;
+  width: 2.5px;
+  height: 2.5px;
+  margin-left: -1.25px;
+  border-radius: 9999px;
+  background: rgba(58, 82, 108, 0.45);
+}
+
+.up-cv-page {
+  position: absolute;
+}
+
+/* The ride. Linear on purpose — a conveyor is the quality bar's own example of honest linear —
+ * and the travel is constant for every page, so one keyframe serves all six at one speed. */
+.up-cv-ride {
+  position: absolute;
+  inset: 0;
+  transform: translateX(0);
+  animation: up-cv-ride 40s linear infinite;
+}
+
+@keyframes up-cv-ride {
+  0% {
+    transform: translateX(var(--cv-from, -320px));
+  }
+  100% {
+    transform: translateX(var(--cv-to, 720px));
+  }
+}
+
+.up-cv-page-shadow {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: -3px;
+  height: 5px;
+  border-radius: 9999px;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(46, 68, 92, 0.3), rgba(46, 68, 92, 0) 72%);
+}
+
+.up-cv-card {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 2px;
+  transform: rotate(-2.5deg);
+  transform-origin: 50% 100%;
+  background: linear-gradient(163deg, #fbfcfe 0%, #eef2f7 100%);
+  outline: 1px solid rgba(58, 82, 108, 0.30);
+  outline-offset: -1px;
+  box-shadow: 0 1px 2px rgba(46, 68, 92, 0.14);
+}
+
+/* Print for a page with no render: four baked bars, no glyphs. */
+.up-cv-print {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(40, 58, 78, 0.3), rgba(40, 58, 78, 0.3)),
+    linear-gradient(rgba(40, 58, 78, 0.22), rgba(40, 58, 78, 0.22)),
+    linear-gradient(rgba(40, 58, 78, 0.22), rgba(40, 58, 78, 0.22)),
+    linear-gradient(rgba(40, 58, 78, 0.16), rgba(40, 58, 78, 0.16));
+  background-repeat: no-repeat;
+  background-size:
+    56% 6%,
+    64% 5%,
+    48% 5%,
+    34% 5%;
+  background-position:
+    16% 22%,
+    16% 40%,
+    16% 56%,
+    16% 72%;
+}
+
+/* The stamp of the sending machine. It flips while the page is hidden inside the housing — the
+ * 53.5→54.5% window of the long ride lands under the machine for every plate width — so nothing
+ * changes on screen; a page simply emerges franked. `--cv-seal` is the parked state, for the reduced-motion still. */
+.up-cv-seal {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  border: 1px solid rgba(74, 127, 168, 0.55);
+  background: #fbfcfe;
+  box-shadow: 0 1px 2px rgba(46, 68, 92, 0.25);
+  opacity: var(--cv-seal, 0);
+  /* MUST match the ride's duration — the TSX writes both inline from RIDE_S so they cannot
+     drift; this is only the fallback. A seal on its own clock stamps pages that have not yet
+     reached the machine. */
+  animation: up-cv-seal 40s linear infinite;
+}
+
+.up-cv-seal svg {
+  position: absolute;
+  inset: 1.5px;
+  color: #4a7fa8;
+}
+
+/* The machine's own badge: what this machine is for, printed on the housing. */
+.up-cv-brand {
+  position: absolute;
+  left: 13px;
+  top: 24px;
+  width: 26px;
+  height: 26px;
+  color: rgba(74, 127, 168, 0.8);
+}
+
+@keyframes up-cv-seal {
+  0%,
+  53.5% {
+    opacity: 0;
+  }
+  54.5%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Warm light past the machine — the direction "away" is bright, and pages leave through it. */
+.up-cv-glow {
+  position: absolute;
+  left: 314px;
+  top: 78px;
+  width: 130px;
+  height: 132px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    50% 50% at 55% 50%,
+    rgba(158, 200, 232, 0.45),
+    rgba(158, 200, 232, 0) 72%
+  );
+  opacity: 0.85;
+  animation: up-cv-glow 13s ease-in-out infinite;
+}
+
+@keyframes up-cv-glow {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.up-cv-machine {
+  position: absolute;
+  height: 122px;
+}
+
+.up-cv-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 8px;
+  bottom: 10px;
+  border-radius: 6px;
+  background: linear-gradient(163deg, #e8eef4 0%, #d8e2ea 100%);
+  outline: 1px solid rgba(58, 82, 108, 0.3);
+  outline-offset: -1px;
+  box-shadow: 0 4px 12px rgba(46, 68, 92, 0.16);
+}
+
+/* The base skirt: the machine sits over the belt, feet on the floor. */
+.up-cv-skirt {
+  position: absolute;
+  left: -6px;
+  right: -6px;
+  bottom: 0;
+  height: 12px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #c9d5e0, #bccad7);
+  outline: 1px solid rgba(58, 82, 108, 0.3);
+  outline-offset: -1px;
+}
+
+.up-cv-rivet {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 9999px;
+  background: rgba(58, 82, 108, 0.4);
+}
+
+.up-cv-vent {
+  position: absolute;
+  left: 12px;
+  bottom: 14px;
+  width: 20px;
+  height: 12px;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(58, 82, 108, 0.35) 0 1.5px,
+    transparent 1.5px 5px
+  );
+}
+
+/* The boiler sight glass. The level inside is the progress channel's node — inline transform,
+ * transitioned; no keyframe may name `.up-cv-level`. */
+.up-cv-glass {
+  position: absolute;
+  right: 14px;
+  top: 16px;
+  width: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.55);
+  outline: 1px solid rgba(58, 82, 108, 0.38);
+  outline-offset: -1px;
+}
+
+.up-cv-level {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #a9cfec 0%, #77aed8 100%);
+}
+
+.up-cv-glass-shine {
+  position: absolute;
+  left: 2.5px;
+  top: 4px;
+  bottom: 4px;
+  width: 1.5px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.up-cv-tick {
+  position: absolute;
+  right: 8px;
+  width: 4px;
+  height: 1.5px;
+  background: rgba(58, 82, 108, 0.4);
+}
+
+/* The lamp: proof of life on the machine itself, breathing on the ambient clock. */
+.up-cv-lamp {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 12px;
+  height: 9px;
+  margin-left: -6px;
+  border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(180deg, #c6e0f2, #82b4da);
+  outline: 1px solid rgba(58, 82, 108, 0.35);
+  outline-offset: -1px;
+}
+
+.up-cv-lamp-halo {
+  position: absolute;
+  left: 50%;
+  top: -14px;
+  width: 44px;
+  height: 34px;
+  margin-left: -22px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    50% 50% at 50% 55%,
+    rgba(158, 200, 232, 0.6),
+    rgba(158, 200, 232, 0) 72%
+  );
+  opacity: 0.8;
+  animation: up-cv-lamp 11s ease-in-out infinite;
+}
+
+@keyframes up-cv-lamp {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
