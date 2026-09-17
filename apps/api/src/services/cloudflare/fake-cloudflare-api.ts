@@ -47,6 +47,7 @@ export interface FakeCloudflareOptions {
   uploadErrorMessage?: string
   rejectMigrationTag?: boolean
   workerVersion?: string
+  workerCreateConflict?: boolean
   healthFailures?: number
   healthUnreachable?: boolean
   assetUploadBuckets?: string[][]
@@ -286,6 +287,19 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
         return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
       }
       return ok([...state.scripts.keys()].map((id) => ({ id })))
+    }
+
+    if (path === "/workers/workers" && method === "POST") {
+      if (denied.has("Workers Scripts:Edit")) {
+        return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
+      }
+      const body = JSON.parse(String(init?.body ?? "{}")) as { name?: string }
+      if (!body.name) return fail(400, 10013, "Worker name is required")
+      if (options.workerCreateConflict || state.scripts.has(body.name)) {
+        return fail(409, 10090, `A Worker with the name '${body.name}' already exists.`)
+      }
+      state.scripts.set(body.name, { script: "", metadata: {} })
+      return ok({ id: body.name, name: body.name })
     }
 
     if (path === "/workers/subdomain" && method === "GET") {

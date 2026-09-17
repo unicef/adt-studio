@@ -204,6 +204,13 @@ describe("provisionCloudflare — happy path", () => {
 })
 
 describe("provisionCloudflare — idempotent re-run", () => {
+  it("continues when a partial setup already created the Worker record", async () => {
+    const { error, fake } = await run({ fake: { workerCreateConflict: true } })
+
+    expect(error).toBeNull()
+    expect(fake.state.uploadCount).toBe(1)
+  })
+
   it("reuses existing resources, skips applied migrations and omits the DO migration tag", async () => {
     const first = await run()
     const record = first.store.read()

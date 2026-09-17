@@ -264,6 +264,13 @@ export async function provisionCloudflare(
   const uploadedMigrationTag = await runStep("upload-worker", async () => {
     const scripts = await client.listWorkerScripts().catch(() => [])
     const scriptExists = scripts.some((script) => script.id === CLOUDFLARE_WORKER_NAME)
+    if (!scriptExists) {
+      try {
+        await client.createWorker(CLOUDFLARE_WORKER_NAME)
+      } catch (error) {
+        if (!alreadyExists(error)) throw error
+      }
+    }
     const workerMigrations = artifact.metadata.migrations
     const migrationTag = workerMigrations?.new_tag ?? null
     const needsMigrations =

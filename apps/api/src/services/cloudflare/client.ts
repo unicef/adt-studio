@@ -84,6 +84,7 @@ export interface CloudflareClient {
   createStaticAssetUploadSession(name: string, manifest: StaticAssetManifest): Promise<StaticAssetUploadSession>
   uploadStaticAssetBucket(uploadJwt: string, assets: Record<string, string>): Promise<string>
   listWorkerScripts(): Promise<Array<{ id: string }>>
+  createWorker(name: string): Promise<void>
   uploadWorkerScript(upload: WorkerScriptUpload): Promise<void>
   deleteWorkerScript(name: string): Promise<void>
   getWorkersDevSubdomain(): Promise<string | null>
@@ -278,6 +279,10 @@ export function createCloudflareClient(
     async listWorkerScripts() {
       const result = await request<Array<{ id?: string }>>(`${account}/workers/scripts`)
       return (result ?? []).flatMap((entry) => (entry.id ? [{ id: entry.id }] : []))
+    },
+
+    async createWorker(name) {
+      await requestJson(`${account}/workers/workers`, "POST", { name })
     },
 
     async uploadWorkerScript({ name, script, metadata }) {
