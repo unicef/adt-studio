@@ -217,7 +217,7 @@ describe("PublishingSettings — connect wizard", () => {
       emit?.({ type: "step", id: "verify-token", number: 1, label: "Verify", status: "running" })
     })
     expect(screen.getByTestId("provision-step-1").getAttribute("data-state")).toBe("running")
-    expect(screen.getByTestId("provision-step-8").getAttribute("data-state")).toBe("pending")
+    expect(screen.getByTestId("provision-step-7").getAttribute("data-state")).toBe("pending")
 
     act(() => {
       emit?.({ type: "step", id: "verify-token", number: 1, label: "Verify", status: "done" })
@@ -272,7 +272,7 @@ describe("PublishingSettings — connect wizard", () => {
       emit?.({
         type: "step",
         id: "enable-workers-dev",
-        number: 7,
+        number: 6,
         label: "Enable workers.dev",
         status: "error",
       })
@@ -281,17 +281,123 @@ describe("PublishingSettings — connect wizard", () => {
         code: "no_workers_subdomain",
         message: "Account has no workers.dev subdomain",
         step_id: "enable-workers-dev",
-        resume_from_step: 7,
+        resume_from_step: 6,
       })
     })
 
     expect(screen.getByTestId("provision-error-no_workers_subdomain")).toBeTruthy()
-    expect(screen.getByTestId("provision-step-7").getAttribute("data-state")).toBe("error")
+    expect(screen.queryByTestId("provision-step-7")).toBeNull()
 
     fireEvent.click(screen.getByRole("button", { name: /try again/i }))
 
     expect(provisionCloudflare).toHaveBeenCalledTimes(2)
-    expect(provisionCloudflare.mock.calls[1][1].resumeFromStep).toBe(7)
+    expect(provisionCloudflare.mock.calls[1][1].resumeFromStep).toBe(6)
+  })
+
+  /** A stopped setup is exactly when someone wants to back out and connect a different
+   *  account. Sign out was enabled only while idle, so a failure left a retry that could not
+   *  work and no way off the screen. */
+  it("lets the author sign out after setup stops", async () => {
+    startCloudflareOAuth.mockResolvedValue({
+      auth_url: "https://dash.cloudflare.com/oauth2/auth?client_id=test",
+      state: "state-signout",
+    })
+    getCloudflareOAuthStatus.mockResolvedValue({
+      status: "complete",
+      account_choice_required: false,
+      account_id: "acct-123",
+    })
+
+    let emit: ((event: ProvisionProgressEvent) => void) | null = null
+    provisionCloudflare.mockImplementation((_credentials: unknown, options: ProvisionOptions) => {
+      emit = options.onEvent
+      return new Promise<void>(() => {})
+    })
+
+    renderSettings()
+
+    fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /set up publishing/i })).toBeTruthy(),
+    )
+
+    const signOut = () => screen.getByRole("button", { name: /sign out/i }) as HTMLButtonElement
+    expect(signOut().disabled).toBe(false)
+
+    fireEvent.click(screen.getByRole("button", { name: /set up publishing/i }))
+    /** While the run is in flight it stays blocked — half-provisioned is the one state where
+     *  walking away really does leave a mess. */
+    expect(signOut().disabled).toBe(true)
+
+    act(() => {
+      emit?.({
+        type: "step",
+        id: "verify-token",
+        number: 1,
+        label: "Verify token",
+        status: "error",
+      })
+      emit?.({
+        type: "error",
+        code: "no_workers_subdomain",
+        message: "Account has no workers.dev subdomain",
+        step_id: "verify-token",
+        resume_from_step: 1,
+      })
+    })
+
+    expect(screen.getByTestId("provision-error-no_workers_subdomain")).toBeTruthy()
+    expect(signOut().disabled).toBe(false)
+  })
+
+  /** The headline and the line under it are rendered by the same block, so a failure used to
+   * keep the running step's detail and announce "Setup stopped — The address every share link
+   * will start with." */
+  it("does not describe the step that failed as though it had happened", async () => {
+    startCloudflareOAuth.mockResolvedValue({
+      auth_url: "https://dash.cloudflare.com/oauth2/auth?client_id=test",
+      state: "state-detail",
+    })
+    getCloudflareOAuthStatus.mockResolvedValue({
+      status: "complete",
+      account_choice_required: false,
+      account_id: "acct-123",
+    })
+
+    let emit: ((event: ProvisionProgressEvent) => void) | null = null
+    provisionCloudflare.mockImplementation((_credentials: unknown, options: ProvisionOptions) => {
+      emit = options.onEvent
+      return new Promise<void>(() => {})
+    })
+
+    renderSettings()
+
+    fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /set up publishing/i })).toBeTruthy(),
+    )
+    fireEvent.click(screen.getByRole("button", { name: /set up publishing/i }))
+
+    act(() => {
+      emit?.({
+        type: "step",
+        id: "enable-workers-dev",
+        number: 6,
+        label: "Enable workers.dev",
+        status: "error",
+      })
+      emit?.({
+        type: "error",
+        code: "no_workers_subdomain",
+        message: "Account has no workers.dev subdomain",
+        step_id: "enable-workers-dev",
+        resume_from_step: 6,
+      })
+    })
+
+    expect(screen.getByText("Setup stopped")).toBeTruthy()
+    expect(screen.queryByText(/the address every share link will start with/i)).toBeNull()
+    expect(screen.getByText(/picks up where it left off/i)).toBeTruthy()
   })
 })
 

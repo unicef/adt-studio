@@ -45,10 +45,15 @@ export interface CalmStepLoaderProps {
     done: string
     doneDetail: string
     error: string
+    /** Required because the alternative is falling back to the running step's own detail, which
+     * under a failure headline reads as a description of something that just did not happen. */
+    errorDetail: string
     idle?: string
     idleDetail?: string
   }
   idleAction?: ReactNode
+  /** Replaces the checklist after a failed operation while retaining the status summary. */
+  errorContent?: ReactNode
 }
 
 function isSettled(state: LoaderStepState): boolean {
@@ -123,6 +128,7 @@ export function CalmStepLoader({
   rootTestId,
   copy,
   idleAction,
+  errorContent,
 }: CalmStepLoaderProps) {
   const { i18n } = useLingui()
   const total = steps.length
@@ -174,9 +180,11 @@ export function CalmStepLoader({
         >
           {status === "done"
             ? copy.doneDetail
-            : status === "idle" && copy.idleDetail
-              ? copy.idleDetail
-              : i18n._(current.detail)}
+            : status === "error"
+              ? copy.errorDetail
+              : status === "idle" && copy.idleDetail
+                ? copy.idleDetail
+                : i18n._(current.detail)}
         </p>
       </div>
 
@@ -200,6 +208,11 @@ export function CalmStepLoader({
         </div>
       )}
 
+      {status === "error" && errorContent ? (
+        <div className="w-full max-w-xs motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200">
+          {errorContent}
+        </div>
+      ) : (
       <ol
         className={cn(
           "w-full",
@@ -271,6 +284,7 @@ export function CalmStepLoader({
           )
         })}
       </ol>
+      )}
 
       {status === "idle" && idleAction}
     </div>
