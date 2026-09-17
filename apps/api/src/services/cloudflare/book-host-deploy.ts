@@ -1,6 +1,6 @@
 import { CLOUDFLARE_WORKER_NAME, workersDevUrl } from "@adt/types"
 import { BOOK_WORKER_NAME_PREFIX, bookHostAuthorSecret, bookWorkerName } from "./book-host.js"
-import { CloudflareApiError, type CloudflareClient } from "./client.js"
+import { CloudflareApiError, retryCloudflareOperation, type CloudflareClient } from "./client.js"
 import { prepareStaticAssets, type StaticAsset } from "./static-assets.js"
 import type { WorkerArtifactBinding, BookHostArtifact } from "./worker-artifact.js"
 
@@ -72,6 +72,7 @@ export interface DeployBookHostOptions {
   controlPlaneName?: string
   /** Called after Cloudflare accepts an asset batch. The callback never invents file progress. */
   onAssetProgress?: (progress: { done: number; total: number }) => void | Promise<void>
+  sleep?: (ms: number) => Promise<void>
 }
 
 export interface DeployedBookHost {
@@ -101,6 +102,7 @@ export async function deployBookHost(
     controlPlaneSecret,
     controlPlaneName = CLOUDFLARE_WORKER_NAME,
     onAssetProgress,
+    sleep,
   } = options
 
   if (assets.length === 0) {
@@ -141,7 +143,7 @@ export async function deployBookHost(
     }
   }
 
-  const staticAssets = await prepareStaticAssets(client, name, assets, { onProgress: onAssetProgress })
+  const staticAssets = await prepareStaticAssets(client, name, assets, { onProgress: onAssetProgress, sleep })
 
   const bindings = resolveBookHostBindings(artifact.metadata.bindings, {
     d1DatabaseUuid,
@@ -150,19 +152,22 @@ export async function deployBookHost(
   })
 
   try {
-    await client.uploadWorkerScript({
-      name,
-      script: artifact.script,
-      metadata: {
-        main_module: artifact.metadata.main_module,
-        compatibility_date: artifact.metadata.compatibility_date,
-        bindings,
-        /** Never a path list. Anything Cloudflare's asset layer can answer is answered before
-         * the Worker runs, so any path the list omits is served with no access code, no expiry
-         * and no revocation check. */
-        assets: { jwt: staticAssets.completionJwt, config: { run_worker_first: true } },
-      },
-    })
+    await retryCloudflareOperation(
+      () => client.uploadWorkerScript({
+        name,
+        script: artifact.script,
+        metadata: {
+          main_module: artifact.metadata.main_module,
+          compatibility_date: artifact.metadata.compatibility_date,
+          bindings,
+          /** Never a path list. Anything Cloudflare's asset layer can answer is answered before
+           * the Worker runs, so any path the list omits is served with no access code, no expiry
+           * and no revocation check. */
+          assets: { jwt: staticAssets.completionJwt, config: { run_worker_first: true } },
+        },
+      }),
+      { attempts: 5, sleep },
+    )
   } catch (error) {
     throw new BookHostDeployError(
       `Cloudflare would not deploy this book's Worker: ${describe(error)}`,
@@ -171,7 +176,7 @@ export async function deployBookHost(
   }
 
   try {
-    await client.enableScriptSubdomain(name)
+    await retryCloudflareOperation(() => client.enableScriptSubdomain(name), { attempts: 5, sleep })
   } catch (error) {
     throw new BookHostDeployError(
       `This book's Worker deployed but has no web address yet: ${describe(error)}`,

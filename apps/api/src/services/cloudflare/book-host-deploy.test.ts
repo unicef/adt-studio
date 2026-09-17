@@ -109,6 +109,29 @@ describe("deployBookHost", () => {
     )
   })
 
+  it("retries a transient Worker deployment without recreating the book host", async () => {
+    const fake = createFakeCloudflare()
+    let rejected = false
+    const fetchFn = async (url: string, init?: RequestInit) => {
+      if (!rejected && init?.method === "PUT" && url.includes(`/workers/scripts/${bookWorkerName(TOKEN)}`)) {
+        rejected = true
+        return new Response(
+          JSON.stringify({ success: false, errors: [{ code: 10001, message: "temporarily unavailable" }] }),
+          { status: 503, headers: { "Retry-After": "0" } },
+        )
+      }
+      return fake.fetchFn(url, init)
+    }
+
+    await deploy(fake, {
+      client: createCloudflareClient({ token: "account-token", accountId: "acct-1", fetchFn }),
+      sleep: async () => undefined,
+    })
+
+    expect(rejected).toBe(true)
+    expect(fake.state.scripts.has(bookWorkerName(TOKEN))).toBe(true)
+  })
+
   /** The whole reason for a Worker per book: the gate has to run ahead of every byte, and a
    *  path list would leave anything it does not match publicly readable. */
   it("puts the access gate ahead of every asset", async () => {
