@@ -36,55 +36,55 @@ export function ProvisionStep({
   }, [onProvisioned, status])
 
   return (
-    <WizardStepShell
-      stepNumber={stepNumber}
-      stepCount={stepCount}
-      title={<Trans>Set up publishing</Trans>}
-      description={
-        <Trans>
-          The Studio will create the storage and small web service it needs inside your Cloudflare
-          account. This takes a minute or two and only happens once.
-        </Trans>
-      }
-      footer={
-        <>
-          <Button
-            variant="ghost"
-            onClick={() =>
-              disconnect.mutate(
-                { credentials: credentials ?? {}, deleteResources: false },
-                { onSuccess: onSignOut },
-              )
-            }
-            disabled={status !== "idle" || disconnect.isPending}
-          >
-            {disconnect.isPending && (
-              <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
-            )}
-            <Trans>Sign out</Trans>
-          </Button>
-          <span className="ml-auto flex items-center gap-2">
-            {status === "running" && (
-              <Button disabled>
+    <div data-provision-state={status} className="flex min-h-0 flex-1 flex-col">
+      <WizardStepShell
+        stepNumber={stepNumber}
+        stepCount={stepCount}
+        title={<Trans>Set up publishing</Trans>}
+        description={
+          <Trans>
+            The Studio will create the storage and small web service it needs inside your Cloudflare
+            account. This takes a minute or two and only happens once.
+          </Trans>
+        }
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() =>
+                disconnect.mutate(
+                  { credentials: credentials ?? {}, deleteResources: false },
+                  { onSuccess: onSignOut },
+                )
+              }
+              /** Only a run in flight blocks this. `error` and `done` are both finished states,
+               *  and a stopped setup is exactly when someone wants to back out and try a
+               *  different account — disabling it there leaves them with a retry that cannot
+               *  work and no way off the screen. */
+              disabled={status === "running" || disconnect.isPending}
+            >
+              {disconnect.isPending && (
                 <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
-                <Trans>Setting up…</Trans>
-              </Button>
-            )}
-            {status === "error" && (
-              <Button onClick={() => start(failure?.resumeStep ?? undefined)}>
-                <Trans>Try again</Trans>
-              </Button>
-            )}
-            {status === "done" && (
-              <Button onClick={onProvisioned}>
-                <Trans>Finish</Trans>
-              </Button>
-            )}
-          </span>
-        </>
-      }
-    >
-      <div className="flex flex-1 flex-col gap-4">
+              )}
+              <Trans>Sign out</Trans>
+            </Button>
+            <span className="ml-auto flex items-center gap-2">
+              {status === "running" && (
+                <Button disabled>
+                  <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                  <Trans>Setting up…</Trans>
+                </Button>
+              )}
+              {status === "done" && (
+                <Button onClick={onProvisioned}>
+                  <Trans>Finish</Trans>
+                </Button>
+              )}
+            </span>
+          </>
+        }
+      >
+        <div className="flex flex-1 flex-col gap-4">
 
         <ProvisionCalm
           status={status}
@@ -92,10 +92,15 @@ export function ProvisionStep({
           activeStep={activeStep}
           elapsedMs={elapsedMs}
           onStart={() => start()}
+          errorContent={status === "error" && failure ? (
+            <ProvisionErrorNotice
+              failure={failure}
+              onRetry={() => start(failure.resumeStep ?? undefined)}
+            />
+          ) : undefined}
         />
-
-        {status === "error" && failure && <ProvisionErrorNotice failure={failure} />}
       </div>
-    </WizardStepShell>
+      </WizardStepShell>
+    </div>
   )
 }

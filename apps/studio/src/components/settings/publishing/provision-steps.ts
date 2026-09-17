@@ -6,7 +6,6 @@ import {
   Database,
   Globe,
   Lock,
-  Package,
   Server,
   ShieldCheck,
   Table2,
@@ -25,7 +24,7 @@ const STEP_COPY: Record<ProvisionStepId, StepCopy> = {
   "verify-token": {
     icon: ShieldCheck,
     title: msg`Checking your token`,
-    detail: msg`Making sure the token works and has all four permissions.`,
+    detail: msg`Making sure the token works and has every permission it needs.`,
   },
   "find-or-create-d1": {
     icon: Database,
@@ -36,11 +35,6 @@ const STEP_COPY: Record<ProvisionStepId, StepCopy> = {
     icon: Table2,
     title: msg`Preparing the database`,
     detail: msg`Adds the tables it needs. Anything already there is left alone.`,
-  },
-  "find-or-create-r2": {
-    icon: Package,
-    title: msg`Creating the storage space`,
-    detail: msg`Holds the pages, images and audio of each published book.`,
   },
   "upload-worker": {
     icon: Server,
@@ -70,7 +64,7 @@ export interface ProvisionStepCopy extends StepCopy {
   number: number
 }
 
-/** The eight steps in server order, each with its teacher-facing copy. */
+/** The seven steps in server order, each with its teacher-facing copy. */
 export const PROVISION_STEP_COPY: readonly ProvisionStepCopy[] = PROVISION_STEPS.map((step) => ({
   id: step.id,
   number: step.number,
