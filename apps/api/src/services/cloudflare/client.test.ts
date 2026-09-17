@@ -75,6 +75,24 @@ describe("cloudflare client", () => {
     expect(uploaded?.metadata).toMatchObject({ main_module: "worker.js" })
   })
 
+  it("registers and uploads only the static-asset buckets Cloudflare requests", async () => {
+    const fake = createFakeCloudflare({ assetUploadBuckets: [["cover-hash"]] })
+    const client = clientFor(fake.fetchFn)
+    const session = await client.createStaticAssetUploadSession("adt-publish", {
+      "/books/raven/cover.png": { hash: "cover-hash", size: 3 },
+    })
+    const completionJwt = await client.uploadStaticAssetBucket(session.jwt, {
+      "cover-hash": "YWJj",
+    })
+
+    expect(session).toEqual({ jwt: "asset-upload-jwt", buckets: [["cover-hash"]] })
+    expect(fake.state.staticAssetManifests).toEqual([{
+      "/books/raven/cover.png": { hash: "cover-hash", size: 3 },
+    }])
+    expect(fake.state.staticAssetUploads).toEqual([{ "cover-hash": "YWJj" }])
+    expect(completionJwt).toBe("asset-complete-jwt")
+  })
+
   it("reports a missing workers.dev subdomain as null instead of throwing", async () => {
     const notFound = createFakeCloudflare({ subdomain: null })
     await expect(clientFor(notFound.fetchFn).getWorkersDevSubdomain()).resolves.toBeNull()

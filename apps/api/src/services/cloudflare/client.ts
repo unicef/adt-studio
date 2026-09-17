@@ -58,6 +58,18 @@ export interface WorkerScriptUpload {
   metadata: Record<string, unknown>
 }
 
+export interface StaticAssetManifestEntry {
+  hash: string
+  size: number
+}
+
+export type StaticAssetManifest = Record<string, StaticAssetManifestEntry>
+
+export interface StaticAssetUploadSession {
+  buckets: string[][]
+  jwt: string
+}
+
 export interface CloudflareClient {
   readonly accountId: string
   verifyToken(): Promise<{ status: string }>
@@ -69,6 +81,8 @@ export interface CloudflareClient {
   listR2Buckets(): Promise<Array<{ name: string }>>
   createR2Bucket(name: string): Promise<void>
   deleteR2Bucket(name: string): Promise<void>
+  createStaticAssetUploadSession(name: string, manifest: StaticAssetManifest): Promise<StaticAssetUploadSession>
+  uploadStaticAssetBucket(uploadJwt: string, assets: Record<string, string>): Promise<string>
   listWorkerScripts(): Promise<Array<{ id: string }>>
   uploadWorkerScript(upload: WorkerScriptUpload): Promise<void>
   deleteWorkerScript(name: string): Promise<void>
@@ -223,6 +237,43 @@ export function createCloudflareClient(
       await request(`${account}/r2/buckets/${encodeURIComponent(name)}`, {
         method: "DELETE",
       })
+    },
+
+    async createStaticAssetUploadSession(name, manifest) {
+      const result = await requestJson<{ buckets?: unknown; jwt?: string }>(
+        `${account}/workers/scripts/${encodeURIComponent(name)}/assets-upload-session`,
+        "POST",
+        { manifest },
+      )
+      if (!result?.jwt || !Array.isArray(result.buckets) || !result.buckets.every((bucket) =>
+        Array.isArray(bucket) && bucket.every((hash) => typeof hash === "string"))) {
+        throw new CloudflareApiError(200, [], "Cloudflare returned an invalid static asset upload session")
+      }
+      return { jwt: result.jwt, buckets: result.buckets as string[][] }
+    },
+
+    async uploadStaticAssetBucket(uploadJwt, assets) {
+      const form = new FormData()
+      form.append("body", JSON.stringify(assets))
+      const response = await fetchFn(`${baseUrl}${account}/workers/assets/upload?base64=true`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${uploadJwt}`,
+        },
+        body: form,
+      })
+      const text = await response.text()
+      let envelope: CloudflareEnvelope<{ jwt?: string }> | null = null
+      try { envelope = text ? JSON.parse(text) as CloudflareEnvelope<{ jwt?: string }> : null } catch { envelope = null }
+      if (!response.ok || envelope?.success === false || !envelope?.result?.jwt) {
+        throw new CloudflareApiError(
+          response.status,
+          normalizeIssues(envelope?.errors),
+          `Cloudflare static asset upload failed with status ${response.status}`,
+          retryAfterMs(response),
+        )
+      }
+      return envelope.result.jwt
     },
 
     async listWorkerScripts() {
