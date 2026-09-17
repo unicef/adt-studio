@@ -322,6 +322,10 @@ msgstr "{0} seções"
 msgid "{0} selected images are no longer in the storyboard."
 msgstr "{0} imagens selecionadas não estão mais no storyboard."
 
+#. placeholder {0}: PROVISION_STEP_COPY.length
+msgid "{0} small things get created in your account. Nothing is charged."
+msgstr "{0} pequenos recursos são criados na sua conta. Nada é cobrado."
+
 #. placeholder {0}: String(visibleCount)
 msgid "{0} terms"
 msgstr "{0} termos"
@@ -2922,8 +2926,8 @@ msgstr "A criação de uma nova imagem de glossário altera o conjunto de imagen
 msgid "Creating the database"
 msgstr "Criando o banco de dados"
 
-msgid "Creating the storage space"
-msgstr "Criando o espaço de armazenamento"
+#~ msgid "Creating the storage space"
+#~ msgstr "Criando o espaço de armazenamento"
 
 msgid "Creating..."
 msgstr "Criando..."
@@ -3658,8 +3662,8 @@ msgstr "Edições vão para este prefixo de variante Tailwind"
 msgid "Effort"
 msgstr "Esforço"
 
-msgid "Eight small things get created in your account. Nothing is charged."
-msgstr "Oito pequenas coisas são criadas na sua conta. Nada é cobrado."
+#~ msgid "Eight small things get created in your account. Nothing is charged."
+#~ msgstr "Oito pequenas coisas são criadas na sua conta. Nada é cobrado."
 
 msgid "Element style editor"
 msgstr "Editor de estilo de elemento"
@@ -4733,8 +4737,8 @@ msgstr "História e Sociedade - Vol. 1"
 msgid "Hit"
 msgstr "Hit"
 
-msgid "Holds the pages, images and audio of each published book."
-msgstr "Contém as páginas, imagens e áudio de cada livro publicado."
+#~ msgid "Holds the pages, images and audio of each published book."
+#~ msgstr "Contém as páginas, imagens e áudio de cada livro publicado."
 
 msgid "Home"
 msgstr "Início"
@@ -5659,8 +5663,11 @@ msgstr "Valores mais baixos produzem estilização mais consistente entre as pá
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Certifique-se de enviar um arquivo .zip exportado do ADT Studio."
 
-msgid "Making sure the token works and has all four permissions."
-msgstr "Garantindo que o token funcione e tenha todas as quatro permissões."
+#~ msgid "Making sure the token works and has all four permissions."
+#~ msgstr "Garantindo que o token funcione e tenha todas as quatro permissões."
+
+msgid "Making sure the token works and has every permission it needs."
+msgstr "Verificando se o token funciona e tem todas as permissões necessárias."
 
 msgid "Manage all sections"
 msgstr "Gerenciar todas as seções"
@@ -6605,6 +6612,9 @@ msgstr "Ainda não dividido:"
 
 msgid "Note"
 msgstr "Nota"
+
+msgid "Nothing after this step ran. Setup picks up where it left off when you try again."
+msgstr "Nenhuma etapa depois desta foi executada. A configuração continuará de onde parou quando você tentar novamente."
 
 msgid "Nothing important is missing or added"
 msgstr "Nada importante está faltando ou foi adicionado"
@@ -7624,8 +7634,8 @@ msgstr "PT"
 msgid "Publish for review"
 msgstr "Publicar para revisão"
 
-msgid "Published books are stored in Cloudflare R2, and your account hasn't switched it on yet. Open R2 in your Cloudflare dashboard and follow the steps to enable it — Cloudflare asks for a payment method, but the space ADT Studio uses is within the free allowance. Then come back and try again. Nothing was created in your account."
-msgstr "Livros publicados são armazenados no Cloudflare R2, e sua conta ainda não o ativou. Abra o R2 no painel do Cloudflare e siga os passos para habilitá-lo — o Cloudflare pede um método de pagamento, mas o espaço que o ADT Studio usa está dentro da cota gratuita. Depois volte e tente novamente. Nada foi criado na sua conta."
+#~ msgid "Published books are stored in Cloudflare R2, and your account hasn't switched it on yet. Open R2 in your Cloudflare dashboard and follow the steps to enable it — Cloudflare asks for a payment method, but the space ADT Studio uses is within the free allowance. Then come back and try again. Nothing was created in your account."
+#~ msgstr "Livros publicados são armazenados no Cloudflare R2, e sua conta ainda não o ativou. Abra o R2 no painel do Cloudflare e siga os passos para habilitá-lo — o Cloudflare pede um método de pagamento, mas o espaço que o ADT Studio usa está dentro da cota gratuita. Depois volte e tente novamente. Nada foi criado na sua conta."
 
 msgid "Published for review"
 msgstr "Publicado para revisão"
@@ -10582,11 +10592,11 @@ msgstr "Transforme qualquer PDF educacional em um pacote de aprendizagem acessí
 msgid "Turn any textbook into an accessible edition — every step of the pipeline, built in."
 msgstr "Transforme qualquer livro didático em uma edição acessível — cada etapa do pipeline, já integrada."
 
-msgid "Turn on R2 in Cloudflare"
-msgstr "Ativar R2 no Cloudflare"
+#~ msgid "Turn on R2 in Cloudflare"
+#~ msgstr "Ativar R2 no Cloudflare"
 
-msgid "Turn on R2 storage in Cloudflare first"
-msgstr "Ative o armazenamento R2 no Cloudflare primeiro"
+#~ msgid "Turn on R2 storage in Cloudflare first"
+#~ msgstr "Ative o armazenamento R2 no Cloudflare primeiro"
 
 msgid "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
 msgstr "Ative para mostrar o cartão de revisão de Validação na Pré-visualização e a aba Validação do Revisor na etapa de Validação."
@@ -11295,8 +11305,8 @@ msgstr "Destaque por palavra"
 msgid "words"
 msgstr "palavras"
 
-msgid "Workers R2 Storage"
-msgstr "Armazenamento R2 dos Workers"
+#~ msgid "Workers R2 Storage"
+#~ msgstr "Armazenamento R2 dos Workers"
 
 msgid "Workers Scripts"
 msgstr "Scripts dos Workers"
