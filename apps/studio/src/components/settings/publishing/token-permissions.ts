@@ -33,13 +33,6 @@ const PERMISSION_COPY: Record<CloudflareTokenScope, Omit<TokenPermission, "scope
     access: msg`Edit`,
     aliases: ["d1"],
   },
-  "R2:Edit": {
-    id: "r2",
-    group: msg`Account`,
-    resource: msg`Workers R2 Storage`,
-    access: msg`Edit`,
-    aliases: ["r2", "bucket"],
-  },
   "Account:Read": {
     id: "account-settings",
     group: msg`Account`,
@@ -49,7 +42,7 @@ const PERMISSION_COPY: Record<CloudflareTokenScope, Omit<TokenPermission, "scope
   },
 }
 
-/** The exact four rows the user must add in Cloudflare's token editor. */
+/** The exact permission rows the user must add in Cloudflare's token editor. */
 export const TOKEN_PERMISSIONS: readonly TokenPermission[] = Object.entries(PERMISSION_COPY).map(
   ([scope, copy]) => ({ scope: scope as CloudflareTokenScope, ...copy }),
 )

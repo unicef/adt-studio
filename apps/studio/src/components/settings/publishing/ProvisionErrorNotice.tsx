@@ -1,18 +1,17 @@
 import type { ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
 import { AlertTriangle } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import type { ProvisionFailure } from "@/hooks/use-cloudflare-provision"
 import { ExternalLinkButton } from "./ExternalLinkButton"
 import { PermissionList } from "./PermissionList"
 import { matchMissingScopes } from "./token-permissions"
-import { CLOUDFLARE_R2_URL, CLOUDFLARE_WORKERS_URL } from "./cloudflare-links"
+import { CLOUDFLARE_WORKERS_URL } from "./cloudflare-links"
 
 function title(failure: ProvisionFailure): ReactNode {
   switch (failure.code) {
     case "bad_token_scope":
       return <Trans>Some permissions are missing</Trans>
-    case "r2_not_enabled":
-      return <Trans>Turn on R2 storage in Cloudflare first</Trans>
     case "account_not_found":
       return <Trans>Cloudflare didn't recognise that Account ID</Trans>
     case "no_workers_subdomain":
@@ -40,15 +39,6 @@ function body(failure: ProvisionFailure): ReactNode {
           The Cloudflare sign-in did not grant everything publishing needs. Disconnect, connect
           again, and allow every permission ADT Studio asks for. Nothing was created in your
           account.
-        </Trans>
-      )
-    case "r2_not_enabled":
-      return (
-        <Trans>
-          Published books are stored in Cloudflare R2, and your account hasn't switched it on yet.
-          Open R2 in your Cloudflare dashboard and follow the steps to enable it — Cloudflare asks
-          for a payment method, but the space ADT Studio uses is within the free allowance. Then
-          come back and try again. Nothing was created in your account.
         </Trans>
       )
     case "account_not_found":
@@ -110,13 +100,6 @@ function body(failure: ProvisionFailure): ReactNode {
 }
 
 function action(failure: ProvisionFailure): ReactNode {
-  if (failure.code === "r2_not_enabled") {
-    return (
-      <ExternalLinkButton href={CLOUDFLARE_R2_URL} className="self-start">
-        <Trans>Turn on R2 in Cloudflare</Trans>
-      </ExternalLinkButton>
-    )
-  }
   if (failure.code === "no_workers_subdomain") {
     return (
       <ExternalLinkButton href={CLOUDFLARE_WORKERS_URL} className="self-start">
@@ -129,16 +112,16 @@ function action(failure: ProvisionFailure): ReactNode {
 
 interface ProvisionErrorNoticeProps {
   failure: ProvisionFailure
-  children?: ReactNode
+  onRetry?: () => void
 }
 
-export function ProvisionErrorNotice({ failure, children }: ProvisionErrorNoticeProps) {
+export function ProvisionErrorNotice({ failure, onRetry }: ProvisionErrorNoticeProps) {
   const { permissions } = matchMissingScopes(failure.missingScopes)
 
   return (
     <div
       data-testid={`provision-error-${failure.code}`}
-      className="flex flex-col gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200"
+      className="flex flex-col gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3.5"
     >
       <span className="flex items-center gap-2 text-sm font-medium text-foreground">
         <AlertTriangle className="size-4 shrink-0 text-destructive" aria-hidden="true" />
@@ -149,10 +132,14 @@ export function ProvisionErrorNotice({ failure, children }: ProvisionErrorNotice
         <PermissionList missingIds={permissions.map((permission) => permission.id)} onlyMissing />
       )}
       {failure.detail && (
-        <p className="text-xs leading-5 text-muted-foreground">{failure.detail}</p>
+        <p className="break-words text-xs leading-5 text-muted-foreground">{failure.detail}</p>
       )}
       {action(failure)}
-      {children}
+      {onRetry && (
+        <Button className="w-full justify-center" onClick={onRetry}>
+          <Trans>Try again</Trans>
+        </Button>
+      )}
     </div>
   )
 }
