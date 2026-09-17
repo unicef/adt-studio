@@ -245,6 +245,7 @@ function moveReadingPosition(): void {
   const main = document.querySelector("main")
   if (!main) return
   main.setAttribute("tabindex", "-1")
+  main.style.outline = "none"
   main.focus({ preventScroll: true })
 
   const heading = main.querySelector("h1")
