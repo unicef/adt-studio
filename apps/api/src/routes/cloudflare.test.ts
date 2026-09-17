@@ -7,6 +7,7 @@ import {
   CLOUDFLARE_ACCOUNT_ID_HEADER,
   CLOUDFLARE_TOKEN_HEADER,
   CLOUDFLARE_WORKER_NAME,
+  PROVISION_STEPS,
   PUBLISH_WORKER_VERSION,
   type CloudflareVerifyResponse,
   type ProvisionProgressEvent,
