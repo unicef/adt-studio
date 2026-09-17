@@ -975,7 +975,7 @@ msgid "Account Settings"
 msgstr "Paramètres du compte"
 
 msgid "Across all published versions"
-msgstr ""
+msgstr "Across all published versions"
 
 #~ msgid "across every published version"
 #~ msgstr "dans toutes les versions publiées"

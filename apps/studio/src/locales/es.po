@@ -973,7 +973,7 @@ msgid "Account Settings"
 msgstr "Configuración de la cuenta"
 
 msgid "Across all published versions"
-msgstr ""
+msgstr "Across all published versions"
 
 #~ msgid "across every published version"
 #~ msgstr "en todas las versiones publicadas"
