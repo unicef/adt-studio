@@ -80,7 +80,14 @@ export interface StoredPublicationUploadFile {
   path: string
   bytes: number
   sha256: string
+  assetHash: string | null
   completedAt: string | null
+}
+
+export interface StaticAssetEntry {
+  path: string
+  hash: string
+  bytes: number
 }
 
 export interface CommittedPublicationUpload {
@@ -173,12 +180,17 @@ export interface PublicationStore {
   findUpload(uploadId: string): Promise<StoredPublicationUpload | null>
   findUploadFile(uploadId: string, path: string): Promise<StoredPublicationUploadFile | null>
   completeUploadFile(uploadId: string, path: string, completedAt: string): Promise<boolean>
+  /** Marks a complete asset collection after Studio has received Cloudflare's completion JWT.
+   * The Worker never receives the bytes in this mode. */
+  completeStaticAssetUpload(uploadId: string, completedAt: string): Promise<boolean>
   commitUpload(uploadId: string, committedAt: string): Promise<CommitPublicationUploadResult>
   abortUpload(uploadId: string): Promise<PublicationUploadStatus | null>
   /** The committed object's prefix only when this exact path belongs to its immutable manifest. */
   findSnapshotPrefix(token: string, version: number, path: string): Promise<string | null>
   /** Includes open uploads so deleting a publication token cannot strand an upload prefix. */
   listSnapshotPrefixes(token: string): Promise<string[]>
+  /** Paths and Cloudflare content addresses for every current, non-revoked publication. */
+  listCurrentStaticAssets(): Promise<StaticAssetEntry[]>
   findByToken(token: string): Promise<Publication | null>
   /** One read for the ladder *and* the access gate, so gating costs no extra round trip per
    *  asset request. */

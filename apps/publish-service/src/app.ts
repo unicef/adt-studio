@@ -149,6 +149,27 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     return c.json({ path, bytes: expected.bytes })
   })
 
+  /** Studio calls this only after Cloudflare has issued the Static Assets completion JWT.
+   * In that storage mode the bytes travel straight from Studio to Cloudflare, so marking each
+   * row through the old per-file PUT route would be both redundant and impossible without R2. */
+  app.post("/api/publication-uploads/:uploadId/complete-static-assets", async (c) => {
+    const uploadId = c.req.param("uploadId")
+    const upload = await resolveStore(c.env).findUpload(uploadId)
+    if (!upload) return errorResponse(c, "not_found", 404)
+    if (upload.state !== "open") return errorResponse(c, "invalid_request", 409, "Upload is no longer open")
+    if (!(await resolveStore(c.env).completeStaticAssetUpload(uploadId, timestamp()))) {
+      return errorResponse(c, "invalid_request", 400, "Upload has no Static Asset hashes")
+    }
+    return c.json({ upload_id: uploadId, state: "complete" })
+  })
+
+  /** The Studio builds each deployment from this whole collection. Static Assets are attached
+   * to one Worker version, so sending only the book currently being published would make every
+   * other active book disappear on the next deploy. */
+  app.get("/api/static-assets/manifest", async (c) => {
+    return c.json({ assets: await resolveStore(c.env).listCurrentStaticAssets() })
+  })
+
   app.post("/api/publication-uploads/:uploadId/commit", async (c) => {
     const result = await resolveStore(c.env).commitUpload(c.req.param("uploadId"), timestamp())
     if (!result.ok) return errorResponse(c, result.reason === "not_found" ? "not_found" : "invalid_request", result.reason === "not_found" ? 404 : result.reason === "incomplete" ? 400 : 409)
@@ -318,6 +339,18 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     )
     if (prefix === null) return errorResponse(c, "not_found", 404)
     const key = `${prefix}/${relative}`
+
+    if (c.env.ASSETS) {
+      const assetUrl = new URL(`/${key}`, c.req.url)
+      const asset = await c.env.ASSETS.fetch(new Request(assetUrl, c.req.raw))
+      if (asset.status !== 404) {
+        const headers = new Headers(asset.headers)
+        headers.set("content-type", contentTypeFor(relative))
+        headers.set("cache-control", cacheControlFor(relative, c.get("accessCodeHash") !== null))
+        return new Response(asset.body, { status: asset.status, statusText: asset.statusText, headers })
+      }
+    }
+
     const ifNoneMatch = conditionalEtag(c.req.header("If-None-Match"))
     const object = await c.env.SNAPSHOTS.get(
       key,
