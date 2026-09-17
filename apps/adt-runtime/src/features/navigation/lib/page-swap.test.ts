@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { getDefaultStore } from "jotai"
+import { reduceMotionAtom } from "@/shared/state/ui.atoms"
 
 const initializePageContent = vi.fn()
 const announceToScreenReader = vi.fn()
@@ -74,6 +76,26 @@ function setLocation(href: string): void {
   })
 }
 
+/** jsdom implements no View Transition API, so the animated branch only gets
+ *  exercised if the test supplies one. Runs the callback synchronously — the
+ *  swap's contract is that `commit` happens, not when it is painted. */
+function stubViewTransition(): ReturnType<typeof vi.fn> {
+  const startViewTransition = vi.fn((cb: () => void) => {
+    cb()
+    return { finished: Promise.resolve() }
+  })
+  Object.defineProperty(document, "startViewTransition", {
+    configurable: true,
+    value: startViewTransition,
+  })
+  return startViewTransition
+}
+
+/** The OS-level half of the reduced-motion check. */
+function setSystemReducedMotion(matches: boolean): void {
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches })))
+}
+
 beforeEach(() => {
   installDocument(pageHtml({ sectionId: "pg001_sec001", title: "Page one" }))
   setLocation("http://localhost/book/pg001_sec001.html")
@@ -84,6 +106,9 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  // Persisted to localStorage, so it would leak into every later test.
+  getDefaultStore().set(reduceMotionAtom, false)
+  delete (document as { startViewTransition?: unknown }).startViewTransition
   delete (window as { __adtPendingCustomActivities?: unknown }).__adtPendingCustomActivities
   delete (window as { adtRegisterCustomActivity?: unknown }).adtRegisterCustomActivity
 })
@@ -420,6 +445,42 @@ describe("swapToPage", () => {
 
     expect(await swapToPage("http://localhost/book/pg002_sec001.html")).toBe("failed")
     expect(document.getElementById("content")?.textContent).toContain("body of pg001_sec001")
+  })
+})
+
+describe("swapToPage crossfade", () => {
+  it("plays the transition when neither reduced-motion signal is set", async () => {
+    const startViewTransition = stubViewTransition()
+    mockFetchOnce(pageHtml({ sectionId: "pg002_sec001", title: "Page two" }))
+
+    expect(await swapToPage("http://localhost/book/pg002_sec001.html")).toBe("ok")
+    expect(startViewTransition).toHaveBeenCalledTimes(1)
+  })
+
+  it("skips the transition when the OS asks for reduced motion", async () => {
+    const startViewTransition = stubViewTransition()
+    setSystemReducedMotion(true)
+    mockFetchOnce(pageHtml({ sectionId: "pg002_sec001", title: "Page two" }))
+
+    expect(await swapToPage("http://localhost/book/pg002_sec001.html")).toBe("ok")
+    expect(startViewTransition).not.toHaveBeenCalled()
+    expect(document.getElementById("content")?.textContent).toContain("body of pg002_sec001")
+  })
+
+  /**
+   * The in-app switch cannot be enforced by the stylesheet: it sets
+   * `reduce-motion` on `<body>`, and the `::view-transition*` pseudo-elements
+   * are generated on the document root, where no body-descendant rule reaches.
+   */
+  it("skips the transition when the reader's own Reduce motion switch is on", async () => {
+    const startViewTransition = stubViewTransition()
+    setSystemReducedMotion(false)
+    getDefaultStore().set(reduceMotionAtom, true)
+    mockFetchOnce(pageHtml({ sectionId: "pg002_sec001", title: "Page two" }))
+
+    expect(await swapToPage("http://localhost/book/pg002_sec001.html")).toBe("ok")
+    expect(startViewTransition).not.toHaveBeenCalled()
+    expect(document.getElementById("content")?.textContent).toContain("body of pg002_sec001")
   })
 })
 

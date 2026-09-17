@@ -16,9 +16,11 @@
  * `file://` keeps the original hard-navigation path (see `canSoftNavigate`), so
  * double-clicking `index.html` behaves exactly as it does today.
  */
+import { getDefaultStore } from "jotai"
 import { initializePageContent } from "@/app/lifecycle"
 import { announceToScreenReader } from "@/shared/lib/aria-live"
 import { trackNavigation, trackSpaPageView } from "@/shared/lib/analytics"
+import { reduceMotionAtom } from "@/shared/state/ui.atoms"
 
 /** Stylesheets shared by every page, matched by filename so the PNLD base
  *  rewrite (`../resources/data/`) still resolves. Never swapped. */
@@ -250,6 +252,11 @@ function moveReadingPosition(): void {
   if (label) announceToScreenReader(label)
 }
 
+function prefersReducedMotion(): boolean {
+  if (getDefaultStore().get(reduceMotionAtom)) return true
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches
+}
+
 let inFlight: AbortController | null = null
 
 /**
@@ -336,8 +343,7 @@ export async function swapToPage(
         startViewTransition?: (cb: () => void) => { finished: Promise<void> }
       }
     ).startViewTransition
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    if (viewTransition && !reduceMotion) viewTransition.call(document, commit)
+    if (viewTransition && !prefersReducedMotion()) viewTransition.call(document, commit)
     else commit()
 
     return "ok"
