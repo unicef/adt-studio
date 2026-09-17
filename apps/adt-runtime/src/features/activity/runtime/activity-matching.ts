@@ -18,6 +18,7 @@ import {
 import { playActivitySound } from "@/features/activity/runtime/sounds"
 import { showActivityProgressToast } from "@/features/activity/lib/progress-toast"
 import { announceToScreenReader } from "@/shared/lib/aria-live"
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 /**
  * `activity_matching` — learners match draggable `.activity-item` cards to
@@ -370,7 +371,7 @@ export function initializeMatchingActivity(): (() => void) | null {
   const handleValidate = () => {
     if (store.get(submitStateAtom) === "next") {
       const href = findNextPageHref()
-      if (href) window.location.href = href
+      if (href) navigateToPage(href)
       return
     }
 
@@ -418,7 +419,7 @@ export function initializeMatchingActivity(): (() => void) | null {
 
   const handleSkip = () => {
     const href = findNextPageHref()
-    if (href) window.location.href = href
+    if (href) navigateToPage(href)
   }
 
   section.setAttribute("role", "group")

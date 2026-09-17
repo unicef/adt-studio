@@ -15,6 +15,7 @@ import { playActivitySound } from "@/features/activity/runtime/sounds"
 import { showActivityProgressToast } from "@/features/activity/lib/progress-toast"
 import { isAnyModalOpen } from "@/features/navigation/lib/modal-state"
 import { dockMenuValueAtom, sidebarOpenAtom } from "@/shared/state/ui.atoms"
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 /**
  * Quiz (standalone `activity_quiz` page) and in-page `activity_multiple_choice`
@@ -513,7 +514,7 @@ export function initializeQuizActivity(): (() => void) | null {
     if (state === "next") {
       // Post-correct: advance to the next page in reading order.
       const href = findPostCorrectHref()
-      if (href) window.location.href = href
+      if (href) navigateToPage(href)
       return
     }
     if (!anyGroupSelected()) return
@@ -572,7 +573,7 @@ export function initializeQuizActivity(): (() => void) | null {
 
   const handleSkip = () => {
     const href = findNextPageHref()
-    if (href) window.location.href = href
+    if (href) navigateToPage(href)
   }
 
   // WCAG 4.1.2: a list of `role="radio"` options is meaningless to screen
