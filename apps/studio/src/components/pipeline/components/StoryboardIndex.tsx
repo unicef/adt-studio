@@ -10,7 +10,6 @@ import { useVirtualizer } from "@tanstack/react-virtual"
 import type { StepName } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { usePages, usePageImage } from "@/hooks/use-pages"
-import { useQuizzes } from "@/hooks/use-quizzes"
 import { getSectionScreenshotUrl, type PageSummaryItem, type PageSummarySection } from "@/api/client"
 import { useQueryClient } from "@tanstack/react-query"
 import { ActionMenu } from "@/components/ui/action-menu"
@@ -24,10 +23,12 @@ import {
   readingOrderKey,
 } from "@/hooks/use-reading-order"
 import { useReadingOrderDraft } from "@/hooks/use-reading-order-draft"
+import { useSlideSequence, type Slide } from "@/hooks/use-slide-sequence"
+import { useSectionNav } from "@/hooks/use-section-nav"
 import { useTogglePrune } from "@/hooks/use-toggle-prune"
 import { useAnnouncer } from "@/components/a11y/LiveRegionAnnouncer"
-import { resolveQuizId, type Quiz } from "@adt/types"
-import { parseQuizRouteId } from "@/lib/quiz-route"
+import { type Quiz } from "@adt/types"
+import { quizRouteId, parseQuizRouteId } from "@/lib/quiz-route"
 
 /**
  * Sidebar list shown only on the storyboard stage. Lists every section
@@ -38,15 +39,13 @@ import { parseQuizRouteId } from "@/lib/quiz-route"
 export function StoryboardIndex({
   bookLabel,
   selectedPageId,
-  sectionIndex,
   onSelectSection,
   stageRunning,
   reorderBlockedBy,
 }: {
   bookLabel: string
   selectedPageId?: string
-  sectionIndex?: number
-  onSelectSection?: (pageId: string, sectionIndex: number) => void
+  onSelectSection?: (pageId: string, sectionIndex: number, sectionId: string) => void
   stageRunning?: boolean
   /**
    * The running step the server would refuse a reorder for, or null/undefined
@@ -57,7 +56,6 @@ export function StoryboardIndex({
   reorderBlockedBy?: StepName | null
 }) {
   const { data: pages } = usePages(bookLabel)
-  const { data: quizzesData } = useQuizzes(bookLabel)
   const {
     data: readingOrder,
     isLoading: readingOrderLoading,
@@ -67,6 +65,7 @@ export function StoryboardIndex({
   // the same as every other edit in the app. The draft lives above this
   // component because the overview table can rearrange the same book.
   const { draft, setDraft, discard } = useReadingOrderDraft()
+  const { selectedSectionId } = useSectionNav()
   const effectiveOrder = useMemo(
     () => draft ?? readingOrder?.order ?? [],
     [draft, readingOrder],
@@ -107,45 +106,32 @@ export function StoryboardIndex({
 
   // The list *is* the reading order — the server resolves it, so the sidebar,
   // the live preview and every export agree by construction rather than by
-  // separate walks being kept in step.
+  // separate walks being kept in step. The same sequence drives the arrows and
+  // the keyboard, so the row below this one is the slide "next" goes to.
   //
   // Built from the FULL order, not just the rendered items: a page removed from
   // the book keeps its slot here, greyed out, so the user can see where it sits
   // and put it back. Only rendered pages take a book-page number, so the
   // numbering the reader sees is unaffected by what has been removed.
-  const items = useMemo<StoryboardListItem[]>(() => {
-    if (!pages || !readingOrder) return []
+  const { slides: items } = useSlideSequence(bookLabel)
 
-    const sectionById = new Map<string, { page: PageSummaryItem; section: PageSummarySection }>()
-    for (const page of pages) {
-      for (const section of page.sections) sectionById.set(section.sectionId, { page, section })
-    }
-    const quizById = new Map<string, { quiz: Quiz; page: PageSummaryItem }>()
-    const pageById = new Map(pages.map((page) => [page.pageId, page]))
-    // The API resolves legacy ids before returning quizzes, so `quizId` is
-    // populated in practice; `resolveQuizId` keeps this total without a
-    // non-null assertion, since the type still allows it to be absent.
-    ;(quizzesData?.quizzes?.quizzes ?? []).forEach((quiz, i) => {
-      const page = pageById.get(quiz.afterPageId)
-      if (page) quizById.set(resolveQuizId(quiz, i), { quiz, page })
-    })
-
-    const rendered = new Set(readingOrder.items.map((item) => item.id))
-    let bookPage = 0
-    // The pending arrangement when there is one — the same slots, resequenced,
-    // so which of them reach the reader is still the server's answer.
-    return effectiveOrder.flatMap<StoryboardListItem>((entry) => {
-      const position = rendered.has(entry.id) ? ++bookPage : null
-      if (entry.kind === "quiz") {
-        const hit = quizById.get(entry.id)
-        return hit
-          ? [{ kind: "quiz", page: hit.page, quiz: hit.quiz, quizId: entry.id, position }]
-          : []
-      }
-      const hit = sectionById.get(entry.id)
-      return hit ? [{ kind: "section", page: hit.page, section: hit.section, position }] : []
-    })
-  }, [pages, quizzesData, readingOrder, effectiveOrder])
+  /**
+   * The open slide, by the same stable id the URL carries.
+   *
+   * A quiz is named by the synthetic pageId it is routed under. A section is
+   * named by the `section` search param — and when the URL names none, by the
+   * current page's first section, which is what the view shows in that case.
+   */
+  const activeSlideId = useMemo(() => {
+    const quizId = selectedPageId ? parseQuizRouteId(selectedPageId) : null
+    if (quizId) return quizId
+    if (selectedSectionId) return selectedSectionId
+    if (!selectedPageId) return null
+    const first = items.find(
+      (it) => it.kind === "section" && it.page.pageId === selectedPageId,
+    )
+    return first ? itemIdOf(first) : null
+  }, [items, selectedPageId, selectedSectionId])
 
   /** Move `id` so it lands at `toIndex` of the list. Held, not saved. */
   const moveTo = useCallback(
@@ -186,15 +172,14 @@ export function StoryboardIndex({
   )
 
 
-  const selectedItemIndex = useMemo(() => {
-    if (!selectedPageId || sectionIndex == null) return -1
-    return items.findIndex(
-      (it) =>
-        it.kind === "section" &&
-        it.page.pageId === selectedPageId &&
-        it.section.sectionIndex === sectionIndex,
-    )
-  }, [items, selectedPageId, sectionIndex])
+  // Which row is open, by the same stable id the URL carries. Deriving it from
+  // a section's position within its page instead would highlight the first
+  // section of the page whenever the URL named any other one — and the numeric
+  // selection is not written on this stage at all any more.
+  const selectedItemIndex = useMemo(
+    () => (activeSlideId ? items.findIndex((it) => itemIdOf(it) === activeSlideId) : -1),
+    [items, activeSlideId],
+  )
 
   const virtualizer = useVirtualizer({
     count: items.length,
@@ -222,8 +207,11 @@ export function StoryboardIndex({
         params: {
           label: bookLabel,
           step: "storyboard",
-          pageId: `quiz-${quizId}`,
+          pageId: quizRouteId(quizId),
         },
+        // A quiz has no sections, so any `section` param from the page being
+        // left would be a dead id riding along in the URL.
+        search: {},
       })
     },
     [navigate, bookLabel],
@@ -373,11 +361,7 @@ export function StoryboardIndex({
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const item = items[virtualRow.index]
           const itemId = itemIdOf(item)
-          const isActive =
-            item.kind === "section"
-              ? item.page.pageId === selectedPageId &&
-                item.section.sectionIndex === (sectionIndex ?? 0)
-              : item.quizId === selectedQuizId
+          const isActive = itemId === activeSlideId
           const isDragging = dragId === itemId
           return (
             <div
@@ -468,7 +452,11 @@ export function StoryboardIndex({
                   activeColor={storyboardStageDef?.bgLight}
                   activeText={storyboardStageDef?.textColor}
                   onSelect={() =>
-                    onSelectSection?.(item.page.pageId, item.section.sectionIndex)
+                    onSelectSection?.(
+                      item.page.pageId,
+                      item.section.sectionIndex,
+                      item.section.sectionId,
+                    )
                   }
                   stageRunning={stageRunning}
                 />
@@ -587,10 +575,8 @@ function RowActionsMenu({
   )
 }
 
-type StoryboardListItem = { position: number | null } & (
-  | { kind: "section"; page: PageSummaryItem; section: PageSummarySection }
-  | { kind: "quiz"; page: PageSummaryItem; quiz: Quiz; quizId: string }
-)
+/** The sidebar's rows are the book's slides — see `useSlideSequence`. */
+type StoryboardListItem = Slide
 
 /** Custom MIME type so the list only accepts its own rows, not arbitrary drags. */
 export const READING_ORDER_DRAG_TYPE = "application/x-adt-reading-order"
@@ -715,6 +701,9 @@ function SectionRow({
               ? t`Book page ${String(position)} · PDF page ${String(page.pageNumber)} · ${section.sectionType}`
               : t`Book page ${String(position)} · PDF page ${String(page.pageNumber)}`
       }
+      // The open slide, said out loud rather than only in colour — a screen
+      // reader has no other way to tell which row the view is showing.
+      aria-current={isActive ? "true" : undefined}
       className={cn(
         "flex items-start gap-2 px-2 py-1.5 text-left transition-colors w-full",
         isActive

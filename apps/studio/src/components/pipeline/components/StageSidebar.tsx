@@ -29,7 +29,7 @@ import { usePackageAdtStatus } from "@/hooks/use-books"
 import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
 import { StepProgressRing } from "./StepProgressRing"
 import { StoryboardIndex } from "./StoryboardIndex"
-import { useSectionNav } from "@/routes/books.$label"
+import { useSectionNav } from "@/hooks/use-section-nav"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import {
   STAGES,
@@ -432,9 +432,6 @@ export function StageSidebar({
               <StoryboardSidebarBridge
                 bookLabel={bookLabel}
                 selectedPageId={selectedPageId}
-                onSelectPage={onSelectPage}
-                sectionIndex={sectionIndex}
-                onSelectSection={onSelectSection}
                 stageRunning={currentState === "running"}
                 reorderBlockedBy={reorderBlockedBy}
               />
@@ -630,75 +627,68 @@ function TaskRow({ task }: { task: TaskInfoResponse }) {
 
 /* ---------- StoryboardSidebarBridge ----------
  *
- * Adapts StoryboardIndex (which selects by pageId + sectionIndex) to the
- * StageSidebar's onSelectPage / onSelectSection callbacks. When the user
- * picks a section on a different page, we also flip `skipNextResetRef` so
- * the layout-level effect that resets sectionIndex on page change leaves
- * our chosen index alone.
+ * Adapts StoryboardIndex to the StageSidebar's selection callbacks.
+ *
+ * Picking a row navigates to its slide by stable section id, page and section
+ * in one go. The unsaved-changes prompt still has to be asked here rather than
+ * left to the router's blocker, because a confirmed move needs
+ * `ignoreBlocker` to get past it.
  */
 function StoryboardSidebarBridge({
   bookLabel,
   selectedPageId,
-  onSelectPage,
-  sectionIndex,
-  onSelectSection,
   stageRunning,
   reorderBlockedBy,
 }: {
   bookLabel: string
   selectedPageId?: string
-  onSelectPage?: (pageId: string | null) => void
-  sectionIndex?: number
-  onSelectSection?: (index: number) => void
   stageRunning?: boolean
   reorderBlockedBy?: StepName | null
 }) {
   const { i18n } = useLingui()
   const navigate = useNavigate()
-  const { skipNextResetRef } = useSectionNav()
+  const { selectedSectionId, selectSlide } = useSectionNav()
   const hasUnsavedChanges = useHasUnsavedChanges()
   const handleSelectSection = useCallback(
-    (pageId: string, idx: number) => {
-      if (pageId === selectedPageId && idx === sectionIndex) return
+    (pageId: string, _idx: number, sectionId: string) => {
+      // Compared by id, not by position within the page: the numeric selection
+      // is not written on this stage, so comparing against it swallowed every
+      // click on the first section of the page already open.
+      if (pageId === selectedPageId && sectionId === selectedSectionId) return
       if (
         hasUnsavedChanges &&
         !window.confirm(i18n._(msg`If you leave now, your unsaved changes will be lost.`))
       ) {
         return
       }
-      if (pageId !== selectedPageId) {
-        skipNextResetRef.current = true
-        onSelectSection?.(idx)
-        if (hasUnsavedChanges) {
-          void navigate({
-            to: "/books/$label/$step/$pageId",
-            params: { label: bookLabel, step: "storyboard", pageId },
-            ignoreBlocker: true,
-          })
-        } else {
-          onSelectPage?.(pageId)
-        }
-      } else {
-        onSelectSection?.(idx)
+      // Page and section move together in one navigation, so there is no
+      // moment where the page has changed and the section has not — which is
+      // what the old `skipNextResetRef` dance existed to paper over.
+      if (hasUnsavedChanges && pageId !== selectedPageId) {
+        void navigate({
+          to: "/books/$label/$step/$pageId",
+          params: { label: bookLabel, step: "storyboard", pageId },
+          search: { section: sectionId },
+          ignoreBlocker: true,
+        })
+        return
       }
+      selectSlide({ pageId, sectionId })
     },
     [
       bookLabel,
       hasUnsavedChanges,
       i18n,
       navigate,
-      onSelectPage,
-      onSelectSection,
-      sectionIndex,
       selectedPageId,
-      skipNextResetRef,
+      selectedSectionId,
+      selectSlide,
     ],
   )
   return (
     <StoryboardIndex
       bookLabel={bookLabel}
       selectedPageId={selectedPageId}
-      sectionIndex={sectionIndex}
       onSelectSection={handleSelectSection}
       stageRunning={stageRunning}
       reorderBlockedBy={reorderBlockedBy}

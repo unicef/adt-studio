@@ -433,7 +433,10 @@ export function StoryboardSectionDetail({
   /** Called when AI image generation starts/stops so parent can guard navigation */
   onGeneratingChange?: (generating: boolean) => void
   /** Called to navigate to a different section index (e.g. after clone) */
-  onNavigateSection?: (index: number) => void
+  onNavigateSection?: (
+    index: number,
+    options?: { replace?: boolean; afterStructuralEdit?: boolean },
+  ) => void
   /** Whether there is a page before/after this one (for cross-page merge) */
   hasPrevPage?: boolean
   hasNextPage?: boolean
@@ -829,7 +832,7 @@ export function StoryboardSectionDetail({
   useEffect(() => {
     const count = sectioningData?.sections.length ?? 0
     if (count > 0 && sectionIndex >= count) {
-      onNavigateSection?.(count - 1)
+      onNavigateSection?.(count - 1, { replace: true })
     }
   }, [sectioningData, sectionIndex, onNavigateSection])
 
@@ -1055,7 +1058,7 @@ export function StoryboardSectionDetail({
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
       invalidateStoryboardDependents(queryClient, bookLabel)
-      onNavigateSection?.(result.clonedSectionIndex)
+      onNavigateSection?.(result.clonedSectionIndex, { afterStructuralEdit: true })
     } catch (err) {
       setAiError(err instanceof Error ? err.message : t`Clone failed`)
     } finally {
@@ -1081,7 +1084,7 @@ export function StoryboardSectionDetail({
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
       invalidateStoryboardDependents(queryClient, bookLabel)
-      onNavigateSection?.(result.mergedSectionIndex)
+      onNavigateSection?.(result.mergedSectionIndex, { afterStructuralEdit: true })
 
       // Auto re-render the merged section so the LLM generates proper HTML for the combined content
       if (hasStructuredTextProvider) {
@@ -1115,7 +1118,7 @@ export function StoryboardSectionDetail({
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, result.targetPageId] })
       invalidateStoryboardDependents(queryClient, bookLabel)
       // Navigate to the previous section or 0 since the current section was removed
-      onNavigateSection?.(Math.max(0, sectionIndex - 1))
+      onNavigateSection?.(Math.max(0, sectionIndex - 1), { afterStructuralEdit: true })
 
       if (hasStructuredTextProvider) {
         try {
@@ -1205,7 +1208,7 @@ export function StoryboardSectionDetail({
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
       invalidateStoryboardDependents(queryClient, bookLabel)
-      onNavigateSection?.(Math.max(0, Math.min(sectionIndex, result.remainingSections - 1)))
+      onNavigateSection?.(Math.max(0, Math.min(sectionIndex, result.remainingSections - 1)), { afterStructuralEdit: true })
     } catch (err) {
       setAiError(err instanceof Error ? err.message : t`Delete failed`)
     } finally {

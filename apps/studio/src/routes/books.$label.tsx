@@ -3,6 +3,7 @@ import {
   createFileRoute,
   Outlet,
   useParams,
+  useSearch,
   useNavigate,
   Link,
   useMatchRoute,
@@ -27,18 +28,9 @@ import { useForceLightTheme } from "@/hooks/use-force-light-theme"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { MacOSTrafficLightSpacer } from "@/components/title-bar"
 import { BookApiKeyDialogProvider } from "@/components/settings/BookApiKeyDialogProvider"
+import { SectionNavCtx, type SectionNavContext } from "@/hooks/use-section-nav"
 
-interface SectionNavContext {
-  sectionIndex: number
-  setSectionIndex: (index: number | ((prev: number) => number)) => void
-  skipNextResetRef: React.MutableRefObject<boolean>
-}
-const SectionNavCtx = createContext<SectionNavContext>({
-  sectionIndex: 0,
-  setSectionIndex: () => {},
-  skipNextResetRef: { current: false },
-})
-export function useSectionNav() { return useContext(SectionNavCtx) }
+
 
 export const Route = createFileRoute("/books/$label")({
   component: BookLayout,
@@ -62,6 +54,7 @@ function BookLayout() {
 
 function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boolean }) {
   const { step, pageId } = useParams({ strict: false }) as { step?: string; pageId?: string }
+  const { section: sectionParam } = useSearch({ strict: false }) as { section?: string }
   const matchRoute = useMatchRoute()
   const navigate = useNavigate()
   const [debugOpen, setDebugOpen] = useState(false)
@@ -76,23 +69,52 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
   // Announce the stage on navigation — switching stages otherwise gives a
   // screen-reader user no signal that the view changed.
   usePageTitle(getStageLabelI18n(activeStep))
+  /**
+   * The numeric section selection, for the stages that still browse a page's
+   * sections positionally — Captions, and the plain page list's section chips.
+   *
+   * The storyboard no longer uses this: its selection is a stable section id in
+   * the URL (`selectedSectionId` below), which is what lets a reload, a Back
+   * and a shared link land on the same slide. The two coexist deliberately —
+   * Captions has only a section *count* to work from, never the section list,
+   * so it cannot address one by id.
+   */
   const [sectionIndex, setSectionIndex] = useState(0)
-  const skipNextResetRef = useRef(false)
   const prevPageIdRef = useRef(pageId)
   const prevStepRef = useRef(activeStep)
 
   useEffect(() => {
     if (prevPageIdRef.current !== pageId || prevStepRef.current !== activeStep) {
-      if (!skipNextResetRef.current) {
-        setSectionIndex(0)
-      }
-      skipNextResetRef.current = false
+      setSectionIndex(0)
       prevPageIdRef.current = pageId
       prevStepRef.current = activeStep
     }
   }, [pageId, activeStep])
 
-  const sectionNav = useMemo(() => ({ sectionIndex, setSectionIndex, skipNextResetRef }), [sectionIndex, setSectionIndex])
+  const selectedSectionId = sectionParam ?? null
+
+  const selectSlide = useCallback<SectionNavContext["selectSlide"]>(
+    (target, options) => {
+      const nextPageId = target.pageId ?? pageId
+      // No page to land on — the index route has none, and navigating to an
+      // empty `$pageId` would build a broken URL rather than doing nothing.
+      if (!step || !nextPageId) return
+      navigate({
+        to: "/books/$label/$step/$pageId",
+        params: { label, step, pageId: nextPageId },
+        // Only `section` is carried: `tab` and `previewHref` belong to the view
+        // the user is leaving.
+        search: target.sectionId ? { section: target.sectionId } : {},
+        replace: options?.replace ?? false,
+      })
+    },
+    [navigate, label, step, pageId],
+  )
+
+  const sectionNav = useMemo(
+    () => ({ sectionIndex, setSectionIndex, selectedSectionId, selectSlide }),
+    [sectionIndex, setSectionIndex, selectedSectionId, selectSlide],
+  )
 
   const openDebugPanel = useCallback((options?: { tab?: DebugTabValue }) => {
     setDebugDefaultTab(options?.tab ?? "stats")

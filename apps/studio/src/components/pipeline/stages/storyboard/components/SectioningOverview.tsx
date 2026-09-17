@@ -42,7 +42,7 @@ const ALL_PANELS: DetailPanel[] = ["preview", "metadata", "content", "images", "
 interface SectioningOverviewProps {
   bookLabel: string
   pages: PageSummaryItem[]
-  onNavigateToSection?: (pageId: string, sectionIndex: number) => void
+  onNavigateToSection?: (pageId: string, sectionIndex: number, sectionId: string) => void
   /**
    * Show the page-order history beside the order toggle.
    *
@@ -487,7 +487,7 @@ export function SectioningOverview({
                       bookLabel={bookLabel}
                       onNavigate={
                         onNavigateToSection
-                          ? () => onNavigateToSection(row.page.pageId, row.sectionIndex)
+                          ? () => onNavigateToSection(row.page.pageId, row.sectionIndex, row.id)
                           : undefined
                       }
                       onMoveUp={() => moveRow(row.id, -1)}
@@ -673,7 +673,7 @@ function PageSectionRows({
   readingPositions: Map<string, number>
   hasPrevPage: boolean
   hasNextPage: boolean
-  onNavigateToSection?: (pageId: string, sectionIndex: number) => void
+  onNavigateToSection?: (pageId: string, sectionIndex: number, sectionId: string) => void
   onMerge: (sectionIndex: number, direction: "prev" | "next") => void
   onMergeCrossPage: (sectionIndex: number, direction: "prev" | "next") => void
   onClone: (sectionIndex: number) => void
@@ -805,7 +805,11 @@ function PageSectionRows({
             renderReasoning={renderSection?.reasoning}
             bookPosition={readingPositions.get(section.sectionId) ?? null}
             bookLabel={bookLabel}
-            onNavigate={onNavigateToSection ? () => onNavigateToSection(page.pageId, idx) : undefined}
+            onNavigate={
+              onNavigateToSection
+                ? () => onNavigateToSection(page.pageId, idx, section.sectionId)
+                : undefined
+            }
             onMerge={(direction) => onMerge(idx, direction)}
             onMergeCrossPage={(direction) => onMergeCrossPage(idx, direction)}
             onClone={() => onClone(idx)}

@@ -128,8 +128,10 @@ const READING_ORDER: ReadingOrderResponse = {
   ],
 }
 
+/** Overridable per test: the highlight cases need a page with two sections. */
+let pagesData: typeof PAGES = PAGES
 vi.mock("@/hooks/use-pages", () => ({
-  usePages: () => ({ data: PAGES }),
+  usePages: () => ({ data: pagesData }),
   usePageImage: () => ({ data: null, isLoading: false }),
 }))
 /**
@@ -146,6 +148,17 @@ let readingOrderState: {
 } | null = null
 
 vi.mock("@/hooks/use-quizzes", () => ({ useQuizzes: () => ({ data: quizzesData }) }))
+
+/** The slide the URL names, overridable per test. */
+let selectedSectionId: string | null = null
+vi.mock("@/hooks/use-section-nav", () => ({
+  useSectionNav: () => ({
+    sectionIndex: 0,
+    setSectionIndex: vi.fn(),
+    selectedSectionId,
+    selectSlide: vi.fn(),
+  }),
+}))
 vi.mock("@/hooks/use-reading-order", async () => {
   const actual = await vi.importActual<typeof import("@/hooks/use-reading-order")>(
     "@/hooks/use-reading-order",
@@ -249,6 +262,8 @@ function useRowMenu(rowIndex: number, action: string) {
 
 afterEach(() => {
   cleanup()
+  selectedSectionId = null
+  pagesData = PAGES
   setDraft.mockReset()
   pruneMutate.mockReset()
   resetMutate.mockReset()
@@ -656,5 +671,86 @@ describe("StoryboardIndex quiz rows", () => {
 
     expect(screen.getByRole("menuitem", { name: "Move down" })).toBeTruthy()
     expect(screen.queryByRole("menuitem", { name: "Remove from book" })).toBeNull()
+  })
+
+  describe("which row is highlighted", () => {
+    /**
+     * A page carrying two sections, which is the only shape that can tell the
+     * two rules apart: keying on position within the page highlights the first
+     * of them whatever the URL says.
+     */
+    function withTwoSectionPage() {
+      pagesData = [
+        {
+          ...PAGES[0],
+          sectionCount: 2,
+          sections: [
+            PAGES[0].sections[0],
+            {
+              sectionId: "pg001_sec002",
+              sectionIndex: 1,
+              sectionType: "content",
+              isActivity: false,
+              isPruned: false,
+              textPreview: "Second half",
+            },
+          ],
+        },
+        PAGES[1],
+        PAGES[2],
+      ]
+      readingOrderData = {
+        ...READING_ORDER,
+        items: [
+          ...READING_ORDER.items,
+          {
+            kind: "section",
+            id: "pg001_sec002",
+            href: "pg001_sec002.html",
+            position: 3,
+            pageId: "pg001",
+            pageNumber: 1,
+          },
+        ],
+        order: [
+          { kind: "section", id: "pg001_sec001" },
+          { kind: "section", id: "pg001_sec002" },
+          { kind: "section", id: "pg003_sec001" },
+          { kind: "section", id: "pg002_sec001" },
+        ],
+      }
+    }
+
+    /** The row rendered as the open one. */
+    function activeRowText(): string | undefined {
+      return document.querySelector('[aria-current="true"]')?.textContent ?? undefined
+    }
+
+    it("follows the section the URL names, not the page's first section", () => {
+      // The regression this guards: the highlight was keyed on the section's
+      // position within its page, compared against a counter nothing writes on
+      // this stage any more — so it sat on the first section of the open page
+      // whatever slide was really open.
+      withTwoSectionPage()
+      selectedSectionId = "pg001_sec002"
+      render(<StoryboardIndex bookLabel="book" selectedPageId="pg001" />)
+
+      expect(activeRowText()).toContain("Second half")
+    })
+
+    it("falls back to the open page's first section when the URL names none", () => {
+      withTwoSectionPage()
+      selectedSectionId = null
+      render(<StoryboardIndex bookLabel="book" selectedPageId="pg001" />)
+
+      expect(activeRowText()).toContain("First page")
+    })
+
+    it("highlights nothing for a section the book no longer has", () => {
+      selectedSectionId = "ghost_sec001"
+      render(<StoryboardIndex bookLabel="book" selectedPageId="pg001" />)
+
+      expect(activeRowText()).toBeUndefined()
+    })
   })
 })
