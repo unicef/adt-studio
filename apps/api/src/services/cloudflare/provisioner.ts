@@ -14,6 +14,7 @@ import { probeCloudflareAccess } from "./access.js"
 import {
   CloudflareApiError,
   fetchWorkerHealth,
+  retryCloudflareOperation,
   type CloudflareClient,
   type FetchLike,
 } from "./client.js"
@@ -281,9 +282,12 @@ export async function provisionCloudflare(
       d1DatabaseUuid: database.uuid,
       mgmtSecret,
     })
-    const staticAssets = await prepareStaticAssets(client, CLOUDFLARE_WORKER_NAME, [
-      { path: "/__adt_publish_bootstrap", content: new Uint8Array() },
-    ])
+    const staticAssets = await prepareStaticAssets(
+      client,
+      CLOUDFLARE_WORKER_NAME,
+      [{ path: "/__adt_publish_bootstrap", content: new Uint8Array() }],
+      { sleep },
+    )
 
     const baseMetadata: Record<string, unknown> = {
       main_module: artifact.metadata.main_module,
@@ -293,19 +297,22 @@ export async function provisionCloudflare(
     }
 
     const upload = async (withMigrations: boolean) => {
-      await client.uploadWorkerScript({
-        name: CLOUDFLARE_WORKER_NAME,
-        script: artifact.script,
-        metadata: withMigrations && workerMigrations
-          ? {
-              ...baseMetadata,
-              migrations: {
-                new_tag: migrationTag,
-                new_sqlite_classes: workerMigrations.new_sqlite_classes,
-              },
-            }
-          : baseMetadata,
-      })
+      await retryCloudflareOperation(
+        () => client.uploadWorkerScript({
+          name: CLOUDFLARE_WORKER_NAME,
+          script: artifact.script,
+          metadata: withMigrations && workerMigrations
+            ? {
+                ...baseMetadata,
+                migrations: {
+                  new_tag: migrationTag,
+                  new_sqlite_classes: workerMigrations.new_sqlite_classes,
+                },
+              }
+            : baseMetadata,
+        }),
+        { sleep, attempts: 5 },
+      )
     }
 
     try {
@@ -353,7 +360,10 @@ export async function provisionCloudflare(
           "This Cloudflare account has no workers.dev subdomain yet. Pick one in the Cloudflare dashboard under Workers & Pages, then provision again.",
       })
     }
-    await client.enableScriptSubdomain(CLOUDFLARE_WORKER_NAME)
+    await retryCloudflareOperation(
+      () => client.enableScriptSubdomain(CLOUDFLARE_WORKER_NAME),
+      { sleep, attempts: 5 },
+    )
     stepMessage = `${CLOUDFLARE_WORKER_NAME}.${accountSubdomain}.workers.dev`
     return accountSubdomain
   })

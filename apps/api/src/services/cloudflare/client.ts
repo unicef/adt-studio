@@ -15,13 +15,28 @@ export interface CloudflareApiIssue {
 export class CloudflareApiError extends Error {
   readonly status: number
   readonly issues: CloudflareApiIssue[]
+  readonly retryAfterMs: number | null
+  readonly rayId: string | null
 
-  constructor(status: number, issues: CloudflareApiIssue[], fallback: string) {
+  constructor(
+    status: number,
+    issues: CloudflareApiIssue[],
+    fallback: string,
+    retryAfterMs: number | null = null,
+    rayId: string | null = null,
+  ) {
     const detail = issues.map((issue) => issue.message).filter(Boolean).join("; ")
-    super(detail || fallback)
+    const diagnostic = [
+      `HTTP ${status}`,
+      ...issues.map((issue) => `Cloudflare ${issue.code}`),
+      ...(rayId ? [`Ray ID ${rayId}`] : []),
+    ].join(", ")
+    super(`${detail || fallback} (${diagnostic})`)
     this.name = "CloudflareApiError"
     this.status = status
     this.issues = issues
+    this.retryAfterMs = retryAfterMs
+    this.rayId = rayId
   }
 
   get isAuthFailure(): boolean {
@@ -34,6 +49,28 @@ export class CloudflareApiError extends Error {
 
   hasCode(code: number): boolean {
     return this.issues.some((issue) => issue.code === code)
+  }
+}
+
+export function isRetryableCloudflareError(error: unknown): error is CloudflareApiError {
+  return error instanceof CloudflareApiError && (error.status === 429 || error.status >= 500)
+}
+
+export async function retryCloudflareOperation<T>(
+  operation: () => Promise<T>,
+  options: { attempts?: number; sleep?: (ms: number) => Promise<void> } = {},
+): Promise<T> {
+  const attempts = options.attempts ?? 3
+  const sleep = options.sleep ?? ((ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)))
+  const delays = [1_000, 2_000, 4_000, 8_000]
+
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await operation()
+    } catch (error) {
+      if (!isRetryableCloudflareError(error) || attempt >= attempts - 1) throw error
+      await sleep(error.retryAfterMs ?? delays[attempt] ?? 8_000)
+    }
   }
 }
 
@@ -104,6 +141,13 @@ interface CloudflareEnvelope<T> {
   result?: T
 }
 
+function retryAfterMs(response: Response): number | null {
+  const value = response.headers.get("Retry-After")
+  if (!value) return null
+  const seconds = Number(value)
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds * 1_000 : null
+}
+
 function normalizeIssues(value: unknown): CloudflareApiIssue[] {
   if (!Array.isArray(value)) return []
   return value.flatMap((entry) => {
@@ -148,6 +192,8 @@ export function createCloudflareClient(
         response.status,
         normalizeIssues(envelope?.errors),
         `Cloudflare API ${init.method ?? "GET"} ${pathname} failed with status ${response.status}`,
+        retryAfterMs(response),
+        response.headers.get("cf-ray"),
       )
     }
 

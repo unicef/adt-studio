@@ -5,6 +5,7 @@ import {
   CloudflareApiError,
   createCloudflareClient,
   fetchWorkerHealth,
+  retryCloudflareOperation,
   type FetchLike,
 } from "./client.js"
 import { createFakeCloudflare } from "./fake-cloudflare-api.js"
@@ -60,6 +61,24 @@ describe("cloudflare client", () => {
       })
 
     await expect(clientFor(fetchFn).listR2Buckets()).rejects.toBeInstanceOf(CloudflareApiError)
+  })
+
+  it("retries Cloudflare rate limits and honours Retry-After", async () => {
+    let calls = 0
+    const waits: number[] = []
+
+    const result = await retryCloudflareOperation(
+      async () => {
+        calls += 1
+        if (calls < 3) throw new CloudflareApiError(429, [], "rate limited", 25)
+        return "done"
+      },
+      { attempts: 5, sleep: async (ms) => { waits.push(ms) } },
+    )
+
+    expect(result).toBe("done")
+    expect(calls).toBe(3)
+    expect(waits).toEqual([25, 25])
   })
 
   it("uploads the worker as multipart with a metadata part and the main module", async () => {

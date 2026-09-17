@@ -1,5 +1,5 @@
 import crypto from "node:crypto"
-import type { CloudflareClient } from "./client.js"
+import { retryCloudflareOperation, type CloudflareClient } from "./client.js"
 
 export interface StaticAsset {
   path: string
@@ -90,12 +90,20 @@ export async function prepareStaticAssets(
   client: CloudflareClient,
   workerName: string,
   assets: StaticAsset[],
+  options: { sleep?: (ms: number) => Promise<void> } = {},
 ): Promise<PreparedStaticAssets> {
   const manifest = createStaticAssetManifest(assets)
-  const session = await client.createStaticAssetUploadSession(workerName, manifest)
+  const retry = { sleep: options.sleep, attempts: 5 }
+  const session = await retryCloudflareOperation(
+    () => client.createStaticAssetUploadSession(workerName, manifest),
+    retry,
+  )
   let completionJwt = session.jwt
   for (const payload of createStaticAssetUploadPayloads(session.buckets, assets)) {
-    completionJwt = await client.uploadStaticAssetBucket(completionJwt, payload)
+    completionJwt = await retryCloudflareOperation(
+      () => client.uploadStaticAssetBucket(session.jwt, payload),
+      retry,
+    )
   }
   return { manifest, completionJwt }
 }
