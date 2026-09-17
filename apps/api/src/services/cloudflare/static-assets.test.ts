@@ -227,7 +227,7 @@ describe("static asset manifest", () => {
     const manifestClient = createCloudflareClient({ token: "account-token", accountId: "acct-1", fetchFn: manifestFailure.fetchFn })
     await expect(prepareStaticAssets(manifestClient, "adt-publish", [
       { path: "/index.html", content: encoder.encode("one") },
-    ])).rejects.toThrow("static asset manifest: manifest unavailable")
+    ], { sleep: async () => {} })).rejects.toThrow("static asset manifest: manifest unavailable")
 
     const content = encoder.encode("one")
     const hash = staticAssetHash("/index.html", content)
@@ -238,6 +238,6 @@ describe("static asset manifest", () => {
     const uploadClient = createCloudflareClient({ token: "account-token", accountId: "acct-1", fetchFn: uploadFailure.fetchFn })
     await expect(prepareStaticAssets(uploadClient, "adt-publish", [
       { path: "/index.html", content },
-    ])).rejects.toThrow("static asset batch 1 of 1: asset upload unavailable")
+    ], { sleep: async () => {} })).rejects.toThrow("static asset batch 1 of 1: asset upload unavailable")
   })
 })

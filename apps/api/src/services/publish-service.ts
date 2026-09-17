@@ -612,6 +612,7 @@ async function deployBookAssets(
   bookDir: string,
   declared: PublicationUploadFile[],
   emit: PublishEmit,
+  sleep: (ms: number) => Promise<void>,
 ): Promise<{ url: string; workerName: string }> {
   const adtDir = path.join(bookDir, "adt")
 
@@ -629,6 +630,7 @@ async function deployBookAssets(
     workersDevSubdomain: host.workersDevSubdomain,
     controlPlaneSecret: host.controlPlaneSecret,
     ...(host.controlPlaneName === undefined ? {} : { controlPlaneName: host.controlPlaneName }),
+    sleep,
     onAssetProgress: async (progress) => {
       await emit(stepEvent("upload", "running", { ...progress, unit: "files" }))
     },
@@ -679,6 +681,7 @@ async function stageAndCommit(
         bookDir,
         declared,
         emit,
+        sleep,
       )
       await emit(stepEvent("upload", "done"))
 
