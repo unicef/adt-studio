@@ -8987,7 +8987,7 @@ msgstr "Rol"
 
 #. placeholder {0}: Math.max(0, 99 - totals.published_count)
 msgid "Room for {0} more"
-msgstr ""
+msgstr "Espacio para {0} más"
 
 #~ msgid "Room for {remaining} more"
 #~ msgstr "Espacio para {remaining} más"
@@ -10217,7 +10217,7 @@ msgid "Stop step"
 msgstr "Detener paso"
 
 msgid "Storage is the size of every published version's files in Cloudflare Static Assets. Earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
-msgstr ""
+msgstr "El almacenamiento es el tamaño de los archivos de cada versión publicada en Cloudflare Static Assets. Las versiones anteriores conservan sus archivos, por lo que actualizar un libro aumenta este valor. No se muestra cuántas personas abrieron tus enlaces: para ello se necesitarían permisos de analítica de Cloudflare que Studio no solicita."
 
 #~ msgid "Storage is the size of every published version's files in your own Cloudflare R2 bucket, measured while uploading them — earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
 #~ msgstr "El almacenamiento es el tamaño de los archivos de cada versión publicada en tu propio bucket de Cloudflare R2, medido mientras los subes — las versiones anteriores mantienen sus archivos, por lo que actualizar un libro suma a esto. Cuántas personas abrieron tus enlaces no se muestra aquí: leer eso necesita permisos de análisis de Cloudflare que el Studio nunca solicita."
