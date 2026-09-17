@@ -76,13 +76,20 @@ function setLocation(href: string): void {
   })
 }
 
-/** jsdom implements no View Transition API, so the animated branch only gets
- *  exercised if the test supplies one. Runs the callback synchronously — the
- *  swap's contract is that `commit` happens, not when it is painted. */
+/**
+ * jsdom implements no View Transition API, so the animated branch only gets
+ * exercised if the test supplies one.
+ *
+ * The callback is deferred to a microtask rather than run inline, mirroring the
+ * browser: `commit` happens a frame later, and a throw inside it surfaces as a
+ * rejected `updateCallbackDone` instead of propagating out of the call. Running
+ * it inline would let a throw escape synchronously and the failure path would
+ * pass for the wrong reason.
+ */
 function stubViewTransition(): ReturnType<typeof vi.fn> {
   const startViewTransition = vi.fn((cb: () => void) => {
-    cb()
-    return { finished: Promise.resolve() }
+    const done = Promise.resolve().then(cb)
+    return { updateCallbackDone: done, ready: done, finished: done }
   })
   Object.defineProperty(document, "startViewTransition", {
     configurable: true,
@@ -481,6 +488,33 @@ describe("swapToPage crossfade", () => {
     expect(await swapToPage("http://localhost/book/pg002_sec001.html")).toBe("ok")
     expect(startViewTransition).not.toHaveBeenCalled()
     expect(document.getElementById("content")?.textContent).toContain("body of pg002_sec001")
+  })
+
+  /**
+   * The animated path must fail the same way the plain one does. `commit` runs
+   * a frame late, so without awaiting `updateCallbackDone` the throw stays
+   * inside the transition, `swapToPage` has already resolved "ok", and
+   * `navigateToPage`'s hard-load fallback never fires — leaving the reader on a
+   * pushed URL with a half-committed page.
+   */
+  it("reports failure when the commit throws inside a view transition", async () => {
+    stubViewTransition()
+    mockFetchOnce(pageHtml({ sectionId: "pg002_sec001", title: "Page two" }))
+    initializePageContent.mockImplementationOnce(() => {
+      throw new Error("boom")
+    })
+
+    expect(await swapToPage("http://localhost/book/pg002_sec001.html")).toBe("failed")
+  })
+
+  it("reports failure when the commit throws without a view transition", async () => {
+    setSystemReducedMotion(true)
+    mockFetchOnce(pageHtml({ sectionId: "pg002_sec001", title: "Page two" }))
+    initializePageContent.mockImplementationOnce(() => {
+      throw new Error("boom")
+    })
+
+    expect(await swapToPage("http://localhost/book/pg002_sec001.html")).toBe("failed")
   })
 })
 

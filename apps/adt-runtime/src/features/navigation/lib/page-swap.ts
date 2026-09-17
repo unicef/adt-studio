@@ -341,11 +341,24 @@ export async function swapToPage(
 
     const viewTransition = (
       document as Document & {
-        startViewTransition?: (cb: () => void) => { finished: Promise<void> }
+        startViewTransition?: (cb: () => void) => {
+          updateCallbackDone: Promise<void>
+          finished: Promise<void>
+        }
       }
     ).startViewTransition
-    if (viewTransition && !prefersReducedMotion()) viewTransition.call(document, commit)
-    else commit()
+    if (viewTransition && !prefersReducedMotion()) {
+      // `updateCallbackDone`, not `finished`: this waits for `commit` itself
+      // rather than the animation that follows it. A throw inside `commit`
+      // rejects this promise, which reaches the catch below and lets the
+      // caller fall back to a hard load. Without the await the browser keeps
+      // the rejection inside the transition, `swapToPage` has already
+      // returned "ok", and the reader is stranded on a pushed URL with a
+      // half-committed page — the non-animated path recovers, this one did not.
+      await viewTransition.call(document, commit).updateCallbackDone
+    } else {
+      commit()
+    }
 
     return "ok"
   } catch (err) {
