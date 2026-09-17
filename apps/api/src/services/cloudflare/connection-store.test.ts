@@ -22,7 +22,6 @@ const record: CloudflareConnectionRecord = {
   workers_dev_subdomain: "teacher",
   d1_database_name: "adt-publish",
   d1_database_uuid: "db-uuid-1",
-  r2_bucket_name: "adt-publish-snapshots",
   mgmt_secret: "mgmt-secret-1",
   provisioned_at: "2026-08-03T12:00:00.000Z",
   updated_at: "2026-08-03T12:00:00.000Z",
@@ -155,7 +154,6 @@ describe("connection status", () => {
       workers_dev_subdomain: "teacher",
       d1_database_name: "adt-publish",
       d1_database_uuid: "db-uuid-1",
-      r2_bucket_name: "adt-publish-snapshots",
     })
   })
 })
