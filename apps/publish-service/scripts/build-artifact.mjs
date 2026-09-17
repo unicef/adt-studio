@@ -65,11 +65,7 @@ const metadata = {
       name: "DB",
       description: "Publications, immutable versions, and access-controlled snapshots",
     },
-    {
-      type: "r2_bucket",
-      name: "SNAPSHOTS",
-      description: "Frozen book snapshots, keyed <token>/v<N>/<path>",
-    },
+    { type: "assets", name: "ASSETS", description: "Versioned book snapshots" },
     {
       type: "secret_text",
       name: "MGMT_SECRET",
