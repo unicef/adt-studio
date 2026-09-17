@@ -346,7 +346,7 @@ msgstr "{0} imagens selecionadas não estão mais no storyboard."
 
 #. placeholder {0}: PROVISION_STEP_COPY.length
 msgid "{0} small things get created in your account. Nothing is charged."
-msgstr "{0} pequenos recursos são criados na sua conta. Nada é cobrado."
+msgstr "{0} pequenas coisas serão criadas na sua conta. Nada será cobrado."
 
 #. placeholder {0}: String(visibleCount)
 msgid "{0} terms"
@@ -972,6 +972,12 @@ msgstr "Conta"
 msgid "Account Settings"
 msgstr "Configurações da Conta"
 
+msgid "Across all published versions"
+msgstr ""
+
+#~ msgid "across every published version"
+#~ msgstr "em todas as versões publicadas"
+
 msgid "Actions"
 msgstr "Ações"
 
@@ -1536,8 +1542,8 @@ msgstr "Todas as seções foram excluídas"
 msgid "All set"
 msgstr "Tudo pronto"
 
-msgid "All set up"
-msgstr "Tudo pronto"
+#~ msgid "All set up"
+#~ msgstr "Tudo pronto"
 
 msgid "All Severities"
 msgstr "Todas as Severidades"
@@ -3781,6 +3787,9 @@ msgstr "Cada pólipo secreta um esqueleto duro de carbonato de cálcio. Ao longo
 msgid "Each prompt is applied to whichever provider its language is routed to — for example, Albanian (sq) routed to Gemini receives this as its accent steering."
 msgstr "Cada instrução é aplicada ao provedor para o qual seu idioma é roteado — por exemplo, o albanês (sq) roteado para o Gemini recebe isto como seu direcionamento de sotaque."
 
+#~ msgid "Each published book runs as its own small service in your Cloudflare account, which is why there is a limit on how many can be live at once — deleting a book you no longer share frees its place immediately. Storage is the size of every published version's files, measured while uploading them; earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
+#~ msgstr "Cada livro publicado é executado como um pequeno serviço na sua conta da Cloudflare. Por isso, há um limite de quantos podem ficar no ar ao mesmo tempo. Excluir um livro que você não compartilha mais libera o lugar dele imediatamente. O armazenamento é o tamanho dos arquivos de todas as versões publicadas, medido durante o envio. As versões anteriores mantêm seus arquivos, então atualizar um livro aumenta esse total. A quantidade de pessoas que abriu seus links não é exibida aqui porque isso exigiria permissões de análise da Cloudflare que o Studio não solicita."
+
 msgid "Each section introduces a new theme with worked examples, followed by short practice activities at the end of the page."
 msgstr "Cada seção introduz um novo tema com exemplos trabalhados, seguidos por atividades práticas curtas no final da página."
 
@@ -4105,6 +4114,9 @@ msgstr "Cada página traduzida e mantida em sincronia — português, espanhol, 
 
 msgid "Every page, read aloud."
 msgstr "Cada página, lida em voz alta."
+
+#~ msgid "Every published book runs as its own small service in your Cloudflare account, and the free plan allows a fixed number of them. Yours are all in use. Deleting a book you no longer share — from the Published books list — frees its place straight away, and then this one will publish."
+#~ msgstr "Cada livro publicado é executado como um pequeno serviço na sua conta da Cloudflare, e o plano gratuito permite uma quantidade fixa deles. Todos os seus lugares estão em uso. Excluir um livro que você não compartilha mais, na lista de livros publicados, libera o lugar imediatamente e este livro poderá ser publicado."
 
 msgid "Every section has a video"
 msgstr "Cada seção tem um vídeo"
@@ -5022,6 +5034,9 @@ msgstr "Início / Capítulo 1"
 
 msgid "Home guide"
 msgstr "Guia inicial"
+
+msgid "Hosted books"
+msgstr "Livros hospedados"
 
 msgid "Hosting"
 msgstr "Hospedagem"
@@ -6802,6 +6817,9 @@ msgstr "Nenhum resultado de revisão para esta visualização."
 msgid "No reviewer validation sessions have been started yet. Open Preview to create a reviewer session and begin recording page-level findings."
 msgstr "Nenhuma sessão de validação de revisor foi iniciada ainda. Abra a Pré-visualização para criar uma sessão de revisor e começar a registrar descobertas por página."
 
+#~ msgid "No room for another until you delete one"
+#~ msgstr "Não há espaço para outro até você excluir um"
+
 msgid "No saved prompt versions yet."
 msgstr "Nenhuma versão de prompt salva ainda."
 
@@ -6989,7 +7007,7 @@ msgid "Note"
 msgstr "Nota"
 
 msgid "Nothing after this step ran. Setup picks up where it left off when you try again."
-msgstr "Nenhuma etapa depois desta foi executada. A configuração continuará de onde parou quando você tentar novamente."
+msgstr "Nada depois desta etapa foi executado. A configuração continua de onde parou quando você tentar novamente."
 
 msgid "Nothing changed for your readers — they are still reading the copy you had."
 msgstr "Nada mudou para seus leitores — eles ainda estão lendo a cópia que você tinha."
@@ -7061,8 +7079,8 @@ msgstr "de"
 msgid "of {0} published"
 msgstr "de {0} publicado"
 
-msgid "of {allowance} free in R2"
-msgstr "de {allowance} gratuito no R2"
+#~ msgid "of {allowance} free in R2"
+#~ msgstr "de {allowance} gratuito no R2"
 
 msgid "Off"
 msgstr "Desligado"
@@ -8967,6 +8985,13 @@ msgstr "O aumento das temperaturas dos oceanos causa o branqueamento dos corais 
 msgid "Role"
 msgstr "Função"
 
+#. placeholder {0}: Math.max(0, 99 - totals.published_count)
+msgid "Room for {0} more"
+msgstr ""
+
+#~ msgid "Room for {remaining} more"
+#~ msgstr "Espaço para mais {remaining}"
+
 msgid "Rotate"
 msgstr "Girar"
 
@@ -9664,6 +9689,9 @@ msgstr "Sombra"
 msgid "Share a finished book as a private website. You stay in charge of the link and the Cloudflare account that hosts it."
 msgstr "Compartilhe um livro concluído como um site privado. Você mantém o controle do link e da conta Cloudflare que o hospeda."
 
+#~ msgid "Share links live under a web address your Cloudflare account picks once, and this account hasn't chosen one yet. Open Workers & Pages, pick any name when it asks, then publish again. Nothing was shared."
+#~ msgstr "Os links compartilhados ficam em um endereço da web escolhido uma vez pela sua conta da Cloudflare, e esta conta ainda não escolheu um. Abra Workers & Pages, escolha qualquer nome quando for solicitado e publique novamente. Nada foi compartilhado."
+
 msgid "Share online"
 msgstr "Compartilhar online"
 
@@ -10188,8 +10216,11 @@ msgstr "Parar de compartilhar este livro?"
 msgid "Stop step"
 msgstr "Parar etapa"
 
-msgid "Storage is the size of every published version's files in your own Cloudflare R2 bucket, measured while uploading them — earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
-msgstr "Armazenamento é o tamanho dos arquivos de cada versão publicada no seu próprio bucket Cloudflare R2, medido enquanto os carrega — versões anteriores mantêm seus arquivos, então atualizar um livro adiciona a isso. Quantas pessoas abriram seus links não é mostrado aqui: ler isso precisa de permissões de análise do Cloudflare que o Studio nunca pede."
+msgid "Storage is the size of every published version's files in Cloudflare Static Assets. Earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
+msgstr ""
+
+#~ msgid "Storage is the size of every published version's files in your own Cloudflare R2 bucket, measured while uploading them — earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
+#~ msgstr "Armazenamento é o tamanho dos arquivos de cada versão publicada no seu próprio bucket Cloudflare R2, medido enquanto os carrega — versões anteriores mantêm seus arquivos, então atualizar um livro adiciona a isso. Quantas pessoas abriram seus links não é mostrado aqui: ler isso precisa de permissões de análise do Cloudflare que o Studio nunca pede."
 
 msgid "Storage used"
 msgstr "Armazenamento usado"
@@ -11153,8 +11184,8 @@ msgstr "Até a página"
 msgid "To replace an image, use \"Edit layout\" and click the image."
 msgstr "Para substituir uma imagem, use \\\"Editar layout\\\" e clique na imagem."
 
-msgid "To share a book, open it and go to its Export step — you'll find Publish there."
-msgstr "Para compartilhar um livro, abra-o e vá até a etapa Exportar — lá você encontrará Publicar."
+#~ msgid "To share a book, open it and go to its Export step — you'll find Publish there."
+#~ msgstr "Para compartilhar um livro, abra-o e vá até a etapa Exportar — lá você encontrará Publicar."
 
 msgid "to stream API logs here."
 msgstr "para transmitir logs de API aqui."
@@ -11625,6 +11656,9 @@ msgstr "Envie um ZIP ou arraste e solte"
 
 msgid "Uploading..."
 msgstr "Enviando..."
+
+msgid "Usage and sharing controls for books hosted in this Cloudflare account."
+msgstr "Uso e controles de compartilhamento dos livros hospedados nesta conta da Cloudflare."
 
 msgid "Use \"{trimmedQuery}\""
 msgstr "Usar \"{trimmedQuery}\""
@@ -12237,6 +12271,9 @@ msgstr "Seu navegador abre a própria página de login do Cloudflare."
 
 msgid "Your Cloudflare account hasn't chosen the web address it uses for services yet, and your share links need it. Open Workers & Pages, pick any name when it asks, then try again."
 msgstr "Sua conta Cloudflare ainda não escolheu o endereço web que usa para serviços, e seus links de compartilhamento precisam disso. Abra Workers & Pages, escolha qualquer nome quando solicitado, depois tente novamente."
+
+#~ msgid "Your Cloudflare account is full"
+#~ msgstr "Sua conta da Cloudflare está cheia"
 
 msgid "Your Cloudflare connection is still here. Try again in a moment."
 msgstr "Sua conexão com o Cloudflare continua aqui. Tente novamente em instantes."

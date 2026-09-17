@@ -245,7 +245,7 @@ describe("PublicationsDashboard — populated", () => {
     })
 
     expect(document.body.textContent).toContain("Storage used")
-    expect(document.body.textContent).toContain("of 10 GB free in R2")
+    expect(document.body.textContent).toContain("Across all published versions")
     expect(document.body.textContent).toContain(
       "How many people opened your links is not shown here",
     )

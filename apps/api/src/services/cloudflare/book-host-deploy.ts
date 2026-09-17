@@ -70,6 +70,8 @@ export interface DeployBookHostOptions {
   controlPlaneSecret: string
   /** Defaults to the control plane, which is where `PublicationRoom` is declared. */
   controlPlaneName?: string
+  /** Called after Cloudflare accepts an asset batch. The callback never invents file progress. */
+  onAssetProgress?: (progress: { done: number; total: number }) => void | Promise<void>
 }
 
 export interface DeployedBookHost {
@@ -98,6 +100,7 @@ export async function deployBookHost(
     workersDevSubdomain,
     controlPlaneSecret,
     controlPlaneName = CLOUDFLARE_WORKER_NAME,
+    onAssetProgress,
   } = options
 
   if (assets.length === 0) {
@@ -138,7 +141,7 @@ export async function deployBookHost(
     }
   }
 
-  const staticAssets = await prepareStaticAssets(client, name, assets)
+  const staticAssets = await prepareStaticAssets(client, name, assets, { onProgress: onAssetProgress })
 
   const bindings = resolveBookHostBindings(artifact.metadata.bindings, {
     d1DatabaseUuid,

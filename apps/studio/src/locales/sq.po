@@ -348,7 +348,7 @@ msgstr "{0} imazhe të zgjedhura nuk janë më në storyboard."
 
 #. placeholder {0}: PROVISION_STEP_COPY.length
 msgid "{0} small things get created in your account. Nothing is charged."
-msgstr "{0} gjëra të vogla krijohen në llogarinë tuaj. Nuk ka asnjë tarifë."
+msgstr "Në llogarinë tuaj do të krijohen {0} gjëra të vogla. Nuk do të ketë asnjë tarifë."
 
 #. placeholder {0}: String(visibleCount)
 msgid "{0} terms"
@@ -974,6 +974,12 @@ msgstr "Llogari"
 msgid "Account Settings"
 msgstr "Cilësimet e llogarisë"
 
+msgid "Across all published versions"
+msgstr ""
+
+#~ msgid "across every published version"
+#~ msgstr "në të gjitha versionet e publikuara"
+
 msgid "Actions"
 msgstr "Veprime"
 
@@ -1538,8 +1544,8 @@ msgstr "Të gjitha seksionet janë fshirë"
 msgid "All set"
 msgstr "Gjithçka gati"
 
-msgid "All set up"
-msgstr "Gjithçka është gati"
+#~ msgid "All set up"
+#~ msgstr "Gjithçka është gati"
 
 msgid "All Severities"
 msgstr "Të gjitha nivelet e ashpërsisë"
@@ -3783,6 +3789,9 @@ msgstr "Çdo polip sekreton një skelet të fortë karbonati kalciumi. Gjatë qi
 msgid "Each prompt is applied to whichever provider its language is routed to — for example, Albanian (sq) routed to Gemini receives this as its accent steering."
 msgstr "Çdo udhëzim zbatohet te ofruesi te i cili drejtohet gjuha e tij — për shembull, shqipja (sq) e drejtuar te Gemini e merr këtë si drejtimin e theksit."
 
+#~ msgid "Each published book runs as its own small service in your Cloudflare account, which is why there is a limit on how many can be live at once — deleting a book you no longer share frees its place immediately. Storage is the size of every published version's files, measured while uploading them; earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
+#~ msgstr "Çdo libër i publikuar funksionon si një shërbim i vogël në llogarinë tuaj Cloudflare. Prandaj ka një kufi për numrin e librave që mund të jenë aktivë në të njëjtën kohë. Fshirja e një libri që nuk e ndani më e liron menjëherë vendin e tij. Hapësira e ruajtjes është madhësia e skedarëve të çdo versioni të publikuar, e matur gjatë ngarkimit. Versionet e mëparshme i ruajnë skedarët e tyre, ndaj përditësimi i një libri e rrit këtë total. Numri i personave që hapën lidhjet tuaja nuk shfaqet këtu, sepse kjo kërkon leje për analitikën e Cloudflare që Studio nuk i kërkon."
+
 msgid "Each section introduces a new theme with worked examples, followed by short practice activities at the end of the page."
 msgstr "Çdo seksion prezanton një temë të re me shembuj të zgjidhur, të ndjekur nga aktivitete të shkurtra praktike në fund të faqes."
 
@@ -4107,6 +4116,9 @@ msgstr "Çdo faqe e përkthyer dhe e mbajtur në sinkron — portugalisht, spanj
 
 msgid "Every page, read aloud."
 msgstr "Çdo faqe, e lexuar me zë."
+
+#~ msgid "Every published book runs as its own small service in your Cloudflare account, and the free plan allows a fixed number of them. Yours are all in use. Deleting a book you no longer share — from the Published books list — frees its place straight away, and then this one will publish."
+#~ msgstr "Çdo libër i publikuar funksionon si një shërbim i vogël në llogarinë tuaj Cloudflare dhe plani falas lejon një numër të caktuar të tyre. Të gjitha vendet tuaja janë në përdorim. Fshirja e një libri që nuk e ndani më nga lista e librave të publikuar e liron menjëherë vendin e tij dhe më pas ky libër do të publikohet."
 
 msgid "Every section has a video"
 msgstr "Çdo seksion ka një video"
@@ -5024,6 +5036,9 @@ msgstr "Kryefaqja / Kapitulli 1"
 
 msgid "Home guide"
 msgstr "Udhëzuesi i shtëpisë"
+
+msgid "Hosted books"
+msgstr "Librat e strehuar"
 
 msgid "Hosting"
 msgstr "Hostimi"
@@ -6004,7 +6019,7 @@ msgstr "Duke bërë një kopje të librit"
 #~ msgstr "Duke u siguruar që tokeni funksionon dhe ka të gjitha katër lejet."
 
 msgid "Making sure the token works and has every permission it needs."
-msgstr "Po verifikohet që tokeni funksionon dhe ka çdo leje që i nevojitet."
+msgstr "Po verifikojmë që tokeni funksionon dhe ka të gjitha lejet e nevojshme."
 
 msgid "Manage all sections"
 msgstr "Menaxho të gjitha seksionet"
@@ -6804,6 +6819,9 @@ msgstr "Nuk ka rezultate të rishikimit për këtë pamje."
 msgid "No reviewer validation sessions have been started yet. Open Preview to create a reviewer session and begin recording page-level findings."
 msgstr "Nuk ka ende sesione vërtetimi rishikuesi të filluara. Hapni Pamjen Paraprake për të krijuar një sesion rishikuesi dhe filluar regjistrimin e gjetjeve në nivel faqeje."
 
+#~ msgid "No room for another until you delete one"
+#~ msgstr "Nuk ka vend për një tjetër derisa të fshini një"
+
 msgid "No saved prompt versions yet."
 msgstr "Nuk ka ende versione prompti të ruajtura."
 
@@ -6991,7 +7009,7 @@ msgid "Note"
 msgstr "Shënim"
 
 msgid "Nothing after this step ran. Setup picks up where it left off when you try again."
-msgstr "Asgjë pas këtij hapi nuk u ekzekutua. Konfigurimi vazhdon nga vendi ku u ndal kur të provoni përsëri."
+msgstr "Asgjë pas këtij hapi nuk u ekzekutua. Konfigurimi vazhdon nga ku mbeti kur të provoni përsëri."
 
 msgid "Nothing changed for your readers — they are still reading the copy you had."
 msgstr "Asgjë nuk ka ndryshuar për lexuesit tuaj — ata ende po lexojnë kopjen që kishit."
@@ -7063,8 +7081,8 @@ msgstr "nga"
 msgid "of {0} published"
 msgstr "nga {0} publikuar"
 
-msgid "of {allowance} free in R2"
-msgstr "nga {allowance} falas në R2"
+#~ msgid "of {allowance} free in R2"
+#~ msgstr "nga {allowance} falas në R2"
 
 msgid "Off"
 msgstr "Joaktiv"
@@ -8969,6 +8987,13 @@ msgstr "Rritja e temperaturave të oqeanit shkakton zbardhjen e koraleve - kur k
 msgid "Role"
 msgstr "Rol"
 
+#. placeholder {0}: Math.max(0, 99 - totals.published_count)
+msgid "Room for {0} more"
+msgstr ""
+
+#~ msgid "Room for {remaining} more"
+#~ msgstr "Ka vend për edhe {remaining}"
+
 msgid "Rotate"
 msgstr "Rrotullo"
 
@@ -9666,6 +9691,9 @@ msgstr "Hije"
 msgid "Share a finished book as a private website. You stay in charge of the link and the Cloudflare account that hosts it."
 msgstr "Ndani një libër të përfunduar si faqe private në internet. Ju mbani kontrollin e lidhjes dhe të llogarisë Cloudflare që e strehon."
 
+#~ msgid "Share links live under a web address your Cloudflare account picks once, and this account hasn't chosen one yet. Open Workers & Pages, pick any name when it asks, then publish again. Nothing was shared."
+#~ msgstr "Lidhjet e ndara publikohen nën një adresë uebi që llogaria juaj Cloudflare e zgjedh vetëm një herë dhe kjo llogari ende nuk e ka zgjedhur një të tillë. Hapni Workers & Pages, zgjidhni çfarëdo emri kur t’ju kërkohet dhe publikoni përsëri. Asgjë nuk u nda."
+
 msgid "Share online"
 msgstr "Ndani online"
 
@@ -10190,8 +10218,11 @@ msgstr "Ndal ndarjen e këtij libri?"
 msgid "Stop step"
 msgstr "Ndalo hapin"
 
-msgid "Storage is the size of every published version's files in your own Cloudflare R2 bucket, measured while uploading them — earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
-msgstr "Ruajtja është madhësia e skedarëve të çdo versioni të publikuar në kovën tuaj Cloudflare R2, e matur gjatë ngarkimit të tyre — versionet e mëparshme mbajnë skedarët e tyre, kështu që përditësimi i një libri shton këtë. Sa njerëz kanë hapur lidhjet tuaja nuk tregohet këtu: leximi i kësaj kërkon lejet e analizave të Cloudflare që Studio kurrë nuk kërkon."
+msgid "Storage is the size of every published version's files in Cloudflare Static Assets. Earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
+msgstr ""
+
+#~ msgid "Storage is the size of every published version's files in your own Cloudflare R2 bucket, measured while uploading them — earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
+#~ msgstr "Ruajtja është madhësia e skedarëve të çdo versioni të publikuar në kovën tuaj Cloudflare R2, e matur gjatë ngarkimit të tyre — versionet e mëparshme mbajnë skedarët e tyre, kështu që përditësimi i një libri shton këtë. Sa njerëz kanë hapur lidhjet tuaja nuk tregohet këtu: leximi i kësaj kërkon lejet e analizave të Cloudflare që Studio kurrë nuk kërkon."
 
 msgid "Storage used"
 msgstr "Ruajtja e përdorur"
@@ -11155,8 +11186,8 @@ msgstr "Deri te faqja"
 msgid "To replace an image, use \"Edit layout\" and click the image."
 msgstr "Për të zëvendësuar një imazh, përdorni \\\"Modifiko strukturën\\\" dhe klikoni mbi imazh."
 
-msgid "To share a book, open it and go to its Export step — you'll find Publish there."
-msgstr "Për të ndarë një libër, hapeni dhe shkoni te hapi i tij i Eksportimit — aty do të gjeni Publiko."
+#~ msgid "To share a book, open it and go to its Export step — you'll find Publish there."
+#~ msgstr "Për të ndarë një libër, hapeni dhe shkoni te hapi i tij i Eksportimit — aty do të gjeni Publiko."
 
 msgid "to stream API logs here."
 msgstr "për të transmetuar regjistrat API këtu."
@@ -11627,6 +11658,9 @@ msgstr "Ngarko ZIP ose tërhiq dhe lësho"
 
 msgid "Uploading..."
 msgstr "Po ngarkohet..."
+
+msgid "Usage and sharing controls for books hosted in this Cloudflare account."
+msgstr "Përdorimi dhe kontrollet e ndarjes për librat e strehuar në këtë llogari Cloudflare."
 
 msgid "Use \"{trimmedQuery}\""
 msgstr "Përdor \"{trimmedQuery}\""
@@ -12239,6 +12273,9 @@ msgstr "Shfletuesi juaj hap faqen e hyrjes së vetë Cloudflare."
 
 msgid "Your Cloudflare account hasn't chosen the web address it uses for services yet, and your share links need it. Open Workers & Pages, pick any name when it asks, then try again."
 msgstr "Llogaria juaj Cloudflare nuk ka zgjedhur ende adresën e internetit që përdor për shërbime, dhe lidhjet tuaja të ndarjes e kanë nevojë. Hapni Workers & Pages, zgjidhni çdo emër kur të kërkojë, pastaj provoni përsëri."
+
+#~ msgid "Your Cloudflare account is full"
+#~ msgstr "Llogaria juaj Cloudflare është plot"
 
 msgid "Your Cloudflare connection is still here. Try again in a moment."
 msgstr "Lidhja juaj me Cloudflare është ende këtu. Provoni përsëri pas pak."

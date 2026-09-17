@@ -614,7 +614,6 @@ async function deployBookAssets(
   emit: PublishEmit,
 ): Promise<{ url: string; workerName: string }> {
   const adtDir = path.join(bookDir, "adt")
-  await emit(stepEvent("upload", "running", { done: 0, total: declared.length, unit: "files" }))
 
   const assets: StaticAsset[] = declared.map((file) => ({
     path: `/${SNAPSHOT_PREFIX}/${uploadId}/${file.path}`,
@@ -630,6 +629,9 @@ async function deployBookAssets(
     workersDevSubdomain: host.workersDevSubdomain,
     controlPlaneSecret: host.controlPlaneSecret,
     ...(host.controlPlaneName === undefined ? {} : { controlPlaneName: host.controlPlaneName }),
+    onAssetProgress: async (progress) => {
+      await emit(stepEvent("upload", "running", { ...progress, unit: "files" }))
+    },
   })
 
   await emit(
