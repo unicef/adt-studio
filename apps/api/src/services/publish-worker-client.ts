@@ -2,12 +2,20 @@ import {
   PublicationDetail,
   PublicationList,
   PublicationDeleteResult,
+  PublicationReaderList,
   PublicationResponse,
+  PublicationRoomTicketResponse,
   PublicationUploadAbortResponse,
   PublicationUploadCommitResponse,
   PublicationUploadFileResponse,
   PublicationUploadStartResponse,
   PublishErrorResponse,
+  PublishCommentCreateRequest,
+  PublishCommentListQuery,
+  PublishCommentListResponse,
+  PublishCommentResolveRequest,
+  PublishCommentResponse,
+  PublishCommentUpdateRequest,
   type PublicationUploadStartRequest,
   type PublicationUpdateRequest,
   type PublishErrorCode,
@@ -49,6 +57,8 @@ export interface PublishWorkerClient {
   ): Promise<PublicationUploadFileResponse>
   commitUpload(uploadId: string): Promise<PublicationUploadCommitResponse>
   abortUpload(uploadId: string): Promise<PublicationUploadAbortResponse>
+  completeStaticAssetUpload(uploadId: string): Promise<{ upload_id: string; state: "complete" }>
+  listStaticAssets(): Promise<{ assets: Array<{ path: string; hash: string; bytes: number }> }>
   revoke(token: string): Promise<PublicationResponse>
   reinstate(token: string): Promise<PublicationResponse>
   updatePublication(
@@ -58,6 +68,31 @@ export interface PublishWorkerClient {
   getPublication(token: string): Promise<PublicationDetail>
   listPublications(): Promise<PublicationList>
   deletePublication(token: string): Promise<PublicationDeleteResult>
+  listReaders(token: string): Promise<PublicationReaderList>
+  roomTicket(token: string): Promise<PublicationRoomTicketResponse>
+  listComments(
+    token: string,
+    query?: PublishCommentListQuery,
+    authorName?: string,
+  ): Promise<PublishCommentListResponse>
+  createComment(
+    token: string,
+    body: PublishCommentCreateRequest,
+    authorName?: string,
+  ): Promise<PublishCommentResponse>
+  updateComment(
+    token: string,
+    commentId: string,
+    body: PublishCommentUpdateRequest,
+    authorName?: string,
+  ): Promise<PublishCommentResponse>
+  deleteComment(token: string, commentId: string, authorName?: string): Promise<PublishCommentResponse>
+  resolveComment(
+    token: string,
+    commentId: string,
+    body: PublishCommentResolveRequest,
+    authorName?: string,
+  ): Promise<PublishCommentResponse>
   fetchSnapshotFile(
     token: string,
     filePath: string,
@@ -248,6 +283,21 @@ export function createPublishWorkerClient({
     body: JSON.stringify(body),
   })
 
+  const authorHeaders = (authorName: string | undefined): Record<string, string> =>
+    authorName === undefined ? {} : { "X-Adt-Author-Name": authorName }
+
+  const commentQuery = (query: PublishCommentListQuery | undefined): string => {
+    if (query === undefined) return ""
+    const params = new URLSearchParams()
+    if (query.page_section_id !== undefined) params.set("page_section_id", query.page_section_id)
+    if (query.version !== undefined) params.set("version", String(query.version))
+    if (query.include_resolved !== undefined) {
+      params.set("include_resolved", String(query.include_resolved))
+    }
+    const encoded = params.toString()
+    return encoded.length === 0 ? "" : `?${encoded}`
+  }
+
   return {
     startUpload(startRequest) {
       return request(
@@ -282,6 +332,38 @@ export function createPublishWorkerClient({
         `/api/publication-uploads/${encodeURIComponent(uploadId)}`,
         { method: "DELETE" },
         PublicationUploadAbortResponse,
+      )
+    },
+
+    completeStaticAssetUpload(uploadId) {
+      return request(
+        `/api/publication-uploads/${encodeURIComponent(uploadId)}/complete-static-assets`,
+        { method: "POST" },
+        { parse: (value) => {
+          const result = value as { upload_id?: unknown; state?: unknown }
+          if (typeof result.upload_id !== "string" || result.state !== "complete") throw new Error("Invalid static asset completion")
+          return { upload_id: result.upload_id, state: "complete" as const }
+        } },
+      )
+    },
+
+    listStaticAssets() {
+      return request(
+        "/api/static-assets/manifest",
+        { method: "GET" },
+        { parse: (value) => {
+          const result = value as { assets?: unknown }
+          if (!Array.isArray(result.assets)) throw new Error("Invalid static asset manifest")
+          const assets = result.assets.flatMap((entry) => {
+            if (typeof entry !== "object" || entry === null) return []
+            const asset = entry as Record<string, unknown>
+            return typeof asset.path === "string" && typeof asset.hash === "string" && typeof asset.bytes === "number"
+              ? [{ path: asset.path, hash: asset.hash, bytes: asset.bytes }]
+              : []
+          })
+          if (assets.length !== result.assets.length) throw new Error("Invalid static asset manifest")
+          return { assets }
+        } },
       )
     },
 
@@ -326,6 +408,62 @@ export function createPublishWorkerClient({
         `/api/publications/${encodeURIComponent(token)}`,
         { method: "DELETE" },
         PublicationDeleteResult,
+      )
+    },
+
+    listReaders(token) {
+      return request(
+        `/api/publications/${encodeURIComponent(token)}/readers`,
+        { method: "GET" },
+        PublicationReaderList,
+      )
+    },
+
+    roomTicket(token) {
+      return request(
+        `/api/publications/${encodeURIComponent(token)}/room-ticket`,
+        { method: "POST" },
+        PublicationRoomTicketResponse,
+      )
+    },
+
+    listComments(token, query, authorName) {
+      return request(
+        `/p/${encodeURIComponent(token)}/comments${commentQuery(query)}`,
+        { method: "GET", headers: authorHeaders(authorName) },
+        PublishCommentListResponse,
+      )
+    },
+
+    createComment(token, body, authorName) {
+      return request(
+        `/p/${encodeURIComponent(token)}/comments`,
+        jsonBody("POST", body, authorHeaders(authorName)),
+        PublishCommentResponse,
+      )
+    },
+
+    updateComment(token, commentId, body, authorName) {
+      return request(
+        `/p/${encodeURIComponent(token)}/comments/${encodeURIComponent(commentId)}`,
+        jsonBody("PATCH", body, authorHeaders(authorName)),
+        PublishCommentResponse,
+      )
+    },
+
+    deleteComment(token, commentId, authorName) {
+      return request(
+        `/p/${encodeURIComponent(token)}/comments/${encodeURIComponent(commentId)}`,
+        { method: "DELETE", headers: authorHeaders(authorName) },
+        PublishCommentResponse,
+      )
+    },
+
+    resolveComment(token, commentId, body, authorName) {
+      return request(
+        `/p/${encodeURIComponent(token)}/comments/${encodeURIComponent(commentId)}/resolve`,
+        jsonBody("POST", body, authorHeaders(authorName)),
+        PublishCommentResponse,
       )
     },
 
