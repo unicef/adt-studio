@@ -17,6 +17,8 @@ export interface FakeCloudflareState {
   migrationRows: Array<{ name: string; applied_at: string }>
   executedSql: string[]
   uploadCount: number
+  staticAssetManifests: Array<Record<string, unknown>>
+  staticAssetUploads: Array<Record<string, string>>
   healthCalls: number
   calls: Array<{ method: string; url: string }>
   tokenRequests: Array<Record<string, string>>
@@ -47,6 +49,7 @@ export interface FakeCloudflareOptions {
   workerVersion?: string
   healthFailures?: number
   healthUnreachable?: boolean
+  assetUploadBuckets?: string[][]
   /** Accounts the OAuth grant can see. Defaults to the single configured account. */
   oauthAccounts?: Array<{ id: string; name: string }> | null
   accountsListForbidden?: boolean
@@ -100,6 +103,8 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
     migrationRows: [...(options.migrationRows ?? [])],
     executedSql: [],
     uploadCount: 0,
+    staticAssetManifests: [],
+    staticAssetUploads: [],
     healthCalls: 0,
     calls: [],
     tokenRequests: [],
@@ -299,6 +304,22 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
     }
 
     const scriptMatch = path.match(/^\/workers\/scripts\/([^/]+)$/)
+    const assetSessionMatch = path.match(/^\/workers\/scripts\/([^/]+)\/assets-upload-session$/)
+    if (assetSessionMatch && method === "POST") {
+      if (denied.has("Workers Scripts:Edit")) {
+        return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
+      }
+      const body = JSON.parse(String(init?.body ?? "{}")) as { manifest?: Record<string, unknown> }
+      state.staticAssetManifests.push(body.manifest ?? {})
+      return ok({ jwt: "asset-upload-jwt", buckets: options.assetUploadBuckets ?? [] })
+    }
+
+    if (path === "/workers/assets/upload" && method === "POST") {
+      const body = await readFormText(init?.body, "body")
+      state.staticAssetUploads.push(JSON.parse(body || "{}") as Record<string, string>)
+      return ok({ jwt: "asset-complete-jwt" })
+    }
+
     if (scriptMatch && method === "PUT") {
       if (denied.has("Workers Scripts:Edit")) {
         return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
