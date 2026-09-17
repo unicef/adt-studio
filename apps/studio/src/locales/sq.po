@@ -324,6 +324,10 @@ msgstr "{0} seksione"
 msgid "{0} selected images are no longer in the storyboard."
 msgstr "{0} imazhe të zgjedhura nuk janë më në storyboard."
 
+#. placeholder {0}: PROVISION_STEP_COPY.length
+msgid "{0} small things get created in your account. Nothing is charged."
+msgstr "{0} gjëra të vogla krijohen në llogarinë tuaj. Nuk ka asnjë tarifë."
+
 #. placeholder {0}: String(visibleCount)
 msgid "{0} terms"
 msgstr "{0} terma"
@@ -2939,8 +2943,8 @@ msgstr "Krijimi i një imazhi të ri të fjalorthit ndryshon grupin e imazheve t
 msgid "Creating the database"
 msgstr "Krijimi i bazës së të dhënave"
 
-msgid "Creating the storage space"
-msgstr "Krijimi i hapësirës së ruajtjes"
+#~ msgid "Creating the storage space"
+#~ msgstr "Krijimi i hapësirës së ruajtjes"
 
 msgid "Creating..."
 msgstr "Po krijohet..."
@@ -3684,8 +3688,8 @@ msgstr "Ndryshimet shkojnë tek ky prefiks i variantit Tailwind"
 msgid "Effort"
 msgstr "Përpjekje"
 
-msgid "Eight small things get created in your account. Nothing is charged."
-msgstr "Tetë gjëra të vogla krijohen në llogarinë tuaj. Asgjë nuk ngarkohet."
+#~ msgid "Eight small things get created in your account. Nothing is charged."
+#~ msgstr "Tetë gjëra të vogla krijohen në llogarinë tuaj. Asgjë nuk ngarkohet."
 
 msgid "Element style editor"
 msgstr "Redaktues i stilit të elementit"
@@ -4768,8 +4772,8 @@ msgstr "História e Sociedade - Vol. 1"
 msgid "Hit"
 msgstr "Goditje"
 
-msgid "Holds the pages, images and audio of each published book."
-msgstr "Mban faqet, imazhet dhe audion e çdo libri të publikuar."
+#~ msgid "Holds the pages, images and audio of each published book."
+#~ msgstr "Mban faqet, imazhet dhe audion e çdo libri të publikuar."
 
 msgid "Home"
 msgstr "Ballina"
@@ -5697,8 +5701,11 @@ msgstr "Vlerat më të ulëta prodhojnë stil më konsistent nëpër faqe."
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Sigurohuni që po ngarkoni një skedar .zip të eksportuar nga ADT Studio."
 
-msgid "Making sure the token works and has all four permissions."
-msgstr "Duke u siguruar që tokeni funksionon dhe ka të gjitha katër lejet."
+#~ msgid "Making sure the token works and has all four permissions."
+#~ msgstr "Duke u siguruar që tokeni funksionon dhe ka të gjitha katër lejet."
+
+msgid "Making sure the token works and has every permission it needs."
+msgstr "Po verifikohet që tokeni funksionon dhe ka çdo leje që i nevojitet."
 
 msgid "Manage all sections"
 msgstr "Menaxho të gjitha seksionet"
@@ -6646,6 +6653,9 @@ msgstr "Ende të pandara:"
 
 msgid "Note"
 msgstr "Shënim"
+
+msgid "Nothing after this step ran. Setup picks up where it left off when you try again."
+msgstr "Asgjë pas këtij hapi nuk u ekzekutua. Konfigurimi vazhdon nga vendi ku u ndal kur të provoni përsëri."
 
 msgid "Nothing important is missing or added"
 msgstr "Asgjë e rëndësishme nuk mungon ose nuk është shtuar"
@@ -7683,8 +7693,8 @@ msgstr "PT"
 msgid "Publish for review"
 msgstr "Publiko për shqyrtim"
 
-msgid "Published books are stored in Cloudflare R2, and your account hasn't switched it on yet. Open R2 in your Cloudflare dashboard and follow the steps to enable it — Cloudflare asks for a payment method, but the space ADT Studio uses is within the free allowance. Then come back and try again. Nothing was created in your account."
-msgstr "Librat e publikuar ruhen në Cloudflare R2, dhe llogaria juaj nuk e ka aktivizuar ende. Hapni R2 në panelin tuaj të Cloudflare dhe ndiqni hapat për ta aktivizuar — Cloudflare kërkon një metodë pagese, por hapësira që përdor ADT Studio është brenda kufirit falas. Pastaj kthehuni dhe provoni përsëri. Asgjë nuk u krijua në llogarinë tuaj."
+#~ msgid "Published books are stored in Cloudflare R2, and your account hasn't switched it on yet. Open R2 in your Cloudflare dashboard and follow the steps to enable it — Cloudflare asks for a payment method, but the space ADT Studio uses is within the free allowance. Then come back and try again. Nothing was created in your account."
+#~ msgstr "Librat e publikuar ruhen në Cloudflare R2, dhe llogaria juaj nuk e ka aktivizuar ende. Hapni R2 në panelin tuaj të Cloudflare dhe ndiqni hapat për ta aktivizuar — Cloudflare kërkon një metodë pagese, por hapësira që përdor ADT Studio është brenda kufirit falas. Pastaj kthehuni dhe provoni përsëri. Asgjë nuk u krijua në llogarinë tuaj."
 
 msgid "Published for review"
 msgstr "Publikuar për shqyrtim"
@@ -10653,11 +10663,11 @@ msgstr "Shndërro çdo PDF edukativ në një paketë mësimore të arritshme dhe
 msgid "Turn any textbook into an accessible edition — every step of the pipeline, built in."
 msgstr "Kthejeni çdo tekst shkollor në një botim të aksesueshëm — çdo hap i procesit, i integruar."
 
-msgid "Turn on R2 in Cloudflare"
-msgstr "Aktivizo R2 në Cloudflare"
+#~ msgid "Turn on R2 in Cloudflare"
+#~ msgstr "Aktivizo R2 në Cloudflare"
 
-msgid "Turn on R2 storage in Cloudflare first"
-msgstr "Aktivizo ruajtjen R2 në Cloudflare së pari"
+#~ msgid "Turn on R2 storage in Cloudflare first"
+#~ msgstr "Aktivizo ruajtjen R2 në Cloudflare së pari"
 
 msgid "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
 msgstr "Aktivizo këtë për të shfaqur kartën e rishikimit të Validimit në Paraparimim dhe skedën e Validimit të Rishikuesit në hapin e Validimit."
@@ -11369,8 +11379,8 @@ msgstr "Theksim në nivel fjale"
 msgid "words"
 msgstr "fjalë"
 
-msgid "Workers R2 Storage"
-msgstr "Ruajtja R2 e Punëtorëve"
+#~ msgid "Workers R2 Storage"
+#~ msgstr "Ruajtja R2 e Punëtorëve"
 
 msgid "Workers Scripts"
 msgstr "Skriptet e Punëtorëve"
