@@ -61,8 +61,43 @@ export class CloudflareApiError extends Error {
   }
 }
 
-export function isRetryableCloudflareError(error: unknown): error is CloudflareApiError {
-  return error instanceof CloudflareApiError && (error.status === 429 || error.status >= 500)
+const TRANSIENT_TRANSPORT_CODES = new Set([
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "EAI_AGAIN",
+  "ENETDOWN",
+  "ENETUNREACH",
+  "ETIMEDOUT",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_SOCKET",
+])
+
+function transportCause(error: unknown): { code: string | null; message: string } {
+  let current = error
+  let deepest = error instanceof Error ? error.message : String(error)
+  for (let depth = 0; depth < 4 && current instanceof Error; depth += 1) {
+    deepest = current.message || deepest
+    const code = (current as { code?: unknown }).code
+    if (typeof code === "string" && code.length > 0) {
+      return { code, message: deepest }
+    }
+    current = (current as { cause?: unknown }).cause
+  }
+  return { code: null, message: deepest }
+}
+
+export function describeCloudflareFailure(error: unknown): string {
+  if (error instanceof CloudflareApiError) return error.message
+  const transport = transportCause(error)
+  return transport.code ? `${transport.code} — ${transport.message}` : transport.message
+}
+
+export function isRetryableCloudflareError(error: unknown): boolean {
+  if (error instanceof CloudflareApiError) return error.status === 429 || error.status >= 500
+  const transport = transportCause(error)
+  return TRANSIENT_TRANSPORT_CODES.has(transport.code ?? "") ||
+    (error instanceof TypeError && /fetch failed|network error/i.test(error.message))
 }
 
 export async function retryCloudflareOperation<T>(
@@ -78,7 +113,8 @@ export async function retryCloudflareOperation<T>(
       return await operation()
     } catch (error) {
       if (!isRetryableCloudflareError(error) || attempt >= attempts - 1) throw error
-      await sleep(error.retryAfterMs ?? delays[attempt] ?? 8_000)
+      const retryAfter = error instanceof CloudflareApiError ? error.retryAfterMs : null
+      await sleep(retryAfter ?? delays[attempt] ?? 8_000)
     }
   }
 }

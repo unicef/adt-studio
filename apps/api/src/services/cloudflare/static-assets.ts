@@ -1,5 +1,11 @@
 import crypto from "node:crypto"
-import { CloudflareApiError, retryCloudflareOperation, type CloudflareClient } from "./client.js"
+import {
+  CloudflareApiError,
+  describeCloudflareFailure,
+  isRetryableCloudflareError,
+  retryCloudflareOperation,
+  type CloudflareClient,
+} from "./client.js"
 
 export interface StaticAsset {
   path: string
@@ -119,8 +125,7 @@ const UPLOAD_ATTEMPTS = 5
 const UPLOAD_BACKOFF_MS = [1_000, 2_000, 4_000, 8_000]
 
 function isRetryableUpload(error: unknown): boolean {
-  if (!(error instanceof CloudflareApiError)) return false
-  return error.status >= 500 || error.status === 429
+  return isRetryableCloudflareError(error)
 }
 
 async function uploadBucketWithRetry(
@@ -162,7 +167,7 @@ export async function prepareStaticAssets(
       retry,
     )
   } catch (error) {
-    throw new StaticAssetError(`Cloudflare rejected the static asset manifest: ${error instanceof Error ? error.message : String(error)}`)
+      throw new StaticAssetError(`Cloudflare rejected the static asset manifest: ${describeCloudflareFailure(error)}`)
   }
   /**
    * Every bucket is authorised with the *session's* token, not the previous response's.
@@ -181,7 +186,7 @@ export async function prepareStaticAssets(
       completionJwt =
         (await uploadBucketWithRetry(client, session.jwt, payload, sleep)) ?? completionJwt
     } catch (error) {
-      throw new StaticAssetError(`Cloudflare rejected static asset batch ${index + 1} of ${payloads.length}: ${error instanceof Error ? error.message : String(error)}`)
+      throw new StaticAssetError(`Cloudflare rejected static asset batch ${index + 1} of ${payloads.length}: ${describeCloudflareFailure(error)}`)
     }
     done += session.buckets[index]?.length ?? 0
     await options.onProgress?.({ done, total })
