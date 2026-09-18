@@ -7,9 +7,10 @@ import { cn } from "@/lib/utils"
 const CHIP_BASE =
   "inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium"
 
+/** Alpha tints rather than the `-50` shades, so the same chip reads on a light and a dark card. */
 const TONE: Record<PublicationState, string> = {
-  active: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  expired: "border-amber-200 bg-amber-50 text-amber-900",
+  active: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  expired: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   revoked: "border-border bg-muted text-muted-foreground",
 }
 
@@ -42,7 +43,7 @@ export function PublicationStatusChip({
   )
 }
 
-const CODE_TONE = "border-indigo-200 bg-indigo-50 text-indigo-800"
+const CODE_TONE = "border-brand-200 bg-brand-50 text-brand-700"
 
 /**
  * Shown beside the lifecycle chip, never instead of it: the code guards the door of a link that
@@ -77,7 +78,7 @@ export function AccessCodeChip({ code }: { code?: string | null }) {
       className={cn(
         CHIP_BASE,
         CODE_TONE,
-        "cursor-pointer transition-colors hover:bg-indigo-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400",
+        "cursor-pointer transition-colors duration-200 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
       )}
     >
       <KeyRound className="size-3" aria-hidden="true" />

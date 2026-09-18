@@ -213,16 +213,16 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
   const busyLabel = stop.isPending ? stop.variables : resume.isPending ? resume.variables : null
 
   return (
-    <div className={cn("flex flex-col", embedded ? "gap-3" : "min-h-0 flex-1")}>
+    <div className={cn("flex flex-col", embedded ? "gap-4" : "min-h-0 flex-1")}>
       {data.worker_reachable ? null : (
         <div
           data-testid="publications-worker-unreachable"
           className={cn(
-            "flex items-center gap-2 border-red-200 bg-red-50 px-4 py-2 text-xs text-red-900 duration-200 animate-in fade-in slide-in-from-top-1 motion-reduce:animate-none",
+            "flex items-center gap-2 border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-900 duration-200 animate-in fade-in slide-in-from-top-1 dark:text-red-200 motion-reduce:animate-none",
             embedded ? "rounded-lg border" : "border-b",
           )}
         >
-          <CloudOff className="size-3.5 shrink-0" aria-hidden="true" />
+          <CloudOff className="size-3.5 shrink-0 text-red-600 dark:text-red-400" aria-hidden="true" />
           <p className="flex-1">
             <Trans>
               Your publishing service isn't answering, so this is what this computer remembers:
@@ -245,8 +245,8 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
 
       <div
         className={cn(
-          "flex flex-col gap-4 mh:gap-3",
-          embedded ? "p-0" : "min-h-0 flex-1 overflow-auto p-6 mh:p-4",
+          "flex flex-col gap-4",
+          embedded ? "p-0" : "min-h-0 flex-1 overflow-auto p-6",
         )}
       >
         {nothingPublished ? null : (
@@ -269,10 +269,9 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
           </div>
         ) : (
           <>
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
                 <SegmentedControl<Filter>
-                  className="h-9 w-full max-w-xs"
+                  className="h-9 w-full max-w-[280px]"
                   value={query.filter}
                   onValueChange={(filter) => setQuery((current) => ({ ...current, filter }))}
                   options={[
@@ -311,12 +310,10 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
                     <SelectItem value="title">{t`Title A–Z`}</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2">
                 <Button
                   type="button"
-                  variant={query.unresolvedOnly ? "secondary" : "ghost"}
+                  variant={query.unresolvedOnly ? "secondary" : "outline"}
                   size="sm"
                   aria-pressed={query.unresolvedOnly}
                   onClick={() =>
@@ -325,15 +322,17 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
                       unresolvedOnly: !current.unresolvedOnly,
                     }))
                   }
-                  className="h-7 gap-1.5 text-xs"
+                  className={cn(
+                    "h-9 gap-1.5 text-xs transition-colors duration-200 motion-reduce:transition-none",
+                    query.unresolvedOnly && "border border-transparent text-foreground",
+                  )}
                 >
                   <MessagesSquare className="size-3.5" aria-hidden="true" />
                   <Trans>Only with open feedback</Trans>
                 </Button>
-                <span className="text-xs text-muted-foreground tabular-nums">
+                <span className="ml-auto text-xs text-muted-foreground tabular-nums">
                   <Trans>Showing {publications.length} of {data.publications.length}</Trans>
                 </span>
-              </div>
             </div>
 
             {publications.length === 0 ? (
@@ -363,7 +362,7 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
             ) : (
               <ul
                 aria-label={t`Published books`}
-                className="flex list-none flex-col gap-3 p-0 mh:gap-2"
+                className="flex list-none flex-col gap-3 p-0"
               >
                 {publications.map((publication, index) => (
                   <PublicationRow
@@ -397,7 +396,7 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
               <p
                 data-testid="publications-action-error"
                 role="alert"
-                className="flex items-start gap-2 text-xs leading-5 text-amber-700"
+                className="flex items-start gap-2 text-xs leading-5 text-amber-700 dark:text-amber-300"
               >
                 <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
                 {(stop.error ?? resume.error)?.message}

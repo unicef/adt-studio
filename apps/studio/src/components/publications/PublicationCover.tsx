@@ -25,7 +25,7 @@ export function PublicationCover({ label, title, bookExists }: PublicationCoverP
   const Placeholder = bookExists ? BookOpen : BookLock
 
   return (
-    <div className="flex h-20 w-[54px] shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted mh:h-16 mh:w-[44px]">
+    <div className="flex h-20 w-[54px] shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
       {showCover ? (
         <img
           src={getBookCoverUrl(label)}

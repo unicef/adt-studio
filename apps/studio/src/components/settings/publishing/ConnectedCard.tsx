@@ -89,7 +89,7 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
             className="flex min-h-0 flex-1 flex-col motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-500"
           >
             <div className="flex flex-wrap items-start gap-3 px-5 py-4">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-zinc-200">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-background shadow-sm ring-1 ring-border">
                 <Cloud className="size-5" style={{ color: "#f6821f" }} aria-hidden="true" />
               </span>
 
@@ -99,16 +99,16 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
                     <Trans>Publishing is ready</Trans>
                   </h2>
                   {connection.upgrade_available ? (
-                    <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
+                    <span className="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700">
                       <Trans>Update available</Trans>
                     </span>
                   ) : connection.worker_reachable ? (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
                       <CheckCircle2 className="size-3" aria-hidden="true" />
                       <Trans>Live</Trans>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                    <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
                       <Trans>Not answering right now</Trans>
                     </span>
                   )}
@@ -136,7 +136,7 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
                     )}
                   </span>
                   {connection.upgrade_available && (
-                    <span className="text-indigo-700">
+                    <span className="text-brand-700">
                       <Trans>({connection.latest_version} ready to install)</Trans>
                     </span>
                   )}
@@ -146,17 +146,17 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
 
             <section
               aria-labelledby="hosted-books-heading"
-              className="flex min-h-0 flex-1 flex-col overflow-y-auto border-t px-5 py-5"
+              className="flex min-h-0 flex-1 flex-col overflow-y-auto border-t px-5 py-4"
             >
-              <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
                 <div>
                   <h2
                     id="hosted-books-heading"
-                    className="text-base font-semibold tracking-tight text-foreground"
+                    className="text-sm font-semibold tracking-tight text-foreground"
                   >
                     <Trans>Hosted books</Trans>
                   </h2>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  <p className="mt-0.5 text-[12.5px] leading-5 text-muted-foreground">
                     <Trans>Usage and sharing controls for books hosted in this Cloudflare account.</Trans>
                   </p>
                 </div>

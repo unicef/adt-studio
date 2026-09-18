@@ -99,7 +99,7 @@ export function PublicationReaders({
           className="flex flex-col items-start gap-2 py-2"
         >
           <span className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
-            <ArrowUpCircle className="mt-0.5 size-3.5 shrink-0 text-indigo-600" aria-hidden="true" />
+            <ArrowUpCircle className="mt-0.5 size-3.5 shrink-0 text-brand-600" aria-hidden="true" />
             <Trans>
               Your publishing service is a version behind and doesn't keep this list yet.
               Installing the update adds it — the names of anyone who joined before then are
@@ -116,7 +116,7 @@ export function PublicationReaders({
          * above. One degraded state, said the same way everywhere. */
         <span
           data-testid="publication-readers-unavailable"
-          className="flex items-start gap-2 py-2 text-xs leading-5 text-amber-700"
+          className="flex items-start gap-2 py-2 text-xs leading-5 text-amber-700 dark:text-amber-300"
         >
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
           {notConnected ? (

@@ -9,7 +9,8 @@ function RowSkeleton({ index }: { index: number }) {
       style={{ animationDelay: `${index * 60}ms`, animationFillMode: "both" }}
       className="rounded-xl border bg-card motion-safe:animate-wizard-enter"
     >
-      <div className="flex flex-col gap-3 p-4 mh:gap-2 mh:p-3 lg:flex-row lg:items-start lg:gap-4">
+      <div className="flex flex-col gap-3 p-4">
+        <div className="flex gap-3">
         <div className="h-20 w-[54px] shrink-0 animate-pulse rounded-md bg-muted motion-reduce:animate-none" />
 
         <div className="flex min-w-0 flex-1 flex-col gap-2.5">
@@ -29,11 +30,13 @@ function RowSkeleton({ index }: { index: number }) {
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-col gap-1.5 lg:w-44 lg:border-l lg:pl-4">
-          {[0, 1, 2].map((action) => (
+        </div>
+        <div className="flex gap-1.5 border-t pt-3">
+          {[96, 88, 76].map((width, action) => (
             <div
               key={action}
-              className="h-8 w-full animate-pulse rounded-md bg-muted/60 motion-reduce:animate-none"
+              style={{ width: `${width}px` }}
+              className="h-8 animate-pulse rounded-md bg-muted/60 motion-reduce:animate-none"
             />
           ))}
         </div>
@@ -50,7 +53,7 @@ export function PublicationsSkeleton() {
       data-testid="publications-skeleton"
       aria-busy="true"
       aria-live="polite"
-      className="flex flex-col gap-4 mh:gap-3"
+      className="flex flex-col gap-4"
     >
       <span className="sr-only">
         <Trans>Looking up your published books…</Trans>
@@ -58,10 +61,10 @@ export function PublicationsSkeleton() {
 
       {/* The placeholders are shape, not content: a screen reader gets the line above instead
           of four empty tiles and three empty list items. */}
-      <div aria-hidden="true" className="flex flex-col gap-4 mh:gap-3">
+      <div aria-hidden="true" className="flex flex-col gap-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[0, 1, 2, 3].map((tile) => (
-          <div key={tile} className="flex flex-col gap-2 rounded-xl border bg-card p-4 mh:p-3">
+          <div key={tile} className="flex flex-col gap-2 rounded-xl border bg-card p-3.5">
             <div className="h-3 w-24 animate-pulse rounded bg-muted/70 motion-reduce:animate-none" />
             <div className="h-7 w-16 animate-pulse rounded bg-muted motion-reduce:animate-none" />
             <div className="h-3 w-32 animate-pulse rounded bg-muted/50 motion-reduce:animate-none" />
@@ -74,7 +77,7 @@ export function PublicationsSkeleton() {
         <div className="h-9 w-40 animate-pulse rounded-md bg-muted/60 motion-reduce:animate-none" />
       </div>
 
-      <ul className="flex list-none flex-col gap-3 p-0 mh:gap-2">
+      <ul className="flex list-none flex-col gap-3 p-0">
         {[0, 1, 2].map((row) => (
           <RowSkeleton key={row} index={row} />
         ))}
