@@ -1,0 +1,25 @@
+---
+title: "Glossário"
+description: "Renderize definições vinculadas a partir de dados ADT no WebPub e use a marcação nativa do glossário EPUB quando disponível."
+icon: BookMarked
+---
+
+Exportações WebPub mantêm termos em `content/i18n/<lang>/glossary.json`. Encontre cada termo e suas `variations` no texto visível e abra a definição em um popover acessível por teclado.
+
+<PackageSnippet title="Referência do glossário WebPub" path="content/i18n/en-US/glossary.json" />
+
+## Aplique e limpe
+
+Dê aos termos marcados uma indicação visível, como sublinhado pontilhado. Antes de aplicar o glossário novamente, desembrulhe marcadores existentes e remova popover, estilos injetados e listeners. Sem limpeza explícita, marcadores se aninham e handlers se acumulam após navegação ou mudança de idioma.
+
+Encontre apenas nós de texto no conteúdo de leitura, nunca links, controles, conteúdo oculto ou marcadores já existentes. Use segmentação de palavras sensível ao idioma, prefira a variação sobreposta mais longa e preserve o nó de texto original em cada ocorrência.
+
+## EPUB usa marcação nativa
+
+No EPUB, termos de glossário são convertidos em âncoras `epub:type="glossref"` que apontam para `glossary.xhtml`. Prefira o suporte do motor EPUB quando existir. As pastas de idioma EPUB não incluem `glossary.json`.
+
+<PackageSnippet format="epub" title="Referência do glossário EPUB" path="OEBPS/glossary.xhtml" />
+
+<Callout type="warn" title="Um glossário pode ser específico ao idioma">
+O glossário EPUB é gerado para o idioma de exportação. Um leitor que muda de idioma deve lidar normalmente com a ausência de um glossário nativo correspondente.
+</Callout>

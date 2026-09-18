@@ -29,6 +29,10 @@ import {
   Tablet,
   PencilRuler,
   Package,
+  BookOpenCheck,
+  FolderTree,
+  Wrench,
+  Puzzle,
   type LucideIcon,
 } from "lucide-react";
 
@@ -90,4 +94,15 @@ export const DOCS_COLORS: Record<string, { icon: LucideIcon; hex: string }> = {
   "export/scorm": { icon: GraduationCap, hex: "#7c3aed" },
   "export/webpub": { icon: BookMarked, hex: "#0284c7" },
   "export/epub": { icon: Tablet, hex: "#e11d48" },
+
+  // Reader support (for developers of reading applications)
+  "reader-support": { icon: BookOpenCheck, hex: "#0369a1" },
+  "reader-support/packages": { icon: FolderTree, hex: "#0891b2" },
+  "reader-support/text": { icon: Languages, hex: "#c026d3" },
+  "reader-support/read-aloud": { icon: AudioLines, hex: "#e11d48" },
+  "reader-support/glossary": { icon: BookMarked, hex: "#65a30d" },
+  "reader-support/images": { icon: Image, hex: "#0d9488" },
+  "reader-support/sign-language": { icon: Hand, hex: "#0891b2" },
+  "reader-support/activities": { icon: Puzzle, hex: "#ea580c" },
+  "reader-support/adapting": { icon: Wrench, hex: "#ea580c" },
 };

@@ -1,0 +1,116 @@
+---
+title: "Paquete e inicio"
+description: "Abre un WebPub o EPUB de ADT, encuentra su capa de datos y descubre las funciones que contiene el libro."
+icon: FolderTree
+---
+
+WebPub y EPUB tienen contenedores distintos, pero la capa de datos de ADT conserva la misma estructura. Resuelve su ruta base una vez; después, los cargadores de funciones usan las mismas rutas relativas.
+
+## Las dos estructuras de paquete
+
+<Tabs items={["WebPub", "EPUB"]}>
+
+<Tab value="WebPub">
+
+La capa de datos de ADT está en la raíz del paquete. `manifest.json` es la fuente de verdad para el orden de lectura, la tabla de contenidos, la lista de páginas y los metadatos de presentación.
+
+```
+webpub/
+  manifest.json
+  assets/config.json
+  content/pages.json
+  content/i18n/<lang>/
+  pg002_sec001.html …
+```
+
+</Tab>
+
+<Tab value="EPUB">
+
+EPUB es un contenedor OCF estándar. Su documento de paquete y toda la capa de datos de ADT se encuentran en `OEBPS/`.
+
+```
+META-INF/container.xml
+OEBPS/
+  content.opf
+  assets/config.json
+  content/pages.json
+  content/i18n/<lang>/
+  pg002_sec001.xhtml …
+```
+
+</Tab>
+
+</Tabs>
+
+## Requisitos previos del lector
+
+Tu lector debe poder inspeccionar y actualizar el documento de contenido renderizado. Usa un iframe del mismo origen, un puente de inyección de webview o preprocesamiento antes de mostrarlo. Un iframe de origen cruzado sin puente de inyección no puede aplicar el mapa de texto ADT, los marcadores de glosario ni el comportamiento de las funciones a nivel de página.
+
+Trata un paquete abierto como no confiable. Mantén su ruta de archivo o su handle de ZIP en el lado de confianza de la aplicación; la interfaz debe recibir un handle de libro, nunca una ruta arbitraria suministrada por el contenido de la página.
+
+## Inspecciona referencias de exportación
+
+Estos extractos seleccionados y con resaltado de sintaxis proceden de exportaciones de ADT verificadas. Son artefactos de referencia, no nombres de archivo que un lector deba reproducir. Selecciona un archivo para entender por qué importa; el resaltado se genera durante la compilación a partir del ejemplo versionado, por lo que no se envía ningún resaltador al navegador del lector. La colección puede crecer con más exportaciones a medida que evolucionen los formatos.
+
+<PackageExplorer />
+
+## Detecta un ADT
+
+Una publicación es ADT cuando tiene un archivo de configuración legible con un objeto `features` y un punto de entrada reconocible de WebPub o EPUB:
+
+```ts
+const dataBase = await exists(join(packageRoot, "OEBPS/content.opf"))
+  ? join(packageRoot, "OEBPS")
+  : packageRoot;
+
+const config = await readJson(join(dataBase, "assets/config.json"));
+const isAdt = Boolean(
+  config?.features &&
+    (await exists(join(dataBase, "manifest.json")) ||
+      await exists(join(dataBase, "content.opf"))),
+);
+```
+
+`dataBase` es la raíz del paquete para WebPub y `OEBPS/` para EPUB. Mantén la detección ligera: lee un archivo de configuración y consulta solo los puntos de entrada esperados. Las flags describen los datos producidos; cuando una flag es `false`, oculta el control en lugar de mostrar algo que no puede funcionar.
+
+## Contrato de sidecars V1
+
+`assets/config.json` incluye `bundleVersion`. Las exportaciones de referencia de esta página usan la versión `1`. Un lector debería tratar una versión futura desconocida como un contrato nuevo, conservar la lectura básica de WebPub o EPUB y evitar activar mejoras ADT hasta admitir esa versión.
+
+Todos los sidecars son opcionales, incluso cuando la flag de la función es verdadera. Una flag significa que la exportación *puede* ofrecer una capacidad; el idioma y la página actuales aún deben tener datos utilizables.
+
+| Recurso | Ruta bajo la raíz de datos | Forma | Ubicación del archivo |
+|---|---|---|---|
+| Texto | `content/i18n/<lang>/texts.json` | `Record<data-id, string>`; las claves `_easy_read` son variantes opcionales | — |
+| Narración | `content/i18n/<lang>/audios.json` | `Record<data-id, fileName>` | `content/i18n/<lang>/audio/<fileName>` |
+| Lengua de signos | `content/i18n/<lang>/videos.json` | `Record<video-<pageIndex>, fileName>` | `content/i18n/<lang>/video/<fileName>` |
+| Glosario WebPub | `content/i18n/<lang>/glossary.json` | `Record<word, { word, definition, variations, id, image?, video? }>` | Incrustado por término cuando existe |
+| Imágenes localizadas | `content/i18n/<lang>/images.json` | `Record<data-id, fileName>` | Ubicación específica de la exportación |
+
+La referencia EPUB actual incluye el mapa de texto y el marcado nativo `glossref`. No demuestra todos los sidecars de WebPub. No infieras paridad de sidecars entre formatos. El tiempo por palabra **no está garantizado** por V1: cuando un libro lo lleva, viaja como un sidecar `timecode/`, y un EPUB puede exponer Media Overlays nativos. Trata cualquiera de los dos como mejora progresiva y mantén la narración funcionando a nivel de nodo sin ellos; consulta [Lectura en voz alta](/docs/reader-support/read-aloud).
+
+## Qué cubren las referencias públicas
+
+Los fragmentos de código de esta página demuestran las formas de abajo, pero no son paquetes de prueba completos y descargables. Úsalos para entender el contrato; usa tus propias pruebas a nivel de paquete antes de publicar.
+
+| Referencia | Demuestra | Todavía no demuestra |
+|---|---|---|
+| WebPub V1 | Configuración, mapa de texto, mapa de narración, mapa de lengua de signos, forma del glosario, un mapa de imágenes localizadas y una página de actividad | Archivos multimedia, tiempo por palabra, diseño fijo |
+| EPUB V1 | Ubicación OCF, raíz de datos `OEBPS/`, mapa de texto, marcado nativo de glosario y una página de actividad | Sidecars ADT de audio/vídeo, Media Overlays, diseño fijo |
+
+Cuando se añada un nuevo formato o capacidad pública, incluye con él un paquete de prueba publicable y una matriz de resultados esperados. Los paquetes PNLD quedan fuera del alcance de este contrato público.
+
+## Marcadores estructurales
+
+El HTML renderizado contiene la información de unión que necesita el lector:
+
+| Atributo | Significado |
+|---|---|
+| `data-id` | Id del nodo de contenido — clave para los datos de funciones |
+| `data-section-id` | Id de la sección renderizada |
+| `data-section-type` | Tipo de sección, como `images_only` o `activity_*` |
+| `data-segments` | Tramos de texto de diseño fijo |
+| `data-adt-fit` | Texto de diseño fijo ajustado a una caja |
+
+Usa estos marcadores, y no los nombres de archivo, para decidir cómo renderizar una página.

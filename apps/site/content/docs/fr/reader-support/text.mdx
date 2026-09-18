@@ -1,0 +1,36 @@
+---
+title: "Texte et langue"
+description: "Appliquez le texte de langue et la Lecture facile au contenu rendu sans perdre le lien avec le livre."
+icon: Languages
+---
+
+Chaque élément important d’une page ADT possède un `data-id`. Cet id relie le HTML de contenu aux données des fonctionnalités.
+
+<PackageSnippet title="Référence de la table de texte" path="content/i18n/en-US/texts.json" />
+
+## Choisissez le texte affiché
+
+Chargez `content/i18n/<lang>/texts.json` pour la langue active. Pour chaque élément de la page, remplacez le texte par la valeur correspondante. Les valeurs de Lecture facile utilisent le même id avec le suffixe `_easy_read`.
+
+```ts
+const easyReadValue = texts[`${id}_easy_read`];
+const value = easyRead && typeof easyReadValue === "string"
+  ? easyReadValue
+  : texts[id];
+```
+
+Pour les images, définissez `alt` plutôt que le contenu texte. Réappliquez la table après chaque navigation : un nouveau document contient le texte original du package.
+
+## Gardez les ids locaux au package
+
+Les valeurs `data-id` sont ordinales et peuvent changer lors d’une nouvelle exportation. Utilisez-les seulement pour joindre les données dans le package ouvert, jamais comme clés permanentes de marque-pages, notes, surlignages ou état du lecteur.
+
+<Callout type="warn" title="Respectez les cibles Media Overlay EPUB">
+Le contenu EPUB peut contenir des spans par mot ciblés par SMIL. Remplacer le HTML entier d’un nœud supprime ces cibles et brise la synchronisation. Préservez-les avec les Media Overlays ou conservez le texte de la langue d’exportation.
+</Callout>
+
+## Découvrez les langues disponibles
+
+Lisez `languages.available` et `languages.default` dans `assets/config.json`. Le même fichier contient les indicateurs de fonctionnalités ; `false` signifie qu’aucune donnée n’a été générée pour cette capacité.
+
+<PackageSnippet title="Configuration de fonctionnalité et de langue" path="assets/config.json" />

@@ -1,0 +1,25 @@
+---
+title: "Activités"
+description: "Intégrez le moteur d’activité embarqué à la navigation du lecteur en respectant ses limites d’état."
+icon: Puzzle
+---
+
+Les pages d’activité et de quiz embarquent un moteur qui rend l’interaction, valide les réponses et fait avancer le cadre de contenu lorsque la personne termine l’activité.
+
+<PackageSnippet title="Référence de quiz WebPub" path="qz001.html" />
+
+La collection publique inclut cette page de quiz en WebPub et EPUB. C’est un extrait, et non un package de test téléchargeable complet : validez l’interaction entière dans votre propre package avant publication.
+
+## Coordonnez avec l’interface du lecteur
+
+Détectez les pages d’activité avec `[data-section-type^="activity_"]`. Le lecteur peut masquer `#nav-container`, proposer son propre bouton d’envoi dans l’interface externe et faire cliquer ce bouton sur celui qui est embarqué. Suivez la progression en observant l’emplacement du cadre par rapport à l’ordre de lecture.
+
+Il n’existe pas de contrat `postMessage` entre le moteur embarqué et le lecteur hôte. Conservez le focus clavier dans le cadre lorsqu’un bouton externe délègue un clic et traitez la navigation du cadre seulement comme signal de repli, jamais comme API de fin durable.
+
+## Clarifiez les attentes d’état
+
+Le moteur possède l’état de l’activité. Il ne conserve que les réponses de texte libre dans le `localStorage` du cadre ; les autres types de réponse sont réinitialisés au rechargement et aucun n’est exposé au lecteur hôte. Conservez vos réglages de lecture, mais ne promettez pas de réponses durables sans construire cette capacité séparément.
+
+<Callout type="warn" title="Les activités sont de l’entraînement, pas une évaluation sûre">
+Les réponses correctes sont présentes dans la page exportée. N’utilisez pas ce moteur seul pour une évaluation notée ou à fort enjeu.
+</Callout>

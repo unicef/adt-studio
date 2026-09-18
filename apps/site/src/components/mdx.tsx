@@ -15,6 +15,8 @@ import { PartnersStrip } from '@/components/docs/PartnersStrip';
 import { PrincipleCards } from '@/components/docs/PrincipleCards';
 import { FeatureVisual } from '@/components/docs/FeatureVisual';
 import { SectionBanner } from '@/components/docs/SectionBanner';
+import { PackageExplorer } from '@/components/docs/PackageExplorer';
+import { PackageSnippet } from '@/components/docs/PackageSnippet';
 
 export function getMDXComponents(components?: MDXComponents) {
   return {
@@ -45,6 +47,8 @@ export function getMDXComponents(components?: MDXComponents) {
     PrincipleCards,
     FeatureVisual,
     SectionBanner,
+    PackageExplorer,
+    PackageSnippet,
     ...components,
   } satisfies MDXComponents;
 }

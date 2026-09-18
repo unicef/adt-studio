@@ -1,0 +1,27 @@
+---
+title: "Descripciones de imagen"
+description: "Muestra descripciones largas de imágenes e intercambia variantes localizadas cuando el lector cambia de idioma."
+icon: Image
+---
+
+Las descripciones largas usan el mismo mapa de texto que el resto de la página. Para un nodo de imagen, usa la entrada de `texts.json` de su `data-id`; después usa la descripción de la página, `alt` o `figcaption` como alternativa.
+
+La presentación natural es una caja de luz o zoom, donde hay espacio para leer. Muéstrala solo cuando `features.describeImages` sea `true`.
+
+## Variantes de imagen localizadas
+
+`images.json` asigna un id de imagen a un recurso de sustitución cuando la imagen contiene contenido traducido, como un diagrama etiquetado. Al cambiar de idioma, sustituye el `src` de los nodos de imagen correspondientes.
+
+El mapa es opcional. `features.describeImages` puede ser `true` cuando hay descripciones pero no un recurso de imagen traducido; conserva el `src` original si el mapa o su id no existen.
+
+Las variantes existen para los idiomas de destino, nunca para el de origen, así que el mapa vive bajo cada locale traducido:
+
+<PackageSnippet path="content/i18n/pt-BR/images.json" />
+
+La clave es el `data-id` de la `<img>`; el valor es un archivo en el mismo directorio `images/` que el original. Cambiar a pt-BR significa sustituir el `src` de esas dos imágenes exactamente y dejar el resto intactas: una imagen ausente del mapa no tiene versión traducida y conserva su archivo original.
+
+<PackageSnippet title="Configuración de descripción de imagen" path="assets/config.json" />
+
+<Callout title="Un mapa vacío es válido">
+La exportación de referencia no necesita variantes localizadas de imagen. Conserva la fuente original cuando un id no esté en el mapa.
+</Callout>

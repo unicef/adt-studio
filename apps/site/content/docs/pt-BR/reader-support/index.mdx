@@ -1,0 +1,63 @@
+---
+title: "Suporte a leitores"
+description: "Um guia de integração por funcionalidade para aplicativos de leitura que oferecem suporte às exportações ADT WebPub e EPUB."
+icon: BookOpenCheck
+---
+
+Esta seção é voltada a **desenvolvedores de aplicativos de leitura**. Um ADT, um Livro Didático Digital Acessível, é uma publicação enriquecida com narração, variantes de idioma, descrições de imagens, língua de sinais, dados de glossário e atividades. Este guia explica como um leitor pode disponibilizar esses recursos.
+
+<SectionBanner slug="reader-support" />
+
+<Callout type="idea" title="O modelo de integração">
+Uma exportação ADT tem duas camadas: um WebPub ou EPUB padrão, que um leitor compatível consegue abrir, e uma camada compacta de dados ADT que enriquece o conteúdo renderizado. Seu leitor pode adotar um recurso por vez.
+</Callout>
+
+## O que funciona sem suporte a ADT
+
+| Recurso | EPUB | WebPub |
+|---|---|---|
+| Abertura, navegação, sumário e números de página | Nativo | Nativo |
+| Leitura em voz alta | Media Overlays nativos quando presentes; caso contrário, dados ADT | Dados ADT |
+| Glossário | Marcação de glossário EPUB nativa | Dados ADT |
+| Troca de idioma e Leitura Fácil | Dados ADT | Dados ADT |
+| Descrições de imagens, língua de sinais e atividades | Dados ADT | Dados ADT |
+
+**O EPUB oferece mais a um leitor sem modificações.** Ele pode incluir SMIL Media Overlays e marcação de glossário nativa do EPUB. O WebPub mantém os dados dos recursos como arquivos auxiliares, portanto o leitor hospedeiro controla a interface e o comportamento.
+
+## Comece nesta ordem
+
+<Steps>
+<Step>
+### Abra e identifique o pacote
+
+Localize `assets/config.json`, resolva o caminho-base do pacote e use as sinalizações de recursos para decidir quais controles existem. Consulte [Pacote e inicialização](/docs/reader-support/packages).
+</Step>
+<Step>
+### Renderize a camada de texto
+
+Aplique o mapa `texts.json` do idioma ativo aos elementos da página renderizada. Isso estabelece a ligação entre a publicação e os dados ADT. Consulte [Texto e idioma](/docs/reader-support/text).
+</Step>
+<Step>
+### Adicione os recursos que seu leitor pode oferecer
+
+Leitura em voz alta, glossário, descrições de imagens, língua de sinais e atividades são adições independentes. Cada guia inclui os dados reais exportados que ele utiliza.
+</Step>
+<Step>
+### Integre à estrutura do seu leitor
+
+Mantenha o carregamento de dados, a injeção na página, os controles, a limpeza e a validação em camadas claras. Consulte [Integração do leitor](/docs/reader-support/adapting).
+</Step>
+</Steps>
+
+## Encontre um recurso
+
+<StageCards>
+  <StageCard slug="reader-support/packages" href="reader-support/packages" title="Pacote e inicialização" description="Abra um ADT, encontre sua camada de dados e descubra os recursos disponíveis." />
+  <StageCard slug="reader-support/text" href="reader-support/text" title="Texto e idioma" description="Troca de idioma, Leitura Fácil, ids de nós de conteúdo e texto localizado." />
+  <StageCard slug="reader-support/read-aloud" href="reader-support/read-aloud" title="Leitura em voz alta" description="Clipes de áudio, temporização de palavras e EPUB Media Overlays." />
+  <StageCard slug="reader-support/glossary" href="reader-support/glossary" title="Glossário" description="Mapas de termos no WebPub e marcação de glossário nativa no EPUB." />
+  <StageCard slug="reader-support/images" href="reader-support/images" title="Descrições de imagens" description="Descrições longas e variantes de imagens localizadas." />
+  <StageCard slug="reader-support/sign-language" href="reader-support/sign-language" title="Língua de sinais" description="Clipes por página e uma superfície picture-in-picture controlada pelo leitor." />
+  <StageCard slug="reader-support/activities" href="reader-support/activities" title="Atividades" description="Runtime de atividades incorporado, estrutura do leitor e limitações de estado." />
+  <StageCard slug="reader-support/adapting" href="reader-support/adapting" title="Integração do leitor" description="Arquitetura, correções de layout, limpeza e uma lista de verificação de integração." />
+</StageCards>

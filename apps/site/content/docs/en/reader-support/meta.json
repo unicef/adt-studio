@@ -1,0 +1,14 @@
+{
+  "title": "Reader support",
+  "icon": "BookOpenCheck",
+  "pages": [
+    "packages",
+    "text",
+    "read-aloud",
+    "glossary",
+    "images",
+    "sign-language",
+    "activities",
+    "adapting"
+  ]
+}

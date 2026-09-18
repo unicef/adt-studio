@@ -28,6 +28,9 @@ msgstr "{0} latest is <0>{1}</0> — the project is on <1>{2}</1>. A {3} build f
 msgid "© {0} ADT Studio · AGPL-3.0"
 msgstr "© {0} ADT Studio · AGPL-3.0"
 
+msgid "A content page, body only. Note data-section-type and data-section-id on the section, and data-id on every text and image node. Those ids are the join key for the data layer."
+msgstr "A content page, body only. Note data-section-type and data-section-id on the section, and data-id on every text and image node. Those ids are the join key for the data layer."
+
 msgid "A map through every chapter."
 msgstr "A map through every chapter."
 
@@ -37,8 +40,14 @@ msgstr "A navigable table of contents, generated from the book's real structure.
 msgid "A pipeline of ten stages does the heavy lifting. You review, correct and re-run any of them; nothing is overwritten and unchanged steps come back from cache instantly."
 msgstr "A pipeline of ten stages does the heavy lifting. You review, correct and re-run any of them; nothing is overwritten and unchanged steps come back from cache instantly."
 
+msgid "A quiz activity page. The activity runtime reads its data-section-type, answer keys, and option data attributes; the page also contains its own nav container, which a host reader can replace with its own chrome."
+msgstr "A quiz activity page. The activity runtime reads its data-section-type, answer keys, and option data attributes; the page also contains its own nav container, which a host reader can replace with its own chrome."
+
 msgid "A redesigned Studio with more AI providers"
 msgstr "A redesigned Studio with more AI providers"
+
+msgid "A standard EPUB 3 container. The same data layer rides inside OEBPS/, and two features are lowered into EPUB-native constructs."
+msgstr "A standard EPUB 3 container. The same data layer rides inside OEBPS/, and two features are lowered into EPUB-native constructs."
 
 msgid "Accessibility"
 msgstr "Accessibility"
@@ -48,6 +57,9 @@ msgstr "Accessibility work is careful work. ADT Studio is designed so you can al
 
 msgid "Accessible by design"
 msgstr "Accessible by design"
+
+msgid "Activities"
+msgstr "Activities"
 
 msgid "Add a PDF"
 msgstr "Add a PDF"
@@ -96,6 +108,9 @@ msgstr "Also available for"
 
 msgid "Also available on"
 msgstr "Also available on"
+
+msgid "Also identical to the WebPub copy. A loader that resolves the base path once needs no further per-format branching."
+msgstr "Also identical to the WebPub copy. A loader that resolves the base path once needs no further per-format branching."
 
 msgid "An introduction to accessible digital textbooks and this tool."
 msgstr "An introduction to accessible digital textbooks and this tool."
@@ -319,6 +334,9 @@ msgstr "Every version is kept. Roll back to any earlier result, any time."
 msgid "Everything in one place"
 msgstr "Everything in one place"
 
+msgid "excerpt"
+msgstr "excerpt"
+
 msgid "Explore"
 msgstr "Explore"
 
@@ -388,6 +406,9 @@ msgstr "GitHub"
 msgid "Glossary"
 msgstr "Glossary"
 
+msgid "Glossary terms, keyed by word. variations are the inflected forms to match in the text; image and video are optional per-term extras."
+msgstr "Glossary terms, keyed by word. variations are the inflected forms to match in the text; image and video are optional per-term extras."
+
 msgid "GPT models, image generation, speech"
 msgstr "GPT models, image generation, speech"
 
@@ -405,6 +426,12 @@ msgstr "If your device has been wrongly detected, <0>see all downloads</0>. Plea
 
 msgid "Image captions"
 msgstr "Image captions"
+
+msgid "Image descriptions"
+msgstr "Image descriptions"
+
+msgid "Images"
+msgstr "Images"
 
 msgid "Import"
 msgstr "Import"
@@ -442,6 +469,9 @@ msgstr "Installation and minimum requirements"
 msgid "Installing"
 msgstr "Installing"
 
+msgid "Integration"
+msgstr "Integration"
+
 msgid "Interactive activities"
 msgstr "Interactive activities"
 
@@ -469,6 +499,9 @@ msgstr "Latest release"
 msgid "Licensed AGPL-3.0 and developed in the open with UNICEF. Read the code, file an issue, ship a fix."
 msgstr "Licensed AGPL-3.0 and developed in the open with UNICEF. Read the code, file an issue, ship a fix."
 
+msgid "lines"
+msgstr "lines"
+
 msgid "Listen"
 msgstr "Listen"
 
@@ -477,6 +510,9 @@ msgstr "Listen to the book, page by page."
 
 msgid "Localize your ADT"
 msgstr "Localize your ADT"
+
+msgid "Localized image variants. The key is the image node's data-id and the value is the translated file, which sits beside the original. Shown for pt-BR because variants exist for target languages; the source-language map is always empty."
+msgstr "Localized image variants. The key is the image node's data-id and the value is the translated file, which sits beside the original. Shown for pt-BR because variants exist for target languages; the source-language map is always empty."
 
 msgid "macOS · Windows · Linux · Docker"
 msgstr "macOS · Windows · Linux · Docker"
@@ -581,6 +617,9 @@ msgstr "Overview"
 msgid "Package"
 msgstr "Package"
 
+msgid "Package and startup"
+msgstr "Package and startup"
+
 msgid "Package the book with every accessibility feature baked in, validated against WCAG, ready for any browser or reader."
 msgstr "Package the book with every accessibility feature baked in, validated against WCAG, ready for any browser or reader."
 
@@ -644,8 +683,20 @@ msgstr "Read the release notes"
 msgid "Read the step-by-step guide in the docs"
 msgstr "Read the step-by-step guide in the docs"
 
+msgid "Read-aloud"
+msgstr "Read-aloud"
+
+msgid "Read-aloud clips, mapping node id to file name. The files live alongside in audio/."
+msgstr "Read-aloud clips, mapping node id to file name. The files live alongside in audio/."
+
 msgid "Read-aloud with word highlighting"
 msgstr "Read-aloud with word highlighting"
+
+msgid "Reader integration"
+msgstr "Reader integration"
+
+msgid "Reader support"
+msgstr "Reader support"
 
 msgid "Readium-compatible publications"
 msgstr "Readium-compatible publications"
@@ -738,6 +789,9 @@ msgstr "Sign in with your OpenAI account"
 msgid "Sign language"
 msgstr "Sign language"
 
+msgid "Sign-language clips. This is the one file not keyed by node id: ignore the video-<n> key and read the section id from the filename instead."
+msgstr "Sign-language clips. This is the one file not keyed by node id: ignore the video-<n> key and read the section id from the filename instead."
+
 msgid "Sign-language video linked to each section, searchable while you assign it."
 msgstr "Sign-language video linked to each section, searchable while you assign it."
 
@@ -758,6 +812,9 @@ msgstr "Speech"
 
 msgid "Speech and voices"
 msgstr "Speech and voices"
+
+msgid "Standard OCF entry point. It points at the OPF, which fixes the ADT data base at OEBPS/."
+msgstr "Standard OCF entry point. It points at the OPF, which fixes the ADT data base at OEBPS/."
 
 msgid "Star"
 msgstr "Star"
@@ -780,11 +837,35 @@ msgstr "Table of contents"
 msgid "Ten stages, each a versioned, cached step you can inspect down to the prompt and the answer the model gave."
 msgstr "Ten stages, each a versioned, cached step you can inspect down to the prompt and the answer the model gave."
 
+msgid "Text"
+msgstr "Text"
+
+msgid "Text and language"
+msgstr "Text and language"
+
 msgid "Text and sign language, side by side."
 msgstr "Text and sign language, side by side."
 
 msgid "Text-to-speech voices"
 msgstr "Text-to-speech voices"
+
+msgid "The ADT data layer sits at the package root. EPUB is derived from this shape."
+msgstr "The ADT data layer sits at the package root. EPUB is derived from this shape."
+
+msgid "The ADT manifest. Read this first. Every features flag tells you whether data exists for that capability; false means nothing was produced, so hide the control rather than showing a dead one."
+msgstr "The ADT manifest. Read this first. Every features flag tells you whether data exists for that capability; false means nothing was produced, so hide the control rather than showing a dead one."
+
+msgid "The entry point. Build navigation from readingOrder, toc, and pageList rather than from file names. metadata.conformsTo declares the Readium EPUB profile, which Readium's own toolkits use to gate fixed-layout handling."
+msgstr "The entry point. Build navigation from readingOrder, toc, and pageList rather than from file names. metadata.conformsTo declares the Readium EPUB profile, which Readium's own toolkits use to gate fixed-layout handling."
+
+msgid "The glossary lowered into the EPUB 3 Dictionaries and Glossaries model. In-text terms link here as epub:type=\"glossref\", and a landmarks entry lets readers surface a Glossary tab. Because it is lowered, glossary.json is removed from EPUB language folders."
+msgstr "The glossary lowered into the EPUB 3 Dictionaries and Glossaries model. In-text terms link here as epub:type=\"glossref\", and a landmarks entry lets readers surface a Glossary tab. Because it is lowered, glossary.json is removed from EPUB language folders."
+
+msgid "The package document. In a reflowable book every content document carries properties=\"scripted\", not just activity pages. When a book has word timings, media-overlay appears on each content document's manifest item, never on the spine itemref. This book has none."
+msgstr "The package document. In a reflowable book every content document carries properties=\"scripted\", not just activity pages. When a book has word timings, media-overlay appears on each content document's manifest item, never on the spine itemref. This book has none."
+
+msgid "The reading-order source: one entry per rendered section, with the printed page number where the book had one."
+msgstr "The reading-order source: one entry per rendered section, with the printed page number where the book had one."
 
 msgid "The same book reflows from desktop to phone without losing audio, structure or activities."
 msgstr "The same book reflows from desktop to phone without losing audio, structure or activities."
@@ -794,6 +875,15 @@ msgstr "The same content, in plainer language."
 
 msgid "The same edition in every language you need, including captions and alt text."
 msgstr "The same edition in every language you need, including captions and alt text."
+
+msgid "The same file one directory deeper. Only the WebPub packager forces showNavigationControls and showTutorial to false, so compare this with the WebPub tab."
+msgstr "The same file one directory deeper. Only the WebPub packager forces showNavigationControls and showTutorial to false, so compare this with the WebPub tab."
+
+msgid "The same page as the WebPub tab, converted to XHTML. The markup and data-id values are identical; only the file extension and glossref anchors differ."
+msgstr "The same page as the WebPub tab, converted to XHTML. The markup and data-id values are identical; only the file extension and glossref anchors differ."
+
+msgid "The text map. Swapping these values into matching data-id elements powers both language switching and Easy Read. Keys ending _easy_read are simplified variants of the same node."
+msgstr "The text map. Swapping these values into matching data-id elements powers both language switching and Easy Read. Keys ending _easy_read are simplified variants of the same node."
 
 msgid "Three moves. Every step inspectable."
 msgstr "Three moves. Every step inspectable."
@@ -824,6 +914,9 @@ msgstr "Validate"
 
 msgid "Validate and preview"
 msgstr "Validate and preview"
+
+msgid "Verified export excerpt"
+msgstr "Verified export excerpt"
 
 msgid "View release on GitHub"
 msgstr "View release on GitHub"

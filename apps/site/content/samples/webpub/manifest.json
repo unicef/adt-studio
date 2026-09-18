@@ -1,0 +1,120 @@
+{
+  "@context": "https://readium.org/webpub-manifest/context.jsonld",
+  "metadata": {
+    "@type": "http://schema.org/Book",
+    "conformsTo": [
+      "https://readium.org/webpub-manifest/profiles/epub"
+    ],
+    "title": "Hyena and Raven",
+    "language": [
+      "en-US",
+      "pt-BR"
+    ],
+    "modified": "2026-08-27T21:29:26.733Z",
+    "presentation": {
+      "overflow": "scrolled",
+      "spread": "none"
+    },
+    "author": "Tony Lelliott, Wiehan de Jager",
+    "publisher": "African Storybook",
+    "accessibility": {
+      "accessMode": [
+        "textual",
+        "visual",
+        "auditory"
+      ],
+      "accessModeSufficient": [
+        [
+          "textual",
+          "visual"
+        ]
+      ],
+      "feature": [
+        "readingOrder",
+        "tableOfContents",
+        "alternativeText",
+        // … 2 more entries
+      ],
+      "hazard": [
+        "none"
+      ],
+      "summary": "Includes read-aloud audio synchronized with the text, alternative text for images, sign-language video."
+    }
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "manifest.json",
+      "type": "application/webpub+json"
+    },
+    {
+      "rel": "cover",
+      "href": "cover.png",
+      "type": "image/png"
+    }
+  ],
+  "readingOrder": [
+    {
+      "href": "index.html",
+      "type": "text/html",
+      "title": "pg001_sec001"
+    },
+    {
+      "href": "pg002_sec001.html",
+      "type": "text/html",
+      "title": "1"
+    },
+    {
+      "href": "pg003_sec001.html",
+      "type": "text/html",
+      "title": "2"
+    },
+    // … 12 more entries
+  ],
+  "resources": [
+    {
+      "href": "assets/activities.bundle.local.js",
+      "type": "application/javascript"
+    },
+    {
+      "href": "assets/auto-fit.js",
+      "type": "application/javascript"
+    },
+    {
+      "href": "assets/config.json",
+      "type": "application/json"
+    },
+    // … 333 more entries
+  ],
+  "toc": [
+    {
+      "href": "index.html",
+      "title": "Hyena and"
+    }
+  ],
+  "pageList": [
+    {
+      "href": "pg002_sec001.html",
+      "title": "1"
+    },
+    {
+      "href": "pg003_sec001.html",
+      "title": "2"
+    },
+    {
+      "href": "pg004_sec001.html",
+      "title": "3"
+    },
+    // … 7 more entries
+  ],
+  "landmarks": [
+    {
+      "rel": "cover",
+      "href": "cover.png"
+    },
+    {
+      "rel": "bodymatter",
+      "href": "index.html"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "section_id": "pg001_sec001",
+    "href": "index.html"
+  },
+  {
+    "section_id": "pg002_sec001",
+    "href": "pg002_sec001.html",
+    "page_number": 1
+  },
+  {
+    "section_id": "pg003_sec001",
+    "href": "pg003_sec001.html",
+    "page_number": 2
+  },
+  {
+    "section_id": "pg004_sec001",
+    "href": "pg004_sec001.html",
+    "page_number": 3
+  },
+
+  // … 11 more entries
+]

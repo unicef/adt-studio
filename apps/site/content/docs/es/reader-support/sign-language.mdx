@@ -1,0 +1,27 @@
+---
+title: "Lengua de señas"
+description: "Encuentra el clip de la sección actual y preséntalo sin desplazar la página de lectura."
+icon: Hand
+---
+
+`videos.json` contiene clips de lengua de señas. A diferencia de los demás sidecars, sus claves son índices de página; usa el id de sección del nombre de archivo para relacionarlo con `data-section-id` del documento actual.
+
+<PackageSnippet title="Referencia del mapa de lengua de señas" path="content/i18n/en-US/videos.json" />
+
+```ts
+const sectionId = fileName
+  .replace(/^sl_/, "")
+  .replace(/\.(mp4|webm)$/, "");
+```
+
+Compara ese id con la página mostrada. No es necesario reproducir la indexación de páginas del exportador.
+
+En V1, las claves son `video-<pageIndex>` y los archivos usan `sl_<sectionId>.mp4` o `sl_<sectionId>.webm`. Trata una clave ausente, un nombre inesperado o un recurso no disponible como ausencia de clip para la página.
+
+## Elige una superficie del lector
+
+Los clips describen el contexto de la página actual, por lo que un reproductor picture-in-picture es una buena opción. Ciérralo al navegar a una página sin clip. Los vídeos de términos del glosario son distintos: llegan en la entrada individual, no en `videos.json`.
+
+<Callout type="warn" title="No muestres un control inactivo">
+Muestra el reproductor solo cuando `features.signLanguage` sea verdadero y exista un clip para la sección actual.
+</Callout>

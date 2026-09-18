@@ -1,0 +1,49 @@
+---
+title: "Read-aloud"
+description: "Play the narration clips, optionally synchronize words, and use EPUB Media Overlays where available."
+icon: AudioLines
+---
+
+`audios.json` maps each content node id to a clip. To play a page, collect the `data-id` values in the rendered document, look them up in order, and play the resulting clips sequentially.
+
+<PackageSnippet title="Narration-map reference" path="content/i18n/en-US/audios.json" />
+
+<PackageSnippet title="Read-aloud feature configuration" path="assets/config.json" />
+
+## Make playback resilient
+
+Only show the control when `features.readAloud` is true **and** the current page has clips. A feature flag tells you whether the book has narration data at all; it is not a reader preference.
+
+When Easy Read is active, play a node's `_easy_read` clip whenever one exists, and fall back to the standard clip only when it does not. Keep ordinary sequential playback available even when word timing is absent.
+
+## Word highlighting
+
+Where the timings come from depends on the format.
+
+**EPUB.** Check the OPF manifest for `media-overlay` on the content document’s `<item>`. When present, use the EPUB’s native SMIL Media Overlays instead of rebuilding synchronization yourself.
+
+**The sidecar.** `content/i18n/<lang>/timecode/timecode_output.json` carries word timings, keyed by content node id:
+
+```jsonc
+{
+  "pg003_n0002": {
+    "timecodes": [
+      null,
+      {
+        "word_timestamps": [
+          { "text": "One", "start": 0.0,  "end": 0.22 },
+          { "text": "day", "start": 0.22, "end": 0.41 }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`start` and `end` are seconds from the beginning of **that node's own clip**, not from the start of the page. The words are in reading order, so align them positionally against the words you render rather than matching by id.
+
+The file is often `{}` — it is populated only when the book was narrated with word highlighting enabled. Check before relying on it, and keep node-level playback working when it is empty.
+
+<Callout type="info" title="Treat synchronization as progressive enhancement">
+Narration still works without word timing. Do not block playback when the book has clips but no Media Overlays.
+</Callout>

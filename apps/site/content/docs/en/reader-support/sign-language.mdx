@@ -1,0 +1,27 @@
+---
+title: "Sign language"
+description: "Find the clip for the current section and present it without displacing the reading page."
+icon: Hand
+---
+
+`videos.json` holds sign-language clips. Unlike the other sidecars, its keys are page indexes; use the section id embedded in the filename to match it to the current document’s `data-section-id`.
+
+<PackageSnippet title="Sign-language map reference" path="content/i18n/en-US/videos.json" />
+
+```ts
+const sectionId = fileName
+  .replace(/^sl_/, "")
+  .replace(/\.(mp4|webm)$/, "");
+```
+
+Compare that id with the page you are displaying. There is no need to reproduce the exporter’s page indexing.
+
+In V1, the keys are `video-<pageIndex>` and filenames use `sl_<sectionId>.mp4` or `sl_<sectionId>.webm`. Treat a missing key, an unexpected filename, or an unavailable asset as no clip for that page.
+
+## Choose a reader-owned surface
+
+Sign-language clips describe the current page context, so a picture-in-picture player is a good default. Close it when the reader navigates to a page with no clip. Glossary-term videos are separate: they arrive in the individual glossary entry rather than `videos.json`.
+
+<Callout type="warn" title="Do not show a dead control">
+Gate the player on both `features.signLanguage` and a clip existing for the current section.
+</Callout>

@@ -1,0 +1,25 @@
+---
+title: "Atividades"
+description: "Integre o runtime de atividade incorporado à navegação do leitor respeitando os limites de estado."
+icon: Puzzle
+---
+
+Páginas de atividade e quiz trazem um runtime que renderiza a interação, valida respostas e avança o frame de conteúdo quando a pessoa conclui a atividade.
+
+<PackageSnippet title="Referência de quiz WebPub" path="qz001.html" />
+
+O conjunto público inclui essa página de quiz em WebPub e EPUB. É um trecho, não um pacote de teste completo para download, portanto valide a interação inteira em seu próprio pacote antes de publicar.
+
+## Coordene com a interface do leitor
+
+Detecte páginas de atividade com `[data-section-type^="activity_"]`. O leitor pode ocultar `#nav-container`, fornecer seu próprio botão de envio na interface externa e fazer esse botão clicar no botão incorporado. Acompanhe o progresso observando a localização do frame em relação à ordem de leitura.
+
+Não existe contrato `postMessage` entre o runtime incorporado e o leitor hospedeiro. Mantenha o foco de teclado no frame quando o botão externo delegar um clique e trate a navegação do frame apenas como sinal de fallback, não como API de conclusão durável.
+
+## Deixe as expectativas de estado claras
+
+O runtime é dono do estado da atividade. Ele persiste apenas respostas de texto livre no `localStorage` do frame; outros tipos de resposta reiniciam ao recarregar e nenhum é exposto ao leitor hospedeiro. Guarde suas configurações de leitura, mas não prometa respostas duráveis sem implementar isso separadamente.
+
+<Callout type="warn" title="Atividades são prática, não avaliação segura">
+As respostas corretas estão presentes na página exportada. Não use este runtime sozinho para avaliação com nota ou de alto risco.
+</Callout>

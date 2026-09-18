@@ -1,0 +1,68 @@
+---
+title: "Reader support"
+description: "A feature-by-feature integration guide for reading applications that support ADT WebPub and EPUB exports."
+icon: BookOpenCheck
+---
+
+This section is for **developers of reading applications**. An ADT — an Accessible Digital Textbook — is a publication enriched with narration, language variants, image descriptions, sign language, glossary data, and activities. This guide explains how a reader can make those capabilities available.
+
+<SectionBanner slug="reader-support" />
+
+<Callout type="idea" title="The integration model">
+An ADT export has two layers: a standard WebPub or EPUB that a conforming reader can open, and a compact ADT data layer that enriches the rendered content. Your reader can adopt one feature at a time.
+</Callout>
+
+## What works without ADT support
+
+| Capability | EPUB | WebPub |
+|---|---|---|
+| Open, navigation, TOC and page numbers | Native | Native |
+| Read-aloud | Native Media Overlays when present; otherwise ADT data | ADT data |
+| Glossary | Native EPUB glossary markup | ADT data |
+| Language switching and Easy Read | ADT data | ADT data |
+| Image descriptions, sign language, activities | ADT data | ADT data |
+
+**EPUB offers the most to an unmodified reader.** It can carry SMIL Media Overlays and EPUB-native glossary markup. WebPub keeps the feature data as sidecars, so the host reader owns the interface and behaviour.
+
+## Start in this order
+
+<Steps>
+
+<Step>
+### Open and identify the package
+
+Locate `assets/config.json`, resolve the package base path, and use the feature flags to decide which controls exist. See [Package and startup](/docs/reader-support/packages).
+</Step>
+
+<Step>
+### Render the text layer
+
+Apply the active language’s `texts.json` map to the elements on the rendered page. This establishes the join between the publication and the ADT data. See [Text and language](/docs/reader-support/text).
+</Step>
+
+<Step>
+### Add the features your reader can support
+
+Read-aloud, glossary, image descriptions, sign language, and activities are independent additions. Each guide includes the real exported data it consumes.
+</Step>
+
+<Step>
+### Integrate with your reader shell
+
+Keep data loading, page injection, controls, cleanup, and validation in clear layers. See [Reader integration](/docs/reader-support/adapting).
+</Step>
+
+</Steps>
+
+## Find a feature
+
+<StageCards>
+  <StageCard slug="reader-support/packages" href="reader-support/packages" title="Package and startup" description="Open an ADT, find its data layer, and discover available features." />
+  <StageCard slug="reader-support/text" href="reader-support/text" title="Text and language" description="Language switching, Easy Read, content node ids, and localized text." />
+  <StageCard slug="reader-support/read-aloud" href="reader-support/read-aloud" title="Read-aloud" description="Audio clips, word timing, and EPUB Media Overlays." />
+  <StageCard slug="reader-support/glossary" href="reader-support/glossary" title="Glossary" description="Term maps in WebPub and native glossary markup in EPUB." />
+  <StageCard slug="reader-support/images" href="reader-support/images" title="Image descriptions" description="Long descriptions and localized image variants." />
+  <StageCard slug="reader-support/sign-language" href="reader-support/sign-language" title="Sign language" description="Per-page clips and a reader-controlled picture-in-picture surface." />
+  <StageCard slug="reader-support/activities" href="reader-support/activities" title="Activities" description="Embedded activity runtime, reader chrome, and state limitations." />
+  <StageCard slug="reader-support/adapting" href="reader-support/adapting" title="Reader integration" description="Architecture, layout fixes, cleanup, and an integration checklist." />
+</StageCards>
