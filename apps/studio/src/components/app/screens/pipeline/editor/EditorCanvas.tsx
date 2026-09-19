@@ -1,27 +1,43 @@
-import { useMemo } from "react"
+import { memo, useMemo } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { useLayoutMode } from "adt-html-editor"
 import { HtmlEditor } from "adt-html-editor/shadcn"
 import type { Viewport } from "@/components/app/screens/pipeline/shared/types"
 import { CanvasWidthControl } from "./CanvasWidthControl"
 import { SectionTabs } from "./SectionTabs"
-import type { StoryboardEditorSession } from "./useStoryboardEditor"
+import type { EditorSection } from "./useStoryboardEditor"
 
 export interface EditorCanvasProps {
   pageId: string
-  session: StoryboardEditorSession
+  sections: EditorSection[]
+  activeSectionIndex: number | null
+  onSelectSection: (pageId: string, sectionIndex: number) => void
   viewport: Viewport
   onViewportChange: (viewport: Viewport) => void
 }
 
-export function EditorCanvas({
+const CanvasBody = memo(function CanvasBody({ fixed }: { fixed: boolean }) {
+  if (!fixed) return <HtmlEditor.Canvas.Viewport />
+  return (
+    <HtmlEditor.Canvas.FixedPage>
+      <HtmlEditor.Canvas.Guides />
+      <HtmlEditor.Canvas.LiveGhost />
+      <HtmlEditor.Canvas.Handles />
+    </HtmlEditor.Canvas.FixedPage>
+  )
+})
+
+export const EditorCanvas = memo(function EditorCanvas({
   pageId,
-  session,
+  sections,
+  activeSectionIndex,
+  onSelectSection,
   viewport,
   onViewportChange,
 }: EditorCanvasProps) {
   const { t } = useLingui()
   const layout = useLayoutMode()
+  const fixed = layout === "fixed"
 
   const zoomLevels = useMemo(
     () => [
@@ -37,33 +53,25 @@ export function EditorCanvas({
     <HtmlEditor.Canvas className="min-h-0 w-full flex-1 bg-transparent">
       <HtmlEditor.Canvas.Toolbar className="h-12 gap-3 bg-card px-3">
         <HtmlEditor.History />
-        {layout === "fixed" ? (
+        {fixed ? (
           <HtmlEditor.Canvas.Zoom levels={zoomLevels} />
         ) : (
           <CanvasWidthControl viewport={viewport} onViewportChange={onViewportChange} />
         )}
       </HtmlEditor.Canvas.Toolbar>
 
-      {session.sections.length > 1 && (
+      {sections.length > 1 && (
         <div className="flex h-10 shrink-0 items-center border-b bg-card px-3">
           <SectionTabs
-            sections={session.sections}
-            drafts={session.drafts}
-            activeSectionIndex={session.activeSection?.sectionIndex ?? null}
-            onSelect={(sectionIndex) => session.selectSection(pageId, sectionIndex)}
+            pageId={pageId}
+            sections={sections}
+            activeSectionIndex={activeSectionIndex}
+            onSelect={onSelectSection}
           />
         </div>
       )}
 
-      {layout === "fixed" ? (
-        <HtmlEditor.Canvas.FixedPage>
-          <HtmlEditor.Canvas.Guides />
-          <HtmlEditor.Canvas.LiveGhost />
-          <HtmlEditor.Canvas.Handles />
-        </HtmlEditor.Canvas.FixedPage>
-      ) : (
-        <HtmlEditor.Canvas.Viewport />
-      )}
+      <CanvasBody fixed={fixed} />
     </HtmlEditor.Canvas>
   )
-}
+})

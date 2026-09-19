@@ -57,7 +57,6 @@ export function AiEditPanel({
             pageId={pageId}
             sectionIndex={sectionIndex}
             empty={empty}
-            enabled={open}
           />
 
           <AiComposer

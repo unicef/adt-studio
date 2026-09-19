@@ -1,20 +1,20 @@
 import { useLingui } from "@lingui/react/macro"
 import { toast } from "sonner"
 import { useFloatingSave } from "@/components/pipeline/components/floating-save"
-import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
+import { useIsDirty } from "./draftStore"
 import type { StoryboardEditorSession } from "./useStoryboardEditor"
 
-export function useEditorSaveBar(page: PipelinePage | null, session: StoryboardEditorSession) {
+export function useEditorSaveBar(pageNumber: number, session: StoryboardEditorSession) {
   const { t } = useLingui()
-  const pageNumber = page?.pageNumber ?? 0
+  const dirty = useIsDirty(session.pageId)
 
   useFloatingSave({
     id: "storyboard-editor",
-    dirty: session.dirty && !!page,
+    dirty,
     saving: session.saving,
     stage: "storyboard",
     label: t`Page ${pageNumber} HTML`,
-    labelKey: page?.pageId ?? "",
+    labelKey: session.pageId ?? "",
     onSave: () => {
       session.save().catch((error: unknown) => {
         toast.error(error instanceof Error ? error.message : t`Save failed`)

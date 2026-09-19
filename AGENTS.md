@@ -249,6 +249,13 @@ provider around the whole body:
   through `api.saveStoryboard` — a new version, never an overwrite.
 - **Quizzes are not editable.** They keep the iframe preview (`QuizCanvas`), so
   Layers, Blocks and Styles turn off while one is open.
+- **Unsaved edits live in a module store** (`editor/draftStore.ts`), never in
+  `WorkspaceBody`. Everything below the provider is one React tree, so holding
+  drafts at the top would re-render the rail, the canvas chrome and the panel on
+  every keystroke. Only `StoryboardShell`, the section tabs and the save
+  indicator subscribe to it.
+- **Hidden regions do not render.** The rail panes are wrapped in React's
+  `<Activity>` and the right panel's content is unmounted while collapsed.
 - **Image sources round-trip.** Stored HTML uses relative `/api/...` srcs; in
   the desktop build the API lives on another origin, so `imageUrlCodec` makes
   them absolute for the canvas and relative again on save.

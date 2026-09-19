@@ -1,13 +1,16 @@
 import { Trans } from "@lingui/react/macro"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useIsDirty } from "./draftStore"
 
 export interface SaveStateProps {
-  dirty: boolean
+  pageId: string | null
   saving: boolean
 }
 
-export function SaveState({ dirty, saving }: SaveStateProps) {
+export function SaveState({ pageId, saving }: SaveStateProps) {
+  const dirty = useIsDirty(pageId)
+
   if (saving) {
     return (
       <span className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">

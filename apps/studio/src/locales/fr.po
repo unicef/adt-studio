@@ -8447,7 +8447,7 @@ msgstr "Quiz"
 
 #. placeholder {0}: String(activeQuiz.index + 1)
 #. placeholder {0}: String(item.index + 1)
-#. placeholder {0}: activeQuiz.quizIndex + 1
+#. placeholder {0}: quiz.quizIndex + 1
 msgid "Quiz {0}"
 msgstr "Quiz {0}"
 

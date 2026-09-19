@@ -1,3 +1,4 @@
+import { Activity, memo } from "react"
 import { useLingui } from "@lingui/react/macro"
 import type { QuizItem } from "@/api/client"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
@@ -26,13 +27,13 @@ export interface WorkspaceRailProps {
 
 function RailPane({ active, children }: { active: boolean; children: React.ReactNode }) {
   return (
-    <div hidden={!active} className={active ? "flex min-h-0 flex-1 flex-col" : undefined}>
-      {children}
-    </div>
+    <Activity mode={active ? "visible" : "hidden"}>
+      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+    </Activity>
   )
 }
 
-export function WorkspaceRail({
+export const WorkspaceRail = memo(function WorkspaceRail({
   label,
   pages,
   quizzes,
@@ -89,4 +90,4 @@ export function WorkspaceRail({
       </RailPane>
     </aside>
   )
-}
+})

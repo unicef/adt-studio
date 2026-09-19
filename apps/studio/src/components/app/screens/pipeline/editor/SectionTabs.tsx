@@ -1,23 +1,26 @@
+import { memo } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { SectionDrafts } from "./renderingDraft"
+import { useDrafts } from "./draftStore"
 import type { EditorSection } from "./useStoryboardEditor"
 
 export interface SectionTabsProps {
+  pageId: string
   sections: EditorSection[]
-  drafts: SectionDrafts
   activeSectionIndex: number | null
-  onSelect: (sectionIndex: number) => void
+  onSelect: (pageId: string, sectionIndex: number) => void
 }
 
-export function SectionTabs({
+export const SectionTabs = memo(function SectionTabs({
+  pageId,
   sections,
-  drafts,
   activeSectionIndex,
   onSelect,
 }: SectionTabsProps) {
   const { t } = useLingui()
+  const drafts = useDrafts(pageId)
+
   if (sections.length < 2) return null
 
   return (
@@ -35,7 +38,7 @@ export function SectionTabs({
             type="button"
             role="tab"
             aria-selected={active}
-            onClick={() => onSelect(section.sectionIndex)}
+            onClick={() => onSelect(pageId, section.sectionIndex)}
             className={cn(
               "flex h-7 shrink-0 items-center gap-1.5 rounded-[6px] px-2.5 text-[11.5px] font-medium tabular-nums transition-[color,background-color,box-shadow,transform] duration-150 ease-out active:scale-[0.96] motion-reduce:transition-none",
               active
@@ -61,4 +64,4 @@ export function SectionTabs({
       })}
     </div>
   )
-}
+})

@@ -10,7 +10,6 @@ export interface AiPanelBodyProps {
   pageId: string | null
   sectionIndex?: number
   empty?: boolean
-  enabled?: boolean
 }
 
 function StarterList() {
@@ -52,11 +51,10 @@ export function AiPanelBody({
   pageId,
   sectionIndex = 0,
   empty,
-  enabled = true,
 }: AiPanelBodyProps) {
   const { t, i18n } = useLingui()
   const history = useAiEditHistory(label, pageId ?? "", sectionIndex, {
-    enabled: enabled && !empty && !!pageId,
+    enabled: !empty && !!pageId,
   })
   const turns = history.data?.history ?? []
 

@@ -1,26 +1,18 @@
 import { useCallback, useMemo, useState } from "react"
-import { parseHtml, serializeHtml } from "adt-html-editor"
 import { BASE_URL } from "@/api/client"
 import { usePage } from "@/hooks/use-pages"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
+import { clearDrafts, getDrafts, setDraft as writeDraft } from "./draftStore"
 import {
-  NO_DRAFTS,
-  applyDrafts,
-  hasDrafts,
-  imageUrlCodec,
-  withDraft,
-  type SectionDrafts,
-} from "./renderingDraft"
+  editorStatus,
+  toEditorSections,
+  type EditorSection,
+  type EditorStatus,
+} from "./editorSections"
+import { applyDrafts, hasDrafts, imageUrlCodec } from "./renderingDraft"
 import { useSaveRendering } from "./useSaveRendering"
 
-export interface EditorSection {
-  sectionIndex: number
-  sectionId: string
-  isActivity: boolean
-  html: string
-}
-
-export type EditorStatus = "idle" | "loading" | "error" | "empty" | "ready"
+export type { EditorSection, EditorStatus }
 
 export interface StoryboardEditorSession {
   pageId: string | null
@@ -28,11 +20,8 @@ export interface StoryboardEditorSession {
   error: Error | null
   sections: EditorSection[]
   activeSection: EditorSection | null
-  activeHtml: string
   selectSection: (pageId: string, sectionIndex: number) => void
-  drafts: SectionDrafts
   setDraft: (sectionIndex: number, html: string) => void
-  dirty: boolean
   saving: boolean
   save: () => Promise<void>
   discard: () => void
@@ -42,15 +31,6 @@ export interface StoryboardEditorOptions {
   label: string
   page: PipelinePage | null
   enabled: boolean
-}
-
-interface PageScoped<T> {
-  pageId: string
-  value: T
-}
-
-function scoped<T>(entry: PageScoped<T> | null, pageId: string | null, fallback: T): T {
-  return entry && entry.pageId === pageId ? entry.value : fallback
 }
 
 export function useStoryboardEditor({
@@ -63,79 +43,49 @@ export function useStoryboardEditor({
   const { mutateAsync: saveRendering, isPending: saving } = useSaveRendering(label, pageId ?? "")
   const codec = useMemo(() => imageUrlCodec(BASE_URL), [])
 
-  const [requested, setRequested] = useState<PageScoped<number> | null>(null)
-  const [draftState, setDraftState] = useState<PageScoped<SectionDrafts> | null>(null)
+  const [requested, setRequested] = useState<{ pageId: string; sectionIndex: number } | null>(null)
 
   const rendering = enabled ? detail.data?.rendering ?? null : null
-  const drafts = scoped(draftState, pageId, NO_DRAFTS)
-
-  const sections = useMemo<EditorSection[]>(() => {
-    if (!page || !rendering) return []
-    return page.sections
-      .filter((section) => !section.isPruned)
-      .flatMap((section) => {
-        const rendered = rendering.sections.find((r) => r.sectionIndex === section.sectionIndex)
-        if (!rendered) return []
-        return [
-          {
-            sectionIndex: section.sectionIndex,
-            sectionId: section.sectionId,
-            isActivity: section.isActivity,
-            html: serializeHtml(parseHtml(codec.toCanvas(rendered.html))),
-          },
-        ]
-      })
-  }, [page, rendering, codec])
+  const sections = useMemo(
+    () => toEditorSections(page, rendering, codec),
+    [page, rendering, codec],
+  )
 
   const activeSection = useMemo(() => {
-    if (sections.length === 0) return null
-    const wanted = scoped(requested, pageId, null)
-    return sections.find((section) => section.sectionIndex === wanted) ?? sections[0]
+    const wanted = requested?.pageId === pageId ? requested.sectionIndex : null
+    return sections.find((section) => section.sectionIndex === wanted) ?? sections[0] ?? null
   }, [sections, requested, pageId])
 
-  const activeHtml = activeSection
-    ? drafts[activeSection.sectionIndex] ?? activeSection.html
-    : ""
-
   const selectSection = useCallback((forPageId: string, sectionIndex: number) => {
-    setRequested({ pageId: forPageId, value: sectionIndex })
+    setRequested({ pageId: forPageId, sectionIndex })
   }, [])
 
   const setDraft = useCallback(
     (sectionIndex: number, html: string) => {
-      if (!pageId) return
       const baseline = sections.find((section) => section.sectionIndex === sectionIndex)?.html
-      if (baseline === undefined) return
-      setDraftState((previous) => {
-        const current = scoped(previous, pageId, NO_DRAFTS)
-        const next = withDraft(current, sectionIndex, html, baseline)
-        if (next === current && previous?.pageId === pageId) return previous
-        return { pageId, value: next }
-      })
+      if (!pageId || baseline === undefined) return
+      writeDraft(pageId, sectionIndex, html, baseline)
     },
     [pageId, sections],
   )
 
   const save = useCallback(async () => {
+    const drafts = getDrafts(pageId)
     if (!pageId || !rendering || !hasDrafts(drafts)) return
     await saveRendering(applyDrafts(rendering, drafts, codec))
-    setDraftState({ pageId, value: NO_DRAFTS })
-  }, [pageId, rendering, drafts, codec, saveRendering])
+    clearDrafts(pageId)
+  }, [pageId, rendering, codec, saveRendering])
 
   const discard = useCallback(() => {
-    if (!pageId) return
-    setDraftState({ pageId, value: NO_DRAFTS })
+    if (pageId) clearDrafts(pageId)
   }, [pageId])
 
-  const status: EditorStatus = !pageId
-    ? "idle"
-    : detail.isPending
-      ? "loading"
-      : detail.error
-        ? "error"
-        : sections.length === 0
-          ? "empty"
-          : "ready"
+  const status = editorStatus({
+    pageId,
+    loading: detail.isPending,
+    error: detail.error,
+    sectionCount: sections.length,
+  })
 
   return useMemo(
     () => ({
@@ -144,11 +94,8 @@ export function useStoryboardEditor({
       error: detail.error,
       sections,
       activeSection,
-      activeHtml,
       selectSection,
-      drafts,
       setDraft,
-      dirty: hasDrafts(drafts),
       saving,
       save,
       discard,
@@ -159,9 +106,7 @@ export function useStoryboardEditor({
       detail.error,
       sections,
       activeSection,
-      activeHtml,
       selectSection,
-      drafts,
       setDraft,
       saving,
       save,

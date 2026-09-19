@@ -1,3 +1,4 @@
+import { memo } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { PanelRightOpen } from "lucide-react"
 import { useAiPanelOpen } from "@/hooks/use-ai-panel"
@@ -16,7 +17,7 @@ export interface WorkspacePanelProps {
   editable: boolean
 }
 
-export function WorkspacePanel({
+export const WorkspacePanel = memo(function WorkspacePanel({
   label,
   pageId,
   sectionIndex,
@@ -38,31 +39,34 @@ export function WorkspacePanel({
           open ? "w-[326px] opacity-100" : "w-0 opacity-0",
         )}
       >
-        <div className="flex h-full w-[326px] flex-col border-l bg-card">
-          <PanelTabs
-            value={active}
-            onChange={setTab}
-            onCollapse={() => setOpen(false)}
-            stylesDisabled={!editable}
-          />
+        {open ? (
+          <div className="flex h-full w-[326px] flex-col border-l bg-card">
+            <PanelTabs
+              value={active}
+              onChange={setTab}
+              onCollapse={() => setOpen(false)}
+              stylesDisabled={!editable}
+            />
 
-          {active === "styles" ? (
-            <StylesPanel editable={editable} />
-          ) : (
-            <>
-              <AiPanelBody
-                label={label}
-                pageId={pageId}
-                sectionIndex={sectionIndex}
-                empty={empty}
-                enabled={open}
-              />
-              <AiComposer
-                placeholder={empty ? t`Say how to split the book…` : t`Ask the AI to edit this page…`}
-              />
-            </>
-          )}
-        </div>
+            {active === "styles" ? (
+              <StylesPanel editable={editable} />
+            ) : (
+              <>
+                <AiPanelBody
+                  label={label}
+                  pageId={pageId}
+                  sectionIndex={sectionIndex}
+                  empty={empty}
+                />
+                <AiComposer
+                  placeholder={
+                    empty ? t`Say how to split the book…` : t`Ask the AI to edit this page…`
+                  }
+                />
+              </>
+            )}
+          </div>
+        ) : null}
       </aside>
 
       <button
@@ -81,4 +85,4 @@ export function WorkspacePanel({
       </button>
     </>
   )
-}
+})

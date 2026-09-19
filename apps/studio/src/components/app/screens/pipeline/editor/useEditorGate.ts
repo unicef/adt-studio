@@ -1,51 +1,53 @@
 import { useCallback, useState } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { toast } from "sonner"
+import { hasAnyDrafts } from "./draftStore"
 import type { LeaveEditorDialogProps } from "./LeaveEditorDialog"
 import type { StoryboardEditorSession } from "./useStoryboardEditor"
 
-export interface EditorGate {
+export interface LeaveGuard {
   guard: (action: () => void) => void
-  dialog: LeaveEditorDialogProps
+  pending: (() => void) | null
+  clear: () => void
 }
 
-type GateSession = Pick<StoryboardEditorSession, "dirty" | "saving" | "save" | "discard">
-
-export function useEditorGate({ dirty, saving, save, discard }: GateSession): EditorGate {
-  const { t } = useLingui()
+export function useLeaveGuard(): LeaveGuard {
   const [pending, setPending] = useState<(() => void) | null>(null)
 
-  const guard = useCallback(
-    (action: () => void) => {
-      if (dirty) setPending(() => action)
-      else action()
-    },
-    [dirty],
-  )
+  const guard = useCallback((action: () => void) => {
+    if (hasAnyDrafts()) setPending(() => action)
+    else action()
+  }, [])
+
+  const clear = useCallback(() => setPending(null), [])
+
+  return { guard, pending, clear }
+}
+
+export function useLeaveDialog(
+  session: StoryboardEditorSession,
+  { pending, clear }: Pick<LeaveGuard, "pending" | "clear">,
+): LeaveEditorDialogProps {
+  const { t } = useLingui()
 
   const finish = useCallback(() => {
-    setPending(null)
+    clear()
     pending?.()
-  }, [pending])
+  }, [clear, pending])
 
   const onSave = useCallback(async () => {
     try {
-      await save()
+      await session.save()
       finish()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t`Save failed`)
     }
-  }, [save, finish, t])
+  }, [session, finish, t])
 
   const onDiscard = useCallback(() => {
-    discard()
+    session.discard()
     finish()
-  }, [discard, finish])
+  }, [session, finish])
 
-  const onCancel = useCallback(() => setPending(null), [])
-
-  return {
-    guard,
-    dialog: { open: pending !== null, saving, onCancel, onDiscard, onSave },
-  }
+  return { open: pending !== null, saving: session.saving, onCancel: clear, onDiscard, onSave }
 }
