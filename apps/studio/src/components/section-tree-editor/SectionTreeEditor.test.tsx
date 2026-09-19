@@ -110,6 +110,7 @@ describe("SectionTreeEditor drag and drop", () => {
     const dataTransfer = createDataTransfer()
     fireEvent.dragStart(dragHandle!, { dataTransfer })
     expect(dataTransfer.getData(TREE_DRAG_TYPE)).toBe("dog-image")
+    expect(dogImage.parentElement?.className).toContain("opacity-30")
 
     await waitFor(() => {
       const editor = screen.getByTestId("section-tree-editor")
@@ -134,6 +135,7 @@ describe("SectionTreeEditor drag and drop", () => {
         .map((image) => image.getAttribute("alt"))
       expect(rootIds).toEqual(["snake-image", "dog-image"])
       expect(onStructuralChange).toHaveBeenCalledTimes(1)
+      expect(screen.getByAltText("dog-image").parentElement?.className).not.toContain("opacity-30")
     })
 
     const editorText = screen.getByTestId("section-tree-editor").textContent ?? ""

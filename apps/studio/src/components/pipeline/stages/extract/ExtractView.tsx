@@ -4,7 +4,7 @@ import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { ExtractPageDetail } from "./components/ExtractPageDetail"
 import { SpreadReview } from "./components/SpreadReview"
 import { BookHeader } from "./BookHeader"
@@ -123,7 +123,8 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   const { t } = useLingui()
   const { data: pages, isLoading } = usePages(bookLabel)
   const { stageState, stepState, queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const selectedPageId = selectedPageIdProp ?? null
   const setSelectedPageId = onSelectPage ?? (() => {})
   const { setExtra, setOnLabelClick } = useStepHeader()
@@ -148,9 +149,9 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   const showRunCard = extractError || extractInterrupted ? true : !hasPages
 
   const handleRetryExtract = useCallback(() => {
-    if (!hasApiKey || extractRunning) return
+    if (!hasStructuredTextProvider || extractRunning) return
     queueRun({ fromStage: "extract", toStage: "extract", apiKey })
-  }, [hasApiKey, extractRunning, apiKey, queueRun])
+  }, [hasStructuredTextProvider, extractRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
   const warnPages = pageList.filter((p) => p.extractionWarning)
@@ -254,7 +255,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
           isRunning={extractRunning}
           completed={extractDone}
           onRun={handleRetryExtract}
-          disabled={(!extractError && !extractInterrupted) || !hasApiKey || extractRunning}
+          disabled={(!extractError && !extractInterrupted) || !hasStructuredTextProvider || extractRunning}
         />
       ) : pageList.length === 0 ? (
         <StageEmptyState

@@ -38,7 +38,7 @@ import { QuizzesHintBanner } from "./components/QuizzesHintBanner";
 import { QuizJumper, type QuizJumperEntry } from "./components/QuizJumper";
 import { PageLightbox } from "../../components/PageLightbox";
 import { AddQuizDialog } from "./AddQuizDialog";
-import { useApiKey } from "@/hooks/use-api-key";
+import { useBookStructuredTextAvailability } from "@/hooks/use-api-key";
 import { useStageStatus } from "@/hooks/use-stage-status";
 import { useLingui } from "@lingui/react/macro";
 
@@ -133,7 +133,7 @@ export function QuizzesView({
   const { data, isLoading } = useQuizzes(bookLabel);
   const { data: pages } = usePages(bookLabel);
   const { setExtra } = useStepHeader();
-  const { hasApiKey } = useApiKey();
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel);
   const quizzesStatus = useStageStatus("quizzes");
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -167,7 +167,9 @@ export function QuizzesView({
   } = usePendingChanges({
     prev: data?.quizzes?.quizzes ?? [],
     next: pending?.quizzes,
-    keyOf: (q) => String(q.quizIndex),
+    // quizId is stable across add/delete; quizIndex is renumbered, so it would
+    // report an unrelated quiz as edited after a single removal.
+    keyOf: (q) => q.quizId ?? String(q.quizIndex),
     isEqual: (a, b) =>
       a.question === b.question &&
       a.answerIndex === b.answerIndex &&
@@ -274,6 +276,11 @@ export function QuizzesView({
   // Remove a quiz from the book. Operates on the currently visible list (so any
   // unsaved edits are preserved), renumbers quizIndex, and persists immediately.
   // A removed quiz can still be recovered from version history.
+  //
+  // The spread must carry `quizId` through untouched: only quizIndex is
+  // positional. Rebuilding these objects field-by-field would drop the ids and
+  // let the server re-derive them from the post-delete positions, handing each
+  // survivor the previous quiz's translations and generated audio.
   const deleteQuiz = useCallback(
     async (idx: number) => {
       const base = pending ?? data?.quizzes;
@@ -297,13 +304,14 @@ export function QuizzesView({
   );
 
   useEffect(() => {
-    if (!data?.quizzes) return;
+    if (!data || (data.historyVersion ?? data.version) == null) return;
     setExtra(
       <div className="flex items-center gap-1.5 ml-auto">
         <VersionPicker
           step="quiz-generation"
           itemId="book"
-          currentVersion={data.version}
+          currentVersion={data.historyVersion ?? data.version}
+          currentVersionInactive={data.quizzes === null}
           saving={saving}
           dirty={dirty}
           bookLabel={bookLabel}
@@ -315,12 +323,9 @@ export function QuizzesView({
           diff={{
             unifiedList: true,
             items: (d) => (d as QuizData | null)?.quizzes ?? [],
-            // quizIndex is positional (renumbered 0..n on add/delete), so it's
-            // not a stable cross-version identity — a single delete would shift
-            // every index and mis-report the whole set as changed. Key by the
-            // question text instead so add/delete read correctly (trade-off: an
-            // edited question reads as remove+add rather than a single edit).
-            keyOf: (q) => (q as QuizData["quizzes"][number]).question,
+            // VersionPicker requests IDs resolved within each historical array,
+            // so legacy and stamped versions use the same comparison keys.
+            keyOf: (q) => (q as QuizData["quizzes"][number]).quizId!,
             isEqual: (a, b) => {
               const x = a as QuizData["quizzes"][number]
               const y = b as QuizData["quizzes"][number]
@@ -541,9 +546,9 @@ export function QuizzesView({
               <Button
                 size="sm"
                 className="h-8 gap-1.5 bg-orange-600 text-xs text-white hover:bg-orange-700"
-                disabled={!hasApiKey || quizzesStatus.isRunning}
+                disabled={!hasStructuredTextProvider || quizzesStatus.isRunning}
                 title={
-                  !hasApiKey
+                  !hasStructuredTextProvider
                     ? t`Add an API key in Book settings to add a quiz.`
                     : quizzesStatus.isRunning
                       ? t`Quizzes are generating. Wait for the run to finish before adding a quiz.`

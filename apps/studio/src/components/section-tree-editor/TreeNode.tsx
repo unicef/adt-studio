@@ -241,10 +241,13 @@ function RowMenu({
   items: ActionMenuItem[]
   disabled?: boolean
 }) {
+  const { t } = useLingui()
+
   return (
     <ActionMenu
       trigger={<MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />}
       triggerClassName="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30"
+      triggerAriaLabel={t`Node actions`}
       triggerDisabled={disabled}
       items={items}
       itemsDisabled={disabled}

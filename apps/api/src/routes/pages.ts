@@ -13,6 +13,7 @@ import {
   ImageSegmentRegion,
   DEFAULT_IMAGE_GENERATION_MODEL_ID,
   DEFAULT_LLM_MAX_RETRIES,
+  DEFAULT_LLM_MODEL_ID,
   primaryFontFamily,
   reflowableFontChain,
   BookFontRegistry,
@@ -25,6 +26,7 @@ import {
   getStageClearOrder,
   getStageDependents,
   EDITABLE_ACTIVITY_NODE,
+  formatSectionId,
   CoreTtsCatalogOutput,
   TextCatalogOutput,
   type TTSOutput,
@@ -47,6 +49,10 @@ import {
   remapEditableActivities,
   invalidateCoreTtsForDisplayEntries,
   resolveFigureExtractionMode,
+  createSectionIdFactory,
+  collectSpentSectionIds,
+  retireSectionIds,
+  SectionIdExhaustedError,
 } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
@@ -74,7 +80,10 @@ import {
   isFixedLayoutBook,
   type ScreenshotRenderer,
 } from "@adt/pipeline"
-import { createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache } from "@adt/llm"
+import { AiProviderError, assertModelCredentials, createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache } from "@adt/llm"
+import type { ResolvedCredentials } from "@adt/llm"
+import { readProviderCredentials } from "../middleware/provider-credentials.js"
+import { retireWithPreservedRecordings, DETACHED_AUDIO_DIR } from "../services/detached-audio.js"
 
 /**
  * Lazily-initialized shared Playwright renderer for section screenshots.
@@ -221,7 +230,7 @@ interface AiImageGenParams {
   safeLabel: string
   bookDir: string
   dbPath: string
-  apiKey: string
+  credentials: ResolvedCredentials
   pageId: string
   prompt: string
   referenceImageId?: string
@@ -242,7 +251,7 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
   imageId: string; width: number; height: number; originalWidth: number; originalHeight: number
 }> {
   const {
-    bookDir, dbPath, apiKey, pageId, prompt,
+    bookDir, dbPath, credentials, pageId, prompt,
     referenceImageId, targetImageId, style, imageType, styleImageId, promptsDir,
     modelId,
   } = params
@@ -332,7 +341,7 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
   let generated: Awaited<ReturnType<typeof generateImageWithCache>>
   try {
     generated = await generateImageWithCache({
-      apiKey,
+      providerCredentials: credentials,
       modelId,
       prompt: finalPrompt,
       size: size as `${number}x${number}`,
@@ -726,13 +735,21 @@ function migrateEditableActivities(
   return storage.putNodeData(EDITABLE_ACTIVITY_NODE, pageId, { activities })
 }
 
-/** Renumber sectionIds to the canonical `${pageId}_sec${NNN}` sequence. */
-function renumberSectionIds(
-  sections: Array<{ sectionId: string }>,
-  pageId: string
-): void {
-  for (let i = 0; i < sections.length; i++) {
-    sections[i].sectionId = `${pageId}_sec${String(i + 1).padStart(3, "0")}`
+/**
+ * Allocate one section id, mapping the pipeline's exhaustion error onto a 400.
+ *
+ * The factory itself lives in `@adt/pipeline` so the agent activity tools mint
+ * ids the same way these routes do — an id derived from `sections.length`
+ * collides as soon as a delete leaves a gap.
+ */
+function mintSectionId(storage: Storage, pageId: string): string {
+  try {
+    return createSectionIdFactory(storage, pageId)()
+  } catch (err) {
+    if (err instanceof SectionIdExhaustedError) {
+      throw new HTTPException(400, { message: err.message })
+    }
+    throw err
   }
 }
 
@@ -968,7 +985,9 @@ export function createPageRoutes(
           }
 
           const sectionEntries: PageSummarySection[] = (rawSections ?? []).map((s, i) => {
-            const sectionId = s.sectionId ?? `${row.item_id}_sec${String(i + 1).padStart(3, "0")}`
+            // `sectionId` is required by the schema; this only covers raw legacy
+            // rows that never had one. Display-only — nothing names a file from it.
+            const sectionId = s.sectionId ?? formatSectionId(row.item_id, i + 1)
             // Pruned sections keep their own text in the per-section preview so
             // they can be displayed in the storyboard sidebar even when grayed out.
             const sectionText = collectText(s.nodes, { skipPruned: false })
@@ -1351,6 +1370,34 @@ export function createPageRoutes(
         )
       }
     }
+    // Retire before deleting, and in one pass so the whole reconcile costs a
+    // single `toc-generation` version. `deletePage` drops the page's entire
+    // node_data history, including the sectioning the id factory reads its
+    // high-water mark from — so a page later re-created under the same id
+    // restarts at `_sec001`. Any `toc-generation` entry, sign-language video or
+    // speech manifest entry still pointing at an id that page spent would then
+    // silently reattach to unrelated content, which is exactly what id
+    // immutability prevents everywhere else. The speech manifests are the ones
+    // `deletePage` cannot reach on its own: they are keyed by language, not by
+    // page.
+    const spentOnRemovedPages = toRemove.flatMap((id) => [
+      ...collectSpentSectionIds(storage, id),
+    ])
+    const { retired, preserved } = retireWithPreservedRecordings(
+      storage,
+      path.join(path.resolve(booksDir), safeLabel),
+      () => retireSectionIds(storage, spentOnRemovedPages)
+    )
+    // Preserve before `deletePage`, for the same reason retirement runs before it.
+    // Un-applying the spread re-creates these pages under their old ids with no
+    // history to allocate past, so they re-mint `_sec001` and Speech regenerates
+    // straight over any recording left at `audio/<lang>/${sectionId}_ans_*`. The
+    // manifest entry is gone by then, so nothing downstream could rescue it.
+    if (retired.detachedRecordings.length > 0) {
+      console.warn(
+        `[pages] ${safeLabel}: detached ${retired.detachedRecordings.length} uploaded audio recording(s) from removed page(s); ${preserved.length} file(s) backed up to ${DETACHED_AUDIO_DIR}/ so a later re-section cannot overwrite the backups.`
+      )
+    }
     for (const id of toRemove) storage.deletePage(id)
 
     return c.json({
@@ -1727,10 +1774,15 @@ export function createPageRoutes(
   // every affected page succeeds, and any failure makes the whole stage stale.
   app.post("/books/:label/pages/re-render", async (c) => {
     const safeLabel = parseBookLabel(c.req.param("label"))
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
-    }
+    const credentials = readProviderCredentials(c)
+    // Fail before the batch starts: a partially re-rendered book is worse than
+    // a rejected request, and the model decides which credential is required.
+    assertModelCredentials(
+      "structured-text",
+      loadBookConfig(safeLabel, booksDir, configPath).default_model
+        ?? DEFAULT_LLM_MODEL_ID,
+      credentials,
+    )
 
     const parsed = z
       .object({ pageIds: z.array(z.string().min(1)).min(1).max(100) })
@@ -1780,8 +1832,6 @@ export function createPageRoutes(
     const runReRenders = async () => {
       try {
         const results = []
-        // reRenderPage temporarily installs the key in process.env, so run the
-        // pages serially rather than letting concurrent calls race that state.
         for (const pageId of pageIds) {
           results.push(
             await reRenderPage({
@@ -1791,7 +1841,7 @@ export function createPageRoutes(
               promptsDir,
               webAssetsDir,
               configPath,
-              apiKey,
+              credentials,
             })
           )
         }
@@ -1845,12 +1895,7 @@ export function createPageRoutes(
     }
     const { sectionIndex } = queryParsed.data
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, {
-        message: "Missing X-OpenAI-Key header",
-      })
-    }
+    const credentials = readProviderCredentials(c)
 
     // Optional prompt for LLM guidance during re-render
     let prompt: string | undefined
@@ -1908,7 +1953,7 @@ export function createPageRoutes(
           promptsDir,
           webAssetsDir,
           configPath,
-          apiKey,
+          credentials,
         })
       } catch (err) {
         const storage = createBookStorage(safeLabel, booksDir)
@@ -1950,10 +1995,7 @@ export function createPageRoutes(
       throw new HTTPException(400, { message: "Invalid section index" })
     }
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
-    }
+    const credentials = readProviderCredentials(c)
 
     const body = await c.req.json()
     const instruction = body?.instruction
@@ -1979,7 +2021,7 @@ export function createPageRoutes(
             promptsDir,
             webAssetsDir,
             configPath,
-            apiKey,
+            credentials,
           })
 
           // Save the edited HTML as a new rendering version
@@ -2025,7 +2067,7 @@ export function createPageRoutes(
       promptsDir,
       webAssetsDir,
       configPath,
-      apiKey,
+      credentials,
     })
 
     return c.json(result)
@@ -2171,10 +2213,12 @@ export function createPageRoutes(
         throw new HTTPException(400, { message: `Section index ${idx} out of range (page has ${sectioning.sections.length} sections)` })
       }
 
-      // Clone the section and insert after the original
+      // Clone the section and insert after the original. The original keeps its
+      // sectionId — only the clone gets a new one.
       const containerIdMap = new Map<string, string>()
       const clonedSection = {
         ...sectioning.sections[idx],
+        sectionId: mintSectionId(storage, pageId),
         nodes: cloneNodesWithFreshContainerIds(
           sectioning.sections[idx].nodes,
           createNodeIdFactory(pageId, sectioning.sections),
@@ -2183,8 +2227,6 @@ export function createPageRoutes(
       }
       const newSections = [...sectioning.sections]
       newSections.splice(idx + 1, 0, clonedSection)
-
-      renumberSectionIds(newSections, pageId)
 
       const updatedSectioning = { ...sectioning, sections: newSections }
 
@@ -2374,8 +2416,11 @@ export function createPageRoutes(
         nodes: keptNodes,
         ...(keptPlacement ? { placement: keptPlacement } : {}),
       }
+      // The first half keeps the original sectionId (it inherits it from
+      // `section`); only the new second half gets a fresh one.
       const movedSection = {
         ...section,
+        sectionId: mintSectionId(storage, pageId),
         nodes: movedNodes,
         ...(movedPlacement ? { placement: movedPlacement } : {}),
       }
@@ -2389,8 +2434,6 @@ export function createPageRoutes(
       const newSections = [...sectioning.sections]
       newSections[idx] = keptSection
       newSections.splice(idx + 1, 0, movedSection)
-
-      renumberSectionIds(newSections, pageId)
 
       const updatedSectioning = { ...sectioning, sections: newSections }
 
@@ -2525,7 +2568,9 @@ export function createPageRoutes(
       }
       newSections.splice(removeIdx, 1)
 
-      renumberSectionIds(newSections, pageId)
+      // The surviving section keeps its sectionId (inherited from `keepSection`);
+      // the removed section's id is retired, never reassigned to a survivor.
+      const retiredSectionIds = [removeSection.sectionId]
 
       const updatedSectioning = { ...sectioning, sections: newSections }
 
@@ -2590,6 +2635,7 @@ export function createPageRoutes(
         mapIndex: (i) =>
           i === keepIdx || i === removeIdx ? null : i > removeIdx ? i - 1 : i,
       })
+      retireSectionIds(storage, retiredSectionIds)
 
       return c.json({
         mergedSectionIndex: keepIdx,
@@ -2707,9 +2753,11 @@ export function createPageRoutes(
       const newSrcSections = [...srcSectioning.sections]
       newSrcSections.splice(idx, 1)
 
-      renumberSectionIds(newSrcSections, pageId)
-
-      renumberSectionIds(newTgtSections, targetPageId)
+      // The target section keeps its sectionId; the moved section's id is
+      // retired. Surviving sections on *either* page keep theirs — this op used
+      // to renumber both pages wholesale, which silently reassigned every later
+      // section's TOC entry, sign-language video and answer-text catalog keys.
+      const retiredSectionIds = [movedSection.sectionId]
 
       // Save updated sectionings
       const srcVersion = saveStoryboardNode(
@@ -2745,6 +2793,7 @@ export function createPageRoutes(
       migrateEditableActivities(storage, targetPageId, {
         mapIndex: (i) => (i === tgtIdx ? null : i),
       })
+      retireSectionIds(storage, retiredSectionIds)
 
       return c.json({
         sourcePageId: pageId,
@@ -2798,11 +2847,10 @@ export function createPageRoutes(
         throw new HTTPException(400, { message: `Section index ${idx} out of range (page has ${sectioning.sections.length} sections)` })
       }
 
-      // Remove section at idx
+      // Remove section at idx. Survivors keep their sectionIds; only the
+      // deleted section's id is retired.
       const newSections = [...sectioning.sections]
-      newSections.splice(idx, 1)
-
-      renumberSectionIds(newSections, pageId)
+      const [deletedSection] = newSections.splice(idx, 1)
 
       const updatedSectioning = { ...sectioning, sections: newSections }
 
@@ -2837,8 +2885,8 @@ export function createPageRoutes(
       }
 
       // Deleting rebuilds the rendering to match: the section's HTML entry is
-      // dropped, later indexes shift down, and section ids are rewritten. The
-      // surviving sections keep the HTML they already had, so nothing needs
+      // dropped and later indexes shift down. The surviving sections keep both
+      // their sectionIds and the HTML they already had, so nothing needs
       // re-rendering and the storyboard stays current.
       const sectioningVersion = saveStoryboardNode(
         storage,
@@ -2853,6 +2901,7 @@ export function createPageRoutes(
       migrateEditableActivities(storage, pageId, {
         mapIndex: (i) => (i === idx ? null : i > idx ? i - 1 : i),
       })
+      retireSectionIds(storage, [deletedSection.sectionId])
 
       return c.json({
         sectioningVersion,
@@ -2877,10 +2926,7 @@ export function createPageRoutes(
         return c.json({ error: `Book not found: ${safeLabel}` }, 404)
       }
 
-      const apiKey = c.req.header("X-OpenAI-Key")
-      if (!apiKey) {
-        return c.json({ error: "Missing X-OpenAI-Key header" }, 400)
-      }
+      const credentials = readProviderCredentials(c)
 
       const pageId = c.req.query("pageId")
       if (!pageId) {
@@ -2939,7 +2985,7 @@ export function createPageRoutes(
           desc,
           async () => {
             return await executeAiImageGeneration({
-              safeLabel, bookDir, dbPath, apiKey, pageId,
+              safeLabel, bookDir, dbPath, credentials, pageId,
               prompt, referenceImageId, targetImageId,
               style, imageType, styleImageId, promptsDir,
               sectionIndex, mode, booksDir,
@@ -2953,7 +2999,7 @@ export function createPageRoutes(
 
       // Fallback: run synchronously
       const result = await executeAiImageGeneration({
-        safeLabel, bookDir, dbPath, apiKey, pageId,
+        safeLabel, bookDir, dbPath, credentials, pageId,
         prompt, referenceImageId, targetImageId,
         style, imageType, styleImageId, promptsDir,
         sectionIndex, mode, booksDir,
@@ -2964,6 +3010,7 @@ export function createPageRoutes(
       if (err instanceof HTTPException) {
         return c.json({ error: err.message }, err.status)
       }
+      if (AiProviderError.is(err)) throw err
       console.error("[ai-generate] UNHANDLED ERROR:", err)
       return c.json({ error: err instanceof Error ? err.message : "Internal server error" }, 500)
     }
@@ -3161,13 +3208,7 @@ export function createPageRoutes(
     }
     validateImageId(pageId)
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      return c.json({ error: "Missing X-OpenAI-Key header" }, 400)
-    }
-
-    const previousKey = process.env.OPENAI_API_KEY
-    process.env.OPENAI_API_KEY = apiKey
+    const credentials = readProviderCredentials(c)
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
@@ -3188,13 +3229,14 @@ export function createPageRoutes(
         config.image_segmentation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES
 
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const llmModel = createLLMModel({
         modelId,
         cacheDir,
         promptEngine,
         onLog: (entry) => storage.appendLlmLog(entry),
+        providerCredentials: credentials,
       })
 
       const imageBase64 = storage.getImageBase64(imageId)
@@ -3239,15 +3281,11 @@ export function createPageRoutes(
         })),
       })
     } catch (err) {
+      if (AiProviderError.is(err)) throw err
       console.error(`[segment] Error analyzing ${imageId}:`, err)
       return c.json({ error: err instanceof Error ? err.message : "Segmentation failed" }, 500)
     } finally {
       storage.close()
-      if (previousKey !== undefined) {
-        process.env.OPENAI_API_KEY = previousKey
-      } else {
-        delete process.env.OPENAI_API_KEY
-      }
     }
   })
 
@@ -3342,10 +3380,7 @@ export function createPageRoutes(
     const { label } = c.req.param()
     const safeLabel = parseBookLabel(label)
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
-    }
+    const credentials = readProviderCredentials(c)
 
     const body = await c.req.json()
     const PageIdsSchema = z.object({
@@ -3392,61 +3427,50 @@ export function createPageRoutes(
       storage.close()
     }
 
-    // Set API key for LLM
-    const previousKey = process.env.OPENAI_API_KEY
-    process.env.OPENAI_API_KEY = apiKey
+    const bookPromptsDir = path.join(bookDir, "prompts")
+    const appConfig = loadBookConfig(safeLabel, booksDir, configPath)
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
+    const cacheDir = path.join(bookDir, ".cache")
+    const config = buildStyleguideGenerationConfig(
+      undefined,
+      appConfig.default_model,
+    )
+    const llmModel = createLLMModel({
+      modelId: config.modelId,
+      cacheDir,
+      promptEngine,
+      providerCredentials: credentials,
+    })
 
+    const result = await generateStyleguide(
+      { pageImages, bookFonts, typography },
+      config,
+      llmModel
+    )
+
+    // Generated style guides are book data, so keep them inside the project
+    // directory where export/import and ordinary folder copies preserve them.
+    const styleguidesDir = getBookStyleguidesDir(resolvedBooksDir, safeLabel)
+    const sgName = getGeneratedStyleguideName(safeLabel)
     try {
-      const bookPromptsDir = path.join(bookDir, "prompts")
-      const appConfig = loadBookConfig(safeLabel, booksDir, configPath)
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
-      const cacheDir = path.join(bookDir, ".cache")
-      const config = buildStyleguideGenerationConfig(
-        undefined,
-        appConfig.default_model,
-      )
-      const llmModel = createLLMModel({
-        modelId: config.modelId,
-        cacheDir,
-        promptEngine,
-      })
-
-      const result = await generateStyleguide(
-        { pageImages, bookFonts, typography },
-        config,
-        llmModel
-      )
-
-      // Generated style guides are book data, so keep them inside the project
-      // directory where export/import and ordinary folder copies preserve them.
-      const styleguidesDir = getBookStyleguidesDir(resolvedBooksDir, safeLabel)
-      const sgName = getGeneratedStyleguideName(safeLabel)
-      try {
-        writeStyleguideFiles({
-          dir: styleguidesDir,
-          name: sgName,
-          content: result.content,
-          previewHtml: result.preview_html,
-        })
-      } catch (err) {
-        if (err instanceof StyleguideWriteError) {
-          throw new HTTPException(500, { message: err.message })
-        }
-        throw err
-      }
-
-      return c.json({
+      writeStyleguideFiles({
+        dir: styleguidesDir,
         name: sgName,
         content: result.content,
-        reasoning: result.reasoning,
+        previewHtml: result.preview_html,
       })
-    } finally {
-      if (previousKey !== undefined) {
-        process.env.OPENAI_API_KEY = previousKey
-      } else {
-        delete process.env.OPENAI_API_KEY
+    } catch (err) {
+      if (err instanceof StyleguideWriteError) {
+        throw new HTTPException(500, { message: err.message })
       }
+      throw err
     }
+
+    return c.json({
+      name: sgName,
+      content: result.content,
+      reasoning: result.reasoning,
+    })
   })
 
   return app

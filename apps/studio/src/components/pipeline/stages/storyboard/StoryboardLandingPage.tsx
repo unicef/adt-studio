@@ -34,7 +34,7 @@ import { usePersistConfig } from "@/hooks/use-persist-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import {
   listDefaultRenderStrategies,
   normalizeDefaultRenderStrategy,
@@ -138,7 +138,8 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { queueRun } = useBookRun()
   const status = useStageStatus("storyboard")
   const sectioningStatus = useStageStatus("sectioning")
@@ -231,7 +232,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasApiKey || status.isRunning) return
+    if (!hasStructuredTextProvider || status.isRunning) return
     // Cue from here even if upstream stages haven't run. Queue from the first
     // upstream stage that isn't already covered (done/running/queued) so we
     // never try to re-run a stage that's mid-flight.
@@ -258,7 +259,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
     (option) => option.id === activityMode,
   )
 
-  const disabledReason = !hasApiKey ? (
+  const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Add an API key in Book settings to run storyboard.</Trans>
   ) : undefined
 
@@ -274,7 +275,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey}
+      extraDisabled={!hasStructuredTextProvider}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Storyboard</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}

@@ -18,7 +18,7 @@ export function PresetViewer() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-[#0a0a0a]">
+        <label className="text-sm font-medium text-foreground">
           <Trans>Preset</Trans>
         </label>
         <button
@@ -32,7 +32,7 @@ export function PresetViewer() {
         </button>
       </div>
 
-      <div className="flex items-center gap-3 border border-[#e5e5e5] rounded-lg p-1">
+      <div className="flex items-center gap-3 border border-border rounded-lg p-1">
         <div
           className={`flex items-center justify-center shrink-0 rounded overflow-hidden w-[97px] h-[80px] ${preset.bgColor}`}
         >
@@ -43,8 +43,8 @@ export function PresetViewer() {
           )}
         </div>
         <div className="flex flex-col gap-1 flex-1 min-w-0 px-2 py-1">
-          <p className="text-sm font-bold text-black">{i18n._(preset.title)}</p>
-          <p className="text-xs text-[#737373] leading-5 line-clamp-2">{i18n._(preset.description)}</p>
+          <p className="text-sm font-bold text-foreground">{i18n._(preset.title)}</p>
+          <p className="text-xs text-muted-foreground leading-5 line-clamp-2">{i18n._(preset.description)}</p>
         </div>
       </div>
     </div>

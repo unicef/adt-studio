@@ -16,6 +16,18 @@ export interface LlmLogEntry {
   durationMs: number
   usage?: TokenUsage
   validationErrors?: string[]
+  /** Transport or provider failure, distinct from a structured-output validation error. */
+  error?: string
+  /**
+   * Why no provider call was made, when the step deliberately produced nothing
+   * (e.g. punctuation-only TTS text, which has no audio to synthesize).
+   *
+   * Recorded rather than omitted so the log still answers "why is there no
+   * output for this item?". Distinct from a cache hit: a cache hit has an
+   * artifact, a skipped call has none. Callers must not count these rows as
+   * calls, cache misses, or latency samples.
+   */
+  skippedReason?: string
   /**
    * Resolved provider request parameters, recorded so a run is inspectable
    * after the fact ("which settings produced this output?").

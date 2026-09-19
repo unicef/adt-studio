@@ -18,6 +18,7 @@ export interface UpdateDialogProps {
   statusOverride?: UpdateStatus
   modal?: boolean
   onShowWhatsNew?: () => void
+  onSeeDetails?: (payload: { version: string; releaseNotes?: string }) => void
 }
 
 export function UpdateDialog({
@@ -26,11 +27,16 @@ export function UpdateDialog({
   statusOverride,
   modal,
   onShowWhatsNew,
+  onSeeDetails,
 }: UpdateDialogProps) {
   const currentVersion = useAppVersion()
   const live = useUpdateStatus()
   const status = statusOverride ?? live.status
   const { check, download, cancel, install, installOnQuit } = live
+  const detailsPayload =
+    status.phase === "available" || status.phase === "downloaded"
+      ? { version: status.version, releaseNotes: status.releaseNotes }
+      : null
   const showBetaVersions =
     currentVersion != null &&
     getReleaseChannel(currentVersion) === "beta" &&
@@ -75,6 +81,11 @@ export function UpdateDialog({
             }}
             onClose={close}
             onShowWhatsNew={onShowWhatsNew}
+            onSeeDetails={
+              onSeeDetails && detailsPayload
+                ? () => onSeeDetails(detailsPayload)
+                : undefined
+            }
           />
         )}
       </DialogContent>

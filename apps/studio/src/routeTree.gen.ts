@@ -9,34 +9,44 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
-import { Route as SettingsRouteImport } from "./routes/settings"
 import { Route as OnboardingRouteImport } from "./routes/onboarding"
-import { Route as IndexRouteImport } from "./routes/index"
+import { Route as AppRouteImport } from "./routes/_app"
+import { Route as AppIndexRouteImport } from "./routes/_app.index"
 import { Route as PromptsSettingsRouteImport } from "./routes/prompts.settings"
 import { Route as BooksNewRouteImport } from "./routes/books.new"
 import { Route as BooksImportRouteImport } from "./routes/books.import"
 import { Route as BooksLabelRouteImport } from "./routes/books.$label"
+import { Route as AppSettingsRouteImport } from "./routes/_app.settings"
+import { Route as AppLibraryRouteImport } from "./routes/_app.library"
+import { Route as AppHandoffsRouteImport } from "./routes/_app.handoffs"
 import { Route as BooksLabelIndexRouteImport } from "./routes/books.$label.index"
+import { Route as AppSettingsIndexRouteImport } from "./routes/_app.settings.index"
 import { Route as BooksLabelDebugRouteImport } from "./routes/books.$label.debug"
 import { Route as BooksLabelStepRouteImport } from "./routes/books.$label.$step"
+import { Route as AppSettingsThemeRouteImport } from "./routes/_app.settings.theme"
+import { Route as AppSettingsProvidersRouteImport } from "./routes/_app.settings.providers"
+import { Route as AppSettingsPromptsRouteImport } from "./routes/_app.settings.prompts"
+import { Route as AppSettingsNotificationsRouteImport } from "./routes/_app.settings.notifications"
+import { Route as AppSettingsModelsRouteImport } from "./routes/_app.settings.models"
+import { Route as AppSettingsLanguageRouteImport } from "./routes/_app.settings.language"
+import { Route as AppSettingsAboutRouteImport } from "./routes/_app.settings.about"
 import { Route as BooksLabelStepIndexRouteImport } from "./routes/books.$label.$step.index"
 import { Route as BooksLabelStepSettingsRouteImport } from "./routes/books.$label.$step.settings"
 import { Route as BooksLabelStepPageIdRouteImport } from "./routes/books.$label.$step.$pageId"
 
-const SettingsRoute = SettingsRouteImport.update({
-  id: "/settings",
-  path: "/settings",
-  getParentRoute: () => rootRouteImport,
-} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: "/onboarding",
   path: "/onboarding",
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const AppRoute = AppRouteImport.update({
+  id: "/_app",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
   id: "/",
   path: "/",
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
 const PromptsSettingsRoute = PromptsSettingsRouteImport.update({
   id: "/prompts/settings",
@@ -58,10 +68,30 @@ const BooksLabelRoute = BooksLabelRouteImport.update({
   path: "/books/$label",
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: "/settings",
+  path: "/settings",
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLibraryRoute = AppLibraryRouteImport.update({
+  id: "/library",
+  path: "/library",
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHandoffsRoute = AppHandoffsRouteImport.update({
+  id: "/handoffs",
+  path: "/handoffs",
+  getParentRoute: () => AppRoute,
+} as any)
 const BooksLabelIndexRoute = BooksLabelIndexRouteImport.update({
   id: "/",
   path: "/",
   getParentRoute: () => BooksLabelRoute,
+} as any)
+const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => AppSettingsRoute,
 } as any)
 const BooksLabelDebugRoute = BooksLabelDebugRouteImport.update({
   id: "/debug",
@@ -72,6 +102,42 @@ const BooksLabelStepRoute = BooksLabelStepRouteImport.update({
   id: "/$step",
   path: "/$step",
   getParentRoute: () => BooksLabelRoute,
+} as any)
+const AppSettingsThemeRoute = AppSettingsThemeRouteImport.update({
+  id: "/theme",
+  path: "/theme",
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsProvidersRoute = AppSettingsProvidersRouteImport.update({
+  id: "/providers",
+  path: "/providers",
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsPromptsRoute = AppSettingsPromptsRouteImport.update({
+  id: "/prompts",
+  path: "/prompts",
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsNotificationsRoute =
+  AppSettingsNotificationsRouteImport.update({
+    id: "/notifications",
+    path: "/notifications",
+    getParentRoute: () => AppSettingsRoute,
+  } as any)
+const AppSettingsModelsRoute = AppSettingsModelsRouteImport.update({
+  id: "/models",
+  path: "/models",
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsLanguageRoute = AppSettingsLanguageRouteImport.update({
+  id: "/language",
+  path: "/language",
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsAboutRoute = AppSettingsAboutRouteImport.update({
+  id: "/about",
+  path: "/about",
+  getParentRoute: () => AppSettingsRoute,
 } as any)
 const BooksLabelStepIndexRoute = BooksLabelStepIndexRouteImport.update({
   id: "/",
@@ -90,28 +156,47 @@ const BooksLabelStepPageIdRoute = BooksLabelStepPageIdRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute
+  "/": typeof AppIndexRoute
   "/onboarding": typeof OnboardingRoute
-  "/settings": typeof SettingsRoute
+  "/handoffs": typeof AppHandoffsRoute
+  "/library": typeof AppLibraryRoute
+  "/settings": typeof AppSettingsRouteWithChildren
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
   "/prompts/settings": typeof PromptsSettingsRoute
+  "/settings/about": typeof AppSettingsAboutRoute
+  "/settings/language": typeof AppSettingsLanguageRoute
+  "/settings/models": typeof AppSettingsModelsRoute
+  "/settings/notifications": typeof AppSettingsNotificationsRoute
+  "/settings/prompts": typeof AppSettingsPromptsRoute
+  "/settings/providers": typeof AppSettingsProvidersRoute
+  "/settings/theme": typeof AppSettingsThemeRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
+  "/settings/": typeof AppSettingsIndexRoute
   "/books/$label/": typeof BooksLabelIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
   "/books/$label/$step/settings": typeof BooksLabelStepSettingsRoute
   "/books/$label/$step/": typeof BooksLabelStepIndexRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
-  "/settings": typeof SettingsRoute
+  "/handoffs": typeof AppHandoffsRoute
+  "/library": typeof AppLibraryRoute
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
   "/prompts/settings": typeof PromptsSettingsRoute
+  "/": typeof AppIndexRoute
+  "/settings/about": typeof AppSettingsAboutRoute
+  "/settings/language": typeof AppSettingsLanguageRoute
+  "/settings/models": typeof AppSettingsModelsRoute
+  "/settings/notifications": typeof AppSettingsNotificationsRoute
+  "/settings/prompts": typeof AppSettingsPromptsRoute
+  "/settings/providers": typeof AppSettingsProvidersRoute
+  "/settings/theme": typeof AppSettingsThemeRoute
   "/books/$label/debug": typeof BooksLabelDebugRoute
+  "/settings": typeof AppSettingsIndexRoute
   "/books/$label": typeof BooksLabelIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
   "/books/$label/$step/settings": typeof BooksLabelStepSettingsRoute
@@ -119,15 +204,26 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  "/": typeof IndexRoute
+  "/_app": typeof AppRouteWithChildren
   "/onboarding": typeof OnboardingRoute
-  "/settings": typeof SettingsRoute
+  "/_app/handoffs": typeof AppHandoffsRoute
+  "/_app/library": typeof AppLibraryRoute
+  "/_app/settings": typeof AppSettingsRouteWithChildren
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
   "/prompts/settings": typeof PromptsSettingsRoute
+  "/_app/": typeof AppIndexRoute
+  "/_app/settings/about": typeof AppSettingsAboutRoute
+  "/_app/settings/language": typeof AppSettingsLanguageRoute
+  "/_app/settings/models": typeof AppSettingsModelsRoute
+  "/_app/settings/notifications": typeof AppSettingsNotificationsRoute
+  "/_app/settings/prompts": typeof AppSettingsPromptsRoute
+  "/_app/settings/providers": typeof AppSettingsProvidersRoute
+  "/_app/settings/theme": typeof AppSettingsThemeRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
+  "/_app/settings/": typeof AppSettingsIndexRoute
   "/books/$label/": typeof BooksLabelIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
   "/books/$label/$step/settings": typeof BooksLabelStepSettingsRoute
@@ -138,41 +234,71 @@ export interface FileRouteTypes {
   fullPaths:
     | "/"
     | "/onboarding"
+    | "/handoffs"
+    | "/library"
     | "/settings"
     | "/books/$label"
     | "/books/import"
     | "/books/new"
     | "/prompts/settings"
+    | "/settings/about"
+    | "/settings/language"
+    | "/settings/models"
+    | "/settings/notifications"
+    | "/settings/prompts"
+    | "/settings/providers"
+    | "/settings/theme"
     | "/books/$label/$step"
     | "/books/$label/debug"
+    | "/settings/"
     | "/books/$label/"
     | "/books/$label/$step/$pageId"
     | "/books/$label/$step/settings"
     | "/books/$label/$step/"
   fileRoutesByTo: FileRoutesByTo
   to:
-    | "/"
     | "/onboarding"
-    | "/settings"
+    | "/handoffs"
+    | "/library"
     | "/books/import"
     | "/books/new"
     | "/prompts/settings"
+    | "/"
+    | "/settings/about"
+    | "/settings/language"
+    | "/settings/models"
+    | "/settings/notifications"
+    | "/settings/prompts"
+    | "/settings/providers"
+    | "/settings/theme"
     | "/books/$label/debug"
+    | "/settings"
     | "/books/$label"
     | "/books/$label/$step/$pageId"
     | "/books/$label/$step/settings"
     | "/books/$label/$step"
   id:
     | "__root__"
-    | "/"
+    | "/_app"
     | "/onboarding"
-    | "/settings"
+    | "/_app/handoffs"
+    | "/_app/library"
+    | "/_app/settings"
     | "/books/$label"
     | "/books/import"
     | "/books/new"
     | "/prompts/settings"
+    | "/_app/"
+    | "/_app/settings/about"
+    | "/_app/settings/language"
+    | "/_app/settings/models"
+    | "/_app/settings/notifications"
+    | "/_app/settings/prompts"
+    | "/_app/settings/providers"
+    | "/_app/settings/theme"
     | "/books/$label/$step"
     | "/books/$label/debug"
+    | "/_app/settings/"
     | "/books/$label/"
     | "/books/$label/$step/$pageId"
     | "/books/$label/$step/settings"
@@ -180,9 +306,8 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
-  SettingsRoute: typeof SettingsRoute
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
   BooksImportRoute: typeof BooksImportRoute
   BooksNewRoute: typeof BooksNewRoute
@@ -191,13 +316,6 @@ export interface RootRouteChildren {
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    "/settings": {
-      id: "/settings"
-      path: "/settings"
-      fullPath: "/settings"
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     "/onboarding": {
       id: "/onboarding"
       path: "/onboarding"
@@ -205,12 +323,19 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/": {
-      id: "/"
+    "/_app": {
+      id: "/_app"
+      path: ""
+      fullPath: "/"
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/_app/": {
+      id: "/_app/"
       path: "/"
       fullPath: "/"
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
     }
     "/prompts/settings": {
       id: "/prompts/settings"
@@ -240,12 +365,40 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof BooksLabelRouteImport
       parentRoute: typeof rootRouteImport
     }
+    "/_app/settings": {
+      id: "/_app/settings"
+      path: "/settings"
+      fullPath: "/settings"
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    "/_app/library": {
+      id: "/_app/library"
+      path: "/library"
+      fullPath: "/library"
+      preLoaderRoute: typeof AppLibraryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    "/_app/handoffs": {
+      id: "/_app/handoffs"
+      path: "/handoffs"
+      fullPath: "/handoffs"
+      preLoaderRoute: typeof AppHandoffsRouteImport
+      parentRoute: typeof AppRoute
+    }
     "/books/$label/": {
       id: "/books/$label/"
       path: "/"
       fullPath: "/books/$label/"
       preLoaderRoute: typeof BooksLabelIndexRouteImport
       parentRoute: typeof BooksLabelRoute
+    }
+    "/_app/settings/": {
+      id: "/_app/settings/"
+      path: "/"
+      fullPath: "/settings/"
+      preLoaderRoute: typeof AppSettingsIndexRouteImport
+      parentRoute: typeof AppSettingsRoute
     }
     "/books/$label/debug": {
       id: "/books/$label/debug"
@@ -260,6 +413,55 @@ declare module "@tanstack/react-router" {
       fullPath: "/books/$label/$step"
       preLoaderRoute: typeof BooksLabelStepRouteImport
       parentRoute: typeof BooksLabelRoute
+    }
+    "/_app/settings/theme": {
+      id: "/_app/settings/theme"
+      path: "/theme"
+      fullPath: "/settings/theme"
+      preLoaderRoute: typeof AppSettingsThemeRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    "/_app/settings/providers": {
+      id: "/_app/settings/providers"
+      path: "/providers"
+      fullPath: "/settings/providers"
+      preLoaderRoute: typeof AppSettingsProvidersRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    "/_app/settings/prompts": {
+      id: "/_app/settings/prompts"
+      path: "/prompts"
+      fullPath: "/settings/prompts"
+      preLoaderRoute: typeof AppSettingsPromptsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    "/_app/settings/notifications": {
+      id: "/_app/settings/notifications"
+      path: "/notifications"
+      fullPath: "/settings/notifications"
+      preLoaderRoute: typeof AppSettingsNotificationsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    "/_app/settings/models": {
+      id: "/_app/settings/models"
+      path: "/models"
+      fullPath: "/settings/models"
+      preLoaderRoute: typeof AppSettingsModelsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    "/_app/settings/language": {
+      id: "/_app/settings/language"
+      path: "/language"
+      fullPath: "/settings/language"
+      preLoaderRoute: typeof AppSettingsLanguageRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    "/_app/settings/about": {
+      id: "/_app/settings/about"
+      path: "/about"
+      fullPath: "/settings/about"
+      preLoaderRoute: typeof AppSettingsAboutRouteImport
+      parentRoute: typeof AppSettingsRoute
     }
     "/books/$label/$step/": {
       id: "/books/$label/$step/"
@@ -284,6 +486,48 @@ declare module "@tanstack/react-router" {
     }
   }
 }
+
+interface AppSettingsRouteChildren {
+  AppSettingsAboutRoute: typeof AppSettingsAboutRoute
+  AppSettingsLanguageRoute: typeof AppSettingsLanguageRoute
+  AppSettingsModelsRoute: typeof AppSettingsModelsRoute
+  AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
+  AppSettingsPromptsRoute: typeof AppSettingsPromptsRoute
+  AppSettingsProvidersRoute: typeof AppSettingsProvidersRoute
+  AppSettingsThemeRoute: typeof AppSettingsThemeRoute
+  AppSettingsIndexRoute: typeof AppSettingsIndexRoute
+}
+
+const AppSettingsRouteChildren: AppSettingsRouteChildren = {
+  AppSettingsAboutRoute: AppSettingsAboutRoute,
+  AppSettingsLanguageRoute: AppSettingsLanguageRoute,
+  AppSettingsModelsRoute: AppSettingsModelsRoute,
+  AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
+  AppSettingsPromptsRoute: AppSettingsPromptsRoute,
+  AppSettingsProvidersRoute: AppSettingsProvidersRoute,
+  AppSettingsThemeRoute: AppSettingsThemeRoute,
+  AppSettingsIndexRoute: AppSettingsIndexRoute,
+}
+
+const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
+  AppSettingsRouteChildren,
+)
+
+interface AppRouteChildren {
+  AppHandoffsRoute: typeof AppHandoffsRoute
+  AppLibraryRoute: typeof AppLibraryRoute
+  AppSettingsRoute: typeof AppSettingsRouteWithChildren
+  AppIndexRoute: typeof AppIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppHandoffsRoute: AppHandoffsRoute,
+  AppLibraryRoute: AppLibraryRoute,
+  AppSettingsRoute: AppSettingsRouteWithChildren,
+  AppIndexRoute: AppIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface BooksLabelStepRouteChildren {
   BooksLabelStepPageIdRoute: typeof BooksLabelStepPageIdRoute
@@ -318,9 +562,8 @@ const BooksLabelRouteWithChildren = BooksLabelRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
-  SettingsRoute: SettingsRoute,
   BooksLabelRoute: BooksLabelRouteWithChildren,
   BooksImportRoute: BooksImportRoute,
   BooksNewRoute: BooksNewRoute,

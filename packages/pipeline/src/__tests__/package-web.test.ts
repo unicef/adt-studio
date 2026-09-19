@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
+import { runInNewContext } from "node:vm"
+import { JSDOM } from "jsdom"
 import type { Storage, PageData } from "@adt/storage"
 import {
   computePackagingInputHash,
@@ -18,6 +20,18 @@ import {
   containsMathContent,
 } from "../packaging/web.js"
 import { packageWebpub, nestTocEntries, injectActivitiesBundle } from "../packaging/webpub.js"
+import { resolveReadingOrder } from "../reading-order.js"
+
+/**
+ * Read the bundle's first reading-order page. Goes through pages.json rather
+ * than a hardcoded filename so these tests assert on content, not on naming.
+ */
+function readFirstPage(dir: string): string {
+  const pages = JSON.parse(
+    fs.readFileSync(path.join(dir, "content", "pages.json"), "utf-8"),
+  ) as Array<{ href: string }>
+  return fs.readFileSync(path.join(dir, pages[0].href), "utf-8")
+}
 import { deriveQuizPalette } from "../quiz-palette.js"
 
 function createMockStorage(
@@ -600,7 +614,7 @@ describe("packageAdtWeb", () => {
       fs.readFileSync(path.join(bookDir, "adt", "content", "pages.json"), "utf-8"),
     ) as Array<{ section_id: string; href: string; page_number?: number }>
     expect(pagesJson).toHaveLength(2)
-    expect(pagesJson[0]).toEqual({ section_id: "pg001_sec001", href: "index.html", page_number: 10 })
+    expect(pagesJson[0]).toEqual({ section_id: "pg001_sec001", href: "pg001_sec001.html", page_number: 10 })
     expect(pagesJson[1]).toEqual({ section_id: "pg002_sec001", href: "pg002_sec001.html" })
 
     const configJson = JSON.parse(
@@ -609,7 +623,7 @@ describe("packageAdtWeb", () => {
     expect(configJson.languages.available).toEqual(["fr"])
     expect(configJson.languages.default).toBe("fr")
 
-    const pageHtml = fs.readFileSync(path.join(bookDir, "adt", "index.html"), "utf-8")
+    const pageHtml = readFirstPage(path.join(bookDir, "adt"))
     expect((pageHtml.match(/<main\b/g) ?? [])).toHaveLength(1)
     expect(pageHtml).toContain("window.correctAnswers = JSON.parse(")
     expect(pageHtml).not.toContain("</script><script>alert('x')</script>")
@@ -775,6 +789,20 @@ describe("packageAdtWeb", () => {
             },
           ],
         },
+        pg002: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg002_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: null,
+              isPruned: false,
+            },
+          ],
+        },
       },
       "quiz-generation": {
         book: {
@@ -813,18 +841,134 @@ describe("packageAdtWeb", () => {
     ) as Array<{ section_id: string; href: string; page_number?: number }>
 
     expect(pagesJson).toEqual([
-      { section_id: "qz001", href: "index.html" },
+      { section_id: "qz001", href: "qz001.html" },
       { section_id: "pg002_sec001", href: "pg002_sec001.html" },
     ])
     expect(fs.existsSync(path.join(bookDir, "adt", "index.html"))).toBe(true)
 
-    const quizHtml = fs.readFileSync(path.join(bookDir, "adt", "index.html"), "utf-8")
+    const quizHtml = readFirstPage(path.join(bookDir, "adt"))
     expect((quizHtml.match(/<main\b/g) ?? [])).toHaveLength(1)
     expect(quizHtml).not.toContain('role="activity"')
 
     // SCORM adapter should include the quiz activity ID
     const scorm = fs.readFileSync(path.join(bookDir, "adt", "assets", "scorm.js"), "utf-8")
     expect(scorm).toContain('"qz001"')
+  })
+
+  it("names quiz pages by their stored id, not their position in the array", async () => {
+    // A book that has had quizzes added and deleted: ids are sparse and no
+    // longer ascend with the array. Everything the bundle exposes — filenames,
+    // pages.json, the answer keys and the SCORM activity list — has to follow
+    // the stored id, because that is what the book's already-generated
+    // translations and audio files are named after.
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const pages: PageData[] = [
+      { pageId: "pg001", pageNumber: 1, text: "Page one" },
+      { pageId: "pg002", pageNumber: 2, text: "Page two" },
+    ]
+
+    const section = (sectionId: string, pageNumber: number | null) => ({
+      reasoning: "ok",
+      sections: [
+        {
+          sectionId,
+          sectionType: "content",
+          nodes: [],
+          backgroundColor: "#fff",
+          textColor: "#000",
+          pageNumber,
+          isPruned: false,
+        },
+      ],
+    })
+
+    const quiz = (quizId: string, afterPageId: string, question: string) => ({
+      quizId,
+      quizIndex: 0,
+      afterPageId,
+      pageIds: [afterPageId],
+      question,
+      options: [
+        { text: "3", explanation: "Nope" },
+        { text: "4", explanation: "Yes" },
+      ],
+      answerIndex: 1,
+      reasoning: "...",
+    })
+
+    const storage = createMockStorage(pages, {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "ok", html: "<div>One</div>" },
+          ],
+        },
+        pg002: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "ok", html: "<div>Two</div>" },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: section("pg001_sec001", 1),
+        pg002: section("pg002_sec001", 2),
+      },
+      "quiz-generation": {
+        book: {
+          generatedAt: "2026-01-01T00:00:00.000Z",
+          language: "en",
+          pagesPerQuiz: 3,
+          quizzes: [
+            // qz001 and qz002 were deleted at some point; qz004 was added
+            // before qz003 and so sits earlier in the array.
+            quiz("qz004", "pg001", "Which came later?"),
+            quiz("qz003", "pg002", "Which came first?"),
+          ],
+        },
+      },
+    })
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    const pagesJson = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "pages.json"), "utf-8"),
+    ) as Array<{ section_id: string; href: string }>
+
+    // Reading order still follows the book; the *names* follow the stored ids.
+    expect(pagesJson).toEqual([
+      { section_id: "pg001_sec001", href: "pg001_sec001.html", page_number: 1 },
+      { section_id: "qz004", href: "qz004.html" },
+      { section_id: "pg002_sec001", href: "pg002_sec001.html", page_number: 2 },
+      { section_id: "qz003", href: "qz003.html" },
+    ])
+
+    // The positional names must not exist at all — a `qz001.html` here would be
+    // this book's first quiz served under a deleted quiz's identity.
+    expect(fs.existsSync(path.join(bookDir, "adt", "qz004.html"))).toBe(true)
+    expect(fs.existsSync(path.join(bookDir, "adt", "qz003.html"))).toBe(true)
+    expect(fs.existsSync(path.join(bookDir, "adt", "qz001.html"))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, "adt", "qz002.html"))).toBe(false)
+
+    // Answer keys are catalog ids too, so they carry the same id.
+    const quizHtml = fs.readFileSync(path.join(bookDir, "adt", "qz004.html"), "utf-8")
+    expect(quizHtml).toContain('data-activity-item="qz004_o0"')
+    expect(quizHtml).not.toContain("qz001_o0")
+
+    const scorm = fs.readFileSync(path.join(bookDir, "adt", "assets", "scorm.js"), "utf-8")
+    expect(scorm).toContain('"qz004"')
+    expect(scorm).toContain('"qz003"')
+    expect(scorm).not.toContain('"qz001"')
   })
 
   it("packages reader timecodes and enables word highlighting when timestamps exist", async () => {
@@ -835,6 +979,7 @@ describe("packageAdtWeb", () => {
     fs.mkdirSync(audioDir, { recursive: true })
     createWebAssets(webAssetsDir)
     fs.writeFileSync(path.join(audioDir, "pg001_t001.mp3"), "audio")
+    fs.writeFileSync(path.join(audioDir, "pg001_t001--secondary.mp3"), "audio-secondary")
 
     const pages: PageData[] = [
       { pageId: "pg001", pageNumber: 1, text: "Page one" },
@@ -876,7 +1021,18 @@ describe("packageAdtWeb", () => {
               textId: "pg001_t001",
               language: "en",
               fileName: "pg001_t001.mp3",
-              voice: "alloy",
+              voice: "QK4xDwo9ESPHA4JNUpX3",
+              model: "eleven_multilingual_v2",
+              provider: "elevenlabs",
+              cached: false,
+            },
+            {
+              textId: "pg001_t001",
+              language: "en",
+              fileName: "pg001_t001--secondary.mp3",
+              voice: "echo",
+              voiceLabel: "Mateo",
+              voiceSlot: "secondary",
               model: "gpt-4o-mini-tts",
               cached: false,
             },
@@ -923,6 +1079,16 @@ describe("packageAdtWeb", () => {
                 { word: "world", start: 0.45, end: 0.9 },
               ],
             },
+            "pg001_t001--secondary": {
+              textId: "pg001_t001",
+              language: "en",
+              voiceSlot: "secondary",
+              duration: 0.9,
+              words: [
+                { word: "Hello", start: 0, end: 0.4 },
+                { word: "world", start: 0.4, end: 0.9 },
+              ],
+            },
           },
           generatedAt: "2026-01-01T00:00:00.000Z",
         },
@@ -958,6 +1124,30 @@ describe("packageAdtWeb", () => {
         ],
       },
     })
+    const audioVoices = JSON.parse(
+      fs.readFileSync(
+        path.join(bookDir, "adt", "content", "i18n", "en", "audio_voices.json"),
+        "utf-8",
+      ),
+    )
+    expect(audioVoices.voices.primary.audios).toEqual({
+      pg001_t001: "pg001_t001.mp3",
+    })
+    expect(audioVoices.voices.primary.label).toBe("Tomás")
+    expect(audioVoices.voices.secondary).toEqual({
+      label: "Mateo",
+      audios: { pg001_t001: "pg001_t001--secondary.mp3" },
+    })
+    const voiceTimecodes = JSON.parse(
+      fs.readFileSync(
+        path.join(bookDir, "adt", "content", "i18n", "en", "timecode", "timecode_voices.json"),
+        "utf-8",
+      ),
+    )
+    expect(voiceTimecodes.secondary.pg001_t001.timecodes[1].word_timestamps).toEqual([
+      { text: "Hello", start: 0, end: 0.4 },
+      { text: "world", start: 0.4, end: 0.9 },
+    ])
 
     const configJson = JSON.parse(
       fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
@@ -1521,7 +1711,7 @@ describe("packageAdtWeb", () => {
     ) as { features: { activities: boolean } }
     expect(configJson.features.activities).toBe(true)
 
-    const activityHtml = fs.readFileSync(path.join(bookDir, "adt", "index.html"), "utf-8")
+    const activityHtml = readFirstPage(path.join(bookDir, "adt"))
     expect(activityHtml).not.toContain('role="activity"')
   })
 
@@ -1597,11 +1787,11 @@ describe("packageAdtWeb", () => {
       webAssetsDir,
     })
 
-    const pageHtml = fs.readFileSync(path.join(bookDir, "adt", "index.html"), "utf-8")
+    const pageHtml = readFirstPage(path.join(bookDir, "adt"))
     expect(pageHtml).toContain('alt="A lifecycle diagram with six stages"')
   })
 
-  it("sets activities true from rendered section type even without section metadata", async () => {
+  it("sets activities true from the rendered section type, not the sectioning's", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")
     fs.mkdirSync(bookDir, { recursive: true })
@@ -1625,6 +1815,24 @@ describe("packageAdtWeb", () => {
           ],
         },
       },
+      // Sectioning says "content" while the rendering says activity — the
+      // rendered type must win.
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+      },
     })
 
     await packageAdtWeb(storage, {
@@ -1640,6 +1848,197 @@ describe("packageAdtWeb", () => {
       fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
     ) as { features: { activities: boolean } }
     expect(configJson.features.activities).toBe(true)
+  })
+
+  it("warns instead of silently dropping a rendered section with no sectioning row", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const pages: PageData[] = [
+      { pageId: "pg001", pageNumber: 1, text: "Page one" },
+    ]
+
+    // Rendering has two entries, sectioning only one — the state a
+    // `page-sectioning` version restore leaves behind, since restoring does not
+    // resync `web-rendering`. Index 1 has no id to package under.
+    const storage = createMockStorage(pages, {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "ok", html: "<section><p>Kept</p></section>" },
+            { sectionIndex: 1, sectionType: "content", reasoning: "ok", html: "<section><p>Orphan</p></section>" },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+      },
+    })
+
+    const messages: string[] = []
+    const result = await packageAdtWeb(
+      storage,
+      {
+        bookDir,
+        label: "book",
+        language: "en",
+        outputLanguages: ["en"],
+        title: "Book Title",
+        webAssetsDir,
+      },
+      {
+        emit: (event) => {
+          if (event.type === "step-progress") messages.push(event.message)
+        },
+      },
+    )
+
+    // The orphan is still skipped — a positional `_sec002` guess could collide
+    // with a real id — but the drop is now reported rather than invisible.
+    const pageList = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "pages.json"), "utf-8"),
+    ) as Array<{ section_id: string }>
+    expect(pageList.map((p) => p.section_id)).toEqual(["pg001_sec001"])
+
+    // The returned warnings are the load-bearing channel: the API packaging and
+    // export flows pass no progress sink at all, and the CLI's sink drops
+    // messages that carry no page counters. A `progress`-only warning reaches
+    // nobody.
+    expect(result.warnings).toEqual([
+      { kind: "orphaned-rendering", pageId: "pg001", sectionIndex: 1 },
+    ])
+
+    const warning = messages.find((m) => m.startsWith("Warning:"))
+    expect(warning).toContain("skipped 1 rendered section(s) with no sectioning row")
+    expect(warning).toContain("pg001[1]")
+  })
+
+  it("reports every section of a page whose sectioning row is missing entirely", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const pages: PageData[] = [
+      { pageId: "pg001", pageNumber: 1, text: "Page one" },
+      { pageId: "pg002", pageNumber: 2, text: "Page two" },
+    ]
+
+    // pg002 has a rendering but no sectioning row at all — the shape
+    // `getRenderSectioning` also returns for a row that fails to parse. Every
+    // one of its sections is unpackageable, so the whole page vanishes from the
+    // bundle; that must not be silent.
+    const storage = createMockStorage(pages, {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "ok", html: "<section><p>Kept</p></section>" },
+          ],
+        },
+        pg002: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "ok", html: "<section><p>Lost</p></section>" },
+            { sectionIndex: 1, sectionType: "content", reasoning: "ok", html: "<section><p>Also lost</p></section>" },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+      },
+    })
+
+    const result = await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    const pageList = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "pages.json"), "utf-8"),
+    ) as Array<{ section_id: string }>
+    expect(pageList.map((p) => p.section_id)).toEqual(["pg001_sec001"])
+
+    expect(result.warnings).toEqual([
+      { kind: "orphaned-rendering", pageId: "pg002", sectionIndex: 0 },
+      { kind: "orphaned-rendering", pageId: "pg002", sectionIndex: 1 },
+    ])
+  })
+
+  it("reports no warnings when rendering and sectioning agree", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const storage = createMockStorage([
+      { pageId: "pg001", pageNumber: 1, text: "Page one" },
+    ], {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "ok", html: "<section><p>Kept</p></section>" },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+      },
+    })
+
+    const result = await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    expect(result.warnings).toEqual([])
   })
 
   it("converts LaTeX math to MathML in output HTML and does not include MathJax script", async () => {
@@ -1692,7 +2091,7 @@ describe("packageAdtWeb", () => {
       webAssetsDir,
     })
 
-    const pageHtml = fs.readFileSync(path.join(bookDir, "adt", "index.html"), "utf-8")
+    const pageHtml = readFirstPage(path.join(bookDir, "adt"))
     // LaTeX should be replaced with MathML
     expect(pageHtml).toContain("<math")
     expect(pageHtml).not.toContain("$\\pi r^2$")
@@ -1770,9 +2169,346 @@ describe("packageAdtWeb", () => {
       fs.readFileSync(path.join(bookDir, "adt", "content", "pages.json"), "utf-8"),
     ) as Array<{ section_id: string; href: string; page_number?: number }>
     expect(pagesJson).toEqual([
-      { section_id: "pg001_sec001", href: "index.html", page_number: 1 },
+      { section_id: "pg001_sec001", href: "pg001_sec001.html", page_number: 1 },
       { section_id: "pg001_sec002", href: "pg001_sec002.html", page_number: 1 },
     ])
+  })
+
+  it("writes index.html as a redirect to the first page, not as a page itself", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const pages: PageData[] = [{ pageId: "pg001", pageNumber: 1, text: "Page one" }]
+    const storage = createMockStorage(pages, {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>First</p>" },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+      },
+    })
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    const adtDir = path.join(bookDir, "adt")
+    const pagesJson = JSON.parse(
+      fs.readFileSync(path.join(adtDir, "content", "pages.json"), "utf-8"),
+    ) as Array<{ href: string }>
+
+    // The page is named by its id; index.html is not a reading-order entry.
+    expect(pagesJson.map((p) => p.href)).toEqual(["pg001_sec001.html"])
+    expect(fs.existsSync(path.join(adtDir, "pg001_sec001.html"))).toBe(true)
+
+    const stub = fs.readFileSync(path.join(adtDir, "index.html"), "utf-8")
+    expect(stub).toContain('content="0; url=pg001_sec001.html"')
+    expect(stub).toContain('href="pg001_sec001.html"')
+    const dom = new JSDOM(stub)
+    const document = dom.window.document
+    // A static refresh must not compete with the URL-preserving JS redirect.
+    const refresh = document.querySelector('meta[http-equiv="refresh"]')
+    expect(refresh?.parentElement?.tagName).toBe("NOSCRIPT")
+    expect(refresh?.getAttribute("content")).toBe("0; url=pg001_sec001.html")
+    const script = document.querySelector("script")!.textContent!
+    for (const [search, hash] of [
+      ["", ""],
+      ["?embed=1", ""],
+      ["", "#pg001_n001"],
+      ["?embed=1&v=42", "#glossary=Hello%20world"],
+    ]) {
+      const destinations: string[] = []
+      runInNewContext(script, {
+        document,
+        location: { search, hash, replace: (url: string) => destinations.push(url) },
+      })
+      const expected = `pg001_sec001.html${search}${hash}`
+      expect(destinations).toEqual([expected])
+      expect(document.getElementById("entry-link")?.getAttribute("href")).toBe(expected)
+    }
+    dom.window.close()
+    // It is a redirect, not a copy of the page.
+    expect(stub).not.toContain("<p>First</p>")
+  })
+
+  it("does not rename a page when the page before it is pruned", async () => {
+    // Filenames must follow ids, not positions: pruning the first section
+    // promotes the second to first without changing what it is called.
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const pages: PageData[] = [{ pageId: "pg001", pageNumber: 1, text: "Page one" }]
+    const sectioning = (firstPruned: boolean) => ({
+      reasoning: "ok",
+      sections: [1, 2].map((n) => ({
+        sectionId: `pg001_sec00${n}`,
+        sectionType: "content",
+        nodes: [],
+        backgroundColor: "#fff",
+        textColor: "#000",
+        pageNumber: 1,
+        isPruned: n === 1 ? firstPruned : false,
+      })),
+    })
+    const rendering = {
+      sections: [0, 1].map((i) => ({
+        sectionIndex: i,
+        sectionType: "content",
+        reasoning: "",
+        html: `<p>Body ${i}</p>`,
+      })),
+    }
+
+    const hrefsFor = async (firstPruned: boolean) => {
+      fs.rmSync(path.join(bookDir, "adt"), { recursive: true, force: true })
+      const storage = createMockStorage(pages, {
+        "web-rendering": { pg001: rendering },
+        "page-sectioning": { pg001: sectioning(firstPruned) },
+      })
+      await packageAdtWeb(storage, {
+        bookDir,
+        label: "book",
+        language: "en",
+        outputLanguages: ["en"],
+        title: "Book Title",
+        webAssetsDir,
+      })
+      return (
+        JSON.parse(
+          fs.readFileSync(path.join(bookDir, "adt", "content", "pages.json"), "utf-8"),
+        ) as Array<{ section_id: string; href: string }>
+      ).map((p) => `${p.section_id}=${p.href}`)
+    }
+
+    expect(await hrefsFor(false)).toEqual([
+      "pg001_sec001=pg001_sec001.html",
+      "pg001_sec002=pg001_sec002.html",
+    ])
+    // sec002 is now the first page and keeps its own filename.
+    expect(await hrefsFor(true)).toEqual(["pg001_sec002=pg001_sec002.html"])
+  })
+
+  it("keys videos.json by sectionId, not by reading position", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const videoSrc = path.join(tmpDir, "sl-source.mp4")
+    fs.writeFileSync(videoSrc, "fake-video")
+
+    const pages: PageData[] = [{ pageId: "pg001", pageNumber: 1, text: "Page one" }]
+    const storage: Storage = {
+      ...createMockStorage(pages, {
+        "web-rendering": {
+          pg001: {
+            sections: [0, 1].map((i) => ({
+              sectionIndex: i,
+              sectionType: "content",
+              reasoning: "",
+              html: `<p>Body ${i}</p>`,
+            })),
+          },
+        },
+        "page-sectioning": {
+          pg001: {
+            reasoning: "ok",
+            sections: [1, 2].map((n) => ({
+              sectionId: `pg001_sec00${n}`,
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            })),
+          },
+        },
+      }),
+      // Assigned to the *second* page, so a positional key would be "video-2".
+      getSignLanguageVideos: () => [
+        {
+          videoId: "vid-1",
+          sectionId: "pg001_sec002",
+          originalName: "sl.mp4",
+          mimeType: "video/mp4",
+          sizeBytes: 10,
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+      getSignLanguageVideoPath: () => videoSrc,
+    }
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    const videosJson = JSON.parse(
+      fs.readFileSync(
+        path.join(bookDir, "adt", "content", "i18n", "en", "videos.json"),
+        "utf-8",
+      ),
+    ) as Record<string, string>
+
+    expect(videosJson).toEqual({ pg001_sec002: "sl_pg001_sec002.mp4" })
+    expect(Object.keys(videosJson).some((k) => k.startsWith("video-"))).toBe(false)
+  })
+
+  it("writes pages.json in exactly the resolver's reading order", async () => {
+    // The whole point of the shared resolver: packaging and the live preview
+    // read the same sequence, so they cannot drift. Anything that changes the
+    // resolver and not the packaged manifest (or vice versa) fails here.
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const pages: PageData[] = [
+      { pageId: "pg001", pageNumber: 1, text: "Page one" },
+      { pageId: "pg002", pageNumber: 2, text: "Page two" },
+    ]
+
+    const storage = createMockStorage(pages, {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>1a</p>" },
+            { sectionIndex: 1, sectionType: "content", reasoning: "", html: "<p>1b</p>" },
+          ],
+        },
+        pg002: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>2a</p>" },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+            // Pruned: present in the book, absent from the output.
+            {
+              sectionId: "pg001_sec002",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: true,
+            },
+          ],
+        },
+        pg002: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg002_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 2,
+              isPruned: false,
+            },
+          ],
+        },
+      },
+      "quiz-generation": {
+        book: {
+          generatedAt: "2026-01-01T00:00:00.000Z",
+          language: "en",
+          pagesPerQuiz: 3,
+          quizzes: [
+            {
+              quizId: "qz001",
+              quizIndex: 0,
+              afterPageId: "pg001",
+              pageIds: ["pg001"],
+              question: "What is 2+2?",
+              options: [
+                { text: "3", explanation: "" },
+                { text: "4", explanation: "" },
+                { text: "5", explanation: "" },
+              ],
+              answerIndex: 1,
+              reasoning: "...",
+            },
+          ],
+        },
+      },
+    })
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    const pagesJson = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "pages.json"), "utf-8"),
+    ) as Array<{ section_id: string; href: string }>
+
+    const resolved = resolveReadingOrder(storage)
+    expect(pagesJson.map((p) => p.section_id)).toEqual(resolved.items.map((i) => i.id))
+    // ...and that sequence is the expected one, so a resolver bug can't make
+    // both sides agree on something wrong.
+    expect(pagesJson.map((p) => p.section_id)).toEqual([
+      "pg001_sec001",
+      "qz001",
+      "pg002_sec001",
+    ])
+    // Every emitted page is a real file, named by id except the first.
+    expect(pagesJson.map((p) => p.href)).toEqual([
+      "pg001_sec001.html",
+      "qz001.html",
+      "pg002_sec001.html",
+    ])
+    for (const entry of pagesJson) {
+      expect(fs.existsSync(path.join(bookDir, "adt", entry.href))).toBe(true)
+    }
   })
 
   it("invokes apps/adt-runtime/build.config.mjs when only pre-built ESM exists", async () => {
@@ -1938,36 +2674,60 @@ describe("rewriteImageUrls", () => {
     expect(referencedImages).toContain("abc123")
   })
 
-  it("removes explicit width and height attributes", () => {
+  it("preserves explicit width and height attributes", () => {
     const html = `<img src="/api/books/mybook/images/abc123" width="1200" height="900">`
     const imageMap = new Map([["abc123", "photo.jpg"]])
     const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
-    expect(out).not.toMatch(/width="/)
-    expect(out).not.toMatch(/height="/)
+    expect(out).toContain('width="1200"')
+    expect(out).toContain('height="900"')
   })
 
-  it("adds max-width inline style to prevent overflow", () => {
+  it("does not inject inline layout styles", () => {
     const html = `<img src="/api/books/mybook/images/abc123">`
     const imageMap = new Map([["abc123", "photo.jpg"]])
     const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
-    expect(out).toContain("max-width: 100%")
-    expect(out).toContain("height: auto")
+    expect(out).not.toContain("style=")
   })
 
-  it("preserves existing inline styles when adding max-width", () => {
+  it("leaves a full-bleed background image to its own classes", () => {
+    const html = `<img src="/api/books/mybook/images/abc123" class="absolute inset-0 z-0 h-full w-full object-cover">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
+    expect(out).toContain('src="images/photo.jpg"')
+    expect(out).not.toContain("height: auto")
+    expect(out).not.toContain("max-width: 100%")
+  })
+
+  it("leaves ordinary in-flow image layout to the generated markup and base CSS", () => {
+    const html = `<img src="/api/books/mybook/images/abc123" class="rounded-lg shadow">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
+    expect(out).toContain('class="rounded-lg shadow"')
+    expect(out).not.toContain("style=")
+  })
+
+  it("preserves existing inline styles without adding layout declarations", () => {
     const html = `<img src="/api/books/mybook/images/abc123" style="border: 1px solid red;">`
     const imageMap = new Map([["abc123", "photo.jpg"]])
     const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
-    expect(out).toContain("border: 1px solid red")
-    expect(out).toContain("max-width: 100%")
+    expect(out).toContain('style="border: 1px solid red;"')
+    expect(out).not.toContain("max-width")
   })
 
-  it("does not duplicate max-width if style already contains it", () => {
+  it("preserves an existing max-width declaration exactly once", () => {
     const html = `<img src="/api/books/mybook/images/abc123" style="max-width: 50%;">`
     const imageMap = new Map([["abc123", "photo.jpg"]])
     const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
     const matches = (out.match(/max-width/g) ?? []).length
     expect(matches).toBe(1)
+  })
+
+  it("does not override fixed or responsive image height utilities", () => {
+    const html = `<img src="/api/books/mybook/images/abc123" class="h-48 md:h-64 w-full object-cover">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
+    expect(out).toContain('class="h-48 md:h-64 w-full object-cover"')
+    expect(out).not.toContain("height: auto")
   })
 
   it("strips legacy section role attributes while rewriting HTML", () => {
@@ -2039,8 +2799,8 @@ describe("rewriteImageUrls", () => {
       ["logo2", ""],
     ])
     const { html: out } = rewriteImageUrls(html, "mybook", imageMap, altMap)
-    expect(out).toContain('data-id="logo1" src="images/logo1.png" style="max-width: 100%; height: auto;" alt="UNICEF logo with the words for every child."')
-    expect(out).toContain('data-id="logo2" src="images/logo2.png" style="max-width: 100%; height: auto;" alt=""')
+    expect(out).toContain('data-id="logo1" src="images/logo1.png" alt="UNICEF logo with the words for every child."')
+    expect(out).toContain('data-id="logo2" src="images/logo2.png" alt=""')
   })
 
   it("marks decorative images with empty alt, role and aria-hidden, ignoring any caption", () => {
@@ -2584,7 +3344,7 @@ describe("packageWebpub", () => {
     // Reading-order documents must not be duplicated into resources.
     const resourceHrefs = manifest.resources.map((r: { href: string }) => r.href)
     const readingOrderHrefs = manifest.readingOrder.map((r: { href: string }) => r.href)
-    expect(readingOrderHrefs).toContain("index.html")
+    expect(readingOrderHrefs).toContain("pg001_sec001.html")
     for (const href of readingOrderHrefs) {
       expect(resourceHrefs).not.toContain(href)
     }
@@ -2602,10 +3362,13 @@ describe("packageWebpub", () => {
       webAssetsDir,
     })
 
-    const html = fs.readFileSync(path.join(bookDir, "webpub", "index.html"), "utf-8")
+    const html = readFirstPage(path.join(bookDir, "webpub"))
     expect(html).toContain("columns: auto !important")
     expect(html).toContain("flex-direction: column !important")
     expect(html).toContain("max-width: 100% !important")
+    expect(html).toContain("@media (max-width: 1023px)")
+    const forcedColumn = html.slice(html.indexOf("@media (max-width: 1023px)"))
+    expect(forcedColumn).toContain("flex-direction: column !important")
     // The glossref affordance is EPUB-only; webpub must not carry it.
     expect(html).not.toContain(".glossref")
   })
@@ -2635,7 +3398,7 @@ describe("packageWebpub", () => {
     expect(manifest.metadata.publisher).toBe("Publisher")
     expect(manifest.readingOrder).toHaveLength(1)
     expect(manifest.readingOrder[0].type).toBe("text/html")
-    expect(manifest.readingOrder[0].href).toBe("index.html")
+    expect(manifest.readingOrder[0].href).toBe("pg001_sec001.html")
     expect(manifest.links[0]).toEqual({
       rel: "self",
       href: "manifest.json",
@@ -2684,8 +3447,8 @@ describe("packageWebpub", () => {
     const manifest = JSON.parse(
       fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
     )
-    expect(manifest.pageList).toEqual([{ href: "index.html", title: "1" }])
-    expect(manifest.landmarks).toContainEqual({ rel: "bodymatter", href: "index.html" })
+    expect(manifest.pageList).toEqual([{ href: "pg001_sec001.html", title: "1" }])
+    expect(manifest.landmarks).toContainEqual({ rel: "bodymatter", href: "pg001_sec001.html" })
   })
 
   it("emits schema.org accessibility metadata derived from features", async () => {
@@ -2757,7 +3520,7 @@ describe("packageWebpub", () => {
       expect(fs.existsSync(path.join(assetsDir, name))).toBe(false)
     }
 
-    const html = fs.readFileSync(path.join(webpubDir, "index.html"), "utf-8")
+    const html = readFirstPage(webpubDir)
     expect(html).not.toContain("base.bundle")
     expect(html).not.toContain("offline-preloader.js")
     expect(html).not.toContain("scorm.js")

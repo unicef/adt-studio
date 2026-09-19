@@ -12,6 +12,7 @@ import type { ElementType, ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import type { UpdateStatus } from "@/hooks/use-update-status"
 import { cn, formatBytes } from "@/lib/utils"
+import { ReleaseCoverBanner } from "./ReleaseCoverBanner"
 import { formatVersion, getReleaseChannel } from "./release-banner-utils"
 import { IndeterminateBar, ProgressBar } from "./UpdateProgress"
 import { UpdateWhatsNew } from "./UpdateWhatsNew"
@@ -39,6 +40,7 @@ export interface UpdateStateSurfaceProps {
   onInstallLater?: () => void
   onClose?: () => void
   onShowWhatsNew?: () => void
+  onSeeDetails?: () => void
   TitleTag?: ElementType
 }
 
@@ -52,6 +54,7 @@ export function UpdateStateSurface({
   onInstallLater,
   onClose,
   onShowWhatsNew,
+  onSeeDetails,
   TitleTag = "h2",
 }: UpdateStateSurfaceProps) {
   const noop = () => {}
@@ -65,7 +68,13 @@ export function UpdateStateSurface({
     onInstallLater: onInstallLater ?? noop,
     onClose: onClose ?? noop,
     onShowWhatsNew,
+    onSeeDetails,
   })
+
+  const banner =
+    status.phase === "available" || status.phase === "downloaded" ? (
+      <ReleaseCoverBanner version={status.version} notes={status.releaseNotes} />
+    ) : null
 
   if (view.loading) {
     return (
@@ -87,19 +96,41 @@ export function UpdateStateSurface({
   }
 
   return (
-    <div className="flex h-[20rem] max-h-[calc(100vh-2rem)] flex-col">
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 py-5 text-center">
-        <StateIcon tone={view.tone}>{view.icon}</StateIcon>
-        <TitleTag className="text-balance text-lg font-semibold">
-          {view.title}
-        </TitleTag>
-        {view.subtitle && (
-          <p className="max-w-[42ch] text-pretty text-sm text-muted-foreground">
-            {view.subtitle}
-          </p>
-        )}
-        {view.body && <div className="mt-2 w-full">{view.body}</div>}
-      </div>
+    <div
+      className={cn(
+        "flex max-h-[calc(100vh-2rem)] flex-col",
+        banner ? null : "h-[20rem]",
+      )}
+    >
+      {banner ? (
+        <>
+          <div className="shrink-0 px-6 pt-6 text-center">
+            <TitleTag className="text-balance text-lg font-semibold">
+              {view.title}
+            </TitleTag>
+            {view.subtitle && (
+              <p className="mx-auto mt-1 max-w-[42ch] text-pretty text-sm text-muted-foreground">
+                {view.subtitle}
+              </p>
+            )}
+          </div>
+          <div className="shrink-0 px-4 py-4">{banner}</div>
+          {view.body && <div className="shrink-0 px-6 pb-2">{view.body}</div>}
+        </>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 py-5 text-center">
+          <StateIcon tone={view.tone}>{view.icon}</StateIcon>
+          <TitleTag className="text-balance text-lg font-semibold">
+            {view.title}
+          </TitleTag>
+          {view.subtitle && (
+            <p className="max-w-[42ch] text-pretty text-sm text-muted-foreground">
+              {view.subtitle}
+            </p>
+          )}
+          {view.body && <div className="mt-2 w-full">{view.body}</div>}
+        </div>
+      )}
 
       {view.footerStart ? (
         <div className="flex min-h-[4.5rem] shrink-0 flex-col gap-3 border-t px-6 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -129,6 +160,7 @@ interface BuildViewArgs {
   onInstallLater: () => void
   onClose: () => void
   onShowWhatsNew?: () => void
+  onSeeDetails?: () => void
 }
 
 function buildView({
@@ -141,6 +173,7 @@ function buildView({
   onInstallLater,
   onClose,
   onShowWhatsNew,
+  onSeeDetails,
 }: BuildViewArgs): DialogView {
   const current = currentVersion ?? undefined
 
@@ -171,6 +204,16 @@ function buildView({
           notes={status.releaseNotes}
         />
       ),
+      footerStart:
+        onSeeDetails && status.releaseNotes?.trim() ? (
+          <button
+            type="button"
+            onClick={onSeeDetails}
+            className="rounded-sm font-medium text-primary underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Trans>See release notes</Trans>
+          </button>
+        ) : undefined,
       actions: (
         <>
           <Button variant="outline" onClick={onClose}>

@@ -10,7 +10,7 @@ interface AddImageDialogProps {
   bookLabel: string
   onSelectExisting: (imageIds: string[]) => void
   onUpload: (file: File) => void
-  onGenerate: (prompt: string) => void
+  onGenerate?: (prompt: string) => void
   onClose: () => void
 }
 
@@ -73,7 +73,7 @@ export function AddImageDialog({
   }
 
   const handleGenerateSubmit = () => {
-    if (!prompt.trim()) return
+    if (!prompt.trim() || !onGenerate) return
     onGenerate(prompt.trim())
   }
 
@@ -133,12 +133,14 @@ export function AddImageDialog({
                 description={t`Upload a new image file from your computer`}
                 onClick={() => setStep("upload")}
               />
-              <MethodCard
-                icon={<Sparkles className="h-4 w-4" />}
-                title={t`Generate with AI`}
-                description={t`Create a new image from a text description`}
-                onClick={() => setStep("generate")}
-              />
+              {onGenerate && (
+                <MethodCard
+                  icon={<Sparkles className="h-4 w-4" />}
+                  title={t`Generate with AI`}
+                  description={t`Create a new image from a text description`}
+                  onClick={() => setStep("generate")}
+                />
+              )}
             </div>
           )}
 

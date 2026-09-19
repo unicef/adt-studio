@@ -1,10 +1,11 @@
 import path from "node:path"
 import fs from "node:fs"
 import { Hono } from "hono"
+import yaml from "js-yaml"
+import { AppConfig, DEFAULT_BASE_PROMPT_MODEL_ID, safeParseModelId } from "@adt/types"
 import { resolvePromptModelId } from "@adt/llm"
 
 const VALID_NAME = /^[a-zA-Z0-9_]+$/
-const VALID_MODEL_ID = /^[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z0-9][a-zA-Z0-9_.-]{0,159}$/
 const PROMPT_VERSIONS_DIR = ".versions"
 const PROMPT_MODELS_FILE = ".models.json"
 const PROMPT_CURRENT_VERSION_FILE = ".current"
@@ -30,9 +31,19 @@ interface PromptVersionSummary {
 export function createPromptRoutes(
   promptsDir: string,
   booksDir: string,
+  configPath?: string,
 ) {
   const app = new Hono()
   const templatesDir = path.join(path.dirname(promptsDir), "templates")
+  const basePromptModelId = (): string => {
+    if (!configPath || !fs.existsSync(configPath)) return DEFAULT_BASE_PROMPT_MODEL_ID
+    try {
+      const parsed = AppConfig.parse(yaml.load(fs.readFileSync(configPath, "utf-8")))
+      return parsed.base_prompt_model ?? DEFAULT_BASE_PROMPT_MODEL_ID
+    } catch {
+      return DEFAULT_BASE_PROMPT_MODEL_ID
+    }
+  }
 
   // GET /prompt-models - list additional globally configured prompt model IDs
   app.get("/prompt-models", (c) => {
@@ -54,7 +65,7 @@ export function createPromptRoutes(
       }
       const modelId = normalizePromptModelId(value)
       if (!modelId) continue
-      if (!VALID_MODEL_ID.test(modelId)) {
+      if (!isWellFormedPromptModelId(modelId)) {
         return c.json({ error: "Invalid model id" }, 400)
       }
       const folderName = promptModelFolderName(modelId)
@@ -81,7 +92,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -103,7 +114,7 @@ export function createPromptRoutes(
     if (!VALID_VERSION_FILE.test(version)) {
       return c.json({ error: "Invalid prompt version" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -134,7 +145,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -153,7 +164,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -182,7 +193,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -212,7 +223,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -243,7 +254,7 @@ export function createPromptRoutes(
     if (!VALID_VERSION_FILE.test(version)) {
       return c.json({ error: "Invalid prompt version" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -275,7 +286,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -295,7 +306,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -338,7 +349,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -544,9 +555,19 @@ function normalizePromptModelId(value: string): string {
   return value.trim().toLowerCase()
 }
 
+/**
+ * An explicit `provider:model` pair in the canonical grammar from @adt/types —
+ * which admits hyphenated provider ids like `claude-agent`, unlike the private
+ * regex this route used to carry.
+ */
+function isWellFormedPromptModelId(modelId: string): boolean {
+  const parsed = safeParseModelId(modelId)
+  return parsed.ok && !parsed.value.usedLegacyDefault
+}
+
 function isValidPromptModelId(promptsDir: string, modelId: string | null): boolean {
   if (modelId == null) return true
-  if (!VALID_MODEL_ID.test(modelId)) return false
+  if (!isWellFormedPromptModelId(modelId)) return false
 
   const folderName = promptModelFolderName(modelId)
   const builtInOwner = BUILT_IN_PROMPT_MODEL_OWNERS.get(folderName)
@@ -576,7 +597,7 @@ function readPromptModels(promptsDir: string): string[] {
     for (const value of data.models) {
       if (typeof value !== "string") continue
       const modelId = normalizePromptModelId(value)
-      if (!modelId || !VALID_MODEL_ID.test(modelId) || models.includes(modelId)) continue
+      if (!modelId || !isWellFormedPromptModelId(modelId) || models.includes(modelId)) continue
       const folderName = promptModelFolderName(modelId)
       const existingModel = modelFolders.get(folderName)
       if (existingModel && existingModel !== modelId) continue

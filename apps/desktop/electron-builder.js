@@ -136,8 +136,8 @@ const config = {
       height: 480,
     },
     contents: [
-      { x: 190, y: 290, type: "file" },
-      { x: 530, y: 290, type: "link", path: "/Applications" },
+      { x: 173, y: 321, type: "file" },
+      { x: 562, y: 321, type: "link", path: "/Applications" },
     ],
   },
 

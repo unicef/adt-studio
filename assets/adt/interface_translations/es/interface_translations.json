@@ -3,6 +3,7 @@
     "sidebar-title": "Menú de accesibilidad",
     "language-label": "Idioma",
     "tts-label": "Texto a voz",
+    "narrator-voice-label": "Voz del narrador",
     "eli5-label": "Explícame",
     "eli5-content-lang": "Toca cualquier cosa para que me la explique.",
     "submit-text": "Enviar",

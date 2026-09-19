@@ -13,7 +13,9 @@ import {
   demoteFirstHeadingIfPromoted,
   promoteFirstHeadingToH1,
   reconstructHtmlWithEdit,
+  removeElementFromSourceHtml,
   serializeContentWrapper,
+  usesViewportHeight,
 } from "./iframe-html"
 import {
   type ComputedTypographyStyles,
@@ -87,6 +89,13 @@ export interface BookPreviewFrameHandle {
    *  element by data-id. Returns updated full HTML, or null. Used for styling
    *  that must win over class/cascade rules (e.g. per-element font-family). */
   setElementStyleProp: (dataId: string, property: string, value: string) => string | null
+  /** Resolve an iframe element by data-id, remove its counterpart from the
+   *  unsanitized source HTML, and mirror the removal in the live DOM. Returns
+   *  the updated source HTML plus the real (non-transient) data-ids found in
+   *  the removed subtree, or null when the element cannot be resolved safely.
+   *  Needed for containers whose transient `_el#` id exists only in the live
+   *  iframe. The reported ids let the caller drop matching sectioning leaves. */
+  removeElement: (dataId: string) => { html: string; removedDataIds: string[] } | null
   /** Re-inject the current `html` prop into the iframe, discarding any in-iframe
    *  DOM mutations (e.g. live `setElementClasses` edits). Used when the parent
    *  wants to revert to the saved state without changing the html prop. */
@@ -128,6 +137,9 @@ export interface BookPreviewFrameProps {
   /** Reports the iframe's current on-screen width in CSS pixels (renderWidth × scale).
    *  Updates whenever the canvas resizes — useful for showing the active viewport size. */
   onVisibleWidthChange?: (width: number) => void
+  /** Reports the CSS transform applied to the authored page. Unlike visible
+   *  width, this remains accurate for fixed-layout pages with custom dimensions. */
+  onScaleChange?: (scale: number) => void
   /** Link mode — clicks resolve to an activity anchor and are reported via
    *  `onLinkSelect` instead of opening the inline editor. Mutually exclusive
    *  with `editable`; the page becomes a click-to-locate map. */
@@ -187,6 +199,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   maxVisibleHeight,
   deviceView,
   onVisibleWidthChange,
+  onScaleChange,
   linkMode = false,
   linkedAnchor,
   previewAnchor,
@@ -277,6 +290,18 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       el.setAttribute("data-adt-selected", "true")
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
+    removeElement: (dataId: string): { html: string; removedDataIds: string[] } | null => {
+      const doc = iframeRef.current?.contentDocument
+      if (!doc) return null
+      const el = doc.querySelector(`[data-id="${CSS.escape(dataId)}"]`) as HTMLElement | null
+      if (!el) return null
+      const liveRoot = doc.getElementById("content") ?? doc.body
+      const removed = removeElementFromSourceHtml(sourceHtmlRef.current, liveRoot, el)
+      if (!removed) return null
+      el.remove()
+      stripTransientAttributes(doc)
+      return removed
+    },
     resetContent: () => {
       if (readyRef.current) injectContent(latestHtmlRef.current)
     },
@@ -351,6 +376,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   const [availableWidth, setAvailableWidth] = useState(DEFAULT_RENDER_WIDTH)
   const readyRef = useRef(false)
   const latestHtmlRef = useRef("")
+  const sourceHtmlRef = useRef("")
   const sanitizedHtmlRef = useRef("")
   const originalTextsRef = useRef<Record<string, string>>({})
   const measureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -358,6 +384,10 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   const sanitizedHtml = useMemo(
     () => DOMPurify.sanitize(html, { FORBID_ATTR: ["contenteditable"] }),
     [html],
+  )
+  const viewportSizedContent = useMemo(
+    () => usesViewportHeight(sanitizedHtml),
+    [sanitizedHtml],
   )
   // Convert LaTeX to MathML for display via the API — the underlying data stays as LaTeX.
   // Start with sanitized HTML immediately, then update when the API responds.
@@ -381,6 +411,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     return () => { cancelled = true }
   }, [sanitizedHtml, assetsPrefix, thumbnail])
   latestHtmlRef.current = displayHtml
+  sourceHtmlRef.current = html
   sanitizedHtmlRef.current = sanitizedHtml
 
   // Build a map of data-id → original LaTeX innerHTML so the iframe can swap
@@ -682,40 +713,18 @@ ${autoFitScript}
     stamp(linkedKey, "data-adt-linked")
   }, [linkedKey, previewKey, displayHtml, iframeReady])
 
-  // Suppress the iframe's own scrollbar in desktop view (where the iframe is
-  // sized to its content and the host container provides the scroll). Phone
-  // and tablet frames keep the default since their fixed-height chrome relies
-  // on internal scrolling.
+  // Suppress the iframe's own scrollbar only when desktop content is sized to
+  // its measured height. Viewport-dependent pages keep a stable viewport and
+  // scroll internally when min-height content grows beyond it, matching the
+  // packaged reader instead of clipping the overflow.
   useEffect(() => {
     const doc = iframeRef.current?.contentDocument
     if (!doc) return
     const desktop = !deviceView || deviceView === "desktop"
-    const value = desktop ? "hidden" : ""
+    const value = desktop && !viewportSizedContent ? "hidden" : "auto"
     if (doc.documentElement) doc.documentElement.style.overflow = value
     if (doc.body) doc.body.style.overflow = value
-  }, [deviceView, iframeReady])
-
-  // Fixed-layout pages overlay positioned text on top of full-page images
-  // via DOM order. The editable-mode `img[data-id] { z-index: 1 }` rule (used
-  // for image-selection outlines in reflowable books) would lift those images
-  // above the text and bury it — neutralise the z-index for fixed-layout pages.
-  useEffect(() => {
-    const doc = iframeRef.current?.contentDocument
-    if (!doc?.head) return
-    const styleId = "adt-fixed-layout-styles"
-    let styleEl = doc.getElementById(styleId) as HTMLStyleElement | null
-    if (!fixedLayoutSize) {
-      styleEl?.remove()
-      return
-    }
-    if (!styleEl) {
-      styleEl = doc.createElement("style")
-      styleEl.id = styleId
-      doc.head.appendChild(styleEl)
-    }
-    // eslint-disable-next-line lingui/no-unlocalized-strings
-    styleEl.textContent = `body[data-editable="true"] img[data-id] { z-index: auto; }`
-  }, [fixedLayoutSize, iframeReady])
+  }, [deviceView, iframeReady, viewportSizedContent])
 
   // Inject/update the attached book fonts (Google <link> + uploaded @font-face)
   // into the live iframe head. Done here rather than in `srcdoc` so attaching a
@@ -801,7 +810,6 @@ ${autoFitScript}
     // eslint-disable-next-line lingui/no-unlocalized-strings
     styleEl.textContent = `
 ${selectors} {
-  position: relative;
   box-shadow: -3px 0 0 0 rgba(245, 158, 11, 0.6);
   transition: box-shadow 0.3s;
 }
@@ -870,7 +878,7 @@ ${selectors}:hover {
         ? 1
         : targetVisibleWidth / baseWidth
     const naturalHeight =
-      deviceView === "desktop" || deviceView === undefined
+      (deviceView === "desktop" || deviceView === undefined) && !viewportSizedContent
         ? contentHeight
         : frame.chromeHeight
     const heightScale =
@@ -887,6 +895,7 @@ ${selectors}:hover {
     contentHeight,
     frame.chromeHeight,
     maxVisibleHeight,
+    viewportSizedContent,
   ])
 
   // Ref callback so the iframe re-initializes whenever the conditional
@@ -933,6 +942,9 @@ ${selectors}:hover {
   useEffect(() => {
     onVisibleWidthChange?.(visibleWidth)
   }, [visibleWidth, onVisibleWidthChange])
+  useEffect(() => {
+    onScaleChange?.(scale)
+  }, [scale, onScaleChange])
 
   // Keep onReady in a ref so the reveal effect can fire it without re-running
   // (and re-POSTing the CSS recompile) on every render.
@@ -974,11 +986,12 @@ ${selectors}:hover {
   // `min-h-screen flex items-center` produces when a section is shorter than
   // the canvas.
   const isDesktop = !deviceView || deviceView === "desktop"
+  const contentTall = isDesktop && !viewportSizedContent
   const iframeWidth = fixedLayoutSize?.width ?? frame.screenWidth
-  const iframeHeight = fixedLayoutSize?.height ?? (isDesktop ? contentHeight : frame.screenHeight)
+  const iframeHeight = fixedLayoutSize?.height ?? (contentTall ? contentHeight : frame.screenHeight)
   const visibleHeight = fixedLayoutSize
     ? fixedLayoutSize.height * scale
-    : isDesktop
+    : contentTall
       ? contentHeight * scale
       : frame.chromeHeight * scale
 

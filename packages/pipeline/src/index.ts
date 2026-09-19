@@ -4,6 +4,7 @@ export {
   createConsoleProgress,
 } from "./progress.js"
 export { processWithConcurrency, createSemaphore, type Semaphore } from "./concurrency.js"
+export { collectSpentQuizIds, assertQuizGenerationCapacity, saveQuizOutput } from "./quiz-ids.js"
 export {
   extractPDF,
   resolveFigureExtractionMode,
@@ -232,19 +233,28 @@ export {
 } from "./easy-read.js"
 export {
   resolveVoice,
+  resolveVoiceForSlot,
   resolveInstructions,
   resolveProviderForLanguage,
   resolveSpeechModel,
+  resolveSpeechVoice,
+  overlayPrimaryVoices,
+  resolvedVoiceLabel,
+  resolveNarratorLabel,
   resolveSpeechFormat,
   resolveGeminiTtsRateLimit,
   getDocumentedGeminiTtsRpm,
   type ResolvedGeminiTtsRateLimit,
+  type ResolvedVoice,
   isSpeakableText,
   stripEmojis,
   loadVoicesConfig,
   loadSpeechInstructions,
   computeSpeechCacheKey,
   findAdjacentSpeechText,
+  buildTtsLogEntry,
+  buildWordTimestampsLogEntry,
+  NO_SPEAKABLE_TEXT_REASON,
   elevenLabsVoiceSettingsFromConfig,
   buildElevenLabsTtsLogParams,
   classifyElevenLabsTtsError,
@@ -344,6 +354,7 @@ export {
   packageAdtWeb,
   computePackagingInputHash,
   type PackageAdtWebOptions,
+  type PackageAdtWebResult,
   type ComputePackagingInputHashOptions,
   renderPageHtml,
   resolveReflowableFontChain,
@@ -405,6 +416,26 @@ export {
   FIXED_LAYOUT_SECTIONING_NODE,
   PAGE_SECTIONING_NODE,
 } from "./render-sectioning.js"
+export {
+  createSectionIdFactory,
+  collectSpentSectionIds,
+  retireSectionIds,
+  unassignSignLanguageVideos,
+  SectionIdExhaustedError,
+  NOTHING_RETIRED,
+  type SectionIdRetirementResult,
+  type DetachedRecording,
+} from "./section-ids.js"
+export {
+  resolveReadingOrder,
+  defaultReadingOrder,
+  toPageEntry,
+  readingOrderHref,
+  type ResolvedItem,
+  type ResolvedReadingOrder,
+  type PageEntry,
+} from "./reading-order.js"
+export { orderTocEntries } from "./toc-reading-order.js"
 export {
   extractEditableActivity,
   supportsEditableActivity,

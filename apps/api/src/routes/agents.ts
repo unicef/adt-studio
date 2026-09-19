@@ -5,31 +5,9 @@ import { parseBookLabel } from "@adt/types"
 import {
   layoutMirrorService,
   generateActivityService,
-  type AgentApiKeys,
 } from "../services/agents-service.js"
+import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import type { TaskService } from "../services/task-service.js"
-
-/**
- * Read the per-provider API keys from the request headers. Mirrors the header
- * convention used by the stages/quizzes routes (X-OpenAI-Key,
- * X-Anthropic-API-Key, X-Google-API-Key). At least one key must be present;
- * which one is required depends on the book's configured `agents.model`, which
- * the service resolves — so we only enforce "at least one" here.
- */
-function readAgentKeys(c: Context): AgentApiKeys {
-  const keys: AgentApiKeys = {
-    openaiApiKey: c.req.header("X-OpenAI-Key") || undefined,
-    anthropicApiKey: c.req.header("X-Anthropic-API-Key") || undefined,
-    googleApiKey: c.req.header("X-Google-API-Key") || undefined,
-  }
-  if (!keys.openaiApiKey && !keys.anthropicApiKey && !keys.googleApiKey) {
-    throw new HTTPException(400, {
-      message:
-        "Missing API key. Set X-OpenAI-Key, X-Anthropic-API-Key, or X-Google-API-Key to match the book's configured agents.model.",
-    })
-  }
-  return keys
-}
 
 interface LayoutMirrorRequestBody {
   source?: { pageId?: unknown; sectionIndex?: unknown }
@@ -132,7 +110,7 @@ export function createAgentRoutes(
     const { label } = c.req.param()
     const safeLabel = parseBookLabel(label)
 
-    const apiKeys = readAgentKeys(c)
+    const credentials = readProviderCredentials(c)
 
     const body = await readJsonBody<LayoutMirrorRequestBody>(c)
     if (!body.source) {
@@ -166,7 +144,7 @@ export function createAgentRoutes(
         source,
         targets,
         instruction,
-        ...apiKeys,
+        credentials,
         onProgress: emitProgress
           ? (message: string) => emitProgress(message)
           : undefined,
@@ -205,7 +183,7 @@ export function createAgentRoutes(
     const { label } = c.req.param()
     const safeLabel = parseBookLabel(label)
 
-    const apiKeys = readAgentKeys(c)
+    const credentials = readProviderCredentials(c)
 
     const body = await readJsonBody<GenerateActivityRequestBody>(c)
     if (typeof body.anchorPageId !== "string" || !body.anchorPageId) {
@@ -237,7 +215,7 @@ export function createAgentRoutes(
         description,
         inclusiveDesign,
         mode,
-        ...apiKeys,
+        credentials,
         onProgress: emitProgress
           ? (message: string) => emitProgress(message)
           : undefined,

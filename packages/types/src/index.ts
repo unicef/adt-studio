@@ -67,6 +67,7 @@ export {
   type StageDef,
   PIPELINE,
   STAGE_ORDER,
+  CORE_STAGE_ORDER,
   STEP_TO_STAGE,
   STAGE_BY_NAME,
   ALL_STEP_NAMES,
@@ -125,10 +126,13 @@ export {
   DEFAULT_LLM_MODEL_ID,
   DEFAULT_IMAGE_GENERATION_MODEL_ID,
   DEFAULT_OPENAI_TTS_MODEL_ID,
+  DEFAULT_BASE_PROMPT_MODEL_ID,
   DEFAULT_ELEVENLABS_TTS_MODEL_ID,
   DEFAULT_ELEVENLABS_VOICE_ID,
   DEFAULT_ELEVENLABS_VOICE_SETTINGS,
   ELEVENLABS_SHIPPED_VOICE_NAMES,
+  OPENAI_TTS_VOICES,
+  GEMINI_TTS_VOICES,
   LLMModelId,
   SpeechGenerationModelId,
   DefaultModelConfig,
@@ -163,6 +167,10 @@ export {
   ImagePartBounds,
   SectionViewport,
   NodePlacement,
+  formatSectionId,
+  parseSectionId,
+  parseAnySectionId,
+  MAX_SECTION_SEQ,
 } from "./page-sectioning.js"
 
 export {
@@ -235,6 +243,7 @@ export {
 } from "./book-outline.js"
 
 export { ExtractionWarning } from "./extraction-warning.js"
+export { PackagingWarning } from "./packaging-warning.js"
 
 export {
   FIXED_LAYOUT_MAX_SCALE,
@@ -290,6 +299,16 @@ export {
   Quiz,
   QuizGenerationOutput,
   quizLLMSchema,
+  formatQuizId,
+  parseQuizId,
+  resolveQuizId,
+  withResolvedQuizIds,
+  ensureQuizIds,
+  QuizIdExhaustedError,
+  QuizId,
+  QuizIdentityError,
+  MAX_QUIZ_SEQ,
+  assertQuizIdCapacity,
 } from "./quiz.js"
 
 export {
@@ -297,6 +316,9 @@ export {
   TextCatalogOutput,
   TextCatalogCategory,
   getTextCatalogCategory,
+  ANSWER_ID_SEPARATOR,
+  answerTextId,
+  sectionIdOfAnswerTextId,
 } from "./text-catalog.js"
 
 export {
@@ -319,16 +341,36 @@ export {
 export {
   TTSProviderConfig,
   TTSRateLimitConfig,
+  SpeechProvider,
+  SecondarySpeechVoiceConfig,
+  PrimarySpeechVoiceConfig,
+  PrimarySpeechVoicesConfig,
   SpeechConfig,
   isSpeechWordHighlightingEnabled,
   type TtsExclusionConfig,
   isTtsExcluded,
   SpeechFileEntry,
   SpeechFailedEntry,
+  resolveEntryVoiceSlot,
+  sortSpeechEntries,
   TTSOutput,
   WordTimestamp,
   WordTimestampEntry,
   WordTimestampOutput,
+  VOICE_SLOTS,
+  VoiceSlot,
+  DEFAULT_VOICE_SLOT,
+  SECONDARY_VOICE_SLOT_SUFFIX,
+  voiceSlotEntryId,
+  parseVoiceSlotEntryId,
+  VoiceSlotConfig,
+  VoiceSlots,
+  VoiceMapEntry,
+  VoiceLanguageMap,
+  VoicesConfig,
+  type ParsedVoicesConfig,
+  parseVoicesConfigEntries,
+  normalizeVoiceMapEntry,
 } from "./speech.js"
 
 export {
@@ -340,6 +382,13 @@ export {
   TocGenerationOutput,
   tocLLMSchema,
 } from "./toc.js"
+
+export {
+  READING_ORDER_NODE,
+  READING_ORDER_ITEM_ID,
+  ReadingOrderItem,
+  ReadingOrderOutput,
+} from "./reading-order.js"
 
 export {
   AccessibilityNodeResult,
@@ -434,3 +483,57 @@ export {
   type AccessibilityAuditIpcUtilityToMain,
   type AccessibilityAuditIpcReply,
 } from "./accessibility-audit-ipc.js"
+
+export {
+  PROVIDER_ID_PATTERN,
+  MODEL_PART_PATTERN,
+  LEGACY_UNPREFIXED_PROVIDER_ID,
+  ProviderId,
+  AI_MODALITIES,
+  AiModality,
+  STRUCTURED_OUTPUT_STRATEGIES,
+  StructuredOutputStrategy,
+  type ParsedModelId,
+  type ParseModelIdResult,
+  safeParseModelId,
+  parseModelId,
+  isValidModelId,
+  normalizeModelId,
+  QualifiedModelId,
+  sanitizeModelIdForPath,
+} from "./model-id.js"
+
+export {
+  SUPPORTED_PROVIDER_LOCALES,
+  SupportedProviderLocale,
+  LocalizedText,
+  CREDENTIAL_FIELD_KINDS,
+  CredentialFieldKind,
+  FORBIDDEN_CREDENTIAL_HEADERS,
+  PROVIDER_HEADER_NAMESPACE,
+  CredentialFieldOption,
+  CredentialFieldManifest,
+  StructuredTextCapabilities,
+  AgentCapabilities,
+  ImageCapabilities,
+  TtsCapabilities,
+  SttCapabilities,
+  PublicProviderCapabilities,
+  ProviderDefaultModels,
+  ProviderManifest,
+  ProviderFieldStatus,
+  ProviderDescriptor,
+  ProvidersResponse,
+  AI_PROVIDER_ERROR_CODES,
+  AiProviderErrorCode,
+  DiscoveredModel,
+  MODEL_DISCOVERY_ERROR_CODES,
+  ModelDiscoveryErrorCode,
+  ModelDiscoveryResponse,
+  PROVIDER_HEALTH_CODES,
+  ProviderHealthCode,
+  PROVIDER_CLI_LOGIN_STATES,
+  ProviderCliLoginState,
+  ProviderCliLoginStatus,
+  ProviderHealthResponse,
+} from "./ai-provider.js"

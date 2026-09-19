@@ -31,7 +31,7 @@ function IdleIllustration() {
   return (
     <div className="flex h-full min-h-[280px] flex-col items-center justify-center gap-6 px-6 py-8">
       <div className="flex gap-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-border bg-white text-muted-foreground">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-border bg-card text-muted-foreground">
           <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path
               d="M4 7h16M4 12h10M4 17h14"
@@ -41,7 +41,7 @@ function IdleIllustration() {
             />
           </svg>
         </div>
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-border bg-white text-muted-foreground">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-border bg-card text-muted-foreground">
           <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden>
             <rect x="3" y="5" width="8" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" />
             <rect x="13" y="11" width="8" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" />
@@ -70,7 +70,7 @@ function ActivitiesIllustration() {
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           <Trans>PDF</Trans>
         </span>
-        <div className="w-[138px] rounded-xl border border-border bg-white p-3 shadow-sm">
+        <div className="w-[138px] rounded-xl border border-border bg-card p-3 shadow-sm">
           <div className="mb-2.5 h-2 w-20 rounded bg-muted-foreground/20" />
           <div className="mb-1.5 h-1.5 w-full rounded bg-muted-foreground/15" />
           <div className="mb-2.5 h-1.5 w-4/5 rounded bg-muted-foreground/15" />
@@ -104,7 +104,7 @@ function ActivitiesIllustration() {
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           <Trans>Interactive</Trans>
         </span>
-        <div className="w-[138px] rounded-xl border border-[#2b7fff]/30 bg-white p-3 shadow-md ring-1 ring-[#2b7fff]/10">
+        <div className="w-[138px] rounded-xl border border-brand-600/30 bg-card p-3 shadow-md ring-1 ring-brand-600/10">
           <div className="mb-2.5 h-2 w-20 rounded bg-muted-foreground/20" />
           <div className="mb-1.5 h-1.5 w-full rounded bg-muted-foreground/15" />
           <div className="mb-2.5 h-1.5 w-4/5 rounded bg-muted-foreground/15" />
@@ -114,8 +114,8 @@ function ActivitiesIllustration() {
               { w: "w-2/3", checked: true },
               { w: "w-4/5", checked: false },
             ].map(({ w, checked }, i) => (
-              <div key={i} className={`flex items-center gap-1.5 rounded-md px-1 py-0.5 ${checked ? "bg-[#2b7fff]/8" : ""}`}>
-                <div className={`h-3 w-3 shrink-0 rounded-full border ${checked ? "border-[#2b7fff] bg-[#2b7fff]" : "border-muted-foreground/40 bg-white"} flex items-center justify-center`}>
+              <div key={i} className={`flex items-center gap-1.5 rounded-md px-1 py-0.5 ${checked ? "bg-brand-600/8" : ""}`}>
+                <div className={`h-3 w-3 shrink-0 rounded-full border ${checked ? "border-brand-600 bg-brand-600" : "border-muted-foreground/40 bg-white"} flex items-center justify-center`}>
                   {checked && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                 </div>
                 <div className={`h-1.5 rounded bg-muted-foreground/15 ${w}`} />
@@ -125,7 +125,7 @@ function ActivitiesIllustration() {
           <div className="mt-3 mb-1 h-2 w-16 rounded bg-muted-foreground/20" />
           <div className="flex items-center gap-1">
             <div className="h-1.5 w-12 rounded bg-muted-foreground/15" />
-            <div className="h-4 w-14 rounded border border-[#2b7fff]/40 bg-[#2b7fff]/5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]" />
+            <div className="h-4 w-14 rounded border border-brand-600/40 bg-brand-600/5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]" />
             <div className="h-1.5 w-8 rounded bg-muted-foreground/15" />
           </div>
         </div>
@@ -149,12 +149,12 @@ function FigureExtractionIllustration() {
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           <Trans>Page</Trans>
         </span>
-        <div className="w-[126px] rounded-xl border border-border bg-white p-3 shadow-sm">
+        <div className="w-[126px] rounded-xl border border-border bg-card p-3 shadow-sm">
           <div className="mb-1.5 h-1.5 w-full rounded bg-muted-foreground/20" />
           <div className="mb-2.5 h-1.5 w-4/5 rounded bg-muted-foreground/15" />
 
           {/* Embedded complex figure: detected, dashed violet outline */}
-          <div className="relative mb-2.5 rounded-md border-2 border-dashed border-violet-400/60 bg-violet-50/30 px-2 pb-1.5 pt-2">
+          <div className="relative mb-2.5 rounded-md border-2 border-dashed border-violet-400/60 bg-violet-500/10 px-2 pb-1.5 pt-2">
             <div className="absolute -right-2 -top-2 rounded-full bg-violet-500 px-1.5 py-px shadow-sm">
               <span className="text-[6px] font-bold leading-none text-white">
                 <Trans>figure</Trans>
@@ -199,7 +199,7 @@ function FigureExtractionIllustration() {
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           <Trans>Asset</Trans>
         </span>
-        <div className="rounded-xl border-2 border-emerald-400/50 bg-white p-2.5 shadow-md ring-1 ring-emerald-400/20">
+        <div className="rounded-xl border-2 border-emerald-400/50 bg-card p-2.5 shadow-md ring-1 ring-emerald-400/20">
           {/* Same chart, clean and standalone */}
           <div className="flex items-end gap-1.5">
             <div className="flex flex-1 flex-col items-center gap-0.5">
@@ -239,8 +239,8 @@ function CroppingIllustration() {
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           <Trans>Before</Trans>
         </span>
-        <div className="relative rounded-xl border-2 border-dashed border-amber-300/70 bg-amber-50/40 p-4 transition-shadow">
-          <div className="absolute left-1.5 top-1.5 flex items-center gap-0.5 rounded bg-amber-100/80 px-1 py-px">
+        <div className="relative rounded-xl border-2 border-dashed border-amber-400/60 bg-amber-500/10 p-4 transition-shadow">
+          <div className="absolute left-1.5 top-1.5 flex items-center gap-0.5 rounded bg-amber-500/20 px-1 py-px">
             <svg className="h-2.5 w-2.5 text-amber-600/70" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
@@ -256,7 +256,7 @@ function CroppingIllustration() {
               <Trans>ABC</Trans>
             </span>
           </div>
-          <div className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 rounded bg-amber-100/80 px-1 py-px">
+          <div className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 rounded bg-amber-500/20 px-1 py-px">
             <span className="text-[7px] font-medium text-amber-600/80">
               <Trans>noise</Trans>
             </span>
@@ -277,7 +277,7 @@ function CroppingIllustration() {
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           <Trans>After</Trans>
         </span>
-        <div className="rounded-xl border-2 border-emerald-400/50 bg-white p-1 shadow-md ring-1 ring-emerald-400/20 transition-shadow">
+        <div className="rounded-xl border-2 border-emerald-400/50 bg-card p-1 shadow-md ring-1 ring-emerald-400/20 transition-shadow">
           <div className="relative h-[100px] w-[120px] overflow-hidden rounded-lg bg-gradient-to-br from-sky-300 via-amber-200 to-emerald-400" aria-hidden>
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,255,255,0.3),transparent_60%)]" />
           </div>
@@ -310,7 +310,7 @@ function SegmentationIllustration() {
         <span className="text-xs font-medium text-muted-foreground">
           <Trans>Single composited image</Trans>
         </span>
-        <div className="relative flex h-28 w-36 items-center justify-center overflow-hidden rounded-lg border border-border bg-white shadow-inner">
+        <div className="relative flex h-28 w-36 items-center justify-center overflow-hidden rounded-lg border border-border bg-card shadow-inner">
           <div className="absolute left-2 top-2 h-10 w-12 rounded bg-sky-300/90" />
           <div className="absolute right-4 top-4 h-8 w-8 rounded-full bg-amber-300" />
           <div className="absolute bottom-3 left-4 right-4 h-9 rounded bg-emerald-600/85" />
@@ -353,7 +353,7 @@ function MinSideIllustration() {
       </p>
       <div className="flex flex-wrap items-start justify-center gap-8">
         <div className="flex flex-col items-center gap-2">
-          <div className="relative flex h-20 w-24 items-center justify-center rounded-lg border-2 border-emerald-500/40 bg-white">
+          <div className="relative flex h-20 w-24 items-center justify-center rounded-lg border-2 border-emerald-500/40 bg-card">
             <div className="h-14 w-20 rounded bg-gradient-to-br from-violet-300 to-indigo-400" />
             <span className="absolute -bottom-5 text-[10px] font-medium text-emerald-700">
               <Trans>Large enough</Trans>
@@ -407,7 +407,7 @@ function FilterSizeIllustration() {
           </span>
         </div>
         <div className="flex flex-col items-center gap-2">
-          <div className="relative flex h-20 w-24 items-center justify-center rounded-lg border-2 border-emerald-500/40 bg-white">
+          <div className="relative flex h-20 w-24 items-center justify-center rounded-lg border-2 border-emerald-500/40 bg-card">
             <div className="h-14 w-20 rounded bg-gradient-to-br from-violet-300 to-indigo-400" />
             <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] text-white">
               ✓

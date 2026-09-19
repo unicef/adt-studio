@@ -87,9 +87,11 @@ type ElectronUpdateStatus =
 
 interface ElectronAvailableRelease {
   version: string
+  author?: string
   title?: string
   description?: string
   coverUrl?: string
+  coverDarkUrl?: string
   coverAlt?: string
   releaseDate?: string
   releaseNotes?: string
@@ -142,6 +144,20 @@ interface ElectronUpdatesApi {
   onStatus: (cb: (status: ElectronUpdateStatus) => void) => () => void
 }
 
+interface ElectronNotificationsApi {
+  /** Resolves false when the OS cannot raise notifications at all. */
+  show: (payload: {
+    title: string
+    body: string
+    label?: string
+    stage?: string
+  }) => Promise<boolean>
+  isWindowFocused: () => Promise<boolean>
+  onActivated: (
+    cb: (target: { label: string; stage: string }) => void,
+  ) => () => void
+}
+
 interface Window {
   api: {
     onApiLog: (callback: (entry: ElectronApiLogEntry) => void) => () => void
@@ -167,12 +183,19 @@ interface Window {
     updates?: ElectronUpdatesApi
     /** IPC bridge for the first-run onboarding window. Undefined in the web build. */
     onboarding?: ElectronOnboardingApi
+    /** IPC bridge for OS notifications and window focus. Undefined in the web build. */
+    notifications?: ElectronNotificationsApi
   }
 }
 
 interface ElectronOnboardingApi {
   /** Whether onboarding has been completed (persisted in the main process). */
   getStatus: () => Promise<boolean>
+  /**
+   * Open the small, dedicated onboarding window on demand (e.g. "Restart tour")
+   * so the replay renders at its intended size rather than in the main window.
+   */
+  open: () => Promise<void>
   /**
    * Mark onboarding complete and hand off to the main app window, which opens
    * on `startPath` (e.g. "/" or "/books/new").
