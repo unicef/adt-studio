@@ -16,6 +16,7 @@ import {
   PublishCommentUpdateRequest,
   parseBookLabel,
   publicationStateAt,
+  workersDevUrl,
   type BookPublicationRecord,
   type BookPublicationStatus,
   type PublicationDeleteResult,
@@ -46,7 +47,7 @@ import {
   toPublishErrorEvent,
   type LocalBookSnapshot,
 } from "../services/publish-service.js"
-import { bookHostAuthorSecret } from "../services/cloudflare/book-host.js"
+import { bookHostAuthorSecret, bookWorkerName } from "../services/cloudflare/book-host.js"
 import { deleteBookHost } from "../services/cloudflare/book-host-deploy.js"
 import { createCloudflareClient, type CloudflareClient } from "../services/cloudflare/client.js"
 import { resolveCloudflareCredentials } from "../services/cloudflare/credentials.js"
@@ -252,6 +253,50 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     })
   }
 
+  /** The stored field is the first source; the control plane's own address is the second, since
+   *  `<name>.<subdomain>.workers.dev` carries the subdomain in it. A connection with neither is
+   *  one this cannot derive an address for, and the caller keeps what it already had. */
+  const workersDevSubdomainOf = (connection: CloudflareConnectionRecord): string | null => {
+    if (connection.workers_dev_subdomain) return connection.workers_dev_subdomain
+    try {
+      const labels = new URL(connection.worker_url).hostname.split(".")
+      const [, subdomain, workers, dev] = labels
+      return labels.length === 4 && workers === "workers" && dev === "dev" && subdomain
+        ? subdomain
+        : null
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Where a publication is actually served from.
+   *
+   * The control plane holds every publication's row but none of its bytes — those live on the
+   * book's own Worker — so the `url` it reports is its own origin and answers the reader with
+   * `{"error":"not_found"}` after the access gate has already let them through. Nothing in D1
+   * records which host serves which book, but nothing needs to: `bookWorkerName` derives the
+   * name from the token, and the subdomain is the account's. So the address is recomputed here
+   * rather than believed.
+   *
+   * The local record wins when it is about *this* publication: it is what the publish itself
+   * wrote down, and it stays right even for a book deployed somewhere this derivation would
+   * not predict. It is checked against the token because a book can have been published more
+   * than once — the record describes only the newest, and lending its address to the older
+   * rows would point every one of them at the same book.
+   */
+  const bookHostUrlFor = (
+    token: string,
+    connection: CloudflareConnectionRecord,
+    record: BookPublicationRecord | null,
+    fallback: string,
+  ): string => {
+    if (record?.token === token && record.base_url) return record.base_url
+    const subdomain = workersDevSubdomainOf(connection)
+    if (subdomain === null) return fallback
+    return `${workersDevUrl(bookWorkerName(token), subdomain)}/p/${token}/`
+  }
+
   const clientFor = (connection: CloudflareConnectionRecord): PublishWorkerClient =>
     deps.createClient
       ? deps.createClient(connection)
@@ -301,7 +346,10 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
   }
 
-  const summaryFromWorker = (entry: PublicationListEntry): PublicationSummary => {
+  const summaryFromWorker = (
+    entry: PublicationListEntry,
+    connection: CloudflareConnectionRecord,
+  ): PublicationSummary => {
     const label = entry.publication.book_label
     const local = localBookSnapshot(label)
     /** The book's *current* name, not the one frozen into the publication at publish time — an
@@ -312,7 +360,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       title: title && title.length > 0 ? title : entry.publication.title,
       book_label: label,
       book_exists: local.exists,
-      url: entry.url,
+      url: bookHostUrlFor(entry.publication.token, connection, local.record, entry.url),
       current_version: entry.publication.current_version,
       version_count: entry.version_count,
       created_at: entry.publication.created_at,
@@ -478,7 +526,9 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       return c.json(overviewOf(summariesFromDisk(), false))
     }
 
-    return c.json(overviewOf(entries.map(summaryFromWorker), true))
+    return c.json(
+      overviewOf(entries.map((entry) => summaryFromWorker(entry, connection)), true),
+    )
   })
 
   app.delete("/publications/:token", async (c) => {
@@ -576,9 +626,10 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     try {
       const detail = await clientFor(connection).getPublication(record.token)
       return c.json(
+        /** `url` is deliberately left at `statusOf`'s default, the record's own `base_url`.
+         *  `detail.url` is the control plane talking about itself, and it serves no book. */
         statusOf({
           publication: detail.publication,
-          url: detail.url,
           worker_reachable: true,
           has_access_code: detail.has_access_code,
         }),

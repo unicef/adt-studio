@@ -166,6 +166,43 @@ describe("the publications dashboard", () => {
     expect(overview.totals).toMatchObject({ published_count: 1, active_count: 1 })
   })
 
+  /**
+   * The control plane holds every publication's row and none of its bytes, so the `url` it
+   * reports answers `{"error":"not_found"}` — after the access gate has already accepted the
+   * reader's code, which is what made it look like the book was missing rather than the link
+   * wrong. Every surface that shows a link has to show the book's own host.
+   */
+  it("links to the book\u2019s own host, not the control plane that has none of its bytes", async () => {
+    const { app, worker } = routes()
+    await publishOnce(app)
+
+    const overview = await (await app.request("/publications")).json()
+
+    expect(overview.publications[0].url).toBe(
+      `https://${bookWorkerName(TOKEN)}.teacher.workers.dev/p/${TOKEN}/`,
+    )
+    expect(overview.publications[0].url).not.toBe(worker.shareUrl(TOKEN))
+    expect(overview.publications[0].url.startsWith(worker.baseUrl)).toBe(false)
+  })
+
+  /** A book published from another machine has no local record to read the address out of.
+   *  The Worker's name is a pure function of the token and the subdomain is the account's, so
+   *  the address is derived rather than guessed — `teacher` above is what the publish wrote
+   *  down, `example` here is what the connection says. */
+  it("derives the host for a publication whose book is not on this machine", async () => {
+    const { app, worker } = routes()
+    await publishOnce(app)
+    fs.rmSync(path.join(tmpDir, LABEL), { recursive: true, force: true })
+
+    const overview = await (await app.request("/publications")).json()
+
+    expect(overview.publications[0]).toMatchObject({ book_exists: false })
+    expect(overview.publications[0].url).toBe(
+      `https://${bookWorkerName(TOKEN)}.example.workers.dev/p/${TOKEN}/`,
+    )
+    expect(overview.publications[0].url).not.toBe(worker.shareUrl(TOKEN))
+  })
+
   it("falls back to what this machine remembers when the worker is unreachable", async () => {
     const { app } = routes()
     await publishOnce(app)
@@ -457,6 +494,17 @@ describe("the per-book publication status", () => {
     expect(status).toMatchObject({ connected: true, worker_reachable: false })
     expect(status.record).not.toBeNull()
     expect(readPublicationRecord(LABEL, tmpDir)).not.toBeNull()
+  })
+
+  /** The status route reads the publication back from the control plane, which describes the
+   *  link as its own — so the answer keeps the address the publish itself recorded. */
+  it("keeps the book host address the publish recorded", async () => {
+    const { app, worker } = routes()
+    await publishOnce(app)
+
+    const status = await (await app.request(`/books/${LABEL}/publication`)).json()
+    expect(status.url).toBe(`https://${bookWorkerName(TOKEN)}.teacher.workers.dev/p/${TOKEN}/`)
+    expect(status.url).not.toBe(worker.shareUrl(TOKEN))
   })
 
   it("is a 404 for a book that is not on this machine", async () => {
