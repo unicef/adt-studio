@@ -176,6 +176,7 @@ const bookHostMetadata = {
     },
   ],
   d1_migrations: [],
+  assets: { config: assetConfig },
 }
 
 fs.writeFileSync(

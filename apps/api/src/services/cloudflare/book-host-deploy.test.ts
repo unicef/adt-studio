@@ -29,6 +29,7 @@ const ARTIFACT: BookHostArtifact = {
       { type: "secret_text", name: "MGMT_SECRET" },
     ],
     d1_migrations: [],
+    assets: { config: { html_handling: "none", not_found_handling: "none" } },
   },
 }
 
@@ -141,6 +142,20 @@ describe("deployBookHost", () => {
     const script = fake.state.scripts.get(bookWorkerName(TOKEN))
     const assets = script?.metadata.assets as { config?: Record<string, unknown> }
     expect(assets.config?.run_worker_first).toBe(true)
+  })
+
+  /** `run_worker_first` decides *who answers*; this decides *what the asset layer does once it
+   *  answers*. Left at Cloudflare's default the layer 307s `.../index.html` to the directory
+   *  form, and `serveSnapshot` forwards every non-404 — so the reader was redirected to the
+   *  internal `/uploads/<uploadId>/` path and the book opened as `{"error":"not_found"}`. */
+  it("tells the asset layer to serve the exact path rather than redirect", async () => {
+    const fake = createFakeCloudflare()
+    await deploy(fake)
+
+    const script = fake.state.scripts.get(bookWorkerName(TOKEN))
+    const assets = script?.metadata.assets as { config?: Record<string, unknown> }
+    expect(assets.config?.html_handling).toBe("none")
+    expect(assets.config?.not_found_handling).toBe("none")
   })
 
   /** The account's secret authorises every management call on the control plane. Handing the

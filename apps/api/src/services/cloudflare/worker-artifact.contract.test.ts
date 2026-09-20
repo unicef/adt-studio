@@ -90,3 +90,25 @@ describe("book host artifact", () => {
     expect(bookHost.main_module).toBe("book-host.js")
   })
 })
+
+/**
+ * The asset layer sits in front of the Worker, so what it is told to do with a path is part of
+ * the deployment, not a detail of it. Cloudflare's `html_handling` default answers a request
+ * for `.../index.html` with a 307 to the directory form; `serveSnapshot` forwards anything that
+ * is not a 404, so that redirect went to the reader with a `Location` pointing at the internal
+ * `/uploads/<uploadId>/` path and the book opened as `{"error":"not_found"}`.
+ *
+ * Asserted against the real artifacts, and against both Workers: the deploy call sites spread
+ * this config, so a build that stops emitting it silently restores the broken default.
+ */
+describe("asset router config", () => {
+  it.each(["metadata.json", "book-host-metadata.json"])(
+    "%s tells the asset layer to serve the exact path and never redirect",
+    (file) => {
+      expect(metadata(file).assets.config).toEqual({
+        html_handling: "none",
+        not_found_handling: "none",
+      })
+    },
+  )
+})

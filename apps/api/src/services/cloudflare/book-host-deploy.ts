@@ -162,8 +162,15 @@ export async function deployBookHost(
           bindings,
           /** Never a path list. Anything Cloudflare's asset layer can answer is answered before
            * the Worker runs, so any path the list omits is served with no access code, no expiry
-           * and no revocation check. */
-          assets: { jwt: staticAssets.completionJwt, config: { run_worker_first: true } },
+           * and no revocation check.
+           *
+           * The rest of the config comes from the artifact so this cannot drift from what the
+           * e2e harness serves — `html_handling` in particular, without which the asset layer
+           * redirects every book's front page to its own internal upload path. */
+          assets: {
+            jwt: staticAssets.completionJwt,
+            config: { ...artifact.metadata.assets.config, run_worker_first: true },
+          },
         },
       }),
       { attempts: 5, sleep },

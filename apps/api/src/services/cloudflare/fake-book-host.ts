@@ -24,6 +24,7 @@ export const FAKE_BOOK_HOST_ARTIFACT: BookHostArtifact = {
       { type: "secret_text", name: "MGMT_SECRET" },
     ],
     d1_migrations: [],
+    assets: { config: { html_handling: "none", not_found_handling: "none" } },
   },
 }
 

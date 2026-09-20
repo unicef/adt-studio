@@ -138,6 +138,24 @@ for (const f of files) {
 console.log(`\n  assets written under /uploads/${uploadId}/\n`)
 
 // ── Phase 2: serve it from the real book host, gate in front ──
+
+/**
+ * The asset config the deploy really uploads, read from the artifact rather than retyped.
+ *
+ * This harness used to hardcode `html_handling: "none"` while `deployBookHost` sent no
+ * `html_handling` at all, so Cloudflare applied its `auto-trailing-slash` default and answered
+ * every book's `index.html` with a 307 to the internal `/uploads/<uploadId>/` path. The suite
+ * was green and every real publish opened as `{"error":"not_found"}`. Reading it from the
+ * artifact is what stops that from being possible again.
+ */
+const assetConfig = JSON.parse(
+  fs.readFileSync(path.join(dist, "book-host-metadata.json"), "utf8"),
+).assets?.config
+if (assetConfig?.html_handling !== "none") {
+  throw new Error(
+    `book-host-metadata.json must declare assets.config.html_handling "none" — got ${JSON.stringify(assetConfig)}`,
+  )
+}
 const openBookWith = (routerConfig) => new Miniflare({
   modules: true,
   scriptPath: path.join(dist, "book-host.js"),
@@ -148,7 +166,7 @@ const openBookWith = (routerConfig) => new Miniflare({
   assets: {
     directory: assetsDir, binding: "ASSETS",
     routerConfig,
-    assetConfig: { html_handling: "none" },
+    assetConfig,
   },
 })
 
