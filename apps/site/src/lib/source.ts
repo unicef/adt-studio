@@ -3,7 +3,7 @@ import { defineI18n } from 'fumadocs-core/i18n';
 import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
 import { docs } from 'collections/server';
 import { docsRoute } from './shared';
-import { DEFAULT_LOCALE, LOCALES } from '@/i18n/locales';
+import { DEFAULT_LOCALE, LOCALES, type AppLocale } from '@/i18n/locales';
 
 /**
  * Docs i18n. Translations live in per-locale folders (`parser: 'dir'`), so a
@@ -57,4 +57,16 @@ export async function getLLMText(page: (typeof source)['$inferPage']) {
   return `# ${page.data.title} (${page.url})
 
 ${processed}`;
+}
+
+/**
+ * Build the complete, deterministic documentation corpus for one locale.
+ * Fumadocs supplies the English fallback for any missing translated page.
+ */
+export async function getLLMFullText(locale: AppLocale) {
+  const pages = [...source.getPages(locale)].sort((a, b) =>
+    a.url.localeCompare(b.url),
+  );
+  const scanned = await Promise.all(pages.map(getLLMText));
+  return scanned.join('\n\n');
 }
