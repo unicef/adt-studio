@@ -2871,22 +2871,43 @@ function renderEntryRedirectHtml(
   // The link text is the book's own title rather than an invented English
   // phrase: this file ships in every language and has no interface catalogue.
   const label = escapeHtml(title)
+  // The link is the no-JS fallback, and it used to be the first thing every
+  // reader saw: this file loads no stylesheet, so it painted as a default blue
+  // underlined anchor for as long as the redirect took — two serial round trips
+  // on a remote host, around a second, which reads as a broken page rather than
+  // a loading one. So it is hidden from first paint and revealed only where the
+  // redirect cannot run: by the `noscript` rule below, or by the timer for a
+  // redirect that was not honoured. The script moved into `head` for the same
+  // reason, so it runs before the body is parsed at all.
   return `<!DOCTYPE html>
 <html lang="${escapeAttr(language)}">
 <head>
 <meta charset="utf-8" />
 <noscript><meta http-equiv="refresh" content="0; url=${href}" /></noscript>
 <title>${label}</title>
-</head>
-<body>
-<p><a id="entry-link" href="${href}">${label}</a></p>
+<style>#entry-link{visibility:hidden}</style>
+<noscript><style>#entry-link{visibility:visible}</style></noscript>
 <script>
 (function () {
   var target = ${JSON.stringify(firstHref)} + location.search + location.hash;
-  document.getElementById("entry-link").href = target;
   location.replace(target);
+  function fallback() {
+    var link = document.getElementById("entry-link");
+    if (!link) return;
+    link.href = target;
+    if (typeof setTimeout === "function") {
+      setTimeout(function () { link.style.visibility = "visible"; }, 2000);
+    }
+  }
+  if (document.getElementById("entry-link")) fallback();
+  else if (document.addEventListener) {
+    document.addEventListener("DOMContentLoaded", fallback);
+  }
 })();
 </script>
+</head>
+<body>
+<p><a id="entry-link" href="${href}">${label}</a></p>
 </body>
 </html>
 `

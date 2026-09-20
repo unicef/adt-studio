@@ -2250,6 +2250,19 @@ describe("packageAdtWeb", () => {
       expect(destinations).toEqual([expected])
       expect(document.getElementById("entry-link")?.getAttribute("href")).toBe(expected)
     }
+    // The stub loads no stylesheet, so an anchor left visible paints in browser
+    // defaults for as long as the redirect takes. Hidden from first paint, and
+    // revealed only where the redirect cannot run.
+    const hides = document.querySelector("head > style")?.textContent ?? ""
+    expect(hides.replace(/\s+/g, "")).toBe("#entry-link{visibility:hidden}")
+    const reveals = [...document.querySelectorAll("head noscript style")].map(
+      (node) => (node.textContent ?? "").replace(/\s+/g, ""),
+    )
+    expect(reveals).toContain("#entry-link{visibility:visible}")
+
+    // In `head`, so it runs before the body is parsed rather than after it paints.
+    expect(document.querySelector("script")?.parentElement?.tagName).toBe("HEAD")
+
     dom.window.close()
     // It is a redirect, not a copy of the page.
     expect(stub).not.toContain("<p>First</p>")
