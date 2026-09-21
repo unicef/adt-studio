@@ -5,6 +5,7 @@ import {
   followOutcome,
   isFollowable,
   pageLabelFor,
+  sectionLocation,
 } from "@/features/comments/lib/follow"
 import { ANONYMOUS_PEER_NAME, type RoomPeer } from "@/features/comments/lib/room-protocol"
 import type { PageEntry, TocEntry } from "@/features/navigation/state/nav.atoms"
@@ -153,5 +154,19 @@ describe("saying where somebody is", () => {
     expect(pageLabelFor(peer({ page_section_id: "pg404_sec001" }), PAGES, TOC, LABELS)).toBe(
       "Somewhere in the book",
     )
+  })
+})
+
+describe("sectionLocation", () => {
+  /** The manifest's folio skips front matter and is missing for the opening pages; a position
+   *  in the manifest is a third number again. The id is what the filename and the URL say. */
+  it("reads page and section off the id", () => {
+    expect(sectionLocation("pg012_sec002")).toEqual({ pageNumber: 12, sectionNumber: 2 })
+    expect(sectionLocation("pg001_sec001")).toEqual({ pageNumber: 1, sectionNumber: 1 })
+  })
+
+  it("refuses an id with no page number in it", () => {
+    expect(sectionLocation("cover_sec001")).toBeNull()
+    expect(sectionLocation("pg012")).toBeNull()
   })
 })

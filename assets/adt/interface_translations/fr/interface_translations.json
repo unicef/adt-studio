@@ -249,6 +249,7 @@
     "comments-cursor-direction-left-label": "à gauche",
     "comments-cursor-direction-right-label": "à droite",
     "comments-presence-page-label": "Page ${number}",
+    "comments-page-section-label": "Page ${page} · Section ${section}",
     "comments-presence-unknown-page-label": "Quelque part dans le livre",
     "comments-presence-anonymous-hint-label": "Impossible de suivre un lecteur sans nom",
     "comments-follow-label": "Suivre",

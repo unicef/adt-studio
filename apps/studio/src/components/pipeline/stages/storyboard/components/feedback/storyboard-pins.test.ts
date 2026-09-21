@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest"
 import type { PublishComment } from "@/api/client"
 import { buildThreads } from "@/components/publication-feedback/lib/threads"
-import { parseSectionId, placePins, sectionIdFor } from "./storyboard-pins"
+import { parseSectionId, placePins, sectionIdFor, sectionLocation } from "./storyboard-pins"
 
 function comment(overrides: Partial<PublishComment> = {}): PublishComment {
   return {
@@ -155,6 +155,22 @@ describe("parseSectionId", () => {
   it("refuses anything that is not a section id", () => {
     for (const bad of ["pg001", "pg001_sec", "_sec001", "pg001_sec000", "pg001_secabc"]) {
       expect(parseSectionId(bad)).toBeNull()
+    }
+  })
+})
+
+describe("sectionLocation", () => {
+  /** The number the storyboard, the route and the section's filename all agree on — not the
+   *  printed folio, which skips front matter and disagrees with every one of them. */
+  it("reads the page and section straight off the id", () => {
+    expect(sectionLocation("pg012_sec002")).toEqual({ pageNumber: 12, sectionNumber: 2 })
+    expect(sectionLocation("pg001_sec001")).toEqual({ pageNumber: 1, sectionNumber: 1 })
+    expect(sectionLocation("pg100_sec042")).toEqual({ pageNumber: 100, sectionNumber: 42 })
+  })
+
+  it("refuses an id it cannot read a page number out of", () => {
+    for (const bad of ["pg001", "cover_sec001", "pg001_sec000", ""]) {
+      expect(sectionLocation(bad)).toBeNull()
     }
   })
 })

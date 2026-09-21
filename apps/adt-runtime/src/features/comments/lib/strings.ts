@@ -86,6 +86,7 @@ export const COMMENT_STRINGS = {
   "comments-cursor-direction-left-label": "left",
   "comments-cursor-direction-right-label": "right",
   "comments-presence-page-label": "Page ${number}",
+  "comments-page-section-label": "Page ${page} \u00b7 Section ${section}",
   "comments-presence-unknown-page-label": "Somewhere in the book",
   "comments-presence-anonymous-hint-label": "Unnamed readers can't be followed",
   "comments-follow-label": "Follow",

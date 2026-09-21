@@ -206,6 +206,7 @@
     "comments-cursor-direction-left-label": "majtas",
     "comments-cursor-direction-right-label": "djathtas",
     "comments-presence-page-label": "Faqja ${number}",
+    "comments-page-section-label": "Faqja ${page} · Seksioni ${section}",
     "comments-presence-unknown-page-label": "Diku në libër",
     "comments-presence-anonymous-hint-label": "Lexuesit pa emër nuk mund të ndiqen",
     "comments-follow-label": "Ndiq",

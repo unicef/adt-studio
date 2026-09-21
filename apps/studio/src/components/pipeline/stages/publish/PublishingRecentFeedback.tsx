@@ -10,11 +10,11 @@ import {
 import { RelativeTime } from "@/components/publication-feedback/RelativeTime"
 import {
   useAuthorIdentity,
-  usePublicationPages,
   usePublicationComments,
   useResolveThread,
 } from "@/hooks/use-publication-feedback"
 import { PUBLISH_AUTHOR_DEFAULT_NAME } from "@adt/types"
+import { sectionLocation } from "@/components/pipeline/stages/storyboard/components/feedback/storyboard-pins"
 import { feedbackDestination } from "./feedback-destination"
 import { cn } from "@/lib/utils"
 
@@ -33,7 +33,6 @@ import { cn } from "@/lib/utils"
 export function PublishingRecentFeedback({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const comments = usePublicationComments(bookLabel, true)
-  const pages = usePublicationPages(bookLabel, true)
   /** Resolving is the other half of reading: a thread the author has dealt with should be able
    *  to leave this list from here, rather than only from the page it was left on. */
   const identity = useAuthorIdentity(PUBLISH_AUTHOR_DEFAULT_NAME)
@@ -46,12 +45,18 @@ export function PublishingRecentFeedback({ bookLabel }: { bookLabel: string }) {
     )
   }, [comments.data])
 
+  /**
+   * Where the comment is, in the numbering everything else uses.
+   *
+   * This said "Page 10" for a comment the storyboard, the route and the section's own filename
+   * all call page 12 — the manifest carries the book's printed folio, which skips front matter
+   * — and "Somewhere in the book" for the nine pages that have no folio at all. Both are read
+   * off the section id now, so the label matches where the row actually sends you.
+   */
   const pageLabel = (sectionId: string): string => {
-    const entry = pages.data?.pages.find((page) => page.section_id === sectionId)
-    const number = entry?.page_number
-    /** A comment whose page is not in this version's manifest gets the honest label rather than
-     *  a page number invented from its position. */
-    return number === undefined ? t`Somewhere in the book` : t`Page ${number}`
+    const at = sectionLocation(sectionId)
+    if (at === null) return t`Somewhere in the book`
+    return t`Page ${at.pageNumber} · Section ${at.sectionNumber}`
   }
 
   if (comments.isPending) {

@@ -148,3 +148,27 @@ export function parseSectionId(
   if (pageId === undefined || !Number.isInteger(index) || index < 0) return null
   return { pageId, sectionIndex: index }
 }
+
+/**
+ * A comment's location as two numbers, taken from the id that names it.
+ *
+ * There were three answers to "which page is this comment on" and they disagreed. The published
+ * manifest carries the book's *printed* folio, which skips front matter — `pg012_sec002` is
+ * labelled page 10 — and is absent entirely for the first pages, which read as "somewhere in the
+ * book". The reader fell back to a position in the manifest, a third number again. Meanwhile the
+ * storyboard, the route and the section's own filename all say 12.
+ *
+ * So the label is derived from the id rather than looked up: it is the one number that names the
+ * same thing everywhere, including in the URL the author is sent to.
+ */
+export function sectionLocation(
+  sectionId: string,
+): { pageNumber: number; sectionNumber: number } | null {
+  const parsed = parseSectionId(sectionId)
+  if (parsed === null) return null
+  const digits = /(\d+)\s*$/.exec(parsed.pageId)
+  if (digits === null) return null
+  const pageNumber = Number(digits[1])
+  if (!Number.isInteger(pageNumber) || pageNumber <= 0) return null
+  return { pageNumber, sectionNumber: parsed.sectionIndex + 1 }
+}
