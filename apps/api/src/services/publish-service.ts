@@ -144,6 +144,37 @@ export function clearPublicationRecord(label: string, booksDir: string, deletedA
 }
 
 /**
+ * Tombstone every book's publication record on this machine.
+ *
+ * Used when the account's whole publishing setup is torn down: the Worker and the database are
+ * gone, so every token they held is gone with them, and a book that still remembers one claims
+ * to be published behind a link that no longer resolves.
+ *
+ * Reconnecting does not rescue those records, it hides the problem — the same account provisions
+ * the same `adt-publish.<subdomain>.workers.dev`, so `belongsToConnection` keeps matching them
+ * against a control plane that has never heard of them.
+ *
+ * Best effort per book: one unreadable database must not leave the rest remembering links that
+ * are gone. Returns the labels it cleared.
+ */
+export function clearAllPublicationRecords(booksDir: string, deletedAt: string): string[] {
+  const resolved = path.resolve(booksDir)
+  if (!fs.existsSync(resolved)) return []
+  const cleared: string[] = []
+  for (const entry of fs.readdirSync(resolved, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    try {
+      if (readPublicationRecord(entry.name, resolved) === null) continue
+      clearPublicationRecord(entry.name, resolved, deletedAt)
+      cleared.push(entry.name)
+    } catch {
+      /* A book whose database cannot be opened keeps its record; the rest are still cleared. */
+    }
+  }
+  return cleared
+}
+
+/**
  * The highest `node_data` version across every node except the publication record itself.
  *
  * The exclusion is the point: the record lives in the same table, so counting it would make

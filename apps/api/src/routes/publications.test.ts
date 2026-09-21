@@ -334,6 +334,41 @@ describe("the per-book publication status", () => {
     expect(status.record.token).toBe(TOKEN)
   })
 
+  /**
+   * Disconnect-with-delete tears down the Worker and the database, then reconnecting the same
+   * account provisions the identical `adt-publish.<subdomain>.workers.dev`. Every book's record
+   * still matched that URL, so `belongsToConnection` waved it through and the book claimed to be
+   * published behind a link whose Worker had been deleted.
+   */
+  it("stops claiming a book is published once the worker says the token is gone", async () => {
+    const { app, worker } = routes()
+    await publishOnce(app)
+
+    worker.state.publications.clear()
+
+    const status = await (await app.request(`/books/${LABEL}/publication`)).json()
+    expect(status).toMatchObject({ connected: true, worker_reachable: true })
+    expect(status.record).toBeNull()
+    expect(status.url).toBeNull()
+
+    /** Tombstoned, not just hidden: a record left in place makes the book unpublishable. */
+    expect(readPublicationRecord(LABEL, tmpDir)).toBeNull()
+  })
+
+  /** "We could not ask" is a different answer, and must not throw the record away. */
+  it("keeps the record when the worker cannot be reached at all", async () => {
+    const { app } = routes()
+    await publishOnce(app)
+
+    const offline = createFakePublishWorker({ now: NOW, unreachable: true })
+    const { app: offlineApp } = routes({ worker: offline })
+
+    const status = await (await offlineApp.request(`/books/${LABEL}/publication`)).json()
+    expect(status).toMatchObject({ connected: true, worker_reachable: false })
+    expect(status.record).not.toBeNull()
+    expect(readPublicationRecord(LABEL, tmpDir)).not.toBeNull()
+  })
+
   it("is a 404 for a book that is not on this machine", async () => {
     const { app } = routes()
     const response = await app.request("/books/missing/publication")

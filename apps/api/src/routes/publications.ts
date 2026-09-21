@@ -460,9 +460,30 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     } catch (error) {
       /** A 404 is the worker *answering*: it is reachable, it simply has no publication under
        *  this token any more — a different thing to tell the author than "we could not ask". */
-      return c.json(
-        statusOf({ worker_reachable: isPublishWorkerError(error) && error.status === 404 }),
+      const answered = isPublishWorkerError(error) && error.status === 404
+      if (!answered) return c.json(statusOf({ worker_reachable: false }))
+
+      /**
+       * The worker is there and has never heard of this token, so the book is not published —
+       * and the record in it is describing something that no longer exists anywhere.
+       *
+       * `belongsToConnection` cannot catch this on its own. It compares `worker_url`, which
+       * answers "did someone connect a *different* account", and the case that gets here is
+       * the opposite: the same account, torn down and provisioned again. The new control
+       * plane lands on the identical `adt-publish.<subdomain>.workers.dev`, so every stale
+       * record still matches it, and each book claimed to be published behind a link whose
+       * Worker had been deleted.
+       *
+       * Tombstoned rather than merely hidden: the answer is not going to change, and leaving
+       * it would make the book unpublishable — "Share" is refused while a record exists, and
+       * "Update site" would keep asking for a version of a publication that is gone.
+       */
+      clearPublicationRecord(
+        label,
+        resolvedBooksDir(),
+        (deps.now ?? (() => new Date()))().toISOString(),
       )
+      return c.json(statusOf({ record: null, url: null, worker_reachable: true }))
     }
   })
 
