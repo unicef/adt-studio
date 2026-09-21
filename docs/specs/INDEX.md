@@ -14,7 +14,7 @@ Statuses: draft · in-review · approved · in-progress · implemented · verifi
 | SPEC-0007 | Accessibility harness as a blocking CI gate                     | draft  | TBD         | 0.9.0     |
 | SPEC-0008 | Stable identifiers and reading order (retrospective)            | draft  | TBD         | Block 1   |
 
-Legacy notes, from before this process existed, now in [`docs/analyses/`](../analyses/):
-[SECTIONING_CROSSWORD_BUG.md](../analyses/SECTIONING_CROSSWORD_BUG.md),
-[SECTIONING_VALIDATION_FAILURES.md](../analyses/SECTIONING_VALIDATION_FAILURES.md)
+Legacy notes, from before this process existed, now in [`docs/analysis/`](../analysis/):
+[SECTIONING_CROSSWORD_BUG.md](../analysis/SECTIONING_CROSSWORD_BUG.md),
+[SECTIONING_VALIDATION_FAILURES.md](../analysis/SECTIONING_VALIDATION_FAILURES.md)
 (May 2026, implemented). They are bug analyses, not specs.
