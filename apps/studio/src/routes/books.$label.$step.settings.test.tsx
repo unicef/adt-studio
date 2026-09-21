@@ -2,6 +2,7 @@
 import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, render, screen } from "@testing-library/react"
+import { StepSettingsPage } from "./books.$label.$step.settings"
 
 const useParamsMock = vi.fn(() => ({ label: "demo-book", step: "validation" }))
 const useSearchMock = vi.fn(() => ({ tab: "general" }))
@@ -113,11 +114,10 @@ afterEach(() => {
 })
 
 describe("books.$label.$step.settings route", () => {
-  it("renders Validation settings for the general tab", async () => {
+  it("renders Validation settings for the general tab", () => {
     useParamsMock.mockReturnValue({ label: "demo-book", step: "validation" })
     useSearchMock.mockReturnValue({ tab: "general" })
 
-    const { StepSettingsPage } = await import("./books.$label.$step.settings")
     render(<StepSettingsPage />)
 
     expect(screen.getByText("Validation")).toBeTruthy()
@@ -125,11 +125,10 @@ describe("books.$label.$step.settings route", () => {
     expect(screen.getByTestId("validation-settings").textContent).toContain("validation-settings:demo-book:general")
   })
 
-  it("routes reviewer-checklist tab into Validation settings", async () => {
+  it("routes reviewer-checklist tab into Validation settings", () => {
     useParamsMock.mockReturnValue({ label: "demo-book", step: "validation" })
     useSearchMock.mockReturnValue({ tab: "reviewer-checklist" })
 
-    const { StepSettingsPage } = await import("./books.$label.$step.settings")
     render(<StepSettingsPage />)
 
     expect(screen.getByTestId("validation-settings").textContent).toContain("validation-settings:demo-book:reviewer-checklist")
@@ -138,31 +137,28 @@ describe("books.$label.$step.settings route", () => {
     )
   })
 
-  it("renders Easy Read settings", async () => {
+  it("renders Easy Read settings", () => {
     useParamsMock.mockReturnValue({ label: "demo-book", step: "easy-read" })
     useSearchMock.mockReturnValue({ tab: "general" })
 
-    const { StepSettingsPage } = await import("./books.$label.$step.settings")
     render(<StepSettingsPage />)
 
     expect(screen.getByText("easy-read-settings")).toBeTruthy()
   })
 
-  it("renders Book settings", async () => {
+  it("renders Book settings", () => {
     useParamsMock.mockReturnValue({ label: "demo-book", step: "book" })
     useSearchMock.mockReturnValue({ tab: "global-prompts" })
 
-    const { StepSettingsPage } = await import("./books.$label.$step.settings")
     render(<StepSettingsPage />)
 
     expect(screen.getByTestId("book-settings").textContent).toContain("book-settings:demo-book:global-prompts")
   })
 
-  it("shows the unavailable message for non-settings stages", async () => {
+  it("shows the unavailable message for non-settings stages", () => {
     useParamsMock.mockReturnValue({ label: "demo-book", step: "preview" })
     useSearchMock.mockReturnValue({ tab: "general" })
 
-    const { StepSettingsPage } = await import("./books.$label.$step.settings")
     render(<StepSettingsPage />)
 
     expect(screen.getByText("Settings for this step are not yet available.")).toBeTruthy()

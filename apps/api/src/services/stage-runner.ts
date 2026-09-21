@@ -48,6 +48,9 @@ import {
   generateToc,
   buildTocGenerationConfig,
   generateAllQuizzes,
+  saveQuizOutput,
+  assertQuizGenerationCapacity,
+  batchPages,
   buildQuizGenerationConfig,
   // Master step imports
   getRenderSectioning,
@@ -1639,6 +1642,13 @@ async function runStoryboardStep(
       `[stage-run] ${label}: rendering storyboard for ${totalPages} pages (concurrency=${effectiveConcurrency})`
     )
 
+    // Mark the step running before any page work begins. Without this the
+    // step_runs row (and the sidebar) only flip to "running" on the first
+    // step-progress event, i.e. after the first page has completed its full
+    // render + visual-refinement loop — which reads as a minutes-long
+    // "Starting…" on slow or retry-heavy models.
+    progress.emit({ type: "step-start", step: "web-rendering" })
+
     await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksDir))
 
     let completedRendering = 0
@@ -1874,6 +1884,7 @@ async function runQuizzesStep(
     )
 
     if (quizPages.length > 0) {
+      assertQuizGenerationCapacity(storage, batchPages(quizPages, quizConfig.pagesPerQuiz, quizConfig.quizSectionTypes).length)
       const quizResult = await generateAllQuizzes(quizPages, quizConfig, quizModel, {
         concurrency: effectiveConcurrency,
         onQuizComplete: (completed, total) => {
@@ -1886,7 +1897,8 @@ async function runQuizzesStep(
           })
         },
       })
-      storage.putNodeData("quiz-generation", "book", quizResult)
+      options.signal?.throwIfAborted()
+      saveQuizOutput(storage, quizResult, "replace")
       console.log(
         `[stage-run] ${label}: generated ${quizResult.quizzes.length} quiz(zes) from ${quizPages.length} page(s)`
       )
@@ -1896,6 +1908,13 @@ async function runQuizzesStep(
         message: `${quizResult.quizzes.length} quizzes from ${quizPages.length} pages`,
       })
     } else {
+      // A successful empty rerun must not leave the preserved previous quizzes
+      // active. Keep their history, but publish the now-empty result.
+      options.signal?.throwIfAborted()
+      saveQuizOutput(storage, {
+        generatedAt: new Date().toISOString(), language: quizConfig.language,
+        pagesPerQuiz: quizConfig.pagesPerQuiz, quizzes: [],
+      }, "replace")
       // Nothing to generate. This is the silent "finished instantly, no quizzes"
       // case — surface it loudly instead of completing green with no output.
       console.warn(

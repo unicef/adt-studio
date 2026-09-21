@@ -19,6 +19,7 @@ interface RangeSliderProps {
   max: number;
   value: [number, number];
   onChange: (value: [number, number]) => void;
+  onCommit?: (value: [number, number]) => void;
   disabled?: boolean;
   /**
    * Like `disabled` (non-interactive), but keeps the current values visible
@@ -85,18 +86,18 @@ function MinMaxInput({
     <div className="flex w-full flex-col items-center gap-1 py-2">
       <Label
         htmlFor={inputId}
-        className="cursor-pointer text-xs font-light text-black"
+        className="cursor-pointer text-xs font-light text-foreground"
       >
         {label}
       </Label>
-      <div className="flex h-8 items-center overflow-hidden rounded-[6.4px] border border-[#e5e5e5] w-full">
+      <div className="flex h-8 items-center overflow-hidden rounded-[6.4px] border border-border w-full">
         <Button
           type="button"
           variant="ghost"
           size="icon"
           disabled={locked || value <= min}
           onClick={() => onChange(clamp(value - 1))}
-          className="h-8 w-8 shrink-0 rounded-none border-r border-[#e5e5e5] transition-colors duration-150"
+          className="h-8 w-8 shrink-0 rounded-none border-r border-border transition-colors duration-150"
         >
           <Minus className="h-3 w-3" />
         </Button>
@@ -115,7 +116,7 @@ function MinMaxInput({
             }
           }}
           className={cn(
-            "h-8 w-full rounded-none border-0 bg-white px-2 py-0 text-center text-[11.2px] shadow-none",
+            "h-8 w-full rounded-none border-0 bg-background px-2 py-0 text-center text-[11.2px] shadow-none",
             "focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
             "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
             // Keep the value legible when read-only (disabled inputs are dimmed).
@@ -128,7 +129,7 @@ function MinMaxInput({
           size="icon"
           disabled={locked || value >= max}
           onClick={() => onChange(clamp(value + 1))}
-          className="h-8 w-8 shrink-0 rounded-none border-l border-[#e5e5e5] transition-colors duration-150"
+          className="h-8 w-8 shrink-0 rounded-none border-l border-border transition-colors duration-150"
         >
           <Plus className="h-3 w-3" />
         </Button>
@@ -165,7 +166,7 @@ export function SingleValueSlider({
         <div className="flex items-center gap-1.5">
           <Label
             id={groupLabelId}
-            className="cursor-default text-sm font-medium text-black"
+            className="cursor-default text-sm font-medium text-foreground"
           >
             {label}
           </Label>
@@ -174,7 +175,7 @@ export function SingleValueSlider({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  className="text-[#a3a3a3] transition-colors duration-150 hover:text-[#737373]"
+                  className="text-muted-foreground/70 transition-colors duration-150 hover:text-muted-foreground"
                 >
                   <CircleHelp className="h-3.5 w-3.5" />
                 </button>
@@ -213,6 +214,7 @@ export function RangeSlider({
   max,
   value,
   onChange,
+  onCommit,
   disabled,
   readOnly,
   startLabel,
@@ -221,6 +223,11 @@ export function RangeSlider({
 }: RangeSliderProps) {
   const [start, end] = value;
   const groupLabelId = useId();
+
+  function changeAndCommit(next: [number, number]) {
+    onChange(next);
+    onCommit?.(next);
+  }
 
   const boundedMin = Number.isFinite(min) ? min : 0;
   const boundedMax =
@@ -243,7 +250,7 @@ export function RangeSlider({
       <div className={cn("flex items-center gap-1.5", hideLabel && "sr-only")}>
         <Label
           id={groupLabelId}
-          className="cursor-default text-sm font-medium text-black"
+          className="cursor-default text-sm font-medium text-foreground"
         >
           {label}
         </Label>
@@ -252,7 +259,7 @@ export function RangeSlider({
             <TooltipTrigger asChild>
               <button
                 type="button"
-                className="text-[#a3a3a3] transition-colors duration-150 hover:text-[#737373]"
+                className="text-muted-foreground/70 transition-colors duration-150 hover:text-muted-foreground"
               >
                 <CircleHelp className="h-3.5 w-3.5" />
               </button>
@@ -269,6 +276,7 @@ export function RangeSlider({
         step={1}
         value={sliderValue}
         onValueChange={([s, e]) => onChange([s, e])}
+        onValueCommit={onCommit ? ([s, e]) => onCommit([s, e]) : undefined}
         disabled={disabled || readOnly}
         color={color}
       />
@@ -279,7 +287,7 @@ export function RangeSlider({
           value={start}
           min={boundedMin}
           max={end}
-          onChange={(v) => onChange([v, end])}
+          onChange={(v) => changeAndCommit([v, end])}
           disabled={disabled}
           readOnly={readOnly}
         />
@@ -288,7 +296,7 @@ export function RangeSlider({
           value={end}
           min={start}
           max={boundedMax}
-          onChange={(v) => onChange([start, v])}
+          onChange={(v) => changeAndCommit([start, v])}
           disabled={disabled}
           readOnly={readOnly}
         />

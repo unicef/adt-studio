@@ -48,7 +48,10 @@ export const googleManifest: ProviderManifest = {
   },
   defaultModels: {
     "structured-text": "gemini-2.5-pro",
-    agent: "gemini-2.5-pro",
+    // Gemini 2.5 Pro is unavailable to new API users even though existing
+    // projects may retain access. Google's error response and current model
+    // catalogue direct agentic workloads to this tool-capable replacement.
+    agent: "gemini-3.1-pro-preview",
   },
   docsUrl: "https://aistudio.google.com/apikey",
 }

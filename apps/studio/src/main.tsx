@@ -14,11 +14,17 @@ import { messages as esMessages } from "./locales/es.po"
 import { messages as frMessages } from "./locales/fr.po"
 import { messages as sqMessages } from "./locales/sq.po"
 import { getReleaseChannel } from "@/components/updates/release-banner-utils"
+import { initTheme } from "@/lib/theme"
 import { routeTree } from "./routeTree.gen"
 import "./styles/globals.css"
 import { LOCALES, activateLocale, getStoredLocale, matchSupportedLocale } from "./i18n/locales"
 import type { AppLocale } from "./i18n/locales"
 export { LOCALES, type AppLocale } from "./i18n/locales"
+import { scan } from "react-scan"
+
+scan({
+    enabled: import.meta.env.DEV,
+})
 
 // In Electron, match the OS languages against our supported locales for a
 // sensible first-launch default. Returns null on the web (no `systemLocales`).
@@ -60,6 +66,7 @@ const queryClient = new QueryClient({
 
 const router = createRouter({
   routeTree,
+  context: { queryClient },
   rewrite: {
     input: ({ url }) => {
       const lang = url.searchParams.get("lang")
@@ -74,7 +81,8 @@ const router = createRouter({
       return url
     },
   },
-  history: createBrowserHistory(),
+    history: createBrowserHistory(),
+  defaultPreload: "intent"
 })
 
 declare module "@tanstack/react-router" {
@@ -87,6 +95,9 @@ function PreviewSettingsListener(): null {
   usePreviewSettingsListener()
   return null
 }
+
+// Apply the user's stored theme and follow the OS while set to "system".
+initTheme()
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

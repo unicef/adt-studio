@@ -6,7 +6,12 @@ vi.mock("@/lib/utils", () => ({
 }))
 
 import { isElectron } from "@/lib/utils"
-import { resolveBaseUrl } from "./client.js"
+import {
+  cancelProviderCliLogin,
+  logoutProviderCli,
+  resolveBaseUrl,
+  startProviderCliLogin,
+} from "./client.js"
 
 const mockedIsElectron = vi.mocked(isElectron)
 
@@ -55,5 +60,25 @@ describe("resolveBaseUrl", () => {
       delete (window as { api?: unknown }).api
       expect(resolveBaseUrl({ protocol: "http:", hostname: "localhost" })).toBe("/api")
     })
+  })
+})
+
+describe("CLI sign-in requests", () => {
+  it("adds the required action header to every state-changing request", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      new Response(JSON.stringify({ providerId: "codex", state: "idle" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    )
+
+    await startProviderCliLogin("codex")
+    await cancelProviderCliLogin("codex")
+    await logoutProviderCli("codex")
+
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
+    for (const [, init] of fetchSpy.mock.calls) {
+      expect(new Headers(init?.headers).get("X-ADT-CLI-Action")).toBe("1")
+    }
   })
 })

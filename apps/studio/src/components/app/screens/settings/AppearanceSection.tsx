@@ -1,37 +1,17 @@
 import { useState, type CSSProperties } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Check } from "lucide-react"
+import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Switch } from "@/components/ui/switch"
+import { usePipelineUi } from "@/hooks/use-pipeline-ui"
 import { cn } from "@/lib/utils"
 import { ComingSoon, SettingsCard, SettingsHeading, SettingsLead, SettingRow } from "./ui"
 import { THEME_OPTIONS, type ThemeMode, type ThemeOption } from "./options"
+import { readThemeMode, setThemeMode } from "@/lib/theme"
 import { SETTINGS_ANCHORS } from "./nav"
 
-const THEME_KEY = "adt.theme"
 const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]"
 
-function storedTheme(): ThemeMode {
-  try {
-    return (localStorage.getItem(THEME_KEY) as ThemeMode) || "light"
-  } catch {
-    return "light"
-  }
-}
-
-function applyTheme(mode: ThemeMode) {
-  const dark =
-    mode === "dark" ||
-    // eslint-disable-next-line lingui/no-unlocalized-strings
-    (mode === "system" && window.matchMedia?.("(prefers-color-scheme: dark)").matches)
-  document.documentElement.classList.toggle("dark", !!dark)
-  try {
-    localStorage.setItem(THEME_KEY, mode)
-  } catch {
-    /* ignore */
-  }
-}
-
-/** A mini window mock painted from the option's token set, used as the theme swatch. */
 function ThemePreview({ th }: { th: ThemeOption }) {
   return (
     <div className="relative flex h-[104px] overflow-hidden" style={{ background: th.previewBg }}>
@@ -102,7 +82,8 @@ function ThemeCard({ th, selected, onSelect, index }: { th: ThemeOption; selecte
 
 export function AppearanceSection() {
   const { t } = useLingui()
-  const [theme, setTheme] = useState<ThemeMode>(storedTheme)
+  const [theme, setTheme] = useState<ThemeMode>(readThemeMode)
+  const [pipelineUi, setPipelineUi] = usePipelineUi()
 
   return (
     <>
@@ -125,13 +106,28 @@ export function AppearanceSection() {
             selected={theme === th.key}
             onSelect={() => {
               setTheme(th.key)
-              applyTheme(th.key)
+              setThemeMode(th.key)
             }}
           />
         ))}
       </div>
 
       <SettingsCard>
+        <SettingRow
+          anchorId={SETTINGS_ANCHORS.pipelineInterface}
+          title={<Trans>Pipeline interface</Trans>}
+          subtitle={<Trans>Switch between the new and the classic pipeline screen.</Trans>}
+        >
+          <SegmentedControl
+            className="w-52"
+            options={[
+              { value: "new", label: t`New` },
+              { value: "classic", label: t`Classic` },
+            ]}
+            value={pipelineUi}
+            onValueChange={setPipelineUi}
+          />
+        </SettingRow>
         <SettingRow
           anchorId={SETTINGS_ANCHORS.reduceMotion}
           title={

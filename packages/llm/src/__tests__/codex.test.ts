@@ -1,16 +1,19 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { describe, expect, it, vi } from "vitest"
 import { z } from "zod"
 import { ProviderManifest } from "@adt/types"
 import { codexManifest, codexProvider } from "../providers/codex/index.js"
 import { listCodexModels } from "../providers/codex/models.js"
 import { createCodexStructuredTextBackend } from "../providers/codex/structured-text.js"
-import { toJsonSchema, toPromptText } from "../providers/codex/request.js"
+import { toJsonSchema, toPromptInput } from "../providers/codex/request.js"
 import {
   buildCodexArgs,
-  codexExecutable,
   readCodexTurn,
   runCodexCli,
   spawnCodexCommand,
+  writeCodexImages,
   type CodexCliRequest,
   type CodexCliTurn,
   type CodexProcessResult,
@@ -87,8 +90,8 @@ describe("codex manifest", () => {
     expect(codexProvider.createStructuredTextBackend).toBeTypeOf("function")
   })
 
-  it("declares no image input because the CLI only takes image paths", () => {
-    expect(codexManifest.capabilities["structured-text"]?.imageInput).toBe(false)
+  it("declares image input because inline images are attached as files", () => {
+    expect(codexManifest.capabilities["structured-text"]?.imageInput).toBe(true)
     expect(codexManifest.capabilities["structured-text"]?.recursiveSchemas).toBe(false)
   })
 
@@ -235,6 +238,36 @@ describe("createCodexStructuredTextBackend", () => {
     expect(fake.requests[0]!.prompt).toContain("JSON Schema")
   })
 
+  it("hands inline images to the CLI runner and marks their place in the prompt", async () => {
+    const fake = fakeCli(successTurn())
+
+    await backendWith(fake).generateStructured(
+      makeRequest({
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Describe the cover." },
+              { type: "image", image: "data:image/jpeg;base64,/9j/4AAQ" },
+            ],
+          },
+        ],
+      }),
+    )
+
+    const request = fake.requests[0]!
+    expect(request.images).toEqual([{ data: "/9j/4AAQ", mediaType: "image/jpeg" }])
+    expect(request.prompt).toContain("Describe the cover.\n[Attached image 1]")
+  })
+
+  it("sends no image list for a text-only prompt", async () => {
+    const fake = fakeCli(successTurn())
+
+    await backendWith(fake).generateStructured(makeRequest())
+
+    expect(fake.requests[0]!.images).toBeUndefined()
+  })
+
   it("parses a fenced response", async () => {
     const fake = fakeCli(
       successTurn({ finalMessage: '```json\n{"title":"Atlas","pages":12}\n```' }),
@@ -270,6 +303,38 @@ describe("createCodexStructuredTextBackend", () => {
 
     await expect(backendWith(fake).generateStructured(makeRequest())).rejects.toThrow(
       /did not match the schema/,
+    )
+  })
+
+  it("names the configured API key when OpenAI rejects it", async () => {
+    const fake = fakeCli(() => {
+      throw new Error(
+        "Codex CLI exited with code 1: unexpected status 401 Unauthorized: Incorrect API key provided: sk-secret",
+      )
+    })
+
+    await expect(backendWith(fake).generateStructured(makeRequest())).rejects.toThrow(
+      /rejected the API key configured for the Codex provider.*CODEX_API_KEY.*takes precedence/s,
+    )
+  })
+
+  it("does not call a key rejected when 401 merely appears in unrelated text", async () => {
+    const fake = fakeCli(() => {
+      throw new Error("Codex CLI exited with code 1: expected 401 items in the response")
+    })
+
+    await expect(backendWith(fake).generateStructured(makeRequest())).rejects.not.toThrow(
+      /rejected the API key/,
+    )
+  })
+
+  it("points at the CLI login when OpenAI rejects it and no key is configured", async () => {
+    const fake = fakeCli(() => {
+      throw new Error("Codex CLI exited with code 1: unexpected status 401 Unauthorized")
+    })
+
+    await expect(backendWith(fake, {}).generateStructured(makeRequest())).rejects.toThrow(
+      /rejected the Codex CLI's own login.*Settings/s,
     )
   })
 
@@ -339,6 +404,47 @@ describe("buildCodexArgs", () => {
       "/tmp/work/output-schema.json",
     )
     expect(withSchema.at(-1)).toBe("-")
+  })
+
+  it("attaches each image with its own --image flag and keeps stdin as the last positional", () => {
+    expect(args).not.toContain("--image")
+
+    const withImages = buildCodexArgs({
+      model: "gpt-5.1",
+      workDir: "/tmp/work",
+      imagePaths: ["/tmp/work/image-1.png", "/tmp/work/image-2.jpg"],
+    })
+
+    expect(withImages.filter((arg) => arg === "--image")).toHaveLength(2)
+    expect(withImages[withImages.indexOf("--image") + 1]).toBe("/tmp/work/image-1.png")
+    expect(withImages[withImages.lastIndexOf("--image") + 1]).toBe("/tmp/work/image-2.jpg")
+    // `--image` is variadic: a flag must follow the last path so the trailing
+    // `-` is parsed as the prompt positional, not as another image file.
+    expect(withImages[withImages.lastIndexOf("--image") + 2]).toBe("--model")
+    expect(withImages.at(-1)).toBe("-")
+  })
+})
+
+describe("writeCodexImages", () => {
+  it("writes each image as a file named by media type and returns the paths in order", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "adt-codex-images-"))
+    try {
+      const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47])
+      const paths = await writeCodexImages(dir, [
+        { data: pngBytes.toString("base64"), mediaType: "image/png" },
+        { data: "/9j/4AAQ", mediaType: "image/jpeg" },
+        { data: "UklGRxxx", mediaType: "image/webp" },
+      ])
+
+      expect(paths).toEqual([
+        join(dir, "image-1.png"),
+        join(dir, "image-2.jpg"),
+        join(dir, "image-3.webp"),
+      ])
+      expect(await readFile(paths[0]!)).toEqual(pngBytes)
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
   })
 })
 
@@ -456,16 +562,6 @@ describe("readCodexTurn", () => {
   })
 })
 
-describe("codexExecutable", () => {
-  it("defaults to the PATH lookup and honours an override", () => {
-    expect(codexExecutable({})).toBe("codex")
-    expect(codexExecutable({ CODEX_EXECUTABLE: "  " })).toBe("codex")
-    expect(codexExecutable({ CODEX_EXECUTABLE: " C:\\tools\\codex.cmd " })).toBe(
-      "C:\\tools\\codex.cmd",
-    )
-  })
-})
-
 describe("runCodexCli", () => {
   it("explains how to install the CLI when the executable is missing", async () => {
     await expect(
@@ -482,7 +578,7 @@ describe("runCodexCli", () => {
 
 describe("codex prompt flattening", () => {
   it("drops system messages and keeps a single turn verbatim", () => {
-    const prompt = toPromptText(
+    const input = toPromptInput(
       undefined,
       [
         { role: "system", content: "ignored" },
@@ -491,11 +587,12 @@ describe("codex prompt flattening", () => {
       undefined,
     )
 
-    expect(prompt).toBe("Only turn")
+    expect(input.prompt).toBe("Only turn")
+    expect(input.images).toEqual([])
   })
 
   it("labels a multi-turn transcript", () => {
-    const prompt = toPromptText(
+    const input = toPromptInput(
       "System text",
       [
         { role: "user", content: "First" },
@@ -504,17 +601,50 @@ describe("codex prompt flattening", () => {
       undefined,
     )
 
-    expect(prompt).toBe("System text\n\nUser:\nFirst\n\nAssistant:\nSecond")
+    expect(input.prompt).toBe("System text\n\nUser:\nFirst\n\nAssistant:\nSecond")
   })
 
-  it("refuses inline images instead of silently dropping them", () => {
-    expect(() =>
-      toPromptText(
-        undefined,
-        [{ role: "user", content: [{ type: "image", image: "iVBORw0KGgo=" }] }],
-        undefined,
-      ),
-    ).toThrow(/image files by path only/)
+  it("collects inline images for file attachment and marks where each one sat", () => {
+    const input = toPromptInput(
+      undefined,
+      [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Page one:" },
+            { type: "image", image: "iVBORw0KGgo=" },
+            { type: "text", text: "Page two:" },
+            { type: "image", image: "data:image/webp;base64,UklGRxxx" },
+          ],
+        },
+      ],
+      undefined,
+    )
+
+    expect(input.prompt).toBe(
+      "Page one:\n[Attached image 1]\nPage two:\n[Attached image 2]",
+    )
+    expect(input.images).toEqual([
+      { data: "iVBORw0KGgo=", mediaType: "image/png" },
+      { data: "UklGRxxx", mediaType: "image/webp" },
+    ])
+  })
+
+  it("numbers images across turns in order of appearance", () => {
+    const input = toPromptInput(
+      undefined,
+      [
+        { role: "user", content: [{ type: "image", image: "iVBORw0KGgo=" }] },
+        { role: "assistant", content: "A cover." },
+        { role: "user", content: [{ type: "image", image: "/9j/4AAQ" }] },
+      ],
+      undefined,
+    )
+
+    expect(input.prompt).toBe(
+      "User:\n[Attached image 1]\n\nAssistant:\nA cover.\n\nUser:\n[Attached image 2]",
+    )
+    expect(input.images.map((image) => image.mediaType)).toEqual(["image/png", "image/jpeg"])
   })
 })
 

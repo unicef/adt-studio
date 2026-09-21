@@ -1,0 +1,397 @@
+import { useState, useEffect, useRef , type ReactNode } from "react"
+import { flushSync } from "react-dom"
+import { AlertCircle, Images, Pencil, X } from "lucide-react"
+import { SettingExplainer } from "./ui/SettingExplainer"
+import { Trans, useLingui } from "@lingui/react/macro"
+import { StepLandingShell } from "./StepLandingShell"
+import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
+import {
+  FixedLayoutWarningBanner,
+  FixedLayoutWarningTitle,
+  FixedLayoutExtraLanguagesDescription,
+} from "@/components/pipeline/components/FixedLayoutWarning"
+import {
+  SettingsCard,
+  SettingsField,
+} from "./ui/SettingsCard"
+import { LanguagePicker } from "@/components/LanguagePicker"
+import { Switch } from "@/components/ui/switch"
+import { useActiveConfig } from "@/hooks/use-debug"
+import { useIsFixedLayout } from "@/hooks/use-fixed-layout"
+import { useStageStatus } from "@/hooks/use-stage-status"
+import { useBookRun } from "@/hooks/use-book-run"
+import { useApiKey } from "@/hooks/use-api-key"
+import { useBookConfig } from "@/hooks/use-book-config"
+import { usePersistConfig } from "@/hooks/use-persist-config"
+import { useBook } from "@/hooks/use-books"
+import { normalizeLocale } from "@/lib/languages"
+import { reconcileSourceOutputLanguage } from "@/components/pipeline/stages/languages/lib/translations-view-state"
+import { prefersReducedMotion } from "@/lib/utils"
+import { displayLang } from "@/components/pipeline/stages/languages/lib/display-lang"
+import { SelectImagesDialog } from "@/components/pipeline/stages/languages/components/SelectImagesDialog"
+import { ImageTranslationVisual } from "@/components/pipeline/stages/languages/components/ImageTranslationVisual"
+import { LanguagePreview } from "@/components/pipeline/stages/languages/components/LanguagePreview"
+
+const viewTransitionNameFor = (code: string) => `lang-chip-${code.replace(/[^a-zA-Z0-9_-]/g, "_")}`
+
+export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; beforeRun?: ReactNode }) {
+  const { t } = useLingui()
+  const { data: bookConfigData } = useBookConfig(bookLabel)
+  const { data: activeConfigData } = useActiveConfig(bookLabel)
+  const { data: book } = useBook(bookLabel)
+  const persist = usePersistConfig(bookLabel)
+  const { apiKey, hasApiKey } = useApiKey()
+  const { queueRun } = useBookRun()
+  const status = useStageStatus("translate")
+  const storyboardStatus = useStageStatus("storyboard")
+  const storyboardReady = storyboardStatus.isCompleted
+  const captionsStatus = useStageStatus("captions")
+  const captionsReady = captionsStatus.isCompleted
+  const isFixedLayout = useIsFixedLayout(bookLabel)
+
+  const [outputLanguages, setOutputLanguages] = useState<Set<string>>(new Set())
+  const [textNormalizationEnabled, setTextNormalizationEnabled] = useState(true)
+  const [selectedImageIds, setSelectedImageIds] = useState<string[]>([])
+  const [imageDialogOpen, setImageDialogOpen] = useState(false)
+  const seededRef = useRef(false)
+
+  const configuredEditingLanguage =
+    typeof activeConfigData?.merged?.editing_language === "string"
+      ? (activeConfigData.merged.editing_language as string)
+      : null
+  const bookLanguage = book?.languageCode ?? book?.metadata?.language_code ?? null
+  const baseLanguage = normalizeLocale(
+    configuredEditingLanguage ?? bookLanguage ?? "en",
+  )
+
+  useEffect(() => {
+    if (!activeConfigData || !book) return
+    const m = activeConfigData.merged as Record<string, unknown>
+    const existing = Array.isArray(m.output_languages)
+      ? (m.output_languages as string[]).map((code) => normalizeLocale(code))
+      : []
+
+    if (!seededRef.current) {
+      seededRef.current = true
+      const reconciled = reconcileSourceOutputLanguage(existing, baseLanguage)
+      setOutputLanguages(new Set(reconciled))
+      const changed =
+        reconciled.length !== existing.length ||
+        reconciled.some((code) => !existing.includes(code)) ||
+        existing.some((code) => !reconciled.includes(code))
+      if (changed) persist({ output_languages: reconciled })
+    }
+
+    if (m.image_translation && typeof m.image_translation === "object") {
+      const it = m.image_translation as Record<string, unknown>
+      if (Array.isArray(it.selected_image_ids)) {
+        setSelectedImageIds(it.selected_image_ids as string[])
+      }
+    }
+    if (m.core_tts && typeof m.core_tts === "object") {
+      const coreTts = m.core_tts as Record<string, unknown>
+      setTextNormalizationEnabled(coreTts.language_normalization !== false)
+    } else {
+      setTextNormalizationEnabled(true)
+    }
+  }, [activeConfigData, book, baseLanguage])
+
+  const withChipTransition = (update: () => void) => {
+    const reduceMotion = prefersReducedMotion()
+    const doc = typeof document !== "undefined" ? document : null
+    if (!doc || typeof doc.startViewTransition !== "function" || reduceMotion) {
+      update()
+      return
+    }
+    doc.startViewTransition(() => {
+      flushSync(update)
+    })
+  }
+
+  const handleLanguageToggle = (code: string) => {
+    withChipTransition(() => {
+      const next = new Set(outputLanguages)
+      if (next.has(code)) next.delete(code)
+      else next.add(code)
+      setOutputLanguages(next)
+      persist({ output_languages: Array.from(next) })
+    })
+  }
+
+  const handleLanguageRemove = (code: string) => {
+    withChipTransition(() => {
+      const next = new Set(outputLanguages)
+      next.delete(code)
+      setOutputLanguages(next)
+      persist({ output_languages: Array.from(next) })
+    })
+  }
+
+  const persistImageTranslation = (patch: Record<string, unknown>) => {
+    const existing = (bookConfigData?.config?.image_translation ?? {}) as Record<
+      string,
+      unknown
+    >
+    persist({ image_translation: { ...existing, ...patch } })
+  }
+
+  const handleTextNormalizationChange = (enabled: boolean) => {
+    setTextNormalizationEnabled(enabled)
+    const existing = (bookConfigData?.config?.core_tts ?? {}) as Record<
+      string,
+      unknown
+    >
+    persist({
+      core_tts: {
+        ...existing,
+        language_normalization: enabled,
+      },
+    })
+  }
+
+  const handleImagesConfirm = (ids: string[]) => {
+    setSelectedImageIds(ids)
+    persistImageTranslation({
+      enabled: ids.length > 0,
+      selected_image_ids: ids.length > 0 ? ids : undefined,
+    })
+    setImageDialogOpen(false)
+  }
+
+  const handleRun = () => {
+    if (!hasApiKey || !storyboardReady || status.isRunning) return
+    queueRun({ fromStage: "translate", toStage: "translate", apiKey })
+  }
+
+  const hasLanguages = outputLanguages.size > 0
+  const hasAdditionalLanguages = Array.from(outputLanguages).some(
+    (code) => normalizeLocale(code) !== baseLanguage,
+  )
+
+  const disabledReason = !hasApiKey ? (
+    <Trans>Add an API key in Book settings to run translation.</Trans>
+  ) : !storyboardReady ? (
+    <Trans>Run Storyboard first — translation needs the typed sections placed by Storyboard.</Trans>
+  ) : !hasLanguages ? (
+    <Trans>Add at least one output language to run translation.</Trans>
+  ) : undefined
+
+  return (
+    <StepLandingShell
+      beforeRun={beforeRun}
+      bookLabel={bookLabel}
+      stageSlug="translate"
+      isRunning={status.isRunning}
+      isCompleted={status.isCompleted}
+      hasError={status.hasError}
+      canRun={true}
+      extraDisabled={!hasApiKey || !storyboardReady || !hasLanguages}
+      disabledReason={disabledReason}
+      runLabel={<Trans>Run Translation</Trans>}
+      rerunLabel={<Trans>Re-run</Trans>}
+      previewLabel={t`Translation Preview`}
+      onRun={handleRun}
+      preview={
+        <LanguagePreview
+          baseLanguage={baseLanguage}
+          outputLanguages={Array.from(outputLanguages)}
+          imageCount={selectedImageIds.length}
+        />
+      }
+      runWarning={
+        isFixedLayout && hasAdditionalLanguages
+          ? {
+              title: <FixedLayoutWarningTitle />,
+              description: <FixedLayoutExtraLanguagesDescription />,
+            }
+          : null
+      }
+    >
+      <div className="flex flex-col gap-2">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
+          <Trans>Language</Trans>
+        </h1>
+        <p className="text-[14px] text-muted-foreground leading-relaxed">
+          <Trans>
+            Translate the book into additional languages. Each language is
+            generated alongside the original, ready for narration, captions,
+            and on-page reading.
+          </Trans>
+        </p>
+      </div>
+
+      <PrereqGuard
+        upstreamSlug="storyboard"
+        stageSlug="translate"
+        description={
+          <Trans>
+            Translation runs on the typed sections placed by Storyboard.
+            Finish Storyboard before running this stage.
+          </Trans>
+        }
+      />
+
+      <SettingsCard>
+        <SettingsField
+          label={<Trans>Output Languages</Trans>}
+          hint={
+            <Trans>
+              Pick the languages you want to translate to. The book's original
+              language stays as-is.
+            </Trans>
+          }
+        >
+          <div className="flex flex-col gap-2.5">
+            {outputLanguages.size > 0 && (
+              <ul className="flex flex-wrap gap-1.5">
+                {Array.from(outputLanguages).map((code) => (
+                  <li
+                    key={code}
+                    style={{ viewTransitionName: viewTransitionNameFor(code) }}
+                  >
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-pink-200 bg-pink-50 px-2.5 py-1 text-[12px] font-medium text-pink-700 transition-colors">
+                      {displayLang(code)}
+                      <button
+                        type="button"
+                        onClick={() => handleLanguageRemove(code)}
+                        aria-label={t`Remove ${displayLang(code)}`}
+                        className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full text-pink-500 transition-colors hover:bg-pink-100 hover:text-pink-700"
+                      >
+                        <X className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden />
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <LanguagePicker
+              selected={outputLanguages}
+              onSelect={handleLanguageToggle}
+              multiple
+              renderBadges={false}
+              label={t`Add language`}
+            />
+            <FixedLayoutWarningBanner
+              show={isFixedLayout}
+              description={<FixedLayoutExtraLanguagesDescription />}
+            />
+          </div>
+        </SettingsField>
+      </SettingsCard>
+
+      <SettingsCard>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="text-normalization"
+              className="text-sm font-semibold leading-5 text-foreground"
+            >
+              <Trans>Text normalization</Trans>
+            </label>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              <Trans>
+                Prepare numbers, dates, and abbreviations for natural speech.
+                Math and LaTeX are handled separately.
+              </Trans>
+            </p>
+          </div>
+          <Switch
+            id="text-normalization"
+            checked={textNormalizationEnabled}
+            onCheckedChange={handleTextNormalizationChange}
+            aria-label={t`Enable text normalization`}
+          />
+        </div>
+      </SettingsCard>
+
+      <SettingsCard>
+        <SettingsField
+          label={<Trans>Image Translations</Trans>}
+          labelAction={
+            <SettingExplainer
+              visual={<ImageTranslationVisual />}
+              description={
+                <Trans>
+                  Sample shown for illustration. The actual languages used
+                  come from your Output Languages list above.
+                </Trans>
+              }
+            />
+          }
+          hint={
+            <Trans>
+              Optionally translate burned-in text inside images (signs, labels,
+              callouts). Select the images to localize — leaving the list
+              empty keeps images in the source language.
+            </Trans>
+          }
+        >
+            <div className="flex flex-col gap-2">
+              {selectedImageIds.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setImageDialogOpen(true)}
+                  disabled={!captionsReady}
+                  className="group flex w-full items-center gap-3 rounded-md border border-border bg-card px-3 py-2.5 text-left transition-colors hover:border-border hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-pink-100 text-pink-700">
+                    <Images className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                  </span>
+                  <span className="flex-1 text-[13px] font-medium text-foreground">
+                    <Trans>
+                      {selectedImageIds.length} image
+                      {selectedImageIds.length === 1 ? "" : "s"} selected
+                    </Trans>
+                  </span>
+                  <Pencil
+                    className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-foreground"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setImageDialogOpen(true)}
+                  disabled={!captionsReady}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border bg-muted px-3 py-3 text-[12px] font-medium text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Images
+                    className="h-3.5 w-3.5"
+                    strokeWidth={2.25}
+                    aria-hidden
+                  />
+                  <Trans>Choose images...</Trans>
+                </button>
+              )}
+
+              {!captionsReady && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11.5px] text-amber-800">
+                  <AlertCircle
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                  <span>
+                    <Trans>
+                      Run Image Captions first — only captioned images appear
+                      in this list.
+                    </Trans>
+                  </span>
+                </div>
+              )}
+            </div>
+          </SettingsField>
+        </SettingsCard>
+
+      {imageDialogOpen && (
+        <SelectImagesDialog
+          bookLabel={bookLabel}
+          initialSelected={selectedImageIds}
+          onConfirm={handleImagesConfirm}
+          onClose={() => setImageDialogOpen(false)}
+        />
+      )}
+    </StepLandingShell>
+  )
+}

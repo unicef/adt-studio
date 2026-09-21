@@ -14,6 +14,7 @@ import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { useStepConfig } from "@/hooks/use-step-config"
+import { STEP_SETTINGS_ANCHORS } from "@/components/app/screens/pipeline/settings/searchIndex"
 import { useLingui } from "@lingui/react/macro"
 import { getSectionTypeLabel, getSectionTypeDescription } from "@/lib/section-constants"
 
@@ -140,7 +141,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
     <div className={tab === "prompt" ? "h-full w-full" : "p-4 max-w-2xl space-y-6"}>
       {tab === "general" && (
         <>
-          <div className="space-y-1.5">
+          <div id={STEP_SETTINGS_ANCHORS.quizzesPagesPerQuiz} className="space-y-1.5 scroll-mt-6">
             <Label className="text-xs">{t`Pages per Quiz`}</Label>
             <Input
               type="number"
@@ -155,7 +156,10 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
             </p>
           </div>
 
-          <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+          <div
+            id={STEP_SETTINGS_ANCHORS.quizzesMatchStyle}
+            className="flex items-center justify-between gap-3 rounded-md border p-3 scroll-mt-6"
+          >
             <div className="space-y-0.5">
               <Label className="text-xs">{t`Match book style`}</Label>
               <p className="text-xs text-muted-foreground">
@@ -172,7 +176,10 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
             />
           </div>
 
-          <div className="space-y-2 rounded-md border p-3">
+          <div
+            id={STEP_SETTINGS_ANCHORS.quizzesAddQuiz}
+            className="space-y-2 rounded-md border p-3 scroll-mt-6"
+          >
             <div className="flex items-center justify-between gap-3">
               <div className="space-y-0.5">
                 <Label className="text-xs">{t`Add a quiz`}</Label>
@@ -203,7 +210,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
           </div>
 
           {sectionTypeKeys.length > 0 && (
-            <div className="space-y-2">
+            <div id={STEP_SETTINGS_ANCHORS.quizzesSectionTypes} className="space-y-2 scroll-mt-6">
               <Label className="text-xs">{t`Quiz Section Types`}</Label>
               <p className="text-xs text-muted-foreground">
                 {t`Only pages containing these section types are counted when grouping pages for quiz generation.`}

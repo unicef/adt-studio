@@ -95,6 +95,15 @@ vi.mock("@/hooks/use-provider-health", () => ({
     refetch: vi.fn(),
   }),
 }))
+const cliLogin = {
+  status: null as null | { providerId: string; state: string; url?: string; detail?: string },
+  start: vi.fn(),
+  cancel: vi.fn(),
+  logout: vi.fn(),
+  isStarting: false,
+  isLoggingOut: false,
+}
+vi.mock("@/hooks/use-cli-login", () => ({ useCliLogin: () => cliLogin }))
 vi.mock("@/hooks/use-provider-credentials", () => ({
   useProviderCredentials: () => ({
     providers,
@@ -128,6 +137,88 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   setCredential.mockClear()
+  cliLogin.status = null
+  cliLogin.start.mockClear()
+  cliLogin.logout.mockClear()
+})
+
+const CODEX: ProviderDescriptor = {
+  ...descriptor("codex", {
+    displayName: "OpenAI Codex",
+    credentialFields: [
+      {
+        key: "apiKey",
+        kind: "secret",
+        label: localized("API key"),
+        required: false,
+        header: "X-ADT-Provider-Codex-Key",
+        legacyHeaders: [],
+        storageKey: "adt-studio-codex-key",
+        legacyStorageKeys: [],
+      },
+    ],
+  }),
+  supportsCliLogin: true,
+}
+
+describe("ProvidersList — CLI sign-in", () => {
+  beforeEach(() => {
+    providers = [descriptor("openai", { displayName: "OpenAI" }), CODEX]
+  })
+
+  it("offers an in-app ChatGPT sign-in when the Codex CLI has no login", () => {
+    health = { providerId: "codex", ok: false, code: "not-logged-in" }
+    render(<ProvidersList />)
+    const panel = panelFor("openai")
+
+    const button = within(panel).getByRole("button", { name: /Sign in with ChatGPT/ })
+    fireEvent.click(button)
+
+    expect(cliLogin.start).toHaveBeenCalledTimes(1)
+    // The terminal instructions are replaced by the button for a missing login.
+    expect(within(panel).queryByText(/codex login/)).toBeNull()
+  })
+
+  it("shows the waiting state with a fallback link while the CLI waits for the browser", () => {
+    health = { providerId: "codex", ok: false, code: "not-logged-in" }
+    cliLogin.status = {
+      providerId: "codex",
+      state: "pending",
+      url: "https://auth.openai.com/oauth/authorize?client_id=x",
+    }
+    render(<ProvidersList />)
+    const panel = panelFor("openai")
+
+    expect(within(panel).getByText(/Finish signing in with ChatGPT/)).toBeTruthy()
+    const link = within(panel).getByRole("link", { name: /Use this link/ })
+    expect(link.getAttribute("href")).toBe("https://auth.openai.com/oauth/authorize?client_id=x")
+    expect(within(panel).queryByRole("button", { name: /Sign in with ChatGPT/ })).toBeNull()
+  })
+
+  it("offers to sign out once the CLI login is detected", () => {
+    health = { providerId: "codex", ok: true, code: "local-login", detail: "ChatGPT account" }
+    render(<ProvidersList />)
+    const panel = panelFor("openai")
+
+    fireEvent.click(within(panel).getByRole("button", { name: /Sign out/ }))
+
+    expect(cliLogin.logout).toHaveBeenCalledTimes(1)
+    expect(within(panel).queryByRole("button", { name: /Sign in with ChatGPT/ })).toBeNull()
+  })
+
+  it("warns that a server-side key outranks the sign-in", () => {
+    health = { providerId: "codex", ok: true, code: "ok", detail: "API key" }
+    providers = [
+      descriptor("openai", { displayName: "OpenAI" }),
+      { ...CODEX, fieldStatus: [{ key: "apiKey", configuredOnServer: true }] },
+    ]
+    render(<ProvidersList />)
+    const panel = panelFor("openai")
+
+    expect(within(panel).getByText(/server environment takes precedence/)).toBeTruthy()
+    expect(within(panel).getByRole("button", { name: /Sign in with ChatGPT/ })).toBeTruthy()
+    expect(within(panel).queryByRole("button", { name: /Sign out/ })).toBeNull()
+  })
 })
 
 describe("ProvidersList — live manifests", () => {

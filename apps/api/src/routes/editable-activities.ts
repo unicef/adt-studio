@@ -337,6 +337,7 @@ export function createEditableActivitiesRoutes(
           modelId:
             appConfig.quiz_generation?.model ??
             appConfig.page_sectioning?.model ??
+            appConfig.default_model ??
             "openai:gpt-5.4",
           cacheDir,
           promptEngine,

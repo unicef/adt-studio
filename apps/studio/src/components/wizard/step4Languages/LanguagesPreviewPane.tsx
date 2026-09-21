@@ -41,8 +41,8 @@ function LanguageChip({
       className={cn(
         "animate-chip-enter flex items-center gap-1.5 rounded-full border px-2.5 py-1",
         variant === "primary"
-          ? "border-sky-200 bg-sky-50 text-sky-700"
-          : "border-border bg-white text-foreground",
+          ? "border-sky-400/40 bg-sky-500/10 text-sky-700 dark:text-sky-300"
+          : "border-border bg-card text-foreground",
       )}
     >
       <span className="text-xs font-medium">{name}</span>
@@ -88,7 +88,7 @@ function MockCard({
   children: ReactNode
 }) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-white shadow-sm">
+    <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <div className={cn("flex items-center gap-1.5 px-3 py-2", headerClassName)}>
         {icon}
         <span className="text-[10px] font-semibold uppercase tracking-wide">{role}</span>
@@ -149,7 +149,7 @@ export function LanguagesPreviewPane({
             <MockCard
               icon={<PenLine className="h-3 w-3 text-sky-500" />}
               role={i18n._(WHILE_EDITING_LABEL)}
-              headerClassName="bg-sky-50 text-sky-700 border-b border-sky-100"
+              headerClassName="bg-sky-500/10 text-sky-700 dark:text-sky-300 border-b border-sky-500/20"
             >
               {hasEditing ? (
                 <LanguageChip key={editingLanguage} code={editingLanguage} variant="primary" />
@@ -166,7 +166,7 @@ export function LanguagesPreviewPane({
             <MockCard
               icon={<Globe className="h-3 w-3 text-emerald-500" />}
               role={i18n._(READERS_SEE_LABEL)}
-              headerClassName="bg-emerald-50 text-emerald-700 border-b border-emerald-100"
+              headerClassName="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-b border-emerald-500/20"
             >
               {hasOutput ? (
                 <div className="flex flex-wrap justify-center gap-1">

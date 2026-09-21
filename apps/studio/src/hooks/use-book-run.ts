@@ -22,6 +22,7 @@ import { getStageLabelI18n, getStageRunningLabelI18n } from "@/components/pipeli
 import { bookTasksKey } from "./use-book-tasks"
 import { invalidateStoryboardDependents } from "./use-page-mutations"
 import { useApiKey } from "./use-api-key"
+import { useOpenBook } from "@/components/app/use-open-book"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -134,10 +135,12 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   announceRef.current = announce
 
   const navigate = useNavigate()
+
   // Held in a ref so the always-on SSE effect can navigate (from a toast action)
-  // without listing navigate as a dependency and re-subscribing.
-  const navigateRef = useRef(navigate)
-  navigateRef.current = navigate
+  // without listing it as a dependency and re-subscribing.
+  const openBook = useOpenBook()
+  const openBookRef = useRef(openBook)
+  openBookRef.current = openBook
 
   // Primary source of truth: enriched step-status from the server
   const { data, isPending } = useQuery<StepStatusResponse>({
@@ -196,8 +199,18 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     const es = new EventSource(url)
 
     // Refetch on (re)connection to catch up on any missed events
+    let hadConnection = false
     es.addEventListener("open", () => {
       queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
+      // A reconnection means events were missed — and with them the data
+      // invalidations their handlers would have run (a step-complete while the
+      // connection was down leaves the status saying "done" over stale
+      // content). Refetch the book's data to reconcile; skipped on the first
+      // open, where mount-time fetches already cover it.
+      if (hadConnection) {
+        invalidateBookQueries(queryClient, label)
+      }
+      hadConnection = true
     })
 
     es.addEventListener("progress", (e) => {
@@ -393,8 +406,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             id: `step-error:${pipelineStep}`,
             action: {
               label: i18n._(msg`View details`),
-              onClick: () =>
-                navigateRef.current({ to: "/books/$label/$step", params: { label, step: uiStage } }),
+              onClick: () => openBookRef.current(label, uiStage),
             },
           })
         }
@@ -761,10 +773,26 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         try {
           // The Studio always opts into interactive page-error handling.
           await api.runStages(label, apiKey, { fromStage, toStage, renderOnly, pageErrorPolicy: "ask" }, providerCredentials)
-          // Refetch to reconcile — backend cleared step_runs
+        } catch (error) {
+          // The server refused to start (e.g. a model in the run's range has no
+          // credential). Nothing ran, so say why instead of silently snapping
+          // the optimistic "queued" state back to idle; other stages may still
+          // be running or queued, so nothing else is reset.
+          const detail = error instanceof Error && error.message ? error.message : null
+          toast.error(
+            detail
+              ? i18n._(msg`Could not start ${getStageLabelI18n(fromStage)}: ${detail}`)
+              : i18n._(msg`Could not start ${getStageLabelI18n(fromStage)}.`),
+            { id: `run-start:${label}:${fromStage}`, duration: 12_000 },
+          )
+          announceRef.current(i18n._(msg`${getStageLabelI18n(fromStage)} did not start`), "assertive")
+          // The optimistic wipe above emptied the page caches for a run that
+          // never happened — bring the real pages back.
+          queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
+        } finally {
+          // Refetch to reconcile — the backend either cleared step_runs or
+          // never touched them.
           queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
-        } catch {
-          // Don't reset — other stages may still be running/queued
         }
       })
     },

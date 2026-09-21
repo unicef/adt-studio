@@ -33,7 +33,7 @@ function ResumeMeta({ vm, locale }: { vm: BookVM; locale: string }) {
   )
 }
 
-export function HomeHeroAnchor({ books, pinnedLabels, onOpen, onContinue, onAddBook, onOpenLibrary }: HomeVariantProps) {
+export function HomeHeroAnchor({ books, pinnedLabels, onOpen, onContinue, onAddBook }: HomeVariantProps) {
   const { t, i18n } = useLingui()
   const continueBook = onContinue ?? onOpen
   const pins = pinnedLabels ?? new Set<string>()
@@ -115,7 +115,7 @@ export function HomeHeroAnchor({ books, pinnedLabels, onOpen, onContinue, onAddB
             <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-foreground">
               <Trans>Recent</Trans>
             </h2>
-            <LibraryLink count={books.length} onClick={onOpenLibrary} />
+            <LibraryLink count={books.length} />
           </div>
           <div className="grid grid-cols-6 items-start gap-6">
             <AddBookTile onClick={onAddBook} />

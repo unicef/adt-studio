@@ -15,7 +15,11 @@ import {
   parseVoiceSlotEntryId,
   sortSpeechEntries,
 } from "../speech.js"
-import { getTextCatalogCategory } from "../text-catalog.js"
+import {
+  getTextCatalogCategory,
+  answerTextId,
+  sectionIdOfAnswerTextId,
+} from "../text-catalog.js"
 
 describe("getTextCatalogCategory", () => {
   it("classifies catalog entry ids by their conventions", () => {
@@ -32,6 +36,47 @@ describe("getTextCatalogCategory", () => {
   it("prefers easy-read over the source entry's category", () => {
     expect(getTextCatalogCategory("pg001_im001_easy_read")).toBe("easy-read")
     expect(getTextCatalogCategory("gl001_easy_read")).toBe("easy-read")
+  })
+})
+
+/**
+ * Answer ids are the one catalog id derived from a sectionId, so when a section
+ * retires this is what says which entries — and which audio — retire with it.
+ */
+describe("sectionIdOfAnswerTextId", () => {
+  it("recovers the owning section from a canonical answer id", () => {
+    expect(sectionIdOfAnswerTextId("pg001_sec003_ans_a")).toBe("pg001_sec003")
+  })
+
+  it("recovers it from the legacy `_sN` shape the agent tools used to mint", () => {
+    expect(sectionIdOfAnswerTextId("pg001_s1_ans_a")).toBe("pg001_s1")
+    // Variable-length legacy seqs: the separator is the only thing stopping
+    // `_s1` from claiming `_s11`'s answers.
+    expect(sectionIdOfAnswerTextId("pg001_s11_ans_a")).toBe("pg001_s11")
+  })
+
+  it("resolves suffixed variants to the same owner", () => {
+    expect(sectionIdOfAnswerTextId("pg001_sec003_ans_a--secondary")).toBe("pg001_sec003")
+    expect(sectionIdOfAnswerTextId("pg001_sec003_ans_a_easy_read")).toBe("pg001_sec003")
+  })
+
+  it("tolerates page ids that contain the separator's characters", () => {
+    // Spread pages carry concatenated ids; nothing about the shape is validated.
+    expect(sectionIdOfAnswerTextId("pg001002_sec001_ans_a")).toBe("pg001002_sec001")
+  })
+
+  it("returns null for ids that are not answers", () => {
+    expect(sectionIdOfAnswerTextId("pg001_t001")).toBeNull()
+    expect(sectionIdOfAnswerTextId("gl001_def")).toBeNull()
+    expect(sectionIdOfAnswerTextId("qz001_o1_exp")).toBeNull()
+    // Shares the prefix but is not an answer of that section.
+    expect(sectionIdOfAnswerTextId("pg001_sec003_answer")).toBeNull()
+    // No owner to the left of the separator.
+    expect(sectionIdOfAnswerTextId("_ans_a")).toBeNull()
+  })
+
+  it("round-trips ids built by answerTextId", () => {
+    expect(sectionIdOfAnswerTextId(answerTextId("pg001_sec003", "item-1"))).toBe("pg001_sec003")
   })
 })
 

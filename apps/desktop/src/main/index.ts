@@ -35,7 +35,10 @@ import {
   STUDIO_APP_SCHEME_PRIVILEGES,
 } from "./protocols/studio-app";
 
-import { checkForUpdates } from "./services/auto-updater";
+import {
+  checkForUpdates,
+  startPeriodicUpdateChecks,
+} from "./services/auto-updater";
 import { initPostUpdateDetection } from "./services/update-state";
 import { setStartupError } from "./services/debug-info";
 
@@ -119,6 +122,7 @@ app.whenReady().then(async () => {
       if (!splashWindow.isDestroyed()) splashWindow.destroy();
       if (closeAfter && !closeAfter.isDestroyed()) closeAfter.destroy();
       checkForUpdates().catch(() => {});
+      startPeriodicUpdateChecks();
     });
 
     return win;

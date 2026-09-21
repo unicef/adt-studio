@@ -94,7 +94,7 @@ export function SectioningPreview() {
   ]
 
   return (
-    <div className="relative flex flex-1 min-h-0 overflow-hidden bg-gradient-to-b from-sky-50/40 via-white to-white">
+    <div className="relative flex flex-1 min-h-0 overflow-hidden">
       <div className="flex flex-col w-full h-full px-5 py-4 gap-3">
         {/* INPUT — extracted blocks */}
         <div className="flex flex-col items-center gap-2 w-full shrink-0">
@@ -108,7 +108,7 @@ export function SectioningPreview() {
             {inputBlocks.map((block) => (
               <div
                 key={block.key}
-                className="flex items-center gap-1 px-2 py-1 rounded-md bg-white ring-1 ring-sky-200"
+                className="flex items-center gap-1 px-2 py-1 rounded-md bg-background ring-1 ring-border"
               >
                 <span className="text-sky-500">{block.icon}</span>
                 <span className="text-[9px] text-sky-700 font-medium leading-none">
@@ -168,7 +168,7 @@ function SectionCard({
   leaves: SectionLeaf[]
 }) {
   return (
-    <div className="rounded-md border border-sky-200 bg-white px-3 py-2.5 flex flex-col gap-2 flex-1 min-h-0 justify-center">
+    <div className="rounded-md border border-border bg-background px-3 py-2.5 flex flex-col gap-2 flex-1 min-h-0 justify-center">
       <div className="flex items-center gap-2">
         <span className="font-semibold text-[9px] tracking-[0.16em] uppercase text-sky-700">
           {label}

@@ -3,6 +3,7 @@ import type { LocalizedText, ProviderManifest } from "@adt/types"
 import type { ProviderModule } from "../../ports/index.js"
 import { LABEL_API_KEY } from "../shared/i18n.js"
 import { checkCodexConnection } from "./connection.js"
+import { codexCliLogin } from "./login.js"
 import { listCodexModels } from "./models.js"
 import { createCodexStructuredTextBackend, type CodexCredentials } from "./structured-text.js"
 
@@ -27,12 +28,12 @@ const HELP_API_KEY: LocalizedText = {
 }
 
 const LOCALIZED_HELP: LocalizedText = {
-  en: "Runs prompts through the Codex CLI installed on this machine, reusing its login when no API key is set. Requires `codex` on PATH (or CODEX_EXECUTABLE) and a `codex login`. The sandbox is read-only and web search, approvals and the user config are disabled so results stay reproducible.",
+  en: "Runs prompts through the Codex CLI on this machine, reusing its login when no API key is set. The CLI is found on PATH, in common install locations or inside the ChatGPT desktop app (CODEX_EXECUTABLE overrides); sign in with your ChatGPT account from this screen or with `codex login`. The sandbox is read-only and web search, approvals and the user config are disabled so results stay reproducible.",
   "pt-BR":
-    "Executa os prompts pelo Codex CLI instalado nesta máquina, reaproveitando o login dele quando nenhuma chave de API é informada. Requer o `codex` no PATH (ou CODEX_EXECUTABLE) e um `codex login`. O sandbox é somente leitura e busca na web, aprovações e a configuração do usuário ficam desativados para manter os resultados reproduzíveis.",
-  es: "Ejecuta los prompts mediante el Codex CLI instalado en este equipo, reutilizando su inicio de sesión cuando no hay clave de API. Requiere `codex` en el PATH (o CODEX_EXECUTABLE) y un `codex login`. El sandbox es de solo lectura y la búsqueda web, las aprobaciones y la configuración del usuario están desactivadas para mantener resultados reproducibles.",
-  fr: "Exécute les prompts via le Codex CLI installé sur cette machine, en réutilisant sa session lorsqu'aucune clé d'API n'est définie. Nécessite `codex` dans le PATH (ou CODEX_EXECUTABLE) et un `codex login`. Le bac à sable est en lecture seule et la recherche web, les approbations et la configuration utilisateur sont désactivées afin que les résultats restent reproductibles.",
-  sq: "Ekzekuton promptet përmes Codex CLI të instaluar në këtë makinë, duke ripërdorur hyrjen e tij kur nuk është caktuar kyç API. Kërkon `codex` në PATH (ose CODEX_EXECUTABLE) dhe një `codex login`. Sandboxi është vetëm për lexim dhe kërkimi në web, miratimet dhe konfigurimi i përdoruesit janë të çaktivizuara për t'i mbajtur rezultatet të riprodhueshme.",
+    "Executa os prompts pelo Codex CLI desta máquina, reaproveitando o login dele quando nenhuma chave de API é informada. O CLI é localizado no PATH, em locais de instalação comuns ou dentro do aplicativo ChatGPT para desktop (CODEX_EXECUTABLE tem prioridade); entre com sua conta do ChatGPT nesta tela ou com `codex login`. O sandbox é somente leitura e busca na web, aprovações e a configuração do usuário ficam desativados para manter os resultados reproduzíveis.",
+  es: "Ejecuta los prompts mediante el Codex CLI de este equipo, reutilizando su inicio de sesión cuando no hay clave de API. El CLI se busca en el PATH, en las ubicaciones de instalación habituales o dentro de la aplicación de escritorio de ChatGPT (CODEX_EXECUTABLE tiene prioridad); inicie sesión con su cuenta de ChatGPT desde esta pantalla o con `codex login`. El sandbox es de solo lectura y la búsqueda web, las aprobaciones y la configuración del usuario están desactivadas para mantener resultados reproducibles.",
+  fr: "Exécute les prompts via le CLI Codex de cette machine, en réutilisant sa session lorsqu'aucune clé d'API n'est définie. Le CLI est recherché dans le PATH, dans les emplacements d'installation courants ou dans l'application de bureau ChatGPT (CODEX_EXECUTABLE a la priorité) ; connectez-vous avec votre compte ChatGPT depuis cet écran ou avec `codex login`. Le bac à sable est en lecture seule et la recherche web, les approbations et la configuration utilisateur sont désactivées afin que les résultats restent reproductibles.",
+  sq: "Ekzekuton promptet përmes Codex CLI të kësaj makine, duke ripërdorur hyrjen e tij kur nuk është caktuar kyç API. CLI kërkohet në PATH, në vendndodhjet e zakonshme të instalimit ose brenda aplikacionit ChatGPT për desktop (CODEX_EXECUTABLE ka përparësi); hyni me llogarinë tuaj ChatGPT nga ky ekran ose me `codex login`. Sandboxi është vetëm për lexim dhe kërkimi në web, miratimet dhe konfigurimi i përdoruesit janë të çaktivizuara për t'i mbajtur rezultatet të riprodhueshme.",
 }
 
 export const codexManifest: ProviderManifest = {
@@ -59,8 +60,10 @@ export const codexManifest: ProviderManifest = {
       // so recursive schemas fall back to a schema-in-the-prompt round.
       strategies: ["native-schema", "parse-repair"],
       recursiveSchemas: false,
-      // The CLI only accepts images as file paths, and the port carries base64.
-      imageInput: false,
+      // The CLI only accepts images as file paths, so the runner writes each
+      // inline image to the turn's scratch directory and attaches it with
+      // `--image`.
+      imageInput: true,
       temperature: false,
     },
   },
@@ -91,6 +94,9 @@ export const codexProvider: ProviderModule<CodexCredentials> = {
   listModels: (context) => listCodexModels(context),
 
   checkConnection: (context) => checkCodexConnection(context),
+
+  /** Browser sign-in (`codex login`) driven from Studio; the CLI keeps the tokens. */
+  cliLogin: codexCliLogin,
 
   createStructuredTextBackend: (context) => createCodexStructuredTextBackend(context),
 }

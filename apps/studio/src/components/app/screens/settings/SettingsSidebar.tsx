@@ -1,6 +1,4 @@
-import { useLocation } from "@tanstack/react-router";
 import { NO_DRAG_REGION } from "@/constants";
-import { activeSettingsTab } from "./nav";
 import { SidebarLogo } from "../../SidebarLogo";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSettingsSearch } from "./useSettingsSearch";
@@ -14,8 +12,6 @@ import { SettingsNavList } from "./SettingsNavList";
 import { SettingsRailFooter } from "./SettingsRailFooter";
 
 export function SettingsSidebar() {
-  const { pathname } = useLocation();
-  const activeKey = activeSettingsTab(pathname).key;
   const {
     inputRef,
     query,
@@ -57,7 +53,7 @@ export function SettingsSidebar() {
               layout="rail"
             />
           ) : (
-            <SettingsNavList activeKey={activeKey} />
+            <SettingsNavList />
           )}
         </div>
       </ScrollArea>

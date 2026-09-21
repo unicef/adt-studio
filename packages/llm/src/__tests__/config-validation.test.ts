@@ -114,6 +114,21 @@ describe("collectStageRunModelChecks", () => {
     )
   })
 
+  it("leaves render-strategy overrides to storyboard runs, so an Extract run on a keyless default is not blocked by them", () => {
+    const checks = collectStageRunModelChecks(
+      config({
+        default_model: "codex:gpt-5.6-terra",
+        render_strategies: {
+          activity_underline_text: { render_type: "activity", config: { model: "openai:gpt-5.4" } },
+        },
+      } as Partial<AppConfig>),
+      ["extract"],
+    )
+    expect(checks).toEqual([
+      { field: "default_model", modelId: "codex:gpt-5.6-terra", modality: "structured-text" },
+    ])
+  })
+
   it("skips render strategies whose type never routes to a model", () => {
     const checks = collectStageRunModelChecks(
       config({

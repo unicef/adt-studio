@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext } from "react"
 import {
-  createRootRoute,
+  createRootRouteWithContext,
   Outlet,
   useNavigate,
   type ErrorComponentProps,
 } from "@tanstack/react-router"
+import type { QueryClient } from "@tanstack/react-query"
 import { AppToaster } from "@/components/AppToaster"
 import { ErrorScreen } from "@/components/ErrorScreen"
 import type { SettingsSection } from "@/components/settings/settingsSections"
@@ -24,7 +25,11 @@ function RootErrorComponent({ error, reset }: ErrorComponentProps) {
   return <ErrorScreen variant="app" error={error} reset={reset} />
 }
 
-export const Route = createRootRoute({
+export interface RouterContext {
+  queryClient: QueryClient
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
   errorComponent: RootErrorComponent,
 })

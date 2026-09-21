@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Search, House, BookMarked, Split, Settings, Plus, Upload, CornerDownLeft, BookOpen, type LucideIcon } from "lucide-react"
+import { Search, House, BookMarked, Split, Settings, Plus, Upload, CornerDownLeft, BookOpen, Check, type LucideIcon } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -12,6 +12,8 @@ import { Kbd } from "./ui/Kbd"
 import { useShortcutLabel } from "@/hooks/use-platform"
 import { APP_PATHS } from "./nav"
 import { rankBySearch, searchTokens } from "./search"
+import { buildQuickActions } from "./quick-actions"
+import { useOpenBook } from "./use-open-book"
 import { SETTINGS_PATHS } from "./screens/settings/nav"
 import {
   SETTINGS_SEARCH_ENTRIES,
@@ -30,6 +32,7 @@ interface PaletteItem {
   icon?: LucideIcon
   cover?: CoverSpec
   author?: string
+  active?: boolean
   run: () => void
 }
 interface PaletteGroup {
@@ -79,6 +82,7 @@ type PaletteResultsProps = Omit<CommandPaletteProps, "open">
 
 function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsProps) {
   const navigate = useNavigate()
+  const openBook = useOpenBook()
   const { t, i18n } = useLingui()
   const [query, setQuery] = useState("")
   const [active, setActive] = useState(0)
@@ -109,8 +113,11 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
         sub: `${vm.authors} · ${vm.pagesText}`,
         cover: vm.cover,
         author: vm.authors,
-        run: () => navigate({ to: "/books/$label/$step", params: { label: b.label, step: "book" } }),
+        run: () => openBook(b.label),
       }
+    })
+    const quickActions: PaletteItem[] = buildQuickActions(i18n, {
+      goToLibrary: () => navigate({ to: APP_PATHS.library }),
     })
     const settingsItems: PaletteItem[] = buildSettingsSearchItems(
       i18n,
@@ -133,10 +140,11 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
     return [
       { label: t`Navigation`, items: rank(nav) },
       { label: t`Books`, items: rank(bookItems) },
+      { label: t`Change`, items: rank(quickActions) },
       { label: t`Settings`, items: rank(settingsItems) },
       { label: t`Actions`, items: rank(actions) },
     ].filter((g) => g.items.length > 0)
-  }, [query, books, locale, onOpenAdd, navigate, t, i18n])
+  }, [query, books, locale, onOpenAdd, navigate, openBook, t, i18n])
 
   const flat = useMemo(() => groups.flatMap((g) => g.items), [groups])
   const activeId = flat[active]?.id
@@ -236,6 +244,12 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
                       <div className="text-[13.5px] font-medium text-foreground">{it.title}</div>
                       {it.sub && <div className="truncate text-xs text-muted-foreground">{it.sub}</div>}
                     </div>
+                    {it.active && (
+                      <Check
+                        className="size-3.5 shrink-0 text-brand-600"
+                        aria-label={t`Currently active`}
+                      />
+                    )}
                     {isActive && <CornerDownLeft className="size-3.5 text-muted-foreground" />}
                   </div>
                 )

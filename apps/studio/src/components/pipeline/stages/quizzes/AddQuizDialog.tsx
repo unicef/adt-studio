@@ -197,10 +197,14 @@ export function AddQuizDialog({
   open,
   onOpenChange,
   bookLabel,
+  onCreated,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   bookLabel: string
+  /** Overrides the default navigation to the classic quizzes route after a
+   *  quiz is created — the new pipeline UI stays in place and just refreshes. */
+  onCreated?: () => void
 }) {
   const { t } = useLingui()
   const { data: pages } = usePages(bookLabel)
@@ -357,10 +361,14 @@ export function AddQuizDialog({
         }),
       ])
       onOpenChange(false)
-      navigate({
-        to: "/books/$label/$step",
-        params: { label: bookLabel, step: "quizzes" },
-      })
+      if (onCreated) {
+        onCreated()
+      } else {
+        void navigate({
+          to: "/books/$label/$step",
+          params: { label: bookLabel, step: "quizzes" },
+        })
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : t`Failed to generate the quiz.`)
     } finally {

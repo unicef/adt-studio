@@ -2,20 +2,15 @@ import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
 export interface EmptyStateProps {
-  /** Glyph rendered inside the default brand tile. Ignored if `illustration` is set. */
   icon?: ReactNode
-  /** Full custom illustration, replacing the default icon tile. */
   illustration?: ReactNode
   title: ReactNode
   description?: ReactNode
-  /** Call-to-action row (buttons). */
   children?: ReactNode
-  /** Decorative radial glows behind the content. */
   bloom?: boolean
   className?: string
 }
 
-/** First-run / empty scaffold: optional glow, hero icon or illustration, title, copy, CTAs. */
 export function EmptyState({ icon, illustration, title, description, children, bloom, className }: EmptyStateProps) {
   return (
     <div className={cn("relative overflow-hidden text-center", className)}>

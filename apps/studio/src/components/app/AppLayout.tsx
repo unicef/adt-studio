@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Outlet, useLocation } from "@tanstack/react-router"
+import { Outlet, useRouterState } from "@tanstack/react-router"
 import { useLingui } from "@lingui/react/macro"
 import { Trans } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
@@ -15,16 +15,20 @@ import { AppShellContext } from "./AppShellContext"
 import { useAppBooks } from "./use-app-books"
 import { Kbd, MOD_KEY } from "./ui/Kbd"
 import { ComingSoonBanner } from "./screens/settings/ui"
-import { APP_PATHS } from "./nav"
+import { isFullBleedAppView } from "./nav"
 
+// Only the palette has a handler; the rest are still unimplemented, so the
+// dialog advertises this one and says the others are coming.
 const SHORTCUTS: { keys: string[]; label: MessageDescriptor }[] = [
   { keys: [MOD_KEY, "K"], label: msg`Open command palette` },
 ]
 
 export function AppLayout() {
   const { t, i18n } = useLingui()
-  const { pathname } = useLocation()
-  const isSettings = pathname.startsWith(APP_PATHS.settings)
+  const pathname = useRouterState({
+    select: (state) => state.matches[state.matches.length - 1]?.pathname ?? state.location.pathname,
+  })
+  const isFullBleed = isFullBleedAppView(pathname)
   usePageTitle(t`ADT Studio`)
   const { books, locale } = useAppBooks()
   const deleteMutation = useDeleteBook()
@@ -59,7 +63,7 @@ export function AppLayout() {
   return (
     <AppShellContext value={shell}>
       <div className="flex h-full w-full overflow-hidden bg-background text-foreground">
-        {!isSettings && (
+        {!isFullBleed && (
           <AppSidebar
             libraryCount={books.length}
             handoffsCount={handoffsCount}

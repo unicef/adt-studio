@@ -12,6 +12,7 @@ import type {
   EditableActivity,
   FontAssignmentOutput,
   ExtractionWarning,
+  PackagingWarning,
   ReviewerPageValidationRecord,
   ReviewerValidationIdentificationField,
   ReviewerValidationInstruction,
@@ -20,6 +21,7 @@ import type {
   TranslationEvaluationResult,
   ProvidersResponse,
   ModelDiscoveryResponse,
+  ProviderCliLoginStatus,
   ProviderHealthResponse,
   AiModality,
 } from "@adt/types"
@@ -32,6 +34,8 @@ import {
 } from "./provider-credentials"
 
 export type { BookSummary, BookDetail }
+
+const CLI_ACTION_HEADERS = { "X-ADT-CLI-Action": "1" } as const
 
 export function resolveBaseUrl(
   _loc: Pick<Location, "protocol" | "hostname"> = window.location,
@@ -350,6 +354,36 @@ export async function getProviderHealth(
   )
 }
 
+/**
+ * Studio-driven CLI sign-in for a provider. The server runs the CLI's own
+ * browser login and only relays the sign-in URL as a fallback link; the CLI
+ * keeps the tokens.
+ */
+export async function startProviderCliLogin(providerId: string): Promise<ProviderCliLoginStatus> {
+  return request<ProviderCliLoginStatus>(
+    `/providers/${encodeURIComponent(providerId)}/cli-login`,
+    { method: "POST", headers: CLI_ACTION_HEADERS },
+  )
+}
+
+export async function getProviderCliLogin(providerId: string): Promise<ProviderCliLoginStatus> {
+  return request<ProviderCliLoginStatus>(`/providers/${encodeURIComponent(providerId)}/cli-login`)
+}
+
+export async function cancelProviderCliLogin(providerId: string): Promise<ProviderCliLoginStatus> {
+  return request<ProviderCliLoginStatus>(
+    `/providers/${encodeURIComponent(providerId)}/cli-login`,
+    { method: "DELETE", headers: CLI_ACTION_HEADERS },
+  )
+}
+
+export async function logoutProviderCli(providerId: string): Promise<void> {
+  await request<{ ok: boolean }>(`/providers/${encodeURIComponent(providerId)}/cli-logout`, {
+    method: "POST",
+    headers: CLI_ACTION_HEADERS,
+  })
+}
+
 export interface PendingDecision {
   decisionId: string
   step: string
@@ -375,6 +409,15 @@ export interface PageSummarySection {
   isActivity: boolean
   isPruned: boolean
   textPreview: string
+}
+
+/** An entry of the packaged ADT `content/pages.json` manifest. The first page of
+ *  the book is written as `index.html`, so a section's href can only be resolved
+ *  through this manifest — never derived from the section id. */
+export interface AdtPageEntry {
+  section_id: string
+  href: string
+  page_number?: number
 }
 
 export interface PageSummaryItem {
@@ -545,6 +588,11 @@ export interface QuizOption {
 }
 
 export interface QuizItem {
+  /** Stable output-page id (`qz001`). Filled in by GET /quizzes; optional only
+   *  because a book written before it existed has none stored. Round-trip it on
+   *  every write — it keys the quiz's catalog entries, translations and audio. */
+  quizId?: string
+  /** @deprecated Positional, renumbered on every add/delete. Not an identity. */
   quizIndex: number
   afterPageId: string
   pageIds: string[]
@@ -562,7 +610,9 @@ export interface QuizGenerationOutput {
 }
 
 export interface QuizzesResponse {
-  quizzes: QuizGenerationOutput | null
+  /** Selected history version, including an inactive quiz version. */
+  historyVersion: number | null
+  quizzes: (Omit<QuizGenerationOutput, "quizzes"> & { quizzes: Array<QuizItem & { quizId: string }> }) | null
   version: number | null
 }
 
@@ -1630,10 +1680,11 @@ export const api = {
     label: string,
     node: string,
     itemId: string,
-    includeData?: boolean
+    includeData?: boolean,
+    resolveQuizIds?: boolean,
   ) =>
     request<VersionListResponse>(
-      `/books/${label}/debug/versions/${node}/${itemId}${includeData ? "?includeData=true" : ""}`
+      `/books/${label}/debug/versions/${node}/${itemId}${includeData ? `?includeData=true${resolveQuizIds ? "&resolveQuizIds=true" : ""}` : ""}`
     ),
 
   getBookOutline: (label: string) =>
@@ -1937,11 +1988,18 @@ export const api = {
       body: JSON.stringify({ language }),
     }),
 
+  // `warnings` is present whenever packaging completed inline (a cache hit, or a
+  // server with no task service). When it returns a taskId the warnings ride the
+  // task result instead. Either way the caller must surface them — a short
+  // bundle otherwise looks like a clean one.
   packageAdt: (label: string) =>
-    request<{ status: string; label: string; taskId?: string; version?: string }>(
-      `/books/${label}/package-adt`,
-      { method: "POST" }
-    ),
+    request<{
+      status: string
+      label: string
+      taskId?: string
+      version?: string
+      warnings?: PackagingWarning[]
+    }>(`/books/${label}/package-adt`, { method: "POST" }),
 
   getTasks: (label: string) =>
     request<{ tasks: TaskInfoResponse[] }>(`/books/${label}/tasks`),
@@ -1950,6 +2008,9 @@ export const api = {
     request<{ label: string; hasAdt: boolean; version?: string }>(
       `/books/${label}/package-adt/status`
     ),
+
+  getAdtPages: (label: string) =>
+    request<AdtPageEntry[]>(`/books/${label}/adt/content/pages.json`),
 
   getTemplates: () =>
     request<{ templates: string[] }>(`/templates`),
@@ -2105,7 +2166,12 @@ export const api = {
     const body: Record<string, unknown> = {}
     if (features) body.features = features
     if (defaultSettings) body.defaultSettings = defaultSettings
-    return request<{ taskId?: string; status: string; label: string }>(
+    return request<{
+      taskId?: string
+      status: string
+      label: string
+      warnings?: PackagingWarning[]
+    }>(
       `/books/${label}/prepare-export?format=${format}`,
       {
         method: "POST",

@@ -3,37 +3,16 @@ import {
   toJsonSchema as toSharedJsonSchema,
   type ZodLike,
 } from "../shared/json-schema.js"
+import { detectImageMediaType, stripDataUrl } from "../shared/image-media-type.js"
 import type { ClaudeAgentContentBlock } from "./cli.js"
 
 export { asZodLike } from "../shared/json-schema.js"
+export { detectImageMediaType }
 export type { ZodLike }
 
 const ROLE_LABELS: Record<"user" | "assistant", string> = {
   user: "User:",
   assistant: "Assistant:",
-}
-
-const DATA_URL_PATTERN = /^data:(image\/[a-z0-9.+-]+);base64,/i
-
-const BASE64_MAGIC_MEDIA_TYPES: ReadonlyArray<[string, string]> = [
-  ["iVBORw0KGgo", "image/png"],
-  ["/9j/", "image/jpeg"],
-  ["R0lGOD", "image/gif"],
-  ["UklGR", "image/webp"],
-]
-
-export function detectImageMediaType(image: string): string {
-  const dataUrl = DATA_URL_PATTERN.exec(image)
-  if (dataUrl) return dataUrl[1]!.toLowerCase()
-
-  for (const [prefix, mediaType] of BASE64_MAGIC_MEDIA_TYPES) {
-    if (image.startsWith(prefix)) return mediaType
-  }
-  return "image/png"
-}
-
-function stripDataUrl(image: string): string {
-  return image.replace(DATA_URL_PATTERN, "")
 }
 
 function toBlocks(content: Message["content"]): ClaudeAgentContentBlock[] {

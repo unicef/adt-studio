@@ -34,6 +34,21 @@ export interface ModalityCapabilities {
 export type CapabilitiesFor<M extends AiModality> = ModalityCapabilities[M]
 
 /** Never serialized — `manifest` is the only piece that crosses an HTTP boundary. */
+/** A CLI sign-in started from Studio; the CLI owns the tokens it receives. */
+export interface CliLoginSession {
+  /** Sign-in page, for when the CLI could not open the browser itself. Absent when nothing is left to do. */
+  url?: string
+  /** Settles when the CLI reports the login finished; rejects with the CLI's own message. */
+  completion: Promise<void>
+  /** Abort the waiting CLI process. */
+  cancel: () => void
+}
+
+export interface CliLoginPort<C extends ProviderCredentialValues = ProviderCredentialValues> {
+  start(context: ConnectionCheckContext<C>): Promise<CliLoginSession>
+  logout(context: ConnectionCheckContext<C>): Promise<void>
+}
+
 export interface ProviderModule<
   C extends ProviderCredentialValues = ProviderCredentialValues,
 > {
@@ -69,6 +84,13 @@ export interface ProviderModule<
   checkConnection?: (
     context: ConnectionCheckContext<C>,
   ) => Promise<ProviderConnectionStatus>
+
+  /**
+   * Optional Studio-driven sign-in for CLI-backed providers, so nobody has to
+   * open a terminal. The port only starts and observes the CLI's own login
+   * flow; credentials stay in the CLI's files and never pass through the ADT.
+   */
+  cliLogin?: CliLoginPort<C>
 
   createStructuredTextBackend?: BackendFactory<StructuredTextBackend, C>
   createAgentBackend?: BackendFactory<AgentBackend, C>

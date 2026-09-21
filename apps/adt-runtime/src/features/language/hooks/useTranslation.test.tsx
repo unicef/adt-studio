@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest"
-import { renderHook } from "@testing-library/react"
+import { cleanup, renderHook } from "@testing-library/react"
 import { getDefaultStore } from "jotai"
 import { translationsAtom } from "@/features/language/state/language.atoms"
 import { useTranslation } from "./useTranslation"
 
 describe("useTranslation", () => {
   afterEach(() => {
+    cleanup()
     getDefaultStore().set(translationsAtom, {})
   })
 
