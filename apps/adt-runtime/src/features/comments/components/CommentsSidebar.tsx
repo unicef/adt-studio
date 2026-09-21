@@ -1,4 +1,5 @@
 import { readableTextColor } from "@adt/types/color"
+import { initialOf } from "@/features/comments/lib/initial"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Check, X } from "lucide-react"
 import { useEffect, useMemo, useRef } from "react"
@@ -224,7 +225,7 @@ export function CommentsSidebar({
           </p>
         ) : (
           <ul className="flex flex-col gap-1">
-            {shown.map((comment, index) => {
+            {shown.map((comment) => {
               const replies = repliesOf(threadSource, comment.id)
               const resolved = comment.resolved_at !== null
               const selected = openThreadId === comment.id
@@ -255,7 +256,7 @@ export function CommentsSidebar({
                         resolved && "opacity-60 saturate-50",
                       )}
                     >
-                      {resolved ? <Check className="h-3 w-3 stroke-[3]" /> : index + 1}
+                      {resolved ? <Check className="h-3 w-3 stroke-[3]" /> : initialOf(comment.author_name)}
                     </span>
 
                     <span className="min-w-0 flex-1">

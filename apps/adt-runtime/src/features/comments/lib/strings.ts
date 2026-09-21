@@ -33,7 +33,7 @@ export const COMMENT_STRINGS = {
   "comments-thread-label": "Comment thread",
   "comments-you-label": "you",
   "comments-unanchored-label": "On this page",
-  "comments-pin-aria-label": "Comment ${number} by ${name}",
+  "comments-pin-aria-label": "Comment by ${name}",
   "comments-just-now-label": "just now",
   "comments-minutes-ago-label": "${count} min ago",
   "comments-hours-ago-label": "${count} h ago",
@@ -65,7 +65,7 @@ export const COMMENT_STRINGS = {
   "comments-resolved-label": "Resolved",
   "comments-resolved-hint-label":
     "The author closed this thread. A reply still reaches them and stays with the resolved thread.",
-  "comments-resolved-pin-aria-label": "Resolved comment ${number} by ${name}",
+  "comments-resolved-pin-aria-label": "Resolved comment by ${name}",
   "comments-resolved-hidden-label": "${count} resolved",
   "comments-one-resolved-label": "1 resolved",
   "comments-list-label": "Comments on this page",

@@ -4,6 +4,7 @@ import { announceToScreenReader } from "@/shared/lib/aria-live"
 import { currentSectionIdAtom } from "@/features/navigation/state/nav.atoms"
 import { repliesOf, rootComments, type PublishComment } from "@/features/comments/lib/contract"
 import { anchorForElement, resolveAnchor } from "@/features/comments/lib/anchor"
+import { initialOf } from "@/features/comments/lib/initial"
 import { scrollBehavior } from "@/features/comments/lib/motion"
 import { useAnchorPositions, type AnchorTarget } from "@/features/comments/hooks/useAnchorPositions"
 import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
@@ -332,14 +333,14 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
         className="pointer-events-none fixed inset-0 z-40 overflow-hidden"
         data-comments-overlay=""
       >
-        {roots.map((comment, index) => {
+        {roots.map((comment) => {
           const anchored = positions.has(comment.id)
           const point = anchored
             ? positions.get(comment.id)!
             : pageStackPoint(pageStackIndex++)
           const own = session?.id === comment.session_id
           const resolved = comment.resolved_at !== null
-          const label = String(index + 1)
+          const label = initialOf(comment.author_name)
           const draggable = own && anchored && comment.anchor !== null
           return (
             <CommentPin
@@ -362,7 +363,7 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
               title={draggable ? t("comments-drag-hint-label") : undefined}
               ariaLabel={t(
                 resolved ? "comments-resolved-pin-aria-label" : "comments-pin-aria-label",
-                { number: label, name: comment.author_name },
+                { name: comment.author_name },
               )}
               onPointerDown={draggable ? handlersFor(comment.id).onPointerDown : undefined}
               onPointerEnter={() => schedulePreview(comment.id)}
@@ -484,8 +485,8 @@ function dragColor(roots: PublishComment[], id: string, fallback: string): strin
 }
 
 function dragLabel(roots: PublishComment[], id: string): string {
-  const index = roots.findIndex((comment) => comment.id === id)
-  return index === -1 ? "+" : String(index + 1)
+  const root = roots.find((comment) => comment.id === id)
+  return root ? initialOf(root.author_name) : "+"
 }
 
 function pageStackPoint(index: number): { x: number; y: number } {
