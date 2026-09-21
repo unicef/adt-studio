@@ -70,12 +70,34 @@ Anchors (verified 2026-09-21 against `develop` at 7a8896528):
 - Per-element freshness records or a scheduler choosing individual changed IDs.
 - A general dependency graph across arbitrary entity types.
 - Section-level freshness for Storyboard, glossary, quizzes or TOC in V1.
+- Tracking Sectioning edits to regenerate only the affected Storyboard pages.
+  This Sectioning → Storyboard behavior is explicitly deferred, as detailed below.
 - Redesigning model cache keys or guaranteeing a fresh model response on every
   regeneration. Storyboard's explicit re-render/cache-bypass work in #731 remains
   a separate behavior to reconcile before implementation.
 - Reconstructing missing historical input provenance for existing books.
 - New panels. Extend existing selection and status UI only as needed to show
   stale sections and protected work. All new Studio text follows Lingui rules.
+
+### Explicit boundary: Sectioning → Storyboard
+
+**This spec does not implement per-section or per-page staleness for Storyboard.**
+For example, editing one section in Sectioning and then having a Storyboard stage
+run regenerate only the affected page(s) is a separate follow-up. V1 does not
+introduce automatic Storyboard regeneration after Sectioning edits or change a
+full Storyboard run into an affected-pages-only run.
+
+Existing targeted page/section re-render actions remain available. This spec
+covers their downstream effects: when Storyboard content is saved or regenerated,
+compare the resulting section content and invalidate the affected captions,
+translation, easy-read and speech outputs without deleting unrelated work.
+The rule for selecting which Storyboard pages need regeneration is outside scope.
+
+A follow-up could reuse the existing targeted render APIs, but reliable affected-
+page selection also needs persistent freshness tracking, coverage of all
+Sectioning mutations (including splits and cross-page merges), and correct
+aggregate Storyboard status after partial success or failure. Treat that as a
+separately estimated change, not a small implicit extension of this spec.
 
 ## What counts as a content change
 
@@ -138,6 +160,8 @@ section boundary is not a promise that genuine shared dependencies disappear.
 2. Regenerating a Storyboard page repairs that page's Storyboard only. Compare
    the resulting section content and mark changed downstream sections stale.
    An identical or purely cosmetic result creates no new downstream work.
+   This describes an existing targeted action's downstream effects; it does not
+   add affected-page selection for a Storyboard stage run after Sectioning edits.
 3. "Regenerate stale only" selects applicable missing/stale sections in the
    requested stage. Run each affected downstream step in full for those sections,
    processing all eligible assets, including assets whose inputs are unchanged.

@@ -891,7 +891,10 @@ easy-read and speech. Compare deterministic section content snapshots: relevant
 text, image identity, captions, ordering and other consumed context. Exclude
 purely cosmetic styles such as text color and displayed image size. Include
 effective generation settings and shared dependencies where consumed. Storyboard's
-own freshness is outside V1 scope.
+own freshness is outside V1 scope. In particular, tracking Sectioning edits so a
+Storyboard stage run rebuilds only affected pages is a separate follow-up. This
+decision governs downstream effects of existing Storyboard save/re-render
+actions, not selection of pages for Storyboard regeneration.
 
 A relevant change marks affected section outputs stale without deleting them.
 Page and stage actions select sections and use the same downstream execution
