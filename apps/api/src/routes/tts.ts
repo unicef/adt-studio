@@ -826,9 +826,8 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       const cacheDir = path.join(bookDir, ".cache")
 
       // Request parameters recorded on the debug log entry so the settings that
-      // produced this audio are inspectable. Takes provider/model/voice per call
-      // because a fallback attempt logs a different provider than the primary.
-      // ElevenLabs only for now — the other providers' params are a separate change.
+      // produced this audio are inspectable. ElevenLabs only for now — the other
+      // providers' params are a separate change.
       const logParamsFor = (
         targetProvider: string,
         targetModel: string,
@@ -935,14 +934,12 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
        * user clicking regenerate while a run is in flight — or retuning a voice
        * in quick succession, which is what the voice-tuning sliders invite —
        * gets a 429 that both full-run paths retry but this one used to surface
-       * as an outright failure. (The cross-provider fallback below can't help:
-       * it is gated on Gemini's "did not include audio data".)
+       * as an outright failure.
        *
        * The retry budget is deliberately smaller than the batch paths': this is
        * a synchronous HTTP handler, so it absorbs the transient concurrency hit
        * without holding the request open long enough to trip a client or proxy
-       * timeout. Wrapping here rather than at the call sites covers the fallback
-       * attempts too.
+       * timeout.
        */
       let synthesisAttempts = 0
       const generateEntry = async (options: {

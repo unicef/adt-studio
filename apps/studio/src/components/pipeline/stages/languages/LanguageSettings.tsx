@@ -467,7 +467,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
         // back on and find it gone. It is inert while batching is off anyway.
         batch_max_chars:
           batchMaxChars.trim() !== "" && Number.isFinite(Number(batchMaxChars))
-            ? Math.max(120, Math.trunc(Number(batchMaxChars)))
+            ? Math.max(MIN_BATCH_MAX_CHARS, Math.trunc(Number(batchMaxChars)))
             : undefined,
         word_highlighting: wordHighlighting,
         excluded_categories: Array.from(excludedCategories),
