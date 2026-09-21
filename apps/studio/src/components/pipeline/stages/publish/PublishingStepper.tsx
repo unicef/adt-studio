@@ -23,7 +23,7 @@ export function PublishingStepper({ phase }: { phase: PublishPhase }) {
   const steps = [
     { key: "connect", label: <Trans>Connect an account</Trans> },
     { key: "configure", label: <Trans>Decide how to share</Trans> },
-    { key: "publish", label: <Trans>Publish</Trans> },
+    { key: "publish", label: <Trans>Share</Trans> },
   ]
 
   return (

@@ -105,9 +105,9 @@ export function PublishingSummary({
         value={currentVersion === null ? "—" : `v${currentVersion}`}
         hint={
           newest ? (
-            <Trans>of {versions.length} published</Trans>
+            <Trans>of {versions.length} shared</Trans>
           ) : (
-            <Trans>Nothing published yet</Trans>
+            <Trans>Nothing shared yet</Trans>
           )
         }
       />

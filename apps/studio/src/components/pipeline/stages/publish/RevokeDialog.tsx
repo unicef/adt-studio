@@ -44,7 +44,7 @@ export function RevokeDialog({
         <p className="text-sm leading-6 text-muted-foreground">
           <Trans>
             The comments people left are kept. You can resume sharing later on this same link, or
-            publish again for a new address if this one leaked.
+            share again for a new address if this one leaked.
           </Trans>
         </p>
 

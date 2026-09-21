@@ -118,8 +118,8 @@ export function usePublishAnnouncer(
           : t`${title} is updated. The link now shows your latest version.`
         : cue === "failed"
           ? run.kind === "publish"
-            ? t`Publishing ${title} stopped. Nothing has been shared.`
-            : t`Publishing ${title} stopped. Your readers are still on the copy they had.`
+            ? t`Sharing ${title} stopped. Nothing has been shared.`
+            : t`Sharing ${title} stopped. Your readers are still on the copy they had.`
           : uploadMilestone > 0 && run.progress
             ? t`${stepTitle}. ${sent} of ${outOf} sent.`
             : t`${stepTitle}. Step ${stepNumber} of ${stepCount}.`

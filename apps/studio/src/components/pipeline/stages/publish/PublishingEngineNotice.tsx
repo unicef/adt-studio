@@ -34,7 +34,7 @@ export function PublishingEngineNotice() {
       >
         <CloudOff className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
         <Trans>
-          Your publishing service isn't answering, so what this page says about versions and
+          Your sharing service isn't answering, so what this page says about versions and
           readers may be out of date. The link itself is usually fine.
         </Trans>
       </p>
@@ -51,7 +51,7 @@ export function PublishingEngineNotice() {
       <ArrowUpCircle className="size-4 shrink-0 text-indigo-600" aria-hidden="true" />
       <p className="min-w-0 flex-1 text-xs leading-5 text-indigo-900">
         <Trans>
-          Your publishing service is version {data.worker_version ?? "?"}; the Studio ships{" "}
+          Your sharing service is version {data.worker_version ?? "?"}; the Studio ships{" "}
           {data.latest_version}. Newer features can be missing until you install it — your link and
           your readers are unaffected either way.
         </Trans>

@@ -172,8 +172,8 @@ describe("PublicationsDashboard — not connected", () => {
     await waitFor(() => {
       expect(screen.getByTestId("publications-not-connected")).toBeTruthy()
     })
-    expect(document.body.textContent).toContain("Connect a Cloudflare account to publish books")
-    expect(screen.getByRole("link", { name: /set up publishing/i }).getAttribute("data-to")).toBe(
+    expect(document.body.textContent).toContain("Connect a Cloudflare account to share books")
+    expect(screen.getByRole("link", { name: /set up sharing/i }).getAttribute("data-to")).toBe(
       "/settings",
     )
     expect(screen.queryByTestId("publications-empty")).toBeNull()
@@ -188,7 +188,7 @@ describe("PublicationsDashboard — connected with nothing published", () => {
     await waitFor(() => {
       expect(screen.getByTestId("publications-empty")).toBeTruthy()
     })
-    expect(document.body.textContent).toContain("Nothing published yet")
+    expect(document.body.textContent).toContain("Nothing shared yet")
     expect(screen.queryByRole("radiogroup")).toBeNull()
     /** No tiles either: "0 kB of 10 GB free" and "every link is live" are true and useless. */
     expect(document.body.textContent).not.toContain("Storage used")
@@ -245,7 +245,7 @@ describe("PublicationsDashboard — populated", () => {
     })
 
     expect(document.body.textContent).toContain("Storage used")
-    expect(document.body.textContent).toContain("Across all published versions")
+    expect(document.body.textContent).toContain("Across all shared versions")
     expect(document.body.textContent).toContain(
       "How many people opened your links is not shown here",
     )
@@ -647,7 +647,7 @@ describe("PublicationsDashboard — searching and sorting", () => {
       expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
     })
 
-    fireEvent.change(screen.getByRole("searchbox", { name: /search published books/i }), {
+    fireEvent.change(screen.getByRole("searchbox", { name: /search shared books/i }), {
       target: { value: "owl" },
     })
     await waitFor(() => {
@@ -655,7 +655,7 @@ describe("PublicationsDashboard — searching and sorting", () => {
     })
     expect(screen.getByTestId("publication-row-owl")).toBeTruthy()
 
-    fireEvent.change(screen.getByRole("searchbox", { name: /search published books/i }), {
+    fireEvent.change(screen.getByRole("searchbox", { name: /search shared books/i }), {
       target: { value: "penguin" },
     })
     await waitFor(() => {
@@ -771,7 +771,7 @@ describe("PublicationsDashboard — the list itself cannot be read", () => {
     await waitFor(() => {
       expect(screen.getByTestId("publications-load-error")).toBeTruthy()
     })
-    expect(document.body.textContent).toContain("We couldn't load your published books")
+    expect(document.body.textContent).toContain("We couldn't load your shared books")
 
     getPublications.mockResolvedValue(overview())
     await act(async () => {

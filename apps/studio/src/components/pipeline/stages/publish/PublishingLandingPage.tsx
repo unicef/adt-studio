@@ -243,7 +243,7 @@ function Header({ compact = false }: { compact?: boolean }) {
   return (
     <header className="flex shrink-0 flex-col gap-1.5">
       <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a] mh:text-[22px]">
-        <Trans>Publishing</Trans>
+        <Trans>Sharing</Trans>
       </h1>
       {compact ? null : (
         <p className="max-w-2xl text-[14px] leading-relaxed text-[#737373]">

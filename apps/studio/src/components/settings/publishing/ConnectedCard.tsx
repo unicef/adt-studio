@@ -54,12 +54,12 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
           >
             <div className="flex flex-col gap-0.5 text-center">
               <span className="text-base font-semibold tracking-tight text-foreground">
-                <Trans>Updating the publishing service</Trans>
+                <Trans>Updating the sharing service</Trans>
               </span>
               <span className="text-xs text-muted-foreground">
                 <Trans>
                   Version {connection.worker_version ?? "?"} → {connection.latest_version}. Your
-                  published books stay online while this runs.
+                  shared books stay online while this runs.
                 </Trans>
               </span>
             </div>
@@ -96,7 +96,7 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="flex flex-wrap items-center gap-2">
                   <h2 className="text-base font-semibold tracking-tight text-foreground">
-                    <Trans>Publishing is ready</Trans>
+                    <Trans>Sharing is ready</Trans>
                   </h2>
                   {connection.upgrade_available ? (
                     <span className="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700">

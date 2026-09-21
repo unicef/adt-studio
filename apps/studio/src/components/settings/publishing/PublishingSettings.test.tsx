@@ -183,7 +183,7 @@ describe("PublishingSettings — connect wizard", () => {
     renderSettings()
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /^set up publishing$/i })).toBeTruthy(),
+      expect(screen.getByRole("button", { name: /^set up sharing$/i })).toBeTruthy(),
     )
     expect(screen.queryByRole("button", { name: /connect with cloudflare/i })).toBeNull()
     expect(startCloudflareOAuth).not.toHaveBeenCalled()
@@ -219,12 +219,12 @@ describe("PublishingSettings — connect wizard", () => {
 
     await waitFor(() =>
       expect(screen.getByRole("heading", { level: 2 }).textContent).toContain(
-        "Set up publishing",
+        "Set up sharing",
       ),
     )
     expect(localStorage.getItem(AUTH_METHOD_KEY)).toBe("oauth")
 
-    fireEvent.click(screen.getByRole("button", { name: /set up publishing/i }))
+    fireEvent.click(screen.getByRole("button", { name: /set up sharing/i }))
 
     expect(provisionCloudflare).toHaveBeenCalledTimes(1)
 
@@ -254,7 +254,7 @@ describe("PublishingSettings — connect wizard", () => {
       finishStream?.()
     })
 
-    await waitFor(() => expect(document.body.textContent).toContain("Publishing is ready"))
+    await waitFor(() => expect(document.body.textContent).toContain("Sharing is ready"))
   })
 
   it("maps a failed step to human guidance and resumes from it on retry", async () => {
@@ -279,9 +279,9 @@ describe("PublishingSettings — connect wizard", () => {
     expect(screen.getByRole("button", { name: /connect with cloudflare/i })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /set up publishing/i })).toBeTruthy(),
+      expect(screen.getByRole("button", { name: /set up sharing/i })).toBeTruthy(),
     )
-    fireEvent.click(screen.getByRole("button", { name: /set up publishing/i }))
+    fireEvent.click(screen.getByRole("button", { name: /set up sharing/i }))
 
     act(() => {
       emit?.({
@@ -333,13 +333,13 @@ describe("PublishingSettings — connect wizard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /set up publishing/i })).toBeTruthy(),
+      expect(screen.getByRole("button", { name: /set up sharing/i })).toBeTruthy(),
     )
 
     const signOut = () => screen.getByRole("button", { name: /sign out/i }) as HTMLButtonElement
     expect(signOut().disabled).toBe(false)
 
-    fireEvent.click(screen.getByRole("button", { name: /set up publishing/i }))
+    fireEvent.click(screen.getByRole("button", { name: /set up sharing/i }))
     /** While the run is in flight it stays blocked — half-provisioned is the one state where
      *  walking away really does leave a mess. */
     expect(signOut().disabled).toBe(true)
@@ -389,9 +389,9 @@ describe("PublishingSettings — connect wizard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /set up publishing/i })).toBeTruthy(),
+      expect(screen.getByRole("button", { name: /set up sharing/i })).toBeTruthy(),
     )
-    fireEvent.click(screen.getByRole("button", { name: /set up publishing/i }))
+    fireEvent.click(screen.getByRole("button", { name: /set up sharing/i }))
 
     act(() => {
       emit?.({
@@ -463,13 +463,13 @@ describe("PublishingSettings — connect with Cloudflare (OAuth)", () => {
 
     await waitFor(() =>
       expect(screen.getByRole("heading", { level: 2 }).textContent).toContain(
-        "Set up publishing",
+        "Set up sharing",
       ),
     )
     expect(localStorage.getItem(AUTH_METHOD_KEY)).toBe("oauth")
     expect(localStorage.getItem(TOKEN_KEY)).toBeNull()
 
-    fireEvent.click(screen.getByRole("button", { name: /^set up publishing$/i }))
+    fireEvent.click(screen.getByRole("button", { name: /^set up sharing$/i }))
     expect(provisionCloudflare).toHaveBeenCalledTimes(1)
     expect(provisionCloudflare.mock.calls[0][0]).toEqual({})
   })
@@ -534,7 +534,7 @@ describe("PublishingSettings — connect with Cloudflare (OAuth)", () => {
 
     await waitFor(() =>
       expect(screen.getByRole("heading", { level: 2 }).textContent).toContain(
-        "Set up publishing",
+        "Set up sharing",
       ),
     )
     expect(pickCloudflareOAuthAccount).toHaveBeenCalledWith("state-2", "acct-2")
@@ -607,8 +607,8 @@ describe("PublishingSettings — already connected", () => {
 
     renderSettings()
 
-    await waitFor(() => expect(document.body.textContent).toContain("Publishing is ready"))
-    await waitFor(() => expect(document.body.textContent).toContain("Nothing published yet"))
+    await waitFor(() => expect(document.body.textContent).toContain("Sharing is ready"))
+    await waitFor(() => expect(document.body.textContent).toContain("Nothing shared yet"))
     expect(document.body.textContent).toContain("Hosted books")
     expect(screen.getByRole("button", { name: /disconnect/i })).toBeTruthy()
     expect(screen.queryByRole("button", { name: /connect with cloudflare/i })).toBeNull()
@@ -652,7 +652,7 @@ describe("PublishingSettings — already connected", () => {
     renderSettings()
 
     await waitFor(() => expect(screen.getByText("A book for readers")).toBeTruthy())
-    expect(screen.getByText("Published books")).toBeTruthy()
+    expect(screen.getByText("Shared books")).toBeTruthy()
     expect(screen.getByText("Room for 98 more")).toBeTruthy()
     expect(
       screen.getByRole("button", { name: /copy the link to a book for readers/i }),

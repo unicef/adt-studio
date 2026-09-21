@@ -23,7 +23,7 @@ export const STAGE_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
   "sign-language": msg`Sign Language`,
   validation: msg`Validation`,
   preview: msg`Preview`,
-  publish: msg`Publishing`,
+  publish: msg`Sharing`,
   export: msg`Export`,
 }
 
@@ -42,7 +42,7 @@ export const STAGE_RUNNING_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
   "sign-language": msg`Sign Language`,
   validation: msg`Running Validation...`,
   preview: msg`Building Preview...`,
-  publish: msg`Publishing...`,
+  publish: msg`Sharing...`,
   export: msg`Exporting...`,
 }
 

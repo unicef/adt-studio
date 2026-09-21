@@ -101,7 +101,7 @@ export function PublicationReaders({
           <span className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
             <ArrowUpCircle className="mt-0.5 size-3.5 shrink-0 text-brand-600" aria-hidden="true" />
             <Trans>
-              Your publishing service is a version behind and doesn't keep this list yet.
+              Your sharing service is a version behind and doesn't keep this list yet.
               Installing the update adds it — the names of anyone who joined before then are
               already stored, so nothing has been lost.
             </Trans>

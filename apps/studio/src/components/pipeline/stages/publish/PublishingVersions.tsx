@@ -27,7 +27,7 @@ export function PublishingVersions({
   if (versions.length === 0) {
     return (
       <p className="rounded-xl border border-dashed bg-muted/20 px-4 py-6 text-center text-xs text-muted-foreground">
-        <Trans>No versions yet — publishing this book will create the first one.</Trans>
+        <Trans>No versions yet — sharing this book will create the first one.</Trans>
       </p>
     )
   }

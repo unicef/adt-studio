@@ -64,7 +64,7 @@ export function PublishingFreshness({
       >
         <PencilLine className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
         <Trans>
-          This version was published before the Studio started tracking edits, so it can't tell
+          This version was shared before the Studio started tracking edits, so it can't tell
           whether your book has changed since. Updating the site makes them match.
         </Trans>
       </p>
@@ -78,7 +78,7 @@ export function PublishingFreshness({
         className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/60 px-3.5 py-2.5 text-xs leading-5 text-emerald-800"
       >
         <CheckCircle2 className="size-3.5 shrink-0" aria-hidden="true" />
-        <Trans>Readers are seeing your current work — nothing has changed since you published.</Trans>
+        <Trans>Readers are seeing your current work — nothing has changed since you shared it.</Trans>
       </p>
     )
   }
@@ -90,7 +90,7 @@ export function PublishingFreshness({
     >
       <PencilLine className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
       <Trans>
-        You have edited this book since it was published, so readers are seeing an older copy.
+        You have edited this book since it was shared, so readers are seeing an older copy.
         Update the site when you want them to catch up.
       </Trans>
     </p>

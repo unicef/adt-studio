@@ -10,7 +10,7 @@ const MAX_MEGABYTES = Math.round(PUBLICATION_SNAPSHOT_MAX_BYTES / (1024 * 1024))
 function title(failure: PublishFailure): ReactNode {
   switch (failure.code) {
     case "publish_not_connected":
-      return <Trans>Publishing isn't connected yet</Trans>
+      return <Trans>Sharing isn't connected yet</Trans>
     case "published_already":
       return <Trans>This book already has a live link</Trans>
     case "not_published":
@@ -22,11 +22,11 @@ function title(failure: PublishFailure): ReactNode {
     case "upload_failed":
       return <Trans>Cloudflare wouldn't accept the upload</Trans>
     case "worker_unreachable":
-      return <Trans>Couldn't reach your publishing service</Trans>
+      return <Trans>Couldn't reach your sharing service</Trans>
     case "snapshot_too_large":
       return <Trans>This book is too big to send in one piece</Trans>
     default:
-      return <Trans>Publishing couldn't finish</Trans>
+      return <Trans>Sharing couldn't finish</Trans>
   }
 }
 
@@ -35,29 +35,29 @@ function body(failure: PublishFailure): ReactNode {
     case "publish_not_connected":
       return (
         <Trans>
-          Publishing needs a Cloudflare account connected first. Set that up once in Settings, then
+          Sharing needs a Cloudflare account connected first. Set that up once in Settings, then
           come back here.
         </Trans>
       )
     case "published_already":
       return (
         <Trans>
-          This book was already published — another window may have done it. Use "Update site" to
+          This book was already shared — another window may have done it. Use "Update site" to
           push your latest changes to the link you already have.
         </Trans>
       )
     case "not_published":
       return (
         <Trans>
-          The link for this book is gone, so there was nothing to change. Publish it again to get a
+          The link for this book is gone, so there was nothing to change. Share it again to get a
           new link.
         </Trans>
       )
     case "export_failed":
       return (
         <Trans>
-          Publishing starts by exporting the book, and that step didn't finish. Try a normal export
-          above first — it will show you what's wrong — then publish again.
+          Sharing starts by exporting the book, and that step didn't finish. Try a normal export
+          above first — it will show you what's wrong — then share again.
         </Trans>
       )
     case "package_failed":
@@ -75,7 +75,7 @@ function body(failure: PublishFailure): ReactNode {
       return (
         <Trans>
           Cloudflare didn't accept the upload, after a few tries. This is usually temporary —
-          waiting a moment and publishing again normally works. Nothing was shared, and your book
+          waiting a moment and sharing again normally works. Nothing was shared, and your book
           is untouched.
         </Trans>
       )
@@ -86,7 +86,7 @@ function body(failure: PublishFailure): ReactNode {
        *  connection failed, so the copy only has to say what is and is not true of their book. */
       return (
         <Trans>
-          The Studio couldn't reach the publishing service in your Cloudflare account, so nothing
+          The Studio couldn't reach the sharing service in your Cloudflare account, so nothing
           was sent. Your link and everything on it are untouched. It already tried a few times —
           check this computer's connection and try again.
         </Trans>
@@ -95,7 +95,7 @@ function body(failure: PublishFailure): ReactNode {
       return (
         <Trans>
           The whole book is sent as a single file, and Cloudflare accepts at most {MAX_MEGABYTES} MB
-          at a time. This book's export is bigger than that. Publishing it will need fewer or
+          at a time. This book's export is bigger than that. Sharing it will need fewer or
           smaller videos, audio files or images — the sign-language videos are usually the heaviest
           part.
         </Trans>
@@ -103,7 +103,7 @@ function body(failure: PublishFailure): ReactNode {
     default:
       return (
         <Trans>
-          Publishing stopped before it finished, and nothing was shared. Trying again is safe.
+          Sharing stopped before it finished, and nothing was shared. Trying again is safe.
         </Trans>
       )
   }
@@ -113,7 +113,7 @@ function action(failure: PublishFailure): ReactNode {
   if (failure.code === "publish_not_connected" || failure.code === "upload_failed") {
     return (
       <PublishingSettingsLink variant="outline" size="sm" className="self-start">
-        <Trans>Open publishing settings</Trans>
+        <Trans>Open sharing settings</Trans>
       </PublishingSettingsLink>
     )
   }

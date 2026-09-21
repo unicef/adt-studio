@@ -157,17 +157,17 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
         <StageEmptyState
           icon={CloudOff}
           color="amber"
-          title={<Trans>Connect a Cloudflare account to publish books</Trans>}
+          title={<Trans>Connect a Cloudflare account to share books</Trans>}
           subtitle={
             <Trans>
-              Published books live in your own Cloudflare account, so this list is empty until
+              Shared books live in your own Cloudflare account, so this list is empty until
               the Studio is connected to one. It is free and takes a few clicks.
             </Trans>
           }
           cta={
             <PublishingSettingsLink>
               <Link2 aria-hidden="true" />
-              <Trans>Set up publishing</Trans>
+              <Trans>Set up sharing</Trans>
             </PublishingSettingsLink>
           }
         />
@@ -183,7 +183,7 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
       >
         <span className="flex items-center gap-2 text-sm font-medium text-foreground">
           <AlertTriangle className="size-4 shrink-0 text-amber-600" aria-hidden="true" />
-          <Trans>We couldn't load your published books</Trans>
+          <Trans>We couldn't load your shared books</Trans>
         </span>
         {overview.error?.message ? (
           <p className="text-xs leading-5 text-muted-foreground">{overview.error.message}</p>
@@ -225,8 +225,8 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
           <CloudOff className="size-3.5 shrink-0 text-red-600 dark:text-red-400" aria-hidden="true" />
           <p className="flex-1">
             <Trans>
-              Your publishing service isn't answering, so this is what this computer remembers:
-              sizes and comment counts are missing, and a book published from another computer
+              Your sharing service isn't answering, so this is what this computer remembers:
+              sizes and comment counts are missing, and a book shared from another computer
               won't be listed.
             </Trans>
           </p>
@@ -258,10 +258,10 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
             <StageEmptyState
               icon={Globe}
               color="violet"
-              title={<Trans>Nothing published yet</Trans>}
+              title={<Trans>Nothing shared yet</Trans>}
               subtitle={
                 <Trans>
-                  Open a book and go to Publishing. You'll get a link to send to readers, and
+                  Open a book and go to Sharing. You'll get a link to send to readers, and
                   everything they comment on comes back here.
                 </Trans>
               }
@@ -288,7 +288,7 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
                     setQuery((current) => ({ ...current, search: event.target.value }))
                   }
                   placeholder={t`Search by title`}
-                  aria-label={t`Search published books`}
+                  aria-label={t`Search shared books`}
                   prependIcon={<Search className="size-4" aria-hidden="true" />}
                   wrapperClassName="h-9 min-w-48 flex-1"
                   className="h-9 text-sm"
@@ -300,7 +300,7 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
                     setQuery((current) => ({ ...current, sort: sort as Sort }))
                   }
                 >
-                  <SelectTrigger className="h-9 w-44 text-xs" aria-label={t`Sort published books`}>
+                  <SelectTrigger className="h-9 w-44 text-xs" aria-label={t`Sort shared books`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -348,7 +348,7 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
                 }
                 title={
                   query.search.trim().length > 0 ? (
-                    <Trans>No published book matches “{query.search}”.</Trans>
+                    <Trans>No shared book matches “{query.search}”.</Trans>
                   ) : query.unresolvedOnly ? (
                     <Trans>Nothing is waiting for you — every thread is resolved.</Trans>
                   ) : query.filter === "live" ? (
@@ -361,7 +361,7 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
               />
             ) : (
               <ul
-                aria-label={t`Published books`}
+                aria-label={t`Shared books`}
                 className="flex list-none flex-col gap-3 p-0"
               >
                 {publications.map((publication, index) => (

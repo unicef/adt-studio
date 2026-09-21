@@ -36,7 +36,7 @@ export function ProvisionCalm({
       elapsedMs={elapsedMs}
       testIdPrefix="provision-step"
       copy={{
-        done: t`Publishing is ready`,
+        done: t`Sharing is ready`,
         doneDetail: t`Everything is in place in your Cloudflare account.`,
         error: t`Setup stopped`,
         errorDetail: t`Nothing after this step ran. Setup picks up where it left off when you try again.`,
@@ -45,7 +45,7 @@ export function ProvisionCalm({
       }}
       idleAction={onStart ? (
         <Button className="min-w-52 shadow-sm" size="lg" onClick={onStart}>
-          <Trans>Set up publishing</Trans>
+          <Trans>Set up sharing</Trans>
         </Button>
       ) : undefined}
       errorContent={errorContent}

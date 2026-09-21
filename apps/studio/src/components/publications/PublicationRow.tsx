@@ -429,7 +429,7 @@ export function PublicationRow({
                 <span className="min-w-0 flex-1 text-xs leading-5 text-red-900 dark:text-red-200">
                   {deleteErrorIsStaleWorker ? (
                     <Trans>
-                      Your publishing service is older than this Studio and has no way to
+                      Your sharing service is older than this Studio and has no way to
                       erase a book yet. Nothing was deleted. Installing the update adds it.
                     </Trans>
                   ) : (

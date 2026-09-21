@@ -70,9 +70,9 @@ export function PublishRunShell({
   const sent = formatCount(run.progress?.done ?? 0, i18n.locale)
   const outOf = formatCount(run.progress?.total ?? 0, i18n.locale)
   const valueText = done
-    ? t`Publishing finished.`
+    ? t`Sharing finished.`
     : failed
-      ? t`Publishing stopped before it finished.`
+      ? t`Sharing stopped before it finished.`
       : run.progress && run.progress.total > 0
         ? t`${stepTitle} — ${sent} of ${outOf}`
         : t`${stepTitle} — still working`

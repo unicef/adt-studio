@@ -69,7 +69,7 @@ export function PublishPanel({
             </h2>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
               <Trans>
-                Publish a private, shareable copy for readers and reviewers. No download or install
+                Share a private copy with readers and reviewers. No download or install
                 needed.
               </Trans>
             </p>
@@ -86,7 +86,7 @@ export function PublishPanel({
               <span className="size-1.5 rounded-full bg-indigo-500" aria-hidden="true" />
             )}
             {isRunning ? (
-              <Trans>Publishing</Trans>
+              <Trans>Sharing</Trans>
             ) : isLive ? (
               <Trans>Live</Trans>
             ) : lifecycle === "revoked" ? (
@@ -94,7 +94,7 @@ export function PublishPanel({
             ) : lifecycle === "expired" ? (
               <Trans>Link expired</Trans>
             ) : (
-              <Trans>Ready to publish</Trans>
+              <Trans>Ready to share</Trans>
             )}
           </span>
         )}
@@ -123,7 +123,7 @@ export function PublishPanel({
             <p className="text-sm leading-6 text-muted-foreground">
               <Trans>
                 Nothing is wrong with your book. The Studio just couldn't reach the part of itself that
-                keeps track of published books. Try again in a moment.
+                keeps track of shared books. Try again in a moment.
               </Trans>
             </p>
             {status.error?.message && (
@@ -157,7 +157,7 @@ export function PublishPanel({
             </p>
             <PublishingSettingsLink className="self-start">
               <Link2 aria-hidden="true" />
-              <Trans>Set up publishing</Trans>
+              <Trans>Set up sharing</Trans>
             </PublishingSettingsLink>
           </div>
         )}
@@ -176,7 +176,7 @@ export function PublishPanel({
                 <CalendarOff className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                 <p className="text-sm leading-6 text-muted-foreground">
                   <Trans>
-                    This book's link has reached its end date and no longer opens. Publishing again
+                    This book's link has reached its end date and no longer opens. Sharing again
                     gives you a new link to share.
                   </Trans>
                 </p>
@@ -211,7 +211,7 @@ export function PublishPanel({
             {connection.data?.upgrade_available && (
               <p data-testid="publish-upgrade-hint" className="text-xs leading-5 text-muted-foreground">
                 <Trans>
-                  A publishing service update is waiting in Settings → Publishing. Installing it isn't
+                  A sharing service update is waiting in Settings → Sharing. Installing it isn't
                   urgent. Your link keeps working either way.
                 </Trans>
               </p>

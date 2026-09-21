@@ -24,7 +24,7 @@ export function RevokedNotice({ bookLabel, disabled }: RevokedNoticeProps) {
         <p className="text-sm leading-6 text-muted-foreground">
           <Trans>
             You stopped sharing this book, so the old link no longer opens. You can start sharing it
-            again on the same link, or publish again for a new one.
+            again on the same link, or share again for a new one.
           </Trans>
         </p>
       </div>

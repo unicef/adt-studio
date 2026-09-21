@@ -47,7 +47,7 @@ export function PublishFailureBand({
         {stopped ? (
           <p className="text-sm leading-6 text-muted-foreground">
             <Trans>
-              You stopped this before it finished. Nothing was sent, and publishing again starts a
+              You stopped this before it finished. Nothing was sent, and sharing again starts a
               fresh copy — it does not resume this one.
             </Trans>
           </p>
@@ -60,7 +60,7 @@ export function PublishFailureBand({
         {/* `retry`, not `publish`: a first publish carries the access code and end date the author
             chose, and re-running the wrong kind would either lose them or fail. */}
         <Button type="button" onClick={run.retry}>
-          {stopped ? <Trans>Publish again</Trans> : <Trans>Try again</Trans>}
+          {stopped ? <Trans>Share again</Trans> : <Trans>Try again</Trans>}
         </Button>
         {/* Without this the author is held on a screen about a run that is over. Only on a first
             publish, where the way out is the form they filled in; an update has no form. */}

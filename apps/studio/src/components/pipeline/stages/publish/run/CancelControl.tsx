@@ -42,7 +42,7 @@ export function CancelControl({
       {armed ? (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-2 motion-safe:duration-200">
           <span className="text-sm text-muted-foreground">
-            <Trans>Stop publishing? Nothing sent so far is kept.</Trans>
+            <Trans>Stop here? Nothing sent so far is kept.</Trans>
           </span>
           <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => setArmed(false)}>
             <Trans>Keep going</Trans>

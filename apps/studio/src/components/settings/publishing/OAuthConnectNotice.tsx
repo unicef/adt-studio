@@ -123,7 +123,7 @@ function explain(code: CloudflareOAuthErrorCode | "unknown" | null): {
     case "oauth_no_accounts":
       return {
         scene: <SceneInterrupted icon={<X className="size-3.5" aria-hidden="true" />} />,
-        title: <Trans>No Cloudflare account to publish into</Trans>,
+        title: <Trans>No Cloudflare account to share from</Trans>,
         body: (
           <Trans>
             This login has no account the Studio can use. Create an account in Cloudflare, then

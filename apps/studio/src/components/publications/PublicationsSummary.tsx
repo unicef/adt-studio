@@ -56,7 +56,7 @@ export function PublicationsSummary({
    *  same sentence for people who can see the icon. */
   const storageNote = (
     <Trans>
-      Storage is the size of every published version's files in Cloudflare Static Assets.
+      Storage is the size of every shared version's files in Cloudflare Static Assets.
       Earlier versions keep their files, so updating a book adds to this. How many people
       opened your links is not shown here: reading that needs Cloudflare analytics permissions
       the Studio never asks for.
@@ -68,7 +68,7 @@ export function PublicationsSummary({
       <Tile
         index={0}
         icon={<Globe className="size-3.5" aria-hidden="true" />}
-        label={<Trans>Published books</Trans>}
+        label={<Trans>Shared books</Trans>}
         value={totals.published_count}
         hint={<Trans>Room for {Math.max(0, 99 - totals.published_count)} more</Trans>}
       />
@@ -116,7 +116,7 @@ export function PublicationsSummary({
             <span className="text-muted-foreground">{unknown}</span>
           )
         }
-        hint={countsKnown ? <Trans>Across all published versions</Trans> : undefined}
+        hint={countsKnown ? <Trans>Across all shared versions</Trans> : undefined}
       />
       <Tile
         index={3}

@@ -62,18 +62,18 @@ export function PublishStartState({
       <p className="text-sm leading-6 text-muted-foreground">
         {kind === "first" ? (
           <Trans>
-            Publishing puts a frozen copy of the book online — exactly as it looks right now — and
+            Sharing puts a frozen copy of the book online — exactly as it looks right now — and
             gives you a link to share. You keep editing freely afterwards: the shared copy only
             changes when you choose "Update site".
           </Trans>
         ) : secondary ? (
           <Trans>
-            Publishing again gets you a new address instead — the old link stays off, and you share
+            Sharing again gets you a new address instead — the old link stays off, and you share
             the new one with everybody again.
           </Trans>
         ) : (
           <Trans>
-            Publishing again puts the book online as it looks right now, with a fresh link. The old
+            Sharing again puts the book online as it looks right now, with a fresh link. The old
             link stays closed.
           </Trans>
         )}
@@ -126,11 +126,11 @@ export function PublishStartState({
             <Globe aria-hidden="true" />
           )}
           {isRunning ? (
-            <Trans>Publishing…</Trans>
+            <Trans>Sharing…</Trans>
           ) : kind === "first" ? (
-            <Trans>Publish and get a link</Trans>
+            <Trans>Share and get a link</Trans>
           ) : (
-            <Trans>Publish again</Trans>
+            <Trans>Share again</Trans>
           )}
         </Button>
       </div>

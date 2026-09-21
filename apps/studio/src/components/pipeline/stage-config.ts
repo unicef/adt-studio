@@ -34,7 +34,7 @@ export const STAGES = [
   { slug: "speech", label: "Speech", runningLabel: "Generating Speech", icon: AudioLines, color: "bg-rose-600", hex: "#e11d48", textColor: "text-rose-600", bgLight: "bg-rose-50", borderColor: "border-rose-200", borderDark: "border-rose-600", group: "localization" },
   { slug: "validation", label: "Validation", runningLabel: "Running Validation", icon: ShieldCheck, color: "bg-emerald-600", hex: "#059669", textColor: "text-emerald-600", bgLight: "bg-emerald-50", borderColor: "border-emerald-200", borderDark: "border-emerald-600", group: "packaging" },
   { slug: "preview", label: "Preview", runningLabel: "Building Preview", icon: Eye, color: "bg-gray-600", hex: "#4b5563", textColor: "text-gray-600", bgLight: "bg-gray-50", borderColor: "border-gray-200", borderDark: "border-gray-600", group: "packaging" },
-  { slug: "publish", label: "Publishing", runningLabel: "Publishing", icon: Globe, color: "bg-indigo-600", hex: "#4f46e5", textColor: "text-indigo-600", bgLight: "bg-indigo-50", borderColor: "border-indigo-200", borderDark: "border-indigo-600", group: "packaging" },
+  { slug: "publish", label: "Sharing", runningLabel: "Sharing", icon: Globe, color: "bg-indigo-600", hex: "#4f46e5", textColor: "text-indigo-600", bgLight: "bg-indigo-50", borderColor: "border-indigo-200", borderDark: "border-indigo-600", group: "packaging" },
   { slug: "export", label: "Export", runningLabel: "Exporting", icon: FileDown, color: "bg-indigo-700", hex: "#4338ca", textColor: "text-indigo-700", bgLight: "bg-indigo-50", borderColor: "border-indigo-200", borderDark: "border-indigo-700", group: "packaging" },
 ] as const satisfies ReadonlyArray<{
   slug: string

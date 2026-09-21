@@ -40,7 +40,7 @@ export function AccountPickerStep({
       description={
         <Trans>
           Your Cloudflare login covers more than one account. Pick the one your books should be
-          published into — you can change it later by disconnecting and connecting again.
+          shared from — you can change it later by disconnecting and connecting again.
         </Trans>
       }
       footer={

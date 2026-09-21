@@ -56,7 +56,7 @@ export function PublicationsSkeleton() {
       className="flex flex-col gap-4"
     >
       <span className="sr-only">
-        <Trans>Looking up your published books…</Trans>
+        <Trans>Looking up your shared books…</Trans>
       </span>
 
       {/* The placeholders are shape, not content: a screen reader gets the line above instead

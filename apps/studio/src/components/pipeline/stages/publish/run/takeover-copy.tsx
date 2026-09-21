@@ -21,7 +21,7 @@ export interface TakeoverCopyInput {
 export function takeoverHeading({ run }: TakeoverCopyInput): ReactNode {
   const first = run.kind === "publish"
 
-  if (run.status === "error") return <Trans>Publishing stopped</Trans>
+  if (run.status === "error") return <Trans>Sharing didn't finish</Trans>
   if (run.status === "done") {
     return first ? (
       <Trans>Your book is online</Trans>

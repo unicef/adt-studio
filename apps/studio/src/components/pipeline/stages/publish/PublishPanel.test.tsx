@@ -319,7 +319,7 @@ describe("PublishPanel — states", () => {
     expect(screen.getByTestId("publish-not-connected").textContent).toContain(
       "needs a Cloudflare account connected once",
     )
-    expect(screen.getByRole("link", { name: /set up publishing/i }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: /set up sharing/i }).getAttribute("href")).toBe(
       "/settings",
     )
     expect(screen.queryByTestId("publish-start-button")).toBeNull()
@@ -336,7 +336,7 @@ describe("PublishPanel — states", () => {
     /** Two access answers plus the four end-date answers. */
     expect(screen.getAllByRole("radio").length).toBe(6)
     expect(screen.getByTestId("publish-start-button").textContent).toContain(
-      "Publish and get a link",
+      "Share and get a link",
     )
   })
 
@@ -364,7 +364,7 @@ describe("PublishPanel — states", () => {
     expect(notice.textContent).toContain("all the comments are kept")
     expect(screen.getByTestId("publish-resume-button").textContent).toContain("Resume sharing")
 
-    expect(screen.getByTestId("publish-start-button").textContent).toContain("Publish again")
+    expect(screen.getByTestId("publish-start-button").textContent).toContain("Share again")
     expect(document.body.textContent).toContain("new address instead")
     expect(document.body.textContent).toContain("old link stays off")
     expect(screen.queryByTestId("publish-share-link")).toBeNull()
@@ -658,7 +658,7 @@ describe("PublishPanel — publishing", () => {
     fireEvent.click(screen.getByRole("button", { name: /change how you share/i }))
     expect(screen.queryByTestId("publish-takeover")).toBeNull()
     expect(screen.getByTestId("publish-start-button").textContent).toContain(
-      "Publish and get a link",
+      "Share and get a link",
     )
   })
 
@@ -680,7 +680,7 @@ describe("PublishPanel — publishing", () => {
     )
     const notice = screen.getByTestId("publish-error-publish_not_connected")
     expect(notice.textContent).toContain("needs a Cloudflare account connected first")
-    expect(screen.getByRole("link", { name: /open publishing settings/i })).toBeTruthy()
+    expect(screen.getByRole("link", { name: /open sharing settings/i })).toBeTruthy()
   })
 
 })

@@ -40,7 +40,7 @@ export function ProvisionStep({
       <WizardStepShell
         stepNumber={stepNumber}
         stepCount={stepCount}
-        title={<Trans>Set up publishing</Trans>}
+        title={<Trans>Set up sharing</Trans>}
         description={
           <Trans>
             The Studio will create the storage and small web service it needs inside your Cloudflare
