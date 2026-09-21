@@ -563,6 +563,9 @@ msgstr "{reviewers, plural, one {nga # recensues} other {nga # recensues}}"
 msgid "{sections} sections"
 msgstr "{sections} seksione"
 
+msgid "{settled} of {total}"
+msgstr "{settled} nga {total}"
+
 msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
 msgstr "{spreadCount} {spreadCount, plural, one {fletë e dyfishtë e zgjedhur} other {fletë të dyfishta të zgjedhura}}"
 
@@ -9823,6 +9826,9 @@ msgstr "Udhëzuesi i cilësimeve"
 
 msgid "Setup couldn't finish"
 msgstr "Vendosja nuk mund të përfundonte"
+
+msgid "Setup steps"
+msgstr "Hapat e konfigurimit"
 
 msgid "Setup stopped"
 msgstr "Vendosja ndaloi"

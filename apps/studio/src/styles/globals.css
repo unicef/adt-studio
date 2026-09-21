@@ -108,6 +108,7 @@
   --animate-eq: eq 1s ease-in-out infinite;
   --animate-float-y: float-y 6s ease-in-out infinite;
   --animate-flow-dot: flow-dot 3.4s ease-in-out infinite;
+  --animate-edge-dash: edge-dash 1s linear infinite;
   --animate-onboarding-drift-a: onboarding-drift-a 22s ease-in-out infinite;
   --animate-onboarding-drift-b: onboarding-drift-b 28s ease-in-out infinite;
   --animate-onboarding-icon-float: onboarding-icon-float 5s ease-in-out infinite;
@@ -161,6 +162,12 @@
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes edge-dash {
+  to {
+    stroke-dashoffset: -12;
   }
 }
 

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import type { ReactNode } from "react"
 import type { ProvisionStepStatus } from "@/api/client"
 import type { ProvisionStatus } from "@/hooks/use-cloudflare-provision"
-import { CalmStepLoader } from "@/components/settings/publishing/CalmStepLoader"
+import { ProvisionPipeline } from "@/components/settings/publishing/ProvisionPipeline"
 import { PROVISION_STEP_COPY } from "./provision-steps"
 
 interface ProvisionCalmProps {
@@ -15,8 +15,12 @@ interface ProvisionCalmProps {
   errorContent?: ReactNode
 }
 
-/** Provisioning's half of the shared loader — the steps and the words that belong to them.
- *  Everything that moves lives in `CalmStepLoader`, which publishing uses too. */
+/** Provisioning's half of the pipeline view — the steps and the words that belong to them.
+ *
+ *  It no longer shares `CalmStepLoader` with publishing, and the divergence is deliberate:
+ *  publishing runs often and nearly always succeeds, so one calm medallion is the right amount
+ *  of screen for it. Setup runs once, creates seven things in somebody's own account, and when
+ *  it stops the only useful question is which step it stopped on. */
 export function ProvisionCalm({
   status,
   stepStates,
@@ -28,7 +32,7 @@ export function ProvisionCalm({
   const { t } = useLingui()
 
   return (
-    <CalmStepLoader
+    <ProvisionPipeline
       steps={PROVISION_STEP_COPY}
       status={status}
       stepStates={stepStates}

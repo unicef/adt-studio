@@ -561,6 +561,9 @@ msgstr "{reviewers, plural, one {from # reviewer} other {from # reviewers}}"
 msgid "{sections} sections"
 msgstr "{sections} sections"
 
+msgid "{settled} of {total}"
+msgstr "{settled} of {total}"
+
 msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
 msgstr "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
 
@@ -9822,6 +9825,9 @@ msgstr "Settings guide"
 
 msgid "Setup couldn't finish"
 msgstr "Setup couldn't finish"
+
+msgid "Setup steps"
+msgstr "Setup steps"
 
 msgid "Setup stopped"
 msgstr "Setup stopped"

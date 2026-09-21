@@ -301,7 +301,13 @@ describe("PublishingSettings — connect wizard", () => {
     })
 
     expect(screen.getByTestId("provision-error-no_workers_subdomain")).toBeTruthy()
-    expect(screen.queryByTestId("provision-step-7")).toBeNull()
+
+    /** The pipeline keeps the whole sequence on screen when it stops, which is the point of it:
+     *  the failed step holds its place, and the steps after it are visibly untouched. The calm
+     *  loader this replaced swapped the checklist out for the error, so "where did it stop" was
+     *  answered only by the prose. */
+    expect(screen.getByTestId("provision-step-6").getAttribute("data-state")).toBe("error")
+    expect(screen.getByTestId("provision-step-7").getAttribute("data-state")).toBe("pending")
 
     fireEvent.click(screen.getByRole("button", { name: /try again/i }))
 

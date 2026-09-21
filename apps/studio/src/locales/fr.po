@@ -563,6 +563,9 @@ msgstr "{reviewers, plural, one {de # réviseur} other {de # réviseurs}}"
 msgid "{sections} sections"
 msgstr "{sections} sections"
 
+msgid "{settled} of {total}"
+msgstr "{settled} sur {total}"
+
 msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
 msgstr "{spreadCount} {spreadCount, plural, one {double page sélectionnée} other {doubles pages sélectionnées}}"
 
@@ -9823,6 +9826,9 @@ msgstr "Guide des paramètres"
 
 msgid "Setup couldn't finish"
 msgstr "La configuration n'a pas pu se terminer"
+
+msgid "Setup steps"
+msgstr "Étapes de la configuration"
 
 msgid "Setup stopped"
 msgstr "Configuration arrêtée"
