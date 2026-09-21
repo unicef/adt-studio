@@ -271,8 +271,8 @@ msgid "{0} missing prompt files will be created. Existing files are left unchang
 msgstr "{0} arquivos de prompt ausentes serão criados. Arquivos existentes não serão alterados."
 
 #. placeholder {0}: threads.length - SHOWN
-msgid "{0} more waiting in the Storyboard"
-msgstr "{0} mais esperando no Storyboard"
+#~ msgid "{0} more waiting in the Storyboard"
+#~ msgstr "{0} mais esperando no Storyboard"
 
 #. placeholder {0}: String(filteredQuizzes.length)
 #. placeholder {1}: String(displayQuizzes.length)
@@ -433,6 +433,9 @@ msgstr "{count} {count, plural, one {problema} other {problemas}}"
 
 msgid "{count} {count, plural, one {manual review item} other {manual review items}}"
 msgstr "{count} {count, plural, one {item de revisão manual} other {itens de revisão manual}}"
+
+msgid "{count} comments waiting for you"
+msgstr "{count} comentários esperando por você"
 
 msgid "{count} pages failed in {stageLabel}"
 msgstr "{count} páginas falharam em {stageLabel}"
@@ -663,6 +666,9 @@ msgstr "0 = determinístico, 2 = criatividade máxima"
 msgid "0 = single pass, higher values allow iterative LLM refinement"
 msgstr "0 = passagem única, valores mais altos permitem refinamento iterativo do LLM"
 
+msgid "1 comment waiting for you"
+msgstr "1 comentário esperando por você"
+
 msgid "1 hour"
 msgstr "1 hora"
 
@@ -759,8 +765,11 @@ msgstr "Já existe um termo de glossário com esta palavra."
 msgid "A language is required so downstream stages can localize the book."
 msgstr "Um idioma é obrigatório para que as etapas posteriores possam localizar o livro."
 
-msgid "A last look before you publish your first book."
-msgstr "Um último olhar antes de publicar seu primeiro livro."
+#~ msgid "A last look before you publish your first book."
+#~ msgstr "Um último olhar antes de publicar seu primeiro livro."
+
+msgid "A last look before you share your first book."
+msgstr "Uma última olhada antes de compartilhar seu primeiro livro."
 
 msgid "A login is already open"
 msgstr "Um login já está aberto"
@@ -786,8 +795,8 @@ msgstr "Uma página falhou em {stageLabel}"
 msgid "A page failed in {stepLabel}"
 msgstr "Uma página falhou em {stepLabel}"
 
-msgid "A publishing service update is waiting in Settings → Publishing. Installing it isn't urgent. Your link keeps working either way."
-msgstr "Uma atualização do serviço de publicação está esperando em Configurações → Publicação. Instalá-la não é urgente. Seu link continua funcionando de qualquer forma."
+#~ msgid "A publishing service update is waiting in Settings → Publishing. Installing it isn't urgent. Your link keeps working either way."
+#~ msgstr "Uma atualização do serviço de publicação está esperando em Configurações → Publicação. Instalá-la não é urgente. Seu link continua funcionando de qualquer forma."
 
 msgid "A question worth asking"
 msgstr "Uma pergunta que vale a pena fazer"
@@ -824,6 +833,9 @@ msgstr "Uma atividade do tipo \"marcar todas as que se aplicam\", em que o estud
 
 msgid "A separator page between sections."
 msgstr "Uma página separadora entre seções."
+
+msgid "A sharing service update is waiting in Settings → Sharing. Installing it isn't urgent. Your link keeps working either way."
+msgstr "Há uma atualização do serviço de compartilhamento em Configurações → Compartilhamento. Instalar não é urgente. Seu link continua funcionando de qualquer forma."
 
 msgid "A simplified Easy Read version makes the text accessible to readers with cognitive disabilities, learning differences, or limited reading proficiency."
 msgstr "Uma versão simplificada de Leitura Fácil torna o texto acessível para leitores com deficiências cognitivas, diferenças de aprendizagem ou proficiência de leitura limitada."
@@ -972,8 +984,11 @@ msgstr "Conta"
 msgid "Account Settings"
 msgstr "Configurações da Conta"
 
-msgid "Across all published versions"
-msgstr "Across all published versions"
+#~ msgid "Across all published versions"
+#~ msgstr "Across all published versions"
+
+msgid "Across all shared versions"
+msgstr "Em todas as versões compartilhadas"
 
 #~ msgid "across every published version"
 #~ msgstr "em todas as versões publicadas"
@@ -1566,8 +1581,11 @@ msgstr "Já distribuídas"
 msgid "already there"
 msgstr "já está lá"
 
-msgid "Also delete the publishing service and every published book from my Cloudflare account"
-msgstr "Também excluir o serviço de publicação e todos os livros publicados da minha conta Cloudflare"
+#~ msgid "Also delete the publishing service and every published book from my Cloudflare account"
+#~ msgstr "Também excluir o serviço de publicação e todos os livros publicados da minha conta Cloudflare"
+
+msgid "Also delete the sharing service and every shared book from my Cloudflare account"
+msgstr "Excluir também o serviço de compartilhamento e todos os livros compartilhados da minha conta Cloudflare"
 
 msgid "Among the Stars"
 msgstr "Entre as Estrelas"
@@ -2477,8 +2495,11 @@ msgstr "Verificando se este livro está compartilhado…"
 msgid "Checking your account"
 msgstr "Verificando sua conta"
 
-msgid "Checking your publishing setup…"
-msgstr "Verificando sua configuração de publicação…"
+#~ msgid "Checking your publishing setup…"
+#~ msgstr "Verificando sua configuração de publicação…"
+
+msgid "Checking your sharing setup…"
+msgstr "Verificando sua configuração de compartilhamento…"
 
 msgid "Checking your token"
 msgstr "Verificando seu token"
@@ -2642,6 +2663,12 @@ msgstr "Fechar painel de edição"
 msgid "Close style editor"
 msgstr "Fechar editor de estilo"
 
+msgid "Close the comments"
+msgstr "Fechar os comentários"
+
+msgid "Close this comment"
+msgstr "Fechar este comentário"
+
 msgid "Cloudflare"
 msgstr "Cloudflare"
 
@@ -2651,8 +2678,11 @@ msgstr "CLOUDFLARE"
 msgid "Cloudflare accounts"
 msgstr "Contas Cloudflare"
 
-msgid "Cloudflare didn't accept the upload, after a few tries. This is usually temporary — waiting a moment and publishing again normally works. Nothing was shared, and your book is untouched."
-msgstr "Cloudflare não aceitou o upload, após algumas tentativas. Isso geralmente é temporário — esperar um momento e publicar novamente normalmente funciona. Nada foi compartilhado, e seu livro está intacto."
+#~ msgid "Cloudflare didn't accept the upload, after a few tries. This is usually temporary — waiting a moment and publishing again normally works. Nothing was shared, and your book is untouched."
+#~ msgstr "Cloudflare não aceitou o upload, após algumas tentativas. Isso geralmente é temporário — esperar um momento e publicar novamente normalmente funciona. Nada foi compartilhado, e seu livro está intacto."
+
+msgid "Cloudflare didn't accept the upload, after a few tries. This is usually temporary — waiting a moment and sharing again normally works. Nothing was shared, and your book is untouched."
+msgstr "A Cloudflare não aceitou o envio, depois de algumas tentativas. Isso costuma ser temporário — esperar um momento e compartilhar de novo normalmente funciona. Nada foi compartilhado e seu livro está intacto."
 
 msgid "Cloudflare didn't recognise that Account ID"
 msgstr "Cloudflare não reconheceu esse ID de Conta"
@@ -2711,8 +2741,19 @@ msgstr "Paleta de comandos"
 msgid "Comment"
 msgstr "Comentário"
 
+#. placeholder {0}: pin.thread.root.author_name
+msgid "Comment by {0}"
+msgstr "Comentário de {0}"
+
+#. placeholder {0}: thread.root.author_name
+msgid "Comment from {0}"
+msgstr "Comentário de {0}"
+
 msgid "Comments"
 msgstr "Comentários"
+
+msgid "Comments on this page"
+msgstr "Comentários nesta página"
 
 msgid "Comments to read"
 msgstr "Comentários para ler"
@@ -2813,14 +2854,17 @@ msgstr "Confirmar mesclagem"
 msgid "Connect a Cloudflare account to host finished books as private websites."
 msgstr "Conecte uma conta Cloudflare para hospedar livros concluídos como sites privados."
 
-msgid "Connect a Cloudflare account to publish books"
-msgstr "Conecte uma conta Cloudflare para publicar livros"
+#~ msgid "Connect a Cloudflare account to publish books"
+#~ msgstr "Conecte uma conta Cloudflare para publicar livros"
 
 msgid "Connect a Cloudflare account to see reader feedback."
 msgstr "Conecte uma conta Cloudflare para ver os comentários dos leitores."
 
 msgid "Connect a Cloudflare account to see who has joined."
 msgstr "Conecte uma conta Cloudflare para ver quem entrou."
+
+msgid "Connect a Cloudflare account to share books"
+msgstr "Conecte uma conta Cloudflare para compartilhar livros"
 
 msgid "Connect an account"
 msgstr "Conectar uma conta"
@@ -3054,8 +3098,11 @@ msgstr "Não foi possível carregar a pré-visualização do PDF. Você ainda po
 msgid "Couldn't load versions."
 msgstr "Não foi possível carregar as versões."
 
-msgid "Couldn't reach your publishing service"
-msgstr "Não foi possível alcançar seu serviço de publicação"
+#~ msgid "Couldn't reach your publishing service"
+#~ msgstr "Não foi possível alcançar seu serviço de publicação"
+
+msgid "Couldn't reach your sharing service"
+msgstr "Não foi possível acessar seu serviço de compartilhamento"
 
 msgid "Couldn't read this PDF"
 msgstr "Não foi possível ler este PDF"
@@ -4550,6 +4597,9 @@ msgstr "Francês"
 msgid "Free"
 msgstr "Gratuito"
 
+msgid "Free plan, in your own account"
+msgstr "Plano gratuito, na sua própria conta"
+
 msgid "Free rectangle — resize without skewing"
 msgstr "Retângulo livre — redimensione sem distorcer"
 
@@ -4788,6 +4838,9 @@ msgstr "Começar"
 
 msgid "Getting your link ready…"
 msgstr "Preparando seu link…"
+
+msgid "GitHub"
+msgstr "GitHub"
 
 msgid "Global prompt reset to default."
 msgstr "Prompt global resetado para o padrão."
@@ -5034,6 +5087,9 @@ msgstr "Início / Capítulo 1"
 
 msgid "Home guide"
 msgstr "Guia inicial"
+
+msgid "Host from a repository you own"
+msgstr "Hospede a partir de um repositório seu"
 
 msgid "Hosted books"
 msgstr "Livros hospedados"
@@ -5361,6 +5417,9 @@ msgstr "Inserir o questionário aqui"
 msgid "Inside Cover"
 msgstr "Contracapa interna"
 
+msgid "Inside the school, no internet needed"
+msgstr "Dentro da escola, sem precisar de internet"
+
 msgid "Install"
 msgstr "Instalar"
 
@@ -5382,11 +5441,14 @@ msgstr "Instalar atualização"
 msgid "Installed"
 msgstr "Instalada"
 
-msgid "Installing the publishing service"
-msgstr "Instalando o serviço de publicação"
+#~ msgid "Installing the publishing service"
+#~ msgstr "Instalando o serviço de publicação"
 
 msgid "Installing the service"
 msgstr "Instalando o serviço"
+
+msgid "Installing the sharing service"
+msgstr "Instalando o serviço de compartilhamento"
 
 msgid "Installing update…"
 msgstr "Instalando atualização…"
@@ -5479,6 +5541,9 @@ msgstr "Itens marcados como precisando de alterações nesta sessão de revisor.
 msgid "its original language"
 msgstr "sua língua original"
 
+msgid "Its place on the page is gone"
+msgstr "O lugar dele na página não existe mais"
+
 msgid "Jane Reviewer"
 msgstr "Jane Reviewer"
 
@@ -5537,8 +5602,11 @@ msgstr "Mantém páginas inteiras, a menos que tipos mistos de atividade exijam 
 msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
 msgstr "Mantém a página como uma seção por padrão, mas divide inteligentemente quando detecta várias atividades distintas - como uma mistura de exercícios de múltipla escolha, abertos e de classificação na mesma página. Melhor para livros didáticos com exercícios variados."
 
-msgid "Keeps track of your published books."
-msgstr "Acompanha seus livros publicados."
+#~ msgid "Keeps track of your published books."
+#~ msgstr "Acompanha seus livros publicados."
+
+msgid "Keeps track of your shared books."
+msgstr "Mantém o registro dos seus livros compartilhados."
 
 msgid "Kept"
 msgstr "Mantido"
@@ -5926,6 +5994,9 @@ msgstr "Carregando catálogo de textos..."
 msgid "Loading text sizes…"
 msgstr "Carregando tamanhos de texto…"
 
+msgid "Loading the comments…"
+msgstr "Carregando os comentários…"
+
 msgid "Loading TTS normalization..."
 msgstr "Carregando a normalização de TTS..."
 
@@ -5946,6 +6017,9 @@ msgstr "Carregando…"
 
 msgid "Local account"
 msgstr "Conta local"
+
+msgid "Local network"
+msgstr "Rede local"
 
 msgid "Local Ollama server. Use the \"ollama:\" prefix when selecting models, e.g. ollama:llama3."
 msgstr "Servidor Ollama local. Use o prefixo \"ollama:\" ao selecionar modelos, por exemplo ollama:llama3."
@@ -5992,8 +6066,11 @@ msgstr "Olhando para frente"
 msgid "Looking up who has joined…"
 msgstr "Verificando quem entrou…"
 
-msgid "Looking up your published books…"
-msgstr "Verificando seus livros publicados…"
+#~ msgid "Looking up your published books…"
+#~ msgstr "Verificando seus livros publicados…"
+
+msgid "Looking up your shared books…"
+msgstr "Procurando seus livros compartilhados…"
 
 msgid "Lookup definitions for key terms"
 msgstr "Procurar definições de termos-chave"
@@ -6052,6 +6129,10 @@ msgstr "margem"
 msgid "Margin"
 msgstr "Margem"
 
+#. placeholder {0}: thread.root.author_name
+msgid "Mark {0}'s comment resolved"
+msgstr "Marcar o comentário de {0} como resolvido"
+
 msgid "Mark as decorative"
 msgstr "Marcar como decorativo"
 
@@ -6060,6 +6141,9 @@ msgstr "Marcar como decorativo (oculto para leitores de tela)"
 
 msgid "Mark spreads"
 msgstr "Marcar spreads"
+
+msgid "Mark this thread resolved"
+msgstr "Marcar esta conversa como resolvida"
 
 msgid "Match book style"
 msgstr "Combinar com o estilo do livro"
@@ -6576,8 +6660,11 @@ msgstr "sem alterações"
 msgid "No changes flagged on this page"
 msgstr "Nenhuma alteração sinalizada nesta página"
 
-msgid "No Cloudflare account to publish into"
-msgstr "Nenhuma conta Cloudflare para publicar"
+#~ msgid "No Cloudflare account to publish into"
+#~ msgstr "Nenhuma conta Cloudflare para publicar"
+
+msgid "No Cloudflare account to share from"
+msgstr "Nenhuma conta Cloudflare para compartilhar"
 
 msgid "No code. Anybody the link reaches can open the book."
 msgstr "Sem código. Qualquer pessoa que receber o link pode abrir o livro."
@@ -6587,6 +6674,9 @@ msgstr "Nenhuma cor encontrada"
 
 msgid "No comments"
 msgstr "Sem comentários"
+
+msgid "No comments on this page."
+msgstr "Nenhum comentário nesta página."
 
 msgid "No content processing needed"
 msgstr "Não é necessário processamento de conteúdo"
@@ -6781,8 +6871,8 @@ msgid "No pruned terms"
 msgstr "Nenhum termo podado"
 
 #. placeholder {0}: query.search
-msgid "No published book matches “{0}”."
-msgstr "Nenhum livro publicado corresponde a “{0}”."
+#~ msgid "No published book matches “{0}”."
+#~ msgstr "Nenhum livro publicado corresponde a “{0}”."
 
 msgid "No pull requests are associated with this release."
 msgstr "Nenhum pull request está associado a esta versão."
@@ -6853,6 +6943,10 @@ msgstr "Nenhuma segmentação necessária para esta imagem"
 msgid "No settings match “{query}”"
 msgstr "Nenhuma configuração corresponde a “{query}”"
 
+#. placeholder {0}: query.search
+msgid "No shared book matches “{0}”."
+msgstr "Nenhum livro compartilhado corresponde a “{0}”."
+
 msgid "No source image"
 msgstr "Nenhuma imagem de origem"
 
@@ -6904,8 +6998,11 @@ msgstr "Sem versões"
 msgid "No versions found for {node} / {itemId}"
 msgstr "Nenhuma versão encontrada para {node} / {itemId}"
 
-msgid "No versions yet — publishing this book will create the first one."
-msgstr "Ainda não há versões — publicar este livro criará a primeira."
+#~ msgid "No versions yet — publishing this book will create the first one."
+#~ msgstr "Ainda não há versões — publicar este livro criará a primeira."
+
+msgid "No versions yet — sharing this book will create the first one."
+msgstr "Ainda não há versões — compartilhar este livro criará a primeira."
 
 msgid "No videos assigned yet"
 msgstr "Nenhum vídeo atribuído ainda"
@@ -7024,14 +7121,20 @@ msgstr "Nada está quebrado e nada foi perdido. Tentar novamente continua de ond
 msgid "Nothing is waiting for you — every thread is resolved."
 msgstr "Nada está esperando por você — todos os tópicos estão resolvidos."
 
-msgid "Nothing is wrong with your book. The Studio just couldn't reach the part of itself that keeps track of published books. Try again in a moment."
-msgstr "Não há nada de errado com seu livro. O Studio apenas não conseguiu acessar a parte que acompanha os livros publicados. Tente novamente em um momento."
+#~ msgid "Nothing is wrong with your book. The Studio just couldn't reach the part of itself that keeps track of published books. Try again in a moment."
+#~ msgstr "Não há nada de errado com seu livro. O Studio apenas não conseguiu acessar a parte que acompanha os livros publicados. Tente novamente em um momento."
+
+msgid "Nothing is wrong with your book. The Studio just couldn't reach the part of itself that keeps track of shared books. Try again in a moment."
+msgstr "Não há nada de errado com seu livro. O Studio apenas não conseguiu acessar a parte de si mesmo que mantém o registro dos livros compartilhados. Tente de novo em um momento."
 
 msgid "Nothing open"
 msgstr "Nada aberto"
 
-msgid "Nothing published yet"
-msgstr "Nada publicado ainda"
+#~ msgid "Nothing published yet"
+#~ msgstr "Nada publicado ainda"
+
+msgid "Nothing shared yet"
+msgstr "Nada compartilhado ainda"
 
 msgid "Nothing split yet"
 msgstr "Nada dividido ainda"
@@ -7041,6 +7144,9 @@ msgstr "Ainda não há nada para editar"
 
 msgid "Nothing to show"
 msgstr "Nada para mostrar"
+
+msgid "Nothing waiting on this page."
+msgstr "Nada pendente nesta página."
 
 msgid "Nothing was connected. Try again and choose <0>Allow</0> on the Cloudflare page."
 msgstr "Nada foi conectado. Tente novamente e escolha <0>Permitir</0> na página do Cloudflare."
@@ -7076,8 +7182,12 @@ msgid "of"
 msgstr "de"
 
 #. placeholder {0}: versions.length
-msgid "of {0} published"
-msgstr "de {0} publicado"
+#~ msgid "of {0} published"
+#~ msgstr "de {0} publicado"
+
+#. placeholder {0}: versions.length
+msgid "of {0} shared"
+msgstr "de {0} compartilhado"
 
 #~ msgid "of {allowance} free in R2"
 #~ msgstr "de {allowance} gratuito no R2"
@@ -7099,6 +7209,12 @@ msgstr "Omissão ou adição"
 
 msgid "On"
 msgstr "Ligado"
+
+msgid "on screen"
+msgstr "na tela"
+
+msgid "On the whole page"
+msgstr "Na página inteira"
 
 msgid "On v{currentVersion} · latest is v{latestVersion}"
 msgstr "Na v{currentVersion} · a mais recente é a v{latestVersion}"
@@ -7163,8 +7279,11 @@ msgstr "abrir"
 msgid "Open"
 msgstr "Abrir"
 
-msgid "Open a book and go to Publishing. You'll get a link to send to readers, and everything they comment on comes back here."
-msgstr "Abra um livro e vá para Publicação. Você receberá um link para enviar aos leitores, e tudo o que eles comentarem voltará para cá."
+#~ msgid "Open a book and go to Publishing. You'll get a link to send to readers, and everything they comment on comes back here."
+#~ msgstr "Abra um livro e vá para Publicação. Você receberá um link para enviar aos leitores, e tudo o que eles comentarem voltará para cá."
+
+msgid "Open a book and go to Sharing. You'll get a link to send to readers, and everything they comment on comes back here."
+msgstr "Abra um livro e vá até Compartilhamento. Você receberá um link para enviar aos leitores, e tudo o que eles comentarem volta para cá."
 
 msgid "Open a page in Preview to show its page-specific accessibility findings here."
 msgstr "Abra uma página na Pré-visualização para mostrar aqui as descobertas de acessibilidade específicas dela."
@@ -7225,12 +7344,15 @@ msgstr "Abrir parte"
 msgid "Open Preview"
 msgstr "Abrir Pré-visualização"
 
-msgid "Open publishing settings"
-msgstr "Abrir configurações de publicação"
+#~ msgid "Open publishing settings"
+#~ msgstr "Abrir configurações de publicação"
 
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
 msgstr "Abrir pull request {0}"
+
+msgid "Open sharing settings"
+msgstr "Abrir as configurações de compartilhamento"
 
 msgid "Open source PDF in a new tab"
 msgstr "Abrir o PDF de origem em uma nova aba"
@@ -7493,6 +7615,11 @@ msgstr "Página {0}"
 msgid "Page {0} — Section {1}"
 msgstr "Página {0} — Seção {1}"
 
+#. placeholder {0}: at.pageNumber
+#. placeholder {1}: at.sectionNumber
+msgid "Page {0} · Section {1}"
+msgstr "Página {0} · Seção {1}"
+
 #. placeholder {0}: String(pageNumber)
 msgid "Page {0} captions"
 msgstr "Legendas da página {0}"
@@ -7507,8 +7634,8 @@ msgstr "Página {0} de {1}"
 msgid "Page {n}"
 msgstr "Página {n}"
 
-msgid "Page {number}"
-msgstr "Página {number}"
+#~ msgid "Page {number}"
+#~ msgstr "Página {number}"
 
 msgid "Page {page}"
 msgstr "Página {page}"
@@ -8106,32 +8233,32 @@ msgstr "Removido: {0}"
 msgid "PT"
 msgstr "PT"
 
-msgid "Publish"
-msgstr "Publicar"
+#~ msgid "Publish"
+#~ msgstr "Publicar"
 
-msgid "Publish a private, shareable copy for readers and reviewers. No download or install needed."
-msgstr "Publique uma cópia privada e compartilhável para leitores e revisores. Não é necessário download ou instalação."
+#~ msgid "Publish a private, shareable copy for readers and reviewers. No download or install needed."
+#~ msgstr "Publique uma cópia privada e compartilhável para leitores e revisores. Não é necessário download ou instalação."
 
-msgid "Publish again"
-msgstr "Publicar novamente"
+#~ msgid "Publish again"
+#~ msgstr "Publicar novamente"
 
-msgid "Publish and get a link"
-msgstr "Publicar e obter um link"
+#~ msgid "Publish and get a link"
+#~ msgstr "Publicar e obter um link"
 
-msgid "Publish for review"
-msgstr "Publicar para revisão"
+#~ msgid "Publish for review"
+#~ msgstr "Publicar para revisão"
 
-msgid "Published books"
-msgstr "Livros publicados"
+#~ msgid "Published books"
+#~ msgstr "Livros publicados"
 
 #~ msgid "Published books are stored in Cloudflare R2, and your account hasn't switched it on yet. Open R2 in your Cloudflare dashboard and follow the steps to enable it — Cloudflare asks for a payment method, but the space ADT Studio uses is within the free allowance. Then come back and try again. Nothing was created in your account."
 #~ msgstr "Livros publicados são armazenados no Cloudflare R2, e sua conta ainda não o ativou. Abra o R2 no painel do Cloudflare e siga os passos para habilitá-lo — o Cloudflare pede um método de pagamento, mas o espaço que o ADT Studio usa está dentro da cota gratuita. Depois volte e tente novamente. Nada foi criado na sua conta."
 
-msgid "Published books live in your own Cloudflare account, so this list is empty until the Studio is connected to one. It is free and takes a few clicks."
-msgstr "Livros publicados vivem na sua própria conta Cloudflare, então esta lista está vazia até que o Studio esteja conectado a uma. É gratuito e leva alguns cliques."
+#~ msgid "Published books live in your own Cloudflare account, so this list is empty until the Studio is connected to one. It is free and takes a few clicks."
+#~ msgstr "Livros publicados vivem na sua própria conta Cloudflare, então esta lista está vazia até que o Studio esteja conectado a uma. É gratuito e leva alguns cliques."
 
-msgid "Published for review"
-msgstr "Publicado para revisão"
+#~ msgid "Published for review"
+#~ msgstr "Publicado para revisão"
 
 msgid "published in"
 msgstr "publicado em"
@@ -8142,17 +8269,17 @@ msgstr "Editora"
 msgid "Publishing"
 msgstr "Publicando"
 
-msgid "Publishing {title} stopped. Nothing has been shared."
-msgstr "Publicação de {title} parada. Nada foi compartilhado."
+#~ msgid "Publishing {title} stopped. Nothing has been shared."
+#~ msgstr "Publicação de {title} parada. Nada foi compartilhado."
 
-msgid "Publishing {title} stopped. Your readers are still on the copy they had."
-msgstr "Publicação de {title} parada. Seus leitores ainda estão na cópia que tinham."
+#~ msgid "Publishing {title} stopped. Your readers are still on the copy they had."
+#~ msgstr "Publicação de {title} parada. Seus leitores ainda estão na cópia que tinham."
 
-msgid "Publishing again gets you a new address instead — the old link stays off, and you share the new one with everybody again."
-msgstr "Publicar novamente lhe dá um novo endereço — o link antigo permanece desativado, e você compartilha o novo com todos novamente."
+#~ msgid "Publishing again gets you a new address instead — the old link stays off, and you share the new one with everybody again."
+#~ msgstr "Publicar novamente lhe dá um novo endereço — o link antigo permanece desativado, e você compartilha o novo com todos novamente."
 
-msgid "Publishing again puts the book online as it looks right now, with a fresh link. The old link stays closed."
-msgstr "Publicar novamente coloca o livro online como está agora, com um link novo. O link antigo permanece fechado."
+#~ msgid "Publishing again puts the book online as it looks right now, with a fresh link. The old link stays closed."
+#~ msgstr "Publicar novamente coloca o livro online como está agora, com um link novo. O link antigo permanece fechado."
 
 msgid "Publishing animation gallery"
 msgstr "Galeria de animações de publicação"
@@ -8160,47 +8287,47 @@ msgstr "Galeria de animações de publicação"
 msgid "Publishing animation steps"
 msgstr "Etapas da animação de publicação"
 
-msgid "publishing Cloudflare hosting deployment"
-msgstr "publicação hospedagem implantação Cloudflare"
+#~ msgid "publishing Cloudflare hosting deployment"
+#~ msgstr "publicação hospedagem implantação Cloudflare"
 
-msgid "Publishing couldn't finish"
-msgstr "Publicação não pôde ser concluída"
+#~ msgid "Publishing couldn't finish"
+#~ msgstr "Publicação não pôde ser concluída"
 
-msgid "Publishing finished."
-msgstr "Publicação concluída."
+#~ msgid "Publishing finished."
+#~ msgstr "Publicação concluída."
 
-msgid "Publishing is ready"
-msgstr "Publicação está pronta"
+#~ msgid "Publishing is ready"
+#~ msgstr "Publicação está pronta"
 
-msgid "Publishing is set up"
-msgstr "Publicação está configurada"
+#~ msgid "Publishing is set up"
+#~ msgstr "Publicação está configurada"
 
-msgid "Publishing isn't connected yet"
-msgstr "Publicação ainda não está conectada"
+#~ msgid "Publishing isn't connected yet"
+#~ msgstr "Publicação ainda não está conectada"
 
-msgid "Publishing needs a Cloudflare account connected first. Set that up once in Settings, then come back here."
-msgstr "Publicação precisa de uma conta Cloudflare conectada primeiro. Configure isso uma vez em Configurações, depois volte aqui."
+#~ msgid "Publishing needs a Cloudflare account connected first. Set that up once in Settings, then come back here."
+#~ msgstr "Publicação precisa de uma conta Cloudflare conectada primeiro. Configure isso uma vez em Configurações, depois volte aqui."
 
-msgid "Publishing puts a frozen copy of the book online — exactly as it looks right now — and gives you a link to share. You keep editing freely afterwards: the shared copy only changes when you choose \"Update site\"."
-msgstr "Publicação coloca uma cópia congelada do livro online — exatamente como está agora — e lhe dá um link para compartilhar. Você continua editando livremente depois: a cópia compartilhada só muda quando você escolhe \\\"Atualizar site\\\"."
+#~ msgid "Publishing puts a frozen copy of the book online — exactly as it looks right now — and gives you a link to share. You keep editing freely afterwards: the shared copy only changes when you choose \"Update site\"."
+#~ msgstr "Publicação coloca uma cópia congelada do livro online — exatamente como está agora — e lhe dá um link para compartilhar. Você continua editando livremente depois: a cópia compartilhada só muda quando você escolhe \\\"Atualizar site\\\"."
 
-msgid "Publishing starts by exporting the book, and that step didn't finish. Try a normal export above first — it will show you what's wrong — then publish again."
-msgstr "Publicação começa exportando o livro, e essa etapa não foi concluída. Tente uma exportação normal acima primeiro — isso mostrará o que está errado — depois publique novamente."
+#~ msgid "Publishing starts by exporting the book, and that step didn't finish. Try a normal export above first — it will show you what's wrong — then publish again."
+#~ msgstr "Publicação começa exportando o livro, e essa etapa não foi concluída. Tente uma exportação normal acima primeiro — isso mostrará o que está errado — depois publique novamente."
 
-msgid "Publishing stopped"
-msgstr "Publicação parada"
+#~ msgid "Publishing stopped"
+#~ msgstr "Publicação parada"
 
-msgid "Publishing stopped before it finished, and nothing was shared. Trying again is safe."
-msgstr "Publicação parada antes de terminar, e nada foi compartilhado. Tentar novamente é seguro."
+#~ msgid "Publishing stopped before it finished, and nothing was shared. Trying again is safe."
+#~ msgstr "Publicação parada antes de terminar, e nada foi compartilhado. Tentar novamente é seguro."
 
-msgid "Publishing stopped before it finished."
-msgstr "Publicação parada antes de terminar."
+#~ msgid "Publishing stopped before it finished."
+#~ msgstr "Publicação parada antes de terminar."
 
-msgid "Publishing..."
-msgstr "Publicando..."
+#~ msgid "Publishing..."
+#~ msgstr "Publicando..."
 
-msgid "Publishing…"
-msgstr "Publicando…"
+#~ msgid "Publishing…"
+#~ msgstr "Publicando…"
 
 msgid "Pull requests"
 msgstr "Pull requests"
@@ -8425,8 +8552,11 @@ msgstr "Controlado pelo leitor"
 msgid "Readers"
 msgstr "Leitores"
 
-msgid "Readers are seeing your current work — nothing has changed since you published."
-msgstr "Leitores estão vendo seu trabalho atual — nada mudou desde que você publicou."
+#~ msgid "Readers are seeing your current work — nothing has changed since you published."
+#~ msgstr "Leitores estão vendo seu trabalho atual — nada mudou desde que você publicou."
+
+msgid "Readers are seeing your current work — nothing has changed since you shared it."
+msgstr "Os leitores estão vendo seu trabalho atual — nada mudou desde que você compartilhou."
 
 msgid "Readers joined"
 msgstr "Leitores entraram"
@@ -8470,8 +8600,11 @@ msgstr "Pronto"
 msgid "Ready to install"
 msgstr "Pronto para instalar"
 
-msgid "Ready to publish"
-msgstr "Pronto para publicar"
+#~ msgid "Ready to publish"
+#~ msgstr "Pronto para publicar"
+
+msgid "Ready to share"
+msgstr "Pronto para compartilhar"
 
 msgid "Ready when you are"
 msgstr "Pronto quando você estiver"
@@ -8733,6 +8866,9 @@ msgstr "Repetir a introdução guiada ao ADT Studio."
 msgid "Reply"
 msgstr "Responder"
 
+msgid "Reply to this comment"
+msgstr "Responder a este comentário"
+
 msgid "Reply to this thread"
 msgstr "Responder a este tópico"
 
@@ -8951,6 +9087,9 @@ msgstr "As revisões com lista de verificação do revisor estão desativadas no
 
 msgid "Reviewer checklist settings saved."
 msgstr "Configurações da lista de verificação do revisor salvas."
+
+msgid "Reviewer comments on this page"
+msgstr "Comentários dos revisores nesta página"
 
 msgid "Reviewer guidance"
 msgstr "Orientações para o revisor"
@@ -9284,8 +9423,8 @@ msgstr "Pesquisar texto original ou de Leitura Fácil..."
 msgid "Search original or translation…"
 msgstr "Buscar original ou tradução…"
 
-msgid "Search published books"
-msgstr "Pesquisar livros publicados"
+#~ msgid "Search published books"
+#~ msgstr "Pesquisar livros publicados"
 
 msgid "Search questions or options…"
 msgstr "Pesquisar perguntas ou opções…"
@@ -9304,6 +9443,9 @@ msgstr "Buscar configurações"
 
 msgid "Search settings…"
 msgstr "Buscar configurações…"
+
+msgid "Search shared books"
+msgstr "Buscar livros compartilhados"
 
 msgid "Search style guides..."
 msgstr "Buscar guias de estilo..."
@@ -9644,8 +9786,11 @@ msgstr "Definida manualmente"
 msgid "Set the editing language and choose output languages for the book."
 msgstr "Defina o idioma de edição e escolha os idiomas de saída para o livro."
 
-msgid "Set up publishing"
-msgstr "Configurar publicação"
+#~ msgid "Set up publishing"
+#~ msgstr "Configurar publicação"
+
+msgid "Set up sharing"
+msgstr "Configurar o compartilhamento"
 
 msgid "Set your API key first"
 msgstr "Configure primeiro sua chave de API"
@@ -9686,8 +9831,23 @@ msgstr "Configuração parada no meio"
 msgid "Shadow"
 msgstr "Sombra"
 
+msgid "Share"
+msgstr "Compartilhar"
+
 msgid "Share a finished book as a private website. You stay in charge of the link and the Cloudflare account that hosts it."
 msgstr "Compartilhe um livro concluído como um site privado. Você mantém o controle do link e da conta Cloudflare que o hospeda."
+
+msgid "Share a private copy with readers and reviewers. No download or install needed."
+msgstr "Compartilhe uma cópia privada com leitores e revisores. Sem download nem instalação."
+
+msgid "Share again"
+msgstr "Compartilhar de novo"
+
+msgid "Share and get a link"
+msgstr "Compartilhe e receba um link"
+
+msgid "Share for review"
+msgstr "Compartilhar para revisão"
 
 #~ msgid "Share links live under a web address your Cloudflare account picks once, and this account hasn't chosen one yet. Open Workers & Pages, pick any name when it asks, then publish again. Nothing was shared."
 #~ msgstr "Os links compartilhados ficam em um endereço da web escolhido uma vez pela sua conta da Cloudflare, e esta conta ainda não escolheu um. Abra Workers & Pages, escolha qualquer nome quando for solicitado e publique novamente. Nada foi compartilhado."
@@ -9698,14 +9858,80 @@ msgstr "Compartilhar online"
 msgid "Shared"
 msgstr "Compartilhado"
 
+msgid "Shared books"
+msgstr "Livros compartilhados"
+
+msgid "Shared books live in your own Cloudflare account, so this list is empty until the Studio is connected to one. It is free and takes a few clicks."
+msgstr "Os livros compartilhados ficam na sua própria conta Cloudflare, então esta lista fica vazia até o Studio estar conectado a uma. É gratuito e leva alguns cliques."
+
+msgid "Shared for review"
+msgstr "Compartilhado para revisão"
+
+msgid "Sharing"
+msgstr "Compartilhamento"
+
+msgid "Sharing {title} stopped. Nothing has been shared."
+msgstr "O compartilhamento de {title} foi interrompido. Nada foi compartilhado."
+
+msgid "Sharing {title} stopped. Your readers are still on the copy they had."
+msgstr "O compartilhamento de {title} foi interrompido. Seus leitores continuam com a cópia que tinham."
+
+msgid "Sharing again gets you a new address instead — the old link stays off, and you share the new one with everybody again."
+msgstr "Compartilhar de novo dá um endereço novo — o link antigo continua desligado, e você compartilha o novo com todos outra vez."
+
+msgid "Sharing again puts the book online as it looks right now, with a fresh link. The old link stays closed."
+msgstr "Compartilhar de novo coloca o livro on-line como ele está agora, com um link novo. O link antigo continua fechado."
+
 msgid "Sharing couldn't be resumed, so the link is still off. Check that you're online and try again."
 msgstr "Compartilhamento não pôde ser retomado, então o link ainda está desativado. Verifique se você está online e tente novamente."
+
+msgid "Sharing couldn't finish"
+msgstr "Não foi possível concluir o compartilhamento"
+
+msgid "Sharing didn't finish"
+msgstr "O compartilhamento não terminou"
+
+msgid "Sharing finished."
+msgstr "Compartilhamento concluído."
+
+msgid "Sharing is ready"
+msgstr "O compartilhamento está pronto"
+
+msgid "Sharing is set up"
+msgstr "O compartilhamento está configurado"
+
+msgid "Sharing isn't connected yet"
+msgstr "O compartilhamento ainda não está conectado"
+
+msgid "Sharing needs a Cloudflare account connected first. Set that up once in Settings, then come back here."
+msgstr "O compartilhamento precisa de uma conta Cloudflare conectada antes. Configure isso uma vez em Configurações e volte aqui."
 
 msgid "Sharing needs a Cloudflare account connected once. It's free, and the book lives in your own account, not ours. The Studio walks you through it in a few clicks."
 msgstr "Compartilhamento precisa de uma conta Cloudflare conectada uma vez. É gratuito, e o livro vive na sua própria conta, não na nossa. O Studio guia você através disso em alguns cliques."
 
+msgid "sharing publishing Cloudflare hosting deployment"
+msgstr "compartilhamento publicação Cloudflare hospedagem implantação"
+
+msgid "Sharing puts a frozen copy of the book online — exactly as it looks right now — and gives you a link to share. You keep editing freely afterwards: the shared copy only changes when you choose \"Update site\"."
+msgstr "Compartilhar coloca on-line uma cópia congelada do livro — exatamente como ele está agora — e dá um link para compartilhar. Depois você continua editando livremente: a cópia compartilhada só muda quando você escolhe \"Atualizar site\"."
+
+msgid "Sharing starts by exporting the book, and that step didn't finish. Try a normal export above first — it will show you what's wrong — then share again."
+msgstr "O compartilhamento começa exportando o livro, e essa etapa não terminou. Tente primeiro uma exportação normal acima — ela mostrará o que está errado — e compartilhe de novo."
+
 msgid "Sharing stopped"
 msgstr "Compartilhamento parado"
+
+msgid "Sharing stopped before it finished, and nothing was shared. Trying again is safe."
+msgstr "O compartilhamento parou antes de terminar e nada foi compartilhado. Tentar de novo é seguro."
+
+msgid "Sharing stopped before it finished."
+msgstr "O compartilhamento parou antes de terminar."
+
+msgid "Sharing..."
+msgstr "Compartilhando..."
+
+msgid "Sharing…"
+msgstr "Compartilhando…"
 
 msgid "Ship"
 msgstr "Entregar"
@@ -9761,6 +9987,9 @@ msgstr "Mostrar apenas os termos que você adicionou manualmente"
 
 msgid "Show review rationale"
 msgstr "Mostrar justificativa da revisão"
+
+msgid "Show reviewer comments on this page"
+msgstr "Mostrar os comentários dos revisores nesta página"
 
 msgid "Show reviewer validation"
 msgstr "Mostrar validação do revisor"
@@ -9922,8 +10151,11 @@ msgstr "Pequeno"
 msgid "Smart Cropping"
 msgstr "Corte Inteligente"
 
-msgid "So only this computer can publish or change your books."
-msgstr "Assim, apenas este computador pode publicar ou alterar seus livros."
+#~ msgid "So only this computer can publish or change your books."
+#~ msgstr "Assim, apenas este computador pode publicar ou alterar seus livros."
+
+msgid "So only this computer can share or change your books."
+msgstr "Assim só este computador pode compartilhar ou alterar seus livros."
 
 msgid "Software update"
 msgstr "Atualização de software"
@@ -9966,8 +10198,11 @@ msgstr "Ordenar por"
 msgid "Sort library by {0}"
 msgstr "Ordenar a biblioteca por {0}"
 
-msgid "Sort published books"
-msgstr "Ordenar livros publicados"
+#~ msgid "Sort published books"
+#~ msgstr "Ordenar livros publicados"
+
+msgid "Sort shared books"
+msgstr "Ordenar os livros compartilhados"
 
 msgid "Source"
 msgstr "Fonte"
@@ -10204,8 +10439,11 @@ msgstr "Ainda trabalhando — livros grandes podem levar alguns minutos."
 msgid "Stop"
 msgstr "Parar"
 
-msgid "Stop publishing? Nothing sent so far is kept."
-msgstr "Parar publicação? Nada enviado até agora é mantido."
+msgid "Stop here? Nothing sent so far is kept."
+msgstr "Parar aqui? Nada do que foi enviado até agora é mantido."
+
+#~ msgid "Stop publishing? Nothing sent so far is kept."
+#~ msgstr "Parar publicação? Nada enviado até agora é mantido."
 
 msgid "Stop sharing"
 msgstr "Parar compartilhamento"
@@ -10216,11 +10454,14 @@ msgstr "Parar de compartilhar este livro?"
 msgid "Stop step"
 msgstr "Parar etapa"
 
-msgid "Storage is the size of every published version's files in Cloudflare Static Assets. Earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
-msgstr "O armazenamento é o tamanho dos arquivos de cada versão publicada no Cloudflare Static Assets. As versões anteriores mantêm seus arquivos, então atualizar um livro aumenta esse total. Não mostramos quantas pessoas abriram seus links: isso exigiria permissões de análise do Cloudflare que o Studio não solicita."
+#~ msgid "Storage is the size of every published version's files in Cloudflare Static Assets. Earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
+#~ msgstr "O armazenamento é o tamanho dos arquivos de cada versão publicada no Cloudflare Static Assets. As versões anteriores mantêm seus arquivos, então atualizar um livro aumenta esse total. Não mostramos quantas pessoas abriram seus links: isso exigiria permissões de análise do Cloudflare que o Studio não solicita."
 
 #~ msgid "Storage is the size of every published version's files in your own Cloudflare R2 bucket, measured while uploading them — earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
 #~ msgstr "Armazenamento é o tamanho dos arquivos de cada versão publicada no seu próprio bucket Cloudflare R2, medido enquanto os carrega — versões anteriores mantêm seus arquivos, então atualizar um livro adiciona a isso. Quantas pessoas abriram seus links não é mostrado aqui: ler isso precisa de permissões de análise do Cloudflare que o Studio nunca pede."
+
+msgid "Storage is the size of every shared version's files in Cloudflare Static Assets. Earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
+msgstr "O armazenamento é o tamanho dos arquivos de todas as versões compartilhadas no Cloudflare Static Assets. As versões anteriores mantêm seus arquivos, então atualizar um livro soma a isso. Quantas pessoas abriram seus links não aparece aqui: ler isso exige permissões de análise da Cloudflare que o Studio nunca pede."
 
 msgid "Storage used"
 msgstr "Armazenamento usado"
@@ -10581,6 +10822,9 @@ msgstr "Isso não foi concluído"
 msgid "That didn't go through"
 msgstr "Isso não foi concluído"
 
+msgid "That didn't go through. Try again in a moment."
+msgstr "Isso não foi concluído. Tente de novo em um momento."
+
 msgid "The address every share link will start with."
 msgstr "O endereço com o qual cada link de compartilhamento começará."
 
@@ -10620,8 +10864,11 @@ msgstr "O título e os metadados do livro chegam com a parte que contém a pági
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "Os prompts integrados são otimizados para {DEFAULT_MODEL}. Você alterou o LLM padrão para <0>{savedModel}</0>, então recomendamos gerar novos arquivos de prompts globais ajustados para ele. Você também pode continuar com os prompts existentes."
 
-msgid "The Cloudflare sign-in did not grant everything publishing needs. Disconnect, connect again, and allow every permission ADT Studio asks for. Nothing was created in your account."
-msgstr "O login do Cloudflare não concedeu tudo o que a publicação precisa. Desconecte, conecte novamente e permita todas as permissões que o ADT Studio pede. Nada foi criado na sua conta."
+#~ msgid "The Cloudflare sign-in did not grant everything publishing needs. Disconnect, connect again, and allow every permission ADT Studio asks for. Nothing was created in your account."
+#~ msgstr "O login do Cloudflare não concedeu tudo o que a publicação precisa. Desconecte, conecte novamente e permita todas as permissões que o ADT Studio pede. Nada foi criado na sua conta."
+
+msgid "The Cloudflare sign-in did not grant everything sharing needs. Disconnect, connect again, and allow every permission ADT Studio asks for. Nothing was created in your account."
+msgstr "O login da Cloudflare não concedeu tudo o que o compartilhamento precisa. Desconecte, conecte de novo e permita todas as permissões que o ADT Studio pedir. Nada foi criado na sua conta."
 
 msgid "The code people will type"
 msgstr "O código que as pessoas digitarão"
@@ -10632,8 +10879,11 @@ msgstr "A seção combinada será rerenderizada."
 msgid "The command-line tool this provider needs was not found on this machine."
 msgstr "A ferramenta de linha de comando exigida por este provedor não foi encontrada nesta máquina."
 
-msgid "The comments people left are kept. You can resume sharing later on this same link, or publish again for a new address if this one leaked."
-msgstr "Os comentários que as pessoas deixaram são mantidos. Você pode retomar o compartilhamento mais tarde neste mesmo link, ou publicar novamente para um novo endereço se este vazou."
+#~ msgid "The comments people left are kept. You can resume sharing later on this same link, or publish again for a new address if this one leaked."
+#~ msgstr "Os comentários que as pessoas deixaram são mantidos. Você pode retomar o compartilhamento mais tarde neste mesmo link, ou publicar novamente para um novo endereço se este vazou."
+
+msgid "The comments people left are kept. You can resume sharing later on this same link, or share again for a new address if this one leaked."
+msgstr "Os comentários que as pessoas deixaram são mantidos. Você pode retomar o compartilhamento depois neste mesmo link, ou compartilhar de novo para ter outro endereço se este vazou."
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "A comunidade de organismos vivos em um lugar e a forma como interagem entre si e com o ambiente."
@@ -10698,8 +10948,11 @@ msgstr "A contracapa interna do livro."
 msgid "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
 msgstr "A última revisão de tradução falhou antes de produzir resultados confiáveis por item. Execute Revisar novamente para as traduções visíveis."
 
-msgid "The link for this book is gone, so there was nothing to change. Publish it again to get a new link."
-msgstr "O link para este livro se foi, então não havia nada para mudar. Publique novamente para obter um novo link."
+#~ msgid "The link for this book is gone, so there was nothing to change. Publish it again to get a new link."
+#~ msgstr "O link para este livro se foi, então não havia nada para mudar. Publique novamente para obter um novo link."
+
+msgid "The link for this book is gone, so there was nothing to change. Share it again to get a new link."
+msgstr "O link deste livro não existe mais, então não havia nada a mudar. Compartilhe de novo para ter um link novo."
 
 msgid "The link is still live. Check that you're online and try again — nothing was changed."
 msgstr "O link ainda está ativo. Verifique se você está online e tente novamente — nada foi alterado."
@@ -10777,8 +11030,8 @@ msgstr "O provedor respondeu de forma inesperada."
 msgid "The provider rejected these credentials."
 msgstr "O provedor rejeitou estas credenciais."
 
-msgid "The publishing service couldn't be installed"
-msgstr "O serviço de publicação não pôde ser instalado"
+#~ msgid "The publishing service couldn't be installed"
+#~ msgstr "O serviço de publicação não pôde ser instalado"
 
 msgid "The quick brown fox jumps over the lazy dog 0123456789"
 msgstr "Um pequeno jabuti xereta viu dez cegonhas felizes 0123456789"
@@ -10813,14 +11066,20 @@ msgstr "As seções serão combinadas localmente. Sem uma chave de API, será ne
 msgid "The setup stopped before it finished. Nothing was lost — trying again continues from where it stopped."
 msgstr "A configuração parou antes de terminar. Nada foi perdido — tentar novamente continua de onde parou."
 
+msgid "The sharing service couldn't be installed"
+msgstr "Não foi possível instalar o serviço de compartilhamento"
+
 msgid "The small program that shows your books."
 msgstr "O pequeno programa que mostra seus livros."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "O storyboard deve ser concluído antes de gerar {stageName}. Execute a etapa do Storyboard primeiro."
 
-msgid "The Studio couldn't reach the publishing service in your Cloudflare account, so nothing was sent. Your link and everything on it are untouched. It already tried a few times — check this computer's connection and try again."
-msgstr "O Studio não conseguiu acessar o serviço de publicação na sua conta Cloudflare, então nada foi enviado. Seu link e tudo nele estão intactos. Já tentou algumas vezes — verifique a conexão deste computador e tente novamente."
+#~ msgid "The Studio couldn't reach the publishing service in your Cloudflare account, so nothing was sent. Your link and everything on it are untouched. It already tried a few times — check this computer's connection and try again."
+#~ msgstr "O Studio não conseguiu acessar o serviço de publicação na sua conta Cloudflare, então nada foi enviado. Seu link e tudo nele estão intactos. Já tentou algumas vezes — verifique a conexão deste computador e tente novamente."
+
+msgid "The Studio couldn't reach the sharing service in your Cloudflare account, so nothing was sent. Your link and everything on it are untouched. It already tried a few times — check this computer's connection and try again."
+msgstr "O Studio não conseguiu acessar o serviço de compartilhamento na sua conta Cloudflare, então nada foi enviado. Seu link e tudo nele estão intactos. Já foram feitas algumas tentativas — verifique a conexão deste computador e tente de novo."
 
 msgid "The Studio will create the storage and small web service it needs inside your Cloudflare account. This takes a minute or two and only happens once."
 msgstr "O Studio criará o armazenamento e o pequeno serviço web de que precisa dentro da sua conta Cloudflare. Isso leva um ou dois minutos e acontece apenas uma vez."
@@ -10843,8 +11102,11 @@ msgstr "O tempo estava muito ruim."
 msgid "The whole book has been split into parts."
 msgstr "O livro inteiro foi dividido em partes."
 
-msgid "The whole book is sent as a single file, and Cloudflare accepts at most {MAX_MEGABYTES} MB at a time. This book's export is bigger than that. Publishing it will need fewer or smaller videos, audio files or images — the sign-language videos are usually the heaviest part."
-msgstr "O livro inteiro é enviado como um único arquivo, e o Cloudflare aceita no máximo {MAX_MEGABYTES} MB de cada vez. A exportação deste livro é maior do que isso. Publicá-lo exigirá menos ou menores vídeos, arquivos de áudio ou imagens — os vídeos em linguagem de sinais geralmente são a parte mais pesada."
+#~ msgid "The whole book is sent as a single file, and Cloudflare accepts at most {MAX_MEGABYTES} MB at a time. This book's export is bigger than that. Publishing it will need fewer or smaller videos, audio files or images — the sign-language videos are usually the heaviest part."
+#~ msgstr "O livro inteiro é enviado como um único arquivo, e o Cloudflare aceita no máximo {MAX_MEGABYTES} MB de cada vez. A exportação deste livro é maior do que isso. Publicá-lo exigirá menos ou menores vídeos, arquivos de áudio ou imagens — os vídeos em linguagem de sinais geralmente são a parte mais pesada."
+
+msgid "The whole book is sent as a single file, and Cloudflare accepts at most {MAX_MEGABYTES} MB at a time. This book's export is bigger than that. Sharing it will need fewer or smaller videos, audio files or images — the sign-language videos are usually the heaviest part."
+msgstr "O livro inteiro é enviado como um único arquivo, e a Cloudflare aceita no máximo {MAX_MEGABYTES} MB por vez. A exportação deste livro é maior que isso. Para compartilhá-lo será preciso menos vídeos, áudios ou imagens, ou menores — os vídeos em língua de sinais costumam ser a parte mais pesada."
 
 msgid "The world before us"
 msgstr "O mundo diante de nós"
@@ -10915,6 +11177,9 @@ msgstr "Este livro não tem imagens para legendar"
 msgid "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
 msgstr "Este livro não tem páginas. Certifique-se de que as etapas de extração e storyboard produziram conteúdo antes de gerar {stageName}."
 
+msgid "This book has not been published, so there is no feedback on it yet. Publish it and reviewers' comments land here, on the pages they were left on."
+msgstr "Este livro não foi publicado, então ainda não há comentários sobre ele. Publique-o e os comentários dos revisores aparecem aqui, nas páginas onde foram deixados."
+
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "Este livro é uma parte: seu intervalo de páginas é fixo, corresponde ao subconjunto atribuído e não pode ser alterado."
 
@@ -10947,11 +11212,17 @@ msgstr "Este livro não está compartilhado agora"
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Este livro é renderizado em layout fixo, então mantém as fontes originais do PDF. Fontes anexadas ainda orientam a IA em atividades e páginas geradas."
 
-msgid "This book was already published — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
-msgstr "Este livro já foi publicado — outra janela pode ter feito isso. Use \\\"Atualizar site\\\" para enviar suas últimas alterações para o link que você já tem."
+#~ msgid "This book was already published — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
+#~ msgstr "Este livro já foi publicado — outra janela pode ter feito isso. Use \\\"Atualizar site\\\" para enviar suas últimas alterações para o link que você já tem."
 
-msgid "This book's link has reached its end date and no longer opens. Publishing again gives you a new link to share."
-msgstr "O link deste livro atingiu sua data de término e não abre mais. Publicar novamente lhe dá um novo link para compartilhar."
+msgid "This book was already shared — another window may have done it. Use \"Update site\" to push your latest changes to the link you already have."
+msgstr "Este livro já estava compartilhado — outra janela pode ter feito isso. Use \"Atualizar site\" para enviar suas últimas alterações ao link que você já tem."
+
+#~ msgid "This book's link has reached its end date and no longer opens. Publishing again gives you a new link to share."
+#~ msgstr "O link deste livro atingiu sua data de término e não abre mais. Publicar novamente lhe dá um novo link para compartilhar."
+
+msgid "This book's link has reached its end date and no longer opens. Sharing again gives you a new link to share."
+msgstr "O link deste livro chegou à data final e não abre mais. Compartilhar de novo dá um link novo para compartilhar."
 
 msgid "This cannot be undone. Every link you have shared will stop working."
 msgstr "Isso não pode ser desfeito. Todos os links que você compartilhou deixarão de funcionar."
@@ -10962,8 +11233,11 @@ msgstr "Este comentário foi excluído"
 msgid "This computer"
 msgstr "Este computador"
 
-msgid "This computer will forget your token and Account ID, so you won't be able to publish or update books until you connect again. Books you have already published stay online and their links keep working."
-msgstr "Este computador esquecerá seu token e ID de Conta, então você não poderá publicar ou atualizar livros até se conectar novamente. Livros que você já publicou permanecem online e seus links continuam funcionando."
+#~ msgid "This computer will forget your token and Account ID, so you won't be able to publish or update books until you connect again. Books you have already published stay online and their links keep working."
+#~ msgstr "Este computador esquecerá seu token e ID de Conta, então você não poderá publicar ou atualizar livros até se conectar novamente. Livros que você já publicou permanecem online e seus links continuam funcionando."
+
+msgid "This computer will forget your token and Account ID, so you won't be able to share or update books until you connect again. Books you have already shared stay online and their links keep working."
+msgstr "Este computador vai esquecer seu token e o ID da conta, então você não poderá compartilhar nem atualizar livros até conectar de novo. Os livros que você já compartilhou continuam on-line e seus links continuam funcionando."
 
 msgid "This connection isn't available yet."
 msgstr "Esta conexão ainda não está disponível."
@@ -11142,8 +11416,11 @@ msgstr "Este texto é perceptível apenas para tecnologias assistivas."
 msgid "This version is empty."
 msgstr "Esta versão está vazia."
 
-msgid "This version was published before the Studio started tracking edits, so it can't tell whether your book has changed since. Updating the site makes them match."
-msgstr "Esta versão foi publicada antes do Studio começar a rastrear edições, então não pode dizer se seu livro mudou desde então. Atualizar o site faz com que correspondam."
+#~ msgid "This version was published before the Studio started tracking edits, so it can't tell whether your book has changed since. Updating the site makes them match."
+#~ msgstr "Esta versão foi publicada antes do Studio começar a rastrear edições, então não pode dizer se seu livro mudou desde então. Atualizar o site faz com que correspondam."
+
+msgid "This version was shared before the Studio started tracking edits, so it can't tell whether your book has changed since. Updating the site makes them match."
+msgstr "Esta versão foi compartilhada antes de o Studio começar a registrar as edições, então ele não sabe dizer se seu livro mudou desde então. Atualizar o site deixa os dois iguais."
 
 msgid "This voice ID is not in your ElevenLabs account."
 msgstr "Este ID de voz não está na sua conta do ElevenLabs."
@@ -11576,11 +11853,14 @@ msgstr "Atualizado"
 msgid "updated {0}"
 msgstr "atualizado {0}"
 
-msgid "Updating the publishing service"
-msgstr "Atualizando o serviço de publicação"
+#~ msgid "Updating the publishing service"
+#~ msgstr "Atualizando o serviço de publicação"
 
 msgid "Updating the shared copy"
 msgstr "Atualizando a cópia compartilhada"
+
+msgid "Updating the sharing service"
+msgstr "Atualizando o serviço de compartilhamento"
 
 msgid "Upload"
 msgstr "Enviar"
@@ -11812,8 +12092,13 @@ msgstr "Versão {0}"
 
 #. placeholder {0}: connection.worker_version ?? "?"
 #. placeholder {1}: connection.latest_version
-msgid "Version {0} → {1}. Your published books stay online while this runs."
-msgstr "Versão {0} → {1}. Seus livros publicados permanecem online enquanto isso é executado."
+#~ msgid "Version {0} → {1}. Your published books stay online while this runs."
+#~ msgstr "Versão {0} → {1}. Seus livros publicados permanecem online enquanto isso é executado."
+
+#. placeholder {0}: connection.worker_version ?? "?"
+#. placeholder {1}: connection.latest_version
+msgid "Version {0} → {1}. Your shared books stay online while this runs."
+msgstr "Versão {0} → {1}. Seus livros compartilhados continuam on-line enquanto isso roda."
 
 msgid "Version {current}"
 msgstr "Versão {current}"
@@ -11929,6 +12214,9 @@ msgstr "Aguarde o término da geração do glossário"
 msgid "Wait for storyboard to complete"
 msgstr "Aguarde a conclusão do storyboard"
 
+msgid "Waiting"
+msgstr "Pendente"
+
 msgid "Waiting for API output…"
 msgstr "Aguardando saída da API…"
 
@@ -11978,14 +12266,20 @@ msgstr "Comparamos as bordas das páginas e achamos que estas páginas frente a 
 msgid "We couldn't check whether this book is shared"
 msgstr "Não conseguimos verificar se este livro está compartilhado"
 
-msgid "We couldn't check your publishing setup"
-msgstr "Não conseguimos verificar sua configuração de publicação"
+#~ msgid "We couldn't check your publishing setup"
+#~ msgstr "Não conseguimos verificar sua configuração de publicação"
+
+msgid "We couldn't check your sharing setup"
+msgstr "Não conseguimos verificar sua configuração de compartilhamento"
 
 msgid "We couldn't connect to Cloudflare"
 msgstr "Não conseguimos conectar ao Cloudflare"
 
-msgid "We couldn't load your published books"
-msgstr "Não conseguimos carregar seus livros publicados"
+#~ msgid "We couldn't load your published books"
+#~ msgstr "Não conseguimos carregar seus livros publicados"
+
+msgid "We couldn't load your shared books"
+msgstr "Não conseguimos carregar seus livros compartilhados"
 
 msgid "We hit a snag while loading this view. You can try this screen again or reload the whole app."
 msgstr "Encontramos um problema ao carregar esta visualização. Você pode tentar esta tela novamente ou recarregar todo o aplicativo."
@@ -12180,6 +12474,9 @@ msgstr "Escreva com IA o feedback de acerto/erro para cada etapa"
 msgid "Write your sentence with a {0} marker."
 msgstr "Escreva sua frase com um marcador {0}."
 
+msgid "Written about an older version of this page"
+msgstr "Escrito sobre uma versão anterior desta página"
+
 #. placeholder {0}: root.version
 msgid "Written on version {0} of this book"
 msgstr "Escrito na versão {0} deste livro"
@@ -12203,8 +12500,11 @@ msgstr "Você pode exportar nesta etapa"
 msgid "You have changes that haven't been saved yet. If you quit now, they'll be lost."
 msgstr "Você tem alterações que ainda não foram salvas. Se sair agora, elas serão perdidas."
 
-msgid "You have edited this book since it was published, so readers are seeing an older copy. Update the site when you want them to catch up."
-msgstr "Você editou este livro desde que foi publicado, então os leitores estão vendo uma cópia mais antiga. Atualize o site quando quiser que eles acompanhem."
+#~ msgid "You have edited this book since it was published, so readers are seeing an older copy. Update the site when you want them to catch up."
+#~ msgstr "Você editou este livro desde que foi publicado, então os leitores estão vendo uma cópia mais antiga. Atualize o site quando quiser que eles acompanhem."
+
+msgid "You have edited this book since it was shared, so readers are seeing an older copy. Update the site when you want them to catch up."
+msgstr "Você editou este livro depois de compartilhá-lo, então os leitores estão vendo uma cópia antiga. Atualize o site quando quiser que eles se atualizem."
 
 msgid "You haven't added any terms manually yet"
 msgstr "Você ainda não adicionou nenhum termo manualmente"
@@ -12212,14 +12512,23 @@ msgstr "Você ainda não adicionou nenhum termo manualmente"
 msgid "You haven't split any books"
 msgstr "Você não dividiu nenhum livro"
 
-msgid "You only had to do that once. To share a book, open it and go to its Export step — you'll find Publish there."
-msgstr "Você só precisava fazer isso uma vez. Para compartilhar um livro, abra-o e vá para a etapa de Exportação — você encontrará Publicar lá."
+#~ msgid "You only had to do that once. To share a book, open it and go to its Export step — you'll find Publish there."
+#~ msgstr "Você só precisava fazer isso uma vez. Para compartilhar um livro, abra-o e vá para a etapa de Exportação — você encontrará Publicar lá."
 
-msgid "You stopped sharing this book, so the old link no longer opens. You can start sharing it again on the same link, or publish again for a new one."
-msgstr "Você parou de compartilhar este livro, então o link antigo não abre mais. Você pode começar a compartilhá-lo novamente no mesmo link, ou publicar novamente para um novo."
+msgid "You only had to do that once. To share a book, open it and go to its Sharing step."
+msgstr "Você só precisava fazer isso uma vez. Para compartilhar um livro, abra-o e vá até a etapa Compartilhamento."
 
-msgid "You stopped this before it finished. Nothing was sent, and publishing again starts a fresh copy — it does not resume this one."
-msgstr "Você parou isso antes de terminar. Nada foi enviado, e publicar novamente inicia uma cópia nova — não retoma esta."
+#~ msgid "You stopped sharing this book, so the old link no longer opens. You can start sharing it again on the same link, or publish again for a new one."
+#~ msgstr "Você parou de compartilhar este livro, então o link antigo não abre mais. Você pode começar a compartilhá-lo novamente no mesmo link, ou publicar novamente para um novo."
+
+msgid "You stopped sharing this book, so the old link no longer opens. You can start sharing it again on the same link, or share again for a new one."
+msgstr "Você parou de compartilhar este livro, então o link antigo não abre mais. Você pode voltar a compartilhá-lo no mesmo link, ou compartilhar de novo para ter outro."
+
+#~ msgid "You stopped this before it finished. Nothing was sent, and publishing again starts a fresh copy — it does not resume this one."
+#~ msgstr "Você parou isso antes de terminar. Nada foi enviado, e publicar novamente inicia uma cópia nova — não retoma esta."
+
+msgid "You stopped this before it finished. Nothing was sent, and sharing again starts a fresh copy — it does not resume this one."
+msgstr "Você parou isso antes de terminar. Nada foi enviado, e compartilhar de novo começa uma cópia nova — não retoma esta."
 
 msgid "You're all set"
 msgstr "Tudo certo"
@@ -12278,8 +12587,11 @@ msgstr "Sua conta Cloudflare ainda não escolheu o endereço web que usa para se
 msgid "Your Cloudflare connection is still here. Try again in a moment."
 msgstr "Sua conexão com o Cloudflare continua aqui. Tente novamente em instantes."
 
-msgid "Your Cloudflare login covers more than one account. Pick the one your books should be published into — you can change it later by disconnecting and connecting again."
-msgstr "Seu login Cloudflare cobre mais de uma conta. Escolha a conta na qual seus livros devem ser publicados — você pode mudar isso depois desconectando e conectando novamente."
+#~ msgid "Your Cloudflare login covers more than one account. Pick the one your books should be published into — you can change it later by disconnecting and connecting again."
+#~ msgstr "Seu login Cloudflare cobre mais de uma conta. Escolha a conta na qual seus livros devem ser publicados — você pode mudar isso depois desconectando e conectando novamente."
+
+msgid "Your Cloudflare login covers more than one account. Pick the one your books should be shared from — you can change it later by disconnecting and connecting again."
+msgstr "Seu login da Cloudflare abrange mais de uma conta. Escolha aquela de onde seus livros devem ser compartilhados — você pode mudar depois desconectando e conectando de novo."
 
 msgid "Your connection is still here, so nothing is half-forgotten. You can try again, or untick the delete option and just disconnect — then tidy up in Cloudflare yourself."
 msgstr "Sua conexão ainda está aqui, então nada está meio esquecido. Você pode tentar novamente, ou desmarcar a opção de exclusão e apenas desconectar — depois organize no Cloudflare você mesmo."
@@ -12305,25 +12617,42 @@ msgstr "Suas fontes"
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Suas páginas {displayStart}–{displayEnd}"
 
-msgid "Your publishing service is a version behind and doesn't keep this list yet. Installing the update adds it — the names of anyone who joined before then are already stored, so nothing has been lost."
-msgstr "Seu serviço de publicação está uma versão atrás e ainda não mantém esta lista. Instalar a atualização a adiciona — os nomes de quem entrou antes já estão armazenados, então nada foi perdido."
+#~ msgid "Your publishing service is a version behind and doesn't keep this list yet. Installing the update adds it — the names of anyone who joined before then are already stored, so nothing has been lost."
+#~ msgstr "Seu serviço de publicação está uma versão atrás e ainda não mantém esta lista. Instalar a atualização a adiciona — os nomes de quem entrou antes já estão armazenados, então nada foi perdido."
 
-msgid "Your publishing service is older than this Studio and has no way to erase a book yet. Nothing was deleted. Installing the update adds it."
-msgstr "Seu serviço de publicação é mais antigo que este Studio e ainda não tem como apagar um livro. Nada foi excluído. Instalar a atualização a adiciona."
+#~ msgid "Your publishing service is older than this Studio and has no way to erase a book yet. Nothing was deleted. Installing the update adds it."
+#~ msgstr "Seu serviço de publicação é mais antigo que este Studio e ainda não tem como apagar um livro. Nada foi excluído. Instalar a atualização a adiciona."
 
 #. placeholder {0}: data.worker_version ?? "?"
 #. placeholder {1}: data.latest_version
-msgid "Your publishing service is version {0}; the Studio ships {1}. Newer features can be missing until you install it — your link and your readers are unaffected either way."
-msgstr "Seu serviço de publicação é a versão {0}; o Studio é a versão {1}. Recursos mais novos podem estar ausentes até você instalá-lo — seu link e seus leitores não são afetados de qualquer forma."
+#~ msgid "Your publishing service is version {0}; the Studio ships {1}. Newer features can be missing until you install it — your link and your readers are unaffected either way."
+#~ msgstr "Seu serviço de publicação é a versão {0}; o Studio é a versão {1}. Recursos mais novos podem estar ausentes até você instalá-lo — seu link e seus leitores não são afetados de qualquer forma."
 
-msgid "Your publishing service isn't answering, so this is what this computer remembers: sizes and comment counts are missing, and a book published from another computer won't be listed."
-msgstr "Seu serviço de publicação não está respondendo, então é isso que este computador lembra: tamanhos e contagens de comentários estão faltando, e um livro publicado de outro computador não será listado."
+#~ msgid "Your publishing service isn't answering, so this is what this computer remembers: sizes and comment counts are missing, and a book published from another computer won't be listed."
+#~ msgstr "Seu serviço de publicação não está respondendo, então é isso que este computador lembra: tamanhos e contagens de comentários estão faltando, e um livro publicado de outro computador não será listado."
 
-msgid "Your publishing service isn't answering, so what this page says about versions and readers may be out of date. The link itself is usually fine."
-msgstr "Seu serviço de publicação não está respondendo, então o que esta página diz sobre versões e leitores pode estar desatualizado. O link em si geralmente está bem."
+#~ msgid "Your publishing service isn't answering, so what this page says about versions and readers may be out of date. The link itself is usually fine."
+#~ msgstr "Seu serviço de publicação não está respondendo, então o que esta página diz sobre versões e leitores pode estar desatualizado. O link em si geralmente está bem."
 
 msgid "Your service isn't answering yet"
 msgstr "Seu serviço ainda não está respondendo"
+
+msgid "Your sharing service is a version behind and doesn't keep this list yet. Installing the update adds it — the names of anyone who joined before then are already stored, so nothing has been lost."
+msgstr "Seu serviço de compartilhamento está uma versão atrás e ainda não guarda esta lista. Instalar a atualização adiciona isso — os nomes de quem entrou antes já estão guardados, então nada foi perdido."
+
+msgid "Your sharing service is older than this Studio and has no way to erase a book yet. Nothing was deleted. Installing the update adds it."
+msgstr "Seu serviço de compartilhamento é mais antigo que este Studio e ainda não consegue apagar um livro. Nada foi excluído. Instalar a atualização adiciona isso."
+
+#. placeholder {0}: data.worker_version ?? "?"
+#. placeholder {1}: data.latest_version
+msgid "Your sharing service is version {0}; the Studio ships {1}. Newer features can be missing until you install it — your link and your readers are unaffected either way."
+msgstr "Seu serviço de compartilhamento é a versão {0}; o Studio traz a {1}. Recursos mais novos podem faltar até você instalar — seu link e seus leitores não são afetados de nenhuma forma."
+
+msgid "Your sharing service isn't answering, so this is what this computer remembers: sizes and comment counts are missing, and a book shared from another computer won't be listed."
+msgstr "Seu serviço de compartilhamento não está respondendo, então isto é o que este computador lembra: faltam os tamanhos e a contagem de comentários, e um livro compartilhado de outro computador não aparecerá."
+
+msgid "Your sharing service isn't answering, so what this page says about versions and readers may be out of date. The link itself is usually fine."
+msgstr "Seu serviço de compartilhamento não está respondendo, então o que esta página diz sobre versões e leitores pode estar desatualizado. O link em si costuma estar bem."
 
 msgid "Z → A"
 msgstr "Z → A"
