@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { AlertTriangle, ArrowRight, Check, CheckCircle2, Loader2, MessagesSquare } from "lucide-react"
+import { AlertTriangle, ArrowRight, Check, CheckCircle2, Loader2 } from "lucide-react"
 import { apiErrorCode } from "@/api/client"
 import {
   buildThreads,
@@ -10,24 +10,25 @@ import {
 import { RelativeTime } from "@/components/publication-feedback/RelativeTime"
 import {
   useAuthorIdentity,
-  usePublicationComments,
   usePublicationPages,
+  usePublicationComments,
   useResolveThread,
 } from "@/hooks/use-publication-feedback"
 import { PUBLISH_AUTHOR_DEFAULT_NAME } from "@adt/types"
 import { feedbackDestination } from "./feedback-destination"
 import { cn } from "@/lib/utils"
 
-/** Three is the number that fits without a scroller and still shows a pattern — one is an
- *  anecdote, ten is the Feedback stage, which is one click away and better at it. */
-const SHOWN = 3
-
 /**
- * The newest threads still waiting on the author, on the page they were left on.
+ * Every thread still waiting on the author, newest first, on the page it was left on.
  *
- * The tile above says there are eight; this says what two of them are, which is the difference
- * between a status page and somewhere work starts. Rows open the Storyboard rather than trying to
- * answer here: replying wants the page beside it, and that is exactly what the storyboard has.
+ * It used to show three. The count above said eight, the list showed three, and the other five
+ * were reachable only by leaving for the Storyboard and hunting — so the panel that exists to
+ * say what is outstanding was the one place that would not tell you. This sits in a `ScrollBox`
+ * with a bounded row, so showing all of them costs a scrollbar and nothing else.
+ *
+ * Rows open the Storyboard rather than trying to answer here: replying wants the page beside
+ * it, and that is exactly what the storyboard has. Resolving, which needs no page, happens
+ * here — so a thread that is done can leave this list without a round trip.
  */
 export function PublishingRecentFeedback({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
@@ -96,7 +97,7 @@ export function PublishingRecentFeedback({ bookLabel }: { bookLabel: string }) {
 
   return (
     <div className="-mx-4 -my-3 flex flex-col divide-y">
-      {threads.slice(0, SHOWN).map((thread) => (
+      {threads.map((thread) => (
         <div key={thread.root.id} className="group flex items-start transition-colors hover:bg-muted/50">
           <Link
             {...feedbackDestination(bookLabel, thread.pageSectionId, thread.root.id)}
@@ -167,21 +168,6 @@ export function PublishingRecentFeedback({ bookLabel }: { bookLabel: string }) {
           </button>
         </div>
       ))}
-
-      {threads.length > SHOWN ? (
-        <Link
-          to="/books/$label/$step"
-          params={{ label: bookLabel, step: "storyboard" }}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-indigo-700",
-            "transition-colors hover:bg-indigo-50/60",
-          )}
-        >
-          <MessagesSquare className="size-3.5" aria-hidden="true" />
-          <Trans>{threads.length - SHOWN} more waiting in the Storyboard</Trans>
-          <ArrowRight className="size-3.5" aria-hidden="true" />
-        </Link>
-      ) : null}
     </div>
   )
 }
