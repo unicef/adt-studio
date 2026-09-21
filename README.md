@@ -9,7 +9,7 @@
   [![Download for macOS](https://img.shields.io/badge/Download-macOS-000000?logo=apple&logoColor=white)](https://github.com/unicef/adt-studio/releases/download/v0.3.0-electron/adt-studio.dmg)
   ![Platform](https://img.shields.io/badge/platform-desktop-5E3370?logo=electron&logoColor=white)
   ![OS](https://img.shields.io/badge/os-windows%2C%20macos-pink)
-  [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-green)](../LICENSE)
+  [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-green)](LICENSE)
   [![ADT Initiative](https://img.shields.io/badge/ADT_Initiative-accessibletextbooksforall.org-1CABE2)](https://www.accessibletextbooksforall.org/)
 
 <h2>Supported by</h2>
@@ -301,7 +301,7 @@ pnpm build            # Build all packages and apps
 pnpm test             # Run tests
 pnpm test:coverage    # Run tests with coverage
 pnpm typecheck        # TypeScript strict mode check
-pnpm lint             # Lint all packages
+pnpm lint             # Lint Studio (the only package with an eslint config)
 pnpm a11y:regression  # Run curated packaged-output accessibility regression (markdown)
 pnpm a11y:regression:json  # Same regression with JSON output to stdout
 pnpm a11y:browser-recheck  # Recheck manual-review items + contrast in Playwright
@@ -413,10 +413,26 @@ Notes:
 - `runAccessibilityAssessment` may still emit jsdom canvas warnings to stderr during local runs.
 - The browser recheck requires Playwright Chromium to be installed.
 
+## How we work
+
+Work runs in one of three lanes, chosen before you start:
+
+- **Fast** — bug fixes, chores, contained UI, behaviour-preserving refactors. Issue → PR. Most work is here.
+- **Spec** — anything that changes a contract, the storage schema, or an invariant. A spec is written and reviewed in [`docs/specs/`](docs/specs/INDEX.md) *before* implementation, and becomes the shared context everyone building it works from.
+- **Experiment** — open questions. Two-week time box on an `exp/` branch, ending in a written finding rather than a pull request.
+
+The decision list, the spec lifecycle, and how ADRs and invariants attach are in
+[docs/SPEC_DRIVEN_DEVELOPMENT.md](docs/SPEC_DRIVEN_DEVELOPMENT.md). Start at
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute: lanes, branching, PR expectations |
+| [docs/SPEC_DRIVEN_DEVELOPMENT.md](docs/SPEC_DRIVEN_DEVELOPMENT.md) | How work is specified, reviewed and accepted |
+| [docs/specs/INDEX.md](docs/specs/INDEX.md) | Index of all specs and their status |
+| [docs/INVARIANTS.md](docs/INVARIANTS.md) | Invariants that must hold, and how each is checked |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, package graph, pipeline model, data flow |
 | [docs/RELEASING.md](docs/RELEASING.md) | Release flow, branching model (develop → beta, main → stable), and how the release pipeline works |
 | [docs/DEVELOPER-GUIDE.md](docs/DEVELOPER-GUIDE.md) | Hosting guide and developer extension reference for third-party teams |

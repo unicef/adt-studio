@@ -1,0 +1,87 @@
+name: Spec
+description: Propose a change that needs a written contract before it is built
+labels: ["spec"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        <p align="center">
+          <a href="https://github.com/unicef/adt-studio">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/unicef/adt-studio/main/.github/assets/adt-studio-banner-dark.png">
+              <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/unicef/adt-studio/main/.github/assets/adt-studio-banner-light.png">
+              <img src="https://raw.githubusercontent.com/unicef/adt-studio/main/.github/assets/adt-studio-banner-light.png" alt="ADT Studio — Turn PDFs into interactive HTML books" width="420">
+            </picture>
+          </a>
+        </p>
+
+        <p align="center"><em>Specs are for changes where "what should this do?" has more than one defensible answer.</em></p>
+
+        > [!IMPORTANT]
+        > - Most work does **not** need a spec — see [docs/SPEC_DRIVEN_DEVELOPMENT.md §3](https://github.com/unicef/adt-studio/blob/develop/docs/SPEC_DRIVEN_DEVELOPMENT.md#3-choosing-a-lane) before filing.
+        > - Use the spec lane when the change alters a contract, the storage schema, or an invariant.
+        > - This issue is the *proposal*. The spec document is written from it and reviewed as its own PR.
+        > - Please search existing issues and `docs/specs/INDEX.md` to avoid duplicates.
+  - type: checkboxes
+    id: preliminary
+    attributes:
+      label: Preliminary Checks
+      description: Please confirm the following before submitting.
+      options:
+        - label: I have searched existing issues and `docs/specs/INDEX.md` and avoided creating duplicates.
+          required: true
+        - label: I have read §3 "Choosing a lane" and this change belongs in the spec lane.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem, with evidence
+      description: Symptoms, not solutions. Link issues, quote errors, cite `file:line`, and include measurements where you have them.
+      placeholder: Editing one page marks every downstream page stale — on a 200-page book that is …
+    validations:
+      required: true
+  - type: dropdown
+    id: trigger
+    attributes:
+      label: Why does this need a spec?
+      description: Which rule from §3 does it hit?
+      options:
+        - Changes a contract users or other packages depend on
+        - Changes the storage schema or needs a data migration
+        - Touches an invariant in docs/INVARIANTS.md
+        - Resolves a dispute about intended behaviour
+        - Other (explain below)
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed scope
+      description: What should be true when this is done? Short bullets — the design detail belongs in the spec, not here.
+    validations:
+      required: true
+  - type: textarea
+    id: nongoals
+    attributes:
+      label: Non-goals
+      description: What should this deliberately NOT do? Binding once the spec is approved — it is what stops scope creep and unblocks adjacent work.
+    validations:
+      required: true
+  - type: textarea
+    id: related
+    attributes:
+      label: Related issues, PRs and specs
+      description: Anything this depends on, blocks, or collides with.
+  - type: input
+    id: owner
+    attributes:
+      label: Proposed owner
+      description: Exactly one person. Who will write and shepherd the spec?
+      placeholder: "@handle"
+  - type: checkboxes
+    id: acknowledgement
+    attributes:
+      label: Process
+      options:
+        - label: I understand the spec is written from `docs/specs/TEMPLATE.md`, and that reviewing its PR **is** the spec review — time-boxed to three working days.
+          required: true

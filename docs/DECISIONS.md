@@ -896,26 +896,44 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 
 ## ADR template
 
-Copy the block below to the end of the ADR list (before the Decision Log Summary) when a spec changes a standing decision, and add a row to the summary table.
+Copy the block below to the end of the ADR list (before the Decision Log Summary) when a
+spec changes a standing decision. One page at most.
+
+This file has **two** hand-maintained indexes, and a new ADR must appear in both:
+
+1. The **Table of Contents** at the top.
+2. The **Decision Log Summary** table at the bottom.
+
+The heading continues the existing numbering in this file's own style — `## NNN: Title`,
+matching all 23 entries above. Retrospective ADRs use the same shape, dated when the
+decision was actually taken, with a note that it is recorded after the fact.
+
+See [SPEC_DRIVEN_DEVELOPMENT.md §6](SPEC_DRIVEN_DEVELOPMENT.md#6-adrs) for when an ADR is
+needed at all.
 
 ```markdown
-<!-- Append to docs/DECISIONS.md. One page at most. Retrospective ADRs use the same shape,
-     with the date of the original decision and a note that it is recorded after the fact. -->
+## NNN: <Decision, As A Statement>
 
-## ADR-NNN — <decision, as a statement>
-
-**Date:** YYYY-MM-DD   **Status:** proposed | accepted | superseded by ADR-MMM
-**Spec:** SPEC-NNNN   **Issues:** #...
+**Status**: proposed | accepted | superseded by NNN
+**Date**: YYYY-MM-DD
+**Spec**: [SPEC-NNNN](specs/SPEC-NNNN-short-slug.md)
+**Issues**: #...
 
 ### Context
+
 What forced the decision. Evidence, constraints, the dispute if there was one.
 
 ### Decision
+
 One or two sentences. What we will do.
 
 ### Consequences
+
 What becomes easier, what becomes harder, what invariant this creates or changes.
 
-### Alternatives rejected
-Each with the reason, in one line.
+### Alternatives Considered
+
+| Approach | Why Not |
+|----------|---------|
+| ... | ... |
 ```

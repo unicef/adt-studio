@@ -10,7 +10,7 @@
 <!-- commands actually run and their results -->
 - [ ] `pnpm typecheck`
 - [ ] `pnpm test` (affected packages)
-- [ ] `pnpm lint:invariants`
+- [ ] `pnpm lint` (UI changes)
 - [ ] regression test added (behaviour bugs)
 - [ ] verified in running Studio / desktop where UI-facing
 

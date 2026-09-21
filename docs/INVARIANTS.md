@@ -1,7 +1,12 @@
 # Invariants
 
-Principles that only live in prose do not survive agent throughput. Every row here has a check.
-Each spec that establishes an invariant adds its checker in the same change. `pnpm lint:invariants` runs every checker below.
+Principles that only live in prose do not survive agent throughput. Every row here names a check.
+Each spec that establishes an invariant adds its checker in the same change.
+
+> **Not every check below exists yet**, and the `pnpm lint:invariants` entry point that would
+> run them together is itself still planned — the first spec that needs it introduces it. Until
+> then the checks that do exist run under `pnpm typecheck`, `pnpm test` and `pnpm lint`. Treat a
+> row whose check is not yet implemented as a debt marker, not as enforcement.
 
 | # | Invariant | Check | Runs | Established by |
 |---|-----------|-------|------|----------------|
