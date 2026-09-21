@@ -152,7 +152,12 @@ export function computeEntryTimeRanges(
         id: entries[0].id,
         start: 0,
         end: totalDuration,
-        alignment: totalDuration > 0 ? "aligned" : "collapsed",
+        // Same rule as the multi-entry path: the range is [0, totalDuration] by
+        // construction, so "aligned" would be claiming a provenance we don't
+        // have when Whisper heard none of the entry's words. The audio is still
+        // written — this only stops the label overstating what we know.
+        alignment:
+          totalDuration <= 0 ? "collapsed" : matched > 0 ? "aligned" : "interpolated",
         matchedTokens: matched,
       },
     ]

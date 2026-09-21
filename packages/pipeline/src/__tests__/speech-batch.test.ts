@@ -128,6 +128,12 @@ describe("computeEntryTimeRanges alignment reporting", () => {
 
   // matchedTokens drives the wording the user is shown ("none of its words were
   // heard" vs "the slice is too short"), so it has to be counted, not assumed.
+  //
+  // The label has to follow it for the same reason it does in the multi-entry
+  // case below: a lone entry's range is [0, totalDuration] by construction, not
+  // by measurement, so calling it "aligned" when Whisper heard none of its words
+  // claims a provenance we don't have. `batch_max_chars` makes single-entry
+  // chunks routine, so this is not a corner case.
   it("reports 0 matched tokens for a lone entry whose words were never heard", () => {
     const ranges = computeEntryTimeRanges(
       [{ id: "solo", text: "uno dos tres" }],
@@ -136,6 +142,20 @@ describe("computeEntryTimeRanges alignment reporting", () => {
     )
 
     expect(ranges[0].matchedTokens).toBe(0)
+    expect(ranges[0].alignment).toBe("interpolated")
+    // Still written — Whisper mishears names, numbers and low-resource
+    // languages, and throwing away real audio over that is worse than the gap.
+    expect(ranges[0].end).toBeGreaterThan(ranges[0].start)
+  })
+
+  it("still calls a lone entry aligned when its words were heard", () => {
+    const ranges = computeEntryTimeRanges(
+      [{ id: "solo", text: "uno dos tres" }],
+      [W("uno", 0, 0.4), W("dos", 0.4, 0.8)],
+      2.0,
+    )
+
+    expect(ranges[0].alignment).toBe("aligned")
   })
 
   it("counts only the tokens a lone entry actually shares with the audio", () => {
