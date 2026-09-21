@@ -144,33 +144,6 @@ export function firstPageWithFeedback(
   )
 }
 
-/**
- * Pin numbers are per page and follow creation order, so the number beside a thread in the
- * panel is the number drawn on the page — and it does not shuffle when the panel re-sorts on
- * activity. Only *anchored* threads are numbered: a whole-page comment draws no pin, so
- * counting it would leave a gap in the sequence the author reads off the page.
- */
-export function pinNumbers(threads: FeedbackThread[]): Map<string, number> {
-  const byPage = new Map<string, FeedbackThread[]>()
-  for (const thread of threads) {
-    if (thread.root.anchor === null) continue
-    const bucket = byPage.get(thread.pageSectionId)
-    if (bucket) bucket.push(thread)
-    else byPage.set(thread.pageSectionId, [thread])
-  }
-
-  const numbers = new Map<string, number>()
-  for (const bucket of byPage.values()) {
-    const ordered = [...bucket].sort((a, b) => {
-      const delta = Date.parse(a.root.created_at) - Date.parse(b.root.created_at)
-      if (delta !== 0) return delta
-      return a.root.id < b.root.id ? -1 : 1
-    })
-    ordered.forEach((thread, index) => numbers.set(thread.root.id, index + 1))
-  }
-  return numbers
-}
-
 const ELLIPSIS = "…"
 
 /** One-glance form of a comment body for the list rows. Cuts on a word boundary. */

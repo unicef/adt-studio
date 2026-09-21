@@ -11,7 +11,7 @@ import { snippet, type FeedbackThread } from "./lib/threads"
 
 export interface ThreadRowProps {
   thread: FeedbackThread
-  pinNumber: number | undefined
+  pinLabel: string | undefined
   currentVersion: number
   /** The anchor did not resolve in the framed snapshot, so no pin is drawn for it. */
   pinMissing: boolean
@@ -27,7 +27,7 @@ export interface ThreadRowProps {
 
 export function ThreadRow({
   thread,
-  pinNumber,
+  pinLabel,
   currentVersion,
   pinMissing,
   expanded,
@@ -73,7 +73,7 @@ export function ThreadRow({
           }}
           className="mt-0.5 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full rounded-bl-none border px-1 text-[10px] font-semibold"
         >
-          {root.anchor === null ? "•" : pinMissing ? "–" : (pinNumber ?? "?")}
+          {root.anchor === null ? "•" : pinMissing ? "–" : (pinLabel ?? "?")}
         </span>
 
         <span className="flex min-w-0 flex-1 flex-col gap-1">

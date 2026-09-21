@@ -5,7 +5,6 @@ import {
   filterThreads,
   firstPageWithFeedback,
   groupThreadsByPage,
-  pinNumbers,
   relativeAge,
   snippet,
   unresolvedThreadCount,
@@ -144,24 +143,6 @@ describe("unresolvedThreadCount", () => {
   })
 })
 
-describe("pinNumbers", () => {
-  it("numbers per page by creation order, not by panel order", () => {
-    const threads = buildThreads([
-      comment({ id: "second", created_at: "2026-08-04T11:00:00.000Z" }),
-      comment({ id: "first", created_at: "2026-08-04T10:00:00.000Z" }),
-      comment({
-        id: "other-page",
-        page_section_id: "pg002_sec001",
-        created_at: "2026-08-04T12:00:00.000Z",
-      }),
-    ])
-    const numbers = pinNumbers(threads)
-    expect(numbers.get("first")).toBe(1)
-    expect(numbers.get("second")).toBe(2)
-    expect(numbers.get("other-page")).toBe(1)
-  })
-})
-
 describe("snippet", () => {
   it("collapses whitespace and leaves short bodies alone", () => {
     expect(snippet("one\n\ntwo")).toBe("one two")
@@ -213,16 +194,3 @@ describe("firstPageWithFeedback", () => {
   })
 })
 
-describe("pinNumbers, whole-page comments", () => {
-  it("skips a whole-page comment so the drawn pins stay 1, 2, 3", () => {
-    const threads = buildThreads([
-      comment({ id: "pin-1", created_at: "2026-08-04T10:00:00.000Z" }),
-      comment({ id: "page-level", anchor: null, created_at: "2026-08-04T10:30:00.000Z" }),
-      comment({ id: "pin-2", created_at: "2026-08-04T11:00:00.000Z" }),
-    ])
-    const numbers = pinNumbers(threads)
-    expect(numbers.get("pin-1")).toBe(1)
-    expect(numbers.get("pin-2")).toBe(2)
-    expect(numbers.has("page-level")).toBe(false)
-  })
-})

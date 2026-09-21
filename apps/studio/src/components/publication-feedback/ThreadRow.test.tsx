@@ -46,14 +46,14 @@ function comment(overrides: Partial<PublishComment> & { id: string }): PublishCo
 
 function renderRow(
   root: PublishComment,
-  options: { pinMissing?: boolean; pinNumber?: number } = {},
+  options: { pinMissing?: boolean; pinLabel?: string } = {},
 ) {
   const thread = buildThreads([root])[0]!
   return render(
     <ul>
       <ThreadRow
         thread={thread}
-        pinNumber={options.pinNumber ?? 3}
+        pinLabel={options.pinLabel ?? "A"}
         currentVersion={2}
         pinMissing={options.pinMissing ?? false}
         expanded={false}
@@ -72,22 +72,22 @@ function renderRow(
 afterEach(cleanup)
 
 describe("ThreadRow markers", () => {
-  it("shows the pin number for a pin that is on the page", () => {
+  it("shows its author's initial for a pin that is on the page", () => {
     renderRow(comment({ id: "c1" }))
-    expect(screen.getByTestId("thread-pin-marker").textContent).toBe("3")
+    expect(screen.getByTestId("thread-pin-marker").textContent).toBe("A")
     expect(screen.queryByText("Pin not on this version")).toBeNull()
   })
 
   /** Asserted on the marker alone. Scanning the whole row also swept up the
    *  relative timestamp, so this passed until the fixture turned three days old
    *  and "3d ago" started supplying the very digit the test forbade. */
-  it("drops the number and says so when the anchor is not on this version", () => {
+  it("drops the label and says so when the anchor is not on this version", () => {
     renderRow(comment({ id: "c1" }), { pinMissing: true })
     expect(screen.getByText("Pin not on this version")).toBeTruthy()
     expect(screen.getByTestId("thread-pin-marker").textContent).toBe("–")
   })
 
-  it("marks a whole-page comment with a dot instead of a number", () => {
+  it("marks a whole-page comment with a dot instead of a label", () => {
     const { container } = renderRow(comment({ id: "c1", anchor: null }))
     expect(screen.getByText("Whole page")).toBeTruthy()
     expect(container.textContent).toContain("•")
