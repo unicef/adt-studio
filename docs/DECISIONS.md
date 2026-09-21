@@ -862,6 +862,25 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 | Store screenshots in SQLite BLOBs | Adds DB bloat/churn for debug binaries, harder cleanup |
 | External object store for screenshots | Unnecessary infrastructure for local/self-hosted workflows |
 
+<a id="adr-024"></a>
+## ADR-024 — Staleness is tracked per section by input-version comparison; stale artifacts are kept, never deleted
+
+**Date:** 2026-09-11   **Status:** proposed
+**Spec:** SPEC-0001   **Issues:** #735, #733, #736, #131, #619, #626
+
+### Context
+Staleness was tracked per stage and invalidation cleared a stage's data book-wide. One edit marked whole books stale (the surprise-bill problem) and manual corrections were regenerated over (the data-loss problem). #733 was closed as "by design" while #736 called the same behaviour a violation of core principle 2; the contract had never been written down.
+
+### Decision
+Each downstream artifact records the versions of its inputs. It is stale when any recorded input version differs from the current one. Invalidation marks; it never deletes. A user-edited artifact is never regenerated implicitly. For V1 beta the rule applies to captions, translation, easy-read and speech; if per-section granularity slips past 25 September, whole-stage marking with "regenerate stale only" ships first.
+
+### Consequences
+Editing a page costs a page. Core principle 2 becomes machine-checked (no unconditional clear/delete of user-touched entities). Artifacts carry an `inputVersions` map, so the storage schema changes. Books saved by the new version open in the old one with all downstream marked stale.
+
+### Alternatives rejected
+- Keep stage-level staleness, only make it non-destructive — fixes loss, not cost.
+- A general dependency graph across all entity types — correct, but weeks of work before the workshop.
+
 ---
 
 ## Decision Log Summary
@@ -891,6 +910,7 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 | 021 | Top bar button | Context-aware per stage | Per-stage inline buttons in sidebar |
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
+| 024 | Staleness contract (proposed) | Per-section input-version comparison; stale artifacts kept, never deleted | Non-destructive stage-level marking only; full dependency graph |
 
 ---
 
