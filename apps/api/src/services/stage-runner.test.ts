@@ -1531,6 +1531,13 @@ speech:
   // (issue #846's own run logged 142794ms). Every item would independently pay
   // that to learn the same thing, so once one has proven it, the rest are
   // failed with the reason instead of re-sent.
+  //
+  // The rejection here is DELAYED on purpose. `processWithConcurrency` launches
+  // its opening wave `LAUNCH_RAMP_MS` (100ms) apart at a default concurrency of
+  // 32, so a mock that rejects immediately is serialized by the ramp alone and
+  // this test would pass without the abort doing any work at all. Gemini's real
+  // refusal takes ~95-155s — far longer than the wave takes to launch — so the
+  // delay has to outlive the ramp for the assertion below to mean anything.
   it("stops re-sending Gemini items once a no-audio failure proves the temperature is too low", async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
     const booksDir = path.join(tmpDir, "books")
@@ -1557,11 +1564,14 @@ speech:
       { id: "pg001_t003", text: "Third sentence" },
     ])
 
-    generateSpeechFileMock.mockRejectedValue(
-      new Error(
+    // 400ms > 3 × the 100ms launch ramp, so without a serial probe all three
+    // entries are in flight before the first one fails.
+    generateSpeechFileMock.mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 400))
+      throw new Error(
         "Gemini TTS response did not include audio data. Response summary: finishReason=OTHER. The configured temperature 0 is below 0.5, which Gemini's TTS models are reported to reject without producing audio."
       )
-    )
+    })
 
     const events: ProgressEvent[] = []
     const runner = createStageRunner()

@@ -542,6 +542,44 @@ export async function processWithConcurrency<T>(
   }
 }
 
+/**
+ * Run `items[probeIndex]` alone, then everything else at `concurrency`.
+ *
+ * For a step that can abort the rest of its run once one item proves the run
+ * cannot succeed. `processWithConcurrency` spaces its opening wave only
+ * `LAUNCH_RAMP_MS` apart, so at the default concurrency of 32 the whole first
+ * wave is in flight within a few seconds — long before a slow failure lands.
+ * Gemini takes ~95-155s to refuse a request at an unusable temperature (issue
+ * #846), so an abort learned from the first failure arrives far too late to
+ * stop the wave it exists to prevent: the book pays for ~32 slow refusals
+ * before a single item is skipped.
+ *
+ * Proving the settings with one request first closes that window. It costs an
+ * extra round trip, so callers apply it only when the abort is actually
+ * reachable — a healthy run is never serialized.
+ *
+ * `probeIndex < 0` (no item can trip the abort) falls through to the plain
+ * concurrent path.
+ */
+export async function runProbeThenRest<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<void>,
+  probeIndex: number,
+  controls?: ConcurrencyControls
+): Promise<void> {
+  if (items.length <= 1 || probeIndex < 0 || probeIndex >= items.length) {
+    return processWithConcurrency(items, concurrency, fn, controls)
+  }
+  await processWithConcurrency([items[probeIndex]], concurrency, fn, controls)
+  await processWithConcurrency(
+    items.filter((_, index) => index !== probeIndex),
+    concurrency,
+    fn,
+    controls
+  )
+}
+
 function emitSpeechStepProgress(
   progress: StageRunProgress,
   audioCompleted: number,
@@ -3323,7 +3361,12 @@ async function runSpeechStep(
     if (pageGroups.size > 0) {
       const groups = [...pageGroups.values()]
       console.log(`[stage-run] ${label}: page-batched TTS — ${groups.length} page group(s), ${batchedEntryCount} entries`)
-      await processWithConcurrency(
+      // Page groups are Gemini-only by construction, so when the temperature is
+      // below the floor any of them can prove the run unusable — probe with the
+      // first rather than letting the whole opening wave pay for the same
+      // answer. `-1` when the abort is unreachable keeps healthy runs fully
+      // concurrent.
+      await runProbeThenRest(
         groups,
         effectiveConcurrency,
         async (group: PageGroup) => {
@@ -3474,6 +3517,7 @@ async function runSpeechStep(
           completedItems += group.entries.length
           emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
         },
+        geminiTemperatureBelowFloor ? 0 : -1,
         { runSignal: options.signal }
       )
     }
@@ -3739,13 +3783,26 @@ async function runSpeechStep(
       emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
     }
 
+    // Same probe as the page-batched pre-pass, for the books that never reach
+    // it: a Gemini book with `batch_by_page` off does all its synthesis here.
+    // The probe has to be a *Gemini* item — this list is mixed, and an OpenAI
+    // item can never prove anything about Gemini's settings. When the pre-pass
+    // already ran, it has set the flag and these items skip without a call.
+    const geminiProbeIndex = geminiTemperatureBelowFloor
+      ? otherWorkItems.findIndex((item) => item.provider === "gemini")
+      : -1
+
     await Promise.all([
       processWithConcurrency(elevenLabsWorkItems, elevenLabsConcurrency, processTtsWorkItem, {
         runSignal: options.signal,
       }),
-      processWithConcurrency(otherWorkItems, effectiveConcurrency, processTtsWorkItem, {
-        runSignal: options.signal,
-      }),
+      runProbeThenRest(
+        otherWorkItems,
+        effectiveConcurrency,
+        processTtsWorkItem,
+        geminiProbeIndex,
+        { runSignal: options.signal }
+      ),
     ])
 
     if (failedItems.length > 0) {
