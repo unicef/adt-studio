@@ -891,3 +891,31 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 | 021 | Top bar button | Context-aware per stage | Per-stage inline buttons in sidebar |
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
+
+---
+
+## ADR template
+
+Copy the block below to the end of the ADR list (before the Decision Log Summary) when a spec changes a standing decision, and add a row to the summary table.
+
+```markdown
+<!-- Append to docs/DECISIONS.md. One page at most. Retrospective ADRs use the same shape,
+     with the date of the original decision and a note that it is recorded after the fact. -->
+
+## ADR-NNN — <decision, as a statement>
+
+**Date:** YYYY-MM-DD   **Status:** proposed | accepted | superseded by ADR-MMM
+**Spec:** SPEC-NNNN   **Issues:** #...
+
+### Context
+What forced the decision. Evidence, constraints, the dispute if there was one.
+
+### Decision
+One or two sentences. What we will do.
+
+### Consequences
+What becomes easier, what becomes harder, what invariant this creates or changes.
+
+### Alternatives rejected
+Each with the reason, in one line.
+```

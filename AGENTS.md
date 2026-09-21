@@ -20,6 +20,29 @@ ADT Studio is a desktop-first application for automated book production — extr
 5. **Minimize Dependencies** — Avoid new deps. Flat files > database when sufficient. In-memory queues > external services.
 6. **Pure JS/TS Over Native** — Always prefer pure JS/WASM libraries over native C/C++ bindings (e.g., node-sqlite3-wasm over better-sqlite3).
 
+## Operating rules
+
+1. **Load the stack first.** Start from this file and follow the context map. For spec-lane work the approved spec is required session input.
+2. **One task, one issue, one PR.** If the branch grows past its issue, stop, split, open the second issue.
+3. **Search before opening.** Check open PRs and issues for the same change.
+4. **Declare honestly.** The PR body lists what was verified (commands, results) and what was not.
+5. **Never merge your own agent's work unreviewed.** The person who prompted the agent is the author, not the reviewer.
+6. **Respect invariants mechanically.** Read docs/INVARIANTS.md before touching entities, IDs, staleness or layering; run `pnpm lint:invariants` (planned; see docs/INVARIANTS.md).
+7. **Update the map you used.** A doc found wrong during the session is fixed in the same PR.
+8. **Experiments stay in the experiment lane.** A branch that outgrew its issue becomes a finding + spec, not a bigger PR.
+
+## Context map — read before you start
+
+| If the task touches…        | Read first                                                                          |
+|-----------------------------|-------------------------------------------------------------------------------------|
+| an entity, save, regenerate | docs/ARCHITECTURE.md#book-directory-structure (an `#entities` section is planned), docs/INVARIANTS.md |
+| staleness, re-render, cache | docs/specs/SPEC-0001-per-section-staleness.md (in review)                           |
+| sectioning, reading order   | docs/specs/SPEC-0003-sectioning-modes.md (planned), #834                            |
+| a prompt under prompts/     | docs/PROMPTS.md (planned; prompt contracts), the prompt validator                   |
+| the reader (adt-runtime)    | docs/ARCHITECTURE.md#runtime (planned), docs/SECURITY_MODEL.md (planned)            |
+| exports or publishing       | docs/PRODUCT.md#registry (planned), docs/specs/SPEC-0006-publishing (planned)       |
+| anything user-facing        | docs/PRODUCT.md#critical-path (planned)                                             |
+
 ## Architecture
 
 ```
