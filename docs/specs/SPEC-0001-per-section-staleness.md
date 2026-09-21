@@ -11,16 +11,41 @@ created: 2026-09-10
 updated: 2026-09-21
 ---
 
-<!-- Drafted by an agent from the linked issues and the codebase; edited by the owner.
-     Design details are the proposal, not a promise — that is what the review is for. -->
+## Decision under review
 
-## Problem (with evidence)
+**The unit of freshness and regeneration is a section. Cosmetic changes do not
+invalidate downstream content. A relevant content change makes the affected
+section stale. When regeneration is requested, each affected downstream step
+runs in full for that section, processing all its eligible assets through the
+existing LLM cache. V1 does not select individual changed elements for
+regeneration.**
 
-Staleness is tracked per pipeline stage. When any input to a stage changes, the whole stage is marked stale for the whole book, and the stage's invalidation path clears its data book-wide before regenerating. Three consequences are visible to partners today:
+V1 covers captions, translation, easy-read and speech. Storyboard's own freshness
+remains outside scope. A page action is a selection of its sections; a stage
+action is a selection of sections needing work in that stage. Both must use the
+same downstream regeneration path.
 
-- **Editing one page invalidates every downstream page.** On a two-hundred-page book, a single caption correction marks captions, translations, easy-read and speech stale for all two hundred pages (#735). #626 documents a settings change that triggered a full re-run and a bill that blocks partner-scale use.
-- **Invalidation deletes user work.** Saving a page's storyboard HTML clears the book's caption, catalog and speech-index entries — about 8,850 entries per language on the Tanzania *Mathematics STD 5* book — with nothing in the UI indicating it (#733). Hand-corrected translations are regenerated over and cannot be recovered because manual edits are never in the model cache (#736).
-- **The design is disputed.** #733 was closed as "by design"; #736 calls the identical behaviour a violation of core principle 2 ("Entity-Level Versioning: NEVER overwrite entities"). Both are right because no document states the staleness contract. #131 (incremental regeneration) and #619 (re-render selected pages only) are blocked on the same decision.
+This revision replaces the attached draft's proposal to determine freshness
+solely from input version numbers. A new Storyboard version is evidence of a
+save, not necessarily a change to the content downstream features consume.
+
+## Problem and current implementation
+
+The original issue reports describe local edits causing book-wide invalidation,
+unexpected regeneration costs, and loss of manual corrections (#735, #626,
+#733, #736). Current code has several paths that must be addressed together:
+
+- `apps/api/src/routes/pages.ts`: Storyboard saves clear downstream node types
+  across the book.
+- `apps/api/src/services/page-edit-service.ts`: even a section re-render clears
+  downstream node types in `finally`, including on failure.
+- `apps/api/src/routes/stages.ts`: `makeBeforeRun` clears node types before a
+  stage run. Changing the editor save path alone cannot preserve user work.
+- `packages/storage/src/book-storage.ts`: `clearNodesByType` deletes current and
+  historical rows for most node types.
+- `apps/api/src/services/stage-runner.ts`: translations and speech are stored in
+  per-language collections; easy-read is stored for the book; captions are
+  stored per page. Scoped work must merge into these collections safely.
 
 Anchors (verified 2026-09-21 against `develop` at 7a8896528):
 
@@ -32,79 +57,248 @@ Anchors (verified 2026-09-21 against `develop` at 7a8896528):
 
 ## Goals
 
-- An edit invalidates only the downstream artifacts that depend on the edited section.
-- A "regenerate stale only" action rebuilds exactly the stale set and nothing else.
-- No user-edited entity is ever deleted by invalidation; it is marked stale and kept until the user chooses to regenerate it.
-- An explicit re-render always re-renders; an unchanged re-run is a cache hit at zero cost (with #731).
+- Cosmetic edits cause no regeneration of the four downstream outputs.
+- Content edits invalidate affected sections without deleting existing outputs.
+- Regenerating a section preserves unrelated sections and all version history.
+- Stage regeneration uses the same logic as selected-section regeneration.
+- Manual corrections survive ordinary regeneration, including cache hits.
+- Users can distinguish completed work, remaining stale sections and protected
+  corrections requiring review.
 
 ## Non-goals
 
-Binding.
+- Per-element freshness records or a scheduler choosing individual changed IDs.
+- A general dependency graph across arbitrary entity types.
+- Section-level freshness for Storyboard, glossary, quizzes or TOC in V1.
+- Redesigning model cache keys or guaranteeing a fresh model response on every
+  regeneration. Storyboard's explicit re-render/cache-bypass work in #731 remains
+  a separate behavior to reconcile before implementation.
+- Reconstructing missing historical input provenance for existing books.
+- New panels. Extend existing selection and status UI only as needed to show
+  stale sections and protected work. All new Studio text follows Lingui rules.
 
-- No redesign of the model-level cache or its keys.
-- No change to the UI for choosing what to regenerate beyond the existing selective re-render picker (#619); the picker learns to show the stale set, nothing more.
-- No general dependency graph across arbitrary entity types before 1 November. V1 beta ships section-granularity staleness for captions, translation, easy-read and speech; other entity types keep stage-level behaviour and are listed under Open questions.
-- No migration of existing books' history; existing stale flags are recomputed on first open.
+## What counts as a content change
 
-## Proposed design
+Build a deterministic downstream-content snapshot for each stable `sectionId`.
+Compare the section snapshot after a save with its previous snapshot. This is
+one section-level comparison, not per-element dependency tracking.
 
-**Option A — non-destructive stage-level staleness.** Replace the unconditional clears with mark-stale; add "regenerate stale only". ~80 lines, 4 files, plus tests. Fixes the data loss. Does not fix the bill: one edit still marks the whole book stale.
+The snapshot includes the ordered text IDs and normalized text consumed by the
+pipeline, relevant section/element roles and activity answers, active image IDs
+and image asset identity, authoritative caption values and decorative state,
+and section participation/pruning. Include reading order and other context
+actually used by these features. Compare data extracted from saved content;
+do not trust the editor's description of an action as "layout only."
 
-**Option B — per-section staleness keyed on input versions.** Each downstream artifact records the version of each input it was generated from (section text version, storyboard version, prompt version, provider configuration hash). An artifact is stale when any recorded input version differs from the current one. Invalidation becomes a comparison, not a delete; "regenerate stale only" is a filter over the comparison. ~350 lines, 9 files, plus tests; touches the storage schema (a versions map on each artifact) and the stage runner.
+Exclude purely visual styles, such as text color, spacing and displayed image
+dimensions. Do not include raw HTML, save timestamps or the page's Storyboard
+version in the content comparison. A crop or replacement that changes the
+image supplied to captioning is content, even if its image ID is unchanged.
 
-**Option C — a full dependency graph across all entity types with change propagation.** Correct in the limit; weeks of work; not before November.
+| Edit | V1 behavior |
+|------|-------------|
+| Change text color, font size, spacing or displayed image size; relevant content is unchanged | Keep the four downstream outputs current |
+| Change text, add/remove text, change relevant roles or reading order | Mark the section's downstream outputs stale; regenerate at section scope |
+| Add, remove, replace or crop an image | Mark affected sections stale; removed content leaves active output on reconciliation, with history retained |
+| Edit an authoritative caption/alt-text value or decorative state | Preserve the edited value as manual work; mark consuming downstream section outputs stale |
+| Edit a translation | Preserve that translation; invalidate dependent speech for the section and language |
+| Add a section | Its applicable downstream outputs are missing and need generation |
+| Remove or prune a section | Exclude it from active output; preserve its output history and manual work |
+| Change a shared prompt, effective model, voice or other generation input | Mark every section consuming that changed input stale; selection remains explicit |
 
-**Chosen: B, with A's mark-stale semantics as the first PR**, so that data loss stops in the first week regardless of how the rest lands. If B slips past 25 September, the beta ships with A plus "regenerate stale only" and B moves to 0.9.0 (roadmap risk 1).
+Cosmetic changes can still require repackaging the book. This spec's exemption
+applies to captions, translation, easy-read and speech, not the exported layout.
 
-Decisions for the reviewer to ratify:
+The current text catalog reads image captions from `image-captioning`, not raw
+HTML `alt`. Implementation must establish a single authoritative edit path for
+caption/alt values and test it. A save must not silently change an unused `alt`
+attribute while leaving the catalog's caption unchanged.
 
-1. Input-version comparison as the staleness mechanism.
-2. Stale artifacts are kept, never deleted, until regeneration.
-3. A user-edited artifact is never regenerated implicitly — it is shown as stale and regenerated only on explicit request. This resolves #733 vs #736 in favour of #736.
-4. Scope for V1 beta is captions, translation, easy-read and speech.
+## Section freshness and execution contract
 
-## Impact map
+Persist freshness against stable section identity and the affected output,
+including language/voice scope where applicable. Existing IDs inside sections
+are still needed to attach and merge outputs; they do not get independent
+freshness records. Array indexes are not persistent section identity.
 
-- `packages/types`: artifact schema gains an `inputVersions` map; a `Staleness` type; no change to `PIPELINE`.
-- `packages/storage`: replace `clearNodesByType` / `clearCaptionData` in the invalidation path with `markStale`; add a lint rule banning new unconditional clear/delete call sites on user-touched entities (invariant registry row 2).
-- `packages/pipeline`: the stage runner computes the stale set by comparison; "regenerate stale only" as a run mode; explicit re-render bypasses the cache check (#731 lands here).
-- `apps/studio`: the selective re-render picker shows the stale set and offers "regenerate stale only". No new panels.
-- Invariants affected: entity versioning (strengthened); staleness semantics (new — added to the registry with this spec's contract tests).
-- Migration: none for data; stale flags recomputed on first open of an existing book. A book saved by the new version opens in the old one with all downstream marked stale (acceptable for the beta; noted in the support statement).
-- Collides with: SPEC-0002 (manual-edit preservation completion) — shares the mark-stale primitive; SPEC-0002 lands after PR 1 of this spec. #808 (text-catalog race) is independent.
+For each output, retain the section input snapshot/signature used by the last
+successful generation or review, together with effective generation settings
+and relevant shared context. Version references may be retained for inspection,
+but a version increment alone does not make an output stale.
+
+Use fixed, documented input rules for the four features. For a source-content
+change, conservative invalidation of all four within the section is acceptable;
+the cache can reuse unchanged requests. Edits to a generated output invalidate
+its consumers, not the edited output itself. Shared images or shared context
+can affect multiple sections: all consuming sections must be included. A
+section boundary is not a promise that genuine shared dependencies disappear.
+
+1. A page/section save records changed content and freshness atomically. It does
+   not start paid generation or clear downstream history.
+2. Regenerating a Storyboard page repairs that page's Storyboard only. Compare
+   the resulting section content and mark changed downstream sections stale.
+   An identical or purely cosmetic result creates no new downstream work.
+3. "Regenerate stale only" selects applicable missing/stale sections in the
+   requested stage. Run each affected downstream step in full for those sections,
+   processing all eligible assets, including assets whose inputs are unchanged.
+   Identical requests reuse cached responses; cache misses invoke the provider.
+   Keep protected manual entries intact. The selection is which sections to
+   process, not which individual assets within a section changed.
+4. Merge successful results into current page/book/language collections using
+   section ownership. Never replace unrelated sections with a partial result.
+5. Publish new versions and clear the corresponding stale state only after
+   successful persistence. Failure or cancellation keeps previous outputs and
+   leaves unfinished work stale. Writes must not overwrite concurrent work.
+6. If inputs change during a run, its result cannot establish freshness for the
+   newer inputs. Serialize conflicting edits or verify the captured inputs
+   before publishing; regenerating one section cannot clear another's state.
+7. A successful job does not imply that the whole stage is current. Derive
+   in-scope stage freshness from remaining stale, missing and review-needed
+   sections. Storyboard's own aggregate status is not redesigned here.
+
+Splits, merges and moves must use existing stable-identity/retirement rules and
+reconcile all affected sections. Remove obsolete entries from active manifests
+through new versions, never by destroying history. Do not reattach a manual
+correction to a new element solely because it occupies the same index.
+
+## Manual work
+
+"Regenerate stale only" does not authorize replacing manual corrections. If a
+section contains generated and manual entries, regenerate its eligible generated
+content, preserve the manual entries, and report any upstream-affected manual
+work as needing review. Reusing a cached AI response is not permission to replace
+a user's correction. This rule applies to every regeneration entry point.
+
+Protected work requires recorded provenance. Captions and uploaded speech
+already have some provenance; translation and easy-read need equivalent support.
+For legacy entries with unknown provenance, do not assume they are safe to
+replace. Preserve and surface the uncertainty until the user makes a choice.
+
+The exact review action (accept an existing correction as valid versus explicitly
+regenerate it), downstream behavior while review is pending, and export policy
+remain review questions below. Do not silently declare the whole chain current
+merely because protected text did not change.
+
+## Cache and batching contract
+
+Freshness determines which sections need work. The existing LLM cache determines
+whether each generation request needs a provider call. These are separate roles.
+
+**Running a whole step for a selected section does not mean making a fresh paid
+call for every asset.** The step processes the section's complete eligible input
+set, and caching supplies responses for identical requests. For example, editing
+one paragraph schedules the section's full translation step, not a special
+translation operation for that paragraph alone. Unchanged requests can hit the
+cache; any request whose batch or context changed can miss it. Other sections
+remain outside the regeneration scope unless they share an affected dependency.
+
+An identical complete request with a valid local cached response reuses that
+response without a new provider call or new provider charge. Matching text alone
+is insufficient: prompt, ordered context, model/provider configuration, schema
+and other cache-key inputs must also match. Missing/unreadable cache entries can
+require paid calls. No guarantee is made that old cached requests survive a
+change in batching or request construction.
+
+Use deterministic request construction and batching. Do not inject raw cosmetic
+HTML, save versions or timestamps into downstream prompts. Current translation
+batches span up to 50 entries, captions are generated per page, and speech can
+batch a page. These adapters need explicit section ownership and scoped merging.
+For V1, a call may compute a larger batch where required by an existing provider
+path, but it must not replace outputs outside the selected scope. Such extra
+computation must be visible in call logs and cost measurements.
+
+Changing one item in a batch can invalidate the whole call's cache entry. Easy-
+read also uses the section's full text as context. Therefore this spec promises
+section-level selection and output preservation, not one model call per changed
+element, an exact regenerated-artifact count, or a fixed percentage of full-book
+cost. Ordinary downstream regeneration permits cache hits; "force fresh" is a
+separate policy, not the default in this spec.
+
+## Impact and compatibility
+
+- `packages/types`: Zod schemas for section content snapshots, freshness and
+  provenance; keep stage/step definitions derived from `PIPELINE`.
+- `packages/storage`: additive per-book state; non-destructive invalidation and
+  versioned collection updates. Existing readers must not treat retained stale
+  data as current solely because a row exists.
+- `packages/pipeline`: canonical content extraction, stable section ownership,
+  deterministic request construction and scoped result handling.
+- `apps/api`: integrate saves, restores, section/page re-renders and stage runs;
+  the execution/clearing paths currently live here as well as in packages.
+- `apps/studio`: section selection, freshness and protected-work summaries.
+
+Existing books open without deletion or paid generation. Missing snapshots mean
+unknown freshness; snapshotting current inputs cannot prove that old outputs
+were generated from them. Preserve old outputs and require reconciliation/review.
+Do not claim old application versions understand the new freshness metadata;
+downgrade support needs verification before any compatibility promise.
 
 ## Acceptance criteria
 
-- [ ] AC-1 Editing one section's text marks stale only that section's captions, translation, easy-read and speech; all other sections remain current.
-- [ ] AC-2 "Regenerate stale only" regenerates exactly the stale set; the harness asserts the count of regenerated artifacts equals the stale count.
-- [ ] AC-3 Saving storyboard HTML for one page leaves every caption, catalog entry and speech-index entry of every other page unchanged (the #733 case).
-- [ ] AC-4 A hand-edited translation is never regenerated by an implicit run; it is shown as stale after an upstream edit and regenerated only on request (#736).
-- [ ] AC-5 No code path deletes a user-touched entity during invalidation; the lint rule fails CI on any new unconditional clear/delete call site.
-- [ ] AC-6 An unchanged full re-run performs zero model calls and reports zero cost.
-- [ ] AC-7 An explicit re-render of a current section regenerates it (with #731).
-- [ ] AC-8 Concurrent edits to two sections produce two independent stale sets; regenerating one does not touch the other.
-- [ ] AC-9 A book saved by the previous version opens; stale flags are recomputed; nothing is deleted.
-- [ ] AC-10 On the Tanzania *Mathematics STD 5* acceptance book, a one-caption edit followed by "regenerate stale only" costs less than 1% of a full run.
+- [ ] AC-1 Changing only text color, spacing or displayed image dimensions leaves
+  downstream freshness unchanged and triggers no downstream generation.
+- [ ] AC-2 A section content change marks affected section outputs stale without
+  modifying unrelated outputs or deleting history. Shared dependencies are
+  covered by an explicit multi-section fixture.
+- [ ] AC-3 Selected-section and stale-stage actions use the same regeneration
+  path. The stage action selects exactly eligible missing/stale sections;
+  protected entries remain unchanged and outstanding review is reported.
+- [ ] AC-4 A one-page Storyboard save/re-render preserves every other page's
+  outputs and history. A failed render does not clear downstream data.
+- [ ] AC-5 Manual captions, translations, easy-read edits and uploaded audio
+  survive ordinary runs and cache hits. Unknown legacy provenance is preserved.
+- [ ] AC-6 Repeating a run with identical complete requests and a populated valid
+  cache makes zero new provider calls. Cosmetic edits require no such run.
+- [ ] AC-7 Changed section inputs execute the affected stage when requested,
+  even when old outputs exist. Each affected step processes the selected
+  section's complete eligible input set, including unchanged assets, rather than
+  filtering to changed IDs. Identical cached requests make no new provider calls.
+- [ ] AC-8 Partial failure, cancellation and edits during generation cannot mark
+  unfinished/newer inputs current or overwrite unrelated successful work.
+- [ ] AC-9 Existing books open without deleting data or making provider calls;
+  missing provenance/freshness is not fabricated.
+- [ ] AC-10 Additions, deletions, image replacements, caption edits, pruning,
+  splits/merges and restores update active output correctly while preserving
+  history. Cosmetic image resizing is distinguished from changing image content.
+- [ ] AC-11 Prompt/model/voice changes invalidate their consuming sections;
+  unchanged sections/languages/settings are not broadened without a dependency.
+- [ ] AC-12 Fixture and representative-book runs report selected sections, cache
+  hits, actual provider calls and cost, including any larger batch computation.
+  No unmeasured "less than 1%" cost claim is a release guarantee.
 
-## Test plan
+## Test plan and rollout
 
-- Contract tests (`packages/pipeline/test/staleness.contract.test.ts`): AC-1, AC-2, AC-4, AC-7, AC-8 over a three-page synthetic fixture with the model layer mocked. These become the "staleness semantics" row of the invariant registry.
-- Storage tests (`packages/storage/test/invalidation.test.ts`): AC-3, AC-5, AC-9; the lint rule under `tooling/eslint-rules` with its own fixture.
-- Harness (`pnpm acceptance`): AC-2 count assertion and AC-10 cost assertion on the Tanzania *Mathematics STD 5* and one Brazilian textbook; AC-6 as a zero-cost re-run on every acceptance book.
-- Manual: AC-4 checked in a running Studio on the desktop build before the spec moves to `verified`.
+Use fixtures with multiple pages, multiple sections on a page, generated and
+manual entries, shared images, multiple languages and section-level easy-read
+context. Test canonical extraction separately from end-to-end save/run/merge
+behavior. Cover every API invalidation entry point, including failure paths.
+Assert active outputs and retained history, not just a count of generated rows.
+Run a manual Studio review on a representative book before marking verified.
 
-## Rollout
+1. Stop destructive invalidation across save and run paths. Ensure retained stale
+   outputs do not cause runners to skip required work. Add preservation tests.
+2. Add canonical section snapshots, freshness/provenance and legacy handling.
+   Cover cosmetic/content distinctions and all mutation entry points.
+3. Implement shared scoped execution, collection merging and cache/batch tests.
+4. Connect existing selection/status UI and validate representative-book costs.
 
-- PR 1 — mark-stale instead of delete, plus the lint rule (AC-3, AC-5). Ships value alone; blocks nothing. ADR-024 merges with this PR.
-- PR 2 — `inputVersions` on artifacts and the comparison-based stale set (AC-1, AC-8, AC-9).
-- PR 3 — "regenerate stale only" run mode and picker integration (AC-2, AC-10).
-- PR 4 — explicit re-render and zero-cost re-run with #731 (AC-6, AC-7).
-- No feature flag; each PR is independently revertable.
+The original ~350-line estimate is withdrawn pending an implementation review of
+these paths. If section scope misses the original 25 September checkpoint,
+non-destructive whole-stage marking can ship only with accurate scope reporting;
+it must not be presented as section-scoped regeneration or a small-cost run.
 
-## Open questions
+## Remaining review questions
 
-- Which entity types beyond the four named join section-granularity before 1.0 (glossary, quizzes, TOC)? — **@elasticsounds, by 25 Sept.** Default: 0.9.0 via SPEC-0002.
-- Does provider configuration (model, voice) belong in `inputVersions` for speech, or is a provider change always an explicit regenerate? — **@<storage>, by 16 Sept.** Default: explicit.
-- Anchor check: the Impact map places `clearCaptionData` and the stage runner's invalidation branch in `packages/storage` / `packages/pipeline`, but both live in `apps/api` (`routes/pages.ts:461`, `routes/stages.ts:164`, `services/stage-runner.ts`). Does the mark-stale primitive go into `packages/storage` with the API call sites switched over, or does the invalidation logic move into `packages/pipeline` first? — **@ksokolovic, by 2026-09-24.** Default: primitive in storage, call sites stay in the API.
-- Anchor check: the Test plan names `packages/pipeline/test/`, `packages/storage/test/` and `tooling/eslint-rules`; the repo keeps tests in `src/__tests__/` (e.g. `packages/storage/src/__tests__/book-storage.test.ts`) and has no `tooling/` directory. Where do the contract tests and the lint rule live? — **@ksokolovic, by 2026-09-24.** Default: `src/__tests__/` in each package; the lint rule beside the existing ESLint config.
-- Anchor check: the clears are not fully unconditional today — `clearNodesByType` exempts quiz generation (`packages/storage/src/book-storage.ts:81`) and `getStageRerunClearNodes` (`packages/types/src/pipeline-effects.ts:221`) keeps glossary, quiz, TTS-normalisation and speech output inside the run range until the step rewrites it. Do these partial preservation paths fold into the mark-stale primitive or stay separate? — **@ksokolovic, by 2026-09-24.** Default: fold in; SPEC-0002 depends on the answer.
+Review owner: @ksokolovic; product decisions: @elasticsounds. Review checkpoint:
+2026-09-24. The integration approver remains to be assigned. Coordinate provenance
+and preservation behavior with SPEC-0002 (#880).
+
+- How does a user resolve protected stale work: accept as valid, edit, or
+  explicitly request replacement? What happens to dependent speech meanwhile?
+- May export use retained stale/review-needed outputs, and how is that disclosed?
+- Which current batching paths can preserve section scope without generating
+  larger batches? Measure the exceptions before committing to a cost target.
+- Confirm the authoritative caption/alt edit path and resolve positional
+  activity IDs before relying on them to preserve corrections during merges.
+- Reconcile #731's fresh Storyboard re-render intent with ordinary downstream
+  regeneration's explicit cache reuse. No cache-key redesign is included here.
