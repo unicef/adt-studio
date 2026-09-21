@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
-import { Link } from "@tanstack/react-router"
+import { useNavigate } from "@tanstack/react-router"
 import { Check, RotateCcw, Folder, FileDown, Download, Laptop, Compass } from "lucide-react"
 import { useAppVersion } from "@/hooks/use-app-version"
 import { useAppLogo } from "@/hooks/use-app-logo"
@@ -46,6 +46,7 @@ export function AboutSection() {
   const version = useAppVersion()
   const logoSrc = useAppLogo()
   const os = usePlatform()
+  const navigate = useNavigate()
   const { openUpdateDialog, hasPendingUpdate } = useUpdateDialog()
 
   return (
@@ -123,22 +124,19 @@ export function AboutSection() {
           <p className="text-[12px] leading-normal text-muted-foreground">
             <Trans>Replay the guided introduction to ADT Studio.</Trans>
           </p>
-          <Button asChild variant="outline" size="sm" className="mt-3">
-            <Link
-              to="/onboarding"
-              onClick={(e) => {
-                // On desktop the tour has its own right-sized window; the in-app
-                // route is the web fallback.
-                const bridge = typeof window !== "undefined" ? window.api?.onboarding : undefined
-                if (bridge?.open) {
-                  e.preventDefault()
-                  void bridge.open()
-                }
-              }}
-            >
-              <RotateCcw className="size-3.5" />
-              <Trans>Restart tour</Trans>
-            </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const bridge =
+                typeof window !== "undefined" ? window.api?.onboarding : undefined
+              if (bridge?.open) void bridge.open()
+              else void navigate({ to: "/onboarding" })
+            }}
+            className="mt-3"
+          >
+            <RotateCcw className="size-3.5" />
+            <Trans>Restart tour</Trans>
           </Button>
         </DetailTile>
 

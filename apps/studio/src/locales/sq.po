@@ -834,7 +834,10 @@ msgid "A quiz already sits here — add another after it or replace it"
 msgstr "Një kuiz ekziston tashmë këtu — shtoni një tjetër pas tij ose zëvendësojeni"
 
 msgid "A required credential is missing."
-msgstr "Një kredencial i kërkuar mungon."
+msgstr "Mungon një kredencial i detyrueshëm."
+
+#~ msgid "A scenic view at dusk."
+#~ msgstr "Një pamje piktoreske në muzg."
 
 msgid "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
 msgstr "Një zë i dytë e narron çdo rresht sërish, ndaj dyfishon koston e gjenerimit të të folurit dhe të sinkronizimit të fjalëve për këtë gjuhë."
@@ -2549,7 +2552,7 @@ msgid "Checking for updates…"
 msgstr "Po kontrollohet për përditësime…"
 
 msgid "Checking the connection…"
-msgstr "Duke kontrolluar lidhjen…"
+msgstr "Po kontrollohet lidhja…"
 
 msgid "Checklist item"
 msgstr "Artikull liste kontrolli"
@@ -2839,6 +2842,12 @@ msgstr "Konfiguroni informacionin bazë të dokumentit dhe shtigjet e skedarëve
 msgid "Configure features to include in the export"
 msgstr "Konfiguroni funksionet për t'i përfshirë në eksportim"
 
+#~ msgid "Configure provider credentials and global prompt fallbacks used by ADT Studio."
+#~ msgstr "Konfiguro kredencialet e ofruesve dhe promptet globale fallback që përdor ADT Studio."
+
+#~ msgid "Configure provider credentials used by AI pipeline features on this machine."
+#~ msgstr "Konfiguroni kredencialet e ofruesve që përdoren nga veçoritë e pipeline-it të IA-së në këtë pajisje."
+
 msgid "Configure the credentials used by AI features on this device."
 msgstr "Konfiguroni kredencialet që përdoren nga veçoritë e IA-së në këtë pajisje."
 
@@ -2863,6 +2872,10 @@ msgstr "I lidhur — {0} modele të disponueshme."
 
 msgid "Connected — key saved"
 msgstr "I lidhur — çelësi u ruajt"
+
+#. placeholder {0}: health.modelCount
+#~ msgid "Connected successfully — {0} models available."
+#~ msgstr "Lidhja u krye me sukses — {0} modele në dispozicion."
 
 msgid "Connected successfully."
 msgstr "I lidhur me sukses."
@@ -6784,7 +6797,7 @@ msgid "No log entries found yet."
 msgstr "Nuk u gjetën ende hyrje regjistrimi."
 
 msgid "No login found on this machine. Sign in with the provider's CLI or set an API key."
-msgstr "Nuk u gjet asnjë hyrje në këtë makinë. Hyni me CLI të ofruesit ose vendosni një çelës API."
+msgstr "Nuk u gjet hyrje në këtë makinë. Hyni me CLI-n e ofruesit ose caktoni një kyç API."
 
 msgid "No manual terms yet"
 msgstr "Nuk ka terma manualë ende"
@@ -8279,7 +8292,7 @@ msgid "Provider credentials"
 msgstr "Kredencialet e ofruesit"
 
 msgid "Provider credentials saved."
-msgstr "Kredencialet e ofruesit të ruajtura."
+msgstr "Kredencialet e ofruesve u ruajtën."
 
 msgid "Provider documentation"
 msgstr "Dokumentacioni i ofruesit"
@@ -10805,7 +10818,7 @@ msgid "The combined section will be re-rendered."
 msgstr "Seksioni i kombinuar do të ri-renderizohet."
 
 msgid "The command-line tool this provider needs was not found on this machine."
-msgstr "Mjeti i linjës së komandës që ky ofrues ka nevojë nuk u gjet në këtë makinë."
+msgstr "Vegla e vijës së komandës që kërkon ky ofrues nuk u gjet në këtë makinë."
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "Bashkësia e organizmave të gjallë në një vend dhe mënyra si ndërveprojnë me njëri-tjetrin dhe mjedisin e tyre."
@@ -10916,7 +10929,7 @@ msgid "The provider could not be reached."
 msgstr "Nuk mund të arrihet te ofruesi."
 
 msgid "The provider rejected these credentials."
-msgstr "Ofruesi refuzoi këto kredenciale."
+msgstr "Ofruesi u përgjigj në mënyrë të papritur."
 
 msgid "The quick brown fox jumps over the lazy dog 0123456789"
 msgstr "Dhelpra e shpejtë kafe kërcen mbi qenin përtac 0123456789"
@@ -11842,6 +11855,9 @@ msgstr "Përdor videon"
 msgid "Used for"
 msgstr "Përdoret për"
 
+#~ msgid "Used for AI image generation, editing, and these pipeline tasks:"
+#~ msgstr "Përdoret për gjenerimin dhe redaktimin e imazheve me IA dhe për këto detyra të rrjedhës së punës:"
+
 msgid "Used for Azure Speech TTS provider."
 msgstr "Përdoret për ofruesin Azure Speech TTS."
 
@@ -11856,6 +11872,18 @@ msgstr "Përdoret për modelet Gemini — si LLM (gemini-2.5-pro, etj.) ashtu ed
 
 msgid "Used for Gemini text-to-speech."
 msgstr "Përdoret për tekst-në-të-folur të Gemini."
+
+#~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
+#~ msgstr "Përdoret për shndërrimin e tekstit në të folur nga OpenAI në këto detyra të rrjedhës së punës:"
+
+#~ msgid "Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:"
+#~ msgstr "Përdoret për shndërrimin e tekstit në të folur nga OpenAI, Azure dhe Gemini në këto detyra të rrjedhës së punës:"
+
+#~ msgid "Used for OpenAI, Azure, Gemini, and ElevenLabs text-to-speech in these pipeline tasks:"
+#~ msgstr "Përdoret për tekst-në-zë të OpenAI, Azure, Gemini dhe ElevenLabs në këto detyra të pipeline-it:"
+
+#~ msgid "Used for text generation and visual analysis when a step does not specify an LLM. Individual steps can still override it."
+#~ msgstr "Përdoret për gjenerimin e tekstit dhe analizën vizuale kur një hap nuk përcakton një LLM. Hapat individualë mund ta zëvendësojnë përsëri atë."
 
 #~ msgid "Used for the ElevenLabs TTS provider."
 #~ msgstr "Përdoret për ofruesin TTS ElevenLabs."

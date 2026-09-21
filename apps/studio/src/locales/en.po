@@ -834,6 +834,9 @@ msgstr "A quiz already sits here — add another after it or replace it"
 msgid "A required credential is missing."
 msgstr "A required credential is missing."
 
+#~ msgid "A scenic view at dusk."
+#~ msgstr "A scenic view at dusk."
+
 msgid "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
 msgstr "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
 
@@ -2837,6 +2840,12 @@ msgstr "Configure basic document information and file paths"
 msgid "Configure features to include in the export"
 msgstr "Configure features to include in the export"
 
+#~ msgid "Configure provider credentials and global prompt fallbacks used by ADT Studio."
+#~ msgstr "Configure provider credentials and global prompt fallbacks used by ADT Studio."
+
+#~ msgid "Configure provider credentials used by AI pipeline features on this machine."
+#~ msgstr "Configure provider credentials used by AI pipeline features on this machine."
+
 msgid "Configure the credentials used by AI features on this device."
 msgstr "Configure the credentials used by AI features on this device."
 
@@ -2861,6 +2870,10 @@ msgstr "Connected — {0} models available."
 
 msgid "Connected — key saved"
 msgstr "Connected — key saved"
+
+#. placeholder {0}: health.modelCount
+#~ msgid "Connected successfully — {0} models available."
+#~ msgstr "Connected successfully — {0} models available."
 
 msgid "Connected successfully."
 msgstr "Connected successfully."
@@ -11840,6 +11853,9 @@ msgstr "Use video"
 msgid "Used for"
 msgstr "Used for"
 
+#~ msgid "Used for AI image generation, editing, and these pipeline tasks:"
+#~ msgstr "Used for AI image generation, editing, and these pipeline tasks:"
+
 msgid "Used for Azure Speech TTS provider."
 msgstr "Used for Azure Speech TTS provider."
 
@@ -11854,6 +11870,18 @@ msgstr "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemi
 
 msgid "Used for Gemini text-to-speech."
 msgstr "Used for Gemini text-to-speech."
+
+#~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
+#~ msgstr "Used for OpenAI text-to-speech in these pipeline tasks:"
+
+#~ msgid "Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:"
+#~ msgstr "Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:"
+
+#~ msgid "Used for OpenAI, Azure, Gemini, and ElevenLabs text-to-speech in these pipeline tasks:"
+#~ msgstr "Used for OpenAI, Azure, Gemini, and ElevenLabs text-to-speech in these pipeline tasks:"
+
+#~ msgid "Used for text generation and visual analysis when a step does not specify an LLM. Individual steps can still override it."
+#~ msgstr "Used for text generation and visual analysis when a step does not specify an LLM. Individual steps can still override it."
 
 #~ msgid "Used for the ElevenLabs TTS provider."
 #~ msgstr "Used for the ElevenLabs TTS provider."

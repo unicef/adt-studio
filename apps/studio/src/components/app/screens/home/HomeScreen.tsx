@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
+import { HomeHeroAnchor } from "./HomeHeroAnchor"
 import { WelcomeHero } from "./WelcomeHero"
 import { WelcomeFeatures } from "./WelcomeFeatures"
-import { HomeHeroAnchor } from "./HomeHeroAnchor"
 import { BookDetailDialog } from "../library/BookDetailDialog"
 import { ScreenFallback } from "../../ui/ScreenFallback"
 import { toBookVM } from "../../data"
@@ -43,7 +43,7 @@ export function HomeScreen() {
           />
         </div>
       ) : (
-        <div className="relative flex min-h-0 flex-1 flex-col overflow-auto px-11 pb-11 pt-16">
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-auto px-11 py-12">
           <WelcomeHero onOpenAdd={openAdd} />
           <WelcomeFeatures />
         </div>

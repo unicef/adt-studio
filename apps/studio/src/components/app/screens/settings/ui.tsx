@@ -3,6 +3,10 @@ import { Trans } from "@lingui/react/macro"
 import { Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+/**
+ * The single "not built yet" affordance. Inline amber pill (default label "Soon");
+ * pass `label` for a longer variant (e.g. "Coming soon") and `title` for a native tooltip.
+ */
 export function ComingSoon({ label, title, className }: { label?: ReactNode; title?: string; className?: string }) {
   return (
     <span
@@ -18,6 +22,7 @@ export function ComingSoon({ label, title, className }: { label?: ReactNode; tit
   )
 }
 
+/** Banner form of {@link ComingSoon}, for a whole panel that's previewed but not wired. */
 export function ComingSoonBanner({ children, className }: { children?: ReactNode; className?: string }) {
   return (
     <div

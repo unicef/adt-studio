@@ -832,7 +832,10 @@ msgid "A quiz already sits here — add another after it or replace it"
 msgstr "Aquí ya hay un cuestionario; añade otro después o reemplázalo"
 
 msgid "A required credential is missing."
-msgstr "Falta una credencial requerida."
+msgstr "Falta una credencial obligatoria."
+
+#~ msgid "A scenic view at dusk."
+#~ msgstr "Una vista panorámica al anochecer."
 
 msgid "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
 msgstr "Una segunda voz narra cada línea de nuevo, así que duplica el coste de generación de voz y de sincronización de palabras para este idioma."
@@ -2837,6 +2840,12 @@ msgstr "Configura la información básica del documento y las rutas de archivo"
 msgid "Configure features to include in the export"
 msgstr "Configura las características a incluir en la exportación"
 
+#~ msgid "Configure provider credentials and global prompt fallbacks used by ADT Studio."
+#~ msgstr "Configura las credenciales de los proveedores y los prompts fallback globales usados por ADT Studio."
+
+#~ msgid "Configure provider credentials used by AI pipeline features on this machine."
+#~ msgstr "Configura las credenciales de los proveedores utilizadas por las funciones del pipeline de IA en este equipo."
+
 msgid "Configure the credentials used by AI features on this device."
 msgstr "Configura las credenciales que usan las funciones de IA en este dispositivo."
 
@@ -2861,6 +2870,10 @@ msgstr "Conectado — {0} modelos disponibles."
 
 msgid "Connected — key saved"
 msgstr "Conectado — clave guardada"
+
+#. placeholder {0}: health.modelCount
+#~ msgid "Connected successfully — {0} models available."
+#~ msgstr "Conectado correctamente: {0} modelos disponibles."
 
 msgid "Connected successfully."
 msgstr "Conectado exitosamente."
@@ -6782,7 +6795,7 @@ msgid "No log entries found yet."
 msgstr "Aún no hay entradas de registro."
 
 msgid "No login found on this machine. Sign in with the provider's CLI or set an API key."
-msgstr "No se encontró inicio de sesión en esta máquina. Inicia sesión con el CLI del proveedor o configura una clave API."
+msgstr "No se encontró ningún inicio de sesión en este equipo. Inicie sesión con la CLI del proveedor o configure una clave de API."
 
 msgid "No manual terms yet"
 msgstr "Aún no hay términos manuales"
@@ -8277,7 +8290,7 @@ msgid "Provider credentials"
 msgstr "Credenciales del proveedor"
 
 msgid "Provider credentials saved."
-msgstr "Credenciales del proveedor guardadas."
+msgstr "Credenciales de proveedores guardadas."
 
 msgid "Provider documentation"
 msgstr "Documentación del proveedor"
@@ -10803,7 +10816,7 @@ msgid "The combined section will be re-rendered."
 msgstr "La sección combinada se volverá a renderizar."
 
 msgid "The command-line tool this provider needs was not found on this machine."
-msgstr "La herramienta de línea de comandos que este proveedor necesita no se encontró en esta máquina."
+msgstr "No se encontró en este equipo la herramienta de línea de comandos que necesita este proveedor."
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "La comunidad de organismos vivos en un lugar y la forma en que interactúan entre sí y con su entorno."
@@ -10911,7 +10924,7 @@ msgid "The provider answered with an unexpected response."
 msgstr "El proveedor respondió con una respuesta inesperada."
 
 msgid "The provider could not be reached."
-msgstr "No se pudo contactar al proveedor."
+msgstr "El proveedor devolvió una respuesta inesperada."
 
 msgid "The provider rejected these credentials."
 msgstr "El proveedor rechazó estas credenciales."
@@ -11840,6 +11853,9 @@ msgstr "Usar video"
 msgid "Used for"
 msgstr "Se usa para"
 
+#~ msgid "Used for AI image generation, editing, and these pipeline tasks:"
+#~ msgstr "Se utiliza para generar y editar imágenes con IA, así como para estas tareas del flujo de trabajo:"
+
 msgid "Used for Azure Speech TTS provider."
 msgstr "Utilizada para el proveedor de TTS de Azure Speech."
 
@@ -11854,6 +11870,18 @@ msgstr "Utilizada para modelos Gemini — tanto LLM (gemini-2.5-pro, etc.) como 
 
 msgid "Used for Gemini text-to-speech."
 msgstr "Se usa para la síntesis de voz de Gemini."
+
+#~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
+#~ msgstr "Se utiliza para la conversión de texto a voz de OpenAI en estas tareas del flujo de trabajo:"
+
+#~ msgid "Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:"
+#~ msgstr "Se utiliza para la conversión de texto a voz de OpenAI, Azure y Gemini en estas tareas del flujo de trabajo:"
+
+#~ msgid "Used for OpenAI, Azure, Gemini, and ElevenLabs text-to-speech in these pipeline tasks:"
+#~ msgstr "Se utiliza para texto a voz de OpenAI, Azure, Gemini y ElevenLabs en estas tareas del proceso:"
+
+#~ msgid "Used for text generation and visual analysis when a step does not specify an LLM. Individual steps can still override it."
+#~ msgstr "Se utiliza para la generación de texto y el análisis visual cuando un paso no especifica un LLM. Los pasos individuales aún pueden reemplazarlo."
 
 #~ msgid "Used for the ElevenLabs TTS provider."
 #~ msgstr "Se utiliza para el proveedor de TTS ElevenLabs."

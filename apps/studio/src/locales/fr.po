@@ -834,7 +834,10 @@ msgid "A quiz already sits here — add another after it or replace it"
 msgstr "Un quiz se trouve déjà ici — ajoutez-en un autre à la suite ou remplacez-le"
 
 msgid "A required credential is missing."
-msgstr "Une information d'identification requise est manquante."
+msgstr "Un identifiant obligatoire est manquant."
+
+#~ msgid "A scenic view at dusk."
+#~ msgstr "Un panorama au crépuscule."
 
 msgid "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
 msgstr "Une deuxième voix narre chaque ligne à nouveau, ce qui double le coût de génération vocale et de synchronisation des mots pour cette langue."
@@ -2839,6 +2842,12 @@ msgstr "Configurez les informations de base du document et les chemins de fichie
 msgid "Configure features to include in the export"
 msgstr "Configurer les fonctionnalités à inclure dans l'exportation"
 
+#~ msgid "Configure provider credentials and global prompt fallbacks used by ADT Studio."
+#~ msgstr "Configurez les identifiants des fournisseurs et les prompts de fallback globaux utilisés par ADT Studio."
+
+#~ msgid "Configure provider credentials used by AI pipeline features on this machine."
+#~ msgstr "Configurez les identifiants des fournisseurs utilisés par les fonctionnalités du pipeline d’IA sur cette machine."
+
 msgid "Configure the credentials used by AI features on this device."
 msgstr "Configurez les identifiants utilisés par les fonctionnalités d’IA sur cet appareil."
 
@@ -2863,6 +2872,10 @@ msgstr "Connecté — {0} modèles disponibles."
 
 msgid "Connected — key saved"
 msgstr "Connecté — clé enregistrée"
+
+#. placeholder {0}: health.modelCount
+#~ msgid "Connected successfully — {0} models available."
+#~ msgstr "Connexion réussie — {0} modèles disponibles."
 
 msgid "Connected successfully."
 msgstr "Connecté avec succès."
@@ -5020,7 +5033,7 @@ msgstr "Masquer l'historique des modifications IA"
 #~ msgstr "Masquer la clé API"
 
 msgid "Hide credential"
-msgstr "Masquer l'identifiant"
+msgstr "Masquer l’identifiant"
 
 msgid "Hide error details"
 msgstr "Masquer les détails de l'erreur"
@@ -6784,7 +6797,7 @@ msgid "No log entries found yet."
 msgstr "Aucune entrée de journal trouvée."
 
 msgid "No login found on this machine. Sign in with the provider's CLI or set an API key."
-msgstr "Aucune connexion trouvée sur cette machine. Connectez-vous avec le CLI du fournisseur ou définissez une clé API."
+msgstr "Aucune session trouvée sur cette machine. Connectez-vous avec la CLI du fournisseur ou renseignez une clé d'API."
 
 msgid "No manual terms yet"
 msgstr "Pas encore de termes manuels"
@@ -8279,7 +8292,7 @@ msgid "Provider credentials"
 msgstr "Identifiants du fournisseur"
 
 msgid "Provider credentials saved."
-msgstr "Informations d'identification du fournisseur enregistrées."
+msgstr "Identifiants des fournisseurs enregistrés."
 
 msgid "Provider documentation"
 msgstr "Documentation du fournisseur"
@@ -9919,7 +9932,7 @@ msgstr "Afficher toutes les traductions"
 #~ msgstr "Afficher la clé API"
 
 msgid "Show credential"
-msgstr "Afficher l'identifiant"
+msgstr "Afficher l’identifiant"
 
 msgid "Show error details"
 msgstr "Afficher les détails de l'erreur"
@@ -10805,7 +10818,7 @@ msgid "The combined section will be re-rendered."
 msgstr "La section combinée sera re-rendue."
 
 msgid "The command-line tool this provider needs was not found on this machine."
-msgstr "L'outil en ligne de commande dont ce fournisseur a besoin n'a pas été trouvé sur cette machine."
+msgstr "L'outil en ligne de commande requis par ce fournisseur est introuvable sur cette machine."
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "La communauté des organismes vivants dans un lieu et la façon dont ils interagissent entre eux et avec leur environnement."
@@ -10916,7 +10929,7 @@ msgid "The provider could not be reached."
 msgstr "Le fournisseur n'a pas pu être atteint."
 
 msgid "The provider rejected these credentials."
-msgstr "Le fournisseur a rejeté ces informations d'identification."
+msgstr "Le fournisseur a renvoyé une réponse inattendue."
 
 msgid "The quick brown fox jumps over the lazy dog 0123456789"
 msgstr "Portez ce vieux whisky au juge blond qui fume 0123456789"
@@ -11842,6 +11855,9 @@ msgstr "Utiliser la vidéo"
 msgid "Used for"
 msgstr "Utilisée pour"
 
+#~ msgid "Used for AI image generation, editing, and these pipeline tasks:"
+#~ msgstr "Utilisé pour la génération et la retouche d’images par IA, ainsi que pour ces tâches du pipeline :"
+
 msgid "Used for Azure Speech TTS provider."
 msgstr "Utilisé pour le fournisseur TTS Azure Speech."
 
@@ -11856,6 +11872,18 @@ msgstr "Utilisé pour les modèles Gemini — LLM (gemini-2.5-pro, etc.) et TTS 
 
 msgid "Used for Gemini text-to-speech."
 msgstr "Utilisé pour la synthèse vocale Gemini."
+
+#~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
+#~ msgstr "Utilisé pour la synthèse vocale OpenAI dans ces tâches du pipeline :"
+
+#~ msgid "Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:"
+#~ msgstr "Utilisé pour la synthèse vocale OpenAI, Azure et Gemini dans ces tâches du pipeline :"
+
+#~ msgid "Used for OpenAI, Azure, Gemini, and ElevenLabs text-to-speech in these pipeline tasks:"
+#~ msgstr "Utilisé pour la synthèse vocale OpenAI, Azure, Gemini et ElevenLabs dans ces tâches du pipeline :"
+
+#~ msgid "Used for text generation and visual analysis when a step does not specify an LLM. Individual steps can still override it."
+#~ msgstr "Utilisé pour la génération de texte et l’analyse visuelle lorsqu’une étape ne précise pas de LLM. Chaque étape peut toujours le remplacer."
 
 #~ msgid "Used for the ElevenLabs TTS provider."
 #~ msgstr "Utilisé pour le fournisseur TTS ElevenLabs."
