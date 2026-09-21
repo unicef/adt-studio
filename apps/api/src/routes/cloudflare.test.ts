@@ -65,6 +65,7 @@ const METADATA = {
     { type: "secret_text", name: "MGMT_SECRET" },
   ],
   migrations: { new_tag: "v1", new_sqlite_classes: ["PublicationRoom"] },
+    assets: { config: { html_handling: "none", not_found_handling: "none" } },
   d1_migrations: ["0001_init.sql"],
 }
 

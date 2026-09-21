@@ -293,7 +293,13 @@ export async function provisionCloudflare(
       main_module: artifact.metadata.main_module,
       compatibility_date: artifact.metadata.compatibility_date,
       bindings,
-      assets: { jwt: staticAssets.completionJwt, config: { run_worker_first: ["/api/*", "/p/*", "/health"] } },
+      assets: {
+        jwt: staticAssets.completionJwt,
+        config: {
+          ...artifact.metadata.assets.config,
+          run_worker_first: ["/api/*", "/p/*", "/health"],
+        },
+      },
     }
 
     const upload = async (withMigrations: boolean) => {

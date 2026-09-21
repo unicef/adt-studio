@@ -58,6 +58,7 @@ function artifact(
         { type: "secret_text", name: "MGMT_SECRET" },
       ],
       migrations: { new_tag: "v1", new_sqlite_classes: ["PublicationRoom"] },
+      assets: { config: { html_handling: "none", not_found_handling: "none" } },
       d1_migrations: migrations.map((migration) => migration.name),
     },
     migrations,
@@ -171,6 +172,7 @@ describe("provisionCloudflare — happy path", () => {
       main_module: "worker.js",
       compatibility_date: "2026-07-01",
       migrations: { new_tag: "v1", new_sqlite_classes: ["PublicationRoom"] },
+      assets: { config: { html_handling: "none", not_found_handling: "none" } },
     })
     expect(metadata.bindings).toEqual([
       { type: "d1", name: "DB", id: "db-uuid-1" },

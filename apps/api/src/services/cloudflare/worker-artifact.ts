@@ -16,6 +16,24 @@ export const WorkerArtifactBinding = z.object({
 })
 export type WorkerArtifactBinding = z.infer<typeof WorkerArtifactBinding>
 
+/**
+ * What Cloudflare's asset layer does with a request the Worker hands it.
+ *
+ * `html_handling` is the field that matters: its Cloudflare default, `auto-trailing-slash`,
+ * answers `.../index.html` with a 307 to the directory form, and `serveSnapshot` forwards
+ * anything that is not a 404 — so the redirect reached the reader pointing at the internal
+ * `/uploads/<uploadId>/` path and every published book opened as `{"error":"not_found"}`.
+ *
+ * The defaults here are the safe ones, so an artifact built before this field existed — or one
+ * whose builder forgets it — still deploys a Worker that serves its books.
+ */
+export const WorkerArtifactAssetConfig = z.object({
+  html_handling: z.enum(["auto-trailing-slash", "force-trailing-slash", "drop-trailing-slash", "none"])
+    .default("none"),
+  not_found_handling: z.enum(["none", "404-page", "single-page-application"]).default("none"),
+})
+export type WorkerArtifactAssetConfig = z.infer<typeof WorkerArtifactAssetConfig>
+
 export const WorkerArtifactMetadata = z.object({
   version: z.string().min(1),
   main_module: z.string().min(1),
@@ -26,6 +44,7 @@ export const WorkerArtifactMetadata = z.object({
     new_sqlite_classes: z.array(z.string().min(1)),
   }).optional(),
   d1_migrations: z.array(z.string().min(1)).default([]),
+  assets: z.object({ config: WorkerArtifactAssetConfig.default({}) }).default({}),
 })
 export type WorkerArtifactMetadata = z.infer<typeof WorkerArtifactMetadata>
 
