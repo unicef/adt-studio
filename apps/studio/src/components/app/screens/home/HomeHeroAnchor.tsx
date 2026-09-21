@@ -3,7 +3,7 @@ import { Trans, Plural, useLingui } from "@lingui/react/macro"
 import { ArrowRight } from "lucide-react"
 import { BookCover } from "../../BookCover"
 import { formatRelative, type BookVM } from "../../data"
-import { ContinueLabel, ShelfCard, AddBookTile, LibraryLink, OutputsPanel, pickResume, isActive, type HomeVariantProps } from "../shared/kit"
+import { ContinueLabel, ShelfCard, AddBookTile, LibraryLink, OutputsPanel, SharedBadge, pickResume, isActive, isShared, type HomeVariantProps } from "../shared/kit"
 
 function languageName(code: string | null | undefined, locale: string): string {
   if (!code) return ""
@@ -120,7 +120,7 @@ export function HomeHeroAnchor({ books, pinnedLabels, onOpen, onContinue, onAddB
           <div className="grid grid-cols-6 items-start gap-6">
             <AddBookTile onClick={onAddBook} />
             {shelf.map((vm) => (
-              <ShelfCard key={vm.label} vm={vm} onOpen={onOpen} pinned={pins.has(vm.label)} progress />
+              <ShelfCard key={vm.label} vm={vm} onOpen={onOpen} pinned={pins.has(vm.label)} progress badge={isShared(vm) ? <SharedBadge /> : undefined} />
             ))}
           </div>
         </section>

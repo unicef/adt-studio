@@ -8,10 +8,10 @@ import { cn } from "@/lib/utils"
 import { ActionMenu } from "@/components/ui/action-menu"
 import { BookCover } from "../../BookCover"
 import type { BookVM } from "../../data"
-import { StageBar, ShelfCard, ViewToggle } from "../shared/kit"
+import { StageBar, ShelfCard, SharedBadge, ViewToggle, isShared, type SharedDecoration } from "../shared/kit"
 import { useLibraryPrefs, type LibrarySort, type LibraryGroup } from "@/hooks/use-library-prefs"
 
-export interface LibBook extends BookVM {
+export interface LibBook extends BookVM, SharedDecoration {
   hasError?: boolean
   pendingComments?: number
 }
@@ -185,6 +185,7 @@ function AttentionBadge({ book }: { book: LibBook }) {
         <Plural value={book.pendingComments ?? 0} one="# comment" other="# comments" />
       </span>
     )
+  if (isShared(book)) return <SharedBadge />
   return null
 }
 
@@ -210,7 +211,7 @@ function GridCards({ items, onOpen }: { items: LibBook[]; onOpen: (label: string
           vm={vm}
           onOpen={onOpen}
           progress
-          badge={attentionOf(vm) !== "none" ? <AttentionBadge book={vm} /> : undefined}
+          badge={attentionOf(vm) !== "none" || isShared(vm) ? <AttentionBadge book={vm} /> : undefined}
         />
       ))}
     </div>

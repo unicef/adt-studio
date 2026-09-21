@@ -1,11 +1,14 @@
 import type { ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
-import { ArrowRight, Check, Cloud, Loader2, ShieldCheck } from "lucide-react"
+import { ArrowRight, Check, Cloud, Github, Loader2, ShieldCheck, Wifi } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ComingSoon } from "@/components/app/screens/settings/ui"
+import { cn } from "@/lib/utils"
 import type { CloudflareOAuthErrorCode } from "@/api/client"
 import type { CloudflareOAuthPhase } from "@/hooks/use-cloudflare-oauth"
 import { ExternalLinkButton } from "./ExternalLinkButton"
 import { OAuthErrorNotice } from "./OAuthConnectNotice"
+import { RadioDot } from "./RadioDot"
 import { WizardStepShell } from "./WizardStepShell"
 import { CLOUDFLARE_SIGNUP_URL } from "./cloudflare-links"
 
@@ -132,6 +135,58 @@ function SceneSetup() {
   )
 }
 
+/**
+ * Where a shared book can live. Cloudflare is the one that works today; the other two are
+ * listed so the choice reads as a choice — and so nobody wonders whether GitHub or a school's
+ * own network were considered. They are stubs on purpose: nothing behind them is built.
+ */
+function DestinationTile({
+  icon,
+  name,
+  detail,
+  selected = false,
+}: {
+  icon: ReactNode
+  name: ReactNode
+  detail: ReactNode
+  selected?: boolean
+}) {
+  return (
+    <div
+      role="radio"
+      aria-checked={selected}
+      aria-disabled={selected ? undefined : true}
+      className={cn(
+        "flex items-center gap-2.5 rounded-xl border px-3 py-2.5 transition-colors duration-200 motion-reduce:transition-none",
+        selected
+          ? "border-primary/50 bg-brand-50 ring-1 ring-primary/25"
+          : "border-dashed bg-card text-muted-foreground",
+      )}
+    >
+      <span
+        className={cn(
+          "flex size-8 shrink-0 items-center justify-center rounded-lg",
+          selected ? "bg-background shadow-sm ring-1 ring-border" : "bg-muted/60",
+        )}
+      >
+        {icon}
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span
+          className={cn(
+            "truncate text-[13px] font-semibold",
+            selected ? "text-foreground" : "text-muted-foreground",
+          )}
+        >
+          {name}
+        </span>
+        <span className="truncate text-[11px] leading-4 text-muted-foreground">{detail}</span>
+      </span>
+      {selected ? <RadioDot selected /> : <ComingSoon label={<Trans>Coming soon</Trans>} />}
+    </div>
+  )
+}
+
 function JourneyCard({
   number,
   scene,
@@ -206,14 +261,28 @@ export function ConnectStep({
       }
     >
       <div className="flex flex-1 flex-col gap-5 pt-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground">
+        <div className="flex flex-col gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             <Trans>Hosting</Trans>
-            <Cloud className="size-3.5" style={{ color: CLOUDFLARE_ORANGE }} aria-hidden="true" />
-            <span className="font-medium text-foreground">
-              <Trans>Cloudflare</Trans>
-            </span>
           </span>
+          <div role="radiogroup" className="grid gap-2 sm:grid-cols-3">
+            <DestinationTile
+              selected
+              icon={<Cloud className="size-4" style={{ color: CLOUDFLARE_ORANGE }} aria-hidden="true" />}
+              name={<Trans>Cloudflare</Trans>}
+              detail={<Trans>Free plan, in your own account</Trans>}
+            />
+            <DestinationTile
+              icon={<Github className="size-4" aria-hidden="true" />}
+              name={<Trans>GitHub</Trans>}
+              detail={<Trans>Host from a repository you own</Trans>}
+            />
+            <DestinationTile
+              icon={<Wifi className="size-4" aria-hidden="true" />}
+              name={<Trans>Local network</Trans>}
+              detail={<Trans>Inside the school, no internet needed</Trans>}
+            />
+          </div>
         </div>
 
         {showJourney && (

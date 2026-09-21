@@ -82,7 +82,7 @@ export function DetailActions({ book, handlers }: { book: DetailBook; handlers: 
         </IconBtn>
       )}
       {p.baseComplete && handlers.onPublish && (
-        <IconBtn onClick={() => handlers.onPublish!(book.label)} label={t`Publish for review`}>
+        <IconBtn onClick={() => handlers.onPublish!(book.label)} label={t`Share for review`}>
           <Send className="size-4" />
         </IconBtn>
       )}
@@ -195,7 +195,7 @@ function PublishedCard({ publication, copyLabel }: { publication: NonNullable<De
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-[12.5px] font-semibold text-brand-700">
           <Globe className="size-3.5" />
-          <Trans>Published for review</Trans>
+          <Trans>Shared for review</Trans>
         </div>
         {publication.state === "expired" ? (
           <span className={cn(base, "bg-muted text-muted-foreground")}><Trans>Expired</Trans></span>

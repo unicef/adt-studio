@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Trans, Plural, useLingui } from "@lingui/react/macro"
-import { Check, RotateCcw, Sparkles, LayoutGrid, Rows3, ArrowRight, ArrowUpRight, Pin, Plus } from "lucide-react"
+import { Check, RotateCcw, Sparkles, LayoutGrid, Rows3, ArrowRight, ArrowUpRight, Pin, Plus, Globe } from "lucide-react"
 import { CORE_STAGE_ORDER } from "@adt/types"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
@@ -9,7 +9,7 @@ import { BookCover } from "../../BookCover"
 import type { BookVM } from "../../data"
 
 export interface HomeVariantProps {
-  books: BookVM[]
+  books: Array<BookVM & SharedDecoration>
   pinnedLabels?: Set<string>
   onOpen: (label: string) => void
   onContinue?: (label: string) => void
@@ -18,6 +18,27 @@ export interface HomeVariantProps {
 }
 
 export type ViewMode = "grid" | "list"
+
+/** What a card wears once its book has a live share link. The detail dialog carries the link
+ *  itself; the shelf only has to say that one exists. */
+export function SharedBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10.5px] font-semibold text-white shadow-sm">
+      <Globe className="size-3" />
+      <Trans>Shared</Trans>
+    </span>
+  )
+}
+
+/** The shelf never fetches this itself — the screens decorate their view-models with it, so a
+ *  home screen that has no Cloudflare account connected renders exactly as before. */
+export interface SharedDecoration {
+  publication?: { state?: "active" | "expired" | "revoked" } | null
+}
+
+export function isShared(vm: SharedDecoration): boolean {
+  return vm.publication?.state === "active"
+}
 
 export function ViewToggle({ value, onChange }: { value: ViewMode; onChange: (v: ViewMode) => void }) {
   const { t } = useLingui()
