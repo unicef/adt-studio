@@ -1967,6 +1967,88 @@ speech:
     }))
   })
 
+  // A page can fail without the *request* failing: Gemini answers, but the
+  // recording is too short to slice, so every entry comes back unaligned. Those
+  // gaps are per-entry failures like any other, so the run summary that tells
+  // the user where to fix them has to fire for them too — it used to be wired
+  // only to request-level failures, leaving a slicing-only run with no pointer
+  // to the Speech view at all.
+  it("points at the Speech view when unaligned slices are a page's only failure", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  batch_by_page: true
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-batched-unaligned", [
+      { id: "pg001_t002", text: "Second sentence" },
+      { id: "pg001_t003", text: "Third sentence" },
+    ])
+
+    // 0.05s of 24kHz mono 16-bit PCM — a real recording, so the call succeeds,
+    // but shorter than MIN_TRANSCRIBABLE_SECONDS, so every slice of it is
+    // unwritable and all three entries come back unaligned.
+    const pcm = Buffer.alloc(Math.round(24_000 * 0.05) * 2)
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              finishReason: "STOP",
+              content: { parts: [{ inlineData: { data: pcm.toString("base64") } }] },
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const events: ProgressEvent[] = []
+    try {
+      await createStageRunner().run(
+        "gemini-batched-unaligned",
+        {
+          booksDir,
+          credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
+          promptsDir,
+          configPath,
+          fromStage: "translate",
+          toStage: "speech",
+        },
+        { emit: (event) => events.push(event) }
+      )
+    } finally {
+      vi.unstubAllGlobals()
+    }
+
+    // Gemini answered — this is a slicing failure, not a request failure.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    const summaries = events.filter(
+      (event) =>
+        event.type === "step-progress" &&
+        event.step === "tts" &&
+        /generated one by one from the Speech view/.test(event.message ?? "")
+    )
+    expect(summaries).toHaveLength(1)
+    expect(summaries[0]).toMatchObject({ message: expect.stringContaining("3 Gemini TTS item(s)") })
+  })
+
   it("does not require a credential when every entry is reused and there is no work", async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
     const booksDir = path.join(tmpDir, "books")

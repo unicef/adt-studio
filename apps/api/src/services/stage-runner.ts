@@ -3445,6 +3445,11 @@ async function runSpeechStep(
                   error: u.reason,
                   voiceSlot: group.voiceSlot,
                 })
+                // Also a Gemini gap the user can fill one entry at a time, even
+                // though the request itself succeeded. Without this a run whose
+                // only failure is bad slicing finishes with no pointer to the
+                // Speech view — the one place these can be regenerated.
+                geminiFailedItems.push(`${u.textId}: ${u.reason}`)
               }
               const unalignedReason =
                 unaligned.length === 0
