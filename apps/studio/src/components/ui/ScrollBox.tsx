@@ -10,7 +10,7 @@ type Edges = "none" | "top" | "bottom" | "both"
  * by a grid whose height follows the window, so the answer changes without anything being
  * clicked. `ResizeObserver` covers both the box resizing and its content growing.
  */
-function useOverflowEdges<T extends HTMLElement>() {
+export function useOverflowEdges<T extends HTMLElement>() {
   const ref = useRef<T>(null)
   const [edges, setEdges] = useState<Edges>("none")
 
@@ -47,7 +47,7 @@ function useOverflowEdges<T extends HTMLElement>() {
 /** Masks matched to the edges that actually have more content, so a list that fits is never
  *  faded and a list that does not never looks like it was cut off by accident. */
 /* eslint-disable lingui/no-unlocalized-strings -- Tailwind arbitrary values, not user text */
-const MASK: Record<Edges, string> = {
+export const OVERFLOW_MASK: Record<Edges, string> = {
   none: "",
   top: "[mask-image:linear-gradient(to_bottom,transparent,#000_20px)]",
   bottom: "[mask-image:linear-gradient(to_bottom,#000_calc(100%-20px),transparent)]",
@@ -90,7 +90,7 @@ export function ScrollBox({
         data-overflow={edges}
         className={cn(
           "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3",
-          MASK[edges],
+          OVERFLOW_MASK[edges],
         )}
       >
         {children}

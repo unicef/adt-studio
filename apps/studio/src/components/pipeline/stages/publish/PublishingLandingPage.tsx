@@ -1,6 +1,5 @@
 import { Trans } from "@lingui/react/macro"
-import { History, Loader2, MessagesSquare, Users } from "lucide-react"
-import { PublishPanel } from "@/components/pipeline/stages/publish/PublishPanel"
+import { History, MessagesSquare, Users } from "lucide-react"
 import { PublicationReaders } from "@/components/publications/PublicationReaders"
 import { ScrollBox } from "@/components/ui/ScrollBox"
 import {
@@ -18,10 +17,10 @@ import { PublishingInvitation } from "./PublishingInvitation"
 import { PublishingRecentFeedback } from "./PublishingRecentFeedback"
 import { PublishingHero } from "./PublishingHero"
 import { PublishingSection } from "./PublishingSection"
-import { PublishingStepper, type PublishPhase } from "./PublishingStepper"
 import { PublishingSummary } from "./PublishingSummary"
 import { PublishingTakeover } from "./PublishingTakeover"
 import { PublishingVersions } from "./PublishingVersions"
+import { ShareSetup } from "./setup/ShareSetup"
 
 /**
  * Publishing, as its own place in the book rather than a card at the top of Export.
@@ -68,62 +67,24 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
   const takingOver = run.status === "running" || run.status === "error" || settling
   const elapsedMs = useElapsed(run.status === "running" ? "running" : run.status === "done" ? "done" : "idle")
 
-  const phase: PublishPhase = !connected
-    ? "connect"
-    : takingOver
-      ? "running"
-      : live
-        ? "live"
-        : "configure"
-
-  if (status.isPending) {
-    return (
-      <div className="flex flex-1 items-center justify-center gap-2.5 text-sm text-muted-foreground">
-        <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-        <Trans>Checking whether this book is shared…</Trans>
-      </div>
-    )
-  }
-
-  /* A first publish is the same wait as an update and gets the same screen: the page steps
-     aside for it rather than running it inside a card, which is the difference between watching
-     the thing happen and hunting for it. The stepper stays — the takeover replaces the body,
-     not the map. */
-  if (!live && connected && takingOver) {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-8 pb-6 pt-6 mh:pb-4 mh:pt-4">
-        <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-5 mh:gap-4">
-          <Header compact />
-          <PublishingStepper phase={phase} />
-          <PublishingTakeover
-            title={book.data?.title ?? bookLabel}
-            fromVersion={null}
-            run={run}
-            elapsedMs={elapsedMs}
-            bookLabel={bookLabel}
-          />
-        </div>
-      </div>
-    )
-  }
-
+  /* Everything before a working link — loading, no account, a first share, a stopped or expired
+     link, and the run that makes one — is one screen with one shape. It owns its own run view so
+     the form stays mounted under it and a failed run hands back the same answers. */
   if (!live) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-8 pb-12 pt-8">
-          <Header />
-          <PublishingStepper phase={phase} />
-          <PublishingEngineNotice />
-          <PublishPanel bookLabel={bookLabel} run={run} />
-        </div>
-      </div>
+      <ShareSetup
+        bookLabel={bookLabel}
+        run={run}
+        elapsedMs={elapsedMs}
+        takingOver={connected && takingOver}
+      />
     )
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-8 pb-6 pt-6 mh:pb-4 mh:pt-4">
-      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-5 mh:gap-4">
-        <Header compact />
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-8 pb-6 pt-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300">
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-5">
+        <Header />
 
         <PublishingSummary
           bookLabel={bookLabel}
@@ -143,7 +104,7 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
         ) : (
         /* `min-h-0` on every ancestor of a scroll box, or the box grows instead of scrolling and
            takes the page with it. */
-        <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] mh:gap-4">
+        <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
           <div className="flex min-h-0 flex-col gap-4">
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
             <PublishingHero
@@ -186,7 +147,7 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
             />
           </div>
 
-          <div className="grid min-h-0 grid-rows-[1.2fr_1.15fr_1fr] gap-4 mh:gap-3">
+          <div className="grid min-h-0 grid-rows-[1.2fr_1.15fr_1fr] gap-4">
             <PublishingSection
               icon={MessagesSquare}
               title={<Trans>Waiting on you</Trans>}
@@ -237,22 +198,14 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
   )
 }
 
-/** The page's own title. Compact once the dashboard is on screen: every pixel here is a pixel the
+/** The page's own title. The live dashboard drops the intro line: every pixel here is one the
  *  roster does not get, and by then the hero names the book anyway. */
-function Header({ compact = false }: { compact?: boolean }) {
+function Header() {
   return (
     <header className="flex shrink-0 flex-col gap-1.5">
-      <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a] mh:text-[22px]">
+      <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
         <Trans>Sharing</Trans>
       </h1>
-      {compact ? null : (
-        <p className="max-w-2xl text-[14px] leading-relaxed text-[#737373]">
-          <Trans>
-            Put this book online for readers and reviewers. The copy lives in your own Cloudflare
-            account, behind a link only the people you send it to can open.
-          </Trans>
-        </p>
-      )}
     </header>
   )
 }

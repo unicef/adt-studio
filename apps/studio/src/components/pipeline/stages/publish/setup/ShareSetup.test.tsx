@@ -149,9 +149,7 @@ vi.mock("@/api/client", () => ({
   apiErrorCode: (error: unknown) => (error instanceof MockApiError ? error.code : null),
 }))
 
-const { PublishPanel } = await import("./PublishPanel")
-const { useBookPublishRun } = await import("@/hooks/use-book-publication")
-const { PublishingLandingPage } = await import("./PublishingLandingPage")
+const { PublishingLandingPage } = await import("../PublishingLandingPage")
 
 const SHARE_URL = "https://adt-publish.escola-azul.workers.dev/p/abcdefghijklmnopqrstuvwxyz012345"
 
@@ -230,24 +228,8 @@ function revokedStatus(): BookPublicationStatus {
   }
 }
 
-/** The page owns the run and hands it down, so a panel on its own needs one made for it. */
-function PanelHarness() {
-  return <PublishPanel bookLabel="meu-livro" run={useBookPublishRun("meu-livro")} />
-}
-
-function renderPanel() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  })
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <PanelHarness />
-    </QueryClientProvider>,
-  )
-}
-
-/** A run is no longer the panel's to draw — the page takes the screen for it — so anything about
- *  what the author watches while publishing has to be asked of the page. */
+/** The setup screen owns its run view, so everything — the form, the run, the hand-off to the
+ *  dashboard — is asked of the page that mounts it. */
 function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -289,7 +271,7 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-describe("PublishPanel — states", () => {
+describe("Sharing setup — states", () => {
   /**
    * The panel once rendered every word of itself into a card two pixels tall.
    *
@@ -301,23 +283,25 @@ describe("PublishPanel — states", () => {
    * jsdom computes no layout, so this asserts the class that prevents it rather than the height.
    * A weak test for a bug that cost an evening is still worth having.
    */
-  it("refuses to be squeezed flat by the scrolling column it sits in", async () => {
+  it("keeps the same two columns in every state, with the reader's view on the right", async () => {
     getBookPublication.mockResolvedValue(notConnected())
 
-    renderPanel()
+    renderPage()
 
-    await waitFor(() => expect(screen.getByTestId("publish-panel")).toBeTruthy())
-    expect(screen.getByTestId("publish-panel").className).toContain("shrink-0")
+    await waitFor(() => expect(screen.getByTestId("publish-reader-preview")).toBeTruthy())
+    /** No account yet means no reader yet: the view is there, greyed, rather than a different
+     *  page that would reflow once the account exists. */
+    expect(screen.getByTestId("publish-reader-preview").getAttribute("data-mode")).toBe("locked")
   })
 
   it("sends the author to Settings when Cloudflare isn't connected", async () => {
     getBookPublication.mockResolvedValue(notConnected())
 
-    renderPanel()
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId("publish-not-connected")).toBeTruthy())
     expect(screen.getByTestId("publish-not-connected").textContent).toContain(
-      "needs a Cloudflare account connected once",
+      "connected once for the whole Studio",
     )
     expect(screen.getByRole("link", { name: /set up sharing/i }).getAttribute("href")).toBe(
       "/settings",
@@ -325,25 +309,32 @@ describe("PublishPanel — states", () => {
     expect(screen.queryByTestId("publish-start-button")).toBeNull()
   })
 
-  it("explains the frozen copy and offers an end date before the first publish", async () => {
+  it("says readers get the book as it is now, and offers an end date before the first share", async () => {
     getBookPublication.mockResolvedValue(neverPublished())
 
-    renderPanel()
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
-    expect(document.body.textContent).toContain("frozen copy")
-    expect(document.body.textContent).toContain("Update site")
+    expect(document.body.textContent).toContain("Readers see the book as it is now")
     /** Two access answers plus the four end-date answers. */
     expect(screen.getAllByRole("radio").length).toBe(6)
+    /** The parts are switches, and only the ones this book has: this suite's book has no sign
+     *  language, so it offers no switch for it. */
+    expect(screen.getAllByRole("switch").map((el) => el.getAttribute("aria-checked"))).toEqual([
+      "true",
+      "true",
+      "true",
+    ])
+    expect(screen.queryByRole("switch", { name: /sign language/i })).toBeNull()
     expect(screen.getByTestId("publish-start-button").textContent).toContain(
       "Share and get a link",
     )
   })
 
-  it("degrades to a plain notice when the route isn't there yet", async () => {
+  it("says it couldn't check the book, keeps the raw reason, and offers a retry", async () => {
     getBookPublication.mockRejectedValue(new MockApiError("Request failed: 404", 404))
 
-    renderPanel()
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId("publication-unavailable")).toBeTruthy())
     expect(screen.getByTestId("publication-unavailable").textContent).toContain(
@@ -355,24 +346,26 @@ describe("PublishPanel — states", () => {
   it("offers both ways back after the author stopped sharing, resuming first", async () => {
     getBookPublication.mockResolvedValue(revokedStatus())
 
-    renderPanel()
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId("publication-revoked")).toBeTruthy())
     const notice = screen.getByTestId("publication-revoked")
-    expect(notice.textContent).toContain("old link no longer opens")
-    expect(notice.textContent).toContain("same address starts working again")
-    expect(notice.textContent).toContain("all the comments are kept")
+    expect(notice.textContent).toContain("doesn't open right now")
+    expect(notice.textContent).toContain("same link back on")
+    expect(notice.textContent).toContain("every comment kept")
     expect(screen.getByTestId("publish-resume-button").textContent).toContain("Resume sharing")
 
-    expect(screen.getByTestId("publish-start-button").textContent).toContain("Share again")
-    expect(document.body.textContent).toContain("new address instead")
-    expect(document.body.textContent).toContain("old link stays off")
-    expect(screen.queryByTestId("publish-share-link")).toBeNull()
+    /** Resuming is the main way back; a new link is offered, quieter, underneath it. */
+    expect(screen.getByTestId("publish-start-button").textContent).toContain("new link")
+    /** The reader's view shows the closed page readers get today, on the address they have. */
+    const preview = screen.getByTestId("publish-reader-preview")
+    expect(preview.getAttribute("data-mode")).toBe("stopped")
+    expect(preview.textContent).toContain("adt-publish.escola-azul.workers.dev")
     expect(resumeBookPublication).not.toHaveBeenCalled()
   })
 
-  it("mentions a waiting publishing-service update without nagging", async () => {
-    getBookPublication.mockResolvedValue(publishedStatus())
+  it("mentions a waiting publishing-service update above the setup", async () => {
+    getBookPublication.mockResolvedValue(neverPublished())
     getBook.mockResolvedValue({ label: "meu-livro", title: "Meu Livro" })
   getPublicationReaders.mockResolvedValue({ readers: [], total: 0 })
   getPublicationComments.mockResolvedValue({ comments: [] })
@@ -390,14 +383,14 @@ describe("PublishPanel — states", () => {
       updated_at: null,
     })
 
-    renderPanel()
+    renderPage()
 
-    await waitFor(() => expect(screen.getByTestId("publish-upgrade-hint")).toBeTruthy())
-    expect(screen.getByTestId("publish-upgrade-hint").textContent).toContain("update is waiting")
+    await waitFor(() => expect(screen.getByTestId("publish-engine-outdated")).toBeTruthy())
+    expect(screen.getByTestId("publish-engine-outdated").textContent).toContain("Install the update")
   })
 })
 
-describe("PublishPanel — publishing", () => {
+describe("Sharing setup — publishing", () => {
   /**
    * A first publish is a wait of minutes, and it gets the whole screen for the same reason an
    * update does: a checklist inside a card is something the author has to go and find.
@@ -428,9 +421,9 @@ describe("PublishPanel — publishing", () => {
       emit?.({ type: "step", id: "export", number: 1, label: "Export", status: "running" })
     })
     const takeover = screen.getByTestId("publish-takeover")
-    /** The card that asked the question steps aside; leaving it under a run gives the author two
-     *  places to look and one of them is stale. */
-    expect(screen.queryByTestId("publish-panel")).toBeNull()
+    /** The columns that asked the question step aside; leaving them beside a run gives the author
+     *  two places to look and one of them is stale. */
+    expect(screen.queryByTestId("publish-reader-preview")).toBeNull()
     /** The run screen names the running step and offers the way out. There is deliberately no
      *  "N of 4 steps" counter — a step-count aggregate jumps to 50% in seconds and then sits
      *  still for the whole upload, which is the trust failure the time-weighted bar replaced. */
@@ -500,7 +493,7 @@ describe("PublishPanel — publishing", () => {
     getBookPublication.mockResolvedValue(neverPublished())
     publishBook.mockImplementation(() => new Promise<void>(() => {}))
 
-    renderPanel()
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
     fireEvent.click(screen.getByRole("radio", { name: /7 days/i }))
@@ -516,12 +509,13 @@ describe("PublishPanel — publishing", () => {
     getBookPublication.mockResolvedValue(neverPublished())
     publishBook.mockImplementation(() => new Promise<void>(() => {}))
 
-    renderPanel()
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
-    const requireCode = screen.getByRole("radio", { name: /require an access code/i })
-    expect((requireCode as HTMLInputElement).checked).toBe(true)
-    expect((screen.getByRole("radio", { name: /anyone with the link/i }) as HTMLInputElement).checked).toBe(false)
+    expect(screen.getByRole("radio", { name: /with a code/i }).getAttribute("aria-checked")).toBe("true")
+    expect(
+      screen.getByRole("radio", { name: /anyone with the link/i }).getAttribute("aria-checked"),
+    ).toBe("false")
 
     const shown = (screen.getByTestId("publish-access-code-input") as HTMLInputElement).value
     expect(shown).toMatch(/^[A-HJ-NP-Z2-9]{6}$/)
@@ -534,7 +528,7 @@ describe("PublishPanel — publishing", () => {
     getBookPublication.mockResolvedValue(neverPublished())
     publishBook.mockImplementation(() => new Promise<void>(() => {}))
 
-    renderPanel()
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId("publish-access-code-input")).toBeTruthy())
     const input = () => screen.getByTestId("publish-access-code-input") as HTMLInputElement
@@ -552,7 +546,7 @@ describe("PublishPanel — publishing", () => {
     getBookPublication.mockResolvedValue(neverPublished())
     publishBook.mockImplementation(() => new Promise<void>(() => {}))
 
-    renderPanel()
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId("publish-access-code-input")).toBeTruthy())
     fireEvent.change(screen.getByTestId("publish-access-code-input"), {
@@ -570,7 +564,7 @@ describe("PublishPanel — publishing", () => {
     getBookPublication.mockResolvedValue(neverPublished())
     publishBook.mockImplementation(() => new Promise<void>(() => {}))
 
-    renderPanel()
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId("publish-access-code-input")).toBeTruthy())
     fireEvent.change(screen.getByTestId("publish-access-code-input"), { target: { value: "ab" } })
@@ -587,11 +581,13 @@ describe("PublishPanel — publishing", () => {
     getBookPublication.mockResolvedValue(neverPublished())
     publishBook.mockImplementation(() => new Promise<void>(() => {}))
 
-    renderPanel()
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
     fireEvent.click(screen.getByRole("radio", { name: /anyone with the link/i }))
-    expect(screen.queryByTestId("publish-access-code-input")).toBeNull()
+    /** The code row folds away rather than unmounting, so it can animate — but it must be out of
+     *  reach while folded. */
+    expect((screen.getByTestId("publish-access-code-input") as HTMLInputElement).disabled).toBe(true)
 
     fireEvent.click(screen.getByTestId("publish-start-button"))
     expect(publishBook.mock.calls[0][1].accessCode).toBeNull()
@@ -655,10 +651,15 @@ describe("PublishPanel — publishing", () => {
       emit?.({ type: "error", code: "package_failed", message: "boom", step_id: "package" })
     })
 
+    const chosenCode = publishBook.mock.calls[0][1].accessCode
     fireEvent.click(screen.getByRole("button", { name: /change how you share/i }))
     expect(screen.queryByTestId("publish-takeover")).toBeNull()
     expect(screen.getByTestId("publish-start-button").textContent).toContain(
       "Share and get a link",
+    )
+    /** The form was never unmounted under the run, so the answers come back as they were. */
+    expect((screen.getByTestId("publish-access-code-input") as HTMLInputElement).value).toBe(
+      chosenCode,
     )
   })
 
@@ -685,12 +686,12 @@ describe("PublishPanel — publishing", () => {
 
 })
 
-describe("PublishPanel — link management", () => {
+describe("Sharing setup — link management", () => {
   it("resumes sharing on the same link and lands back on the published state", async () => {
     getBookPublication.mockResolvedValue(revokedStatus())
     resumeBookPublication.mockResolvedValue({ publication: publishedStatus().publication })
 
-    renderPanel()
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId("publish-resume-button")).toBeTruthy())
     getBookPublication.mockResolvedValue(publishedStatus())
@@ -700,7 +701,7 @@ describe("PublishPanel — link management", () => {
 
     expect(resumeBookPublication).toHaveBeenCalledWith("meu-livro")
     /** Resuming makes the link live again, and a live link is the dashboard's to show — so what
-     *  this panel does is stop saying the sharing is stopped. */
+     *  the setup does is stop saying the sharing is stopped. */
     await waitFor(() => expect(screen.queryByTestId("publication-revoked")).toBeNull())
   })
 
@@ -710,7 +711,7 @@ describe("PublishPanel — link management", () => {
       new MockApiError("The publish worker answered 502", 502, "worker_unreachable"),
     )
 
-    renderPanel()
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId("publish-resume-button")).toBeTruthy())
     await act(async () => {
