@@ -46,6 +46,7 @@ export function HomeScreen() {
             onContinue={openBook}
             onAddBook={openAdd}
             onOpenLibrary={() => navigate({ to: APP_PATHS.library })}
+            onReview={(label) => navigate({ to: "/books/$label/$step", params: { label, step: "storyboard" } })}
           />
         </div>
       ) : (

@@ -1,19 +1,18 @@
 import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
 import { Trans, Plural, useLingui } from "@lingui/react/macro"
-import { Search, ChevronDown, Check, ArrowDownUp, Layers, SearchX, Plus, TriangleAlert, MessageSquare } from "lucide-react"
+import { Search, ChevronDown, Check, ArrowDownUp, Layers, SearchX, Plus, TriangleAlert } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { ActionMenu } from "@/components/ui/action-menu"
 import { BookCover } from "../../BookCover"
 import type { BookVM } from "../../data"
-import { StageBar, ShelfCard, SharedBadge, ViewToggle, isShared, type SharedDecoration } from "../shared/kit"
+import { CommentsBadge, StageBar, ShelfCard, SharedBadge, ViewToggle, isShared, openComments, type SharedDecoration } from "../shared/kit"
 import { useLibraryPrefs, type LibrarySort, type LibraryGroup } from "@/hooks/use-library-prefs"
 
 export interface LibBook extends BookVM, SharedDecoration {
   hasError?: boolean
-  pendingComments?: number
 }
 
 type SortKey = LibrarySort
@@ -169,24 +168,23 @@ function AttentionName({ attention }: { attention: Attention }) {
   return <Trans>No pending items</Trans>
 }
 
-function AttentionBadge({ book }: { book: LibBook }) {
-  const a = attentionOf(book)
-  if (a === "errors")
+/** Top-left of a card: the state of the book itself. Needs fixing outranks shared — a book that
+ *  cannot be rebuilt is the thing to act on — and open comments have their own corner, so a
+ *  shared book with feedback says both. */
+function StatusBadge({ book }: { book: LibBook }) {
+  if (book.needsRebuild || book.hasError)
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-stage-toc px-2 py-0.5 text-[10.5px] font-semibold text-primary-foreground shadow-sm">
-        <TriangleAlert className="size-3" />
+        <TriangleAlert className="size-3" aria-hidden />
         <Trans>Needs fixing</Trans>
-      </span>
-    )
-  if (a === "feedback")
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[10.5px] font-semibold text-primary-foreground shadow-sm">
-        <MessageSquare className="size-3" />
-        <Plural value={book.pendingComments ?? 0} one="# comment" other="# comments" />
       </span>
     )
   if (isShared(book)) return <SharedBadge />
   return null
+}
+
+function hasStatus(book: LibBook): boolean {
+  return !!(book.needsRebuild || book.hasError) || isShared(book)
 }
 
 const GRID = "grid grid-cols-[repeat(auto-fill,minmax(158px,1fr))] gap-x-5 gap-y-7"
@@ -211,7 +209,8 @@ function GridCards({ items, onOpen }: { items: LibBook[]; onOpen: (label: string
           vm={vm}
           onOpen={onOpen}
           progress
-          badge={attentionOf(vm) !== "none" || isShared(vm) ? <AttentionBadge book={vm} /> : undefined}
+          badge={hasStatus(vm) ? <StatusBadge book={vm} /> : undefined}
+          comments={openComments(vm)}
         />
       ))}
     </div>
@@ -322,7 +321,11 @@ function Row({ vm, onOpen }: { vm: LibBook; onOpen: (label: string) => void }) {
             <BookCover title={vm.displayTitle} author={vm.authors} cover={vm.cover} fit="cover" />
           </div>
           <div className="min-w-0">
-            <div className="truncate font-semibold leading-tight">{vm.displayTitle}</div>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span className="truncate font-semibold leading-tight">{vm.displayTitle}</span>
+              {hasStatus(vm) ? <StatusBadge book={vm} /> : null}
+              {openComments(vm) > 0 ? <CommentsBadge count={openComments(vm)} /> : null}
+            </div>
             <div className="truncate text-[11.5px] text-muted-foreground">{vm.authors}</div>
           </div>
         </button>

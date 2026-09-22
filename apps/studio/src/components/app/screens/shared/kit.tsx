@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Trans, Plural, useLingui } from "@lingui/react/macro"
-import { Check, RotateCcw, Sparkles, LayoutGrid, Rows3, ArrowRight, ArrowUpRight, Pin, Plus, Globe } from "lucide-react"
+import { Check, RotateCcw, Sparkles, LayoutGrid, Rows3, ArrowRight, ArrowUpRight, Pin, Plus, Globe, MessageSquare } from "lucide-react"
 import { CORE_STAGE_ORDER } from "@adt/types"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
@@ -15,17 +15,38 @@ export interface HomeVariantProps {
   onContinue?: (label: string) => void
   onAddBook: () => void
   onOpenLibrary: () => void
+  /** Opens the book where its readers' comments are read. */
+  onReview?: (label: string) => void
 }
 
 export type ViewMode = "grid" | "list"
 
-/** What a card wears once its book has a live share link. The detail dialog carries the link
+const BADGE = "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold shadow-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-200"
+
+/** What a card wears while its book has a live share link. The detail dialog carries the link
  *  itself; the shelf only has to say that one exists. */
 export function SharedBadge() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10.5px] font-semibold text-white shadow-sm">
-      <Globe className="size-3" />
+    <span className={cn(BADGE, "bg-emerald-600 text-white")}>
+      <Globe className="size-3" aria-hidden />
       <Trans>Shared</Trans>
+    </span>
+  )
+}
+
+/**
+ * Comments readers left that nobody has resolved yet — the open count, never the total, because
+ * this is a to-do, not a statistic. Shown whether or not the link is still live: stopping the
+ * link does not stop the comments being there to read.
+ */
+export function CommentsBadge({ count }: { count: number }) {
+  return (
+    <span className={cn(BADGE, "bg-brand-600 tabular-nums text-primary-foreground")}>
+      <MessageSquare className="size-3" aria-hidden />
+      <span aria-hidden>{count > 99 ? "99+" : count}</span>
+      <span className="sr-only">
+        <Plural value={count} one="# open comment" other="# open comments" />
+      </span>
     </span>
   )
 }
@@ -33,7 +54,12 @@ export function SharedBadge() {
 /** The shelf never fetches this itself — the screens decorate their view-models with it, so a
  *  home screen that has no Cloudflare account connected renders exactly as before. */
 export interface SharedDecoration {
-  publication?: { state?: "active" | "expired" | "revoked" } | null
+  publication?: { url?: string; state?: "active" | "expired" | "revoked" } | null
+  pendingComments?: number
+}
+
+export function openComments(vm: SharedDecoration): number {
+  return vm.pendingComments ?? 0
 }
 
 export function isShared(vm: SharedDecoration): boolean {
@@ -98,7 +124,7 @@ export function isActive(vm: BookVM): boolean {
   return ["in-progress", "rebuild"].includes(progressFor(vm).status)
 }
 
-export function pickResume(sortedByRecency: BookVM[]): BookVM | undefined {
+export function pickResume<T extends BookVM>(sortedByRecency: T[]): T | undefined {
   return (
     sortedByRecency.find((b) => isActive(b)) ??
     sortedByRecency.find((b) => progressFor(b).status !== "new") ??
@@ -374,6 +400,7 @@ export function ShelfCard({
   elevated = false,
   progress = false,
   badge,
+  comments = 0,
 }: {
   vm: BookVM
   onOpen: (label: string) => void
@@ -381,7 +408,11 @@ export function ShelfCard({
   pinned?: boolean
   elevated?: boolean
   progress?: boolean
+  /** Top-left: what state the book is in — needs fixing, or shared. */
   badge?: ReactNode
+  /** Top-right: open comments waiting on it. Its own corner, so a shared book with feedback
+   *  says both instead of one hiding the other. */
+  comments?: number
 }) {
   return (
     <button
@@ -397,6 +428,11 @@ export function ShelfCard({
       >
         <BookCover title={vm.displayTitle} author={vm.authors} cover={vm.cover} fit="cover" />
         {badge && <div className="absolute left-2 top-2 z-10">{badge}</div>}
+        {comments > 0 && (
+          <div className="absolute right-2 top-2 z-10">
+            <CommentsBadge count={comments} />
+          </div>
+        )}
         {elevated && (
           <span className="absolute inset-x-2 bottom-2 inline-flex items-center justify-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10.5px] font-semibold text-primary-foreground backdrop-blur-sm">
             <ContinueLabel vm={vm} />
