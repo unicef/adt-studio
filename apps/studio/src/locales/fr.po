@@ -140,8 +140,8 @@ msgstr "{0, plural, one {Utilisé par # tâche} other {Utilisé par # tâches}}"
 
 #. placeholder {0}: publication.version_count
 #. placeholder {1}: publication.current_version
-msgid "{0} — now serving v{1}"
-msgstr "{0} — maintenant en service v{1}"
+#~ msgid "{0} — now serving v{1}"
+#~ msgstr "{0} — maintenant en service v{1}"
 
 #. placeholder {0}: lockedLang.name
 msgid "{0} — type country or Enter for base"
@@ -941,6 +941,9 @@ msgstr "Code d'accès"
 msgid "Access code {code}. Copy it."
 msgstr "Code d'accès {code}. Copiez-le."
 
+msgid "Access code copied to the clipboard"
+msgstr "Code d’accès copié dans le presse-papiers"
+
 msgid "Access code: {accessCode}"
 msgstr "Code d'accès : {accessCode}"
 
@@ -1654,6 +1657,9 @@ msgstr "Réponse Invite"
 
 msgid "answer_key"
 msgstr "clé_de_réponse"
+
+msgid "Answering, but not confirming"
+msgstr "Répond, sans confirmer"
 
 msgid "Answers"
 msgstr "Réponses"
@@ -2757,11 +2763,18 @@ msgstr "Commentaire de {0}"
 msgid "Comments"
 msgstr "Commentaires"
 
+#. placeholder {0}: publication.unresolved_count > 99 ? "99+" : publication.unresolved_count
+msgid "Comments ({0})"
+msgstr "Commentaires ({0})"
+
 msgid "Comments on this page"
 msgstr "Commentaires sur cette page"
 
 msgid "Comments to read"
 msgstr "Commentaires à lire"
+
+msgid "comments waiting for you"
+msgstr "commentaires en attente"
 
 msgid "Compare"
 msgstr "Comparer"
@@ -3010,8 +3023,15 @@ msgstr "Copié"
 msgid "Copy"
 msgstr "Copier"
 
+msgid "Copy access code"
+msgstr "Copier le code d’accès"
+
 #~ msgid "Copy address"
 #~ msgstr "Copier l'adresse"
+
+#. placeholder {0}: publication.access_code
+msgid "Copy code {0}"
+msgstr "Copier le code {0}"
 
 msgid "Copy command"
 msgstr "Copier la commande"
@@ -3085,14 +3105,20 @@ msgstr "Impossible d'appliquer les fusions — veuillez réessayer."
 msgid "Couldn't check for updates"
 msgstr "Impossible de rechercher des mises à jour"
 
-msgid "Couldn't copy — select the link above and copy it by hand."
-msgstr "Impossible de copier — sélectionnez le lien ci-dessus et copiez-le manuellement."
+#~ msgid "Couldn't copy — select the link above and copy it by hand."
+#~ msgstr "Impossible de copier — sélectionnez le lien ci-dessus et copiez-le manuellement."
 
 msgid "Couldn't copy — select the text above instead."
 msgstr "Impossible de copier — sélectionnez plutôt le texte ci-dessus."
 
+msgid "Couldn't copy the access code."
+msgstr "Impossible de copier le code d’accès."
+
 #~ msgid "Couldn't copy the address."
 #~ msgstr "Impossible de copier l'adresse."
+
+msgid "Couldn't copy the link — open the book's Sharing step and copy it there."
+msgstr "Impossible de copier le lien — ouvrez l’étape Partage du livre et copiez-le depuis là."
 
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Impossible de charger l'aperçu du PDF. Les pages peuvent toujours être divisées à l'aide des commandes."
@@ -3193,6 +3219,9 @@ msgstr "Crée une archive ZIP du projet complet — base de données, PDF source
 
 msgid "Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again."
 msgstr "La création d’une nouvelle image de glossaire modifie l’ensemble des images du livre. Les étapes terminées ci-dessous seront effacées et devront être exécutées de nouveau."
+
+msgid "Creating each piece in your Cloudflare account, in order."
+msgstr "Création de chaque élément dans votre compte Cloudflare, dans l’ordre."
 
 msgid "Creating the database"
 msgstr "Création de la base de données"
@@ -3454,6 +3483,10 @@ msgstr "Des définitions à portée de doigt."
 
 msgid "Delete"
 msgstr "Supprimer"
+
+#. placeholder {0}: pendingDelete?.title
+msgid "Delete “{0}” permanently?"
+msgstr "Supprimer « {0} » définitivement ?"
 
 msgid "Delete all speech"
 msgstr "Supprimer tout parole"
@@ -4146,8 +4179,8 @@ msgstr "Chaque lien est actif"
 msgid "Every notable concept and named entity."
 msgstr "Chaque concept notable et entité nommée."
 
-msgid "Every one of your links is live."
-msgstr "Chacun de vos liens est actif."
+#~ msgid "Every one of your links is live."
+#~ msgstr "Chacun de vos liens est actif."
 
 msgid "Every page becomes its own screen, one after another."
 msgstr "Chaque page devient son propre écran, l’une après l’autre."
@@ -4172,6 +4205,9 @@ msgstr "Chaque page, lue à voix haute."
 
 msgid "Every section has a video"
 msgstr "Chaque section a une vidéo"
+
+msgid "Every shared version keeps its files"
+msgstr "Chaque version partagée conserve ses fichiers"
 
 msgid "Every Storyboard section has a sign-language video assigned. You can switch to Covered or All to review or replace them."
 msgstr "Chaque section du Storyboard a une vidéo en langue des signes assignée. Vous pouvez passer à Couvert ou Tout pour les revoir ou les remplacer."
@@ -5738,6 +5774,9 @@ msgstr "Laissez vide pour utiliser la langue du livre."
 msgid "Leave setup"
 msgstr "Quitter la configuration"
 
+msgid "Leave this step open until it finishes."
+msgstr "Laissez cette étape ouverte jusqu’à la fin."
+
 msgid "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
 msgstr "Laissez ce réglage vide pour conserver le rythme propre d'ElevenLabs. Les valeurs extrêmes dégradent la qualité."
 
@@ -5804,8 +5843,11 @@ msgstr "Lien"
 msgid "Link copied"
 msgstr "Lien copié"
 
-msgid "Link copied to the clipboard."
-msgstr "Lien copié dans le presse-papiers."
+msgid "Link copied to the clipboard"
+msgstr "Lien copié dans le presse-papiers"
+
+#~ msgid "Link copied to the clipboard."
+#~ msgstr "Lien copié dans le presse-papiers."
 
 msgid "Link expired"
 msgstr "Lien expiré"
@@ -5818,6 +5860,9 @@ msgstr "Les pages liées sont conservées ensemble comme une seule fusion."
 
 msgid "Linked to: {value}"
 msgstr "Lié à : {value}"
+
+msgid "Links you share stay open until you stop them"
+msgstr "Les liens que vous partagez restent ouverts jusqu’à ce que vous les arrêtiez"
 
 msgid "Liquid guide"
 msgstr "Guide Liquid"
@@ -6426,6 +6471,10 @@ msgstr "Modéré"
 msgid "Monospace"
 msgstr "À chasse fixe"
 
+#. placeholder {0}: publication.title
+msgid "More actions for {0}"
+msgstr "Plus d’actions pour {0}"
+
 msgid "More info"
 msgstr "Plus d'infos"
 
@@ -6952,6 +7001,9 @@ msgstr "Aucun paramètre ne correspond à « {query} »"
 msgid "No shared book matches “{0}”."
 msgstr "Aucun livre partagé ne correspond à « {0} »."
 
+msgid "No shared books yet"
+msgstr "Aucun livre partagé pour l’instant"
+
 msgid "No source image"
 msgstr "Aucune image source"
 
@@ -7036,8 +7088,8 @@ msgstr "bruit"
 msgid "None"
 msgstr "Aucun"
 
-msgid "None of your links is open to readers right now."
-msgstr "Aucun de vos liens n'est ouvert aux lecteurs pour le moment."
+#~ msgid "None of your links is open to readers right now."
+#~ msgstr "Aucun de vos liens n'est ouvert aux lecteurs pour le moment."
 
 msgid "Normalization"
 msgstr "Normalisation"
@@ -7084,8 +7136,8 @@ msgstr "Non révisé"
 msgid "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
 msgstr "Non exécuté lors de la dernière exécution — probablement parce que ses entrées n'étaient pas prêtes ou que les paramètres de son étape l'ont désactivé."
 
-msgid "Not shared"
-msgstr "Non partagé"
+#~ msgid "Not shared"
+#~ msgstr "Non partagé"
 
 msgid "Not signed in"
 msgstr "Non connecté"
@@ -7107,6 +7159,9 @@ msgstr "Pas encore divisé :"
 
 msgid "Note"
 msgstr "Note"
+
+msgid "Nothing after the failed step ran. Open Sharing to try again."
+msgstr "Rien n’a été exécuté après l’étape en échec. Ouvrez Partage pour réessayer."
 
 msgid "Nothing after this step ran. Setup picks up where it left off when you try again."
 msgstr "Rien après cette étape n’a été exécuté. La configuration reprendra là où elle s’est arrêtée lorsque vous réessayerez."
@@ -7131,6 +7186,9 @@ msgstr "Rien ne vous attend — chaque fil est résolu."
 
 msgid "Nothing is wrong with your book. The Studio just couldn't reach the part of itself that keeps track of shared books. Try again in a moment."
 msgstr "Votre livre n'a aucun problème. Le Studio n'a simplement pas pu joindre la partie de lui-même qui garde la trace des livres partagés. Réessayez dans un instant."
+
+msgid "Nothing needed from you"
+msgstr "Rien à faire de votre côté"
 
 msgid "Nothing open"
 msgstr "Rien d'ouvert"
@@ -7173,6 +7231,11 @@ msgstr "Cliquez maintenant sur la page de fin."
 
 msgid "now correct"
 msgstr "désormais correcte"
+
+#. placeholder {0}: publication.current_version
+#. placeholder {1}: publication.version_count
+msgid "Now serving version {0} of {1}"
+msgstr "Version {0} sur {1} en ligne"
 
 msgid "Number of pages of content to include per quiz question."
 msgstr "Nombre de pages de contenu à inclure par question de quiz."
@@ -7263,6 +7326,9 @@ msgstr "Seuls les fichiers PDF sont pris en charge"
 msgid "Only people who typed a name are listed — somebody can read the book without appearing here."
 msgstr "Seules les personnes qui ont tapé un nom sont répertoriées — quelqu'un peut lire le livre sans apparaître ici."
 
+msgid "Only people who typed a name are listed. Someone who opened the link and never wrote is not counted."
+msgstr "Seules les personnes ayant saisi un nom sont listées. Quelqu’un qui a ouvert le lien sans jamais écrire n’est pas compté."
+
 msgid "Only suggest replacements when the correction is high confidence"
 msgstr "Suggérer des remplacements uniquement lorsque la correction est très fiable"
 
@@ -7283,6 +7349,10 @@ msgstr "ouvrir"
 
 msgid "Open"
 msgstr "Ouvrir"
+
+#. placeholder {0}: publication.title
+msgid "Open {0}"
+msgstr "Ouvrir {0}"
 
 #~ msgid "Open a book and go to Publishing. You'll get a link to send to readers, and everything they comment on comes back here."
 #~ msgstr "Ouvrez un livre et allez à Publication. Vous obtiendrez un lien à envoyer aux lecteurs, et tout ce qu'ils commentent revient ici."
@@ -8566,6 +8636,12 @@ msgstr "Les lecteurs voient votre travail actuel — rien n'a changé depuis que
 msgid "Readers joined"
 msgstr "Lecteurs rejoints"
 
+msgid "Readers need an access code"
+msgstr "Les lecteurs ont besoin d’un code d’accès"
+
+msgid "Readers of “{title}”"
+msgstr "Lecteurs de « {title} »"
+
 msgid "Readers see"
 msgstr "Les lecteurs voient"
 
@@ -8611,8 +8687,8 @@ msgstr "Prêt à installer"
 msgid "Ready to share"
 msgstr "Prêt à partager"
 
-msgid "Ready when you are"
-msgstr "Prêt quand vous l'êtes"
+#~ msgid "Ready when you are"
+#~ msgstr "Prêt quand vous l'êtes"
 
 msgid "Real books processed with this preset — before and after."
 msgstr "De vrais livres traités avec ce préréglage — avant et après."
@@ -9135,6 +9211,9 @@ msgstr "De la place pour encore {0}"
 
 #~ msgid "Room for {remaining} more"
 #~ msgstr "De la place pour encore {remaining}"
+
+msgid "Room for 99"
+msgstr "Place pour 99"
 
 msgid "Rotate"
 msgstr "Pivoter"
@@ -9809,11 +9888,14 @@ msgstr "Définit la mise en page par défaut utilisée lorsqu'une section n'a pa
 msgid "Setting up"
 msgstr "Configuration"
 
+msgid "Setting up sharing"
+msgstr "Configuration du partage"
+
 msgid "Setting up your web address"
 msgstr "Configuration de votre adresse web"
 
-msgid "Setting up…"
-msgstr "Configuration…"
+#~ msgid "Setting up…"
+#~ msgstr "Configuration…"
 
 msgid "Settings"
 msgstr "Paramètres"
@@ -10013,8 +10095,8 @@ msgstr "Afficher:"
 
 #. placeholder {0}: publications.length
 #. placeholder {1}: data.publications.length
-msgid "Showing {0} of {1}"
-msgstr "Affichage de {0} sur {1}"
+#~ msgid "Showing {0} of {1}"
+#~ msgstr "Affichage de {0} sur {1}"
 
 msgid "Showing {start}–{end} of {totalItems} books"
 msgstr "Affichage de {start}–{end} sur {totalItems} livres"
@@ -10461,6 +10543,12 @@ msgstr "Arrêter de partager ce livre ?"
 
 msgid "Stop step"
 msgstr "Arrêter l’étape"
+
+msgid "Stopped"
+msgstr "Arrêté"
+
+msgid "stopped here"
+msgstr "arrêté ici"
 
 #~ msgid "Storage is the size of every published version's files in Cloudflare Static Assets. Earlier versions keep their files, so updating a book adds to this. How many people opened your links is not shown here: reading that needs Cloudflare analytics permissions the Studio never asks for."
 #~ msgstr "Le stockage correspond à la taille des fichiers de chaque version publiée dans Cloudflare Static Assets. Les versions précédentes conservent leurs fichiers ; mettre à jour un livre augmente donc ce total. Le nombre de personnes ayant ouvert vos liens n’est pas affiché : cela demanderait des autorisations Analytics Cloudflare que Studio ne sollicite pas."
@@ -10968,8 +11056,8 @@ msgstr "Le lien est toujours actif. Vérifiez que vous êtes en ligne et réessa
 msgid "The link now shows your latest version"
 msgstr "Le lien montre maintenant votre dernière version"
 
-msgid "The link stops working and the site, every comment and every reader name are erased. This cannot be undone."
-msgstr "Le lien cesse de fonctionner et le site, chaque commentaire et chaque nom de lecteur sont effacés. Cela ne peut pas être annulé."
+#~ msgid "The link stops working and the site, every comment and every reader name are erased. This cannot be undone."
+#~ msgstr "Le lien cesse de fonctionner et le site, chaque commentaire et chaque nom de lecteur sont effacés. Cela ne peut pas être annulé."
 
 #. placeholder {0}: formatPublishDate(expiresAt, i18n.locale)
 msgid "The link stops working on {0}."
@@ -11197,8 +11285,11 @@ msgstr "Ce livre est une partie. Exportez-le en tant que <0>Partie terminée</0>
 msgid "This book is fully assembled"
 msgstr "Ce livre est entièrement assemblé"
 
-msgid "This book is not on this computer"
-msgstr "Ce livre n'est pas sur cet ordinateur"
+#~ msgid "This book is not on this computer"
+#~ msgstr "Ce livre n'est pas sur cet ordinateur"
+
+msgid "This book is not on this computer."
+msgstr "Ce livre n’est pas sur cet ordinateur."
 
 msgid "This book is shared, but the Studio couldn't work out its link just now. Try again in a moment. The link people already have keeps working."
 msgstr "Ce livre est partagé, mais le Studio n'a pas pu déterminer son lien pour le moment. Réessayez dans un moment. Le lien que les gens ont déjà continue de fonctionner."
@@ -11396,6 +11487,9 @@ msgstr "Cela supprime toutes les versions globales de prompts propres au modèle
 
 msgid "This removes the global version for this prompt file. Shipped fallback files remain available."
 msgstr "Cela supprime la version globale de ce fichier de prompt. Les fichiers de repli fournis avec l’application restent disponibles."
+
+msgid "This removes the site and every shared version from your Cloudflare account. The book on this computer is untouched, and the link stops working for everyone."
+msgstr "Cela supprime le site et toutes les versions partagées de votre compte Cloudflare. Le livre sur cet ordinateur n’est pas modifié, et le lien cesse de fonctionner pour tout le monde."
 
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Cela restaure la police par défaut sur toutes les pages et efface les réglages de police par élément ainsi que la sélection de police pour tout le livre. Les polices jointes restent dans la liste. La restauration est disponible par page dans l'historique des versions."
@@ -11854,8 +11948,8 @@ msgstr "Mise à jour prête à être installée"
 msgid "Update site"
 msgstr "Mettre à jour le site"
 
-msgid "Updated"
-msgstr "Mis à jour"
+#~ msgid "Updated"
+#~ msgstr "Mis à jour"
 
 #. placeholder {0}: formatPublishDate(lastPublishedAt, i18n.locale)
 msgid "updated {0}"
@@ -12060,6 +12154,7 @@ msgstr "Fallback utilisé"
 msgid "usually 1 to 5 minutes"
 msgstr "généralement 1 à 5 minutes"
 
+#. placeholder {0}: publication.current_version
 #. placeholder {0}: root.version
 msgid "v{0}"
 msgstr "v{0}"
@@ -12097,6 +12192,10 @@ msgstr "Application vérifiée"
 #. placeholder {0}: connection.worker_version
 msgid "Version {0}"
 msgstr "Version {0}"
+
+#. placeholder {0}: connection.worker_version
+msgid "Version {0} (last known)"
+msgstr "Version {0} (dernière connue)"
 
 #. placeholder {0}: connection.worker_version ?? "?"
 #. placeholder {1}: connection.latest_version
@@ -12333,6 +12432,9 @@ msgstr "Ce que fait ADT Studio"
 
 msgid "What is the main role of a plant's roots?"
 msgstr "Quel est le rôle principal des racines d'une plante ?"
+
+msgid "What readers leave on a shared book lands here"
+msgstr "Ce que les lecteurs laissent sur un livre partagé arrive ici"
 
 msgid "What should the AI change?"
 msgstr "Que doit modifier l'IA ?"
@@ -12591,6 +12693,9 @@ msgstr "Votre compte Cloudflare n'a pas encore choisi l'adresse web qu'il utilis
 
 #~ msgid "Your Cloudflare account is full"
 #~ msgstr "Votre compte Cloudflare est plein"
+
+msgid "Your Cloudflare account is set up. You can start sharing books."
+msgstr "Votre compte Cloudflare est configuré. Vous pouvez commencer à partager des livres."
 
 msgid "Your Cloudflare connection is still here. Try again in a moment."
 msgstr "Votre connexion Cloudflare est toujours là. Réessayez dans un instant."
