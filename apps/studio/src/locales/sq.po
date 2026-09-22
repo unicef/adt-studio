@@ -48,6 +48,12 @@ msgstr "? Kjo do të heqë të gjitha të dhënat e nxjerra dhe nuk mund të zhb
 msgid ".zip → added as-is"
 msgstr ".zip → shtuar siç është"
 
+msgid "“{title}” is shared"
+msgstr "“{title}” u nda"
+
+msgid "“{title}” is updated for readers"
+msgstr "“{title}” u përditësua për lexuesit"
+
 msgid "\"A landscape forged by fire.\""
 msgstr "\"Një peizazh i formuar nga zjarri.\""
 
@@ -5598,6 +5604,9 @@ msgstr "Elementet"
 msgid "Items marked as needing changes for this reviewer session."
 msgstr "Elementet e shënuara si që kërkojnë ndryshime për këtë sesion rishikimi."
 
+msgid "Its link is on the book's Sharing page."
+msgstr "Lidhja e tij është te faqja Ndarje e librit."
+
 msgid "its original language"
 msgstr "gjuhën e saj origjinale"
 
@@ -7226,6 +7235,9 @@ msgstr "Asgjë e hapur"
 
 #~ msgid "Nothing published yet"
 #~ msgstr "Asgjë nuk është publikuar ende"
+
+msgid "Nothing reached readers. Open the book's Sharing page to try again."
+msgstr "Asgjë nuk arriti te lexuesit. Hapni faqen Ndarje të librit për të provuar përsëri."
 
 msgid "Nothing shared yet"
 msgstr "Ende asgjë e ndarë"
@@ -10020,6 +10032,9 @@ msgstr "Ndarë për rishikim"
 
 msgid "Sharing"
 msgstr "Ndarja"
+
+msgid "Sharing “{title}” didn't finish"
+msgstr "Ndarja e “{title}” nuk përfundoi"
 
 msgid "Sharing {title} stopped. Nothing has been shared."
 msgstr "Ndarja e {title} u ndal. Asgjë nuk u nda."

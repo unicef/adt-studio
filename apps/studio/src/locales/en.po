@@ -46,6 +46,12 @@ msgstr "? This will remove all extracted data and cannot be undone."
 msgid ".zip → added as-is"
 msgstr ".zip → added as-is"
 
+msgid "“{title}” is shared"
+msgstr "“{title}” is shared"
+
+msgid "“{title}” is updated for readers"
+msgstr "“{title}” is updated for readers"
+
 msgid "\"A landscape forged by fire.\""
 msgstr "\"A landscape forged by fire.\""
 
@@ -5597,6 +5603,9 @@ msgstr "Items"
 msgid "Items marked as needing changes for this reviewer session."
 msgstr "Items marked as needing changes for this reviewer session."
 
+msgid "Its link is on the book's Sharing page."
+msgstr "Its link is on the book's Sharing page."
+
 msgid "its original language"
 msgstr "its original language"
 
@@ -7225,6 +7234,9 @@ msgstr "Nothing open"
 
 #~ msgid "Nothing published yet"
 #~ msgstr "Nothing published yet"
+
+msgid "Nothing reached readers. Open the book's Sharing page to try again."
+msgstr "Nothing reached readers. Open the book's Sharing page to try again."
 
 msgid "Nothing shared yet"
 msgstr "Nothing shared yet"
@@ -10019,6 +10031,9 @@ msgstr "Shared for review"
 
 msgid "Sharing"
 msgstr "Sharing"
+
+msgid "Sharing “{title}” didn't finish"
+msgstr "Sharing “{title}” didn't finish"
 
 msgid "Sharing {title} stopped. Nothing has been shared."
 msgstr "Sharing {title} stopped. Nothing has been shared."

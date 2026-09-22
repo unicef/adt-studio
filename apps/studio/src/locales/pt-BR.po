@@ -46,6 +46,12 @@ msgstr "? Isso removerá todos os dados extraídos e não poderá ser desfeito."
 msgid ".zip → added as-is"
 msgstr ".zip → adicionado como está"
 
+msgid "“{title}” is shared"
+msgstr "“{title}” foi compartilhado"
+
+msgid "“{title}” is updated for readers"
+msgstr "“{title}” foi atualizado para os leitores"
+
 msgid "\"A landscape forged by fire.\""
 msgstr "\\\"Uma paisagem forjada pelo fogo.\\\""
 
@@ -5596,6 +5602,9 @@ msgstr "Itens"
 msgid "Items marked as needing changes for this reviewer session."
 msgstr "Itens marcados como precisando de alterações nesta sessão de revisor."
 
+msgid "Its link is on the book's Sharing page."
+msgstr "O link está na página Compartilhar do livro."
+
 msgid "its original language"
 msgstr "sua língua original"
 
@@ -7224,6 +7233,9 @@ msgstr "Nada aberto"
 
 #~ msgid "Nothing published yet"
 #~ msgstr "Nada publicado ainda"
+
+msgid "Nothing reached readers. Open the book's Sharing page to try again."
+msgstr "Nada chegou aos leitores. Abra a página Compartilhar do livro para tentar novamente."
 
 msgid "Nothing shared yet"
 msgstr "Nada compartilhado ainda"
@@ -10018,6 +10030,9 @@ msgstr "Compartilhado para revisão"
 
 msgid "Sharing"
 msgstr "Compartilhamento"
+
+msgid "Sharing “{title}” didn't finish"
+msgstr "O compartilhamento de “{title}” não terminou"
 
 msgid "Sharing {title} stopped. Nothing has been shared."
 msgstr "O compartilhamento de {title} foi interrompido. Nada foi compartilhado."
