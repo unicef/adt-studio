@@ -1,51 +1,36 @@
 import { Trans } from "@lingui/react/macro"
 
-/** One placeholder row, shaped like the real one: cover block, title line, address line, four
- *  meta pairs, action column. Matching the real geometry is the whole point — a skeleton that
- *  sits somewhere else just makes the arrival of the data look like a jump. */
-function RowSkeleton({ index }: { index: number }) {
+const PULSE = "animate-pulse motion-reduce:animate-none"
+
+/** One placeholder card, on the real card's geometry: the padded cover stage with its chip band,
+ *  a two-line title and the badge row. Matching the real shape is the whole point — a skeleton
+ *  that sits somewhere else just makes the arrival of the data look like a jump. */
+function CardSkeleton({ index }: { index: number }) {
   return (
     <li
       style={{ animationDelay: `${index * 60}ms`, animationFillMode: "both" }}
-      className="rounded-xl border bg-card motion-safe:animate-wizard-enter"
+      className="flex flex-col overflow-hidden rounded-2xl border bg-card motion-safe:animate-wizard-enter"
     >
-      <div className="flex flex-col gap-3 p-4">
-        <div className="flex gap-3">
-        <div className="h-20 w-[54px] shrink-0 animate-pulse rounded-md bg-muted motion-reduce:animate-none" />
-
-        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-48 animate-pulse rounded bg-muted motion-reduce:animate-none" />
-            <div className="h-4 w-14 animate-pulse rounded-full bg-muted/70 motion-reduce:animate-none" />
-          </div>
-          <div className="h-5 w-72 max-w-full animate-pulse rounded bg-muted/60 motion-reduce:animate-none" />
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {[16, 12, 10, 14].map((width, meta) => (
-              <div
-                key={meta}
-                style={{ width: `${width * 6}px` }}
-                className="h-3 animate-pulse rounded bg-muted/60 motion-reduce:animate-none"
-              />
-            ))}
-          </div>
+      <div className="relative flex h-56 w-full items-center justify-center bg-muted/40 px-4 pb-4 pt-11">
+        <div className={`h-full w-[105px] rounded-md bg-muted ${PULSE}`} />
+        <div className={`absolute left-3 top-3 h-6 w-14 rounded-full bg-muted ${PULSE}`} />
+      </div>
+      <div className="flex flex-1 flex-col gap-2 p-3">
+        <div className="flex min-h-8 flex-col gap-1.5">
+          <div className={`h-3 w-4/5 rounded bg-muted ${PULSE}`} />
+          <div className={`h-3 w-1/2 rounded bg-muted/70 ${PULSE}`} />
         </div>
-
-        </div>
-        <div className="flex gap-1.5 border-t pt-3">
-          {[96, 88, 76].map((width, action) => (
-            <div
-              key={action}
-              style={{ width: `${width}px` }}
-              className="h-8 animate-pulse rounded-md bg-muted/60 motion-reduce:animate-none"
-            />
-          ))}
+        <div className="mt-auto flex items-center gap-1.5">
+          <div className={`h-5 w-14 rounded-md bg-muted/60 ${PULSE}`} />
+          <div className={`h-5 w-9 rounded-md bg-muted/60 ${PULSE}`} />
+          <div className={`ml-auto h-7 w-7 rounded-md bg-muted/60 ${PULSE}`} />
         </div>
       </div>
     </li>
   )
 }
 
-/** What the shelf shows while the account is being read. Four tiles and three rows: enough to
+/** What the shelf shows while the account is being read. Four tiles and four cards: enough to
  *  claim the space the real screen will need, few enough not to promise a number of books. */
 export function PublicationsSkeleton() {
   return (
@@ -60,7 +45,7 @@ export function PublicationsSkeleton() {
       </span>
 
       {/* The placeholders are shape, not content: a screen reader gets the line above instead
-          of four empty tiles and three empty list items. */}
+          of four empty tiles and four empty cards. */}
       <div aria-hidden="true" className="flex flex-col gap-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[0, 1, 2, 3].map((tile) => (
@@ -72,14 +57,15 @@ export function PublicationsSkeleton() {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="h-9 w-full max-w-xs animate-pulse rounded-md bg-muted/60 motion-reduce:animate-none" />
-        <div className="h-9 w-40 animate-pulse rounded-md bg-muted/60 motion-reduce:animate-none" />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className={`h-9 min-w-48 flex-1 rounded-md bg-muted/60 ${PULSE}`} />
+        <div className={`h-9 w-44 rounded-md bg-muted/60 ${PULSE}`} />
+        <div className={`h-9 w-48 rounded-md bg-muted/60 ${PULSE}`} />
       </div>
 
-      <ul className="flex list-none flex-col gap-3 p-0">
-        {[0, 1, 2].map((row) => (
-          <RowSkeleton key={row} index={row} />
+      <ul className="grid list-none content-start gap-4 p-0 [grid-template-columns:repeat(auto-fill,minmax(210px,1fr))]">
+        {[0, 1, 2, 3].map((card) => (
+          <CardSkeleton key={card} index={card} />
         ))}
       </ul>
       </div>
