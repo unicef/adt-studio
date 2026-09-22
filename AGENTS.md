@@ -36,7 +36,7 @@ ADT Studio is a desktop-first application for automated book production — extr
 | If the task touches…        | Read first                                                                          |
 |-----------------------------|-------------------------------------------------------------------------------------|
 | an entity, save, regenerate | docs/ARCHITECTURE.md#book-directory-structure (an `#entities` section is planned), docs/INVARIANTS.md |
-| staleness, re-render, cache | docs/specs/SPEC-0001-per-section-staleness.md (in review)                           |
+| staleness, re-render, cache | docs/specs/SPEC-0001-per-section-staleness.md (in review — arrives with PR #879)     |
 | sectioning, reading order   | docs/specs/SPEC-0003-sectioning-modes.md (planned), #834                            |
 | a prompt under prompts/     | docs/PROMPTS.md (planned; prompt contracts), the prompt validator                   |
 | the reader (adt-runtime)    | docs/ARCHITECTURE.md#runtime (planned), docs/SECURITY_MODEL.md (planned)            |
