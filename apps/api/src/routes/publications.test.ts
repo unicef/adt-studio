@@ -4,6 +4,7 @@ import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { openBookDb } from "@adt/storage"
 import type { PublishProgressEvent } from "@adt/types"
+import type { PublishRunSnapshot } from "../services/publish-run-progress.js"
 import { createConnectionStore } from "../services/cloudflare/connection-store.js"
 import type { CloudflareConnectionRecord } from "../services/cloudflare/connection-store.js"
 import {
@@ -96,6 +97,8 @@ function routes(
     bookHostFetch?: FetchLike
     /** Passed to the fake Cloudflare account behind this book's own Worker. */
     cloudflare?: FakeCloudflareOptions
+    /** Lets a test hold the first step open to catch a run mid-way. */
+    prepareExportFn?: never
   } = {},
 ) {
   const worker = options.worker ?? createFakePublishWorker({ now: NOW })
@@ -112,7 +115,7 @@ function routes(
     now: () => new Date(NOW),
     generateToken: () => TOKEN,
     sleep: async () => {},
-    prepareExportFn: (async () => ({})) as never,
+    prepareExportFn: options.prepareExportFn ?? ((async () => ({})) as never),
     bookHost: async () => bookHost.deps,
     ...(options.bookHostFetch === undefined ? {} : { fetchFn: options.bookHostFetch }),
     createClient: () =>
@@ -441,6 +444,98 @@ describe("publishing a book over SSE", () => {
     const response = await app.request(`/books/${LABEL}/publication/versions`, { method: "POST" })
     expect(response.status).toBe(409)
     expect(await response.json()).toMatchObject({ code: "not_published" })
+  })
+})
+
+describe("a share run the browser lost", () => {
+  async function runOf(app: ReturnType<typeof routes>["app"]) {
+    return ((await (await app.request(`/books/${LABEL}/publication/run`)).json()) as {
+      run: PublishRunSnapshot | null
+    }).run
+  }
+
+  /** Holds the first step open until the test lets it go, so a run can be caught mid-way. */
+  function gatedExport() {
+    let open: () => void = () => {}
+    const gate = new Promise<void>((resolve) => {
+      open = resolve
+    })
+    return { open, prepareExportFn: (async () => { await gate; return {} }) as never }
+  }
+
+  it("keeps the ending of a run for a page that reconnects after it", async () => {
+    const { app } = routes()
+    expect(await runOf(app)).toBeNull()
+
+    await publishOnce(app)
+
+    const run = await runOf(app)
+    expect(run).toMatchObject({ kind: "publish", status: "done", active_step: null, failure: null })
+    expect(run?.step_states).toEqual(["done", "done", "done", "done"])
+    expect(run?.result?.url).toMatch(new RegExp(`/p/${TOKEN}/$`))
+  })
+
+  it("keeps how a failed run failed", async () => {
+    const { app } = routes()
+    fs.rmSync(path.join(tmpDir, LABEL, "adt", "content", "pages.json"))
+
+    await publishOnce(app)
+
+    expect(await runOf(app)).toMatchObject({
+      status: "error",
+      failure: { code: "package_failed" },
+    })
+  })
+
+  /** The whole reason the snapshot exists: a reload drops the stream, and the share must not
+   *  drop with it. */
+  it("finishes the share after the page that started it has gone", async () => {
+    const { app, worker } = routes()
+    const controller = new AbortController()
+
+    const response = await app.request(`/books/${LABEL}/publication`, {
+      method: "POST",
+      signal: controller.signal,
+    })
+    controller.abort()
+    void response.body?.cancel().catch(() => {})
+
+    await vi.waitFor(async () => expect((await runOf(app))?.status).toBe("done"))
+    expect(worker.state.publications.has(TOKEN)).toBe(true)
+  })
+
+  it("lists a run that is still going, and stops it before the link is made", async () => {
+    const gate = gatedExport()
+    const { app, worker } = routes({ prepareExportFn: gate.prepareExportFn })
+
+    const streamed = app.request(`/books/${LABEL}/publication`, { method: "POST" }).then(drain)
+    await vi.waitFor(async () => expect((await runOf(app))?.status).toBe("running"))
+
+    const listed = (await (await app.request("/publication-runs")).json()) as {
+      runs: { label: string }[]
+    }
+    expect(listed.runs.map((entry) => entry.label)).toEqual([LABEL])
+
+    const cancel = await app.request(`/books/${LABEL}/publication/run/cancel`, { method: "POST" })
+    expect(await cancel.json()).toEqual({ cancelled: true })
+    gate.open()
+
+    const events = await streamed
+    /** Stopping is the author's choice, not a failure, so it ends the stream without one. */
+    expect(events.some((event) => event.type === "error")).toBe(false)
+    expect(events.some((event) => event.type === "complete")).toBe(false)
+    expect(await runOf(app)).toMatchObject({ status: "cancelled" })
+    expect(worker.state.publications.has(TOKEN)).toBe(false)
+
+    const after = await app.request(`/books/${LABEL}/publication`, { method: "POST" })
+    expect(after.status).toBe(200)
+    await drain(after)
+  })
+
+  it("refuses to stop a run that is not running", async () => {
+    const { app } = routes()
+    const cancel = await app.request(`/books/${LABEL}/publication/run/cancel`, { method: "POST" })
+    expect(await cancel.json()).toEqual({ cancelled: false })
   })
 })
 

@@ -47,6 +47,10 @@ import {
   toPublishErrorEvent,
   type LocalBookSnapshot,
 } from "../services/publish-service.js"
+import {
+  createPublishRunView,
+  PublishCancelledError,
+} from "../services/publish-run-progress.js"
 import { bookHostAuthorSecret, bookWorkerName } from "../services/cloudflare/book-host.js"
 import { deleteBookHost } from "../services/cloudflare/book-host-deploy.js"
 import { createCloudflareClient, type CloudflareClient } from "../services/cloudflare/client.js"
@@ -175,6 +179,8 @@ function beginPublish(c: Context, label: string): { release: () => void } | Resp
 
 export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
   const app = new Hono()
+  /** What each book's run is doing, readable by a page that lost the stream. */
+  const runs = createPublishRunView(deps.now)
 
   const requireBook = (label: string): void => {
     if (!fs.existsSync(path.join(deps.booksDir, label))) {
@@ -700,8 +706,12 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       )
     }
 
+    runs.begin(label, "publish")
     return streamSSE(c, async (stream) => {
+      /** Recorded before it is written: the stream may already be gone — the author reloaded or
+       *  left the page — and the run carries on regardless, so the snapshot is the record. */
       const emit = async (event: PublishProgressEvent) => {
+        runs.record(label, event)
         await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
       }
 
@@ -716,7 +726,8 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
           ...(body.data.features ? { features: body.data.features } : {}),
         })
       } catch (error) {
-        await emit(toPublishErrorEvent(error))
+        if (error instanceof PublishCancelledError) runs.cancelled(label)
+        else await emit(toPublishErrorEvent(error))
       } finally {
         release()
       }
@@ -759,8 +770,12 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       )
     }
 
+    runs.begin(label, "update")
     return streamSSE(c, async (stream) => {
+      /** Recorded before it is written: the stream may already be gone — the author reloaded or
+       *  left the page — and the run carries on regardless, so the snapshot is the record. */
       const emit = async (event: PublishProgressEvent) => {
+        runs.record(label, event)
         await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
       }
 
@@ -774,11 +789,30 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
           ...(body.data.features ? { features: body.data.features } : {}),
         })
       } catch (error) {
-        await emit(toPublishErrorEvent(error))
+        if (error instanceof PublishCancelledError) runs.cancelled(label)
+        else await emit(toPublishErrorEvent(error))
       } finally {
         release()
       }
     })
+  })
+
+  /** The run a page lost the stream to, or the last one's ending. `null` when none has run. */
+  app.get("/books/:label/publication/run", (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    return c.json({ run: runs.get(label) })
+  })
+
+  /** Every run still going, so the Studio can watch runs a reload left behind on any page. */
+  app.get("/publication-runs", (c) => c.json({ runs: runs.running() }))
+
+  /**
+   * The author's Stop. A request rather than an order: the run honours it at its next step, and
+   * refuses it once the link is being created, where stopping could leave a half-made link.
+   */
+  app.post("/books/:label/publication/run/cancel", (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    return c.json({ cancelled: runs.requestCancel(label) })
   })
 
   app.post("/books/:label/publication/revoke", async (c) => {

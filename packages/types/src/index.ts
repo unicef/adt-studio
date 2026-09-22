@@ -514,6 +514,7 @@ export {
   PublishStepStatus,
   PublishStepEventStatus,
   PublishErrorCodeStudio,
+  PublishRunSnapshot,
   PublishStepEvent,
   PublishCompleteEvent,
   PublishErrorEvent,

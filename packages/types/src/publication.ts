@@ -392,6 +392,31 @@ export const PublishErrorEvent = z.object({
 })
 export type PublishErrorEvent = z.infer<typeof PublishErrorEvent>
 
+/**
+ * What a book's share run is doing, as the server last saw it.
+ *
+ * The run is driven over SSE, but the stream is the browser's, and the run outlives it — a page
+ * that reloads or moves to another stage mid-run keeps nothing. This is what it reads to pick
+ * the run back up, and how it learns a run ended while nobody was watching.
+ */
+export const PublishRunSnapshot = z.object({
+  kind: z.enum(["publish", "update"]),
+  /** `cancelled` is the author's Stop, honoured before the link was made. */
+  status: z.enum(["running", "done", "error", "cancelled"]),
+  step_states: z.array(PublishStepStatus),
+  active_step: z.number().int().min(1).nullable(),
+  progress: z
+    .object({ done: z.number().int().min(0), total: z.number().int().min(0), unit: z.enum(["files", "pages", "bytes"]) })
+    .nullable(),
+  failure: z
+    .object({ code: z.union([PublishErrorCodeStudio, z.literal("unknown")]), message: z.string(), step_id: PublishStepId.nullable() })
+    .nullable(),
+  result: z.object({ url: z.string().url(), publication: Publication }).nullable(),
+  started_at: z.string().datetime(),
+  finished_at: z.string().datetime().nullable(),
+})
+export type PublishRunSnapshot = z.infer<typeof PublishRunSnapshot>
+
 export const PublishProgressEvent = z.discriminatedUnion("type", [
   PublishStepEvent,
   PublishCompleteEvent,
