@@ -15,6 +15,7 @@ Statuses: draft · in-review · approved · in-progress · implemented · verifi
 | SPEC-0008 | Stable identifiers and reading order (retrospective)            | draft  | TBD         | Block 1   |
 | [SPEC-0009](SPEC-0009-validation-fix-routing.md) | Validation findings and safe fix-routing | in-review | @ksokolovic | Block 1 |
 | [SPEC-0010](SPEC-0010-safe-cli-reruns.md) | Safe CLI reruns and extraction admission | in-review | @ksokolovic | Block 1 |
+| [SPEC-0011](SPEC-0011-prompt-persistence.md) | Explicit prompt scope and durable prompt persistence | in-review | @ksokolovic | Block 1 |
 
 Legacy notes, from before this process existed, now in [`docs/analysis/`](../analysis/):
 [SECTIONING_CROSSWORD_BUG.md](../analysis/SECTIONING_CROSSWORD_BUG.md),
