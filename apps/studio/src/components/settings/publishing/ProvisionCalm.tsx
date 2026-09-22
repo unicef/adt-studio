@@ -44,7 +44,6 @@ export function ProvisionCalm({
           runningDetail: t`Creating each piece in your Cloudflare account, in order.`,
           error: t`Setup stopped`,
           errorDetail: t`Nothing after this step ran. Setup picks up where it left off when you try again.`,
-          idle: t`Ready when you are`,
           idleDetail: t`${PROVISION_STEP_COPY.length} small things get created in your account. Nothing is charged.`,
         }}
         errorContent={errorContent}

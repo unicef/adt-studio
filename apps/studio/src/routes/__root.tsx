@@ -10,6 +10,7 @@ import { ErrorScreen } from "@/components/ErrorScreen"
 import type { SettingsSection } from "@/components/settings/settingsSections"
 import { UpdateDialogProvider } from "@/components/updates"
 import { useGlobalRunNotifications } from "@/hooks/use-global-run-notifications"
+import { useProvisionRunNotice } from "@/hooks/use-provision-run-notice"
 
 const SettingsContext = createContext<{
   openSettings: (section?: SettingsSection) => void
@@ -33,6 +34,7 @@ export const Route = createRootRoute({
 function RootLayout() {
   const navigate = useNavigate()
   useGlobalRunNotifications()
+  useProvisionRunNotice()
   const openSettings = useCallback(
     (section: SettingsSection = "default-model") => {
       if (section === "api-keys") void navigate({ to: "/settings/providers" })

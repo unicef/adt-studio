@@ -592,6 +592,67 @@ describe("cloudflare routes", () => {
     })
   })
 
+  describe("GET /cloudflare/provision/run", () => {
+    it("reports no run before one has started", async () => {
+      const { app } = buildApp()
+      const res = await app.request("/api/cloudflare/provision/run")
+
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ run: null })
+    })
+
+    /** The browser drops the SSE stream on reload, but the run keeps going. Without this the
+     *  wizard comes back up looking idle while resources are still being created. */
+    it("still reports the run while the stream is open", async () => {
+      const fake = createFakeCloudflare()
+      const gate = deferred<void>()
+      let started = false
+      const holdingFetch: FetchLike = async (input, init) => {
+        started = true
+        await gate.promise
+        return fake.fetchFn(input, init)
+      }
+      const app = new Hono()
+      app.onError(errorHandler)
+      app.route(
+        "/api",
+        createCloudflareRoutes({
+          booksDir: tmpDir,
+          projectRoot: tmpDir,
+          stateDir,
+          artifactDir,
+          migrationsDir,
+          fetchFn: holdingFetch,
+          sleep: async () => {},
+          now: () => new Date("2026-08-03T12:00:00.000Z"),
+          generateSecret: () => "mgmt-secret-1",
+          healthAttempts: 2,
+        }),
+      )
+
+      const inFlight = app.request("/api/cloudflare/provision", { method: "POST", headers: AUTH })
+      await waitUntil(() => started)
+
+      const during = await app.request("/api/cloudflare/provision/run")
+      const body = (await during.json()) as { run: { status: string; finished_at: string | null } }
+      expect(body.run.status).toBe("running")
+      expect(body.run.finished_at).toBeNull()
+
+      gate.resolve()
+      await (await inFlight).text()
+
+      const after = await app.request("/api/cloudflare/provision/run")
+      const settled = (await after.json()) as {
+        run: { status: string; step_states: string[]; finished_at: string | null }
+      }
+      expect(settled.run.status).toBe("done")
+      expect(settled.run.finished_at).not.toBeNull()
+      expect(settled.run.step_states.every((value) => value === "done" || value === "skipped")).toBe(
+        true,
+      )
+    })
+  })
+
   describe("GET /cloudflare/connection", () => {
     it("reports a disconnected status before provisioning", async () => {
       const { app } = buildApp()

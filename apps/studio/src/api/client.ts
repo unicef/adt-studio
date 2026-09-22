@@ -1109,6 +1109,21 @@ export type {
 }
 
 export interface CloudflareCredentials { token: string; accountId: string }
+/** Live view of a provisioning run the browser may have stopped watching. */
+export interface ProvisionRunSnapshot {
+  status: "running" | "done" | "error"
+  step_states: ProvisionStepStatus[]
+  active_step: number | null
+  failure: {
+    code: ProvisionErrorCode | "unknown"
+    message: string
+    resume_from_step: number | null
+    missing_scopes: CloudflareTokenScope[]
+  } | null
+  started_at: string
+  finished_at: string | null
+}
+
 export interface ProvisionOptions {
   onEvent: (event: ProvisionProgressEvent) => void
   resumeFromStep?: number
@@ -2462,6 +2477,8 @@ export const api = {
   disconnectCloudflare: (credentials: Partial<CloudflareCredentials>, options?: { deleteResources?: boolean }) => request<CloudflareConnectionDeleteResponse>(
     `/cloudflare/connection${options?.deleteResources ? "?delete_resources=1" : ""}`, { method: "DELETE", headers: buildCloudflareHeaders(credentials) },
   ),
+
+  getCloudflareProvisionRun: () => request<{ run: ProvisionRunSnapshot | null }>("/cloudflare/provision/run"),
 
   provisionCloudflare: async (credentials: Partial<CloudflareCredentials>, options: ProvisionOptions): Promise<void> => {
     await postEventStream<ProvisionProgressEvent>("/cloudflare/provision", options.resumeFromStep ? { resume_from_step: options.resumeFromStep } : {}, {

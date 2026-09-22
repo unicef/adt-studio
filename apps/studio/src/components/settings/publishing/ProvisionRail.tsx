@@ -19,7 +19,6 @@ export interface ProvisionRailProps {
     doneDetail: string
     error: string
     errorDetail: string
-    idle?: string
     idleDetail?: string
     running?: string
     runningDetail?: string
@@ -63,7 +62,7 @@ export function ProvisionRail({
         ? copy.error
         : status === "running"
           ? (copy.running ?? "")
-          : (copy.idle ?? "")
+          : ""
   const detail =
     status === "done"
       ? copy.doneDetail

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import type { CloudflareCredentials } from "@/api/client"
 import { useDisconnectCloudflare } from "@/hooks/use-cloudflare-connection"
 import { useCloudflareProvision } from "@/hooks/use-cloudflare-provision"
+import { useProvisionScreenPresence } from "@/hooks/use-provision-run-notice"
 import { ProvisionFooterAction } from "./ProvisionFooterAction"
 import { ProvisionCalm } from "./ProvisionCalm"
 import { ProvisionErrorNotice } from "./ProvisionErrorNotice"
@@ -30,6 +31,7 @@ export function ProvisionStep({
     credentials ?? {},
   )
   const elapsedMs = useElapsed(status)
+  useProvisionScreenPresence()
   const disconnect = useDisconnectCloudflare()
 
   useEffect(() => {
