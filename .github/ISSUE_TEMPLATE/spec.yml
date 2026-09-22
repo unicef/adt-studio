@@ -1,6 +1,6 @@
 name: Spec
 description: Propose a change that needs a written contract before it is built
-labels: ["spec"]
+labels: ["lane: spec"]
 body:
   - type: markdown
     attributes:

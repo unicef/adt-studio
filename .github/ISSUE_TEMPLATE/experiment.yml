@@ -1,6 +1,6 @@
 name: Experiment
 description: Propose a time-boxed experiment to answer a question we can't answer on paper
-labels: ["experiment"]
+labels: ["lane: experiment"]
 body:
   - type: markdown
     attributes:
