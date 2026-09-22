@@ -17,6 +17,7 @@ Statuses: draft · in-review · approved · in-progress · implemented · verifi
 | [SPEC-0010](SPEC-0010-safe-cli-reruns.md) | Safe CLI reruns and extraction admission | in-review | @ksokolovic | Block 1 |
 | [SPEC-0011](SPEC-0011-prompt-persistence.md) | Explicit prompt scope and durable prompt persistence | in-review | @ksokolovic | Block 1 |
 | [SPEC-0012](SPEC-0012-sectioning-storyboard-sync.md) | Sectioning and Storyboard synchronization | in-review | @ksokolovic | Block 1 |
+| [SPEC-0013](SPEC-0013-page-failure-recovery.md) | Bounded LLM retries and page-scoped failure recovery | in-review | @ksokolovic | Block 1 |
 
 Legacy notes, from before this process existed, now in [`docs/analysis/`](../analysis/):
 [SECTIONING_CROSSWORD_BUG.md](../analysis/SECTIONING_CROSSWORD_BUG.md),
