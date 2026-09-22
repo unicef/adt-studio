@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { CheckCircle2, Cloud, RefreshCw } from "lucide-react"
+import { CheckCircle2, CircleHelp, Cloud, RefreshCw } from "lucide-react"
 import { PublicationsDashboard } from "@/components/publications/PublicationsDashboard"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
@@ -102,10 +102,18 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
                     <span className="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700">
                       <Trans>Update available</Trans>
                     </span>
-                  ) : connection.worker_reachable ? (
+                  ) : connection.worker_reachable && connection.worker_version_live ? (
                     <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
                       <CheckCircle2 className="size-3" aria-hidden="true" />
                       <Trans>Live</Trans>
+                    </span>
+                  ) : connection.worker_reachable ? (
+                    /** The host answered but did not say what it is running, so the version below
+                     *  is remembered rather than reported. A green "Live" here would be a guess
+                     *  wearing the clothes of a fact. */
+                    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      <CircleHelp className="size-3" aria-hidden="true" />
+                      <Trans>Answering, but not confirming</Trans>
                     </span>
                   ) : (
                     <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
@@ -130,7 +138,11 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
                   <span aria-hidden="true">·</span>
                   <span>
                     {connection.worker_version ? (
-                      <Trans>Version {connection.worker_version}</Trans>
+                      connection.worker_version_live ? (
+                        <Trans>Version {connection.worker_version}</Trans>
+                      ) : (
+                        <Trans>Version {connection.worker_version} (last known)</Trans>
+                      )
                     ) : (
                       <Trans>Version unknown</Trans>
                     )}
