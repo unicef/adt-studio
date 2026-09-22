@@ -2,7 +2,7 @@ import { useLingui } from "@lingui/react/macro"
 import type { ReactNode } from "react"
 import type { ProvisionStepStatus } from "@/api/client"
 import type { ProvisionStatus } from "@/hooks/use-cloudflare-provision"
-import { ProvisionRail } from "./ProvisionRail"
+import { ProvisionRail, type ProvisionRailProps } from "./ProvisionRail"
 import { PROVISION_STEP_COPY } from "./provision-steps"
 
 interface ProvisionCalmProps {
@@ -11,6 +11,8 @@ interface ProvisionCalmProps {
   activeStep: number | null
   elapsedMs: number
   errorContent?: ReactNode
+  /** Updating runs the same seven steps, but it is not a first setup and must not say so. */
+  copy?: Partial<ProvisionRailProps["copy"]>
 }
 
 /** Provisioning's half of the pipeline view: it owns the words, the rail owns the shape.
@@ -25,6 +27,7 @@ export function ProvisionCalm({
   activeStep,
   elapsedMs,
   errorContent,
+  copy,
 }: ProvisionCalmProps) {
   const { t } = useLingui()
 
@@ -45,6 +48,7 @@ export function ProvisionCalm({
           error: t`Setup stopped`,
           errorDetail: t`Nothing after this step ran. Setup picks up where it left off when you try again.`,
           idleDetail: t`${PROVISION_STEP_COPY.length} small things get created in your account. Nothing is charged.`,
+          ...copy,
         }}
         errorContent={errorContent}
       />

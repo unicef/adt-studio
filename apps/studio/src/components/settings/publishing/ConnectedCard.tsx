@@ -52,23 +52,19 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
             key="updating"
             className="flex flex-col gap-4 px-5 py-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-500"
           >
-            <div className="flex flex-col gap-0.5 text-center">
-              <span className="text-base font-semibold tracking-tight text-foreground">
-                <Trans>Updating the sharing service</Trans>
-              </span>
-              <span className="text-xs text-muted-foreground">
-                <Trans>
-                  Version {connection.worker_version ?? "?"} → {connection.latest_version}. Your
-                  shared books stay online while this runs.
-                </Trans>
-              </span>
-            </div>
-
             <ProvisionCalm
               status={upgrade.status}
               stepStates={upgrade.stepStates}
               activeStep={upgrade.activeStep}
               elapsedMs={elapsedMs}
+              copy={{
+                running: t`Updating the sharing service`,
+                runningDetail: t`Version ${connection.worker_version ?? "?"} → ${connection.latest_version}. Your shared books stay online while this runs.`,
+                done: t`Sharing service updated`,
+                doneDetail: t`You're on version ${connection.latest_version}.`,
+                error: t`Update stopped`,
+                errorDetail: t`Your shared books are still online on the old version. Trying again picks up where it left off.`,
+              }}
             />
 
             {upgrade.status === "error" && upgrade.failure && (
