@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import type { CloudflareCredentials } from "@/api/client"
 import { useDisconnectCloudflare } from "@/hooks/use-cloudflare-connection"
 import { useCloudflareProvision } from "@/hooks/use-cloudflare-provision"
+import { ProvisionFooterAction } from "./ProvisionFooterAction"
 import { ProvisionCalm } from "./ProvisionCalm"
 import { ProvisionErrorNotice } from "./ProvisionErrorNotice"
 import { useElapsed } from "@/lib/elapsed"
@@ -36,7 +37,7 @@ export function ProvisionStep({
   }, [onProvisioned, status])
 
   return (
-    <div data-provision-state={status} className="flex min-h-0 flex-1 flex-col">
+    <div data-provision-state={status} className="flex min-h-0 min-w-0 flex-1 flex-col">
       <WizardStepShell
         stepNumber={stepNumber}
         stepCount={stepCount}
@@ -68,38 +69,24 @@ export function ProvisionStep({
               )}
               <Trans>Sign out</Trans>
             </Button>
-            <span className="ml-auto flex items-center gap-2">
-              {status === "running" && (
-                <Button disabled>
-                  <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
-                  <Trans>Setting up…</Trans>
-                </Button>
-              )}
-              {status === "done" && (
-                <Button onClick={onProvisioned}>
-                  <Trans>Finish</Trans>
-                </Button>
-              )}
-            </span>
+            <ProvisionFooterAction
+              status={status}
+              onStart={() => start()}
+              onRetry={() => start(failure?.resumeStep ?? undefined)}
+              onFinish={onProvisioned}
+            />
           </>
         }
       >
-        <div className="flex flex-1 flex-col gap-4">
-
         <ProvisionCalm
           status={status}
           stepStates={stepStates}
           activeStep={activeStep}
           elapsedMs={elapsedMs}
-          onStart={() => start()}
-          errorContent={status === "error" && failure ? (
-            <ProvisionErrorNotice
-              failure={failure}
-              onRetry={() => start(failure.resumeStep ?? undefined)}
-            />
-          ) : undefined}
+          errorContent={
+            status === "error" && failure ? <ProvisionErrorNotice failure={failure} /> : undefined
+          }
         />
-      </div>
       </WizardStepShell>
     </div>
   )

@@ -1,9 +1,8 @@
-import { Trans, useLingui } from "@lingui/react/macro"
-import { Button } from "@/components/ui/button"
+import { useLingui } from "@lingui/react/macro"
 import type { ReactNode } from "react"
 import type { ProvisionStepStatus } from "@/api/client"
 import type { ProvisionStatus } from "@/hooks/use-cloudflare-provision"
-import { ProvisionPipeline } from "@/components/settings/publishing/ProvisionPipeline"
+import { ProvisionRail } from "./ProvisionRail"
 import { PROVISION_STEP_COPY } from "./provision-steps"
 
 interface ProvisionCalmProps {
@@ -11,11 +10,10 @@ interface ProvisionCalmProps {
   stepStates: readonly ProvisionStepStatus[]
   activeStep: number | null
   elapsedMs: number
-  onStart?: () => void
   errorContent?: ReactNode
 }
 
-/** Provisioning's half of the pipeline view — the steps and the words that belong to them.
+/** Provisioning's half of the pipeline view: it owns the words, the rail owns the shape.
  *
  *  It no longer shares `CalmStepLoader` with publishing, and the divergence is deliberate:
  *  publishing runs often and nearly always succeeds, so one calm medallion is the right amount
@@ -26,33 +24,31 @@ export function ProvisionCalm({
   stepStates,
   activeStep,
   elapsedMs,
-  onStart,
   errorContent,
 }: ProvisionCalmProps) {
   const { t } = useLingui()
 
   return (
-    <ProvisionPipeline
-      steps={PROVISION_STEP_COPY}
-      status={status}
-      stepStates={stepStates}
-      activeStep={activeStep}
-      elapsedMs={elapsedMs}
-      testIdPrefix="provision-step"
-      copy={{
-        done: t`Sharing is ready`,
-        doneDetail: t`Everything is in place in your Cloudflare account.`,
-        error: t`Setup stopped`,
-        errorDetail: t`Nothing after this step ran. Setup picks up where it left off when you try again.`,
-        idle: t`Ready when you are`,
-        idleDetail: t`${PROVISION_STEP_COPY.length} small things get created in your account. Nothing is charged.`,
-      }}
-      idleAction={onStart ? (
-        <Button className="min-w-52 shadow-sm" size="lg" onClick={onStart}>
-          <Trans>Set up sharing</Trans>
-        </Button>
-      ) : undefined}
-      errorContent={errorContent}
-    />
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <ProvisionRail
+        steps={PROVISION_STEP_COPY}
+        status={status}
+        stepStates={stepStates}
+        activeStep={activeStep}
+        elapsedMs={elapsedMs}
+        testIdPrefix="provision-step"
+        copy={{
+          done: t`Sharing is ready`,
+          doneDetail: t`Everything is in place in your Cloudflare account.`,
+          running: t`Setting up sharing`,
+          runningDetail: t`Creating each piece in your Cloudflare account, in order.`,
+          error: t`Setup stopped`,
+          errorDetail: t`Nothing after this step ran. Setup picks up where it left off when you try again.`,
+          idle: t`Ready when you are`,
+          idleDetail: t`${PROVISION_STEP_COPY.length} small things get created in your account. Nothing is charged.`,
+        }}
+        errorContent={errorContent}
+      />
+    </div>
   )
 }
