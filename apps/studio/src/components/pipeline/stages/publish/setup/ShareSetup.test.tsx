@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { BookPublicationStatus, PublishProgressEvent, PublishStreamOptions } from "@/api/client"
 
@@ -117,6 +117,9 @@ const getBook = vi.fn()
 const getPublicationReaders = vi.fn()
 const getPublicationComments = vi.fn()
 const getPublicationPages = vi.fn()
+const getPublishRun = vi.fn()
+const cancelPublishRun = vi.fn()
+const listPublishRuns = vi.fn()
 
 class MockApiError extends Error {
   readonly status: number
@@ -143,6 +146,9 @@ vi.mock("@/api/client", () => ({
     getPublicationReaders,
     getPublicationComments,
     getPublicationPages,
+    getPublishRun,
+    cancelPublishRun,
+    listPublishRuns,
   },
   getBookCoverUrl: (label: string) => `/api/books/${label}/cover`,
   ApiError: MockApiError,
@@ -244,6 +250,9 @@ function renderPage() {
 const writeText = vi.fn(() => Promise.resolve())
 
 beforeEach(() => {
+  getPublishRun.mockResolvedValue({ run: null })
+  cancelPublishRun.mockResolvedValue({ cancelled: true })
+  listPublishRuns.mockResolvedValue({ runs: [] })
   getBook.mockResolvedValue({ label: "meu-livro", title: "Meu Livro" })
   getPublicationReaders.mockResolvedValue({ readers: [], total: 0 })
   getPublicationComments.mockResolvedValue({ comments: [] })
@@ -725,4 +734,124 @@ describe("Sharing setup — link management", () => {
     expect(screen.getByTestId("publication-revoked")).toBeTruthy()
   })
 
+})
+
+describe("Sharing setup — a run the page lost", () => {
+  function runningSnapshot(overrides: Record<string, unknown> = {}) {
+    return {
+      kind: "publish",
+      status: "running",
+      step_states: ["done", "done", "running", "pending"],
+      active_step: 3,
+      progress: { done: 48, total: 147, unit: "files" },
+      failure: null,
+      result: null,
+      started_at: "2026-08-01T09:30:00.000Z",
+      finished_at: null,
+      ...overrides,
+    }
+  }
+
+  /** The bug this exists for: a reload mid-share came back to "Share and get a link" for a
+   *  book that was minutes from being online. */
+  it("picks a running share back up at the step it has really reached", async () => {
+    getBookPublication.mockResolvedValue(neverPublished())
+    getPublishRun.mockResolvedValue({ run: runningSnapshot() })
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByTestId("publish-takeover")).toBeTruthy())
+    expect(screen.getByTestId("publish-takeover").textContent).toContain(
+      "Sending it to your Cloudflare account",
+    )
+    expect(screen.queryByTestId("publish-start-button")).toBeNull()
+  })
+
+  it("does not reopen onto a share that ended before the page opened", async () => {
+    getBookPublication.mockResolvedValue(neverPublished())
+    getPublishRun.mockResolvedValue({
+      run: runningSnapshot({ status: "error", active_step: null, failure: { code: "upload_failed", message: "503", step_id: "upload" } }),
+    })
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
+    expect(screen.queryByTestId("publish-takeover")).toBeNull()
+  })
+
+  it("joins the run already going instead of calling a second share a failure", async () => {
+    getBookPublication.mockResolvedValue(neverPublished())
+    publishBook.mockRejectedValue(
+      new MockApiError("A publish for this book is already running", 409, "publish_in_progress"),
+    )
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
+    getPublishRun.mockResolvedValue({ run: runningSnapshot() })
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("publish-start-button"))
+    })
+
+    await waitFor(() =>
+      expect(screen.getByTestId("publish-takeover").textContent).toContain(
+        "Sending it to your Cloudflare account",
+      ),
+    )
+    expect(screen.queryByTestId("publish-error-unknown")).toBeNull()
+  })
+
+  /** Closing the stream no longer stops a share, so Stop has to ask the run to. */
+  it("asks the server to stop, and gives the form back", async () => {
+    getBookPublication.mockResolvedValue(neverPublished())
+    let emit: ((event: PublishProgressEvent) => void) | null = null
+    publishBook.mockImplementation((_label: string, options: PublishStreamOptions) => {
+      emit = options.onEvent
+      return new Promise<void>(() => {})
+    })
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
+    fireEvent.click(screen.getByTestId("publish-start-button"))
+    act(() => {
+      emit?.({ type: "step", id: "export", number: 1, label: "Export", status: "running" })
+    })
+
+    /** Stop asks first; the second press is the one that means it. */
+    fireEvent.click(screen.getByRole("button", { name: /^stop$/i }))
+    await act(async () => {
+      fireEvent.click(within(screen.getByTestId("publish-cancel")).getByRole("button", { name: /^stop$/i }))
+    })
+
+    expect(cancelPublishRun).toHaveBeenCalledWith("meu-livro")
+    await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
+  })
+
+  /** A page that joined a run never saw the choices it was made with; retrying it would publish
+   *  under a code the author never chose. */
+  it("sends a failed share it only joined back to the form rather than guessing its choices", async () => {
+    getBookPublication.mockResolvedValue(neverPublished())
+    getPublishRun
+      .mockResolvedValueOnce({ run: runningSnapshot() })
+      .mockResolvedValue({
+        run: runningSnapshot({
+          status: "error",
+          step_states: ["done", "done", "error", "pending"],
+          active_step: null,
+          progress: null,
+          failure: { code: "upload_failed", message: "Cloudflare answered 503", step_id: "upload" },
+        }),
+      })
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /try again/i })).toBeTruthy(), {
+      timeout: 4000,
+    })
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }))
+
+    expect(publishBook).not.toHaveBeenCalled()
+    await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
+  })
 })

@@ -56,6 +56,7 @@ import type {
   PublishCommentListResponse,
   PublishCommentResponse,
   PublishProgressEvent,
+  PublishRunSnapshot,
   PublishFeatureSelection,
   CommentAnchor,
   PublishComment,
@@ -2519,6 +2520,22 @@ export const api = {
 
   publishBookVersion: (label: string, options: PublishStreamOptions): Promise<void> =>
     streamPublishEvents(`/books/${encodeURIComponent(label)}/publication/versions`, {}, options),
+
+  /** The book's share run as the server last saw it — for a page that lost the stream. */
+  getPublishRun: (label: string) =>
+    request<{ run: PublishRunSnapshot | null }>(
+      `/books/${encodeURIComponent(label)}/publication/run`,
+    ),
+
+  /** Every share run still going, across books. */
+  listPublishRuns: () =>
+    request<{ runs: { label: string; run: PublishRunSnapshot }[] }>("/publication-runs"),
+
+  /** Asks a running share to stop; `false` when it is past the point it safely can. */
+  cancelPublishRun: (label: string) =>
+    request<{ cancelled: boolean }>(`/books/${encodeURIComponent(label)}/publication/run/cancel`, {
+      method: "POST",
+    }),
 
   revokeBookPublication: (label: string) =>
     request<PublicationResponse>(`/books/${encodeURIComponent(label)}/publication/revoke`, {

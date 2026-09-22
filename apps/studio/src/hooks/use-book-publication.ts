@@ -5,6 +5,7 @@ import {
   PublishErrorCodeStudio,
   type Publication,
   type PublishFeatureSelection,
+  type PublishRunSnapshot,
 } from "@adt/types"
 import {
   api,
@@ -15,6 +16,7 @@ import {
   type PublishStepId,
   type PublishStepStatus,
 } from "@/api/client"
+import { notifyPublishRunStarted } from "./use-publish-run-notice"
 
 /** The contract only names steps the server has started; the checklist also has
  *  to draw the ones it hasn't reached yet. */
@@ -131,6 +133,26 @@ function toPublishErrorCode(code: string | null): PublishErrorCodeStudio | "unkn
   return parsed.success ? parsed.data : "unknown"
 }
 
+/** How often a page that picked up someone else's stream re-reads the run. */
+const ADOPTED_POLL_MS = 1200
+
+/** The server's snapshot, drawn the way the page draws its own stream. A stopped run is no run:
+ *  the author asked for the form back. */
+function fromSnapshot(run: PublishRunSnapshot): RunState {
+  if (run.status === "cancelled") return IDLE_STATE
+  return {
+    status: run.status,
+    kind: run.kind,
+    stepStates: run.step_states,
+    activeStep: run.active_step,
+    progress: run.progress,
+    failure: run.failure
+      ? { code: run.failure.code, detail: run.failure.message || null, stepId: run.failure.step_id }
+      : null,
+    result: run.result,
+  }
+}
+
 /**
  * Drives `POST /books/:label/publication` (first publish) and
  * `POST …/publication/versions` ("Update site"), turning the shared SSE framing
@@ -140,30 +162,116 @@ export function useBookPublishRun(label: string): BookPublishRunController {
   const queryClient = useQueryClient()
   const [state, setState] = useState<RunState>(IDLE_STATE)
   const abortRef = useRef<AbortController | null>(null)
-  const lastRunRef = useRef<{ kind: PublishRunKind; options: PublishOptions }>({
+  /** `null` once the page is following a run it did not start: it never saw the choices that
+   *  run was made with, so it cannot repeat them. */
+  const lastRunRef = useRef<{ kind: PublishRunKind; options: PublishOptions } | null>({
     kind: "publish",
     options: {},
   })
+  const pollRef = useRef<number | null>(null)
+  const stateRef = useRef(state)
+  stateRef.current = state
+
+  const stopFollowing = useCallback(() => {
+    if (pollRef.current !== null) window.clearTimeout(pollRef.current)
+    pollRef.current = null
+  }, [])
+
+  /**
+   * Follows a run this page has no stream for: one a reload or a trip to another stage left
+   * running on the server, or one another window started. Reads the snapshot until it ends, and
+   * lands on the same states a stream would have — so the author sees the conveyor belt at the
+   * step it has really reached, not a form offering to start what is already happening.
+   */
+  const follow = useCallback(() => {
+    stopFollowing()
+    abortRef.current = null
+    lastRunRef.current = null
+    notifyPublishRunStarted(label)
+
+    const read = async () => {
+      try {
+        const { run } = await api.getPublishRun(label)
+        if (!run) {
+          setState(IDLE_STATE)
+          return
+        }
+        setState(fromSnapshot(run))
+        if (run.status === "running") {
+          pollRef.current = window.setTimeout(() => void read(), ADOPTED_POLL_MS)
+          return
+        }
+        pollRef.current = null
+        void queryClient.invalidateQueries({ queryKey: bookPublicationKey(label) })
+      } catch {
+        /** A missed read is not an ending; try again rather than guess one. */
+        pollRef.current = window.setTimeout(() => void read(), ADOPTED_POLL_MS * 2)
+      }
+    }
+    void read()
+  }, [label, queryClient, stopFollowing])
+
+  /** A run already going when the page opened. Only a *running* one is picked up: the server
+   *  keeps the last ending around, and a page must not reopen onto a run that finished hours ago. */
+  useEffect(() => {
+    let cancelled = false
+    void api
+      .getPublishRun(label)
+      .then(({ run }) => {
+        if (cancelled || run?.status !== "running") return
+        if (abortRef.current || stateRef.current.status !== "idle") return
+        follow()
+      })
+      .catch(() => {
+        /* no snapshot to read; the page starts idle, which is what it would have done anyway */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [label, follow])
 
   useEffect(
     () => () => {
       abortRef.current?.abort()
+      stopFollowing()
     },
-    [],
+    [stopFollowing],
   )
 
+  /**
+   * The way off the run screen: "Stop" while it runs, "Change how you share" after it failed.
+   *
+   * Dropping the stream no longer stops anything — the server finishes what the browser leaves
+   * — so a Stop has to ask the run itself. If it is past the point it can safely stop (the link
+   * is being made), the page keeps following it rather than pretending it stopped.
+   */
   const reset = useCallback(() => {
+    const wasRunning = stateRef.current.status === "running"
     abortRef.current?.abort()
     abortRef.current = null
+    stopFollowing()
     setState(IDLE_STATE)
-  }, [])
+    if (!wasRunning) return
+    void api
+      .cancelPublishRun(label)
+      .then(async ({ cancelled }) => {
+        if (cancelled) return
+        const { run } = await api.getPublishRun(label)
+        if (run?.status === "running") follow()
+      })
+      .catch(() => {
+        /* the run may already be over; the status query will say how it ended */
+      })
+  }, [label, follow, stopFollowing])
 
   const run = useCallback(
     (kind: PublishRunKind, options: PublishOptions = {}) => {
       abortRef.current?.abort()
+      stopFollowing()
       const controller = new AbortController()
       abortRef.current = controller
       lastRunRef.current = { kind, options }
+      notifyPublishRunStarted(label)
 
       setState({
         status: "running",
@@ -259,6 +367,12 @@ export function useBookPublishRun(label: string): BookPublishRunController {
         })
         .catch((error: unknown) => {
           if (controller.signal.aborted) return
+          /** Another page — or this one, before a reload — already has a run going for this
+           *  book. That is not a failure; it is the run to watch. */
+          if (apiErrorCode(error) === "publish_in_progress") {
+            follow()
+            return
+          }
           setState((prev) => ({
             ...prev,
             status: "error",
@@ -272,7 +386,7 @@ export function useBookPublishRun(label: string): BookPublishRunController {
           void queryClient.invalidateQueries({ queryKey: bookPublicationKey(label) })
         })
     },
-    [label, queryClient],
+    [label, queryClient, follow, stopFollowing],
   )
 
   const publish = useCallback(
@@ -286,10 +400,18 @@ export function useBookPublishRun(label: string): BookPublishRunController {
     run("update")
   }, [run])
 
+  /** Repeats the run that failed, choices and all. A followed first share never had its choices
+   *  here, and guessing them would publish under a different access code — so it goes back to
+   *  the form instead. An update has no choices to lose. */
   const retry = useCallback(() => {
     const last = lastRunRef.current
-    run(last.kind, last.options)
-  }, [run])
+    if (last) {
+      run(last.kind, last.options)
+      return
+    }
+    if (stateRef.current.kind === "update") run("update")
+    else reset()
+  }, [run, reset])
 
   return { ...state, publish, update, retry, reset }
 }

@@ -8,6 +8,7 @@ import {
   useBookPublishRun,
 } from "@/hooks/use-book-publication"
 import { useBook } from "@/hooks/use-books"
+import { usePublishScreenPresence } from "@/hooks/use-publish-run-notice"
 import { useElapsed } from "@/lib/elapsed"
 import { PublishingActions } from "./PublishingActions"
 import { PublishingControls } from "./PublishingControls"
@@ -50,6 +51,7 @@ import { ShareSetup } from "./setup/ShareSetup"
 export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
   const status = useBookPublication(bookLabel)
   const run = useBookPublishRun(bookLabel)
+  usePublishScreenPresence(bookLabel)
   const book = useBook(bookLabel)
 
   const connected = status.data?.connected === true
