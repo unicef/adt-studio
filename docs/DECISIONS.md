@@ -4,6 +4,8 @@ This document records all significant technology and architecture decisions made
 
 ---
 
+ADR 024 is reserved by [SPEC-0001 / PR #879](https://github.com/unicef/adt-studio/pull/879), which is reviewed on a separate branch. The proposals below start at 025 to avoid renumbering that decision.
+
 ## Table of Contents
 
 1. [Guiding Principle: Pure JS/TS Over Native](#001-pure-jsts-over-native-bindings)
@@ -29,6 +31,7 @@ This document records all significant technology and architecture decisions made
 21. [Context-Aware Top Bar Button](#021-context-aware-top-bar-button)
 22. [Unified Stage/Step Status via useBookRun](#022-unified-stagestep-status-via-usebookrun)
 23. [Visual Refinement + File-Based Debug Screenshots](#023-visual-refinement--file-based-debug-screenshots)
+25. [Sectioning mode changes preserve content and gate rendering](#025-sectioning-mode-changes-preserve-content-and-gate-rendering)
 
 ---
 
@@ -864,6 +867,36 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 
 ---
 
+## 025: Sectioning mode changes preserve content and gate rendering
+
+**Status**: proposed
+**Date**: 2026-09-22
+**Spec**: [SPEC-0003](specs/SPEC-0003-sectioning-modes.md)
+**Issues**: #708
+
+### Context
+
+Changing page_sectioning.mode currently updates YAML independently of pipeline completion state. Historical or imported multi-section output can reach By Page rendering, and destructive pre-run cleanup can occur before validation.
+
+### Decision
+
+Treat an effective mode transition as non-destructive invalidation of Sectioning and its downstream dependency closure. Serialize and recover configuration/status publication, preserve entity history and Extract state, and require one valid latest section per active source page before any By Page Storyboard mutation.
+
+### Consequences
+
+Mode changes need writer admission and a recoverable cross-file/database transition. Rendering entry points must share the same preflight; neither mode changes nor preflight failures authorize content deletion. The wider B2 mode/merge design is not approved by this B1 proposal.
+
+This ADR is under review with its spec; no implementation acceptance criterion is satisfied by publishing it. The spec owns the acceptance/test mapping and approval questions. Existing invariant-registry checks remain as documented; new enforcement belongs to the implementing change.
+
+### Alternatives Considered
+
+| Approach | Why Not |
+|---|---|
+| UI warning only | Does not protect API, imported books or CLI execution. |
+| Automatically merge or truncate old sections | Ambiguous content and identity changes would destroy editorial intent. |
+
+---
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -891,6 +924,7 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 | 021 | Top bar button | Context-aware per stage | Per-stage inline buttons in sidebar |
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
+| 025 | Sectioning mode changes preserve content and gate rendering (proposed) | See SPEC-0003 | UI warning only |
 
 ---
 
@@ -905,7 +939,7 @@ This file has **two** hand-maintained indexes, and a new ADR must appear in both
 2. The **Decision Log Summary** table at the bottom.
 
 The heading continues the existing numbering in this file's own style — `## NNN: Title`,
-matching all 23 entries above. Retrospective ADRs use the same shape, dated when the
+matching the existing numbered entries above. Retrospective ADRs use the same shape, dated when the
 decision was actually taken, with a note that it is recorded after the fact.
 
 See [SPEC_DRIVEN_DEVELOPMENT.md §6](SPEC_DRIVEN_DEVELOPMENT.md#6-adrs) for when an ADR is
