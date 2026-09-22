@@ -104,8 +104,8 @@ msgid "{0, plural, one {# comment to review} other {# comments to review}}"
 msgstr "{0, plural, one {# comentario para revisar} other {# comentarios para revisar}}"
 
 #. placeholder {0}: book.pendingComments ?? 0
-msgid "{0, plural, one {# comment} other {# comments}}"
-msgstr "{0, plural, one {# comentario} other {# comentarios}}"
+#~ msgid "{0, plural, one {# comment} other {# comments}}"
+#~ msgstr "{0, plural, one {# comentario} other {# comentarios}}"
 
 #. placeholder {0}: p.optionalDone.length
 msgid "{0, plural, one {# output} other {# outputs}}"
@@ -137,6 +137,10 @@ msgstr "{0, plural, one {# tarea hereda este modelo} other {# tareas heredan est
 #. placeholder {0}: health.modelCount
 msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
 msgstr "{0, plural, one {Conectado correctamente: # modelo disponible.} other {Conectado correctamente: # modelos disponibles.}}"
+
+#. placeholder {0}: openComments(resume)
+msgid "{0, plural, one {Review # comment} other {Review # comments}}"
+msgstr "{0, plural, one {Revisar # comentario} other {Revisar # comentarios}}"
 
 #. placeholder {0}: steps.length
 msgid "{0, plural, one {Used by # task} other {Used by # tasks}}"
@@ -433,6 +437,9 @@ msgstr "{completed} de {total}"
 
 msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 msgstr "{confirmCount} {confirmCount, plural, one {posible doble página detectada} other {posibles dobles páginas detectadas}}"
+
+msgid "{count, plural, one {# open comment} other {# open comments}}"
+msgstr "{count, plural, one {# comentario abierto} other {# comentarios abiertos}}"
 
 msgid "{count} {count, plural, one {issue} other {issues}}"
 msgstr "{count} {count, plural, one {problema} other {problemas}}"
@@ -6178,6 +6185,9 @@ msgstr "Haciendo una copia del libro"
 msgid "Making sure the token works and has every permission it needs."
 msgstr "Comprobando que el token funciona y tiene todos los permisos necesarios."
 
+msgid "Manage"
+msgstr "Gestionar"
+
 msgid "Manage all sections"
 msgstr "Gestionar todas las secciones"
 
@@ -7466,6 +7476,9 @@ msgstr "Abrir Vista previa"
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
 msgstr "Abrir solicitud de cambios {0}"
+
+msgid "Open Sharing"
+msgstr "Abrir Compartir"
 
 msgid "Open sharing settings"
 msgstr "Abrir los ajustes para compartir"
@@ -9264,8 +9277,8 @@ msgstr "Resumen de la validación del revisor"
 msgid "Reviewing..."
 msgstr "Revisando..."
 
-msgid "Revoked"
-msgstr "Revocado"
+#~ msgid "Revoked"
+#~ msgstr "Revocado"
 
 msgid "Rewriting the story of this section..."
 msgstr "Reescribiendo la historia de esta sección..."
@@ -11150,6 +11163,9 @@ msgstr "El enlace sigue activo. Verifica que estés en línea e inténtalo de nu
 
 msgid "The link keeps working until you stop sharing."
 msgstr "El enlace sigue funcionando hasta que dejes de compartir."
+
+msgid "The link no longer opens. Sharing again makes a new one."
+msgstr "El enlace ya no se abre. Al compartir de nuevo se crea uno nuevo."
 
 msgid "The link now shows your latest version"
 msgstr "El enlace ahora muestra tu última versión"

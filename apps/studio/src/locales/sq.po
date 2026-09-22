@@ -106,8 +106,8 @@ msgid "{0, plural, one {# comment to review} other {# comments to review}}"
 msgstr "{0, plural, one {# koment për të shqyrtuar} other {# komente për të shqyrtuar}}"
 
 #. placeholder {0}: book.pendingComments ?? 0
-msgid "{0, plural, one {# comment} other {# comments}}"
-msgstr "{0, plural, one {# koment} other {# komente}}"
+#~ msgid "{0, plural, one {# comment} other {# comments}}"
+#~ msgstr "{0, plural, one {# koment} other {# komente}}"
 
 #. placeholder {0}: p.optionalDone.length
 msgid "{0, plural, one {# output} other {# outputs}}"
@@ -139,6 +139,10 @@ msgstr "{0, plural, one {# detyrë trashëgon këtë model} other {# detyra tras
 #. placeholder {0}: health.modelCount
 msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
 msgstr "{0, plural, one {Lidhja u krye me sukses — # model në dispozicion.} other {Lidhja u krye me sukses — # modele në dispozicion.}}"
+
+#. placeholder {0}: openComments(resume)
+msgid "{0, plural, one {Review # comment} other {Review # comments}}"
+msgstr "{0, plural, one {Shqyrto # koment} other {Shqyrto # komente}}"
 
 #. placeholder {0}: steps.length
 msgid "{0, plural, one {Used by # task} other {Used by # tasks}}"
@@ -435,6 +439,9 @@ msgstr "{completed} nga {total}"
 
 msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 msgstr "{confirmCount} {confirmCount, plural, one {fletë e dyfishtë e mundshme e zbuluar} other {fletë të dyfishta të mundshme të zbuluara}}"
+
+msgid "{count, plural, one {# open comment} other {# open comments}}"
+msgstr "{count, plural, one {# koment i hapur} other {# komente të hapura}}"
 
 msgid "{count} {count, plural, one {issue} other {issues}}"
 msgstr "{count} {count, plural, one {problem} other {probleme}}"
@@ -6180,6 +6187,9 @@ msgstr "Duke bërë një kopje të librit"
 msgid "Making sure the token works and has every permission it needs."
 msgstr "Po verifikojmë që tokeni funksionon dhe ka të gjitha lejet e nevojshme."
 
+msgid "Manage"
+msgstr "Menaxho"
+
 msgid "Manage all sections"
 msgstr "Menaxho të gjitha seksionet"
 
@@ -7468,6 +7478,9 @@ msgstr "Hapni Pamjen Paraprake"
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
 msgstr "Hap pull request-in {0}"
+
+msgid "Open Sharing"
+msgstr "Hap Ndarje"
 
 msgid "Open sharing settings"
 msgstr "Hap cilësimet e ndarjes"
@@ -9266,8 +9279,8 @@ msgstr "Përmbledhja e validimit të rishikuesit"
 msgid "Reviewing..."
 msgstr "Duke rishikuar..."
 
-msgid "Revoked"
-msgstr "Revokuar"
+#~ msgid "Revoked"
+#~ msgstr "Revokuar"
 
 msgid "Rewriting the story of this section..."
 msgstr "Duke rishkruar historinë e këtij seksioni..."
@@ -11152,6 +11165,9 @@ msgstr "Lidhja është ende aktive. Kontrolloni që jeni online dhe provoni për
 
 msgid "The link keeps working until you stop sharing."
 msgstr "Lidhja vazhdon të punojë derisa të ndaloni ndarjen."
+
+msgid "The link no longer opens. Sharing again makes a new one."
+msgstr "Lidhja nuk hapet më. Duke e ndarë përsëri krijohet një e re."
 
 msgid "The link now shows your latest version"
 msgstr "Lidhja tani tregon versionin tuaj më të fundit"

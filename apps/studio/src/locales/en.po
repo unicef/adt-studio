@@ -104,8 +104,8 @@ msgid "{0, plural, one {# comment to review} other {# comments to review}}"
 msgstr "{0, plural, one {# comment to review} other {# comments to review}}"
 
 #. placeholder {0}: book.pendingComments ?? 0
-msgid "{0, plural, one {# comment} other {# comments}}"
-msgstr "{0, plural, one {# comment} other {# comments}}"
+#~ msgid "{0, plural, one {# comment} other {# comments}}"
+#~ msgstr "{0, plural, one {# comment} other {# comments}}"
 
 #. placeholder {0}: p.optionalDone.length
 msgid "{0, plural, one {# output} other {# outputs}}"
@@ -137,6 +137,10 @@ msgstr "{0, plural, one {# task inherits this model} other {# tasks inherit this
 #. placeholder {0}: health.modelCount
 msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
 msgstr "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
+
+#. placeholder {0}: openComments(resume)
+msgid "{0, plural, one {Review # comment} other {Review # comments}}"
+msgstr "{0, plural, one {Review # comment} other {Review # comments}}"
 
 #. placeholder {0}: steps.length
 msgid "{0, plural, one {Used by # task} other {Used by # tasks}}"
@@ -433,6 +437,9 @@ msgstr "{completed} of {total}"
 
 msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 msgstr "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
+
+msgid "{count, plural, one {# open comment} other {# open comments}}"
+msgstr "{count, plural, one {# open comment} other {# open comments}}"
 
 msgid "{count} {count, plural, one {issue} other {issues}}"
 msgstr "{count} {count, plural, one {issue} other {issues}}"
@@ -6179,6 +6186,9 @@ msgstr "Making a copy of the book"
 msgid "Making sure the token works and has every permission it needs."
 msgstr "Making sure the token works and has every permission it needs."
 
+msgid "Manage"
+msgstr "Manage"
+
 msgid "Manage all sections"
 msgstr "Manage all sections"
 
@@ -7467,6 +7477,9 @@ msgstr "Open Preview"
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
 msgstr "Open pull request {0}"
+
+msgid "Open Sharing"
+msgstr "Open Sharing"
 
 msgid "Open sharing settings"
 msgstr "Open sharing settings"
@@ -9265,8 +9278,8 @@ msgstr "Reviewer validation summary"
 msgid "Reviewing..."
 msgstr "Reviewing..."
 
-msgid "Revoked"
-msgstr "Revoked"
+#~ msgid "Revoked"
+#~ msgstr "Revoked"
 
 msgid "Rewriting the story of this section..."
 msgstr "Rewriting the story of this section..."
@@ -11151,6 +11164,9 @@ msgstr "The link is still live. Check that you're online and try again — nothi
 
 msgid "The link keeps working until you stop sharing."
 msgstr "The link keeps working until you stop sharing."
+
+msgid "The link no longer opens. Sharing again makes a new one."
+msgstr "The link no longer opens. Sharing again makes a new one."
 
 msgid "The link now shows your latest version"
 msgstr "The link now shows your latest version"
