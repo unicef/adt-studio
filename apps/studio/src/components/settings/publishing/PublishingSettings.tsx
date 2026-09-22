@@ -6,6 +6,7 @@ import { useCloudflareConnection } from "@/hooks/use-cloudflare-connection"
 import { useCloudflareCredentials } from "@/hooks/use-cloudflare-credentials"
 import { ConnectCloudflareWizard } from "./ConnectCloudflareWizard"
 import { ConnectedCard } from "./ConnectedCard"
+import { SharingSetupSkeleton } from "./SharingSetupSkeleton"
 
 export function PublishingSettings() {
   const { credentials, hasConnectionHint, markOAuthConnected, clearCredentials } = useCloudflareCredentials()
@@ -30,7 +31,7 @@ export function PublishingSettings() {
           <Button variant="outline" size="sm" className="self-start" onClick={() => void connection.refetch()} disabled={connection.isFetching}>{connection.isFetching && <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}<Trans>Try again</Trans></Button>
         </div>
       )}
-      {isChecking && <div className="flex items-center gap-2.5 rounded-xl border bg-card p-4 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /><Trans>Checking your sharing setup…</Trans></div>}
+      {isChecking && <SharingSetupSkeleton />}
       {isConnected && connection.data ? (
         <ConnectedCard connection={connection.data} credentials={credentials} onDisconnected={clearCredentials} />
       ) : (

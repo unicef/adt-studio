@@ -10,7 +10,7 @@ import {
   RefreshCw,
   Search,
 } from "lucide-react"
-import { Trans, useLingui } from "@lingui/react/macro"
+import { Trans } from "@lingui/react/macro"
 import { publicationStateAt, type PublicationSummary } from "@adt/types"
 import { apiErrorCode } from "@/api/client"
 import { cn } from "@/lib/utils"
@@ -23,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { SegmentedControl } from "@/components/ui/segmented-control"
 import { StageEmptyState } from "@/components/pipeline/components/StageEmptyState"
 import { PublishingSettingsLink } from "@/components/pipeline/stages/publish/PublishingSettingsLink"
 import {
@@ -32,24 +31,21 @@ import {
   useResumeSharing,
   useStopSharing,
 } from "@/hooks/use-publications"
-import { PublicationRow } from "./PublicationRow"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { PublicationCard } from "./PublicationCard"
+import { EMPTY_QUERY, PublicationsToolbar, type Query } from "./PublicationsToolbar"
 import { PublicationsSkeleton } from "./PublicationsSkeleton"
 import { PublicationsSummary } from "./PublicationsSummary"
 
-type Filter = "all" | "live" | "stopped"
-
-type Sort = "recent" | "feedback" | "size" | "title"
-
-interface Query {
-  filter: Filter
-  sort: Sort
-  search: string
-  /** A separate switch rather than a fourth `Filter`, because "live" and "has something to
-   *  read" are independent questions and the author usually asks both at once. */
-  unresolvedOnly: boolean
-}
-
-const EMPTY_QUERY: Query = { filter: "all", sort: "recent", search: "", unresolvedOnly: false }
 
 function FilteredEmptyState({
   icon,
@@ -92,10 +88,6 @@ function matchesSearch(publication: PublicationSummary, search: string): boolean
  *  pagination: filtering and sorting run over the array the API already handed us. */
 function applyQuery(publications: PublicationSummary[], query: Query): PublicationSummary[] {
   const kept = publications.filter((publication) => {
-    if (query.filter !== "all") {
-      const live = publicationStateAt(publication) === "active"
-      if (query.filter === "live" ? !live : live) return false
-    }
     if (query.unresolvedOnly && publication.unresolved_count === 0) return false
     return matchesSearch(publication, query.search)
   })
@@ -133,12 +125,14 @@ interface PublicationsDashboardProps {
 }
 
 export function PublicationsDashboard({ embedded = false }: PublicationsDashboardProps) {
-  const { t } = useLingui()
   const overview = usePublications()
   const stop = useStopSharing()
   const resume = useResumeSharing()
   const remove = useDeletePublication()
   const [query, setQuery] = useState<Query>(EMPTY_QUERY)
+  /** Delete is irreversible and one click deep in a menu, so it asks first. The old row grew a
+   *  confirm in place; a menu closes on click, so the question needs its own surface. */
+  const [pendingDelete, setPendingDelete] = useState<PublicationSummary | null>(null)
 
   const notConnected = apiErrorCode(overview.error) === "publish_not_connected"
   const data = overview.data
@@ -207,13 +201,14 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
   }
 
   const countsKnown = data.worker_reachable
-  /** An empty shelf gets no tiles and no storage footnote: "0 kB of 10 GB free" and "every link
-   *  is live" are both true and both useless, and the empty state is the whole message. */
+  /** An empty shelf keeps the dashboard it will grow into: the same sections in the same places,
+   *  each saying what belongs there. One full-screen message instead taught nothing about the
+   *  screen and made the first share feel like a different page. */
   const nothingPublished = data.publications.length === 0
   const busyLabel = stop.isPending ? stop.variables : resume.isPending ? resume.variables : null
 
   return (
-    <div className={cn("flex flex-col", embedded ? "gap-4" : "min-h-0 flex-1")}>
+    <div className={cn("flex min-h-0 flex-1 flex-col", embedded && "gap-4")}>
       {data.worker_reachable ? null : (
         <div
           data-testid="publications-worker-unreachable"
@@ -245,141 +240,60 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
 
       <div
         className={cn(
-          "flex flex-col gap-4",
-          embedded ? "p-0" : "min-h-0 flex-1 overflow-auto p-6",
+          "flex min-h-0 flex-1 flex-col gap-4",
+          embedded ? "p-0" : "overflow-auto p-6",
         )}
       >
-        {nothingPublished ? null : (
-          <PublicationsSummary totals={data.totals} countsKnown={countsKnown} />
-        )}
+        <PublicationsSummary totals={data.totals} countsKnown={countsKnown} />
 
         {nothingPublished ? (
-          <div data-testid="publications-empty" className="flex flex-1 flex-col py-10">
-            <StageEmptyState
-              icon={Globe}
-              color="violet"
-              title={<Trans>Nothing shared yet</Trans>}
-              subtitle={
-                <Trans>
-                  Open a book and go to Sharing. You'll get a link to send to readers, and
-                  everything they comment on comes back here.
-                </Trans>
-              }
-            />
+          <div
+            data-testid="publications-empty"
+            className="flex min-h-64 flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-6 py-12 text-center"
+          >
+            <Globe className="size-5 text-muted-foreground/50" aria-hidden="true" />
+            <p className="text-sm font-medium text-foreground">
+              <Trans>No shared books yet</Trans>
+            </p>
+            <p className="max-w-md text-xs leading-5 text-muted-foreground">
+              <Trans>
+                Open a book and go to Sharing. You'll get a link to send to readers, and
+                everything they comment on comes back here.
+              </Trans>
+            </p>
           </div>
         ) : (
           <>
-            <div className="flex flex-wrap items-center gap-2">
-                <SegmentedControl<Filter>
-                  className="h-9 w-full max-w-[280px]"
-                  value={query.filter}
-                  onValueChange={(filter) => setQuery((current) => ({ ...current, filter }))}
-                  options={[
-                    { value: "all", label: t`All` },
-                    { value: "live", label: t`Live` },
-                    { value: "stopped", label: t`Not shared` },
-                  ]}
-                />
-
-                <Input
-                  type="search"
-                  value={query.search}
-                  onChange={(event) =>
-                    setQuery((current) => ({ ...current, search: event.target.value }))
-                  }
-                  placeholder={t`Search by title`}
-                  aria-label={t`Search shared books`}
-                  prependIcon={<Search className="size-4" aria-hidden="true" />}
-                  wrapperClassName="h-9 min-w-48 flex-1"
-                  className="h-9 text-sm"
-                />
-
-                <Select
-                  value={query.sort}
-                  onValueChange={(sort) =>
-                    setQuery((current) => ({ ...current, sort: sort as Sort }))
-                  }
-                >
-                  <SelectTrigger className="h-9 w-44 text-xs" aria-label={t`Sort shared books`}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="recent">{t`Recently updated`}</SelectItem>
-                    <SelectItem value="feedback">{t`Most open feedback`}</SelectItem>
-                    <SelectItem value="size">{t`Largest first`}</SelectItem>
-                    <SelectItem value="title">{t`Title A–Z`}</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Button
-                  type="button"
-                  variant={query.unresolvedOnly ? "secondary" : "outline"}
-                  size="sm"
-                  aria-pressed={query.unresolvedOnly}
-                  onClick={() =>
-                    setQuery((current) => ({
-                      ...current,
-                      unresolvedOnly: !current.unresolvedOnly,
-                    }))
-                  }
-                  className={cn(
-                    "h-9 gap-1.5 text-xs transition-colors duration-200 motion-reduce:transition-none",
-                    query.unresolvedOnly && "border border-transparent text-foreground",
-                  )}
-                >
-                  <MessagesSquare className="size-3.5" aria-hidden="true" />
-                  <Trans>Only with open feedback</Trans>
-                </Button>
-                <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-                  <Trans>Showing {publications.length} of {data.publications.length}</Trans>
-                </span>
-            </div>
+            <PublicationsToolbar query={query} onQuery={setQuery} />
 
             {publications.length === 0 ? (
               <FilteredEmptyState
-                icon={
-                  query.search.trim().length > 0
-                    ? Search
-                    : query.unresolvedOnly
-                      ? MessagesSquare
-                      : query.filter === "live"
-                        ? Globe
-                        : Link2Off
-                }
+                icon={query.search.trim().length > 0 ? Search : MessagesSquare}
                 title={
                   query.search.trim().length > 0 ? (
                     <Trans>No shared book matches “{query.search}”.</Trans>
-                  ) : query.unresolvedOnly ? (
-                    <Trans>Nothing is waiting for you — every thread is resolved.</Trans>
-                  ) : query.filter === "live" ? (
-                    <Trans>None of your links is open to readers right now.</Trans>
                   ) : (
-                    <Trans>Every one of your links is live.</Trans>
+                    <Trans>Nothing is waiting for you — every thread is resolved.</Trans>
                   )
                 }
                 onClear={() => setQuery(EMPTY_QUERY)}
               />
             ) : (
               <ul
-                aria-label={t`Shared books`}
-                className="flex list-none flex-col gap-3 p-0"
+                role="list"
+                className="grid content-start gap-4 [grid-template-columns:repeat(auto-fill,minmax(210px,1fr))]"
               >
                 {publications.map((publication, index) => (
-                  <PublicationRow
+                  <PublicationCard
                     key={publication.token}
-                    index={index}
                     publication={publication}
                     countsKnown={countsKnown}
+                    index={index}
                     busy={busyLabel === publication.book_label}
                     deleting={remove.isPending && remove.variables?.token === publication.token}
                     onStop={() => stop.mutate(publication.book_label)}
                     onResume={() => resume.mutate(publication.book_label)}
-                    onDelete={() =>
-                      remove.mutate({
-                        token: publication.token,
-                        label: publication.book_label,
-                      })
-                    }
+                    onDelete={() => setPendingDelete(publication)}
                     deleteError={
                       remove.isError && remove.variables?.token === publication.token
                         ? remove.error
@@ -390,8 +304,8 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
               </ul>
             )}
 
-            {/* Deleting reports itself inside the row that failed — a shelf runs long enough
-                that an alert down here is below the fold by the time it appears. */}
+            {/* Deleting reports itself on the card that failed; stopping and resuming are
+                fast enough to answer here. */}
             {stop.isError || resume.isError ? (
               <p
                 data-testid="publications-action-error"
@@ -404,6 +318,43 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
             ) : null}
           </>
         )}
+
+        <AlertDialog
+          open={pendingDelete !== null}
+          onOpenChange={(open) => !open && setPendingDelete(null)}
+        >
+          <AlertDialogContent data-testid="publication-delete-confirm">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                <Trans>Delete “{pendingDelete?.title}” permanently?</Trans>
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                <Trans>
+                  This removes the site and every shared version from your Cloudflare account.
+                  The book on this computer is untouched, and the link stops working for everyone.
+                </Trans>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>
+                <Trans>Keep sharing</Trans>
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-white hover:bg-destructive/90"
+                onClick={() => {
+                  if (!pendingDelete) return
+                  remove.mutate({
+                    token: pendingDelete.token,
+                    label: pendingDelete.book_label,
+                  })
+                  setPendingDelete(null)
+                }}
+              >
+                <Trans>Delete permanently</Trans>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )

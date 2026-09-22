@@ -3,6 +3,7 @@ import { HardDrive, Globe, Info, MessagesSquare, Radio } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { PublicationsTotals } from "@adt/types"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { cn } from "@/lib/utils"
 import { formatStorage } from "./format"
 
 function Tile({
@@ -12,6 +13,7 @@ function Tile({
   hint,
   aside,
   index,
+  quiet,
 }: {
   icon: ReactNode
   label: ReactNode
@@ -19,6 +21,8 @@ function Tile({
   hint?: ReactNode
   aside?: ReactNode
   index: number
+  /** Nothing has been shared yet, so the tile keeps its place without asserting a measurement. */
+  quiet?: boolean
 }) {
   return (
     <div
@@ -30,7 +34,14 @@ function Tile({
         {label}
         {aside}
       </span>
-      <span className="text-xl font-semibold tabular-nums leading-tight">{value}</span>
+      <span
+        className={cn(
+          "text-xl font-semibold tabular-nums leading-tight",
+          quiet && "text-muted-foreground/50",
+        )}
+      >
+        {value}
+      </span>
       {hint ? <span className="text-xs leading-5 text-muted-foreground">{hint}</span> : null}
     </div>
   )
@@ -47,6 +58,10 @@ export function PublicationsSummary({
 }) {
   const { t, i18n } = useLingui()
   const unknown = t`—`
+  /** An empty shelf keeps its tiles so the shape of the screen is the same before and after the
+   *  first share, but they hold a dash rather than a zero: "0 kB used" and "every link is live"
+   *  are both true and both say nothing. */
+  const empty = totals.published_count === 0
   const stopped = totals.published_count - totals.active_count
   const storage = formatStorage(totals.total_snapshot_bytes, i18n.locale)
 
@@ -69,16 +84,26 @@ export function PublicationsSummary({
         index={0}
         icon={<Globe className="size-3.5" aria-hidden="true" />}
         label={<Trans>Shared books</Trans>}
-        value={totals.published_count}
-        hint={<Trans>Room for {Math.max(0, 99 - totals.published_count)} more</Trans>}
+        quiet={empty}
+        value={empty ? unknown : totals.published_count}
+        hint={
+          empty ? (
+            <Trans>Room for 99</Trans>
+          ) : (
+            <Trans>Room for {Math.max(0, 99 - totals.published_count)} more</Trans>
+          )
+        }
       />
       <Tile
         index={1}
         icon={<Radio className="size-3.5" aria-hidden="true" />}
         label={<Trans>Open to readers</Trans>}
-        value={totals.active_count}
+        quiet={empty}
+        value={empty ? unknown : totals.active_count}
         hint={
-          stopped > 0 ? (
+          empty ? (
+            <Trans>Links you share stay open until you stop them</Trans>
+          ) : stopped > 0 ? (
             <Trans>{stopped} stopped or expired</Trans>
           ) : (
             <Trans>Every link is live</Trans>
@@ -105,32 +130,40 @@ export function PublicationsSummary({
             </HoverCardContent>
           </HoverCard>
         }
+        quiet={empty}
         value={
-          countsKnown ? (
-            totals.snapshot_bytes_complete ? (
-              storage
-            ) : (
-              <Trans>at least {storage}</Trans>
-            )
+          empty || !countsKnown ? (
+            <span className={countsKnown ? undefined : "text-muted-foreground"}>{unknown}</span>
+          ) : totals.snapshot_bytes_complete ? (
+            storage
           ) : (
-            <span className="text-muted-foreground">{unknown}</span>
+            <Trans>at least {storage}</Trans>
           )
         }
-        hint={countsKnown ? <Trans>Across all shared versions</Trans> : undefined}
+        hint={
+          empty ? (
+            <Trans>Every shared version keeps its files</Trans>
+          ) : countsKnown ? (
+            <Trans>Across all shared versions</Trans>
+          ) : undefined
+        }
       />
       <Tile
         index={3}
         icon={<MessagesSquare className="size-3.5" aria-hidden="true" />}
         label={<Trans>Comments to read</Trans>}
+        quiet={empty}
         value={
-          countsKnown ? (
-            totals.total_unresolved
+          empty || !countsKnown ? (
+            <span className={countsKnown ? undefined : "text-muted-foreground"}>{unknown}</span>
           ) : (
-            <span className="text-muted-foreground">{unknown}</span>
+            totals.total_unresolved
           )
         }
         hint={
-          countsKnown && totals.total_unresolved === 0 ? (
+          empty ? (
+            <Trans>What readers leave on a shared book lands here</Trans>
+          ) : countsKnown && totals.total_unresolved === 0 ? (
             <Trans>Nothing open</Trans>
           ) : undefined
         }

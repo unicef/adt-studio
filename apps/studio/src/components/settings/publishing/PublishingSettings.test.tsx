@@ -40,6 +40,7 @@ vi.mock("@lingui/core/macro", () => {
 })
 
 vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
   Link: ({
     children,
     to,
@@ -614,7 +615,7 @@ describe("PublishingSettings — already connected", () => {
     renderSettings()
 
     await waitFor(() => expect(document.body.textContent).toContain("Sharing is ready"))
-    await waitFor(() => expect(document.body.textContent).toContain("Nothing shared yet"))
+    await waitFor(() => expect(document.body.textContent).toContain("No shared books yet"))
     expect(document.body.textContent).toContain("Hosted books")
     expect(screen.getByRole("button", { name: /disconnect/i })).toBeTruthy()
     expect(screen.queryByRole("button", { name: /connect with cloudflare/i })).toBeNull()

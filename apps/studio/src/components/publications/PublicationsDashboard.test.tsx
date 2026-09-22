@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { PublicationSummary, PublicationsOverview } from "@adt/types"
+import { toast } from "@/components/ui/sonner"
 
 vi.mock("@lingui/react/macro", () => {
   function templateToString(strings: TemplateStringsArray, ...values: unknown[]) {
@@ -35,7 +36,10 @@ vi.mock("@lingui/core/macro", () => {
   }
 })
 
+const navigate = vi.fn()
+
 vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => navigate,
   Link: ({
     to,
     params,
@@ -55,6 +59,10 @@ vi.mock("@tanstack/react-router", () => ({
       {children}
     </a>
   ),
+}))
+
+vi.mock("@/components/ui/sonner", () => ({
+  toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
 }))
 
 const getPublications = vi.fn()
@@ -97,7 +105,7 @@ function summary(overrides: Partial<PublicationSummary> = {}): PublicationSummar
     book_exists: true,
     url: "https://adt-publish.escola.workers.dev/p/TokenRavenTokenRavenTokenRaven12/",
     current_version: 2,
-    version_count: 2,
+    version_count: 3,
     created_at: "2026-08-01T09:00:00.000Z",
     last_published_at: "2026-08-04T09:00:00.000Z",
     expires_at: null,
@@ -145,6 +153,31 @@ function renderDashboard() {
 
 const writeText = vi.fn()
 
+/** Stop/resume/delete/readers/comments all moved behind one "More actions" menu when the shelf
+ *  became a grid of cards, so every row action now costs a menu open. Radix opens on
+ *  pointerdown, not click. */
+function openCardMenu(label = "raven") {
+  const card = screen.getByTestId(`publication-card-${label}`)
+  fireEvent.pointerDown(within(card).getByRole("button", { name: /more actions for/i }), {
+    button: 0,
+    ctrlKey: false,
+  })
+  return screen.getByRole("menu")
+}
+
+function clickMenuItem(name: RegExp, label = "raven") {
+  fireEvent.click(within(openCardMenu(label)).getByRole("menuitem", { name }))
+}
+
+/** Selecting an item that fires a mutation: the menu has to be opened before the `act` scope,
+ *  because React does not flush the open until the scope ends. */
+async function selectMenuItem(name: RegExp, label = "raven") {
+  const item = within(openCardMenu(label)).getByRole("menuitem", { name })
+  await act(async () => {
+    fireEvent.click(item)
+  })
+}
+
 beforeEach(() => {
   getPublications.mockResolvedValue(overview())
   revokeBookPublication.mockResolvedValue({ publication: {}, has_access_code: false })
@@ -181,18 +214,23 @@ describe("PublicationsDashboard — not connected", () => {
 })
 
 describe("PublicationsDashboard — connected with nothing published", () => {
-  it("encourages a first publish and hides the filter", async () => {
+  it("keeps the dashboard it will grow into, and hides the filter", async () => {
     getPublications.mockResolvedValue(overview({ publications: [] }))
     renderDashboard()
 
     await waitFor(() => {
       expect(screen.getByTestId("publications-empty")).toBeTruthy()
     })
-    expect(document.body.textContent).toContain("Nothing shared yet")
+    expect(document.body.textContent).toContain("No shared books yet")
+    /** Filtering nothing is noise, so the controls wait until there is a shelf to filter. */
     expect(screen.queryByRole("radiogroup")).toBeNull()
-    /** No tiles either: "0 kB of 10 GB free" and "every link is live" are true and useless. */
-    expect(document.body.textContent).not.toContain("Storage used")
-    expect(document.body.textContent).not.toContain("free in R2")
+
+    /** The tiles keep their place so the screen does not rearrange around the first share,
+     *  but they hold a dash: "0 kB used" and "every link is live" are true and say nothing. */
+    expect(document.body.textContent).toContain("Storage used")
+    expect(document.body.textContent).toContain("Comments to read")
+    expect(document.body.textContent).not.toContain("Every link is live")
+    expect(document.body.textContent).not.toContain("Nothing open")
   })
 })
 
@@ -217,7 +255,7 @@ describe("PublicationsDashboard — populated", () => {
     renderDashboard()
 
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
 
     const rows = screen.getAllByRole("listitem")
@@ -225,23 +263,31 @@ describe("PublicationsDashboard — populated", () => {
     expect(rows[0]?.textContent).toContain("Raven and the Sun")
     expect(rows[1]?.textContent).toContain("The Owl Who Counted")
 
-    const raven = screen.getByTestId("publication-row-raven")
+    const raven = screen.getByTestId("publication-card-raven")
     expect(raven.getAttribute("data-state")).toBe("active")
     expect(raven.textContent).toContain("Live")
-    /** The code itself, not just the fact of one: this screen is read out to a class. */
-    expect(raven.textContent).toContain("TURMA3B")
-    expect(screen.getByRole("button", { name: /access code TURMA3B/i })).toBeTruthy()
     expect(raven.textContent).toContain("8 MB")
-    expect(raven.textContent).toContain("No end date")
-    expect(raven.textContent).toContain("now serving v2")
+    /** The badge is the version readers are being served, not the number of versions kept. */
+    expect(raven.textContent).toContain("v2")
+    expect(within(raven).getByText(/now serving version 2 of 3/i)).toBeTruthy()
 
-    expect(screen.getByTestId("publication-row-owl").textContent).not.toContain("Code required")
+    /** The card face says a code exists; the code itself is one menu away, because this screen
+     *  gets read out to a class with the rest of the room looking at it. */
+    expect(within(raven).getByText(/readers need an access code/i)).toBeTruthy()
+    expect(raven.textContent).not.toContain("TURMA3B")
+    expect(
+      within(openCardMenu()).getByRole("menuitem", { name: /copy code TURMA3B/i }),
+    ).toBeTruthy()
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" })
+
+    const owl = screen.getByTestId("publication-card-owl")
+    expect(within(owl).queryByText(/readers need an access code/i)).toBeNull()
   })
 
   it("totals the shelf and explains where the storage number comes from", async () => {
     renderDashboard()
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
 
     expect(document.body.textContent).toContain("Storage used")
@@ -261,7 +307,7 @@ describe("PublicationsDashboard — populated", () => {
     renderDashboard()
 
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-owl")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-owl")).toBeTruthy()
     })
     expect(document.body.textContent).toContain("at least")
   })
@@ -269,31 +315,35 @@ describe("PublicationsDashboard — populated", () => {
   it("links each row to that book's comments in the Storyboard, badged with its open count", async () => {
     renderDashboard()
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
 
-    const feedback = screen.getByRole("link", { name: /comments/i })
-    expect(feedback.getAttribute("data-to")).toBe("/books/$label/$step")
-    expect(JSON.parse(feedback.getAttribute("data-params") as string)).toEqual({
-      label: "raven",
-      step: "storyboard",
+    /** The count of threads waiting is on the card face — it is the reason to come back to
+     *  this screen at all, so it cannot be hidden behind a menu. */
+    const raven = screen.getByTestId("publication-card-raven")
+    expect(within(raven).getByText("3")).toBeTruthy()
+    expect(within(raven).getByText(/comments waiting for you/i)).toBeTruthy()
+
+    clickMenuItem(/^comments/i)
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/books/$label/$step",
+      params: { label: "raven", step: "storyboard" },
     })
-    expect(feedback.textContent).toContain("3")
 
     /** Publishing, not Export. These were the same screen until publishing became its own
      *  stage and Export was cut back to a pointer at it, and this assertion happily agreed with
      *  the stale destination — so it is spelled out here rather than left as a bare string. */
-    const update = screen.getByRole("link", { name: /update site/i })
-    expect(JSON.parse(update.getAttribute("data-params") as string)).toEqual({
-      label: "raven",
-      step: "publish",
+    clickMenuItem(/update site/i)
+    expect(navigate).toHaveBeenLastCalledWith({
+      to: "/books/$label/$step",
+      params: { label: "raven", step: "publish" },
     })
   })
 
   it("copies the share link and announces it", async () => {
     renderDashboard()
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
 
     await act(async () => {
@@ -303,23 +353,25 @@ describe("PublicationsDashboard — populated", () => {
     expect(writeText).toHaveBeenCalledWith(
       "https://adt-publish.escola.workers.dev/p/TokenRavenTokenRavenTokenRaven12/",
     )
-    const live = screen.getByRole("status")
-    expect(live.getAttribute("aria-live")).toBe("polite")
-    expect(live.textContent).toContain("Link copied to the clipboard.")
+    expect(toast.success).toHaveBeenCalledWith("Link copied to the clipboard")
+    expect(toast.error).not.toHaveBeenCalled()
   })
 
   it("offers a manual fallback when the clipboard refuses", async () => {
     writeText.mockRejectedValue(new Error("denied"))
     renderDashboard()
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /copy the link to/i }))
     })
 
-    expect(screen.getByRole("status").textContent).toContain("copy it by hand")
+    /** A button that silently does nothing teaches the author that sharing is broken, so the
+     *  refusal is said out loud and points at the one place the link can still be copied. */
+    expect(toast.success).not.toHaveBeenCalled()
+    expect(String(toast.error.mock.calls[0]?.[0])).toContain("Sharing step")
   })
 })
 
@@ -333,14 +385,12 @@ describe("PublicationsDashboard — lifecycle states", () => {
     renderDashboard()
 
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
-    expect(screen.getByTestId("publication-row-raven").getAttribute("data-state")).toBe("revoked")
-    expect(document.body.textContent).toContain("Sharing stopped")
+    expect(screen.getByTestId("publication-card-raven").getAttribute("data-state")).toBe("revoked")
+    expect(screen.getByTestId("publication-card-raven").textContent).toContain("Stopped")
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /resume sharing/i }))
-    })
+    await selectMenuItem(/resume sharing/i)
     expect(resumeBookPublication).toHaveBeenCalledWith("raven")
     expect(revokeBookPublication).not.toHaveBeenCalled()
   })
@@ -352,22 +402,24 @@ describe("PublicationsDashboard — lifecycle states", () => {
     renderDashboard()
 
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
-    expect(screen.getByTestId("publication-row-raven").getAttribute("data-state")).toBe("expired")
-    expect(document.body.textContent).toContain("Link expired")
-    expect(screen.queryByRole("button", { name: /resume sharing/i })).toBeNull()
+    expect(screen.getByTestId("publication-card-raven").getAttribute("data-state")).toBe("expired")
+    expect(screen.getByTestId("publication-card-raven").textContent).toContain("Expired")
+    /** An expired link cannot be resumed by flipping a switch — it needs a fresh publish — so
+     *  the menu must not offer it. */
+    expect(within(openCardMenu()).queryByRole("menuitem", { name: /resume sharing/i })).toBeNull()
+    expect(within(screen.getByRole("menu")).getByRole("menuitem", { name: /stop sharing/i }))
+      .toBeTruthy()
   })
 
   it("stops sharing a live link through the row action", async () => {
     renderDashboard()
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /stop sharing/i }))
-    })
+    await selectMenuItem(/stop sharing/i)
     expect(revokeBookPublication).toHaveBeenCalledWith("raven")
   })
 
@@ -375,12 +427,10 @@ describe("PublicationsDashboard — lifecycle states", () => {
     revokeBookPublication.mockRejectedValue(new Error("Your worker refused"))
     renderDashboard()
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /stop sharing/i }))
-    })
+    await selectMenuItem(/stop sharing/i)
 
     await waitFor(() => {
       expect(screen.getByTestId("publications-action-error").textContent).toContain(
@@ -398,21 +448,29 @@ describe("PublicationsDashboard — a book that is no longer on this computer", 
     renderDashboard()
 
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
-    const row = screen.getByTestId("publication-row-raven")
+    const row = screen.getByTestId("publication-card-raven")
     expect(row.textContent).toContain("Deleted Locally")
+    /** On the card itself, not only inside the menu: it is the reason every action below is
+     *  greyed out, and an author who never opens the menu still has to learn it. */
     expect(row.textContent).toContain("Book no longer on this computer")
 
     /** The link itself is still live and still openable — only the local actions are gone. */
-    expect(screen.getByRole("link", { name: /open/i })).toBeTruthy()
-    expect(screen.queryByRole("link", { name: /comments/i })).toBeNull()
+    expect(within(row).getByRole("link", { name: /^open /i })).toBeTruthy()
+
+    const menu = openCardMenu()
+    expect(menu.textContent).toContain("This book is not on this computer.")
+    for (const name of [/^comments/i, /update site/i]) {
+      expect(
+        within(menu).getByRole("menuitem", { name }).getAttribute("aria-disabled"),
+      ).toBe("true")
+    }
+    /** Stopping is a call to Cloudflare, not to this computer, so it stays available: the
+     *  author must be able to pull a live link down for a book they no longer hold. */
     expect(
-      within(row).getByRole("button", { name: /^comments/i }).hasAttribute("disabled"),
-    ).toBe(true)
-    expect(screen.getByRole("button", { name: /stop sharing/i }).hasAttribute("disabled")).toBe(
-      true,
-    )
+      within(menu).getByRole("menuitem", { name: /stop sharing/i }).getAttribute("aria-disabled"),
+    ).not.toBe("true")
   })
 
   it("still lets the author erase it — the only way that row can ever leave the shelf", async () => {
@@ -421,21 +479,19 @@ describe("PublicationsDashboard — a book that is no longer on this computer", 
     )
     renderDashboard()
 
-    const row = await screen.findByTestId("publication-row-raven")
-    const remove = within(row).getByRole("button", { name: /delete permanently/i })
-    expect(remove.hasAttribute("disabled")).toBe(false)
+    await screen.findByTestId("publication-card-raven")
 
-    /** Erasing is irreversible and takes the feedback with it, so it asks first. The panel is
-     *  always mounted so it can animate open, which is why the state is read off the trigger
-     *  rather than off the panel's presence. */
-    expect(remove.getAttribute("aria-expanded")).toBe("false")
-    fireEvent.click(remove)
+    /** Erasing is irreversible and takes the feedback with it, so it asks first. A menu closes
+     *  on select, so the question cannot grow in place the way the old row's did — it gets its
+     *  own dialog, and choosing the menu item must not be the act of deleting. */
+    clickMenuItem(/delete permanently/i)
     expect(deletePublication).not.toHaveBeenCalled()
-    expect(remove.getAttribute("aria-expanded")).toBe("true")
-    const confirm = within(row).getByTestId("publication-delete-confirm-raven")
-    expect(confirm.textContent).toContain("cannot be undone")
 
-    fireEvent.click(within(confirm).getByRole("button", { name: /^delete$/i }))
+    const confirm = await screen.findByTestId("publication-delete-confirm")
+    expect(confirm.textContent).toContain("Deleted Locally")
+    expect(confirm.textContent).toContain("stops working for everyone")
+
+    fireEvent.click(within(confirm).getByRole("button", { name: /delete permanently/i }))
     await waitFor(() => {
       expect(deletePublication).toHaveBeenCalledWith("TokenRavenTokenRavenTokenRaven12")
     })
@@ -448,11 +504,11 @@ describe("PublicationsDashboard — a book that is no longer on this computer", 
     deletePublication.mockRejectedValue(new Error("Your publishing service didn't answer"))
     renderDashboard()
 
-    const row = await screen.findByTestId("publication-row-raven")
-    fireEvent.click(within(row).getByRole("button", { name: /delete permanently/i }))
+    await screen.findByTestId("publication-card-raven")
+    clickMenuItem(/delete permanently/i)
     fireEvent.click(
-      within(screen.getByTestId("publication-delete-confirm-raven")).getByRole("button", {
-        name: /^delete$/i,
+      within(await screen.findByTestId("publication-delete-confirm")).getByRole("button", {
+        name: /delete permanently/i,
       }),
     )
 
@@ -463,7 +519,7 @@ describe("PublicationsDashboard — a book that is no longer on this computer", 
         "didn't answer",
       )
     })
-    expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+    expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     expect(screen.queryByTestId("publications-action-error")).toBeNull()
   })
 
@@ -478,11 +534,11 @@ describe("PublicationsDashboard — a book that is no longer on this computer", 
     )
     renderDashboard()
 
-    const row = await screen.findByTestId("publication-row-raven")
-    fireEvent.click(within(row).getByRole("button", { name: /delete permanently/i }))
+    await screen.findByTestId("publication-card-raven")
+    clickMenuItem(/delete permanently/i)
     fireEvent.click(
-      within(screen.getByTestId("publication-delete-confirm-raven")).getByRole("button", {
-        name: /^delete$/i,
+      within(await screen.findByTestId("publication-delete-confirm")).getByRole("button", {
+        name: /delete permanently/i,
       }),
     )
 
@@ -517,7 +573,7 @@ describe("PublicationsDashboard — worker unreachable", () => {
     await waitFor(() => {
       expect(screen.getByTestId("publications-worker-unreachable")).toBeTruthy()
     })
-    expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+    expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     expect(document.body.textContent).toContain("isn't answering")
     /** No "0 open comments" and no "0 kB": both would be claims nobody measured. */
     expect(document.body.textContent).not.toContain("Nothing open")
@@ -556,7 +612,10 @@ describe("PublicationsDashboard — worker unreachable", () => {
 })
 
 describe("PublicationsDashboard — filtering", () => {
-  it("filters to live and to not-shared links, and offers a way back", async () => {
+  /** There is no all/live/not-shared switch: a shelf of tens is read whole, and the lifecycle
+   *  of each link is already a pill on its card. The one filter left is the one that answers a
+   *  question the card grid cannot — "what is waiting for me". */
+  it("offers no lifecycle tabs, only the question the cards cannot answer", async () => {
     getPublications.mockResolvedValue(
       overview({
         publications: [
@@ -575,35 +634,32 @@ describe("PublicationsDashboard — filtering", () => {
     await waitFor(() => {
       expect(screen.getAllByRole("listitem")).toHaveLength(2)
     })
-
-    fireEvent.click(screen.getByRole("radio", { name: /^live$/i }))
-    await waitFor(() => {
-      expect(screen.getAllByRole("listitem")).toHaveLength(1)
-    })
-    expect(screen.queryByTestId("publication-row-owl")).toBeNull()
-
-    fireEvent.click(screen.getByRole("radio", { name: /not shared/i }))
-    await waitFor(() => {
-      expect(screen.getByTestId("publication-row-owl")).toBeTruthy()
-    })
-    expect(screen.queryByTestId("publication-row-raven")).toBeNull()
+    expect(screen.queryByRole("radiogroup")).toBeNull()
+    expect(screen.queryByRole("radio", { name: /^live$/i })).toBeNull()
+    expect(screen.queryByRole("radio", { name: /not shared/i })).toBeNull()
+    /** Both are still listed and still tell their state apart without the tabs. */
+    expect(screen.getByTestId("publication-card-raven").getAttribute("data-state")).toBe("active")
+    expect(screen.getByTestId("publication-card-owl").getAttribute("data-state")).toBe("revoked")
   })
 
   it("explains an empty filter rather than showing a blank list", async () => {
+    getPublications.mockResolvedValue(
+      overview({ publications: [summary({ unresolved_count: 0, comment_count: 0 })] }),
+    )
     renderDashboard()
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
 
-    fireEvent.click(screen.getByRole("radio", { name: /not shared/i }))
+    fireEvent.click(screen.getByRole("button", { name: /only with open feedback/i }))
     await waitFor(() => {
       expect(screen.getByTestId("publications-filter-empty")).toBeTruthy()
     })
-    expect(document.body.textContent).toContain("Every one of your links is live.")
+    expect(document.body.textContent).toContain("every thread is resolved")
 
     fireEvent.click(screen.getByRole("button", { name: /clear the filters/i }))
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
   })
 })
@@ -637,14 +693,14 @@ describe("PublicationsDashboard — searching and sorting", () => {
     return screen
       .getAllByRole("listitem")
       .map((row) => row.getAttribute("data-testid") ?? "")
-      .filter((testid) => testid.startsWith("publication-row-"))
+      .filter((testid) => testid.startsWith("publication-card-"))
   }
 
   it("narrows the shelf by title and says so when nothing matches", async () => {
     getPublications.mockResolvedValue(shelf())
     renderDashboard()
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
 
     fireEvent.change(screen.getByRole("searchbox", { name: /search shared books/i }), {
@@ -653,7 +709,7 @@ describe("PublicationsDashboard — searching and sorting", () => {
     await waitFor(() => {
       expect(screen.getAllByRole("listitem")).toHaveLength(1)
     })
-    expect(screen.getByTestId("publication-row-owl")).toBeTruthy()
+    expect(screen.getByTestId("publication-card-owl")).toBeTruthy()
 
     fireEvent.change(screen.getByRole("searchbox", { name: /search shared books/i }), {
       target: { value: "penguin" },
@@ -670,19 +726,19 @@ describe("PublicationsDashboard — searching and sorting", () => {
     getPublications.mockResolvedValue(shelf())
     renderDashboard()
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
     expect(titlesInOrder()).toEqual([
-      "publication-row-owl",
-      "publication-row-raven",
-      "publication-row-fox",
+      "publication-card-owl",
+      "publication-card-raven",
+      "publication-card-fox",
     ])
 
     fireEvent.click(screen.getByRole("button", { name: /only with open feedback/i }))
     await waitFor(() => {
       expect(screen.getAllByRole("listitem")).toHaveLength(2)
     })
-    expect(screen.queryByTestId("publication-row-owl")).toBeNull()
+    expect(screen.queryByTestId("publication-card-owl")).toBeNull()
   })
 })
 
@@ -703,30 +759,27 @@ describe("PublicationsDashboard — readers", () => {
     })
     renderDashboard()
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
     expect(getPublicationReaders).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole("button", { name: /readers/i }))
+    clickMenuItem(/readers/i)
+    const panel = await screen.findByRole("dialog")
     await waitFor(() => {
-      expect(document.body.textContent).toContain("Ana")
+      expect(panel.textContent).toContain("Ana")
     })
     expect(getPublicationReaders).toHaveBeenCalledWith("TokenRavenTokenRavenTokenRaven12")
-    expect(document.body.textContent).toContain("Only people who typed a name are listed")
+    expect(panel.textContent).toContain("Only people who typed a name are listed")
 
-    /** Closing collapses rather than unmounts, so the drawer can animate shut — but the
-     *  collapsed panel has to be hidden from assistive tech, and re-opening must not re-ask. */
-    const toggle = screen.getByRole("button", { name: /readers/i })
-    fireEvent.click(toggle)
+    /** A dialog rather than a drawer inside the card: on a grid, expanding one card in place
+     *  reflows every card after it. Re-opening must not re-ask the worker. */
+    fireEvent.keyDown(panel, { key: "Escape" })
     await waitFor(() => {
-      expect(
-        document
-          .getElementById("publication-readers-TokenRavenTokenRavenTokenRaven12")
-          ?.getAttribute("aria-hidden"),
-      ).toBe("true")
+      expect(screen.queryByRole("dialog")).toBeNull()
     })
 
-    fireEvent.click(toggle)
+    clickMenuItem(/readers/i)
+    await screen.findByRole("dialog")
     expect(getPublicationReaders).toHaveBeenCalledTimes(1)
   })
 
@@ -737,10 +790,10 @@ describe("PublicationsDashboard — readers", () => {
     )
     renderDashboard()
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
 
-    fireEvent.click(screen.getByRole("button", { name: /readers/i }))
+    clickMenuItem(/readers/i)
     await waitFor(() => {
       expect(screen.getByTestId("publication-readers-outdated")).toBeTruthy()
     })
@@ -753,10 +806,10 @@ describe("PublicationsDashboard — readers", () => {
     getPublicationReaders.mockResolvedValue({ readers: [] })
     renderDashboard()
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
 
-    fireEvent.click(screen.getByRole("button", { name: /readers/i }))
+    clickMenuItem(/readers/i)
     await waitFor(() => {
       expect(document.body.textContent).toContain("Nobody has given a name yet")
     })
@@ -779,7 +832,7 @@ describe("PublicationsDashboard — the list itself cannot be read", () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+      expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
   })
 })
