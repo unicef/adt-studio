@@ -29,6 +29,7 @@ This document records all significant technology and architecture decisions made
 21. [Context-Aware Top Bar Button](#021-context-aware-top-bar-button)
 22. [Unified Stage/Step Status via useBookRun](#022-unified-stagestep-status-via-usebookrun)
 23. [Visual Refinement + File-Based Debug Screenshots](#023-visual-refinement--file-based-debug-screenshots)
+24. [Section Content Freshness and Scoped Regeneration (proposed)](#adr-024)
 
 ---
 
@@ -862,6 +863,77 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 | Store screenshots in SQLite BLOBs | Adds DB bloat/churn for debug binaries, harder cleanup |
 | External object store for screenshots | Unnecessary infrastructure for local/self-hosted workflows |
 
+<a id="adr-024"></a>
+
+## 024: Section Content Freshness and Scoped Regeneration
+
+**Status**: Proposed
+
+**Date**: 2026-09-11
+
+**Updated**: 2026-09-21
+
+**Spec**: [SPEC-0001](specs/SPEC-0001-per-section-staleness.md)
+
+**Issues**: #735, #733, #736, #131, #619, #626
+
+### Context
+
+Book-wide invalidation can delete outputs and manual corrections after a local
+edit. Raw input-version comparison would also invalidate downstream content
+after a cosmetic Storyboard save. The first release needs predictable section
+scope without per-element dependency tracking.
+
+### Proposed Decision
+
+Track freshness and regenerate at section scope for captions, translation,
+easy-read and speech. Compare deterministic section content snapshots: relevant
+text, image identity, captions, ordering and other consumed context. Exclude
+purely cosmetic styles such as text color and displayed image size. Include
+effective generation settings and shared dependencies where consumed. Storyboard's
+own freshness is outside V1 scope. In particular, tracking Sectioning edits so a
+Storyboard stage run rebuilds only affected pages is a separate follow-up. This
+decision governs downstream effects of existing Storyboard save/re-render
+actions, not selection of pages for Storyboard regeneration.
+
+A relevant change marks affected section outputs stale without deleting them.
+Page and stage actions select sections and use the same downstream execution
+path. Each affected step runs in full for the selected sections, processing all
+eligible assets through the existing cache rather than selecting only changed
+elements. A full step run does not require fresh provider calls for cached
+requests. Merge generated results without changing unrelated sections. Preserve
+manual corrections and flag upstream-affected manual work for review; an ordinary
+stage run never authorizes replacing it.
+
+Keep existing LLM-level caching. An identical complete request with a valid cache
+entry makes no new provider call. Changed batching or context can miss the cache,
+even when some individual texts are unchanged. Do not promise per-element cost
+or a fixed percentage of full-book cost. Regeneration normally permits cache
+hits; a force-fresh policy is separate.
+
+### Consequences
+
+- Cosmetic edits avoid downstream regeneration; content edits use section scope.
+- Stable section ownership, provenance and scoped merging are required even
+  while outputs remain stored in page/book/language collections.
+- Failed runs preserve old outputs and cannot mark newer inputs current.
+- Existing books retain their data; unknown historical freshness is not inferred
+  from a snapshot of today's inputs. Downgrade behavior is not yet guaranteed.
+- Larger generation batches may compute extra content, but cannot replace
+  outputs outside the selected scope; their cost must be measured and visible.
+- Manual-review resolution and stale-output export policy remain open in the
+  spec. This ADR stays proposed until those review decisions are resolved.
+
+### Alternatives Considered
+
+- Non-destructive whole-stage invalidation: useful interim protection, but a
+  local edit can still schedule the whole book.
+- Raw input-version comparison: a save/version change alone does not establish
+  that downstream content changed.
+- Per-element dependency tracking: more precision than V1 requires; section
+  context already makes some unchanged elements depend on changed neighbors.
+- A general dependency graph: deferred beyond the four in-scope outputs.
+
 ---
 
 ## Decision Log Summary
@@ -891,6 +963,7 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 | 021 | Top bar button | Context-aware per stage | Per-stage inline buttons in sidebar |
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
+| 024 (proposed) | Downstream freshness | Section content comparison and scoped regeneration with existing LLM caching | Raw version comparison, per-element dependency tracking |
 
 ---
 

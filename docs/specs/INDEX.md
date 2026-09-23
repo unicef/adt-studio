@@ -5,7 +5,7 @@ Statuses: draft · in-review · approved · in-progress · implemented · verifi
 
 | Spec      | Title                                                           | Status | Owner       | Needed by |
 |-----------|-----------------------------------------------------------------|--------|-------------|-----------|
-| SPEC-0001 | Per-section staleness and scoped regeneration                   | draft  | @ksokolovic | Block 1   |
+| SPEC-0001 | Per-section staleness and scoped regeneration                   | in-review | @ksokolovic | Block 1   |
 | SPEC-0002 | Manual-edit preservation for translation, quiz, sectioning, TOC | draft  | @ksokolovic | Block 1   |
 | SPEC-0003 | Three sectioning modes and auto cross-page merge                | draft  | TBD         | Block 2   |
 | SPEC-0004 | Style guide, Styles panel, token-enforced rendering             | draft  | TBD         | Block 2   |

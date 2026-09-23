@@ -14,6 +14,6 @@ Each spec that establishes an invariant adds its checker in the same change.
 | 2 | No unconditional `clear*` / `DELETE` of user-touched entities | storage-layer test + lint rule banning new call sites | every PR | SPEC-0001 |
 | 3 | Sections and quizzes are created only via the ID factories | unit test over every creation path | every PR | SPEC-0008 (#834) |
 | 4 | `PIPELINE` is the single source of stage/step truth | CI check: generated DAG section in ARCHITECTURE.md matches code | every PR | existing |
-| 5 | Staleness semantics (per-section, input-version comparison, never delete) | contract tests in `packages/pipeline/test/staleness.contract.test.ts` | every PR | SPEC-0001 |
+| 5 | Staleness semantics (section content comparison, full-step regeneration for selected sections, cache reuse, never delete) | planned contract tests in `packages/pipeline/src/__tests__/staleness.contract.test.ts` and API save/run regression tests | every PR | SPEC-0001 |
 | 6 | Prompt output contracts | validator suite per prompt (page sectioning exists; extend) | every PR | SPEC-0003, SPEC-0004 |
 | 7 | No provider key in logs or model-call records | log scrubber test + grep in CI | every PR | security chain (Block 1) |
