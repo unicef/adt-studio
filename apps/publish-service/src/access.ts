@@ -1,7 +1,7 @@
 import type { Context, Hono } from "hono"
 import { getCookie, setCookie } from "hono/cookie"
 import { createMiddleware } from "hono/factory"
-import { html } from "hono/html"
+import { html, raw } from "hono/html"
 import {
   COMMENTER_NAME_MAX_LENGTH,
   PUBLICATION_ACCESS_CODE_LENGTH,
@@ -13,6 +13,15 @@ import {
 import type { Env } from "./env.js"
 import { attemptGate, callerIp } from "./access-throttle.js"
 import { errorResponse } from "./errors.js"
+import {
+  GATE_STRINGS,
+  READER_LANGUAGE_KEY,
+  readBookLanguages,
+  resolveGateLocale,
+  stringsFor,
+  type GateLanguage,
+  type GateLocale,
+} from "./gate-i18n.js"
 import {
   accessCookieIsValid,
   accessCookieValue,
@@ -114,6 +123,59 @@ export interface GatePageOptions {
   waiting?: boolean
   /** The cover file at the snapshot root, when the book has one. */
   cover?: string | null
+  /** Which language the door speaks — the one the reader will open in. English when absent. */
+  locale?: GateLocale
+}
+
+/** What the page needs from inside the book: its cover and its languages, read together. */
+async function describeBook(
+  c: AccessContext,
+  store: PublicationStore,
+  publication: Publication,
+): Promise<{ cover: string | null; locale: GateLocale }> {
+  const [cover, languages] = await Promise.all([
+    findCoverFile(store, publication),
+    readBookLanguages(c, store, publication),
+  ])
+  return { cover, locale: resolveGateLocale(c, languages) }
+}
+
+/**
+ * The server can see the reader's saved language only when the book keeps it in a cookie; by
+ * default the reader keeps it in local storage. So a book with more than one language also
+ * carries its alternatives, and this re-labels the page before it paints — the same precedence
+ * as the reader's own `readPersistedLanguage`: local storage first, and a stored language this
+ * book does not offer (local storage is shared by every book on the host) means the default.
+ */
+const LANGUAGE_SCRIPT = html`<script>
+(function () {
+  var data = document.getElementById("gate-languages")
+  if (!data) return
+  var raw = null
+  try { raw = localStorage.getItem("${READER_LANGUAGE_KEY}") } catch (e) {}
+  if (!raw) return
+  var stored = raw
+  try { var parsed = JSON.parse(raw); if (typeof parsed === "string") stored = parsed } catch (e) {}
+  var info = JSON.parse(data.textContent)
+  var language = info.map[stored] || info.fallback
+  if (language === document.documentElement.lang) return
+  var strings = info.strings[language]
+  document.querySelectorAll("[data-i18n]").forEach(function (el) {
+    var text = strings[el.getAttribute("data-i18n")]
+    if (text) el.textContent = text
+  })
+  document.documentElement.lang = language
+})()
+</script>`
+
+function languageData(locale: GateLocale | undefined) {
+  if (!locale || locale.book.available.length < 2) return ""
+  const strings: Partial<Record<GateLanguage, unknown>> = {}
+  for (const language of Object.values(locale.alternatives)) strings[language] = stringsFor(language)
+  const fallback = (locale.book.default && locale.alternatives[locale.book.default]) || "en"
+  strings[fallback] = stringsFor(fallback)
+  const json = JSON.stringify({ map: locale.alternatives, fallback, strings }).replace(/</g, "\\u003c")
+  return html`<script type="application/json" id="gate-languages">${raw(json)}</script>${LANGUAGE_SCRIPT}`
 }
 
 const LOCK_ICON = html`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -176,6 +238,40 @@ const OTP_SCRIPT = html`<script>
 })()
 </script>`
 
+/** The backdrop for a book with no cover, and for one whose cover failed to load. */
+const FALLBACK_BACKDROP =
+  "radial-gradient(60% 60% at 30% 20%,#6366f1,transparent),radial-gradient(60% 60% at 80% 90%,#a855f7,transparent),#312e81"
+
+/**
+ * The cover is the one thing on the page fetched separately, and on a slow connection it can
+ * arrive well after the card. Until it does, the book keeps its shape — page edges, back board —
+ * with a shimmer across a blank front, and the blurred backdrop waits too; both fade in when the
+ * image lands. A cover that fails to load turns into the plain locked book rather than a
+ * broken image. Without script the image simply appears when it arrives.
+ */
+const COVER_SCRIPT = html`<script>
+(function () {
+  var front = document.querySelector(".front.loading")
+  var img = front && front.querySelector("img")
+  if (!img) return
+  var root = document.documentElement
+  function done(ok) {
+    front.classList.remove("loading")
+    root.classList.remove("cover-pending")
+    if (ok) {
+      front.classList.add("loaded")
+      return
+    }
+    front.classList.add("failed")
+    root.classList.add("cover-failed")
+    front.querySelector(".face.plain").hidden = false
+  }
+  if (img.complete) return done(img.naturalWidth > 0)
+  img.addEventListener("load", function () { done(true) })
+  img.addEventListener("error", function () { done(false) })
+})()
+</script>`
+
 /**
  * The access-code page: a whole document in one response, inline-styled, so it renders
  * identically whether the reader arrived before any of the snapshot's own assets loaded or after
@@ -198,8 +294,14 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
   const failed = wrong || waiting
   const cover = options.cover ?? null
   const coverUrl = cover ? `/p/${publication.token}/${cover}` : null
+  const locale = options.locale
+  const t = locale?.strings ?? GATE_STRINGS.en
+  const language = locale?.language ?? "en"
+  const titleLanguage = locale?.book.default ?? locale?.bookLanguage ?? null
   return html`<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="${language}"${coverUrl ? html` class="cover-pending"` : ""}><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script>document.documentElement.classList.add("js")</script>
 <title>${title}</title>
 <style>
   :root { color-scheme:light; --brand:#4f46e5; --brand-dark:#4338ca; --ink:#18181b; --muted:#52525b; --soft:#eef2ff }
@@ -208,10 +310,12 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
          position:relative; overflow-x:hidden; background:#1e1b4b; color:var(--ink);
          font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif }
   body::before { content:""; position:fixed; inset:-40px; z-index:0; transform:scale(1.1); opacity:.75;
-                 filter:blur(40px) saturate(1.3);
+                 filter:blur(40px) saturate(1.3); transition:opacity .8s ease;
                  background:${coverUrl
                    ? html`url("${coverUrl}") center/cover`
-                   : "radial-gradient(60% 60% at 30% 20%,#6366f1,transparent),radial-gradient(60% 60% at 80% 90%,#a855f7,transparent),#312e81"} }
+                   : FALLBACK_BACKDROP} }
+  .js.cover-pending body::before { opacity:0 }
+  .cover-failed body::before { background:${FALLBACK_BACKDROP} }
   body::after { content:""; position:fixed; inset:0; z-index:0;
                 background:linear-gradient(90deg, rgba(10,10,30,.62), rgba(10,10,30,.25) 60%, rgba(10,10,30,.2)) }
   .scene { position:relative; z-index:1; width:100%; max-width:66rem; display:grid; grid-template-columns:1fr auto;
@@ -265,6 +369,15 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
   .front { position:relative; transform:translateZ(calc(var(--t) / 2)); border-radius:2px 5px 5px 2px; overflow:hidden;
            box-shadow:0 0 0 1px rgba(0,0,0,.08) }
   .face { display:block; height:var(--bh); width:auto; max-width:calc(var(--bh) * .8) }
+  .face.plain[hidden] { display:none }
+  .js .front.loading { width:calc(var(--bh) * .7); height:var(--bh); background:linear-gradient(155deg,#ecebf5,#d8d5e8) }
+  .js .front.loading::before { content:""; position:absolute; inset:0; z-index:1;
+      background:linear-gradient(100deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.6) 50%, rgba(255,255,255,0) 70%);
+      background-size:250% 100%; animation:shimmer 1.4s linear infinite }
+  .js .front.loading .face.cover { position:absolute; inset:0; opacity:0 }
+  .front.loaded .face.cover { animation:fade .5s ease-out both }
+  .front.failed .face.cover { display:none }
+  .cover-failed .back { background:#312e81 }
   .face.plain { width:calc(var(--bh) * .68); display:flex; flex-direction:column; justify-content:space-between;
                 padding:8% 7% 8% 9%; background:linear-gradient(155deg,#4f46e5,#312e81 70%); color:#fff }
   .face.plain b { font-size:calc(var(--bh) * .06); line-height:1.2; overflow-wrap:anywhere; hyphens:auto }
@@ -285,6 +398,8 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
           background:${coverUrl ? html`url("${coverUrl}") center/cover` : "#312e81"} }
   @keyframes rise { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:none } }
   @keyframes appear { from { opacity:0 } }
+  @keyframes fade { from { opacity:0 } }
+  @keyframes shimmer { from { background-position:100% 0 } to { background-position:-150% 0 } }
   @keyframes settle { from { transform:rotateY(-62deg) rotateX(8deg) translateY(14px) } }
   @keyframes pop { from { transform:scale(.92) } to { transform:none } }
   @keyframes blink { 50% { opacity:0 } }
@@ -302,20 +417,19 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
 <body>
 <div class="scene">
   <main>
-    <span class="badge">${LOCK_ICON}Access code needed</span>
-    <h1>${title}</h1>
-    <p class="intro">You've been invited to read this book and leave comments. Enter your name and the code you were
-      given.</p>
+    <span class="badge">${LOCK_ICON}<span data-i18n="badge">${t.badge}</span></span>
+    <h1${titleLanguage ? html` lang="${titleLanguage}"` : ""} dir="auto">${title}</h1>
+    <p class="intro" data-i18n="intro">${t.intro}</p>
     <form method="post" action="/p/${publication.token}/access">
       <input type="hidden" name="${NEXT_FIELD}" value="${options.next ?? ""}">
       <div class="field">
-        <label for="name">Your name</label>
+        <label for="name" data-i18n="nameLabel">${t.nameLabel}</label>
         <div class="iconfield">${PERSON_ICON}<input class="text" id="name" name="${NAME_FIELD}"${failed ? "" : html` autofocus`}
                required autocomplete="name" spellcheck="false" enterkeyhint="next" maxlength="${COMMENTER_NAME_MAX_LENGTH}"
                value="${options.name ?? ""}"></div>
       </div>
       <div class="field">
-        <label for="code">Access code</label>
+        <label for="code" data-i18n="codeLabel">${t.codeLabel}</label>
         <div class="otp${wrong && !waiting ? " invalid" : ""}" data-min="${PUBLICATION_ACCESS_CODE_LENGTH}">
           <input id="code" name="${CODE_FIELD}" required autocomplete="off" autocapitalize="characters"
                  spellcheck="false" enterkeyhint="go" maxlength="${PUBLICATION_ACCESS_CODE_MAX_LENGTH}"
@@ -324,25 +438,24 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
       </div>
       ${
         waiting
-          ? html`<p class="error waiting" id="code-error" role="alert">Too many tries. Wait a moment, then enter the code again.</p>`
+          ? html`<p class="error waiting" id="code-error" role="alert" data-i18n="waiting">${t.waiting}</p>`
           : wrong
-            ? html`<p class="error" id="code-error" role="alert">That code doesn't open this book. Check it and try again.</p>`
+            ? html`<p class="error" id="code-error" role="alert" data-i18n="wrongCode">${t.wrongCode}</p>`
             : ""
       }
-      <p class="hint" id="code-hint">Capital or small letters both work.</p>
-      <button type="submit">Open the book</button>
+      <p class="hint" id="code-hint" data-i18n="hint">${t.hint}</p>
+      <button type="submit" data-i18n="button">${t.button}</button>
     </form>
   </main>
   <div class="art" aria-hidden="true"><div class="stand"><div class="book">
     <div class="back"></div><div class="pages"></div>
-    <div class="front">${
-      coverUrl
-        ? html`<img class="face cover" src="${coverUrl}" alt="">`
-        : html`<div class="face plain lock"><span>${LOCK_ICON}</span><b>${title}</b></div>`
-    }<span class="hinge"></span><span class="gloss"></span></div>
+    <div class="front${coverUrl ? " loading" : ""}">${
+      coverUrl ? html`<img class="face cover" src="${coverUrl}" alt="">` : ""
+    }<div class="face plain lock"${coverUrl ? html` hidden` : ""}><span>${LOCK_ICON}</span><b>${title}</b></div><span
+      class="hinge"></span><span class="gloss"></span></div>
   </div></div></div>
 </div>
-${OTP_SCRIPT}
+${languageData(locale)}${coverUrl ? COVER_SCRIPT : ""}${OTP_SCRIPT}
 </body></html>
 `
 }
@@ -383,8 +496,8 @@ export function createAccessGate(resolveStore: (env: Env) => PublicationStore) {
       return errorResponse(c, "unauthorized", 401, UNAUTHORIZED_MESSAGE)
     }
 
-    const cover = await findCoverFile(resolveStore(c.env), publication)
-    return c.html(gatePage(publication, { next: currentRelative(c, publication.token), cover }), 401)
+    const book = await describeBook(c, resolveStore(c.env), publication)
+    return c.html(gatePage(publication, { next: currentRelative(c, publication.token), ...book }), 401)
   })
 }
 
@@ -491,7 +604,7 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
               next,
               name,
               waiting: true,
-              cover: await findCoverFile(deps.resolveStore(c.env), publication),
+              ...(await describeBook(c, deps.resolveStore(c.env), publication)),
             }),
             429,
           )
@@ -521,7 +634,7 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
               wrongCode: true,
               next,
               name,
-              cover: await findCoverFile(deps.resolveStore(c.env), publication),
+              ...(await describeBook(c, deps.resolveStore(c.env), publication)),
             }),
             401,
           )
