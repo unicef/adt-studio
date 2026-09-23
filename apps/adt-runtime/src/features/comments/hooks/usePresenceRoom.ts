@@ -222,7 +222,7 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
       const section = sectionRef.current
       if (section === null) return
 
-      const anchor = anchorFromPoint(point.x, point.y)
+      const anchor = anchorFromPoint(point.x, point.y, { precise: true })
       if (!anchor) return
 
       lastSentAt = Date.now()
@@ -327,7 +327,7 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
 
       const x = window.innerWidth / 2
       for (const fraction of [0.5, 0.4, 0.6, 0.3, 0.7]) {
-        const anchor = anchorFromPoint(x, window.innerHeight * fraction)
+        const anchor = anchorFromPoint(x, window.innerHeight * fraction, { precise: true })
         if (!anchor) continue
         socketRef.current?.send({
           t: "viewport",
