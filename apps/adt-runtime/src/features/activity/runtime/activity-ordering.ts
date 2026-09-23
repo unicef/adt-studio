@@ -18,6 +18,7 @@ import {
 import { playActivitySound } from "@/features/activity/runtime/sounds"
 import { showActivityProgressToast } from "@/features/activity/lib/progress-toast"
 import { announceToScreenReader } from "@/shared/lib/aria-live"
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 const ORDERING_SELECTOR = 'section[data-section-type="activity_ordering"]'
 const ITEM_SELECTOR = "[data-activity-order-list] > [data-activity-item]"
@@ -230,7 +231,7 @@ export function initializeOrderingActivity(): (() => void) | null {
   const handleValidate = () => {
     if (store.get(submitStateAtom) === "next") {
       const href = findNextPageHref()
-      if (href) window.location.href = href
+      if (href) navigateToPage(href)
       return
     }
     clearVerdicts()
@@ -266,7 +267,7 @@ export function initializeOrderingActivity(): (() => void) | null {
 
   const handleSkip = () => {
     const href = findNextPageHref()
-    if (href) window.location.href = href
+    if (href) navigateToPage(href)
   }
 
   const applyLocalizedText = () => {
