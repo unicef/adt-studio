@@ -23,6 +23,7 @@ vi.mock("@lingui/react/macro", () => {
   }
   return {
     Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    Plural: ({ value }: { value: number }) => <>{value}</>,
     useLingui: () => ({
       t: templateToString,
       i18n: { _: (descriptor: { id?: string }) => descriptor?.id ?? "", locale: "en" },
@@ -151,6 +152,7 @@ vi.mock("@/api/client", () => ({
     listPublishRuns,
   },
   getBookCoverUrl: (label: string) => `/api/books/${label}/cover`,
+  BASE_URL: "/api",
   ApiError: MockApiError,
   apiErrorCode: (error: unknown) => (error instanceof MockApiError ? error.code : null),
 }))

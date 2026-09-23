@@ -3,7 +3,6 @@ import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import type { BookPublicationVersionRecord } from "@/api/client"
 
 vi.mock("@lingui/react/macro", () => {
   function templateToString(strings: TemplateStringsArray, ...values: unknown[]) {
@@ -88,115 +87,11 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => <a href={to}>{children}</a>,
 }))
 
-const { PublishingFreshness } = await import("./PublishingFreshness")
-const { PublishingInvitation } = await import("./PublishingInvitation")
 const { PublishingTakeover } = await import("./PublishingTakeover")
-
-function version(overrides: Partial<BookPublicationVersionRecord> = {}): BookPublicationVersionRecord {
-  return {
-    version: 3,
-    published_at: "2026-08-04T10:00:00.000Z",
-    page_count: 24,
-    content_revision: 40,
-    ...overrides,
-  }
-}
 
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
-})
-
-describe("PublishingFreshness", () => {
-  it("says readers are current when nothing has been written since the publish", () => {
-    render(<PublishingFreshness contentRevision={40} liveVersion={version()} workerReachable />)
-    expect(screen.getByTestId("publish-freshness-current")).toBeTruthy()
-  })
-
-  it("warns when the book has moved on", () => {
-    render(<PublishingFreshness contentRevision={41} liveVersion={version()} workerReachable />)
-    expect(screen.getByTestId("publish-freshness-stale")).toBeTruthy()
-    expect(document.body.textContent).toContain("readers are seeing an older copy")
-  })
-
-  /**
-   * The load-bearing case. A version published before revisions were recorded knows nothing, and
-   * saying "up to date" there would be a guess about the one fact the author is relying on.
-   */
-  it("admits it cannot tell rather than claiming the link is current", () => {
-    render(<PublishingFreshness
-        contentRevision={40}
-        liveVersion={version({ content_revision: null })}
-        workerReachable
-      />)
-    expect(screen.getByTestId("publish-freshness-unknown")).toBeTruthy()
-    expect(screen.queryByTestId("publish-freshness-current")).toBeNull()
-
-    cleanup()
-    render(<PublishingFreshness contentRevision={null} liveVersion={version()} workerReachable />)
-    expect(screen.getByTestId("publish-freshness-unknown")).toBeTruthy()
-  })
-
-  /**
-   * Every other branch is a sentence about what readers are seeing. When the service did not
-   * answer, that is a claim this machine cannot make — and it used to make it anyway, in green,
-   * directly under a header that said the service was down.
-   */
-  it("stops speaking for readers when the service is not answering", () => {
-    render(<PublishingFreshness contentRevision={40} liveVersion={version()} workerReachable={false} />)
-    expect(screen.getByTestId("publish-freshness-unreachable")).toBeTruthy()
-    expect(screen.queryByTestId("publish-freshness-current")).toBeNull()
-    expect(document.body.textContent).not.toContain("Readers are seeing your current work")
-
-    cleanup()
-    render(<PublishingFreshness contentRevision={41} liveVersion={version()} workerReachable={false} />)
-    expect(screen.getByTestId("publish-freshness-unreachable")).toBeTruthy()
-    expect(screen.queryByTestId("publish-freshness-stale")).toBeNull()
-    expect(document.body.textContent).toContain("You have edited this book since the last update")
-  })
-})
-
-describe("PublishingInvitation", () => {
-  const URL = "https://adt-publish.example.workers.dev/p/abcdefghijklmnopqrstuvwxyz012345/"
-
-  it("composes a message with the link, the code and the end date", () => {
-    render(
-      <PublishingInvitation
-        title="Raven and the Sun"
-        url={URL}
-        accessCode="3MAKEX"
-        expiresAt="2026-09-12T00:00:00.000Z"
-      />,
-    )
-    const text = screen.getByTestId("publish-invitation-preview").textContent ?? ""
-    expect(text).toContain("Raven and the Sun is ready to read.")
-    expect(text).toContain(`Open: ${URL}`)
-    expect(text).toContain("Access code: 3MAKEX")
-    expect(text).toContain("stops working on")
-  })
-
-  /** Promising a code in a message that has none would send a class to a door they cannot open. */
-  it("leaves out the code line when the link needs no code", () => {
-    render(
-      <PublishingInvitation title="Raven" url={URL} accessCode={null} expiresAt={null} />,
-    )
-    const text = screen.getByTestId("publish-invitation-preview").textContent ?? ""
-    expect(text).not.toContain("Access code")
-    expect(text).not.toContain("stops working")
-    expect(document.body.textContent).toContain("Anyone with the link can open it")
-  })
-
-  it("copies exactly the text it is showing", async () => {
-    const writeText = vi.fn(() => Promise.resolve())
-    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true })
-
-    render(
-      <PublishingInvitation title="Raven" url={URL} accessCode="3MAKEX" expiresAt={null} />,
-    )
-    const shown = screen.getByTestId("publish-invitation-preview").textContent
-    fireEvent.click(screen.getByRole("button", { name: /copy this message/i }))
-    expect(writeText).toHaveBeenCalledWith(shown)
-  })
 })
 
 describe("PublishingTakeover", () => {

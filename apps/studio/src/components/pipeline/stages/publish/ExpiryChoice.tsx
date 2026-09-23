@@ -37,7 +37,7 @@ export function ExpiryChoice({ value, onChange, label, disabled = false }: Expir
                 "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-[background-color,border-color,color] duration-200 motion-reduce:transition-none",
                 selected
                   ? "border-primary/60 bg-primary/5 font-medium text-foreground"
-                  : "border-border bg-white text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                  : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
                 disabled && "cursor-not-allowed opacity-60",
               )}
             >
