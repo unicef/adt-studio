@@ -124,7 +124,9 @@ describe("the book's cover at the door", () => {
     const page = await get(token, "", navigation())
     expect(page.status).toBe(401)
     const html = await page.text()
-    expect(html).toContain(`<img class="cover" src="/p/${token}/cover.png"`)
+    expect(html).toContain(`<img class="face cover" src="/p/${token}/cover.png"`)
+    /** The same cover, blurred, is the page's backdrop. */
+    expect(html).toContain(`url("/p/${token}/cover.png") center/cover`)
     expect(html).toContain("Access code needed")
   })
 
@@ -136,12 +138,13 @@ describe("the book's cover at the door", () => {
     expect((await get(token, "index.html", navigation())).status).toBe(401)
   })
 
-  it("keeps the lock icon for a book with no cover", async () => {
+  it("draws a plain locked book for a book with no cover", async () => {
     const token = await publish(CODE)
 
     const html = await (await get(token, "", navigation())).text()
-    expect(html).not.toContain('class="cover"')
-    expect(html).toContain('class="lock"')
+    expect(html).not.toContain('class="face cover"')
+    expect(html).not.toContain("url(\"/p/")
+    expect(html).toContain('class="face plain lock"')
   })
 
   it("shows the cover again after a wrong code", async () => {
@@ -170,7 +173,8 @@ describe("access-code gate", () => {
     expect(page.status).toBe(401)
     expect(page.headers.get("content-type")).toContain("text/html")
     const html = await page.text()
-    expect(html).toContain("This book is shared with an access code")
+    expect(html).toContain("Access code needed")
+    expect(html).toContain("Enter your name and the code you were")
     expect(html).toContain(`action="/p/${token}/access"`)
     /** The title is escaped, never interpolated raw. */
     expect(html).toContain("Raven &amp; the &lt;Sun&gt;")
@@ -624,7 +628,7 @@ describe("the access-code door as the identity step", () => {
     return results
   }
 
-  it("asks for a name beside the code, and keeps the page script-free", async () => {
+  it("asks for a name beside the code, and works with no script at all", async () => {
     const token = await publish(CODE)
     const html = await (await get(token, "", navigation())).text()
 
@@ -633,7 +637,11 @@ describe("the access-code door as the identity step", () => {
     expect(html).toContain(`id="name"`)
     expect(html).toContain("required")
     expect(html).toContain(`id="code"`)
-    expect(html).not.toContain("<script")
+    expect(html).toContain(`name="code"`)
+    /** The code boxes are an inline enhancement over a real input: nothing is loaded from
+     *  anywhere, and the form posts the same fields whether the script ran or not. */
+    expect(html).not.toContain("<script src")
+    expect(html).toContain(`<label for="code">Access code</label>`)
   })
 
   it("grants access and issues a commenter session on the same response", async () => {
