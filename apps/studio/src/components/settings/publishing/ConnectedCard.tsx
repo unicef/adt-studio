@@ -50,7 +50,7 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
         {isUpdating ? (
           <div
             key="updating"
-            className="flex flex-col gap-4 px-5 py-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-500"
+            className="flex min-h-0 flex-1 flex-col gap-4 px-5 py-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-500"
           >
             <ProvisionCalm
               status={upgrade.status}

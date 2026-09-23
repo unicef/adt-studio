@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import { useLocation } from "@tanstack/react-router"
 import { useLingui } from "@lingui/react/macro"
 import { toast } from "sonner"
 import { useCloudflareConnection } from "./use-cloudflare-connection"
@@ -37,9 +38,12 @@ const ANNOUNCED_KEY = "adt-sharing-update-announced"
 export function useSharingUpdateNotice(): void {
   const { t } = useLingui()
   const update = useSharingUpdate()
+  /** Not while the author is already in Settings — they are looking at the update, or running
+   *  it. Held rather than spent, so it is said once they are elsewhere. */
+  const inSettings = useLocation({ select: (location) => location.pathname.startsWith("/settings") })
 
   useEffect(() => {
-    if (!update) return
+    if (!update || inSettings) return
     try {
       if (window.localStorage.getItem(ANNOUNCED_KEY) === update.latest) return
       window.localStorage.setItem(ANNOUNCED_KEY, update.latest)
@@ -49,5 +53,5 @@ export function useSharingUpdateNotice(): void {
     toast.info(t`A sharing update is ready`, {
       description: t`Install it in Settings → Sharing to get the latest reader and code screen on your links.`,
     })
-  }, [update, t])
+  }, [update, inSettings, t])
 }
