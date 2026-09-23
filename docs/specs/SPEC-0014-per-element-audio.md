@@ -6,7 +6,7 @@ owner: "@gaguerre-iugo"
 approvers: ["@gbergengruen"]
 issues: ["#890"]
 prs: []
-adr: ""   # ADR-028 if the storage decision is ratified as standing; 024-027 are claimed by other open spec PRs
+adr: "docs/DECISIONS.md#028-authored-per-element-content-is-never-stored-in-a-cleared-node"
 created: 2026-02-19
 updated: 2026-02-19
 ---
@@ -308,17 +308,13 @@ No feature flag; each PR reverts alone.
 
 ## Open questions
 
-Resolved during drafting and moved into §Proposed design, all ratified by the owner on 2026-02-19:
+**None blocking.** Everything raised during drafting was resolved and ratified by the owner on
+2026-02-19:
 
-- Where the audio is generated from in the single-element path — **§3**.
-- The orphan policy — **§1**.
-- Which component adds the badge, and whether it ships in the export — **§4**.
-
-Still open:
-
-- **Is an ADR warranted?** The storage rule ("authored, user-owned per-element content is never
-  persisted in a node that invalidation clears") is a candidate standing decision, which would make
-  it **ADR-028** — 024-027 are already claimed by other open spec PRs. If yes, it lands in this same
-  PR, with `Status: proposed` until this spec is approved (see
-  [`docs/SPEC_DRIVEN_DEVELOPMENT.md`](../SPEC_DRIVEN_DEVELOPMENT.md#6-adrs) §6). — **@gaguerre-iugo,
-  by 2026-02-26.** Default: yes.
+| Question | Resolution | Where |
+|---|---|---|
+| Where the audio is generated from in the single-element path | `generate-one`'s arbitrary `text` if #710 has landed; otherwise run the chain | §3 |
+| Which component adds the badge | The runtime, not the rendered HTML | §4 |
+| Whether the badge ships in the export | Yes in the reader, hidden in `@media print` | §4 |
+| Orphan policy | Keep the authored text; no GC in v1; revisit with SPEC-0008 | §1 |
+| Is an ADR warranted | Yes — **ADR-028**, `Status: proposed`, landing in this same PR | [`DECISIONS.md` #028](../DECISIONS.md#028-authored-per-element-content-is-never-stored-in-a-cleared-node) |
