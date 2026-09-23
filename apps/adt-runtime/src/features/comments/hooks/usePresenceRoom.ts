@@ -17,6 +17,7 @@ import {
   PUBLICATION_ROOM_TAB_PARAM,
   PUBLICATION_ROOM_TAB_PATTERN,
   ROOM_CURSOR_THROTTLE_MS,
+  type RoomPeer,
 } from "@/features/comments/lib/room-protocol"
 import { createRoomSocket, type RoomSocket } from "@/features/comments/lib/room-socket"
 import type { CommentsRuntimeContext } from "@/features/comments/hooks/useCommentsContext"
@@ -101,6 +102,11 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
   const setSettling = useSetAtom(settlingPinIdAtom)
 
   const socketRef = useRef<RoomSocket | null>(null)
+  /** Who the room last said is connected. The sweep below needs it: a presence frame only
+   *  arrives when somebody joins, leaves or turns a page, so a quiet room sends none, and a
+   *  sweep that judged everybody by the last frame's clock dropped every live peer — and every
+   *  cursor with them — eight seconds after the last arrival. */
+  const liveRef = useRef<RoomPeer[]>([])
   const sectionRef = useRef<string | null>(sectionId ?? null)
   /** Where the pointer was last seen, so a scroll can re-anchor from it. Survives the
    *  effect, because a reader who scrolls without touching the mouse still has one. */
@@ -116,13 +122,17 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
 
     const socket = createRoomSocket({
       resolveUrl: async () => url,
-      onStatus: (status) => setStatus(status),
+      onStatus: (status) => {
+        if (status !== "open") liveRef.current = []
+        setStatus(status)
+      },
       onOpen: () => {
         socket.send({ t: "hello", section_id: sectionRef.current, device: deviceRef.current })
       },
       onFrame: (frame) => {
         if (frame.t === "presence") {
           setSelfId(frame.self_id)
+          liveRef.current = frame.peers
           /**
            * The roster is held steady rather than mirrored. A page turn reaches the room as a
            * departure and then an arrival, so mirroring it made everybody blink out of the list
@@ -175,6 +185,7 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
 
     return () => {
       socketRef.current = null
+      liveRef.current = []
       socket.close()
       setStatus("closed")
       setPeers([])
@@ -349,12 +360,11 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
   useEffect(() => {
     if (!context) return
     const interval = window.setInterval(() => {
-      const now = Date.now()
       const seen = store.get(seenPeersAtom)
-      const kept = seen.filter((entry) => now - entry.lastSeenMs < PRESENCE_GRACE_MS)
-      if (kept.length === seen.length) return
-      store.set(seenPeersAtom, kept)
-      setPeers(kept.map((entry) => entry.peer))
+      const { display, seen: next } = stickyRoster(liveRef.current, seen, Date.now())
+      store.set(seenPeersAtom, next)
+      if (next.length === seen.length) return
+      setPeers(display)
     }, 1000)
     return () => window.clearInterval(interval)
   }, [context, setPeers, store])
