@@ -8,8 +8,6 @@ import {
   History,
   KeyRound,
   Link2Off,
-  Loader2,
-  Sparkles,
   MessagesSquare,
   MoreHorizontal,
   Radio,
@@ -26,7 +24,6 @@ import { cn } from "@/lib/utils"
 import { formatStorage } from "./format"
 import { PublicationReadersDialog } from "./PublicationReadersDialog"
 import { PublishingSettingsLink } from "@/components/pipeline/stages/publish/PublishingSettingsLink"
-import type { HostUpdateState } from "@/hooks/use-host-updates"
 
 /** Status reads as a pill on the cover, dot plus word — never colour alone. */
 const STATE_DOT: Record<PublicationState, string> = {
@@ -49,9 +46,6 @@ export interface PublicationCardProps {
   /** Deleting reports itself on the card that failed: a shelf runs long enough that an alert
    *  anywhere else is off screen by the time it appears. */
   deleteError?: Error | null
-  /** Where this book is in the "Update site" queue the dashboard runs, when it is in it. */
-  hostUpdate?: HostUpdateState | null
-  onUpdateHost?: () => void
 }
 
 /**
@@ -72,8 +66,6 @@ export function PublicationCard({
   onResume,
   onDelete,
   deleteError = null,
-  hostUpdate = null,
-  onUpdateHost,
 }: PublicationCardProps) {
   const { t, i18n } = useLingui()
   const navigate = useNavigate()
@@ -222,9 +214,6 @@ export function PublicationCard({
         <h3 className="line-clamp-2 min-h-8 text-[13px] font-medium leading-4 text-foreground">
           {publication.title}
         </h3>
-        {publication.host_update_available || hostUpdate !== null ? (
-          <HostUpdateRow state={hostUpdate} onUpdate={onUpdateHost} />
-        ) : null}
         {here ? null : (
           /** The link still works; the book behind it is gone from this machine. Saying so on
            *  the card matters — every local action below is disabled because of it. */
@@ -334,40 +323,6 @@ export function PublicationCard({
         onOpenChange={setReadersOpen}
       />
     </li>
-  )
-}
-
-/**
- * A newer reader and code screen are waiting for this link, and "Update site" puts them there.
- * Same link, same comments — so the button can say only "Update".
- */
-function HostUpdateRow({ state, onUpdate }: { state: HostUpdateState | null; onUpdate?: () => void }) {
-  const { t } = useLingui()
-  if (state === "updating" || state === "queued") {
-    return (
-      <p className="flex items-center gap-1.5 text-[11px] leading-4 text-muted-foreground motion-safe:animate-in motion-safe:fade-in-0">
-        <Loader2 className="size-3 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-        {state === "updating" ? <Trans>Updating the shared copy…</Trans> : <Trans>Waiting to update</Trans>}
-      </p>
-    )
-  }
-  return (
-    <p className="flex items-center gap-1.5 text-[11px] leading-4 text-muted-foreground motion-safe:animate-in motion-safe:fade-in-0">
-      <Sparkles className="size-3 shrink-0 text-brand-600" aria-hidden="true" />
-      <span className="min-w-0 flex-1 truncate">
-        {state === "failed" ? <Trans>The update didn't finish</Trans> : <Trans>A newer reader is ready</Trans>}
-      </span>
-      {onUpdate ? (
-        <button
-          type="button"
-          onClick={onUpdate}
-          aria-label={state === "failed" ? t`Try the update again` : t`Update this book's shared copy`}
-          className="shrink-0 rounded font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-        >
-          {state === "failed" ? <Trans>Retry</Trans> : <Trans>Update</Trans>}
-        </button>
-      ) : null}
-    </p>
   )
 }
 

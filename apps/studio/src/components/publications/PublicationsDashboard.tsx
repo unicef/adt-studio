@@ -302,8 +302,6 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
                     onStop={() => stop.mutate(publication.book_label)}
                     onResume={() => resume.mutate(publication.book_label)}
                     onDelete={() => setPendingDelete(publication)}
-                    hostUpdate={hostUpdates.stateOf(publication.book_label)}
-                    onUpdateHost={() => hostUpdates.update([publication.book_label])}
                     deleteError={
                       remove.isError && remove.variables?.token === publication.token
                         ? remove.error

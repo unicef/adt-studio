@@ -507,6 +507,9 @@ msgstr "{done} nga {total} faqe"
 msgid "{elapsed}s"
 msgstr "{elapsed}s"
 
+msgid "{failed, plural, one {The last update didn't finish for # book — trying again is safe.} other {The last update didn't finish for # books — trying again is safe.}}"
+msgstr "{failed, plural, one {Përditësimi i fundit nuk përfundoi për # libër — mund të provoni përsëri pa rrezik.} other {Përditësimi i fundit nuk përfundoi për # libra — mund të provoni përsëri pa rrezik.}}"
+
 msgid "{formatted} will be reset and need to run again before final outputs are available."
 msgstr "{formatted} do të rivendoset dhe duhet të ekzekutohet përsëri përpara se rezultatet përfundimtare të jenë të disponueshme."
 
@@ -823,8 +826,8 @@ msgstr "Një emër në llogarinë tuaj Cloudflare është tashmë i zënë"
 msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
 msgstr "Një seksion i ri aktiviteti do të shtohet në faqen {anchorPageNumber} ({anchorPageId}). Agjenti mund të lexojë faqe të tjera të librit për të pasqyruar strukturën e tyre."
 
-msgid "A newer reader is ready"
-msgstr "Një lexues më i ri është gati"
+#~ msgid "A newer reader is ready"
+#~ msgstr "Një lexues më i ri është gati"
 
 msgid "A page failed in {stageLabel}"
 msgstr "Një faqe dështoi te {stageLabel}"
@@ -11364,8 +11367,8 @@ msgstr "Tabela e përmbajtjes."
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "TOC liston seksionet e shtypura të vendosura nga Storyboard. Përfundo Storyboard para se të ekzekutosh këtë fazë."
 
-msgid "The update didn't finish"
-msgstr "Përditësimi nuk përfundoi"
+#~ msgid "The update didn't finish"
+#~ msgstr "Përditësimi nuk përfundoi"
 
 msgid "The Water Cycle"
 msgstr "Cikli i Ujit"
@@ -11925,8 +11928,8 @@ msgstr "Provoje"
 msgid "Try the practice problem"
 msgstr "Provo problemin praktik"
 
-msgid "Try the update again"
-msgstr "Provo përditësimin përsëri"
+#~ msgid "Try the update again"
+#~ msgstr "Provo përditësimin përsëri"
 
 msgid "Try this screen again"
 msgstr "Provo këtë ekran sërish"
@@ -12147,8 +12150,8 @@ msgstr "Përditëso faqen"
 msgid "Update stopped"
 msgstr "Përditësimi u ndal"
 
-msgid "Update this book's shared copy"
-msgstr "Përditëso kopjen e ndarë të këtij libri"
+#~ msgid "Update this book's shared copy"
+#~ msgstr "Përditëso kopjen e ndarë të këtij libri"
 
 #~ msgid "Updated"
 #~ msgstr "Përditësuar"
@@ -12171,8 +12174,8 @@ msgstr "Po përditësohen librat e ndarë — {0} nga {1}"
 msgid "Updating the shared copy"
 msgstr "Duke përditësuar kopjen e ndarë"
 
-msgid "Updating the shared copy…"
-msgstr "Po përditësohet kopja e ndarë…"
+#~ msgid "Updating the shared copy…"
+#~ msgstr "Po përditësohet kopja e ndarë…"
 
 msgid "Updating the sharing service"
 msgstr "Po përditësohet shërbimi i ndarjes"
@@ -12552,8 +12555,8 @@ msgstr "Në pritje të miratimit tuaj në shfletues — zgjidhni <0>Lejo</0> në
 msgid "Waiting on you"
 msgstr "Në pritje të jush"
 
-msgid "Waiting to update"
-msgstr "Në pritje të përditësimit"
+#~ msgid "Waiting to update"
+#~ msgstr "Në pritje të përditësimit"
 
 msgid "Wall Clock"
 msgstr "Orë muri"

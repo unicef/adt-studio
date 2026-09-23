@@ -865,15 +865,20 @@ describe("PublicationsDashboard — links on an older reader", () => {
     })
   }
 
-  it("says how many links run an older reader, and marks each of them", async () => {
+  it("says how many links run an older reader, above the shelf", async () => {
     getPublications.mockResolvedValue(twoOutdated())
     renderDashboard()
 
     const banner = await screen.findByTestId("host-updates-banner")
     expect(banner.textContent).toContain("2 shared books run an older reader")
-    expect(within(screen.getByTestId("publication-card-raven")).getByText("A newer reader is ready")).toBeTruthy()
-    expect(within(screen.getByTestId("publication-card-owl")).getByText("A newer reader is ready")).toBeTruthy()
-    expect(within(screen.getByTestId("publication-card-fox")).queryByText("A newer reader is ready")).toBeNull()
+  })
+
+  it("says nothing when every link is current", async () => {
+    getPublications.mockResolvedValue(overview())
+    renderDashboard()
+
+    await screen.findByTestId("publication-card-raven")
+    expect(screen.queryByTestId("host-updates-banner")).toBeNull()
   })
 
   /** One at a time: each update exports and uploads a whole book. */
@@ -893,7 +898,6 @@ describe("PublicationsDashboard — links on an older reader", () => {
     expect(publishBookVersion).toHaveBeenCalledTimes(1)
     expect(publishBookVersion.mock.calls[0]?.[0]).toBe("raven")
     await waitFor(() => expect(screen.getByTestId("host-updates-banner").textContent).toContain("1 of 2"))
-    expect(within(screen.getByTestId("publication-card-owl")).getByText("Waiting to update")).toBeTruthy()
 
     await act(async () => {
       finishers[0]?.()
@@ -904,5 +908,22 @@ describe("PublicationsDashboard — links on an older reader", () => {
       finishers[1]?.()
     })
     expect(publishBookVersion.mock.calls.map((call) => call[0])).not.toContain("fox")
+  })
+
+  it("says when an update did not finish, since the cards no longer do", async () => {
+    getPublications.mockResolvedValue(
+      overview({ publications: [summary({ book_label: "stork", host_update_available: true })] }),
+    )
+    publishBookVersion.mockRejectedValue(new MockApiError("Cloudflare answered 503", 502, "upload_failed"))
+    renderDashboard()
+
+    const banner = await screen.findByTestId("host-updates-banner")
+    await act(async () => {
+      fireEvent.click(within(banner).getByRole("button", { name: /^update$/i }))
+    })
+
+    await waitFor(() =>
+      expect(screen.getByTestId("host-updates-banner").textContent).toContain("didn't finish for 1 book"),
+    )
   })
 })

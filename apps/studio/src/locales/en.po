@@ -505,6 +505,9 @@ msgstr "{done} of {total} pages"
 msgid "{elapsed}s"
 msgstr "{elapsed}s"
 
+msgid "{failed, plural, one {The last update didn't finish for # book — trying again is safe.} other {The last update didn't finish for # books — trying again is safe.}}"
+msgstr "{failed, plural, one {The last update didn't finish for # book — trying again is safe.} other {The last update didn't finish for # books — trying again is safe.}}"
+
 msgid "{formatted} will be reset and need to run again before final outputs are available."
 msgstr "{formatted} will be reset and need to run again before final outputs are available."
 
@@ -821,8 +824,8 @@ msgstr "A name in your Cloudflare account is already taken"
 msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
 msgstr "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
 
-msgid "A newer reader is ready"
-msgstr "A newer reader is ready"
+#~ msgid "A newer reader is ready"
+#~ msgstr "A newer reader is ready"
 
 msgid "A page failed in {stageLabel}"
 msgstr "A page failed in {stageLabel}"
@@ -11363,8 +11366,8 @@ msgstr "The table of contents."
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 
-msgid "The update didn't finish"
-msgstr "The update didn't finish"
+#~ msgid "The update didn't finish"
+#~ msgstr "The update didn't finish"
 
 msgid "The Water Cycle"
 msgstr "The Water Cycle"
@@ -11924,8 +11927,8 @@ msgstr "Try it out"
 msgid "Try the practice problem"
 msgstr "Try the practice problem"
 
-msgid "Try the update again"
-msgstr "Try the update again"
+#~ msgid "Try the update again"
+#~ msgstr "Try the update again"
 
 msgid "Try this screen again"
 msgstr "Try this screen again"
@@ -12146,8 +12149,8 @@ msgstr "Update site"
 msgid "Update stopped"
 msgstr "Update stopped"
 
-msgid "Update this book's shared copy"
-msgstr "Update this book's shared copy"
+#~ msgid "Update this book's shared copy"
+#~ msgstr "Update this book's shared copy"
 
 #~ msgid "Updated"
 #~ msgstr "Updated"
@@ -12170,8 +12173,8 @@ msgstr "Updating shared books — {0} of {1}"
 msgid "Updating the shared copy"
 msgstr "Updating the shared copy"
 
-msgid "Updating the shared copy…"
-msgstr "Updating the shared copy…"
+#~ msgid "Updating the shared copy…"
+#~ msgstr "Updating the shared copy…"
 
 msgid "Updating the sharing service"
 msgstr "Updating the sharing service"
@@ -12551,8 +12554,8 @@ msgstr "Waiting for your approval in the browser — choose <0>Allow</0> on the 
 msgid "Waiting on you"
 msgstr "Waiting on you"
 
-msgid "Waiting to update"
-msgstr "Waiting to update"
+#~ msgid "Waiting to update"
+#~ msgstr "Waiting to update"
 
 msgid "Wall Clock"
 msgstr "Wall Clock"

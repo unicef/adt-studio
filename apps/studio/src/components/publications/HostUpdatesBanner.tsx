@@ -19,6 +19,8 @@ export function HostUpdatesBanner({
   updates: ReturnType<typeof useHostUpdates>
 }) {
   const waiting = labels.filter((label) => updates.stateOf(label) !== "updating" && updates.stateOf(label) !== "queued")
+  /** The cards no longer carry their own update state, so a failure has to be said here. */
+  const failed = labels.filter((label) => updates.stateOf(label) === "failed").length
   if (labels.length === 0 && !updates.running) return null
 
   return (
@@ -42,10 +44,20 @@ export function HostUpdatesBanner({
           )}
         </p>
         <p className="text-xs leading-5 text-muted-foreground">
-          <Trans>
-            Updating gives readers the latest reader and code screen. Each keeps its link and its
-            comments.
-          </Trans>
+          {failed > 0 && !updates.running ? (
+            <span className="text-destructive">
+              <Plural
+                value={failed}
+                one="The last update didn't finish for # book — trying again is safe."
+                other="The last update didn't finish for # books — trying again is safe."
+              />
+            </span>
+          ) : (
+            <Trans>
+              Updating gives readers the latest reader and code screen. Each keeps its link and its
+              comments.
+            </Trans>
+          )}
         </p>
       </div>
       <Button

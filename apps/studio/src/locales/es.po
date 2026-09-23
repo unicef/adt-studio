@@ -505,6 +505,9 @@ msgstr "{done} de {total} páginas"
 msgid "{elapsed}s"
 msgstr "{elapsed}s"
 
+msgid "{failed, plural, one {The last update didn't finish for # book — trying again is safe.} other {The last update didn't finish for # books — trying again is safe.}}"
+msgstr "{failed, plural, one {La última actualización no terminó para # libro; puedes volver a intentarlo sin riesgo.} other {La última actualización no terminó para # libros; puedes volver a intentarlo sin riesgo.}}"
+
 msgid "{formatted} will be reset and need to run again before final outputs are available."
 msgstr "{formatted} se restablecerá y necesitará ejecutarse de nuevo antes de que los resultados finales estén disponibles."
 
@@ -821,8 +824,8 @@ msgstr "Un nombre en tu cuenta de Cloudflare ya está en uso"
 msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
 msgstr "Se añadirá una nueva sección de actividad a la página {anchorPageNumber} ({anchorPageId}). El agente puede leer otras páginas del libro para imitar su diseño."
 
-msgid "A newer reader is ready"
-msgstr "Hay un lector más nuevo"
+#~ msgid "A newer reader is ready"
+#~ msgstr "Hay un lector más nuevo"
 
 msgid "A page failed in {stageLabel}"
 msgstr "Una página falló en {stageLabel}"
@@ -11362,8 +11365,8 @@ msgstr "La tabla de contenidos."
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "El TOC lista las secciones escritas colocadas por el Storyboard. Termina el Storyboard antes de ejecutar esta etapa."
 
-msgid "The update didn't finish"
-msgstr "La actualización no terminó"
+#~ msgid "The update didn't finish"
+#~ msgstr "La actualización no terminó"
 
 msgid "The Water Cycle"
 msgstr "El Ciclo del Agua"
@@ -11923,8 +11926,8 @@ msgstr "Pruébalo"
 msgid "Try the practice problem"
 msgstr "Prueba el problema de práctica"
 
-msgid "Try the update again"
-msgstr "Intentar la actualización de nuevo"
+#~ msgid "Try the update again"
+#~ msgstr "Intentar la actualización de nuevo"
 
 msgid "Try this screen again"
 msgstr "Intenta esta pantalla de nuevo"
@@ -12145,8 +12148,8 @@ msgstr "Actualizar sitio"
 msgid "Update stopped"
 msgstr "Actualización detenida"
 
-msgid "Update this book's shared copy"
-msgstr "Actualizar la copia compartida de este libro"
+#~ msgid "Update this book's shared copy"
+#~ msgstr "Actualizar la copia compartida de este libro"
 
 #~ msgid "Updated"
 #~ msgstr "Actualizado"
@@ -12169,8 +12172,8 @@ msgstr "Actualizando libros compartidos: {0} de {1}"
 msgid "Updating the shared copy"
 msgstr "Actualizando la copia compartida"
 
-msgid "Updating the shared copy…"
-msgstr "Actualizando la copia compartida…"
+#~ msgid "Updating the shared copy…"
+#~ msgstr "Actualizando la copia compartida…"
 
 msgid "Updating the sharing service"
 msgstr "Actualizando el servicio para compartir"
@@ -12550,8 +12553,8 @@ msgstr "Esperando tu aprobación en el navegador — elige <0>Permitir</0> en la
 msgid "Waiting on you"
 msgstr "Esperando por ti"
 
-msgid "Waiting to update"
-msgstr "Esperando para actualizar"
+#~ msgid "Waiting to update"
+#~ msgstr "Esperando para actualizar"
 
 msgid "Wall Clock"
 msgstr "Tiempo transcurrido"
