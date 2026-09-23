@@ -25,6 +25,8 @@ function title(failure: PublishFailure): ReactNode {
       return <Trans>Couldn't reach your sharing service</Trans>
     case "snapshot_too_large":
       return <Trans>This book is too big to send in one piece</Trans>
+    case "worker_outdated":
+      return <Trans>Your sharing service needs an update first</Trans>
     default:
       return <Trans>Sharing couldn't finish</Trans>
   }
@@ -100,6 +102,15 @@ function body(failure: PublishFailure): ReactNode {
           part.
         </Trans>
       )
+    case "worker_outdated":
+      /** The one failure the author can cure in two clicks, so it says exactly which two. */
+      return (
+        <Trans>
+          This Studio shares books with a newer reader than the sharing service in your Cloudflare
+          account supports. Nothing was shared. Install the update in Settings, then share again —
+          your existing links keep working meanwhile.
+        </Trans>
+      )
     default:
       return (
         <Trans>
@@ -110,6 +121,13 @@ function body(failure: PublishFailure): ReactNode {
 }
 
 function action(failure: PublishFailure): ReactNode {
+  if (failure.code === "worker_outdated") {
+    return (
+      <PublishingSettingsLink variant="outline" size="sm" className="self-start">
+        <Trans>Install the update</Trans>
+      </PublishingSettingsLink>
+    )
+  }
   if (failure.code === "publish_not_connected" || failure.code === "upload_failed") {
     return (
       <PublishingSettingsLink variant="outline" size="sm" className="self-start">

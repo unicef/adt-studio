@@ -132,6 +132,10 @@ msgstr "{0, plural, one {# faqe e zëvendësuar} other {# faqe të zëvendësuar
 msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# faqe} other {# faqe}}"
 
+#. placeholder {0}: labels.length
+msgid "{0, plural, one {# shared book runs an older reader} other {# shared books run an older reader}}"
+msgstr "{0, plural, one {# libër i ndarë përdor një lexues të vjetër} other {# libra të ndarë përdorin një lexues të vjetër}}"
+
 #. placeholder {0}: discs.length
 msgid "{0, plural, one {# stage} other {# stages}}"
 msgstr "{0, plural, one {# fazë} other {# faza}}"
@@ -819,6 +823,9 @@ msgstr "Një emër në llogarinë tuaj Cloudflare është tashmë i zënë"
 msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
 msgstr "Një seksion i ri aktiviteti do të shtohet në faqen {anchorPageNumber} ({anchorPageId}). Agjenti mund të lexojë faqe të tjera të librit për të pasqyruar strukturën e tyre."
 
+msgid "A newer reader is ready"
+msgstr "Një lexues më i ri është gati"
+
 msgid "A page failed in {stageLabel}"
 msgstr "Një faqe dështoi te {stageLabel}"
 
@@ -866,6 +873,9 @@ msgstr "Një faqe ndarëse midis seksioneve."
 
 #~ msgid "A sharing service update is waiting in Settings → Sharing. Installing it isn't urgent. Your link keeps working either way."
 #~ msgstr "Një përditësim i shërbimit të ndarjes po pret te Cilësimet → Ndarja. Instalimi nuk është urgjent. Lidhja juaj vazhdon të funksionojë sido që të jetë."
+
+msgid "A sharing update is ready"
+msgstr "Një përditësim i ndarjes është gati"
 
 msgid "A simplified Easy Read version makes the text accessible to readers with cognitive disabilities, learning differences, or limited reading proficiency."
 msgstr "Një version i thjeshtuar Easy Read e bën tekstin të aksesueshëm për lexuesit me aftësi të kufizuara njohëse, dallime në të mësuar, ose aftësi të kufizuara leximi."
@@ -5516,6 +5526,9 @@ msgstr "Instalo"
 msgid "Install an older beta?"
 msgstr "Të instalohet një beta më e vjetër?"
 
+msgid "Install it in Settings → Sharing to get the latest reader and code screen on your links."
+msgstr "Instalojeni te Cilësimet → Ndarja për të pasur lexuesin dhe ekranin e kodit më të ri në lidhjet tuaja."
+
 msgid "Install older version"
 msgstr "Instalo versionin më të vjetër"
 
@@ -10016,6 +10029,9 @@ msgstr "Duke vendosur adresën tuaj të internetit"
 msgid "Settings"
 msgstr "Cilësime"
 
+msgid "Settings — a sharing update is ready"
+msgstr "Cilësimet — një përditësim i ndarjes është gati"
+
 msgid "Settings for this step are not yet available."
 msgstr "Cilësimet për këtë hap nuk janë ende të disponueshme."
 
@@ -11348,6 +11364,9 @@ msgstr "Tabela e përmbajtjes."
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "TOC liston seksionet e shtypura të vendosura nga Storyboard. Përfundo Storyboard para se të ekzekutosh këtë fazë."
 
+msgid "The update didn't finish"
+msgstr "Përditësimi nuk përfundoi"
+
 msgid "The Water Cycle"
 msgstr "Cikli i Ujit"
 
@@ -11671,6 +11690,9 @@ msgstr "Ky seksion është prerë dhe nuk renderizohet."
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "Kjo sesion po përdor një fotografi të vjetër të listës së kontrollit të rishikuesit. Cilësimet e reja të listës do të zbatohen vetëm për sesionet e rishikuesit të krijuara rishtazi."
 
+msgid "This Studio shares books with a newer reader than the sharing service in your Cloudflare account supports. Nothing was shared. Install the update in Settings, then share again — your existing links keep working meanwhile."
+msgstr "Ky Studio i ndan librat me një lexues më të ri se sa mbështet shërbimi në llogarinë tuaj Cloudflare. Asgjë nuk u nda. Instaloni përditësimin te Cilësimet, pastaj ndajeni përsëri — lidhjet ekzistuese vazhdojnë të punojnë."
+
 msgid "This system cannot show desktop notifications."
 msgstr "Ky sistem nuk mund të shfaqë njoftime në desktop."
 
@@ -11903,6 +11925,9 @@ msgstr "Provoje"
 msgid "Try the practice problem"
 msgstr "Provo problemin praktik"
 
+msgid "Try the update again"
+msgstr "Provo përditësimin përsëri"
+
 msgid "Try this screen again"
 msgstr "Provo këtë ekran sërish"
 
@@ -12104,6 +12129,12 @@ msgstr "Licencë e paverifikuar"
 msgid "Up to date"
 msgstr "I përditësuar"
 
+msgid "Update"
+msgstr "Përditëso"
+
+msgid "Update all"
+msgstr "Përditësoji të gjithë"
+
 msgid "Update available"
 msgstr "Përditësim i disponueshëm"
 
@@ -12116,6 +12147,9 @@ msgstr "Përditëso faqen"
 msgid "Update stopped"
 msgstr "Përditësimi u ndal"
 
+msgid "Update this book's shared copy"
+msgstr "Përditëso kopjen e ndarë të këtij libri"
+
 #~ msgid "Updated"
 #~ msgstr "Përditësuar"
 
@@ -12123,14 +12157,28 @@ msgstr "Përditësimi u ndal"
 msgid "updated {0}"
 msgstr "përditësuar {0}"
 
+msgid "Updating gives readers the latest reader and code screen. Each keeps its link and its comments."
+msgstr "Përditësimi u jep lexuesve lexuesin dhe ekranin e kodit më të ri. Secili ruan lidhjen dhe komentet e veta."
+
+#. placeholder {0}: updates.progress.done + 1
+#. placeholder {1}: updates.progress.total
+msgid "Updating shared books — {0} of {1}"
+msgstr "Po përditësohen librat e ndarë — {0} nga {1}"
+
 #~ msgid "Updating the publishing service"
 #~ msgstr "Duke përditësuar shërbimin e publikimit"
 
 msgid "Updating the shared copy"
 msgstr "Duke përditësuar kopjen e ndarë"
 
+msgid "Updating the shared copy…"
+msgstr "Po përditësohet kopja e ndarë…"
+
 msgid "Updating the sharing service"
 msgstr "Po përditësohet shërbimi i ndarjes"
+
+msgid "Updating…"
+msgstr "Po përditësohet…"
 
 msgid "Upload"
 msgstr "Ngarko"
@@ -12503,6 +12551,9 @@ msgstr "Në pritje të miratimit tuaj në shfletues — zgjidhni <0>Lejo</0> në
 
 msgid "Waiting on you"
 msgstr "Në pritje të jush"
+
+msgid "Waiting to update"
+msgstr "Në pritje të përditësimit"
 
 msgid "Wall Clock"
 msgstr "Orë muri"
@@ -12965,6 +13016,9 @@ msgstr "Shërbimi juaj i ndarjes nuk përgjigjet, prandaj kjo është ajo që mb
 
 msgid "Your sharing service isn't answering, so what this page says about versions and readers may be out of date. The link itself is usually fine."
 msgstr "Shërbimi juaj i ndarjes nuk përgjigjet, prandaj ajo që thotë kjo faqe për versionet dhe lexuesit mund të jetë e vjetëruar. Vetë lidhja zakonisht është në rregull."
+
+msgid "Your sharing service needs an update first"
+msgstr "Shërbimi juaj i ndarjes ka nevojë së pari për një përditësim"
 
 msgid "Z → A"
 msgstr "Z → A"

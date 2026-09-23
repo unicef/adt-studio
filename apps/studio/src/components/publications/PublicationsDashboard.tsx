@@ -42,6 +42,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { PublicationCard } from "./PublicationCard"
+import { HostUpdatesBanner } from "./HostUpdatesBanner"
+import { useHostUpdates } from "@/hooks/use-host-updates"
 import { EMPTY_QUERY, PublicationsToolbar, type Query } from "./PublicationsToolbar"
 import { PublicationsSkeleton } from "./PublicationsSkeleton"
 import { PublicationsSummary } from "./PublicationsSummary"
@@ -129,6 +131,7 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
   const stop = useStopSharing()
   const resume = useResumeSharing()
   const remove = useDeletePublication()
+  const hostUpdates = useHostUpdates()
   const [query, setQuery] = useState<Query>(EMPTY_QUERY)
   /** Delete is irreversible and one click deep in a menu, so it asks first. The old row grew a
    *  confirm in place; a menu closes on click, so the question needs its own surface. */
@@ -264,6 +267,11 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
           </div>
         ) : (
           <>
+            <HostUpdatesBanner
+              labels={data.publications.filter((p) => p.host_update_available).map((p) => p.book_label)}
+              updates={hostUpdates}
+            />
+
             <PublicationsToolbar query={query} onQuery={setQuery} />
 
             {publications.length === 0 ? (
@@ -294,6 +302,8 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
                     onStop={() => stop.mutate(publication.book_label)}
                     onResume={() => resume.mutate(publication.book_label)}
                     onDelete={() => setPendingDelete(publication)}
+                    hostUpdate={hostUpdates.stateOf(publication.book_label)}
+                    onUpdateHost={() => hostUpdates.update([publication.book_label])}
                     deleteError={
                       remove.isError && remove.variables?.token === publication.token
                         ? remove.error

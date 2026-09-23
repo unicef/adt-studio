@@ -130,6 +130,10 @@ msgstr "{0, plural, one {# página substituída} other {# páginas substituídas
 msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# página} other {# páginas}}"
 
+#. placeholder {0}: labels.length
+msgid "{0, plural, one {# shared book runs an older reader} other {# shared books run an older reader}}"
+msgstr "{0, plural, one {# livro compartilhado usa um leitor antigo} other {# livros compartilhados usam um leitor antigo}}"
+
 #. placeholder {0}: discs.length
 msgid "{0, plural, one {# stage} other {# stages}}"
 msgstr "{0, plural, one {# etapa} other {# etapas}}"
@@ -817,6 +821,9 @@ msgstr "Um nome na sua conta Cloudflare já está em uso"
 msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
 msgstr "Uma nova seção de atividade será adicionada à página {anchorPageNumber} ({anchorPageId}). O agente pode ler outras páginas do livro para espelhar o layout delas."
 
+msgid "A newer reader is ready"
+msgstr "Há um leitor mais novo"
+
 msgid "A page failed in {stageLabel}"
 msgstr "Uma página falhou em {stageLabel}"
 
@@ -864,6 +871,9 @@ msgstr "Uma página separadora entre seções."
 
 #~ msgid "A sharing service update is waiting in Settings → Sharing. Installing it isn't urgent. Your link keeps working either way."
 #~ msgstr "Há uma atualização do serviço de compartilhamento em Configurações → Compartilhamento. Instalar não é urgente. Seu link continua funcionando de qualquer forma."
+
+msgid "A sharing update is ready"
+msgstr "Há uma atualização do compartilhamento"
 
 msgid "A simplified Easy Read version makes the text accessible to readers with cognitive disabilities, learning differences, or limited reading proficiency."
 msgstr "Uma versão simplificada de Leitura Fácil torna o texto acessível para leitores com deficiências cognitivas, diferenças de aprendizagem ou proficiência de leitura limitada."
@@ -5514,6 +5524,9 @@ msgstr "Instalar"
 msgid "Install an older beta?"
 msgstr "Instalar uma versão beta anterior?"
 
+msgid "Install it in Settings → Sharing to get the latest reader and code screen on your links."
+msgstr "Instale em Configurações → Compartilhar para ter o leitor e a tela de código mais recentes nos seus links."
+
 msgid "Install older version"
 msgstr "Instalar versão anterior"
 
@@ -10014,6 +10027,9 @@ msgstr "Configurando seu endereço web"
 msgid "Settings"
 msgstr "Configurações"
 
+msgid "Settings — a sharing update is ready"
+msgstr "Configurações — há uma atualização do compartilhamento"
+
 msgid "Settings for this step are not yet available."
 msgstr "As configurações para esta etapa ainda não estão disponíveis."
 
@@ -11346,6 +11362,9 @@ msgstr "O índice."
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "O índice lista as seções classificadas colocadas pelo Storyboard. Termine o Storyboard antes de executar esta etapa."
 
+msgid "The update didn't finish"
+msgstr "A atualização não terminou"
+
 msgid "The Water Cycle"
 msgstr "O Ciclo da Água"
 
@@ -11669,6 +11688,9 @@ msgstr "Esta seção foi removida e não é renderizada."
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "Esta sessão usa um snapshot antigo da lista de verificação do revisor. Configurações mais recentes valerão apenas para novas sessões de revisor."
 
+msgid "This Studio shares books with a newer reader than the sharing service in your Cloudflare account supports. Nothing was shared. Install the update in Settings, then share again — your existing links keep working meanwhile."
+msgstr "Este Studio compartilha livros com um leitor mais novo do que o serviço da sua conta Cloudflare suporta. Nada foi compartilhado. Instale a atualização em Configurações e compartilhe de novo — seus links atuais continuam funcionando."
+
 msgid "This system cannot show desktop notifications."
 msgstr "Este sistema não pode exibir notificações do desktop."
 
@@ -11901,6 +11923,9 @@ msgstr "Experimente"
 msgid "Try the practice problem"
 msgstr "Tente o problema prático"
 
+msgid "Try the update again"
+msgstr "Tentar a atualização de novo"
+
 msgid "Try this screen again"
 msgstr "Tente esta tela novamente"
 
@@ -12102,6 +12127,12 @@ msgstr "Licença não verificada"
 msgid "Up to date"
 msgstr "Atualizado"
 
+msgid "Update"
+msgstr "Atualizar"
+
+msgid "Update all"
+msgstr "Atualizar todos"
+
 msgid "Update available"
 msgstr "Atualização disponível"
 
@@ -12114,6 +12145,9 @@ msgstr "Atualizar site"
 msgid "Update stopped"
 msgstr "Atualização interrompida"
 
+msgid "Update this book's shared copy"
+msgstr "Atualizar a cópia compartilhada deste livro"
+
 #~ msgid "Updated"
 #~ msgstr "Atualizado"
 
@@ -12121,14 +12155,28 @@ msgstr "Atualização interrompida"
 msgid "updated {0}"
 msgstr "atualizado {0}"
 
+msgid "Updating gives readers the latest reader and code screen. Each keeps its link and its comments."
+msgstr "Atualizar dá aos leitores o leitor e a tela de código mais recentes. Cada um mantém seu link e seus comentários."
+
+#. placeholder {0}: updates.progress.done + 1
+#. placeholder {1}: updates.progress.total
+msgid "Updating shared books — {0} of {1}"
+msgstr "Atualizando livros compartilhados — {0} de {1}"
+
 #~ msgid "Updating the publishing service"
 #~ msgstr "Atualizando o serviço de publicação"
 
 msgid "Updating the shared copy"
 msgstr "Atualizando a cópia compartilhada"
 
+msgid "Updating the shared copy…"
+msgstr "Atualizando a cópia compartilhada…"
+
 msgid "Updating the sharing service"
 msgstr "Atualizando o serviço de compartilhamento"
+
+msgid "Updating…"
+msgstr "Atualizando…"
 
 msgid "Upload"
 msgstr "Enviar"
@@ -12501,6 +12549,9 @@ msgstr "Aguardando sua aprovação no navegador — escolha <0>Permitir</0> na p
 
 msgid "Waiting on you"
 msgstr "Esperando por você"
+
+msgid "Waiting to update"
+msgstr "Aguardando atualização"
 
 msgid "Wall Clock"
 msgstr "Tempo decorrido"
@@ -12963,6 +13014,9 @@ msgstr "Seu serviço de compartilhamento não está respondendo, então isto é 
 
 msgid "Your sharing service isn't answering, so what this page says about versions and readers may be out of date. The link itself is usually fine."
 msgstr "Seu serviço de compartilhamento não está respondendo, então o que esta página diz sobre versões e leitores pode estar desatualizado. O link em si costuma estar bem."
+
+msgid "Your sharing service needs an update first"
+msgstr "Seu serviço de compartilhamento precisa de uma atualização primeiro"
 
 msgid "Z → A"
 msgstr "Z → A"

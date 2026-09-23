@@ -15,6 +15,9 @@ vi.mock("@lingui/react/macro", () => {
   }
   return {
     Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    Plural: ({ value, one, other }: { value: number; one: string; other: string }) => (
+      <>{(value === 1 ? one : other).replace("#", String(value))}</>
+    ),
     useLingui: () => ({
       t: templateToString,
       i18n: { _: (descriptor: { id?: string }) => descriptor?.id ?? "", locale: "en" },
@@ -70,6 +73,7 @@ const revokeBookPublication = vi.fn()
 const resumeBookPublication = vi.fn()
 const getPublicationReaders = vi.fn()
 const deletePublication = vi.fn()
+const publishBookVersion = vi.fn()
 
 class MockApiError extends Error {
   readonly status: number
@@ -89,6 +93,7 @@ vi.mock("@/api/client", () => ({
     resumeBookPublication,
     getPublicationReaders,
     deletePublication,
+    publishBookVersion,
   },
   ApiError: MockApiError,
   apiErrorCode: (error: unknown) => (error instanceof MockApiError ? error.code : null),
@@ -834,5 +839,70 @@ describe("PublicationsDashboard — the list itself cannot be read", () => {
     await waitFor(() => {
       expect(screen.getByTestId("publication-card-raven")).toBeTruthy()
     })
+  })
+})
+
+describe("PublicationsDashboard — links on an older reader", () => {
+  function twoOutdated() {
+    return overview({
+      publications: [
+        summary({ host_update_available: true, host_version: "0.12.0" }),
+        summary({
+          token: "TokenOwlTokenOwlTokenOwlToken123",
+          book_label: "owl",
+          title: "The Owl Who Counted",
+          host_update_available: true,
+          host_version: null,
+        }),
+        summary({
+          token: "TokenFoxTokenFoxTokenFoxToken123",
+          book_label: "fox",
+          title: "A Fox in the Field",
+          host_update_available: false,
+          host_version: "0.13.1",
+        }),
+      ],
+    })
+  }
+
+  it("says how many links run an older reader, and marks each of them", async () => {
+    getPublications.mockResolvedValue(twoOutdated())
+    renderDashboard()
+
+    const banner = await screen.findByTestId("host-updates-banner")
+    expect(banner.textContent).toContain("2 shared books run an older reader")
+    expect(within(screen.getByTestId("publication-card-raven")).getByText("A newer reader is ready")).toBeTruthy()
+    expect(within(screen.getByTestId("publication-card-owl")).getByText("A newer reader is ready")).toBeTruthy()
+    expect(within(screen.getByTestId("publication-card-fox")).queryByText("A newer reader is ready")).toBeNull()
+  })
+
+  /** One at a time: each update exports and uploads a whole book. */
+  it("updates every outdated link, one after another, and none that are current", async () => {
+    getPublications.mockResolvedValue(twoOutdated())
+    const finishers: (() => void)[] = []
+    publishBookVersion.mockImplementation(
+      () => new Promise<void>((resolve) => finishers.push(resolve)),
+    )
+    renderDashboard()
+
+    const banner = await screen.findByTestId("host-updates-banner")
+    await act(async () => {
+      fireEvent.click(within(banner).getByRole("button", { name: /update all/i }))
+    })
+
+    expect(publishBookVersion).toHaveBeenCalledTimes(1)
+    expect(publishBookVersion.mock.calls[0]?.[0]).toBe("raven")
+    await waitFor(() => expect(screen.getByTestId("host-updates-banner").textContent).toContain("1 of 2"))
+    expect(within(screen.getByTestId("publication-card-owl")).getByText("Waiting to update")).toBeTruthy()
+
+    await act(async () => {
+      finishers[0]?.()
+    })
+    await waitFor(() => expect(publishBookVersion).toHaveBeenCalledTimes(2))
+    expect(publishBookVersion.mock.calls[1]?.[0]).toBe("owl")
+    await act(async () => {
+      finishers[1]?.()
+    })
+    expect(publishBookVersion.mock.calls.map((call) => call[0])).not.toContain("fox")
   })
 })
