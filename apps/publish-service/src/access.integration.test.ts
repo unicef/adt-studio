@@ -34,14 +34,17 @@ function app() {
   return createApp()
 }
 
-async function publish(accessCode?: string | null): Promise<string> {
+async function publish(
+  accessCode?: string | null,
+  extraFiles: Record<string, string> = {},
+): Promise<string> {
   const token = nextToken()
   await publishSnapshot((input, init) => app().request(input, init, env), BASE, SECRET, {
     token,
     title: "Raven & the <Sun>",
     bookLabel: "raven",
     pageManifest: MANIFEST,
-    files: { "index.html": "<h1>page one</h1>", "assets/app.css": "h1{color:red}" },
+    files: { "index.html": "<h1>page one</h1>", "assets/app.css": "h1{color:red}", ...extraFiles },
     ...(accessCode === undefined ? {} : { accessCode: accessCode ?? undefined }),
   })
   return token
@@ -106,6 +109,57 @@ beforeEach(async () => {
   await env.DB.prepare("DELETE FROM sessions").run()
   await env.DB.prepare("DELETE FROM versions").run()
   await env.DB.prepare("DELETE FROM publications").run()
+})
+
+describe("the book's cover at the door", () => {
+  /** The prompt shows the cover so the reader can tell it is the right book before typing a
+   *  code, and a prompt cannot draw an image its own door keeps locked. */
+  it("lets the cover through without a code, and shows it on the prompt", async () => {
+    const token = await publish(CODE, { "cover.png": "png-bytes" })
+
+    const cover = await get(token, "cover.png", subresource())
+    expect(cover.status).toBe(200)
+    await expect(cover.text()).resolves.toBe("png-bytes")
+
+    const page = await get(token, "", navigation())
+    expect(page.status).toBe(401)
+    const html = await page.text()
+    expect(html).toContain(`<img class="cover" src="/p/${token}/cover.png"`)
+    expect(html).toContain("Access code needed")
+  })
+
+  it("keeps everything else locked — the exception is the cover, not the book", async () => {
+    const token = await publish(CODE, { "cover.png": "png-bytes", "images/cover.png": "inside" })
+
+    expect((await get(token, "images/cover.png", subresource())).status).toBe(401)
+    expect((await get(token, "assets/app.css", subresource())).status).toBe(401)
+    expect((await get(token, "index.html", navigation())).status).toBe(401)
+  })
+
+  it("keeps the lock icon for a book with no cover", async () => {
+    const token = await publish(CODE)
+
+    const html = await (await get(token, "", navigation())).text()
+    expect(html).not.toContain('class="cover"')
+    expect(html).toContain('class="lock"')
+  })
+
+  it("shows the cover again after a wrong code", async () => {
+    const token = await publish(CODE, { "cover.jpg": "jpg-bytes" })
+
+    /** A browser submits the prompt as a form, which is what gets the page back. */
+    const wrong = await app().request(
+      `${BASE}/p/${token}/access`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded", accept: "text/html" },
+        body: new URLSearchParams({ code: "WRONG1", name: "Ana" }).toString(),
+      },
+      env,
+    )
+    expect(wrong.status).toBe(401)
+    expect(await wrong.text()).toContain(`src="/p/${token}/cover.jpg"`)
+  })
 })
 
 describe("access-code gate", () => {

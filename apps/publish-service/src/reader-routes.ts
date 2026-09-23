@@ -1,5 +1,5 @@
 import type { Context, Hono } from "hono"
-import { accessGate, registerAccessRoute } from "./access.js"
+import { COVER_FILES, createAccessGate, registerAccessRoute } from "./access.js"
 import { registerCommentRoutes } from "./comments.js"
 import type { AppEnv } from "./app.js"
 import type { Env } from "./env.js"
@@ -101,6 +101,12 @@ export function registerReaderRoutes(app: Hono<AppEnv>, deps: ReaderRouteDeps): 
   /** Ahead of the gate because a room ticket is an alternative credential to the reader grant. */
   registerRoomRoutes(app, sessionDeps)
 
+  /** The cover alone, ahead of the gate: the code prompt shows it, so the reader can see they
+   *  opened the right book, and a prompt cannot draw an image behind its own door. Exactly the
+   *  root cover files, and after the lookup ladder, so a revoked link still answers 410. */
+  for (const file of COVER_FILES) app.get(`/p/:token/${file}`, serveSnapshot)
+
+  const accessGate = createAccessGate(resolveStore)
   app.use("/p/:token", accessGate)
   app.use("/p/:token/*", accessGate)
 

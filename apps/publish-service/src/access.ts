@@ -25,12 +25,34 @@ import {
   type SessionDeps,
 } from "./sessions.js"
 import { normalizeSnapshotPath } from "./snapshot.js"
+import type { PublicationStore } from "./store.js"
 
 export type AccessAppEnv = { Bindings: Env; Variables: PublicationVariables }
 
 type AccessContext = Context<AccessAppEnv>
 
 export type AccessRouteDeps = SessionDeps
+
+/**
+ * The files a packaged book's cover can be, at the snapshot root. The one exception to the lock:
+ * the gate shows the cover so the reader can tell they opened the right book before typing a
+ * code, and a page cannot show an image its own door will not let through. Only these exact
+ * names pass — nothing inside the book does.
+ */
+export const COVER_FILES = ["cover.png", "cover.jpg", "cover.jpeg"] as const
+
+/** Which cover file this publication's current version has, if any. */
+export async function findCoverFile(
+  store: PublicationStore,
+  publication: Publication,
+): Promise<string | null> {
+  for (const file of COVER_FILES) {
+    if ((await store.findSnapshotPrefix(publication.token, publication.current_version, file)) !== null) {
+      return file
+    }
+  }
+  return null
+}
 
 const UNAUTHORIZED_MESSAGE = "This book needs an access code — POST it to /p/:token/access"
 
@@ -88,6 +110,8 @@ export interface GatePageOptions {
    *  who has simply mistyped a few times needs to know that waiting is the answer and that
    *  nothing is broken — not to be told once more that the code is wrong. */
   waiting?: boolean
+  /** The cover file at the snapshot root, when the book has one. */
+  cover?: string | null
 }
 
 /**
@@ -104,6 +128,7 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
   const title = publication.title
   const wrong = options.wrongCode === true
   const waiting = options.waiting === true
+  const cover = options.cover ?? null
   return html`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title}</title>
@@ -115,7 +140,13 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
   main { width:100%; max-width:24rem; padding:2rem 2rem 1.75rem; background:#fff; border:1px solid #e4e4e7;
          border-radius:0.9rem; box-shadow:0 1px 2px rgba(0,0,0,.04); text-align:center;
          animation:rise .3s ease-out both }
-  h1 { margin:0 0 .35rem; font-size:1.125rem; line-height:1.4 }
+  h1 { margin:0 0 .35rem; font-size:1.25rem; line-height:1.3; letter-spacing:-.01em;
+       overflow-wrap:anywhere; word-break:break-word; hyphens:auto; text-wrap:balance }
+  .cover { display:block; width:auto; max-width:100%; height:11rem; margin:0 auto 1.25rem; object-fit:contain;
+           border-radius:.5rem; box-shadow:0 10px 30px -12px rgba(0,0,0,.35), 0 0 0 1px rgba(0,0,0,.05) }
+  .badge { display:inline-flex; align-items:center; gap:.35rem; margin:0 0 .75rem; padding:.2rem .6rem;
+           border-radius:999px; background:#eef2ff; color:#4338ca; font-size:.75rem; font-weight:600 }
+  @media (max-height: 640px) { .cover { height:7rem; margin-bottom:1rem } }
   p { margin:0; font-size:.9375rem; line-height:1.6; color:#52525b }
   form { margin:1.25rem 0 0; display:flex; flex-direction:column; gap:.85rem; text-align:left }
   .field { display:flex; flex-direction:column; gap:.35rem }
@@ -140,11 +171,18 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
 </style></head>
 <body>
 <main>
-  <div class="lock" aria-hidden="true">
+  ${
+    cover
+      ? html`<img class="cover" src="/p/${publication.token}/${cover}" alt="">
+  <span class="badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Access code needed</span>`
+      : html`<div class="lock" aria-hidden="true">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
          stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/>
       <path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-  </div>
+  </div>`
+  }
   <h1>${title}</h1>
   <p>This book is shared with an access code. Add your name and enter the code you were given to open it.</p>
   <form method="post" action="/p/${publication.token}/access">
@@ -200,17 +238,20 @@ export async function accessGranted(c: AccessContext): Promise<boolean> {
   )
 }
 
-export const accessGate = createMiddleware<AccessAppEnv>(async (c, next) => {
-  if (await accessGranted(c)) return next()
+export function createAccessGate(resolveStore: (env: Env) => PublicationStore) {
+  return createMiddleware<AccessAppEnv>(async (c, next) => {
+    if (await accessGranted(c)) return next()
 
-  const publication = c.get("publication")
+    const publication = c.get("publication")
 
-  if (!wantsHtml(c)) {
-    return errorResponse(c, "unauthorized", 401, UNAUTHORIZED_MESSAGE)
-  }
+    if (!wantsHtml(c)) {
+      return errorResponse(c, "unauthorized", 401, UNAUTHORIZED_MESSAGE)
+    }
 
-  return c.html(gatePage(publication, { next: currentRelative(c, publication.token) }), 401)
-})
+    const cover = await findCoverFile(resolveStore(c.env), publication)
+    return c.html(gatePage(publication, { next: currentRelative(c, publication.token), cover }), 401)
+  })
+}
 
 interface AccessSubmission {
   code: string
@@ -309,7 +350,16 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
     if (gate && gate.refusedFor !== null) {
       c.header("Retry-After", String(gate.refusedFor))
       return isForm
-        ? c.html(gatePage(publication, { wrongCode: true, next, name, waiting: true }), 429)
+        ? c.html(
+            gatePage(publication, {
+              wrongCode: true,
+              next,
+              name,
+              waiting: true,
+              cover: await findCoverFile(deps.resolveStore(c.env), publication),
+            }),
+            429,
+          )
         : errorResponse(c, "rate_limited", 429, TOO_MANY_ATTEMPTS_MESSAGE)
     }
 
@@ -331,7 +381,15 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
       /** No explicit "record this failure" call: `attemptGate` above already wrote this
        *  attempt's own row before it told us whether we were refused — see access-throttle.ts. */
       return isForm
-        ? c.html(gatePage(publication, { wrongCode: true, next, name }), 401)
+        ? c.html(
+            gatePage(publication, {
+              wrongCode: true,
+              next,
+              name,
+              cover: await findCoverFile(deps.resolveStore(c.env), publication),
+            }),
+            401,
+          )
         : errorResponse(c, "unauthorized", 401, WRONG_CODE_MESSAGE)
     }
     await gate?.recordSuccess()

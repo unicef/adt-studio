@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { CommenterDisplayName } from "./commenter-name.js"
 
-export const PUBLISH_WORKER_VERSION = "0.13.0"
+export const PUBLISH_WORKER_VERSION = "0.13.1"
 
 /** Limits apply to the expanded file tree declared when an upload starts. */
 export const PUBLICATION_SNAPSHOT_MAX_FILES = 20_000
