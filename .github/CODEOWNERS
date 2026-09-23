@@ -1,0 +1,19 @@
+# CODEOWNERS — NOT YET ACTIVE
+#
+# TODO: replace every @<placeholder> below with a real GitHub handle or team.
+# Until then this file assigns nobody: GitHub cannot resolve @<...> and will warn
+# about unknown owners, so no review is actually routed. It is committed now to
+# record the intended split of responsibility agreed on 11 September; the handles
+# follow once those responsibilities are assigned.
+#
+# Assign by responsibility, not title. Review the split after one cycle.
+
+/packages/types/       @<integration> @<storage>        # schemas & PIPELINE
+/packages/storage/     @<storage>                       # entity versioning
+/packages/pipeline/    @<pipeline>
+/apps/adt-runtime/     @<runtime>                       # ships in every book
+/prompts/              @<prompts>                       # prompt contracts
+/docs/specs/           @<product-owner> @<integration>  # spec approvals
+/docs/DECISIONS.md     @<integration>
+/docs/INVARIANTS.md    @<integration>
+/.github/              @<integration>
