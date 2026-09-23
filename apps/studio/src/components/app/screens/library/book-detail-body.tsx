@@ -1,14 +1,13 @@
 import { Fragment, type ReactNode } from "react"
-import { TriangleAlert, ArrowRight, Trash2, MessageSquare, Send, Eye, FolderUp, HardDrive, Split, DownloadCloud, Globe, Copy, Link2Off, CalendarOff } from "lucide-react"
+import { TriangleAlert, ArrowRight, Trash2, MessageSquare, Send, Eye, FolderUp, HardDrive, Split, DownloadCloud } from "lucide-react"
 import { Trans, Plural, useLingui } from "@lingui/react/macro"
 import { Button } from "@/components/ui/button"
-import { toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 import { formatRelative } from "../../data"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { progressFor } from "../shared/kit"
-import { CommentsBannerAvatars } from "./CommentsBanner"
 import type { DetailBook } from "./BookDetailDialog"
+import { DialogComments } from "./DialogComments"
 
 export const PRESS = "transition-transform active:scale-[0.98]"
 
@@ -97,8 +96,6 @@ export function DetailActions({ book, handlers }: { book: DetailBook; handlers: 
 export function DetailInfo({ book, handlers }: { book: DetailBook; handlers: DetailHandlers }) {
   const { t } = useLingui()
   const p = progressFor(book)
-  const comments = book.comments ?? []
-  const commentCount = comments.length || (book.pendingComments ?? 0)
   const hasError = book.needsRebuild || !!book.hasError
   return (
     <div className="space-y-4">
@@ -117,31 +114,11 @@ export function DetailInfo({ book, handlers }: { book: DetailBook; handlers: Det
         </div>
       ) : null}
 
-      {/* Readers' comments are read where they were left — pinned to the storyboard — and they
-          are waiting whether or not the book also needs fixing. */}
-      {comments.length > 0 ? (
-        <CommentsBannerAvatars comments={comments} onReview={() => handlers.goStep("storyboard")} />
-      ) : commentCount > 0 ? (
-        <div className="flex items-center gap-3 rounded-xl border border-brand-500/25 bg-brand-500/10 px-3.5 py-3 text-[13px]">
-          <MessageSquare className="size-4 shrink-0 text-brand-600" />
-          <div className="min-w-0 flex-1 font-medium">
-            <Plural value={commentCount} one="# comment to review" other="# comments to review" />
-          </div>
-          <Button size="sm" variant="outline" className={cn(PRESS, "shrink-0")} onClick={() => handlers.goStep("storyboard")}>
-            <Trans>Review</Trans>
-          </Button>
-        </div>
+      {book.publication || (book.pendingComments ?? 0) > 0 ? (
+        <DialogComments bookLabel={book.label} onReviewAll={() => handlers.goStep("storyboard")} />
       ) : null}
 
       <OriginBadges book={book} />
-
-      {book.publication && (
-        <PublishedCard
-          publication={book.publication}
-          copyLabel={t`Copy link`}
-          onOpenSharing={() => handlers.goStep("publish")}
-        />
-      )}
 
       {p.optionalDone.length > 0 && (
         <div>
@@ -193,111 +170,6 @@ function OriginBadges({ book }: { book: DetailBook }) {
           <DownloadCloud className="size-3.5 text-muted-foreground" />
           <Trans>Imported ADT</Trans>
         </span>
-      )}
-    </div>
-  )
-}
-
-/**
- * The book's shared copy, as it stands.
- *
- * Live is the only state with a link worth copying. A stopped or expired link still *exists* —
- * readers may have it in a message — but it no longer opens, so it is shown as a dead address
- * with no Copy, and the way forward is the Sharing page: resume the same link, or share again.
- */
-function PublishedCard({
-  publication,
-  copyLabel,
-  onOpenSharing,
-}: {
-  publication: NonNullable<DetailBook["publication"]>
-  copyLabel: string
-  onOpenSharing: () => void
-}) {
-  const { t } = useLingui()
-  const live = publication.state !== "expired" && publication.state !== "revoked"
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(publication.url)
-      toast.success(t`Link copied to the clipboard`)
-    } catch {
-      toast.error(t`Couldn't copy the link — open the book's Sharing step and copy it there.`)
-    }
-  }
-
-  if (!live) {
-    const stopped = publication.state === "revoked"
-    const Icon = stopped ? Link2Off : CalendarOff
-    return (
-      <div className="rounded-xl border bg-muted/40 p-3.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 text-[12.5px] font-semibold text-foreground">
-            <Icon className="size-3.5 text-muted-foreground" aria-hidden />
-            {stopped ? <Trans>Sharing stopped</Trans> : <Trans>Link expired</Trans>}
-          </div>
-          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-muted-foreground/60" aria-hidden />
-            {stopped ? <Trans>Stopped</Trans> : <Trans>Expired</Trans>}
-          </span>
-        </div>
-        <p className="mt-1.5 text-[12.5px] leading-5 text-muted-foreground">
-          {stopped ? (
-            <Trans>The link doesn't open right now. Resuming turns the same link back on, with every comment kept.</Trans>
-          ) : (
-            <Trans>The link no longer opens. Sharing again makes a new one.</Trans>
-          )}
-        </p>
-        <div className="mt-2.5 flex items-center gap-2">
-          <span className="min-w-0 flex-1 truncate rounded-lg border border-dashed px-3 py-2 font-mono text-[12.5px] text-muted-foreground/70 line-through decoration-muted-foreground/40">
-            {publication.url}
-          </span>
-          <Button size="sm" variant="outline" className={cn(PRESS, "shrink-0")} onClick={onOpenSharing}>
-            <Globe className="size-3.5" aria-hidden />
-            <Trans>Open Sharing</Trans>
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="rounded-xl border border-brand-500/25 bg-brand-500/[0.06] p-3.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 text-[12.5px] font-semibold text-primary">
-          <Globe className="size-3.5" aria-hidden />
-          <Trans>Shared for review</Trans>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/12 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-            <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
-            <Trans>Live</Trans>
-          </span>
-          <button
-            type="button"
-            onClick={onOpenSharing}
-            className={cn(
-              PRESS,
-              "rounded-md px-1.5 py-0.5 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
-            )}
-          >
-            <Trans>Manage</Trans>
-          </button>
-        </div>
-      </div>
-      <div className="mt-2.5 flex items-center gap-2">
-        <a href={publication.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate rounded-lg border bg-card px-3 py-2 font-mono text-[12.5px] transition-colors hover:border-brand-300">
-          {publication.url}
-        </a>
-        <Button size="sm" variant="outline" aria-label={copyLabel} className={cn(PRESS, "shrink-0")} onClick={() => void copy()}>
-          <Copy className="size-3.5" aria-hidden />
-          <Trans>Copy</Trans>
-        </Button>
-      </div>
-      {publication.accessCode && (
-        <div className="mt-2.5 flex items-center gap-2 text-[12.5px] text-muted-foreground">
-          <span><Trans>Access code</Trans></span>
-          <span className="rounded-md bg-muted px-2.5 py-1 font-mono text-[13px] font-bold tracking-[0.25em] text-foreground">{publication.accessCode}</span>
-        </div>
       )}
     </div>
   )
