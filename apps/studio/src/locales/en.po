@@ -100,8 +100,12 @@ msgid "{0, plural, one {# book} other {# books}}"
 msgstr "{0, plural, one {# book} other {# books}}"
 
 #. placeholder {0}: comments.length
-msgid "{0, plural, one {# comment to review} other {# comments to review}}"
-msgstr "{0, plural, one {# comment to review} other {# comments to review}}"
+#~ msgid "{0, plural, one {# comment to review} other {# comments to review}}"
+#~ msgstr "{0, plural, one {# comment to review} other {# comments to review}}"
+
+#. placeholder {0}: threads.length
+msgid "{0, plural, one {# comment waiting on you} other {# comments waiting on you}}"
+msgstr "{0, plural, one {# comment waiting on you} other {# comments waiting on you}}"
 
 #. placeholder {0}: book.pendingComments ?? 0
 #~ msgid "{0, plural, one {# comment} other {# comments}}"
@@ -374,6 +378,11 @@ msgstr "{0} total"
 msgid "{0} translations"
 msgstr "{0} translations"
 
+#. placeholder {0}: newest.root.author_name
+#. placeholder {1}: newest.root.body
+msgid "{0}: “{1}”"
+msgstr "{0}: “{1}”"
+
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"
@@ -429,8 +438,11 @@ msgstr "{0}s ago"
 msgid "{clock} elapsed · usually 1 to 5 minutes"
 msgstr "{clock} elapsed · usually 1 to 5 minutes"
 
-msgid "{commentCount, plural, one {# comment to review} other {# comments to review}}"
-msgstr "{commentCount, plural, one {# comment to review} other {# comments to review}}"
+#~ msgid "{commentCount, plural, one {# comment to review} other {# comments to review}}"
+#~ msgstr "{commentCount, plural, one {# comment to review} other {# comments to review}}"
+
+#~ msgid "{comments, plural, one {Review # comment} other {Review # comments}}"
+#~ msgstr "{comments, plural, one {Review # comment} other {Review # comments}}"
 
 msgid "{completed} of {total}"
 msgstr "{completed} of {total}"
@@ -568,8 +580,8 @@ msgstr "{reviewCount} {0}"
 msgid "{reviewed}/{0} checked"
 msgstr "{reviewed}/{0} checked"
 
-msgid "{reviewers, plural, one {from # reviewer} other {from # reviewers}}"
-msgstr "{reviewers, plural, one {from # reviewer} other {from # reviewers}}"
+#~ msgid "{reviewers, plural, one {from # reviewer} other {from # reviewers}}"
+#~ msgstr "{reviewers, plural, one {from # reviewer} other {from # reviewers}}"
 
 msgid "{sections} sections"
 msgstr "{sections} sections"
@@ -1699,6 +1711,9 @@ msgstr "Any other section type."
 msgid "Anyone with the link"
 msgstr "Anyone with the link"
 
+#~ msgid "Anyone with the link can open it"
+#~ msgstr "Anyone with the link can open it"
+
 msgid "Anyone with the link can open it."
 msgstr "Anyone with the link can open it."
 
@@ -2787,6 +2802,9 @@ msgstr "Comments"
 msgid "Comments ({0})"
 msgstr "Comments ({0})"
 
+msgid "Comments couldn't be loaded right now. They're safe — try again in a moment."
+msgstr "Comments couldn't be loaded right now. They're safe — try again in a moment."
+
 msgid "Comments on this page"
 msgstr "Comments on this page"
 
@@ -3076,6 +3094,9 @@ msgstr "Copy the access code"
 msgid "Copy the link to {0}"
 msgstr "Copy the link to {0}"
 
+msgid "Copy the link to send"
+msgstr "Copy the link to send"
+
 msgid "Copy this message"
 msgstr "Copy this message"
 
@@ -3128,6 +3149,9 @@ msgstr "Couldn't apply the spreads — please try again."
 
 msgid "Couldn't check for updates"
 msgstr "Couldn't check for updates"
+
+msgid "Couldn't copy — open the book's Sharing step and copy it there."
+msgstr "Couldn't copy — open the book's Sharing step and copy it there."
 
 #~ msgid "Couldn't copy — select the link above and copy it by hand."
 #~ msgstr "Couldn't copy — select the link above and copy it by hand."
@@ -7496,6 +7520,9 @@ msgstr "Open the Quizzes stage to edit this quiz"
 msgid "Open the relevant doc page"
 msgstr "Open the relevant doc page"
 
+msgid "Open the shared book"
+msgstr "Open the shared book"
+
 msgid "Open this section to tune the model, judge prompt, retry behavior, and exact review thresholds."
 msgstr "Open this section to tune the model, judge prompt, retry behavior, and exact review thresholds."
 
@@ -9227,6 +9254,9 @@ msgstr "Review strictness"
 msgid "Review style"
 msgstr "Review style"
 
+msgid "Review the comments waiting on you in the storyboard"
+msgstr "Review the comments waiting on you in the storyboard"
+
 msgid "Review the project details below and confirm the import."
 msgstr "Review the project details below and confirm the import."
 
@@ -10039,8 +10069,8 @@ msgstr "Shared books"
 msgid "Shared books live in your own Cloudflare account, so this list is empty until the Studio is connected to one. It is free and takes a few clicks."
 msgstr "Shared books live in your own Cloudflare account, so this list is empty until the Studio is connected to one. It is free and takes a few clicks."
 
-msgid "Shared for review"
-msgstr "Shared for review"
+#~ msgid "Shared for review"
+#~ msgstr "Shared for review"
 
 msgid "Sharing"
 msgstr "Sharing"
@@ -11153,6 +11183,9 @@ msgstr "The last translation review failed before producing reliable item-level 
 msgid "The link doesn't open right now. Resuming turns the same link back on, with every comment kept."
 msgstr "The link doesn't open right now. Resuming turns the same link back on, with every comment kept."
 
+#~ msgid "The link doesn't open right now. Resuming turns the same link back on."
+#~ msgstr "The link doesn't open right now. Resuming turns the same link back on."
+
 #~ msgid "The link for this book is gone, so there was nothing to change. Publish it again to get a new link."
 #~ msgstr "The link for this book is gone, so there was nothing to change. Publish it again to get a new link."
 
@@ -11165,8 +11198,8 @@ msgstr "The link is still live. Check that you're online and try again — nothi
 msgid "The link keeps working until you stop sharing."
 msgstr "The link keeps working until you stop sharing."
 
-msgid "The link no longer opens. Sharing again makes a new one."
-msgstr "The link no longer opens. Sharing again makes a new one."
+#~ msgid "The link no longer opens. Sharing again makes a new one."
+#~ msgstr "The link no longer opens. Sharing again makes a new one."
 
 msgid "The link now shows your latest version"
 msgstr "The link now shows your latest version"

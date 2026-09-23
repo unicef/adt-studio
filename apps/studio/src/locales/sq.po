@@ -102,8 +102,12 @@ msgid "{0, plural, one {# book} other {# books}}"
 msgstr "{0, plural, one {# libër} other {# libra}}"
 
 #. placeholder {0}: comments.length
-msgid "{0, plural, one {# comment to review} other {# comments to review}}"
-msgstr "{0, plural, one {# koment për të shqyrtuar} other {# komente për të shqyrtuar}}"
+#~ msgid "{0, plural, one {# comment to review} other {# comments to review}}"
+#~ msgstr "{0, plural, one {# koment për të shqyrtuar} other {# komente për të shqyrtuar}}"
+
+#. placeholder {0}: threads.length
+msgid "{0, plural, one {# comment waiting on you} other {# comments waiting on you}}"
+msgstr "{0, plural, one {# koment ju pret} other {# komente ju presin}}"
 
 #. placeholder {0}: book.pendingComments ?? 0
 #~ msgid "{0, plural, one {# comment} other {# comments}}"
@@ -376,6 +380,11 @@ msgstr "{0} gjithsej"
 msgid "{0} translations"
 msgstr "{0} përkthime"
 
+#. placeholder {0}: newest.root.author_name
+#. placeholder {1}: newest.root.body
+msgid "{0}: “{1}”"
+msgstr "{0}: “{1}”"
+
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"
@@ -431,8 +440,11 @@ msgstr "{0}s më parë"
 msgid "{clock} elapsed · usually 1 to 5 minutes"
 msgstr "{clock} kaluar · zakonisht 1 deri në 5 minuta"
 
-msgid "{commentCount, plural, one {# comment to review} other {# comments to review}}"
-msgstr "{commentCount, plural, one {# koment për të shqyrtuar} other {# komente për të shqyrtuar}}"
+#~ msgid "{commentCount, plural, one {# comment to review} other {# comments to review}}"
+#~ msgstr "{commentCount, plural, one {# koment për të shqyrtuar} other {# komente për të shqyrtuar}}"
+
+#~ msgid "{comments, plural, one {Review # comment} other {Review # comments}}"
+#~ msgstr "{comments, plural, one {Shqyrto # koment} other {Shqyrto # komente}}"
 
 msgid "{completed} of {total}"
 msgstr "{completed} nga {total}"
@@ -570,8 +582,8 @@ msgstr "{reviewCount} {0}"
 msgid "{reviewed}/{0} checked"
 msgstr "{reviewed}/{0} të kontrolluar"
 
-msgid "{reviewers, plural, one {from # reviewer} other {from # reviewers}}"
-msgstr "{reviewers, plural, one {nga # recensues} other {nga # recensues}}"
+#~ msgid "{reviewers, plural, one {from # reviewer} other {from # reviewers}}"
+#~ msgstr "{reviewers, plural, one {nga # recensues} other {nga # recensues}}"
 
 msgid "{sections} sections"
 msgstr "{sections} seksione"
@@ -1701,6 +1713,9 @@ msgstr "Çdo lloj tjetër seksioni."
 msgid "Anyone with the link"
 msgstr "Kushdo me lidhjen"
 
+#~ msgid "Anyone with the link can open it"
+#~ msgstr "Kushdo me lidhjen mund ta hapë"
+
 msgid "Anyone with the link can open it."
 msgstr "Kushdo me lidhjen mund ta hapë atë."
 
@@ -2789,6 +2804,9 @@ msgstr "Komente"
 msgid "Comments ({0})"
 msgstr "Komente ({0})"
 
+msgid "Comments couldn't be loaded right now. They're safe — try again in a moment."
+msgstr "Komentet nuk u ngarkuan dot tani. Janë të sigurt — provoni përsëri pas pak."
+
 msgid "Comments on this page"
 msgstr "Komentet në këtë faqe"
 
@@ -3077,6 +3095,9 @@ msgstr "Kopjo kodin e qasjes"
 msgid "Copy the link to {0}"
 msgstr "Kopjo lidhjen te {0}"
 
+msgid "Copy the link to send"
+msgstr "Kopjo lidhjen për ta dërguar"
+
 msgid "Copy this message"
 msgstr "Kopjo këtë mesazh"
 
@@ -3129,6 +3150,9 @@ msgstr "Nuk mund të aplikohej faqet e përbashkëta — ju lutem provoni përs�
 
 msgid "Couldn't check for updates"
 msgstr "Nuk u arrit të kontrollohen përditësimet"
+
+msgid "Couldn't copy — open the book's Sharing step and copy it there."
+msgstr "Nuk u kopjua dot — hapni hapin Ndarje të librit dhe kopjojeni atje."
 
 #~ msgid "Couldn't copy — select the link above and copy it by hand."
 #~ msgstr "Nuk mund të kopjohet — zgjidh lidhjen më sipër dhe kopjoje me dorë."
@@ -7497,6 +7521,9 @@ msgstr "Hapni fazën Kuizet për të redaktuar këtë kuiz"
 msgid "Open the relevant doc page"
 msgstr "Hap faqen përkatëse të dokumentit"
 
+msgid "Open the shared book"
+msgstr "Hap librin e ndarë"
+
 msgid "Open this section to tune the model, judge prompt, retry behavior, and exact review thresholds."
 msgstr "Hapni këtë seksion për të rregulluar modelin, nxitjen e gjykatësit, sjelljen e riprovimit dhe pragjet e sakta të rishikimit."
 
@@ -9228,6 +9255,9 @@ msgstr "Rreptësia e rishikimit"
 msgid "Review style"
 msgstr "Stili i rishikimit"
 
+msgid "Review the comments waiting on you in the storyboard"
+msgstr "Shqyrto në storyboard komentet që ju presin"
+
 msgid "Review the project details below and confirm the import."
 msgstr "Rishikoni detajet e projektit më poshtë dhe konfirmoni importimin."
 
@@ -10040,8 +10070,8 @@ msgstr "Librat e ndarë"
 msgid "Shared books live in your own Cloudflare account, so this list is empty until the Studio is connected to one. It is free and takes a few clicks."
 msgstr "Librat e ndarë ndodhen në llogarinë tuaj Cloudflare, prandaj kjo listë mbetet bosh derisa Studio të lidhet me një të tillë. Është falas dhe merr pak klikime."
 
-msgid "Shared for review"
-msgstr "Ndarë për rishikim"
+#~ msgid "Shared for review"
+#~ msgstr "Ndarë për rishikim"
 
 msgid "Sharing"
 msgstr "Ndarja"
@@ -11154,6 +11184,9 @@ msgstr "Rishikimi i fundit i përkthimit dështoi para se të prodhonte rezultat
 msgid "The link doesn't open right now. Resuming turns the same link back on, with every comment kept."
 msgstr "Lidhja nuk hapet tani. Rifillimi e ndez përsëri të njëjtën lidhje, me të gjitha komentet e ruajtura."
 
+#~ msgid "The link doesn't open right now. Resuming turns the same link back on."
+#~ msgstr "Lidhja nuk hapet tani. Rifillimi e ndez përsëri të njëjtën lidhje."
+
 #~ msgid "The link for this book is gone, so there was nothing to change. Publish it again to get a new link."
 #~ msgstr "Lidhja për këtë libër është zhdukur, kështu që nuk kishte asgjë për të ndryshuar. Publikoje përsëri për të marrë një lidhje të re."
 
@@ -11166,8 +11199,8 @@ msgstr "Lidhja është ende aktive. Kontrolloni që jeni online dhe provoni për
 msgid "The link keeps working until you stop sharing."
 msgstr "Lidhja vazhdon të punojë derisa të ndaloni ndarjen."
 
-msgid "The link no longer opens. Sharing again makes a new one."
-msgstr "Lidhja nuk hapet më. Duke e ndarë përsëri krijohet një e re."
+#~ msgid "The link no longer opens. Sharing again makes a new one."
+#~ msgstr "Lidhja nuk hapet më. Duke e ndarë përsëri krijohet një e re."
 
 msgid "The link now shows your latest version"
 msgstr "Lidhja tani tregon versionin tuaj më të fundit"

@@ -100,8 +100,12 @@ msgid "{0, plural, one {# book} other {# books}}"
 msgstr "{0, plural, one {# livro} other {# livros}}"
 
 #. placeholder {0}: comments.length
-msgid "{0, plural, one {# comment to review} other {# comments to review}}"
-msgstr "{0, plural, one {# comentário para revisar} other {# comentários para revisar}}"
+#~ msgid "{0, plural, one {# comment to review} other {# comments to review}}"
+#~ msgstr "{0, plural, one {# comentário para revisar} other {# comentários para revisar}}"
+
+#. placeholder {0}: threads.length
+msgid "{0, plural, one {# comment waiting on you} other {# comments waiting on you}}"
+msgstr "{0, plural, one {# comentário esperando por você} other {# comentários esperando por você}}"
 
 #. placeholder {0}: book.pendingComments ?? 0
 #~ msgid "{0, plural, one {# comment} other {# comments}}"
@@ -374,6 +378,11 @@ msgstr "{0} total"
 msgid "{0} translations"
 msgstr "{0} traduções"
 
+#. placeholder {0}: newest.root.author_name
+#. placeholder {1}: newest.root.body
+msgid "{0}: “{1}”"
+msgstr "{0}: “{1}”"
+
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"
@@ -429,8 +438,11 @@ msgstr "Há {0}s"
 msgid "{clock} elapsed · usually 1 to 5 minutes"
 msgstr "{clock} decorrido · geralmente 1 a 5 minutos"
 
-msgid "{commentCount, plural, one {# comment to review} other {# comments to review}}"
-msgstr "{commentCount, plural, one {# comentário para revisar} other {# comentários para revisar}}"
+#~ msgid "{commentCount, plural, one {# comment to review} other {# comments to review}}"
+#~ msgstr "{commentCount, plural, one {# comentário para revisar} other {# comentários para revisar}}"
+
+#~ msgid "{comments, plural, one {Review # comment} other {Review # comments}}"
+#~ msgstr "{comments, plural, one {Revisar # comentário} other {Revisar # comentários}}"
 
 msgid "{completed} of {total}"
 msgstr "{completed} de {total}"
@@ -568,8 +580,8 @@ msgstr "{reviewCount} {0}"
 msgid "{reviewed}/{0} checked"
 msgstr "{reviewed}/{0} verificados"
 
-msgid "{reviewers, plural, one {from # reviewer} other {from # reviewers}}"
-msgstr "{reviewers, plural, one {de # revisor} other {de # revisores}}"
+#~ msgid "{reviewers, plural, one {from # reviewer} other {from # reviewers}}"
+#~ msgstr "{reviewers, plural, one {de # revisor} other {de # revisores}}"
 
 msgid "{sections} sections"
 msgstr "{sections} seções"
@@ -1699,6 +1711,9 @@ msgstr "Qualquer outro tipo de seção."
 msgid "Anyone with the link"
 msgstr "Qualquer pessoa com o link"
 
+#~ msgid "Anyone with the link can open it"
+#~ msgstr "Qualquer pessoa com o link pode abrir"
+
 msgid "Anyone with the link can open it."
 msgstr "Qualquer pessoa com o link pode abri-lo."
 
@@ -2787,6 +2802,9 @@ msgstr "Comentários"
 msgid "Comments ({0})"
 msgstr "Comentários ({0})"
 
+msgid "Comments couldn't be loaded right now. They're safe — try again in a moment."
+msgstr "Não foi possível carregar os comentários agora. Eles estão seguros — tente de novo em instantes."
+
 msgid "Comments on this page"
 msgstr "Comentários nesta página"
 
@@ -3075,6 +3093,9 @@ msgstr "Copiar o código de acesso"
 msgid "Copy the link to {0}"
 msgstr "Copiar o link para {0}"
 
+msgid "Copy the link to send"
+msgstr "Copiar o link para enviar"
+
 msgid "Copy this message"
 msgstr "Copiar esta mensagem"
 
@@ -3127,6 +3148,9 @@ msgstr "Não foi possível aplicar os spreads — tente novamente."
 
 msgid "Couldn't check for updates"
 msgstr "Não foi possível verificar atualizações"
+
+msgid "Couldn't copy — open the book's Sharing step and copy it there."
+msgstr "Não foi possível copiar — abra a etapa Compartilhar do livro e copie lá."
 
 #~ msgid "Couldn't copy — select the link above and copy it by hand."
 #~ msgstr "Não foi possível copiar — selecione o link acima e copie manualmente."
@@ -7495,6 +7519,9 @@ msgstr "Abra a etapa de Questionários para editar este questionário"
 msgid "Open the relevant doc page"
 msgstr "Abrir a página de documentação relevante"
 
+msgid "Open the shared book"
+msgstr "Abrir o livro compartilhado"
+
 msgid "Open this section to tune the model, judge prompt, retry behavior, and exact review thresholds."
 msgstr "Abra esta seção para ajustar o modelo, o prompt do avaliador, o comportamento de novas tentativas e os limites exatos de revisão."
 
@@ -9226,6 +9253,9 @@ msgstr "Rigor da revisão"
 msgid "Review style"
 msgstr "Estilo de revisão"
 
+msgid "Review the comments waiting on you in the storyboard"
+msgstr "Revisar no storyboard os comentários esperando por você"
+
 msgid "Review the project details below and confirm the import."
 msgstr "Revise os detalhes do projeto abaixo e confirme a importação."
 
@@ -10038,8 +10068,8 @@ msgstr "Livros compartilhados"
 msgid "Shared books live in your own Cloudflare account, so this list is empty until the Studio is connected to one. It is free and takes a few clicks."
 msgstr "Os livros compartilhados ficam na sua própria conta Cloudflare, então esta lista fica vazia até o Studio estar conectado a uma. É gratuito e leva alguns cliques."
 
-msgid "Shared for review"
-msgstr "Compartilhado para revisão"
+#~ msgid "Shared for review"
+#~ msgstr "Compartilhado para revisão"
 
 msgid "Sharing"
 msgstr "Compartilhamento"
@@ -11152,6 +11182,9 @@ msgstr "A última revisão de tradução falhou antes de produzir resultados con
 msgid "The link doesn't open right now. Resuming turns the same link back on, with every comment kept."
 msgstr "O link não abre agora. Retomar reativa o mesmo link, mantendo todos os comentários."
 
+#~ msgid "The link doesn't open right now. Resuming turns the same link back on."
+#~ msgstr "O link não abre agora. Retomar reativa o mesmo link."
+
 #~ msgid "The link for this book is gone, so there was nothing to change. Publish it again to get a new link."
 #~ msgstr "O link para este livro se foi, então não havia nada para mudar. Publique novamente para obter um novo link."
 
@@ -11164,8 +11197,8 @@ msgstr "O link ainda está ativo. Verifique se você está online e tente novame
 msgid "The link keeps working until you stop sharing."
 msgstr "O link continua funcionando até você parar de compartilhar."
 
-msgid "The link no longer opens. Sharing again makes a new one."
-msgstr "O link não abre mais. Compartilhar novamente cria um novo."
+#~ msgid "The link no longer opens. Sharing again makes a new one."
+#~ msgstr "O link não abre mais. Compartilhar novamente cria um novo."
 
 msgid "The link now shows your latest version"
 msgstr "O link agora mostra sua versão mais recente"
