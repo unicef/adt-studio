@@ -225,5 +225,8 @@
     "comments-scope-page-label": "Kjo faqe",
     "comments-scope-book-label": "I gjithë libri",
     "comments-book-empty-label": "Ende nuk ka komente në këtë libër",
-    "comments-reading-now-label": "Po lexojnë tani"
+    "comments-reading-now-label": "Po lexojnë tani",
+    "comments-hint-title": "Mund ta komentoni këtë libër",
+    "comments-hint-body": "Shtypni këtë buton, pastaj klikoni kudo në një faqe për të lënë një shënim.",
+    "comments-hint-dismiss-label": "Mbyll"
 }

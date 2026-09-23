@@ -268,5 +268,8 @@
     "comments-scope-page-label": "Esta página",
     "comments-scope-book-label": "Livro inteiro",
     "comments-book-empty-label": "Ainda não há comentários neste livro",
-    "comments-reading-now-label": "Lendo agora"
+    "comments-reading-now-label": "Lendo agora",
+    "comments-hint-title": "Você pode comentar este livro",
+    "comments-hint-body": "Toque neste botão e depois clique em qualquer lugar de uma página para deixar uma nota.",
+    "comments-hint-dismiss-label": "Fechar"
 }

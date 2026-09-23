@@ -46,10 +46,20 @@ export function CommentsListButton() {
       }
       tooltip={t("comments-list-label")}
       pressed={open as boolean}
+      className="relative"
       data-comments-list-trigger=""
       onClick={() => setOpen((previous) => !previous)}
     >
       <MessagesSquare />
+      {/* The count of what is already here, on the button that reads it. */}
+      {count > 0 ? (
+        <span
+          aria-hidden
+          className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.6rem] font-bold leading-none text-primary-foreground ring-2 ring-popover duration-200 animate-in zoom-in-50"
+        >
+          {count > 9 ? "9+" : count}
+        </span>
+      ) : null}
     </DockIconButton>
   )
 }

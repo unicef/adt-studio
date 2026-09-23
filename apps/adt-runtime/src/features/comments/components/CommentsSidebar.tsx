@@ -1,6 +1,7 @@
 import { readableTextColor } from "@adt/types/color"
 import { initialOf } from "@/features/comments/lib/initial"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { currentLanguageAtom } from "@/features/language/state/language.atoms"
 import { Check, X } from "lucide-react"
 import { useEffect, useMemo, useRef } from "react"
 import { Switch } from "@/shared/ui/switch"
@@ -54,6 +55,7 @@ export function CommentsSidebar({
   onClose,
 }: CommentsSidebarProps) {
   const { t } = useCommentsText()
+  const language = useAtomValue(currentLanguageAtom) as string
   const [showResolved, setShowResolved] = useAtom(showResolvedAtom)
   const [scope, setScope] = useAtom(commentScopeAtom)
   const resolvedCount = useAtomValue(pageResolvedCountAtom)
@@ -267,7 +269,7 @@ export function CommentsSidebar({
                       <span className="flex flex-wrap items-baseline gap-1.5">
                         <span className="text-xs font-semibold">{comment.author_name}</span>
                         <span className="text-[0.65rem] text-muted-foreground">
-                          {relativeTime(comment.created_at, t)}
+                          {relativeTime(comment.created_at, t, Date.now(), language)}
                         </span>
                         {!elsewhere && !anchoredIds.has(comment.id) ? (
                           <span className="rounded bg-muted px-1 py-px text-[0.6rem] font-medium text-muted-foreground">

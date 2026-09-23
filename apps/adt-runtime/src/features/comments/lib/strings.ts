@@ -105,6 +105,9 @@ export const COMMENT_STRINGS = {
   "comments-scope-book-label": "Whole book",
   "comments-book-empty-label": "No comments anywhere in this book yet",
   "comments-reading-now-label": "Reading now",
+  "comments-hint-title": "You can comment on this book",
+  "comments-hint-body": "Press this button, then click anywhere on a page to leave a note.",
+  "comments-hint-dismiss-label": "Dismiss",
 } as const
 
 export type CommentStringKey = keyof typeof COMMENT_STRINGS

@@ -28,6 +28,7 @@ import { CommentPin } from "@/features/comments/components/CommentPin"
 import { CommentPreview } from "@/features/comments/components/CommentPreview"
 import { CommentThread } from "@/features/comments/components/CommentThread"
 import { CommentsSidebar } from "@/features/comments/components/CommentsSidebar"
+import { contentRoot } from "@/features/comments/lib/anchor"
 import { pendingThreadIdAtom } from "@/features/comments/state/follow.atoms"
 import { PointPopover } from "@/features/comments/components/PointPopover"
 
@@ -489,11 +490,24 @@ function dragLabel(roots: PublishComment[], id: string): string {
   return root ? initialOf(root.author_name) : "+"
 }
 
+/** How far outside the page's right edge the stack hangs, clear of its border. */
+const PAGE_STACK_GAP = 12
+
+/**
+ * Where the page-level stack sits: just outside the page's own top-right corner, so the pins
+ * read as belonging to the page rather than to the window. It used to hug the window's edge,
+ * which on a wide screen put them half a screen away from the book they were about. The
+ * window edge is still the limit, for a page that fills the screen.
+ */
 function pageStackPoint(index: number): { x: number; y: number } {
   const viewportWidth = typeof window === "undefined" ? 0 : window.innerWidth
+  const edge = viewportWidth - PAGE_STACK_RIGHT
+  const page = contentRoot()?.getBoundingClientRect()
+  const beside = page && page.width > 0 ? page.right + PAGE_STACK_GAP : edge
+  const top = page && page.height > 0 ? Math.max(PAGE_STACK_TOP, page.top) : PAGE_STACK_TOP
   return {
-    x: viewportWidth - PAGE_STACK_RIGHT,
-    y: PAGE_STACK_TOP + index * PAGE_STACK_STEP + 28,
+    x: Math.min(beside, edge),
+    y: top + index * PAGE_STACK_STEP + 28,
   }
 }
 
