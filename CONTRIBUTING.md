@@ -38,6 +38,16 @@ pnpm dev                                # Studio at :5173, API at :3001
 **Branch from `develop` and open your PR against `develop`, not `main`.** `develop`
 ships beta releases and `main` ships stable ones — see [docs/RELEASING.md](docs/RELEASING.md).
 
+Name the branch after the kind of work:
+
+| Branch | For |
+|--------|-----|
+| `feat/<issue>-<slug>` | A feature, including a slice of an approved spec |
+| `fix/<issue>-<slug>` | A bug fix |
+| `chore/`, `docs/`, `refactor/` + `<issue>-<slug>` | Maintenance, docs, behaviour-preserving refactors |
+| `spec/<issue>-<slug>` | A PR that adds or amends a spec |
+| `exp/<issue>-<slug>` | An experiment (never merged) |
+
 **Never create a `v*` tag by hand.** Version numbers are calculated from existing tags,
 so a manual tag corrupts every future release. The tag namespace is protected; only the
 release automation can write to it.
@@ -94,6 +104,10 @@ and merged before implementing that change**, with an ADR follow-up when a stand
 decision changes. A spec reaches `verified` only after checks **on a release build
 against the acceptance set**; the person holding release responsibility for the cycle
 records that evidence and moves the status. See [the lifecycle](docs/SPEC_DRIVEN_DEVELOPMENT.md#4-the-spec-lifecycle).
+
+Implementing an approved spec has its own checklist, including how to tag tests with
+`AC-n` and when to move the spec's status: [§5a](docs/SPEC_DRIVEN_DEVELOPMENT.md#5a-implementing-an-approved-spec).
+Every time box and size limit is collected in [§11 Service levels](docs/SPEC_DRIVEN_DEVELOPMENT.md#11-service-levels).
 
 ## 6. Where things live
 

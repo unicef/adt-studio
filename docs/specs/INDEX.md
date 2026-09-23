@@ -3,6 +3,11 @@
 One row per spec. Status moves with the spec's front matter; keep the two in sync in the same PR.
 Statuses: draft · in-review · approved · in-progress · implemented · verified · superseded.
 
+This table is not the whole list of taken numbers. A spec proposed after it was last
+updated appears only in its PR titled `SPEC-NNNN: …` until that PR merges, and it
+already holds its number — check both before taking one
+([SPEC_DRIVEN_DEVELOPMENT.md §5](../SPEC_DRIVEN_DEVELOPMENT.md#5-writing-a-spec)).
+
 | Spec      | Title                                                           | Status | Owner       | Needed by |
 |-----------|-----------------------------------------------------------------|--------|-------------|-----------|
 | SPEC-0001 | Per-section staleness and scoped regeneration                   | draft  | @ksokolovic | Block 1   |

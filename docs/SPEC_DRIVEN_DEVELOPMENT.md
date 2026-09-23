@@ -162,13 +162,22 @@ details that remain within the approved contract do not require a new spec decis
 
 ## 5. Writing a spec
 
-1. Take the next free number from [`docs/specs/INDEX.md`](specs/INDEX.md).
-2. Copy [`docs/specs/TEMPLATE.md`](specs/TEMPLATE.md) to `docs/specs/SPEC-NNNN-short-slug.md`.
+1. Take the next free number. A number is taken once it appears in
+   [`docs/specs/INDEX.md`](specs/INDEX.md) **or** in the title of any spec PR, open or
+   closed, because INDEX only learns about a spec when its PR merges:
+   ```bash
+   gh pr list --state all --search "SPEC- in:title" --json title --jq '.[].title'
+   ```
+   Use one more than the highest number either source shows.
+2. Branch `spec/<issue>-<slug>` from `develop` and copy
+   [`docs/specs/TEMPLATE.md`](specs/TEMPLATE.md) to `docs/specs/SPEC-NNNN-short-slug.md`.
 3. Fill it in. **Generating the first draft with an agent, from the issue and the
    codebase, is encouraged** — then edit it yourself. A draft is cheap; the judgment
    in the editing is the expensive part, and it is the part that has to be human.
-4. Add the row to `INDEX.md`.
-5. Open the PR.
+4. Set `status: in-review` in the front matter and add the matching row to `INDEX.md`.
+5. Open the PR titled `SPEC-NNNN: <title>`, linking the proposal issue. Once it is
+   approved, the owner sets `status: approved` and fills `approvers:` (front matter and
+   INDEX) as the last commit before merge.
 
 Keep it as short as the change allows, and delete sections that genuinely do not apply.
 A spec is a tool, not a deliverable. The template's headings are a checklist of what a
@@ -191,6 +200,39 @@ What separates a useful spec from a long one:
   maps to at least one test in the test plan.
 - **Rollout says how it lands and how it reverts.** Prefer a sequence of independently
   revertable PRs where the first one ships value alone.
+
+## 5a. Implementing an approved spec
+
+Start only from a spec whose status is `approved` or later on `develop`. A spec still in
+its review PR is not a contract yet.
+
+1. **Load the spec.** Read it in full and give it to the agent as session input
+   (operating rule 1 in [`AGENTS.md`](../AGENTS.md)). Read the invariants it names.
+2. **Branch** `feat/<issue>-<slug>` (or `fix/`, `refactor/`) from `develop`.
+3. **Pick a slice.** One PR closes a group of acceptance criteria and stays within the
+   review budget in [§9](#9-reviews-and-merging). Follow the order in the spec's Rollout.
+4. **Tag the tests.** Each test that proves a criterion starts its title with the tag,
+   for example `it("AC-3: keeps edited captions after a regenerate", …)`, and the spec's
+   Test plan table names that test. `git grep "AC-3:"` then finds the proof.
+5. **Update the spec in the same PR.** Append the PR to `prs:`, tick the criteria it
+   closes, and set `updated:`. The first implementation PR moves the status to
+   `in-progress`, and the PR that ticks the last criterion moves it to `implemented`.
+   Change the front matter and the INDEX row together (§4).
+6. **Fill in the PR template.** Lane `spec implementation (SPEC-NNNN)` and the `AC-n` it
+   closes.
+7. **Stop if the contract is wrong.** If the spec's design or criteria no longer fit,
+   pause and amend the spec first ([§4](#amending-an-approved-spec)).
+
+The release owner moves the spec to `verified` (§4); an implementation PR never does.
+
+A session prompt that works:
+
+```text
+Implement AC-3 and AC-4 of docs/specs/SPEC-NNNN-short-slug.md. Read the spec and the
+invariants it names first. Stay inside its non-goals. Tag each test with its AC-n,
+update the spec's prs/checkboxes/status as §5a of docs/SPEC_DRIVEN_DEVELOPMENT.md says,
+and stop and tell me if the spec's contract needs to change.
+```
 
 ## 6. ADRs
 
@@ -289,3 +331,35 @@ Documenting an existing contract can use the fast lane when none of the §3 trig
 apply; introducing or changing a contract follows the spec lane. Until these docs
 exist, the nearest accurate substitutes are `docs/ARCHITECTURE.md`,
 `docs/MODEL_PROMPT_VARIANTS.md` and `docs/GUIDELINES.md`.
+
+## 11. Service levels
+
+Every time box and size limit in one place. *Not yet agreed* means the team has not set
+a value; until it does, ask at triage rather than assume one.
+
+| What | Limit | Defined in |
+|---|---|---|
+| Spec review (the spec PR) | 3 working days | [§4](#4-the-spec-lifecycle) |
+| Experiment | 2 weeks at most | [§2](#experiment-lane--time-boxed-ends-in-a-finding) |
+| Size that needs a spec | above ~300 net lines or ~10 files | [§3](#3-choosing-a-lane) |
+| Reviewable PR | ~400 changed lines | [§9](#9-reviews-and-merging) |
+| When the spec review clock starts | *not yet agreed* | |
+| What happens when spec review runs out | *not yet agreed* | |
+| Spec amendment review | *not yet agreed* | |
+| First review of a fast-lane PR | *not yet agreed* | |
+| Re-review after requested fixes | *not yet agreed* | |
+| Triage of a new issue or lane question | *not yet agreed* | |
+
+## 12. Glossary
+
+| Term | Meaning |
+|---|---|
+| Lane | Fast, spec or experiment — how a change is proposed and reviewed ([§2](#2-the-three-lanes)). Issues carry a `lane: …` label. |
+| Spec number | `SPEC-NNNN`, allocated as in [§5](#5-writing-a-spec). Never reused. |
+| AC | An acceptance criterion, `AC-n`, one testable checkbox in a spec. Tests that prove it start their title with the tag ([§5a](#5a-implementing-an-approved-spec)). |
+| Amendment | A reviewed PR that changes an approved spec's contract ([§4](#amending-an-approved-spec)). |
+| Tier | Release priority, set as a `tier: …` label: `must-beta`, `should-beta`, `must-stable`, `should-stable`, `1.1`, `parked`. What each means and who assigns it: *not yet agreed*. |
+| Block | The "Needed by" column in [INDEX](specs/INDEX.md) (`Block 1`, `Block 2`, a version). What each block covers and when: *not yet agreed*. |
+| Acceptance set | The books a spec is verified against before `verified`. Which books, and where they live: *not yet agreed* (SPEC-0005 will define the harness). |
+| Maintainer | Someone who can approve a spec ([§4](#4-the-spec-lifecycle)). Who: *not yet agreed*. |
+| Triage | Where an uncertain lane is resolved ([§3](#3-choosing-a-lane)). Who, where and how often: *not yet agreed*. |
