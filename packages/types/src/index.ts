@@ -346,6 +346,8 @@ export {
   PrimarySpeechVoiceConfig,
   PrimarySpeechVoicesConfig,
   SpeechConfig,
+  GEMINI_TTS_MIN_USABLE_TEMPERATURE,
+  MIN_BATCH_MAX_CHARS,
   isSpeechWordHighlightingEnabled,
   type TtsExclusionConfig,
   isTtsExcluded,

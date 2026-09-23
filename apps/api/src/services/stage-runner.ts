@@ -12,6 +12,7 @@ import {
   getDefaultProviderRegistry,
   renderLiquidTemplate,
   resolveProviderCredentials,
+  GeminiNoAudioError,
 } from "@adt/llm"
 import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
 import {
@@ -126,7 +127,10 @@ import {
   createScreenshotRenderer,
   DEFAULT_VISUAL_REVIEW_MODEL_ID,
   isFixedLayoutBook,
+  MIN_TRANSCRIBABLE_SECONDS,
+  chunkBatchEntries,
 } from "@adt/pipeline"
+import { GEMINI_TTS_MIN_USABLE_TEMPERATURE } from "@adt/types"
 import type { BookOutlineConfig, PageSectioningConfig, TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig, CroppingConfig, SegmentationConfig, VisualRefinementDeps } from "@adt/pipeline"
 import type { ElevenLabsVoiceSettingsOverrides } from "@adt/llm"
 import { loadStyleguideContent } from "./styleguide.js"
@@ -410,10 +414,23 @@ function isGeminiTtsRateLimitMessage(message: string): boolean {
 // Transient Gemini server-side failures that typically clear on a plain retry
 // (Google's own 500 message says "Please retry"). Unlike a 429 these are not a
 // rate signal, so they must not penalize the adaptive limiter.
+//
+// "did not include audio" is deliberately NOT here. A 200 that carries no
+// audio is Gemini declining to synthesize, and it declines the same way every
+// time — most often because temperature is below the floor Gemini's TTS models
+// need (GEMINI_TTS_MIN_USABLE_TEMPERATURE). Retrying an identical request four
+// more times costs four more calls, and those calls are slow: the upstream
+// report has failures taking ~148s against ~21s for a success, and issue #846's
+// own failing run logged 128s. So we fail fast and tell the user what to change.
 function isGeminiTtsTransientError(message: string): boolean {
-  return /\(50\d\)|internal error|did not include audio|overloaded|unavailable|try again/i.test(
-    message
-  )
+  return /\(50\d\)|internal error|overloaded|unavailable|try again/i.test(message)
+}
+
+/** A 200 response that carried no audio. Deterministic — never retried. */
+function isGeminiNoAudioFailure(err: unknown, message: string): boolean {
+  // Prefer the typed error; the regex still catches no-audio errors raised
+  // outside the Gemini synthesizer (e.g. re-thrown through another layer).
+  return err instanceof GeminiNoAudioError || /did not include audio/i.test(message)
 }
 
 function parseGeminiRetryDelayMs(message: string): number | null {
@@ -526,6 +543,44 @@ export async function processWithConcurrency<T>(
     if (isCancellation(err, [controls?.runSignal])) throw new RunCancelledError()
     throw err
   }
+}
+
+/**
+ * Run `items[probeIndex]` alone, then everything else at `concurrency`.
+ *
+ * For a step that can abort the rest of its run once one item proves the run
+ * cannot succeed. `processWithConcurrency` spaces its opening wave only
+ * `LAUNCH_RAMP_MS` apart, so at the default concurrency of 32 the whole first
+ * wave is in flight within a few seconds — long before a slow failure lands.
+ * Gemini takes ~95-155s to refuse a request at an unusable temperature (issue
+ * #846), so an abort learned from the first failure arrives far too late to
+ * stop the wave it exists to prevent: the book pays for ~32 slow refusals
+ * before a single item is skipped.
+ *
+ * Proving the settings with one request first closes that window. It costs an
+ * extra round trip, so callers apply it only when the abort is actually
+ * reachable — a healthy run is never serialized.
+ *
+ * `probeIndex < 0` (no item can trip the abort) falls through to the plain
+ * concurrent path.
+ */
+export async function runProbeThenRest<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<void>,
+  probeIndex: number,
+  controls?: ConcurrencyControls
+): Promise<void> {
+  if (items.length <= 1 || probeIndex < 0 || probeIndex >= items.length) {
+    return processWithConcurrency(items, concurrency, fn, controls)
+  }
+  await processWithConcurrency([items[probeIndex]], concurrency, fn, controls)
+  await processWithConcurrency(
+    items.filter((_, index) => index !== probeIndex),
+    concurrency,
+    fn,
+    controls
+  )
 }
 
 function emitSpeechStepProgress(
@@ -758,9 +813,6 @@ interface GenerateSpeechWordTimestampsOptions {
   /** Run cancel — stops admitting new transcription items. */
   signal?: AbortSignal
 }
-
-/** Whisper rejects audio shorter than ~0.1s; an empty page slice is 0s. */
-const MIN_TRANSCRIBABLE_SECONDS = 0.1
 
 async function generateSpeechWordTimestamps(
   options: GenerateSpeechWordTimestampsOptions,
@@ -3092,6 +3144,19 @@ async function runSpeechStep(
               }
               pageGroups.set(groupKey, group)
             }
+            // A duplicated id would be spoken twice in the page transcript and
+            // then written twice to the same file, so the LAST slice wins —
+            // and when the extra copies push the transcript past what Gemini
+            // will narrate, that last slice is the silent tail. That is how
+            // issue #846 lost 10 of 15 sentences on one page (the group held
+            // 60 entries for a 15-entry page). Never silent: a duplicate here
+            // means something upstream is wrong and should be looked at.
+            if (group.entries.some((existing) => existing.id === entry.id)) {
+              console.warn(
+                `[stage-run] ${label}: duplicate text id ${entry.id} in page group ${groupKey}; skipping the repeat (the catalog for ${lang} may contain duplicates)`,
+              )
+              continue
+            }
             group.entries.push({ id: entry.id, text: entry.text })
             continue
           }
@@ -3169,6 +3234,29 @@ async function runSpeechStep(
       textByLanguage.set(lang, languageTextMap)
     }
 
+    // Split any page whose transcript exceeds speech.batch_max_chars into
+    // several shorter requests. One very long request is where Gemini's voice
+    // drifts mid-page ("consistency may begin to drift with generated outputs
+    // longer than a few minutes") and where the tail stops being narrated at
+    // all. Unset = one request per page, as before.
+    const batchMaxChars = config.speech?.batch_max_chars
+    if (batchMaxChars !== undefined) {
+      for (const [groupKey, group] of [...pageGroups.entries()]) {
+        const chunks = chunkBatchEntries(group.entries, batchMaxChars)
+        if (chunks.length <= 1) continue
+        pageGroups.delete(groupKey)
+        chunks.forEach((chunk, index) => {
+          // Only suffix when a page actually split, so single-chunk pages keep
+          // the exact log labels and cache identity they had before.
+          const pageKey = `${group.pageKey}#${index + 1}`
+          pageGroups.set(`${groupKey}::${index + 1}`, { ...group, pageKey, entries: chunk })
+        })
+        console.log(
+          `[stage-run] ${label}: page ${group.pageKey} (${group.language}) split into ${chunks.length} requests to stay under batch_max_chars=${batchMaxChars}`,
+        )
+      }
+    }
+
     const batchedEntryCount = [...pageGroups.values()].reduce((n, g) => n + g.entries.length, 0)
     const totalItems = ttsWorkItems.length + batchedEntryCount
     let completedItems = 0
@@ -3227,6 +3315,74 @@ async function runSpeechStep(
     const failedItems: string[] = []
     const geminiFailedItems: string[] = []
 
+    // A Gemini no-audio failure caused by something that applies to EVERY
+    // request in this run — currently only a temperature below the floor its
+    // TTS models need. Once one request has proven it, the rest would each
+    // spend another ~2.4 minutes (Gemini is slow to refuse) rediscovering the
+    // same thing, so they are failed with the reason instead of re-sent.
+    //
+    // Deliberately NOT tripped by every no-audio failure: a content-specific
+    // refusal on one sentence says nothing about the others, and aborting the
+    // run over it would turn one bad sentence into a book with no audio. So the
+    // trip needs BOTH halves — a setting that applies to every request, and a
+    // refusal that isn't about this one request's text.
+    const geminiTemperatureBelowFloor =
+      config.speech?.temperature !== undefined &&
+      config.speech.temperature < GEMINI_TTS_MIN_USABLE_TEMPERATURE
+    let geminiSystemicFailure: string | null = null
+    const notePossiblySystemicFailure = (err: unknown, msg: string): void => {
+      if (!geminiTemperatureBelowFloor || geminiSystemicFailure) return
+      if (!isGeminiNoAudioFailure(err, msg)) return
+      // A hard content refusal (SAFETY/PROHIBITED_CONTENT/BLOCKLIST) is about
+      // the text of this one request. Having a low temperature configured at
+      // the same time does not make it systemic, and treating it as systemic
+      // would cost the book every remaining item over one blocked sentence.
+      if (err instanceof GeminiNoAudioError && err.kind === "blocked") return
+      geminiSystemicFailure = msg
+      console.warn(
+        `[stage-run] ${label}: Gemini returned no audio with speech.temperature=${config.speech?.temperature}; skipping the remaining Gemini items in this run rather than repeating a request that cannot succeed`,
+      )
+    }
+    const skippedForSystemicFailure = (): string =>
+      `Not attempted: an earlier Gemini request in this run returned no audio. ${geminiSystemicFailure}`
+
+    // Keep page-batched and per-entry failures equally visible to the live
+    // pipeline UI. Both paths persist failed entries, but the progress event is
+    // what prevents a batch failure from looking like an unexplained green run.
+    const emitTtsFailure = (textId: string, reason: string): void => {
+      progress.emit({
+        type: "step-error",
+        step: "tts",
+        error: `${textId} failed: ${reason}`,
+      })
+    }
+
+    const failPageGroup = (
+      group: PageGroup,
+      reason: string,
+      options: { announce?: boolean } = {},
+    ): void => {
+      for (const e of group.entries) {
+        failedItems.push(`${e.id}: ${reason}`)
+        failedByLang.get(group.language)?.push({
+          textId: e.id,
+          error: reason,
+          voiceSlot: group.voiceSlot,
+        })
+        geminiFailedItems.push(`${e.id}: ${reason}`)
+      }
+      // The request and its failure are page-scoped even though its affected
+      // output records are per-entry. The client aggregates step errors as
+      // failed pages, so emit one event rather than calling a 15-entry page
+      // fifteen failed pages.
+      //
+      // `announce: false` is for work skipped after a systemic failure: the
+      // reason was already reported once by the request that proved it, and
+      // every extra step-error costs a toast, an assertive screen-reader
+      // announcement and a TTS refetch on the client.
+      if (options.announce !== false) emitTtsFailure(group.pageKey, reason)
+    }
+
     // ── Page-batched pre-pass (Gemini) ──────────────────────────────
     // One synthesis request per page (consistent tone), sliced into per-entry
     // files. Shares the adaptive rate limiter, cancellation, and progress with
@@ -3234,7 +3390,12 @@ async function runSpeechStep(
     if (pageGroups.size > 0) {
       const groups = [...pageGroups.values()]
       console.log(`[stage-run] ${label}: page-batched TTS — ${groups.length} page group(s), ${batchedEntryCount} entries`)
-      await processWithConcurrency(
+      // Page groups are Gemini-only by construction, so when the temperature is
+      // below the floor any of them can prove the run unusable — probe with the
+      // first rather than letting the whole opening wave pay for the same
+      // answer. `-1` when the abort is unreachable keeps healthy runs fully
+      // concurrent.
+      await runProbeThenRest(
         groups,
         effectiveConcurrency,
         async (group: PageGroup) => {
@@ -3265,11 +3426,20 @@ async function runSpeechStep(
             storage.appendLlmLog(logEntry)
             progress.emit({ type: "llm-log", step: "tts", itemId: group.pageKey, promptName: logEntry.promptName, modelId: logEntry.modelId, cacheHit: o.cacheHit, durationMs: logEntry.durationMs })
           }
+          if (geminiSystemicFailure) {
+            const reason = skippedForSystemicFailure()
+            failPageGroup(group, reason, { announce: false })
+            emitPageLog({ success: false, cacheHit: false, attempt: 0, error: reason })
+            completedItems += group.entries.length
+            emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
+            return
+          }
+
           let attempt = 0
           while (true) {
             attempt++
             try {
-              const entries = await generatePageSpeechFiles({
+              const { entries, unaligned } = await generatePageSpeechFiles({
                 entries: group.entries,
                 language: group.language,
                 model: providerModel,
@@ -3290,18 +3460,55 @@ async function runSpeechStep(
                 onWhisperLog: appendWordTimestampsLog(storage, progress),
               })
               for (const e of entries) ttsResultsByLang.get(group.language)?.push(e)
+              // Entries whose audio couldn't be located are reported, not
+              // silently re-synthesized: substituting audio behind the user's
+              // back would hide an upstream problem they need to know about.
+              // They show up as per-entry failures so the user can decide.
+              for (const u of unaligned) {
+                console.warn(
+                  `[stage-run] ${label}: no audio for ${u.textId} (${group.language}) in page ${group.pageKey}: ${u.reason}`,
+                )
+                failedItems.push(`${u.textId}: ${u.reason}`)
+                failedByLang.get(group.language)?.push({
+                  textId: u.textId,
+                  error: u.reason,
+                  voiceSlot: group.voiceSlot,
+                })
+                // Also a Gemini gap the user can fill one entry at a time, even
+                // though the request itself succeeded. Without this a run whose
+                // only failure is bad slicing finishes with no pointer to the
+                // Speech view — the one place these can be regenerated.
+                geminiFailedItems.push(`${u.textId}: ${u.reason}`)
+              }
+              const unalignedReason =
+                unaligned.length === 0
+                  ? null
+                  : unaligned.length === 1
+                    ? unaligned[0].reason
+                    : `${unaligned.length} entries could not be split reliably: ${unaligned.map((u) => u.textId).join(", ")}`
+              if (unalignedReason) emitTtsFailure(group.pageKey, unalignedReason)
               // A page served from cache makes no request — don't reward the
               // limiter for it (mirrors the per-entry `!entry.cached` guard).
               const pageCached = entries.length > 0 && entries.every((e) => e.cached)
               if (entries.length > 0 && !pageCached) geminiTtsRateLimiter?.reward()
               emitPageLog({
-                success: true,
+                // Gemini answered, so the *call* worked — but a page that
+                // yielded no usable audio at all is a failed page from the only
+                // perspective that matters here, and the log must not show it
+                // green. A page with some usable entries stays a success and
+                // carries the unaligned ones as its error detail.
+                success: entries.length > 0 || unaligned.length === 0,
                 cacheHit: pageCached,
                 attempt,
-                // No entries back means every text in the group was
-                // unspeakable, so generatePageSpeechFiles returned early
-                // without calling the provider (speech.ts, `usable.length === 0`).
-                ...(entries.length === 0 ? { skippedReason: NO_SPEAKABLE_TEXT_REASON } : {}),
+                ...(unalignedReason ? { error: unalignedReason } : {}),
+                // No entries AND nothing unaligned means every text in the
+                // group was unspeakable, so generatePageSpeechFiles returned
+                // early without calling the provider (speech.ts,
+                // `usable.length === 0`). A page that produced only unaligned
+                // entries did call the provider and is a failure, not a skip.
+                ...(entries.length === 0 && unaligned.length === 0
+                  ? { skippedReason: NO_SPEAKABLE_TEXT_REASON }
+                  : {}),
               })
               break
             } catch (err) {
@@ -3309,14 +3516,17 @@ async function runSpeechStep(
                 throw err instanceof RunCancelledError ? err : new RunCancelledError()
               }
               const msg = toErrorMessage(err)
-              const rateLimited = isGeminiTtsRateLimitMessage(msg)
+              const noAudio = isGeminiNoAudioFailure(err, msg)
+              const rateLimited = !noAudio && isGeminiTtsRateLimitMessage(msg)
               // generatePageSpeechFiles also calls OpenAI Whisper (alignment); a
               // transient Whisper error (429/5xx) is retryable too, but it must NOT
               // penalize the Gemini limiter (different service). Retrying prevents a
               // transient hiccup from failing the whole page and — via
               // geminiFailedItems — skipping word-timestamps for the entire book.
               const whisperTransient = /Whisper transcription failed \((?:429|5\d\d)\)/.test(msg)
-              const transient = (!rateLimited && isGeminiTtsTransientError(msg)) || whisperTransient
+              const transient =
+                !noAudio &&
+                ((!rateLimited && isGeminiTtsTransientError(msg)) || whisperTransient)
               if (
                 (rateLimited || transient) &&
                 !options.signal?.aborted &&
@@ -3333,21 +3543,15 @@ async function runSpeechStep(
               }
               console.error(`[stage-run] ${label}: page-batched TTS failed for ${group.pageKey} (${group.language}): ${msg}`)
               emitPageLog({ success: false, cacheHit: false, attempt, error: msg })
-              for (const e of group.entries) {
-                failedItems.push(`${e.id}: ${msg}`)
-                failedByLang.get(group.language)?.push({
-                  textId: e.id,
-                  error: msg,
-                  voiceSlot: group.voiceSlot,
-                })
-                geminiFailedItems.push(`${e.id}: ${msg}`)
-              }
+              notePossiblySystemicFailure(err, msg)
+              failPageGroup(group, msg)
               break
             }
           }
           completedItems += group.entries.length
           emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
         },
+        geminiTemperatureBelowFloor ? 0 : -1,
         { runSignal: options.signal }
       )
     }
@@ -3375,6 +3579,11 @@ async function runSpeechStep(
     const processTtsWorkItem = async (item: TTSWorkItem) => {
       const startMs = Date.now()
       const provider = item.provider
+      // Skipped, not re-sent: an earlier request already proved these settings
+      // cannot produce audio, and each retry costs another slow call. Routed
+      // through the normal catch below so it is recorded and reported exactly
+      // like any other per-item failure.
+      const skipForSystemicFailure = provider === "gemini" && geminiSystemicFailure !== null
       const providerModel = item.model
       const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
       const voice = item.voice
@@ -3404,9 +3613,13 @@ async function runSpeechStep(
           : undefined
       let attemptCount = 0
 
-      console.log(`[stage-run] ${label}: TTS ${item.textId} (${item.voiceSlot}) → provider=${provider} voice=${voice} model=${providerModel} format=${outputFormat}`)
+      if (!skipForSystemicFailure) {
+        console.log(`[stage-run] ${label}: TTS ${item.textId} (${item.voiceSlot}) → provider=${provider} voice=${voice} model=${providerModel} format=${outputFormat}`)
+      }
 
       try {
+        if (skipForSystemicFailure) throw new Error(skippedForSystemicFailure())
+
         const ttsSynthesizer = getSynthesizer(provider)
         let entry: SpeechFileEntry | null
 
@@ -3467,10 +3680,12 @@ async function runSpeechStep(
               throw err
             }
 
+            const noAudio = provider === "gemini" && isGeminiNoAudioFailure(err, msg)
             const rateLimited =
-              provider === "gemini" && isGeminiTtsRateLimitMessage(msg)
+              provider === "gemini" && !noAudio && isGeminiTtsRateLimitMessage(msg)
             const transient =
               provider === "gemini" &&
+              !noAudio &&
               !rateLimited &&
               isGeminiTtsTransientError(msg)
             if (
@@ -3554,6 +3769,7 @@ async function runSpeechStep(
         }
         const msg = toErrorMessage(err)
         const durationMs = Date.now() - startMs
+        if (provider === "gemini") notePossiblySystemicFailure(err, msg)
         console.error(`[stage-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
         failedItems.push(`${item.textId}: ${msg}`)
         failedByLang.get(item.language)?.push({ textId: item.textId, error: msg, voiceSlot: item.voiceSlot })
@@ -3585,26 +3801,42 @@ async function runSpeechStep(
           cacheHit: false,
           durationMs,
         })
-        if (provider !== "gemini") {
-          progress.emit({
-            type: "step-error",
-            step: "tts",
-            error: `${item.textId} failed: ${msg}`,
-          })
-        }
+        // Gemini used to be excluded here, so its failures reached the user
+        // as nothing at all — the stage finished "with gaps" and the reason
+        // lived only in the debug log. Every provider now reports through the
+        // same helper as page-batched failures.
+        //
+        // The exception is work skipped after a systemic failure: that reason
+        // was already announced by the request that proved it, and repeating it
+        // per entry would fire hundreds of toasts and refetches for one cause.
+        // The skip is still recorded in `failed` and in the progress summary.
+        if (!skipForSystemicFailure) emitTtsFailure(item.textId, msg)
       }
 
       completedItems++
       emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
     }
 
+    // Same probe as the page-batched pre-pass, for the books that never reach
+    // it: a Gemini book with `batch_by_page` off does all its synthesis here.
+    // The probe has to be a *Gemini* item — this list is mixed, and an OpenAI
+    // item can never prove anything about Gemini's settings. When the pre-pass
+    // already ran, it has set the flag and these items skip without a call.
+    const geminiProbeIndex = geminiTemperatureBelowFloor
+      ? otherWorkItems.findIndex((item) => item.provider === "gemini")
+      : -1
+
     await Promise.all([
       processWithConcurrency(elevenLabsWorkItems, elevenLabsConcurrency, processTtsWorkItem, {
         runSignal: options.signal,
       }),
-      processWithConcurrency(otherWorkItems, effectiveConcurrency, processTtsWorkItem, {
-        runSignal: options.signal,
-      }),
+      runProbeThenRest(
+        otherWorkItems,
+        effectiveConcurrency,
+        processTtsWorkItem,
+        geminiProbeIndex,
+        { runSignal: options.signal }
+      ),
     ])
 
     if (failedItems.length > 0) {
@@ -3637,12 +3869,15 @@ async function runSpeechStep(
       // Speech/Language view for one-by-one regeneration, so a stray transient
       // failure shouldn't leave the whole stage incomplete and block the export.
       progress.emit({ type: "step-progress", step: "tts", message: summary })
-      progress.emit({ type: "step-complete", step: "tts" })
-      progress.emit({ type: "step-skip", step: "word-timestamps" })
       console.warn(
         `[stage-run] ${label}: speech completed with ${geminiFailedItems.length} Gemini TTS gap(s)`
       )
-      return
+      // Deliberately fall through to word-timestamps. This used to `return`,
+      // which skipped highlighting for the ENTIRE book because one entry
+      // failed. generateSpeechWordTimestamps reads `ttsResultsByLang`, which
+      // holds only the entries that actually produced audio, and it already
+      // records per-item failures — so the gaps take care of themselves and
+      // every other entry still gets its highlighting.
     }
 
     progress.emit({ type: "step-complete", step: "tts" })

@@ -20,12 +20,31 @@ export interface BatchEntry {
   text: string
 }
 
+/**
+ * How confident we are that an entry's slice boundaries came from the audio
+ * rather than from guesswork.
+ *
+ * - `aligned` — the onset came from a Whisper word matched to this entry.
+ * - `interpolated` — no word matched, so the boundary was filled in between
+ *   its neighbours. Usually fine; the audio is still there.
+ * - `collapsed` — the boundary had to be clamped onto the previous one, so
+ *   the slice is empty or near-empty. The entry's audio was NOT found. Callers
+ *   must not write these as successful audio; see issue #846.
+ */
+export type EntryAlignment = "aligned" | "interpolated" | "collapsed"
+
 export interface EntryTimeRange {
   id: string
   /** Slice start in seconds (inclusive). */
   start: number
   /** Slice end in seconds (exclusive). */
   end: number
+  /** Provenance of this range. Advisory — the ranges still tile the file
+   *  regardless, and the caller decides what to do about a bad one. */
+  alignment: EntryAlignment
+  /** How many of the entry's tokens Whisper matched. 0 means the entry's text
+   *  was never heard in the audio. */
+  matchedTokens: number
 }
 
 export interface WhisperWord {
@@ -46,6 +65,13 @@ const MAX_LCS_CELLS = 4_000_000
  * per-entry TTS path until the aligner has script-aware tokenization.
  */
 const PAGE_BATCH_UNSUPPORTED_BASE_LANGUAGES = new Set(["zh", "th"])
+
+/**
+ * Shortest slice we will accept as real audio. Whisper also rejects audio
+ * below roughly this length, so keeping one constant for both the slice
+ * check and the transcription precheck stops the two from drifting apart.
+ */
+export const MIN_TRANSCRIBABLE_SECONDS = 0.1
 
 export function supportsPageBatchedSpeech(languageCode: string): boolean {
   const normalized = languageCode.trim().replace(/_/g, "-").toLowerCase()
@@ -114,7 +140,27 @@ export function computeEntryTimeRanges(
 ): EntryTimeRange[] {
   if (entries.length === 0) return []
   if (entries.length === 1) {
-    return [{ id: entries[0].id, start: 0, end: totalDuration }]
+    // There is no boundary to find with one entry, but `matchedTokens` still
+    // has to be true: it decides whether the user is told "none of its words
+    // were heard" or "the slice is too short". Counting how many of the
+    // entry's tokens appear anywhere in the transcript is enough for that
+    // question — the ordering an LCS would add buys nothing with one entry.
+    const heard = new Set(whisperWords.map((w) => normalizeToken(w.word)))
+    const matched = tokenize(entries[0].text).filter((tok) => heard.has(tok)).length
+    return [
+      {
+        id: entries[0].id,
+        start: 0,
+        end: totalDuration,
+        // Same rule as the multi-entry path: the range is [0, totalDuration] by
+        // construction, so "aligned" would be claiming a provenance we don't
+        // have when Whisper heard none of the entry's words. The audio is still
+        // written — this only stops the label overstating what we know.
+        alignment:
+          totalDuration <= 0 ? "collapsed" : matched > 0 ? "aligned" : "interpolated",
+        matchedTokens: matched,
+      },
+    ]
   }
 
   // Flatten expected tokens, remembering which entry each token came from and
@@ -139,15 +185,15 @@ export function computeEntryTimeRanges(
   // whisper word at or after the entry's first token. Undefined when the entry
   // has no aligned tokens (filled by interpolation below).
   const onset = new Array<number | undefined>(entries.length).fill(undefined)
+  const matchedTokens = new Array<number>(entries.length).fill(0)
   for (let k = 0; k < entries.length; k++) {
     const start = firstTokenOfEntry[k]
     const end = k + 1 < entries.length ? firstTokenOfEntry[k + 1] : expTokens.length
     for (let ei = start; ei < end; ei++) {
       const wj = expToWhisper[ei]
-      if (wj >= 0) {
-        onset[k] = whisperWords[wj].start
-        break
-      }
+      if (wj < 0) continue
+      matchedTokens[k]++
+      if (onset[k] === undefined) onset[k] = whisperWords[wj].start
     }
   }
 
@@ -184,11 +230,20 @@ export function computeEntryTimeRanges(
     boundary[k] = Math.min(Math.max(boundary[k], boundary[k - 1]), totalDuration)
   }
 
-  return entries.map((entry, k) => ({
-    id: entry.id,
-    start: boundary[k],
-    end: k + 1 < entries.length ? boundary[k + 1] : totalDuration,
-  }))
+  return entries.map((entry, k) => {
+    const start = boundary[k]
+    const end = k + 1 < entries.length ? boundary[k + 1] : totalDuration
+    // An empty span means this entry's audio was never located — either its
+    // words weren't heard, or the clamp above pushed its boundary onto the
+    // previous one. Either way the slice would be silence.
+    // Entry 0's start is 0 by construction, not by measurement, so it used to
+    // be called "aligned" whether or not Whisper heard a word of it. It is
+    // still written — the audio at the top of the file really is its audio —
+    // but the label must not claim a provenance we don't have.
+    const alignment: EntryAlignment =
+      end <= start ? "collapsed" : onset[k] !== undefined ? "aligned" : "interpolated"
+    return { id: entry.id, start, end, alignment, matchedTokens: matchedTokens[k] }
+  })
 }
 
 /** Join entry texts into one transcript for a single synthesis request. A blank
@@ -196,4 +251,46 @@ export function computeEntryTimeRanges(
  *  paragraphs without inventing spoken filler. */
 export function buildPageTranscript(entries: BatchEntry[]): string {
   return entries.map((e) => e.text.trim()).filter(Boolean).join("\n\n")
+}
+
+/**
+ * Split a page's entries into groups whose transcripts stay within `maxChars`,
+ * so a long page becomes several shorter requests instead of one long one.
+ *
+ * Measured against `buildPageTranscript` rather than raw text length, so the
+ * cap reflects what is actually sent (separators included). Entries are never
+ * split: the alignment pass maps whole entries onto their audio, so a
+ * half-entry chunk would desync ids from slices. An entry longer than the cap
+ * therefore gets a chunk to itself rather than being broken up.
+ *
+ * `undefined` (or a non-positive cap) means no chunking — one request per
+ * page, the behaviour before `speech.batch_max_chars` existed.
+ */
+export function chunkBatchEntries(
+  entries: BatchEntry[],
+  maxChars?: number,
+): BatchEntry[][] {
+  if (entries.length === 0) return []
+  if (maxChars === undefined || maxChars <= 0) return [entries]
+
+  const chunks: BatchEntry[][] = []
+  let current: BatchEntry[] = []
+
+  for (const entry of entries) {
+    if (current.length === 0) {
+      current.push(entry)
+      continue
+    }
+    // Would adding this entry push the transcript we'd actually send past the
+    // cap? If so, close the chunk and start a new one.
+    if (buildPageTranscript([...current, entry]).length > maxChars) {
+      chunks.push(current)
+      current = [entry]
+      continue
+    }
+    current.push(entry)
+  }
+
+  if (current.length > 0) chunks.push(current)
+  return chunks
 }
