@@ -186,6 +186,11 @@ describe("the publications dashboard", () => {
     const older = await (await app.request("/publications")).json()
     /** Unrecorded counts as older: it predates every host that records itself. */
     expect(older.publications[0]).toMatchObject({ host_version: null, host_update_available: true })
+
+    /** Updated from a newer Studio elsewhere: not an update from here, it would be a downgrade. */
+    savePublicationRecord(LABEL, tmpDir, { ...record, host_version: "99.0.0" })
+    const newer = await (await app.request("/publications")).json()
+    expect(newer.publications[0]).toMatchObject({ host_update_available: false })
   })
 
   /**

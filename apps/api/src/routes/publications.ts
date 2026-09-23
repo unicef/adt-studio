@@ -17,6 +17,7 @@ import {
   parseBookLabel,
   publicationStateAt,
   PUBLISH_WORKER_VERSION,
+  isVersionAtLeast,
   workersDevUrl,
   type BookPublicationRecord,
   type BookPublicationStatus,
@@ -364,8 +365,13 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     const hostVersion = record?.host_version ?? null
     return {
       host_version: hostVersion,
+      /** Older, not different: a link updated from a newer Studio on another computer must not
+       *  be offered a "update" that would put it back on this Studio's older host. */
       host_update_available:
-        exists && live && record !== null && hostVersion !== PUBLISH_WORKER_VERSION,
+        exists &&
+        live &&
+        record !== null &&
+        (hostVersion === null || !isVersionAtLeast(hostVersion, PUBLISH_WORKER_VERSION)),
     }
   }
 
