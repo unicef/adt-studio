@@ -18,7 +18,7 @@ import { build } from "esbuild"
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { PUBLISH_WORKER_VERSION } from "@adt/types"
+import { BOOK_HOST_MIN_CONTROL_PLANE_VERSION, PUBLISH_WORKER_VERSION } from "@adt/types"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, "..")
@@ -157,6 +157,7 @@ await build({
  */
 const bookHostMetadata = {
   version: PUBLISH_WORKER_VERSION,
+  min_control_plane_version: BOOK_HOST_MIN_CONTROL_PLANE_VERSION,
   main_module: "book-host.js",
   compatibility_date: compatibilityDate,
   bindings: [

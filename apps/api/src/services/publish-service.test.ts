@@ -247,6 +247,55 @@ describe("updating a published book", () => {
   })
 })
 
+describe("the book host version", () => {
+  /** Recorded so the Studio can tell which links still run an older reader. */
+  it("records the host a share deployed, and the host an update deployed", async () => {
+    const { options } = harness()
+    const first = await publishBook(options)
+    expect(first.record.host_version).toBe(options.bookHost.artifact.metadata.version)
+
+    const newer = {
+      ...options.bookHost,
+      artifact: { ...options.bookHost.artifact, metadata: { ...options.bookHost.artifact.metadata, version: "9.9.9" } },
+    }
+    const second = await republishBook({ ...options, bookHost: newer, record: first.record })
+    expect(second.record.host_version).toBe("9.9.9")
+    expect(readPublicationRecord(LABEL, tmpDir)?.host_version).toBe("9.9.9")
+  })
+
+  /** A host newer than the control plane it reads and joins could half-work against it. */
+  it("refuses to deploy a host the control plane is too old for, before building anything", async () => {
+    const { options, events, cloudflare } = harness()
+    const needsNewer = {
+      ...options.bookHost,
+      artifact: {
+        ...options.bookHost.artifact,
+        metadata: { ...options.bookHost.artifact.metadata, min_control_plane_version: "99.0.0" },
+      },
+    }
+
+    await expect(publishBook({ ...options, bookHost: needsNewer })).rejects.toSatisfy(
+      (error: unknown) => isPublishStepError(error) && error.code === "worker_outdated",
+    )
+    expect(events).toHaveLength(0)
+    expect(cloudflare.state.staticAssetManifests).toHaveLength(0)
+  })
+
+  it("lets a control plane with no recorded version through rather than guess", async () => {
+    const { options } = harness()
+    const unknown = { ...options.connection, worker_version: null }
+    const needsNewer = {
+      ...options.bookHost,
+      artifact: {
+        ...options.bookHost.artifact,
+        metadata: { ...options.bookHost.artifact.metadata, min_control_plane_version: "99.0.0" },
+      },
+    }
+
+    await expect(publishBook({ ...options, connection: unknown, bookHost: needsNewer })).resolves.toBeTruthy()
+  })
+})
+
 describe("when the upload goes wrong", () => {
   it("abandons the staged upload rather than leaving it open", async () => {
     const { worker, options } = harness()

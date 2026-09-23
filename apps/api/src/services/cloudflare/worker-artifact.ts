@@ -46,6 +46,9 @@ export const WorkerArtifactMetadata = z.object({
     new_sqlite_classes: z.array(z.string().min(1)),
   }).optional(),
   d1_migrations: z.array(z.string().min(1)).default([]),
+  /** Book host only: the oldest control plane it works against. Absent on older artifacts,
+   *  which never needed one. */
+  min_control_plane_version: z.string().min(1).optional(),
   assets: z.object({ config: WorkerArtifactAssetConfig.default({}) }).default({}),
 })
 export type WorkerArtifactMetadata = z.infer<typeof WorkerArtifactMetadata>

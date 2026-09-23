@@ -18,6 +18,7 @@ import {
   type PublishFeatureSelection,
   type PublishProgressEvent,
   type PublishStepId,
+  isVersionAtLeast,
 } from "@adt/types"
 import { deployBookHost } from "./cloudflare/book-host-deploy.js"
 import type { CloudflareClient } from "./cloudflare/client.js"
@@ -716,7 +717,33 @@ async function stageAndCommit(
   })
 }
 
+/**
+ * Refuses to deploy a book host the account's control plane is too old for.
+ *
+ * The host is new on every share, but the database it reads and the room it joins belong to the
+ * control plane, which changes only when the author installs an update. Checked before anything
+ * is built, so the author waits through nothing to be told, and the answer is the one thing
+ * that fixes it: install the update. A version nobody recorded is allowed — blocking on a guess
+ * would stop sharing for every account connected before versions were stored.
+ */
+export function assertControlPlaneFor(host: BookHostDeps, connection: CloudflareConnectionRecord): void {
+  const minimum = host.artifact.metadata.min_control_plane_version
+  if (!minimum) return
+  if (isVersionAtLeast(connection.worker_version, minimum)) return
+  throw new PublishStepError(
+    "worker_outdated",
+    null,
+    `Your sharing service is version ${connection.worker_version}, and this Studio's books need ${minimum} or newer. Install the update in Settings → Sharing, then share again.`,
+  )
+}
+
+/** The host version a share deployed, for the record. */
+function hostVersionOf(host: BookHostDeps): string {
+  return host.artifact.metadata.version
+}
+
 export async function publishBook(options: PublishBookOptions): Promise<PublishBookResult> {
+  assertControlPlaneFor(options.bookHost, options.connection)
   const emit = options.emit
   const built = await buildSnapshot(options, emit)
   /** Read after the build, not after the upload: it has to describe the content that went into
@@ -768,6 +795,7 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
     has_access_code: committed.hasAccessCode,
     deleted_at: null,
     features: options.features ?? null,
+    host_version: hostVersionOf(options.bookHost),
   }
   savePublicationRecord(options.label, options.booksDir, record)
   await emit(stepEvent("register", "done"))
@@ -792,6 +820,7 @@ export interface RepublishBookOptions extends PublishBookOptions {
 }
 
 export async function republishBook(options: RepublishBookOptions): Promise<PublishBookResult> {
+  assertControlPlaneFor(options.bookHost, options.connection)
   const emit = options.emit
   /** Repeat whatever the first publish left out, unless this call says otherwise: a book that
    *  fits only because its narration was excluded would otherwise fail on update, after the
@@ -839,6 +868,7 @@ export async function republishBook(options: RepublishBookOptions): Promise<Publ
         content_revision: contentRevision,
       },
     ].sort((a, b) => a.version - b.version),
+    host_version: hostVersionOf(options.bookHost),
   }
   savePublicationRecord(options.label, options.booksDir, record)
   await emit(stepEvent("register", "done"))

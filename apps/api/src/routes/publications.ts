@@ -16,6 +16,7 @@ import {
   PublishCommentUpdateRequest,
   parseBookLabel,
   publicationStateAt,
+  PUBLISH_WORKER_VERSION,
   workersDevUrl,
   type BookPublicationRecord,
   type BookPublicationStatus,
@@ -352,6 +353,22 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
   }
 
+  /** Whether "Update site" would move a live link onto this Studio's book host. Unknown counts
+   *  as older: a link recorded before versions were kept is older than every host that keeps
+   *  them. Only a book on this computer can be updated, and only a live link needs to be. */
+  const hostFields = (
+    record: BookPublicationRecord | null,
+    exists: boolean,
+    live: boolean,
+  ): Pick<PublicationSummary, "host_version" | "host_update_available"> => {
+    const hostVersion = record?.host_version ?? null
+    return {
+      host_version: hostVersion,
+      host_update_available:
+        exists && live && record !== null && hostVersion !== PUBLISH_WORKER_VERSION,
+    }
+  }
+
   const summaryFromWorker = (
     entry: PublicationListEntry,
     connection: CloudflareConnectionRecord,
@@ -378,6 +395,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       comment_count: entry.comment_count,
       unresolved_count: entry.unresolved_count,
       snapshot_bytes: entry.snapshot_bytes,
+      ...hostFields(local.record, local.exists, publicationStateAt(entry.publication) === "active"),
       source: "worker",
     }
   }
@@ -472,6 +490,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
         comment_count: 0,
         unresolved_count: 0,
         snapshot_bytes: null,
+        ...hostFields(record, true, publicationStateAt(record) === "active"),
         source: "local",
       })
     }

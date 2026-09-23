@@ -3,7 +3,7 @@ import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { openBookDb } from "@adt/storage"
-import type { PublishProgressEvent } from "@adt/types"
+import { PUBLISH_WORKER_VERSION, type PublishProgressEvent } from "@adt/types"
 import type { PublishRunSnapshot } from "../services/publish-run-progress.js"
 import { createConnectionStore } from "../services/cloudflare/connection-store.js"
 import type { CloudflareConnectionRecord } from "../services/cloudflare/connection-store.js"
@@ -11,7 +11,7 @@ import {
   createFakePublishWorker,
   type FakePublishWorker,
 } from "../services/fake-publish-worker.js"
-import { readPublicationRecord } from "../services/publish-service.js"
+import { readPublicationRecord, savePublicationRecord } from "../services/publish-service.js"
 import { createPublishWorkerClient } from "../services/publish-worker-client.js"
 import type { PublishWorkerClient } from "../services/publish-worker-client.js"
 import { createPublishRoutes } from "./publications.js"
@@ -167,6 +167,25 @@ describe("the publications dashboard", () => {
       source: "worker",
     })
     expect(overview.totals).toMatchObject({ published_count: 1, active_count: 1 })
+  })
+
+  /** A link keeps the book host it was last shared with, so the dashboard has to say which
+   *  ones "Update site" would move onto this Studio's reader. */
+  it("marks a link on an older book host as having an update", async () => {
+    const { app } = routes()
+    await publishOnce(app)
+
+    const current = await (await app.request("/publications")).json()
+    expect(current.publications[0]).toMatchObject({
+      host_version: PUBLISH_WORKER_VERSION,
+      host_update_available: false,
+    })
+
+    const record = readPublicationRecord(LABEL, tmpDir)!
+    savePublicationRecord(LABEL, tmpDir, { ...record, host_version: null })
+    const older = await (await app.request("/publications")).json()
+    /** Unrecorded counts as older: it predates every host that records itself. */
+    expect(older.publications[0]).toMatchObject({ host_version: null, host_update_available: true })
   })
 
   /**

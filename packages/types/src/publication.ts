@@ -3,6 +3,33 @@ import { CommenterDisplayName } from "./commenter-name.js"
 
 export const PUBLISH_WORKER_VERSION = "0.13.1"
 
+/**
+ * The oldest control plane this Studio's book host works against.
+ *
+ * A book host is deployed fresh on every share, but it reads the control plane's database and
+ * joins its realtime room, and those only change when the author installs an update. Raise this
+ * whenever a book host starts to rely on a table, a column or a room message the control plane
+ * did not always have — publishing then asks for the update instead of deploying a host that
+ * would half-work against the old one.
+ */
+export const BOOK_HOST_MIN_CONTROL_PLANE_VERSION = "0.13.0"
+
+/** Numeric dotted-version comparison: `true` when `version` is `minimum` or newer. Anything
+ *  that does not parse is treated as unknown and allowed, so a missing version never blocks. */
+export function isVersionAtLeast(version: string | null | undefined, minimum: string): boolean {
+  if (!version) return true
+  const parse = (value: string) => value.split(".").map((part) => Number.parseInt(part, 10))
+  const have = parse(version)
+  const need = parse(minimum)
+  if (have.some(Number.isNaN) || need.some(Number.isNaN)) return true
+  for (let index = 0; index < Math.max(have.length, need.length); index += 1) {
+    const a = have[index] ?? 0
+    const b = need[index] ?? 0
+    if (a !== b) return a > b
+  }
+  return true
+}
+
 /** Limits apply to the expanded file tree declared when an upload starts. */
 export const PUBLICATION_SNAPSHOT_MAX_FILES = 20_000
 /** Workers Static Assets accepts files up to 25 MiB on every plan. */
@@ -498,6 +525,11 @@ export const BookPublicationRecord = z.object({
    *  for links made before this was recorded, and for the ordinary case of publishing
    *  everything. */
   features: PublishFeatureSelection.nullable().default(null),
+  /** The book host version deployed for this link on its last share or update. The host is
+   *  redeployed on every one, so this is how the Studio knows which books still run an older
+   *  reader and would pick up the new one with "Update site". `null` for links made before
+   *  this was recorded — which, by construction, are older than every host that records it. */
+  host_version: z.string().nullable().default(null),
 })
 export type BookPublicationRecord = z.infer<typeof BookPublicationRecord>
 
@@ -543,6 +575,13 @@ export const PublicationSummary = z.object({
   /** `local` rows come from the book's own `node_data` record because the worker could not be
    *  reached: their counts are unknown (`0` / `null`), not measured. */
   source: z.enum(["worker", "local"]),
+  /** The book host version this link runs, as recorded on this computer at its last share or
+   *  update. `null` when nobody recorded one — the link predates recording, or it was shared
+   *  from another computer. */
+  host_version: z.string().nullable().default(null),
+  /** `true` when an "Update site" would move this link onto a newer book host: the book is on
+   *  this computer, the link is live, and it runs something older than this Studio ships. */
+  host_update_available: z.boolean().default(false),
 })
 export type PublicationSummary = z.infer<typeof PublicationSummary>
 
