@@ -1,6 +1,7 @@
 import { Fragment, useMemo, type ReactNode } from "react"
 import { Trans, Plural, useLingui } from "@lingui/react/macro"
-import { ArrowRight, Copy, Globe, MessageSquare } from "lucide-react"
+import { ArrowRight, ExternalLink, MessageSquare, Share2 } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "@/components/ui/sonner"
 import { BookCover } from "../../BookCover"
 import { formatRelative, type BookVM } from "../../data"
@@ -35,13 +36,11 @@ function ResumeMeta({ vm, locale }: { vm: BookVM; locale: string }) {
 }
 
 /**
- * The shared link of the book Home puts first, where it can be copied without opening anything.
- *
- * The big card is Home's "what next", and for a shared book the next thing is often sending the
- * link again — so it gets the address itself rather than a badge that says one exists. It sits
- * above the card's own click target, so copying or opening it never opens the dialog.
+ * The two things done with a shared link — open it, or send it — as round buttons at the end of
+ * the card's own actions. The address itself stays off the card: it is long, and nobody reads it
+ * to use it.
  */
-function SharedLinkLine({ url }: { url: string }) {
+function SharedLinkActions({ url }: { url: string }) {
   const { t } = useLingui()
   const copy = async () => {
     try {
@@ -51,32 +50,43 @@ function SharedLinkLine({ url }: { url: string }) {
       toast.error(t`Couldn't copy the link — open the book's Sharing step and copy it there.`)
     }
   }
+  const round =
+    "grid size-[46px] shrink-0 cursor-pointer place-items-center rounded-full border bg-card text-muted-foreground transition-[background-color,border-color,color,transform] duration-150 hover:border-brand-300 hover:bg-brand-500/5 hover:text-foreground active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200"
 
   return (
-    <div className="relative z-20 mt-5 flex w-fit max-w-full items-center gap-2 rounded-full border bg-background/60 py-1 pl-3 pr-1 text-[13px] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
-      <span className="flex shrink-0 items-center gap-1.5 font-semibold text-emerald-700 dark:text-emerald-400">
-        <Globe className="size-3.5" aria-hidden />
-        <Trans>Shared</Trans>
-      </span>
-      <span aria-hidden className="h-4 w-px shrink-0 bg-border" />
-      <a
-        href={url}
-        target="_blank"
-        rel="noreferrer"
-        className="min-w-0 truncate font-mono text-[12.5px] text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-      >
-        {url.replace(/^https:\/\//, "")}
-      </a>
-      <button
-        type="button"
-        onClick={() => void copy()}
-        aria-label={t`Copy link`}
-        title={t`Copy link`}
-        className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground transition-[background-color,color,transform] hover:bg-muted hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-      >
-        <Copy className="size-3.5" aria-hidden />
-      </button>
-    </div>
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            aria-label={t`Open the shared book`}
+            className={round}
+          >
+            <ExternalLink className="size-4" aria-hidden />
+          </a>
+        </TooltipTrigger>
+        <TooltipContent>{t`Open the shared book`}</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              void copy()
+            }}
+            aria-label={t`Copy the link to send`}
+            className={round}
+          >
+            <Share2 className="size-4" aria-hidden />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>{t`Copy the link to send`}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 
@@ -135,13 +145,22 @@ export function HomeHeroAnchor({ books, pinnedLabels, onOpen, onContinue, onAddB
               <BookCover title={resume.displayTitle} author={resume.authors} cover={resume.cover} fit="cover" />
             </div>
             <div className="flex min-w-0 flex-1 flex-col justify-center">
-              <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                <Trans>Pick up where you left off · {resume.modified}</Trans>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  <Trans>Pick up where you left off · {resume.modified}</Trans>
+                </span>
+                {/* Beside the line that says where the author is, not in the details below it:
+                    sharing is the one state here that changes, and the details line runs long. */}
+                {isShared(resume) && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/12 px-2 py-0.5 text-[11.5px] font-semibold text-emerald-700 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200 dark:text-emerald-400">
+                    <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
+                    <Trans>Shared</Trans>
+                  </span>
+                )}
               </div>
               <h2 className="mt-2.5 truncate text-[42px] font-bold leading-[1.05] tracking-[-0.025em]">{resume.displayTitle}</h2>
               <div className="mt-1.5 text-[14.5px] text-muted-foreground">{resume.authors}</div>
               <ResumeMeta vm={resume} locale={i18n.locale} />
-              {isShared(resume) && resume.publication?.url ? <SharedLinkLine url={resume.publication.url} /> : null}
               <div className="relative z-20 mt-7 flex flex-wrap items-center gap-2.5">
                 <button
                   type="button"
@@ -169,6 +188,7 @@ export function HomeHeroAnchor({ books, pinnedLabels, onOpen, onContinue, onAddB
                     <Plural value={openComments(resume)} one="Review # comment" other="Review # comments" />
                   </button>
                 )}
+                {isShared(resume) && resume.publication?.url ? <SharedLinkActions url={resume.publication.url} /> : null}
               </div>
             </div>
             <OutputsPanel vm={resume} className="hidden self-stretch border-l pl-10 lg:block" />
