@@ -15,11 +15,12 @@ body:
           </a>
         </p>
 
-        <p align="center"><em>Specs are for changes where "what should this do?" has more than one defensible answer.</em></p>
+        <p align="center"><em>Specs define the agreed contract for sizable changes, new surfaces and changes to shared behaviour.</em></p>
 
         > [!IMPORTANT]
         > - Most work does **not** need a spec — see [docs/SPEC_DRIVEN_DEVELOPMENT.md §3](https://github.com/unicef/adt-studio/blob/develop/docs/SPEC_DRIVEN_DEVELOPMENT.md#3-choosing-a-lane) before filing.
-        > - Use the spec lane when the change alters a contract, the storage schema, or an invariant.
+        > - Use the spec lane for changes above about 300 net lines or more than about 10 files; schema, storage, pipeline, interface or contract changes; registered invariants; and new feature surfaces, dependencies, formats or providers.
+        > - When the lane is unclear, resolve it at triage before implementation.
         > - This issue is the *proposal*. The spec document is written from it and reviewed as its own PR.
         > - Please search existing issues and `docs/specs/INDEX.md` to avoid duplicates.
   - type: checkboxes
@@ -46,9 +47,12 @@ body:
       label: Why does this need a spec?
       description: Which rule from §3 does it hit?
       options:
+        - Expected change above about 300 net lines or more than about 10 files
         - Changes a contract users or other packages depend on
-        - Changes the storage schema or needs a data migration
+        - Changes an entity schema, storage layout, pipeline graph or cross-package interface, or needs a data migration
         - Touches an invariant in docs/INVARIANTS.md
+        - Adds a feature surface, dependency, export format or provider
+        - Changes a prompt output schema, identifiers or validator expectations
         - Resolves a dispute about intended behaviour
         - Other (explain below)
     validations:

@@ -34,10 +34,13 @@ That is one lane of three. Most work is in the other two.
 
 ### Fast lane — no spec
 
-The default. Bug fixes, chores, dependency bumps, copy changes, refactors that preserve
-behaviour, contained UI work, anything covered by an existing spec or decision.
+The default for changes that meet none of the spec-lane triggers in §3: bug fixes with
+a reproducible cause, chores, dependency bumps, copy changes, and contained UI work or
+refactors within existing contracts.
 
-Issue → branch → PR. The PR body carries the reasoning. Nothing else.
+Issue → branch → PR. No spec is required. Behaviour bugs need a regression test;
+every PR needs one non-author human approval and green CI before merge. Keep each PR
+within the review budget of about 400 changed lines; see [§9](#9-reviews-and-merging).
 
 **Most work is fast lane, and that is the intent.** The process exists to catch the
 handful of changes that would otherwise cost the project weeks; it is not a tax on the
@@ -45,10 +48,11 @@ other ninety percent.
 
 ### Spec lane — write a spec first
 
-For changes where "what should this do?" has more than one defensible answer, and
-getting it wrong is expensive to undo. A spec lands as a PR under
+For changes that meet any trigger in §3, including sizable changes and new providers
+or feature surfaces. A spec lands as a PR under
 [`docs/specs/`](specs/), gets reviewed, and then becomes required reading for everyone
-implementing it.
+implementing it. Decompose implementation into PRs within the review budget, each
+linking the approved spec and the acceptance criteria it closes.
 
 ### Experiment lane — time-boxed, ends in a finding
 
@@ -64,33 +68,48 @@ a bigger PR.**
 
 ## 3. Choosing a lane
 
-Work down this list and stop at the first match.
+Spikes and feasibility trials go in the **experiment lane** and never merge as
+implementation. For work intended to ship, **any one** of these triggers requires
+the **spec lane**:
 
-1. **Does it change a contract the user or another package depends on?** — what gets
-   saved, what gets invalidated or regenerated, what an ID or a prompt output means,
-   what an export contains, what an API route returns. → **Spec lane.**
-2. **Does it change the storage schema or need a data migration?** → **Spec lane.**
-   Books are the user's data and the format is shared with old versions of the app.
-3. **Does it touch an invariant in [`docs/INVARIANTS.md`](INVARIANTS.md)?** →
-   **Spec lane**, and the spec adds or updates the invariant's checker.
-4. **Do we not yet know whether it works?** → **Experiment lane.**
-5. **Otherwise** → **Fast lane.**
+1. **Expected change above about 300 net lines, or touching more than about 10 files.**
+   This applies even when the change preserves behaviour.
+2. **Changes an entity schema, the storage layout, the pipeline graph, or a
+   cross-package interface, or needs a data migration.** Books are the user's data
+   and the format is shared with old versions of the app.
+3. **Touches a registered invariant** in [`docs/INVARIANTS.md`](INVARIANTS.md): entity
+   versioning, stable identifiers, staleness semantics, layer rules or prompt output
+   contracts. The spec identifies the checkers to add or update.
+4. **Adds a feature surface, a dependency, an export format or a provider.** Following
+   an existing interface does not exempt an addition from this trigger.
+5. **Changes a prompt's output contract** — its schema, identifiers or what the
+   validator expects.
+6. **Changes another contract the user or a package depends on** — what gets saved,
+   invalidated or regenerated, what an ID means, what an export contains, or what an
+   API route returns.
 
-When it is genuinely unclear, take the fast lane and open the issue. If the branch
-outgrows its issue, stop and split it — that is operating rule 2 in
-[`AGENTS.md`](../AGENTS.md), and it applies here as the escape hatch. Discovering a spec
-is needed halfway through is a normal outcome, not a failure.
+Otherwise, use the **fast lane**. An existing approved spec can cover the intended
+change; link it rather than writing a duplicate. If its contract needs to change,
+follow the amendment process in [§4](#4-the-spec-lifecycle).
+
+**When in doubt, ask at triage and resolve the lane before implementation.** Uncertainty
+is not a reason to default to the fast lane. If a fast-lane branch reveals a spec
+trigger, stop, open the spec using what was learned, and park the implementation PR
+as a draft linked to it. If the branch grows past its issue, stop and split it —
+operating rule 2 in [`AGENTS.md`](../AGENTS.md). Discovering a spec is needed halfway
+through is a normal outcome, not a failure.
 
 Some worked examples:
 
 | Change | Lane | Why |
 |---|---|---|
 | Fix a typo in a Spanish `.po` string | Fast | No contract, no schema |
-| Add a column to a Studio table | Fast | Contained UI |
+| Add a column to an existing Studio table | Fast | Contained UI within existing contracts and the size thresholds |
 | Change how staleness invalidates downstream artifacts | **Spec** | Behaviour contract, disputed, affects saved data |
-| Rename an internal helper across three packages | Fast | Behaviour-preserving refactor |
+| Rename a local internal helper | Fast | Small refactor that preserves contracts and invariants |
+| Refactor across 12 files without changing behaviour | **Spec** | Exceeds the file-count trigger |
 | Try a new sectioning heuristic to see if it's better | **Experiment** | We don't know yet — ends in a finding |
-| Add a provider to `@adt/llm` following the existing port | Fast | Covered by the existing pattern |
+| Add a provider to `@adt/llm` following the existing port | **Spec** | A new provider requires a spec even when the interface already exists |
 | Change what a `data-id` refers to | **Spec** | Every downstream stage depends on the meaning |
 
 ## 4. The spec lifecycle
@@ -108,7 +127,7 @@ draft → in-review → approved → in-progress → implemented → verified
 | `approved` | Merged and agreed. **Required session input for anyone implementing it.** |
 | `in-progress` | At least one implementation PR is open. |
 | `implemented` | Every acceptance criterion has a passing test. |
-| `verified` | Confirmed in a running Studio or desktop build, not just in CI. |
+| `verified` | Confirmed on a release build against the acceptance set; the person holding release responsibility for that cycle moves the status. |
 | `superseded` | Replaced. The front matter names the spec that replaced it. |
 
 **Reviewing the PR that adds the spec *is* the spec review.** No separate meeting, no
@@ -122,6 +141,24 @@ assigned to a person with a date and a stated default if that date passes.
 
 The status in the file's front matter and the row in [`docs/specs/INDEX.md`](specs/INDEX.md)
 must always agree. Move both in the same PR.
+
+When moving to `verified`, record the release build and acceptance-set results in
+the spec. Checks in a local Studio or desktop build are useful implementation
+evidence, but do not replace release verification.
+
+### Amending an approved spec
+
+Specs remain maintained after approval: this is **spec-anchored development**. If
+implementation reveals that the agreed design or behaviour contract must change,
+pause the affected implementation and open a PR amending the spec first. Explain
+the evidence, update the design, acceptance criteria and test plan, and include an
+ADR follow-up when a standing decision changes.
+
+The amendment needs the same approval as the original spec: at least one non-author
+maintainer, plus product sign-off when user-facing scope changes. Merge the reviewed
+amendment before implementing the changed contract. Subsequent implementation PRs
+link the amended spec, so every session starts from the same decision. Implementation
+details that remain within the approved contract do not require a new spec decision.
 
 ## 5. Writing a spec
 
@@ -199,8 +236,10 @@ marker, not as enforcement.
 
 Agents write a large share of the code here. The process assumes that and constrains it:
 
-- **Drafting a spec from an issue and the codebase is a good agent task.** Reviewing and
-  editing that draft is not.
+- **Agents can help draft, edit and review specs.** The human owner checks the evidence
+  and proposed edits and owns the design. A reviewing agent is a second reader, not
+  an approver: it can check acceptance criteria, test coverage, invariants and open
+  questions. The human reviewer evaluates its findings and approves or requests changes.
 - **An approved spec is required session input** for work implementing it. That is
   operating rule 1 in [`AGENTS.md`](../AGENTS.md), and it is the main reason specs are
   worth writing: a spec is the shared context that survives between sessions.
@@ -213,7 +252,28 @@ Agents write a large share of the code here. The process assumes that and constr
 - **Search before opening.** Check open PRs and issues for the same change first — a
   duplicate scaffolding PR is cheap to avoid and expensive to reconcile.
 
-## 9. Docs this process still needs
+## 9. Reviews and merging
+
+These requirements apply to **every PR**, including fast-lane changes, spec proposals
+and spec amendments:
+
+- **One non-author human approval and green CI before merge.** The person who prompted
+  an agent is an author of its work; an agent review does not supply human approval.
+- **About 400 changed lines per reviewable PR.** Split larger work into focused PRs;
+  spec-lane implementation is decomposed to fit this budget. This review budget is
+  separate from the roughly 300-net-line or 10-file trigger for deciding whether
+  the overall change needs a spec.
+- **Findings require re-review after fixes.** The person who requested changes, or
+  another reviewer with merge authority, reviews the updated diff before merge.
+  An author's statement that findings are fixed is not a replacement for re-review.
+- **Agent-assisted findings land in a GitHub review.** The human reviewer selects the
+  useful line comments and submits an approval or request for changes. Read
+  Verification and Not verified, and check the relevant acceptance criteria against
+  the implementation and its tests.
+- **Squash-merge approved PRs.** Delete the merged branch when it is no longer needed
+  by dependent work.
+
+## 10. Docs this process still needs
 
 The context map in [`AGENTS.md`](../AGENTS.md) points at the documents a session should
 load before touching an area. Several of them are marked *(planned)* there because they
@@ -225,6 +285,7 @@ do not exist yet:
 | `docs/PROMPTS.md` | Prompt output contracts — what each prompt under `prompts/` must return |
 | `docs/SECURITY_MODEL.md` | The runtime's threat model and trust boundaries |
 
-Writing any of them is fast-lane work. Until they exist, the nearest accurate
-substitutes are `docs/ARCHITECTURE.md`, `docs/MODEL_PROMPT_VARIANTS.md` and
-`docs/GUIDELINES.md`.
+Documenting an existing contract can use the fast lane when none of the §3 triggers
+apply; introducing or changing a contract follows the spec lane. Until these docs
+exist, the nearest accurate substitutes are `docs/ARCHITECTURE.md`,
+`docs/MODEL_PROMPT_VARIANTS.md` and `docs/GUIDELINES.md`.

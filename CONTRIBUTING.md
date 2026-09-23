@@ -10,13 +10,16 @@ first one.
 
 | Lane | When | What it needs |
 |------|------|---------------|
-| **Fast** | Bug fixes, chores, copy, contained UI, behaviour-preserving refactors | An issue and a PR |
-| **Spec** | Changes a contract, the storage schema, or an invariant | A spec in [`docs/specs/`](docs/specs/INDEX.md), reviewed as its own PR, before implementation |
+| **Fast** | Small changes that meet none of the spec-lane triggers: reproducible bug fixes, chores, copy, contained UI, refactors within existing contracts | Linked issue, regression test for behaviour bugs, a small PR, one non-author human approval and green CI |
+| **Spec** | Sizable changes; schema, storage, pipeline, interface or contract changes; registered invariants; new feature surfaces, dependencies, formats or providers | A spec in [`docs/specs/`](docs/specs/INDEX.md), reviewed as its own PR before implementation; small implementation PRs linking it |
 | **Experiment** | We don't know yet whether it works | A two-week time box on an `exp/` branch, ending in a written finding |
 
 The decision list is in [docs/SPEC_DRIVEN_DEVELOPMENT.md §3](docs/SPEC_DRIVEN_DEVELOPMENT.md#3-choosing-a-lane).
-When it's genuinely unclear, take the fast lane — and if the branch outgrows its issue,
-stop and split it. There are issue templates for all three.
+The size trigger is **above about 300 net lines or more than about 10 files**, even for
+behaviour-preserving changes. When the lane is unclear, ask at triage and resolve it
+before implementation. If a fast-lane change reveals a spec trigger, stop and park
+the implementation PR as a draft linked to the proposed spec. If the branch outgrows
+its issue, stop and split it. There are issue templates for all three.
 
 ## 2. Set up
 
@@ -73,6 +76,24 @@ Other expectations:
   [docs/DECISIONS.md](docs/DECISIONS.md).
 - **Never merge your own agent's work unreviewed.** If you prompted an agent to write
   it, you are the author, not the reviewer.
+
+### Review and merge requirements
+
+Every PR requires **one non-author human approval and green CI before merge**.
+Keep each PR within the review budget of **about 400 changed lines**; split larger
+work into focused PRs, including implementations of an approved spec. After requested
+changes are fixed, the original reviewer or another reviewer with merge authority
+must re-review the updated diff. Use **squash merge** once the requirements are met.
+
+Agents may help draft, edit and review specs and code. A human owns the work, evaluates
+review findings and submits the approval or request for changes; an agent cannot
+replace that approval. See [the review rules](docs/SPEC_DRIVEN_DEVELOPMENT.md#9-reviews-and-merging).
+
+If implementation changes an approved spec's contract, get a **spec amendment reviewed
+and merged before implementing that change**, with an ADR follow-up when a standing
+decision changes. A spec reaches `verified` only after checks **on a release build
+against the acceptance set**; the person holding release responsibility for the cycle
+records that evidence and moves the status. See [the lifecycle](docs/SPEC_DRIVEN_DEVELOPMENT.md#4-the-spec-lifecycle).
 
 ## 6. Where things live
 

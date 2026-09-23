@@ -417,9 +417,13 @@ Notes:
 
 Work runs in one of three lanes, chosen before you start:
 
-- **Fast** — bug fixes, chores, contained UI, behaviour-preserving refactors. Issue → PR. Most work is here.
-- **Spec** — anything that changes a contract, the storage schema, or an invariant. A spec is written and reviewed in [`docs/specs/`](docs/specs/INDEX.md) *before* implementation, and becomes the shared context everyone building it works from.
+- **Fast** — small fixes and maintenance that meet none of the spec-lane triggers. Linked issue, regression test for behaviour bugs, a small PR, non-author human approval and green CI. Most work is here.
+- **Spec** — sizable changes (above about 300 net lines or more than about 10 files), changes to schemas, storage, the pipeline, interfaces or contracts, registered invariants, and new feature surfaces, dependencies, formats or providers. A spec is written and reviewed in [`docs/specs/`](docs/specs/INDEX.md) *before* implementation, then implemented in small PRs that link it.
 - **Experiment** — open questions. Two-week time box on an `exp/` branch, ending in a written finding rather than a pull request.
+
+When the lane is unclear, resolve it at triage before implementation. Every PR needs
+non-author human approval and green CI, with a review budget of about 400 changed
+lines, re-review after requested fixes, and squash merging.
 
 The decision list, the spec lifecycle, and how ADRs and invariants attach are in
 [docs/SPEC_DRIVEN_DEVELOPMENT.md](docs/SPEC_DRIVEN_DEVELOPMENT.md). Start at

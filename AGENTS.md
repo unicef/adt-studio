@@ -22,6 +22,10 @@ ADT Studio is a desktop-first application for automated book production — extr
 
 ## Operating rules
 
+Use [the SDD process](docs/SPEC_DRIVEN_DEVELOPMENT.md#3-choosing-a-lane) to select a
+lane, and follow its [review and merge requirements](docs/SPEC_DRIVEN_DEVELOPMENT.md#9-reviews-and-merging)
+for every PR. Resolve an uncertain lane at triage before implementation.
+
 1. **Load the stack first.** Start from this file and follow the context map. For spec-lane work the approved spec is required session input.
 2. **One task, one issue, one PR.** If the branch grows past its issue, stop, split, open the second issue.
 3. **Search before opening.** Check open PRs and issues for the same change.
