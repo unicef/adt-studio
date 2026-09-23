@@ -45,6 +45,11 @@ msgstr "? Cela supprimera toutes les données extraites et est irréversible."
 msgid ".zip → added as-is"
 msgstr ".zip → ajouté tel quel"
 
+#. placeholder {0}: String(sectionIndex + 1)
+#. placeholder {1}: String(sectionCount)
+msgid "· part {0} of {1}"
+msgstr "· partie {0} sur {1}"
+
 msgid "\"A landscape forged by fire.\""
 msgstr "\\\"Un paysage forgé par le feu.\\\""
 
@@ -291,6 +296,7 @@ msgid "{0} of {1} pages had no extracted text"
 msgstr "{0} pages sur {1} n'ont aucun texte extrait"
 
 #. placeholder {0}: String(displayPages.length)
+#. placeholder {0}: String(items.length)
 #. placeholder {0}: book.pageCount
 msgid "{0} pages"
 msgstr "{0} pages"
@@ -1031,6 +1037,9 @@ msgstr "Ajoutez au moins une langue de sortie pour exécuter la traduction."
 msgid "Add author"
 msgstr "Ajouter un auteur"
 
+msgid "Add back to book"
+msgstr "Remettre dans le livre"
+
 msgid "Add book"
 msgstr "Ajouter un livre"
 
@@ -1241,6 +1250,9 @@ msgstr "Adventure Tales - Vol. 1"
 msgid "Affected pages"
 msgstr "Pages affectées"
 
+#~ msgid "after"
+#~ msgstr "après"
+
 msgid "After"
 msgstr "Après"
 
@@ -1248,7 +1260,6 @@ msgstr "Après"
 msgid "After {0}"
 msgstr "Après {0}"
 
-#. placeholder {0}: String(pageNumber)
 #. placeholder {0}: afterPage.pageNumber
 msgid "after page {0}"
 msgstr "après la page {0}"
@@ -1259,9 +1270,17 @@ msgstr "Après la page {afterNumber}"
 msgid "After page {placement}"
 msgstr "Après la page {placement}"
 
+#. placeholder {0}: String(pageNumber)
+msgid "after PDF {0}"
+msgstr "après PDF {0}"
+
+#. placeholder {0}: String(pageNumber)
+msgid "after PDF page {0}"
+msgstr "après la page {0} du PDF"
+
 #. placeholder {0}: String(page.pageNumber)
-msgid "after pg {0}"
-msgstr "après p. {0}"
+#~ msgid "after pg {0}"
+#~ msgstr "après p. {0}"
 
 msgid "Agent"
 msgstr "Agent"
@@ -1581,8 +1600,8 @@ msgstr "Êtes-vous sûr de vouloir supprimer la synthèse vocale générée ?"
 msgid "Are you sure you want to delete this image? This action cannot be undone."
 msgstr "Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible."
 
-msgid "Are you sure you want to delete this section? This action cannot be undone."
-msgstr "Êtes-vous sûr de vouloir supprimer cette section ? Cette action est irréversible."
+#~ msgid "Are you sure you want to delete this section? This action cannot be undone."
+#~ msgstr "Êtes-vous sûr de vouloir supprimer cette section ? Cette action est irréversible."
 
 msgid "Are you sure you want to generate word-level timestamps for {langDisplay}?"
 msgstr "Êtes-vous sûr de vouloir générer les horodatages au niveau des mots pour {langDisplay} ?"
@@ -1924,11 +1943,47 @@ msgstr "Plan du livre"
 msgid "Book package ready"
 msgstr "Paquet du livre prêt"
 
+msgid "Book page"
+msgstr "Page du livre"
+
+#. placeholder {0}: String(position)
+msgid "Book page {0}"
+msgstr "Page {0} du livre"
+
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(page.pageNumber)
+msgid "Book page {0} · PDF page {1}"
+msgstr "Page {0} du livre · page {1} du PDF"
+
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(page.pageNumber)
+#. placeholder {2}: section.sectionType
+msgid "Book page {0} · PDF page {1} · {2}"
+msgstr "Page {0} du livre · page {1} du PDF · {2}"
+
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(page.pageNumber)
+#~ msgid "Book page {0} · PDF page {1} (pruned)"
+#~ msgstr "Page {0} du livre · page {1} du PDF (exclue)"
+
+#. placeholder {0}: String(position ?? "–")
+#. placeholder {1}: String(page.pageNumber)
+msgid "Book page {0} · quiz after PDF page {1}"
+msgstr "Page {0} du livre · quiz après la page {1} du PDF"
+
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(pageNumber)
+msgid "book page {0} (PDF page {1})"
+msgstr "page {0} du livre (page {1} du PDF)"
+
 msgid "Book pages. Scroll horizontally to see more."
 msgstr "Pages du livre. Faites défiler horizontalement pour voir plus."
 
 msgid "Book part"
 msgstr "Partie du livre"
+
+#~ msgid "Book pg"
+#~ msgstr "Page livre"
 
 msgid "Book preview"
 msgstr "Livre aperçu"
@@ -2749,8 +2804,14 @@ msgstr "Impossible de charger les versions."
 msgid "Couldn't read this PDF"
 msgstr "Impossible de lire ce PDF"
 
+msgid "Couldn't restore the original page order. Please try again."
+msgstr "Impossible de restaurer l'ordre d'origine des pages. Veuillez réessayer."
+
 msgid "Couldn't restore v{version}. Please try again."
 msgstr "Impossible de restaurer la v{version}. Veuillez réessayer."
+
+msgid "Couldn't save the new page order. Please try again."
+msgstr "Impossible d'enregistrer le nouvel ordre des pages. Veuillez réessayer."
 
 msgid "Counting occurrences…"
 msgstr "Comptage des occurrences…"
@@ -3092,6 +3153,9 @@ msgstr "Supprimer le dossier"
 msgid "Delete option"
 msgstr "Supprimer l'option"
 
+msgid "Delete permanently"
+msgstr "Supprimer définitivement"
+
 msgid "Delete prompt file?"
 msgstr "Supprimer le fichier de prompt ?"
 
@@ -3112,6 +3176,9 @@ msgstr "Supprimer ce quiz"
 
 msgid "Delete this quiz?"
 msgstr "Supprimer ce quiz ?"
+
+msgid "Delete this section and its content permanently? This cannot be undone — use \"Remove from book\" instead to hide it while keeping it, and its place, for later."
+msgstr "Supprimer définitivement cette section et son contenu ? Cette action est irréversible : utilisez plutôt \"Retirer du livre\" pour la masquer en la conservant, ainsi que sa place, pour plus tard."
 
 msgid "Delete video"
 msgstr "Supprimer video"
@@ -4163,6 +4230,10 @@ msgstr "Du livre"
 msgid "From page"
 msgstr "De la page"
 
+#. placeholder {0}: String(pageNumber)
+msgid "From page {0} of the source PDF"
+msgstr "Depuis la page {0} du PDF source"
+
 msgid "From reference image..."
 msgstr "À partir de l'image de référence..."
 
@@ -4485,6 +4556,12 @@ msgstr "Grouper par à traiter"
 
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Regroupez le texte et les images de chaque page en sections tapées avec un arbre de contenu structuré. Les sections déterminent comment les étapes en aval rendent, traduisent et lisent le livre à haute voix."
+
+msgid "Group rows under their source PDF page"
+msgstr "Regrouper les lignes sous leur page du PDF source"
+
+#~ msgid "Grouping content by purpose, then laying out every section as reviewable HTML."
+#~ msgstr "Regroupement du contenu par objectif, puis mise en page de chaque section en HTML révisable."
 
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Regroupe les régions d'image en illustrations distinctes sur chaque page."
@@ -5271,6 +5348,9 @@ msgstr "Référence rapide Liquid"
 msgid "List"
 msgstr "Liste"
 
+msgid "List rows in reading order, where they can be moved"
+msgstr "Lister les lignes dans l'ordre de lecture, où elles peuvent être déplacées"
+
 msgid "List view"
 msgstr "Vue en liste"
 
@@ -5433,6 +5513,12 @@ msgstr "Chargement du catalogue de texte..."
 msgid "Loading text sizes…"
 msgstr "Chargement des tailles de texte…"
 
+msgid "Loading the book order…"
+msgstr "Chargement de l'ordre du livre…"
+
+msgid "Loading the page order…"
+msgstr "Chargement de l'ordre des pages…"
+
 msgid "Loading TTS normalization..."
 msgstr "Chargement de la normalisation TTS..."
 
@@ -5495,6 +5581,9 @@ msgstr "Faible"
 
 msgid "Lower values produce more consistent styling across pages."
 msgstr "Les valeurs plus basses produisent un style plus cohérent entre les pages."
+
+msgid "Made before the book's sections were rebuilt, so it refers to sections that no longer exist"
+msgstr "Créé avant la reconstruction des sections du livre : il renvoie donc à des sections qui n'existent plus"
 
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Assurez-vous de télécharger un fichier .zip exporté depuis ADT Studio."
@@ -5642,6 +5731,11 @@ msgstr "fusionner cette section avec la première section de la page suivante"
 
 msgid "merge this section into the last section of the previous page"
 msgstr "fusionner cette section avec la dernière section de la page précédente"
+
+#. placeholder {0}: displayedNeighbours.next.label
+#. placeholder {0}: displayedNeighbours.prev.label
+msgid "merge with {0}"
+msgstr "fusionner avec {0}"
 
 msgid "Merge with first section of next page"
 msgstr "Fusionner avec la première section de la page suivante"
@@ -5838,8 +5932,22 @@ msgstr "mouvement animation accessibilité"
 msgid "Move down"
 msgstr "Déplacer vers le bas"
 
+#~ msgid "Move this page"
+#~ msgstr "Déplacer cette page"
+
+#~ msgid "Move to end"
+#~ msgstr "Déplacer à la fin"
+
+#~ msgid "Move to start"
+#~ msgstr "Déplacer au début"
+
 msgid "Move up"
 msgstr "Déplacer vers le haut"
+
+#. placeholder {0}: String(landed)
+#. placeholder {1}: String(next.length)
+msgid "Moved to position {0} of {1}"
+msgstr "Déplacé à la position {0} sur {1}"
 
 msgid "Multi-format publications"
 msgstr "Publications multi-format"
@@ -6386,6 +6494,13 @@ msgstr "Normalisé"
 msgid "Not available on this server"
 msgstr "Non disponible sur ce serveur"
 
+#. placeholder {0}: String(reorderBlockedBy)
+msgid "Not available while {0} is running"
+msgstr "Indisponible pendant l'exécution de {0}"
+
+msgid "Not available while the storyboard is running"
+msgstr "Indisponible pendant l'exécution du storyboard"
+
 msgid "Not checked"
 msgstr "Non vérifié"
 
@@ -6407,8 +6522,15 @@ msgstr "Non trouvé dans le texte du livre"
 msgid "Not generated"
 msgstr "Non généré"
 
+msgid "Not in the book yet — the storyboard has not rendered this section"
+msgstr "Pas encore dans le livre : le storyboard n'a pas rendu cette section"
+
 msgid "Not rendered yet"
 msgstr "Pas encore rendu"
+
+#. placeholder {0}: String(page.pageNumber)
+msgid "Not rendered yet · PDF page {0}"
+msgstr "Pas encore rendu · page {0} du PDF"
 
 msgid "Not reviewed"
 msgstr "Non révisé"
@@ -6719,6 +6841,9 @@ msgstr "ou cliquez pour parcourir vos fichiers"
 msgid "Original"
 msgstr "Original"
 
+msgid "Original — PDF order"
+msgstr "Original — ordre du PDF"
+
 msgid "Original language"
 msgstr "Langue originale"
 
@@ -6865,6 +6990,11 @@ msgstr "Légendes de la page {0}"
 msgid "Page {0} of {1}"
 msgstr "Page {0} sur {1}"
 
+#. placeholder {0}: String(bookPosition)
+#. placeholder {0}: String(position)
+msgid "Page {0} of the book"
+msgstr "Page {0} du livre"
+
 msgid "Page {n}"
 msgstr "Page {n}"
 
@@ -6879,6 +7009,9 @@ msgstr "Page {pageNum}"
 
 msgid "page {shownStr}"
 msgstr "page {shownStr}"
+
+msgid "Page actions"
+msgstr "Actions de la page"
 
 msgid "Page context"
 msgstr "Contexte de la page"
@@ -6901,14 +7034,23 @@ msgstr "Image de la page"
 msgid "Page image as background with positioned text overlay. Preserves the original page composition; ideal for illustrated storybooks."
 msgstr "Image de page en arrière-plan avec texte positionné en superposition. Préserve la composition originale de la page ; idéal pour les livres illustrés."
 
+#~ msgid "Page in the source PDF"
+#~ msgstr "Page dans le PDF source"
+
 msgid "Page Mode"
 msgstr "Mode de page"
 
 msgid "Page number"
 msgstr "Numéro de page"
 
+msgid "Page number in the source PDF, which never changes when pages are reordered"
+msgstr "Numéro de page dans le PDF source, qui ne change jamais lors d'une réorganisation"
+
 msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
 msgstr "Numéros de page détectés — ils seront lus à voix haute : {pageNumberPreview}. Tout couper de la synthèse vocale ?"
+
+msgid "Page order"
+msgstr "Ordre des pages"
 
 msgid "Page preview"
 msgstr "Aperçu de la page"
@@ -7039,6 +7181,10 @@ msgstr "Charge utile"
 msgid "PDF"
 msgstr "PDF"
 
+#. placeholder {0}: String(pageNumber)
+msgid "PDF {0}"
+msgstr "PDF {0}"
+
 msgid "PDF accepted"
 msgstr "PDF accepté"
 
@@ -7050,6 +7196,16 @@ msgstr "Fichier PDF"
 
 msgid "PDF info"
 msgstr "Infos PDF"
+
+msgid "PDF order"
+msgstr "Ordre du PDF"
+
+msgid "PDF page"
+msgstr "Page du PDF"
+
+#. placeholder {0}: String(pageNumber)
+msgid "PDF page {0}"
+msgstr "Page {0} du PDF"
 
 msgid "PDF page {pageLabel} preview"
 msgstr "Aperçu de la page PDF {pageLabel}"
@@ -7238,6 +7394,12 @@ msgstr "Position {0}, {1} → {2}×{3} pt"
 msgid "position corner toast placement"
 msgstr "position coin placement notification"
 
+#~ msgid "Position in the book"
+#~ msgstr "Position dans le livre"
+
+msgid "Position in the book, which differs from the source PDF page once pages are reordered"
+msgstr "Position dans le livre, qui diffère de la page du PDF source dès que les pages sont réordonnées"
+
 #. placeholder {0}: b.pr
 msgid "PR #{0}"
 msgstr "PR #{0}"
@@ -7331,6 +7493,10 @@ msgstr "Principale"
 
 msgid "Print a variable"
 msgstr "Afficher une variable"
+
+#. placeholder {0}: String(sections[0].pageNumber)
+msgid "Printed as page {0} in the book"
+msgstr "Imprimée comme page {0} dans le livre"
 
 msgid "Process every page on this machine."
 msgstr "Traiter toutes les pages sur cette machine."
@@ -7476,6 +7642,9 @@ msgstr "Extrayez le texte, les images et la structure de n'importe quel PDF."
 msgid "Pulls the book's metadata — title, author, language — from the PDF."
 msgstr "Extrait les métadonnées du livre — titre, auteur, langue — du PDF."
 
+msgid "Put every page back where the source PDF had it, saved as a new version"
+msgstr "Remet chaque page à la place qu'elle occupait dans le PDF source, enregistré comme nouvelle version"
+
 msgid "px"
 msgstr "px"
 
@@ -7528,8 +7697,8 @@ msgid "Quiz {0}"
 msgstr "Quiz {0}"
 
 #. placeholder {0}: page.pageNumber
-msgid "Quiz after page {0}"
-msgstr "Quiz après la page {0}"
+#~ msgid "Quiz after page {0}"
+#~ msgstr "Quiz après la page {0}"
 
 msgid "Quiz frequency"
 msgstr "Fréquence des quiz"
@@ -7711,6 +7880,12 @@ msgstr "De vrais livres traités avec ce préréglage — avant et après."
 msgid "Realistic / Photo"
 msgstr "Réaliste / Photo"
 
+msgid "Rearrange"
+msgstr "Réorganiser"
+
+msgid "Rearrange pages by dragging. Each page's menu can move it without this."
+msgstr "Réorganisez les pages en les faisant glisser. Le menu de chaque page permet aussi de la déplacer sans ceci."
+
 msgid "Rearranging atoms of HTML..."
 msgstr "Réarrangement des atomes de HTML..."
 
@@ -7856,6 +8031,9 @@ msgstr "Supprimer le fichier"
 msgid "Remove font {0}"
 msgstr "Supprimer la police {0}"
 
+msgid "Remove from book"
+msgstr "Retirer du livre"
+
 msgid "Remove from group"
 msgstr "Retirer du groupe"
 
@@ -7904,6 +8082,13 @@ msgstr "supprimé"
 
 msgid "Removed"
 msgstr "Supprimé"
+
+msgid "Removed from the book"
+msgstr "Retirée du livre"
+
+#. placeholder {0}: String(page.pageNumber)
+msgid "Removed from the book · PDF page {0}"
+msgstr "Retirée du livre · page {0} du PDF"
 
 msgid "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
 msgstr "Rendez chaque section tapée en une page HTML interactive. Choisissez une stratégie de mise en page qui correspond au livre et laissez le storyboard gérer le reste."
@@ -7997,6 +8182,9 @@ msgstr "Réinitialiser aux valeurs par défaut héritées"
 
 msgid "Reset to the book's accent"
 msgstr "Rétablir la couleur d'accent du livre"
+
+msgid "Reset to the original PDF order"
+msgstr "Rétabli dans l'ordre d'origine du PDF"
 
 msgid "Reset zoom"
 msgstr "Réinitialiser le zoom"
@@ -8192,6 +8380,9 @@ msgstr "Pivoter de 90° dans le sens antihoraire"
 
 msgid "Row"
 msgstr "Ligne"
+
+msgid "Row order"
+msgstr "Ordre des lignes"
 
 msgid "Row reverse"
 msgstr "Ligne inversée"
@@ -8546,12 +8737,11 @@ msgstr "Section {0} — {1}"
 
 #. placeholder {0}: section.sectionIndex + 1
 #. placeholder {1}: section.sectionType
-msgid "Section {0} · {1}"
-msgstr "Section {0} · {1}"
+#~ msgid "Section {0} · {1}"
+#~ msgstr "Section {0} · {1}"
 
 #. placeholder {0}: String(i + 1)
 #. placeholder {0}: i + 1
-#. placeholder {0}: section.sectionIndex + 1
 msgid "Section {0} (pruned)"
 msgstr "Section {0} (élagué)"
 
@@ -8826,6 +9016,15 @@ msgstr "Ombre"
 
 msgid "Shared"
 msgstr "Partagé"
+
+#. placeholder {0}: String(page.pageNumber)
+msgid "Sheet {0} of the PDF"
+msgstr "Feuillet {0} du PDF"
+
+#. placeholder {0}: String(page.pageNumber)
+#. placeholder {1}: String(section.pageNumber)
+msgid "Sheet {0} of the PDF, printed as page {1}"
+msgstr "Feuillet {0} du PDF, imprimé comme page {1}"
 
 msgid "Ship"
 msgstr "Livrer"
@@ -9283,6 +9482,9 @@ msgstr "Aperçu de l'activité pas à pas"
 msgid "Steps"
 msgstr "Étapes"
 
+msgid "Stop rearranging. Each page's menu can still move it."
+msgstr "Arrêter de réorganiser. Le menu de chaque page permet toujours de la déplacer."
+
 msgid "Stop step"
 msgstr "Arrêter l’étape"
 
@@ -9729,6 +9931,9 @@ msgstr "La forêt perdue"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Le modèle détecte les zones de délimitation afin que chaque élément visuel puisse être stocké et disposé séparément."
 
+msgid "The page order could not be loaded."
+msgstr "Impossible de charger l'ordre des pages."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "Le processus que les plantes utilisent pour transformer la lumière du soleil, l'eau et le dioxyde de carbone en nourriture."
 
@@ -9791,6 +9996,10 @@ msgstr "La même édition dans chaque langue."
 
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "La révision de traduction enregistrée est obsolète. Relancez Réviser pour les traductions visibles."
+
+#. placeholder {0}: String(pageNumber)
+msgid "the section on PDF page {0}"
+msgstr "la section de la page {0} du PDF"
 
 msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 msgstr "La section a été modifiée après la conversion — utilisez « Reconstruire depuis la page » pour actualiser les étapes."
@@ -9873,6 +10082,12 @@ msgstr "Elles libèrent de l'oxygène directement dans l'air."
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "Cette activité ne contient aucun texte ni aucune réponse adressable. Régénérez-la ou utilisez \"Modifier la mise en page\" pour modifier directement la page."
 
+msgid "This also deletes the book's page order and its history, so the book returns to PDF order."
+msgstr "Cela supprime également l'ordre des pages du livre et son historique : le livre revient donc à l'ordre du PDF."
+
+msgid "This also replaces the sections the current page order refers to, so the book returns to PDF order. Earlier page orders stay in the history but can no longer be restored."
+msgstr "Cela remplace également les sections auxquelles renvoie l'ordre des pages actuel : le livre revient donc à l'ordre du PDF. Les ordres de pages précédents restent dans l'historique, mais ne peuvent plus être restaurés."
+
 msgid "This archive can't be opened safely"
 msgstr "Cette archive ne peut pas être ouverte en toute sécurité"
 
@@ -9904,6 +10119,9 @@ msgstr "Ce livre n'est pas encore complet — les pages <0>{0}</0> n'ont pas ét
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ce livre est rendu en mise en page fixe, il conserve donc les polices d'origine du PDF. Les polices jointes guident tout de même l'IA pour les activités et les pages générées."
+
+msgid "This book's pages may not be in the right order: the saved data below could not be read and was ignored."
+msgstr "Les pages de ce livre ne sont peut-être pas dans le bon ordre : les données enregistrées ci-dessous n'ont pas pu être lues et ont été ignorées."
 
 msgid "This computer"
 msgstr "Cet ordinateur"
@@ -10063,6 +10281,9 @@ msgstr "Cette section n'a pas encore de rendu de scénarimage"
 
 msgid "This section is pruned and isn't rendered."
 msgstr "Cette section est élaguée et n'est pas rendue."
+
+#~ msgid "This section's source page is unknown"
+#~ msgstr "La page source de cette section est inconnue"
 
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "Cette session utilise un ancien instantané de la liste de contrôle du réviseur. Les nouveaux paramètres de liste de contrôle ne s'appliqueront qu'aux sessions de révision nouvellement créées."
