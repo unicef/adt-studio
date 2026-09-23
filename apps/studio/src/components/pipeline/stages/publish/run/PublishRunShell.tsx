@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { useRef, type ReactNode } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { Check } from "lucide-react"
 import { PUBLISH_STEP_COPY } from "./publish-steps"
@@ -13,6 +13,10 @@ import { PublishLiveRegion } from "./PublishLiveRegion"
 import { PublishShareBlock } from "./PublishShareBlock"
 import { PublishStatusBand } from "./PublishStatusBand"
 import { formatCount } from "./publish-format"
+import { useElementSize } from "./useElementSize"
+
+/** The shortest band a step's art is still legible in. The belt alone, wheels and all, is ~150. */
+const ART_MIN_HEIGHT = 160
 
 export interface PublishRunShellProps extends PublishRunScreenProps {
   /* A render prop rather than a node, so the artifact band physically cannot draw itself from a
@@ -55,6 +59,9 @@ export function PublishRunShell({
   const percent = aggregate.percent
   const announcement = usePublishAnnouncer(run, { title })
   const { stall } = usePublishStall(run)
+  const bandRef = useRef<HTMLDivElement | null>(null)
+  const band = useElementSize(bandRef)
+  const bandFits = band === null || band.height >= ART_MIN_HEIGHT
 
   const copy = { run, title, fromVersion }
   const failed = run.status === "error"
@@ -125,8 +132,16 @@ export function PublishRunShell({
               invisible rectangle floating inside it. Object artworks centre themselves and never
               notice the extra room. */}
           {artifact ? (
-            <div className="-mx-6 flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-              {artifact(aggregate)}
+            <div ref={bandRef} className="-mx-6 flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+              {/* What is left for the art, not the card's height, decides whether it is drawn: a
+                  failure's explanation takes a share of the card, and a scene squeezed into the
+                  rest was a sliver of belt with its wheels cut off. Below the floor the band stays
+                  as space and the words carry the screen. */}
+              {bandFits ? (
+                <div className="flex h-full w-full items-center justify-center motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300">
+                  {artifact(aggregate)}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
