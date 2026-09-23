@@ -141,6 +141,11 @@ Why this is safe and cheap (all verified):
 - **Outside the clear lists**, so it does not suffer the loss measured above. It must be
   **deliberately kept out** of `getStageRerunClearNodes` and `IMAGE_SET_CHANGE_CLEAR_NODE_TYPES`.
 
+**Orphan policy — ratified (owner, 2026-02-19).** Deleting an element **keeps** its authored text.
+No garbage collection is added in v1; the artifact may accumulate entries for removed nodes. Revisit
+alongside **SPEC-0008** (stable identifiers), which is what would make a `nodeId` reusable and
+therefore make an orphan dangerous rather than merely dead weight.
+
 ### 2. Production reuses the existing chain
 
 ```
@@ -183,8 +188,12 @@ synthesis happens in **`speech`**, so a newly authored script cannot be synthesi
 ### 4. The runtime adds the click trigger and the indicator
 
 - A click on an element that has audio plays that element's audio (and stops the current one).
-- The **icon badge** is added by the **runtime**, not by the rendered HTML: this keeps the rendered
-  HTML, the prompt contract and `validate-html.ts` untouched.
+- **Ratified (owner, 2026-02-19): the icon badge is added by the _runtime_, not by the rendered
+  HTML.** That keeps the rendered HTML, the prompt contract and `validate-html.ts` untouched, and it
+  means the badge exists in both the preview and the bundle for free — the preview serves the same
+  runtime (`adt-preview.ts:549-556`).
+- **Ratified (owner, 2026-02-19): the badge ships in the export, and is hidden in `@media print`.**
+  The reader cannot discover the audio without it; a printed page should not show it.
 - Elements that are not audio-bearing keep today's behaviour exactly.
 
 ### 5. Accessibility is enforced by an existing automatic audit
@@ -299,20 +308,17 @@ No feature flag; each PR reverts alone.
 
 ## Open questions
 
-Resolved during drafting (see §Proposed design): where the audio is generated from in the
-single-element path — **§3**, ratified by the owner on 2026-02-19.
+Resolved during drafting and moved into §Proposed design, all ratified by the owner on 2026-02-19:
+
+- Where the audio is generated from in the single-element path — **§3**.
+- The orphan policy — **§1**.
+- Which component adds the badge, and whether it ships in the export — **§4**.
 
 Still open:
 
-- **Which component adds the badge?** Proposed: the runtime, to keep rendered HTML, prompt contracts
-  and `validate-html.ts` untouched. — **@gaguerre-iugo, by 2026-02-26.** Default: runtime.
-- **Orphan policy.** Text is kept when an element is deleted (decided). Does a page deletion or a
-  book-level cleanup ever collect orphans, or does the artifact grow unbounded? — **@gaguerre-iugo,
-  by 2026-02-26.** Default: keep, and revisit with SPEC-0008.
-- **Does the badge belong in the export at all?** The reader cannot discover the audio without it,
-  but it changes the printed/exported appearance. — **@gaguerre-iugo, by 2026-02-26.** Default: yes in
-  the reader, hidden in `@media print`.
 - **Is an ADR warranted?** The storage rule ("authored, user-owned per-element content is never
   persisted in a node that invalidation clears") is a candidate standing decision, which would make
-  it **ADR-028** — 024-027 are already claimed by other open spec PRs. — **@gaguerre-iugo, by
-  2026-02-26.** Default: yes, written in the same PR as the ADR's own commit.
+  it **ADR-028** — 024-027 are already claimed by other open spec PRs. If yes, it lands in this same
+  PR, with `Status: proposed` until this spec is approved (see
+  [`docs/SPEC_DRIVEN_DEVELOPMENT.md`](../SPEC_DRIVEN_DEVELOPMENT.md#6-adrs) §6). — **@gaguerre-iugo,
+  by 2026-02-26.** Default: yes.
