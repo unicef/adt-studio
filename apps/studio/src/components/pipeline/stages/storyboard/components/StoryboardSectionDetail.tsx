@@ -81,8 +81,8 @@ import {
   StoryboardFeedbackOverlay,
   useSectionFeedbackCount,
 } from "./feedback/StoryboardFeedbackOverlay"
-import { StoryboardCommentsSidebar } from "./feedback/StoryboardCommentsSidebar"
 import { sectionIdFor } from "./feedback/storyboard-pins"
+import { useCommentsMode } from "./feedback/use-comments-mode"
 import { StepperActivityPreview } from "./StepperActivityPreview"
 import {
   useActivityStructure,
@@ -521,12 +521,13 @@ export function StoryboardSectionDetail({
   /** The pin overlay is drawn in this box's coordinates; the iframe's offset inside it is added
    *  back per pin, exactly as the Feedback view does. */
   const previewContainerRef = useRef<HTMLDivElement>(null)
-  const [feedbackShown, setFeedbackShown] = useState(false)
+  /** Shared with the page list's Comments filter: one switch for reviewing feedback. */
+  const commentsMode = useCommentsMode(bookLabel)
+  const feedbackShown = commentsMode.on
+  const setFeedbackShown = commentsMode.setOn
   /** One selection shared by the pins and the sidebar: two states could disagree about which
    *  comment is open, and the author would see a highlighted row with no highlighted pin. */
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
-  const [missingPinIds, setMissingPinIds] = useState<readonly string[]>([])
-  const missingPins = useMemo(() => new Set(missingPinIds), [missingPinIds])
   const feedbackCount = useSectionFeedbackCount(bookLabel, sectionIdFor(pageId, sectionIndex))
 
   /**
@@ -545,9 +546,16 @@ export function StoryboardSectionDetail({
     }
     if (appliedThreadRef.current === linkedThreadId) return
     appliedThreadRef.current = linkedThreadId
-    setSelectedThreadId(linkedThreadId)
-    setFeedbackShown(true)
-  }, [linkedThreadId])
+    commentsMode.open(linkedThreadId)
+  }, [linkedThreadId, commentsMode.open])
+
+  /** A comment asked for from anywhere — a link, the page list — opens here, every time. */
+  const { request: commentRequest, consume: consumeCommentRequest } = commentsMode
+  useEffect(() => {
+    if (commentRequest === null) return
+    setSelectedThreadId(commentRequest.threadId)
+    consumeCommentRequest()
+  }, [commentRequest, consumeCommentRequest])
   const previewFrameRef = useRef<BookPreviewFrameHandle>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -2604,15 +2612,16 @@ export function StoryboardSectionDetail({
         onChange={setDeviceView}
         currentWidth={previewVisibleWidth}
       />
-      {/* Reviewer pins and the comments panel, as one toggle in the toolbar's own idiom —
-          white-on-violet like the viewport switch beside it. Off until asked for: an author
-          styling a page should not have somebody else's dots in the way. */}
+      {/* Comments mode, in the toolbar's own idiom — white-on-violet like the viewport switch
+          beside it. The same switch as the page list's Comments filter: on, the page shows its
+          pins and the list only the commented pages. Off until asked for: an author styling a
+          page should not have somebody else's dots in the way. */}
       <button
         type="button"
         data-testid="storyboard-feedback-toggle"
         aria-pressed={feedbackShown}
         onClick={() => setFeedbackShown((shown) => !shown)}
-        title={t`Show reviewer comments on this page`}
+        title={feedbackShown ? t`Hide reviewer comments` : t`Show reviewer comments, and only the pages that have them`}
         className={cn(
           "inline-flex h-6 shrink-0 cursor-pointer items-center gap-1 rounded px-1.5 text-[10px] transition-colors",
           feedbackShown
@@ -2975,13 +2984,13 @@ export function StoryboardSectionDetail({
                 <StoryboardFeedbackOverlay
                   bookLabel={bookLabel}
                   sectionId={sectionIdFor(pageId, sectionIndex)}
+                  pageSectionIds={pageSectionIds}
                   frameRef={previewFrameRef}
                   containerRef={previewContainerRef}
                   enabled={feedbackShown}
-                  showResolved={false}
                   selectedThreadId={selectedThreadId}
                   onSelectThread={setSelectedThreadId}
-                  onMissingPinsChange={setMissingPinIds}
+                  onNavigateSection={onNavigateSection}
                 />
               </div>
             )}
@@ -3298,20 +3307,6 @@ export function StoryboardSectionDetail({
         <div className="absolute inset-0 z-50 cursor-row-resize" />
       )}
     </div>
-
-    {/* The comments drawer belongs beside the preview column, not inside it: the aside is
-        `h-full shrink-0`, which in a column flex consumes the whole main axis and collapses
-        the preview's scroll container to its own padding. */}
-    <StoryboardCommentsSidebar
-      bookLabel={bookLabel}
-      sectionIds={pageSectionIds}
-      activeSectionId={sectionIdFor(pageId, sectionIndex)}
-      open={feedbackShown}
-      onClose={() => setFeedbackShown(false)}
-      selectedThreadId={selectedThreadId}
-      onSelectThread={setSelectedThreadId}
-      missingPins={missingPins}
-    />
 
     {/* Inline element style editor — opens automatically on selection */}
     <StyleEditorPanel

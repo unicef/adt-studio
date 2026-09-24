@@ -1,7 +1,7 @@
 import type { CommentAnchor } from "@/api/client"
 import {
   contentRoot,
-  resolveAnchorPoint,
+  resolveAnchorElement,
 } from "@/components/publication-feedback/lib/anchor-resolution"
 import type { FeedbackThread } from "@/components/publication-feedback/lib/threads"
 import { initialOf } from "@/components/publication-feedback/lib/initial"
@@ -29,14 +29,20 @@ export interface PlacedPin {
   label: string
   /** The comment was written against an older published version of this section. */
   stale: boolean
+  /** The element the pin is on, in the container's coordinates, for outlining it. */
+  box: { left: number; top: number; width: number; height: number }
+  /** What the element says, for the card: its text, or a picture's description. */
+  quote: string | null
+  picture: boolean
 }
 
 export interface UnplacedPin {
   thread: FeedbackThread
   label: string
   stale: boolean
-  /** Why it could not be drawn: the anchor is gone, or there never was one. */
-  reason: "page-level" | "unresolvable"
+  /** Why it could not be drawn: there never was an anchor, the anchor is gone, or the preview
+   *  isn't there to measure yet — which says nothing about the anchor at all. */
+  reason: "page-level" | "unresolvable" | "measuring"
 }
 
 export interface PlacementResult {
@@ -89,14 +95,19 @@ export function placePins(
       return
     }
     if (root === null || iframeRect === null || containerRect === null) {
-      unplaced.push({ thread, label, stale, reason: "unresolvable" })
+      unplaced.push({ thread, label, stale, reason: "measuring" })
       return
     }
 
-    const point = resolveAnchorPoint(anchor, root)
-    if (point === null) {
+    const element = resolveAnchorElement(anchor, root)
+    if (element === null) {
       unplaced.push({ thread, label, stale, reason: "unresolvable" })
       return
+    }
+    const rect = element.getBoundingClientRect()
+    const point = {
+      x: rect.left + (rect.width * anchor.xOffsetPct) / 100,
+      y: rect.top + (rect.height * anchor.yOffsetPct) / 100,
     }
 
     /** The anchor resolves in the iframe's own coordinates; the overlay is drawn in the
@@ -116,10 +127,62 @@ export function placePins(
       return
     }
 
-    placed.push({ thread, x, y, label, stale })
+    const offsetX = iframeRect.left - containerRect.left
+    const offsetY = iframeRect.top - containerRect.top
+    placed.push({
+      thread,
+      x,
+      y,
+      label,
+      stale,
+      box: {
+        left: offsetX + rect.left * scale,
+        top: offsetY + rect.top * scale,
+        width: rect.width * scale,
+        height: rect.height * scale,
+      },
+      ...quoteOf(element),
+    })
   })
 
   return { placed, unplaced }
+}
+
+const QUOTE_MAX = 90
+
+/** What a pinned element says, short enough for one line of a card. */
+function quoteOf(element: Element): { quote: string | null; picture: boolean } {
+  if (element.tagName === "IMG") {
+    const alt = element.getAttribute("alt")?.trim() ?? ""
+    return { quote: alt === "" ? null : alt, picture: true }
+  }
+  const text = (element.textContent ?? "").replace(/\s+/g, " ").trim()
+  if (text === "") return { quote: null, picture: false }
+  return { quote: text.length > QUOTE_MAX ? `${text.slice(0, QUOTE_MAX - 1).trimEnd()}…` : text, picture: false }
+}
+
+export interface PinCluster {
+  /** The first pin's id, stable while the group holds together. */
+  id: string
+  x: number
+  y: number
+  pins: PlacedPin[]
+}
+
+/**
+ * Pins close enough to cover each other, gathered into one marker with a count. Readers pin the
+ * same heading or picture again and again, and a stack of dots where only the top one can be
+ * clicked hides every comment underneath it.
+ */
+export function clusterPins(pins: readonly PlacedPin[], radius = 28): PinCluster[] {
+  const clusters: PinCluster[] = []
+  const ordered = [...pins].sort((a, b) => a.y - b.y || a.x - b.x)
+  for (const pin of ordered) {
+    const near = clusters.find((cluster) => Math.hypot(cluster.x - pin.x, cluster.y - pin.y) < radius)
+    if (near) near.pins.push(pin)
+    else clusters.push({ id: pin.thread.root.id, x: pin.x, y: pin.y, pins: [pin] })
+  }
+  return clusters
 }
 
 /** The section id the storyboard's page + section index corresponds to, in the form the

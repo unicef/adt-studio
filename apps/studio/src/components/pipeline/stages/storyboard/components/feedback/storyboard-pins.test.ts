@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest"
 import type { PublishComment } from "@/api/client"
 import { buildThreads } from "@/components/publication-feedback/lib/threads"
-import { parseSectionId, placePins, sectionIdFor, sectionLocation } from "./storyboard-pins"
+import { clusterPins, parseSectionId, placePins, sectionIdFor, sectionLocation, type PlacedPin } from "./storyboard-pins"
 
 function comment(overrides: Partial<PublishComment> = {}): PublishComment {
   return {
@@ -125,6 +125,30 @@ describe("placePins", () => {
     })
     expect(placed).toHaveLength(0)
     expect(unplaced).toHaveLength(1)
+    /** Not measured yet is not the same as gone: nothing should call this pin missing. */
+    expect(unplaced[0].reason).toBe("measuring")
+  })
+
+  it("reads back what the pin is on, and the element's box to outline", () => {
+    const threads = buildThreads([comment()])
+    const { placed } = placePins(threads, { doc: previewDoc(), iframeRect: IFRAME, containerRect: CONTAINER, liveVersion: null })
+    expect(placed[0].quote).toBe("Some text")
+    expect(placed[0].picture).toBe(false)
+    expect(placed[0].box.width).toBeGreaterThan(0)
+  })
+})
+
+describe("clusterPins", () => {
+  const pin = (id: string, x: number, y: number) =>
+    ({ thread: { root: { id } }, x, y }) as unknown as PlacedPin
+
+  it("gathers pins that would cover each other into one marker", () => {
+    const clusters = clusterPins([pin("a", 100, 100), pin("b", 110, 104), pin("c", 300, 300)])
+    expect(clusters.map((cluster) => cluster.pins.length)).toEqual([2, 1])
+  })
+
+  it("keeps pins that stand apart on their own", () => {
+    expect(clusterPins([pin("a", 0, 0), pin("b", 100, 0)])).toHaveLength(2)
   })
 })
 
