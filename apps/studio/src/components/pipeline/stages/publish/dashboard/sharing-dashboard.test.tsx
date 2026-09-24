@@ -372,6 +372,12 @@ describe("expiryState", () => {
     expect(expiryState(withEnd("2026-10-10T12:00:00.000Z"), now).tone).toBe("far")
   })
 
+  /** Picking "30 days" sets the end exactly 30 days out; the count must say 30, not 31. */
+  it("counts a link just set to 30 days as 30 days", () => {
+    const end = new Date(now + 30 * 24 * 60 * 60_000).toISOString()
+    expect(expiryState(withEnd(end), now + 250)).toMatchObject({ tone: "far", days: 30 })
+  })
+
   it("says a past date has ended instead of counting an hour that isn't there", () => {
     expect(expiryState(withEnd("2026-08-09T12:00:00.000Z"), now).tone).toBe("ended")
   })

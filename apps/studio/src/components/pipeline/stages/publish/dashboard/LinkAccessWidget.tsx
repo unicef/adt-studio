@@ -46,7 +46,10 @@ export function expiryState(link: DashLink, now: number = Date.now()): ExpirySta
  */
 export function LinkAccessWidget({ link, startedAt, onExtend }: { link: DashLink; startedAt: string | null; onExtend: () => void }) {
   const { i18n, t } = useLingui()
-  const now = useNow()
+  useMinuteTick()
+  /** Read fresh on every render, not from the tick: after the end date changes, a clock up to a
+   *  minute old would count a 30-day link as 30 days and some seconds — "31 days". */
+  const now = Date.now()
   const state = expiryState(link, now)
   const start = startedAt ? Date.parse(startedAt) : Number.NaN
   const end = state.endsAt ? Date.parse(state.endsAt) : Number.NaN
@@ -168,14 +171,13 @@ export function LinkAccessWidget({ link, startedAt, onExtend }: { link: DashLink
   )
 }
 
-/** The clock, a minute at a time, so a countdown moves while the page stays open. */
-function useNow(intervalMs = 60_000): number {
-  const [now, setNow] = useState(Date.now)
+/** Re-renders once a minute, so a countdown moves while the page stays open. */
+function useMinuteTick(intervalMs = 60_000) {
+  const [, setTick] = useState(0)
   useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), intervalMs)
+    const id = window.setInterval(() => setTick((value) => value + 1), intervalMs)
     return () => window.clearInterval(id)
   }, [intervalMs])
-  return now
 }
 
 /** While the service is down the date shown is the last one this machine knows, and it can't be
