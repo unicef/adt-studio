@@ -26,13 +26,19 @@ function unattended(label: string): boolean {
   return !watchers.has(label) || document.hidden
 }
 
-/** Books with a run this session saw running. Only those are announced: the server keeps each
- *  book's last ending, and a finished share must not greet every later page load with a toast. */
-const watched = new Set<string>()
+/** Books with a run this session saw running, and when this page announced it (0 for runs found
+ *  already going). Only those are announced: the server keeps each book's last ending, and a
+ *  finished share must not greet every later page load with a toast. */
+const watched = new Map<string, number>()
+/** A run is announced before its request reaches the server, so for a moment the server still
+ *  answers with the book's previous run. Anything that began this long before the announcement
+ *  is that previous run, not this one. */
+const ANNOUNCE_SLACK_MS = 5_000
+const ANNOUNCE_GRACE_MS = 30_000
 const listeners = new Set<() => void>()
 
 export function notifyPublishRunStarted(label: string): void {
-  watched.add(label)
+  watched.set(label, Date.now())
   setRunning(label, true)
   for (const listen of listeners) listen()
 }
@@ -84,9 +90,19 @@ export function usePublishRunNotice(): void {
       if (cancelled) return
       polling = true
       try {
-        for (const label of [...watched]) {
+        for (const [label, announcedAt] of [...watched]) {
           const { run } = await api.getPublishRun(label)
           if (cancelled) return
+          const previous = run !== null && announcedAt > 0 && Date.parse(run.started_at) < announcedAt - ANNOUNCE_SLACK_MS
+          if (previous) {
+            /* The announced run never reached the server (its request failed first): after a
+               grace period stop watching, quietly — the page that started it shows the error. */
+            if (Date.now() - announcedAt > ANNOUNCE_GRACE_MS) {
+              watched.delete(label)
+              setRunning(label, false)
+            }
+            continue
+          }
           if (run?.status === "running") {
             setRunning(label, true)
             continue
@@ -123,7 +139,7 @@ export function usePublishRunNotice(): void {
       .listPublishRuns()
       .then(({ runs }) => {
         for (const entry of runs) {
-          watched.add(entry.label)
+          if (!watched.has(entry.label)) watched.set(entry.label, 0)
           if (entry.run.status === "running") setRunning(entry.label, true)
         }
         if (watched.size > 0 && !polling) void poll()

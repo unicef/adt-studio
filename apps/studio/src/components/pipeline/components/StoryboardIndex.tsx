@@ -3,7 +3,7 @@ import { createPortal } from "react-dom"
 import { useNavigate } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react"
-import { msg } from "@lingui/core/macro"
+import { msg, plural } from "@lingui/core/macro"
 import { AlertTriangle, ArrowLeftRight, CheckCircle2, EyeOff, FileText, HelpCircle, Loader2, MessageSquare, Monitor, Puzzle } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
@@ -136,16 +136,12 @@ export function StoryboardIndex({
     )
   }
 
-  /** From the filtered list a click goes straight to the section's newest waiting comment, open. */
+  /** From the filtered list a click goes to the section the ordinary way — unsaved-changes check
+   *  and all — and asks that section to open its newest waiting comment. */
   const openComments = (pageId: string, sectionIndex: number) => {
     const entry = bookComments.bySection.get(sectionIdFor(pageId, sectionIndex))
-    if (!entry) return onSelectSection?.(pageId, sectionIndex)
-    commentsMode.open(entry.latestThreadId)
-    void navigate({
-      to: "/books/$label/$step/$pageId",
-      params: { label: bookLabel, step: "storyboard", pageId },
-      search: { section: sectionIndex, comment: entry.latestThreadId },
-    })
+    if (entry) commentsMode.open(entry.latestThreadId, entry.sectionId)
+    onSelectSection?.(pageId, sectionIndex)
   }
 
   return (
@@ -153,7 +149,6 @@ export function StoryboardIndex({
       {bookComments.total > 0 ? (
         <CommentsFilter
           total={bookComments.total}
-          sections={bookComments.ordered.length}
           on={commentsMode.on}
           onChange={commentsMode.setOn}
         />
@@ -230,12 +225,10 @@ export function StoryboardIndex({
  */
 function CommentsFilter({
   total,
-  sections,
   on,
   onChange,
 }: {
   total: number
-  sections: number
   on: boolean
   onChange: (on: boolean) => void
 }) {
@@ -258,7 +251,7 @@ function CommentsFilter({
           type="button"
           aria-pressed={on}
           onClick={() => onChange(true)}
-          title={i18n._(msg`${total} comments waiting across ${sections} sections`)}
+          title={plural(total, { one: "# comment waiting", other: "# comments waiting" })}
           className={cn(
             "flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 font-medium transition-colors duration-150 motion-reduce:transition-none",
             on ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
@@ -384,7 +377,7 @@ function SectionRow({
         )}
         {waiting > 0 && (
           <div
-            aria-label={i18n._(msg`${waiting} comments waiting`)}
+            aria-label={plural(waiting, { one: "# comment waiting", other: "# comments waiting" })}
             className="absolute -bottom-1 -right-1 flex h-4 min-w-4 items-center gap-0.5 rounded-full bg-amber-500 px-1 text-[9px] font-bold tabular-nums text-white ring-2 ring-background shadow-sm motion-safe:animate-in motion-safe:zoom-in-50"
           >
             <MessageSquare className="size-2.5" aria-hidden="true" />

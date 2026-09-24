@@ -13,7 +13,9 @@ import {
 } from "@/hooks/use-publication-feedback"
 import { useHeldResolve } from "@/components/pipeline/stages/publish/dashboard/use-held-resolve"
 import type { BookPreviewFrameHandle } from "../BookPreviewFrame"
-import { placePins, type PlacedPin, type UnplacedPin } from "./storyboard-pins"
+import { useSectionNav } from "@/routes/books.$label"
+import { parseSectionId, placePins, type PlacedPin, type UnplacedPin } from "./storyboard-pins"
+import { useCommentsMode } from "./use-comments-mode"
 import { nextCommented, useBookComments, type CommentedSection } from "./use-book-comments"
 
 /** How often the pins re-measure while comments are on. The preview reflows on its own — fonts
@@ -59,6 +61,8 @@ export function useSectionComments({
 }) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const { setSectionIndex, skipNextResetRef } = useSectionNav()
+  const commentsMode = useCommentsMode(bookLabel)
   const book = useBookComments(bookLabel)
   const nextSection = nextCommented(book, sectionId)
   const status = useBookPublication(bookLabel)
@@ -73,10 +77,13 @@ export function useSectionComments({
     () => buildThreads(comments.data?.comments ?? []).filter((thread) => thread.root.deleted_at === null),
     [comments.data],
   )
-  const threads = useMemo(
-    () => filterThreads(all, { resolution: "unresolved", pageSectionId: sectionId }),
-    [all, sectionId],
-  )
+  /** The waiting ones — plus the open one if it is resolved, so a link to a resolved comment
+   *  still opens it (and offers Reopen) instead of opening nothing. */
+  const threads = useMemo(() => {
+    const waiting = filterThreads(all, { resolution: "unresolved", pageSectionId: sectionId })
+    const open = all.find((thread) => thread.root.id === selectedThreadId && thread.pageSectionId === sectionId)
+    return open && open.resolved ? [...waiting, open] : waiting
+  }, [all, sectionId, selectedThreadId])
 
   /** Waiting threads on the page's other sections, so the author knows there is more to see. */
   const elsewhere = useMemo(
@@ -92,20 +99,24 @@ export function useSectionComments({
   )
 
   useEffect(() => {
-    if (!enabled) return
-    const timer = window.setInterval(() => setTick((value) => value + 1), REMEASURE_MS)
+    if (!enabled || !published) return
+    const timer = window.setInterval(() => {
+      if (!document.hidden) setTick((value) => value + 1)
+    }, REMEASURE_MS)
     return () => window.clearInterval(timer)
-  }, [enabled])
+  }, [enabled, published])
 
-  /** When this section's preview document first appeared, and when it first reported itself
-   *  loaded; both reset on every section change. */
-  const seen = useRef<{ sectionId: string; doc: number; loaded: number | null } | null>(null)
+  /** When the preview's current document first appeared, and when it first reported itself
+   *  loaded. Keyed on the document itself: a section change or a save swaps the document, and
+   *  the new one has to settle on its own before a pin on it can be called missing. */
+  const seen = useRef<{ document: Document; sectionId: string; doc: number; loaded: number | null } | null>(null)
   const placement = useMemo(() => {
     void tick
     const doc = frameRef.current?.getDocument() ?? null
     const now = Date.now()
     if (doc === null) seen.current = null
-    else if (seen.current?.sectionId !== sectionId) seen.current = { sectionId, doc: now, loaded: null }
+    else if (seen.current?.document !== doc || seen.current.sectionId !== sectionId)
+      seen.current = { document: doc, sectionId, doc: now, loaded: null }
     if (seen.current && seen.current.loaded === null && doc?.readyState === "complete") seen.current.loaded = now
     const settled =
       seen.current !== null &&
@@ -162,12 +173,20 @@ export function useSectionComments({
     /** The next section in the book with comments waiting, and a way there that opens its
      *  newest comment. */
     nextSection,
-    goTo: (entry: CommentedSection) =>
-      void navigate({
-        to: "/books/$label/$step/$pageId",
-        params: { label: bookLabel, step: "storyboard", pageId: entry.pageId },
-        search: { section: entry.sectionIndex, comment: entry.latestThreadId },
-      }),
+    /** The section index is set here, before the page changes, with the layout's page-change
+     *  reset told to leave it alone — a `?section=` in the URL is only applied when it changes,
+     *  so it can't carry a move between two pages at the same index. */
+    goTo: (entry: CommentedSection) => {
+      commentsMode.open(entry.latestThreadId, entry.sectionId)
+      if (entry.pageId !== parseSectionId(sectionId)?.pageId) {
+        skipNextResetRef.current = true
+        void navigate({
+          to: "/books/$label/$step/$pageId",
+          params: { label: bookLabel, step: "storyboard", pageId: entry.pageId },
+        })
+      }
+      setSectionIndex(entry.sectionIndex)
+    },
     selected,
     index,
     next: () => step(1),

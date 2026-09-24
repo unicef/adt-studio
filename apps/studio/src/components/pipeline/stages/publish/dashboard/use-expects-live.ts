@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { publicationStateAt, type PublicationsOverview } from "@adt/types"
 import { publicationsKey } from "@/hooks/use-publications"
@@ -13,19 +13,32 @@ const key = (label: string) => `adt:sharing-live:${label}`
  */
 export function useExpectsLiveLink(bookLabel: string, live: boolean | null): boolean {
   const queryClient = useQueryClient()
-  const [expected] = useState(() => {
-    const remembered = window.localStorage.getItem(key(bookLabel))
-    if (remembered !== null) return remembered === "1"
+  const expected = useMemo(() => {
+    const remembered = readRemembered(bookLabel)
+    if (remembered !== null) return remembered
     const shelf = queryClient.getQueryData<PublicationsOverview>(publicationsKey)
     return (shelf?.publications ?? []).some(
       (publication) => publication.book_label === bookLabel && publicationStateAt(publication) === "active",
     )
-  })
+  }, [bookLabel, queryClient])
 
   useEffect(() => {
     if (live === null) return
-    window.localStorage.setItem(key(bookLabel), live ? "1" : "0")
+    try {
+      window.localStorage.setItem(key(bookLabel), live ? "1" : "0")
+    } catch {
+      /* Storage can be refused; the hint is only a nicer loader. */
+    }
   }, [bookLabel, live])
 
   return expected
+}
+
+function readRemembered(bookLabel: string): boolean | null {
+  try {
+    const value = window.localStorage.getItem(key(bookLabel))
+    return value === null ? null : value === "1"
+  } catch {
+    return null
+  }
 }

@@ -43,6 +43,21 @@ export function PinLayer({
     if (selectedId === null) scrolledFor.current = null
   }, [selectedId])
 
+  /** A group's picker closes on Escape or a click anywhere outside it. */
+  useEffect(() => {
+    if (openCluster === null) return
+    const close = (event: Event) => {
+      if (event instanceof KeyboardEvent ? event.key === "Escape" : !(event.target as Element | null)?.closest?.("[data-pin-cluster]"))
+        setOpenCluster(null)
+    }
+    document.addEventListener("keydown", close)
+    document.addEventListener("pointerdown", close)
+    return () => {
+      document.removeEventListener("keydown", close)
+      document.removeEventListener("pointerdown", close)
+    }
+  }, [openCluster])
+
   return (
     <div className="pointer-events-none absolute inset-0 z-20">
       {selectedPin ? (
@@ -117,8 +132,12 @@ function Cluster({
 }) {
   const holdsSelected = cluster.pins.some((pin) => pin.thread.root.id === selectedId)
   const first = cluster.pins[0]
+  const listRef = useRef<HTMLUListElement>(null)
+  useEffect(() => {
+    if (open) listRef.current?.querySelector<HTMLButtonElement>("button")?.focus()
+  }, [open])
   return (
-    <>
+    <span data-pin-cluster="">
       <button
         type="button"
         aria-label={label}
@@ -138,6 +157,7 @@ function Cluster({
       </button>
       {open ? (
         <ul
+          ref={listRef}
           style={{ left: cluster.x + 18, top: cluster.y - 18 }}
           className="pointer-events-auto absolute z-30 flex w-60 list-none flex-col gap-0.5 rounded-xl border bg-popover p-1 shadow-xl motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95"
         >
@@ -164,7 +184,7 @@ function Cluster({
           ))}
         </ul>
       ) : null}
-    </>
+    </span>
   )
 }
 

@@ -6,14 +6,24 @@ import { useCallback, useSyncExternalStore } from "react"
  * hiding. It lives outside React state because the list and the page are separate trees, and it
  * is kept for the window's session so it survives moving between pages.
  *
- * `open(threadId)` turns the mode on and asks the page to open that comment. It is a request with
- * a timestamp rather than a value, so asking for the same comment twice opens it twice — clicking
- * a commented page again reopens its comment even after it was closed.
+ * `open(threadId, sectionId)` turns the mode on and asks the page to open that comment. It is a
+ * request with a timestamp rather than a value, so asking for the same comment twice opens it
+ * twice — clicking a commented page again reopens its comment even after it was closed. It names
+ * its section so only that section's page takes it, and it lapses if nothing takes it soon.
  */
+
+/** How long a request waits for its section to open before it is dropped. */
+export const REQUEST_TTL_MS = 10_000
+
+export interface CommentRequest {
+  threadId: string
+  sectionId: string
+  at: number
+}
 
 interface ModeState {
   on: boolean
-  request: { threadId: string; at: number } | null
+  request: CommentRequest | null
 }
 
 const states = new Map<string, ModeState>()
@@ -65,7 +75,8 @@ export function useCommentsMode(bookLabel: string) {
     [bookLabel],
   )
   const open = useCallback(
-    (threadId: string) => write(bookLabel, { on: true, request: { threadId, at: Date.now() } }),
+    (threadId: string, sectionId: string) =>
+      write(bookLabel, { on: true, request: { threadId, sectionId, at: Date.now() } }),
     [bookLabel],
   )
   /** Called once the page has opened the requested comment, so it isn't reopened on the next visit. */

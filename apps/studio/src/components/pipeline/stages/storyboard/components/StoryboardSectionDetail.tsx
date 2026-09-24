@@ -82,7 +82,7 @@ import {
   useSectionFeedbackCount,
 } from "./feedback/StoryboardFeedbackOverlay"
 import { sectionIdFor } from "./feedback/storyboard-pins"
-import { useCommentsMode } from "./feedback/use-comments-mode"
+import { REQUEST_TTL_MS, useCommentsMode } from "./feedback/use-comments-mode"
 import { StepperActivityPreview } from "./StepperActivityPreview"
 import {
   useActivityStructure,
@@ -537,7 +537,10 @@ export function StoryboardSectionDetail({
    * Keyed on the id so closing the panel afterwards stays closed — re-running on every render
    * would make the toggle un-clickable for as long as the link sat in the URL.
    */
-  const { comment: linkedThreadId } = useSearch({ strict: false }) as { comment?: string }
+  const { comment: linkedThreadId, section: linkedSection } = useSearch({ strict: false }) as {
+    comment?: string
+    section?: number
+  }
   const appliedThreadRef = useRef<string | null>(null)
   useEffect(() => {
     if (linkedThreadId === undefined) {
@@ -546,16 +549,24 @@ export function StoryboardSectionDetail({
     }
     if (appliedThreadRef.current === linkedThreadId) return
     appliedThreadRef.current = linkedThreadId
-    commentsMode.open(linkedThreadId)
+    commentsMode.open(linkedThreadId, sectionIdFor(pageId, linkedSection ?? sectionIndex))
   }, [linkedThreadId, commentsMode.open])
 
-  /** A comment asked for from anywhere — a link, the page list — opens here, every time. */
+  /** A comment asked for from anywhere — a link, the page list, "Next with comments" — opens
+   *  here, every time, once its own section is the one on screen. A request nothing took in time
+   *  is dropped rather than left to reopen a comment on some later visit. */
   const { request: commentRequest, consume: consumeCommentRequest } = commentsMode
+  const onScreenSectionId = sectionIdFor(pageId, sectionIndex)
   useEffect(() => {
     if (commentRequest === null) return
+    if (Date.now() - commentRequest.at > REQUEST_TTL_MS) {
+      consumeCommentRequest()
+      return
+    }
+    if (commentRequest.sectionId !== onScreenSectionId) return
     setSelectedThreadId(commentRequest.threadId)
     consumeCommentRequest()
-  }, [commentRequest, consumeCommentRequest])
+  }, [commentRequest, consumeCommentRequest, onScreenSectionId])
   const previewFrameRef = useRef<BookPreviewFrameHandle>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 

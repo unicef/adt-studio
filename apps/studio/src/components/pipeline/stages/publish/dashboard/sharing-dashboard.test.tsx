@@ -362,6 +362,28 @@ describe("useHeldResolve", () => {
   })
 })
 
+describe("useHeldResolve — undo while it is being sent", () => {
+  /** Once the resolve is on its way it can't be recalled, so Undo reopens it as soon as it lands. */
+  it("reopens the thread after the resolve lands", async () => {
+    vi.useFakeTimers()
+    let land: () => void = () => undefined
+    const resolve = vi.fn((_id: string, resolved: boolean) =>
+      resolved ? new Promise<void>((done) => (land = done)) : Promise.resolve(),
+    )
+    const { result } = renderHook(() => useHeldResolve(resolve))
+    act(() => result.current.hold("a"))
+    await act(async () => {
+      vi.advanceTimersByTime(UNDO_WINDOW_MS)
+    })
+    act(() => result.current.undo("a"))
+    expect(result.current.held.has("a")).toBe(false)
+    await act(async () => {
+      land()
+    })
+    expect(resolve).toHaveBeenLastCalledWith("a", false)
+  })
+})
+
 describe("expiryState", () => {
   const withEnd = (expiresAt: string | null) => link({ expiresAt })
   const now = Date.parse("2026-08-10T12:00:00.000Z")

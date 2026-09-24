@@ -15,15 +15,25 @@ export function useHeldResolve(resolve: (id: string, resolved: boolean) => Promi
   const [committing, setCommitting] = useState<ReadonlySet<string>>(new Set())
   const [failed, setFailed] = useState<ReadonlySet<string>>(new Set())
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
+  /** Resolves already on their way, and the ones the author took back meanwhile. */
+  const inFlight = useRef(new Set<string>())
+  const takenBack = useRef(new Set<string>())
   const resolveRef = useRef(resolve)
   resolveRef.current = resolve
 
   const commit = useCallback((id: string) => {
     setHeld(without(id))
     setCommitting((current) => new Set(current).add(id))
+    inFlight.current.add(id)
     resolveRef.current(id, true).then(
-      () => setCommitting(without(id)),
       () => {
+        inFlight.current.delete(id)
+        setCommitting(without(id))
+        if (takenBack.current.delete(id)) void resolveRef.current(id, false).catch(() => undefined)
+      },
+      () => {
+        inFlight.current.delete(id)
+        takenBack.current.delete(id)
         setCommitting(without(id))
         setFailed((current) => new Set(current).add(id))
       },
@@ -46,10 +56,16 @@ export function useHeldResolve(resolve: (id: string, resolved: boolean) => Promi
     [commit],
   )
 
+  /** Inside the window this cancels the resolve. Once it is already being sent, it can't be
+   *  recalled, so the thread is reopened as soon as the resolve lands. */
   const undo = useCallback((id: string) => {
     clearTimeout(timers.current.get(id))
     timers.current.delete(id)
     setHeld(without(id))
+    if (inFlight.current.has(id)) {
+      takenBack.current.add(id)
+      setCommitting(without(id))
+    }
   }, [])
 
   useEffect(() => {
