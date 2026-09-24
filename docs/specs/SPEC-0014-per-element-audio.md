@@ -146,6 +146,20 @@ No garbage collection is added in v1; the artifact may accumulate entries for re
 alongside **SPEC-0008** (stable identifiers), which is what would make a `nodeId` reusable and
 therefore make an orphan dangerous rather than merely dead weight.
 
+**How it is read and written.** Through the artifact's own route —
+`GET` / `PUT /books/:label/pages/:pageId/element-audio` — with **immediate save**. It deliberately does
+**not** travel inside the Storyboard save payload and does not participate in `pendingSectioning`, the
+floating save bar or the dirty chips: the script is a per-page entity of its own, and §3's generation
+rule already makes it independent of the render. Precedent: `CoreTtsSpeechEditor` saves through
+`updateCoreTtsEntry` immediately, with its own button and its own error state.
+
+The node name must be registered in **both** places where versionable node names are enumerated — the
+API's `RestorableNode` (`apps/api/src/routes/pages.ts:466-477`) and the Studio's `VersionedStep`
+(`VersionPicker.tsx:46-56`). Those are the same ten-name list duplicated in two files, with nothing
+coupling them, so the two edits have to be made together: the Studio side is compiler-enforced
+(`Record<VersionedStep, …>`), but the API's `switch` has no `default` and returns `void`, so **a
+missing case compiles and silently invalidates nothing**.
+
 ### 2. Production reuses the existing chain
 
 ```
@@ -184,6 +198,24 @@ The script is saved immediately; **audio is generated when the author runs Speec
 The reason a rule is needed at all: the text catalog is built in the **`easy-read`** stage while
 synthesis happens in **`speech`**, so a newly authored script cannot be synthesized by running
 `speech` alone. This rule keeps the cheap path available without blocking on #710.
+
+**What becomes stale, and what is preserved.** Changing one element's script makes **only that
+element's** audio stale — never another element's, never another page's.
+
+- **With #710 landed:** nothing needs deleting. Its `canReuseSpeechEntry` compares the recorded
+  `sourceHash` against the hash of the current text, so the entry is detected as stale and regenerated
+  on the next run.
+- **Without #710:** remove **only that `textId`** from the `tts` node, and never remove entries whose
+  `provider` is `"manual"` — uploaded recordings are user-owned. This is the codebase's established
+  idiom rather than a new one: the `core-tts-catalog` restore case
+  (`apps/api/src/routes/pages.ts:563-623`) computes changed ids by comparing before/after and filters
+  `tts` and `tts-timestamps` exactly this way.
+
+**Restoring an earlier version of the script clears nothing.** `element-audio` is user-authored
+content, not a derived output, so its case in `clearRestoredNodeDependents` must not call
+`clearNodesByType`: restoring an older script only makes the derived audio stale. It is likewise **not**
+added to any other node's clear list — which is precisely why it survives a `page-sectioning` restore,
+since that path calls `clearCaptionData`, clearing `IMAGE_SET_CHANGE_CLEAR_NODE_TYPES`.
 
 ### 4. The runtime adds the click trigger and the indicator
 
@@ -286,6 +318,7 @@ So the constraint is **not** "every click target needs a role". It is:
 - [ ] **AC-12** A book with `output_languages` equal to its source language produces element audio with **zero** translation calls (v1 is single-language).
 - [ ] **AC-13** All new user-visible strings are wrapped in Lingui macros and translated in `en`, `pt-BR`, `es`, `fr`, `sq`; the i18n CI job passes.
 - [ ] **AC-14** Existing books (no `element-audio` node) open and export unchanged.
+- [ ] **AC-15** Changing one element's script makes **only that element's** audio stale: no other element's audio and no other page is invalidated. Restoring an earlier version of a script deletes nothing.
 
 ## Test plan
 
@@ -300,6 +333,7 @@ driven with a stub synthesizer and no API keys.
 | Survival contract | `packages/pipeline/src/__tests__/` (new) | **AC-6**, AC-7 — the regression that matters most; mirrors the experiment |
 | Packaging remap | `packages/pipeline/src/__tests__/package-web.test.ts` | AC-2, AC-4 (same id in both maps) |
 | API routes | `apps/api/src/routes/` | AC-1, AC-8 (versioning), AC-14 |
+| Staleness scoping | `apps/api/src/routes/` | **AC-15** — changing one script leaves every other entry's `tts` row untouched; a restore deletes nothing; `provider: "manual"` entries always survive |
 | Preview mirrors | `apps/api/src/routes/adt-preview.test.ts` | AC-11 |
 | Runtime | `apps/adt-runtime/src/features/audio/` (new; jsdom, precedent in activity runtimes) | AC-3, AC-4, AC-5, AC-10 |
 | axe-core | `packages/pipeline/src/__tests__/accessibility-assessment.test.ts` | AC-9 (assert no **new** violations) |
