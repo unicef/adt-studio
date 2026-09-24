@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useAtomValue } from "jotai"
 import { contentRoot, resolveAnchor, type CommentAnchor } from "@/features/comments/lib/anchor"
+import { pageEpochAtom } from "@/features/navigation/state/nav.atoms"
 
 export interface AnchorTarget {
   id: string
@@ -34,6 +36,9 @@ export function useAnchorPositions(
   targetsRef.current = targets
 
   const frameRef = useRef<number | null>(null)
+  /** Bumped after every in-place page swap: `#content` is a new node, so the observers below have
+   *  to re-attach to it, or they keep watching the page that was swapped out. */
+  const pageEpoch = useAtomValue(pageEpochAtom)
 
   const measure = useCallback(() => {
     frameRef.current = null
@@ -61,7 +66,7 @@ export function useAnchorPositions(
 
   useEffect(() => {
     schedule()
-  }, [schedule, targets])
+  }, [schedule, targets, pageEpoch])
 
   useEffect(() => {
     const root = contentRoot()
@@ -87,7 +92,7 @@ export function useAnchorPositions(
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current)
       frameRef.current = null
     }
-  }, [schedule])
+  }, [schedule, pageEpoch])
 
   return positions
 }
