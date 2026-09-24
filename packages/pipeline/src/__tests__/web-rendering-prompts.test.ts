@@ -116,6 +116,26 @@ describe("web rendering reading-order prompts", () => {
     expect(prompt).toContain('`subheading` as `<h3 class="adt-h3">`')
   })
 
+  it("prevents stage headings from overlapping prose on mobile", async () => {
+    const messages = await promptEngine.renderPrompt(
+      "web_generation_html",
+      generationContext(),
+    )
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("vertical definition sequence")
+    expect(prompt).toContain("marker and heading in one full-width row")
+    expect(prompt).toContain("Never preserve a fixed/narrow heading column")
+
+    const reviewMessages = await promptEngine.renderPrompt("visual_review", {
+      nodes,
+      has_merged_content: false,
+      viewports: [{ label: "Mobile", width: 390, tailwind_prefix: "max-sm:" }],
+    })
+    const reviewPrompt = reviewMessages.map(messageText).join("\n")
+    expect(reviewPrompt).toContain("Repeated stage/definition entries")
+  })
+
   for (const promptName of HTML_RENDER_PROMPTS) {
     it(`${promptName} receives consistent book-wide heading rules`, async () => {
       const messages = await promptEngine.renderPrompt(
