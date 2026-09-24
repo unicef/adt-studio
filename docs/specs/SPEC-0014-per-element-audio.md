@@ -138,8 +138,16 @@ Why this is safe and cheap (all verified):
 - **No schema migration.** `node_data.node` is free `TEXT` (`packages/storage/src/db.ts:22-28`); the
   experiment wrote a new node without touching the schema.
 - **Versioning and rollback for free** (Principle 2) via `putNodeData`.
-- **Outside the clear lists**, so it does not suffer the loss measured above. It must be
-  **deliberately kept out** of `getStageRerunClearNodes` and `IMAGE_SET_CHANGE_CLEAR_NODE_TYPES`.
+- **Outside every clear list**, so it does not suffer the loss measured above. It must be
+  **deliberately kept out of all of them** — there are **13 `clearNodesByType` call sites** across the
+  API, and only two of them are derived lists:
+
+  | Derived | Ad-hoc literals |
+  |---|---|
+  | `getStageRerunClearNodes` → `stages.ts:194`; `IMAGE_SET_CHANGE_CLEAR_NODE_TYPES` → `pages.ts:462`, `glossary.ts:159` | `books.ts:418` (11 nodes), `page-edit-service.ts:216` (8), `easy-read.ts:125`, `pages.ts:502`, `:523`, `:1748`, plus the `["accessibility-assessment"]`-only sites (`pages.ts:552`, `:615`, `:626`, `text-catalog.ts:187`, `:307`, `fonts.ts:588`, `tts.ts:575`) |
+
+  The ad-hoc ones are the risk: `books.ts:418` is a hand-written eleven-node list, exactly the kind a
+  later change extends by copy-paste.
 
 **Orphan policy — ratified (owner, 2026-02-19).** Deleting an element **keeps** its authored text.
 No garbage collection is added in v1; the artifact may accumulate entries for removed nodes. Revisit
@@ -331,6 +339,7 @@ driven with a stub synthesizer and no API keys.
 | Types / schema round-trip | `packages/types/src/__tests__/` | AC-1, AC-14 |
 | Catalog integration | `packages/pipeline/src/__tests__/text-catalog.test.ts` | AC-2 (synthetic entry emitted), AC-12 |
 | Survival contract | `packages/pipeline/src/__tests__/` (new) | **AC-6**, AC-7 — the regression that matters most; mirrors the experiment |
+| Invariant checker | source scan over `apps/api/src/**` (new; precedent: `apps/runtime`'s `activity-initializers.test.ts`) | **AC-7** — asserts `"element-audio"` appears in **no** `clearNodesByType` literal anywhere, plus a runtime assertion over **every** `getStageRerunClearNodes` stage pair and `IMAGE_SET_CHANGE_CLEAR_NODE_TYPES` |
 | Packaging remap | `packages/pipeline/src/__tests__/package-web.test.ts` | AC-2, AC-4 (same id in both maps) |
 | API routes | `apps/api/src/routes/` | AC-1, AC-8 (versioning), AC-14 |
 | Staleness scoping | `apps/api/src/routes/` | **AC-15** — changing one script leaves every other entry's `tts` row untouched; a restore deletes nothing; `provider: "manual"` entries always survive |
