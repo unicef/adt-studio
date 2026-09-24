@@ -169,7 +169,7 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
                   </p>
                 </div>
               </div>
-              <PublicationsDashboard embedded />
+              <PublicationsDashboard embedded onReconnect={() => upgrade.start()} />
             </section>
 
             <div className="flex shrink-0 flex-wrap items-center gap-2 border-t px-5 py-3">

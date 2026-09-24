@@ -152,6 +152,10 @@ msgstr "{0, plural, one {# étape} other {# étapes}}"
 msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
 msgstr "{0, plural, one {# tâche hérite de ce modèle} other {# tâches héritent de ce modèle}}"
 
+#. placeholder {0}: reader.commentCount
+msgid "{0, plural, one {comment} other {comments}}"
+msgstr "{0, plural, one {commentaire} other {commentaires}}"
+
 #. placeholder {0}: health.modelCount
 msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
 msgstr "{0, plural, one {Connexion réussie — # modèle disponible.} other {Connexion réussie — # modèles disponibles.}}"
@@ -740,6 +744,9 @@ msgstr "/ Section {0}"
 
 msgid "×4"
 msgstr "×4"
+
+msgid "<0>Another ADT Studio took over sharing on this Cloudflare account.</0> Readers still reach the link; reconnect here to manage it and see new feedback."
+msgstr "<0>Un autre ADT Studio a pris la main sur le partage de ce compte Cloudflare.</0> Les lecteurs accèdent toujours au lien ; reconnectez-vous ici pour le gérer et voir les nouveaux commentaires."
 
 msgid "<0>The sharing service isn't answering.</0> Readers may not reach the link, and new feedback shows up once it's back."
 msgstr "<0>Le service de partage ne répond pas.</0> Les lecteurs risquent de ne pas pouvoir ouvrir le lien, et les nouveaux retours apparaîtront dès qu’il sera de retour."
@@ -1755,6 +1762,9 @@ msgstr "et bien d'autres blocs à travers tout le livre"
 
 msgid "and more sections across the page"
 msgstr "et plus de sections sur la page"
+
+msgid "Another ADT Studio connected to this Cloudflare account has taken over sharing, so this computer can't read your hosted books. Reconnecting here takes it back — the other computer will then need to reconnect."
+msgstr "Un autre ADT Studio connecté à ce compte Cloudflare a pris la main sur le partage : cet ordinateur ne peut donc pas lire vos livres hébergés. Vous reconnecter ici vous rend la main — l’autre ordinateur devra alors se reconnecter."
 
 msgid "Another program on this computer is already signing in to Cloudflare. Close it and try again."
 msgstr "Un autre programme sur cet ordinateur est déjà en train de se connecter à Cloudflare. Fermez-le et réessayez."
@@ -5805,13 +5815,18 @@ msgstr "Sa page d’un côté, la conversation et une zone de réponse de l’au
 msgid "Jane Reviewer"
 msgstr "Jane Reviewer"
 
-#. placeholder {0}: formatPublishDate(reader.joinedAt, i18n.locale)
+msgid "Joined"
+msgstr "Arrivée"
+
 #. placeholder {0}: formatPublishDate(reader.joined_at, i18n.locale)
 msgid "Joined {0}"
 msgstr "Rejoint {0}"
 
-msgid "joined <0/>"
-msgstr "a rejoint <0/>"
+#~ msgid "joined <0/>"
+#~ msgstr "a rejoint <0/>"
+
+msgid "Joined <0/>"
+msgstr "Arrivé <0/>"
 
 msgid "Judge instructions"
 msgstr "Instructions du juge"
@@ -5954,8 +5969,11 @@ msgid "Largest first"
 msgstr "Les plus grands d'abord"
 
 #. placeholder {0}: formatPublishDate(reader.lastCommentAt ?? reader.joinedAt, i18n.locale)
-msgid "last {0}"
-msgstr "dernière activité le {0}"
+#~ msgid "last {0}"
+#~ msgstr "dernière activité le {0}"
+
+msgid "last <0/>"
+msgstr "dernier <0/>"
 
 msgid "Last change"
 msgstr "Dernière modification"
@@ -6410,6 +6428,9 @@ msgstr "Gérer dans le livre"
 
 msgid "Manage sign-language videos"
 msgstr "Gérer les vidéos en langue des signes"
+
+msgid "Managed elsewhere"
+msgstr "Géré ailleurs"
 
 msgid "Manual only"
 msgstr "Manuel uniquement"
@@ -7008,6 +7029,9 @@ msgstr "Pas de commentaires"
 
 #~ msgid "No comments on this page."
 #~ msgstr "Aucun commentaire sur cette page."
+
+msgid "No comments yet"
+msgstr "Pas encore de commentaires"
 
 msgid "No content processing needed"
 msgstr "Aucun traitement de contenu nécessaire"
@@ -8991,6 +9015,9 @@ msgstr "Contenu de lecture à voix haute"
 msgid "Read-only"
 msgstr "Lecture seule"
 
+msgid "Reader"
+msgstr "Lecteur"
+
 msgid "Reader Highlighting"
 msgstr "Surlignage du lecteur"
 
@@ -9158,6 +9185,12 @@ msgstr "Recommandé pour"
 #. placeholder {0}: i18n._(presetLabel)
 msgid "Recommended for {0}"
 msgstr "Recommandé pour {0}"
+
+msgid "Reconnect here"
+msgstr "Se reconnecter ici"
+
+msgid "Reconnect in Settings"
+msgstr "Se reconnecter dans les Réglages"
 
 msgid "Record reviewer findings for the current page and save them to the active validation session."
 msgstr "Enregistrez les résultats du réviseur pour la page actuelle et sauvegardez-les dans la session de validation active."
@@ -11918,6 +11951,9 @@ msgstr "Cette action est irréversible. Tous les liens que vous avez partagés c
 
 msgid "This code still works. A new one can wait until the service is back."
 msgstr "Ce code fonctionne toujours. Un nouveau peut attendre le retour du service."
+
+msgid "This code still works. Reconnect here to change it."
+msgstr "Ce code fonctionne toujours. Reconnectez-vous ici pour le changer."
 
 msgid "This comes back once the Studio can check the book."
 msgstr "Ceci revient dès que le Studio peut vérifier le livre."

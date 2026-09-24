@@ -553,6 +553,42 @@ describe("PublicationsDashboard — a book that is no longer on this computer", 
   })
 })
 
+describe("PublicationsDashboard — another Studio took over", () => {
+  const rejected = (): PublicationsOverview => ({
+    worker_reachable: false,
+    worker_rejected: true,
+    publications: [],
+    totals: {
+      published_count: 0,
+      active_count: 0,
+      total_snapshot_bytes: 0,
+      snapshot_bytes_complete: true,
+      total_unresolved: 0,
+    },
+  })
+
+  /** A refused secret is not an outage, and saying "isn't answering" sends the author to wait
+   *  for something that will never come back on its own. */
+  it("says another Studio took over instead of that the service is down, and offers to reconnect", async () => {
+    getPublications.mockResolvedValue(rejected())
+    const onReconnect = vi.fn()
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <PublicationsDashboard embedded onReconnect={onReconnect} />
+      </QueryClientProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("publications-worker-rejected")).toBeTruthy()
+    })
+    expect(screen.queryByTestId("publications-worker-unreachable")).toBeNull()
+    expect(document.body.textContent).not.toContain("isn't answering")
+    fireEvent.click(screen.getByRole("button", { name: /reconnect here/i }))
+    expect(onReconnect).toHaveBeenCalled()
+  })
+})
+
 describe("PublicationsDashboard — worker unreachable", () => {
   it("banners the degraded read, still lists the rows and refuses to invent counts", async () => {
     getPublications.mockResolvedValue({
