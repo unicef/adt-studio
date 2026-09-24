@@ -55,6 +55,24 @@ await build({
   logLevel: "info",
 })
 
+/**
+ * How Cloudflare's asset layer must answer a request the Worker forwards to it.
+ *
+ * `html_handling` defaults to `auto-trailing-slash`, which answers a request for
+ * `.../index.html` with a 307 to the directory form. The Worker forwards anything that is not a
+ * 404, so that redirect reaches the browser with a `Location` pointing at the *internal* asset
+ * path (`/uploads/<uploadId>/`) — a path no route serves, and a published book that answers its
+ * own front page with `{"error":"not_found"}`.
+ *
+ * `none` is the only setting that makes the binding behave like the byte store the Worker
+ * treats it as: the exact path, or a 404 the Worker can interpret itself.
+ *
+ * Declared here rather than at the deploy call site so the e2e harness can serve from the same
+ * config the deploy uploads — the harness set it and the deploy did not, which is how the suite
+ * stayed green while every real publish was broken.
+ */
+const assetConfig = { html_handling: "none", not_found_handling: "none" }
+
 const metadata = {
   version: PUBLISH_WORKER_VERSION,
   main_module: "worker.js",
@@ -65,11 +83,7 @@ const metadata = {
       name: "DB",
       description: "Publications, immutable versions, and access-controlled snapshots",
     },
-    {
-      type: "r2_bucket",
-      name: "SNAPSHOTS",
-      description: "Frozen book snapshots, keyed <token>/v<N>/<path>",
-    },
+    { type: "assets", name: "ASSETS", description: "Versioned book snapshots" },
     {
       type: "secret_text",
       name: "MGMT_SECRET",
@@ -77,6 +91,7 @@ const metadata = {
     },
   ],
   d1_migrations: d1Migrations,
+  assets: { config: assetConfig },
 }
 
 fs.writeFileSync(path.join(outDir, "metadata.json"), `${JSON.stringify(metadata, null, 2)}\n`)
