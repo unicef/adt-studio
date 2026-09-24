@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
 import {
   type BookPublishRunController,
@@ -10,6 +11,8 @@ import { usePublishScreenPresence } from "@/hooks/use-publish-run-notice"
 import { useElapsed } from "@/lib/elapsed"
 import { useSharingDashboardData, useSharingLink } from "./dashboard/dashboard-data"
 import { SharingDashboard } from "./dashboard/SharingDashboard"
+import { SharingDashboardSkeleton } from "./dashboard/SharingDashboardSkeleton"
+import { useExpectsLiveLink } from "./dashboard/use-expects-live"
 import { PublishingTakeover } from "./PublishingTakeover"
 import { ShareSetup } from "./setup/ShareSetup"
 
@@ -52,12 +55,17 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
    *  the refetch — a flash of the question, right after the answer. */
   const settling = run.status === "done" && !live && !status.isError
   const takingOver = run.status === "running" || run.status === "error" || settling
+  const expectsLive = useExpectsLiveLink(bookLabel, status.data ? live : null)
   const elapsedMs = useElapsed(run.status === "running" ? "running" : run.status === "done" ? "done" : "idle")
+
+  /* While the status is on its way, a book that was live last time waits in the dashboard's own
+     shape rather than the setup form's. */
+  const waiting = status.isPending && expectsLive && !takingOver
 
   /* Everything before a working link — loading, no account, a first share, a stopped or expired
      link, and the run that makes one — is one screen with one shape. It owns its own run view so
      the form stays mounted under it and a failed run hands back the same answers. */
-  if (!live) {
+  if (!live && !waiting) {
     return (
       <ShareSetup
         bookLabel={bookLabel}
@@ -69,21 +77,31 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   return (
+    <DashboardFrame>
+      {waiting ? (
+        <SharingDashboardSkeleton />
+      ) : takingOver ? (
+        <PublishingTakeover
+          title={book.data?.title ?? bookLabel}
+          fromVersion={currentVersion}
+          run={run}
+          elapsedMs={elapsedMs}
+          bookLabel={bookLabel}
+        />
+      ) : (
+        <LiveDashboard bookLabel={bookLabel} run={run} />
+      )}
+    </DashboardFrame>
+  )
+}
+
+/** The live page's frame: the title, then whatever fills the window under it. */
+function DashboardFrame({ children }: { children: ReactNode }) {
+  return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-8 pb-6 pt-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300">
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-5">
         <Header />
-
-        {takingOver ? (
-          <PublishingTakeover
-            title={book.data?.title ?? bookLabel}
-            fromVersion={currentVersion}
-            run={run}
-            elapsedMs={elapsedMs}
-            bookLabel={bookLabel}
-          />
-        ) : (
-          <LiveDashboard bookLabel={bookLabel} run={run} />
-        )}
+        {children}
       </div>
     </div>
   )
