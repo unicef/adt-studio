@@ -69,6 +69,22 @@ export function trackNavigation(fromPage: string, toPage: string): void {
   trackEvent("Navigation", "PageChange", `${fromPage} → ${toPage}`)
 }
 
+/**
+ * Record a page view for an in-place page turn.
+ *
+ * `initAnalytics` pushes one `trackPageView` per document, which is all a
+ * served bundle used to need. Swapping content in place produces no new
+ * document, so the view has to be reported explicitly — and the tracker has to
+ * be told which URL it refers to, or every page after the first is attributed
+ * to the entry page.
+ */
+export function trackSpaPageView(url: string, title: string, referrer: string): void {
+  track(["setReferrerUrl", referrer])
+  track(["setCustomUrl", url])
+  track(["setDocumentTitle", title])
+  track(["trackPageView"])
+}
+
 export function trackTimeSpent(activityId: string, seconds: number): void {
   trackEvent("Activity", "TimeSpent", activityId, Math.round(seconds))
 }
