@@ -8,10 +8,12 @@ import {
   type Publication,
   type PublicationDetail,
   type PublicationList,
+  type PublicationReaderList,
   type PublicationResponse,
   type PublishWorkerHealth,
 } from "@adt/types"
 import { accessGate, registerAccessRoute } from "./access.js"
+import { registerCommentRoutes } from "./comments.js"
 import { createD1PublicationStore } from "./d1-store.js"
 import type { Env } from "./env.js"
 import { errorResponse } from "./errors.js"
@@ -19,6 +21,7 @@ import { readJsonBody } from "./http.js"
 import { hashAccessCode, randomId } from "./identity.js"
 import { mgmtAuth } from "./middleware/mgmt-auth.js"
 import { publicationLookup, type PublicationVariables } from "./middleware/publication-lookup.js"
+import { registerRoomRoutes } from "./room-routes.js"
 import {
   cacheControlFor,
   conditionalEtag,
@@ -72,6 +75,9 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
 
   app.use("/api/*", mgmtAuth)
 
+  /** §4.18 — every publication in this account, newest first, with the aggregates the Studio's
+   *  Publications dashboard shows. One D1 statement for the whole list: the account owns tens of
+   *  publications, and a per-row follow-up read would turn one screen into tens of round trips. */
   app.get("/api/publications", async (c) => {
     const store = resolveStore(c.env)
     const rows = await store.listPublications()
@@ -143,6 +149,27 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     return c.json({ path, bytes: expected.bytes })
   })
 
+  /** Studio calls this only after Cloudflare has issued the Static Assets completion JWT.
+   * In that storage mode the bytes travel straight from Studio to Cloudflare, so marking each
+   * row through the old per-file PUT route would be both redundant and impossible without R2. */
+  app.post("/api/publication-uploads/:uploadId/complete-static-assets", async (c) => {
+    const uploadId = c.req.param("uploadId")
+    const upload = await resolveStore(c.env).findUpload(uploadId)
+    if (!upload) return errorResponse(c, "not_found", 404)
+    if (upload.state !== "open") return errorResponse(c, "invalid_request", 409, "Upload is no longer open")
+    if (!(await resolveStore(c.env).completeStaticAssetUpload(uploadId, timestamp()))) {
+      return errorResponse(c, "invalid_request", 400, "Upload has no Static Asset hashes")
+    }
+    return c.json({ upload_id: uploadId, state: "complete" })
+  })
+
+  /** The Studio builds each deployment from this whole collection. Static Assets are attached
+   * to one Worker version, so sending only the book currently being published would make every
+   * other active book disappear on the next deploy. */
+  app.get("/api/static-assets/manifest", async (c) => {
+    return c.json({ assets: await resolveStore(c.env).listCurrentStaticAssets() })
+  })
+
   app.post("/api/publication-uploads/:uploadId/commit", async (c) => {
     const result = await resolveStore(c.env).commitUpload(c.req.param("uploadId"), timestamp())
     if (!result.ok) return errorResponse(c, result.reason === "not_found" ? "not_found" : "invalid_request", result.reason === "not_found" ? 404 : result.reason === "incomplete" ? 400 : 409)
@@ -178,7 +205,9 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     return c.json(await publicationBody(store, publication))
   })
 
-  /** Reinstating does not extend an existing expiry. */
+  /** "Resume sharing": the same token starts serving again with every comment intact.
+   *  `expires_at` is untouched on purpose — an expired publication that is reinstated is
+   *  still expired until the Studio PATCHes a new end date. */
   app.post("/api/publications/:token/reinstate", async (c) => {
     const token = PublicationToken.safeParse(c.req.param("token"))
     if (!token.success) {
@@ -194,7 +223,14 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     return c.json(await publicationBody(store, publication))
   })
 
-  /** Delete R2 objects before metadata so a failed delete remains retryable. */
+  /** Erase the publication for good: the R2 objects, then the row and everything cascading
+   *  off it. R2 goes first on purpose — a failure there leaves the record intact and the
+   *  delete retryable, whereas the other order would strip the only pointer to the objects
+   *  and leave them billing the author's account with no way to find them again.
+   *
+   *  A token that is already gone answers `200`, not `404`: the caller asked for it to not
+   *  exist, and it does not. That keeps a retry after a dropped response from reading as a
+   *  failure. */
   app.delete("/api/publications/:token", async (c) => {
     const token = PublicationToken.safeParse(c.req.param("token"))
     if (!token.success) {
@@ -215,7 +251,8 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     })
   })
 
-  /** Omitted fields remain unchanged. */
+  /** Expiry and the access code are independent knobs on one route: an absent key is left
+   *  alone, so rotating a code cannot silently drop an end date and vice versa. */
   app.patch("/api/publications/:token", async (c) => {
     const token = PublicationToken.safeParse(c.req.param("token"))
     if (!token.success) {
@@ -273,6 +310,24 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     return c.json(body)
   })
 
+  /** Who has been through this publication's door — see `PublicationReader` for why that is a
+   *  shorter list than "who opened the link". Behind `mgmtAuth` like everything under `/api`:
+   *  reviewers can see each other's names on the comments they wrote, never the roster. */
+  app.get("/api/publications/:token/readers", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return errorResponse(c, "invalid_request", 400, token.error.message)
+    }
+
+    const store = resolveStore(c.env)
+    if (!(await store.findByToken(token.data))) {
+      return errorResponse(c, "not_found", 404)
+    }
+
+    const body: PublicationReaderList = { readers: await store.listReaders(token.data) }
+    return c.json(body)
+  })
+
   const serveSnapshot = async (c: Context<AppEnv>): Promise<Response> => {
     const publication = c.get("publication")
     const requested = snapshotPathFromUrl(c.req.url, publication.token)
@@ -288,6 +343,18 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     )
     if (prefix === null) return errorResponse(c, "not_found", 404)
     const key = `${prefix}/${relative}`
+
+    if (c.env.ASSETS) {
+      const assetUrl = new URL(`/${key}`, c.req.url)
+      const asset = await c.env.ASSETS.fetch(new Request(assetUrl, c.req.raw))
+      if (asset.status !== 404) {
+        const headers = new Headers(asset.headers)
+        headers.set("content-type", contentTypeFor(relative))
+        headers.set("cache-control", cacheControlFor(relative, c.get("accessCodeHash") !== null))
+        return new Response(asset.body, { status: asset.status, statusText: asset.statusText, headers })
+      }
+    }
+
     const ifNoneMatch = conditionalEtag(c.req.header("If-None-Match"))
     const object = await c.env.SNAPSHOTS.get(
       key,
@@ -315,16 +382,30 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
   app.use("/p/:token", requirePublication)
   app.use("/p/:token/*", requirePublication)
 
-  /** Lookup precedes gating so missing and revoked links retain their status codes. */
-  const accessDeps = {
+  /** Order is load-bearing three times over. The lookup ladder runs first, so an unknown token
+   *  is still `404` and a revoked one still `410` — the gate only ever guards requests that
+   *  would otherwise be served. `POST /access` is registered *before* the gate, because a
+   *  handler that answers without calling `next()` ends the chain: the code prompt's own form
+   *  target cannot sit behind the prompt. Everything after the gate — comments included — is
+   *  reachable only with a valid grant or `MGMT_SECRET`.
+   *
+   *  The door shares the comment routes' deps because it now mints commenter sessions too: the
+   *  gate collects the visitor's name, so both cookies are set on the one response. */
+  const sessionDeps = {
     resolveStore,
     timestamp,
+    newId: options.newId ?? (() => randomId()),
   }
 
-  registerAccessRoute(app, accessDeps)
+  registerAccessRoute(app, sessionDeps)
+
+  /** Ahead of the gate because a room ticket is an alternative credential to the reader grant. */
+  registerRoomRoutes(app, sessionDeps)
 
   app.use("/p/:token", accessGate)
   app.use("/p/:token/*", accessGate)
+
+  registerCommentRoutes(app, sessionDeps)
 
   app.get("/p/:token", serveSnapshot)
   app.get("/p/:token/*", serveSnapshot)

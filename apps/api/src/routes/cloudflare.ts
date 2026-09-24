@@ -35,6 +35,7 @@ import {
   type OAuthCallbackListenerFactory,
 } from "../services/cloudflare/oauth.js"
 import { provisionCloudflare } from "../services/cloudflare/provisioner.js"
+import { clearAllPublicationRecords } from "../services/publish-service.js"
 import {
   disconnectedStatus,
   readAuthMethod,
@@ -342,6 +343,18 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
           message: `Cloudflare teardown was incomplete, the connection was kept so you can retry: ${failures.join("; ")}`,
         })
       }
+
+      /**
+       * The books have to forget too. Their records live in the book, not on this machine's
+       * connection, so tearing down the account left every one of them naming a token that no
+       * longer exists — and reconnecting to the same account rebuilt the identical worker URL,
+       * so nothing downstream could tell the records were dead. Each book reported itself as
+       * published behind a link whose Worker had just been deleted.
+       */
+      clearAllPublicationRecords(
+        deps.booksDir,
+        (deps.now ?? (() => new Date()))().toISOString(),
+      )
     }
 
     store.clear()

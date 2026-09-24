@@ -11,7 +11,12 @@ import {
   type CloudflareVerifyResponse,
   type ProvisionProgressEvent,
 } from "@adt/types"
+import { openBookDb } from "@adt/storage"
 import { errorHandler } from "../middleware/error-handler.js"
+import {
+  readPublicationRecord,
+  savePublicationRecord,
+} from "../services/publish-service.js"
 import { createCloudflareRoutes, type CloudflareRoutesDeps } from "./cloudflare.js"
 import type { FetchLike } from "../services/cloudflare/client.js"
 import {
@@ -88,6 +93,26 @@ describe("cloudflare routes", () => {
   interface ListenerHarness {
     factory: OAuthCallbackListenerFactory
     handle: OAuthCallbackHandler | null
+  }
+
+  /** A book on disk that remembers a published link, which is what a teardown has to clear. */
+  function seedPublishedBook(booksDir: string, label: string, workerUrl: string): void {
+    const bookDir = path.join(booksDir, label)
+    fs.mkdirSync(bookDir, { recursive: true })
+    openBookDb(path.join(bookDir, `${label}.db`)).close()
+    savePublicationRecord(label, booksDir, {
+      token: "SeededTokenAbcdefghijklmnop12",
+      base_url: `https://adt-book-abc.example.workers.dev/p/SeededTokenAbcdefghijklmnop12/`,
+      worker_url: workerUrl,
+      created_at: "2026-08-04T10:00:00.000Z",
+      expires_at: null,
+      revoked_at: null,
+      versions: [],
+      access_code: null,
+      has_access_code: false,
+      deleted_at: null,
+      features: null,
+    })
   }
 
   function buildApp(
@@ -689,6 +714,47 @@ describe("cloudflare routes", () => {
       expect(fake.state.scripts.size).toBe(0)
       expect(fake.state.databases).toEqual([])
       expect(store.read()).toBeNull()
+    })
+
+    /**
+     * The tokens died with the Worker, so the books have to forget them. Reconnecting the same
+     * account rebuilds the identical worker URL, which is exactly why a leftover record cannot
+     * be spotted later: it matches the new connection and reports the book as published behind
+     * a link that no longer resolves.
+     */
+    it("makes the books forget links that died with the account", async () => {
+      const store = createConnectionStore(stateDir)
+      store.write(record)
+      const { app } = buildApp({
+        databases: [{ uuid: "db-uuid-1", name: "adt-publish" }],
+        scripts: [CLOUDFLARE_WORKER_NAME],
+      })
+
+      const label = "raven"
+      seedPublishedBook(tmpDir, label, record.worker_url)
+      expect(readPublicationRecord(label, tmpDir)).not.toBeNull()
+
+      const res = await app.request("/api/cloudflare/connection?delete_resources=1", {
+        method: "DELETE",
+        headers: AUTH,
+      })
+
+      expect(res.status).toBe(200)
+      expect(readPublicationRecord(label, tmpDir)).toBeNull()
+    })
+
+    /** Forgetting the account without deleting it leaves the links alive, so the records stay. */
+    it("keeps the records when only the connection is forgotten", async () => {
+      createConnectionStore(stateDir).write(record)
+      const { app } = buildApp()
+
+      const label = "raven"
+      seedPublishedBook(tmpDir, label, record.worker_url)
+
+      const res = await app.request("/api/cloudflare/connection", { method: "DELETE" })
+
+      expect(res.status).toBe(200)
+      expect(readPublicationRecord(label, tmpDir)).not.toBeNull()
     })
 
     it("completes a retry when a resource was deleted during an earlier attempt", async () => {
