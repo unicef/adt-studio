@@ -1,8 +1,9 @@
 import { useRef, useState } from "react"
 import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { AlertTriangle, ArrowUpRight, CheckCircle2, Loader2, Search, SendHorizontal } from "lucide-react"
+import { AlertTriangle, ArrowUpDown, ArrowUpRight, CheckCircle2, Loader2, Search, SendHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { feedbackDestination } from "../feedback-destination"
 import type { DashboardData, DashThread } from "./dashboard-data"
@@ -51,18 +52,29 @@ export function FeedbackFilters({ ws }: { ws: FeedbackWorkspace }) {
             className="h-8 w-full rounded-md border bg-background pl-8 pr-2 text-xs outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring"
           />
         </label>
-        <select
-          value={ws.sort}
-          onChange={(event) => ws.setSort(event.target.value as FeedbackSort)}
-          aria-label={t`Sort feedback`}
-          className="h-8 shrink-0 rounded-md border bg-background px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value="newest">{t`Newest`}</option>
-          <option value="oldest">{t`Oldest`}</option>
-          <option value="page">{t`By page`}</option>
-        </select>
       </div>
     </div>
+  )
+}
+
+/** Newest / Oldest / By page — in the panel's header, so the search keeps the full width. */
+export function FeedbackSortMenu({ ws }: { ws: FeedbackWorkspace }) {
+  const { t } = useLingui()
+  return (
+    <Select value={ws.sort} onValueChange={(value) => ws.setSort(value as FeedbackSort)}>
+      <SelectTrigger
+        aria-label={t`Sort feedback`}
+        className="-mr-1 h-7 w-auto shrink-0 gap-1 border-transparent bg-transparent px-2 text-xs text-muted-foreground shadow-none transition-colors duration-150 hover:bg-muted hover:text-foreground focus:ring-offset-0 motion-reduce:transition-none [&>svg]:size-3.5"
+      >
+        <ArrowUpDown className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent align="end" className="min-w-36">
+        <SelectItem value="newest" className="text-xs">{t`Newest`}</SelectItem>
+        <SelectItem value="oldest" className="text-xs">{t`Oldest`}</SelectItem>
+        <SelectItem value="page" className="text-xs">{t`By page`}</SelectItem>
+      </SelectContent>
+    </Select>
   )
 }
 
