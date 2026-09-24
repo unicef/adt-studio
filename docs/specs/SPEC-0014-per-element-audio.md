@@ -206,14 +206,31 @@ disabled (`:34`). It runs in **JSDOM with `runScripts: "outside-only"`
 only the **static attributes** are checked**. It **reports** violations and summarises them
 (`:242-255`); it does not fail the run.
 
-Consequences a clickable element must satisfy (these become acceptance criteria):
+**These requirements were measured, not derived.** A probe reproduced the audit's exact
+configuration — same tags, same disabled rule, same JSDOM options — against each candidate shape for
+a clickable element:
 
-- **A focusable element needs an interactive role.** Adding `tabindex="0"` alone trips
-  `focus-order-semantics` (best-practice, in scope).
-- **It needs an accessible name.** `role="button"` on an `<img>` means the name can no longer come
-  from `alt` alone — an `aria-label` is required.
-- **It must not be nested inside another interactive control** (`nested-interactive`), which rules
-  out making an activity item that is already a button into a click-to-play target.
+| Shape | Result |
+|---|---|
+| `<img tabindex="0">`, no role | **clean** — `focus-order-semantics` is *inapplicable* to `<img>` |
+| `<img tabindex="0" role="button" alt="Mago">` | clean |
+| `<img tabindex="0" role="button">` with no `alt` | `aria-allowed-role` (minor) + `image-alt` (**critical**) |
+| `<img tabindex="1">` (positive) | **`tabindex` (serious)** — never use a positive value |
+| `<div tabindex="0">`, no role | **`focus-order-semantics` (minor)** |
+| `<p tabindex="0" role="button" aria-label="…">` | clean |
+| `<span role="button" tabindex="0">` with no accessible name | **`aria-command-name` (serious)** |
+| a clickable element nested inside a `<button>` | **`nested-interactive` (serious)** |
+
+So the constraint is **not** "every click target needs a role". It is:
+
+- **An `<img>` target needs only `tabindex="0"` plus a meaningful `alt`.** `role="button"` is optional;
+  when added, the accessible name still resolves from `alt` (verified clean) — but a missing `alt`
+  becomes a **critical** `image-alt` violation.
+- **A non-`img` target must carry an interactive role _and_ an accessible name** the moment it is
+  focusable, or `focus-order-semantics` / `aria-command-name` fire.
+- **Never a positive `tabindex`.**
+- **Never nest the click target inside another interactive control** (`nested-interactive`, serious),
+  which rules out making an activity item that is already a button into a click-to-play target.
 - The badge must be `aria-hidden="true"` and must not steal the click.
 
 ## Impact map
@@ -263,7 +280,7 @@ Consequences a clickable element must satisfy (these become acceptance criteria)
 - [ ] **AC-6** The authored text **survives**: re-running `easy-read` / `text-catalog` / `catalog-translation` / `core-tts-catalog`, and changing the book's image set, leave `element-audio` intact.
 - [ ] **AC-7** No code path adds `element-audio` to a clear/delete list; the invariant checker fails CI if one is added.
 - [ ] **AC-8** Deleting an element **keeps** its authored text; duplicating an element produces a clone **without** audio, and the UI says so rather than failing silently.
-- [ ] **AC-9** A clickable element has an interactive role and an accessible name, and is not nested inside another interactive control; the axe-core assessment reports **no new violations** on a page with element audio compared to the same page without it.
+- [ ] **AC-9** A clickable element passes the audit once interactive, per the measured recipe in §5: an `<img>` carries `tabindex="0"` and a meaningful `alt`; a non-`img` element additionally carries an interactive role **and** an accessible name; no element uses a positive `tabindex`; and nothing is nested inside another interactive control. The axe-core assessment reports **no new violations** on a page with element audio versus the same page without it.
 - [ ] **AC-10** The visual indicator is decorative to assistive tech (`aria-hidden`) and does not intercept the click.
 - [ ] **AC-11** Element audio appears in the **Storyboard preview** with identical behaviour to the bundle.
 - [ ] **AC-12** A book with `output_languages` equal to its source language produces element audio with **zero** translation calls (v1 is single-language).
