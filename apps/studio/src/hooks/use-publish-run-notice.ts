@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useSyncExternalStore } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
 import { toast } from "sonner"
@@ -33,7 +33,31 @@ const listeners = new Set<() => void>()
 
 export function notifyPublishRunStarted(label: string): void {
   watched.add(label)
+  setRunning(label, true)
   for (const listen of listeners) listen()
+}
+
+/** Books whose share is running right now, as the follower below last saw them — so the book
+ *  rail can show the Sharing entry working while the author is on another stage. */
+const running = new Set<string>()
+const runningListeners = new Set<() => void>()
+
+function setRunning(label: string, on: boolean) {
+  if (running.has(label) === on) return
+  if (on) running.add(label)
+  else running.delete(label)
+  for (const listen of runningListeners) listen()
+}
+
+function subscribeRunning(listener: () => void) {
+  runningListeners.add(listener)
+  return () => {
+    runningListeners.delete(listener)
+  }
+}
+
+export function useShareRunning(label: string): boolean {
+  return useSyncExternalStore(subscribeRunning, () => running.has(label))
 }
 
 /**
@@ -63,7 +87,12 @@ export function usePublishRunNotice(): void {
         for (const label of [...watched]) {
           const { run } = await api.getPublishRun(label)
           if (cancelled) return
-          if (!run || run.status === "running") continue
+          if (run?.status === "running") {
+            setRunning(label, true)
+            continue
+          }
+          setRunning(label, false)
+          if (!run) continue
 
           watched.delete(label)
           void queryClient.invalidateQueries({ queryKey: bookPublicationKey(label) })
@@ -93,7 +122,10 @@ export function usePublishRunNotice(): void {
     void api
       .listPublishRuns()
       .then(({ runs }) => {
-        for (const entry of runs) watched.add(entry.label)
+        for (const entry of runs) {
+          watched.add(entry.label)
+          if (entry.run.status === "running") setRunning(entry.label, true)
+        }
         if (watched.size > 0 && !polling) void poll()
       })
       .catch(() => {})

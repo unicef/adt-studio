@@ -37,6 +37,7 @@ export function PublishAnimationDemo() {
       progress: activeStep === 2 ? { done: 42, total: 147, unit: "files" } : null,
       failure: null,
       result: null,
+      startedAt: null,
       publish: () => {},
       update: () => {},
       retry: () => {},

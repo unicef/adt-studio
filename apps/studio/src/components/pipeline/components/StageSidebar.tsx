@@ -27,6 +27,7 @@ import { usePackageAdtStatus } from "@/hooks/use-books"
 import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
 import { publicationLifecycle, useBookPublication } from "@/hooks/use-book-publication"
 import { useFeedbackBadge } from "../../publication-feedback/use-feedback-badge"
+import { useShareRunning } from "@/hooks/use-publish-run-notice"
 import { StepProgressRing } from "./StepProgressRing"
 import { StoryboardIndex } from "./StoryboardIndex"
 import { useSectionNav } from "@/routes/books.$label"
@@ -90,6 +91,7 @@ export function StageSidebar({
   const { data: publicationStatus } = useBookPublication(bookLabel)
   const shared = publicationLifecycle(publicationStatus) === "active"
   const feedback = useFeedbackBadge(bookLabel)
+  const shareRunning = useShareRunning(bookLabel)
   const { tasks } = useBookTasks(bookLabel)
   const stageMissing = useStageMissingCounts(bookLabel)
   const translateNeedsRerun = stageMissing.translate > 0
@@ -209,7 +211,10 @@ export function StageSidebar({
     const stageNeedsRerun =
       (step.slug === "translate" && translateNeedsRerun) ||
       (step.slug === "speech" && speechNeedsRerun)
-    const ringState = stageNeedsRerun || state === "error" ? "idle" : state
+    /* Sharing isn't a pipeline stage, so its run shows on the ring alone — never as the stage's
+       running state, which would offer the pipeline's cancel button for it. */
+    const ringState =
+      step.slug === "publish" && shareRunning ? "running" : stageNeedsRerun || state === "error" ? "idle" : state
 
     // "book" is always filled; all other stages fill when their own completion signal is met.
     const iconFilled = step.slug === "book" ? true : stageCompleted

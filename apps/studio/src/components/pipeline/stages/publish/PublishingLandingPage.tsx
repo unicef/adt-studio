@@ -56,7 +56,10 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
   const settling = run.status === "done" && !live && !status.isError
   const takingOver = run.status === "running" || run.status === "error" || settling
   const expectsLive = useExpectsLiveLink(bookLabel, status.data ? live : null)
-  const elapsedMs = useElapsed(run.status === "running" ? "running" : run.status === "done" ? "done" : "idle")
+  const elapsedMs = useElapsed(
+    run.status === "running" ? "running" : run.status === "done" ? "done" : "idle",
+    run.startedAt,
+  )
 
   /* While the status is on its way, a book that was live last time waits in the dashboard's own
      shape rather than the setup form's. */

@@ -7,9 +7,14 @@ export function formatElapsed(ms: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`
 }
 
-export function useElapsed(status: ElapsedPhase): number {
+/**
+ * Time since a run began, ticking while it runs. `startedAt` is the run's own start when it is
+ * known — a page that picks a run up after a reload counts from there instead of from 0:00.
+ */
+export function useElapsed(status: ElapsedPhase, startedAt: string | null = null): number {
   const [elapsedMs, setElapsedMs] = useState(0)
   const startedAtRef = useRef<number | null>(null)
+  const known = startedAt === null ? Number.NaN : Date.parse(startedAt)
 
   useEffect(() => {
     if (status !== "running") {
@@ -20,12 +25,15 @@ export function useElapsed(status: ElapsedPhase): number {
       return
     }
 
-    if (startedAtRef.current === null) startedAtRef.current = performance.now()
-    const timer = setInterval(() => {
-      if (startedAtRef.current !== null) setElapsedMs(performance.now() - startedAtRef.current)
-    }, 250)
+    if (Number.isFinite(known)) startedAtRef.current = known
+    else if (startedAtRef.current === null) startedAtRef.current = Date.now()
+    const tick = () => {
+      if (startedAtRef.current !== null) setElapsedMs(Date.now() - startedAtRef.current)
+    }
+    tick()
+    const timer = setInterval(tick, 250)
     return () => clearInterval(timer)
-  }, [status])
+  }, [status, known])
 
   return elapsedMs
 }

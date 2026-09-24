@@ -95,6 +95,9 @@ export interface BookPublishRunController {
   progress: PublishStepProgress | null
   failure: PublishFailure | null
   result: PublishRunResult | null
+  /** When the run began — the server's time for a run this page picked up after a reload, so
+   *  the elapsed clock counts the whole run rather than restarting at 0:00. */
+  startedAt: string | null
   publish: (options?: PublishOptions) => void
   update: () => void
   retry: () => void
@@ -109,6 +112,7 @@ interface RunState {
   progress: PublishStepProgress | null
   failure: PublishFailure | null
   result: PublishRunResult | null
+  startedAt: string | null
 }
 
 function pendingSteps(): PublishChecklistState[] {
@@ -123,6 +127,7 @@ const IDLE_STATE: RunState = {
   progress: null,
   failure: null,
   result: null,
+  startedAt: null,
 }
 
 /* Parsed against the zod enum rather than a hand-copied list: the copy had already drifted —
@@ -150,6 +155,7 @@ function fromSnapshot(run: PublishRunSnapshot): RunState {
       ? { code: run.failure.code, detail: run.failure.message || null, stepId: run.failure.step_id }
       : null,
     result: run.result,
+    startedAt: run.started_at ?? null,
   }
 }
 
@@ -281,6 +287,7 @@ export function useBookPublishRun(label: string): BookPublishRunController {
         progress: null,
         failure: null,
         result: null,
+        startedAt: new Date().toISOString(),
       })
 
       let sawTerminalEvent = false
