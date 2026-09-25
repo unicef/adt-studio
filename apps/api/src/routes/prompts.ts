@@ -91,8 +91,8 @@ export function createPromptRoutes(
       const baseModel = label && configPath ? loadBookConfig(label, booksDir, configPath).base_prompt_model : basePromptModelId()
       const modelId = resolvePromptModelId(c.req.query("model"), baseModel)
       await migratePromptOverrides(promptsDir, promptOverridesDir, bookRoot)
-      if (!isValidPromptModelId(globalRoots, modelId)) throw new PromptFileError("PROMPT_INVALID_MODEL", "Invalid or colliding prompt model id")
       const roots = bookRoot ? [bookRoot, ...globalRoots] : globalRoots
+      if (!isValidPromptModelId(roots, modelId)) throw new PromptFileError("PROMPT_INVALID_MODEL", "Invalid or colliding prompt model id")
       return { name, modelId, roots }
     }
     app.get(prefix, async (c) => {
@@ -116,6 +116,9 @@ export function createPromptRoutes(
       const parsed = !restore && c.req.method === "PUT" ? PromptSave.parse(body) : PromptMutation.parse(body)
       if (restore) PromptVersion.parse(restore)
       return withPromptGates(roots.slice(0, -1), () => {
+        // Another writer may have claimed this model folder after request
+        // validation, including through a different prompt in the same root.
+        if (!isValidPromptModelId(roots, modelId)) throw new PromptFileError("PROMPT_INVALID_MODEL", "Invalid or colliding prompt model id")
         const current = readPromptState(roots, name, modelId, book)
         if (!current) return c.json({ code: "PROMPT_NOT_FOUND", error: "Prompt not found" }, 404)
         if (current.revision !== parsed.revision) return c.json({ code: "PROMPT_CONFLICT", error: "Prompt changed since it was loaded", current }, 409)

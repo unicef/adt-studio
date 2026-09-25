@@ -99,6 +99,20 @@ describe("SPEC-0011 persistence contract", () => {
     expect((await write("/prompts/test?model=custom:foo-bar", variant.revision, "custom")).status).toBe(200)
     expect((await app().request("/prompts/test?model=custom:foo_bar")).status).toBe(400)
   })
+  it.each(["/prompts", "/books/book/prompts"])("rejects concurrent model-folder aliases across different %s", async (prefix) => {
+    fs.writeFileSync(path.join(bundled, "other.liquid"), template("other base"))
+    const urls = [`${prefix}/test?model=custom:foo-bar`, `${prefix}/other?model=custom:foo_bar`]
+    const initial = await Promise.all(urls.map((url) => read(url)))
+    const results = await Promise.all(urls.map((url, index) => write(url, initial[index].revision, `alias ${index}`)))
+    expect(results.map((response) => response.status).sort()).toEqual([200, 400])
+    const winner = results.findIndex((response) => response.status === 200)
+    expect((await read(urls[winner])).content).toBe(`alias ${winner}`)
+    const loser = 1 - winner
+    const target = prefix.startsWith("/books") ? path.join(books, "book", "prompts") : overrides
+    expect(fs.existsSync(path.join(target, ".versions", `${loser === 0 ? "test" : "other"}__custom_foo_bar`))).toBe(false)
+    expect((await app().request(urls[loser])).status).toBe(400)
+    expect(fs.readFileSync(path.join(bundled, "other.liquid"), "utf8")).toBe(template("other base"))
+  })
   it("migrates legacy history once, retains source, detects different-byte collisions, and preserves target selections", async () => {
     const dir = path.join(bundled, ".versions", "test")
     const version = "20260101T000000000Z-000.liquid"
