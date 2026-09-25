@@ -15,6 +15,14 @@ resume. No reused book enters the legacy full-run body. CLI exits nonzero; API
 conflicts use HTTP 409 and a stable `code`. Queued failures use the same code in
 their job error. Studio translates the guidance and retains visible content.
 
+Verified reuse refusal includes an admission-only summary. The CLI reports that
+extraction is verified reusable, downstream execution is blocked, no content was
+changed or generated, and current/stale/protected scopes have not been assessed.
+It exits 1, not success. HTTP adds a structured `summary` with these same facts
+while retaining HTTP 409 and the existing `error`/`code` fields. Invalid source
+or asset failures never report verified reuse. See the proposed
+[shared planner handoff and integration acceptance map](specs/SPEC-0010-resume-integration.md).
+
 ## New-source workflow
 
 For changed PDFs, extraction options, missing original assets, unknown legacy

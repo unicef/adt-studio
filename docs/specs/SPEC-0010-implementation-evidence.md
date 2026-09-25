@@ -200,3 +200,28 @@ compatibility. See [the review report](../verification/spec-0010-review.md) for
 findings, refreshed dependencies, an AC-by-AC matrix, completion estimate and
 verification limits. The spec remains in review and full downstream resume is
 still blocked; no acceptance criterion was weakened.
+
+## Admission reporting follow-up — 2026-09-26
+
+The refusal path now exposes an admission-only summary through HTTP and the
+actual CLI. It distinguishes verified reusable extraction from blocked,
+unassessed downstream work and retains the nonzero/409 outcome. AC-12/13 are
+still blocked for successful full resume. Proposed dependency amendments,
+semantic handoff requirements and ten real-integration scenarios are recorded
+in [the resume integration map](SPEC-0010-resume-integration.md); no shared
+planner or successful resume is claimed by these reporting changes.
+
+Source commit `1c9fa23d` verification:
+
+- Focused API/pipeline admission: 2 files / 46 tests passed, including the actual
+  CLI subprocess with an intercepted provider boundary and unchanged book bytes.
+- `pnpm test --maxWorkers=2 --testTimeout=30000`: **282 files / 3,671 tests
+  passed**, including the build prerequisite (306.17 seconds).
+- Build, typecheck, lint (zero errors, the same eight baseline warnings),
+  extraction invariant and diff checks passed.
+- API server and Electron API bundles passed. Lingui extraction and strict
+  compilation passed, with 3,613 messages per catalog, zero missing translations
+  and no catalog changes. No Studio strings changed.
+- AC-12/13 refusal/reporting evidence improved; successful downstream execution
+  remains blocked. Packaged/release and representative-book limitations from
+  the independent review remain; these checks do not establish release acceptance.
