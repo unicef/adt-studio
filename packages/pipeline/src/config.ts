@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import yaml from "js-yaml"
+import { recoverSectioningTransition } from "@adt/storage"
 import { AppConfig, parseBookLabel } from "@adt/types"
 
 /**
@@ -51,6 +52,8 @@ export function loadBookConfig(
   configPath?: string
 ): AppConfig {
   const safeLabel = parseBookLabel(label)
+  const dir = path.join(path.resolve(booksRoot), safeLabel)
+  if (fs.existsSync(dir)) recoverSectioningTransition(dir)
   const base = loadConfig(configPath)
   const bookConfigPath = path.join(
     path.resolve(booksRoot),

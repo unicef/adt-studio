@@ -13,7 +13,9 @@ import {
   type BookDetail,
   type PartRange,
 } from "@adt/types"
-import { openBookDb } from "@adt/storage"
+import { openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, atomicBookFile } from "@adt/storage"
+import { loadBookConfig, loadConfig, deepMerge, effectiveSectioningMode, sectioningInvalidationSteps } from "@adt/pipeline"
+import { AppConfig } from "@adt/types"
 
 type BookDb = ReturnType<typeof openBookDb>
 
@@ -375,6 +377,7 @@ export function getBookConfig(
     throw new Error(`Book not found: ${safeLabel}`)
   }
 
+  recoverSectioningTransition(bookDir)
   const configPath = path.join(bookDir, "config.yaml")
   if (!fs.existsSync(configPath)) {
     return null
@@ -386,28 +389,30 @@ export function getBookConfig(
 }
 
 export function updateBookConfig(
-  label: string,
-  booksDir: string,
-  overrides: Record<string, unknown>
+  label: string, booksDir: string, overrides: Record<string, unknown>, configPath?: string,
 ): void {
   const safeLabel = parseBookLabel(label)
-  const resolvedDir = path.resolve(booksDir)
-  const bookDir = path.join(resolvedDir, safeLabel)
-
-  if (!fs.existsSync(bookDir)) {
-    throw new Error(`Book not found: ${safeLabel}`)
-  }
-
-  const configPath = path.join(bookDir, "config.yaml")
-
-  if (!overrides || Object.keys(overrides).length === 0) {
-    if (fs.existsSync(configPath)) {
-      fs.unlinkSync(configPath)
+  const bookDir = path.join(path.resolve(booksDir), safeLabel)
+  if (!fs.existsSync(bookDir)) throw new Error(`Book not found: ${safeLabel}`)
+  withBookWriter(bookDir, () => {
+    recoverSectioningTransition(bookDir)
+    const previous = loadBookConfig(label, booksDir, configPath)
+    const proposed = AppConfig.parse(deepMerge(loadConfig(configPath), overrides))
+    const oldMode = effectiveSectioningMode(previous)
+    const newMode = effectiveSectioningMode(proposed)
+    // Empty overrides are an empty YAML mapping, preserving inheritance without
+    // a delete/rename ambiguity in the transition journal.
+    const text = yaml.dump(overrides)
+    if (oldMode === newMode) {
+      atomicBookFile(path.join(bookDir, "config.yaml"), text)
+      return
     }
-    return
-  }
-
-  fs.writeFileSync(configPath, yaml.dump(overrides))
+    const db = openBookDb(path.join(bookDir, `${safeLabel}.db`))
+    try {
+      if (db.all("SELECT step FROM step_runs WHERE status = 'running'").length) throw new BookBusyError()
+    } finally { db.close() }
+    publishSectioningTransition(bookDir, text, newMode, sectioningInvalidationSteps())
+  })
 }
 
 export function deleteBook(label: string, booksDir: string): void {

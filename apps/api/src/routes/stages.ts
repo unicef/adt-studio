@@ -4,12 +4,13 @@ import { Hono } from "hono"
 import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
-import { createBookStorage, openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, withBookWriter, readSectioningLifecycle } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig,
+  prepareSectioningRun,
   collectSpentSectionIds,
   retireSectionIds,
   NOTHING_RETIRED,
@@ -161,12 +162,20 @@ export function retireSectionIdsForClearedSectioning(
 /** Build a beforeRun callback that clears downstream data for a stage.
  *  The returned function is idempotent — only runs once even if called multiple times.
  *  Exported so tests can pin the preserve-retirement-clear boundary. */
-export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string): () => void {
+export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string, configPath?: string): () => void {
   let ran = false
   return () => {
     if (ran) return
+    prepareSectioningRun(label, booksDir, fromStage, toStage, configPath)
     const storage = createBookStorage(label, booksDir)
     try {
+      if (fromStage === "sectioning" || fromStage === "storyboard") {
+        // B1 invalidates completion only. Retained entities/assets remain readable.
+        const stages = getStageClearOrder(fromStage)
+        storage.clearStepRuns(PIPELINE.filter((stage) => stages.includes(stage.name)).flatMap((stage) => stage.steps.map((step) => step.name)))
+        ran = true
+        return
+      }
       const { retired, preserved } = retireWithPreservedRecordings(
         storage,
         path.join(path.resolve(booksDir), label),
@@ -192,9 +201,6 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
         const nodes = getStageRerunClearNodes(fromStage, toStage)
         if (nodes.length > 0) {
           storage.clearNodesByType(nodes)
-        }
-        if (fromStage === "storyboard" && typeof storage.clearDebugImages === "function") {
-          storage.clearDebugImages()
         }
         // Clear step run records for all downstream stages
         const stagesToClear = getStageClearOrder(fromStage)
@@ -265,7 +271,10 @@ export function createStageRoutes(
       `credentialProviders=${Object.keys(credentials).join(",") || "(none)"}`,
     )
 
-    const clearData = makeBeforeRun(label, fromStage, toStage, booksDir)
+    if (!stageService.getStatus(label).active) {
+      withBookWriter(path.join(path.resolve(booksDir), parseBookLabel(label)), () => prepareSectioningRun(label, booksDir, fromStage, toStage, configPath))
+    }
+    const clearData = makeBeforeRun(label, fromStage, toStage, booksDir, configPath)
 
     const result = stageService.startStageRun(label, {
       booksDir,
@@ -280,12 +289,6 @@ export function createStageRoutes(
       // Queued jobs clear data when they start executing
       beforeRun: clearData,
     })
-
-    // For immediately started jobs, clear data synchronously so the
-    // frontend can refetch and see the cleared state right away.
-    if (result.status === "started") {
-      clearData()
-    }
 
     return c.json({ status: result.status, label, fromStage, toStage })
   })
@@ -437,7 +440,8 @@ export function createStageRoutes(
 
     // Check if ADT is packaged (preview stage)
     const adtDir = path.join(resolvedDir, safeLabel, "adt")
-    if (fs.existsSync(adtDir)) stages.preview = "done"
+    const lifecycle = readSectioningLifecycle(path.join(resolvedDir, safeLabel))
+    if (fs.existsSync(adtDir) && (!lifecycle || lifecycle.sectioningReady)) stages.preview = "done"
 
     const hasStepErrors = Object.keys(stepErrors).length > 0
     const hasStepMessages = Object.keys(stepMessages).length > 0
@@ -511,6 +515,7 @@ export function createStageRoutes(
                   data: JSON.stringify({
                     label: event.label,
                     error: event.error,
+                    sectioningPreflight: event.sectioningPreflight,
                   }),
                 })
               } else if (event.type === "stage-run-cancelled") {

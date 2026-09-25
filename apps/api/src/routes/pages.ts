@@ -1,3 +1,5 @@
+import { assertSectioningCurrent } from "@adt/pipeline"
+import { bookWriterMiddleware } from "../middleware/book-writer.js"
 import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
@@ -55,7 +57,7 @@ import {
   SectionIdExhaustedError,
 } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
-import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
+import { reRenderPage, reRenderPages, aiEditSection } from "../services/page-edit-service.js"
 import {
   getBookStyleguidesDir,
   getGeneratedStyleguideName,
@@ -843,6 +845,8 @@ export function createPageRoutes(
   taskService?: TaskService
 ): Hono {
   const app = new Hono()
+  app.use("/books/:label/*", bookWriterMiddleware(booksDir))
+  app.use("/books/:label", bookWriterMiddleware(booksDir))
 
   // GET /books/:label/pages — List pages with pipeline status
   app.get("/books/:label/pages", (c) => {
@@ -1796,6 +1800,7 @@ export function createPageRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
+      assertSectioningCurrent(storage, loadBookConfig(safeLabel, booksDir, configPath), path.join(path.resolve(booksDir), safeLabel))
       const existingPageIds = new Set(storage.getPages().map((page) => page.pageId))
       for (const pageId of pageIds) {
         if (!existingPageIds.has(pageId)) {
@@ -1831,20 +1836,9 @@ export function createPageRoutes(
 
     const runReRenders = async () => {
       try {
-        const results = []
-        for (const pageId of pageIds) {
-          results.push(
-            await reRenderPage({
-              label: safeLabel,
-              pageId,
-              booksDir,
-              promptsDir,
-              webAssetsDir,
-              configPath,
-              credentials,
-            })
-          )
-        }
+        const results = await reRenderPages(pageIds.map((pageId) => ({
+          label: safeLabel, pageId, booksDir, promptsDir, webAssetsDir, configPath, credentials,
+        })))
 
         const completedStorage = createBookStorage(safeLabel, booksDir)
         try {
@@ -1911,6 +1905,7 @@ export function createPageRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
+      assertSectioningCurrent(storage, loadBookConfig(safeLabel, booksDir, configPath), path.join(path.resolve(booksDir), safeLabel))
       const pages = storage.getPages()
       const page = pages.find((p) => p.pageId === pageId)
       if (!page) {

@@ -537,3 +537,5 @@ export {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
 } from "./ai-provider.js"
+
+export * from "./sectioning-lifecycle.js"

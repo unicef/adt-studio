@@ -165,7 +165,7 @@ export type EasyReadConfig = z.infer<typeof EasyReadConfig>
 
 export const PageSectioningConfig = StepConfig.extend({
   max_refinements: z.number().int().min(0).optional(),
-  mode: z.enum(["page", "dynamic"]).catch("dynamic").optional(),
+  mode: z.enum(["page", "dynamic"]).optional(),
 })
 export type PageSectioningConfig = z.infer<typeof PageSectioningConfig>
 
