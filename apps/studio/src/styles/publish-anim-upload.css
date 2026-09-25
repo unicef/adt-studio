@@ -306,33 +306,6 @@
   }
 }
 
-/* Warm light past the machine — the direction "away" is bright, and pages leave through it. */
-.up-cv-glow {
-  position: absolute;
-  left: 314px;
-  top: 78px;
-  width: 130px;
-  height: 132px;
-  border-radius: 9999px;
-  background: radial-gradient(
-    50% 50% at 55% 50%,
-    rgba(158, 200, 232, 0.45),
-    rgba(158, 200, 232, 0) 72%
-  );
-  opacity: 0.85;
-  animation: up-cv-glow 13s ease-in-out infinite;
-}
-
-@keyframes up-cv-glow {
-  0%,
-  100% {
-    opacity: 0.85;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
 .up-cv-machine {
   position: absolute;
   height: 122px;
@@ -437,31 +410,4 @@
   background: linear-gradient(180deg, #c6e0f2, #82b4da);
   outline: 1px solid rgba(58, 82, 108, 0.35);
   outline-offset: -1px;
-}
-
-.up-cv-lamp-halo {
-  position: absolute;
-  left: 50%;
-  top: -14px;
-  width: 44px;
-  height: 34px;
-  margin-left: -22px;
-  border-radius: 9999px;
-  background: radial-gradient(
-    50% 50% at 50% 55%,
-    rgba(158, 200, 232, 0.6),
-    rgba(158, 200, 232, 0) 72%
-  );
-  opacity: 0.8;
-  animation: up-cv-lamp 11s ease-in-out infinite;
-}
-
-@keyframes up-cv-lamp {
-  0%,
-  100% {
-    opacity: 0.8;
-  }
-  50% {
-    opacity: 1;
-  }
 }
