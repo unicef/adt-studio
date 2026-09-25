@@ -3759,6 +3759,9 @@ msgstr "Exclude from read-aloud"
 msgid "Exclude from render"
 msgstr "Exclude from render"
 
+msgid "Existing extraction and edits are preserved. Changing the PDF or extraction settings requires importing a new book. Safe downstream resume is not available yet."
+msgstr "Existing extraction and edits are preserved. Changing the PDF or extraction settings requires importing a new book. Safe downstream resume is not available yet."
+
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 
@@ -3868,6 +3871,9 @@ msgstr "Extracted Text"
 
 msgid "Extracting..."
 msgstr "Extracting..."
+
+msgid "Extraction did not complete. Partial data has been kept. Import the PDF as a new book to try again."
+msgstr "Extraction did not complete. Partial data has been kept. Import the PDF as a new book to try again."
 
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "Extraction is running — you can review spreads once it finishes."
@@ -6716,6 +6722,9 @@ msgstr "or click to browse your files"
 
 msgid "Original"
 msgstr "Original"
+
+msgid "Original extraction files are missing or damaged. Import the PDF as a new book; the existing book will be kept."
+msgstr "Original extraction files are missing or damaged. Import the PDF as a new book; the existing book will be kept."
 
 msgid "Original language"
 msgstr "Original language"
@@ -9691,6 +9700,9 @@ msgstr "The default TTS instruction applied to every language unless overridden 
 msgid "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 msgstr "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 
+msgid "The extraction settings have changed. Import the PDF as a new book; the existing book will be kept."
+msgstr "The extraction settings have changed. Import the PDF as a new book; the existing book will be kept."
+
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "The file may be damaged or incomplete. Try downloading it again from the source."
 
@@ -9726,6 +9738,15 @@ msgstr "The Lost Forest"
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "The model detects bounding boxes so each visual element can be stored and laid out separately."
+
+msgid "The original extraction is verified. Safe downstream resume is not available yet, so no content was changed or generated."
+msgstr "The original extraction is verified. Safe downstream resume is not available yet, so no content was changed or generated."
+
+msgid "The PDF has changed. Import it as a new book; the existing book will be kept."
+msgstr "The PDF has changed. Import it as a new book; the existing book will be kept."
+
+msgid "The PDF or extraction settings are invalid. Check the source and page range."
+msgstr "The PDF or extraction settings are invalid. Check the source and page range."
 
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "The process plants use to turn sunlight, water, and carbon dioxide into food."
@@ -9877,11 +9898,17 @@ msgstr "This archive can't be opened safely"
 msgid "This book has {pageCount} pages."
 msgstr "This book has {pageCount} pages."
 
+msgid "This book has an active writer or pending recovery. Wait for it to finish and try again."
+msgstr "This book has an active writer or pending recovery. Wait for it to finish and try again."
+
 msgid "This book has no images to caption"
 msgstr "This book has no images to caption"
 
 msgid "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
 msgstr "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
+
+msgid "This book has no verified extraction record. Keep editing it, or import the PDF as a new book to extract again."
+msgstr "This book has no verified extraction record. Keep editing it, or import the PDF as a new book to extract again."
 
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "This book is a part — its page range is fixed to the assigned subset and cannot be changed."

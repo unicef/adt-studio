@@ -6,6 +6,7 @@ import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
 import { errorHandler } from "./middleware/error-handler.js"
+import { bookWriterMiddleware } from "./middleware/book-writer.js"
 import { healthRoutes } from "./routes/health.js"
 import { createBookRoutes } from "./routes/books.js"
 import { createBookEventsRoutes } from "./routes/book-events.js"
@@ -79,7 +80,7 @@ const eventBus = createBookEventBus()
 const pageErrorDecisions = createPageErrorDecisions(eventBus)
 const stageRunner = createStageRunner()
 const stageService = createStageService(stageRunner, eventBus, pageErrorDecisions)
-const taskService = createTaskService(eventBus)
+const taskService = createTaskService(eventBus, booksDir)
 
 const app = new Hono()
 
@@ -96,6 +97,8 @@ app.use(
   })
 )
 app.onError(errorHandler)
+app.use("/api/books/:label", bookWriterMiddleware(booksDir))
+app.use("/api/books/:label/*", bookWriterMiddleware(booksDir))
 
 app.route("/api", healthRoutes)
 app.route("/api", createProviderRoutes(configPath))

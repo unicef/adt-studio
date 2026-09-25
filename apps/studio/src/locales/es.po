@@ -3759,6 +3759,9 @@ msgstr "Excluir de la lectura en voz alta"
 msgid "Exclude from render"
 msgstr "Excluir de la renderización"
 
+msgid "Existing extraction and edits are preserved. Changing the PDF or extraction settings requires importing a new book. Safe downstream resume is not available yet."
+msgstr "Se conservan la extracción y las ediciones existentes. Para cambiar el PDF o la configuración de extracción, es necesario importar un libro nuevo. La reanudación segura de las etapas posteriores aún no está disponible."
+
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "Las sesiones de revisor existentes conservan su propia instantánea de la lista de verificación. Los nuevos cambios en la lista se aplican solo a las sesiones creadas a partir de ahora."
 
@@ -3868,6 +3871,9 @@ msgstr "Texto extraído"
 
 msgid "Extracting..."
 msgstr "Extrayendo..."
+
+msgid "Extraction did not complete. Partial data has been kept. Import the PDF as a new book to try again."
+msgstr "La extracción no se completó. Se han conservado los datos parciales. Importa el PDF como un libro nuevo para intentarlo de nuevo."
 
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "La extracción está en curso — puedes revisar las dobles páginas una vez que termine."
@@ -6716,6 +6722,9 @@ msgstr "o haz clic para explorar tus archivos"
 
 msgid "Original"
 msgstr "Original"
+
+msgid "Original extraction files are missing or damaged. Import the PDF as a new book; the existing book will be kept."
+msgstr "Faltan archivos de la extracción original o están dañados. Importa el PDF como un libro nuevo; el libro existente se conservará."
 
 msgid "Original language"
 msgstr "Idioma original"
@@ -9691,6 +9700,9 @@ msgstr "La instrucción TTS predeterminada aplicada a todos los idiomas salvo qu
 msgid "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 msgstr "Toda la página se trata como una sola sección - todo el texto e imágenes permanecen juntos como una unidad. Mejor para libros de cuentos, libros de referencia y cualquier contenido donde cada página sea autónoma."
 
+msgid "The extraction settings have changed. Import the PDF as a new book; the existing book will be kept."
+msgstr "La configuración de extracción ha cambiado. Importa el PDF como un libro nuevo; el libro existente se conservará."
+
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "El archivo puede estar dañado o incompleto. Intenta descargarlo nuevamente desde la fuente."
 
@@ -9726,6 +9738,15 @@ msgstr "El Bosque Perdido"
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "El modelo detecta cajas delimitadoras para que cada elemento visual pueda almacenarse y disponerse por separado."
+
+msgid "The original extraction is verified. Safe downstream resume is not available yet, so no content was changed or generated."
+msgstr "La extracción original está verificada. La reanudación segura de las etapas posteriores aún no está disponible, por lo que no se modificó ni generó contenido."
+
+msgid "The PDF has changed. Import it as a new book; the existing book will be kept."
+msgstr "El PDF ha cambiado. Impórtalo como un libro nuevo; el libro existente se conservará."
+
+msgid "The PDF or extraction settings are invalid. Check the source and page range."
+msgstr "El PDF o la configuración de extracción no son válidos. Comprueba el archivo de origen y el intervalo de páginas."
 
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "El proceso que las plantas usan para convertir la luz solar, agua y dióxido de carbono en alimento."
@@ -9877,11 +9898,17 @@ msgstr "Este archivo no se puede abrir de forma segura"
 msgid "This book has {pageCount} pages."
 msgstr "Este libro tiene {pageCount} páginas."
 
+msgid "This book has an active writer or pending recovery. Wait for it to finish and try again."
+msgstr "Hay una operación activa o una recuperación pendiente en este libro. Espera a que termine e inténtalo de nuevo."
+
 msgid "This book has no images to caption"
 msgstr "Este libro no tiene imágenes para subtitular"
 
 msgid "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
 msgstr "Este libro no tiene páginas. Asegúrate de que las etapas de extracción y storyboard produjeron contenido antes de generar {stageName}."
+
+msgid "This book has no verified extraction record. Keep editing it, or import the PDF as a new book to extract again."
+msgstr "Este libro no tiene un registro de extracción verificado. Puedes seguir editándolo o importar el PDF como un libro nuevo para volver a extraerlo."
 
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "Este libro es una parte: su rango de páginas es fijo, corresponde al subconjunto asignado y no se puede cambiar."

@@ -4,6 +4,7 @@ import path from "node:path"
 import cliProgress from "cli-progress"
 import { PIPELINE, STAGE_BY_NAME, STEP_TO_STAGE } from "@adt/types"
 import type { StepName, StageName, ProgressEvent } from "@adt/types"
+import { ExtractionAdmissionError } from "@adt/storage"
 import { parseCliArgs, USAGE } from "./cli-args.js"
 import { runFullPipeline } from "./pipeline-dag.js"
 import type { Progress } from "./progress.js"
@@ -139,6 +140,15 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
+  if (err instanceof ExtractionAdmissionError && err.summary) {
+    process.stderr.write(`\nAdmission only (${err.code}):\n` +
+      "  Extraction: verified reusable; existing extraction retained.\n" +
+      "  Downstream: blocked; no work started.\n" +
+      "  Current/stale/protected scopes: not assessed; shared planner unavailable.\n" +
+      "  Content changed: no. Generated output: none.\n" +
+      "  Pipeline incomplete; exiting with status 1.\n")
+    process.exit(1)
+  }
   const detail =
     err instanceof Error ? err.stack ?? err.message : String(err)
   process.stderr.write(`\nFailed: ${detail}\n`)

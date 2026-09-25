@@ -21,7 +21,7 @@ import {
   hashPdfBytes,
 } from "@adt/types/fingerprint"
 import { renderPdfCover, countPdfPages } from "@adt/pdf"
-import { CURRENT_VERSION_ORDER, openBookDb, resolveBookPaths } from "@adt/storage"
+import { CURRENT_VERSION_ORDER, openBookDb, resolveBookPaths, withNewBookWriter } from "@adt/storage"
 import { loadBookConfig } from "@adt/pipeline"
 import { createZipStreamFromEntries } from "./zip-util.js"
 import { getBookConfig, readPartInfo, type BookSummary } from "./book-service.js"
@@ -419,37 +419,38 @@ export function importPart(zipBuffer: Buffer, booksDir: string): BookSummary {
   const targetLabel = resolveUniqueLabel(baseLabel, booksDir)
   const resolvedDir = path.resolve(booksDir)
   const bookDir = path.join(resolvedDir, targetLabel)
-  fs.mkdirSync(bookDir, { recursive: true })
+  return withNewBookWriter(bookDir, () => {
 
-  try {
-    fs.writeFileSync(path.join(bookDir, `${targetLabel}.pdf`), Buffer.from(entries[pdfEntry]))
-    if (entries["config.yaml"]) {
-      fs.writeFileSync(path.join(bookDir, "config.yaml"), Buffer.from(entries["config.yaml"]))
-    }
-    // Remember this book is a part (used for the badge and re-export).
-    fs.writeFileSync(path.join(bookDir, "part.json"), Buffer.from(entries["part.json"]))
+    try {
+      fs.writeFileSync(path.join(bookDir, `${targetLabel}.pdf`), Buffer.from(entries[pdfEntry]))
+      if (entries["config.yaml"]) {
+        fs.writeFileSync(path.join(bookDir, "config.yaml"), Buffer.from(entries["config.yaml"]))
+      }
+      // Remember this book is a part (used for the badge and re-export).
+      fs.writeFileSync(path.join(bookDir, "part.json"), Buffer.from(entries["part.json"]))
 
-    const nowIso = new Date().toISOString()
-    return {
-      label: targetLabel,
-      title: manifest.title,
-      authors: [],
-      publisher: null,
-      languageCode: null,
-      pageCount: 0,
-      hasSourcePdf: true,
-      needsRebuild: false,
-      rebuildReason: null,
-      completedStages: [],
-      createdAt: nowIso,
-      modifiedAt: nowIso,
-      part: { sourceLabel: manifest.sourceLabel, range: manifest.range },
-      split: null,
+      const nowIso = new Date().toISOString()
+      return {
+        label: targetLabel,
+        title: manifest.title,
+        authors: [],
+        publisher: null,
+        languageCode: null,
+        pageCount: 0,
+        hasSourcePdf: true,
+        needsRebuild: false,
+        rebuildReason: null,
+        completedStages: [],
+        createdAt: nowIso,
+        modifiedAt: nowIso,
+        part: { sourceLabel: manifest.sourceLabel, range: manifest.range },
+        split: null,
+      }
+    } catch (err) {
+      try { fs.rmSync(bookDir, { recursive: true, force: true }) } catch { /* ignore */ }
+      throw err
     }
-  } catch (err) {
-    try { fs.rmSync(bookDir, { recursive: true, force: true }) } catch { /* ignore */ }
-    throw err
-  }
+  })
 }
 
 export interface PartInfo {

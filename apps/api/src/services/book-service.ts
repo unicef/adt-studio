@@ -13,7 +13,7 @@ import {
   type BookDetail,
   type PartRange,
 } from "@adt/types"
-import { openBookDb } from "@adt/storage"
+import { openBookDb, withNewBookWriter } from "@adt/storage"
 
 type BookDb = ReturnType<typeof openBookDb>
 
@@ -333,34 +333,35 @@ export function createBook(
     throw new Error(`Book already exists: ${safeLabel}`)
   }
 
-  fs.mkdirSync(bookDir, { recursive: true })
-  fs.writeFileSync(path.join(bookDir, `${safeLabel}.pdf`), pdfBuffer)
+  return withNewBookWriter(bookDir, () => {
+    fs.writeFileSync(path.join(bookDir, `${safeLabel}.pdf`), pdfBuffer)
 
-  if (configOverrides && Object.keys(configOverrides).length > 0) {
-    fs.writeFileSync(
-      path.join(bookDir, "config.yaml"),
-      yaml.dump(configOverrides)
-    )
-  }
+    if (configOverrides && Object.keys(configOverrides).length > 0) {
+      fs.writeFileSync(
+        path.join(bookDir, "config.yaml"),
+        yaml.dump(configOverrides)
+      )
+    }
 
-  const nowIso = new Date().toISOString()
+    const nowIso = new Date().toISOString()
 
-  return {
-    label: safeLabel,
-    title: null,
-    authors: [],
-    publisher: null,
-    languageCode: null,
-    pageCount: 0,
-    hasSourcePdf: true,
-    needsRebuild: false,
-    rebuildReason: null,
-    completedStages: [],
-    createdAt: nowIso,
-    modifiedAt: nowIso,
-    part: null,
-    split: null,
-  }
+    return {
+      label: safeLabel,
+      title: null,
+      authors: [],
+      publisher: null,
+      languageCode: null,
+      pageCount: 0,
+      hasSourcePdf: true,
+      needsRebuild: false,
+      rebuildReason: null,
+      completedStages: [],
+      createdAt: nowIso,
+      modifiedAt: nowIso,
+      part: null,
+      split: null,
+    }
+  })
 }
 
 export function getBookConfig(

@@ -382,7 +382,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     expect(ttsTextIds("en")).toEqual(["pg001_t001"])
   })
 
-  it.each(["sectioning", "extract"] as const)(
+  it.each(["sectioning"] as const)(
     "rolls back retirement when backup fails on a %s rerun, and can retry",
     (fromStage) => {
       const section = formatSectionId(pageId, 3)
