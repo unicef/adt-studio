@@ -63,7 +63,7 @@ when the permitted fallback or another part of that criterion passed.
 | 15 | Blocked | macOS unpacked build and real Electron utility-process harness pass with read-only packaged prompts and isolated user data. Docker defaults/configuration are updated, but no daemon or Docker app is available for a container/volume restart test. |
 | 16 | Passed | API fixture with a different writable root still reads bundled sibling templates; Electron harness checks returned template bytes against packaged `templates`. CLI keeps the same bundled-parent derivation. |
 | 17 | Blocked | Real ZIP export/import preserves book versions, selection, page identity and actual SQLite call-log messages. Export snapshots under the prompt gate and excludes the gate; a concurrent subsequent save cannot change the archive. Import warns about host globals. Automatic identification/comparison of changed host-global inputs awaits shared freshness. |
-| 18 | Passed | Lingui extraction: 3,627 messages, zero missing in `es`, `fr`, `pt-BR`, `sq`; English source complete. Lint has zero errors. No manifest/lockfile dependency changes. |
+| 18 | Passed | Lingui extraction: 3,629 messages, zero missing in `es`, `fr`, `pt-BR`, `sq`; English source complete. Lint has zero errors. No manifest/lockfile dependency changes. |
 
 Primary regression files:
 
@@ -76,6 +76,8 @@ Primary regression files:
 - [Archive portability and concurrent save](../../apps/api/src/services/prompt-portability.test.ts)
 - [Global editor draft behavior](../../apps/studio/src/components/app/screens/settings/globalPrompts.test.tsx)
 - [Book draft behavior](../../apps/studio/src/components/pipeline/components/PromptViewer/promptDraftSave.test.ts)
+- [Editor model parity, restore and navigation](../../apps/studio/src/components/pipeline/components/PromptViewer/PromptViewer.test.tsx)
+- [Configured base-model classification](../../apps/studio/src/components/pipeline/stages/book/GlobalPromptsSettings/promptSettings.test.ts)
 - [Global route navigation](../../apps/studio/src/routes/_app.settings.prompts.test.tsx)
 - [Electron host smoke harness](../../scripts/prompt-persistence-desktop-smoke.ts)
 
@@ -103,19 +105,31 @@ checks that an unrelated prompt still hits its cache, and restores the original
 effective bytes under a new selection ID without another provider call. Focused
 API checks passed 76 tests across three files; the expanded cache check passed.
 
+## Full implementation review
+
+The [review report](SPEC-0011-review.md) records eight corrected findings against
+the original specification and cross-system behavior. Source commit `a4671d0c`
+fixes reverted typing during Save, model-preview parity, alternate-reset revision
+bypasses, late cross-book restore responses, disabled/pending restore controls,
+ambiguous reset/restore response reconciliation, false no-op copy feedback and
+misleading navigation rerun wording. The added regressions and existing navigation
+checks pass 27 tests across six focused files. All five locales remain complete.
+No spec approval, freshness implementation or release verification is implied.
+
 ## Final commands and results
 
-The final application/test source is `81f12d80`; subsequent changes record
+The final application/test source is `a4671d0c`; subsequent changes record
 documentation. Packaged Desktop and live-browser evidence below was collected at
-`8f5e3ade`, before the additional API ownership fix; it was not rerun for that fix.
+`8f5e3ade`, before the additional API ownership and Studio review fixes; it was not rerun for those fixes.
 
 | Check | Result |
 |---|---|
-| `PATH=/Library/Developer/CommandLineTools/usr/bin:$PATH pnpm test --maxWorkers=4` | Passed: **287 files, 3,641 tests**, including pretest build. The explicit PATH selects working Git; the default Xcode shim refuses to run without a license acceptance. No system license was accepted or changed. |
+| `PATH=/Library/Developer/CommandLineTools/usr/bin:$PATH pnpm test --maxWorkers=4` | Passed: **289 files, 3,652 tests**, including pretest build. The explicit PATH selects working Git; the default Xcode shim refuses to run without a license acceptance. No system license was accepted or changed. |
 | `pnpm typecheck` | Passed. |
 | `pnpm --filter @adt/runtime typecheck` | Passed. |
 | `pnpm lint` | Passed with 0 errors and 8 unused-suppression warnings; no claim that these warnings were independently baseline-tested. |
 | `pnpm build` | Passed, including runtime bundle build. |
+| `pnpm --filter @adt/studio build` | Passed after review fixes; production Vite/Lingui bundle compiled. Chunk-size and plugin-timing warnings remain informational. |
 | `pnpm --filter @adt/studio extract` | Passed, zero missing translations across all five locales. |
 | `CSC_IDENTITY_AUTO_DISCOVERY=false pnpm --filter @adt/desktop build:unpack` | Passed on macOS arm64; ad-hoc signed, notarization skipped. |
 | Electron harness against final packaged resources | Passed: global/book saves, API restart, packaged prompt hash unchanged after chmod read-only, correct user-data roots and template lookup. Harness selects packaged adapter mode explicitly; this is not an installed-app/full-renderer launch test. |
