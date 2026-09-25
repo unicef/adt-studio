@@ -51,4 +51,26 @@ it("counts real transport calls for template/include changes and keeps in-flight
   await generate(); await generate()
   expect(requests).toHaveLength(3)
   expect(JSON.stringify(requests[2])).toContain("third")
+
+  // Changing a selected main template must invalidate only its rendered input.
+  // Restoring the same effective bytes reuses the existing content cache even
+  // though the immutable selection ID has changed.
+  fs.writeFileSync(path.join(prompts, "unrelated.liquid"), '{% chat role: "user" %}unrelated{% endchat %}')
+  const unrelated = () => model.generateObject({ prompt: "unrelated", schema: z.object({ ok: z.boolean() }), log: { taskType: "contract" } })
+  await unrelated()
+  expect(requests).toHaveLength(4)
+  const original = initializePromptSelection(prompts, "test", null)
+  const changed = savePromptVersion(prompts, "test", '{% chat role: "user" %}changed {% include "_shared" %}{% endchat %}')
+  const changedId = randomUUID()
+  publishPromptSelection(prompts, "test", { format: 1, id: changedId, previous: original.id, kind: "version", version: changed, modelId: null })
+  await generate()
+  expect(requests).toHaveLength(5)
+  expect(JSON.stringify(requests[4])).toContain("changed third")
+  await unrelated()
+  expect(requests).toHaveLength(5)
+  publishPromptSelection(prompts, "test", { format: 1, id: randomUUID(), previous: changedId, kind: "flat", modelId: null })
+  await generate()
+  expect(requests).toHaveLength(5)
+  expect(JSON.stringify(logs.at(-1))).toContain("third")
+  expect(JSON.stringify(logs.at(-1))).not.toContain("changed third")
 })
