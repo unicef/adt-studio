@@ -40,7 +40,7 @@ export function PromptsSection() {
 
   const editor = (
     <PromptEditorPane
-      readOnly={restoring}
+      readOnly={restoring || prompts.isChangingSelection}
       isLoading={prompts.isPromptEditorLoading}
       content={prompts.promptContent}
       displayContent={prompts.displayContent}
@@ -159,6 +159,7 @@ export function PromptsSection() {
                         size="sm"
                         className="h-9 rounded-lg"
                         aria-pressed={prompts.isDiffOpen}
+                        disabled={restoring}
                         onClick={prompts.toggleDiff}
                       >
                         <GitCompare className="size-4" />
@@ -201,7 +202,7 @@ export function PromptsSection() {
                         onPendingChange={setRestoring}
                         currentContent={prompts.currentContent}
                         editedContent={prompts.displayContent}
-                        disabled={prompts.isPromptEditorLoading || prompts.promptContent == null}
+                        disabled={prompts.isSavingPrompt || prompts.isPromptEditorLoading || prompts.promptContent == null}
                         hasUnsavedChanges={prompts.isDirty}
                         onCurrentVersionChanged={prompts.handleCurrentVersionChanged}
                       />

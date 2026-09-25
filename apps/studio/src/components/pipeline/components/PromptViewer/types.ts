@@ -28,7 +28,7 @@ export interface PromptViewerBaseProps {
 }
 
 export type PromptViewerProps =
-  | (PromptViewerBaseProps & { hideModel: true; model?: never; onModelChange?: never })
+  | (PromptViewerBaseProps & { hideModel: true; model?: string; onModelChange?: never })
   | (PromptViewerBaseProps & { hideModel?: false; model: string; onModelChange: (model: string) => void })
 
 export interface PromptDraft {

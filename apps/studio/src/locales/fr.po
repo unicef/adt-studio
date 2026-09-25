@@ -2309,8 +2309,11 @@ msgstr "Choisissez une vidéo déjà téléversée ou téléversez-en une nouvel
 msgid "Choose an existing image from this project"
 msgstr "Choisissez une image existante de ce projet"
 
-msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
-msgstr "Choisissez un modèle existant ou saisissez un nouvel id provider:model. La création de fichiers enregistre le modèle dans les paramètres globaux des prompts et copie le contenu actuel du prompt de base dans les versions propres au modèle qui manquent."
+msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions when the content differs. Matching prompts continue to inherit until edited."
+msgstr "Choisissez un modèle existant ou saisissez un nouvel identifiant fournisseur:modèle. La création de fichiers enregistre le modèle dans les paramètres globaux des prompts et copie le contenu actuel du prompt de base dans les versions spécifiques manquantes lorsque le contenu diffère. Les prompts identiques continuent d’hériter du contenu jusqu’à leur modification."
+
+#~ msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
+#~ msgstr "Choisissez un modèle existant ou saisissez un nouvel id provider:model. La création de fichiers enregistre le modèle dans les paramètres globaux des prompts et copie le contenu actuel du prompt de base dans les versions propres au modèle qui manquent."
 
 msgid "Choose features to include in this export"
 msgstr "Choisissez les fonctionnalités à inclure dans cette exportation"
@@ -10028,6 +10031,9 @@ msgstr "Cette opération fusionne une activité. La section combinée est régé
 msgid "This model already has prompt files for every base prompt."
 msgstr "Ce modèle possède déjà des fichiers de prompt pour chaque prompt de base."
 
+msgid "This model already uses the template content; no new version was created."
+msgstr "Ce modèle utilise déjà le contenu du modèle de prompt ; aucune nouvelle version n’a été créée."
+
 msgid "This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a prompt variant for it."
 msgstr "Ce modèle utilise le prompt de base car {expectedModelPromptName} n'existe pas encore. Enregistrer les modifications avec ce modèle sélectionné créera une variante de prompt pour lui."
 
@@ -10413,8 +10419,8 @@ msgstr "Impossible de créer le fichier de prompt à partir du modèle."
 msgid "Unable to create prompt files."
 msgstr "Impossible de créer les fichiers de prompt."
 
-msgid "Unable to delete prompt file."
-msgstr "Impossible de supprimer le fichier de prompt."
+#~ msgid "Unable to delete prompt file."
+#~ msgstr "Impossible de supprimer le fichier de prompt."
 
 msgid "Unable to delete prompt folder."
 msgstr "Impossible de supprimer le dossier de prompts."

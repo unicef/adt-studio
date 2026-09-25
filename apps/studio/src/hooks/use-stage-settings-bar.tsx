@@ -52,6 +52,7 @@ export function useStageSettingsBar({
       })
     },
     onSaveStay: save,
+    rerunOnLeave: false,
     onDiscard: remount,
     saveDisabledReason: disabledReason,
     rerunDisabledReason:

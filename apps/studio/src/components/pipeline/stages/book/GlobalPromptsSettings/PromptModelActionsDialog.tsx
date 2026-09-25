@@ -1,3 +1,4 @@
+import { useEffectiveBasePromptModel } from "@/hooks/use-effective-base-prompt-model"
 import { useEffect, useMemo, useState } from "react"
 import { Copy, Plus } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
@@ -45,17 +46,18 @@ export function PromptModelActionsDialog({
   selectedModel,
   onModelSelected,
 }: PromptModelActionsDialogProps) {
+  const basePromptModel = useEffectiveBasePromptModel()
   const { t } = useLingui()
   const queryClient = useQueryClient()
   const selectableModelGroups = useMemo(
-    () => removeDefaultPromptModelGroups(modelGroups),
-    [modelGroups],
+    () => removeDefaultPromptModelGroups(modelGroups, basePromptModel),
+    [modelGroups, basePromptModel],
   )
   const firstSelectableModel = useMemo(
     () => modelIdsFromGroups(selectableModelGroups)[0] ?? "",
     [selectableModelGroups],
   )
-  const initialTargetModel = isDefaultPromptModelId(selectedModel)
+  const initialTargetModel = isDefaultPromptModelId(selectedModel, basePromptModel)
     ? firstSelectableModel
     : selectedModel
   const [open, setOpen] = useState(false)
@@ -67,15 +69,15 @@ export function PromptModelActionsDialog({
   }, [initialTargetModel, open])
 
   const normalizedTargetModel = normalizePromptModelInput(targetModel)
-  const targetPromptModelId = promptModelForSelectedModel(normalizedTargetModel)
+  const targetPromptModelId = promptModelForSelectedModel(normalizedTargetModel, basePromptModel)
   const staticModelIds = useMemo(() => new Set(modelIdsFromGroups(LLM_MODEL_GROUPS)), [])
   const missingPrompts = useMemo(
     () => promptSummaries.filter((prompt) => (
-      !promptExistsForModel(prompt, normalizedTargetModel)
+      !promptExistsForModel(prompt, normalizedTargetModel, basePromptModel)
     )),
-    [normalizedTargetModel, promptSummaries],
+    [normalizedTargetModel, promptSummaries, basePromptModel],
   )
-  const isDefaultModel = isDefaultPromptModelId(normalizedTargetModel)
+  const isDefaultModel = isDefaultPromptModelId(normalizedTargetModel, basePromptModel)
   const canCreate = normalizedTargetModel.length > 0
     && !isDefaultModel
     && !isCreating
@@ -109,13 +111,15 @@ export function PromptModelActionsDialog({
       for (const prompt of missingPrompts) {
         const basePrompt = await api.getPrompt(prompt.name, undefined, null)
         const target = await api.getPrompt(prompt.name, undefined, targetPromptModelId)
-        await api.updatePrompt(prompt.name, basePrompt.content, undefined, targetPromptModelId, target.revision)
-        created += 1
+        const saved = await api.updatePrompt(prompt.name, basePrompt.content, undefined, targetPromptModelId, target.revision)
+        if (saved.revision !== target.revision) created += 1
       }
 
       await queryClient.invalidateQueries({ queryKey: ["prompts"] })
       onModelSelected(normalizedTargetModel)
-      toast.success(t`Created ${created} prompt files for ${normalizedTargetModel}.`)
+      toast.success(created === 0
+        ? t`This model already uses the template content; no new version was created.`
+        : t`Created ${created} prompt files for ${normalizedTargetModel}.`)
       setOpen(false)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t`Unable to create prompt files.`)
@@ -125,7 +129,7 @@ export function PromptModelActionsDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(next) => !isCreating && setOpen(next)}>
       <DialogTrigger asChild>
         <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-2 text-xs">
           <Plus className="h-3.5 w-3.5" />
@@ -139,7 +143,7 @@ export function PromptModelActionsDialog({
           </DialogTitle>
           <DialogDescription>
             <Trans>
-              Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions.
+              Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions when the content differs. Matching prompts continue to inherit until edited.
             </Trans>
           </DialogDescription>
         </DialogHeader>

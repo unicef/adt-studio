@@ -60,6 +60,7 @@ export interface GlobalPromptsController {
   isPromptFilesLoading: boolean
   isPromptEditorLoading: boolean
   isSavingPrompt: boolean
+  isChangingSelection: boolean
   setDraft: (value: string) => void
   discardDraft: () => void
   selectPromptFile: (promptName: string, modelId: string) => void
@@ -83,11 +84,13 @@ export interface GlobalPromptsController {
 type DeletePromptVariables = {
   promptName: string
   modelId: string
+  draft: string | null
 }
 
 type DeleteModelVariables = {
   modelId: string
   promptNames: string[]
+  draft: string | null
 }
 
 export function useGlobalPrompts(): GlobalPromptsController {
@@ -184,6 +187,7 @@ export function useGlobalPrompts(): GlobalPromptsController {
   const canDiscardDraft = () => !isDirty || window.confirm(t`Discard unsaved prompt changes?`)
 
   const selectPromptFile = (promptName: string, modelId: string) => {
+    if (isSavingPrompt) return
     if (!canDiscardDraft()) return
     setSelectedPrompt(promptName)
     setModel(modelId)
@@ -191,6 +195,7 @@ export function useGlobalPrompts(): GlobalPromptsController {
   }
 
   const selectModel = (modelId: string) => {
+    if (isSavingPrompt) return
     if (!canDiscardDraft()) return
     setModel(modelId)
     setDraft(null)
@@ -261,41 +266,51 @@ export function useGlobalPrompts(): GlobalPromptsController {
     onError: showError,
   })
 
+  const loadedRevision = async (promptName: string, targetModel: string | null) => {
+    if (selectedPrompt === promptName && promptModelId === targetModel && promptQuery.data) {
+      return draftRevision.current ?? promptQuery.data.revision
+    }
+    const loaded = queryClient.getQueryData<PromptResponse>(["prompts", promptName, undefined, targetModel])
+      ?? await api.getPrompt(promptName, undefined, targetModel)
+    return loaded.revision
+  }
   const deletePromptMutation = useMutation({
     mutationFn: async ({ promptName, modelId }: DeletePromptVariables) => {
-      if (isDefaultPromptModelId(modelId)) {
+      if (isDefaultPromptModelId(modelId, basePromptModel)) {
         throw new Error(t`Default prompt files cannot be deleted.`)
       }
       const targetModel = promptModelForSelectedModel(modelId, basePromptModel)
-      const loaded = await api.getPrompt(promptName, undefined, targetModel)
-      return api.resetPrompt(promptName, targetModel, undefined, loaded.revision)
+      return api.resetPrompt(promptName, targetModel, undefined, await loadedRevision(promptName, targetModel))
     },
-    onSuccess: async (resetPrompt, { promptName, modelId }) => {
+    onSuccess: async (resetPrompt, { promptName, modelId, draft: submittedDraft }) => {
       const deletedPromptModelId = promptModelForSelectedModel(modelId, basePromptModel)
       updatePromptCaches(queryClient, promptName, deletedPromptModelId, resetPrompt)
-      if (selectedPrompt === promptName && model === modelId) setDraft(null)
+      if (selectedPrompt === promptName && model === modelId) {
+        setDraft((current) => current === submittedDraft ? null : current)
+        draftRevision.current = resetPrompt.revision
+      }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["prompts"] }),
         queryClient.invalidateQueries({ queryKey: ["prompt-versions"] }),
       ])
       toast.success(t`Global prompt reset to default.`)
     },
-    onError: (error) => {
-      toast.error(error instanceof Error && !(error instanceof ApiError) ? error.message : t`Unable to delete prompt file.`)
+    onError: (error, { promptName, modelId }) => {
+      return showError(error, { name: promptName, model: promptModelForSelectedModel(modelId, basePromptModel) })
     },
   })
 
   const deleteModelMutation = useMutation({
     mutationFn: async ({ modelId, promptNames }: DeleteModelVariables) => {
-      if (isDefaultPromptModelId(modelId)) {
+      if (isDefaultPromptModelId(modelId, basePromptModel)) {
         throw new Error(t`Default prompt folders cannot be deleted.`)
       }
 
       const deletedPromptModelId = promptModelForSelectedModel(modelId, basePromptModel)
       if (deletedPromptModelId) {
         for (const promptName of promptNames) {
-          const loaded = await api.getPrompt(promptName, undefined, deletedPromptModelId)
-          await api.resetPrompt(promptName, deletedPromptModelId, undefined, loaded.revision)
+          const saved = await api.resetPrompt(promptName, deletedPromptModelId, undefined, await loadedRevision(promptName, deletedPromptModelId))
+          updatePromptCaches(queryClient, promptName, deletedPromptModelId, saved)
         }
       }
 
@@ -306,8 +321,8 @@ export function useGlobalPrompts(): GlobalPromptsController {
         queryClient.setQueryData(["prompt-models"], savedModels)
       }
     },
-    onSuccess: async (_, { modelId }) => {
-      if (model === modelId) {
+    onSuccess: async (_, { modelId, draft: submittedDraft }) => {
+      if (model === modelId && draft === submittedDraft) {
         setModel(defaultModelId)
         setDraft(null)
       }
@@ -318,7 +333,10 @@ export function useGlobalPrompts(): GlobalPromptsController {
       ])
       toast.success(t`Global prompt reset to default.`)
     },
-    onError: (error) => {
+    onError: (error, { modelId }) => {
+      const current = error instanceof ApiError && error.status === 409
+        ? (error.body as { current?: PromptResponse })?.current : undefined
+      if (current) return showError(error, { name: current.name, model: promptModelForSelectedModel(modelId, basePromptModel) })
       toast.error(error instanceof Error && !(error instanceof ApiError) ? error.message : t`Unable to delete prompt folder.`)
     },
   })
@@ -334,7 +352,7 @@ export function useGlobalPrompts(): GlobalPromptsController {
       if (!normalizedTargetModel) {
         throw new Error(t`Enter a model id.`)
       }
-      if (isDefaultPromptModelId(normalizedTargetModel)) {
+      if (isDefaultPromptModelId(normalizedTargetModel, basePromptModel)) {
         throw new Error(t`Default model cannot be used as a template target.`)
       }
 
@@ -373,7 +391,9 @@ export function useGlobalPrompts(): GlobalPromptsController {
         queryClient.invalidateQueries({ queryKey: ["prompt-models"] }),
         queryClient.invalidateQueries({ queryKey: ["prompt-versions"] }),
       ])
-      toast.success(t`Prompt file created from template.`)
+      toast.success(savedPrompt.revision === targetPrompt.revision
+        ? t`This model already uses the template content; no new version was created.`
+        : t`Prompt file created from template.`)
     } catch (error) {
       toast.error(
         error instanceof Error && !(error instanceof ApiError) ? error.message : t`Unable to create prompt file from template.`,
@@ -394,6 +414,8 @@ export function useGlobalPrompts(): GlobalPromptsController {
       ? deleteModelMutation.variables.modelId
       : null
   const isPromptFilesLoading = promptListQuery.isLoading || promptModelsQuery.isLoading
+  const isChangingSelection = resetMutation.isPending || deletePromptMutation.isPending || deleteModelMutation.isPending
+  const isSavingPrompt = saveMutation.isPending || isChangingSelection
 
   return {
     promptSummaries,
@@ -425,9 +447,12 @@ export function useGlobalPrompts(): GlobalPromptsController {
     hasResettableVersion,
     isPromptFilesLoading,
     isPromptEditorLoading: isPromptFilesLoading || promptQuery.isLoading || defaultModelQuery.isLoading || loadingBaseModel,
-    isSavingPrompt: saveMutation.isPending || resetMutation.isPending,
+    isSavingPrompt,
+    isChangingSelection,
     setDraft: (value) => {
-      if (value === currentContent) { setDraft(null); draftRevision.current = null; return }
+      // While a save is pending, even the old server bytes are a newer edit:
+      // clearing them here would let the submitted response replace the buffer.
+      if (value === currentContent && !saveMutation.isPending) { setDraft(null); draftRevision.current = null; return }
       if (draft == null) draftRevision.current = promptQuery.data?.revision ?? null
       setDraft(value)
     },
@@ -436,10 +461,10 @@ export function useGlobalPrompts(): GlobalPromptsController {
     selectModel,
     createPromptFromTemplate,
     deletePrompt: async (promptName, modelId) => {
-      if (canDiscardDraft()) return deletePromptMutation.mutateAsync({ promptName, modelId })
+      if (!isSavingPrompt && canDiscardDraft()) return deletePromptMutation.mutateAsync({ promptName, modelId, draft })
     },
     deleteModel: async (modelId, promptNames) => {
-      if (canDiscardDraft()) return deleteModelMutation.mutateAsync({ modelId, promptNames })
+      if (!isSavingPrompt && canDiscardDraft()) return deleteModelMutation.mutateAsync({ modelId, promptNames, draft })
     },
     handleCurrentVersionChanged,
     save: async () => { await saveMutation.mutateAsync({ name: selectedPrompt, model: promptModelId, content: displayContent, revision: draftRevision.current ?? promptQuery.data?.revision ?? "" }) },

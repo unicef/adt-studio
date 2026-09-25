@@ -630,6 +630,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
               description={t`The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt.`}
               draft={refinementPromptDraft}
               hideModel
+              model={sectioning.model}
               onContentChange={(content, modelId, revision) => setRefinementPromptDraft(toPromptDraft(content, modelId, revision))}
             />
           </div>

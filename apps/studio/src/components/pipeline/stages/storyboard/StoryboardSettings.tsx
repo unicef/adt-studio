@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { DEFAULT_IMAGE_GENERATION_MODEL_ID } from "@adt/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { Eye, Wand2, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -143,6 +144,8 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
+  const imagePromptModel = typeof activeConfigData?.merged.default_image_generation_model === "string"
+    ? activeConfigData.merged.default_image_generation_model : DEFAULT_IMAGE_GENERATION_MODEL_ID
   const updateConfig = useUpdateBookConfig()
   const queryClient = useQueryClient()
   const { apiKey } = useApiKey()
@@ -805,6 +808,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                 description={t`Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals.`}
                 draft={imageGenPromptDraft}
                 hideModel
+                model={imagePromptModel}
                 onContentChange={(content, modelId, revision) => setImageGenPromptDraft(toPromptDraft(content, modelId, revision))}
               />
             ) : (
@@ -816,6 +820,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                 description={t`Wraps 'Edit this image' requests. The AI receives the original image alongside this prompt. Supports user_prompt and style variables.`}
                 draft={imageEditPromptDraft}
                 hideModel
+                model={imagePromptModel}
                 onContentChange={(content, modelId, revision) => setImageEditPromptDraft(toPromptDraft(content, modelId, revision))}
               />
             )}
@@ -896,6 +901,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
               title={t`Visual Review Prompt (read-only)`}
               description={t`This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used.`}
               hideModel
+              model={renderingModel}
               readOnly
             />
           </div>

@@ -2309,8 +2309,11 @@ msgstr "Zgjidh një video të ngarkuar më parë ose ngarko një të re."
 msgid "Choose an existing image from this project"
 msgstr "Zgjidhni një imazh ekzistues nga ky projekt"
 
-msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
-msgstr "Zgjidhni një model ekzistues ose shkruani një id të ri provider:model. Krijimi i skedarëve e ruan modelin te cilësimet globale të prompteve dhe kopjon përmbajtjen aktuale të promptit bazë te versionet specifike për modelin që mungojnë."
+msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions when the content differs. Matching prompts continue to inherit until edited."
+msgstr "Zgjidhni një model ekzistues ose shkruani një identifikues të ri ofrues:model. Krijimi i skedarëve e ruan modelin te cilësimet globale të udhëzimeve dhe kopjon përmbajtjen aktuale të udhëzimit bazë në versionet specifike që mungojnë për modelin kur përmbajtja ndryshon. Udhëzimet me përmbajtje të njëjtë vazhdojnë ta trashëgojnë atë derisa të redaktohen."
+
+#~ msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
+#~ msgstr "Zgjidhni një model ekzistues ose shkruani një id të ri provider:model. Krijimi i skedarëve e ruan modelin te cilësimet globale të prompteve dhe kopjon përmbajtjen aktuale të promptit bazë te versionet specifike për modelin që mungojnë."
 
 msgid "Choose features to include in this export"
 msgstr "Zgjidhni funksionet për t'i përfshirë në këtë eksportim"
@@ -10028,6 +10031,9 @@ msgstr "Kjo bashkon një aktivitet. Seksioni i kombinuar ri-renderohet, kështu 
 msgid "This model already has prompt files for every base prompt."
 msgstr "Ky model tashmë ka skedarë prompti për çdo prompt bazë."
 
+msgid "This model already uses the template content; no new version was created."
+msgstr "Ky model e përdor tashmë përmbajtjen e shabllonit; nuk u krijua asnjë version i ri."
+
 msgid "This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a prompt variant for it."
 msgstr "Ky model po përdor promptin bazë sepse {expectedModelPromptName} nuk ekziston ende. Ruajtja e ndryshimeve ndërsa ky model është zgjedhur do të krijojë një variant prompti për të."
 
@@ -10413,8 +10419,8 @@ msgstr "Nuk u arrit të krijohej skedari i promptit nga shablloni."
 msgid "Unable to create prompt files."
 msgstr "Nuk mund të krijohen skedarët e promptit."
 
-msgid "Unable to delete prompt file."
-msgstr "Nuk u arrit të fshihej skedari i promptit."
+#~ msgid "Unable to delete prompt file."
+#~ msgstr "Nuk u arrit të fshihej skedari i promptit."
 
 msgid "Unable to delete prompt folder."
 msgstr "Nuk u arrit të fshihej dosja e prompteve."

@@ -14,7 +14,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useIsFetching, useIsMutating, useQuery, useQueryClient } from "@tanstack/react-query"
 import { DEFAULT_LLM_MAX_RETRIES } from "@adt/types"
 import type { PromptResponse } from "@/api/client"
 import { api } from "@/api/client"
@@ -59,10 +59,14 @@ export function PromptViewer({
   const isDark = useIsDarkMode()
   const effectiveDefaultModel = useEffectiveDefaultModel(bookLabel)
   const effectiveBasePromptModel = useEffectiveBasePromptModel(bookLabel)
+  const configKey = ["debug", "config", bookLabel]
+  const fetchingConfig = useIsFetching({ queryKey: configKey }) > 0
+  const resolvingConfig = fetchingConfig && queryClient.getQueryData(configKey) == null
   const resolvedModelPlaceholder = modelPlaceholder ?? effectiveDefaultModel
-  const promptModelId = hideModel
+  const promptModelId = hideModel && model === undefined
     ? null
-    : promptModelForSelectedModel(model, effectiveBasePromptModel)
+    : promptModelForSelectedModel(model?.trim() || effectiveDefaultModel, effectiveBasePromptModel)
+  const saving = useIsMutating({ mutationKey: ["prompt-save", bookLabel, promptName, promptModelId] }) > 0
 
   const { data: promptData, isLoading } = useQuery({
     queryKey: ["prompts", promptName, bookLabel, promptModelId],
@@ -75,6 +79,8 @@ export function PromptViewer({
   const [resetting, setResetting] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+  const selection = useRef({ promptName, bookLabel, modelId: promptModelId })
+  selection.current = { promptName, bookLabel, modelId: promptModelId }
 
   useEffect(() => {
     setDraft(null)
@@ -99,7 +105,8 @@ export function PromptViewer({
 
   const onChange = (value: string) => {
     setDraft(value)
-    onContentChange?.(value === currentContent ? null : value, promptModelId, externalDraft?.revision || promptData?.revision || "")
+    const loadedRevision = externalDraft?.modelId === promptModelId ? externalDraft.revision : promptData?.revision
+    onContentChange?.(value === currentContent && !saving ? null : value, promptModelId, loadedRevision || "")
     draftRevision.current ??= promptData?.revision ?? null
   }
 
@@ -111,7 +118,7 @@ export function PromptViewer({
       return
     }
 
-    const nextPromptModelId = promptModelForSelectedModel(nextModel, effectiveBasePromptModel)
+    const nextPromptModelId = promptModelForSelectedModel(nextModel.trim() || effectiveDefaultModel, effectiveBasePromptModel)
     setDraft(null)
     onContentChange?.(null, nextPromptModelId, "")
     onModelChange?.(nextModel)
@@ -121,16 +128,18 @@ export function PromptViewer({
     changedPromptName: string,
     changedModelId: string | null,
     prompt: PromptResponse,
+    changedBookLabel?: string,
   ) => {
-    if (changedPromptName === promptName && changedModelId === promptModelId) {
+    const active = selection.current
+    if (changedPromptName === active.promptName && changedModelId === active.modelId && changedBookLabel === active.bookLabel) {
       setDraft(null)
       onContentChange?.(null, promptModelId, "")
     }
 
-    queryClient.setQueryData(["prompts", changedPromptName, bookLabel, changedModelId], prompt)
+    queryClient.setQueryData(["prompts", changedPromptName, changedBookLabel, changedModelId], prompt)
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["prompts", changedPromptName, bookLabel, changedModelId] }),
-      queryClient.invalidateQueries({ queryKey: ["prompt-versions", changedPromptName, changedModelId, bookLabel] }),
+      queryClient.invalidateQueries({ queryKey: ["prompts", changedPromptName, changedBookLabel, changedModelId] }),
+      queryClient.invalidateQueries({ queryKey: ["prompt-versions", changedPromptName, changedModelId, changedBookLabel] }),
     ])
   }
 
@@ -147,8 +156,10 @@ export function PromptViewer({
     setResetting(true)
     try {
     const resetPrompt = await api.resetPrompt(promptName, promptModelId, bookLabel, externalDraft?.revision || promptData.revision)
-    setDraft(null)
-    onContentChange?.(null, promptModelId, "")
+    if (selection.current.promptName === promptName && selection.current.bookLabel === bookLabel && selection.current.modelId === promptModelId) {
+      setDraft(null)
+      onContentChange?.(null, promptModelId, "")
+    }
     queryClient.setQueryData(["prompts", promptName, bookLabel, promptModelId], resetPrompt)
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["prompts", promptName, bookLabel, promptModelId] }),
@@ -158,12 +169,16 @@ export function PromptViewer({
       if (error instanceof ApiError && error.status === 409) {
         const current = (error.body as { current?: PromptResponse })?.current
         if (current) queryClient.setQueryData(["prompts", promptName, bookLabel, promptModelId], current)
+      } else {
+        await api.getPrompt(promptName, bookLabel, promptModelId)
+          .then((current) => queryClient.setQueryData(["prompts", promptName, bookLabel, promptModelId], current))
+          .catch(() => {})
       }
       toast.error(t`Unable to reset prompt.`)
     } finally { setResetting(false) }
   }
 
-  const editorBody = isLoading ? (
+  const editorBody = isLoading || resolvingConfig ? (
     <div className="p-4 text-sm text-muted-foreground">
       <Trans>Loading prompt...</Trans>
     </div>
@@ -221,6 +236,7 @@ export function PromptViewer({
                 </Label>
                 <ModelSelect
                   value={model ?? ""}
+                  disabled={readOnly || saving || resetting || restoring}
                   onChange={handleModelChange}
                   placeholder={resolvedModelPlaceholder}
                   groups={modelGroups}
@@ -328,7 +344,7 @@ export function PromptViewer({
                 size="sm"
                 className="mr-2 h-8"
                 onClick={resetBookPrompt}
-                disabled={resetting}
+                disabled={readOnly || saving || resetting || restoring}
               >
                 <RotateCcw className="size-4" />
                 <Trans>Reset</Trans>
@@ -341,6 +357,7 @@ export function PromptViewer({
                 size="sm"
                 className="mr-2 h-8"
                 aria-pressed={isHistoryOpen}
+                disabled={restoring}
                 onClick={() => setIsHistoryOpen((isOpen) => !isOpen)}
               >
                 <GitCompare className="size-4" />
@@ -382,7 +399,7 @@ export function PromptViewer({
                   onPendingChange={setRestoring}
                   currentContent={currentContent}
                   editedContent={displayContent}
-                  disabled={isLoading || promptData?.content == null}
+                  disabled={readOnly || saving || resetting || resolvingConfig || isLoading || promptData?.content == null}
                   hasUnsavedChanges={hasUnsavedPromptDraft}
                   onCurrentVersionChanged={handleCurrentVersionChanged}
                 />

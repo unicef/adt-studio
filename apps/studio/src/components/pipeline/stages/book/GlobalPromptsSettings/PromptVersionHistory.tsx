@@ -28,6 +28,7 @@ type PromptVersionHistoryProps = {
     promptName: string,
     modelId: string | null,
     prompt: PromptResponse,
+    bookLabel?: string,
   ) => Promise<void> | void
 }
 
@@ -90,22 +91,33 @@ export function PromptVersionHistory({
     mutationFn: ({ promptName, bookLabel, modelId, version, revision }: ActivatePromptVersionVariables) =>
       api.setPromptVersionCurrent(promptName, version, modelId, bookLabel, revision),
     onSuccess: async (prompt, variables) => {
-      await onCurrentVersionChanged(variables.promptName, variables.modelId, prompt)
+      queryClient.setQueryData(["prompts", variables.promptName, variables.bookLabel, variables.modelId], prompt)
+      if (variables.promptName === promptName && variables.modelId === modelId && variables.bookLabel === bookLabel) {
+        await onCurrentVersionChanged(variables.promptName, variables.modelId, prompt, variables.bookLabel)
+      }
       await queryClient.invalidateQueries({
         queryKey: ["prompt-versions", variables.promptName, variables.modelId, variables.bookLabel],
       })
       toast.success(t`Prompt version selected.`)
     },
-    onError: (error, variables) => {
+    onError: async (error, variables) => {
       if (error instanceof ApiError && error.status === 409) {
         const current = (error.body as { current?: PromptResponse })?.current
         if (current) queryClient.setQueryData(["prompts", variables.promptName, variables.bookLabel, variables.modelId], current)
         toast.error(t`This prompt changed after you loaded it. Your draft was not overwritten.`)
-      } else toast.error(t`Unable to select prompt version.`)
+      } else {
+        await api.getPrompt(variables.promptName, variables.bookLabel, variables.modelId)
+          .then((current) => queryClient.setQueryData(["prompts", variables.promptName, variables.bookLabel, variables.modelId], current))
+          .catch(() => {})
+        toast.error(t`Unable to select prompt version.`)
+      }
     },
   })
 
-  useEffect(() => { onPendingChange?.(activateMutation.isPending) }, [activateMutation.isPending, onPendingChange])
+  useEffect(() => {
+    onPendingChange?.(activateMutation.isPending)
+    return () => onPendingChange?.(false)
+  }, [activateMutation.isPending, onPendingChange])
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col bg-background", className)}>
@@ -139,6 +151,7 @@ export function PromptVersionHistory({
                 className="ml-auto h-7"
                 disabled={
                   !selectedVersion
+                  || disabled
                   || isUnsavedSelected
                   || selectedVersion.isCurrent
                   || activateMutation.isPending
