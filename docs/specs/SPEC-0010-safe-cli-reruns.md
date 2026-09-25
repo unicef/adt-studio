@@ -131,7 +131,7 @@ Legacy books without manifests are not automatically backfilled from today's PDF
 | SPEC-0003 | Reused extraction still must pass the Sectioning-mode rendering preflight. |
 | Stable IDs/retained media | No rerun retirement or allocator reset on reuse; preserve historical asset bytes, recordings and video assignments. |
 
-The proposed decision is recorded in [ADR 026](../DECISIONS.md#026-existing-books-require-verified-extraction-reuse). It remains proposed until this spec's blocking review questions are resolved. No new runtime enforcement is claimed by this documentation PR.
+The proposed decision is recorded in [ADR 026](../DECISIONS.md#026-existing-books-require-verified-extraction-reuse). It remains proposed until this spec's blocking review questions are resolved. The implementation in this PR delivers extraction admission and verified reuse, with the documented `UNSAFE_RESUME_UNAVAILABLE` fallback. Full downstream resume remains blocked. See [the implementation evidence](SPEC-0010-implementation-evidence.md) and [operator guidance](../SAFE_EXTRACTION.md); implementation does not approve this proposed decision.
 
 ## Acceptance criteria
 

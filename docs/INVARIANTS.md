@@ -3,10 +3,10 @@
 Principles that only live in prose do not survive agent throughput. Every row here names a check.
 Each spec that establishes an invariant adds its checker in the same change.
 
-> **Not every check below exists yet**, and the `pnpm lint:invariants` entry point that would
-> run them together is itself still planned — the first spec that needs it introduces it. Until
-> then the checks that do exist run under `pnpm typecheck`, `pnpm test` and `pnpm lint`. Treat a
-> row whose check is not yet implemented as a debt marker, not as enforcement.
+> **Not every check below exists yet.** `pnpm lint:invariants` currently enforces only
+> the ordinary extraction entrypoint restriction in row 8. Other implemented checks
+> run under `pnpm typecheck`, `pnpm test` and `pnpm lint`. Treat a row whose check is
+> not yet implemented as a debt marker, not as enforcement.
 
 | # | Invariant | Check | Runs | Established by |
 |---|-----------|-------|------|----------------|
@@ -17,3 +17,4 @@ Each spec that establishes an invariant adds its checker in the same change.
 | 5 | Staleness semantics (per-section, input-version comparison, never delete) | contract tests in `packages/pipeline/test/staleness.contract.test.ts` | every PR | SPEC-0001 |
 | 6 | Prompt output contracts | validator suite per prompt (page sectioning exists; extend) | every PR | SPEC-0003, SPEC-0004 |
 | 7 | No provider key in logs or model-call records | log scrubber test + grep in CI | every PR | security chain (Block 1) |
+| 8 | Ordinary extraction admission never calls `clearExtractedData` | `scripts/check-invariants.mjs` checks the direct extraction, CLI DAG, stage route and runner; real-storage admission tests cover preservation | every PR | SPEC-0010 safe slice |

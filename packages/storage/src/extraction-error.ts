@@ -19,4 +19,3 @@ export class ExtractionAdmissionError extends Error {
     this.name = "ExtractionAdmissionError"
   }
 }
-
