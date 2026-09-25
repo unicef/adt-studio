@@ -68,6 +68,7 @@ export function promptRoots(booksDir: string, bundled: string, overrides?: strin
   if (bookRoot) {
     promptPath(booksDir, path.relative(path.resolve(booksDir), path.resolve(bookRoot)))
     assertWritablePromptRoot(bundled, bookRoot)
+    assertWritablePromptRoot(global, bookRoot, "global overrides")
   }
   return [...(bookRoot ? [path.resolve(bookRoot)] : []), global, path.resolve(bundled)]
 }

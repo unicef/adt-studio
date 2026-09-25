@@ -246,6 +246,7 @@ interface AiImageGenParams {
   mode?: "swap" | "add"
   booksDir: string
   modelId: string
+  basePromptModelId?: string
 }
 
 async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
@@ -262,7 +263,7 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
   const promptName = isEditMode ? "ai_image_edit" : "ai_image_generation"
   const finalPrompt = renderPromptText(
     resolvePromptRoots({ booksDir: params.booksDir, promptsDir, bookPromptsDir: path.join(bookDir, "prompts") }),
-    promptName, { user_prompt: prompt, style: style || null, image_type: imageType || null }, modelId,
+    promptName, { user_prompt: prompt, style: style || null, image_type: imageType || null }, modelId, params.basePromptModelId,
   )
 
   // Look up target image dimensions
@@ -2959,10 +2960,9 @@ export function createPageRoutes(
       const desc = referenceImageId
         ? `Editing image ${referenceImageId}`
         : `Generating image for ${pageId}`
-      const modelId = configPath
-        ? loadBookConfig(safeLabel, booksDir, configPath)
-            .default_image_generation_model ?? DEFAULT_IMAGE_GENERATION_MODEL_ID
-        : DEFAULT_IMAGE_GENERATION_MODEL_ID
+      const config = configPath ? loadBookConfig(safeLabel, booksDir, configPath) : undefined
+      const modelId = config?.default_image_generation_model ?? DEFAULT_IMAGE_GENERATION_MODEL_ID
+      assertModelCredentials("image", modelId, credentials)
 
       // Submit as task if TaskService is available
       if (taskService) {
@@ -2976,7 +2976,7 @@ export function createPageRoutes(
               prompt, referenceImageId, targetImageId,
               style, imageType, styleImageId, promptsDir,
               sectionIndex, mode, booksDir,
-              modelId,
+              modelId, basePromptModelId: config?.base_prompt_model,
             })
           },
           { pageId, url: `/books/${safeLabel}/storyboard/${pageId}` }
@@ -2990,7 +2990,7 @@ export function createPageRoutes(
         prompt, referenceImageId, targetImageId,
         style, imageType, styleImageId, promptsDir,
         sectionIndex, mode, booksDir,
-        modelId,
+        modelId, basePromptModelId: config?.base_prompt_model,
       })
       return c.json(result)
     } catch (err) {

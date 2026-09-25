@@ -2,6 +2,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { expect, it } from "vitest"
+import { unzipSync } from "fflate"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import { createPromptRoutes } from "../routes/prompts.js"
 import { exportProject } from "./export-service.js"
@@ -23,7 +24,11 @@ it("moves immutable book prompts, assets and inspectable call bytes through a re
     const loaded = await (await api.request("/books/book/prompts/test")).json()
     const saved = await (await api.request("/books/book/prompts/test", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ revision: loaded.revision, content: "portable book" }) })).json()
     const archive = await exportProject("book", source)
+    // A writer may publish while ZIP streaming is still in progress. The
+    // archive must retain its captured selection, and never copy the gate.
+    await api.request("/books/book/prompts/test", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ revision: saved.revision, content: "later book edit" }) })
     const zip = Buffer.from(await new Response(archive.stream).arrayBuffer())
+    expect(Object.keys(unzipSync(zip)).some((name) => name.includes(".prompt-write.lock"))).toBe(false)
     await importProject(zip, destination)
     const moved = createPromptRoutes(bundled, destination)
     const global = await (await moved.request("/prompts/test")).json()

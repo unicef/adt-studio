@@ -1,5 +1,6 @@
 import fs from "node:fs"
 import { randomUUID } from "node:crypto"
+import { promptModelFolderName } from "./prompt-resolution.js"
 import { PromptName, PromptModels, safeParseModelId } from "@adt/types"
 import {
   PromptFileError, promptPath, listPromptVersionFiles, readPromptSelection,
@@ -11,21 +12,24 @@ import {
  * any candidate is selected. Existing target selections always win. */
 export async function migratePromptOverrides(bundled: string, target: string, bookRoot?: string): Promise<void> {
   assertWritablePromptRoot(bundled, target)
-  if (bookRoot) assertWritablePromptRoot(bundled, bookRoot)
+  if (bookRoot) {
+    assertWritablePromptRoot(bundled, bookRoot)
+    assertWritablePromptRoot(target, bookRoot, "global overrides")
+  }
   await withPromptGates([target, ...(bookRoot ? [bookRoot] : [])], () => {
     // Validate metadata before copying anything; a partial/invalid model list
     // must not silently disappear or introduce ambiguous candidate ownership.
+    const owners = new Map<string, string>()
     for (const root of [bundled, target]) {
       const file = promptPath(root, ".models.json")
       if (!fs.existsSync(file)) continue
       try {
         const { models } = PromptModels.parse(JSON.parse(fs.readFileSync(file, "utf8")))
-        const owners = new Map<string, string>()
         for (const value of models) {
           const parsed = safeParseModelId(value.trim().toLowerCase())
           if (!parsed.ok || parsed.value.usedLegacyDefault) throw new Error("Invalid model")
           const model = parsed.value.qualified
-          const folder = model.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "")
+          const folder = promptModelFolderName(model)
           if (owners.has(folder) && owners.get(folder) !== model) throw new Error("Model collision")
           owners.set(folder, model)
         }

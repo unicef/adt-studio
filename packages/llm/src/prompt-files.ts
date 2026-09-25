@@ -15,11 +15,11 @@ export function physicalPromptRoot(root: string): string {
   return path.join(physicalPromptRoot(parent), path.basename(resolved))
 }
 
-export function assertWritablePromptRoot(bundled: string, writable: string): void {
+export function assertWritablePromptRoot(bundled: string, writable: string, sourceLabel = "bundled resources"): void {
   const source = physicalPromptRoot(bundled)
   const target = physicalPromptRoot(writable)
   if (source === target || source.startsWith(target + path.sep) || target.startsWith(source + path.sep)) {
-    throw new PromptFileError("PROMPT_INVALID_ROOT", "Writable prompt overrides must be separate from bundled resources")
+    throw new PromptFileError("PROMPT_INVALID_ROOT", `Writable prompt overrides must be separate from ${sourceLabel}`)
   }
 }
 

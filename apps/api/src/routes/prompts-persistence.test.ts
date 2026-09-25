@@ -174,6 +174,8 @@ it("rejects resource-root aliases, malformed model metadata, and preserves a new
   const aliased = createPromptRoutes(bundled, books, undefined, alias)
   expect((await aliased.request("/prompts/test")).status).toBe(400)
   expect(fs.existsSync(path.join(bundled, ".prompt-write.lock"))).toBe(false)
+  const overlapping = createPromptRoutes(bundled, books, undefined, path.join(books, "book", "prompts"))
+  expect((await overlapping.request("/books/book/prompts/test")).status).toBe(400)
   fs.mkdirSync(overrides, { recursive: true })
   fs.writeFileSync(path.join(overrides, "test.liquid"), "target flat")
   const legacy = path.join(bundled, ".versions", "test")
