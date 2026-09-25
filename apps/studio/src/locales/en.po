@@ -2898,6 +2898,9 @@ msgstr "Current book font"
 msgid "Current effective values"
 msgstr "Current effective values"
 
+msgid "Current output cannot be validated. Existing findings remain available; restore eligible Storyboard output before refreshing validation."
+msgstr "Current output cannot be validated. Existing findings remain available; restore eligible Storyboard output before refreshing validation."
+
 msgid "Current Preview Page"
 msgstr "Current Preview Page"
 
@@ -3950,6 +3953,9 @@ msgstr "Failed to read archive"
 
 msgid "Failed to save metadata. Please try again."
 msgstr "Failed to save metadata. Please try again."
+
+msgid "Failed to save reviewer changes"
+msgstr "Failed to save reviewer changes"
 
 msgid "Failed:"
 msgstr "Failed:"
@@ -9758,6 +9764,9 @@ msgstr "The Lost Forest"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "The model detects bounding boxes so each visual element can be stored and laid out separately."
 
+msgid "The original assessment is no longer available. Refresh validation when Storyboard output is ready; no finding has been marked resolved."
+msgstr "The original assessment is no longer available. Refresh validation when Storyboard output is ready; no finding has been marked resolved."
+
 msgid "The original assessment is no longer current. Showing the available assessment; navigation has not changed any verdict."
 msgstr "The original assessment is no longer current. Showing the available assessment; navigation has not changed any verdict."
 
@@ -9826,6 +9835,9 @@ msgstr "The rendering strategy used for sections without an explicit mapping."
 
 msgid "The requested section is no longer available. Opened the page instead."
 msgstr "The requested section is no longer available. Opened the page instead."
+
+msgid "The review source is unavailable. Your unsaved notes have been kept."
+msgstr "The review source is unavailable. Your unsaved notes have been kept."
 
 #~ msgid "The river meets the sea"
 #~ msgstr "The river meets the sea"
@@ -11108,6 +11120,9 @@ msgstr "Your fonts"
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Your pages {displayStart}–{displayEnd}"
+
+msgid "Your unsaved review still belongs to the page shown below. Save or discard it before reviewing another page."
+msgstr "Your unsaved review still belongs to the page shown below. Save or discard it before reviewing another page."
 
 msgid "Z → A"
 msgstr "Z → A"

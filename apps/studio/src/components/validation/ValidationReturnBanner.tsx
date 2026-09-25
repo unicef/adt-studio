@@ -13,7 +13,8 @@ export function ValidationReturnBanner({ label }: { label: string }) {
       <span><Trans>Repair suggestion. Review decisions remain unchanged.</Trans></span>
       <Button variant="outline" size="sm" onClick={() => void navigate({
         to: "/books/$label/$step", params: { label, step: "validation" },
-        search: { tab: context.tab, validationContext: context },
+        search: { ...search, tab: context.tab, validationContext: context, validationReturn: undefined, sectionId: undefined },
+        hash: true,
       })}>
         <Trans>Return to Validation</Trans>
       </Button>

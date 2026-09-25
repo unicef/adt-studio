@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { RotateCcw, ShieldCheck } from "lucide-react"
-import { StageBlockedState } from "@/components/pipeline/components/StageBlockedState"
 import { LoadingState } from "@/components/pipeline/components/LoadingState"
 import { useAllPagesPruned } from "@/hooks/use-all-pages-pruned"
 import { useNavigate, useSearch } from "@tanstack/react-router"
@@ -37,6 +36,7 @@ export function ValidationView({ bookLabel }: { bookLabel: string }) {
   const reviewerValidationEnabled = reviewerValidationCatalog.data?.enabled ?? false
   const storyboardDone = stageState("storyboard") === "done"
   const { allPruned, isLoading: prunedLoading } = useAllPagesPruned(bookLabel)
+  const canPackage = storyboardDone && !allPruned && !isStatusLoading && !prunedLoading
   const [isSubmittingPackage, setIsSubmittingPackage] = useState(false)
   const [pendingPackagingTaskId, setPendingPackagingTaskId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -46,6 +46,7 @@ export function ValidationView({ bookLabel }: { bookLabel: string }) {
   }, [reviewerValidationEnabled, search.tab])
 
   const runPackage = useCallback(async () => {
+    if (!canPackage) return
     setIsSubmittingPackage(true)
     setError(null)
     let taskId: string | undefined
@@ -67,7 +68,7 @@ export function ValidationView({ bookLabel }: { bookLabel: string }) {
         setIsSubmittingPackage(false)
       }
     }
-  }, [bookLabel, t, i18n])
+  }, [bookLabel, canPackage, t, i18n])
 
   // Track task completion/failure to update local loading/error state.
   // Query invalidation is handled by the SSE task-complete handler in use-book-run.ts.
@@ -88,14 +89,6 @@ export function ValidationView({ bookLabel }: { bookLabel: string }) {
 
   if (isStatusLoading || prunedLoading) {
     return <LoadingState stageSlug="validation" label={<Trans>Loading validation...</Trans>} />
-  }
-
-  if (!storyboardDone) {
-    return <StageBlockedState bookLabel={bookLabel} reason="storyboard-missing" stageLabel={<Trans>Validation</Trans>} />
-  }
-
-  if (allPruned) {
-    return <StageBlockedState bookLabel={bookLabel} reason="all-pruned" stageLabel={<Trans>Validation</Trans>} />
   }
 
   const packaging = isSubmittingPackage || pendingPackagingTaskId !== null || isTaskRunning("package-adt")
@@ -120,12 +113,15 @@ export function ValidationView({ bookLabel }: { bookLabel: string }) {
             </div>
           </div>
 
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => void runPackage()}>
+          <Button variant="outline" size="sm" className="h-8 text-xs" disabled={!canPackage} onClick={() => void runPackage()}>
             <RotateCcw className="h-3.5 w-3.5" />
             <Trans>Refresh validation</Trans>
           </Button>
         </div>
 
+        {!canPackage ? (
+          <p role="status" className="mt-3 text-sm text-muted-foreground"><Trans>Current output cannot be validated. Existing findings remain available; restore eligible Storyboard output before refreshing validation.</Trans></p>
+        ) : null}
         {error ? (
           <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import type { AccessibilityAssessmentOutput } from "@adt/types"
 
 const navigateMock = vi.fn()
@@ -52,6 +52,7 @@ vi.mock("@lingui/react/macro", () => ({
   }),
 }))
 
+let assessmentAvailable = true
 const assessment: AccessibilityAssessmentOutput = {
   generatedAt: "2026-03-16T10:00:00.000Z",
   tool: "axe-core",
@@ -156,7 +157,7 @@ const assessment: AccessibilityAssessmentOutput = {
 }
 
 vi.mock("@/hooks/use-debug", () => ({
-  useAccessibilityAssessment: () => ({ data: { assessment }, isLoading: false, error: null }),
+  useAccessibilityAssessment: () => ({ data: { assessment: assessmentAvailable ? assessment : null }, isLoading: false, error: null }),
 }))
 
 vi.mock("@/hooks/use-book-config", () => ({
@@ -167,6 +168,7 @@ vi.mock("@/hooks/use-book-config", () => ({
 afterEach(() => {
   cleanup()
   routeSearch = {}
+  assessmentAvailable = true
   vi.clearAllMocks()
 })
 
@@ -219,6 +221,7 @@ describe("AccessibilityOverviewTab", () => {
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith(expect.objectContaining({
       to: "/books/$label/$step/$pageId",
       params: { label: "demo-book", step: "storyboard", pageId: "pg001" },
+      hash: true,
       search: expect.objectContaining({ sectionId: "pg001_sec001", validationReturn: expect.objectContaining({ tab: "accessibility-summary", category: "structure-semantics" }) }),
     })))
   })
@@ -238,5 +241,31 @@ it("explains replacement of the original assessment while retaining its requeste
   expect(screen.getByRole("status").textContent).toContain("original assessment is no longer current")
   expect(screen.getByText("Fix heading order")).toBeTruthy()
   expect(screen.queryByText("Add alt text")).toBeNull()
+  expect(navigateMock).not.toHaveBeenCalled()
+})
+
+it("returns to the manual finding when the same rule also has a confirmed violation", async () => {
+  const manual = assessment.pages[0].incomplete[0]
+  const originalId = manual.id
+  manual.id = "image-alt"
+  try {
+    const { AccessibilityOverviewTab } = await import("./AccessibilityValidationTabs")
+    render(<AccessibilityOverviewTab label="demo-book" />)
+    const manualCard = screen.getByText(manual.help).closest("[id]")!
+    fireEvent.click(within(manualCard as HTMLElement).getByRole("button", { name: /Open Page 1/ }))
+    await waitFor(() => expect(navigateMock).toHaveBeenCalled())
+    const context = navigateMock.mock.calls[0][0].search.validationContext
+    expect(context.findingId).toBe("review:image-alt")
+    expect(manualCard.id).toBe("validation-finding-review:image-alt")
+    expect(document.querySelectorAll('[id="validation-finding-violation:image-alt"]')).toHaveLength(1)
+  } finally { manual.id = originalId }
+})
+
+it("explains a deleted original assessment without implying that its findings passed", async () => {
+  assessmentAvailable = false
+  routeSearch = { validationContext: { tab: "accessibility-summary", assessment: "deleted" } }
+  const { AccessibilityOverviewTab } = await import("./AccessibilityValidationTabs")
+  render(<AccessibilityOverviewTab label="demo-book" />)
+  expect(screen.getByText(/original assessment is no longer available/).textContent).toContain("no finding has been marked resolved")
   expect(navigateMock).not.toHaveBeenCalled()
 })

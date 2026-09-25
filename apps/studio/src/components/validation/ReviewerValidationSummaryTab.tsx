@@ -369,7 +369,8 @@ export function ReviewerValidationSummaryTab({
       entry.record.results
         .filter((result) => result.status === "needs-changes")
         .map((result) => {
-          const meta = criterionMeta.get(result.criterion_id)
+          // A live checklist cannot establish the meaning of an old answer.
+          const meta = activeSession?.session.catalog_snapshot ? criterionMeta.get(result.criterion_id) : undefined
           return {
             criterionId: result.criterion_id,
             pageId: entry.record.page_id,
@@ -652,6 +653,7 @@ export function ReviewerValidationSummaryTab({
                           <Badge variant="outline" className="font-mono text-[11px]">{entry.pageId}</Badge>
                         </div>
                         <div className="mt-2 text-sm font-medium leading-snug">{entry.criterionLabel ?? t`Unknown criterion`}</div>
+                        {!entry.criterionLabel ? <div className="font-mono text-xs text-muted-foreground">{entry.criterionId}</div> : null}
                         <div className="mt-1 text-xs break-all text-muted-foreground">{entry.href}</div>
                         {entry.comment ? (
                           <div className="mt-2 text-sm text-foreground">{entry.comment}</div>

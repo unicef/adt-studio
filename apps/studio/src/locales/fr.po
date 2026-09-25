@@ -2900,6 +2900,9 @@ msgstr "Police actuelle du livre"
 msgid "Current effective values"
 msgstr "Valeurs effectives actuelles"
 
+msgid "Current output cannot be validated. Existing findings remain available; restore eligible Storyboard output before refreshing validation."
+msgstr "Le résultat actuel ne peut pas être validé. Les constats existants restent disponibles ; rétablissez un contenu Storyboard admissible avant de relancer la validation."
+
 msgid "Current Preview Page"
 msgstr "Page d'aperçu actuelle"
 
@@ -3952,6 +3955,9 @@ msgstr "Échec de la lecture de l'archive"
 
 msgid "Failed to save metadata. Please try again."
 msgstr "Échec de l'enregistrement des métadonnées. Veuillez réessayer."
+
+msgid "Failed to save reviewer changes"
+msgstr "Échec de l’enregistrement des modifications de la révision"
 
 msgid "Failed:"
 msgstr "Échoué :"
@@ -9760,6 +9766,9 @@ msgstr "La forêt perdue"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Le modèle détecte les zones de délimitation afin que chaque élément visuel puisse être stocké et disposé séparément."
 
+msgid "The original assessment is no longer available. Refresh validation when Storyboard output is ready; no finding has been marked resolved."
+msgstr "L’évaluation d’origine n’est plus disponible. Relancez la validation lorsque le résultat Storyboard sera prêt ; aucun constat n’a été marqué comme résolu."
+
 msgid "The original assessment is no longer current. Showing the available assessment; navigation has not changed any verdict."
 msgstr "L’évaluation d’origine n’est plus à jour. L’évaluation disponible est affichée ; la navigation n’a modifié aucun verdict."
 
@@ -9828,6 +9837,9 @@ msgstr "La stratégie de rendu utilisée pour les sections sans correspondance e
 
 msgid "The requested section is no longer available. Opened the page instead."
 msgstr "La section demandée n’est plus disponible. La page a été ouverte à la place."
+
+msgid "The review source is unavailable. Your unsaved notes have been kept."
+msgstr "La source de la révision n’est pas disponible. Vos notes non enregistrées ont été conservées."
 
 #~ msgid "The river meets the sea"
 #~ msgstr "La rivière rejoint la mer"
@@ -11110,6 +11122,9 @@ msgstr "Vos polices"
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Vos pages {displayStart}–{displayEnd}"
+
+msgid "Your unsaved review still belongs to the page shown below. Save or discard it before reviewing another page."
+msgstr "Votre révision non enregistrée concerne toujours la page affichée ci-dessous. Enregistrez-la ou abandonnez-la avant de réviser une autre page."
 
 msgid "Z → A"
 msgstr "Z → A"

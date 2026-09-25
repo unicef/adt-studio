@@ -163,7 +163,7 @@ export function SectioningPageDetail({
     consumedSectionFocusRef.current = focusKey
 
     const element = sectionElementsRef.current.get(search.sectionId)
-    if (element && mergedSections.some((section) => section.sectionId === search.sectionId && !section.isPruned)) {
+    if (element && mergedSections.filter((section) => section.sectionId === search.sectionId && !section.isPruned).length === 1) {
       element.scrollIntoView({ behavior: "smooth", block: "center" })
       setFocusedSectionId(search.sectionId)
     } else {

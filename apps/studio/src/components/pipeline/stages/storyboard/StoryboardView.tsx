@@ -113,9 +113,10 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     if (consumedSectionFocusRef.current === focusKey) return
     consumedSectionFocusRef.current = focusKey
 
-    const targetIndex = (page.sectioningTree?.sections ?? []).findIndex(
-      (section) => section.sectionId === search.sectionId && !section.isPruned,
+    const matches = (page.sectioningTree?.sections ?? []).flatMap((section, index) =>
+      section.sectionId === search.sectionId && !section.isPruned ? [index] : [],
     )
+    const targetIndex = matches.length === 1 ? matches[0] : -1
     if (targetIndex < 0) {
       toast.warning(t`The requested section is no longer available. Opened the page instead.`)
     }

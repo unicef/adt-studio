@@ -131,6 +131,14 @@ describe("SectioningPageDetail validation section focus", () => {
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1)
 
   })
+  it("does not focus an arbitrary match when identity becomes ambiguous", async () => {
+    const { SectioningPageDetail } = await import("./SectioningPageDetail")
+    const duplicate = { ...page, sectioningTree: { sections: [page.sectioningTree.sections[1], { ...page.sectioningTree.sections[1] }] } }
+    render(<SectioningPageDetail bookLabel="demo-book" pageId="pg001" page={duplicate as never} navigationExtra={null} navigationArrows={null} />)
+    expect(scrollIntoViewMock).not.toHaveBeenCalled()
+    expect(navigateMock).toHaveBeenCalled()
+  })
+
 })
 
 vi.mock("@/hooks/use-downstream-with-output", () => ({ useDownstreamWithOutput: () => [] }))

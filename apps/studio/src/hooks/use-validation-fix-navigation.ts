@@ -43,14 +43,15 @@ export function useValidationFixNavigation(label: string) {
         hash: true, replace: true,
       })
       if (activeRequest.current !== request) return
-      const returnSearch = { validationReturn: context }
+      const returnSearch = { ...search, tab: undefined, validationContext: undefined, validationReturn: context, sectionId: undefined }
       if (destination.kind === "stage") {
-        await navigate({ to: "/books/$label/$step", params: { label, step: destination.stage }, search: returnSearch })
+        await navigate({ to: "/books/$label/$step", params: { label, step: destination.stage }, search: returnSearch, hash: true })
       } else {
         await navigate({
           to: "/books/$label/$step/$pageId",
           params: { label, step: destination.stage, pageId: destination.pageId },
           search: { ...returnSearch, sectionId: destination.sectionId },
+          hash: true,
         })
       }
     } catch {

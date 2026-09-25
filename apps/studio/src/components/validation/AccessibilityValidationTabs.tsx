@@ -224,7 +224,7 @@ function FrequentFindingCard({
   const fixStage = resolveAccessibilityFixStage(finding.id, finding.categoryKey)
 
   return (
-    <div id={`validation-finding-${finding.id}`} className="rounded-lg border px-3 py-3">
+    <div id={`validation-finding-${finding.reviewOnly ? "review" : "violation"}:${finding.id}`} className="rounded-lg border px-3 py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           {finding.reviewOnly ? (
@@ -315,6 +315,9 @@ export function AccessibilityOverviewTab({ label }: AccessibilityTabProps) {
   }
 
   if (!data?.assessment) {
+    if (validationContext?.assessment) {
+      return <EmptyState message={<Trans>The original assessment is no longer available. Refresh validation when Storyboard output is ready; no finding has been marked resolved.</Trans>} />
+    }
     return <EmptyState message={<Trans>No accessibility assessment has been generated yet. Package the ADT output to create one.</Trans>} />
   }
 
@@ -370,7 +373,7 @@ export function AccessibilityOverviewTab({ label }: AccessibilityTabProps) {
     }, {
       tab: "accessibility-summary", assessment: assessment.generatedAt,
       severity: severityFilter ?? undefined, category: categoryFilter ?? undefined,
-      pageId: page.pageId ?? undefined, findingId: finding.id,
+      pageId: page.pageId ?? undefined, findingId: `${finding.reviewOnly ? "review" : "violation"}:${finding.id}`,
     })
   }
 

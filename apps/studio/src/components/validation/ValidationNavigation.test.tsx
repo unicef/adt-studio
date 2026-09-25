@@ -44,11 +44,14 @@ vi.mock("@/hooks/use-reviewer-validation", () => ({
   useSaveReviewerPageValidationRecord: () => ({ mutateAsync: (...args: unknown[]) => save(...args), isPending: false }),
 }))
 
+const initialPreviewPage = { pageId: "pg001", pageNumber: 1, sectionId: "stable", href: "stable.html", title: "Page", hasImages: false, hasActivity: false, signLanguageEnabled: false }
+let previewPage = initialPreviewPage
+
 function Surface() {
   const { step } = useParams({ strict: false }) as { step: string }
   const navigate = useNavigate()
   const fix = useValidationFixNavigation("book")
-  if (step === "preview") return <PreviewValidationCard label="book" panelOpen={false} currentPage={{ pageId: "pg001", pageNumber: 1, sectionId: "stable", href: "stable.html", title: "Page", hasImages: false, hasActivity: false, signLanguageEnabled: false }} onOpenValidation={() => void navigate({ to: "/books/$label/$step", params: { label: "book", step: "validation" } })} />
+  if (step === "preview") return <PreviewValidationCard label="book" panelOpen={false} currentPage={previewPage} onOpenValidation={() => void navigate({ to: "/books/$label/$step", params: { label: "book", step: "validation" } })} />
   if (step === "validation") return <button onClick={() => void fix.open({ stage: "storyboard", pageId: "old-page", sectionId: "stable" }, { tab: "accessibility-summary", assessment: "original", category: "structure-semantics", pageId: "old-page", findingId: "heading-order" })}>Open repair</button>
   return <><ValidationReturnBanner label="book" /><div>Editor</div></>
 }
@@ -67,6 +70,7 @@ async function setup(step: string, initialHref?: string) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  previewPage = initialPreviewPage
   window.sessionStorage.clear()
   window.sessionStorage.setItem("adt-preview-review-card:book", "expanded")
   save.mockResolvedValue({})
@@ -108,7 +112,8 @@ it("resolves moved identity, restores context with Return and Back, and writes n
   fireEvent.click(screen.getByRole("button", { name: "Open repair" }))
   fireEvent.click(await screen.findByRole("button", { name: "Return to Validation" }))
   await waitFor(() => expect(router.state.location.pathname).toBe("/books/book/validation"))
-  expect(router.state.location.search).toMatchObject({ validationContext: { assessment: "original", pageId: "old-page" } })
+  expect(router.state.location.search).toMatchObject({ unrelated: "keep", validationContext: { assessment: "original", pageId: "old-page" } })
+  expect(router.state.location.hash).toBe("original-fragment")
   expect(save).not.toHaveBeenCalled()
 })
 
@@ -165,4 +170,45 @@ it("does not redirect or notify after the originating view unmounts", async () =
   await act(async () => { reject(new Error("late offline response")) })
   expect(failure).not.toHaveBeenCalled()
   expect(router.state.location.pathname).toBe("/books/book/validation")
+})
+
+
+it("keeps an unsaved review bound to its source when the Preview iframe changes page", async () => {
+  const router = await setup("preview")
+  fireEvent.change(await screen.findByLabelText("Overall page note"), { target: { value: "Note for original page" } })
+  previewPage = { ...initialPreviewPage, pageId: "pg002", sectionId: "second", href: "second.html", title: "Second page" }
+  await act(async () => { await router.navigate({ to: "/books/$label/$step", params: { label: "book", step: "preview" }, search: { changed: true } }) })
+  expect((screen.getByLabelText("Overall page note") as HTMLTextAreaElement).value).toBe("Note for original page")
+  fireEvent.click(screen.getByRole("button", { name: "Save page review" }))
+  await waitFor(() => expect(save).toHaveBeenCalledTimes(1))
+  expect(save.mock.calls[0][0]).toMatchObject({ page_id: "pg001", section_id: "stable", overall_comment: "Note for original page" })
+})
+
+it("shares an in-flight save with Save & leave and prevents edits until it settles", async () => {
+  let finish!: () => void
+  save.mockImplementationOnce(() => new Promise<void>((resolve) => { finish = resolve }))
+  const router = await setup("preview")
+  fireEvent.change(await screen.findByLabelText("Overall page note"), { target: { value: "Persist before leaving" } })
+  fireEvent.click(screen.getByRole("button", { name: "Save page review" }))
+  await waitFor(() => expect(save).toHaveBeenCalledTimes(1))
+  expect((screen.getByLabelText("Overall page note") as HTMLTextAreaElement).disabled).toBe(true)
+  fireEvent.click(screen.getByRole("button", { name: "Open Validation" }))
+  fireEvent.click(await screen.findByRole("button", { name: /Save.*leave/i }))
+  expect(save).toHaveBeenCalledTimes(1)
+  expect(router.state.location.pathname).toBe("/books/book/preview")
+  await act(async () => { finish() })
+  await waitFor(() => expect(router.state.location.pathname).toBe("/books/book/validation"))
+})
+
+it("shows an ordinary save failure, keeps the draft, and permits retry", async () => {
+  save.mockRejectedValueOnce(new Error("disk full"))
+  await setup("preview")
+  fireEvent.change(await screen.findByLabelText("Overall page note"), { target: { value: "Keep this after failure" } })
+  fireEvent.click(screen.getByRole("button", { name: "Save page review" }))
+  expect((await screen.findByRole("alert")).textContent).toBe("disk full")
+  expect((screen.getByLabelText("Overall page note") as HTMLTextAreaElement).value).toBe("Keep this after failure")
+  expect((screen.getByRole("button", { name: "Save page review" }) as HTMLButtonElement).disabled).toBe(false)
+  fireEvent.click(screen.getByRole("button", { name: "Save page review" }))
+  await waitFor(() => expect(save).toHaveBeenCalledTimes(2))
+  expect(save.mock.calls[1][0]).toMatchObject({ overall_comment: "Keep this after failure", page_id: "pg001" })
 })

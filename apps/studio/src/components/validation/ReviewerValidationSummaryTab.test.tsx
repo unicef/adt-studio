@@ -141,6 +141,7 @@ describe("ReviewerValidationSummaryTab", () => {
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({
       to: "/books/$label/$step/$pageId",
       params: { label: "demo-book", step: "sectioning", pageId: "pg001" },
+      hash: true,
       search: expect.objectContaining({ sectionId: "pg001_sec002", validationReturn: expect.objectContaining({ sessionId: "session-1" }) }),
     }))
   })
@@ -155,6 +156,7 @@ describe("ReviewerValidationSummaryTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open pg001_sec002 in Image Captions" }))
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({
       to: "/books/$label/$step", params: { label: "demo-book", step: "captions" },
+      hash: true,
       search: expect.objectContaining({ validationReturn: expect.objectContaining({ sessionId: "session-1" }) }),
     }))
     expect(session.catalog_snapshot).toBe(legacyCatalog)
@@ -179,4 +181,15 @@ it("explains a missing source session and offers the available historical review
   expect(await screen.findByRole("button", { name: "Open pg001_sec002 in Sectioning" })).toBeTruthy()
   expect(record.results[0].status).toBe("needs-changes")
   expect(navigateMock).not.toHaveBeenCalled()
+})
+
+it("does not relabel historical answers from an edited live catalog when the session has no snapshot", async () => {
+  session.catalog_snapshot = undefined
+  activeCatalog = { ...legacyCatalog, pageSections: legacyCatalog.pageSections.map((section) => ({
+    ...section, criteria: section.criteria.map((criterion) => ({ ...criterion, label: "New unrelated criterion meaning" })),
+  })) }
+  const { ReviewerValidationSummaryTab } = await import("./ReviewerValidationSummaryTab")
+  render(<ReviewerValidationSummaryTab label="demo-book" />)
+  expect(screen.queryByText("New unrelated criterion meaning")).toBeNull()
+  expect(screen.getByText("text-matches-original-reading-order")).toBeTruthy()
 })

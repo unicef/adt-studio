@@ -2898,6 +2898,9 @@ msgstr "Fonte atual do livro"
 msgid "Current effective values"
 msgstr "Valores efetivos atuais"
 
+msgid "Current output cannot be validated. Existing findings remain available; restore eligible Storyboard output before refreshing validation."
+msgstr "Não é possível validar o resultado atual. Os apontamentos existentes continuam disponíveis; restaure conteúdo válido do Storyboard antes de atualizar a validação."
+
 msgid "Current Preview Page"
 msgstr "Página Atual da Pré-visualização"
 
@@ -3950,6 +3953,9 @@ msgstr "Falha ao ler o arquivo"
 
 msgid "Failed to save metadata. Please try again."
 msgstr "Não foi possível salvar os metadados. Tente novamente."
+
+msgid "Failed to save reviewer changes"
+msgstr "Não foi possível salvar as alterações da revisão"
 
 msgid "Failed:"
 msgstr "Falhou:"
@@ -9758,6 +9764,9 @@ msgstr "A Floresta Perdida"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "O modelo detecta caixas delimitadoras para que cada elemento visual possa ser armazenado e disposto separadamente."
 
+msgid "The original assessment is no longer available. Refresh validation when Storyboard output is ready; no finding has been marked resolved."
+msgstr "A avaliação original não está mais disponível. Atualize a validação quando o resultado do Storyboard estiver pronto; nenhum apontamento foi marcado como resolvido."
+
 msgid "The original assessment is no longer current. Showing the available assessment; navigation has not changed any verdict."
 msgstr "A avaliação original não está mais atualizada. Exibindo a avaliação disponível; a navegação não alterou nenhum veredito."
 
@@ -9826,6 +9835,9 @@ msgstr "A estratégia de renderização usada para seções sem um mapeamento ex
 
 msgid "The requested section is no longer available. Opened the page instead."
 msgstr "A seção solicitada não está mais disponível. A página foi aberta em seu lugar."
+
+msgid "The review source is unavailable. Your unsaved notes have been kept."
+msgstr "A origem da revisão não está disponível. Suas notas não salvas foram preservadas."
 
 #~ msgid "The river meets the sea"
 #~ msgstr "O rio encontra o mar"
@@ -11108,6 +11120,9 @@ msgstr "Suas fontes"
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Suas páginas {displayStart}–{displayEnd}"
+
+msgid "Your unsaved review still belongs to the page shown below. Save or discard it before reviewing another page."
+msgstr "Sua revisão não salva ainda pertence à página mostrada abaixo. Salve-a ou descarte-a antes de revisar outra página."
 
 msgid "Z → A"
 msgstr "Z → A"

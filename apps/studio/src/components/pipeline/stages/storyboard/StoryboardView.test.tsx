@@ -147,6 +147,17 @@ describe("StoryboardView validation section focus", () => {
     page = original
   })
 
+  it("does not choose the first section when identity became ambiguous before arrival", async () => {
+    const original = page
+    page = { ...original, sectioningTree: { sections: [original.sectioningTree.sections[1], { ...original.sectioningTree.sections[1] }] } }
+    try {
+      const { StoryboardView } = await import("./StoryboardView")
+      render(<StoryboardView bookLabel="demo-book" selectedPageId="pg001" />)
+      expect(toastWarningMock).toHaveBeenCalledTimes(1)
+      expect(setSectionIndexMock).not.toHaveBeenCalled()
+    } finally { page = original }
+  })
+
 })
 
 vi.mock("./components/BookOutlineAudit", () => ({ BookOutlineAudit: () => <div>outline</div> }))

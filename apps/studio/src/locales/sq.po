@@ -2900,6 +2900,9 @@ msgstr "Fonti aktual i librit"
 msgid "Current effective values"
 msgstr "Vlerat aktuale efektive"
 
+msgid "Current output cannot be validated. Existing findings remain available; restore eligible Storyboard output before refreshing validation."
+msgstr "Rezultati aktual nuk mund të validohet. Gjetjet ekzistuese mbeten të disponueshme; riktheni përmbajtje të përshtatshme të Storyboard para se të rifreskoni validimin."
+
 msgid "Current Preview Page"
 msgstr "Faqja aktuale e pamjes paraprake"
 
@@ -3952,6 +3955,9 @@ msgstr "Dështoi leximi i arkivit"
 
 msgid "Failed to save metadata. Please try again."
 msgstr "Ruajtja e të dhënave dështoi. Ju lutemi provoni përsëri."
+
+msgid "Failed to save reviewer changes"
+msgstr "Ndryshimet e rishikimit nuk u ruajtën"
 
 msgid "Failed:"
 msgstr "Dështoi:"
@@ -9760,6 +9766,9 @@ msgstr "Pylli i Humbur"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të ruhet dhe të vendoset veçmas."
 
+msgid "The original assessment is no longer available. Refresh validation when Storyboard output is ready; no finding has been marked resolved."
+msgstr "Vlerësimi fillestar nuk është më i disponueshëm. Rifreskoni validimin kur rezultati i Storyboard të jetë gati; asnjë gjetje nuk është shënuar si e zgjidhur."
+
 msgid "The original assessment is no longer current. Showing the available assessment; navigation has not changed any verdict."
 msgstr "Vlerësimi fillestar nuk është më aktual. Shfaqet vlerësimi i disponueshëm; navigimi nuk ka ndryshuar asnjë vendim."
 
@@ -9828,6 +9837,9 @@ msgstr "Strategjia e renderimit e përdorur për seksionet pa një hartëzim eks
 
 msgid "The requested section is no longer available. Opened the page instead."
 msgstr "Seksioni i kërkuar nuk është më i disponueshëm. Në vend të tij u hap faqja."
+
+msgid "The review source is unavailable. Your unsaved notes have been kept."
+msgstr "Burimi i rishikimit nuk është i disponueshëm. Shënimet tuaja të paruajtura janë ruajtur përkohësisht."
 
 #~ msgid "The river meets the sea"
 #~ msgstr "Lumi takon detin"
@@ -11110,6 +11122,9 @@ msgstr "Fontet e tua"
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Faqet tuaja {displayStart}–{displayEnd}"
+
+msgid "Your unsaved review still belongs to the page shown below. Save or discard it before reviewing another page."
+msgstr "Rishikimi juaj i paruajtur i përket ende faqes së shfaqur më poshtë. Ruajeni ose hidheni poshtë para se të rishikoni një faqe tjetër."
 
 msgid "Z → A"
 msgstr "Z → A"
