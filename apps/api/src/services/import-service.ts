@@ -5,7 +5,7 @@ import { unzipSync } from "fflate"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel, BookMetadata, PIPELINE } from "@adt/types"
 import { renderPdfCover } from "@adt/pdf"
-import { openBookDb, withNewBookWriter } from "@adt/storage"
+import { openBookDb, withNewBookWriter, readExtractionManifest, writeExtractionManifest, verifyExtractionInventory } from "@adt/storage"
 import { getBook, type BookSummary } from "./book-service.js"
 
 export interface ImportResult extends BookSummary {}
@@ -211,7 +211,6 @@ export async function importProject(
   return withNewBookWriter(bookDir, () => {
     try {
       for (const [entryPath, data] of Object.entries(entries)) {
-        if ([".book-writer.json", ".book-writer.json.recovery"].includes(entryPath)) continue
         const renamedPath = entryPath.startsWith(`${rawLabel}.`)
           ? entryPath.replace(rawLabel, targetLabel)
           : entryPath
@@ -221,6 +220,13 @@ export async function importProject(
         if (!destPath.startsWith(bookDir + path.sep) && destPath !== bookDir) {
           throwInvalidArchive("Invalid project archive: contains paths that escape the project directory")
         }
+
+        // Compare normalized destinations, not ZIP spellings: ./ and a/../
+        // must not let portable content replace this importer's live lease.
+        // Case and trailing dots/spaces can alias that file on supported hosts.
+        const relative = path.relative(bookDir, destPath)
+        const portableName = relative.toLowerCase().replace(/[. ]+$/, "")
+        if ([".book-writer.json", ".book-writer.json.recovery"].includes(portableName)) continue
 
         const destDir = path.dirname(destPath)
         if (!fs.existsSync(destDir)) {
@@ -236,6 +242,20 @@ export async function importProject(
       if (meta.validationError) {
         if (meta.validationCorrupt) throwCorruptProject(meta.validationError)
         throwInvalidArchive(meta.validationError)
+      }
+
+      // Relocation changes only the source filename, never its bytes, proof
+      // or extraction attempt. Legacy archives acquire no guessed provenance.
+      const manifest = readExtractionManifest(bookDir)
+      if (manifest) {
+        const relocated = {
+          ...manifest,
+          assets: manifest.assets.map((asset) => asset.path === `${rawLabel}.pdf`
+            ? { ...asset, path: `${targetLabel}.pdf` }
+            : asset),
+        }
+        if (relocated.status === "complete") verifyExtractionInventory(bookDir, relocated)
+        if (targetLabel !== rawLabel) writeExtractionManifest(bookDir, relocated)
       }
 
       return getBook(targetLabel, booksDir)
