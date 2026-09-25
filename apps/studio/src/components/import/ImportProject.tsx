@@ -101,6 +101,10 @@ function PreviewCard({ preview, fileName, fileSize }: { preview: ImportPreview; 
           <p className="text-[11px] text-muted-foreground truncate">{fileName} &middot; {formatBytes(fileSize)}</p>
         </div>
 
+        <p className="mx-5 mb-3 text-xs text-muted-foreground">
+          <Trans>Book prompts and call logs are preserved. Global prompt settings come from this device and may differ from the original host. Regenerate affected outputs.</Trans>
+        </p>
+
         {preview.validationError && (
           <div className="mx-5 mb-3 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">
             <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />

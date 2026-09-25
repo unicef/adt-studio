@@ -52,6 +52,7 @@ export {
 export {
   createPromptEngine,
   renderLiquidTemplate,
+  renderPromptText,
   resolvePromptModelId,
   promptModelFolderName,
   promptNameForModel,
@@ -197,3 +198,7 @@ export {
   redactUrl,
   validateEndpointUrl,
 } from "./providers/shared/endpoint.js"
+
+export { resolvePromptFile, promptRoots } from "./prompt-resolution.js"
+export { PromptFileError, promptPath, promptVersionDir, readPromptSelection, legacyPromptSelection, listPromptVersionFiles, initializePromptSelection, publishPromptSelection, savePromptVersion, writePromptFileAtomic, writePromptFileExclusive, withPromptGates, promptDigest } from "./prompt-files.js"
+export { migratePromptOverrides } from "./prompt-migration.js"

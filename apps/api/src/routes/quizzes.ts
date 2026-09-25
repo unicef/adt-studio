@@ -1,3 +1,4 @@
+import { resolvePromptRoots } from "../services/prompt-roots.js"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -226,7 +227,7 @@ export function createQuizRoutes(
 
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
+      const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: appConfig.base_prompt_model })
       const llmModel = createLLMModel({
         modelId: quizConfig.modelId,
         cacheDir,

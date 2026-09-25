@@ -63,6 +63,16 @@ afterEach(() => {
 })
 
 describe("useFloatingSaveLeaveAction", () => {
+  it("does not promise regeneration when the separate re-run button is opt-in", async () => {
+    const save = vi.fn()
+    const rerun = vi.fn()
+    const leave = renderLeaveAction([{ id: "settings:glossary", dirty: true, saving: false,
+      onSaveStay: save, onSaveAndRerun: rerun, rerunOnLeave: false }])
+    expect(leave.current?.willRerun).toBe(false)
+    await leave.current?.saveAndStay()
+    expect(save).toHaveBeenCalledOnce()
+    expect(rerun).not.toHaveBeenCalled()
+  })
   it("does not promise a re-run for an entry that only saves in place", () => {
     const leave = renderLeaveAction([
       { id: "sectioning:p1", dirty: true, saving: false, onSaveStay: vi.fn() },

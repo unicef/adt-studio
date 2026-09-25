@@ -526,17 +526,15 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
   const save = async () => {
     const promptSaves: Promise<unknown>[] = []
     if (promptDraft != null) {
-      promptSaves.push(savePromptDraft(queryClient, "translation", bookLabel, promptDraft))
+      promptSaves.push(savePromptDraft(queryClient, "translation", bookLabel, promptDraft, setPromptDraft))
     }
     if (imagePromptDraft != null) {
-      promptSaves.push(savePromptDraft(queryClient, "image_translation", bookLabel, imagePromptDraft))
+      promptSaves.push(savePromptDraft(queryClient, "image_translation", bookLabel, imagePromptDraft, setImagePromptDraft))
     }
     if (promptSaves.length > 0) await Promise.all(promptSaves)
 
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
-    setPromptDraft(null)
-    setImagePromptDraft(null)
     resetMarkedTabs()
   }
 
@@ -613,7 +611,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           onModelChange={translation.onModelChange}
           maxRetries={translation.maxRetries}
           onMaxRetriesChange={translation.onMaxRetriesChange}
-          onContentChange={(content, modelId) => setPromptDraft(toPromptDraft(content, modelId))}
+          onContentChange={(content, modelId, revision) => setPromptDraft(toPromptDraft(content, modelId, revision))}
           enabled={tab === "prompt"}
         />
       )}
@@ -1220,7 +1218,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
               onModelChange={imageTranslation.onModelChange}
               maxRetries={imageTranslation.maxRetries}
               onMaxRetriesChange={imageTranslation.onMaxRetriesChange}
-              onContentChange={(content, modelId) => setImagePromptDraft(toPromptDraft(content, modelId))}
+              onContentChange={(content, modelId, revision) => setImagePromptDraft(toPromptDraft(content, modelId, revision))}
               enabled={tab === "image-translation"}
             />
           </div>

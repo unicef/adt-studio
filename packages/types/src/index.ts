@@ -103,6 +103,15 @@ export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.
 export { ProgressEvent } from "./progress.js"
 
 export {
+  PromptSource,
+  PromptSaveTarget,
+  PromptPersistence,
+  PromptResponse,
+  PromptVersionSummary,
+  PromptVersionsResponse,
+} from "./prompt.js"
+
+export {
   PageErrorPolicy,
   PageErrorAction,
   PendingDecision,
@@ -537,3 +546,4 @@ export {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
 } from "./ai-provider.js"
+export { PromptName, PromptVersion, PromptRevision, PromptMutation, PromptSave, PromptModels, PromptSelection, ResolvedPromptFile } from "./prompt.js"

@@ -1919,6 +1919,9 @@ msgstr "Estrutura do livro"
 msgid "Book Outline"
 msgstr "Estrutura do livro"
 
+msgid "Book override"
+msgstr "Substituição do livro"
+
 msgid "Book package ready"
 msgstr "Pacote do livro pronto"
 
@@ -1933,6 +1936,9 @@ msgstr "Pré-visualização do livro"
 
 msgid "Book Preview"
 msgstr "Pré-visualização do Livro"
+
+msgid "Book prompts and call logs are preserved. Global prompt settings come from this device and may differ from the original host. Regenerate affected outputs."
+msgstr "Os prompts do livro e os registros de chamadas são preservados. As configurações globais de prompts vêm deste dispositivo e podem diferir das do dispositivo original. Regenere os resultados afetados."
 
 msgid "Book setup"
 msgstr "Configuração do livro"
@@ -2044,6 +2050,9 @@ msgstr "Cria o índice a partir das seções do livro."
 
 msgid "Built for every reader"
 msgstr "Feito para todos os leitores"
+
+msgid "Bundled default"
+msgstr "Padrão incluído"
 
 msgid "Bundles the rendered book into a deployable web package."
 msgstr "Agrupa o livro renderizado em um pacote web implantável."
@@ -2194,6 +2203,17 @@ msgstr "Alterar a imagem deste termo"
 msgid "Changes detected"
 msgstr "Alterações detectadas"
 
+#. placeholder {0}: promptData.persistence.logicalPath
+msgid "Changes save to global overrides at {0}."
+msgstr "As alterações são salvas nas substituições globais em {0}."
+
+msgid "Changes save to global overrides at {logicalPath}."
+msgstr "As alterações são salvas nas substituições globais em {logicalPath}."
+
+#. placeholder {0}: promptData.persistence.logicalPath
+msgid "Changes save to this book at {0}."
+msgstr "As alterações são salvas neste livro em {0}."
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Alterar as fontes afeta como as páginas são renderizadas — execute novamente o Storyboard e a Exportação para aplicar as novas fontes."
 
@@ -2287,8 +2307,11 @@ msgstr "Escolha um vídeo enviado anteriormente ou envie um novo."
 msgid "Choose an existing image from this project"
 msgstr "Escolha uma imagem existente deste projeto"
 
-msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
-msgstr "Escolha um modelo existente ou digite um novo id provider:model. Criar arquivos salva o modelo nas configurações globais de prompts e copia o conteúdo atual do prompt base para as versões específicas do modelo que estiverem faltando."
+msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions when the content differs. Matching prompts continue to inherit until edited."
+msgstr "Escolha um modelo existente ou digite um novo identificador provedor:modelo. A criação de arquivos salva o modelo nas configurações globais de prompts e copia o conteúdo atual do prompt base para as versões específicas do modelo que faltam quando o conteúdo é diferente. Os prompts correspondentes continuam herdando o conteúdo até serem editados."
+
+#~ msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
+#~ msgstr "Escolha um modelo existente ou digite um novo id provider:model. Criar arquivos salva o modelo nas configurações globais de prompts e copia o conteúdo atual do prompt base para as versões específicas do modelo que estiverem faltando."
 
 msgid "Choose features to include in this export"
 msgstr "Escolha as características para incluir nesta exportação"
@@ -2910,8 +2933,8 @@ msgstr "Instruções Personalizadas"
 msgid "Custom Layout Demo"
 msgstr "Demonstração de Layout Personalizado"
 
-msgid "Custom prompt version"
-msgstr "Versão customizada do prompt"
+#~ msgid "Custom prompt version"
+#~ msgstr "Versão customizada do prompt"
 
 msgid "Custom range"
 msgstr "Intervalo personalizado"
@@ -3480,8 +3503,11 @@ msgstr "Editar metadados do livro"
 msgid "Edit caption"
 msgstr "Editar legenda"
 
-msgid "Edit fallback prompts used by every book. Saving creates a global prompt version; reset removes the version and returns to the shipped default file."
-msgstr "Edite os prompts fallback usados por todos os livros. Salvar cria uma versão global do prompt; resetar remove a versão e retorna ao arquivo padrão distribuído."
+#~ msgid "Edit fallback prompts used by every book. Saving creates a global prompt version; reset removes the version and returns to the shipped default file."
+#~ msgstr "Edite os prompts fallback usados por todos os livros. Salvar cria uma versão global do prompt; resetar remove a versão e retorna ao arquivo padrão distribuído."
+
+msgid "Edit fallback prompts used by every book. Saving creates a global prompt version; reset retains history and returns to the shipped default file."
+msgstr "Edite os prompts de fallback usados por todos os livros. Salvar cria uma versão global; redefinir preserva o histórico e restaura o arquivo padrão incluído."
 
 msgid "Edit in Quizzes"
 msgstr "Editar em Questionários"
@@ -4370,11 +4396,17 @@ msgstr "Prompt de geração"
 msgid "Get a key"
 msgstr "Obter uma chave"
 
+msgid "Global override"
+msgstr "Substituição global"
+
+msgid "Global overrides"
+msgstr "Personalizações globais"
+
 msgid "Global prompt reset to default."
 msgstr "Prompt global resetado para o padrão."
 
-msgid "Global prompt saved."
-msgstr "Prompt global salvo."
+#~ msgid "Global prompt saved."
+#~ msgstr "Prompt global salvo."
 
 msgid "Global prompts"
 msgstr "Prompts globais"
@@ -5050,6 +5082,9 @@ msgstr "Justificar"
 
 msgid "KB"
 msgstr "KB"
+
+msgid "Keep my draft against this revision"
+msgstr "Manter meu rascunho sobre esta revisão"
 
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Mantenha os schemas de saída e os IDs inalterados ao editar prompts."
@@ -5793,6 +5828,9 @@ msgstr "Raciocínio do modelo"
 
 msgid "Model-specific prompt not found"
 msgstr "Prompt específico do modelo não encontrado"
+
+msgid "Model-specific prompts take precedence over this generic prompt."
+msgstr "Os prompts específicos do modelo têm prioridade sobre este prompt genérico."
 
 msgid "Models"
 msgstr "Modelos"
@@ -7360,11 +7398,21 @@ msgstr "Enunciado (opcional)"
 msgid "Prompt file created from template."
 msgstr "Arquivo de prompt criado a partir do template."
 
-msgid "Prompt file deleted."
-msgstr "Arquivo de prompt excluído."
+#~ msgid "Prompt file deleted."
+#~ msgstr "Arquivo de prompt excluído."
 
-msgid "Prompt folder deleted."
-msgstr "Pasta de prompts excluída."
+#~ msgid "Prompt folder deleted."
+#~ msgstr "Pasta de prompts excluída."
+
+#. placeholder {0}: saved.persistence.logicalPath
+msgid "Prompt saved to global overrides at {0}."
+msgstr "Prompt salvo nas substituições globais em {0}."
+
+msgid "Prompt saved to this book."
+msgstr "Prompt salvo neste livro."
+
+#~ msgid "Prompt Settings"
+#~ msgstr "Configurações de prompts"
 
 msgid "Prompt template"
 msgstr "Modelo de prompt"
@@ -7824,6 +7872,9 @@ msgstr "Notas da versão"
 msgid "Reload app"
 msgstr "Recarregar aplicativo"
 
+msgid "Reload latest"
+msgstr "Recarregar versão mais recente"
+
 msgid "Remove"
 msgstr "Remover"
 
@@ -8100,6 +8151,9 @@ msgstr "Revisão concluída: todas as {0} traduções revisadas são aceitáveis
 
 msgid "Review each heading’s level, page, confidence, style cluster, and storyboard assignment."
 msgstr "Revise o nível, a página, a confiança, o grupo de estilos e a atribuição no storyboard de cada título."
+
+msgid "Review latest saved prompt"
+msgstr "Revisar o último prompt salvo"
 
 msgid "Review one session at a time to inspect page coverage and flagged findings."
 msgstr "Revise uma sessão por vez para inspecionar a cobertura de páginas e as descobertas sinalizadas."
@@ -8381,11 +8435,17 @@ msgstr "Salvar texto falado"
 msgid "Save text sizes"
 msgstr "Salvar tamanhos de texto"
 
+msgid "Save to:"
+msgstr "Salvar em:"
+
 msgid "Save your work first if you want to keep these changes."
 msgstr "Salve seu trabalho primeiro se quiser manter estas alterações."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Salvo. Empacote novamente a Pré-visualização para aplicar."
+
+msgid "Saving does not regenerate content. Affected outputs need regeneration."
+msgstr "Salvar não regenera o conteúdo. Os resultados afetados precisam ser regenerados."
 
 msgid "Saving..."
 msgstr "Salvando..."
@@ -9874,6 +9934,9 @@ msgstr "Esta atividade não tem textos nem respostas endereçáveis. Gere-a nova
 msgid "This archive can't be opened safely"
 msgstr "Este arquivo não pode ser aberto com segurança"
 
+msgid "This book"
+msgstr "Este livro"
+
 msgid "This book has {pageCount} pages."
 msgstr "Este livro tem {pageCount} páginas."
 
@@ -9966,6 +10029,9 @@ msgstr "Isto combina uma atividade. A seção combinada é regenerada, portanto 
 msgid "This model already has prompt files for every base prompt."
 msgstr "Este modelo já tem arquivos de prompt para todos os prompts base."
 
+msgid "This model already uses the template content; no new version was created."
+msgstr "Este modelo já usa o conteúdo do template; nenhuma nova versão foi criada."
+
 msgid "This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a prompt variant for it."
 msgstr "Este modelo está usando o prompt base porque {expectedModelPromptName} ainda não existe. Salvar alterações com este modelo selecionado criará uma variante de prompt para ele."
 
@@ -10019,6 +10085,9 @@ msgstr "Esta posição já tem {occupiedCount} questionários. Adicione outro de
 
 msgid "This position already has a quiz. Add another right after it, or replace it."
 msgstr "Esta posição já tem um questionário. Adicione outro logo depois ou substitua-o."
+
+msgid "This prompt changed after you loaded it. Your draft was not overwritten."
+msgstr "Este prompt mudou depois que você o carregou. Seu rascunho não foi sobrescrito."
 
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Este prompt instrui o LLM sobre como avaliar o HTML renderizado em relação à página original. A seleção acima controla qual modelo é usado."
@@ -10348,8 +10417,8 @@ msgstr "Não foi possível criar o arquivo de prompt a partir do template."
 msgid "Unable to create prompt files."
 msgstr "Não foi possível criar os arquivos de prompt."
 
-msgid "Unable to delete prompt file."
-msgstr "Não foi possível excluir o arquivo de prompt."
+#~ msgid "Unable to delete prompt file."
+#~ msgstr "Não foi possível excluir o arquivo de prompt."
 
 msgid "Unable to delete prompt folder."
 msgstr "Não foi possível excluir a pasta de prompts."
@@ -10375,11 +10444,14 @@ msgstr "Não foi possível renderizar a pré-visualização do PDF."
 msgid "Unable to render the PDF preview."
 msgstr "Não foi possível renderizar a prévia do PDF."
 
-msgid "Unable to reset global prompt."
-msgstr "Não foi possível resetar o prompt global."
+#~ msgid "Unable to reset global prompt."
+#~ msgstr "Não foi possível resetar o prompt global."
 
-msgid "Unable to save global prompt."
-msgstr "Não foi possível salvar o prompt global."
+msgid "Unable to reset prompt."
+msgstr "Não foi possível redefinir o prompt."
+
+#~ msgid "Unable to save global prompt."
+#~ msgstr "Não foi possível salvar o prompt global."
 
 msgid "Unable to select prompt version."
 msgstr "Não foi possível selecionar a versão do prompt."
@@ -10452,6 +10524,9 @@ msgstr "Inalcançável"
 
 msgid "Unsaved changes"
 msgstr "Alterações não salvas"
+
+msgid "Unsaved draft"
+msgstr "Rascunho não salvo"
 
 msgid "Untangling nested divs with care..."
 msgstr "Desembaraçando divs aninhadas com cuidado..."
@@ -10654,6 +10729,9 @@ msgstr "Usada neste questionário"
 
 msgid "Using fallback"
 msgstr "Usando fallback"
+
+msgid "Using:"
+msgstr "Em uso:"
 
 msgid "v{hovered} preview"
 msgstr "Prévia da v{hovered}"

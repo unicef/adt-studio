@@ -17,3 +17,4 @@ Each spec that establishes an invariant adds its checker in the same change.
 | 5 | Staleness semantics (per-section, input-version comparison, never delete) | contract tests in `packages/pipeline/test/staleness.contract.test.ts` | every PR | SPEC-0001 |
 | 6 | Prompt output contracts | validator suite per prompt (page sectioning exists; extend) | every PR | SPEC-0003, SPEC-0004 |
 | 7 | No provider key in logs or model-call records | log scrubber test + grep in CI | every PR | security chain (Block 1) |
+| 8 | Prompt mutations compare the loaded revision under a shared writer gate; reset/restore retain versions and failed publication never selects an orphan | `apps/api/src/routes/prompts-persistence.test.ts`, `packages/llm/src/__tests__/prompt-cache-contract.test.ts`, `apps/api/src/services/prompt-portability.test.ts` | `pnpm test` | SPEC-0011 (in review; implementation authorized) |

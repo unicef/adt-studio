@@ -1,3 +1,4 @@
+import { resolvePromptRoots } from "../services/prompt-roots.js"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -214,7 +215,7 @@ export function createEasyReadRoutes(
       const blocks = buildEasyReadSourceBlocks(storage, pages)
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+      const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: config.base_prompt_model })
       const rateLimiter = config.rate_limit
         ? createRateLimiter(config.rate_limit.requests_per_minute)
         : undefined

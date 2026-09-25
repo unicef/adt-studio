@@ -73,12 +73,11 @@ export function EasyReadSettings({
   const save = async () => {
     const promptToSave = promptName.trim() || DEFAULT_PROMPT
     if (promptDraft != null) {
-      await savePromptDraft(queryClient, promptToSave, bookLabel, promptDraft)
+      await savePromptDraft(queryClient, promptToSave, bookLabel, promptDraft, setPromptDraft)
     }
 
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
-    setPromptDraft(null)
   }
 
   const isDirty = Object.keys(dirty).length > 0 || promptDraft != null
@@ -137,7 +136,7 @@ export function EasyReadSettings({
         onModelChange={easyRead.onModelChange}
         maxRetries={easyRead.maxRetries}
         onMaxRetriesChange={easyRead.onMaxRetriesChange}
-        onContentChange={(content, modelId) => setPromptDraft(toPromptDraft(content, modelId))}
+        onContentChange={(content, modelId, revision) => setPromptDraft(toPromptDraft(content, modelId, revision))}
       />
     </div>
   )
