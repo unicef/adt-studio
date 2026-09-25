@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { useNavigate } from "@tanstack/react-router"
+import { Link, useNavigate } from "@tanstack/react-router"
 import {
   Copy,
   ExternalLink,
@@ -155,8 +155,9 @@ export function PublicationCard({
       data-state={state}
       style={{ animationDelay: `${Math.min(index, 8) * 30}ms`, animationFillMode: "both" }}
       className={cn(
-        "group flex flex-col overflow-hidden rounded-2xl border bg-card",
+        "group relative flex flex-col overflow-hidden rounded-2xl border bg-card",
         "transition-[box-shadow,opacity] duration-200 hover:shadow-md motion-reduce:transition-none",
+        "has-[a[data-card-link]:focus-visible]:ring-2 has-[a[data-card-link]:focus-visible]:ring-ring",
         "motion-safe:animate-wizard-enter",
         deleting && "pointer-events-none opacity-50",
       )}
@@ -212,7 +213,20 @@ export function PublicationCard({
 
       <div className="flex flex-1 flex-col gap-2 p-3">
         <h3 className="line-clamp-2 min-h-8 text-[13px] font-medium leading-4 text-foreground">
-          {publication.title}
+          {here ? (
+            /* Stretched over the whole card, so the cover and the title open the book's Sharing
+               page; the footer's own buttons sit above it and keep working. */
+            <Link
+              to="/books/$label/$step"
+              params={{ label: publication.book_label, step: "publish" }}
+              data-card-link=""
+              className="outline-none after:absolute after:inset-0 after:content-['']"
+            >
+              {publication.title}
+            </Link>
+          ) : (
+            publication.title
+          )}
         </h3>
         {here ? null : (
           /** The link still works; the book behind it is gone from this machine. Saying so on
@@ -237,7 +251,7 @@ export function PublicationCard({
             <Trans>v{publication.current_version}</Trans>
           </Badge>
 
-          <span className="ml-auto flex shrink-0 items-center">
+          <span className="relative z-10 ml-auto flex shrink-0 items-center">
             {state === "active" && publication.url && (
               <>
                 <Button
@@ -296,7 +310,7 @@ export function PublicationCard({
         <div
           data-testid={`publication-delete-error-${publication.book_label}`}
           role="alert"
-          className="flex flex-wrap items-center gap-2 border-t border-destructive/30 px-3 py-2 duration-200 motion-safe:animate-in motion-safe:fade-in-0 motion-reduce:animate-none"
+          className="relative z-10 flex flex-wrap items-center gap-2 border-t border-destructive/30 px-3 py-2 duration-200 motion-safe:animate-in motion-safe:fade-in-0 motion-reduce:animate-none"
         >
           <span className="min-w-0 flex-1 text-[11px] leading-4 text-red-900 dark:text-red-200">
             {staleWorker ? (
