@@ -51,14 +51,14 @@ when the permitted fallback or another part of that criterion passed.
 | 3 | Passed | Resolver tests and API model-first/reset fixtures agree with the real engine. Stage, targeted, agent and actual CLI transport fixtures cover root parity. |
 | 4 | Passed | Bundled model variant still outranks a book generic; API returns the real source/name. Editor displays that identity and warns about generic precedence. |
 | 5 | Passed | Save/reset/restore require revisions (428); stale mutations return current state (409). Global controller and book draft tests preserve loaded revisions and drafts. |
-| 6 | Passed | Concurrent independent Node writers produce exactly one 200 and one 409. Immutable selection identity catches A → B → A. Abandoned gate fails closed, then explicit stopped-writer recovery succeeds. |
+| 6 | Passed | Concurrent independent Node writers produce exactly one 200 and one 409; mixed Save/Reset/Restore also has one winner. Immutable selection identity catches A → B → A. Real SIGKILL fixtures retain the authoritative selection and require explicit stopped-writer gate recovery. |
 | 7 | Passed | Stale identical requests conflict; re-read then identical Save creates no second version. Clients do not auto-retry writes and re-read after ambiguous failures while retaining the draft. |
 | 8 | Passed | Fault injection before initial and subsequent pointer rename leaves the prior content active; reload never promotes an orphan. Missing/corrupt new pointers fail explicitly. Editor error tests show no successful save or lost draft. |
 | 9 | Passed | Save/reset/restore retain all historical bytes and fresh selection IDs. Live browser reset retained its saved version and the visible restore control selected it again. |
-| 10 | Passed | API validation/legacy tests, persistent model-folder collision checks, symlink escapes, resource aliases and overlapping roots are rejected. Model metadata is validated before migration. |
+| 10 | Passed | API validation/legacy tests, persistent model-folder collision checks, symlink escapes, resource aliases and overlapping roots are rejected. Model metadata is validated before migration. Concurrent model aliases saving different prompts are rejected under the writer gate, including book-local ownership. |
 | 11 | Passed | Deferred-save tests retain newer global/book typing; network/conflict failures retain drafts. The real global route regression test exercises Stay and Save & leave. Live navigation exposed and verified the shared guard fix. |
 | 12 | Passed | `prompt-generation-parity.test.ts`: real stage worker, targeted renderer and agent renderer send editor-selected bytes to stubbed HTTP transport and store those bytes in call logs. `prompt-cli.test.ts` launches the actual compiled CLI and captures its model-specific include at transport. |
-| 13 | Blocked | Real cache test counts provider fetches: unchanged input hits cache, selected include changes miss, in-flight logs retain the old captured bytes. Save makes zero transport calls. Shared freshness is absent; the implemented explicit regeneration notice is the specified safe fallback. |
+| 13 | Blocked | Real cache test counts provider fetches: template/include changes miss, unchanged/restored content hits, unrelated entries survive, and in-flight logs retain captured bytes. Save makes zero transport calls. Shared freshness is absent; the implemented explicit regeneration notice is the specified safe fallback. |
 | 14 | Passed | Real filesystem migration covers idempotence, source retention, same-name/different-byte conflict, invalid model metadata, interrupted publication/retry, and newer target versions/flat-file selections. |
 | 15 | Blocked | macOS unpacked build and real Electron utility-process harness pass with read-only packaged prompts and isolated user data. Docker defaults/configuration are updated, but no daemon or Docker app is available for a container/volume restart test. |
 | 16 | Passed | API fixture with a different writable root still reads bundled sibling templates; Electron harness checks returned template bytes against packaged `templates`. CLI keeps the same bundled-parent derivation. |
@@ -68,6 +68,7 @@ when the permitted fallback or another part of that criterion passed.
 Primary regression files:
 
 - [Persistence and migration API contracts](../../apps/api/src/routes/prompts-persistence.test.ts)
+- [Process death and competing mutation recovery](../../apps/api/src/routes/prompts-recovery.test.ts)
 - [Resolver compatibility](../../packages/llm/src/__tests__/prompt.test.ts)
 - [Transport cache and in-flight capture](../../packages/llm/src/__tests__/prompt-cache-contract.test.ts)
 - [Generation path parity](../../apps/api/src/services/prompt-generation-parity.test.ts)
@@ -78,13 +79,39 @@ Primary regression files:
 - [Global route navigation](../../apps/studio/src/routes/_app.settings.prompts.test.tsx)
 - [Electron host smoke harness](../../scripts/prompt-persistence-desktop-smoke.ts)
 
+## Additional confidence review
+
+An adversarial review reproduced a model-ownership race: two requests using model
+IDs that sanitize to the same folder, but saving different prompt names, both
+returned 200. Their initial ownership checks ran before either acquired the writer
+gate. The fix in `7b00c8ba` rechecks ownership inside the gate and includes book-local
+selections. The regression failed before the fix (`[200, 200]` instead of
+`[200, 400]`) and passes for both global and book scopes afterward; the losing
+request leaves no version directory. No user-visible strings were added.
+
+`81f12d80` adds real child-process SIGKILL tests immediately before and after the
+atomic pointer rename. Before publication, readers retain the prior selected
+bytes; after publication, they read the newly committed bytes. Both retain old
+versions and a gate owned by the terminated process. After the test confirms that
+writer is dead, explicit operator recovery plus a re-read/identical retry creates
+no duplicate version. These are process-crash tests on macOS, **not power-loss or
+Windows durability proof**. Another test races Save/Reset/Restore against one
+loaded revision and asserts one winner with all earlier version bytes retained.
+
+The transport-boundary cache test now also changes the selected main template,
+checks that an unrelated prompt still hits its cache, and restores the original
+effective bytes under a new selection ID without another provider call. Focused
+API checks passed 76 tests across three files; the expanded cache check passed.
+
 ## Final commands and results
 
-The final application source is `8f5e3ade`; subsequent changes record documentation.
+The final application/test source is `81f12d80`; subsequent changes record
+documentation. Packaged Desktop and live-browser evidence below was collected at
+`8f5e3ade`, before the additional API ownership fix; it was not rerun for that fix.
 
 | Check | Result |
 |---|---|
-| `PATH=/Library/Developer/CommandLineTools/usr/bin:$PATH pnpm test --maxWorkers=4` | Passed: **286 files, 3,636 tests**, including pretest build. The explicit PATH selects working Git; the default Xcode shim refuses to run without a license acceptance. No system license was accepted or changed. |
+| `PATH=/Library/Developer/CommandLineTools/usr/bin:$PATH pnpm test --maxWorkers=4` | Passed: **287 files, 3,641 tests**, including pretest build. The explicit PATH selects working Git; the default Xcode shim refuses to run without a license acceptance. No system license was accepted or changed. |
 | `pnpm typecheck` | Passed. |
 | `pnpm --filter @adt/runtime typecheck` | Passed. |
 | `pnpm lint` | Passed with 0 errors and 8 unused-suppression warnings; no claim that these warnings were independently baseline-tested. |
