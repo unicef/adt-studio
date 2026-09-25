@@ -90,10 +90,13 @@ order, then repeats the same root order for the base prompt:
 3. `PROMPTS_DIR/` — bundled defaults and model folders
 
 Within each root, resolution checks the selected immutable version, the model
-folder, and the legacy flat variant. A `.current` pointer containing `fallback`
-skips a book root; `default` skips global versions and reaches the bundled
-file. Neither operation deletes version history. Versions created by older
-releases under `PROMPTS_DIR/.versions` are copied forward automatically.
+folder, and the legacy flat variant. New `.current` files contain a validated
+JSON selection, with an immutable copy in `.selections/<uuid>.json`. A selection
+whose `kind` is `fallback` skips that book candidate; `default` bypasses global
+history and reaches the bundled flat candidate. Neither operation deletes
+version history. Legacy string pointers remain readable and are migrated, as
+are older versions under `PROMPTS_DIR/.versions`. See the
+[persistence operations guide](PROMPT_PERSISTENCE.md) for conflicts and recovery.
 
 If no model-specific prompt exists, the base prompt is used.
 

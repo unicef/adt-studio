@@ -5,10 +5,10 @@ status: in-review
 owner: "@ksokolovic"
 approvers: []
 issues: ["#629"]
-prs: []
+prs: ["#887"]
 adr: "docs/DECISIONS.md#027-prompt-overrides-use-writable-roots-and-versioned-selections"
 created: 2026-09-22
-updated: 2026-09-22
+updated: 2026-09-25
 ---
 
 ## Decision under review
@@ -123,7 +123,7 @@ Docker defaults must place global overrides on persistent writable storage; docu
 | PR #644 | Reuse its existing work; reconcile missing-revision, reset/restore, failed-pointer and CLI parity requirements before closure. |
 | SPEC-0001 | Prompt-content changes are consumed as freshness inputs; this spec does not build a second invalidation engine. |
 
-The proposed decision is recorded in [ADR 027](../DECISIONS.md#027-prompt-overrides-use-writable-roots-and-versioned-selections). It remains proposed until this spec's blocking review questions are resolved. No new runtime enforcement is claimed by this documentation PR.
+The proposed decision is recorded in [ADR 027](../DECISIONS.md#027-prompt-overrides-use-writable-roots-and-versioned-selections). It remains proposed until this spec's blocking review questions are resolved. Implementation was explicitly authorized before approval in this same PR. Human review remains pending. See the [implementation evidence](SPEC-0011-implementation-evidence.md) for development checks, the permitted freshness fallback and deployment limits; this is not release verification.
 
 ## Acceptance criteria
 

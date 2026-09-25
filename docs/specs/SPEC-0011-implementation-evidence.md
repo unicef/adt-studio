@@ -1,62 +1,123 @@
 # SPEC-0011 implementation evidence
 
-Implementation target: published SPEC-0011 in PR #887. Human review is pending;
-SPEC-0011 remains `in-review`, ADR 027 remains proposed, and approvers remain empty.
-The user explicitly authorized implementation before approval in the same PR and
-local commits without a push. This record does not establish release verification.
+The persistence, resolution, migration and editor slice is implemented locally on
+`spec/629-prompt-persistence` for existing PR #887. **The full integrated spec is
+not declared complete:** shared freshness/host-input comparison is unavailable,
+and Docker runtime persistence has not been exercised. The documented safe
+fallback explicitly tells users to regenerate affected outputs. Human approval
+is pending: the spec remains `in-review`, approvers are empty and ADR 027 is proposed.
 
-## Preparation and baseline
+## Preparation and scope
 
-- Refreshed develop: `737d3314`; published #887: `bb37a583` (backup ref
-  `backup/spec-0011-published-20260925`). Locally rebase only the SPEC-0011 commit
-  onto develop; do not carry the former documentation ancestors #884–#886.
-- #644: `64770d09`, four commits by Kemal Sokolovic, is the starting implementation.
-  Reuse with cherry-pick attribution and adapt to current model configuration.
-  Its PR remains untouched. #629, #644 and #887 have no discussion/review comments.
-- #879 (`375081fc`) and #880 (`5eeaab68`) are documentation only. No shared freshness
-  implementation exists on develop. Use the specified explicit regeneration notice;
-  do not introduce an independent freshness engine or automatic paid regeneration.
-- The main checkout's drafts and the separate SPEC-0010 worktree remain untouched.
-- References: current AGENTS, architecture, guidelines, invariants, proposed ADR 027,
-  and supplied Path to 1.0 / SDD materials. Current request overrides spec-first
-  sequencing only; preservation, shared mechanisms and human approval still apply.
+The complete published spec, issue #629, PRs #887/#644 and their discussions were
+read. Neither PR had comments or reviews. Current develop was refreshed at
+`737d331418d13f930955504e8288ee26ec1b20ba`; the final remote check found it unchanged.
+Published #887 remains `bb37a583c9080315a23aed6a0c9925d140d6d739`. A recoverable local
+ref, `backup/spec-0011-published-20260925`, preserves that head. Only the SPEC-0011
+commit was rebased onto develop, preserving its spec, INDEX row, ADR and ADR indexes
+and removing unrelated inherited specification ancestors. No descendant was merged.
 
-## Acceptance map established before implementation
+PR #644 remains open and unchanged at `64770d098958a7cc2e4aad79dcd10d5fadc405a1`.
+Its four commits by Kemal Sokolovic were reused with `cherry-pick -x` attribution,
+then adapted to current model configuration and the expanded contract. Local
+implementation commits include `929d73f2` (shared store/resolution), `19f1e731`
+(editor migration) and `8f5e3ade` (archive/deployment and parity refinements).
+The source issue is informational; no closing keywords were added.
 
-All entries below are planned verification, not passing claims.
+Actual dependency review found #879 (`375081fc`) and #880 (`5eeaab68`) were
+specifications, not working freshness/preservation services. #886 was a document
+ancestor, not an implementation prerequisite. No separate freshness subsystem
+was introduced. Current AGENTS, architecture, guidelines, invariants and applicable
+ADRs were read alongside the supplied Path to 1.0 and SDD reference materials.
+The user's explicit sequencing override authorizes implementation before approval.
+The main checkout's uncommitted drafts and other implementation worktrees were
+left untouched.
 
-| AC | Current behavior / gap | Required change | Concrete verification | Result |
-|---|---|---|---|---|
-| 1 | No reliable persistence/source feedback | Reuse #644 badges; explicit candidate, target and dirty state | Editor rendering and interaction | not-run |
-| 2 | Writes beneath bundled prompts | Writable roots, immutable selected versions | Real filesystem, independent process reload, bundled hash | not-run |
-| 3 | Model first, duplicated readers; destructive reset | One resolver for candidate resets and fallback | Reader/engine precedence table | not-run |
-| 4 | Base override can be ineffective for chosen model | Show actual resolved candidate and generic-edit caveat | Bundled model vs book base UI/API fixture | not-run |
-| 5 | Revisions optional/absent on mutations | Required preconditions on save/reset/restore, preserve draft | Missing/stale revision API and editor tests | not-run |
-| 6 | No shared process gate; content-only revision insufficient | Filesystem writer admission plus immutable selection identity | Independent writers and A→B→A | not-run |
-| 7 | Repeated writes create history | Compare after precondition; reconcile ambiguous retry by read | Version counts and stale same-content request | not-run |
-| 8 | Invalid pointer can choose newest orphan | Validated selection protocol, exclusive durable versions | Inject pointer failure, corrupt/missing pointer, restart | not-run |
-| 9 | Reset removes history | Publish inherit/default selections; restore without rewriting | Byte snapshots/history across save-reset-restore | not-run |
-| 10 | Ad hoc validation and model folder ambiguity | Shared schemas, validated identity/containment | Invalid inputs, collisions, symlink/traversal fixtures | not-run |
-| 11 | Save may clear a newer draft | Capture submitted draft; guard reset/restore/reload/navigation | Deferred save promise with continued typing/errors | not-run |
-| 12 | API, agents and CLI roots differ | Shared resolver/root injection, retain inspectable calls | Generation path and CLI tests with stub transport | not-run |
-| 13 | Cache uses rendered messages; freshness unavailable | Preserve rendered template/include identity; explicit notice | Transport call counts, include edits, no generation on save | not-run |
-| 14 | Legacy files live with resources | Idempotent non-destructive migration, conflict detection | Different bytes, interrupted retry, newer target selection | not-run |
-| 15 | Bundled deployment roots may be read-only | Reuse #644 Docker/Desktop wiring | Packaging/restart smoke and read-only defaults | not-run |
-| 16 | Templates derive from bundled prompt parent | Keep that derivation independent of overrides | Custom override root + bundled template read/render | not-run |
-| 17 | Book overrides/provenance must travel | Verify archive/import includes prompts and actual call log | Moved archive on host with changed globals | not-run |
-| 18 | UI strings need five locales | Extract/translate all changes; no new dependency | Lingui catalogs, lint, lockfile review | not-run |
+The AC-to-current-behavior/change/verification map was committed **before editing**
+in `192a9884`. The final evidence below updates its outcomes. Baseline before the
+source changes: `pnpm build` and the original prompt API/resolver/editor-focused
+suite passed (72 tests). Those baseline results are distinct from final evidence.
 
-## Narrative constraints
+## AC-to-evidence matrix
 
-No DB/session persistence, permission model, prompt output-schema change, provider
-redesign, destructive render-template edits, cache deletion, automatic regeneration,
-or claim of identical results with different host globals. Retain all old versions,
-selection history and source migration data. New-format missing/corrupt pointers
-fail explicitly. Same-root concurrency includes independent processes. Failed
-publication never activates an orphan. Rollback retains roots/history and requires
-an explicit compatible reader; old destructive reset is not a rollback path.
+“Passed” is development acceptance for the stated fixture, not human approval or
+release verification. “Blocked” identifies the remaining full-contract gap even
+when the permitted fallback or another part of that criterion passed.
 
-## Verification log
+| AC | Status | Concrete evidence / limits |
+|---|---|---|
+| 1 | Passed | Shared `PromptPersistenceInfo`, global and book editors display actual source/candidate, logical destination and dirty state. Live browser verified global labels and save destination. |
+| 2 | Passed | `prompts-persistence.test.ts`: independent processes reload the winner with bundled files chmod read-only; Electron host harness saves in isolated user data and survives API process restart. |
+| 3 | Passed | Resolver tests and API model-first/reset fixtures agree with the real engine. Stage, targeted, agent and actual CLI transport fixtures cover root parity. |
+| 4 | Passed | Bundled model variant still outranks a book generic; API returns the real source/name. Editor displays that identity and warns about generic precedence. |
+| 5 | Passed | Save/reset/restore require revisions (428); stale mutations return current state (409). Global controller and book draft tests preserve loaded revisions and drafts. |
+| 6 | Passed | Concurrent independent Node writers produce exactly one 200 and one 409. Immutable selection identity catches A → B → A. Abandoned gate fails closed, then explicit stopped-writer recovery succeeds. |
+| 7 | Passed | Stale identical requests conflict; re-read then identical Save creates no second version. Clients do not auto-retry writes and re-read after ambiguous failures while retaining the draft. |
+| 8 | Passed | Fault injection before initial and subsequent pointer rename leaves the prior content active; reload never promotes an orphan. Missing/corrupt new pointers fail explicitly. Editor error tests show no successful save or lost draft. |
+| 9 | Passed | Save/reset/restore retain all historical bytes and fresh selection IDs. Live browser reset retained its saved version and the visible restore control selected it again. |
+| 10 | Passed | API validation/legacy tests, persistent model-folder collision checks, symlink escapes, resource aliases and overlapping roots are rejected. Model metadata is validated before migration. |
+| 11 | Passed | Deferred-save tests retain newer global/book typing; network/conflict failures retain drafts. The real global route regression test exercises Stay and Save & leave. Live navigation exposed and verified the shared guard fix. |
+| 12 | Passed | `prompt-generation-parity.test.ts`: real stage worker, targeted renderer and agent renderer send editor-selected bytes to stubbed HTTP transport and store those bytes in call logs. `prompt-cli.test.ts` launches the actual compiled CLI and captures its model-specific include at transport. |
+| 13 | Blocked | Real cache test counts provider fetches: unchanged input hits cache, selected include changes miss, in-flight logs retain the old captured bytes. Save makes zero transport calls. Shared freshness is absent; the implemented explicit regeneration notice is the specified safe fallback. |
+| 14 | Passed | Real filesystem migration covers idempotence, source retention, same-name/different-byte conflict, invalid model metadata, interrupted publication/retry, and newer target versions/flat-file selections. |
+| 15 | Blocked | macOS unpacked build and real Electron utility-process harness pass with read-only packaged prompts and isolated user data. Docker defaults/configuration are updated, but no daemon or Docker app is available for a container/volume restart test. |
+| 16 | Passed | API fixture with a different writable root still reads bundled sibling templates; Electron harness checks returned template bytes against packaged `templates`. CLI keeps the same bundled-parent derivation. |
+| 17 | Blocked | Real ZIP export/import preserves book versions, selection, page identity and actual SQLite call-log messages. Export snapshots under the prompt gate and excludes the gate; a concurrent subsequent save cannot change the archive. Import warns about host globals. Automatic identification/comparison of changed host-global inputs awaits shared freshness. |
+| 18 | Passed | Lingui extraction: 3,627 messages, zero missing in `es`, `fr`, `pt-BR`, `sq`; English source complete. Lint has zero errors. No manifest/lockfile dependency changes. |
 
-Pending baseline and implementation checks. Development evidence must be separated
-from packaged runtime, representative-book, CI and release evidence.
+Primary regression files:
+
+- [Persistence and migration API contracts](../../apps/api/src/routes/prompts-persistence.test.ts)
+- [Resolver compatibility](../../packages/llm/src/__tests__/prompt.test.ts)
+- [Transport cache and in-flight capture](../../packages/llm/src/__tests__/prompt-cache-contract.test.ts)
+- [Generation path parity](../../apps/api/src/services/prompt-generation-parity.test.ts)
+- [Actual CLI entry](../../packages/pipeline/src/__tests__/prompt-cli.test.ts)
+- [Archive portability and concurrent save](../../apps/api/src/services/prompt-portability.test.ts)
+- [Global editor draft behavior](../../apps/studio/src/components/app/screens/settings/globalPrompts.test.tsx)
+- [Book draft behavior](../../apps/studio/src/components/pipeline/components/PromptViewer/promptDraftSave.test.ts)
+- [Global route navigation](../../apps/studio/src/routes/_app.settings.prompts.test.tsx)
+- [Electron host smoke harness](../../scripts/prompt-persistence-desktop-smoke.ts)
+
+## Final commands and results
+
+The final application source is `8f5e3ade`; subsequent changes record documentation.
+
+| Check | Result |
+|---|---|
+| `PATH=/Library/Developer/CommandLineTools/usr/bin:$PATH pnpm test --maxWorkers=4` | Passed: **286 files, 3,636 tests**, including pretest build. The explicit PATH selects working Git; the default Xcode shim refuses to run without a license acceptance. No system license was accepted or changed. |
+| `pnpm typecheck` | Passed. |
+| `pnpm --filter @adt/runtime typecheck` | Passed. |
+| `pnpm lint` | Passed with 0 errors and 8 unused-suppression warnings; no claim that these warnings were independently baseline-tested. |
+| `pnpm build` | Passed, including runtime bundle build. |
+| `pnpm --filter @adt/studio extract` | Passed, zero missing translations across all five locales. |
+| `CSC_IDENTITY_AUTO_DISCOVERY=false pnpm --filter @adt/desktop build:unpack` | Passed on macOS arm64; ad-hoc signed, notarization skipped. |
+| Electron harness against final packaged resources | Passed: global/book saves, API restart, packaged prompt hash unchanged after chmod read-only, correct user-data roots and template lookup. Harness selects packaged adapter mode explicitly; this is not an installed-app/full-renderer launch test. |
+| `pnpm --filter @adt/desktop typecheck` | Failed in web check: three TS2307 errors for `@root/scripts/release-version.mjs` / `release-source-notes.mjs`. Reproduced identically on a source archive of unchanged develop `737d3314` using the same installed dependencies. Desktop node typecheck passes. |
+| Live Studio browser | Verified source/destination/dirty feedback, Save, reload, navigation guard, reset and retained-version restore; tested at 1280×720 and corrected the clipped restore control. A later browser refresh after rebuild hit browser-control timeouts; final automated UI and full-suite tests passed. |
+| Docker daemon/runtime | Blocked: `docker info` cannot connect; no Docker app is installed. No container smoke claimed. |
+| Dedicated invariant command | Not available: `pnpm lint:invariants` remains planned in this repo. Existing tests/typecheck/lint and the new documented invariant cover available checks. |
+| Diff / spec metadata | Whitespace, local evidence links, all 18 ACs, INDEX status and proposed ADR metadata checked. |
+
+Representative fixtures use the repository's `tests/fixtures/raven.pdf`, real
+SQLite/filesystem storage and real ZIP export/import. Transport is stubbed, so no
+paid model run or full representative-book output-quality acceptance is claimed.
+No new hosted CI has run because implementation commits have not been pushed.
+Docker, Windows/Linux runtime, installer upgrade, notarization and release checks
+remain not run or unavailable. No spec approval or release-verification status is set.
+
+## Delivery and remaining decisions
+
+All implementation commits stay on the named local branch in the isolated worktree.
+**No push or merge.** The existing PR title/body is updated to describe this combined
+scope and clearly state that code is local. The remote PR still has its original
+spec head and document-stack base; retargeting it before uploading the rewritten
+head would expose unrelated ancestors. After push authorization, recheck the remote
+head, use its exact lease if rewriting, and retarget #887 to develop in the same
+publication step. Do not create a replacement PR. `elasticsounds` remains requested.
+
+The original spec ratification questions remain human-owned. Operational choices
+are documented in [PROMPT_PERSISTENCE.md](../PROMPT_PERSISTENCE.md): conservative
+root-wide gates, explicit stopped-writer recovery, collision errors instead of
+silent overwrite, preservation of all sources/history and no in-place old-binary
+downgrade. No acceptance criterion was weakened to fit implementation. The missing
+shared freshness integration and deployment evidence are disclosed above.
