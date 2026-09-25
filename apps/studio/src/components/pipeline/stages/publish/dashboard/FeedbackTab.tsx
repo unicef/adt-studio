@@ -15,6 +15,7 @@ import {
   ReplyComposer,
 } from "./FeedbackParts"
 import { useFeedbackWorkspace } from "./use-feedback-workspace"
+import { RefreshCommentsButton } from "@/components/publication-feedback/RefreshCommentsButton"
 
 /**
  * The Feedback tab: two panels, like the overview. The list stays on the left; the right panel
@@ -34,7 +35,12 @@ export function FeedbackTab({ data }: { data: DashboardData }) {
         count={data.status === "ready" ? ws.waitingNow : undefined}
         tone="attention"
         scroll={false}
-        action={<FeedbackSortMenu ws={ws} />}
+        action={
+          <div className="flex items-center gap-1">
+            <RefreshCommentsButton bookLabel={bookLabel} />
+            <FeedbackSortMenu ws={ws} />
+          </div>
+        }
       >
         <div className="flex min-h-0 flex-1 flex-col">
           <FeedbackFilters ws={ws} />

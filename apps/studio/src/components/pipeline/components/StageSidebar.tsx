@@ -27,6 +27,7 @@ import { usePackageAdtStatus } from "@/hooks/use-books"
 import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
 import { publicationLifecycle, useBookPublication } from "@/hooks/use-book-publication"
 import { useFeedbackBadge } from "../../publication-feedback/use-feedback-badge"
+import { useNewCommentAlerts } from "../../publication-feedback/use-new-comment-alerts"
 import { useShareRunning } from "@/hooks/use-publish-run-notice"
 import { StepProgressRing } from "./StepProgressRing"
 import { StoryboardIndex } from "./StoryboardIndex"
@@ -91,6 +92,7 @@ export function StageSidebar({
   const { data: publicationStatus } = useBookPublication(bookLabel)
   const shared = publicationLifecycle(publicationStatus) === "active"
   const feedback = useFeedbackBadge(bookLabel)
+  useNewCommentAlerts(bookLabel)
   const shareRunning = useShareRunning(bookLabel)
   const { tasks } = useBookTasks(bookLabel)
   const stageMissing = useStageMissingCounts(bookLabel)
