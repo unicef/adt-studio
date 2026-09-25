@@ -335,7 +335,11 @@ it.each(["unregistered", "symlink"])("refuses %s files masquerading as initial f
 })
 
 
-it("the actual initial CLI publishes complete extraction before reaching provider transport", () => {
+// This cold CLI process loads WASM and performs real PDF/filesystem work. The
+// shared Linux CI runner exceeded 30s under full-suite load; keep its deadline
+// explicit instead of relying on a local --testTimeout override. The child has
+// a shorter hard deadline so a hang fails with subprocess diagnostics.
+it("the actual initial CLI publishes complete extraction before reaching provider transport", { timeout: 60_000 }, () => {
   const booksRoot = fs.mkdtempSync(path.join(os.tmpdir(), "adt-cli-initial-"))
   dirs.push(booksRoot)
   const hook = path.join(booksRoot, "transport.mjs")
@@ -348,7 +352,7 @@ it("the actual initial CLI publishes complete extraction before reaching provide
   const child = spawnSync(process.execPath, ["--import", pathToFileURL(hook).href,
     path.join(root, "packages/pipeline/dist/cli.js"), "initial-cli", pdf,
     "--books-dir", booksRoot, "--start-page", "1", "--end-page", "1"], {
-    cwd: root, encoding: "utf8", timeout: 20000,
+    cwd: root, encoding: "utf8", timeout: 45_000, killSignal: "SIGKILL",
     env: { ...process.env, OPENAI_API_KEY: "fixture-only-no-network" },
   })
   expect(child.error).toBeUndefined()
