@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   CloudOff,
   Globe,
+  KeyRound,
   Link2,
   Link2Off,
   Loader2,
@@ -124,9 +125,12 @@ interface PublicationsDashboardProps {
   /** Inside Settings the page already owns the scroll and padding, so the shelf drops
    *  its own page chrome and renders as a section. */
   embedded?: boolean
+  /** Takes sharing back on this computer when another Studio has taken it over. Settings
+   *  passes its own set-up run; elsewhere the notice points to Settings instead. */
+  onReconnect?: () => void
 }
 
-export function PublicationsDashboard({ embedded = false }: PublicationsDashboardProps) {
+export function PublicationsDashboard({ embedded = false, onReconnect }: PublicationsDashboardProps) {
   const overview = usePublications()
   const stop = useStopSharing()
   const resume = useResumeSharing()
@@ -212,7 +216,34 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
 
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col", embedded && "gap-4")}>
-      {data.worker_reachable ? null : (
+      {data.worker_rejected ? (
+        <div
+          role="status"
+          data-testid="publications-worker-rejected"
+          className={cn(
+            "flex items-center gap-2 border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-900 duration-200 animate-in fade-in slide-in-from-top-1 dark:text-amber-100 motion-reduce:animate-none",
+            embedded ? "rounded-lg border" : "border-b",
+          )}
+        >
+          <KeyRound className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+          <p className="flex-1">
+            <Trans>
+              Another ADT Studio connected to this Cloudflare account has taken over sharing, so
+              this computer can't read your hosted books. Reconnecting here takes it back — the
+              other computer will then need to reconnect.
+            </Trans>
+          </p>
+          {onReconnect ? (
+            <Button type="button" size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={onReconnect}>
+              <Trans>Reconnect here</Trans>
+            </Button>
+          ) : (
+            <PublishingSettingsLink variant="outline" size="sm" className="h-6 px-2 text-xs">
+              <Trans>Reconnect in Settings</Trans>
+            </PublishingSettingsLink>
+          )}
+        </div>
+      ) : data.worker_reachable ? null : (
         <div
           data-testid="publications-worker-unreachable"
           className={cn(

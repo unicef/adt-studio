@@ -243,6 +243,31 @@ describe("the publications dashboard", () => {
     expect(overview.publications[0]).toMatchObject({ token: TOKEN, source: "local" })
   })
 
+  /** Another Studio set sharing up on the same account and replaced the management secret:
+   *  the worker answers, but refuses this computer — a different thing from "not answering". */
+  it("says when the worker refuses this computer's secret", async () => {
+    const { app } = routes()
+    await publishOnce(app)
+
+    const takenOver = createFakePublishWorker({ now: NOW, mgmtSecret: "another-computers-secret" })
+    const { app: rejectedApp } = routes({ worker: takenOver })
+
+    const overview = await (await rejectedApp.request("/publications")).json()
+    expect(overview).toMatchObject({ worker_reachable: false, worker_rejected: true })
+    expect(overview.publications[0]).toMatchObject({ token: TOKEN, source: "local" })
+
+    const status = await (await rejectedApp.request(`/books/${LABEL}/publication`)).json()
+    expect(status).toMatchObject({ worker_reachable: false, worker_rejected: true })
+    expect(status.record).not.toBeNull()
+  })
+
+  it("doesn't call an unreachable worker a refusal", async () => {
+    const offline = createFakePublishWorker({ now: NOW, unreachable: true })
+    const { app } = routes({ worker: offline })
+    const overview = await (await app.request("/publications")).json()
+    expect(overview).toMatchObject({ worker_reachable: false, worker_rejected: false })
+  })
+
   it("deletes a publication and clears the book's local record", async () => {
     const { app, worker } = routes()
     await publishOnce(app)

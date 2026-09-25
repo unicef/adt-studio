@@ -152,6 +152,10 @@ msgstr "{0, plural, one {# fazë} other {# faza}}"
 msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
 msgstr "{0, plural, one {# detyrë trashëgon këtë model} other {# detyra trashëgojnë këtë model}}"
 
+#. placeholder {0}: reader.commentCount
+msgid "{0, plural, one {comment} other {comments}}"
+msgstr "{0, plural, one {koment} other {komente}}"
+
 #. placeholder {0}: health.modelCount
 msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
 msgstr "{0, plural, one {Lidhja u krye me sukses — # model në dispozicion.} other {Lidhja u krye me sukses — # modele në dispozicion.}}"
@@ -740,6 +744,9 @@ msgstr "/ Seksioni {0}"
 
 msgid "×4"
 msgstr "×4"
+
+msgid "<0>Another ADT Studio took over sharing on this Cloudflare account.</0> Readers still reach the link; reconnect here to manage it and see new feedback."
+msgstr "<0>Një ADT Studio tjetër e mori përsipër ndarjen në këtë llogari Cloudflare.</0> Lexuesit ende e hapin lidhjen; rilidhuni këtu për ta menaxhuar dhe për të parë komentet e reja."
 
 msgid "<0>The sharing service isn't answering.</0> Readers may not reach the link, and new feedback shows up once it's back."
 msgstr "<0>Shërbimi i ndarjes nuk po përgjigjet.</0> Lexuesit mund të mos arrijnë te lidhja, dhe komentet e reja shfaqen sapo ai të rikthehet."
@@ -1755,6 +1762,9 @@ msgstr "dhe shumë blloqe të tjera në të gjithë librin"
 
 msgid "and more sections across the page"
 msgstr "dhe seksione të tjera në faqe"
+
+msgid "Another ADT Studio connected to this Cloudflare account has taken over sharing, so this computer can't read your hosted books. Reconnecting here takes it back — the other computer will then need to reconnect."
+msgstr "Një ADT Studio tjetër i lidhur me këtë llogari Cloudflare e ka marrë përsipër ndarjen, prandaj ky kompjuter nuk mund t’i lexojë librat tuaj të hostuar. Rilidhja këtu ua kthen kontrollin — kompjuteri tjetër do të duhet pastaj të rilidhet."
 
 msgid "Another program on this computer is already signing in to Cloudflare. Close it and try again."
 msgstr "Një program tjetër në këtë kompjuter është tashmë duke u kyçur në Cloudflare. Mbylle atë dhe provo përsëri."
@@ -5805,13 +5815,18 @@ msgstr "Faqja e tij në njërën anë, biseda dhe kutia e përgjigjes në tjetr�
 msgid "Jane Reviewer"
 msgstr "Jane Rishikuese"
 
-#. placeholder {0}: formatPublishDate(reader.joinedAt, i18n.locale)
+msgid "Joined"
+msgstr "U bashkua"
+
 #. placeholder {0}: formatPublishDate(reader.joined_at, i18n.locale)
 msgid "Joined {0}"
 msgstr "U bashkua {0}"
 
-msgid "joined <0/>"
-msgstr "u bashkua <0/>"
+#~ msgid "joined <0/>"
+#~ msgstr "u bashkua <0/>"
+
+msgid "Joined <0/>"
+msgstr "U bashkua <0/>"
 
 msgid "Judge instructions"
 msgstr "Udhëzimet e gjykatësit"
@@ -5954,8 +5969,11 @@ msgid "Largest first"
 msgstr "Më i madhi i pari"
 
 #. placeholder {0}: formatPublishDate(reader.lastCommentAt ?? reader.joinedAt, i18n.locale)
-msgid "last {0}"
-msgstr "së fundi {0}"
+#~ msgid "last {0}"
+#~ msgstr "së fundi {0}"
+
+msgid "last <0/>"
+msgstr "së fundi <0/>"
 
 msgid "Last change"
 msgstr "Ndryshimi i fundit"
@@ -6410,6 +6428,9 @@ msgstr "Menaxho në libër"
 
 msgid "Manage sign-language videos"
 msgstr "Menaxho videot e gjuhës së shenjave"
+
+msgid "Managed elsewhere"
+msgstr "Menaxhohet diku tjetër"
 
 msgid "Manual only"
 msgstr "Vetëm manual"
@@ -7008,6 +7029,9 @@ msgstr "Pa komente"
 
 #~ msgid "No comments on this page."
 #~ msgstr "Asnjë koment në këtë faqe."
+
+msgid "No comments yet"
+msgstr "Ende pa komente"
 
 msgid "No content processing needed"
 msgstr "Nuk nevojitet procesim i përmbajtjes"
@@ -8991,6 +9015,9 @@ msgstr "Përmbajtja e leximit me zë"
 msgid "Read-only"
 msgstr "Vetëm për lexim"
 
+msgid "Reader"
+msgstr "Lexuesi"
+
 msgid "Reader Highlighting"
 msgstr "Theksimi i Lexuesit"
 
@@ -9158,6 +9185,12 @@ msgstr "I rekomanduar për"
 #. placeholder {0}: i18n._(presetLabel)
 msgid "Recommended for {0}"
 msgstr "I rekomanduar për {0}"
+
+msgid "Reconnect here"
+msgstr "Rilidhu këtu"
+
+msgid "Reconnect in Settings"
+msgstr "Rilidhu te Cilësimet"
 
 msgid "Record reviewer findings for the current page and save them to the active validation session."
 msgstr "Regjistroni gjetjet e rishikuesit për faqen aktuale dhe ruajini në sesionin aktiv të validimit."
@@ -11918,6 +11951,9 @@ msgstr "Kjo nuk mund të zhbëhet. Çdo lidhje që keni ndarë do të ndalojë s
 
 msgid "This code still works. A new one can wait until the service is back."
 msgstr "Ky kod ende funksionon. Një i ri mund të presë derisa shërbimi të rikthehet."
+
+msgid "This code still works. Reconnect here to change it."
+msgstr "Ky kod ende funksionon. Rilidhuni këtu për ta ndryshuar."
 
 msgid "This comes back once the Studio can check the book."
 msgstr "Kjo kthehet sapo Studio të mund ta kontrollojë librin."

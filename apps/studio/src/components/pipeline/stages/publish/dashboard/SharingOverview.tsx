@@ -193,6 +193,7 @@ function WaitingRow({
 }
 
 function JoinedPanel({ data }: { data: DashboardData }) {
+  const { t } = useLingui()
   const recent = [...data.readers]
     .sort((a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime())
   const ready = data.readersStatus === "ready"
@@ -226,37 +227,61 @@ function JoinedPanel({ data }: { data: DashboardData }) {
           body={<Trans>Readers appear here once they open the link and give a name.</Trans>}
         />
       ) : (
-        <ul className="flex list-none flex-col p-1.5">
+        <div role="table" aria-label={t`Who joined`} className="px-1.5 pb-1.5">
+          <div
+            role="row"
+            className={cn(JOINED_COLUMNS, "sticky top-0 z-10 h-8 bg-card px-2.5 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground")}
+          >
+            <span role="columnheader" className="col-span-2">
+              <Trans>Reader</Trans>
+            </span>
+            <span role="columnheader" className="text-right">
+              <Trans>Joined</Trans>
+            </span>
+            <span role="columnheader" className="text-right">
+              <Trans>Comments</Trans>
+            </span>
+          </div>
           {recent.map((reader) => (
             <JoinedRow key={reader.id} reader={reader} />
           ))}
-        </ul>
+        </div>
       )}
     </DashboardPanel>
   )
 }
 
+/** Avatar · name · joined · comments — fixed tracks, so every row lines up under its heading
+ *  however long a name or a count is. */
+const JOINED_COLUMNS = "grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(4.5rem,auto)_4.5rem] items-center gap-x-3"
+
 function JoinedRow({ reader }: { reader: DashReader }) {
   return (
-    <li className="flex h-11 items-center gap-3 rounded-lg px-2.5 transition-colors duration-150 hover:bg-muted/40 motion-reduce:transition-none">
+    <div
+      role="row"
+      className={cn(JOINED_COLUMNS, "h-11 rounded-lg px-2.5 transition-colors duration-150 hover:bg-muted/40 motion-reduce:transition-none")}
+    >
       <span
         aria-hidden="true"
         style={{ backgroundColor: reader.color }}
-        className="flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+        className="flex size-7 items-center justify-center rounded-full text-xs font-semibold text-white"
       >
         {initialOf(reader.name)}
       </span>
-      <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">{reader.name}</span>
-      <span className="shrink-0 text-[11px] text-muted-foreground">
-        <Trans>
-          joined <RelativeTime iso={reader.joinedAt} />
-        </Trans>
+      <span role="cell" className="truncate text-[13px] font-medium text-foreground">
+        {reader.name}
       </span>
-      <span className="flex w-28 shrink-0 justify-end whitespace-nowrap">
+      <span role="cell" className="whitespace-nowrap text-right text-[11px] text-muted-foreground">
+        <RelativeTime iso={reader.joinedAt} />
+      </span>
+      <span role="cell" className="flex justify-end">
         {reader.commentCount > 0 ? (
           <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium tabular-nums text-foreground/80">
             <MessageSquare className="size-3" aria-hidden="true" />
-            <Plural value={reader.commentCount} one="# comment" other="# comments" />
+            {reader.commentCount}
+            <span className="sr-only">
+              <Plural value={reader.commentCount} one="comment" other="comments" />
+            </span>
           </span>
         ) : (
           <span className="text-[11px] text-muted-foreground/50">
@@ -267,7 +292,7 @@ function JoinedRow({ reader }: { reader: DashReader }) {
           </span>
         )}
       </span>
-    </li>
+    </div>
   )
 }
 

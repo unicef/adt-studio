@@ -1,3 +1,4 @@
+import { goToPage } from "@/features/comments/lib/go-to-page"
 import { readableTextColor } from "@adt/types/color"
 import { initialOf } from "@/features/comments/lib/initial"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
@@ -127,7 +128,7 @@ export function CommentsSidebar({
     const href = hrefForSection(comment.page_section_id, pages)
     if (href === null) return
     setPendingThread(comment.id)
-    window.location.href = href
+    goToPage(href)
   }
 
   return (

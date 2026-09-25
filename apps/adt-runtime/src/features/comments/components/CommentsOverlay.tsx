@@ -37,7 +37,7 @@ const DRAFT_COLOR = "#0091ff"
 /** Long enough that a pin brushed on the way somewhere else stays quiet. */
 const PREVIEW_DELAY_MS = 250
 
-const SETTLE_MS = 480
+const SETTLE_MS = 560
 
 const FLASH_MS = 1900
 
@@ -256,8 +256,14 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
     return () => document.removeEventListener("keydown", onKeyDown)
   }, [closeThread, draft, openThreadId, setDraft])
 
+  /** Where the "+" pin stood when its comment was posted. The new comment is not measured until
+   *  the next frame; without this it would be drawn for that frame in the page-level stack beside
+   *  the page, and appear to come from there. */
+  const postedPointRef = useRef<{ id: string; x: number; y: number } | null>(null)
+
   const onRootPosted = useCallback(
     async (comment: PublishComment) => {
+      if (draftPoint) postedPointRef.current = { id: comment.id, x: draftPoint.x, y: draftPoint.y }
       setDraft(null)
       setCommentMode(false)
       await refresh()
@@ -265,7 +271,7 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
       setSettling(comment.id)
       announceToScreenReader(t("comments-posted-label"))
     },
-    [refresh, setCommentMode, setDraft, setOpenThreadId, setSettling, t],
+    [draftPoint, refresh, setCommentMode, setDraft, setOpenThreadId, setSettling, t],
   )
 
   const openThread = useCallback(
@@ -294,18 +300,20 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
   )
 
   /**
-   * A thread the reader picked from the whole-book list on another page. The navigation has
-   * happened; this is the arrival. It waits for this page's comments so the id can be matched to
-   * a real thread, and clears the handoff either way — a stale id must never re-open on a later
-   * page turn.
+   * A thread the reader picked from the whole-book list on another page. This is the arrival: it
+   * waits until the thread's own page is the one on screen — a page swapped in place arrives
+   * after the list already knows the thread, and opening it early would open it on the page
+   * being left — then opens it. The handoff is cleared once used, or at once if the thread is
+   * gone, so a stale id never re-opens on a later page turn.
    */
   useEffect(() => {
     if (pendingThreadId === null) return
     if (comments.length === 0) return
     const target = comments.find((comment) => comment.id === pendingThreadId)
+    if (target && target.page_section_id !== sectionId) return
     setPendingThreadId(null)
     if (target) selectFromSidebar(target)
-  }, [comments, pendingThreadId, selectFromSidebar, setPendingThreadId])
+  }, [comments, pendingThreadId, sectionId, selectFromSidebar, setPendingThreadId])
 
   const openRoot = openThreadId
     ? (roots.find((comment) => comment.id === openThreadId) ?? null)
@@ -336,9 +344,13 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
       >
         {roots.map((comment) => {
           const anchored = positions.has(comment.id)
+          const posted = postedPointRef.current?.id === comment.id ? postedPointRef.current : null
+          if (anchored && posted) postedPointRef.current = null
           const point = anchored
             ? positions.get(comment.id)!
-            : pageStackPoint(pageStackIndex++)
+            : posted && comment.anchor !== null
+              ? posted
+              : pageStackPoint(pageStackIndex++)
           const own = session?.id === comment.session_id
           const resolved = comment.resolved_at !== null
           const label = initialOf(comment.author_name)
@@ -357,7 +369,7 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
               own={own}
               open={openThreadId === comment.id}
               resolved={resolved}
-              subtle={!anchored}
+              subtle={!anchored && !posted}
               lifted={drag?.id === comment.id}
               settling={settlingId === comment.id}
               flashing={flashedId === comment.id}

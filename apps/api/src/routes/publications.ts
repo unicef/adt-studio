@@ -69,6 +69,14 @@ import {
   type PublishWorkerClient,
 } from "../services/publish-worker-client.js"
 
+
+/** A 401 is the worker answering, and refusing the management secret this computer holds.
+ *  Only one secret is live per account, and setting sharing up from another Studio replaces
+ *  it — so this is "another computer took over", not "the service is down". */
+function secretRejected(error: { status?: number | null }): boolean {
+  return error.status === 401
+}
+
 export interface PublishRoutesDeps {
   booksDir: string
   webAssetsDir: string
@@ -509,6 +517,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
   const overviewOf = (
     publications: PublicationSummary[],
     reachable: boolean,
+    rejected = false,
   ): PublicationsOverview => {
     const at = (deps.now ?? (() => new Date()))()
     const measured = publications.filter(
@@ -517,6 +526,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     )
     return {
       worker_reachable: reachable,
+      worker_rejected: rejected,
       publications,
       totals: {
         published_count: publications.length,
@@ -554,7 +564,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       entries = (await clientFor(connection).listPublications()).publications
     } catch (error) {
       if (!isPublishWorkerError(error)) throw error
-      return c.json(overviewOf(summariesFromDisk(), false))
+      return c.json(overviewOf(summariesFromDisk(), false, secretRejected(error)))
     }
 
     return c.json(
@@ -642,6 +652,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       publication: null,
       url: record?.base_url ?? null,
       worker_reachable: false,
+      worker_rejected: false,
       has_access_code: record?.has_access_code ?? false,
       content_revision: contentRevision,
       ...over,
@@ -669,7 +680,11 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       /** A 404 is the worker *answering*: it is reachable, it simply has no publication under
        *  this token any more — a different thing to tell the author than "we could not ask". */
       const answered = isPublishWorkerError(error) && error.status === 404
-      if (!answered) return c.json(statusOf({ worker_reachable: false }))
+      if (!answered) {
+        return c.json(
+          statusOf({ worker_reachable: false, worker_rejected: isPublishWorkerError(error) && secretRejected(error) }),
+        )
+      }
 
       /**
        * The worker is there and has never heard of this token, so the book is not published —

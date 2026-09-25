@@ -539,6 +539,10 @@ export const BookPublicationStatus = z.object({
   publication: Publication.nullable(),
   url: z.string().url().nullable(),
   worker_reachable: z.boolean(),
+  /** The worker answered but refused this computer's management secret — another Studio
+   *  connected to the same account has replaced it. A different problem from "not answering",
+   *  with a different fix: reconnect here. */
+  worker_rejected: z.boolean().default(false),
   /** The worker's answer when it is reachable, the local record's otherwise. */
   has_access_code: z.boolean().default(false),
   /** The book's content revision *now*, to compare against the live version's. `null` when the
@@ -600,6 +604,8 @@ export type PublicationsTotals = z.infer<typeof PublicationsTotals>
 
 export const PublicationsOverview = z.object({
   worker_reachable: z.boolean(),
+  /** See `BookPublicationStatus.worker_rejected`. */
+  worker_rejected: z.boolean().default(false),
   publications: z.array(PublicationSummary),
   totals: PublicationsTotals,
 })

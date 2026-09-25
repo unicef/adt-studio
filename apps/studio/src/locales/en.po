@@ -150,6 +150,10 @@ msgstr "{0, plural, one {# stage} other {# stages}}"
 msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
 msgstr "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
 
+#. placeholder {0}: reader.commentCount
+msgid "{0, plural, one {comment} other {comments}}"
+msgstr "{0, plural, one {comment} other {comments}}"
+
 #. placeholder {0}: health.modelCount
 msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
 msgstr "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
@@ -738,6 +742,9 @@ msgstr "/ Section {0}"
 
 msgid "×4"
 msgstr "×4"
+
+msgid "<0>Another ADT Studio took over sharing on this Cloudflare account.</0> Readers still reach the link; reconnect here to manage it and see new feedback."
+msgstr "<0>Another ADT Studio took over sharing on this Cloudflare account.</0> Readers still reach the link; reconnect here to manage it and see new feedback."
 
 msgid "<0>The sharing service isn't answering.</0> Readers may not reach the link, and new feedback shows up once it's back."
 msgstr "<0>The sharing service isn't answering.</0> Readers may not reach the link, and new feedback shows up once it's back."
@@ -1753,6 +1760,9 @@ msgstr "and many more blocks across the entire book"
 
 msgid "and more sections across the page"
 msgstr "and more sections across the page"
+
+msgid "Another ADT Studio connected to this Cloudflare account has taken over sharing, so this computer can't read your hosted books. Reconnecting here takes it back — the other computer will then need to reconnect."
+msgstr "Another ADT Studio connected to this Cloudflare account has taken over sharing, so this computer can't read your hosted books. Reconnecting here takes it back — the other computer will then need to reconnect."
 
 msgid "Another program on this computer is already signing in to Cloudflare. Close it and try again."
 msgstr "Another program on this computer is already signing in to Cloudflare. Close it and try again."
@@ -5804,13 +5814,18 @@ msgstr "Its page on one side, the conversation and a reply box on the other."
 msgid "Jane Reviewer"
 msgstr "Jane Reviewer"
 
-#. placeholder {0}: formatPublishDate(reader.joinedAt, i18n.locale)
+msgid "Joined"
+msgstr "Joined"
+
 #. placeholder {0}: formatPublishDate(reader.joined_at, i18n.locale)
 msgid "Joined {0}"
 msgstr "Joined {0}"
 
-msgid "joined <0/>"
-msgstr "joined <0/>"
+#~ msgid "joined <0/>"
+#~ msgstr "joined <0/>"
+
+msgid "Joined <0/>"
+msgstr "Joined <0/>"
 
 msgid "Judge instructions"
 msgstr "Judge instructions"
@@ -5953,8 +5968,11 @@ msgid "Largest first"
 msgstr "Largest first"
 
 #. placeholder {0}: formatPublishDate(reader.lastCommentAt ?? reader.joinedAt, i18n.locale)
-msgid "last {0}"
-msgstr "last {0}"
+#~ msgid "last {0}"
+#~ msgstr "last {0}"
+
+msgid "last <0/>"
+msgstr "last <0/>"
 
 msgid "Last change"
 msgstr "Last change"
@@ -6409,6 +6427,9 @@ msgstr "Manage in book"
 
 msgid "Manage sign-language videos"
 msgstr "Manage sign-language videos"
+
+msgid "Managed elsewhere"
+msgstr "Managed elsewhere"
 
 msgid "Manual only"
 msgstr "Manual only"
@@ -7007,6 +7028,9 @@ msgstr "No comments"
 
 #~ msgid "No comments on this page."
 #~ msgstr "No comments on this page."
+
+msgid "No comments yet"
+msgstr "No comments yet"
 
 msgid "No content processing needed"
 msgstr "No content processing needed"
@@ -8990,6 +9014,9 @@ msgstr "Read-Aloud Content"
 msgid "Read-only"
 msgstr "Read-only"
 
+msgid "Reader"
+msgstr "Reader"
+
 msgid "Reader Highlighting"
 msgstr "Reader Highlighting"
 
@@ -9157,6 +9184,12 @@ msgstr "Recommended for"
 #. placeholder {0}: i18n._(presetLabel)
 msgid "Recommended for {0}"
 msgstr "Recommended for {0}"
+
+msgid "Reconnect here"
+msgstr "Reconnect here"
+
+msgid "Reconnect in Settings"
+msgstr "Reconnect in Settings"
 
 msgid "Record reviewer findings for the current page and save them to the active validation session."
 msgstr "Record reviewer findings for the current page and save them to the active validation session."
@@ -11917,6 +11950,9 @@ msgstr "This cannot be undone. Every link you have shared will stop working."
 
 msgid "This code still works. A new one can wait until the service is back."
 msgstr "This code still works. A new one can wait until the service is back."
+
+msgid "This code still works. Reconnect here to change it."
+msgstr "This code still works. Reconnect here to change it."
 
 msgid "This comes back once the Studio can check the book."
 msgstr "This comes back once the Studio can check the book."

@@ -92,6 +92,8 @@ export interface DashLink {
   /** The book has been edited since the live version was shared. `null` when it can't tell. */
   changesWaiting: boolean | null
   workerReachable: boolean
+  /** The service answered but refused this computer: another Studio on the account took over. */
+  workerRejected: boolean
   isUpdating: boolean
   update: () => void
   /** A code is required. `accessCode` can still be `null` when it was set somewhere this
@@ -182,6 +184,7 @@ export function useSharingLink(bookLabel: string, run: BookPublishRunController)
     expiresAt: record?.expires_at ?? null,
     changesWaiting: revision === null || published === null ? null : revision > published,
     workerReachable: status.data?.worker_reachable ?? true,
+    workerRejected: status.data?.worker_rejected ?? false,
     isUpdating: run.status === "running",
     update: run.update,
     hasAccessCode: status.data?.has_access_code === true,

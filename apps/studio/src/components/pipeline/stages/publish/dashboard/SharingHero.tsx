@@ -1,11 +1,12 @@
 import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { AlertTriangle, ArrowUpCircle, BookOpen, CheckCircle2, Loader2, Settings2 } from "lucide-react"
+import { AlertTriangle, ArrowUpCircle, BookOpen, CheckCircle2, KeyRound, Loader2, Settings2 } from "lucide-react"
 import { getBookCoverUrl } from "@/api/client"
 import { RelativeTime } from "@/components/publication-feedback/RelativeTime"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { DashLink } from "./dashboard-data"
+import { PublishingSettingsLink } from "../PublishingSettingsLink"
 import { SharingHandout } from "./SharingHandout"
 import { heroNotice } from "./helpers"
 
@@ -55,7 +56,7 @@ function HeroIdentity({ link, onOpenSettings, quiet }: { link: DashLink; onOpenS
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
-          <LivePill reachable={link.workerReachable} />
+          <LivePill reachable={link.workerReachable} rejected={link.workerRejected} />
           <button
             type="button"
             onClick={onOpenSettings}
@@ -106,7 +107,15 @@ function HeroIdentity({ link, onOpenSettings, quiet }: { link: DashLink; onOpenS
   )
 }
 
-function LivePill({ reachable }: { reachable: boolean }) {
+function LivePill({ reachable, rejected }: { reachable: boolean; rejected: boolean }) {
+  if (rejected) {
+    return (
+      <span className="flex w-fit items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30">
+        <span className="size-1.5 rounded-full bg-amber-500" aria-hidden="true" />
+        <Trans>Managed elsewhere</Trans>
+      </span>
+    )
+  }
   if (!reachable) {
     return (
       <span className="flex w-fit items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/30">
@@ -129,6 +138,26 @@ function LivePill({ reachable }: { reachable: boolean }) {
 function HeroNoticeRow({ link }: { link: DashLink }) {
   const band = heroNotice(link)
   if (band === null) return null
+
+  if (band === "rejected") {
+    return (
+      <div
+        role="status"
+        className="flex items-center gap-2.5 border-t border-amber-200 bg-amber-50 px-6 py-2.5 text-[13px] text-amber-900 motion-safe:animate-in motion-safe:fade-in-0 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100"
+      >
+        <KeyRound className="size-4 shrink-0" aria-hidden="true" />
+        <span className="min-w-0 flex-1">
+          <Trans>
+            <span className="font-semibold">Another ADT Studio took over sharing on this Cloudflare account.</span>{" "}
+            Readers still reach the link; reconnect here to manage it and see new feedback.
+          </Trans>
+        </span>
+        <PublishingSettingsLink variant="outline" size="sm" className="h-8 shrink-0">
+          <Trans>Reconnect in Settings</Trans>
+        </PublishingSettingsLink>
+      </div>
+    )
+  }
 
   if (band === "down") {
     return (

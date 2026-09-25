@@ -178,7 +178,9 @@ export function SharingHandout({ link }: { link: DashLink }) {
             {!link.workerReachable ? (
               <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
                 <CloudOff className="size-3.5 shrink-0" aria-hidden="true" />
-                {link.hasAccessCode ? (
+                {link.workerRejected ? (
+                  <Trans>This code still works. Reconnect here to change it.</Trans>
+                ) : link.hasAccessCode ? (
                   <Trans>This code still works. A new one can wait until the service is back.</Trans>
                 ) : (
                   <Trans>The link still works. A code can wait until the service is back.</Trans>

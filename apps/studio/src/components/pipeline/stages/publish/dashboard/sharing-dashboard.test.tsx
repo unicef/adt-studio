@@ -87,6 +87,7 @@ function link(overrides: Partial<DashLink> = {}): DashLink {
     expiresAt: null,
     changesWaiting: false,
     workerReachable: true,
+    workerRejected: false,
     isUpdating: false,
     update: vi.fn(),
     hasAccessCode: true,
@@ -243,6 +244,13 @@ describe("SharingHero", () => {
     render(<SharingHero link={link({ changesWaiting: null })} onOpenSettings={vi.fn()} />)
     expect(document.body.textContent).not.toContain("Up to date")
     expect(document.body.textContent).not.toContain("don't see your latest edits")
+  })
+
+  /** Another Studio on the account replaced the secret: say so, and where to take it back. */
+  it("says another Studio took over, not that the service is down", () => {
+    render(<SharingHero link={link({ workerReachable: false, workerRejected: true })} onOpenSettings={vi.fn()} />)
+    expect(document.body.textContent).toContain("Another ADT Studio took over sharing")
+    expect(document.body.textContent).not.toContain("isn't answering")
   })
 
   /** The outage band wins the bottom edge, but the edits it hides are still worth knowing about. */

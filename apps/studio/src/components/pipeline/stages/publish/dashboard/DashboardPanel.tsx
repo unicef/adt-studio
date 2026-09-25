@@ -1,7 +1,9 @@
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
-/** A titled card whose body scrolls on its own, so the dashboard never scrolls as a page. */
+/** A titled card whose body scrolls on its own, so the dashboard never scrolls as a page.
+ *  `scroll={false}` hands the body's height to its children instead, for panels that keep a
+ *  fixed header of their own (filters, a composer) above a list that scrolls by itself. */
 export function DashboardPanel({
   title,
   count,
@@ -10,6 +12,7 @@ export function DashboardPanel({
   footer,
   children,
   className,
+  scroll = true,
 }: {
   title: ReactNode
   count?: number
@@ -18,6 +21,7 @@ export function DashboardPanel({
   footer?: ReactNode
   children: ReactNode
   className?: string
+  scroll?: boolean
 }) {
   return (
     <section className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border bg-card", className)}>
@@ -26,7 +30,9 @@ export function DashboardPanel({
         {count !== undefined ? <DashboardCount value={count} tone={tone} /> : null}
         <span className="ml-auto flex items-center gap-1">{action}</span>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
+      <div className={cn("min-h-0 flex-1", scroll ? "overflow-y-auto overscroll-contain" : "flex flex-col overflow-hidden")}>
+        {children}
+      </div>
       {footer ? <footer className="shrink-0 border-t px-2 py-1.5">{footer}</footer> : null}
     </section>
   )

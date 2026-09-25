@@ -8,7 +8,7 @@ import { useUploadChannel } from "./useUploadChannel"
 /**
  * **The Assembly Line.** The author's pages ride a factory belt — Modern Times, in paper. They
  * come in from off-frame, pass behind the sending machine, and come out the other side carrying a
- * stamped seal, off into warm light at the edge of the frame.
+ * stamped seal, off the edge of the frame.
  *
  * The belt is *one physical clock*: pages, strap texture and roller rims all move at the same
  * 26px/s, which is what makes it a machine rather than three animations. It runs on the ambient
@@ -182,11 +182,8 @@ export function AssemblyLine({ pages, progress, aspect, spread, className }: Ste
           )
         })}
 
-        <div className="up-cv-glow" />
-
         <div className="up-cv-machine" style={{ left: MACHINE.left, top: MACHINE.top, width: MACHINE.width }}>
           <span className="up-cv-lamp" />
-          <span className="up-cv-lamp-halo" />
           <div className="up-cv-body">
             <CloudMark className="up-cv-brand" />
             <span className="up-cv-vent" />

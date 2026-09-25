@@ -8,6 +8,7 @@ import {
   FeedbackDetailLoading,
   FeedbackFilters,
   FeedbackListEmpty,
+  FeedbackSortMenu,
   FeedbackUnavailable,
   OpenPageLink,
   PageSheet,
@@ -28,8 +29,14 @@ export function FeedbackTab({ data }: { data: DashboardData }) {
   const selected = ws.selected
   return (
     <div className="grid min-h-0 flex-1 grid-cols-[minmax(250px,0.72fr)_minmax(0,2fr)] gap-4">
-      <DashboardPanel title={<Trans>Feedback</Trans>} count={data.status === "ready" ? ws.waitingNow : undefined} tone="attention">
-        <div className="flex h-full flex-col">
+      <DashboardPanel
+        title={<Trans>Feedback</Trans>}
+        count={data.status === "ready" ? ws.waitingNow : undefined}
+        tone="attention"
+        scroll={false}
+        action={<FeedbackSortMenu ws={ws} />}
+      >
+        <div className="flex min-h-0 flex-1 flex-col">
           <FeedbackFilters ws={ws} />
           {data.status === "loading" ? (
             <SkeletonRows rows={6} />
@@ -45,6 +52,7 @@ export function FeedbackTab({ data }: { data: DashboardData }) {
         <FeedbackDetailLoading />
       ) : selected ? (
         <DashboardPanel
+          scroll={false}
           title={selected.pageLabel}
           action={<OpenPageLink bookLabel={bookLabel} thread={selected} />}
           footer={
@@ -60,8 +68,8 @@ export function FeedbackTab({ data }: { data: DashboardData }) {
             />
           }
         >
-          <div className="@container h-full min-h-0">
-          <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] @4xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+          <div className="@container flex min-h-0 flex-1 flex-col">
+          <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] @4xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
             <PageSheet bookLabel={bookLabel} ws={ws} className="border-r" />
             <div className="flex min-h-0 flex-col">
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
