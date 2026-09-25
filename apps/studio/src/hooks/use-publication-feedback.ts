@@ -18,6 +18,9 @@ export const publicationCommentsKey = (label: string) =>
 export const publicationPagesKey = (label: string) =>
   ["books", label, "publication", "pages"] as const
 
+/** How often an open Studio checks for new comments; paused while the window is hidden. */
+export const COMMENTS_POLL_MS = 15_000
+
 /**
  * One query serves the panel, the pins and the sidebar badge: resolved threads are fetched
  * too and filtered in the client, so toggling "show resolved" is instant and the badge never
@@ -31,6 +34,7 @@ export function usePublicationComments(label: string, enabled: boolean) {
     retry: false,
     staleTime: 10_000,
     refetchOnWindowFocus: true,
+    refetchInterval: enabled ? COMMENTS_POLL_MS : false,
   })
 }
 

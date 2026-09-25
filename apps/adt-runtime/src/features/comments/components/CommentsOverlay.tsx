@@ -4,6 +4,7 @@ import { announceToScreenReader } from "@/shared/lib/aria-live"
 import { currentSectionIdAtom } from "@/features/navigation/state/nav.atoms"
 import { repliesOf, rootComments, type PublishComment } from "@/features/comments/lib/contract"
 import { anchorForElement, resolveAnchor } from "@/features/comments/lib/anchor"
+import { initialOf } from "@/features/comments/lib/initial"
 import { scrollBehavior } from "@/features/comments/lib/motion"
 import { useAnchorPositions, type AnchorTarget } from "@/features/comments/hooks/useAnchorPositions"
 import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
@@ -27,6 +28,7 @@ import { CommentPin } from "@/features/comments/components/CommentPin"
 import { CommentPreview } from "@/features/comments/components/CommentPreview"
 import { CommentThread } from "@/features/comments/components/CommentThread"
 import { CommentsSidebar } from "@/features/comments/components/CommentsSidebar"
+import { contentRoot } from "@/features/comments/lib/anchor"
 import { pendingThreadIdAtom } from "@/features/comments/state/follow.atoms"
 import { PointPopover } from "@/features/comments/components/PointPopover"
 
@@ -35,7 +37,7 @@ const DRAFT_COLOR = "#0091ff"
 /** Long enough that a pin brushed on the way somewhere else stays quiet. */
 const PREVIEW_DELAY_MS = 250
 
-const SETTLE_MS = 480
+const SETTLE_MS = 560
 
 const FLASH_MS = 1900
 
@@ -254,8 +256,14 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
     return () => document.removeEventListener("keydown", onKeyDown)
   }, [closeThread, draft, openThreadId, setDraft])
 
+  /** Where the "+" pin stood when its comment was posted. The new comment is not measured until
+   *  the next frame; without this it would be drawn for that frame in the page-level stack beside
+   *  the page, and appear to come from there. */
+  const postedPointRef = useRef<{ id: string; x: number; y: number } | null>(null)
+
   const onRootPosted = useCallback(
     async (comment: PublishComment) => {
+      if (draftPoint) postedPointRef.current = { id: comment.id, x: draftPoint.x, y: draftPoint.y }
       setDraft(null)
       setCommentMode(false)
       await refresh()
@@ -263,7 +271,7 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
       setSettling(comment.id)
       announceToScreenReader(t("comments-posted-label"))
     },
-    [refresh, setCommentMode, setDraft, setOpenThreadId, setSettling, t],
+    [draftPoint, refresh, setCommentMode, setDraft, setOpenThreadId, setSettling, t],
   )
 
   const openThread = useCallback(
@@ -292,18 +300,20 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
   )
 
   /**
-   * A thread the reader picked from the whole-book list on another page. The navigation has
-   * happened; this is the arrival. It waits for this page's comments so the id can be matched to
-   * a real thread, and clears the handoff either way — a stale id must never re-open on a later
-   * page turn.
+   * A thread the reader picked from the whole-book list on another page. This is the arrival: it
+   * waits until the thread's own page is the one on screen — a page swapped in place arrives
+   * after the list already knows the thread, and opening it early would open it on the page
+   * being left — then opens it. The handoff is cleared once used, or at once if the thread is
+   * gone, so a stale id never re-opens on a later page turn.
    */
   useEffect(() => {
     if (pendingThreadId === null) return
     if (comments.length === 0) return
     const target = comments.find((comment) => comment.id === pendingThreadId)
+    if (target && target.page_section_id !== sectionId) return
     setPendingThreadId(null)
     if (target) selectFromSidebar(target)
-  }, [comments, pendingThreadId, selectFromSidebar, setPendingThreadId])
+  }, [comments, pendingThreadId, sectionId, selectFromSidebar, setPendingThreadId])
 
   const openRoot = openThreadId
     ? (roots.find((comment) => comment.id === openThreadId) ?? null)
@@ -332,14 +342,18 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
         className="pointer-events-none fixed inset-0 z-40 overflow-hidden"
         data-comments-overlay=""
       >
-        {roots.map((comment, index) => {
+        {roots.map((comment) => {
           const anchored = positions.has(comment.id)
+          const posted = postedPointRef.current?.id === comment.id ? postedPointRef.current : null
+          if (anchored && posted) postedPointRef.current = null
           const point = anchored
             ? positions.get(comment.id)!
-            : pageStackPoint(pageStackIndex++)
+            : posted && comment.anchor !== null
+              ? posted
+              : pageStackPoint(pageStackIndex++)
           const own = session?.id === comment.session_id
           const resolved = comment.resolved_at !== null
-          const label = String(index + 1)
+          const label = initialOf(comment.author_name)
           const draggable = own && anchored && comment.anchor !== null
           return (
             <CommentPin
@@ -355,14 +369,14 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
               own={own}
               open={openThreadId === comment.id}
               resolved={resolved}
-              subtle={!anchored}
+              subtle={!anchored && !posted}
               lifted={drag?.id === comment.id}
               settling={settlingId === comment.id}
               flashing={flashedId === comment.id}
               title={draggable ? t("comments-drag-hint-label") : undefined}
               ariaLabel={t(
                 resolved ? "comments-resolved-pin-aria-label" : "comments-pin-aria-label",
-                { number: label, name: comment.author_name },
+                { name: comment.author_name },
               )}
               onPointerDown={draggable ? handlersFor(comment.id).onPointerDown : undefined}
               onPointerEnter={() => schedulePreview(comment.id)}
@@ -484,15 +498,28 @@ function dragColor(roots: PublishComment[], id: string, fallback: string): strin
 }
 
 function dragLabel(roots: PublishComment[], id: string): string {
-  const index = roots.findIndex((comment) => comment.id === id)
-  return index === -1 ? "+" : String(index + 1)
+  const root = roots.find((comment) => comment.id === id)
+  return root ? initialOf(root.author_name) : "+"
 }
 
+/** How far outside the page's right edge the stack hangs, clear of its border. */
+const PAGE_STACK_GAP = 12
+
+/**
+ * Where the page-level stack sits: just outside the page's own top-right corner, so the pins
+ * read as belonging to the page rather than to the window. It used to hug the window's edge,
+ * which on a wide screen put them half a screen away from the book they were about. The
+ * window edge is still the limit, for a page that fills the screen.
+ */
 function pageStackPoint(index: number): { x: number; y: number } {
   const viewportWidth = typeof window === "undefined" ? 0 : window.innerWidth
+  const edge = viewportWidth - PAGE_STACK_RIGHT
+  const page = contentRoot()?.getBoundingClientRect()
+  const beside = page && page.width > 0 ? page.right + PAGE_STACK_GAP : edge
+  const top = page && page.height > 0 ? Math.max(PAGE_STACK_TOP, page.top) : PAGE_STACK_TOP
   return {
-    x: viewportWidth - PAGE_STACK_RIGHT,
-    y: PAGE_STACK_TOP + index * PAGE_STACK_STEP + 28,
+    x: Math.min(beside, edge),
+    y: top + index * PAGE_STACK_STEP + 28,
   }
 }
 

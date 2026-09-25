@@ -148,7 +148,7 @@ export function PeerCursors() {
       })),
     [visible],
   )
-  const positions = useAnchorPositions(targets)
+  const positions = useAnchorPositions(targets, { precise: true })
 
   const placed = useMemo(() => {
     const withPlacement = visible.flatMap((entry) => {

@@ -199,7 +199,7 @@
     "comments-thread-label": "Tópico de comentários",
     "comments-you-label": "você",
     "comments-unanchored-label": "Nesta página",
-    "comments-pin-aria-label": "Comentário ${number} de ${name}",
+    "comments-pin-aria-label": "Comentário de ${name}",
     "comments-just-now-label": "agora mesmo",
     "comments-minutes-ago-label": "há ${count} min",
     "comments-hours-ago-label": "há ${count} h",
@@ -229,7 +229,7 @@
     "comments-show-resolved-label": "Mostrar resolvidos",
     "comments-resolved-label": "Resolvido",
     "comments-resolved-hint-label": "O autor fechou esta conversa. A resposta chega a ele mesmo assim e fica junto da conversa resolvida.",
-    "comments-resolved-pin-aria-label": "Comentário resolvido ${number} de ${name}",
+    "comments-resolved-pin-aria-label": "Comentário resolvido de ${name}",
     "comments-resolved-hidden-label": "${count} resolvidos",
     "comments-one-resolved-label": "1 resolvido",
     "comments-list-label": "Comentários desta página",
@@ -249,6 +249,7 @@
     "comments-cursor-direction-left-label": "à esquerda",
     "comments-cursor-direction-right-label": "à direita",
     "comments-presence-page-label": "Página ${number}",
+    "comments-page-section-label": "Página ${page} · Seção ${section}",
     "comments-presence-unknown-page-label": "Em algum lugar do livro",
     "comments-presence-anonymous-hint-label": "Não é possível seguir leitores sem nome",
     "comments-follow-label": "Seguir",
@@ -267,5 +268,8 @@
     "comments-scope-page-label": "Esta página",
     "comments-scope-book-label": "Livro inteiro",
     "comments-book-empty-label": "Ainda não há comentários neste livro",
-    "comments-reading-now-label": "Lendo agora"
+    "comments-reading-now-label": "Lendo agora",
+    "comments-hint-title": "Você pode comentar este livro",
+    "comments-hint-body": "Toque neste botão e depois clique em qualquer lugar de uma página para deixar uma nota.",
+    "comments-hint-dismiss-label": "Fechar"
 }

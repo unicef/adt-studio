@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useState, type ReactNode } from "react"
+import { useSearch } from "@tanstack/react-router"
 import { ArrowLeft, ArrowRight, LayoutGrid, ListTree, RotateCcw, Table2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePages, usePage } from "@/hooks/use-pages"
@@ -57,6 +58,25 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   const pageList = pages ?? []
   const { sectionIndex, setSectionIndex, skipNextResetRef } = useSectionNav()
+
+  /**
+   * A link that named a section — a reviewer's comment, opened where it was left.
+   *
+   * Applied after the layout's own reset-to-zero rather than around it: that effect fires on
+   * every page change and would otherwise win the race on the first render of a deep link.
+   * Keyed on the value, so moving sections by hand afterwards is not undone on the next render.
+   */
+  const { section: linkedSection } = useSearch({ strict: false }) as { section?: number }
+  const appliedSectionRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (linkedSection === undefined) {
+      appliedSectionRef.current = null
+      return
+    }
+    if (appliedSectionRef.current === linkedSection) return
+    appliedSectionRef.current = linkedSection
+    setSectionIndex(linkedSection)
+  }, [linkedSection, setSectionIndex])
   // When navigating backward across page boundary, resolve to last section
   const pendingLastSection = useRef(false)
   // Guard: prevent silent navigation while AI image is generating

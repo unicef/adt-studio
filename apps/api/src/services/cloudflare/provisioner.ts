@@ -26,6 +26,7 @@ import { ProvisionError, describeError, isProvisionError } from "./errors.js"
 import { toConnectionStatus } from "./status.js"
 import type { WorkerArtifact, WorkerArtifactBinding } from "./worker-artifact.js"
 import { prepareStaticAssets } from "./static-assets.js"
+import { ensureWorkersDevSubdomain } from "./workers-subdomain.js"
 
 const MIGRATIONS_TABLE = "_migrations"
 const MGMT_SECRET_BYTES = 32
@@ -55,6 +56,16 @@ function generateMgmtSecret(): string {
 
 function alreadyExists(error: unknown): boolean {
   return error instanceof CloudflareApiError && /already exists|duplicate/i.test(error.message)
+}
+
+const NO_SUBDOMAIN_MESSAGE =
+  "This Cloudflare account has no workers.dev subdomain, and Cloudflare would not let the Studio reserve one. Open Workers & Pages in the Cloudflare dashboard — opening it for the first time creates one — then try again."
+
+/** Cloudflare refuses a script upload on an account with no workers.dev subdomain, and says so
+ *  in the upload's own error. Recognised so it lands on the step that explains it instead of on
+ *  `upload_failed`, whose copy tells the reader this is a passing network problem. */
+function mentionsMissingSubdomain(error: unknown): boolean {
+  return /workers\.dev subdomain/i.test(describeError(error))
 }
 
 function mentionsMigration(error: unknown): boolean {
@@ -176,6 +187,28 @@ export async function provisionCloudflare(
             : `The Cloudflare API token is missing these permissions: ${probe.missingScopes.join(", ")}.`,
         missingScopes: probe.missingScopes,
       })
+    }
+    /** Handled here rather than at `enable-workers-dev`, where it is finally used, because
+     *  Cloudflare refuses the *script upload* without one — three steps earlier — with a
+     *  message that reads like a transient upload failure.
+     *
+     *  Registered rather than asked for. Cloudflare creates one silently the first time anyone
+     *  opens the Workers dashboard, so sending someone there is sending them to fetch a name
+     *  Cloudflare would have chosen for them anyway. If it refuses, that is when the person
+     *  has to do it, and the message says so. */
+    if (probe.workersDevSubdomain === null) {
+      try {
+        const ensured = await ensureWorkersDevSubdomain(client)
+        stepMessage = `Reserved ${ensured.subdomain}.workers.dev`
+        return probe.accountName
+      } catch (error) {
+        throw new ProvisionError({
+          code: "no_workers_subdomain",
+          stepId: "verify-token",
+          message: NO_SUBDOMAIN_MESSAGE,
+          cause: error,
+        })
+      }
     }
     stepMessage = probe.accountName ? `Account ${probe.accountName}` : undefined
     return probe.accountName
@@ -324,12 +357,28 @@ export async function provisionCloudflare(
     try {
       await upload(needsMigrations)
     } catch (error) {
+      if (mentionsMissingSubdomain(error)) {
+        throw new ProvisionError({
+          code: "no_workers_subdomain",
+          stepId: "upload-worker",
+          message: NO_SUBDOMAIN_MESSAGE,
+          cause: error,
+        })
+      }
       if (needsMigrations && mentionsMigration(error)) {
         try {
           await upload(false)
           stepMessage = `Uploaded worker v${artifact.metadata.version}`
           return migrationTag
         } catch (retryError) {
+          if (mentionsMissingSubdomain(retryError)) {
+            throw new ProvisionError({
+              code: "no_workers_subdomain",
+              stepId: "upload-worker",
+              message: NO_SUBDOMAIN_MESSAGE,
+              cause: retryError,
+            })
+          }
           throw new ProvisionError({
             code: "upload_failed",
             stepId: "upload-worker",

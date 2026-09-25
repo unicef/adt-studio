@@ -144,6 +144,7 @@ app.route(
     booksDir,
     webAssetsDir,
     configPath,
+    projectRoot,
   }),
 )
 

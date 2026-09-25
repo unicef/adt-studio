@@ -7,6 +7,7 @@ import {
   CLOUDFLARE_ACCOUNT_ID_HEADER,
   CLOUDFLARE_TOKEN_HEADER,
   CLOUDFLARE_WORKER_NAME,
+  PROVISION_STEPS,
   PUBLISH_WORKER_VERSION,
   type CloudflareVerifyResponse,
   type ProvisionProgressEvent,
@@ -501,7 +502,9 @@ describe("cloudflare routes", () => {
     })
 
     it("emits a taxonomy error event instead of failing the stream", async () => {
-      const { app } = buildApp({ subdomain: null })
+      /** Registering is refused, which is the one case where the author has to open the
+       *  dashboard — an account with simply no subdomain now gets one reserved for it. */
+      const { app } = buildApp({ subdomain: null, subdomainCreateForbidden: true })
       const res = await app.request("/api/cloudflare/provision", { method: "POST", headers: AUTH })
 
       const events = parseSSE(await res.text())
@@ -509,8 +512,10 @@ describe("cloudflare routes", () => {
       expect(last?.type).toBe("error")
       if (last?.type !== "error") throw new Error("expected an error event")
       expect(last.code).toBe("no_workers_subdomain")
-      expect(last.step_id).toBe("enable-workers-dev")
-      expect(last.resume_from_step).toBe(6)
+      expect(last.step_id).toBe("verify-token")
+      expect(last.resume_from_step).toBe(
+        PROVISION_STEPS.find((step) => step.id === "verify-token")?.number,
+      )
     })
 
     it("reports the missing scopes on the error event", async () => {
@@ -584,6 +589,67 @@ describe("cloudflare routes", () => {
       const first = await firstRequest
       expect(first.status).toBe(200)
       await first.text()
+    })
+  })
+
+  describe("GET /cloudflare/provision/run", () => {
+    it("reports no run before one has started", async () => {
+      const { app } = buildApp()
+      const res = await app.request("/api/cloudflare/provision/run")
+
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ run: null })
+    })
+
+    /** The browser drops the SSE stream on reload, but the run keeps going. Without this the
+     *  wizard comes back up looking idle while resources are still being created. */
+    it("still reports the run while the stream is open", async () => {
+      const fake = createFakeCloudflare()
+      const gate = deferred<void>()
+      let started = false
+      const holdingFetch: FetchLike = async (input, init) => {
+        started = true
+        await gate.promise
+        return fake.fetchFn(input, init)
+      }
+      const app = new Hono()
+      app.onError(errorHandler)
+      app.route(
+        "/api",
+        createCloudflareRoutes({
+          booksDir: tmpDir,
+          projectRoot: tmpDir,
+          stateDir,
+          artifactDir,
+          migrationsDir,
+          fetchFn: holdingFetch,
+          sleep: async () => {},
+          now: () => new Date("2026-08-03T12:00:00.000Z"),
+          generateSecret: () => "mgmt-secret-1",
+          healthAttempts: 2,
+        }),
+      )
+
+      const inFlight = app.request("/api/cloudflare/provision", { method: "POST", headers: AUTH })
+      await waitUntil(() => started)
+
+      const during = await app.request("/api/cloudflare/provision/run")
+      const body = (await during.json()) as { run: { status: string; finished_at: string | null } }
+      expect(body.run.status).toBe("running")
+      expect(body.run.finished_at).toBeNull()
+
+      gate.resolve()
+      await (await inFlight).text()
+
+      const after = await app.request("/api/cloudflare/provision/run")
+      const settled = (await after.json()) as {
+        run: { status: string; step_states: string[]; finished_at: string | null }
+      }
+      expect(settled.run.status).toBe("done")
+      expect(settled.run.finished_at).not.toBeNull()
+      expect(settled.run.step_states.every((value) => value === "done" || value === "skipped")).toBe(
+        true,
+      )
     })
   })
 

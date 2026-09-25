@@ -18,8 +18,13 @@ import {
   type PublishFeatureSelection,
   type PublishProgressEvent,
   type PublishStepId,
+  isVersionAtLeast,
 } from "@adt/types"
+import { deployBookHost } from "./cloudflare/book-host-deploy.js"
+import type { CloudflareClient } from "./cloudflare/client.js"
 import type { CloudflareConnectionRecord } from "./cloudflare/connection-store.js"
+import { staticAssetHash, type StaticAsset } from "./cloudflare/static-assets.js"
+import type { BookHostArtifact } from "./cloudflare/worker-artifact.js"
 import { prepareExport, readBookTitle } from "./export-service.js"
 import {
   createPublishWorkerClient,
@@ -307,8 +312,6 @@ async function withPublishConfig<T>(bookDir: string, run: () => Promise<T>): Pro
   }
 }
 
-const UPLOAD_CONCURRENCY = 6
-
 interface AdtFileEntry {
   relativePath: string
   bytes: number
@@ -348,6 +351,10 @@ function measureAdtBundle(bookDir: string): { files: AdtFileEntry[]; bytes: numb
  * `offline-preloader.js` are rewritten for the upload, so their size and digest from before the
  * patch would describe bytes that are never sent, and the worker rejects the mismatch.
  */
+/** `asset_hash` is Cloudflare's content address for the same bytes, and the control plane
+ *  stores it so it can rebuild a book's asset list without holding the bytes. It is safe to
+ *  compute here, before the upload id exists, because the address keys on the content and the
+ *  file extension only — never on the snapshot prefix the path later gains. */
 function declareSnapshotFiles(bookDir: string, files: AdtFileEntry[]): PublicationUploadFile[] {
   const adtDir = path.join(bookDir, "adt")
   return files.map((file) => {
@@ -356,59 +363,9 @@ function declareSnapshotFiles(bookDir: string, files: AdtFileEntry[]): Publicati
       path: file.relativePath,
       bytes: body.byteLength,
       sha256: crypto.createHash("sha256").update(body).digest("hex"),
+      asset_hash: staticAssetHash(file.relativePath, body),
     }
   })
-}
-
-/** Tighter than this spends an awaited SSE write on a number the reader cannot perceive
- *  changing; a 1,453-file book would otherwise emit that many events. */
-const UPLOAD_PROGRESS_INTERVAL_MS = 150
-
-async function uploadStagedFiles(
-  client: PublishWorkerClient,
-  uploadId: string,
-  bookDir: string,
-  files: PublicationUploadFile[],
-  emit: PublishEmit,
-  sleep: (ms: number) => Promise<void>,
-): Promise<number> {
-  const adtDir = path.join(bookDir, "adt")
-  let uploaded = 0
-  let bytes = 0
-  let cursor = 0
-  let lastEmitAt = 0
-
-  await emit(stepEvent("upload", "running", { done: 0, total: files.length, unit: "files" }))
-
-  const worker = async (): Promise<void> => {
-    for (;;) {
-      const index = cursor
-      cursor += 1
-      const file = files[index]
-      if (file === undefined) return
-
-      const body = fs.readFileSync(path.join(adtDir, file.path))
-      const result = await uploadWithRetry(
-        () => client.uploadFile(uploadId, file.path, body),
-        emit,
-        sleep,
-      )
-      bytes += result.bytes
-      uploaded += 1
-
-      const now = Date.now()
-      const finished = uploaded === files.length
-      if (finished || now - lastEmitAt >= UPLOAD_PROGRESS_INTERVAL_MS) {
-        lastEmitAt = now
-        await emit(
-          stepEvent("upload", "running", { done: uploaded, total: files.length, unit: "files" }),
-        )
-      }
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(UPLOAD_CONCURRENCY, files.length) }, worker))
-  return bytes
 }
 
 export interface PublishExportOptions {
@@ -512,6 +469,9 @@ function delay(ms: number): Promise<void> {
 
 export interface PublishBookOptions extends PublishExportOptions {
   connection: CloudflareConnectionRecord
+  /** Per-book hosting deploys this book's own Worker as part of publishing, so the account
+   *  credentials and the book-host artifact travel with the publish. */
+  bookHost: BookHostDeps
   emit: PublishEmit
   expiresAt?: string | null
   /** Plaintext. It goes to the worker to be hashed, and into the book's own record so the
@@ -602,6 +562,12 @@ function uploadFailure(error: unknown): PublishStepError {
     if (error.code === "payload_too_large") {
       return new PublishStepError("snapshot_too_large", "upload", error.message)
     }
+    /** The worker answered, and answered that it has no such publication — so there is nothing
+     *  to add a version to. Never `upload_failed`, whose copy promises that waiting a moment
+     *  and publishing again normally works; this one needs a fresh link, not patience. */
+    if (error.status === 404) {
+      return new PublishStepError("not_published", "upload", error.message)
+    }
     return new PublishStepError("upload_failed", "upload", error.message)
   }
   return new PublishStepError("upload_failed", "upload", describe(error))
@@ -617,15 +583,82 @@ async function abortQuietly(client: PublishWorkerClient, uploadId: string): Prom
   }
 }
 
+/** Where the control plane files a snapshot, and therefore the path prefix every asset of
+ *  that version carries. Mirrors `uploads/${uploadId}` in the worker's upload route. */
+const SNAPSHOT_PREFIX = "uploads"
+
+export interface BookHostDeps {
+  /** Account-level credentials. Per-book hosting deploys a Worker on every publish, so
+   *  publishing needs these and no longer just the control plane's management secret. */
+  client: CloudflareClient
+  artifact: BookHostArtifact
+  d1DatabaseUuid: string
+  workersDevSubdomain: string
+  /** The control plane's secret. Each book host gets a value derived from it, never this. */
+  controlPlaneSecret: string
+  controlPlaneName?: string
+}
+
+/**
+ * Sends this book's bytes straight to Cloudflare and deploys the Worker that serves them.
+ *
+ * The bytes never pass through the control plane. Each asset is addressed by the snapshot
+ * prefix the control plane assigned plus its path inside the bundle, which is exactly what the
+ * reader routes resolve an incoming request to.
+ */
+async function deployBookAssets(
+  host: BookHostDeps,
+  token: string,
+  uploadId: string,
+  bookDir: string,
+  declared: PublicationUploadFile[],
+  emit: PublishEmit,
+  sleep: (ms: number) => Promise<void>,
+): Promise<{ url: string; workerName: string }> {
+  const adtDir = path.join(bookDir, "adt")
+
+  const assets: StaticAsset[] = declared.map((file) => ({
+    path: `/${SNAPSHOT_PREFIX}/${uploadId}/${file.path}`,
+    content: fs.readFileSync(path.join(adtDir, file.path)),
+  }))
+
+  const deployed = await deployBookHost({
+    client: host.client,
+    artifact: host.artifact,
+    token,
+    assets,
+    d1DatabaseUuid: host.d1DatabaseUuid,
+    workersDevSubdomain: host.workersDevSubdomain,
+    controlPlaneSecret: host.controlPlaneSecret,
+    ...(host.controlPlaneName === undefined ? {} : { controlPlaneName: host.controlPlaneName }),
+    sleep,
+    onAssetProgress: async (progress) => {
+      await emit(stepEvent("upload", "running", { ...progress, unit: "files" }))
+    },
+  })
+
+  await emit(
+    stepEvent("upload", "running", {
+      done: declared.length,
+      total: declared.length,
+      unit: "files",
+    }),
+  )
+  return deployed
+}
+
 interface StagedCommit {
   publication: Publication
   version: PublicationVersion
   url: string
   hasAccessCode: boolean
+  workerName: string
 }
 
 async function stageAndCommit(
   client: PublishWorkerClient,
+  host: BookHostDeps,
+  token: string,
   bookDir: string,
   files: AdtFileEntry[],
   start: (declared: PublicationUploadFile[]) => Promise<{ upload_id: string }>,
@@ -642,10 +675,26 @@ async function stageAndCommit(
     )
 
     try {
-      await uploadStagedFiles(client, started.upload_id, bookDir, declared, emit, sleep)
+      const deployed = await deployBookAssets(
+        host,
+        token,
+        started.upload_id,
+        bookDir,
+        declared,
+        emit,
+        sleep,
+      )
       await emit(stepEvent("upload", "done"))
 
       await emit(stepEvent("register", "running"))
+      /** The control plane never saw the bytes, so it is told the collection landed rather
+       *  than having each file marked as it arrived. */
+      await uploadWithRetry(
+        () => client.completeStaticAssetUpload(started.upload_id),
+        emit,
+        sleep,
+        isRetryableRegistration,
+      )
       const committed = await uploadWithRetry(
         () => client.commitUpload(started.upload_id),
         emit,
@@ -655,8 +704,11 @@ async function stageAndCommit(
       return {
         publication: committed.publication,
         version: committed.version,
-        url: committed.url,
+        /** The book host serves the reader, not the control plane, so the share link points at
+         *  this book's own Worker. */
+        url: `${deployed.url}/p/${committed.publication.token}/`,
         hasAccessCode: committed.has_access_code,
+        workerName: deployed.workerName,
       }
     } catch (error) {
       await abortQuietly(client, started.upload_id)
@@ -665,7 +717,33 @@ async function stageAndCommit(
   })
 }
 
+/**
+ * Refuses to deploy a book host the account's control plane is too old for.
+ *
+ * The host is new on every share, but the database it reads and the room it joins belong to the
+ * control plane, which changes only when the author installs an update. Checked before anything
+ * is built, so the author waits through nothing to be told, and the answer is the one thing
+ * that fixes it: install the update. A version nobody recorded is allowed — blocking on a guess
+ * would stop sharing for every account connected before versions were stored.
+ */
+export function assertControlPlaneFor(host: BookHostDeps, connection: CloudflareConnectionRecord): void {
+  const minimum = host.artifact.metadata.min_control_plane_version
+  if (!minimum) return
+  if (isVersionAtLeast(connection.worker_version, minimum)) return
+  throw new PublishStepError(
+    "worker_outdated",
+    null,
+    `Your sharing service is version ${connection.worker_version}, and this Studio's books need ${minimum} or newer. Install the update in Settings → Sharing, then share again.`,
+  )
+}
+
+/** The host version a share deployed, for the record. */
+function hostVersionOf(host: BookHostDeps): string {
+  return host.artifact.metadata.version
+}
+
 export async function publishBook(options: PublishBookOptions): Promise<PublishBookResult> {
+  assertControlPlaneFor(options.bookHost, options.connection)
   const emit = options.emit
   const built = await buildSnapshot(options, emit)
   /** Read after the build, not after the upload: it has to describe the content that went into
@@ -679,6 +757,8 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
   const { bookDir } = requireBook(options.label, options.booksDir)
   const committed = await stageAndCommit(
     client,
+    options.bookHost,
+    token,
     bookDir,
     built.adtFiles,
     (declared) =>
@@ -715,6 +795,7 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
     has_access_code: committed.hasAccessCode,
     deleted_at: null,
     features: options.features ?? null,
+    host_version: hostVersionOf(options.bookHost),
   }
   savePublicationRecord(options.label, options.booksDir, record)
   await emit(stepEvent("register", "done"))
@@ -739,6 +820,7 @@ export interface RepublishBookOptions extends PublishBookOptions {
 }
 
 export async function republishBook(options: RepublishBookOptions): Promise<PublishBookResult> {
+  assertControlPlaneFor(options.bookHost, options.connection)
   const emit = options.emit
   /** Repeat whatever the first publish left out, unless this call says otherwise: a book that
    *  fits only because its narration was excluded would otherwise fail on update, after the
@@ -756,6 +838,8 @@ export async function republishBook(options: RepublishBookOptions): Promise<Publ
    *  opens rather than being guessed here. */
   const committed = await stageAndCommit(
     client,
+    options.bookHost,
+    options.record.token,
     bookDir,
     built.adtFiles,
     (declared) =>
@@ -784,6 +868,7 @@ export async function republishBook(options: RepublishBookOptions): Promise<Publ
         content_revision: contentRevision,
       },
     ].sort((a, b) => a.version - b.version),
+    host_version: hostVersionOf(options.bookHost),
   }
   savePublicationRecord(options.label, options.booksDir, record)
   await emit(stepEvent("register", "done"))

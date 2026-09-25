@@ -16,6 +16,9 @@ import {
   PublishCommentUpdateRequest,
   parseBookLabel,
   publicationStateAt,
+  PUBLISH_WORKER_VERSION,
+  isVersionAtLeast,
+  workersDevUrl,
   type BookPublicationRecord,
   type BookPublicationStatus,
   type PublicationDeleteResult,
@@ -47,16 +50,43 @@ import {
   type LocalBookSnapshot,
 } from "../services/publish-service.js"
 import {
+  createPublishRunView,
+  PublishCancelledError,
+} from "../services/publish-run-progress.js"
+import { bookHostAuthorSecret, bookWorkerName } from "../services/cloudflare/book-host.js"
+import { deleteBookHost } from "../services/cloudflare/book-host-deploy.js"
+import { createCloudflareClient, type CloudflareClient } from "../services/cloudflare/client.js"
+import { resolveCloudflareCredentials } from "../services/cloudflare/credentials.js"
+import { createCloudflareOAuthService } from "../services/cloudflare/oauth.js"
+import {
+  loadBookHostArtifact,
+  resolveWorkerArtifactPaths,
+} from "../services/cloudflare/worker-artifact.js"
+import type { BookHostDeps } from "../services/publish-service.js"
+import {
   createPublishWorkerClient,
   isPublishWorkerError,
   type PublishWorkerClient,
 } from "../services/publish-worker-client.js"
+
+
+/** A 401 is the worker answering, and refusing the management secret this computer holds.
+ *  Only one secret is live per account, and setting sharing up from another Studio replaces
+ *  it — so this is "another computer took over", not "the service is down". */
+function secretRejected(error: { status?: number | null }): boolean {
+  return error.status === 401
+}
 
 export interface PublishRoutesDeps {
   booksDir: string
   webAssetsDir: string
   configPath?: string
   stateDir?: string
+  projectRoot?: string
+  artifactDir?: string
+  /** Injected by tests. Publishing now deploys this book's own Worker, which needs account
+   *  credentials and the book-host artifact — neither of which a worker-only test has. */
+  bookHost?: (c: Context, connection: CloudflareConnectionRecord) => Promise<BookHostDeps>
   fetchFn?: FetchLike
   now?: () => Date
   generateToken?: () => string
@@ -89,10 +119,33 @@ function requireConnection(
   return failure(c, 412, "publish_not_connected", message)
 }
 
+/**
+ * Whether a stored publication belongs to the account that is connected now.
+ *
+ * The record is kept in the book, and the connection is kept on the machine, so they part
+ * company whenever someone connects a different Cloudflare account — the book still remembers
+ * a link on the old account's subdomain, which the new account has never heard of. Left
+ * unchecked that book cannot be published at all: "Publish" is refused because a record
+ * exists, and "Update site" asks the new worker for a version of a publication it does not
+ * have and gets a 404.
+ */
+function belongsToConnection(
+  record: BookPublicationRecord | null,
+  connection: CloudflareConnectionRecord,
+): boolean {
+  return record !== null && record.worker_url === connection.worker_url
+}
+
 /** A revoked publication is terminal — the Studio offers "Publish again", which mints a fresh
- *  token. Expiry is not: it can be lifted with PATCH, so an expired record still counts. */
-function isActiveRecord(record: BookPublicationRecord | null): record is BookPublicationRecord {
-  return record !== null && record.revoked_at === null
+ *  token. Expiry is not: it can be lifted with PATCH, so an expired record still counts.
+ *
+ *  A record from another account does not count either: on *this* account the book has never
+ *  been published, which is exactly what the author is offered. */
+function isActiveRecord(
+  record: BookPublicationRecord | null,
+  connection: CloudflareConnectionRecord,
+): record is BookPublicationRecord {
+  return belongsToConnection(record, connection) && record!.revoked_at === null
 }
 
 /**
@@ -136,6 +189,8 @@ function beginPublish(c: Context, label: string): { release: () => void } | Resp
 
 export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
   const app = new Hono()
+  /** What each book's run is doing, readable by a page that lost the stream. */
+  const runs = createPublishRunView(deps.now)
 
   const requireBook = (label: string): void => {
     if (!fs.existsSync(path.join(deps.booksDir, label))) {
@@ -146,6 +201,117 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
   const store: ConnectionStore = createConnectionStore(
     deps.stateDir ?? resolvePublishStateDir(deps.booksDir),
   )
+
+  const oauth = createCloudflareOAuthService({
+    store,
+    ...(deps.fetchFn === undefined ? {} : { fetchFn: deps.fetchFn }),
+  })
+
+  /**
+   * What a publish needs beyond the control plane's management secret, now that it deploys
+   * this book's own Worker: account credentials, and the artifact to deploy.
+   */
+  /** Account-level credentials. Managing a book's own Worker needs these; the control plane's
+   *  management secret cannot create or remove a Worker. */
+  const cloudflareClientFor = async (
+    c: Context,
+    connection: CloudflareConnectionRecord,
+  ): Promise<CloudflareClient> => {
+    if (deps.bookHost) return (await deps.bookHost(c, connection)).client
+    const credentials = await resolveCloudflareCredentials(c, { store, oauth })
+    return createCloudflareClient({
+      token: credentials.token,
+      accountId: credentials.accountId,
+      ...(deps.fetchFn === undefined ? {} : { fetchFn: deps.fetchFn }),
+    })
+  }
+
+  const bookHostFor = async (
+    c: Context,
+    connection: CloudflareConnectionRecord,
+  ): Promise<BookHostDeps> => {
+    if (deps.bookHost) return deps.bookHost(c, connection)
+
+    if (connection.workers_dev_subdomain === null) {
+      throw new HTTPException(412, {
+        message:
+          "This Cloudflare account has no workers.dev subdomain yet, so a published book would have no web address. Pick one in the Cloudflare dashboard under Workers & Pages, then publish again.",
+      })
+    }
+
+    const { artifactDir } = resolveWorkerArtifactPaths(deps.projectRoot ?? process.cwd(), {
+      ...(deps.artifactDir === undefined ? {} : { artifactDir: deps.artifactDir }),
+    })
+
+    return {
+      client: await cloudflareClientFor(c, connection),
+      artifact: loadBookHostArtifact(artifactDir),
+      d1DatabaseUuid: connection.d1_database_uuid,
+      workersDevSubdomain: connection.workers_dev_subdomain,
+      controlPlaneSecret: connection.mgmt_secret,
+      controlPlaneName: connection.worker_name,
+    }
+  }
+
+  /** Reader routes are served by the book's own Worker, so previewing a published snapshot
+   *  talks to that host rather than the control plane — and authenticates with the per-book
+   *  author secret, which is all that host will recognise. */
+  const bookHostClientFor = (
+    connection: CloudflareConnectionRecord,
+    record: BookPublicationRecord,
+  ): PublishWorkerClient => {
+    /** Deliberately not `deps.createClient`: that stands in for the control plane, and a book
+     *  host is a different origin with a different credential. */
+    return createPublishWorkerClient({
+      workerUrl: new URL(record.base_url).origin,
+      mgmtSecret: bookHostAuthorSecret(connection.mgmt_secret, record.token),
+      ...(deps.fetchFn === undefined ? {} : { fetchFn: deps.fetchFn }),
+    })
+  }
+
+  /** The stored field is the first source; the control plane's own address is the second, since
+   *  `<name>.<subdomain>.workers.dev` carries the subdomain in it. A connection with neither is
+   *  one this cannot derive an address for, and the caller keeps what it already had. */
+  const workersDevSubdomainOf = (connection: CloudflareConnectionRecord): string | null => {
+    if (connection.workers_dev_subdomain) return connection.workers_dev_subdomain
+    try {
+      const labels = new URL(connection.worker_url).hostname.split(".")
+      const [, subdomain, workers, dev] = labels
+      return labels.length === 4 && workers === "workers" && dev === "dev" && subdomain
+        ? subdomain
+        : null
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Where a publication is actually served from.
+   *
+   * The control plane holds every publication's row but none of its bytes — those live on the
+   * book's own Worker — so the `url` it reports is its own origin and answers the reader with
+   * `{"error":"not_found"}` after the access gate has already let them through. Nothing in D1
+   * records which host serves which book, but nothing needs to: `bookWorkerName` derives the
+   * name from the token, and the subdomain is the account's. So the address is recomputed here
+   * rather than believed.
+   *
+   * The local record wins when it is about *this* publication: it is what the publish itself
+   * wrote down, and it stays right even for a book deployed somewhere this derivation would
+   * not predict. It is checked against the token because a book can have been published more
+   * than once — the record describes only the newest, and lending its address to the older
+   * rows would point every one of them at the same book.
+   */
+  const bookHostUrlFor = (
+    token: string,
+    connection: CloudflareConnectionRecord,
+    record: BookPublicationRecord | null,
+    fallback: string,
+  ): string => {
+    if (record?.token === token && record.base_url) return record.base_url
+    const subdomain = workersDevSubdomainOf(connection)
+    if (subdomain === null) return fallback
+    return `${workersDevUrl(bookWorkerName(token), subdomain)}/p/${token}/`
+  }
 
   const clientFor = (connection: CloudflareConnectionRecord): PublishWorkerClient =>
     deps.createClient
@@ -196,7 +362,31 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
   }
 
-  const summaryFromWorker = (entry: PublicationListEntry): PublicationSummary => {
+  /** Whether "Update site" would move a live link onto this Studio's book host. Unknown counts
+   *  as older: a link recorded before versions were kept is older than every host that keeps
+   *  them. Only a book on this computer can be updated, and only a live link needs to be. */
+  const hostFields = (
+    record: BookPublicationRecord | null,
+    exists: boolean,
+    live: boolean,
+  ): Pick<PublicationSummary, "host_version" | "host_update_available"> => {
+    const hostVersion = record?.host_version ?? null
+    return {
+      host_version: hostVersion,
+      /** Older, not different: a link updated from a newer Studio on another computer must not
+       *  be offered a "update" that would put it back on this Studio's older host. */
+      host_update_available:
+        exists &&
+        live &&
+        record !== null &&
+        (hostVersion === null || !isVersionAtLeast(hostVersion, PUBLISH_WORKER_VERSION)),
+    }
+  }
+
+  const summaryFromWorker = (
+    entry: PublicationListEntry,
+    connection: CloudflareConnectionRecord,
+  ): PublicationSummary => {
     const label = entry.publication.book_label
     const local = localBookSnapshot(label)
     /** The book's *current* name, not the one frozen into the publication at publish time — an
@@ -207,7 +397,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       title: title && title.length > 0 ? title : entry.publication.title,
       book_label: label,
       book_exists: local.exists,
-      url: entry.url,
+      url: bookHostUrlFor(entry.publication.token, connection, local.record, entry.url),
       current_version: entry.publication.current_version,
       version_count: entry.version_count,
       created_at: entry.publication.created_at,
@@ -219,6 +409,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       comment_count: entry.comment_count,
       unresolved_count: entry.unresolved_count,
       snapshot_bytes: entry.snapshot_bytes,
+      ...hostFields(local.record, local.exists, publicationStateAt(entry.publication) === "active"),
       source: "worker",
     }
   }
@@ -313,6 +504,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
         comment_count: 0,
         unresolved_count: 0,
         snapshot_bytes: null,
+        ...hostFields(record, true, publicationStateAt(record) === "active"),
         source: "local",
       })
     }
@@ -325,6 +517,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
   const overviewOf = (
     publications: PublicationSummary[],
     reachable: boolean,
+    rejected = false,
   ): PublicationsOverview => {
     const at = (deps.now ?? (() => new Date()))()
     const measured = publications.filter(
@@ -333,6 +526,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     )
     return {
       worker_reachable: reachable,
+      worker_rejected: rejected,
       publications,
       totals: {
         published_count: publications.length,
@@ -370,10 +564,12 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       entries = (await clientFor(connection).listPublications()).publications
     } catch (error) {
       if (!isPublishWorkerError(error)) throw error
-      return c.json(overviewOf(summariesFromDisk(), false))
+      return c.json(overviewOf(summariesFromDisk(), false, secretRejected(error)))
     }
 
-    return c.json(overviewOf(entries.map(summaryFromWorker), true))
+    return c.json(
+      overviewOf(entries.map((entry) => summaryFromWorker(entry, connection)), true),
+    )
   })
 
   app.delete("/publications/:token", async (c) => {
@@ -388,6 +584,22 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       "Connect a Cloudflare account to manage published books",
     )
     if (connection instanceof Response) return connection
+
+    /** Before the control plane forgets it: a failure here leaves a book that is still
+     *  recorded and still reachable, rather than a public Worker serving a book nothing
+     *  remembers and no one can find to delete. */
+    try {
+      await deleteBookHost(await cloudflareClientFor(c, connection), token.data)
+    } catch (error) {
+      return failure(
+        c,
+        502,
+        "worker_unreachable",
+        `This book's own web service could not be removed, so nothing was deleted: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      )
+    }
 
     const client = clientFor(connection)
     let result: PublicationDeleteResult
@@ -440,19 +652,26 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       publication: null,
       url: record?.base_url ?? null,
       worker_reachable: false,
+      worker_rejected: false,
       has_access_code: record?.has_access_code ?? false,
       content_revision: contentRevision,
       ...over,
     })
 
-    if (!connection || !record) return c.json(statusOf({}))
+    /** A record from another account describes a link on a subdomain this account does not
+     *  own, so reporting it would offer "Update site" for a publication the connected worker
+     *  has never heard of. On this account the book is simply unpublished. */
+    if (!connection || !record || !belongsToConnection(record, connection)) {
+      return c.json(statusOf(record && connection ? { record: null, url: null } : {}))
+    }
 
     try {
       const detail = await clientFor(connection).getPublication(record.token)
       return c.json(
+        /** `url` is deliberately left at `statusOf`'s default, the record's own `base_url`.
+         *  `detail.url` is the control plane talking about itself, and it serves no book. */
         statusOf({
           publication: detail.publication,
-          url: detail.url,
           worker_reachable: true,
           has_access_code: detail.has_access_code,
         }),
@@ -461,7 +680,11 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       /** A 404 is the worker *answering*: it is reachable, it simply has no publication under
        *  this token any more — a different thing to tell the author than "we could not ask". */
       const answered = isPublishWorkerError(error) && error.status === 404
-      if (!answered) return c.json(statusOf({ worker_reachable: false }))
+      if (!answered) {
+        return c.json(
+          statusOf({ worker_reachable: false, worker_rejected: isPublishWorkerError(error) && secretRejected(error) }),
+        )
+      }
 
       /**
        * The worker is there and has never heard of this token, so the book is not published —
@@ -513,7 +736,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
 
     const record = readPublicationRecord(label, deps.booksDir)
-    if (isActiveRecord(record)) {
+    if (isActiveRecord(record, connection)) {
       release()
       return failure(
         c,
@@ -523,8 +746,12 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       )
     }
 
+    runs.begin(label, "publish")
     return streamSSE(c, async (stream) => {
+      /** Recorded before it is written: the stream may already be gone — the author reloaded or
+       *  left the page — and the run carries on regardless, so the snapshot is the record. */
       const emit = async (event: PublishProgressEvent) => {
+        runs.record(label, event)
         await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
       }
 
@@ -532,13 +759,15 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
         await publishBook({
           ...publishDeps(label),
           connection,
+          bookHost: await bookHostFor(c, connection),
           emit,
           expiresAt: body.data.expires_at ?? null,
           accessCode: body.data.access_code ?? null,
           ...(body.data.features ? { features: body.data.features } : {}),
         })
       } catch (error) {
-        await emit(toPublishErrorEvent(error))
+        if (error instanceof PublishCancelledError) runs.cancelled(label)
+        else await emit(toPublishErrorEvent(error))
       } finally {
         release()
       }
@@ -571,7 +800,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
 
     const record = readPublicationRecord(label, deps.booksDir)
-    if (!isActiveRecord(record)) {
+    if (!isActiveRecord(record, connection)) {
       release()
       return failure(
         c,
@@ -581,8 +810,12 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       )
     }
 
+    runs.begin(label, "update")
     return streamSSE(c, async (stream) => {
+      /** Recorded before it is written: the stream may already be gone — the author reloaded or
+       *  left the page — and the run carries on regardless, so the snapshot is the record. */
       const emit = async (event: PublishProgressEvent) => {
+        runs.record(label, event)
         await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
       }
 
@@ -590,16 +823,36 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
         await republishBook({
           ...publishDeps(label),
           connection,
+          bookHost: await bookHostFor(c, connection),
           emit,
           record,
           ...(body.data.features ? { features: body.data.features } : {}),
         })
       } catch (error) {
-        await emit(toPublishErrorEvent(error))
+        if (error instanceof PublishCancelledError) runs.cancelled(label)
+        else await emit(toPublishErrorEvent(error))
       } finally {
         release()
       }
     })
+  })
+
+  /** The run a page lost the stream to, or the last one's ending. `null` when none has run. */
+  app.get("/books/:label/publication/run", (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    return c.json({ run: runs.get(label) })
+  })
+
+  /** Every run still going, so the Studio can watch runs a reload left behind on any page. */
+  app.get("/publication-runs", (c) => c.json({ runs: runs.running() }))
+
+  /**
+   * The author's Stop. A request rather than an order: the run honours it at its next step, and
+   * refuses it once the link is being created, where stopping could leave a half-made link.
+   */
+  app.post("/books/:label/publication/run/cancel", (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    return c.json({ cancelled: runs.requestCancel(label) })
   })
 
   app.post("/books/:label/publication/revoke", async (c) => {
@@ -744,9 +997,14 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
   })
 
-  app.get("/books/:label/publication/readers", async (c) => {
-    const label = parseBookLabel(c.req.param("label"))
-    requireBook(label)
+  /* Keyed by token, not by book label, because the publications shelf lists rosters for books
+   * that have left this computer (`book_exists: false`) — a label would have nothing to resolve.
+   * Same shape as `DELETE /publications/:token` for that reason. */
+  app.get("/publications/:token/readers", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return c.json({ error: "That is not a publication token", code: "not_published" }, 404)
+    }
 
     const connection = requireConnection(
       c,
@@ -755,11 +1013,8 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     )
     if (connection instanceof Response) return connection
 
-    const record = readPublicationRecord(label, deps.booksDir)
-    if (!record) return failure(c, 409, "not_published", "This book has never been published")
-
     try {
-      return c.json(await clientFor(connection).listReaders(record.token))
+      return c.json(await clientFor(connection).listReaders(token.data))
     } catch (error) {
       return proxyFailure(c, error)
     }
@@ -958,7 +1213,9 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
 
     let upstream: Response
     try {
-      upstream = await clientFor(connection).fetchSnapshotFile(
+      /** The bytes live on this book's own host, not the control plane, and that host knows
+       *  the author by a secret derived for this book alone. */
+      upstream = await bookHostClientFor(connection, record).fetchSnapshotFile(
         record.token,
         decodedPath,
         forwarded,
