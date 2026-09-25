@@ -11,7 +11,7 @@ import {
   createRateLimiter,
   createAdaptiveRateLimiter,
   getDefaultProviderRegistry,
-  renderLiquidTemplate,
+  renderPromptText,
   resolveProviderCredentials,
 } from "@adt/llm"
 import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
@@ -2731,29 +2731,10 @@ async function runTranslateStep(
       const openaiApiKey = resolveCredentialField(options, "openai", "apiKey")
 
       const promptName = config.image_translation?.prompt ?? "image_translation"
-      const bookPromptPath = path.join(
-        path.resolve(booksDir),
-        label,
-        "prompts",
-        `${promptName}.liquid`
+      const promptText = renderPromptText(
+        resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir: path.join(booksDir, label, "prompts") }),
+        promptName, {}, imageTranslation.modelId, config.base_prompt_model,
       )
-      const globalPromptPath = path.join(
-        path.resolve(promptsDir),
-        `${promptName}.liquid`
-      )
-      let templateContent: string | null = null
-      if (fs.existsSync(bookPromptPath)) {
-        templateContent = fs.readFileSync(bookPromptPath, "utf-8")
-      } else if (fs.existsSync(globalPromptPath)) {
-        templateContent = fs.readFileSync(globalPromptPath, "utf-8")
-      }
-      if (!templateContent) {
-        throw new StepError(
-          "image-translation",
-          `Image translation prompt not found: ${promptName}.liquid`
-        )
-      }
-      const promptText = await renderLiquidTemplate(templateContent.trim(), {})
 
       // Prerequisites validated — safe to clear previously-generated variants so
       // shrinking the selection or changing languages drops stale ones. Cached

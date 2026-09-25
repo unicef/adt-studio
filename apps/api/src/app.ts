@@ -1,3 +1,4 @@
+import { migratePromptOverrides } from "@adt/llm"
 import { resolvePromptOverridesDir } from "./services/prompt-roots.js"
 import path from "node:path"
 import fs from "node:fs"
@@ -48,6 +49,7 @@ const projectRoot = path.resolve(
 const booksDir = path.resolve(process.env.BOOKS_DIR ?? path.join(projectRoot, "books"))
 const promptsDir = path.resolve(process.env.PROMPTS_DIR ?? path.join(projectRoot, "prompts"))
 const promptOverridesDir = resolvePromptOverridesDir(booksDir)
+await migratePromptOverrides(promptsDir, promptOverridesDir)
 const configPath = path.resolve(
   process.env.CONFIG_PATH ?? path.join(projectRoot, "config.yaml")
 )
@@ -110,7 +112,7 @@ app.route("/api", createTocRoutes(booksDir))
 app.route("/api", createDebugRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createQuizRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createPackageRoutes(booksDir, webAssetsDir, configPath, taskService))
-app.route("/api", createPromptRoutes(promptsDir, booksDir, configPath, resolvePromptOverridesDir(booksDir)))
+app.route("/api", createPromptRoutes(promptsDir, booksDir, configPath, promptOverridesDir))
 app.route("/api", createTextCatalogRoutes(booksDir))
 app.route("/api", createEasyReadRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createBookSummaryRoutes(booksDir, promptsDir, configPath, taskService))

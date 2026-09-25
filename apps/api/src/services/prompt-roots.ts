@@ -1,3 +1,4 @@
+import { promptRoots } from "@adt/llm"
 import path from "node:path"
 
 /**
@@ -17,17 +18,5 @@ export function resolvePromptRoots(options: {
   promptsDir: string
   bookPromptsDir?: string
 }): string[] {
-  const roots = [
-    options.bookPromptsDir,
-    resolvePromptOverridesDir(options.booksDir),
-    path.resolve(options.promptsDir),
-  ].filter((root): root is string => root != null)
-
-  const seen = new Set<string>()
-  return roots.filter((root) => {
-    const resolved = path.resolve(root)
-    if (seen.has(resolved)) return false
-    seen.add(resolved)
-    return true
-  })
+  return promptRoots(options.booksDir, options.promptsDir, resolvePromptOverridesDir(options.booksDir), options.bookPromptsDir)
 }

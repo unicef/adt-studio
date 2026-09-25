@@ -546,3 +546,4 @@ export {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
 } from "./ai-provider.js"
+export { PromptName, PromptVersion, PromptRevision, PromptMutation, PromptSave, PromptModels, PromptSelection, ResolvedPromptFile } from "./prompt.js"

@@ -81,7 +81,7 @@ import {
   isFixedLayoutBook,
   type ScreenshotRenderer,
 } from "@adt/pipeline"
-import { AiProviderError, assertModelCredentials, createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache } from "@adt/llm"
+import { AiProviderError, assertModelCredentials, createLLMModel, createPromptEngine, renderPromptText, generateImageWithCache } from "@adt/llm"
 import type { ResolvedCredentials } from "@adt/llm"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import { retireWithPreservedRecordings, DETACHED_AUDIO_DIR } from "../services/detached-audio.js"
@@ -260,24 +260,10 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
   // Choose the correct prompt template: edit vs generate
   const isEditMode = !!referenceImageId
   const promptName = isEditMode ? "ai_image_edit" : "ai_image_generation"
-  const bookPromptPath = path.join(bookDir, "prompts", `${promptName}.liquid`)
-  const globalPromptPath = path.join(path.resolve(promptsDir), `${promptName}.liquid`)
-  let templateContent: string | null = null
-  if (fs.existsSync(bookPromptPath)) {
-    templateContent = fs.readFileSync(bookPromptPath, "utf-8")
-  } else if (fs.existsSync(globalPromptPath)) {
-    templateContent = fs.readFileSync(globalPromptPath, "utf-8")
-  }
-  let finalPrompt: string
-  if (templateContent) {
-    finalPrompt = await renderLiquidTemplate(templateContent.trim(), {
-      user_prompt: prompt,
-      style: style || null,
-      image_type: imageType || null,
-    })
-  } else {
-    finalPrompt = prompt
-  }
+  const finalPrompt = renderPromptText(
+    resolvePromptRoots({ booksDir: params.booksDir, promptsDir, bookPromptsDir: path.join(bookDir, "prompts") }),
+    promptName, { user_prompt: prompt, style: style || null, image_type: imageType || null }, modelId,
+  )
 
   // Look up target image dimensions
   let originalWidth = 0

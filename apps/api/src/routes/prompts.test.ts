@@ -27,7 +27,21 @@ afterEach(() => {
 })
 
 function app() {
-  return createPromptRoutes(promptsDir, booksDir, undefined, promptOverridesDir)
+  const routes = createPromptRoutes(promptsDir, booksDir, undefined, promptOverridesDir)
+  return {
+    request: async (url: string, init?: RequestInit) => {
+      if (init && ["PUT", "DELETE"].includes(init.method ?? "") && /\/prompts\//.test(url)) {
+        const body = typeof init.body === "string" ? JSON.parse(init.body) : {}
+        if (!("revision" in body)) {
+          const readUrl = url.replace(/\/versions\/[^/]+\/current/, "")
+          const current = await routes.request(readUrl)
+          if (current.ok) body.revision = (await current.json()).revision
+        }
+        init = { ...init, body: JSON.stringify(body), headers: { "content-type": "application/json" } }
+      }
+      return routes.request(url, init)
+    },
+  }
 }
 
 function writePrompt(name: string, content: string) {
@@ -262,7 +276,7 @@ describe("PUT /prompts/:name", () => {
     const versions = readLiquidVersions(versionDir)
     expect(versions).toHaveLength(1)
     expect(fs.readFileSync(path.join(versionDir, versions[0]), "utf-8")).toBe("new content")
-    expect(fs.readFileSync(path.join(versionDir, ".current"), "utf-8").trim()).toBe(versions[0])
+    expect(JSON.parse(fs.readFileSync(path.join(versionDir, ".current"), "utf-8")).version).toBe(versions[0])
   })
 
   it("creates a versioned global exact model override", async () => {
@@ -346,7 +360,7 @@ describe("PUT /prompts/:name", () => {
     expect(fs.readFileSync(path.join(versionDir, versions.at(-1)!), "utf-8")).toBe("version 8")
   })
 
-  it("does not create another version when an identical save is retried", async () => {
+  it("does not create another version when an ambiguous retry rereads the committed revision", async () => {
     writePrompt("test_prompt", "default")
     const first = await app().request("/prompts/test_prompt", {
       method: "PUT",
@@ -358,7 +372,7 @@ describe("PUT /prompts/:name", () => {
     const retry = await app().request("/prompts/test_prompt", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: "edited", revision: "stale-revision" }),
+      body: JSON.stringify({ content: "edited", revision: (await (await app().request("/prompts/test_prompt")).json()).revision }),
     })
 
     expect(retry.status).toBe(200)
@@ -525,7 +539,7 @@ describe("PUT /prompts/:name/versions/:version/current", () => {
     expect(readBody.content).toBe("first version")
 
     const versionDir = path.join(promptOverridesDir, ".versions", "test_prompt")
-    expect(fs.readFileSync(path.join(versionDir, ".current"), "utf-8").trim()).toBe(
+    expect(JSON.parse(fs.readFileSync(path.join(versionDir, ".current"), "utf-8")).version).toBe(
       "20260102T030405006Z-000.liquid",
     )
   })
@@ -562,7 +576,7 @@ describe("PUT /prompts/:name/versions/:version/current", () => {
       "20260102T030402000Z-000.liquid",
       "20260102T030403000Z-000.liquid",
     ])
-    expect(fs.readFileSync(path.join(versionDir, ".current"), "utf-8").trim()).toBe(
+    expect(JSON.parse(fs.readFileSync(path.join(versionDir, ".current"), "utf-8")).version).toBe(
       "20260102T030403000Z-000.liquid",
     )
   })
@@ -585,7 +599,7 @@ describe("DELETE /prompts/:name", () => {
     expect(body.version).toBeUndefined()
     const versionDir = path.join(promptOverridesDir, ".versions", "test_prompt")
     expect(fs.existsSync(versionDir)).toBe(true)
-    expect(fs.readFileSync(path.join(versionDir, ".current"), "utf-8").trim()).toBe("default")
+    expect(JSON.parse(fs.readFileSync(path.join(versionDir, ".current"), "utf-8")).kind).toBe("default")
     const versionsRes = await app().request("/prompts/test_prompt/versions")
     const versionsBody = await versionsRes.json()
     expect(versionsBody.isFallbackCurrent).toBe(true)
@@ -644,7 +658,7 @@ describe("DELETE /prompts/:name", () => {
     expect(beforeReset.content).toBe("legacy edit")
     expect(beforeReset.source).toBe("global")
 
-    const reset = await migratedApp.request("/prompts/test_prompt", { method: "DELETE" })
+    const reset = await migratedApp.request("/prompts/test_prompt", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ revision: beforeReset.revision }) })
     expect(reset.status).toBe(200)
     expect((await reset.json()).content).toBe("bundled default")
     expect(fs.existsSync(path.join(promptOverridesDir, ".versions", "test_prompt", legacyVersion))).toBe(true)
@@ -923,7 +937,7 @@ describe("DELETE /books/:label/prompts/:name", () => {
       "page_sectioning__openai_gpt_5_5",
     )
     expect(fs.existsSync(versionDir)).toBe(true)
-    expect(fs.readFileSync(path.join(versionDir, ".current"), "utf-8").trim()).toBe("fallback")
+    expect(JSON.parse(fs.readFileSync(path.join(versionDir, ".current"), "utf-8")).kind).toBe("fallback")
   })
 })
 
