@@ -2724,6 +2724,9 @@ msgstr "No se pudo leer este PDF. El archivo puede estar dañado o protegido con
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "No se pudieron eliminar {failed} de {total} videos — por favor, inténtalo de nuevo."
 
+msgid "Could not resolve the repair destination. Your finding is unchanged. Try again."
+msgstr "No se pudo determinar el destino de la corrección. El hallazgo no ha cambiado. Inténtalo de nuevo."
+
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
 msgstr "No se pudo iniciar {0}: {detail}"
@@ -4035,19 +4038,17 @@ msgstr "El primer idioma es el predeterminado"
 msgid "Fit"
 msgstr "Ajustar"
 
-<<<<<<< HEAD
 msgid "Fit to panel · showing {display}% of full size"
 msgstr "Ajustado al panel · mostrando el {display}% del tamaño original"
 
 msgid "Fix"
 msgstr "Arreglar"
-=======
+
 msgid "Fix destination"
 msgstr "Destino de la corrección"
 
-msgid "Fix in {fixStageLabel}"
-msgstr "Corregir en {fixStageLabel}"
->>>>>>> 3fb10367 (feat(validation): open findings in fix stages)
+#~ msgid "Fix in {fixStageLabel}"
+#~ msgstr "Corregir en {fixStageLabel}"
 
 msgid "Fixed layout"
 msgstr "Diseño fijo"
@@ -6560,7 +6561,12 @@ msgstr "abrir"
 msgid "Open"
 msgstr "Abrir"
 
-#. placeholder {0}: formatFindingPageLabel(i18n, page)
+#. placeholder {0}: entry.sectionId ?? entry.pageId
+#. placeholder {1}: i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])
+msgid "Open {0} in {1}"
+msgstr "Abrir {0} en {1}"
+
+#. placeholder {0}: page.sectionId ? `${formatFindingPageLabel(i18n, page)} (${page.sectionId})` : formatFindingPageLabel(i18n, page)
 msgid "Open {0} in {fixStageLabel}"
 msgstr "Abrir {0} en {fixStageLabel}"
 
@@ -6602,7 +6608,7 @@ msgstr "Abrir panel de edición"
 msgid "Open image preview"
 msgstr "Abrir vista previa de la imagen"
 
-#. placeholder {0}: i18n._(STAGE_LABEL_MESSAGES[entry.fixStage])
+#. placeholder {0}: i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])
 msgid "Open in {0}"
 msgstr "Abrir en {0}"
 
@@ -7943,6 +7949,9 @@ msgstr "Renderiza actividades desde una plantilla fija para un estilo consistent
 msgid "Renders each page into the storyboard layout used by the web reader."
 msgstr "Renderiza cada página en el diseño de guion gráfico utilizado por el lector web."
 
+msgid "Repair suggestion. Review decisions remain unchanged."
+msgstr "Sugerencia de corrección. Las decisiones de revisión no cambian."
+
 msgid "Replace"
 msgstr "Reemplazar"
 
@@ -8081,6 +8090,9 @@ msgstr "Reintentar exportación"
 
 msgid "Return to coordinator"
 msgstr "Devolver al coordinador"
+
+msgid "Return to Validation"
+msgstr "Volver a Validación"
 
 msgid "Revert language change"
 msgstr "Revertir cambio de idioma"
@@ -9746,6 +9758,12 @@ msgstr "El Bosque Perdido"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "El modelo detecta cajas delimitadoras para que cada elemento visual pueda almacenarse y disponerse por separado."
 
+msgid "The original assessment is no longer current. Showing the available assessment; navigation has not changed any verdict."
+msgstr "La evaluación original ya no está vigente. Se muestra la evaluación disponible; la navegación no ha cambiado ningún veredicto."
+
+msgid "The original reviewer session is no longer available. Showing available reviews."
+msgstr "La sesión original del revisor ya no está disponible. Se muestran las revisiones disponibles."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "El proceso que las plantas usan para convertir la luz solar, agua y dióxido de carbono en alimento."
 
@@ -9803,19 +9821,17 @@ msgstr "La experiencia del lector"
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "La estrategia de renderización usada para secciones sin un mapeo explícito."
 
-<<<<<<< HEAD
-msgid "The same edition in every language."
-msgstr "La misma edición en cada idioma."
-=======
-msgid "The requested section is no longer available. Opened the first section instead."
-msgstr "La sección solicitada ya no está disponible. Se abrió la primera sección en su lugar."
+#~ msgid "The requested section is no longer available. Opened the first section instead."
+#~ msgstr "La sección solicitada ya no está disponible. Se abrió la primera sección en su lugar."
 
 msgid "The requested section is no longer available. Opened the page instead."
 msgstr "La sección solicitada ya no está disponible. Se abrió la página en su lugar."
 
-msgid "The river meets the sea"
-msgstr "El río se encuentra con el mar"
->>>>>>> 3fb10367 (feat(validation): open findings in fix stages)
+#~ msgid "The river meets the sea"
+#~ msgstr "El río se encuentra con el mar"
+
+msgid "The same edition in every language."
+msgstr "La misma edición en cada idioma."
 
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "La revisión de traducción guardada está obsoleta. Vuelve a ejecutar Revisar para las traducciones visibles."

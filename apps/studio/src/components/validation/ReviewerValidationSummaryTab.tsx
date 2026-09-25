@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { useQueries } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
+import { useSearch } from "@tanstack/react-router"
 import { ArrowRight, ClipboardCheck, ExternalLink, FileWarning, SkipForward } from "lucide-react"
 import type {
   ReviewerValidationCatalogSnapshot,
   ReviewerValidationCriterion,
   ReviewerValidationSection,
   ReviewerValidationStatus,
+  ValidationFixStage,
 } from "@adt/types"
 import { api, type ReviewerPageValidationRecordEntry } from "@/api/client"
 import { Badge } from "@/components/ui/badge"
@@ -26,11 +27,15 @@ import {
 } from "@/hooks/use-reviewer-validation"
 import { findResumeReviewerPage } from "@/lib/reviewer-validation-progress"
 import { getReviewerSessionStorageKey } from "@/lib/reviewer-validation-session"
+import { ValidationDestinationSelect } from "./ValidationDestinationSelect"
+import { useValidationReturnFocus } from "@/hooks/use-validation-return-focus"
+import { useValidationFixNavigation } from "@/hooks/use-validation-fix-navigation"
+import type { BookStepSearch } from "@/lib/book-step-search"
 import { cn } from "@/lib/utils"
 import { STAGE_LABEL_MESSAGES } from "@/components/pipeline/pipeline-i18n"
 import {
   resolveReviewerFixStage,
-  resolveValidationFixDestination,
+  resolveLegacyReviewerFixStage,
 } from "@/lib/validation-fix-routing"
 
 
@@ -161,12 +166,15 @@ export function ReviewerValidationSummaryTab({
   onOpenPreviewToPage,
 }: ReviewerValidationSummaryTabProps) {
   const { t, i18n } = useLingui()
-  const navigate = useNavigate()
+  const fixNavigation = useValidationFixNavigation(label)
+  const { validationContext } = useSearch({ strict: false }) as BookStepSearch
+  const [routeOverrides, setRouteOverrides] = useState<Record<string, ValidationFixStage>>({})
   const catalog = useReviewerValidationCatalog(label)
   const sessions = useReviewerValidationSessions(label)
   const accessibilityAssessment = useAccessibilityAssessment(label)
   const activeSessionStorageKey = getReviewerSessionStorageKey(label)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
+    if (validationContext?.sessionId) return validationContext.sessionId
     if (typeof window === "undefined") {
       return null
     }
@@ -363,19 +371,22 @@ export function ReviewerValidationSummaryTab({
         .map((result) => {
           const meta = criterionMeta.get(result.criterion_id)
           return {
+            criterionId: result.criterion_id,
             pageId: entry.record.page_id,
             sectionId: entry.record.section_id,
             pageNumber: entry.record.page_number,
             href: entry.record.href,
             comment: result.comment,
             suggestedModification: result.suggested_modification,
-            fixStage: meta ? resolveReviewerFixStage(meta.section, meta.criterion) : "storyboard" as const,
+            fixStage: activeSession?.session.catalog_snapshot && meta
+              ? resolveReviewerFixStage(meta.section, meta.criterion)
+              : resolveLegacyReviewerFixStage(result.criterion_id),
             sectionLabel: meta?.sectionLabel,
             criterionLabel: meta?.criterionLabel,
           }
         }),
     )
-  }, [activeSessionRecords, criterionMeta])
+  }, [activeSessionRecords, criterionMeta, activeSession])
 
   const flaggedSectionCounts = useMemo(() => {
     const counts = new Map<string, number>()
@@ -393,26 +404,13 @@ export function ReviewerValidationSummaryTab({
   const anyRecordQueryError = sessionRecordQueries.find((query) => query.error)?.error
   const pagesReviewed = activeMetrics.pagesReviewed
 
+  useValidationReturnFocus(validationContext?.findingId ? `reviewer-finding-${validationContext.pageId}-${validationContext.findingId}` : undefined, !anyRecordQueryLoading && !!activeSession)
+
   const openReviewerFix = (entry: (typeof flaggedEntries)[number]) => {
-    const destination = resolveValidationFixDestination({
-      stage: entry.fixStage,
-      pageId: entry.pageId,
-      sectionId: entry.sectionId,
-      href: entry.href,
-    })
-
-    if (destination.kind === "stage") {
-      void navigate({
-        to: "/books/$label/$step",
-        params: { label, step: destination.stage },
-      })
-      return
-    }
-
-    void navigate({
-      to: "/books/$label/$step/$pageId",
-      params: { label, step: destination.stage, pageId: destination.pageId },
-      search: destination.sectionId ? { sectionId: destination.sectionId } : {},
+    void fixNavigation.open({
+      stage: routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage, pageId: entry.pageId, sectionId: entry.sectionId, href: entry.href,
+    }, { tab: "reviewer-validation", sessionId: activeSessionId ?? undefined,
+      pageId: entry.pageId, findingId: entry.criterionId,
     })
   }
 
@@ -448,6 +446,9 @@ export function ReviewerValidationSummaryTab({
 
   return (
     <div className="space-y-6 p-6">
+      {validationContext?.sessionId && !sortedSessions.some((entry) => entry.session.session_id === validationContext.sessionId) ? (
+        <p role="status" className="mb-3 text-sm text-muted-foreground"><Trans>The original reviewer session is no longer available. Showing available reviews.</Trans></p>
+      ) : null}
       <SectionHeader
         title={t`Reviewer validation summary`}
         description={t`Track reviewer progress and review findings captured from Preview.`}
@@ -644,7 +645,7 @@ export function ReviewerValidationSummaryTab({
                 {flaggedEntries.length > 0 ? (
                   <div className="space-y-3">
                     {flaggedEntries.map((entry, index) => (
-                      <div key={`${entry.pageId}-${entry.criterionLabel ?? index}-${index}`} className="rounded-lg border px-3 py-3">
+                      <div id={`reviewer-finding-${entry.pageId}-${entry.criterionId}`} key={`${entry.pageId}-${entry.criterionLabel ?? index}-${index}`} className="rounded-lg border px-3 py-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <Badge variant="outline">{entry.sectionLabel ?? t`Uncategorized`}</Badge>
                           {entry.pageNumber != null ? <Badge variant="secondary"><Trans>Page {entry.pageNumber}</Trans></Badge> : null}
@@ -660,14 +661,20 @@ export function ReviewerValidationSummaryTab({
                             <span className="font-medium text-foreground"><Trans>Suggested modification:</Trans></span> {entry.suggestedModification}
                           </div>
                         ) : null}
-                        <div className="mt-3 flex justify-end">
+                        <div className="mt-3 flex justify-end gap-2">
+                          <ValidationDestinationSelect
+                            value={routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage}
+                            onChange={(stage) => setRouteOverrides((current) => ({ ...current, [`${activeSessionId}:${entry.pageId}:${entry.criterionId}`]: stage }))}
+                          />
                           <Button
                             variant="outline"
                             size="sm"
                             className="h-7 text-[11px]"
                             onClick={() => openReviewerFix(entry)}
+                            disabled={fixNavigation.pending}
+                            aria-label={t`Open ${entry.sectionId ?? entry.pageId} in ${i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])}`}
                           >
-                            {t`Open in ${i18n._(STAGE_LABEL_MESSAGES[entry.fixStage])}`}
+                            {t`Open in ${i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])}`}
                             <ArrowRight className="ml-1.5 h-3 w-3" />
                           </Button>
                         </div>

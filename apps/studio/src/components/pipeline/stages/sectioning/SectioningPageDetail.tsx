@@ -10,6 +10,7 @@ import {
 import { createPortal } from "react-dom"
 import { Copy, Eye, Merge, Save, Scissors, Trash2 } from "lucide-react"
 import { useNavigate, useSearch } from "@tanstack/react-router"
+import { cn } from "@/lib/utils"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type { PageSectioningOutput, PageSectioningSection } from "@adt/types"
@@ -161,7 +162,7 @@ export function SectioningPageDetail({
     consumedSectionFocusRef.current = focusKey
 
     const element = sectionElementsRef.current.get(search.sectionId)
-    if (element) {
+    if (element && mergedSections.some((section) => section.sectionId === search.sectionId && !section.isPruned)) {
       element.scrollIntoView({ behavior: "smooth", block: "center" })
       setFocusedSectionId(search.sectionId)
     } else {
@@ -172,7 +173,8 @@ export function SectioningPageDetail({
     void navigate({
       to: "/books/$label/$step/$pageId",
       params: { label: bookLabel, step: "sectioning", pageId },
-      search: { ...search, sectionId: undefined },
+      search: (previous) => ({ ...previous, sectionId: undefined }),
+      hash: true,
       replace: true,
     })
   }, [bookLabel, mergedSections.length, navigate, pageId, search, t])

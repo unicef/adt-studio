@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import type { AccessibilityAssessmentOutput } from "@adt/types"
 
 const navigateMock = vi.fn()
@@ -30,6 +30,7 @@ const i18n = {
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
+  useSearch: () => ({}),
 }))
 
 vi.mock("@lingui/core/macro", () => ({
@@ -177,10 +178,10 @@ describe("AccessibilityOverviewTab", () => {
     expect(screen.queryByText("Fix heading order")).toBeNull()
 
     fireEvent.click(screen.getByRole("button", { name: /Page 1/i }))
-    expect(navigateMock).toHaveBeenCalledWith({
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith(expect.objectContaining({
       to: "/books/$label/$step",
       params: { label: "demo-book", step: "captions" },
-    })
+    })))
   })
 
   it("shows issue and manual-review summary cards", async () => {
@@ -211,10 +212,17 @@ describe("AccessibilityOverviewTab", () => {
     fireEvent.click(screen.getByRole("button", { name: /Structure & semantics/i }))
     fireEvent.click(screen.getByRole("button", { name: /Page 1/i }))
 
-    expect(navigateMock).toHaveBeenCalledWith({
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith(expect.objectContaining({
       to: "/books/$label/$step/$pageId",
-      params: { label: "demo-book", step: "sectioning", pageId: "pg001" },
-      search: { sectionId: "pg001_sec001" },
-    })
+      params: { label: "demo-book", step: "storyboard", pageId: "pg001" },
+      search: expect.objectContaining({ sectionId: "pg001_sec001", validationReturn: expect.objectContaining({ tab: "accessibility-summary", category: "structure-semantics" }) }),
+    })))
   })
 })
+
+vi.mock("@tanstack/react-query", () => ({ useQueryClient: () => ({ fetchQuery: ({ queryFn }: { queryFn: () => unknown }) => queryFn() }) }))
+
+vi.mock("@/api/client", () => ({ api: { getPages: async () => [{ pageId: "pg001", sections: [
+ { sectionId: "pg001_sec001", isPruned: false, hasStableId: true },
+ { sectionId: "pg001_sec002", isPruned: false, hasStableId: true },
+] }] } }))

@@ -263,3 +263,5 @@ describe("SectioningPageDetail — save confirmation", () => {
     expect(typeSelect.getAttribute("data-disabled")).toBe("false")
   })
 })
+
+vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn(), useSearch: () => ({}) }))

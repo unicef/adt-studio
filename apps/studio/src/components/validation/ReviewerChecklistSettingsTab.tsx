@@ -37,7 +37,9 @@ function FixStageSelect({
   value,
   fallback,
   onValueChange,
+  label,
 }: {
+  label: string
   value?: ValidationFixStage
   fallback: "automatic" | "inherit"
   onValueChange: (value: ValidationFixStage | undefined) => void
@@ -54,7 +56,7 @@ function FixStageSelect({
           : ValidationFixStage.parse(next),
       )}
     >
-      <SelectTrigger className="h-8 text-xs">
+      <SelectTrigger className="h-8 text-xs" aria-label={label}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -447,6 +449,7 @@ export function ReviewerChecklistSettingsTab({ label }: { label: string }) {
                     <div className="space-y-1">
                       <Label><Trans>Fix destination</Trans></Label>
                       <FixStageSelect
+                        label={t`Fix destination`}
                         value={section.fix_stage}
                         fallback="automatic"
                         onValueChange={(fixStage) => setSection(section.id, (current) => ({
@@ -508,6 +511,7 @@ export function ReviewerChecklistSettingsTab({ label }: { label: string }) {
                           <div className="space-y-1">
                             <Label><Trans>Fix destination</Trans></Label>
                             <FixStageSelect
+                        label={t`Fix destination`}
                               value={criterion.fix_stage}
                               fallback="inherit"
                               onValueChange={(fixStage) => setCriterion(section.id, criterion.id, (current) => ({

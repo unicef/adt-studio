@@ -2724,6 +2724,9 @@ msgstr "Could not read this PDF. The file may be corrupted or password-protected
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Could not remove {failed} of {total} videos. Please try again."
 
+msgid "Could not resolve the repair destination. Your finding is unchanged. Try again."
+msgstr "Could not resolve the repair destination. Your finding is unchanged. Try again."
+
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
 msgstr "Could not start {0}: {detail}"
@@ -4035,19 +4038,17 @@ msgstr "First language is the default"
 msgid "Fit"
 msgstr "Fit"
 
-<<<<<<< HEAD
 msgid "Fit to panel · showing {display}% of full size"
 msgstr "Fit to panel · showing {display}% of full size"
 
 msgid "Fix"
 msgstr "Fix"
-=======
+
 msgid "Fix destination"
 msgstr "Fix destination"
 
-msgid "Fix in {fixStageLabel}"
-msgstr "Fix in {fixStageLabel}"
->>>>>>> 3fb10367 (feat(validation): open findings in fix stages)
+#~ msgid "Fix in {fixStageLabel}"
+#~ msgstr "Fix in {fixStageLabel}"
 
 msgid "Fixed layout"
 msgstr "Fixed layout"
@@ -6560,7 +6561,12 @@ msgstr "open"
 msgid "Open"
 msgstr "Open"
 
-#. placeholder {0}: formatFindingPageLabel(i18n, page)
+#. placeholder {0}: entry.sectionId ?? entry.pageId
+#. placeholder {1}: i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])
+msgid "Open {0} in {1}"
+msgstr "Open {0} in {1}"
+
+#. placeholder {0}: page.sectionId ? `${formatFindingPageLabel(i18n, page)} (${page.sectionId})` : formatFindingPageLabel(i18n, page)
 msgid "Open {0} in {fixStageLabel}"
 msgstr "Open {0} in {fixStageLabel}"
 
@@ -6602,7 +6608,7 @@ msgstr "Open edit panel"
 msgid "Open image preview"
 msgstr "Open image preview"
 
-#. placeholder {0}: i18n._(STAGE_LABEL_MESSAGES[entry.fixStage])
+#. placeholder {0}: i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])
 msgid "Open in {0}"
 msgstr "Open in {0}"
 
@@ -7943,6 +7949,9 @@ msgstr "Renders activities from a fixed template for consistent styling."
 msgid "Renders each page into the storyboard layout used by the web reader."
 msgstr "Renders each page into the storyboard layout used by the web reader."
 
+msgid "Repair suggestion. Review decisions remain unchanged."
+msgstr "Repair suggestion. Review decisions remain unchanged."
+
 msgid "Replace"
 msgstr "Replace"
 
@@ -8081,6 +8090,9 @@ msgstr "Retry Export"
 
 msgid "Return to coordinator"
 msgstr "Return to coordinator"
+
+msgid "Return to Validation"
+msgstr "Return to Validation"
 
 msgid "Revert language change"
 msgstr "Revert language change"
@@ -9746,6 +9758,12 @@ msgstr "The Lost Forest"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "The model detects bounding boxes so each visual element can be stored and laid out separately."
 
+msgid "The original assessment is no longer current. Showing the available assessment; navigation has not changed any verdict."
+msgstr "The original assessment is no longer current. Showing the available assessment; navigation has not changed any verdict."
+
+msgid "The original reviewer session is no longer available. Showing available reviews."
+msgstr "The original reviewer session is no longer available. Showing available reviews."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "The process plants use to turn sunlight, water, and carbon dioxide into food."
 
@@ -9803,19 +9821,17 @@ msgstr "The reader experience"
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "The rendering strategy used for sections without an explicit mapping."
 
-<<<<<<< HEAD
-msgid "The same edition in every language."
-msgstr "The same edition in every language."
-=======
-msgid "The requested section is no longer available. Opened the first section instead."
-msgstr "The requested section is no longer available. Opened the first section instead."
+#~ msgid "The requested section is no longer available. Opened the first section instead."
+#~ msgstr "The requested section is no longer available. Opened the first section instead."
 
 msgid "The requested section is no longer available. Opened the page instead."
 msgstr "The requested section is no longer available. Opened the page instead."
 
-msgid "The river meets the sea"
-msgstr "The river meets the sea"
->>>>>>> 3fb10367 (feat(validation): open findings in fix stages)
+#~ msgid "The river meets the sea"
+#~ msgstr "The river meets the sea"
+
+msgid "The same edition in every language."
+msgstr "The same edition in every language."
 
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "The saved translation review is stale. Run Review again for the visible translations."

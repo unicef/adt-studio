@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type { I18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/api/client"
+import { useFloatingSave } from "../components/floating-save"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useGlossary } from "@/hooks/use-glossary"
 import {
@@ -349,7 +350,11 @@ export function PreviewValidationCard({
     }
   }, [activeSession, sessions.isLoading])
 
+  const draftContextRef = useRef("")
   useEffect(() => {
+    const context = `${activeSessionId}:${currentPage.pageId}:${currentPage.sectionId}`
+    if (dirty && draftContextRef.current === context) return
+    draftContextRef.current = context
     if (activePageSections.length === 0) {
       return
     }
@@ -359,7 +364,7 @@ export function PreviewValidationCard({
     setExplicitCriterionIds(new Set(Object.keys(nextDraft)))
     setOverallComment(currentRecordEntry?.record.overall_comment ?? "")
     setDirty(false)
-  }, [activePageSections, currentRecordEntry?.version, currentPage.pageId])
+  }, [activePageSections, currentRecordEntry?.version, currentPage.pageId, currentPage.sectionId, activeSessionId, dirty])
 
   const criteriaCount = useMemo(
     () => activePageSections.reduce((total, section) => total + section.criteria.length, 0),
@@ -563,6 +568,16 @@ export function PreviewValidationCard({
     setExplicitCriterionIds(new Set(Object.keys(draftResults)))
     setDirty(false)
   }
+
+  useFloatingSave({
+    id: `reviewer-validation:${label}`, dirty, saving: saveRecordMutation.isPending,
+    label: t`Reviewer Validation`, onSaveStay: handleSavePageReview,
+    onDiscard: () => {
+      setDraftResults(buildInitialDraftResults(activePageSections, currentRecordEntry?.record))
+      setOverallComment(currentRecordEntry?.record.overall_comment ?? "")
+      setDirty(false)
+    },
+  })
 
   if (collapsed) {
     if (!showCollapsedCard) {

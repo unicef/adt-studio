@@ -107,23 +107,25 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   // once the requested page has loaded, then remove it so later navigation does
   // not unexpectedly re-apply the focus.
   useEffect(() => {
-    if (!search.sectionId || !selectedPageId || !page?.sectioningTree) return
+    if (!search.sectionId) { consumedSectionFocusRef.current = null; return }
+    if (!selectedPageId || page?.pageId !== selectedPageId || !page.sectioningTree) return
     const focusKey = `${selectedPageId}:${search.sectionId}`
     if (consumedSectionFocusRef.current === focusKey) return
     consumedSectionFocusRef.current = focusKey
 
     const targetIndex = page.sectioningTree.sections.findIndex(
-      (section) => section.sectionId === search.sectionId,
+      (section) => section.sectionId === search.sectionId && !section.isPruned,
     )
     if (targetIndex < 0) {
-      toast.warning(t`The requested section is no longer available. Opened the first section instead.`)
+      toast.warning(t`The requested section is no longer available. Opened the page instead.`)
     }
-    setOverviewMode(false)
-    setSectionIndex(targetIndex >= 0 ? targetIndex : 0)
+    setOverviewMode(targetIndex < 0)
+    if (targetIndex >= 0) setSectionIndex(targetIndex)
     void navigate({
       to: "/books/$label/$step/$pageId",
       params: { label: bookLabel, step: "storyboard", pageId: selectedPageId },
-      search: { ...search, sectionId: undefined },
+      search: (previous) => ({ ...previous, sectionId: undefined }),
+      hash: true,
       replace: true,
     })
   }, [bookLabel, navigate, page?.sectioningTree, search, selectedPageId, setSectionIndex, t])

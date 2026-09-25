@@ -24,6 +24,8 @@ function StepIndexPage() {
         navigate({
           to: "/books/$label/$step/$pageId",
           params: { label, step, pageId },
+          search: (previous) => ({ ...previous, sectionId: undefined }),
+          hash: true,
         })
       }
     },

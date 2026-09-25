@@ -9,7 +9,8 @@ const setSectionIndexMock = vi.fn()
 const toastWarningMock = vi.fn()
 
 const pages = [{ pageId: "pg001", pageNumber: 1, sectionCount: 2 }]
-const page = {
+let page = {
+  pageId: "pg001",
   sectioningTree: {
     sections: [
       { sectionId: "pg001_sec001", sectionType: "content", nodes: [] },
@@ -49,6 +50,7 @@ vi.mock("@/hooks/use-book-run", () => ({
 }))
 
 vi.mock("@/hooks/use-api-key", () => ({
+  useBookStructuredTextAvailability: () => true,
   useApiKey: () => ({ apiKey: "test-key", hasApiKey: true }),
 }))
 
@@ -104,15 +106,36 @@ afterEach(cleanup)
 describe("StoryboardView validation section focus", () => {
   it("selects the stable section id and consumes only the one-shot search value", async () => {
     const { StoryboardView } = await import("./StoryboardView")
-    render(<StoryboardView bookLabel="demo-book" selectedPageId="pg001" />)
+    const view = render(<StoryboardView bookLabel="demo-book" selectedPageId="pg001" />)
 
     await waitFor(() => expect(setSectionIndexMock).toHaveBeenCalledWith(1))
     expect(navigateMock).toHaveBeenCalledWith({
       to: "/books/$label/$step/$pageId",
       params: { label: "demo-book", step: "storyboard", pageId: "pg001" },
-      search: { tab: "details", sectionId: undefined },
+      search: expect.any(Function),
+      hash: true,
       replace: true,
     })
+    const updateSearch = navigateMock.mock.calls[0][0].search
+    expect(updateSearch({ tab: "details", sectionId: "pg001_sec002", unrelated: "keep" }))
+      .toEqual({ tab: "details", sectionId: undefined, unrelated: "keep" })
+    view.rerender(<StoryboardView bookLabel="demo-book" selectedPageId="pg001" />)
+    expect(setSectionIndexMock).toHaveBeenCalledTimes(1)
     expect(toastWarningMock).not.toHaveBeenCalled()
   })
+  it("waits for data and never focuses a successor when the target disappears", async () => {
+    const original = page
+    page = { ...page, sectioningTree: null } as never
+    const { StoryboardView } = await import("./StoryboardView")
+    const view = render(<StoryboardView bookLabel="demo-book" selectedPageId="pg001" />)
+    expect(setSectionIndexMock).not.toHaveBeenCalled()
+    page = { ...original, sectioningTree: { sections: [original.sectioningTree.sections[0]] } }
+    view.rerender(<StoryboardView bookLabel="demo-book" selectedPageId="pg001" />)
+    await waitFor(() => expect(toastWarningMock).toHaveBeenCalled())
+    expect(setSectionIndexMock).not.toHaveBeenCalled()
+    page = original
+  })
+
 })
+
+vi.mock("./components/BookOutlineAudit", () => ({ BookOutlineAudit: () => <div>outline</div> }))

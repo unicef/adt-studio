@@ -26,6 +26,8 @@ const legacyCatalog: ReviewerValidationCatalogSnapshot = {
   }],
 }
 
+let activeCatalog = legacyCatalog
+
 const session: ReviewerValidationSession = {
   session_id: "session-1",
   reviewer_name: "Reviewer",
@@ -47,9 +49,11 @@ const record: ReviewerPageValidationRecord = {
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
+  useSearch: () => ({}),
 }))
 
 vi.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({ fetchQuery: ({ queryFn }: { queryFn: () => unknown }) => queryFn() }),
   useQueries: () => [{ data: { records: [{ version: 1, record }] }, isLoading: false, error: null }],
 }))
 
@@ -88,11 +92,14 @@ vi.mock("@lingui/react/macro", () => ({
   }),
 }))
 
-vi.mock("@/api/client", () => ({ api: {} }))
+vi.mock("@/api/client", () => ({ api: { getPages: async () => [{ pageId: "pg001", sections: [
+ { sectionId: "pg001_sec001", isPruned: false, hasStableId: true },
+ { sectionId: "pg001_sec002", isPruned: false, hasStableId: true },
+] }] } }))
 
 vi.mock("@/hooks/use-reviewer-validation", () => ({
   useReviewerValidationCatalog: () => ({
-    data: { enabled: true, ...legacyCatalog },
+    data: { enabled: true, ...activeCatalog },
     isLoading: false,
     error: null,
   }),
@@ -114,6 +121,8 @@ vi.mock("@/hooks/use-debug", () => ({
 afterEach(() => {
   cleanup()
   navigateMock.mockClear()
+  activeCatalog = legacyCatalog
+  session.catalog_snapshot = legacyCatalog
   window.sessionStorage.clear()
 })
 
@@ -122,13 +131,38 @@ describe("ReviewerValidationSummaryTab", () => {
     const { ReviewerValidationSummaryTab } = await import("./ReviewerValidationSummaryTab")
     render(<ReviewerValidationSummaryTab label="demo-book" />)
 
-    const openButton = await screen.findByRole("button", { name: "Open in Sectioning" })
+    const openButton = await screen.findByRole("button", { name: "Open pg001_sec002 in Sectioning" })
     fireEvent.click(openButton)
 
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({
       to: "/books/$label/$step/$pageId",
       params: { label: "demo-book", step: "sectioning", pageId: "pg001" },
-      search: { sectionId: "pg001_sec002" },
+      search: expect.objectContaining({ sectionId: "pg001_sec002", validationReturn: expect.objectContaining({ sessionId: "session-1" }) }),
     }))
   })
+  it("keeps snapshot ownership after active checklist edits and allows a temporary override", async () => {
+    activeCatalog = { ...legacyCatalog, pageSections: legacyCatalog.pageSections.map((section) => ({
+      ...section, fix_stage: "speech", criteria: section.criteria.map((criterion) => ({ ...criterion, fix_stage: "extract" })),
+    })) }
+    const { ReviewerValidationSummaryTab } = await import("./ReviewerValidationSummaryTab")
+    render(<ReviewerValidationSummaryTab label="demo-book" />)
+    expect(await screen.findByRole("button", { name: "Open pg001_sec002 in Sectioning" })).toBeTruthy()
+    fireEvent.change(screen.getByRole("combobox", { name: "Fix destination" }), { target: { value: "captions" } })
+    fireEvent.click(screen.getByRole("button", { name: "Open pg001_sec002 in Image Captions" }))
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({
+      to: "/books/$label/$step", params: { label: "demo-book", step: "captions" },
+      search: expect.objectContaining({ validationReturn: expect.objectContaining({ sessionId: "session-1" }) }),
+    }))
+    expect(session.catalog_snapshot).toBe(legacyCatalog)
+    expect(record.results[0].status).toBe("needs-changes")
+  })
+
+  it("does not take legacy session ownership from the mutable current checklist", async () => {
+    session.catalog_snapshot = undefined
+    activeCatalog = { ...legacyCatalog, pageSections: legacyCatalog.pageSections.map((section) => ({ ...section, fix_stage: "speech" })) }
+    const { ReviewerValidationSummaryTab } = await import("./ReviewerValidationSummaryTab")
+    render(<ReviewerValidationSummaryTab label="demo-book" />)
+    expect(await screen.findByRole("button", { name: "Open pg001_sec002 in Sectioning" })).toBeTruthy()
+  })
+
 })

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 
 const navigateMock = vi.fn()
 const packageAdtMock = vi.fn(() => Promise.resolve({ status: "completed", label: "demo-book" }))
@@ -92,7 +92,7 @@ describe("ValidationView", () => {
     const { ValidationView } = await import("./ValidationView")
     render(<ValidationView bookLabel="demo-book" />)
 
-    await waitFor(() => expect(packageAdtMock).toHaveBeenCalledWith("demo-book"))
+    expect(packageAdtMock).not.toHaveBeenCalled()
 
     expect(screen.getByText("Accessibility Summary")).toBeTruthy()
     expect(screen.queryByText("Reviewer Validation")).toBeNull()
@@ -105,7 +105,7 @@ describe("ValidationView", () => {
     const { ValidationView } = await import("./ValidationView")
     render(<ValidationView bookLabel="demo-book" />)
 
-    await waitFor(() => expect(packageAdtMock).toHaveBeenCalledWith("demo-book"))
+    expect(packageAdtMock).not.toHaveBeenCalled()
 
     expect(screen.getByText("Reviewer Validation")).toBeTruthy()
   })
@@ -119,6 +119,7 @@ describe("ValidationView", () => {
 
     const { ValidationView } = await import("./ValidationView")
     render(<ValidationView bookLabel="demo-book" />)
+    fireEvent.click(screen.getByRole("button", { name: "Refresh validation" }))
 
     await waitFor(() => expect(packageAdtMock).toHaveBeenCalledWith("demo-book"))
     await waitFor(() => expect(screen.getByText("Accessibility Summary")).toBeTruthy())
@@ -138,6 +139,7 @@ describe("ValidationView", () => {
 
     const { ValidationView } = await import("./ValidationView")
     render(<ValidationView bookLabel="demo-book" />)
+    fireEvent.click(screen.getByRole("button", { name: "Refresh validation" }))
 
     await waitFor(() => expect(warningToastMock).toHaveBeenCalledTimes(1))
     expect(String(warningToastMock.mock.calls[0][0])).toContain("pg002")
@@ -146,6 +148,7 @@ describe("ValidationView", () => {
   it("stays quiet when packaging left nothing out", async () => {
     const { ValidationView } = await import("./ValidationView")
     render(<ValidationView bookLabel="demo-book" />)
+    fireEvent.click(screen.getByRole("button", { name: "Refresh validation" }))
 
     await waitFor(() => expect(packageAdtMock).toHaveBeenCalledWith("demo-book"))
     expect(warningToastMock).not.toHaveBeenCalled()

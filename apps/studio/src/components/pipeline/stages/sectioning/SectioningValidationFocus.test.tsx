@@ -103,7 +103,7 @@ afterEach(cleanup)
 describe("SectioningPageDetail validation section focus", () => {
   it("scrolls to the stable section id and consumes only the one-shot search value", async () => {
     const { SectioningPageDetail } = await import("./SectioningPageDetail")
-    render(
+    const view = render(
       <SectioningPageDetail
         bookLabel="demo-book"
         pageId="pg001"
@@ -120,8 +120,17 @@ describe("SectioningPageDetail validation section focus", () => {
     expect(navigateMock).toHaveBeenCalledWith({
       to: "/books/$label/$step/$pageId",
       params: { label: "demo-book", step: "sectioning", pageId: "pg001" },
-      search: { previewHref: "chapter.html", sectionId: undefined },
+      search: expect.any(Function),
+      hash: true,
       replace: true,
     })
+    const updateSearch = navigateMock.mock.calls[0][0].search
+    expect(updateSearch({ sectionId: "pg001_sec002", unrelated: "keep" }))
+      .toEqual({ sectionId: undefined, unrelated: "keep" })
+    view.rerender(<SectioningPageDetail bookLabel="demo-book" pageId="pg001" page={{ ...page } as never} navigationExtra={null} navigationArrows={null} />)
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1)
+
   })
 })
+
+vi.mock("@/hooks/use-downstream-with-output", () => ({ useDownstreamWithOutput: () => [] }))

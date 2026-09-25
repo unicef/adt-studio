@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { RotateCcw, ShieldCheck } from "lucide-react"
 import { StageBlockedState } from "@/components/pipeline/components/StageBlockedState"
 import { LoadingState } from "@/components/pipeline/components/LoadingState"
@@ -37,7 +37,6 @@ export function ValidationView({ bookLabel }: { bookLabel: string }) {
   const reviewerValidationEnabled = reviewerValidationCatalog.data?.enabled ?? false
   const storyboardDone = stageState("storyboard") === "done"
   const { allPruned, isLoading: prunedLoading } = useAllPagesPruned(bookLabel)
-  const ranRef = useRef(false)
   const [isSubmittingPackage, setIsSubmittingPackage] = useState(false)
   const [pendingPackagingTaskId, setPendingPackagingTaskId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -69,12 +68,6 @@ export function ValidationView({ bookLabel }: { bookLabel: string }) {
       }
     }
   }, [bookLabel, t, i18n])
-
-  useEffect(() => {
-    if (!storyboardDone || ranRef.current) return
-    ranRef.current = true
-    void runPackage()
-  }, [storyboardDone, runPackage])
 
   // Track task completion/failure to update local loading/error state.
   // Query invalidation is handled by the SSE task-complete handler in use-book-run.ts.
@@ -146,7 +139,8 @@ export function ValidationView({ bookLabel }: { bookLabel: string }) {
           void navigate({
             to: "/books/$label/$step",
             params: { label: bookLabel, step: "validation" },
-            search: { tab: value },
+            search: (previous) => ({ ...previous, tab: value }),
+            hash: true,
             replace: true,
           })
         }}
