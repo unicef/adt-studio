@@ -168,6 +168,47 @@ describe("SPEC-0003 configuration publication", () => {
     expect(runs()).toEqual(before)
   })
 
+  it("recovers an ambiguous YAML rename success without discarding its journal", () => {
+    const before = snapshot()
+    const rename = fs.renameSync
+    vi.spyOn(fs, "renameSync").mockImplementation((from, to) => {
+      rename(from, to)
+      if (String(to).endsWith("config.yaml")) throw new Error("lost rename acknowledgement")
+    })
+    expect(() => updateBookConfig(label, root, config("page"), globalConfig)).toThrow("lost rename acknowledgement")
+    vi.restoreAllMocks()
+    expect(fs.existsSync(path.join(dir, SECTIONING_JOURNAL))).toBe(true)
+    expect(() => runs()).toThrow(/recovery is pending/)
+    recoverSectioningTransition(dir)
+    expect(readSectioningLifecycle(dir)).toMatchObject({ mode: "page", sectioningReady: false })
+    expect(runs().some((run) => run.step === "page-sectioning")).toBe(false)
+    expect(snapshot()).toEqual(before)
+  })
+
+  it("keeps a conflicting external config edit and the recovery journal for inspection", () => {
+    const before = snapshot()
+    const rename = fs.renameSync
+    vi.spyOn(fs, "renameSync").mockImplementation((from, to) => {
+      if (String(to).endsWith(".sectioning-lifecycle.json")) throw new Error("lifecycle unavailable")
+      rename(from, to)
+    })
+    expect(() => updateBookConfig(label, root, config("page"), globalConfig)).toThrow("lifecycle unavailable")
+    vi.restoreAllMocks()
+    const proposed = fs.readFileSync(path.join(dir, "config.yaml"), "utf8")
+    const journal = fs.readFileSync(path.join(dir, SECTIONING_JOURNAL), "utf8")
+    const external = `${proposed}\nconcurrency: 7\n`
+    fs.writeFileSync(path.join(dir, "config.yaml"), external)
+    expect(() => recoverSectioningTransition(dir)).toThrow(/conflicts with config.yaml/)
+    expect(fs.readFileSync(path.join(dir, "config.yaml"), "utf8")).toBe(external)
+    expect(fs.readFileSync(path.join(dir, SECTIONING_JOURNAL), "utf8")).toBe(journal)
+    expect(() => runs()).toThrow(/recovery is pending/)
+    // Explicitly restore the journal's proposed configuration, then retry.
+    fs.writeFileSync(path.join(dir, "config.yaml"), proposed)
+    recoverSectioningTransition(dir)
+    expect(snapshot()).toEqual(before)
+    expect(readSectioningLifecycle(dir)?.mode).toBe("page")
+  })
+
   it.each(["journal", "yaml", "db", "lifecycle", "ack"])("recovers a process crash at the %s boundary", (boundary) => {
     const before = snapshot()
     const oldRuns = runs()
@@ -236,19 +277,45 @@ describe("SPEC-0003 persisted data and publication", () => {
     s.close()
   })
 
-  it.each(["config", "sectioning", "rollback"])("rejects an edit to %s after preflight, without publishing any page", (target) => {
+  it.each(["config", "sectioning", "rollback", "rendering", "pages"])("rejects an edit to %s after preflight, without publishing any page", (target) => {
     const s = createBookStorage(label, root)
     s.setCurrentNodeVersion("page-sectioning", "pg002", 2)
     writeSectioningLifecycle(dir, "dynamic", true)
     const publication = createStoryboardPublication(s, label, root, globalConfig)
-    const old = s.getAllNodeVersions("web-rendering", "pg002")
     publication.storage.putNodeData("web-rendering", "pg002", { sections: [{ html: "new" }] })
     if (target === "config") fs.writeFileSync(globalConfig, "structure_types: {}\nrole_types: {}\nconcurrency: 2\n")
     else if (target === "sectioning") s.putNodeData("page-sectioning", "pg002", value())
-    else s.setCurrentNodeVersion("page-sectioning", "pg002", 1)
+    else if (target === "rollback") s.setCurrentNodeVersion("page-sectioning", "pg002", 1)
+    else if (target === "rendering") s.putNodeData("web-rendering", "pg002", { sections: [{ html: "concurrent manual edit" }] })
+    else {
+      const db = openBookDb(path.join(dir, `${label}.db`))
+      db.run("INSERT INTO pages (page_id, page_number, text) VALUES (?, ?, ?)", ["pg007", 7, "new source page"])
+      db.close()
+    }
+    const old = s.getAllNodeVersions("web-rendering", "pg002")
     expect(() => publication.publish()).toThrow(/changed after preflight/)
     expect(s.getAllNodeVersions("web-rendering", "pg002")).toEqual(old)
     s.close()
+  })
+
+  it("rolls back all staged rendering versions when a later page fails to persist", () => {
+    const s = createBookStorage(label, root)
+    const db = openBookDb(path.join(dir, `${label}.db`))
+    db.run("INSERT INTO pages (page_id, page_number, text) VALUES (?, ?, ?)", ["pg007", 7, "second page"])
+    s.putNodeData("page-sectioning", "pg007", value())
+    s.putNodeData("web-rendering", "pg007", { sections: [{ html: "second retained page" }] })
+    writeSectioningLifecycle(dir, "dynamic", true)
+    const before = snapshot()
+    const oldRuns = runs()
+    const publication = createStoryboardPublication(s, label, root, globalConfig)
+    publication.storage.putNodeData("web-rendering", "pg002", { sections: [{ html: "first staged page" }] })
+    publication.storage.putNodeData("web-rendering", "pg007", { sections: [{ html: "second staged page" }] })
+    db.exec("CREATE TRIGGER fail_render_publication BEFORE INSERT ON node_data WHEN NEW.node = 'web-rendering' AND NEW.item_id = 'pg007' BEGIN SELECT RAISE(ABORT, 'injected render failure'); END")
+    try {
+      expect(() => publication.publish()).toThrow("injected render failure")
+      expect(snapshot()).toEqual(before)
+      expect(runs()).toEqual(oldRuns)
+    } finally { db.close(); s.close() }
   })
 
   it("publishes a successful rendering version while retaining all downstream entities", () => {
