@@ -104,3 +104,46 @@ it("reserves new imports atomically and retains the shared writer until backgrou
   await pending
   expect(fs.readdirSync(fresh)).toEqual([])
 })
+
+
+it.each([false, true])("admits exactly one of six independent contenders (dead owner=%s)", async (recover) => {
+  const f = fixture()
+  if (recover) {
+    const previous = await owner(f.bookDir)
+    previous.kill("SIGKILL")
+    await once(previous, "exit")
+  }
+  const moduleUrl = pathToFileURL(path.resolve(import.meta.dirname, "../../dist/book-writer.js")).href
+  const contenders = await Promise.all(Array.from({ length: 6 }, async () => {
+    const child = spawn(process.execPath, ["--input-type=module", "-e", `
+      import {withBookWriter} from ${JSON.stringify(moduleUrl)};
+      import {once} from 'node:events';
+      const start = once(process, 'message');
+      process.send('ready');
+      await start;
+      try {
+        await withBookWriter(${JSON.stringify(f.bookDir)}, async () => {
+          const release = once(process, 'message');
+          process.send('acquired');
+          await release;
+        });
+      } catch (error) { process.send(error.code ?? error.message); }
+      process.disconnect();
+    `], { stdio: ["ignore", "pipe", "pipe", "ipc"] })
+    children.push(child)
+    await once(child, "message")
+    return child
+  }))
+  // All processes are ready before any attempts the exclusive reservation.
+  const results = contenders.map((child) => once(child, "message"))
+  for (const child of contenders) child.send("start")
+  const outcomes = (await Promise.all(results)).map(([message]) => message)
+  expect(outcomes.filter((value) => value === "acquired")).toHaveLength(1)
+  expect(outcomes.filter((value) => value === "BOOK_BUSY")).toHaveLength(5)
+  const winner = contenders[outcomes.indexOf("acquired")]
+  expect(JSON.parse(fs.readFileSync(path.join(f.bookDir, ".book-writer.json"), "utf8")).pid).toBe(winner.pid)
+  const finished = once(winner, "exit")
+  winner.send("release")
+  await finished
+  expect(withBookWriter(f.bookDir, () => "next")).toBe("next")
+})

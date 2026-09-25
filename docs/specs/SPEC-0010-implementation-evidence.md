@@ -69,7 +69,7 @@ is `apps/api/src/routes/extraction-admission.test.ts` (H), and UI reason mapping
 
 | AC | Status | Evidence / limitation |
 |---|---|---|
-| 1 | Passed | A: real Raven PDF; imported metadata history; exact page/asset/node inventory; failure injection at attempt, source snapshot, asset flush and final rename. Completion follows file flush and inventory verification. |
+| 1 | Passed | A: real Raven PDF; imported metadata history; exact page/asset/node inventory; failure injection at attempt, source snapshot, asset flush and final rename. Completion follows file flush and inventory verification. H also exercises actual initial HTTP execution and cancellation after publication, before provider transport. |
 | 2 | Passed | A: repeated direct extraction returns `reused`; recursive file hashes and retained node versions are identical. Original metadata versions are verified, not current editor pointers. |
 | 3 | Passed | A: same-length altered bytes reject before source overwrite; the entire stored book stays identical. |
 | 4 | Passed | A: omitted/explicit defaults, effective greedy spread pairs, fixed part window, six option mismatches, contract-version change, and downstream-only language/concurrency config. |
@@ -79,14 +79,14 @@ is `apps/api/src/routes/extraction-admission.test.ts` (H), and UI reason mapping
 | 8 | Passed | A/H: multi-version sectioning and metadata, manual Core TTS, recordings, video assignments, editor crops, original versions and next-version allocation survive reuse. Existing quiz regression now asserts Extract preserves current quiz/history/allocator state. |
 | 9 | Passed | A/H: rejection leaves stored bytes identical and performs zero provider fetches; queued callback never runs on a reused book. `pnpm lint:invariants` prevents ordinary `clearExtractedData` call sites. |
 | 10 | Passed | A/H: actual CLI subprocess, full DAG, HTTP route, direct stage runner, queued worker and direct `extractPDF` enforce admission. Route submission defers other stage clears until admitted execution. |
-| 11 | Passed | W/H: independent Node owner process, live owner with ancient mtime, proven-dead recovery, unfinished recovery refusal, nested background lifetime, API/TaskService conflicts, startup recovery and atomic new-book reservations. |
+| 11 | Passed | W/H: independent Node owner process, live owner with ancient mtime, proven-dead recovery, unfinished recovery refusal, nested background lifetime, API/TaskService conflicts, startup recovery and atomic new-book reservations. Six independent contenders admit exactly one winner for both an empty gate and recovery of a terminated owner. |
 | 12 | Blocked | A/H prove the documented `UNSAFE_RESUME_UNAVAILABLE` fallback before provider/content writes. Actual shared freshness/preservation/rendering integration is unavailable on #879/#880/#884. |
 | 13 | Blocked | A proves nonzero CLI exit and zero transport calls on refused reuse. Current/stale/protected downstream planning, summaries and successful full resume are not implemented or represented as tested. |
 | 14 | Passed | A: real LLM cache plus stub provider backend counts exactly one transport call across generation, extraction reuse and another generation; cached response still passes the normal schema validator. Cache/media files survive byte comparisons. |
 | 15 | Passed | A: a user-selected second label successfully extracts changed settings, without transferring manual nodes or changing the old book. Errors/documentation give the fresh-label command shape. |
 | 16 | Passed | H/U: stable HTTP 409 codes, direct/CLI error reasons, eight UI mappings, unrelated errors retained. All five catalogs have zero missing translations. Live Studio displays the safe-resume refusal. |
 | 17 | Passed | A: the external PDF is replaced on `step-start`; extraction and completed provenance still describe the immutable stored snapshot. |
-| 18 | Passed | A/H: project ZIP includes source, extraction manifest, DB history and recording; excludes process owner/recovery records. Media hashes/assignments remain intact. Provenance is entirely book-local. |
+| 18 | Passed | A/H: project ZIP includes source, extraction manifest, DB history and recording; excludes process owner/recovery records. Media hashes/assignments remain intact. Provenance is entirely book-local. HTTP archive admission spans asynchronous reads, cancellation and read failure; part-ledger writes reject a competing writer. |
 
 ## Commands and outcomes
 
@@ -146,3 +146,47 @@ corrected to target only the actual extraction asset flush.
 - Shared writer work was adapted from the concurrent local SPEC-0003 draft; see
   [attribution and protocol details](../SAFE_EXTRACTION.md). No other PR or
   checkout was modified. Their future integration must keep one writer primitive.
+
+
+## Follow-up confidence review (2026-09-25)
+
+The behavioral review found an additional writer gap: GET archive routes bypassed
+writer admission. `export-part` writes a coordinator ledger, and the eager project
+ZIP producer yields every 50 files, so another writer could mutate later files
+while an archive was being built. New regressions failed on the prior local head:
+the occupied part export returned 200 instead of 409, and ordinary/cancelled
+archive reads allowed a competing writer before source reads finished.
+
+HTTP archive routes now enter the existing book writer gate before their handlers.
+A counted nested lease drains the response producer until it finishes reading,
+even after client cancellation, and releases on read failure. This adapts the
+existing SPEC-0003 archive mechanism rather than introducing another lock.
+
+Ten additional regression cases cover:
+
+- The actual part exporter: a competing writer prevents ledger creation; the
+  same export succeeds and records its ledger after that writer finishes.
+- A real project ZIP with 110 extra retained files: the writer is excluded across
+  the producer's asynchronous yields, including client cancellation. Successful
+  output retains the final file and manifest and excludes ownership records.
+- Source stream failure releases archive admission.
+- Six independent Node contenders, both on an empty gate and after a terminated
+  owner: exactly one acquires ownership, the other five receive `BOOK_BUSY`, and
+  a later writer can enter after the winner releases.
+- Actual HTTP initial extraction, persisted completion, cancellation before model
+  work, zero provider transport calls and subsequent verified direct reuse.
+- Canonical and two percent-encoded URL spellings all reject incomplete page
+  reads. This suspected bypass was not reproduced; no URL routing change was made.
+
+Focused validation: **2 files / 22 tests passed**. Typecheck, lint (zero errors,
+the same eight baseline warnings), the extraction-reset invariant and diff
+whitespace checks passed. API server and Electron API bundles also passed; these
+are build checks, not installed Desktop acceptance. No Studio strings changed in
+this follow-up.
+
+Full repository rerun: `pnpm test --maxWorkers=2 --testTimeout=30000` passed
+**281 files / 3,660 tests** in 399 seconds, including its build prerequisite.
+The original live-UI and Lingui results above describe the earlier implementation
+head; neither Studio code nor strings changed in this follow-up. Full downstream
+resume remains unavailable; AC-12/13 are still blocked. Packaged-platform and
+release verification limits remain unchanged.

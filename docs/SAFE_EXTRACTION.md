@@ -62,6 +62,13 @@ pre-run callback. Cancellation/decision endpoints remain available while a write
 is running. Different processes fail with `BOOK_BUSY`; the existing API stage
 queue remains sequential within one server.
 
+HTTP archive downloads also acquire this lease before invoking the exporter.
+Part exports can write a ledger, and project ZIP production yields between file
+reads. The lease lasts until those reads finish, including after a client cancels
+the download; read failure releases it. This prevents archives from mixing files
+from different concurrent mutations. It does not hold the book until the last
+network byte reaches the client.
+
 There is no timeout-based lock stealing. Recovery only reclaims a valid owner
 record on the same host when `kill(pid, 0)` reports `ESRCH`. A live/reused PID,
 foreign host, malformed owner or existing `.book-writer.json.recovery` marker
@@ -77,7 +84,9 @@ The primitive is adapted from the concurrent local SPEC-0003 implementation
 This branch adds new-destination creation, admission assertions and fail-closed
 handling for an unfinished recovery record. Integration must keep one exported
 primitive/schema, not retain parallel writer locks. No changes were made to that
-other checkout or PR.
+other checkout or PR. The HTTP archive drain also adapts SPEC-0003's
+`apps/api/src/services/export-service.ts` at local commit `971df004`, retaining
+the same lease until its eager ZIP producer has finished, even after cancellation.
 
 See [the acceptance evidence](specs/SPEC-0010-implementation-evidence.md). Human
 specification review and packaged/release acceptance remain separate gates.

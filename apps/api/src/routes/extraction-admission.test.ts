@@ -15,6 +15,8 @@ import { createTaskService } from "../services/task-service.js"
 import { errorHandler } from "../middleware/error-handler.js"
 import { bookWriterMiddleware } from "../middleware/book-writer.js"
 import { createZipStream } from "../services/zip-util.js"
+import { exportProject } from "../services/export-service.js"
+import { exportPart } from "../services/part-service.js"
 
 const project = path.resolve(import.meta.dirname, "../../../..")
 const pdf = path.join(project, "tests/fixtures/raven.pdf")
@@ -153,4 +155,96 @@ it("does not create book directories for collection-level archive import endpoin
   expect((await app.request("/books/preview-import", { method: "POST" })).status).toBe(200)
   expect(fs.existsSync(path.join(root, "import"))).toBe(false)
   expect(fs.existsSync(path.join(root, "preview-import"))).toBe(false)
+})
+
+
+it.each(["book", "%62ook", "b%6Fok"])("blocks incomplete page reads through the %s URL spelling", async (label) => {
+  const { app } = setup()
+  fs.writeFileSync(path.join(book, "extraction.json"), "incomplete publication")
+  const read = vi.fn()
+  app.get("/books/:label/pages", (c) => { read(); return c.json([]) })
+  expect((await app.request(`/books/${label}/pages`)).status).toBe(409)
+  expect(read).not.toHaveBeenCalled()
+})
+
+it("rejects GET archive work before the handler can write a part ledger while a writer is active", async () => {
+  const { app } = setup()
+  const ledger = path.join(book, "parts-ledger.json")
+  app.get("/books/:label/export-part", (c) => c.body(exportPart("book", root, { startPage: 1, endPage: 1 }, config).stream))
+  let release!: () => void
+  const holding = withBookWriter(book, () => new Promise<void>((resolve) => { release = resolve }))
+  try {
+    expect((await app.request("/books/book/export-part")).status).toBe(409)
+    expect(fs.existsSync(ledger)).toBe(false)
+  } finally { release(); await holding }
+  const admitted = await app.request("/books/book/export-part")
+  expect(admitted.status).toBe(200)
+  await admitted.arrayBuffer()
+  expect(fs.existsSync(ledger)).toBe(true)
+})
+
+it.each([false, true])("retains archive admission through asynchronous reads (cancelled=%s)", async (cancelled) => {
+  await extract()
+  // The real ZIP producer yields after 50 files, after the HTTP handler returns.
+  for (let i = 0; i < 110; i++) fs.writeFileSync(path.join(book, `retained-${i}.txt`), `manual-${i}`)
+  const { app } = setup()
+  app.get("/books/:label/export-project", async (c) => c.body((await exportProject("book", root)).stream))
+  vi.useFakeTimers()
+  try {
+    const response = await app.request("/books/book/export-project")
+    expect(response.status).toBe(200)
+    expect(() => withBookWriter(book, () => "racing edit")).toThrow("BOOK_BUSY")
+    const result = cancelled ? response.body!.cancel() : response.arrayBuffer()
+    // Cancelling the consumer must not release admission while the eager
+    // producer is still reading files to finish or discard the archive.
+    expect(() => withBookWriter(book, () => "racing edit")).toThrow("BOOK_BUSY")
+    await vi.runAllTimersAsync()
+    const bytes = await result
+    if (!cancelled) {
+      const archive = unzipSync(new Uint8Array(bytes as ArrayBuffer))
+      expect(Buffer.from(archive["retained-109.txt"]).toString()).toBe("manual-109")
+      expect(archive["extraction.json"]).toBeDefined()
+      expect(archive[".book-writer.json"]).toBeUndefined()
+    }
+    expect(withBookWriter(book, () => "released")).toBe("released")
+  } finally { await vi.runAllTimersAsync(); vi.useRealTimers() }
+})
+
+
+it("releases archive admission after a source read fails", async () => {
+  const { app } = setup()
+  let fail!: () => void
+  app.get("/books/:label/export-project", (c) => c.body(new ReadableStream({
+    start(controller) { fail = () => controller.error(new Error("disk read failed")) },
+  })))
+  const response = await app.request("/books/book/export-project")
+  expect(() => withBookWriter(book, () => "racing edit")).toThrow("BOOK_BUSY")
+  const rejected = expect(response.arrayBuffer()).rejects.toThrow("disk read failed")
+  fail()
+  await rejected
+  expect(withBookWriter(book, () => "released")).toBe("released")
+})
+
+it("initial HTTP execution publishes extraction and retains it when cancelled before provider work", async () => {
+  const { bus, service, request } = setup()
+  const transport = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("no provider work"))
+  let published = false
+  let cancelled = false
+  bus.addListener("book", (event) => {
+    if (event.type === "stage-run-cancelled") cancelled = true
+    if (event.type === "progress" && event.data.type === "step-complete" && event.data.step === "extract") {
+      published = readExtractionManifest(book)?.status === "complete"
+      service.cancelStageRun("book")
+    }
+  })
+  expect((await request()).status).toBe(200)
+  await vi.waitFor(() => expect(cancelled).toBe(true), { timeout: 15000 })
+  expect(published).toBe(true)
+  expect(transport).not.toHaveBeenCalled()
+  const storage = createBookStorage("book", root)
+  try {
+    expect(storage.getPages().map((page) => page.pageId)).toEqual(["pg001"])
+    expect(storage.getStepRuns()).toContainEqual(expect.objectContaining({ step: "extract", status: "done" }))
+    expect(await extractPDF({ pdfPath: pdf, startPage: 1, endPage: 1 }, storage, { emit() {} })).toBe("reused")
+  } finally { storage.close() }
 })
