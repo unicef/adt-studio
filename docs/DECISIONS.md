@@ -29,6 +29,7 @@ This document records all significant technology and architecture decisions made
 21. [Context-Aware Top Bar Button](#021-context-aware-top-bar-button)
 22. [Unified Stage/Step Status via useBookRun](#022-unified-stagestep-status-via-usebookrun)
 23. [Visual Refinement + File-Based Debug Screenshots](#023-visual-refinement--file-based-debug-screenshots)
+27. [Prompt overrides use writable roots and versioned selections (proposed)](#027-prompt-overrides-use-writable-roots-and-versioned-selections)
 
 ---
 
