@@ -2184,8 +2184,14 @@ msgstr "Ndrysho"
 msgid "Change language"
 msgstr "Ndrysho gjuhën"
 
+msgid "Change mode"
+msgstr "Ndrysho modalitetin"
+
 msgid "Change Preset"
 msgstr "Ndrysho Presetin"
+
+msgid "Change Sectioning mode?"
+msgstr "Të ndryshohet modaliteti i ndarjes në seksione?"
 
 msgid "Change the book language?"
 msgstr "Të ndryshohet gjuha e librit?"
@@ -2722,6 +2728,9 @@ msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i m
 
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Nuk u hoqën dot {failed} nga {total} video — ju lutem provoni përsëri."
+
+msgid "Could not save Sectioning mode."
+msgstr "Nuk u ruajt modaliteti i ndarjes në seksione."
 
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
@@ -8386,6 +8395,9 @@ msgstr "Ruaj madhësitë e tekstit"
 msgid "Save your work first if you want to keep these changes."
 msgstr "Ruaje punën tënde më parë nëse dëshiron t'i mbash këto ndryshime."
 
+msgid "Saved output is retained, but Sectioning and later stages are not current."
+msgstr "Rezultatet e ruajtura mbahen, por ndarja në seksione dhe fazat pasuese nuk janë të përditësuara."
+
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
 
@@ -8587,6 +8599,9 @@ msgstr "Llojet e Seksionit"
 
 msgid "Sectioning"
 msgstr "Seksionim"
+
+msgid "Sectioning and later stages will need to run again. Saved versions are kept."
+msgstr "Ndarja në seksione dhe fazat pasuese duhet të ekzekutohen përsëri. Versionet e ruajtura mbahen."
 
 msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
 msgstr "Seksionimi ka ndryshuar që kur u renderizuan këto faqe. Ekzekuto përsëri Storyboard-in për t'i rigjeneruar ato."
@@ -9291,6 +9306,9 @@ msgstr "Ruajtur lokalisht në këtë kompjuter"
 
 msgid "Storyboard"
 msgstr "Storyboard"
+
+msgid "Storyboard cannot run in By Page mode: {total} pages do not contain exactly one valid section. Re-run Sectioning, then try again. Affected pages: {pages}."
+msgstr "Storyboard-i nuk mund të ekzekutohet në modalitetin Sipas faqes: {total} faqe nuk përmbajnë saktësisht një seksion të vlefshëm. Ekzekutoni përsëri ndarjen në seksione dhe provoni sërish. Faqet e prekura: {pages}."
 
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "Storyboard-i është ekzekutuar tashmë. Ndryshimet e bëra këtu nuk do të hyjnë në fuqi derisa storyboard-i të ri-ekzekutohet."
@@ -10794,6 +10812,9 @@ msgstr "Prit të përfundojë gjenerimi i glosariumit"
 
 msgid "Wait for storyboard to complete"
 msgstr "Prit të përfundojë storyboard-i"
+
+msgid "Wait for the current operation to finish."
+msgstr "Prisni derisa të përfundojë veprimi aktual."
 
 msgid "Waiting for API output…"
 msgstr "Duke pritur daljen e API-t…"

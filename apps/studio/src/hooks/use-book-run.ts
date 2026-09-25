@@ -1,3 +1,4 @@
+import { sectioningErrorMessage } from "@/lib/sectioning-error"
 import { useEffect, useCallback, useRef, createContext, useContext, useState } from "react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
@@ -478,7 +479,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       if (me.data) {
         try {
           const d = JSON.parse(me.data)
-          const runError = d.error ?? i18n._(msg`Step run failed`)
+          const runError = d.sectioningPreflight ? sectioningErrorMessage(d.sectioningPreflight) : d.error ?? i18n._(msg`Step run failed`)
           queryClient.setQueryData<StepStatusResponse>(stepStatusKey(label), (old) => {
             if (!old) return old
             return { ...old, error: runError }

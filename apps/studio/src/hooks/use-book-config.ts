@@ -19,7 +19,9 @@ export function useUpdateBookConfig() {
       label: string
       config: Record<string, unknown>
     }) => api.updateBookConfig(label, config),
-    onSuccess: (_data, { label }) => {
+    onSettled: (_data, _error, { label }) => {
+      queryClient.invalidateQueries({ queryKey: ["books", label] })
+      queryClient.invalidateQueries({ queryKey: ["book", label] })
       queryClient.invalidateQueries({ queryKey: ["book-config", label] })
       queryClient.invalidateQueries({ queryKey: ["validation", "catalog", label] })
       queryClient.invalidateQueries({ queryKey: ["debug", "config", label] })

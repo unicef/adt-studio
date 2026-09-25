@@ -1,3 +1,4 @@
+import { useSectioningModeConfirmation } from "@/hooks/use-sectioning-mode-confirmation"
 import { useState, useEffect, useMemo } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Plus, X } from "lucide-react"
@@ -76,6 +77,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
+  const modeConfirmation = useSectioningModeConfirmation(bookLabel, updateConfig.isPending)
   const queryClient = useQueryClient()
 
   // Section Types state
@@ -341,7 +343,12 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
       await savePromptDraft(queryClient, "page_sectioning_refinement", bookLabel, refinementPromptDraft)
     }
 
-    await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
+    try {
+      await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
+    } catch (error) {
+      setSectioningMode(modeConfirmation.state?.effectiveMode ?? "dynamic")
+      throw error
+    }
     setDirty({})
     setSectioningPromptDraft(null)
     setRefinementPromptDraft(null)
@@ -395,6 +402,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
 
   return (
     <div className={tab === "sectioning-prompt" || tab === "refinement-prompt" ? "h-full" : "p-4 space-y-6"}>
+      {modeConfirmation.dialog}
       {tab === "section-types" && (
         <div className="space-y-6">
           <div>
@@ -429,10 +437,11 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
                     type="button"
                     role="radio"
                     aria-checked={selected}
-                    onClick={() => {
+                    disabled={modeConfirmation.busy}
+                    onClick={() => modeConfirmation.request(value as "page" | "dynamic", () => {
                       setSectioningMode(value)
                       markDirty("page_sectioning")
-                    }}
+                    })}
                     className={cn(
                       "flex items-start gap-3 rounded-md border p-3 text-left transition",
                       selected
