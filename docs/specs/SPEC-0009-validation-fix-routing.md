@@ -8,8 +8,12 @@ issues: ["#618"]
 prs: []
 adr: ""
 created: 2026-09-22
-updated: 2026-09-22
+updated: 2026-09-25
 ---
+
+## Implementation scope (2026-09-25)
+
+Phase A is implemented locally on this PR's branch under the owner's explicit sequencing override; approval remains pending. [Acceptance evidence](SPEC-0009-implementation-evidence.md) records the implementation, tests and limits. Phase B remains unavailable because the common renderer does not yet establish all admission, freshness, protection and publication guarantees below. This is not full delivery of #618. `status: in-review`, `approvers: []` and the unapproved acceptance checklist are retained; `prs` stays empty until implementation lands.
 
 ## Decision under review
 
