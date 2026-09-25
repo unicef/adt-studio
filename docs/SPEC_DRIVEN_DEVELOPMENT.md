@@ -164,11 +164,13 @@ details that remain within the approved contract do not require a new spec decis
 
 1. Take the next free number. A number is taken once it appears in
    [`docs/specs/INDEX.md`](specs/INDEX.md) **or** in the title of any spec PR, open or
-   closed, because INDEX only learns about a spec when its PR merges:
+   closed, because INDEX only learns about a spec when its PR merges. This prints the
+   highest number either source holds, wherever it sits in a PR title:
    ```bash
-   gh pr list --state all --search "SPEC- in:title" --json title --jq '.[].title'
+   { gh pr list --state all --limit 1000 --search "SPEC in:title" --json title --jq '.[].title'
+     cat docs/specs/INDEX.md; } | grep -oE 'SPEC-[0-9]{4}' | sort -u | tail -1
    ```
-   Use one more than the highest number either source shows.
+   Use the next number after it.
 2. Branch `spec/<issue>-<slug>` from `develop` and copy
    [`docs/specs/TEMPLATE.md`](specs/TEMPLATE.md) to `docs/specs/SPEC-NNNN-short-slug.md`.
 3. Fill it in. **Generating the first draft with an agent, from the issue and the

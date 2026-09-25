@@ -4,7 +4,7 @@ One row per spec. Status moves with the spec's front matter; keep the two in syn
 Statuses: draft · in-review · approved · in-progress · implemented · verified · superseded.
 
 This table is not the whole list of taken numbers. A spec proposed after it was last
-updated appears only in its PR titled `SPEC-NNNN: …` until that PR merges, and it
+updated appears only in its PR title (`SPEC-NNNN: …`) until that PR merges, and it
 already holds its number — check both before taking one
 ([SPEC_DRIVEN_DEVELOPMENT.md §5](../SPEC_DRIVEN_DEVELOPMENT.md#5-writing-a-spec)).
 
