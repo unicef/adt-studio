@@ -6,6 +6,7 @@ import { Hono } from "hono"
 import { unzipSync } from "fflate"
 import { createBookStorage, extractionHash, readExtractionManifest, withBookWriter } from "@adt/storage"
 import { extractPDF } from "@adt/pipeline"
+import { ExtractionResumeBlockedSummary } from "@adt/types"
 import { createStageRoutes, makeBeforeRun } from "./stages.js"
 import { createBookEventBus, type BookSSEEvent } from "../services/book-event-bus.js"
 import { createPageErrorDecisions } from "../services/page-error-decisions.js"
@@ -60,10 +61,25 @@ it("HTTP and direct stage execution reject verified reuse before model transport
   const s = setup()
   const response = await s.request()
   expect(response.status).toBe(409)
-  expect(await response.json()).toMatchObject({ code: "UNSAFE_RESUME_UNAVAILABLE" })
+  const body = await response.json()
+  expect(body).toMatchObject({ code: "UNSAFE_RESUME_UNAVAILABLE" })
+  expect(ExtractionResumeBlockedSummary.parse(body.summary)).toEqual({
+    kind: "admission-only", extraction: "verified-reusable", downstream: "blocked",
+    scopeAssessment: "unavailable", generated: false, contentChanged: false,
+  })
   await expect(createStageRunner().run("book", options(), { emit() {} })).rejects.toMatchObject({ code: "UNSAFE_RESUME_UNAVAILABLE" })
   expect(transport).not.toHaveBeenCalled()
   expect(extractionHash(fs.readFileSync(db))).toBe(before)
+})
+
+it("does not claim verified reuse when source validation fails", async () => {
+  await extract()
+  fs.appendFileSync(path.join(book, "book.pdf"), "changed source")
+  const response = await setup().request()
+  expect(response.status).toBe(409)
+  const body = await response.json()
+  expect(body.code).toBe("EXTRACTION_SOURCE_CHANGED")
+  expect(body).not.toHaveProperty("summary")
 })
 
 it("a duplicate queued Extract job rechecks after its predecessor and never runs its clear callback", async () => {

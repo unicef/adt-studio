@@ -1,4 +1,4 @@
-import type { ExtractionErrorCode } from "@adt/types"
+import { ExtractionResumeBlockedSummary, type ExtractionErrorCode } from "@adt/types"
 
 const guidance = 'Use a fresh, user-chosen label: pnpm pipeline <new-label> <pdf-file> [options].'
 const reasons: Record<ExtractionErrorCode, string> = {
@@ -14,8 +14,20 @@ const reasons: Record<ExtractionErrorCode, string> = {
 
 /** Safe, stable diagnostics: never include source text, credentials or paths. */
 export class ExtractionAdmissionError extends Error {
+  readonly summary?: ExtractionResumeBlockedSummary
+
   constructor(readonly code: ExtractionErrorCode) {
     super(`${code}: ${reasons[code]}${code === "BOOK_BUSY" || code === "UNSAFE_RESUME_UNAVAILABLE" ? "" : ` ${guidance}`}`)
     this.name = "ExtractionAdmissionError"
+    if (code === "UNSAFE_RESUME_UNAVAILABLE") {
+      this.summary = ExtractionResumeBlockedSummary.parse({
+        kind: "admission-only",
+        extraction: "verified-reusable",
+        downstream: "blocked",
+        scopeAssessment: "unavailable",
+        generated: false,
+        contentChanged: false,
+      })
+    }
   }
 }

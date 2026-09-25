@@ -193,10 +193,28 @@ describe("SPEC-0010 extraction admission", { timeout: 30_000 }, () => {
       const transport = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Provider transport must not run"))
       await expect(runFullPipeline({ label: "book", booksRoot: f.booksRoot, ...f.options, configPath: path.join(root, "config.yaml"), promptsDir: path.join(root, "prompts"), templatesDir: path.join(root, "templates") })).rejects.toMatchObject({ code: "UNSAFE_RESUME_UNAVAILABLE" })
       expect(transport).not.toHaveBeenCalled()
-      const cli = spawnSync(process.execPath, [path.join(root, "packages/pipeline/dist/cli.js"), "book", pdf, "--books-dir", f.booksRoot, "--start-page", "1", "--end-page", "1"], { cwd: root, encoding: "utf8" })
-      expect(cli.status).not.toBe(0)
+      const hook = path.join(f.booksRoot, "reject-provider.mjs")
+      fs.writeFileSync(hook, `globalThis.fetch = async () => {
+        process.stderr.write("UNEXPECTED_PROVIDER_CALL\\n"); process.exit(79);
+      };`)
+      const cli = spawnSync(process.execPath, ["--import", pathToFileURL(hook).href, path.join(root, "packages/pipeline/dist/cli.js"), "book", pdf, "--books-dir", f.booksRoot, "--start-page", "1", "--end-page", "1"], { cwd: root, encoding: "utf8", timeout: 20000 })
+      expect(cli.error).toBeUndefined()
+      expect(cli.status).toBe(1)
       expect(cli.stderr).toContain("UNSAFE_RESUME_UNAVAILABLE")
+      expect(cli.stderr).toContain("Extraction: verified reusable")
+      expect(cli.stderr).toContain("Downstream: blocked; no work started")
+      expect(cli.stderr).toContain("Current/stale/protected scopes: not assessed")
+      expect(cli.stderr).toContain("Content changed: no. Generated output: none")
+      expect(cli.stderr).toContain("Pipeline incomplete; exiting with status 1")
+      expect(cli.stderr).not.toContain("UNEXPECTED_PROVIDER_CALL")
+      expect(cli.stderr).not.toContain("Output:")
       expect(bytes(f.bookDir)).toEqual(before)
+
+      fs.appendFileSync(path.join(f.bookDir, "book.pdf"), "changed snapshot")
+      const invalid = spawnSync(process.execPath, [path.join(root, "packages/pipeline/dist/cli.js"), "book", pdf, "--books-dir", f.booksRoot, "--start-page", "1", "--end-page", "1"], { cwd: root, encoding: "utf8", timeout: 20000 })
+      expect(invalid.status).toBe(1)
+      expect(invalid.stderr).toContain("EXTRACTION_ASSETS_INVALID")
+      expect(invalid.stderr).not.toContain("Extraction: verified reusable")
     } finally { f.storage.close() }
   })
 

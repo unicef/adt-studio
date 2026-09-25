@@ -15,7 +15,13 @@ const PROVIDER_ERROR_STATUS: Record<AiProviderErrorCode, 400 | 422> = {
 }
 
 export const errorHandler: ErrorHandler = (err, c) => {
-  if (err instanceof ExtractionAdmissionError || err instanceof BookBusyError) return c.json({ error: err.message, code: err.code }, 409)
+  if (err instanceof ExtractionAdmissionError || err instanceof BookBusyError) {
+    return c.json({
+      error: err.message,
+      code: err.code,
+      ...(err instanceof ExtractionAdmissionError && err.summary ? { summary: err.summary } : {}),
+    }, 409)
+  }
   if (err instanceof HTTPException) {
     return c.json({ error: err.message }, err.status)
   }

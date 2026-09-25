@@ -8,6 +8,17 @@ export const ExtractionErrorCode = z.enum([
 ])
 export type ExtractionErrorCode = z.infer<typeof ExtractionErrorCode>
 
+/** Admission evidence only: downstream scopes have not been assessed or run. */
+export const ExtractionResumeBlockedSummary = z.object({
+  kind: z.literal("admission-only"),
+  extraction: z.literal("verified-reusable"),
+  downstream: z.literal("blocked"),
+  scopeAssessment: z.literal("unavailable"),
+  generated: z.literal(false),
+  contentChanged: z.literal(false),
+}).strict()
+export type ExtractionResumeBlockedSummary = z.infer<typeof ExtractionResumeBlockedSummary>
+
 /** Bump when extraction output or identity semantics change. Not an app version. */
 export const EXTRACTION_CONTRACT_VERSION = 1
 export const ExtractionInputs = z.object({
