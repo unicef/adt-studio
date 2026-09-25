@@ -7,8 +7,8 @@ approvers: ["@gbergengruen"]
 issues: ["#890"]
 prs: []
 adr: "docs/DECISIONS.md#028-authored-per-element-content-is-never-stored-in-a-cleared-node"
-created: 2026-02-19
-updated: 2026-02-19
+created: 2026-09-23
+updated: 2026-09-24
 ---
 
 <!--
@@ -149,7 +149,7 @@ Why this is safe and cheap (all verified):
   The ad-hoc ones are the risk: `books.ts:418` is a hand-written eleven-node list, exactly the kind a
   later change extends by copy-paste.
 
-**Orphan policy — ratified (owner, 2026-02-19).** Deleting an element **keeps** its authored text.
+**Orphan policy — ratified (owner, 2026-09-23).** Deleting an element **keeps** its authored text.
 No garbage collection is added in v1; the artifact may accumulate entries for removed nodes. Revisit
 alongside **SPEC-0008** (stable identifiers), which is what would make a `nodeId` reusable and
 therefore make an orphan dangerous rather than merely dead weight.
@@ -197,7 +197,7 @@ the sequential sweep share one audio with no change to the resolution path.
 
 The script is saved immediately; **audio is generated when the author runs Speech**, never on save.
 
-**Ratified (owner, 2026-02-19).** A single-element regeneration follows an **#710-conditional** rule:
+**Ratified (owner, 2026-09-23).** A single-element regeneration follows an **#710-conditional** rule:
 
 - **If #710 has landed:** use the optional `text` parameter on `POST /tts/generate-one` for the point
   path — one element regenerates in a single call, and the stages catch up on their next run.
@@ -228,11 +228,11 @@ since that path calls `clearCaptionData`, clearing `IMAGE_SET_CHANGE_CLEAR_NODE_
 ### 4. The runtime adds the click trigger and the indicator
 
 - A click on an element that has audio plays that element's audio (and stops the current one).
-- **Ratified (owner, 2026-02-19): the icon badge is added by the _runtime_, not by the rendered
+- **Ratified (owner, 2026-09-23): the icon badge is added by the _runtime_, not by the rendered
   HTML.** That keeps the rendered HTML, the prompt contract and `validate-html.ts` untouched, and it
   means the badge exists in both the preview and the bundle for free — the preview serves the same
   runtime (`adt-preview.ts:549-556`).
-- **Ratified (owner, 2026-02-19): the badge ships in the export, and is hidden in `@media print`.**
+- **Ratified (owner, 2026-09-23): the badge ships in the export, and is hidden in `@media print`.**
   The reader cannot discover the audio without it; a printed page should not show it.
 - Elements that are not audio-bearing keep today's behaviour exactly.
 
@@ -369,7 +369,7 @@ No feature flag; each PR reverts alone.
 ## Open questions
 
 **None blocking.** Everything raised during drafting was resolved and ratified by the owner on
-2026-02-19:
+2026-09-23 and 2026-09-24:
 
 | Question | Resolution | Where |
 |---|---|---|

@@ -868,7 +868,7 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 ## 028: Authored per-element content is never stored in a cleared node
 
 **Status**: proposed
-**Date**: 2026-02-19
+**Date**: 2026-09-23
 **Spec**: [SPEC-0014](specs/SPEC-0014-per-element-audio.md)
 **Issues**: #890
 
