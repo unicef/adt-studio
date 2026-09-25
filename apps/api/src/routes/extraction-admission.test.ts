@@ -11,6 +11,7 @@ import { createBookEventBus, type BookSSEEvent } from "../services/book-event-bu
 import { createPageErrorDecisions } from "../services/page-error-decisions.js"
 import { createStageService, type StageRunner } from "../services/stage-service.js"
 import { createStageRunner } from "../services/stage-runner.js"
+import { createFontRoutes } from "./fonts.js"
 import { createTaskService } from "../services/task-service.js"
 import { errorHandler } from "../middleware/error-handler.js"
 import { bookWriterMiddleware } from "../middleware/book-writer.js"
@@ -246,5 +247,25 @@ it("initial HTTP execution publishes extraction and retains it when cancelled be
     expect(storage.getPages().map((page) => page.pageId)).toEqual(["pg001"])
     expect(storage.getStepRuns()).toContainEqual(expect.objectContaining({ step: "extract", status: "done" }))
     expect(await extractPDF({ pdfPath: pdf, startPage: 1, endPage: 1 }, storage, { emit() {} })).toBe("reused")
+  } finally { storage.close() }
+})
+
+
+it("admits first extraction after a real font upload without changing its registry or bytes", async () => {
+  const { app } = setup()
+  app.route("/", createFontRoutes(root, path.join(project, "prompts"), config))
+  const form = new FormData()
+  const fontBytes = fs.readFileSync(path.join(project, "assets/adt/fonts/Merriweather-VariableFont.woff2"))
+  form.append("fonts", new File([new Uint8Array(fontBytes)], "custom.woff2"))
+  const uploaded = await app.request("/books/book/fonts", { method: "POST", body: form })
+  expect(uploaded.status).toBe(200)
+  const storage = createBookStorage("book", root)
+  try {
+    const registry = storage.getAllNodeVersions("font-registry", "book")
+    const fonts = fs.readdirSync(path.join(book, "fonts"))
+    expect(fonts).toHaveLength(1)
+    expect(await extractPDF({ pdfPath: pdf, startPage: 1, endPage: 1 }, storage, { emit() {} })).toBe("extracted")
+    expect(storage.getAllNodeVersions("font-registry", "book")).toEqual(registry)
+    expect(fs.readFileSync(path.join(book, "fonts", fonts[0]))).toEqual(fontBytes)
   } finally { storage.close() }
 })

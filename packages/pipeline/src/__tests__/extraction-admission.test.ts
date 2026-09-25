@@ -298,3 +298,48 @@ describe("SPEC-0010 extraction admission", { timeout: 30_000 }, () => {
     } finally { f.storage.close() }
   })
 })
+
+
+it.each(["unregistered", "symlink"])("refuses %s files masquerading as initial font inputs without mutation", async (kind) => {
+  const f = fixture()
+  try {
+    fs.mkdirSync(path.join(f.bookDir, "fonts"))
+    const file = path.join(f.bookDir, "fonts", "font.woff2")
+    f.storage.putNodeData("font-registry", "book", { fonts: [{
+      id: "font", family: "Font", source: "upload", faces: [{ file: "font.woff2", format: "woff2" }],
+    }] })
+    if (kind === "symlink") fs.symlinkSync(pdf, file)
+    else fs.writeFileSync(path.join(f.bookDir, "fonts", "unregistered.woff2"), "unknown bytes")
+    const before = bytes(f.bookDir)
+    await expect(extractPDF(f.options, f.storage, quiet)).rejects.toMatchObject({ code: "EXTRACTION_LEGACY" })
+    expect(bytes(f.bookDir)).toEqual(before)
+  } finally { f.storage.close() }
+})
+
+
+it("the actual initial CLI publishes complete extraction before reaching provider transport", () => {
+  const booksRoot = fs.mkdtempSync(path.join(os.tmpdir(), "adt-cli-initial-"))
+  dirs.push(booksRoot)
+  const hook = path.join(booksRoot, "transport.mjs")
+  // Stop at the first actual fetch boundary. This proves new CLI admission and
+  // extraction without spending money or pretending the full DAG completed.
+  fs.writeFileSync(hook, `globalThis.fetch = async () => {
+    process.stderr.write("FIXTURE_PROVIDER_BOUNDARY\\n");
+    process.exit(78);
+  };`)
+  const child = spawnSync(process.execPath, ["--import", pathToFileURL(hook).href,
+    path.join(root, "packages/pipeline/dist/cli.js"), "initial-cli", pdf,
+    "--books-dir", booksRoot, "--start-page", "1", "--end-page", "1"], {
+    cwd: root, encoding: "utf8", timeout: 20000,
+    env: { ...process.env, OPENAI_API_KEY: "fixture-only-no-network" },
+  })
+  expect(child.error).toBeUndefined()
+  expect(child.status, child.stderr).toBe(78)
+  expect(child.stderr).toContain("FIXTURE_PROVIDER_BOUNDARY")
+  const bookDir = path.join(booksRoot, "initial-cli")
+  const manifest = readExtractionManifest(bookDir)!
+  expect(manifest.status).toBe("complete")
+  expect(manifest.pages.map((page) => page.pageId)).toEqual(["pg001"])
+  expect(manifest.sourceHash).toBe(extractionHash(fs.readFileSync(pdf)))
+  expect(fs.readFileSync(path.join(bookDir, "initial-cli.pdf"))).toEqual(fs.readFileSync(pdf))
+})

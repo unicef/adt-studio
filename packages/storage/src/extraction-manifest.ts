@@ -2,7 +2,7 @@ import { createHash } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
 import sqlite from "node-sqlite3-wasm"
-import { ExtractionManifest, type ExtractionInputs } from "@adt/types"
+import { BookFontRegistry, FONT_REGISTRY_NODE, FONT_REGISTRY_ITEM_ID, ExtractionManifest, type ExtractionInputs } from "@adt/types"
 import { assertBookWriter } from "./book-writer.js"
 import { ExtractionAdmissionError } from "./extraction-error.js"
 
@@ -67,8 +67,19 @@ function assertInitialDestination(bookDir: string, sourceHash: string): void {
   const label = path.basename(bookDir)
   const allowedFiles = new Set([`${label}.pdf`, `${label}.db`, `${label}.db-wal`, `${label}.db-shm`, "config.yaml", "part.json", ".book-writer.json"])
   const emptyDirectories = new Set(["images", ".debug-images", "videos", `${label}.db.lock`, ".book-writer.json.recovery"])
+  const fontFiles = new Set<string>()
   for (const entry of fs.readdirSync(bookDir, { withFileTypes: true })) {
     if (entry.isSymbolicLink()) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
+    if (entry.isDirectory() && entry.name === "fonts") {
+      // Uploaded fonts are initial configuration inputs, but the directory is
+      // not a blanket exception for unknown content or symlinks. Validate its
+      // files against retained registry versions below, without changing either.
+      for (const font of fs.readdirSync(path.join(bookDir, "fonts"), { withFileTypes: true })) {
+        if (!font.isFile()) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
+        fontFiles.add(font.name)
+      }
+      continue
+    }
     // Cache and local prompt overrides are inputs, not an extraction history.
     if (entry.isDirectory() && [".cache", "prompts"].includes(entry.name)) continue
     if (entry.isDirectory() && emptyDirectories.has(entry.name) && fs.readdirSync(path.join(bookDir, entry.name)).length === 0) continue
@@ -76,9 +87,18 @@ function assertInitialDestination(bookDir: string, sourceHash: string): void {
   }
   const pdf = path.join(bookDir, `${label}.pdf`)
   if (fs.existsSync(pdf) && extractionHash(fs.readFileSync(pdf)) !== sourceHash) throw new ExtractionAdmissionError("EXTRACTION_SOURCE_CHANGED")
-  if (!fs.existsSync(path.join(bookDir, `${label}.db`))) return
+  if (!fs.existsSync(path.join(bookDir, `${label}.db`))) {
+    if (fontFiles.size) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
+    return
+  }
   try {
     readDatabase(bookDir, (db) => {
+      if (fontFiles.size) {
+        const rows = db.all("SELECT data FROM node_data WHERE node = ? AND item_id = ?", [FONT_REGISTRY_NODE, FONT_REGISTRY_ITEM_ID]) as Array<{ data: string }>
+        const registered = new Set(rows.flatMap((row) => BookFontRegistry.parse(JSON.parse(row.data)).fonts
+          .filter((font) => font.source === "upload").flatMap((font) => font.faces.map((face) => face.file))))
+        if ([...fontFiles].some((file) => !registered.has(file))) throw new ExtractionAdmissionError("EXTRACTION_LEGACY")
+      }
       const tables = db.all("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'") as Array<{ name: string }>
       for (const { name } of tables) {
         if (name === "schema_version") continue
