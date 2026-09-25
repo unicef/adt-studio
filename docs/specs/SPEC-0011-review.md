@@ -9,10 +9,10 @@ rollout and non-goals. This is a fresh adversarial review of the work in the sam
 task, not an external human approval. The specification remains in review and
 ADR 027 remains proposed.
 
-The isolated branch is `spec/629-prompt-persistence`, based on refreshed develop
-`737d331418d13f930955504e8288ee26ec1b20ba`. The remote PR still has specification
+At review time, the isolated branch was `spec/629-prompt-persistence`, based on refreshed develop
+`737d331418d13f930955504e8288ee26ec1b20ba`. The remote PR then had specification
 head `bb37a583c9080315a23aed6a0c9925d140d6d739` and the old documentation-stack base;
-the implementation and review fixes are local only. No push, merge, replacement
+the implementation and review fixes were local only. No push, merge, replacement
 PR or change to #644 was made. Current #887 comments and reviews were empty.
 
 The review traced editor buffers and navigation guards through HTTP revisions,
@@ -92,5 +92,14 @@ fixes, and no new installed Desktop or live-browser run is claimed here.
 Earlier Desktop standalone web-typecheck failures were reproduced on unchanged
 develop; that baseline limitation remains separate from the passing repository
 and runtime typechecks. Process-crash tests establish SIGKILL behavior on macOS,
-not power-loss durability or Windows behavior. Hosted CI has not tested the local
-commits because pushing remains explicitly prohibited.
+not power-loss durability or Windows behavior. Hosted CI had not tested the reviewed commits because pushing was prohibited
+during review. Publication was authorized on 2026-09-26; CI results must be checked
+on the published head separately from this development evidence.
+
+## Publication follow-up
+
+The local branch is now `spec/spec-0011-prompt-persistence`. The remote source
+branch remains `spec/629-prompt-persistence` to preserve PR #887: GitHub closes an
+open PR when its source branch is renamed. Publication targets that same PR with
+`develop` as its base. No replacement PR, merge or spec approval is authorized.
+See the PR for the final published head and hosted checks.

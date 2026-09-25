@@ -1,7 +1,8 @@
 # SPEC-0011 implementation evidence
 
-The persistence, resolution, migration and editor slice is implemented locally on
-`spec/629-prompt-persistence` for existing PR #887. **The full integrated spec is
+The persistence, resolution, migration and editor slice is implemented on local
+branch `spec/spec-0011-prompt-persistence` for existing PR #887 (remote source
+`spec/629-prompt-persistence`). **The full integrated spec is
 not declared complete:** shared freshness/host-input comparison is unavailable,
 and Docker runtime persistence has not been exercised. The documented safe
 fallback explicitly tells users to regenerate affected outputs. Human approval
@@ -12,7 +13,7 @@ is pending: the spec remains `in-review`, approvers are empty and ADR 027 is pro
 The complete published spec, issue #629, PRs #887/#644 and their discussions were
 read. Neither PR had comments or reviews. Current develop was refreshed at
 `737d331418d13f930955504e8288ee26ec1b20ba`; the final remote check found it unchanged.
-Published #887 remains `bb37a583c9080315a23aed6a0c9925d140d6d739`. A recoverable local
+Before authorized publication, #887 was at `bb37a583c9080315a23aed6a0c9925d140d6d739`. A recoverable local
 ref, `backup/spec-0011-published-20260925`, preserves that head. Only the SPEC-0011
 commit was rebased onto develop, preserving its spec, INDEX row, ADR and ADR indexes
 and removing unrelated inherited specification ancestors. No descendant was merged.
@@ -142,19 +143,25 @@ documentation. Packaged Desktop and live-browser evidence below was collected at
 Representative fixtures use the repository's `tests/fixtures/raven.pdf`, real
 SQLite/filesystem storage and real ZIP export/import. Transport is stubbed, so no
 paid model run or full representative-book output-quality acceptance is claimed.
-No new hosted CI has run because implementation commits have not been pushed.
+The recorded development checks predate publication; hosted CI on the published
+head must be checked separately and is not claimed as passed here.
 Docker, Windows/Linux runtime, installer upgrade, notarization and release checks
 remain not run or unavailable. No spec approval or release-verification status is set.
 
 ## Delivery and remaining decisions
 
-All implementation commits stay on the named local branch in the isolated worktree.
-**No push or merge.** The existing PR title/body is updated to describe this combined
-scope and clearly state that code is local. The remote PR still has its original
-spec head and document-stack base; retargeting it before uploading the rewritten
-head would expose unrelated ancestors. After push authorization, recheck the remote
-head, use its exact lease if rewriting, and retarget #887 to develop in the same
-publication step. Do not create a replacement PR. `elasticsounds` remains requested.
+Publication was authorized on 2026-09-26, after the implementation review. The local
+branch was renamed to `spec/spec-0011-prompt-persistence`. Its remote source stays
+`spec/629-prompt-persistence`: GitHub closes an open PR when its source branch is
+renamed, so retaining that remote name preserves the explicitly required PR #887.
+
+Publish with the exact original-head lease after checking for concurrent changes,
+and retarget the same PR to `develop` to remove the obsolete documentation stack.
+The original remote head remains recoverable in the backup ref noted above.
+The PR description and publication comment carry the coverage, dependencies and
+verification limits. No replacement PR, merge or spec approval is authorized;
+`elasticsounds` remains the requested reviewer. Consult the PR for the final
+published head and hosted CI status.
 
 The original spec ratification questions remain human-owned. Operational choices
 are documented in [PROMPT_PERSISTENCE.md](../PROMPT_PERSISTENCE.md): conservative
