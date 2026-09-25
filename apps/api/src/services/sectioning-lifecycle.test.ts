@@ -10,9 +10,11 @@ import {
 } from "@adt/storage"
 import { PIPELINE } from "@adt/types"
 import { createStoryboardPublication, sectioningInvalidationSteps, loadBookConfig, assertPersistedSectioning, prepareSectioningRun } from "@adt/pipeline"
-import { getBookConfig, updateBookConfig } from "./book-service.js"
+import { getBook, getBookConfig, updateBookConfig } from "./book-service.js"
 import { createBookRoutes } from "../routes/books.js"
 import { errorHandler } from "../middleware/error-handler.js"
+import { createTaskService } from "./task-service.js"
+import { createBookEventBus } from "./book-event-bus.js"
 
 let root: string
 let dir: string
@@ -49,6 +51,21 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); fs.rmSync(root, { recursive: true, force: true }) })
 
 describe("SPEC-0003 configuration publication", () => {
+  it("holds admission for a live task after its submitting request returns", async () => {
+    const tasks = createTaskService(createBookEventBus(), root)
+    let finish!: () => void
+    tasks.submitTask(label, "re-render", "test writer", () => new Promise<void>((resolve) => { finish = resolve }))
+    const before = snapshot()
+    try {
+      expect(() => updateBookConfig(label, root, config("page"), globalConfig)).toThrow(/active writer/)
+      expect(getBookConfig(label, root)).toBeNull()
+      expect(snapshot()).toEqual(before)
+    } finally { finish() }
+    await vi.waitFor(() => expect(tasks.getActiveTasks(label)[0]?.status).toBe("completed"))
+    updateBookConfig(label, root, config("page"), globalConfig)
+    expect(readSectioningLifecycle(dir)?.mode).toBe("page")
+  })
+
   it.each([["dynamic", "page"], ["page", "dynamic"]])("invalidates %s → %s without touching history, Extract or media", (oldMode, newMode) => {
     fs.writeFileSync(path.join(dir, "config.yaml"), `page_sectioning:\n  mode: ${oldMode}\n`)
     const before = snapshot()
@@ -126,6 +143,31 @@ describe("SPEC-0003 configuration publication", () => {
     }
     expect(snapshot()).toEqual(before)
   })
+  it("rolls back a partial SQLite invalidation and recovers the published YAML", () => {
+    const dbPath = path.join(dir, `${label}.db`)
+    const db = openBookDb(dbPath)
+    db.exec("CREATE TRIGGER fail_mode_invalidation BEFORE DELETE ON step_runs WHEN OLD.step = 'translation' BEGIN SELECT RAISE(ABORT, 'injected db failure'); END")
+    db.close()
+    const before = runs()
+    expect(() => updateBookConfig(label, root, config("page"), globalConfig)).toThrow("injected db failure")
+    expect(() => runs()).toThrow(/recovery is pending/)
+    withBookWriter(dir, () => {
+      const inspect = openBookDb(dbPath)
+      expect(inspect.all("SELECT step FROM step_runs")).toHaveLength(before.length)
+      inspect.exec("DROP TRIGGER fail_mode_invalidation")
+      inspect.close()
+    })
+    recoverSectioningTransition(dir)
+    expect(runs().some((run) => run.step === "translation")).toBe(false)
+  })
+
+  it("defaults an omitted effective mode to Dynamic without invalidating", () => {
+    fs.writeFileSync(globalConfig, "structure_types: {}\nrole_types: {}\n")
+    const before = runs()
+    updateBookConfig(label, root, {}, globalConfig)
+    expect(runs()).toEqual(before)
+  })
+
   it.each(["journal", "yaml", "db", "lifecycle", "ack"])("recovers a process crash at the %s boundary", (boundary) => {
     const before = snapshot()
     const oldRuns = runs()
@@ -168,6 +210,22 @@ describe("SPEC-0003 configuration publication", () => {
 })
 
 describe("SPEC-0003 persisted data and publication", () => {
+  it("uses the persisted part window rather than inferred contiguous PDF pages", () => {
+    const db = openBookDb(path.join(dir, `${label}.db`))
+    db.run("INSERT INTO pages (page_id, page_number, text) VALUES (?, ?, ?)", ["pg007", 7, "part page"])
+    db.close()
+    const s = createBookStorage(label, root)
+    s.putNodeData("page-sectioning", "pg007", value())
+    fs.writeFileSync(path.join(dir, "part.json"), JSON.stringify({
+      adtPart: 1, sourceLabel: label, title: null, range: { startPage: 5, endPage: 10 },
+      pageCount: 100, fingerprint: {}, identityHash: "id", semanticsHash: "sem",
+      createdAt: "2026-01-01T00:00:00.000Z", partLabelSuggestion: "sample-p005-010",
+    }))
+    const cfg = loadBookConfig(label, root, globalConfig)
+    cfg.page_sectioning = { mode: "page" }
+    try { expect(() => assertPersistedSectioning(s, cfg, dir)).not.toThrow() } finally { s.close() }
+  })
+
   it("validates the active version and preserves rendering on failure", () => {
     const s = createBookStorage(label, root)
     const before = snapshot()
@@ -197,12 +255,16 @@ describe("SPEC-0003 persisted data and publication", () => {
     const s = createBookStorage(label, root)
     s.putNodeData("image-captioning", "book", { manual: "retained" })
     writeSectioningLifecycle(dir, "dynamic", true)
+    fs.mkdirSync(path.join(dir, "adt"))
+    expect(getBook(label, root).completedStages).toContain("preview")
     const publication = createStoryboardPublication(s, label, root, globalConfig)
     publication.storage.putNodeData("web-rendering", "pg002", { sections: [{ html: "new" }] })
     publication.publish()
     expect(s.getAllNodeVersions("web-rendering", "pg002")).toHaveLength(2)
     expect(s.getLatestNodeData("image-captioning", "book")?.data).toEqual({ manual: "retained" })
     expect(s.getStepRuns().some((run) => run.step === "image-captioning")).toBe(false)
+    expect(getBook(label, root).completedStages).not.toContain("preview")
+    expect(fs.existsSync(path.join(dir, "adt"))).toBe(true)
     s.close()
   })
 

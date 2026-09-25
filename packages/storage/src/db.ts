@@ -503,23 +503,23 @@ export function cleanupInterruptedSteps(booksDir: string): void {
     try {
       if (fs.existsSync(path.join(bookDir, ".sectioning-transition.json"))) continue
       withBookWriter(bookDir, () => {
-      const db = openBookDb(dbPath)
-      try {
-      // Check if step_runs table exists (handles pre-v8 DBs gracefully)
-      const tables = db.all(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='step_runs'"
-      )
-      if (tables.length === 0) return
+        const db = openBookDb(dbPath)
+        try {
+          // Check if step_runs table exists (handles pre-v8 DBs gracefully)
+          const tables = db.all(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='step_runs'"
+          )
+          if (tables.length === 0) return
 
-      const result = db.run(
-        "UPDATE step_runs SET status = 'error', error = 'Interrupted', completed_at = ? WHERE status = 'running'",
-        [now]
-      )
-      if (result.changes > 0) {
-        console.log(`[startup] ${entry}: marked ${result.changes} interrupted step(s) as errored`)
-      }
+          const result = db.run(
+            "UPDATE step_runs SET status = 'error', error = 'Interrupted', completed_at = ? WHERE status = 'running'",
+            [now]
+          )
+          if (result.changes > 0) {
+            console.log(`[startup] ${entry}: marked ${result.changes} interrupted step(s) as errored`)
+          }
 
-      } finally { db.close() }
+        } finally { db.close() }
       })
     } catch (err) {
       console.error(`[startup] ${entry}: failed to clean up interrupted steps:`, err)

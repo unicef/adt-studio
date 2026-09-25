@@ -1,4 +1,5 @@
 import fs from "node:fs"
+import { HTTPException } from "hono/http-exception"
 import { createMiddleware } from "hono/factory"
 import { resolveBookPaths, withBookWriter, recoverSectioningTransition } from "@adt/storage"
 
@@ -11,7 +12,10 @@ export function bookWriterMiddleware(booksDir: string) {
     if (/\/stages\/(run|cancel|decision)$/.test(c.req.path)) return next()
     const label = c.req.param("label")
     if (!label) return next()
-    const { bookDir } = resolveBookPaths(label, booksDir)
+    let bookDir: string
+    try { ({ bookDir } = resolveBookPaths(label, booksDir)) } catch (error) {
+      throw new HTTPException(400, { message: error instanceof Error ? error.message : String(error) })
+    }
     if (!fs.existsSync(bookDir)) return next()
     return withBookWriter(bookDir, async () => {
       recoverSectioningTransition(bookDir)

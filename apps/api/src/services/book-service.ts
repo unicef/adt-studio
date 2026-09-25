@@ -13,7 +13,7 @@ import {
   type BookDetail,
   type PartRange,
 } from "@adt/types"
-import { openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, atomicBookFile } from "@adt/storage"
+import { openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, atomicBookFile, readSectioningLifecycle } from "@adt/storage"
 import { loadBookConfig, loadConfig, deepMerge, effectiveSectioningMode, sectioningInvalidationSteps } from "@adt/pipeline"
 import { AppConfig } from "@adt/types"
 
@@ -95,7 +95,8 @@ function computeCompletedStages(db: BookDb, bookDir: string): string[] {
     if (allDone) completed.push(stage.name)
   }
 
-  if (fs.existsSync(path.join(bookDir, "adt"))) {
+  const lifecycle = readSectioningLifecycle(bookDir)
+  if (fs.existsSync(path.join(bookDir, "adt")) && (!lifecycle || (lifecycle.sectioningReady && completed.includes("package")))) {
     completed.push("preview")
   }
 
@@ -430,4 +431,3 @@ export function deleteBook(label: string, booksDir: string): void {
 
   fs.rmSync(bookDir, { recursive: true, force: true })
 }
-

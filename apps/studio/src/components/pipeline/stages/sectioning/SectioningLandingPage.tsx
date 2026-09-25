@@ -71,10 +71,10 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   useEffect(() => {
     if (!activeConfigData) return
     const m = activeConfigData.merged as Record<string, unknown>
-    if (m.page_sectioning && typeof m.page_sectioning === "object") {
-      const ps = m.page_sectioning as Record<string, unknown>
-      if (ps.mode === "page" || ps.mode === "dynamic") setSectioningMode(ps.mode)
-    }
+    const ps = m.page_sectioning && typeof m.page_sectioning === "object"
+      ? m.page_sectioning as Record<string, unknown>
+      : {}
+    setSectioningMode(ps.mode === "page" ? "page" : "dynamic")
     setGenerateActivities(m.generate_activities !== false)
   }, [activeConfigData])
 

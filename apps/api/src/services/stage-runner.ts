@@ -1543,13 +1543,13 @@ async function runSectioningStep(
       throw new StepError("page-sectioning", "Stopped by a page-error decision")
     }
 
-    if (failedPages.length === 0 && skippedByStep.size === 0) completeSectioning(label, booksDir, config, configPath)
     finishPageStep(progress, "page-sectioning", pageFailureDeps)
     if (translationConfig) {
       finishPageStep(progress, "translation", pageFailureDeps)
     } else {
       progress.emit({ type: "step-skip", step: "translation" })
     }
+    if (skippedByStep.size === 0) completeSectioning(label, booksDir, config, configPath)
   } finally {
     storage.close()
   }

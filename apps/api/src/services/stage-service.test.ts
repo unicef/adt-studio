@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb } from "@adt/storage"
+import { openBookDb, writeSectioningLifecycle } from "@adt/storage"
 import { createBookEventBus, type BookSSEEvent } from "./book-event-bus.js"
 import { createPageErrorDecisions } from "./page-error-decisions.js"
 import {
@@ -32,6 +32,7 @@ function makeBook(label: string): void {
     ["page-sectioning", new Date().toISOString()]
   )
   db.close()
+  writeSectioningLifecycle(bookDir, "dynamic", true)
 }
 
 function stepRunStatuses(label: string): Map<string, string> {

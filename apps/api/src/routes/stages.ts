@@ -441,7 +441,7 @@ export function createStageRoutes(
     // Check if ADT is packaged (preview stage)
     const adtDir = path.join(resolvedDir, safeLabel, "adt")
     const lifecycle = readSectioningLifecycle(path.join(resolvedDir, safeLabel))
-    if (fs.existsSync(adtDir) && (!lifecycle || lifecycle.sectioningReady)) stages.preview = "done"
+    if (fs.existsSync(adtDir) && (!lifecycle || (lifecycle.sectioningReady && stages.package === "done"))) stages.preview = "done"
 
     const hasStepErrors = Object.keys(stepErrors).length > 0
     const hasStepMessages = Object.keys(stepMessages).length > 0

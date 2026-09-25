@@ -144,11 +144,11 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
     ) as Record<string, { render_type?: string; config?: Record<string, unknown> }>
     setAllStrategyNames(listSelectableRenderStrategies(strategies))
 
-    if (m.page_sectioning && typeof m.page_sectioning === "object") {
-      const ps = m.page_sectioning as Record<string, unknown>
-      if (ps.mode) setSectioningMode(String(ps.mode))
-      setMaxRefinements(ps.max_refinements != null ? String(ps.max_refinements) : "")
-    }
+    const ps = m.page_sectioning && typeof m.page_sectioning === "object"
+      ? m.page_sectioning as Record<string, unknown>
+      : {}
+    setSectioningMode(ps.mode === "page" ? "page" : "dynamic")
+    setMaxRefinements(ps.max_refinements != null ? String(ps.max_refinements) : "")
     setGenerateActivities(m.generate_activities !== false)
   }, [activeConfigData])
 

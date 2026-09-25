@@ -3,7 +3,7 @@ import path from "node:path"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
 import type { PackagingWarning } from "@adt/types"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, withBookWriter, recoverSectioningTransition } from "@adt/storage"
 import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
@@ -179,6 +179,36 @@ export async function prepareExport(
   }
 }
 
+/** Keep YAML, lifecycle and SQLite from different transitions out of one ZIP.
+ * The existing ZIP producer yields while reading larger books, so admission
+ * must last until it has finished reading, not merely until it returns a stream. */
+function createProjectZipStream(bookDir: string): ReadableStream<Uint8Array> {
+  let cancelled = false
+  return new ReadableStream({
+    start(controller) {
+      return withBookWriter(bookDir, async () => {
+        recoverSectioningTransition(bookDir)
+        const reader = createZipStream(bookDir, {
+          excludeDirs: new Set(["adt", "webpub"]),
+          excludeFiles: new Set([".book-writer.json", ".book-writer.json.recovery"]),
+        }).getReader()
+        try {
+          for (;;) {
+            const { done, value } = await reader.read()
+            if (done) { if (!cancelled) controller.close(); break }
+            if (!cancelled) {
+              // A cancelled consumer must not release admission while the
+              // eager ZIP producer is still reading later source files.
+              try { controller.enqueue(value) } catch { cancelled = true }
+            }
+          }
+        } finally { reader.releaseLock() }
+      })
+    },
+    cancel() { cancelled = true },
+  })
+}
+
 export async function exportProject(
   label: string,
   booksDir: string,
@@ -204,14 +234,14 @@ export async function exportProject(
     const { startPage, endPage } = part.range
     const pad3 = (n: number) => String(n).padStart(3, "0")
     return {
-      stream: createZipStream(bookDir, { excludeDirs: new Set(["adt", "webpub"]) }),
+      stream: createProjectZipStream(bookDir),
       filename: `${title}-part-${startPage}-${endPage}-processed.zip`,
       safeFilename: `${part.sourceLabel}-p${pad3(startPage)}-${pad3(endPage)}-processed.zip`,
     }
   }
 
   return {
-    stream: createZipStream(bookDir, { excludeDirs: new Set(["adt", "webpub"]) }),
+    stream: createProjectZipStream(bookDir),
     filename: `${title}-project.zip`,
     safeFilename: `${safeLabel}-project.zip`,
   }

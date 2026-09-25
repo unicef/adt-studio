@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { openBookDb, createBookStorage, withBookWriter, writeSectioningLifecycle } from "@adt/storage"
 import { unzipSync } from "fflate"
 import { prepareExport, exportProject, exportAdt, exportWebpub, exportEpub, exportPnld } from "./export-service.js"
 
@@ -96,6 +96,34 @@ function createWebAssets(dir: string): void {
 }
 
 describe("exportProject", () => {
+  it.each([false, true])("retains writer admission while a large archive is read (cancelled: %s)", async (cancelled) => {
+    const label = "export-admission"
+    createTestDb(label)
+    const bookDir = path.join(tmpDir, label)
+    for (let n = 0; n < 120; n++) fs.writeFileSync(path.join(bookDir, `fixture-${n}.txt`), "saved content")
+    const { stream } = await exportProject(label, tmpDir)
+    expect(() => withBookWriter(bookDir, () => {})).toThrow(/active writer/)
+    if (cancelled) await stream.cancel()
+    else await streamToBuffer(stream)
+    await vi.waitFor(() => expect(fs.existsSync(path.join(bookDir, ".book-writer.json"))).toBe(false))
+    expect(() => withBookWriter(bookDir, () => {})).not.toThrow()
+  })
+
+  it("preserves lifecycle provenance without exporting live process ownership", async () => {
+    const label = "portable-lifecycle"
+    createTestDb(label)
+    const bookDir = path.join(tmpDir, label)
+    writeSectioningLifecycle(bookDir, "page", false)
+    await withBookWriter(bookDir, async () => {
+      const result = await exportProject(label, tmpDir)
+      const files = unzipSync(await streamToBuffer(result.stream))
+      expect(files[".book-writer.json"]).toBeUndefined()
+      expect(files[".book-writer.json.recovery"]).toBeUndefined()
+      expect(JSON.parse(new TextDecoder().decode(files[".sectioning-lifecycle.json"])))
+        .toEqual({ version: 1, mode: "page", sectioningReady: false })
+    })
+  })
+
   it("produces a valid ZIP containing the db file", async () => {
     createTestDb("export-test")
     addPages("export-test", 1)

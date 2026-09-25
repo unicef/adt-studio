@@ -1,7 +1,10 @@
 import path from "node:path"
+import fs from "node:fs"
+import os from "node:os"
+import { z } from "zod"
 import { describe, expect, it } from "vitest"
 import type { AppConfig } from "@adt/types"
-import { createPromptEngine } from "@adt/llm"
+import { createPromptEngine, createLLMModel, createProviderRegistry, type ProviderModule, type AnyProviderModule, type StructuredTextRequest } from "@adt/llm"
 import type {
   GenerateObjectOptions,
   GenerateObjectResult,
@@ -86,6 +89,56 @@ function makeConfig(
 }
 
 // ── buildPageSectioningConfig ───────────────────────────────────
+
+// SPEC-0003 retains #692's validator and the production LLM cache/retry path.
+describe("By Page cache transport regression", () => {
+  it("evicts historical multi-section cache, retries with feedback and reuses valid responses", async () => {
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "sectioning-cache-"))
+    const requests: StructuredTextRequest[] = []
+    const valid = {
+      reasoning: "One page",
+      sections: [{ section_type: "text_only", background_color: "#fff", text_color: "#000",
+        page_number: 1, nodes: [{ role: "text", text: "Page text" }] }],
+    }
+    const provider: ProviderModule<Record<string, never>> = {
+      manifest: {
+        id: "sectioning-test", displayName: "Sectioning test", modalities: ["structured-text"],
+        credentialFields: [], defaultModels: { "structured-text": "stub" },
+        capabilities: { "structured-text": { strategies: ["native-schema"], recursiveSchemas: true, imageInput: true, temperature: false } },
+      },
+      credentialSchema: z.object({}),
+      cacheFingerprint: () => ({ adapterVersion: "test-1", configurableOrigin: true }),
+      createStructuredTextBackend: () => ({
+        async generateStructured<T>(request: StructuredTextRequest) {
+          requests.push(request)
+          return { object: structuredClone(valid) as T, usage: { inputTokens: 1, outputTokens: 1 } }
+        },
+      }),
+    }
+    try {
+      const llm = createLLMModel({
+        modelId: "sectioning-test:stub", cacheDir, logLevel: "silent",
+        registry: createProviderRegistry().register(provider as AnyProviderModule).freeze(),
+        promptEngine: createPromptEngine(path.resolve(process.cwd(), "prompts")),
+      })
+      const config = makeConfig({ mode: "page", modelId: "sectioning-test:stub" })
+      await sectionPage(makeInput(), config, llm)
+      expect(requests).toHaveLength(1)
+      const [cacheName] = fs.readdirSync(cacheDir)
+      const cached = path.join(cacheDir, cacheName)
+      fs.writeFileSync(cached, JSON.stringify({ ...valid, sections: [valid.sections[0], valid.sections[0]] }))
+      expect((await sectionPage(makeInput(), config, llm)).sections).toHaveLength(1)
+      expect(requests).toHaveLength(2)
+      expect(JSON.stringify(requests[1].messages)).toContain("Page mode requires exactly one section")
+      expect(fs.existsSync(cached)).toBe(false)
+      // The retry has a feedback key; populate the original key once, then reuse it.
+      await sectionPage(makeInput(), config, llm)
+      expect(requests).toHaveLength(3)
+      await sectionPage(makeInput(), config, llm)
+      expect(requests).toHaveLength(3)
+    } finally { fs.rmSync(cacheDir, { recursive: true, force: true }) }
+  })
+})
 
 describe("buildPageSectioningConfig", () => {
   it("extracts structureTypes, roleTypes, and sectionTypes from AppConfig", () => {

@@ -489,21 +489,22 @@ describe("updateBookConfig", () => {
     expect(content).toContain("concurrency: 8")
   })
 
-  it("removes config.yaml when overrides are empty", () => {
+  it("atomically removes all overrides when the proposed mapping is empty", () => {
     const fakePdf = Buffer.from("%PDF-1.0 fake")
     createBook("remove-config", fakePdf, tmpDir, { concurrency: 4 })
     const configPath = path.join(tmpDir, "remove-config", "config.yaml")
     expect(fs.existsSync(configPath)).toBe(true)
 
     updateBookConfig("remove-config", tmpDir, {})
-    expect(fs.existsSync(configPath)).toBe(false)
+    expect(getBookConfig("remove-config", tmpDir)).toEqual({})
+    expect(fs.readFileSync(configPath, "utf8").trim()).toBe("{}")
   })
 
-  it("is a no-op when overrides are empty and no config exists", () => {
+  it("persists an empty override mapping when no config exists", () => {
     const bookDir = path.join(tmpDir, "empty-update")
     fs.mkdirSync(bookDir)
     updateBookConfig("empty-update", tmpDir, {})
-    expect(fs.existsSync(path.join(bookDir, "config.yaml"))).toBe(false)
+    expect(getBookConfig("empty-update", tmpDir)).toEqual({})
   })
 
   it("throws for non-existent book", () => {

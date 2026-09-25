@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { SectioningMode } from "./sectioning-lifecycle.js"
 import { QualifiedModelId } from "./model-id.js"
 import { ImageFilters } from "./image-filtering.js"
 import { SpeechConfig } from "./speech.js"
@@ -165,7 +166,7 @@ export type EasyReadConfig = z.infer<typeof EasyReadConfig>
 
 export const PageSectioningConfig = StepConfig.extend({
   max_refinements: z.number().int().min(0).optional(),
-  mode: z.enum(["page", "dynamic"]).optional(),
+  mode: SectioningMode.optional(),
 })
 export type PageSectioningConfig = z.infer<typeof PageSectioningConfig>
 

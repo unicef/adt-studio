@@ -84,12 +84,18 @@ export function createTaskService(eventBus: BookEventBus, booksDir?: string): Ta
           data: { type: "task-progress", taskId, message, percent },
         })
       })
-      const execution = booksDir
-        ? withBookWriter(path.join(path.resolve(booksDir), label), () => {
-            recoverSectioningTransition(path.join(path.resolve(booksDir), label))
-            return execute()
-          })
-        : execute()
+      let execution: Promise<unknown>
+      try {
+        execution = booksDir
+          ? withBookWriter(path.join(path.resolve(booksDir), label), () => {
+              recoverSectioningTransition(path.join(path.resolve(booksDir), label))
+              return execute()
+            })
+          : execute()
+      } catch (error) {
+        removeTask(label, taskId)
+        throw error
+      }
       execution
         .then((result) => {
           info.status = "completed"
