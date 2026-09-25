@@ -2,6 +2,8 @@
 
 Implementation target: the published in-review spec in PR #885, under the owner's explicit instruction to implement before approval. Human approval remains pending. Related issue: #618 (informational; stays open).
 
+Latest review: [2026-09-25 implementation review](SPEC-0009-review-2026-09-25.md) records seven reproduced findings, local fixes `ed7ec1fb` and `1c698b05`, refreshed acceptance coverage, current verification and the remaining Phase B blockers. The earlier results below are retained with their original revision/scope limits.
+
 ## Pre-edit acceptance map (2026-09-25)
 
 Baseline: develop `737d3314`; spec remote `95bddc75`; reuse PR #645 `0a988589` (four original commits, attributed with cherry-pick provenance). No review comments or reviews existed on #885/#645 at refresh. #618's Science Standard 5 comment supports generated heading semantics going to Storyboard.
