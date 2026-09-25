@@ -1,4 +1,4 @@
-import { feedbackDestination } from "../feedback-destination"
+import { feedbackDestination, type FeedbackDestination } from "../feedback-destination"
 import type { DashLink, DashThread } from "./dashboard-data"
 
 export type DashboardTabId = "overview" | "feedback" | "readers"
@@ -22,5 +22,12 @@ export function initialOf(name: string): string {
 export function storyboardDestination(bookLabel: string, threads: DashThread[]) {
   const newest = threads[0]
   if (!newest) return { to: "/books/$label/$step" as const, params: { label: bookLabel, step: "storyboard" } }
-  return feedbackDestination(bookLabel, newest.pageSectionId, newest.id)
+  return threadDestination(bookLabel, newest)
+}
+
+/** Where a thread's "open it" goes: its section in the Storyboard, or its quiz's page in Quizzes. */
+export function threadDestination(bookLabel: string, thread: DashThread): FeedbackDestination {
+  if (!thread.quiz) return feedbackDestination(bookLabel, thread.pageSectionId, thread.id)
+  if (thread.quiz.pageId === null) return { to: "/books/$label/$step", params: { label: bookLabel, step: "quizzes" } }
+  return { to: "/books/$label/$step/$pageId", params: { label: bookLabel, step: "quizzes", pageId: thread.quiz.pageId } }
 }

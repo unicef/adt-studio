@@ -3,10 +3,9 @@ import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { AlertTriangle, ArrowRight, Check, CheckCircle2, History, MessageSquare, Undo2, UserPlus } from "lucide-react"
 import { RelativeTime } from "@/components/publication-feedback/RelativeTime"
 import { cn } from "@/lib/utils"
-import { feedbackDestination } from "../feedback-destination"
 import type { DashboardData, DashReader, DashThread } from "./dashboard-data"
 import { PanelEmpty, DashboardPanel, SkeletonRows } from "./DashboardPanel"
-import { initialOf, storyboardDestination } from "./helpers"
+import { initialOf, storyboardDestination, threadDestination } from "./helpers"
 import { LinkAccessWidget } from "./LinkAccessWidget"
 import { useHeldResolve } from "./use-held-resolve"
 
@@ -126,7 +125,7 @@ function WaitingRow({
       )}
     >
       <Link
-        {...feedbackDestination(bookLabel, thread.pageSectionId, thread.id)}
+        {...threadDestination(bookLabel, thread)}
         aria-disabled={held}
         tabIndex={held ? -1 : undefined}
         className={cn(

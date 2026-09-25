@@ -5,7 +5,8 @@ import { AlertTriangle, ArrowUpDown, ArrowUpRight, CheckCircle2, Loader2, Search
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { feedbackDestination } from "../feedback-destination"
+import { threadDestination } from "./helpers"
+import { QuizCommentPreview } from "./QuizCommentPreview"
 import type { DashboardData, DashThread } from "./dashboard-data"
 import { FeedbackPage } from "./FeedbackPage"
 import { PanelEmpty } from "./DashboardPanel"
@@ -136,14 +137,25 @@ export function PageSheet({
   return (
     <div data-page-scroll="" className={cn("min-h-0 overflow-y-auto overscroll-contain bg-muted/40 p-4 [scrollbar-gutter:stable]", className)}>
       <div className="mx-auto max-w-3xl overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-black/5">
-        <FeedbackPage
-          key={ws.selected.pageSectionId}
-          bookLabel={bookLabel}
-          thread={ws.selected}
-          threads={ws.samePage}
-          onSelectThread={ws.setSelectedId}
-          onLocate={ws.locate}
-        />
+        {ws.selected.quiz ? (
+          <QuizCommentPreview
+            key={ws.selected.pageSectionId}
+            bookLabel={bookLabel}
+            thread={ws.selected}
+            threads={ws.samePage}
+            onSelectThread={ws.setSelectedId}
+            onLocate={ws.locate}
+          />
+        ) : (
+          <FeedbackPage
+            key={ws.selected.pageSectionId}
+            bookLabel={bookLabel}
+            thread={ws.selected}
+            threads={ws.samePage}
+            onSelectThread={ws.setSelectedId}
+            onLocate={ws.locate}
+          />
+        )}
       </div>
     </div>
   )
@@ -152,10 +164,10 @@ export function PageSheet({
 export function OpenPageLink({ bookLabel, thread }: { bookLabel: string; thread: DashThread }) {
   return (
     <Link
-      {...feedbackDestination(bookLabel, thread.pageSectionId, thread.id)}
+      {...threadDestination(bookLabel, thread)}
       className="flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-brand-700 transition-colors duration-150 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none dark:text-brand-300 dark:hover:bg-brand-500/10"
     >
-      <Trans>Open page in Storyboard</Trans>
+      {thread.quiz ? <Trans>Open quiz in Quizzes</Trans> : <Trans>Open page in Storyboard</Trans>}
       <ArrowUpRight className="size-3.5" aria-hidden="true" />
     </Link>
   )

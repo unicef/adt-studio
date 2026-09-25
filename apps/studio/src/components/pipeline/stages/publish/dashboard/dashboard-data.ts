@@ -4,10 +4,12 @@ import { useLingui } from "@lingui/react/macro"
 import { PUBLISH_AUTHOR_DEFAULT_NAME } from "@adt/types"
 import type { CommentAnchor } from "@/api/client"
 import { buildThreads, filterThreads } from "@/components/publication-feedback/lib/threads"
+import { useQuizzes } from "@/hooks/use-quizzes"
 import {
   parseSectionId,
   sectionLocation,
 } from "@/components/pipeline/stages/storyboard/components/feedback/storyboard-pins"
+import { isQuizSectionId, type ThreadQuiz } from "./quiz-comments"
 import {
   type BookPublishRunController,
   useBookPublication,
@@ -36,8 +38,10 @@ export interface DashThread {
   pageId: string | null
   pageNumber: number | null
   sectionNumber: number | null
-  /** "Page 8 · Section 2", or "Somewhere in the book" when the id cannot be read. */
+  /** "Page 8 · Section 2", "Quiz 2", or "Somewhere in the book" when the id cannot be read. */
   pageLabel: string
+  /** Set when the comment is on a quiz page rather than a Storyboard section. */
+  quiz: ThreadQuiz | null
   authorName: string
   authorColor: string
   createdAt: string
@@ -142,7 +146,8 @@ export interface DashboardData {
 export function usePageLabel() {
   const { t } = useLingui()
   return useCallback(
-    (sectionId: string): string => {
+    (sectionId: string, quiz: ThreadQuiz | null = null): string => {
+      if (quiz) return quiz.number === null ? t`A quiz` : t`Quiz ${quiz.number}`
       const at = sectionLocation(sectionId)
       if (at === null) return t`Somewhere in the book`
       return t`Page ${at.pageNumber} · Section ${at.sectionNumber}`
@@ -220,9 +225,20 @@ export function useSharingDashboardData(bookLabel: string, link: DashLink): Dash
   const resolveThread = useResolveThread(bookLabel, identity.authorName)
   const replyToThread = useReplyToThread(bookLabel, identity.authorName)
   const pageLabel = usePageLabel()
+  const quizzes = useQuizzes(bookLabel)
   const queryClient = useQueryClient()
 
+  const quizzesById = useMemo(() => {
+    const byId = new Map<string, ThreadQuiz>()
+    ;(quizzes.data?.quizzes?.quizzes ?? []).forEach((quiz, index) => {
+      byId.set(quiz.quizId, { id: quiz.quizId, number: index + 1, pageId: quiz.pageIds[0] ?? quiz.afterPageId })
+    })
+    return byId
+  }, [quizzes.data])
+
   const allThreads = useMemo<DashThread[]>(() => {
+    const quizOf = (sectionId: string): ThreadQuiz | null =>
+      isQuizSectionId(sectionId) ? (quizzesById.get(sectionId) ?? { id: sectionId, number: null, pageId: null }) : null
     const all = buildThreads(comments.data?.comments ?? []).filter((thread) => thread.root.deleted_at === null)
     return filterThreads(all, { resolution: "all", pageSectionId: null })
       .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
@@ -244,7 +260,8 @@ export function useSharingDashboardData(bookLabel: string, link: DashLink): Dash
           id: thread.root.id,
           pageSectionId: thread.pageSectionId,
           ...locate(thread.pageSectionId),
-          pageLabel: pageLabel(thread.pageSectionId),
+          quiz: quizOf(thread.pageSectionId),
+          pageLabel: pageLabel(thread.pageSectionId, quizOf(thread.pageSectionId)),
           authorName: thread.root.author_name,
           authorColor: thread.root.author_color,
           createdAt: thread.root.created_at,
@@ -256,7 +273,7 @@ export function useSharingDashboardData(bookLabel: string, link: DashLink): Dash
             : null,
         }
       })
-  }, [comments.data, pageLabel])
+  }, [comments.data, pageLabel, quizzesById])
   const threads = useMemo(() => allThreads.filter((thread) => !thread.resolved), [allThreads])
 
   const record = status.data?.record ?? null

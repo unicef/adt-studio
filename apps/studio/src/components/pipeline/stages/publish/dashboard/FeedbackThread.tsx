@@ -4,12 +4,11 @@ import { ArrowRight, Check, CheckCircle2, FileText, Image as ImageIcon, MapPin, 
 import { RelativeTime } from "@/components/publication-feedback/RelativeTime"
 import { Button } from "@/components/ui/button"
 import { formatPublishDateTime } from "../expiry-options"
-import { feedbackDestination } from "../feedback-destination"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { cn } from "@/lib/utils"
 import type { DashThread } from "./dashboard-data"
 import type { CommentLocation } from "./FeedbackPage"
-import { initialOf } from "./helpers"
+import { initialOf, threadDestination } from "./helpers"
 
 /** The Storyboard's own accent, so the way into it looks like the stage it opens. */
 const STORYBOARD = STAGES.find((stage) => stage.slug === "storyboard")!
@@ -139,9 +138,9 @@ export function FeedbackActions({
           )}
           asChild
         >
-          <Link {...feedbackDestination(bookLabel, thread.pageSectionId, thread.id)}>
+          <Link {...threadDestination(bookLabel, thread)}>
             <MessageSquareReply aria-hidden="true" />
-            <Trans>Fix in Storyboard</Trans>
+            {thread.quiz ? <Trans>Fix in Quizzes</Trans> : <Trans>Fix in Storyboard</Trans>}
           </Link>
         </Button>
 
