@@ -1703,6 +1703,9 @@ msgstr "Plotëso automatikisht nga konteksti i librit"
 msgid "Auto-scroll"
 msgstr "Lëvizje automatike"
 
+msgid "Automatic routing"
+msgstr "Drejtim automatik"
+
 msgid "Automatically adapts the layout based on each page's content using AI."
 msgstr "Përshtaton automatikisht paraqitjen bazuar në përmbajtjen e çdo faqeje duke përdorur AI."
 
@@ -2723,6 +2726,9 @@ msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i m
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Nuk u hoqën dot {failed} nga {total} video — ju lutem provoni përsëri."
 
+msgid "Could not resolve the repair destination. Your finding is unchanged. Try again."
+msgstr "Nuk u përcaktua destinacioni i korrigjimit. Gjetja mbetet e pandryshuar. Provoni përsëri."
+
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
 msgstr "Nuk u arrit të niset {0}: {detail}"
@@ -2893,6 +2899,9 @@ msgstr "Fonti aktual i librit"
 
 msgid "Current effective values"
 msgstr "Vlerat aktuale efektive"
+
+msgid "Current output cannot be validated. Existing findings remain available; restore eligible Storyboard output before refreshing validation."
+msgstr "Rezultati aktual nuk mund të validohet. Gjetjet ekzistuese mbeten të disponueshme; riktheni përmbajtje të përshtatshme të Storyboard para se të rifreskoni validimin."
 
 msgid "Current Preview Page"
 msgstr "Faqja aktuale e pamjes paraprake"
@@ -3947,6 +3956,9 @@ msgstr "Dështoi leximi i arkivit"
 msgid "Failed to save metadata. Please try again."
 msgstr "Ruajtja e të dhënave dështoi. Ju lutemi provoni përsëri."
 
+msgid "Failed to save reviewer changes"
+msgstr "Ndryshimet e rishikimit nuk u ruajtën"
+
 msgid "Failed:"
 msgstr "Dështoi:"
 
@@ -4039,6 +4051,12 @@ msgstr "Përshtatur me panelin · duke shfaqur {display}% të madhësisë së pl
 
 msgid "Fix"
 msgstr "Rregullo"
+
+msgid "Fix destination"
+msgstr "Destinacioni i korrigjimit"
+
+#~ msgid "Fix in {fixStageLabel}"
+#~ msgstr "Korrigjo në {fixStageLabel}"
 
 msgid "Fixed layout"
 msgstr "Strukturë fikse"
@@ -6551,6 +6569,15 @@ msgstr "hap"
 msgid "Open"
 msgstr "Hapni"
 
+#. placeholder {0}: entry.sectionId ?? entry.pageId
+#. placeholder {1}: i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])
+msgid "Open {0} in {1}"
+msgstr "Hap {0} në {1}"
+
+#. placeholder {0}: page.sectionId ? `${formatFindingPageLabel(i18n, page)} (${page.sectionId})` : formatFindingPageLabel(i18n, page)
+msgid "Open {0} in {fixStageLabel}"
+msgstr "Hap {0} në {fixStageLabel}"
+
 msgid "Open a page in Preview to show its page-specific accessibility findings here."
 msgstr "Hapni një faqe në Pamjen Paraprake për të shfaqur këtu gjetjet e aksesueshmërisë specifike të faqes."
 
@@ -6588,6 +6615,10 @@ msgstr "Hapni panelin e redaktimit"
 
 msgid "Open image preview"
 msgstr "Hapni pamjen paraprake të imazhit"
+
+#. placeholder {0}: i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])
+msgid "Open in {0}"
+msgstr "Hap në {0}"
 
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Hapeni në çdo lexues EPUB 3, e-reader, ose mjet aksesueshmërie."
@@ -7926,6 +7957,9 @@ msgstr "Renderimi i aktiviteteve nga një shabllon i fiksuar për stil të qënd
 msgid "Renders each page into the storyboard layout used by the web reader."
 msgstr "Renderimi i çdo faqeje në paraqitjen e storyboard-it të përdorur nga lexuesi web."
 
+msgid "Repair suggestion. Review decisions remain unchanged."
+msgstr "Sugjerim korrigjimi. Vendimet e shqyrtimit mbeten të pandryshuara."
+
 msgid "Replace"
 msgstr "Zëvendëso"
 
@@ -8064,6 +8098,9 @@ msgstr "Riprovo Eksportimin"
 
 msgid "Return to coordinator"
 msgstr "Kthejeni te koordinatori"
+
+msgid "Return to Validation"
+msgstr "Kthehu te Validimi"
 
 msgid "Revert language change"
 msgstr "Kthe ndryshimin e gjuhës"
@@ -9729,6 +9766,15 @@ msgstr "Pylli i Humbur"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të ruhet dhe të vendoset veçmas."
 
+msgid "The original assessment is no longer available. Refresh validation when Storyboard output is ready; no finding has been marked resolved."
+msgstr "Vlerësimi fillestar nuk është më i disponueshëm. Rifreskoni validimin kur rezultati i Storyboard të jetë gati; asnjë gjetje nuk është shënuar si e zgjidhur."
+
+msgid "The original assessment is no longer current. Showing the available assessment; navigation has not changed any verdict."
+msgstr "Vlerësimi fillestar nuk është më aktual. Shfaqet vlerësimi i disponueshëm; navigimi nuk ka ndryshuar asnjë vendim."
+
+msgid "The original reviewer session is no longer available. Showing available reviews."
+msgstr "Seanca fillestare e shqyrtuesit nuk është më e disponueshme. Shfaqen shqyrtimet e disponueshme."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "Procesi që bimët përdorin për të kthyer dritën e diellit, ujin dhe dioksidin e karbonit në ushqim."
 
@@ -9785,6 +9831,18 @@ msgstr "Përvoja e lexuesit"
 
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "Strategjia e renderimit e përdorur për seksionet pa një hartëzim eksplicit."
+
+#~ msgid "The requested section is no longer available. Opened the first section instead."
+#~ msgstr "Seksioni i kërkuar nuk është më i disponueshëm. Në vend të tij u hap seksioni i parë."
+
+msgid "The requested section is no longer available. Opened the page instead."
+msgstr "Seksioni i kërkuar nuk është më i disponueshëm. Në vend të tij u hap faqja."
+
+msgid "The review source is unavailable. Your unsaved notes have been kept."
+msgstr "Burimi i rishikimit nuk është i disponueshëm. Shënimet tuaja të paruajtura janë ruajtur përkohësisht."
+
+#~ msgid "The river meets the sea"
+#~ msgstr "Lumi takon detin"
 
 msgid "The same edition in every language."
 msgstr "I njëjti botim në çdo gjuhë."
@@ -10582,6 +10640,9 @@ msgstr "Përdor sintaksën Liquid për të interpoluar variabla, për të iterua
 msgid "Use page {0} for the quiz"
 msgstr "Përdor faqen {0} për kuizin"
 
+msgid "Use section destination"
+msgstr "Përdor destinacionin e seksionit"
+
 msgid "Use section headings verbatim. Fast, deterministic, and preserves the original wording from the book."
 msgstr "Përdor titujt e seksioneve fjalë për fjalë. I shpejtë, deterministik dhe ruan formulimin origjinal të librit."
 
@@ -11061,6 +11122,9 @@ msgstr "Fontet e tua"
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Faqet tuaja {displayStart}–{displayEnd}"
+
+msgid "Your unsaved review still belongs to the page shown below. Save or discard it before reviewing another page."
+msgstr "Rishikimi juaj i paruajtur i përket ende faqes së shfaqur më poshtë. Ruajeni ose hidheni poshtë para se të rishikoni një faqe tjetër."
 
 msgid "Z → A"
 msgstr "Z → A"

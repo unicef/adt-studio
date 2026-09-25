@@ -425,6 +425,8 @@ export { TypographyStyle, BookTypography, DEFAULT_TYPOGRAPHY } from "./typograph
 export {
   ReviewerValidationStatus,
   ReviewerValidationFieldType,
+  ValidationFixStage,
+  ValidationNavigationContext,
   ReviewerValidationIdentificationField,
   ReviewerValidationInstruction,
   ReviewerValidationCriterion,

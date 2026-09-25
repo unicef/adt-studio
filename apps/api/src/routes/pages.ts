@@ -104,6 +104,8 @@ function getSharedScreenshotRenderer(): Promise<ScreenshotRenderer> {
 }
 
 interface PageSummarySection {
+  /** False for synthesized display-only IDs in legacy data. */
+  hasStableId?: boolean
   sectionId: string
   sectionIndex: number
   sectionType: string
@@ -993,6 +995,7 @@ export function createPageRoutes(
             const sectionText = collectText(s.nodes, { skipPruned: false })
             return {
               sectionId,
+              hasStableId: typeof s.sectionId === "string" && s.sectionId.length > 0,
               sectionIndex: i,
               sectionType: s.sectionType ?? "",
               // Flag activities by section type (covers types with no fixed

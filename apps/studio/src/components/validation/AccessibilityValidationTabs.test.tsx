@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import type { AccessibilityAssessmentOutput } from "@adt/types"
 
 const navigateMock = vi.fn()
+const routerMock = { state: { location: {} } }
+let routeSearch: Record<string, unknown> = {}
 
 function templateToString(strings: TemplateStringsArray, values: unknown[]) {
   let text = ""
@@ -30,6 +32,8 @@ const i18n = {
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
+  useRouter: () => routerMock,
+  useSearch: () => routeSearch,
 }))
 
 vi.mock("@lingui/core/macro", () => ({
@@ -48,6 +52,7 @@ vi.mock("@lingui/react/macro", () => ({
   }),
 }))
 
+let assessmentAvailable = true
 const assessment: AccessibilityAssessmentOutput = {
   generatedAt: "2026-03-16T10:00:00.000Z",
   tool: "axe-core",
@@ -152,7 +157,7 @@ const assessment: AccessibilityAssessmentOutput = {
 }
 
 vi.mock("@/hooks/use-debug", () => ({
-  useAccessibilityAssessment: () => ({ data: { assessment }, isLoading: false, error: null }),
+  useAccessibilityAssessment: () => ({ data: { assessment: assessmentAvailable ? assessment : null }, isLoading: false, error: null }),
 }))
 
 vi.mock("@/hooks/use-book-config", () => ({
@@ -162,11 +167,13 @@ vi.mock("@/hooks/use-book-config", () => ({
 
 afterEach(() => {
   cleanup()
+  routeSearch = {}
+  assessmentAvailable = true
   vi.clearAllMocks()
 })
 
 describe("AccessibilityOverviewTab", () => {
-  it("filters findings by severity and opens affected pages in Preview", async () => {
+  it("filters findings by severity and opens affected pages in the responsible stage", async () => {
     const { AccessibilityOverviewTab } = await import("./AccessibilityValidationTabs")
     render(<AccessibilityOverviewTab label="demo-book" />)
 
@@ -177,11 +184,10 @@ describe("AccessibilityOverviewTab", () => {
     expect(screen.queryByText("Fix heading order")).toBeNull()
 
     fireEvent.click(screen.getByRole("button", { name: /Page 1/i }))
-    expect(navigateMock).toHaveBeenCalledWith({
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith(expect.objectContaining({
       to: "/books/$label/$step",
-      params: { label: "demo-book", step: "preview" },
-      search: { previewHref: "index.html" },
-    })
+      params: { label: "demo-book", step: "captions" },
+    })))
   })
 
   it("shows issue and manual-review summary cards", async () => {
@@ -204,4 +210,62 @@ describe("AccessibilityOverviewTab", () => {
     expect(screen.getByText("Fix heading order")).toBeTruthy()
     expect(screen.queryByText("Add alt text")).toBeNull()
   })
+
+  it("preserves page and section context for a section-aware fix stage", async () => {
+    const { AccessibilityOverviewTab } = await import("./AccessibilityValidationTabs")
+    render(<AccessibilityOverviewTab label="demo-book" />)
+
+    fireEvent.click(screen.getByRole("button", { name: /Structure & semantics/i }))
+    fireEvent.click(screen.getByRole("button", { name: /Page 1/i }))
+
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith(expect.objectContaining({
+      to: "/books/$label/$step/$pageId",
+      params: { label: "demo-book", step: "storyboard", pageId: "pg001" },
+      hash: true,
+      search: expect.objectContaining({ sectionId: "pg001_sec001", validationReturn: expect.objectContaining({ tab: "accessibility-summary", category: "structure-semantics" }) }),
+    })))
+  })
+})
+
+vi.mock("@tanstack/react-query", () => ({ useQueryClient: () => ({ fetchQuery: ({ queryFn }: { queryFn: () => unknown }) => queryFn() }) }))
+
+vi.mock("@/api/client", () => ({ api: { getPages: async () => [{ pageId: "pg001", sections: [
+ { sectionId: "pg001_sec001", isPruned: false, hasStableId: true },
+ { sectionId: "pg001_sec002", isPruned: false, hasStableId: true },
+] }] } }))
+
+it("explains replacement of the original assessment while retaining its requested filter", async () => {
+  routeSearch = { validationContext: { tab: "accessibility-summary", assessment: "retired-assessment", category: "structure-semantics" } }
+  const { AccessibilityOverviewTab } = await import("./AccessibilityValidationTabs")
+  render(<AccessibilityOverviewTab label="demo-book" />)
+  expect(screen.getByRole("status").textContent).toContain("original assessment is no longer current")
+  expect(screen.getByText("Fix heading order")).toBeTruthy()
+  expect(screen.queryByText("Add alt text")).toBeNull()
+  expect(navigateMock).not.toHaveBeenCalled()
+})
+
+it("returns to the manual finding when the same rule also has a confirmed violation", async () => {
+  const manual = assessment.pages[0].incomplete[0]
+  const originalId = manual.id
+  manual.id = "image-alt"
+  try {
+    const { AccessibilityOverviewTab } = await import("./AccessibilityValidationTabs")
+    render(<AccessibilityOverviewTab label="demo-book" />)
+    const manualCard = screen.getByText(manual.help).closest("[id]")!
+    fireEvent.click(within(manualCard as HTMLElement).getByRole("button", { name: /Open Page 1/ }))
+    await waitFor(() => expect(navigateMock).toHaveBeenCalled())
+    const context = navigateMock.mock.calls[0][0].search.validationContext
+    expect(context.findingId).toBe("review:image-alt")
+    expect(manualCard.id).toBe("validation-finding-review:image-alt")
+    expect(document.querySelectorAll('[id="validation-finding-violation:image-alt"]')).toHaveLength(1)
+  } finally { manual.id = originalId }
+})
+
+it("explains a deleted original assessment without implying that its findings passed", async () => {
+  assessmentAvailable = false
+  routeSearch = { validationContext: { tab: "accessibility-summary", assessment: "deleted" } }
+  const { AccessibilityOverviewTab } = await import("./AccessibilityValidationTabs")
+  render(<AccessibilityOverviewTab label="demo-book" />)
+  expect(screen.getByText(/original assessment is no longer available/).textContent).toContain("no finding has been marked resolved")
+  expect(navigateMock).not.toHaveBeenCalled()
 })

@@ -1,4 +1,7 @@
-import { useEffect, useCallback, useState } from "react"
+import { useNavigate, useSearch } from "@tanstack/react-router"
+import { toast } from "@/components/ui/sonner"
+import type { BookStepSearch } from "@/lib/book-step-search"
+import { useEffect, useCallback, useState, useRef } from "react"
 import { ArrowLeft, ArrowRight, LayoutGrid, Table2 } from "lucide-react"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
@@ -51,6 +54,23 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const nextPageId = currentPageIndex < pageList.length - 1 ? pageList[currentPageIndex + 1].pageId : null
 
   const { data: page, isLoading: pageLoading } = usePage(bookLabel, selectedPageId ?? "")
+
+  const search = useSearch({ strict: false }) as BookStepSearch
+  const navigate = useNavigate()
+  const missingFocusRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!search.sectionId) { missingFocusRef.current = null; return }
+    if (pageLoading || !page || page.pageId !== selectedPageId || page.sectioningTree?.sections.length) return
+    const key = `${selectedPageId}:${search.sectionId}`
+    if (missingFocusRef.current === key) return
+    missingFocusRef.current = key
+    toast.warning(t`The requested section is no longer available. Opened the page instead.`)
+    void navigate({
+      to: "/books/$label/$step/$pageId",
+      params: { label: bookLabel, step: "sectioning", pageId: selectedPageId! },
+      search: (previous) => ({ ...previous, sectionId: undefined }), hash: true, replace: true,
+    })
+  }, [bookLabel, navigate, page, pageLoading, search.sectionId, selectedPageId, t])
 
   const canGoPrev = !!prevPageId
   const canGoNext = !!nextPageId

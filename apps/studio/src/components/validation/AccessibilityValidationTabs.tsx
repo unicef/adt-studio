@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react"
 import type { I18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
-import type { AccessibilityCategoryKey, AccessibilitySeverity } from "@/lib/accessibility-summary"
-import { ExternalLink } from "lucide-react"
-import { useNavigate } from "@tanstack/react-router"
+import type { AccessibilityCategoryKey, AccessibilityFindingPageSummary, AccessibilitySeverity } from "@/lib/accessibility-summary"
+import { ArrowRight, ExternalLink } from "lucide-react"
+import { useSearch } from "@tanstack/react-router"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -14,6 +14,15 @@ import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { buildAccessibilityOverview, buildFrequentAccessibilityFindings, getAccessibilityCategoryLabel } from "@/lib/accessibility-summary"
 import { useAxeRuleTranslator } from "@/lib/axe-rule-locale"
 import { cn } from "@/lib/utils"
+import { STAGE_LABEL_MESSAGES } from "@/components/pipeline/pipeline-i18n"
+import {
+  resolveAccessibilityFixStage,
+} from "@/lib/validation-fix-routing"
+import { ValidationDestinationSelect } from "./ValidationDestinationSelect"
+import { useValidationReturnFocus } from "@/hooks/use-validation-return-focus"
+import { useValidationFixNavigation } from "@/hooks/use-validation-fix-navigation"
+import type { BookStepSearch } from "@/lib/book-step-search"
+import type { ValidationFixStage } from "@adt/types"
 
 interface AccessibilityTabProps {
   label: string
@@ -147,18 +156,25 @@ function formatFindingPageLabel(i18n: I18n, page: { pageNumber: number | null; t
 
 function FindingPageLinks({
   pages,
+  fixStage,
   onOpenPage,
 }: {
-  pages: Array<{ sectionId: string; href: string; title: string | null; pageNumber: number | null; count: number }>
-  onOpenPage: (href: string) => void
+  pages: AccessibilityFindingPageSummary[]
+  fixStage: ValidationFixStage
+  onOpenPage: (page: AccessibilityFindingPageSummary, stage: ValidationFixStage) => void
 }) {
   const { t, i18n } = useLingui()
   const [expanded, setExpanded] = useState(false)
+  const [selectedStage, setSelectedStage] = useState(fixStage)
   const visiblePages = expanded ? pages : pages.slice(0, 6)
+  const fixStageLabel = i18n._(STAGE_LABEL_MESSAGES[selectedStage])
 
   return (
     <div className="mt-3 space-y-2">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground"><Trans>Affected pages</Trans></div>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <Trans>Affected pages</Trans>
+        <ValidationDestinationSelect value={selectedStage} onChange={setSelectedStage} />
+      </div>
       <div className="flex flex-wrap gap-2">
         {visiblePages.map((page) => (
           <Button
@@ -166,10 +182,13 @@ function FindingPageLinks({
             variant="outline"
             size="sm"
             className="h-7 px-2.5 text-[11px]"
-            onClick={() => onOpenPage(page.href)}
+            onClick={() => onOpenPage(page, selectedStage)}
+            aria-label={t`Open ${(page.sectionId ? `${formatFindingPageLabel(i18n, page)} (${page.sectionId})` : formatFindingPageLabel(i18n, page))} in ${fixStageLabel}`}
+            title={page.sectionId}
           >
             {formatFindingPageLabel(i18n, page)}
             {page.count > 1 ? <span className="ml-1 text-muted-foreground">({page.count})</span> : null}
+            <ArrowRight className="ml-1.5 h-3 w-3" />
           </Button>
         ))}
         {pages.length > 6 ? (
@@ -189,14 +208,12 @@ function FindingPageLinks({
 
 function FrequentFindingCard({
   finding,
-  pageCount,
   onOpenPage,
   onFilterSeverity,
   onFilterCategory,
 }: {
   finding: ReturnType<typeof buildFrequentAccessibilityFindings>[number]
-  pageCount: number
-  onOpenPage: (href: string) => void
+  onOpenPage: (page: AccessibilityFindingPageSummary, stage: ValidationFixStage) => void
   onFilterSeverity: (severity: AccessibilitySeverity) => void
   onFilterCategory: (category: AccessibilityCategoryKey) => void
 }) {
@@ -204,9 +221,10 @@ function FrequentFindingCard({
   const axeRules = useAxeRuleTranslator()
   const coveragePercent = Math.round(finding.pageCoverage * 100)
   const count = finding.count
+  const fixStage = resolveAccessibilityFixStage(finding.id, finding.categoryKey)
 
   return (
-    <div className="rounded-lg border px-3 py-3">
+    <div id={`validation-finding-${finding.reviewOnly ? "review" : "violation"}:${finding.id}`} className="rounded-lg border px-3 py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           {finding.reviewOnly ? (
@@ -271,7 +289,7 @@ function FrequentFindingCard({
         </div>
       </div>
 
-      <FindingPageLinks pages={finding.pages} onOpenPage={onOpenPage} />
+      <FindingPageLinks pages={finding.pages} fixStage={fixStage} onOpenPage={onOpenPage} />
     </div>
   )
 }
@@ -280,10 +298,13 @@ function FrequentFindingCard({
 
 export function AccessibilityOverviewTab({ label }: AccessibilityTabProps) {
   const { t, i18n } = useLingui()
-  const navigate = useNavigate()
+  const fixNavigation = useValidationFixNavigation(label)
+  const { validationContext } = useSearch({ strict: false }) as BookStepSearch
   const { data, isLoading, error } = useAccessibilityAssessment(label)
-  const [severityFilter, setSeverityFilter] = useState<AccessibilitySeverity | null>(null)
-  const [categoryFilter, setCategoryFilter] = useState<AccessibilityCategoryKey | null>(null)
+  const [severityFilter, setSeverityFilter] = useState<AccessibilitySeverity | null>(validationContext?.severity ?? null)
+  const [categoryFilter, setCategoryFilter] = useState<AccessibilityCategoryKey | null>(validationContext?.category ?? null)
+
+  useValidationReturnFocus(validationContext?.findingId ? `validation-finding-${validationContext.findingId}` : undefined, !!data?.assessment)
 
   if (isLoading) {
     return <LoadingState message={<Trans>Loading accessibility summary...</Trans>} />
@@ -294,6 +315,9 @@ export function AccessibilityOverviewTab({ label }: AccessibilityTabProps) {
   }
 
   if (!data?.assessment) {
+    if (validationContext?.assessment) {
+      return <EmptyState message={<Trans>The original assessment is no longer available. Refresh validation when Storyboard output is ready; no finding has been marked resolved.</Trans>} />
+    }
     return <EmptyState message={<Trans>No accessibility assessment has been generated yet. Package the ADT output to create one.</Trans>} />
   }
 
@@ -338,11 +362,18 @@ export function AccessibilityOverviewTab({ label }: AccessibilityTabProps) {
 
   const hasActiveFilter = severityFilter !== null || categoryFilter !== null
 
-  const openPreviewToPage = (href: string) => {
-    void navigate({
-      to: "/books/$label/$step",
-      params: { label, step: "preview" },
-      search: { previewHref: href },
+  const openFindingFix = (
+    finding: ReturnType<typeof buildFrequentAccessibilityFindings>[number],
+    page: AccessibilityFindingPageSummary,
+    stage: ValidationFixStage,
+  ) => {
+    void fixNavigation.open({
+      stage,
+      pageId: page.pageId, sectionId: page.sectionId, href: page.href,
+    }, {
+      tab: "accessibility-summary", assessment: assessment.generatedAt,
+      severity: severityFilter ?? undefined, category: categoryFilter ?? undefined,
+      pageId: page.pageId ?? undefined, findingId: `${finding.reviewOnly ? "review" : "violation"}:${finding.id}`,
     })
   }
 
@@ -353,6 +384,9 @@ export function AccessibilityOverviewTab({ label }: AccessibilityTabProps) {
 
   return (
     <div className="p-6">
+      {validationContext?.assessment && validationContext.assessment !== assessment.generatedAt ? (
+        <p role="status" className="mb-3 text-sm text-muted-foreground"><Trans>The original assessment is no longer current. Showing the available assessment; navigation has not changed any verdict.</Trans></p>
+      ) : null}
       <div className="rounded-t-xl border border-b-0 bg-card p-4 space-y-4">
         <div className="flex flex-wrap gap-3">
           <SummaryCard
@@ -477,8 +511,7 @@ export function AccessibilityOverviewTab({ label }: AccessibilityTabProps) {
             <FrequentFindingCard
               key={`${finding.reviewOnly ? "review" : "violation"}:${finding.id}`}
               finding={finding}
-              pageCount={assessment.summary.pageCount}
-              onOpenPage={openPreviewToPage}
+              onOpenPage={(page, stage) => openFindingFix(finding, page, stage)}
               onFilterSeverity={(severity) => setSeverityFilter(severity)}
               onFilterCategory={(category) => setCategoryFilter(category)}
             />

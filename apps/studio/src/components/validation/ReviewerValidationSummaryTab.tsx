@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { useQueries } from "@tanstack/react-query"
-import { ClipboardCheck, ExternalLink, FileWarning, SkipForward } from "lucide-react"
-import type { ReviewerValidationCatalogSnapshot, ReviewerValidationStatus } from "@adt/types"
+import { useSearch } from "@tanstack/react-router"
+import { ArrowRight, ClipboardCheck, ExternalLink, FileWarning, SkipForward } from "lucide-react"
+import type {
+  ReviewerValidationCatalogSnapshot,
+  ReviewerValidationCriterion,
+  ReviewerValidationSection,
+  ReviewerValidationStatus,
+  ValidationFixStage,
+} from "@adt/types"
 import { api, type ReviewerPageValidationRecordEntry } from "@/api/client"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,7 +27,16 @@ import {
 } from "@/hooks/use-reviewer-validation"
 import { findResumeReviewerPage } from "@/lib/reviewer-validation-progress"
 import { getReviewerSessionStorageKey } from "@/lib/reviewer-validation-session"
+import { ValidationDestinationSelect } from "./ValidationDestinationSelect"
+import { useValidationReturnFocus } from "@/hooks/use-validation-return-focus"
+import { useValidationFixNavigation } from "@/hooks/use-validation-fix-navigation"
+import type { BookStepSearch } from "@/lib/book-step-search"
 import { cn } from "@/lib/utils"
+import { STAGE_LABEL_MESSAGES } from "@/components/pipeline/pipeline-i18n"
+import {
+  resolveReviewerFixStage,
+  resolveLegacyReviewerFixStage,
+} from "@/lib/validation-fix-routing"
 
 
 function normalizeChecklistSnapshot(snapshot: ReviewerValidationCatalogSnapshot | null | undefined) {
@@ -45,10 +61,12 @@ function normalizeChecklistSnapshot(snapshot: ReviewerValidationCatalogSnapshot 
     pageSections: snapshot.pageSections.map((section) => ({
       id: section.id,
       label: section.label,
+      fix_stage: section.fix_stage ?? null,
       criteria: section.criteria.map((criterion) => ({
         id: criterion.id,
         label: criterion.label,
         guidance: criterion.guidance,
+        fix_stage: criterion.fix_stage ?? null,
         requires_comment_on_failure: criterion.requires_comment_on_failure,
         requires_suggested_modification_on_failure: criterion.requires_suggested_modification_on_failure,
       })),
@@ -147,12 +165,16 @@ export function ReviewerValidationSummaryTab({
   onOpenPreview,
   onOpenPreviewToPage,
 }: ReviewerValidationSummaryTabProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
+  const fixNavigation = useValidationFixNavigation(label)
+  const { validationContext } = useSearch({ strict: false }) as BookStepSearch
+  const [routeOverrides, setRouteOverrides] = useState<Record<string, ValidationFixStage>>({})
   const catalog = useReviewerValidationCatalog(label)
   const sessions = useReviewerValidationSessions(label)
   const accessibilityAssessment = useAccessibilityAssessment(label)
   const activeSessionStorageKey = getReviewerSessionStorageKey(label)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
+    if (validationContext?.sessionId) return validationContext.sessionId
     if (typeof window === "undefined") {
       return null
     }
@@ -228,10 +250,17 @@ export function ReviewerValidationSummaryTab({
   )
 
   const criterionMeta = useMemo(() => {
-    const map = new Map<string, { sectionLabel: string; criterionLabel: string }>()
+    const map = new Map<string, {
+      section: ReviewerValidationSection
+      criterion: ReviewerValidationCriterion
+      sectionLabel: string
+      criterionLabel: string
+    }>()
     for (const section of activePageSections) {
       for (const criterion of section.criteria) {
         map.set(criterion.id, {
+          section,
+          criterion,
           sectionLabel: section.label,
           criterionLabel: criterion.label,
         })
@@ -339,16 +368,26 @@ export function ReviewerValidationSummaryTab({
     return activeSessionRecords.flatMap((entry) =>
       entry.record.results
         .filter((result) => result.status === "needs-changes")
-        .map((result) => ({
-          pageId: entry.record.page_id,
-          pageNumber: entry.record.page_number,
-          href: entry.record.href,
-          comment: result.comment,
-          suggestedModification: result.suggested_modification,
-          ...criterionMeta.get(result.criterion_id),
-        })),
+        .map((result) => {
+          // A live checklist cannot establish the meaning of an old answer.
+          const meta = activeSession?.session.catalog_snapshot ? criterionMeta.get(result.criterion_id) : undefined
+          return {
+            criterionId: result.criterion_id,
+            pageId: entry.record.page_id,
+            sectionId: entry.record.section_id,
+            pageNumber: entry.record.page_number,
+            href: entry.record.href,
+            comment: result.comment,
+            suggestedModification: result.suggested_modification,
+            fixStage: activeSession?.session.catalog_snapshot && meta
+              ? resolveReviewerFixStage(meta.section, meta.criterion)
+              : resolveLegacyReviewerFixStage(result.criterion_id),
+            sectionLabel: meta?.sectionLabel,
+            criterionLabel: meta?.criterionLabel,
+          }
+        }),
     )
-  }, [activeSessionRecords, criterionMeta])
+  }, [activeSessionRecords, criterionMeta, activeSession])
 
   const flaggedSectionCounts = useMemo(() => {
     const counts = new Map<string, number>()
@@ -365,6 +404,16 @@ export function ReviewerValidationSummaryTab({
   const anyRecordQueryLoading = sessionRecordQueries.some((query) => query.isLoading)
   const anyRecordQueryError = sessionRecordQueries.find((query) => query.error)?.error
   const pagesReviewed = activeMetrics.pagesReviewed
+
+  useValidationReturnFocus(validationContext?.findingId ? `reviewer-finding-${validationContext.pageId}-${validationContext.findingId}` : undefined, !anyRecordQueryLoading && !!activeSession)
+
+  const openReviewerFix = (entry: (typeof flaggedEntries)[number]) => {
+    void fixNavigation.open({
+      stage: routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage, pageId: entry.pageId, sectionId: entry.sectionId, href: entry.href,
+    }, { tab: "reviewer-validation", sessionId: activeSessionId ?? undefined,
+      pageId: entry.pageId, findingId: entry.criterionId,
+    })
+  }
 
   if (sessions.isLoading || anyRecordQueryLoading || (!activeCatalog && catalog.isLoading)) {
     return <LoadingState message={t`Loading reviewer validation summary...`} />
@@ -398,6 +447,9 @@ export function ReviewerValidationSummaryTab({
 
   return (
     <div className="space-y-6 p-6">
+      {validationContext?.sessionId && !sortedSessions.some((entry) => entry.session.session_id === validationContext.sessionId) ? (
+        <p role="status" className="mb-3 text-sm text-muted-foreground"><Trans>The original reviewer session is no longer available. Showing available reviews.</Trans></p>
+      ) : null}
       <SectionHeader
         title={t`Reviewer validation summary`}
         description={t`Track reviewer progress and review findings captured from Preview.`}
@@ -594,13 +646,14 @@ export function ReviewerValidationSummaryTab({
                 {flaggedEntries.length > 0 ? (
                   <div className="space-y-3">
                     {flaggedEntries.map((entry, index) => (
-                      <div key={`${entry.pageId}-${entry.criterionLabel ?? index}-${index}`} className="rounded-lg border px-3 py-3">
+                      <div id={`reviewer-finding-${entry.pageId}-${entry.criterionId}`} key={`${entry.pageId}-${entry.criterionLabel ?? index}-${index}`} className="rounded-lg border px-3 py-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <Badge variant="outline">{entry.sectionLabel ?? t`Uncategorized`}</Badge>
                           {entry.pageNumber != null ? <Badge variant="secondary"><Trans>Page {entry.pageNumber}</Trans></Badge> : null}
                           <Badge variant="outline" className="font-mono text-[11px]">{entry.pageId}</Badge>
                         </div>
                         <div className="mt-2 text-sm font-medium leading-snug">{entry.criterionLabel ?? t`Unknown criterion`}</div>
+                        {!entry.criterionLabel ? <div className="font-mono text-xs text-muted-foreground">{entry.criterionId}</div> : null}
                         <div className="mt-1 text-xs break-all text-muted-foreground">{entry.href}</div>
                         {entry.comment ? (
                           <div className="mt-2 text-sm text-foreground">{entry.comment}</div>
@@ -610,6 +663,23 @@ export function ReviewerValidationSummaryTab({
                             <span className="font-medium text-foreground"><Trans>Suggested modification:</Trans></span> {entry.suggestedModification}
                           </div>
                         ) : null}
+                        <div className="mt-3 flex justify-end gap-2">
+                          <ValidationDestinationSelect
+                            value={routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage}
+                            onChange={(stage) => setRouteOverrides((current) => ({ ...current, [`${activeSessionId}:${entry.pageId}:${entry.criterionId}`]: stage }))}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-[11px]"
+                            onClick={() => openReviewerFix(entry)}
+                            disabled={fixNavigation.pending}
+                            aria-label={t`Open ${entry.sectionId ?? entry.pageId} in ${i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])}`}
+                          >
+                            {t`Open in ${i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])}`}
+                            <ArrowRight className="ml-1.5 h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>

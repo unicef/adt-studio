@@ -11,6 +11,20 @@ export type ReviewerValidationStatus = z.infer<typeof ReviewerValidationStatus>
 export const ReviewerValidationFieldType = z.enum(["text", "number", "date", "textarea"])
 export type ReviewerValidationFieldType = z.infer<typeof ReviewerValidationFieldType>
 
+export const ValidationFixStage = z.enum([
+  "extract",
+  "sectioning",
+  "storyboard",
+  "captions",
+  "quizzes",
+  "glossary",
+  "easy-read",
+  "translate",
+  "speech",
+  "sign-language",
+])
+export type ValidationFixStage = z.infer<typeof ValidationFixStage>
+
 export const ReviewerValidationIdentificationField = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/),
   label: z.string().min(1),
@@ -32,6 +46,7 @@ export const ReviewerValidationCriterion = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/),
   label: z.string().min(1),
   guidance: z.string().min(1),
+  fix_stage: ValidationFixStage.optional(),
   requires_comment_on_failure: z.boolean().default(true),
   requires_suggested_modification_on_failure: z.boolean().default(false),
 })
@@ -40,6 +55,7 @@ export type ReviewerValidationCriterion = z.infer<typeof ReviewerValidationCrite
 export const ReviewerValidationSection = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/),
   label: z.string().min(1),
+  fix_stage: ValidationFixStage.optional(),
   criteria: z.array(ReviewerValidationCriterion).min(1),
 })
 export type ReviewerValidationSection = z.infer<typeof ReviewerValidationSection>
@@ -80,6 +96,8 @@ export const ReviewerValidationSession = z
 export type ReviewerValidationSession = z.infer<typeof ReviewerValidationSession>
 
 export const ReviewerPageValidationResult = z.object({
+  // Ownership is checklist metadata, never a mutable answer override.
+  fix_stage: z.never().optional(),
   criterion_id: z.string().regex(/^[a-z0-9-]+$/),
   status: ReviewerValidationStatus,
   comment: z.string().optional(),
@@ -88,8 +106,10 @@ export const ReviewerPageValidationResult = z.object({
 export type ReviewerPageValidationResult = z.infer<typeof ReviewerPageValidationResult>
 
 export const ReviewerPageValidationRecord = z.object({
+  fix_stage: z.never().optional(),
   session_id: z.string().min(1),
   page_id: z.string().min(1),
+  section_id: z.string().min(1).optional(),
   page_number: z.number().int().min(1).optional(),
   href: z.string().min(1),
   language: z.string().min(1).optional(),
@@ -100,3 +120,15 @@ export const ReviewerPageValidationRecord = z.object({
   updated_at: z.string().datetime().optional(),
 })
 export type ReviewerPageValidationRecord = z.infer<typeof ReviewerPageValidationRecord>
+
+/** Transient route context; never stored as a reviewer verdict or task. */
+export const ValidationNavigationContext = z.object({
+  tab: z.enum(["accessibility-summary", "reviewer-validation"]),
+  sessionId: z.string().max(255).optional(),
+  assessment: z.string().max(255).optional(),
+  severity: z.enum(["critical", "serious", "moderate", "minor", "unknown"]).optional(),
+  category: z.enum(["text-alternatives", "structure-semantics", "keyboard-navigation", "forms-controls", "tables", "media-timing", "visual-cues", "other"]).optional(),
+  pageId: z.string().max(255).optional(),
+  findingId: z.string().max(255).optional(),
+})
+export type ValidationNavigationContext = z.infer<typeof ValidationNavigationContext>
