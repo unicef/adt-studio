@@ -67,7 +67,7 @@ O edital exige pastas específicas. Os pontos que mudam a organização:
 | **Cada tipo de mídia tem sua pasta**: `resources/audios/`, `resources/videos/`, `resources/images/` | A mídia **não** pode ficar aninhada em `content/i18n/…` |
 | **Scripts em `resources/scripts/`, estilos em `resources/styles/`** | `.js`/`.css` vão para as pastas próprias |
 | **`content/` só pode ter `.html`** | Nada de CSS/JSON/mídia junto das páginas |
-| **Nomes minúsculos, sem ponto extra, sem começar com número** | `pt-BR` → `pt-br`, `all.min.css` → `all-min.css` |
+| **Pastas em minúsculas, sem acentos ou caracteres especiais, palavras separadas por `_`, sem começar com número (§5.2.1); arquivos sem ponto extra** | `pt-BR` → `pt_br`, `all.min.css` → `all-min.css` |
 
 ---
 
@@ -158,13 +158,13 @@ VALIDE exige cada tipo na sua pasta — essa é a **única** parte que **não** 
 espelhar o adt:
 
 ```
-content/i18n/pt-br/audio/pg001_p000.mp3   →  resources/audios/pt-br__pg001_p000.mp3
-content/i18n/pt-br/video/sl_pg001.mp4     →  resources/videos/pt-br__sl_pg001.mp4
+content/i18n/pt_br/audio/pg001_p000.mp3   →  resources/audios/pt_br__pg001_p000.mp3
+content/i18n/pt_br/video/sl_pg001.mp4     →  resources/videos/pt_br__sl_pg001.mp4
 ```
 
 **Colisão de nomes entre idiomas.** O mesmo arquivo existe em cada idioma com o
 **mesmo nome** (ex.: o vídeo de libras `sl_pg001_sec001.mp4` tem uma versão em
-`pt-br` e outra em `en-us`, com conteúdos diferentes). Numa pasta plana os nomes
+`pt_br` e outra em `en_us`, com conteúdos diferentes). Numa pasta plana os nomes
 colidiriam, então prefixamos com o idioma: **`<lang>__<nome>`** (`pasta plana` é
 a forma garantidamente aceita pelo VALIDE).
 

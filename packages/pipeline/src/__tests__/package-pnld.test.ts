@@ -316,26 +316,28 @@ describe("buildAdtSidecar", () => {
 
     const dataDir = path.join(dir, "resources", "data")
     expect(fs.existsSync(path.join(dataDir, "assets", "config.json"))).toBe(true)
-    expect(fs.existsSync(path.join(dataDir, "assets", "interface_translations", "pt-br", "interface_translations.json"))).toBe(true)
+    expect(fs.existsSync(path.join(dataDir, "assets", "interface_translations", "pt_br", "interface_translations.json"))).toBe(true)
     expect(fs.existsSync(path.join(dataDir, "content", "pages.json"))).toBe(true)
-    expect(fs.existsSync(path.join(dataDir, "content", "i18n", "pt-br", "audio", "pg001.mp3"))).toBe(true)
+    expect(fs.existsSync(path.join(dataDir, "content", "i18n", "pt_br", "audio", "pg001.mp3"))).toBe(true)
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
-  it("lowercases the locale folder names (spec 5.2.1)", () => {
+  it("names folders in lowercase snake_case (spec 5.2.1)", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-adt-"))
     fs.mkdirSync(path.join(dir, "assets", "interface_translations", "pt-BR"), { recursive: true })
     fs.mkdirSync(path.join(dir, "content", "i18n", "en-US"), { recursive: true })
+    fs.mkdirSync(path.join(dir, "content", "i18n", "es"), { recursive: true })
 
     buildAdtSidecar(dir)
 
     const dataDir = path.join(dir, "resources", "data")
-    expect(fs.readdirSync(path.join(dataDir, "assets", "interface_translations"))).toEqual(["pt-br"])
-    expect(fs.readdirSync(path.join(dataDir, "content", "i18n"))).toEqual(["en-us"])
+    expect(fs.readdirSync(path.join(dataDir, "assets"))).toEqual(["interface_translations"])
+    expect(fs.readdirSync(path.join(dataDir, "assets", "interface_translations"))).toEqual(["pt_br"])
+    expect(fs.readdirSync(path.join(dataDir, "content", "i18n")).sort()).toEqual(["en_us", "es"])
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
-  it("lowercases the locale codes in config.languages", () => {
+  it("keeps the semantic locale codes in config.languages", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-adt-"))
     fs.mkdirSync(path.join(dir, "assets"), { recursive: true })
     fs.writeFileSync(
@@ -348,8 +350,8 @@ describe("buildAdtSidecar", () => {
     const config = JSON.parse(
       fs.readFileSync(path.join(dir, "resources", "data", "assets", "config.json"), "utf-8"),
     )
-    expect(config.languages.default).toBe("pt-br")
-    expect(config.languages.available).toEqual(["pt-br", "en-us"])
+    expect(config.languages.default).toBe("pt-BR")
+    expect(config.languages.available).toEqual(["pt-BR", "en-US"])
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
@@ -369,7 +371,7 @@ describe("relocateMedia", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-c-"))
     const dataDir = path.join(dir, "resources", "data")
     // Same media filename in two languages — must not collide once flattened.
-    for (const lang of ["pt-br", "en-us"]) {
+    for (const lang of ["pt_br", "en_us"]) {
       fs.mkdirSync(path.join(dataDir, "content", "i18n", lang, "audio"), { recursive: true })
       fs.mkdirSync(path.join(dataDir, "content", "i18n", lang, "video"), { recursive: true })
       fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "audio", "p1.mp3"), lang)
@@ -395,31 +397,31 @@ describe("relocateMedia", () => {
     relocateMedia(dir)
 
     // Media lands in the flat per-type folders, disambiguated by language.
-    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__p1.mp3"))).toBe(true)
-    expect(fs.existsSync(path.join(dir, "resources", "audios", "en-us__p1.mp3"))).toBe(true)
-    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__p2--secondary.wav"))).toBe(true)
-    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__p3--secondary.ogg"))).toBe(true)
-    expect(fs.existsSync(path.join(dir, "resources", "videos", "pt-br__sl1.mp4"))).toBe(true)
-    expect(fs.existsSync(path.join(dir, "resources", "videos", "en-us__sl1.mp4"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt_br__p1.mp3"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "en_us__p1.mp3"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt_br__p2--secondary.wav"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt_br__p3--secondary.ogg"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "videos", "pt_br__sl1.mp4"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "videos", "en_us__sl1.mp4"))).toBe(true)
     // The JSON stays in resources/data, with map values rewritten to the new names.
-    expect(readJson(path.join(dataDir, "content", "i18n", "pt-br", "audios.json")).a1).toBe("pt-br__p1.mp3")
+    expect(readJson(path.join(dataDir, "content", "i18n", "pt_br", "audios.json")).a1).toBe("pt_br__p1.mp3")
     expect(
-      readJson(path.join(dataDir, "content", "i18n", "pt-br", "audio_voices.json")),
+      readJson(path.join(dataDir, "content", "i18n", "pt_br", "audio_voices.json")),
     ).toMatchObject({
       voices: {
         secondary: {
           audios: {
-            a2: "pt-br__p2--secondary.wav",
-            a3: "pt-br__p3--secondary.ogg",
+            a2: "pt_br__p2--secondary.wav",
+            a3: "pt_br__p3--secondary.ogg",
           },
         },
       },
     })
-    expect(readJson(path.join(dataDir, "content", "i18n", "en-us", "videos.json")).v1).toBe("en-us__sl1.mp4")
-    expect(readJson(path.join(dataDir, "content", "i18n", "pt-br", "texts.json")).t).toBe("x")
+    expect(readJson(path.join(dataDir, "content", "i18n", "en_us", "videos.json")).v1).toBe("en_us__sl1.mp4")
+    expect(readJson(path.join(dataDir, "content", "i18n", "pt_br", "texts.json")).t).toBe("x")
     // resources/data survives (it still holds the JSON); the emptied audio/video dirs are gone.
     expect(fs.existsSync(dataDir)).toBe(true)
-    expect(fs.existsSync(path.join(dataDir, "content", "i18n", "pt-br", "audio"))).toBe(false)
+    expect(fs.existsSync(path.join(dataDir, "content", "i18n", "pt_br", "audio"))).toBe(false)
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
@@ -429,7 +431,7 @@ describe("relocateMedia", () => {
   it("relocates wav audio for a single-voice book with no voices manifest", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-c-"))
     const dataDir = path.join(dir, "resources", "data")
-    const langDir = path.join(dataDir, "content", "i18n", "pt-br")
+    const langDir = path.join(dataDir, "content", "i18n", "pt_br")
     fs.mkdirSync(path.join(langDir, "audio"), { recursive: true })
     fs.writeFileSync(path.join(langDir, "audio", "pg001_t001.wav"), "wav")
     fs.writeFileSync(path.join(langDir, "audio", "pg001_t002.ogg"), "ogg")
@@ -440,11 +442,11 @@ describe("relocateMedia", () => {
 
     relocateMedia(dir)
 
-    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__pg001_t001.wav"))).toBe(true)
-    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__pg001_t002.ogg"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt_br__pg001_t001.wav"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt_br__pg001_t002.ogg"))).toBe(true)
     expect(readJson(path.join(langDir, "audios.json"))).toEqual({
-      pg001_t001: "pt-br__pg001_t001.wav",
-      pg001_t002: "pt-br__pg001_t002.ogg",
+      pg001_t001: "pt_br__pg001_t001.wav",
+      pg001_t002: "pt_br__pg001_t002.ogg",
     })
     // A missing audio_voices.json must not stop the audios.json rewrite.
     expect(fs.existsSync(path.join(langDir, "audio_voices.json"))).toBe(false)
@@ -474,9 +476,10 @@ describe("rewriteContentPage — activities bundle", () => {
   const activity = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /></head><body><main><section data-section-type="activity_multiple_choice"></section></main></body></html>`
   const plain = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /></head><body><main><section data-section-type="text_only"></section></main></body></html>`
 
-  it("injects the adt-base + adt-sounds-base metas + bundle on activity pages", () => {
+  it("injects the adt-base + adt-dir-naming + adt-sounds-base metas + bundle on activity pages", () => {
     const out = rewriteContentPage(activity, 1, "pt-BR")
     expect(out).toContain('<meta name="adt-base" content="../resources/data/" />')
+    expect(out).toContain('<meta name="adt-dir-naming" content="snake_case" />')
     expect(out).toContain('<meta name="adt-sounds-base" content="../resources/audios/" />')
     expect(out).toContain('<script src="../resources/scripts/activities-bundle-local.js"></script>')
   })

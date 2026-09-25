@@ -277,6 +277,7 @@ export function rewriteContentPage(
     out = out.replace(
       /<\/head>/i,
       '    <meta name="adt-base" content="../resources/data/" />\n' +
+        '    <meta name="adt-dir-naming" content="snake_case" />\n' +
         '    <meta name="adt-sounds-base" content="../resources/audios/" />\n</head>',
     )
     out = out.replace(
@@ -426,10 +427,12 @@ function removeStrayRootFiles(pnldDir: string): void {
  * deleted; `content/` itself stays HTML-only. (The activities bundle is not
  * carried here — it moves to `resources/scripts/` earlier in the reorg.)
  *
- * Locale folders are lowercased to satisfy the spec's folder-naming rule
- * (§5.2.1). The activities bundle derives its fetch language from
- * `config.languages`, so those locale codes are lowercased in lockstep,
- * leaving each page's `<html lang>` (the semantic locale) untouched.
+ * Folder names follow spec §5.2.1: lowercase, no accents or special
+ * characters, words separated by `_`, never starting with a digit
+ * (`pt-BR` → `pt_br`). Activity pages carry
+ * `<meta name="adt-dir-naming" content="snake_case">` so the activities bundle
+ * maps locale folders the same way when it fetches; `config.languages` and
+ * each page's `<html lang>` keep the semantic locale codes.
  */
 export function buildAdtSidecar(pnldDir: string): void {
   const data = path.join(pnldDir, "resources", "data")
@@ -442,48 +445,29 @@ export function buildAdtSidecar(pnldDir: string): void {
   moveFile(path.join(content, "toc.json"), path.join(data, "content", "toc.json"))
   moveDir(path.join(content, "i18n"), path.join(data, "content", "i18n"))
 
-  lowercaseChildDirs(path.join(data, "assets", "interface_translations"))
-  lowercaseChildDirs(path.join(data, "content", "i18n"))
-  lowercaseConfigLanguages(path.join(data, "assets", "config.json"))
+  snakeCaseChildDirs(path.join(data, "assets", "interface_translations"))
+  snakeCaseChildDirs(path.join(data, "content", "i18n"))
 }
 
-/**
- * Lowercase every immediate subdirectory name (spec §5.2.1: all folders
- * lowercase). Renames via a temp name so the case actually changes on
- * case-insensitive filesystems.
- */
-function lowercaseChildDirs(dir: string): void {
+export function toSnakeCaseDirName(name: string): string {
+  const snake = name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+  return /^[0-9]/.test(snake) ? `dir_${snake}` : snake
+}
+
+function snakeCaseChildDirs(dir: string): void {
   if (!fs.existsSync(dir)) return
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
-    const lower = entry.name.toLowerCase()
-    if (lower === entry.name) continue
-    const tmp = path.join(dir, `__lc_${lower}`)
+    const renamed = toSnakeCaseDirName(entry.name)
+    if (renamed === entry.name) continue
+    const tmp = path.join(dir, `tmp_${renamed}_${Date.now()}`)
     fs.renameSync(path.join(dir, entry.name), tmp)
-    fs.renameSync(tmp, path.join(dir, lower))
-  }
-}
-
-/**
- * Lowercase the locale codes in `config.languages` so the activities bundle
- * resolves the now-lowercase i18n / interface_translations folders (it picks
- * its fetch language from this config, not from `<html lang>`).
- */
-function lowercaseConfigLanguages(configPath: string): void {
-  if (!fs.existsSync(configPath)) return
-  try {
-    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"))
-    const langs = config?.languages
-    if (!langs) return
-    if (typeof langs.default === "string") langs.default = langs.default.toLowerCase()
-    if (Array.isArray(langs.available)) {
-      langs.available = langs.available.map((l: unknown) =>
-        typeof l === "string" ? l.toLowerCase() : l,
-      )
-    }
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
-  } catch {
-    // Malformed config — leave as-is rather than failing the export.
+    fs.renameSync(tmp, path.join(dir, renamed))
   }
 }
 
@@ -504,7 +488,7 @@ const MEDIA_DEST: Record<string, { folder: string; map: string }> = {
  * Move ADT media out of `resources/data/content/i18n/<lang>/…` into the edital's
  * flat per-type folders `resources/{audios,videos}/` (V18d/e) — the one place
  * the PNLD tree can't mirror the adt layout. The same filename can exist per
- * language (e.g. sign-language video differs pt-br vs en-us), so files are
+ * language (e.g. sign-language video differs pt_br vs en_us), so files are
  * renamed `<lang>__<original>` to avoid collisions in the flat folder. The
  * matching i18n map (`audios.json`/`videos.json`, which stays as JSON in
  * `resources/data/`) is rewritten so the reader resolves `resources/<type>/<value>`.

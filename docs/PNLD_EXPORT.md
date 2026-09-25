@@ -30,7 +30,9 @@ the structural documents. The caller zips the result into `<book>.zip`.
     └── adt/                      ADT data sidecar — JSON, mirrors the adt layout (see "Features")
 ```
 
-Folder/file names are lowercase, ASCII, never start with a digit, and carry no
+Folder names follow spec §5.2.1: lowercase, no accents or special characters,
+words separated by `_` (`interface_translations`, `pt_br`).
+Folder/file names are ASCII, never start with a digit, and carry no
 dot other than the extension separator (so `all.min.css` ships as
 `fontawesome-all-min.css`). Core folders (`content`, `resources` and its
 subfolders) are named in English exactly as above. Empty resource subfolders are
@@ -122,14 +124,16 @@ reader shares one data-loading path across adt/web, WebPub, and PNLD.
 **Media is the one divergence.** The edital mandates a flat folder per media type
 (`resources/audios/`, `resources/videos/`, `resources/images/`), so `.mp3`/`.mp4`/
 images are moved out of `content/i18n/<lang>/{audio,video}/` into those folders.
-The same filename can exist per language (sign-language video differs pt-br vs
-en-us), so files are renamed `<lang>__<original>` to avoid collisions, and the
+The same filename can exist per language (sign-language video differs pt_br vs
+en_us), so files are renamed `<lang>__<original>` to avoid collisions, and the
 `audios.json`/`videos.json` maps in `resources/data/` are rewritten so the reader
 resolves `resources/<type>/<value>`.
 
-Locale folders/keys are lowercased (`pt-BR` → `pt-br`), and `config.languages`
-is lowercased in lockstep so the runtime derives the same key; each page's
-`<html lang>` keeps the semantic locale.
+Locale folders are snake_cased (`pt-BR` → `pt_br`); `interface_translations`
+already complies. `config.languages` and each page's
+`<html lang>` keep the semantic locale; activity pages carry
+`<meta name="adt-dir-naming" content="snake_case">`, which makes the runtime
+loaders (`runtimeDir()`) map folder names the same way when they fetch.
 
 ### Interactive activities
 
@@ -140,6 +144,7 @@ carries:
 
 ```html
 <meta name="adt-base" content="../resources/data/" />
+<meta name="adt-dir-naming" content="snake_case" />
 <script src="../resources/scripts/activities-bundle-local.js"></script>
 ```
 
