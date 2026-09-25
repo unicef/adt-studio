@@ -1937,6 +1937,9 @@ msgstr "Book preview"
 msgid "Book Preview"
 msgstr "Book Preview"
 
+msgid "Book prompts and call logs are preserved. Global prompt settings come from this device and may differ from the original host. Regenerate affected outputs."
+msgstr "Book prompts and call logs are preserved. Global prompt settings come from this device and may differ from the original host. Regenerate affected outputs."
+
 msgid "Book setup"
 msgstr "Book setup"
 
@@ -2927,8 +2930,8 @@ msgstr "Custom Instructions"
 msgid "Custom Layout Demo"
 msgstr "Custom Layout Demo"
 
-msgid "Custom prompt version"
-msgstr "Custom prompt version"
+#~ msgid "Custom prompt version"
+#~ msgstr "Custom prompt version"
 
 msgid "Custom range"
 msgstr "Custom range"
@@ -3497,8 +3500,11 @@ msgstr "Edit book metadata"
 msgid "Edit caption"
 msgstr "Edit caption"
 
-msgid "Edit fallback prompts used by every book. Saving creates a global prompt version; reset removes the version and returns to the shipped default file."
-msgstr "Edit fallback prompts used by every book. Saving creates a global prompt version; reset removes the version and returns to the shipped default file."
+#~ msgid "Edit fallback prompts used by every book. Saving creates a global prompt version; reset removes the version and returns to the shipped default file."
+#~ msgstr "Edit fallback prompts used by every book. Saving creates a global prompt version; reset removes the version and returns to the shipped default file."
+
+msgid "Edit fallback prompts used by every book. Saving creates a global prompt version; reset retains history and returns to the shipped default file."
+msgstr "Edit fallback prompts used by every book. Saving creates a global prompt version; reset retains history and returns to the shipped default file."
 
 msgid "Edit in Quizzes"
 msgstr "Edit in Quizzes"
@@ -4390,6 +4396,9 @@ msgstr "Get a key"
 msgid "Global override"
 msgstr "Global override"
 
+msgid "Global overrides"
+msgstr "Global overrides"
+
 msgid "Global prompt reset to default."
 msgstr "Global prompt reset to default."
 
@@ -5070,6 +5079,9 @@ msgstr "Justify"
 
 msgid "KB"
 msgstr "KB"
+
+msgid "Keep my draft against this revision"
+msgstr "Keep my draft against this revision"
 
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Keep output schemas and IDs unchanged when editing prompts."
@@ -5813,6 +5825,9 @@ msgstr "Model reasoning"
 
 msgid "Model-specific prompt not found"
 msgstr "Model-specific prompt not found"
+
+msgid "Model-specific prompts take precedence over this generic prompt."
+msgstr "Model-specific prompts take precedence over this generic prompt."
 
 msgid "Models"
 msgstr "Models"
@@ -7380,12 +7395,11 @@ msgstr "Prompt (optional)"
 msgid "Prompt file created from template."
 msgstr "Prompt file created from template."
 
-msgid "Prompt file deleted."
-msgstr "Prompt file deleted."
+#~ msgid "Prompt file deleted."
+#~ msgstr "Prompt file deleted."
 
-msgid "Prompt folder deleted."
-msgstr "Prompt folder deleted."
-
+#~ msgid "Prompt folder deleted."
+#~ msgstr "Prompt folder deleted."
 
 #. placeholder {0}: saved.persistence.logicalPath
 msgid "Prompt saved to global overrides at {0}."
@@ -8135,6 +8149,9 @@ msgstr "Review complete: all {0} reviewed translations are acceptable."
 msgid "Review each heading’s level, page, confidence, style cluster, and storyboard assignment."
 msgstr "Review each heading’s level, page, confidence, style cluster, and storyboard assignment."
 
+msgid "Review latest saved prompt"
+msgstr "Review latest saved prompt"
+
 msgid "Review one session at a time to inspect page coverage and flagged findings."
 msgstr "Review one session at a time to inspect page coverage and flagged findings."
 
@@ -8415,11 +8432,17 @@ msgstr "Save speech text"
 msgid "Save text sizes"
 msgstr "Save text sizes"
 
+msgid "Save to:"
+msgstr "Save to:"
+
 msgid "Save your work first if you want to keep these changes."
 msgstr "Save your work first if you want to keep these changes."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
+
+msgid "Saving does not regenerate content. Affected outputs need regeneration."
+msgstr "Saving does not regenerate content. Affected outputs need regeneration."
 
 msgid "Saving..."
 msgstr "Saving..."
@@ -9908,6 +9931,9 @@ msgstr "This activity has no addressable text or answers. Regenerate it, or use 
 msgid "This archive can't be opened safely"
 msgstr "This archive can't be opened safely"
 
+msgid "This book"
+msgstr "This book"
+
 msgid "This book has {pageCount} pages."
 msgstr "This book has {pageCount} pages."
 
@@ -10412,11 +10438,14 @@ msgstr "Unable to render PDF preview."
 msgid "Unable to render the PDF preview."
 msgstr "Unable to render the PDF preview."
 
-msgid "Unable to reset global prompt."
-msgstr "Unable to reset global prompt."
+#~ msgid "Unable to reset global prompt."
+#~ msgstr "Unable to reset global prompt."
 
-msgid "Unable to save global prompt."
-msgstr "Unable to save global prompt."
+msgid "Unable to reset prompt."
+msgstr "Unable to reset prompt."
+
+#~ msgid "Unable to save global prompt."
+#~ msgstr "Unable to save global prompt."
 
 msgid "Unable to select prompt version."
 msgstr "Unable to select prompt version."
@@ -10694,6 +10723,9 @@ msgstr "Used for this quiz"
 
 msgid "Using fallback"
 msgstr "Using fallback"
+
+msgid "Using:"
+msgstr "Using:"
 
 msgid "v{hovered} preview"
 msgstr "v{hovered} preview"

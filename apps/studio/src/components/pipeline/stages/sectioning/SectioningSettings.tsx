@@ -335,16 +335,14 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
 
   const save = async () => {
     if (sectioningPromptDraft != null) {
-      await savePromptDraft(queryClient, "page_sectioning", bookLabel, sectioningPromptDraft)
+      await savePromptDraft(queryClient, "page_sectioning", bookLabel, sectioningPromptDraft, setSectioningPromptDraft)
     }
     if (refinementPromptDraft != null) {
-      await savePromptDraft(queryClient, "page_sectioning_refinement", bookLabel, refinementPromptDraft)
+      await savePromptDraft(queryClient, "page_sectioning_refinement", bookLabel, refinementPromptDraft, setRefinementPromptDraft)
     }
 
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
-    setSectioningPromptDraft(null)
-    setRefinementPromptDraft(null)
     resetMarkedTabs()
   }
 
@@ -588,7 +586,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
               onModelChange={sectioning.onModelChange}
               maxRetries={sectioning.maxRetries}
               onMaxRetriesChange={sectioning.onMaxRetriesChange}
-              onContentChange={(content, modelId) => setSectioningPromptDraft(toPromptDraft(content, modelId))}
+              onContentChange={(content, modelId, revision) => setSectioningPromptDraft(toPromptDraft(content, modelId, revision))}
             />
           </div>
         </div>
@@ -632,7 +630,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
               description={t`The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt.`}
               draft={refinementPromptDraft}
               hideModel
-              onContentChange={(content, modelId) => setRefinementPromptDraft(toPromptDraft(content, modelId))}
+              onContentChange={(content, modelId, revision) => setRefinementPromptDraft(toPromptDraft(content, modelId, revision))}
             />
           </div>
         </div>

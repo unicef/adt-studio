@@ -37,11 +37,10 @@ export function GlossarySettings({ bookLabel }: { bookLabel: string; headerTarge
 
   const save = async () => {
     if (promptDraft != null) {
-      await savePromptDraft(queryClient, "glossary", bookLabel, promptDraft)
+      await savePromptDraft(queryClient, "glossary", bookLabel, promptDraft, setPromptDraft)
     }
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
-    setPromptDraft(null)
   }
 
   const isDirty = Object.keys(dirty).length > 0 || promptDraft != null
@@ -67,7 +66,7 @@ export function GlossarySettings({ bookLabel }: { bookLabel: string; headerTarge
         onModelChange={glossary.onModelChange}
         maxRetries={glossary.maxRetries}
         onMaxRetriesChange={glossary.onMaxRetriesChange}
-        onContentChange={(content, modelId) => setPromptDraft(toPromptDraft(content, modelId))}
+        onContentChange={(content, modelId, revision) => setPromptDraft(toPromptDraft(content, modelId, revision))}
       />
     </div>
   )

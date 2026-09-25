@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react"
+import { PromptPersistenceInfo } from "./PromptPersistenceInfo"
+import { toast } from "@/components/ui/sonner"
+import { ApiError } from "@/api/client"
+import { useEffect, useState, useRef } from "react"
 import Editor from "@monaco-editor/react"
 import { GitCompare, RotateCcw } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -68,15 +71,19 @@ export function PromptViewer({
   })
 
   const [draft, setDraft] = useState<string | null>(null)
+  const draftRevision = useRef<string | null>(null)
+  const [resetting, setResetting] = useState(false)
+  const [restoring, setRestoring] = useState(false)
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
 
   useEffect(() => {
     setDraft(null)
-  }, [promptData?.content, promptModelId])
+    draftRevision.current = null
+  }, [promptName, bookLabel, promptModelId])
 
   const currentContent = promptData?.content ?? ""
   const externalDraftContent = externalDraft?.modelId === promptModelId ? externalDraft.content : null
-  const displayDraft = draft ?? externalDraftContent
+  const displayDraft = onContentChange ? externalDraftContent : draft
   const displayContent = displayDraft ?? currentContent
   const hasUnsavedPromptDraft = displayDraft != null && displayDraft !== currentContent
   const hasBookPromptOverride = bookLabel != null && promptData?.source === "book"
@@ -92,7 +99,8 @@ export function PromptViewer({
 
   const onChange = (value: string) => {
     setDraft(value)
-    onContentChange?.(value === currentContent ? null : value, promptModelId)
+    onContentChange?.(value === currentContent ? null : value, promptModelId, externalDraft?.revision || promptData?.revision || "")
+    draftRevision.current ??= promptData?.revision ?? null
   }
 
   const handleModelChange = (nextModel: string) => {
@@ -105,7 +113,7 @@ export function PromptViewer({
 
     const nextPromptModelId = promptModelForSelectedModel(nextModel, effectiveBasePromptModel)
     setDraft(null)
-    onContentChange?.(null, nextPromptModelId)
+    onContentChange?.(null, nextPromptModelId, "")
     onModelChange?.(nextModel)
   }
 
@@ -116,7 +124,7 @@ export function PromptViewer({
   ) => {
     if (changedPromptName === promptName && changedModelId === promptModelId) {
       setDraft(null)
-      onContentChange?.(null, promptModelId)
+      onContentChange?.(null, promptModelId, "")
     }
 
     queryClient.setQueryData(["prompts", changedPromptName, bookLabel, changedModelId], prompt)
@@ -135,14 +143,24 @@ export function PromptViewer({
       return
     }
 
-    const resetPrompt = await api.resetPrompt(promptName, promptModelId, bookLabel)
+    if (!promptData || resetting) return
+    setResetting(true)
+    try {
+    const resetPrompt = await api.resetPrompt(promptName, promptModelId, bookLabel, externalDraft?.revision || promptData.revision)
     setDraft(null)
-    onContentChange?.(null, promptModelId)
+    onContentChange?.(null, promptModelId, "")
     queryClient.setQueryData(["prompts", promptName, bookLabel, promptModelId], resetPrompt)
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["prompts", promptName, bookLabel, promptModelId] }),
       queryClient.invalidateQueries({ queryKey: ["prompt-versions", promptName, promptModelId, bookLabel] }),
     ])
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        const current = (error.body as { current?: PromptResponse })?.current
+        if (current) queryClient.setQueryData(["prompts", promptName, bookLabel, promptModelId], current)
+      }
+      toast.error(t`Unable to reset prompt.`)
+    } finally { setResetting(false) }
   }
 
   const editorBody = isLoading ? (
@@ -160,7 +178,7 @@ export function PromptViewer({
       onChange={(value) => onChange(value ?? "")}
       options={{
         ...PROMPT_EDITOR_OPTIONS,
-        readOnly,
+        readOnly: readOnly || resetting || restoring,
       }}
     />
   ) : (
@@ -180,6 +198,19 @@ export function PromptViewer({
         </p>
       </div>
 
+      <PromptPersistenceInfo prompt={promptData} dirty={hasUnsavedPromptDraft}
+        conflict={Boolean(externalDraft?.revision && externalDraft.revision !== promptData?.revision)}
+        onReload={() => {
+          if (hasUnsavedPromptDraft && !window.confirm(t`Discard unsaved prompt changes?`)) return
+          setDraft(null); draftRevision.current = null; onContentChange?.(null, promptModelId, "")
+        }}
+        onKeepDraft={() => {
+          if (displayDraft != null && promptData) {
+            draftRevision.current = promptData.revision
+            onContentChange?.(displayDraft, promptModelId, promptData.revision)
+          }
+        }}
+      />
       <div className="flex min-h-[560px] w-full flex-1 flex-col overflow-hidden rounded-md border bg-background">
         <div className="flex min-h-11 shrink-0 flex-wrap items-center gap-2 border-b bg-muted/20 px-3 py-2">
           {!hideModel && (
@@ -297,6 +328,7 @@ export function PromptViewer({
                 size="sm"
                 className="mr-2 h-8"
                 onClick={resetBookPrompt}
+                disabled={resetting}
               >
                 <RotateCcw className="size-4" />
                 <Trans>Reset</Trans>
@@ -329,7 +361,7 @@ export function PromptViewer({
               <ResizablePanel
                 id="promptEditorBody"
                 defaultSize="58%"
-                minSize="450px"
+                minSize="35%"
               >
                 {editorBody}
               </ResizablePanel>
@@ -339,13 +371,15 @@ export function PromptViewer({
               <ResizablePanel
                 id="promptVersions"
                 defaultSize="42%"
-                minSize="360px"
+                minSize="40%"
                 maxSize="65%"
               >
                 <PromptVersionHistory
                   promptName={promptName}
                   bookLabel={bookLabel}
                   modelId={promptModelId}
+                  revision={externalDraft?.revision || promptData?.revision || ""}
+                  onPendingChange={setRestoring}
                   currentContent={currentContent}
                   editedContent={displayContent}
                   disabled={isLoading || promptData?.content == null}

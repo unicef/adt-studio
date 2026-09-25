@@ -1,3 +1,5 @@
+import { useState } from "react"
+import { PromptPersistenceInfo } from "@/components/pipeline/components/PromptViewer/PromptPersistenceInfo"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { FileText, GitCompare } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -25,24 +27,20 @@ import { SettingsHeading, SettingsLead } from "./ui"
 export function PromptsSection() {
   const { t } = useLingui()
   const prompts = useGlobalPrompts()
+  const [restoring, setRestoring] = useState(false)
 
   useFloatingSave({
     id: "global-prompts",
-    dirty: !prompts.isPromptEditorLoading && (prompts.isDirty || prompts.hasResettableVersion),
-    saving: prompts.isSavingPrompt,
-    label: prompts.isDirty ? undefined : (
-      <span className="text-[11px] font-medium text-foreground">
-        <Trans>Custom prompt version</Trans>
-      </span>
-    ),
-    labelKey: prompts.isDirty ? "unsaved" : "custom-version",
+    dirty: !prompts.isPromptEditorLoading && prompts.isDirty,
+    saving: prompts.isSavingPrompt || restoring,
     onDiscard: prompts.isDirty ? prompts.discardDraft : undefined,
-    onReset: prompts.hasResettableVersion ? prompts.reset : undefined,
+
     onSave: prompts.isDirty ? prompts.save : undefined,
   })
 
   const editor = (
     <PromptEditorPane
+      readOnly={restoring}
       isLoading={prompts.isPromptEditorLoading}
       content={prompts.promptContent}
       displayContent={prompts.displayContent}
@@ -59,7 +57,7 @@ export function PromptsSection() {
         <SettingsLead>
           <Trans>
             Edit fallback prompts used by every book. Saving creates a global
-            prompt version; reset removes the version and returns to the shipped
+            prompt version; reset retains history and returns to the shipped
             default file.
           </Trans>
         </SettingsLead>
@@ -146,8 +144,15 @@ export function PromptsSection() {
                     <>
                       <PromptStatusBadges
                         isUsingFallback={prompts.isUsingFallback}
-                        isEditedGlobalVersion={prompts.isEditedGlobalVersion}
+                        isDirty={prompts.isDirty}
+                        source={prompts.promptState?.source}
+                        logicalPath={prompts.promptState?.persistence.logicalPath}
                       />
+                      {prompts.hasResettableVersion && (
+                        <Button type="button" variant="outline" size="sm" disabled={prompts.isSavingPrompt || restoring} onClick={prompts.reset}>
+                          <Trans>Reset</Trans>
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         variant={prompts.isDiffOpen ? "secondary" : "outline"}
@@ -168,6 +173,8 @@ export function PromptsSection() {
                 </div>
               </div>
 
+              <PromptPersistenceInfo prompt={prompts.promptState} dirty={prompts.isDirty} conflict={prompts.conflict}
+                onReload={prompts.reloadLatest} onKeepDraft={prompts.keepDraft} />
               <div className="min-h-0 flex-1">
                 {prompts.isDiffOpen ? (
                   <ResizablePanelGroup
@@ -175,7 +182,7 @@ export function PromptsSection() {
                     defaultLayout={{ promptEditorBody: 58, promptVersions: 42 }}
                     className="min-h-0"
                   >
-                    <ResizablePanel id="promptEditorBody" defaultSize="58%" minSize="450px">
+                    <ResizablePanel id="promptEditorBody" defaultSize="58%" minSize="35%">
                       {editor}
                     </ResizablePanel>
 
@@ -190,6 +197,8 @@ export function PromptsSection() {
                       <PromptVersionHistory
                         promptName={prompts.selectedPrompt}
                         modelId={prompts.promptModelId}
+                        revision={prompts.revision}
+                        onPendingChange={setRestoring}
                         currentContent={prompts.currentContent}
                         editedContent={prompts.displayContent}
                         disabled={prompts.isPromptEditorLoading || prompts.promptContent == null}

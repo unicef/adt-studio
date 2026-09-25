@@ -1939,6 +1939,9 @@ msgstr "Pamje paraprake e librit"
 msgid "Book Preview"
 msgstr "Pamje paraprake e librit"
 
+msgid "Book prompts and call logs are preserved. Global prompt settings come from this device and may differ from the original host. Regenerate affected outputs."
+msgstr "Promptet e librit dhe regjistrat e thirrjeve ruhen. Cilësimet globale të prompteve vijnë nga kjo pajisje dhe mund të ndryshojnë nga pajisja origjinale. Rigjeneroni rezultatet e prekura."
+
 msgid "Book setup"
 msgstr "Konfigurimi i librit"
 
@@ -2929,8 +2932,8 @@ msgstr "Udhëzime të personalizuara"
 msgid "Custom Layout Demo"
 msgstr "Demo e paraqitjes së personalizuar"
 
-msgid "Custom prompt version"
-msgstr "Version i personalizuar i promptit"
+#~ msgid "Custom prompt version"
+#~ msgstr "Version i personalizuar i promptit"
 
 msgid "Custom range"
 msgstr "Interval i personalizuar"
@@ -3499,8 +3502,11 @@ msgstr "Modifiko meta të dhënat e librit"
 msgid "Edit caption"
 msgstr "Redakto titullin"
 
-msgid "Edit fallback prompts used by every book. Saving creates a global prompt version; reset removes the version and returns to the shipped default file."
-msgstr "Redakto promptet fallback që përdoren nga çdo libër. Ruajtja krijon një version global të promptit; resetimi heq versionin dhe kthen skedarin e parazgjedhur të shpërndarë."
+#~ msgid "Edit fallback prompts used by every book. Saving creates a global prompt version; reset removes the version and returns to the shipped default file."
+#~ msgstr "Redakto promptet fallback që përdoren nga çdo libër. Ruajtja krijon një version global të promptit; resetimi heq versionin dhe kthen skedarin e parazgjedhur të shpërndarë."
+
+msgid "Edit fallback prompts used by every book. Saving creates a global prompt version; reset retains history and returns to the shipped default file."
+msgstr "Redaktoni promptet rezervë që përdoren nga çdo libër. Ruajtja krijon një version global; rivendosja ruan historikun dhe rikthen skedarin e parazgjedhur të përfshirë."
 
 msgid "Edit in Quizzes"
 msgstr "Redakto në Kuize"
@@ -4392,6 +4398,9 @@ msgstr "Merrni një çelës"
 msgid "Global override"
 msgstr "Mbivendosje globale"
 
+msgid "Global overrides"
+msgstr "Përshtatje globale"
+
 msgid "Global prompt reset to default."
 msgstr "Prompti global u resetua në parazgjedhje."
 
@@ -5072,6 +5081,9 @@ msgstr "Justify"
 
 msgid "KB"
 msgstr "KB"
+
+msgid "Keep my draft against this revision"
+msgstr "Mbaje draftin tim për këtë rishikim"
 
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Mbaji të pandryshuara skemat e daljes dhe ID-të kur redakton promptet."
@@ -5815,6 +5827,9 @@ msgstr "Arsyetimi i modelit"
 
 msgid "Model-specific prompt not found"
 msgstr "Prompti specifik për modelin nuk u gjet"
+
+msgid "Model-specific prompts take precedence over this generic prompt."
+msgstr "Promptet specifike të modelit kanë përparësi ndaj këtij prompti të përgjithshëm."
 
 msgid "Models"
 msgstr "Modelet"
@@ -7382,12 +7397,11 @@ msgstr "Udhëzim (opsional)"
 msgid "Prompt file created from template."
 msgstr "Skedari i promptit u krijua nga shablloni."
 
-msgid "Prompt file deleted."
-msgstr "Skedari i promptit u fshi."
+#~ msgid "Prompt file deleted."
+#~ msgstr "Skedari i promptit u fshi."
 
-msgid "Prompt folder deleted."
-msgstr "Dosja e prompteve u fshi."
-
+#~ msgid "Prompt folder deleted."
+#~ msgstr "Dosja e prompteve u fshi."
 
 #. placeholder {0}: saved.persistence.logicalPath
 msgid "Prompt saved to global overrides at {0}."
@@ -8137,6 +8151,9 @@ msgstr "Rishikimi përfundoi: të gjitha {0} përkthimet e rishikuara janë të 
 msgid "Review each heading’s level, page, confidence, style cluster, and storyboard assignment."
 msgstr "Rishikoni nivelin, faqen, besueshmërinë, grupin e stileve dhe caktimin në storyboard për çdo titull."
 
+msgid "Review latest saved prompt"
+msgstr "Shqyrto promptin e fundit të ruajtur"
+
 msgid "Review one session at a time to inspect page coverage and flagged findings."
 msgstr "Rishikoni një sesion në të njëjtën kohë për të inspektuar mbulimin e faqeve dhe gjetjet e shënuara."
 
@@ -8417,11 +8434,17 @@ msgstr "Ruaj tekstin e të folurit"
 msgid "Save text sizes"
 msgstr "Ruaj madhësitë e tekstit"
 
+msgid "Save to:"
+msgstr "Ruaj në:"
+
 msgid "Save your work first if you want to keep these changes."
 msgstr "Ruaje punën tënde më parë nëse dëshiron t'i mbash këto ndryshime."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
+
+msgid "Saving does not regenerate content. Affected outputs need regeneration."
+msgstr "Ruajtja nuk e rigjeneron përmbajtjen. Rezultatet e prekura duhen rigjeneruar."
 
 msgid "Saving..."
 msgstr "Duke ruajtur..."
@@ -9910,6 +9933,9 @@ msgstr "Ky aktivitet nuk ka tekste apo përgjigje të adresueshme. Rigjeneroni a
 msgid "This archive can't be opened safely"
 msgstr "Ky arkiv nuk mund të hapet në mënyrë të sigurt"
 
+msgid "This book"
+msgstr "Ky libër"
+
 msgid "This book has {pageCount} pages."
 msgstr "Ky libër ka {pageCount} faqe."
 
@@ -10414,11 +10440,14 @@ msgstr "Pamja paraprake e PDF nuk mund të shfaqet."
 msgid "Unable to render the PDF preview."
 msgstr "Pamja paraprake e PDF-së nuk mund të gjenerohej."
 
-msgid "Unable to reset global prompt."
-msgstr "Nuk mund të resetohet prompti global."
+#~ msgid "Unable to reset global prompt."
+#~ msgstr "Nuk mund të resetohet prompti global."
 
-msgid "Unable to save global prompt."
-msgstr "Nuk mund të ruhet prompti global."
+msgid "Unable to reset prompt."
+msgstr "Prompti nuk mund të rivendoset."
+
+#~ msgid "Unable to save global prompt."
+#~ msgstr "Nuk mund të ruhet prompti global."
 
 msgid "Unable to select prompt version."
 msgstr "Nuk mund të zgjidhet versioni i promptit."
@@ -10696,6 +10725,9 @@ msgstr "Përdoret për këtë kuiz"
 
 msgid "Using fallback"
 msgstr "Po përdoret fallback"
+
+msgid "Using:"
+msgstr "Në përdorim:"
 
 msgid "v{hovered} preview"
 msgstr "Pamja paraprake e v{hovered}"

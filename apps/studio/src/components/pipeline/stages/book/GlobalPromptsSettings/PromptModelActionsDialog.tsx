@@ -108,7 +108,8 @@ export function PromptModelActionsDialog({
       let created = 0
       for (const prompt of missingPrompts) {
         const basePrompt = await api.getPrompt(prompt.name, undefined, null)
-        await api.updatePrompt(prompt.name, basePrompt.content, undefined, targetPromptModelId)
+        const target = await api.getPrompt(prompt.name, undefined, targetPromptModelId)
+        await api.updatePrompt(prompt.name, basePrompt.content, undefined, targetPromptModelId, target.revision)
         created += 1
       }
 

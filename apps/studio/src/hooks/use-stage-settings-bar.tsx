@@ -1,3 +1,4 @@
+import { useIsMutating } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import type { StageName } from "@adt/types"
 import { useFloatingSave } from "@/components/pipeline/components/floating-save"
@@ -14,7 +15,7 @@ export function useStageSettingsBar({
   dirtyTabs,
   saving,
   save,
-  showSaveOnly = false,
+  showSaveOnly: _showSaveOnly = false,
   disabledReason,
 }: {
   stage: StageName
@@ -27,6 +28,7 @@ export function useStageSettingsBar({
   disabledReason?: string
 }) {
   const { t } = useLingui()
+  const promptSaves = useIsMutating({ mutationKey: ["prompt-save", bookLabel] })
   const remount = useSettingsRemount()
   const { queueRun } = useBookRun()
   const { apiKey } = useApiKey()
@@ -38,8 +40,8 @@ export function useStageSettingsBar({
   useFloatingSave({
     id: `settings:${stage}`,
     dirty,
-    saving,
-    onSave: showSaveOnly ? save : undefined,
+    saving: saving || promptSaves > 0,
+    onSave: save,
     onSaveAndRerun: async () => {
       await save()
       queueRun({ fromStage: stage, toStage: stage, apiKey })
@@ -49,10 +51,7 @@ export function useStageSettingsBar({
         ignoreBlocker: true,
       })
     },
-    onSaveStay: async () => {
-      await save()
-      queueRun({ fromStage: stage, toStage: stage, apiKey })
-    },
+    onSaveStay: save,
     onDiscard: remount,
     saveDisabledReason: disabledReason,
     rerunDisabledReason:

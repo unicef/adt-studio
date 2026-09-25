@@ -1715,9 +1715,9 @@ export const api = {
   updatePrompt: (
     name: string,
     content: string,
-    bookLabel?: string,
-    modelId?: string | null,
-    revision?: string,
+    bookLabel: string | undefined,
+    modelId: string | null | undefined,
+    revision: string,
   ) => {
     const query = promptModelQuery(modelId)
     return request<PromptResponse>(
@@ -1736,23 +1736,24 @@ export const api = {
   setPromptVersionCurrent: (
     name: string,
     version: string,
-    modelId?: string | null,
-    bookLabel?: string,
+    modelId: string | null | undefined,
+    bookLabel: string | undefined,
+    revision: string,
   ) => {
     const query = promptModelQuery(modelId)
     return request<PromptResponse>(
       bookLabel
         ? `/books/${bookLabel}/prompts/${name}/versions/${encodeURIComponent(version)}/current${query}`
         : `/prompts/${name}/versions/${encodeURIComponent(version)}/current${query}`,
-      { method: "PUT" },
+      { method: "PUT", body: JSON.stringify({ revision }) },
     )
   },
 
-  resetPrompt: (name: string, modelId?: string | null, bookLabel?: string) => {
+  resetPrompt: (name: string, modelId: string | null | undefined, bookLabel: string | undefined, revision: string) => {
     const query = promptModelQuery(modelId)
     return request<PromptResponse>(
       bookLabel ? `/books/${bookLabel}/prompts/${name}${query}` : `/prompts/${name}${query}`,
-      { method: "DELETE" },
+      { method: "DELETE", body: JSON.stringify({ revision }) },
     )
   },
 

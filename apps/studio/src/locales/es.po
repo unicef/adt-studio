@@ -1937,6 +1937,9 @@ msgstr "Vista previa del libro"
 msgid "Book Preview"
 msgstr "Vista Previa del Libro"
 
+msgid "Book prompts and call logs are preserved. Global prompt settings come from this device and may differ from the original host. Regenerate affected outputs."
+msgstr "Se conservan las instrucciones del libro y los registros de llamadas. Las instrucciones globales proceden de este dispositivo y pueden diferir del equipo original. Regenera los resultados afectados."
+
 msgid "Book setup"
 msgstr "Configuración del libro"
 
@@ -2927,8 +2930,8 @@ msgstr "Instrucciones Personalizadas"
 msgid "Custom Layout Demo"
 msgstr "Demostración de Diseño Personalizado"
 
-msgid "Custom prompt version"
-msgstr "Versión personalizada del prompt"
+#~ msgid "Custom prompt version"
+#~ msgstr "Versión personalizada del prompt"
 
 msgid "Custom range"
 msgstr "Intervalo personalizado"
@@ -3497,8 +3500,11 @@ msgstr "Editar metadatos del libro"
 msgid "Edit caption"
 msgstr "Editar leyenda"
 
-msgid "Edit fallback prompts used by every book. Saving creates a global prompt version; reset removes the version and returns to the shipped default file."
-msgstr "Edita los prompts fallback usados por todos los libros. Guardar crea una versión global del prompt; restablecer elimina la versión y vuelve al archivo predeterminado incluido."
+#~ msgid "Edit fallback prompts used by every book. Saving creates a global prompt version; reset removes the version and returns to the shipped default file."
+#~ msgstr "Edita los prompts fallback usados por todos los libros. Guardar crea una versión global del prompt; restablecer elimina la versión y vuelve al archivo predeterminado incluido."
+
+msgid "Edit fallback prompts used by every book. Saving creates a global prompt version; reset retains history and returns to the shipped default file."
+msgstr "Edita las instrucciones de respaldo de todos los libros. Guardar crea una versión global; restablecer conserva el historial y vuelve al archivo predeterminado incluido."
 
 msgid "Edit in Quizzes"
 msgstr "Editar en Cuestionarios"
@@ -4390,6 +4396,9 @@ msgstr "Obtener una clave"
 msgid "Global override"
 msgstr "Sustitución global"
 
+msgid "Global overrides"
+msgstr "Personalizaciones globales"
+
 msgid "Global prompt reset to default."
 msgstr "Prompt global restablecido al valor predeterminado."
 
@@ -5070,6 +5079,9 @@ msgstr "Justificar"
 
 msgid "KB"
 msgstr "KB"
+
+msgid "Keep my draft against this revision"
+msgstr "Conservar mi borrador sobre esta revisión"
 
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Mantén los esquemas de salida y los ID sin cambios al editar prompts."
@@ -5813,6 +5825,9 @@ msgstr "Razonamiento del modelo"
 
 msgid "Model-specific prompt not found"
 msgstr "Prompt específico del modelo no encontrado"
+
+msgid "Model-specific prompts take precedence over this generic prompt."
+msgstr "Las instrucciones específicas del modelo tienen prioridad sobre estas instrucciones genéricas."
 
 msgid "Models"
 msgstr "Modelos"
@@ -7380,12 +7395,11 @@ msgstr "Enunciado (opcional)"
 msgid "Prompt file created from template."
 msgstr "Archivo de prompt creado desde la plantilla."
 
-msgid "Prompt file deleted."
-msgstr "Archivo de prompt eliminado."
+#~ msgid "Prompt file deleted."
+#~ msgstr "Archivo de prompt eliminado."
 
-msgid "Prompt folder deleted."
-msgstr "Carpeta de prompts eliminada."
-
+#~ msgid "Prompt folder deleted."
+#~ msgstr "Carpeta de prompts eliminada."
 
 #. placeholder {0}: saved.persistence.logicalPath
 msgid "Prompt saved to global overrides at {0}."
@@ -8135,6 +8149,9 @@ msgstr "Revisión completa: las {0} traducciones revisadas son aceptables."
 msgid "Review each heading’s level, page, confidence, style cluster, and storyboard assignment."
 msgstr "Revisa el nivel, la página, la confianza, el grupo de estilos y la asignación en el guion gráfico de cada título."
 
+msgid "Review latest saved prompt"
+msgstr "Revisar las últimas instrucciones guardadas"
+
 msgid "Review one session at a time to inspect page coverage and flagged findings."
 msgstr "Revise una sesión a la vez para inspeccionar la cobertura de páginas y los hallazgos señalados."
 
@@ -8415,11 +8432,17 @@ msgstr "Guardar texto hablado"
 msgid "Save text sizes"
 msgstr "Guardar tamaños de texto"
 
+msgid "Save to:"
+msgstr "Guardar en:"
+
 msgid "Save your work first if you want to keep these changes."
 msgstr "Guarda tu trabajo primero si quieres conservar estos cambios."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Guardado. Vuelva a empaquetar la Vista previa para aplicar."
+
+msgid "Saving does not regenerate content. Affected outputs need regeneration."
+msgstr "Guardar no regenera el contenido. Los resultados afectados deben regenerarse."
 
 msgid "Saving..."
 msgstr "Guardando..."
@@ -9908,6 +9931,9 @@ msgstr "Esta actividad no tiene textos ni respuestas direccionables. Vuelve a ge
 msgid "This archive can't be opened safely"
 msgstr "Este archivo no se puede abrir de forma segura"
 
+msgid "This book"
+msgstr "Este libro"
+
 msgid "This book has {pageCount} pages."
 msgstr "Este libro tiene {pageCount} páginas."
 
@@ -10412,11 +10438,14 @@ msgstr "No se puede renderizar la vista previa del PDF."
 msgid "Unable to render the PDF preview."
 msgstr "No se pudo renderizar la vista previa del PDF."
 
-msgid "Unable to reset global prompt."
-msgstr "No se pudo restablecer el prompt global."
+#~ msgid "Unable to reset global prompt."
+#~ msgstr "No se pudo restablecer el prompt global."
 
-msgid "Unable to save global prompt."
-msgstr "No se pudo guardar el prompt global."
+msgid "Unable to reset prompt."
+msgstr "No se pudieron restablecer las instrucciones."
+
+#~ msgid "Unable to save global prompt."
+#~ msgstr "No se pudo guardar el prompt global."
 
 msgid "Unable to select prompt version."
 msgstr "No se pudo seleccionar la versión del prompt."
@@ -10694,6 +10723,9 @@ msgstr "Se usa en este cuestionario"
 
 msgid "Using fallback"
 msgstr "Usando fallback"
+
+msgid "Using:"
+msgstr "En uso:"
 
 msgid "v{hovered} preview"
 msgstr "Vista previa de v{hovered}"
