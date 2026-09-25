@@ -1,14 +1,14 @@
 # Finding — Per-element audio: does an authored script survive, and does it reach playback?
 
 Issue: [#890](https://github.com/unicef/adt-studio/issues/890) · Lands with the SPEC-0014 proposal.
-**Time box:** 2026-02-19 → 2026-02-19 (half a day, one sitting). **Demo:** n/a — this is a mechanism
+**Time box:** 2026-09-23 → 2026-09-23 (half a day, one sitting). **Demo:** n/a — this is a mechanism
 probe, not a demo.
 
 **Question:** does a script authored for one element survive a content regeneration, and does it flow
 end to end to reproducible audio?
 
 <!--
-Provenance, declared honestly (AGENTS.md operating rule 4). The probe ran on 2026-02-19 as a
+Provenance, declared honestly (AGENTS.md operating rule 4). The probe ran on 2026-09-23 as a
 throwaway spike against `develop` @ 737d3314, before any `exp/` branch existed; the script was never
 committed. It is landing in the repository with the SPEC-0014 PR because that spec's Problem section
 cites it as evidence and a reviewer must be able to read it.
