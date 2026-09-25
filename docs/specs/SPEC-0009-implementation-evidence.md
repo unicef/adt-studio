@@ -4,6 +4,8 @@ Implementation target: the published in-review spec in PR #885, under the owner'
 
 Latest review: [2026-09-25 implementation review](SPEC-0009-review-2026-09-25.md) records seven reproduced findings, local fixes `ed7ec1fb` and `1c698b05`, refreshed acceptance coverage, current verification and the remaining Phase B blockers. The earlier results below are retained with their original revision/scope limits.
 
+Publication update (2026-09-26): the owner authorized pushing the implementation to the same PR #885. The working branch is named `spec/SPEC-0009-validation-fix-routing`; the original remote head `spec/618-validation-fix-routing` is retained for PR #885 because GitHub closes an open PR when its head branch is renamed. Both remote names are published at the same revision, with the original ref remaining the PR's tracked head. The PR targets develop instead of its old documentation-stack parent. The combined spec and implementation remain **work in progress, Phase A only**; approval and Phase B dependencies remain pending. Earlier statements below about unpushed work describe the state at the time of those checks, not current publication status. The latest code remains `1c698b05`; publication changes only documentation.
+
 ## Pre-edit acceptance map (2026-09-25)
 
 Baseline: develop `737d3314`; spec remote `95bddc75`; reuse PR #645 `0a988589` (four original commits, attributed with cherry-pick provenance). No review comments or reviews existed on #885/#645 at refresh. #618's Science Standard 5 comment supports generated heading semantics going to Storyboard.
