@@ -1,4 +1,9 @@
+import { readSectioningLifecycle, recoverSectioningTransition } from "@adt/storage"
+import { effectiveSectioningMode, loadBookConfig } from "@adt/pipeline"
+import { getStageClearNodes, getStageClearOrder } from "@adt/types"
+import { bookWriterMiddleware } from "../middleware/book-writer.js"
 import fs from "node:fs"
+import { BookBusyError } from "@adt/storage"
 import path from "node:path"
 import { z } from "zod"
 import { Hono } from "hono"
@@ -105,6 +110,8 @@ export function createBookRoutes(
   registry: ProviderRegistry = getDefaultProviderRegistry(),
 ): Hono {
   const app = new Hono()
+  app.use("/books/:label/*", bookWriterMiddleware(booksDir))
+  app.use("/books/:label", bookWriterMiddleware(booksDir))
 
   app.get("/books", (c) => {
     const books = listBooks(booksDir)
@@ -316,6 +323,24 @@ export function createBookRoutes(
     }
   })
 
+  app.get("/books/:label/sectioning-state", (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    const bookDir = path.join(path.resolve(booksDir), label)
+    if (!fs.existsSync(bookDir)) throw new HTTPException(404, { message: "Book not found" })
+    recoverSectioningTransition(bookDir)
+    const effectiveMode = effectiveSectioningMode(loadBookConfig(label, booksDir, configPath))
+    const storage = createBookStorage(label, booksDir)
+    try {
+      const stages = getStageClearOrder("sectioning")
+      const steps = PIPELINE.filter((stage) => stages.includes(stage.name)).flatMap((stage) => stage.steps.map((step) => step.name))
+      const nodes = [...getStageClearNodes("sectioning"), "tts-timestamps"]
+      const hasOutput = nodes.some((node) => storage.getNodeItemIds(node).length > 0)
+        || storage.getStepRuns().some((row) => steps.includes(row.step as never) && ["done", "skipped"].includes(row.status))
+      const lifecycle = readSectioningLifecycle(bookDir)
+      return c.json({ effectiveMode, hasOutput, stale: hasOutput && (!lifecycle?.sectioningReady || lifecycle.mode !== effectiveMode) })
+    } finally { storage.close() }
+  })
+
   // PUT /books/:label/config — Update book-level config overrides
   app.put("/books/:label/config", async (c) => {
     const { label } = c.req.param()
@@ -334,10 +359,11 @@ export function createBookRoutes(
       const config = partInfo
         ? { ...body.config, start_page: partInfo.range.startPage, end_page: partInfo.range.endPage }
         : body.config
-      updateBookConfig(label, booksDir, config)
+      updateBookConfig(label, booksDir, config, configPath)
       const updated = getBookConfig(label, booksDir)
       return c.json({ config: updated ?? {} })
     } catch (err) {
+      if (err instanceof BookBusyError) throw err
       const message = err instanceof Error ? err.message : String(err)
       if (message.includes("not found")) {
         throw new HTTPException(404, { message })

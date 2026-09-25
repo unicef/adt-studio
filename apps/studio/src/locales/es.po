@@ -2182,8 +2182,14 @@ msgstr "Cambiar"
 msgid "Change language"
 msgstr "Cambiar idioma"
 
+msgid "Change mode"
+msgstr "Cambiar modo"
+
 msgid "Change Preset"
 msgstr "Cambiar Preajuste"
+
+msgid "Change Sectioning mode?"
+msgstr "¿Cambiar el modo de seccionado?"
 
 msgid "Change the book language?"
 msgstr "¿Cambiar el idioma del libro?"
@@ -2720,6 +2726,9 @@ msgstr "No se pudo leer este PDF. El archivo puede estar dañado o protegido con
 
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "No se pudieron eliminar {failed} de {total} videos — por favor, inténtalo de nuevo."
+
+msgid "Could not save Sectioning mode."
+msgstr "No se pudo guardar el modo de seccionado."
 
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
@@ -8384,6 +8393,9 @@ msgstr "Guardar tamaños de texto"
 msgid "Save your work first if you want to keep these changes."
 msgstr "Guarda tu trabajo primero si quieres conservar estos cambios."
 
+msgid "Saved output is retained, but Sectioning and later stages are not current."
+msgstr "Se conservan los resultados guardados, pero el seccionado y las etapas posteriores están desactualizados."
+
 msgid "Saved. Re-package Preview to apply."
 msgstr "Guardado. Vuelva a empaquetar la Vista previa para aplicar."
 
@@ -8585,6 +8597,9 @@ msgstr "Tipos de sección"
 
 msgid "Sectioning"
 msgstr "Seccionamiento"
+
+msgid "Sectioning and later stages will need to run again. Saved versions are kept."
+msgstr "Será necesario volver a ejecutar el seccionado y las etapas posteriores. Se conservan las versiones guardadas."
 
 msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
 msgstr "La segmentación ha cambiado desde que se renderizaron estas páginas. Vuelve a ejecutar Storyboard para regenerarlas."
@@ -9289,6 +9304,9 @@ msgstr "Almacenado localmente en este ordenador"
 
 msgid "Storyboard"
 msgstr "Storyboard"
+
+msgid "Storyboard cannot run in By Page mode: {total} pages do not contain exactly one valid section. Re-run Sectioning, then try again. Affected pages: {pages}."
+msgstr "El guion gráfico no puede ejecutarse en modo Por página: {total} páginas no contienen exactamente una sección válida. Vuelve a ejecutar el seccionado e inténtalo de nuevo. Páginas afectadas: {pages}."
 
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "El storyboard ya se ejecutó. Los cambios realizados aquí no tendrán efecto hasta que se vuelva a ejecutar el storyboard."
@@ -10792,6 +10810,9 @@ msgstr "Espera a que termine la generación del glosario"
 
 msgid "Wait for storyboard to complete"
 msgstr "Espere a que el storyboard se complete"
+
+msgid "Wait for the current operation to finish."
+msgstr "Espera a que termine la operación actual."
 
 msgid "Waiting for API output…"
 msgstr "Esperando salida de API…"

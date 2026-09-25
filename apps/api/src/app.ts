@@ -1,4 +1,5 @@
 import path from "node:path"
+import { bookWriterMiddleware } from "./middleware/book-writer.js"
 import fs from "node:fs"
 import os from "node:os"
 import { unzipSync } from "fflate"
@@ -79,7 +80,7 @@ const eventBus = createBookEventBus()
 const pageErrorDecisions = createPageErrorDecisions(eventBus)
 const stageRunner = createStageRunner()
 const stageService = createStageService(stageRunner, eventBus, pageErrorDecisions)
-const taskService = createTaskService(eventBus)
+const taskService = createTaskService(eventBus, booksDir)
 
 const app = new Hono()
 
@@ -96,6 +97,8 @@ app.use(
   })
 )
 app.onError(errorHandler)
+app.use("/api/books/:label/*", bookWriterMiddleware(booksDir))
+app.use("/api/books/:label", bookWriterMiddleware(booksDir))
 
 app.route("/api", healthRoutes)
 app.route("/api", createProviderRoutes(configPath))

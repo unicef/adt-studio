@@ -1,3 +1,5 @@
+import { useSectioningModeConfirmation } from "@/hooks/use-sectioning-mode-confirmation"
+import type { SectioningModeState } from "@adt/types"
 import { useState, useEffect, useMemo } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Plus, X } from "lucide-react"
@@ -76,6 +78,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
+  const modeConfirmation = useSectioningModeConfirmation(bookLabel, updateConfig.isPending)
   const queryClient = useQueryClient()
 
   // Section Types state
@@ -142,11 +145,11 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
     ) as Record<string, { render_type?: string; config?: Record<string, unknown> }>
     setAllStrategyNames(listSelectableRenderStrategies(strategies))
 
-    if (m.page_sectioning && typeof m.page_sectioning === "object") {
-      const ps = m.page_sectioning as Record<string, unknown>
-      if (ps.mode) setSectioningMode(String(ps.mode))
-      setMaxRefinements(ps.max_refinements != null ? String(ps.max_refinements) : "")
-    }
+    const ps = m.page_sectioning && typeof m.page_sectioning === "object"
+      ? m.page_sectioning as Record<string, unknown>
+      : {}
+    setSectioningMode(ps.mode === "page" ? "page" : "dynamic")
+    setMaxRefinements(ps.max_refinements != null ? String(ps.max_refinements) : "")
     setGenerateActivities(m.generate_activities !== false)
   }, [activeConfigData])
 
@@ -341,7 +344,15 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
       await savePromptDraft(queryClient, "page_sectioning_refinement", bookLabel, refinementPromptDraft)
     }
 
-    await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
+    try {
+      await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
+    } catch (error) {
+      // onSettled has already refetched. The closure can still hold the mode
+      // from before an ambiguous timeout, even when the server saved the change.
+      const persisted = queryClient.getQueryData<SectioningModeState>(["books", bookLabel, "sectioning-mode-state"])
+      setSectioningMode(persisted?.effectiveMode ?? modeConfirmation.state?.effectiveMode ?? "dynamic")
+      throw error
+    }
     setDirty({})
     setSectioningPromptDraft(null)
     setRefinementPromptDraft(null)
@@ -395,6 +406,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
 
   return (
     <div className={tab === "sectioning-prompt" || tab === "refinement-prompt" ? "h-full" : "p-4 space-y-6"}>
+      {modeConfirmation.dialog}
       {tab === "section-types" && (
         <div className="space-y-6">
           <div>
@@ -429,10 +441,11 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
                     type="button"
                     role="radio"
                     aria-checked={selected}
-                    onClick={() => {
+                    disabled={modeConfirmation.busy}
+                    onClick={() => modeConfirmation.request(value as "page" | "dynamic", () => {
                       setSectioningMode(value)
                       markDirty("page_sectioning")
-                    }}
+                    })}
                     className={cn(
                       "flex items-start gap-3 rounded-md border p-3 text-left transition",
                       selected

@@ -4,7 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import { Hono } from "hono"
 import type { ExtractedPage } from "@adt/pdf"
-import { createBookStorage, openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/storage"
 import { AccessibilityAssessmentOutput, type TaskInfo } from "@adt/types"
 import { errorHandler } from "../middleware/error-handler.js"
 import type { TaskService } from "../services/task-service.js"
@@ -128,6 +128,19 @@ describe("Package routes", () => {
   }
 
   describe("POST /api/books/:label/package-adt", () => {
+    it("rejects stale mode output even when an existing build can be cached", async () => {
+      createRenderedBook("stale-mode")
+      createWebAssets()
+      const first = await app.request("/api/books/stale-mode/package-adt", { method: "POST" })
+      expect(first.status).toBe(200)
+      const dir = path.join(tmpDir, "stale-mode")
+      const hash = fs.readFileSync(path.join(dir, "adt", ".build-hash"), "utf8")
+      writeSectioningLifecycle(dir, "dynamic", false)
+      const response = await app.request("/api/books/stale-mode/package-adt", { method: "POST" })
+      expect(response.status).toBe(409)
+      expect(await response.json()).toMatchObject({ code: "SECTIONING_STALE" })
+      expect(fs.readFileSync(path.join(dir, "adt", ".build-hash"), "utf8")).toBe(hash)
+    })
     it("returns 404 for missing book", async () => {
       const res = await app.request("/api/books/missing/package-adt", {
         method: "POST",

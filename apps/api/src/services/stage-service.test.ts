@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb } from "@adt/storage"
+import { openBookDb, writeSectioningLifecycle } from "@adt/storage"
 import { createBookEventBus, type BookSSEEvent } from "./book-event-bus.js"
 import { createPageErrorDecisions } from "./page-error-decisions.js"
 import {
@@ -32,6 +32,7 @@ function makeBook(label: string): void {
     ["page-sectioning", new Date().toISOString()]
   )
   db.close()
+  writeSectioningLifecycle(bookDir, "dynamic", true)
 }
 
 function stepRunStatuses(label: string): Map<string, string> {
@@ -86,6 +87,27 @@ async function tick(): Promise<void> {
 }
 
 describe("stage-service cancellation", () => {
+  it("cancels a deferred run before preparation or runner writes begin", async () => {
+    const label = "cancel-before-start"
+    makeBook(label)
+    const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    db.run("UPDATE step_runs SET status = 'done'")
+    db.close()
+    const before = stepRunStatuses(label)
+    const runner: StageRunner = { run: vi.fn(async () => undefined) }
+    const beforeRun = vi.fn(() => {
+      const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+      db.run("DELETE FROM step_runs")
+      db.close()
+    })
+    const service = createStageService(runner, createBookEventBus())
+    service.startStageRun(label, { ...baseOptions(label), beforeRun })
+    service.cancelStageRun(label)
+    await vi.waitFor(() => expect(service.getStatus(label).active).toBeNull())
+    expect(beforeRun).not.toHaveBeenCalled()
+    expect(runner.run).not.toHaveBeenCalled()
+    expect(stepRunStatuses(label)).toEqual(before)
+  })
   it("cancelling an active run: cancelling → cancelled, resets running steps, no error event", async () => {
     const label = "cancel-active"
     makeBook(label)

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import path from "node:path"
 import os from "node:os"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, writeSectioningLifecycle } from "@adt/storage"
 import { DEFAULT_LLM_MODEL_ID } from "@adt/types"
 
 const llmMocks = vi.hoisted(() => ({
@@ -77,6 +77,7 @@ describe("page-edit-service", () => {
   })
 
   describe("reRenderPage", () => {
+    beforeEach(() => writeSectioningLifecycle(path.join(tmpDir, label), "dynamic", true))
     it("throws when pipeline data is missing", async () => {
       await expect(
         reRenderPage({
@@ -237,12 +238,14 @@ describe("page-edit-service", () => {
 
       const verifyStorage = createBookStorage(label, tmpDir)
       try {
-        expect(verifyStorage.getLatestNodeData("easy-read", "book")).toBeNull()
-        expect(verifyStorage.getLatestNodeData("text-catalog", "book")).toBeNull()
-        expect(verifyStorage.getLatestNodeData("text-catalog-translation", "es")).toBeNull()
-        expect(verifyStorage.getLatestNodeData("tts", "en")).toBeNull()
-        expect(verifyStorage.getLatestNodeData("tts-timestamps", "en")).toBeNull()
-        expect(verifyStorage.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
+        for (const [node, itemId] of [
+          ["easy-read", "book"], ["text-catalog", "book"],
+          ["text-catalog-translation", "es"], ["tts", "en"],
+          ["tts-timestamps", "en"], ["accessibility-assessment", "book"],
+        ]) {
+          expect(verifyStorage.getLatestNodeData(node, itemId)).toMatchObject({ version: 1 })
+          expect(verifyStorage.getAllNodeVersions(node, itemId)).toHaveLength(1)
+        }
         const clearedSteps = new Set(verifyStorage.getStepRuns().map((run) => run.step))
         for (const step of [
           "image-captioning",

@@ -358,74 +358,31 @@ describe("retireSectionIdsForClearedSectioning", () => {
     )
   })
 
-  it("backs up a detached recording before the run can overwrite it, then clears", () => {
-    // The ordering `makeBeforeRun` depends on, end to end: retire, move the
-    // upload to a separate path the re-mint cannot regenerate into, then clear — and
-    // the pruned `tts` row has to survive that clear, which is the only reason
-    // pruning it was worth doing.
-    const retiredSection = formatSectionId(pageId, 3)
-    const fileName = `${retiredSection}_ans_a.mp3`
-    seedTts("en", [{ textId: `${retiredSection}_ans_a`, manual: true }, { textId: "pg001_t001" }])
-
-    makeBeforeRun(label, "sectioning", "speech", tmpDir)()
-
-    // The original remains usable if a later step fails; its backup is safe
-    // outside the language dir that regeneration writes into.
-    expect(audioExists("en", fileName)).toBe(true)
-    const parked = path.join(tmpDir, label, "audio", ".detached")
-    const found = fs
-      .readdirSync(parked)
-      .flatMap((stamp) => fs.readdirSync(path.join(parked, stamp, "en")))
-    expect(found).toEqual([fileName])
-    // `page-sectioning` is gone; the pruned manifest is not.
-    expect(withStorage((storage) => storage.getLatestNodeData("page-sectioning", pageId))).toBeNull()
-    expect(ttsTextIds("en")).toEqual(["pg001_t001"])
-  })
-
   it.each(["sectioning", "extract"] as const)(
-    "rolls back retirement when backup fails on a %s rerun, and can retry",
+    "blocks unsafe %s regeneration before retirement, backup or deletion",
     (fromStage) => {
       const section = formatSectionId(pageId, 3)
       const textId = `${section}_ans_a`
-      const fileName = `${textId}.mp3`
       seedTts("en", [{ textId, manual: true }])
       seedTimestamps("en", [textId])
       withStorage((storage) => {
-        storage.putSignLanguageVideo("retry-video", Buffer.from("video"), "retry.mp4", "video/mp4")
-        storage.assignSignLanguageVideo("retry-video", section)
+        storage.putSignLanguageVideo("kept-video", Buffer.from("video"), "kept.mp4", "video/mp4")
+        storage.assignSignLanguageVideo("kept-video", section)
       })
       const before = withStorage((storage) => storage.getNodeVersionFingerprint())
       const run = makeBeforeRun(label, fromStage, "speech", tmpDir)
-      const copy = vi.spyOn(fs, "copyFileSync").mockImplementationOnce(() => {
-        throw Object.assign(new Error("permission denied"), { code: "EACCES" })
-      })
+      const copy = vi.spyOn(fs, "copyFileSync")
       try {
-        expect(run).toThrow("Could not preserve uploaded recording")
-      } finally {
-        copy.mockRestore()
-      }
+        expect(run).toThrow(/manual or unknown-origin/)
+        expect(run).toThrow(/manual or unknown-origin/)
+        expect(copy).not.toHaveBeenCalled()
+      } finally { copy.mockRestore() }
       expect(withStorage((storage) => storage.getNodeVersionFingerprint())).toEqual(before)
-      expect(sectionIdsByVideo().get("retry-video")).toBe(section)
+      expect(sectionIdsByVideo().get("kept-video")).toBe(section)
       expect(ttsTextIds("en")).toEqual([textId])
       expect(timestampKeys("en")).toEqual([textId])
-      expect(fs.readFileSync(path.join(tmpDir, label, "audio", "en", fileName), "utf8")).toBe("fake-audio")
-
-      // Reuse the same callback: failed preservation must not trip its once guard.
-      expect(run).not.toThrow()
-      expect(ttsTextIds("en")).toEqual([])
-      expect(sectionIdsByVideo().get("retry-video")).toBeNull()
-      expect(withStorage((storage) => storage.getLatestNodeData("page-sectioning", pageId))).toBeNull()
-      const backupRoot = path.join(tmpDir, label, "audio", ".detached")
-      const backups = fs.readdirSync(backupRoot)
-        .map((batch) => path.join(backupRoot, batch, "en", fileName))
-        .filter((file) => fs.existsSync(file))
-      expect(backups).toHaveLength(1)
-      fs.writeFileSync(path.join(tmpDir, label, "audio", "en", fileName), "new generated audio")
-      expect(fs.readFileSync(backups[0], "utf8")).toBe("fake-audio")
-      const completed = withStorage((storage) => storage.getNodeVersionFingerprint())
-      run()
-      expect(withStorage((storage) => storage.getNodeVersionFingerprint())).toEqual(completed)
-    }
+      expect(fs.readFileSync(path.join(tmpDir, label, "audio", "en", `${textId}.mp3`), "utf8")).toBe("fake-audio")
+    },
   )
 
   it("reconciles both the canonical and legacy language row spellings", () => {

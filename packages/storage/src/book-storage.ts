@@ -4,10 +4,11 @@ import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
 import type { ExtractedPage, ExtractedImage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
-import { parseBookLabel } from "@adt/types"
+import { parseBookLabel, STAGE_OUTPUT_NODES, PIPELINE } from "@adt/types"
 import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
 import { openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
+import { invalidateSectioningLifecycle } from "./sectioning-transition.js"
 
 export interface BookPaths {
   bookDir: string
@@ -75,6 +76,9 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
 
     clearNodesByType(nodes: string[]): void {
       if (nodes.length === 0) return
+      if (STAGE_OUTPUT_NODES.sectioning.some((node) => nodes.includes(node))) {
+        invalidateSectioningLifecycle(paths.bookDir, PIPELINE.find((stage) => stage.name === "sectioning")!.steps.map((step) => step.name))
+      }
       transaction(() => {
         // Quiz history is also the permanent record of spent catalog/audio
         // identities. Invalidate its current output, never erase that record.
@@ -447,6 +451,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
 
     clearStepRuns(steps: string[]): void {
       if (steps.length === 0) return
+      invalidateSectioningLifecycle(paths.bookDir, steps)
       const placeholders = steps.map(() => "?").join(", ")
       db.run(`DELETE FROM step_runs WHERE step IN (${placeholders})`, steps)
     },
