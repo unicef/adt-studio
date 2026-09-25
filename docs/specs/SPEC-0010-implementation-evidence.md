@@ -190,3 +190,13 @@ The original live-UI and Lingui results above describe the earlier implementatio
 head; neither Studio code nor strings changed in this follow-up. Full downstream
 resume remains unavailable; AC-12/13 are still blocked. Packaged-platform and
 release verification limits remain unchanged.
+
+
+## Independent implementation review
+
+A subsequent full-spec/system review reproduced and fixed archive ownership-path
+aliases, collision-renamed source provenance and first-extraction font-upload
+compatibility. See [the review report](../verification/spec-0010-review.md) for
+findings, refreshed dependencies, an AC-by-AC matrix, completion estimate and
+verification limits. The spec remains in review and full downstream resume is
+still blocked; no acceptance criterion was weakened.

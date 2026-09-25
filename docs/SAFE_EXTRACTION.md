@@ -36,7 +36,10 @@ is written atomically before copying source bytes or writing extraction content.
 Extraction reads the stored source snapshot. A completed manifest is published
 only after the expected nonempty page set, image files, original metadata
 versions and source snapshot have been validated and flushed. Later editor
-versions and additional crops do not invalidate those original versions.
+versions and additional crops do not invalidate those original versions. Before
+first extraction, uploaded font files are accepted only when referenced by
+schema-valid retained font registry versions; their bytes and history stay intact.
+Unregistered files or symlinks do not make an occupied destination eligible.
 
 On failure/cancellation the attempt and partial data remain. Readers cannot use
 that partial page set through the API, and restart cannot infer completion.
@@ -44,7 +47,10 @@ Diagnostics/source inspection remain available. An interrupted manifest requires
 a new destination, not automatic retry into the partial book.
 
 Project archives include the manifest, source, DB history and referenced media.
-They exclude process writer ownership. Do not run older ADT binaries against the
+Collision-renamed imports relocate the source filename in existing provenance
+and validate complete inventories; they do not invent provenance for legacy
+archives. Imports also exclude normalized aliases of process ownership records.
+Archives exclude process writer ownership. Do not run older ADT binaries against the
 same directory: those binaries do not implement the writer/admission protocol.
 
 File flushes use non-truncating writable handles, as required by
