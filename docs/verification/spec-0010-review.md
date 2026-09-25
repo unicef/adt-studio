@@ -1,5 +1,10 @@
 # SPEC-0010 implementation review — 2026-09-25
 
+Historical review checkpoint: publication was subsequently authorized on
+2026-09-26. See [the implementation evidence](../specs/SPEC-0010-implementation-evidence.md)
+for current branch naming and dependency refresh, and PR #886 for published head
+and hosted checks. The "not pushed" statements below describe this review's time.
+
 This is a fresh behavioral review of local implementation head `47c3fbfc`, with
 remediation committed on `spec/810-safe-cli-reruns`. It is not a human approval
 or a claim that the complete specification is implemented. No commits are pushed.

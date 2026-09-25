@@ -1,5 +1,12 @@
 # SPEC-0010 implementation plan and evidence
 
+Publication authorized on 2026-09-26. The local branch is renamed to
+`spec/spec-0010-safe-cli-reruns`; the remote remains
+`spec/810-safe-cli-reruns` to preserve PR #886 (GitHub closes a PR when its head
+branch is renamed). Earlier statements below about unpushed work describe the
+preparation/review checkpoints. See PR #886 for publication and hosted CI status;
+no local test result establishes hosted CI or release acceptance.
+
 The published spec and ADR 026 remain in review, with no approval inferred from
 implementation. The requester authorized implementation before approval on
 2026-09-25. This branch is rebased onto develop `737d3314`; the original published
@@ -225,3 +232,10 @@ Source commit `1c9fa23d` verification:
 - AC-12/13 refusal/reporting evidence improved; successful downstream execution
   remains blocked. Packaged/release and representative-book limitations from
   the independent review remain; these checks do not establish release acceptance.
+
+Dependency refresh for publication: develop remains `737d3314`; SPEC-0001 #879
+remains `375081fc` and SPEC-0002 #880 remains `5eeaab68` (both documentation only).
+SPEC-0003 #884 now publishes its partial implementation at `e3737abe`, including
+shared Sectioning/rendering preflight. Its code is not integrated into this
+branch; the single writer protocol and combined behavior still need integration
+tests. References above to its unpublished local code are historical.
