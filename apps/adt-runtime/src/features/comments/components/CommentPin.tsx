@@ -94,7 +94,9 @@ export function CommentPin({
       className={cn(
         "pointer-events-auto absolute flex h-7 w-7 -translate-y-full items-center justify-center",
         "rounded-full rounded-bl-none text-[0.7rem] font-bold leading-none",
-        "shadow-md ring-2 transition-all duration-200 ease-out",
+        // Never `left`/`top`: a pin whose position changes — measured a frame late, moved to a new
+        // anchor, following a scroll — must jump to its point, not glide in from somewhere else.
+        "shadow-md ring-2 transition-[scale,box-shadow,opacity,filter] duration-200 ease-out",
         // A white ring inside a dark halo: a pin sits on book content of any
         // colour, so a single-colour focus ring cannot be relied on. The halo is a
         // shadow rather than an outline because `focus:outline-none` sets
@@ -105,8 +107,8 @@ export function CommentPin({
         own ? "ring-white" : "ring-white/60",
         open ? "scale-110 shadow-lg" : "hover:scale-110 hover:shadow-lg",
         draft
-          ? "animate-pulse ring-white motion-reduce:animate-none"
-          : "duration-200 animate-in fade-in-0 zoom-in-50 motion-reduce:animate-none",
+          ? "animate-comment-draft ring-white motion-reduce:animate-none"
+          : !settling && "duration-200 animate-in fade-in-0 motion-reduce:animate-none",
         resolved && "opacity-45 saturate-50 hover:opacity-90",
         subtle && !open && "scale-90 opacity-70 hover:opacity-100",
         onPointerDown && "cursor-grab touch-none select-none active:cursor-grabbing",
