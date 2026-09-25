@@ -322,6 +322,10 @@ msgstr "{0} skedarë prompti që mungojnë do të krijohen. Skedarët ekzistues 
 #~ msgid "{0} more waiting in the Storyboard"
 #~ msgstr "{0} më shumë në pritje në Storyboard"
 
+#. placeholder {0}: fresh.length
+msgid "{0} new comments"
+msgstr "{0} komente të reja"
+
 #. placeholder {0}: String(filteredQuizzes.length)
 #. placeholder {1}: String(displayQuizzes.length)
 msgid "{0} of {1}"
@@ -915,6 +919,9 @@ msgstr "Një faqe dështoi te {stepLabel}"
 
 msgid "A question worth asking"
 msgstr "Një pyetje që vlen të bëhet"
+
+msgid "A quiz"
+msgstr "Një kuiz"
 
 msgid "A quiz already sits here — add another after it or replace it"
 msgstr "Një kuiz ekziston tashmë këtu — shtoni një tjetër pas tij ose zëvendësojeni"
@@ -2620,6 +2627,12 @@ msgstr "Titulli i kapitullit"
 msgid "Chart / Graph"
 msgstr "Tabelë / Grafik"
 
+msgid "Check for new comments"
+msgstr "Kontrollo për komente të reja"
+
+msgid "Check for new comments (last checked {checkedAt})"
+msgstr "Kontrollo për komente të reja (kontrolli i fundit: {checkedAt})"
+
 msgid "Check for updates"
 msgstr "Kontrollo për përditësime"
 
@@ -2909,6 +2922,9 @@ msgstr "Koment"
 #. placeholder {0}: pin.thread.root.author_name
 msgid "Comment by {0}"
 msgstr "Koment nga {0}"
+
+msgid "Comment by {name}"
+msgstr "Koment nga {name}"
 
 #. placeholder {0}: pin.thread.root.author_name
 msgid "Comment from {0}"
@@ -4731,6 +4747,9 @@ msgstr "Përshtatur me panelin · duke shfaqur {display}% të madhësisë së pl
 
 msgid "Fix"
 msgstr "Rregullo"
+
+msgid "Fix in Quizzes"
+msgstr "Rregullo te Kuizet"
 
 msgid "Fix in Storyboard"
 msgstr "Rregullo në Storyboard"
@@ -6884,6 +6903,10 @@ msgstr "Kod i ri"
 msgid "New code set — copy the message again so readers get it."
 msgstr "U caktua kod i ri — kopjoni mesazhin përsëri që lexuesit ta marrin."
 
+#. placeholder {0}: first.author_name
+msgid "New comment from {0}"
+msgstr "Koment i ri nga {0}"
+
 msgid "New Entry"
 msgstr "Hyrje e re"
 
@@ -7798,6 +7821,9 @@ msgstr "Hapni Pamjen Paraprake"
 msgid "Open pull request {0}"
 msgstr "Hap pull request-in {0}"
 
+msgid "Open quiz in Quizzes"
+msgstr "Hap kuizin te Kuizet"
+
 msgid "Open Sharing"
 msgstr "Hap Ndarje"
 
@@ -7870,6 +7896,9 @@ msgstr "OpenAI, Azure, dhe Gemini tekst në fjalim."
 
 msgid "Opening the page…"
 msgstr "Po hapet faqja…"
+
+msgid "Opening the quiz…"
+msgstr "Po hapet kuizi…"
 
 msgid "Operation failed"
 msgstr "Veprimi dështoi"
@@ -8714,8 +8743,8 @@ msgstr "PT"
 #~ msgid "Publish a private, shareable copy for readers and reviewers. No download or install needed."
 #~ msgstr "Publiko një kopje private, të ndashme për lexuesit dhe recensuesit. Nuk nevojitet shkarkim ose instalim."
 
-#~ msgid "Publish again"
-#~ msgstr "Publiko përsëri"
+msgid "Publish again"
+msgstr "Publiko përsëri"
 
 #~ msgid "Publish and get a link"
 #~ msgstr "Publiko dhe merr një lidhje"
@@ -8876,6 +8905,7 @@ msgstr "Kuiz"
 
 #. placeholder {0}: String(activeQuiz.index + 1)
 #. placeholder {0}: String(item.index + 1)
+#. placeholder {0}: quiz.number
 msgid "Quiz {0}"
 msgstr "Kuiz {0}"
 
@@ -10309,6 +10339,9 @@ msgstr "Dërgojeni këtë arkiv projekti te koordinatori për ta bashkuar në li
 
 msgid "Sending it to your Cloudflare account"
 msgstr "Duke e dërguar në llogarinë tuaj Cloudflare"
+
+msgid "Sends a fresh copy to the same link and code"
+msgstr "Dërgon një kopje të re në të njëjtën lidhje dhe kod"
 
 #~ msgid "Sends your latest edits to the same link."
 #~ msgstr "Dërgon redaktimet tuaja të fundit në të njëjtën lidhje."
@@ -12110,6 +12143,9 @@ msgstr "Ky ofrues nuk është i regjistruar në server, prandaj nuk mund të kon
 
 msgid "This provider's command-line tool isn't installed on this machine. Install it, then run its login:"
 msgstr "Mjeti i linjës së komandës së këtij ofruesi nuk është instaluar në këtë makinë. Instalojeni, pastaj drejtoni hyrjen e tij:"
+
+msgid "This quiz isn't in the book anymore — it may have been removed since the reader saw it."
+msgstr "Ky kuiz nuk është më në libër — mund të jetë hequr pasi lexuesi e pa."
 
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Ky test do të hiqet nga libri. Mund ta rikthesh nga historia e versioneve."

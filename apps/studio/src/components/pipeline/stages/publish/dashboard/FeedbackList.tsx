@@ -61,7 +61,13 @@ export function FeedbackList({
         ? groupByPage(threads).map((group) => (
             <div key={group.key} role="group" aria-labelledby={`feedback-group-${group.key}`}>
               <div id={`feedback-group-${group.key}`} className="sticky top-0 z-10 flex items-center justify-between border-b bg-muted/80 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground backdrop-blur">
-                {group.pageNumber !== null ? <Trans>Page {group.pageNumber}</Trans> : <Trans>Somewhere in the book</Trans>}
+                {group.pageNumber !== null ? (
+                  <Trans>Page {group.pageNumber}</Trans>
+                ) : group.quizLabel !== null ? (
+                  group.quizLabel
+                ) : (
+                  <Trans>Somewhere in the book</Trans>
+                )}
                 <span className="tabular-nums">{group.threads.length}</span>
               </div>
               {rows(group.threads)}

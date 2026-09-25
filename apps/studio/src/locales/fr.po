@@ -322,6 +322,10 @@ msgstr "{0} fichiers de prompt manquants seront créés. Les fichiers existants 
 #~ msgid "{0} more waiting in the Storyboard"
 #~ msgstr "{0} en attente dans le Storyboard"
 
+#. placeholder {0}: fresh.length
+msgid "{0} new comments"
+msgstr "{0} nouveaux commentaires"
+
 #. placeholder {0}: String(filteredQuizzes.length)
 #. placeholder {1}: String(displayQuizzes.length)
 msgid "{0} of {1}"
@@ -915,6 +919,9 @@ msgstr "Une page a échoué dans {stepLabel}"
 
 msgid "A question worth asking"
 msgstr "Une question qui mérite d'être posée"
+
+msgid "A quiz"
+msgstr "Un quiz"
 
 msgid "A quiz already sits here — add another after it or replace it"
 msgstr "Un quiz se trouve déjà ici — ajoutez-en un autre à la suite ou remplacez-le"
@@ -2620,6 +2627,12 @@ msgstr "Titre de chapitre"
 msgid "Chart / Graph"
 msgstr "Graphique / Diagramme"
 
+msgid "Check for new comments"
+msgstr "Vérifier les nouveaux commentaires"
+
+msgid "Check for new comments (last checked {checkedAt})"
+msgstr "Vérifier les nouveaux commentaires (dernière vérification : {checkedAt})"
+
 msgid "Check for updates"
 msgstr "Vérifier les mises à jour"
 
@@ -2909,6 +2922,9 @@ msgstr "Commentaire"
 #. placeholder {0}: pin.thread.root.author_name
 msgid "Comment by {0}"
 msgstr "Commentaire de {0}"
+
+msgid "Comment by {name}"
+msgstr "Commentaire de {name}"
 
 #. placeholder {0}: pin.thread.root.author_name
 msgid "Comment from {0}"
@@ -4731,6 +4747,9 @@ msgstr "Ajusté au panneau · affichage à {display} % de la taille réelle"
 
 msgid "Fix"
 msgstr "Corriger"
+
+msgid "Fix in Quizzes"
+msgstr "Corriger dans Quiz"
 
 msgid "Fix in Storyboard"
 msgstr "Corriger dans le Storyboard"
@@ -6884,6 +6903,10 @@ msgstr "Nouveau code"
 msgid "New code set — copy the message again so readers get it."
 msgstr "Nouveau code défini — copiez à nouveau le message pour que les lecteurs le reçoivent."
 
+#. placeholder {0}: first.author_name
+msgid "New comment from {0}"
+msgstr "Nouveau commentaire de {0}"
+
 msgid "New Entry"
 msgstr "Nouvelle entrée"
 
@@ -7798,6 +7821,9 @@ msgstr "Ouvrir l'aperçu"
 msgid "Open pull request {0}"
 msgstr "Ouvrir la demande de tirage {0}"
 
+msgid "Open quiz in Quizzes"
+msgstr "Ouvrir le quiz dans Quiz"
+
 msgid "Open Sharing"
 msgstr "Ouvrir Partage"
 
@@ -7870,6 +7896,9 @@ msgstr "OpenAI, Azure, et Gemini synthèse vocale."
 
 msgid "Opening the page…"
 msgstr "Ouverture de la page…"
+
+msgid "Opening the quiz…"
+msgstr "Ouverture du quiz…"
 
 msgid "Operation failed"
 msgstr "L'opération a échoué"
@@ -8714,8 +8743,8 @@ msgstr "PT"
 #~ msgid "Publish a private, shareable copy for readers and reviewers. No download or install needed."
 #~ msgstr "Publiez une copie privée et partageable pour les lecteurs et les critiques. Aucun téléchargement ou installation nécessaire."
 
-#~ msgid "Publish again"
-#~ msgstr "Publier à nouveau"
+msgid "Publish again"
+msgstr "Publier à nouveau"
 
 #~ msgid "Publish and get a link"
 #~ msgstr "Publier et obtenir un lien"
@@ -8876,6 +8905,7 @@ msgstr "Quiz"
 
 #. placeholder {0}: String(activeQuiz.index + 1)
 #. placeholder {0}: String(item.index + 1)
+#. placeholder {0}: quiz.number
 msgid "Quiz {0}"
 msgstr "Quiz {0}"
 
@@ -10309,6 +10339,9 @@ msgstr "Renvoyez cette archive de projet au coordinateur pour la fusionner dans 
 
 msgid "Sending it to your Cloudflare account"
 msgstr "Envoi à votre compte Cloudflare"
+
+msgid "Sends a fresh copy to the same link and code"
+msgstr "Envoie une nouvelle copie au même lien et au même code"
 
 #~ msgid "Sends your latest edits to the same link."
 #~ msgstr "Envoie vos dernières modifications au même lien."
@@ -12110,6 +12143,9 @@ msgstr "Ce fournisseur n'est pas enregistré sur le serveur, il ne peut donc pas
 
 msgid "This provider's command-line tool isn't installed on this machine. Install it, then run its login:"
 msgstr "L'outil en ligne de commande de ce fournisseur n'est pas installé sur cette machine. Installez-le, puis exécutez sa connexion :"
+
+msgid "This quiz isn't in the book anymore — it may have been removed since the reader saw it."
+msgstr "Ce quiz n'est plus dans le livre — il a peut-être été supprimé depuis que le lecteur l'a vu."
 
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Ce quiz sera retiré du livre. Vous pourrez toujours le restaurer depuis l'historique des versions."

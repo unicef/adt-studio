@@ -245,7 +245,7 @@ export function FeedbackPage({
   )
 }
 
-function Message({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+export function Message({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="flex h-full min-h-40 flex-col items-center justify-center gap-2 px-8 py-10 text-center text-xs text-muted-foreground">
       <span className="flex size-10 items-center justify-center rounded-full bg-muted">{icon}</span>

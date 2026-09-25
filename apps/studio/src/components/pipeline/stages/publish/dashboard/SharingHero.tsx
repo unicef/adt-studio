@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { AlertTriangle, ArrowUpCircle, BookOpen, CheckCircle2, KeyRound, Loader2, Settings2 } from "lucide-react"
+import { AlertTriangle, ArrowUpCircle, BookOpen, CheckCircle2, KeyRound, Loader2, RefreshCw, Settings2 } from "lucide-react"
 import { getBookCoverUrl } from "@/api/client"
 import { RelativeTime } from "@/components/publication-feedback/RelativeTime"
 import { Button } from "@/components/ui/button"
@@ -96,12 +96,27 @@ function HeroIdentity({ link, onOpenSettings, quiet }: { link: DashLink; onOpenS
             <ArrowUpCircle className="size-4 shrink-0" aria-hidden="true" />
             <Trans>You've edited since this version — update once the service is back.</Trans>
           </p>
-        ) : quiet ? null : link.changesWaiting === false ? (
-          <p className="flex items-center gap-1.5 text-[13px] text-emerald-700 motion-safe:animate-in motion-safe:fade-in-0 dark:text-emerald-300">
-            <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
-            <Trans>Up to date — readers see your latest edits.</Trans>
+        ) : quiet ? null : (
+          /* Nothing is waiting, but the author may still want a fresh copy out — after changing
+             something Studio can't see, or to be sure — so the way to do it is always here. */
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] motion-safe:animate-in motion-safe:fade-in-0">
+            {link.changesWaiting === false ? (
+              <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
+                <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
+                <Trans>Up to date — readers see your latest edits.</Trans>
+              </span>
+            ) : null}
+            <button
+              type="button"
+              onClick={link.update}
+              title={t`Sends a fresh copy to the same link and code`}
+              className="-mx-1.5 flex h-7 items-center gap-1.5 rounded-md px-1.5 text-xs font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+            >
+              <RefreshCw className="size-3.5" aria-hidden="true" />
+              <Trans>Publish again</Trans>
+            </button>
           </p>
-        ) : null}
+        )}
       </div>
     </div>
   )

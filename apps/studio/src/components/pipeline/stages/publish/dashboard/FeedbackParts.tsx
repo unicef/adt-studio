@@ -5,7 +5,8 @@ import { AlertTriangle, ArrowUpDown, ArrowUpRight, CheckCircle2, Loader2, Search
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { feedbackDestination } from "../feedback-destination"
+import { threadDestination } from "./helpers"
+import { QuizCommentPreview } from "./QuizCommentPreview"
 import type { DashboardData, DashThread } from "./dashboard-data"
 import { FeedbackPage } from "./FeedbackPage"
 import { PanelEmpty } from "./DashboardPanel"
@@ -134,16 +135,27 @@ export function PageSheet({
 }) {
   if (!ws.selected) return null
   return (
-    <div data-page-scroll="" className={cn("min-h-0 overflow-y-auto overscroll-contain bg-muted/40 p-4", className)}>
+    <div data-page-scroll="" className={cn("min-h-0 overflow-y-auto overscroll-contain bg-muted/40 p-4 [scrollbar-gutter:stable]", className)}>
       <div className="mx-auto max-w-3xl overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-black/5">
-        <FeedbackPage
-          key={ws.selected.pageSectionId}
-          bookLabel={bookLabel}
-          thread={ws.selected}
-          threads={ws.samePage}
-          onSelectThread={ws.setSelectedId}
-          onLocate={ws.locate}
-        />
+        {ws.selected.quiz ? (
+          <QuizCommentPreview
+            key={ws.selected.pageSectionId}
+            bookLabel={bookLabel}
+            thread={ws.selected}
+            threads={ws.samePage}
+            onSelectThread={ws.setSelectedId}
+            onLocate={ws.locate}
+          />
+        ) : (
+          <FeedbackPage
+            key={ws.selected.pageSectionId}
+            bookLabel={bookLabel}
+            thread={ws.selected}
+            threads={ws.samePage}
+            onSelectThread={ws.setSelectedId}
+            onLocate={ws.locate}
+          />
+        )}
       </div>
     </div>
   )
@@ -152,10 +164,10 @@ export function PageSheet({
 export function OpenPageLink({ bookLabel, thread }: { bookLabel: string; thread: DashThread }) {
   return (
     <Link
-      {...feedbackDestination(bookLabel, thread.pageSectionId, thread.id)}
+      {...threadDestination(bookLabel, thread)}
       className="flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-brand-700 transition-colors duration-150 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none dark:text-brand-300 dark:hover:bg-brand-500/10"
     >
-      <Trans>Open page in Storyboard</Trans>
+      {thread.quiz ? <Trans>Open quiz in Quizzes</Trans> : <Trans>Open page in Storyboard</Trans>}
       <ArrowUpRight className="size-3.5" aria-hidden="true" />
     </Link>
   )
@@ -206,9 +218,16 @@ export function ReplyComposer({
       sending.current = false
     }
   }
+  /* The layout keeps the collapsed box's height and the box grows upward over the conversation,
+     so opening it to write moves nothing else on the screen. */
   return (
-    <div className="flex flex-col gap-2">
-      <div className="rounded-xl border bg-background transition-shadow focus-within:ring-2 focus-within:ring-ring">
+    <div className="relative h-[82px]">
+      <div
+        className={cn(
+          "absolute inset-x-0 bottom-0 z-10 rounded-xl border bg-background transition-shadow duration-200 focus-within:ring-2 focus-within:ring-ring motion-reduce:transition-none",
+          open && "shadow-[0_-8px_24px_-12px_rgba(15,23,42,0.18)]",
+        )}
+      >
         <textarea
           value={body}
           onChange={(event) => setBody(event.target.value)}
@@ -218,15 +237,17 @@ export function ReplyComposer({
               void send()
             }
           }}
-          rows={open ? 3 : 1}
           disabled={offline}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           placeholder={t`Reply to ${thread.authorName}…`}
           aria-label={t`Reply to ${thread.authorName}`}
-          className="block w-full resize-none rounded-xl bg-transparent px-3 py-2.5 text-[13px] leading-relaxed outline-none transition-[height] duration-200 placeholder:text-muted-foreground motion-reduce:transition-none"
+          className={cn(
+            "block w-full resize-none rounded-t-xl bg-transparent px-3 py-2.5 text-[13px] leading-5 outline-none transition-[height] duration-200 ease-out placeholder:text-muted-foreground motion-reduce:transition-none",
+            open ? "h-24" : "h-10",
+          )}
         />
-        <div className="flex items-center justify-between gap-2 border-t px-2 py-1.5">
+        <div className="flex h-10 items-center justify-between gap-2 border-t px-2">
           <span className="min-w-0 truncate px-1 text-[11px] text-muted-foreground">
             {offline ? (
               <span className="text-amber-700 dark:text-amber-300">

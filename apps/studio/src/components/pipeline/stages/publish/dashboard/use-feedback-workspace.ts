@@ -71,9 +71,13 @@ export function useFeedbackWorkspace(data: DashboardData) {
     return list.slice(selectedIndex + 1).find(others) ?? list.find(others) ?? null
   })()
 
-  /** Every thread on the same page as the selected one, the selected one included. */
+  /** Every thread on the same page (or quiz) as the selected one, the selected one included. */
   const samePage = selected
-    ? data.allThreads.filter((thread) => thread.pageId !== null && thread.pageId === selected.pageId)
+    ? data.allThreads.filter(
+        (thread) =>
+          (thread.pageId !== null && thread.pageId === selected.pageId) ||
+          (thread.quiz !== null && thread.quiz.id === selected.quiz?.id),
+      )
     : []
 
   return {

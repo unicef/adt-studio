@@ -117,6 +117,9 @@ vi.mock("@/hooks/use-book-publication", async () => {
   const actual = await vi.importActual<typeof import("@/hooks/use-book-publication")>("@/hooks/use-book-publication")
   return { ...actual, useBookPublication: () => ({ data: publicationStatusMock() }) }
 })
+vi.mock("@/components/publication-feedback/use-new-comment-alerts", () => ({
+  useNewCommentAlerts: () => {},
+}))
 vi.mock("@/components/publication-feedback/use-feedback-badge", () => ({
   useFeedbackBadge: () => feedbackBadgeMock(),
 }))

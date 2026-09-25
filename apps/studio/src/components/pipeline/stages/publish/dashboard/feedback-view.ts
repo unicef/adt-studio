@@ -34,6 +34,8 @@ export function visibleThreads(
 export interface PageGroup {
   key: string
   pageNumber: number | null
+  /** "Quiz 2" for a group of comments on a quiz page. */
+  quizLabel: string | null
   threads: DashThread[]
 }
 
@@ -41,10 +43,10 @@ export interface PageGroup {
 export function groupByPage(threads: DashThread[]): PageGroup[] {
   const groups: PageGroup[] = []
   for (const thread of threads) {
-    const key = thread.pageId ?? "unknown"
+    const key = thread.pageId ?? thread.quiz?.id ?? "unknown"
     const last = groups[groups.length - 1]
     if (last && last.key === key) last.threads.push(thread)
-    else groups.push({ key, pageNumber: thread.pageNumber, threads: [thread] })
+    else groups.push({ key, pageNumber: thread.pageNumber, quizLabel: thread.quiz ? thread.pageLabel : null, threads: [thread] })
   }
   return groups
 }
