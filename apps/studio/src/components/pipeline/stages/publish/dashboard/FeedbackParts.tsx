@@ -134,7 +134,7 @@ export function PageSheet({
 }) {
   if (!ws.selected) return null
   return (
-    <div data-page-scroll="" className={cn("min-h-0 overflow-y-auto overscroll-contain bg-muted/40 p-4", className)}>
+    <div data-page-scroll="" className={cn("min-h-0 overflow-y-auto overscroll-contain bg-muted/40 p-4 [scrollbar-gutter:stable]", className)}>
       <div className="mx-auto max-w-3xl overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-black/5">
         <FeedbackPage
           key={ws.selected.pageSectionId}
