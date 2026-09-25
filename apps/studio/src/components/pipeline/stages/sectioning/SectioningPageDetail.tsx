@@ -156,7 +156,8 @@ export function SectioningPageDetail({
   // Exact-section validation links are one-shot: focus the stable section id,
   // then remove it from the URL without disturbing other step search state.
   useEffect(() => {
-    if (!search.sectionId || mergedSections.length === 0) return
+    if (!search.sectionId) { consumedSectionFocusRef.current = null; return }
+    if (page.pageId !== pageId || !page.sectioningTree) return
     const focusKey = `${pageId}:${search.sectionId}`
     if (consumedSectionFocusRef.current === focusKey) return
     consumedSectionFocusRef.current = focusKey
@@ -177,7 +178,7 @@ export function SectioningPageDetail({
       hash: true,
       replace: true,
     })
-  }, [bookLabel, mergedSections.length, navigate, pageId, search, t])
+  }, [bookLabel, mergedSections.length, navigate, pageId, page.pageId, page.sectioningTree, search, t])
 
   useEffect(() => {
     if (!focusedSectionId) return

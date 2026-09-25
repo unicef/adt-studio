@@ -125,7 +125,7 @@ describe("StoryboardView validation section focus", () => {
   })
   it("waits for data and never focuses a successor when the target disappears", async () => {
     const original = page
-    page = { ...page, sectioningTree: null } as never
+    page = undefined as never
     const { StoryboardView } = await import("./StoryboardView")
     const view = render(<StoryboardView bookLabel="demo-book" selectedPageId="pg001" />)
     expect(setSectionIndexMock).not.toHaveBeenCalled()
@@ -133,6 +133,17 @@ describe("StoryboardView validation section focus", () => {
     view.rerender(<StoryboardView bookLabel="demo-book" selectedPageId="pg001" />)
     await waitFor(() => expect(toastWarningMock).toHaveBeenCalled())
     expect(setSectionIndexMock).not.toHaveBeenCalled()
+    page = original
+  })
+
+  it("consumes focus when all sectioning output was removed before arrival", async () => {
+    const original = page
+    page = { ...page, sectioningTree: null } as never
+    const { StoryboardView } = await import("./StoryboardView")
+    render(<StoryboardView bookLabel="demo-book" selectedPageId="pg001" />)
+    expect(toastWarningMock).toHaveBeenCalledTimes(1)
+    expect(setSectionIndexMock).not.toHaveBeenCalled()
+    expect(navigateMock).toHaveBeenCalledWith(expect.objectContaining({ replace: true, search: expect.any(Function) }))
     page = original
   })
 

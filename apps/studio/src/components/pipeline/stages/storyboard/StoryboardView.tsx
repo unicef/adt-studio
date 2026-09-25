@@ -108,12 +108,12 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   // not unexpectedly re-apply the focus.
   useEffect(() => {
     if (!search.sectionId) { consumedSectionFocusRef.current = null; return }
-    if (!selectedPageId || page?.pageId !== selectedPageId || !page.sectioningTree) return
+    if (pageLoading || !selectedPageId || !page || page.pageId !== selectedPageId) return
     const focusKey = `${selectedPageId}:${search.sectionId}`
     if (consumedSectionFocusRef.current === focusKey) return
     consumedSectionFocusRef.current = focusKey
 
-    const targetIndex = page.sectioningTree.sections.findIndex(
+    const targetIndex = (page.sectioningTree?.sections ?? []).findIndex(
       (section) => section.sectionId === search.sectionId && !section.isPruned,
     )
     if (targetIndex < 0) {
@@ -128,7 +128,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       hash: true,
       replace: true,
     })
-  }, [bookLabel, navigate, page?.sectioningTree, search, selectedPageId, setSectionIndex, t])
+  }, [bookLabel, navigate, page, pageLoading, search, selectedPageId, setSectionIndex, t])
 
   const confirmUnsavedNavigation = useCallback(
     () =>
