@@ -96,6 +96,8 @@ export const ReviewerValidationSession = z
 export type ReviewerValidationSession = z.infer<typeof ReviewerValidationSession>
 
 export const ReviewerPageValidationResult = z.object({
+  // Ownership is checklist metadata, never a mutable answer override.
+  fix_stage: z.never().optional(),
   criterion_id: z.string().regex(/^[a-z0-9-]+$/),
   status: ReviewerValidationStatus,
   comment: z.string().optional(),
@@ -104,6 +106,7 @@ export const ReviewerPageValidationResult = z.object({
 export type ReviewerPageValidationResult = z.infer<typeof ReviewerPageValidationResult>
 
 export const ReviewerPageValidationRecord = z.object({
+  fix_stage: z.never().optional(),
   session_id: z.string().min(1),
   page_id: z.string().min(1),
   section_id: z.string().min(1).optional(),
@@ -117,3 +120,15 @@ export const ReviewerPageValidationRecord = z.object({
   updated_at: z.string().datetime().optional(),
 })
 export type ReviewerPageValidationRecord = z.infer<typeof ReviewerPageValidationRecord>
+
+/** Transient route context; never stored as a reviewer verdict or task. */
+export const ValidationNavigationContext = z.object({
+  tab: z.enum(["accessibility-summary", "reviewer-validation"]),
+  sessionId: z.string().max(255).optional(),
+  assessment: z.string().max(255).optional(),
+  severity: z.enum(["critical", "serious", "moderate", "minor", "unknown"]).optional(),
+  category: z.enum(["text-alternatives", "structure-semantics", "keyboard-navigation", "forms-controls", "tables", "media-timing", "visual-cues", "other"]).optional(),
+  pageId: z.string().max(255).optional(),
+  findingId: z.string().max(255).optional(),
+})
+export type ValidationNavigationContext = z.infer<typeof ValidationNavigationContext>

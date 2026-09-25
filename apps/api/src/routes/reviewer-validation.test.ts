@@ -275,4 +275,62 @@ describe("Reviewer validation routes", () => {
     expect(body.identificationFields).toHaveLength(1)
   })
 
+
+  it("keeps original ownership across concurrent session saves and a catalog edit", async () => {
+    enableReviewerValidation(configPath)
+    const endpoint = `/api/books/${label}/validation/sessions`
+    const post = (body: unknown) => app.request(endpoint, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    })
+    const initial = await (await post({ session_id: "immutable", reviewer_name: "Original" })).json()
+    const changed = structuredClone(initial.session)
+    changed.catalog_snapshot.pageSections[0].fix_stage = "speech"
+    const replies = await Promise.all([
+      post({ ...changed, reviewer_name: "Writer one" }),
+      post({ ...changed, reviewer_name: "Writer two" }),
+    ])
+    expect(replies.map((reply) => reply.status)).toEqual([201, 201])
+    // Reopen through the HTTP read path: metadata and all versions remain.
+    const stored = await (await app.request(endpoint)).json()
+    expect(stored.sessions[0].session.catalog_snapshot).toEqual(initial.session.catalog_snapshot)
+    expect(stored.sessions[0].version).toBe(3)
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      expect(storage.getAllNodeVersions("reviewer-validation-session", "immutable")[0]?.data).toEqual(initial.session)
+      expect(storage.getLatestNodeData("metadata", "book")?.version).toBe(1)
+      expect(storage.getImageBase64("pg001_page")).toBe(Buffer.from("fake-png").toString("base64"))
+    } finally { storage.close() }
+  })
+
+  it("does not attach today's checklist to a legacy session on resave", async () => {
+    enableReviewerValidation(configPath)
+    const storage = createBookStorage(label, tmpDir)
+    storage.putNodeData("reviewer-validation-session", "legacy", { session_id: "legacy", reviewer_name: "Legacy" })
+    storage.close()
+    const response = await app.request(`/api/books/${label}/validation/sessions`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: "legacy", reviewer_name: "Legacy updated" }),
+    })
+    expect(response.status).toBe(201)
+    expect((await response.json()).session.catalog_snapshot).toBeUndefined()
+  })
+
+  it("rejects invalid checklist and answer ownership without persisting records", async () => {
+    enableReviewerValidation(configPath)
+    const catalog = await (await app.request(`/api/books/${label}/validation/catalog`)).json()
+    catalog.pageSections[0].fix_stage = "https://evil.example"
+    const badSession = await app.request(`/api/books/${label}/validation/sessions`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: "invalid", reviewer_name: "Reviewer", catalog_snapshot: catalog }),
+    })
+    expect(badSession.status).toBe(400)
+    const badRecord = await app.request(`/api/books/${label}/validation/page-results`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: "invalid", page_id: "pg001", href: "pg001.html", results: [], fix_stage: "bad" }),
+    })
+    expect(badRecord.status).toBe(400)
+    expect((await (await app.request(`/api/books/${label}/validation/sessions`)).json()).sessions).toEqual([])
+    expect((await (await app.request(`/api/books/${label}/validation/page-results?sessionId=invalid`)).json()).records).toEqual([])
+  })
+
 })

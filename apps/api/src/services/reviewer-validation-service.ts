@@ -98,9 +98,18 @@ export function saveReviewerValidationSession(
 
   const storage = createBookStorage(safeLabel, booksDir)
   try {
-    const parsed = ReviewerValidationSessionSchema.parse(session)
-    const version = storage.putNodeData(REVIEWER_VALIDATION_SESSION_NODE, parsed.session_id, parsed)
-    return { version, session: parsed as ReviewerValidationSession }
+    return storage.transaction(() => {
+      const parsed = ReviewerValidationSessionSchema.parse(session)
+      const previous = storage.getLatestNodeData(REVIEWER_VALIDATION_SESSION_NODE, parsed.session_id)
+      // Ownership belongs to the original session, including legacy sessions
+      // that never had a snapshot. A stale writer cannot replace that meaning.
+      if (previous) {
+        const original = ReviewerValidationSessionSchema.parse(previous.data)
+        parsed.catalog_snapshot = original.catalog_snapshot
+      }
+      const version = storage.putNodeData(REVIEWER_VALIDATION_SESSION_NODE, parsed.session_id, parsed)
+      return { version, session: parsed as ReviewerValidationSession }
+    })
   } finally {
     storage.close()
   }
