@@ -218,9 +218,16 @@ export function ReplyComposer({
       sending.current = false
     }
   }
+  /* The layout keeps the collapsed box's height and the box grows upward over the conversation,
+     so opening it to write moves nothing else on the screen. */
   return (
-    <div className="flex flex-col gap-2">
-      <div className="rounded-xl border bg-background transition-shadow focus-within:ring-2 focus-within:ring-ring">
+    <div className="relative h-[82px]">
+      <div
+        className={cn(
+          "absolute inset-x-0 bottom-0 z-10 rounded-xl border bg-background transition-shadow duration-200 focus-within:ring-2 focus-within:ring-ring motion-reduce:transition-none",
+          open && "shadow-[0_-8px_24px_-12px_rgba(15,23,42,0.18)]",
+        )}
+      >
         <textarea
           value={body}
           onChange={(event) => setBody(event.target.value)}
@@ -230,15 +237,17 @@ export function ReplyComposer({
               void send()
             }
           }}
-          rows={open ? 3 : 1}
           disabled={offline}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           placeholder={t`Reply to ${thread.authorName}…`}
           aria-label={t`Reply to ${thread.authorName}`}
-          className="block w-full resize-none rounded-xl bg-transparent px-3 py-2.5 text-[13px] leading-relaxed outline-none transition-[height] duration-200 placeholder:text-muted-foreground motion-reduce:transition-none"
+          className={cn(
+            "block w-full resize-none rounded-t-xl bg-transparent px-3 py-2.5 text-[13px] leading-5 outline-none transition-[height] duration-200 ease-out placeholder:text-muted-foreground motion-reduce:transition-none",
+            open ? "h-24" : "h-10",
+          )}
         />
-        <div className="flex items-center justify-between gap-2 border-t px-2 py-1.5">
+        <div className="flex h-10 items-center justify-between gap-2 border-t px-2">
           <span className="min-w-0 truncate px-1 text-[11px] text-muted-foreground">
             {offline ? (
               <span className="text-amber-700 dark:text-amber-300">
