@@ -89,3 +89,14 @@ Used an isolated copy of `momograde1`, never the original book. Through the runn
 - Browser acceptance used an existing assessment on one copied book, not the complete representative acceptance set. Transport mocks cover the unsaved failure flow; real storage integration covers snapshot/version/media preservation.
 - **Only Phase A is delivered. Full SPEC-0009 and #618 are not complete.** Rollback removes entry actions and leaves historical metadata readable; no data migration or new dependency is required.
 
+
+## Confidence follow-up (2026-09-25)
+
+A further review reproduced two Phase A defects with six failing regression cases before the fixes:
+
+- A slow inventory response could redirect a user after they had already left Validation; a late failure could also display an irrelevant error. Navigation now checks the originating router location and invalidates requests when the originating view unmounts or changes book. In-flight admission uses a synchronous request token.
+- Unknown identifiers matching inherited JavaScript property names (`constructor`, `__proto__`, `toString`, `hasOwnProperty`) could resolve to an object/function instead of a supported destination. Ownership maps now read only their own properties, preserving the documented category/Storyboard fallback.
+
+Additional acceptance checks cover restoring return context from a freshly loaded serialized destination URL, a replaced assessment, a deleted source reviewer session, and late failures after unmount. They retain existing review verdicts.
+
+After these frontend-only fixes: `pnpm exec vitest run --project studio --maxWorkers=2` passed **83 files / 527 tests**; `pnpm typecheck`, `pnpm lint` (0 errors, the same 8 warnings), `pnpm --filter @adt/studio build`, and `git diff --check` passed. No user-visible strings changed. The earlier 3,664-test full-repository result remains evidence for the earlier implementation revision; it was not rerun for this follow-up. Backend persistence and renderer code did not change. No new browser, packaged Desktop, Docker, provider or Phase B acceptance is claimed. All changes remain local and unpushed.

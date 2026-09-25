@@ -154,3 +154,9 @@ describe("safe stable identity resolution", () => {
     expect(resolveLegacyReviewerFixStage("unknown-custom-criterion")).toBe("storyboard")
   })
 })
+
+it.each(["constructor", "__proto__", "toString", "hasOwnProperty"])("treats inherited object property %s as an unknown identifier", (id) => {
+  expect(resolveAccessibilityFixStage(id, "text-alternatives")).toBe("captions")
+  expect(resolveLegacyReviewerFixStage(id)).toBe("storyboard")
+  expect(resolveReviewerFixStage(section({ id }), criterion())).toBe("storyboard")
+})

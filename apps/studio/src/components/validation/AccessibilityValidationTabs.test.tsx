@@ -5,6 +5,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import type { AccessibilityAssessmentOutput } from "@adt/types"
 
 const navigateMock = vi.fn()
+const routerMock = { state: { location: {} } }
+let routeSearch: Record<string, unknown> = {}
 
 function templateToString(strings: TemplateStringsArray, values: unknown[]) {
   let text = ""
@@ -30,7 +32,8 @@ const i18n = {
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
-  useSearch: () => ({}),
+  useRouter: () => routerMock,
+  useSearch: () => routeSearch,
 }))
 
 vi.mock("@lingui/core/macro", () => ({
@@ -163,6 +166,7 @@ vi.mock("@/hooks/use-book-config", () => ({
 
 afterEach(() => {
   cleanup()
+  routeSearch = {}
   vi.clearAllMocks()
 })
 
@@ -226,3 +230,13 @@ vi.mock("@/api/client", () => ({ api: { getPages: async () => [{ pageId: "pg001"
  { sectionId: "pg001_sec001", isPruned: false, hasStableId: true },
  { sectionId: "pg001_sec002", isPruned: false, hasStableId: true },
 ] }] } }))
+
+it("explains replacement of the original assessment while retaining its requested filter", async () => {
+  routeSearch = { validationContext: { tab: "accessibility-summary", assessment: "retired-assessment", category: "structure-semantics" } }
+  const { AccessibilityOverviewTab } = await import("./AccessibilityValidationTabs")
+  render(<AccessibilityOverviewTab label="demo-book" />)
+  expect(screen.getByRole("status").textContent).toContain("original assessment is no longer current")
+  expect(screen.getByText("Fix heading order")).toBeTruthy()
+  expect(screen.queryByText("Add alt text")).toBeNull()
+  expect(navigateMock).not.toHaveBeenCalled()
+})

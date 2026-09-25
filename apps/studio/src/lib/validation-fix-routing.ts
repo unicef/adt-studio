@@ -67,11 +67,15 @@ const LEGACY_REVIEWER_SECTION_STAGES: Partial<Record<string, ValidationFixStage>
   "sign-language": "sign-language",
 }
 
+function ownStage(stages: Partial<Record<string, ValidationFixStage>>, id: string): ValidationFixStage | undefined {
+  return Object.hasOwn(stages, id) ? stages[id] : undefined
+}
+
 export function resolveAccessibilityFixStage(
   ruleId: string,
   categoryKey: AccessibilityCategoryKey,
 ): ValidationFixStage {
-  return ACCESSIBILITY_RULE_STAGES[ruleId] ?? ACCESSIBILITY_CATEGORY_STAGES[categoryKey] ?? "storyboard"
+  return ownStage(ACCESSIBILITY_RULE_STAGES, ruleId) ?? ownStage(ACCESSIBILITY_CATEGORY_STAGES, categoryKey) ?? "storyboard"
 }
 
 export function resolveReviewerFixStage(
@@ -80,7 +84,7 @@ export function resolveReviewerFixStage(
 ): ValidationFixStage {
   return criterion.fix_stage
     ?? section.fix_stage
-    ?? LEGACY_REVIEWER_SECTION_STAGES[section.id]
+    ?? ownStage(LEGACY_REVIEWER_SECTION_STAGES, section.id)
     ?? "storyboard"
 }
 
@@ -164,5 +168,5 @@ const HISTORICAL_CRITERION_STAGES: Partial<Record<string, ValidationFixStage>> =
 }
 
 export function resolveLegacyReviewerFixStage(criterionId: string): ValidationFixStage {
-  return HISTORICAL_CRITERION_STAGES[criterionId] ?? "storyboard"
+  return ownStage(HISTORICAL_CRITERION_STAGES, criterionId) ?? "storyboard"
 }

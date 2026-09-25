@@ -53,11 +53,11 @@ function Surface() {
   return <><ValidationReturnBanner label="book" /><div>Editor</div></>
 }
 
-async function setup(step: string) {
+async function setup(step: string, initialHref?: string) {
   const root = createRootRoute({ component: () => <FloatingSaveProvider><UnsavedChangesGuard /><Outlet /></FloatingSaveProvider> })
   const route = createRoute({ getParentRoute: () => root, path: "/books/$label/$step", validateSearch: parseBookStepSearch, component: Surface })
   const page = createRoute({ getParentRoute: () => root, path: "/books/$label/$step/$pageId", validateSearch: parseBookStepSearch, component: Surface })
-  const history = createMemoryHistory({ initialEntries: [`/books/book/${step}?unrelated=keep#original-fragment`] })
+  const history = createMemoryHistory({ initialEntries: [initialHref ?? `/books/book/${step}?unrelated=keep#original-fragment`] })
   const router = createRouter({ routeTree: root.addChildren([route, page]), history })
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(<QueryClientProvider client={queryClient}><RouterProvider router={router} /></QueryClientProvider>)
@@ -119,4 +119,50 @@ it("keeps the finding in place when inventory resolution fails", async () => {
   await waitFor(() => expect(failure).toHaveBeenCalled())
   expect(router.state.location.pathname).toBe("/books/book/validation")
   expect(save).not.toHaveBeenCalled()
+})
+
+it.each(["resolve", "reject"])("ignores a late inventory %s after the user leaves Validation", async (outcome) => {
+  let resolve!: (pages: unknown[]) => void
+  let reject!: (error: Error) => void
+  getPages.mockImplementationOnce(() => new Promise((yes, no) => { resolve = yes; reject = no }))
+  const router = await setup("validation")
+  fireEvent.click(await screen.findByRole("button", { name: "Open repair" }))
+  await waitFor(() => expect(getPages).toHaveBeenCalledTimes(1))
+  await act(async () => { await router.navigate({ to: "/books/$label/$step", params: { label: "book", step: "captions" } }) })
+  await act(async () => {
+    if (outcome === "resolve") resolve([{ pageId: "new-page", sections: [{ sectionId: "stable", hasStableId: true, isPruned: false }] }])
+    else reject(new Error("late failure"))
+  })
+  expect(router.state.location.pathname).toBe("/books/book/captions")
+  expect(warning).not.toHaveBeenCalled()
+  expect(failure).not.toHaveBeenCalled()
+  expect(save).not.toHaveBeenCalled()
+})
+
+
+it("restores the original assessment context from a freshly loaded destination URL", async () => {
+  const first = await setup("validation")
+  fireEvent.click(await screen.findByRole("button", { name: "Open repair" }))
+  await screen.findByText("Editor")
+  const href = first.state.location.href
+  cleanup()
+  const restored = await setup("storyboard", href)
+  fireEvent.click(await screen.findByRole("button", { name: "Return to Validation" }))
+  await waitFor(() => expect(restored.state.location.pathname).toBe("/books/book/validation"))
+  expect(restored.state.location.search).toMatchObject({ validationContext: {
+    assessment: "original", findingId: "heading-order", category: "structure-semantics", pageId: "old-page",
+  } })
+  expect(save).not.toHaveBeenCalled()
+})
+
+it("does not redirect or notify after the originating view unmounts", async () => {
+  let reject!: (error: Error) => void
+  getPages.mockImplementationOnce(() => new Promise((_yes, no) => { reject = no }))
+  const router = await setup("validation")
+  fireEvent.click(await screen.findByRole("button", { name: "Open repair" }))
+  await waitFor(() => expect(getPages).toHaveBeenCalledTimes(1))
+  cleanup()
+  await act(async () => { reject(new Error("late offline response")) })
+  expect(failure).not.toHaveBeenCalled()
+  expect(router.state.location.pathname).toBe("/books/book/validation")
 })

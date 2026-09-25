@@ -9,6 +9,8 @@ import type {
 } from "@adt/types"
 
 const navigateMock = vi.fn()
+const routerMock = { state: { location: {} } }
+let routeSearch: Record<string, unknown> = {}
 
 const legacyCatalog: ReviewerValidationCatalogSnapshot = {
   identificationFields: [],
@@ -49,7 +51,8 @@ const record: ReviewerPageValidationRecord = {
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => navigateMock,
-  useSearch: () => ({}),
+  useRouter: () => routerMock,
+  useSearch: () => routeSearch,
 }))
 
 vi.mock("@tanstack/react-query", () => ({
@@ -120,6 +123,7 @@ vi.mock("@/hooks/use-debug", () => ({
 
 afterEach(() => {
   cleanup()
+  routeSearch = {}
   navigateMock.mockClear()
   activeCatalog = legacyCatalog
   session.catalog_snapshot = legacyCatalog
@@ -165,4 +169,14 @@ describe("ReviewerValidationSummaryTab", () => {
     expect(await screen.findByRole("button", { name: "Open pg001_sec002 in Sectioning" })).toBeTruthy()
   })
 
+})
+
+it("explains a missing source session and offers the available historical review", async () => {
+  routeSearch = { validationContext: { tab: "reviewer-validation", sessionId: "deleted-session" } }
+  const { ReviewerValidationSummaryTab } = await import("./ReviewerValidationSummaryTab")
+  render(<ReviewerValidationSummaryTab label="demo-book" />)
+  expect(await screen.findByRole("status")).toHaveProperty("textContent", "The original reviewer session is no longer available. Showing available reviews.")
+  expect(await screen.findByRole("button", { name: "Open pg001_sec002 in Sectioning" })).toBeTruthy()
+  expect(record.results[0].status).toBe("needs-changes")
+  expect(navigateMock).not.toHaveBeenCalled()
 })
