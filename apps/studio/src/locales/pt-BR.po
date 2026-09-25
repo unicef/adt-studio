@@ -320,6 +320,10 @@ msgstr "{0} arquivos de prompt ausentes serão criados. Arquivos existentes não
 #~ msgid "{0} more waiting in the Storyboard"
 #~ msgstr "{0} mais esperando no Storyboard"
 
+#. placeholder {0}: fresh.length
+msgid "{0} new comments"
+msgstr "{0} novos comentários"
+
 #. placeholder {0}: String(filteredQuizzes.length)
 #. placeholder {1}: String(displayQuizzes.length)
 msgid "{0} of {1}"
@@ -913,6 +917,9 @@ msgstr "Uma página falhou em {stepLabel}"
 
 msgid "A question worth asking"
 msgstr "Uma pergunta que vale a pena fazer"
+
+msgid "A quiz"
+msgstr "Um questionário"
 
 msgid "A quiz already sits here — add another after it or replace it"
 msgstr "Já existe um questionário aqui — adicione outro depois ou substitua-o"
@@ -2618,6 +2625,12 @@ msgstr "Título do capítulo"
 msgid "Chart / Graph"
 msgstr "Gráfico / Tabela"
 
+msgid "Check for new comments"
+msgstr "Verificar novos comentários"
+
+msgid "Check for new comments (last checked {checkedAt})"
+msgstr "Verificar novos comentários (última verificação: {checkedAt})"
+
 msgid "Check for updates"
 msgstr "Verificar atualizações"
 
@@ -2907,6 +2920,9 @@ msgstr "Comentário"
 #. placeholder {0}: pin.thread.root.author_name
 msgid "Comment by {0}"
 msgstr "Comentário de {0}"
+
+msgid "Comment by {name}"
+msgstr "Comentário de {name}"
 
 #. placeholder {0}: pin.thread.root.author_name
 msgid "Comment from {0}"
@@ -4729,6 +4745,9 @@ msgstr "Ajustado ao painel · exibindo {display}% do tamanho original"
 
 msgid "Fix"
 msgstr "Corrigir"
+
+msgid "Fix in Quizzes"
+msgstr "Corrigir em Questionários"
 
 msgid "Fix in Storyboard"
 msgstr "Corrigir no Storyboard"
@@ -6882,6 +6901,10 @@ msgstr "Novo código"
 msgid "New code set — copy the message again so readers get it."
 msgstr "Novo código definido — copie a mensagem de novo para que os leitores o recebam."
 
+#. placeholder {0}: first.author_name
+msgid "New comment from {0}"
+msgstr "Novo comentário de {0}"
+
 msgid "New Entry"
 msgstr "Nova entrada"
 
@@ -7796,6 +7819,9 @@ msgstr "Abrir Pré-visualização"
 msgid "Open pull request {0}"
 msgstr "Abrir pull request {0}"
 
+msgid "Open quiz in Quizzes"
+msgstr "Abrir o questionário em Questionários"
+
 msgid "Open Sharing"
 msgstr "Abrir Compartilhar"
 
@@ -7868,6 +7894,9 @@ msgstr "OpenAI, Azure e Gemini texto para fala."
 
 msgid "Opening the page…"
 msgstr "Abrindo a página…"
+
+msgid "Opening the quiz…"
+msgstr "Abrindo o questionário…"
 
 msgid "Operation failed"
 msgstr "A operação falhou"
@@ -8712,8 +8741,8 @@ msgstr "PT"
 #~ msgid "Publish a private, shareable copy for readers and reviewers. No download or install needed."
 #~ msgstr "Publique uma cópia privada e compartilhável para leitores e revisores. Não é necessário download ou instalação."
 
-#~ msgid "Publish again"
-#~ msgstr "Publicar novamente"
+msgid "Publish again"
+msgstr "Publicar novamente"
 
 #~ msgid "Publish and get a link"
 #~ msgstr "Publicar e obter um link"
@@ -8874,6 +8903,7 @@ msgstr "Questionário"
 
 #. placeholder {0}: String(activeQuiz.index + 1)
 #. placeholder {0}: String(item.index + 1)
+#. placeholder {0}: quiz.number
 msgid "Quiz {0}"
 msgstr "Questionário {0}"
 
@@ -10307,6 +10337,9 @@ msgstr "Envie este arquivo de projeto de volta ao coordenador para mesclá-lo no
 
 msgid "Sending it to your Cloudflare account"
 msgstr "Enviando para sua conta Cloudflare"
+
+msgid "Sends a fresh copy to the same link and code"
+msgstr "Envia uma cópia nova para o mesmo link e código"
 
 #~ msgid "Sends your latest edits to the same link."
 #~ msgstr "Envia suas edições mais recentes para o mesmo link."
@@ -12108,6 +12141,9 @@ msgstr "Este provedor não está registrado no servidor, por isso não pode ser 
 
 msgid "This provider's command-line tool isn't installed on this machine. Install it, then run its login:"
 msgstr "A ferramenta de linha de comando deste provedor não está instalada nesta máquina. Instale-a, depois execute seu login:"
+
+msgid "This quiz isn't in the book anymore — it may have been removed since the reader saw it."
+msgstr "Este questionário não está mais no livro — ele pode ter sido removido depois que o leitor o viu."
 
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Este questionário será removido do livro. Você ainda pode restaurá-lo pelo histórico de versões."
