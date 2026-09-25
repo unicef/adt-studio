@@ -11,6 +11,7 @@ import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig,
   prepareSectioningRun,
+  sectioningInvalidationSteps,
   collectSpentSectionIds,
   retireSectionIds,
   NOTHING_RETIRED,
@@ -388,6 +389,13 @@ export function createStageRoutes(
     }
 
     const stepRunMap = new Map(stepRunRows.map((r) => [r.step, r]))
+    const lifecycle = readSectioningLifecycle(path.join(resolvedDir, safeLabel))
+    if (lifecycle && !lifecycle.sectioningReady) {
+      for (const step of sectioningInvalidationSteps()) {
+        const status = stepRunMap.get(step)?.status
+        if (status === "done" || status === "skipped") stepRunMap.delete(step)
+      }
+    }
 
     // Build steps
     const steps: Record<string, string> = {}
@@ -440,7 +448,6 @@ export function createStageRoutes(
 
     // Check if ADT is packaged (preview stage)
     const adtDir = path.join(resolvedDir, safeLabel, "adt")
-    const lifecycle = readSectioningLifecycle(path.join(resolvedDir, safeLabel))
     if (fs.existsSync(adtDir) && (!lifecycle || (lifecycle.sectioningReady && stages.package === "done"))) stages.preview = "done"
 
     const hasStepErrors = Object.keys(stepErrors).length > 0

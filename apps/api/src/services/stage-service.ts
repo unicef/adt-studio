@@ -141,6 +141,7 @@ export function createStageService(
 
     try {
       await withBookWriter(path.join(path.resolve(options.booksDir), label), async () => {
+        job.controller.signal.throwIfAborted()
         prepareSectioningRun(label, options.booksDir, options.fromStage as StageName, options.toStage as StageName, options.configPath)
         options.beforeRun?.()
         await runner.run(label, effectiveOptions, progress)

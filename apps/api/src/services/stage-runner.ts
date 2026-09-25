@@ -1667,8 +1667,10 @@ async function runStoryboardStep(
       console.log(`[stage-run] ${label}: fixed-layout rendering for ${totalPages} pages`)
       progress.emit({ type: "step-start", step: "web-rendering" })
       const { processFixedLayoutPages } = await import("@adt/pipeline")
+      if (options.signal?.aborted) throw new RunCancelledError()
       const imageUrlPrefix = `/api/books/${label}/images`
       processFixedLayoutPages(storage, imageUrlPrefix)
+      if (options.signal?.aborted) throw new RunCancelledError()
       publication.publish()
       progress.emit({ type: "step-complete", step: "web-rendering" })
       console.log(`[stage-run] ${label}: fixed-layout rendering complete`)

@@ -84,6 +84,10 @@ function computeCompletedStages(db: BookDb, bookDir: string): string[] {
     status: string
   }>
   const statusByStep = new Map(rows.map((r) => [r.step, r.status]))
+  const lifecycle = readSectioningLifecycle(bookDir)
+  if (lifecycle && !lifecycle.sectioningReady) {
+    for (const step of sectioningInvalidationSteps()) statusByStep.delete(step)
+  }
 
   const completed: string[] = []
   for (const stage of PIPELINE) {
@@ -95,7 +99,6 @@ function computeCompletedStages(db: BookDb, bookDir: string): string[] {
     if (allDone) completed.push(stage.name)
   }
 
-  const lifecycle = readSectioningLifecycle(bookDir)
   if (fs.existsSync(path.join(bookDir, "adt")) && (!lifecycle || (lifecycle.sectioningReady && completed.includes("package")))) {
     completed.push("preview")
   }

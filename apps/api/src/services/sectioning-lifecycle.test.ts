@@ -15,6 +15,9 @@ import { createBookRoutes } from "../routes/books.js"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createTaskService } from "./task-service.js"
 import { createBookEventBus } from "./book-event-bus.js"
+import { createStageRoutes } from "../routes/stages.js"
+import { createStageService } from "./stage-service.js"
+import { createPageErrorDecisions } from "./page-error-decisions.js"
 
 let root: string
 let dir: string
@@ -51,6 +54,21 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); fs.rmSync(root, { recursive: true, force: true }) })
 
 describe("SPEC-0003 configuration publication", () => {
+  it("does not announce a task that failed writer admission", async () => {
+    const bus = createBookEventBus()
+    const events: unknown[] = []
+    bus.addListener(label, (event) => events.push(event))
+    const tasks = createTaskService(bus, root)
+    let release!: () => void
+    const held = withBookWriter(dir, () => new Promise<void>((resolve) => { release = resolve }))
+    const executor = vi.fn(async () => undefined)
+    try {
+      expect(() => tasks.submitTask(label, "re-render", "busy task", executor)).toThrow(/active writer/)
+      expect(executor).not.toHaveBeenCalled()
+      expect(tasks.getActiveTasks(label)).toEqual([])
+      expect(events).toEqual([])
+    } finally { release(); await held }
+  })
   it("holds admission for a live task after its submitting request returns", async () => {
     const tasks = createTaskService(createBookEventBus(), root)
     let finish!: () => void
@@ -251,6 +269,29 @@ describe("SPEC-0003 configuration publication", () => {
 })
 
 describe("SPEC-0003 persisted data and publication", () => {
+  it("does not expose retained completion as current after conservative invalidation", async () => {
+    writeSectioningLifecycle(dir, "dynamic", false)
+    expect(getBook(label, root).completedStages).toEqual(["extract"])
+    const bus = createBookEventBus()
+    const decisions = createPageErrorDecisions(bus)
+    const stages = createStageService({ run: vi.fn(async () => undefined) }, bus, decisions)
+    const app = new Hono().onError(errorHandler).route("/", createStageRoutes(stages, bus, decisions, root, root, root, globalConfig))
+    const response = await app.request(`/books/${label}/step-status`)
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.stages.sectioning).toBe("idle")
+    expect(body.stages.storyboard).toBe("idle")
+    expect(body.stages.extract).toBe("done")
+  })
+  it("invalidating Sectioning completion also revokes its lifecycle readiness", () => {
+    writeSectioningLifecycle(dir, "dynamic", true)
+    const before = snapshot()
+    const storage = createBookStorage(label, root)
+    try { storage.clearStepRuns(["translation"]) } finally { storage.close() }
+    expect(() => prepareSectioningRun(label, root, "storyboard", "storyboard", globalConfig)).toThrow(/Sectioning has not completed/)
+    expect(snapshot()).toEqual(before)
+    expect(readSectioningLifecycle(dir)?.sectioningReady).toBe(false)
+  })
   it("uses the persisted part window rather than inferred contiguous PDF pages", () => {
     const db = openBookDb(path.join(dir, `${label}.db`))
     db.run("INSERT INTO pages (page_id, page_number, text) VALUES (?, ?, ?)", ["pg007", 7, "part page"])
@@ -277,7 +318,7 @@ describe("SPEC-0003 persisted data and publication", () => {
     s.close()
   })
 
-  it.each(["config", "sectioning", "rollback", "rendering", "pages"])("rejects an edit to %s after preflight, without publishing any page", (target) => {
+  it.each(["config", "sectioning", "rollback", "rendering", "pages", "lifecycle"])("rejects an edit to %s after preflight, without publishing any page", (target) => {
     const s = createBookStorage(label, root)
     s.setCurrentNodeVersion("page-sectioning", "pg002", 2)
     writeSectioningLifecycle(dir, "dynamic", true)
@@ -287,6 +328,7 @@ describe("SPEC-0003 persisted data and publication", () => {
     else if (target === "sectioning") s.putNodeData("page-sectioning", "pg002", value())
     else if (target === "rollback") s.setCurrentNodeVersion("page-sectioning", "pg002", 1)
     else if (target === "rendering") s.putNodeData("web-rendering", "pg002", { sections: [{ html: "concurrent manual edit" }] })
+    else if (target === "lifecycle") writeSectioningLifecycle(dir, "dynamic", false)
     else {
       const db = openBookDb(path.join(dir, `${label}.db`))
       db.run("INSERT INTO pages (page_id, page_number, text) VALUES (?, ?, ?)", ["pg007", 7, "new source page"])

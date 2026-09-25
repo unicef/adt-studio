@@ -72,18 +72,20 @@ export function createTaskService(eventBus: BookEventBus, booksDir?: string): Ta
       const state = getOrCreate(label)
       state.tasks.set(taskId, info)
 
-      // Emit start event
-      eventBus.emit(label, {
-        type: "task",
-        data: { type: "task-start", taskId, kind, label, description, pageId: options?.pageId, url: options?.url },
-      })
-
-      const execute = () => executor((message, percent) => {
+      const execute = async () => {
+        // Announce only admitted work. A BOOK_BUSY rejection must not leave
+        // subscribers showing a task that will never emit a terminal event.
         eventBus.emit(label, {
           type: "task",
-          data: { type: "task-progress", taskId, message, percent },
+          data: { type: "task-start", taskId, kind, label, description, pageId: options?.pageId, url: options?.url },
         })
-      })
+        return executor((message, percent) => {
+          eventBus.emit(label, {
+            type: "task",
+            data: { type: "task-progress", taskId, message, percent },
+          })
+        })
+      }
       let execution: Promise<unknown>
       try {
         execution = booksDir

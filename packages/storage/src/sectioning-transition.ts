@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
-import { SectioningTransition, SectioningLifecycle, type SectioningMode } from "@adt/types"
+import { SectioningTransition, SectioningLifecycle, PIPELINE, type SectioningMode } from "@adt/types"
 import { openBookDb } from "./db.js"
 import { BookBusyError, withBookWriter } from "./book-writer.js"
 
@@ -49,6 +49,16 @@ export function readSectioningLifecycle(bookDir: string): SectioningLifecycle | 
 
 export function writeSectioningLifecycle(bookDir: string, mode: SectioningMode, sectioningReady: boolean): void {
   atomicBookFile(path.join(bookDir, SECTIONING_LIFECYCLE), JSON.stringify({ version: 1, mode, sectioningReady }))
+}
+
+/** Invalidation must revoke readiness before its associated DB mutation. A
+ * failed mutation can conservatively leave work stale, never falsely current.
+ * Do not invent provenance for historical books without a lifecycle record. */
+export function invalidateSectioningLifecycle(bookDir: string, steps: readonly string[]): void {
+  const sectioning = PIPELINE.find((stage) => stage.name === "sectioning")!
+  if (!sectioning.steps.some((step) => steps.includes(step.name))) return
+  const lifecycle = readSectioningLifecycle(bookDir)
+  if (lifecycle?.sectioningReady) writeSectioningLifecycle(bookDir, lifecycle.mode, false)
 }
 
 function finishPublishedTransition(bookDir: string, transition: SectioningTransition): void {

@@ -103,6 +103,7 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
   const pages = activeSectioningPages(storage, config, bookDir)
   const fingerprint = () => configHash(JSON.stringify({
     config: loadBookConfig(label, booksRoot, configPath),
+    lifecycle: readSectioningLifecycle(bookDir),
     pages: activeSectioningPages(storage, loadBookConfig(label, booksRoot, configPath), bookDir),
     sectioning: pages.map((page) => [page.pageId, storage.getLatestNodeData("page-sectioning", page.pageId)]),
     rendering: pages.map((page) => [page.pageId, storage.getLatestNodeData("web-rendering", page.pageId)]),

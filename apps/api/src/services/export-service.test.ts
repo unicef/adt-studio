@@ -96,6 +96,27 @@ function createWebAssets(dir: string): void {
 }
 
 describe("exportProject", () => {
+  it("blocks rebuilding stale output while preserving project backup and existing assets", async () => {
+    createTestDb("stale-export")
+    addPagesAndRenderings("stale-export", 1)
+    const dir = path.join(tmpDir, "stale-export")
+    fs.mkdirSync(path.join(dir, "adt"))
+    fs.writeFileSync(path.join(dir, "adt", "retained.txt"), "saved package")
+    writeSectioningLifecycle(dir, "dynamic", false)
+    await expect(prepareExport("stale-export", "webpub", tmpDir, webAssetsDir)).rejects.toMatchObject({ code: "SECTIONING_STALE" })
+    expect(fs.readFileSync(path.join(dir, "adt", "retained.txt"), "utf8")).toBe("saved package")
+    await expect(prepareExport("stale-export", "project", tmpDir, "")).resolves.toEqual({ warnings: [] })
+    const archive = await exportProject("stale-export", tmpDir)
+    expect(unzipSync(await streamToBuffer(archive.stream))[".sectioning-lifecycle.json"]).toBeDefined()
+  })
+  it("rejects a busy book before returning a ZIP stream", async () => {
+    createTestDb("busy-export")
+    let release!: () => void
+    const held = withBookWriter(path.join(tmpDir, "busy-export"), () => new Promise<void>((resolve) => { release = resolve }))
+    try {
+      await expect(exportProject("busy-export", tmpDir)).rejects.toMatchObject({ code: "BOOK_BUSY" })
+    } finally { release(); await held }
+  })
   it.each([false, true])("retains writer admission while a large archive is read (cancelled: %s)", async (cancelled) => {
     const label = "export-admission"
     createTestDb(label)
@@ -214,12 +235,13 @@ describe("exportProject", () => {
     await expect(exportProject("ghost", tmpDir)).rejects.toThrow("not found")
   })
 
-  it("throws when web assets directory is missing (prepareExport)", async () => {
+  it("does not require generated web assets to preserve a project archive", async () => {
     createTestDb("missing-assets")
     addPages("missing-assets", 1)
 
     await expect(prepareExport("missing-assets", "project", tmpDir, path.join(tmpDir, "missing-assets-dir"), undefined, undefined))
-      .rejects.toThrow("Web assets directory not found")
+      .resolves.toEqual({ warnings: [] })
+    expect(fs.existsSync(path.join(tmpDir, "missing-assets", "adt"))).toBe(false)
   })
 
   it("includes all book directory contents recursively", async () => {

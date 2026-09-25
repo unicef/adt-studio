@@ -4,6 +4,7 @@ import path from "node:path"
 import { spawnSync } from "node:child_process"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { BookBusyError, ownsBookWriter, withBookWriter } from "../book-writer.js"
+import { createBookStorage } from "../book-storage.js"
 
 let dir: string
 const lock = () => path.join(dir, ".book-writer.json")
@@ -11,6 +12,7 @@ const recovery = () => `${lock()}.recovery`
 const childWriter = (operation = "console.log('admitted')") => spawnSync(process.execPath, [
   "--input-type=module", "-e",
   `import { withBookWriter } from ${JSON.stringify(path.resolve("packages/storage/dist/book-writer.js"))};
+   import { createBookStorage } from ${JSON.stringify(path.resolve("packages/storage/dist/book-storage.js"))};
    try { withBookWriter(${JSON.stringify(dir)}, () => { ${operation} }) }
    catch (error) { console.log(error.code); process.exit(23) }`,
 ], { encoding: "utf8", timeout: 5000 })
@@ -88,6 +90,29 @@ describe("book writer admission", () => {
     expect(fs.readFileSync(journal, "utf8")).toBe("retained SQLite recovery data")
     expect(fs.existsSync(lock())).toBe(false)
     expect(fs.existsSync(recovery())).toBe(false)
+  })
+
+  it("retains recovery evidence when a writer dies inside a non-transition SQLite transaction", () => {
+    const label = path.basename(dir)
+    const root = path.dirname(dir)
+    const storage = createBookStorage(label, root)
+    storage.putNodeData("web-rendering", "pg001", { retained: true })
+    storage.close()
+    const killed = childWriter(`
+      const storage = createBookStorage(${JSON.stringify(label)}, ${JSON.stringify(root)});
+      storage.transaction(() => {
+        storage.putNodeData('web-rendering', 'pg001', {uncommitted: true});
+        process.kill(process.pid, 'SIGKILL');
+      });
+    `)
+    expect(killed.signal, killed.stderr).toBe("SIGKILL")
+    const owner = fs.readFileSync(lock(), "utf8")
+    const files = fs.readdirSync(dir).filter((file) => file.startsWith(`${label}.db`) && fs.statSync(path.join(dir, file)).isFile())
+    const before = files.map((file) => fs.readFileSync(path.join(dir, file)))
+    expect(() => withBookWriter(dir, () => undefined)).toThrow(/interrupted book write left a database lock/)
+    expect(fs.readFileSync(lock(), "utf8")).toBe(owner)
+    expect(files.map((file) => fs.readFileSync(path.join(dir, file)))).toEqual(before)
+    expect(fs.existsSync(path.join(dir, `${label}.db.lock`))).toBe(true)
   })
 
   it.each(["incomplete", "foreign", "reaper"])("fails closed for %s ownership without altering the owner", (kind) => {

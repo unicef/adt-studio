@@ -3,8 +3,8 @@ import path from "node:path"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
 import type { PackagingWarning } from "@adt/types"
-import { createBookStorage, withBookWriter, recoverSectioningTransition } from "@adt/storage"
-import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
+import { createBookStorage, withBookWriter, recoverSectioningTransition, resolveBookPaths } from "@adt/storage"
+import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook, prepareSectioningRun } from "@adt/pipeline"
 import { createZipStream } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
 
@@ -71,6 +71,26 @@ export interface PrepareExportResult {
  * a spinner during the rebuild.
  */
 export async function prepareExport(
+  label: string,
+  format: "project" | "webpub" | "scorm" | "adt" | "epub" | "pnld",
+  booksDir: string,
+  webAssetsDir: string,
+  configPath?: string,
+  features?: ExportFeatures,
+  defaultSettingsOverride?: ExportDefaultSettings,
+): Promise<PrepareExportResult> {
+  const { bookDir } = resolveBookPaths(label, booksDir)
+  if (!fs.existsSync(bookDir)) throwBookNotFound(label)
+  // A project archive preserves source data and excludes generated bundles.
+  // It must remain available even when regeneration is safely blocked.
+  if (format === "project") return { warnings: [] }
+  return withBookWriter(bookDir, () => {
+    prepareSectioningRun(label, booksDir, "package", "package", configPath)
+    return prepareAdmittedExport(label, format, booksDir, webAssetsDir, configPath, features, defaultSettingsOverride)
+  })
+}
+
+async function prepareAdmittedExport(
   label: string,
   format: "project" | "webpub" | "scorm" | "adt" | "epub" | "pnld",
   booksDir: string,

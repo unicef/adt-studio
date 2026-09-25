@@ -69,6 +69,17 @@ describe("production preflight boundaries", () => {
     expect(history()).toEqual(before)
   })
 
+  it("honors cancellation at fixed-layout rendering admission", async () => {
+    const s = store(); s.putNodeData("page-sectioning", "p7", output()); s.close()
+    fs.appendFileSync(configPath, '\ndefault_render_strategy: fixed\nrender_strategies:\n  fixed:\n    render_type: fixed_layout\n')
+    const before = history()
+    const controller = new AbortController()
+    await expect(createStageRunner().run(label, { ...options(), signal: controller.signal }, {
+      emit(event) { if (event.type === "step-start" && event.step === "web-rendering") controller.abort() },
+    })).rejects.toThrow()
+    expect(history()).toEqual(before)
+  })
+
   it.each(["reflowable", "fixed"])("rejects invalid persisted input before any %s stage renderer runs", async (layout) => {
     if (layout === "fixed") fs.appendFileSync(configPath, '\ndefault_render_strategy: fixed\nrender_strategies:\n  fixed:\n    render_type: fixed_layout\n')
     const before = history()
