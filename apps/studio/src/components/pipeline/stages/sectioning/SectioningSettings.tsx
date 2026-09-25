@@ -1,4 +1,5 @@
 import { useSectioningModeConfirmation } from "@/hooks/use-sectioning-mode-confirmation"
+import type { SectioningModeState } from "@adt/types"
 import { useState, useEffect, useMemo } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Plus, X } from "lucide-react"
@@ -346,7 +347,10 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
     try {
       await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     } catch (error) {
-      setSectioningMode(modeConfirmation.state?.effectiveMode ?? "dynamic")
+      // onSettled has already refetched. The closure can still hold the mode
+      // from before an ambiguous timeout, even when the server saved the change.
+      const persisted = queryClient.getQueryData<SectioningModeState>(["books", bookLabel, "sectioning-mode-state"])
+      setSectioningMode(persisted?.effectiveMode ?? modeConfirmation.state?.effectiveMode ?? "dynamic")
       throw error
     }
     setDirty({})

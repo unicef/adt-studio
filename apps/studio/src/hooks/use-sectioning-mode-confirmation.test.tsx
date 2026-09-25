@@ -22,10 +22,12 @@ const { useUpdateBookConfig } = await import("./use-book-config")
 
 function Harness() {
   const mutation = useUpdateBookConfig()
+  const adjacent = useUpdateBookConfig()
   const confirmation = useSectioningModeConfirmation("book", mutation.isPending)
   return <>
     <span data-testid="persisted">{confirmation.state?.effectiveMode}</span>
     <button disabled={confirmation.busy} onClick={() => confirmation.request("page", () => mutation.mutate({ label: "book", config: { page_sectioning: { mode: "page" } } }))}>Select By Page</button>
+    <button onClick={() => adjacent.mutate({ label: "book", config: { generate_activities: false } })}>Save activity setting</button>
     {mutation.error && <p role="alert">{mutation.error.message}</p>}
     {confirmation.dialog}
   </>
@@ -61,7 +63,7 @@ describe("Sectioning mode confirmation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Change mode" }))
     await waitFor(() => expect(screen.getByTestId("persisted").textContent).toBe("page"))
     expect(mocks.update).toHaveBeenCalledTimes(1)
-    for (const key of [["book-config", "book"], ["debug", "config", "book"], ["books", "book"]]) {
+    for (const key of [["book-config", "book"], ["debug"], ["books"]]) {
       expect(invalidate).toHaveBeenCalledWith({ queryKey: key })
     }
   })
@@ -72,6 +74,13 @@ describe("Sectioning mode confirmation", () => {
     await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Book is busy"))
     expect(screen.getByTestId("persisted").textContent).toBe("dynamic")
     await waitFor(() => expect(mocks.getState.mock.calls.length).toBeGreaterThan(1))
+  })
+  it("reads the committed mode after an ambiguous failed save response", async () => {
+    mocks.update.mockImplementation(async () => { mocks.state.effectiveMode = "page"; throw new Error("response lost") })
+    mount(); await select()
+    fireEvent.click(screen.getByRole("button", { name: "Change mode" }))
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("response lost"))
+    expect(screen.getByTestId("persisted").textContent).toBe("page")
   })
   it("requires no confirmation for a book without output and prevents duplicate pending saves", async () => {
     mocks.state.hasOutput = false
@@ -90,5 +99,20 @@ describe("Sectioning mode confirmation", () => {
     await waitFor(() => expect(screen.getByTestId("persisted").textContent).toBe("dynamic"))
     expect((screen.getByRole("button", { name: "Select By Page" }) as HTMLButtonElement).disabled).toBe(true)
     expect(mocks.update).not.toHaveBeenCalled()
+  })
+  it("blocks mode selection during an adjacent config save and its authoritative refetch", async () => {
+    let saved!: () => void
+    let refreshed!: () => void
+    mocks.update.mockImplementation(() => new Promise<void>((resolve) => { saved = resolve }))
+    mount()
+    await waitFor(() => expect(screen.getByTestId("persisted").textContent).toBe("dynamic"))
+    mocks.getState.mockImplementation(() => new Promise((resolve) => { refreshed = () => resolve({ ...mocks.state }) }))
+    fireEvent.click(screen.getByRole("button", { name: "Save activity setting" }))
+    await waitFor(() => expect((screen.getByRole("button", { name: "Select By Page" }) as HTMLButtonElement).disabled).toBe(true))
+    saved()
+    await waitFor(() => expect(refreshed).toBeDefined())
+    expect((screen.getByRole("button", { name: "Select By Page" }) as HTMLButtonElement).disabled).toBe(true)
+    refreshed()
+    await waitFor(() => expect((screen.getByRole("button", { name: "Select By Page" }) as HTMLButtonElement).disabled).toBe(false))
   })
 })

@@ -5,19 +5,21 @@ import type { SectioningMode } from "@adt/types"
 import { api } from "@/api/client"
 import { useBookRun } from "./use-book-run"
 import { useBookTasks } from "./use-book-tasks"
+import { useBookConfigSaving } from "./use-book-config"
 import { CascadeResetDialog } from "@/components/pipeline/components/CascadeResetDialog"
 
 export function useSectioningModeConfirmation(label: string, saving: boolean) {
   const { t } = useLingui()
   const { isRunning } = useBookRun()
   const { runningCount } = useBookTasks(label)
+  const configSaving = useBookConfigSaving(label)
   const state = useQuery({
     queryKey: ["books", label, "sectioning-mode-state"],
     queryFn: () => api.getSectioningModeState(label),
   })
   const [open, setOpen] = useState(false)
   const action = useRef<(() => void) | null>(null)
-  const busy = saving || isRunning || runningCount > 0 || !state.data || state.isError
+  const busy = saving || configSaving || isRunning || runningCount > 0 || !state.data || state.isError || state.isFetching
   return {
     busy,
     state: state.data,
