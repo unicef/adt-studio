@@ -230,15 +230,17 @@ export function LandingPageShell({
       <CascadeResetDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        affectedStages={downstreamAffected}
+        affectedStages={stageSlug === "extract" ? [] : downstreamAffected}
         headerStageSlug={stageSlug}
         title={<Trans>Re-run {stageLabel}?</Trans>}
-        description={
+        description={stageSlug === "extract" ? (
+          <Trans>Existing extraction and edits are preserved. Changing the PDF or extraction settings requires importing a new book. Safe downstream resume is not available yet.</Trans>
+        ) : (
           <Trans>
             The completed stages below will be reset and need to run again
             before final outputs are available.
           </Trans>
-        }
+        )}
         confirmLabel={rerunLabel}
         confirmColorClass={hasError ? errorColorClass : colorClass}
         onConfirm={handleConfirm}

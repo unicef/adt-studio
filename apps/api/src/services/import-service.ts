@@ -5,7 +5,7 @@ import { unzipSync } from "fflate"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel, BookMetadata, PIPELINE } from "@adt/types"
 import { renderPdfCover } from "@adt/pdf"
-import { openBookDb } from "@adt/storage"
+import { openBookDb, withNewBookWriter } from "@adt/storage"
 import { getBook, type BookSummary } from "./book-service.js"
 
 export interface ImportResult extends BookSummary {}
@@ -208,43 +208,44 @@ export async function importProject(
   const resolvedDir = path.resolve(booksDir)
   const bookDir = path.join(resolvedDir, targetLabel)
 
-  fs.mkdirSync(bookDir, { recursive: true })
-
-  try {
-    for (const [entryPath, data] of Object.entries(entries)) {
-      const renamedPath = entryPath.startsWith(`${rawLabel}.`)
-        ? entryPath.replace(rawLabel, targetLabel)
-        : entryPath
-
-      const destPath = path.join(bookDir, renamedPath)
-
-      if (!destPath.startsWith(bookDir + path.sep) && destPath !== bookDir) {
-        throwInvalidArchive("Invalid project archive: contains paths that escape the project directory")
-      }
-
-      const destDir = path.dirname(destPath)
-      if (!fs.existsSync(destDir)) {
-        fs.mkdirSync(destDir, { recursive: true })
-      }
-
-      fs.writeFileSync(destPath, data)
-    }
-
-    const dbPath = path.join(bookDir, `${targetLabel}.db`)
-    const meta = readDbMetadata(dbPath)
-
-    if (meta.validationError) {
-      if (meta.validationCorrupt) throwCorruptProject(meta.validationError)
-      throwInvalidArchive(meta.validationError)
-    }
-
-    return getBook(targetLabel, booksDir)
-  } catch (err) {
+  return withNewBookWriter(bookDir, () => {
     try {
-      fs.rmSync(bookDir, { recursive: true, force: true })
-    } catch (cleanupErr) {
-      console.error(`[import] Failed to clean up partial book dir ${bookDir}:`, cleanupErr)
+      for (const [entryPath, data] of Object.entries(entries)) {
+        if ([".book-writer.json", ".book-writer.json.recovery"].includes(entryPath)) continue
+        const renamedPath = entryPath.startsWith(`${rawLabel}.`)
+          ? entryPath.replace(rawLabel, targetLabel)
+          : entryPath
+
+        const destPath = path.join(bookDir, renamedPath)
+
+        if (!destPath.startsWith(bookDir + path.sep) && destPath !== bookDir) {
+          throwInvalidArchive("Invalid project archive: contains paths that escape the project directory")
+        }
+
+        const destDir = path.dirname(destPath)
+        if (!fs.existsSync(destDir)) {
+          fs.mkdirSync(destDir, { recursive: true })
+        }
+
+        fs.writeFileSync(destPath, data)
+      }
+
+      const dbPath = path.join(bookDir, `${targetLabel}.db`)
+      const meta = readDbMetadata(dbPath)
+
+      if (meta.validationError) {
+        if (meta.validationCorrupt) throwCorruptProject(meta.validationError)
+        throwInvalidArchive(meta.validationError)
+      }
+
+      return getBook(targetLabel, booksDir)
+    } catch (err) {
+      try {
+        fs.rmSync(bookDir, { recursive: true, force: true })
+      } catch (cleanupErr) {
+        console.error(`[import] Failed to clean up partial book dir ${bookDir}:`, cleanupErr)
+      }
+      throw err
     }
-    throw err
-  }
+  })
 }

@@ -1,4 +1,5 @@
 import type { TaskKind, TaskInfo, TaskStatus } from "@adt/types"
+import { resolveBookPaths, withBookWriter, assertExtractionReadable } from "@adt/storage"
 import type { BookEventBus } from "./book-event-bus.js"
 
 /** Callback to emit progress messages during task execution. */
@@ -25,7 +26,7 @@ export interface TaskService {
 
 let nextTaskId = 1
 
-export function createTaskService(eventBus: BookEventBus): TaskService {
+export function createTaskService(eventBus: BookEventBus, booksDir: string): TaskService {
   const books = new Map<string, BookTaskState>()
 
   function getOrCreate(label: string): BookTaskState {
@@ -76,12 +77,17 @@ export function createTaskService(eventBus: BookEventBus): TaskService {
         data: { type: "task-start", taskId, kind, label, description, pageId: options?.pageId, url: options?.url },
       })
 
-      executor((message, percent) => {
-        eventBus.emit(label, {
-          type: "task",
-          data: { type: "task-progress", taskId, message, percent },
+      // Start inside a promise so admission failures use the normal task-error
+      // path, and hold the shared lease until the background executor settles.
+      Promise.resolve().then(() => withBookWriter(resolveBookPaths(label, booksDir).bookDir, () => {
+        assertExtractionReadable(resolveBookPaths(label, booksDir).bookDir)
+        return executor((message, percent) => {
+          eventBus.emit(label, {
+            type: "task",
+            data: { type: "task-progress", taskId, message, percent },
+          })
         })
-      })
+      }))
         .then((result) => {
           info.status = "completed"
           info.result = result

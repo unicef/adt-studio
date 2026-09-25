@@ -537,3 +537,4 @@ export {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
 } from "./ai-provider.js"
+export { ExtractionErrorCode, ExtractionInputs, ExtractionManifest, BookWriterOwner, EXTRACTION_CONTRACT_VERSION } from "./extraction.js"
