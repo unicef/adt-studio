@@ -1,4 +1,4 @@
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Fragment, useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import {
@@ -9,10 +9,12 @@ import {
   type TocEntry,
 } from "@/features/navigation/state/nav.atoms";
 import { activeNavTabAtom } from "@/shared/state/ui.atoms";
+import { followedPeerAtom } from "@/features/comments/state/follow.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { cn } from "@/shared/lib/utils";
 import { ScrollArea } from "@/shared/ui/scroll-area";
 import { DockContent } from "@/features/dock/components/DockLayout";
+import { navigateToPage, prefetchPage } from "@/features/navigation/lib/page-swap"
 
 export function TocContent() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -63,7 +65,7 @@ export function TocContent() {
         </TabsList>
 
         <TabsContent value="toc" className="min-h-0">
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full overflow-hidden">
             <TocList entries={filteredTocEntries} currentSectionId={currentSectionId} />
           </ScrollArea>
         </TabsContent>
@@ -91,6 +93,8 @@ function TocList({
   entries: TocEntry[];
   currentSectionId: string | null;
 }) {
+  /** Picking a destination yourself ends a follow, for the same reason turning the page does. */
+  const stopFollowing = useSetAtom(followedPeerAtom);
   return (
     <ul className="py-1">
       {entries.map((entry) => {
@@ -101,8 +105,11 @@ function TocList({
               type="button"
               title={entry.title}
               onClick={() => {
-                window.location.href = entry.href;
+                stopFollowing(null);
+                navigateToPage(entry.href);
               }}
+              onPointerEnter={() => prefetchPage(entry.href)}
+              onFocus={() => prefetchPage(entry.href)}
               className={cn(
                 "w-full text-left rounded-md px-2.5 py-1.5 text-base",
                 "hover:bg-accent hover:text-accent-foreground",
@@ -146,6 +153,7 @@ function PageList({
   printPageLabel: string;
   coverLabel: string;
 }) {
+  const stopFollowing = useSetAtom(followedPeerAtom);
   const items = useMemo<PageListItem[]>(() => {
     const chapterLookup = new Map<string, TocEntry>();
     for (const chapter of toc) {
@@ -195,8 +203,11 @@ function PageList({
               <button
                 type="button"
                 onClick={() => {
-                  window.location.href = page.href;
+                  stopFollowing(null);
+                  navigateToPage(page.href);
                 }}
+                onPointerEnter={() => prefetchPage(page.href)}
+                onFocus={() => prefetchPage(page.href)}
                 aria-label={ariaLabel}
                 title={ariaLabel}
                 aria-current={active ? "page" : undefined}

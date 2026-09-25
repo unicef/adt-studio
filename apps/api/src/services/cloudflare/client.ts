@@ -1,0 +1,610 @@
+import { PublishWorkerHealth } from "@adt/types"
+
+export const CLOUDFLARE_API_BASE_URL = "https://api.cloudflare.com/client/v4"
+
+/** Cloudflare attaches each upload part's `Content-Type` to the asset and replays it when
+ * serving. The publish Worker always re-derives the type from the snapshot path before it
+ * answers, so sending a real type here would only create a second source of truth that can
+ * disagree with the first. `application/null` is the sentinel their API parses as "attach no
+ * Content-Type", and it is what Wrangler sends when it cannot determine one. It also has to be
+ * a non-empty, standard main type: form-data encoders replace a falsy value with
+ * `application/octet-stream`, which would then be served as a real type. */
+const STATIC_ASSET_PART_TYPE = "application/null"
+
+export type FetchLike = (
+  input: string,
+  init?: RequestInit,
+) => Promise<Response>
+
+export interface CloudflareApiIssue {
+  code: number
+  message: string
+}
+
+export class CloudflareApiError extends Error {
+  readonly status: number
+  readonly issues: CloudflareApiIssue[]
+  readonly retryAfterMs: number | null
+  readonly rayId: string | null
+
+  constructor(
+    status: number,
+    issues: CloudflareApiIssue[],
+    fallback: string,
+    retryAfterMs: number | null = null,
+    rayId: string | null = null,
+  ) {
+    const detail = issues.map((issue) => issue.message).filter(Boolean).join("; ")
+    const diagnostic = [
+      `HTTP ${status}`,
+      ...issues.map((issue) => `Cloudflare ${issue.code}`),
+      ...(rayId ? [`Ray ID ${rayId}`] : []),
+    ].join(", ")
+    super(`${detail || fallback} (${diagnostic})`)
+    this.name = "CloudflareApiError"
+    this.status = status
+    this.issues = issues
+    this.retryAfterMs = retryAfterMs
+    this.rayId = rayId
+  }
+
+  get isAuthFailure(): boolean {
+    return this.status === 401 || this.status === 403
+  }
+
+  get isNotFound(): boolean {
+    return this.status === 404
+  }
+
+  hasCode(code: number): boolean {
+    return this.issues.some((issue) => issue.code === code)
+  }
+}
+
+const TRANSIENT_TRANSPORT_CODES = new Set([
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "EAI_AGAIN",
+  "ENETDOWN",
+  "ENETUNREACH",
+  "ETIMEDOUT",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_SOCKET",
+])
+
+function transportCause(error: unknown): { code: string | null; message: string } {
+  let current = error
+  let deepest = error instanceof Error ? error.message : String(error)
+  for (let depth = 0; depth < 4 && current instanceof Error; depth += 1) {
+    deepest = current.message || deepest
+    const code = (current as { code?: unknown }).code
+    if (typeof code === "string" && code.length > 0) {
+      return { code, message: deepest }
+    }
+    current = (current as { cause?: unknown }).cause
+  }
+  return { code: null, message: deepest }
+}
+
+export function describeCloudflareFailure(error: unknown): string {
+  if (error instanceof CloudflareApiError) return error.message
+  const transport = transportCause(error)
+  return transport.code ? `${transport.code} — ${transport.message}` : transport.message
+}
+
+export function isRetryableCloudflareError(error: unknown): boolean {
+  if (error instanceof CloudflareApiError) return error.status === 429 || error.status >= 500
+  const transport = transportCause(error)
+  return TRANSIENT_TRANSPORT_CODES.has(transport.code ?? "") ||
+    (error instanceof TypeError && /fetch failed|network error/i.test(error.message))
+}
+
+export async function retryCloudflareOperation<T>(
+  operation: () => Promise<T>,
+  options: { attempts?: number; sleep?: (ms: number) => Promise<void> } = {},
+): Promise<T> {
+  const attempts = options.attempts ?? 3
+  const sleep = options.sleep ?? ((ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)))
+  const delays = [1_000, 2_000, 4_000, 8_000]
+
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await operation()
+    } catch (error) {
+      if (!isRetryableCloudflareError(error) || attempt >= attempts - 1) throw error
+      const retryAfter = error instanceof CloudflareApiError ? error.retryAfterMs : null
+      await sleep(retryAfter ?? delays[attempt] ?? 8_000)
+    }
+  }
+}
+
+export interface D1Database {
+  uuid: string
+  name: string
+}
+
+export interface D1QueryResult {
+  success: boolean
+  results: Array<Record<string, unknown>>
+}
+
+export interface CloudflareAccount {
+  id: string
+  name: string
+}
+
+export interface WorkerScriptUpload {
+  name: string
+  script: string
+  metadata: Record<string, unknown>
+}
+
+export interface StaticAssetManifestEntry {
+  hash: string
+  size: number
+}
+
+export type StaticAssetManifest = Record<string, StaticAssetManifestEntry>
+
+export interface StaticAssetUploadSession {
+  buckets: string[][]
+  jwt: string
+}
+
+export interface CloudflareClient {
+  readonly accountId: string
+  verifyToken(): Promise<{ status: string }>
+  getAccount(): Promise<CloudflareAccount>
+  listD1Databases(name?: string): Promise<D1Database[]>
+  createD1Database(name: string): Promise<D1Database>
+  deleteD1Database(uuid: string): Promise<void>
+  queryD1(uuid: string, sql: string, params?: string[]): Promise<D1QueryResult[]>
+  listR2Buckets(): Promise<Array<{ name: string }>>
+  createR2Bucket(name: string): Promise<void>
+  deleteR2Bucket(name: string): Promise<void>
+  createStaticAssetUploadSession(name: string, manifest: StaticAssetManifest): Promise<StaticAssetUploadSession>
+  /** `assets` maps each content hash Cloudflare asked for to that file's base64 body, and
+   * `uploadJwt` is the token the upload *session* issued — the same one for every bucket.
+   * Returns the completion JWT, which only the response completing the collection carries;
+   * every earlier bucket answers `202 Accepted` with nothing, and null says so. */
+  uploadStaticAssetBucket(
+    uploadJwt: string,
+    assets: Record<string, string>,
+  ): Promise<string | null>
+  listWorkerScripts(): Promise<Array<{ id: string }>>
+  createWorker(name: string): Promise<void>
+  uploadWorkerScript(upload: WorkerScriptUpload): Promise<void>
+  deleteWorkerScript(name: string): Promise<void>
+  getWorkersDevSubdomain(): Promise<string | null>
+  /** Registers the account's workers.dev subdomain. Account-global and awkward to change
+   *  afterwards, so the caller picks the name deliberately. Returns what Cloudflare recorded,
+   *  which is not always what was asked for. */
+  createWorkersDevSubdomain(subdomain: string): Promise<string>
+  enableScriptSubdomain(name: string): Promise<void>
+}
+
+export interface CloudflareClientOptions {
+  token: string
+  accountId: string
+  fetchFn?: FetchLike
+  baseUrl?: string
+}
+
+interface CloudflareEnvelope<T> {
+  success?: boolean
+  errors?: CloudflareApiIssue[]
+  result?: T
+}
+
+function retryAfterMs(response: Response): number | null {
+  const value = response.headers.get("Retry-After")
+  if (!value) return null
+  const seconds = Number(value)
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds * 1_000 : null
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function normalizeIssues(value: unknown): CloudflareApiIssue[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry) => {
+    if (typeof entry !== "object" || entry === null) return []
+    const record = entry as Record<string, unknown>
+    return [
+      {
+        code: typeof record.code === "number" ? record.code : 0,
+        message: typeof record.message === "string" ? record.message : "",
+      },
+    ]
+  })
+}
+
+export function createCloudflareClient(
+  options: CloudflareClientOptions,
+): CloudflareClient {
+  const { token, accountId } = options
+  const fetchFn: FetchLike = options.fetchFn ?? ((input, init) => fetch(input, init))
+  const baseUrl = (options.baseUrl ?? CLOUDFLARE_API_BASE_URL).replace(/\/$/, "")
+  const traceEnabled = process.env.ADT_CLOUDFLARE_TRACE === "1"
+
+  function trace(entry: Record<string, unknown>): void {
+    if (!traceEnabled) return
+    console.info("[cloudflare trace]", JSON.stringify(entry))
+  }
+
+  async function request<T>(
+    pathname: string,
+    init: RequestInit = {},
+  ): Promise<T | undefined> {
+    const headers = new Headers(init.headers)
+    headers.set("Authorization", `Bearer ${token}`)
+    let response: Response
+    try {
+      response = await fetchFn(`${baseUrl}${pathname}`, { ...init, headers })
+    } catch (error) {
+      trace({ method: init.method ?? "GET", path: pathname, network_error: String(error) })
+      throw error
+    }
+    const text = await response.text()
+
+    let envelope: CloudflareEnvelope<T> | null = null
+    if (text.length > 0) {
+      try {
+        envelope = JSON.parse(text) as CloudflareEnvelope<T>
+      } catch {
+        envelope = null
+      }
+    }
+    trace({
+      method: init.method ?? "GET",
+      path: pathname,
+      status: response.status,
+      ray_id: response.headers.get("cf-ray"),
+      errors: normalizeIssues(envelope?.errors),
+    })
+
+    if (!response.ok || envelope?.success === false) {
+      throw new CloudflareApiError(
+        response.status,
+        normalizeIssues(envelope?.errors),
+        `Cloudflare API ${init.method ?? "GET"} ${pathname} failed with status ${response.status}`,
+        retryAfterMs(response),
+        response.headers.get("cf-ray"),
+      )
+    }
+
+    return envelope?.result
+  }
+
+  async function requestJson<T>(
+    pathname: string,
+    method: string,
+    body: unknown,
+  ): Promise<T | undefined> {
+    return request<T>(pathname, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+  }
+
+  const account = `/accounts/${encodeURIComponent(accountId)}`
+
+  return {
+    accountId,
+
+    async verifyToken() {
+      const result = await request<{ status?: string }>("/user/tokens/verify")
+      return { status: result?.status ?? "unknown" }
+    },
+
+    async getAccount() {
+      const result = await request<{ id?: string; name?: string }>(account)
+      return { id: result?.id ?? accountId, name: result?.name ?? "" }
+    },
+
+    async listD1Databases(name) {
+      const query = name ? `?name=${encodeURIComponent(name)}&per_page=100` : "?per_page=100"
+      const result = await request<Array<{ uuid?: string; name?: string }>>(
+        `${account}/d1/database${query}`,
+      )
+      return (result ?? []).flatMap((entry) =>
+        entry.uuid && entry.name ? [{ uuid: entry.uuid, name: entry.name }] : [],
+      )
+    },
+
+    async createD1Database(name) {
+      const result = await requestJson<{ uuid?: string; name?: string }>(
+        `${account}/d1/database`,
+        "POST",
+        { name },
+      )
+      if (!result?.uuid) {
+        throw new CloudflareApiError(200, [], `Cloudflare returned no uuid for D1 database ${name}`)
+      }
+      return { uuid: result.uuid, name: result.name ?? name }
+    },
+
+    async deleteD1Database(uuid) {
+      await request(`${account}/d1/database/${encodeURIComponent(uuid)}`, {
+        method: "DELETE",
+      })
+    },
+
+    async queryD1(uuid, sql, params) {
+      const result = await requestJson<D1QueryResult[]>(
+        `${account}/d1/database/${encodeURIComponent(uuid)}/query`,
+        "POST",
+        params && params.length > 0 ? { sql, params } : { sql },
+      )
+      return (result ?? []).map((entry) => ({
+        success: entry.success !== false,
+        results: Array.isArray(entry.results) ? entry.results : [],
+      }))
+    },
+
+    async listR2Buckets() {
+      const result = await request<{ buckets?: Array<{ name?: string }> }>(
+        `${account}/r2/buckets?per_page=1000`,
+      )
+      return (result?.buckets ?? []).flatMap((entry) =>
+        entry.name ? [{ name: entry.name }] : [],
+      )
+    },
+
+    async createR2Bucket(name) {
+      await requestJson(`${account}/r2/buckets`, "POST", { name })
+    },
+
+    async deleteR2Bucket(name) {
+      let startAfter: string | undefined
+      for (;;) {
+        const query = new URLSearchParams({ per_page: "1000" })
+        if (startAfter) query.set("start_after", startAfter)
+        const objects = await request<Array<{ key?: string }>>(
+          `${account}/r2/buckets/${encodeURIComponent(name)}/objects?${query.toString()}`,
+        )
+        const keys = (objects ?? []).flatMap((object) =>
+          object.key ? [object.key] : [],
+        )
+        if (keys.length === 0) break
+
+        for (let index = 0; index < keys.length; index += 5) {
+          await Promise.all(
+            keys.slice(index, index + 5).map(async (key) => {
+              const encodedKey = key.split("/").map(encodeURIComponent).join("/")
+              for (let attempt = 0; ; attempt += 1) {
+                try {
+                  await request(
+                    `${account}/r2/buckets/${encodeURIComponent(name)}/objects/${encodedKey}`,
+                    { method: "DELETE" },
+                  )
+                  return
+                } catch (error) {
+                  if (
+                    !(error instanceof CloudflareApiError) ||
+                    error.status !== 429 ||
+                    attempt >= 6
+                  ) {
+                    throw error
+                  }
+                  await delay(error.retryAfterMs ?? 1_000 * 2 ** attempt)
+                }
+              }
+            }),
+          )
+        }
+
+        const nextStartAfter = keys[keys.length - 1]
+        if (nextStartAfter === startAfter) {
+          throw new CloudflareApiError(
+            200,
+            [],
+            `Cloudflare returned the same R2 object page while emptying bucket ${name}`,
+          )
+        }
+        startAfter = nextStartAfter
+      }
+
+      await request(`${account}/r2/buckets/${encodeURIComponent(name)}`, {
+        method: "DELETE",
+      })
+    },
+
+    async createStaticAssetUploadSession(name, manifest) {
+      const result = await requestJson<{ buckets?: unknown; jwt?: string }>(
+        `${account}/workers/scripts/${encodeURIComponent(name)}/assets-upload-session`,
+        "POST",
+        { manifest },
+      )
+      if (!result?.jwt || !Array.isArray(result.buckets) || !result.buckets.every((bucket) =>
+        Array.isArray(bucket) && bucket.every((hash) => typeof hash === "string"))) {
+        throw new CloudflareApiError(200, [], "Cloudflare returned an invalid static asset upload session")
+      }
+      return { jwt: result.jwt, buckets: result.buckets as string[][] }
+    },
+
+    async uploadStaticAssetBucket(uploadJwt, assets) {
+      const form = new FormData()
+      for (const [hash, content] of Object.entries(assets)) {
+        form.append(hash, new File([content], hash, { type: STATIC_ASSET_PART_TYPE }), hash)
+      }
+      let response: Response
+      try {
+        response = await fetchFn(`${baseUrl}${account}/workers/assets/upload?base64=true`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${uploadJwt}`,
+          },
+          body: form,
+        })
+      } catch (error) {
+        trace({ method: "POST", path: `${account}/workers/assets/upload`, network_error: String(error) })
+        throw error
+      }
+      const text = await response.text()
+      let envelope: CloudflareEnvelope<{ jwt?: string }> | null = null
+      try { envelope = text ? JSON.parse(text) as CloudflareEnvelope<{ jwt?: string }> : null } catch { envelope = null }
+      trace({
+        method: "POST",
+        path: `${account}/workers/assets/upload`,
+        status: response.status,
+        ray_id: response.headers.get("cf-ray"),
+        content_type: response.headers.get("content-type"),
+        response_bytes: text.length,
+        location: response.headers.get("location"),
+        retry_after: response.headers.get("retry-after"),
+        preference_applied: response.headers.get("preference-applied"),
+        result_keys: envelope?.result && typeof envelope.result === "object" ? Object.keys(envelope.result) : [],
+        has_completion_jwt: Boolean(envelope?.result?.jwt),
+        errors: normalizeIssues(envelope?.errors),
+      })
+      if (!response.ok || envelope?.success === false) {
+        throw new CloudflareApiError(
+          response.status,
+          normalizeIssues(envelope?.errors),
+          `Cloudflare static asset upload failed with status ${response.status}`,
+          retryAfterMs(response),
+        )
+      }
+      /** Every bucket but the last answers `202 Accepted` with no JWT: Cloudflare's asset
+       * upload service issues the completion token only once the collection is whole. Demanding
+       * one from each bucket turns the ordinary middle of a multi-bucket upload into a failure,
+       * which no single-bucket book ever reveals. */
+      return envelope?.result?.jwt ?? null
+    },
+
+    async listWorkerScripts() {
+      const result = await request<Array<{ id?: string }>>(`${account}/workers/scripts`)
+      return (result ?? []).flatMap((entry) => (entry.id ? [{ id: entry.id }] : []))
+    },
+
+    async createWorker(name) {
+      await requestJson(`${account}/workers/workers`, "POST", { name })
+    },
+
+    async uploadWorkerScript({ name, script, metadata }) {
+      const form = new FormData()
+      const mainModule = String(metadata.main_module ?? "worker.js")
+      form.append(
+        "metadata",
+        new Blob([JSON.stringify(metadata)], { type: "application/json" }),
+      )
+      form.append(
+        mainModule,
+        new Blob([script], { type: "application/javascript+module" }),
+        mainModule,
+      )
+      await request(`${account}/workers/scripts/${encodeURIComponent(name)}`, {
+        method: "PUT",
+        body: form,
+      })
+    },
+
+    async deleteWorkerScript(name) {
+      await request(
+        `${account}/workers/scripts/${encodeURIComponent(name)}?force=true`,
+        { method: "DELETE" },
+      )
+    },
+
+    async getWorkersDevSubdomain() {
+      try {
+        const result = await request<{ subdomain?: string | null }>(
+          `${account}/workers/subdomain`,
+        )
+        return result?.subdomain ? result.subdomain : null
+      } catch (error) {
+        if (error instanceof CloudflareApiError && error.isNotFound) {
+          return null
+        }
+        throw error
+      }
+    },
+
+    async createWorkersDevSubdomain(subdomain) {
+      const result = await requestJson<{ subdomain?: string | null }>(
+        `${account}/workers/subdomain`,
+        "PUT",
+        { subdomain },
+      )
+      return result?.subdomain || subdomain
+    },
+
+    async enableScriptSubdomain(name) {
+      await requestJson(
+        `${account}/workers/scripts/${encodeURIComponent(name)}/subdomain`,
+        "POST",
+        { enabled: true, previews_enabled: false },
+      )
+    },
+  }
+}
+
+export interface ListCloudflareAccountsOptions {
+  token: string
+  fetchFn?: FetchLike
+  baseUrl?: string
+}
+
+/** Account listing for a credential that is not yet bound to an account — the OAuth
+ *  grant covers every account the user is a member of, so the account id has to be
+ *  resolved after the token exchange rather than typed in. */
+export async function listCloudflareAccounts(
+  options: ListCloudflareAccountsOptions,
+): Promise<CloudflareAccount[]> {
+  const fetchFn: FetchLike = options.fetchFn ?? ((input, init) => fetch(input, init))
+  const baseUrl = (options.baseUrl ?? CLOUDFLARE_API_BASE_URL).replace(/\/$/, "")
+  const response = await fetchFn(`${baseUrl}/accounts?per_page=50`, {
+    headers: { Authorization: `Bearer ${options.token}` },
+  })
+  const text = await response.text()
+
+  let envelope: CloudflareEnvelope<Array<{ id?: string; name?: string }>> | null = null
+  if (text.length > 0) {
+    try {
+      envelope = JSON.parse(text) as CloudflareEnvelope<Array<{ id?: string; name?: string }>>
+    } catch {
+      envelope = null
+    }
+  }
+
+  if (!response.ok || envelope?.success === false) {
+    throw new CloudflareApiError(
+      response.status,
+      normalizeIssues(envelope?.errors),
+      `Cloudflare API GET /accounts failed with status ${response.status}`,
+    )
+  }
+
+  return (envelope?.result ?? []).flatMap((entry) =>
+    entry.id ? [{ id: entry.id, name: entry.name ?? "" }] : [],
+  )
+}
+
+export interface WorkerHealth {
+  reachable: boolean
+  version: string | null
+}
+
+export async function fetchWorkerHealth(
+  workerUrl: string,
+  fetchFn: FetchLike = (input, init) => fetch(input, init),
+  timeoutMs = 5000,
+): Promise<WorkerHealth> {
+  try {
+    const response = await fetchFn(`${workerUrl.replace(/\/$/, "")}/health`, {
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+    if (!response.ok) {
+      return { reachable: true, version: null }
+    }
+    const parsed = PublishWorkerHealth.safeParse(await response.json())
+    return { reachable: true, version: parsed.success ? parsed.data.version : null }
+  } catch {
+    return { reachable: false, version: null }
+  }
+}
