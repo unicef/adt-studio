@@ -17,3 +17,4 @@ Each spec that establishes an invariant adds its checker in the same change.
 | 5 | Staleness semantics (per-section, input-version comparison, never delete) | contract tests in `packages/pipeline/test/staleness.contract.test.ts` | every PR | SPEC-0001 |
 | 6 | Prompt output contracts | validator suite per prompt (page sectioning exists; extend) | every PR | SPEC-0003, SPEC-0004 |
 | 7 | No provider key in logs or model-call records | log scrubber test + grep in CI | every PR | security chain (Block 1) |
+| 8 | B1 mode transitions retain entities/media and gate persisted Storyboard input | `apps/api/src/services/sectioning-lifecycle.test.ts`, `sectioning-preflight-runners.test.ts`, and `packages/pipeline/src/__tests__/sectioning-preflight.test.ts` under `pnpm test` | every PR | SPEC-0003 B1 implementation (review pending) |

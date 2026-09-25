@@ -5,10 +5,10 @@ status: in-review
 owner: "@ksokolovic"
 approvers: []
 issues: ["#708"]
-prs: []
+prs: ["#884"]
 adr: "docs/DECISIONS.md#025-sectioning-mode-changes-preserve-content-and-gate-rendering"
 created: 2026-09-22
-updated: 2026-09-22
+updated: 2026-09-25
 ---
 
 ## Decision under review
@@ -121,7 +121,7 @@ Opening a historical book does not silently migrate its trees. The preflight pro
 | SPEC-0012 | Text synchronization cannot declare an incompatible By Page tree current. |
 | B2 SPEC-0003 expansion | Decide new modes/merge policy later; preserve this B1 lifecycle boundary. |
 
-The proposed decision is recorded in [ADR 025](../DECISIONS.md#025-sectioning-mode-changes-preserve-content-and-gate-rendering). It remains proposed until this spec's blocking review questions are resolved. No new runtime enforcement is claimed by this documentation PR.
+The proposed decision is recorded in [ADR 025](../DECISIONS.md#025-sectioning-mode-changes-preserve-content-and-gate-rendering). It remains proposed until this spec's blocking review questions are resolved. The same PR now carries a locally implemented B1 safe slice under explicit task authorization; approval remains pending. See the [implementation evidence and limitations](../verification/spec-0003-b1.md).
 
 ## Acceptance criteria
 
@@ -165,7 +165,7 @@ The first 21 criteria preserve the subjects and order of #708's checklist.
 | Existing validator/cache regressions | AC-26 | Invalid cached output eviction and valid response reuse through production callers. |
 | Dependency/diff review | AC-21 | No package/lockfile additions. |
 
-Run focused Vitest suites, typecheck, relevant lint/i18n checks and an acceptance book through API and CLI on the integrated implementation head. These are future implementation checks, not results of this draft.
+Run focused Vitest suites, typecheck, relevant lint/i18n checks and an acceptance book through API and CLI on the integrated implementation head. Recorded implementation results and remaining verification gaps are in the [B1 evidence report](../verification/spec-0003-b1.md).
 
 ## Rollout
 

@@ -886,7 +886,7 @@ Treat an effective mode transition as non-destructive invalidation of Sectioning
 
 Mode changes need writer admission and a recoverable cross-file/database transition. Rendering entry points must share the same preflight; neither mode changes nor preflight failures authorize content deletion. The wider B2 mode/merge design is not approved by this B1 proposal.
 
-This ADR is under review with its spec; no implementation acceptance criterion is satisfied by publishing it. The spec owns the acceptance/test mapping and approval questions. Existing invariant-registry checks remain as documented; new enforcement belongs to the implementing change.
+This ADR is under review with its spec; no implementation acceptance criterion is satisfied by publishing it. The spec owns the acceptance/test mapping and approval questions. The same PR now includes the B1 safe-slice implementation and executable invariant checks; see its [evidence and rollout limits](verification/spec-0003-b1.md). This does not approve the proposed decision.
 
 ### Alternatives Considered
 

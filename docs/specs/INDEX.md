@@ -7,7 +7,7 @@ Statuses: draft · in-review · approved · in-progress · implemented · verifi
 |-----------|-----------------------------------------------------------------|--------|-------------|-----------|
 | SPEC-0001 | Per-section staleness and scoped regeneration                   | draft  | @ksokolovic | Block 1   |
 | SPEC-0002 | Manual-edit preservation for translation, quiz, sectioning, TOC | draft  | @ksokolovic | Block 1   |
-| [SPEC-0003](SPEC-0003-sectioning-modes.md) | Sectioning modes — B1 lifecycle and persisted-output safety | in-review | @ksokolovic | Block 1 lifecycle; Block 2 expansion deferred |
+| [SPEC-0003](SPEC-0003-sectioning-modes.md) | Sectioning modes — B1 lifecycle and persisted-output safety | in-review | @ksokolovic | [B1 safe-slice evidence](../verification/spec-0003-b1.md); approval pending; B2 deferred |
 | SPEC-0004 | Style guide, Styles panel, token-enforced rendering             | draft  | TBD         | Block 2   |
 | SPEC-0005 | Acceptance harness over the acceptance set                      | draft  | TBD         | Block 1   |
 | SPEC-0006 | Cloudflare publishing: scope, ops surface, security             | draft  | TBD         | Block 2   |
