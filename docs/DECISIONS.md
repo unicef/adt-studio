@@ -29,7 +29,7 @@ This document records all significant technology and architecture decisions made
 21. [Context-Aware Top Bar Button](#021-context-aware-top-bar-button)
 22. [Unified Stage/Step Status via useBookRun](#022-unified-stagestep-status-via-usebookrun)
 23. [Visual Refinement + File-Based Debug Screenshots](#023-visual-refinement--file-based-debug-screenshots)
-24. [Section Content Freshness and Scoped Regeneration (proposed)](#adr-024)
+24. [Catalog-Based Freshness from Saved Input Signatures (proposed)](#adr-024)
 
 ---
 
@@ -865,13 +865,13 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 
 <a id="adr-024"></a>
 
-## 024: Section Content Freshness and Scoped Regeneration
+## 024: Catalog-Based Freshness from Saved Input Signatures
 
 **Status**: Proposed
 
 **Date**: 2026-09-11
 
-**Updated**: 2026-09-21
+**Updated**: 2026-09-27
 
 **Spec**: [SPEC-0001](specs/SPEC-0001-per-section-staleness.md)
 
@@ -879,60 +879,79 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 
 ### Context
 
-Book-wide invalidation can delete outputs and manual corrections after a local
-edit. Raw input-version comparison would also invalidate downstream content
-after a cosmetic Storyboard save. The first release needs predictable section
-scope without per-element dependency tracking.
+Book-wide clearing destroys unrelated output and history. A universal section
+freshness flag also groups independent outputs and fits glossary/quiz text poorly.
+The catalog already identifies text; some operations still require section or
+neighboring context. Failed Core TTS preparation currently withholds speech text.
 
 ### Proposed Decision
 
-Track freshness and regenerate at section scope for captions, translation,
-easy-read and speech. Compare deterministic section content snapshots: relevant
-text, image identity, captions, ordering and other consumed context. Exclude
-purely cosmetic styles such as text color and displayed image size. Include
-effective generation settings and shared dependencies where consumed. Storyboard's
-own freshness is outside V1 scope. In particular, tracking Sectioning edits so a
-Storyboard stage run rebuilds only affected pages is a separate follow-up. This
-decision governs downstream effects of existing Storyboard save/re-render
-actions, not selection of pages for Storyboard regeneration.
+Compare each output's saved input signature against relevant current content,
+settings and context. Use the derived book-local text catalog and image inventory;
+retain provenance, manual protection and review evidence separately. Sections
+remain selection/context groups. Saves preserve output and make no provider calls.
 
-A relevant change marks affected section outputs stale without deleting them.
-Page and stage actions select sections and use the same downstream execution
-path. Each affected step runs in full for the selected sections, processing all
-eligible assets through the existing cache rather than selecting only changed
-elements. A full step run does not require fresh provider calls for cached
-requests. Merge generated results without changing unrelated sections. Preserve
-manual corrections and flag upstream-affected manual work for review; an ordinary
-stage run never authorizes replacing it.
+Expose **Update needed**, **Warning** and **Missing**, with plain explanations.
+Manual content keeps a **Manual edit** label and survives ordinary runs, including
+full-section easy-read processing. Attach keep/edit/explicit-replacement actions
+to its warning. Successful replacement becomes generated content; retain history.
+Unknown authorship stays protected. Derive stage warning counts from affected
+outputs; review resolves against the inputs/output shown and is reassessed on
+relevant change. Bulk replacement identifies the edits and is off by default.
 
-Keep existing LLM-level caching. An identical complete request with a valid cache
-entry makes no new provider call. Changed batching or context can miss the cache,
-even when some individual texts are unchanged. Do not promise per-element cost
-or a fixed percentage of full-book cost. Regeneration normally permits cache
-hits; a force-fresh policy is separate.
+Requested generation may use available inputs with unresolved warnings. Missing
+usable input prevents only affected work; never silently launch upstream provider
+calls. Failed/missing/outdated generated Core TTS preparation uses selected display
+text in the requested language, recording fallback inputs and reason. Preserve
+manual speech text; disabled normalization is not a failure. This deliberately
+changes the withholding policy, including failed LaTeX conversion.
 
-### Consequences
+Ordinary runs reuse unchanged fallback input and matching audio. Retry preparation
+explicitly attempts normalization; relevant input changes make it eligible when
+requested. Mark checked resolves the fallback warning without inventing successful
+normalization or manual authorship. Skip this run is temporary; pruning persists
+until restored. Current output needs no extra badge.
 
-- Cosmetic edits avoid downstream regeneration; content edits use section scope.
-- Stable section ownership, provenance and scoped merging are required even
-  while outputs remain stored in page/book/language collections.
-- Failed runs preserve old outputs and cannot mark newer inputs current.
-- Existing books retain their data; unknown historical freshness is not inferred
-  from a snapshot of today's inputs. Downgrade behavior is not yet guaranteed.
-- Larger generation batches may compute extra content, but cannot replace
-  outputs outside the selected scope; their cost must be measured and visible.
-- Manual-review resolution and stale-output export policy remain open in the
-  spec. This ADR stays proposed until those review decisions are resolved.
+Keep existing request caching and context-dependent batching. Merge new versions
+without replacing unrelated/protected work. Validate captured inputs and target
+protection/selection before publication; conflicting edits reject obsolete results.
+Preserve previous playable output on failure, cancellation or rejection, and keep
+physical assets referenced by history independently of disposable caches.
+
+### Scope and Consequences
+
+- V1 covers captions, easy-read, Translate's existing steps and Speech's existing
+  steps. Storyboard freshness and Sectioning-to-Storyboard selection are deferred.
+  Existing glossary/quiz catalog entries participate; their generation and TOC
+  generation remain outside scope.
+- Cosmetic changes do not invalidate content. Stable identity and explicit context
+  are required; transport batching alone does not authorize replacing unchanged IDs.
+  Cache identity differs from freshness, so no fixed cost saving is promised.
+- Count expected work, including failures and omissions. Missing means no usable
+  output; disabled/pruned/not-applicable work is not unfinished.
+- A finished run does not prove freshness. Declared TTS fallback may be current
+  with a quality warning; unresolved upstream freshness cannot be certified current.
+  Resolve inherited warnings at their source and reuse unchanged downstream inputs.
+- Fallback may pronounce raw notation poorly. Warnings allow later checking or
+  correction; accepting content cannot invent authorship or missing files.
+- Preview/export permit usable stale/review-needed content under existing gates,
+  disclose included/omitted/fallback output, and add no warning-approval popup.
+  Export does not resolve warnings or freshness.
+- Hash representation and physical publication mechanisms remain implementation
+  choices. This ADR is proposed; no runtime behavior is delivered by these docs.
+
+#735 is partially addressed. #131's inline generation is deferred in favor of a
+separate action after saving. #619 and #626 remain background/deferred.
 
 ### Alternatives Considered
 
-- Non-destructive whole-stage invalidation: useful interim protection, but a
-  local edit can still schedule the whole book.
-- Raw input-version comparison: a save/version change alone does not establish
-  that downstream content changed.
-- Per-element dependency tracking: more precision than V1 requires; section
-  context already makes some unchanged elements depend on changed neighbors.
-- A general dependency graph: deferred beyond the four in-scope outputs.
+- Whole-stage execution: fallback only with disclosed scope and the same protection,
+  warning, text-fallback and physical-artifact guarantees; no claim of precise scope.
+- Universal section snapshots: too coarse for independent outputs and non-section IDs.
+- Raw entity versions: incorrectly treat cosmetic saves as content changes.
+- General dependency engine: unnecessary for fixed input rules on existing steps.
+- Blocking unresolved inputs or requiring fallback approval: interrupts usable work;
+  V1 continues with explicit warnings and preserves user control over replacement.
 
 ---
 
@@ -963,7 +982,7 @@ hits; a force-fresh policy is separate.
 | 021 | Top bar button | Context-aware per stage | Per-stage inline buttons in sidebar |
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
-| 024 (proposed) | Downstream freshness | Section content comparison and scoped regeneration with existing LLM caching | Raw version comparison, per-element dependency tracking |
+| 024 (proposed) | Downstream freshness | Catalog-based input signatures and scoped regeneration with existing caching | Whole-stage clearing, universal section flags, general dependency graph |
 
 ---
 
