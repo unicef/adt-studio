@@ -1,328 +1,221 @@
 ---
 id: SPEC-0001
-title: Per-section staleness and scoped regeneration
+title: Catalog-based freshness and scoped regeneration
 status: in-review
 owner: "@ksokolovic"
 approvers: ["@<integration>", "@elasticsounds"]
 issues: ["#735", "#131", "#733", "#736", "#619", "#626"]
-prs: []
+prs: ["#879"]
 adr: "docs/DECISIONS.md#adr-024"
 created: 2026-09-10
-updated: 2026-09-21
+updated: 2026-09-27
 ---
 
 ## Decision under review
 
-**The unit of freshness and regeneration is a section. Cosmetic changes do not
-invalidate downstream content. A relevant content change makes the affected
-section stale. When regeneration is requested, each affected downstream step
-runs in full for that section, processing all its eligible assets through the
-existing LLM cache. V1 does not select individual changed elements for
-regeneration.**
+**Compare each downstream output's relevant inputs through the book's text catalog and image inventory. Preserve existing output and manual corrections. Generate only when requested, using existing caching. Let usable work continue, with Update needed, Warning and Missing explaining unfinished work. Core TTS uses displayed text as an automatic fallback.**
 
-V1 covers captions, translation, easy-read and speech. Storyboard's own freshness
-remains outside scope. A page action is a selection of its sections; a stage
-action is a selection of sections needing work in that stage. Both must use the
-same downstream regeneration path.
+This is a proposed amendment to the section-only design in PR #879. Freshness belongs to an output identified by its data ID and applicable language/voice. Sections remain useful for selection, status and operations that need section context, especially easy-read. They are no longer the universal freshness unit. Ordinary regeneration need not replace every output in a selected section.
 
-This revision replaces the attached draft's proposal to determine freshness
-solely from input version numbers. A new Storyboard version is evidence of a
-save, not necessarily a change to the content downstream features consume.
+The mechanism is input comparison and fixed rules for existing steps, not a general dependency-graph engine or a separate stale-flag system.
 
-## Problem and current implementation
+## Problem and evidence
 
-The original issue reports describe local edits causing book-wide invalidation,
-unexpected regeneration costs, and loss of manual corrections (#735, #626,
-#733, #736). Current code has several paths that must be addressed together:
+Local edits currently reach book-wide clears: `saveStoryboardNode` in `apps/api/src/routes/pages.ts`, `reRenderPage`'s `finally` block in `apps/api/src/services/page-edit-service.ts`, and `makeBeforeRun` in `apps/api/src/routes/stages.ts`. Most node-type clears remove historical rows as well as current output (`packages/storage/src/book-storage.ts:76`).
 
-- `apps/api/src/routes/pages.ts`: Storyboard saves clear downstream node types
-  across the book.
-- `apps/api/src/services/page-edit-service.ts`: even a section re-render clears
-  downstream node types in `finally`, including on failure.
-- `apps/api/src/routes/stages.ts`: `makeBeforeRun` clears node types before a
-  stage run. Changing the editor save path alone cannot preserve user work.
-- `packages/storage/src/book-storage.ts`: `clearNodesByType` deletes current and
-  historical rows for most node types.
-- `apps/api/src/services/stage-runner.ts`: translations and speech are stored in
-  per-language collections; easy-read is stored for the book; captions are
-  stored per page. Scoped work must merge into these collections safely.
+The code already has a useful foundation: `packages/pipeline/src/text-catalog.ts` gathers page text, captions, activity answers, glossary entries and quiz text. However, `TextCatalogEntry` currently records only `{ id, text }`; it does not prove freshness or manual ownership. Easy-read uses full-section context (`packages/pipeline/src/easy-read.ts:203`), Core TTS uses neighboring text (`packages/pipeline/src/core-tts.ts:248`), and speech writes live filenames on both generation and cache reuse (`packages/pipeline/src/speech.ts:1005`). These paths require explicit handling.
 
-Anchors (verified 2026-09-21 against `develop` at 7a8896528):
+Core TTS currently stores failed preparation with null speech text and omits it from `getReadyCoreTtsEntries`. V1 deliberately changes this behavior to a visible fallback, including failed LaTeX conversion; raw notation may sound awkward. This document specifies proposed behavior, not guarantees already implemented.
 
-- **The stage-level stale flag.** `step_runs` holds one row per *step*, so "stale" can only be expressed by deleting that row: `clearStepRuns` at `packages/storage/src/book-storage.ts:448` (`DELETE FROM step_runs WHERE step IN (…)`, line 451). `markStoryboardChainStale` at `apps/api/src/routes/pages.ts:647` clears every step of every stage downstream of the storyboard.
-- **`clearNodesByType`** at `packages/storage/src/book-storage.ts:76` deletes every version of the named node types (`node_data` and `node_current`, lines 85–86). Quiz generation is the one exception: its output is invalidated, never erased (`invalidateQuizOutput`, line 81).
-- **`clearCaptionData`** at `apps/api/src/routes/pages.ts:461` (API layer, not the storage package) clears the eight node types in `IMAGE_SET_CHANGE_CLEAR_NODE_TYPES` (`packages/types/src/pipeline-effects.ts:70`) book-wide. It is called unconditionally from `saveStoryboardNode` (`apps/api/src/routes/pages.ts:682`, call at line 691) and from `clearRestoredNodeDependents` (line 486, call at line 496).
-- **The stage runner's invalidation branch** is `makeBeforeRun` at `apps/api/src/routes/stages.ts:164`: `getStageRerunClearNodes` → `clearNodesByType` (line 194), then `clearStepRuns` over every step of every downstream stage (line 204). It lives in the API, not in `packages/pipeline`.
-- **`PIPELINE`** at `packages/types/src/pipeline.ts:78` for the stage graph; `getStageClearOrder` / `getStageDependents` at `packages/types/src/pipeline-effects.ts:188` and `:195` derive the downstream set from it.
+## Scope and non-goals
 
-## Goals
+| Included | Behavior |
+|----------|----------|
+| Captions | Track image inputs and existing caption consumers |
+| Easy Read | Reconcile the source catalog; process affected sections while preserving protected entries |
+| Translate | Catalog translation, Core TTS preparation and enabled image translation |
+| Speech | Audio and enabled word timestamps, including uploaded-audio preservation |
 
-- Cosmetic edits cause no regeneration of the four downstream outputs.
-- Content edits invalidate affected sections without deleting existing outputs.
-- Regenerating a section preserves unrelated sections and all version history.
-- Stage regeneration uses the same logic as selected-section regeneration.
-- Manual corrections survive ordinary regeneration, including cache hits.
-- Users can distinguish completed work, remaining stale sections and protected
-  corrections requiring review.
+All step names and ordering remain derived from `PIPELINE`. A deterministic whole-book catalog rebuild is acceptable; it must not cause whole-book output replacement or provider calls.
 
-## Non-goals
+Storyboard's own freshness is excluded. Editing Sectioning and having a Storyboard run select only affected pages remains a follow-up. Generation of glossary, quizzes and TOC also remains outside scope: their saved content is retained, while edits to their existing catalog entries can affect translations and speech. This does not certify those generated source artifacts as semantically current under every source edit; their existing generation policies remain separate.
 
-- Per-element freshness records or a scheduler choosing individual changed IDs.
-- A general dependency graph across arbitrary entity types.
-- Section-level freshness for Storyboard, glossary, quizzes or TOC in V1.
-- Tracking Sectioning edits to regenerate only the affected Storyboard pages.
-  This Sectioning → Storyboard behavior is explicitly deferred, as detailed below.
-- Redesigning model cache keys or guaranteeing a fresh model response on every
-  regeneration. Storyboard's explicit re-render/cache-bypass work in #731 remains
-  a separate behavior to reconcile before implementation.
-- Reconstructing missing historical input provenance for existing books.
-- New panels. Extend existing selection and status UI only as needed to show
-  stale sections and protected work. All new Studio text follows Lingui rules.
+No automatic paid generation on save, model-cache redesign, arbitrary dependency graph, separate review application, new glossary-caption consumer, or recovery of files already lost in older versions. Reuse existing editors and lists for warnings/actions. Explicit force-fresh behavior in #731 is separate from ordinary cache-enabled regeneration.
 
-### Explicit boundary: Sectioning → Storyboard
+## Proposed design
 
-**This spec does not implement per-section or per-page staleness for Storyboard.**
-For example, editing one section in Sectioning and then having a Storyboard stage
-run regenerate only the affected page(s) is a separate follow-up. V1 does not
-introduce automatic Storyboard regeneration after Sectioning edits or change a
-full Storyboard run into an affected-pages-only run.
+### 1. Reconcile current content by stable identity
 
-Existing targeted page/section re-render actions remain available. This spec
-covers their downstream effects: when Storyboard content is saved or regenerated,
-compare the resulting section content and invalidate the affected captions,
-translation, easy-read and speech outputs without deleting unrelated work.
-The rule for selecting which Storyboard pages need regeneration is outside scope.
+The catalog remains derived from the latest saved authored content, not a second editable source of truth. Compare normalized content by stable data ID, recording active membership and page/section references where available. Preserve meaningful reading order and roles used by downstream steps. Catalog records must distinguish source text from derived variants such as translations and easy-read; changing one variant must not overwrite its source.
 
-A follow-up could reuse the existing targeted render APIs, but reliable affected-
-page selection also needs persistent freshness tracking, coverage of all
-Sectioning mutations (including splits and cross-page merges), and correct
-aggregate Storyboard status after partial success or failure. Treat that as a
-separately estimated change, not a small implicit extension of this spec.
+- Changed content under an existing ID: reconsider outputs consuming it.
+- New ID: its applicable outputs are missing.
+- Removed ID: deactivate dependent output if no active references remain; preserve history and manual work.
+- Unchanged content: do not invalidate merely because a save or entity version changed.
 
-## What counts as a content change
+Moves retain identity; new or cloned elements receive new IDs. Reject conflicting duplicate IDs. Positional activity IDs currently minted during catalog extraction must be made stable before relying on them for correction preservation. Reconcile a complete snapshot or an explicit source contribution; never treat a partial-page response as a complete catalog and retire unseen entries.
 
-Build a deterministic downstream-content snapshot for each stable `sectionId`.
-Compare the section snapshot after a save with its previous snapshot. This is
-one section-level comparison, not per-element dependency tracking.
+Keep an image inventory alongside the text catalog using existing book image storage. It records active image IDs, asset content identity and references from Storyboard/glossary. An image must be discoverable before a caption exists. Image pixels/crops affect captioning; displayed size and CSS do not. Caption text uses the authoritative caption store; HTML alt edits must update that same source rather than an unused competing value.
 
-The snapshot includes the ordered text IDs and normalized text consumed by the
-pipeline, relevant section/element roles and activity answers, active image IDs
-and image asset identity, authoritative caption values and decorative state,
-and section participation/pruning. Include reading order and other context
-actually used by these features. Compare data extracted from saved content;
-do not trust the editor's description of an action as "layout only."
+### 2. Store the inputs used by each output
 
-Exclude purely visual styles, such as text color, spacing and displayed image
-dimensions. Do not include raw HTML, save timestamps or the page's Storyboard
-version in the content comparison. A crop or replacement that changes the
-image supplied to captioning is content, even if its image ID is unchanged.
+Conceptual identity: `(output kind, data ID or context group, language, voice slot)` where applicable. Retain the published output/version, its input signature, source-version references needed for inspection, and provenance/protection. Record explicit review acceptance separately from generation authorship. Warning resolutions refer to the relevant inputs and output reviewed, not a permanent dismissed flag.
 
-| Edit | V1 behavior |
-|------|-------------|
-| Change text color, font size, spacing or displayed image size; relevant content is unchanged | Keep the four downstream outputs current |
-| Change text, add/remove text, change relevant roles or reading order | Mark the section's downstream outputs stale; regenerate at section scope |
-| Add, remove, replace or crop an image | Mark affected sections stale; removed content leaves active output on reconciliation, with history retained |
-| Edit an authoritative caption/alt-text value or decorative state | Preserve the edited value as manual work; mark consuming downstream section outputs stale |
-| Edit a translation | Preserve that translation; invalidate dependent speech for the section and language |
-| Add a section | Its applicable downstream outputs are missing and need generation |
-| Remove or prune a section | Exclude it from active output; preserve its output history and manual work |
-| Change a shared prompt, effective model, voice or other generation input | Mark every section consuming that changed input stale; selection remains explicit |
+The signature covers normalized input content, effective prompt/model/settings and the context the step requires. Exclude timestamps, irrelevant styles and raw save-version increments. Canonical ordering must be deterministic. Hashing is an implementation choice; equality of relevant inputs is the contract.
 
-Cosmetic changes can still require repackaging the book. This spec's exemption
-applies to captions, translation, easy-read and speech, not the exported layout.
+| Output | Required input basis |
+|--------|----------------------|
+| Caption | Image asset, required page/image context, language and caption settings |
+| Translation | Source entry, source/target language, prompt/model/settings and any explicitly required context |
+| Easy-read | Full eligible section text, IDs/order, section type and settings |
+| Core TTS | Display text, relevant source-language context, required neighboring text and preparation settings |
+| Audio | Effective speech text (prepared, manual or fallback), voice/provider/settings and required neighboring speech context |
+| Timestamps | Actual audio identity, matching text and alignment settings |
+| Image translation | Source image identity, target language and effective generation settings |
 
-The current text catalog reads image captions from `image-captioning`, not raw
-HTML `alt`. Implementation must establish a single authoritative edit path for
-caption/alt values and test it. A save must not silently change an unused `alt`
-attribute while leaving the catalog's caption unchanged.
+V1 catalog translation is entry-based: batch membership is a transport choice, not a reason to replace every entry in that batch. If a translation prompt requires wider semantic context, that context must be explicit in its input basis and affected outputs must be expanded accordingly. For existing context-dependent steps such as easy-read and Core TTS, do not pretend unchanged neighboring text guarantees unchanged inputs. Reordering or inserting an entry can change those inputs too.
 
-## Section freshness and execution contract
+Captioning may similarly expand to its actual page/image context. Shared assets have one authoritative output with multiple consumers, not conflicting copies assigned to arbitrary sections. Glossary and Quizzes are selection groups for their existing IDs, not synthetic section identities.
 
-Persist freshness against stable section identity and the affected output,
-including language/voice scope where applicable. Existing IDs inside sections
-are still needed to attach and merge outputs; they do not get independent
-freshness records. Array indexes are not persistent section identity.
+### 3. Use three macro labels and plain explanations
 
-For each output, retain the section input snapshot/signature used by the last
-successful generation or review, together with effective generation settings
-and relevant shared context. Version references may be retained for inspection,
-but a version increment alone does not make an output stale.
+| Condition | Display and ordinary action |
+|-----------|-----------------------------|
+| Generated output exists but relevant inputs changed | **Update needed**; regenerate affected output |
+| Protected content needs review, legacy freshness is unknown, or a usable fallback needs checking | **Warning** with a reason; preserve usable content and continue |
+| Applicable output has no usable result, including never generated, failed or skipped items | **Missing** with a reason; generate when selected and usable inputs exist |
+| Inputs match a valid generation/fallback or review baseline and upstream freshness is resolved | Current; no additional badge |
+| Disabled, pruned or genuinely no eligible input | Excluded/not applicable; not unfinished work |
 
-Use fixed, documented input rules for the four features. For a source-content
-change, conservative invalidation of all four within the section is acceptable;
-the cache can reuse unchanged requests. Edits to a generated output invalidate
-its consumers, not the edited output itself. Shared images or shared context
-can affect multiple sections: all consuming sections must be included. A
-section boundary is not a promise that genuine shared dependencies disappear.
+Manual content has a **Manual edit** label; the edit itself is not a warning. Running, failed, cancelled and skipped describe attempts, not replacement rules. An unsuccessful attempt may leave valid current output intact. Missing means no usable output for that output kind: playable fallback audio is not missing just because normalization failed.
 
-1. A page/section save records changed content and freshness atomically. It does
-   not start paid generation or clear downstream history.
-2. Regenerating a Storyboard page repairs that page's Storyboard only. Compare
-   the resulting section content and mark changed downstream sections stale.
-   An identical or purely cosmetic result creates no new downstream work.
-   This describes an existing targeted action's downstream effects; it does not
-   add affected-page selection for a Storyboard stage run after Sectioning edits.
-3. "Regenerate stale only" selects applicable missing/stale sections in the
-   requested stage. Run each affected downstream step in full for those sections,
-   processing all eligible assets, including assets whose inputs are unchanged.
-   Identical requests reuse cached responses; cache misses invoke the provider.
-   Keep protected manual entries intact. The selection is which sections to
-   process, not which individual assets within a section changed.
-4. Merge successful results into current page/book/language collections using
-   section ownership. Never replace unrelated sections with a partial result.
-5. Publish new versions and clear the corresponding stale state only after
-   successful persistence. Failure or cancellation keeps previous outputs and
-   leaves unfinished work stale. Writes must not overwrite concurrent work.
-6. If inputs change during a run, its result cannot establish freshness for the
-   newer inputs. Serialize conflicting edits or verify the captured inputs
-   before publishing; regenerating one section cannot clear another's state.
-7. A successful job does not imply that the whole stage is current. Derive
-   in-scope stage freshness from remaining stale, missing and review-needed
-   sections. Storyboard's own aggregate status is not redesigned here.
+Derive page/section/group/stage summaries, including glossary/quiz IDs. Show counts such as “5 updates needed · 2 warnings · 1 missing”; the stage warning icon opens affected items. Count each output once per category. Warning can accompany Missing or Update needed and must not hide either. Excluded entries do not contribute outstanding counts.
 
-Splits, merges and moves must use existing stable-identity/retirement rules and
-reconcile all affected sections. Remove obsolete entries from active manifests
-through new versions, never by destroying history. Do not reattach a manual
-correction to a new element solely because it occupies the same index.
+A section/stage is current when every included, applicable output has valid matching input evidence or a review baseline, and upstream freshness is resolved. A declared Core TTS fallback satisfies the speech-input requirement and can be current while carrying a quality warning. Unreviewed protected/legacy inputs or stale translations cannot be certified current merely because dependent generation finished. Usable and current are distinct internally; no extra user-facing status vocabulary is required.
 
-## Manual work
+Unresolved-input warnings propagate to actual dependents and link to their source. Resolving the source rechecks dependents; unchanged actual speech inputs allow reuse. Do not require separate acceptance of the same translation warning on every dependent audio item. Job completion and export do not establish freshness. Determine expected work from included source inputs, not only successful results, so failed/omitted phrases remain visible.
 
-"Regenerate stale only" does not authorize replacing manual corrections. If a
-section contains generated and manual entries, regenerate its eligible generated
-content, preserve the manual entries, and report any upstream-affected manual
-work as needing review. Reusing a cached AI response is not permission to replace
-a user's correction. This rule applies to every regeneration entry point.
+### 4. Save, execute and publish
 
-Protected work requires recorded provenance. Captions and uploaded speech
-already have some provenance; translation and easy-read need equivalent support.
-For legacy entries with unknown provenance, do not assume they are safe to
-replace. Preserve and surface the uncertainty until the user makes a choice.
+1. Save the source edit and reconcile its catalog/inventory contribution consistently. Keep previous outputs; make no provider calls. Reconcile again before planning work so every mutation path, including restores and generation, is covered.
+2. A page, section, group or stage action selects candidate outputs. Update eligible changed generated output and fill missing output. Preserve protected content. Use available inputs even if they carry upstream warnings; show the reason and retain the unresolved freshness. Missing usable input prevents only the affected operation, not other runnable work. A context operation requires its whole usable input group.
+3. Expand work where a step requires a context group. Easy-read regenerates an affected section's eligible generated entries. Existing request batching may compute additional results, but cannot publish outputs outside the affected selection or replace protected work. Display shared/context-driven scope expansion before running.
+4. Reuse the existing LLM cache. Only identical complete requests with valid cache entries avoid provider calls. A changed batch can miss the cache even if some entries are unchanged. Per-output freshness and request-level caching are different checks.
+5. Read/merge/write new versions of page/book/language collections. Validate captured inputs and target version/protection/selection before publication. Pre-existing warnings may remain; an input change or conflicting edit during execution rejects obsolete publication. Retain previous output on failure, cancellation or rejection. Concurrent partial runs must not overwrite each other's results.
+6. Reconcile changed published output before dependent execution. Later steps in an explicitly requested stage range may consume successful earlier results. Speech alone does not silently start Translate or other upstream provider calls; it can resolve the deterministic fallback below.
 
-The exact review action (accept an existing correction as valid versus explicitly
-regenerate it), downstream behavior while review is pending, and export policy
-remain review questions below. Do not silently declare the whole chain current
-merely because protected text did not change.
+If the actual chosen input signature already has a valid output, reuse it even while an upstream warning remains. Do not repeatedly generate identical audio merely because its translation awaits review. Retaining old rows must not make runners incorrectly skip actual input changes.
 
-## Cache and batching contract
+### 5. Core TTS fallback, skipping and exclusion
 
-Freshness determines which sections need work. The existing LLM cache determines
-whether each generation request needs a provider call. These are separate roles.
+When preparation is requested, use the existing bounded retry policy. On failure, or when Speech encounters missing/outdated generated preparation, use the current selected display text in the requested language. Record that fallback's input basis and the reason; do not falsely record successful normalization. Preserve usable manually edited speech text even when its source changes, with a review warning. Intentionally disabled normalization uses displayed text without a failure warning.
 
-**Running a whole step for a selected section does not mean making a fresh paid
-call for every asset.** The step processes the section's complete eligible input
-set, and caching supplies responses for identical requests. For example, editing
-one paragraph schedules the section's full translation step, not a special
-translation operation for that paragraph alone. Unchanged requests can hit the
-cache; any request whose batch or context changed can miss it. Other sections
-remain outside the regeneration scope unless they share an affected dependency.
+Successful fallback audio shows “Text preparation failed. Audio uses the original text,” or the corresponding missing/outdated-preparation reason. Ordinary runs reuse the fallback for unchanged preparation inputs and reuse audio when its actual speech inputs match. **Retry preparation** explicitly attempts normalization again; relevant input changes make preparation eligible again when requested. If new preparation produces identical speech inputs, reuse audio. Fallback never substitutes a different language or creates missing text/audio. A synthesis failure retains previous audio; without usable audio, Speech is Missing even though speech text exists.
 
-An identical complete request with a valid local cached response reuses that
-response without a new provider call or new provider charge. Matching text alone
-is insufficient: prompt, ordered context, model/provider configuration, schema
-and other cache-key inputs must also match. Missing/unreadable cache entries can
-require paid calls. No guarantee is made that old cached requests survive a
-change in batching or request construction.
+**Skip this run** makes no further attempt for the selected operation in that run; it does not exclude content or erase existing output. The next explicit run retries selected unfinished eligible work, preserving protected content. Skip/cancel must not commit a late result for that abandoned operation. **Prune/exclude** persists until restored, using existing scope: excluding speech does not delete source text. Source exclusion removes only affected active references; shared consumers remain. Restoring inclusion rechecks retained output rather than automatically regenerating it.
 
-Use deterministic request construction and batching. Do not inject raw cosmetic
-HTML, save versions or timestamps into downstream prompts. Current translation
-batches span up to 50 entries, captions are generated per page, and speech can
-batch a page. These adapters need explicit section ownership and scoped merging.
-For V1, a call may compute a larger batch where required by an existing provider
-path, but it must not replace outputs outside the selected scope. Such extra
-computation must be visible in call logs and cost measurements.
+### 6. Resolve warnings beside the content
 
-Changing one item in a batch can invalidate the whole call's cache entry. Easy-
-read also uses the section's full text as context. Therefore this spec promises
-section-level selection and output preservation, not one model call per changed
-element, an exact regenerated-artifact count, or a fixed percentage of full-book
-cost. Ordinary downstream regeneration permits cache hits; "force fresh" is a
-separate policy, not the default in this spec.
+Attach review actions directly to the warning; use the existing content editor for edits. Acceptance is an action, not a permanent checkbox or a new badge.
 
-## Impact and compatibility
+| Action | Resolution and protection |
+|--------|---------------------------|
+| **Keep my edit** (or **Keep existing content** for legacy output) | Confirm valid existing content against the inputs shown; clear that review warning, preserve authorship and protection |
+| **Edit and Save** | Store a new manual version against reviewed inputs; clear that review warning and recheck dependents |
+| **Regenerate and replace my edit** | Explicitly authorize replacement; successful publication creates generated content and retains the old manual version in history |
+| **Mark checked** on a fallback warning | Accept this fallback for the reviewed inputs/output; clear only that warning, retain failure history, and do not invent successful normalization or manual authorship |
+| **Retry preparation** | Successful preparation resolves its warning; failure retains fallback and a visible reason |
 
-- `packages/types`: Zod schemas for section content snapshots, freshness and
-  provenance; keep stage/step definitions derived from `PIPELINE`.
-- `packages/storage`: additive per-book state; non-destructive invalidation and
-  versioned collection updates. Existing readers must not treat retained stale
-  data as current solely because a row exists.
-- `packages/pipeline`: canonical content extraction, stable section ownership,
-  deterministic request construction and scoped result handling.
-- `apps/api`: integrate saves, restores, section/page re-renders and stage runs;
-  the execution/clearing paths currently live here as well as in packages.
-- `apps/studio`: section selection, freshness and protected-work summaries.
+Show “Source changed. Your edit has been kept” for protected translations, easy-read or speech text. In easy-read, a changed section context warns on affected manual entries; even full-section computation must preserve them when publishing. Ordinary regeneration never removes manual protection. An explicit replacement becomes generated content only after success; failure/cancellation keeps the manual version active.
 
-Existing books open without deletion or paid generation. Missing snapshots mean
-unknown freshness; snapshotting current inputs cannot prove that old outputs
-were generated from them. Preserve old outputs and require reconciliation/review.
-Do not claim old application versions understand the new freshness metadata;
-downgrade support needs verification before any compatibility promise.
+When a user edits, show Save/Cancel instead of acceptance until the draft is resolved. A small regenerate icon must expose “Regenerate and replace my edit” as an explicit inline choice before replacing protected content. An already explicit replacement action needs no additional modal. Bulk replacement identifies affected manual items and is off by default. Support bulk review within existing selected lists; do not add popups to ordinary runs.
 
-## Acceptance criteria
+Resolve warnings only against the reviewed output and relevant inputs; reject acceptance if they changed during review. The stage count updates and its warning icon disappears when no active warnings remain. A new relevant input change reassesses the item. Checking fallback audio cannot approve an upstream translation warning, invent missing files, clear a required audio update or bypass validation. Saving corrected speech text can clear preparation review while audio becomes Update needed.
 
-- [ ] AC-1 Changing only text color, spacing or displayed image dimensions leaves
-  downstream freshness unchanged and triggers no downstream generation.
-- [ ] AC-2 A section content change marks affected section outputs stale without
-  modifying unrelated outputs or deleting history. Shared dependencies are
-  covered by an explicit multi-section fixture.
-- [ ] AC-3 Selected-section and stale-stage actions use the same regeneration
-  path. The stage action selects exactly eligible missing/stale sections;
-  protected entries remain unchanged and outstanding review is reported.
-- [ ] AC-4 A one-page Storyboard save/re-render preserves every other page's
-  outputs and history. A failed render does not clear downstream data.
-- [ ] AC-5 Manual captions, translations, easy-read edits and uploaded audio
-  survive ordinary runs and cache hits. Unknown legacy provenance is preserved.
-- [ ] AC-6 Repeating a run with identical complete requests and a populated valid
-  cache makes zero new provider calls. Cosmetic edits require no such run.
-- [ ] AC-7 Changed section inputs execute the affected stage when requested,
-  even when old outputs exist. Each affected step processes the selected
-  section's complete eligible input set, including unchanged assets, rather than
-  filtering to changed IDs. Identical cached requests make no new provider calls.
-- [ ] AC-8 Partial failure, cancellation and edits during generation cannot mark
-  unfinished/newer inputs current or overwrite unrelated successful work.
-- [ ] AC-9 Existing books open without deleting data or making provider calls;
-  missing provenance/freshness is not fabricated.
-- [ ] AC-10 Additions, deletions, image replacements, caption edits, pruning,
-  splits/merges and restores update active output correctly while preserving
-  history. Cosmetic image resizing is distinguished from changing image content.
-- [ ] AC-11 Prompt/model/voice changes invalidate their consuming sections;
-  unchanged sections/languages/settings are not broadened without a dependency.
-- [ ] AC-12 Fixture and representative-book runs report selected sections, cache
-  hits, actual provider calls and cost, including any larger batch computation.
-  No unmeasured "less than 1%" cost claim is a release guarantee.
+**Protected correction walkthrough:** English changes beneath edited French. Keep French with a warning. Speech may use it and inherits the warning, without repeatedly regenerating matching audio. Keep my edit confirms French against the new source and rechecks speech; unchanged speech inputs reuse audio. Edit/replace changes only actual consumers and retains history.
 
-## Test plan and rollout
+**Legacy walkthrough:** Open a book with audio/translation but no trustworthy input evidence. Keep usable content with a warning and preserve known provenance; unknown authorship is protected. Keep existing content establishes a review baseline, not fabricated generation history. Missing/invalid files remain Missing. Opening the book performs no generation or deletion; metadata migration is allowed. Downgrade support is not assumed.
 
-Use fixtures with multiple pages, multiple sections on a page, generated and
-manual entries, shared images, multiple languages and section-level easy-read
-context. Test canonical extraction separately from end-to-end save/run/merge
-behavior. Cover every API invalidation entry point, including failure paths.
-Assert active outputs and retained history, not just a count of generated rows.
-Run a manual Studio review on a representative book before marking verified.
+Preview/export may include usable stale or review-needed content under existing eligibility rules. Show outdated content included, missing content omitted, and actual fallback use. Warnings introduce no extra approval popup or freshness gate; exporting does not clear them. Disabled/excluded features do not warn about work not included. Apart from Core TTS fallback, this spec adds no new export fallback.
 
-1. Stop destructive invalidation across save and run paths. Ensure retained stale
-   outputs do not cause runners to skip required work. Add preservation tests.
-2. Add canonical section snapshots, freshness/provenance and legacy handling.
-   Cover cosmetic/content distinctions and all mutation entry points.
-3. Implement shared scoped execution, collection merging and cache/batch tests.
-4. Connect existing selection/status UI and validate representative-book costs.
+### 7. Preserve physical assets
 
-The original ~350-line estimate is withdrawn pending an implementation review of
-these paths. If section scope misses the original 25 September checkpoint,
-non-destructive whole-stage marking can ship only with accurate scope reporting;
-it must not be presented as section-scoped regeneration or a small-cost run.
+Audio, uploaded recordings and their matching timing data must remain restorable, not just their database rows. Generate into unpublished storage; publication must preserve files referenced by retained history. Cache hits obey the same rule. History must not depend on a disposable LLM cache. Scope also includes preserving replaced image-translation variants where retained output versions reference them.
 
-## Remaining review questions
+Failure before a scope publishes keeps its previous playable output intact; other scopes already published successfully need not roll back. Page-batched generation cannot overwrite neighboring live assets. Preview/export resolve the active manifest's files, and published asset changes invalidate cached packages. Preserve legacy files before the first modifying operation; do not promise recovery of already-overwritten historical bytes.
 
-Review owner: @ksokolovic; product decisions: @elasticsounds. Review checkpoint:
-2026-09-24. The integration approver remains to be assigned. Coordinate provenance
-and preservation behavior with SPEC-0002 (#880).
+## Four worked examples
 
-- How does a user resolve protected stale work: accept as valid, edit, or
-  explicitly request replacement? What happens to dependent speech meanwhile?
-- May export use retained stale/review-needed outputs, and how is that disclosed?
-- Which current batching paths can preserve section scope without generating
-  larger batches? Measure the exceptions before committing to a cost target.
-- Confirm the authoritative caption/alt edit path and resolve positional
-  activity IDs before relying on them to preserve corrections during merges.
-- Reconcile #731's fresh Storyboard re-render intent with ordinary downstream
-  regeneration's explicit cache reuse. No cache-key redesign is included here.
+All examples describe saving first, then a separately requested regeneration. Existing outputs and history remain available. Unrelated global settings are unchanged.
+
+### Example 1 — Layout only in Storyboard
+
+**Edit:** Change text color, spacing and displayed image size. Keep text, IDs, semantic roles, reading order and actual image content unchanged.
+
+**On save:** Relevant catalog/inventory inputs are equal. Captions, easy-read, translations, preparation, audio and timestamps remain current. Manual corrections are untouched. No provider calls occur.
+
+**Next action:** No downstream regeneration is required. Repackage when the user wants the new layout in an export; packaging freshness is distinct from content freshness.
+
+### Example 2 — Change one Storyboard text string
+
+**Edit:** Change `pg012_tx003` from “Pick three apples” to “Pick five apples.” Its French translation was manually corrected. The section has easy-read, captions and speech.
+
+**On save:** Generated translations show Update needed; manual French is kept with a Warning. Easy-read depends on the whole section: affected generated entries need updating, while manual entries remain protected with a warning. Source speech inputs and required neighboring context are rechecked. Captions remain current if their image/context inputs are unchanged. Glossary, quizzes and TOC generation is not triggered.
+
+**Next action:** Generate eligible work explicitly. French speech may use retained French with the linked warning. Review French beside the changed source: Keep my edit preserves protection and rechecks dependents; unchanged speech inputs reuse audio. Edit/replace changes actual consumers. If preparation fails, generate from displayed text with a fallback warning; Listen and Mark checked can resolve that warning. Unchanged regenerated easy-read similarly permits downstream reuse once upstream freshness is resolved.
+
+### Example 3 — Edit a glossary string and attach one image
+
+**Edit:** Change `gl001_def` under its existing ID and attach a new image to that glossary entry. Storyboard text is unchanged.
+
+**On save:** The definition's generated translations need updating; protected translations are kept with a Warning. Actual speech inputs and required neighboring context are rechecked. Speech can use retained translations with the upstream warning. The image inventory discovers the new asset before caption text exists; its caption is Missing. Unrelated Storyboard easy-read remains unchanged. Selecting an existing image reuses its caption if actual inputs match.
+
+**Next action:** Generate the affected caption and text-derived outputs when requested. Image translation is applicable only if enabled and the image is selected for it. A glossary-only image currently has no caption consumer in the glossary export, so generating its caption does not invent caption translation/audio there. If the same image is used by Storyboard or another existing catalog consumer, its caption enters that consumer's normal translation/speech path. The caption adapter must discover glossary images independently of their appearance in rendered HTML. No glossary generation is triggered.
+
+### Example 4 — Delete text, add text and add an image in Storyboard
+
+**Edit:** Remove `pg012_tx003`; add a new text element `pg012_tx009` and new image `pg012_im007`. New content receives new IDs.
+
+**On save:** If the removed ID has no remaining active references, retire its active translations, easy-read entries, audio and timestamps through versioned reconciliation; do not destroy historical corrections/files or offer the retired ID for regeneration. New text has missing applicable translation/preparation/audio. The image has a missing caption unless valid output already exists. The changed section's easy-read needs regeneration; neighboring-context consumers are rechecked. Unaffected output elsewhere is preserved.
+
+**Next action:** Generate the new text's eligible outputs and the image caption. Applicable caption translation/speech remains Missing while no usable caption text exists; other work continues. Once the caption exists, its actual consumers can generate. Generate selected image translation only when applicable. New IDs cannot inherit deleted IDs' corrections or recordings. Restoring the old source can reactivate retained output only after rechecking input signatures. Pruned content remains excluded until explicitly restored.
+
+## Acceptance criteria and test mapping
+
+| ID | Required assertion | Test level |
+|----|--------------------|------------|
+| AC-1 | Example 1: cosmetic saves preserve downstream freshness/content and make no provider calls | Canonical-input unit tests + API save test |
+| AC-2 | Example 2: changed ID, easy-read section and required context are affected; manual French and easy-read entries survive ordinary/full-section runs; reviewed unchanged French reuses audio | Pipeline/API integration + review UI walkthrough |
+| AC-3 | Example 3: changed glossary definition and new image work without a Storyboard edit; actual caption consumers only; unrelated outputs preserved | Catalog/caption API integration |
+| AC-4 | Example 4: additions, retirement, shared references, stable IDs and restore retain history and never reassign corrections by index | Storage + API integration |
+| AC-5 | Effective prompt/model/voice/context changes affect consuming output; incidental cosmetic/version changes do not | Input-signature unit tests |
+| AC-6 | Stale/review-needed but usable inputs permit work with inherited warnings; missing usable input affects only dependent work; all expected phrases remain counted; existing matching audio is reused despite an upstream warning | Runner/API integration |
+| AC-7 | Protected and legacy walkthroughs preserve provenance/history; keep/edit/explicit replacement have the stated effects; unknown authorship stays protected; no generation/deletion on open; changed-during-review acceptance is rejected | Storage/API tests + Studio walkthrough |
+| AC-8 | No-op ordinary run skips current output; identical requests with a valid cache make zero provider calls; batch misses and actual cost remain visible | Recording-provider integration + representative-book measurement |
+| AC-9 | Page/section/stage actions share a selector; concurrent input edits, target edits and exclusion changes cannot overwrite unrelated/protected work or publish obsolete results; valid pre-existing warnings are allowed | API integration with concurrent edits |
+| AC-10 | Failure/cancellation/rejected publication after audio production preserves previous playable files, timings and active references; selected-section page batches leave neighbors unchanged, including cache hits | Filesystem/API failure injection |
+| AC-11 | Restore recovers generated/uploaded audio and matching timing data after cache cleanup; active asset changes invalidate packaging reuse | Storage/filesystem/packaging integration |
+| AC-12 | Preview/export permits usable stale/review-needed output within existing gates, discloses included/omitted/fallback output, adds no warning-approval popup and changes no review/freshness evidence | Packaging/API tests + Studio walkthrough |
+| AC-13 | Missing/outdated/failed generated Core TTS preparation uses requested-language display text; disabled normalization does not warn; manual speech text stays protected; bounded failures including batch/provider errors never silently omit phrases; no text means no language substitution | Pipeline/runner integration with preparation failure injection |
+| AC-14 | Unchanged fallback avoids repeated preparation and reuses matching audio; explicit retry or changed inputs permit preparation when requested; success with identical speech text reuses audio; synthesis failure preserves old audio or remains Missing | Recording-provider + API integration |
+| AC-15 | Warning actions appear beside content; stage icon/count tracks affected outputs; keep/edit/replace/check clears only resolved reasons; inherited warnings resolve at source; checked fallback can warn again after relevant change | Status unit/API tests + Studio walkthrough |
+| AC-16 | Skip retries selected unfinished work on a later run without replacing manual edits; skip/cancel cannot publish late results; pruning persists across runs/input edits; restore rechecks retained output; disabled/not-applicable work is not Missing | Runner/storage/API integration |
+
+## Impact, storage and rollout
+
+`packages/types` defines Zod schemas for input basis, provenance, fallback and review evidence; storage stays inside each book. Pipeline code derives canonical inputs and scoped work. API paths reconcile changes and publish safely. Studio uses existing selection/editing surfaces with translated warnings/actions. Align SPEC-0002's manual-edit preservation with this contract. ADR-024, invariant row 5 and the spec index accompany the same proposed contract.
+
+Do not copy whole source documents into every output record. Store signatures and references to retained versions. As an illustration, 50,000 records with one 64-character hexadecimal hash each contain about 3.2 MB of raw hashes in total, not per row or per page; IDs/indexes/history add overhead. Compute/read inputs on demand rather than holding all history in RAM. Measure representative-book metadata, memory and run cost; retained media/history is a separate growth concern. No fixed savings percentage is promised.
+
+1. **Preservation foundation:** establish version/protection/legacy storage and physical-file publication/restore. Guarantees no loss on replacement and restorable artifacts: storage portions of AC-7 plus AC-10 and AC-11. Review UI is completed in slice 4.
+2. **Catalog/signature reconciliation:** establish stable identity, canonical inputs and derived freshness. Guarantees cosmetic saves leave output current and membership/context changes are detected: AC-1, AC-4 and AC-5; status derivation in AC-15.
+3. **Scoped execution and fallback:** preserve protected/unselected output, merge safely, continue usable work, and implement fallback/retry/exclusion. Guarantees selective safe execution with complete accounting: AC-2, AC-3, AC-6, AC-8, AC-9, AC-13, AC-14 and AC-16.
+4. **Review/status/export UI:** complete AC-7, AC-12 and AC-15 with inline warning actions, stage counts and disclosure; walk through all four examples before declaring V1 complete.
+
+A whole-stage execution fallback broadens selection only; disclose it and apply the same manual protection, usable-input/fallback rules, warning accounting and physical publication/restore guarantees. It cannot silently expand a section request or claim per-ID precision or measured cost savings. This execution fallback is distinct from Core TTS's text fallback. Slices describe implementation ordering, not permission to expose operations before their safeguards exist. No calendar or line-count estimate is asserted.
+
+## Review and issue coverage
+
+Owner @ksokolovic and product reviewer @elasticsounds should ratify the change from section-only freshness to per-output signatures, the fixed input rules, review/export behavior and rollout gates. The integration approver remains unassigned. Hash representation and physical-file publication mechanism are implementation choices, subject to these criteria.
+
+#735 is partially addressed; Storyboard/Sectioning freshness remains deferred. #131's inline regeneration is not delivered: saving is free of paid generation and regeneration is explicit. #619 and #626 are background/deferred requirements. The preservation contract addresses #733/#736, but a documentation-only PR closes none of these implementation issues.
