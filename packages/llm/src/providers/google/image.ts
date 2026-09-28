@@ -1,5 +1,4 @@
 import { GOOGLE_IMAGE_MODELS, GoogleImageResponse, type ImageCapabilities } from "@adt/types"
-import { imageDimensions } from "../../log.js"
 import { AiProviderError } from "../../ports/errors.js"
 import type { ImageBackend, ImageGenerateRequest, ImageReference, ImageResult } from "../../ports/image-backend.js"
 import { detectImageMediaType } from "../shared/image-media-type.js"
@@ -53,15 +52,17 @@ export function createGoogleImageBackend(modelId: string, apiKey: string): Image
       }),
     ]
     // Bound inline requests, including the prompt and base64 encoding overhead.
+    // The Interactions API emits JPEG and rejects response_format.mime_type of
+    // "image/png" with HTTP 400, so response_format carries only the aspect
+    // ratio when a size is requested; with no size the model matches the
+    // reference image (what image translation wants).
     const body = JSON.stringify({
       model: modelId,
       input,
       store: false,
-      response_format: {
-        type: "image",
-        mime_type: "image/png",
-        ...(request.size ? { aspect_ratio: ASPECT_RATIOS[request.size] } : {}),
-      },
+      ...(request.size
+        ? { response_format: { type: "image", aspect_ratio: ASPECT_RATIOS[request.size] } }
+        : {}),
     })
     if (Buffer.byteLength(body) > 20 * 1024 * 1024) {
       throw new Error("Google image request exceeds the 20 MB inline request limit")
@@ -97,18 +98,26 @@ export function createGoogleImageBackend(modelId: string, apiKey: string): Image
       .filter((part) => part.type === "image")
       .at(-1)
     if (!output?.data) throw new Error("Google returned no final image; the request may have been blocked")
+    const declared = output.mime_type
     const buffer = Buffer.from(output.data, "base64")
-    const { width, height } = imageDimensions(output.data)
+    // Accept whichever format the API returns (JPEG today), requiring the bytes
+    // to be a complete image whose magic bytes agree with the declared type, so
+    // a truncated, corrupt or mislabeled payload is rejected.
+    const isPng =
+      buffer.subarray(0, 8).toString("hex") === "89504e470d0a1a0a" &&
+      buffer.subarray(-12).toString("hex") === "0000000049454e44ae426082"
+    const isJpeg =
+      buffer.subarray(0, 3).toString("hex") === "ffd8ff" &&
+      buffer.subarray(-2).toString("hex") === "ffd9"
     if (
-      output.mime_type !== "image/png" ||
       buffer.toString("base64") !== output.data ||
-      buffer.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a" ||
-      buffer.subarray(-12).toString("hex") !== "0000000049454e44ae426082" ||
-      !width || !height
+      (declared === "image/png" && !isPng) ||
+      (declared === "image/jpeg" && !isJpeg) ||
+      (declared !== "image/png" && declared !== "image/jpeg")
     ) {
-      throw new Error("Google returned invalid PNG image data")
+      throw new Error("Google returned invalid image data")
     }
-    return { base64: output.data, mimeType: "image/png" }
+    return { base64: output.data, mimeType: declared }
   }
 
   return {

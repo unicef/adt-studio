@@ -2836,6 +2836,7 @@ async function runTranslateStep(
               pageId: item.pageId,
               languageCode: item.targetLanguage,
               buffer: result.buffer,
+              mimeType: result.mimeType,
               width: result.width,
               height: result.height,
             })

@@ -275,7 +275,9 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     putTranslatedImage(input: TranslatedImageInput): string {
       const safeLang = input.languageCode.replace(/[^a-zA-Z0-9-]/g, "_")
       const newImageId = `${input.sourceImageId}_tr_${safeLang}`
-      const filename = `${newImageId}.png`
+      const extension =
+        input.mimeType === "image/jpeg" ? "jpg" : input.mimeType === "image/webp" ? "webp" : "png"
+      const filename = `${newImageId}.${extension}`
       fs.writeFileSync(path.join(paths.imagesDir, filename), input.buffer)
 
       db.run(

@@ -1,5 +1,5 @@
 import { DEFAULT_IMAGE_GENERATION_MODEL_ID, type AppConfig } from "@adt/types"
-import { generateImageWithCache, pngDimensions, type LlmLogEntry } from "@adt/llm"
+import { generateImageWithCache, imageDimensions, type LlmLogEntry } from "@adt/llm"
 import { normalizeLocale } from "./language-context.js"
 
 export interface ImageTranslationConfig {
@@ -41,6 +41,8 @@ export interface TranslateImageOptions {
 
 export interface TranslatedImageResult {
   buffer: Buffer
+  /** MIME type of the regenerated image (e.g. "image/jpeg"). */
+  mimeType: string
   width: number
   height: number
   cached: boolean
@@ -73,15 +75,16 @@ export async function translateImage(
   })
 
   const buffer = Buffer.from(result.base64, "base64")
-  const dims = pngDimensions(result.base64)
+  const dims = imageDimensions(result.base64)
   if (!dims.width || !dims.height) {
     throw new Error(
-      "Image translation: could not read PNG dimensions from model output"
+      "Image translation: could not read image dimensions from model output"
     )
   }
 
   return {
     buffer,
+    mimeType: result.mimeType,
     width: dims.width,
     height: dims.height,
     cached: result.cached,

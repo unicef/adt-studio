@@ -8,6 +8,7 @@ import { googleProvider } from "../providers/google/index.js"
 import { createProviderRegistry } from "../registry.js"
 
 const png = "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAGCAYAAADkOT91AAAAH0lEQVR4AV3BwREAMAiAMMr+O1ufHsmbxSEhISEh8QGPSwQIxMxWxQAAAABJRU5ErkJggg=="
+const jpg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0xff, 0xd9]).toString("base64")
 const image = { type: "image", mime_type: "image/png", data: png }
 const success = { status: "completed", steps: [{ type: "model_output", content: [image] }] }
 const registry = createProviderRegistry().register(googleProvider).freeze()
@@ -45,7 +46,6 @@ describe("Google image backend", () => {
     expect(init?.headers).toEqual({ "Content-Type": "application/json", "x-goog-api-key": "google-secret" })
     expect(JSON.parse(init!.body as string)).toEqual({
       model, input: [{ type: "text", text: "Translate labels into français" }], store: false,
-      response_format: { type: "image", mime_type: "image/png" },
     })
     await generate({ modelId: `google:${model}`, referenceImages: [{ data: Buffer.from(png, "base64") }] })
     expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string).input[1]).toEqual(image)
@@ -58,12 +58,19 @@ describe("Google image backend", () => {
         { data: Buffer.from("/9j/", "base64"), mimeType: "image/jpeg" },
       ] })
       const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)
-      expect(body.response_format.aspect_ratio).toBe(aspectRatio)
+      expect(body.response_format).toEqual({ type: "image", aspect_ratio: aspectRatio })
       expect(body.input.slice(1)).toEqual([
         image, { type: "image", mime_type: "image/jpeg", data: "/9j/" },
       ])
     },
   )
+
+  it("accepts the JPEG the Interactions API actually returns and reports its mime type", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ status: "completed", steps: [
+      { type: "model_output", content: [{ type: "image", mime_type: "image/jpeg", data: jpg }] },
+    ] }))
+    expect(await generate()).toEqual({ base64: jpg, mimeType: "image/jpeg", cached: false })
+  })
 
   it("ignores thought images and text, selecting the final model image", async () => {
     fetchMock.mockResolvedValueOnce(Response.json({ status: "completed", steps: [

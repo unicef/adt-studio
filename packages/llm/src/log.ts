@@ -87,11 +87,13 @@ export function sanitizeMessages(messages: Message[]): LlmLogMessage[] {
 
 /**
  * Read width and height from a base64-encoded image (PNG or JPEG).
- * Only decodes enough bytes to find the header.
+ * Decodes the whole image: a JPEG's SOF marker can sit well past the first few
+ * KB (e.g. after a large ICC/EXIF/JFIF segment — Gemini output puts it near
+ * byte 6000), so reading a fixed prefix misses it and yields 0×0.
  */
 export function imageDimensions(base64: string): { width: number; height: number } {
   try {
-    const buf = Buffer.from(base64.slice(0, 6000), "base64")
+    const buf = Buffer.from(base64, "base64")
     if (buf.length < 4) return { width: 0, height: 0 }
 
     // PNG: bytes 0-3 = 0x89504E47, IHDR at 16 (width) and 20 (height)

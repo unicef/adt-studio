@@ -24,8 +24,10 @@ Book overrides retain precedence. Image translation uses
 `image_translation.image_model` when set, otherwise the effective
 `default_image_generation_model`, and authenticates with that model's provider.
 Generation requests map the existing square/landscape/portrait sizes to supported
-aspect ratios; asset metadata uses the returned image's dimensions. The `gemini`
-speech provider retains its separate identity and credential settings.
+aspect ratios; asset metadata uses the returned image's dimensions. The
+Interactions API emits JPEG (it rejects a PNG `response_format`), so Google
+variants are stored with a `.jpg` extension. The `gemini` speech provider retains
+its separate identity and credential settings.
 
 ---
 
