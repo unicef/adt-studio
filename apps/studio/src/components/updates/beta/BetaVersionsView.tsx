@@ -35,6 +35,7 @@ import { formatVersion } from "../release-banner-utils";
 interface BetaVersionsViewProps {
   status: UpdateStatus;
   currentVersion?: string | null;
+  initialVersion?: string;
 }
 
 const EMPTY_RELEASES: AvailableRelease[] = [];
@@ -42,11 +43,14 @@ const EMPTY_RELEASES: AvailableRelease[] = [];
 export function BetaVersionsView({
   status,
   currentVersion,
+  initialVersion,
 }: BetaVersionsViewProps) {
   const { i18n } = useLingui();
-  const [selectedVersion, setSelectedVersion] = useState<string>();
+  const [selectedVersion, setSelectedVersion] = useState(initialVersion);
   const [query, setQuery] = useState("");
-  const [view, setView] = useState<"library" | "details">("library");
+  const [view, setView] = useState<"library" | "details">(
+    initialVersion ? "details" : "library",
+  );
   const cardRefs = useRef(new Map<string, HTMLButtonElement>());
   const searchInput = useRef<HTMLInputElement>(null);
   const versionsQuery = useBetaUpdateVersions(currentVersion);
@@ -59,13 +63,14 @@ export function BetaVersionsView({
 
   useEffect(() => {
     if (
+      versionsQuery.isSuccess &&
       selectedVersion &&
       !versions.some((release) => release.version === selectedVersion)
     ) {
       setSelectedVersion(undefined);
       setView("library");
     }
-  }, [selectedVersion, versions]);
+  }, [selectedVersion, versions, versionsQuery.isSuccess]);
 
   const selected = useMemo(
     () => versions.find((release) => release.version === selectedVersion),

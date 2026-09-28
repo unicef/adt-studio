@@ -11,8 +11,10 @@ import { useNavigate, useRouterState } from "@tanstack/react-router"
 import { UpdateDialog } from "./UpdateDialog"
 import { PostUpdateDialog } from "./PostUpdateDialog"
 import { UpdateToast } from "./UpdateToast"
+import { PreviewBuildNotice } from "./PreviewBuildNotice"
 import { isBetaBuild } from "./release-banner-utils"
 import { useAppVersion } from "@/hooks/use-app-version"
+import { usePreviewBuild } from "@/hooks/use-preview-build"
 import { useUpdateStatus } from "@/hooks/use-update-status"
 import { isElectron } from "@/lib/utils"
 
@@ -48,6 +50,8 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
   const { status, check, download, cancel, install } = useUpdateStatus()
   const currentVersion = useAppVersion()
   const navigate = useNavigate()
+  const preview = usePreviewBuild()
+  const [previewNoticeClosed, setPreviewNoticeClosed] = useState(false)
   const [open, setOpen] = useState(false)
   const [dismissedVersion, setDismissedVersion] = useState<string | null>(null)
 
@@ -96,6 +100,12 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
     !anyDialogOpen &&
     !hideAmbientCard &&
     dismissedVersion !== pendingVersion
+  const showPreviewNotice =
+    preview.needsAttention &&
+    !previewNoticeClosed &&
+    !showToast &&
+    !anyDialogOpen &&
+    !hideAmbientCard
 
   useEffect(() => {
     if (!isElectron() || !window.api?.updates?.getPostUpdate) return
@@ -187,6 +197,13 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
           onInstallNow={install}
           onCancel={cancel}
           onDismiss={() => setDismissedVersion(pendingVersion)}
+        />
+      )}
+      {showPreviewNotice && preview.status && (
+        <PreviewBuildNotice
+          status={preview.status}
+          onDismiss={() => setPreviewNoticeClosed(true)}
+          onOpenVersions={() => void navigate({ to: VERSIONS_PATH })}
         />
       )}
     </UpdateDialogContext>

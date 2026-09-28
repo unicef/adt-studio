@@ -22,7 +22,9 @@ interface CardSkin {
   progressGlow: string
 }
 
-const CARD_SKINS: Record<ReleaseChannel, CardSkin> = {
+export type AmbientCardSkin = ReleaseChannel | "preview" | "previewClosed"
+
+const CARD_SKINS: Record<AmbientCardSkin, CardSkin> = {
   stable: {
     border: "border-[oklch(0.62_0.17_255/0.32)]",
     shadow: "shadow-[0_22px_60px_oklch(0.20_0.06_260/0.5)]",
@@ -46,6 +48,30 @@ const CARD_SKINS: Record<ReleaseChannel, CardSkin> = {
     primaryText: "text-[oklch(0.34_0.16_300)]",
     primaryShadow: "shadow-[0_8px_22px_oklch(0.62_0.26_305/0.5)]",
     progressGlow: "shadow-[0_0_12px_oklch(0.90_0.10_305/0.85)]",
+  },
+  preview: {
+    border: "border-[oklch(0.74_0.15_160/0.4)]",
+    shadow: "shadow-[0_22px_60px_oklch(0.18_0.06_165/0.5)]",
+    gradient:
+      "bg-[radial-gradient(circle_at_84%_16%,oklch(0.70_0.16_158/0.82),transparent_42%),radial-gradient(circle_at_16%_94%,oklch(0.46_0.13_175/0.62),transparent_46%),linear-gradient(135deg,oklch(0.32_0.08_165),oklch(0.21_0.06_170)_58%,oklch(0.13_0.03_175))]",
+    motif: "text-[oklch(0.82_0.13_160)]",
+    glow: "bg-[oklch(0.70_0.17_158/0.5)]",
+    eyebrow: "text-[oklch(0.88_0.11_158)]",
+    primaryText: "text-[oklch(0.36_0.09_165)]",
+    primaryShadow: "shadow-[0_8px_22px_oklch(0.66_0.15_160/0.5)]",
+    progressGlow: "shadow-[0_0_12px_oklch(0.93_0.07_160/0.85)]",
+  },
+  previewClosed: {
+    border: "border-[oklch(0.70_0.02_255/0.4)]",
+    shadow: "shadow-[0_22px_60px_oklch(0.18_0.01_255/0.5)]",
+    gradient:
+      "bg-[radial-gradient(circle_at_84%_16%,oklch(0.62_0.03_255/0.7),transparent_42%),radial-gradient(circle_at_16%_94%,oklch(0.42_0.02_260/0.6),transparent_46%),linear-gradient(135deg,oklch(0.32_0.015_255),oklch(0.22_0.01_255)_58%,oklch(0.14_0.005_255))]",
+    motif: "text-[oklch(0.80_0.02_255)]",
+    glow: "bg-[oklch(0.66_0.03_255/0.45)]",
+    eyebrow: "text-[oklch(0.86_0.02_255)]",
+    primaryText: "text-[oklch(0.30_0.02_255)]",
+    primaryShadow: "shadow-[0_8px_22px_oklch(0.60_0.02_255/0.45)]",
+    progressGlow: "shadow-[0_0_12px_oklch(0.92_0.01_255/0.85)]",
   },
 }
 
@@ -87,10 +113,107 @@ export function UpdateToast({
   const version = formatVersion(status.version)
   const channel = getReleaseChannel(status.version)
   const beta = channel === "beta"
-  const skin = CARD_SKINS[channel]
-  const dismissible = status.phase !== "downloading"
   const percent =
     status.phase === "downloading" ? clampPercent(status.percent) : 0
+
+  return (
+    <AmbientCard
+      skin={channel}
+      className={className}
+      icon={
+        status.phase === "available" ? (
+          <Sparkles className="size-6" />
+        ) : status.phase === "downloading" ? (
+          <Download className="size-6" />
+        ) : (
+          <CheckCircle2 className="size-6" />
+        )
+      }
+      eyebrow={
+        status.phase === "downloaded" ? (
+          <Trans>Ready to install</Trans>
+        ) : status.phase === "downloading" ? (
+          <Trans>Downloading</Trans>
+        ) : beta ? (
+          <Trans>Beta {version}</Trans>
+        ) : (
+          <Trans>Release {version}</Trans>
+        )
+      }
+      title={
+        status.phase === "downloading" ? (
+          <Trans>Downloading update…</Trans>
+        ) : status.phase === "downloaded" ? (
+          <Trans>Update ready to install</Trans>
+        ) : (
+          <Trans>Update available</Trans>
+        )
+      }
+      subtitle={
+        status.phase === "downloading"
+          ? t`${Math.round(percent)}% · ${formatBytes(status.bytesPerSecond)}/s`
+          : subtitleFor(status.releaseNotes, version, status)
+      }
+      progress={status.phase === "downloading" ? percent : undefined}
+      onDismiss={status.phase !== "downloading" ? onDismiss : undefined}
+      actions={
+        status.phase === "available" ? (
+          <>
+            <GlassButton onClick={onDetails}>
+              <Trans>What's new</Trans>
+            </GlassButton>
+            <PrimaryButton onClick={onDownload} skin={channel}>
+              <Download className="size-4" />
+              <Trans>Download</Trans>
+            </PrimaryButton>
+          </>
+        ) : status.phase === "downloading" ? (
+          <GlassButton onClick={onCancel}>
+            <Trans>Cancel</Trans>
+          </GlassButton>
+        ) : (
+          <>
+            <GlassButton onClick={onDetails}>
+              <Trans>What's new</Trans>
+            </GlassButton>
+            <PrimaryButton onClick={onInstallNow} skin={channel}>
+              <RotateCw className="size-4" />
+              <Trans>Restart</Trans>
+            </PrimaryButton>
+          </>
+        )
+      }
+    />
+  )
+}
+
+export interface AmbientCardProps {
+  skin: AmbientCardSkin
+  icon: ReactNode
+  eyebrow: ReactNode
+  title: ReactNode
+  subtitle: ReactNode
+  subtitleLines?: 1 | 2
+  progress?: number
+  onDismiss?: () => void
+  actions: ReactNode
+  className?: string
+}
+
+export function AmbientCard({
+  skin: skinName,
+  icon,
+  eyebrow,
+  title,
+  subtitle,
+  subtitleLines = 1,
+  progress,
+  onDismiss,
+  actions,
+  className,
+}: AmbientCardProps) {
+  const { t } = useLingui()
+  const skin = CARD_SKINS[skinName]
 
   return (
     <div
@@ -132,13 +255,7 @@ export function UpdateToast({
         <div className="relative z-10 px-5 py-6">
           <div className="flex items-start gap-3.5">
             <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 shadow-inner backdrop-blur-sm">
-              {status.phase === "available" && <Sparkles className="size-6" />}
-              {status.phase === "downloading" && (
-                <Download className="size-6" />
-              )}
-              {status.phase === "downloaded" && (
-                <CheckCircle2 className="size-6" />
-              )}
+              {icon}
             </div>
 
             <div className="min-w-0 flex-1 pt-0.5">
@@ -148,33 +265,23 @@ export function UpdateToast({
                   skin.eyebrow,
                 )}
               >
-                {status.phase === "downloaded" ? (
-                  <Trans>Ready to install</Trans>
-                ) : status.phase === "downloading" ? (
-                  <Trans>Downloading</Trans>
-                ) : beta ? (
-                  <Trans>Beta {version}</Trans>
-                ) : (
-                  <Trans>Release {version}</Trans>
-                )}
+                {eyebrow}
               </p>
               <p className="mt-1.5 text-base font-semibold leading-tight">
-                {status.phase === "downloading" ? (
-                  <Trans>Downloading update…</Trans>
-                ) : status.phase === "downloaded" ? (
-                  <Trans>Update ready to install</Trans>
-                ) : (
-                  <Trans>Update available</Trans>
-                )}
+                {title}
               </p>
-              <p className="mt-1.5 truncate text-[0.8rem] text-white/70">
-                {status.phase === "downloading"
-                  ? t`${Math.round(percent)}% · ${formatBytes(status.bytesPerSecond)}/s`
-                  : subtitleFor(status.releaseNotes, version, status)}
+              <p
+                className={cn(
+                  "mt-1.5",
+                  subtitleLines === 1 ? "truncate" : "line-clamp-2",
+                  "text-[0.8rem] text-white/70",
+                )}
+              >
+                {subtitle}
               </p>
             </div>
 
-            {dismissible && onDismiss && (
+            {onDismiss && (
               <button
                 type="button"
                 onClick={onDismiss}
@@ -186,54 +293,20 @@ export function UpdateToast({
             )}
           </div>
 
-          {status.phase === "downloading" && (
+          {progress != null && (
             <div className="mt-5 h-2 w-full overflow-hidden rounded-full bg-white/15">
               <div
                 className={cn(
                   "h-full rounded-full bg-white transition-[width] duration-300 ease-out",
                   skin.progressGlow,
                 )}
-                style={{ width: `${percent}%` }}
+                style={{ width: `${progress}%` }}
               />
             </div>
           )}
 
           <div className="mt-5 flex items-center justify-end gap-2">
-            {status.phase === "available" && (
-              <>
-                <GlassButton onClick={onDetails}>
-                  <Trans>What's new</Trans>
-                </GlassButton>
-                <PrimaryButton
-                  onClick={onDownload}
-                  textClass={skin.primaryText}
-                  glowClass={skin.primaryShadow}
-                >
-                  <Download className="size-4" />
-                  <Trans>Download</Trans>
-                </PrimaryButton>
-              </>
-            )}
-            {status.phase === "downloading" && (
-              <GlassButton onClick={onCancel}>
-                <Trans>Cancel</Trans>
-              </GlassButton>
-            )}
-            {status.phase === "downloaded" && (
-              <>
-                <GlassButton onClick={onDetails}>
-                  <Trans>What's new</Trans>
-                </GlassButton>
-                <PrimaryButton
-                  onClick={onInstallNow}
-                  textClass={skin.primaryText}
-                  glowClass={skin.primaryShadow}
-                >
-                  <RotateCw className="size-4" />
-                  <Trans>Restart</Trans>
-                </PrimaryButton>
-              </>
-            )}
+            {actions}
           </div>
         </div>
       </div>
@@ -254,7 +327,7 @@ function subtitleFor(
   return version
 }
 
-function GlassButton({
+export function GlassButton({
   children,
   onClick,
 }: {
@@ -272,17 +345,16 @@ function GlassButton({
   )
 }
 
-function PrimaryButton({
+export function PrimaryButton({
   children,
   onClick,
-  textClass,
-  glowClass,
+  skin,
 }: {
   children: ReactNode
   onClick?: () => void
-  textClass: string
-  glowClass: string
+  skin: AmbientCardSkin
 }) {
+  const { primaryText: textClass, primaryShadow: glowClass } = CARD_SKINS[skin]
   return (
     <button
       type="button"

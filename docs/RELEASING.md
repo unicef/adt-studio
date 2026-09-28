@@ -446,6 +446,12 @@ channel, including staging versions such as `0.7.5-beta-pr-123`.
 | Beta (`X.Y.Z-beta.N`)         | `beta`          | Newer numbered betas    |
 | Staging (`X.Y.Z-beta-pr-<n>`) | `beta`          | Nothing                 |
 
+Any beta release, numbered or staging, newer or older, can still be installed
+from **Settings → Versions** (beta builds only). A staging install follows its
+PR instead: when the PR merges, ships in a numbered beta, or closes, the app
+says so on launch and in Versions, and offers the switch back to the latest
+numbered beta.
+
 The version browser accepts numbered beta releases and PR-qualified staging
 builds. Staging artifacts themselves are not listed remotely because they are
 workflow artifacts rather than GitHub Releases.

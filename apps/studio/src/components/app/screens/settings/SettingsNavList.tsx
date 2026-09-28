@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router"
 import { useLingui } from "@lingui/react/macro"
+import { AttentionDot } from "@/components/updates"
+import { usePreviewBuild } from "@/hooks/use-preview-build"
 import { cn } from "@/lib/utils"
 import { SETTINGS_PATHS, visibleSettingsGroups, type SettingsSection } from "./nav"
 
@@ -10,6 +12,7 @@ interface SettingsNavListProps {
 
 export function SettingsNavList({ activeKey, className }: SettingsNavListProps) {
   const { i18n } = useLingui()
+  const { needsAttention: previewNews } = usePreviewBuild()
 
   return (
     <div className={cn("flex flex-col gap-5", className)}>
@@ -34,6 +37,7 @@ export function SettingsNavList({ activeKey, className }: SettingsNavListProps) 
               >
                 <Icon className="size-[17px]" />
                 <span className="flex-1 truncate text-left">{i18n._(tab.label)}</span>
+                {tab.key === "versions" && previewNews && <AttentionDot />}
               </Link>
             )
           })}
