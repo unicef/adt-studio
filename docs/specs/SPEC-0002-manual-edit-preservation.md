@@ -14,8 +14,9 @@ updated: 2026-09-28
 <!-- Drafted by an agent from #736, #144, SPEC-0001 and the codebase on 2026-09-21
      (develop at 7a8896528). Not yet edited by the owner. Every path:line anchor was
      opened and checked; the design is a proposal for the owner to cut down.
-     Revised 2026-09-28 for review areas 1 and 2: aligned with the revised SPEC-0001, Terms added,
-     protection unit defined per entity, structural cases and source removal specified. -->
+     Revised 2026-09-28 for review areas 1–3: aligned with the revised SPEC-0001, Terms added,
+     protection unit defined per entity, structural cases and source removal specified,
+     keep / accept / replace actions defined per entity. -->
 
 ## Terms
 
@@ -82,7 +83,8 @@ Mathematics STD 5 has about 8,850 catalog entries per language (#733). One corre
 Binding.
 
 - No change to freshness semantics: the clear lists, `makeBeforeRun`, `step_runs`, input signatures, the Update needed / Warning / Missing labels, scoped regeneration. SPEC-0001 owns them; this spec uses its terms and never redefines them.
-- No new UI beyond an "Edited manually" indicator per entry in the four views. No per-entity "N edits will be lost" dialog, no bulk "reset to AI" action, no new panels. The Warning on a preserved entry whose lineage changed, and the keep / edit / replace actions that resolve it, come from SPEC-0001 section 6, not from here.
+- No new panels, routes or dialogs. Each of the four views gains the "Edited manually" indicator; existing confirmations gain at most one sentence and one opt-in (the TOC line of decision 5, the sectioning choice of decision 9); the quiz *Replace* placement gains one label. The Warning on a preserved entry whose lineage changed, and the keep / edit / replace actions that resolve it, come from SPEC-0001 section 6, not from here.
+- No per-page or per-section regenerate in this version. The product direction is that a user can go to one page or one section and regenerate just that, including a page they edited by hand; it arrives with page-scoped runs (#619) as a follow-up, for every stage at once rather than for sectioning alone. Until then a single manual page is replaced by restoring its last `ai` version in the version picker and rerunning.
 - No storyboard (`web-rendering`) full-rerun preservation. #144 marks it "partial" and needing its own design decision.
 - No change to quiz identity allocation (`docs/QUIZ_IDENTITY.md`) beyond documenting that preserved manual quizzes keep their ids.
 - No three-way merge that re-applies a user's delta onto fresh model output.
@@ -111,6 +113,30 @@ Decisions for the reviewer to ratify:
 6. **Survival is tested through the HTTP run route**, so the pre-run clear is exercised and a regression in SPEC-0001's non-destructive invalidation fails this spec's tests too.
 7. **History is always kept; being active follows the source.** Protection guards against replacement, never against source removal. A manual translation whose source entry disappears leaves the active document on the next run and stays in version history, restorable. A TOC entry whose section is retired is dropped the same way. Quizzes have no source-removal path and stay active.
 8. **Quizzes merge by `quizId`, with no page skipping and no reordering.** A rerun keeps every manual quiz with its id, generates fresh-id AI quizzes for every eligible page even when a manual quiz already covers it (the user deletes what they do not want), drops prior AI quizzes, and orders the result by `afterPageId`; an explicit reading order is untouched.
+9. **Replacement is explicit, per entity, and never silent.** Translation uses SPEC-0001's inline *Regenerate and replace my edit*. Quizzes use the existing *Replace* placement. The TOC uses its stage rerun after the confirmation line. Sectioning uses its stage rerun with an opt-in in the existing confirmation, off by default, that replaces the listed hand-edited pages too. A replacement becomes `ai` only when its new version is published; failure or cancellation leaves the manual version current.
+
+### Keeping, accepting and replacing protected work
+
+Three verbs. **Keep** needs no action anywhere: ordinary reruns skip protected content (decisions 2–5). **Accept as valid after an upstream change** exists only where a lineage warning exists, which in this version means translation (SPEC-0001 section 6, *Keep my edit*). Sectioning, quiz and TOC generation are outside SPEC-0001's scope, carry no lineage warning, and show only the existing stage-level "needs run" state, so there is nothing to accept and the spec says so rather than implying it. **Replace** is explicit and per entity:
+
+| Entity | Explicit replacement | Owner and dependency |
+|---|---|---|
+| Translation | the small inline icon exposing *Regenerate and replace my edit* beside the entry | SPEC-0001 section 6; ships with its slice 4. Until then *Edit and Save* is available and wholesale replacement of one manual entry is not |
+| Quizzes | the existing Add Quiz → *Replace* placement (`AddQuizDialog.tsx:283`; `quizzes.ts:152`), which drops the quiz at that position and generates a fresh-id one. When that quiz is manual, the dialog's existing sentence (`AddQuizDialog.tsx:159`) says it was edited by hand. An already explicit action needs no extra modal (SPEC-0001) | this spec |
+| TOC | the stage rerun after the one-line confirmation (decision 5) | this spec |
+| Sectioning | the stage rerun keeps manual pages by default. The existing confirmation (`LandingPageShell.tsx:78–81`, `CascadeResetDialog.tsx:32`) lists them — "3 pages were edited by hand (4, 9, 12) and will be kept" — and offers one opt-in, unticked on every open: "Also replace the hand-edited pages". The run request carries the choice (`replaceManual`, default false); the sectioning step honours it. This is SPEC-0001's "bulk replacement, off by default, naming the affected items" applied to pages. A single manual page is replaced today by restoring its last `ai` version and rerunning; per-page regenerate is a follow-up (non-goals) | this spec |
+
+Provenance transitions:
+
+| Action | On success | On failure or cancel |
+|---|---|---|
+| Save through an editor | `manual`, new version | no version written |
+| Ordinary rerun | `ai` entries regenerated; `manual` untouched | manual untouched |
+| Explicit replace (any entity) | `ai`, new version; the manual version stays in history | manual version stays current; nothing published |
+| *Keep my edit* (translation, SPEC-0001) | stays `manual`; warning cleared | unchanged |
+| Restore a version | that version's tags | unchanged |
+
+One ordering requirement follows for sectioning: when a manual page is explicitly replaced, its section ids are retired when the new page is published, not in the pre-run clear; otherwise a failed page would carry retired ids under a still-active manual record. SPEC-0001 slice 1 already moves reconciliation to publication time, so this is a constraint on that work, not new machinery.
 
 ### Per-entity policy
 
@@ -125,8 +151,8 @@ Decisions for the reviewer to ratify:
 
 - `packages/types`: `text-catalog.ts` (`TextCatalogEntry.source`), `quiz.ts` (`Quiz.source`), `page-sectioning.ts` (`PageSectioningOutput.source`, on the page record, not on sections), `toc.ts` (`TocGenerationOutput.source`, on the document, not on entries). All optional. No change to `PIPELINE` or to `pipeline-effects.ts`.
 - `packages/pipeline`: new `manual-edits.ts` — `stampManualEdits(prev, next, keyOf, isEqual)` and `mergePreservingManual(generated, existing, keyOf)`, extracted from the glossary pattern at `glossary.ts:74`; used by translation and quizzes only; `quiz-ids.ts:82–107` (`"replace"` must keep the ids of preserved manual quizzes); `catalog-translation.ts` (skip list); `section-ids.ts:359` and `apps/api/src/routes/stages.ts:46` (retirement must skip manual pages — PR 5). `toc-generation.ts` is untouched.
-- `apps/api`: `routes/text-catalog.ts:151`, `routes/quizzes.ts:122`, `routes/toc.ts:71`, `routes/pages.ts:682` (`saveStoryboardNode`, which every sectioning edit passes through); `services/stage-runner.ts` at `runTranslateStep` (2546–2634), `runQuizzesStep` (1918–1931), `runTocStep` (2309–2315), `runSectioningStep` (1479–1508).
-- `apps/studio`: `LanguageView.tsx`, `QuizzesView.tsx`, `TocView.tsx`, `SectioningPageDetail.tsx` — badge only, copied from `CaptionCard.tsx:38–110`; `LandingPageShell.tsx` — one line in the existing rerun confirmation when the TOC is manual; `src/locales/{en,es,fr,pt-BR,sq}.po`.
+- `apps/api`: `routes/text-catalog.ts:151`, `routes/quizzes.ts:122`, `routes/toc.ts:71`, `routes/pages.ts:682` (`saveStoryboardNode`, which every sectioning edit passes through); `routes/stages.ts:29` (run body gains `replaceManual`, default false); `services/stage-runner.ts` at `runTranslateStep` (2546–2634), `runQuizzesStep` (1918–1931), `runTocStep` (2309–2315), `runSectioningStep` (1479–1508, honours `replaceManual`).
+- `apps/studio`: `LanguageView.tsx`, `QuizzesView.tsx`, `TocView.tsx`, `SectioningPageDetail.tsx` — badge only, copied from `CaptionCard.tsx:38–110`; `LandingPageShell.tsx` / `CascadeResetDialog.tsx` — one line for a manual TOC, one sentence and one opt-in for manual sectioning pages; `AddQuizDialog.tsx:159` — one label when the replaced quiz is manual; `src/locales/{en,es,fr,pt-BR,sq}.po`.
 - Docs: `docs/QUIZ_IDENTITY.md` gains one sentence (preserved manual quizzes keep their ids across full regeneration); `docs/INVARIANTS.md` gains a row (below). `docs/ARCHITECTURE.md` unchanged.
 - Invariants: **entity versioning** (core principle 2) — every write stays a new version; nothing is mutated in place. Registry row 2 (no unconditional clear of user-touched entities) is strengthened in intent; its checker belongs to SPEC-0001. Row 3 (ids only via the factories) — preserved sections and quizzes keep their ids; nothing new is minted outside the factories. New row: "manual entries survive a rerun of their stage" — the route-level survival tests each slice adds.
 - Schema/migration: none. Zod object schemas strip unknown keys, so an older app reads a newer book without error; an older app's rerun still overwrites (accepted for the beta; noted in the support statement alongside SPEC-0001's equivalent). Entries without `source` are protected (decision 4), so upgrading never regenerates over an existing correction.
@@ -148,14 +174,16 @@ Decisions for the reviewer to ratify:
 - [ ] AC-12 Restoring an older version keeps that version's `source` tags, and the next rerun honours them.
 - [ ] AC-13 The structural cases hold: deleting an AI section leaves a manual page the rerun does not refill; deleting the last section leaves an empty manual page that stays empty; a cross-page merge leaves both pages manual and the rerun regenerates neither, so the moved content appears exactly once.
 - [ ] AC-14 Source removal keeps history but not activeness: when a source catalog entry disappears, its manual translation leaves the active document on the next run and remains restorable from version history; when a section is retired, its TOC entry is dropped from the active TOC, the document's provenance is unchanged, and the previous version remains restorable.
+- [ ] AC-15 The Sectioning rerun confirmation lists the manual pages by number and keeps them unless the opt-in is ticked; the opt-in is unticked on every open; with it ticked, every listed page is regenerated as `ai` and its manual version remains in history; a run without the opt-in never rewrites a manual page.
+- [ ] AC-16 Explicit replacement is all-or-nothing per unit: on failure or cancellation the manual version stays current and nothing is published; a replaced manual page's section ids are retired only when its new version is published; the quiz *Replace* placement on a manual quiz names the hand edit, writes an `ai` quiz with a fresh id, and leaves the manual quiz in history.
 
 ## Test plan
 
-- **API tests** (`apps/api/src/routes/*.test.ts`, in-memory storage as today): `text-catalog.test.ts` (extend the describe at line 124) — AC-1, AC-11 for translation; `quizzes.test.ts` — AC-3; new `toc.test.ts` — AC-5, AC-14 (TOC); `pages.test.ts` — AC-7 and AC-13 for the PUT and each structural op.
-- **Runner tests** (`apps/api/src/services/stage-runner.test.ts`, model mocked exactly as the captions tests at lines 548–696): AC-2, AC-4, AC-8, AC-11, AC-12, AC-13, AC-14 (translation), and the `ai` stamp and history halves of AC-6. Assertions on the mocked model's request bodies prove the "no request contains a manual entry" half of AC-2 and the "no model call" half of AC-8.
+- **API tests** (`apps/api/src/routes/*.test.ts`, in-memory storage as today): `text-catalog.test.ts` (extend the describe at line 124) — AC-1, AC-11 for translation; `quizzes.test.ts` — AC-3 and the quiz half of AC-16 (generate-one with `placement: "replace"` on a manual quiz); new `toc.test.ts` — AC-5, AC-14 (TOC); `pages.test.ts` — AC-7 and AC-13 for the PUT and each structural op; `stages.test.ts` — the `replaceManual` flag is parsed and defaults to false.
+- **Runner tests** (`apps/api/src/services/stage-runner.test.ts`, model mocked exactly as the captions tests at lines 548–696): AC-2, AC-4, AC-8, AC-11, AC-12, AC-13, AC-14 (translation), AC-15 (the flag replaces listed pages and only them), the sectioning half of AC-16 with failure injected on the replaced page (manual record still current, ids not retired), and the `ai` stamp and history halves of AC-6. Assertions on the mocked model's request bodies prove the "no request contains a manual entry" half of AC-2 and the "no model call" half of AC-8.
 - **Unit tests** (`packages/pipeline/src/__tests__/manual-edits.test.ts`, new): `stampManualEdits` and `mergePreservingManual` over each key function, including the property "every manual entry in the input appears unchanged in the output"; `quiz-ids` id retention in `"replace"` mode (extend `apps/api/src/routes/quiz-id-lifecycle.test.ts`).
 - **Route-level survival** (`apps/api/src/routes/stages.test.ts`, which already pins the retirement/clear boundary via the exported `makeBeforeRun`): AC-9, one case per entity type, added by the slice that ships that entity, over a three-page synthetic fixture under `packages/pipeline/src/__tests__/fixtures/` with one translation language, two quizzes, three TOC entries and one manual section on page 2. This file is the invariant-registry row's checker.
-- **Studio**: AC-10 and the confirmation half of AC-6 via the CI `i18n` job (extract + lint) and a check in a running Studio before the spec moves to `verified`; a component test is optional (76 exist under `apps/studio/src`).
+- **Studio**: AC-10, the confirmation halves of AC-6 and AC-15, and the quiz label of AC-16 via the CI `i18n` job (extract + lint) and a check in a running Studio before the spec moves to `verified`; a component test is optional (76 exist under `apps/studio/src`).
 - **Harness** (`pnpm acceptance`, SPEC-0005): on Mathematics STD 5, edit one translation entry, rerun translate, assert the entry survives and the model request count equals entries − 1 (AC-2 at scale).
 - Fixtures: `tests/fixtures/raven.pdf` is the only committed book; the synthetic fixture above is enough for every AC except the harness row.
 
@@ -165,8 +193,8 @@ Decisions for the reviewer to ratify:
 - **PR 1** — the four optional schema fields and `packages/pipeline/src/manual-edits.ts` with unit tests. No behaviour change. Enables everything; closes nothing. ≈150 lines.
 - **PR 2** — translation: stamp in the PUT, merge and skip in `runTranslateStep`, badge, catalogs. Closes AC-1, AC-2, AC-10 (translation), AC-11, AC-12, AC-14 (translation), and AC-9 for translation plus the two already-preserving types (captions, glossary) that share its test harness. ≈300 lines.
 - **PR 3** — TOC: stamp in the PUT, `ai` stamp in the step, badge, one line in the rerun confirmation. Closes AC-5, AC-6, AC-10 (TOC), AC-14 (TOC), AC-9 for TOC. ≈120 lines.
-- **PR 4** — quizzes: closes AC-3, AC-4, AC-10 (quizzes), AC-9 for quizzes; the `QUIZ_IDENTITY.md` sentence. ≈270 lines.
-- **PR 5** — sectioning (retirement interplay at `stages.ts:46` / `section-ids.ts:359`): closes AC-7, AC-8, AC-13, AC-10 (sectioning), AC-9 for sectioning. ≈300 lines.
+- **PR 4** — quizzes: closes AC-3, AC-4, AC-10 (quizzes), AC-9 for quizzes, the quiz half of AC-16; the `QUIZ_IDENTITY.md` sentence. ≈280 lines.
+- **PR 5** — sectioning (retirement interplay at `stages.ts:46` / `section-ids.ts:359`): closes AC-7, AC-8, AC-13, AC-15, the sectioning half of AC-16, AC-10 (sectioning), AC-9 for sectioning. ≈340 lines.
 - Order: 1 → {2, 3, 4} in any order → 5. The invariant-registry row lands with PR 2. No feature flag. Every PR is independently revertable: the fields are optional and the merges additive, so reverting one returns that entity to overwrite-on-rerun and leaves stored `source` tags inert.
 
 ## Open questions
@@ -178,4 +206,3 @@ Each defaults to the stated answer if unanswered by the date.
 3. No ADR is attached: quiz identity rules are unchanged and non-destructive invalidation is ADR-024's (as amended in #879). Confirm that no standing decision changes. — **owner: @ksokolovic, due: 2026-09-25.** Default: no ADR.
 4. Storyboard full-rerun preservation (#144 "partial") stays out. Own spec, or an issue first? — **owner: @ksokolovic, due: 2026-09-25.** Default: issue first.
 5. #144 asks for "edits will be lost" warnings on the four views. For translation, quizzes and sectioning the warning is moot once edits survive; the TOC keeps one line in the existing confirmation (decision 5). Confirm dropping the other three. — **owner: @ksokolovic, due: 2026-09-25.** Default: drop.
-6. Explicit replacement of protected work (review area 3): the concrete action and scope by which a user deliberately regenerates one manual page's sectioning, one manual translation entry or one manual quiz, the provenance transition it causes, and what happens on cancellation or failure. No per-page sectioning regenerate exists today (`pages.ts` has only the PUT at line 1518); the TOC case is settled by decision 5. Owned by SPEC-0001 section 6 and referenced here, or defined here — to be resolved in review, not defaulted. — **owner: @ksokolovic.**
