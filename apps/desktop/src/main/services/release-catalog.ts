@@ -60,7 +60,7 @@ const RELEASE_BY_TAG_URL =
   "https://api.github.com/repos/unicef/adt-studio/releases/tags";
 const RELEASE_DOWNLOAD_URL =
   "https://github.com/unicef/adt-studio/releases/download";
-const GITHUB_HEADERS = {
+export const GITHUB_HEADERS = {
   Accept: "application/vnd.github+json",
   "User-Agent": "ADT-Studio-Updater",
   "X-GitHub-Api-Version": "2022-11-28",
@@ -75,7 +75,7 @@ export function isBetaReleaseVersion(value: string): boolean {
   return parsed !== null && isBetaVersion(parsed);
 }
 
-function isNumberedBeta(value: string): boolean {
+export function isNumberedBeta(value: string): boolean {
   const parsed = parseReleaseTag(value);
   return parsed !== null && betaNumberOf(parsed) !== null;
 }
