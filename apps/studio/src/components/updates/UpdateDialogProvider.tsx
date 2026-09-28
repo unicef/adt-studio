@@ -7,10 +7,11 @@ import {
   useState,
   type ReactNode,
 } from "react"
-import { useRouterState } from "@tanstack/react-router"
+import { useNavigate, useRouterState } from "@tanstack/react-router"
 import { UpdateDialog } from "./UpdateDialog"
 import { PostUpdateDialog } from "./PostUpdateDialog"
 import { UpdateToast } from "./UpdateToast"
+import { isBetaBuild } from "./release-banner-utils"
 import { useAppVersion } from "@/hooks/use-app-version"
 import { useUpdateStatus } from "@/hooks/use-update-status"
 import { isElectron } from "@/lib/utils"
@@ -41,9 +42,12 @@ export function isPipelineRoute(pathname: string): boolean {
   return match[1] !== "new" && match[1] !== "import"
 }
 
+const VERSIONS_PATH = "/settings/versions"
+
 export function UpdateDialogProvider({ children }: { children: ReactNode }) {
   const { status, check, download, cancel, install } = useUpdateStatus()
   const currentVersion = useAppVersion()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [dismissedVersion, setDismissedVersion] = useState<string | null>(null)
 
@@ -76,13 +80,15 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
   // post-install "What's new" celebration.
   const anyDialogOpen =
     open || Boolean(postUpdate) || whatsNewOpen || Boolean(detailsOverride)
-  // Two places the ambient card stays out of: onboarding, a full-screen
-  // first-run flow that on the desktop runs in its own small window; and the
+  // Places the ambient card stays out of: onboarding, a full-screen
+  // first-run flow that on the desktop runs in its own small window; the
   // pipeline, whose bottom-right corner already holds the debug console and the
-  // preview cards, and which is deep-focus work either way.
+  // preview cards, and which is deep-focus work either way; and Versions, which
+  // shows the same state in full.
   const hideAmbientCard = useRouterState({
     select: (state) =>
       state.location.pathname.startsWith("/onboarding") ||
+      state.location.pathname.startsWith(VERSIONS_PATH) ||
       isPipelineRoute(state.location.pathname),
   })
   const showToast =
@@ -103,11 +109,15 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const openUpdateDialog = useCallback(() => {
+    if (isBetaBuild()) {
+      void navigate({ to: VERSIONS_PATH })
+      return
+    }
     setOpen(true)
     if (phase === "idle" || phase === "not-available" || phase === "error") {
       check()
     }
-  }, [phase, check])
+  }, [phase, check, navigate])
 
   const showWhatsNew = useCallback(() => {
     setOpen(false)

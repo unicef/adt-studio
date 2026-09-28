@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router"
 import { useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
-import { SETTINGS_GROUPS, SETTINGS_PATHS, type SettingsSection } from "./nav"
+import { SETTINGS_PATHS, visibleSettingsGroups, type SettingsSection } from "./nav"
 
 interface SettingsNavListProps {
   activeKey: SettingsSection
@@ -13,7 +13,7 @@ export function SettingsNavList({ activeKey, className }: SettingsNavListProps) 
 
   return (
     <div className={cn("flex flex-col gap-5", className)}>
-      {SETTINGS_GROUPS.map((group) => (
+      {visibleSettingsGroups().map((group) => (
         <div key={group.key} className="flex flex-col gap-0.5">
           <div className="px-2.5 pb-1 text-[10.5px] font-semibold uppercase tracking-[0.09em] text-muted-foreground">
             {i18n._(group.label)}

@@ -12,6 +12,8 @@ export function useBetaUpdateVersions(currentVersion?: string | null) {
       return updates.listVersions(true)
     },
     enabled: Boolean(currentVersion && window.api?.updates),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   })
 }
 

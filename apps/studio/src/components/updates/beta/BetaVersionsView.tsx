@@ -29,7 +29,6 @@ import { formatVersion } from "../release-banner-utils";
 interface BetaVersionsViewProps {
   status: UpdateStatus;
   currentVersion?: string | null;
-  onClose: () => void;
 }
 
 const EMPTY_RELEASES: AvailableRelease[] = [];
@@ -111,7 +110,7 @@ export function BetaVersionsView({
 
   return (
     <div
-      className="flex h-[clamp(45rem,90dvh,54rem)] max-h-[calc(100dvh-2rem)] flex-col relative overflow-hidden"
+      className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
       onKeyDown={handleKeyDown}
     >
       {loading ? (
