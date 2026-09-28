@@ -71,6 +71,7 @@ type ElectronUpdateStatus =
       releaseDate?: string
       releaseNotes?: string
       totalBytes?: number
+      offered?: boolean
     }
   | { phase: "not-available" }
   | {

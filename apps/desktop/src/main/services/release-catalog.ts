@@ -1,4 +1,5 @@
 import {
+  betaNumberOf,
   compareReleaseVersions as compareParsedReleaseVersions,
   isBetaVersion,
   parseReleaseTag,
@@ -72,6 +73,20 @@ let releaseRequest: Promise<GitHubRelease[]> | undefined;
 export function isBetaReleaseVersion(value: string): boolean {
   const parsed = parseReleaseTag(value);
   return parsed !== null && isBetaVersion(parsed);
+}
+
+function isNumberedBeta(value: string): boolean {
+  const parsed = parseReleaseTag(value);
+  return parsed !== null && betaNumberOf(parsed) !== null;
+}
+
+export function isOfferedRelease(
+  version: string,
+  currentVersion: string,
+): boolean {
+  if (!isBetaReleaseVersion(currentVersion)) return true;
+  if (!isNumberedBeta(currentVersion) || !isNumberedBeta(version)) return false;
+  return compareReleaseVersions(version, currentVersion) > 0;
 }
 
 export function compareReleaseVersions(left: string, right: string): number {

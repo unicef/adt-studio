@@ -58,7 +58,9 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
 
   const phase = status.phase
   const hasPendingUpdate =
-    phase === "available" || phase === "downloading" || phase === "downloaded"
+    (phase === "available" && status.offered !== false) ||
+    phase === "downloading" ||
+    phase === "downloaded"
 
   const cardDetails =
     status.phase === "available" || status.phase === "downloaded"
