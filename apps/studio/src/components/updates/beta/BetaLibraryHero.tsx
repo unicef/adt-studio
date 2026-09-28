@@ -49,7 +49,7 @@ export const BetaLibraryHero = forwardRef<
             type="search"
             value={value}
             onChange={(event) => onValueChange(event.target.value)}
-            placeholder={t`Search by title, version, or description…`}
+            placeholder={t`Search by title, version, contributor, or PR…`}
             autoComplete="off"
             spellCheck={false}
             prependIcon={<Search className="size-4 ml-2" aria-hidden="true" />}

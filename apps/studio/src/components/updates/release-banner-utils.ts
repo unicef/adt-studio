@@ -63,6 +63,11 @@ export function isBetaBuild(): boolean {
   return betaBuild
 }
 
+export function previewPullRequestNumber(version: string): number | undefined {
+  const match = /-beta-pr-(\d+)$/i.exec(version.trim())
+  return match ? Number(match[1]) : undefined
+}
+
 export function formatVersion(version: string, fallback = "—"): string {
   if (!version) return fallback
   return version.startsWith("v") ? version : `v${version}`
