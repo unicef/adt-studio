@@ -80,7 +80,7 @@ import {
   isFixedLayoutBook,
   type ScreenshotRenderer,
 } from "@adt/pipeline"
-import { AiProviderError, assertModelCredentials, createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache } from "@adt/llm"
+import { AiProviderError, assertModelCredentials, createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache, imageDimensions } from "@adt/llm"
 import type { ResolvedCredentials } from "@adt/llm"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import { retireWithPreservedRecordings, DETACHED_AUDIO_DIR } from "../services/detached-audio.js"
@@ -363,8 +363,9 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
   const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 16)
 
   const [widthStr, heightStr] = size.split("x")
-  const width = parseInt(widthStr, 10) || 1024
-  const height = parseInt(heightStr, 10) || 1024
+  const dimensions = imageDimensions(generated.base64)
+  const width = dimensions.width || parseInt(widthStr, 10) || 1024
+  const height = dimensions.height || parseInt(heightStr, 10) || 1024
 
   if (originalWidth === 0) originalWidth = width
   if (originalHeight === 0) originalHeight = height

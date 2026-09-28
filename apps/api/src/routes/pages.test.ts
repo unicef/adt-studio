@@ -2044,6 +2044,35 @@ describe("Page routes", () => {
     const pageId = "test-book_p1"
     const endpoint = `/api/books/${label}/images/ai-generate?pageId=${pageId}`
 
+    it("uses the Google default with no OpenAI key and saves actual returned dimensions", async () => {
+      const png = "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAGCAYAAADkOT91AAAAH0lEQVR4AV3BwREAMAiAMMr+O1ufHsmbxSEhISEh8QGPSwQIxMxWxQAAAABJRU5ErkJggg=="
+      fs.appendFileSync(globalConfigPath, 'default_image_generation_model: "google:gemini-3.1-flash-image"\n')
+      vi.stubEnv("OPENAI_API_KEY", "")
+      const fetchMock = vi.fn(async () => Response.json({ status: "completed", steps: [
+        { type: "model_output", content: [{ type: "image", mime_type: "image/png", data: png }] },
+      ] }))
+      vi.stubGlobal("fetch", fetchMock)
+      try {
+        const response = await app.request(endpoint, {
+          method: "POST", headers: { "Content-Type": "application/json", "X-Google-API-Key": "google-test" },
+          body: JSON.stringify({ prompt: "a labelled diagram" }),
+        })
+        expect(response.status).toBe(200)
+        const result = await response.json()
+        expect(result).toMatchObject({ width: 4, height: 6 })
+        const storage = createBookStorage(label, tmpDir)
+        try {
+          const meta = storage.getImageMeta(result.imageId)!
+          expect(storage.getImageDimensions(result.imageId)).toEqual({ width: 4, height: 6 })
+          expect(fs.readFileSync(path.join(tmpDir, label, meta.relativePath)).toString("base64")).toBe(png)
+        } finally { storage.close() }
+        expect(fetchMock).toHaveBeenCalledTimes(1)
+      } finally {
+        vi.unstubAllGlobals()
+        vi.unstubAllEnvs()
+      }
+    })
+
     it("returns 400 when the selected image provider credential is missing", async () => {
       const res = await app.request(endpoint, {
         method: "POST",

@@ -537,3 +537,4 @@ export {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
 } from "./ai-provider.js"
+export { GOOGLE_IMAGE_MODELS, GoogleImageResponse } from "./google-image.js"

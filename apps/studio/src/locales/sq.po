@@ -4786,6 +4786,9 @@ msgstr "Imazhi nuk është i disponueshëm"
 msgid "Image upload failed"
 msgstr "Ngarkimi i imazhit dështoi"
 
+msgid "Image-edit model used to regenerate each image with translated text."
+msgstr "Modeli i redaktimit të imazheve që përdoret për të rigjeneruar çdo imazh me tekst të përkthyer."
+
 msgid "images"
 msgstr "imazhe"
 
@@ -6638,8 +6641,8 @@ msgstr "OpenAI"
 #~ msgid "OpenAI API Key"
 #~ msgstr "Çelësi API i OpenAI"
 
-msgid "OpenAI image-edit model used to regenerate each image with translated text."
-msgstr "Modeli image-edit i OpenAI i përdorur për të rigjeneruar çdo imazh me tekst të përkthyer."
+#~ msgid "OpenAI image-edit model used to regenerate each image with translated text."
+#~ msgstr "Modeli image-edit i OpenAI i përdorur për të rigjeneruar çdo imazh me tekst të përkthyer."
 
 #~ msgid "OpenAI key required"
 #~ msgstr "Kërkohet çelësi i OpenAI"

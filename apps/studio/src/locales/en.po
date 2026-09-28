@@ -4784,6 +4784,9 @@ msgstr "Image unavailable"
 msgid "Image upload failed"
 msgstr "Image upload failed"
 
+msgid "Image-edit model used to regenerate each image with translated text."
+msgstr "Image-edit model used to regenerate each image with translated text."
+
 msgid "images"
 msgstr "images"
 
@@ -6636,8 +6639,8 @@ msgstr "OpenAI"
 #~ msgid "OpenAI API Key"
 #~ msgstr "OpenAI API Key"
 
-msgid "OpenAI image-edit model used to regenerate each image with translated text."
-msgstr "OpenAI image-edit model used to regenerate each image with translated text."
+#~ msgid "OpenAI image-edit model used to regenerate each image with translated text."
+#~ msgstr "OpenAI image-edit model used to regenerate each image with translated text."
 
 #~ msgid "OpenAI key required"
 #~ msgstr "OpenAI key required"

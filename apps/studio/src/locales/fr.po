@@ -4786,6 +4786,9 @@ msgstr "Image indisponible"
 msgid "Image upload failed"
 msgstr "Le téléversement de l'image a échoué"
 
+msgid "Image-edit model used to regenerate each image with translated text."
+msgstr "Modèle de retouche d’images utilisé pour régénérer chaque image avec le texte traduit."
+
 msgid "images"
 msgstr "images"
 
@@ -6638,8 +6641,8 @@ msgstr "OpenAI"
 #~ msgid "OpenAI API Key"
 #~ msgstr "OpenAI Clé API"
 
-msgid "OpenAI image-edit model used to regenerate each image with translated text."
-msgstr "Modèle d'édition d'images d'OpenAI utilisé pour régénérer chaque image avec le texte traduit."
+#~ msgid "OpenAI image-edit model used to regenerate each image with translated text."
+#~ msgstr "Modèle d'édition d'images d'OpenAI utilisé pour régénérer chaque image avec le texte traduit."
 
 #~ msgid "OpenAI key required"
 #~ msgstr "Clé OpenAI requise"

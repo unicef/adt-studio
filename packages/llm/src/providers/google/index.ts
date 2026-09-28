@@ -1,11 +1,13 @@
 import { z } from "zod"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import type { AiModality, ProviderManifest } from "@adt/types"
-import type { DiscoveredModel, ProviderModule } from "../../ports/index.js"
+import type { CapabilitiesFor, DiscoveredModel, ProviderModule } from "../../ports/index.js"
+import { AiProviderError } from "../../ports/errors.js"
 import { createAiSdkStructuredTextBackend } from "../shared/ai-sdk/structured-text.js"
 import { createAiSdkAgentBackend } from "../shared/ai-sdk/agent.js"
 import { ModelDiscoveryError } from "../../model-discovery.js"
 import { LABEL_API_KEY } from "../shared/i18n.js"
+import { createGoogleImageBackend, googleImageCapabilities, isGoogleImageModel } from "./image.js"
 
 export const GOOGLE_PROVIDER_ID = "google"
 const ADAPTER_VERSION = "google-1"
@@ -24,7 +26,7 @@ const credentialSchema = z
 export const googleManifest: ProviderManifest = {
   id: GOOGLE_PROVIDER_ID,
   displayName: "Google",
-  modalities: ["structured-text", "agent"],
+  modalities: ["structured-text", "agent", "image"],
   credentialFields: [
     {
       key: "apiKey",
@@ -45,6 +47,7 @@ export const googleManifest: ProviderManifest = {
       temperature: true,
     },
     agent: { tools: true, streaming: true },
+    image: googleImageCapabilities("gemini-3.1-flash-image"),
   },
   defaultModels: {
     "structured-text": "gemini-2.5-pro",
@@ -52,6 +55,7 @@ export const googleManifest: ProviderManifest = {
     // projects may retain access. Google's error response and current model
     // catalogue direct agentic workloads to this tool-capable replacement.
     agent: "gemini-3.1-pro-preview",
+    image: "gemini-3.1-flash-image",
   },
   docsUrl: "https://aistudio.google.com/apikey",
 }
@@ -125,7 +129,9 @@ async function listGoogleModels(
     const id = entry.name.replace(/^models\//, "")
     if (!id || seen.has(id)) continue
     seen.add(id)
-    const modalities = modalitiesForMethods(entry.supportedGenerationMethods)
+    const modalities = isGoogleImageModel(id)
+      ? ["image" as const]
+      : modalitiesForMethods(entry.supportedGenerationMethods)
     models.push({
       id,
       ...(entry.displayName ? { displayName: entry.displayName } : {}),
@@ -144,12 +150,22 @@ export const googleProvider: ProviderModule<GoogleCredentials> = {
       process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY,
   }),
 
-  cacheFingerprint: () => ({
-    adapterVersion: ADAPTER_VERSION,
+  cacheFingerprint: (context) => ({
+    adapterVersion: context.modality === "image" ? "google-image-1" : ADAPTER_VERSION,
     origin: "https://generativelanguage.googleapis.com",
   }),
 
   listModels: (context) => listGoogleModels(context.credentials.apiKey, context.signal),
+
+  capabilitiesFor: (modality, modelId) => {
+    if (isGoogleImageModel(modelId) && modality !== "image") {
+      throw AiProviderError.unsupportedCapability("google", modality, "image-only model", modelId)
+    }
+    if (modality === "image") return googleImageCapabilities(modelId) as CapabilitiesFor<typeof modality>
+    return undefined
+  },
+
+  createImageBackend: (context) => createGoogleImageBackend(context.modelId, context.credentials.apiKey),
 
   createStructuredTextBackend: (context) => {
     const client = createGoogleGenerativeAI({ apiKey: context.credentials.apiKey })

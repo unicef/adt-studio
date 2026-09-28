@@ -6,9 +6,26 @@ This document describes the system architecture of ADT Studio: how it is structu
 
 ## System Overview
 
-ADT Studio is a book production pipeline. It takes a PDF as input and produces structured, accessible digital content — HTML storyboards, quizzes, glossaries, captions, translated text, and packaged export bundles. Processing is driven by LLM calls (OpenAI) and controlled by a configuration file that defines text classification schemes, rendering strategies, and per-step model settings. Storyboard rendering can run an optional screenshot-based visual refinement loop using headless Chromium (Playwright).
+ADT Studio is a book production pipeline. It takes a PDF as input and produces structured, accessible digital content — HTML storyboards, quizzes, glossaries, captions, translated text, and packaged export bundles. Processing is driven by LLM calls through the provider registry and controlled by a configuration file that defines text classification schemes, rendering strategies, and per-step model settings. Storyboard rendering can run an optional screenshot-based visual refinement loop using headless Chromium (Playwright).
 
 The system is designed for a single operator (or a single shared team) running against a local or hosted instance. All book data is stored on disk in self-contained directories — no external database, no cloud storage.
+
+### Image models
+
+Image generation and editing use the provider registry's `ImageBackend` through
+`generateImageWithCache`, retaining book-local caching and inspectable call logs.
+The `google` provider supports the Nano Banana family through the native Gemini
+Interactions API, using the existing Google API key. Nano Banana 2 is
+`google:gemini-3.1-flash-image`; Lite, Pro and 2.5 Flash Image are also listed in
+`packages/types/src/google-image.ts`. See [Google's image API guide](https://ai.google.dev/gemini-api/docs/image-generation).
+
+Select the global default in Settings → Models → Image generation and editing.
+Book overrides retain precedence. Image translation uses
+`image_translation.image_model` when set, otherwise the effective
+`default_image_generation_model`, and authenticates with that model's provider.
+Generation requests map the existing square/landscape/portrait sizes to supported
+aspect ratios; asset metadata uses the returned image's dimensions. The `gemini`
+speech provider retains its separate identity and credential settings.
 
 ---
 

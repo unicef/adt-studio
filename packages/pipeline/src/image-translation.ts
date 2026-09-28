@@ -3,7 +3,7 @@ import { generateImageWithCache, pngDimensions, type LlmLogEntry } from "@adt/ll
 import { normalizeLocale } from "./language-context.js"
 
 export interface ImageTranslationConfig {
-  /** OpenAI image model id (e.g. "openai:gpt-image-2"). */
+  /** Provider-qualified image model id (e.g. "google:gemini-3.1-flash-image"). */
   modelId: string
   /** Liquid-rendered prompt to send with the image. */
   prompt: string

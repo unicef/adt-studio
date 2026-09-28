@@ -11,22 +11,22 @@ function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
 }
 
 describe("buildImageTranslationConfig", () => {
-  it("uses the platform or book image-generation default", () => {
+  it.each(["openai:dall-e-3", "google:gemini-3.1-flash-image"])("inherits the image-generation default %s", (model) => {
     expect(
       buildImageTranslationConfig(
-        makeConfig({ default_image_generation_model: "openai:dall-e-3" }),
+        makeConfig({ default_image_generation_model: model }),
       ).modelId,
-    ).toBe("openai:dall-e-3")
+    ).toBe(model)
   })
 
-  it("keeps the step-specific image model at highest priority", () => {
+  it.each(["openai:gpt-image-2", "google:gemini-3.1-flash-image"])("prioritizes the translation override %s", (model) => {
     expect(
       buildImageTranslationConfig(
         makeConfig({
           default_image_generation_model: "openai:dall-e-3",
-          image_translation: { image_model: "openai:gpt-image-2" },
+          image_translation: { image_model: model },
         }),
       ).modelId,
-    ).toBe("openai:gpt-image-2")
+    ).toBe(model)
   })
 })

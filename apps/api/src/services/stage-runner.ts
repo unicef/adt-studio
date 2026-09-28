@@ -2727,7 +2727,11 @@ async function runTranslateStep(
 
       // Validate prerequisites BEFORE clearing existing variants — a missing
       // API key shouldn't wipe prior work.
-      const openaiApiKey = resolveCredentialField(options, "openai", "apiKey")
+      const { providerId: imageProviderId } = getDefaultProviderRegistry().resolveImage(
+        imageTranslation.modelId,
+        { credentials: buildLLMCredentials(options) },
+      )
+      const imageApiKey = resolveCredentialField(options, imageProviderId, "apiKey")
 
       const promptName = config.image_translation?.prompt ?? "image_translation"
       const bookPromptPath = path.join(
@@ -2810,7 +2814,7 @@ async function runTranslateStep(
           try {
             const buffer = fs.readFileSync(item.diskPath)
             const result = await translateImage({
-              apiKey: openaiApiKey,
+              apiKey: imageApiKey,
               modelId: imageModelId,
               prompt: promptText,
               sourceLanguage: language,

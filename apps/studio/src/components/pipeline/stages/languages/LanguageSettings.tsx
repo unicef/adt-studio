@@ -1141,7 +1141,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
               inputClassName="h-9 text-sm"
             />
             <p className="text-[11px] text-muted-foreground">
-              {t`OpenAI image-edit model used to regenerate each image with translated text.`}
+              {t`Image-edit model used to regenerate each image with translated text.`}
             </p>
           </div>
 
