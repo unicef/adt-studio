@@ -13,6 +13,7 @@ import {
 import type { Env } from "./env.js"
 import { attemptGate, callerIp } from "./access-throttle.js"
 import { errorResponse } from "./errors.js"
+import { ADT_ICON_DATA_URI } from "./gate-brand.js"
 import {
   GATE_STRINGS,
   READER_LANGUAGE_KEY,
@@ -332,6 +333,10 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
        overflow-wrap:anywhere; word-break:break-word; hyphens:auto; text-wrap:balance }
   p { margin:0; line-height:1.55; color:var(--muted) }
   .intro { font-size:1.02rem }
+  .top { display:flex; align-items:center; justify-content:space-between; gap:.5rem .75rem; flex-wrap:wrap }
+  .brand { display:inline-flex; align-items:center; gap:.5rem; font-size:.8125rem; font-weight:600; color:#3f3f46;
+           letter-spacing:-.005em }
+  .brand img { width:1.375rem; height:1.375rem; border-radius:.35rem; box-shadow:0 1px 4px rgba(43,127,255,.35) }
   .badge { display:inline-flex; align-items:center; gap:.35rem; padding:.2rem .6rem; border-radius:999px;
            background:var(--soft); color:var(--brand-dark); font-size:.75rem; font-weight:600 }
   form { margin-top:1.6rem; display:flex; flex-direction:column; gap:.9rem }
@@ -424,7 +429,10 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
 <body>
 <div class="scene">
   <main>
-    <span class="badge">${LOCK_ICON}<span data-i18n="badge">${t.badge}</span></span>
+    <div class="top">
+      <span class="brand"><img src="${ADT_ICON_DATA_URI}" alt="" width="22" height="22">ADT Studio</span>
+      <span class="badge">${LOCK_ICON}<span data-i18n="badge">${t.badge}</span></span>
+    </div>
     <h1${titleLanguage ? html` lang="${titleLanguage}"` : ""} dir="auto">${title}</h1>
     <p class="intro" data-i18n="intro">${t.intro}</p>
     <form method="post" action="/p/${publication.token}/access">
