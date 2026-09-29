@@ -35,6 +35,7 @@ import {
   type OAuthCallbackListenerFactory,
 } from "../services/cloudflare/oauth.js"
 import { provisionCloudflare } from "../services/cloudflare/provisioner.js"
+import { createProvisionRunView } from "../services/provision-progress.js"
 import { clearAllPublicationRecords } from "../services/publish-service.js"
 import {
   disconnectedStatus,
@@ -135,6 +136,7 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
    *  that write, and every call afterwards authenticates with the record's secret and gets a
    *  permanent `401`. A second request while one is running is refused instead of raced. */
   let provisionInFlight = false
+  const provisionRun = createProvisionRunView(deps.now)
 
   const loadArtifact = (): WorkerArtifact => {
     if (deps.loadArtifact) return deps.loadArtifact()
@@ -250,9 +252,13 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
     }
 
     const client = clientFor(credentials)
+    provisionRun.begin()
 
     return streamSSE(c, async (stream) => {
+      /** Every event also lands in the in-memory snapshot, so a client that reloads
+       *  mid-run can pick the progress back up instead of seeing an idle screen. */
       const emit = async (event: ProvisionProgressEvent) => {
+        provisionRun.record(event)
         await stream.writeSSE({ event: event.type, data: JSON.stringify(event) })
       }
 
@@ -298,6 +304,9 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
       }
     })
   })
+
+  // GET /cloudflare/provision/run — live view of a run the browser may have stopped watching
+  app.get("/cloudflare/provision/run", (c) => c.json({ run: provisionRun.get() }))
 
   // GET /cloudflare/connection — local record plus the live worker version
   app.get("/cloudflare/connection", async (c) => {

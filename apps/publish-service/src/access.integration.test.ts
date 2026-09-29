@@ -34,14 +34,17 @@ function app() {
   return createApp()
 }
 
-async function publish(accessCode?: string | null): Promise<string> {
+async function publish(
+  accessCode?: string | null,
+  extraFiles: Record<string, string> = {},
+): Promise<string> {
   const token = nextToken()
   await publishSnapshot((input, init) => app().request(input, init, env), BASE, SECRET, {
     token,
     title: "Raven & the <Sun>",
     bookLabel: "raven",
     pageManifest: MANIFEST,
-    files: { "index.html": "<h1>page one</h1>", "assets/app.css": "h1{color:red}" },
+    files: { "index.html": "<h1>page one</h1>", "assets/app.css": "h1{color:red}", ...extraFiles },
     ...(accessCode === undefined ? {} : { accessCode: accessCode ?? undefined }),
   })
   return token
@@ -108,6 +111,121 @@ beforeEach(async () => {
   await env.DB.prepare("DELETE FROM publications").run()
 })
 
+describe("the book's cover at the door", () => {
+  /** The prompt shows the cover so the reader can tell it is the right book before typing a
+   *  code, and a prompt cannot draw an image its own door keeps locked. */
+  it("lets the cover through without a code, and shows it on the prompt", async () => {
+    const token = await publish(CODE, { "cover.png": "png-bytes" })
+
+    const cover = await get(token, "cover.png", subresource())
+    expect(cover.status).toBe(200)
+    await expect(cover.text()).resolves.toBe("png-bytes")
+
+    const page = await get(token, "", navigation())
+    expect(page.status).toBe(401)
+    const html = await page.text()
+    expect(html).toContain(`<img class="face cover" src="/p/${token}/cover.png"`)
+    /** The same cover, blurred, is the page's backdrop. */
+    expect(html).toContain(`url("/p/${token}/cover.png") center/cover`)
+    expect(html).toContain("Access code needed")
+  })
+
+  it("keeps everything else locked — the exception is the cover, not the book", async () => {
+    const token = await publish(CODE, { "cover.png": "png-bytes", "images/cover.png": "inside" })
+
+    expect((await get(token, "images/cover.png", subresource())).status).toBe(401)
+    expect((await get(token, "assets/app.css", subresource())).status).toBe(401)
+    expect((await get(token, "index.html", navigation())).status).toBe(401)
+  })
+
+  it("draws a plain locked book for a book with no cover", async () => {
+    const token = await publish(CODE)
+
+    const html = await (await get(token, "", navigation())).text()
+    expect(html).not.toContain('class="face cover"')
+    expect(html).not.toContain("url(\"/p/")
+    expect(html).toContain('class="face plain lock"')
+  })
+
+  it("shows the cover again after a wrong code", async () => {
+    const token = await publish(CODE, { "cover.jpg": "jpg-bytes" })
+
+    /** A browser submits the prompt as a form, which is what gets the page back. */
+    const wrong = await app().request(
+      `${BASE}/p/${token}/access`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded", accept: "text/html" },
+        body: new URLSearchParams({ code: "WRONG1", name: "Ana" }).toString(),
+      },
+      env,
+    )
+    expect(wrong.status).toBe(401)
+    expect(await wrong.text()).toContain(`src="/p/${token}/cover.jpg"`)
+  })
+})
+
+describe("access-code gate language", () => {
+  const config = (available: string[], fallback: string) =>
+    JSON.stringify({ languages: { available, default: fallback } })
+
+  it("speaks the book's default language", async () => {
+    const token = await publish(CODE, { "assets/config.json": config(["pt-BR"], "pt-BR") })
+    const html = await (await get(token, "", navigation())).text()
+    expect(html).toContain('<html lang="pt-BR"')
+    expect(html).toContain("Código de acesso necessário")
+    expect(html).toContain(">Seu nome<")
+    expect(html).toContain(">Abrir o livro<")
+    /** One language, nothing to switch between in the browser. */
+    expect(html).not.toContain('id="gate-languages"')
+  })
+
+  it("follows the reader's saved choice when the book offers it", async () => {
+    const token = await publish(CODE, { "assets/config.json": config(["pt-BR", "es"], "pt-BR") })
+    const page = await get(token, "", {
+      headers: { ...navigation().headers, Cookie: `currentLanguage=${encodeURIComponent('"es"')}` },
+    })
+    const html = await page.text()
+    expect(html).toContain('<html lang="es"')
+    expect(html).toContain(">Abrir el libro<")
+    /** The title keeps the book's own language, whatever the door speaks. */
+    expect(html).toContain('<h1 lang="pt-BR" dir="auto">')
+    /** Both alternatives travel with the page, for a choice kept in local storage. */
+    expect(html).toContain('id="gate-languages"')
+    expect(html).toContain("Abrir o livro")
+  })
+
+  it("ignores a saved choice the book does not offer", async () => {
+    const token = await publish(CODE, { "assets/config.json": config(["fr"], "fr") })
+    const page = await get(token, "", { headers: { ...navigation().headers, Cookie: "currentLanguage=es" } })
+    expect(await page.text()).toContain('<html lang="fr"')
+  })
+
+  it("falls back to English for a language Studio does not translate", async () => {
+    const token = await publish(CODE, { "assets/config.json": config(["de"], "de") })
+    const html = await (await get(token, "", navigation())).text()
+    expect(html).toContain('<html lang="en"')
+    expect(html).toContain("Access code needed")
+    expect(html).toContain('<h1 lang="de" dir="auto">')
+  })
+
+  it("keeps the language on a wrong code", async () => {
+    const token = await publish(CODE, { "assets/config.json": config(["sq"], "sq") })
+    const wrong = await app().request(
+      `${BASE}/p/${token}/access`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded", accept: "text/html" },
+        body: new URLSearchParams({ code: "WRONG1", name: "Ana" }).toString(),
+      },
+      env,
+    )
+    const html = await wrong.text()
+    expect(html).toContain('<html lang="sq"')
+    expect(html).toContain("Ky kod nuk e hap këtë libër")
+  })
+})
+
 describe("access-code gate", () => {
   it("answers a navigation with the code page and a subresource with JSON", async () => {
     const token = await publish(CODE)
@@ -116,7 +234,8 @@ describe("access-code gate", () => {
     expect(page.status).toBe(401)
     expect(page.headers.get("content-type")).toContain("text/html")
     const html = await page.text()
-    expect(html).toContain("This book is shared with an access code")
+    expect(html).toContain("Access code needed")
+    expect(html).toContain("Enter your name and the code you were")
     expect(html).toContain(`action="/p/${token}/access"`)
     /** The title is escaped, never interpolated raw. */
     expect(html).toContain("Raven &amp; the &lt;Sun&gt;")
@@ -369,7 +488,7 @@ describe("access-code gate", () => {
     )
     expect(submitted.status).toBe(401)
     expect(submitted.headers.get("set-cookie")).toBeNull()
-    await expect(submitted.text()).resolves.toContain("That code doesn't open this book")
+    await expect(submitted.text()).resolves.toContain("open this book. Check it and try again.")
   })
 
   it("refuses to be an open redirect", async () => {
@@ -570,7 +689,7 @@ describe("the access-code door as the identity step", () => {
     return results
   }
 
-  it("asks for a name beside the code, and keeps the page script-free", async () => {
+  it("asks for a name beside the code, and works with no script at all", async () => {
     const token = await publish(CODE)
     const html = await (await get(token, "", navigation())).text()
 
@@ -579,7 +698,11 @@ describe("the access-code door as the identity step", () => {
     expect(html).toContain(`id="name"`)
     expect(html).toContain("required")
     expect(html).toContain(`id="code"`)
-    expect(html).not.toContain("<script")
+    expect(html).toContain(`name="code"`)
+    /** The code boxes are an inline enhancement over a real input: nothing is loaded from
+     *  anywhere, and the form posts the same fields whether the script ran or not. */
+    expect(html).not.toContain("<script src")
+    expect(html).toContain(`<label for="code" data-i18n="codeLabel">Access code</label>`)
   })
 
   it("grants access and issues a commenter session on the same response", async () => {

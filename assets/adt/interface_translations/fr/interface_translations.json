@@ -199,7 +199,7 @@
     "comments-thread-label": "Fil de commentaires",
     "comments-you-label": "vous",
     "comments-unanchored-label": "Sur cette page",
-    "comments-pin-aria-label": "Commentaire ${number} de ${name}",
+    "comments-pin-aria-label": "Commentaire de ${name}",
     "comments-just-now-label": "à l'instant",
     "comments-minutes-ago-label": "il y a ${count} min",
     "comments-hours-ago-label": "il y a ${count} h",
@@ -229,7 +229,7 @@
     "comments-show-resolved-label": "Afficher les commentaires résolus",
     "comments-resolved-label": "Résolu",
     "comments-resolved-hint-label": "L'auteur a clos ce fil. Une réponse lui parvient quand même et reste attachée au fil résolu.",
-    "comments-resolved-pin-aria-label": "Commentaire résolu ${number} de ${name}",
+    "comments-resolved-pin-aria-label": "Commentaire résolu de ${name}",
     "comments-resolved-hidden-label": "${count} résolus",
     "comments-one-resolved-label": "1 résolu",
     "comments-list-label": "Commentaires de cette page",
@@ -249,6 +249,7 @@
     "comments-cursor-direction-left-label": "à gauche",
     "comments-cursor-direction-right-label": "à droite",
     "comments-presence-page-label": "Page ${number}",
+    "comments-page-section-label": "Page ${page} · Section ${section}",
     "comments-presence-unknown-page-label": "Quelque part dans le livre",
     "comments-presence-anonymous-hint-label": "Impossible de suivre un lecteur sans nom",
     "comments-follow-label": "Suivre",
@@ -267,5 +268,8 @@
     "comments-scope-page-label": "Cette page",
     "comments-scope-book-label": "Tout le livre",
     "comments-book-empty-label": "Aucun commentaire dans ce livre pour l'instant",
-    "comments-reading-now-label": "En train de lire"
+    "comments-reading-now-label": "En train de lire",
+    "comments-hint-title": "Vous pouvez commenter ce livre",
+    "comments-hint-body": "Appuyez sur ce bouton, puis cliquez n’importe où sur une page pour laisser une note.",
+    "comments-hint-dismiss-label": "Fermer"
 }

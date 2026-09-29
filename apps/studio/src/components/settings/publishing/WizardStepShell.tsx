@@ -14,6 +14,10 @@ interface WizardStepShellProps {
   className?: string
 }
 
+/**
+ * Header, scrolling body, pinned footer. The body is the only part that scrolls, so a long
+ * error notice or a tall step list never pushes the footer's buttons out of the card.
+ */
 export function WizardStepShell({
   stepNumber,
   stepCount,
@@ -25,8 +29,8 @@ export function WizardStepShell({
 }: WizardStepShellProps) {
   const showSteps = stepNumber !== undefined && stepCount !== undefined && stepCount > 1
   return (
-    <div className={cn("flex min-h-0 flex-1 flex-col gap-5", className)}>
-      <div className="flex flex-col gap-2.5">
+    <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
+      <div className="flex shrink-0 flex-col gap-2.5 pb-5">
         {showSteps && (
           <>
             <div className="flex items-center gap-2">
@@ -34,7 +38,7 @@ export function WizardStepShell({
                 <span
                   key={index}
                   className={cn(
-                    "h-1 flex-1 rounded-full transition-colors duration-300 motion-reduce:transition-none",
+                    "h-1 flex-1 rounded-full transition-colors duration-500 motion-reduce:transition-none",
                     index < stepNumber ? "bg-primary" : "bg-border",
                   )}
                 />
@@ -50,7 +54,7 @@ export function WizardStepShell({
         <h2
           id={WIZARD_STEP_HEADING_ID}
           tabIndex={-1}
-          className="text-lg font-semibold tracking-tight text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="text-lg font-semibold tracking-tight text-foreground focus-visible:outline-none"
         >
           {title}
         </h2>
@@ -59,10 +63,10 @@ export function WizardStepShell({
         )}
       </div>
 
-      {children}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
 
       {footer && (
-        <div className="mt-auto flex flex-wrap items-center gap-2 border-t pt-4">{footer}</div>
+        <div className="mt-5 flex shrink-0 flex-wrap items-center gap-2 border-t pt-4">{footer}</div>
       )}
     </div>
   )

@@ -1,5 +1,8 @@
+import { goToPage } from "@/features/comments/lib/go-to-page"
 import { readableTextColor } from "@adt/types/color"
+import { initialOf } from "@/features/comments/lib/initial"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { currentLanguageAtom } from "@/features/language/state/language.atoms"
 import { Check, X } from "lucide-react"
 import { useEffect, useMemo, useRef } from "react"
 import { Switch } from "@/shared/ui/switch"
@@ -53,6 +56,7 @@ export function CommentsSidebar({
   onClose,
 }: CommentsSidebarProps) {
   const { t } = useCommentsText()
+  const language = useAtomValue(currentLanguageAtom) as string
   const [showResolved, setShowResolved] = useAtom(showResolvedAtom)
   const [scope, setScope] = useAtom(commentScopeAtom)
   const resolvedCount = useAtomValue(pageResolvedCountAtom)
@@ -74,6 +78,10 @@ export function CommentsSidebar({
   const labels = {
     unknown: t("comments-presence-unknown-page-label"),
     page: (number: number) => t("comments-presence-page-label", { number: String(number) }),
+    /** Comment rows say page *and* section: two comments on one page are otherwise given the
+     *  same address, and the section is what the filename and the URL already carry. */
+    pageSection: (page: number, section: number) =>
+      t("comments-page-section-label", { page: String(page), section: String(section) }),
   }
 
   /**
@@ -120,7 +128,7 @@ export function CommentsSidebar({
     const href = hrefForSection(comment.page_section_id, pages)
     if (href === null) return
     setPendingThread(comment.id)
-    window.location.href = href
+    goToPage(href)
   }
 
   return (
@@ -224,7 +232,7 @@ export function CommentsSidebar({
           </p>
         ) : (
           <ul className="flex flex-col gap-1">
-            {shown.map((comment, index) => {
+            {shown.map((comment) => {
               const replies = repliesOf(threadSource, comment.id)
               const resolved = comment.resolved_at !== null
               const selected = openThreadId === comment.id
@@ -255,14 +263,14 @@ export function CommentsSidebar({
                         resolved && "opacity-60 saturate-50",
                       )}
                     >
-                      {resolved ? <Check className="h-3 w-3 stroke-[3]" /> : index + 1}
+                      {resolved ? <Check className="h-3 w-3 stroke-[3]" /> : initialOf(comment.author_name)}
                     </span>
 
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-baseline gap-1.5">
                         <span className="text-xs font-semibold">{comment.author_name}</span>
                         <span className="text-[0.65rem] text-muted-foreground">
-                          {relativeTime(comment.created_at, t)}
+                          {relativeTime(comment.created_at, t, Date.now(), language)}
                         </span>
                         {!elsewhere && !anchoredIds.has(comment.id) ? (
                           <span className="rounded bg-muted px-1 py-px text-[0.6rem] font-medium text-muted-foreground">

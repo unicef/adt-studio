@@ -13,20 +13,20 @@ function ScenePanel({ children }: { children: ReactNode }) {
 function SceneDenied() {
   return (
     <ScenePanel>
-      <div className="flex w-56 flex-col gap-2 rounded-lg border bg-white p-3.5 shadow-lg">
+      <div className="flex w-56 flex-col gap-2 rounded-lg border bg-background p-3.5 shadow-lg dark:bg-card dark:shadow-black/40">
         <div className="flex items-center gap-1.5">
           <Cloud className="size-4.5 shrink-0" style={{ color: "#f6821f" }} aria-hidden="true" />
-          <span className="text-[11px] font-semibold leading-4 text-zinc-700">
+          <span className="text-[11px] font-semibold leading-4 text-foreground/80">
             <Trans>Wrangler</Trans>
           </span>
         </div>
-        <span className="h-2 w-full rounded-full bg-zinc-100" />
-        <span className="h-2 w-4/5 rounded-full bg-zinc-100" />
+        <span className="h-2 w-full rounded-full bg-muted" />
+        <span className="h-2 w-4/5 rounded-full bg-muted" />
         <div className="mt-1 flex items-center justify-end gap-1.5">
-          <span className="rounded bg-rose-600 px-2 py-1 text-[10px] font-semibold leading-3 text-white ring-2 ring-rose-200">
+          <span className="rounded bg-rose-600 px-2 py-1 text-[10px] font-semibold leading-3 text-white ring-2 ring-rose-500/30">
             <Trans>Deny</Trans>
           </span>
-          <span className="rounded border px-2.5 py-1 text-[10px] leading-3 text-zinc-400">
+          <span className="rounded border px-2.5 py-1 text-[10px] leading-3 text-muted-foreground/70">
             <Trans>Allow</Trans>
           </span>
         </div>
@@ -40,30 +40,30 @@ function SceneInterrupted({ icon }: { icon: ReactNode }) {
   return (
     <ScenePanel>
       <div className="flex items-center gap-2">
-        <div className="flex w-28 flex-col gap-1.5 rounded-lg border bg-white p-2.5 shadow-md">
+        <div className="flex w-28 flex-col gap-1.5 rounded-lg border bg-background p-2.5 shadow-md dark:bg-card dark:shadow-black/40">
           <span className="flex items-center gap-1">
             <Cloud className="size-3 shrink-0" style={{ color: "#f6821f" }} aria-hidden="true" />
-            <span className="h-1.5 flex-1 rounded-full bg-zinc-200" />
+            <span className="h-1.5 flex-1 rounded-full bg-border" />
           </span>
-          <span className="h-1.5 w-3/4 rounded-full bg-zinc-100" />
-          <span className="h-1.5 w-2/3 rounded-full bg-zinc-100" />
+          <span className="h-1.5 w-3/4 rounded-full bg-muted" />
+          <span className="h-1.5 w-2/3 rounded-full bg-muted" />
         </div>
 
         <div className="flex items-center gap-1">
-          <span className="h-px w-4 bg-zinc-300" />
-          <span className="flex size-6 items-center justify-center rounded-full bg-rose-100 text-rose-600 ring-2 ring-white">
+          <span className="h-px w-4 bg-border" />
+          <span className="flex size-6 items-center justify-center rounded-full bg-rose-500/15 text-rose-600 ring-2 ring-card dark:text-rose-400">
             {icon}
           </span>
-          <span className="h-px w-4 border-t border-dashed border-zinc-300" />
+          <span className="h-px w-4 border-t border-dashed border-border" />
         </div>
 
-        <div className="flex w-28 flex-col gap-1.5 rounded-lg border bg-white p-2.5 shadow-md">
+        <div className="flex w-28 flex-col gap-1.5 rounded-lg border bg-background p-2.5 shadow-md dark:bg-card dark:shadow-black/40">
           <span className="flex items-center gap-1">
-            <span className="size-3 shrink-0 rounded bg-indigo-600" />
-            <span className="h-1.5 flex-1 rounded-full bg-zinc-200" />
+            <span className="size-3 shrink-0 rounded bg-primary" />
+            <span className="h-1.5 flex-1 rounded-full bg-border" />
           </span>
-          <span className="h-1.5 w-3/4 rounded-full bg-zinc-100" />
-          <span className="h-1.5 w-1/2 rounded-full bg-zinc-100" />
+          <span className="h-1.5 w-3/4 rounded-full bg-muted" />
+          <span className="h-1.5 w-1/2 rounded-full bg-muted" />
         </div>
       </div>
     </ScenePanel>
@@ -123,7 +123,7 @@ function explain(code: CloudflareOAuthErrorCode | "unknown" | null): {
     case "oauth_no_accounts":
       return {
         scene: <SceneInterrupted icon={<X className="size-3.5" aria-hidden="true" />} />,
-        title: <Trans>No Cloudflare account to publish into</Trans>,
+        title: <Trans>No Cloudflare account to share from</Trans>,
         body: (
           <Trans>
             This login has no account the Studio can use. Create an account in Cloudflare, then
@@ -158,12 +158,12 @@ export function OAuthErrorNotice({
   return (
     <div
       data-testid={`oauth-error-${code ?? "unknown"}`}
-      className="flex flex-1 flex-col items-center justify-center gap-6 py-4 text-center motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300 mh:gap-4 mh:py-0"
+      className="flex flex-1 flex-col items-center justify-center gap-6 py-4 text-center motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300"
     >
       {scene}
 
       <div className="flex max-w-md flex-col gap-2">
-        <h3 className="text-lg font-semibold tracking-tight text-foreground mh:text-base">
+        <h3 className="text-lg font-semibold tracking-tight text-foreground">
           {title}
         </h3>
         <p className="text-sm leading-6 text-muted-foreground">{body}</p>

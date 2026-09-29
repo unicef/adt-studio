@@ -466,7 +466,8 @@ export {
 
 export {
   PUBLISH_WORKER_VERSION,
-  R2_FREE_TIER_BYTES,
+  BOOK_HOST_MIN_CONTROL_PLANE_VERSION,
+  isVersionAtLeast,
   PUBLICATION_SNAPSHOT_MAX_FILES,
   PUBLICATION_SNAPSHOT_MAX_FILE_BYTES,
   PUBLICATION_SNAPSHOT_MAX_BYTES,
@@ -515,6 +516,7 @@ export {
   PublishStepStatus,
   PublishStepEventStatus,
   PublishErrorCodeStudio,
+  PublishRunSnapshot,
   PublishStepEvent,
   PublishCompleteEvent,
   PublishErrorEvent,

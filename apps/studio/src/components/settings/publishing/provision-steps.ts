@@ -29,7 +29,7 @@ const STEP_COPY: Record<ProvisionStepId, StepCopy> = {
   "find-or-create-d1": {
     icon: Database,
     title: msg`Creating the database`,
-    detail: msg`Keeps track of your published books.`,
+    detail: msg`Keeps track of your shared books.`,
   },
   "apply-migrations": {
     icon: Table2,
@@ -38,13 +38,13 @@ const STEP_COPY: Record<ProvisionStepId, StepCopy> = {
   },
   "upload-worker": {
     icon: Server,
-    title: msg`Installing the publishing service`,
+    title: msg`Installing the sharing service`,
     detail: msg`The small program that shows your books.`,
   },
   "set-mgmt-secret": {
     icon: Lock,
     title: msg`Securing the service`,
-    detail: msg`So only this computer can publish or change your books.`,
+    detail: msg`So only this computer can share or change your books.`,
   },
   "enable-workers-dev": {
     icon: Globe,
@@ -54,7 +54,7 @@ const STEP_COPY: Record<ProvisionStepId, StepCopy> = {
   "verify-deployment": {
     icon: CheckCheck,
     title: msg`Checking everything answers`,
-    detail: msg`A last look before you publish your first book.`,
+    detail: msg`A last look before you share your first book.`,
   },
 }
 

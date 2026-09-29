@@ -96,6 +96,10 @@ export const CloudflareConnectionStatus = z.object({
   auth_method: CloudflareAuthMethod.nullable(),
   worker_url: z.string().nullable(),
   worker_version: z.string().nullable(),
+  /** `false` when `worker_version` is what this machine remembers rather than what the worker
+   *  just said — the health probe answered with something other than a version. A remembered
+   *  value is not a current one, and the screen must not present it as though it were. */
+  worker_version_live: z.boolean().default(false),
   latest_version: z.string().min(1),
   upgrade_available: z.boolean(),
   worker_reachable: z.boolean(),

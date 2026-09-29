@@ -340,6 +340,9 @@ importers:
       esbuild:
         specifier: ^0.25.0
         version: 0.25.12
+      miniflare:
+        specifier: 4.20260722.0
+        version: 4.20260722.0
       wrangler:
         specifier: ^4.114.0
         version: 4.126.0(@cloudflare/workers-types@5.20260826.1)

@@ -7,6 +7,7 @@ import {
   contentRoot,
   elementAtPoint,
   nearestAnchorElement,
+  paintedBox,
   resolveAnchor,
   type CommentAnchor,
 } from "./anchor"
@@ -339,5 +340,94 @@ describe("resolveAnchor", () => {
 
     span.remove()
     expect(resolveAnchor(anchor, { root })).toBeNull()
+  })
+})
+
+describe("precise anchors — live cursors", () => {
+  it("anchors to the exact element under the pointer, not the section it sits in", () => {
+    const root = renderPage()
+    const paragraph = root.querySelector(".unhooked p:nth-of-type(2)")!
+    stubRect(paragraph, { x: 100, y: 200, width: 400, height: 20 })
+    stubPointStack([paragraph])
+
+    const anchor = anchorFromPoint(300, 210, { root, precise: true })!
+    expect(anchor.selector).toBe(
+      '#content [data-section-id="pg017_sec001"] > div:nth-of-type(4) > p:nth-of-type(2)',
+    )
+    expect(anchor).toMatchObject({ xOffsetPct: 50, yOffsetPct: 50 })
+    /** A pin at the same point still climbs to the section, as it always has. */
+    expect(anchorFromPoint(300, 210, { root })?.selector).toBe(
+      '#content [data-section-id="pg017_sec001"]',
+    )
+  })
+
+  it("follows the element when the layout moves it, as a caption box does when it stacks", () => {
+    const root = renderPage()
+    const paragraph = root.querySelector(".unhooked p")!
+    stubRect(paragraph, { x: 600, y: 400, width: 300, height: 40 })
+    stubPointStack([paragraph])
+    const anchor = anchorFromPoint(750, 410, { root, precise: true })!
+
+    stubRect(paragraph, { x: 20, y: 900, width: 350, height: 60 })
+    expect(resolveAnchor(anchor, { root, precise: true })?.position()).toEqual({ x: 195, y: 915 })
+  })
+
+  it("measures across a cropped picture's painted image, so the same spot survives a new crop", () => {
+    const root = renderPage()
+    const img = root.querySelector("img")! as HTMLImageElement
+    Object.defineProperty(img, "naturalWidth", { value: 1000 })
+    Object.defineProperty(img, "naturalHeight", { value: 1000 })
+    img.style.objectFit = "cover"
+    img.style.objectPosition = "50% 50%"
+
+    /** Wide window: a 1000×500 box crops the square photo top and bottom. */
+    stubRect(img, { x: 0, y: 0, width: 1000, height: 500 })
+    stubPointStack([img])
+    const anchor = anchorFromPoint(250, 250, { root, precise: true })!
+    expect(anchor).toMatchObject({ xOffsetPct: 25, yOffsetPct: 50 })
+
+    /** Narrow window: a 400×400 box shows the whole photo — the same spot is a quarter across. */
+    stubRect(img, { x: 0, y: 0, width: 400, height: 400 })
+    expect(resolveAnchor(anchor, { root, precise: true })?.position()).toEqual({ x: 100, y: 200 })
+  })
+})
+
+describe("precise anchors — selector length", () => {
+  it("names a deeply nested element from its hook, and never past what the room accepts", () => {
+    const depth = 60
+    const nested = "<div>".repeat(depth) + '<p class="deep">deep</p>' + "</div>".repeat(depth)
+    const root = renderPage(`<div id="content"><section data-section-id="s1">${nested}</section></div>`)
+    const deep = root.querySelector(".deep")!
+    stubRect(deep, { x: 0, y: 0, width: 100, height: 10 })
+    stubPointStack([deep])
+
+    const anchor = anchorFromPoint(50, 5, { root, precise: true })!
+    expect(anchor.selector.length).toBeLessThanOrEqual(512)
+    /** Sixty positional steps do not fit, so the cursor keeps the section rather than vanishing. */
+    expect(anchor.selector).toBe('#content [data-section-id="s1"]')
+  })
+})
+
+describe("paintedBox", () => {
+  const box = { left: 0, top: 0, width: 400, height: 200 }
+  const square = { width: 100, height: 100 }
+
+  it("covers: scales up to fill and centres the overflow", () => {
+    expect(paintedBox(box, square, "cover", "50% 50%")).toEqual({ left: 0, top: -100, width: 400, height: 400 })
+  })
+
+  it("contains: scales to fit and centres the letterbox", () => {
+    expect(paintedBox(box, square, "contain", "50% 50%")).toEqual({ left: 100, top: 0, width: 200, height: 200 })
+  })
+
+  it("honours object-position in percent and in pixels", () => {
+    expect(paintedBox(box, square, "contain", "0% 0%").left).toBe(0)
+    expect(paintedBox(box, square, "contain", "100% 0%").left).toBe(200)
+    expect(paintedBox(box, square, "contain", "12px 0px").left).toBe(12)
+  })
+
+  it("leaves a plain stretched image, and a picture with no size yet, as the element box", () => {
+    expect(paintedBox(box, square, "fill", "50% 50%")).toEqual(box)
+    expect(paintedBox(box, { width: 0, height: 0 }, "cover", "50% 50%")).toEqual(box)
   })
 })

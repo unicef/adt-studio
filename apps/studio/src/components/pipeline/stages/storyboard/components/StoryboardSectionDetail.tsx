@@ -75,7 +75,14 @@ import { StorySectionBanner } from "./StorySectionBanner"
 import { EditableActivityPanel } from "./EditableActivityPanel"
 import { ClassicActivityPanel } from "./ClassicActivityPanel"
 import { sameAnchor, type ActivityAnchor } from "./activity-link"
-import { scrollBehavior } from "@/lib/utils"
+import { useSearch } from "@tanstack/react-router"
+import { cn, scrollBehavior } from "@/lib/utils"
+import {
+  StoryboardFeedbackOverlay,
+  useSectionFeedbackCount,
+} from "./feedback/StoryboardFeedbackOverlay"
+import { sectionIdFor } from "./feedback/storyboard-pins"
+import { REQUEST_TTL_MS, useCommentsMode } from "./feedback/use-comments-mode"
 import { StepperActivityPreview } from "./StepperActivityPreview"
 import {
   useActivityStructure,
@@ -84,7 +91,7 @@ import {
   useSetEditableActivityPresentation,
 } from "@/hooks/use-editable-activities"
 import { toast } from "sonner"
-import { Puzzle, ListChecks } from "lucide-react"
+import { Puzzle, ListChecks, MessagesSquare } from "lucide-react"
 import { StyleEditorPanel } from "./style-editor"
 import { FitScaleIndicator } from "./FitScaleIndicator"
 import { ViewportToggle } from "./style-editor/ViewportToggle"
@@ -511,6 +518,55 @@ export function StoryboardSectionDetail({
   const [deviceView, setDeviceView] = useDeviceView(bookLabel, "desktop")
   const [previewVisibleWidth, setPreviewVisibleWidth] = useState(0)
   const [previewScale, setPreviewScale] = useState(1)
+  /** The pin overlay is drawn in this box's coordinates; the iframe's offset inside it is added
+   *  back per pin, exactly as the Feedback view does. */
+  const previewContainerRef = useRef<HTMLDivElement>(null)
+  /** Shared with the page list's Comments filter: one switch for reviewing feedback. */
+  const commentsMode = useCommentsMode(bookLabel)
+  const feedbackShown = commentsMode.on
+  const setFeedbackShown = commentsMode.setOn
+  /** One selection shared by the pins and the sidebar: two states could disagree about which
+   *  comment is open, and the author would see a highlighted row with no highlighted pin. */
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
+  const feedbackCount = useSectionFeedbackCount(bookLabel, sectionIdFor(pageId, sectionIndex))
+
+  /**
+   * A comment named in the link: open the panel on it rather than landing the author on a page
+   * and leaving them to find the thread that sent them there.
+   *
+   * Keyed on the id so closing the panel afterwards stays closed — re-running on every render
+   * would make the toggle un-clickable for as long as the link sat in the URL.
+   */
+  const { comment: linkedThreadId, section: linkedSection } = useSearch({ strict: false }) as {
+    comment?: string
+    section?: number
+  }
+  const appliedThreadRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (linkedThreadId === undefined) {
+      appliedThreadRef.current = null
+      return
+    }
+    if (appliedThreadRef.current === linkedThreadId) return
+    appliedThreadRef.current = linkedThreadId
+    commentsMode.open(linkedThreadId, sectionIdFor(pageId, linkedSection ?? sectionIndex))
+  }, [linkedThreadId, commentsMode.open])
+
+  /** A comment asked for from anywhere — a link, the page list, "Next with comments" — opens
+   *  here, every time, once its own section is the one on screen. A request nothing took in time
+   *  is dropped rather than left to reopen a comment on some later visit. */
+  const { request: commentRequest, consume: consumeCommentRequest } = commentsMode
+  const onScreenSectionId = sectionIdFor(pageId, sectionIndex)
+  useEffect(() => {
+    if (commentRequest === null) return
+    if (Date.now() - commentRequest.at > REQUEST_TTL_MS) {
+      consumeCommentRequest()
+      return
+    }
+    if (commentRequest.sectionId !== onScreenSectionId) return
+    setSelectedThreadId(commentRequest.threadId)
+    consumeCommentRequest()
+  }, [commentRequest, consumeCommentRequest, onScreenSectionId])
   const previewFrameRef = useRef<BookPreviewFrameHandle>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -823,6 +879,13 @@ export function StoryboardSectionDetail({
 
   // Current section data
   const section = sectioningData?.sections[sectionIndex]
+
+  /** Every section of this page, so the sidebar can group threads the way the author sees them.
+   *  Sectioning is the reliable source — rendering skips pruned sections. */
+  const pageSectionIds = useMemo(
+    () => (sectioningData?.sections ?? []).map((_section, index) => sectionIdFor(pageId, index)),
+    [sectioningData, pageId],
+  )
 
   // Keep the viewed section in range — e.g. after rolling back to a version
   // with fewer sections, clamp to the last one instead of showing a blank pane.
@@ -2560,6 +2623,36 @@ export function StoryboardSectionDetail({
         onChange={setDeviceView}
         currentWidth={previewVisibleWidth}
       />
+      {/* Comments mode, in the toolbar's own idiom — white-on-violet like the viewport switch
+          beside it. The same switch as the page list's Comments filter: on, the page shows its
+          pins and the list only the commented pages. Off until asked for: an author styling a
+          page should not have somebody else's dots in the way. */}
+      <button
+        type="button"
+        data-testid="storyboard-feedback-toggle"
+        aria-pressed={feedbackShown}
+        onClick={() => setFeedbackShown((shown) => !shown)}
+        title={feedbackShown ? t`Hide reviewer comments` : t`Show reviewer comments, and only the pages that have them`}
+        className={cn(
+          "inline-flex h-6 shrink-0 cursor-pointer items-center gap-1 rounded px-1.5 text-[10px] transition-colors",
+          feedbackShown
+            ? "bg-white text-neutral-900"
+            : "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white",
+        )}
+      >
+        <MessagesSquare className="h-3.5 w-3.5" />
+        <span>{t`Comments`}</span>
+        {feedbackCount > 0 ? (
+          <span
+            className={cn(
+              "ml-0.5 rounded-full px-1 text-[9px] font-bold leading-4 tabular-nums",
+              feedbackShown ? "bg-neutral-900 text-white" : "bg-white text-neutral-900",
+            )}
+          >
+            {feedbackCount > 99 ? "99+" : feedbackCount}
+          </span>
+        ) : null}
+      </button>
       {renderedSection?.html && hasStructuredTextProvider ? (
         <div className="relative flex-1 min-w-[100px]">
           <Sparkles className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
@@ -2874,7 +2967,8 @@ export function StoryboardSectionDetail({
                 />
               </>
             ) : (
-              <BookPreviewFrame
+              <div ref={previewContainerRef} className="relative w-full">
+                <BookPreviewFrame
                   ref={previewFrameRef}
                   html={renderedSection.html}
                   bookLabel={bookLabel}
@@ -2897,6 +2991,19 @@ export function StoryboardSectionDetail({
                   onScaleChange={setPreviewScale}
                   bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
                 />
+
+                <StoryboardFeedbackOverlay
+                  bookLabel={bookLabel}
+                  sectionId={sectionIdFor(pageId, sectionIndex)}
+                  pageSectionIds={pageSectionIds}
+                  frameRef={previewFrameRef}
+                  containerRef={previewContainerRef}
+                  enabled={feedbackShown}
+                  selectedThreadId={selectedThreadId}
+                  onSelectThread={setSelectedThreadId}
+                  onNavigateSection={onNavigateSection}
+                />
+              </div>
             )}
           </>
         ) : storyboardRunning && !section?.isPruned ? (

@@ -312,6 +312,27 @@ export function createFakePublishWorker(
       return json({ path, bytes: expected.bytes })
     }
 
+    /** The Static Assets path: the bytes went straight from the Studio to Cloudflare, so the
+     *  worker is told the collection landed rather than receiving each file. It only accepts
+     *  that claim when every declared file carries a Cloudflare content address. */
+    const completeAssetsMatch =
+      /^\/api\/publication-uploads\/([^/]+)\/complete-static-assets$/.exec(url.pathname)
+    if (completeAssetsMatch && method === "POST") {
+      const uploadId = decodeURIComponent(completeAssetsMatch[1] as string)
+      const upload = state.uploads.get(uploadId)
+      if (!upload) return notFound()
+      if (upload.state !== "open") {
+        return fail("invalid_request", 409, "Upload is no longer open")
+      }
+      if (upload.declared.some((entry) => entry.asset_hash === undefined)) {
+        return fail("invalid_request", 400, "Upload has no Static Asset hashes")
+      }
+      for (const entry of upload.declared) {
+        upload.received.set(entry.path, { path: entry.path, bytes: entry.bytes, text: "" })
+      }
+      return json({ upload_id: uploadId, state: "complete" })
+    }
+
     const commitMatch = /^\/api\/publication-uploads\/([^/]+)\/commit$/.exec(url.pathname)
     if (commitMatch && method === "POST") {
       const upload = state.uploads.get(decodeURIComponent(commitMatch[1] as string))

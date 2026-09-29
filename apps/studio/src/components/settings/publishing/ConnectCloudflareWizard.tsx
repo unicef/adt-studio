@@ -79,7 +79,7 @@ export function ConnectCloudflareWizard({
     <div
       key={step}
       className={cn(
-        "flex h-[max(430px,calc(100dvh-13.5rem))] flex-col overflow-y-auto rounded-xl border bg-card p-5 has-[[data-provision-state=error]]:overflow-visible mh:h-auto motion-reduce:animate-none",
+        "flex min-h-0 flex-1 flex-col rounded-xl border bg-card p-5 motion-reduce:animate-none",
         direction === "forward" ? "animate-step-enter-forward" : "animate-step-enter-back",
       )}
     >

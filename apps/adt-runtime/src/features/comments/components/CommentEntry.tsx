@@ -1,6 +1,8 @@
 import { readableTextColor } from "@adt/types/color"
 import { MoreHorizontal, Move, Pencil, Trash2 } from "lucide-react"
+import { useAtomValue } from "jotai"
 import { useRef, useState } from "react"
+import { currentLanguageAtom } from "@/features/language/state/language.atoms"
 import { Button } from "@/shared/ui/button"
 import { Textarea } from "@/shared/ui/textarea"
 import {
@@ -51,6 +53,7 @@ export function CommentEntry({
   replyCount = 0,
 }: CommentEntryProps) {
   const { t } = useCommentsText()
+  const language = useAtomValue(currentLanguageAtom) as string
   const [mode, setMode] = useState<Mode>("read")
   const [draft, setDraft] = useState(comment.body)
   const [busy, setBusy] = useState(false)
@@ -119,7 +122,7 @@ export function CommentEntry({
               </span>
             ) : null}
             <span className="text-[0.65rem] text-muted-foreground">
-              {relativeTime(comment.created_at, t)}
+              {relativeTime(comment.created_at, t, Date.now(), language)}
             </span>
             {comment.edited_at ? (
               <span className="text-[0.65rem] italic text-muted-foreground">

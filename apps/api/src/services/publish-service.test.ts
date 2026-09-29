@@ -13,6 +13,7 @@ import {
   republishBook,
 } from "./publish-service.js"
 import { createPublishWorkerClient } from "./publish-worker-client.js"
+import { createFakeBookHost, uploadedAssetText } from "./cloudflare/fake-book-host.js"
 
 const LABEL = "raven"
 const TOKEN = "TokenRavenTokenRavenTokenRaven12"
@@ -76,7 +77,6 @@ function connection(worker: FakePublishWorker): CloudflareConnectionRecord {
     workers_dev_subdomain: "example",
     d1_database_name: "adt-publish",
     d1_database_uuid: "uuid",
-    r2_bucket_name: "adt-publish",
     mgmt_secret: "fake-mgmt-secret",
     provisioned_at: NOW,
     updated_at: NOW,
@@ -85,12 +85,14 @@ function connection(worker: FakePublishWorker): CloudflareConnectionRecord {
 
 function harness() {
   const worker = createFakePublishWorker({ now: NOW })
+  const bookHost = createFakeBookHost()
   const events: PublishProgressEvent[] = []
   const options = {
     label: LABEL,
     booksDir: tmpDir,
     webAssetsDir: path.join(tmpDir, "assets-web"),
     connection: connection(worker),
+    bookHost: bookHost.deps,
     emit: async (event: PublishProgressEvent) => {
       events.push(event)
     },
@@ -104,7 +106,7 @@ function harness() {
         fetchFn: worker.fetchFn,
       }),
   }
-  return { worker, events, options }
+  return { worker, events, options, cloudflare: bookHost.fake }
 }
 
 function uploadedFiles(worker: FakePublishWorker, version: number) {
@@ -113,27 +115,33 @@ function uploadedFiles(worker: FakePublishWorker, version: number) {
 
 describe("publishing a book", () => {
   it("uploads the snapshot, registers it, and records the link", async () => {
-    const { worker, events, options } = harness()
+    const { worker, events, options, cloudflare } = harness()
 
     const result = await publishBook(options)
 
     expect(result.publication.token).toBe(TOKEN)
     expect(result.version.version).toBe(1)
-    expect(result.url).toBe(worker.shareUrl(TOKEN))
+    /** The reader is served by this book's own Worker, not the control plane. */
+    expect(result.url).toMatch(
+      new RegExp(`^https://adt-book-[0-9a-f]{32}\\.teacher\\.workers\\.dev/p/${TOKEN}/$`),
+    )
 
     const paths = uploadedFiles(worker, 1).map((file) => file.path)
     expect(paths).toContain("index.html")
     expect(paths).toContain("assets/config.json")
     expect(paths).toContain("content/pages.json")
-    const config = uploadedFiles(worker, 1).find((file) => file.path === "assets/config.json")
-    expect(JSON.parse(config!.text)).toEqual({
+    /** The bytes went straight to Cloudflare, so the content is asserted where it landed. */
+    const uploadId = worker.state.uploads.keys().next().value as string
+    const config = uploadedAssetText(cloudflare, `/uploads/${uploadId}/assets/config.json`)
+    expect(JSON.parse(config!)).toEqual({
       ...CONFIG,
       features: { ...CONFIG.features, comments: true },
     })
 
     const record = readPublicationRecord(LABEL, tmpDir)
     expect(record?.token).toBe(TOKEN)
-    expect(record?.base_url).toBe(worker.shareUrl(TOKEN))
+    /** The record remembers this book's own host, which is what the author shares. */
+    expect(record?.base_url).toBe(result.url)
     expect(record?.versions).toHaveLength(1)
     expect(record?.versions[0]?.page_count).toBe(1)
 
@@ -191,7 +199,7 @@ describe("publishing a book", () => {
 
 describe("updating a published book", () => {
   it("adds a version and keeps the original share link", async () => {
-    const { worker, options } = harness()
+    const { worker, options, cloudflare } = harness()
     const first = await publishBook(options)
 
     fs.writeFileSync(
@@ -205,8 +213,12 @@ describe("updating a published book", () => {
     expect(second.url).toBe(first.url)
     expect(second.record.versions.map((version) => version.version)).toEqual([1, 2])
 
-    const served = uploadedFiles(worker, 2).find((file) => file.path === "index.html")
-    expect(served?.text).toContain("revised")
+    const uploadIds = [...worker.state.uploads.keys()]
+    const served = uploadedAssetText(
+      cloudflare,
+      `/uploads/${uploadIds[uploadIds.length - 1]}/index.html`,
+    )
+    expect(served).toContain("revised")
   })
 
   it("repeats the feature selection the first publish was made with", async () => {
@@ -232,6 +244,55 @@ describe("updating a published book", () => {
     })
 
     expect(seen).toEqual([{ readAloud: false }])
+  })
+})
+
+describe("the book host version", () => {
+  /** Recorded so the Studio can tell which links still run an older reader. */
+  it("records the host a share deployed, and the host an update deployed", async () => {
+    const { options } = harness()
+    const first = await publishBook(options)
+    expect(first.record.host_version).toBe(options.bookHost.artifact.metadata.version)
+
+    const newer = {
+      ...options.bookHost,
+      artifact: { ...options.bookHost.artifact, metadata: { ...options.bookHost.artifact.metadata, version: "9.9.9" } },
+    }
+    const second = await republishBook({ ...options, bookHost: newer, record: first.record })
+    expect(second.record.host_version).toBe("9.9.9")
+    expect(readPublicationRecord(LABEL, tmpDir)?.host_version).toBe("9.9.9")
+  })
+
+  /** A host newer than the control plane it reads and joins could half-work against it. */
+  it("refuses to deploy a host the control plane is too old for, before building anything", async () => {
+    const { options, events, cloudflare } = harness()
+    const needsNewer = {
+      ...options.bookHost,
+      artifact: {
+        ...options.bookHost.artifact,
+        metadata: { ...options.bookHost.artifact.metadata, min_control_plane_version: "99.0.0" },
+      },
+    }
+
+    await expect(publishBook({ ...options, bookHost: needsNewer })).rejects.toSatisfy(
+      (error: unknown) => isPublishStepError(error) && error.code === "worker_outdated",
+    )
+    expect(events).toHaveLength(0)
+    expect(cloudflare.state.staticAssetManifests).toHaveLength(0)
+  })
+
+  it("lets a control plane with no recorded version through rather than guess", async () => {
+    const { options } = harness()
+    const unknown = { ...options.connection, worker_version: null }
+    const needsNewer = {
+      ...options.bookHost,
+      artifact: {
+        ...options.bookHost.artifact,
+        metadata: { ...options.bookHost.artifact.metadata, min_control_plane_version: "99.0.0" },
+      },
+    }
+
+    await expect(publishBook({ ...options, connection: unknown, bookHost: needsNewer })).resolves.toBeTruthy()
   })
 })
 

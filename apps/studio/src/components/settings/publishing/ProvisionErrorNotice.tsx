@@ -21,7 +21,7 @@ function title(failure: ProvisionFailure): ReactNode {
     case "migration_failed":
       return <Trans>The database couldn't be prepared</Trans>
     case "upload_failed":
-      return <Trans>The publishing service couldn't be installed</Trans>
+      return <Trans>The sharing service couldn't be installed</Trans>
     case "stale_deployment":
       return <Trans>Your service isn't answering yet</Trans>
     case "partial_provision":
@@ -36,7 +36,7 @@ function body(failure: ProvisionFailure): ReactNode {
     case "bad_token_scope":
       return (
         <Trans>
-          The Cloudflare sign-in did not grant everything publishing needs. Disconnect, connect
+          The Cloudflare sign-in did not grant everything sharing needs. Disconnect, connect
           again, and allow every permission ADT Studio asks for. Nothing was created in your
           account.
         </Trans>

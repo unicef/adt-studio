@@ -40,6 +40,7 @@ vi.mock("@lingui/core/macro", () => {
 })
 
 vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
   Link: ({
     children,
     to,
@@ -56,6 +57,8 @@ vi.mock("@/components/ui/sonner", () => ({
 }))
 
 const getCloudflareConnection = vi.fn()
+const getPublications = vi.fn()
+const getBookCoverUrl = vi.fn((label: string) => `/api/books/${label}/cover`)
 const provisionCloudflare = vi.fn()
 const disconnectCloudflare = vi.fn()
 const startCloudflareOAuth = vi.fn()
@@ -76,12 +79,14 @@ class MockApiError extends Error {
 vi.mock("@/api/client", () => ({
   api: {
     getCloudflareConnection,
+    getPublications,
     provisionCloudflare,
     disconnectCloudflare,
     startCloudflareOAuth,
     getCloudflareOAuthStatus,
     pickCloudflareOAuthAccount,
   },
+  getBookCoverUrl,
   ApiError: MockApiError,
   apiErrorCode: (error: unknown) =>
     error instanceof MockApiError ? error.code : null,
@@ -148,6 +153,17 @@ function renderSettings() {
 beforeEach(() => {
   localStorage.clear()
   getCloudflareConnection.mockResolvedValue(disconnectedStatus())
+  getPublications.mockResolvedValue({
+    worker_reachable: true,
+    publications: [],
+    totals: {
+      published_count: 0,
+      active_count: 0,
+      total_snapshot_bytes: 0,
+      snapshot_bytes_complete: true,
+      total_unresolved: 0,
+    },
+  })
   vi.stubGlobal("open", vi.fn())
 })
 
@@ -168,7 +184,7 @@ describe("PublishingSettings — connect wizard", () => {
     renderSettings()
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /^set up publishing$/i })).toBeTruthy(),
+      expect(screen.getByRole("button", { name: /^set up sharing$/i })).toBeTruthy(),
     )
     expect(screen.queryByRole("button", { name: /connect with cloudflare/i })).toBeNull()
     expect(startCloudflareOAuth).not.toHaveBeenCalled()
@@ -204,12 +220,12 @@ describe("PublishingSettings — connect wizard", () => {
 
     await waitFor(() =>
       expect(screen.getByRole("heading", { level: 2 }).textContent).toContain(
-        "Set up publishing",
+        "Set up sharing",
       ),
     )
     expect(localStorage.getItem(AUTH_METHOD_KEY)).toBe("oauth")
 
-    fireEvent.click(screen.getByRole("button", { name: /set up publishing/i }))
+    fireEvent.click(screen.getByRole("button", { name: /set up sharing/i }))
 
     expect(provisionCloudflare).toHaveBeenCalledTimes(1)
 
@@ -239,7 +255,7 @@ describe("PublishingSettings — connect wizard", () => {
       finishStream?.()
     })
 
-    await waitFor(() => expect(document.body.textContent).toContain("Publishing is ready"))
+    await waitFor(() => expect(document.body.textContent).toContain("Sharing is ready"))
   })
 
   it("maps a failed step to human guidance and resumes from it on retry", async () => {
@@ -264,9 +280,9 @@ describe("PublishingSettings — connect wizard", () => {
     expect(screen.getByRole("button", { name: /connect with cloudflare/i })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /set up publishing/i })).toBeTruthy(),
+      expect(screen.getByRole("button", { name: /set up sharing/i })).toBeTruthy(),
     )
-    fireEvent.click(screen.getByRole("button", { name: /set up publishing/i }))
+    fireEvent.click(screen.getByRole("button", { name: /set up sharing/i }))
 
     act(() => {
       emit?.({
@@ -286,7 +302,13 @@ describe("PublishingSettings — connect wizard", () => {
     })
 
     expect(screen.getByTestId("provision-error-no_workers_subdomain")).toBeTruthy()
-    expect(screen.queryByTestId("provision-step-7")).toBeNull()
+
+    /** The pipeline keeps the whole sequence on screen when it stops, which is the point of it:
+     *  the failed step holds its place, and the steps after it are visibly untouched. The calm
+     *  loader this replaced swapped the checklist out for the error, so "where did it stop" was
+     *  answered only by the prose. */
+    expect(screen.getByTestId("provision-step-6").getAttribute("data-state")).toBe("error")
+    expect(screen.getByTestId("provision-step-7").getAttribute("data-state")).toBe("pending")
 
     fireEvent.click(screen.getByRole("button", { name: /try again/i }))
 
@@ -318,13 +340,13 @@ describe("PublishingSettings — connect wizard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /set up publishing/i })).toBeTruthy(),
+      expect(screen.getByRole("button", { name: /set up sharing/i })).toBeTruthy(),
     )
 
     const signOut = () => screen.getByRole("button", { name: /sign out/i }) as HTMLButtonElement
     expect(signOut().disabled).toBe(false)
 
-    fireEvent.click(screen.getByRole("button", { name: /set up publishing/i }))
+    fireEvent.click(screen.getByRole("button", { name: /set up sharing/i }))
     /** While the run is in flight it stays blocked — half-provisioned is the one state where
      *  walking away really does leave a mess. */
     expect(signOut().disabled).toBe(true)
@@ -374,9 +396,9 @@ describe("PublishingSettings — connect wizard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /set up publishing/i })).toBeTruthy(),
+      expect(screen.getByRole("button", { name: /set up sharing/i })).toBeTruthy(),
     )
-    fireEvent.click(screen.getByRole("button", { name: /set up publishing/i }))
+    fireEvent.click(screen.getByRole("button", { name: /set up sharing/i }))
 
     act(() => {
       emit?.({
@@ -448,13 +470,13 @@ describe("PublishingSettings — connect with Cloudflare (OAuth)", () => {
 
     await waitFor(() =>
       expect(screen.getByRole("heading", { level: 2 }).textContent).toContain(
-        "Set up publishing",
+        "Set up sharing",
       ),
     )
     expect(localStorage.getItem(AUTH_METHOD_KEY)).toBe("oauth")
     expect(localStorage.getItem(TOKEN_KEY)).toBeNull()
 
-    fireEvent.click(screen.getByRole("button", { name: /^set up publishing$/i }))
+    fireEvent.click(screen.getByRole("button", { name: /^set up sharing$/i }))
     expect(provisionCloudflare).toHaveBeenCalledTimes(1)
     expect(provisionCloudflare.mock.calls[0][0]).toEqual({})
   })
@@ -519,7 +541,7 @@ describe("PublishingSettings — connect with Cloudflare (OAuth)", () => {
 
     await waitFor(() =>
       expect(screen.getByRole("heading", { level: 2 }).textContent).toContain(
-        "Set up publishing",
+        "Set up sharing",
       ),
     )
     expect(pickCloudflareOAuthAccount).toHaveBeenCalledWith("state-2", "acct-2")
@@ -592,10 +614,56 @@ describe("PublishingSettings — already connected", () => {
 
     renderSettings()
 
-    await waitFor(() => expect(document.body.textContent).toContain("Publishing is ready"))
-    expect(document.body.textContent).toContain("open it and go to its Export step")
+    await waitFor(() => expect(document.body.textContent).toContain("Sharing is ready"))
+    await waitFor(() => expect(document.body.textContent).toContain("No shared books yet"))
+    expect(document.body.textContent).toContain("Hosted books")
     expect(screen.getByRole("button", { name: /disconnect/i })).toBeTruthy()
     expect(screen.queryByRole("button", { name: /connect with cloudflare/i })).toBeNull()
+  })
+
+
+  it("shows account usage and hosted books", async () => {
+    getCloudflareConnection.mockResolvedValue(connectionStatus())
+    getPublications.mockResolvedValue({
+      worker_reachable: true,
+      publications: [
+        {
+        token: "TokenRavenTokenRavenTokenRaven12",
+        title: "A book for readers",
+        book_label: "reader-book",
+        book_exists: true,
+        url: "https://adt-book-example.workers.dev/p/TokenRavenTokenRavenTokenRaven12",
+        current_version: 2,
+        version_count: 2,
+        created_at: "2026-08-03T10:00:00.000Z",
+        last_published_at: "2026-08-04T10:00:00.000Z",
+        expires_at: null,
+        revoked_at: null,
+        has_access_code: false,
+        access_code: null,
+        comment_count: 3,
+        unresolved_count: 1,
+        snapshot_bytes: 2048,
+          source: "worker",
+        },
+      ],
+      totals: {
+        published_count: 1,
+        active_count: 1,
+        total_snapshot_bytes: 2048,
+        snapshot_bytes_complete: true,
+        total_unresolved: 1,
+      },
+    })
+
+    renderSettings()
+
+    await waitFor(() => expect(screen.getByText("A book for readers")).toBeTruthy())
+    expect(screen.getByText("Shared books")).toBeTruthy()
+    expect(screen.getByText("Room for 98 more")).toBeTruthy()
+    expect(
+      screen.getByRole("button", { name: /copy the link to a book for readers/i }),
+    ).toBeTruthy()
   })
 
   it("offers the upgrade when a newer service version is available", async () => {

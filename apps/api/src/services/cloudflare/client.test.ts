@@ -4,6 +4,7 @@ import {
   CLOUDFLARE_API_BASE_URL,
   CloudflareApiError,
   createCloudflareClient,
+  describeCloudflareFailure,
   fetchWorkerHealth,
   retryCloudflareOperation,
   type FetchLike,
@@ -79,6 +80,25 @@ describe("cloudflare client", () => {
     expect(result).toBe("done")
     expect(calls).toBe(3)
     expect(waits).toEqual([25, 25])
+  })
+
+  it("retries a transient transport failure and keeps its network code", async () => {
+    let calls = 0
+    const transport = new TypeError("fetch failed", {
+      cause: Object.assign(new Error("socket closed"), { code: "ECONNRESET" }),
+    })
+
+    await expect(retryCloudflareOperation(
+      async () => {
+        calls += 1
+        if (calls === 1) throw transport
+        return "done"
+      },
+      { sleep: async () => undefined },
+    )).resolves.toBe("done")
+
+    expect(calls).toBe(2)
+    expect(describeCloudflareFailure(transport)).toBe("ECONNRESET — socket closed")
   })
 
   it("retries a rate-limited R2 object delete before removing its bucket", async () => {
