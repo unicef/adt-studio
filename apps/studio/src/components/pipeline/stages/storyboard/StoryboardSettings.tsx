@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { DEFAULT_IMAGE_GENERATION_MODEL_ID } from "@adt/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { Eye, Wand2, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -143,6 +144,8 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
+  const imagePromptModel = typeof activeConfigData?.merged.default_image_generation_model === "string"
+    ? activeConfigData.merged.default_image_generation_model : DEFAULT_IMAGE_GENERATION_MODEL_ID
   const updateConfig = useUpdateBookConfig()
   const queryClient = useQueryClient()
   const { apiKey } = useApiKey()
@@ -392,33 +395,28 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
     // Save any edited prompts/templates first
     const contentSaves: Promise<unknown>[] = []
     if (renderingPromptDraft != null) {
-      contentSaves.push(savePromptDraft(queryClient, renderingPromptName, bookLabel, renderingPromptDraft))
+      contentSaves.push(savePromptDraft(queryClient, renderingPromptName, bookLabel, renderingPromptDraft, setRenderingPromptDraft))
     }
     if (renderingTemplateDraft != null) contentSaves.push(api.updateTemplate(renderingTemplateName, renderingTemplateDraft, bookLabel))
     if (templateTabDraft != null && templateTabName) contentSaves.push(api.updateTemplate(templateTabName, templateTabDraft, bookLabel))
     if (activityPromptDraft != null && selectedActivity?.prompt) {
-      contentSaves.push(savePromptDraft(queryClient, selectedActivity.prompt, bookLabel, activityPromptDraft))
+      contentSaves.push(savePromptDraft(queryClient, selectedActivity.prompt, bookLabel, activityPromptDraft, setActivityPromptDraft))
     }
     if (activityAnswerDraft != null && selectedActivity?.answer_prompt) {
-      contentSaves.push(savePromptDraft(queryClient, selectedActivity.answer_prompt, bookLabel, activityAnswerDraft))
+      contentSaves.push(savePromptDraft(queryClient, selectedActivity.answer_prompt, bookLabel, activityAnswerDraft, setActivityAnswerDraft))
     }
     if (imageGenPromptDraft != null) {
-      contentSaves.push(savePromptDraft(queryClient, "ai_image_generation", bookLabel, imageGenPromptDraft))
+      contentSaves.push(savePromptDraft(queryClient, "ai_image_generation", bookLabel, imageGenPromptDraft, setImageGenPromptDraft))
     }
     if (imageEditPromptDraft != null) {
-      contentSaves.push(savePromptDraft(queryClient, "ai_image_edit", bookLabel, imageEditPromptDraft))
+      contentSaves.push(savePromptDraft(queryClient, "ai_image_edit", bookLabel, imageEditPromptDraft, setImageEditPromptDraft))
     }
     if (contentSaves.length > 0) await Promise.all(contentSaves)
 
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
-    setRenderingPromptDraft(null)
     setRenderingTemplateDraft(null)
     setTemplateTabDraft(null)
-    setActivityPromptDraft(null)
-    setActivityAnswerDraft(null)
-    setImageGenPromptDraft(null)
-    setImageEditPromptDraft(null)
     resetMarkedTabs()
   }
 
@@ -642,7 +640,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
               onModelChange={(v) => { setRenderingModel(v); markDirty("rendering_model") }}
               maxRetries={renderingRetries}
               onMaxRetriesChange={(v) => { setRenderingRetries(v); markDirty("rendering_retries") }}
-              onContentChange={(content, modelId) => setRenderingPromptDraft(toPromptDraft(content, modelId))}
+              onContentChange={(content, modelId, revision) => setRenderingPromptDraft(toPromptDraft(content, modelId, revision))}
             />
           </div>
         </div>
@@ -748,7 +746,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                   onModelChange={(v) => { setActivityModel(v); markDirty("activity_model") }}
                   maxRetries={activityRetries}
                   onMaxRetriesChange={(v) => { setActivityRetries(v); markDirty("activity_retries") }}
-                  onContentChange={(content, modelId) => setActivityPromptDraft(toPromptDraft(content, modelId))}
+                  onContentChange={(content, modelId, revision) => setActivityPromptDraft(toPromptDraft(content, modelId, revision))}
                 />
               </div>
               {selectedActivity.answer_prompt && (
@@ -764,7 +762,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                     onModelChange={(v) => { setActivityModel(v); markDirty("activity_model") }}
                     maxRetries={activityRetries}
                     onMaxRetriesChange={(v) => { setActivityRetries(v); markDirty("activity_retries") }}
-                    onContentChange={(content, modelId) => setActivityAnswerDraft(toPromptDraft(content, modelId))}
+                    onContentChange={(content, modelId, revision) => setActivityAnswerDraft(toPromptDraft(content, modelId, revision))}
                   />
                 </div>
               )}
@@ -810,7 +808,8 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                 description={t`Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals.`}
                 draft={imageGenPromptDraft}
                 hideModel
-                onContentChange={(content, modelId) => setImageGenPromptDraft(toPromptDraft(content, modelId))}
+                model={imagePromptModel}
+                onContentChange={(content, modelId, revision) => setImageGenPromptDraft(toPromptDraft(content, modelId, revision))}
               />
             ) : (
               <PromptViewer
@@ -821,7 +820,8 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                 description={t`Wraps 'Edit this image' requests. The AI receives the original image alongside this prompt. Supports user_prompt and style variables.`}
                 draft={imageEditPromptDraft}
                 hideModel
-                onContentChange={(content, modelId) => setImageEditPromptDraft(toPromptDraft(content, modelId))}
+                model={imagePromptModel}
+                onContentChange={(content, modelId, revision) => setImageEditPromptDraft(toPromptDraft(content, modelId, revision))}
               />
             )}
           </div>
@@ -901,6 +901,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
               title={t`Visual Review Prompt (read-only)`}
               description={t`This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used.`}
               hideModel
+              model={renderingModel}
               readOnly
             />
           </div>

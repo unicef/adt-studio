@@ -37,7 +37,7 @@ ADT Studio runs as two components:
 
 | Component | Runtime | Default port | Requires |
 |-----------|---------|-------------|---------|
-| **API server** | Node.js process (`apps/api/`) | `3001` | Read/write access to `BOOKS_DIR`, `PROMPTS_DIR`, `TEMPLATES_DIR`, `CONFIG_PATH` |
+| **API server** | Node.js process (`apps/api/`) | `3001` | Read/write access to `BOOKS_DIR` and `PROMPT_OVERRIDES_DIR`; read access to `PROMPTS_DIR`, `TEMPLATES_DIR`, and `CONFIG_PATH` |
 | **Frontend (SPA)** | Static files (`apps/studio/dist/`) | any | Served by any web server; routes `/api/*` to the API server |
 
 The only stateful resource is `BOOKS_DIR` — all book data lives there and it must survive restarts. Everything else (prompts, templates, config) is read-only and can be deployed as part of the application.
@@ -123,7 +123,8 @@ These variables configure the API server process. Set them in your process manag
 |----------|---------|---------|
 | `PORT` | `3001` | Port the API server listens on. |
 | `BOOKS_DIR` | `./books` | Root directory for all book data. Must be writable and persistent. |
-| `PROMPTS_DIR` | `./prompts` | Directory containing Liquid prompt templates (`*.liquid`). |
+| `PROMPTS_DIR` | `./prompts` | Read-only bundled Liquid prompt templates (`*.liquid`). |
+| `PROMPT_OVERRIDES_DIR` | `<BOOKS_DIR>/.adt-studio/prompt-overrides` | Writable, persistent global prompt versions created in Studio. |
 | `TEMPLATES_DIR` | `./templates` | Directory containing HTML rendering templates. |
 | `CONFIG_PATH` | `./config.yaml` | Path to the global pipeline configuration file. |
 | `PROJECT_ROOT` | `.` | Base path for resolving relative paths inside the API. |
@@ -135,7 +136,9 @@ When `OPENAI_API_KEY` is set server-side, users do not need to enter an API key 
 
 ## 3. Data Persistence
 
-All book data lives in `BOOKS_DIR`. This is the only directory that needs to be persisted across restarts.
+All book data and, by default, writable global prompt overrides live in
+`BOOKS_DIR`. This is the only directory that needs to be persisted across
+restarts unless `PROMPT_OVERRIDES_DIR` is explicitly moved elsewhere.
 
 ```
 books/

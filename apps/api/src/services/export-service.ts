@@ -5,7 +5,8 @@ import { parseBookLabel } from "@adt/types"
 import type { PackagingWarning } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
-import { createZipStream } from "./zip-util.js"
+import { collectFilePaths, createZipStream } from "./zip-util.js"
+import { promptPath, withPromptGates } from "@adt/llm"
 import { readPartInfo } from "./book-service.js"
 
 export interface ExportResult {
@@ -191,6 +192,16 @@ export async function exportProject(
     throwBookNotFound(safeLabel)
   }
 
+  // Capture prompt selection metadata and its retained bytes under the same
+  // writer gate used by Save. ZIP streaming yields between batches; reading
+  // these files later could otherwise pair a new pointer with an older list.
+  const promptRoot = promptPath(resolvedDir, safeLabel, "prompts")
+  const promptEntries = await withPromptGates([promptRoot], () =>
+    collectFilePaths(promptRoot)
+      .filter((file) => !file.startsWith(".prompt-write.lock/"))
+      .map((file) => ({ path: `prompts/${file}`, data: new Uint8Array(fs.readFileSync(promptPath(promptRoot, file))) })),
+  )
+  const zipOptions = { excludeDirs: new Set(["adt", "webpub", "prompts"]), extraEntries: promptEntries }
   const title = readBookTitle(safeLabel, resolvedDir)
 
   // When this book is an imported page-range part, name the returned archive
@@ -204,14 +215,14 @@ export async function exportProject(
     const { startPage, endPage } = part.range
     const pad3 = (n: number) => String(n).padStart(3, "0")
     return {
-      stream: createZipStream(bookDir, { excludeDirs: new Set(["adt", "webpub"]) }),
+      stream: createZipStream(bookDir, zipOptions),
       filename: `${title}-part-${startPage}-${endPage}-processed.zip`,
       safeFilename: `${part.sourceLabel}-p${pad3(startPage)}-${pad3(endPage)}-processed.zip`,
     }
   }
 
   return {
-    stream: createZipStream(bookDir, { excludeDirs: new Set(["adt", "webpub"]) }),
+    stream: createZipStream(bookDir, zipOptions),
     filename: `${title}-project.zip`,
     safeFilename: `${safeLabel}-project.zip`,
   }

@@ -29,6 +29,7 @@ This document records all significant technology and architecture decisions made
 21. [Context-Aware Top Bar Button](#021-context-aware-top-bar-button)
 22. [Unified Stage/Step Status via useBookRun](#022-unified-stagestep-status-via-usebookrun)
 23. [Visual Refinement + File-Based Debug Screenshots](#023-visual-refinement--file-based-debug-screenshots)
+27. [Prompt overrides use writable roots and versioned selections (proposed)](#027-prompt-overrides-use-writable-roots-and-versioned-selections)
 
 ---
 
@@ -864,6 +865,36 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 
 ---
 
+## 027: Prompt overrides use writable roots and versioned selections
+
+**Status**: proposed
+**Date**: 2026-09-22
+**Spec**: [SPEC-0011](specs/SPEC-0011-prompt-persistence.md)
+**Issues**: #629
+
+### Context
+
+Prompt versions currently share locations with bundled resources, and callers can disagree about the effective model variant. Save, reset and restore need consistent concurrency and history semantics across supported packaging modes.
+
+### Decision
+
+Keep bundled prompts read-only. Save immutable prompt versions in book-local or writable global override roots, and publish conflict-checked versioned selections for Save, Reset and Restore. Preserve model-specific-first resolution over book, global and bundled candidates and use the same resolver in editor/API/agent/CLI paths.
+
+### Consequences
+
+Clients must supply selection revisions and preserve drafts on conflict. Reset retains history; failed pointer publication cannot activate orphan versions. Migration and deployment roots must be explicit, while template lookup remains tied to bundled resources. No prompt database or new permission system is introduced.
+
+This ADR is under review with its spec; no implementation acceptance criterion is satisfied by publishing it. The spec owns the acceptance/test mapping and approval questions. Existing invariant-registry checks remain as documented; new enforcement belongs to the implementing change.
+
+### Alternatives Considered
+
+| Approach | Why Not |
+|---|---|
+| Only add UI labels to existing bundled-directory writes | Does not solve read-only installations, conflicts or destructive reset. |
+| Move prompt persistence to a new database service | Adds a migration and another source of truth without a need. |
+
+---
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -891,6 +922,7 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 | 021 | Top bar button | Context-aware per stage | Per-stage inline buttons in sidebar |
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
+| 027 | Prompt overrides use writable roots and versioned selections (proposed) | See SPEC-0011 | Only add UI labels to existing bundled-directory writes |
 
 ---
 

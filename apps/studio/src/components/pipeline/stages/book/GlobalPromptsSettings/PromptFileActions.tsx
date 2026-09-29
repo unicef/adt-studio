@@ -1,3 +1,4 @@
+import { useEffectiveBasePromptModel } from "@/hooks/use-effective-base-prompt-model"
 import { useEffect, useMemo, useState } from "react"
 import { Copy, MoreHorizontal, Trash2 } from "lucide-react"
 import { ModelSelect, type ModelGroup } from "@/components/pipeline/components/ModelSelect"
@@ -48,16 +49,17 @@ export function PromptFileActions({
   onCreateFromTemplate,
   onDelete,
 }: PromptFileActionsProps) {
+  const basePromptModel = useEffectiveBasePromptModel()
   const { t } = useLingui()
   const templateModelGroups = useMemo(
-    () => removeDefaultPromptModelGroups(modelGroups),
-    [modelGroups],
+    () => removeDefaultPromptModelGroups(modelGroups, basePromptModel),
+    [modelGroups, basePromptModel],
   )
   const firstTemplateModel = useMemo(
     () => modelIdsFromGroups(templateModelGroups)[0] ?? "",
     [templateModelGroups],
   )
-  const initialTargetModel = isDefaultPromptModelId(defaultTargetModel)
+  const initialTargetModel = isDefaultPromptModelId(defaultTargetModel, basePromptModel)
     ? firstTemplateModel
     : defaultTargetModel
   const [popoverOpen, setPopoverOpen] = useState(false)
@@ -71,7 +73,7 @@ export function PromptFileActions({
   }, [initialTargetModel, templateOpen])
 
   const normalizedTargetModel = normalizePromptModelInput(targetModel)
-  const isDefaultTargetModel = isDefaultPromptModelId(normalizedTargetModel)
+  const isDefaultTargetModel = isDefaultPromptModelId(normalizedTargetModel, basePromptModel)
   const canCreateFromTemplate = normalizedTargetModel.length > 0
     && !isDefaultTargetModel
     && !isCreatingTemplate

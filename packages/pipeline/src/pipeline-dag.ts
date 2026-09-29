@@ -5,6 +5,8 @@ import type { Storage, PageData } from "@adt/storage"
 import {
   createLLMModel,
   createPromptEngine,
+  promptRoots,
+  migratePromptOverrides,
   createRateLimiter,
   createTTSSynthesizer,
   createAzureTTSSynthesizer,
@@ -135,6 +137,7 @@ export interface FullPipelineOptions {
   concurrency?: number
   configPath?: string
   promptsDir: string
+  promptOverridesDir?: string
   templatesDir: string
   cacheDir?: string
   logLevel?: LogLevel
@@ -186,7 +189,9 @@ export async function runFullPipeline(
   try {
     const config = loadBookConfig(label, booksRoot, configPath)
     const cacheDir = options.cacheDir ?? path.join(path.resolve(booksRoot), label, ".cache")
-    const promptEngine = createPromptEngine(promptsDir, { basePromptModelId: config.base_prompt_model })
+    const roots = promptRoots(booksRoot, promptsDir, options.promptOverridesDir, path.join(bookDir, "prompts"))
+    await migratePromptOverrides(promptsDir, roots[1], roots[0])
+    const promptEngine = createPromptEngine(roots, { basePromptModelId: config.base_prompt_model })
     const templateEngine = createTemplateEngine(templatesDir)
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)

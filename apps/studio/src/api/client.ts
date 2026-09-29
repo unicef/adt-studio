@@ -24,6 +24,9 @@ import type {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
   AiModality,
+  PromptResponse,
+  PromptVersionSummary,
+  PromptVersionsResponse,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 import {
@@ -33,7 +36,13 @@ import {
   type ProviderCredentialValues,
 } from "./provider-credentials"
 
-export type { BookSummary, BookDetail }
+export type {
+  BookSummary,
+  BookDetail,
+  PromptResponse,
+  PromptVersionSummary,
+  PromptVersionsResponse,
+}
 
 const CLI_ACTION_HEADERS = { "X-ADT-CLI-Action": "1" } as const
 
@@ -97,6 +106,17 @@ export function getBookCoverUrl(label: string, cacheKey?: string): string {
   return `${base}?${params.toString()}`
 }
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly body: unknown,
+  ) {
+    super(message)
+    this.name = "ApiError"
+  }
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${BASE_URL}${path}`
   const res = await fetch(url, {
@@ -112,12 +132,15 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!res.ok) {
     const text = await res.text().catch(() => "")
     let message: string | undefined
+    let body: unknown = text
     try {
-      message = (JSON.parse(text) as { error?: string }).error
+      body = JSON.parse(text) as unknown
+      message = (body as { error?: string }).error
     } catch {
       message = text || undefined
     }
-    throw new Error(message ?? `Request failed: ${res.status}`)
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- Last-resort transport error; API-provided user-facing messages are preferred.
+    throw new ApiError(message ?? `Request failed: ${res.status}`, res.status, body)
   }
 
   return res.json()
@@ -850,15 +873,6 @@ export interface ActiveConfigResponse {
   hasBookOverride: boolean
 }
 
-export interface PromptResponse {
-  name: string
-  resolvedName?: string
-  content: string
-  source?: "book" | "global"
-  modelId?: string | null
-  version?: string
-}
-
 export interface PromptSummary {
   name: string
   variants: string[]
@@ -871,23 +885,6 @@ export interface PromptListResponse {
 
 export interface PromptModelsResponse {
   models: string[]
-}
-
-export interface PromptVersionSummary {
-  version: string
-  createdAt: string | null
-  content: string
-  isCurrent: boolean
-}
-
-export interface PromptVersionsResponse {
-  name: string
-  resolvedName: string
-  modelId: string | null
-  fallbackContent: string | null
-  fallbackResolvedName: string | null
-  currentVersion: string | null
-  versions: PromptVersionSummary[]
 }
 
 function promptModelQuery(modelId?: string | null): string {
@@ -1715,11 +1712,17 @@ export const api = {
     )
   },
 
-  updatePrompt: (name: string, content: string, bookLabel?: string, modelId?: string | null) => {
+  updatePrompt: (
+    name: string,
+    content: string,
+    bookLabel: string | undefined,
+    modelId: string | null | undefined,
+    revision: string,
+  ) => {
     const query = promptModelQuery(modelId)
     return request<PromptResponse>(
       bookLabel ? `/books/${bookLabel}/prompts/${name}${query}` : `/prompts/${name}${query}`,
-      { method: "PUT", body: JSON.stringify({ content }) },
+      { method: "PUT", body: JSON.stringify({ content, revision }) },
     )
   },
 
@@ -1733,23 +1736,24 @@ export const api = {
   setPromptVersionCurrent: (
     name: string,
     version: string,
-    modelId?: string | null,
-    bookLabel?: string,
+    modelId: string | null | undefined,
+    bookLabel: string | undefined,
+    revision: string,
   ) => {
     const query = promptModelQuery(modelId)
     return request<PromptResponse>(
       bookLabel
         ? `/books/${bookLabel}/prompts/${name}/versions/${encodeURIComponent(version)}/current${query}`
         : `/prompts/${name}/versions/${encodeURIComponent(version)}/current${query}`,
-      { method: "PUT" },
+      { method: "PUT", body: JSON.stringify({ revision }) },
     )
   },
 
-  resetPrompt: (name: string, modelId?: string | null, bookLabel?: string) => {
+  resetPrompt: (name: string, modelId: string | null | undefined, bookLabel: string | undefined, revision: string) => {
     const query = promptModelQuery(modelId)
     return request<PromptResponse>(
       bookLabel ? `/books/${bookLabel}/prompts/${name}${query}` : `/prompts/${name}${query}`,
-      { method: "DELETE" },
+      { method: "DELETE", body: JSON.stringify({ revision }) },
     )
   },
 

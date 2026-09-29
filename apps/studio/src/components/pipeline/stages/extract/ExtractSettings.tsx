@@ -136,25 +136,21 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
     // Save any edited prompts first
     const promptSaves: Promise<unknown>[] = []
     if (metadataPromptDraft != null) {
-      promptSaves.push(savePromptDraft(queryClient, "metadata_extraction", bookLabel, metadataPromptDraft))
+      promptSaves.push(savePromptDraft(queryClient, "metadata_extraction", bookLabel, metadataPromptDraft, setMetadataPromptDraft))
     }
     if (meaningfulnessPromptDraft != null) {
-      promptSaves.push(savePromptDraft(queryClient, "image_meaningfulness", bookLabel, meaningfulnessPromptDraft))
+      promptSaves.push(savePromptDraft(queryClient, "image_meaningfulness", bookLabel, meaningfulnessPromptDraft, setMeaningfulnessPromptDraft))
     }
     if (croppingPromptDraft != null) {
-      promptSaves.push(savePromptDraft(queryClient, "image_cropping", bookLabel, croppingPromptDraft))
+      promptSaves.push(savePromptDraft(queryClient, "image_cropping", bookLabel, croppingPromptDraft, setCroppingPromptDraft))
     }
     if (segmentationPromptDraft != null) {
-      promptSaves.push(savePromptDraft(queryClient, "image_segmentation", bookLabel, segmentationPromptDraft))
+      promptSaves.push(savePromptDraft(queryClient, "image_segmentation", bookLabel, segmentationPromptDraft, setSegmentationPromptDraft))
     }
     if (promptSaves.length > 0) await Promise.all(promptSaves)
 
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
-    setMetadataPromptDraft(null)
-    setMeaningfulnessPromptDraft(null)
-    setCroppingPromptDraft(null)
-    setSegmentationPromptDraft(null)
     resetMarkedTabs()
   }
 
@@ -300,7 +296,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
           onModelChange={metadata.onModelChange}
           maxRetries={metadata.maxRetries}
           onMaxRetriesChange={metadata.onMaxRetriesChange}
-          onContentChange={(content, modelId) => setMetadataPromptDraft(toPromptDraft(content, modelId))}
+          onContentChange={(content, modelId, revision) => setMetadataPromptDraft(toPromptDraft(content, modelId, revision))}
           enabled={tab === "metadata-prompt"}
         />
       )}
@@ -316,7 +312,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
           onModelChange={imageMeaningfulness.onModelChange}
           maxRetries={imageMeaningfulness.maxRetries}
           onMaxRetriesChange={imageMeaningfulness.onMaxRetriesChange}
-          onContentChange={(content, modelId) => setMeaningfulnessPromptDraft(toPromptDraft(content, modelId))}
+          onContentChange={(content, modelId, revision) => setMeaningfulnessPromptDraft(toPromptDraft(content, modelId, revision))}
           enabled={tab === "meaningfulness-prompt"}
         />
       )}
@@ -332,7 +328,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
           onModelChange={imageCropping.onModelChange}
           maxRetries={imageCropping.maxRetries}
           onMaxRetriesChange={imageCropping.onMaxRetriesChange}
-          onContentChange={(content, modelId) => setCroppingPromptDraft(toPromptDraft(content, modelId))}
+          onContentChange={(content, modelId, revision) => setCroppingPromptDraft(toPromptDraft(content, modelId, revision))}
           enabled={tab === "cropping-prompt"}
         />
       )}
@@ -364,7 +360,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
               onModelChange={imageSegmentation.onModelChange}
               maxRetries={imageSegmentation.maxRetries}
               onMaxRetriesChange={imageSegmentation.onMaxRetriesChange}
-              onContentChange={(content, modelId) => setSegmentationPromptDraft(toPromptDraft(content, modelId))}
+              onContentChange={(content, modelId, revision) => setSegmentationPromptDraft(toPromptDraft(content, modelId, revision))}
               enabled={tab === "segmentation-prompt"}
             />
           </div>

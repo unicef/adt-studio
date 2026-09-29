@@ -47,6 +47,7 @@ import { createLLMModel, createPromptEngine, createRateLimiter } from "@adt/llm"
 import type { ResolvedCredentials } from "@adt/llm"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import type { TaskService } from "../services/task-service.js"
+import { resolvePromptRoots } from "../services/prompt-roots.js"
 
 const MAX_FONT_FILE_BYTES = 15 * 1024 * 1024
 
@@ -417,7 +418,7 @@ export function createFontRoutes(
       )
       const llmCacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+      const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: config.base_prompt_model })
       const rateLimiter = config.rate_limit
         ? createRateLimiter(config.rate_limit.requests_per_minute)
         : undefined

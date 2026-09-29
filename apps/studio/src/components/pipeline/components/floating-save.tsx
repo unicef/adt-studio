@@ -50,12 +50,13 @@ export interface FloatingSaveEntry {
   resetStages?: StageName[]
   onSave?: () => void | Promise<void>
   onSaveAndRerun?: () => void
+  /** Override the legacy re-run inference for the navigation save action. */
+  rerunOnLeave?: boolean
   /**
    * Apply the pending changes without navigating. Awaited by
    * UnsavedChangesGuard's "Save & leave" — MUST reject when the save fails so
    * the guard keeps the user on the page instead of discarding their edits.
-   * Settings surfaces additionally queue a re-run here, which is why the
-   * dialog's re-run wording keys off `onSaveAndRerun`, not this.
+   * Set rerunOnLeave when this action differs from the explicit re-run button.
    */
   onSaveStay?: () => void | Promise<void>
   onReset?: () => void
@@ -78,6 +79,7 @@ function signature(e: FloatingSaveEntry): string {
     e.saving ? "1" : "0",
     e.onSave ? "1" : "0",
     e.onSaveAndRerun ? "1" : "0",
+    e.rerunOnLeave == null ? "" : String(e.rerunOnLeave),
     e.onSaveStay ? "1" : "0",
     e.onReset ? "1" : "0",
     e.saveDisabledReason ?? "",
@@ -275,7 +277,7 @@ export function useFloatingSaveLeaveAction(): FloatingSaveLeaveAction {
   const canSave =
     entries.length > 0 &&
     entries.every((e) => !e.saveDisabledReason && (e.onSaveStay || e.onSave))
-  const willRerun = entries.some((e) => e.onSaveAndRerun)
+  const willRerun = entries.some((e) => e.rerunOnLeave ?? Boolean(e.onSaveAndRerun))
   const resetStageSet = new Set(entries.flatMap((e) => e.resetStages ?? []))
   const resetStages = STAGE_ORDER.filter((stage) => resetStageSet.has(stage))
   const saveAndStay = async () => {

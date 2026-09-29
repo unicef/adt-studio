@@ -12,7 +12,7 @@ export interface PromptViewerBaseProps {
   /** Draft content owned by the parent so tab remounts keep pending edits. */
   draft?: PromptDraft | null
   /** Called when the user edits the prompt content (null = reverted to original) */
-  onContentChange?: (content: string | null, modelId: string | null) => void
+  onContentChange?: (content: string | null, modelId: string | null, revision: string) => void
   /** Current max retries value (as string for input binding) */
   maxRetries?: string
   /** Called when the user changes the retries value */
@@ -28,14 +28,22 @@ export interface PromptViewerBaseProps {
 }
 
 export type PromptViewerProps =
-  | (PromptViewerBaseProps & { hideModel: true; model?: never; onModelChange?: never })
+  | (PromptViewerBaseProps & { hideModel: true; model?: string; onModelChange?: never })
   | (PromptViewerBaseProps & { hideModel?: false; model: string; onModelChange: (model: string) => void })
 
 export interface PromptDraft {
+  revision: string
   content: string
   modelId: string | null
 }
 
-export function toPromptDraft(content: string | null, modelId: string | null): PromptDraft | null {
-  return content == null ? null : { content, modelId }
+export function toPromptDraft(content: string | null, modelId: string | null, revision = ""): PromptDraft | null {
+  return content == null ? null : { content, modelId, revision }
+}
+
+/** Reconcile only the submitted buffer; newer keystrokes stay dirty against the
+ * new committed revision. A failed request never reaches this function. */
+export function reconcilePromptDraft(current: PromptDraft | null, submitted: PromptDraft, revision: string): PromptDraft | null {
+  if (!current || current.modelId !== submitted.modelId || current.revision !== submitted.revision) return current
+  return current.content === submitted.content ? null : { ...current, revision }
 }

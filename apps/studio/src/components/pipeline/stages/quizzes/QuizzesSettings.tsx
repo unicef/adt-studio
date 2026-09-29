@@ -111,11 +111,10 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
 
   const save = async () => {
     if (promptDraft != null) {
-      await savePromptDraft(queryClient, "quiz_generation", bookLabel, promptDraft)
+      await savePromptDraft(queryClient, "quiz_generation", bookLabel, promptDraft, setPromptDraft)
     }
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
-    setPromptDraft(null)
     resetMarkedTabs()
   }
 
@@ -246,7 +245,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
           onModelChange={quiz.onModelChange}
           maxRetries={quiz.maxRetries}
           onMaxRetriesChange={quiz.onMaxRetriesChange}
-          onContentChange={(content, modelId) => setPromptDraft(toPromptDraft(content, modelId))}
+          onContentChange={(content, modelId, revision) => setPromptDraft(toPromptDraft(content, modelId, revision))}
           enabled={tab === "prompt"}
         />
       )}

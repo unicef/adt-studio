@@ -10,6 +10,7 @@ import { useIsDarkMode } from "@/hooks/use-dark-mode"
 import { PromptEditorSkeleton } from "./PromptSettingsSkeletons"
 
 type PromptEditorPaneProps = {
+  readOnly?: boolean
   isLoading: boolean
   content: string | undefined
   displayContent: string
@@ -17,6 +18,7 @@ type PromptEditorPaneProps = {
 }
 
 export function PromptEditorPane({
+  readOnly = false,
   isLoading,
   content,
   displayContent,
@@ -44,7 +46,7 @@ export function PromptEditorPane({
         height="100%"
         width="100%"
         onChange={(value) => onChange(value ?? "")}
-        options={PROMPT_EDITOR_OPTIONS}
+        options={{ ...PROMPT_EDITOR_OPTIONS, readOnly }}
       />
     </div>
   )
