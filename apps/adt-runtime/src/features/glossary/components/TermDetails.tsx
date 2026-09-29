@@ -13,6 +13,7 @@ import {
   isGlossaryTermOnPage,
   locateGlossaryTerm,
 } from "@/features/glossary/lib/locate"
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 
 export function TermDetails() {
@@ -48,7 +49,7 @@ export function TermDetails() {
       setLocating(false)
       return
     }
-    window.location.href = `${target.href}#glossary=${encodeURIComponent(entry.word)}`
+    navigateToPage(`${target.href}#glossary=${encodeURIComponent(entry.word)}`)
   }
 
   return (

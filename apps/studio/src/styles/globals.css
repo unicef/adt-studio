@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@import "./publish-anim-export.css";
+@import "./publish-anim-package.css";
+@import "./publish-anim-upload.css";
+@import "./publish-anim-register.css";
+
 /* Dark mode is driven by a `.dark` class (see the `.dark { … }` token block
  * below), not the OS. Without this, Tailwind v4 defaults the `dark:` variant to
  * `@media (prefers-color-scheme: dark)`, so `dark:` utilities would fire on a
@@ -98,10 +103,12 @@
   --animate-onboarding-fade-in: onboarding-fade-in 0.8s ease-out both;
   --animate-hero-drift: hero-drift 14s ease-in-out infinite;
   --animate-menu-in: menu-in 140ms cubic-bezier(0.23, 1, 0.32, 1);
+  --animate-medallion-halo: medallion-halo 2.8s ease-in-out infinite;
   --animate-content-in: content-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
   --animate-eq: eq 1s ease-in-out infinite;
   --animate-float-y: float-y 6s ease-in-out infinite;
   --animate-flow-dot: flow-dot 3.4s ease-in-out infinite;
+  --animate-edge-dash: edge-dash 1s linear infinite;
   --animate-onboarding-drift-a: onboarding-drift-a 22s ease-in-out infinite;
   --animate-onboarding-drift-b: onboarding-drift-b 28s ease-in-out infinite;
   --animate-onboarding-icon-float: onboarding-icon-float 5s ease-in-out infinite;
@@ -155,6 +162,24 @@
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes edge-dash {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+@keyframes medallion-halo {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.95;
   }
 }
 
@@ -803,4 +828,12 @@
     transform: translate3d(-8px, 6px, 0) scale(1.09);
     opacity: 0.82;
   }
+}
+
+/* Sharing → Feedback: the outline that marks what a selected comment is on, then settles. */
+@keyframes feedback-pin-flash {
+  0% { opacity: 0; transform: scale(1.04); }
+  15% { opacity: 1; transform: scale(1); }
+  70% { opacity: 1; }
+  100% { opacity: 0.25; }
 }

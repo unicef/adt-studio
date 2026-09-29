@@ -8,6 +8,7 @@ import { BookCover } from "../../BookCover"
 import type { BookVM } from "../../data"
 import type { ReviewComment } from "./CommentsBanner"
 import { BaseStages, DetailActions, DetailInfo, MetaLine, PRESS, type DetailHandlers } from "./book-detail-body"
+import { HeaderSharing } from "./HeaderSharing"
 
 export interface BookPublication {
   url: string
@@ -89,6 +90,9 @@ function BookDetail({ book, handlers, onClose }: { book: DetailBook; handlers: D
             <h2 className="text-[30px] font-bold leading-[1.05] tracking-[-0.025em] [text-shadow:0_2px_16px_rgba(0,0,0,.45)]">{book.displayTitle}</h2>
             <p className="mt-1 text-[14px] text-white/80">{book.authors}</p>
             <div className="mt-2"><MetaLine book={book} locale={i18n.locale} light /></div>
+            {book.publication ? (
+              <HeaderSharing publication={book.publication} onOpenSharing={() => handlers.goStep("publish")} />
+            ) : null}
           </div>
         </div>
       </div>
