@@ -247,7 +247,9 @@ const FALLBACK_BACKDROP =
  * arrive well after the card. Until it does, the book keeps its shape — page edges, back board —
  * with a shimmer across a blank front, and the blurred backdrop waits too; both fade in when the
  * image lands. A cover that fails to load turns into the plain locked book rather than a
- * broken image. Without script the image simply appears when it arrives.
+ * broken image. Once it lands the book takes the cover's own proportions, so a landscape cover
+ * makes a landscape book instead of being squeezed into a portrait one. Without script the image
+ * simply appears when it arrives.
  */
 const COVER_SCRIPT = html`<script>
 (function () {
@@ -259,6 +261,9 @@ const COVER_SCRIPT = html`<script>
     front.classList.remove("loading")
     root.classList.remove("cover-pending")
     if (ok) {
+      var ratio = img.naturalWidth / img.naturalHeight
+      front.style.setProperty("--ratio", String(ratio))
+      if (ratio > 1) front.parentElement.classList.add("wide")
       front.classList.add("loaded")
       return
     }
@@ -364,11 +369,13 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
   .stand { position:relative; perspective:1400px; animation:appear .6s ease-out both }
   .stand::after { content:""; position:absolute; left:4%; right:-10%; bottom:-1.3rem; height:2rem; border-radius:50%;
                   z-index:-1; background:radial-gradient(closest-side, rgba(0,0,0,.55), rgba(0,0,0,0)); filter:blur(4px) }
-  .book { --bh:28rem; --t:40px; position:relative; transform-style:preserve-3d; transform:rotateY(-34deg) rotateX(4deg);
-          animation:settle 1.1s cubic-bezier(.2,.8,.2,1) both }
+  .book { --bh:28rem; --bw:30rem; --t:40px; position:relative; transform-style:preserve-3d;
+          transform:rotateY(-34deg) rotateX(4deg); animation:settle 1.1s cubic-bezier(.2,.8,.2,1) both }
+  .book.wide { transform:rotateY(-24deg) rotateX(4deg) }
   .front { position:relative; transform:translateZ(calc(var(--t) / 2)); border-radius:2px 5px 5px 2px; overflow:hidden;
            box-shadow:0 0 0 1px rgba(0,0,0,.08) }
   .face { display:block; height:var(--bh); width:auto; max-width:calc(var(--bh) * .8) }
+  .front.loaded .face.cover { width:min(var(--bw), calc(var(--bh) * var(--ratio))); height:auto; max-width:none }
   .face.plain[hidden] { display:none }
   .js .front.loading { width:calc(var(--bh) * .7); height:var(--bh); background:linear-gradient(155deg,#ecebf5,#d8d5e8) }
   .js .front.loading::before { content:""; position:absolute; inset:0; z-index:1;
@@ -408,7 +415,7 @@ function gatePage(publication: Publication, options: GatePageOptions = {}) {
     body { padding:1.25rem }
     .scene { grid-template-columns:1fr; gap:1.5rem; max-width:23rem }
     .art { order:-1; padding:0; display:flex; justify-content:center; margin-bottom:1rem }
-    .book { --bh:10.5rem; --t:20px } .stand::after { bottom:-.9rem; height:1.4rem }
+    .book { --bh:10.5rem; --bw:15rem; --t:20px } .stand::after { bottom:-.9rem; height:1.4rem }
     main { padding:1.5rem 1.4rem 1.6rem }
     h1 { font-size:1.4rem } .intro { font-size:.9375rem }
   }
