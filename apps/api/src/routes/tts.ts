@@ -57,6 +57,7 @@ import {
   readProviderCredentials,
   serverAwareCredentialValue,
 } from "../middleware/provider-credentials.js"
+import { resolvePathWithin } from "../utils/path-security.js"
 
 /**
  * Word timestamps come from Whisper, so the transcription provider is fixed
@@ -90,6 +91,14 @@ const GEMINI_FLASH_PREVIEW_TTS_MODEL = "gemini-2.5-flash-preview-tts"
 const GEMINI_PRO_PREVIEW_TTS_MODEL = "gemini-2.5-pro-preview-tts"
 const SAFE_AUDIO_LANGUAGE_RE = /^[A-Za-z0-9_-]+$/
 const SAFE_AUDIO_TEXT_ID_RE = /^[A-Za-z0-9._-]+$/
+
+function normalizeSafeAudioLanguage(rawLanguage: string): string {
+  const normalized = normalizeLocale(rawLanguage)
+  if (!SAFE_AUDIO_LANGUAGE_RE.test(normalized)) {
+    throw new HTTPException(400, { message: `Invalid language: ${normalized}` })
+  }
+  return normalized
+}
 const AUDIO_UPLOAD_FORMAT_BY_MIME: Record<string, "mp3" | "wav" | "ogg"> = {
   "audio/mpeg": "mp3",
   "audio/mp3": "mp3",
@@ -621,7 +630,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
     const voiceSlot: VoiceSlot = parsed.data.voiceSlot ?? "primary"
 
-    const normalizedLanguage = normalizeLocale(parsed.data.language)
+    const normalizedLanguage = normalizeSafeAudioLanguage(parsed.data.language)
     if (!SAFE_AUDIO_LANGUAGE_RE.test(normalizedLanguage)) {
       throw new HTTPException(400, {
         message: `Invalid language: ${normalizedLanguage}`,
@@ -694,16 +703,13 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
       const bookDir = path.join(path.resolve(booksDir), safeLabel)
       const audioRoot = path.resolve(bookDir, "audio")
-      const audioDir = path.resolve(audioRoot, normalizedLanguage)
-      if (
-        audioDir !== audioRoot &&
-        !audioDir.startsWith(audioRoot + path.sep)
-      ) {
+      const audioDir = resolvePathWithin(audioRoot, normalizedLanguage)
+      if (!audioDir || audioDir === audioRoot) {
         throw new HTTPException(400, { message: "Invalid audio directory" })
       }
 
-      const outputPath = path.resolve(audioDir, nextEntry.fileName)
-      if (!outputPath.startsWith(audioDir + path.sep)) {
+      const outputPath = resolvePathWithin(audioDir, nextEntry.fileName)
+      if (!outputPath) {
         throw new HTTPException(400, { message: "Invalid audio file path" })
       }
 
@@ -719,11 +725,8 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         existingEntry &&
         existingEntry.fileName !== nextEntry.fileName
       ) {
-        const previousPath = path.resolve(audioDir, existingEntry.fileName)
-        if (
-          previousPath.startsWith(audioDir + path.sep) &&
-          fs.existsSync(previousPath)
-        ) {
+        const previousPath = resolvePathWithin(audioDir, existingEntry.fileName)
+        if (previousPath && fs.existsSync(previousPath)) {
           fs.rmSync(previousPath, { force: true })
         }
       }
@@ -815,7 +818,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const azureSpeechRegion = serverAwareCredentialValue(credentials, "azure", "region")
     const elevenLabsApiKey = serverAwareCredentialValue(credentials, "elevenlabs", "apiKey")
 
-    const normalizedLanguage = normalizeLocale(parsed.data.language)
+    const normalizedLanguage = normalizeSafeAudioLanguage(parsed.data.language)
     const storage = createBookStorage(safeLabel, booksDir)
 
     try {
@@ -1397,7 +1400,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
     const openaiApiKey = requireTranscriberKey(readProviderCredentials(c))
 
-    const normalizedLanguage = normalizeLocale(parsed.data.language)
+    const normalizedLanguage = normalizeSafeAudioLanguage(parsed.data.language)
     const storage = createBookStorage(safeLabel, booksDir)
 
     try {
@@ -1413,7 +1416,13 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       }
 
       const bookDir = path.join(path.resolve(booksDir), safeLabel)
-      const audioPath = path.resolve(bookDir, "audio", normalizedLanguage, ttsEntry.fileName)
+      const audioPath = resolvePathWithin(
+        path.resolve(bookDir, "audio", normalizedLanguage),
+        ttsEntry.fileName,
+      )
+      if (!audioPath) {
+        throw new HTTPException(400, { message: "Invalid audio file path" })
+      }
       if (!fs.existsSync(audioPath)) {
         throw new HTTPException(404, {
           message: `Audio file not found: ${ttsEntry.fileName}`,
@@ -1510,7 +1519,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
     const openaiApiKey = requireTranscriberKey(readProviderCredentials(c))
 
-    const normalizedLanguage = normalizeLocale(parsed.data.language)
+    const normalizedLanguage = normalizeSafeAudioLanguage(parsed.data.language)
 
     // Pre-check: count how many need transcribing before submitting task
     const preStorage = createBookStorage(safeLabel, booksDir)
@@ -1578,7 +1587,13 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
             const slot = resolveEntryVoiceSlot(ttsEntry)
             const slotEntryId = voiceSlotEntryId(ttsEntry.textId, slot)
             try {
-              const audioPath = path.resolve(bookDir, "audio", normalizedLanguage, ttsEntry.fileName)
+              const audioPath = resolvePathWithin(
+                path.resolve(bookDir, "audio", normalizedLanguage),
+                ttsEntry.fileName,
+              )
+              if (!audioPath) {
+                throw new Error(`Invalid audio file path: ${ttsEntry.fileName}`)
+              }
               if (!fs.existsSync(audioPath)) {
                 throw new Error(`Audio file not found: ${ttsEntry.fileName}`)
               }
@@ -1686,9 +1701,9 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       throw new HTTPException(400, { message: "Invalid file name" })
     }
 
-    const audioPath = path.resolve(bookDir, "audio", language, fileName)
-    // Verify path doesn't escape book directory
-    if (!audioPath.startsWith(bookDir + path.sep)) {
+    const audioDir = resolvePathWithin(path.resolve(bookDir, "audio"), language)
+    const audioPath = audioDir ? resolvePathWithin(audioDir, fileName) : null
+    if (!audioPath) {
       throw new HTTPException(400, { message: "Invalid audio path" })
     }
 
