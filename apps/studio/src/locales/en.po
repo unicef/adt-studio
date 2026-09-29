@@ -2006,6 +2006,9 @@ msgstr "Browse and edit Liquid templates used for template-based rendering strat
 msgid "Browse documentation"
 msgstr "Browse documentation"
 
+msgid "Browse every beta release, read what changed, and switch to any of them — including an earlier one."
+msgstr "Browse every beta release, read what changed, and switch to any of them — including an earlier one."
+
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 
@@ -4924,6 +4927,9 @@ msgstr "Inside Cover"
 msgid "Install"
 msgstr "Install"
 
+msgid "Install a preview build?"
+msgstr "Install a preview build?"
+
 msgid "Install an older beta?"
 msgstr "Install an older beta?"
 
@@ -5001,6 +5007,9 @@ msgstr "It contains unexpected file paths. Use a .zip exported from ADT Studio."
 
 msgid "It was created from a different PDF or settings, so it can't be merged here."
 msgstr "It was created from a different PDF or settings, so it can't be merged here."
+
+msgid "It will arrive in the next beta."
+msgstr "It will arrive in the next beta."
 
 msgid "italic"
 msgstr "italic"
@@ -6621,6 +6630,9 @@ msgstr "Open this section to tune the model, judge prompt, retry behavior, and e
 msgid "Open Validation"
 msgstr "Open Validation"
 
+msgid "Open Versions"
+msgstr "Open Versions"
+
 msgid "Open-ended — learners write a free response; there is no fixed answer."
 msgstr "Open-ended — learners write a free response; there is no fixed answer."
 
@@ -7240,6 +7252,15 @@ msgstr "position corner toast placement"
 msgid "PR #{0}"
 msgstr "PR #{0}"
 
+msgid "PR #{pr} shipped in {shippedIn}"
+msgstr "PR #{pr} shipped in {shippedIn}"
+
+msgid "PR #{pr} was closed without merging"
+msgstr "PR #{pr} was closed without merging"
+
+msgid "PR #{pr} was merged"
+msgstr "PR #{pr} was merged"
+
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"
 
@@ -7287,6 +7308,15 @@ msgstr "Prev"
 
 msgid "Preview"
 msgstr "Preview"
+
+msgid "Preview · #{prNumber}"
+msgstr "Preview · #{prNumber}"
+
+msgid "Preview build"
+msgstr "Preview build"
+
+msgid "Preview builds don't get update notices. This page tells you when the PR merges or closes."
+msgstr "Preview builds don't get update notices. This page tells you when the PR merges or closes."
 
 msgid "Preview linked page"
 msgstr "Preview linked page"
@@ -8435,8 +8465,11 @@ msgstr "Search books…"
 msgid "Search by title or author…"
 msgstr "Search by title or author…"
 
-msgid "Search by title, version, or description…"
-msgstr "Search by title, version, or description…"
+msgid "Search by title, version, contributor, or PR…"
+msgstr "Search by title, version, contributor, or PR…"
+
+#~ msgid "Search by title, version, or description…"
+#~ msgstr "Search by title, version, or description…"
 
 msgid "Search captions or image IDs…"
 msgstr "Search captions or image IDs…"
@@ -9428,14 +9461,24 @@ msgstr "Summary Prompt"
 msgid "Sun"
 msgstr "Sun"
 
+msgid "Switch back to the latest beta to keep getting updates."
+msgstr "Switch back to the latest beta to keep getting updates."
+
 msgid "Switch languages in a tap."
 msgstr "Switch languages in a tap."
+
+#. placeholder {0}: formatVersion(target)
+msgid "Switch to {0}"
+msgstr "Switch to {0}"
 
 msgid "Switch to dark theme"
 msgstr "Switch to dark theme"
 
 msgid "Switch to light theme"
 msgstr "Switch to light theme"
+
+msgid "Switch to the beta to keep getting updates."
+msgstr "Switch to the beta to keep getting updates."
 
 msgid "Switching presentation failed"
 msgstr "Switching presentation failed"
@@ -9929,6 +9972,9 @@ msgstr "This image is decorative. Screen readers will skip it and no caption is 
 
 msgid "This image is marked decorative — click to un-mark"
 msgstr "This image is marked decorative — click to un-mark"
+
+msgid "This is a preview of PR #{previewPr}. Preview builds don't get update notices; Versions tells you when the PR merges or closes."
+msgstr "This is a preview of PR #{previewPr}. Preview builds don't get update notices; Versions tells you when the PR merges or closes."
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
@@ -10706,6 +10752,9 @@ msgstr "Versioned"
 msgid "Versions"
 msgstr "Versions"
 
+msgid "versions beta release downgrade rollback install changelog"
+msgstr "versions beta release downgrade rollback install changelog"
+
 msgid "video"
 msgstr "video"
 
@@ -10741,6 +10790,9 @@ msgstr "View page"
 
 msgid "View page {pageNum} larger"
 msgstr "View page {pageNum} larger"
+
+msgid "View PR"
+msgstr "View PR"
 
 msgid "Visible page entries"
 msgstr "Visible page entries"
@@ -11020,6 +11072,9 @@ msgstr "You're all set"
 
 msgid "You're now running ADT Studio {label}"
 msgstr "You're now running ADT Studio {label}"
+
+msgid "You're on a preview of PR #{pr}"
+msgstr "You're on a preview of PR #{pr}"
 
 msgid "You're one of the first to try it. Turn any textbook into an accessible edition — every step of the pipeline, built in."
 msgstr "You're one of the first to try it. Turn any textbook into an accessible edition — every step of the pipeline, built in."
