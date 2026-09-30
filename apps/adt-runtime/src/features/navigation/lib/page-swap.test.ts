@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { getDefaultStore } from "jotai"
+import { claimPageHeadNodes } from "@/features/navigation/lib/page-head"
 import { reduceMotionAtom } from "@/shared/state/ui.atoms"
 
 const initializePageContent = vi.fn()
@@ -14,7 +15,7 @@ vi.mock("@/shared/lib/analytics", () => ({
   trackSpaPageView: vi.fn(),
 }))
 
-const { canSoftNavigate, claimPageHeadNodes, prefetchPage, subscribeSoftNavHistory, swapToPage } =
+const { canSoftNavigate, prefetchPage, subscribeSoftNavHistory, swapToPage } =
   await import("@/features/navigation/lib/page-swap")
 
 /** A page as `renderPageHtml` emits one: shared stylesheets, page-scoped head

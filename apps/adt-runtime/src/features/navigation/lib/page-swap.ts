@@ -18,6 +18,7 @@
  */
 import { getDefaultStore } from "jotai"
 import { disposeActivityInitializers, initializePageContent } from "@/app/lifecycle"
+import { PAGE_HEAD_ATTR } from "@/features/navigation/lib/page-head"
 import { announceToScreenReader } from "@/shared/lib/aria-live"
 import { trackNavigation, trackSpaPageView } from "@/shared/lib/analytics"
 import { reduceMotionAtom } from "@/shared/state/ui.atoms"
@@ -30,15 +31,6 @@ function isSharedStylesheet(href: string | null): boolean {
   if (!href) return false
   const file = href.split("?")[0].split("/").pop() ?? ""
   return SHARED_STYLESHEETS.includes(file)
-}
-
-const PAGE_HEAD_ATTR = "data-adt-page-head"
-
-export function claimPageHeadNodes(): void {
-  if (typeof document === "undefined") return
-  for (const el of Array.from(document.head.querySelectorAll("style:not([data-vite-dev-id])"))) {
-    el.setAttribute(PAGE_HEAD_ATTR, "")
-  }
 }
 
 /**

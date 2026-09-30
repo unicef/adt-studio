@@ -1,3 +1,5 @@
+// First, before any module can append a <style> to <head> — see page-head.ts.
+import "@/features/navigation/lib/page-head"
 import "@/styles/globals.css"
 
 import React from "react"
@@ -10,7 +12,7 @@ import {
   subscribeLanguageChanges,
   subscribePreviewSettings,
 } from "@/app/lifecycle"
-import { claimPageHeadNodes, subscribeSoftNavHistory } from "@/features/navigation/lib/page-swap"
+import { subscribeSoftNavHistory } from "@/features/navigation/lib/page-swap"
 import { describeInitError, showErrorToast, showMainContent } from "@/shared/lib/errors"
 
 const sharedStore = getDefaultStore()
@@ -38,7 +40,6 @@ function ensureContainer(id: string): HTMLElement | null {
 
 function mount(): void {
   if (window.__adtRuntime?.booted) return
-  claimPageHeadNodes()
   const interfaceContainer = ensureContainer("interface-container")
   const navContainer = ensureContainer("nav-container")
   if (!interfaceContainer || !navContainer) return
