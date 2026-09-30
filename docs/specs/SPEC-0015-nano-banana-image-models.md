@@ -1,14 +1,14 @@
 ---
 id: SPEC-0015
 title: Nano Banana image models
-status: draft
+status: in-review
 owner: "@elasticsounds"
 approvers: []
 issues: ["#579"]
 prs: ["#904"]
 adr: ""
 created: 2026-09-28
-updated: 2026-09-29
+updated: 2026-09-30
 ---
 
 ## Problem and goals
@@ -17,7 +17,8 @@ updated: 2026-09-29
 image-model option. The existing Google provider supports text/agent calls, but
 needs an image backend; image translation must also resolve the selected provider's
 credentials instead of requiring OpenAI. The implementation under review in
-[#904](https://github.com/unicef/adt-studio/pull/904) spans 26 files, exceeding the
+[#904](https://github.com/unicef/adt-studio/pull/904) spans 40 files and about 1,250
+changed lines, exceeding the
 [spec-lane size threshold](../SPEC_DRIVEN_DEVELOPMENT.md#3-choosing-a-lane).
 
 Allow users to select these models for existing image generation, editing, and
@@ -58,7 +59,8 @@ default, then the shipped image default. Resolve credentials before modifying
 existing translations. Keep image models out of text/agent selections. Accept PNG
 and JPEG output, record actual dimensions, and save with the matching extension;
 translation need not force a new size. Validate response status, image payloads,
-model-specific reference limits, and requested sizes; support cancellation/timeouts.
+model-specific reference limits, requested sizes, and Google's 20 MB inline request
+limit before sending; support cancellation/timeouts.
 
 Review refinements:
 
@@ -82,6 +84,11 @@ Review refinements:
 - Never resize inputs non-proportionally. In storyboard swaps, retain the layout
   box but contain the returned image inside it without stretching or cropping.
   This preserves displayed proportions, not a guarantee that AI preserves all content.
+- Reference images without a declared MIME type are identified from their bytes in
+  both the Google and OpenAI adapters, so JPEG references are no longer sent as PNG.
+- The image-translation prompt editor hides the model and retry controls, which the
+  runner never used (it uses `image_translation.image_model`), and saving no longer
+  persists those unused fields.
 
 ## Impact map
 
