@@ -1279,6 +1279,17 @@ export const api = {
     throw new Error(text || `Decision failed: ${res.status}`)
   },
 
+  skipPages: async (label: string, pageIds: string[]): Promise<void> => {
+    const res = await fetch(`${BASE_URL}/books/${label}/stages/skip-pages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pageIds }),
+    })
+    if (res.ok || res.status === 409) return
+    const text = await res.text().catch(() => "")
+    throw new Error(text || `Skip failed: ${res.status}`)
+  },
+
   getPages: (label: string) =>
     request<PageSummaryItem[]>(`/books/${label}/pages`),
 
@@ -1909,6 +1920,7 @@ export const api = {
       stepMessages: Record<string, string> | null
       runStatus: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
       pendingDecisions: PendingDecision[]
+      skippedPages: string[]
     }>(`/books/${label}/step-status`),
 
   getTTS: (label: string) =>

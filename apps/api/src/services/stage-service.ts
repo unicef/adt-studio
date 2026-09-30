@@ -67,6 +67,10 @@ export interface StageRunOptions {
     pageId: string
     error: string
   }) => Promise<PageErrorAction>
+  pageSkips?: {
+    isSkipped(pageId: string): boolean
+    onSkip(listener: (pageId: string) => void): () => void
+  }
 }
 
 export interface StageRunProgress {
@@ -133,6 +137,12 @@ export function createStageService(
       signal: job.controller.signal,
       requestPageDecision: decisions
         ? (input) => decisions.requestDecision({ label, ...input })
+        : undefined,
+      pageSkips: decisions
+        ? {
+            isSkipped: (pageId) => decisions.isPageSkipped(label, pageId),
+            onSkip: (listener) => decisions.onPageSkip(label, listener),
+          }
         : undefined,
     }
 

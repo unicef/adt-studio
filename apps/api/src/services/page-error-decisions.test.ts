@@ -107,4 +107,32 @@ describe("page-error decisions broker", () => {
     await vi.advanceTimersByTimeAsync(10 * 60 * 1000)
     await expect(p).resolves.toBe("stop")
   })
+
+  it("skipPages records the pages, notifies listeners and skips their pending decisions", async () => {
+    const { bus } = withListener()
+    const broker = createPageErrorDecisions(bus)
+    const notified: string[] = []
+    const unsubscribe = broker.onPageSkip(LABEL, (pageId) => notified.push(pageId))
+
+    const failed = broker.requestDecision({ label: LABEL, step: "web-rendering", pageId: "pg002", error: "x" })
+    broker.skipPages(LABEL, ["pg001", "pg002"])
+
+    await expect(failed).resolves.toBe("skip")
+    expect(notified).toEqual(["pg001", "pg002"])
+    expect(broker.isPageSkipped(LABEL, "pg001")).toBe(true)
+    expect(broker.isPageSkipped("other-book", "pg001")).toBe(false)
+    expect(broker.getSkippedPages(LABEL)).toEqual(["pg001", "pg002"])
+
+    unsubscribe()
+    broker.skipPages(LABEL, ["pg003"])
+    expect(notified).toEqual(["pg001", "pg002"])
+  })
+
+  it("clearForRun forgets skipped pages", () => {
+    const { bus } = withListener()
+    const broker = createPageErrorDecisions(bus)
+    broker.skipPages(LABEL, ["pg001"])
+    broker.clearForRun(LABEL)
+    expect(broker.getSkippedPages(LABEL)).toEqual([])
+  })
 })

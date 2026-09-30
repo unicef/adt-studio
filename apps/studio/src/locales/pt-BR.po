@@ -6938,6 +6938,9 @@ msgstr "Prompt de secionamento de página"
 msgid "Page Sectioning Refinement Prompt"
 msgstr "Prompt de refinamento de seção"
 
+msgid "Page skipped"
+msgstr "Página pulada"
+
 msgid "Page text, headings, and quiz content."
 msgstr "Texto da página, títulos e conteúdo de questionários."
 
@@ -8995,6 +8998,12 @@ msgstr "Dimensionamento"
 #~ msgid "sk-ant-..."
 #~ msgstr "sk-ant-..."
 
+msgid "Skip all failed pages"
+msgstr "Pular todas as páginas com erro"
+
+msgid "Skip all failed pages ({failedCount})"
+msgstr "Pular todas as páginas com erro ({failedCount})"
+
 msgid "Skip for now"
 msgstr "Pular por enquanto"
 
@@ -9003,6 +9012,9 @@ msgstr "Pular página e continuar"
 
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Pular segmentação para imagens cujo lado menor está abaixo deste limite."
+
+msgid "Skip this page"
+msgstr "Pular esta página"
 
 msgid "Skip this page and continue the step, or stop the step entirely."
 msgstr "Pule esta página e continue a etapa, ou pare a etapa por completo."
@@ -10004,6 +10016,9 @@ msgstr "Esta página não tem entradas de texto traduzíveis"
 
 msgid "This page has not been reviewed yet"
 msgstr "Esta página ainda não foi revisada"
+
+msgid "This page will not be rendered in this run"
+msgstr "Esta página não será renderizada nesta execução"
 
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "A camada de texto incorporada desta página está vazia, mas a etapa de Seccionamento recuperou texto a partir da imagem da página — portanto ela parece uma página digitalizada ou apenas de imagem. O pipeline ainda pode funcionar com o texto recuperado, mas para melhores resumos, metadados e traduções, tente obter uma versão deste PDF baseada em texto (com uma camada de texto real) em vez de uma cópia digitalizada."

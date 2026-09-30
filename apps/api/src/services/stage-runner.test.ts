@@ -785,9 +785,10 @@ describe("createStageRunner storyboard render-only", () => {
 
     expect(sectionPageMock).not.toHaveBeenCalled()
     expect(renderPageMock).toHaveBeenCalledTimes(1)
-    expect(renderPageMock.mock.calls[0]?.[5]).toEqual({
-      signal: controller.signal,
-    })
+    const renderSignal = (renderPageMock.mock.calls[0]?.[5] as { signal: AbortSignal }).signal
+    expect(renderSignal.aborted).toBe(false)
+    controller.abort()
+    expect(renderSignal.aborted).toBe(true)
     // The step must be marked running before any page work, otherwise the UI
     // shows "Starting…" until the first page completes its full render loop.
     const renderStartIndex = events.findIndex(
@@ -807,6 +808,96 @@ describe("createStageRunner storyboard render-only", () => {
           event.type === "step-complete" && event.step === "page-sectioning"
       )
     ).toBe(false)
+  })
+
+  function createPageSkips() {
+    const skipped = new Set<string>()
+    const listeners = new Set<(pageId: string) => void>()
+    return {
+      listeners,
+      skip(pageId: string) {
+        skipped.add(pageId)
+        for (const listener of listeners) listener(pageId)
+      },
+      pageSkips: {
+        isSkipped: (pageId: string) => skipped.has(pageId),
+        onSkip: (listener: (pageId: string) => void) => {
+          listeners.add(listener)
+          return () => {
+            listeners.delete(listener)
+          }
+        },
+      },
+    }
+  }
+
+  async function runStoryboard(label: string, pageSkips: ReturnType<typeof createPageSkips>["pageSkips"]) {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-storyboard-skip-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    writeBaseConfig(configPath)
+    seedStoryboardBook(booksDir, label)
+    const events: ProgressEvent[] = []
+    await createStageRunner().run(
+      label,
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "storyboard",
+        toStage: "storyboard",
+        renderOnly: true,
+        signal: new AbortController().signal,
+        pageSkips,
+      },
+      { emit: (event) => events.push(event) }
+    )
+    const storage = createBookStorage(label, booksDir)
+    try {
+      return { events, rendering: storage.getLatestNodeData("web-rendering", "pg001") }
+    } finally {
+      storage.close()
+    }
+  }
+
+  it("aborts an in-flight page the user skips and still completes the step", async () => {
+    const skips = createPageSkips()
+    renderPageMock.mockImplementationOnce(async (...args: unknown[]) => {
+      const { signal } = args[5] as { signal: AbortSignal }
+      skips.skip("pg001")
+      signal.throwIfAborted()
+      return { sections: [] }
+    })
+
+    const { events, rendering } = await runStoryboard("skip-in-flight", skips.pageSkips)
+
+    expect(rendering).toBeNull()
+    expect(events.some((event) => event.type === "step-error")).toBe(false)
+    expect(events).toContainEqual({
+      type: "step-complete",
+      step: "web-rendering",
+      message: "Completed — 1 page(s) skipped",
+    })
+    expect(skips.listeners.size).toBe(0)
+  })
+
+  it("never starts a page skipped before its turn", async () => {
+    const skips = createPageSkips()
+    skips.skip("pg001")
+    renderPageMock.mockClear()
+
+    const { events, rendering } = await runStoryboard("skip-before-start", skips.pageSkips)
+
+    expect(renderPageMock).not.toHaveBeenCalled()
+    expect(rendering).toBeNull()
+    expect(events).toContainEqual({
+      type: "step-complete",
+      step: "web-rendering",
+      message: "Completed — 1 page(s) skipped",
+    })
   })
 })
 

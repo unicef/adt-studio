@@ -6,7 +6,7 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
+import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, SkipPagesBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig,
@@ -326,6 +326,27 @@ export function createStageRoutes(
     return c.json({ ok: true })
   })
 
+  app.post("/books/:label/stages/skip-pages", async (c) => {
+    const { label } = c.req.param()
+    let body: unknown
+    try {
+      body = await c.req.json()
+    } catch {
+      throw new HTTPException(400, { message: "Invalid JSON body" })
+    }
+    const parsed = SkipPagesBody.safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid skip request: ${parsed.error.message}`,
+      })
+    }
+    if (stageService.getStatus(label).active?.status !== "running") {
+      throw new HTTPException(409, { message: "No active run to skip pages in" })
+    }
+    decisions.skipPages(label, parsed.data.pageIds)
+    return c.json({ ok: true })
+  })
+
   // GET /books/:label/step-status — Unified stage + step status
   // DB step_runs is the single source of truth for step/stage state.
   // Only "queued" comes from the in-memory run queue.
@@ -448,6 +469,7 @@ export function createStageRoutes(
     // decision dialog can be recovered via polling after a reconnect/F5.
     const runStatus = active?.status ?? "idle"
     const pendingDecisions = decisions.getPendingDecisions(label)
+    const skippedPages = decisions.getSkippedPages(label)
 
     return c.json({
       stages,
@@ -457,6 +479,7 @@ export function createStageRoutes(
       stepMessages: hasStepMessages ? stepMessages : null,
       runStatus,
       pendingDecisions,
+      skippedPages,
     })
   })
 

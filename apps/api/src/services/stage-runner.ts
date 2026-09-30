@@ -262,6 +262,16 @@ interface PageFailureContext {
   }) => Promise<PageErrorAction>
 }
 
+function recordSkippedPage(
+  skippedByStep: Map<string, Set<string>>,
+  step: StepName,
+  pageId: string
+): void {
+  const set = skippedByStep.get(step) ?? new Set<string>()
+  skippedByStep.set(step, set)
+  set.add(pageId)
+}
+
 /** Shared handling for a page failure inside a per-page step. Covers all six
  *  emission points. Returns after recording/handling; throws only to unwind a
  *  run cancel (an aborted page is not a failure — it re-runs cheaply via cache). */
@@ -298,12 +308,7 @@ async function handlePageFailure(ctx: PageFailureContext): Promise<void> {
       ctx.gate.open()
     }
     if (action === "skip") {
-      let set = ctx.skippedByStep.get(ctx.step)
-      if (!set) {
-        set = new Set()
-        ctx.skippedByStep.set(ctx.step, set)
-      }
-      set.add(ctx.pageId)
+      recordSkippedPage(ctx.skippedByStep, ctx.step, ctx.pageId)
       return
     }
     // "stop": abort the step. processWithConcurrency stops admitting new items;
@@ -1548,6 +1553,7 @@ async function runStoryboardStep(
 
   const storage = createBookStorage(label, booksDir)
   let visualRefinement: VisualRefinementDeps | undefined
+  let unsubscribeSkips: (() => void) | undefined
 
   try {
     const config = loadBookConfig(label, booksDir, configPath)
@@ -1679,11 +1685,24 @@ async function runStoryboardStep(
       gate,
       stepController,
     })
+    const pageControllers = new Map<string, AbortController>()
+    unsubscribeSkips = options.pageSkips?.onSkip((pageId) => {
+      pageControllers.get(pageId)?.abort()
+    })
 
     await processWithConcurrency(
       pages,
       effectiveConcurrency,
       async (page: PageData) => {
+        if (options.pageSkips?.isSkipped(page.pageId)) {
+          recordSkippedPage(skippedByStep, "web-rendering", page.pageId)
+          return
+        }
+        const pageController = new AbortController()
+        pageControllers.set(page.pageId, pageController)
+        const pageSignal = options.signal
+          ? AbortSignal.any([options.signal, pageController.signal])
+          : pageController.signal
         try {
           if (options.signal?.aborted) throw new RunCancelledError()
 
@@ -1762,9 +1781,10 @@ async function runStoryboardStep(
             resolveRenderModel,
             templateEngine,
             visualRefinement,
-            { signal: options.signal },
+            { signal: pageSignal },
           )
           if (options.signal?.aborted) throw new RunCancelledError()
+          pageController.signal.throwIfAborted()
           storage.putNodeData("web-rendering", page.pageId, renderResult)
           completedRendering++
           progress.emit({
@@ -1775,12 +1795,19 @@ async function runStoryboardStep(
             totalPages,
           })
         } catch (err) {
+          if (pageController.signal.aborted && !options.signal?.aborted) {
+            console.log(`[stage-run] ${label}: ${page.pageId} skipped by user at web-rendering`)
+            recordSkippedPage(skippedByStep, "web-rendering", page.pageId)
+            return
+          }
           if (!isCancellation(err, [options.signal])) {
             console.error(
               `[stage-run] ${label}: ${page.pageId} failed at web-rendering: ${toErrorMessage(err)}`
             )
           }
           await reportPageFailure(pageFailureDeps, progress, "web-rendering", page.pageId, err)
+        } finally {
+          pageControllers.delete(page.pageId)
         }
       },
       { runSignal: options.signal, stopSignal: stepController.signal, gate },
@@ -1793,6 +1820,7 @@ async function runStoryboardStep(
     finishPageStep(progress, "web-rendering", pageFailureDeps)
     console.log(`[stage-run] ${label}: storyboard complete`)
   } finally {
+    unsubscribeSkips?.()
     if (visualRefinement) {
       await visualRefinement.screenshotRenderer.close()
     }

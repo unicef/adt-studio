@@ -6940,6 +6940,9 @@ msgstr "Prompt i Ndarjes së Faqeve"
 msgid "Page Sectioning Refinement Prompt"
 msgstr "Prompt i Rafinimit të Ndarjes së Faqeve"
 
+msgid "Page skipped"
+msgstr "Faqja u anashkalua"
+
 msgid "Page text, headings, and quiz content."
 msgstr "Teksti i faqes, titujt dhe përmbajtja e kuizeve."
 
@@ -8997,6 +9000,12 @@ msgstr "Dimensionimi"
 #~ msgid "sk-ant-..."
 #~ msgstr "sk-ant-..."
 
+msgid "Skip all failed pages"
+msgstr "Anashkalo të gjitha faqet me gabime"
+
+msgid "Skip all failed pages ({failedCount})"
+msgstr "Anashkalo të gjitha faqet me gabime ({failedCount})"
+
 msgid "Skip for now"
 msgstr "Kalo tani"
 
@@ -9005,6 +9014,9 @@ msgstr "Kapërce faqen dhe vazhdo"
 
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Kalo segmentimin për imazhet çdofaqja më e shkurtër e të cilave është nën këtë prag."
+
+msgid "Skip this page"
+msgstr "Anashkalo këtë faqe"
 
 msgid "Skip this page and continue the step, or stop the step entirely."
 msgstr "Kapërce këtë faqe dhe vazhdo hapin, ose ndale hapin plotësisht."
@@ -10006,6 +10018,9 @@ msgstr "Kjo faqe nuk ka hyrje teksti të përkthyeshme"
 
 msgid "This page has not been reviewed yet"
 msgstr "Kjo faqe nuk është rishikuar akoma"
+
+msgid "This page will not be rendered in this run"
+msgstr "Kjo faqe nuk do të paraqitet në këtë ekzekutim"
 
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "Shtresa e tekstit të integruar e kësaj faqeje është bosh, por hapi i Seksionimit rikuperoi tekst nga imazhi i faqes — pra duket si një faqe e skanuar ose vetëm me imazhe. Procesi ende mund të punojë me tekstin e rikuperuar, por për përmbledhje, metadata dhe përkthime më të mira, provoni të siguroni një version të këtij PDF-je të bazuar në tekst (me një shtresë teksti reale) në vend të një kopjeje të skanuar."

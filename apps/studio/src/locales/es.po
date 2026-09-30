@@ -6938,6 +6938,9 @@ msgstr "Prompt de seccionamiento de página"
 msgid "Page Sectioning Refinement Prompt"
 msgstr "Prompt de refinamiento de sección"
 
+msgid "Page skipped"
+msgstr "Página omitida"
+
 msgid "Page text, headings, and quiz content."
 msgstr "Texto de página, encabezados y contenido de cuestionarios."
 
@@ -8995,6 +8998,12 @@ msgstr "Dimensionamiento"
 #~ msgid "sk-ant-..."
 #~ msgstr "sk-ant-..."
 
+msgid "Skip all failed pages"
+msgstr "Omitir todas las páginas con error"
+
+msgid "Skip all failed pages ({failedCount})"
+msgstr "Omitir todas las páginas con error ({failedCount})"
+
 msgid "Skip for now"
 msgstr "Omitir por ahora"
 
@@ -9003,6 +9012,9 @@ msgstr "Omitir página y continuar"
 
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Omitir segmentación para imágenes cuyo lado más corto esté por debajo de este umbral."
+
+msgid "Skip this page"
+msgstr "Omitir esta página"
 
 msgid "Skip this page and continue the step, or stop the step entirely."
 msgstr "Omite esta página y continúa el paso, o detén el paso por completo."
@@ -10004,6 +10016,9 @@ msgstr "Esta página no tiene entradas de texto traducibles"
 
 msgid "This page has not been reviewed yet"
 msgstr "Esta página aún no ha sido revisada"
+
+msgid "This page will not be rendered in this run"
+msgstr "Esta página no se renderizará en esta ejecución"
 
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "La capa de texto incrustado de esta página está vacía, pero el paso de Seccionamiento recuperó texto a partir de la imagen de la página, por lo que parece una página escaneada o solo de imagen. La canalización aún puede funcionar con el texto recuperado, pero para obtener mejores resúmenes, metadatos y traducciones, intenta conseguir una versión de este PDF basada en texto (con una capa de texto real) en lugar de una copia escaneada."

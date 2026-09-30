@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { SkipForward, CircleStop } from "lucide-react"
+import { SkipForward, CircleStop, ListX } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react"
 import { msg } from "@lingui/core/macro"
@@ -36,8 +36,16 @@ export function PageErrorDecisionDialog() {
 
   const stepLabel = getStepLabelI18n(current.step)
 
+  const failedCount = pendingDecisions.length
+
   const resolve = (action: "skip" | "stop") => {
     resolveDecision(current.decisionId, action, applyToAll)
+  }
+
+  const skipAllFailed = () => {
+    for (const decision of pendingDecisions) {
+      resolveDecision(decision.decisionId, "skip")
+    }
   }
 
   return (
@@ -79,6 +87,18 @@ export function PageErrorDecisionDialog() {
           />
           <Trans>Apply to all errors in this run</Trans>
         </label>
+
+        {failedCount > 1 && (
+          <Button
+            variant="outline"
+            onClick={skipAllFailed}
+            className="-mt-1 h-10 w-full font-medium"
+            title={i18n._(msg`Skip all failed pages`)}
+          >
+            <ListX className="mr-2 h-4 w-4" />
+            <Trans>Skip all failed pages ({failedCount})</Trans>
+          </Button>
+        )}
 
         <DialogFooter className="-mt-1 gap-2">
           <Button

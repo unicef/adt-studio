@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, createContext, useContext, useState } from "react"
+import { useEffect, useCallback, useMemo, useRef, createContext, useContext, useState } from "react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { i18n } from "@lingui/core"
@@ -60,6 +60,7 @@ interface StepStatusResponse {
   stepMessages?: Record<string, string> | null
   runStatus?: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
   pendingDecisions?: PendingDecision[]
+  skippedPages?: string[]
 }
 
 // ---------------------------------------------------------------------------
@@ -92,6 +93,8 @@ export interface BookRunContextValue {
   pendingDecisions: PendingDecision[]
   /** Resolve the head pending decision. */
   resolveDecision(decisionId: string, action: "skip" | "stop", applyToAll?: boolean): void
+  skippedPageIds: ReadonlySet<string>
+  skipPages(pageIds: string[]): void
 }
 
 const BookRunContext = createContext<BookRunContextValue | null>(null)
@@ -853,6 +856,24 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     [label, queryClient]
   )
 
+  const skipPages = useCallback(
+    (pageIds: string[]) => {
+      if (pageIds.length === 0) return
+      const skipping = new Set(pageIds)
+      setPendingDecisions((prev) => prev.filter((p) => !skipping.has(p.pageId)))
+      queryClient.setQueryData<StepStatusResponse>(stepStatusKey(label), (old) =>
+        old ? { ...old, skippedPages: [...new Set([...(old.skippedPages ?? []), ...pageIds])] } : old
+      )
+      void api.skipPages(label, pageIds).catch(() => {
+        queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
+      })
+    },
+    [label, queryClient]
+  )
+
+  const polledSkippedPages = data?.skippedPages
+  const skippedPageIds = useMemo(() => new Set(polledSkippedPages ?? []), [polledSkippedPages])
+
   // Reconcile "cancelling…" across refresh/reconnect from the polled runStatus.
   // Force true when the server says "cancelling"; clear only on a terminal state.
   // "running" is deliberately left alone: right after the cancel click the poll
@@ -899,6 +920,8 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     cancelRun,
     pendingDecisions,
     resolveDecision,
+    skippedPageIds,
+    skipPages,
   }
 }
 

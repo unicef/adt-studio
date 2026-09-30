@@ -33,6 +33,10 @@ export interface PageErrorDecisions {
   /** Resolve every pending decision for a label and drop its apply-to-all
    *  policy. Called at run end (success/error) and cancel. Defaults to "stop". */
   clearForRun(label: string, action?: PageErrorAction): void
+  skipPages(label: string, pageIds: string[]): void
+  isPageSkipped(label: string, pageId: string): boolean
+  getSkippedPages(label: string): string[]
+  onPageSkip(label: string, listener: (pageId: string) => void): () => void
 }
 
 interface PendingEntry {
@@ -53,6 +57,8 @@ export function createPageErrorDecisions(
   const pending = new Map<string, PendingEntry>()
   // Per-label "apply to all" policy set once the user checks the box.
   const bulkPolicy = new Map<string, PageErrorAction>()
+  const skippedPages = new Map<string, Set<string>>()
+  const skipListeners = new Map<string, Set<(pageId: string) => void>>()
 
   function finish(entry: PendingEntry, action: PageErrorAction): void {
     if (entry.resolved) return
@@ -155,8 +161,40 @@ export function createPageErrorDecisions(
 
     clearForRun(label: string, action: PageErrorAction = "stop"): void {
       bulkPolicy.delete(label)
+      skippedPages.delete(label)
       for (const entry of [...pending.values()]) {
         if (entry.label === label) finish(entry, action)
+      }
+    },
+
+    skipPages(label: string, pageIds: string[]): void {
+      const skipped = skippedPages.get(label) ?? new Set<string>()
+      skippedPages.set(label, skipped)
+      const requested = new Set(pageIds)
+      for (const pageId of requested) skipped.add(pageId)
+      for (const entry of [...pending.values()]) {
+        if (entry.label === label && requested.has(entry.pageId)) finish(entry, "skip")
+      }
+      for (const listener of [...(skipListeners.get(label) ?? [])]) {
+        for (const pageId of requested) listener(pageId)
+      }
+    },
+
+    isPageSkipped(label: string, pageId: string): boolean {
+      return skippedPages.get(label)?.has(pageId) ?? false
+    },
+
+    getSkippedPages(label: string): string[] {
+      return [...(skippedPages.get(label) ?? [])]
+    },
+
+    onPageSkip(label: string, listener: (pageId: string) => void): () => void {
+      const listeners = skipListeners.get(label) ?? new Set<(pageId: string) => void>()
+      skipListeners.set(label, listeners)
+      listeners.add(listener)
+      return () => {
+        listeners.delete(listener)
+        if (listeners.size === 0) skipListeners.delete(label)
       }
     },
   }

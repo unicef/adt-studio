@@ -6940,6 +6940,9 @@ msgstr "Page Sectioning Invite"
 msgid "Page Sectioning Refinement Prompt"
 msgstr "Prompt de raffinement du sectionnement"
 
+msgid "Page skipped"
+msgstr "Page ignorée"
+
 msgid "Page text, headings, and quiz content."
 msgstr "Texte de page, titres et contenu des quiz."
 
@@ -8997,6 +9000,12 @@ msgstr "Dimensionnement"
 #~ msgid "sk-ant-..."
 #~ msgstr "sk-ant-..."
 
+msgid "Skip all failed pages"
+msgstr "Ignorer toutes les pages en erreur"
+
+msgid "Skip all failed pages ({failedCount})"
+msgstr "Ignorer toutes les pages en erreur ({failedCount})"
+
 msgid "Skip for now"
 msgstr "Passer pour l'instant"
 
@@ -9005,6 +9014,9 @@ msgstr "Ignorer la page et continuer"
 
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Ignorer la segmentation pour les images dont le côté le plus court est inférieur à ce seuil."
+
+msgid "Skip this page"
+msgstr "Ignorer cette page"
 
 msgid "Skip this page and continue the step, or stop the step entirely."
 msgstr "Ignorez cette page et continuez l’étape, ou arrêtez complètement l’étape."
@@ -10006,6 +10018,9 @@ msgstr "Cette page n'a pas d'entrées de texte traduisibles"
 
 msgid "This page has not been reviewed yet"
 msgstr "Cette page n'a pas encore été révisée"
+
+msgid "This page will not be rendered in this run"
+msgstr "Cette page ne sera pas rendue lors de cette exécution"
 
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "La couche de texte intégrée de cette page est vide, mais l'étape de Sectionnement a récupéré du texte à partir de l'image de la page — elle semble donc numérisée ou uniquement composée d'images. Le pipeline peut toujours fonctionner à partir du texte récupéré, mais pour de meilleurs résumés, métadonnées et traductions, essayez d'obtenir une version de ce PDF basée sur du texte (avec une vraie couche de texte) plutôt qu'une copie numérisée."

@@ -30,3 +30,10 @@ export const DecisionBody = z
   })
   .strict()
 export type DecisionBody = z.infer<typeof DecisionBody>
+
+export const SkipPagesBody = z
+  .object({
+    pageIds: z.array(z.string().min(1)).min(1),
+  })
+  .strict()
+export type SkipPagesBody = z.infer<typeof SkipPagesBody>

@@ -107,6 +107,7 @@ export {
   PageErrorAction,
   PendingDecision,
   DecisionBody,
+  SkipPagesBody,
 } from "./page-error.js"
 
 export {

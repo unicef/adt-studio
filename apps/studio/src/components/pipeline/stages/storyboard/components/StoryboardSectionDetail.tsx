@@ -84,7 +84,8 @@ import {
   useSetEditableActivityPresentation,
 } from "@/hooks/use-editable-activities"
 import { toast } from "sonner"
-import { Puzzle, ListChecks } from "lucide-react"
+import { Puzzle, ListChecks, SkipForward } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { StyleEditorPanel } from "./style-editor"
 import { FitScaleIndicator } from "./FitScaleIndicator"
 import { ViewportToggle } from "./style-editor/ViewportToggle"
@@ -449,7 +450,7 @@ export function StoryboardSectionDetail({
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const hasAgentProvider = useBookAgentAvailability(bookLabel)
   const { headerSlotEl } = useStepHeader()
-  const { stageState } = useBookRun()
+  const { stageState, skippedPageIds, skipPages } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   // Resolved reflowable base font (gated server-side; null for fixed-layout /
@@ -2899,8 +2900,21 @@ export function StoryboardSectionDetail({
                 />
             )}
           </>
+        ) : storyboardRunning && !section?.isPruned && skippedPageIds.has(pageId) ? (
+          <StageEmptyState
+            icon={SkipForward}
+            color="violet"
+            title={t`Page skipped`}
+            subtitle={t`This page will not be rendered in this run`}
+          />
         ) : storyboardRunning && !section?.isPruned ? (
-          <LoadingState stageSlug="storyboard" label={t`Rendering this section...`} />
+          <div className="flex h-full w-full flex-col items-center pb-8">
+            <LoadingState stageSlug="storyboard" label={t`Rendering this section...`} />
+            <Button variant="outline" size="sm" onClick={() => skipPages([pageId])}>
+              <SkipForward className="mr-2 h-4 w-4" />
+              {t`Skip this page`}
+            </Button>
+          </div>
         ) : (
           <StageEmptyState
             icon={LayoutGrid}

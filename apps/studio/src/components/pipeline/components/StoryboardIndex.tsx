@@ -9,6 +9,7 @@ import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useQuizzes } from "@/hooks/use-quizzes"
+import { useBookRun } from "@/hooks/use-book-run"
 import { getSectionScreenshotUrl, type PageSummaryItem, type PageSummarySection } from "@/api/client"
 import { STAGES } from "../stage-config"
 import type { Quiz } from "@adt/types"
@@ -35,6 +36,7 @@ export function StoryboardIndex({
 }) {
   const { data: pages } = usePages(bookLabel)
   const { data: quizzesData } = useQuizzes(bookLabel)
+  const { skippedPageIds } = useBookRun()
   const navigate = useNavigate()
   const parentRef = useRef<HTMLDivElement>(null)
   const storyboardStageDef = STAGES.find((s) => s.slug === "storyboard")
@@ -171,7 +173,7 @@ export function StoryboardIndex({
                   onSelect={() =>
                     onSelectSection?.(item.page.pageId, item.section.sectionIndex)
                   }
-                  stageRunning={stageRunning}
+                  stageRunning={stageRunning && !skippedPageIds.has(item.page.pageId)}
                 />
               ) : (
                 <QuizRow
