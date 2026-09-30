@@ -167,10 +167,15 @@ details that remain within the approved contract do not require a new spec decis
    closed, because INDEX only learns about a spec when its PR merges. This prints the
    highest number either source holds, wherever it sits in a PR title:
    ```bash
-   { gh pr list --state all --limit 1000 --search "SPEC in:title" --json title --jq '.[].title'
-     cat docs/specs/INDEX.md; } | grep -oE 'SPEC-[0-9]{4}' | sort -u | tail -1
+   (
+     set -euo pipefail
+     spec_pr_titles=$(gh pr list --state all --limit 1000 --search "SPEC in:title" --json title --jq '.[].title')
+     spec_index=$(cat docs/specs/INDEX.md)
+     printf '%s\n' "$spec_pr_titles" "$spec_index" | grep -oE 'SPEC-[0-9]{4}' | sort -u | tail -1
+   )
    ```
-   Use the next number after it.
+   Use the next number after it only if the command succeeds. If either lookup fails,
+   fix the error and rerun it before choosing a number.
 2. Branch `spec/<issue>-<slug>` from `develop` and copy
    [`docs/specs/TEMPLATE.md`](specs/TEMPLATE.md) to `docs/specs/SPEC-NNNN-short-slug.md`.
 3. Fill it in. **Generating the first draft with an agent, from the issue and the
