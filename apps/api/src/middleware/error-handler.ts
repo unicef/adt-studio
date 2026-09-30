@@ -1,6 +1,7 @@
 import type { ErrorHandler } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { AiProviderError } from "@adt/llm"
+import { ExtractionAdmissionError, BookBusyError } from "@adt/storage"
 import type { AiProviderErrorCode } from "@adt/types"
 
 /** A missing or unusable provider selection is a request problem, not a bug. */
@@ -14,6 +15,13 @@ const PROVIDER_ERROR_STATUS: Record<AiProviderErrorCode, 400 | 422> = {
 }
 
 export const errorHandler: ErrorHandler = (err, c) => {
+  if (err instanceof ExtractionAdmissionError || err instanceof BookBusyError) {
+    return c.json({
+      error: err.message,
+      code: err.code,
+      ...(err instanceof ExtractionAdmissionError && err.summary ? { summary: err.summary } : {}),
+    }, 409)
+  }
   if (err instanceof HTTPException) {
     return c.json({ error: err.message }, err.status)
   }

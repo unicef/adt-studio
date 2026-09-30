@@ -14,6 +14,7 @@ import {
   retireSectionIds,
   NOTHING_RETIRED,
   PAGE_SECTIONING_NODE,
+  assertSafeExtractionRun,
 } from "@adt/pipeline"
 import type { SectionIdRetirementResult } from "@adt/pipeline"
 import type { StageService } from "../services/stage-service.js"
@@ -165,6 +166,9 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
   let ran = false
   return () => {
     if (ran) return
+    // Extract admission is performed by the shared runner before storage opens.
+    // Neither a cascade confirmation nor queued execution authorizes a reset.
+    if (fromStage === "extract") return
     const storage = createBookStorage(label, booksDir)
     try {
       const { retired, preserved } = retireWithPreservedRecordings(
@@ -185,10 +189,7 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
         )
       }
 
-      if (fromStage === "extract") {
-        // clearExtractedData also clears step_runs
-        storage.clearExtractedData()
-      } else {
+      {
         const nodes = getStageRerunClearNodes(fromStage, toStage)
         if (nodes.length > 0) {
           storage.clearNodesByType(nodes)
@@ -245,6 +246,10 @@ export function createStageRoutes(
     }
 
     const { fromStage, toStage, renderOnly, pageErrorPolicy } = parsed.data
+    const active = stageService.getStatus(label).active
+    if (fromStage === "extract" && active?.status !== "running" && active?.status !== "cancelling") {
+      assertSafeExtractionRun(label, booksDir, configPath)
+    }
     const credentials = readProviderCredentials(c)
 
     // Fail before beforeRun clears any stage data: a run that cannot make a
@@ -280,12 +285,6 @@ export function createStageRoutes(
       // Queued jobs clear data when they start executing
       beforeRun: clearData,
     })
-
-    // For immediately started jobs, clear data synchronously so the
-    // frontend can refetch and see the cleared state right away.
-    if (result.status === "started") {
-      clearData()
-    }
 
     return c.json({ status: result.status, label, fromStage, toStage })
   })

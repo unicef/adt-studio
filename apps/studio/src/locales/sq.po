@@ -3761,6 +3761,9 @@ msgstr "Përjashto nga leximi me zë"
 msgid "Exclude from render"
 msgstr "Përjashto nga renderimi"
 
+msgid "Existing extraction and edits are preserved. Changing the PDF or extraction settings requires importing a new book. Safe downstream resume is not available yet."
+msgstr "Nxjerrja dhe redaktimet ekzistuese ruhen. Ndryshimi i PDF-së ose i cilësimeve të nxjerrjes kërkon importimin e një libri të ri. Vazhdimi i sigurt i fazave të mëtejshme ende nuk është i disponueshëm."
+
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "Seancat ekzistuese të rishikuesit ruajnë fotografinë e tyre të listës së kontrollit. Ndryshimet e reja të listës zbatohen për seancat e krijuara rishtazi."
 
@@ -3870,6 +3873,9 @@ msgstr "Tekst i nxjerrë"
 
 msgid "Extracting..."
 msgstr "Duke nxjerrë..."
+
+msgid "Extraction did not complete. Partial data has been kept. Import the PDF as a new book to try again."
+msgstr "Nxjerrja nuk përfundoi. Të dhënat e pjesshme janë ruajtur. Importojeni PDF-në si libër të ri për të provuar përsëri."
 
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "Ekstraktimi është në proces — mund të rishikoni faqet e përbashkëta pasi të përfundojë."
@@ -6718,6 +6724,9 @@ msgstr "ose kliko për të shfletuar skedarët"
 
 msgid "Original"
 msgstr "Origjinal"
+
+msgid "Original extraction files are missing or damaged. Import the PDF as a new book; the existing book will be kept."
+msgstr "Skedarët origjinalë të nxjerrjes mungojnë ose janë dëmtuar. Importojeni PDF-në si libër të ri; libri ekzistues do të ruhet."
 
 msgid "Original language"
 msgstr "Gjuha origjinale"
@@ -9693,6 +9702,9 @@ msgstr "Udhëzimi i parazgjedhur i TTS-së i aplikuar për çdo gjuhë, përveç
 msgid "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 msgstr "I gjithë faqja trajtohet si një seksion i vetëm — i gjithë teksti dhe imazhet qëndrojnë bashkë si një njësi. Më e mirë për libra me tregime, libra referencë dhe çdo përmbajtje ku çdo faqe është e vetëmjaftueshme."
 
+msgid "The extraction settings have changed. Import the PDF as a new book; the existing book will be kept."
+msgstr "Cilësimet e nxjerrjes kanë ndryshuar. Importojeni PDF-në si libër të ri; libri ekzistues do të ruhet."
+
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "Skedari mund të jetë i dëmtuar ose i paplotë. Provo ta shkarkosh sërish nga burimi."
 
@@ -9728,6 +9740,15 @@ msgstr "Pylli i Humbur"
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të ruhet dhe të vendoset veçmas."
+
+msgid "The original extraction is verified. Safe downstream resume is not available yet, so no content was changed or generated."
+msgstr "Nxjerrja origjinale është verifikuar. Vazhdimi i sigurt i fazave të mëtejshme ende nuk është i disponueshëm, prandaj asnjë përmbajtje nuk u ndryshua ose u gjenerua."
+
+msgid "The PDF has changed. Import it as a new book; the existing book will be kept."
+msgstr "PDF-ja ka ndryshuar. Importojeni si libër të ri; libri ekzistues do të ruhet."
+
+msgid "The PDF or extraction settings are invalid. Check the source and page range."
+msgstr "PDF-ja ose cilësimet e nxjerrjes janë të pavlefshme. Kontrolloni burimin dhe intervalin e faqeve."
 
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "Procesi që bimët përdorin për të kthyer dritën e diellit, ujin dhe dioksidin e karbonit në ushqim."
@@ -9879,11 +9900,17 @@ msgstr "Ky arkiv nuk mund të hapet në mënyrë të sigurt"
 msgid "This book has {pageCount} pages."
 msgstr "Ky libër ka {pageCount} faqe."
 
+msgid "This book has an active writer or pending recovery. Wait for it to finish and try again."
+msgstr "Ky libër ka një operacion aktiv ose një rikuperim në pritje. Prisni derisa të përfundojë dhe provoni përsëri."
+
 msgid "This book has no images to caption"
 msgstr "Ky libër nuk ka imazhe për t'i titulluar"
 
 msgid "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
 msgstr "Ky libër nuk ka faqe. Sigurohu që fazat e nxjerrjes dhe storyboard kanë prodhuar përmbajtje para gjenerimit të {stageName}."
+
+msgid "This book has no verified extraction record. Keep editing it, or import the PDF as a new book to extract again."
+msgstr "Ky libër nuk ka një regjistër të verifikuar të nxjerrjes. Vazhdoni redaktimin ose importojeni PDF-në si libër të ri për ta nxjerrë përsëri."
 
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "Ky libër është një pjesë: intervali i faqeve është fiks, i përket nëngrupit të caktuar dhe nuk mund të ndryshohet."

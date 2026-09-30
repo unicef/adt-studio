@@ -1,3 +1,4 @@
+import { localizeExtractionError } from "@/lib/extraction-errors"
 import { useEffect, useCallback, useRef, createContext, useContext, useState } from "react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
@@ -478,7 +479,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       if (me.data) {
         try {
           const d = JSON.parse(me.data)
-          const runError = d.error ?? i18n._(msg`Step run failed`)
+          const runError = localizeExtractionError(d.error ?? i18n._(msg`Step run failed`))
           queryClient.setQueryData<StepStatusResponse>(stepStatusKey(label), (old) => {
             if (!old) return old
             return { ...old, error: runError }
@@ -655,7 +656,9 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       }
 
       // Optimistically mark target stage(s) as queued and clear downstream
-      const stagesToClear = new Set(getStageClearOrder(fromStage as StageName))
+      // Extraction admission never resets an occupied book. Preserve visible
+      // output while the server verifies it or explains why a new book is needed.
+      const stagesToClear = new Set(fromStage === "extract" ? [] : getStageClearOrder(fromStage as StageName))
       queryClient.setQueryData<StepStatusResponse>(stepStatusKey(label), (old) => {
         // Seed a base when the initial step-status fetch hasn't resolved yet
         // (e.g. a run kicked off right after landing on the book). Bailing out
@@ -891,7 +894,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     stepState: stepStateAccessor,
     stepProgress: stepProgressAccessor,
     stepError: stepErrorAccessor,
-    error: data?.error ?? null,
+    error: data?.error ? localizeExtractionError(data.error) : null,
     isRunning,
     isCancelling,
     isStatusLoading: isPending,

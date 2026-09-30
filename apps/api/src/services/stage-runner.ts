@@ -1,7 +1,8 @@
 import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, resolveBookPaths, withBookWriter, assertExtractionReadable } from "@adt/storage"
+import { assertSafeExtractionRun } from "@adt/pipeline"
 import type { Storage } from "@adt/storage"
 import {
   AiProviderError,
@@ -914,87 +915,91 @@ export function createStageRunner(): StageRunner {
       options: StageRunOptions,
       progress: StageRunProgress
     ): Promise<void> {
-      const { fromStage, toStage, booksDir } = options
-      console.log(`[stage-run] ${label}: starting ${fromStage}→${toStage}`)
+      return withBookWriter(resolveBookPaths(label, options.booksDir).bookDir, async () => {
+        const { fromStage, toStage, booksDir } = options
+        if (fromStage === "extract") assertSafeExtractionRun(label, booksDir, options.configPath)
+        else assertExtractionReadable(resolveBookPaths(label, booksDir).bookDir)
+        console.log(`[stage-run] ${label}: starting ${fromStage}→${toStage}`)
 
-      const fromIndex = STAGE_ORDER.indexOf(fromStage as StageName)
-      const toIndex = STAGE_ORDER.indexOf(toStage as StageName)
+        const fromIndex = STAGE_ORDER.indexOf(fromStage as StageName)
+        const toIndex = STAGE_ORDER.indexOf(toStage as StageName)
 
-      if (fromIndex === -1 || toIndex === -1 || fromIndex > toIndex) {
-        throw new Error(`Invalid stage range "${fromStage}" to "${toStage}"`)
-      }
-
-      // Wrap progress to persist step lifecycle to the DB.
-      // This is the single place where step state transitions are recorded,
-      // so the step-status endpoint can read from step_runs.
-      const completionStorage = createBookStorage(label, booksDir)
-      const runningSteps = new Set<StepName>()
-      try {
-        const trackingProgress: StageRunProgress = {
-          emit(event) {
-            if (event.type === "step-start") {
-              // Cancellation checkpoint before every step: a cancel that lands
-              // between steps stops the run here, before the step is recorded.
-              if (options.signal?.aborted) throw new RunCancelledError()
-              runningSteps.add(event.step)
-              completionStorage.markStepStarted(event.step)
-            } else if (event.type === "step-complete") {
-              runningSteps.delete(event.step)
-              completionStorage.markStepCompleted(event.step, event.message)
-            } else if (event.type === "step-skip") {
-              runningSteps.delete(event.step)
-              completionStorage.markStepSkipped(event.step)
-            } else if (event.type === "step-error") {
-              runningSteps.delete(event.step)
-              completionStorage.recordStepError(event.step, event.error)
-            } else if (event.type === "step-progress" && event.message) {
-              completionStorage.updateStepMessage(event.step, event.message)
-            }
-            progress.emit(event)
-          },
+        if (fromIndex === -1 || toIndex === -1 || fromIndex > toIndex) {
+          throw new Error(`Invalid stage range "${fromStage}" to "${toStage}"`)
         }
 
-        for (let i = fromIndex; i <= toIndex; i++) {
-          if (options.signal?.aborted) throw new RunCancelledError()
-          const stage = STAGE_ORDER[i]
-          try {
-            await STAGE_RUNNERS[stage](label, options, trackingProgress)
-            progress.emit({ type: "stage-complete", stage })
-          } catch (err) {
-            // A cancel is a deliberate action, not a failure: don't record step
-            // errors or emit step-error/stage-error (that would paint the
-            // sidebar red and, with the error toast/sound, beep on cancel).
-            // Just re-throw — executeJob's abort branch handles persistence cleanup.
-            if (isCancellation(err, [options.signal])) {
+        // Wrap progress to persist step lifecycle to the DB.
+        // This is the single place where step state transitions are recorded,
+        // so the step-status endpoint can read from step_runs.
+        const completionStorage = createBookStorage(label, booksDir)
+        const runningSteps = new Set<StepName>()
+        try {
+          const trackingProgress: StageRunProgress = {
+            emit(event) {
+              if (event.type === "step-start") {
+                // Cancellation checkpoint before every step: a cancel that lands
+                // between steps stops the run here, before the step is recorded.
+                if (options.signal?.aborted) throw new RunCancelledError()
+                runningSteps.add(event.step)
+                completionStorage.markStepStarted(event.step)
+              } else if (event.type === "step-complete") {
+                runningSteps.delete(event.step)
+                completionStorage.markStepCompleted(event.step, event.message)
+              } else if (event.type === "step-skip") {
+                runningSteps.delete(event.step)
+                completionStorage.markStepSkipped(event.step)
+              } else if (event.type === "step-error") {
+                runningSteps.delete(event.step)
+                completionStorage.recordStepError(event.step, event.error)
+              } else if (event.type === "step-progress" && event.message) {
+                completionStorage.updateStepMessage(event.step, event.message)
+              }
+              progress.emit(event)
+            },
+          }
+
+          for (let i = fromIndex; i <= toIndex; i++) {
+            if (options.signal?.aborted) throw new RunCancelledError()
+            const stage = STAGE_ORDER[i]
+            try {
+              await STAGE_RUNNERS[stage](label, options, trackingProgress)
+              progress.emit({ type: "stage-complete", stage })
+            } catch (err) {
+              // A cancel is a deliberate action, not a failure: don't record step
+              // errors or emit step-error/stage-error (that would paint the
+              // sidebar red and, with the error toast/sound, beep on cancel).
+              // Just re-throw — executeJob's abort branch handles persistence cleanup.
+              if (isCancellation(err, [options.signal])) {
+                throw err
+              }
+              const message = toErrorMessage(err)
+              for (const step of runningSteps) {
+                completionStorage.recordStepError(step, message)
+                progress.emit({ type: "step-error", step, error: message })
+              }
+              runningSteps.clear()
+              progress.emit({ type: "stage-error", stage, error: message })
               throw err
             }
-            const message = toErrorMessage(err)
-            for (const step of runningSteps) {
-              completionStorage.recordStepError(step, message)
-              progress.emit({ type: "step-error", step, error: message })
-            }
-            runningSteps.clear()
-            progress.emit({ type: "stage-error", stage, error: message })
+          }
+        } catch (err) {
+          // Fallback for unexpected throws outside the per-stage loop. Stage
+          // failures are already recorded/emitted by the inner catch above.
+          if (isCancellation(err, [options.signal])) {
             throw err
           }
-        }
-      } catch (err) {
-        // Fallback for unexpected throws outside the per-stage loop. Stage
-        // failures are already recorded/emitted by the inner catch above.
-        if (isCancellation(err, [options.signal])) {
+          const message = toErrorMessage(err)
+          for (const step of runningSteps) {
+            completionStorage.recordStepError(step, message)
+            progress.emit({ type: "step-error", step, error: message })
+          }
           throw err
+        } finally {
+          completionStorage.close()
         }
-        const message = toErrorMessage(err)
-        for (const step of runningSteps) {
-          completionStorage.recordStepError(step, message)
-          progress.emit({ type: "step-error", step, error: message })
-        }
-        throw err
-      } finally {
-        completionStorage.close()
-      }
 
-      console.log(`[stage-run] ${label}: completed ${fromStage}→${toStage}`)
+        console.log(`[stage-run] ${label}: completed ${fromStage}→${toStage}`)
+      })
     },
   }
 }
@@ -1102,6 +1107,7 @@ async function runExtractStep(
         removeWatermarks: config.remove_watermarks === true,
         fixedLayout: isFixedLayoutBook(config),
         fontsCacheDir: resolveFontsCacheDir(booksDir),
+        signal: options.signal,
       },
       storage,
       progress

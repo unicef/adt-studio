@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { openBookDb, createBookStorage, withBookWriter } from "@adt/storage"
 import { zipSync } from "fflate"
 import { SCHEMA_VERSION } from "@adt/types"
 import type { StageName } from "@adt/types"
@@ -758,6 +758,11 @@ describe("POST /books/:label/stages/run", () => {
     expect(res.status).toBe(200)
     expect(receivedOptions?.renderOnly).toBe(true)
     expect(receivedOptions?.credentials).toEqual({})
+    // Submission leaves content intact; only the admitted worker may clear.
+    const submittedStorage = createBookStorage(label, tmpDir)
+    try { expect(submittedStorage.getLatestNodeData("web-rendering", "pg001")).not.toBeNull() }
+    finally { submittedStorage.close() }
+    withBookWriter(path.join(tmpDir, label), () => receivedOptions?.beforeRun?.())
 
     const verifyStorage = createBookStorage(label, tmpDir)
     try {

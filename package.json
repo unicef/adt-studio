@@ -11,6 +11,7 @@
     "test:watch": "pnpm build && vitest",
     "typecheck": "tsc --build",
     "lint": "pnpm --filter @adt/studio lint",
+    "lint:invariants": "node scripts/check-invariants.mjs",
     "clean": "tsc --build --clean",
     "build": "pnpm tsc --build && pnpm --filter @adt/runtime build",
     "dev": "node scripts/dev.mjs",

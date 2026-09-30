@@ -1,6 +1,7 @@
 import { STAGE_ORDER, type ProgressEvent } from "@adt/types"
 import type { StageName, StepName, PageErrorPolicy, PageErrorAction } from "@adt/types"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, resolveBookPaths, withBookWriter, assertExtractionReadable } from "@adt/storage"
+import { assertSafeExtractionRun } from "@adt/pipeline"
 import type { ResolvedCredentials } from "@adt/llm"
 import type { BookEventBus } from "./book-event-bus.js"
 import type { PageErrorDecisions } from "./page-error-decisions.js"
@@ -137,8 +138,13 @@ export function createStageService(
     }
 
     try {
-      options.beforeRun?.()
-      await runner.run(label, effectiveOptions, progress)
+      await withBookWriter(resolveBookPaths(label, options.booksDir).bookDir, async () => {
+        job.controller.signal.throwIfAborted()
+        if (options.fromStage === "extract") assertSafeExtractionRun(label, options.booksDir, options.configPath)
+        else assertExtractionReadable(resolveBookPaths(label, options.booksDir).bookDir)
+        options.beforeRun?.()
+        await runner.run(label, effectiveOptions, progress)
+      })
       // Resolved: either a real completion, or a cancel that landed after the
       // last checkpoint so all remaining work finished. Both are "completed" —
       // no cancelled event, no step reset (the run genuinely finished).
@@ -151,12 +157,14 @@ export function createStageService(
         // runner is no longer touching step_runs. Return in-flight steps to idle
         // (deliberate action, not a failure) and announce completion of the cancel.
         try {
-          const storage = createBookStorage(label, options.booksDir)
-          try {
-            storage.clearRunningStepRuns()
-          } finally {
-            storage.close()
-          }
+          withBookWriter(resolveBookPaths(label, options.booksDir).bookDir, () => {
+            const storage = createBookStorage(label, options.booksDir)
+            try {
+              storage.clearRunningStepRuns()
+            } finally {
+              storage.close()
+            }
+          })
         } catch (cleanupErr) {
           console.error(`[stage-run] ${label} cancel cleanup failed:`, cleanupErr)
         }

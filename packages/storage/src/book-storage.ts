@@ -9,6 +9,13 @@ import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, Segm
 import { openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
 
+const storageDirectories = new WeakMap<Storage, string>()
+export function getStorageBookDir(storage: Storage): string {
+  const directory = storageDirectories.get(storage)
+  if (!directory) throw new Error("Extraction requires book-backed storage")
+  return directory
+}
+
 export interface BookPaths {
   bookDir: string
   dbPath: string
@@ -64,7 +71,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     }
   }
 
-  return {
+  const storage: Storage = {
     transaction,
 
     clearExtractedData(): void {
@@ -588,6 +595,8 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       db.close()
     },
   }
+  storageDirectories.set(storage, paths.bookDir)
+  return storage
 }
 
 function clearImageFiles(imagesDir: string): void {

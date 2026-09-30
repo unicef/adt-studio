@@ -1,4 +1,5 @@
 import { isElectron } from "@/lib/utils"
+import { localizeExtractionError } from "@/lib/extraction-errors"
 import type {
   AccessibilityAssessmentOutput,
   BookDetail,
@@ -117,7 +118,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     } catch {
       message = text || undefined
     }
-    throw new Error(message ?? `Request failed: ${res.status}`)
+    throw new Error(localizeExtractionError(message ?? `Request failed: ${res.status}`))
   }
 
   return res.json()

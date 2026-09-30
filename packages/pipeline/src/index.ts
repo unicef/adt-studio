@@ -459,3 +459,4 @@ export {
   generateActivityFeedback,
   type ActivityFeedbackConfig,
 } from "./activity-feedback.js"
+export { prepareExtractionAdmission, extractionOptionsFromConfig, assertSafeExtractionRun } from "./extraction-admission.js"

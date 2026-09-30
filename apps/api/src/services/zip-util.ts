@@ -36,6 +36,9 @@ export function collectFilePaths(dir: string, prefix = "", excludeDirs?: Set<str
   const result: string[] = []
   const entries = fs.readdirSync(dir, { withFileTypes: true })
   for (const entry of entries) {
+    // Process ownership is not portable project provenance. Never export a
+    // live lease (which could block an imported copy on another machine).
+    if (!prefix && [".book-writer.json", ".book-writer.json.recovery"].includes(entry.name)) continue
     const zipPath = prefix ? `${prefix}/${entry.name}` : entry.name
     if (entry.isDirectory()) {
       if (excludeDirs && !prefix && excludeDirs.has(entry.name)) continue

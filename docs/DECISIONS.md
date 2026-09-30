@@ -29,6 +29,7 @@ This document records all significant technology and architecture decisions made
 21. [Context-Aware Top Bar Button](#021-context-aware-top-bar-button)
 22. [Unified Stage/Step Status via useBookRun](#022-unified-stagestep-status-via-usebookrun)
 23. [Visual Refinement + File-Based Debug Screenshots](#023-visual-refinement--file-based-debug-screenshots)
+26. [Existing books require verified extraction reuse](#026-existing-books-require-verified-extraction-reuse)
 
 ---
 
@@ -864,6 +865,36 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 
 ---
 
+## 026: Existing books require verified extraction reuse
+
+**Status**: proposed
+**Date**: 2026-09-22
+**Spec**: [SPEC-0010](specs/SPEC-0010-safe-cli-reruns.md)
+**Issues**: #810
+
+### Context
+
+CLI and API extraction entry points can clear the existing page graph and historical entities; retained LLM caches do not restore user edits. A same-label run currently does not distinguish compatible reuse from changed-source replacement.
+
+### Decision
+
+Admit an existing book only when a completed extraction manifest proves the same source bytes, effective extraction inputs and intact extraction-owned assets. Reuse that extraction and enter only preservation-aware downstream execution; otherwise reject before mutation. In B1, changed-source or unverifiable legacy extraction requires a new user-chosen book destination.
+
+### Consequences
+
+This deliberately restricts same-label reruns for legacy or changed-source books. Provenance and writer admission stay book-local, destructive force/reset behavior is excluded, and safe full resume remains dependent on reviewed downstream policies. In-place extraction generations require a later design.
+
+This ADR is under review with its spec; no implementation acceptance criterion is satisfied by publishing it. The spec owns the acceptance/test mapping and approval questions. Existing invariant-registry checks remain as documented; new enforcement belongs to the implementing change.
+
+### Alternatives Considered
+
+| Approach | Why Not |
+|---|---|
+| Warn and reset or expand survivor allowlists | Does not preserve history or establish source identity. |
+| Version every extraction generation now | Requires a broader active-graph, reader and media migration beyond B1. |
+
+---
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -891,6 +922,7 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 | 021 | Top bar button | Context-aware per stage | Per-stage inline buttons in sidebar |
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
+| 026 | Existing books require verified extraction reuse (proposed) | See SPEC-0010 | Warn and reset or expand survivor allowlists |
 
 ---
 

@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, resolveBookPaths, withBookWriter, ExtractionAdmissionError } from "@adt/storage"
+import { prepareExtractionAdmission, extractionOptionsFromConfig } from "./extraction-admission.js"
 import type { Storage, PageData } from "@adt/storage"
 import {
   createLLMModel,
@@ -157,6 +158,22 @@ export async function runFullPipeline(
   options: FullPipelineOptions,
   progress: Progress = nullProgress,
 ): Promise<PipelineDAGResult> {
+  const { bookDir } = resolveBookPaths(options.label, options.booksRoot)
+  return withBookWriter(bookDir, async () => {
+    const config = loadBookConfig(options.label, options.booksRoot, options.configPath)
+    const extraction = extractionOptionsFromConfig(options.pdfPath, config)
+    extraction.startPage = options.startPage ?? extraction.startPage
+    extraction.endPage = options.endPage ?? extraction.endPage
+    const admission = prepareExtractionAdmission(bookDir, extraction)
+    if (admission.outcome === "reused") throw new ExtractionAdmissionError("UNSAFE_RESUME_UNAVAILABLE")
+    return runInitialFullPipeline(options, progress)
+  })
+}
+
+async function runInitialFullPipeline(
+  options: FullPipelineOptions,
+  progress: Progress,
+): Promise<PipelineDAGResult> {
   const {
     label,
     pdfPath,
@@ -174,14 +191,6 @@ export async function runFullPipeline(
   }
 
   const storage = createBookStorage(label, booksRoot)
-
-  // Copy source PDF into book directory
-  const bookDir = path.join(booksRoot, label)
-  const destPdf = path.join(bookDir, `${label}.pdf`)
-  const resolvedPdf = path.resolve(pdfPath)
-  if (resolvedPdf !== path.resolve(destPdf)) {
-    fs.copyFileSync(resolvedPdf, destPdf)
-  }
 
   try {
     const config = loadBookConfig(label, booksRoot, configPath)

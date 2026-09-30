@@ -388,17 +388,19 @@ describe("full-stage quiz regeneration", () => {
     expect(useStorage((s) => s.getStepRuns()).find((s) => s.step === "quiz-generation")?.status).toBe("error")
   })
 
-  it("reserves IDs after upstream invalidation and a complete extraction reset", async () => {
+  it("reserves IDs after upstream invalidation and preserves them at Extract admission", async () => {
     seed([quiz("One"), quiz("Two")])
     makeBeforeRun(label, "storyboard", "storyboard", root)()
     expect(useStorage((s) => s.getLatestNodeData("quiz-generation", "book"))).toBeNull()
     useStorage((s) => saveQuizOutput(s, output([quiz("Three")]), "replace"))
     expect(stored().quizzes[0].quizId).toBe("qz003")
+    const beforeExtract = history()
     makeBeforeRun(label, "extract", "quizzes", root)()
-    expect(useStorage((s) => s.getLatestNodeData("quiz-generation", "book"))).toBeNull()
+    expect(stored().quizzes[0].quizId).toBe("qz003")
+    expect(history()).toEqual(beforeExtract)
     useStorage((s) => saveQuizOutput(s, output([quiz("Four")]), "replace"))
     expect(stored().quizzes[0].quizId).toBe("qz004")
-    expect(history()).toHaveLength(5)
+    expect(history()).toHaveLength(4)
   })
 
   it("cannot reuse or overwrite old manual audio when the full run preserves the speech manifest", async () => {

@@ -700,7 +700,7 @@ Key files:
 - `packages/types/src/pipeline.ts` — Pipeline definition and derived lookups
 - `packages/pipeline/src/dag.ts` — Generic DAG runner
 - `packages/pipeline/src/pipeline-dag.ts` — Pipeline-specific DAG executor
-- `apps/api/src/services/step-runner.ts` — API-side stage runners
+- `apps/api/src/services/stage-runner.ts` — API-side stage runners
 - `apps/studio/src/components/pipeline/StageRunCard.tsx` — UI card (sub-steps derived from PIPELINE)
 - `apps/studio/src/components/pipeline/stages/` — Per-stage view components
 
@@ -709,8 +709,8 @@ Key files:
 Stage runs are queued per-book — if a run is already active, new runs wait and execute sequentially. Key patterns:
 
 - **Backend**: `stage-service.ts` manages a `BookRunState` per book with an active job and a queue. Jobs drain automatically on completion/failure.
-- **Frontend**: All run handlers call `queueRun(options)` from `useBookRun()` — never `api.runStages` directly. This function does an optimistic cache update (mark stage "queued", clear downstream), then chains the API call through a promise chain to preserve click ordering.
-- **Data clearing**: Happens via a `beforeRun` callback when the job *starts executing*, not when enqueued. This prevents clearing data for a stage that hasn't started yet.
+- **Frontend**: All run handlers call `queueRun(options)` from `useBookRun()` — never `api.runStages` directly. This function does an optimistic cache update (mark stage "queued", clear downstream except for Extract), then chains the API call through a promise chain to preserve click ordering.
+- **Writer admission**: API mutations, TaskService workers, stage jobs and CLI/direct extraction share `withBookWriter`. Queued jobs acquire the gate and revalidate when they start. Extract admission precedes mutable storage and source copying; `makeBeforeRun` never clears Extract content. Other stage callbacks run under the writer lease. See [safe extraction](SAFE_EXTRACTION.md).
 - **SSE continuity**: The SSE stream is always-on (opens on book mount, closes on unmount). A `queue-next` event signals when a queued run begins executing, triggering a full refetch.
 - **Query invalidation**: Use `invalidateQueries` — never `removeQueries`. `removeQueries` deletes cached data, causing completed stages to flash to "unrun" while the refetch is in flight. `invalidateQueries` keeps stale data visible during the refetch, preventing visual glitches.
 
@@ -1012,8 +1012,8 @@ const showRunCard = state !== "done"
 ```
 
 Key rules:
-- **Recording**: `step-runner.ts` wraps the progress emitter to call `storage.markStepComplete(step)` on every `step-complete`/`step-skip` event. This is the only place completions are recorded.
-- **Clearing**: `makeBeforeRun` in `stages.ts` clears `step_completions` for the target stage and all downstream stages (via `getStageClearOrder`).
+- **Recording**: `stage-runner.ts` wraps the progress emitter to call `storage.markStepComplete(step)` on every `step-complete`/`step-skip` event. This is the only place completions are recorded.
+- **Clearing**: `makeBeforeRun` in `stages.ts` clears `step_completions` for the target stage and all downstream stages (via `getStageClearOrder`), except Extract, which must pass non-destructive admission.
 - **Schema migrations**: The `step_completions` table was added in schema v7. Migrations backfill from existing `node_data` so previously-processed books don't appear incomplete.
 - **Sub-step progress**: Page X/Y progress during running steps is stored in a `useRef<Map>` with a tick counter for reactivity, avoiding full re-renders on every progress event.
 
@@ -1226,7 +1226,7 @@ pnpm lint
 | Type schemas | `packages/types/src/` |
 | Pipeline step implementations | `packages/pipeline/src/` |
 | DAG runner | `packages/pipeline/src/dag.ts` |
-| API stage runners | `apps/api/src/services/step-runner.ts` |
+| API stage runners | `apps/api/src/services/stage-runner.ts` |
 | LLM client | `packages/llm/src/client.ts` |
 | Stage view components | `apps/studio/src/components/pipeline/stages/` |
 | Stage run service (queue, SSE) | `apps/api/src/services/stage-service.ts` |
