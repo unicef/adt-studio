@@ -145,8 +145,11 @@ Review refinements:
 ## Rollout
 
 Obtain maintainer review and product sign-off on this spec before implementation
-merge. Split implementation into independently reviewable changes within the
-approximately 400-line review budget; land adapter/tests before enabling the UI path.
+merge. The spec and its implementation land together as a single PR,
+[#904](https://github.com/unicef/adt-studio/pull/904), instead of being split to fit
+the approximately 400-line review budget. The owner chose this because review has
+already been carried out on #904 as a whole; the reviewer's agreement is required
+before merge. Revert #904 as one squash commit.
 No automatic config changes. Reverting support preserves saved images; users with
 an explicitly selected Google image model must select another supported model.
 
