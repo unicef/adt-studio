@@ -8,10 +8,13 @@
 
 import { randomUUID } from "node:crypto"
 import {
+  DEFAULT_SCREENSHOT_TIMEOUT_MS,
   screenshotIpcCloseSchema,
   screenshotIpcReplySchema,
   screenshotIpcRequestSchema,
 } from "@adt/types"
+
+export { DEFAULT_SCREENSHOT_TIMEOUT_MS }
 
 export const SCREENSHOT_VIEWPORTS = [
   { label: "desktop", width: 1280, height: 800 },
@@ -33,13 +36,6 @@ export function getViewportBreakpoints() {
   }))
 }
 
-/**
- * Whole-capture Chromium budget, matching Playwright's own per-operation default.
- * Interactive callers (thumbnail route, AI-edit previews) want to fail fast;
- * background callers that can afford to wait pass a longer `timeoutMs`.
- */
-export const DEFAULT_SCREENSHOT_TIMEOUT_MS = 30_000
-
 export interface ScreenshotRenderer {
   /** Render HTML to a PNG screenshot and return it as base64. */
   screenshot(
@@ -47,7 +43,8 @@ export interface ScreenshotRenderer {
     viewport?: { width: number; height: number },
     options?: {
       signal?: AbortSignal
-      /** Budget for the whole capture, not per step. Honored by the Playwright renderer. */
+      /** Budget for the whole capture. Honored by both renderers; Electron's
+       *  IPC reply backstop adds a small grace period for the main-process reply. */
       timeoutMs?: number
     },
   ): Promise<string>
@@ -188,6 +185,10 @@ function utilityParentPort(): ParentPortLike | null {
   return p
 }
 
+/** Extra slack on top of the capture budget so main's own bounded failure — which
+ *  carries a descriptive error — normally wins the race against this backstop. */
+const SCREENSHOT_REPLY_GRACE_MS = 5_000
+
 /**
  * Electron `utilityProcess.fork` child: talk to main via `process.parentPort`.
  * `process.send` / `process.on("message")` are for Node `child_process.fork` only — they do not wire to main here.
@@ -204,14 +205,23 @@ export async function _createElectronScreenshotRenderer(): Promise<ScreenshotRen
     async screenshot(
       html: string,
       viewport = { width: 1024, height: 768 },
-      // timeoutMs is Playwright-only — the Electron renderer captures via
-      // BrowserWindow, which has no equivalent per-operation budget.
       options: { signal?: AbortSignal; timeoutMs?: number } = {},
     ): Promise<string> {
       throwIfAborted(options.signal)
       const id = randomUUID()
+      const timeoutMs = options.timeoutMs ?? DEFAULT_SCREENSHOT_TIMEOUT_MS
+      const replyTimeoutMs = timeoutMs + SCREENSHOT_REPLY_GRACE_MS
+      const payload = screenshotIpcRequestSchema.parse({
+        type: "screenshot-base64",
+        id,
+        html,
+        viewport,
+        timeoutMs,
+      })
       return new Promise((resolve, reject) => {
+        let timer: ReturnType<typeof setTimeout> | undefined
         const cleanup = () => {
+          if (timer) clearTimeout(timer)
           parentPort.off("message", onMessage)
           options.signal?.removeEventListener("abort", onAbort)
         }
@@ -234,12 +244,14 @@ export async function _createElectronScreenshotRenderer(): Promise<ScreenshotRen
         }
         parentPort.on("message", onMessage)
         options.signal?.addEventListener("abort", onAbort, { once: true })
-        const payload = screenshotIpcRequestSchema.parse({
-          type: "screenshot-base64",
-          id,
-          html,
-          viewport,
-        })
+        timer = setTimeout(() => {
+          cleanup()
+          reject(
+            new Error(
+              `Screenshot timed out after ${replyTimeoutMs}ms: the main process never replied`
+            )
+          )
+        }, replyTimeoutMs)
         parentPort.postMessage(payload)
       })
     },

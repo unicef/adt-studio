@@ -3,7 +3,17 @@ import path from "node:path"
 import { JSDOM } from "jsdom"
 import type { Storage } from "@adt/storage"
 import type { BookMetadata, EpubGlossaryConfig, TocGenerationOutput, WordTimestampOutput } from "@adt/types"
-import { type PackageAdtWebOptions, EXPORT_MIME_TYPES, NON_READER_FILES, copyDirRecursive, injectWebpubStyles, getWordTimestamps, pad3 } from "./web.js"
+import {
+  type PackageAdtWebOptions,
+  EXPORT_MIME_TYPES,
+  NON_READER_FILES,
+  isEntryRedirectStub,
+  copyDirRecursive,
+  injectWebpubStyles,
+  getWordTimestamps,
+  pageNeedsActivitiesBundle,
+  pad3,
+} from "./web.js"
 import { htmlToXhtml } from "../html-semantics.js"
 import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
 
@@ -70,6 +80,29 @@ const GLOSSREF_CSS = `
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Remove the selectable secondary-narrator payload from a primary-only EPUB. */
+export function stripSecondaryNarratorAssets(oebpsDir: string): void {
+  const i18nDir = path.join(oebpsDir, "content", "i18n")
+  if (!fs.existsSync(i18nDir)) return
+
+  for (const entry of fs.readdirSync(i18nDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const localeDir = path.join(i18nDir, entry.name)
+    fs.rmSync(path.join(localeDir, "audio_voices.json"), { force: true })
+    fs.rmSync(path.join(localeDir, "timecode", "timecode_voices.json"), {
+      force: true,
+    })
+
+    const audioDir = path.join(localeDir, "audio")
+    if (!fs.existsSync(audioDir)) continue
+    for (const audioFile of fs.readdirSync(audioDir, { withFileTypes: true })) {
+      if (audioFile.isFile() && /--secondary\.[^.]+$/i.test(audioFile.name)) {
+        fs.rmSync(path.join(audioDir, audioFile.name))
+      }
+    }
+  }
+}
+
 /**
  * Package an EPUB 3 from the existing ADT web package.
  *
@@ -98,6 +131,7 @@ export function packageEpub(
 
   // Copy adt/ -> epub/OEBPS/, skipping SCORM-specific files
   copyDirRecursive(adtDir, oebpsDir, NON_READER_FILES)
+  stripSecondaryNarratorAssets(oebpsDir)
 
   // EPUB readers provide nav/settings/playback natively (read-aloud via the
   // SMIL overlays below), so drop the embedded runtime (React bundle, offline
@@ -149,6 +183,16 @@ export function packageEpub(
   // ------------------------------------------------------------------
   const pagesJsonPath = path.join(oebpsDir, "content", "pages.json")
   const rawPages = JSON.parse(fs.readFileSync(pagesJsonPath, "utf-8")) as PageEntry[]
+
+  // The web bundle's `index.html` entry redirect has no place in an EPUB: the
+  // spine lists pages explicitly, and leaving it behind would put a `text/html`
+  // resource in the OPF manifest, which EPUB 3 only permits with a fallback.
+  // Bundles predating id-named pages have a real content page at that name and
+  // are left alone.
+  if (isEntryRedirectStub(rawPages)) {
+    const stubPath = path.join(oebpsDir, "index.html")
+    if (fs.existsSync(stubPath)) fs.unlinkSync(stubPath)
+  }
   // Placement boundaries for in-flow glossary pages (page/both modes) and
   // the per-window occurrence lists that populate them.
   const glossaryBoundaries =
@@ -182,6 +226,7 @@ export function packageEpub(
 
     const rawHtml = fs.readFileSync(htmlPath, "utf-8")
     const isQuizPage = rawHtml.includes('data-section-type="activity_quiz"')
+    const needsActivitiesBundle = pageNeedsActivitiesBundle(rawHtml)
     let html = rawHtml
     // Fixed-layout: swap the quiz page's responsive viewport for the book's fixed
     // one so the reader lays it out (and centers it) like its pre-paginated
@@ -195,8 +240,8 @@ export function packageEpub(
     let xhtml = convertPageToXhtml(html)
     const xhtmlHref = page.href.replace(/\.html$/, ".xhtml")
 
-    if (isQuizPage) {
-      // Ship the activities bundle so the reader runs the interactive quiz, and
+    if (needsActivitiesBundle) {
+      // Ship the activities bundle so the reader runs the interactive controls, and
       // mark the page scripted in the OPF.
       xhtml = xhtml.replace(
         "</body>",

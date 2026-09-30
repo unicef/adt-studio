@@ -48,9 +48,12 @@ describe("buildTocGenerationConfig", () => {
 
 function makeStorageWithSection(opts: {
   headingText?: string
+  headingRole?: string
+  headingLevel?: number
   tocSection?: boolean
 }): Storage {
   return {
+    getPages: () => [{ pageId: "pg001", pageNumber: 1, text: "" }],
     getLatestNodeData: (node: string) => {
       if (node === "page-sectioning") {
         return {
@@ -82,8 +85,9 @@ function makeStorageWithSection(opts: {
                   {
                     nodeId: "h_001",
                     isPruned: false,
-                    role: "heading",
+                    role: opts.headingRole ?? "heading",
                     text: opts.headingText ?? "Chapter 1",
+                    ...(opts.headingLevel !== undefined && { headingLevel: opts.headingLevel }),
                   },
                 ],
               },
@@ -175,6 +179,7 @@ describe("generateToc", () => {
     // Fixed-layout: the render (positioned) tree has only text/image roles;
     // the heading lives in the semantic page-sectioning tree.
     const storage = {
+      getPages: () => [{ pageId: "pg001", pageNumber: 1, text: "" }],
       getLatestNodeData: (node: string) => {
         if (node === "fixed-layout-sectioning") {
           return {
@@ -248,6 +253,20 @@ describe("generateToc", () => {
     expect(capturedContext?.headings).toEqual([
       { sectionId: "pg001_sec001", title: "The Real Title", textType: "heading" },
     ])
+  })
+
+  it("keeps an authoritative deep heading level even when the TOC model disagrees", async () => {
+    const result = await generateToc({
+      storage: makeStorageWithSection({ headingRole: "heading", headingLevel: 4 }),
+      pages,
+      config: buildTocGenerationConfig(
+        { role_types: {}, structure_types: {} },
+        "English",
+      ),
+      llmModel: makeLlm(() => {}),
+    })
+
+    expect(result.entries[0].level).toBe(4)
   })
 
   it("suppresses original TOC in dynamic mode even when present", async () => {

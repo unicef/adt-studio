@@ -73,6 +73,7 @@
     "text-read-aloud-speed": "Hastighet",
     "toc-title": "Innehållsförteckning",
     "tts-label": "Text till tal",
+    "narrator-voice-label": "Berättarröst",
     "tutorial-closed-announcement": "Handledningen stängd. Kom ihåg att du kan använda Alt plus Shift plus A för att öppna och stänga tillgänglighetsmenyn, Alt plus Shift plus pilar för att navigera mellan sidor, och Alt plus Shift plus X för att öppna och stänga navigeringsmenyn. Du kan komma åt fler tillgänglighetsfunktioner med knappen i högra hörnet.",
     "tutorial-completed-announcement": "Handledningen slutförd. Kom ihåg att du kan använda Alt plus Shift plus A för att öppna och stänga tillgänglighetsmenyn, Alt plus Shift plus pilar för att navigera mellan sidor, och Alt plus Shift plus X för att öppna och stänga navigeringsmenyn.",
     "tutorial-description-content": "Innan du börjar, här är en snabb rundtur för att visa dig hur du navigerar, använder menyn och får tillgång till användbara funktioner.<br> Det tar inte lång tid!",

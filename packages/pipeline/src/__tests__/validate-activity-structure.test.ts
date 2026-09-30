@@ -721,3 +721,37 @@ describe("validateActivityStructure — custom activities", () => {
     expect(good).toEqual([])
   })
 })
+
+// ---------------------------------------------------------------------------
+// Ordered sequence
+// ---------------------------------------------------------------------------
+
+describe("validateActivityStructure — ordering", () => {
+  it("accepts a complete ordering permutation", () => {
+    expect(check(`
+      <section data-section-type="activity_ordering" data-correct-order="item-2,item-1">
+        <ol data-activity-order-list>
+          <li data-activity-item="item-1">One</li>
+          <li data-activity-item="item-2">Two</li>
+        </ol>
+      </section>
+    `)).toEqual([])
+  })
+
+  it("surfaces ordering-contract errors to rendering retries", () => {
+    const errors = check(`
+      <section data-section-type="activity_ordering" data-correct-order="item-99">
+        <ol data-activity-order-list>
+          <li data-activity-item="item-1">Only item</li>
+        </ol>
+      </section>
+    `)
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("at least two"),
+        expect.stringContaining("every data-activity-item"),
+      ]),
+    )
+  })
+})

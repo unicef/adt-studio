@@ -10,8 +10,15 @@ import { translationsAtom } from "@/features/language/state/language.atoms"
 export function useTranslation() {
   const dict = useAtomValue(translationsAtom)
   const t = useCallback(
-    (key: string, variables: Record<string, string> = {}) => {
-      const template = dict[key]
+    /**
+     * `fallback` is the wording to show when this locale's catalogue has no
+     * entry for `key`. Without it a missing key renders as the key itself,
+     * which is a useful signal in development but ships raw ids like
+     * `narrator-voice-label` to readers. Callers that pass one get readable
+     * English instead; callers that don't keep the key-echo behaviour.
+     */
+    (key: string, variables: Record<string, string> = {}, fallback?: string) => {
+      const template = dict[key] || fallback
       if (!template) return key
       return template.replace(/\$\{(.*?)\}/g, (_, name) => variables[name] ?? "")
     },

@@ -14,6 +14,14 @@ export interface WordTimestamp {
   end: number
 }
 
+export interface HighlightableWord {
+  text: string
+  normalizedText: string
+  wordIndex: number
+  start: number
+  end: number
+}
+
 export type RenderSegment =
   | { type: "separator"; text: string }
   | { type: "word"; text: string; normalizedText: string; wordIndex: number }
@@ -25,7 +33,22 @@ export function normalizeHighlightText(text: unknown): string {
 }
 
 export function extractHighlightableWords(text: unknown): string[] {
-  return Array.from(String(text ?? "").matchAll(WORD_PATTERN), (m) => m[0])
+  return extractHighlightableWordSpans(text).map((word) => word.text)
+}
+
+/** Word tokens plus their character ranges in the original string. */
+export function extractHighlightableWordSpans(text: unknown): HighlightableWord[] {
+  const source = String(text ?? "")
+  return Array.from(source.matchAll(WORD_PATTERN), (match, wordIndex) => {
+    const start = match.index ?? 0
+    return {
+      text: match[0],
+      normalizedText: match[0].normalize("NFKC").toLocaleLowerCase(),
+      wordIndex,
+      start,
+      end: start + match[0].length,
+    }
+  })
 }
 
 export function normalizeGlossaryText(text: unknown): string {

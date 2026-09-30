@@ -73,6 +73,7 @@
     "text-read-aloud-speed": "速度",
     "toc-title": "目次",
     "tts-label": "音声読み上げ",
+    "narrator-voice-label": "ナレーターの声",
     "tutorial-closed-announcement": "チュートリアルが閉じられました。AltとShiftとAを使用してアクセシビリティメニューを開閉し、AltとShiftと矢印を使用してページ間を移動し、AltとShiftとXを使用してナビゲーションメニューを開閉することを忘れないでください。右上のボタンでさらに多くのアクセシビリティ機能にアクセスできます。",
     "tutorial-completed-announcement": "チュートリアルが完了しました。AltとShiftとAを使用してアクセシビリティメニューを開閉し、AltとShiftと矢印を使用してページ間を移動し、AltとShiftとXを使用してナビゲーションメニューを開閉することを忘れないでください。",
     "tutorial-description-content": "始める前に、ナビゲート方法、メニューの使い方、便利な機能へのアクセス方法を簡単にご案内します。<br>すぐに終わります！",

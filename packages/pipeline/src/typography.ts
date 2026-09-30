@@ -53,6 +53,9 @@ function typographyFromDetected(scale: TypeScale): BookTypography {
       style("chapter_title", "Chapter title", "adt-h1", scale.h1Px),
       style("section_heading", "Section heading", "adt-h2", scale.h2Px),
       style("subheading", "Subheading", "adt-h3", scale.h3Px),
+      style("heading_level_4", "Heading level 4", "adt-h4", (scale.h3Px * 2 + scale.bodyPx) / 3),
+      style("heading_level_5", "Heading level 5", "adt-h5", (scale.h3Px + scale.bodyPx * 2) / 3),
+      style("heading_level_6", "Heading level 6", "adt-h6", scale.bodyPx),
       style("body", "Body", "adt-body", scale.bodyPx),
       style("caption", "Caption", "adt-caption", scale.captionPx),
     ],
@@ -121,7 +124,16 @@ export function resolveTypographyCss(storage: Storage): string {
 }
 
 /** The semantic size classes the type scale binds to. */
-const TYPOGRAPHY_CLASSES = ["adt-h1", "adt-h2", "adt-h3", "adt-body", "adt-caption"] as const
+const TYPOGRAPHY_CLASSES = [
+  "adt-h1",
+  "adt-h2",
+  "adt-h3",
+  "adt-h4",
+  "adt-h5",
+  "adt-h6",
+  "adt-body",
+  "adt-caption",
+] as const
 
 function countClass(html: string, cls: string): number {
   return (html.match(new RegExp(`\\b${cls}\\b`, "g")) ?? []).length

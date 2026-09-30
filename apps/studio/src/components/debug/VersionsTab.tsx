@@ -20,6 +20,7 @@ const NODE_TYPES = [
   "page-sectioning",
   "web-rendering",
   "metadata",
+  "book-outline",
 ] as const
 
 interface VersionsTabProps {
@@ -76,7 +77,13 @@ export function VersionsTab({ label }: VersionsTabProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border shrink-0">
-        <Select value={node} onValueChange={setNode}>
+        <Select
+          value={node}
+          onValueChange={(value) => {
+            setNode(value)
+            if (value === "book-outline") setItemId("book")
+          }}
+        >
           <SelectTrigger className="h-7 w-48 text-xs">
             <SelectValue placeholder={t`Select node type...`} />
           </SelectTrigger>

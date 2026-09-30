@@ -27,6 +27,7 @@ import type {
   WebRenderingOutput,
   PositionedTextOutput,
 } from "@adt/types"
+import { AUTO_FIT_SCRIPT_SRC } from "@adt/types"
 import { escapeHtml } from "./html-escape.js"
 
 /**
@@ -620,5 +621,9 @@ function pickEffectiveLineHeight(
  * both packaged-book pages (loaded by URL) and the studio storyboard
  * preview (loaded by URL into the iframe shell). Keeping a single
  * source of truth avoids the drift we ran into with two inline copies.
+ *
+ * The `src` comes from `@adt/types` because the studio re-emits this exact
+ * tag when serializing an edited fixed-layout page — see
+ * `iframe-html.ts → serializeContentWrapper`.
  */
-const FIT_SCRIPT = `<script src="./assets/auto-fit.js"></script>`
+const FIT_SCRIPT = `<script src="${AUTO_FIT_SCRIPT_SRC}"></script>`

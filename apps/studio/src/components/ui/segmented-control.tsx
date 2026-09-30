@@ -30,14 +30,14 @@ export function SegmentedControl<T extends string = string>({
   return (
     <div
       className={cn(
-        "relative flex h-11 items-center rounded-lg bg-[#f5f5f5] p-1",
+        "relative flex h-11 items-center rounded-lg bg-secondary p-1",
         className,
       )}
       role="radiogroup"
     >
       {showIndicator ? (
         <div
-          className="absolute top-1 bottom-1 rounded-lg bg-white shadow-sm transition-all duration-200"
+          className="absolute top-1 bottom-1 rounded-md bg-card ring-1 ring-border shadow-sm transition-all duration-200 dark:bg-accent"
           style={{
             width: `calc((100% - 8px) / ${options.length})`,
             left: `calc(4px + ${activeIndex} * (100% - 8px) / ${options.length})`,
@@ -61,15 +61,15 @@ export function SegmentedControl<T extends string = string>({
             "relative z-10 flex h-7 flex-1 items-center justify-center rounded-md text-sm",
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-ring/40",
             option.disabled
-              ? "cursor-not-allowed font-normal text-[#a3a3a3]"
+              ? "cursor-not-allowed font-normal text-muted-foreground/60"
               : value === option.value
                 ? "cursor-pointer font-bold"
-                : "cursor-pointer font-normal text-[#737373] hover:text-[#525252]",
+                : "cursor-pointer font-normal text-muted-foreground hover:text-foreground",
           )}
           style={
             !option.disabled && value === option.value
               ? {
-                  color: color ?? "var(--accent-color, #2b7fff)",
+                  color: color ?? "var(--accent-color, var(--primary))",
                   transition: "color 0.4s ease",
                 }
               : { transition: "color 0.4s ease" }

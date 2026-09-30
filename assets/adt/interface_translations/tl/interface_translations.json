@@ -73,6 +73,7 @@
     "text-read-aloud-speed": "Bilis",
     "toc-title": "Talaan ng Nilalaman",
     "tts-label": "Teksto sa pagsasalita",
+    "narrator-voice-label": "Boses ng tagapagsalaysay",
     "tutorial-closed-announcement": "Isinara ang tutorial. Tandaan na maaari mong gamitin ang Alt plus Shift plus A para buksan at isara ang menu ng accessibility, Alt plus Shift plus mga arrow para mag-navigate sa pagitan ng mga pahina, at Alt plus Shift plus X para buksan at isara ang menu ng nabigasyon. Maaari mong ma-access ang higit pang mga function ng accessibility gamit ang button sa kanang sulok.",
     "tutorial-completed-announcement": "Natapos ang tutorial. Tandaan na maaari mong gamitin ang Alt plus Shift plus A para buksan at isara ang menu ng accessibility, Alt plus Shift plus mga arrow para mag-navigate sa pagitan ng mga pahina, at Alt plus Shift plus X para buksan at isara ang menu ng nabigasyon.",
     "tutorial-description-content": "Bago ka magsimula, narito ang isang mabilis na tour para ipakita sa iyo kung paano mag-navigate, gamitin ang menu at ma-access ang mga kapaki-pakinabang na tampok.<br> Hindi ito tatagal!",

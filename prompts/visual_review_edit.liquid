@@ -31,7 +31,7 @@ This section combines content merged from MORE THAN ONE original page (for examp
 - Overlapping text or elements
 - Text hidden behind images — text overlays MUST have `z-10` or higher so they always render above images. Different browsers may stack elements differently, so explicit z-index is required
 - Content that is cut off or hidden
-- Text that is unreadably small or excessively large
+- Text that is unreadably small and is not controlled by an existing `adt-*` class. Do not reject or resize the intentionally large, accessible book-wide type scale.
 - Images that are missing, broken, wildly misplaced, or stretched beyond their natural size (use `max-w-full` not `w-full` to prevent upscaling)
 - Text alignment that differs from the original — body text and headings that are left-aligned in the original should NOT be centered (and vice versa)
 - Content that doesn't reflow at smaller viewports (overflowing, horizontal scroll)
@@ -39,7 +39,7 @@ This section combines content merged from MORE THAN ONE original page (for examp
 ## WHAT IS ACCEPTABLE (do NOT reject for these)
 - Light transparent backgrounds behind text to improve readability
 - Minor differences in spacing, padding, or margins vs the original
-- Slightly different font sizes if readability is maintained
+- The existing book-wide `adt-*` font sizes; these are fixed even when they differ from the original page
 - Responsive adaptations (e.g., a two-column layout stacking to single column on mobile, or overlay text flowing below the image on mobile instead of on top of it)
 - Color or background differences that maintain the overall feel
 - Subtle styling improvements that enhance the appearance
@@ -58,6 +58,7 @@ The base (no-prefix) classes are the DESKTOP design — overlay and side-by-side
 - Preserve ALL text content exactly — do not change, add, or remove any words (unless the edit instruction specifically asks for text changes)
 - Preserve ALL image tags and their data-id attributes
 - Only change layout and styling: Tailwind CSS classes, inline styles, spacing, positioning
+- Preserve every native heading tag and every existing `adt-h1` through `adt-h6`, `adt-body`, and `adt-caption` class. Never add a `text-*` size utility or inline `font`/`font-size` to a heading or its descendants.
 - Keep the <section> wrapper and its role/data-section-type/data-section-id attributes
 - Do NOT add <script>, <iframe>, <object>, or <embed> tags
 - Do NOT add event handler attributes (onclick, onload, etc.)

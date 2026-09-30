@@ -20,6 +20,7 @@ import {
   findUnwrappedWords,
   isWordLevelGroup,
 } from "./activity-underline-repair.js"
+import { inspectOrderingSection } from "./ordering-contract.js"
 
 // htmlparser2 doesn't export its DOM node type ergonomically; treat nodes as
 // `any` inside this module — DomUtils is the typed surface we rely on.
@@ -743,6 +744,13 @@ const OPEN_ENDED_RULES: ActivityRule[] = [
   { name: "inputs-have-aria-label", check: openEndedInputsShouldHaveAriaLabel },
 ]
 
+const ORDERING_RULES: ActivityRule[] = [
+  {
+    name: "ordering-contract",
+    check: ({ section }) => inspectOrderingSection(section).errors,
+  },
+]
+
 const CUSTOM_RULES: ActivityRule[] = [
   { name: "drop-zones-accessible", check: customDropZonesAreAccessible },
   { name: "cards-accessible", check: customCardsAreAccessible },
@@ -760,6 +768,7 @@ export const ACTIVITY_RULES: Record<string, ActivityRule[]> = {
   activity_fill_in_the_blank: FITB_RULES,
   activity_fill_in_a_table: FITB_RULES,
   activity_open_ended_answer: OPEN_ENDED_RULES,
+  activity_ordering: ORDERING_RULES,
 }
 
 /**

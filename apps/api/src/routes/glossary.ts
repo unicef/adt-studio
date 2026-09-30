@@ -10,7 +10,7 @@ import {
   parseBookLabel,
 } from "@adt/types"
 import type { ImageCaptioningOutput } from "@adt/types"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { openBookDb, createBookStorage, readCurrentNodeRow } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import {
   buildTextCatalog,
@@ -20,6 +20,7 @@ import {
   normalizeLocale,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
+import { readProviderCredentials } from "../middleware/provider-credentials.js"
 
 function safeParseLabel(label: string): string {
   try {
@@ -99,18 +100,15 @@ export function createGlossaryRoutes(
 
     const db = openBookDb(dbPath)
     try {
-      const rows = db.all(
-        "SELECT data, version FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
-        ["glossary", "book"]
-      ) as Array<{ data: string; version: number }>
+      const row = readCurrentNodeRow(db, "glossary", "book")
 
-      if (rows.length === 0) {
+      if (!row) {
         return c.json(null)
       }
 
       let parsed: unknown
       try {
-        parsed = JSON.parse(rows[0].data)
+        parsed = JSON.parse(row.data)
       } catch {
         throw new HTTPException(500, {
           message: `Stored glossary data is corrupted for book: ${safeLabel}`,
@@ -124,7 +122,7 @@ export function createGlossaryRoutes(
         })
       }
 
-      return c.json({ ...validated.data, version: rows[0].version })
+      return c.json({ ...validated.data, version: row.version })
     } finally {
       db.close()
     }
@@ -187,10 +185,7 @@ export function createGlossaryRoutes(
     const { label } = c.req.param()
     const safeLabel = safeParseLabel(label)
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
-    }
+    const credentials = readProviderCredentials(c)
 
     const body = await c.req.json()
     const parsed = GenerateOneBody.safeParse(body)
@@ -214,15 +209,13 @@ export function createGlossaryRoutes(
 
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
       const llmModel = createLLMModel({
         modelId: glossaryConfig.modelId,
         cacheDir,
         promptEngine,
         onLog: (entry) => storage.appendLlmLog(entry),
-        credentials: {
-          openaiApiKey: apiKey,
-        },
+        providerCredentials: credentials,
       })
 
       const result = await generateGlossaryItem({

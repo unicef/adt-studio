@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react"
-import { RefreshCw, AlertTriangle } from "lucide-react"
+import { RefreshCw, AlertTriangle, MinusCircle } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
+import { msg } from "@lingui/core/macro"
+import type { I18n, MessageDescriptor } from "@lingui/core"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,17 +21,23 @@ import { ALL_STEP_NAMES } from "@adt/types"
 
 const STEP_FILTERS = Array.from(ALL_STEP_NAMES)
 
+/** Mirrors NO_SPEAKABLE_TEXT_REASON in @adt/pipeline — the studio can't import
+ *  from packages, so the one known reason is matched by value here and any other
+ *  reason falls back to showing the raw string. */
+const NO_SPEAKABLE_TEXT = "no-speakable-text"
+
 interface LlmLogsTabProps {
   label: string
   isRunning: boolean
 }
 
-type RowStatus = "success" | "cached" | "error"
+type RowStatus = "success" | "cached" | "error" | "skipped"
 
 const STATUS_DOT: Record<RowStatus, string> = {
   success: "bg-green-500",
   cached: "bg-yellow-400",
   error: "bg-red-500",
+  skipped: "bg-slate-400",
 }
 
 function formatSeconds(ms: number): string {
@@ -38,10 +46,101 @@ function formatSeconds(ms: number): string {
   return `${(ms / 60_000).toFixed(1)}m`
 }
 
-function getStatus(entry: LlmLogEntry): RowStatus {
-  if (entry.data.validationErrors && entry.data.validationErrors.length > 0) return "error"
+/**
+ * Exported for tests: the precedence between an error, a deliberate skip, and a
+ * cache hit is the part worth pinning down.
+ */
+export function getStatus(entry: LlmLogEntry): RowStatus {
+  if (entry.data.success === false) return "error"
+  if (
+    entry.data.success === undefined &&
+    entry.data.validationErrors &&
+    entry.data.validationErrors.length > 0
+  ) return "error"
+  // A skipped call produced no artifact at all, so it must not read as a
+  // success — but a failure still outranks it: that's what needs acting on.
+  if (entry.data.skippedReason) return "skipped"
   if (entry.data.cacheHit) return "cached"
   return "success"
+}
+
+/**
+ * Human-readable labels for the request-parameter keys a call may record.
+ * Keys not listed here fall back to the raw key, so a new param still shows up
+ * rather than being silently dropped.
+ *
+ * Declared as `msg` descriptors and resolved with `i18n._()` because this lives
+ * outside a component. The `t` macro from `useLingui()` only compiles where the
+ * transform can see it bound in scope — passing it into a plain helper leaves
+ * the tagged template untransformed, and the runtime `t` then receives a string
+ * array instead of a descriptor and returns nothing. That rendered every label
+ * blank while the values still showed.
+ */
+const PARAM_LABELS: Record<string, MessageDescriptor> = {
+  voice: msg`Voice`,
+  model: msg`Model`,
+  language: msg`Language`,
+  outputFormat: msg`Format`,
+  stability: msg`Stability`,
+  similarityBoost: msg`Similarity`,
+  style: msg`Style`,
+  useSpeakerBoost: msg`Speaker boost`,
+  speed: msg`Speed`,
+  applyTextNormalization: msg`Normalization`,
+  contextBefore: msg`Context before`,
+  contextAfter: msg`Context after`,
+  contextBeforeChars: msg`Context before (chars)`,
+  contextAfterChars: msg`Context after (chars)`,
+}
+
+const YES = msg`Yes`
+const NO = msg`No`
+
+/**
+ * Render one request parameter's value. Values arrive as `unknown` because the
+ * `params` record is free-form per call type, so this handles the scalar cases
+ * and falls back to JSON rather than rendering "[object Object]".
+ */
+function formatParamValue(value: unknown, i18n: I18n): string {
+  if (typeof value === "boolean") return i18n._(value ? YES : NO)
+  if (typeof value === "number") return value.toLocaleString()
+  if (typeof value === "string") return value
+  if (value === null || value === undefined) return "—"
+  return JSON.stringify(value)
+}
+
+/**
+ * Request parameters as a compact label/value grid.
+ *
+ * Reuses the header grid's cell markup rather than adding cells to the header
+ * itself — ~10 more cells there would swamp Prompt/Model/Duration/Cache. Keys
+ * render in insertion order (the order the producer chose), so related settings
+ * stay adjacent instead of being alphabetised apart.
+ */
+export function ParamGrid({ title, data }: { title: string; data: Record<string, unknown> }) {
+  const { i18n } = useLingui()
+  const entries = Object.entries(data)
+  if (entries.length === 0) return null
+
+  return (
+    <div>
+      <div className="font-medium text-muted-foreground mb-1">{title}</div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 bg-muted p-3 rounded">
+        {entries.map(([key, value]) => {
+          const label = PARAM_LABELS[key]
+          return (
+            <div key={key}>
+              <div className="text-muted-foreground mb-0.5">
+                {label ? i18n._(label) : key}
+              </div>
+              {/* Values are provider identifiers and numbers — never translated. */}
+              <div className="font-medium break-words">{formatParamValue(value, i18n)}</div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }) {
@@ -73,7 +172,11 @@ function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }
             <div className="text-muted-foreground mb-0.5">
               <Trans>Cache</Trans>
             </div>
-            <div className="font-medium">{data.cacheHit ? t`Hit` : t`Miss`}</div>
+            {/* A skipped call never consulted the cache, so "Miss" would be a
+                lie about a lookup that never happened. */}
+            <div className="font-medium">
+              {data.skippedReason ? "—" : data.cacheHit ? t`Hit` : t`Miss`}
+            </div>
           </div>
           {data.usage && (
             <>
@@ -96,6 +199,10 @@ function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }
             </>
           )}
         </div>
+
+        {/* What was actually sent to the provider. Only present for call types
+            that record it — currently ElevenLabs TTS. */}
+        {data.params && <ParamGrid title={t`Request settings`} data={data.params} />}
 
         {data.system && (
           <div>
@@ -146,7 +253,7 @@ function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }
           </div>
         )}
 
-        {data.validationErrors && data.validationErrors.length > 0 && (
+        {data.success !== true && data.validationErrors && data.validationErrors.length > 0 && (
           <div>
             <div className="font-medium text-destructive mb-1 flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" />
@@ -155,6 +262,36 @@ function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }
             <pre className="bg-red-50 dark:bg-red-950/30 p-3 rounded text-[11px] whitespace-pre-wrap text-destructive">
               {data.validationErrors.join("\n")}
             </pre>
+          </div>
+        )}
+
+        {data.success === false && data.error && (
+          <div>
+            <div className="font-medium text-destructive mb-1 flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              <Trans>Error</Trans>
+            </div>
+            <pre className="bg-red-50 dark:bg-red-950/30 p-3 rounded text-[11px] whitespace-pre-wrap text-destructive">
+              {data.error}
+            </pre>
+          </div>
+        )}
+
+        {/* Nothing failed here — the step deliberately produced no output. Kept
+            visible so the log answers "why is there no audio for this item?"
+            instead of leaving an unexplained gap. Neutral styling, separate
+            from the Error block above. */}
+        {data.skippedReason && (
+          <div>
+            <div className="font-medium text-muted-foreground mb-1 flex items-center gap-1">
+              <MinusCircle className="h-3 w-3" />
+              <Trans>No audio</Trans>
+            </div>
+            <p className="bg-muted p-3 rounded text-[11px] text-muted-foreground">
+              {data.skippedReason === NO_SPEAKABLE_TEXT
+                ? t`This entry has no speakable text, so no audio was generated and no request was sent to the provider.`
+                : data.skippedReason}
+            </p>
           </div>
         )}
       </div>
@@ -171,6 +308,7 @@ function HistoryLogRow({ entry, label }: { entry: LlmLogEntry; label: string }) 
     success: t`Success`,
     cached: t`Cached`,
     error: t`Error`,
+    skipped: t`No audio`,
   }
 
   function formatTimestamp(iso: string): string {

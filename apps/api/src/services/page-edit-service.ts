@@ -2,8 +2,8 @@ import crypto from "node:crypto"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
-import type { LLMModel } from "@adt/llm"
-import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, readTypography, buildTypographyCss, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS } from "@adt/pipeline"
+import type { LLMModel, ResolvedCredentials } from "@adt/llm"
+import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, readTypography, buildTypographyCss, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS, inspectOrderingActivityHtml, validateRetainedHeadingHierarchy } from "@adt/pipeline"
 import type { VisualRefinementDeps } from "@adt/pipeline"
 import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema, editVerifyLLMSchema, DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
@@ -18,7 +18,7 @@ export interface ReRenderOptions {
   promptsDir: string
   webAssetsDir?: string
   configPath?: string
-  apiKey: string
+  credentials: ResolvedCredentials
 }
 
 export interface ReRenderResult {
@@ -37,22 +37,19 @@ export interface AiEditSectionOptions {
   promptsDir: string
   webAssetsDir?: string
   configPath?: string
-  apiKey: string
+  credentials: ResolvedCredentials
 }
 
 export interface AiEditSectionResult {
   html: string
   reasoning: string
+  activityAnswers?: Record<string, string>
 }
 
 export async function reRenderPage(
   options: ReRenderOptions
 ): Promise<ReRenderResult> {
-  const { label, pageId, sectionIndex, prompt, booksDir, promptsDir, webAssetsDir, configPath, apiKey } = options
-
-  // Set API key
-  const previousKey = process.env.OPENAI_API_KEY
-  process.env.OPENAI_API_KEY = apiKey
+  const { label, pageId, sectionIndex, prompt, booksDir, promptsDir, webAssetsDir, configPath, credentials } = options
 
   const storage = createBookStorage(label, booksDir)
   let visualRefinement: VisualRefinementDeps | undefined
@@ -92,12 +89,17 @@ export async function reRenderPage(
     const config = loadBookConfig(label, booksDir, configPath)
     const resolveRenderConfig = buildRenderStrategyResolver(config)
 
-    const styleguideContent = loadStyleguideContent(config.styleguide, configPath)
+    const styleguideContent = loadStyleguideContent(
+      config.styleguide,
+      configPath,
+      booksDir,
+      label,
+    )
 
     // Create LLM model resolver (model-specific, cached)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const templatesDir = path.join(path.dirname(promptsDir), "templates")
     const templateEngine = createTemplateEngine(templatesDir)
     const renderModels = new Map<string, LLMModel>()
@@ -109,6 +111,7 @@ export async function reRenderPage(
         cacheDir,
         promptEngine,
         onLog: (entry) => storage.appendLlmLog(entry),
+        providerCredentials: credentials,
       })
       renderModels.set(modelId, model)
       return model
@@ -215,6 +218,7 @@ export async function reRenderPage(
       "text-catalog",
       "easy-read",
       "text-catalog-translation",
+      "core-tts-catalog",
       "tts",
       "tts-timestamps",
       "accessibility-assessment",
@@ -224,6 +228,7 @@ export async function reRenderPage(
       "text-catalog",
       "easy-read",
       "catalog-translation",
+      "core-tts-catalog",
       "image-translation",
       "tts",
       "word-timestamps",
@@ -231,12 +236,6 @@ export async function reRenderPage(
       "accessibility-assessment",
     ])
     storage.close()
-    // Restore previous key
-    if (previousKey !== undefined) {
-      process.env.OPENAI_API_KEY = previousKey
-    } else {
-      delete process.env.OPENAI_API_KEY
-    }
   }
 }
 
@@ -247,10 +246,7 @@ export async function reRenderPage(
 export async function aiEditSection(
   options: AiEditSectionOptions
 ): Promise<AiEditSectionResult> {
-  const { label, pageId, sectionIndex, instruction, currentHtml: providedHtml, booksDir, promptsDir, webAssetsDir, configPath, apiKey } = options
-
-  const previousKey = process.env.OPENAI_API_KEY
-  process.env.OPENAI_API_KEY = apiKey
+  const { label, pageId, sectionIndex, instruction, currentHtml: providedHtml, booksDir, promptsDir, webAssetsDir, configPath, credentials } = options
 
   const storage = createBookStorage(label, booksDir)
   // Book typography CSS so edit screenshots match the packaged book's sizes.
@@ -276,6 +272,7 @@ export async function aiEditSection(
       }
       currentHtml = section.html
     }
+    const originalOrdering = inspectOrderingActivityHtml(currentHtml)
 
     // Load config to get model ID for editing. Same fallback chain every other
     // "thoughtful" LLM step uses — `page_sectioning` may exist without a `model`
@@ -287,12 +284,13 @@ export async function aiEditSection(
     // Build LLM model
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const model = createLLMModel({
       modelId,
       cacheDir,
       promptEngine,
       onLog: (entry) => storage.appendLlmLog(entry),
+      providerCredentials: credentials,
     })
 
     // Gather the imageIds referenced in the HTML so screenshots render their
@@ -354,6 +352,15 @@ export async function aiEditSection(
       if (!cleanedHtml.includes("<section")) {
         errors.push("Result must contain a <section> element")
       }
+      errors.push(...validateRetainedHeadingHierarchy(currentHtml, cleanedHtml))
+      if (originalOrdering.isOrdering) {
+        const ordering = inspectOrderingActivityHtml(cleanedHtml)
+        if (!ordering.isOrdering) {
+          errors.push("AI editing must preserve the activity_ordering section type")
+        } else {
+          errors.push(...ordering.errors)
+        }
+      }
       return { valid: errors.length === 0, errors, cleanedHtml }
     }
 
@@ -408,6 +415,7 @@ export async function aiEditSection(
         cacheDir,
         promptEngine,
         onLog: (entry) => storage.appendLlmLog(entry),
+        providerCredentials: credentials,
       })
 
       const runVerify = async (candidateHtml: string) => {
@@ -480,13 +488,13 @@ export async function aiEditSection(
       }
     }
 
-    return { html, reasoning }
+    const ordering = inspectOrderingActivityHtml(html)
+    return {
+      html,
+      reasoning,
+      ...(ordering.contract ? { activityAnswers: ordering.contract.answers } : {}),
+    }
   } finally {
     storage.close()
-    if (previousKey !== undefined) {
-      process.env.OPENAI_API_KEY = previousKey
-    } else {
-      delete process.env.OPENAI_API_KEY
-    }
   }
 }

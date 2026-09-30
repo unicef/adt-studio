@@ -1,14 +1,13 @@
-import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter"
-import { disableNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/disable-native-drag-preview"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { GripHorizontal } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { X } from "lucide-react"
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 import { appConfigAtom } from "@/shared/state/config.atoms"
 import { signLanguageModeAtom, slVideoPositionAtom } from "@/shared/state/ui.atoms"
 import { currentLanguageAtom } from "@/features/language/state/language.atoms"
 import { currentPageSignLanguageVideoAtom } from "@/features/sign-language/state/sign-language.atoms"
 import { activeMediaAtom } from "@/features/audio/state/audio.atoms"
 import { useTranslation } from "@/features/language/hooks/useTranslation"
+import { useIsMobile } from "@/shared/hooks/use-is-mobile"
 import { cn } from "@/shared/lib/utils"
 
 interface Position {
@@ -19,79 +18,27 @@ interface Position {
 export function SLVideo() {
   const features = useAtomValue(appConfigAtom).features
   const slMode = useAtomValue(signLanguageModeAtom)
+  const setSlMode = useSetAtom(signLanguageModeAtom)
   const videoFilename = useAtomValue(currentPageSignLanguageVideoAtom)
   const activeMedia = useAtomValue(activeMediaAtom)
   const setActiveMedia = useSetAtom(activeMediaAtom)
   const lang = useAtomValue(currentLanguageAtom)
+  const isMobile = useIsMobile()
   const { t } = useTranslation()
 
   const containerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const handleRef = useRef<HTMLDivElement>(null)
+  const dragOffsetRef = useRef<Position | null>(null)
   const [position, setPosition] = useAtom(slVideoPositionAtom)
   const [isDragging, setIsDragging] = useState(false)
   const [aspectRatio, setAspectRatio] = useState<number | null>(null)
 
   // `src` is the single source of truth: it is non-null exactly when the
   // feature is enabled, the toggle is on, and the current page has a video.
-  // Deriving `visible` from it (rather than the other way round) lets the
-  // early return below narrow `src` to a string for the <video> element.
   const src =
     features.signLanguage && slMode && videoFilename !== null
       ? `./content/i18n/${lang}/video/${videoFilename}`
       : null
-  const visible = src !== null
-
-  useEffect(() => {
-    const el = containerRef.current
-    const handle = handleRef.current
-    if (!el || !handle || !visible) return
-
-    let cursorOffset: Position = { x: 0, y: 0 }
-
-    const clamp = (next: Position): Position => {
-      const maxX = window.innerWidth - el.offsetWidth
-      const maxY = window.innerHeight - el.offsetHeight
-      return {
-        x: Math.max(0, Math.min(next.x, maxX)),
-        y: Math.max(0, Math.min(next.y, maxY)),
-      }
-    }
-
-    return draggable({
-      element: el,
-      dragHandle: handle,
-      onGenerateDragPreview: ({ nativeSetDragImage }) => {
-        disableNativeDragPreview({ nativeSetDragImage })
-      },
-      onDragStart: ({ location }) => {
-        const rect = el.getBoundingClientRect()
-        cursorOffset = {
-          x: location.initial.input.clientX - rect.left,
-          y: location.initial.input.clientY - rect.top,
-        }
-        setIsDragging(true)
-      },
-      onDrag: ({ location }) => {
-        const next = clamp({
-          x: location.current.input.clientX - cursorOffset.x,
-          y: location.current.input.clientY - cursorOffset.y,
-        })
-        el.style.left = `${next.x}px`
-        el.style.top = `${next.y}px`
-        el.style.right = "auto"
-        el.style.bottom = "auto"
-      },
-      onDrop: ({ location }) => {
-        const next = clamp({
-          x: location.current.input.clientX - cursorOffset.x,
-          y: location.current.input.clientY - cursorOffset.y,
-        })
-        setPosition(next)
-        setIsDragging(false)
-      },
-    })
-  }, [visible])
 
   useEffect(() => {
     setAspectRatio(null)
@@ -109,16 +56,59 @@ export function SLVideo() {
   const videoHeight = aspectRatio
     ? Math.round(baseWidth / aspectRatio)
     : Math.round(baseWidth * (3 / 5))
-  const containerHeight = videoHeight + 24
-  const style = positioned
+  const handleHeight = isMobile ? 44 : 24
+  const containerHeight = videoHeight + handleHeight
+
+  const clamp = (next: Position): Position => {
+    const el = containerRef.current
+    const w = el?.offsetWidth ?? baseWidth
+    const h = el?.offsetHeight ?? containerHeight
+    return {
+      x: Math.max(0, Math.min(next.x, window.innerWidth - w)),
+      y: Math.max(0, Math.min(next.y, window.innerHeight - h)),
+    }
+  }
+
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = containerRef.current
+    if (!el) return
+    e.preventDefault()
+    const rect = el.getBoundingClientRect()
+    dragOffsetRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setIsDragging(true)
+  }
+
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = containerRef.current
+    const offset = dragOffsetRef.current
+    if (!el || !offset) return
+    const next = clamp({ x: e.clientX - offset.x, y: e.clientY - offset.y })
+    el.style.left = `${next.x}px`
+    el.style.top = `${next.y}px`
+    el.style.right = "auto"
+    el.style.bottom = "auto"
+  }
+
+  const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = containerRef.current
+    const offset = dragOffsetRef.current
+    if (!el || !offset) return
+    const next = clamp({ x: e.clientX - offset.x, y: e.clientY - offset.y })
+    dragOffsetRef.current = null
+    setPosition(next)
+    setIsDragging(false)
+  }
+
+  const style: React.CSSProperties = positioned
     ? {
         left: position.x,
         top: position.y,
         right: "auto",
         bottom: "auto",
-        height: `${containerHeight}px`,
+        height: containerHeight,
       }
-    : { height: `${containerHeight}px` }
+    : { height: containerHeight }
 
   return (
     <div
@@ -133,18 +123,41 @@ export function SLVideo() {
       )}
     >
       <div
-        ref={handleRef}
         role="button"
         aria-label={t("sign-language-drag-handle") || "Drag sign language video"}
         tabIndex={0}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        style={{ height: handleHeight, touchAction: "none" }}
         className={cn(
-          "h-6 w-full flex items-center justify-center",
+          "w-full flex items-center justify-center gap-2",
           "bg-black/80 text-white/70 hover:text-white",
-          "cursor-grab active:cursor-grabbing select-none",
+          "cursor-grab select-none touch-none",
+          isDragging ? "cursor-grabbing" : "active:cursor-grabbing",
         )}
       >
-        <GripHorizontal className="w-4 h-4" aria-hidden />
+        <span
+          aria-hidden
+          className={cn(
+            "rounded-full bg-white/60",
+            isMobile ? "h-1.5 w-12" : "h-1 w-8",
+          )}
+        />
       </div>
+      <button
+        type="button"
+        aria-label={t("close") || "Close"}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={() => {
+          videoRef.current?.pause()
+          setSlMode(false)
+        }}
+        className="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white/80 transition-colors hover:bg-black/90 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <X className="h-4 w-4" />
+      </button>
       <video
         ref={videoRef}
         key={src}
@@ -159,7 +172,8 @@ export function SLVideo() {
           }
         }}
         onPlay={() => setActiveMedia("sign-language")}
-        className="w-full h-[calc(100%-1.5rem)] object-contain bg-black"
+        style={{ height: videoHeight }}
+        className="w-full object-contain bg-black"
       />
     </div>
   )

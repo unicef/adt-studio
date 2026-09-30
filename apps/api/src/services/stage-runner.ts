@@ -3,10 +3,21 @@ import fs from "node:fs"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRateLimiter, renderLiquidTemplate } from "@adt/llm"
+import {
+  AiProviderError,
+  createLLMModel,
+  createPromptEngine,
+  createRateLimiter,
+  createAdaptiveRateLimiter,
+  getDefaultProviderRegistry,
+  renderLiquidTemplate,
+  resolveProviderCredentials,
+} from "@adt/llm"
 import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
 import {
   extractPDF,
+  figureExtractionFlags,
+  resolveFigureExtractionMode,
   resolveFontsCacheDir,
   buildBookFontsPromptContext,
   readTypography,
@@ -37,6 +48,9 @@ import {
   generateToc,
   buildTocGenerationConfig,
   generateAllQuizzes,
+  saveQuizOutput,
+  assertQuizGenerationCapacity,
+  batchPages,
   buildQuizGenerationConfig,
   // Master step imports
   getRenderSectioning,
@@ -51,17 +65,35 @@ import {
   translateCatalogBatch,
   buildCatalogTranslationConfig,
   getTargetLanguages,
+  buildCoreTtsPreparationConfig,
+  loadCoreTtsProfiles,
+  resolveCoreTtsProfile,
+  getCoreTtsPreparationLocales,
+  prepareCoreTtsCatalog,
+  getCoreTtsCatalog,
+  buildCoreTtsSourceContext,
+  getReadyCoreTtsEntries,
   translateImage,
   buildImageTranslationConfig,
   loadVoicesConfig,
   loadSpeechInstructions,
   resolveVoice,
+  resolveSpeechVoice,
   resolveInstructions,
   resolveProviderForLanguage,
   resolveSpeechModel,
   resolveGeminiTtsRateLimit,
   resolveSpeechFormat,
   computeSpeechCacheKey,
+  elevenLabsVoiceSettingsFromConfig,
+  buildElevenLabsTtsLogParams,
+  buildTtsLogEntry,
+  NO_SPEAKABLE_TEXT_REASON,
+  classifyElevenLabsTtsError,
+  elevenLabsTtsRetryDelayMs,
+  ELEVENLABS_TTS_MAX_CONCURRENCY,
+  ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES,
+  findAdjacentSpeechText,
   generateSpeechFile,
   generatePageSpeechFiles,
   supportsPageBatchedSpeech,
@@ -69,9 +101,19 @@ import {
   wavDurationSeconds,
   stripEmojis,
   generateBookSummary,
+  generateBookOutline,
+  buildBookOutlineConfig,
+  buildBookOutlineEvidence,
+  readBookOutline,
+  outlineContextForPage,
+  BOOK_OUTLINE_NODE,
+  BOOK_OUTLINE_ITEM,
+  readTypeScale,
   buildBookSummaryConfig,
   filterPageImageMeaningfulness,
   buildMeaningfulnessConfig,
+  buildMeaningfulnessImages,
+  dedupAutoFigureCandidatesInStorage,
   cropPageImages,
   applyCrops,
   buildCroppingConfig,
@@ -85,11 +127,12 @@ import {
   DEFAULT_VISUAL_REVIEW_MODEL_ID,
   isFixedLayoutBook,
 } from "@adt/pipeline"
-import type { PageSectioningConfig, TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig, CroppingConfig, SegmentationConfig, VisualRefinementDeps } from "@adt/pipeline"
+import type { BookOutlineConfig, PageSectioningConfig, TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig, CroppingConfig, SegmentationConfig, VisualRefinementDeps } from "@adt/pipeline"
+import type { ElevenLabsVoiceSettingsOverrides } from "@adt/llm"
 import { loadStyleguideContent } from "./styleguide.js"
-import { createTTSSynthesizer, createAzureTTSSynthesizer, createGeminiTTSSynthesizer } from "@adt/llm"
+import { createTTSSynthesizer, createAzureTTSSynthesizer, createGeminiTTSSynthesizer, createElevenLabsTTSSynthesizer } from "@adt/llm"
 import type { TTSSynthesizer } from "@adt/llm"
-import { STAGE_ORDER, isTtsExcluded } from "@adt/types"
+import { PIPELINE, STAGE_ORDER, PositionedTextOutput, isTtsExcluded, voiceSlotEntryId, resolveEntryVoiceSlot, sortSpeechEntries } from "@adt/types"
 import type { PageErrorPolicy, PageErrorAction } from "@adt/types"
 import { beginSpeechRun, endSpeechRun } from "./speech-progress.js"
 import type {
@@ -106,6 +149,7 @@ import type {
   TTSOutput,
   WordTimestampEntry,
   WordTimestampOutput,
+  VoiceSlot,
   StepName,
   StageName,
   BookSummaryOutput,
@@ -130,6 +174,10 @@ const GEMINI_TTS_MAX_RETRY_DELAY_MS = 20_000
 // and aren't a rate signal, so they get a shorter delay than a 429 and do not
 // throttle the shared limiter.
 const GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS = 1_500
+
+// ElevenLabs concurrency cap and retry policy live in @adt/pipeline
+// (ELEVENLABS_TTS_MAX_CONCURRENCY, classifyElevenLabsTtsError, …) so the
+// CLI/`runFullPipeline` DAG executor applies exactly the same limits.
 
 class StepError extends Error {
   readonly step: StepName
@@ -582,7 +630,9 @@ function getExistingSpeechEntries(
     storage.getLatestNodeData("tts", normalizedLanguage) ??
     storage.getLatestNodeData("tts", legacyLanguage)
   const entries = (row?.data as TTSOutput | undefined)?.entries ?? []
-  return new Map(entries.map((entry) => [entry.textId, entry]))
+  // Keyed by the slot-qualified id so primary/secondary variants of the same
+  // textId are independently reusable/retryable (see voiceSlotEntryId).
+  return new Map(entries.map((entry) => [voiceSlotEntryId(entry.textId, entry.voiceSlot), entry]))
 }
 
 /**
@@ -615,11 +665,19 @@ function canReuseSpeechEntry(
     voice: string
     instructions: string
     format: string
+    voiceSlot: VoiceSlot
     geminiTemperature?: number
     geminiSeed?: number
-  },
+    elevenLabsPreviousText?: string
+    elevenLabsNextText?: string
+    elevenLabsApplyTextNormalization?: "auto" | "on" | "off"
+  } & ElevenLabsVoiceSettingsOverrides,
 ): entry is SpeechFileEntry {
   if (!entry) return false
+  // Defensive check: the caller already looks entries up by slot-qualified id
+  // (see getExistingSpeechEntries), but guard against a mismatched entry so a
+  // primary/secondary mixup can never silently reuse the wrong voice's audio.
+  if (resolveEntryVoiceSlot(entry) !== options.voiceSlot) return false
 
   if (entry.provider === "manual") {
     return resolveSpeechAudioPath(options.bookDir, options.language, entry.fileName) !== null
@@ -642,6 +700,14 @@ function canReuseSpeechEntry(
     provider: options.provider,
     geminiTemperature: options.geminiTemperature,
     geminiSeed: options.geminiSeed,
+    elevenLabsPreviousText: options.elevenLabsPreviousText,
+    elevenLabsNextText: options.elevenLabsNextText,
+    elevenLabsApplyTextNormalization: options.elevenLabsApplyTextNormalization,
+    elevenLabsStability: options.elevenLabsStability,
+    elevenLabsSimilarityBoost: options.elevenLabsSimilarityBoost,
+    elevenLabsStyle: options.elevenLabsStyle,
+    elevenLabsUseSpeakerBoost: options.elevenLabsUseSpeakerBoost,
+    elevenLabsSpeed: options.elevenLabsSpeed,
   })
   const cachePath = resolveSpeechCachePath(options.cacheDir, cacheKey, options.format.toLowerCase())
   if (!cachePath || !fs.existsSync(cachePath)) return false
@@ -654,6 +720,30 @@ function canReuseSpeechEntry(
   return true
 }
 
+/**
+ * Sink for Whisper word-timestamp log rows: persist, then mirror onto the live
+ * progress stream. Both halves matter — the TTS sites already pair them, so a
+ * Whisper row that only lands in the DB would be missing from the debug panel
+ * until the next reload.
+ */
+function appendWordTimestampsLog(
+  storage: Storage,
+  progress: StageRunProgress,
+): (entry: LlmLogEntry) => void {
+  return (entry) => {
+    storage.appendLlmLog(entry)
+    progress.emit({
+      type: "llm-log",
+      step: "word-timestamps",
+      itemId: entry.pageId ?? "",
+      promptName: entry.promptName,
+      modelId: entry.modelId,
+      cacheHit: entry.cacheHit,
+      durationMs: entry.durationMs,
+    })
+  }
+}
+
 interface GenerateSpeechWordTimestampsOptions {
   label: string
   bookDir: string
@@ -664,6 +754,7 @@ interface GenerateSpeechWordTimestampsOptions {
   textByLanguage: Map<string, Map<string, string>>
   concurrency: number
   progress: StageRunProgress
+  onLog?: (entry: LlmLogEntry) => void
   /** Run cancel — stops admitting new transcription items. */
   signal?: AbortSignal
 }
@@ -688,6 +779,7 @@ async function generateSpeechWordTimestamps(
     textByLanguage,
     concurrency,
     progress,
+    onLog,
     signal,
   } = options
 
@@ -758,20 +850,27 @@ async function generateSpeechWordTimestamps(
           language: getBaseLanguage(language),
           prompt,
           cacheDir,
+          onLog,
         })
         if (result.cached) {
           console.log(`[stage-run] ${label}: word timestamps cache hit for ${entry.textId} (${language})`)
         }
 
-        entriesByLanguage.get(language)![entry.textId] = {
+        const slot = resolveEntryVoiceSlot(entry)
+        entriesByLanguage.get(language)![voiceSlotEntryId(entry.textId, slot)] = {
           textId: entry.textId,
           language,
           words: result.words,
           duration: result.duration,
+          voiceSlot: slot,
         }
       } catch (err) {
         const message = toErrorMessage(err)
-        failedByLanguage.get(language)!.push({ textId: entry.textId, error: message })
+        failedByLanguage.get(language)!.push({
+          textId: entry.textId,
+          error: message,
+          voiceSlot: resolveEntryVoiceSlot(entry),
+        })
         failedCount++
         console.warn(
           `[stage-run] ${label}: word timestamp generation failed for ${entry.textId} (${language}): ${message}`,
@@ -858,13 +957,30 @@ export function createStageRunner(): StageRunner {
         for (let i = fromIndex; i <= toIndex; i++) {
           if (options.signal?.aborted) throw new RunCancelledError()
           const stage = STAGE_ORDER[i]
-          await STAGE_RUNNERS[stage](label, options, trackingProgress)
+          try {
+            await STAGE_RUNNERS[stage](label, options, trackingProgress)
+            progress.emit({ type: "stage-complete", stage })
+          } catch (err) {
+            // A cancel is a deliberate action, not a failure: don't record step
+            // errors or emit step-error/stage-error (that would paint the
+            // sidebar red and, with the error toast/sound, beep on cancel).
+            // Just re-throw — executeJob's abort branch handles persistence cleanup.
+            if (isCancellation(err, [options.signal])) {
+              throw err
+            }
+            const message = toErrorMessage(err)
+            for (const step of runningSteps) {
+              completionStorage.recordStepError(step, message)
+              progress.emit({ type: "step-error", step, error: message })
+            }
+            runningSteps.clear()
+            progress.emit({ type: "stage-error", stage, error: message })
+            throw err
+          }
         }
       } catch (err) {
-        // A cancel is a deliberate action, not a failure: don't record step
-        // errors or emit step-error (that would paint the sidebar red and, with
-        // the error toast/sound, beep on cancel). Just re-throw — executeJob's
-        // abort branch handles persistence cleanup.
+        // Fallback for unexpected throws outside the per-stage loop. Stage
+        // failures are already recorded/emitted by the inner catch above.
         if (isCancellation(err, [options.signal])) {
           throw err
         }
@@ -887,12 +1003,76 @@ export function createStageRunner(): StageRunner {
  * Build request-scoped provider credentials for LLM calls.
  */
 function buildLLMCredentials(options: StageRunOptions) {
-  return {
-    openaiApiKey: options.apiKey,
-    anthropicApiKey: options.anthropicApiKey,
-    googleApiKey: options.googleApiKey,
-    customBaseUrl: options.customBaseUrl,
-    customApiKey: options.customApiKey,
+  return options.credentials
+}
+
+/** Resolve a legacy call site's field through the selected provider schema,
+ * including server-side environment fallback. Keep this bridge local until
+ * image and speech use their registry ports end to end. */
+function resolveCredentialField(
+  options: StageRunOptions,
+  providerId: string,
+  fieldKey: string,
+): string {
+  const provider = getDefaultProviderRegistry().get(providerId)
+  const values = resolveProviderCredentials(provider, options.credentials)
+  return values[fieldKey] ?? ""
+}
+
+function tryResolveCredentialField(
+  options: StageRunOptions,
+  providerId: string,
+  fieldKey: string,
+): string | undefined {
+  try {
+    return resolveCredentialField(options, providerId, fieldKey) || undefined
+  } catch (err) {
+    if (AiProviderError.is(err)) return undefined
+    throw err
+  }
+}
+
+async function generateAndStoreBookOutline(
+  label: string,
+  pages: PageData[],
+  storage: Storage,
+  outlineConfig: BookOutlineConfig,
+  outlineModel: LLMModel,
+  progress: StageRunProgress,
+  signal?: AbortSignal,
+): Promise<ReturnType<typeof readBookOutline>> {
+  progress.emit({ type: "step-start", step: "book-outline" })
+  try {
+    if (pages.length === 0) {
+      throw new Error("No extracted pages are available for book-outline generation.")
+    }
+    const evidencePages = pages.map((page) => {
+      const positionedRow = storage.getLatestNodeData("positioned-text", page.pageId)
+      const positioned = PositionedTextOutput.safeParse(positionedRow?.data)
+      return {
+        pageId: page.pageId,
+        pageNumber: page.pageNumber,
+        text: page.text,
+        imageBase64: storage.getPageImageBase64(page.pageId),
+        ...(positioned.success && { positionedText: positioned.data }),
+      }
+    })
+    const evidence = buildBookOutlineEvidence(evidencePages, readTypeScale(storage))
+    const outline = await generateBookOutline(evidence, outlineConfig, outlineModel)
+    storage.putNodeData(BOOK_OUTLINE_NODE, BOOK_OUTLINE_ITEM, outline)
+    progress.emit({
+      type: "step-complete",
+      step: "book-outline",
+      message: `${outline.entries.length} headings`,
+    })
+    console.log(`[stage-run] ${label}: book outline complete (${outline.entries.length} headings)`)
+    return outline
+  } catch (err) {
+    if (isCancellation(err, [signal])) throw err
+    const msg = toErrorMessage(err)
+    console.error(`[stage-run] ${label}: book outline failed: ${msg}`)
+    progress.emit({ type: "step-error", step: "book-outline", error: msg })
+    throw err
   }
 }
 
@@ -918,7 +1098,8 @@ async function runExtractStep(
         endPage: config.end_page,
         spreadMode: config.spread_mode,
         spreadPairs: config.spread_pairs,
-        vectorTextGrouping: config.vector_text_grouping,
+        ...figureExtractionFlags(config),
+        removeWatermarks: config.remove_watermarks === true,
         fixedLayout: isFixedLayoutBook(config),
         fontsCacheDir: resolveFontsCacheDir(booksDir),
       },
@@ -931,7 +1112,7 @@ async function runExtractStep(
     const metadataConfig = buildMetadataConfig(config)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -960,7 +1141,7 @@ async function runExtractStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
 
@@ -997,7 +1178,7 @@ async function runExtractStep(
         promptEngine,
         rateLimiter,
         onLog: onLlmLog,
-        credentials: llmCredentials,
+        providerCredentials: llmCredentials,
         signal: options.signal,
       })
       const summaryPages = pages.map((page) => ({
@@ -1018,7 +1199,29 @@ async function runExtractStep(
       throw err
     }
 
-    // Step 4: Per-page image classification runs as four sequential passes,
+    // Step 4: Build one book-wide semantic outline before page sectioning.
+    // The configured default is OpenAI; no provider-specific PDF API is used.
+    const outlineConfig = buildBookOutlineConfig(config)
+    const outlineModel = createLLMModel({
+      modelId: outlineConfig.modelId,
+      cacheDir,
+      promptEngine,
+      rateLimiter,
+      onLog: onLlmLog,
+      providerCredentials: llmCredentials,
+      signal: options.signal,
+    })
+    await generateAndStoreBookOutline(
+      label,
+      pages,
+      storage,
+      outlineConfig,
+      outlineModel,
+      progress,
+      options.signal,
+    )
+
+    // Step 5: Per-page image classification runs as four sequential passes,
     // each with its own progress reporting so the UI reflects real timing.
     const imageClassifyConfig = buildStageRunnerImageClassifyConfig(config, storage)
     const meaningfulnessConfig = buildMeaningfulnessConfig(config)
@@ -1032,7 +1235,7 @@ async function runExtractStep(
           promptEngine,
           rateLimiter,
           onLog: onLlmLog,
-          credentials: llmCredentials,
+          providerCredentials: llmCredentials,
           signal: options.signal,
         })
       : null
@@ -1044,7 +1247,7 @@ async function runExtractStep(
           promptEngine,
           rateLimiter,
           onLog: onLlmLog,
-          credentials: llmCredentials,
+          providerCredentials: llmCredentials,
           signal: options.signal,
         })
       : null
@@ -1056,7 +1259,7 @@ async function runExtractStep(
           promptEngine,
           rateLimiter,
           onLog: onLlmLog,
-          credentials: llmCredentials,
+          providerCredentials: llmCredentials,
           signal: options.signal,
         })
       : null
@@ -1088,6 +1291,7 @@ async function runExtractStep(
     if (!stepController.signal.aborted) {
       await runMeaningfulnessPass(
         label, pages, storage, meaningfulnessConfig, meaningfulnessModel,
+        resolveFigureExtractionMode(config) === "auto",
         effectiveConcurrency, pageResults, pageFailureDeps, progress
       )
     }
@@ -1143,7 +1347,7 @@ async function runSectioningStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1179,7 +1383,7 @@ async function runSectioningStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
 
@@ -1190,12 +1394,54 @@ async function runSectioningStep(
           promptEngine,
           rateLimiter,
           onLog: onLlmLog,
-          credentials: llmCredentials,
+          providerCredentials: llmCredentials,
           signal: options.signal,
         })
       : null
 
     const pages = storage.getPages()
+    const stepStatus = new Map(storage.getStepRuns().map((run) => [run.step, run.status]))
+    const outlineStepStatus = stepStatus.get("book-outline")
+    const outlineStepComplete = outlineStepStatus === "done" || outlineStepStatus === "skipped"
+    let bookOutline = outlineStepComplete ? readBookOutline(storage) : null
+    // Split/merge projects deliberately discard part-local outlines. Rebuild
+    // the authoritative hierarchy from the assembled stored pages here so a
+    // Sectioning run never has to invoke (and clear data through) Extract.
+    if (!bookOutline) {
+      const extractStage = PIPELINE.find((stage) => stage.name === "extract")
+      const incompletePrerequisites = (extractStage?.steps ?? [])
+        .filter((step) => step.name !== "book-outline")
+        .filter((step) => {
+          const status = stepStatus.get(step.name)
+          return status !== "done" && status !== "skipped"
+        })
+        .map((step) => step.name)
+      if (incompletePrerequisites.length > 0) {
+        throw new Error(
+          "Cannot rebuild the book outline before Extract prerequisites complete: " +
+          incompletePrerequisites.join(", "),
+        )
+      }
+      const outlineConfig = buildBookOutlineConfig(config)
+      const outlineModel = createLLMModel({
+        modelId: outlineConfig.modelId,
+        cacheDir,
+        promptEngine,
+        rateLimiter,
+        onLog: onLlmLog,
+        providerCredentials: llmCredentials,
+        signal: options.signal,
+      })
+      bookOutline = await generateAndStoreBookOutline(
+        label,
+        pages,
+        storage,
+        outlineConfig,
+        outlineModel,
+        progress,
+        options.signal,
+      )
+    }
     const totalPages = pages.length
     const effectiveConcurrency = config.concurrency ?? 32
 
@@ -1237,6 +1483,7 @@ async function runSectioningStep(
               text: page.text,
               imageBase64: storage.getPageImageBase64(page.pageId),
               availableImages,
+              outline: outlineContextForPage(bookOutline, page.pageId),
             },
             pageSectioningConfig,
             structuringModel,
@@ -1305,7 +1552,12 @@ async function runStoryboardStep(
   try {
     const config = loadBookConfig(label, booksDir, configPath)
 
-    const styleguideContent = loadStyleguideContent(config.styleguide, configPath)
+    const styleguideContent = loadStyleguideContent(
+      config.styleguide,
+      configPath,
+      booksDir,
+      label,
+    )
 
     // Render config is always needed
     const resolveRenderConfig = buildRenderStrategyResolver(config)
@@ -1313,7 +1565,7 @@ async function runStoryboardStep(
     // Shared infrastructure for LLM calls
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1351,7 +1603,7 @@ async function runStoryboardStep(
         promptEngine,
         rateLimiter,
         onLog: onLlmLog,
-        credentials: llmCredentials,
+        providerCredentials: llmCredentials,
         signal: options.signal,
       })
       renderModels.set(modelId, model)
@@ -1406,6 +1658,13 @@ async function runStoryboardStep(
     console.log(
       `[stage-run] ${label}: rendering storyboard for ${totalPages} pages (concurrency=${effectiveConcurrency})`
     )
+
+    // Mark the step running before any page work begins. Without this the
+    // step_runs row (and the sidebar) only flip to "running" on the first
+    // step-progress event, i.e. after the first page has completed its full
+    // render + visual-refinement loop — which reads as a minutes-long
+    // "Starting…" on slow or retry-heavy models.
+    progress.emit({ type: "step-start", step: "web-rendering" })
 
     await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksDir))
 
@@ -1558,7 +1817,7 @@ async function runQuizzesStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1599,7 +1858,7 @@ async function runQuizzesStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
 
@@ -1642,6 +1901,7 @@ async function runQuizzesStep(
     )
 
     if (quizPages.length > 0) {
+      assertQuizGenerationCapacity(storage, batchPages(quizPages, quizConfig.pagesPerQuiz, quizConfig.quizSectionTypes).length)
       const quizResult = await generateAllQuizzes(quizPages, quizConfig, quizModel, {
         concurrency: effectiveConcurrency,
         onQuizComplete: (completed, total) => {
@@ -1654,7 +1914,8 @@ async function runQuizzesStep(
           })
         },
       })
-      storage.putNodeData("quiz-generation", "book", quizResult)
+      options.signal?.throwIfAborted()
+      saveQuizOutput(storage, quizResult, "replace")
       console.log(
         `[stage-run] ${label}: generated ${quizResult.quizzes.length} quiz(zes) from ${quizPages.length} page(s)`
       )
@@ -1664,6 +1925,13 @@ async function runQuizzesStep(
         message: `${quizResult.quizzes.length} quizzes from ${quizPages.length} pages`,
       })
     } else {
+      // A successful empty rerun must not leave the preserved previous quizzes
+      // active. Keep their history, but publish the now-empty result.
+      options.signal?.throwIfAborted()
+      saveQuizOutput(storage, {
+        generatedAt: new Date().toISOString(), language: quizConfig.language,
+        pagesPerQuiz: quizConfig.pagesPerQuiz, quizzes: [],
+      }, "replace")
       // Nothing to generate. This is the silent "finished instantly, no quizzes"
       // case — surface it loudly instead of completing green with no output.
       console.warn(
@@ -1702,7 +1970,7 @@ async function runCaptionsStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1748,7 +2016,7 @@ async function runCaptionsStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
 
@@ -1901,7 +2169,7 @@ async function runGlossaryStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1936,7 +2204,7 @@ async function runGlossaryStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
 
@@ -1994,7 +2262,7 @@ async function runTocStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2028,7 +2296,7 @@ async function runTocStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
 
@@ -2075,7 +2343,7 @@ async function runEasyReadStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2157,7 +2425,7 @@ async function runEasyReadStep(
           promptEngine,
           rateLimiter,
           onLog: onLlmLog,
-          credentials: llmCredentials,
+          providerCredentials: llmCredentials,
           signal: options.signal,
         })
         const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
@@ -2215,7 +2483,7 @@ async function runTranslateStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2292,7 +2560,7 @@ async function runTranslateStep(
         promptEngine,
         rateLimiter,
         onLog: onLlmLog,
-        credentials: llmCredentials,
+        providerCredentials: llmCredentials,
         signal: options.signal,
       })
 
@@ -2370,7 +2638,75 @@ async function runTranslateStep(
       console.log(`[stage-run] ${label}: catalog translation complete`)
     }
 
-    // ── Step 3: Translate burned-in text in user-selected images ────
+    // ── Step 3: Prepare the independent per-language Core TTS catalogs ──
+    progress.emit({ type: "step-start", step: "core-tts-catalog" })
+    const coreTtsConfig = buildCoreTtsPreparationConfig(config)
+    const coreTtsModel = createLLMModel({
+      modelId: coreTtsConfig.modelId,
+      cacheDir,
+      promptEngine,
+      rateLimiter,
+      onLog: onLlmLog,
+      providerCredentials: llmCredentials,
+      signal: options.signal,
+    })
+    const coreTtsConfigDir = configPath
+      ? path.join(path.dirname(configPath), "config")
+      : path.resolve(process.cwd(), "config")
+    const profiles = loadCoreTtsProfiles(coreTtsConfigDir)
+    const sourceDisplayEntries = [...catalog.entries, ...easyReadEntries]
+    const sourceCoreTts = await prepareCoreTtsCatalog({
+      entries: sourceDisplayEntries,
+      language,
+      config: coreTtsConfig,
+      profile: resolveCoreTtsProfile(language, profiles),
+      llmModel: coreTtsModel,
+      previous: getCoreTtsCatalog(storage, language),
+    })
+    storage.putNodeData("core-tts-catalog", language, sourceCoreTts)
+    const sourceContext = buildCoreTtsSourceContext(
+      sourceDisplayEntries,
+      sourceCoreTts,
+    )
+
+    let preparedLanguages = 1
+    const preparationLocales = getCoreTtsPreparationLocales(
+      outputLanguages,
+      language,
+    )
+    for (const locale of preparationLocales) {
+      const lang = locale.language
+      let targetDisplayEntries = sourceDisplayEntries
+      if (!locale.usesSourceDisplayText) {
+        const legacyLang = lang.replace("-", "_")
+        const translatedRow =
+          storage.getLatestNodeData("text-catalog-translation", lang) ??
+          storage.getLatestNodeData("text-catalog-translation", legacyLang)
+        if (!translatedRow) continue
+        targetDisplayEntries = (translatedRow.data as TextCatalogOutput).entries
+      }
+      const targetCoreTts = await prepareCoreTtsCatalog({
+        entries: targetDisplayEntries,
+        language: lang,
+        config: coreTtsConfig,
+        profile: resolveCoreTtsProfile(lang, profiles),
+        llmModel: coreTtsModel,
+        previous: getCoreTtsCatalog(storage, lang),
+        sourceContext,
+      })
+      storage.putNodeData("core-tts-catalog", lang, targetCoreTts)
+      preparedLanguages++
+      progress.emit({
+        type: "step-progress",
+        step: "core-tts-catalog",
+        message: `${preparedLanguages}/${outputLanguages.length} languages`,
+        page: preparedLanguages,
+        totalPages: outputLanguages.length,
+      })
+    }
+    progress.emit({ type: "step-complete", step: "core-tts-catalog" })
+
+    // ── Step 4: Translate burned-in text in user-selected images ────
     const imageTranslation = buildImageTranslationConfig(config)
     const imageTargetLanguages = getTargetLanguages(outputLanguages, language)
     if (
@@ -2391,12 +2727,7 @@ async function runTranslateStep(
 
       // Validate prerequisites BEFORE clearing existing variants — a missing
       // API key shouldn't wipe prior work.
-      if (!options.apiKey) {
-        throw new StepError(
-          "image-translation",
-          "Image translation requires an OpenAI API key"
-        )
-      }
+      const openaiApiKey = resolveCredentialField(options, "openai", "apiKey")
 
       const promptName = config.image_translation?.prompt ?? "image_translation"
       const bookPromptPath = path.join(
@@ -2479,7 +2810,7 @@ async function runTranslateStep(
           try {
             const buffer = fs.readFileSync(item.diskPath)
             const result = await translateImage({
-              apiKey: options.apiKey,
+              apiKey: openaiApiKey,
               modelId: imageModelId,
               prompt: promptText,
               sourceLanguage: language,
@@ -2568,21 +2899,15 @@ async function runSpeechStep(
       )
     )
 
-    // Load text catalog from storage (produced by translate stage)
-    const catalogRow = storage.getLatestNodeData("text-catalog", "book")
-    const catalog = catalogRow?.data as TextCatalogOutput | null
-    const easyReadConfig = buildEasyReadConfig(config, language)
-    const easyReadRow = storage.getLatestNodeData("easy-read", "book")
-    // Easy Read audio is generated whenever Easy Read is enabled (all
-    // languages), so include the source-language easy-read entries here too.
-    const sourceEasyReadEntries = easyReadConfig.enabled
-      ? flattenEasyReadEntries(easyReadRow?.data as EasyReadOutput | undefined)
-      : []
-
-    if (!catalog || (catalog.entries.length === 0 && sourceEasyReadEntries.length === 0)) {
+    // Core TTS is the only provider-text source. It already includes Easy Read
+    // entries and deliberately omits failed LaTeX conversions.
+    const hasCoreTtsEntries = outputLanguages.some(
+      (lang) => getReadyCoreTtsEntries(storage, lang).length > 0,
+    )
+    if (!hasCoreTtsEntries) {
       progress.emit({ type: "step-skip", step: "tts" })
       progress.emit({ type: "step-skip", step: "word-timestamps" })
-      console.log(`[stage-run] ${label}: TTS skipped (empty catalog)`)
+      console.log(`[stage-run] ${label}: TTS skipped (empty Core TTS catalog)`)
       return
     }
 
@@ -2597,59 +2922,86 @@ async function runSpeechStep(
     const defaultProvider = config.speech?.default_provider ?? "openai"
     const providerConfigs = config.speech?.providers ?? {}
     const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
+    const openaiApiKey = tryResolveCredentialField(options, "openai", "apiKey")
+    // ElevenLabs voice_settings overrides, resolved once for the whole step.
+    // Shared helper so the reuse check, the generation call, and the other two
+    // execution paths all hash the same cache key.
+    const elevenLabsVoiceSettings = elevenLabsVoiceSettingsFromConfig(config.speech)
 
     console.log(`[stage-run] ${label}: TTS configDir=${configDir} voiceMaps=${Object.keys(voiceMaps).join(",")||"(empty)"}`)
     console.log(`[stage-run] ${label}: TTS config — defaultProvider=${defaultProvider} model=${speechModel ?? "(provider default)"} format=${config.speech?.format ?? "(provider default)"}`)
     console.log(`[stage-run] ${label}: TTS providers=${JSON.stringify(providerConfigs)}`)
-    console.log(`[stage-run] ${label}: TTS azureKey=${options.azureSpeechKey ? "set" : "NOT SET"} azureRegion=${options.azureSpeechRegion ?? "NOT SET"} geminiKey=${options.geminiApiKey ? "set" : "NOT SET"}`)
+    console.log(`[stage-run] ${label}: TTS credentialProviders=${Object.keys(options.credentials).join(",") || "(none)"}`)
 
     const synthesizers = new Map<string, TTSSynthesizer>()
     function getSynthesizer(providerName: string): TTSSynthesizer {
       if (synthesizers.has(providerName)) return synthesizers.get(providerName)!
       console.log(`[stage-run] ${label}: creating TTS synthesizer for provider="${providerName}"`)
       if (providerName === "azure") {
-        if (!options.azureSpeechKey || !options.azureSpeechRegion) {
-          throw new Error("Azure Speech key and region are required for Azure TTS provider. Set them in the API Keys dialog (gear icon).")
-        }
+        const subscriptionKey = resolveCredentialField(options, "azure", "apiKey")
+        const region = resolveCredentialField(options, "azure", "region")
         const synth = createAzureTTSSynthesizer(
-          { subscriptionKey: options.azureSpeechKey, region: options.azureSpeechRegion },
+          { subscriptionKey, region },
           { sampleRate: config.speech?.sample_rate, bitRate: config.speech?.bit_rate }
         )
         synthesizers.set("azure", synth)
         return synth
       }
       if (providerName === "gemini") {
-        if (!options.geminiApiKey && !process.env.GEMINI_API_KEY) {
-          throw new Error("Gemini API key is required for Gemini TTS provider. Set it in the API Keys dialog (gear icon).")
-        }
-        const synth = createGeminiTTSSynthesizer(
-          options.geminiApiKey ? { apiKey: options.geminiApiKey } : undefined
-        )
+        const apiKey = resolveCredentialField(options, "gemini", "apiKey")
+        const synth = createGeminiTTSSynthesizer({ apiKey })
         synthesizers.set("gemini", synth)
         return synth
       }
-      const synth = createTTSSynthesizer(options.apiKey)
+      if (providerName === "elevenlabs") {
+        const apiKey = resolveCredentialField(options, "elevenlabs", "apiKey")
+        const synth = createElevenLabsTTSSynthesizer(
+          { apiKey },
+          { sampleRate: config.speech?.sample_rate, bitRate: config.speech?.bit_rate }
+        )
+        synthesizers.set("elevenlabs", synth)
+        return synth
+      }
+      const apiKey = resolveCredentialField(options, "openai", "apiKey")
+      const synth = createTTSSynthesizer(apiKey)
       synthesizers.set(providerName, synth)
       return synth
     }
-
-    const sourceLanguage = language
 
     interface TTSWorkItem {
       textId: string
       text: string
       language: string
+      /** Adjacent catalog entries' text (ElevenLabs' previous_text/next_text),
+       *  only populated when elevenlabs_use_context is enabled and the entry
+       *  is routed to ElevenLabs. */
+      previousText?: string
+      nextText?: string
+      /** Which configured voice this item generates — see @adt/types VoiceSlot. */
+      voiceSlot: VoiceSlot
+      provider: string
+      model: string
+      voice: string
+      voiceLabel?: string
     }
     const ttsWorkItems: TTSWorkItem[] = []
     // Page-batched TTS (experimental, Gemini only): a page's entries are
     // synthesized in one request then sliced back into per-entry files, which
     // needs an OpenAI key for the Whisper alignment pass. Non-page entries
     // (glossary, quiz, easy-read) and non-Gemini languages keep per-entry.
-    const batchByPage = config.speech?.batch_by_page === true && !!options.apiKey?.trim()
-    if (config.speech?.batch_by_page === true && !options.apiKey?.trim()) {
+    const batchByPage = config.speech?.batch_by_page === true && !!openaiApiKey
+    if (config.speech?.batch_by_page === true && !openaiApiKey) {
       console.warn(`[stage-run] ${label}: batch_by_page is enabled but no OpenAI key was provided; falling back to per-entry TTS (the Whisper alignment pass needs an OpenAI key)`)
     }
-    interface PageGroup { language: string; pageKey: string; entries: { id: string; text: string }[] }
+    interface PageGroup {
+      language: string
+      pageKey: string
+      voiceSlot: VoiceSlot
+      model: string
+      voice: string
+      voiceLabel?: string
+      entries: { id: string; text: string }[]
+    }
     const pageGroups = new Map<string, PageGroup>()
     const textByLanguage = new Map<string, Map<string, string>>()
     const ttsResultsByLang = new Map<string, SpeechFileEntry[]>()
@@ -2665,101 +3017,154 @@ async function runSpeechStep(
     beginSpeechRun(label, ttsResultsByLang, failedByLang)
 
     for (const lang of outputLanguages) {
-      const baseSource = getBaseLanguage(sourceLanguage)
-      const baseLang = getBaseLanguage(lang)
       const existingSpeechEntries = getExistingSpeechEntries(storage, lang)
-      const provider = resolveProviderForLanguage(lang, routing)
-      const batchThisLanguage =
-        batchByPage &&
-        provider === "gemini" &&
-        supportsPageBatchedSpeech(lang)
 
-      if (batchByPage && provider === "gemini" && !batchThisLanguage) {
-        console.log(
-          `[stage-run] ${label}: page-batched TTS is disabled for ${lang}; using per-entry TTS`,
-        )
+      const entries = getReadyCoreTtsEntries(storage, lang)
+      if (entries.length === 0) {
+        console.warn(`[stage-run] ${label}: no ready Core TTS entries for ${lang}, skipping TTS for this language`)
+        continue
       }
 
-      let entries: TextCatalogEntry[]
-      if (baseLang === baseSource) {
-        entries = [...catalog.entries, ...sourceEasyReadEntries]
-      } else {
-        const legacyLang = lang.replace("-", "_")
-        const translatedRow =
-          storage.getLatestNodeData("text-catalog-translation", lang) ??
-          storage.getLatestNodeData("text-catalog-translation", legacyLang)
-        if (translatedRow) {
-          entries = (translatedRow.data as TextCatalogOutput).entries
-        } else {
-          console.warn(`[stage-run] ${label}: missing translated catalog for ${lang}, skipping TTS for this language`)
-          continue
+      const configuredVoices = (["primary", "secondary"] as const)
+        .map((slot) => ({
+          slot,
+          profile: resolveSpeechVoice(lang, slot, config.speech, voiceMaps, speechModel),
+        }))
+        .filter(
+          (item): item is {
+            slot: VoiceSlot
+            profile: NonNullable<ReturnType<typeof resolveSpeechVoice>>
+          } => item.profile !== null,
+        )
+        // Page batching is a per-voice decision now that a secondary narrator
+        // can route to a different provider than its language's primary.
+        .map((item) => ({
+          ...item,
+          batchThisVoice:
+            batchByPage &&
+            item.profile.provider === "gemini" &&
+            supportsPageBatchedSpeech(lang),
+        }))
+
+      for (const { slot, profile, batchThisVoice } of configuredVoices) {
+        if (batchByPage && profile.provider === "gemini" && !batchThisVoice) {
+          console.log(
+            `[stage-run] ${label}: page-batched TTS is disabled for ${lang}:${slot}; using per-entry TTS`,
+          )
         }
       }
 
       const languageTextMap = new Map<string, string>()
-      for (const entry of entries) {
+      for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
+        const entry = entries[entryIndex]
         // Excluded entries get no audio at all — not generated, not reused
         // into the new TTS output version.
         if (isTtsExcluded(entry.id, config.speech)) continue
         languageTextMap.set(entry.id, entry.text)
 
-        // Route page-scoped entries of a Gemini language into a per-page group
-        // (generated together below). Skips the per-entry reuse check — page
-        // audio is cached at the page level inside generatePageSpeechFiles.
-        // Entries with an existing MANUAL recording are left on the per-entry
-        // path so canReuseSpeechEntry's manual guard preserves them (batching
-        // would otherwise overwrite the uploaded audio).
-        if (
-          batchThisLanguage &&
-          isBatchableSpeechEntry(entry.id) &&
-          existingSpeechEntries.get(entry.id)?.provider !== "manual"
-        ) {
-          const pageKey = batchPageKeyOf(entry.id)!
-          const groupKey = `${lang}::${pageKey}`
-          let group = pageGroups.get(groupKey)
-          if (!group) {
-            group = { language: lang, pageKey, entries: [] }
-            pageGroups.set(groupKey, group)
+        for (const { slot, profile, batchThisVoice } of configuredVoices) {
+          const { provider, model: providerModel, voice, label: voiceLabel } = profile
+          const slotEntryId = voiceSlotEntryId(entry.id, slot)
+
+          // Route page-scoped entries of a Gemini language into a per-page group
+          // (generated together below). Skips the per-entry reuse check — page
+          // audio is cached at the page level inside generatePageSpeechFiles.
+          // Entries with an existing MANUAL recording are left on the per-entry
+          // path so canReuseSpeechEntry's manual guard preserves them (batching
+          // would otherwise overwrite the uploaded audio).
+          if (
+            batchThisVoice &&
+            isBatchableSpeechEntry(entry.id) &&
+            existingSpeechEntries.get(slotEntryId)?.provider !== "manual"
+          ) {
+            const pageKey = batchPageKeyOf(entry.id)!
+            const groupKey = `${lang}::${pageKey}::${slot}`
+            let group = pageGroups.get(groupKey)
+            if (!group) {
+              group = {
+                language: lang,
+                pageKey,
+                voiceSlot: slot,
+                model: providerModel,
+                voice,
+                voiceLabel,
+                entries: [],
+              }
+              pageGroups.set(groupKey, group)
+            }
+            group.entries.push({ id: entry.id, text: entry.text })
+            continue
           }
-          group.entries.push({ id: entry.id, text: entry.text })
-          continue
-        }
 
-        const provider = resolveProviderForLanguage(lang, routing)
-        const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
-        const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
-        const voice = resolveVoice(provider, lang, voiceMaps, config.speech?.voice)
-        // OpenAI consumes instructions via its `instructions` field; Gemini embeds
-        // them in the prompt text (it rejects systemInstruction). Both paths must
-        // resolve identically here and in the generation loop below so the cache key
-        // (computeSpeechCacheKey) stays in sync with canReuseSpeechEntry.
-        const instructions =
-          provider === "openai" || provider === "gemini"
-            ? resolveInstructions(lang, instructionsMap)
-            : ""
-        const existingEntry = existingSpeechEntries.get(entry.id)
+          const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
+          // OpenAI consumes instructions via its `instructions` field; Gemini embeds
+          // them in the prompt text (it rejects systemInstruction). Both paths must
+          // resolve identically here and in the generation loop below so the cache key
+          // (computeSpeechCacheKey) stays in sync with canReuseSpeechEntry.
+          const instructions =
+            provider === "openai" || provider === "gemini"
+              ? resolveInstructions(lang, instructionsMap)
+              : ""
+          // ElevenLabs-only: adjacent-entry context, opt-in via
+          // elevenlabs_use_context. Must resolve identically here and below so
+          // the cache key stays in sync with canReuseSpeechEntry.
+          const previousText =
+            provider === "elevenlabs" && config.speech?.elevenlabs_use_context
+              ? findAdjacentSpeechText(entries, entryIndex, -1, config.speech)
+              : undefined
+          const nextText =
+            provider === "elevenlabs" && config.speech?.elevenlabs_use_context
+              ? findAdjacentSpeechText(entries, entryIndex, 1, config.speech)
+              : undefined
+          const existingEntry = existingSpeechEntries.get(slotEntryId)
 
-        if (
-          canReuseSpeechEntry(existingEntry, {
-            bookDir,
-            cacheDir,
-            language: lang,
+          if (
+            canReuseSpeechEntry(existingEntry, {
+              bookDir,
+              cacheDir,
+              language: lang,
+              text: entry.text,
+              provider,
+              model: providerModel,
+              voice,
+              instructions,
+              format: outputFormat,
+              voiceSlot: slot,
+              geminiTemperature: config.speech?.temperature,
+              geminiSeed: config.speech?.seed,
+              elevenLabsPreviousText: previousText,
+              elevenLabsNextText: nextText,
+              elevenLabsApplyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+              ...elevenLabsVoiceSettings,
+            })
+          ) {
+            const refreshedEntry = {
+              ...existingEntry,
+              voiceSlot: slot,
+            }
+            if (voiceLabel) {
+              refreshedEntry.voiceLabel = voiceLabel
+            } else {
+              delete refreshedEntry.voiceLabel
+            }
+            ttsResultsByLang.get(lang)?.push(refreshedEntry)
+            reusedEntriesByLang.set(lang, (reusedEntriesByLang.get(lang) ?? 0) + 1)
+            continue
+          }
+
+          ttsWorkItems.push({
+            textId: entry.id,
             text: entry.text,
+            language: lang,
+            previousText,
+            nextText,
+            voiceSlot: slot,
             provider,
             model: providerModel,
             voice,
-            instructions,
-            format: outputFormat,
-            geminiTemperature: config.speech?.temperature,
-            geminiSeed: config.speech?.seed,
+            voiceLabel,
           })
-        ) {
-          ttsResultsByLang.get(lang)?.push(existingEntry)
-          reusedEntriesByLang.set(lang, (reusedEntriesByLang.get(lang) ?? 0) + 1)
-          continue
         }
-
-        ttsWorkItems.push({ textId: entry.id, text: entry.text, language: lang })
       }
       textByLanguage.set(lang, languageTextMap)
     }
@@ -2772,15 +3177,36 @@ async function runSpeechStep(
     emitSpeechStepProgress(progress, 0, totalItems, 0, reusedItems)
 
     console.log(`[stage-run] ${label}: generating TTS for ${totalItems} entries and reusing ${reusedItems} existing entries across ${outputLanguages.length} languages (${outputLanguages.join(", ")})`)
-    console.log(`[stage-run] ${label}: TTS routing — for each language: ${outputLanguages.map((l) => `${l}→${resolveProviderForLanguage(l, routing)}`).join(", ")}`)
+    console.log(`[stage-run] ${label}: TTS routing — ${[...pageGroups.values()].map((g) => `${g.language}:${g.voiceSlot}→gemini`).concat(ttsWorkItems.map((item) => `${item.language}:${item.voiceSlot}→${item.provider}`)).join(", ")}`)
 
-    const hasGeminiTts = outputLanguages.some(
-      (lang) => resolveProviderForLanguage(lang, routing) === "gemini"
-    )
+    // Fail fast: build every synthesizer this run needs before admitting any
+    // item, so a missing credential surfaces as one clear stage error instead
+    // of one logged per-item failure for every entry that was in flight when
+    // the key turned out to be absent. getSynthesizer is memoized, so the
+    // generation loops below reuse these instances.
+    //
+    // Derived from the resolved work, not from the configured providers: a
+    // secondary narrator carries its own provider (speech.secondary_voices),
+    // so a per-language lookup would miss it, and a run whose entries are all
+    // reused needs no synthesizer at all and must not be failed here.
+    // Page groups are Gemini-only by construction (see getSynthesizer("gemini")
+    // in the batched executor below).
+    for (const provider of new Set([
+      ...ttsWorkItems.map((item) => item.provider),
+      ...(pageGroups.size > 0 ? ["gemini"] : []),
+    ])) {
+      getSynthesizer(provider)
+    }
+
+    const hasGeminiTts =
+      pageGroups.size > 0 || ttsWorkItems.some((item) => item.provider === "gemini")
     // Adaptive limiter: start at the documented ceiling for the selected model
     // (or a user-pinned value) and back off on 429s, so a generous quota runs
     // fast while a smaller tier self-throttles instead of erroring out.
-    const geminiTtsModel = resolveSpeechModel("gemini", providerConfigs, speechModel)
+    const geminiTtsModel =
+      [...pageGroups.values()][0]?.model ??
+      ttsWorkItems.find((item) => item.provider === "gemini")?.model ??
+      resolveSpeechModel("gemini", providerConfigs, speechModel)
     const geminiTtsRate = resolveGeminiTtsRateLimit({
       model: geminiTtsModel,
       rateLimit: providerConfigs.gemini?.rate_limit,
@@ -2812,33 +3238,30 @@ async function runSpeechStep(
         groups,
         effectiveConcurrency,
         async (group: PageGroup) => {
-          const providerModel = resolveSpeechModel("gemini", providerConfigs, speechModel)
+          const providerModel = group.model
           const outputFormat = resolveSpeechFormat("gemini", config.speech?.format)
-          const voice = resolveVoice("gemini", group.language, voiceMaps, config.speech?.voice)
           const instructions = resolveInstructions(group.language, instructionsMap)
           const startMs = Date.now()
           // Record the page synthesis in the LLM log (transparency + cost
           // tracking), mirroring the per-entry path so batched Gemini calls
           // aren't invisible.
-          const emitPageLog = (o: { success: boolean; cacheHit: boolean; attempt: number; error?: string }) => {
-            const preview = group.entries.map((e) => e.text).join(" ").slice(0, 300)
-            const logEntry: LlmLogEntry = {
-              requestId: crypto.randomUUID(),
-              timestamp: new Date().toISOString(),
-              taskType: "tts",
-              pageId: group.pageKey,
-              promptName: "tts-gemini",
-              modelId: `gemini/${providerModel}`,
-              cacheHit: o.cacheHit,
-              success: o.success,
-              errorCount: o.success ? 0 : 1,
-              attempt: Math.max(o.attempt, 1),
+          const emitPageLog = (o: { success: boolean; cacheHit: boolean; attempt: number; error?: string; skippedReason?: string }) => {
+            const logEntry = buildTtsLogEntry({
+              textId: group.pageKey,
+              // The slot rides along in `language` so a dual-voice book's two
+              // page syntheses stay distinguishable in the LLM log.
+              language: `${group.language}:${group.voiceSlot}`,
+              voice: `${group.voice} (page ${group.pageKey}, ${group.entries.length} entries)`,
+              model: providerModel,
+              provider: "gemini",
+              text: group.entries.map((entry) => entry.text).join(" "),
               durationMs: Date.now() - startMs,
-              messages: [{
-                role: "user",
-                content: [{ type: "text" as const, text: `[${group.language}] voice=${voice} (page ${group.pageKey}, ${group.entries.length} entries)${o.error ? `\nERROR: ${o.error}` : ""}\n${preview}` }],
-              }],
-            }
+              success: o.success,
+              cached: o.cacheHit,
+              attempt: o.attempt,
+              error: o.error,
+              ...(o.skippedReason ? { skippedReason: o.skippedReason } : {}),
+            })
             storage.appendLlmLog(logEntry)
             progress.emit({ type: "llm-log", step: "tts", itemId: group.pageKey, promptName: logEntry.promptName, modelId: logEntry.modelId, cacheHit: o.cacheHit, durationMs: logEntry.durationMs })
           }
@@ -2850,25 +3273,36 @@ async function runSpeechStep(
                 entries: group.entries,
                 language: group.language,
                 model: providerModel,
-                voice,
+                voice: group.voice,
                 instructions,
                 format: outputFormat,
                 bookDir,
                 cacheDir,
                 ttsSynthesizer: getSynthesizer("gemini"),
-                whisperApiKey: options.apiKey!,
+                whisperApiKey: openaiApiKey!,
                 rateLimiter: geminiTtsRateLimiter,
                 provider: "gemini",
+                voiceSlot: group.voiceSlot,
+                voiceLabel: group.voiceLabel,
                 geminiTemperature: config.speech?.temperature,
                 geminiSeed: config.speech?.seed,
                 signal: options.signal,
+                onWhisperLog: appendWordTimestampsLog(storage, progress),
               })
               for (const e of entries) ttsResultsByLang.get(group.language)?.push(e)
               // A page served from cache makes no request — don't reward the
               // limiter for it (mirrors the per-entry `!entry.cached` guard).
               const pageCached = entries.length > 0 && entries.every((e) => e.cached)
               if (entries.length > 0 && !pageCached) geminiTtsRateLimiter?.reward()
-              emitPageLog({ success: true, cacheHit: pageCached, attempt })
+              emitPageLog({
+                success: true,
+                cacheHit: pageCached,
+                attempt,
+                // No entries back means every text in the group was
+                // unspeakable, so generatePageSpeechFiles returned early
+                // without calling the provider (speech.ts, `usable.length === 0`).
+                ...(entries.length === 0 ? { skippedReason: NO_SPEAKABLE_TEXT_REASON } : {}),
+              })
               break
             } catch (err) {
               if (isCancellation(err, [options.signal])) {
@@ -2901,7 +3335,11 @@ async function runSpeechStep(
               emitPageLog({ success: false, cacheHit: false, attempt, error: msg })
               for (const e of group.entries) {
                 failedItems.push(`${e.id}: ${msg}`)
-                failedByLang.get(group.language)?.push({ textId: e.id, error: msg })
+                failedByLang.get(group.language)?.push({
+                  textId: e.id,
+                  error: msg,
+                  voiceSlot: group.voiceSlot,
+                })
                 geminiFailedItems.push(`${e.id}: ${msg}`)
               }
               break
@@ -2914,94 +3352,113 @@ async function runSpeechStep(
       )
     }
 
-    await processWithConcurrency(
-      ttsWorkItems,
-      effectiveConcurrency,
-      async (item: TTSWorkItem) => {
-        const startMs = Date.now()
-        const provider = resolveProviderForLanguage(item.language, routing)
-        const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
-        const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
-        const voice = resolveVoice(provider, item.language, voiceMaps, config.speech?.voice)
-        // Must mirror the reuse-check above: OpenAI + Gemini both receive resolved
-        // instructions (Gemini embeds them in the prompt text), Azure does not.
-        const instructions =
-          provider === "openai" || provider === "gemini"
-            ? resolveInstructions(item.language, instructionsMap)
-            : ""
-        let attemptCount = 0
+    // ElevenLabs' concurrent-request ceiling is low and plan-dependent, so its
+    // items run in a dedicated, capped pass. Partitioning by provider (instead
+    // of capping the whole `ttsWorkItems` list whenever *any* language routes
+    // to ElevenLabs) keeps OpenAI/Azure/Gemini languages in the same book at
+    // `effectiveConcurrency` instead of being dragged down to ElevenLabs'
+    // ceiling — a mixed-provider book no longer loses ~8x TTS throughput just
+    // because one of its languages uses ElevenLabs. Combined with the 429
+    // retry below this still keeps a throttled ElevenLabs run from failing
+    // entries outright.
+    const elevenLabsWorkItems: TTSWorkItem[] = []
+    const otherWorkItems: TTSWorkItem[] = []
+    for (const item of ttsWorkItems) {
+      if (item.provider === "elevenlabs") {
+        elevenLabsWorkItems.push(item)
+      } else {
+        otherWorkItems.push(item)
+      }
+    }
+    const elevenLabsConcurrency = Math.min(effectiveConcurrency, ELEVENLABS_TTS_MAX_CONCURRENCY)
 
-        console.log(`[stage-run] ${label}: TTS ${item.textId} → provider=${provider} voice=${voice} model=${providerModel} format=${outputFormat}`)
+    const processTtsWorkItem = async (item: TTSWorkItem) => {
+      const startMs = Date.now()
+      const provider = item.provider
+      const providerModel = item.model
+      const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
+      const voice = item.voice
+      // Must mirror the reuse-check above: OpenAI + Gemini both receive resolved
+      // instructions (Gemini embeds them in the prompt text), Azure does not.
+      const instructions =
+        provider === "openai" || provider === "gemini"
+          ? resolveInstructions(item.language, instructionsMap)
+          : ""
+      // Request parameters recorded on the debug log entry so the settings that
+      // produced this audio are inspectable. ElevenLabs only for now — the other
+      // providers' params are a separate change.
+      const logParams =
+        provider === "elevenlabs"
+          ? buildElevenLabsTtsLogParams({
+              model: providerModel,
+              voice,
+              language: item.language,
+              format: outputFormat,
+              sampleRate: config.speech?.sample_rate,
+              bitRate: config.speech?.bit_rate,
+              applyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+              previousText: item.previousText,
+              nextText: item.nextText,
+              ...elevenLabsVoiceSettings,
+            })
+          : undefined
+      let attemptCount = 0
 
-        try {
-          const ttsSynthesizer = getSynthesizer(provider)
-          let entry: SpeechFileEntry | null
+      console.log(`[stage-run] ${label}: TTS ${item.textId} (${item.voiceSlot}) → provider=${provider} voice=${voice} model=${providerModel} format=${outputFormat}`)
 
-          while (true) {
-            attemptCount++
-            try {
-              entry = await generateSpeechFile({
-                textId: item.textId,
-                text: item.text,
-                language: item.language,
-                model: providerModel,
-                voice,
-                instructions,
-                format: outputFormat,
-                bookDir,
-                cacheDir,
-                ttsSynthesizer,
-                rateLimiter: provider === "gemini" ? geminiTtsRateLimiter : undefined,
-                provider,
-                geminiTemperature: config.speech?.temperature,
-                geminiSeed: config.speech?.seed,
-                signal: options.signal,
-              })
-              // A real (non-cached) success means the current rate held —
-              // let the limiter probe back toward the ceiling.
-              if (provider === "gemini" && entry && !entry.cached) {
-                geminiTtsRateLimiter?.reward()
-              }
-              break
-            } catch (err) {
-              const msg = toErrorMessage(err)
-              const rateLimited =
-                provider === "gemini" && isGeminiTtsRateLimitMessage(msg)
-              const transient =
-                provider === "gemini" &&
-                !rateLimited &&
-                isGeminiTtsTransientError(msg)
+      try {
+        const ttsSynthesizer = getSynthesizer(provider)
+        let entry: SpeechFileEntry | null
+
+        while (true) {
+          attemptCount++
+          try {
+            entry = await generateSpeechFile({
+              textId: item.textId,
+              text: item.text,
+              language: item.language,
+              model: providerModel,
+              voice,
+              instructions,
+              format: outputFormat,
+              bookDir,
+              cacheDir,
+              ttsSynthesizer,
+              rateLimiter: provider === "gemini" ? geminiTtsRateLimiter : undefined,
+              provider,
+              voiceSlot: item.voiceSlot,
+              voiceLabel: item.voiceLabel,
+              geminiTemperature: config.speech?.temperature,
+              geminiSeed: config.speech?.seed,
+              elevenLabsPreviousText: item.previousText,
+              elevenLabsNextText: item.nextText,
+              elevenLabsApplyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+              ...elevenLabsVoiceSettings,
+              signal: options.signal,
+            })
+            // A real (non-cached) success means the current rate held —
+            // let the limiter probe back toward the ceiling.
+            if (provider === "gemini" && entry && !entry.cached) {
+              geminiTtsRateLimiter?.reward()
+            }
+            break
+          } catch (err) {
+            const msg = toErrorMessage(err)
+
+            // ElevenLabs: no adaptive limiter, but 429 (concurrency/quota)
+            // and 5xx are retryable with exponential backoff so a transient
+            // throttle doesn't permanently fail the entry. The per-item
+            // concurrency cap above already bounds how many can be in flight.
+            if (provider === "elevenlabs") {
+              const kind = classifyElevenLabsTtsError(msg)
               if (
-                (rateLimited || transient) &&
+                kind !== "permanent" &&
                 !options.signal?.aborted &&
-                attemptCount <= GEMINI_TTS_MAX_RATE_LIMIT_RETRIES
+                attemptCount <= ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES
               ) {
-                if (rateLimited) {
-                  const retryDelayMs =
-                    parseGeminiRetryDelayMs(msg) ??
-                    Math.min(
-                      GEMINI_TTS_DEFAULT_RETRY_DELAY_MS * attemptCount,
-                      GEMINI_TTS_MAX_RETRY_DELAY_MS
-                    )
-                  // Halve the shared rate and pause all workers for the retry
-                  // window, so one 429 throttles the whole batch instead of every
-                  // item discovering the limit independently.
-                  geminiTtsRateLimiter?.penalize(retryDelayMs)
-                  console.warn(
-                    `[stage-run] ${label}: Gemini TTS rate limited for ${item.textId} (${item.language}); backing off to ${geminiTtsRateLimiter?.currentRpm() ?? "?"} req/min, retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`
-                  )
-                  await sleep(retryDelayMs, options.signal)
-                  if (options.signal?.aborted) throw new RunCancelledError()
-                  continue
-                }
-                // Transient server error (500/empty audio): retry without
-                // penalizing the limiter — it's a Gemini hiccup, not a rate issue.
-                const retryDelayMs = Math.min(
-                  GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS * attemptCount,
-                  GEMINI_TTS_MAX_RETRY_DELAY_MS
-                )
+                const retryDelayMs = elevenLabsTtsRetryDelayMs(attemptCount)
                 console.warn(
-                  `[stage-run] ${label}: Gemini TTS transient error for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms: ${msg}`
+                  `[stage-run] ${label}: ElevenLabs TTS ${kind === "rate-limit" ? "rate limited" : "transient error"} for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms: ${msg}`
                 )
                 await sleep(retryDelayMs, options.signal)
                 if (options.signal?.aborted) throw new RunCancelledError()
@@ -3009,98 +3466,146 @@ async function runSpeechStep(
               }
               throw err
             }
-          }
 
-          const durationMs = Date.now() - startMs
-          const cached = entry?.cached ?? false
-
-          const logEntry: LlmLogEntry = {
-            requestId: crypto.randomUUID(),
-            timestamp: new Date().toISOString(),
-            taskType: "tts",
-            pageId: item.textId,
-            promptName: `tts-${provider}`,
-            modelId: `${provider}/${providerModel}`,
-            cacheHit: cached,
-            success: true,
-            errorCount: 0,
-            attempt: attemptCount,
-            durationMs,
-            messages: [{
-              role: "user",
-              content: [{ type: "text" as const, text: `[${item.language}] voice=${voice}\n${item.text.slice(0, 300)}` }],
-            }],
-          }
-          storage.appendLlmLog(logEntry)
-          progress.emit({
-            type: "llm-log",
-            step: "tts",
-            itemId: item.textId,
-            promptName: logEntry.promptName,
-            modelId: logEntry.modelId,
-            cacheHit: cached,
-            durationMs,
-          })
-
-          if (entry) {
-            ttsResultsByLang.get(item.language)?.push(entry)
-          }
-        } catch (err) {
-          // Run cancel — re-throw so processWithConcurrency unwinds; an aborted
-          // item is not a failure (it re-runs cheaply via the TTS cache).
-          if (isCancellation(err, [options.signal])) {
-            throw err instanceof RunCancelledError ? err : new RunCancelledError()
-          }
-          const msg = toErrorMessage(err)
-          const durationMs = Date.now() - startMs
-          console.error(`[stage-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
-          failedItems.push(`${item.textId}: ${msg}`)
-          failedByLang.get(item.language)?.push({ textId: item.textId, error: msg })
-          if (provider === "gemini") {
-            geminiFailedItems.push(`${item.textId}: ${msg}`)
-          }
-
-          const logEntry: LlmLogEntry = {
-            requestId: crypto.randomUUID(),
-            timestamp: new Date().toISOString(),
-            taskType: "tts",
-            pageId: item.textId,
-            promptName: `tts-${provider}`,
-            modelId: `${provider}/${providerModel}`,
-            cacheHit: false,
-            success: false,
-            errorCount: 1,
-            attempt: Math.max(attemptCount, 1),
-            durationMs,
-            messages: [{
-              role: "user",
-              content: [{ type: "text" as const, text: `[${item.language}] voice=${voice}\nERROR: ${msg}\n\n${item.text.slice(0, 300)}` }],
-            }],
-          }
-          storage.appendLlmLog(logEntry)
-          progress.emit({
-            type: "llm-log",
-            step: "tts",
-            itemId: item.textId,
-            promptName: logEntry.promptName,
-            modelId: logEntry.modelId,
-            cacheHit: false,
-            durationMs,
-          })
-          if (provider !== "gemini") {
-            progress.emit({
-              type: "step-error",
-              step: "tts",
-              error: `${item.textId} failed: ${msg}`,
-            })
+            const rateLimited =
+              provider === "gemini" && isGeminiTtsRateLimitMessage(msg)
+            const transient =
+              provider === "gemini" &&
+              !rateLimited &&
+              isGeminiTtsTransientError(msg)
+            if (
+              (rateLimited || transient) &&
+              !options.signal?.aborted &&
+              attemptCount <= GEMINI_TTS_MAX_RATE_LIMIT_RETRIES
+            ) {
+              if (rateLimited) {
+                const retryDelayMs =
+                  parseGeminiRetryDelayMs(msg) ??
+                  Math.min(
+                    GEMINI_TTS_DEFAULT_RETRY_DELAY_MS * attemptCount,
+                    GEMINI_TTS_MAX_RETRY_DELAY_MS
+                  )
+                // Halve the shared rate and pause all workers for the retry
+                // window, so one 429 throttles the whole batch instead of every
+                // item discovering the limit independently.
+                geminiTtsRateLimiter?.penalize(retryDelayMs)
+                console.warn(
+                  `[stage-run] ${label}: Gemini TTS rate limited for ${item.textId} (${item.language}); backing off to ${geminiTtsRateLimiter?.currentRpm() ?? "?"} req/min, retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`
+                )
+                await sleep(retryDelayMs, options.signal)
+                if (options.signal?.aborted) throw new RunCancelledError()
+                continue
+              }
+              // Transient server error (500/empty audio): retry without
+              // penalizing the limiter — it's a Gemini hiccup, not a rate issue.
+              const retryDelayMs = Math.min(
+                GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS * attemptCount,
+                GEMINI_TTS_MAX_RETRY_DELAY_MS
+              )
+              console.warn(
+                `[stage-run] ${label}: Gemini TTS transient error for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms: ${msg}`
+              )
+              await sleep(retryDelayMs, options.signal)
+              if (options.signal?.aborted) throw new RunCancelledError()
+              continue
+            }
+            throw err
           }
         }
 
-        completedItems++
-        emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
-      },
-      { runSignal: options.signal }
-    )
+        const durationMs = Date.now() - startMs
+        const cached = entry?.cached ?? false
+
+        const logEntry = buildTtsLogEntry({
+          textId: item.textId,
+          language: item.language,
+          voice,
+          model: providerModel,
+          provider,
+          text: item.text,
+          durationMs,
+          success: true,
+          cached,
+          attempt: attemptCount,
+          params: logParams,
+          // No entry means generateSpeechFile found nothing speakable (e.g. an
+          // "—" entry) and never called the provider.
+          ...(entry ? {} : { skippedReason: NO_SPEAKABLE_TEXT_REASON }),
+        })
+        storage.appendLlmLog(logEntry)
+        progress.emit({
+          type: "llm-log",
+          step: "tts",
+          itemId: item.textId,
+          promptName: logEntry.promptName,
+          modelId: logEntry.modelId,
+          cacheHit: cached,
+          durationMs,
+        })
+
+        if (entry) {
+          ttsResultsByLang.get(item.language)?.push(entry)
+        }
+      } catch (err) {
+        // Run cancel — re-throw so processWithConcurrency unwinds; an aborted
+        // item is not a failure (it re-runs cheaply via the TTS cache).
+        if (isCancellation(err, [options.signal])) {
+          throw err instanceof RunCancelledError ? err : new RunCancelledError()
+        }
+        const msg = toErrorMessage(err)
+        const durationMs = Date.now() - startMs
+        console.error(`[stage-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
+        failedItems.push(`${item.textId}: ${msg}`)
+        failedByLang.get(item.language)?.push({ textId: item.textId, error: msg, voiceSlot: item.voiceSlot })
+        if (provider === "gemini") {
+          geminiFailedItems.push(`${item.textId}: ${msg}`)
+        }
+
+        const logEntry = buildTtsLogEntry({
+          textId: item.textId,
+          language: item.language,
+          voice,
+          model: providerModel,
+          provider,
+          text: item.text,
+          durationMs,
+          success: false,
+          cached: false,
+          attempt: attemptCount,
+          error: msg,
+          params: logParams,
+        })
+        storage.appendLlmLog(logEntry)
+        progress.emit({
+          type: "llm-log",
+          step: "tts",
+          itemId: item.textId,
+          promptName: logEntry.promptName,
+          modelId: logEntry.modelId,
+          cacheHit: false,
+          durationMs,
+        })
+        if (provider !== "gemini") {
+          progress.emit({
+            type: "step-error",
+            step: "tts",
+            error: `${item.textId} failed: ${msg}`,
+          })
+        }
+      }
+
+      completedItems++
+      emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
+    }
+
+    await Promise.all([
+      processWithConcurrency(elevenLabsWorkItems, elevenLabsConcurrency, processTtsWorkItem, {
+        runSignal: options.signal,
+      }),
+      processWithConcurrency(otherWorkItems, effectiveConcurrency, processTtsWorkItem, {
+        runSignal: options.signal,
+      }),
+    ])
 
     if (failedItems.length > 0) {
       console.error(`[stage-run] ${label}: ${failedItems.length} TTS item(s) failed:\n${failedItems.join("\n")}`)
@@ -3110,8 +3615,15 @@ async function runSpeechStep(
       const entries = ttsResultsByLang.get(lang)
       if (!entries) continue
       const failed = failedByLang.get(lang) ?? []
+      // Reused entries are collected during the scan pass and generated ones
+      // afterwards, so push order interleaves the two voices arbitrarily. Sort
+      // into the persisted output — but not in place: the word-timestamp pass
+      // below and the live-run registry hold these same array instances.
+      // A language whose catalog was empty never reached the textByLanguage
+      // write, hence the optional chain.
+      const orderedIds = [...(textByLanguage.get(lang)?.keys() ?? [])]
       const output: TTSOutput = {
-        entries,
+        entries: sortSpeechEntries(entries, orderedIds),
         generatedAt: new Date().toISOString(),
         ...(failed.length > 0 ? { failed } : {}),
       }
@@ -3144,12 +3656,13 @@ async function runSpeechStep(
         label,
         bookDir,
         cacheDir,
-        apiKey: options.apiKey,
+        apiKey: openaiApiKey,
         outputLanguages,
         ttsResultsByLang,
         textByLanguage,
         concurrency: effectiveConcurrency,
         progress,
+        onLog: appendWordTimestampsLog(storage, progress),
         signal: options.signal,
       })
       wordTimestampsByLang = generatedWordTimestamps.entriesByLanguage
@@ -3264,12 +3777,21 @@ async function runMeaningfulnessPass(
   storage: Storage,
   config: MeaningfulnessConfig | null,
   model: ReturnType<typeof createLLMModel> | null,
+  autoDedup: boolean,
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
   deps: PageFailureDeps,
   progress: StageRunProgress,
 ): Promise<void> {
   if (!config || !model) {
+    if (autoDedup) {
+      for (const page of pages) {
+        const existing = results.get(page.pageId)
+        if (!existing) continue
+        const updated = dedupAutoFigureCandidatesInStorage(storage, page.pageId, existing)
+        if (updated !== existing) results.set(page.pageId, updated)
+      }
+    }
     progress.emit({ type: "step-skip", step: "image-meaningfulness" })
     return
   }
@@ -3294,24 +3816,14 @@ async function runMeaningfulnessPass(
       return
     }
     try {
-      const images = storage.getPageImages(page.pageId)
-      const unprunedImageIds = new Set(
-        existing.images.filter((img) => !img.isPruned).map((img) => img.imageId)
-      )
-      const unprunedImages = images
-        .filter((img) => unprunedImageIds.has(img.imageId))
-        .map((img) => ({
-          imageId: img.imageId,
-          imageBase64: storage.getImageBase64(img.imageId),
-          width: img.width,
-          height: img.height,
-        }))
+      const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, existing)
 
       if (unprunedImages.length > 0) {
         const updated = await filterPageImageMeaningfulness(
           {
             pageId: page.pageId,
             pageImageBase64: storage.getPageImageBase64(page.pageId),
+            pageText: page.text,
             images: unprunedImages,
           },
           existing,

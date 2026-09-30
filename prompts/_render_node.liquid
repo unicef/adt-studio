@@ -20,7 +20,7 @@
 {%- if node.role == "image" -%}
 image id={{ node.node_id }}
 {%- elsif node.role -%}
-{{ node.role }} id={{ node.node_id }} "{{ node.text }}"
+{{ node.role }} id={{ node.node_id }}{% if node.heading_level %} heading_level={{ node.heading_level }}{% endif %}{% if node.outline_entry_id %} outline_entry_id={{ node.outline_entry_id }}{% endif %}{% if node.heading_style_cluster_id %} style_cluster={{ node.heading_style_cluster_id }}{% endif %} "{{ node.text }}"
 {%- else -%}
 {{ node.structure }}
 {%- endif %}

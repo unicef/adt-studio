@@ -24,6 +24,8 @@ vi.mock("@/hooks/use-api-key", () => ({
     azureRegion: "",
     setAzureRegion: vi.fn(),
     setGeminiKey: vi.fn(),
+    elevenLabsKey: "",
+    setElevenLabsKey: vi.fn(),
   }),
 }))
 

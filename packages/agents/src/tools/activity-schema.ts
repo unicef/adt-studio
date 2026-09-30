@@ -11,6 +11,7 @@ export const TEMPLATED_ACTIVITY_TYPES = [
   "activity_true_false",
   "activity_matching",
   "activity_sorting",
+  "activity_ordering",
   "activity_open_ended_answer",
   "activity_fill_in_a_table",
 ] as const

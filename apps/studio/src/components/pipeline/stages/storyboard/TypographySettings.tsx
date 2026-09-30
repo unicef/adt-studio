@@ -26,6 +26,12 @@ function useStyleLabel() {
         return t`Section heading`
       case "subheading":
         return t`Subheading`
+      case "heading_level_4":
+        return t`Heading level 4`
+      case "heading_level_5":
+        return t`Heading level 5`
+      case "heading_level_6":
+        return t`Heading level 6`
       case "body":
         return t`Body`
       case "caption":

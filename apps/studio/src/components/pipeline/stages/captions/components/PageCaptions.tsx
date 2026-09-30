@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { Image as ImageIcon } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
-import { api } from "@/api/client"
+import { api, BASE_URL } from "@/api/client"
 import { usePage, usePageImage } from "@/hooks/use-pages"
 import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import { StageEmptyState } from "../../../components/StageEmptyState"
@@ -211,10 +211,6 @@ export function PageCaptions({
     setEditing(null)
   }
 
-  const handlePreview = (data: unknown) => {
-    setPending(data as CaptioningData)
-  }
-
   const filteredCaptions = filterSectionIndex != null
     ? visibleCaptions.filter((cap) => imageSectionMap.get(cap.imageId) === filterSectionIndex)
     : visibleCaptions
@@ -319,9 +315,46 @@ export function PageCaptions({
                 </PendingChip>
               }
               pendingLabelKey={`captions:${pageNumber}`}
-              onPreview={handlePreview}
+              onRestored={() => setPending(null)}
               onSave={saveCaptions}
               onDiscard={() => setPending(null)}
+              diff={{
+                items: (d) => (d as CaptioningData | null)?.captions ?? [],
+                keyOf: (it) => (it as CaptionEntry).imageId,
+                diffText: (it) => (it as CaptionEntry).caption ?? "",
+                // Item-level stage: only changes matter, and the image is the
+                // anchor — so no "show unchanged" toggle and no search.
+                hideUnchanged: true,
+                renderItem: (it, ctx) => {
+                  const c = it as CaptionEntry
+                  return (
+                    <span className="flex flex-col gap-2">
+                      <img
+                        src={`${BASE_URL}/books/${bookLabel}/images/${c.imageId}`}
+                        alt=""
+                        className="max-h-[46vh] w-full rounded-md border bg-muted object-contain"
+                      />
+                      <span className="flex flex-col gap-0.5">
+                        <span
+                          className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground"
+                          title={c.imageId}
+                        >
+                          {c.decorative ? t`Decorative` : t`Caption`}
+                        </span>
+                        {c.decorative ? (
+                          <span className="text-[11px] italic text-muted-foreground">
+                            {t`No caption (decorative)`}
+                          </span>
+                        ) : ctx?.diff ? (
+                          <span className="text-foreground">{ctx.diff}</span>
+                        ) : (
+                          <span className="text-foreground">{c.caption}</span>
+                        )}
+                      </span>
+                    </span>
+                  )
+                },
+              }}
             />
           </div>
         </div>

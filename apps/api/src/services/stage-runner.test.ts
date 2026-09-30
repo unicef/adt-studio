@@ -2,8 +2,9 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { AppConfig, ProgressEvent } from "@adt/types"
-import { createBookStorage } from "@adt/storage"
+import { PIPELINE, type AppConfig, type ProgressEvent } from "@adt/types"
+import { computeSpeechCacheKey, stripEmojis, retireSectionIds } from "@adt/pipeline"
+import { createBookStorage, openBookDb } from "@adt/storage"
 import {
   buildStageRunnerImageClassifyConfig,
   createStageRunner,
@@ -16,6 +17,7 @@ const {
   captionPageImagesMock,
   generateSpeechFileMock,
   easyReadGenerateObjectMock,
+  generateBookOutlineMock,
   renderPageMock,
   sectionPageMock,
   transcribeWithWhisperMock,
@@ -28,6 +30,7 @@ const {
       return { captions: [] }
     }),
     easyReadGenerateObjectMock: vi.fn(),
+    generateBookOutlineMock: vi.fn(),
     generateSpeechFileMock: vi.fn(),
     renderPageMock: vi.fn(async () => ({ sections: [] })),
     sectionPageMock: vi.fn(async () => ({ reasoning: "", sections: [] })),
@@ -42,6 +45,7 @@ vi.mock("@adt/pipeline", async () => {
   return {
     ...actual,
     captionPageImages: captionPageImagesMock,
+    generateBookOutline: generateBookOutlineMock,
     generateSpeechFile: generateSpeechFileMock,
     renderPage: renderPageMock,
     sectionPage: sectionPageMock,
@@ -61,6 +65,7 @@ vi.mock("@adt/llm", async () => {
 
 beforeEach(() => {
   easyReadGenerateObjectMock.mockReset()
+  generateBookOutlineMock.mockReset()
   easyReadGenerateObjectMock.mockImplementation(async (options: {
     context?: { texts?: Array<{ text: string }> }
     validate?: (raw: unknown, context: unknown) => { valid: boolean; errors: string[] }
@@ -75,6 +80,13 @@ beforeEach(() => {
   })
 })
 
+function pngBuffer(): Buffer {
+  return Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAGCAYAAADkOT91AAAAH0lEQVR4AV3BwREAMAiAMMr+O1ufHsmbxSEhISEh8QGPSwQIxMxWxQAAAABJRU5ErkJggg==",
+    "base64",
+  )
+}
+
 function writeBaseConfig(configPath: string): void {
   fs.writeFileSync(
     configPath,
@@ -84,6 +96,35 @@ structure_types:
   paragraph: Paragraph
 `
   )
+}
+
+function writeSecondarySpeechConfig(
+  configPath: string,
+  options: {
+    provider: "openai" | "azure" | "gemini" | "elevenlabs"
+    voice: string
+    model?: string
+    label?: string
+  },
+): void {
+  const secondaryLines = [
+    `      provider: ${options.provider}`,
+    ...(options.model ? [`      model: ${options.model}`] : []),
+    `      voice: ${options.voice}`,
+    ...(options.label ? [`      label: ${options.label}`] : []),
+  ].join("\n")
+  fs.writeFileSync(
+    configPath,
+    `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+ secondary_voices:
+   en:
+${secondaryLines}
+`,
+ )
 }
 
 function seedCaptionBook(
@@ -238,6 +279,24 @@ function seedEasyReadBook(booksDir: string, label: string): void {
   }
 }
 
+function readyCoreTtsEntry(id: string, text: string) {
+  return {
+    id,
+    displayText: text,
+    speechText: text,
+    changed: false,
+    transformations: [],
+    status: "ready",
+    generation: {
+      mode: "unchanged",
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      enabledTransformations: [],
+      sourceTextHash: "source",
+      contextHash: "context",
+    },
+  }
+}
+
 function seedTextAndSpeechBook(booksDir: string, label: string): void {
   const storage = createBookStorage(label, booksDir)
   try {
@@ -271,6 +330,11 @@ function seedTextAndSpeechBook(booksDir: string, label: string): void {
       entries: [{ id: "pg001_t001", text: "Hello world" }],
       generatedAt: "2026-01-01T00:00:00.000Z",
     })
+    storage.putNodeData("core-tts-catalog", "en", {
+      language: "en",
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      entries: [readyCoreTtsEntry("pg001_t001", "Hello world")],
+    })
   } finally {
     storage.close()
   }
@@ -301,6 +365,183 @@ describe("buildStageRunnerImageClassifyConfig", () => {
     })
     expect(imageConfig.getImageBytes).toBeTypeOf("function")
     expect(imageConfig.getImageBytes?.("pg001_im001")).toEqual(expectedBytes)
+  })
+})
+
+describe("createStageRunner assembled-book hierarchy rebuild", () => {
+  let tmpDir = ""
+
+  afterEach(() => {
+    if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true })
+    tmpDir = ""
+  })
+
+  it("rebuilds a stale outline from stored pages before page sectioning", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-outline-rebuild-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+section_types:
+  content: Content
+`,
+    )
+
+    const storage = createBookStorage("assembled", booksDir)
+    try {
+      storage.putExtractedPage({
+        pageId: "pg001",
+        pageNumber: 1,
+        text: "Chapter One",
+        pageImage: {
+          imageId: "pg001_page",
+          buffer: pngBuffer(),
+          format: "png",
+          hash: "page-hash",
+          width: 4,
+          height: 6,
+        },
+        images: [],
+      })
+      storage.putNodeData("book-outline", "book", {
+        reasoning: "Stale part-local outline.",
+        entries: [],
+        styleClusters: [],
+      })
+      for (const step of PIPELINE.find((stage) => stage.name === "extract")!.steps) {
+        if (step.name !== "book-outline") storage.markStepCompleted(step.name)
+      }
+      // Deliberately no completed book-outline step: merge invalidation uses
+      // the step lifecycle, even when an older version remains inspectable.
+    } finally {
+      storage.close()
+    }
+
+    const rebuilt = {
+      reasoning: "Authoritative assembled-book outline.",
+      styleClusters: [
+        { styleClusterId: "chapter-style", description: "Chapter", level: 1 },
+      ],
+      entries: [
+        {
+          outlineId: "outline-001",
+          title: "Chapter One",
+          level: 1,
+          kind: "chapter",
+          pageId: "pg001",
+          pageNumber: 1,
+          sourceCandidateIds: ["pg001_hc001"],
+          parentId: null,
+          styleClusterId: "chapter-style",
+          confidence: 0.95,
+        },
+      ],
+    }
+    generateBookOutlineMock.mockResolvedValue(rebuilt)
+    sectionPageMock.mockClear()
+
+    const events: ProgressEvent[] = []
+    await createStageRunner().run(
+      "assembled",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "sectioning",
+        toStage: "sectioning",
+      },
+      { emit: (event) => events.push(event) },
+    )
+
+    expect(generateBookOutlineMock).toHaveBeenCalledTimes(1)
+    expect(sectionPageMock).toHaveBeenCalledTimes(1)
+    expect(sectionPageMock.mock.calls[0][0]).toMatchObject({
+      outline: {
+        entries: rebuilt.entries,
+        styleClusters: rebuilt.styleClusters,
+      },
+    })
+    expect(events).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "step-start", step: "book-outline" }),
+      expect.objectContaining({ type: "step-complete", step: "book-outline" }),
+      expect.objectContaining({ type: "step-complete", step: "page-sectioning" }),
+      expect.objectContaining({ type: "stage-complete", stage: "sectioning" }),
+    ]))
+
+    const verified = createBookStorage("assembled", booksDir)
+    try {
+      expect(verified.getLatestNodeData("book-outline", "book")).toMatchObject({
+        version: 2,
+        data: rebuilt,
+      })
+      expect(verified.getStepRuns()).toEqual(expect.arrayContaining([
+        expect.objectContaining({ step: "book-outline", status: "done" }),
+        expect.objectContaining({ step: "page-sectioning", status: "done" }),
+      ]))
+    } finally {
+      verified.close()
+    }
+  })
+
+  it("does not let a partially extracted normal book bypass Extract prerequisites", async () => {
+    sectionPageMock.mockClear()
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-outline-prereqs-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+section_types:
+  content: Content
+`,
+    )
+    const storage = createBookStorage("partial", booksDir)
+    try {
+      storage.putExtractedPage({
+        pageId: "pg001",
+        pageNumber: 1,
+        text: "Partial extraction",
+        pageImage: {
+          imageId: "pg001_page",
+          buffer: pngBuffer(),
+          format: "png",
+          hash: "page-hash",
+          width: 4,
+          height: 6,
+        },
+        images: [],
+      })
+      storage.markStepCompleted("extract")
+    } finally {
+      storage.close()
+    }
+
+    await expect(createStageRunner().run(
+      "partial",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "sectioning",
+        toStage: "sectioning",
+      },
+      { emit: () => {} },
+    )).rejects.toThrow("Extract prerequisites complete")
+    expect(generateBookOutlineMock).not.toHaveBeenCalled()
+    expect(sectionPageMock).not.toHaveBeenCalled()
   })
 })
 
@@ -351,7 +592,7 @@ describe("createStageRunner captions step", () => {
       "with-summary",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "captions",
@@ -382,7 +623,7 @@ describe("createStageRunner captions step", () => {
       "without-summary",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "captions",
@@ -433,7 +674,7 @@ describe("createStageRunner captions step", () => {
     const runner = createStageRunner()
     await runner.run(
       "rerun-manual",
-      { booksDir, apiKey: "sk-test", promptsDir, configPath, fromStage: "captions", toStage: "captions" },
+      { booksDir, credentials: { openai: { apiKey: "sk-test" } }, promptsDir, configPath, fromStage: "captions", toStage: "captions" },
       { emit: () => {} }
     )
 
@@ -486,7 +727,7 @@ describe("createStageRunner captions step", () => {
     const runner = createStageRunner()
     await runner.run(
       "rerun-ai",
-      { booksDir, apiKey: "sk-test", promptsDir, configPath, fromStage: "captions", toStage: "captions" },
+      { booksDir, credentials: { openai: { apiKey: "sk-test" } }, promptsDir, configPath, fromStage: "captions", toStage: "captions" },
       { emit: () => {} }
     )
 
@@ -531,7 +772,7 @@ describe("createStageRunner storyboard render-only", () => {
       "render-only",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "storyboard",
@@ -547,12 +788,16 @@ describe("createStageRunner storyboard render-only", () => {
     expect(renderPageMock.mock.calls[0]?.[5]).toEqual({
       signal: controller.signal,
     })
-    expect(
-      events.some(
-        (event) =>
-          event.type === "step-complete" && event.step === "web-rendering"
-      )
-    ).toBe(true)
+    // The step must be marked running before any page work, otherwise the UI
+    // shows "Starting…" until the first page completes its full render loop.
+    const renderStartIndex = events.findIndex(
+      (event) => event.type === "step-start" && event.step === "web-rendering"
+    )
+    const renderCompleteIndex = events.findIndex(
+      (event) => event.type === "step-complete" && event.step === "web-rendering"
+    )
+    expect(renderStartIndex).toBeGreaterThanOrEqual(0)
+    expect(renderCompleteIndex).toBeGreaterThan(renderStartIndex)
     // page-sectioning is not part of the storyboard stage (it lives in the
     // sectioning stage), so running storyboard in render-only mode should
     // neither complete nor emit any events for page-sectioning.
@@ -590,7 +835,7 @@ describe("createStageRunner easy read step", () => {
       "explicit-easy-read",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "easy-read",
@@ -712,7 +957,7 @@ output_languages:
       "translate-no-catalog",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -828,7 +1073,7 @@ output_languages:
       "translate-empty-catalog",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -863,6 +1108,50 @@ output_languages:
       verify.close()
     }
   })
+
+  it("prepares a separate Core TTS catalog for a same-base regional output", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-regional-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+output_languages:
+  - en-GB
+`,
+    )
+    seedTextAndSpeechBook(booksDir, "regional-core-tts")
+
+    const runner = createStageRunner()
+    await runner.run(
+      "regional-core-tts",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "translate",
+      },
+      { emit: () => undefined },
+    )
+
+    const storage = createBookStorage("regional-core-tts", booksDir)
+    try {
+      expect(storage.getLatestNodeData("text-catalog-translation", "en-GB")).toBeNull()
+      expect(storage.getLatestNodeData("core-tts-catalog", "en-GB")?.data).toMatchObject({
+        language: "en-GB",
+        entries: [{ id: "pg001_t001", displayText: "Hello world" }],
+      })
+    } finally {
+      storage.close()
+    }
+  })
 })
 
 describe("createStageRunner speech Gemini partial failures", () => {
@@ -883,6 +1172,7 @@ describe("createStageRunner speech Gemini partial failures", () => {
   })
 
   afterEach(() => {
+    vi.unstubAllEnvs()
     if (tmpDir) {
       fs.rmSync(tmpDir, { recursive: true, force: true })
       tmpDir = ""
@@ -926,7 +1216,7 @@ output_languages:
         "catalog-translation-failure",
         {
           booksDir,
-          apiKey: "sk-test",
+          credentials: { openai: { apiKey: "sk-test" } },
           promptsDir,
           configPath,
           fromStage: "translate",
@@ -991,8 +1281,7 @@ speech:
       "gemini-tts-failure",
       {
         booksDir,
-        apiKey: "sk-test",
-        geminiApiKey: "gm-test",
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1064,8 +1353,7 @@ speech:
       "gemini-tts-retry",
       {
         booksDir,
-        apiKey: "sk-test",
-        geminiApiKey: "gm-test",
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1136,8 +1424,7 @@ speech:
       "gemini-tts-transient",
       {
         booksDir,
-        apiKey: "sk-test",
-        geminiApiKey: "gm-test",
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1165,6 +1452,247 @@ speech:
     } finally {
       storage.close()
     }
+  })
+
+  it("fails the speech step before any synthesis when a provider credential is missing", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: elevenlabs
+  providers:
+    elevenlabs:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "elevenlabs-tts-missing-key")
+    // The synthesizer factory falls back to the ambient key, so a developer
+    // machine with one exported would otherwise pass the pre-flight.
+    vi.stubEnv("ELEVENLABS_API_KEY", "")
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await expect(
+      runner.run(
+        "elevenlabs-tts-missing-key",
+        {
+          booksDir,
+          credentials: { openai: { apiKey: "sk-test" } },
+          promptsDir,
+          configPath,
+          fromStage: "translate",
+          toStage: "speech",
+        },
+        { emit: (event) => events.push(event) }
+      )
+    ).rejects.toThrow(/Provider "elevenlabs" requires API key/)
+
+    // The credential is checked once, before any item is admitted: no synthesis
+    // is attempted and no per-item failure is logged.
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    const db = openBookDb(
+      path.join(booksDir, "elevenlabs-tts-missing-key", "elevenlabs-tts-missing-key.db")
+    )
+    try {
+      expect(db.all("SELECT request_id FROM llm_log WHERE step = 'tts'")).toHaveLength(0)
+    } finally {
+      db.close()
+    }
+
+    // The Speech view is driven by step-error, not by the rejection: assert the
+    // step goes red carrying the provider message, so the user sees one
+    // actionable error rather than a bare run failure with no step highlighted.
+    const ttsErrors = events.filter(
+      (event) => event.type === "step-error" && event.step === "tts"
+    )
+    expect(ttsErrors).toHaveLength(1)
+    expect((ttsErrors[0] as { error: string }).error).toMatch(
+      /Provider "elevenlabs" requires API key/
+    )
+  })
+
+  it("fails fast when only the secondary narrator's provider credential is missing", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    // The primary narrator routes to OpenAI (key present); only the secondary
+    // routes to ElevenLabs. A secondary voice carries its own provider, so
+    // deriving the pre-flight set from the language's routing would miss it
+    // entirely and fall back to one logged failure per item.
+    writeSecondarySpeechConfig(configPath, {
+      provider: "elevenlabs",
+      voice: "Rachel",
+    })
+    seedTextAndSpeechBook(booksDir, "secondary-tts-missing-key")
+    vi.stubEnv("ELEVENLABS_API_KEY", "")
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await expect(
+      runner.run(
+        "secondary-tts-missing-key",
+        {
+          booksDir,
+          credentials: { openai: { apiKey: "sk-test" } },
+          promptsDir,
+          configPath,
+          fromStage: "translate",
+          toStage: "speech",
+        },
+        { emit: (event) => events.push(event) }
+      )
+    ).rejects.toThrow(/Provider "elevenlabs" requires API key/)
+
+    // Nothing is synthesized — not even the primary voice, whose credential is
+    // fine. One missing key fails the run before any item is admitted.
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    const db = openBookDb(
+      path.join(booksDir, "secondary-tts-missing-key", "secondary-tts-missing-key.db")
+    )
+    try {
+      expect(db.all("SELECT request_id FROM llm_log WHERE step = 'tts'")).toHaveLength(0)
+    } finally {
+      db.close()
+    }
+  })
+
+  it("fails before any page-batched synthesis when the Gemini credential is missing", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    // batch_by_page routes page-scoped Gemini entries into pageGroups, which
+    // deliberately skip the per-entry reuse check — so this is the path that
+    // reaches the pre-flight via the pageGroups half of its provider set.
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  batch_by_page: true
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-batched-missing-key")
+    vi.stubEnv("GEMINI_API_KEY", "")
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await expect(
+      runner.run(
+        "gemini-batched-missing-key",
+        {
+          booksDir,
+          credentials: { openai: { apiKey: "sk-test" } },
+          promptsDir,
+          configPath,
+          fromStage: "translate",
+          toStage: "speech",
+        },
+        { emit: (event) => events.push(event) }
+      )
+    ).rejects.toThrow(/Provider "gemini" requires API key/)
+
+    const db = openBookDb(
+      path.join(booksDir, "gemini-batched-missing-key", "gemini-batched-missing-key.db")
+    )
+    try {
+      expect(db.all("SELECT request_id FROM llm_log WHERE step = 'tts'")).toHaveLength(0)
+    } finally {
+      db.close()
+    }
+    expect(transcribeWithWhisperMock).not.toHaveBeenCalled()
+  })
+
+  it("does not require a credential when every entry is reused and there is no work", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: elevenlabs
+  providers:
+    elevenlabs:
+      languages:
+        - en
+`
+    )
+    const label = "elevenlabs-tts-all-reused"
+    seedTextAndSpeechBook(booksDir, label)
+
+    // A manual recording with its audio file present is reusable outright, so
+    // the entry never becomes a work item. With nothing to generate, the
+    // pre-flight's provider set is empty and no synthesizer is built — a run
+    // that needs no credential must not be failed by the fail-fast check.
+    const bookDir = path.join(booksDir, label)
+    const audioDir = path.join(bookDir, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_t001.mp3"), Buffer.from("fake-audio"))
+    const storage = createBookStorage(label, booksDir)
+    try {
+      storage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "pg001_t001.mp3",
+            voice: "manual",
+            model: "manual",
+            cached: true,
+            provider: "manual",
+          },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    } finally {
+      storage.close()
+    }
+    vi.stubEnv("ELEVENLABS_API_KEY", "")
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      label,
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    expect(
+      events.filter((event) => event.type === "step-error" && event.step === "tts")
+    ).toHaveLength(0)
   })
 
   it("stops admitting TTS items and unwinds without step errors when the run is cancelled", async () => {
@@ -1199,6 +1727,14 @@ speech:
         ],
         generatedAt: "2026-01-01T00:00:00.000Z",
       })
+      seedStorage.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        entries: [
+          readyCoreTtsEntry("pg001_t001", "Hello world"),
+          readyCoreTtsEntry("pg001_t002", "Second entry"),
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
     } finally {
       seedStorage.close()
     }
@@ -1216,8 +1752,7 @@ speech:
         "gemini-tts-cancel",
         {
           booksDir,
-          apiKey: "sk-test",
-          geminiApiKey: "gm-test",
+          credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
           promptsDir,
           configPath,
           fromStage: "speech",
@@ -1284,7 +1819,7 @@ speech:
       "speech-word-timestamps",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1368,7 +1903,7 @@ speech:
       "speech-word-timestamps-fail",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1401,7 +1936,7 @@ speech:
       }
       expect(data.entries.pg001_t001).toBeUndefined()
       expect(data.failed).toEqual([
-        { textId: "pg001_t001", error: expect.stringContaining("audio_too_short") },
+        { textId: "pg001_t001", error: expect.stringContaining("audio_too_short"), voiceSlot: "primary" },
       ])
     } finally {
       storage.close()
@@ -1470,7 +2005,7 @@ speech:
       "speech-empty-slice",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1489,7 +2024,7 @@ speech:
         failed?: Array<{ textId: string; error: string }>
       }
       expect(data.failed).toEqual([
-        { textId: "pg001_t001", error: expect.stringContaining("empty") },
+        { textId: "pg001_t001", error: expect.stringContaining("empty"), voiceSlot: "primary" },
       ])
     } finally {
       storage.close()
@@ -1555,7 +2090,7 @@ speech:
       "speech-word-highlight-disabled",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1578,6 +2113,696 @@ speech:
       expect(entries.pg001_t001?.words).toEqual([{ word: "stale", start: 0, end: 0.9 }])
     } finally {
       storage.close()
+    }
+  })
+
+  it("generates independent primary and secondary profiles with different providers", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    writeSecondarySpeechConfig(configPath, {
+      provider: "gemini",
+      model: "gemini-2.5-flash-preview-tts",
+      voice: "Puck",
+      label: "Alt Narrator",
+    })
+    fs.mkdirSync(path.join(tmpDir, "config"), { recursive: true })
+    fs.writeFileSync(
+      path.join(tmpDir, "config", "voices.yaml"),
+      `openai:
+  en:
+    primary:
+      voice: alloy
+      label: Narrator
+
+`
+    )
+    seedTextAndSpeechBook(booksDir, "speech-dual-voice")
+
+    generateSpeechFileMock.mockImplementation(async (options: {
+      bookDir: string
+      textId: string
+      language: string
+      voice: string
+      voiceSlot?: string
+      voiceLabel?: string
+      model: string
+      provider?: string
+    }) => {
+      const audioDir = path.join(options.bookDir, "audio", options.language)
+      fs.mkdirSync(audioDir, { recursive: true })
+      const slot = options.voiceSlot ?? "primary"
+      const fileName = slot === "secondary" ? `${options.textId}--secondary.mp3` : `${options.textId}.mp3`
+      fs.writeFileSync(path.join(audioDir, fileName), Buffer.from("fake-audio"))
+      return {
+        textId: options.textId,
+        language: options.language,
+        fileName,
+        voice: options.voice,
+        model: options.model,
+        cached: false,
+        provider: options.provider ?? "openai",
+        voiceSlot: slot,
+        ...(options.voiceLabel ? { voiceLabel: options.voiceLabel } : {}),
+      }
+    })
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      "speech-dual-voice",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    expect(
+      events.some((event) => event.type === "step-complete" && event.step === "tts")
+    ).toBe(true)
+    // One call per configured slot for the single entry.
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(2)
+    expect(generateSpeechFileMock).toHaveBeenCalledWith(
+      expect.objectContaining({ voice: "alloy", voiceSlot: "primary", voiceLabel: "Narrator" })
+    )
+    expect(generateSpeechFileMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "gemini",
+        model: "gemini-2.5-flash-preview-tts",
+        voice: "Puck",
+        voiceSlot: "secondary",
+        voiceLabel: "Alt Narrator",
+      })
+    )
+
+    const storage = createBookStorage("speech-dual-voice", booksDir)
+    try {
+      const ttsOutput = storage.getLatestNodeData("tts", "en")?.data as {
+        entries: Record<string, { fileName: string; voiceSlot?: string; voiceLabel?: string }>
+      }
+      const variants = Object.values(ttsOutput.entries).filter(
+        (entry) => entry.fileName.startsWith("pg001_t001")
+      )
+      expect(variants).toHaveLength(2)
+      expect(variants.map((entry) => entry.voiceSlot).sort()).toEqual(["primary", "secondary"])
+      const primary = variants.find((entry) => entry.voiceSlot === "primary")
+      const secondary = variants.find((entry) => entry.voiceSlot === "secondary")
+      expect(primary?.fileName).toBe("pg001_t001.mp3")
+      expect(secondary?.fileName).toBe("pg001_t001--secondary.mp3")
+      expect(primary?.voiceLabel).toBe("Narrator")
+      expect(secondary?.voiceLabel).toBe("Alt Narrator")
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("reuses cached primary/secondary variants independently across reruns", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    writeSecondarySpeechConfig(configPath, {
+      provider: "openai",
+      voice: "shimmer",
+      label: "Alt One",
+    })
+    fs.mkdirSync(path.join(tmpDir, "config"), { recursive: true })
+    fs.writeFileSync(
+      path.join(tmpDir, "config", "voices.yaml"),
+      `openai:
+  en:
+    primary:
+      voice: alloy
+
+`
+    )
+    seedTextAndSpeechBook(booksDir, "speech-dual-voice-rerun")
+
+    // Mirrors the real generateSpeechFile contract closely enough for the
+    // reuse check: it writes the output audio AND a cache entry keyed the
+    // same way canReuseSpeechEntry computes it, so a rerun can genuinely
+    // exercise the cache-hit path per slot.
+    generateSpeechFileMock.mockImplementation(async (options: {
+      bookDir: string
+      cacheDir: string
+      textId: string
+      text: string
+      language: string
+      voice: string
+      voiceSlot?: string
+      model: string
+      instructions: string
+      provider?: string
+      voiceLabel?: string
+    }) => {
+      const audioDir = path.join(options.bookDir, "audio", options.language)
+      fs.mkdirSync(audioDir, { recursive: true })
+      const slot = options.voiceSlot ?? "primary"
+      const fileName = slot === "secondary" ? `${options.textId}--secondary.mp3` : `${options.textId}.mp3`
+      fs.writeFileSync(path.join(audioDir, fileName), Buffer.from("fake-audio"))
+
+      const cacheKey = computeSpeechCacheKey({
+        text: stripEmojis(options.text).trim(),
+        voice: options.voice,
+        model: options.model,
+        instructions: options.instructions,
+        provider: options.provider,
+      })
+      const cacheDir = path.join(options.cacheDir, "tts")
+      fs.mkdirSync(cacheDir, { recursive: true })
+      fs.writeFileSync(path.join(cacheDir, `${cacheKey}.mp3`), Buffer.from("fake-audio"))
+
+      return {
+        textId: options.textId,
+        language: options.language,
+        fileName,
+        voice: options.voice,
+        model: options.model,
+        cached: false,
+        provider: options.provider ?? "openai",
+        voiceSlot: slot,
+        ...(options.voiceLabel ? { voiceLabel: options.voiceLabel } : {}),
+      }
+    })
+
+    const runner = createStageRunner()
+    await runner.run(
+      "speech-dual-voice-rerun",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(2)
+
+    // Rerun with no changes: both slots must be reused from cache, so
+    // generateSpeechFile is not called again for either variant.
+    generateSpeechFileMock.mockClear()
+    await runner.run(
+      "speech-dual-voice-rerun",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+
+    // A label-only change must keep both audio files cached while refreshing
+    // the metadata used by Studio and exported narrator selectors.
+    writeSecondarySpeechConfig(configPath, {
+      provider: "openai",
+      voice: "shimmer",
+      label: "Alt Two",
+    })
+    await runner.run(
+      "speech-dual-voice-rerun",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} },
+    )
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    const storage = createBookStorage("speech-dual-voice-rerun", booksDir)
+    try {
+      const output = storage.getLatestNodeData("tts", "en")?.data as {
+        entries: Array<{ voiceSlot?: string; voiceLabel?: string }>
+      }
+      expect(
+        output.entries.find((entry) => entry.voiceSlot === "secondary")?.voiceLabel,
+      ).toBe("Alt Two")
+    } finally {
+      storage.close()
+    }
+
+    // Now invalidate only the secondary voice's cache entry (e.g. its voice
+    // config changed) — only the secondary slot should regenerate while the
+    // primary variant is reused untouched.
+    writeSecondarySpeechConfig(configPath, {
+      provider: "openai",
+      voice: "nova",
+    })
+    generateSpeechFileMock.mockClear()
+    await runner.run(
+      "speech-dual-voice-rerun",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(1)
+    expect(generateSpeechFileMock).toHaveBeenCalledWith(
+      expect.objectContaining({ voiceSlot: "secondary" })
+    )
+
+    // Finally, invalidate only the PRIMARY voice. Reused entries are collected
+    // during the scan pass and regenerated ones after it, so the secondary is
+    // now pushed first and push order is [secondary, primary]. The persisted
+    // output must still lead with the primary voice — Studio reads the first
+    // primary entry to describe the language, and a run in flight serves this
+    // same data.
+    fs.writeFileSync(
+      path.join(tmpDir, "config", "voices.yaml"),
+      `openai:
+  en:
+    primary:
+      voice: onyx
+
+`
+    )
+    generateSpeechFileMock.mockClear()
+    await runner.run(
+      "speech-dual-voice-rerun",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(1)
+    expect(generateSpeechFileMock).toHaveBeenCalledWith(
+      expect.objectContaining({ voiceSlot: "primary" })
+    )
+    const mixedRunStorage = createBookStorage("speech-dual-voice-rerun", booksDir)
+    try {
+      const output = mixedRunStorage.getLatestNodeData("tts", "en")?.data as {
+        entries: Array<{ textId: string; voiceSlot?: string }>
+      }
+      expect(
+        output.entries.map((entry) => [entry.textId, entry.voiceSlot ?? "primary"]),
+      ).toEqual([
+        ["pg001_t001", "primary"],
+        ["pg001_t001", "secondary"],
+      ])
+    } finally {
+      mixedRunStorage.close()
+    }
+  })
+
+  it("refreshes the voice label of a reused manual-audio entry without regenerating", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+`,
+    )
+    // Primary maps to an OpenAI voice carrying a freshly renamed label.
+    fs.mkdirSync(path.join(tmpDir, "config"), { recursive: true })
+    fs.writeFileSync(
+      path.join(tmpDir, "config", "voices.yaml"),
+      `openai:
+  en:
+    primary:
+      voice: alloy
+      label: Renamed Narrator
+`,
+    )
+    seedTextAndSpeechBook(booksDir, "speech-manual-reuse-label")
+
+    // A previously uploaded manual recording carrying a now-stale label, plus
+    // its on-disk audio so the manual reuse guard (file existence) holds.
+    const label = "speech-manual-reuse-label"
+    const audioDir = path.join(booksDir, label, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_t001.mp3"), Buffer.from("manual-audio"))
+    const seedStorage = createBookStorage(label, booksDir)
+    try {
+      seedStorage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "pg001_t001.mp3",
+            voice: "alloy",
+            model: "gpt-4o-mini-tts",
+            cached: true,
+            provider: "manual",
+            voiceSlot: "primary",
+            voiceLabel: "Stale Label",
+          },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    } finally {
+      seedStorage.close()
+    }
+
+    const runner = createStageRunner()
+    await runner.run(
+      label,
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    // The manual recording is reused (never regenerated) but its persisted
+    // label is refreshed from the currently resolved primary profile.
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    const storage = createBookStorage(label, booksDir)
+    try {
+      const ttsOutput = storage.getLatestNodeData("tts", "en")?.data as {
+        entries: Record<string, { fileName: string; provider?: string; voiceLabel?: string }>
+      }
+      const entry = Object.values(ttsOutput.entries).find(
+        (e) => e.fileName === "pg001_t001.mp3",
+      )
+      expect(entry?.provider).toBe("manual")
+      expect(entry?.voiceLabel).toBe("Renamed Narrator")
+    } finally {
+      storage.close()
+    }
+  })
+
+  /**
+   * A rerun that re-sections a page re-mints its ids densely, so
+   * `pg001_sec001_ans_a` can come back naming a different activity answer. The
+   * `tts` manifest survives that rerun (`getStageRerunClearNodes` preserves it
+   * whenever Speech is in range) and `canReuseSpeechEntry` accepts a manual
+   * entry on file existence alone — never comparing the text — so without
+   * retirement the old recording is served for the new answer.
+   */
+  function seedRetiredAnswerRecording(booksDir: string, label: string): string {
+    seedTextAndSpeechBook(booksDir, label)
+    const audioDir = path.join(booksDir, label, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_sec001_ans_a.mp3"), Buffer.from("old-recording"))
+
+    const storage = createBookStorage(label, booksDir)
+    try {
+      // The re-minted `_sec001` now names a *different* activity answer. Seeded
+      // through rendering + sectioning rather than straight onto the catalog,
+      // because the catalog steps rebuild themselves from these on every run.
+      storage.putNodeData("page-sectioning", "pg001", {
+        reasoning: "re-sectioned",
+        sections: [
+          {
+            sectionId: "pg001_sec001",
+            sectionType: "activity",
+            backgroundColor: "#ffffff",
+            textColor: "#000000",
+            pageNumber: 1,
+            isPruned: false,
+            nodes: [
+              { nodeId: "pg001_n0001", isPruned: false, role: "text", text: "Question" },
+            ],
+          },
+        ],
+      })
+      storage.putNodeData("web-rendering", "pg001", {
+        sections: [
+          {
+            sectionIndex: 0,
+            sectionType: "activity",
+            reasoning: "",
+            html: '<p data-id="pg001_t001">Hello world</p>',
+            activityAnswers: { a: "New answer" },
+          },
+        ],
+      })
+      storage.putNodeData("text-catalog", "book", {
+        entries: [
+          { id: "pg001_t001", text: "Hello world" },
+          { id: "pg001_sec001_ans_a", text: "New answer" },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      storage.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        entries: [
+          readyCoreTtsEntry("pg001_t001", "Hello world"),
+          readyCoreTtsEntry("pg001_sec001_ans_a", "New answer"),
+        ],
+      })
+      storage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_sec001_ans_a",
+            language: "en",
+            fileName: "pg001_sec001_ans_a.mp3",
+            voice: "uploaded",
+            model: "uploaded",
+            cached: false,
+            provider: "manual",
+            voiceSlot: "primary",
+          },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    } finally {
+      storage.close()
+    }
+    return audioDir
+  }
+
+  function writeSpeechConfig(tmpDir: string, configPath: string): void {
+    fs.mkdirSync(path.join(tmpDir, "prompts"), { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+`,
+    )
+  }
+
+  it("regenerates a manual recording whose section id was retired", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    writeSpeechConfig(tmpDir, configPath)
+    const label = "speech-retired-answer"
+    seedRetiredAnswerRecording(booksDir, label)
+
+    // What the rerun's beforeRun does before clearing the sectioning history.
+    const retireStorage = createBookStorage(label, booksDir)
+    try {
+      const retired = retireSectionIds(retireStorage, ["pg001_sec001"])
+      expect(retired.detachedRecordings).toHaveLength(1)
+    } finally {
+      retireStorage.close()
+    }
+
+    generateSpeechFileMock.mockClear()
+    // The suite default resolves `undefined` ("no audio produced"), which would
+    // leave no entry at all and make the assertions below vacuous. Return a real
+    // generated entry so "replaced by a generated one" is actually observable.
+    generateSpeechFileMock.mockImplementation(
+      async ({ textId, language, voice, model }: {
+        textId: string
+        language: string
+        voice: string
+        model: string
+      }) => ({
+        textId,
+        language,
+        fileName: `${textId}.mp3`,
+        voice,
+        model,
+        cached: false,
+        provider: "openai",
+        voiceSlot: "primary",
+      })
+    )
+    const runner = createStageRunner()
+    await runner.run(
+      label,
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    // Generated from the answer the id now names, not reused from the old one.
+    expect(generateSpeechFileMock).toHaveBeenCalledWith(
+      expect.objectContaining({ textId: "pg001_sec001_ans_a", text: "New answer" })
+    )
+    const storage = createBookStorage(label, booksDir)
+    try {
+      const output = storage.getLatestNodeData("tts", "en")?.data as {
+        entries: Array<{ textId: string; provider?: string }>
+      }
+      const entry = output.entries.find((e) => e.textId === "pg001_sec001_ans_a")
+      expect(entry).toBeDefined()
+      expect(entry?.provider).toBe("openai")
+    } finally {
+      storage.close()
+    }
+    // Note: retirement itself does no file I/O. Preserving the upload from the
+    // regeneration that reuses its filename is `preserveDetachedRecordings`' job on
+    // the rerun path, covered in `stages.test.ts` — asserting the file here
+    // would only be testing that this mock does not write to disk.
+  })
+
+  it("reuses a manual recording when no section id was retired", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    writeSpeechConfig(tmpDir, configPath)
+    const label = "speech-kept-answer"
+    seedRetiredAnswerRecording(booksDir, label)
+
+    // The control: identical state, no retirement. An ordinary rerun must not
+    // throw away a recording that still describes its own section.
+    generateSpeechFileMock.mockClear()
+    const runner = createStageRunner()
+    await runner.run(
+      label,
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    expect(generateSpeechFileMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ textId: "pg001_sec001_ans_a" })
+    )
+    const storage = createBookStorage(label, booksDir)
+    try {
+      const output = storage.getLatestNodeData("tts", "en")?.data as {
+        entries: Array<{ textId: string; fileName: string; provider?: string }>
+      }
+      const entry = output.entries.find((e) => e.textId === "pg001_sec001_ans_a")
+      expect(entry?.provider).toBe("manual")
+      expect(entry?.fileName).toBe("pg001_sec001_ans_a.mp3")
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("marks a page-batched group with no speakable text as skipped", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  batch_by_page: true
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-page-batch-skip")
+
+    // Replace the seeded entry with punctuation only. generatePageSpeechFiles
+    // filters it out and returns [] without ever reaching the provider, which
+    // is the row that used to be logged as an ordinary success.
+    const seed = createBookStorage("gemini-page-batch-skip", booksDir)
+    try {
+      seed.putNodeData("text-catalog", "book", {
+        entries: [{ id: "pg001_t001", text: "—" }],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      seed.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        entries: [readyCoreTtsEntry("pg001_t001", "—")],
+      })
+    } finally {
+      seed.close()
+    }
+
+    const runner = createStageRunner()
+    await runner.run(
+      "gemini-page-batch-skip",
+      {
+        booksDir,
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
+        promptsDir,
+        configPath,
+        fromStage: "speech",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    const db = openBookDb(
+      path.join(booksDir, "gemini-page-batch-skip", "gemini-page-batch-skip.db")
+    )
+    try {
+      const rows = db.all("SELECT data FROM llm_log WHERE step = 'tts'") as {
+        data: string
+      }[]
+      expect(rows).toHaveLength(1)
+      const entry = JSON.parse(rows[0].data) as {
+        success: boolean
+        cacheHit: boolean
+        skippedReason?: string
+      }
+      // Kept, not dropped — an unexplained gap is worse than a marked one —
+      // but marked so it isn't read as a synthesis that happened.
+      expect(entry.success).toBe(true)
+      expect(entry.skippedReason).toBe("no-speakable-text")
+    } finally {
+      db.close()
     }
   })
 })

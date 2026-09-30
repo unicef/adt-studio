@@ -46,7 +46,8 @@ Both write tools are first-class. Choose on FIT, not by default — and lean tow
   - activity_fill_in_the_blank — short determinable answers (word/number/date)
   - activity_open_ended_answer — free-form composition (opinion/reflection/description)
   - activity_matching — pair items from two columns
-  - activity_sorting — order items into the correct sequence
+  - activity_sorting — assign items to category buckets
+  - activity_ordering — arrange items into one correct sequence
   - activity_fill_in_a_table — fill in cells of a table
 
 You provide a STRUCTURED SECTIONING TREE as a **JSON-encoded string** in the \`sectioningJson\` parameter — NOT a nested object literal. The string must be valid JSON that parses to \`{ "reasoning": string, "nodes": [...] }\`. The pipeline's renderer turns the parsed tree into HTML using the book's styleguide and the activity-type's accessibility-compliant Liquid template. The activityAnswers key is extracted automatically by the renderer — do NOT supply it.
@@ -156,7 +157,7 @@ Note: do NOT mark which option is correct in the tree. The renderer extracts tha
 }
 \`\`\`
 
-For activity_matching, activity_sorting, activity_true_false, and activity_fill_in_a_table, follow the same pattern: one top-level \`activity\` container; \`activity_question\` for the prompt; \`activity_option\` containers for each choice; rely on the pipeline's templates for the activity-specific HTML layout.
+For activity_matching, activity_sorting, activity_ordering, activity_true_false, and activity_fill_in_a_table, follow the same pattern: one top-level \`activity\` container; \`activity_question\` for the prompt; \`activity_option\` containers for each choice; rely on the pipeline's templates for the activity-specific HTML layout.
 
 ## Custom-section rules (escape hatch — FULLY INTERACTIVE)
 

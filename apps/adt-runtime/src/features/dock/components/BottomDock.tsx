@@ -7,12 +7,31 @@ import { DockSkeleton } from "@/features/dock/components/DockSkeleton";
 import { PageNav } from "@/features/navigation/components/PageNav";
 import { useDockContext } from "@/features/dock/context/dock-context";
 import { cn } from "@/shared/lib/utils";
+import { useIsMobile } from "@/shared/hooks/use-is-mobile";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 
 function ReaderDockContents() {
   const features = useAtomValue(appConfigAtom).features;
   const { isSpread } = useDockContext();
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <>
+        <BookMetadata ariaLabel={t("main-menu-label") || "Main Menu"} />
+        {features.showNavigationControls ? (
+          <div className="flex min-w-0 flex-1 justify-center">
+            <PageNav />
+          </div>
+        ) : (
+          <div className="flex-1" />
+        )}
+        <DockMenu />
+      </>
+    );
+  }
+
   return (
     <>
       {features.showNavigationControls && (

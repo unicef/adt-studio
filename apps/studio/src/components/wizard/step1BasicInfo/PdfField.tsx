@@ -140,8 +140,8 @@ export function PdfField() {
       />
 
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium text-[#0a0a0a]">
-          <Trans>PDF File</Trans> <span className="text-[#ef4444]">*</span>
+        <label className="text-sm font-medium text-foreground">
+          <Trans>PDF File</Trans> <span className="text-destructive">*</span>
         </label>
         <input ref={pdfRef} type="file" accept="application/pdf" className="hidden" onChange={handleFileChange} />
 
@@ -157,11 +157,11 @@ export function PdfField() {
               onKeyDown={(e) => e.key === "Enter" && openFilePicker()}
               aria-label={t`Replace PDF`}
               style={accentStyle}
-              className="flex items-center gap-3 border border-[#e5e5e5] rounded-lg px-4 py-3 h-full cursor-pointer hover:border-[var(--accent-60)] hover:bg-[var(--accent-02)] transition-colors duration-200"
+              className="flex items-center gap-3 border border-border rounded-lg px-4 py-3 h-full cursor-pointer hover:border-[var(--accent-60)] hover:bg-[var(--accent-02)] transition-colors duration-200"
             >
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-black truncate">{file.name}</p>
-                <p className="text-xs text-[#a3a3a3]">{formatBytes(file.size)}</p>
+                <p className="text-sm text-foreground truncate">{file.name}</p>
+                <p className="text-xs text-muted-foreground/70">{formatBytes(file.size)}</p>
               </div>
               <Button
                 type="button"
@@ -173,7 +173,7 @@ export function PdfField() {
                 }}
                 aria-label={t`Replace PDF`}
                 style={accentStyle}
-                className="h-8 px-2 text-[#737373] hover:text-[var(--accent)] hover:bg-[var(--accent-06)] transition-colors shrink-0 gap-1.5"
+                className="h-8 px-2 text-muted-foreground hover:text-[var(--accent)] hover:bg-[var(--accent-06)] transition-colors shrink-0 gap-1.5"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
                 <span className="text-xs font-medium">
@@ -190,10 +190,10 @@ export function PdfField() {
               onKeyDown={(e) => e.key === "Enter" && openFilePicker()}
               aria-label={t`Upload PDF or drag and drop`}
               style={accentStyle}
-              className="flex flex-col items-center justify-center gap-2 border border-dashed border-[#d4d4d4] rounded-lg h-full cursor-pointer hover:border-[var(--accent-60)] hover:bg-[var(--accent-02)] transition-colors duration-200"
+              className="flex flex-col items-center justify-center gap-2 border border-dashed border-border rounded-lg h-full cursor-pointer hover:border-[var(--accent-60)] hover:bg-[var(--accent-02)] transition-colors duration-200"
             >
-              <Upload className="h-4 w-4 text-[#737373]" />
-              <span className="text-sm text-[#737373]">
+              <Upload className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
                 <Trans>Upload PDF or drag and drop</Trans>
               </span>
             </div>
@@ -201,7 +201,7 @@ export function PdfField() {
         </div>
 
         {pdfError && (
-          <p className="text-xs text-[#ef4444] mt-1">{pdfError}</p>
+          <p className="text-xs text-destructive mt-1">{pdfError}</p>
         )}
       </div>
     </>

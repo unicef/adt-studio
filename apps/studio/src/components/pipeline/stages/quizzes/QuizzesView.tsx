@@ -28,6 +28,7 @@ import { useStepHeader } from "../../components/StepViewRouter";
 import { StageContentGuard } from "../../components/StageContentGuard";
 import { StageEmptyState } from "../../components/StageEmptyState";
 import { VersionPicker } from "../../components/VersionPicker";
+import { InlineDiff } from "../../components/InlineDiff";
 import { usePendingChanges } from "../../components/change-summary";
 import {
   getRequestedPageId,
@@ -37,7 +38,7 @@ import { QuizzesHintBanner } from "./components/QuizzesHintBanner";
 import { QuizJumper, type QuizJumperEntry } from "./components/QuizJumper";
 import { PageLightbox } from "../../components/PageLightbox";
 import { AddQuizDialog } from "./AddQuizDialog";
-import { useApiKey } from "@/hooks/use-api-key";
+import { useBookStructuredTextAvailability } from "@/hooks/use-api-key";
 import { useStageStatus } from "@/hooks/use-stage-status";
 import { useLingui } from "@lingui/react/macro";
 
@@ -132,7 +133,7 @@ export function QuizzesView({
   const { data, isLoading } = useQuizzes(bookLabel);
   const { data: pages } = usePages(bookLabel);
   const { setExtra } = useStepHeader();
-  const { hasApiKey } = useApiKey();
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel);
   const quizzesStatus = useStageStatus("quizzes");
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -166,7 +167,9 @@ export function QuizzesView({
   } = usePendingChanges({
     prev: data?.quizzes?.quizzes ?? [],
     next: pending?.quizzes,
-    keyOf: (q) => String(q.quizIndex),
+    // quizId is stable across add/delete; quizIndex is renumbered, so it would
+    // report an unrelated quiz as edited after a single removal.
+    keyOf: (q) => q.quizId ?? String(q.quizIndex),
     isEqual: (a, b) =>
       a.question === b.question &&
       a.answerIndex === b.answerIndex &&
@@ -273,6 +276,11 @@ export function QuizzesView({
   // Remove a quiz from the book. Operates on the currently visible list (so any
   // unsaved edits are preserved), renumbers quizIndex, and persists immediately.
   // A removed quiz can still be recovered from version history.
+  //
+  // The spread must carry `quizId` through untouched: only quizIndex is
+  // positional. Rebuilding these objects field-by-field would drop the ids and
+  // let the server re-derive them from the post-delete positions, handing each
+  // survivor the previous quiz's translations and generated audio.
   const deleteQuiz = useCallback(
     async (idx: number) => {
       const base = pending ?? data?.quizzes;
@@ -296,21 +304,127 @@ export function QuizzesView({
   );
 
   useEffect(() => {
-    if (!data?.quizzes) return;
+    if (!data || (data.historyVersion ?? data.version) == null) return;
     setExtra(
       <div className="flex items-center gap-1.5 ml-auto">
         <VersionPicker
           step="quiz-generation"
           itemId="book"
-          currentVersion={data.version}
+          currentVersion={data.historyVersion ?? data.version}
+          currentVersionInactive={data.quizzes === null}
           saving={saving}
           dirty={dirty}
           bookLabel={bookLabel}
           pendingLabel={pendingLabel}
           pendingLabelKey={pendingLabelKey}
-          onPreview={(d) => setPending(d as QuizData)}
+          onRestored={() => setPending(null)}
           onSave={() => saveRef.current()}
           onDiscard={() => setPending(null)}
+          diff={{
+            unifiedList: true,
+            items: (d) => (d as QuizData | null)?.quizzes ?? [],
+            // VersionPicker requests IDs resolved within each historical array,
+            // so legacy and stamped versions use the same comparison keys.
+            keyOf: (q) => (q as QuizData["quizzes"][number]).quizId!,
+            isEqual: (a, b) => {
+              const x = a as QuizData["quizzes"][number]
+              const y = b as QuizData["quizzes"][number]
+              return (
+                x.question === y.question &&
+                x.answerIndex === y.answerIndex &&
+                JSON.stringify(x.options) === JSON.stringify(y.options)
+              )
+            },
+            searchText: (q) => {
+              const x = q as QuizData["quizzes"][number]
+              return `${x.question} ${x.options
+                ?.flatMap((o) => [o.text, o.explanation])
+                .join(" ") ?? ""}`
+            },
+            searchPlaceholder: t`Search questions, answers, or explanations…`,
+            renderItem: (it, ctx) => {
+              const q = it as QuizData["quizzes"][number]
+              const prev = ctx?.before as QuizData["quizzes"][number] | undefined
+              const questionChanged = prev != null && prev.question !== q.question
+              const answerMoved = prev != null && prev.answerIndex !== q.answerIndex
+              const changeTag = (label: string, cls: string) => (
+                <span
+                  className={`ml-1 shrink-0 rounded px-1 py-px text-[8px] font-semibold uppercase tracking-wide ring-1 ${cls}`}
+                >
+                  {label}
+                </span>
+              )
+              return (
+                <span className="flex flex-col gap-1.5">
+                  <span className="flex flex-col">
+                    {questionChanged && prev ? (
+                      <span className="text-[11px] text-muted-foreground line-through decoration-rose-400/70">
+                        {prev.question}
+                      </span>
+                    ) : null}
+                    <span className="font-medium text-foreground">{q.question}</span>
+                  </span>
+                  <span className="flex flex-col gap-1">
+                    {q.options?.map((o, i) => {
+                      const correct = i === q.answerIndex
+                      const prevOpt = prev?.options?.[i]
+                      const textChanged = prevOpt != null && prevOpt.text !== o.text
+                      const explanationChanged =
+                        prevOpt != null && prevOpt.explanation !== o.explanation
+                      const becameCorrect = answerMoved && correct
+                      const wasCorrect = answerMoved && prev != null && i === prev.answerIndex
+                      return (
+                        <span
+                          key={i}
+                          className={`flex items-start gap-1.5 rounded px-1.5 py-1 text-[11px] ${
+                            correct
+                              ? "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200"
+                              : wasCorrect
+                                ? "text-muted-foreground ring-1 ring-amber-200"
+                                : "text-muted-foreground"
+                          }`}
+                        >
+                          {correct ? (
+                            <CheckCircle2 className="mt-px h-3 w-3 shrink-0 text-emerald-600" aria-hidden />
+                          ) : (
+                            <span className="mt-0.5 h-3 w-3 shrink-0 rounded-full border border-muted-foreground/40" />
+                          )}
+                          <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                            <span className="font-medium text-foreground/90">
+                              {textChanged && prevOpt ? (
+                                <InlineDiff before={prevOpt.text} after={o.text} />
+                              ) : (
+                                o.text
+                              )}
+                            </span>
+                            {(o.explanation || prevOpt?.explanation) && (
+                              <span className="border-t border-border/60 pt-1.5 text-[10px] leading-relaxed text-muted-foreground">
+                                {explanationChanged && prevOpt ? (
+                                  <InlineDiff
+                                    before={prevOpt.explanation}
+                                    after={o.explanation}
+                                  />
+                                ) : (
+                                  o.explanation
+                                )}
+                              </span>
+                            )}
+                          </span>
+                          {becameCorrect
+                            ? changeTag(t`now correct`, "bg-emerald-100 text-emerald-700 ring-emerald-300")
+                            : wasCorrect
+                              ? changeTag(t`was correct`, "bg-amber-100 text-amber-700 ring-amber-300")
+                              : textChanged || explanationChanged
+                                ? changeTag(t`edited`, "bg-amber-100 text-amber-700 ring-amber-300")
+                                : null}
+                        </span>
+                      )
+                    })}
+                  </span>
+                </span>
+              )
+            },
+          }}
         />
       </div>,
     );
@@ -432,9 +546,9 @@ export function QuizzesView({
               <Button
                 size="sm"
                 className="h-8 gap-1.5 bg-orange-600 text-xs text-white hover:bg-orange-700"
-                disabled={!hasApiKey || quizzesStatus.isRunning}
+                disabled={!hasStructuredTextProvider || quizzesStatus.isRunning}
                 title={
-                  !hasApiKey
+                  !hasStructuredTextProvider
                     ? t`Add an API key in Book settings to add a quiz.`
                     : quizzesStatus.isRunning
                       ? t`Quizzes are generating. Wait for the run to finish before adding a quiz.`

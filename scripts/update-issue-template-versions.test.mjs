@@ -161,6 +161,51 @@ describe("update-issue-template-versions", () => {
     ]);
   });
 
+  it("fails closed when release automation cannot see a complete version set", () => {
+    gitTag("v0.7.0-beta.2", "v0.6.0");
+    const original = versionTemplate([
+      "v0.7.0-beta.2",
+      "v0.7.0-beta.1",
+      "v0.6.0",
+      "v0.5.1",
+      "Older / unsure",
+    ]);
+    writeTemplate("bug_report.yml", original);
+
+    const result = run("v0.7.0", "--require-full-history");
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "Refusing to update issue templates from an incomplete tag set",
+    );
+    expect(readTemplate("bug_report.yml")).toBe(original);
+  });
+
+  it("accepts the release guard when all dropdown slots can be populated", () => {
+    gitTag(
+      "v0.5.0",
+      "v0.6.0",
+      "v0.7.0",
+      "v0.8.0-beta.1",
+      "v0.8.0-beta.2",
+      "v0.8.0-beta.3",
+    );
+    writeTemplate("bug_report.yml", versionTemplate());
+
+    const result = run("v0.8.0", "--require-full-history");
+
+    expect(result.status).toBe(0);
+    expect(versionOptions("bug_report.yml")).toEqual([
+      "v0.8.0-beta.3",
+      "v0.8.0-beta.2",
+      "v0.8.0-beta.1",
+      "v0.8.0",
+      "v0.7.0",
+      "v0.6.0",
+      "Older / unsure",
+    ]);
+  });
+
   it("a new official tag pushes the oldest official out of the top 3", () => {
     gitTag(
       "v0.4.8",

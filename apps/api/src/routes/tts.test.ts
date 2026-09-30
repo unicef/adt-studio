@@ -2,7 +2,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, openBookDb } from "@adt/storage"
 const { transcribeWithWhisperMock } = vi.hoisted(() => ({
   transcribeWithWhisperMock: vi.fn(),
 }))
@@ -35,6 +35,45 @@ speech:
   )
 }
 
+function writeSecondaryVoiceConfig(label = "Second Narrator"): void {
+  fs.writeFileSync(
+    configPath,
+    `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  providers:
+    gemini:
+      languages:
+        - en
+  secondary_voices:
+    en:
+      provider: gemini
+      model: gemini-2.5-flash-preview-tts
+      voice: Puck
+      label: ${label}
+`,
+  )
+}
+
+/** The `params` recorded on the newest llm_log row, or undefined if none.
+ *  Read straight from the DB the way the debug route does — storage exposes a
+ *  writer for log rows but no reader. */
+function readLatestLogParams(label: string): Record<string, unknown> | undefined {
+  const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+  try {
+    const rows = db.all(
+      "SELECT data FROM llm_log ORDER BY id DESC LIMIT 1"
+    ) as Array<{ data: string }>
+    if (rows.length === 0) return undefined
+    return (JSON.parse(rows[0].data) as { params?: Record<string, unknown> }).params
+  } finally {
+    db.close()
+  }
+}
+
 function seedBook(
   label: string,
   entries: Array<{ id: string; text: string }> = [{ id: "pg001_t001", text: "Hello world" }]
@@ -53,10 +92,43 @@ function seedBook(
       entries,
       generatedAt: new Date().toISOString(),
     })
+    storage.putNodeData("core-tts-catalog", "en", {
+      language: "en",
+      generatedAt: new Date().toISOString(),
+      entries: entries.map((entry) => ({
+        id: entry.id,
+        displayText: entry.text,
+        speechText: entry.text,
+        changed: false,
+        transformations: [],
+        status: "ready",
+        generation: {
+          mode: "unchanged",
+          generatedAt: new Date().toISOString(),
+          enabledTransformations: [],
+          sourceTextHash: "source",
+          contextHash: "context",
+        },
+      })),
+    })
   } finally {
     storage.close()
   }
 }
+
+// The routes fall back to server-side env credentials, so a developer's real
+// keys must not leak into tests that assert missing-credential failures.
+beforeEach(() => {
+  vi.stubEnv("OPENAI_API_KEY", undefined)
+  vi.stubEnv("GEMINI_API_KEY", undefined)
+  vi.stubEnv("ELEVENLABS_API_KEY", undefined)
+  vi.stubEnv("AZURE_SPEECH_KEY", undefined)
+  vi.stubEnv("AZURE_SPEECH_REGION", undefined)
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 describe("POST /books/:label/tts/generate-one", () => {
   const fetchMock = vi.fn<typeof fetch>()
@@ -460,10 +532,356 @@ describe("POST /books/:label/tts/generate-one", () => {
     expect(JSON.parse(String(thirdInit?.body))).toMatchObject({ model: "tts-1-hd" })
   })
 
-  it("rejects single-item generation when the language is not routed to Gemini", async () => {
+  it("falls back to ElevenLabs when Gemini has no audio and no OpenAI/Azure keys are configured", async () => {
+    const label = "gemini-audio-elevenlabs-fallback"
+    seedBook(label)
+
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: "No audio returned for this request." }],
+                },
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: "Still no audio returned for this request." }],
+                },
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(new Uint8Array([21, 22, 23, 24]), {
+          status: 200,
+          headers: { "Content-Type": "audio/mpeg" },
+        })
+      )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Gemini-API-Key": "gm-test",
+        "X-ElevenLabs-API-Key": "el-test",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+    })
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.entry.provider).toBe("elevenlabs")
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+
+    const [thirdUrl, thirdInit] = fetchMock.mock.calls[2]
+    expect(String(thirdUrl)).toContain("https://api.elevenlabs.io/v1/text-to-speech/")
+    expect(thirdInit?.headers).toMatchObject({ "xi-api-key": "el-test" })
+  })
+
+  // Single-item regeneration used to hard-fail for every provider but Gemini,
+  // so a book routed to ElevenLabs could never regenerate one entry from the UI
+  // — which is exactly the listen-and-retune loop the voice-tuning settings need.
+  it("generates a single item for an ElevenLabs-routed language with only an ElevenLabs key", async () => {
+    writeConfig("elevenlabs")
+    const label = "elevenlabs-single-item"
+    seedBook(label)
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(new Uint8Array([31, 32, 33, 34]), {
+        status: 200,
+        headers: { "Content-Type": "audio/mpeg" },
+      })
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-ElevenLabs-API-Key": "el-test",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+    })
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.entry.provider).toBe("elevenlabs")
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(String(url)).toContain("https://api.elevenlabs.io/v1/text-to-speech/")
+    expect(init?.headers).toMatchObject({ "xi-api-key": "el-test" })
+    // The voice-tuning defaults must reach this path too, not just full runs.
+    expect(JSON.parse(String(init?.body)).voice_settings).toMatchObject({
+      stability: 0.7,
+      style: 0,
+    })
+  })
+
+  it("asks for the ElevenLabs key by name when the language is routed to ElevenLabs", async () => {
+    writeConfig("elevenlabs")
+    const label = "elevenlabs-missing-key"
+    seedBook(label)
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+    })
+
+    expect(res.status).toBe(400)
+    await expect(res.text()).resolves.toContain("Set X-ElevenLabs-API-Key header.")
+  })
+
+  it("asks for the OpenAI key when the language is routed to OpenAI", async () => {
     writeConfig("openai")
     const label = "openai-audio"
     seedBook(label)
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // A Gemini key is no help when the language is routed to OpenAI.
+        "X-Gemini-API-Key": "gm-test",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+    })
+
+    expect(res.status).toBe(400)
+    await expect(res.text()).resolves.toContain("Set X-OpenAI-Key header.")
+  })
+
+  // The debug panel's Log tab could previously only show provider/model/voice,
+  // so there was no way to tell which voice_settings produced a given audio file.
+  it("records the ElevenLabs request settings on the debug log entry", async () => {
+    writeConfig("elevenlabs")
+    const label = "elevenlabs-log-params"
+    seedBook(label)
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(new Uint8Array([41, 42]), {
+        status: 200,
+        headers: { "Content-Type": "audio/mpeg" },
+      })
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-ElevenLabs-API-Key": "el-test",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+    })
+    expect(res.status).toBe(200)
+
+    const params = readLatestLogParams(label)
+    // Effective settings, not just overrides — the book configures none here.
+    expect(params).toMatchObject({
+      stability: 0.7,
+      similarityBoost: 0.5,
+      style: 0,
+      useSpeakerBoost: true,
+      outputFormat: "mp3_44100_128",
+      contextBefore: false,
+      contextAfter: false,
+    })
+  })
+
+  // Regression: the synthesizer used to be built without audioOptions here, so a
+  // regenerated entry was synthesized at ElevenLabs' default mp3_44100_128 while
+  // the rest of the book used the configured rates — and the debug log reported
+  // the configured format, describing a request that was never made.
+  it("honors speech.sample_rate/bit_rate and logs the format it actually requested", async () => {
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: elevenlabs
+  sample_rate: 22050
+  bit_rate: "32"
+  providers:
+    elevenlabs:
+      languages:
+        - en
+`
+    )
+    const label = "elevenlabs-audio-options"
+    seedBook(label)
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(new Uint8Array([51, 52]), {
+        status: 200,
+        headers: { "Content-Type": "audio/mpeg" },
+      })
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-ElevenLabs-API-Key": "el-test",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+    })
+    expect(res.status).toBe(200)
+
+    expect(String(fetchMock.mock.calls[0][0])).toContain("output_format=mp3_22050_32")
+    expect(readLatestLogParams(label)).toMatchObject({ outputFormat: "mp3_22050_32" })
+  })
+
+  // Regression: this route used to construct the Azure synthesizer without
+  // audio options, silently falling back to 24 kHz / 48 kbitrate while a full
+  // Speech run correctly honored the book configuration.
+  it("honors speech.sample_rate/bit_rate for a single Azure regeneration", async () => {
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: azure
+  sample_rate: 48000
+  bit_rate: "192kbitrate"
+  providers:
+    azure:
+      languages:
+        - en
+`
+    )
+    const label = "azure-audio-options"
+    seedBook(label)
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(new Uint8Array([53, 54]), {
+        status: 200,
+        headers: { "Content-Type": "audio/mpeg" },
+      })
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Azure-Speech-Key": "az-test",
+        "X-Azure-Speech-Region": "eastus",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+    })
+    expect(res.status).toBe(200)
+
+    const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>
+    expect(headers["X-Microsoft-OutputFormat"]).toBe("audio-48khz-192kbitrate-mono-mp3")
+  })
+
+  // Regression: ElevenLabs throttles on concurrent requests, so a 429 here used
+  // to fail the entry outright — the only retry path was gated on Gemini's "did
+  // not include audio data" message.
+  it("retries an ElevenLabs 429 and succeeds", async () => {
+    writeConfig("elevenlabs")
+    const label = "elevenlabs-429-retry"
+    seedBook(label)
+
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response("too many concurrent requests", {
+          status: 429,
+          statusText: "Too Many Requests",
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(new Uint8Array([61, 62]), {
+          status: 200,
+          headers: { "Content-Type": "audio/mpeg" },
+        })
+      )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-ElevenLabs-API-Key": "el-test",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+    })
+
+    expect(res.status).toBe(200)
+    expect((await res.json()).entry.provider).toBe("elevenlabs")
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  // A permanent 4xx must fail immediately rather than burning the retry budget
+  // on a request that will never succeed.
+  it("does not retry a permanent ElevenLabs 401", async () => {
+    writeConfig("elevenlabs")
+    const label = "elevenlabs-401-no-retry"
+    seedBook(label)
+
+    fetchMock.mockResolvedValue(
+      new Response("invalid_api_key", { status: 401, statusText: "Unauthorized" })
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-ElevenLabs-API-Key": "el-test",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+    })
+
+    expect(res.status).toBe(502)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("does not record ElevenLabs settings for a Gemini-routed language", async () => {
+    writeConfig("gemini")
+    const label = "gemini-log-params"
+    seedBook(label)
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            { content: { parts: [{ inlineData: { data: Buffer.from([1, 2]).toString("base64") } }] } },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    )
 
     const app = createTTSRoutes(tmpDir, configPath)
     const res = await app.request(`/books/${label}/tts/generate-one`, {
@@ -474,11 +892,81 @@ describe("POST /books/:label/tts/generate-one", () => {
       },
       body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
     })
+    expect(res.status).toBe(200)
+
+    expect(readLatestLogParams(label)).toBeUndefined()
+  })
+
+  it("still requires a Gemini key for a Gemini-routed language", async () => {
+    writeConfig("gemini")
+    const label = "gemini-missing-key"
+    seedBook(label)
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+    })
 
     expect(res.status).toBe(400)
-    await expect(res.text()).resolves.toContain(
-      "Single-item audio generation is only available when Gemini is selected for that language."
+    await expect(res.text()).resolves.toContain("Set X-Gemini-API-Key header.")
+  })
+
+  it("generates a slot-specific secondary voice variant when configured", async () => {
+    const label = "gemini-secondary-voice"
+    seedBook(label)
+    writeSecondaryVoiceConfig()
+
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            { content: { parts: [{ inlineData: { data: Buffer.from([1, 2, 3, 4]).toString("base64") } }] } },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
     )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Gemini-API-Key": "gm-test",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en", voiceSlot: "secondary" }),
+    })
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.entry.voiceSlot).toBe("secondary")
+    expect(body.entry.voiceLabel).toBe("Second Narrator")
+    expect(body.entry.fileName).toBe("pg001_t001--secondary.wav")
+    expect(body.entry.voice).toBe("Puck")
+
+    expect(
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001--secondary.wav"))
+    ).toBe(true)
+  })
+
+  it("rejects a secondary voice request when no secondary is configured", async () => {
+    const label = "gemini-no-secondary"
+    seedBook(label)
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Gemini-API-Key": "gm-test",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en", voiceSlot: "secondary" }),
+    })
+
+    expect(res.status).toBe(400)
+    await expect(res.text()).resolves.toContain("Secondary voice is not configured")
   })
 })
 
@@ -585,6 +1073,7 @@ describe("POST /books/:label/tts/upload-one", () => {
           model: "uploaded",
           cached: false,
           provider: "manual",
+          voiceSlot: "primary",
         },
       ])
 
@@ -602,6 +1091,49 @@ describe("POST /books/:label/tts/upload-one", () => {
     expect(
       fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001.mp3"))
     ).toBe(false)
+  })
+
+  it("transcribes with the server-side OpenAI key when the request has no header", async () => {
+    const label = "manual-audio-env-key"
+    seedBook(label)
+    vi.stubEnv("OPENAI_API_KEY", "sk-env-test")
+
+    transcribeWithWhisperMock.mockResolvedValue({
+      words: [{ word: "Hello", start: 0, end: 0.5 }],
+      duration: 0.5,
+    })
+
+    const formData = new FormData()
+    formData.append("textId", "pg001_t001")
+    formData.append("language", "en")
+    formData.append(
+      "audio",
+      new File([new Uint8Array([4, 3, 2, 1])], "reader.wav", {
+        type: "audio/wav",
+      })
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const uploadRes = await app.request(`/books/${label}/tts/upload-one`, {
+      method: "POST",
+      body: formData,
+    })
+    expect(uploadRes.status).toBe(201)
+
+    const transcribeRes = await app.request(`/books/${label}/tts/transcribe-one`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+    })
+
+    expect(transcribeRes.status).toBe(200)
+    expect(transcribeWithWhisperMock).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      "pg001_t001.wav",
+      "sk-env-test",
+      "en",
+      "Hello world",
+    )
   })
 
   it("supports AI timestamp transcription for uploaded manual audio", async () => {
@@ -646,6 +1178,7 @@ describe("POST /books/:label/tts/upload-one", () => {
       language: "en",
       words: [{ word: "Hello", start: 0, end: 0.5 }],
       duration: 0.5,
+      voiceSlot: "primary",
     })
     expect(transcribeWithWhisperMock).toHaveBeenCalledWith(
       expect.any(Buffer),
@@ -665,10 +1198,128 @@ describe("POST /books/:label/tts/upload-one", () => {
         language: "en",
         words: [{ word: "Hello", start: 0, end: 0.5 }],
         duration: 0.5,
+        voiceSlot: "primary",
       })
     } finally {
       after.close()
     }
+  })
+
+  it("uploads a secondary voiceSlot with a slot-specific filename when configured", async () => {
+    const label = "manual-audio-secondary"
+    seedBook(label)
+    writeSecondaryVoiceConfig()
+
+    const formData = new FormData()
+    formData.append("textId", "pg001_t001")
+    formData.append("language", "en")
+    formData.append("voiceSlot", "secondary")
+    formData.append(
+      "audio",
+      new File([new Uint8Array([9, 8, 7, 6])], "custom.wav", {
+        type: "audio/wav",
+      })
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/upload-one`, {
+      method: "POST",
+      body: formData,
+    })
+
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.entry).toMatchObject({
+      textId: "pg001_t001",
+      fileName: "pg001_t001--secondary.wav",
+      voiceSlot: "secondary",
+      voiceLabel: "Second Narrator",
+      provider: "manual",
+    })
+
+    expect(
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001--secondary.wav"))
+    ).toBe(true)
+
+    const after = createBookStorage(label, tmpDir)
+    try {
+      const ttsRow = after.getLatestNodeData("tts", "en")
+      const entries = (ttsRow?.data as { entries: Array<{ textId: string; voiceSlot?: string }> }).entries
+      expect(entries).toHaveLength(1)
+      expect(entries[0].voiceSlot).toBe("secondary")
+    } finally {
+      after.close()
+    }
+  })
+
+  it("rejects a secondary voiceSlot upload when no secondary is configured", async () => {
+    const label = "manual-audio-no-secondary"
+    seedBook(label)
+
+    const formData = new FormData()
+    formData.append("textId", "pg001_t001")
+    formData.append("language", "en")
+    formData.append("voiceSlot", "secondary")
+    formData.append(
+      "audio",
+      new File([new Uint8Array([9, 8, 7, 6])], "custom.wav", {
+        type: "audio/wav",
+      })
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/upload-one`, {
+      method: "POST",
+      body: formData,
+    })
+
+    expect(res.status).toBe(400)
+    await expect(res.text()).resolves.toContain("Secondary voice is not configured")
+  })
+
+  it("keeps primary and secondary uploads independent across reruns", async () => {
+    const label = "manual-audio-independent"
+    seedBook(label)
+    writeSecondaryVoiceConfig("Puck")
+
+    const app = createTTSRoutes(tmpDir, configPath)
+
+    const uploadSlot = async (slot: "primary" | "secondary", byte: number) => {
+      const formData = new FormData()
+      formData.append("textId", "pg001_t001")
+      formData.append("language", "en")
+      formData.append("voiceSlot", slot)
+      formData.append(
+        "audio",
+        new File([new Uint8Array([byte])], "custom.wav", { type: "audio/wav" })
+      )
+      return app.request(`/books/${label}/tts/upload-one`, { method: "POST", body: formData })
+    }
+
+    const primaryRes = await uploadSlot("primary", 1)
+    expect(primaryRes.status).toBe(201)
+    const secondaryRes = await uploadSlot("secondary", 2)
+    expect(secondaryRes.status).toBe(201)
+
+    const after = createBookStorage(label, tmpDir)
+    try {
+      const entries = (after.getLatestNodeData("tts", "en")?.data as {
+        entries: Array<{ textId: string; voiceSlot?: string; fileName: string }>
+      }).entries
+      expect(entries).toHaveLength(2)
+      const bySlot = Object.fromEntries(entries.map((e) => [e.voiceSlot ?? "primary", e]))
+      expect(bySlot.primary.fileName).toBe("pg001_t001.wav")
+      expect(bySlot.secondary.fileName).toBe("pg001_t001--secondary.wav")
+    } finally {
+      after.close()
+    }
+
+    // Re-uploading the primary slot must not disturb the secondary variant.
+    const reuploadPrimary = await uploadSlot("primary", 3)
+    expect(reuploadPrimary.status).toBe(201)
+    expect(
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001--secondary.wav"))
+    ).toBe(true)
   })
 })
 
@@ -720,6 +1371,249 @@ describe("DELETE /books/:label/tts", () => {
     try {
       expect(after.getLatestNodeData("tts", "en")).toBeNull()
       expect(after.getLatestNodeData("tts-timestamps", "en")).toBeNull()
+    } finally {
+      after.close()
+    }
+  })
+})
+
+describe("GET /books/:label/tts", () => {
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-tts-route-"))
+    configPath = path.join(tmpDir, "config.yaml")
+    writeConfig()
+  })
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+    tmpDir = ""
+    configPath = ""
+  })
+
+  it("exposes voiceSlot and voiceLabel for both primary and secondary entries", async () => {
+    const label = "get-tts-dual-voice"
+    seedBook(label)
+
+    const audioDir = path.join(tmpDir, label, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_t001.wav"), Buffer.from([1]))
+    fs.writeFileSync(path.join(audioDir, "pg001_t001--secondary.wav"), Buffer.from([2]))
+
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "pg001_t001.wav",
+            voice: "Kore",
+            model: "gemini-2.5-flash-preview-tts",
+            cached: false,
+            provider: "gemini",
+            voiceSlot: "primary",
+          },
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "pg001_t001--secondary.wav",
+            voice: "Puck",
+            model: "gemini-2.5-flash-preview-tts",
+            cached: false,
+            provider: "gemini",
+            voiceSlot: "secondary",
+            voiceLabel: "Second Narrator",
+          },
+        ],
+        generatedAt: new Date().toISOString(),
+      })
+    } finally {
+      storage.close()
+    }
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts`)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    const entries = body.languages.en.entries as Array<{
+      textId: string
+      fileName: string
+      voiceSlot: string
+      voiceLabel?: string
+    }>
+    expect(entries).toHaveLength(2)
+    const primary = entries.find((e) => e.fileName === "pg001_t001.wav")
+    const secondary = entries.find((e) => e.fileName === "pg001_t001--secondary.wav")
+    expect(primary?.voiceSlot).toBe("primary")
+    expect(secondary?.voiceSlot).toBe("secondary")
+    expect(secondary?.voiceLabel).toBe("Second Narrator")
+  })
+
+  it("treats a legacy entry with no voiceSlot as primary", async () => {
+    const label = "get-tts-legacy"
+    seedBook(label)
+
+    const audioDir = path.join(tmpDir, label, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_t001.wav"), Buffer.from([1]))
+
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("tts", "en", {
+        entries: [{
+          textId: "pg001_t001",
+          language: "en",
+          fileName: "pg001_t001.wav",
+          voice: "alloy",
+          model: "gpt-4o-mini-tts",
+          cached: false,
+          provider: "openai",
+        }],
+        generatedAt: new Date().toISOString(),
+      })
+    } finally {
+      storage.close()
+    }
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts`)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.languages.en.entries[0].voiceSlot).toBe("primary")
+  })
+})
+
+describe("word timestamps are slot-specific", () => {
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-tts-route-"))
+    configPath = path.join(tmpDir, "config.yaml")
+    writeConfig()
+    transcribeWithWhisperMock.mockReset()
+  })
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+    tmpDir = ""
+    configPath = ""
+  })
+
+  it("PUT timestamps keeps primary and secondary edits independent", async () => {
+    const label = "timestamps-slots"
+    seedBook(label)
+
+    const app = createTTSRoutes(tmpDir, configPath)
+
+    const putRes1 = await app.request(
+      `/books/${label}/tts/timestamps/en/pg001_t001`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          words: [{ word: "Hello", start: 0, end: 0.4 }],
+          duration: 0.4,
+          voiceSlot: "primary",
+        }),
+      }
+    )
+    expect(putRes1.status).toBe(200)
+
+    const putRes2 = await app.request(
+      `/books/${label}/tts/timestamps/en/pg001_t001`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          words: [{ word: "Hello", start: 0, end: 0.9 }],
+          duration: 0.9,
+          voiceSlot: "secondary",
+        }),
+      }
+    )
+    expect(putRes2.status).toBe(200)
+
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      const row = storage.getLatestNodeData("tts-timestamps", "en")
+      const entries = (row?.data as { entries: Record<string, { duration: number; voiceSlot?: string }> }).entries
+      expect(entries.pg001_t001.duration).toBe(0.4)
+      expect(entries.pg001_t001.voiceSlot).toBe("primary")
+      expect(entries["pg001_t001--secondary"].duration).toBe(0.9)
+      expect(entries["pg001_t001--secondary"].voiceSlot).toBe("secondary")
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("transcribe-one finds the audio for the requested voiceSlot only", async () => {
+    const label = "transcribe-one-slots"
+    seedBook(label)
+
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "pg001_t001.wav",
+            voice: "alloy",
+            model: "gpt-4o-mini-tts",
+            cached: false,
+            provider: "openai",
+            voiceSlot: "primary",
+          },
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "pg001_t001--secondary.wav",
+            voice: "shimmer",
+            model: "gpt-4o-mini-tts",
+            cached: false,
+            provider: "openai",
+            voiceSlot: "secondary",
+          },
+        ],
+        generatedAt: new Date().toISOString(),
+      })
+    } finally {
+      storage.close()
+    }
+
+    const audioDir = path.join(tmpDir, label, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_t001.wav"), Buffer.from([1]))
+    fs.writeFileSync(path.join(audioDir, "pg001_t001--secondary.wav"), Buffer.from([2]))
+
+    transcribeWithWhisperMock.mockResolvedValue({
+      words: [{ word: "Hi", start: 0, end: 0.3 }],
+      duration: 0.3,
+    })
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/transcribe-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-OpenAI-Key": "sk-test",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en", voiceSlot: "secondary" }),
+    })
+
+    expect(res.status).toBe(200)
+    expect(transcribeWithWhisperMock).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      "pg001_t001--secondary.wav",
+      "sk-test",
+      "en",
+      expect.anything(),
+    )
+
+    const after = createBookStorage(label, tmpDir)
+    try {
+      const row = after.getLatestNodeData("tts-timestamps", "en")
+      const entries = (row?.data as { entries: Record<string, { voiceSlot?: string }> }).entries
+      expect(entries["pg001_t001--secondary"].voiceSlot).toBe("secondary")
+      expect(entries.pg001_t001).toBeUndefined()
     } finally {
       after.close()
     }

@@ -29,7 +29,7 @@ import {
   Trash2,
 } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
-import type { ContentNodeData } from "@adt/types"
+import { isHeadingRole, type ContentNodeData } from "@adt/types"
 import { BASE_URL } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/action-menu"
@@ -121,7 +121,7 @@ function getStructureVisual(structure: string | undefined): Visual {
 function getRoleVisual(role: string | undefined): Visual {
   if (!role) return SLATE
   if (role === "image") return EMERALD(ImageIcon)
-  if (role === "heading") return AMBER(Hash)
+  if (isHeadingRole(role)) return AMBER(Hash)
   if (role === "math") return INDIGO(Sigma)
   if (role === "caption" || role === "label") return { ...SLATE, Icon: Tag }
   if (role === "quote") return { ...SLATE, Icon: Quote }
@@ -169,6 +169,8 @@ export interface TreeNodeProps {
   onSplitGroup?: (nodeId: string) => void
   /** Split the section in two, this node starting the new section. */
   onSplitSection?: (nodeId: string) => void
+  /** Blocks the "split into new section" action (unsaved local edits). */
+  splitDisabled?: boolean
   /** Merge this container into its previous sibling container. */
   onMergeGroup?: (nodeId: string) => void
   /** True when the node's previous sibling is a container. */
@@ -239,10 +241,13 @@ function RowMenu({
   items: ActionMenuItem[]
   disabled?: boolean
 }) {
+  const { t } = useLingui()
+
   return (
     <ActionMenu
       trigger={<MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />}
       triggerClassName="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30"
+      triggerAriaLabel={t`Node actions`}
       triggerDisabled={disabled}
       items={items}
       itemsDisabled={disabled}
@@ -318,6 +323,7 @@ function ContainerNode(props: TreeNodeProps) {
     onDrop,
     onSplitGroup,
     onSplitSection,
+    splitDisabled,
     onMergeGroup,
     prevSiblingIsContainer,
     firstInSection,
@@ -479,6 +485,7 @@ function ContainerNode(props: TreeNodeProps) {
                 label: t`Split into new section`,
                 onClick: () => onSplitSection!(node.nodeId),
                 hidden: !onSplitSection || firstInSection,
+                disabled: splitDisabled,
               },
               {
                 icon: Merge,
@@ -567,6 +574,7 @@ function ContainerNode(props: TreeNodeProps) {
                 onDrop={onDrop}
                 onSplitGroup={onSplitGroup}
                 onSplitSection={onSplitSection}
+                splitDisabled={splitDisabled}
                 onMergeGroup={onMergeGroup}
                 prevSiblingIsContainer={i > 0 && !children[i - 1].role}
                 firstInSection={firstInSection && i === 0}
@@ -604,6 +612,7 @@ function TextLeaf(props: TreeNodeProps) {
     onUnnest,
     onSplitGroup,
     onSplitSection,
+    splitDisabled,
     firstInSection,
     parentNodeId,
     indexInParent,
@@ -720,6 +729,7 @@ function TextLeaf(props: TreeNodeProps) {
               label: t`Split into new section`,
               onClick: () => onSplitSection!(node.nodeId),
               hidden: !onSplitSection || firstInSection,
+              disabled: splitDisabled,
             },
             {
               icon: Copy,
@@ -759,6 +769,7 @@ function ImageLeaf(props: TreeNodeProps) {
     onDuplicate,
     onSplitGroup,
     onSplitSection,
+    splitDisabled,
     firstInSection,
     parentNodeId,
     indexInParent,
@@ -829,6 +840,7 @@ function ImageLeaf(props: TreeNodeProps) {
               label: t`Split into new section`,
               onClick: () => onSplitSection!(node.nodeId),
               hidden: !onSplitSection || firstInSection,
+              disabled: splitDisabled,
             },
             {
               icon: Copy,

@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react"
+import {
+  PREVIEW_VIEWPORT_WIDTHS,
+  type PreviewViewport,
+} from "@/components/pipeline/components/preview-viewport"
 
-export type DeviceView = "desktop" | "tablet" | "mobile"
+export type DeviceView = PreviewViewport
 
-export const DEVICE_WIDTHS: Record<DeviceView, number> = {
-  desktop: 1440,
-  tablet: 768,
-  mobile: 375,
-}
+export const DEVICE_WIDTHS = PREVIEW_VIEWPORT_WIDTHS
 
 // Tablet uses `max-lg:` (fires below 1024px) so it applies at the 768px
 // iframe — `max-md:` would not.

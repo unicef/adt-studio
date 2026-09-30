@@ -31,6 +31,7 @@ export const SETTINGS_TAB_MESSAGE: Record<string, MessageDescriptor> = {
   languages: msg`Languages`,
   "translation-prompt": msg`Translation Prompt`,
   "translation-review": msg`Translation Review`,
+  "core-tts-profiles": msg`TTS Normalization`,
   "image-translation": msg`Image Translation`,
   speech: msg`Speech Settings`,
   "speech-prompts": msg`Speech Prompts`,
@@ -92,6 +93,7 @@ export function getSettingsTabs(
       { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.languages) },
       { key: "prompt", label: i18n._(SETTINGS_TAB_MESSAGE["translation-prompt"]) },
       { key: "translation-review", label: i18n._(SETTINGS_TAB_MESSAGE["translation-review"]) },
+      { key: "core-tts-profiles", label: i18n._(SETTINGS_TAB_MESSAGE["core-tts-profiles"]) },
       { key: "image-translation", label: i18n._(SETTINGS_TAB_MESSAGE["image-translation"]) },
     ],
     speech: [

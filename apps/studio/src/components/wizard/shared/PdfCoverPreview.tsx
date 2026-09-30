@@ -33,7 +33,7 @@ function PdfCoverPlaceholder({ label }: { label: string }) {
   return (
     <PreviewShell label={label}>
       <div className="flex h-full min-h-[280px] flex-col items-center justify-center gap-6 px-6 py-8">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-border bg-white text-muted-foreground">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-dashed border-border bg-card text-muted-foreground">
           <BookOpen className="h-7 w-7" />
         </div>
         <div className="max-w-[280px] text-center">
@@ -75,10 +75,10 @@ function PdfCoverCanvas({
     <PreviewShell label={label} bodyClassName="relative overflow-y-auto">
       {!ready && (
         <div
-          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-[#f0f0f0]"
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-muted"
           aria-hidden
         >
-          <Loader2 className="h-8 w-8 animate-spin text-[#737373]" aria-hidden />
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden />
           <span className="sr-only">
             <Trans>Loading preview</Trans>
           </span>
@@ -120,7 +120,7 @@ function PdfCoverCanvas({
                   "h-auto w-full rounded-md border bg-white shadow-sm",
                   highlightRange && active
                     ? "border-primary ring-2 ring-primary/40"
-                    : "border-[#e5e5e5]",
+                    : "border-border",
                 )}
               />
               <PdfPageBadge pageNum={pageNum} printedLabel={printedLabel} />

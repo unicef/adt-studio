@@ -20,6 +20,33 @@ ADT Studio is a desktop-first application for automated book production — extr
 5. **Minimize Dependencies** — Avoid new deps. Flat files > database when sufficient. In-memory queues > external services.
 6. **Pure JS/TS Over Native** — Always prefer pure JS/WASM libraries over native C/C++ bindings (e.g., node-sqlite3-wasm over better-sqlite3).
 
+## Operating rules
+
+Use [the SDD process](docs/SPEC_DRIVEN_DEVELOPMENT.md#3-choosing-a-lane) to select a
+lane, and follow its [review and merge requirements](docs/SPEC_DRIVEN_DEVELOPMENT.md#9-reviews-and-merging)
+for every PR. Resolve an uncertain lane at triage before implementation.
+
+1. **Load the stack first.** Start from this file and follow the context map. For spec-lane work the approved spec is required session input.
+2. **One task, one issue, one PR.** If the branch grows past its issue, stop, split, open the second issue.
+3. **Search before opening.** Check open PRs and issues for the same change.
+4. **Declare honestly.** The PR body lists what was verified (commands, results) and what was not.
+5. **Never merge your own agent's work unreviewed.** The person who prompted the agent is the author, not the reviewer.
+6. **Respect invariants mechanically.** Read docs/INVARIANTS.md before touching entities, IDs, staleness or layering; run `pnpm lint:invariants` (planned; see docs/INVARIANTS.md).
+7. **Update the map you used.** A doc found wrong during the session is fixed in the same PR.
+8. **Experiments stay in the experiment lane.** A branch that outgrew its issue becomes a finding + spec, not a bigger PR.
+
+## Context map — read before you start
+
+| If the task touches…        | Read first                                                                          |
+|-----------------------------|-------------------------------------------------------------------------------------|
+| an entity, save, regenerate | docs/ARCHITECTURE.md#book-directory-structure (an `#entities` section is planned), docs/INVARIANTS.md |
+| staleness, re-render, cache | docs/specs/SPEC-0001-per-section-staleness.md (in review — arrives with PR #879)     |
+| sectioning, reading order   | docs/specs/SPEC-0003-sectioning-modes.md (planned), #834                            |
+| a prompt under prompts/     | docs/PROMPTS.md (planned; prompt contracts), the prompt validator                   |
+| the reader (adt-runtime)    | docs/ARCHITECTURE.md#runtime (planned), docs/SECURITY_MODEL.md (planned)            |
+| exports or publishing       | docs/PRODUCT.md#registry (planned), docs/specs/SPEC-0006-publishing (planned)       |
+| anything user-facing        | docs/PRODUCT.md#critical-path (planned)                                             |
+
 ## Architecture
 
 ```
@@ -92,6 +119,7 @@ docker run -p 8080:80 -v ./books:/app/books adt-studio
 | `PROMPTS_DIR` | `/app/prompts` | `-v ./prompts:/app/prompts` |
 | `CONFIG_PATH` | `/app/config.yaml` | `-v ./config.yaml:/app/config.yaml:ro` |
 | `FONTS_CACHE_DIR` | `<BOOKS_DIR>/.fonts-cache` | Global Google Fonts cache shared across books (persists in the books volume by default) |
+| `STYLEGUIDES_DIR` | `<BOOKS_DIR>/.styleguides` | User-uploaded global style guides. LLM-generated guides live under each book's `styleguides/` directory so project exports remain self-contained. Bundled presets remain read-only. |
 | `PORT` | `3001` | Internal only — nginx proxies to this |
 
 **`TEMPLATES_DIR` trap:** The Dockerfile and `docker-compose.yml` set `TEMPLATES_DIR=/app/templates` but the application **never reads this env var**. Templates dir is always derived from `path.join(path.dirname(PROMPTS_DIR), "templates")`. To use a custom templates directory, mount it as a sibling of `prompts/` — i.e. override `PROMPTS_DIR` and keep `templates/` next to it.
@@ -107,6 +135,10 @@ docker run -p 8080:80 -v ./books:/app/books adt-studio
 - `docker/compose-release.yml.template` — template for the release asset
 
 **External packages in Docker:** `jsdom`, `esbuild`, `tailwindcss`, `postcss`, and `playwright` cannot be bundled by esbuild because they read data files relative to their own `__dirname`. They are installed into `apps/api/dist/node_modules/` by the Dockerfile build stage via npm. If a new package exhibits the same pattern (ENOENT error pointing to a path under `/app/apps/`), add it to both the `external` array in `apps/api/scripts/bundle-server.mjs` and the npm install step in the Dockerfile.
+
+**The `claude-agent` provider ships no dependency at all.** `@anthropic-ai/claude-agent-sdk` is deliberately *not* a dependency — its per-platform optional packages each carry a ~250 MB `claude` executable, and the ADT only needs the CLI's headless `--print --input-format stream-json --output-format stream-json` contract (`packages/llm/src/providers/claude-agent/cli.ts`, flag floor `MINIMUM_CLAUDE_CLI_VERSION`). The provider resolves the executable from the machine — `CLAUDE_AGENT_EXECUTABLE` override first, then a Claude Code installation found on PATH or in known install locations (`~/.local/bin`; on Windows only `claude.exe`, never `.cmd` shims) — reusing that machine's `claude` login when no API key is set. Like the codex provider, it reports "cli-not-found" wherever no Claude Code installation exists (containers included). Model discovery without an API key serves the CLI's stable family aliases (`sonnet`, `opus`, `haiku`) since the CLI has no model-listing command.
+
+**The `codex` provider ships no dependency at all.** It spawns the Codex CLI already on the machine via `packages/llm/src/providers/codex/cli.ts` — `CODEX_EXECUTABLE` first, then `codex` on PATH, then the common install dirs (`~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`) and, on macOS, the CLI bundled inside the ChatGPT desktop app (`/Applications/ChatGPT.app/Contents/Resources/codex`), so GUI-launched desktop builds with a minimal PATH still find it — reusing that machine's `codex login`. Studio can run that login itself (Settings → Providers → OpenAI → Codex CLI → "Sign in with ChatGPT") by spawning the CLI's own `codex login` (`packages/llm/src/providers/codex/login.ts`, exposed as the optional `cliLogin` port and the `/providers/:id/cli-login` routes): the CLI opens the browser and serves the OAuth callback on localhost itself, so the browser must run on the same machine as the API (true for the desktop app and local dev); the ADT only relays the sign-in URL as a fallback link and never reads the tokens. The device-code variant (`--device-auth`) is deliberately not used — ChatGPT accounts have it disabled by default. A `CODEX_API_KEY` in the server environment is treated as the configured credential and outranks that login. `@openai/codex-sdk` is deliberately *not* a dependency — it carries its own copy of the CLI (~410 MB per platform), and the ADT only needs the `codex exec --json` contract. So nothing has to be added to the `external` array, the Dockerfile npm step, or `install-server-runtime.mjs`: the provider simply reports "Codex CLI not found" wherever no CLI is installed (containers included), exactly like the keyless auth it depends on.
 
 ## Commands
 

@@ -15,11 +15,12 @@ import {
   SettingsField,
 } from "@/components/pipeline/components/SettingsCard"
 import { LanguagePicker } from "@/components/LanguagePicker"
+import { Switch } from "@/components/ui/switch"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useIsFixedLayout } from "@/hooks/use-fixed-layout"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { useBook } from "@/hooks/use-books"
@@ -39,7 +40,8 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const { data: book } = useBook(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { queueRun } = useBookRun()
   const status = useStageStatus("translate")
   const storyboardStatus = useStageStatus("storyboard")
@@ -49,6 +51,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   const isFixedLayout = useIsFixedLayout(bookLabel)
 
   const [outputLanguages, setOutputLanguages] = useState<Set<string>>(new Set())
+  const [textNormalizationEnabled, setTextNormalizationEnabled] = useState(true)
   const [selectedImageIds, setSelectedImageIds] = useState<string[]>([])
   const [imageDialogOpen, setImageDialogOpen] = useState(false)
   const seededRef = useRef(false)
@@ -97,6 +100,12 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
         setSelectedImageIds(it.selected_image_ids as string[])
       }
     }
+    if (m.core_tts && typeof m.core_tts === "object") {
+      const coreTts = m.core_tts as Record<string, unknown>
+      setTextNormalizationEnabled(coreTts.language_normalization !== false)
+    } else {
+      setTextNormalizationEnabled(true)
+    }
   }, [activeConfigData, book, baseLanguage])
 
   const withChipTransition = (update: () => void) => {
@@ -138,6 +147,20 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
     persist({ image_translation: { ...existing, ...patch } })
   }
 
+  const handleTextNormalizationChange = (enabled: boolean) => {
+    setTextNormalizationEnabled(enabled)
+    const existing = (bookConfigData?.config?.core_tts ?? {}) as Record<
+      string,
+      unknown
+    >
+    persist({
+      core_tts: {
+        ...existing,
+        language_normalization: enabled,
+      },
+    })
+  }
+
   const handleImagesConfirm = (ids: string[]) => {
     setSelectedImageIds(ids)
     // Image translations are "enabled" iff at least one image is selected —
@@ -151,7 +174,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !storyboardReady || status.isRunning) return
+    if (!hasStructuredTextProvider || !storyboardReady || status.isRunning) return
     queueRun({ fromStage: "translate", toStage: "translate", apiKey, viewAfter: true })
   }
 
@@ -162,7 +185,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
     (code) => normalizeLocale(code) !== baseLanguage,
   )
 
-  const disabledReason = !hasApiKey ? (
+  const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Add an API key in Book settings to run translation.</Trans>
   ) : !storyboardReady ? (
     <Trans>Run Storyboard first — translation needs the typed sections placed by Storyboard.</Trans>
@@ -182,7 +205,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || !storyboardReady || !hasLanguages}
+      extraDisabled={!hasStructuredTextProvider || !storyboardReady || !hasLanguages}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Translation</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
@@ -274,6 +297,31 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
             />
           </div>
         </SettingsField>
+      </SettingsCard>
+
+      <SettingsCard>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="text-normalization"
+              className="text-sm font-semibold leading-5 text-foreground"
+            >
+              <Trans>Text normalization</Trans>
+            </label>
+            <p className="text-xs leading-relaxed text-[#737373]">
+              <Trans>
+                Prepare numbers, dates, and abbreviations for natural speech.
+                Math and LaTeX are handled separately.
+              </Trans>
+            </p>
+          </div>
+          <Switch
+            id="text-normalization"
+            checked={textNormalizationEnabled}
+            onCheckedChange={handleTextNormalizationChange}
+            aria-label={t`Enable text normalization`}
+          />
+        </div>
       </SettingsCard>
 
       <SettingsCard>

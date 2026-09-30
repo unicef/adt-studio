@@ -8,6 +8,11 @@ import {
   normalizeGlossaryText,
   shouldUseBlockPlaybackHighlight,
 } from "./tokenizer"
+import {
+  buildSpeechDisplayWordAlignment,
+  findDisplayWordIndicesAtTime,
+  mapWordTimestampsToDisplayWords,
+} from "./word-highlight"
 
 describe("tts tokenizer", () => {
   it("preserves punctuation and spacing in the render plan", () => {
@@ -57,6 +62,62 @@ describe("tts tokenizer", () => {
     expect(shouldUseBlockPlaybackHighlight({ tagName: "TEXTAREA" }, true, true)).toBe(true)
     expect(shouldUseBlockPlaybackHighlight({ tagName: "P" }, true, false)).toBe(true)
     expect(shouldUseBlockPlaybackHighlight({ tagName: "P" }, false, true)).toBe(true)
+  })
+
+  it("maps expanded normalized words to the original display characters", () => {
+    const alignment = buildSpeechDisplayWordAlignment(
+      "I have 25 apples.",
+      "I have twenty five apples.",
+    )
+
+    expect(alignment?.map((word) => word.displayWordIndices)).toEqual([
+      [0],
+      [1],
+      [2],
+      [2],
+      [3],
+    ])
+    expect(alignment?.[2].displayRanges).toEqual([
+      { wordIndex: 2, start: 7, end: 9 },
+    ])
+  })
+
+  it("maps one spoken contraction to both display words", () => {
+    const alignment = buildSpeechDisplayWordAlignment(
+      "Please do not stop.",
+      "Please don't stop.",
+    )
+
+    expect(alignment?.map((word) => word.displayWordIndices)).toEqual([
+      [0],
+      [1, 2],
+      [3],
+    ])
+  })
+
+  it("projects Whisper tokens through prepared speech onto display words", () => {
+    const mapped = mapWordTimestampsToDisplayWords(
+      "I have 25 apples.",
+      "I have twenty five apples.",
+      [
+        { text: "I", start: 0, end: 0.2 },
+        { text: "have", start: 0.2, end: 0.5 },
+        { text: "twenty-five", start: 0.5, end: 1.1 },
+        { text: "apples", start: 1.1, end: 1.5 },
+      ],
+    )
+
+    expect(mapped?.map((word) => word.displayWordIndices)).toEqual([
+      [0],
+      [1],
+      [2],
+      [3],
+    ])
+    expect(findDisplayWordIndicesAtTime(mapped ?? [], 0.8)).toEqual([2])
+  })
+
+  it("returns no word alignment when the display has no highlightable text", () => {
+    expect(buildSpeechDisplayWordAlignment("—", "dash")).toBeNull()
   })
 
   it("prefers the current DOM text for display so punctuation stays visible", () => {

@@ -27,6 +27,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
 import type { PageDetail } from "@/api/client"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
+import { ReadyOnMount } from "@/components/pipeline/components/LazyThumb"
 import type {
   ContentNodeData,
   PageSectioningOutput,
@@ -43,7 +44,11 @@ import {
   setLeafRole,
   toggleNodePruned,
 } from "@adt/types"
-import { useApiKey } from "@/hooks/use-api-key"
+import {
+  useApiKey,
+  useBookAgentAvailability,
+  useBookStructuredTextAvailability,
+} from "@/hooks/use-api-key"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { usePage } from "@/hooks/use-pages"
 import { useBookTasks } from "@/hooks/use-book-tasks"
@@ -64,6 +69,8 @@ import {
 } from "./BookPreviewFrame"
 import { SectionEditPanel } from "./SectionEditPanel"
 import { writeCustomAnswerToHtml } from "../lib/activity-answer-labels"
+import { updateOrderingAnswer } from "../lib/ordering-answers"
+import { detectChangedStoryboardViewports } from "../lib/storyboard-viewport-changes"
 import { StorySectionBanner } from "./StorySectionBanner"
 import { EditableActivityPanel } from "./EditableActivityPanel"
 import { ClassicActivityPanel } from "./ClassicActivityPanel"
@@ -79,6 +86,7 @@ import {
 import { toast } from "sonner"
 import { Puzzle, ListChecks } from "lucide-react"
 import { StyleEditorPanel } from "./style-editor"
+import { FitScaleIndicator } from "./FitScaleIndicator"
 import { ViewportToggle } from "./style-editor/ViewportToggle"
 import {
   DEVICE_WIDTHS,
@@ -221,6 +229,7 @@ function getRenderedSectionByIndex(
 ) {
   return rendering?.sections.find((s) => s.sectionIndex === sectionIndex)
 }
+
 
 /**
  * Pull the sectionIndex the generate-activity agent actually wrote to out of a
@@ -431,11 +440,14 @@ export function StoryboardSectionDetail({
 }) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
-  const { apiKey, hasApiKey, anthropicKey, googleKey } = useApiKey()
-  // The agent endpoints accept an OpenAI, Anthropic, or Google key (whichever
-  // matches the book's configured agents.model), so gate those features on
-  // having ANY provider key — not just OpenAI like the rest of the panel.
-  const hasAnyAgentKey = hasApiKey || !!anthropicKey || !!googleKey
+  const {
+    apiKey,
+    hasImageProvider,
+    anthropicKey,
+    googleKey,
+  } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
+  const hasAgentProvider = useBookAgentAvailability(bookLabel)
   const { headerSlotEl } = useStepHeader()
   const { stageState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
@@ -450,7 +462,7 @@ export function StoryboardSectionDetail({
   const [merging, setMerging] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [confirmDeleteSection, setConfirmDeleteSection] = useState(false)
-  const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string; warning?: string } | null>(null)
+  const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string; warning?: string; consequence?: string } | null>(null)
   const [pendingSectioning, setPendingSectioning] = useState<SectioningData | null>(null)
   const [pendingRendering, setPendingRendering] = useState<RenderingData | null>(null)
   // Inspector edits mutate the iframe DOM directly; this ref stashes the
@@ -498,6 +510,7 @@ export function StoryboardSectionDetail({
   >(null)
   const [deviceView, setDeviceView] = useDeviceView(bookLabel, "desktop")
   const [previewVisibleWidth, setPreviewVisibleWidth] = useState(0)
+  const [previewScale, setPreviewScale] = useState(1)
   const previewFrameRef = useRef<BookPreviewFrameHandle>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -810,6 +823,16 @@ export function StoryboardSectionDetail({
 
   // Current section data
   const section = sectioningData?.sections[sectionIndex]
+
+  // Keep the viewed section in range — e.g. after rolling back to a version
+  // with fewer sections, clamp to the last one instead of showing a blank pane.
+  useEffect(() => {
+    const count = sectioningData?.sections.length ?? 0
+    if (count > 0 && sectionIndex >= count) {
+      onNavigateSection?.(count - 1)
+    }
+  }, [sectioningData, sectionIndex, onNavigateSection])
+
   const renderingData = pendingRendering ?? page.rendering
   const renderedSection = getRenderedSectionByIndex(renderingData, sectionIndex)
   // Fixed-layout pages style every element via inline CSS (the `<p>`'s own
@@ -845,6 +868,17 @@ export function StoryboardSectionDetail({
     setSaving(true)
     setPanelOpen(false)
     const shouldRerender = needsRerenderRef.current
+    // Editing here is meant to be incremental: change a section's type, text or
+    // pruning, re-render that one section, carry on. Every such edit either
+    // arrives already mirrored into the HTML or queues a render of the section
+    // it touched, so the storyboard is current (or seconds away from it) and
+    // resetting the whole stage would only take the editor away for a book that
+    // is fine. The stage is marked stale only when we cannot bring the HTML back
+    // in sync at all: no API key, or a custom activity whose inline grading
+    // script a re-render would flatten.
+    const isCustomActivity = section?.sectionType?.startsWith("activity_custom") ?? false
+    const willRerender = shouldRerender && hasStructuredTextProvider && !isCustomActivity
+    const renderingInSync = !shouldRerender || willRerender
     try {
       const minDelay = new Promise((r) => setTimeout(r, 400))
 
@@ -859,16 +893,18 @@ export function StoryboardSectionDetail({
         }
       }
 
-      await api.updateSectioning(bookLabel, pageId, pendingSectioning)
-
       // Save rendering if dirty (from delete/prune removing HTML elements).
       // Use renderingFromPrune if we just stripped pruned elements above,
       // since React state won't have updated yet within this async call.
       const flushed = flushPendingHtml()
       const renderingToSave = renderingFromPrune ?? flushed ?? pendingRendering
-      if (renderingToSave) {
-        await api.updateRendering(bookLabel, pageId, stripTransientIds(renderingToSave))
-      }
+
+      // Both nodes in one request so a failure can't split them apart.
+      await api.saveStoryboard(bookLabel, pageId, {
+        sectioning: pendingSectioning,
+        rendering: renderingToSave ? stripTransientIds(renderingToSave) : undefined,
+        renderingInSync,
+      })
 
       setPendingSectioning(null)
       setPendingRendering(null)
@@ -883,10 +919,22 @@ export function StoryboardSectionDetail({
       // Skip for pure prune/delete — those are already handled by local HTML removal.
       // Also skip custom activities: re-render rebuilds from the flat sectioning
       // tree and would discard their inline grading script.
-      const isCustomActivity =
-        section?.sectionType?.startsWith("activity_custom") ?? false
-      if (shouldRerender && hasApiKey && !isCustomActivity) {
-        api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex).catch(() => {})
+      // The task marks the storyboard stale itself if it fails, so a section that
+      // never gets its HTML cannot leave the stage reporting complete. A rejected
+      // *submission* never reaches the task runner, so that net does not fire and
+      // we have to take the completion mark back here instead.
+      if (willRerender) {
+        api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex).catch(async (err) => {
+          setAiError(err instanceof Error ? err.message : t`Re-render failed`)
+          if (!renderingInSync) return
+          await api
+            .saveStoryboard(bookLabel, pageId, {
+              sectioning: pendingSectioning,
+              renderingInSync: false,
+            })
+            .catch(() => {})
+          invalidateStoryboardDependents(queryClient, bookLabel)
+        })
       }
     } catch (err) {
       setAiError(err instanceof Error ? err.message : t`Save failed`)
@@ -920,23 +968,23 @@ export function StoryboardSectionDetail({
     try {
       const minDelay = new Promise((r) => setTimeout(r, 400))
 
-      await api.updateRendering(bookLabel, pageId, stripTransientIds(renderingToSave))
-
       // Back-propagate text changes into sectioning. `renderingToSave` already
       // includes the flushed inspector edit; the closure `pendingRendering`
       // is stale until React re-renders.
       const editedHtml = getRenderedSectionByIndex(renderingToSave, sectionIndex)?.html
       const sBase = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
-      if (editedHtml && sBase) {
-        const updatedSectioning = backPropagateTextChanges(
-          sBase,
-          sectionIndex,
-          editedHtml
-        )
-        if (updatedSectioning !== sBase) {
-          await api.updateSectioning(bookLabel, pageId, updatedSectioning)
-        }
-      }
+      const updatedSectioning =
+        editedHtml && sBase ? backPropagateTextChanges(sBase, sectionIndex, editedHtml) : null
+
+      // The sectioning we send is derived from the HTML we send, so the pair is
+      // in sync by construction — this save leaves the Storyboard current and
+      // only marks the stages downstream of it for re-run.
+      await api.saveStoryboard(bookLabel, pageId, {
+        rendering: stripTransientIds(renderingToSave),
+        ...(updatedSectioning && updatedSectioning !== sBase
+          ? { sectioning: updatedSectioning, renderingInSync: true }
+          : {}),
+      })
 
       setPendingRendering(null)
       setPendingSectioning(null)
@@ -1019,7 +1067,16 @@ export function StoryboardSectionDetail({
   const executeMergeSection = async (direction: "next" | "prev") => {
     setMerging(true)
     try {
-      const result = await api.mergeSection(bookLabel, pageId, sectionIndex, direction)
+      // The merge concatenates both sections' HTML into the kept entry, so no
+      // section is left without one. With a key the targeted re-render keeps
+      // the stage current; without one the server marks it for a full re-run.
+      const result = await api.mergeSection(
+        bookLabel,
+        pageId,
+        sectionIndex,
+        direction,
+        hasStructuredTextProvider,
+      )
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
@@ -1027,7 +1084,7 @@ export function StoryboardSectionDetail({
       onNavigateSection?.(result.mergedSectionIndex)
 
       // Auto re-render the merged section so the LLM generates proper HTML for the combined content
-      if (hasApiKey) {
+      if (hasStructuredTextProvider) {
         api.reRenderPage(bookLabel, pageId, apiKey, result.mergedSectionIndex).catch(() => {})
       }
     } catch (err) {
@@ -1041,7 +1098,16 @@ export function StoryboardSectionDetail({
   const executeMergeCrossPage = async (direction: "next" | "prev") => {
     setMerging(true)
     try {
-      const result = await api.mergeSectionCrossPage(bookLabel, pageId, sectionIndex, direction)
+      // This empties both pages' renderings outright — every section on them
+      // loses its HTML, not just the merged one — so both pages have to be
+      // re-rendered whole before the stage is complete again. Two page renders
+      // is still the affected pages only, never the rest of the book.
+      const result = await api.mergeSectionCrossPage(
+        bookLabel,
+        pageId,
+        sectionIndex,
+        direction,
+      )
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.sourcePageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.targetPageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
@@ -1050,6 +1116,18 @@ export function StoryboardSectionDetail({
       invalidateStoryboardDependents(queryClient, bookLabel)
       // Navigate to the previous section or 0 since the current section was removed
       onNavigateSection?.(Math.max(0, sectionIndex - 1))
+
+      if (hasStructuredTextProvider) {
+        try {
+          await api.reRenderPages(
+            bookLabel,
+            [result.sourcePageId, result.targetPageId],
+            apiKey,
+          )
+        } catch (err) {
+          setAiError(err instanceof Error ? err.message : t`Re-render failed`)
+        }
+      }
     } catch (err) {
       setAiError(err instanceof Error ? err.message : t`Merge failed`)
     } finally {
@@ -1089,6 +1167,9 @@ export function StoryboardSectionDetail({
       action: () => executeMergeSection(direction),
       label,
       warning: buildMergeWarning(neighbor?.sectionType),
+      consequence: hasStructuredTextProvider
+        ? t`The combined section will be re-rendered.`
+        : t`The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section.`,
     })
   }
 
@@ -1101,6 +1182,11 @@ export function StoryboardSectionDetail({
       action: () => executeMergeCrossPage(direction),
       label,
       warning: buildMergeWarning(),
+      // Unlike a same-page merge this clears both pages' renderings entirely,
+      // so say which pages go and who puts them back.
+      consequence: hasStructuredTextProvider
+        ? t`Both pages lose their rendering and will be re-rendered automatically.`
+        : t`Both pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running.`,
     })
   }
 
@@ -1131,7 +1217,7 @@ export function StoryboardSectionDetail({
   // If there are pending rendering edits, diff them against the saved version
   // and inject structured instructions so the LLM preserves the user's changes.
   const handleRerender = (prompt?: string) => {
-    if (hasActiveTask || storyboardRunning || dirty || renderingDirty || saving || !hasApiKey) return
+    if (hasActiveTask || storyboardRunning || dirty || renderingDirty || saving || !hasStructuredTextProvider) return
     // Custom activities can't be re-rendered: the renderer rebuilds from the
     // flat, script-less sectioning tree and would discard the inline grading
     // script and bespoke markup. The button is disabled for them, but guard
@@ -1335,19 +1421,34 @@ export function StoryboardSectionDetail({
   // grading script) read the correct answer straight from the section HTML —
   // `data-correct-items` on a drop target, or `data-answer` on a per-slot input
   // — so for custom sections we also write each edit back into the HTML, or the
-  // change would be cosmetic and never affect grading. Templated activities
-  // grade off `window.correctAnswers` (built from `activityAnswers`), so the
-  // derived update alone is enough for them.
+  // change would be cosmetic and never affect grading. Ordering activities
+  // also carry an inspectable HTML order, so rank edits atomically swap the
+  // displaced item and update both representations.
   const updateAnswers = useCallback(
     (patch: Record<string, string | boolean>) => {
       const rBase = pendingRendering ?? page.rendering
       if (!rBase) return
       const isCustom = section?.sectionType.startsWith("activity_custom") ?? false
+      const isOrdering = section?.sectionType === "activity_ordering"
+      const currentSection = rBase.sections.find((s) => s.sectionIndex === sectionIndex)
+      let orderingUpdate: ReturnType<typeof updateOrderingAnswer> = null
+      if (isOrdering) {
+        const entries = Object.entries(patch)
+        if (entries.length !== 1 || !currentSection) return
+        const [itemId, value] = entries[0]
+        orderingUpdate = updateOrderingAnswer(
+          currentSection.html,
+          currentSection.activityAnswers ?? {},
+          itemId,
+          value,
+        )
+        if (!orderingUpdate) return
+      }
       const updated = {
         ...rBase,
         sections: rBase.sections.map((s) => {
           if (s.sectionIndex !== sectionIndex) return s
-          let html = s.html
+          let html = orderingUpdate?.html ?? s.html
           if (isCustom && html) {
             for (const [itemKey, value] of Object.entries(patch)) {
               html = writeCustomAnswerToHtml(html, itemKey, String(value))
@@ -1356,7 +1457,7 @@ export function StoryboardSectionDetail({
           return {
             ...s,
             html,
-            activityAnswers: { ...s.activityAnswers, ...patch },
+            activityAnswers: orderingUpdate?.answers ?? { ...s.activityAnswers, ...patch },
           }
         }),
       }
@@ -1375,17 +1476,35 @@ export function StoryboardSectionDetail({
   // Delete selected block from rendered HTML and remove the matching leaf from sectioning.
   const handleDeleteBlock = useCallback(
     (dataId: string) => {
-      removeElementsFromRendering([dataId])
+      const treeIds = new Set([dataId])
+      if (!removeElementsFromRendering([dataId])) {
+        // Containers the renderer emitted without a data-id carry a transient
+        // `_el#` id that exists only in the live iframe DOM, so the stored-HTML
+        // removal above can't find them. Remove from the iframe and queue the
+        // serialized result the same way class/style edits do — the deselect
+        // below flushes it into pendingRendering. The subtree's real data-ids
+        // are deleted from the sectioning tree as well; leaving them behind
+        // would resurrect the content on the next LLM re-render and keep it in
+        // the text catalog and TTS.
+        const removed = previewFrameRef.current?.removeElement(dataId)
+        if (removed) {
+          pendingHtmlRef.current = { html: removed.html, sectionIndex }
+          setHasUnflushedEdits(true)
+          markPending("elements")
+          for (const id of removed.removedDataIds) treeIds.add(id)
+        }
+      }
       const sBase = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
       if (sBase && section) {
-        const nextNodes = deleteNode(section.nodes, dataId)
+        let nextNodes = section.nodes
+        for (const id of treeIds) nextNodes = deleteNode(nextNodes, id)
         if (nextNodes !== section.nodes) {
           setPendingSectioning(withSectionNodes(sBase, sectionIndex, nextNodes))
         }
       }
       setSelectedElement(null)
     },
-    [removeElementsFromRendering, pendingSectioning, page.sectioningTree, sectionIndex, section]
+    [removeElementsFromRendering, pendingSectioning, page.sectioningTree, sectionIndex, section, markPending]
   )
 
   // Replace the current section with an updated copy (from SectionTreeEditor).
@@ -1419,7 +1538,17 @@ export function StoryboardSectionDetail({
     if (storyboardRunning) return
     const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
     if (!base) return
-    if (base.sections[sectionIndex]?.isPruned) needsRerenderRef.current = true
+    // Pruning a section is a read-time filter — packaging and the text catalog
+    // skip it (`packaging/web.ts`, `text-catalog.ts`) but its HTML stays in
+    // web-rendering. So unpruning restores it as-is and needs no LLM. The one
+    // exception is a section that was already pruned when the storyboard ran:
+    // `web-rendering.ts` skips pruned sections, so it has no HTML to restore.
+    const unpruning = base.sections[sectionIndex]?.isPruned ?? false
+    const renderedHtml = getRenderedSectionByIndex(
+      pendingRendering ?? page.rendering,
+      sectionIndex
+    )?.html
+    if (unpruning && !renderedHtml) needsRerenderRef.current = true
     const updated: SectioningData = {
       ...base,
       sections: base.sections.map((s, si) => {
@@ -1500,6 +1629,7 @@ export function StoryboardSectionDetail({
     [removeElementsFromRendering]
   )
 
+  // Reorder / regroup: the HTML keeps the old order until re-rendered.
   const handleStructuralChange = useCallback(() => {
     needsRerenderRef.current = true
   }, [])
@@ -1800,7 +1930,7 @@ export function StoryboardSectionDetail({
   // Run LLM segmentation analysis on a single image (phase 1: get bounding boxes)
   const handleSegment = useCallback(
     async (dataId: string) => {
-      if (!hasApiKey) return
+      if (!hasStructuredTextProvider) return
       setSegmenting(true)
 
       try {
@@ -1827,7 +1957,7 @@ export function StoryboardSectionDetail({
         setSegmenting(false)
       }
     },
-    [bookLabel, pageId, apiKey, hasApiKey]
+    [bookLabel, pageId, apiKey, hasStructuredTextProvider]
   )
 
   // Apply confirmed segmentation (phase 2: crop and save)
@@ -2085,7 +2215,7 @@ export function StoryboardSectionDetail({
 
   // AI edit handler
   const handleAiEdit = async () => {
-    if (!aiInstruction.trim() || !hasApiKey || hasActiveTask || storyboardRunning) return
+    if (!aiInstruction.trim() || !hasStructuredTextProvider || hasActiveTask || storyboardRunning) return
     setAiError(null)
 
     const currentHtml = renderedSection?.html
@@ -2109,7 +2239,7 @@ export function StoryboardSectionDetail({
     instruction: string | undefined,
   ) => {
     setLayoutMirrorOpen(false)
-    if (!hasAnyAgentKey) return
+    if (!hasAgentProvider) return
     setAiError(null)
     api
       .agentLayoutMirror(
@@ -2133,7 +2263,7 @@ export function StoryboardSectionDetail({
     options: { inclusiveDesign: boolean; mode: "auto" | "templated" | "custom" },
   ) => {
     setGenerateActivityOpen(false)
-    if (!hasAnyAgentKey) return
+    if (!hasAgentProvider) return
     setAiError(null)
     api
       .agentGenerateActivity(bookLabel, pageId, description, apiKey, options, {
@@ -2166,6 +2296,7 @@ export function StoryboardSectionDetail({
       tagName: tag,
       textType: leaf && !isImage ? leaf.role : undefined,
       isPruned: leaf?.isPruned ?? false,
+      hasTreeNode: leaf != null,
       imageSrc: isImage ? `${BASE_URL}/books/${bookLabel}/images/${dataId}` : undefined,
     }
   }
@@ -2341,6 +2472,24 @@ export function StoryboardSectionDetail({
     })
   }
 
+  const getChangedPreviewViewports = useCallback(
+    (currentData: unknown, selectedData: unknown) => {
+      const currentSection = getRenderedSectionByIndex(
+        currentData as RenderingData,
+        sectionIndex
+      )
+      const selectedSection = getRenderedSectionByIndex(
+        selectedData as RenderingData,
+        sectionIndex
+      )
+      return detectChangedStoryboardViewports(
+        currentSection?.html ?? "",
+        selectedSection?.html ?? ""
+      )
+    },
+    [sectionIndex]
+  )
+
   // Header controls rendered via portal into the purple step header
   const headerControls = (
     <>
@@ -2368,17 +2517,50 @@ export function StoryboardSectionDetail({
         saving={saving}
         dirty={renderingDirty}
         bookLabel={bookLabel}
-        onPreview={(data) => setPendingRendering(data as RenderingData)}
+        onRestored={discardAll}
         onSave={saveRendering}
         onDiscard={discardAll}
         renderSaveBar={false}
+        previewViewport={deviceView}
+        getChangedPreviewViewports={getChangedPreviewViewports}
+        renderPreview={(data, onReady, opts) => {
+          const sec = getRenderedSectionByIndex(data as RenderingData, sectionIndex)
+          if (!sec) {
+            return (
+              <ReadyOnMount onReady={onReady}>
+                <div className="flex h-full items-center justify-center p-2 text-center text-[11px] text-muted-foreground">
+                  {t`This section doesn't exist in this version.`}
+                </div>
+              </ReadyOnMount>
+            )
+          }
+          const previewViewport = opts?.viewport ?? (opts?.lite ? "desktop" : deviceView)
+          return (
+            <BookPreviewFrame
+              html={sec.html}
+              bookLabel={bookLabel}
+              editable={false}
+              renderWidth={DEVICE_WIDTHS[previewViewport]}
+              deviceView={previewViewport}
+              maxVisibleHeight={opts?.maxHeight}
+              thumbnail={Boolean(opts?.lite)}
+              // Skip the per-version Tailwind recompile for the tiny list chips
+              // (base CSS is enough at chip size); keep it for the full-size
+              // hover preview and compare panes where missing classes show.
+              autoRefreshCss={!opts?.lite}
+              applyBodyBackground
+              bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
+              onReady={onReady}
+            />
+          )
+        }}
       />
       <ViewportToggle
         value={deviceView}
         onChange={setDeviceView}
         currentWidth={previewVisibleWidth}
       />
-      {renderedSection?.html && hasApiKey ? (
+      {renderedSection?.html && hasStructuredTextProvider ? (
         <div className="relative flex-1 min-w-[100px]">
           <Sparkles className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
           <Input
@@ -2398,7 +2580,7 @@ export function StoryboardSectionDetail({
       ) : (
         <div className="flex-1" />
       )}
-      {renderedSection?.html && hasApiKey && (
+      {renderedSection?.html && hasStructuredTextProvider && (
         <button
           type="button"
           onClick={() => setShowAiHistory((v) => !v)}
@@ -2410,7 +2592,7 @@ export function StoryboardSectionDetail({
           <MessageSquare className="h-3.5 w-3.5" />
         </button>
       )}
-      {renderedSection?.html && hasAnyAgentKey && (
+      {renderedSection?.html && hasAgentProvider && (
         <button
           type="button"
           onClick={() => setLayoutMirrorOpen(true)}
@@ -2421,7 +2603,7 @@ export function StoryboardSectionDetail({
           <LayoutGrid className="h-3.5 w-3.5" />
         </button>
       )}
-      {hasAnyAgentKey && (
+      {hasAgentProvider && (
         <button
           type="button"
           onClick={() => setGenerateActivityOpen(true)}
@@ -2470,6 +2652,25 @@ export function StoryboardSectionDetail({
       </div>
     )
   }
+
+  // Single source of truth for which preview the section body renders. Both the
+  // render tree below and the fit-scale pill gate switch on this, so the two can
+  // never disagree about whether the scalable BookPreviewFrame is on screen.
+  const previewMode: "none" | "stepper" | "classic-activity" | "book-frame" =
+    !section || !renderedSection?.html
+      ? "none"
+      : stepperEnabled && editableEntry
+        ? "stepper"
+        : isActivitySection && activityPreviewMode && !editActivityPanelOpen
+          ? "classic-activity"
+          : "book-frame"
+
+  // The sectionId names the section's HTML file in adt-preview and in every
+  // bundle. Ids are allocated once and never reused, so one cannot be derived
+  // from the array index — after a split/clone/delete a positional guess
+  // resolves to a *different* section. Always set where it is read: every
+  // preview mode that uses it requires `section`.
+  const previewSectionId = section?.sectionId
 
   return (
     <>
@@ -2539,6 +2740,7 @@ export function StoryboardSectionDetail({
         className="flex-1 overflow-auto px-4 py-4 relative [scrollbar-gutter:stable]"
         ref={scrollContainerRef}
       >
+        {previewMode === "book-frame" && <FitScaleIndicator scale={previewScale} />}
         {!section ? (
           <StageEmptyState
             icon={LayoutGrid}
@@ -2640,9 +2842,9 @@ export function StoryboardSectionDetail({
                 }
               />
             )}
-            {stepperEnabled && editableEntry ? (
+            {previewMode === "stepper" ? (
               <>
-                {editableEntry.sourceRenderingVersion !== undefined &&
+                {editableEntry?.sourceRenderingVersion !== undefined &&
                   (page.versions.rendering ?? 0) !== editableEntry.sourceRenderingVersion && (
                     <div className="mb-2 flex justify-center">
                       <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded">
@@ -2652,11 +2854,11 @@ export function StoryboardSectionDetail({
                   )}
                 <StepperActivityPreview
                   key={`stepper-${sectionIndex}-${editableVersion}`}
-                  src={`${BASE_URL}/books/${bookLabel}/adt-preview/${pageId}_sec${String(sectionIndex + 1).padStart(3, "0")}.html?embed=1&v=ea${editableVersion}`}
+                  src={`${BASE_URL}/books/${bookLabel}/adt-preview/${previewSectionId}.html?embed=1&v=ea${editableVersion}`}
                   deviceView={deviceView}
                 />
               </>
-            ) : isActivitySection && activityPreviewMode && !editActivityPanelOpen ? (
+            ) : previewMode === "classic-activity" ? (
               <>
                 {renderingDirty && (
                   <div className="mb-2 flex justify-center">
@@ -2667,7 +2869,7 @@ export function StoryboardSectionDetail({
                 )}
                 <StepperActivityPreview
                   key={`classic-${sectionIndex}-${page.versions.rendering ?? 0}`}
-                  src={`${BASE_URL}/books/${bookLabel}/adt-preview/${pageId}_sec${String(sectionIndex + 1).padStart(3, "0")}.html?embed=1&v=${page.versions.rendering ?? 0}`}
+                  src={`${BASE_URL}/books/${bookLabel}/adt-preview/${previewSectionId}.html?embed=1&v=${page.versions.rendering ?? 0}`}
                   deviceView={deviceView}
                 />
               </>
@@ -2692,6 +2894,7 @@ export function StoryboardSectionDetail({
                   onLinkSelect={handleLinkSelectFromPage}
                   onLinkHover={handleAnchorHover}
                   onVisibleWidthChange={setPreviewVisibleWidth}
+                  onScaleChange={setPreviewScale}
                   bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
                 />
             )}
@@ -2925,7 +3128,7 @@ export function StoryboardSectionDetail({
           onChangeType={changeSectionType}
           onRegenerate={() => handleRerender()}
           canRegenerate={
-            hasApiKey && !hasActiveTask && !storyboardRunning && !saving && !renderingDirty && !dirty
+            hasStructuredTextProvider && !hasActiveTask && !storyboardRunning && !saving && !renderingDirty && !dirty
           }
           onTextEdited={handleActivityPanelTextEdited}
           onAnswerEdited={updateAnswer}
@@ -2985,13 +3188,7 @@ export function StoryboardSectionDetail({
             saving={saving}
             dirty={dirty}
             bookLabel={bookLabel}
-            onPreview={(data) => {
-              const s = data as SectioningData
-              setPendingSectioning(s)
-              if (s.sections && sectionIndex >= s.sections.length) {
-                onNavigateSection?.(Math.max(0, s.sections.length - 1))
-              }
-            }}
+            onRestored={discardAll}
             onSave={saveSectioning}
             onDiscard={discardAll}
             renderSaveBar={false}
@@ -3005,7 +3202,7 @@ export function StoryboardSectionDetail({
         rerendering={hasActiveTask}
         dirty={dirty}
         renderingDirty={renderingDirty}
-        hasApiKey={hasApiKey}
+        hasStructuredTextProvider={hasStructuredTextProvider}
       />
       )}
 
@@ -3037,8 +3234,13 @@ export function StoryboardSectionDetail({
                   storyboardRunning || selectedInfo.isContainer
                     ? undefined
                     : handleToolbarChangeTextType,
+                // Containers with a sectioning-tree node prune like any leaf
+                // (inherited prune greys and strips their contents at save).
+                // Decoration containers the renderer invented have no tree
+                // node to hold prune state, so they get no prune toggle —
+                // Delete is their removal path.
                 onTogglePrune:
-                  storyboardRunning || selectedInfo.isContainer
+                  storyboardRunning || (selectedInfo.isContainer && !selectedInfo.hasTreeNode)
                     ? undefined
                     : handleToolbarPrune,
                 onCrop:
@@ -3058,11 +3260,11 @@ export function StoryboardSectionDetail({
                     ? handleReplaceFromBook
                     : undefined,
                 onAiImage:
-                  selectedInfo.isImage && hasApiKey && !storyboardRunning
+                  selectedInfo.isImage && hasImageProvider && !storyboardRunning
                     ? handleAiImage
                     : undefined,
                 onSegment:
-                  selectedInfo.isImage && hasApiKey && !storyboardRunning
+                  selectedInfo.isImage && hasStructuredTextProvider && !storyboardRunning
                     ? handleSegment
                     : undefined,
                 onDelete: !storyboardRunning ? handleDeleteBlock : undefined,
@@ -3142,7 +3344,7 @@ export function StoryboardSectionDetail({
         bookLabel={bookLabel}
         onSelectExisting={handleAddExistingImage}
         onUpload={handleAddImageUpload}
-        onGenerate={handleAddImageGenerate}
+        onGenerate={hasImageProvider ? handleAddImageGenerate : undefined}
         onClose={() => setAddImageDialogOpen(false)}
       />
     )}
@@ -3175,6 +3377,7 @@ export function StoryboardSectionDetail({
           <DialogTitle>{t`Confirm merge`}</DialogTitle>
           <DialogDescription>
             {t`Are you sure you want to ${confirmMerge?.label ?? ""}? This action cannot be undone.`}
+            {confirmMerge?.consequence ? ` ${confirmMerge.consequence}` : null}
           </DialogDescription>
         </DialogHeader>
         {confirmMerge?.warning && (

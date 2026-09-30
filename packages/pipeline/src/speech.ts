@@ -4,12 +4,34 @@ import crypto from "node:crypto"
 import yaml from "js-yaml"
 import {
   DEFAULT_OPENAI_TTS_MODEL_ID,
+  DEFAULT_ELEVENLABS_TTS_MODEL_ID,
+  DEFAULT_ELEVENLABS_VOICE_ID,
+  ELEVENLABS_SHIPPED_VOICE_NAMES,
+  isTtsExcluded,
+  normalizeVoiceMapEntry,
+  voiceSlotEntryId,
+  parseVoicesConfigEntries,
+  type SpeechConfig,
   type SpeechFileEntry,
   type TTSProviderConfig,
   type TTSRateLimitConfig,
+  type TextCatalogEntry,
+  type PrimarySpeechVoicesConfig,
+  type VoiceMapEntry,
+  type VoiceSlot,
 } from "@adt/types"
-import type { RateLimiter, TTSSynthesizer, WhisperTranscriptionResult } from "@adt/llm"
-import { transcribeWithWhisper } from "@adt/llm"
+import type {
+  ElevenLabsVoiceSettingsOverrides,
+  LlmLogEntry,
+  RateLimiter,
+  TTSSynthesizer,
+  WhisperTranscriptionResult,
+} from "@adt/llm"
+import {
+  buildElevenLabsOutputFormat,
+  resolveElevenLabsVoiceSettings,
+  transcribeWithWhisper,
+} from "@adt/llm"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
 import { computeEntryTimeRanges, buildPageTranscript, type BatchEntry } from "./speech-batch.js"
 import { sliceWav, wavDurationSeconds, findQuietCutSeconds } from "./audio-wav.js"
@@ -36,6 +58,112 @@ export function stripEmojis(text: string): string {
   return text.replace(EMOJI_RE, "")
 }
 
+/**
+ * `skippedReason` for an entry whose text has nothing speakable in it, so
+ * `generateSpeechFile` returned null without calling a provider. Shared so both
+ * execution paths write the same value and the log stays filterable.
+ */
+export const NO_SPEAKABLE_TEXT_REASON = "no-speakable-text"
+
+/**
+ * Build the common debug-log record for a TTS request. Keeping this next to
+ * the generation helpers prevents the API runner, the one-item route, and the
+ * CLI/DAG executor from drifting in their representation of the same call.
+ */
+export function buildTtsLogEntry(options: {
+  textId: string
+  language: string
+  voice: string
+  model: string
+  provider: string
+  text: string
+  durationMs: number
+  success: boolean
+  cached: boolean
+  attempt: number
+  error?: string
+  /**
+   * Set when the entry produced no audio on purpose — `generateSpeechFile`
+   * returns null for text with nothing speakable in it. Marks the row so it
+   * isn't read as a synthesis that happened, and so the stats aggregation can
+   * leave it out of call and cache counts.
+   */
+  skippedReason?: string
+  params?: Record<string, unknown>
+}): LlmLogEntry {
+  return {
+    requestId: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    taskType: "tts",
+    pageId: options.textId,
+    promptName: `tts-${options.provider}`,
+    modelId: `${options.provider}/${options.model}`,
+    cacheHit: options.cached,
+    success: options.success,
+    errorCount: options.success ? 0 : 1,
+    attempt: Math.max(options.attempt, 1),
+    durationMs: options.durationMs,
+    ...(options.error ? { error: options.error } : {}),
+    ...(options.skippedReason ? { skippedReason: options.skippedReason } : {}),
+    ...(options.params ? { params: options.params } : {}),
+    messages: [{
+      role: "user",
+      content: [{
+        type: "text",
+        text: `[${options.language}] voice=${options.voice}\n${options.text}`,
+      }],
+    }],
+  }
+}
+
+/**
+ * Build the debug-log record for a Whisper word-timestamp transcription.
+ * Sits beside {@link buildTtsLogEntry} for the same reason: four call sites
+ * feed this (the full Speech run, the two manual transcribe routes, and the
+ * page-batched alignment pass), and a hand-rolled record per site is how the
+ * TTS ones drifted.
+ *
+ * `taskType` is the real `word-timestamps` step name, so the Log tab's step
+ * filter and the step badge work with no extra wiring.
+ */
+export function buildWordTimestampsLogEntry(options: {
+  fileName: string
+  language?: string
+  prompt?: string
+  durationMs: number
+  success: boolean
+  cached: boolean
+  result?: WhisperTranscriptionResult
+  error?: string
+}): LlmLogEntry {
+  return {
+    requestId: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    taskType: "word-timestamps",
+    pageId: options.fileName,
+    promptName: "whisper-transcribe",
+    modelId: "openai/whisper-1",
+    cacheHit: options.cached,
+    success: options.success,
+    errorCount: options.success ? 0 : 1,
+    attempt: 1,
+    durationMs: options.durationMs,
+    ...(options.error ? { error: options.error } : {}),
+    params: {
+      language: options.language ?? "",
+      fileName: options.fileName,
+      hasPrompt: Boolean(options.prompt),
+      ...(options.result
+        ? { words: options.result.words.length, durationSec: options.result.duration }
+        : {}),
+    },
+    messages: [{
+      role: "user",
+      content: [{ type: "text", text: options.prompt ?? "" }],
+    }],
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Speakable text check
 // ---------------------------------------------------------------------------
@@ -53,17 +181,130 @@ export function isSpeakableText(text: string): boolean {
 // Voice resolution
 // ---------------------------------------------------------------------------
 
-export type VoiceMaps = Record<string, Record<string, string>>
+export type VoiceMaps = Record<string, Record<string, VoiceMapEntry>>
 
 export function loadVoicesConfig(configDir: string): VoiceMaps {
   const filePath = path.join(configDir, "voices.yaml")
   if (!fs.existsSync(filePath)) return {}
-  return yaml.load(fs.readFileSync(filePath, "utf-8")) as VoiceMaps
+  const raw = yaml.load(fs.readFileSync(filePath, "utf-8"))
+  const parsed = parseVoicesConfigEntries(raw ?? {})
+  for (const error of parsed.errors) {
+    const location = error.language
+      ? `${error.provider}.${error.language}`
+      : error.provider
+    console.warn(`[speech] invalid voices.yaml entry ${location} at ${filePath}: ${error.message}`)
+  }
+  return parsed.data
+}
+
+/** A resolved voice: the provider's identifier plus its optional user-facing
+ *  label (from `voices.yaml`). */
+export interface ResolvedVoice {
+  voice: string
+  label?: string
+}
+
+export function resolvedVoiceLabel(
+  provider: string,
+  voice: string,
+  configuredLabel?: string,
+): string | undefined {
+  const label = configuredLabel?.trim()
+  if (label) return label
+  return provider === "elevenlabs"
+    ? ELEVENLABS_SHIPPED_VOICE_NAMES[voice]
+    : undefined
+}
+
+/**
+ * The user-facing narrator name for one voice slot, derived from the entries
+ * that slot actually produced. Every consumer of the `audio_voices.json`
+ * manifest — the packaged reader and the Studio preview — must resolve the
+ * label through here so the two can never disagree about what a voice is
+ * called.
+ *
+ * Manual uploads are skipped when anything else is available: they carry
+ * `voice: "uploaded"`, and a configured voice with no label and no ElevenLabs
+ * shipped name would otherwise rename the whole narrator to "uploaded" because
+ * one line was re-recorded by hand.
+ */
+export function resolveNarratorLabel(
+  entries: readonly SpeechFileEntry[],
+  fallback: string,
+): string {
+  const named = entries.find((entry) => entry.provider !== "manual") ?? entries[0]
+  if (!named) return fallback
+  return (
+    resolvedVoiceLabel(named.provider ?? "", named.voice, named.voiceLabel) ||
+    named.voice ||
+    fallback
+  )
+}
+
+/**
+ * Resolve the configured voice for a given provider, language code, and
+ * voice slot ("primary"/"secondary"). Resolution: exact language match →
+ * base language → `default` entry — the same fallback chain as before, now
+ * applied to whichever mapping entry wins, then the requested slot is read
+ * off it (see {@link normalizeVoiceMapEntry}).
+ *
+ * `primary` always resolves (falling back to the hardcoded provider default
+ * when nothing is configured). `secondary` returns `null` when no secondary
+ * voice is configured for the resolved entry — callers use this to decide
+ * whether a language exposes a second selectable voice at all.
+ */
+export function resolveVoiceForSlot(
+  provider: string,
+  languageCode: string,
+  voiceMaps: VoiceMaps,
+  slot: VoiceSlot,
+  defaultVoice?: string
+): ResolvedVoice | null {
+  const providerConfig = voiceMaps[provider]
+  const normalized = normalizeLocale(languageCode).toLowerCase()
+  const baseLang = getBaseLanguage(normalized)
+
+  const rawEntry: VoiceMapEntry | undefined =
+    providerConfig?.[normalized] ?? providerConfig?.[baseLang] ?? providerConfig?.["default"]
+  const resolved = rawEntry !== undefined ? normalizeVoiceMapEntry(rawEntry) : undefined
+
+  if (slot === "secondary") {
+    const secondary = resolved?.secondary
+    return secondary
+      ? {
+          voice: secondary.voice,
+          label: resolvedVoiceLabel(provider, secondary.voice, secondary.label),
+        }
+      : null
+  }
+
+  if (resolved?.primary) {
+    return {
+      voice: resolved.primary.voice,
+      label: resolvedVoiceLabel(provider, resolved.primary.voice, resolved.primary.label),
+    }
+  }
+
+  const normalizedDefaultVoice = defaultVoice?.trim()
+  const usesGenericDefault = !normalizedDefaultVoice || normalizedDefaultVoice === DEFAULT_OPENAI_VOICE
+  const fallback =
+    provider === "gemini" && usesGenericDefault
+      ? DEFAULT_GEMINI_VOICE
+      : provider === "elevenlabs" && usesGenericDefault
+        ? DEFAULT_ELEVENLABS_VOICE_ID
+        : normalizedDefaultVoice || DEFAULT_OPENAI_VOICE
+  return {
+    voice: fallback,
+    label: resolvedVoiceLabel(provider, fallback),
+  }
 }
 
 /**
  * Resolve the voice name for a given provider and language code.
  * Resolution: exact match → base language → default.
+ * Always resolves the "primary" slot — see {@link resolveVoiceForSlot} for
+ * secondary-voice resolution of legacy global mappings. Current per-book
+ * secondary narrator profiles resolve through {@link resolveSpeechVoice}.
  */
 export function resolveVoice(
   provider: string,
@@ -71,26 +312,7 @@ export function resolveVoice(
   voiceMaps: VoiceMaps,
   defaultVoice?: string
 ): string {
-  const normalizedDefaultVoice = defaultVoice?.trim()
-  const fallback =
-    provider === "gemini" &&
-      (!normalizedDefaultVoice || normalizedDefaultVoice === DEFAULT_OPENAI_VOICE)
-      ? DEFAULT_GEMINI_VOICE
-      : normalizedDefaultVoice || DEFAULT_OPENAI_VOICE
-  const providerConfig = voiceMaps[provider]
-  if (!providerConfig) return fallback
-
-  const normalized = normalizeLocale(languageCode).toLowerCase()
-
-  // Exact match (e.g. "es-uy")
-  if (normalized in providerConfig) return providerConfig[normalized]
-
-  // Base language (e.g. "es" from "es-uy")
-  const baseLang = getBaseLanguage(normalized)
-  if (baseLang in providerConfig) return providerConfig[baseLang]
-
-  // Default from voices.yaml, then config default, then hardcoded
-  return providerConfig["default"] ?? fallback
+  return resolveVoiceForSlot(provider, languageCode, voiceMaps, "primary", defaultVoice)!.voice
 }
 
 // ---------------------------------------------------------------------------
@@ -166,7 +388,104 @@ export function resolveSpeechModel(
 
   if (provider === "azure") return DEFAULT_AZURE_MODEL
   if (provider === "gemini") return DEFAULT_GEMINI_MODEL
+  if (provider === "elevenlabs") return DEFAULT_ELEVENLABS_TTS_MODEL_ID
   return defaultModel?.trim() || DEFAULT_OPENAI_TTS_MODEL_ID
+}
+
+/**
+ * Lay a book's `speech.primary_voices` over the global voices.yaml map.
+ *
+ * Overriding by overlay rather than by a separate lookup means the per-book
+ * entries go through the very same exact -> base language -> default chain as
+ * the global ones, so an override set for `es` applies to an `es-UY` book
+ * exactly as a global `es` mapping would.
+ *
+ * Both maps are keyed provider -> locale, so a language rerouted to another
+ * provider falls back to that provider's global mapping instead of inheriting
+ * a voice name the new provider cannot use.
+ */
+export function overlayPrimaryVoices(
+  voiceMaps: VoiceMaps,
+  primaryVoices?: PrimarySpeechVoicesConfig,
+): VoiceMaps {
+  if (!primaryVoices || Object.keys(primaryVoices).length === 0) return voiceMaps
+
+  const merged: VoiceMaps = { ...voiceMaps }
+  for (const [provider, byLocale] of Object.entries(primaryVoices)) {
+    const languages: Record<string, VoiceMapEntry> = { ...(merged[provider] ?? {}) }
+    for (const [locale, override] of Object.entries(byLocale)) {
+      if (!override?.voice?.trim()) continue
+      // Lowercased to match how resolveVoiceForSlot normalizes its lookups.
+      const key = normalizeLocale(locale).toLowerCase()
+      // Only the primary slot is overridden. A legacy entry of the extended
+      // {primary, secondary} shape keeps its secondary rather than losing it
+      // because the book renamed the primary narrator.
+      const existing = languages[key]
+      languages[key] = {
+        ...(existing !== undefined ? normalizeVoiceMapEntry(existing) : {}),
+        primary: {
+          voice: override.voice,
+          ...(override.label ? { label: override.label } : {}),
+        },
+      }
+    }
+    merged[provider] = languages
+  }
+  return merged
+}
+
+export interface ResolvedSpeechVoice {
+  provider: string
+  model: string
+  voice: string
+  label?: string
+}
+
+/** Resolve the complete provider/model/voice profile for one narrator slot.
+ * Primary keeps the global provider routing and voices.yaml lookup. Secondary
+ * is an exact, per-book locale override from speech.secondary_voices. */
+export function resolveSpeechVoice(
+  languageCode: string,
+  slot: VoiceSlot,
+  speech: SpeechConfig | undefined,
+  voiceMaps: VoiceMaps,
+  defaultModel?: string,
+): ResolvedSpeechVoice | null {
+  const providerConfigs = speech?.providers ?? {}
+  if (slot === "secondary") {
+    const normalized = normalizeLocale(languageCode)
+    const configured = Object.entries(speech?.secondary_voices ?? {}).find(
+      ([locale]) => normalizeLocale(locale) === normalized,
+    )?.[1]
+    if (!configured) return null
+    return {
+      provider: configured.provider,
+      model:
+        configured.model?.trim() ||
+        resolveSpeechModel(configured.provider, providerConfigs, defaultModel),
+      voice: configured.voice,
+      label: resolvedVoiceLabel(configured.provider, configured.voice, configured.label),
+    }
+  }
+
+  const routing: ProviderRouting = {
+    providers: providerConfigs,
+    defaultProvider: speech?.default_provider ?? "openai",
+  }
+  const provider = resolveProviderForLanguage(languageCode, routing)
+  const resolvedVoice = resolveVoiceForSlot(
+    provider,
+    languageCode,
+    overlayPrimaryVoices(voiceMaps, speech?.primary_voices),
+    "primary",
+    speech?.voice,
+  )!
+  return {
+    provider,
+    model: resolveSpeechModel(provider, providerConfigs, defaultModel),
+    voice: resolvedVoice.voice,
+    label: resolvedVoice.label,
+  }
 }
 
 export function resolveSpeechFormat(
@@ -243,6 +562,63 @@ export function resolveGeminiTtsRateLimit(args: {
 }
 
 // ---------------------------------------------------------------------------
+// ElevenLabs throttling + retry policy
+// ---------------------------------------------------------------------------
+
+// ElevenLabs has no adaptive limiter (its throttling is concurrency-based, not
+// RPM-based) so we bound pressure two ways: cap how many entries synthesize in
+// parallel, and retry 429/5xx with exponential backoff so a transient
+// concurrency-limit hit doesn't fail the entry outright. The cap matches the
+// low, plan-dependent concurrent-request ceilings (Free ~4, Starter ~5).
+//
+// Lives here rather than in the API service so the CLI/`runFullPipeline` DAG
+// executor gets the same protection — its default concurrency is 32, far above
+// any ElevenLabs plan ceiling.
+export const ELEVENLABS_TTS_MAX_CONCURRENCY = 4
+export const ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES = 5
+export const ELEVENLABS_TTS_BASE_RETRY_DELAY_MS = 2_000
+export const ELEVENLABS_TTS_MAX_RETRY_DELAY_MS = 30_000
+
+/** HTTP status embedded in a `createElevenLabsTTSSynthesizer` error message,
+ *  which always formats failures as `... failed (<status>): <body>`. */
+export function parseElevenLabsErrorStatus(message: string): number | null {
+  const match = /\((\d{3})\)/.exec(message)
+  return match ? Number(match[1]) : null
+}
+
+// Transport-level failures never reach an HTTP status, so they're matched by
+// name. Kept deliberately narrow: these are node/undici network errors, not
+// free-text from an upstream response body.
+const ELEVENLABS_NETWORK_ERROR_RE =
+  /fetch failed|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|socket hang up|network|aborted due to timeout/i
+
+export type ElevenLabsTtsErrorKind = "rate-limit" | "transient" | "permanent"
+
+/**
+ * Whether an ElevenLabs TTS failure is worth retrying.
+ *
+ * Keyed on the HTTP status rather than the response body. Matching free text
+ * (e.g. `/try again/i`) misclassifies permanent 4xx responses whose body
+ * happens to contain those words, burning five backoff waits — up to ~60s —
+ * per entry on a request that will never succeed.
+ */
+export function classifyElevenLabsTtsError(message: string): ElevenLabsTtsErrorKind {
+  const status = parseElevenLabsErrorStatus(message)
+  if (status === 429) return "rate-limit"
+  if (status !== null) return status >= 500 && status <= 599 ? "transient" : "permanent"
+  // No status → never reached the API. Retry genuine transport errors only.
+  return ELEVENLABS_NETWORK_ERROR_RE.test(message) ? "transient" : "permanent"
+}
+
+/** Exponential backoff for retry attempt `attemptCount` (1-based). */
+export function elevenLabsTtsRetryDelayMs(attemptCount: number): number {
+  return Math.min(
+    ELEVENLABS_TTS_BASE_RETRY_DELAY_MS * 2 ** (attemptCount - 1),
+    ELEVENLABS_TTS_MAX_RETRY_DELAY_MS
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Cache helpers
 // ---------------------------------------------------------------------------
 
@@ -257,7 +633,14 @@ export function computeSpeechCacheKey(data: {
    *  isn't sent to Gemini, so it must not change the key. */
   geminiTemperature?: number
   geminiSeed?: number
-}): string {
+  /** ElevenLabs continuity + normalization params for this item (from
+   *  SpeechConfig). Only folded into the key for the elevenlabs provider —
+   *  changing adjacent text or the normalization mode regenerates audio, but
+   *  these must not affect the key for other providers. */
+  elevenLabsPreviousText?: string
+  elevenLabsNextText?: string
+  elevenLabsApplyTextNormalization?: "auto" | "on" | "off"
+} & ElevenLabsVoiceSettingsOverrides): string {
   // Gemini output also depends on any sampling params it's sent (temperature +
   // seed), so fold in whichever are set — tuning them regenerates Gemini audio,
   // and clearing them (disabling) also produces a distinct key. Gated on
@@ -265,7 +648,19 @@ export function computeSpeechCacheKey(data: {
   // set hashes identically to a request that sends no sampling params. Both
   // callers (generateSpeechFile and the stage-runner reuse check) pass
   // `provider`, so they stay in sync automatically.
-  const { geminiTemperature, geminiSeed, ...base } = data
+  const {
+    geminiTemperature,
+    geminiSeed,
+    elevenLabsPreviousText,
+    elevenLabsNextText,
+    elevenLabsApplyTextNormalization,
+    elevenLabsStability,
+    elevenLabsSimilarityBoost,
+    elevenLabsStyle,
+    elevenLabsUseSpeakerBoost,
+    elevenLabsSpeed,
+    ...base
+  } = data
   const gemini =
     base.provider === "gemini"
       ? {
@@ -273,8 +668,192 @@ export function computeSpeechCacheKey(data: {
           ...(geminiSeed !== undefined ? { geminiSeed } : {}),
         }
       : {}
-  const json = JSON.stringify({ ...base, ...gemini })
+  // Same gating for ElevenLabs: adjacent-text context and the normalization
+  // mode are only sent (and thus only affect the audio) for that provider.
+  //
+  // `voice_settings` is different from every other field here: the request
+  // ALWAYS carries a resolved block, so the key must hash the *effective*
+  // values rather than only the user's overrides. Hashing just the overrides
+  // would make a future change to DEFAULT_ELEVENLABS_VOICE_SETTINGS reuse
+  // audio generated under the old defaults. `resolveElevenLabsVoiceSettings`
+  // is the same function the synthesizer uses to build the body, so the two
+  // cannot drift.
+  const elevenlabs =
+    base.provider === "elevenlabs"
+      ? {
+          ...(elevenLabsPreviousText ? { elevenLabsPreviousText } : {}),
+          ...(elevenLabsNextText ? { elevenLabsNextText } : {}),
+          ...(elevenLabsApplyTextNormalization
+            ? { elevenLabsApplyTextNormalization }
+            : {}),
+          elevenLabsVoiceSettings: resolveElevenLabsVoiceSettings({
+            elevenLabsStability,
+            elevenLabsSimilarityBoost,
+            elevenLabsStyle,
+            elevenLabsUseSpeakerBoost,
+            elevenLabsSpeed,
+          }),
+        }
+      : {}
+  const json = JSON.stringify({ ...base, ...gemini, ...elevenlabs })
   return crypto.createHash("sha256").update(json).digest("hex")
+}
+
+/**
+ * Map the `elevenlabs_*` voice-tuning fields of a book's `SpeechConfig` onto
+ * the camelCase option names used by `generateSpeechFile` and
+ * `computeSpeechCacheKey`.
+ *
+ * Exists so the three execution paths (API stage-runner, CLI/`runFullPipeline`
+ * DAG, single-item regeneration route) each spread one call instead of
+ * restating five fields — the previous per-field duplication is exactly how
+ * those paths drifted out of sync before, producing different cache keys for
+ * the same audio.
+ */
+export function elevenLabsVoiceSettingsFromConfig(
+  speech?: Pick<
+    SpeechConfig,
+    | "elevenlabs_stability"
+    | "elevenlabs_similarity_boost"
+    | "elevenlabs_style"
+    | "elevenlabs_use_speaker_boost"
+    | "elevenlabs_speed"
+  > | null,
+): ElevenLabsVoiceSettingsOverrides {
+  return {
+    elevenLabsStability: speech?.elevenlabs_stability,
+    elevenLabsSimilarityBoost: speech?.elevenlabs_similarity_boost,
+    elevenLabsStyle: speech?.elevenlabs_style,
+    elevenLabsUseSpeakerBoost: speech?.elevenlabs_use_speaker_boost,
+    elevenLabsSpeed: speech?.elevenlabs_speed,
+  }
+}
+
+/**
+ * The ElevenLabs `output_format` for a logged request.
+ *
+ * `buildElevenLabsOutputFormat` throws for a format ElevenLabs cannot produce.
+ * On the success path that can't happen (synthesis would have thrown first), but
+ * the failure path logs the request that just failed — and an unsupported format
+ * is one reason it may have failed. Falling back to the generic format keeps the
+ * log write from throwing inside an error handler and losing the entry.
+ */
+function resolveElevenLabsLoggedOutputFormat(input: {
+  format: string
+  sampleRate?: number
+  bitRate?: string
+}): string {
+  try {
+    return buildElevenLabsOutputFormat(input.format, {
+      sampleRate: input.sampleRate,
+      bitRate: input.bitRate,
+    })
+  } catch {
+    return input.format
+  }
+}
+
+/**
+ * The ElevenLabs request parameters to record on a TTS debug log entry, so a
+ * user can answer "which settings produced this audio file?".
+ *
+ * Two deliberate choices:
+ *
+ * 1. The `voice_settings` reported are the *effective* ones — defaults merged
+ *    with the book's overrides via `resolveElevenLabsVoiceSettings`, the same
+ *    function that builds the request body. A book that configures nothing still
+ *    shows stability 0.7, and the log cannot drift from what was actually sent.
+ * 2. Adjacent-text context is reported as presence + length, not the text
+ *    itself. Whether context was sent is the useful fact; the neighbouring
+ *    sentences would only bloat every log row.
+ * 3. `outputFormat` is the ElevenLabs *wire* value (`mp3_44100_128`), not the
+ *    generic `speech.format` (`mp3`). ElevenLabs only accepts a fixed set of
+ *    (sample rate, bitrate) combinations, so a configured `sample_rate` /
+ *    `bit_rate` gets snapped to the nearest supported one — and this log line is
+ *    the only place that snapping is visible. Reporting the generic format
+ *    instead would just echo the config back.
+ *
+ * Key order is meaningful: the debug panel renders these in insertion order, so
+ * related settings stay adjacent.
+ */
+export function buildElevenLabsTtsLogParams(
+  input: {
+    model: string
+    voice: string
+    language: string
+    /** Generic `speech.format` (mp3/wav/pcm/opus), snapped to a wire value below. */
+    format: string
+    sampleRate?: number
+    bitRate?: string
+    applyTextNormalization?: "auto" | "on" | "off"
+    previousText?: string
+    nextText?: string
+  } & ElevenLabsVoiceSettingsOverrides,
+): Record<string, unknown> {
+  const voiceSettings = resolveElevenLabsVoiceSettings(input)
+  return {
+    voice: input.voice,
+    model: input.model,
+    language: input.language,
+    outputFormat: resolveElevenLabsLoggedOutputFormat(input),
+    stability: voiceSettings.stability,
+    similarityBoost: voiceSettings.similarity_boost,
+    style: voiceSettings.style,
+    useSpeakerBoost: voiceSettings.use_speaker_boost,
+    // Absent unless the book pinned a speed — matches the request body, where
+    // an unset speed leaves ElevenLabs' own pacing alone.
+    ...(voiceSettings.speed !== undefined ? { speed: voiceSettings.speed } : {}),
+    // Absent when unset, mirroring the request: ElevenLabs applies its own
+    // default rather than a value we chose.
+    ...(input.applyTextNormalization
+      ? { applyTextNormalization: input.applyTextNormalization }
+      : {}),
+    contextBefore: Boolean(input.previousText),
+    contextAfter: Boolean(input.nextText),
+    ...(input.previousText ? { contextBeforeChars: input.previousText.length } : {}),
+    ...(input.nextText ? { contextAfterChars: input.nextText.length } : {}),
+  }
+}
+
+const EASY_READ_ID_RE = /_easy_read$/
+
+/**
+ * Nearest non-excluded neighbor's text in reading order, used to build
+ * ElevenLabs' previous_text/next_text (elevenlabs_use_context). Skips
+ * TTS-excluded entries so context still flows across them instead of citing
+ * text that has no audio of its own. Shared by the API's stage-runner and the
+ * CLI/`runFullPipeline` DAG executor so both resolve identical adjacent text
+ * for the same entry — keeping `computeSpeechCacheKey` in sync across paths.
+ *
+ * Two constraints beyond "pick the neighbour":
+ *
+ * 1. The text is emoji-stripped and screened with `isSpeakableText`, exactly
+ *    like the entry's own `text` is before synthesis. Sending emoji only in the
+ *    context fields would ask ElevenLabs to reason about characters it never has
+ *    to speak; screening for speakability skips neighbours that are pure
+ *    punctuation ("…", "—"), which `generateSpeechFile` never synthesizes and
+ *    which carry no intonation to borrow — they would only sit in the cache key.
+ * 2. The search stays inside the current entry's variant group. For the source
+ *    language the stage-runner appends the Easy Read variants to the entry
+ *    array (`[...catalog.entries, ...sourceEasyReadEntries]`), so a plain
+ *    neighbour scan makes the last main-catalog entry's `next_text` an Easy
+ *    Read rewrite of much earlier content — worse than no context at all.
+ */
+export function findAdjacentSpeechText(
+  entries: TextCatalogEntry[],
+  index: number,
+  direction: 1 | -1,
+  speechConfig: Parameters<typeof isTtsExcluded>[1],
+): string | undefined {
+  const wantEasyRead = EASY_READ_ID_RE.test(entries[index]?.id ?? "")
+  for (let i = index + direction; i >= 0 && i < entries.length; i += direction) {
+    const entry = entries[i]
+    if (EASY_READ_ID_RE.test(entry.id) !== wantEasyRead) continue
+    if (isTtsExcluded(entry.id, speechConfig)) continue
+    const text = stripEmojis(entry.text).trim()
+    if (isSpeakableText(text)) return text
+  }
+  return undefined
 }
 
 function assertSafeSegment(
@@ -303,7 +882,7 @@ function assertWithinBase(base: string, target: string, name: string): void {
 // Speech file generation
 // ---------------------------------------------------------------------------
 
-export interface GenerateSpeechFileOptions {
+export interface GenerateSpeechFileOptions extends ElevenLabsVoiceSettingsOverrides {
   textId: string
   text: string
   language: string
@@ -316,11 +895,32 @@ export interface GenerateSpeechFileOptions {
   ttsSynthesizer: TTSSynthesizer
   rateLimiter?: RateLimiter
   provider?: string
+  /** Which configured voice this file is for. Defaults to "primary" — the
+   *  filename preserves the legacy bare `textId.ext`. "secondary" writes
+   *  `textId--secondary.ext` instead (see {@link voiceSlotEntryId}) so the two
+   *  variants never collide on disk. */
+  voiceSlot?: VoiceSlot
+  /** User-facing label for the voice (from `voices.yaml`), echoed onto the
+   *  returned entry for display purposes only — not hashed into the cache key. */
+  voiceLabel?: string
   /** Gemini sampling params (SpeechConfig temperature/seed). Passed to the
    *  synthesizer and folded into the cache key for the Gemini provider only.
    *  Undefined → not sent; Gemini uses its own defaults (sampling disabled). */
   geminiTemperature?: number
   geminiSeed?: number
+  /** ElevenLabs continuity + normalization params (SpeechConfig
+   *  elevenlabs_use_context/elevenlabs_apply_text_normalization). Passed to
+   *  the synthesizer and folded into the cache key for the elevenlabs
+   *  provider only. `previousText`/`nextText` are the caller-resolved
+   *  adjacent catalog entries' text (only set when elevenlabs_use_context is
+   *  enabled); undefined → not sent, ElevenLabs uses its own defaults. */
+  elevenLabsPreviousText?: string
+  elevenLabsNextText?: string
+  elevenLabsApplyTextNormalization?: "auto" | "on" | "off"
+  /** ElevenLabs `voice_settings` overrides, via
+   *  {@link ElevenLabsVoiceSettingsOverrides}. Build these with
+   *  {@link elevenLabsVoiceSettingsFromConfig} so every execution path derives
+   *  the same values — and therefore the same cache key. */
   /** Run cancellation — aborts the rate-limiter wait and the TTS request. */
   signal?: AbortSignal
 }
@@ -346,10 +946,31 @@ export async function generateSpeechFile(
     ttsSynthesizer,
     rateLimiter,
     provider,
+    voiceSlot,
+    voiceLabel,
     geminiTemperature,
     geminiSeed,
+    elevenLabsPreviousText,
+    elevenLabsNextText,
+    elevenLabsApplyTextNormalization,
+    elevenLabsStability,
+    elevenLabsSimilarityBoost,
+    elevenLabsStyle,
+    elevenLabsUseSpeakerBoost,
+    elevenLabsSpeed,
     signal,
   } = options
+  const slot: VoiceSlot = voiceSlot ?? "primary"
+
+  // One object shared by the cache key and the synthesize() call below, so the
+  // hashed settings can never diverge from the settings actually sent.
+  const elevenLabsVoiceSettings: ElevenLabsVoiceSettingsOverrides = {
+    elevenLabsStability,
+    elevenLabsSimilarityBoost,
+    elevenLabsStyle,
+    elevenLabsUseSpeakerBoost,
+    elevenLabsSpeed,
+  }
 
   // Strip emojis and validate
   const sanitized = stripEmojis(text).trim()
@@ -375,9 +996,13 @@ export async function generateSpeechFile(
     provider,
     geminiTemperature,
     geminiSeed,
+    elevenLabsPreviousText,
+    elevenLabsNextText,
+    elevenLabsApplyTextNormalization,
+    ...elevenLabsVoiceSettings,
   })
 
-  const fileName = `${safeTextId}.${safeFormat}`
+  const fileName = `${voiceSlotEntryId(safeTextId, slot)}.${safeFormat}`
   const audioRoot = path.resolve(bookDir, "audio")
   const audioDir = path.resolve(audioRoot, normalizedLanguage)
   assertWithinBase(audioRoot, audioDir, "audio directory")
@@ -399,6 +1024,8 @@ export async function generateSpeechFile(
       model,
       cached: true,
       provider,
+      voiceSlot: slot,
+      ...(voiceLabel ? { voiceLabel } : {}),
     }
   }
 
@@ -413,6 +1040,10 @@ export async function generateSpeechFile(
     instructions: instructions || undefined,
     temperature: geminiTemperature,
     seed: geminiSeed,
+    elevenLabsPreviousText,
+    elevenLabsNextText,
+    elevenLabsApplyTextNormalization,
+    ...elevenLabsVoiceSettings,
     signal,
   })
 
@@ -434,6 +1065,8 @@ export async function generateSpeechFile(
     model,
     cached: false,
     provider,
+    voiceSlot: slot,
+    ...(voiceLabel ? { voiceLabel } : {}),
   }
 }
 
@@ -457,9 +1090,14 @@ export interface GeneratePageSpeechFilesOptions {
   whisperApiKey: string
   rateLimiter?: RateLimiter
   provider?: string
+  /** Which configured voice this page batch is for. Defaults to "primary" —
+   *  see {@link GenerateSpeechFileOptions.voiceSlot}. */
+  voiceSlot?: VoiceSlot
+  voiceLabel?: string
   geminiTemperature?: number
   geminiSeed?: number
   signal?: AbortSignal
+  onWhisperLog?: (entry: LlmLogEntry) => void
 }
 
 /**
@@ -481,9 +1119,10 @@ export async function generatePageSpeechFiles(
 ): Promise<SpeechFileEntry[]> {
   const {
     entries, language, model, voice, instructions, format, bookDir, cacheDir,
-    ttsSynthesizer, whisperApiKey, rateLimiter, provider, geminiTemperature,
-    geminiSeed, signal,
+    ttsSynthesizer, whisperApiKey, rateLimiter, provider, voiceSlot, voiceLabel,
+    geminiTemperature, geminiSeed, signal, onWhisperLog,
   } = options
+  const slot: VoiceSlot = voiceSlot ?? "primary"
 
   const safeFormat = assertSafeSegment(format.toLowerCase(), SAFE_FORMAT_RE, "audio format")
   if (safeFormat !== "wav") {
@@ -557,6 +1196,7 @@ export async function generatePageSpeechFiles(
     language: getBaseLanguage(language),
     prompt: transcript,
     cacheDir,
+    onLog: onWhisperLog,
   })
 
   // 3) Slice the page audio into per-entry files at sentence boundaries.
@@ -581,7 +1221,7 @@ export async function generatePageSpeechFiles(
     // A short edge fade guarantees zero-amplitude slice edges (belt-and-braces
     // with the silence-snap above) so back-to-back playback has no clicks.
     const slice = sliceWav(pageBytes, range.start, range.end, PAGE_SLICE_FADE_MS)
-    const fileName = `${range.id}.${safeFormat}`
+    const fileName = `${voiceSlotEntryId(range.id, slot)}.${safeFormat}`
     const outputPath = path.resolve(audioDir, fileName)
     assertWithinBase(audioDir, outputPath, "audio file")
     // Only write when the bytes actually change, so an unchanged slice keeps its
@@ -590,7 +1230,17 @@ export async function generatePageSpeechFiles(
     if (!fs.existsSync(outputPath) || !fs.readFileSync(outputPath).equals(slice)) {
       fs.writeFileSync(outputPath, slice)
     }
-    results.push({ textId: range.id, language: normalizedLanguage, fileName, voice, model, cached, provider })
+    results.push({
+      textId: range.id,
+      language: normalizedLanguage,
+      fileName,
+      voice,
+      model,
+      cached,
+      provider,
+      voiceSlot: slot,
+      ...(voiceLabel ? { voiceLabel } : {}),
+    })
   }
   return results
 }
@@ -611,6 +1261,7 @@ export interface GenerateWordTimestampsOptions {
   language?: string
   prompt?: string
   cacheDir: string
+  onLog?: (entry: LlmLogEntry) => void
 }
 
 export interface GenerateWordTimestampsResult extends WhisperTranscriptionResult {
@@ -624,7 +1275,26 @@ export interface GenerateWordTimestampsResult extends WhisperTranscriptionResult
 export async function generateWordTimestamps(
   options: GenerateWordTimestampsOptions,
 ): Promise<GenerateWordTimestampsResult> {
-  const { audioBuffer, fileName, apiKey, language, prompt, cacheDir } = options
+  const { audioBuffer, fileName, apiKey, language, prompt, cacheDir, onLog } = options
+  const startedAt = Date.now()
+  const log = (
+    success: boolean,
+    cached: boolean,
+    result?: WhisperTranscriptionResult,
+    error?: string,
+  ) =>
+    onLog?.(
+      buildWordTimestampsLogEntry({
+        fileName,
+        language,
+        prompt,
+        durationMs: Date.now() - startedAt,
+        success,
+        cached,
+        result,
+        error,
+      }),
+    )
 
   const audioHash = crypto.createHash("sha256").update(audioBuffer).digest("hex")
   const hash = crypto
@@ -639,14 +1309,24 @@ export async function generateWordTimestamps(
   if (fs.existsSync(cachePath)) {
     try {
       const parsed = JSON.parse(fs.readFileSync(cachePath, "utf-8")) as WhisperTranscriptionResult
+      log(true, true, parsed)
       return { ...parsed, cached: true }
     } catch {
       // Fall through to regenerate on parse failure
     }
   }
 
-  const result = await transcribeWithWhisper(audioBuffer, fileName, apiKey, language, prompt)
+  let result: WhisperTranscriptionResult
+  try {
+    result = await transcribeWithWhisper(audioBuffer, fileName, apiKey, language, prompt)
+  } catch (cause) {
+    // Record the failure before rethrowing — a Whisper error that leaves no
+    // trace is the black box this exists to remove.
+    log(false, false, undefined, cause instanceof Error ? cause.message : String(cause))
+    throw cause
+  }
 
+  log(true, false, result)
   fs.mkdirSync(cacheRoot, { recursive: true })
   fs.writeFileSync(cachePath, JSON.stringify(result, null, 2) + "\n")
 

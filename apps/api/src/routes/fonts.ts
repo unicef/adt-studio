@@ -44,6 +44,8 @@ import {
 } from "@adt/types"
 import { getBookConfig, updateBookConfig } from "../services/book-service.js"
 import { createLLMModel, createPromptEngine, createRateLimiter } from "@adt/llm"
+import type { ResolvedCredentials } from "@adt/llm"
+import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import type { TaskService } from "../services/task-service.js"
 
 const MAX_FONT_FILE_BYTES = 15 * 1024 * 1024
@@ -389,7 +391,10 @@ export function createFontRoutes(
     return c.body(fs.readFileSync(filePath))
   })
 
-  async function analyze(safeLabel: string, apiKey: string): Promise<{ version: number }> {
+  async function analyze(
+    safeLabel: string,
+    credentials: ResolvedCredentials,
+  ): Promise<{ version: number }> {
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       const registry = readBookFontRegistry(storage)
@@ -412,7 +417,7 @@ export function createFontRoutes(
       )
       const llmCacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
       const rateLimiter = config.rate_limit
         ? createRateLimiter(config.rate_limit.requests_per_minute)
         : undefined
@@ -422,52 +427,43 @@ export function createFontRoutes(
         | { summary?: string }
         | null
 
-      const previousKey = process.env.OPENAI_API_KEY
-      process.env.OPENAI_API_KEY = apiKey
-      try {
-        const model = createLLMModel({
-          modelId: assignmentConfig.modelId,
-          cacheDir: llmCacheDir,
-          promptEngine,
-          rateLimiter,
-          onLog: (entry) => storage.appendLlmLog(entry),
-        })
-        const result = await generateFontAssignment(
-          {
-            fonts: registry.fonts,
-            pageImages: samples.map((p) => ({
-              pageId: p.pageId,
-              pageNumber: p.pageNumber,
-              imageBase64: storage.getPageImageBase64(p.pageId),
-            })),
-            bookTitle: metadata?.title ?? undefined,
-            bookSummary: summaryData?.summary,
-          },
-          assignmentConfig,
-          model,
-        )
+      const model = createLLMModel({
+        modelId: assignmentConfig.modelId,
+        cacheDir: llmCacheDir,
+        promptEngine,
+        rateLimiter,
+        onLog: (entry) => storage.appendLlmLog(entry),
+        providerCredentials: credentials,
+      })
+      const result = await generateFontAssignment(
+        {
+          fonts: registry.fonts,
+          pageImages: samples.map((p) => ({
+            pageId: p.pageId,
+            pageNumber: p.pageNumber,
+            imageBase64: storage.getPageImageBase64(p.pageId),
+          })),
+          bookTitle: metadata?.title ?? undefined,
+          bookSummary: summaryData?.summary,
+        },
+        assignmentConfig,
+        model,
+      )
 
-        storage.putNodeData(FONT_ASSIGNMENT_NODE, FONT_ASSIGNMENT_ITEM_ID, result)
+      storage.putNodeData(FONT_ASSIGNMENT_NODE, FONT_ASSIGNMENT_ITEM_ID, result)
 
-        let changed = false
-        for (const assignment of result.assignments) {
-          const font = registry.fonts.find((f) => f.id === assignment.font_id)
-          if (font && !font.roleLockedByUser && font.role !== assignment.role) {
-            font.role = assignment.role
-            changed = true
-          }
-        }
-        const version = changed
-          ? saveRegistry(storage, registry)
-          : (storage.getLatestNodeData(FONT_REGISTRY_NODE, FONT_REGISTRY_ITEM_ID)?.version ?? 0)
-        return { version }
-      } finally {
-        if (previousKey !== undefined) {
-          process.env.OPENAI_API_KEY = previousKey
-        } else {
-          delete process.env.OPENAI_API_KEY
+      let changed = false
+      for (const assignment of result.assignments) {
+        const font = registry.fonts.find((f) => f.id === assignment.font_id)
+        if (font && !font.roleLockedByUser && font.role !== assignment.role) {
+          font.role = assignment.role
+          changed = true
         }
       }
+      const version = changed
+        ? saveRegistry(storage, registry)
+        : (storage.getLatestNodeData(FONT_REGISTRY_NODE, FONT_REGISTRY_ITEM_ID)?.version ?? 0)
+      return { version }
     } finally {
       storage.close()
     }
@@ -600,21 +596,18 @@ export function createFontRoutes(
 
   app.post("/books/:label/fonts/analyze", async (c) => {
     const safeLabel = parseBookLabel(c.req.param("label"))
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, { message: "API key required. Set X-OpenAI-Key header." })
-    }
+    const credentials = readProviderCredentials(c)
 
     if (taskService) {
       const { taskId } = taskService.submitTask(
         safeLabel,
         "font-assignment",
         "Analyzing book fonts",
-        async () => analyze(safeLabel, apiKey),
+        async () => analyze(safeLabel, credentials),
       )
       return c.json({ taskId, status: "submitted" })
     }
-    return c.json(await analyze(safeLabel, apiKey))
+    return c.json(await analyze(safeLabel, credentials))
   })
 
   return app

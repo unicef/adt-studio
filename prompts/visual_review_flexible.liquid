@@ -13,9 +13,23 @@ The screenshots show a **single section**, which is typically only a SUBSET of t
 - **Locate the corresponding region** in the original page image that matches this section's content (by matching the text, images, and headings present in the rendered screenshot). Use that region as a reference for what content belongs here — NOT for what it should look like.
 - The rendered section will typically occupy the full viewport width, even if in the original it only takes up a column, a strip, or a small portion of the page. This is correct and expected — do NOT reject for this.
 - Other content visible in the original page image (other sections, headers, footers, page numbers, surrounding text, neighboring images) is NOT part of this section and MUST NOT appear in the rendering. Do NOT flag missing content that belongs to a different section.
+{% if user_instructions != blank %}
+## USER INSTRUCTIONS (HIGHEST PRIORITY)
+This section was re-rendered with explicit instructions from the user:
+
+> {{ user_instructions }}
+
+Confirm the rendering HONORS these instructions, and treat every change made to satisfy them — colors, backgrounds, text styling, spacing, layout — as INTENTIONAL and correct, even when it deviates sharply from the original page. Do NOT flag, undo, or "restore toward the original" anything the user asked for. Reject ONLY when a genuine functional defect from the rejection list below is present AND is unrelated to the user's request (i.e. does not merely implement it). If the requested change was clearly applied and the result is functionally sound and readable, approve it.
+{% endif %}
 {% if has_merged_content %}
 ## MERGED CONTENT FROM ANOTHER PAGE
 This section combines content merged from MORE THAN ONE original page (for example an activity or passage that continues across a page break). Additional continuation page images are provided after the primary page image. When locating this section's content, check ALL of the provided page images — part of the rendering appears only in a continuation page image. Do NOT flag that content as extraneous, hallucinated, or missing from the original merely because it is absent from the primary page image, and do NOT remove it.
+{% endif %}
+{% if section_type == "table_of_contents" %}
+## TABLE OF CONTENTS REVIEW (MANDATORY)
+- User styling instructions never override the functional TOC row contract: every entry, including continuation-page entries, must have its title at the left, page number at the far right, and an EMPTY flexible dotted-border leader filling all space between them. All terminal page numbers must share one vertical right edge; use title-side padding rather than a row margin for hierarchy indentation.
+- Reject a missing or short leader and reject a finite visible dot string such as `"................................"`; it runs out and leaves a blank gap before the number at wider viewports.
+- When title and page number are separate leaves, preserve both `data-id` elements as siblings around an `aria-hidden` element marked `data-toc-leader="true"`. When one leaf owns both, preserve the parent `data-id` and its direct marked title, leader, and page-number children so runtime translation keeps the row intact.
 {% endif %}
 ## REVIEW PHILOSOPHY: WEB ADAPTATION, NOT REPRODUCTION
 This is a web textbook. The print original is a *reference for content*, not a *target for visual fidelity*. Your job is to confirm the rendered section works as a web page — not to police whether it looks like the printed book.
@@ -23,7 +37,7 @@ This is a web textbook. The print original is a *reference for content*, not a *
 **Do NOT reject for stylistic differences from the original** — these are all ACCEPTABLE:
 - **Layout style** — card-based layouts, panels, or flat lists where the original uses worksheet-style flat lines (or vice versa)
 - **Input affordances** — rounded input boxes, modern form fields, or button-style toggles where the original uses underlines, blanks, or boxes (or vice versa)
-- **Typography** — clean sans-serif rendering where the original uses textbook serif; different font weights or sizing as long as readable
+- **Typography** — clean sans-serif rendering where the original uses textbook serif and different font weights are acceptable, but the existing semantic `adt-*` type-scale classes and heading ranks remain fixed
 - **Colors and backgrounds** — different but coherent color palette (e.g., blue panels, white background, green accents) where the original uses cream/beige worksheet paper, or vice versa
 - **Decorative styling** — added subtle gradients, borders, shadows, badges, or icons that improve appearance
 - **Section composition** — different arrangement of elements within the section (stacked vs. side-by-side, centered vs. left-aligned, single-column vs. multi-column) as long as the result is coherent and readable
@@ -39,7 +53,7 @@ Reject ONLY when one of these is clearly true:
 - **Text hidden behind images** — text overlays MUST have `z-10` or higher so they always render above images. Different browsers stack elements differently, so explicit z-index is required
 - **Content cut off or clipped** — text or images cropped at viewport edges or container boundaries (especially on mobile)
 - **Horizontal overflow** — content extending past the viewport width on any size, forcing horizontal scroll
-- **Unreadably small or excessively large text** — text below ~12px or so large it breaks the layout
+- **Unreadably small text** — text below ~12px that is not controlled by an existing `adt-*` class. Do not reject or resize the intentionally large, accessible book-wide type scale.
 - **Broken images** — `<img>` tags showing alt text, broken icons, or grossly stretched/distorted images (use `max-w-full` not `w-full` to prevent upscaling)
 - **Layout that fails at one viewport** — e.g., works on desktop but mobile has stacked overlap, or tablet has form fields running off the side
 
@@ -52,11 +66,12 @@ On mobile only (no prefix), favor a single-column stacked layout. At tablet (`md
 
 ## RULES
 - Preserve ALL data-id attributes exactly as they are
-- The only data-id rule is that an element WITH a `data-id` attribute must contain only literal text as its children — no nested HTML tags directly inside that data-id element. Its text content is replaced at render time.
+- The normal data-id rule is that an element WITH a `data-id` attribute contains only literal text. The sole exception is a `table_of_contents` leaf that owns both title and page number; it may contain the direct marked title, leader, and page-number spans described above while keeping exactly the same combined text.
 - A plain wrapper element WITHOUT its own `data-id` (e.g. a `<p>`, `<div>`, `<li>`, or `<section>`) MAY contain multiple data-id-bearing children (typically `<span data-id="...">…</span>` fragments flowing inline). That is the intended shape for a paragraph or list item whose text is split across several leaves — do NOT flag or rewrite it. Only flag cases where an element that itself has a `data-id` also has child tags inside it.
 - Preserve ALL text content exactly — do not change, add, or remove any words
 - Preserve ALL image tags and their data-id attributes
 - Only change layout and styling: Tailwind CSS classes, inline styles, spacing, positioning
+- Preserve every native heading tag and every existing `adt-h1` through `adt-h6`, `adt-body`, and `adt-caption` class. Never add a `text-*` size utility or inline `font`/`font-size` to a heading or its descendants.
 - Keep the <section> wrapper and its role/data-section-type/data-section-id attributes
 - Do NOT add <script>, <iframe>, <object>, or <embed> tags
 - Do NOT add event handler attributes (onclick, onload, etc.)

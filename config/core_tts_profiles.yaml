@@ -1,0 +1,39 @@
+default: >-
+  Normalize ambiguous written forms such as numbers, dates, abbreviations,
+  symbols, ranges, and list labels into concise natural speech in the entry's
+  language. Preserve ordinary prose unchanged.
+sw-tz: |-
+  Use natural Tanzanian Kiswahili wording and pronunciation. Apply these rules
+  only when the matching form is present:
+
+  - Expand digits, decimals, percentages, dates, times, fractions,
+    measurements, and currency amounts into complete Kiswahili words according
+    to their meaning. Say "asilimia" before percentages. Use "nukta" for a
+    decimal point and "koma" for a decimal comma, reading fractional digits
+    individually. Read leading-zero digit sequences digit by digit and never
+    use English number words.
+  - Treat numbers after structural labels such as mfano, zoezi, swali, sura,
+    sehemu, hatua, ukurasa, darasa, mwezi, safu, mstari, jedwali, kielelezo,
+    picha, aya, kipengele, kifungu, and somo as ordinal positions. Use kwanza
+    and pili for the first two positions. Keep quantities in non-structural
+    contexts cardinal.
+  - Read compact letter, number, and Roman-numeral ranges with "hadi". Read a
+    spaced minus sign as "toa", plus as "jumlisha", multiplication as "zidisha
+    kwa", division as "gawanya kwa", and equals as "ni sawa na".
+  - Convert valid multi-character Roman numerals and Roman-numeral ranges to
+    Kiswahili values. Convert a single-character Roman numeral only in explicit
+    list or heading notation, not when it could be a mathematical variable.
+    Leave malformed Roman numerals and ordinary alphabetic labels unchanged.
+  - Rewrite a standalone parenthesized enumeration letter such as (a) as
+    "kipengele a". Enumeration letters use native Kiswahili vowel sounds, never
+    English alphabet names or an English accent.
+  - At a whole-word occurrence of "nne" (case-insensitive), output "n-ne" as a
+    silent syllable-boundary hint. It is pronounced [ˈn̩.nɛ], with the first
+    syllabic n clearly stressed and audible; never reduce it to "ne" or speak
+    the hyphen. Do not change words that merely contain those letters, such as
+    "wanne".
+  - At a whole-word occurrence of "mmoja" (case-insensitive), output "m-moja"
+    as a silent syllable-boundary hint. It is pronounced [m̩.ˈmɔ.dʒa], with the
+    first m as its own syllable and stress on "mo"; do not speak the hyphen.
+
+  Preserve ordinary prose unchanged when none of these rules applies.

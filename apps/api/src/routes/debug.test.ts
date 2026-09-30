@@ -26,6 +26,7 @@ describe("Debug routes", () => {
             promptName: "classify-text",
             modelId: "gpt-4o",
             cacheHit: false,
+            success: true,
             durationMs: 1200,
             usage: { inputTokens: 500, outputTokens: 200 },
             validationErrors: [],
@@ -38,6 +39,7 @@ describe("Debug routes", () => {
             promptName: "classify-text",
             modelId: "gpt-4o",
             cacheHit: true,
+            success: true,
             durationMs: 50,
             usage: { inputTokens: 500, outputTokens: 200 },
           },
@@ -49,6 +51,7 @@ describe("Debug routes", () => {
             promptName: "section-page",
             modelId: "gpt-4o",
             cacheHit: false,
+            success: false,
             durationMs: 2000,
             usage: { inputTokens: 1000, outputTokens: 500 },
             validationErrors: ["Invalid section type"],
@@ -61,6 +64,7 @@ describe("Debug routes", () => {
             promptName: "extract-metadata",
             modelId: "gpt-4o",
             cacheHit: false,
+            success: true,
             durationMs: 3000,
             usage: { inputTokens: 2000, outputTokens: 300 },
           },
@@ -253,6 +257,51 @@ describe("Debug routes", () => {
       expect(textStep).toBeDefined()
       expect(textStep.calls).toBe(3)
       expect(textStep.cacheHits).toBe(1)
+      expect(textStep.errorCount).toBe(1)
+      expect(body.totals.errorCount).toBe(1)
+    })
+
+    it("does not count no-audio TTS rows as calls, cache misses, or latency samples", async () => {
+      // A punctuation-only entry never reaches the provider, so counting it
+      // would understate the tts cache-hit rate and skew average latency.
+      const skippedLabel = "tts-skipped"
+      const storage = createBookStorage(skippedLabel, tmpDir)
+      storage.close()
+      const db = openBookDb(path.join(tmpDir, skippedLabel, `${skippedLabel}.db`))
+      try {
+        const rows = [
+          { promptName: "tts-azure", modelId: "azure/azure-tts", cacheHit: false, success: true, durationMs: 900 },
+          { promptName: "tts-azure", modelId: "azure/azure-tts", cacheHit: false, success: true, durationMs: 0, skippedReason: "no-speakable-text" },
+        ]
+        for (const data of rows) {
+          db.run(
+            "INSERT INTO llm_log (timestamp, step, item_id, data) VALUES (?, ?, ?, ?)",
+            [new Date().toISOString(), "tts", "pg001_t001", JSON.stringify(data)]
+          )
+        }
+      } finally {
+        db.close()
+      }
+
+      const res = await app.request(`/api/books/${skippedLabel}/debug/stats`)
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      const ttsStep = body.steps.find((s: { step: string }) => s.step === "tts")
+      expect(ttsStep.calls).toBe(1)
+      expect(ttsStep.cacheMisses).toBe(1)
+      expect(ttsStep.avgDurationMs).toBe(900)
+      expect(body.totals.calls).toBe(1)
+
+      // The row still has to be inspectable — it explains the missing audio.
+      const logsRes = await app.request(`/api/books/${skippedLabel}/debug/llm-logs`)
+      const logs = await logsRes.json()
+      expect(logs.logs).toHaveLength(2)
+      expect(
+        logs.logs.some(
+          (row: { data: { skippedReason?: string } }) =>
+            row.data.skippedReason === "no-speakable-text"
+        )
+      ).toBe(true)
     })
 
     it("returns null pipeline run timing", async () => {

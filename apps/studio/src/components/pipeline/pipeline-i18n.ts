@@ -1,6 +1,7 @@
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { i18n } from "@lingui/core"
+import type { StepName } from "@adt/types"
 
 /**
  * Stage label messages keyed by stage slug.
@@ -18,6 +19,7 @@ export const STAGE_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
   "easy-read": msg`Easy Read`,
   translate: msg`Language`,
   speech: msg`Speech`,
+  package: msg`Package`,
   "sign-language": msg`Sign Language`,
   validation: msg`Validation`,
   preview: msg`Preview`,
@@ -59,10 +61,11 @@ export const STAGE_DESCRIPTION_MESSAGES: Record<string, MessageDescriptor> = {
   export: msg`Export the packaged book and related artifacts for delivery.`,
 }
 
-export const STEP_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
+export const STEP_LABEL_MESSAGES: Record<StepName, MessageDescriptor> = {
   extract: msg`PDF Extraction`,
   metadata: msg`Metadata`,
   "book-summary": msg`Book Summary`,
+  "book-outline": msg`Book Outline`,
   "image-filtering": msg`Image Filtering`,
   "image-segmentation": msg`Image Segmentation`,
   "image-cropping": msg`Image Cropping`,
@@ -77,16 +80,19 @@ export const STEP_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
   "text-catalog": msg`Text Catalog`,
   "easy-read": msg`Easy Read`,
   "catalog-translation": msg`Catalog Translation`,
+  "core-tts-catalog": msg`TTS Normalization`,
   "image-translation": msg`Image Translation`,
   tts: msg`Speech Generation`,
   "word-timestamps": msg`Word Highlighting`,
   "package-web": msg`Web Package`,
+  "accessibility-assessment": msg`Accessibility Assessment`,
 }
 
 export const STEP_DESCRIPTION_MESSAGES: Record<string, MessageDescriptor> = {
   extract: msg`Extracts text and image data from each page of the PDF.`,
   metadata: msg`Pulls the book's metadata — title, author, language — from the PDF.`,
   "book-summary": msg`Generates a short summary of the book used to seed downstream prompts.`,
+  "book-outline": msg`Analyzes the complete book to identify a consistent heading hierarchy.`,
   "image-filtering": msg`Filters out decorative or non-content images on each page.`,
   "image-segmentation": msg`Groups image regions into discrete illustrations on each page.`,
   "image-meaningfulness": msg`Scores each image for how much it contributes to the book's meaning.`,
@@ -146,7 +152,7 @@ export function getStageDescriptionI18n(slug: string): string | undefined {
 
 /** Resolve a step label message descriptor to a translated string. Safe to call outside React. */
 export function getStepLabelI18n(slug: string): string {
-  const descriptor = STEP_LABEL_MESSAGES[slug]
+  const descriptor = STEP_LABEL_MESSAGES[slug as StepName]
   return descriptor ? i18n._(descriptor) : slug
 }
 

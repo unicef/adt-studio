@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { PNG } from "pngjs";
 import jpeg from "jpeg-js";
 import {
-  applyFlipsToRasterImages,
-  detectFlipFromCurrentTransformationMatrix,
+  applyOrientationTransformsToRasterImages,
+  detectOrientationFromCurrentTransformationMatrix,
   flipImageBufferHorizontal,
   flipImageBufferVertical,
 } from "../flip-utils.js";
@@ -60,30 +60,68 @@ function createFourPixelPng(): Buffer {
   return PNG.sync.write(png);
 }
 
+function createSixPixelPng(): Buffer {
+  const png = new PNG({ width: 2, height: 3 });
+  const colors = [
+    [255, 0, 0], [0, 255, 0],
+    [0, 0, 255], [255, 255, 0],
+    [0, 255, 255], [255, 0, 255],
+  ];
+  colors.forEach((color, index) => {
+    const offset = index * 4;
+    png.data[offset] = color[0];
+    png.data[offset + 1] = color[1];
+    png.data[offset + 2] = color[2];
+    png.data[offset + 3] = 255;
+  });
+  return PNG.sync.write(png);
+}
+
 function rgbaAt(buffer: Buffer, x: number, y: number): [number, number, number, number] {
   const { data, width } = PNG.sync.read(buffer);
   const idx = (y * width + x) * 4;
   return [data[idx], data[idx + 1], data[idx + 2], data[idx + 3]];
 }
 
-describe("detectFlipFromCurrentTransformationMatrix", () => {
-  it("detects horizontal and vertical flip from CTM signs", () => {
-    expect(detectFlipFromCurrentTransformationMatrix([-1, 0, 0, 1, 0, 0])).toEqual({
-      flipHorizontal: true,
-      flipVertical: false,
-    });
-    expect(detectFlipFromCurrentTransformationMatrix([1, 0, 0, -1, 0, 0])).toEqual({
-      flipHorizontal: false,
-      flipVertical: true,
-    });
-    expect(detectFlipFromCurrentTransformationMatrix([-1, 0, 0, -1, 0, 0])).toEqual({
-      flipHorizontal: true,
-      flipVertical: true,
-    });
-    expect(detectFlipFromCurrentTransformationMatrix([1, 0, 0, 1, 0, 0])).toEqual({
-      flipHorizontal: false,
-      flipVertical: false,
-    });
+describe("detectOrientationFromCurrentTransformationMatrix", () => {
+  it("detects all right-angle rotations and reflections", () => {
+    expect(detectOrientationFromCurrentTransformationMatrix([1, 0, 0, 1, 0, 0])).toBe("identity");
+    expect(detectOrientationFromCurrentTransformationMatrix([-1, 0, 0, 1, 0, 0])).toBe("flip-horizontal");
+    expect(detectOrientationFromCurrentTransformationMatrix([1, 0, 0, -1, 0, 0])).toBe("flip-vertical");
+    expect(detectOrientationFromCurrentTransformationMatrix([-1, 0, 0, -1, 0, 0])).toBe("rotate-180");
+    expect(detectOrientationFromCurrentTransformationMatrix([0, 1, -1, 0, 0, 0])).toBe("rotate-90-clockwise");
+    expect(detectOrientationFromCurrentTransformationMatrix([0, -1, 1, 0, 0, 0])).toBe("rotate-90-counterclockwise");
+    expect(detectOrientationFromCurrentTransformationMatrix([0, 1, 1, 0, 0, 0])).toBe("transpose");
+    expect(detectOrientationFromCurrentTransformationMatrix([0, -1, -1, 0, 0, 0])).toBe("anti-transpose");
+  });
+
+  it("normalizes non-uniform scale and tolerates tiny axis residue", () => {
+    expect(
+      detectOrientationFromCurrentTransformationMatrix([
+        0.000001,
+        -459.851837,
+        325.1875,
+        -0.000001,
+        130.14,
+        674.28,
+      ]),
+    ).toBe("rotate-90-counterclockwise");
+  });
+
+  it("rejects arbitrary rotations, skew, and degenerate matrices", () => {
+    const angle = Math.PI / 4;
+    expect(
+      detectOrientationFromCurrentTransformationMatrix([
+        Math.cos(angle),
+        Math.sin(angle),
+        -Math.sin(angle),
+        Math.cos(angle),
+        0,
+        0,
+      ]),
+    ).toBeNull();
+    expect(detectOrientationFromCurrentTransformationMatrix([1, 0.2, 0, 1, 0, 0])).toBeNull();
+    expect(detectOrientationFromCurrentTransformationMatrix([0, 0, 0, 1, 0, 0])).toBeNull();
   });
 });
 
@@ -135,36 +173,52 @@ describe("buffer flips", () => {
   });
 });
 
-describe("applyFlipsToRasterImages", () => {
+describe("applyOrientationTransformsToRasterImages", () => {
   it("applies the pre-stamped flip transform", () => {
     const sourceA = createTwoPixelPng([255, 0, 0], [0, 0, 255]);
     const sourceB = createTwoPixelPng([0, 255, 0], [255, 255, 0]);
     const imageA = makeRasterImage("im001", sourceA, "digest-a");
     const imageB = makeRasterImage("im002", sourceB, "digest-b");
-    imageA.flipTransform = { flipHorizontal: true, flipVertical: false };
-    imageB.flipTransform = { flipHorizontal: false, flipVertical: false };
+    imageA.orientationTransform = "flip-horizontal";
+    imageB.orientationTransform = "identity";
 
-    applyFlipsToRasterImages([imageA, imageB]);
+    applyOrientationTransformsToRasterImages([imageA, imageB]);
 
     expect(imageA.buffer.equals(sourceA)).toBe(false);
     expect(imageB.buffer.equals(sourceB)).toBe(true);
   });
 
-  it("clears flipTransform after applying, so an accidental second call is a no-op", () => {
+  it("bakes a quarter-turn into pixels and swaps dimensions", () => {
+    const source = createSixPixelPng();
+    const image = makeRasterImage("im001", source);
+    image.width = 2;
+    image.height = 3;
+    image.orientationTransform = "rotate-90-counterclockwise";
+
+    applyOrientationTransformsToRasterImages([image]);
+
+    expect(image.width).toBe(3);
+    expect(image.height).toBe(2);
+    expect(rgbaAt(image.buffer, 0, 0)).toEqual([0, 255, 0, 255]);
+    expect(rgbaAt(image.buffer, 2, 0)).toEqual([255, 0, 255, 255]);
+    expect(rgbaAt(image.buffer, 0, 1)).toEqual([255, 0, 0, 255]);
+  });
+
+  it("clears orientationTransform after applying, so an accidental second call is a no-op", () => {
     const source = createTwoPixelPng([255, 0, 0], [0, 0, 255]);
     const image = makeRasterImage("im001", source);
-    image.flipTransform = { flipHorizontal: true, flipVertical: false };
+    image.orientationTransform = "flip-horizontal";
 
-    applyFlipsToRasterImages([image]);
+    applyOrientationTransformsToRasterImages([image]);
     const afterFirstCall = Buffer.from(image.buffer);
-    expect(image.flipTransform).toBeUndefined();
+    expect(image.orientationTransform).toBeUndefined();
     expect(afterFirstCall.equals(source)).toBe(false);
 
     // A caller re-invoking on the same array (without re-stamping
-    // flipTransform) must be a no-op, not a silent double-flip (which for
+    // orientationTransform) must be a no-op, not a silent double-flip (which for
     // H+H would revert to the original, and for any other combination would
     // corrupt the image).
-    applyFlipsToRasterImages([image]);
+    applyOrientationTransformsToRasterImages([image]);
 
     expect(image.buffer.equals(afterFirstCall)).toBe(true);
   });
@@ -173,7 +227,7 @@ describe("applyFlipsToRasterImages", () => {
     const source = createTwoPixelPng([255, 0, 0], [0, 0, 255]);
     const image = makeRasterImage("im001", source);
 
-    applyFlipsToRasterImages([image]);
+    applyOrientationTransformsToRasterImages([image]);
 
     expect(image.buffer.equals(source)).toBe(true);
   });
@@ -190,9 +244,9 @@ describe("applyFlipsToRasterImages", () => {
 
     const image = makeRasterImage("im001", Buffer.from([0xff, 0xd8]));
     image.format = "jpeg";
-    image.flipTransform = { flipHorizontal: true, flipVertical: true };
+    image.orientationTransform = "rotate-180";
 
-    applyFlipsToRasterImages([image]);
+    applyOrientationTransformsToRasterImages([image]);
 
     expect(decodeSpy).toHaveBeenCalledTimes(1);
     expect(encodeSpy).toHaveBeenCalledTimes(1);
@@ -207,13 +261,13 @@ describe("applyFlipsToRasterImages", () => {
     const malformedJpeg = Buffer.from([0xff, 0xd8, 0xff, 0x00]); // truncated/invalid JPEG
     const badImage = makeRasterImage("im001", malformedJpeg);
     badImage.format = "jpeg";
-    badImage.flipTransform = { flipHorizontal: true, flipVertical: false };
+    badImage.orientationTransform = "flip-horizontal";
 
     const goodSource = createTwoPixelPng([255, 0, 0], [0, 0, 255]);
     const goodImage = makeRasterImage("im002", goodSource);
-    goodImage.flipTransform = { flipHorizontal: true, flipVertical: false };
+    goodImage.orientationTransform = "flip-horizontal";
 
-    expect(() => applyFlipsToRasterImages([badImage, goodImage])).not.toThrow();
+    expect(() => applyOrientationTransformsToRasterImages([badImage, goodImage])).not.toThrow();
 
     // Malformed image is left exactly as-is (original orientation kept).
     expect(badImage.buffer.equals(malformedJpeg)).toBe(true);

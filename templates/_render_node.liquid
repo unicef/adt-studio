@@ -16,8 +16,16 @@
 {%- for node in nodes -%}
 {%- if node.role == "image" -%}
 <img data-id="{{ node.node_id | escape }}" src="{{ node.image_url | escape }}">
+{%- elsif node.role == "chapter_title" -%}
+<h1 class="adt-h1" data-id="{{ node.node_id | escape }}">{{ node.text | escape }}</h1>
+{%- elsif node.role == "section_heading" -%}
+<h2 class="adt-h2" data-id="{{ node.node_id | escape }}">{{ node.text | escape }}</h2>
+{%- elsif node.role == "subheading" -%}
+<h3 class="adt-h3" data-id="{{ node.node_id | escape }}">{{ node.text | escape }}</h3>
+{%- elsif node.role == "heading" and node.heading_level -%}
+<h{{ node.heading_level }} class="adt-h{{ node.heading_level }}" data-id="{{ node.node_id | escape }}">{{ node.text | escape }}</h{{ node.heading_level }}>
 {%- elsif node.role == "heading" -%}
-<h2 data-id="{{ node.node_id | escape }}">{{ node.text | escape }}</h2>
+<h2 class="adt-h2" data-id="{{ node.node_id | escape }}">{{ node.text | escape }}</h2>
 {%- elsif node.role == "caption" -%}
 <figcaption data-id="{{ node.node_id | escape }}">{{ node.text | escape }}</figcaption>
 {%- elsif node.role == "math" -%}
@@ -31,7 +39,12 @@
 {%- elsif node.structure == "paragraph" -%}
 <p>{% if node.children and node.children.size > 0 and depth < 8 %}{% include "_render_inline", nodes: node.children %}{% endif %}</p>
 {%- elsif node.structure == "heading" -%}
-<h2>{% if node.children and node.children.size > 0 and depth < 8 %}{% include "_render_inline", nodes: node.children %}{% endif %}</h2>
+{%- assign heading_child = node.children[0] -%}
+{%- if heading_child.role == "chapter_title" -%}<h1 class="adt-h1">{% include "_render_inline", nodes: node.children %}</h1>
+{%- elsif heading_child.role == "section_heading" -%}<h2 class="adt-h2">{% include "_render_inline", nodes: node.children %}</h2>
+{%- elsif heading_child.role == "subheading" -%}<h3 class="adt-h3">{% include "_render_inline", nodes: node.children %}</h3>
+{%- elsif heading_child.heading_level -%}<h{{ heading_child.heading_level }} class="adt-h{{ heading_child.heading_level }}">{% include "_render_inline", nodes: node.children %}</h{{ heading_child.heading_level }}>
+{%- else -%}<h2 class="adt-h2">{% include "_render_inline", nodes: node.children %}</h2>{%- endif -%}
 {%- elsif node.structure == "list" -%}
 <ul class="list-disc list-inside space-y-1 pl-4">{% if node.children and node.children.size > 0 and depth < 8 %}{%- assign _child_depth = depth | plus: 1 -%}{% include "_render_node", nodes: node.children, depth: _child_depth %}{% endif %}</ul>
 {%- elsif node.structure == "list_item" -%}

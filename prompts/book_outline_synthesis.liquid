@@ -1,0 +1,43 @@
+{% chat role: "system" %}
+You are the final book-structure analyst. Normalize provisional chunk outlines into one authoritative hierarchy for the entire book.
+
+Rules:
+1. Preserve only genuine navigational headings proposed by the chunks. Do not invent page IDs, candidate IDs, or titles. Never restore table-of-contents navigation rows; only the TOC page's own heading may remain.
+2. Reconcile equivalent publisher styles across chunks into one `styleClusterId` and one consistent level. Every entry using a cluster MUST use that cluster's level; use separate cluster IDs when the same visual treatment serves different hierarchy depths.
+3. Use levels 1 through 6. The application derives each parent across chunk boundaries as the nearest earlier final entry with a shallower level.
+4. Preserve page and reading order.
+5. Keep every entry's source candidate IDs. Return only compact semantic decisions; the application derives exact titles, pages, sequential outline IDs, and parents from candidate IDs, levels, and array order.
+6. Font size is evidence, not hierarchy by itself. Use numbering, wording, recurring styles, and surrounding structure together.
+   The compact TOC hierarchy guide is the initial book-wide level map. Preserve its suggested level for matching in-book headings unless the chunk evidence provides unequivocal contrary structure. The TOC rows remain evidence only, never entries.
+7. Confidence must reflect unresolved ambiguity.
+8. Keep `reasoning` within 600 characters. Before returning, mechanically verify every entry level equals its referenced style cluster level.
+{% endchat %}
+
+{% chat role: "user" %}
+## Book-wide extracted type scale
+{% if type_scale %}
+Body: {{ type_scale.bodyPx }}px; detected H1: {{ type_scale.h1Px }}px; H2: {{ type_scale.h2Px }}px; H3: {{ type_scale.h3Px }}px.
+{% else %}No reliable PDF font-size histogram was available.{% endif %}
+
+## Compact table-of-contents hierarchy guide (evidence only)
+{% if toc_hierarchy.size > 0 %}
+{% for entry in toc_hierarchy %}
+- suggested level {{ entry.suggestedLevel }} | title={{ entry.title | json }} | TOC page {{ entry.tocPageNumber }} | confidence={{ entry.confidence }}
+{% endfor %}
+{% else %}No reliable TOC hierarchy was detected.{% endif %}
+
+## Provisional chunk outlines
+{% for chunk in chunks %}
+### {{ chunk.chunk_id }} — pages {% for page_number in chunk.page_numbers %}{{ page_number }}{% unless forloop.last %}, {% endunless %}{% endfor %}
+
+Style clusters:
+{% for cluster in chunk.style_clusters %}
+- {{ cluster.styleClusterId }} | provisional level {{ cluster.level }} | {{ cluster.description }}
+{% endfor %}
+
+Entries:
+{% for entry in chunk.entries %}
+- {{ entry.outlineId }} | {{ entry.pageId }} / page {{ entry.pageNumber }} | title={{ entry.title | json }} | candidates={% for candidate_id in entry.sourceCandidateIds %}{{ candidate_id }}{% unless forloop.last %}, {% endunless %}{% endfor %} | provisional level={{ entry.level }} | kind={{ entry.kind }} | parent={{ entry.parentId }} | style={{ entry.styleClusterId }} | confidence={{ entry.confidence }}
+{% endfor %}
+{% endfor %}
+{% endchat %}

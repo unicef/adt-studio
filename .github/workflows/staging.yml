@@ -253,6 +253,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -311,3 +312,25 @@ jobs:
             --prerelease \
             "${NOTES_ARGS[@]}" \
             dist/*
+
+      - name: Comment staging status on PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SERVER_URL: ${{ github.server_url }}
+          PR: ${{ needs.stage.outputs.pr }}
+          VERSION: ${{ needs.stage.outputs.version }}
+          HEAD_REF: ${{ needs.stage.outputs.head_ref }}
+          COMMIT: ${{ needs.stage.outputs.commit }}
+        run: |
+          {
+            echo "### 🧪 Staging build ready"
+            echo
+            echo "A beta pre-release for this PR has been published."
+            echo
+            echo "- **Version:** \`$VERSION\`"
+            echo "- **Release:** [$VERSION]($SERVER_URL/$REPO/releases/tag/$VERSION)"
+            echo "- **Source:** PR #$PR (\`$HEAD_REF\`) merged with \`develop\`"
+            echo "- **Commit:** [\`$COMMIT\`]($SERVER_URL/$REPO/commit/$COMMIT)"
+          } > staging-comment.md
+          gh pr comment "$PR" --repo "$REPO" --body-file staging-comment.md

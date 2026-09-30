@@ -21,7 +21,10 @@ export function buildConfigOverrides(values: WizardFormValues): Record<string, u
     default_render_strategy: values.renderStrategy,
     page_sectioning: { mode: values.sectioningMode },
     spread_mode: values.pageGrouping === "spread",
-    vector_text_grouping: values.figureExtraction,
+    figure_extraction_mode: values.figureExtraction,
+    // Keep the legacy key synchronized for older ADT Studio versions.
+    vector_text_grouping: values.figureExtraction !== "off",
+    remove_watermarks: values.removeWatermarks,
     apply_body_background: true,
     // Single flag governs activities everywhere (sectioning + web-rendering),
     // via the `activity_` prefix — no hand-maintained type list to drift.

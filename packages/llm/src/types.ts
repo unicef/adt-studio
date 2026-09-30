@@ -14,16 +14,20 @@ export interface GenerateObjectOptions {
   schema: unknown
 
   /**
-   * Structured-output mode passed to the AI SDK's generateObject.
-   * - "auto" (default): SDK picks — typically maps to OpenAI structured outputs,
-   *   which enforce the JSON schema server-side. Does NOT work for recursive
-   *   schemas (OpenAI rejects $refs at `items` positions under strict mode).
-   * - "json": JSON mode; schema is described in the prompt and parsed, but NOT
-   *   enforced server-side. For OpenAI this is achieved by disabling the
-   *   provider's `structuredOutputs` flag — otherwise reasoning models
-   *   (gpt-5.x, o-series) still emit `response_format: json_schema, strict: true`
-   *   and reject recursive schemas. Use this whenever the schema contains
-   *   z.lazy() recursion or z.any() arms.
+   * Semantic traits of the schema. The effective structured-output strategy is
+   * derived from these plus the resolved provider's capabilities, so call sites
+   * describe the schema, not a provider-specific mode.
+   */
+  /** `z.lazy()` recursion or `$ref`s, which a strict native schema rejects. */
+  recursiveSchema?: boolean
+  /** Open-ended arms (`z.any()`, `z.record()`) a strict native schema can't express. */
+  looseSchema?: boolean
+
+  /**
+   * @deprecated Prefer `recursiveSchema`/`looseSchema`. Explicit override kept
+   * for the transition: when it names a strategy the provider offers, it wins
+   * over the trait-derived choice; otherwise the provider's preference applies.
+   * - "json": force JSON mode; - "tool": force tool calling; - "auto": no override.
    */
   mode?: "auto" | "json" | "tool"
 

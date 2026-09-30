@@ -19,7 +19,7 @@ import { SectionEditToolbar } from "./SectionEditToolbar"
 import { ImageCropDialog, pageBoundsToCropRect } from "./ImageCropDialog"
 import { AiImageDialog } from "./AiImageDialog"
 import { SectionTreeEditor } from "@/components/section-tree-editor/SectionTreeEditor"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
@@ -37,6 +37,8 @@ interface SectioningOverviewProps {
 export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: SectioningOverviewProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { stageState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
@@ -134,7 +136,39 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
           i === sectionIndex ? { ...s, isPruned: !s.isPruned } : s
         ),
       }
-      return api.updateSectioning(bookLabel, pageId, updated)
+      // Pruning only filters the section out at read time; its HTML stays in
+      // web-rendering, so the toggle leaves the storyboard current. Unpruning a
+      // section that was pruned when the storyboard ran is the case that needs
+      // work: it was skipped then, so it has no HTML and the LLM has to produce
+      // it. Render just that section rather than marking the whole stage stale —
+      // this is the normal way content gets brought in, one section at a time.
+      const wasPruned = page.sectioningTree.sections[sectionIndex]?.isPruned ?? false
+      const hasHtml = (page.rendering?.sections ?? []).some(
+        (s) => s.sectionIndex === sectionIndex && !!s.html
+      )
+      const needsRerender = wasPruned && !hasHtml
+      return api
+        .saveStoryboard(bookLabel, pageId, {
+          sectioning: updated,
+          // Without a key we cannot fill the HTML, so the stage must report it.
+          renderingInSync: !needsRerender || hasStructuredTextProvider,
+        })
+        .then(async (result) => {
+          // Sectioning is saved with the section unpruned, so the re-render will
+          // actually emit it — `web-rendering` skips pruned sections. The task
+          // marks the storyboard stale itself if it fails; a rejected submission
+          // never reaches the runner, so take the completion mark back here.
+          if (!needsRerender || !hasStructuredTextProvider) return result
+          try {
+            await api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex)
+          } catch (err) {
+            await api
+              .saveStoryboard(bookLabel, pageId, { sectioning: updated, renderingInSync: false })
+              .catch(() => {})
+            throw err
+          }
+          return result
+        })
     },
     onSuccess: (_data, vars) => invalidatePages(vars.pageId),
   })
@@ -720,7 +754,7 @@ function SectionDetail({
   isMutating: boolean
 }) {
   const { t } = useLingui()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasImageProvider } = useApiKey()
   const { stageState: detailStageState } = useBookRun()
   const storyboardRunning = detailStageState("storyboard") === "running" || detailStageState("storyboard") === "queued"
   const queryClient = useQueryClient()
@@ -855,8 +889,10 @@ function SectionDetail({
     onInvalidatePages(pageId)
   }, [bookLabel, pageId, sectionIndex, queryClient, onInvalidatePages])
 
-  const sectionFilename = `${pageId}_sec${String(sectionIndex + 1).padStart(3, "0")}.html`
-  const previewSrc = `${BASE_URL}/books/${bookLabel}/adt-preview/${sectionFilename}?embed=1&v=${renderingVersion ?? 0}`
+  // The sectionId names the section's HTML file. Ids are allocated once and
+  // never reused, so one cannot be derived from the array index — after a
+  // split/clone/delete a positional guess resolves to a *different* section.
+  const previewSrc = `${BASE_URL}/books/${bookLabel}/adt-preview/${section.sectionId}.html?embed=1&v=${renderingVersion ?? 0}`
 
   return (
     <div className="space-y-3">
@@ -997,7 +1033,7 @@ function SectionDetail({
             onCrop={!storyboardRunning ? handleCrop : undefined}
             onRecropFromPage={!storyboardRunning ? handleRecropFromPage : undefined}
             onReplace={!storyboardRunning ? handleReplace : undefined}
-            onAiImage={hasApiKey && !storyboardRunning ? handleAiImage : undefined}
+            onAiImage={hasImageProvider && !storyboardRunning ? handleAiImage : undefined}
             onDelete={!storyboardRunning ? (dataId) => {
               onConfirmAction({
                 message: t`Are you sure you want to delete this image? This action cannot be undone.`,

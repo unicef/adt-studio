@@ -18,11 +18,14 @@ describe("Figure grouping", () => {
     // - The isolated blue rect should be a separate vector image
     // - The standalone raster should be deduplicated (removed) since it's in a figure group
     //
-    // So we expect at most 2 images: the figure group + the isolated blue rect.
-    // Note: if mupdf doesn't output <image> elements in SVG, we get 3 images
-    // (1 raster + 2 vectors). Either outcome means the code works correctly.
-    expect(page.images.length).toBeGreaterThanOrEqual(1);
-    expect(page.images.length).toBeLessThanOrEqual(3);
+    // Raster draw-op placements are injected into grouping even when mupdf's
+    // SVG omits <image> elements, so the overlapping raster + overlay is one
+    // page-crop and the isolated blue rect is one vector image.
+    expect(page.extractionDebug?.totalImageShapes).toBe(1);
+    expect(page.extractionDebug?.groups.some((group) => group.hasImages)).toBe(true);
+    expect(page.images).toHaveLength(2);
+    expect(page.images.filter((image) => image.renderMethod === "page-crop")).toHaveLength(1);
+    expect(page.images.filter((image) => image.renderMethod === "raster")).toHaveLength(0);
 
     // All images should have valid dimensions and buffers
     for (const img of page.images) {
@@ -31,6 +34,27 @@ describe("Figure grouping", () => {
       expect(img.buffer.length).toBeGreaterThan(0);
       expect(img.hash).toMatch(/^[a-f0-9]{16}$/);
     }
+  });
+
+  it("keeps covered standalone rasters and links them to the composite in keepCoveredRasters mode", async () => {
+    const pdfBuffer = createFigureGroupTestPdf();
+    const result = await extractPdf({ pdfBuffer, keepCoveredRasters: true });
+
+    expect(result.pages).toHaveLength(1);
+    const page = result.pages[0];
+
+    // The composite page-crop still exists, but the standalone raster it
+    // absorbed is retained as its own image so meaningfulness can choose the
+    // best representation downstream.
+    const composites = page.images.filter((image) => image.renderMethod === "page-crop");
+    const standalones = page.images.filter((image) => image.renderMethod === "raster");
+    expect(composites).toHaveLength(1);
+    expect(standalones).toHaveLength(1);
+
+    // The debug group records exactly which standalone imageId it covers.
+    const rasterGroup = page.extractionDebug?.groups.find((group) => group.hasImages);
+    expect(rasterGroup?.coveredRasterImageIds).toEqual([standalones[0].imageId]);
+    expect(rasterGroup?.imageId).toBe(composites[0].imageId);
   });
 
   it("does not affect pages with only raster images (no overlapping vectors)", async () => {
@@ -80,8 +104,11 @@ startxref
     expect(result.pages).toHaveLength(1);
     const page = result.pages[0];
 
-    // Should extract at least 1 image
-    expect(page.images.length).toBeGreaterThanOrEqual(1);
+    const rasterGroup = page.extractionDebug?.groups.find((group) => group.hasImages);
+    expect(page.extractionDebug?.totalImageShapes).toBe(1);
+    expect(rasterGroup?.hasText).toBe(true);
+    expect(rasterGroup?.renderMethod).toBe("page-crop");
+    expect(page.images.filter((image) => image.renderMethod === "raster")).toHaveLength(0);
 
     // The text "Figure 1" should be in the extracted text
     expect(page.text).toContain("Figure 1");

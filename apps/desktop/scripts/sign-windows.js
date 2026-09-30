@@ -1,9 +1,10 @@
 const { spawnSync } = require("node:child_process");
 const path = require("node:path");
 
+// TODO: replace to use enviroment variables
 const TRUSTED_SIGNING_KEYSTORE = "eus.codesigning.azure.net";
 // <TrustedSigningAccount>/<CertificateProfile> — see Azure Portal.
-const TRUSTED_SIGNING_ALIAS = "NEES/neespnld";
+const TRUSTED_SIGNING_ALIAS = "adtnees/adtnees";
 
 module.exports = async function (configuration) {
   const skipTargets = new Set(

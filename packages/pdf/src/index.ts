@@ -8,6 +8,7 @@ export type {
   ExtractResult,
   ExtractStreamResult,
   ExtractProgress,
+  ExtractionDebugOutput,
 } from "./extract.js";
 export { renderSvgToPng } from "./svg-render.js";
 export { getPngMetadata, decodePng, cropPng, samplePageEdges } from "./png-utils.js";

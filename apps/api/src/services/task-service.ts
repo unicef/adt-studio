@@ -88,7 +88,7 @@ export function createTaskService(eventBus: BookEventBus): TaskService {
           info.completedAt = Date.now()
           eventBus.emit(label, {
             type: "task",
-            data: { type: "task-complete", taskId, result },
+            data: { type: "task-complete", taskId, kind, pageId: options?.pageId, result },
           })
         })
         .catch((err) => {
@@ -98,7 +98,7 @@ export function createTaskService(eventBus: BookEventBus): TaskService {
           info.completedAt = Date.now()
           eventBus.emit(label, {
             type: "task",
-            data: { type: "task-error", taskId, error: message },
+            data: { type: "task-error", taskId, kind, pageId: options?.pageId, error: message },
           })
         })
         .finally(() => {

@@ -142,7 +142,7 @@ export interface PresetConfig {
 
 // ─── Demo URLs (shared across all presets until per-preset assets are ready) ─
 
-const DEMO_PDF_URL =
+export const DEMO_PDF_URL =
   "https://ontheline.trincoll.edu/images/bookdown/sample-local-pdf.pdf";
 const DEMO_ADT_URL =
   "https://elasticsounds.github.io/adt-brazil-demo/index.html";
@@ -186,7 +186,7 @@ export const PRESETS: PresetConfig[] = [
       activitiesGenerator: true,
       imageCropping: false,
       imageSegmentation: true,
-      figureExtraction: true,
+      figureExtraction: "auto",
     },
     formDefaults: {
       imageFilterMinSide: 50,
@@ -245,7 +245,6 @@ export const PRESETS: PresetConfig[] = [
           config: {
             prompt: "activity_underline_text",
             answer_prompt: "activity_underline_text_answers",
-            model: "openai:gpt-5.4",
             max_retries: 5,
             timeout: 180,
             temperature: 0.3,
@@ -307,6 +306,16 @@ export const PRESETS: PresetConfig[] = [
             visual_refinement: { enabled: true, max_iterations: 3 },
           },
         },
+        activity_ordering: {
+          render_type: "activity",
+          config: {
+            prompt: "activity_ordering",
+            max_retries: 5,
+            timeout: 180,
+            temperature: 0.3,
+            visual_refinement: { enabled: true, max_iterations: 3 },
+          },
+        },
         activity_open_ended_answer: {
           render_type: "activity",
           config: {
@@ -327,13 +336,17 @@ export const PRESETS: PresetConfig[] = [
         activity_fill_in_a_table: "activity_fill_in_a_table",
         activity_matching: "activity_matching",
         activity_sorting: "activity_sorting",
+        activity_ordering: "activity_ordering",
         activity_open_ended_answer: "activity_open_ended_answer",
       },
       // Role keys must match the actual `role_types` the sectioning LLM assigns
       // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
       // suffixed variants never match, so header/footer would leak in unpruned.
-      pruned_role_types: ["header", "footer", "page_number"],
-      pruned_section_types: ["back_cover", "credits", "inside_cover"],
+      pruned_role_types: ["header", "footer", "page_number", "watermark"],
+      // Textbooks keep the cover pages (inside/inner cover, back cover) and the
+      // credits page on by default — they carry publisher/ISBN and
+      // contributor/funding info worth retaining.
+      pruned_section_types: [],
       image_filters: { min_stddev: 2 },
     },
   },
@@ -408,7 +421,7 @@ export const PRESETS: PresetConfig[] = [
       // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
       // suffixed variants never match, so header/footer would leak into the
       // two-column-story layout unpruned.
-      pruned_role_types: ["header", "footer", "page_number"],
+      pruned_role_types: ["header", "footer", "page_number", "watermark"],
       pruned_section_types: [
         "back_cover",
         "credits",
@@ -421,6 +434,7 @@ export const PRESETS: PresetConfig[] = [
         "activity_fill_in_a_table",
         "activity_matching",
         "activity_sorting",
+        "activity_ordering",
         "activity_open_ended_answer",
       ],
       image_filters: { min_stddev: 2 },
@@ -458,7 +472,7 @@ export const PRESETS: PresetConfig[] = [
       sectioningMode: "page",
       imageCropping: false,
       imageSegmentation: false,
-      figureExtraction: true,
+      figureExtraction: "auto",
     },
     formDefaults: {
       imageFilterMinSide: 100,
@@ -497,7 +511,7 @@ export const PRESETS: PresetConfig[] = [
       // Role keys must match the actual `role_types` the sectioning LLM assigns
       // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
       // suffixed variants never match, so header/footer would leak in unpruned.
-      pruned_role_types: ["header", "footer", "page_number"],
+      pruned_role_types: ["header", "footer", "page_number", "watermark"],
       pruned_section_types: [
         "back_cover",
         "credits",
@@ -510,6 +524,7 @@ export const PRESETS: PresetConfig[] = [
         "activity_fill_in_a_table",
         "activity_matching",
         "activity_sorting",
+        "activity_ordering",
         "activity_open_ended_answer",
       ],
       image_filters: { min_stddev: 2 },
@@ -588,6 +603,9 @@ const VALUE_LABELS: Record<string, MessageDescriptor> = {
   spread: msg`Spread`,
   page: msg`Per Page`,
   dynamic: msg`Dynamic`,
+  auto: msg`Auto`,
+  all: msg`All`,
+  off: msg`Off`,
 };
 
 function formatDefaultValue(

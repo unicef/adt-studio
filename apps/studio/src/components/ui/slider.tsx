@@ -16,19 +16,19 @@ export function Slider({ color, ...props }: SliderProps) {
       {...props}
       className={`relative flex items-center select-none touch-none w-full h-5 ${props.className ?? ""} ${props.disabled ? "opacity-40 pointer-events-none" : ""}`}
     >
-      <SliderPrimitive.Track className="bg-[#e5e5e5] relative grow rounded-full h-1.5">
+      <SliderPrimitive.Track className="bg-muted relative grow rounded-full h-1.5">
         <SliderPrimitive.Range
           className="absolute rounded-full h-full"
           style={{ background: accentColor, transition: "background 0.4s ease" }}
         />
       </SliderPrimitive.Track>
       <SliderPrimitive.Thumb
-        className="block w-4 h-4 bg-white border-2 rounded-full shadow focus:outline-none cursor-pointer"
+        className="block w-4 h-4 bg-background border-2 rounded-full shadow focus:outline-none cursor-pointer"
         style={thumbStyle}
       />
       {isRange && (
         <SliderPrimitive.Thumb
-          className="block w-4 h-4 bg-white border-2 rounded-full shadow focus:outline-none cursor-pointer"
+          className="block w-4 h-4 bg-background border-2 rounded-full shadow focus:outline-none cursor-pointer"
           style={thumbStyle}
         />
       )}

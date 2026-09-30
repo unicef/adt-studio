@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { tool, type CoreTool } from "ai"
+import type { AgentToolSet } from "@adt/llm"
 import type { Storage } from "@adt/storage"
 import {
   PageSectioningOutput,
@@ -8,6 +8,7 @@ import {
   type PageSectioningSection,
   type SectionRendering,
 } from "@adt/types"
+import { createSectionIdFactory } from "@adt/pipeline"
 import { buildSectioningSectionFromHtml } from "./build-sectioning.js"
 import {
   TEMPLATED_ACTIVITY_TYPES,
@@ -17,7 +18,7 @@ import {
 } from "./activity-schema.js"
 import { renderSyntheticActivity } from "./render-section.js"
 import { extractAnswersFromHtml } from "./extract-custom-answers.js"
-import type { AgentCredentials } from "../resolve-model.js"
+import type { AgentCredentials } from "../credentials.js"
 
 const activityAnswersSchema = z
   .record(z.string(), z.union([z.string(), z.boolean(), z.number()]))
@@ -58,7 +59,7 @@ export interface BookToolCallRecord {
 }
 
 export interface BookToolsResult {
-  tools: Record<string, CoreTool>
+  tools: AgentToolSet
   /** Ordered log of tool invocations made during the agent run. */
   calls: BookToolCallRecord[]
   /** Set of pageIds the agent wrote to. */
@@ -165,8 +166,8 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
     }
   }
 
-  const tools: Record<string, CoreTool> = {
-    listPages: tool({
+  const tools: AgentToolSet = {
+    listPages: {
       description:
         "List every page in this book with its page number, section count, and section types. Use to understand what already exists before generating a new activity.",
       parameters: z.object({}),
@@ -193,9 +194,9 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           return { pages: summaries }
         },
       ),
-    }),
+    },
 
-    getPage: tool({
+    getPage: {
       description:
         "Get the full sectioning and rendering for a page: every section's HTML, sectionType, sectionId, and the data-ids used. Use to inspect a page before editing or to find layout to mimic.",
       parameters: z.object({
@@ -234,9 +235,9 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           sections,
         }
       }),
-    }),
+    },
 
-    getSection: tool({
+    getSection: {
       description:
         "Get a single section's HTML and metadata. Cheaper than getPage when you know exactly which section you need.",
       parameters: z.object({
@@ -264,9 +265,9 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           dataIds: extractDataIds(r.html),
         }
       }),
-    }),
+    },
 
-    listPageImages: tool({
+    listPageImages: {
       description:
         "List image ids available on a page (these are the only image src values you may reference; do not invent image ids).",
       parameters: z.object({
@@ -287,9 +288,9 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           })),
         }
       }),
-    }),
+    },
 
-    updateSection: tool({
+    updateSection: {
       description:
         "Rewrite a section's HTML. Creates a new version (the previous version is preserved). Preserve existing data-id values on any element you keep. Use this when you want to modify a section in place.",
       parameters: z.object({
@@ -355,8 +356,17 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           // Refresh the sectioning tree so the edit panel and downstream
           // steps stay in sync with the rewritten HTML.
           const oldSection = sectioning.sections[sectionIndex]
-          const sectionId =
-            oldSection?.sectionId ?? `${pageId}_s${sectionIndex}`
+          // sectionIds are allocated once and never reused, so one cannot be
+          // derived from an array position — a guessed id would likely name a
+          // *different* section, and it names this section's HTML file in every
+          // bundle. With no sectioning row to read the real id from, rendering
+          // and sectioning are out of sync; say so rather than guess.
+          if (!oldSection) {
+            throw new Error(
+              `Cannot update section ${sectionIndex} of ${pageId}: it has a rendering entry but no sectioning row, so its sectionId is unknown. Re-run the storyboard render for this page to bring the two back in sync.`,
+            )
+          }
+          const sectionId = oldSection.sectionId
           const sectionType = found.sectionType
           const newSectioningSection = buildSectioningSectionFromHtml({
             html,
@@ -386,9 +396,9 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           return { ok: true, version, sectionIndex }
         },
       ),
-    }),
+    },
 
-    createTemplatedActivity: tool({
+    createTemplatedActivity: {
       description:
         `PREFERRED tool for known activity types. Use this whenever the user's request maps to one of: ${TEMPLATED_ACTIVITY_TYPES.join(", ")}. You provide the sectioning tree as a JSON-encoded string (activity / activity_option containers, activity_question / activity_number / activity_fill_in_the_blank / activity_open_ended_answer / text leaves) and the pipeline's renderer produces HTML that follows the book's styleguide and the activity templates' built-in accessibility patterns. The activityAnswers key is extracted automatically — do not supply it.`,
       parameters: z.object({
@@ -461,7 +471,11 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           // section's index. The new section is appended at the end of the
           // sectioning array, so its index is the sectioning array's length.
           const nextIndex = existingSectioning.sections.length
-          const sectionId = `${pageId}_s${nextIndex}`
+          // The *id* is allocated, not derived from the index. `nextIndex` is a
+          // position and gets reused as soon as a delete leaves a gap, so using
+          // it as an id mints a duplicate — and two sections sharing an id
+          // overwrite each other's HTML file when the book is packaged.
+          const sectionId = createSectionIdFactory(ctx.storage, pageId)()
 
           // Promote agent-emitted nodes (no isPruned) to ContentNodeData.
           const promote = (n: ActivityNodeShape): ContentNodeData => ({
@@ -523,9 +537,9 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           }
         },
       ),
-    }),
+    },
 
-    createCustomSection: tool({
+    createCustomSection: {
       description:
         "ESCAPE HATCH for fully-interactive custom activities. Use when the user wants something that does NOT map to a templated activity type (crossword, word search, drag-and-drop, custom widget). The sectionType MUST start with 'activity_custom' (e.g. activity_custom_drag_drop). The HTML must include an embedded <script> that calls window.adtRegisterCustomActivity(section, { validate, reset }) — the runtime dispatches custom-activity sections to that registration. See the 'Custom-section rules' part of the system prompt for the full contract and a worked example.",
       parameters: z.object({
@@ -592,7 +606,8 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           // pruned/empty sections, so basing the index on it collides with an
           // existing section. Append at the sectioning array's length instead.
           const nextIndex = sectioning.sections.length
-          const sectionId = `${pageId}_s${nextIndex}`
+          // Allocated, not derived from the index — see createTemplatedActivity.
+          const sectionId = createSectionIdFactory(ctx.storage, pageId)()
 
           // For custom activities, the script encodes correctness — but we
           // also surface a JSON answer key derived from the markup so the EDIT
@@ -641,7 +656,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           }
         },
       ),
-    }),
+    },
   }
 
   // Restrict the create surface so a forced mode is deterministic — the agent

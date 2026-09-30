@@ -25,12 +25,25 @@ const SOUND_FILES: Record<ActivitySoundKey, string> = {
 
 let cache: Partial<Record<ActivitySoundKey, HTMLAudioElement>> | null = null
 
+/**
+ * Where the sound files live. Defaults to `./assets/sounds/` (adt/webpub keep
+ * them under `assets/` next to the page). The PNLD export strips `assets/` and
+ * moves the sounds into `resources/audios/` (edital: all audio in that folder),
+ * so it points here via `<meta name="adt-sounds-base" content="../resources/audios/">`.
+ */
+function soundsBase(): string {
+  if (typeof document === "undefined") return "./assets/sounds/"
+  const meta = document.querySelector('meta[name="adt-sounds-base"]')?.getAttribute("content")
+  if (!meta) return "./assets/sounds/"
+  return meta.endsWith("/") ? meta : `${meta}/`
+}
+
 function get(key: ActivitySoundKey): HTMLAudioElement | null {
   if (typeof Audio === "undefined") return null
   if (!cache) cache = {}
   const existing = cache[key]
   if (existing) return existing
-  const audio = new Audio(`./assets/sounds/${SOUND_FILES[key]}`)
+  const audio = new Audio(`${soundsBase()}${SOUND_FILES[key]}`)
   audio.volume = 0.5
   audio.preload = "auto"
   cache[key] = audio

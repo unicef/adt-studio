@@ -3,10 +3,19 @@ import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area"
 
 import { cn } from "@/lib/utils"
 
+interface ScrollAreaProps
+  extends React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root> {
+  /* The viewport is the element that actually scrolls. A height cap belongs
+     here, not on the Root: `h-full` on the viewport resolves to `auto` under an
+     auto-height Root, so a Root-only `max-h` clips the content without ever
+     producing overflow — no scrollbar, and the tail unreachable. */
+  viewportClassName?: string
+}
+
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
->(({ className, children, ...props }, ref) => (
+  ScrollAreaProps
+>(({ className, children, viewportClassName, ...props }, ref) => (
   <ScrollAreaPrimitive.Root
     ref={ref}
     className={cn("relative overflow-hidden", className)}
@@ -16,7 +25,9 @@ const ScrollArea = React.forwardRef<
         a `truncate` descendant reports its full text as min-content and widens
         the wrapper past the viewport instead of ellipsizing. Forcing a block
         box keeps it at the viewport width so width-constrained layouts work. */}
-    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit] [&>div]:!block">
+    <ScrollAreaPrimitive.Viewport
+      className={cn("h-full w-full rounded-[inherit] [&>div]:!block", viewportClassName)}
+    >
       {children}
     </ScrollAreaPrimitive.Viewport>
     <ScrollBar />

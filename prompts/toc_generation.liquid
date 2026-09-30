@@ -9,6 +9,7 @@ I will provide you with section headings extracted from a book in {{ language }}
   - Level 1 = Major division (chapter, unit, part)
   - Level 2 = Section within a chapter
   - Level 3 = Subsection or minor heading
+- When `headingLevel` is provided, it comes from the authoritative book-wide outline and MUST be used as the entry level (including levels 4–6).
 - Return entries in reading order (same order as provided).
 - Use the exact sectionId from the input for each entry.
 {% if mode == "dynamic" %}
@@ -43,6 +44,6 @@ Provide your answer in the given structure. Think carefully about the hierarchy 
 ## Section Headings (in reading order)
 
 {% for heading in headings %}
-- sectionId: {{ heading.sectionId }}, title: "{{ heading.title }}", textType: {{ heading.textType }}
+- sectionId: {{ heading.sectionId }}, title: "{{ heading.title }}", textType: {{ heading.textType }}, headingLevel: {{ heading.headingLevel }}
 {% endfor %}
 {% endchat %}

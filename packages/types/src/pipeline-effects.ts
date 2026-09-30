@@ -72,6 +72,7 @@ export const IMAGE_SET_CHANGE_CLEAR_NODE_TYPES = [
   "text-catalog",
   "easy-read",
   "text-catalog-translation",
+  "core-tts-catalog",
   "tts",
   "tts-timestamps",
   "accessibility-assessment",
@@ -83,6 +84,7 @@ export const IMAGE_SET_CHANGE_CLEAR_STEPS = [
   "text-catalog",
   "easy-read",
   "catalog-translation",
+  "core-tts-catalog",
   "image-translation",
   "tts",
   "word-timestamps",
@@ -116,6 +118,7 @@ const NODE_CACHE_RESOURCES: Record<PipelineNodeName, readonly PipelineCacheResou
   "extract": ["books", "book", "pages"],
   "metadata": ["books", "book"],
   "book-summary": ["books", "book"],
+  "book-outline": ["book", "pages"],
   "image-filtering": ["pages"],
   "image-segmentation": ["pages"],
   "image-cropping": ["pages"],
@@ -130,6 +133,7 @@ const NODE_CACHE_RESOURCES: Record<PipelineNodeName, readonly PipelineCacheResou
   "text-catalog": ["text-catalog"],
   "easy-read": ["text-catalog"],
   "catalog-translation": ["text-catalog"],
+  "core-tts-catalog": ["text-catalog", "tts"],
   "image-translation": ["pages"],
   "tts": ["tts"],
   "word-timestamps": ["tts"],
@@ -185,6 +189,13 @@ export function getStageClearOrder(stage: StageName): StageName[] {
   return [stage, ...collectTransitiveDependents(stage)]
 }
 
+/** Every stage that consumes `stage`'s output, transitively — `stage` excluded.
+ *  Use when a stage's own output is known to be current but the outputs derived
+ *  from it are not. */
+export function getStageDependents(stage: StageName): StageName[] {
+  return collectTransitiveDependents(stage)
+}
+
 /** All node types that should be cleared when starting from `stage`. */
 export function getStageClearNodes(stage: StageName): PipelineNodeName[] {
   const seen = new Set<PipelineNodeName>()
@@ -201,13 +212,12 @@ export function getStageClearNodes(stage: StageName): PipelineNodeName[] {
   return nodes
 }
 
-/** Stages whose handler merges its own prior output on re-run (e.g. glossary
- * preserves manual, edited, and pruned terms) rather than replacing it. */
-const STAGES_PRESERVING_OWN_OUTPUT: readonly StageName[] = ["glossary"]
+/** Keep prior output until these stages successfully write a new version.
+ * Quizzes also use their history to reserve IDs across full regeneration. */
+const STAGES_PRESERVING_OWN_OUTPUT: readonly StageName[] = ["glossary", "quizzes"]
 
-/** Like getStageClearNodes(fromStage), but keeps a merge-preserving stage's own
- * output when that stage is inside the [fromStage, toStage] run range so its
- * handler can re-merge the prior version. Outside the range it is still cleared. */
+/** Like getStageClearNodes(fromStage), but retains selected stages' prior output
+ * until their handlers save a new version. Outside the run range it is cleared. */
 export function getStageRerunClearNodes(
   fromStage: StageName,
   toStage: StageName
@@ -222,6 +232,29 @@ export function getStageRerunClearNodes(
     if (index >= fromIndex && index <= toIndex) {
       for (const node of STAGE_OUTPUT_NODES[stage]) preservedNodes.add(node)
     }
+  }
+  const translateIndex = STAGE_ORDER.indexOf("translate")
+  if (translateIndex >= fromIndex && translateIndex <= toIndex) {
+    preservedNodes.add("core-tts-catalog")
+  }
+  const speechIndex = STAGE_ORDER.indexOf("speech")
+  if (speechIndex >= fromIndex && speechIndex <= toIndex) {
+    // The speech runner merges valid cached entries and manual recordings into
+    // the replacement version, so keep the prior audio manifest available for
+    // that merge.
+    //
+    // A preserved manifest outlives the sectioning history its
+    // `${sectionId}_ans_*` ids came from, so anything that clears
+    // `page-sectioning` must retire those entries first — see
+    // `retireSectionIds` in @adt/pipeline.
+    //
+    // Timestamps are not listed here and are not cleared either: the node is
+    // `tts-timestamps` while STAGE_OUTPUT_NODES is derived from the step name
+    // `word-timestamps`, so no clear list names it. That is load-bearing rather
+    // than accidental — with `word_highlighting` off the runner deliberately
+    // leaves those rows alone to preserve hand-calculated timings — which is
+    // why they, too, are retired explicitly.
+    preservedNodes.add("tts")
   }
 
   if (preservedNodes.size === 0) return clearNodes

@@ -1,6 +1,13 @@
 import path from "node:path"
 import { z } from "zod"
-import { createLLMModel, type LLMModel, type LlmLogEntry } from "@adt/llm"
+import {
+  assertModelCredentials,
+  createLLMModel,
+  describeMissingModelCredential,
+  type LLMModel,
+  type LlmLogEntry,
+  type ResolvedCredentials,
+} from "@adt/llm"
 import { createBookStorage } from "@adt/storage"
 import {
   DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS,
@@ -95,12 +102,12 @@ type TranslationEvaluationSuggestionValidationOutput = z.infer<typeof Translatio
 
 export interface TranslationEvaluationRunnerOptions {
   booksDir: string
-  /** OpenAI key. Still the common case, and the default judge is an OpenAI model. */
-  apiKey: string
-  anthropicApiKey?: string
-  googleApiKey?: string
-  customBaseUrl?: string
-  customApiKey?: string
+  /**
+   * Request-scoped credentials for every registered provider. The judge model is
+   * configurable, so which provider authenticates is decided by that model — not
+   * by the route.
+   */
+  credentials: ResolvedCredentials
   createModel?: (options: {
     modelId: string
     cacheDir: string
@@ -117,67 +124,29 @@ function normalizeJudgeModel(modelId: string | undefined): string {
   return resolved.replace(/^([a-zA-Z0-9_-]+):\/+/, "$1:")
 }
 
-/** Provider half of a `provider:model` id, defaulting to openai like resolveModel does. */
-function judgeProvider(modelId: string): string {
-  const colonIdx = modelId.indexOf(":")
-  return colonIdx >= 0 ? modelId.slice(0, colonIdx) : "openai"
-}
-
 /**
- * The credential the configured judge actually needs. Requiring an OpenAI key
- * for an Anthropic judge would reject a perfectly valid setup.
- *
- * Mirrors resolveModel: each provider falls back to its SDK's own environment
- * variable when no per-request credential is supplied, so a server-configured
- * key counts. The custom provider is keyed on its base URL rather than a key —
- * it passes `apiKey || "dummy"`, so a local model with no auth is valid.
+ * Whether the configured judge can authenticate. The provider's own manifest
+ * decides which fields are required and whether the server environment already
+ * supplies them, so a judge on any registered provider — including one that
+ * needs no secret at all — is accepted without route-level knowledge.
  */
-function requiredCredentialFor(
-  provider: string,
-  options: JudgeCredentialOptions,
-): { value: string | undefined; label: string; hint: string } {
-  switch (provider) {
-    case "anthropic":
-      return {
-        value: options.anthropicApiKey || process.env.ANTHROPIC_API_KEY,
-        label: "Anthropic API key",
-        hint: "X-Anthropic-API-Key header or ANTHROPIC_API_KEY",
-      }
-    case "google":
-      return {
-        value: options.googleApiKey || process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-        label: "Google API key",
-        hint: "X-Google-API-Key header or GOOGLE_GENERATIVE_AI_API_KEY",
-      }
-    case "custom":
-      return {
-        value: options.customBaseUrl || process.env.CUSTOM_OPENAI_BASE_URL,
-        label: "custom provider base URL",
-        hint: "X-Custom-Base-URL header or CUSTOM_OPENAI_BASE_URL",
-      }
-    default:
-      return {
-        value: options.apiKey || process.env.OPENAI_API_KEY,
-        label: "OpenAI API key",
-        hint: "X-OpenAI-Key header or OPENAI_API_KEY",
-      }
-  }
+export function assertJudgeCredentials(
+  judgeModel: string | undefined,
+  credentials: ResolvedCredentials,
+): void {
+  assertModelCredentials("structured-text", normalizeJudgeModel(judgeModel), credentials)
 }
 
-export type JudgeCredentialOptions = Pick<
-  TranslationEvaluationRunnerOptions,
-  "apiKey" | "anthropicApiKey" | "googleApiKey" | "customBaseUrl" | "customApiKey"
->
-
-/** Error message when the configured judge has no usable credential, else null. */
+/** The same check as a message, for callers that report instead of throwing. */
 export function describeMissingJudgeCredential(
   judgeModel: string | undefined,
-  options: JudgeCredentialOptions,
+  credentials: ResolvedCredentials,
 ): string | null {
-  const modelId = normalizeJudgeModel(judgeModel)
-  const required = requiredCredentialFor(judgeProvider(modelId), options)
-  if (required.value?.trim()) return null
-  return `Translation evaluation with judge model "${modelId}" needs a ${required.label}. Set the ${required.hint} on the API server.`
+  return describeMissingModelCredential(
+    "structured-text",
+    normalizeJudgeModel(judgeModel),
+    credentials,
+  )
 }
 
 function buildJudgeInstructions(request: TranslationEvaluationRunRequestData): string {
@@ -555,10 +524,7 @@ export async function evaluateTranslationInApi(
 ): Promise<TranslationEvaluationResultData> {
   const parsedRequest = TranslationEvaluationRunRequest.parse(request)
   const modelId = normalizeJudgeModel(parsedRequest.judge_model)
-  const missingCredential = describeMissingJudgeCredential(modelId, options)
-  if (missingCredential) {
-    throw new Error(missingCredential)
-  }
+  assertJudgeCredentials(modelId, options.credentials)
 
   const instructions = buildJudgeInstructions(parsedRequest)
   const system = buildSystemPrompt(instructions, parsedRequest)
@@ -568,16 +534,14 @@ export async function evaluateTranslationInApi(
 
   try {
     const onLog = (entry: LlmLogEntry) => storage.appendLlmLog(entry)
-    const credentials = {
-      openaiApiKey: options.apiKey,
-      anthropicApiKey: options.anthropicApiKey,
-      googleApiKey: options.googleApiKey,
-      customBaseUrl: options.customBaseUrl,
-      customApiKey: options.customApiKey,
-    }
     const llmModel = options.createModel
       ? options.createModel({ modelId, cacheDir, onLog })
-      : createLLMModel({ modelId, cacheDir, onLog, credentials })
+      : createLLMModel({
+          modelId,
+          cacheDir,
+          onLog,
+          providerCredentials: options.credentials,
+        })
     {
       const items: TranslationEvaluationResultData["items"] = []
       let failedPages = 0

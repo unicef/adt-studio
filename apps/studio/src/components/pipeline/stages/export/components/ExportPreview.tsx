@@ -19,6 +19,7 @@ import {
   Globe,
   GraduationCap,
   Home,
+  Landmark,
   Library,
   Lock,
   Search,
@@ -113,6 +114,20 @@ const FORMAT_VISUALS: Record<ExportFormat, FormatVisual> = {
       </Trans>
     ),
   },
+  pnld: {
+    accent: "bg-teal-600",
+    accentSoft: "bg-teal-50",
+    accentText: "text-teal-700",
+    accentBorder: "border-teal-200",
+    Icon: Landmark,
+    eyebrow: <Trans>PNLD Digital Work</Trans>,
+    tagline: <Trans>FNDE-ready HTML5 package (.zip)</Trans>,
+    footerHint: (
+      <Trans>
+        Submit to the FNDE PNLD Digital platform and validate with VALIDE.
+      </Trans>
+    ),
+  },
 }
 
 export function ExportPreview({
@@ -177,6 +192,7 @@ export function ExportPreview({
           {format === "adt" && <WebExportVisual visual={visual} />}
           {format === "scorm" && <ScormVisual visual={visual} />}
           {format === "webpub" && <WebPubVisual visual={visual} />}
+          {format === "pnld" && <PnldVisual visual={visual} />}
         </div>
 
         {/* Footer hint */}
@@ -579,6 +595,83 @@ function WebPubVisual({ visual }: { visual: FormatVisual }) {
           <CompatChip label={<Trans>Readium Web</Trans>} visual={visual} />
           <CompatChip label={<Trans>Library apps</Trans>} visual={visual} />
         </div>
+      </div>
+    </div>
+  )
+}
+
+function PnldVisual({ visual }: { visual: FormatVisual }) {
+  return (
+    <div className="flex h-full flex-col gap-2.5">
+      {/* Work identity card */}
+      <div className="flex shrink-0 items-center gap-2.5 rounded-lg border border-[#e5e5e5] bg-white px-3 py-2 shadow-sm">
+        <span
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-white shadow-sm",
+            visual.accent,
+          )}
+        >
+          <Landmark className="h-4 w-4" strokeWidth={2} aria-hidden />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="truncate text-[12.5px] font-semibold text-[#0a0a0a]">
+            obra.zip
+          </span>
+          <span className="flex items-center gap-1.5 text-[10.5px] text-[#737373]">
+            <Trans>PNLD Digital · FNDE</Trans>
+            <span className="text-[#d4d4d4]">·</span>
+            <span className="font-mono">
+              <Trans>HTML5 + EPUB</Trans>
+            </span>
+          </span>
+        </div>
+        <ArrowDownToLine className="h-4 w-4 text-[#a3a3a3]" strokeWidth={2} aria-hidden />
+      </div>
+
+      {/* Mandated package structure */}
+      <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-lg border border-[#e5e5e5] bg-white">
+        <div className="flex shrink-0 items-center gap-2 border-b border-[#f0f0f0] px-3 py-2">
+          <FolderTree
+            className={cn("h-3.5 w-3.5", visual.accentText)}
+            strokeWidth={2}
+            aria-hidden
+          />
+          <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#525252]">
+            <Trans>Package structure</Trans>
+          </span>
+        </div>
+        <ul className="flex flex-1 min-h-0 flex-col gap-px overflow-y-auto p-2 text-[11.5px] text-[#525252] font-mono">
+          <TreeRow icon={Globe} label="index.html" />
+          <TreeRow icon={FolderTree} label="content/" bold />
+          <TreeRow icon={FileText} label="unidade_1.html" indent={1} muted />
+          <TreeRow icon={FolderTree} label="resources/" bold />
+          <TreeRow icon={FileImage} label="images/" indent={1} muted />
+          <TreeRow icon={Type} label="fonts/" indent={1} muted />
+          <TreeRow icon={FileText} label="content.opf" />
+          <TreeRow icon={FileText} label="toc.ncx" />
+          <TreeRow icon={FileImage} label="cover.jpg" />
+        </ul>
+      </div>
+
+      {/* Official-reader validation strip */}
+      <div
+        className={cn(
+          "flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2",
+          visual.accentBorder,
+          visual.accentSoft,
+        )}
+      >
+        <span
+          className={cn(
+            "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white",
+            visual.accent,
+          )}
+        >
+          <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
+        </span>
+        <span className={cn("text-[10.5px] font-medium leading-snug", visual.accentText)}>
+          <Trans>Validates in VALIDE Desktop — the official PNLD reader</Trans>
+        </span>
       </div>
     </div>
   )

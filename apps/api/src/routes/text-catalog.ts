@@ -1,11 +1,24 @@
 import fs from "node:fs"
 import path from "node:path"
+import crypto from "node:crypto"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
-import { TextCatalogOutput, parseBookLabel } from "@adt/types"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import {
+  CoreTtsCatalogOutput,
+  TextCatalogOutput,
+  parseBookLabel,
+  type CoreTtsCatalogEntry,
+  type TTSOutput,
+  type WordTimestampOutput,
+} from "@adt/types"
+import { openBookDb, createBookStorage, readCurrentNodeRow, CURRENT_VERSION_ORDER } from "@adt/storage"
 import { buildTextCatalog } from "@adt/pipeline"
+import {
+  getCoreTtsCatalog,
+  invalidateCoreTtsForDisplayEntries,
+  normalizeLocale,
+} from "@adt/pipeline"
 
 const TranslationBody = z
   .object({
@@ -15,6 +28,12 @@ const TranslationBody = z
     generatedAt: z.string().optional(),
   })
   .strict()
+
+const SpeechTextBody = z.object({ speechText: z.string().min(1) }).strict()
+
+function hash(value: unknown): string {
+  return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex")
+}
 
 export function createTextCatalogRoutes(booksDir: string): Hono {
   const app = new Hono()
@@ -57,42 +76,71 @@ export function createTextCatalogRoutes(booksDir: string): Hono {
 
     const db = openBookDb(dbPath)
     try {
-      // Get source catalog
-      const catalogRows = db.all(
-        "SELECT data, version FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
-        ["text-catalog", "book"]
-      ) as Array<{ data: string; version: number }>
-
-      if (catalogRows.length === 0) {
+      // Source catalog — the current-pointer version (falls back to MAX).
+      const catalogRow = readCurrentNodeRow(db, "text-catalog", "book")
+      if (!catalogRow) {
         return c.json(null)
       }
 
-      const catalog = JSON.parse(catalogRows[0].data)
+      const catalog = JSON.parse(catalogRow.data)
 
-      // Get all translated catalogs
+      // All translated catalogs, each at its current-pointer version (so a
+      // rollback of a language shows the restored version). Rows are ordered so
+      // the current version is first per language; take the first one seen.
       const translationRows = db.all(
-        `SELECT item_id, data, version FROM node_data
-         WHERE node = ? AND (item_id, version) IN (
-           SELECT item_id, MAX(version) FROM node_data WHERE node = ? GROUP BY item_id
-         )`,
-        ["text-catalog-translation", "text-catalog-translation"]
+        `SELECT nd.item_id AS item_id, nd.data AS data, nd.version AS version
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ?
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
+        ["text-catalog-translation"]
       ) as Array<{ item_id: string; data: string; version: number }>
 
       const translations: Record<string, { entries: Array<{ id: string; text: string }>; version: number }> = {}
+      const seen = new Set<string>()
       for (const row of translationRows) {
+        if (seen.has(row.item_id)) continue
+        seen.add(row.item_id)
         try {
           const parsed = JSON.parse(row.data)
           translations[row.item_id] = { entries: parsed.entries, version: row.version }
         } catch {
-          // skip corrupted
+          // skip corrupted current version
+        }
+      }
+
+      const speechRows = db.all(
+        `SELECT nd.item_id AS item_id, nd.data AS data, nd.version AS version
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ?
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
+        ["core-tts-catalog"]
+      ) as Array<{ item_id: string; data: string; version: number }>
+      const speechTexts: Record<string, { entries: CoreTtsCatalogEntry[]; version: number }> = {}
+      const seenSpeech = new Set<string>()
+      for (const row of speechRows) {
+        if (seenSpeech.has(row.item_id)) continue
+        seenSpeech.add(row.item_id)
+        try {
+          const parsed = CoreTtsCatalogOutput.safeParse(JSON.parse(row.data))
+          if (parsed.success) {
+            speechTexts[row.item_id] = {
+              entries: parsed.data.entries,
+              version: row.version,
+            }
+          }
+        } catch {
+          // Ignore malformed historical rows, consistent with translations.
         }
       }
 
       return c.json({
         entries: catalog.entries,
         generatedAt: catalog.generatedAt,
-        version: catalogRows[0].version,
+        version: catalogRow.version,
         translations,
+        speechTexts,
       })
     } finally {
       db.close()
@@ -129,7 +177,141 @@ export function createTextCatalogRoutes(booksDir: string): Hono {
         language,
         data
       )
+
+      const normalizedLanguage = normalizeLocale(language)
+      invalidateCoreTtsForDisplayEntries({
+        storage,
+        language: normalizedLanguage,
+        entries: data.entries,
+      })
+      storage.clearNodesByType(["accessibility-assessment"])
+      storage.clearStepRuns([
+        "core-tts-catalog",
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
       return c.json({ version })
+    } finally {
+      storage.close()
+    }
+  })
+
+  // PUT /books/:label/core-tts-catalog/:language/:entryId — save an
+  // independent manual speech-text edit as a new language-entity version.
+  app.put("/books/:label/core-tts-catalog/:language/:entryId", async (c) => {
+    const { label, language, entryId } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+    const parsed = SpeechTextBody.safeParse(await c.req.json())
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid speech text: ${parsed.error.message}`,
+      })
+    }
+
+    const normalizedLanguage = normalizeLocale(language)
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const current = getCoreTtsCatalog(storage, normalizedLanguage)
+      if (!current) {
+        throw new HTTPException(404, {
+          message: `Core TTS catalog not found for ${normalizedLanguage}`,
+        })
+      }
+      const index = current.entries.findIndex((entry) => entry.id === entryId)
+      if (index < 0) {
+        throw new HTTPException(404, { message: `Core TTS entry not found: ${entryId}` })
+      }
+
+      const now = new Date().toISOString()
+      const previous = current.entries[index]
+      const speechText = parsed.data.speechText
+      const nextEntry: CoreTtsCatalogEntry = {
+        ...previous,
+        speechText,
+        changed: speechText !== previous.displayText,
+        status: "ready",
+        failureReason: undefined,
+        generation: {
+          ...previous.generation,
+          mode: "manual",
+          generatedAt: now,
+          sourceTextHash: hash(previous.displayText),
+          contextHash: hash({
+            displayText: previous.displayText,
+            speechText,
+            mode: "manual",
+          }),
+          cached: false,
+        },
+      }
+      const entries = [...current.entries]
+      entries[index] = nextEntry
+      const version = storage.putNodeData(
+        "core-tts-catalog",
+        normalizedLanguage,
+        CoreTtsCatalogOutput.parse({
+          language: normalizedLanguage,
+          entries,
+          generatedAt: now,
+        }),
+      )
+
+      // A generated recording and its timestamps describe the previous speech
+      // text. Remove those derived rows so the UI cannot serve stale audio.
+      // Uploaded/manual recordings are user-owned and must survive text edits.
+      const legacyLanguage = normalizedLanguage.replace("-", "_")
+      const normalizedTtsRow = storage.getLatestNodeData("tts", normalizedLanguage)
+      const ttsRow = normalizedTtsRow ?? storage.getLatestNodeData("tts", legacyLanguage)
+      const ttsItemId = normalizedTtsRow ? normalizedLanguage : legacyLanguage
+      if (ttsRow) {
+        const tts = ttsRow.data as TTSOutput
+        const entries = tts.entries.filter(
+          (entry) => entry.textId !== entryId || entry.provider === "manual",
+        )
+        const failed = tts.failed?.filter((entry) => entry.textId !== entryId)
+        if (
+          entries.length !== tts.entries.length ||
+          failed?.length !== tts.failed?.length
+        ) {
+          storage.putNodeData("tts", ttsItemId, {
+            ...tts,
+            entries,
+            failed,
+            generatedAt: now,
+          } satisfies TTSOutput)
+        }
+      }
+      const normalizedTimestampRow = storage.getLatestNodeData(
+        "tts-timestamps",
+        normalizedLanguage,
+      )
+      const timestampRow =
+        normalizedTimestampRow ??
+        storage.getLatestNodeData("tts-timestamps", legacyLanguage)
+      const timestampItemId = normalizedTimestampRow
+        ? normalizedLanguage
+        : legacyLanguage
+      if (timestampRow) {
+        const timestamps = timestampRow.data as WordTimestampOutput
+        const entries = { ...timestamps.entries }
+        delete entries[entryId]
+        storage.putNodeData("tts-timestamps", timestampItemId, {
+          ...timestamps,
+          entries,
+          failed: timestamps.failed?.filter((entry) => entry.textId !== entryId),
+          generatedAt: now,
+        } satisfies WordTimestampOutput)
+      }
+      storage.clearNodesByType(["accessibility-assessment"])
+      storage.clearStepRuns([
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
+      return c.json({ version, entry: nextEntry })
     } finally {
       storage.close()
     }

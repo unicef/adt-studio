@@ -40,6 +40,41 @@ const NON_WRITABLE_INPUT_TYPES = new Set([
   "range",
   "color",
 ])
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function countEditableElements(section: any): number {
+  let count = 0
+  const choiceGroups = new Set<string>()
+  let ungroupedChoiceCount = 0
+  const nodes = DomUtils.findAll(
+    (el) =>
+      el.type === "tag" &&
+      (el.name === "textarea" || el.name === "input" || el.name === "select"),
+    section.children ?? [],
+  )
+  for (const node of nodes) {
+    if (node.name === "textarea" || node.name === "select") {
+      count += 1
+      continue
+    }
+    const type = (node.attribs?.type ?? "text").toLowerCase()
+    if (type === "radio" || type === "checkbox") {
+      const group =
+        node.attribs?.name ??
+        node.attribs?.["data-question-group"] ??
+        node.attribs?.["data-activity-item"]
+      if (group) choiceGroups.add(`${type}:${group}`)
+      else ungroupedChoiceCount += 1
+      continue
+    }
+    if (!NON_WRITABLE_INPUT_TYPES.has(type)) count += 1
+  }
+  count += choiceGroups.size
+  count += ungroupedChoiceCount
+  const markerText = DomUtils.textContent(section)
+  count += markerText.match(BLANK_MARKER_RE)?.length ?? 0
+  return count
+}
 /**
  * Matches a leaf/text whose whole content is just an enumeration marker: a list
  * number, single letter, or roman numeral, optionally dotted or parenthesized —
@@ -135,6 +170,8 @@ export interface HtmlValidationOptions {
    * that are present must keep their relative order.
    */
   expectedContentIdOrder?: string[]
+  /** Minimum native/marker response controls required by the source activity tree. */
+  minimumEditableElements?: number
 }
 
 export function validateSectionHtml(
@@ -177,6 +214,16 @@ export function validateSectionHtml(
     errors.push(
       `Section type "${sectionType}" requires at least one editable element (<textarea>, <input>, or [[blank:item-N]] marker), but none were found. The learner cannot type into this page.`
     )
+  }
+
+  if ((options?.minimumEditableElements ?? 0) > 0) {
+    const actual = countEditableElements(section)
+    const minimum = options!.minimumEditableElements!
+    if (actual < minimum) {
+      errors.push(
+        `The source contains at least ${minimum} learner response prompt(s), but the rendering has only ${actual} response control(s). Add a labelled input, textarea, select, or choice group next to every answerable prompt.`
+      )
+    }
   }
 
   // Activity-specific structural checks. These catch failure modes the visual
@@ -266,7 +313,7 @@ function validateRequiredSectionAttributes(
 function isWritableInput(node: any): boolean {
   if (node.type !== "tag") return false
   const tagName = (node.name ?? "").toLowerCase()
-  if (tagName === "textarea") return true
+  if (tagName === "textarea" || tagName === "select") return true
   if (tagName !== "input") return false
   const inputType = (node.attribs?.type ?? "text").toLowerCase()
   return !NON_WRITABLE_INPUT_TYPES.has(inputType)

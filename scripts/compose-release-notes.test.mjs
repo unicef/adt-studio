@@ -125,6 +125,11 @@ describe("release note composition helpers", () => {
     expect(ghCalls.some((path) => path.includes("/commits/"))).toBe(false);
     expect(result).toContain("PR [#42](https://github.com/o/r/pull/42)");
     expect(result).toContain("Generated body");
+    expect(result).toContain("<!-- adt-factual-notes:start -->");
+    expect(result).toContain("<!-- adt-factual-notes:end -->");
+    expect(result.indexOf("<!-- adt-factual-notes:end -->")).toBeLessThan(
+      result.indexOf("### Release source"),
+    );
   });
 
   it("rejects a non-numeric PR number", () => {

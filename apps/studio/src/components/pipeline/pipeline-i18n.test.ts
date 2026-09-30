@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+import { PIPELINE } from "@adt/types"
 
 vi.mock("@lingui/core/macro", () => ({
   msg(strings: TemplateStringsArray, ...values: unknown[]) {
@@ -25,6 +26,8 @@ const {
   getStageDescriptionI18n,
   getStageLabelI18n,
   getStageRunningLabelI18n,
+  getStepLabelI18n,
+  STEP_LABEL_MESSAGES,
 } = await import("./pipeline-i18n")
 
 describe("pipeline-i18n", () => {
@@ -40,5 +43,13 @@ describe("pipeline-i18n", () => {
     expect(getStageLabelI18n("unknown-stage")).toBe("unknown-stage")
     expect(getStageRunningLabelI18n("unknown-stage")).toBe("unknown-stage")
     expect(getStageDescriptionI18n("unknown-stage")).toBeUndefined()
+  })
+
+  it("resolves labels for every pipeline step", () => {
+    expect(getStepLabelI18n("core-tts-catalog")).toBe("TTS Normalization")
+    expect(getStepLabelI18n("accessibility-assessment")).toBe("Accessibility Assessment")
+    expect(Object.keys(STEP_LABEL_MESSAGES).sort()).toEqual(
+      PIPELINE.flatMap((stage) => stage.steps.map((step) => step.name)).sort(),
+    )
   })
 })

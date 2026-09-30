@@ -10,12 +10,12 @@
 import {
   getTextCatalogCategory,
   isTtsExcluded,
+  sectionIdOfAnswerTextId,
   type TextCatalogCategory,
   type TtsExclusionConfig,
 } from "@adt/types"
 
 const IMAGE_ID_RE = /_im\d{3}/
-const ANSWER_ID_RE = /_ans_/
 const GLOSSARY_ID_RE = /^gl(?:\d{3}|_manual_)/
 const EASY_READ_ID_RE = /_easy_read$/
 
@@ -26,7 +26,10 @@ export function isImageEntry(id: string): boolean {
 }
 
 export function isAnswerEntry(id: string): boolean {
-  return ANSWER_ID_RE.test(id)
+  // Shares @adt/types' definition rather than a local regex: answer ids are the
+  // one catalog id derived from a sectionId, and retirement resolves the owner
+  // with the same function.
+  return sectionIdOfAnswerTextId(id) !== null
 }
 
 export function isGlossaryEntry(id: string): boolean {

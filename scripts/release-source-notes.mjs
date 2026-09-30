@@ -1,8 +1,15 @@
 const HEADING = "### Release source";
+const FACTUAL_START = "<!-- adt-factual-notes:start -->";
+const FACTUAL_END = "<!-- adt-factual-notes:end -->";
 const GITHUB_URL_PREFIX = "https://github.com/";
 const COVER_URL_PREFIXES = [
   "https://github.com/user-attachments/",
   "https://user-images.githubusercontent.com/",
+];
+// Official release covers are uploaded as GitHub release assets under the repo's
+// own release-download host, which is fully GitHub/repo controlled.
+const COVER_URL_PATTERNS = [
+  /^https:\/\/github\.com\/[^/]+\/[^/]+\/releases\/download\//,
 ];
 const GENERIC_RELEASE_TITLES = new Set([
   "what's changed",
@@ -11,6 +18,39 @@ const GENERIC_RELEASE_TITLES = new Set([
   "changelog",
   "release notes",
 ]);
+
+export function wrapFactualReleaseNotes(notes) {
+  const content = typeof notes === "string" ? notes.trim() : "";
+  return content ? `${FACTUAL_START}\n${content}\n${FACTUAL_END}` : "";
+}
+
+export function stripFactualReleaseNotes(body = "") {
+  let result = String(body);
+  const start = result.indexOf(FACTUAL_START);
+  const end = result.indexOf(FACTUAL_END);
+  if (start >= 0 && end > start) {
+    result = `${result.slice(0, start)}${result.slice(end + FACTUAL_END.length)}`;
+  }
+  return result
+    .replace(
+      /^#{1,3}[ \t]+What's Changed[ \t]*\r?\n[\s\S]*?^\*\*Full Changelog\*\*:[^\r\n]*(?:\r?\n[ \t]*)*/im,
+      "",
+    )
+    .trim();
+}
+
+export function extractReleaseSourceBlock(body = "") {
+  const pattern =
+    /^### Release source[ \t]*\r?\n(?:[ \t]*\r?\n)*(?:- [^\r\n]*(?:\r?\n|$))+(?:[ \t]*\r?\n)*/m;
+  const match = String(body).match(pattern);
+  if (!match || match.index == null) {
+    return { body: String(body), source: "" };
+  }
+  return {
+    body: `${body.slice(0, match.index)}${body.slice(match.index + match[0].length)}`.trim(),
+    source: match[0].trim(),
+  };
+}
 
 function githubUrl(value) {
   return typeof value === "string" && value.startsWith(GITHUB_URL_PREFIX);
@@ -129,10 +169,10 @@ export function parseReleaseSourceSection(body) {
     return { notes: typeof body === "string" ? body : "", source: undefined };
   }
 
-  const headingIndex = lastHeadingIndex(body);
-  if (headingIndex < 0) return { notes: body, source: undefined };
+  const extracted = extractReleaseSourceBlock(body);
+  if (!extracted.source) return { notes: body, source: undefined };
 
-  const section = body.slice(headingIndex).replace(/\r\n/g, "\n");
+  const section = extracted.source.replace(/\r\n/g, "\n");
   const lines = section.split("\n").slice(1);
   const source = { prs: [] };
   let recognized = 0;
@@ -202,7 +242,7 @@ export function parseReleaseSourceSection(body) {
 
   if (!recognized) return { notes: body, source: undefined };
   return {
-    notes: body.slice(0, headingIndex).trimEnd(),
+    notes: extracted.body,
     source,
   };
 }
@@ -217,7 +257,10 @@ function plainInlineText(value) {
 }
 
 function isAllowedCoverUrl(value) {
-  return COVER_URL_PREFIXES.some((prefix) => value.startsWith(prefix));
+  return (
+    COVER_URL_PREFIXES.some((prefix) => value.startsWith(prefix)) ||
+    COVER_URL_PATTERNS.some((pattern) => pattern.test(value))
+  );
 }
 
 function validEditorialTitle(value) {

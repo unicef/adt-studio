@@ -1,7 +1,13 @@
 import type { BeforeMount } from "@monaco-editor/react"
 
 export const PROMPT_EDITOR_LANGUAGE = "adt-liquid"
-export const PROMPT_EDITOR_THEME = "adt-studio-light"
+export const PROMPT_EDITOR_THEME_LIGHT = "adt-studio-light"
+export const PROMPT_EDITOR_THEME_DARK = "adt-studio-dark"
+
+export function promptEditorTheme(isDark: boolean) {
+  return isDark ? PROMPT_EDITOR_THEME_DARK : PROMPT_EDITOR_THEME_LIGHT
+}
+
 export const PROMPT_EDITOR_OPTIONS = {
   minimap: { enabled: false },
   wordWrap: "on",
@@ -75,7 +81,7 @@ export const configurePromptEditor: BeforeMount = (monaco) => {
     ],
   })
 
-  monaco.editor.defineTheme(PROMPT_EDITOR_THEME, {
+  monaco.editor.defineTheme(PROMPT_EDITOR_THEME_LIGHT, {
     base: "vs",
     inherit: true,
     rules: [
@@ -100,6 +106,34 @@ export const configurePromptEditor: BeforeMount = (monaco) => {
       "scrollbarSlider.background": "#cbd5e166",
       "scrollbarSlider.hoverBackground": "#94a3b880",
       "scrollbarSlider.activeBackground": "#64748b99",
+    },
+  })
+
+  monaco.editor.defineTheme(PROMPT_EDITOR_THEME_DARK, {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      { token: "comment", foreground: "94a3b8", fontStyle: "italic" },
+      { token: "keyword", foreground: "c4b5fd" },
+      { token: "operator", foreground: "5eead4" },
+      { token: "string", foreground: "fcd34d" },
+      { token: "variable", foreground: "93c5fd" },
+    ],
+    colors: {
+      "editor.background": "#1e293b",
+      "editor.foreground": "#e2e8f0",
+      "editor.lineHighlightBackground": "#293548",
+      "editor.selectionBackground": "#134e4a",
+      "editor.inactiveSelectionBackground": "#334155",
+      "editorCursor.foreground": "#5eead4",
+      "editorLineNumber.foreground": "#64748b",
+      "editorLineNumber.activeForeground": "#5eead4",
+      "editorGutter.background": "#1e293b",
+      "editorIndentGuide.background1": "#334155",
+      "editorIndentGuide.activeBackground1": "#475569",
+      "scrollbarSlider.background": "#47556966",
+      "scrollbarSlider.hoverBackground": "#64748b80",
+      "scrollbarSlider.activeBackground": "#94a3b899",
     },
   })
 }

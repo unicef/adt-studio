@@ -58,7 +58,7 @@ export function Step0Preset() {
   return (
     <div
       className={cn(
-        "flex flex-1 min-h-0 w-full bg-white flex-col items-center justify-center gap-6 sm:gap-8 px-4 py-10",
+        "flex flex-1 min-h-0 w-full bg-background flex-col items-center justify-center gap-6 sm:gap-8 px-4 py-10",
         stepDirection === "forward"
           ? "animate-step-enter-forward"
           : "animate-step-enter-back",
@@ -67,11 +67,11 @@ export function Step0Preset() {
       <div className="relative flex flex-col items-center gap-1">
         <h1
           id="preset-step-heading"
-          className="text-2xl sm:text-[30px] font-semibold leading-tight sm:leading-9 tracking-[-0.75px] text-[#030303] text-center"
+          className="text-2xl sm:text-[30px] font-semibold leading-tight sm:leading-9 tracking-[-0.75px] text-foreground text-center"
         >
           <Trans>Choose a Preset</Trans>
         </h1>
-        <p className="max-w-xl text-center text-sm text-[#525252]">
+        <p className="max-w-xl text-center text-sm text-foreground/80">
           <Trans>
             Presets add recommendations and specific settings for your use case. You still choose
             each option step by step, and you can go back to select a different preset at any
@@ -109,7 +109,7 @@ export function Step0Preset() {
         <Button
           variant="secondary"
           onClick={() => setPhase("upload")}
-          className="h-9 px-3 py-2 bg-[#f5f5f5] text-[#262626] hover:bg-[#e5e5e5] border-0"
+          className="h-9 px-3 py-2 bg-muted text-foreground hover:bg-muted border-0"
         >
           <ArrowLeft className="h-4 w-4 mr-1.5" />
           <Trans>Back</Trans>

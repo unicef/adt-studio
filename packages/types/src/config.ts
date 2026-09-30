@@ -1,6 +1,8 @@
 import { z } from "zod"
+import { QualifiedModelId } from "./model-id.js"
 import { ImageFilters } from "./image-filtering.js"
 import { SpeechConfig } from "./speech.js"
+import { CoreTtsConfig } from "./core-tts.js"
 import { ReviewerValidationConfig } from "./reviewer-validation-config.js"
 import { TranslationEvaluationConfig } from "./translation-evaluation.js"
 import { REFLOWABLE_FONT_SETTINGS } from "./reflowable-fonts.js"
@@ -9,12 +11,106 @@ export const DEFAULT_LLM_MAX_RETRIES = 5
 export const DEFAULT_LLM_MODEL_ID = "openai:gpt-5.4"
 export const DEFAULT_IMAGE_GENERATION_MODEL_ID = "openai:gpt-image-2"
 export const DEFAULT_OPENAI_TTS_MODEL_ID = "gpt-4o-mini-tts"
+export const DEFAULT_ELEVENLABS_TTS_MODEL_ID = "eleven_multilingual_v2"
+// Rachel — a stable ElevenLabs premade voice ID, used when no voice is
+// configured for the elevenlabs provider.
+export const DEFAULT_ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"
 
-export const LLMModelId = z
-  .string()
-  .trim()
-  .regex(/^[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z0-9][a-zA-Z0-9_.-]{0,159}$/)
-  .transform((value) => value.toLowerCase())
+/**
+ * Controls how selectable PDF text participates in composite figure extraction.
+ *
+ * - `off`: extract raster and vector artwork, but do not merge nearby text into
+ *   composite page crops.
+ * - `auto`: create composite candidates, then let image meaningfulness retain
+ *   only candidates that are better represented as images than semantic HTML.
+ * - `all`: create every composite candidate and leave retention to the normal
+ *   image filters.
+ */
+export const FigureExtractionMode = z.enum(["off", "auto", "all"])
+export type FigureExtractionMode = z.infer<typeof FigureExtractionMode>
+
+/**
+ * Display names for the ElevenLabs voice IDs ADT Studio ships (the
+ * `DEFAULT_ELEVENLABS_VOICE_ID` fallback and the entries in
+ * `config/voices.yaml`).
+ *
+ * ElevenLabs voice IDs are opaque, and the UI normally resolves them to names
+ * through the account's voice list. That lookup can't help in two common cases:
+ * no ElevenLabs API key is configured (the key lives in browser storage, so a
+ * fresh profile has none), and premade library voices that the user has not
+ * added to their own workspace. Both left the UI showing a raw
+ * `21m00Tcm4TlvDq8ikWAM`.
+ *
+ * These are the IDs a user sees before configuring anything, so their names are
+ * known here and need no network call. The live list still wins when available —
+ * it is authoritative and covers the user's own voices too.
+ */
+export const ELEVENLABS_SHIPPED_VOICE_NAMES: Record<string, string> = {
+  [DEFAULT_ELEVENLABS_VOICE_ID]: "Rachel",
+  // Río de la Plata Spanish, mapped to `es-uy` in config/voices.yaml.
+  QK4xDwo9ESPHA4JNUpX3: "Tomás",
+}
+
+/**
+ * OpenAI's built-in TTS voices. Short, stable, and the same set for every
+ * language — OpenAI voices are multilingual, so these must never be filtered
+ * by locale the way Azure's are.
+ *
+ * Bundled rather than fetched: OpenAI exposes no voice-list endpoint, and the
+ * set changes rarely enough that a constant beats a network call. The picker
+ * always allows free text, so a voice added upstream is still reachable.
+ */
+export const OPENAI_TTS_VOICES = [
+  "alloy", "ash", "ballad", "coral", "echo", "fable",
+  "nova", "onyx", "sage", "shimmer", "verse",
+] as const
+
+/**
+ * Gemini's prebuilt TTS voices. Like OpenAI's these are multilingual — one
+ * voice speaks any supported language — so they are offered unfiltered.
+ */
+export const GEMINI_TTS_VOICES = [
+  "Achernar", "Achird", "Algenib", "Algieba", "Alnilam", "Aoede", "Autonoe",
+  "Callirrhoe", "Charon", "Despina", "Enceladus", "Erinome", "Fenrir", "Gacrux",
+  "Iapetus", "Kore", "Laomedeia", "Leda", "Orus", "Puck", "Pulcherrima",
+  "Rasalgethi", "Sadachbia", "Sadaltager", "Schedar", "Sulafat", "Umbriel",
+  "Vindemiatrix", "Zephyr", "Zubenelgenubi",
+] as const
+
+/**
+ * Narration-oriented ElevenLabs `voice_settings` defaults, matching ElevenLabs'
+ * own audiobook/narration recommendation.
+ *
+ * These are not cosmetic. ElevenLabs treats `voice_settings` as "voice settings
+ * overriding stored settings for the given voice", so when the field is absent
+ * the voice's own stored dashboard settings apply — arbitrary for community and
+ * cloned voices. ElevenLabs documents that a non-zero `style` "can lead to
+ * instability, including inconsistent speed, mispronunciation and the addition
+ * of extra sounds", and that low `stability` broadens emotional range at the
+ * cost of hallucinations. In practice that surfaces as filler sounds ("ehm",
+ * "uh") the source text never contained, so we always send a resolved block.
+ *
+ * Lives here (rather than beside the synthesizer) because the Studio also needs
+ * the numbers, to show what applies when a book overrides nothing.
+ *
+ * `speed` deliberately has no default: it is only sent when explicitly set, so
+ * an unset value leaves ElevenLabs' own pacing alone rather than pinning it.
+ */
+export const DEFAULT_ELEVENLABS_VOICE_SETTINGS = {
+  stability: 0.7,
+  similarity_boost: 0.5,
+  style: 0,
+  use_speaker_boost: true,
+} as const
+
+/**
+ * Model the un-suffixed base prompt templates are authored for. A pipeline step
+ * running on this model uses the base prompt directly; any other model resolves
+ * its own prompt-variant folder first. Overridable via `base_prompt_model`.
+ */
+export const DEFAULT_BASE_PROMPT_MODEL_ID = "openai:gpt-5.4"
+
+export const LLMModelId = QualifiedModelId
 export type LLMModelId = z.infer<typeof LLMModelId>
 
 export const SpeechGenerationModelId = z
@@ -185,6 +281,9 @@ export const AppConfig = z
     default_model: LLMModelId.optional(),
     default_image_generation_model: LLMModelId.optional(),
     default_speech_generation_model: SpeechGenerationModelId.optional(),
+    /** Model the base (un-suffixed) prompt templates target. Defaults to
+     *  DEFAULT_BASE_PROMPT_MODEL_ID. Steps on this model skip variant lookup. */
+    base_prompt_model: LLMModelId.optional(),
     structure_types: z.record(z.string(), z.string()),
     role_types: z.record(z.string(), z.string()),
     section_types: z.record(z.string(), z.string()).optional(),
@@ -195,6 +294,7 @@ export const AppConfig = z
     translation: StepConfig.optional(),
     metadata: StepConfig.optional(),
     book_summary: StepConfig.optional(),
+    book_outline: StepConfig.optional(),
     quiz_generation: QuizGenerationConfig.optional(),
     easy_read: EasyReadConfig.optional(),
     default_render_strategy: z.string().optional(),
@@ -257,12 +357,24 @@ export const AppConfig = z
      */
     spread_pairs: z.array(z.number().int().min(1)).optional(),
     split_mode: z.boolean().optional(),
+    figure_extraction_mode: FigureExtractionMode.optional(),
+    /**
+     * Legacy figure-extraction switch. New configs use
+     * `figure_extraction_mode`; retained so existing books remain readable.
+     */
     vector_text_grouping: z.boolean().optional(),
+    /**
+     * Detect repeated identical text stamps (e.g. a diagonal "FOR ONLINE
+     * READING ONLY" on every page) and remove them from page renders,
+     * figure crops, reflowable text, and positioned text. Off by default.
+     */
+    remove_watermarks: z.boolean().optional(),
     apply_body_background: z.boolean().optional(),
     generate_activities: z.boolean().optional(),
     start_page: z.number().int().min(1).optional(),
     end_page: z.number().int().min(1).optional(),
     speech: SpeechConfig.optional(),
+    core_tts: CoreTtsConfig.optional(),
     styleguide: z.string().regex(/^[a-zA-Z0-9_-]+$/).optional(),
     default_settings: z
       .object({

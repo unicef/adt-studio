@@ -5,7 +5,12 @@ import {
   parseBookLabel,
   type TranslationEvaluationResult,
 } from "@adt/types"
-import { createBookStorage, openBookDb } from "@adt/storage"
+import {
+  CURRENT_VERSION_ORDER,
+  createBookStorage,
+  openBookDb,
+  readCurrentNodeRow,
+} from "@adt/storage"
 import { HTTPException } from "hono/http-exception"
 import { type ZodType } from "zod"
 
@@ -39,25 +44,26 @@ function ensureBookExists(dbPath: string, safeLabel: string) {
 
 type BookDb = ReturnType<typeof openBookDb>
 
-function parseLatestRows<T>(
+function parseCurrentRows<T>(
   db: BookDb,
   node: string,
   schema: ZodType<T>,
 ): Array<{ itemId: string; version: number; data: T }> {
-  const rows = db.all(
-    `SELECT current.item_id as item_id, current.version as version, current.data as data
-     FROM node_data current
-     INNER JOIN (
-       SELECT item_id, MAX(version) as max_version
-       FROM node_data
-       WHERE node = ?
-       GROUP BY item_id
-     ) latest
-     ON current.item_id = latest.item_id AND current.version = latest.max_version
-     WHERE current.node = ?
-     ORDER BY current.item_id ASC`,
-    [node, node],
+  const orderedRows = db.all(
+    `SELECT nd.item_id AS item_id, nd.version AS version, nd.data AS data
+     FROM node_data nd
+     LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+     WHERE nd.node = ?
+     ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
+    [node],
   ) as Array<{ item_id: string; version: number; data: string }>
+
+  const seen = new Set<string>()
+  const rows = orderedRows.filter((row) => {
+    if (seen.has(row.item_id)) return false
+    seen.add(row.item_id)
+    return true
+  })
 
   return rows.map((row) => ({
     itemId: row.item_id,
@@ -66,35 +72,29 @@ function parseLatestRows<T>(
   }))
 }
 
-function getLatestNodeVersion(
+function getCurrentNodeVersion(
   db: BookDb,
   node: string,
   itemId: string,
 ): number | null {
-  const rows = db.all(
-    "SELECT version FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
-    [node, itemId],
-  ) as Array<{ version: number }>
-  return rows[0]?.version ?? null
+  return readCurrentNodeRow(db, node, itemId)?.version ?? null
 }
 
-function getLatestNodeVersions(db: BookDb, node: string): Map<string, number> {
+function getCurrentNodeVersions(db: BookDb, node: string): Map<string, number> {
   const rows = db.all(
-    `SELECT current.item_id as item_id, current.version as version
-     FROM node_data current
-     INNER JOIN (
-       SELECT item_id, MAX(version) as max_version
-       FROM node_data
-       WHERE node = ?
-       GROUP BY item_id
-     ) latest
-     ON current.item_id = latest.item_id AND current.version = latest.max_version
-     WHERE current.node = ?
-     ORDER BY current.item_id ASC`,
-    [node, node],
+    `SELECT nd.item_id AS item_id, nd.version AS version
+     FROM node_data nd
+     LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+     WHERE nd.node = ?
+     ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
+    [node],
   ) as Array<{ item_id: string; version: number }>
 
-  return new Map(rows.map((row) => [row.item_id, row.version]))
+  const versions = new Map<string, number>()
+  for (const row of rows) {
+    if (!versions.has(row.item_id)) versions.set(row.item_id, row.version)
+  }
+  return versions
 }
 
 function buildEvaluationStatus(
@@ -134,14 +134,14 @@ export function listTranslationEvaluationStatuses(
   let translationVersions: Map<string, number>
   let currentSourceCatalogVersion: number | null
   try {
-    const evaluationRows = parseLatestRows(
+    const evaluationRows = parseCurrentRows(
       db,
       TRANSLATION_EVALUATION_NODE,
       TranslationEvaluationResultSchema,
     )
     evaluationByLanguage = new Map(evaluationRows.map((row) => [row.itemId, row]))
-    translationVersions = getLatestNodeVersions(db, "text-catalog-translation")
-    currentSourceCatalogVersion = getLatestNodeVersion(db, "text-catalog", "book")
+    translationVersions = getCurrentNodeVersions(db, "text-catalog-translation")
+    currentSourceCatalogVersion = getCurrentNodeVersion(db, "text-catalog", "book")
   } finally {
     db.close()
   }
@@ -173,14 +173,14 @@ export function getTranslationEvaluationStatus(
   let currentTranslationVersion: number | null
   let currentSourceCatalogVersion: number | null
   try {
-    const evaluationRows = parseLatestRows(
+    const evaluationRows = parseCurrentRows(
       db,
       TRANSLATION_EVALUATION_NODE,
       TranslationEvaluationResultSchema,
     )
     evaluationRow = evaluationRows.find((row) => row.itemId === language)
-    currentTranslationVersion = getLatestNodeVersion(db, "text-catalog-translation", language)
-    currentSourceCatalogVersion = getLatestNodeVersion(db, "text-catalog", "book")
+    currentTranslationVersion = getCurrentNodeVersion(db, "text-catalog-translation", language)
+    currentSourceCatalogVersion = getCurrentNodeVersion(db, "text-catalog", "book")
   } finally {
     db.close()
   }

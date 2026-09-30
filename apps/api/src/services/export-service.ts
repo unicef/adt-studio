@@ -2,8 +2,9 @@ import fs from "node:fs"
 import path from "node:path"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
+import type { PackagingWarning } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
-import { packageAdtWeb, packageWebpub, packageEpub, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
+import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
 
@@ -59,6 +60,11 @@ export interface ExportDefaultSettings {
   reduceMotion?: boolean
 }
 
+/** What the rebuild had to leave out of the exported bundle. */
+export interface PrepareExportResult {
+  warnings: PackagingWarning[]
+}
+
 /**
  * Prepare export by rebuilding the adt/ (and optionally webpub/) directories.
  * Called as a separate step before the actual download so the client can show
@@ -66,13 +72,13 @@ export interface ExportDefaultSettings {
  */
 export async function prepareExport(
   label: string,
-  format: "project" | "webpub" | "scorm" | "adt" | "epub",
+  format: "project" | "webpub" | "scorm" | "adt" | "epub" | "pnld",
   booksDir: string,
   webAssetsDir: string,
   configPath?: string,
   features?: ExportFeatures,
   defaultSettingsOverride?: ExportDefaultSettings,
-): Promise<void> {
+): Promise<PrepareExportResult> {
   const safeLabel = parseBookLabel(label)
   const resolvedDir = path.resolve(booksDir)
   const bookDir = path.join(resolvedDir, safeLabel)
@@ -157,13 +163,17 @@ export async function prepareExport(
       epubGlossary: config.epub_glossary,
     }
 
-    await packageAdtWeb(storage, opts)
+    const { warnings } = await packageAdtWeb(storage, opts)
 
     if (format === "webpub") {
       packageWebpub(storage, opts)
     } else if (format === "epub") {
       packageEpub(storage, opts)
+    } else if (format === "pnld") {
+      packagePnld(storage, opts)
     }
+
+    return { warnings }
   } finally {
     storage.close()
   }
@@ -316,5 +326,30 @@ export async function exportEpub(
     stream: createZipStream(epubDir),
     filename: `${title}.epub`,
     safeFilename: `${safeLabel}.epub`,
+  }
+}
+
+export async function exportPnld(
+  label: string,
+  booksDir: string,
+): Promise<ExportResult> {
+  const safeLabel = parseBookLabel(label)
+  const resolvedDir = path.resolve(booksDir)
+  const bookDir = path.join(resolvedDir, safeLabel)
+
+  if (!fs.existsSync(bookDir)) {
+    throwBookNotFound(safeLabel)
+  }
+
+  const title = readBookTitle(safeLabel, resolvedDir)
+  const pnldDir = path.join(bookDir, "pnld")
+  if (!fs.existsSync(pnldDir)) {
+    throw new HTTPException(400, { message: "PNLD directory not found — run prepare-export first" })
+  }
+
+  return {
+    stream: createZipStream(pnldDir),
+    filename: `${title}.zip`,
+    safeFilename: `${safeLabel}-pnld.zip`,
   }
 }

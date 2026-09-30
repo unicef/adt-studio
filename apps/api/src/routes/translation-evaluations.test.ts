@@ -146,6 +146,56 @@ function defaultEvalConfigHash(): string {
 }
 
 describe("translation evaluation routes", () => {
+  it("marks an evaluation stale against a restored translation version", async () => {
+    const label = "restored-review"
+    seedBook(label)
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("text-catalog-translation", "es", {
+        entries: [{ id: "pg001_t001", text: "Superseded translation" }],
+        generatedAt: new Date().toISOString(),
+      })
+    } finally {
+      storage.close()
+    }
+
+    saveTranslationEvaluationResult(label, tmpDir, {
+      generated_at: new Date().toISOString(),
+      provider: "adt-llm",
+      language: "es",
+      source_language: "en",
+      source_catalog_version: 1,
+      translation_version: 2,
+      eval_config_hash: "hash",
+      summary: { total: 1, acceptable: 1, unacceptable: 0 },
+      items: [{
+        entry_id: "pg001_t001",
+        page_id: "pg001",
+        acceptable: true,
+        source_text: "Do you?",
+        translated_text: "Superseded translation",
+        rationale: "Translation is acceptable.",
+        issue_types: [],
+      }],
+    })
+
+    const restored = createBookStorage(label, tmpDir)
+    try {
+      expect(restored.setCurrentNodeVersion("text-catalog-translation", "es", 1)).toBe(true)
+    } finally {
+      restored.close()
+    }
+
+    const app = createTranslationEvaluationRoutes(tmpDir)
+    const res = await app.request(`/books/${label}/evaluations/translations/es`)
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({
+      currentTranslationVersion: 1,
+      evaluationVersion: 1,
+      isStale: true,
+    })
+  })
+
   it("rejects a review run when translation evaluation is disabled", async () => {
     const label = "disabled-review"
     seedBook(label)

@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { usePage, usePageImage } from "@/hooks/use-pages"
 import { api, BASE_URL } from "@/api/client"
 import { useActiveConfig } from "@/hooks/use-debug"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
@@ -121,7 +121,8 @@ export function ExtractPageDetail({
   const { data: page, isLoading } = usePage(bookLabel, pageId)
   const { data: imageData } = usePageImage(bookLabel, pageId)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const [pageImageDims, setPageImageDims] = useState<{ w: number; h: number } | null>(null)
   const { stageState, stepState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
@@ -193,7 +194,7 @@ export function ExtractPageDetail({
   // boxes). The editor always opens: if the LLM detects a composite we seed its
   // boxes, otherwise we seed a single full-image box the user can adjust to crop.
   const handleSegment = useCallback(async (imageId: string) => {
-    if (!hasApiKey || segmentingId) return
+    if (!hasStructuredTextProvider || segmentingId) return
     setSegmentError(null)
     setSegmentingId(imageId)
     try {
@@ -220,7 +221,7 @@ export function ExtractPageDetail({
     } finally {
       setSegmentingId(null)
     }
-  }, [bookLabel, pageId, apiKey, hasApiKey, segmentingId, t])
+  }, [bookLabel, pageId, apiKey, hasStructuredTextProvider, segmentingId, t])
 
   // Apply confirmed segmentation (phase 2: crop, save, and add the new segment
   // images to the image-filtering classification. The original is kept but
@@ -362,9 +363,42 @@ export function ExtractPageDetail({
                   bookLabel={bookLabel}
                   pendingLabel={pendingLabel}
                   pendingLabelKey={pendingLabelKey}
-                  onPreview={(data) => setPendingImageData(data as ImageClassData)}
+                  onRestored={() => setPendingImageData(null)}
                   onSave={saveImageChanges}
                   onDiscard={() => setPendingImageData(null)}
+                  diff={{
+                    items: (d) => (d as ImageClassData | null)?.images ?? [],
+                    keyOf: (it) => (it as ImageClassData["images"][number]).imageId,
+                    // Item-level, image-forward, changes-only. The value is a
+                    // keep/filter state (+reason), not text — so status badges,
+                    // no word-diff / search / unchanged list.
+                    hideUnchanged: true,
+                    renderItem: (it) => {
+                      const img = it as ImageClassData["images"][number]
+                      const filtered = img.isPruned
+                      return (
+                        <span className="flex flex-col gap-1.5">
+                          <img
+                            src={`${BASE_URL}/books/${bookLabel}/images/${img.imageId}`}
+                            alt=""
+                            className="max-h-[32vh] w-full rounded-md border bg-muted object-contain"
+                          />
+                          <span
+                            className={`w-fit rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ${
+                              filtered
+                                ? "bg-rose-100 text-rose-700 ring-rose-300"
+                                : "bg-emerald-100 text-emerald-700 ring-emerald-300"
+                            }`}
+                          >
+                            {filtered ? t`Filtered out` : t`Kept`}
+                          </span>
+                          {img.reason ? (
+                            <span className="text-[11px] text-muted-foreground">{img.reason}</span>
+                          ) : null}
+                        </span>
+                      )
+                    },
+                  }}
                 />
               </div>
             </h3>
@@ -449,7 +483,7 @@ export function ExtractPageDetail({
                     bounds={boundsByImageId.get(img.imageId)}
                     onTogglePrune={() => toggleImagePrune(img.imageId)}
                     onRecrop={!storyboardRunning ? () => handleRecropFromPage(img.imageId) : undefined}
-                    onSegment={hasApiKey && !storyboardRunning ? () => handleSegment(img.imageId) : undefined}
+                    onSegment={hasStructuredTextProvider && !storyboardRunning ? () => handleSegment(img.imageId) : undefined}
                     segmenting={segmentingId === img.imageId}
                     cacheBust={cacheBust}
                   />

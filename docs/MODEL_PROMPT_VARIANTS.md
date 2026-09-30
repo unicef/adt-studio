@@ -183,7 +183,7 @@ introduce new required variables without a matching pipeline code change.
 | Prompt | Variables supplied by the runtime |
 | --- | --- |
 | `metadata_extraction` | `pages`, `pages[].pageNumber`, `pages[].text`, `pages[].imageBase64` |
-| `image_meaningfulness` | `page_image_base64`, `images`, `images[].imageId`, `images[].imageBase64`, `images[].width`, `images[].height` |
+| `image_meaningfulness` | `page_image_base64`, `page_text`, `figure_extraction_mode`, `images`, `images[].imageId`, `images[].imageBase64`, `images[].width`, `images[].height`, `images[].renderMethod`, `images[].figureContext`, `images[].figureContext.coveredImageIds`, `images[].containedInFigureId` |
 | `image_cropping` | `page_image_base64`, `images`, `images[].imageId`, `images[].imageBase64`, `images[].width`, `images[].height` |
 | `image_segmentation` | `page_image_base64`, `images`, `images[].imageId`, `images[].imageBase64`, `images[].width`, `images[].height` |
 | `page_sectioning` | `page`, `page.pageNumber`, `page.text`, `page.imageBase64`, `images`, `images[].image_id`, `images[].imageBase64`, `structure_types`, `role_types`, `section_types`, `mode` |
@@ -350,8 +350,9 @@ that step is not optimized for the model.
 | `activity_fill_in_a_table_answers` | Extracts or generates answer data for table-completion activities. |
 | `activity_matching` | Renders matching activity sections as HTML. |
 | `activity_matching_answers` | Extracts or generates answer data for matching activities. |
-| `activity_sorting` | Renders sorting/ordering activity sections as HTML. |
-| `activity_sorting_answers` | Extracts or generates answer data for sorting/ordering activities. |
+| `activity_sorting` | Renders category-sorting activity sections as HTML. |
+| `activity_sorting_answers` | Extracts or generates answer data for category-sorting activities. |
+| `activity_ordering` | Renders ordered-sequence HTML; validated order metadata deterministically supplies answer ranks. |
 | `activity_open_ended_answer` | Generates answer/support data for open-ended activities. |
 
 ### AI Image Tools

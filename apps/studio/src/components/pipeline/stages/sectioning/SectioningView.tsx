@@ -3,10 +3,11 @@ import { ArrowLeft, ArrowRight, LayoutGrid, Table2 } from "lucide-react"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
 import { LoadingState } from "../../components/LoadingState"
 import { StageEmptyState } from "../../components/StageEmptyState"
+import { useFloatingSaveDirtyEntries } from "../../components/floating-save"
 import { SectioningPageDetail } from "./SectioningPageDetail"
 import { SectioningOverview } from "../storyboard/components/SectioningOverview"
 import { Trans } from "@lingui/react/macro"
@@ -19,7 +20,8 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const [overviewMode, setOverviewMode] = useState(false)
   const { setExtra, setOnLabelClick } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const sectioningState = stageState("sectioning")
   const sectioningDone = sectioningState === "done"
   const sectioningRunning = sectioningState === "running" || sectioningState === "queued"
@@ -29,9 +31,9 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
     : !sectioningDone
 
   const handleRunSectioning = useCallback(() => {
-    if (!hasApiKey || sectioningRunning) return
+    if (!hasStructuredTextProvider || sectioningRunning) return
     queueRun({ fromStage: "sectioning", toStage: "sectioning", apiKey })
-  }, [hasApiKey, sectioningRunning, apiKey, queueRun])
+  }, [hasStructuredTextProvider, sectioningRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
 
@@ -53,6 +55,13 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const canGoPrev = !!prevPageId
   const canGoNext = !!nextPageId
 
+  // Switching to Overview unmounts the page editor without a route change, so
+  // the app-wide route blocker can't catch it — pending edits would be dropped
+  // silently. Block the toggle instead, like the structural ops in the editor.
+  const dirtyEntries = useFloatingSaveDirtyEntries()
+  const overviewBlocked =
+    !overviewMode && dirtyEntries.some((e) => e.id.startsWith("sectioning:"))
+
   const goPrev = () => {
     if (prevPageId) setSelectedPageId(prevPageId)
   }
@@ -73,11 +82,14 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const overviewToggle = (
     <button
       type="button"
-      className={`flex items-center justify-center w-7 h-7 rounded transition-colors ${
+      className={`flex items-center justify-center w-7 h-7 rounded transition-colors disabled:opacity-30 disabled:cursor-default ${
         overviewMode ? "bg-white/30 text-white" : "bg-white/15 hover:bg-white/25 text-white/70"
       }`}
-      onClick={() => setOverviewMode((v) => !v)}
-      title={t`Overview`}
+      disabled={overviewBlocked}
+      onClick={() => {
+        if (!overviewBlocked) setOverviewMode((v) => !v)
+      }}
+      title={overviewBlocked ? t`Save or discard your edits first` : t`Overview`}
     >
       <Table2 className="h-3.5 w-3.5" />
     </button>
@@ -154,7 +166,7 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
       setExtra(null)
       setOnLabelClick(null)
     }
-  }, [selectedPageId, selectedPageSummary?.pageNumber, canGoPrev, canGoNext, prevPageId, nextPageId, setExtra, setOnLabelClick, page?.sectioningTree, showRunCard, overviewMode])
+  }, [selectedPageId, selectedPageSummary?.pageNumber, canGoPrev, canGoNext, prevPageId, nextPageId, setExtra, setOnLabelClick, page?.sectioningTree, showRunCard, overviewMode, overviewBlocked])
 
   useEffect(() => {
     if (!selectedPageId || showRunCard) return
@@ -179,7 +191,7 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={sectioningRunning}
           completed={sectioningDone}
           onRun={handleRunSectioning}
-          disabled={!hasApiKey || sectioningRunning}
+          disabled={!hasStructuredTextProvider || sectioningRunning}
         />
       </div>
     )
@@ -227,7 +239,7 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={sectioningRunning}
           completed={sectioningDone}
           onRun={handleRunSectioning}
-          disabled={!hasApiKey || sectioningRunning}
+          disabled={!hasStructuredTextProvider || sectioningRunning}
         />
       </div>
     )

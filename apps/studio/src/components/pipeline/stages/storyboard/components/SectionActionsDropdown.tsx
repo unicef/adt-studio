@@ -58,6 +58,7 @@ export function SectionActionsDropdown({
     <ActionMenu
       trigger={<MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />}
       triggerClassName="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer"
+      triggerAriaLabel={t`Section actions`}
       menuClassName="min-w-[200px]"
       note={
         disabled ? (

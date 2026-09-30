@@ -20,13 +20,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { usePages } from "@/hooks/use-pages"
 import {
@@ -39,6 +32,7 @@ import { getSignLanguageVideoUrl } from "@/api/client"
 import type { SignLanguageVideo } from "@/api/client"
 import { isGlossaryVideoSectionId } from "@/lib/glossary-video"
 import { ManageSectionsDialog } from "./components/ManageSectionsDialog"
+import { SectionAssignmentCombobox } from "./components/SectionAssignmentCombobox"
 import { SignLanguageReaderPreview } from "./components/SignLanguageReaderPreview"
 import type { FilterValue, SectionEntry } from "./components/types"
 
@@ -322,30 +316,11 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
                         >
                           {video.originalName}
                         </span>
-                        <Select
-                          value="__unassigned__"
-                          onValueChange={(val) =>
-                            handleAssign(
-                              video.videoId,
-                              val === "__unassigned__" ? null : val,
-                            )
-                          }
+                        <SectionAssignmentCombobox
+                          sections={sectionEntries}
                           disabled={assignMutation.isPending}
-                        >
-                          <SelectTrigger className="h-7 w-32 text-[11px]">
-                            <SelectValue placeholder={t`Assign...`} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__unassigned__">
-                              {t`Unassigned`}
-                            </SelectItem>
-                            {sectionEntries.map((s) => (
-                              <SelectItem key={s.sectionId} value={s.sectionId}>
-                                {s.sectionLabel}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          onAssign={(sectionId) => handleAssign(video.videoId, sectionId)}
+                        />
                         <button
                           type="button"
                           onClick={() => handleDelete(video.videoId)}
@@ -394,8 +369,16 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-cyan-700">
                           <Trans>Next missing section</Trans>
                         </span>
-                        <span className="truncate text-[13px] font-semibold text-[#0a0a0a]">
-                          {nextMissing.sectionLabel}
+                        <span className="flex items-baseline gap-1.5">
+                          <span className="truncate text-[13px] font-semibold text-[#0a0a0a]">
+                            {nextMissing.sectionLabel}
+                          </span>
+                          {/* Keeps the two spans from running together in the
+                              accessible name; not rendered as layout. */}
+                          {" "}
+                          <span className="shrink-0 font-mono text-[10px] font-normal text-[#737373]">
+                            {nextMissing.sectionId}
+                          </span>
                         </span>
                       </span>
                       <Plus
