@@ -9,6 +9,19 @@ const ASPECT_RATIOS: Record<string, string> = {
   "1024x1536": "2:3",
 }
 
+// Interactions ratios are model-specific, not restricted to OpenAI's legacy sizes.
+const COMMON_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"]
+
+function closestAspectRatio(ratio: number, modelId: string): string {
+  const ratios = modelId === "gemini-3.1-flash-image"
+    ? [...COMMON_RATIOS, "1:4", "4:1", "1:8", "8:1"] : COMMON_RATIOS
+  const distance = (candidate: string) => {
+    const [width, height] = candidate.split(":").map(Number)
+    return Math.abs(Math.log(ratio) - Math.log(width / height))
+  }
+  return ratios.reduce((best, candidate) => distance(candidate) < distance(best) ? candidate : best)
+}
+
 export function isGoogleImageModel(modelId: string): boolean {
   return Object.hasOwn(GOOGLE_IMAGE_MODELS, modelId)
 }
@@ -51,6 +64,9 @@ export function createGoogleImageBackend(modelId: string, apiKey: string): Image
         return { type: "image", mime_type, data }
       }),
     ]
+    const aspectRatio = request.aspectRatio !== undefined
+      ? closestAspectRatio(request.aspectRatio, modelId)
+      : request.size ? ASPECT_RATIOS[request.size] : undefined
     // Bound inline requests, including the prompt and base64 encoding overhead.
     // The Interactions API emits JPEG and rejects response_format.mime_type of
     // "image/png" with HTTP 400, so response_format carries only the aspect
@@ -60,8 +76,8 @@ export function createGoogleImageBackend(modelId: string, apiKey: string): Image
       model: modelId,
       input,
       store: false,
-      ...(request.size
-        ? { response_format: { type: "image", aspect_ratio: ASPECT_RATIOS[request.size] } }
+      ...(aspectRatio
+        ? { response_format: { type: "image", aspect_ratio: aspectRatio } }
         : {}),
     })
     if (Buffer.byteLength(body) > 20 * 1024 * 1024) {
@@ -100,9 +116,8 @@ export function createGoogleImageBackend(modelId: string, apiKey: string): Image
     if (!output?.data) throw new Error("Google returned no final image; the request may have been blocked")
     const declared = output.mime_type
     const buffer = Buffer.from(output.data, "base64")
-    // Accept whichever format the API returns (JPEG today), requiring the bytes
-    // to be a complete image whose magic bytes agree with the declared type, so
-    // a truncated, corrupt or mislabeled payload is rejected.
+    // Fast format/envelope checks; the shared cache boundary fully decodes the
+    // returned image before accepting it (including existing cache entries).
     const isPng =
       buffer.subarray(0, 8).toString("hex") === "89504e470d0a1a0a" &&
       buffer.subarray(-12).toString("hex") === "0000000049454e44ae426082"

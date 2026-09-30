@@ -102,13 +102,13 @@ export function imageDimensions(base64: string): { width: number; height: number
       return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) }
     }
 
-    // JPEG: bytes 0-1 = 0xFFD8, scan for SOF0/SOF2 marker
+    // JPEG: baseline, extended sequential, or progressive SOF marker.
     if (buf[0] === 0xff && buf[1] === 0xd8) {
       let i = 2
       while (i < buf.length - 9) {
         if (buf[i] !== 0xff) break
         const marker = buf[i + 1]
-        if (marker === 0xc0 || marker === 0xc2) {
+        if (marker === 0xc0 || marker === 0xc1 || marker === 0xc2) {
           return { height: buf.readUInt16BE(i + 5), width: buf.readUInt16BE(i + 7) }
         }
         i += 2 + buf.readUInt16BE(i + 2)

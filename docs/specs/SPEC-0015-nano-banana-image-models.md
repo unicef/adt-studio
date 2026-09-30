@@ -8,7 +8,7 @@ issues: ["#579"]
 prs: ["#904"]
 adr: ""
 created: 2026-09-28
-updated: 2026-09-28
+updated: 2026-09-29
 ---
 
 ## Problem and goals
@@ -38,19 +38,19 @@ No automatic model switch or migration of user selections. Shipped defaults rema
 - Images: `openai:gpt-image-2`.
 - Speech: `gpt-4o-mini-tts`.
 
-No speech-provider changes, new dependencies, pipeline stages, prompt-output
+No speech-provider changes, new third-party libraries, pipeline stages, prompt-output
 contracts, entity IDs, or changes to versioning, staleness, or deletion semantics.
 
 ## Proposed design
 
 Catalog-only registration is small (roughly 20 lines) but cannot execute image
 requests. Choose a native adapter within the **existing** Google provider (roughly
-130 adapter lines plus integration/tests), using the shared `ImageBackend` port and
+150 adapter lines plus integration/tests), using the shared `ImageBackend` port and
 Google Interactions API. An SDK would add a dependency without removing the need
 for credential, caching, and storage integration.
 
 Use existing Google credentials, shared book-local caching, and inspectable call
-logs. Cache identity includes the provider/model, prompt, requested size, and ordered
+logs. Cache identity includes the provider/model, prompt, requested size/aspect ratio, and ordered
 reference images. Never record keys or unsanitized provider error bodies.
 
 Image translation uses its explicit image-model override, then the configured image
@@ -59,6 +59,29 @@ existing translations. Keep image models out of text/agent selections. Accept PN
 and JPEG output, record actual dimensions, and save with the matching extension;
 translation need not force a new size. Validate response status, image payloads,
 model-specific reference limits, and requested sizes; support cancellation/timeouts.
+
+Review refinements:
+
+- Export a typed `DEFAULT_GOOGLE_IMAGE_MODEL` alongside the catalog and use it for
+  Google's default and manifest capabilities. This does not change global defaults.
+- Share `imageFileExtension` from `@adt/types` across generation, translation storage,
+  and CLI reference files. Keep the existing PNG fallback for absent/unknown MIME
+  metadata; naming is separate from output validation and never converts bytes.
+- Fully decode generated PNG/JPEG data before caching or saving, reusing `pngjs`
+  and `jpeg-js` already present in the repository (declared directly by `@adt/llm`).
+  Return validated dimensions to callers, with no guessed-size fallback. Bound
+  decoding to 64 megapixels and JPEG decoder memory to 512 MiB. Unsupported output
+  formats fail explicitly; decoder errors may indicate corrupt or unsupported encoding.
+  Validate cache hits too, treating unusable entries as misses without promoting
+  invalid legacy entries. Successful regeneration replaces the unusable cache result.
+- Pass the source width/height ratio for generation, including style-only references.
+  Google chooses the nearest ratio in its model-specific list; GPT Image 2 chooses
+  valid 16-pixel-multiple dimensions near 1 MP within its 3:1 limit. Other adapters
+  retain their existing size fallback. Source edits and translation omit a forced
+  size/ratio, preserving reference proportions where the provider supports it.
+- Never resize inputs non-proportionally. In storyboard swaps, retain the layout
+  box but contain the returned image inside it without stretching or cropping.
+  This preserves displayed proportions, not a guarantee that AI preserves all content.
 
 ## Impact map
 
@@ -80,13 +103,18 @@ model-specific reference limits, and requested sizes; support cancellation/timeo
 - [ ] **AC-2:** Google image generation and translation work with only Google
   credentials; missing credentials fail before existing translated images are cleared.
 - [ ] **AC-3:** Identical requests reuse the book-local cache; changing model, prompt,
-  size, or reference content/order misses it. Calls are inspectable without exposing keys.
+  size, aspect ratio, or reference content/order misses it. Calls are inspectable without exposing keys.
 - [ ] **AC-4:** PNG/JPEG results retain their actual MIME type and dimensions through
   generation and translation, with matching saved extensions. Existing PNG paths still work.
 - [ ] **AC-5:** Unsupported models/sizes, excess references, failed or malformed
   responses, timeout, and cancellation fail clearly without caching an invalid result.
+  Unusable legacy/current cache entries are ignored; malformed image bytes are not
+  saved or swapped in, even if they have plausible headers or declared dimensions.
 - [ ] **AC-6:** Image-model selection persists and honors translation override/default
   precedence; controls describe effective settings and changed copy covers all five locales.
+- [ ] **AC-7:** Wide, tall, and nonstandard-ratio generation uses model-appropriate
+  sizing. Source edits omit forced sizing, style-only references retain target sizing,
+  and swapping a differently proportioned result contains it without distortion/cropping.
 
 ## Test plan
 
@@ -99,6 +127,11 @@ model-specific reference limits, and requested sizes; support cancellation/timeo
   reference limits, timeout, and abort. Use fake keys, never live credentials.
 - **AC-4:** LLM image, pipeline image-translation, API pages, and storage book-storage
   tests with PNG/JPEG fixtures, including JPEG metadata before the dimension marker.
+- **AC-4, AC-5:** `image-validation.test.ts` covers real decoding, corrupt pixel data,
+  extended-sequential JPEG, unsupported formats and size limits; image-cache tests
+  cover invalid v1/v2 recovery. Types tests cover shared extension aliases/fallbacks.
+- **AC-7:** Google and shared image tests cover supported ratios and cache separation;
+  API pages tests cover source edits, style references, and proportional swaps.
 - **AC-6:** Studio lint and locale extraction/catalog checks. Run `pnpm typecheck`
   and the affected suites before merge; record results separately from this draft.
 

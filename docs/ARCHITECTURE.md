@@ -23,8 +23,14 @@ Select the global default in Settings → Models → Image generation and editin
 Book overrides retain precedence. Image translation uses
 `image_translation.image_model` when set, otherwise the effective
 `default_image_generation_model`, and authenticates with that model's provider.
-Generation requests map the existing square/landscape/portrait sizes to supported
-aspect ratios; asset metadata uses the returned image's dimensions. The
+Generation passes the target aspect ratio to the adapter: Google chooses the
+nearest model-supported ratio, GPT Image 2 selects valid custom dimensions, and
+other models retain the existing size fallback. Source edits omit forced sizing.
+Storyboard swaps contain the returned image in the original layout box instead of
+stretching it. PNG/JPEG output is fully decoded before caching/saving; invalid cache
+entries are ignored and metadata uses validated dimensions. A shared
+`imageFileExtension` helper retains the legacy PNG naming fallback, independently
+of output validation. The
 Interactions API emits JPEG (it rejects a PNG `response_format`), so Google
 variants are stored with a `.jpg` extension. The `gemini` speech provider retains
 its separate identity and credential settings.

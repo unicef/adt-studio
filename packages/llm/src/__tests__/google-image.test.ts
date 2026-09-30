@@ -2,13 +2,12 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { GOOGLE_IMAGE_MODELS } from "@adt/types"
+import { DEFAULT_GOOGLE_IMAGE_MODEL, GOOGLE_IMAGE_MODELS } from "@adt/types"
 import { generateImageWithCache, type GenerateImageWithCacheOptions } from "../image.js"
 import { googleProvider } from "../providers/google/index.js"
 import { createProviderRegistry } from "../registry.js"
+import { png, jpg } from "./image-fixtures.js"
 
-const png = "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAGCAYAAADkOT91AAAAH0lEQVR4AV3BwREAMAiAMMr+O1ufHsmbxSEhISEh8QGPSwQIxMxWxQAAAABJRU5ErkJggg=="
-const jpg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0xff, 0xd9]).toString("base64")
 const image = { type: "image", mime_type: "image/png", data: png }
 const success = { status: "completed", steps: [{ type: "model_output", content: [image] }] }
 const registry = createProviderRegistry().register(googleProvider).freeze()
@@ -40,7 +39,7 @@ afterEach(() => {
 
 describe("Google image backend", () => {
   it.each(Object.keys(GOOGLE_IMAGE_MODELS))("generates and edits with %s using only Google credentials", async (model) => {
-    expect(await generate({ modelId: `google:${model}` })).toEqual({ base64: png, mimeType: "image/png", cached: false })
+    expect(await generate({ modelId: `google:${model}` })).toEqual({ base64: png, mimeType: "image/png", width: 4, height: 6, cached: false })
     const [url, init] = fetchMock.mock.calls[0]!
     expect(url).toBe("https://generativelanguage.googleapis.com/v1beta/interactions")
     expect(init?.headers).toEqual({ "Content-Type": "application/json", "x-goog-api-key": "google-secret" })
@@ -69,7 +68,7 @@ describe("Google image backend", () => {
     fetchMock.mockResolvedValueOnce(Response.json({ status: "completed", steps: [
       { type: "model_output", content: [{ type: "image", mime_type: "image/jpeg", data: jpg }] },
     ] }))
-    expect(await generate()).toEqual({ base64: jpg, mimeType: "image/jpeg", cached: false })
+    expect(await generate()).toEqual({ base64: jpg, mimeType: "image/jpeg", width: 4, height: 6, cached: false })
   })
 
   it("ignores thought images and text, selecting the final model image", async () => {
@@ -78,6 +77,30 @@ describe("Google image backend", () => {
       { type: "model_output", content: [{ type: "text", text: "Done" }, image] },
     ] }))
     expect((await generate()).base64).toBe(png)
+  })
+
+  it.each([[16 / 9, "16:9"], [4 / 3, "4:3"], [9 / 16, "9:16"], [8, "8:1"], [0.26, "1:4"]])(
+    "maps the source ratio %s to %s, independently of the legacy size", async (ratio, expected) => {
+      await generate({ aspectRatio: ratio as number, size: "1024x1024" })
+      expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string).response_format.aspect_ratio).toBe(expected)
+    },
+  )
+
+  it.each(["gemini-3-pro-image", "gemini-2.5-flash-image", "gemini-3.1-flash-lite-image"])(
+    "does not request Flash-only ratios from %s", async (model) => {
+      await generate({ modelId: `google:${model}`, aspectRatio: 8 })
+      expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string).response_format.aspect_ratio).toBe("21:9")
+    },
+  )
+
+  it("does not force an output ratio for a source edit without a requested size", async () => {
+    await generate({ referenceImages: [{ data: Buffer.from(png, "base64") }] })
+    expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).not.toHaveProperty("response_format")
+  })
+
+  it("uses one registered Google image default", () => {
+    expect(googleProvider.manifest.defaultModels.image).toBe(DEFAULT_GOOGLE_IMAGE_MODEL)
+    expect(googleProvider.manifest.capabilities.image?.maxReferenceImages).toBe(GOOGLE_IMAGE_MODELS[DEFAULT_GOOGLE_IMAGE_MODEL])
   })
 
   it("caches identical edits and separates ordered references, prompt, model and size", async () => {
@@ -89,8 +112,9 @@ describe("Google image backend", () => {
       { referenceImages: refs, prompt: "Translate into español" },
       { referenceImages: refs, modelId: "google:gemini-3-pro-image" },
       { referenceImages: refs, size: "1024x1024" as const },
+      { referenceImages: refs, aspectRatio: 16 / 9 },
     ]) expect((await generate(options)).cached).toBe(false)
-    expect(fetchMock).toHaveBeenCalledTimes(5)
+    expect(fetchMock).toHaveBeenCalledTimes(6)
   })
 
   it.each([401, 403, 429, 500])("reports HTTP %s without exposing provider response secrets or caching failures", async (status) => {

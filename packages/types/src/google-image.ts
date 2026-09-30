@@ -8,6 +8,13 @@ export const GOOGLE_IMAGE_MODELS = {
   "gemini-2.5-flash-image": 3,
 } as const
 
+export const GoogleImageModelId = z.enum(Object.keys(GOOGLE_IMAGE_MODELS) as [
+  keyof typeof GOOGLE_IMAGE_MODELS,
+  ...Array<keyof typeof GOOGLE_IMAGE_MODELS>,
+])
+export type GoogleImageModelId = z.infer<typeof GoogleImageModelId>
+export const DEFAULT_GOOGLE_IMAGE_MODEL: GoogleImageModelId = "gemini-3.1-flash-image"
+
 /** The subset of the Interactions REST response used by the image adapter. */
 export const GoogleImageResponse = z.object({
   status: z.string(),

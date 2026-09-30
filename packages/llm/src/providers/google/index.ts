@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import type { AiModality, ProviderManifest } from "@adt/types"
+import { DEFAULT_GOOGLE_IMAGE_MODEL } from "@adt/types"
 import type { CapabilitiesFor, DiscoveredModel, ProviderModule } from "../../ports/index.js"
 import { AiProviderError } from "../../ports/errors.js"
 import { createAiSdkStructuredTextBackend } from "../shared/ai-sdk/structured-text.js"
@@ -47,7 +48,7 @@ export const googleManifest: ProviderManifest = {
       temperature: true,
     },
     agent: { tools: true, streaming: true },
-    image: googleImageCapabilities("gemini-3.1-flash-image"),
+    image: googleImageCapabilities(DEFAULT_GOOGLE_IMAGE_MODEL),
   },
   defaultModels: {
     "structured-text": "gemini-2.5-pro",
@@ -55,7 +56,7 @@ export const googleManifest: ProviderManifest = {
     // projects may retain access. Google's error response and current model
     // catalogue direct agentic workloads to this tool-capable replacement.
     agent: "gemini-3.1-pro-preview",
-    image: "gemini-3.1-flash-image",
+    image: DEFAULT_GOOGLE_IMAGE_MODEL,
   },
   docsUrl: "https://aistudio.google.com/apikey",
 }
