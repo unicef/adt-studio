@@ -440,6 +440,7 @@ export function useAudioPlayer(): UseAudioPlayer {
   // whose `items.length` dependency does not change between two pages that
   // happen to hold the same number of readable blocks.
   const onPageTurned = useEffectEvent(() => {
+    initialResumeRef.current = isPlaying || autoplayMode
     stopAndClear()
     setCurrentIndex(0)
     hasAutoStartedRef.current = false
