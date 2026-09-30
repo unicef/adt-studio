@@ -18,7 +18,9 @@
  */
 import { getDefaultStore } from "jotai"
 import { disposeActivityInitializers, initializePageContent } from "@/app/lifecycle"
+import { translationsAtom } from "@/features/language/state/language.atoms"
 import { PAGE_HEAD_ATTR } from "@/features/navigation/lib/page-head"
+import { currentPageNumberAtom, pagesAtom } from "@/features/navigation/state/nav.atoms"
 import { announceToScreenReader } from "@/shared/lib/aria-live"
 import { trackNavigation, trackSpaPageView } from "@/shared/lib/analytics"
 import { reduceMotionAtom } from "@/shared/state/ui.atoms"
@@ -223,6 +225,45 @@ function runPageScripts(next: Document): void {
 }
 
 /**
+ * Translate an interface string outside React, filling the same `${name}`
+ * placeholders `useTranslation` does.
+ */
+function translate(key: string, vars: Record<string, string>, fallback: string): string {
+  const template = getDefaultStore().get(translationsAtom)[key] || fallback
+  return template.replace(/\$\{(.*?)\}/g, (_, name: string) => vars[name] ?? "")
+}
+
+/**
+ * What to announce for the page just swapped in.
+ *
+ * A document load has the screen reader read the new document's title; an
+ * in-place swap has to say something itself (WCAG 4.1.3), and what it says
+ * must identify the page (WCAG 2.4.2). Every page of a book carries the book
+ * title, so the title alone identifies nothing — the reader would hear the
+ * same words on every turn. What changed is the position in the book, which
+ * is also what the dock counter shows, so that leads. The page's own heading
+ * follows when it says more than the book title does (a quiz question, a
+ * chapter title); the book title itself is never repeated.
+ */
+function pageAnnouncement(): string {
+  const store = getDefaultStore()
+  const page = store.get(currentPageNumberAtom)
+  const total = store.get(pagesAtom).length
+  const title = document.title.trim()
+  const heading = document.querySelector("main h1")?.textContent?.trim() ?? ""
+
+  const parts: string[] = []
+  if (page !== null && total > 0) {
+    const n = String(page)
+    const m = String(total)
+    parts.push(translate("page-n-of-m", { n, m }, `Page ${n} of ${m}`))
+  }
+  if (heading && heading !== title) parts.push(heading)
+  if (parts.length === 0 && title) parts.push(title)
+  return parts.join(", ")
+}
+
+/**
  * Move the reading position to the new page and announce it.
  *
  * A document load does both for free; an in-place swap does neither, which
@@ -245,8 +286,7 @@ function moveReadingPosition(): void {
   main.style.outline = "none"
   main.focus({ preventScroll: true })
 
-  const heading = main.querySelector("h1")
-  const label = (heading?.textContent ?? document.title).trim()
+  const label = pageAnnouncement()
   if (label) announceToScreenReader(label)
 }
 
