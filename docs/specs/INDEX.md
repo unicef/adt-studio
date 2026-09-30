@@ -13,6 +13,9 @@ Statuses: draft · in-review · approved · in-progress · implemented · verifi
 | SPEC-0006 | Cloudflare publishing: scope, ops surface, security             | draft  | TBD         | Block 2   |
 | SPEC-0007 | Accessibility harness as a blocking CI gate                     | draft  | TBD         | 0.9.0     |
 | SPEC-0008 | Stable identifiers and reading order (retrospective)            | draft  | TBD         | Block 1   |
+| [SPEC-0009](SPEC-0009-validation-fix-routing.md) | Validation findings and safe fix-routing | in-review | @ksokolovic | Block 1 |
+
+SPEC-0009 has a [Phase A implementation and evidence record](SPEC-0009-implementation-evidence.md); human review is pending and Phase B remains blocked.
 
 Legacy notes, from before this process existed, now in [`docs/analysis/`](../analysis/):
 [SECTIONING_CROSSWORD_BUG.md](../analysis/SECTIONING_CROSSWORD_BUG.md),

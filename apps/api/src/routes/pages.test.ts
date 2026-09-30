@@ -122,6 +122,21 @@ describe("Page routes", () => {
       expect(body[1].hasRendering).toBe(false)
     })
 
+    it("distinguishes persisted identities from legacy display IDs without writing", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      const original = storage.getLatestNodeData("page-sectioning", `${label}_p1`)!
+      storage.putNodeData("page-sectioning", `${label}_p2`, {
+        sections: [{ sectionType: "content", nodes: [] }],
+      })
+      storage.close()
+      const result = await (await app.request(`/api/books/${label}/pages`)).json()
+      expect(result[0].sections[0]).toMatchObject({ sectionId: `${label}_p1_sec001`, hasStableId: true })
+      expect(result[1].sections[0].hasStableId).toBe(false)
+      const reopened = createBookStorage(label, tmpDir)
+      try { expect(reopened.getLatestNodeData("page-sectioning", `${label}_p1`)).toEqual(original) }
+      finally { reopened.close() }
+    })
+
     it("returns 404 for nonexistent book", async () => {
       const res = await app.request("/api/books/no-such-book/pages")
       expect(res.status).toBe(404)

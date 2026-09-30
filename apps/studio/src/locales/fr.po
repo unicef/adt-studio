@@ -1703,6 +1703,9 @@ msgstr "Remplissage automatique à partir du contexte du livre"
 msgid "Auto-scroll"
 msgstr "Défilement automatique"
 
+msgid "Automatic routing"
+msgstr "Routage automatique"
+
 msgid "Automatically adapts the layout based on each page's content using AI."
 msgstr "Adapte automatiquement la mise en page en fonction du contenu de chaque page grâce à l'IA."
 
@@ -2723,6 +2726,9 @@ msgstr "Impossible de lire ce PDF. Le fichier est peut-être corrompu ou protég
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Impossible de supprimer {failed} vidéos sur {total} — veuillez réessayer."
 
+msgid "Could not resolve the repair destination. Your finding is unchanged. Try again."
+msgstr "Impossible de déterminer la destination de la correction. Le constat reste inchangé. Réessayez."
+
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
 msgstr "Impossible de démarrer {0} : {detail}"
@@ -2893,6 +2899,9 @@ msgstr "Police actuelle du livre"
 
 msgid "Current effective values"
 msgstr "Valeurs effectives actuelles"
+
+msgid "Current output cannot be validated. Existing findings remain available; restore eligible Storyboard output before refreshing validation."
+msgstr "Le résultat actuel ne peut pas être validé. Les constats existants restent disponibles ; rétablissez un contenu Storyboard admissible avant de relancer la validation."
 
 msgid "Current Preview Page"
 msgstr "Page d'aperçu actuelle"
@@ -3947,6 +3956,9 @@ msgstr "Échec de la lecture de l'archive"
 msgid "Failed to save metadata. Please try again."
 msgstr "Échec de l'enregistrement des métadonnées. Veuillez réessayer."
 
+msgid "Failed to save reviewer changes"
+msgstr "Échec de l’enregistrement des modifications de la révision"
+
 msgid "Failed:"
 msgstr "Échoué :"
 
@@ -4039,6 +4051,12 @@ msgstr "Ajusté au panneau · affichage à {display} % de la taille réelle"
 
 msgid "Fix"
 msgstr "Corriger"
+
+msgid "Fix destination"
+msgstr "Destination de la correction"
+
+#~ msgid "Fix in {fixStageLabel}"
+#~ msgstr "Corriger dans {fixStageLabel}"
 
 msgid "Fixed layout"
 msgstr "Mise en page fixe"
@@ -6551,6 +6569,15 @@ msgstr "ouvrir"
 msgid "Open"
 msgstr "Ouvrir"
 
+#. placeholder {0}: entry.sectionId ?? entry.pageId
+#. placeholder {1}: i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])
+msgid "Open {0} in {1}"
+msgstr "Ouvrir {0} dans {1}"
+
+#. placeholder {0}: page.sectionId ? `${formatFindingPageLabel(i18n, page)} (${page.sectionId})` : formatFindingPageLabel(i18n, page)
+msgid "Open {0} in {fixStageLabel}"
+msgstr "Ouvrir {0} dans {fixStageLabel}"
+
 msgid "Open a page in Preview to show its page-specific accessibility findings here."
 msgstr "Ouvrez une page dans l'aperçu pour afficher les résultats d'accessibilité spécifiques à la page ici."
 
@@ -6588,6 +6615,10 @@ msgstr "Ouvrir le panneau de modification"
 
 msgid "Open image preview"
 msgstr "Ouvrir l'aperçu de l'image"
+
+#. placeholder {0}: i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])
+msgid "Open in {0}"
+msgstr "Ouvrir dans {0}"
 
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Ouvrez-le dans n'importe quelle liseuse EPUB 3 ou outil d'accessibilité."
@@ -7926,6 +7957,9 @@ msgstr "Rend les activités à partir d'un modèle fixe pour un style cohérent.
 msgid "Renders each page into the storyboard layout used by the web reader."
 msgstr "Rend chaque page dans la mise en page du storyboard utilisée par le lecteur web."
 
+msgid "Repair suggestion. Review decisions remain unchanged."
+msgstr "Suggestion de correction. Les décisions de révision restent inchangées."
+
 msgid "Replace"
 msgstr "Remplacer"
 
@@ -8064,6 +8098,9 @@ msgstr "Réessayer Exporter"
 
 msgid "Return to coordinator"
 msgstr "Renvoyer au coordinateur"
+
+msgid "Return to Validation"
+msgstr "Revenir à la validation"
 
 msgid "Revert language change"
 msgstr "Annuler le changement de langue"
@@ -9729,6 +9766,15 @@ msgstr "La forêt perdue"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Le modèle détecte les zones de délimitation afin que chaque élément visuel puisse être stocké et disposé séparément."
 
+msgid "The original assessment is no longer available. Refresh validation when Storyboard output is ready; no finding has been marked resolved."
+msgstr "L’évaluation d’origine n’est plus disponible. Relancez la validation lorsque le résultat Storyboard sera prêt ; aucun constat n’a été marqué comme résolu."
+
+msgid "The original assessment is no longer current. Showing the available assessment; navigation has not changed any verdict."
+msgstr "L’évaluation d’origine n’est plus à jour. L’évaluation disponible est affichée ; la navigation n’a modifié aucun verdict."
+
+msgid "The original reviewer session is no longer available. Showing available reviews."
+msgstr "La session de révision d’origine n’est plus disponible. Les révisions disponibles sont affichées."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "Le processus que les plantes utilisent pour transformer la lumière du soleil, l'eau et le dioxyde de carbone en nourriture."
 
@@ -9785,6 +9831,18 @@ msgstr "L'expérience du lecteur"
 
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "La stratégie de rendu utilisée pour les sections sans correspondance explicite."
+
+#~ msgid "The requested section is no longer available. Opened the first section instead."
+#~ msgstr "La section demandée n’est plus disponible. La première section a été ouverte à la place."
+
+msgid "The requested section is no longer available. Opened the page instead."
+msgstr "La section demandée n’est plus disponible. La page a été ouverte à la place."
+
+msgid "The review source is unavailable. Your unsaved notes have been kept."
+msgstr "La source de la révision n’est pas disponible. Vos notes non enregistrées ont été conservées."
+
+#~ msgid "The river meets the sea"
+#~ msgstr "La rivière rejoint la mer"
 
 msgid "The same edition in every language."
 msgstr "La même édition dans chaque langue."
@@ -10582,6 +10640,9 @@ msgstr "Utilisez la syntaxe Liquid pour interpoler des variables, parcourir des 
 msgid "Use page {0} for the quiz"
 msgstr "Utiliser la page {0} pour le quiz"
 
+msgid "Use section destination"
+msgstr "Utiliser la destination de la section"
+
 msgid "Use section headings verbatim. Fast, deterministic, and preserves the original wording from the book."
 msgstr "Utilisez les titres de section textuellement. Rapide, déterministe et préserve le libellé original du livre."
 
@@ -11061,6 +11122,9 @@ msgstr "Vos polices"
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Vos pages {displayStart}–{displayEnd}"
+
+msgid "Your unsaved review still belongs to the page shown below. Save or discard it before reviewing another page."
+msgstr "Votre révision non enregistrée concerne toujours la page affichée ci-dessous. Enregistrez-la ou abandonnez-la avant de réviser une autre page."
 
 msgid "Z → A"
 msgstr "Z → A"

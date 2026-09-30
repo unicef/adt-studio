@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type { I18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/api/client"
+import { useFloatingSave } from "../components/floating-save"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useGlossary } from "@/hooks/use-glossary"
 import {
@@ -151,7 +152,7 @@ export function PreviewValidationCard({
   label,
   panelOpen,
   otherCardExpanded = false,
-  currentPage,
+  currentPage: visiblePage,
   onOpenValidation,
   onNavigateToPage,
   onExpandedChange,
@@ -181,6 +182,13 @@ export function PreviewValidationCard({
   const [explicitCriterionIds, setExplicitCriterionIds] = useState<Set<string>>(new Set())
   const [overallComment, setOverallComment] = useState("")
   const [dirty, setDirty] = useState(false)
+  // The Preview iframe can change pages without an app-route navigation. Keep
+  // the draft's source binding until it is saved or explicitly discarded.
+  const [currentPage, setCurrentPage] = useState(visiblePage)
+  if (!dirty && currentPage !== visiblePage) setCurrentPage(visiblePage)
+  const [reviewSaving, setReviewSaving] = useState(false)
+  const [reviewSaveError, setReviewSaveError] = useState<string | null>(null)
+  const reviewSaveRef = useRef<Promise<void> | null>(null)
   const [pendingResumeHref, setPendingResumeHref] = useState<string | null>(null)
 
   const { stageState } = useBookRun()
@@ -318,7 +326,7 @@ export function PreviewValidationCard({
   }, [collapsed, otherCardExpanded, panelOpen])
 
   useEffect(() => {
-    if (sessions.isLoading) {
+    if (sessions.isLoading || dirty) {
       return
     }
 
@@ -340,7 +348,7 @@ export function PreviewValidationCard({
       setShowSessionForm(false)
       setHasRestoredSessionState(true)
     }
-  }, [hasRestoredSessionState, sessions.isLoading, sortedSessions])
+  }, [dirty, hasRestoredSessionState, sessions.isLoading, sortedSessions])
 
 
   useEffect(() => {
@@ -349,7 +357,11 @@ export function PreviewValidationCard({
     }
   }, [activeSession, sessions.isLoading])
 
+  const draftContextRef = useRef("")
   useEffect(() => {
+    const context = `${activeSessionId}:${currentPage.pageId}:${currentPage.sectionId}`
+    if (dirty && draftContextRef.current === context) return
+    draftContextRef.current = context
     if (activePageSections.length === 0) {
       return
     }
@@ -359,7 +371,7 @@ export function PreviewValidationCard({
     setExplicitCriterionIds(new Set(Object.keys(nextDraft)))
     setOverallComment(currentRecordEntry?.record.overall_comment ?? "")
     setDirty(false)
-  }, [activePageSections, currentRecordEntry?.version, currentPage.pageId])
+  }, [activePageSections, currentRecordEntry?.version, currentPage.pageId, currentPage.sectionId, activeSessionId, dirty])
 
   const criteriaCount = useMemo(
     () => activePageSections.reduce((total, section) => total + section.criteria.length, 0),
@@ -492,6 +504,7 @@ export function PreviewValidationCard({
   }
 
   const handleStatusChange = (criterionId: string, status: ReviewerValidationStatus) => {
+    if (reviewSaveRef.current) return
     setDraftResults((current) => ({
       ...current,
       [criterionId]: {
@@ -508,6 +521,7 @@ export function PreviewValidationCard({
     field: "comment" | "suggested_modification",
     value: string,
   ) => {
+    if (reviewSaveRef.current) return
     setDraftResults((current) => ({
       ...current,
       [criterionId]: {
@@ -528,14 +542,20 @@ export function PreviewValidationCard({
     setPendingResumeHref(resumeTarget.href)
   }
 
-  const handleSavePageReview = async () => {
+  const handleSavePageReview = (): Promise<void> => {
+    if (reviewSaveRef.current) return reviewSaveRef.current
     if (!activeSession || !currentPage.pageId || !currentPage.href) {
-      return
+      const message = t`The review source is unavailable. Your unsaved notes have been kept.`
+      setReviewSaveError(message)
+      return Promise.reject(new Error(message))
     }
+    setReviewSaving(true)
+    setReviewSaveError(null)
 
     const record: ReviewerPageValidationRecord = {
       session_id: activeSession.session.session_id,
       page_id: currentPage.pageId,
+      section_id: currentPage.sectionId ?? undefined,
       page_number: currentPage.pageNumber ?? undefined,
       href: currentPage.href,
       language: activeSession.session.language,
@@ -558,10 +578,29 @@ export function PreviewValidationCard({
         })),
     }
 
-    await saveRecordMutation.mutateAsync(record)
-    setExplicitCriterionIds(new Set(Object.keys(draftResults)))
-    setDirty(false)
+    const pending = saveRecordMutation.mutateAsync(record).then(() => {
+      setExplicitCriterionIds(new Set(Object.keys(draftResults)))
+      setDirty(false)
+    }).catch((error: unknown) => {
+      setReviewSaveError(error instanceof Error ? error.message : t`Failed to save reviewer changes`)
+      throw error
+    }).finally(() => {
+      reviewSaveRef.current = null
+      setReviewSaving(false)
+    })
+    reviewSaveRef.current = pending
+    return pending
   }
+
+  useFloatingSave({
+    id: `reviewer-validation:${label}`, dirty, saving: reviewSaving,
+    label: t`Reviewer Validation`, onSaveStay: handleSavePageReview,
+    onDiscard: () => {
+      setDraftResults(buildInitialDraftResults(activePageSections, currentRecordEntry?.record))
+      setOverallComment(currentRecordEntry?.record.overall_comment ?? "")
+      setDirty(false)
+    },
+  })
 
   if (collapsed) {
     if (!showCollapsedCard) {
@@ -642,6 +681,7 @@ export function PreviewValidationCard({
         <div className="min-w-0 flex-1">
           <Select
             value={activeSessionId ?? undefined}
+            disabled={dirty || reviewSaving}
             onValueChange={(value) => {
               setHasRestoredSessionState(true)
               setActiveSessionId(value)
@@ -664,6 +704,7 @@ export function PreviewValidationCard({
           variant="outline"
           size="sm"
           className="h-8 text-xs"
+          disabled={dirty || reviewSaving}
           onClick={() => {
             setHasRestoredSessionState(true)
             setShowSessionForm((current) => !current)
@@ -783,6 +824,9 @@ export function PreviewValidationCard({
           </div>
         ) : (
           <div className="space-y-3.5">
+            {currentPage.href !== visiblePage.href ? (
+              <p role="status" className="text-xs text-amber-800 dark:text-amber-200"><Trans>Your unsaved review still belongs to the page shown below. Save or discard it before reviewing another page.</Trans></p>
+            ) : null}
             <div className="rounded-2xl border bg-card/70 px-3.5 py-3.5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
@@ -890,6 +934,7 @@ export function PreviewValidationCard({
                                           : "border-slate-300 bg-slate-100 text-slate-900"
                                       : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                                   )}
+                                  disabled={reviewSaving}
                                   onClick={() => handleStatusChange(criterion.id, option.value)}
                                 >
                                   {getStatusLabel(i18n, option.value)}
@@ -903,6 +948,7 @@ export function PreviewValidationCard({
                                   <Label htmlFor={`${criterion.id}-comment`} className="text-[11px]"><Trans>Comment</Trans></Label>
                                   <Textarea
                                     id={`${criterion.id}-comment`}
+                                    disabled={reviewSaving}
                                     value={draft.comment}
                                     onChange={(event) => handleTextChange(criterion.id, "comment", event.target.value)}
                                     className="min-h-[72px] text-xs"
@@ -913,6 +959,7 @@ export function PreviewValidationCard({
                                   <Label htmlFor={`${criterion.id}-suggestion`} className="text-[11px]"><Trans>Suggested modification</Trans></Label>
                                   <Textarea
                                     id={`${criterion.id}-suggestion`}
+                                    disabled={reviewSaving}
                                     value={draft.suggested_modification}
                                     onChange={(event) => handleTextChange(criterion.id, "suggested_modification", event.target.value)}
                                     className="min-h-[72px] text-xs"
@@ -934,8 +981,10 @@ export function PreviewValidationCard({
               <Label htmlFor="page-review-overall-comment" className="text-xs"><Trans>Overall page note</Trans></Label>
               <Textarea
                 id="page-review-overall-comment"
+                disabled={reviewSaving}
                 value={overallComment}
                 onChange={(event) => {
+                  if (reviewSaveRef.current) return
                   setOverallComment(event.target.value)
                   setDirty(true)
                 }}
@@ -947,6 +996,7 @@ export function PreviewValidationCard({
         )}
       </div>
 
+      {reviewSaveError ? <p role="alert" className="px-4 py-2 text-xs text-red-700">{reviewSaveError}</p> : null}
       <div className="flex items-center justify-between gap-3 border-t px-4 py-3">
         <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onOpenValidation}>
           <ExternalLink className="h-3.5 w-3.5" />
@@ -955,10 +1005,10 @@ export function PreviewValidationCard({
         <Button
           size="sm"
           className="h-8 text-xs"
-          onClick={() => void handleSavePageReview()}
-          disabled={!activeSession || !currentPage.pageId || !dirty || saveRecordMutation.isPending}
+          onClick={() => { void handleSavePageReview().catch(() => {}) }}
+          disabled={!activeSession || !currentPage.pageId || !dirty || reviewSaving}
         >
-          {saveRecordMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          {reviewSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           <Trans>Save page review</Trans>
         </Button>
       </div>

@@ -3,6 +3,7 @@ import {
   ReviewerPageValidationRecord,
   ReviewerValidationCatalogSnapshot,
   ReviewerValidationSession,
+  ValidationFixStage,
 } from "../reviewer-validation.js"
 
 describe("reviewer validation schemas", () => {
@@ -18,6 +19,7 @@ describe("reviewer validation schemas", () => {
     const record = ReviewerPageValidationRecord.parse({
       session_id: session.session_id,
       page_id: "page-1",
+      section_id: "page-1_sec001",
       page_number: 1,
       href: "content/pages/page-1.html",
       language: "sw",
@@ -31,6 +33,7 @@ describe("reviewer validation schemas", () => {
     })
 
     expect(record.language).toBe("sw")
+    expect(record.section_id).toBe("page-1_sec001")
     expect(record.results[0]?.status).toBe("needs-changes")
   })
 
@@ -67,11 +70,13 @@ describe("reviewer validation schemas", () => {
         {
           id: "custom-checks",
           label: "Custom checks",
+          fix_stage: "sectioning",
           criteria: [
             {
               id: "custom-criterion",
               label: "Custom criterion",
               guidance: "Check this custom requirement.",
+              fix_stage: "storyboard",
             },
           ],
         },
@@ -86,5 +91,12 @@ describe("reviewer validation schemas", () => {
 
     expect(session.catalog_snapshot?.pageSections).toHaveLength(1)
     expect(session.catalog_snapshot?.pageSections[0]?.id).toBe("custom-checks")
+    expect(session.catalog_snapshot?.pageSections[0]?.fix_stage).toBe("sectioning")
+    expect(session.catalog_snapshot?.pageSections[0]?.criteria[0]?.fix_stage).toBe("storyboard")
+  })
+
+  it("limits fix routing to editable destination stages", () => {
+    expect(ValidationFixStage.safeParse("storyboard").success).toBe(true)
+    expect(ValidationFixStage.safeParse("validation").success).toBe(false)
   })
 })

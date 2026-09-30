@@ -49,7 +49,15 @@ export function useSaveReviewerPageValidationRecord(label: string) {
     mutationFn: (record: ReviewerPageValidationRecord) => api.saveReviewerPageValidationRecord(label, record),
     onSuccess: (saved) => {
       queryClient.setQueriesData<ReviewerPageValidationRecordsResponse>(
-        { queryKey: ["validation", "page-results", label] },
+        {
+          queryKey: ["validation", "page-results", label],
+          predicate: (query) => {
+            const params = query.queryKey[3] as Parameters<typeof api.getReviewerPageValidationRecords>[1] | null
+            return !!params && params.sessionId === saved.record.session_id
+              && (!params.pageId || params.pageId === saved.record.page_id)
+              && (!params.language || params.language === saved.record.language)
+          },
+        },
         (current) => updateReviewerPageResultsCache(current, saved),
       )
       queryClient.setQueryData(

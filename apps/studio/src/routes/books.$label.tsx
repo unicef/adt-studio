@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router"
 import { Home, Terminal } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ValidationReturnBanner } from "@/components/validation/ValidationReturnBanner"
 import { DebugPanel } from "@/components/debug/DebugPanel"
 import { DebugPanelStateProvider, type DebugTabValue } from "@/components/debug/debug-panel-state"
 import { StageSidebar } from "@/components/pipeline/components/StageSidebar"
@@ -112,11 +113,15 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
         navigate({
           to: "/books/$label/$step/$pageId",
           params: { label, step: activeStep, pageId: pid },
+          search: (previous) => ({ ...previous, sectionId: undefined }),
+          hash: true,
         })
       } else {
         navigate({
           to: "/books/$label/$step",
           params: { label, step: activeStep },
+          search: (previous) => ({ ...previous, sectionId: undefined }),
+          hash: true,
         })
       }
     },
@@ -190,6 +195,7 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
 
               <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <ExportWatcherProvider value={exportWatcher}>
+                  <ValidationReturnBanner label={label} />
                   <Outlet />
                 </ExportWatcherProvider>
               </div>

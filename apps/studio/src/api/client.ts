@@ -403,6 +403,8 @@ export interface StageRunStatus {
 }
 
 export interface PageSummarySection {
+  /** False for synthesized display-only IDs in legacy data. */
+  hasStableId?: boolean
   sectionId: string
   sectionIndex: number
   sectionType: string
