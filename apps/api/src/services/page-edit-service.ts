@@ -1,3 +1,5 @@
+import { withBookWriter } from "@adt/storage"
+import { createStoryboardPublication } from "@adt/pipeline"
 import crypto from "node:crypto"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
@@ -46,12 +48,34 @@ export interface AiEditSectionResult {
   activityAnswers?: Record<string, string>
 }
 
-export async function reRenderPage(
-  options: ReRenderOptions
+export async function reRenderPage(options: ReRenderOptions): Promise<ReRenderResult> {
+  return (await reRenderPages([options]))[0]
+}
+
+export async function reRenderPages(options: ReRenderOptions[]): Promise<ReRenderResult[]> {
+  if (!options.length) return []
+  const { label, booksDir, configPath } = options[0]
+  if (options.some((item) => item.label !== label || item.booksDir !== booksDir || item.configPath !== configPath)) throw new Error("A rendering batch must belong to one book")
+  return withBookWriter(path.join(path.resolve(booksDir), label), async () => {
+    const storage = createBookStorage(label, booksDir)
+    try {
+      const publication = createStoryboardPublication(storage, label, booksDir, configPath)
+      const pages = new Set(publication.storage.getPages().map((page) => page.pageId))
+      if (options.some((item) => !pages.has(item.pageId))) throw new Error("Requested page is outside the active source-page window")
+      const results: ReRenderResult[] = []
+      for (const item of options) results.push(await reRenderAdmittedPage(item, publication))
+      publication.publish()
+      return results
+    } finally { storage.close() }
+  })
+}
+
+async function reRenderAdmittedPage(
+  options: ReRenderOptions, publication: ReturnType<typeof createStoryboardPublication>,
 ): Promise<ReRenderResult> {
   const { label, pageId, sectionIndex, prompt, booksDir, promptsDir, webAssetsDir, configPath, credentials } = options
 
-  const storage = createBookStorage(label, booksDir)
+  const storage = publication.storage
   let visualRefinement: VisualRefinementDeps | undefined
   // Book typography (editable size-per-role map), shared with every rendered page.
   const typography = readTypography(storage)
@@ -213,29 +237,6 @@ export async function reRenderPage(
     if (visualRefinement) {
       await visualRefinement.screenshotRenderer.close()
     }
-    storage.clearNodesByType([
-      "image-captioning",
-      "text-catalog",
-      "easy-read",
-      "text-catalog-translation",
-      "core-tts-catalog",
-      "tts",
-      "tts-timestamps",
-      "accessibility-assessment",
-    ])
-    storage.clearStepRuns([
-      "image-captioning",
-      "text-catalog",
-      "easy-read",
-      "catalog-translation",
-      "core-tts-catalog",
-      "image-translation",
-      "tts",
-      "word-timestamps",
-      "package-web",
-      "accessibility-assessment",
-    ])
-    storage.close()
   }
 }
 

@@ -1,3 +1,5 @@
+import path from "node:path"
+import { withBookWriter, recoverSectioningTransition } from "@adt/storage"
 import type { TaskKind, TaskInfo, TaskStatus } from "@adt/types"
 import type { BookEventBus } from "./book-event-bus.js"
 
@@ -25,7 +27,7 @@ export interface TaskService {
 
 let nextTaskId = 1
 
-export function createTaskService(eventBus: BookEventBus): TaskService {
+export function createTaskService(eventBus: BookEventBus, booksDir?: string): TaskService {
   const books = new Map<string, BookTaskState>()
 
   function getOrCreate(label: string): BookTaskState {
@@ -70,18 +72,33 @@ export function createTaskService(eventBus: BookEventBus): TaskService {
       const state = getOrCreate(label)
       state.tasks.set(taskId, info)
 
-      // Emit start event
-      eventBus.emit(label, {
-        type: "task",
-        data: { type: "task-start", taskId, kind, label, description, pageId: options?.pageId, url: options?.url },
-      })
-
-      executor((message, percent) => {
+      const execute = async () => {
+        // Announce only admitted work. A BOOK_BUSY rejection must not leave
+        // subscribers showing a task that will never emit a terminal event.
         eventBus.emit(label, {
           type: "task",
-          data: { type: "task-progress", taskId, message, percent },
+          data: { type: "task-start", taskId, kind, label, description, pageId: options?.pageId, url: options?.url },
         })
-      })
+        return executor((message, percent) => {
+          eventBus.emit(label, {
+            type: "task",
+            data: { type: "task-progress", taskId, message, percent },
+          })
+        })
+      }
+      let execution: Promise<unknown>
+      try {
+        execution = booksDir
+          ? withBookWriter(path.join(path.resolve(booksDir), label), () => {
+              recoverSectioningTransition(path.join(path.resolve(booksDir), label))
+              return execute()
+            })
+          : execute()
+      } catch (error) {
+        removeTask(label, taskId)
+        throw error
+      }
+      execution
         .then((result) => {
           info.status = "completed"
           info.result = result

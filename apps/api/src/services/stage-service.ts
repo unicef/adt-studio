@@ -1,3 +1,6 @@
+import path from "node:path"
+import { withBookWriter } from "@adt/storage"
+import { prepareSectioningRun, SectioningPreflightError } from "@adt/pipeline"
 import { STAGE_ORDER, type ProgressEvent } from "@adt/types"
 import type { StageName, StepName, PageErrorPolicy, PageErrorAction } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
@@ -137,8 +140,12 @@ export function createStageService(
     }
 
     try {
-      options.beforeRun?.()
-      await runner.run(label, effectiveOptions, progress)
+      await withBookWriter(path.join(path.resolve(options.booksDir), label), async () => {
+        job.controller.signal.throwIfAborted()
+        prepareSectioningRun(label, options.booksDir, options.fromStage as StageName, options.toStage as StageName, options.configPath)
+        options.beforeRun?.()
+        await runner.run(label, effectiveOptions, progress)
+      })
       // Resolved: either a real completion, or a cancel that landed after the
       // last checkpoint so all remaining work finished. Both are "completed" —
       // no cancelled event, no step reset (the run genuinely finished).
@@ -169,7 +176,7 @@ export function createStageService(
         job.status = "failed"
         job.error = message
         job.completedAt = Date.now()
-        eventBus.emit(label, { type: "stage-run-error", label, error: message })
+        eventBus.emit(label, { type: "stage-run-error", label, error: message, ...(err instanceof SectioningPreflightError ? { sectioningPreflight: err.details } : {}) })
       }
     } finally {
       // Clear any per-run page-error policy / pending decisions so they never
@@ -291,9 +298,16 @@ export function createStageService(
       // seconds, stalling the client that just kicked off the run. `state.active`
       // is already set, so getStatus() reflects "running" right away; the step
       // run record is written once the deferred job actually starts.
-      setImmediate(() => {
-        executeJob(label, job, options).catch(() => {})
-      })
+      try {
+        withBookWriter(path.join(path.resolve(options.booksDir), label), () => new Promise<void>((resolve) => {
+          setImmediate(() => {
+            executeJob(label, job, options).finally(resolve).catch(() => {})
+          })
+        })).catch(() => {})
+      } catch (error) {
+        state.active = null
+        throw error
+      }
 
       return { status: "started", id }
     },

@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { Hono } from "hono"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, writeSectioningLifecycle } from "@adt/storage"
 import { buildTextCatalog, packageAdtWeb, packageWebpub, packageEpub, saveQuizOutput, assertQuizGenerationCapacity } from "@adt/pipeline"
 import { formatQuizId, QuizIdExhaustedError, type Quiz, type QuizGenerationOutput } from "@adt/types"
 import { createQuizRoutes } from "./quizzes.js"
@@ -388,17 +388,18 @@ describe("full-stage quiz regeneration", () => {
     expect(useStorage((s) => s.getStepRuns()).find((s) => s.step === "quiz-generation")?.status).toBe("error")
   })
 
-  it("reserves IDs after upstream invalidation and a complete extraction reset", async () => {
+  it("reserves IDs while upstream invalidation retains output and unsafe extraction is blocked", async () => {
     seed([quiz("One"), quiz("Two")])
-    makeBeforeRun(label, "storyboard", "storyboard", root)()
-    expect(useStorage((s) => s.getLatestNodeData("quiz-generation", "book"))).toBeNull()
+    writeSectioningLifecycle(path.join(root, label), "dynamic", true)
+    makeBeforeRun(label, "storyboard", "storyboard", root, configPath)()
+    expect(stored().quizzes).toHaveLength(2)
     useStorage((s) => saveQuizOutput(s, output([quiz("Three")]), "replace"))
     expect(stored().quizzes[0].quizId).toBe("qz003")
-    makeBeforeRun(label, "extract", "quizzes", root)()
-    expect(useStorage((s) => s.getLatestNodeData("quiz-generation", "book"))).toBeNull()
+    expect(makeBeforeRun(label, "extract", "quizzes", root, configPath)).toThrow(/preservation-safe|unknown-origin/)
+    expect(stored().quizzes[0].quizId).toBe("qz003")
     useStorage((s) => saveQuizOutput(s, output([quiz("Four")]), "replace"))
     expect(stored().quizzes[0].quizId).toBe("qz004")
-    expect(history()).toHaveLength(5)
+    expect(history()).toHaveLength(3)
   })
 
   it("cannot reuse or overwrite old manual audio when the full run preserves the speech manifest", async () => {
@@ -440,7 +441,9 @@ describe("recoverable inactive quiz history", () => {
   it("exposes history while keeping invalidated output absent, and restores without allocating IDs", async () => {
     app.route("/", createPageRoutes(root, path.resolve("prompts"), assets, configPath))
     seed([quiz("Original", "qz1000")])
-    makeBeforeRun(label, "storyboard", "storyboard", root)()
+    // Historical tombstones remain restorable even though B1 Storyboard
+    // preparation no longer creates them through destructive invalidation.
+    useStorage((s) => s.clearNodesByType(["quiz-generation"]))
     expect(await (await app.request(`/books/${label}/quizzes`)).json()).toEqual({
       quizzes: null, version: null, historyVersion: 2,
     })

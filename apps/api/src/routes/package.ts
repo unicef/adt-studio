@@ -13,6 +13,7 @@ import {
   runBrowserAccessibilityAssessment,
   mergeAccessibilityResults,
   isFixedLayoutBook,
+  prepareSectioningRun,
 } from "@adt/pipeline"
 import type { Storage } from "@adt/storage"
 import type { TaskService } from "../services/task-service.js"
@@ -135,6 +136,9 @@ function resolvePackagingParams(
   booksDir: string,
   configPath?: string,
 ) {
+  // Cached builds and direct preview tasks obey the same stale-state boundary
+  // as the Package stage; retained files alone do not authorize a rebuild.
+  prepareSectioningRun(safeLabel, booksDir, "package", "package", configPath)
   const config = loadBookConfig(safeLabel, booksDir, configPath)
   const metadataRow = storage.getLatestNodeData("metadata", "book")
   const metadata = metadataRow?.data as {

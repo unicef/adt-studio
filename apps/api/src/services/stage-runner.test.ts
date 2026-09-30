@@ -4,7 +4,7 @@ import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { PIPELINE, type AppConfig, type ProgressEvent } from "@adt/types"
 import { computeSpeechCacheKey, stripEmojis, retireSectionIds } from "@adt/pipeline"
-import { createBookStorage, openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/storage"
 import {
   buildStageRunnerImageClassifyConfig,
   createStageRunner,
@@ -764,6 +764,7 @@ describe("createStageRunner storyboard render-only", () => {
     fs.mkdirSync(promptsDir, { recursive: true })
     writeBaseConfig(configPath)
     seedStoryboardBook(booksDir, "render-only")
+    writeSectioningLifecycle(path.join(booksDir, "render-only"), "dynamic", true)
 
     const events: ProgressEvent[] = []
     const controller = new AbortController()

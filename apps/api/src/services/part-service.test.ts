@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { openBookDb, createBookStorage, writeSectioningLifecycle, readSectioningLifecycle } from "@adt/storage"
+import { prepareSectioningRun } from "@adt/pipeline"
 import { exportProject } from "./export-service.js"
 import { previewMerge, mergePart, importPart, isPartArchive, gapsOf, contiguousRanges } from "./part-service.js"
 
@@ -195,6 +196,15 @@ describe("previewMerge", () => {
 })
 
 describe("mergePart", () => {
+  it("revokes previously current Sectioning after importing a part-local tree", async () => {
+    makeBook("raven")
+    addProcessedPage("raven", 1)
+    writeSectioningLifecycle(path.join(tmpDir, "raven"), "dynamic", true)
+    const zip = await buildCompletedPart("raven-p003-004", 3, 4)
+    mergePart("raven", tmpDir, zip, {}, configPath)
+    expect(() => prepareSectioningRun("raven", tmpDir, "storyboard", "storyboard", configPath)).toThrow(/Sectioning has not completed/)
+    expect(readSectioningLifecycle(path.join(tmpDir, "raven"))?.sectioningReady).toBe(false)
+  })
   it("copies per-page data, carries cache, and marks book-level steps stale", async () => {
     makeBook("raven")
     addProcessedPage("raven", 1)

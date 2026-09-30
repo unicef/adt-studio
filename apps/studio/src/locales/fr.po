@@ -2184,8 +2184,14 @@ msgstr "Modifier"
 msgid "Change language"
 msgstr "Changer de langue"
 
+msgid "Change mode"
+msgstr "Changer de mode"
+
 msgid "Change Preset"
 msgstr "Changer de préréglage"
+
+msgid "Change Sectioning mode?"
+msgstr "Changer le mode de découpage en sections ?"
 
 msgid "Change the book language?"
 msgstr "Changer la langue du livre ?"
@@ -2722,6 +2728,9 @@ msgstr "Impossible de lire ce PDF. Le fichier est peut-être corrompu ou protég
 
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Impossible de supprimer {failed} vidéos sur {total} — veuillez réessayer."
+
+msgid "Could not save Sectioning mode."
+msgstr "Impossible d’enregistrer le mode de découpage en sections."
 
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
@@ -8386,6 +8395,9 @@ msgstr "Enregistrer les tailles de texte"
 msgid "Save your work first if you want to keep these changes."
 msgstr "Enregistrez d'abord votre travail si vous souhaitez conserver ces modifications."
 
+msgid "Saved output is retained, but Sectioning and later stages are not current."
+msgstr "Les résultats enregistrés sont conservés, mais le découpage en sections et les étapes suivantes ne sont plus à jour."
+
 msgid "Saved. Re-package Preview to apply."
 msgstr "Enregistré. Ré-empaquetez l'aperçu pour appliquer."
 
@@ -8587,6 +8599,9 @@ msgstr "Types de section"
 
 msgid "Sectioning"
 msgstr "Sectionnement"
+
+msgid "Sectioning and later stages will need to run again. Saved versions are kept."
+msgstr "Le découpage en sections et les étapes suivantes devront être relancés. Les versions enregistrées sont conservées."
 
 msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
 msgstr "Le découpage a changé depuis le rendu de ces pages. Relancez le Scénarimage pour les régénérer."
@@ -9291,6 +9306,9 @@ msgstr "Stocké localement sur cet ordinateur"
 
 msgid "Storyboard"
 msgstr "Scénarimage"
+
+msgid "Storyboard cannot run in By Page mode: {total} pages do not contain exactly one valid section. Re-run Sectioning, then try again. Affected pages: {pages}."
+msgstr "Le storyboard ne peut pas être exécuté en mode Par page : {total} pages ne contiennent pas exactement une section valide. Relancez le découpage en sections, puis réessayez. Pages concernées : {pages}."
 
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "Le scénarimage a déjà été exécuté. Les modifications effectuées ici ne prendront effet que lorsque le scénarimage sera relancé."
@@ -10794,6 +10812,9 @@ msgstr "Attendre la fin de la génération du glossaire"
 
 msgid "Wait for storyboard to complete"
 msgstr "Attendre la fin du scénarimage"
+
+msgid "Wait for the current operation to finish."
+msgstr "Attendez la fin de l’opération en cours."
 
 msgid "Waiting for API output…"
 msgstr "En attente de la sortie API…"

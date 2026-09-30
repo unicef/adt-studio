@@ -1,3 +1,5 @@
+import { withBookWriter } from "@adt/storage"
+import { prepareSectioningRun, completeSectioning, createStoryboardPublication } from "@adt/pipeline"
 import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
@@ -908,6 +910,19 @@ const STAGE_RUNNERS: Record<StageName, RunFn> = {
  * Stage ordering comes from the shared PIPELINE definition.
  */
 export function createStageRunner(): StageRunner {
+  const runner = createAdmittedStageRunner()
+  return {
+    run(label, options, progress) {
+      const bookDir = path.join(path.resolve(options.booksDir), label)
+      return withBookWriter(bookDir, async () => {
+        prepareSectioningRun(label, options.booksDir, options.fromStage as StageName, options.toStage as StageName, options.configPath)
+        return runner.run(label, options, progress)
+      })
+    },
+  }
+}
+
+function createAdmittedStageRunner(): StageRunner {
   return {
     async run(
       label: string,
@@ -1534,6 +1549,7 @@ async function runSectioningStep(
     } else {
       progress.emit({ type: "step-skip", step: "translation" })
     }
+    if (skippedByStep.size === 0) completeSectioning(label, booksDir, config, configPath)
   } finally {
     storage.close()
   }
@@ -1546,7 +1562,10 @@ async function runStoryboardStep(
 ): Promise<void> {
   const { booksDir, promptsDir, webAssetsDir, configPath } = options
 
-  const storage = createBookStorage(label, booksDir)
+  const baseStorage = createBookStorage(label, booksDir)
+  let publication: ReturnType<typeof createStoryboardPublication>
+  try { publication = createStoryboardPublication(baseStorage, label, booksDir, configPath) } catch (err) { baseStorage.close(); throw err }
+  const storage = publication.storage
   let visualRefinement: VisualRefinementDeps | undefined
 
   try {
@@ -1648,8 +1667,11 @@ async function runStoryboardStep(
       console.log(`[stage-run] ${label}: fixed-layout rendering for ${totalPages} pages`)
       progress.emit({ type: "step-start", step: "web-rendering" })
       const { processFixedLayoutPages } = await import("@adt/pipeline")
+      if (options.signal?.aborted) throw new RunCancelledError()
       const imageUrlPrefix = `/api/books/${label}/images`
       processFixedLayoutPages(storage, imageUrlPrefix)
+      if (options.signal?.aborted) throw new RunCancelledError()
+      publication.publish()
       progress.emit({ type: "step-complete", step: "web-rendering" })
       console.log(`[stage-run] ${label}: fixed-layout rendering complete`)
       return
@@ -1790,6 +1812,12 @@ async function runStoryboardStep(
       throw new StepError("web-rendering", "Stopped by a page-error decision")
     }
 
+    // A skipped/failed/cancelled page cannot publish a partial replacement.
+    if (failedPages.length || (skippedByStep.get("web-rendering")?.size ?? 0) > 0) {
+      throw new StepError("web-rendering", "Storyboard was not published because one or more pages did not finish. Previous output is kept.")
+    }
+    if (options.signal?.aborted) throw new RunCancelledError()
+    publication.publish()
     finishPageStep(progress, "web-rendering", pageFailureDeps)
     console.log(`[stage-run] ${label}: storyboard complete`)
   } finally {

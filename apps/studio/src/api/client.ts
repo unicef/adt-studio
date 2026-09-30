@@ -1,3 +1,6 @@
+import { sectioningErrorMessage } from "@/lib/sectioning-error"
+import type { SectioningPreflightResult } from "@adt/types"
+import type { SectioningModeState } from "@adt/types"
 import { isElectron } from "@/lib/utils"
 import type {
   AccessibilityAssessmentOutput,
@@ -113,7 +116,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const text = await res.text().catch(() => "")
     let message: string | undefined
     try {
-      message = (JSON.parse(text) as { error?: string }).error
+      const details = JSON.parse(text) as Partial<SectioningPreflightResult> & { code?: string; error?: string }
+      message = details.code === "SECTIONING_PREFLIGHT_FAILED" && typeof details.total === "number" && Array.isArray(details.displayedPages)
+        ? sectioningErrorMessage(details as SectioningPreflightResult)
+        : details.error
     } catch {
       message = text || undefined
     }
@@ -1688,6 +1694,9 @@ export const api = {
       `/books/${label}/versions/${node}/${itemId}/restore`,
       { method: "POST", body: JSON.stringify({ version }) }
     ),
+
+  getSectioningModeState: (label: string) =>
+    request<SectioningModeState>(`/books/${label}/sectioning-state`),
 
   getBookConfig: (label: string) =>
     request<BookConfigResponse>(`/books/${label}/config`),
