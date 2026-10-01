@@ -186,10 +186,14 @@ describe("_withCaptureLimit", () => {
     })
 
     const controller = new AbortController()
-    await limited.screenshot("<p>hi</p>", { width: 390, height: 844 }, { signal: controller.signal })
+    await limited.screenshot(
+      "<p>hi</p>",
+      { width: 390, height: 844 },
+      { signal: controller.signal, timeoutMs: 60_000 },
+    )
 
     expect(calls).toEqual([
-      ["<p>hi</p>", { width: 390, height: 844 }, { signal: controller.signal }],
+      ["<p>hi</p>", { width: 390, height: 844 }, { signal: controller.signal, timeoutMs: 60_000 }],
     ])
   })
 
