@@ -14,14 +14,6 @@ const BASE64_MAGIC_MEDIA_TYPES: ReadonlyArray<[string, string]> = [
   ["UklGR", "image/webp"],
 ]
 
-const FILE_EXTENSIONS: Record<string, string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/jpg": "jpg",
-  "image/gif": "gif",
-  "image/webp": "webp",
-}
-
 /** An explicit data-URL media type wins; otherwise the base64 magic prefix decides, defaulting to PNG. */
 export function detectImageMediaType(image: string): string {
   const dataUrl = DATA_URL_PATTERN.exec(image)
@@ -36,9 +28,4 @@ export function detectImageMediaType(image: string): string {
 /** The raw base64 payload with any data-URL prefix removed. */
 export function stripDataUrl(image: string): string {
   return image.replace(DATA_URL_PATTERN, "")
-}
-
-/** File extension for a media type, so tools that sniff by name recognise the file. */
-export function imageFileExtension(mediaType: string): string {
-  return FILE_EXTENSIONS[mediaType.toLowerCase()] ?? "png"
 }

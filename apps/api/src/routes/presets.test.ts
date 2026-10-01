@@ -178,6 +178,16 @@ describe("global default model", () => {
 })
 
 describe("global specialized model defaults", () => {
+  it("persists the Nano Banana 2 default across route instances", async () => {
+    const defaults = { imageGeneration: "google:gemini-3.1-flash-image", speechGeneration: "tts-1-hd" }
+    const saved = await app().request("/config/specialized-model-defaults", {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(defaults),
+    })
+    expect(saved.status).toBe(200)
+    expect(await (await app().request("/config/specialized-model-defaults")).json()).toEqual(defaults)
+    expect(fs.readFileSync(configPath, "utf-8")).toContain('default_image_generation_model: "google:gemini-3.1-flash-image"')
+  })
+
   it("returns built-in defaults when no overrides are configured", async () => {
     const response = await app().request("/config/specialized-model-defaults")
     expect(await response.json()).toEqual({

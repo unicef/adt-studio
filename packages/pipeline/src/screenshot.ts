@@ -9,11 +9,14 @@
 import { randomUUID } from "node:crypto"
 import os from "node:os"
 import {
+  DEFAULT_SCREENSHOT_TIMEOUT_MS,
   screenshotIpcCloseSchema,
   screenshotIpcReplySchema,
   screenshotIpcRequestSchema,
 } from "@adt/types"
 import { createSemaphore, type Semaphore } from "./concurrency.js"
+
+export { DEFAULT_SCREENSHOT_TIMEOUT_MS }
 
 export const SCREENSHOT_VIEWPORTS = [
   { label: "desktop", width: 1280, height: 800 },
@@ -40,7 +43,12 @@ export interface ScreenshotRenderer {
   screenshot(
     html: string,
     viewport?: { width: number; height: number },
-    options?: { signal?: AbortSignal },
+    options?: {
+      signal?: AbortSignal
+      /** Budget for the whole capture. Honored by both renderers; Electron's
+       *  IPC reply backstop adds a small grace period for the main-process reply. */
+      timeoutMs?: number
+    },
   ): Promise<string>
   /** Release browser resources. */
   close(): Promise<void>
@@ -70,28 +78,77 @@ export async function _createScreenshotRenderer(): Promise<ScreenshotRenderer> {
     async screenshot(
       html: string,
       viewport = { width: 1024, height: 768 },
-      options: { signal?: AbortSignal } = {},
+      options: { signal?: AbortSignal; timeoutMs?: number } = {},
     ): Promise<string> {
       throwIfAborted(options.signal)
-      const context = await browser.newContext({ viewport })
-      const onAbort = () => {
-        void context.close().catch(() => {})
+      // The outer deadline also covers context/page creation and cleanup, which
+      // have no Playwright timeout option. Per-operation timeouts alone cannot
+      // guarantee that a stalled browser releases the caller for a retry.
+      // Floor at 1ms: Playwright reads `timeout: 0` as "wait forever".
+      const timeoutMs = Math.max(1, options.timeoutMs ?? DEFAULT_SCREENSHOT_TIMEOUT_MS)
+      const deadline = Date.now() + timeoutMs
+      const remaining = () => Math.max(1, deadline - Date.now())
+      let context: PlaywrightContext | undefined
+      let closePromise: Promise<void> | undefined
+      let stopped: Error | undefined
+      const closeContext = () => {
+        if (context && !closePromise) {
+          closePromise = context.close().catch(() => {})
+        }
+        return closePromise
       }
-      options.signal?.addEventListener("abort", onAbort, { once: true })
+      const checkActive = () => {
+        if (stopped) throw stopped
+        throwIfAborted(options.signal)
+      }
+      let timer: ReturnType<typeof setTimeout> | undefined
+      let onAbort = () => {}
+      const interrupted = new Promise<never>((_, reject) => {
+        const stop = (error: Error) => {
+          stopped = error
+          reject(error)
+          // Best-effort cleanup must not delay timeout/cancellation. If context
+          // creation finishes later, capture's finally block closes it instead.
+          void closeContext()
+        }
+        onAbort = () => stop(
+          options.signal?.reason instanceof Error
+            ? options.signal.reason
+            : new Error("Operation aborted")
+        )
+        options.signal?.addEventListener("abort", onAbort, { once: true })
+        timer = setTimeout(() => stop(new Error(`Screenshot timed out after ${timeoutMs}ms`)), timeoutMs)
+      })
+      const capture = async () => {
+        try {
+          context = await browser.newContext({ viewport })
+          checkActive()
+          const page = await context.newPage()
+          checkActive()
+          await page.setContent(html, { waitUntil: "load", timeout: remaining() })
+          checkActive()
+          // Wait for web fonts to finish loading before screenshotting
+          await page.waitForFunction("document.fonts.ready", undefined, { timeout: remaining() })
+          checkActive()
+          // Finite animations finish and infinite animations pause, producing a
+          // deterministic image for both review captures and thumbnails.
+          const buffer = await page.screenshot({
+            fullPage: true,
+            type: "png",
+            animations: "disabled",
+            timeout: remaining(),
+          })
+          checkActive()
+          return buffer.toString("base64")
+        } finally {
+          await closeContext()
+        }
+      }
       try {
-        throwIfAborted(options.signal)
-        const page = await context.newPage()
-        await page.setContent(html, { waitUntil: "load" })
-        throwIfAborted(options.signal)
-        // Wait for web fonts to finish loading before screenshotting
-        await page.waitForFunction("document.fonts.ready")
-        throwIfAborted(options.signal)
-        const buffer = await page.screenshot({ fullPage: true, type: "png" })
-        throwIfAborted(options.signal)
-        return buffer.toString("base64")
+        return await Promise.race([capture(), interrupted])
       } finally {
+        clearTimeout(timer)
         options.signal?.removeEventListener("abort", onAbort)
-        await context.close().catch(() => {})
       }
     },
 
@@ -198,6 +255,10 @@ function utilityParentPort(): ParentPortLike | null {
   return p
 }
 
+/** Extra slack on top of the capture budget so main's own bounded failure — which
+ *  carries a descriptive error — normally wins the race against this backstop. */
+const SCREENSHOT_REPLY_GRACE_MS = 5_000
+
 /**
  * Electron `utilityProcess.fork` child: talk to main via `process.parentPort`.
  * `process.send` / `process.on("message")` are for Node `child_process.fork` only — they do not wire to main here.
@@ -214,12 +275,23 @@ export async function _createElectronScreenshotRenderer(): Promise<ScreenshotRen
     async screenshot(
       html: string,
       viewport = { width: 1024, height: 768 },
-      options: { signal?: AbortSignal } = {},
+      options: { signal?: AbortSignal; timeoutMs?: number } = {},
     ): Promise<string> {
       throwIfAborted(options.signal)
       const id = randomUUID()
+      const timeoutMs = options.timeoutMs ?? DEFAULT_SCREENSHOT_TIMEOUT_MS
+      const replyTimeoutMs = timeoutMs + SCREENSHOT_REPLY_GRACE_MS
+      const payload = screenshotIpcRequestSchema.parse({
+        type: "screenshot-base64",
+        id,
+        html,
+        viewport,
+        timeoutMs,
+      })
       return new Promise((resolve, reject) => {
+        let timer: ReturnType<typeof setTimeout> | undefined
         const cleanup = () => {
+          if (timer) clearTimeout(timer)
           parentPort.off("message", onMessage)
           options.signal?.removeEventListener("abort", onAbort)
         }
@@ -242,12 +314,14 @@ export async function _createElectronScreenshotRenderer(): Promise<ScreenshotRen
         }
         parentPort.on("message", onMessage)
         options.signal?.addEventListener("abort", onAbort, { once: true })
-        const payload = screenshotIpcRequestSchema.parse({
-          type: "screenshot-base64",
-          id,
-          html,
-          viewport,
-        })
+        timer = setTimeout(() => {
+          cleanup()
+          reject(
+            new Error(
+              `Screenshot timed out after ${replyTimeoutMs}ms: the main process never replied`
+            )
+          )
+        }, replyTimeoutMs)
         parentPort.postMessage(payload)
       })
     },
@@ -270,7 +344,16 @@ interface PlaywrightContext {
 }
 
 interface PlaywrightPage {
-  setContent(html: string, opts?: { waitUntil?: string }): Promise<void>
-  waitForFunction(expression: string): Promise<unknown>
-  screenshot(opts?: { fullPage?: boolean; type?: string }): Promise<Buffer>
+  setContent(html: string, opts?: { waitUntil?: string; timeout?: number }): Promise<void>
+  waitForFunction(
+    expression: string,
+    arg?: unknown,
+    opts?: { timeout?: number }
+  ): Promise<unknown>
+  screenshot(opts?: {
+    fullPage?: boolean
+    type?: string
+    animations?: "disabled" | "allow"
+    timeout?: number
+  }): Promise<Buffer>
 }
