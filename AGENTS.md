@@ -80,9 +80,11 @@ Three build targets in `Dockerfile`:
 docker compose up --build
 
 # Single-image — same image end users download
-docker build --target app -t adt-studio .
+docker build --target app --secret id=npmrc,src=$HOME/.npmrc -t adt-studio .
 docker run -p 8080:80 -v ./books:/app/books adt-studio
 ```
+
+**Private registry in Docker builds:** `pnpm install` in the `deps` stage needs the `@zignaggo` GitHub Packages token (see "Storyboard HTML editor" below). The Dockerfile mounts it as a BuildKit secret with `id=npmrc` at `/root/.npmrc`; the token never lands in an image layer. Pass any `.npmrc` that holds the `@zignaggo` registry and token (`--secret id=npmrc,src=<path>`). CI builds that file from the `Z_PACKAGE_PAT` secret (`docker build --secret id=npmrc,env=NPMRC` in `ci.yml`, `secret-envs: npmrc=NPMRC` in `release.yml`). `docker-compose.yml` does not pass the secret, so `docker compose up --build` cannot install the package until `build.secrets` is added there.
 
 **Runtime env vars and volumes:**
 
@@ -225,9 +227,11 @@ See [`docs/I18N_ADD_LANGUAGE.md`](docs/I18N_ADD_LANGUAGE.md).
 
 The Storyboard workspace in the new pipeline UI **is** a visual HTML editor —
 there is no preview/edit toggle. It is backed by **`adt-html-editor`**, a
-separate repo consumed through a `link:` dependency
-(`../../../../../personal/adt-html-editor`), not from npm. Its `shadcn` entry
-point is used so the editor chrome inherits the Studio's own theme tokens.
+separate repo published privately to GitHub Packages as
+`@zignaggo/adt-html-editor`. `apps/studio/package.json` installs it under an
+npm alias (`"adt-html-editor": "npm:@zignaggo/adt-html-editor@<version>"`), so
+code keeps importing `adt-html-editor`. Its `shadcn` entry point is used so the
+editor chrome inherits the Studio's own theme tokens.
 
 The editor's panels are spread across the workspace rather than living in one
 box, so `StoryboardShell` (`editor/StoryboardShell.tsx`) mounts the library
@@ -239,8 +243,20 @@ provider around the whole body:
 | Canvas | section tabs + history + zoom/viewport | `editor/EditorCanvas.tsx` |
 | Right panel | Styles, AI | `panel/WorkspacePanel.tsx` |
 
-- **The library must be built before the Studio can run** — the `link:` points
-  at its `dist/`. Run `bun run build` in the library after changing it.
+- **Installing needs a GitHub token.** Only the `@zignaggo` scope comes from
+  `https://npm.pkg.github.com`; everything else stays on the public npm
+  registry. Locally, add a git-ignored `.npmrc` (repo root or `~/.npmrc`) with
+  a PAT that has `read:packages`:
+  ```
+  @zignaggo:registry=https://npm.pkg.github.com
+  //npm.pkg.github.com/:_authToken=<your PAT>
+  ```
+  In CI the token comes from the `Z_PACKAGE_PAT` repository secret:
+  `actions/setup-node` is configured with `registry-url` + `scope: '@zignaggo'`
+  and every `pnpm install` step sets `NODE_AUTH_TOKEN`. Docker builds receive
+  the same `.npmrc` as a BuildKit secret (`id=npmrc`, see below).
+- **Upgrading the library** means publishing a new version and bumping the
+  alias version in `apps/studio/package.json`.
 - **The provider is controlled, never keyed.** `StoryboardShell` passes the
   section HTML as `value`, so switching section or page replaces the document
   in place; remounting it would tear down the rail and the panel with it.

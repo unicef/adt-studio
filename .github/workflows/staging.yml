@@ -139,9 +139,13 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@zignaggo'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.Z_PACKAGE_PAT }}
 
       - name: Build workspace
         run: pnpm build

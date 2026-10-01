@@ -349,9 +349,13 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@zignaggo'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.Z_PACKAGE_PAT }}
 
       - name: Build workspace (root)
         run: pnpm build
@@ -483,11 +487,16 @@ jobs:
 
       - name: Build and push
         uses: docker/build-push-action@v6
+        env:
+          NPMRC: |
+            @zignaggo:registry=https://npm.pkg.github.com
+            //npm.pkg.github.com/:_authToken=${{ secrets.Z_PACKAGE_PAT }}
         with:
           context: .
           target: app
           push: true
           tags: ${{ needs.prepare.outputs.docker_tags }}
+          secret-envs: npmrc=NPMRC
 
   finalize:
     needs: [prepare, desktop, docker]
