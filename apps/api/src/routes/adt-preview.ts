@@ -498,7 +498,8 @@ export function createAdtPreviewRoutes(
   function resolveBook(label: string) {
     const safeLabel = parseBookLabel(label)
     const resolvedBooksDir = path.resolve(booksDir)
-    const bookDir = path.join(resolvedBooksDir, safeLabel)
+    const bookDir = resolvePathWithin(resolvedBooksDir, safeLabel)
+    if (!bookDir) throw new HTTPException(403, { message: "Forbidden" })
     if (!fs.existsSync(path.join(bookDir, `${safeLabel}.db`))) {
       throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
     }
@@ -970,9 +971,8 @@ export function createAdtPreviewRoutes(
     const audioFile = c.req.path.split(`/audio/`).pop()
     if (!audioFile) throw new HTTPException(400, { message: "Missing audio path" })
 
-    const audioRoot = path.resolve(bookDir, "audio")
-    const preferredAudioDir = resolvePathWithin(audioRoot, lang)
-    const legacyAudioDir = resolvePathWithin(audioRoot, legacyLang)
+    const preferredAudioDir = resolvePathWithin(bookDir, "audio", lang)
+    const legacyAudioDir = resolvePathWithin(bookDir, "audio", legacyLang)
     if (!preferredAudioDir || !legacyAudioDir) {
       throw new HTTPException(400, { message: "Invalid language" })
     }
@@ -997,8 +997,7 @@ export function createAdtPreviewRoutes(
     const imagePath = c.req.path.split("/adt-preview/images/")[1]
     if (!imagePath) throw new HTTPException(400, { message: "Missing image path" })
 
-    const imagesDir = path.join(bookDir, "images")
-    const resolved = resolvePathWithin(imagesDir, imagePath)
+    const resolved = resolvePathWithin(bookDir, "images", imagePath)
     if (!resolved) {
       throw new HTTPException(403, { message: "Forbidden" })
     }

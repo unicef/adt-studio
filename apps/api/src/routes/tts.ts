@@ -99,6 +99,14 @@ function normalizeSafeAudioLanguage(rawLanguage: string): string {
   }
   return normalized
 }
+
+function resolveAudioDirectory(booksDir: string, label: string, language: string): string {
+  const audioDir = resolvePathWithin(booksDir, label, "audio", language)
+  if (!audioDir) {
+    throw new HTTPException(400, { message: "Invalid audio directory" })
+  }
+  return audioDir
+}
 const AUDIO_UPLOAD_FORMAT_BY_MIME: Record<string, "mp3" | "wav" | "ogg"> = {
   "audio/mpeg": "mp3",
   "audio/mp3": "mp3",
@@ -631,11 +639,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const voiceSlot: VoiceSlot = parsed.data.voiceSlot ?? "primary"
 
     const normalizedLanguage = normalizeSafeAudioLanguage(parsed.data.language)
-    if (!SAFE_AUDIO_LANGUAGE_RE.test(normalizedLanguage)) {
-      throw new HTTPException(400, {
-        message: `Invalid language: ${normalizedLanguage}`,
-      })
-    }
+    const audioDir = resolveAudioDirectory(booksDir, safeLabel, normalizedLanguage)
 
     const storage = createBookStorage(safeLabel, booksDir)
 
@@ -701,13 +705,6 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         })
       }
 
-      const bookDir = path.join(path.resolve(booksDir), safeLabel)
-      const audioRoot = path.resolve(bookDir, "audio")
-      const audioDir = resolvePathWithin(audioRoot, normalizedLanguage)
-      if (!audioDir || audioDir === audioRoot) {
-        throw new HTTPException(400, { message: "Invalid audio directory" })
-      }
-
       const outputPath = resolvePathWithin(audioDir, nextEntry.fileName)
       if (!outputPath) {
         throw new HTTPException(400, { message: "Invalid audio file path" })
@@ -726,7 +723,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         existingEntry.fileName !== nextEntry.fileName
       ) {
         const previousPath = resolvePathWithin(audioDir, existingEntry.fileName)
-        if (previousPath && fs.existsSync(previousPath)) {
+        if (previousPath && previousPath !== audioDir && fs.existsSync(previousPath)) {
           fs.rmSync(previousPath, { force: true })
         }
       }
@@ -1401,6 +1398,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const openaiApiKey = requireTranscriberKey(readProviderCredentials(c))
 
     const normalizedLanguage = normalizeSafeAudioLanguage(parsed.data.language)
+    resolveAudioDirectory(booksDir, safeLabel, normalizedLanguage)
     const storage = createBookStorage(safeLabel, booksDir)
 
     try {
@@ -1417,7 +1415,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
       const bookDir = path.join(path.resolve(booksDir), safeLabel)
       const audioPath = resolvePathWithin(
-        path.resolve(bookDir, "audio", normalizedLanguage),
+        booksDir, safeLabel, "audio", normalizedLanguage,
         ttsEntry.fileName,
       )
       if (!audioPath) {
@@ -1520,6 +1518,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const openaiApiKey = requireTranscriberKey(readProviderCredentials(c))
 
     const normalizedLanguage = normalizeSafeAudioLanguage(parsed.data.language)
+    resolveAudioDirectory(booksDir, safeLabel, normalizedLanguage)
 
     // Pre-check: count how many need transcribing before submitting task
     const preStorage = createBookStorage(safeLabel, booksDir)
@@ -1588,7 +1587,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
             const slotEntryId = voiceSlotEntryId(ttsEntry.textId, slot)
             try {
               const audioPath = resolvePathWithin(
-                path.resolve(bookDir, "audio", normalizedLanguage),
+                booksDir, safeLabel, "audio", normalizedLanguage,
                 ttsEntry.fileName,
               )
               if (!audioPath) {
@@ -1690,8 +1689,6 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
   app.get("/books/:label/audio/:language/:fileName", (c) => {
     const { label, language, fileName } = c.req.param()
     const safeLabel = safeParseLabel(label)
-    const resolvedDir = path.resolve(booksDir)
-    const bookDir = path.join(resolvedDir, safeLabel)
 
     // Validate language and fileName to prevent path traversal
     if (!/^[a-zA-Z0-9_-]+$/.test(language)) {
@@ -1701,8 +1698,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       throw new HTTPException(400, { message: "Invalid file name" })
     }
 
-    const audioDir = resolvePathWithin(path.resolve(bookDir, "audio"), language)
-    const audioPath = audioDir ? resolvePathWithin(audioDir, fileName) : null
+    const audioPath = resolvePathWithin(booksDir, safeLabel, "audio", language, fileName)
     if (!audioPath) {
       throw new HTTPException(400, { message: "Invalid audio path" })
     }
