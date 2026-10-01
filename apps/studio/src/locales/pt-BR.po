@@ -1047,10 +1047,6 @@ msgstr "Detecção de Atividade"
 msgid "Activity generation failed"
 msgstr "Falha na geração da atividade"
 
-#. placeholder {0}: sectionIndex + 1
-msgid "Activity in section {0}"
-msgstr "Atividade na seÃ§Ã£o {0}"
-
 msgid "activity interactive exercise rendering"
 msgstr "atividade interativo exercício renderização"
 
@@ -2115,6 +2111,9 @@ msgstr "Referência da lacuna"
 msgid "Blocked"
 msgstr "Bloqueado"
 
+msgid "Blocks"
+msgstr "Blocos"
+
 msgid "Blocks by page"
 msgstr "Blocos por página"
 
@@ -2150,6 +2149,9 @@ msgstr "A hierarquia do livro precisa ser reconstruída"
 
 msgid "Book images"
 msgstr "Imagens do livro"
+
+msgid "Book index"
+msgstr "Índice do livro"
 
 msgid "Book info"
 msgstr "Informações do livro"
@@ -3649,6 +3651,9 @@ msgstr "Rascunho"
 msgid "Drag & drop font files here"
 msgstr "Arraste e solte arquivos de fonte aqui"
 
+msgid "Drag a block onto the page to insert it."
+msgstr "Arraste um bloco para a página para inseri-lo."
+
 msgid "Drag the handles to crop a rectangle. Drag inside to move."
 msgstr "Arraste as alças para recortar um retângulo. Arraste dentro para mover."
 
@@ -5042,6 +5047,9 @@ msgstr "Ocultar o painel de IA"
 msgid "Hide the controls"
 msgstr "Esconder os controles"
 
+msgid "Hide the panel"
+msgstr "Ocultar o painel"
+
 msgid "Hide the sidebar"
 msgstr "Esconder a barra lateral"
 
@@ -5582,6 +5590,9 @@ msgstr "Justificar"
 msgid "KB"
 msgstr "KB"
 
+msgid "Keep editing"
+msgstr "Continuar editando"
+
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Mantenha os schemas de saída e os IDs inalterados ao editar prompts."
 
@@ -5697,6 +5708,9 @@ msgstr "LaTeX convertido"
 
 msgid "Launch the app with"
 msgstr "Iniciar o aplicativo com"
+
+msgid "Layers"
+msgstr "Camadas"
 
 msgid "Layout"
 msgstr "Layout"
@@ -5994,6 +6008,9 @@ msgstr "Carregando catálogo de textos..."
 
 msgid "Loading text sizes…"
 msgstr "Carregando tamanhos de texto…"
+
+msgid "Loading the page HTML…"
+msgstr "Carregando o HTML da página…"
 
 msgid "Loading TTS normalization..."
 msgstr "Carregando a normalização de TTS..."
@@ -6872,9 +6889,6 @@ msgstr "Nenhuma prévia disponível"
 msgid "No preview available."
 msgstr "Nenhuma pré-visualização disponível."
 
-msgid "No preview rendered for this section yet"
-msgstr "Ainda não há prévia renderizada para esta seção"
-
 msgid "No prompt files for this model."
 msgstr "Nenhum arquivo de prompt para este modelo."
 
@@ -7286,6 +7300,24 @@ msgstr "Open a page to review"
 msgid "Open a page to see page-level findings"
 msgstr "Open a page to see page-level findings"
 
+msgid "Open a rendered page to add blocks"
+msgstr "Abra uma página renderizada para adicionar blocos"
+
+msgid "Open a rendered page to drag blocks into it."
+msgstr "Abra uma página renderizada para arrastar blocos até ela."
+
+msgid "Open a rendered page to see its elements"
+msgstr "Abra uma página renderizada para ver seus elementos"
+
+msgid "Open a rendered page to style it"
+msgstr "Abra uma página renderizada para estilizá-la"
+
+msgid "Open a rendered page to style its elements."
+msgstr "Abra uma página renderizada para estilizar seus elementos."
+
+msgid "Open a rendered page to work on its elements."
+msgstr "Abra uma página renderizada para trabalhar em seus elementos."
+
 msgid "Open AI providers"
 msgstr "Abrir provedores de IA"
 
@@ -7629,7 +7661,6 @@ msgstr "página"
 msgid "Page"
 msgstr "Página"
 
-#. placeholder {0}: activePage.pageNumber
 #. placeholder {0}: chatPage.pageNumber
 msgid "page {0}"
 msgstr "página {0}"
@@ -7701,6 +7732,9 @@ msgstr "Página {pageNum}"
 
 msgid "Page {pageNumber}"
 msgstr "Página {pageNumber}"
+
+msgid "Page {pageNumber} HTML"
+msgstr "HTML da página {pageNumber}"
 
 msgid "page {shownStr}"
 msgstr "página {shownStr}"
@@ -8422,13 +8456,9 @@ msgstr "questionário"
 msgid "Quiz"
 msgstr "Questionário"
 
-#. placeholder {0}: activeQuiz.quizIndex + 1
-msgid "quiz {0}"
-msgstr "questionário {0}"
-
 #. placeholder {0}: String(activeQuiz.index + 1)
 #. placeholder {0}: String(item.index + 1)
-#. placeholder {0}: activeQuiz.quizIndex + 1
+#. placeholder {0}: quiz.quizIndex + 1
 msgid "Quiz {0}"
 msgstr "Questionário {0}"
 
@@ -9332,6 +9362,9 @@ msgstr "Salvar atividade"
 msgid "Save activity (⌘S)"
 msgstr "Salvar atividade (⌘S)"
 
+msgid "Save and continue"
+msgstr "Salvar e continuar"
+
 msgid "Save changes"
 msgstr "Salvar alterações"
 
@@ -9376,6 +9409,9 @@ msgstr "Salvar tamanhos de texto"
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Salve seu trabalho primeiro se quiser manter estas alterações."
+
+msgid "Saved"
+msgstr "Salvo"
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
@@ -9448,6 +9484,12 @@ msgstr "Buscar cores"
 
 msgid "Search display or speech text…"
 msgstr "Buscar texto de exibição ou fala…"
+
+msgid "Search elements"
+msgstr "Buscar elementos"
+
+msgid "Search elements…"
+msgstr "Buscar elementos…"
 
 msgid "Search entries…"
 msgstr "Buscar entradas…"
@@ -9955,6 +9997,9 @@ msgstr "Mostrar os controles"
 
 msgid "Show the dock"
 msgstr "Mostrar a barra"
+
+msgid "Show the panel"
+msgstr "Mostrar o painel"
 
 msgid "Show the sidebar"
 msgstr "Mostrar a barra lateral"
@@ -10506,6 +10551,9 @@ msgstr "Pré-visualização do guia de estilo — {0}"
 msgid "styles"
 msgstr "estilos"
 
+msgid "Styles"
+msgstr "Estilos"
+
 msgid "Subheading"
 msgstr "Subtítulo"
 
@@ -10884,6 +10932,9 @@ msgstr "O modelo detecta caixas delimitadoras para que cada elemento visual poss
 msgid "The page has content, but sectioning did not split it into sections. Run the step again to give it another pass."
 msgstr "A pÃ¡gina tem conteÃºdo, mas o Seccionamento nÃ£o a dividiu em seÃ§Ãµes. Execute a etapa de novo para tentar outra passagem."
 
+msgid "The page HTML could not be loaded."
+msgstr "Não foi possível carregar o HTML da página."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "O processo que as plantas usam para transformar luz solar, água e dióxido de carbono em alimento."
 
@@ -11169,6 +11220,9 @@ msgstr "Esta página não existe nesta versão."
 msgid "This page has an interactive activity"
 msgstr "Esta pÃ¡gina tem uma atividade interativa"
 
+msgid "This page has HTML edits that were not saved. Save them before leaving, or discard them to continue."
+msgstr "Esta página tem edições no HTML que não foram salvas. Salve-as antes de sair ou descarte-as para continuar."
+
 msgid "This page has images without an alternative description."
 msgstr "Esta página tem imagens sem descrição alternativa."
 
@@ -11183,6 +11237,9 @@ msgstr "Esta página não tem camada de texto incorporada — o texto abaixo foi
 
 msgid "This page has no entries to synthesize"
 msgstr "Esta página não tem entradas para sintetizar"
+
+msgid "This page has no rendered sections to edit yet."
+msgstr "Esta página ainda não tem seções renderizadas para editar."
 
 msgid "This page has no sectioning output"
 msgstr "Esta página não tem saída de seccionamento"

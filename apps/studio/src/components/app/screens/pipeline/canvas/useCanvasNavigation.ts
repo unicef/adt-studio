@@ -22,6 +22,14 @@ function overlayOpen(): boolean {
   )
 }
 
+const EDITOR_SURFACES =
+  "[data-adt-canvas], [role='tree'], input, textarea, select, [contenteditable='true']"
+
+function editingElement(): boolean {
+  const active = document.activeElement
+  return active instanceof Element && active.closest(EDITOR_SURFACES) !== null
+}
+
 /** Arrow keys walk the rail: left goes back a storyboard page, right forward. */
 export function useCanvasNavigation({
   pages,
@@ -35,7 +43,7 @@ export function useCanvasNavigation({
   const order = useMemo(() => buildRailOrder(pages, quizzes), [pages, quizzes])
 
   const step = (delta: number) => {
-    if (overlayOpen()) return
+    if (overlayOpen() || editingElement()) return
 
     const current = order.findIndex((item) =>
       activeQuizIndex == null

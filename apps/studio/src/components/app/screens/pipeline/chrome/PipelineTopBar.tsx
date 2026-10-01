@@ -22,6 +22,7 @@ export function PipelineTopBar({
   pageLabel,
   version,
   versionPicker,
+  status,
   rerun,
   onPreview,
   previewDisabled,
@@ -67,6 +68,8 @@ export function PipelineTopBar({
           </span>
         )}
       </nav>
+
+      {status && <span className="shrink-0">{status}</span>}
 
       <div className="flex-1" />
 

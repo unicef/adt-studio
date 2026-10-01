@@ -91,3 +91,6 @@ prompts/.versions
 prompts/.models.json
 .codex
 .tanstack
+
+# npm
+.npmrc

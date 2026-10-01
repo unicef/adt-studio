@@ -1049,10 +1049,6 @@ msgstr "Détection d'activité"
 msgid "Activity generation failed"
 msgstr "Échec de la génération de l'activité"
 
-#. placeholder {0}: sectionIndex + 1
-msgid "Activity in section {0}"
-msgstr "ActivitÃ© dans la section {0}"
-
 msgid "activity interactive exercise rendering"
 msgstr "activité interactif exercice rendu"
 
@@ -2117,6 +2113,9 @@ msgstr "Référence du blanc"
 msgid "Blocked"
 msgstr "Bloqué"
 
+msgid "Blocks"
+msgstr "Blocs"
+
 msgid "Blocks by page"
 msgstr "Blocs par page"
 
@@ -2152,6 +2151,9 @@ msgstr "La hiérarchie du livre doit être reconstruite"
 
 msgid "Book images"
 msgstr "Images du livre"
+
+msgid "Book index"
+msgstr "Index du livre"
 
 msgid "Book info"
 msgstr "Infos du livre"
@@ -3651,6 +3653,9 @@ msgstr "Brouillon"
 msgid "Drag & drop font files here"
 msgstr "Glissez-déposez des fichiers de police ici"
 
+msgid "Drag a block onto the page to insert it."
+msgstr "Faites glisser un bloc sur la page pour l’insérer."
+
 msgid "Drag the handles to crop a rectangle. Drag inside to move."
 msgstr "Faites glisser les poignées pour rogner un rectangle. Faites glisser à l'intérieur pour déplacer."
 
@@ -5044,6 +5049,9 @@ msgstr "Masquer le panneau IA"
 msgid "Hide the controls"
 msgstr "Masquer les contrÃ´les"
 
+msgid "Hide the panel"
+msgstr "Masquer le panneau"
+
 msgid "Hide the sidebar"
 msgstr "Masquer la barre latÃ©rale"
 
@@ -5584,6 +5592,9 @@ msgstr "Justifier"
 msgid "KB"
 msgstr "KB"
 
+msgid "Keep editing"
+msgstr "Continuer à modifier"
+
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Gardez les schémas de sortie et les ID inchangés lorsque vous modifiez des prompts."
 
@@ -5699,6 +5710,9 @@ msgstr "LaTeX converti"
 
 msgid "Launch the app with"
 msgstr "Lancer l'application avec"
+
+msgid "Layers"
+msgstr "Calques"
 
 msgid "Layout"
 msgstr "Disposition"
@@ -5996,6 +6010,9 @@ msgstr "Chargement du catalogue de texte..."
 
 msgid "Loading text sizes…"
 msgstr "Chargement des tailles de texte…"
+
+msgid "Loading the page HTML…"
+msgstr "Chargement du HTML de la page…"
 
 msgid "Loading TTS normalization..."
 msgstr "Chargement de la normalisation TTS..."
@@ -6874,9 +6891,6 @@ msgstr "Aucun aperçu disponible"
 msgid "No preview available."
 msgstr "Aucun aperçu disponible."
 
-msgid "No preview rendered for this section yet"
-msgstr "Aucun aperçu n'a encore été généré pour cette section"
-
 msgid "No prompt files for this model."
 msgstr "Aucun fichier de prompt pour ce modèle."
 
@@ -7288,6 +7302,24 @@ msgstr "Ouvrir une page à réviser"
 msgid "Open a page to see page-level findings"
 msgstr "Ouvrir une page pour voir les résultats au niveau de la page"
 
+msgid "Open a rendered page to add blocks"
+msgstr "Ouvrez une page rendue pour ajouter des blocs"
+
+msgid "Open a rendered page to drag blocks into it."
+msgstr "Ouvrez une page rendue pour y faire glisser des blocs."
+
+msgid "Open a rendered page to see its elements"
+msgstr "Ouvrez une page rendue pour voir ses éléments"
+
+msgid "Open a rendered page to style it"
+msgstr "Ouvrez une page rendue pour la mettre en forme"
+
+msgid "Open a rendered page to style its elements."
+msgstr "Ouvrez une page rendue pour mettre en forme ses éléments."
+
+msgid "Open a rendered page to work on its elements."
+msgstr "Ouvrez une page rendue pour travailler sur ses éléments."
+
 msgid "Open AI providers"
 msgstr "Ouvrir les fournisseurs d'IA"
 
@@ -7631,7 +7663,6 @@ msgstr "page"
 msgid "Page"
 msgstr "Page"
 
-#. placeholder {0}: activePage.pageNumber
 #. placeholder {0}: chatPage.pageNumber
 msgid "page {0}"
 msgstr "page {0}"
@@ -7703,6 +7734,9 @@ msgstr "Page {pageNum}"
 
 msgid "Page {pageNumber}"
 msgstr "Page {pageNumber}"
+
+msgid "Page {pageNumber} HTML"
+msgstr "HTML de la page {pageNumber}"
 
 msgid "page {shownStr}"
 msgstr "page {shownStr}"
@@ -8424,13 +8458,9 @@ msgstr "quiz"
 msgid "Quiz"
 msgstr "Quiz"
 
-#. placeholder {0}: activeQuiz.quizIndex + 1
-msgid "quiz {0}"
-msgstr "quiz {0}"
-
 #. placeholder {0}: String(activeQuiz.index + 1)
 #. placeholder {0}: String(item.index + 1)
-#. placeholder {0}: activeQuiz.quizIndex + 1
+#. placeholder {0}: quiz.quizIndex + 1
 msgid "Quiz {0}"
 msgstr "Quiz {0}"
 
@@ -9334,6 +9364,9 @@ msgstr "Enregistrer l'activité"
 msgid "Save activity (⌘S)"
 msgstr "Enregistrer l'activité (⌘S)"
 
+msgid "Save and continue"
+msgstr "Enregistrer et continuer"
+
 msgid "Save changes"
 msgstr "Enregistrer les modifications"
 
@@ -9378,6 +9411,9 @@ msgstr "Enregistrer les tailles de texte"
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Enregistrez d'abord votre travail si vous souhaitez conserver ces modifications."
+
+msgid "Saved"
+msgstr "Enregistré"
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Enregistré. Ré-empaquetez l'aperçu pour appliquer."
@@ -9450,6 +9486,12 @@ msgstr "Rechercher des couleurs"
 
 msgid "Search display or speech text…"
 msgstr "Rechercher dans le texte affiché ou vocal…"
+
+msgid "Search elements"
+msgstr "Rechercher des éléments"
+
+msgid "Search elements…"
+msgstr "Rechercher des éléments…"
 
 msgid "Search entries…"
 msgstr "Rechercher des entrées…"
@@ -9957,6 +9999,9 @@ msgstr "Afficher les contrÃ´les"
 
 msgid "Show the dock"
 msgstr "Afficher la barre"
+
+msgid "Show the panel"
+msgstr "Afficher le panneau"
 
 msgid "Show the sidebar"
 msgstr "Afficher la barre latÃ©rale"
@@ -10508,6 +10553,9 @@ msgstr "Aperçu du guide de style — {styleguide}"
 msgid "styles"
 msgstr "styles"
 
+msgid "Styles"
+msgstr "Styles"
+
 msgid "Subheading"
 msgstr "Sous-titre"
 
@@ -10886,6 +10934,9 @@ msgstr "Le modèle détecte les zones de délimitation afin que chaque élément
 msgid "The page has content, but sectioning did not split it into sections. Run the step again to give it another pass."
 msgstr "La page a du contenu, mais le Sectionnement ne l'a pas divisÃ©e en sections. Relancez l'Ã©tape pour un nouveau passage."
 
+msgid "The page HTML could not be loaded."
+msgstr "Le HTML de la page n’a pas pu être chargé."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "Le processus que les plantes utilisent pour transformer la lumière du soleil, l'eau et le dioxyde de carbone en nourriture."
 
@@ -11171,6 +11222,9 @@ msgstr "Cette page n'existe pas dans cette version."
 msgid "This page has an interactive activity"
 msgstr "Cette page contient une activitÃ© interactive"
 
+msgid "This page has HTML edits that were not saved. Save them before leaving, or discard them to continue."
+msgstr "Cette page contient des modifications HTML non enregistrées. Enregistrez-les avant de quitter, ou abandonnez-les pour continuer."
+
 msgid "This page has images without an alternative description."
 msgstr "Cette page contient des images sans description alternative."
 
@@ -11185,6 +11239,9 @@ msgstr "Cette page n'a pas de couche de texte intégrée — le texte ci-dessous
 
 msgid "This page has no entries to synthesize"
 msgstr "Cette page n'a pas d'entrées à synthétiser"
+
+msgid "This page has no rendered sections to edit yet."
+msgstr "Cette page n’a pas encore de sections rendues à modifier."
 
 msgid "This page has no sectioning output"
 msgstr "Cette page n'a pas de sortie de sectionnement"

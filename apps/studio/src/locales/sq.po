@@ -1049,10 +1049,6 @@ msgstr "Zbulimi i Aktivitetit"
 msgid "Activity generation failed"
 msgstr "Gjenerimi i aktivitetit dështoi"
 
-#. placeholder {0}: sectionIndex + 1
-msgid "Activity in section {0}"
-msgstr "Aktivitet nÃ« seksionin {0}"
-
 msgid "activity interactive exercise rendering"
 msgstr "aktivitet interaktiv ushtrim renderim"
 
@@ -2117,6 +2113,9 @@ msgstr "Referenca e vendit bosh"
 msgid "Blocked"
 msgstr "Bllokuar"
 
+msgid "Blocks"
+msgstr "Blloqe"
+
 msgid "Blocks by page"
 msgstr "Blloqe sipas faqes"
 
@@ -2152,6 +2151,9 @@ msgstr "Hierarkia e librit duhet të rindërtohet"
 
 msgid "Book images"
 msgstr "Figurat e librit"
+
+msgid "Book index"
+msgstr "Treguesi i librit"
 
 msgid "Book info"
 msgstr "Info libri"
@@ -3651,6 +3653,9 @@ msgstr "Draft"
 msgid "Drag & drop font files here"
 msgstr "Tërhiq dhe lësho skedarët e fontit këtu"
 
+msgid "Drag a block onto the page to insert it."
+msgstr "Tërhiq një bllok mbi faqe për ta futur."
+
 msgid "Drag the handles to crop a rectangle. Drag inside to move."
 msgstr "Tërhiqni dorezat për të prerë një drejtkëndësh. Tërhiqni brenda për ta lëvizur."
 
@@ -5044,6 +5049,9 @@ msgstr "Fshih panelin e IA"
 msgid "Hide the controls"
 msgstr "Fshih kontrollet"
 
+msgid "Hide the panel"
+msgstr "Fshih panelin"
+
 msgid "Hide the sidebar"
 msgstr "Fshih shiritin anÃ«sor"
 
@@ -5584,6 +5592,9 @@ msgstr "Justify"
 msgid "KB"
 msgstr "KB"
 
+msgid "Keep editing"
+msgstr "Vazhdo ndryshimin"
+
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Mbaji të pandryshuara skemat e daljes dhe ID-të kur redakton promptet."
 
@@ -5699,6 +5710,9 @@ msgstr "LaTeX i konvertuar"
 
 msgid "Launch the app with"
 msgstr "Hap aplikacionin me"
+
+msgid "Layers"
+msgstr "Shtresat"
 
 msgid "Layout"
 msgstr "Paraqitje"
@@ -5996,6 +6010,9 @@ msgstr "Duke ngarkuar katalogun e tekstit..."
 
 msgid "Loading text sizes…"
 msgstr "Po ngarkohen madhësitë e tekstit…"
+
+msgid "Loading the page HTML…"
+msgstr "Po ngarkohet HTML-ja e faqes…"
 
 msgid "Loading TTS normalization..."
 msgstr "Po ngarkohet normalizimi TTS..."
@@ -6874,9 +6891,6 @@ msgstr "Nuk ka pamje paraprake"
 msgid "No preview available."
 msgstr "Nuk ka pamje paraprake."
 
-msgid "No preview rendered for this section yet"
-msgstr "Ende nuk është krijuar pamje paraprake për këtë seksion"
-
 msgid "No prompt files for this model."
 msgstr "Nuk ka skedarë prompti për këtë model."
 
@@ -7288,6 +7302,24 @@ msgstr "Hapni një faqe për rishikim"
 msgid "Open a page to see page-level findings"
 msgstr "Hapni një faqe për të parë gjetjet në nivel faqeje"
 
+msgid "Open a rendered page to add blocks"
+msgstr "Hap një faqe të gjeneruar për të shtuar blloqe"
+
+msgid "Open a rendered page to drag blocks into it."
+msgstr "Hap një faqe të gjeneruar për të tërhequr blloqe në të."
+
+msgid "Open a rendered page to see its elements"
+msgstr "Hap një faqe të gjeneruar për të parë elementet e saj"
+
+msgid "Open a rendered page to style it"
+msgstr "Hap një faqe të gjeneruar për ta stilizuar"
+
+msgid "Open a rendered page to style its elements."
+msgstr "Hap një faqe të gjeneruar për të stilizuar elementet e saj."
+
+msgid "Open a rendered page to work on its elements."
+msgstr "Hap një faqe të gjeneruar për të punuar me elementet e saj."
+
 msgid "Open AI providers"
 msgstr "Hap ofruesit e IA"
 
@@ -7631,7 +7663,6 @@ msgstr "faqe"
 msgid "Page"
 msgstr "Faqe"
 
-#. placeholder {0}: activePage.pageNumber
 #. placeholder {0}: chatPage.pageNumber
 msgid "page {0}"
 msgstr "faqja {0}"
@@ -7703,6 +7734,9 @@ msgstr "Faqja {pageNum}"
 
 msgid "Page {pageNumber}"
 msgstr "Faqja {pageNumber}"
+
+msgid "Page {pageNumber} HTML"
+msgstr "HTML-ja e faqes {pageNumber}"
 
 msgid "page {shownStr}"
 msgstr "faqja {shownStr}"
@@ -8424,13 +8458,9 @@ msgstr "kuiz"
 msgid "Quiz"
 msgstr "Kuiz"
 
-#. placeholder {0}: activeQuiz.quizIndex + 1
-msgid "quiz {0}"
-msgstr "kuiz {0}"
-
 #. placeholder {0}: String(activeQuiz.index + 1)
 #. placeholder {0}: String(item.index + 1)
-#. placeholder {0}: activeQuiz.quizIndex + 1
+#. placeholder {0}: quiz.quizIndex + 1
 msgid "Quiz {0}"
 msgstr "Kuiz {0}"
 
@@ -9334,6 +9364,9 @@ msgstr "Ruaj aktivitetin"
 msgid "Save activity (⌘S)"
 msgstr "Ruaj aktivitetin (⌘S)"
 
+msgid "Save and continue"
+msgstr "Ruaj dhe vazhdo"
+
 msgid "Save changes"
 msgstr "Ruaj ndryshimet"
 
@@ -9378,6 +9411,9 @@ msgstr "Ruaj madhësitë e tekstit"
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Ruaje punën tënde më parë nëse dëshiron t'i mbash këto ndryshime."
+
+msgid "Saved"
+msgstr "U ruajt"
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
@@ -9450,6 +9486,12 @@ msgstr "Kërko ngjyra"
 
 msgid "Search display or speech text…"
 msgstr "Kërko tekstin e shfaqur ose të folur…"
+
+msgid "Search elements"
+msgstr "Kërko elemente"
+
+msgid "Search elements…"
+msgstr "Kërko elemente…"
 
 msgid "Search entries…"
 msgstr "Kërko regjistrime…"
@@ -9957,6 +9999,9 @@ msgstr "Shfaq kontrollet"
 
 msgid "Show the dock"
 msgstr "Shfaq shiritin"
+
+msgid "Show the panel"
+msgstr "Shfaq panelin"
 
 msgid "Show the sidebar"
 msgstr "Shfaq shiritin anÃ«sor"
@@ -10508,6 +10553,9 @@ msgstr "Parashikim i Udhëzuesit të Stilit — {styleguide}"
 msgid "styles"
 msgstr "stile"
 
+msgid "Styles"
+msgstr "Stilet"
+
 msgid "Subheading"
 msgstr "Nëntitull"
 
@@ -10886,6 +10934,9 @@ msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të
 msgid "The page has content, but sectioning did not split it into sections. Run the step again to give it another pass."
 msgstr "Faqja ka pÃ«rmbajtje, por Seksionimi nuk e ndau atÃ« nÃ« seksione. Ekzekutoje hapin sÃ«rish pÃ«r njÃ« kalim tjetÃ«r."
 
+msgid "The page HTML could not be loaded."
+msgstr "HTML-ja e faqes nuk mund të ngarkohej."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "Procesi që bimët përdorin për të kthyer dritën e diellit, ujin dhe dioksidin e karbonit në ushqim."
 
@@ -11171,6 +11222,9 @@ msgstr "Kjo faqe nuk ekziston në këtë version."
 msgid "This page has an interactive activity"
 msgstr "Kjo faqe ka njÃ« aktivitet interaktiv"
 
+msgid "This page has HTML edits that were not saved. Save them before leaving, or discard them to continue."
+msgstr "Kjo faqe ka ndryshime HTML që nuk janë ruajtur. Ruaji para se të dalësh, ose hiqi për të vazhduar."
+
 msgid "This page has images without an alternative description."
 msgstr "Kjo faqe ka imazhe pa përshkrim alternativ."
 
@@ -11185,6 +11239,9 @@ msgstr "Kjo faqe nuk ka shtresë teksti të integruar — teksti më poshtë u r
 
 msgid "This page has no entries to synthesize"
 msgstr "Kjo faqe nuk ka hyrje për të sintetizuar"
+
+msgid "This page has no rendered sections to edit yet."
+msgstr "Kjo faqe nuk ka ende seksione të gjeneruara për të ndryshuar."
 
 msgid "This page has no sectioning output"
 msgstr "Kjo faqe nuk ka dalje seksionimi"

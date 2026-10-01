@@ -20,6 +20,25 @@ const dockMinimizedStore = createPersistentStore<boolean>(
   isBoolean,
 )
 
+export type RailTab = "pages" | "layers" | "palette"
+export type PanelTab = "styles" | "ai"
+
+const isRailTab = (value: unknown): value is RailTab =>
+  value === "pages" || value === "layers" || value === "palette"
+const isPanelTab = (value: unknown): value is PanelTab =>
+  value === "styles" || value === "ai"
+
+const railTabStore = createPersistentStore<RailTab>(
+  "adt.pipeline.rail-tab",
+  "pages",
+  isRailTab,
+)
+const panelTabStore = createPersistentStore<PanelTab>(
+  "adt.pipeline.panel-tab",
+  "styles",
+  isPanelTab,
+)
+
 const isPageMap = (value: unknown): value is Record<string, string> =>
   typeof value === "object" &&
   value !== null &&
@@ -38,6 +57,8 @@ export const useCanvasViewport = viewportStore.use
 export const useCanvasZoom = zoomStore.use
 /** Whether the plugin dock is slid off the bottom edge, down to its handle. */
 export const useDockMinimized = dockMinimizedStore.use
+export const useRailTab = railTabStore.use
+export const usePanelTab = panelTabStore.use
 
 export function rememberLastPage(label: string, pageId: string) {
   lastPageStore.set((previous) =>
