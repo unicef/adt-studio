@@ -5,3 +5,4 @@ packages:
 minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
   - cn
+  - '@zignaggo/adt-html-editor'
