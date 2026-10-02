@@ -3,7 +3,12 @@ import React, { type ReactNode } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { previewBuildNoticeKey, usePreviewBuild, type PreviewBuildStatus } from "./use-preview-build"
+import {
+  isPreviewBuildSettled,
+  previewBuildNoticeKey,
+  usePreviewBuild,
+  type PreviewBuildStatus,
+} from "./use-preview-build"
 
 vi.mock("@/lib/utils", () => ({ isElectron: () => true }))
 
@@ -58,5 +63,14 @@ describe("previewBuildNoticeKey", () => {
     expect(merged).not.toBeNull()
     expect(shipped).not.toBe(merged)
     expect(previewBuildNoticeKey(status({ state: "closed" }))).not.toBeNull()
+  })
+})
+
+describe("isPreviewBuildSettled", () => {
+  it("stops polling once the PR shipped or closed, and keeps going until then", () => {
+    expect(isPreviewBuildSettled(status())).toBe(false)
+    expect(isPreviewBuildSettled(status({ state: "merged" }))).toBe(false)
+    expect(isPreviewBuildSettled(status({ state: "merged", shippedIn: "0.8.1-beta.1" }))).toBe(true)
+    expect(isPreviewBuildSettled(status({ state: "closed" }))).toBe(true)
   })
 })

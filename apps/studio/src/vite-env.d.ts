@@ -77,12 +77,13 @@ type ElectronUpdateStatus =
   | {
       phase: "downloading"
       version: string
+      offered?: boolean
       percent: number
       bytesPerSecond: number
       transferred: number
       total: number
     }
-  | { phase: "downloaded"; version: string; releaseNotes?: string }
+  | { phase: "downloaded"; version: string; releaseNotes?: string; offered?: boolean }
   | { phase: "installing"; version: string }
   | { phase: "error"; message: string }
 

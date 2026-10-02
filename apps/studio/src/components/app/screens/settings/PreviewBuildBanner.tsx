@@ -49,7 +49,7 @@ export function PreviewBuildBanner({
       </Button>
       {target && (
         <Button
-          variant={status.state === "open" ? "outline" : "default"}
+          variant={status.shippedIn || status.state === "closed" ? "default" : "outline"}
           size="sm"
           onClick={() => onSwitch(target)}
         >

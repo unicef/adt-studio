@@ -5,6 +5,7 @@ import {
 } from "./release-catalog";
 import {
   parsePullRequest,
+  previewPullRequestNumber,
   resolvePreviewBuildStatus,
   type PullRequest,
 } from "./preview-build";
@@ -39,6 +40,15 @@ function status(pullRequest: PullRequest, releases: GitHubRelease[]) {
     createBetaReleaseCatalog(releases, PREVIEW, "win32"),
   );
 }
+
+describe("previewPullRequestNumber", () => {
+  it("reads the PR number from a staging version only", () => {
+    expect(previewPullRequestNumber("0.8.1-beta-pr-867")).toBe(867);
+    expect(previewPullRequestNumber("v0.8.1-beta-pr-867")).toBe(867);
+    expect(previewPullRequestNumber("0.8.0-beta.1")).toBeUndefined();
+    expect(previewPullRequestNumber("0.8.0")).toBeUndefined();
+  });
+});
 
 describe("resolvePreviewBuildStatus", () => {
   it("is null for anything but a staging build", () => {
@@ -88,11 +98,22 @@ describe("parsePullRequest", () => {
       parsePullRequest({
         state: "closed",
         merged_at: "2026-08-11T07:15:23Z",
+        base: { ref: "develop" },
         title: "Onboarding redesign",
         user: { login: "Eliezir" },
       }),
     ).toEqual(MERGED);
     expect(parsePullRequest({ state: "closed", merged_at: null }).state).toBe("closed");
     expect(parsePullRequest({ state: "open" }).state).toBe("open");
+  });
+
+  it("keeps a PR merged into another branch open, since it has not reached a beta", () => {
+    expect(
+      parsePullRequest({
+        state: "closed",
+        merged_at: "2026-08-11T07:15:23Z",
+        base: { ref: "eliezir/parent-feature" },
+      }),
+    ).toEqual({ state: "open", mergedAt: undefined, title: undefined, author: undefined });
   });
 });

@@ -43,7 +43,9 @@ describe("releaseDisplayTitle", () => {
   })
 
   it("falls back to the version for generated notes", () => {
-    expect(releaseDisplayTitle(release({ releaseNotes: "## What's Changed\n* a" }))).toBe("v0.8.0-beta.1")
+    for (const heading of ["What's Changed", "What's New", "Changelog", "Release notes"]) {
+      expect(releaseDisplayTitle(release({ releaseNotes: `## ${heading}\n* a` }))).toBe("v0.8.0-beta.1")
+    }
   })
 })
 

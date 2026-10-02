@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate, useRouterState } from "@tanstack/react-router"
 import { UpdateDialog } from "./UpdateDialog"
 import { PostUpdateDialog } from "./PostUpdateDialog"
@@ -14,6 +15,7 @@ import { UpdateToast } from "./UpdateToast"
 import { PreviewBuildNotice } from "./PreviewBuildNotice"
 import { isBetaBuild } from "./release-banner-utils"
 import { useAppVersion } from "@/hooks/use-app-version"
+import { UPDATE_VERSIONS_QUERY_KEY } from "@/hooks/use-beta-update-versions"
 import { usePreviewBuild } from "@/hooks/use-preview-build"
 import { useUpdateStatus } from "@/hooks/use-update-status"
 import { isElectron } from "@/lib/utils"
@@ -50,6 +52,7 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
   const { status, check, download, cancel, install } = useUpdateStatus()
   const currentVersion = useAppVersion()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const preview = usePreviewBuild()
   const [previewNoticeClosed, setPreviewNoticeClosed] = useState(false)
   const [open, setOpen] = useState(false)
@@ -66,9 +69,11 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
 
   const phase = status.phase
   const hasPendingUpdate =
-    (phase === "available" && status.offered !== false) ||
-    phase === "downloading" ||
-    phase === "downloaded"
+    (status.phase === "available" ||
+      status.phase === "downloading" ||
+      status.phase === "downloaded") &&
+    status.offered !== false
+  const userDownload = phase === "downloading" || phase === "downloaded"
 
   const cardDetails =
     status.phase === "available" || status.phase === "downloaded"
@@ -96,7 +101,7 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
       isPipelineRoute(state.location.pathname),
   })
   const showToast =
-    hasPendingUpdate &&
+    (hasPendingUpdate || userDownload) &&
     !anyDialogOpen &&
     !hideAmbientCard &&
     dismissedVersion !== pendingVersion
@@ -119,15 +124,18 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const openUpdateDialog = useCallback(() => {
+    const recheck =
+      phase === "idle" || phase === "not-available" || phase === "error"
     if (isBetaBuild()) {
       void navigate({ to: VERSIONS_PATH })
-      return
+      if (recheck) {
+        void queryClient.invalidateQueries({ queryKey: UPDATE_VERSIONS_QUERY_KEY })
+      }
+    } else {
+      setOpen(true)
     }
-    setOpen(true)
-    if (phase === "idle" || phase === "not-available" || phase === "error") {
-      check()
-    }
-  }, [phase, check, navigate])
+    if (recheck) check()
+  }, [phase, check, navigate, queryClient])
 
   const showWhatsNew = useCallback(() => {
     setOpen(false)

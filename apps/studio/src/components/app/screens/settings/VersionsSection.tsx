@@ -46,6 +46,15 @@ export function VersionsSection() {
         />
       )}
 
+      {status.phase === "error" && (
+        <p
+          role="alert"
+          className="mb-3 shrink-0 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200"
+        >
+          {status.message}
+        </p>
+      )}
+
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
         {installing ? (
           <div className="flex min-h-0 flex-1 items-center justify-center p-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">

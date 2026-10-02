@@ -37,12 +37,18 @@ export type UpdateStatus =
   | {
       phase: "downloading";
       version: string;
+      offered?: boolean;
       percent: number;
       bytesPerSecond: number;
       transferred: number;
       total: number;
     }
-  | { phase: "downloaded"; version: string; releaseNotes?: string }
+  | {
+      phase: "downloaded";
+      version: string;
+      releaseNotes?: string;
+      offered?: boolean;
+    }
   | { phase: "installing"; version: string }
   | { phase: "error"; message: string };
 
@@ -150,6 +156,9 @@ function configure(): void {
     emit({
       phase: "downloading",
       version: lastInfo?.version ?? "",
+      offered: lastInfo
+        ? isOfferedRelease(lastInfo.version, app.getVersion())
+        : undefined,
       percent: progress.percent,
       bytesPerSecond: progress.bytesPerSecond,
       transferred: progress.transferred,
@@ -164,6 +173,7 @@ function configure(): void {
     emit({
       phase: "downloaded",
       version: info.version,
+      offered: isOfferedRelease(info.version, app.getVersion()),
       releaseNotes,
     });
   });

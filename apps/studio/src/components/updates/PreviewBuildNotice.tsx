@@ -1,6 +1,6 @@
 import { Trans } from "@lingui/react/macro"
 import type { PreviewBuildStatus } from "@/hooks/use-preview-build"
-import { AmbientCard, GlassButton, PrimaryButton } from "./UpdateToast"
+import { AmbientCard, GlassButton, PrimaryButton } from "./AmbientCard"
 import { openPullRequest, previewBuildMessage } from "./preview-build-message"
 
 export function PreviewBuildNotice({

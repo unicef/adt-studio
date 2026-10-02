@@ -1,3 +1,5 @@
+import { MAX_PULL_REQUESTS } from "@root/scripts/release-source-notes.mjs";
+import { parseReleaseTag } from "@root/scripts/release-version.mjs";
 import {
   compareReleaseVersions,
   fetchBetaReleaseCatalog,
@@ -8,8 +10,7 @@ import {
 
 const PULLS_URL = "https://api.github.com/repos/unicef/adt-studio/pulls";
 const PR_LINK_URL = "https://github.com/unicef/adt-studio/pull";
-// Mirrors MAX_PULL_REQUESTS in scripts/compose-release-notes.mjs.
-const SOURCE_PR_LIST_CAP = 10;
+const BETA_BRANCH = "develop";
 
 export interface PullRequest {
   state: "open" | "merged" | "closed";
@@ -27,7 +28,8 @@ export interface PreviewBuildStatus {
 }
 
 export function previewPullRequestNumber(version: string): number | undefined {
-  const match = /-beta-pr-(\d+)$/i.exec(version.trim());
+  const tag = parseReleaseTag(version)?.prerelease?.[0];
+  const match = typeof tag === "string" ? /^beta-pr-(\d+)$/.exec(tag) : null;
   return match ? Number(match[1]) : undefined;
 }
 
@@ -37,10 +39,16 @@ export function parsePullRequest(value: unknown): PullRequest {
     unknown
   >;
   const user = pr.user as { login?: unknown } | undefined;
+  const base = pr.base as { ref?: unknown } | undefined;
   const mergedAt = typeof pr.merged_at === "string" ? pr.merged_at : undefined;
+  const reachedBeta = mergedAt != null && base?.ref === BETA_BRANCH;
   return {
-    state: mergedAt ? "merged" : pr.state === "closed" ? "closed" : "open",
-    mergedAt,
+    state: reachedBeta
+      ? "merged"
+      : !mergedAt && pr.state === "closed"
+        ? "closed"
+        : "open",
+    mergedAt: reachedBeta ? mergedAt : undefined,
     title: typeof pr.title === "string" ? pr.title : undefined,
     author: typeof user?.login === "string" ? user.login : undefined,
   };
@@ -54,7 +62,7 @@ function shipsPullRequest(
   const prs = release.source?.prs ?? [];
   if (prs.some((pr) => pr.number === number)) return true;
   const listMayBeIncomplete =
-    prs.length === 0 || prs.length >= SOURCE_PR_LIST_CAP;
+    prs.length === 0 || prs.length >= MAX_PULL_REQUESTS;
   return (
     listMayBeIncomplete &&
     release.releaseDate != null &&

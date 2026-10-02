@@ -38,6 +38,10 @@ export function previewBuildNoticeKey(status: PreviewBuildStatus | null): string
   return [status.version, status.state, status.shippedIn ?? ""].join(":")
 }
 
+export function isPreviewBuildSettled(status: PreviewBuildStatus | null | undefined): boolean {
+  return status?.state === "closed" || (status?.state === "merged" && Boolean(status.shippedIn))
+}
+
 export function usePreviewBuild() {
   const version = useAppVersion()
   const query = useQuery({
@@ -45,7 +49,8 @@ export function usePreviewBuild() {
     queryFn: async () => (await window.api?.updates?.previewBuild()) ?? null,
     enabled: version != null && previewPullRequestNumber(version) != null,
     staleTime: 5 * 60 * 1000,
-    refetchInterval: 30 * 60 * 1000,
+    refetchInterval: (query) => (isPreviewBuildSettled(query.state.data) ? false : 30 * 60 * 1000),
+    retry: 1,
     refetchOnWindowFocus: false,
   })
   const seenKey = useSyncExternalStore(subscribe, () => seen)

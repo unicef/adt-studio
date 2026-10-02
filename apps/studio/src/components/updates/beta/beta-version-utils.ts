@@ -72,7 +72,9 @@ export function releaseDisplayTitle(release: AvailableRelease): string {
   const prTitle = release.source?.prs.find((pr) => pr.number === prNumber)?.title
   if (prTitle) return cleanPullRequestTitle(prTitle)
   const headline = releaseHeadline(release.releaseNotes)
-  if (headline && !/^what'?s changed$/i.test(headline)) return headline
+  if (headline && !/^(what'?s (changed|new)|changes|changelog|release notes)$/i.test(headline)) {
+    return headline
+  }
   return formatVersion(release.version)
 }
 
