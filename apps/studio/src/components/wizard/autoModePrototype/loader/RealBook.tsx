@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useLingui } from "@lingui/react/macro"
+import { useReducedEffects } from "@/lib/effects"
 import { cn } from "@/lib/utils"
 import { AiCursor, MOVE_MS, type CursorNote } from "./cursors"
 
@@ -12,6 +13,7 @@ const TURN_MS = 950
 const NOTE_ROOM = 2 * (228 + 20 + 28)
 const COVER = 12
 const STACK = 5
+const STILL_MS = 1600
 
 const rand = (min: number, max: number) => min + Math.random() * (max - min)
 
@@ -109,7 +111,9 @@ export function RealBook({ pages, numPages, aspect, first, comments, stopped, fa
   const [step, setStep] = useState(0)
   const [note, setNote] = useState<CursorNote | null>(null)
   const counter = useRef(0)
-  const active = !stopped && !failed
+  const reduced = useReducedEffects()
+  const running = !stopped && !failed
+  const active = running && !reduced
   const view = views[index % views.length]
   const next = views[(index + 1) % views.length]
   const turning = active && slot === "turn" && views.length > 1
@@ -146,6 +150,12 @@ export function RealBook({ pages, numPages, aspect, first, comments, stopped, fa
     }, TURN_MS)
     return () => window.clearTimeout(id)
   }, [active, slot, views.length, single])
+
+  useEffect(() => {
+    if (!running || !reduced || views.length < 2) return
+    const id = window.setInterval(() => setIndex((i) => (i + 1) % views.length), STILL_MS)
+    return () => window.clearInterval(id)
+  }, [running, reduced, views.length])
 
   const viewport = useViewport()
   const maxW = Math.max(420, Math.min(840, viewport.w - NOTE_ROOM - 40))

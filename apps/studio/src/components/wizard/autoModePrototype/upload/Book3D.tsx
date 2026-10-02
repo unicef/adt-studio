@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Sparkles } from "lucide-react"
+import { useReducedEffects } from "@/lib/effects"
 import { cn } from "@/lib/utils"
 import "./upload.css"
 
@@ -17,6 +18,24 @@ export function Book3D({ src, alt = "", height = 270, maxWidth = 280, settle, cl
   const w = h * r
   const t = Math.max(8, Math.round(h * 0.1)) * RASTER
   const wide = r > 1
+  const reduced = useReducedEffects()
+  if (reduced) {
+    return (
+      <div className={cn("relative", className)} style={{ width: w, height: h }}>
+        <div aria-hidden className="absolute inset-x-[8%] -bottom-2 h-4 rounded-[50%] bg-slate-900/20" />
+        <div className="relative size-full overflow-hidden rounded-[4px_10px_10px_4px] shadow-[0_10px_24px_-12px_rgba(15,23,42,0.5)] ring-1 ring-slate-900/10">
+          {src ? (
+            <img src={src} alt={alt} onLoad={(e) => setRatio(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)} className="block size-full" />
+          ) : (
+            <div className="grid size-full place-items-center bg-gradient-to-br from-brand-50 to-brand-200">
+              <Sparkles className="size-10 text-brand-300" />
+            </div>
+          )}
+          <span aria-hidden className="am-book-hinge" />
+        </div>
+      </div>
+    )
+  }
   return (
     <div className={cn("am-book-stand relative", className)} style={{ width: w, height: h }}>
       <div aria-hidden className="am-book-floor" />

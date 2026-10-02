@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Trans } from "@lingui/react/macro"
 import { FastForward } from "lucide-react"
+import { useReducedEffects } from "@/lib/effects"
 import { cn } from "@/lib/utils"
 import { POP } from "../../ui"
 import { Avatar, BackLink, Dots, SEEN_KEY, ShowOptions, useFirstTime, type IntroProps } from "./parts"
@@ -14,7 +15,9 @@ const QUICK_MS = 90
  * messages cascade in at once with the option ready, so returning users aren't made to wait.
  */
 export function IntroThread({ copy, onContinue, onBack }: IntroProps) {
-  const { first, markSeen } = useFirstTime(SEEN_KEY)
+  const { first: firstTime, markSeen } = useFirstTime(SEEN_KEY)
+  const reduced = useReducedEffects()
+  const first = firstTime && !reduced
   const lines = [copy.hello, ...copy.lines]
   const [count, setCount] = useState(first ? 0 : lines.length)
   const [typing, setTyping] = useState(false)

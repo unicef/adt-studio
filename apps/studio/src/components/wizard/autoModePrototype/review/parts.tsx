@@ -65,7 +65,7 @@ export function CoverBox({ src, title, size = 260, glow = true }: { src?: string
   }, [src])
   return (
     <div className="relative grid shrink-0 place-items-center" style={{ height: size + 20, width: size + 20 }}>
-      {glow && <div aria-hidden className="absolute inset-6 rounded-full bg-brand-400/30 blur-3xl" />}
+      {glow && <div aria-hidden className="absolute inset-6 rounded-full bg-brand-400/30 blur-3xl motion-reduce:hidden" />}
       {loaded ? (
         <div key={loaded} className="absolute inset-0 grid place-items-center animate-[am-fade-up_0.6s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none">
           <Book3D src={loaded} alt={title} height={size} maxWidth={size} settle />

@@ -40,6 +40,9 @@
     animation: none !important;
   }
 }
+.reduce-effects [class*="animate-[am-"] {
+  animation: none !important;
+}
 
 /* "Book picked" sequence: confirm → card widens → cover flies in → details stagger → Continue lights up. */
 @keyframes am-cover-in {
@@ -129,6 +132,7 @@
   .am-book-settle, .am-book-blank::before { animation: none; }
   .am-book-tilt { transition: none; }
 }
+.reduce-effects .am-book-settle, .reduce-effects .am-book-blank::before { animation: none; }
 
 /* Loader: a light sweep across each sampled page, shimmering status text, a slow AI halo. */
 @keyframes am-scan {
@@ -160,6 +164,7 @@
 @media (prefers-reduced-motion: reduce) {
   .am-glow-ring { animation: none; }
 }
+.reduce-effects .am-glow-ring { animation: none; }
 @keyframes am-icon-in {
   from { opacity: 0; transform: scale(0.6) rotate(-18deg); filter: blur(4px); }
   to { opacity: 1; transform: none; filter: none; }

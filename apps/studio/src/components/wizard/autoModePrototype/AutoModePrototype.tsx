@@ -1,12 +1,14 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { useStore } from "@tanstack/react-form"
-import { Trans } from "@lingui/react/macro"
-import { ArrowLeft, ChevronRight, FileText, Loader2 } from "lucide-react"
+import { Trans, useLingui } from "@lingui/react/macro"
+import { ArrowLeft, ChevronRight, FileText, Gauge, Loader2 } from "lucide-react"
+import { EFFECTS_OPTIONS } from "@/components/app/screens/settings/options"
 import { FlowTopBar } from "@/components/FlowTopBar"
 import { useWizard } from "@/components/wizard"
 import { useWizardForm } from "@/components/wizard/wizardForm"
 import { suggestLabel } from "@/components/wizard/step1BasicInfo/PdfField"
+import { readEffectsMode, setEffectsMode, useReducedEffects, type EffectsMode } from "@/lib/effects"
 import { cn } from "@/lib/utils"
 import { BookCreationWizard } from "@/components/wizard/BookCreationWizard"
 import { ChooseScreen } from "./choose/ChooseScreen"
@@ -54,6 +56,32 @@ const MAIN_STEPS: { id: ProtoStep; label: ReactNode }[] = [
 ]
 
 
+function EffectsSwitch() {
+  const { t, i18n } = useLingui()
+  const [mode, setMode] = useState<EffectsMode>(readEffectsMode)
+  const reduced = useReducedEffects()
+  return (
+    <div className="flex items-center gap-0.5 pr-1">
+      <span title={reduced ? t`Effects are reduced` : t`Full effects`} className={cn("grid size-7 place-items-center", reduced ? "text-brand-600" : "text-muted-foreground")}>
+        <Gauge className="size-3.5" />
+      </span>
+      {EFFECTS_OPTIONS.map((o) => (
+        <button
+          key={o.key}
+          type="button"
+          onClick={() => {
+            setMode(o.key)
+            setEffectsMode(o.key)
+          }}
+          className={cn("h-7 rounded-full px-2.5 transition-colors duration-150", mode === o.key ? "bg-muted text-foreground" : "text-foreground/60 hover:bg-muted")}
+        >
+          {i18n._(o.label)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 /** Lab toolbar (bottom-left): the mock PDF plus every prototype step, so any screen is one click away. */
 function LabToolbar({ mock, loading, current, onMock, onStep }: { mock?: string; loading: boolean; current: ProtoStep; onMock: (id: string | undefined) => void; onStep: (step: ProtoStep) => void }) {
   const stepButton = (id: ProtoStep, label: ReactNode, number?: number) => (
@@ -94,6 +122,8 @@ function LabToolbar({ mock, loading, current, onMock, onStep }: { mock?: string;
         <span aria-hidden className="mx-1 h-5 w-px bg-border" />
         {stepButton("manual", <Trans>Manual</Trans>)}
       </nav>
+      <span aria-hidden className="mx-1 h-5 w-px bg-border" />
+      <EffectsSwitch />
     </div>
   )
 }
