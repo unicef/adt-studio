@@ -1,9 +1,9 @@
 import { useState, type CSSProperties } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Check } from "lucide-react"
-import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
-import { ComingSoon, SettingsCard, SettingsHeading, SettingsLead, SettingRow } from "./ui"
+import { SettingsCard, SettingsHeading, SettingsLead } from "./ui"
+import { ReduceEffectsRow } from "./ReduceEffectsRow"
 import { THEME_OPTIONS, type ThemeMode, type ThemeOption } from "./options"
 import { readThemeMode, setThemeMode } from "@/lib/theme"
 import { SETTINGS_ANCHORS } from "./nav"
@@ -80,7 +80,6 @@ function ThemeCard({ th, selected, onSelect, index }: { th: ThemeOption; selecte
 }
 
 export function AppearanceSection() {
-  const { t } = useLingui()
   const [theme, setTheme] = useState<ThemeMode>(readThemeMode)
 
   return (
@@ -111,18 +110,7 @@ export function AppearanceSection() {
       </div>
 
       <SettingsCard>
-        <SettingRow
-          anchorId={SETTINGS_ANCHORS.reduceMotion}
-          title={
-            <span className="inline-flex items-center gap-2">
-              <Trans>Reduce motion</Trans>
-              <ComingSoon title={t`Coming soon — not wired up yet.`} />
-            </span>
-          }
-          subtitle={<Trans>Minimise onboarding and list-reorder animations.</Trans>}
-        >
-          <Switch checked={false} disabled aria-label={t`Reduce motion`} />
-        </SettingRow>
+        <ReduceEffectsRow />
       </SettingsCard>
     </>
   )

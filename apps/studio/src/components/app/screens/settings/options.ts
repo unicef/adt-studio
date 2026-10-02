@@ -2,6 +2,7 @@ import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Sun, Moon, Monitor, type LucideIcon } from "lucide-react"
 import type { AppLocale } from "@/i18n/locales"
+import type { EffectsMode } from "@/lib/effects"
 
 export type ThemeMode = "light" | "dark" | "system"
 
@@ -22,6 +23,12 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { key: "light", label: msg`Light`, icon: Sun, previewBg: "#fafafa", railBg: "#f4f5f7", hairline: "#e4e4e7", barStrong: "#a1a1aa", barSoft: "#d4d4d8", cardBg: "#ffffff", split: false },
   { key: "dark", label: msg`Dark`, icon: Moon, previewBg: "#0f172a", railBg: "#1e293b", hairline: "#334155", barStrong: "#64748b", barSoft: "#334155", cardBg: "#1e293b", split: false },
   { key: "system", label: msg`System`, icon: Monitor, previewBg: "#fafafa", railBg: "#f4f5f7", hairline: "#e4e4e7", barStrong: "#a1a1aa", barSoft: "#d4d4d8", cardBg: "#ffffff", split: true },
+]
+
+export const EFFECTS_OPTIONS: { key: EffectsMode; label: MessageDescriptor }[] = [
+  { key: "auto", label: msg`Auto` },
+  { key: "on", label: msg`On` },
+  { key: "off", label: msg`Off` },
 ]
 
 export interface LocaleOption {
