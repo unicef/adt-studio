@@ -70,7 +70,7 @@ export const SETTINGS_TAB_BY_KEY = Object.fromEntries(
 
 export const SETTINGS_ANCHORS = {
   themeMode: "settings-theme-mode",
-  reduceMotion: "settings-reduce-motion",
+  reduceEffects: "settings-reduce-effects",
   notificationPosition: "settings-notification-position",
   notificationSound: "settings-notification-sound",
   notificationAutoDismiss: "settings-notification-auto-dismiss",
