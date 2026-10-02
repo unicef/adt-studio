@@ -54,7 +54,7 @@ export function CreateScreen({ onOpen }: { onOpen: () => void }) {
   return (
     <ScreenShell
       backdrop={
-          <div className={cn("absolute left-1/2 top-[40%] h-[420px] w-[820px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl transition-colors duration-700", done ? "bg-emerald-300/20" : "bg-brand-300/20")} />
+          <div className={cn("absolute left-1/2 top-[40%] h-[420px] w-[820px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl transition-colors duration-700 motion-reduce:hidden", done ? "bg-emerald-300/20" : "bg-brand-300/20")} />
       }
       overlay={
         <>

@@ -35,7 +35,7 @@ export function LoaderScreen({ onDone, onUnsure, onStartOver }: { onDone: () => 
   return (
     <ScreenShell
       backdrop={
-          <div className={cn("absolute left-1/2 top-[36%] h-[460px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl transition-colors duration-700", state.failed ? "bg-muted/60" : "bg-brand-300/20")} />
+          <div className={cn("absolute left-1/2 top-[36%] h-[460px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl transition-colors duration-700 motion-reduce:hidden", state.failed ? "bg-muted/60" : "bg-brand-300/20")} />
       }
       overlay={
         <>
