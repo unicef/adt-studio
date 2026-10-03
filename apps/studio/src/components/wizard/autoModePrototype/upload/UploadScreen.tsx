@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react"
 import { Trans } from "@lingui/react/macro"
-import { ArrowUp, Check, Sparkles } from "lucide-react"
+import { ArrowUp, Check, FileWarning, Lock, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Book3D } from "./Book3D"
 import { BoldActions, BookDetails, Cover, DropMessage, Subtitle } from "./boldParts"
 import { UploadChrome } from "./parts"
+import { EDGE_FILES, loadEdgeFile } from "../mockBooks"
 import type { UploadFlow } from "./useUploadFlow"
 import { DotGrid } from "../ui"
 
@@ -34,7 +35,7 @@ export function UploadScreen({ flow }: { flow: UploadFlow }) {
     <UploadChrome flow={flow}>
       <DotGrid />
 
-      <div className="relative flex flex-1 flex-col items-center justify-center gap-9 overflow-y-auto px-6 py-10">
+      <div className="relative flex flex-1 flex-col items-center justify-center gap-7 overflow-y-auto px-6 py-6">
         <div className="flex flex-col items-center gap-4 text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-card/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-700 backdrop-blur">
             <Sparkles className="size-3.5" />
@@ -51,7 +52,7 @@ export function UploadScreen({ flow }: { flow: UploadFlow }) {
 
         <div
           className={cn(
-            "relative h-[350px] w-[740px] overflow-hidden rounded-[24px] border bg-card transition-[border-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+            "relative min-h-[350px] w-[740px] overflow-hidden rounded-[24px] border bg-card transition-[border-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
             SOFT,
             flow.accepted && !card ? "border-brand-300" : "border-border",
           )}
@@ -68,7 +69,7 @@ export function UploadScreen({ flow }: { flow: UploadFlow }) {
             <span
               className={cn(
                 "flex size-full flex-col items-center justify-center gap-6 rounded-[22px] border-2 transition-colors duration-300",
-                flow.accepted ? "border-solid border-brand-300 bg-brand-50/60" : "border-dashed border-brand-200 group-hover:border-brand-400",
+                flow.accepted ? "border-solid border-brand-300 bg-brand-50/60" : flow.error || (flow.rejected && !flow.file) ? "border-dashed border-destructive/40 bg-destructive/[0.03] group-hover:border-destructive/60" : "border-dashed border-brand-200 group-hover:border-brand-400",
               )}
             >
               <span aria-hidden className="grid h-[92px] w-[120px] place-items-center">
@@ -79,8 +80,12 @@ export function UploadScreen({ flow }: { flow: UploadFlow }) {
                       <Check className="size-9 stroke-[3]" />
                     </span>
                   </span>
+                ) : flow.error || (flow.rejected && !flow.file) ? (
+                  <span key={`problem-${flow.error ?? "rejected"}`} className="grid size-[72px] place-items-center rounded-full bg-destructive/10 text-destructive animate-[am-check-pop_0.45s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none">
+                    {flow.error === "password" ? <Lock className="size-8" /> : <FileWarning className="size-8" />}
+                  </span>
                 ) : (
-                  !flow.error && (
+                  (
                     <span key="drop" className="relative h-[92px] w-[120px]">
                       <span className="absolute left-1 top-3 h-[78px] w-[60px] -rotate-12 rounded-lg border border-brand-100 bg-card shadow-md transition-transform duration-500 group-hover:-translate-x-2 group-hover:-rotate-[18deg]" />
                       <span className="absolute right-1 top-3 h-[78px] w-[60px] rotate-12 rounded-lg border border-brand-100 bg-card shadow-md transition-transform duration-500 group-hover:translate-x-2 group-hover:rotate-[18deg]" />
@@ -124,7 +129,7 @@ export function UploadScreen({ flow }: { flow: UploadFlow }) {
           </button>
 
           {card && (
-            <div className="absolute inset-0 flex gap-8 p-7">
+            <div className="relative flex min-h-[350px] gap-8 p-7">
               <div className="relative grid w-[270px] shrink-0 place-items-center">
                 {coverStyle === "book" ? (
                   <>
@@ -193,6 +198,19 @@ export function UploadScreen({ flow }: { flow: UploadFlow }) {
             {style === "book" ? <Trans>Book</Trans> : <Trans>Flat</Trans>}
           </button>
         ))}
+        {EDGE_FILES.length > 0 && (
+          <>
+            <span aria-hidden className="mx-1 h-4 w-px bg-border" />
+            <span className="px-2 text-muted-foreground">
+              <Trans>Try</Trans>
+            </span>
+            {EDGE_FILES.map((edge) => (
+              <button key={edge.id} type="button" onClick={() => void loadEdgeFile(edge).then(flow.pick)} className="rounded-full px-3 py-1 transition-colors hover:bg-muted">
+                {edge.fileName}
+              </button>
+            ))}
+          </>
+        )}
       </div>
     </UploadChrome>
   )

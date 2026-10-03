@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { useStore } from "@tanstack/react-form"
-import { useLingui } from "@lingui/react/macro"
 import { useFileDropZone } from "@/components/ui/file-drop-overlay"
 import { useWizard } from "@/components/wizard"
 import { useWizardForm } from "@/components/wizard/wizardForm"
@@ -9,6 +8,9 @@ import { suggestLabel, suggestUniqueLabel } from "@/components/wizard/step1Basic
 import { getCachedPdfPageCount, getPdfPageCount } from "@/components/wizard/shared/pdfMetadata"
 import { usePdfPreviewPages } from "@/components/wizard/shared/usePdfPreviewPages"
 import { useBooks } from "@/hooks/use-books"
+
+/** Why a PDF can't be used: it's locked with a password, or pdf.js can't read it. */
+export type UploadError = "password" | "damaged"
 
 function isPdfFile(f: File) {
   return f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf")
@@ -19,7 +21,6 @@ function isPdfFile(f: File) {
  * shares it: drop / pick → "accepted" beat → book card, page count, cover, errors.
  */
 export function useUploadFlow() {
-  const { t } = useLingui()
   const navigate = useNavigate()
   const { setPhase } = useWizard()
   const form = useWizardForm()
@@ -28,8 +29,9 @@ export function useUploadFlow() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [pageCount, setPageCount] = useState<number>(() => (file ? getCachedPdfPageCount(file) ?? 0 : 0))
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<UploadError | null>(null)
   const [replacing, setReplacing] = useState(false)
+  const [rejected, setRejected] = useState(0)
   const replaceStartedAt = useRef(0)
   const showCardRef = useRef(false)
 
@@ -46,6 +48,17 @@ export function useUploadFlow() {
     [form, books],
   )
 
+  const pick = useCallback(
+    (f: File) => {
+      if (isPdfFile(f)) {
+        setRejected(0)
+        return accept(f)
+      }
+      setRejected(Date.now())
+    },
+    [accept],
+  )
+
   const clear = useCallback(() => {
     form.setFieldValue("file", null)
     form.setFieldValue("label", "")
@@ -53,6 +66,7 @@ export function useUploadFlow() {
     form.setFieldValue("endPage", "")
     setPageCount(0)
     setError(null)
+    setRejected(0)
     setReplacing(false)
   }, [form])
 
@@ -79,9 +93,9 @@ export function useUploadFlow() {
         form.setFieldValue("startPage", "1")
         form.setFieldValue("endPage", String(count))
       })
-      .catch(() => {
+      .catch((e: unknown) => {
         if (cancelled) return
-        setError(t`Could not read this PDF. The file may be corrupted or password-protected.`)
+        setError(e instanceof Error && e.name === "PasswordException" ? "password" : "damaged")
         setReplacing(false)
       })
       .finally(() => {
@@ -91,6 +105,12 @@ export function useUploadFlow() {
       cancelled = true
     }
   }, [file])
+
+  useEffect(() => {
+    if (!rejected) return
+    const id = window.setTimeout(() => setRejected(0), 5000)
+    return () => window.clearTimeout(id)
+  }, [rejected])
 
   const { overlay } = useFileDropZone({ accept: isPdfFile, onAccept: accept })
 
@@ -127,6 +147,8 @@ export function useUploadFlow() {
     cover: pages[0] as string | undefined,
     loading,
     error,
+    rejected: rejected > 0,
+    rejectedAt: rejected,
     accepted,
     showCard,
     overlay,
@@ -134,9 +156,10 @@ export function useUploadFlow() {
     openPicker: () => inputRef.current?.click(),
     onInputChange: (e: ChangeEvent<HTMLInputElement>) => {
       const picked = e.target.files?.[0]
-      if (picked && isPdfFile(picked)) accept(picked)
+      if (picked) pick(picked)
       e.target.value = ""
     },
+    pick,
     clear,
     onBack: () => navigate({ to: "/" }),
     onContinue: () => hasPreview && setPhase("wizard"),

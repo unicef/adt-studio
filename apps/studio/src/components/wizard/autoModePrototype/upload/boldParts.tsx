@@ -3,6 +3,7 @@ import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { AlertCircle, BookOpen, Check, FileText, HardDrive, Loader2, Trash2, Upload } from "lucide-react"
 import { cn, formatBytes } from "@/lib/utils"
 import type { UploadFlow } from "./useUploadFlow"
+import { ScopeField } from "./ScopeField"
 import "./upload.css"
 import { BackButton, PrimaryButton } from "../ui"
 
@@ -19,14 +20,53 @@ export function Subtitle({ flow, className }: { flow: UploadFlow; className?: st
   )
 }
 
-/** What the drop target says: idle, reading, accepted, or error. */
+const CHOOSE_ANOTHER = "font-semibold text-brand-700 underline decoration-brand-300 underline-offset-4"
+
+/** A file that can't be used: what's wrong in one line, then what to do about it. */
+function Problem({ title, body }: { title: ReactNode; body: ReactNode }) {
+  return (
+    <span className="flex flex-col items-center gap-1.5 text-center animate-[am-fade-up_0.3s_ease-out_both] motion-reduce:animate-none">
+      <span className="text-[19px] font-semibold tracking-[-0.01em]">{title}</span>
+      <span className="max-w-[460px] text-[13.5px] leading-relaxed text-muted-foreground">{body}</span>
+    </span>
+  )
+}
+
+/** What the drop target says: idle, reading, accepted, or why the file can't be used. */
 export function DropMessage({ flow, idle }: { flow: UploadFlow; idle: ReactNode }) {
+  if (flow.error === "password")
+    return (
+      <Problem
+        title={<Trans>This PDF is password-protected</Trans>}
+        body={
+          <Trans>
+            Remove the password and upload it again, or <span className={CHOOSE_ANOTHER}>choose another file</span>.
+          </Trans>
+        }
+      />
+    )
   if (flow.error)
     return (
-      <span className="inline-flex items-center gap-2 text-[14px] font-medium text-destructive">
-        <AlertCircle className="size-4" />
-        {flow.error}
-      </span>
+      <Problem
+        title={<Trans>We couldn&apos;t open this PDF</Trans>}
+        body={
+          <Trans>
+            The file may be damaged. Export it again, or <span className={CHOOSE_ANOTHER}>choose another file</span>.
+          </Trans>
+        }
+      />
+    )
+  if (flow.rejected && !flow.file)
+    return (
+      <Problem
+        key={flow.rejectedAt}
+        title={<Trans>That file isn&apos;t a PDF</Trans>}
+        body={
+          <Trans>
+            Only PDF files can be converted. <span className={CHOOSE_ANOTHER}>Choose a PDF</span>.
+          </Trans>
+        }
+      />
     )
   if (flow.accepted)
     return (
@@ -59,19 +99,7 @@ export function Cover({ flow, className }: { flow: UploadFlow; className?: strin
 
 const STAGGER = "animate-[am-fade-up_0.45s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none"
 
-function Stat({ icon, value, label }: { icon: ReactNode; value: ReactNode; label: ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-brand-100 bg-brand-50/60 px-4 py-3">
-      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-card text-brand-600 shadow-sm">{icon}</span>
-      <span className="flex min-w-0 flex-col">
-        <span className="text-[20px] font-bold leading-tight tracking-[-0.01em]">{value}</span>
-        <span className="text-[12px] text-muted-foreground">{label}</span>
-      </span>
-    </div>
-  )
-}
-
-/** Title, file name, page count and size as stat tiles, then Replace / remove. Staggers in when `animated`. */
+/** Title, file name, page count and size, how much of the book to convert, then Replace / remove. Staggers in when `animated`. */
 export function BookDetails({ flow, className, titleClassName, animated, delay = 380 }: { flow: UploadFlow; className?: string; titleClassName?: string; animated?: boolean; delay?: number }) {
   const { t } = useLingui()
   const [base] = useState(delay)
@@ -85,14 +113,14 @@ export function BookDetails({ flow, className, titleClassName, animated, delay =
         <p className="mt-1 truncate text-[12.5px] text-muted-foreground">{flow.file.name}</p>
       </div>
       <div {...stagger(80)}>
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <Stat
-            icon={<FileText className="size-[18px]" />}
-            value={pageCount > 0 ? pageCount : <Loader2 className="my-1 size-5 animate-spin text-brand-600" />}
-            label={pageCount > 0 ? <Plural value={pageCount} one="page" other="pages" /> : <Trans>Counting pages…</Trans>}
-          />
-          <Stat icon={<HardDrive className="size-[18px]" />} value={formatBytes(flow.file.size)} label={<Trans>File size</Trans>} />
-        </div>
+        <p className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-muted-foreground">
+          <FileText className="size-3.5" />
+          {pageCount > 0 ? <Plural value={pageCount} one="# page" other="# pages" /> : <Trans>Counting pages…</Trans>}
+          <span aria-hidden>·</span>
+          <HardDrive className="size-3.5" />
+          {formatBytes(flow.file.size)}
+        </p>
+        <ScopeField className="mt-5" />
       </div>
       <div className={cn("mt-6 flex items-center gap-2", animated && STAGGER)} style={animated ? { animationDelay: `${base + 160}ms` } : undefined}>
         <button type="button" onClick={flow.openPicker} className="inline-flex h-9 items-center gap-1.5 rounded-lg border bg-card px-3.5 text-[13px] font-medium transition-colors hover:border-brand-300 hover:bg-brand-50/60 active:scale-[0.97]">
@@ -102,6 +130,14 @@ export function BookDetails({ flow, className, titleClassName, animated, delay =
         <button type="button" onClick={flow.clear} aria-label={t`Remove PDF`} className="grid size-9 place-items-center rounded-lg border bg-card text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive active:scale-[0.97]">
           <Trash2 className="size-3.5" />
         </button>
+        <span role="status" className={cn("ml-1 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-destructive transition-opacity duration-300", flow.rejected ? "opacity-100" : "opacity-0")}>
+          {flow.rejected && (
+            <>
+              <AlertCircle className="size-3.5" />
+              <Trans>That file isn&apos;t a PDF</Trans>
+            </>
+          )}
+        </span>
       </div>
     </div>
   )

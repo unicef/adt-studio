@@ -24,7 +24,12 @@ const FIRST_PAGE = 2
 export function LoaderScreen({ onDone, onUnsure, onStartOver }: { onDone: () => void; onUnsure: () => void; onStartOver: () => void }) {
   const form = useWizardForm()
   const file = useStore(form.store, (s) => s.values.file)
-  const book = useBookPages(file, { first: FIRST_PAGE, count: 16, width: 560 })
+  const scope = useStore(form.store, (s) => s.values.scope)
+  const startPage = parseInt(useStore(form.store, (s) => s.values.startPage)) || 1
+  const endPage = parseInt(useStore(form.store, (s) => s.values.endPage)) || 0
+  const first = scope === "range" ? startPage : FIRST_PAGE
+  const count = scope === "range" && endPage ? Math.max(1, Math.min(16, endPage - first + 1)) : 16
+  const book = useBookPages(file, { first, count, width: 560 })
   const comments = useComments()
   const [outcome, setOutcome] = useState<Outcome>("loop")
   const [run, setRun] = useState(0)
@@ -61,7 +66,7 @@ export function LoaderScreen({ onDone, onUnsure, onStartOver }: { onDone: () => 
     >
       <div key={run} className="m-auto flex w-full flex-col items-center gap-10 pb-10 pt-6 text-center">
         <div className={ENTER}>
-          <RealBook pages={book.pages} numPages={book.numPages} aspect={book.aspect} first={FIRST_PAGE} comments={comments} stopped={done} failed={state.failed} />
+          <RealBook pages={book.pages} numPages={book.numPages} aspect={book.aspect} first={first} comments={comments} stopped={done} failed={state.failed} />
         </div>
 
         {state.failed ? (

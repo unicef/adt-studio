@@ -40,7 +40,7 @@ export function useAiPicks(): { picks: AiPicks; ready: boolean } {
 /** Fills the wizard form the way the preset grid would, then with the AI's picks — so "Open all settings" shows the real wizard prefilled. */
 export function applyAiPicks(form: ReturnType<typeof useWizardForm>, picks: AiPicks, overrides: Partial<Pick<AiPicks, "renderStrategy">> = {}) {
   const preset = PRESETS.find((p) => p.id === picks.preset)
-  const keep = { label: true, file: true, startPage: true, endPage: true, selectedPreset: true, editingLanguage: true, outputLanguages: true }
+  const keep = { label: true, file: true, scope: true, startPage: true, endPage: true, selectedPreset: true, editingLanguage: true, outputLanguages: true }
   for (const [key, value] of Object.entries(defaultWizardValues)) if (!(key in keep)) form.setFieldValue(key as never, value as never)
   for (const [key, value] of Object.entries({ ...preset?.formDefaults, ...preset?.recommendations })) form.setFieldValue(key as never, value as never)
   form.setFieldValue("selectedPreset", picks.preset)

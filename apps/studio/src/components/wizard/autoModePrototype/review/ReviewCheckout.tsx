@@ -1,22 +1,23 @@
-import { Plural, Trans } from "@lingui/react/macro"
+import { Trans } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 import { Avatar } from "../decide/intro/parts"
 import { AllSettingsLink, CoverBox, LanguageFields, NameField, PickedByAi, ProcessingList, useCreate, type ReviewProps } from "./parts"
-import { ScopeField } from "./ScopeField"
+import { useScopeSummary } from "../upload/ScopeField"
 import { SettingRows } from "./SettingRows"
 import { BackButton, ENTER, PrimaryButton } from "../ui"
 
 const CARD = "rounded-[24px] border bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_18px_44px_-26px_rgba(15,23,42,0.28)]"
 
 /**
- * Checkout — what you fill in on the left (the book, its name, its language and how much of it to
- * process), what the AI set up on
- * the right as an order summary that ends in "Create book". Both cards stretch to the same height
+ * Checkout — what you fill in on the left (the book, its name and its language; how much of it to
+ * process was chosen on upload and shows under the title), what the AI set up on the right as an
+ * order summary that ends in "Create book". Both cards stretch to the same height
  * (the summary's actions sit at its bottom). Nothing to scroll for at 1440×900.
  */
 export function ReviewCheckout({ settings, set, processing, title, numPages, cover, onBack, onCreate, onAllSettings }: ReviewProps) {
   const create = useCreate(onCreate)
   const preset = settings.find((s) => s.key === "type")
+  const scope = useScopeSummary(numPages)
   return (
     <div className="m-auto flex w-full max-w-[1120px] flex-col gap-6 py-8">
       <div className={cn("flex items-center gap-3", ENTER)}>
@@ -38,14 +39,13 @@ export function ReviewCheckout({ settings, set, processing, title, numPages, cov
             <div className="flex min-w-0 flex-col">
               <p className="truncate text-[20px] font-bold leading-tight">{title}</p>
               <p className="text-[13px] text-muted-foreground">
-                <Plural value={numPages} one="# page" other="# pages" /> · {preset?.answer}
+                {scope} · {preset?.answer}
               </p>
             </div>
           </div>
           <div className="h-px bg-border" />
           <NameField />
           <LanguageFields only="editing" />
-          <ScopeField />
         </div>
 
         <aside className={cn("flex flex-col px-5 pb-5 pt-4", CARD, ENTER)} style={{ animationDelay: "120ms" }}>
