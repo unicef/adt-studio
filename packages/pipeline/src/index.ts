@@ -268,6 +268,8 @@ export {
   type InstructionsMap,
   type GenerateSpeechFileOptions,
   type GeneratePageSpeechFilesOptions,
+  type PageSpeechResult,
+  type UnalignedPageEntry,
   type GenerateWordTimestampsOptions,
   type GenerateWordTimestampsResult,
   type ProviderRouting,
@@ -279,7 +281,13 @@ export {
   findQuietCutSeconds,
   type WavInfo,
 } from "./audio-wav.js"
-export { supportsPageBatchedSpeech } from "./speech-batch.js"
+export {
+  supportsPageBatchedSpeech,
+  chunkBatchEntries,
+  MIN_TRANSCRIBABLE_SECONDS,
+  type EntryAlignment,
+  type BatchEntry,
+} from "./speech-batch.js"
 export {
   translateCatalogBatch,
   buildCatalogTranslationConfig,
