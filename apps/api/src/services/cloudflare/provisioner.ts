@@ -29,6 +29,27 @@ import { prepareStaticAssets } from "./static-assets.js"
 import { ensureWorkersDevSubdomain } from "./workers-subdomain.js"
 
 const MIGRATIONS_TABLE = "_migrations"
+
+/**
+ * A migration and the row that records it, as one request.
+ *
+ * Sent as two, a connection that dropped between them left the change applied and unrecorded,
+ * and every later setup re-ran an `ALTER TABLE … ADD COLUMN` that could never succeed again. In
+ * one request Cloudflare either never got it or ran both. The values are literals because a
+ * multi-statement query can't bind parameters; the name comes from the artifact and the time
+ * from the clock, and both are quoted as SQL strings regardless.
+ */
+export function withMigrationRecord(migration: { name: string; sql: string }, at: Date): string {
+  const body = migration.sql.trimEnd()
+  const record =
+    `INSERT OR IGNORE INTO ${MIGRATIONS_TABLE} (name, applied_at) ` +
+    `VALUES (${sqlString(migration.name)}, ${sqlString(at.toISOString())});`
+  return `${body}${body.endsWith(";") ? "" : ";"}\n${record}`
+}
+
+function sqlString(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`
+}
 const MGMT_SECRET_BYTES = 32
 
 export type ProvisionEmit = (event: ProvisionProgressEvent) => void | Promise<void>
@@ -271,12 +292,7 @@ export async function provisionCloudflare(
     const pending = artifact.migrations.filter((migration) => !applied.has(migration.name))
     for (const migration of pending) {
       try {
-        await client.queryD1(database.uuid, migration.sql)
-        await client.queryD1(
-          database.uuid,
-          `INSERT OR IGNORE INTO ${MIGRATIONS_TABLE} (name, applied_at) VALUES (?, ?);`,
-          [migration.name, now().toISOString()],
-        )
+        await client.queryD1(database.uuid, withMigrationRecord(migration, now()))
       } catch (error) {
         throw new ProvisionError({
           code: "migration_failed",

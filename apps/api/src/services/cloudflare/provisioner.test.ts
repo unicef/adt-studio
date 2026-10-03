@@ -384,6 +384,23 @@ describe("provisionCloudflare — error taxonomy", () => {
     expect(error?.message).toContain(CLOUDFLARE_D1_DATABASE_NAME)
   })
 
+  it("sends each migration and the row recording it as one request", async () => {
+    const { fake, error } = await run()
+
+    expect(error).toBeNull()
+    const d1Queries = fake.state.calls.filter(
+      (call) => call.method === "POST" && /\/d1\/database\/[^/]+\/query$/.test(call.url),
+    )
+    /** Create the ledger, read it, then one request per migration — never a separate record. */
+    expect(d1Queries).toHaveLength(3)
+    expect(fake.state.executedSql).toEqual([
+      "CREATE TABLE IF NOT EXISTS publications (token TEXT PRIMARY KEY);",
+    ])
+    expect(fake.state.migrationRows).toEqual([
+      { name: "0001_init.sql", applied_at: NOW.toISOString() },
+    ])
+  })
+
   it("reports migration_failed with the offending file name", async () => {
     const { error } = await run({ fake: { migrationErrorMessage: "near \"CREATE\": syntax error" } })
     expect(error?.code).toBe("migration_failed")
