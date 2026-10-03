@@ -225,6 +225,7 @@ export function AutoModePrototype({ mock, step }: { mock?: string; step?: ProtoS
         }}
         onUnsure={() => setScreen("decide")}
         onStartOver={() => setScreen("choose")}
+        onManual={openManual}
       />
     )
   else if (screen === "decide")

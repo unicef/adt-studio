@@ -8,29 +8,34 @@ import { ENTER } from "../ui"
 
 
 /** When each pick resolves, when the all-done state starts, and when we hand off to the result. */
-const TIMING = { picks: [1600, 2600, 3600], handoff: 4400, loop: 7000, error: 2800 }
+const TIMING = { picks: [1600, 2600, 3600], handoff: 4400, loop: 7000, error: 2800, slow: 5000 }
 
-type LoaderRun = { resolved: number; finished: boolean; failed: boolean }
+type LoaderRun = { resolved: number; finished: boolean; failed: boolean; slow: boolean }
 
-export type Outcome = "loop" | "success" | "unsure" | "error"
+export type Outcome = "loop" | "success" | "unsure" | "slow" | "error"
 
-/** Drives the simulated run: picks resolve one by one, then `onDone` (success), restart (loop) or fail. */
+/** Drives the simulated run: picks resolve one by one, then `onDone` (success), restart (loop), stall (slow) or fail. */
 export function useLoaderRun(outcome: Outcome, run: number, onDone: () => void): LoaderRun {
   const [resolved, setResolved] = useState(0)
   const [failed, setFailed] = useState(false)
+  const [slow, setSlow] = useState(false)
   const [cycle, setCycle] = useState(0)
   useEffect(() => {
     setResolved(0)
     setFailed(false)
+    setSlow(false)
     const picks = TIMING.picks.map((at, i) => window.setTimeout(() => setResolved(i + 1), at))
+    const stalls = outcome === "error" || outcome === "slow"
     const timers =
       outcome === "error"
         ? [picks[0], window.setTimeout(() => setFailed(true), TIMING.error)]
-        : [...picks, outcome === "success" || outcome === "unsure" ? window.setTimeout(onDone, TIMING.handoff) : window.setTimeout(() => setCycle((c) => c + 1), TIMING.loop)]
-    if (outcome === "error") picks.slice(1).forEach((id) => window.clearTimeout(id))
+        : outcome === "slow"
+          ? [picks[0], window.setTimeout(() => setSlow(true), TIMING.slow)]
+          : [...picks, outcome === "success" || outcome === "unsure" ? window.setTimeout(onDone, TIMING.handoff) : window.setTimeout(() => setCycle((c) => c + 1), TIMING.loop)]
+    if (stalls) picks.slice(1).forEach((id) => window.clearTimeout(id))
     return () => timers.forEach((id) => window.clearTimeout(id))
   }, [outcome, run, cycle])
-  return { resolved, finished: resolved >= TIMING.picks.length, failed }
+  return { resolved, finished: resolved >= TIMING.picks.length, failed, slow }
 }
 
 export type Pick = { key: string; icon: LucideIcon; label: ReactNode; answer: ReactNode }
