@@ -239,7 +239,7 @@ export function AutoModePrototype({ mock, step }: { mock?: string; step?: ProtoS
       />
     )
   else if (screen === "review") content = <ReviewScreen picks={picks} onBack={() => setScreen(asked.length ? "decide" : "choose")} onCreate={() => setScreen("create")} />
-  else if (screen === "create") content = <CreateScreen onOpen={() => setScreen("opened")} />
+  else if (screen === "create") content = <CreateScreen onOpen={() => setScreen("opened")} onBack={() => setScreen("review")} />
   else if (screen === "opened")
     content = <NextScreenPlaceholder label={<Trans>The book page</Trans>} description={<Trans>In the app this opens the book&apos;s own page, with the pipeline already running.</Trans>} onBack={() => setScreen("create")} />
   else if (screen === "manual") content = <BookCreationWizard />
