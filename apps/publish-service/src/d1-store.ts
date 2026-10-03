@@ -275,6 +275,15 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       const snapshotBytes = request.files.reduce((total, file) => total + file.bytes, 0)
       try {
         await db.batch([
+          /** An upload left open by a run that lost its connection — or whose Studio quit —
+           *  would otherwise hold this version's one open slot forever, and every later update
+           *  of the book would be refused. One Studio manages an account at a time, so the
+           *  newest start is the only live one: it retires the stranded upload, and a run that
+           *  was somehow still going finds its upload closed when it tries to commit. */
+          db.prepare(
+            `UPDATE publication_uploads SET state = 'aborted'
+             WHERE token = ? AND version = ? AND state = 'open'`,
+          ).bind(request.token, version),
           db.prepare(
             `INSERT INTO publication_uploads
              (upload_id, kind, token, version, title, book_label, page_manifest, snapshot_prefix,

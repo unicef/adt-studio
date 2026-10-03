@@ -171,6 +171,25 @@ describe("publication upload lifecycle", () => {
     await expect((await second.app.request(`${BASE}/p/${TOKEN}/`, {}, env)).text()).resolves.toBe("two")
   })
 
+  /** A run that lost its connection after starting leaves its upload open. Without this the
+   *  version's one open slot stayed taken and every later update was refused for good. */
+  it("lets a new update replace an upload a lost run left open", async () => {
+    const first = await start("create", { "index.html": "live" })
+    expect((await put(first.app, first.upload.upload_id, "index.html", "live")).status).toBe(200)
+    await first.app.request(`${BASE}/api/publication-uploads/${first.upload.upload_id}/commit`, { method: "POST", headers: headers() }, env)
+
+    const stranded = await start("version", { "index.html": "lost" })
+    const retry = await start("version", { "index.html": "two" })
+    expect(retry.upload.version).toBe(2)
+
+    expect((await put(stranded.app, stranded.upload.upload_id, "index.html", "lost")).status).toBe(409)
+    expect((await stranded.app.request(`${BASE}/api/publication-uploads/${stranded.upload.upload_id}/commit`, { method: "POST", headers: headers() }, env)).status).not.toBe(201)
+
+    expect((await put(retry.app, retry.upload.upload_id, "index.html", "two")).status).toBe(200)
+    expect((await retry.app.request(`${BASE}/api/publication-uploads/${retry.upload.upload_id}/commit`, { method: "POST", headers: headers() }, env)).status).toBe(201)
+    await expect((await retry.app.request(`${BASE}/p/${TOKEN}/`, {}, env)).text()).resolves.toBe("two")
+  })
+
   it("aborts an upload without touching the active snapshot", async () => {
     const first = await start("create", { "index.html": "live" })
     expect((await put(first.app, first.upload.upload_id, "index.html", "live")).status).toBe(200)
