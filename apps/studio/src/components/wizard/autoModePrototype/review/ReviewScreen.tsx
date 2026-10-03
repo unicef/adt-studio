@@ -33,6 +33,7 @@ export function ReviewScreen({ picks, onBack, onCreate }: { picks: AiPicks; onBa
             settings={settings}
             set={set}
             title={title}
+            picks={picks}
           />
         </>
       }

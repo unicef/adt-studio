@@ -11,7 +11,7 @@ import { useWizardForm } from "@/components/wizard/wizardForm"
 import { cn } from "@/lib/utils"
 import { SettingSelect } from "./SettingSelect"
 import { SourceTag } from "./parts"
-import type { Setting } from "./setup"
+import type { AiPicks, Setting } from "./setup"
 
 /** A layout setting: name (and where its value came from) on the left, the control and its description on the right. */
 function Row({ label, labelId, tag, hint, children }: { label: ReactNode; labelId?: string; tag?: ReactNode; hint?: ReactNode; children: ReactNode }) {
@@ -70,9 +70,9 @@ function Group({ icon: Icon, title, description, children }: { icon: LucideIcon;
  * wizard's own names: Visual Layout (Preset, Render Strategy, Page Grouping Mode, Section Mode) and
  * Content Processing (Activities, Figure Extraction, Image Segmentation, Smart Cropping). Changes
  * apply to the form straight away, so the review behind it updates too. "Restore AI setup" undoes
- * your changes (keeping what you answered in Decide).
+ * your changes (keeping what you answered in Decide): the AI's six decisions, and the preset's defaults for the rest.
  */
-export function AllSettingsDialog({ open, onOpenChange, settings, set, title }: { open: boolean; onOpenChange: (open: boolean) => void; settings: Setting[]; set: (key: Setting["key"], value: string) => void; title: string }) {
+export function AllSettingsDialog({ open, onOpenChange, settings, set, title, picks }: { open: boolean; onOpenChange: (open: boolean) => void; settings: Setting[]; set: (key: Setting["key"], value: string) => void; title: string; picks: AiPicks }) {
   const { t } = useLingui()
   const uid = useId()
   const form = useWizardForm()
@@ -86,7 +86,7 @@ export function AllSettingsDialog({ open, onOpenChange, settings, set, title }: 
 
   const basePreset = preset ? (preset.source === "changed" ? preset.ai : preset.value) : null
   const rec = PRESETS.find((p) => p.id === basePreset)?.recommendations ?? {}
-  const recProcessing = { activitiesGenerator: rec.activitiesGenerator ?? false, imageSegmentation: rec.imageSegmentation ?? false, imageCropping: rec.imageCropping ?? false, figureExtraction: (rec.figureExtraction ?? "off") as FigureExtractionMode }
+  const recProcessing = { activitiesGenerator: picks.activitiesGenerator, imageSegmentation: rec.imageSegmentation ?? false, imageCropping: rec.imageCropping ?? false, figureExtraction: picks.figureExtraction }
   const processingChanged = v.activitiesGenerator !== recProcessing.activitiesGenerator || v.imageSegmentation !== recProcessing.imageSegmentation || v.imageCropping !== recProcessing.imageCropping || v.figureExtraction !== recProcessing.figureExtraction
   const changed = settings.some((s) => s.source === "changed") || processingChanged
 

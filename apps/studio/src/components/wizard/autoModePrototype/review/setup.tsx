@@ -6,38 +6,46 @@ import { BookOpen, Columns2, LayoutTemplate, Rows3, type LucideIcon } from "luci
 import { PRESETS, RENDER_STRATEGIES, type PresetId, type RenderStrategyId, type WizardPageGrouping, type WizardSectioningMode } from "@/components/wizard/constants"
 import { defaultWizardValues, useWizardForm } from "@/components/wizard/wizardForm"
 import { STRATEGY_OPTIONS, type StrategyId } from "../decide/questions"
-import { useBookAspect } from "../loader/useBookAspect"
+import type { FigureExtractionMode } from "@adt/types"
+import type { Decision, DecisionId, Recommendation } from "../recommendation/contract"
+import { useRecommendation } from "../recommendation/RecommendationContext"
 
 export type SettingKey = "type" | "look" | "pages" | "sections"
 export type BookKind = "picture" | "textbook" | "reference"
 
-/** What the (mock) AI decided for a book. `asked` lists what it left to the user. */
-export type AiPicks = { kind: BookKind; preset: PresetId; renderStrategy: StrategyId; pageGrouping: "single" | "spread"; sectioningMode: "page" | "dynamic"; asked: SettingKey[] }
+/** The recommender's decisions in the wizard's terms. `asked` lists what the user settled in Decide. */
+export type AiPicks = { kind: BookKind; preset: PresetId; renderStrategy: StrategyId; pageGrouping: "single" | "spread"; sectioningMode: "page" | "dynamic"; activitiesGenerator: boolean; figureExtraction: FigureExtractionMode; asked: SettingKey[]; decisions: Recommendation }
 
 export type Choice = { value: string; title: string; hint: string; kind?: "ai" | "template" }
-export type Setting = { key: SettingKey; icon: LucideIcon; label: ReactNode; value: string; ai: string; answer: ReactNode; why: ReactNode; choices: Choice[]; source: "ai" | "asked" | "changed" }
+export type Setting = { key: SettingKey; icon: LucideIcon; label: ReactNode; value: string; ai: string; answer: ReactNode; why: ReactNode; decision: Decision; choices: Choice[]; source: "ai" | "asked" | "changed" }
 
-/** Portrait picture books usually run their pictures across facing pages, so the (mock) AI shows them as spreads. */
-const SPREAD_BELOW_ASPECT = 0.95
+/** Which recommender decision each review row shows. */
+// eslint-disable-next-line lingui/no-unlocalized-strings -- recommender decision ids
+export const DECISION_OF: Record<SettingKey, DecisionId> = { type: "preset", look: "renderStrategy", pages: "pageGrouping", sections: "sectioningMode" }
 
-/** Mock AI answers per sample book (the real ones come from the AI). Picture books with portrait pages are grouped as two-page spreads; landscape and square ones stay one page at a time. */
-function aiPicksFor(fileName: string | undefined, aspect?: number): AiPicks {
-  const name = (fileName ?? "").toLowerCase()
-  if (name.includes("matematica") || name.includes("cuaderno")) return { kind: "textbook", preset: "textbook", renderStrategy: "llm", pageGrouping: "single", sectioningMode: "dynamic", asked: [] }
-  if (name.includes("story")) return { kind: "reference", preset: "reference", renderStrategy: "llm", pageGrouping: "single", sectioningMode: "page", asked: [] }
-  return { kind: "picture", preset: "storybook", renderStrategy: "fixed_layout", pageGrouping: aspect !== undefined && aspect < SPREAD_BELOW_ASPECT ? "spread" : "single", sectioningMode: "page", asked: [] }
+export function toAiPicks(rec: Recommendation, asked: SettingKey[] = []): AiPicks {
+  const preset = rec.preset.choice
+  return {
+    kind: KIND_OF_PRESET[preset] ?? "picture",
+    preset,
+    renderStrategy: rec.renderStrategy.choice,
+    pageGrouping: rec.pageGrouping.choice,
+    sectioningMode: rec.sectioningMode.choice,
+    activitiesGenerator: rec.activitiesGenerator.choice === "enabled",
+    figureExtraction: rec.figureExtraction.choice,
+    asked,
+    decisions: rec,
+  }
 }
 
-/** The AI's picks for the current book. `ready` once the page shape is known (it decides spread vs single). */
+/** The current book's picks, from the recommendation the flow holds. `ready` once there is one. */
 export function useAiPicks(): { picks: AiPicks; ready: boolean } {
-  const form = useWizardForm()
-  const file = useStore(form.store, (s) => s.values.file)
-  const aspect = useBookAspect(file)
-  const picks = useMemo(() => aiPicksFor(file?.name, aspect), [file?.name, aspect])
-  return { picks, ready: !file || aspect !== undefined }
+  const result = useRecommendation()
+  const picks = useMemo(() => toAiPicks(result?.recommendation ?? EMPTY), [result])
+  return { picks, ready: result !== null }
 }
 
-/** Fills the wizard form the way the preset grid would, then with the AI's picks — so "Open all settings" shows the real wizard prefilled. */
+/** Fills the wizard form the way the preset grid would, then with the recommendation — so "Open all settings" shows the real wizard prefilled. */
 export function applyAiPicks(form: ReturnType<typeof useWizardForm>, picks: AiPicks, overrides: Partial<Pick<AiPicks, "renderStrategy">> = {}) {
   const preset = PRESETS.find((p) => p.id === picks.preset)
   const keep = { label: true, file: true, scope: true, startPage: true, endPage: true, selectedPreset: true, editingLanguage: true, outputLanguages: true }
@@ -47,9 +55,23 @@ export function applyAiPicks(form: ReturnType<typeof useWizardForm>, picks: AiPi
   form.setFieldValue("renderStrategy", (overrides.renderStrategy ?? picks.renderStrategy) as RenderStrategyId)
   form.setFieldValue("pageGrouping", picks.pageGrouping as WizardPageGrouping)
   form.setFieldValue("sectioningMode", picks.sectioningMode as WizardSectioningMode)
+  form.setFieldValue("activitiesGenerator", picks.activitiesGenerator)
+  form.setFieldValue("figureExtraction", picks.figureExtraction)
 }
 
 const KIND_OF_PRESET: Record<string, BookKind> = { textbook: "textbook", storybook: "picture", reference: "reference" }
+
+function none<T extends string>(choice: T) {
+  return { choice, confidence: "low" as const, reason: "", alternative: null, ambiguityReason: null, evidencePages: [] as number[] }
+}
+const EMPTY: Recommendation = {
+  preset: none("storybook"),
+  renderStrategy: none("fixed_layout"),
+  pageGrouping: none("single"),
+  sectioningMode: none("page"),
+  activitiesGenerator: none("disabled"),
+  figureExtraction: none("off"),
+}
 
 const PAGE_GROUPING = [
   { value: "single", title: msg`Single`, hint: msg`Every page becomes its own screen, one after another.` },
@@ -59,29 +81,6 @@ const SECTION_MODE = [
   { value: "page", title: msg`Page`, hint: msg`The entire page is treated as a single section.` },
   { value: "dynamic", title: msg`Dynamic`, hint: msg`Splits a page when it has several distinct activities.` },
 ]
-
-function useWhy(kind: BookKind, grouping: AiPicks["pageGrouping"]): Record<SettingKey, ReactNode> {
-  if (kind === "textbook")
-    return {
-      type: <Trans>Lessons, exercises and lots of headings — it reads like a school book.</Trans>,
-      look: <Trans>Rebuilding the pages keeps the exercises easy to use on a phone.</Trans>,
-      pages: <Trans>Each page stands on its own, so one at a time reads best.</Trans>,
-      sections: <Trans>Some pages are busy, so splitting them makes them easier to follow.</Trans>,
-    }
-  if (kind === "reference")
-    return {
-      type: <Trans>Mostly text with a few pictures, like a guide.</Trans>,
-      look: <Trans>Rebuilding the pages makes long text comfortable on any screen.</Trans>,
-      pages: <Trans>Each page stands on its own, so one at a time reads best.</Trans>,
-      sections: <Trans>The pages are short, so there&apos;s no need to split them.</Trans>,
-    }
-  return {
-    type: <Trans>Big pictures on almost every page, with short bits of text.</Trans>,
-    look: <Trans>The text is part of the artwork, so keeping each page as printed looks best.</Trans>,
-    pages: grouping === "spread" ? <Trans>Many pictures run across two facing pages, so they&apos;re shown together.</Trans> : <Trans>No pictures run across two pages, so one page at a time works.</Trans>,
-    sections: <Trans>The pages are short, so there&apos;s no need to split them.</Trans>,
-  }
-}
 
 /**
  * The four settings the AI decides, read live from the wizard form so every screen (and the real
@@ -98,7 +97,6 @@ export function useSettings(picks: AiPicks): { settings: Setting[]; kind: BookKi
   const pageChoices: Choice[] = PAGE_GROUPING.map((o) => ({ value: o.value, title: i18n._(o.title), hint: i18n._(o.hint) }))
   const preset = values.selectedPreset ?? picks.preset
   const kind = KIND_OF_PRESET[preset] ?? picks.kind
-  const why = useWhy(picks.kind, picks.pageGrouping)
   const allowed = [...((PRESETS.find((p) => p.id === preset)?.renderStrategies ?? []) as readonly string[])].filter((id): id is StrategyId => id in STRATEGY_OPTIONS)
   const lookIds: StrategyId[] = allowed.includes(picks.renderStrategy) ? [picks.renderStrategy, ...allowed.filter((id) => id !== picks.renderStrategy)] : allowed
   const strategy = (id: string) => {
@@ -119,7 +117,8 @@ export function useSettings(picks: AiPicks): { settings: Setting[]; kind: BookKi
       ai,
       choices,
       answer: choices.find((c) => c.value === value)?.title ?? choices[0]?.title,
-      why: from === "changed" ? <Trans>Changed by you. I had suggested {suggested}.</Trans> : from === "asked" ? <Trans>You picked this when I asked.</Trans> : why[key],
+      why: from === "changed" ? <Trans>Changed by you. I had suggested {suggested}.</Trans> : from === "asked" ? <Trans>You picked this when I asked.</Trans> : picks.decisions[DECISION_OF[key]].reason,
+      decision: picks.decisions[DECISION_OF[key]],
       source: from,
     }
   }

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
-import { PRESETS } from "@/components/wizard/constants"
+import { PRESETS, type PresetId } from "@/components/wizard/constants"
 
 export type StrategyId = "fixed_layout" | "llm" | "llm-overlay" | "two_column_story" | "single_column"
 export type Option = { value: string; title: ReactNode; tagline: ReactNode; does: ReactNode; pros: ReactNode[]; cons: ReactNode[]; bestFor: ReactNode }
@@ -56,14 +56,16 @@ export const STRATEGY_OPTIONS: Record<StrategyId, Option> = {
 }
 
 /**
- * The look question the AI leaves open when it isn't sure: its two candidates first (the first is
- * preselected), then the preset's other allowed strategies, recommended ones first.
+ * The look question the AI leaves open when it isn't sure: the recommender's choice and its
+ * alternative first (the choice is preselected), then the preset's other allowed strategies,
+ * recommended ones first. Without an alternative the preset's next recommended strategy fills in.
  */
-export function useLookQuestion(kind: "picture" | "textbook"): Question {
-  const preset = PRESETS.find((p) => p.id === (kind === "textbook" ? "textbook" : "storybook"))
+export function useLookQuestion(choice: StrategyId, alternative: StrategyId | null, presetId: PresetId): Question {
+  const preset = PRESETS.find((p) => p.id === presetId)
   const allowed = (preset?.renderStrategies ?? []).filter((id): id is StrategyId => id in STRATEGY_OPTIONS)
   const recommended = (preset?.recommendedStrategies ?? []) as readonly string[]
-  const candidates: StrategyId[] = kind === "textbook" ? ["llm", "llm-overlay"] : ["fixed_layout", "llm-overlay"]
+  const second = alternative ?? allowed.filter((id) => id !== choice).sort((a, b) => Number(recommended.includes(b)) - Number(recommended.includes(a)))[0]
+  const candidates: StrategyId[] = second ? [choice, second] : [choice]
   const others = allowed.filter((id) => !candidates.includes(id)).sort((a, b) => Number(recommended.includes(b)) - Number(recommended.includes(a)))
   return { candidates, options: [...candidates, ...others].map((id) => STRATEGY_OPTIONS[id]) }
 }

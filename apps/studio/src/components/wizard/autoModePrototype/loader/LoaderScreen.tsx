@@ -1,15 +1,19 @@
-import { useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useStore } from "@tanstack/react-form"
-import { Trans } from "@lingui/react/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
 import { Hourglass } from "lucide-react"
 import { useWizardForm } from "@/components/wizard/wizardForm"
 import { Collapsible } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
 import { LabToggle } from "../labControls"
-import { AnswerChip, Heading, LiveStatus, Phrase, useLoaderRun, usePicks, type Outcome } from "./parts"
+import { AnswerChip, Heading, LiveStatus, Phrase, usePicks, useReveal, type Outcome } from "./parts"
 import { RealBook, useComments } from "./RealBook"
 import { useBookPages } from "./useBookPages"
-import { useAiPicks } from "../review/setup"
+import { toAiPicks, useAiPicks } from "../review/setup"
+import { useBookAspect } from "./useBookAspect"
+import { createMockSetupClient, type SetupScenario } from "../recommendation/client"
+import type { SetupResult } from "../recommendation/contract"
+import { useSetupRun } from "../recommendation/useSetupRun"
 import "../upload/upload.css"
 import { ENTER, ScreenShell } from "../ui"
 import { SetupError, type SetupErrorKind } from "../errors/SetupError"
@@ -18,15 +22,20 @@ const FIRST_PAGE = 2
 // eslint-disable-next-line lingui/no-unlocalized-strings -- provider brand name, mock for the lab
 const PROVIDER = "OpenAI"
 
+const HANDOFF_MS = 800
+const LOOP_PAUSE_MS = 2600
+
 /**
- * Step 3 (AI path) — the short wait (< 10 s) while the AI sets the book up. A realistic open book
- * made of the real PDF pages flips through in order while the AI "reads" and leaves friendly
- * margin notes; the picks resolve with their answers; then it hands off to the result.
+ * Step 3 (AI path) — the wait while the recommender sets the book up. A realistic open book made of
+ * the real PDF pages flips through in order while the AI "reads" and leaves friendly margin notes.
+ * One request (the PDF, the UI language for the reasons, the chosen pages) goes through a
+ * `SetupClient` — a mock until the API serves it; when the answer arrives the picks fill in and it
+ * hands off to Review, or to Decide when the look was left between two options.
  * Lab toggle "Outcome": Loop (default, repeats for review) · Success (to the result) · Needs you (to the
  * decide screen) · Slow (a calm "taking longer" note) · Error, with the error kind on its own toggle.
  * Every way out keeps the PDF: Cancel goes back to Choose, "Set it up myself" opens the manual setup.
  */
-export function LoaderScreen({ onDone, onUnsure, onStartOver, onManual }: { onDone: () => void; onUnsure: () => void; onStartOver: () => void; onManual: () => void }) {
+export function LoaderScreen({ onDone, onUnsure, onStartOver, onManual }: { onDone: (result: SetupResult) => void; onUnsure: (result: SetupResult) => void; onStartOver: () => void; onManual: () => void }) {
   const form = useWizardForm()
   const file = useStore(form.store, (s) => s.values.file)
   const scope = useStore(form.store, (s) => s.values.scope)
@@ -39,9 +48,32 @@ export function LoaderScreen({ onDone, onUnsure, onStartOver, onManual }: { onDo
   const [outcome, setOutcome] = useState<Outcome>("loop")
   const [errorKind, setErrorKind] = useState<SetupErrorKind>("unknown")
   const [run, setRun] = useState(0)
-  const state = useLoaderRun(outcome, run, outcome === "unsure" ? onUnsure : onDone)
-  const picks = usePicks(useAiPicks().picks)
-  const done = state.finished && (outcome === "success" || outcome === "unsure")
+  const { i18n } = useLingui()
+  const scenario = useRef<SetupScenario>("confident")
+  scenario.current = outcome === "error" ? errorKind : outcome === "unsure" ? "unsure" : outcome === "slow" ? "slow" : "confident"
+  const aspect = useRef<number | undefined>(undefined)
+  aspect.current = useBookAspect(file)
+  const client = useMemo(() => createMockSetupClient(() => scenario.current, () => aspect.current), [])
+  const request = useMemo(() => (file ? { file, userLanguage: i18n.locale, pages: scope === "range" && endPage ? { start: startPage, end: endPage } : undefined } : null), [file, i18n.locale, scope, startPage, endPage])
+  const setup = useSetupRun(client, request, run)
+  const fallback = useAiPicks().picks
+  const picks = usePicks(setup.result ? toAiPicks(setup.result.recommendation) : fallback)
+  const state = { ...useReveal(setup.status === "done", picks.length, run), failed: setup.status === "failed", slow: setup.slow }
+  const done = state.finished && outcome !== "loop"
+
+  useEffect(() => {
+    const answer = setup.result
+    if (!state.finished || !answer) return
+    const id = window.setTimeout(
+      () => {
+        if (outcome === "loop") setRun((r) => r + 1)
+        else if (answer.recommendation.renderStrategy.alternative !== null) onUnsure(answer)
+        else onDone(answer)
+      },
+      outcome === "loop" ? LOOP_PAUSE_MS : HANDOFF_MS,
+    )
+    return () => window.clearTimeout(id)
+  }, [state.finished, setup.result])
 
   return (
     <ScreenShell
@@ -94,7 +126,7 @@ export function LoaderScreen({ onDone, onUnsure, onStartOver, onManual }: { onDo
 
         <div className="flex min-h-[240px] w-full flex-col items-center">
           {state.failed ? (
-            <SetupError kind={errorKind} provider={PROVIDER} onRetry={() => setRun((r) => r + 1)} onManual={onManual} />
+            <SetupError kind={setup.failure?.kind ?? "unknown"} detail={setup.failure?.detail ?? ""} provider={PROVIDER} onRetry={() => setRun((r) => r + 1)} onManual={onManual} />
           ) : (
             <div className="flex flex-col items-center gap-5">
               <div className={cn("flex flex-col items-center gap-3", ENTER)} style={{ animationDelay: "80ms" }}>

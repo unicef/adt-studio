@@ -8,21 +8,13 @@ import { ErrorState, SecondaryButton } from "./ErrorState"
 /**
  * Why the AI setup stopped. `auth`: the provider rejected the key. `quota`: a usage or rate limit.
  * `offline`: no connection to the provider. `unknown`: anything else, e.g. an answer that didn't
- * match what the setup expects. Each maps to the provider/server error the backend returns.
+ * match what the setup expects. `classifySetupError` sorts the recommender's errors into these.
  */
 export type SetupErrorKind = "auth" | "quota" | "offline" | "unknown"
 
-/* eslint-disable lingui/no-unlocalized-strings -- raw provider and server messages, shown as-is */
-const MOCK_DETAIL: Record<SetupErrorKind, string> = {
-  auth: "401 Unauthorized · Incorrect API key provided: sk-…a1B2. You can find your API key at https://platform.openai.com/account/api-keys.",
-  quota: "429 Too Many Requests · You exceeded your current quota, please check your plan and billing details.",
-  offline: "TypeError: fetch failed · getaddrinfo ENOTFOUND api.openai.com",
-  unknown: "Setup response did not match the expected schema: render_strategy is missing.",
-}
-/* eslint-enable lingui/no-unlocalized-strings */
 
 /** The loader's error state. "Set it up myself" keeps the PDF and opens the manual setup; nothing is lost. */
-export function SetupError({ kind, provider, onRetry, onManual }: { kind: SetupErrorKind; provider: string; onRetry: () => void; onManual: () => void }) {
+export function SetupError({ kind, detail, provider, onRetry, onManual }: { kind: SetupErrorKind; detail: string; provider: string; onRetry: () => void; onManual: () => void }) {
   useEffect(() => {
     if (kind !== "offline") return
     window.addEventListener("online", onRetry)
@@ -45,7 +37,7 @@ export function SetupError({ kind, provider, onRetry, onManual }: { kind: SetupE
       <ErrorState
         title={<Trans>Your AI provider needs attention</Trans>}
         body={<Trans>{provider} didn&apos;t accept the API key. Update it in Settings, or set this book up yourself.</Trans>}
-        detail={MOCK_DETAIL.auth}
+        detail={detail}
         actions={
           <>
             {manual}
@@ -62,7 +54,7 @@ export function SetupError({ kind, provider, onRetry, onManual }: { kind: SetupE
       <ErrorState
         title={<Trans>Your AI provider is busy</Trans>}
         body={<Trans>{provider} turned the request down because of a usage limit. Wait a moment and try again, or set this book up yourself.</Trans>}
-        detail={MOCK_DETAIL.quota}
+        detail={detail}
         actions={
           <>
             {manual}
@@ -83,7 +75,7 @@ export function SetupError({ kind, provider, onRetry, onManual }: { kind: SetupE
             <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" />
           </span>
         }
-        detail={MOCK_DETAIL.offline}
+        detail={detail}
         actions={
           <>
             {manual}
@@ -96,7 +88,7 @@ export function SetupError({ kind, provider, onRetry, onManual }: { kind: SetupE
     <ErrorState
       title={<Trans>We couldn&apos;t read this book</Trans>}
       body={<Trans>Something went wrong while the AI was looking at your book. Try again, or set it up yourself.</Trans>}
-      detail={MOCK_DETAIL.unknown}
+      detail={detail}
       actions={
         <>
           {manual}

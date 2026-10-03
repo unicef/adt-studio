@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, type ReactNode } from "react"
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { useStore } from "@tanstack/react-form"
 import { Trans, useLingui } from "@lingui/react/macro"
@@ -15,7 +15,12 @@ import { ChooseScreen } from "./choose/ChooseScreen"
 import { CreateScreen } from "./create/CreateScreen"
 import { DecideScreen } from "./decide/DecideScreen"
 import { ReviewScreen } from "./review/ReviewScreen"
-import { applyAiPicks, useAiPicks, type SettingKey } from "./review/setup"
+import { applyAiPicks, toAiPicks, type SettingKey } from "./review/setup"
+import type { SetupResult } from "./recommendation/contract"
+import { fixtureFor } from "./recommendation/fixtures"
+import { RecommendationProvider } from "./recommendation/RecommendationContext"
+import { useBookAspect } from "./loader/useBookAspect"
+import { getCachedPdfPageCount } from "@/components/wizard/shared/pdfMetadata"
 import { LoaderScreen } from "./loader/LoaderScreen"
 import { MOCK_BOOKS, loadMockFile } from "./mockBooks"
 import { UploadScreen } from "./upload/UploadScreen"
@@ -185,12 +190,25 @@ export function AutoModePrototype({ mock, step }: { mock?: string; step?: ProtoS
     navigate({ to: "/labs/auto-mode", search: { ...(mockId ? { mock: mockId } : {}), step: current }, replace: true })
   }, [current, mockId, loadingMock])
 
+  const { i18n } = useLingui()
+  const aspect = useBookAspect(file)
+  const [result, setResult] = useState<SetupResult | null>(null)
+  useEffect(() => {
+    setResult(null)
+  }, [file])
+  const labFallback = useMemo<SetupResult | null>(
+    () => (file && aspect !== undefined ? { ...fixtureFor(file.name, aspect, screen === "decide", getCachedPdfPageCount(file) ?? 0), userLanguage: i18n.locale } : null),
+    [file, aspect, screen === "decide", i18n.locale],
+  )
+  const recommendation = result ?? labFallback
   const [asked, setAsked] = useState<SettingKey[]>([])
   const setupFor = useRef<string | null>(null)
-  const { picks: aiPicks, ready: picksReady } = useAiPicks()
-  const picks = { ...aiPicks, asked }
-  const applySetup = (renderStrategy?: string, nextAsked: SettingKey[] = []) => {
-    applyAiPicks(form, aiPicks, renderStrategy ? { renderStrategy: renderStrategy as never } : {})
+  const aiPicks = useMemo(() => (recommendation ? toAiPicks(recommendation.recommendation) : null), [recommendation])
+  const picksReady = aiPicks !== null
+  const picks = aiPicks ? { ...aiPicks, asked } : null
+  const applySetup = (from = aiPicks, renderStrategy?: string, nextAsked: SettingKey[] = []) => {
+    if (!from) return
+    applyAiPicks(form, from, renderStrategy ? { renderStrategy: renderStrategy as never } : {})
     setAsked(nextAsked)
     setupFor.current = file?.name ?? null
   }
@@ -220,11 +238,15 @@ export function AutoModePrototype({ mock, step }: { mock?: string; step?: ProtoS
   else if (screen === "loader")
     content = (
       <LoaderScreen
-        onDone={() => {
-          applySetup()
+        onDone={(answer) => {
+          setResult(answer)
+          applySetup(toAiPicks(answer.recommendation))
           setScreen("review")
         }}
-        onUnsure={() => setScreen("decide")}
+        onUnsure={(answer) => {
+          setResult(answer)
+          setScreen("decide")
+        }}
         onStartOver={() => setScreen("choose")}
         onManual={openManual}
       />
@@ -234,12 +256,12 @@ export function AutoModePrototype({ mock, step }: { mock?: string; step?: ProtoS
       <DecideScreen
         onBack={() => setScreen("choose")}
         onDone={(look) => {
-          applySetup(look, ["look"])
+          applySetup(aiPicks, look, ["look"])
           setScreen("review")
         }}
       />
     )
-  else if (screen === "review") content = <ReviewScreen picks={picks} onBack={() => setScreen(asked.length ? "decide" : "choose")} onCreate={() => setScreen("create")} />
+  else if (screen === "review") content = picks ? <ReviewScreen picks={picks} onBack={() => setScreen(asked.length ? "decide" : "choose")} onCreate={() => setScreen("create")} /> : null
   else if (screen === "create") content = <CreateScreen onOpen={() => setScreen("opened")} onBack={() => setScreen("review")} />
   else if (screen === "opened")
     content = <NextScreenPlaceholder label={<Trans>The book page</Trans>} description={<Trans>In the app this opens the book&apos;s own page, with the pipeline already running.</Trans>} onBack={() => setScreen("create")} />
@@ -247,7 +269,7 @@ export function AutoModePrototype({ mock, step }: { mock?: string; step?: ProtoS
   else content = <ChooseScreen onAuto={() => setScreen("loader")} onManual={openManual} onBack={() => setPhase("upload")} />
 
   return (
-    <>
+    <RecommendationProvider value={recommendation}>
       {content}
       <LabToolbar
         mock={mockId}
@@ -256,6 +278,6 @@ export function AutoModePrototype({ mock, step }: { mock?: string; step?: ProtoS
         onMock={(id) => navigate({ to: "/labs/auto-mode", search: { ...(id ? { mock: id } : {}), step: current }, replace: true })}
         onStep={goTo}
       />
-    </>
+    </RecommendationProvider>
   )
 }

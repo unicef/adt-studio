@@ -7,40 +7,30 @@ import type { AiPicks } from "../review/setup"
 import { ENTER } from "../ui"
 
 
-/** When each pick resolves, when the all-done state starts, and when we hand off to the result. */
-const TIMING = { picks: [1600, 2600, 3600], handoff: 4400, loop: 7000, error: 2800, slow: 5000 }
-
-type LoaderRun = { resolved: number; finished: boolean; failed: boolean; slow: boolean }
+const REVEAL_MS = 240
 
 export type Outcome = "loop" | "success" | "unsure" | "slow" | "error"
 
-/** Drives the simulated run: picks resolve one by one, then `onDone` (success), restart (loop), stall (slow) or fail. */
-export function useLoaderRun(outcome: Outcome, run: number, onDone: () => void): LoaderRun {
+/**
+ * The recommender answers every decision in one call, so the chips wait together and fill in one
+ * after another only once the answer is in. Restarts with `key`.
+ */
+export function useReveal(answered: boolean, count: number, key: number): { resolved: number; finished: boolean } {
   const [resolved, setResolved] = useState(0)
-  const [failed, setFailed] = useState(false)
-  const [slow, setSlow] = useState(false)
-  const [cycle, setCycle] = useState(0)
   useEffect(() => {
     setResolved(0)
-    setFailed(false)
-    setSlow(false)
-    const picks = TIMING.picks.map((at, i) => window.setTimeout(() => setResolved(i + 1), at))
-    const stalls = outcome === "error" || outcome === "slow"
-    const timers =
-      outcome === "error"
-        ? [picks[0], window.setTimeout(() => setFailed(true), TIMING.error)]
-        : outcome === "slow"
-          ? [picks[0], window.setTimeout(() => setSlow(true), TIMING.slow)]
-          : [...picks, outcome === "success" || outcome === "unsure" ? window.setTimeout(onDone, TIMING.handoff) : window.setTimeout(() => setCycle((c) => c + 1), TIMING.loop)]
-    if (stalls) picks.slice(1).forEach((id) => window.clearTimeout(id))
-    return () => timers.forEach((id) => window.clearTimeout(id))
-  }, [outcome, run, cycle])
-  return { resolved, finished: resolved >= TIMING.picks.length, failed, slow }
+  }, [key])
+  useEffect(() => {
+    if (!answered) return
+    const ids = Array.from({ length: count }, (_, i) => window.setTimeout(() => setResolved(i + 1), 120 + i * REVEAL_MS))
+    return () => ids.forEach((id) => window.clearTimeout(id))
+  }, [answered, count, key])
+  return { resolved, finished: answered && resolved >= count }
 }
 
 export type Pick = { key: string; icon: LucideIcon; label: ReactNode; answer: ReactNode }
 
-/** The loader's three answer chips, from the same mock AI picks every other screen uses, with the wizard's own names. */
+/** The loader's three answer chips, from the recommendation, with the wizard's own names. */
 export function usePicks(picks: AiPicks): Pick[] {
   const { i18n } = useLingui()
   return useMemo(() => {

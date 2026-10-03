@@ -20,9 +20,9 @@ type Visit = "first" | "returning"
 const readVisit = (): Visit => (window.localStorage.getItem(SEEN_KEY) === "1" ? "returning" : "first")
 
 /**
- * Step 4b (AI path, not sure). The assistant explains, in a few messages, that it set up the book but
- * couldn't settle how the pages should look and has two picks; then the options screen opens with
- * those picks highlighted. The intro is a chat thread that plays fully only the first time; after
+ * Step 4b (AI path, not sure). The recommender left Render Strategy between its choice and an
+ * alternative; the assistant says so in a few messages (the doubt in the recommender's own words,
+ * already in the user's language), then the options screen opens with those two highlighted. The intro is a chat thread that plays fully only the first time; after
  * that the messages cascade in at once (lab toggle "Thread plays as").
  */
 export function DecideScreen({ onBack, onDone }: { onBack: () => void; onDone: (look: string) => void }) {
@@ -31,19 +31,19 @@ export function DecideScreen({ onBack, onDone }: { onBack: () => void; onDone: (
   const file = useStore(form.store, (s) => s.values.file)
   const { picks: aiPicks } = useAiPicks()
   const kind = aiPicks.kind === "picture" ? "picture" : "textbook"
+  const look = aiPicks.decisions.renderStrategy
   const book = useBookPages(file, { first: 2, count: 8, width: 640 })
   const own = useOwnPage(book.pages, aiPicks.pageGrouping === "spread")
-  const question = useLookQuestion(kind)
+  const question = useLookQuestion(look.choice, look.alternative, aiPicks.preset)
   const label = useStore(form.store, (s) => s.values.label)
   const title = label ? label.charAt(0).toUpperCase() + label.slice(1) : t`your book`
   const [visit, setVisit] = useState<Visit>(readVisit)
   const [run, setRun] = useState(0)
   const [part, setPart] = useState<"intro" | "choose">("intro")
   const [value, setValue] = useState(question.candidates[0])
-  const textbook = kind === "textbook"
 
   const hello = t`Hi! 👋 I just finished looking through ${title}.`
-  const reason = textbook ? t`Your book has lots of exercises, but also big pictures with text on top, so two different looks could work.` : t`Your pages have the text printed right on the pictures, so two different looks could work.`
+  const reason = look.ambiguityReason ?? t`Two different looks could work for your pages.`
   const copy: IntroCopy = {
     hello,
     lines: [t`Good news — I've set up almost everything for you.`, t`There's just one thing I'd love your help with: how the pages should look.`, reason, t`I've picked my two favourites and highlighted them for you — have a look and choose the one you like.`],
