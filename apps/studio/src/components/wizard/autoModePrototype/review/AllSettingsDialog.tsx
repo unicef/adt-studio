@@ -14,11 +14,11 @@ import { SourceTag } from "./parts"
 import type { Setting } from "./setup"
 
 /** A layout setting: name (and where its value came from) on the left, the control and its description on the right. */
-function Row({ label, tag, hint, children }: { label: ReactNode; tag?: ReactNode; hint?: ReactNode; children: ReactNode }) {
+function Row({ label, labelId, tag, hint, children }: { label: ReactNode; labelId?: string; tag?: ReactNode; hint?: ReactNode; children: ReactNode }) {
   return (
     <div className="grid grid-cols-[190px_1fr] items-start gap-5 py-4">
       <div className="flex flex-col items-start gap-1.5 pt-2.5">
-        <span className="text-[13.5px] font-medium leading-none">{label}</span>
+        <span id={labelId} className="text-[13.5px] font-medium leading-none">{label}</span>
         {tag}
       </div>
       <div className="flex min-w-0 flex-col gap-1.5">
@@ -100,7 +100,7 @@ export function AllSettingsDialog({ open, onOpenChange, settings, set, title }: 
   }
 
   const segmented = (s: Setting | undefined) => s && <SegmentedControl options={s.choices.map((c) => ({ value: c.value, label: c.title }))} value={s.value} onValueChange={(value) => set(s.key, value)} className="h-10" />
-  const field = (s: Setting | undefined) => s && <SettingSelect setting={s} onPick={(value) => set(s.key, value)} className="h-10" />
+  const field = (s: Setting | undefined) => s && <SettingSelect setting={s} labelledBy={`${uid}-${s.key}`} onPick={(value) => set(s.key, value)} className="h-10" />
   const tag = (s: Setting | undefined) => s && <SourceTag source={s.source} />
 
   return (
@@ -122,10 +122,10 @@ export function AllSettingsDialog({ open, onOpenChange, settings, set, title }: 
 
         <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto bg-muted/40 px-6 py-5">
           <Group icon={LayoutTemplate} title={<Trans>Visual Layout</Trans>} description={<Trans>How the pages are rebuilt and grouped.</Trans>}>
-            <Row label={preset?.label} tag={tag(preset)} hint={hintOf(preset)}>
+            <Row label={preset?.label} labelId={`${uid}-type`} tag={tag(preset)} hint={hintOf(preset)}>
               {field(preset)}
             </Row>
-            <Row label={look?.label} tag={tag(look)} hint={hintOf(look)}>
+            <Row label={look?.label} labelId={`${uid}-look`} tag={tag(look)} hint={hintOf(look)}>
               {field(look)}
             </Row>
             <Row label={pages?.label} tag={tag(pages)} hint={hintOf(pages)}>

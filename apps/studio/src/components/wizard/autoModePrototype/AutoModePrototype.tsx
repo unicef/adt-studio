@@ -84,6 +84,7 @@ function EffectsSwitch() {
 
 /** Lab toolbar (bottom-left): the mock PDF plus every prototype step, so any screen is one click away. */
 function LabToolbar({ mock, loading, current, onMock, onStep }: { mock?: string; loading: boolean; current: ProtoStep; onMock: (id: string | undefined) => void; onStep: (step: ProtoStep) => void }) {
+  const { t } = useLingui()
   const stepButton = (id: ProtoStep, label: ReactNode, number?: number) => (
     <button
       key={id}
@@ -101,7 +102,7 @@ function LabToolbar({ mock, loading, current, onMock, onStep }: { mock?: string;
       {MOCK_BOOKS.length > 0 && (
         <label className="flex items-center gap-2 pl-2">
           {loading ? <Loader2 className="size-3.5 animate-spin text-brand-600" /> : <FileText className="size-3.5 text-muted-foreground" />}
-          <select value={mock ?? ""} onChange={(e) => onMock(e.target.value || undefined)} className="h-7 max-w-[170px] cursor-pointer rounded-full border-0 bg-muted px-3 text-[12px] font-medium outline-none transition-colors hover:bg-muted/70">
+          <select aria-label={t`Mock PDF`} value={mock ?? ""} onChange={(e) => onMock(e.target.value || undefined)} className="h-7 max-w-[170px] cursor-pointer rounded-full border-0 bg-muted px-3 text-[12px] font-medium outline-none transition-colors hover:bg-muted/70">
             <option value="">—</option>
             {MOCK_BOOKS.map((book) => (
               <option key={book.id} value={book.id}>

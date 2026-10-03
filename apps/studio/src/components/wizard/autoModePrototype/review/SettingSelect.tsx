@@ -35,13 +35,13 @@ function Item({ choice, suggested }: { choice: Choice; suggested: boolean }) {
  * the list is a regular dropdown with a check on the current item and a small ✦ on the AI's pick.
  * Render strategies are grouped under "Template-based" / "AI-powered" (the AI pick's group first).
  */
-export function SettingSelect({ setting, onPick, className }: { setting: Setting; onPick: (value: string) => void; className?: string }) {
+export function SettingSelect({ setting, onPick, labelledBy, className }: { setting: Setting; onPick: (value: string) => void; labelledBy?: string; className?: string }) {
   const kinds = [...new Set(setting.choices.map((c) => c.kind).filter((k): k is NonNullable<Choice["kind"]> => !!k))]
   const aiKind = setting.choices.find((c) => c.value === setting.ai)?.kind
   const groups = kinds.length > 1 ? [...kinds].sort((a, b) => Number(b === aiKind) - Number(a === aiKind)).map((kind) => ({ kind, choices: setting.choices.filter((c) => c.kind === kind) })) : null
   return (
     <Select value={setting.value} onValueChange={onPick}>
-      <SelectTrigger aria-label={typeof setting.label === "string" ? setting.label : undefined} className={cn("h-9 rounded-lg bg-card text-[14px] font-medium", className)}>
+      <SelectTrigger aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : typeof setting.label === "string" ? setting.label : undefined} className={cn("h-9 rounded-lg bg-card text-[14px] font-medium", className)}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
