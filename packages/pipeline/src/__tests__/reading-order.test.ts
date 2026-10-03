@@ -3,7 +3,14 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { createBookStorage, type Storage } from "@adt/storage"
-import { resolveReadingOrder, toPageEntry } from "../reading-order.js"
+import {
+  resolveReadingOrder,
+  toPageEntry,
+  readingOrderPageIds,
+  bumpSectioningGeneration,
+  readSectioningGeneration,
+} from "../reading-order.js"
+import { READING_ORDER_NODE, READING_ORDER_ITEM_ID } from "@adt/types"
 
 describe("reading-order resolver", () => {
   const tmpDirs: string[] = []
@@ -248,6 +255,57 @@ describe("reading-order resolver", () => {
     }
   })
 
+  it("keeps a pruned section's slot after a storyboard re-run drops its rendering", () => {
+    const storage = makeStorage()
+    try {
+      seedTwoPages(storage)
+      storage.putNodeData("page-sectioning", "pg001", {
+        reasoning: "",
+        sections: [section("pg001", 1, { isPruned: true }), section("pg001", 2)],
+      })
+      // `web-rendering` emits nothing for a pruned section, so re-running the
+      // storyboard leaves page one with a single rendered entry. The slot must
+      // survive that: without it the sidebar has no row for the section and the
+      // user can never put it back in the book.
+      storage.putNodeData("web-rendering", "pg001", rendering(1))
+
+      const { order, items } = resolveReadingOrder(storage)
+
+      expect(order.map((entry) => entry.id)).toEqual([
+        "pg001_sec001",
+        "pg001_sec002",
+        "pg002_sec001",
+        "pg002_sec002",
+      ])
+      // Still out of the output, and still in its original slot.
+      expect(items.map((item) => item.id)).not.toContain("pg001_sec001")
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("keeps the slot of a section the storyboard rendered nothing for", () => {
+    const storage = makeStorage()
+    try {
+      seedTwoPages(storage)
+      // Rendering skips sections with no renderable content too, so an empty
+      // section reaches the same state as a pruned one without being pruned.
+      storage.putNodeData("web-rendering", "pg001", rendering(1))
+
+      const { order, items } = resolveReadingOrder(storage)
+
+      expect(order.map((entry) => entry.id)).toContain("pg001_sec002")
+      // No HTML to ship, so it is not an output page.
+      expect(items.map((item) => item.id)).toEqual([
+        "pg001_sec001",
+        "pg002_sec001",
+        "pg002_sec002",
+      ])
+    } finally {
+      storage.close()
+    }
+  })
+
   it("skips rendering entries with no matching sectioning row", () => {
     const storage = makeStorage()
     try {
@@ -312,6 +370,64 @@ describe("reading-order resolver", () => {
     }
   })
 
+  describe("readingOrderPageIds", () => {
+    it("lists source pages in the order the reader meets them", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+          schemaVersion: 1,
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          items: [
+            { kind: "section", id: "pg002_sec001" },
+            { kind: "section", id: "pg002_sec002" },
+            { kind: "section", id: "pg001_sec001" },
+            { kind: "section", id: "pg001_sec002" },
+          ],
+        })
+
+        // Quiz batching groups "every N pages", so it has to count pages the way
+        // the reader meets them — source order would batch pg001 with pg002 in
+        // the wrong direction and anchor each quiz at an arbitrary position.
+        expect(readingOrderPageIds(resolveReadingOrder(storage))).toEqual(["pg002", "pg001"])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("lists a page once, at its first section", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        // Interleaved: page one's sections straddle page two's.
+        storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+          schemaVersion: 1,
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          items: [
+            { kind: "section", id: "pg001_sec001" },
+            { kind: "section", id: "pg002_sec001" },
+            { kind: "section", id: "pg001_sec002" },
+            { kind: "section", id: "pg002_sec002" },
+          ],
+        })
+
+        expect(readingOrderPageIds(resolveReadingOrder(storage))).toEqual(["pg001", "pg002"])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("falls back to source order when nothing has been reordered", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        expect(readingOrderPageIds(resolveReadingOrder(storage))).toEqual(["pg001", "pg002"])
+      } finally {
+        storage.close()
+      }
+    })
+  })
+
   it("numbers positions 1-based over the emitted items only", () => {
     const storage = makeStorage()
     try {
@@ -321,5 +437,206 @@ describe("reading-order resolver", () => {
     } finally {
       storage.close()
     }
+  })
+
+  /**
+   * Stored data that will not parse — corrupt, hand-edited, or written by a
+   * newer schema — used to be swallowed. The resolver carried on with the
+   * source-derived order, or with a page's sections missing, and said nothing:
+   * the book simply came out in a different sequence than the user left it in,
+   * and the packaged bundle followed suit.
+   */
+  describe("stored data it cannot read", () => {
+    it("reports nothing unreadable for a healthy book", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        expect(resolveReadingOrder(storage).unreadable).toEqual([])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("does not call a book with no stored order unreadable", () => {
+      // Never reordered is the ordinary case, not a fault: there is no stored
+      // row to fail to read.
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        const resolved = resolveReadingOrder(storage)
+        expect(resolved.fromStoredOrder).toBe(false)
+        expect(resolved.unreadable).toEqual([])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("reports a stored order it cannot read, and does not pass it off as the user's", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+          schemaVersion: 99,
+          items: [{ kind: "section" }],
+        } as never)
+
+        const resolved = resolveReadingOrder(storage)
+
+        expect(resolved.unreadable).toEqual([
+          { node: READING_ORDER_NODE, itemId: READING_ORDER_ITEM_ID, version: 1 },
+        ])
+        // Still falls back to the source order — there is nothing else to show
+        // — but no longer claims the sequence is the one the user saved.
+        expect(resolved.fromStoredOrder).toBe(false)
+        expect(resolved.items.map((i) => i.id)).toEqual([
+          "pg001_sec001",
+          "pg001_sec002",
+          "pg002_sec001",
+          "pg002_sec002",
+        ])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("reports a rendering it cannot read, rather than dropping the page in silence", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        storage.putNodeData("web-rendering", "pg001", { sections: "not-an-array" } as never)
+
+        const resolved = resolveReadingOrder(storage)
+
+        expect(resolved.unreadable).toEqual([
+          { node: "web-rendering", itemId: "pg001", version: 2 },
+        ])
+        // pg001's sections keep their slots but ship nothing, exactly as an
+        // unrendered page does — the difference is that this is now said out loud.
+        expect(resolved.items.map((i) => i.id)).toEqual(["pg002_sec001", "pg002_sec002"])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("reports a sectioning tree it cannot read", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        storage.putNodeData("page-sectioning", "pg002", { sections: 42 } as never)
+
+        const resolved = resolveReadingOrder(storage)
+
+        expect(resolved.unreadable).toEqual([
+          { node: "page-sectioning", itemId: "pg002", version: 2 },
+        ])
+        expect(resolved.items.map((i) => i.id)).toEqual(["pg001_sec001", "pg001_sec002"])
+      } finally {
+        storage.close()
+      }
+    })
+  })
+
+  describe("a stored order made against an older sectioning generation", () => {
+    /** Reverse the book, saved as the user's explicit arrangement. */
+    function saveReversedOrder(storage: Storage, sectioningGeneration?: number) {
+      storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+        schemaVersion: 1,
+        items: [
+          { kind: "section", id: "pg002_sec002" },
+          { kind: "section", id: "pg002_sec001" },
+          { kind: "section", id: "pg001_sec002" },
+          { kind: "section", id: "pg001_sec001" },
+        ],
+        updatedAt: new Date().toISOString(),
+        ...(sectioningGeneration === undefined ? {} : { sectioningGeneration }),
+      })
+    }
+
+    it("honours an order stamped with the current generation", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        bumpSectioningGeneration(storage)
+        saveReversedOrder(storage, 1)
+
+        const resolved = resolveReadingOrder(storage)
+
+        expect(resolved.fromStoredOrder).toBe(true)
+        expect(resolved.staleGeneration).toBeNull()
+        expect(resolved.items.map((i) => i.id)).toEqual([
+          "pg002_sec002",
+          "pg002_sec001",
+          "pg001_sec002",
+          "pg001_sec001",
+        ])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("ignores an order whose generation predates the current sections", () => {
+      // The hazard this guards: a full sectioning rerun re-mints ids densely
+      // from `_sec001`, so a surviving arrangement matches by id string and
+      // silently rebinds to whatever content now holds those ids.
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        saveReversedOrder(storage, 0)
+        bumpSectioningGeneration(storage)
+
+        const resolved = resolveReadingOrder(storage)
+
+        expect(resolved.fromStoredOrder).toBe(false)
+        expect(resolved.staleGeneration).toEqual({ stored: 0, current: 1 })
+        expect(resolved.items.map((i) => i.id)).toEqual([
+          "pg001_sec001",
+          "pg001_sec002",
+          "pg002_sec001",
+          "pg002_sec002",
+        ])
+        // Stale is not unreadable: the row parsed fine, it just describes a
+        // book that no longer exists.
+        expect(resolved.unreadable).toEqual([])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("honours an unstamped order, rather than invalidating it retroactively", () => {
+      // Every order saved before the stamp existed has no generation. Treating
+      // those as stale would throw away real arrangements on upgrade.
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        saveReversedOrder(storage)
+        bumpSectioningGeneration(storage)
+
+        const resolved = resolveReadingOrder(storage)
+
+        expect(resolved.fromStoredOrder).toBe(true)
+        expect(resolved.staleGeneration).toBeNull()
+        expect(resolved.items[0].id).toBe("pg002_sec002")
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("still offers the stale order's slots, so its versions stay listable", () => {
+      // The row is not deleted — the version picker must still be able to show
+      // it, greyed, and say why it cannot be restored.
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        saveReversedOrder(storage, 0)
+        bumpSectioningGeneration(storage)
+
+        expect(readSectioningGeneration(storage)).toBe(1)
+        expect(
+          storage.getLatestNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID)
+        ).not.toBeNull()
+      } finally {
+        storage.close()
+      }
+    })
   })
 })

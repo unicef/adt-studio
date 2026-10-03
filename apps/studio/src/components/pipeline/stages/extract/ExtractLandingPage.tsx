@@ -159,7 +159,7 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
         </p>
       </div>
 
-      <CascadeWarning stageSlug="extract" />
+      <CascadeWarning stageSlug="extract" bookLabel={bookLabel} />
 
       <SettingsCard>
         <SettingsField

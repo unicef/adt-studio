@@ -5,7 +5,7 @@ import path from "node:path"
 import { Hono } from "hono"
 import { createBookStorage } from "@adt/storage"
 import { errorHandler } from "../middleware/error-handler.js"
-import { createQuizRoutes } from "./quizzes.js"
+import { createQuizRoutes, orderQuizzesForInsert } from "./quizzes.js"
 import type { Quiz, QuizGenerationOutput } from "@adt/types"
 
 const label = "quiz-book"
@@ -274,5 +274,82 @@ describe("legacy books whose first edit reorders the quizzes", () => {
     expect(res.status).toBe(200)
 
     expect(storedQuizzes().map((q) => q.quizId)).toEqual(["qz001", "qz002"])
+  })
+})
+
+describe("orderQuizzesForInsert", () => {
+  /** The reader meets pg003 first, then pg002, then pg001 — a reordered book. */
+  const REVERSED = new Map([
+    ["pg003", 0],
+    ["pg002", 1],
+    ["pg001", 2],
+  ])
+
+  function order(
+    existing: Quiz[],
+    newQuiz: Quiz,
+    over: Partial<Parameters<typeof orderQuizzesForInsert>[0]> = {},
+  ) {
+    return orderQuizzesForInsert({
+      existing,
+      newQuiz,
+      placement: "after",
+      afterPageId: newQuiz.afterPageId,
+      readingRank: REVERSED,
+      ...over,
+    })
+  }
+
+  it("orders the set by reading position, not by source page", () => {
+    const existing = [
+      quiz("a", { afterPageId: "pg001", quizId: "qz001" }),
+      quiz("b", { afterPageId: "pg002", quizId: "qz002" }),
+    ]
+
+    const result = order(existing, quiz("new", { afterPageId: "pg003" }))
+
+    expect(result.map((q) => q.question)).toEqual(["new", "b", "a"])
+  })
+
+  it("drops the quizzes already at a position when replacing it", () => {
+    const existing = [
+      quiz("a", { afterPageId: "pg001", quizId: "qz001" }),
+      quiz("b", { afterPageId: "pg002", quizId: "qz002" }),
+    ]
+
+    const result = order(existing, quiz("new", { afterPageId: "pg001" }), {
+      placement: "replace",
+      afterPageId: "pg001",
+    })
+
+    expect(result.map((q) => q.question)).toEqual(["b", "new"])
+  })
+
+  it("keeps quizzes sharing an anchor in order, with the newcomer last", () => {
+    const existing = [
+      quiz("first", { afterPageId: "pg002", quizId: "qz001" }),
+      quiz("second", { afterPageId: "pg002", quizId: "qz002" }),
+    ]
+
+    const result = order(existing, quiz("new", { afterPageId: "pg002" }))
+
+    expect(result.map((q) => q.question)).toEqual(["first", "second", "new"])
+  })
+
+  it("sorts a quiz whose anchor page is gone to the end", () => {
+    const existing = [
+      quiz("orphan", { afterPageId: "pg404", quizId: "qz001" }),
+      quiz("kept", { afterPageId: "pg002", quizId: "qz002" }),
+    ]
+
+    const result = order(existing, quiz("new", { afterPageId: "pg003" }))
+
+    expect(result.map((q) => q.question)).toEqual(["new", "kept", "orphan"])
+  })
+
+  it("starts a fresh set when the book has no quizzes yet", () => {
+    const result = order([], quiz("first", { afterPageId: "pg001" }))
+
+    expect(result.map((q) => q.question)).toEqual(["first"])
   })
 })

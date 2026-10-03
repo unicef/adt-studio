@@ -400,7 +400,7 @@ export function SectioningPageDetail({
   const requestDeleteSection = (sectionIndex: number) =>
     requestStructuralOp({
       title: t`Delete section`,
-      description: t`Are you sure you want to delete this section? This action cannot be undone.`,
+      description: t`Delete this section and its content permanently? This cannot be undone — use "Remove from book" instead to hide it while keeping it, and its place, for later.`,
       confirmLabel: t`Delete`,
       icon: Trash2,
       colorClass: "bg-destructive hover:bg-destructive/90",

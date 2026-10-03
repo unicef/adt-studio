@@ -145,7 +145,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
       </div>
 
       {extractReady ? (
-        <CascadeWarning stageSlug="sectioning" />
+        <CascadeWarning stageSlug="sectioning" bookLabel={bookLabel} />
       ) : !extractCovered && hasAssembledPages ? (
         <LandingPageWarning
           variant="prereq"

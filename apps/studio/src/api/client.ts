@@ -607,6 +607,58 @@ export interface QuizzesResponse {
   version: number | null
 }
 
+// --- Reading order types ---
+
+/** One entry of the stored order: what to show, identified by its stable id. */
+export interface ReadingOrderEntry {
+  kind: "section" | "quiz"
+  id: string
+}
+
+export interface ReadingOrderItem extends ReadingOrderEntry {
+  href: string
+  /** 1-based position in the output. */
+  position: number
+  /** Owning source page (a quiz reports its anchor). Provenance, not position. */
+  pageId: string
+  /** Printed page number from the source PDF, when known. */
+  pageNumber: number | null
+}
+
+export interface ReadingOrderResponse {
+  version: number | null
+  fromStoredOrder: boolean
+  /** The book changed under a saved order — ids were added and/or dropped. */
+  reconciled: boolean
+  added: string[]
+  dropped: string[]
+  /**
+   * Stored rows the server could not read and therefore did not apply. Each one
+   * means the book is not in the order it should be — a saved arrangement being
+   * ignored, or a page missing from the output — so it is surfaced rather than
+   * left to be discovered in the packaged bundle.
+   */
+  unreadable: Array<{ node: string; itemId: string; version: number }>
+  /**
+   * Set when a saved order exists and parsed, but was written against section
+   * ids the book has since rebuilt and re-minted — so it was not applied, and
+   * cannot be restored. Distinct from `unreadable` (the row is fine) and from
+   * never having reordered (there is history the user can still see).
+   */
+  staleGeneration: { stored: number; current: number } | null
+  /**
+   * The book's current section-id generation. A stored version stamped below
+   * this one refers to sections that have since been rebuilt, so it is not
+   * restorable — which is what lets the version picker say so up front rather
+   * than after a refused request.
+   */
+  sectioningGeneration: number
+  /** Output sequence, excluding items not rendered (pruned). */
+  items: ReadingOrderItem[]
+  /** Full order including excluded items, each keeping its slot. */
+  order: ReadingOrderEntry[]
+}
+
 // --- Text Catalog types ---
 
 export interface TextCatalogEntry {
@@ -1396,6 +1448,50 @@ export const api = {
       { method: "POST" }
     ),
 
+  /**
+   * Merge two sections named by their ids, whether or not they share a page.
+   *
+   * For callers whose list is the reading order: the row after a section there
+   * can belong to another source page, or sit before it in the PDF, so the
+   * index-and-direction form would merge a different pair than the one shown.
+   * `direction` says where the removed section sat relative to the kept one in
+   * that list, so their content concatenates the way the user saw it.
+   *
+   * The response is the same-page or the cross-page shape depending on where
+   * the two sections turned out to live.
+   */
+  mergeSectionsById: (
+    label: string,
+    keepSectionId: string,
+    removeSectionId: string,
+    direction: "next" | "prev" = "next",
+    renderingInSync = false
+  ) =>
+    request<
+      | {
+          mergedSectionIndex: number
+          sectioningVersion: number
+          renderingVersion: number | null
+        }
+      | {
+          sourcePageId: string
+          targetPageId: string
+          targetSectionIndex: number
+          sourceSectioningVersion: number
+          targetSectioningVersion: number
+          sourceRenderingVersion: number | null
+          targetRenderingVersion: number | null
+        }
+    >(`/books/${label}/sections/merge`, {
+      method: "POST",
+      body: JSON.stringify({
+        keepSectionId,
+        removeSectionId,
+        direction,
+        ...(renderingInSync ? { renderingInSync: true } : {}),
+      }),
+    }),
+
   deleteSection: (label: string, pageId: string, sectionIndex: number) =>
     request<{
       sectioningVersion: number
@@ -1766,6 +1862,27 @@ export const api = {
 
   getQuizzes: (label: string) =>
     request<QuizzesResponse>(`/books/${label}/quizzes`),
+
+  getReadingOrder: (label: string) =>
+    request<ReadingOrderResponse>(`/books/${label}/reading-order`),
+
+  /** Save an explicit page order. Must be a permutation of the current items;
+   *  pass `expectedVersion` so a concurrent save 409s instead of clobbering. */
+  updateReadingOrder: (
+    label: string,
+    items: ReadingOrderEntry[],
+    expectedVersion: number | null,
+  ) =>
+    request<{ version: number }>(`/books/${label}/reading-order`, {
+      method: "PUT",
+      body: JSON.stringify({ items, expectedVersion }),
+    }),
+
+  /** Put the book back in source-PDF order, saved as a new version. */
+  resetReadingOrder: (label: string) =>
+    request<{ version: number }>(`/books/${label}/reading-order/reset`, {
+      method: "POST",
+    }),
 
   updateQuizzes: (label: string, data: unknown) =>
     request<{ version: number }>(`/books/${label}/quizzes`, {
