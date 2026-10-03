@@ -15,6 +15,11 @@ import {
   Network,
   type LucideIcon,
 } from "lucide-react"
+import {
+  IMPORTED_ADT_LOCKED_STAGES,
+  IMPORTED_ADT_UNAVAILABLE_STAGES,
+  type StageName,
+} from "@adt/types"
 
 export type StageGroup = "convert" | "enhancements" | "localization" | "packaging"
 
@@ -101,6 +106,19 @@ export function isPipelineStage(stage: StageDefinition): stage is PipelineStageD
 
 export function getBookOverviewStages(): NonBookStageDefinition[] {
   return STAGES.filter(isBookOverviewStage)
+}
+
+/** Whether an imported-ADT project can show this stage at all. Derived from
+ * `PIPELINE` so the server's gate and this one can never drift. */
+export function isImportedAdtStageAvailable(slug: StageSlug): boolean {
+  return !IMPORTED_ADT_UNAVAILABLE_STAGES.has(slug as StageName)
+}
+
+/** Whether an imported-ADT project may re-run this stage. Stricter than
+ * `isImportedAdtStageAvailable` — Storyboard stays viewable but regenerating it
+ * would overwrite the imported HTML, and the API rejects the run with 409. */
+export function isImportedAdtStageRerunnable(slug: StageSlug): boolean {
+  return !IMPORTED_ADT_LOCKED_STAGES.has(slug as StageName)
 }
 
 export function getPipelineStages(): PipelineStageDefinition[] {

@@ -4,6 +4,25 @@ interface RoutingProviderConfig {
   languages?: string[]
 }
 
+export interface SpeechProviderCredentials {
+  openaiKey?: string
+  azureKey?: string
+  azureRegion?: string
+  geminiKey?: string
+}
+
+export function hasSpeechProviderCredentials(
+  provider: string,
+  credentials: SpeechProviderCredentials,
+): boolean {
+  if (provider === "azure") {
+    return Boolean(credentials.azureKey?.trim() && credentials.azureRegion?.trim())
+  }
+  if (provider === "gemini") return Boolean(credentials.geminiKey?.trim())
+  if (provider === "openai") return Boolean(credentials.openaiKey?.trim())
+  return false
+}
+
 function parseProviders(
   speechConfig: unknown
 ): Record<string, RoutingProviderConfig> {

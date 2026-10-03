@@ -1,12 +1,12 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { unzipSync } from "fflate"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel, BookMetadata, PIPELINE } from "@adt/types"
 import { renderPdfCover } from "@adt/pdf"
 import { openBookDb } from "@adt/storage"
 import { getBook, type BookSummary } from "./book-service.js"
+import { ArchiveSafetyError, unzipArchiveSafely } from "./archive-safety.js"
 
 export interface ImportResult extends BookSummary {}
 
@@ -47,9 +47,9 @@ function resolveUniqueLabel(baseLabel: string, booksDir: string): string {
 
 function unzipBuffer(zipBuffer: Buffer): Record<string, Uint8Array> {
   try {
-    return unzipSync(zipBuffer)
-  } catch {
-    throwInvalidArchive("Invalid ZIP file")
+    return unzipArchiveSafely(zipBuffer)
+  } catch (error) {
+    throwInvalidArchive(error instanceof ArchiveSafetyError ? error.message : "Invalid ZIP file")
   }
 }
 

@@ -28,6 +28,12 @@ export interface BuildScreenshotHtmlOptions {
    * bundle pins, causing drift.
    */
   typographyCss?: string
+  /** Base URL used to resolve relative assets preserved from imported HTML. */
+  baseHref?: string
+  /** Additional stylesheets required by an imported book presentation. */
+  stylesheets?: string[]
+  /** Classes preserved from an imported page's #content shell. */
+  contentClassName?: string
 }
 
 /**
@@ -44,6 +50,9 @@ export async function buildScreenshotHtml(
     webAssetsDir,
     language = "en",
     typographyCss,
+    baseHref,
+    stylesheets = [],
+    contentClassName,
   } = options
 
   // Rewrite image src attributes to inline base64 data URIs
@@ -66,7 +75,7 @@ export async function buildScreenshotHtml(
 
   const contentBlock = /^\s*<div\b[^>]*\bid="content"/.test(normalizedHtml)
     ? normalizedHtml
-    : `<div id="content">
+    : `<div id="content"${contentClassName ? ` class="${escapeAttr(contentClassName)}"` : ""}>
   ${normalizedHtml}
   </div>`
 
@@ -75,8 +84,10 @@ export async function buildScreenshotHtml(
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  ${baseHref ? `<base href="${escapeAttr(baseHref)}" />` : ""}
   <style>${tailwindCss}</style>
   <style>${fontCss}</style>
+  ${stylesheets.map((href) => `<link rel="stylesheet" href="${escapeAttr(href)}" />`).join("\n  ")}
 </head>
 <body class="min-h-screen flex items-center justify-center">
   <main class="w-full">
@@ -90,6 +101,11 @@ ${hasFitbMarkers ? FITB_HYDRATION_SCRIPT : ""}
 /**
  * Rewrite `<img src="/api/books/{label}/images/{imageId}">` to
  * `<img src="data:image/jpeg;base64,...">` using the provided images map.
+ *
+ * The source label is intentionally allowed to differ from `label`: imported
+ * projects are first projected in a temporary workspace, and older imports
+ * may still contain that temporary URL. The image id remains the stable book
+ * entity identifier.
  */
 function rewriteImageSrcs(
   html: string,
@@ -98,11 +114,17 @@ function rewriteImageSrcs(
 ): string {
   // Match src attributes pointing to the book's image API endpoint
   const pattern = new RegExp(
-    `src=["']/api/books/${escapeRegex(label)}/images/([^"']+)["']`,
+    `src=["']/api/books/(?:${escapeRegex(label)}|[^/"']+)/images/([^"'?#]+)(?:[?#][^"']*)?["']`,
     "g"
   )
   return html.replace(pattern, (_match, imageId: string) => {
-    const img = images.get(imageId)
+    let decodedImageId = imageId
+    try {
+      decodedImageId = decodeURIComponent(imageId)
+    } catch {
+      // Keep the literal path segment when it is not valid URI encoding.
+    }
+    const img = images.get(decodedImageId)
     if (img) {
       return `src="data:image/jpeg;base64,${img.base64}"`
     }

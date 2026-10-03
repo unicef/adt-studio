@@ -2,6 +2,7 @@ import { z } from "zod"
 import { BookMetadata } from "./metadata.js"
 import { BookSummaryOutput } from "./book-summary.js"
 import { PartRange } from "./part.js"
+import { ProjectSourceKind } from "./project-identity.js"
 
 export const BookLabel = z
   .string()
@@ -18,6 +19,12 @@ export const BookSummary = z.object({
   languageCode: z.string().nullable(),
   pageCount: z.number().int(),
   hasSourcePdf: z.boolean(),
+  projectId: z.string().uuid(),
+  sourceKind: ProjectSourceKind,
+  /** The source currently driving the storyboard. An imported ADT revision can
+   * temporarily supersede a project's original PDF without changing lineage. */
+  workingSource: ProjectSourceKind,
+  sourceFingerprint: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
   needsRebuild: z.boolean(),
   rebuildReason: z.string().nullable(),
   completedStages: z.array(z.string()),
