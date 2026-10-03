@@ -333,6 +333,22 @@ export function createFakePublishWorker(
       return json({ upload_id: uploadId, state: "complete" })
     }
 
+    if (url.pathname === "/api/static-assets/manifest" && method === "GET") {
+      const only = url.searchParams.get("token")
+      const assets = [...state.uploads.values()]
+        .filter((upload) => upload.state === "committed")
+        .filter((upload) => only === null || upload.token === only)
+        .filter((upload) => state.publications.get(upload.token)?.current_version === upload.version)
+        .flatMap((upload) =>
+          upload.declared.flatMap((entry) =>
+            entry.asset_hash === undefined
+              ? []
+              : [{ path: `/uploads/${upload.upload_id}/${entry.path}`, hash: entry.asset_hash, bytes: entry.bytes }],
+          ),
+        )
+      return json({ assets })
+    }
+
     const commitMatch = /^\/api\/publication-uploads\/([^/]+)\/commit$/.exec(url.pathname)
     if (commitMatch && method === "POST") {
       const upload = state.uploads.get(decodeURIComponent(commitMatch[1] as string))

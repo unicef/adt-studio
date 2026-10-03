@@ -156,6 +156,37 @@ describe("publication upload lifecycle", () => {
     expect((await env.SNAPSHOTS.list()).objects).toHaveLength(objectsBefore)
   })
 
+  /** An update keeps the version its readers are on in the deploy, and asks for just its own
+   *  book's files: every other book has its own Worker now. */
+  it("lists one book's live files when asked by token", async () => {
+    const app = createApp()
+    const publishStatic = async (token: string, hash: string) => {
+      const started = await app.request(`${BASE}/api/publication-uploads`, {
+        method: "POST",
+        headers: { ...headers(), "content-type": "application/json" },
+        body: JSON.stringify({
+          kind: "create",
+          token,
+          title: token,
+          book_label: token,
+          page_manifest: [{ section_id: "page-1", href: "index.html", page_number: 1 }],
+          files: [{ path: "index.html", bytes: 1, sha256: digest("x"), asset_hash: hash }],
+        }),
+      }, env)
+      const { upload_id: uploadId } = await started.json() as { upload_id: string }
+      await app.request(`${BASE}/api/publication-uploads/${uploadId}/complete-static-assets`, { method: "POST", headers: headers() }, env)
+      await app.request(`${BASE}/api/publication-uploads/${uploadId}/commit`, { method: "POST", headers: headers() }, env)
+    }
+    await publishStatic(TOKEN, "a".repeat(32))
+    await publishStatic("OtherTokenAbcdefghijklmnopqrs1234", "b".repeat(32))
+
+    const all = await (await app.request(`${BASE}/api/static-assets/manifest`, { headers: headers() }, env)).json() as { assets: Array<{ hash: string }> }
+    expect(all.assets.map((asset) => asset.hash).sort()).toEqual(["a".repeat(32), "b".repeat(32)])
+
+    const one = await (await app.request(`${BASE}/api/static-assets/manifest?token=${TOKEN}`, { headers: headers() }, env)).json() as { assets: Array<{ hash: string }> }
+    expect(one.assets.map((asset) => asset.hash)).toEqual(["a".repeat(32)])
+  })
+
   it("rejects incomplete, wrong, and undeclared files and only advances after a complete republish", async () => {
     const first = await start("create", { "index.html": "one" })
     expect((await first.app.request(`${BASE}/api/publication-uploads/${first.upload.upload_id}/commit`, { method: "POST", headers: headers() }, env)).status).toBe(400)

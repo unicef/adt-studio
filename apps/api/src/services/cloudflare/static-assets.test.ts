@@ -109,6 +109,42 @@ describe("static asset manifest", () => {
     expect(fake.state.staticAssetUploads).toEqual([])
   })
 
+  it("keeps the live version's files in the deployment without sending them again", async () => {
+    const fresh = encoder.encode("two")
+    const freshHash = staticAssetHash("/uploads/new/index.html", fresh)
+    const liveHash = staticAssetHash("/uploads/old/index.html", encoder.encode("one"))
+    const fake = createFakeCloudflare({ assetKnownHashes: [liveHash] })
+    const client = createCloudflareClient({ token: "account-token", accountId: "acct-1", fetchFn: fake.fetchFn })
+
+    const prepared = await prepareStaticAssets(
+      client,
+      "book-x",
+      [{ path: "/uploads/new/index.html", content: fresh }],
+      { retained: [{ path: "/uploads/old/index.html", hash: liveHash, size: 3 }] },
+    )
+
+    expect(Object.keys(prepared.manifest).sort()).toEqual(["/uploads/new/index.html", "/uploads/old/index.html"])
+    expect(fake.state.staticAssetUploads).toEqual([{ [freshHash]: Buffer.from(fresh).toString("base64") }])
+    expect(fake.state.staticAssetManifests).toHaveLength(1)
+  })
+
+  it("drops a kept file Cloudflare no longer has instead of failing the deployment", async () => {
+    const fresh = encoder.encode("two")
+    const fake = createFakeCloudflare({ assetKnownHashes: [] })
+    const client = createCloudflareClient({ token: "account-token", accountId: "acct-1", fetchFn: fake.fetchFn })
+
+    const prepared = await prepareStaticAssets(
+      client,
+      "book-x",
+      [{ path: "/uploads/new/index.html", content: fresh }],
+      { retained: [{ path: "/uploads/old/index.html", hash: "f".repeat(32), size: 3 }] },
+    )
+
+    expect(Object.keys(prepared.manifest)).toEqual(["/uploads/new/index.html"])
+    expect(fake.state.staticAssetManifests).toHaveLength(2)
+    expect(prepared.completionJwt).toBe("asset-complete-jwt")
+  })
+
   it("uses the completion JWT returned by each Cloudflare asset bucket", async () => {
     const content = encoder.encode("one")
     const hash = staticAssetHash("/uploads/one/index.html", content)

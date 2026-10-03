@@ -158,7 +158,10 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
    * to one Worker version, so sending only the book currently being published would make every
    * other active book disappear on the next deploy. */
   app.get("/api/static-assets/manifest", async (c) => {
-    return c.json({ assets: await resolveStore(c.env).listCurrentStaticAssets() })
+    /** With a token, just that book: each book now has its own Worker, and an update keeps the
+     *  version its readers are on in the deploy until the new one is committed. */
+    const token = c.req.query("token")
+    return c.json({ assets: await resolveStore(c.env).listCurrentStaticAssets(token) })
   })
 
   app.post("/api/publication-uploads/:uploadId/commit", async (c) => {

@@ -1,7 +1,7 @@
 import { CLOUDFLARE_WORKER_NAME, workersDevUrl } from "@adt/types"
 import { BOOK_WORKER_NAME_PREFIX, bookHostAuthorSecret, bookWorkerName } from "./book-host.js"
 import { CloudflareApiError, retryCloudflareOperation, type CloudflareClient } from "./client.js"
-import { prepareStaticAssets, type StaticAsset } from "./static-assets.js"
+import { prepareStaticAssets, type RetainedStaticAsset, type StaticAsset } from "./static-assets.js"
 import type { WorkerArtifactBinding, BookHostArtifact } from "./worker-artifact.js"
 
 export class BookHostDeployError extends Error {
@@ -73,6 +73,11 @@ export interface DeployBookHostOptions {
   /** Called after Cloudflare accepts an asset batch. The callback never invents file progress. */
   onAssetProgress?: (progress: { done: number; total: number }) => void | Promise<void>
   sleep?: (ms: number) => Promise<void>
+  /** The version readers are on now. A deploy replaces every file the Worker serves, and the
+   *  control plane keeps sending readers to this version until the new one is committed — so
+   *  an update that left these out would serve 404s from its deploy until its commit, and for
+   *  good if the commit never came. */
+  retainedAssets?: RetainedStaticAsset[]
 }
 
 export interface DeployedBookHost {
@@ -103,6 +108,7 @@ export async function deployBookHost(
     controlPlaneName = CLOUDFLARE_WORKER_NAME,
     onAssetProgress,
     sleep,
+    retainedAssets,
   } = options
 
   if (assets.length === 0) {
@@ -143,7 +149,11 @@ export async function deployBookHost(
     }
   }
 
-  const staticAssets = await prepareStaticAssets(client, name, assets, { onProgress: onAssetProgress, sleep })
+  const staticAssets = await prepareStaticAssets(client, name, assets, {
+    onProgress: onAssetProgress,
+    sleep,
+    ...(retainedAssets === undefined ? {} : { retained: retainedAssets }),
+  })
 
   const bindings = resolveBookHostBindings(artifact.metadata.bindings, {
     d1DatabaseUuid,

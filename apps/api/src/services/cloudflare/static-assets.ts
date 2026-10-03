@@ -61,6 +61,16 @@ export function createStaticAssetManifest(assets: StaticAsset[]): StaticAssetMan
   return manifest
 }
 
+function withRetained(fresh: StaticAssetManifest, retained: RetainedStaticAsset[]): StaticAssetManifest {
+  const manifest: StaticAssetManifest = { ...fresh }
+  for (const entry of retained) {
+    const path = normalizedPath(entry.path)
+    if (manifest[path]) continue
+    manifest[path] = { hash: entry.hash, size: entry.size }
+  }
+  return manifest
+}
+
 function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
   if (a.byteLength !== b.byteLength) return false
   return Buffer.from(a).equals(Buffer.from(b))
@@ -110,6 +120,17 @@ export function createStaticAssetUploadPayloads(
   })))
 }
 
+/**
+ * A file the Worker already serves and should keep serving, named by the address Cloudflare
+ * stored it under rather than by its bytes. Studio no longer has the bytes of a version that
+ * has since been edited; Cloudflare does, so the manifest can list the file without sending it.
+ */
+export interface RetainedStaticAsset {
+  path: string
+  hash: string
+  size: number
+}
+
 export interface PreparedStaticAssets {
   manifest: StaticAssetManifest
   completionJwt: string
@@ -155,19 +176,35 @@ export async function prepareStaticAssets(
   options: {
     sleep?: (ms: number) => Promise<void>
     onProgress?: (progress: { done: number; total: number }) => void | Promise<void>
+    /** Files to keep in the deployment without sending them again. */
+    retained?: RetainedStaticAsset[]
   } = {},
 ): Promise<PreparedStaticAssets> {
   const sleep = options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)))
-  const manifest = createStaticAssetManifest(assets)
+  const fresh = createStaticAssetManifest(assets)
   const retry = { sleep, attempts: 5 }
-  let session: Awaited<ReturnType<CloudflareClient["createStaticAssetUploadSession"]>>
-  try {
-    session = await retryCloudflareOperation(
-      () => client.createStaticAssetUploadSession(workerName, manifest),
-      retry,
-    )
-  } catch (error) {
+  const openSession = async (manifest: StaticAssetManifest) => {
+    try {
+      return await retryCloudflareOperation(
+        () => client.createStaticAssetUploadSession(workerName, manifest),
+        retry,
+      )
+    } catch (error) {
       throw new StaticAssetError(`Cloudflare rejected the static asset manifest: ${describeCloudflareFailure(error)}`)
+    }
+  }
+
+  let retained = options.retained ?? []
+  let manifest = withRetained(fresh, retained)
+  let session = await openSession(manifest)
+  /** Cloudflare only asks for bytes it doesn't have. If it asks for a retained file's, that file
+   *  isn't on the Worker after all, so it was never being served — drop it rather than fail. */
+  const known = new Set(Object.values(fresh).map((entry) => entry.hash))
+  const missing = new Set(session.buckets.flat().filter((hash) => !known.has(hash)))
+  if (missing.size > 0 && retained.some((entry) => missing.has(entry.hash))) {
+    retained = retained.filter((entry) => !missing.has(entry.hash))
+    manifest = withRetained(fresh, retained)
+    session = await openSession(manifest)
   }
   /**
    * Every bucket is authorised with the *session's* token, not the previous response's.

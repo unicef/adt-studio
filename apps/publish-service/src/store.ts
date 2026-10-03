@@ -190,7 +190,7 @@ export interface PublicationStore {
   /** Includes open uploads so deleting a publication token cannot strand an upload prefix. */
   listSnapshotPrefixes(token: string): Promise<string[]>
   /** Paths and Cloudflare content addresses for every current, non-revoked publication. */
-  listCurrentStaticAssets(): Promise<StaticAssetEntry[]>
+  listCurrentStaticAssets(token?: string): Promise<StaticAssetEntry[]>
   findByToken(token: string): Promise<Publication | null>
   /** One read for the ladder *and* the access gate, so gating costs no extra round trip per
    *  asset request. */
