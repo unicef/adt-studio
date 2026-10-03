@@ -23,7 +23,7 @@ import {
 import { deployBookHost } from "./cloudflare/book-host-deploy.js"
 import type { CloudflareClient } from "./cloudflare/client.js"
 import type { CloudflareConnectionRecord } from "./cloudflare/connection-store.js"
-import { staticAssetHash, type StaticAsset } from "./cloudflare/static-assets.js"
+import { staticAssetHash, type RetainedStaticAsset, type StaticAsset } from "./cloudflare/static-assets.js"
 import type { BookHostArtifact } from "./cloudflare/worker-artifact.js"
 import { prepareExport, readBookTitle } from "./export-service.js"
 import {
@@ -614,6 +614,7 @@ async function deployBookAssets(
   declared: PublicationUploadFile[],
   emit: PublishEmit,
   sleep: (ms: number) => Promise<void>,
+  retained: RetainedStaticAsset[],
 ): Promise<{ url: string; workerName: string }> {
   const adtDir = path.join(bookDir, "adt")
 
@@ -632,6 +633,7 @@ async function deployBookAssets(
     controlPlaneSecret: host.controlPlaneSecret,
     ...(host.controlPlaneName === undefined ? {} : { controlPlaneName: host.controlPlaneName }),
     sleep,
+    retainedAssets: retained,
     onAssetProgress: async (progress) => {
       await emit(stepEvent("upload", "running", { ...progress, unit: "files" }))
     },
@@ -645,6 +647,22 @@ async function deployBookAssets(
     }),
   )
   return deployed
+}
+
+/**
+ * The files this book's readers are on right now, so the deploy keeps serving them until the
+ * new version is committed. A first share has none. Asking is best-effort: an older control
+ * plane answers with every book's files, and Cloudflare simply asks for the ones this Worker
+ * never had, which the deploy then drops; a failed answer means deploying the new files alone,
+ * as before.
+ */
+async function liveFiles(client: PublishWorkerClient, token: string): Promise<RetainedStaticAsset[]> {
+  try {
+    const { assets } = await client.listStaticAssets(token)
+    return assets.map((asset) => ({ path: asset.path, hash: asset.hash, size: asset.bytes }))
+  } catch {
+    return []
+  }
 }
 
 interface StagedCommit {
@@ -683,6 +701,7 @@ async function stageAndCommit(
         declared,
         emit,
         sleep,
+        await liveFiles(client, token),
       )
       await emit(stepEvent("upload", "done"))
 

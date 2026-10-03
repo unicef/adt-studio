@@ -83,9 +83,9 @@ function connection(worker: FakePublishWorker): CloudflareConnectionRecord {
   }
 }
 
-function harness() {
+function harness(bookHostOptions: Parameters<typeof createFakeBookHost>[0] = {}) {
   const worker = createFakePublishWorker({ now: NOW })
-  const bookHost = createFakeBookHost()
+  const bookHost = createFakeBookHost(bookHostOptions)
   const events: PublishProgressEvent[] = []
   const options = {
     label: LABEL,
@@ -219,6 +219,28 @@ describe("updating a published book", () => {
       `/uploads/${uploadIds[uploadIds.length - 1]}/index.html`,
     )
     expect(served).toContain("revised")
+  })
+
+  /** A deploy replaces every file the book's Worker serves, and readers stay on the old version
+   *  until the commit. An update that deployed only its own files served 404s in between — and
+   *  for good if the commit never came. */
+  it("keeps the version readers are on in an update's deployment", async () => {
+    const { worker, options, cloudflare } = harness({ assetRememberUploads: true })
+    const published = await publishBook(options)
+    const [firstUpload] = [...worker.state.uploads.keys()]
+
+    fs.writeFileSync(
+      path.join(tmpDir, LABEL, "adt", "index.html"),
+      "<!doctype html><title>Raven, revised</title>",
+    )
+    await republishBook({ ...options, record: published.record })
+    const secondUpload = [...worker.state.uploads.keys()].at(-1)
+
+    expect(worker.state.calls.some((call) => call.path === "/api/static-assets/manifest" && call.search === `?token=${TOKEN}`)).toBe(true)
+    const deployed = Object.keys(cloudflare.state.staticAssetManifests.at(-1) ?? {})
+    expect(deployed).toContain(`/uploads/${firstUpload}/index.html`)
+    expect(deployed).toContain(`/uploads/${secondUpload}/index.html`)
+    expect(uploadedAssetText(cloudflare, `/uploads/${firstUpload}/index.html`)).not.toContain("revised")
   })
 
   it("repeats the feature selection the first publish was made with", async () => {

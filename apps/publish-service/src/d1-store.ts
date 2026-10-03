@@ -275,6 +275,15 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       const snapshotBytes = request.files.reduce((total, file) => total + file.bytes, 0)
       try {
         await db.batch([
+          /** An upload left open by a run that lost its connection — or whose Studio quit —
+           *  would otherwise hold this version's one open slot forever, and every later update
+           *  of the book would be refused. One Studio manages an account at a time, so the
+           *  newest start is the only live one: it retires the stranded upload, and a run that
+           *  was somehow still going finds its upload closed when it tries to commit. */
+          db.prepare(
+            `UPDATE publication_uploads SET state = 'aborted'
+             WHERE token = ? AND version = ? AND state = 'open'`,
+          ).bind(request.token, version),
           db.prepare(
             `INSERT INTO publication_uploads
              (upload_id, kind, token, version, title, book_label, page_manifest, snapshot_prefix,
@@ -398,16 +407,18 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       return (rows.results ?? []).flatMap((row) => row.snapshot_prefix === null ? [] : [row.snapshot_prefix])
     },
 
-    async listCurrentStaticAssets() {
-      const rows = await db.prepare(
+    async listCurrentStaticAssets(token) {
+      const query = db.prepare(
         `SELECT u.snapshot_prefix, f.path, f.asset_hash, f.bytes
          FROM publications p
          JOIN versions v ON v.token = p.token AND v.version = p.current_version
          JOIN publication_uploads u ON u.upload_id = v.upload_id
          JOIN publication_upload_files f ON f.upload_id = u.upload_id
          WHERE p.revoked_at IS NULL AND f.completed_at IS NOT NULL AND f.asset_hash IS NOT NULL
+           AND (?1 IS NULL OR p.token = ?1)
          ORDER BY u.snapshot_prefix ASC, f.path ASC`,
-      ).all<{ snapshot_prefix: string; path: string; asset_hash: string; bytes: number }>()
+      ).bind(token ?? null)
+      const rows = await query.all<{ snapshot_prefix: string; path: string; asset_hash: string; bytes: number }>()
       return (rows.results ?? []).map((row) => ({
         path: `/${row.snapshot_prefix}/${row.path}`,
         hash: row.asset_hash,

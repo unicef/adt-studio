@@ -68,6 +68,10 @@ export interface FakeCloudflareOptions {
   healthFailures?: number
   healthUnreachable?: boolean
   assetUploadBuckets?: string[][]
+  /** Behave like Cloudflare: ask only for the hashes it doesn't already hold. */
+  assetKnownHashes?: string[]
+  /** Like `assetKnownHashes`, but what it holds is whatever was uploaded earlier in the test. */
+  assetRememberUploads?: boolean
   /** Ask for every hash in the manifest, which is what a real account does on a first publish
    *  when it holds none of the content yet. */
   assetUploadAllBuckets?: boolean
@@ -290,8 +294,19 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
           { success: true, results: state.migrationRows.map((row) => ({ name: row.name })) },
         ])
       }
-      if (/INSERT OR IGNORE INTO _migrations/i.test(sql)) {
-        const [name, appliedAt] = body.params ?? []
+      const recordAt = sql.search(/INSERT OR IGNORE INTO _migrations/i)
+      if (recordAt >= 0) {
+        const migrationSql = sql.slice(0, recordAt).trim()
+        if (migrationSql !== "" && options.migrationErrorMessage) {
+          return fail(500, 7500, options.migrationErrorMessage)
+        }
+        const literal = /VALUES \('((?:[^']|'')*)', '((?:[^']|'')*)'\)/i.exec(sql.slice(recordAt))
+        const [name, appliedAt] = body.params?.length
+          ? body.params
+          : literal
+            ? [literal[1]!.replace(/''/g, "'"), literal[2]!]
+            : []
+        if (migrationSql !== "") state.executedSql.push(migrationSql)
         if (name && !state.migrationRows.some((row) => row.name === name)) {
           state.migrationRows.push({ name, applied_at: appliedAt ?? "" })
         }
@@ -426,9 +441,17 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
       const everyHash = Object.values(manifest).flatMap((entry) =>
         typeof entry?.hash === "string" ? [entry.hash] : [],
       )
+      const held = options.assetKnownHashes
+        ? new Set(options.assetKnownHashes)
+        : options.assetRememberUploads
+          ? new Set(state.staticAssetUploads.flatMap((payload) => Object.keys(payload)))
+          : null
+      const unknown = held ? [...new Set(everyHash.filter((hash) => !held.has(hash)))] : null
       const buckets =
         options.assetUploadBuckets ??
-        (options.assetUploadAllBuckets && everyHash.length > 0 ? [everyHash] : [])
+        (unknown !== null
+          ? unknown.length > 0 ? [unknown] : []
+          : options.assetUploadAllBuckets && everyHash.length > 0 ? [everyHash] : [])
       return ok({ jwt: "asset-upload-jwt", buckets })
     }
 

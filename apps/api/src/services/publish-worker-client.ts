@@ -58,7 +58,9 @@ export interface PublishWorkerClient {
   commitUpload(uploadId: string): Promise<PublicationUploadCommitResponse>
   abortUpload(uploadId: string): Promise<PublicationUploadAbortResponse>
   completeStaticAssetUpload(uploadId: string): Promise<{ upload_id: string; state: "complete" }>
-  listStaticAssets(): Promise<{ assets: Array<{ path: string; hash: string; bytes: number }> }>
+  /** The files every live book serves, or — given a token — the files that book's readers are
+   *  on now. */
+  listStaticAssets(token?: string): Promise<{ assets: Array<{ path: string; hash: string; bytes: number }> }>
   revoke(token: string): Promise<PublicationResponse>
   reinstate(token: string): Promise<PublicationResponse>
   updatePublication(
@@ -347,9 +349,11 @@ export function createPublishWorkerClient({
       )
     },
 
-    listStaticAssets() {
+    listStaticAssets(token) {
       return request(
-        "/api/static-assets/manifest",
+        token === undefined
+          ? "/api/static-assets/manifest"
+          : `/api/static-assets/manifest?token=${encodeURIComponent(token)}`,
         { method: "GET" },
         { parse: (value) => {
           const result = value as { assets?: unknown }
