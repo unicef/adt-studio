@@ -374,6 +374,27 @@ describe("two_column_render.liquid", () => {
     )
   })
 
+  it("renders mixed-role heading-container children with their own semantic levels", async () => {
+    const engine = createTemplateEngine(templatesDir)
+    const input = makeInput({
+      nodes: [
+        groupNode("pg001_heading001", "heading", [
+          leafNode("pg001_title001", "chapter_title", "Book title"),
+          leafNode("pg001_subtitle001", "subheading", "Book subtitle"),
+        ]),
+      ],
+    })
+    const config = { ...templateConfig, templateName: "two_column_render" }
+    const result = await renderSectionTemplate(input, config, engine)
+
+    expect(result.html).toContain(
+      '<h1 class="adt-h1" data-id="pg001_title001">Book title</h1>',
+    )
+    expect(result.html).toContain(
+      '<h3 class="adt-h3" data-id="pg001_subtitle001">Book subtitle</h3>',
+    )
+  })
+
   it("routes a non-image_group container holding an image leaf into the image column", async () => {
     const engine = createTemplateEngine(templatesDir)
     const input = makeInput({
