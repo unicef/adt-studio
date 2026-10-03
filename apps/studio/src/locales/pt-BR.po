@@ -2006,6 +2006,9 @@ msgstr "Navegue e edite templates Liquid usados para estratégias de renderizaç
 msgid "Browse documentation"
 msgstr "Navegar na documentação"
 
+msgid "Browse every beta release, read what changed, and switch to any of them — including an earlier one."
+msgstr "Veja todas as versões beta, leia o que mudou e mude para qualquer uma delas — inclusive uma anterior."
+
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Navegue por cada seção do Storyboard e faça upload, substitua ou remova seu vídeo em linguagem de sinais."
 
@@ -4927,6 +4930,9 @@ msgstr "Contracapa interna"
 msgid "Install"
 msgstr "Instalar"
 
+msgid "Install a preview build?"
+msgstr "Instalar uma versão de prévia?"
+
 msgid "Install an older beta?"
 msgstr "Instalar uma versão beta anterior?"
 
@@ -5004,6 +5010,9 @@ msgstr "Ele contém caminhos de arquivo inesperados. Use um arquivo .zip exporta
 
 msgid "It was created from a different PDF or settings, so it can't be merged here."
 msgstr "Foi criada a partir de um PDF ou de configurações diferentes, por isso não pode ser mesclada aqui."
+
+msgid "It will arrive in the next beta."
+msgstr "Ele chegará na próxima versão beta."
 
 msgid "italic"
 msgstr "itálico"
@@ -6624,6 +6633,9 @@ msgstr "Abra esta seção para ajustar o modelo, o prompt do avaliador, o compor
 msgid "Open Validation"
 msgstr "Abrir Validação"
 
+msgid "Open Versions"
+msgstr "Abrir Versões"
+
 msgid "Open-ended — learners write a free response; there is no fixed answer."
 msgstr "Resposta aberta — os alunos escrevem uma resposta livre; não há resposta fixa."
 
@@ -7243,6 +7255,15 @@ msgstr "posição canto colocação de notificação"
 msgid "PR #{0}"
 msgstr "PR #{0}"
 
+msgid "PR #{pr} shipped in {shippedIn}"
+msgstr "O PR #{pr} foi lançado na {shippedIn}"
+
+msgid "PR #{pr} was closed without merging"
+msgstr "O PR #{pr} foi fechado sem merge"
+
+msgid "PR #{pr} was merged"
+msgstr "O PR #{pr} foi mesclado"
+
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"
 
@@ -7290,6 +7311,15 @@ msgstr "Anterior"
 
 msgid "Preview"
 msgstr "Pré-visualização"
+
+msgid "Preview · #{prNumber}"
+msgstr "Prévia · #{prNumber}"
+
+msgid "Preview build"
+msgstr "Versão de prévia"
+
+msgid "Preview builds don't get update notices. This page tells you when the PR merges or closes."
+msgstr "Versões de prévia não recebem avisos de atualização. Esta página avisa quando o PR for mesclado ou fechado."
 
 msgid "Preview linked page"
 msgstr "Visualizar página vinculada"
@@ -8438,8 +8468,11 @@ msgstr "Buscar livros…"
 msgid "Search by title or author…"
 msgstr "Buscar por título ou autor…"
 
-msgid "Search by title, version, or description…"
-msgstr "Pesquisar por título, versão ou descrição…"
+msgid "Search by title, version, contributor, or PR…"
+msgstr "Pesquisar por título, versão, colaborador ou PR…"
+
+#~ msgid "Search by title, version, or description…"
+#~ msgstr "Pesquisar por título, versão ou descrição…"
 
 msgid "Search captions or image IDs…"
 msgstr "Buscar legendas ou IDs de imagem…"
@@ -9431,14 +9464,24 @@ msgstr "Prompt de resumo"
 msgid "Sun"
 msgstr "Sol"
 
+msgid "Switch back to the latest beta to keep getting updates."
+msgstr "Volte para a versão beta mais recente para continuar recebendo atualizações."
+
 msgid "Switch languages in a tap."
 msgstr "Troque de idioma com um toque."
+
+#. placeholder {0}: formatVersion(target)
+msgid "Switch to {0}"
+msgstr "Mudar para {0}"
 
 msgid "Switch to dark theme"
 msgstr "Mudar para o tema escuro"
 
 msgid "Switch to light theme"
 msgstr "Mudar para o tema claro"
+
+msgid "Switch to the beta to keep getting updates."
+msgstr "Mude para a versão beta para continuar recebendo atualizações."
 
 msgid "Switching presentation failed"
 msgstr "Falha ao mudar a apresentação"
@@ -9932,6 +9975,9 @@ msgstr "Esta imagem é decorativa. Leitores de tela irão ignorá-la e nenhuma l
 
 msgid "This image is marked decorative — click to un-mark"
 msgstr "Esta imagem está marcada como decorativa — clique para desmarcar"
+
+msgid "This is a preview of PR #{previewPr}. Preview builds don't get update notices; Versions tells you when the PR merges or closes."
+msgstr "Esta é uma prévia do PR #{previewPr}. Versões de prévia não recebem avisos de atualização; Versões avisa quando o PR for mesclado ou fechado."
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "Esta é uma pré-visualização das opções que você selecionou para o seu livro, cada opção afeta a pré-visualização de uma maneira diferente."
@@ -10709,6 +10755,9 @@ msgstr "Versionado"
 msgid "Versions"
 msgstr "Versões"
 
+msgid "versions beta release downgrade rollback install changelog"
+msgstr "versões beta lançamento anterior reverter instalar changelog"
+
 msgid "video"
 msgstr "vídeo"
 
@@ -10744,6 +10793,9 @@ msgstr "Ver página"
 
 msgid "View page {pageNum} larger"
 msgstr "Ver a página {pageNum} maior"
+
+msgid "View PR"
+msgstr "Ver PR"
 
 msgid "Visible page entries"
 msgstr "Entradas visíveis da página"
@@ -11023,6 +11075,9 @@ msgstr "Tudo certo"
 
 msgid "You're now running ADT Studio {label}"
 msgstr "Agora você está usando o ADT Studio {label}"
+
+msgid "You're on a preview of PR #{pr}"
+msgstr "Você está em uma prévia do PR #{pr}"
 
 msgid "You're one of the first to try it. Turn any textbook into an accessible edition — every step of the pipeline, built in."
 msgstr "Você é um dos primeiros a experimentar. Transforme qualquer livro didático em uma edição acessível — cada etapa do pipeline, já integrada."

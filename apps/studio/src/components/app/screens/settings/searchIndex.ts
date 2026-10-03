@@ -7,6 +7,7 @@ import {
   SETTINGS_ANCHORS,
   SETTINGS_GROUPS,
   SETTINGS_TAB_BY_KEY,
+  isSettingsSectionAvailable,
   localeAnchor,
   providerAnchor,
   type SettingsSection,
@@ -41,7 +42,7 @@ export function buildSettingsSearchItems(
   i18n: I18n,
   entries: SettingsSearchEntry[],
 ): SettingsSearchItem[] {
-  return entries.map((entry) => {
+  return entries.filter((entry) => isSettingsSectionAvailable(entry.section)).map((entry) => {
     const tab = SETTINGS_TAB_BY_KEY[entry.section]
     const sectionLabel = i18n._(tab.label)
     const hint = entry.hint ? settingsSearchText(i18n, entry.hint) : undefined
@@ -65,6 +66,7 @@ const SECTION_KEYWORDS: Record<SettingsSection, MessageDescriptor> = {
   models: msg`models llm image speech`,
   prompts: msg`prompts templates instructions`,
   about: msg`about version update logs diagnostics`,
+  versions: msg`versions beta release downgrade rollback install changelog`,
 }
 
 const SECTION_ENTRIES: SettingsSearchEntry[] = SETTINGS_GROUPS.flatMap((group) =>

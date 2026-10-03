@@ -53,6 +53,21 @@ export function getReleaseChannel(version: string): ReleaseChannel {
   return version.toLowerCase().includes("-beta") ? "beta" : "stable"
 }
 
+let betaBuild: boolean | undefined
+
+export function isBetaBuild(): boolean {
+  if (betaBuild === undefined) {
+    const version = typeof window === "undefined" ? undefined : window.api?.version
+    betaBuild = version != null && getReleaseChannel(version) === "beta"
+  }
+  return betaBuild
+}
+
+export function previewPullRequestNumber(version: string): number | undefined {
+  const match = /-beta-pr-(\d+)$/i.exec(version.trim())
+  return match ? Number(match[1]) : undefined
+}
+
 export function formatVersion(version: string, fallback = "—"): string {
   if (!version) return fallback
   return version.startsWith("v") ? version : `v${version}`
