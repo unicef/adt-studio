@@ -6,6 +6,14 @@ import { STUDIO_APP_ORIGIN } from "../protocols/studio-app";
 export const ONBOARDING_WINDOW_WIDTH = 900;
 export const ONBOARDING_WINDOW_HEIGHT = 620;
 
+export function isAllowedExternalUrl(url: string): boolean {
+  try {
+    return new URL(url).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Small, fixed-size, frameless window that hosts the first-run onboarding
  * experience over the desktop (Aside-style). It loads the Studio SPA at the
@@ -40,7 +48,9 @@ export function createOnboardingWindow(): BrowserWindow {
   });
 
   onboardingWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url);
+    if (isAllowedExternalUrl(details.url)) {
+      shell.openExternal(details.url);
+    }
     return { action: "deny" };
   });
 

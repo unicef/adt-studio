@@ -5,6 +5,7 @@ import icon from "../../../build/icon.png?asset";
 import betaIcon from "../../../build/beta-icons/icon.png?asset";
 import { STUDIO_APP_ORIGIN } from "../protocols/studio-app";
 import { attachCloseGuard } from "../ipc/window-close";
+import { isAllowedExternalUrl } from "./onboarding";
 
 const appIcon = app.getVersion().includes("-beta") ? betaIcon : icon;
 
@@ -50,7 +51,9 @@ export function createMainWindow(startPath = "/"): BrowserWindow {
   attachCloseGuard(mainWindow);
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url);
+    if (isAllowedExternalUrl(details.url)) {
+      shell.openExternal(details.url);
+    }
     return { action: "deny" };
   });
 
