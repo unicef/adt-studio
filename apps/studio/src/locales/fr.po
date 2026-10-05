@@ -96,6 +96,10 @@ msgstr "{0, plural, one {# commentaire à revoir} other {# commentaires à revoi
 msgid "{0, plural, one {# comment} other {# comments}}"
 msgstr "{0, plural, one {# commentaire} other {# commentaires}}"
 
+#. placeholder {0}: selectedImageIds.length
+msgid "{0, plural, one {# image selected} other {# images selected}}"
+msgstr "{0, plural, one {# image sélectionnée} other {# images sélectionnées}}"
+
 #. placeholder {0}: p.optionalDone.length
 msgid "{0, plural, one {# output} other {# outputs}}"
 msgstr "{0, plural, one {# sortie} other {# sorties}}"
@@ -209,8 +213,8 @@ msgstr "{0} polices"
 
 #. placeholder {0}: selectedImageIds.length
 #. placeholder {1}: selectedImageIds.length === 1 ? "" : "s"
-msgid "{0} image{1} selected"
-msgstr "{0} image{1} sélectionnée"
+#~ msgid "{0} image{1} selected"
+#~ msgstr "{0} image{1} sélectionnée"
 
 #. placeholder {0}: String(captions.length)
 #. placeholder {0}: String(group.captions.length)
@@ -426,9 +430,12 @@ msgstr "{generatedFeatureCount} sur 6 fonctionnalités générées"
 msgid "{hours}h ago"
 msgstr "il y a {hours}h"
 
+msgid "{imageCount, plural, one {# image will be translated} other {# images will be translated}}"
+msgstr "{imageCount, plural, one {# image sera traduite} other {# images seront traduites}}"
+
 #. placeholder {0}: imageCount === 1 ? "" : "s"
-msgid "{imageCount} image{0} will be translated"
-msgstr "{imageCount} image{0} sera traduite"
+#~ msgid "{imageCount} image{0} will be translated"
+#~ msgstr "{imageCount} image{0} sera traduite"
 
 msgid "{imageCount} images"
 msgstr "{imageCount} images"
@@ -437,8 +444,8 @@ msgid "{inProgress, plural, one {# in progress} other {# in progress}}"
 msgstr "{inProgress, plural, one {# en cours} other {# en cours}}"
 
 #. placeholder {0}: issueCount === 1 ? "issue" : "issues"
-msgid "{issueCount} {0}"
-msgstr "{issueCount} {0}"
+#~ msgid "{issueCount} {0}"
+#~ msgstr "{issueCount} {0}"
 
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
@@ -489,8 +496,8 @@ msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detecte
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} détectée(s)"
 
 #. placeholder {0}: reviewCount === 1 ? "manual review item" : "manual review items"
-msgid "{reviewCount} {0}"
-msgstr "{reviewCount} {0}"
+#~ msgid "{reviewCount} {0}"
+#~ msgstr "{reviewCount} {0}"
 
 #. placeholder {0}: section.criteria.length
 msgid "{reviewed}/{0} checked"
@@ -1169,6 +1176,10 @@ msgstr "Ajoutez d'abord votre clé API OpenAI"
 msgid "added"
 msgstr "ajouté"
 
+msgid "Added"
+msgstr "Ajoutée"
+
+msgctxt "font badge"
 msgid "Added"
 msgstr "Ajoutée"
 
@@ -2014,8 +2025,8 @@ msgstr "Parcourez chaque section du Storyboard et téléchargez, remplacez ou su
 msgid "Browser didn't open? Use this link"
 msgstr "Le navigateur ne s'est pas ouvert ? Utilisez ce lien"
 
-msgid "Build"
-msgstr "Build"
+#~ msgid "Build"
+#~ msgstr "Build"
 
 msgid "Build a glossary of key terms and definitions found in the text."
 msgstr "Construisez un glossaire des termes clés et définitions trouvés dans le texte."
@@ -3701,8 +3712,8 @@ msgstr "ES"
 msgid "Esc"
 msgstr "Échap"
 
-msgid "Español"
-msgstr "Español"
+#~ msgid "Español"
+#~ msgstr "Español"
 
 msgid "Est. Cost"
 msgstr "Est. Coût"
@@ -3789,14 +3800,23 @@ msgid "Export .zip"
 msgstr "Exporter .zip"
 
 #. placeholder {0}: formatLabels[selectedFormat].label
-msgid "Export {0}"
-msgstr "Exporter {0}"
+#~ msgid "Export {0}"
+#~ msgstr "Exporter {0}"
 
 msgid "Export & return .zip"
 msgstr "Exporter & retourner .zip"
 
 msgid "Export a part"
 msgstr "Exporter une partie"
+
+msgid "Export completed part"
+msgstr "Exporter la partie terminée"
+
+msgid "Export EPUB"
+msgstr "Exporter en EPUB"
+
+msgid "Export for the web"
+msgstr "Exporter pour le web"
 
 msgid "Export is not blocked by the stages below. As soon as Storyboard is done, you can ship a bundle. Enhancements, Localization, and Validation are optional ways to enrich the book — you can export again anytime later."
 msgstr "L'exportation n'est pas bloquée par les étapes ci-dessous. Dès que Storyboard est terminé, vous pouvez livrer un bundle. Améliorations, Localisation et Validation sont des moyens facultatifs d'enrichir le livre — vous pouvez exporter à nouveau à tout moment."
@@ -3810,17 +3830,29 @@ msgstr "Exporter les journaux pour aider à déboguer les échecs du pipeline."
 msgid "Export Options"
 msgstr "Options d'exportation"
 
+msgid "Export PNLD package"
+msgstr "Exporter le paquet PNLD"
+
 msgid "Export preparation failed"
 msgstr "La préparation de l'exportation a échoué"
 
 msgid "Export Preview"
 msgstr "Aperçu de l'exportation"
 
+msgid "Export project archive"
+msgstr "Exporter l’archive du projet"
+
+msgid "Export SCORM package"
+msgstr "Exporter le paquet SCORM"
+
 msgid "Export the finished part from its Export step, then upload that file."
 msgstr "Exportez la partie terminée depuis son étape d'Exportation, puis téléversez ce fichier."
 
 msgid "Export the packaged book and related artifacts for delivery."
 msgstr "Exporter le livre emballé et les artefacts associés pour la livraison."
+
+msgid "Export WebPub"
+msgstr "Exporter en WebPub"
 
 msgid "Exported"
 msgstr "Exporté"
@@ -4139,8 +4171,8 @@ msgstr "Formulaires et contrôles"
 msgid "FR"
 msgstr "FR"
 
-msgid "Français"
-msgstr "Français"
+#~ msgid "Français"
+#~ msgstr "Français"
 
 msgid "Free rectangle — resize without skewing"
 msgstr "Rectangle libre — redimensionner sans déformer"
@@ -4857,8 +4889,8 @@ msgstr "L'importation crée un nouveau livre limité à {windowSize} pages. Exé
 msgid "Importing..."
 msgstr "Importation..."
 
-msgid "Improvements"
-msgstr "Améliorations"
+#~ msgid "Improvements"
+#~ msgstr "Améliorations"
 
 msgid "In book:"
 msgstr "Dans le livre :"
@@ -5238,6 +5270,10 @@ msgstr "bibliothèque affichage disposition grille liste"
 msgid "Life in the Coral Reef"
 msgstr "Life dans le Coral Reef"
 
+msgid "Light"
+msgstr "Léger"
+
+msgctxt "translation review depth"
 msgid "Light"
 msgstr "Léger"
 
@@ -6482,6 +6518,10 @@ msgstr "sur"
 msgid "Off"
 msgstr "Désactivé"
 
+msgctxt "auto-dismiss delay"
+msgid "Off"
+msgstr "Désactivé"
+
 msgid "Offset"
 msgstr "Décalage"
 
@@ -7222,8 +7262,8 @@ msgstr "Définitions contextuelles lorsque prises en charge, plus des pages de g
 msgid "Popular"
 msgstr "Populaires"
 
-msgid "Português (Brasil)"
-msgstr "Português (Brasil)"
+#~ msgid "Português (Brasil)"
+#~ msgstr "Português (Brasil)"
 
 msgid "Portuguese (BR)"
 msgstr "Portugais (BR)"
@@ -7310,6 +7350,9 @@ msgstr "Aperçu : Par mot"
 
 msgid "Preview: word-by-word"
 msgstr "Aperçu : mot à mot"
+
+msgid "Preview<0/>Build"
+msgstr "Aperçu<0/>Build"
 
 msgid "Previewed here — enabled once the AI-agnostic update ships."
 msgstr "Prévisualisé ici — activé une fois la mise à jour AI-agnostique déployée."
@@ -7482,8 +7525,11 @@ msgstr "Extrait les métadonnées du livre — titre, auteur, langue — du PDF.
 msgid "px"
 msgstr "px"
 
-msgid "Quality"
-msgstr "Qualité"
+#~ msgid "Quality"
+#~ msgstr "Qualité"
+
+msgid "Quality<0/>Improvements"
+msgstr "Qualité<0/>Améliorations"
 
 msgid "Query param"
 msgstr "Paramètre de requête"
@@ -8903,8 +8949,8 @@ msgstr "Affichage uniquement des termes que vous avez ajoutés — cliquez pour 
 msgid "Shown after page {afterNumber}"
 msgstr "Affiché après la page {afterNumber}"
 
-msgid "Shqip"
-msgstr "Shqip"
+#~ msgid "Shqip"
+#~ msgstr "Shqip"
 
 msgid "Side-by-side image and narrative."
 msgstr "Image et narration côte à côte."
@@ -9230,6 +9276,10 @@ msgstr "Fichier EPUB 3 standard pour liseuses, applications de lecture et outils
 msgid "Standard EPUB glossary — tapping a term shows its definition. Needs reader support (not Apple Books)."
 msgstr "Glossaire EPUB standard — toucher un terme affiche sa définition. Nécessite la prise en charge du lecteur (pas Apple Books)."
 
+msgid "Start"
+msgstr "Démarrer"
+
+msgctxt "book action"
 msgid "Start"
 msgstr "Démarrer"
 

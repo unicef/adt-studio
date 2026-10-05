@@ -269,7 +269,7 @@ export function GridCard({
 export function ContinueLabel({ vm }: { vm: BookVM }) {
   const { t } = useLingui()
   const p = progressFor(vm)
-  if (p.status === "new") return <Trans>Start</Trans>
+  if (p.status === "new") return <Trans context="book action">Start</Trans>
   if (p.status === "ready") return <Trans>Open</Trans>
   if (p.status === "rebuild") return <Trans>Rebuild</Trans>
   return (

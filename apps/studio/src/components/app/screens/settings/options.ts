@@ -28,13 +28,15 @@ export interface LocaleOption {
   key: AppLocale
   code: MessageDescriptor
   name: MessageDescriptor
-  native: MessageDescriptor
+  native: string
 }
 
+/* eslint-disable lingui/no-unlocalized-strings -- `native` is each language's own name (endonym), shown untranslated in every locale */
 export const LOCALE_OPTIONS: LocaleOption[] = [
-  { key: "en", code: msg`EN`, name: msg`English`, native: msg`English` },
-  { key: "pt-BR", code: msg`PT`, name: msg`Portuguese (BR)`, native: msg`Português (Brasil)` },
-  { key: "es", code: msg`ES`, name: msg`Spanish`, native: msg`Español` },
-  { key: "fr", code: msg`FR`, name: msg`French`, native: msg`Français` },
-  { key: "sq", code: msg`SQ`, name: msg`Albanian`, native: msg`Shqip` },
+  { key: "en", code: msg`EN`, name: msg`English`, native: "English" },
+  { key: "pt-BR", code: msg`PT`, name: msg`Portuguese (BR)`, native: "Português (Brasil)" },
+  { key: "es", code: msg`ES`, name: msg`Spanish`, native: "Español" },
+  { key: "fr", code: msg`FR`, name: msg`French`, native: "Français" },
+  { key: "sq", code: msg`SQ`, name: msg`Albanian`, native: "Shqip" },
 ]
+/* eslint-enable lingui/no-unlocalized-strings */
