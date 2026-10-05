@@ -1,17 +1,16 @@
-import { useNavigate } from "@tanstack/react-router"
+import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Plus, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { EmptyState } from "../../ui/EmptyState"
-import { GhostCover } from "../../ui/GhostCover"
-import { BookCover } from "../../BookCover"
+import { EmptyState } from "@/components/app/ui/EmptyState"
+import { GhostCover } from "@/components/app/ui/GhostCover"
+import { BookCover } from "@/components/app/BookCover"
 
 export interface LibraryEmptyStateProps {
   onOpenAdd: () => void
 }
 
 export function LibraryEmptyState({ onOpenAdd }: LibraryEmptyStateProps) {
-  const navigate = useNavigate()
   const { t } = useLingui()
   return (
     <div className="relative flex flex-1 items-center justify-center">
@@ -37,9 +36,11 @@ export function LibraryEmptyState({ onOpenAdd }: LibraryEmptyStateProps) {
           <Plus className="size-3.5" />
           <Trans>Add book</Trans>
         </Button>
-        <Button variant="outline" onClick={() => navigate({ to: "/books/import" })}>
-          <Upload className="size-3.5" />
-          <Trans>Import project</Trans>
+        <Button asChild variant="outline">
+          <Link to="/books/import">
+            <Upload className="size-3.5" />
+            <Trans>Import project</Trans>
+          </Link>
         </Button>
       </EmptyState>
     </div>

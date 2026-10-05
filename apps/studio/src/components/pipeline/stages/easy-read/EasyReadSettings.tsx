@@ -7,6 +7,7 @@ import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useStepConfig } from "@/hooks/use-step-config"
+import { STEP_SETTINGS_ANCHORS } from "@/components/app/screens/pipeline/settings/searchIndex"
 import { useLingui } from "@lingui/react/macro"
 
 const DEFAULT_PROMPT = "easy_read"
@@ -98,7 +99,7 @@ export function EasyReadSettings({
     <div className="h-full w-full">
       <div className="border-b px-4 py-3">
         <div className="grid gap-3 md:grid-cols-[minmax(180px,260px)_auto] md:items-end">
-          <div>
+          <div id={STEP_SETTINGS_ANCHORS.easyReadTemplate} className="scroll-mt-6">
             <Label className="text-xs">{t`Prompt template`}</Label>
             <Input
               value={promptName}
@@ -110,7 +111,7 @@ export function EasyReadSettings({
               className="mt-1 text-xs"
             />
           </div>
-          <div>
+          <div id={STEP_SETTINGS_ANCHORS.easyReadBatchSize} className="scroll-mt-6">
             <Label className="text-xs">{t`Batch size`}</Label>
             <Input
               type="number"

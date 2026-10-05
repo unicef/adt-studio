@@ -4,7 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { Eye, ArrowLeft, ArrowRight, Zap, Loader2 } from "lucide-react"
 import { useStore } from "@tanstack/react-form"
 import { useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
+import { useOpenBook } from "@/components/app/use-open-book"
 import { Button } from "@/components/ui/button"
 import { api } from "@/api/client"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -203,7 +203,7 @@ function PreviewContainer({
 
 export function BookCreationWizard() {
   const { t, i18n } = useLingui()
-  const navigate = useNavigate()
+  const openBook = useOpenBook()
   const queryClient = useQueryClient()
   const { phase, currentStep, setCurrentStep, stepDirection, previewFocus } = useWizard()
   const form = useWizardForm()
@@ -345,7 +345,7 @@ export function BookCreationWizard() {
         window.sessionStorage.setItem("adt:focus-parts", book.label)
       }
 
-      navigate({ to: "/books/$label/$step", params: { label: book.label, step: "book" } })
+      openBook(book.label)
     } catch (error) {
       creatingRef.current = false
       setIsCreating(false)

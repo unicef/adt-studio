@@ -1,11 +1,11 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { useNavigate } from "@tanstack/react-router"
 import { X } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { BookCover } from "../../BookCover"
 import type { BookVM } from "../../data"
+import { useOpenBook } from "../../use-open-book"
 import type { ReviewComment } from "./CommentsBanner"
 import { BaseStages, DetailActions, DetailInfo, MetaLine, PRESS, type DetailHandlers } from "./book-detail-body"
 
@@ -32,12 +32,12 @@ export interface BookDetailDialogProps {
 }
 
 export function BookDetailDialog({ book, onOpenChange, onEdit, onDelete, onPublish }: BookDetailDialogProps) {
-  const navigate = useNavigate()
+  const openBook = useOpenBook()
   const handlers: DetailHandlers = {
     onEdit,
     onDelete,
     onPublish,
-    goStep: (step) => book && navigate({ to: "/books/$label/$step", params: { label: book.label, step } }),
+    goStep: (step) => book && openBook(book.label, step),
   }
 
   return (

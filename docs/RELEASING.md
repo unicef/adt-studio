@@ -188,6 +188,21 @@ the JSON). If you move release automation to a GitHub App or a non-admin machine
 account instead, replace the bypass actor accordingly (e.g. an `Integration`
 actor for an App) and re-import.
 
+## Private package registry
+
+The Storyboard editor (`@zignaggo/adt-html-editor`) is a private package on
+GitHub Packages, so every job that runs `pnpm install` needs the
+`Z_PACKAGE_PAT` repository secret — a PAT with `read:packages` that can see the
+package. CI, staging, and the release `desktop` job configure
+`actions/setup-node` with `registry-url: https://npm.pkg.github.com` and
+`scope: '@zignaggo'` (only that scope is routed there) and pass the token as
+`NODE_AUTH_TOKEN`. The CI `docker` job and the release `docker` job hand it to
+the Dockerfile as the `npmrc` BuildKit secret.
+
+If the secret is missing or expired, those jobs fail at `pnpm install` with a
+401/403 from `npm.pkg.github.com`. Pull requests from forks do not receive
+repository secrets, so their install steps fail the same way.
+
 ## Triggering a release
 
 ### GitHub UI

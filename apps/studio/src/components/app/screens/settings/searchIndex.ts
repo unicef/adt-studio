@@ -98,6 +98,15 @@ const THEME_ENTRIES: SettingsSearchEntry[] = [
     icon: theme.icon,
   })),
   {
+    id: "settings-theme-pipeline-interface",
+    kind: "option",
+    section: "theme",
+    label: msg`Pipeline interface`,
+    hint: msg`Switch between the new and the classic pipeline screen.`,
+    keywords: msg`pipeline interface new classic layout`,
+    anchor: SETTINGS_ANCHORS.pipelineInterface,
+  },
+  {
     id: "settings-theme-reduce-motion",
     kind: "option",
     section: "theme",

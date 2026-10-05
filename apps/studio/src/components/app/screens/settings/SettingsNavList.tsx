@@ -1,14 +1,13 @@
 import { Link } from "@tanstack/react-router"
 import { useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
-import { SETTINGS_GROUPS, SETTINGS_PATHS, type SettingsSection } from "./nav"
+import { SETTINGS_GROUPS, SETTINGS_PATHS } from "./nav"
 
 interface SettingsNavListProps {
-  activeKey: SettingsSection
   className?: string
 }
 
-export function SettingsNavList({ activeKey, className }: SettingsNavListProps) {
+export function SettingsNavList({ className }: SettingsNavListProps) {
   const { i18n } = useLingui()
 
   return (
@@ -20,17 +19,14 @@ export function SettingsNavList({ activeKey, className }: SettingsNavListProps) 
           </div>
           {group.tabs.map((tab) => {
             const Icon = tab.icon
-            const active = activeKey === tab.key
             return (
               <Link
                 key={tab.key}
                 to={SETTINGS_PATHS[tab.key]}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-colors",
-                  active
-                    ? "bg-card font-semibold text-brand-700 ring-1 ring-border shadow-sm"
-                    : "text-foreground hover:bg-black/5 dark:hover:bg-white/5",
-                )}
+                activeOptions={{ includeSearch: false }}
+                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-colors"
+                activeProps={{ className: "bg-card font-semibold text-brand-700 ring-1 ring-border shadow-sm" }}
+                inactiveProps={{ className: "text-foreground hover:bg-black/5 dark:hover:bg-white/5" }}
               >
                 <Icon className="size-[17px]" />
                 <span className="flex-1 truncate text-left">{i18n._(tab.label)}</span>

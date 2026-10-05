@@ -25,6 +25,7 @@ RUN --mount=type=bind,source=.,target=/ctx \
          -exec sh -c 'f="$1"; dst="${f#/ctx/}"; mkdir -p "$(dirname "$dst")"; cp "$f" "$dst"' _ {} \;
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    --mount=type=secret,id=npmrc,target=/root/.npmrc \
     pnpm install --frozen-lockfile
 
 # =============================================================================

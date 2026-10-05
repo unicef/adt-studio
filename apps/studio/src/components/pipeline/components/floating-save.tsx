@@ -134,14 +134,21 @@ class FloatingSaveStore {
 
 const FloatingSaveContext = createContext<FloatingSaveStore | null>(null)
 
-export function FloatingSaveProvider({ children }: { children: ReactNode }) {
+export function FloatingSaveProvider({
+  children,
+  barClassName,
+}: {
+  children: ReactNode
+  /** Overrides the bar's placement — hosts that own the bottom of the screen. */
+  barClassName?: string
+}) {
   const ref = useRef<FloatingSaveStore | null>(null)
   if (!ref.current) ref.current = new FloatingSaveStore()
   const store = ref.current
   return (
     <FloatingSaveContext.Provider value={store}>
       {children}
-      <FloatingSaveHost store={store} />
+      <FloatingSaveHost store={store} className={barClassName} />
     </FloatingSaveContext.Provider>
   )
 }
@@ -160,7 +167,13 @@ interface BarProps {
 
 const EXIT_MS = 200
 
-function FloatingSaveHost({ store }: { store: FloatingSaveStore }) {
+function FloatingSaveHost({
+  store,
+  className,
+}: {
+  store: FloatingSaveStore
+  className?: string
+}) {
   const { t } = useLingui()
   useSyncExternalStore(store.subscribe, store.getVersion, store.getVersion)
 
@@ -224,7 +237,7 @@ function FloatingSaveHost({ store }: { store: FloatingSaveStore }) {
   }, [present])
 
   if (!mounted || !lastProps.current) return null
-  return <FloatingSaveBar {...lastProps.current} closing={!present} />
+  return <FloatingSaveBar {...lastProps.current} className={className} closing={!present} />
 }
 
 const noopSubscribe = () => () => {}

@@ -19,6 +19,7 @@ interface RangeSliderProps {
   max: number;
   value: [number, number];
   onChange: (value: [number, number]) => void;
+  onCommit?: (value: [number, number]) => void;
   disabled?: boolean;
   /**
    * Like `disabled` (non-interactive), but keeps the current values visible
@@ -213,6 +214,7 @@ export function RangeSlider({
   max,
   value,
   onChange,
+  onCommit,
   disabled,
   readOnly,
   startLabel,
@@ -221,6 +223,11 @@ export function RangeSlider({
 }: RangeSliderProps) {
   const [start, end] = value;
   const groupLabelId = useId();
+
+  function changeAndCommit(next: [number, number]) {
+    onChange(next);
+    onCommit?.(next);
+  }
 
   const boundedMin = Number.isFinite(min) ? min : 0;
   const boundedMax =
@@ -269,6 +276,7 @@ export function RangeSlider({
         step={1}
         value={sliderValue}
         onValueChange={([s, e]) => onChange([s, e])}
+        onValueCommit={onCommit ? ([s, e]) => onCommit([s, e]) : undefined}
         disabled={disabled || readOnly}
         color={color}
       />
@@ -279,7 +287,7 @@ export function RangeSlider({
           value={start}
           min={boundedMin}
           max={end}
-          onChange={(v) => onChange([v, end])}
+          onChange={(v) => changeAndCommit([v, end])}
           disabled={disabled}
           readOnly={readOnly}
         />
@@ -288,7 +296,7 @@ export function RangeSlider({
           value={end}
           min={start}
           max={boundedMax}
-          onChange={(v) => onChange([start, v])}
+          onChange={(v) => changeAndCommit([start, v])}
           disabled={disabled}
           readOnly={readOnly}
         />

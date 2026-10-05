@@ -1,1 +1,1 @@
-export type AppView = "home" | "library" | "handoffs" | "settings"
+export type AppView = "home" | "library" | "handoffs" | "pipeline" | "settings"

@@ -35,6 +35,7 @@ const POS_CLASS: Record<ToastPosition, string> = {
   "bottom-center": "bottom-3 left-1/2 -translate-x-1/2",
   "bottom-right": "bottom-3 right-3",
 }
+
 const BAR_POS: Record<ToastPosition, string> = {
   "top-left": "top-[2.5px] left-[2px]",
   "top-center": "top-[2.5px] left-1/2 -translate-x-1/2",
@@ -47,7 +48,6 @@ const BAR_POS: Record<ToastPosition, string> = {
 
 const isTop = (p: ToastPosition) => p.startsWith("top")
 
-/** Mini-screen glyph with a little toast bar in the corresponding corner. */
 function PositionGlyph({ position }: { position: ToastPosition }) {
   return (
     <span className="relative inline-block size-[16px] shrink-0 rounded-[3px] border border-muted-foreground/40">
@@ -56,7 +56,6 @@ function PositionGlyph({ position }: { position: ToastPosition }) {
   )
 }
 
-/** Titlebar that mirrors the host OS so the preview reads as native. */
 function WindowChrome({ os }: { os: DesktopOS }) {
   if (os === "windows") {
     return (

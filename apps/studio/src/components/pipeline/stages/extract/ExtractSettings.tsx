@@ -10,6 +10,7 @@ import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { useStepConfig } from "@/hooks/use-step-config"
+import { STEP_SETTINGS_ANCHORS } from "@/components/app/screens/pipeline/settings/searchIndex"
 import { normalizeLocale } from "@/lib/languages"
 import { useLingui } from "@lingui/react/macro"
 
@@ -181,7 +182,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
       {tab === "general" && (
         <>
           {/* Editing Language */}
-          <div className="max-w-sm">
+          <div id={STEP_SETTINGS_ANCHORS.extractEditingLanguage} className="max-w-sm scroll-mt-6">
             <LanguagePicker
               selected={editingLanguage}
               onSelect={(v) => { setEditingLanguage(v); markDirty("editing_language") }}
@@ -191,11 +192,11 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
           </div>
 
           {/* Image Filters */}
-          <div>
+          <div id={STEP_SETTINGS_ANCHORS.extractImageFilters} className="scroll-mt-6">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
               {t`Image Filters`}
             </h3>
-            <div className="flex items-center gap-2">
+            <div id={STEP_SETTINGS_ANCHORS.extractImageSize} className="flex items-center gap-2 scroll-mt-6">
               <div className="space-y-1">
                 <Label className="text-xs">{t`Min side (px)`}</Label>
                 <Input
@@ -222,7 +223,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
             <p className="text-xs text-muted-foreground mt-1.5">
               {t`Images with shortest side below min or longest side above max are pruned.`}
             </p>
-            <div className="space-y-1 mt-3">
+            <div id={STEP_SETTINGS_ANCHORS.extractMinComplexity} className="space-y-1 mt-3 scroll-mt-6">
               <Label className="text-xs">{t`Min complexity`}</Label>
               <Input
                 type="number"
@@ -237,7 +238,10 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
             <p className="text-xs text-muted-foreground mt-1.5">
               {t`Higher values filter out simple or blank images.`}
             </p>
-            <div className="flex items-center gap-2 mt-4">
+            <div
+              id={STEP_SETTINGS_ANCHORS.extractMeaningfulness}
+              className="flex items-center gap-2 mt-4 scroll-mt-6"
+            >
               <Switch
                 id="meaningfulness-filter"
                 checked={meaningfulness}
@@ -253,7 +257,10 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
             <p className="text-xs text-muted-foreground mt-1.5">
               {t`Use an LLM to filter out decorative or non-educational images.`}
             </p>
-            <div className="flex items-center gap-2 mt-4">
+            <div
+              id={STEP_SETTINGS_ANCHORS.extractCropping}
+              className="flex items-center gap-2 mt-4 scroll-mt-6"
+            >
               <Switch
                 id="cropping-filter"
                 checked={cropping}
@@ -269,7 +276,10 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
             <p className="text-xs text-muted-foreground mt-1.5">
               {t`Use an LLM to crop away stray text, artifacts, and excessive whitespace from image edges.`}
             </p>
-            <div className="flex items-center gap-2 mt-4">
+            <div
+              id={STEP_SETTINGS_ANCHORS.extractSegmentation}
+              className="flex items-center gap-2 mt-4 scroll-mt-6"
+            >
               <Switch
                 id="segmentation-filter"
                 checked={segmentation}
@@ -339,7 +349,10 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
 
       {tab === "segmentation-prompt" && (
         <div className="flex flex-col h-full">
-          <div className="shrink-0 px-4 pt-4 pb-3 space-y-1.5 border-b">
+          <div
+            id={STEP_SETTINGS_ANCHORS.extractSegmentationMinSide}
+            className="shrink-0 px-4 pt-4 pb-3 space-y-1.5 border-b scroll-mt-6"
+          >
             <Label className="text-xs">{t`Min image dimension (px)`}</Label>
             <Input
               type="number"

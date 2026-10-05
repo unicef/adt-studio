@@ -23,6 +23,8 @@ interface FloatingSaveBarProps {
   label?: ReactNode
   /** Play the exit animation (the host keeps it mounted until it finishes). */
   closing?: boolean
+  /** Overrides the default placement. */
+  className?: string
 }
 
 export function FloatingSaveBar({
@@ -36,6 +38,7 @@ export function FloatingSaveBar({
   resetDisabledReason,
   label,
   closing = false,
+  className,
 }: FloatingSaveBarProps) {
   const { t } = useLingui()
   const saveDisabled = !!saveDisabledReason || saving
@@ -102,6 +105,7 @@ export function FloatingSaveBar({
         closing
           ? "animate-out fill-mode-forwards slide-out-to-bottom-4 fade-out-0 zoom-out-95 duration-200 ease-in"
           : "animate-in slide-in-from-bottom-4 fade-in zoom-in-95 duration-300 ease-out",
+        className,
       )}
     >
       <div className="flex items-center gap-3 rounded-md border border-border/60 bg-background/95 backdrop-blur px-2 py-1.5 shadow-xl shadow-black/5">

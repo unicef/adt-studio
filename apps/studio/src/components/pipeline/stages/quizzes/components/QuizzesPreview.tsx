@@ -21,8 +21,8 @@ export function QuizzesPreview({
   const frequency = Number.isFinite(pagesPerQuiz) && pagesPerQuiz > 0 ? pagesPerQuiz : 3
 
   return (
-    <div className="relative flex flex-1 min-h-0 overflow-hidden bg-gradient-to-b from-orange-50/40 via-white to-white">
-      <span className="absolute right-4 top-4 z-10 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-orange-700">
+    <div className="relative flex flex-1 min-h-0 overflow-hidden ">
+      <span className="absolute right-4 top-4 z-10 rounded-full border border-border bg-orange-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-orange-700">
         <Trans>Sample</Trans>
       </span>
 
@@ -37,7 +37,7 @@ export function QuizzesPreview({
 
         <div className="flex w-full max-w-sm flex-col items-center">
           <header className="text-center">
-            <p className="text-base font-bold leading-snug tracking-tight text-gray-900">
+            <p className="text-base font-bold leading-snug tracking-tight text-foreground">
               {linguiI18n._(SAMPLE_QUESTION)}
             </p>
           </header>
@@ -46,10 +46,10 @@ export function QuizzesPreview({
             {SAMPLE_OPTIONS.map((option, i) => (
               <div
                 key={i}
-                className="w-full rounded-2xl border-2 border-gray-900 bg-[#FFFAF5] px-5 py-3 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.65)] transition-all motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-300"
+                className="w-full rounded-2xl border-2 border-border bg-background px-5 py-3 text-center shadow-[0_4px_0_0_rgba(0,0,0,0.65)] transition-all motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-300"
                 style={{ animationDelay: `${i * 60}ms`, animationFillMode: "backwards" }}
               >
-                <span className="block text-sm font-medium text-gray-900">
+                <span className="block text-sm font-medium text-foreground">
                   {linguiI18n._(option)}
                 </span>
               </div>

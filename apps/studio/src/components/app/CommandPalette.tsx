@@ -9,10 +9,11 @@ import type { BookSummary } from "@/api/client"
 import { toBookVM, type CoverSpec } from "./data"
 import { BookCover } from "./BookCover"
 import { Kbd } from "./ui/Kbd"
-import { useShortcutLabel } from "@/hooks/use-platform"
 import { APP_PATHS } from "./nav"
+import { useShortcutLabel } from "@/hooks/use-platform"
 import { rankBySearch, searchTokens } from "./search"
 import { buildQuickActions } from "./quick-actions"
+import { useOpenBook } from "./use-open-book"
 import { SETTINGS_PATHS } from "./screens/settings/nav"
 import {
   SETTINGS_SEARCH_ENTRIES,
@@ -81,6 +82,7 @@ type PaletteResultsProps = Omit<CommandPaletteProps, "open">
 
 function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsProps) {
   const navigate = useNavigate()
+  const openBook = useOpenBook()
   const { t, i18n } = useLingui()
   const [query, setQuery] = useState("")
   const [active, setActive] = useState(0)
@@ -111,7 +113,7 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
         sub: `${vm.authors} · ${vm.pagesText}`,
         cover: vm.cover,
         author: vm.authors,
-        run: () => navigate({ to: "/books/$label/$step", params: { label: b.label, step: "book" } }),
+        run: () => openBook(b.label),
       }
     })
     const quickActions: PaletteItem[] = buildQuickActions(i18n, {
@@ -142,7 +144,7 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
       { label: t`Settings`, items: rank(settingsItems) },
       { label: t`Actions`, items: rank(actions) },
     ].filter((g) => g.items.length > 0)
-  }, [query, books, locale, onOpenAdd, navigate, t, i18n])
+  }, [query, books, locale, onOpenAdd, navigate, openBook, t, i18n])
 
   const flat = useMemo(() => groups.flatMap((g) => g.items), [groups])
   const activeId = flat[active]?.id

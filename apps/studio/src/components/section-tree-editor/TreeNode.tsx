@@ -43,6 +43,30 @@ import {
 import { EditableText } from "./EditableText"
 import { TREE_DRAG_TYPE } from "./SectionTreeEditor"
 
+/**
+ * Radix renders a closed Select's items into a hidden fragment to derive the
+ * value label. Every tree node mounts a Select, so on a page with dozens of
+ * nodes that hidden render is thousands of items and dominates page-navigation
+ * time. Our triggers pass the label to SelectValue explicitly, so the items
+ * can mount only while the dropdown is actually open.
+ */
+function LazySelect({
+  items,
+  children,
+  ...selectProps
+}: React.ComponentProps<typeof Select> & {
+  items: () => React.ReactNode
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <Select {...selectProps} open={open} onOpenChange={setOpen}>
+      {children}
+      <SelectContent>{open ? items() : null}</SelectContent>
+    </Select>
+  )
+}
+
 // ── Type-to-visual mapping ──────────────────────────────────────
 // Each role/structure gets a distinct icon + accent color so the tree
 // is scannable at a glance (activity vs panel vs text vs image, etc).
@@ -386,23 +410,12 @@ function ContainerNode(props: TreeNodeProps) {
         }}
       >
         {containerStructures ? (
-          <Select
+          <LazySelect
             value={node.structure ?? defaultStructure}
             onValueChange={(val) => onSetStructure(node.nodeId, val)}
             disabled={disabled}
-          >
-            <SelectTrigger
-              className={cn(
-                "h-6 text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0 w-auto border-0 rounded-md gap-1 [&>svg]:opacity-70",
-                visual.bg,
-                visual.text
-              )}
-            >
-              <visual.Icon className="h-3.5 w-3.5 shrink-0" />
-              <SelectValue>{structureLabel}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {Object.keys(containerStructures).map((key) => {
+            items={() =>
+              Object.keys(containerStructures).map((key) => {
                 const v = getStructureVisual(key)
                 return (
                   <SelectItem key={key} value={key} className="text-xs">
@@ -418,9 +431,20 @@ function ContainerNode(props: TreeNodeProps) {
                     </span>
                   </SelectItem>
                 )
-              })}
-            </SelectContent>
-          </Select>
+              })
+            }
+          >
+            <SelectTrigger
+              className={cn(
+                "h-6 text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0 w-auto border-0 rounded-md gap-1 [&>svg]:opacity-70",
+                visual.bg,
+                visual.text
+              )}
+            >
+              <visual.Icon className="h-3.5 w-3.5 shrink-0" />
+              <SelectValue>{structureLabel}</SelectValue>
+            </SelectTrigger>
+          </LazySelect>
         ) : (
           <span
             className={cn(
@@ -631,27 +655,12 @@ function TextLeaf(props: TreeNodeProps) {
       )}
     >
       {textRoles ? (
-        <Select
+        <LazySelect
           value={node.role ?? "text"}
           onValueChange={(val) => onSetRole(node.nodeId, val)}
           disabled={disabled}
-        >
-          <SelectTrigger
-            className={cn(
-              "group/pill shrink-0 h-5 text-[10px] font-medium px-1 py-0 w-auto border-0 rounded gap-0.5 [&>svg]:opacity-70",
-              visual.bg,
-              visual.text
-            )}
-          >
-            <visual.Icon className="h-3 w-3 shrink-0" />
-            <SelectValue asChild>
-              <span className="overflow-hidden whitespace-nowrap transition-all duration-150 max-w-0 group-hover/pill:max-w-[140px] group-hover/pill:ml-1 uppercase tracking-wider font-semibold">
-                {node.role}
-              </span>
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {Object.keys(textRoles).map((key) => {
+          items={() =>
+            Object.keys(textRoles).map((key) => {
               const v = getRoleVisual(key)
               return (
                 <SelectItem key={key} value={key} className="text-xs">
@@ -667,9 +676,24 @@ function TextLeaf(props: TreeNodeProps) {
                   </span>
                 </SelectItem>
               )
-            })}
-          </SelectContent>
-        </Select>
+            })
+          }
+        >
+          <SelectTrigger
+            className={cn(
+              "group/pill shrink-0 h-5 text-[10px] font-medium px-1 py-0 w-auto border-0 rounded gap-0.5 [&>svg]:opacity-70",
+              visual.bg,
+              visual.text
+            )}
+          >
+            <visual.Icon className="h-3 w-3 shrink-0" />
+            <SelectValue asChild>
+              <span className="overflow-hidden whitespace-nowrap transition-all duration-150 max-w-0 group-hover/pill:max-w-[140px] group-hover/pill:ml-1 uppercase tracking-wider font-semibold">
+                {node.role}
+              </span>
+            </SelectValue>
+          </SelectTrigger>
+        </LazySelect>
       ) : (
         <span
           className={cn(

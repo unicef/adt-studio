@@ -1,11 +1,11 @@
 import { lingui, linguiTransformerBabelPreset } from "@lingui/vite-plugin";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, searchForWorkspaceRoot, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import { fileURLToPath, URL } from "node:url";
 import { createRequire } from "node:module";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { dirname, join } from "node:path";
 import babel from "@rolldown/plugin-babel";
 
@@ -51,6 +51,15 @@ function pdfjsWasmAssets(): Plugin {
   };
 }
 
+const LINKED_PACKAGES = ["adt-html-editor"];
+
+function linkedPackageDirs(): string[] {
+  return LINKED_PACKAGES.flatMap((name) => {
+    const dir = fileURLToPath(new URL(`./node_modules/${name}`, import.meta.url));
+    return existsSync(dir) ? [realpathSync(dir)] : [];
+  });
+}
+
 export default defineConfig(({ mode }) => {
   const isDesktop = mode === "desktop";
 
@@ -61,6 +70,7 @@ export default defineConfig(({ mode }) => {
       tanstackRouter({
         quoteStyle: "double",
         routeFileIgnorePattern: "\\.test\\.tsx?$",
+        autoCodeSplitting: true,
       }),
       react(),
       tailwindcss(),
@@ -70,10 +80,23 @@ export default defineConfig(({ mode }) => {
       alias: {
         "@": fileURLToPath(new URL("./src", import.meta.url)),
       },
+      dedupe: [
+        "react",
+        "react-dom",
+        "@base-ui/react",
+        "class-variance-authority",
+        "cmdk",
+        "cn",
+        "lucide-react",
+        "react-resizable-panels",
+      ],
     },
     server: {
       port: 5173,
       open: !isDesktop,
+      fs: {
+        allow: [searchForWorkspaceRoot(process.cwd()), ...linkedPackageDirs()],
+      },
       proxy: {
         "/api": {
           target: process.env.API_PROXY_TARGET ?? "http://localhost:3001",

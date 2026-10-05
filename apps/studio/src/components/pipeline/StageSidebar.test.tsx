@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 
 const defaultStageState = (slug: string) => {
@@ -142,10 +142,15 @@ afterEach(() => {
   stageStateMock.mockImplementation(defaultStageState)
 })
 
+let StageSidebar: (typeof import("./components/StageSidebar"))["StageSidebar"]
+
+beforeAll(async () => {
+  ;({ StageSidebar } = await import("./components/StageSidebar"))
+}, 30_000)
+
 describe("StageSidebar", () => {
   it("routes the book settings button to the API Keys section", async () => {
     matchRouteMock.mockReturnValue(true)
-    const { StageSidebar } = await import("./components/StageSidebar")
     render(
       <StageSidebar
         bookLabel="demo-book"
@@ -164,7 +169,6 @@ describe("StageSidebar", () => {
   })
 
   it("shows Validation before Preview and exposes Validation settings tabs", async () => {
-    const { StageSidebar } = await import("./components/StageSidebar")
     const { container } = render(
       <StageSidebar
         bookLabel="demo-book"
@@ -189,7 +193,6 @@ describe("StageSidebar", () => {
       return defaultStageState(slug)
     })
 
-    const { StageSidebar } = await import("./components/StageSidebar")
     const { container } = render(
       <StageSidebar
         bookLabel="demo-book"
@@ -209,7 +212,6 @@ describe("StageSidebar", () => {
       return defaultStageState(slug)
     })
 
-    const { StageSidebar } = await import("./components/StageSidebar")
     render(
       <StageSidebar
         bookLabel="demo-book"

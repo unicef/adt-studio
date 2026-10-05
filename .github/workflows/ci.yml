@@ -20,7 +20,11 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@zignaggo'
       - run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.Z_PACKAGE_PAT }}
       - run: pnpm typecheck
       - run: pnpm test
 
@@ -29,7 +33,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build Docker api target
-        run: docker build --target api .
+        env:
+          NPMRC: |
+            @zignaggo:registry=https://npm.pkg.github.com
+            //npm.pkg.github.com/:_authToken=${{ secrets.Z_PACKAGE_PAT }}
+        run: docker build --target api --secret id=npmrc,env=NPMRC .
 
   i18n:
     runs-on: ubuntu-latest
@@ -42,7 +50,11 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@zignaggo'
       - run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.Z_PACKAGE_PAT }}
       - name: Check for unlocalized strings
         run: |
           pnpm --filter @adt/studio extract

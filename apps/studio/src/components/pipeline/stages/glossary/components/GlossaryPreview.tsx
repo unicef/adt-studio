@@ -51,15 +51,15 @@ export function GlossaryPreview({ amount }: { amount: AmountKey }) {
   const visible = GLOSSARY_SAMPLES.slice(0, visibleCount)
 
   return (
-    <div className="relative flex flex-1 min-h-0 overflow-hidden bg-gradient-to-b from-lime-50/40 via-white to-white">
-      <span className="absolute right-4 top-4 z-10 rounded-full border border-lime-200 bg-lime-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-lime-700">
+    <div className="relative flex flex-1 min-h-0 overflow-hidden ">
+      <span className="absolute right-4 top-4 z-10 rounded-full border border-border bg-lime-50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-lime-700">
         <Trans>Sample</Trans>
       </span>
 
       <div className="flex w-full h-full items-center justify-center p-4 min-h-0">
-        <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-[#e5e5e5] bg-white shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)]">
-          <div className="flex shrink-0 items-center justify-between border-b border-[#f1f1f1] px-4 py-3">
-            <h2 className="text-[14px] font-semibold text-[#0a0a0a]">
+        <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)]">
+          <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
+            <h2 className="text-[14px] font-semibold text-foreground">
               <Trans>Glossary</Trans>
             </h2>
             <X
@@ -70,19 +70,19 @@ export function GlossaryPreview({ amount }: { amount: AmountKey }) {
           </div>
 
           <div className="flex shrink-0 items-center justify-between px-4 pt-3.5">
-            <span className="text-[12px] font-medium text-[#0a0a0a]">
+            <span className="text-[12px] font-medium text-foreground">
               <Trans>Highlight words</Trans>
             </span>
             <span
-              className="flex h-4 w-7 items-center rounded-full bg-neutral-200 px-0.5"
+              className="flex h-4 w-7 items-center rounded-full bg-border px-0.5"
               aria-hidden
             >
-              <span className="h-3 w-3 rounded-full bg-white shadow-sm" />
+              <span className="h-3 w-3 rounded-full bg-background shadow-sm" />
             </span>
           </div>
 
           <div className="shrink-0 px-4 pt-3">
-            <div className="flex items-center gap-2 rounded-full bg-[#f5f5f5] px-3 py-1.5">
+            <div className="flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5">
               <Search
                 className="h-3 w-3 text-[#a3a3a3]"
                 strokeWidth={2}
@@ -135,12 +135,12 @@ function GlossaryReaderEntry({
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
     >
       <div className="flex items-baseline gap-1.5">
-        <span className="text-[12.5px] font-semibold text-[#0a0a0a]">
+        <span className="text-[12.5px] font-semibold text-foreground">
           {word}
         </span>
         <span className="text-[12px] leading-none">{emojis}</span>
       </div>
-      <p className="line-clamp-2 text-[11px] leading-snug text-[#737373]">
+      <p className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">
         {definition}
       </p>
     </div>
