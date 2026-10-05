@@ -2141,6 +2141,10 @@ msgstr "capped at {0}"
 msgid "Caption"
 msgstr "Caption"
 
+msgctxt "typography role"
+msgid "Caption"
+msgstr "Caption"
+
 #. placeholder {0}: cap.imageId
 msgid "Caption for {0}"
 msgstr "Caption for {0}"
@@ -2154,6 +2158,10 @@ msgstr "Captioned"
 msgid "Captioning Images..."
 msgstr "Captioning Images..."
 
+msgid "Captions"
+msgstr "Captions"
+
+msgctxt "typography role"
 msgid "Captions"
 msgstr "Captions"
 

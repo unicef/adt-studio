@@ -2141,6 +2141,10 @@ msgstr "limitado a {0}"
 msgid "Caption"
 msgstr "Texto alternativo"
 
+msgctxt "typography role"
+msgid "Caption"
+msgstr "Legenda"
+
 #. placeholder {0}: cap.imageId
 msgid "Caption for {0}"
 msgstr "Texto alternativo de {0}"
@@ -2156,6 +2160,10 @@ msgstr "Gerando texto alternativo..."
 
 msgid "Captions"
 msgstr "Texto alternativo"
+
+msgctxt "typography role"
+msgid "Captions"
+msgstr "Legendas"
 
 msgid "Captions describe the images that Storyboard places into pages. Finish Storyboard before running this stage."
 msgstr "Os textos alternativos descrevem as imagens que o Storyboard coloca nas páginas. Termine o Storyboard antes de executar esta etapa."

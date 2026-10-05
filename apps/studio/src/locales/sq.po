@@ -2143,6 +2143,10 @@ msgstr "kufizuar në {0}"
 msgid "Caption"
 msgstr "Përshkrim"
 
+msgctxt "typography role"
+msgid "Caption"
+msgstr "Përshkrim"
+
 #. placeholder {0}: cap.imageId
 msgid "Caption for {0}"
 msgstr "Përshkrim për {0}"
@@ -2156,6 +2160,10 @@ msgstr "Me Përshkrim"
 msgid "Captioning Images..."
 msgstr "Po shtohen përshkrime imazheve..."
 
+msgid "Captions"
+msgstr "Përshkrime"
+
+msgctxt "typography role"
 msgid "Captions"
 msgstr "Përshkrime"
 

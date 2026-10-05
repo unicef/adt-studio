@@ -2143,6 +2143,10 @@ msgstr "limité à {0}"
 msgid "Caption"
 msgstr "Légende"
 
+msgctxt "typography role"
+msgid "Caption"
+msgstr "Légende"
+
 #. placeholder {0}: cap.imageId
 msgid "Caption for {0}"
 msgstr "Légende pour {0}"
@@ -2156,6 +2160,10 @@ msgstr "Avec légende"
 msgid "Captioning Images..."
 msgstr "Génération des légendes..."
 
+msgid "Captions"
+msgstr "Légendes"
+
+msgctxt "typography role"
 msgid "Captions"
 msgstr "Légendes"
 
