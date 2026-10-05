@@ -54,6 +54,9 @@ import {
   collectSpentSectionIds,
   retireSectionIds,
   SectionIdExhaustedError,
+  findMissingRenderedLeaves,
+  FIXED_LAYOUT_SECTIONING_NODE,
+  type MissingRenderedLeaf,
 } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
@@ -165,6 +168,9 @@ interface PageDetail {
    *  Sectioning step (vision) recovered text from the page image (a scanned /
    *  image-only page); null otherwise. */
   extractionWarning: ExtractionWarning | null
+  /** Text leaves the sectioning tree shows as visible but the stored HTML
+   *  leaves out (#596), so the storyboard can explain the gap. */
+  missingRenderedLeaves: MissingRenderedLeaf[]
   versions: {
     sectioning: number | null
     imageClassification: number | null
@@ -1149,6 +1155,27 @@ export function createPageRoutes(
             )
           : ""
 
+      // Visible text leaves the stored HTML leaves out (#596). Only a rendering
+      // that matches the canonical schema is checked. Fixed-layout pages are
+      // skipped: they render deterministically from the positioned
+      // `fixed-layout-sectioning` tree, whose ids never match the semantic tree
+      // (presence of that node is how the render-sectioning resolver decides).
+      const parsedRendering = renderingNode ? WebRenderingOutput.safeParse(renderingNode.data) : null
+      let missingRenderedLeaves: MissingRenderedLeaf[] = []
+      if (parsedRendering?.success && !getNodeData(FIXED_LAYOUT_SECTIONING_NODE)) {
+        let prunedRoleTypes: string[] = []
+        try {
+          prunedRoleTypes = loadBookConfig(safeLabel, booksDir, configPath).pruned_role_types ?? []
+        } catch {
+          // config unavailable → treat no role as auto-hidden
+        }
+        missingRenderedLeaves = findMissingRenderedLeaves(
+          sectioningTreeForUI as PageSectioningOutput | null,
+          parsedRendering.data,
+          { prunedRoleTypes }
+        )
+      }
+
       // Per-image meta (width/height/bounds) — sourced directly from the
       // images table rather than node_data so it reflects the latest state.
       const imageMetaRows = db.all(
@@ -1189,6 +1216,7 @@ export function createPageRoutes(
         fontProfile,
         reflowableFontFamily,
         extractionWarning: classifyExtractionWarning(page.text, recoveredSectioningText),
+        missingRenderedLeaves,
         versions: {
           sectioning: sectioningNode?.version ?? null,
           imageClassification: imageClassNode?.version ?? null,

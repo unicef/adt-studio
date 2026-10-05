@@ -31,6 +31,8 @@ function getSectionTypeDisplayDescription(
 
 interface SectionEditPanelProps {
   open: boolean
+  /** Tree node to ring and scroll into view (from the missing-elements notice). */
+  highlightNodeId?: string | null
   onClose: () => void
   section: PageSectioningSection
   sectionIndex: number
@@ -72,6 +74,7 @@ interface SectionEditPanelProps {
 
 export function SectionEditPanel({
   open,
+  highlightNodeId,
   onClose,
   section,
   sectionIndex,
@@ -300,6 +303,7 @@ export function SectionEditPanel({
           onLeafDuplicated={onLeafDuplicated}
           onLeafDeleted={onLeafDeleted}
           onStructuralChange={onStructuralChange}
+          highlightNodeId={highlightNodeId}
         />
 
         {activityAnswers && Object.keys(activityAnswers).length > 0 && (
