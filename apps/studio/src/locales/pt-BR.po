@@ -4575,6 +4575,9 @@ msgstr "Altura"
 msgid "Help"
 msgstr "Ajuda"
 
+msgid "Hidden because its group is hidden"
+msgstr "Oculto porque seu grupo está oculto"
+
 msgid "Hidden from screen readers, no caption needed."
 msgstr "Oculta para leitores de tela; não precisa de texto alternativo."
 

@@ -4577,6 +4577,9 @@ msgstr "Lartësia"
 msgid "Help"
 msgstr "Ndihmë"
 
+msgid "Hidden because its group is hidden"
+msgstr "I fshehur sepse grupi i tij është i fshehur"
+
 msgid "Hidden from screen readers, no caption needed."
 msgstr "I fshehur nga lexuesit e ekranit, nuk nevojitet titull."
 
