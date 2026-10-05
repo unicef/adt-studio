@@ -20,17 +20,17 @@ export function resetFirstTime(key: string) {
   window.localStorage.removeItem(key)
 }
 
-export function Avatar({ typing, hidden, size = "md" }: { typing?: boolean; hidden?: boolean; size?: "md" | "lg" }) {
+export function Avatar({ typing, hidden, size = "md" }: { typing?: boolean; hidden?: boolean; size?: "sm" | "md" | "lg" }) {
   return (
     <span
       className={cn(
         "relative grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-primary-foreground shadow-[0_6px_16px_-6px_rgba(43,127,255,0.8)] transition-opacity duration-200",
-        size === "lg" ? "size-12" : "size-9 self-end",
+        size === "lg" ? "size-12" : size === "sm" ? "size-6 shadow-none" : "size-9 self-end",
         hidden && "opacity-0",
       )}
     >
-      <Sparkles className={cn(size === "lg" ? "size-5" : "size-4", typing && "motion-safe:animate-[am-wiggle_0.6s_ease-in-out_infinite]")} />
-      <span className={cn("absolute -bottom-0.5 -right-0.5 rounded-full bg-emerald-400 ring-2 ring-card", size === "lg" ? "size-3" : "size-2.5")} />
+      <Sparkles className={cn(size === "lg" ? "size-5" : size === "sm" ? "size-3" : "size-4", typing && "motion-safe:animate-[am-wiggle_0.6s_ease-in-out_infinite]")} />
+      {size !== "sm" && <span className={cn("absolute -bottom-0.5 -right-0.5 rounded-full bg-emerald-400 ring-2 ring-card", size === "lg" ? "size-3" : "size-2.5")} />}
     </span>
   )
 }

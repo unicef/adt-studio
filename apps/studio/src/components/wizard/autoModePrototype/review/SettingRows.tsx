@@ -2,10 +2,10 @@ import { useId } from "react"
 import { cn } from "@/lib/utils"
 import { SourceTag } from "./parts"
 import { SettingSelect } from "./SettingSelect"
-import { NotSureTag, WhyPopover } from "./WhyPopover"
+import { NotSureTag } from "./why/shared"
 import type { Setting } from "./setup"
 
-/** The AI's settings as compact rows: the wizard's name, where its value came from and why, over a select with the current value. */
+/** The AI's settings as compact rows: the wizard's name and where its value came from over a select with the current value. */
 export function SettingRows({ settings, set, className }: { settings: Setting[]; set: (key: Setting["key"], value: string) => void; className?: string }) {
   const uid = useId()
   return (
@@ -22,7 +22,6 @@ export function SettingRows({ settings, set, className }: { settings: Setting[];
                 <span id={`${uid}-${s.key}`} className="text-[12px] font-medium text-muted-foreground">{s.label}</span>
                 <SourceTag source={s.source} />
                 <NotSureTag setting={s} />
-                <WhyPopover setting={s} className="ml-auto" />
               </span>
               <SettingSelect setting={s} labelledBy={`${uid}-${s.key}`} onPick={(v) => set(s.key, v)} />
             </div>

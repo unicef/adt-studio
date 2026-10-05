@@ -17,7 +17,7 @@ export type BookKind = "picture" | "textbook" | "reference"
 export type AiPicks = { kind: BookKind; preset: PresetId; renderStrategy: StrategyId; pageGrouping: "single" | "spread"; sectioningMode: "page" | "dynamic"; activitiesGenerator: boolean; figureExtraction: FigureExtractionMode; asked: SettingKey[]; decisions: Recommendation; strategyAdjustedFrom: StrategyId | null }
 
 export type Choice = { value: string; title: string; hint: string; kind?: "ai" | "template" }
-export type Setting = { key: SettingKey; icon: LucideIcon; label: ReactNode; value: string; ai: string; answer: ReactNode; why: ReactNode; decision: Decision; adjustedFrom: string | null; choices: Choice[]; source: "ai" | "asked" | "changed" }
+export type Setting = { key: SettingKey; icon: LucideIcon; label: ReactNode; value: string; ai: string; answer: ReactNode; why: ReactNode; decision: Decision; adjustedFrom: string | null; settled: boolean; choices: Choice[]; source: "ai" | "asked" | "changed" }
 
 /** Which recommender decision each review row shows. */
 // eslint-disable-next-line lingui/no-unlocalized-strings -- recommender decision ids
@@ -120,7 +120,7 @@ export function useSettings(picks: AiPicks): { settings: Setting[]; kind: BookKi
   }
   const lookChoices: Choice[] = lookIds.map((id) => ({ value: id, ...strategy(id) }))
 
-  const source = (key: SettingKey, value: string, ai: string): Setting["source"] => (picks.asked.includes(key) ? "asked" : value === ai ? "ai" : "changed")
+  const source = (key: SettingKey, value: string, ai: string): Setting["source"] => (value === ai ? "ai" : picks.asked.includes(key) ? "asked" : "changed")
   const make = (key: SettingKey, icon: LucideIcon, label: ReactNode, value: string, ai: string, choices: Choice[]): Setting => {
     const from = source(key, value, ai)
     const suggested = choices.find((c) => c.value === ai)?.title ?? (key === "look" ? strategy(ai).title : typeChoices.find((c) => c.value === ai)?.title)
@@ -135,6 +135,7 @@ export function useSettings(picks: AiPicks): { settings: Setting[]; kind: BookKi
       why: from === "changed" ? <Trans>Changed by you. I had suggested {suggested}.</Trans> : from === "asked" ? <Trans>You picked this when I asked.</Trans> : picks.decisions[DECISION_OF[key]].reason,
       decision: picks.decisions[DECISION_OF[key]],
       adjustedFrom: key === "look" ? picks.strategyAdjustedFrom : null,
+      settled: picks.asked.includes(key),
       source: from,
     }
   }

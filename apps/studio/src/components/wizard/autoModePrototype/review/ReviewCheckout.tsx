@@ -4,14 +4,15 @@ import { Avatar } from "../decide/intro/parts"
 import { AllSettingsLink, CoverBox, LanguageFields, NameField, PickedByAi, ProcessingList, useCreate, type ReviewProps } from "./parts"
 import { useScopeSummary } from "../upload/ScopeField"
 import { SettingRows } from "./SettingRows"
+import { WhyStory } from "./why/WhyStory"
 import { BackButton, ENTER, PrimaryButton } from "../ui"
 
 const CARD = "rounded-[24px] border bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_18px_44px_-26px_rgba(15,23,42,0.28)]"
 
 /**
  * Checkout — what you fill in on the left (the book, its name and its language; how much of it to
- * process was chosen on upload and shows under the title), what the AI set up on the right as an
- * order summary that ends in "Create book". Both cards stretch to the same height
+ * process was chosen on upload and shows under the title) followed by how the AI set it up, in its
+ * own words; what it set up on the right as an order summary that ends in "Create book". Both cards stretch to the same height
  * (the summary's actions sit at its bottom). Nothing to scroll for at 1440×900.
  */
 export function ReviewCheckout({ settings, set, processing, title, numPages, cover, onBack, onCreate, onAllSettings }: ReviewProps) {
@@ -19,7 +20,7 @@ export function ReviewCheckout({ settings, set, processing, title, numPages, cov
   const preset = settings.find((s) => s.key === "type")
   const scope = useScopeSummary(numPages)
   return (
-    <div className="m-auto flex w-full max-w-[1120px] flex-col gap-6 py-8">
+    <div className="m-auto flex w-full max-w-[1120px] flex-col gap-5 py-5">
       <div className={cn("flex items-center gap-3", ENTER)}>
         <Avatar size="lg" />
         <div className="flex flex-col">
@@ -33,9 +34,9 @@ export function ReviewCheckout({ settings, set, processing, title, numPages, cov
       </div>
 
       <div className="grid grid-cols-[1fr_420px] items-stretch gap-6">
-        <div className={cn("relative z-10 flex flex-col gap-5 p-6", CARD, ENTER)} style={{ animationDelay: "60ms" }}>
+        <div className={cn("relative z-10 flex flex-col gap-4 px-6 py-5", CARD, ENTER)} style={{ animationDelay: "60ms" }}>
           <div className="flex items-center gap-4">
-            <CoverBox src={cover} title={title} size={96} glow={false} />
+            <CoverBox src={cover} title={title} size={76} glow={false} />
             <div className="flex min-w-0 flex-col">
               <p className="truncate text-[20px] font-bold leading-tight">{title}</p>
               <p className="text-[13px] text-muted-foreground">
@@ -46,6 +47,7 @@ export function ReviewCheckout({ settings, set, processing, title, numPages, cov
           <div className="h-px bg-border" />
           <NameField />
           <LanguageFields only="editing" />
+          <WhyStory settings={settings} set={set} className="mt-1 border-t pt-4" />
         </div>
 
         <aside className={cn("flex flex-col px-5 pb-5 pt-4", CARD, ENTER)} style={{ animationDelay: "120ms" }}>
