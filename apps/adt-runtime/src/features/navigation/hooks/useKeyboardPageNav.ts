@@ -23,6 +23,7 @@ import {
 import { dockMenuValueAtom, sidebarOpenAtom } from "@/shared/state/ui.atoms"
 import { isTypingTarget } from "@/features/navigation/lib/typing-target"
 import { isAnyModalOpen } from "@/features/navigation/lib/modal-state"
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 function findIndex(pages: PageEntry[], sectionId: string | null): number {
   if (!sectionId) return -1
@@ -82,7 +83,7 @@ export function useKeyboardPageNav(): void {
       // instead of re-opening. Playback itself resumes independently (the
       // persisted `isPlaying` flag), so audio keeps reading the new page.
       if (dockMenuValue === "audio") setDockMenuValue("")
-      window.location.href = target.href
+      navigateToPage(target.href)
     }
 
     document.addEventListener("keydown", onKeyDown)

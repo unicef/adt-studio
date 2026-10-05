@@ -484,16 +484,18 @@ export function createBookRoutes(
         safeLabel,
         "prepare-export",
         `Preparing ${format} export`,
-        async () => {
-          await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings)
-        },
+        // Returned so the task result carries any pages packaging had to omit
+        // — the export otherwise completes looking clean while the bundle is
+        // short.
+        async () =>
+          await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings),
         { url: `/books/${safeLabel}/export-${format}` }
       )
       return c.json({ status: "submitted", taskId, label: safeLabel })
     }
 
-    await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings)
-    return c.json({ status: "completed", label: safeLabel })
+    const { warnings } = await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings)
+    return c.json({ status: "completed", label: safeLabel, warnings })
   })
 
   // Export download routes — each format delegates to its service function,

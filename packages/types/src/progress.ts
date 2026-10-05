@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { StepName } from "./pipeline.js"
+import { StepName, StageName } from "./pipeline.js"
 
 export const ProgressEvent = z.discriminatedUnion("type", [
   z.object({
@@ -25,6 +25,15 @@ export const ProgressEvent = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("step-error"),
     step: StepName,
+    error: z.string(),
+  }),
+  z.object({
+    type: z.literal("stage-complete"),
+    stage: StageName,
+  }),
+  z.object({
+    type: z.literal("stage-error"),
+    stage: StageName,
     error: z.string(),
   }),
   z.object({

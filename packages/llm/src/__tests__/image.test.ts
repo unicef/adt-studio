@@ -10,6 +10,7 @@ import { computeHash } from "../cache.js"
 import { createProviderRegistry } from "../registry.js"
 import { AiProviderError } from "../ports/errors.js"
 import type { AnyProviderModule, ImageResult, ProviderModule } from "../ports/index.js"
+import { jpg, png } from "./image-fixtures.js"
 
 const label: LocalizedText = {
   en: "API key",
@@ -83,7 +84,7 @@ describe("generateImageWithCache", () => {
     fetchMock.mockResolvedValue(
       new Response(
         JSON.stringify({
-          data: [{ b64_json: Buffer.from("generated").toString("base64") }],
+          data: [{ b64_json: png }],
         }),
         { status: 200 }
       )
@@ -110,13 +111,16 @@ describe("generateImageWithCache", () => {
     expect(second.base64).toBe(first.base64)
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.openai.com/v1/images/generations")
+    await expect(generateImageWithCache({ apiKey: "sk-test", modelId: "openai:gpt-image-2",
+      prompt: "a bright diagram", size: "1024x1024", cacheDir, signal: AbortSignal.abort(),
+    })).rejects.toMatchObject({ name: "AbortError" })
   })
 
   it("does not send response_format to /images/generations", async () => {
     fetchMock.mockResolvedValue(
       new Response(
         JSON.stringify({
-          data: [{ b64_json: Buffer.from("generated").toString("base64") }],
+          data: [{ b64_json: png }],
         }),
         { status: 200 }
       )
@@ -140,7 +144,7 @@ describe("generateImageWithCache", () => {
     fetchMock.mockResolvedValue(
       new Response(
         JSON.stringify({
-          data: [{ b64_json: Buffer.from("edited").toString("base64") }],
+          data: [{ b64_json: png }],
         }),
         { status: 200 }
       )
@@ -179,7 +183,7 @@ describe("generateImageWithCache", () => {
   })
 
   it("promotes a legacy v1 cache entry to v2 for a fixed-origin provider", async () => {
-    const stored = { base64: Buffer.from("legacy").toString("base64"), mimeType: "image/png" }
+    const stored = { base64: png, mimeType: "image/png" }
     const messages = [
       { role: "user", content: [{ type: "text", text: "legacy prompt" }] },
     ]
@@ -212,7 +216,7 @@ describe("generateImageWithCache", () => {
           id: "localimg",
           capabilities: { generate: true, edit: false, sizes: [], mimeTypes: [] },
           configurableOrigin: true,
-          generate: () => ({ base64: Buffer.from("fresh").toString("base64"), mimeType: "image/png" }),
+          generate: () => ({ base64: png, mimeType: "image/png" }),
         })
       )
       .freeze()
@@ -236,7 +240,7 @@ describe("generateImageWithCache", () => {
     })
 
     expect(result.cached).toBe(false)
-    expect(Buffer.from(result.base64, "base64").toString()).toBe("fresh")
+    expect(result.base64).toBe(png)
   })
 
   it("rejects an edit request when the provider lacks the edit capability", async () => {
@@ -262,5 +266,64 @@ describe("generateImageWithCache", () => {
       name: "AiProviderError",
       code: "unsupported-capability",
     })
+  })
+
+  it("does not cache or log success for invalid output, and a retry can recover", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ data: [{ b64_json: "broken" }] }))
+      .mockResolvedValueOnce(Response.json({ data: [{ b64_json: png }] }))
+    const onLog = vi.fn()
+    const options = { apiKey: "fake", modelId: "openai:gpt-image-2", prompt: "retry", cacheDir, onLog,
+      log: { taskType: "image-generation", promptName: "test" } }
+    await expect(generateImageWithCache(options)).rejects.toThrow()
+    expect(fs.readdirSync(cacheDir)).toEqual([])
+    expect(onLog.mock.calls[0][0].success).toBe(false)
+    expect(await generateImageWithCache(options)).toMatchObject({ width: 4, height: 6, cached: false })
+  })
+
+  it.each(["v1", "v2"])("ignores invalid %s cache entries and fetches a valid replacement", async (version) => {
+    fetchMock.mockImplementation(async () => Response.json({ data: [{ b64_json: png }] }))
+    const options = { apiKey: "fake", modelId: "openai:gpt-image-2", prompt: "recover", cacheDir }
+    if (version === "v2") {
+      await generateImageWithCache(options)
+    } else {
+      const hash = computeHash({ modelId: options.modelId,
+        messages: [{ role: "user", content: [{ type: "text", text: options.prompt }] }],
+        schema: { type: "image-generation", size: undefined, referenceImageCount: 0 } })
+      fs.writeFileSync(path.join(cacheDir, `${hash}.json`), "{}")
+    }
+    const file = fs.readdirSync(cacheDir)[0]
+    fs.writeFileSync(path.join(cacheDir, file), JSON.stringify({ base64: "broken", mimeType: "image/png" }))
+    fetchMock.mockClear()
+    expect((await generateImageWithCache(options)).cached).toBe(false)
+    expect((await generateImageWithCache(options)).cached).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([16 / 9, 9 / 16, 4 / 3, 8, 1 / 8])("selects a valid GPT Image 2 size for ratio %s", async (aspectRatio) => {
+    fetchMock.mockResolvedValue(Response.json({ data: [{ b64_json: png }] }))
+    await generateImageWithCache({ apiKey: "fake", modelId: "openai:gpt-image-2", prompt: "wide", aspectRatio })
+    const [width, height] = JSON.parse(fetchMock.mock.calls[0][1].body).size.split("x").map(Number)
+    expect(width % 16).toBe(0)
+    expect(height % 16).toBe(0)
+    expect(Math.max(width, height) / Math.min(width, height)).toBeLessThanOrEqual(3)
+    expect(width * height).toBeGreaterThanOrEqual(655_360)
+    expect(width * height).toBeLessThanOrEqual(8_294_400)
+    expect(width / height).toBeCloseTo(Math.max(1 / 3, Math.min(3, aspectRatio)), 1)
+  })
+
+  it("keeps legacy model sizes and does not force a size on source edits", async () => {
+    fetchMock.mockImplementation(async () => Response.json({ data: [{ b64_json: png }] }))
+    await generateImageWithCache({ apiKey: "fake", modelId: "openai:gpt-image-1", prompt: "wide", aspectRatio: 16 / 9, size: "1536x1024" })
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).size).toBe("1536x1024")
+    await generateImageWithCache({ apiKey: "fake", modelId: "openai:gpt-image-2", prompt: "edit", referenceImages: [{ data: Buffer.from(jpg, "base64") }] })
+    const body = fetchMock.mock.calls[1][1].body as FormData
+    expect(body.has("size")).toBe(false)
+    expect((body.get("image") as Blob).type).toBe("image/jpeg")
+  })
+
+  it.each([0, -1, Infinity, NaN])("rejects invalid aspect ratio %s before making a request", async (aspectRatio) => {
+    await expect(generateImageWithCache({ apiKey: "fake", modelId: "openai:gpt-image-2", prompt: "test", aspectRatio, cacheDir })).rejects.toThrow()
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(fs.readdirSync(cacheDir)).toEqual([])
   })
 })

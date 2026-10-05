@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { usePreviewPageSync } from "@/hooks/use-preview-page-sync"
 import type { AccessibilityFinding } from "@adt/types"
 import { Trans } from "@lingui/react/macro"
+import { useLingui } from "@lingui/react"
+import { toastPackagingWarnings } from "@/lib/packaging-warnings"
 import { StageBlockedState } from "@/components/pipeline/components/StageBlockedState"
 import { LoadingState } from "@/components/pipeline/components/LoadingState"
 import { useAllPagesPruned } from "@/hooks/use-all-pages-pruned"
@@ -34,6 +37,7 @@ const HIGHLIGHT_SEVERITY_ATTR = "data-adt-a11y-hover-severity"
 const HIGHLIGHT_PAGE_ATTR = "data-adt-a11y-hover-page"
 
 export function PreviewView({ bookLabel }: { bookLabel: string }) {
+  const { i18n } = useLingui()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as { previewHref?: string }
@@ -139,6 +143,8 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     }
   }, [])
 
+  const handlePreviewLoad = usePreviewPageSync(iframeRef, syncCurrentPreviewPage)
+
   const packaging = !ready && (isSubmittingPackage || isTaskRunning("package-adt"))
 
   useEffect(() => {
@@ -157,6 +163,10 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
       ]).then(() => {
         setVersion(readPackageVersion(task.result) ?? createPreviewVersion())
         setReady(true)
+        // Packaging skips rendered sections it cannot resolve a sectionId for.
+        // The bundle is short but the task still succeeds, so without this the
+        // omission is invisible.
+        toastPackagingWarnings(task.result, i18n)
       })
     } else if (task.status === "failed") {
       setPendingTaskId(null)
@@ -166,7 +176,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
         setError(task.error ?? "Packaging failed")
       }
     }
-  }, [pendingTaskId, getTask, bookLabel, queryClient, ready])
+  }, [pendingTaskId, getTask, bookLabel, queryClient, ready, i18n])
 
   useEffect(() => {
     if (!pendingVersion || ready) return
@@ -201,12 +211,15 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
         ])
         setVersion(result.version ?? createPreviewVersion())
         setReady(true)
+        // A cache hit replays the warnings of the build that produced the
+        // bundle on disk, so this branch omits exactly as much as the task one.
+        toastPackagingWarnings(result, i18n)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Packaging failed")
       setIsSubmittingPackage(false)
     }
-  }, [bookLabel, queryClient])
+  }, [bookLabel, queryClient, i18n])
 
   // Only trigger packaging when storyboard is done
   useEffect(() => {
@@ -312,7 +325,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
         ref={iframeRef}
         src={previewSrc}
         title="ADT Preview"
-        onLoad={syncCurrentPreviewPage}
+        onLoad={handlePreviewLoad}
         className="block border-0 bg-white"
         style={{ width: frame.screenWidth, height: frame.screenHeight }}
       />
@@ -327,7 +340,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
               src={previewSrc}
               className="h-full w-full border-0"
               title="ADT Preview"
-              onLoad={syncCurrentPreviewPage}
+              onLoad={handlePreviewLoad}
             />
           ) : (
             <div

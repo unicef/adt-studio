@@ -889,8 +889,10 @@ function SectionDetail({
     onInvalidatePages(pageId)
   }, [bookLabel, pageId, sectionIndex, queryClient, onInvalidatePages])
 
-  const sectionFilename = `${pageId}_sec${String(sectionIndex + 1).padStart(3, "0")}.html`
-  const previewSrc = `${BASE_URL}/books/${bookLabel}/adt-preview/${sectionFilename}?embed=1&v=${renderingVersion ?? 0}`
+  // The sectionId names the section's HTML file. Ids are allocated once and
+  // never reused, so one cannot be derived from the array index — after a
+  // split/clone/delete a positional guess resolves to a *different* section.
+  const previewSrc = `${BASE_URL}/books/${bookLabel}/adt-preview/${section.sectionId}.html?embed=1&v=${renderingVersion ?? 0}`
 
   return (
     <div className="space-y-3">
