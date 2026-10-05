@@ -56,6 +56,7 @@ import {
   IMAGE_UPSCALE_CAP,
 } from "./stepper-logic"
 import { containsProfanity } from "../lib/profanity-detector"
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 const GREEN = "rgb(22, 163, 74)"
 /** Darker green/red for text — the mid tones pass AA only as borders/badges. */
@@ -223,7 +224,7 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
         goToStep(stepIndex + 1)
       } else {
         const href = findNextPageHref()
-        if (href) window.location.href = href
+        if (href) navigateToPage(href)
       }
       return
     }

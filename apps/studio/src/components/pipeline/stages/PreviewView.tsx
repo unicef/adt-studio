@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { usePreviewPageSync } from "@/hooks/use-preview-page-sync"
 import type { AccessibilityFinding } from "@adt/types"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react"
@@ -141,6 +142,8 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
       setCurrentPreviewPage({ sectionId: null, href: null, title: null, hasImages: false, hasActivity: false, signLanguageEnabled: false })
     }
   }, [])
+
+  const handlePreviewLoad = usePreviewPageSync(iframeRef, syncCurrentPreviewPage)
 
   const packaging = !ready && (isSubmittingPackage || isTaskRunning("package-adt"))
 
@@ -322,7 +325,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
         ref={iframeRef}
         src={previewSrc}
         title="ADT Preview"
-        onLoad={syncCurrentPreviewPage}
+        onLoad={handlePreviewLoad}
         className="block border-0 bg-white"
         style={{ width: frame.screenWidth, height: frame.screenHeight }}
       />
@@ -337,7 +340,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
               src={previewSrc}
               className="h-full w-full border-0"
               title="ADT Preview"
-              onLoad={syncCurrentPreviewPage}
+              onLoad={handlePreviewLoad}
             />
           ) : (
             <div

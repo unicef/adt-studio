@@ -12,6 +12,7 @@ import {
 } from "@/features/activity/state/activity.atoms"
 import { playActivitySound } from "@/features/activity/runtime/sounds"
 import { showActivityProgressToast } from "@/features/activity/lib/progress-toast"
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 /**
  * `activity_multi_select` ("select all that apply"). Mirrors
@@ -297,7 +298,7 @@ export function initializeMultiSelectActivity(): (() => void) | null {
     const state = store.get(submitStateAtom)
     if (state === "next") {
       const href = findNextPageHref()
-      if (href) window.location.href = href
+      if (href) navigateToPage(href)
       return
     }
     if (!anySelected()) return
@@ -396,7 +397,7 @@ export function initializeMultiSelectActivity(): (() => void) | null {
 
   const handleSkip = () => {
     const href = findNextPageHref()
-    if (href) window.location.href = href
+    if (href) navigateToPage(href)
   }
 
   // WCAG 4.1.2: a list of `role="checkbox"` options needs a `role="group"`

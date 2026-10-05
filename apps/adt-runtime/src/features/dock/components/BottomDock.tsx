@@ -32,22 +32,35 @@ function ReaderDockContents() {
     );
   }
 
+  // Both flanks carry the same sizing so page navigation sits at the dock's
+  // centre by construction rather than by coincidence.
+  //
+  // Spread: `basis-0` makes the two sides split the free space exactly (an
+  // `auto` basis left them 4px apart, drifting the controls off-centre), and
+  // `min-w-0` lets them shrink together. A hard `min-w-64` on each side used to
+  // overflow the dock below ~700px, and `justify-between` then pushed the
+  // controls ~24px to the right.
+  //
+  // Centre: a fixed width on both sides keeps them matched no matter how many
+  // trigger icons the book's feature set puts in the menu.
+  const flankClass = isSpread ? "flex-1 basis-0 min-w-0" : "w-64 shrink-0";
+
   return (
     <>
       {features.showNavigationControls && (
-        <div className="order-2">
+        <div className="order-2 shrink-0">
           <PageNav />
         </div>
       )}
 
-      <div className={cn("order-1", isSpread && "flex-1")}>
+      <div className={cn("order-1", flankClass)}>
         <BookMetadata
-          className="min-w-64"
+          className="w-full"
           ariaLabel={t("main-menu-label") || "Main Menu"}
         />
       </div>
 
-      <DockMenu className={cn("order-3", isSpread && "flex-1", "min-w-64")} />
+      <DockMenu className={cn("order-3", flankClass)} />
     </>
   );
 }
