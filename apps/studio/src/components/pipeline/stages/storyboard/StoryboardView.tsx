@@ -16,6 +16,7 @@ import { useSectionNav } from "@/routes/books.$label"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { useHasUnsavedChanges } from "../../components/floating-save"
+import { parseQuizRouteId } from "@/lib/quiz-route"
 
 
 export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
@@ -62,12 +63,15 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const isGeneratingRef = useRef(false)
   const handleGeneratingChange = useCallback((g: boolean) => { isGeneratingRef.current = g }, [])
 
-  // Quizzes appear in the sidebar with a synthetic pageId of `quiz-{index}`.
+  // Quizzes appear in the sidebar with a synthetic pageId of `quiz-{quizId}`.
   // When that pageId is in the URL we render the quiz panel instead of loading
-  // page detail — calling usePage with a fake id would 404.
-  const quizMatch = selectedPageIdProp?.match(/^quiz-(\d+)$/)
-  const selectedQuizIndex = quizMatch ? parseInt(quizMatch[1], 10) : null
-  const isQuizRoute = selectedQuizIndex != null
+  // page detail — calling usePage with a fake id would 404. `parseQuizRouteId`
+  // also carries the legacy `quiz-{arrayIndex}` shape, and StoryboardIndex uses
+  // it too so the sidebar highlights the same row this renders.
+  const selectedQuizId = selectedPageIdProp
+    ? parseQuizRouteId(selectedPageIdProp)
+    : null
+  const isQuizRoute = selectedQuizId != null
 
   // Auto-select first page when no page is selected
   useEffect(() => {
@@ -440,12 +444,12 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     )
   }
 
-  // Quiz route: pseudo-pageId is `quiz-{index}`. Render the quiz panel.
-  if (isQuizRoute && selectedQuizIndex != null) {
+  // Quiz route: pseudo-pageId is `quiz-{quizId}`. Render the quiz panel.
+  if (isQuizRoute && selectedQuizId != null) {
     return (
       <StoryboardQuizDetail
         bookLabel={bookLabel}
-        quizIndex={selectedQuizIndex}
+        quizId={selectedQuizId}
         navigationArrows={
           <div className="flex gap-1">{overviewToggle}{outlineToggle}</div>
         }

@@ -74,6 +74,7 @@ export const SETTINGS_ANCHORS = {
   notificationPosition: "settings-notification-position",
   notificationSound: "settings-notification-sound",
   notificationAutoDismiss: "settings-notification-auto-dismiss",
+  notificationOsAlerts: "settings-notification-os-alerts",
   notificationTest: "settings-notification-test",
   defaultLlm: "settings-default-llm",
   imageModel: "settings-image-model",

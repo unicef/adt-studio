@@ -1,0 +1,82 @@
+name: Experiment
+description: Propose a time-boxed experiment to answer a question we can't answer on paper
+labels: ["lane: experiment"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        <p align="center">
+          <a href="https://github.com/unicef/adt-studio">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/unicef/adt-studio/main/.github/assets/adt-studio-banner-dark.png">
+              <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/unicef/adt-studio/main/.github/assets/adt-studio-banner-light.png">
+              <img src="https://raw.githubusercontent.com/unicef/adt-studio/main/.github/assets/adt-studio-banner-light.png" alt="ADT Studio — Turn PDFs into interactive HTML books" width="420">
+            </picture>
+          </a>
+        </p>
+
+        <p align="center"><em>An experiment ends in a written finding — never in a large pull request.</em></p>
+
+        > [!IMPORTANT]
+        > - Use this lane for "we don't know yet". If you already know what to build, use a Feature Request or a Spec.
+        > - Branch `exp/<issue>-<slug>`. The branch is allowed to be messy, because it is not going to be merged.
+        > - **Two weeks maximum.** It ends by writing `docs/experiments/TEMPLATE.md` — recommending a spec, an archive, or an explicit extension with a reason.
+        > - See [docs/SPEC_DRIVEN_DEVELOPMENT.md §2](https://github.com/unicef/adt-studio/blob/develop/docs/SPEC_DRIVEN_DEVELOPMENT.md#2-the-three-lanes).
+  - type: checkboxes
+    id: preliminary
+    attributes:
+      label: Preliminary Checks
+      description: Please confirm the following before submitting.
+      options:
+        - label: I have searched existing issues and avoided creating duplicates.
+          required: true
+        - label: This is a genuine open question — I do not already know what should be built.
+          required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What do we want to learn? One sentence.
+      placeholder: Does splitting sections on viewport height produce better reading order than splitting on character count?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why can't we answer this on paper?
+      description: What makes this an experiment rather than a design discussion?
+    validations:
+      required: true
+  - type: input
+    id: timebox
+    attributes:
+      label: Time box
+      description: Start and end date. Two weeks maximum.
+      placeholder: 2026-10-01 → 2026-10-14
+    validations:
+      required: true
+  - type: textarea
+    id: signal
+    attributes:
+      label: What would count as a result?
+      description: What will you measure, and what would make this a yes or a no? Numbers where possible — a finding with no numbers is hard to act on.
+    validations:
+      required: true
+  - type: textarea
+    id: next
+    attributes:
+      label: What happens if it works?
+      description: Which spec would follow, or what would change? An experiment with no plausible next step is usually not worth the time box.
+  - type: input
+    id: owner
+    attributes:
+      label: Owner
+      description: Who runs it and writes the finding?
+      placeholder: "@handle"
+  - type: checkboxes
+    id: acknowledgement
+    attributes:
+      label: Process
+      options:
+        - label: I understand this ends in a finding document, and that a branch which outgrows its issue becomes a finding plus a spec — not a bigger PR.
+          required: true

@@ -17,6 +17,7 @@ import type { Storage, PageData } from "@adt/storage"
 import { buildLanguageContext } from "./language-context.js"
 import { stripHtml } from "./glossary.js"
 import { getRenderSectioning, getSemanticSectioning } from "./render-sectioning.js"
+import { resolveReadingOrder } from "./reading-order.js"
 
 export interface TocGenerationConfig {
   promptName: string
@@ -100,45 +101,45 @@ function collectHeadingsAndToc(
       }
     }
 
-    // Also check if the rendered section exists (so we have valid hrefs).
-    const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
-    const renderParsed = renderRow ? WebRenderingOutput.safeParse(renderRow.data) : null
-    const renderedIndices = new Set(
-      renderParsed?.success ? renderParsed.data.sections.map((s) => s.sectionIndex) : [],
-    )
+  }
 
-    // Collect first heading per non-pruned, rendered section.
-    let semanticSections: PageSectioningSection[] | null | undefined
-    for (let i = 0; i < sectioning.sections.length; i++) {
-      const section = sectioning.sections[i]
-      if (section.isPruned || !renderedIndices.has(i)) continue
+  // Collect the first heading of each section, in reading order — the LLM is
+  // asked to produce a table of contents, so it must see the book as a reader
+  // does. The resolver already drops pruned sections and any section with no
+  // rendered HTML (which would have no valid href).
+  const semanticSectionsByPage = new Map<string, PageSectioningSection[] | null>()
+  for (const item of resolveReadingOrder(storage, { includeQuizzes: false }).items) {
+    if (item.kind !== "section") continue
+    const section = item.section
 
-      let heading = findFirstHeading(section)
-      if (!heading && section.sectionType === "fixed-layout-page") {
-        // Fixed-layout pages render from a positioned tree that has no heading
-        // roles; read the semantic page-sectioning tree for the page instead.
-        if (semanticSections === undefined) {
-          semanticSections = getSemanticSectioning(storage, page.pageId)?.sections ?? null
-        }
-        for (const s of semanticSections ?? []) {
-          const h = findFirstHeading(s)
-          if (h) {
-            heading = h
-            break
-          }
+    let heading = findFirstHeading(section)
+    if (!heading && section.sectionType === "fixed-layout-page") {
+      // Fixed-layout pages render from a positioned tree that has no heading
+      // roles; read the semantic page-sectioning tree for the page instead.
+      if (!semanticSectionsByPage.has(item.pageId)) {
+        semanticSectionsByPage.set(
+          item.pageId,
+          getSemanticSectioning(storage, item.pageId)?.sections ?? null,
+        )
+      }
+      for (const s of semanticSectionsByPage.get(item.pageId) ?? []) {
+        const h = findFirstHeading(s)
+        if (h) {
+          heading = h
+          break
         }
       }
-      if (!heading) continue
-
-      headings.push({
-        sectionId: section.sectionId,
-        title: heading.text ?? "",
-        textId: heading.nodeId,
-        roleType: heading.role ?? "heading",
-        headingLevel: heading.headingLevel ?? headingLevelForRole(heading.role),
-        pageNumber: section.pageNumber,
-      })
     }
+    if (!heading) continue
+
+    headings.push({
+      sectionId: section.sectionId,
+      title: heading.text ?? "",
+      textId: heading.nodeId,
+      roleType: heading.role ?? "heading",
+      headingLevel: heading.headingLevel ?? headingLevelForRole(heading.role),
+      pageNumber: section.pageNumber,
+    })
   }
 
   return { headings, originalTocText }

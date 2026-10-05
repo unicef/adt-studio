@@ -222,10 +222,19 @@ export async function mirrorLayout(
       )
       const sectioning = loadSectioning(storage, target.pageId)
       const oldSection = sectioning.sections[target.sectionIndex]
-      const sectionId =
-        oldSection?.sectionId ?? `${target.pageId}_s${target.sectionIndex}`
+      // sectionIds are allocated once and never reused, so one cannot be
+      // derived from an array position — a guessed id would likely name a
+      // *different* section, and it names this section's HTML file in every
+      // bundle. No sectioning row means rendering and sectioning are out of
+      // sync; say so rather than guess.
+      if (!oldSection) {
+        throw new Error(
+          `Cannot mirror onto section ${target.sectionIndex} of ${target.pageId}: it has a rendering entry but no sectioning row, so its sectionId is unknown. Re-run the storyboard render for this page to bring the two back in sync.`,
+        )
+      }
+      const sectionId = oldSection.sectionId
       const sectionType =
-        targetSection?.sectionType ?? oldSection?.sectionType ?? "content"
+        targetSection?.sectionType ?? oldSection.sectionType ?? "content"
       const newSectioningSection = buildSectioningSectionFromHtml({
         html: cleaned,
         sectionId,

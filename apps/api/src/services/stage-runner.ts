@@ -48,6 +48,9 @@ import {
   generateToc,
   buildTocGenerationConfig,
   generateAllQuizzes,
+  saveQuizOutput,
+  assertQuizGenerationCapacity,
+  batchPages,
   buildQuizGenerationConfig,
   // Master step imports
   getRenderSectioning,
@@ -954,13 +957,30 @@ export function createStageRunner(): StageRunner {
         for (let i = fromIndex; i <= toIndex; i++) {
           if (options.signal?.aborted) throw new RunCancelledError()
           const stage = STAGE_ORDER[i]
-          await STAGE_RUNNERS[stage](label, options, trackingProgress)
+          try {
+            await STAGE_RUNNERS[stage](label, options, trackingProgress)
+            progress.emit({ type: "stage-complete", stage })
+          } catch (err) {
+            // A cancel is a deliberate action, not a failure: don't record step
+            // errors or emit step-error/stage-error (that would paint the
+            // sidebar red and, with the error toast/sound, beep on cancel).
+            // Just re-throw — executeJob's abort branch handles persistence cleanup.
+            if (isCancellation(err, [options.signal])) {
+              throw err
+            }
+            const message = toErrorMessage(err)
+            for (const step of runningSteps) {
+              completionStorage.recordStepError(step, message)
+              progress.emit({ type: "step-error", step, error: message })
+            }
+            runningSteps.clear()
+            progress.emit({ type: "stage-error", stage, error: message })
+            throw err
+          }
         }
       } catch (err) {
-        // A cancel is a deliberate action, not a failure: don't record step
-        // errors or emit step-error (that would paint the sidebar red and, with
-        // the error toast/sound, beep on cancel). Just re-throw — executeJob's
-        // abort branch handles persistence cleanup.
+        // Fallback for unexpected throws outside the per-stage loop. Stage
+        // failures are already recorded/emitted by the inner catch above.
         if (isCancellation(err, [options.signal])) {
           throw err
         }
@@ -1881,6 +1901,7 @@ async function runQuizzesStep(
     )
 
     if (quizPages.length > 0) {
+      assertQuizGenerationCapacity(storage, batchPages(quizPages, quizConfig.pagesPerQuiz, quizConfig.quizSectionTypes).length)
       const quizResult = await generateAllQuizzes(quizPages, quizConfig, quizModel, {
         concurrency: effectiveConcurrency,
         onQuizComplete: (completed, total) => {
@@ -1893,7 +1914,8 @@ async function runQuizzesStep(
           })
         },
       })
-      storage.putNodeData("quiz-generation", "book", quizResult)
+      options.signal?.throwIfAborted()
+      saveQuizOutput(storage, quizResult, "replace")
       console.log(
         `[stage-run] ${label}: generated ${quizResult.quizzes.length} quiz(zes) from ${quizPages.length} page(s)`
       )
@@ -1903,6 +1925,13 @@ async function runQuizzesStep(
         message: `${quizResult.quizzes.length} quizzes from ${quizPages.length} pages`,
       })
     } else {
+      // A successful empty rerun must not leave the preserved previous quizzes
+      // active. Keep their history, but publish the now-empty result.
+      options.signal?.throwIfAborted()
+      saveQuizOutput(storage, {
+        generatedAt: new Date().toISOString(), language: quizConfig.language,
+        pagesPerQuiz: quizConfig.pagesPerQuiz, quizzes: [],
+      }, "replace")
       // Nothing to generate. This is the silent "finished instantly, no quizzes"
       // case — surface it loudly instead of completing green with no output.
       console.warn(
@@ -2698,7 +2727,11 @@ async function runTranslateStep(
 
       // Validate prerequisites BEFORE clearing existing variants — a missing
       // API key shouldn't wipe prior work.
-      const openaiApiKey = resolveCredentialField(options, "openai", "apiKey")
+      const { providerId: imageProviderId } = getDefaultProviderRegistry().resolveImage(
+        imageTranslation.modelId,
+        { credentials: buildLLMCredentials(options) },
+      )
+      const imageApiKey = resolveCredentialField(options, imageProviderId, "apiKey")
 
       const promptName = config.image_translation?.prompt ?? "image_translation"
       const bookPromptPath = path.join(
@@ -2781,7 +2814,7 @@ async function runTranslateStep(
           try {
             const buffer = fs.readFileSync(item.diskPath)
             const result = await translateImage({
-              apiKey: openaiApiKey,
+              apiKey: imageApiKey,
               modelId: imageModelId,
               prompt: promptText,
               sourceLanguage: language,
@@ -2803,6 +2836,7 @@ async function runTranslateStep(
               pageId: item.pageId,
               languageCode: item.targetLanguage,
               buffer: result.buffer,
+              mimeType: result.mimeType,
               width: result.width,
               height: result.height,
             })

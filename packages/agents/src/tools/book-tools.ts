@@ -8,6 +8,7 @@ import {
   type PageSectioningSection,
   type SectionRendering,
 } from "@adt/types"
+import { createSectionIdFactory } from "@adt/pipeline"
 import { buildSectioningSectionFromHtml } from "./build-sectioning.js"
 import {
   TEMPLATED_ACTIVITY_TYPES,
@@ -355,8 +356,17 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           // Refresh the sectioning tree so the edit panel and downstream
           // steps stay in sync with the rewritten HTML.
           const oldSection = sectioning.sections[sectionIndex]
-          const sectionId =
-            oldSection?.sectionId ?? `${pageId}_s${sectionIndex}`
+          // sectionIds are allocated once and never reused, so one cannot be
+          // derived from an array position — a guessed id would likely name a
+          // *different* section, and it names this section's HTML file in every
+          // bundle. With no sectioning row to read the real id from, rendering
+          // and sectioning are out of sync; say so rather than guess.
+          if (!oldSection) {
+            throw new Error(
+              `Cannot update section ${sectionIndex} of ${pageId}: it has a rendering entry but no sectioning row, so its sectionId is unknown. Re-run the storyboard render for this page to bring the two back in sync.`,
+            )
+          }
+          const sectionId = oldSection.sectionId
           const sectionType = found.sectionType
           const newSectioningSection = buildSectioningSectionFromHtml({
             html,
@@ -461,7 +471,11 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           // section's index. The new section is appended at the end of the
           // sectioning array, so its index is the sectioning array's length.
           const nextIndex = existingSectioning.sections.length
-          const sectionId = `${pageId}_s${nextIndex}`
+          // The *id* is allocated, not derived from the index. `nextIndex` is a
+          // position and gets reused as soon as a delete leaves a gap, so using
+          // it as an id mints a duplicate — and two sections sharing an id
+          // overwrite each other's HTML file when the book is packaged.
+          const sectionId = createSectionIdFactory(ctx.storage, pageId)()
 
           // Promote agent-emitted nodes (no isPruned) to ContentNodeData.
           const promote = (n: ActivityNodeShape): ContentNodeData => ({
@@ -592,7 +606,8 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           // pruned/empty sections, so basing the index on it collides with an
           // existing section. Append at the sectioning array's length instead.
           const nextIndex = sectioning.sections.length
-          const sectionId = `${pageId}_s${nextIndex}`
+          // Allocated, not derived from the index — see createTemplatedActivity.
+          const sectionId = createSectionIdFactory(ctx.storage, pageId)()
 
           // For custom activities, the script encodes correctness — but we
           // also surface a JSON answer key derived from the markup so the EDIT

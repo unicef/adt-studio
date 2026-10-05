@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { useAtomValue } from "jotai"
 import { currentSectionIdAtom, pagesAtom } from "@/features/navigation/state/nav.atoms"
+import { canSoftNavigate } from "@/features/navigation/lib/page-swap"
 
 /**
  * Speeds up MPA navigation between book pages by hinting the browser to
@@ -10,7 +11,10 @@ import { currentSectionIdAtom, pagesAtom } from "@/features/navigation/state/nav
  *     HTTP cache so the next click only pays parse/render cost.
  *   - `<script type="speculationrules">` for next: Chrome/Edge prerender the
  *     full document in the background, so the click swaps an already-painted
- *     page in. Silently ignored in browsers without support.
+ *     page in. Silently ignored in browsers without support. Only emitted on
+ *     the hard-navigation path — an in-place swap never activates a
+ *     prerendered document, so it would boot a second copy of the runtime
+ *     (and fire a phantom analytics page view) for nothing.
  *
  * Mounted unconditionally — emits nothing while `pages` is empty.
  */
@@ -36,7 +40,7 @@ export function PagePrefetcher() {
       injected.push(link)
     }
 
-    if (next?.href) {
+    if (next?.href && !canSoftNavigate()) {
       const script = document.createElement("script")
       script.type = "speculationrules"
       script.textContent = JSON.stringify({

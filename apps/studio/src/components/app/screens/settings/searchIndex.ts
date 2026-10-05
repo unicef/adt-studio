@@ -60,7 +60,7 @@ export function buildSettingsSearchItems(
 const SECTION_KEYWORDS: Record<SettingsSection, MessageDescriptor> = {
   language: msg`language locale translation region`,
   theme: msg`theme appearance dark light colors interface`,
-  notifications: msg`notifications toasts alerts sound`,
+  notifications: msg`notifications toasts alerts sound desktop system`,
   providers: msg`providers api key credentials endpoint`,
   models: msg`models llm image speech`,
   prompts: msg`prompts templates instructions`,
@@ -132,6 +132,15 @@ const NOTIFICATION_ENTRIES: SettingsSearchEntry[] = [
     label: msg`Auto-dismiss`,
     hint: msg`Hide toasts automatically after a delay.`,
     anchor: SETTINGS_ANCHORS.notificationAutoDismiss,
+  },
+  {
+    id: "settings-notification-os-alerts",
+    kind: "option",
+    section: "notifications",
+    label: msg`Desktop alerts`,
+    hint: msg`A system notification when the window is in the background.`,
+    keywords: msg`os native system desktop banner background unfocused`,
+    anchor: SETTINGS_ANCHORS.notificationOsAlerts,
   },
   {
     id: "settings-notification-test",

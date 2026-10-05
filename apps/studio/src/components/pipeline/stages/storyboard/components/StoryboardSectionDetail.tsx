@@ -2665,6 +2665,13 @@ export function StoryboardSectionDetail({
           ? "classic-activity"
           : "book-frame"
 
+  // The sectionId names the section's HTML file in adt-preview and in every
+  // bundle. Ids are allocated once and never reused, so one cannot be derived
+  // from the array index — after a split/clone/delete a positional guess
+  // resolves to a *different* section. Always set where it is read: every
+  // preview mode that uses it requires `section`.
+  const previewSectionId = section?.sectionId
+
   return (
     <>
     {headerSlotEl && createPortal(headerControls, headerSlotEl)}
@@ -2847,7 +2854,7 @@ export function StoryboardSectionDetail({
                   )}
                 <StepperActivityPreview
                   key={`stepper-${sectionIndex}-${editableVersion}`}
-                  src={`${BASE_URL}/books/${bookLabel}/adt-preview/${pageId}_sec${String(sectionIndex + 1).padStart(3, "0")}.html?embed=1&v=ea${editableVersion}`}
+                  src={`${BASE_URL}/books/${bookLabel}/adt-preview/${previewSectionId}.html?embed=1&v=ea${editableVersion}`}
                   deviceView={deviceView}
                 />
               </>
@@ -2862,7 +2869,7 @@ export function StoryboardSectionDetail({
                 )}
                 <StepperActivityPreview
                   key={`classic-${sectionIndex}-${page.versions.rendering ?? 0}`}
-                  src={`${BASE_URL}/books/${bookLabel}/adt-preview/${pageId}_sec${String(sectionIndex + 1).padStart(3, "0")}.html?embed=1&v=${page.versions.rendering ?? 0}`}
+                  src={`${BASE_URL}/books/${bookLabel}/adt-preview/${previewSectionId}.html?embed=1&v=${page.versions.rendering ?? 0}`}
                   deviceView={deviceView}
                 />
               </>

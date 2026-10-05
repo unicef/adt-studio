@@ -92,8 +92,10 @@ export function packagePnld(storage: Storage, options: PackagePnldOptions): void
   // Reorganise adt/ layout into the PNLD content/ + resources/ structure
   // ------------------------------------------------------------------
   // pageList maps each spine entry to its final `content/<section_id>.html`
-  // href (adt names the first page `index.html`, which PNLD reserves for the
-  // nav document, so every page is renamed to its section id).
+  // href. Pages arrive already named by section id; this moves them under
+  // `content/` and frees the root `index.html`, which PNLD reserves for the nav
+  // document. (Bundles packaged before pages were id-named have a real page at
+  // `index.html`; it is read into memory here and rewritten under its id too.)
   const pageList = reorganize(pnldDir, rawPages, language, fixedLayout)
 
   // ------------------------------------------------------------------

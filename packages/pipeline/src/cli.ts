@@ -28,8 +28,21 @@ function createCliProgress(): Progress & { stop(): void } {
     ...PIPELINE.flatMap((s) => s.steps.map((st) => st.label.length)),
   )
   const stageFormat = (label: string) => ` ${label}`
-  const stepFormat = (label: string) =>
-    `   ${label.padEnd(maxLabel + 2)} [{bar}] {value}/{total}`
+  // A skipped step never ran, so its bar stays empty and says so instead of
+  // showing a filled bar that looks like a completed step.
+  const stepFormat =
+    (label: string): cliProgress.GenericFormatter =>
+    (options, params, payload: { skipped?: boolean }) => {
+      const name = `   ${label.padEnd(maxLabel + 2)} `
+      const bar = cliProgress.Format.BarFormat(
+        payload.skipped ? 0 : params.progress,
+        options,
+      )
+      const status = payload.skipped
+        ? "skipped"
+        : `${params.value}/${params.total}`
+      return `${name}[${bar}] ${status}`
+    }
 
   const multibar = new cliProgress.MultiBar(
     {
@@ -60,9 +73,15 @@ function createCliProgress(): Progress & { stop(): void } {
 
   return {
     emit(event: ProgressEvent) {
-      if (event.type === "step-complete" || event.type === "step-skip") {
+      if (event.type === "step-complete") {
         const bar = bars.get(event.step)
         if (bar) bar.update(bar.getTotal())
+        return
+      }
+
+      if (event.type === "step-skip") {
+        const bar = bars.get(event.step)
+        if (bar) bar.update(0, { skipped: true })
         return
       }
 

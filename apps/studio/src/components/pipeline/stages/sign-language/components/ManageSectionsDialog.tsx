@@ -152,6 +152,7 @@ export function ManageSectionsDialog({
                       <SectionRow
                         bookLabel={bookLabel}
                         label={section.sectionLabel}
+                        sectionId={section.sectionId}
                         video={videoBySection.get(section.sectionId) ?? null}
                         onUpload={() => onUploadForSection(section.sectionId)}
                         onUnassign={(videoId) => onAssign(videoId, null)}
