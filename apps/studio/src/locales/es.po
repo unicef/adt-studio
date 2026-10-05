@@ -395,6 +395,9 @@ msgstr "{count} páginas fallaron en {stageLabel}"
 msgid "{count} translations"
 msgstr "{count} traducciones"
 
+msgid "{count} visible {count, plural, one {element is} other {elements are}} missing from the rendered page"
+msgstr "{count} {count, plural, one {elemento visible no aparece} other {elementos visibles no aparecen}} en la página renderizada"
+
 msgid "{countSummary} this page"
 msgstr "{countSummary} en esta página"
 
@@ -1446,6 +1449,9 @@ msgstr "Analizando la parte…"
 
 msgid "Analyzing..."
 msgstr "Analizando..."
+
+msgid "and {more} more"
+msgstr "y {more} más"
 
 msgid "and many more blocks across the entire book"
 msgstr "y muchos más bloques a lo largo de todo el libro"
@@ -7663,6 +7669,9 @@ msgstr "La regeneración está deshabilitada para las actividades personalizadas
 
 msgid "Re-render section"
 msgstr "Re-renderizar sección"
+
+msgid "Re-render the section to bring them back, or hide them in the tree if they were removed on purpose."
+msgstr "Vuelve a renderizar la sección para recuperarlos, u ocúltalos en el árbol si se quitaron a propósito."
 
 msgid "Re-render this section"
 msgstr "Re-renderizar esta sección"

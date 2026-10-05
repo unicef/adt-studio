@@ -397,6 +397,9 @@ msgstr "{count} faqe dështuan te {stageLabel}"
 msgid "{count} translations"
 msgstr "{count} përkthime"
 
+msgid "{count} visible {count, plural, one {element is} other {elements are}} missing from the rendered page"
+msgstr "{count} {count, plural, one {element i dukshëm mungon} other {elemente të dukshme mungojnë}} në faqen e renderuar"
+
 msgid "{countSummary} this page"
 msgstr "{countSummary} në këtë faqe"
 
@@ -1448,6 +1451,9 @@ msgstr "Po analizohet pjesa…"
 
 msgid "Analyzing..."
 msgstr "Duke analizuar..."
+
+msgid "and {more} more"
+msgstr "dhe {more} të tjera"
 
 msgid "and many more blocks across the entire book"
 msgstr "dhe shumë blloqe të tjera në të gjithë librin"
@@ -7665,6 +7671,9 @@ msgstr "Ri-renderimi është i çaktivizuar për aktivitetet e personalizuara �
 
 msgid "Re-render section"
 msgstr "Ri-renderizo seksionin"
+
+msgid "Re-render the section to bring them back, or hide them in the tree if they were removed on purpose."
+msgstr "Ri-renderizo seksionin për t'i rikthyer, ose fshihi në pemë nëse janë hequr qëllimisht."
 
 msgid "Re-render this section"
 msgstr "Ri-renderizo këtë seksion"

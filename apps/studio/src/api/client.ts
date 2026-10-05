@@ -456,6 +456,13 @@ export interface AiEditHistoryTurn {
   verify?: { applied: boolean; reason: string }
 }
 
+/** A visible text leaf whose data-id is absent from its section's saved HTML. */
+export interface MissingRenderedLeaf {
+  sectionIndex: number
+  nodeId: string
+  text: string
+}
+
 export interface PageDetail {
   pageId: string
   pageNumber: number
@@ -516,6 +523,9 @@ export interface PageDetail {
    *  Sectioning step (vision) recovered text from the page image (a scanned /
    *  image-only page); null otherwise. */
   extractionWarning: ExtractionWarning | null
+  /** Text leaves the sectioning tree shows as visible but the saved HTML
+   *  leaves out (#596). */
+  missingRenderedLeaves: MissingRenderedLeaf[]
   versions: {
     imageClassification: number | null
     imageCropping: number | null
