@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { flushSync } from "react-dom"
 import { AlertCircle, Images, Pencil, X } from "lucide-react"
 import { SettingExplainer } from "@/components/pipeline/components/SettingExplainer"
-import { Trans, useLingui } from "@lingui/react/macro"
+import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
 import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
@@ -358,10 +358,11 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
                     <Images className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
                   </span>
                   <span className="flex-1 text-[13px] font-medium text-[#0a0a0a]">
-                    <Trans>
-                      {selectedImageIds.length} image
-                      {selectedImageIds.length === 1 ? "" : "s"} selected
-                    </Trans>
+                    <Plural
+                      value={selectedImageIds.length}
+                      one="# image selected"
+                      other="# images selected"
+                    />
                   </span>
                   <Pencil
                     className="h-3.5 w-3.5 text-[#a3a3a3] transition-colors group-hover:text-[#525252]"

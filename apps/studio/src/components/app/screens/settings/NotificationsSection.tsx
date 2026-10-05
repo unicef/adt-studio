@@ -260,7 +260,7 @@ export function NotificationsSection() {
           <SegmentedControl
             className="w-full"
             options={[
-              { value: "off", label: t`Off` },
+              { value: "off", label: t({ message: "Off", context: "auto-dismiss delay" }) },
               { value: "4", label: t`4s` },
               { value: "6", label: t`6s` },
               { value: "10", label: t`10s` },

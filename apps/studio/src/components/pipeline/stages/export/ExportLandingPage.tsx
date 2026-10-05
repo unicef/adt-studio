@@ -115,9 +115,7 @@ function ExportLandingBody({
       isCompleted={false}
       hasError={!!formatError}
       canRun={true}
-      runLabel={
-        <Trans>Export {formatLabels[selectedFormat].label}</Trans>
-      }
+      runLabel={formatLabels[selectedFormat].runLabel}
       rerunLabel={<Trans>Retry Export</Trans>}
       previewLabel={t`Export Preview`}
       hideAdvancedSettings

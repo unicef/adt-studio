@@ -671,7 +671,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
                     }`}
                   >
                     <span className="block text-sm font-semibold">
-                      {style === "light" ? t`Light` : style === "standard" ? t`Standard` : t`Detailed`}
+                      {style === "light" ? t({ message: "Light", context: "translation review depth" }) : style === "standard" ? t`Standard` : t`Detailed`}
                     </span>
                     <span className={`mt-1 block text-xs leading-relaxed ${reviewStyle === style ? "text-white/80" : "text-muted-foreground"}`}>
                       {style === "light"
