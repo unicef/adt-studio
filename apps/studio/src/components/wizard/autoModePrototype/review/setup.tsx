@@ -14,21 +14,36 @@ export type SettingKey = "type" | "look" | "pages" | "sections"
 export type BookKind = "picture" | "textbook" | "reference"
 
 /** The recommender's decisions in the wizard's terms. `asked` lists what the user settled in Decide. */
-export type AiPicks = { kind: BookKind; preset: PresetId; renderStrategy: StrategyId; pageGrouping: "single" | "spread"; sectioningMode: "page" | "dynamic"; activitiesGenerator: boolean; figureExtraction: FigureExtractionMode; asked: SettingKey[]; decisions: Recommendation }
+export type AiPicks = { kind: BookKind; preset: PresetId; renderStrategy: StrategyId; pageGrouping: "single" | "spread"; sectioningMode: "page" | "dynamic"; activitiesGenerator: boolean; figureExtraction: FigureExtractionMode; asked: SettingKey[]; decisions: Recommendation; strategyAdjustedFrom: StrategyId | null }
 
 export type Choice = { value: string; title: string; hint: string; kind?: "ai" | "template" }
-export type Setting = { key: SettingKey; icon: LucideIcon; label: ReactNode; value: string; ai: string; answer: ReactNode; why: ReactNode; decision: Decision; choices: Choice[]; source: "ai" | "asked" | "changed" }
+export type Setting = { key: SettingKey; icon: LucideIcon; label: ReactNode; value: string; ai: string; answer: ReactNode; why: ReactNode; decision: Decision; adjustedFrom: string | null; choices: Choice[]; source: "ai" | "asked" | "changed" }
 
 /** Which recommender decision each review row shows. */
 // eslint-disable-next-line lingui/no-unlocalized-strings -- recommender decision ids
 export const DECISION_OF: Record<SettingKey, DecisionId> = { type: "preset", look: "renderStrategy", pages: "pageGrouping", sections: "sectioningMode" }
 
+/**
+ * The recommender has no compatibility check between its decisions, so its Render Strategy may be one
+ * the chosen preset doesn't offer. Then its alternative is used if the preset allows it, otherwise
+ * the preset's own default — and the setting says what was changed.
+ */
+export function fitStrategy(preset: PresetId, d: Recommendation["renderStrategy"]): StrategyId {
+  const p = PRESETS.find((x) => x.id === preset)
+  const allowed = (p?.renderStrategies ?? []) as readonly string[]
+  if (allowed.includes(d.choice)) return d.choice
+  if (d.alternative && allowed.includes(d.alternative)) return d.alternative
+  return (p?.recommendations.renderStrategy ?? allowed[0] ?? d.choice) as StrategyId
+}
+
 export function toAiPicks(rec: Recommendation, asked: SettingKey[] = []): AiPicks {
   const preset = rec.preset.choice
+  const renderStrategy = fitStrategy(preset, rec.renderStrategy)
   return {
     kind: KIND_OF_PRESET[preset] ?? "picture",
     preset,
-    renderStrategy: rec.renderStrategy.choice,
+    renderStrategy,
+    strategyAdjustedFrom: renderStrategy === rec.renderStrategy.choice ? null : rec.renderStrategy.choice,
     pageGrouping: rec.pageGrouping.choice,
     sectioningMode: rec.sectioningMode.choice,
     activitiesGenerator: rec.activitiesGenerator.choice === "enabled",
@@ -38,11 +53,11 @@ export function toAiPicks(rec: Recommendation, asked: SettingKey[] = []): AiPick
   }
 }
 
-/** The current book's picks, from the recommendation the flow holds. `ready` once there is one. */
-export function useAiPicks(): { picks: AiPicks; ready: boolean } {
+/** The current book's picks, from the recommendation the flow holds. */
+export function useAiPicks(): { picks: AiPicks } {
   const result = useRecommendation()
   const picks = useMemo(() => toAiPicks(result?.recommendation ?? EMPTY), [result])
-  return { picks, ready: result !== null }
+  return { picks }
 }
 
 /** Fills the wizard form the way the preset grid would, then with the recommendation — so "Open all settings" shows the real wizard prefilled. */
@@ -119,6 +134,7 @@ export function useSettings(picks: AiPicks): { settings: Setting[]; kind: BookKi
       answer: choices.find((c) => c.value === value)?.title ?? choices[0]?.title,
       why: from === "changed" ? <Trans>Changed by you. I had suggested {suggested}.</Trans> : from === "asked" ? <Trans>You picked this when I asked.</Trans> : picks.decisions[DECISION_OF[key]].reason,
       decision: picks.decisions[DECISION_OF[key]],
+      adjustedFrom: key === "look" ? picks.strategyAdjustedFrom : null,
       source: from,
     }
   }

@@ -4,15 +4,18 @@ import { getPdfJs, PDF_WASM_OPTIONS } from "@/components/wizard/shared/pdfjsLoad
 type PdfJs = Awaited<ReturnType<typeof getPdfJs>>
 type Doc = Awaited<ReturnType<PdfJs["getDocument"]>["promise"]>
 
-const docs = new WeakMap<File, Promise<Doc>>()
+const MAX_THUMBS = 24
+
+let open: { file: File; doc: Promise<Doc> } | null = null
 const thumbs = new WeakMap<File, Map<string, Promise<string>>>()
 
+/** One pdf.js document at a time: opening another book's PDF releases the previous one. */
 function openDoc(file: File): Promise<Doc> {
-  let doc = docs.get(file)
-  if (!doc) {
-    doc = Promise.all([getPdfJs(), file.arrayBuffer()]).then(([pdfjs, data]) => pdfjs.getDocument({ data, ...PDF_WASM_OPTIONS }).promise)
-    docs.set(file, doc)
-  }
+  if (open?.file === file) return open.doc
+  const previous = open
+  const doc = Promise.all([getPdfJs(), file.arrayBuffer()]).then(([pdfjs, data]) => pdfjs.getDocument({ data, ...PDF_WASM_OPTIONS }).promise)
+  open = { file, doc }
+  void previous?.doc.then((d) => d.destroy()).catch(() => {})
   return doc
 }
 
@@ -24,7 +27,10 @@ function renderThumb(file: File, n: number, width: number): Promise<string> {
   }
   const key = `${n}@${width}`
   let src = cache.get(key)
-  if (!src) {
+  if (src) {
+    cache.delete(key)
+    cache.set(key, src)
+  } else {
     src = openDoc(file).then(async (doc) => {
       const page = await doc.getPage(Math.min(Math.max(1, n), doc.numPages))
       const base = page.getViewport({ scale: 1 })
@@ -36,17 +42,21 @@ function renderThumb(file: File, n: number, width: number): Promise<string> {
       if (!ctx) return ""
       await page.render({ canvas, canvasContext: ctx, viewport }).promise
       page.cleanup()
-      return canvas.toDataURL("image/jpeg", 0.85)
+      const url = canvas.toDataURL("image/jpeg", 0.85)
+      canvas.width = 0
+      canvas.height = 0
+      return url
     })
     cache.set(key, src)
+    if (cache.size > MAX_THUMBS) cache.delete(cache.keys().next().value as string)
   }
   return src
 }
 
 /**
  * One page of the PDF as a small image, for showing which pages a range starts and ends on. Renders
- * are cached per page and debounced while a slider is dragged; the last image stays until the next
- * one is ready, so nothing flickers.
+ * are debounced while a slider is dragged and the most recent ones are kept; the last image stays
+ * until the next one is ready, so nothing flickers.
  */
 export function usePageThumb(file: File | null | undefined, page: number, width = 64): string | undefined {
   const [src, setSrc] = useState<string>()

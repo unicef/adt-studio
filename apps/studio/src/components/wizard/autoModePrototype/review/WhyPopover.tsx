@@ -31,7 +31,9 @@ export function WhyPopover({ setting, className }: { setting: Setting; className
   const { t, i18n } = useLingui()
   const d = setting.decision
   if (!d.reason) return null
-  const alternative = d.alternative ? (setting.choices.find((c) => c.value === d.alternative)?.title ?? d.alternative) : null
+  const titleOf = (v: string) => setting.choices.find((c) => c.value === v)?.title ?? v
+  const suggested = titleOf(setting.ai)
+  const alternative = d.alternative ? titleOf(d.alternative) : null
   const pages = d.evidencePages.join(", ")
   return (
     <Popover>
@@ -43,9 +45,19 @@ export function WhyPopover({ setting, className }: { setting: Setting; className
       <PopoverContent align="start" className="w-[300px] p-0">
         <div className="flex flex-col gap-2.5 p-3.5 text-[12.5px] leading-relaxed">
           <p className="font-semibold text-foreground">
-            <Trans>Why {setting.answer}</Trans>
+            <Trans>Why the AI suggested {suggested}</Trans>
           </p>
+          {setting.source !== "ai" && (
+            <p className="text-[12px] text-muted-foreground">
+              <Trans>You went with {setting.answer}.</Trans>
+            </p>
+          )}
           <p className="text-muted-foreground">{d.reason}</p>
+          {setting.adjustedFrom && (
+            <p className="rounded-lg bg-muted px-2.5 py-2 text-[12px] text-muted-foreground">
+              <Trans>The AI first suggested {titleOf(setting.adjustedFrom)}, which this preset doesn&apos;t offer, so {suggested} is used instead.</Trans>
+            </p>
+          )}
           {alternative && (
             <div className="rounded-lg bg-amber-50 px-2.5 py-2 text-amber-900 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/25">
               <p className="font-semibold">

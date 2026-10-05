@@ -1,19 +1,28 @@
 /* eslint-disable lingui/no-unlocalized-strings -- mock recommender output: model-written reasons arrive already in the user's language */
 import type { SetupErrorKind } from "../errors/SetupError"
-import type { Decision, Recommendation, SetupResult } from "./contract"
+import type { Decision, Recommendation, SetupRequest, SetupResult } from "./contract"
 
 export type Fixture = Pick<SetupResult, "provider" | "model" | "promptVersion" | "recommendation" | "usage" | "timing">
 
 /**
  * The pages the recommender samples (adt-poc-llm `selectRepresentativePagePairs`): pages 1–N for short
  * books, otherwise 2…N−1 in consecutive pairs; with more than three pairs, the first, a middle and
- * the last one. Fixtures cite these so "based on pages …" matches what the backend would say.
+ * the last one. Fixtures cite these so "based on pages …" matches what the backend would say. With a
+ * chosen range the same rule runs inside it (the backend doesn't take a range yet).
  */
-export function sampledPages(pageCount: number): number[] {
+export function sampledPages(pageCount: number, range?: { start: number; end: number }): number[] {
   if (pageCount < 1) return []
-  const pages = pageCount < 7 ? Array.from({ length: pageCount }, (_, i) => i + 1) : Array.from({ length: pageCount - 2 }, (_, i) => i + 2)
+  let first = pageCount >= 7 ? 2 : 1
+  let last = pageCount >= 7 ? pageCount - 1 : pageCount
+  if (range) {
+    const start = Math.max(1, range.start)
+    const end = Math.min(pageCount, range.end)
+    first = Math.max(first, start)
+    last = Math.min(last, end)
+    if (first > last) [first, last] = [start, end]
+  }
   const pairs: number[][] = []
-  for (let i = 0; i < pages.length; i += 2) pairs.push(pages.slice(i, i + 2))
+  for (let page = first; page <= last; page += 2) pairs.push(page + 1 <= last ? [page, page + 1] : [page])
   const chosen = pairs.length > 3 ? [pairs[0], pairs[Math.round((pairs.length - 1) / 2)], pairs[pairs.length - 1]] : pairs
   return chosen.flat()
 }
@@ -95,17 +104,22 @@ function recommendationFor(kind: Kind, spread: boolean, unsure: boolean, ev: num
 const SPREAD_BELOW_ASPECT = 0.95
 
 /** What the recommender would answer for one of the lab's sample books; `unsure` leaves the look between two options. */
-export function fixtureFor(fileName: string, aspect: number | undefined, unsure: boolean, pageCount = 0): Fixture {
+export function fixtureFor(fileName: string, aspect: number | undefined, unsure: boolean, pageCount = 0, range?: { start: number; end: number }): Fixture {
   const kind = kindOf(fileName)
   const spread = aspect !== undefined && aspect < SPREAD_BELOW_ASPECT
   return {
     provider: "openai",
     model: "mock",
     promptVersion: "adt-config-recommender-poc-v1",
-    recommendation: recommendationFor(kind, spread, unsure, sampledPages(pageCount)),
+    recommendation: recommendationFor(kind, spread, unsure, sampledPages(pageCount, range)),
     usage: { inputTokens: 9120, outputTokens: 860, totalTokens: 9980 },
     timing: { analyzerMs: 900, evidencePreparationMs: 1400, inferenceMs: 1300, totalMs: 3600 },
   }
+}
+
+/** The mock's full answer to a request — the one place both the mock client and the lab's step jumps build it. */
+export function mockResult(request: SetupRequest, aspect: number | undefined, unsure: boolean, pageCount: number): SetupResult {
+  return { ...fixtureFor(request.file.name, aspect, unsure, pageCount, request.pages), userLanguage: request.userLanguage }
 }
 
 export const MOCK_ERROR_DETAIL: Record<SetupErrorKind, string> = {

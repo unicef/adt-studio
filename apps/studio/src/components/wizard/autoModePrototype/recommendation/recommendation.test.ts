@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { classifySetupError, SetupFailure } from "./client"
 import { ambiguousDecisions, recommendationSchema, setupResultSchema } from "./contract"
 import { fixtureFor, sampledPages } from "./fixtures"
+import { fitStrategy, toAiPicks } from "../review/setup"
 
 const BOOKS = ["matematica-volume-1.pdf", "raven.pdf", "colouring-my-school.pdf", "user-story.pdf", "volcanoes.pdf"]
 
@@ -41,6 +42,22 @@ describe("setup contract", () => {
   })
 })
 
+describe("fitting the look to the preset", () => {
+  const base = fixtureFor("matematica-volume-1.pdf", 0.7, false, 52).recommendation
+  it("keeps a strategy the preset offers", () => {
+    expect(toAiPicks(base).renderStrategy).toBe("llm")
+    expect(toAiPicks(base).strategyAdjustedFrom).toBeNull()
+  })
+  it("falls back to an allowed alternative, then to the preset's default", () => {
+    expect(fitStrategy("textbook", { ...base.renderStrategy, choice: "fixed_layout", alternative: "llm-overlay", confidence: "medium", ambiguityReason: "x" })).toBe("llm-overlay")
+    expect(fitStrategy("textbook", { ...base.renderStrategy, choice: "single_column" })).toBe("llm")
+    expect(toAiPicks({ ...base, renderStrategy: { ...base.renderStrategy, choice: "single_column" } }).strategyAdjustedFrom).toBe("single_column")
+  })
+  it("every sample book's answer fits its preset", () => {
+    for (const name of BOOKS) for (const unsure of [false, true]) expect(toAiPicks(fixtureFor(name, 0.7, unsure, 52).recommendation).strategyAdjustedFrom, name).toBeNull()
+  })
+})
+
 describe("sampled pages", () => {
   it("matches the recommender's sampling", () => {
     expect(sampledPages(52)).toEqual([2, 3, 26, 27, 50, 51])
@@ -50,6 +67,12 @@ describe("sampled pages", () => {
     expect(sampledPages(8)).toEqual([2, 3, 4, 5, 6, 7])
     expect(sampledPages(7)).toEqual([2, 3, 4, 5, 6])
     expect(sampledPages(0)).toEqual([])
+  })
+
+  it("samples inside a chosen range", () => {
+    expect(sampledPages(52, { start: 1, end: 10 })).toEqual([2, 3, 6, 7, 10])
+    expect(sampledPages(52, { start: 20, end: 23 })).toEqual([20, 21, 22, 23])
+    expect(sampledPages(52, { start: 52, end: 52 })).toEqual([52])
   })
 })
 

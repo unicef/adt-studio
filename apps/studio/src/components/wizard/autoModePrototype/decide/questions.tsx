@@ -64,7 +64,7 @@ export function useLookQuestion(choice: StrategyId, alternative: StrategyId | nu
   const preset = PRESETS.find((p) => p.id === presetId)
   const allowed = (preset?.renderStrategies ?? []).filter((id): id is StrategyId => id in STRATEGY_OPTIONS)
   const recommended = (preset?.recommendedStrategies ?? []) as readonly string[]
-  const second = alternative ?? allowed.filter((id) => id !== choice).sort((a, b) => Number(recommended.includes(b)) - Number(recommended.includes(a)))[0]
+  const second = alternative && alternative !== choice && allowed.includes(alternative) ? alternative : allowed.filter((id) => id !== choice).sort((a, b) => Number(recommended.includes(b)) - Number(recommended.includes(a)))[0]
   const candidates: StrategyId[] = second ? [choice, second] : [choice]
   const others = allowed.filter((id) => !candidates.includes(id)).sort((a, b) => Number(recommended.includes(b)) - Number(recommended.includes(a)))
   return { candidates, options: [...candidates, ...others].map((id) => STRATEGY_OPTIONS[id]) }

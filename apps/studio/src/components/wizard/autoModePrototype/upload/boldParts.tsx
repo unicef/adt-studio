@@ -34,6 +34,18 @@ function Problem({ title, body }: { title: ReactNode; body: ReactNode }) {
 
 /** What the drop target says: idle, reading, accepted, or why the file can't be used. */
 export function DropMessage({ flow, idle }: { flow: UploadFlow; idle: ReactNode }) {
+  if (flow.rejected && !flow.showCard)
+    return (
+      <Problem
+        key={flow.rejectedAt}
+        title={<Trans>That file isn&apos;t a PDF</Trans>}
+        body={
+          <Trans>
+            Only PDF files can be converted. <span className={CHOOSE_ANOTHER}>Choose a PDF</span>.
+          </Trans>
+        }
+      />
+    )
   if (flow.error === "password")
     return (
       <Problem
@@ -52,18 +64,6 @@ export function DropMessage({ flow, idle }: { flow: UploadFlow; idle: ReactNode 
         body={
           <Trans>
             The file may be damaged. Export it again, or <span className={CHOOSE_ANOTHER}>choose another file</span>.
-          </Trans>
-        }
-      />
-    )
-  if (flow.rejected && !flow.file)
-    return (
-      <Problem
-        key={flow.rejectedAt}
-        title={<Trans>That file isn&apos;t a PDF</Trans>}
-        body={
-          <Trans>
-            Only PDF files can be converted. <span className={CHOOSE_ANOTHER}>Choose a PDF</span>.
           </Trans>
         }
       />

@@ -2,7 +2,7 @@
 import { getPdfPageCount } from "@/components/wizard/shared/pdfMetadata"
 import type { SetupErrorKind } from "../errors/SetupError"
 import { setupResultSchema, type SetupRequest, type SetupResult } from "./contract"
-import { fixtureFor, MOCK_ERROR_DETAIL, type Fixture } from "./fixtures"
+import { MOCK_ERROR_DETAIL, mockResult } from "./fixtures"
 
 /** What the screens need from the recommender. The integration implements this over the API client. */
 export interface SetupClient {
@@ -65,8 +65,7 @@ export function createMockSetupClient(scenario: () => SetupScenario, aspect: () 
         throw new SetupFailure(s, MOCK_ERROR_DETAIL[s])
       }
       const [pageCount] = await Promise.all([getPdfPageCount(request.file).catch(() => 0), wait(s === "slow" ? 600_000 : MOCK_MS.answer, signal)])
-      const fixture: Fixture = fixtureFor(request.file.name, aspect(), s === "unsure", pageCount)
-      return setupResultSchema.parse({ ...fixture, userLanguage: request.userLanguage })
+      return setupResultSchema.parse(mockResult(request, aspect(), s === "unsure", pageCount))
     },
   }
 }

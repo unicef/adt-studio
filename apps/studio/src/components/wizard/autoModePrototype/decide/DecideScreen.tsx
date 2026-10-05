@@ -34,7 +34,7 @@ export function DecideScreen({ onBack, onDone }: { onBack: () => void; onDone: (
   const look = aiPicks.decisions.renderStrategy
   const book = useBookPages(file, { first: 2, count: 8, width: 640 })
   const own = useOwnPage(book.pages, aiPicks.pageGrouping === "spread")
-  const question = useLookQuestion(look.choice, look.alternative, aiPicks.preset)
+  const question = useLookQuestion(aiPicks.renderStrategy, look.alternative, aiPicks.preset)
   const label = useStore(form.store, (s) => s.values.label)
   const title = label ? label.charAt(0).toUpperCase() + label.slice(1) : t`your book`
   const [visit, setVisit] = useState<Visit>(readVisit)

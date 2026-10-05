@@ -17,7 +17,7 @@ import { DecideScreen } from "./decide/DecideScreen"
 import { ReviewScreen } from "./review/ReviewScreen"
 import { applyAiPicks, toAiPicks, type SettingKey } from "./review/setup"
 import type { SetupResult } from "./recommendation/contract"
-import { fixtureFor } from "./recommendation/fixtures"
+import { mockResult } from "./recommendation/fixtures"
 import { RecommendationProvider } from "./recommendation/RecommendationContext"
 import { useBookAspect } from "./loader/useBookAspect"
 import { getCachedPdfPageCount } from "@/components/wizard/shared/pdfMetadata"
@@ -196,10 +196,14 @@ export function AutoModePrototype({ mock, step }: { mock?: string; step?: ProtoS
   useEffect(() => {
     setResult(null)
   }, [file])
-  const labFallback = useMemo<SetupResult | null>(
-    () => (file && aspect !== undefined ? { ...fixtureFor(file.name, aspect, screen === "decide", getCachedPdfPageCount(file) ?? 0), userLanguage: i18n.locale } : null),
-    [file, aspect, screen === "decide", i18n.locale],
-  )
+  const scope = useStore(form.store, (s) => s.values.scope)
+  const startPage = parseInt(useStore(form.store, (s) => s.values.startPage)) || 1
+  const endPage = parseInt(useStore(form.store, (s) => s.values.endPage)) || 0
+  const labFallback = useMemo<SetupResult | null>(() => {
+    if (!file || aspect === undefined) return null
+    const pages = scope === "range" && endPage ? { start: startPage, end: endPage } : undefined
+    return mockResult({ file, userLanguage: i18n.locale, pages }, aspect, screen === "decide", getCachedPdfPageCount(file) ?? 0)
+  }, [file, aspect, screen === "decide", i18n.locale, scope, startPage, endPage])
   const recommendation = result ?? labFallback
   const [asked, setAsked] = useState<SettingKey[]>([])
   const setupFor = useRef<string | null>(null)
@@ -252,7 +256,7 @@ export function AutoModePrototype({ mock, step }: { mock?: string; step?: ProtoS
       />
     )
   else if (screen === "decide")
-    content = (
+    content = picks ? (
       <DecideScreen
         onBack={() => setScreen("choose")}
         onDone={(look) => {
@@ -260,7 +264,7 @@ export function AutoModePrototype({ mock, step }: { mock?: string; step?: ProtoS
           setScreen("review")
         }}
       />
-    )
+    ) : null
   else if (screen === "review") content = picks ? <ReviewScreen picks={picks} onBack={() => setScreen(asked.length ? "decide" : "choose")} onCreate={() => setScreen("create")} /> : null
   else if (screen === "create") content = <CreateScreen onOpen={() => setScreen("opened")} onBack={() => setScreen("review")} />
   else if (screen === "opened")

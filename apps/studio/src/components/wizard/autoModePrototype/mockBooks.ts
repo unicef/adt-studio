@@ -20,7 +20,7 @@ export async function loadMockFile(book: MockBook): Promise<File> {
 }
 
 // eslint-disable-next-line lingui/no-unlocalized-strings
-const edgeUrls = import.meta.glob<string>(`../../../../../../.context/auto-mode/edge/*`, { eager: true, query: `?url`, import: "default" })
+const edgeUrls = import.meta.glob<string>(`../../../../../../.context/auto-mode/edge/{broken.pdf,password.pdf,notes.txt}`, { eager: true, query: `?url`, import: "default" })
 
 /** Lab-only problem files (a damaged PDF, a password-protected one, a text file) from `.context/auto-mode/edge/`. */
 export const EDGE_FILES: MockBook[] = Object.entries(edgeUrls)

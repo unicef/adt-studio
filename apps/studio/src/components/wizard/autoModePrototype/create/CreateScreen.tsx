@@ -45,7 +45,7 @@ function useCreateRun(run: number, result: Result) {
     if (step > i) return "done"
     return step === i && !stopped ? "doing" : "todo"
   }
-  return { step, done, stopped, state }
+  return { step, done, stopped, state, failedAt: stopped ? failsAt : undefined }
 }
 
 function StepIcon({ state }: { state: StepState }) {
@@ -102,7 +102,7 @@ export function CreateScreen({ onOpen, onBack }: { onOpen: () => void; onBack: (
   const [variant, setVariant] = useState<Variant>(read)
   const [result, setResult] = useState<Result>("ok")
   const [run, setRun] = useState(0)
-  const { step, done, stopped, state } = useCreateRun(run, result)
+  const { step, done, stopped, state, failedAt } = useCreateRun(run, result)
   const facts = useBookFacts()
   const title = facts.title || t`your book`
   const steps = [<Trans key="s">Saving your settings</Trans>, <Trans key="c">Copying the PDF into the book folder</Trans>, <Trans key="p">Starting on the first pages</Trans>]
@@ -195,7 +195,7 @@ export function CreateScreen({ onOpen, onBack }: { onOpen: () => void; onBack: (
             </div>
             <div className="grid h-5 text-[13px] font-medium text-muted-foreground">
               {steps.map((stepLabel, i) => (
-                <span key={i} className="col-start-1 row-start-1 transition-opacity duration-300" style={{ opacity: Math.min(step, steps.length - 1) === i && !done ? 1 : 0 }}>
+                <span key={i} className="col-start-1 row-start-1 transition-opacity duration-300" style={{ opacity: (failedAt ?? Math.min(step, steps.length - 1)) === i && !done ? 1 : 0 }}>
                   {stepLabel}
                 </span>
               ))}

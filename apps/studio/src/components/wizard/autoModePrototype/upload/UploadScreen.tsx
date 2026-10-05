@@ -69,7 +69,7 @@ export function UploadScreen({ flow }: { flow: UploadFlow }) {
             <span
               className={cn(
                 "flex size-full flex-col items-center justify-center gap-6 rounded-[22px] border-2 transition-colors duration-300",
-                flow.accepted ? "border-solid border-brand-300 bg-brand-50/60" : flow.error || (flow.rejected && !flow.file) ? "border-dashed border-destructive/40 bg-destructive/[0.03] group-hover:border-destructive/60" : "border-dashed border-brand-200 group-hover:border-brand-400",
+                flow.accepted ? "border-solid border-brand-300 bg-brand-50/60" : (flow.rejected && !flow.showCard) || flow.error ? "border-dashed border-destructive/40 bg-destructive/[0.03] group-hover:border-destructive/60" : "border-dashed border-brand-200 group-hover:border-brand-400",
               )}
             >
               <span aria-hidden className="grid h-[92px] w-[120px] place-items-center">
@@ -80,9 +80,9 @@ export function UploadScreen({ flow }: { flow: UploadFlow }) {
                       <Check className="size-9 stroke-[3]" />
                     </span>
                   </span>
-                ) : flow.error || (flow.rejected && !flow.file) ? (
-                  <span key={`problem-${flow.error ?? "rejected"}`} className="grid size-[72px] place-items-center rounded-full bg-destructive/10 text-destructive animate-[am-check-pop_0.45s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none">
-                    {flow.error === "password" ? <Lock className="size-8" /> : <FileWarning className="size-8" />}
+                ) : (flow.rejected && !flow.showCard) || flow.error ? (
+                  <span key={`problem-${flow.rejected && !flow.showCard ? `rejected-${flow.rejectedAt}` : flow.error}`} className="grid size-[72px] place-items-center rounded-full bg-destructive/10 text-destructive animate-[am-check-pop_0.45s_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none">
+                    {flow.error === "password" && !(flow.rejected && !flow.showCard) ? <Lock className="size-8" /> : <FileWarning className="size-8" />}
                   </span>
                 ) : (
                   (
