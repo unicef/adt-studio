@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+import { resolvePaths } from "../../api-server/paths";
 import {
   accessibilityAuditIpcReplyErrorSchema,
   accessibilityAuditIpcReplySuccessSchema,
@@ -7,6 +10,36 @@ import {
   audit,
   close as closeAccessibilityAuditWindows,
 } from "../../services/accessibility-audit";
+
+function getAxeSource(mod: unknown): string {
+  if (typeof mod === "object" && mod !== null && "source" in mod) {
+    const source = (mod as { source?: unknown }).source;
+    if (typeof source === "string") return source;
+  }
+  if (typeof mod === "object" && mod !== null && "default" in mod) {
+    const source = (mod as { default?: { source?: unknown } }).default?.source;
+    if (typeof source === "string") return source;
+  }
+  throw new Error("Unable to load axe-core source");
+}
+
+function validateAuditFilePath(filePath: string): string {
+  const { booksDir } = resolvePaths();
+  const booksRoot = fs.realpathSync(booksDir);
+  const resolvedFilePath = fs.realpathSync(filePath);
+  const relativePath = path.relative(booksRoot, resolvedFilePath);
+
+  if (
+    !relativePath ||
+    relativePath.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativePath) ||
+    !fs.statSync(resolvedFilePath).isFile()
+  ) {
+    throw new Error("Accessibility audit file must be a regular file inside the books directory");
+  }
+
+  return resolvedFilePath;
+}
 
 /*
     The child (API) process cannot access Electron APIs directly,
@@ -26,10 +59,12 @@ export function handleAccessibilityAuditMessages(
 
     if (m.type === "axe-audit") {
       try {
+        const filePath = validateAuditFilePath(m.filePath);
+        const axeSource = getAxeSource(await import("axe-core"));
         const result = await audit({
-          filePath: m.filePath,
+          filePath,
           ruleIds: m.ruleIds,
-          axeSource: m.axeSource,
+          axeSource,
           viewport: m.viewport,
         });
         apiProcess.postMessage(
