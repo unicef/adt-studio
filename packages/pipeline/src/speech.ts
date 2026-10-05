@@ -33,7 +33,13 @@ import {
   transcribeWithWhisper,
 } from "@adt/llm"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
-import { computeEntryTimeRanges, buildPageTranscript, type BatchEntry } from "./speech-batch.js"
+import {
+  computeEntryTimeRanges,
+  buildPageTranscript,
+  MIN_TRANSCRIBABLE_SECONDS,
+  type BatchEntry,
+  type EntryAlignment,
+} from "./speech-batch.js"
 import { sliceWav, wavDurationSeconds, findQuietCutSeconds } from "./audio-wav.js"
 
 // ---------------------------------------------------------------------------
@@ -1074,6 +1080,23 @@ export async function generateSpeechFile(
 // Page-batched speech generation (experimental)
 // ---------------------------------------------------------------------------
 
+/** An entry whose audio could not be located in the page recording. Reported
+ *  rather than written: a zero-length slice is a valid WAV file, so writing it
+ *  would hand the user silence labelled as success (issue #846). */
+export interface UnalignedPageEntry {
+  textId: string
+  alignment: EntryAlignment
+  /** Length of the slice we would have written, in seconds. */
+  seconds: number
+  /** Human-readable explanation, surfaced to the user. */
+  reason: string
+}
+
+export interface PageSpeechResult {
+  entries: SpeechFileEntry[]
+  unaligned: UnalignedPageEntry[]
+}
+
 export interface GeneratePageSpeechFilesOptions {
   /** Page entries in reading order (already filtered of TTS-excluded ids). */
   entries: BatchEntry[]
@@ -1116,7 +1139,7 @@ export interface GeneratePageSpeechFilesOptions {
  */
 export async function generatePageSpeechFiles(
   options: GeneratePageSpeechFilesOptions,
-): Promise<SpeechFileEntry[]> {
+): Promise<PageSpeechResult> {
   const {
     entries, language, model, voice, instructions, format, bookDir, cacheDir,
     ttsSynthesizer, whisperApiKey, rateLimiter, provider, voiceSlot, voiceLabel,
@@ -1132,11 +1155,17 @@ export async function generatePageSpeechFiles(
     normalizeLocale(language), SAFE_LANGUAGE_RE, "language code"
   )
 
-  // Keep only speakable entries (mirrors generateSpeechFile's per-item skip).
+  // Keep only speakable entries (mirrors generateSpeechFile's per-item skip),
+  // and only the first occurrence of each id. Two entries sharing an id would
+  // be narrated twice and then written to the same path, so the later slice
+  // silently overwrites the earlier one — see issue #846. The caller guards
+  // this too; this keeps the invariant true for every caller.
+  const seenIds = new Set<string>()
   const usable = entries
     .map((e) => ({ id: assertSafeSegment(e.id, SAFE_TEXT_ID_RE, "text id"), text: stripEmojis(e.text).trim() }))
     .filter((e) => isSpeakableText(e.text))
-  if (usable.length === 0) return []
+    .filter((e) => (seenIds.has(e.id) ? false : (seenIds.add(e.id), true)))
+  if (usable.length === 0) return { entries: [], unaligned: [] }
 
   const transcript = buildPageTranscript(usable)
 
@@ -1216,8 +1245,30 @@ export async function generatePageSpeechFiles(
 
   fs.mkdirSync(audioDir, { recursive: true })
   const results: SpeechFileEntry[] = []
+  const unaligned: UnalignedPageEntry[] = []
   for (const range of ranges) {
     signal?.throwIfAborted()
+
+    // Refuse to write a slice that holds no audio. `sliceWav` happily returns
+    // a valid 44-byte WAV for an empty range, so without this check the entry
+    // is written and reported as a success and the user gets silence with no
+    // indication anything went wrong — the core of issue #846. Report it
+    // instead and let the caller decide; do NOT quietly re-synthesize, which
+    // would substitute audio the user didn't ask for.
+    const seconds = range.end - range.start
+    if (range.alignment === "collapsed" || seconds < MIN_TRANSCRIBABLE_SECONDS) {
+      unaligned.push({
+        textId: range.id,
+        alignment: range.alignment,
+        seconds,
+        reason:
+          range.matchedTokens === 0
+            ? `No audio found for this entry in the page recording (none of its words were heard). The page audio may be shorter than the text sent for narration.`
+            : `Audio for this entry is only ${seconds.toFixed(3)}s, below the ${MIN_TRANSCRIBABLE_SECONDS}s minimum, so the page could not be split reliably here.`,
+      })
+      continue
+    }
+
     // A short edge fade guarantees zero-amplitude slice edges (belt-and-braces
     // with the silence-snap above) so back-to-back playback has no clicks.
     const slice = sliceWav(pageBytes, range.start, range.end, PAGE_SLICE_FADE_MS)
@@ -1242,7 +1293,12 @@ export async function generatePageSpeechFiles(
       ...(voiceLabel ? { voiceLabel } : {}),
     })
   }
-  return results
+  if (unaligned.length > 0) {
+    console.warn(
+      `[page-tts] ${normalizedLanguage}: ${unaligned.length}/${ranges.length} entries had no locatable audio in the page recording and were not written: ${unaligned.map((u) => u.textId).join(", ")}`,
+    )
+  }
+  return { entries: results, unaligned }
 }
 
 /** Window (seconds) before a detected word onset searched for a quiet cut point. */
