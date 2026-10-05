@@ -22,6 +22,17 @@ jobs:
           cache: pnpm
           registry-url: https://npm.pkg.github.com
           scope: '@zignaggo'
+      - name: Debug GitHub Packages auth
+        env:
+          T: ${{ secrets.Z_PACKAGE_PAT }}
+        run: |
+          echo "event: ${{ github.event_name }}"
+          echo "head repo: ${{ github.event.pull_request.head.repo.full_name || github.repository }}"
+          echo "length: ${#T}"
+          case "$T" in ghp_*) echo "type: classic";; github_pat_*) echo "type: fine-grained";; "") echo "type: EMPTY";; *) echo "type: other";; esac
+          [[ "$T" =~ [[:space:]] ]] && echo "contains whitespace" || true
+          curl -s -o /dev/null -w "metadata: %{http_code}\n" -H "Authorization: Bearer $T" https://npm.pkg.github.com/@zignaggo%2fadt-html-editor
+          curl -s -o /dev/null -w "tarball: %{http_code}\n" -H "Authorization: Bearer $T" https://npm.pkg.github.com/download/@zignaggo/adt-html-editor/0.1.1/fd5f63b58d725b5d0c09f9c74d6fb9f7d02e15e8
       - run: pnpm install --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.Z_PACKAGE_PAT }}
