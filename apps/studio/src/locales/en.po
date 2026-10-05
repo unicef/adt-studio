@@ -501,6 +501,9 @@ msgstr "{count} pages failed in {stageLabel}"
 msgid "{count} translations"
 msgstr "{count} translations"
 
+msgid "{count} visible {count, plural, one {element is} other {elements are}} missing from the rendered page"
+msgstr "{count} visible {count, plural, one {element is} other {elements are}} missing from the rendered page"
+
 msgid "{countSummary} this page"
 msgstr "{countSummary} this page"
 
@@ -1799,6 +1802,9 @@ msgstr "Analyzing part…"
 
 msgid "Analyzing..."
 msgstr "Analyzing..."
+
+msgid "and {more} more"
+msgstr "and {more} more"
 
 msgid "and many more blocks across the entire book"
 msgstr "and many more blocks across the entire book"
@@ -9140,6 +9146,9 @@ msgstr "Re-render is disabled for custom activities — it would discard the int
 
 msgid "Re-render section"
 msgstr "Re-render section"
+
+msgid "Re-render the section to bring them back, or hide them in the tree if they were removed on purpose."
+msgstr "Re-render the section to bring them back, or hide them in the tree if they were removed on purpose."
 
 msgid "Re-render this section"
 msgstr "Re-render this section"

@@ -72,6 +72,8 @@ export interface SectionTreeEditorProps {
    * shown with these entries plus the built-in group-merge action.
    */
   sectionMergeItems?: FooterMenuItem[]
+  /** Node to draw attention to: its row is ringed and scrolled into view. */
+  highlightNodeId?: string | null
 }
 
 export type FooterMenuItem = ActionMenuItem
@@ -98,6 +100,7 @@ export function SectionTreeEditor({
   onSplitSection,
   splitDisabledReason,
   sectionMergeItems,
+  highlightNodeId,
 }: SectionTreeEditorProps) {
   const { t } = useLingui()
   const [drag, setDrag] = useState<DragState | null>(null)
@@ -364,6 +367,7 @@ export function SectionTreeEditor({
             firstInSection={i === 0}
             defaultTextRole={defaultTextRole}
             defaultStructure={defaultStructure}
+            highlightNodeId={highlightNodeId}
           />
           <RootDropZone
             index={i + 1}
