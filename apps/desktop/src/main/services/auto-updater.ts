@@ -10,6 +10,7 @@ import {
   fetchBetaReleaseCatalog,
   fetchGitHubReleaseByVersion,
   isBetaReleaseVersion,
+  isOfferedRelease,
   type AvailableRelease,
   type BetaRelease,
 } from "./release-catalog";
@@ -30,17 +31,24 @@ export type UpdateStatus =
       releaseDate?: string;
       releaseNotes?: string;
       totalBytes?: number;
+      offered?: boolean;
     }
   | { phase: "not-available" }
   | {
       phase: "downloading";
       version: string;
+      offered?: boolean;
       percent: number;
       bytesPerSecond: number;
       transferred: number;
       total: number;
     }
-  | { phase: "downloaded"; version: string; releaseNotes?: string }
+  | {
+      phase: "downloaded";
+      version: string;
+      releaseNotes?: string;
+      offered?: boolean;
+    }
   | { phase: "installing"; version: string }
   | { phase: "error"; message: string };
 
@@ -75,6 +83,7 @@ function emitAvailableFromLastInfo(): void {
     releaseDate: lastInfo.releaseDate,
     releaseNotes: releaseNotesForInfo(lastInfo),
     totalBytes: lastInfo.files?.[0]?.size,
+    offered: isOfferedRelease(lastInfo.version, app.getVersion()),
   });
 }
 
@@ -133,6 +142,7 @@ function configure(): void {
       releaseDate: info.releaseDate,
       releaseNotes: releaseNotesForInfo(info),
       totalBytes,
+      offered: isOfferedRelease(info.version, app.getVersion()),
     });
   });
 
@@ -146,6 +156,9 @@ function configure(): void {
     emit({
       phase: "downloading",
       version: lastInfo?.version ?? "",
+      offered: lastInfo
+        ? isOfferedRelease(lastInfo.version, app.getVersion())
+        : undefined,
       percent: progress.percent,
       bytesPerSecond: progress.bytesPerSecond,
       transferred: progress.transferred,
@@ -160,6 +173,7 @@ function configure(): void {
     emit({
       phase: "downloaded",
       version: info.version,
+      offered: isOfferedRelease(info.version, app.getVersion()),
       releaseNotes,
     });
   });
@@ -187,8 +201,8 @@ export async function checkForUpdates(): Promise<UpdateStatus> {
   try {
     if (isBetaReleaseVersion(app.getVersion())) {
       betaReleases = await fetchBetaReleaseCatalog(app.getVersion());
-      const newestUpgrade = betaReleases.find(
-        (release) => release.direction === "upgrade",
+      const newestUpgrade = betaReleases.find((release) =>
+        isOfferedRelease(release.version, app.getVersion()),
       );
       if (!newestUpgrade) {
         lastInfo = null;

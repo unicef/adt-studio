@@ -10,8 +10,15 @@ import {
 } from "@/components/ui/card"
 import type { AvailableRelease } from "@/hooks/use-update-status"
 import { cn, formatBytes } from "@/lib/utils"
+import { ContributorAvatars } from "./ContributorAvatars"
 import { ReleaseCover } from "./ReleaseCover"
 import { ReleaseDirectionBadge } from "./ReleaseDirectionBadge"
+import { ReleaseKindBadge } from "./ReleaseKindBadge"
+import {
+  formatRelativeReleaseDate,
+  releaseContributors,
+  releaseDisplayTitle,
+} from "./beta-version-utils"
 import { formatVersion } from "../release-banner-utils"
 
 interface BetaVersionLibraryProps {
@@ -29,7 +36,7 @@ export function BetaVersionLibrary({
   onOpen,
   onCardRef,
 }: BetaVersionLibraryProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const [activeVersion, setActiveVersion] = useState(
     initialActiveVersion ?? releases[0]?.version,
   )
@@ -83,7 +90,8 @@ export function BetaVersionLibrary({
       className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
     >
       {releases.map((release, index) => {
-        const title = release.title ?? formatVersion(release.version)
+        const title = releaseDisplayTitle(release)
+        const version = formatVersion(release.version)
         return (
           <div key={release.version} role="listitem" className="min-w-0">
             <button
@@ -114,14 +122,24 @@ export function BetaVersionLibrary({
                     {title}
                   </CardTitle>
                   <CardDescription className="font-mono text-[11px] tabular-nums">
-                    {formatVersion(release.version)}
+                    {[
+                      title !== version && version,
+                      release.releaseDate &&
+                        formatRelativeReleaseDate(release.releaseDate, i18n.locale),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </CardDescription>
                 </CardHeader>
                 <CardFooter className="mt-auto flex-wrap gap-2 p-3 pt-0">
                   <ReleaseDirectionBadge direction={release.direction} />
+                  <ReleaseKindBadge version={release.version} />
+                  <span className="ml-auto">
+                    <ContributorAvatars logins={releaseContributors(release)} />
+                  </span>
                   {release.totalBytes != null && (
                     <span
-                      className="ml-auto font-mono text-xs tabular-nums text-accent-foreground"
+                      className="font-mono text-xs tabular-nums text-accent-foreground"
                     >
                       {formatBytes(release.totalBytes)}
                     </span>

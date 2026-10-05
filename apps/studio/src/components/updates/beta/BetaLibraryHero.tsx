@@ -2,7 +2,6 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { Search } from "lucide-react";
 import { forwardRef } from "react";
 import DotGrid from "@/components/aicanvas/dot-grid";
-import { DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -33,9 +32,9 @@ export const BetaLibraryHero = forwardRef<
       />
 
       <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
-        <DialogTitle className="text-balance text-3xl font-semibold tracking-tight md:text-4xl">
+        <h2 className="text-balance text-3xl font-semibold tracking-tight md:text-4xl">
           <Trans>Beta versions</Trans>
-        </DialogTitle>
+        </h2>
         <p className="mt-2 max-w-xl text-pretty text-sm leading-6 text-muted-foreground md:text-base">
           <Trans>Choose a beta release to install.</Trans>
         </p>
@@ -50,7 +49,7 @@ export const BetaLibraryHero = forwardRef<
             type="search"
             value={value}
             onChange={(event) => onValueChange(event.target.value)}
-            placeholder={t`Search by title, version, or description…`}
+            placeholder={t`Search by title, version, contributor, or PR…`}
             autoComplete="off"
             spellCheck={false}
             prependIcon={<Search className="size-4 ml-2" aria-hidden="true" />}
