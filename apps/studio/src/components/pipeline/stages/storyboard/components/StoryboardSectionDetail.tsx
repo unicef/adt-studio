@@ -40,6 +40,7 @@ import {
   deleteNode,
   editLeafText,
   findNode,
+  findNodePath,
   replaceNodeId,
   setLeafRole,
   toggleNodePruned,
@@ -2282,7 +2283,10 @@ export function StoryboardSectionDetail({
     const { dataId, tagName } = selectedElement
     const tag = tagName?.toLowerCase()
 
-    const leaf = section ? findNode(section.nodes, dataId) : null
+    const leafPath = section ? findNodePath(section.nodes, dataId) : null
+    const leaf = leafPath ? leafPath[leafPath.length - 1] : null
+    // A node under a pruned container is hidden whatever its own flag says.
+    const ancestorPruned = leafPath?.slice(0, -1).some((n) => n.isPruned) ?? false
     const isImage =
       tag === "img" ||
       leaf?.role === "image" ||
@@ -2295,7 +2299,8 @@ export function StoryboardSectionDetail({
       isContainer,
       tagName: tag,
       textType: leaf && !isImage ? leaf.role : undefined,
-      isPruned: leaf?.isPruned ?? false,
+      isPruned: (leaf?.isPruned ?? false) || ancestorPruned,
+      ancestorPruned,
       hasTreeNode: leaf != null,
       imageSrc: isImage ? `${BASE_URL}/books/${bookLabel}/images/${dataId}` : undefined,
     }
@@ -3238,9 +3243,12 @@ export function StoryboardSectionDetail({
                 // (inherited prune greys and strips their contents at save).
                 // Decoration containers the renderer invented have no tree
                 // node to hold prune state, so they get no prune toggle —
-                // Delete is their removal path.
+                // Delete is their removal path. A node hidden by its pruned
+                // container gets none either: its own flag changes nothing.
                 onTogglePrune:
-                  storyboardRunning || (selectedInfo.isContainer && !selectedInfo.hasTreeNode)
+                  storyboardRunning ||
+                  selectedInfo.ancestorPruned ||
+                  (selectedInfo.isContainer && !selectedInfo.hasTreeNode)
                     ? undefined
                     : handleToolbarPrune,
                 onCrop:

@@ -4575,6 +4575,9 @@ msgstr "Height"
 msgid "Help"
 msgstr "Help"
 
+msgid "Hidden because its group is hidden"
+msgstr "Hidden because its group is hidden"
+
 msgid "Hidden from screen readers, no caption needed."
 msgstr "Hidden from screen readers, no caption needed."
 

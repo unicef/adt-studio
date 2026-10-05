@@ -386,9 +386,17 @@ export function mergeContainerWithPrevious(
   const node = loc.parentChildren[loc.index]
   const prev = loc.parentChildren[loc.index - 1]
   if (node.role || prev.role) return nodes
+  // When the two containers differ in prune state, push each side's state down
+  // onto its own children so no leaf silently flips visibility (#596).
+  const pruneDiffers = node.isPruned !== prev.isPruned
+  const childrenOf = (c: ContentNodeData) =>
+    (c.children ?? []).map((child) =>
+      pruneDiffers && c.isPruned ? { ...child, isPruned: true } : child
+    )
   const merged: ContentNodeData = {
     ...prev,
-    children: [...(prev.children ?? []), ...(node.children ?? [])],
+    isPruned: pruneDiffers ? false : prev.isPruned,
+    children: [...childrenOf(prev), ...childrenOf(node)],
   }
   const replaceIn = (list: ContentNodeData[]): ContentNodeData[] => {
     const next = [...list]

@@ -4,6 +4,7 @@ import {
   addContainer,
   addLeaf,
   cloneNodeWithNewIds,
+  collectPrunedLeafIds,
   deleteNode,
   duplicateNode,
   editLeafText,
@@ -420,6 +421,24 @@ describe("mergeContainerWithPrevious", () => {
     expect(mergeContainerWithPrevious(tree, "t")).toBe(tree)
     const first = sample()
     expect(mergeContainerWithPrevious(first, "group_a")).toBe(first)
+  })
+
+  // #596: the merged container used to take the previous sibling's prune
+  // state, silently hiding (or showing) the other container's leaves.
+  it.each([
+    { label: "visible into hidden", prevPruned: true, nodePruned: false },
+    { label: "hidden into visible", prevPruned: false, nodePruned: true },
+    { label: "both hidden", prevPruned: true, nodePruned: true },
+    { label: "both visible", prevPruned: false, nodePruned: false },
+  ])("keeps every leaf's effective visibility when merging $label", ({ prevPruned, nodePruned }) => {
+    const tree = [
+      { ...container("g1", "group", [leaf("a"), container("inner", "group", [leaf("b")])]), isPruned: prevPruned },
+      { ...container("g2", "group", [leaf("c"), { ...leaf("d"), isPruned: true }]), isPruned: nodePruned },
+    ]
+    const before = collectPrunedLeafIds(tree).sort()
+    const after = mergeContainerWithPrevious(tree, "g2")
+    expect(after.map((n) => n.nodeId)).toEqual(["g1"])
+    expect(collectPrunedLeafIds(after).sort()).toEqual(before)
   })
 })
 
