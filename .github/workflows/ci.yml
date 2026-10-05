@@ -52,6 +52,8 @@ jobs:
           cache: pnpm
           registry-url: https://npm.pkg.github.com
           scope: '@zignaggo'
+      - name: Configure .npmrc for JSR registry
+        run: echo "@jsr:registry=https://npm.jsr.io/" >> "$NPM_CONFIG_USERCONFIG"
       - run: pnpm install --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.Z_PACKAGE_PAT }}
