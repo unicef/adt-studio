@@ -8,9 +8,12 @@ import type {
   Quiz,
 } from "@adt/types"
 import { quizLLMSchema, DEFAULT_LLM_MAX_RETRIES } from "@adt/types"
+import type { Storage } from "@adt/storage"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import { processWithConcurrency } from "./concurrency.js"
 import { buildLanguageContext, normalizeLocale } from "./language-context.js"
+import { getSemanticSectioning } from "./render-sectioning.js"
+import { resolveReadingOrder, readingOrderPageIds } from "./reading-order.js"
 
 export interface QuizConfig {
   language: string
@@ -110,6 +113,70 @@ export function isContentPage(
     if (quizSectionTypes === undefined) return true
     return quizSectionTypes.includes(s.sectionType)
   })
+}
+
+export interface QuizPageGathering {
+  /** Pages eligible for quiz generation, in reading order. */
+  quizPages: QuizPageInput[]
+  /** Every source page the book has — the denominator worth reporting. */
+  bookPageCount: number
+  /** Pages the reader actually meets: unpruned, with something rendered. */
+  inReadingOrder: number
+  /** In the reading order, but with no semantic sectioning tree to batch on. */
+  missingSectioning: number
+}
+
+/**
+ * Gather the pages a quiz run batches over, in READING order.
+ *
+ * Source-PDF order is the wrong list: quizzes are placed every N pages, so the
+ * pages a quiz covers — and where it lands — have to follow the sequence the
+ * reader meets. Batching `storage.getPages()` after a reorder groups pages that
+ * are no longer adjacent and anchors each quiz to an arbitrary position.
+ *
+ * Lives here, shared by both quiz runners (`stage-runner`'s `runQuizzesStep` and
+ * `pipeline-dag`'s `quiz-generation` executor), because it was previously
+ * written out in both and in the test that was supposed to catch them drifting
+ * apart — so nothing actually pinned the behaviour the duplication was guarding.
+ *
+ * Note the counters. A page in the reading order has rendered content by
+ * construction, so "missing web-rendering" is not a thing that can happen here
+ * and is not reported; what can happen is a page with a render tree but no
+ * *semantic* one, which is the fixed-layout case the section-type filter needs.
+ * `bookPageCount` is carried separately so callers can say "3 of 120 pages" —
+ * `quizPages.length / inReadingOrder` would read "0 of 0" for a book whose
+ * storyboard has never run, which is the one case the diagnostic exists for.
+ */
+export function gatherQuizPageInputs(storage: Storage): QuizPageGathering {
+  const pageIds = readingOrderPageIds(resolveReadingOrder(storage, { includeQuizzes: false }))
+  const quizPages: QuizPageInput[] = []
+  let missingSectioning = 0
+
+  for (const pageId of pageIds) {
+    const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
+    // Filter by the SEMANTIC sectioning (real types like `text_and_single_image`),
+    // not the render sectioning — in fixed-layout the render tree is positioned
+    // and its only section type is `fixed-layout-page`, which never matches
+    // `quiz_section_types`, so no page would qualify and no quiz would generate.
+    const sectioning = getSemanticSectioning(storage, pageId)
+    if (!sectioning) {
+      missingSectioning++
+      continue
+    }
+    if (!renderingRow) continue
+    quizPages.push({
+      pageId,
+      rendering: renderingRow.data as WebRenderingOutput,
+      sectioning,
+    })
+  }
+
+  return {
+    quizPages,
+    bookPageCount: storage.getPages().length,
+    inReadingOrder: pageIds.length,
+    missingSectioning,
+  }
 }
 
 /**

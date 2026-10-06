@@ -128,8 +128,13 @@ vi.mock("@/hooks/use-quizzes", () => ({
   useQuizzes: () => ({ data: null }),
 }))
 
-vi.mock("@/routes/books.$label", () => ({
-  useSectionNav: () => ({ skipNextResetRef: { current: false } }),
+vi.mock("@/hooks/use-section-nav", () => ({
+  useSectionNav: () => ({
+    sectionIndex: 0,
+    setSectionIndex: vi.fn(),
+    selectedSectionId: null,
+    selectSlide: vi.fn(),
+  }),
 }))
 
 beforeEach(() => {

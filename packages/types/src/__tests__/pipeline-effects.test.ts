@@ -9,6 +9,7 @@ import {
   getCacheResourcesForStageOutput,
   getCacheResourcesForStageClear,
 } from "../pipeline-effects.js"
+import { STAGE_ORDER } from "../pipeline.js"
 
 describe("pipeline effects", () => {
   it("keeps image-set reset nodes, steps, and warning stages aligned", () => {
@@ -81,5 +82,17 @@ describe("pipeline effects", () => {
 
   it("maps metadata node to book/list resources", () => {
     expect(getCacheResourcesForNode("metadata")).toEqual(["books", "book"])
+  })
+
+  it("never clears the reading order when a stage is re-run", () => {
+    // `reading-order` holds the user's own arrangement of the book, not stage
+    // output. Adding it to a stage's output nodes would make every storyboard
+    // re-run delete it with no way back — the single most destructive mistake
+    // available in this area, and an easy one to make by pattern-matching on
+    // the other node names.
+    for (const stage of STAGE_ORDER) {
+      expect(getStageClearNodes(stage)).not.toContain("reading-order")
+      expect(getStageRerunClearNodes(stage)).not.toContain("reading-order")
+    }
   })
 })

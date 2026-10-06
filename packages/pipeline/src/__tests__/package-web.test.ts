@@ -5,6 +5,7 @@ import path from "node:path"
 import { runInNewContext } from "node:vm"
 import { JSDOM } from "jsdom"
 import type { Storage, PageData } from "@adt/storage"
+import { createMockStorage, createWebAssets } from "./helpers/mock-storage.js"
 import {
   computePackagingInputHash,
   buildGlossaryJson,
@@ -34,36 +35,6 @@ function readFirstPage(dir: string): string {
 }
 import { deriveQuizPalette } from "../quiz-palette.js"
 
-function createMockStorage(
-  pages: PageData[],
-  nodeData: Record<string, Record<string, unknown>>,
-): Storage {
-  return {
-    getLatestNodeData(node: string, itemId: string) {
-      const data = nodeData[node]?.[itemId]
-      return data !== undefined ? { version: 1, data } : null
-    },
-    getPages: () => pages,
-    getPageImageBase64: () => "",
-    getImageBase64: () => "",
-    getPageImages: () => [],
-    putNodeData: () => 1,
-    clearExtractedData: () => {},
-    putExtractedPage: () => {},
-    appendLlmLog: () => {},
-    getSignLanguageVideos: () => [],
-    getSignLanguageVideoPath: () => null,
-    getNodeVersionFingerprint: (excludeNodes: string[] = []) =>
-      Object.entries(nodeData)
-        .filter(([node]) => !excludeNodes.includes(node))
-        .flatMap(([node, items]) =>
-          Object.keys(items).map((itemId) => ({ node, itemId, version: 1 })),
-        )
-        .sort((a, b) => a.node.localeCompare(b.node) || a.itemId.localeCompare(b.itemId)),
-    close: () => {},
-  }
-}
-
 function readyCoreTtsCatalog(...ids: string[]) {
   return {
     language: "en",
@@ -84,26 +55,6 @@ function readyCoreTtsCatalog(...ids: string[]) {
     })),
     generatedAt: "2026-01-01T00:00:00.000Z",
   }
-}
-
-function createWebAssets(webAssetsDir: string): void {
-  fs.mkdirSync(webAssetsDir, { recursive: true })
-  // Pre-built runtime bundles. In production these come from
-  // apps/adt-runtime/build.config.mjs; in tests we write them directly so
-  // buildJsBundle's "copy from webAssetsDir" path is exercised without
-  // pulling in the real React build.
-  const bundleStub = 'window.__ADT_BUNDLE_TEST__ = "ok";\n'
-  fs.writeFileSync(path.join(webAssetsDir, "base.bundle.min.js"), bundleStub)
-  fs.writeFileSync(path.join(webAssetsDir, "base.bundle.local.js"), bundleStub)
-  fs.writeFileSync(
-    path.join(webAssetsDir, "base.bundle.min.js.map"),
-    '{"version":3,"sources":["base.tsx"],"mappings":""}',
-  )
-  fs.writeFileSync(path.join(webAssetsDir, "fonts.css"), "body { font-family: serif; }")
-  fs.writeFileSync(
-    path.join(webAssetsDir, "tailwind_css.css"),
-    "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n",
-  )
 }
 
 function createMinimalStorage(): Storage {
@@ -2383,6 +2334,111 @@ describe("packageAdtWeb", () => {
 
     expect(videosJson).toEqual({ pg001_sec002: "sl_pg001_sec002.mp4" })
     expect(Object.keys(videosJson).some((k) => k.startsWith("video-"))).toBe(false)
+  })
+
+  it("packages in a stored reading order without renaming anything", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const pages: PageData[] = [
+      { pageId: "pg001", pageNumber: 1, text: "Page one" },
+      { pageId: "pg002", pageNumber: 2, text: "Page two" },
+    ]
+    const nodeData: Record<string, Record<string, unknown>> = {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>1a</p>" },
+          ],
+        },
+        pg002: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>2a</p>" },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+        pg002: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg002_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 2,
+              isPruned: false,
+            },
+          ],
+        },
+      },
+      // The reader sees page two first.
+      "reading-order": {
+        book: {
+          schemaVersion: 1,
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          items: [
+            { kind: "section", id: "pg002_sec001" },
+            { kind: "section", id: "pg001_sec001" },
+          ],
+        },
+      },
+    }
+
+    await packageAdtWeb(createMockStorage(pages, nodeData), {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    const adtDir = path.join(bookDir, "adt")
+    const pagesJson = JSON.parse(
+      fs.readFileSync(path.join(adtDir, "content", "pages.json"), "utf-8"),
+    ) as Array<{ section_id: string; href: string; page_number?: number }>
+
+    // The sequence follows the stored order...
+    expect(pagesJson.map((p) => p.section_id)).toEqual(["pg002_sec001", "pg001_sec001"])
+    // ...and nothing is renamed for its new position: each page keeps the file
+    // name its id gives it, and its source page number is untouched.
+    expect(pagesJson).toEqual([
+      { section_id: "pg002_sec001", href: "pg002_sec001.html", page_number: 2 },
+      { section_id: "pg001_sec001", href: "pg001_sec001.html", page_number: 1 },
+    ])
+    expect(fs.existsSync(path.join(adtDir, "pg001_sec001.html"))).toBe(true)
+    expect(fs.existsSync(path.join(adtDir, "pg002_sec001.html"))).toBe(true)
+
+    // The entry point follows the order rather than a fixed page.
+    expect(fs.readFileSync(path.join(adtDir, "index.html"), "utf-8")).toContain(
+      "pg002_sec001.html",
+    )
+
+    // The dock's "N of M" counter reflects the new sequence.
+    expect(fs.readFileSync(path.join(adtDir, "pg002_sec001.html"), "utf-8")).toContain(
+      '<meta name="page-section-id" content="1" />',
+    )
+    expect(fs.readFileSync(path.join(adtDir, "pg001_sec001.html"), "utf-8")).toContain(
+      '<meta name="page-section-id" content="2" />',
+    )
   })
 
   it("writes pages.json in exactly the resolver's reading order", async () => {

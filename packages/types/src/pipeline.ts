@@ -221,6 +221,32 @@ export const ALL_STEP_NAMES: ReadonlySet<StepName> = new Set(
   PIPELINE.flatMap((stage) => stage.steps.map((step) => step.name))
 )
 
+/**
+ * Steps that change which slots the reading order is made of, and so must not
+ * run while the user is rearranging the book.
+ *
+ * `extract` rebuilds the pages the slots hang off, `page-sectioning` decides
+ * which sections exist, `web-rendering` decides which of them reach the reader,
+ * and `quiz-generation` rewrites the quiz slots wholesale. Every other step —
+ * captions, glossary, translation, speech, packaging — only adds material to
+ * pages that already have their place, and cannot move anything.
+ *
+ * Shared by the API's save guard (`assertNoActivePipelineRun`) and, via
+ * `blockingReadingOrderStep`, by both UI surfaces that grey out the controls —
+ * so the two cannot disagree about when rearranging is allowed. They have twice
+ * drifted apart: first the server refused during *any* running step while the
+ * sidebar only greyed out for the storyboard, so a captions run failed the save
+ * silently; then the sidebar still gated on its own stage, so a quiz run left
+ * the controls live and refused the save afterwards. Read this set on both ends
+ * rather than inferring the answer from a stage's state.
+ */
+export const READING_ORDER_BLOCKING_STEPS: ReadonlySet<StepName> = new Set<StepName>([
+  "extract",
+  "page-sectioning",
+  "web-rendering",
+  "quiz-generation",
+])
+
 /** Pipeline steps grouped by the task-level model default they inherit. */
 const ALL_STEPS = PIPELINE.flatMap((stage) => stage.steps)
 export const STEPS_BY_DEFAULT_MODEL_KIND: Record<ModelDefaultKind, readonly StepDef[]> = {

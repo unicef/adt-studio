@@ -4,7 +4,13 @@ import path from "node:path"
 import os from "node:os"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { formatSectionId, parseVoiceSlotEntryId } from "@adt/types"
+import {
+  formatSectionId,
+  parseVoiceSlotEntryId,
+  READING_ORDER_NODE,
+  READING_ORDER_ITEM_ID,
+} from "@adt/types"
+import { readSectioningGeneration } from "@adt/pipeline"
 import { retireSectionIdsForClearedSectioning, makeBeforeRun } from "./stages.js"
 
 /**
@@ -538,5 +544,88 @@ describe("retireSectionIdsForClearedSectioning", () => {
 
     expect(retired.videos).toBe(1)
     expect(sectionIdsByVideo().get("vid-1")).toBeNull()
+  })
+
+  /**
+   * The counter that lets a stored reading order say which section-id space it
+   * was written against. It has to move on exactly the reruns that re-mint
+   * those ids — no more, or an ordinary rerun throws away a valid arrangement;
+   * no less, or a rebuilt book silently adopts one that names other content.
+   */
+  describe("sectioning generation", () => {
+    const generation = () => withStorage((storage) => readSectioningGeneration(storage))
+
+    it("starts at zero for a book that has never been rebuilt", () => {
+      seedSectioning([1, 3])
+      expect(generation()).toBe(0)
+    })
+
+    it("bumps when a rerun clears the sectioning tree", () => {
+      seedSectioning([1, 3])
+      makeBeforeRun(label, "sectioning", "speech", tmpDir)()
+      expect(generation()).toBe(1)
+    })
+
+    it("bumps on a book with no audio or video at stake", () => {
+      // `retireSectionIdsForClearedSectioning` short-circuits when there is
+      // nothing pinned to retire, so hanging the bump off its result would skip
+      // it on most books — the ids are re-minted either way.
+      seedSectioning([1, 3])
+      expect(
+        withStorage((storage) => storage.getSignLanguageVideos().length)
+      ).toBe(0)
+
+      makeBeforeRun(label, "sectioning", "speech", tmpDir)()
+
+      expect(generation()).toBe(1)
+    })
+
+    it("does not bump on a rerun that leaves the sections alone", () => {
+      seedSectioning([1, 3])
+      makeBeforeRun(label, "storyboard", "speech", tmpDir)()
+      expect(generation()).toBe(0)
+    })
+
+    it("only bumps once per run, however often the callback fires", () => {
+      seedSectioning([1, 3])
+      const run = makeBeforeRun(label, "sectioning", "speech", tmpDir)
+      run()
+      run()
+      run()
+      expect(generation()).toBe(1)
+    })
+
+    it("accumulates across successive rebuilds", () => {
+      seedSectioning([1, 3])
+      makeBeforeRun(label, "sectioning", "speech", tmpDir)()
+      seedSectioning([1, 2])
+      makeBeforeRun(label, "sectioning", "speech", tmpDir)()
+      expect(generation()).toBe(2)
+    })
+
+    it("restarts at zero after a re-extract, which clears the order too", () => {
+      // `clearExtractedData` deletes the counter along with everything else.
+      // That is correct rather than a leak: it also deletes the reading order,
+      // so no arrangement survives that could be stale against generation 0.
+      seedSectioning([1, 3])
+      withStorage((storage) => {
+        storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+          schemaVersion: 1,
+          items: [{ kind: "section", id: formatSectionId(pageId, 3) }],
+          updatedAt: new Date().toISOString(),
+        })
+      })
+      makeBeforeRun(label, "sectioning", "speech", tmpDir)()
+      expect(generation()).toBe(1)
+
+      makeBeforeRun(label, "extract", "speech", tmpDir)()
+
+      expect(generation()).toBe(0)
+      expect(
+        withStorage((storage) =>
+          storage.getLatestNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID)
+        )
+      ).toBeNull()
+    })
   })
 })

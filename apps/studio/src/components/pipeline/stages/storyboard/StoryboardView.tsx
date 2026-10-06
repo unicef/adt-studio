@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useCallback, useState, type ReactNode } from "react"
 import { ArrowLeft, ArrowRight, LayoutGrid, ListTree, RotateCcw, Table2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePages, usePage } from "@/hooks/use-pages"
@@ -12,11 +12,13 @@ import { StoryboardSectionDetail } from "./components/StoryboardSectionDetail"
 import { StoryboardQuizDetail } from "./components/StoryboardQuizDetail"
 import { SectioningOverview } from "./components/SectioningOverview"
 import { BookOutlineAudit } from "./components/BookOutlineAudit"
-import { useSectionNav } from "@/routes/books.$label"
+import { useSectionNav } from "@/hooks/use-section-nav"
+import { useSlideSequence } from "@/hooks/use-slide-sequence"
+import { findSlideIndex, resolveStructuralTarget, stepSlide } from "@/lib/slide-sequence"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { useHasUnsavedChanges } from "../../components/floating-save"
-import { parseQuizRouteId } from "@/lib/quiz-route"
+import { quizRouteId, parseQuizRouteId } from "@/lib/quiz-route"
 
 
 export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
@@ -56,7 +58,11 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   }, [hasStructuredTextProvider, sectioningReady, storyboardRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
-  const { sectionIndex, setSectionIndex, skipNextResetRef } = useSectionNav()
+  const { selectedSectionId, selectSlide } = useSectionNav()
+  // One sequence for the sidebar and for navigation. The arrows used to walk
+  // `pages` — source-PDF order — so in a reordered book they moved somewhere
+  // other than the row highlighted beside them, and skipped quizzes entirely.
+  const { slides } = useSlideSequence(bookLabel)
   // When navigating backward across page boundary, resolve to last section
   const pendingLastSection = useRef(false)
   // Guard: prevent silent navigation while AI image is generating
@@ -73,13 +79,32 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     : null
   const isQuizRoute = selectedQuizId != null
 
-  // Auto-select first page when no page is selected
+  // Auto-select a page when the URL names none.
+  //
+  // A link can carry `?section=` without a page — that is the shape of a shared
+  // link to a slide. Land on the page that section belongs to rather than on
+  // page one, which would silently drop what the link was pointing at.
   useEffect(() => {
-    if (showRunCard) return
-    if (!selectedPageIdProp && pageList.length > 0) {
-      setSelectedPageId(pageList[0].pageId)
+    if (showRunCard || selectedPageIdProp || pageList.length === 0) return
+    const named =
+      selectedSectionId &&
+      slides.find(
+        (slide) => slide.kind === "section" && slide.section.sectionId === selectedSectionId,
+      )
+    if (named) {
+      selectSlide({ pageId: named.page.pageId, sectionId: selectedSectionId }, { replace: true })
+      return
     }
-  }, [selectedPageIdProp, pageList.length, showRunCard, setSelectedPageId])
+    setSelectedPageId(pageList[0].pageId)
+  }, [
+    selectedPageIdProp,
+    pageList,
+    showRunCard,
+    setSelectedPageId,
+    selectedSectionId,
+    slides,
+    selectSlide,
+  ])
 
   const selectedPageId = selectedPageIdProp ?? null
   const currentPageIndex =
@@ -95,7 +120,23 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     !isQuizRoute && selectedPageId ? selectedPageId : "",
   )
 
-  const sectionCount = page?.sectioningTree?.sections.length ?? 0
+  // Memoised for identity: the `?? []` would otherwise be a new array on every
+  // render while the page is loading, re-running the effects keyed on it.
+  const sections = useMemo(
+    () => page?.sectioningTree?.sections ?? [],
+    [page?.sectioningTree],
+  )
+  const sectionCount = sections.length
+
+  // The URL is the authority for which slide is open. Resolving it here rather
+  // than in the layout keeps the layout from having to fetch page detail on
+  // every stage, and by id rather than by index so the selection survives a
+  // reload, a Back, and an edit that renumbers the page.
+  const sectionIndex = useMemo(() => {
+    if (!selectedSectionId) return 0
+    const found = sections.findIndex((s) => s.sectionId === selectedSectionId)
+    return found === -1 ? 0 : found
+  }, [sections, selectedSectionId])
 
   const confirmUnsavedNavigation = useCallback(
     () =>
@@ -104,46 +145,141 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     [hasUnsavedChanges, t],
   )
 
+  /**
+   * A structural edit names the section to open by its index in the tree the
+   * edit produced — which this component has not received yet when the call
+   * comes in. Resolving that index against the sections still in hand would
+   * name the wrong section, or none at all: cloning the last section of a page
+   * asks for an index the old array does not have.
+   *
+   * So the index is parked until the page data actually changes, and resolved
+   * to an id then.
+   */
+  const [pendingSection, setPendingSection] = useState<
+    { index: number; before: readonly unknown[] } | null
+  >(null)
+
   const navigateToSection = useCallback(
-    (index: number) => {
-      if (index === sectionIndex || !confirmUnsavedNavigation()) return
-      setSectionIndex(index)
+    (
+      index: number,
+      options?: { replace?: boolean; afterStructuralEdit?: boolean },
+    ) => {
+      if (!confirmUnsavedNavigation()) return
+      if (options?.afterStructuralEdit) {
+        setPendingSection({ index, before: sections })
+        return
+      }
+      const target = sections[index]
+      if (!target || index === sectionIndex) return
+      selectSlide({ sectionId: target.sectionId }, options)
     },
-    [confirmUnsavedNavigation, sectionIndex, setSectionIndex],
+    [confirmUnsavedNavigation, sectionIndex, sections, selectSlide],
   )
 
-  // Resolve pending "last section" once page data loads
+  useEffect(() => {
+    if (!pendingSection) return
+    const resolved = resolveStructuralTarget(
+      sections,
+      pendingSection.before,
+      pendingSection.index,
+    )
+    if (resolved.wait) return
+    setPendingSection(null)
+    // A consequence of an edit rather than a step the user took, so it corrects
+    // the current history entry instead of adding one.
+    if (resolved.sectionId) selectSlide({ sectionId: resolved.sectionId }, { replace: true })
+  }, [pendingSection, sections, selectSlide])
+
+  // Resolve pending "last section" once page data loads. Still needed: stepping
+  // backwards across a page boundary has to name a section of a page whose
+  // detail is not loaded yet, so the id is only knowable after the move.
   useEffect(() => {
     if (pendingLastSection.current && sectionCount > 0) {
-      setSectionIndex(sectionCount - 1)
+      const last = sections[sectionCount - 1]
       pendingLastSection.current = false
+      // A correction to the landing slide, not a step the user took.
+      if (last) selectSlide({ sectionId: last.sectionId }, { replace: true })
     }
-  }, [sectionCount])
+  }, [sectionCount, sections, selectSlide])
 
-  // Clamp section index when data changes
+  // A section named by the URL that the page no longer has falls back to the
+  // first one; say so in the URL too, so a reload does not keep the dead id.
   useEffect(() => {
-    if (sectionCount > 0 && sectionIndex >= sectionCount && !pendingLastSection.current) {
-      setSectionIndex(sectionCount - 1)
-    }
-  }, [sectionCount, sectionIndex])
+    if (sectionCount === 0 || !selectedSectionId || pendingLastSection.current) return
+    if (sections.some((s) => s.sectionId === selectedSectionId)) return
+    selectSlide({ sectionId: sections[0].sectionId }, { replace: true })
+  }, [sectionCount, sections, selectedSectionId, selectSlide])
 
-  // Navigation
-  const canGoPrev = sectionIndex > 0 || !!prevPageId
-  const canGoNext = sectionIndex < sectionCount - 1 || !!nextPageId
+  // Navigation — one step through the book's slide sequence, which is the same
+  // list the sidebar draws. A quiz is a slide like any other, so the arrows now
+  // step into and out of one instead of going dead on it.
+  //
+  // The sequence is draft-aware, so mid-rearrangement the arrows follow the
+  // order on screen rather than the one last saved.
+  const currentSlideIndex = useMemo(
+    () =>
+      findSlideIndex(slides, {
+        quizId: isQuizRoute ? selectedQuizId : null,
+        sectionId: isQuizRoute ? null : sections[sectionIndex]?.sectionId,
+      }),
+    [slides, isQuizRoute, selectedQuizId, sections, sectionIndex],
+  )
+
+  // Until the sequence has loaded, fall back to the page-level walk so the
+  // arrows are not dead on first paint.
+  const sequenceReady = slides.length > 0 && currentSlideIndex !== -1
+  const canGoPrev = sequenceReady
+    ? currentSlideIndex > 0
+    : sectionIndex > 0 || !!prevPageId
+  const canGoNext = sequenceReady
+    ? currentSlideIndex < slides.length - 1
+    : sectionIndex < sectionCount - 1 || !!nextPageId
+
+  const confirmInterrupt = () =>
+    !isGeneratingRef.current ||
+    window.confirm(t`An AI image is being generated. Cancel it and navigate?`)
+
+  /** Open the slide `delta` steps away in the book's order. */
+  const goToSlide = (delta: -1 | 1) => {
+    const target = stepSlide(slides, currentSlideIndex, delta)
+    if (!target) return
+    if (!confirmUnsavedNavigation()) return
+    if (target.kind === "quiz") {
+      // Through `selectSlide` rather than `setSelectedPageId`, which replaces
+      // the history entry: a step onto a quiz is a step like any other, and
+      // replacing would make Back skip the slide it was taken from.
+      selectSlide({ pageId: quizRouteId(target.quizId), sectionId: null })
+      return
+    }
+    // A section of another page needs both halves of the address; one of this
+    // page needs only the section, so the page is not re-navigated.
+    selectSlide(
+      target.pageId === selectedPageId
+        ? { sectionId: target.sectionId }
+        : { pageId: target.pageId, sectionId: target.sectionId },
+    )
+  }
 
   const goPrev = () => {
-    if (isGeneratingRef.current && !window.confirm(t`An AI image is being generated. Cancel it and navigate?`)) return
+    if (!confirmInterrupt()) return
+    if (sequenceReady) {
+      goToSlide(-1)
+      return
+    }
     if (sectionIndex > 0) {
       navigateToSection(sectionIndex - 1)
     } else if (prevPageId) {
       pendingLastSection.current = true
-      skipNextResetRef.current = true
       setSelectedPageId(prevPageId)
     }
   }
 
   const goNext = () => {
-    if (isGeneratingRef.current && !window.confirm(t`An AI image is being generated. Cancel it and navigate?`)) return
+    if (!confirmInterrupt()) return
+    if (sequenceReady) {
+      goToSlide(1)
+      return
+    }
     if (sectionIndex < sectionCount - 1) {
       navigateToSection(sectionIndex + 1)
     } else if (nextPageId) {
@@ -170,7 +306,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
               key={i}
               type="button"
               onClick={() => {
-                if (isGeneratingRef.current && !window.confirm(t`An AI image is being generated. Cancel it and navigate?`)) return
+                if (!confirmInterrupt()) return
                 navigateToSection(i)
               }}
               className={`flex items-center justify-center min-w-[20px] h-5 px-1 rounded text-[10px] font-medium transition-colors ${
@@ -337,22 +473,32 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     }
   }, [selectedPageId, selectedPageSummary?.pageNumber, sectionIndex, sectionCount, canGoPrev, canGoNext, prevPageId, nextPageId, setExtra, setOnLabelClick, page?.sectioningTree, showRunCard, overviewMode, outlineMode, isQuizRoute])
 
-  // Keyboard arrow navigation
+  // Keyboard arrow navigation.
+  //
+  // The handlers are reached through a ref rather than closed over: they now
+  // read the slide sequence, which arrives after first paint, and a dependency
+  // list that missed it would leave the keyboard walking source-PDF order while
+  // the toolbar arrows walked the book's. Re-subscribing on every change would
+  // work too, but this keeps one listener for the life of the view.
+  const navRef = useRef({ goPrev, goNext, canGoPrev, canGoNext })
+  navRef.current = { goPrev, goNext, canGoPrev, canGoNext }
+
   useEffect(() => {
     if (!selectedPageId || showRunCard) return
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't hijack arrows when user is typing in an input, textarea, or contenteditable
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return
-      if (e.key === "ArrowLeft" && canGoPrev) {
-        goPrev()
-      } else if (e.key === "ArrowRight" && canGoNext) {
-        goNext()
+      const nav = navRef.current
+      if (e.key === "ArrowLeft" && nav.canGoPrev) {
+        nav.goPrev()
+      } else if (e.key === "ArrowRight" && nav.canGoNext) {
+        nav.goNext()
       }
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [selectedPageId, sectionIndex, sectionCount, canGoPrev, canGoNext, prevPageId, nextPageId, showRunCard])
+  }, [selectedPageId, showRunCard])
 
   // Sectioning edits mark the storyboard stale without touching the renderings,
   // so the editor stays open on pages that are still perfectly editable — but
@@ -422,10 +568,9 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       <SectioningOverview
         bookLabel={bookLabel}
         pages={pageList}
-        onNavigateToSection={(pageId, sectionIdx) => {
+        onNavigateToSection={(pageId, _sectionIdx, sectionId) => {
           setOverviewMode(false)
-          setSelectedPageId(pageId)
-          setSectionIndex(sectionIdx)
+          selectSlide({ pageId, sectionId })
         }}
       />
     )
@@ -437,8 +582,8 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
         bookLabel={bookLabel}
         onNavigateToPage={(pageId) => {
           setOutlineMode(false)
-          setSectionIndex(0)
-          setSelectedPageId(pageId)
+          // No section named: the view lands on the page's first one.
+          selectSlide({ pageId })
         }}
       />
     )
@@ -450,9 +595,9 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       <StoryboardQuizDetail
         bookLabel={bookLabel}
         quizId={selectedQuizId}
-        navigationArrows={
-          <div className="flex gap-1">{overviewToggle}{outlineToggle}</div>
-        }
+        // A quiz is a slide in the sequence, so it steps forwards and
+        // backwards like any other rather than being a dead end.
+        navigationArrows={navigationArrows}
       />
     )
   }

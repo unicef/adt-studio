@@ -14,6 +14,8 @@ import {
 } from "@adt/types"
 import { openBookDb, createBookStorage, readCurrentNodeRow, type Storage } from "@adt/storage"
 import {
+  resolveReadingOrder,
+  readingOrderPageIds,
   buildQuizGenerationConfig,
   generateQuiz,
   saveQuizOutput,
@@ -52,6 +54,58 @@ function assertQuizzesIdle(storage: Storage): void {
   if (storage.getStepRuns().some((run) => run.step === "quiz-generation" && run.status === "running")) {
     throw new HTTPException(409, { message: "Quiz generation is currently running. Wait for it to finish before editing quizzes." })
   }
+}
+
+/**
+ * Order the book's quiz set around a hand-added quiz.
+ *
+ * A position can hold several quizzes shown one after another: `"after"`
+ * appends the newcomer behind any already there, `"replace"` drops them first.
+ * The set is then ordered by where the reader *meets* each quiz's anchor page,
+ * not by that page's source number — a reordered book puts the two in different
+ * orders, and batching or placing by source order groups non-adjacent pages and
+ * spaces the quizzes unevenly.
+ *
+ * Ordering only. Identity is the caller's job, and the sequence matters: the
+ * stored set must already be id-resolved (`withResolvedQuizIds`) *before* it
+ * reaches this function. A quiz predating `quizId` derives its id — and so its
+ * `${quizId}_que` catalog entries, their translations and their generated audio
+ * — from its position in the stored array, so stamping after this sort would
+ * hand such a quiz whichever id used to belong to the quiz now in its place.
+ * `saveQuizOutput(..., "insert")` allocates the newcomer's id and renumbers
+ * `quizIndex` afterwards.
+ *
+ * Extracted from the route so the ordering is testable without an LLM call.
+ */
+export function orderQuizzesForInsert(opts: {
+  /** The stored set, already id-resolved. */
+  existing: readonly Quiz[]
+  newQuiz: Quiz
+  placement: "replace" | "after"
+  afterPageId: string
+  /** pageId → position in the book. Absent means the book has no such page. */
+  readingRank: ReadonlyMap<string, number>
+}): Quiz[] {
+  const { existing, newQuiz, placement, afterPageId, readingRank } = opts
+
+  const priorQuizzes =
+    placement === "after"
+      ? existing
+      : existing.filter((quiz) => quiz.afterPageId !== afterPageId)
+
+  const quizzes = [...priorQuizzes, newQuiz]
+  quizzes.sort((a, b) => {
+    // An anchor page the book no longer has sorts to the end, matching the TOC
+    // sort in packaging rather than silently leading the book. Equality is
+    // checked first because `Infinity - Infinity` is NaN, which would make the
+    // comparator incoherent for two such quizzes. The sort is stable, so
+    // quizzes sharing an anchor keep their relative order and the appended one
+    // stays last among them.
+    const rankA = readingRank.get(a.afterPageId) ?? Infinity
+    const rankB = readingRank.get(b.afterPageId) ?? Infinity
+    return rankA === rankB ? 0 : rankA - rankB
+  })
+  return quizzes
 }
 
 export function createQuizRoutes(
@@ -194,17 +248,25 @@ export function createQuizRoutes(
         })
       }
 
-      // Map every page to its number so we can order pages within the quiz
-      // batch and place the resulting quiz at the right spot in the book.
-      const pageNumberById = new Map<string, number>()
-      for (const page of storage.getPages()) {
-        pageNumberById.set(page.pageId, page.pageNumber)
-      }
+      // Rank every page by where the reader meets it, so the selected pages are
+      // fed to the LLM in book order and the resulting quiz is placed at the
+      // right spot — both of which stop matching source page numbers as soon as
+      // the user reorders the book.
+      const readingRank = new Map<string, number>()
+      readingOrderPageIds(resolveReadingOrder(storage, { includeQuizzes: false })).forEach(
+        (pageId, index) => readingRank.set(pageId, index)
+      )
 
       // Gather rendering + sectioning for the selected pages, in reading order.
-      const orderedPageIds = [...new Set(pageIds)].sort(
-        (a, b) => (pageNumberById.get(a) ?? 0) - (pageNumberById.get(b) ?? 0)
-      )
+      // A page with no reading position sorts last, matching the placement sort
+      // in `orderQuizzesForInsert` — the two disagreeing would feed the LLM its
+      // source pages in one order and anchor the resulting quiz by another.
+      // Equality first: `Infinity - Infinity` is NaN.
+      const orderedPageIds = [...new Set(pageIds)].sort((a, b) => {
+        const rankA = readingRank.get(a) ?? Infinity
+        const rankB = readingRank.get(b) ?? Infinity
+        return rankA === rankB ? 0 : rankA - rankB
+      })
       const batch: QuizPageInput[] = []
       for (const pageId of orderedPageIds) {
         const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
@@ -245,8 +307,6 @@ export function createQuizRoutes(
       // quiz is appended so it lands after any quizzes already at this position;
       // with "replace" the quiz(zes) currently at this position are dropped first.
       // Then re-order by book position and renumber so quizIndex stays sequential.
-      // The sort is stable, so quizzes sharing an afterPageId keep their relative
-      // order and the appended quiz stays last among them.
       //
       // The stored set's ids are pinned *before* the insert, not after: a book
       // that predates `quizId` derives its catalog keys from array position, so
@@ -260,18 +320,12 @@ export function createQuizRoutes(
           ? withResolvedQuizIds(existingRow.data as QuizGenerationOutput)
           : null
 
-        const priorQuizzes =
-          placement === "after"
-            ? (existing?.quizzes ?? [])
-            : (existing?.quizzes ?? []).filter((q) => q.afterPageId !== afterPageId)
-        const quizzes = [...priorQuizzes, newQuiz]
-        quizzes.sort(
-          (a, b) =>
-            (pageNumberById.get(a.afterPageId) ?? 0) -
-            (pageNumberById.get(b.afterPageId) ?? 0)
-        )
-        quizzes.forEach((q, i) => {
-          q.quizIndex = i
+        const quizzes = orderQuizzesForInsert({
+          existing: existing?.quizzes ?? [],
+          newQuiz,
+          placement,
+          afterPageId,
+          readingRank,
         })
 
         // Only the newcomer still lacks an id; allocation reserves every
