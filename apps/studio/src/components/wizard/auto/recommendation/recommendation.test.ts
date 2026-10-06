@@ -1,4 +1,15 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+
+vi.mock("@lingui/core/macro", () => ({
+  msg(strings: TemplateStringsArray, ...values: unknown[]) {
+    return { id: strings.reduce((text, part, i) => text + part + (i < values.length ? String(values[i]) : ""), "") }
+  },
+}))
+vi.mock("@lingui/react/macro", () => ({
+  Trans: ({ children }: { children?: unknown }) => children,
+  Plural: () => null,
+  useLingui: () => ({ t: (s: TemplateStringsArray) => s.join(""), i18n: { _: (v: { id?: string } | string) => (typeof v === "string" ? v : (v.id ?? "")) } }),
+}))
 import { classifySetupError, SetupFailure } from "./client"
 import { ambiguousDecisions, recommendationSchema, setupResultSchema } from "./contract"
 import { fixtureFor, sampledPages } from "./placeholder"

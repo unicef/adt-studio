@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { classifyCreateError } from "./useBookCreation"
+import { classifyCreateError } from "./createErrors"
 
 describe("classifyCreateError", () => {
   it("recognises a name taken meanwhile (the API's 409 message)", () => {

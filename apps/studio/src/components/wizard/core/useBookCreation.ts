@@ -6,13 +6,7 @@ import { useCreateBook } from "@/hooks/use-books"
 import { buildConfigOverrides } from "./bookCreationConfig"
 import type { WizardFormValues } from "./wizardForm"
 
-export type CreateFailureKind = "taken" | "failed"
-
-/** Why creating the book failed: its name was taken meanwhile (the API's 409), or anything else. */
-export function classifyCreateError(error: unknown): { kind: CreateFailureKind; detail: string } {
-  const detail = error instanceof Error ? error.message : String(error)
-  return { kind: /already exists/i.test(detail) ? "taken" : "failed", detail }
-}
+export { classifyCreateError, type CreateFailureKind } from "./createErrors"
 
 /**
  * Creating a book from the wizard form, shared by the AI setup and the step-by-step wizard: create it
