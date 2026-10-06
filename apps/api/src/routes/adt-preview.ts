@@ -30,6 +30,7 @@ import {
   type ContentNodeData,
 } from "@adt/types"
 import { createBookStorage, type Storage } from "@adt/storage"
+import { resolvePathWithin, requireSafePathSegment } from "../utils/path-security.js"
 import {
   resolveReadingOrder,
   orderTocEntries,
@@ -166,6 +167,15 @@ function hashValue(value: unknown): string {
 function setNoStoreHeaders(c: { header: (name: string, value: string) => void }): void {
   c.header("Cache-Control", "no-store, max-age=0")
   c.header("Pragma", "no-cache")
+}
+
+function safePreviewLanguage(rawLanguage: string): string {
+  const language = normalizeLocale(rawLanguage)
+  try {
+    return requireSafePathSegment(language, "language")
+  } catch {
+    throw new HTTPException(400, { message: "Invalid language" })
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -488,7 +498,8 @@ export function createAdtPreviewRoutes(
   function resolveBook(label: string) {
     const safeLabel = parseBookLabel(label)
     const resolvedBooksDir = path.resolve(booksDir)
-    const bookDir = path.join(resolvedBooksDir, safeLabel)
+    const bookDir = resolvePathWithin(resolvedBooksDir, safeLabel)
+    if (!bookDir) throw new HTTPException(403, { message: "Forbidden" })
     if (!fs.existsSync(path.join(bookDir, `${safeLabel}.db`))) {
       throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
     }
@@ -540,8 +551,8 @@ export function createAdtPreviewRoutes(
     if (!assetPath) throw new HTTPException(400, { message: "Missing asset path" })
 
     // Prevent path traversal
-    const resolved = path.resolve(webAssetsDir, assetPath)
-    if (!resolved.startsWith(path.resolve(webAssetsDir))) {
+    const resolved = resolvePathWithin(webAssetsDir, assetPath)
+    if (!resolved) {
       throw new HTTPException(403, { message: "Forbidden" })
     }
 
@@ -707,7 +718,7 @@ export function createAdtPreviewRoutes(
 
   // /content/i18n/:lang/texts.json — Text catalog
   app.get("/books/:label/adt-preview/content/i18n/:lang/texts.json", async (c) => {
-    const lang = c.req.param("lang")
+    const lang = safePreviewLanguage(c.req.param("lang"))
     const textsMap = await withStorage(c.req.param("label"), async (storage) => {
       const language = getBookLanguage(storage)
       const sourceLanguage = getBaseLanguage(language)
@@ -722,7 +733,7 @@ export function createAdtPreviewRoutes(
   // /content/i18n/:lang/speech_texts.json — provider text kept separate from
   // display translations. Failed conversions are intentionally absent.
   app.get("/books/:label/adt-preview/content/i18n/:lang/speech_texts.json", (c) => {
-    const lang = normalizeLocale(c.req.param("lang"))
+    const lang = safePreviewLanguage(c.req.param("lang"))
     const speechTexts = withStorage(c.req.param("label"), (storage) => {
       const map: Record<string, string> = {}
       for (const entry of getCoreTtsCatalog(storage, lang)?.entries ?? []) {
@@ -739,7 +750,7 @@ export function createAdtPreviewRoutes(
 
   // /content/i18n/:lang/glossary.json — Glossary data
   app.get("/books/:label/adt-preview/content/i18n/:lang/glossary.json", async (c) => {
-    const lang = c.req.param("lang")
+    const lang = safePreviewLanguage(c.req.param("lang"))
     const glossaryJson = await withStorage(c.req.param("label"), async (storage, _safeLabel, bookDir) => {
       const language = getBookLanguage(storage)
       const sourceLanguage = getBaseLanguage(language)
@@ -787,7 +798,7 @@ export function createAdtPreviewRoutes(
 
   // /content/i18n/:lang/audios.json — Audio file mapping
   app.get("/books/:label/adt-preview/content/i18n/:lang/audios.json", (c) => {
-    const lang = normalizeLocale(c.req.param("lang"))
+    const lang = safePreviewLanguage(c.req.param("lang"))
     const audioMap = withStorage(c.req.param("label"), (storage, safeLabel) => {
       const speechConfig = loadBookConfig(safeLabel, booksDir, configPath).speech
       const legacyLang = lang.replace("-", "_")
@@ -817,7 +828,7 @@ export function createAdtPreviewRoutes(
   })
 
   app.get("/books/:label/adt-preview/content/i18n/:lang/audio_voices.json", (c) => {
-    const lang = normalizeLocale(c.req.param("lang"))
+    const lang = safePreviewLanguage(c.req.param("lang"))
     const manifest = withStorage(c.req.param("label"), (storage) => {
       const speechConfig = loadBookConfig(
         parseBookLabel(c.req.param("label")),
@@ -858,7 +869,7 @@ export function createAdtPreviewRoutes(
 
   // /content/i18n/:lang/timecode/timecode_output.json — word-level read-aloud timings
   app.get("/books/:label/adt-preview/content/i18n/:lang/timecode/timecode_output.json", (c) => {
-    const lang = normalizeLocale(c.req.param("lang"))
+    const lang = safePreviewLanguage(c.req.param("lang"))
     const safeLabel = parseBookLabel(c.req.param("label"))
     const bookConfig = loadBookConfig(safeLabel, booksDir, configPath)
     const timecodes = bookConfig.speech?.word_highlighting === true
@@ -879,7 +890,7 @@ export function createAdtPreviewRoutes(
   })
 
   app.get("/books/:label/adt-preview/content/i18n/:lang/timecode/timecode_voices.json", (c) => {
-    const lang = normalizeLocale(c.req.param("lang"))
+    const lang = safePreviewLanguage(c.req.param("lang"))
     const safeLabel = parseBookLabel(c.req.param("label"))
     const bookConfig = loadBookConfig(safeLabel, booksDir, configPath)
     const timecodes = withStorage(c.req.param("label"), (storage) => {
@@ -953,18 +964,21 @@ export function createAdtPreviewRoutes(
   // /content/i18n/:lang/audio/* — Serve audio files
   app.get("/books/:label/adt-preview/content/i18n/:lang/audio/*", (c) => {
     const { label } = c.req.param()
-    const lang = normalizeLocale(c.req.param("lang"))
+    const lang = safePreviewLanguage(c.req.param("lang"))
     const legacyLang = lang.replace("-", "_")
     const { bookDir } = resolveBook(label)
 
     const audioFile = c.req.path.split(`/audio/`).pop()
     if (!audioFile) throw new HTTPException(400, { message: "Missing audio path" })
 
-    const preferredAudioDir = path.join(bookDir, "audio", lang)
-    const legacyAudioDir = path.join(bookDir, "audio", legacyLang)
+    const preferredAudioDir = resolvePathWithin(bookDir, "audio", lang)
+    const legacyAudioDir = resolvePathWithin(bookDir, "audio", legacyLang)
+    if (!preferredAudioDir || !legacyAudioDir) {
+      throw new HTTPException(400, { message: "Invalid language" })
+    }
     const audioDir = fs.existsSync(preferredAudioDir) ? preferredAudioDir : legacyAudioDir
-    const resolved = path.resolve(audioDir, audioFile)
-    if (!resolved.startsWith(path.resolve(audioDir))) {
+    const resolved = resolvePathWithin(audioDir, audioFile)
+    if (!resolved) {
       throw new HTTPException(403, { message: "Forbidden" })
     }
 
@@ -983,9 +997,8 @@ export function createAdtPreviewRoutes(
     const imagePath = c.req.path.split("/adt-preview/images/")[1]
     if (!imagePath) throw new HTTPException(400, { message: "Missing image path" })
 
-    const imagesDir = path.join(bookDir, "images")
-    const resolved = path.resolve(imagesDir, imagePath)
-    if (!resolved.startsWith(path.resolve(imagesDir))) {
+    const resolved = resolvePathWithin(bookDir, "images", imagePath)
+    if (!resolved) {
       throw new HTTPException(403, { message: "Forbidden" })
     }
 
