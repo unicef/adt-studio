@@ -1,13 +1,11 @@
-# Setting up the Kanban bot on unicef: for the org admin
+# Setting up the Backlog Wizard on unicef: for the org admin
 
-This is what a **unicef org owner** does, once, so the Kanban bot can work on [Project #46](https://github.com/orgs/unicef/projects/46) and the `unicef/adt-studio` issues. It takes about 10 minutes. What the bot does is in [FLOW.md](FLOW.md); how it is built and deployed is in the [README](../README.md) and [AGENTS.md](../AGENTS.md). The code is on the `kanban-bot` branch of unicef/adt-studio.
+This is what a **unicef org owner** does, once, so the Backlog Wizard can work on [Project #46](https://github.com/orgs/unicef/projects/46) and the `unicef/adt-studio` issues. It takes about 10 minutes. What the bot does is in [FLOW.md](FLOW.md); how it is built and deployed is in the [README](../README.md) and [AGENTS.md](../AGENTS.md). The code is on the `backlog-wizard` branch of unicef/adt-studio.
 
 The same steps were rehearsed on a test org (Donesaurs) before this page was written.
 
 > **Before sending this page, fill in:**
-> - **the Worker's webhook URL**: `https://<worker-name>.<account>.workers.dev/github`, known once the Worker is published on its Cloudflare account.
->
-> **Still being decided: the bot's name and icon.** `ADT Kanban` below is a working name. You can create the App with it now: if you make the developer an **App manager** (step 3, option A), they can change the name and the logo later without you. The final name has to be set before the bot goes live (see step 1).
+> - **the Worker's webhook URL**: `https://adt-backlog-wizard.<account-subdomain>.workers.dev/github`, known once the Worker is published on its Cloudflare account.
 
 ## What you are approving
 
@@ -21,7 +19,7 @@ Worker (our code, on Cloudflare)
    │  checks the signature, ignores everything but #46
    │  asks GitHub for a token for the App (valid 1 hour)
    ▼
-comments / assigns / unassigns on the issue, as adt-kanban[bot]
+comments / assigns / unassigns on the issue, as adt-backlog-wizard[bot]
 ```
 
 No personal access token is involved: everything the bot does is done, and shown, as the App.
@@ -38,8 +36,8 @@ No personal access token is involved: everything the bot does is done, and shown
 ## Before you start
 
 From the developer maintaining the bot, you need:
-- the **Worker's webhook URL**: `https://<worker-name>.<account>.workers.dev/github`. The Worker is deployed first; it answers GitHub's test "ping" once the App exists;
-- the **logo**: for now ADT Studio's app icon, [`assets/avatar.png`](../assets/avatar.png) on the `kanban-bot` branch, so the bot's comments show the ADT Studio icon instead of a generated one.
+- the **Worker's webhook URL**: `https://adt-backlog-wizard.<account-subdomain>.workers.dev/github`. The Worker is deployed first; it answers GitHub's test "ping" once the App exists;
+- the **logo**: the Backlog Wizard icon, [`assets/avatar.png`](../assets/avatar.png) on the `backlog-wizard` branch (512 × 512 PNG, under GitHub's 1 MB limit).
 
 ## Step 1: create the App
 
@@ -50,7 +48,7 @@ Fill the form top to bottom:
 
 | Section | Field | Value |
 |---|---|---|
-| | **GitHub App name** | `ADT Kanban` for now (the bot will show as `adt-kanban[bot]`; the final name is still being decided, see the box at the top) |
+| | **GitHub App name** | `ADT Backlog Wizard` (the bot will show as `adt-backlog-wizard[bot]`). If GitHub says the name is taken, tell the developer which one you used: the bot needs it. |
 | | Description | `Comments who finished each stage when a card moves on the Kanban Project, and moves the assignment on.` |
 | | **Homepage URL** | `https://github.com/orgs/unicef/projects/46` |
 | Identifying and authorizing users | Callback URL | leave empty; leave the checkboxes as they are |
@@ -72,7 +70,7 @@ Fill the form top to bottom:
 
 Click **Create GitHub App**. Note the **App ID** shown at the top of the App's page (not secret).
 
-Then, on the same page, **Display information → Upload a logo**: for now ADT Studio's icon (`assets/avatar.png` on the `kanban-bot` branch); the bot's own icon is still being designed. The logo becomes the bot's avatar on every comment and assignment, and can be changed at any time. The badge background colour can stay as it is.
+Then, on the same page, **Display information → Upload a logo**: the Backlog Wizard icon (`assets/avatar.png` on the `backlog-wizard` branch). The logo becomes the bot's avatar on every comment and assignment, and can be changed at any time. The badge background colour can stay as it is.
 
 **About changing the name later.** The bot recognises its own earlier comments by its name (`<name>[bot]`), to know who did each stage. Renaming it before it goes live is free; after, the developer has to update the Worker at the same time, or credits written under the old name are no longer read. The logo can change at any time.
 
@@ -95,32 +93,32 @@ The Worker needs the App's **private key** and the **webhook secret**. Choose on
 1. App page → **General → Private keys → Generate a private key**. A `.pem` file downloads: it lets whoever holds it act as the App (within the permissions above). GitHub keeps no copy.
 2. Send the `.pem` and the webhook secret to the developer through a password manager, never chat or email. Then delete your copy of the `.pem`.
 
-Either way, send the **App ID** and the App's **name** (as in its URL, e.g. `adt-kanban`) by any channel: they are not secret.
+Either way, send the **App ID** and the App's **name** (as in its URL, e.g. `adt-backlog-wizard`) by any channel: they are not secret.
 
 ## Step 4: check it works (the developer, with you)
 
 1. App page → **Advanced → Recent Deliveries**: the `ping` shows **200**. (If it failed because the Worker was not ready, click it and **Redeliver**.)
-2. Move a test issue on #46 from **To do → Doing**: within seconds the mover is assigned, by `adt-kanban[bot]`.
+2. Move a test issue on #46 from **To do → Doing**: within seconds the mover is assigned, by `adt-backlog-wizard[bot]`.
 
-## Repo admin: protect the `kanban-bot` branch (once)
+## Repo admin: protect the `backlog-wizard` branch (once)
 
-The bot's code lives on the `kanban-bot` branch of unicef/adt-studio, which "Protect main and develop" does not cover. A **repo admin** (not necessarily an org owner) sets up:
+The bot's code lives on the `backlog-wizard` branch of unicef/adt-studio, which "Protect main and develop" does not cover. A **repo admin** (not necessarily an org owner) sets up:
 
 1. **A ruleset for the branch**: *unicef/adt-studio → Settings → Rules → Rulesets → New branch ruleset*:
-   - name `kanban-bot`, enforcement **Active**, target **Include by pattern: `kanban-bot`**;
+   - name `backlog-wizard`, enforcement **Active**, target **Include by pattern: `backlog-wizard`**;
    - **Restrict deletions**, **Block force pushes**;
    - **Require a pull request before merging**, with **1 approval**;
-   - **Require status checks to pass**: `check` (from *Kanban bot CI*).
+   - **Require status checks to pass**: `check` (from *Backlog Wizard CI*).
 
    Merging a PR into this branch deploys the bot, so the review is the gate.
-2. **The `kanban-bot` environment**, which holds the Cloudflare secrets for automatic deploys: *Settings → Environments → `kanban-bot`*:
-   - **Deployment branches and tags → Selected branches and tags → `kanban-bot`**, so a workflow on any other branch cannot read these secrets;
+2. **The `backlog-wizard` environment**, which holds the Cloudflare secrets for automatic deploys: *Settings → Environments → `backlog-wizard`*:
+   - **Deployment branches and tags → Selected branches and tags → `backlog-wizard`**, so a workflow on any other branch cannot read these secrets;
    - **Environment secrets**: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, from whoever owns the Cloudflare account ([AGENTS.md](../AGENTS.md), *Automatic deploys*).
 
 ## Later
 
-- **Pause it:** unicef → Settings → GitHub Apps → *Installed GitHub Apps* → ADT Kanban → **Suspend**. Immediate and reversible.
+- **Pause it:** unicef → Settings → GitHub Apps → *Installed GitHub Apps* → ADT Backlog Wizard → **Suspend**. Immediate and reversible.
 - **Remove it:** uninstall the App, or delete it. Comments already written stay; #46 stays a normal Project.
-- **Changing the bot's behaviour** (comment text, rules) is a code change on the `kanban-bot` branch, reviewed in a PR and deployed by the workflow: **nothing to do here**.
+- **Changing the bot's behaviour** (comment text, rules) is a code change on the `backlog-wizard` branch, reviewed in a PR and deployed by the workflow: **nothing to do here**.
 - **What does need you:** a new permission or event, installing on another repo, or a new webhook URL. A new permission also has to be **accepted** on the installation (GitHub shows a banner on the installation page).
 - **If the private key leaks:** App page → Private keys → generate a new one, delete the old one. The developer updates the Worker.

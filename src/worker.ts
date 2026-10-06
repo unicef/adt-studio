@@ -1,4 +1,4 @@
-// ADT Kanban bot: a GitHub App on a Cloudflare Worker.
+// ADT Backlog Wizard: a GitHub App on a Cloudflare Worker.
 //
 // GitHub sends the App's `projects_v2_item` webhook here when a card on an
 // org Project changes. For cards on the Kanban Project (PROJECTS):
@@ -41,7 +41,7 @@ const BLOCK_FIELD = 'Block'
 
 export default {
   async fetch(request: Request, env: Env, ctx: Ctx): Promise<Response> {
-    if (request.method !== 'POST') return new Response('ADT Kanban bot: GitHub webhooks go to POST /github.\n')
+    if (request.method !== 'POST') return new Response('ADT Backlog Wizard: GitHub webhooks go to POST /github.\n')
     const body = await request.text()
     if (!(await verifySignature(env.WEBHOOK_SECRET, body, request.headers.get('x-hub-signature-256')))) return new Response('Bad signature', { status: 401 })
 

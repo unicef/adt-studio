@@ -1,5 +1,5 @@
 {
-  "name": "adt-kanban-bot",
+  "name": "adt-backlog-wizard",
   "private": true,
   "type": "module",
   "description": "GitHub App on a Cloudflare Worker: hand-offs and sprint blocks for the ADT Studio Kanban Project",

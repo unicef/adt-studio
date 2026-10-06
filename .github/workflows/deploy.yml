@@ -1,15 +1,15 @@
 # Deploys the bot to Cloudflare when a change to its code or config reaches the
-# kanban-bot branch (a merged PR).
+# backlog-wizard branch (a merged PR).
 #
-# The Cloudflare secrets live in the `kanban-bot` environment, which only this
-# branch may use (Settings → Environments → kanban-bot → Deployment branches).
+# The Cloudflare secrets live in the `backlog-wizard` environment, which only this
+# branch may use (Settings → Environments → backlog-wizard → Deployment branches).
 # Until CLOUDFLARE_API_TOKEN is set there, the job skips. The bot's own
 # secrets (App key, webhook secret) live in Cloudflare only, never here.
-name: Kanban bot deploy
+name: Backlog Wizard deploy
 
 on:
   push:
-    branches: [kanban-bot]
+    branches: [backlog-wizard]
     paths:
       - 'src/**'
       - 'wrangler.jsonc'
@@ -21,14 +21,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: kanban-bot-deploy
+  group: backlog-wizard-deploy
   cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment: kanban-bot
+    environment: backlog-wizard
     steps:
       - name: Check the Cloudflare secrets are set
         id: ready
@@ -36,7 +36,7 @@ jobs:
           TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           if [ -z "$TOKEN" ]; then
-            echo "::notice::CLOUDFLARE_API_TOKEN is not set in the kanban-bot environment: skipping the deploy."
+            echo "::notice::CLOUDFLARE_API_TOKEN is not set in the backlog-wizard environment: skipping the deploy."
             echo "go=false" >> "$GITHUB_OUTPUT"
           else
             echo "go=true" >> "$GITHUB_OUTPUT"

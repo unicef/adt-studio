@@ -1,8 +1,8 @@
 {
-  // ADT Kanban bot. Deployed by .github/workflows/deploy.yml when a change
-  // reaches the kanban-bot branch, or by hand (see AGENTS.md):
+  // ADT Backlog Wizard. Deployed by .github/workflows/deploy.yml when a change
+  // reaches the backlog-wizard branch, or by hand (see AGENTS.md):
   //   pnpm run deploy
-  "name": "adt-kanban-bot",
+  "name": "adt-backlog-wizard",
   "main": "src/worker.ts",
   "compatibility_date": "2026-09-01",
   "workers_dev": true,
@@ -11,10 +11,11 @@
   "triggers": { "crons": ["0 * * * *"] },
   "observability": { "enabled": true },
   "vars": {
-    // The unicef GitHub App: filled in once the org admin creates it
-    // (docs/ADMIN-SETUP.md). None of these is secret.
+    // The unicef GitHub App "ADT Backlog Wizard" (docs/ADMIN-SETUP.md). None
+    // of these is secret. APP_ID is filled in once the org admin creates it;
+    // BOT_LOGIN is <the App's slug>[bot]: check it then (`pnpm app info`).
     "APP_ID": "",
-    "BOT_LOGIN": "",
+    "BOT_LOGIN": "adt-backlog-wizard[bot]",
     // Node id of the Kanban Project (unicef #46). The bot ignores every other Project.
     "PROJECTS": "PVT_kwDOAAKu6c4BlQRn"
   }

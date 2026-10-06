@@ -39,7 +39,7 @@ export async function api(token: string, method: string, path: string, body?: un
       authorization: `Bearer ${token}`,
       accept: 'application/vnd.github+json',
       'x-github-api-version': '2022-11-28',
-      'user-agent': 'adt-kanban-bot',
+      'user-agent': 'adt-backlog-wizard',
       'content-type': 'application/json',
     },
     body: body ? JSON.stringify(body) : undefined,

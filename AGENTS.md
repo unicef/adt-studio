@@ -1,14 +1,14 @@
-# ADT Kanban bot: guide for agents
+# ADT Backlog Wizard: guide for agents
 
-You are working on the **ADT Kanban bot**: a GitHub App whose code runs on a Cloudflare Worker. When a card moves on the Kanban Project (unicef #46), GitHub sends the App a webhook; the Worker comments who finished the stage, moves the assignment on, and keeps the sprint block. What it does, case by case: [docs/FLOW.md](docs/FLOW.md). How it works: [README.md](README.md).
+You are working on the **ADT Backlog Wizard**: a GitHub App whose code runs on a Cloudflare Worker. When a card moves on the Kanban Project (unicef #46), GitHub sends the App a webhook; the Worker comments who finished the stage, moves the assignment on, and keeps the sprint block. What it does, case by case: [docs/FLOW.md](docs/FLOW.md). How it works: [README.md](README.md).
 
-This branch (`kanban-bot` in unicef/adt-studio) holds **only the bot**, with its own history, like the `landing-page` branch holds the website. It is not ADT Studio's code.
+This branch (`backlog-wizard` in unicef/adt-studio) holds **only the bot**, with its own history, like the `landing-page` branch holds the website. It is not ADT Studio's code.
 
 ## Rules
 
 - **Never commit, print or paste a secret.** The App's private key (`*.pem`) and the webhook secret go into Cloudflare with `wrangler secret put`, read from a file, and nowhere else. `.gitignore` already excludes `*.pem` and `webhook-secret`.
 - **Ask the human before** deploying, changing a Worker secret, deleting a Worker, or anything on GitHub (pushing, opening PRs, changing the App). Deploying replaces the live bot.
-- **Changes reach `kanban-bot` through PRs**, reviewed by a human. Never push to it directly, and never merge `develop` (or any other branch) into it: the histories are unrelated on purpose.
+- **Changes reach `backlog-wizard` through PRs**, reviewed by a human. Never push to it directly, and never merge `develop` (or any other branch) into it: the histories are unrelated on purpose.
 - Run `pnpm check` (type-check and tests) before any deploy or PR.
 
 ## Setup
@@ -29,8 +29,8 @@ The org admin needs the Worker's URL to create the App, so the Worker goes up fi
 
    Check with `pnpm wrangler whoami`: it names the account. Make sure it is the right one before going on.
 2. `pnpm check`
-3. `pnpm run deploy`. It prints the Worker's address, e.g. `https://adt-kanban-bot.<subdomain>.workers.dev`.
-4. Check it answers: `curl -s https://adt-kanban-bot.<subdomain>.workers.dev` should print `ADT Kanban bot: GitHub webhooks go to POST /github.`
+3. `pnpm run deploy`. It prints the Worker's address, e.g. `https://adt-backlog-wizard.<subdomain>.workers.dev`.
+4. Check it answers: `curl -s https://adt-backlog-wizard.<subdomain>.workers.dev` should print `ADT Backlog Wizard: GitHub webhooks go to POST /github.`
 5. Give the human the **webhook URL**: the address plus `/github`. It goes into the App's settings ([docs/ADMIN-SETUP.md](docs/ADMIN-SETUP.md), step 1).
 
 ## 2. Once the App exists: configure the Worker
@@ -39,7 +39,7 @@ From the org admin (or as an App manager) you get the **App ID**, the App's **na
 
 1. **Fill in `wrangler.jsonc`** (none of these is secret):
    - `APP_ID`: the App ID;
-   - `BOT_LOGIN`: `<slug>[bot]`, e.g. `adt-kanbot[bot]`. The bot recognises its own earlier comments by this name;
+   - `BOT_LOGIN`: already `adt-backlog-wizard[bot]`. Check it matches the App (`pnpm app info` prints `the bot is <slug>[bot]`); if GitHub gave the App another name, change it here. The bot recognises its own earlier comments by this name;
    - `PROJECTS`: the Kanban Project's node id. For unicef #46 it is already there; for another Project:
      `gh api graphql -f query='{organization(login:"unicef"){projectV2(number:46){id}}}' --jq .data.organization.projectV2.id`
 2. **Store the two secrets in the Worker**:
@@ -53,7 +53,7 @@ From the org admin (or as an App manager) you get the **App ID**, the App's **na
    rm /tmp/app.pkcs8.pem
    ```
    Then tell the human to keep or delete the original `.pem` (the admin can always generate a new one).
-3. `pnpm check && pnpm run deploy`, so the new `vars` are live. Open a PR to `kanban-bot` with the `wrangler.jsonc` change, so the branch matches what runs.
+3. `pnpm check && pnpm run deploy`, so the new `vars` are live. Open a PR to `backlog-wizard` with the `wrangler.jsonc` change, so the branch matches what runs.
 4. **Verify**, as described in *Checking a deployment* below.
 
 ## 3. Automatic deploys
@@ -61,8 +61,8 @@ From the org admin (or as an App manager) you get the **App ID**, the App's **na
 `.github/workflows/deploy.yml` deploys on every merged PR that touches `src/`, `wrangler.jsonc` or the dependencies. It needs, from a **repo admin**, once:
 
 1. A Cloudflare API token: Cloudflare dashboard → *My Profile → API Tokens → Create Token* → template **Edit Cloudflare Workers**, limited to the one account. And the **Account ID** (dashboard, right side of the account's home page).
-2. GitHub: *unicef/adt-studio → Settings → Environments → `kanban-bot`* (create it if missing):
-   - **Deployment branches and tags → Selected branches → `kanban-bot`**, so no other branch can use these secrets;
+2. GitHub: *unicef/adt-studio → Settings → Environments → `backlog-wizard`* (create it if missing):
+   - **Deployment branches and tags → Selected branches → `backlog-wizard`**, so no other branch can use these secrets;
    - **Environment secrets**: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
 
 Until the token is there, the deploy job skips with a notice. The Worker's own secrets (App key, webhook secret) stay in Cloudflare and never go through GitHub Actions.
@@ -71,7 +71,7 @@ Until the token is there, the deploy job skips with a notice. The Worker's own s
 
 - **Rules and comment text**: `src/rules/` (`handoff.ts`, `blocks.ts`, `flow.ts`), with tests next to them. Update [docs/FLOW.md](docs/FLOW.md) in the same PR when behaviour changes.
 - **Column names** in `src/rules/flow.ts` must match the Project's Status options exactly (case and punctuation are ignored). Rename one on the Project, rename it here.
-- `pnpm check`, then a PR to `kanban-bot`. On merge, the workflow deploys. **No change to the GitHub App is needed.**
+- `pnpm check`, then a PR to `backlog-wizard`. On merge, the workflow deploys. **No change to the GitHub App is needed.**
 - The App itself only changes for: a new permission or event, another repo, a new webhook URL, a new name or logo. That needs an org owner or an App manager; a new permission must also be accepted on the installation by an owner.
 
 ## Checking a deployment

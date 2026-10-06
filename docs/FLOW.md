@@ -1,6 +1,6 @@
-# How the Kanban bot behaves
+# How the Backlog Wizard behaves
 
-When you move a card on the Kanban Project, the bot (`adt-kanban[bot]`) updates the issue: it comments when a stage is finished, and it moves the assignment on to whoever works on the card next. **An assignee always means "working on it right now"**, and the issue keeps the history of who did what.
+When you move a card on the Kanban Project, the bot (`adt-backlog-wizard[bot]`) updates the issue: it comments when a stage is finished, and it moves the assignment on to whoever works on the card next. **An assignee always means "working on it right now"**, and the issue keeps the history of who did what.
 
 This page lists every case. The rules are in [`src/rules/handoff.ts`](../src/rules/handoff.ts) and [`src/rules/blocks.ts`](../src/rules/blocks.ts), with tests next to them.
 

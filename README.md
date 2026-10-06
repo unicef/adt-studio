@@ -1,6 +1,6 @@
-<img src="assets/avatar.png" width="72" alt="">
+<img src="assets/avatar.png" width="120" alt="ADT Backlog Wizard: an open book in a wizard hat, waving a wand">
 
-# ADT Kanban bot
+# ADT Backlog Wizard
 
 A GitHub App, running on a Cloudflare Worker, that keeps the Kanban Project ([unicef #46](https://github.com/orgs/unicef/projects/46)) and the ADT Studio issues in step. When a card moves, it comments who finished the stage, moves the assignment on to whoever picks the card up, and keeps the sprint block on the issue.
 
@@ -10,7 +10,7 @@ A GitHub App, running on a Cloudflare Worker, that keeps the Kanban Project ([un
 
 ## This branch
 
-`kanban-bot` holds only the bot, with its own history, the way `landing-page` holds the website. It is not part of ADT Studio's code or build. Changes come in as PRs into `kanban-bot`; CI type-checks and tests them, and a merged PR that touches the code deploys the Worker.
+`backlog-wizard` holds only the bot, with its own history, the way `landing-page` holds the website. It is not part of ADT Studio's code or build. Changes come in as PRs into `backlog-wizard`; CI type-checks and tests them, and a merged PR that touches the code deploys the Worker.
 
 ## How it works
 
@@ -40,7 +40,7 @@ Card moved on #46 ──projects_v2_item webhook──▶ Worker (src/worker.ts)
 | `src/rules/blocks.ts` | the sprint block rules |
 | `wrangler.jsonc` | the Worker's name, schedule and settings (App ID, bot name, Project) |
 | `scripts/app.mjs` | checks a deployment as the App: its setup, the webhook deliveries, a resent ping |
-| `assets/avatar.png` | ADT Studio's icon, the App's logo until the bot has its own |
+| `assets/avatar.png` | the Backlog Wizard icon, also the App's logo on GitHub |
 | `.github/workflows/` | CI on PRs, deploy on merge |
 
 ## Commands

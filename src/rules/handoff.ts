@@ -91,7 +91,7 @@ export function handoff(input: HandoffInput, now = Date.now()): Handoff {
     }).filter(Boolean)
     if (story.length) lines.push(`Finished. ${story.join(' · ')}`)
   }
-  const comment = lines.length ? `${lines.join('\n\n')}\n\n<sub>Kanban board · hand-off</sub>\n${creditMarker(credit)}` : null
+  const comment = lines.length ? `${lines.join('\n\n')}\n\n<sub>ADT Backlog Wizard · hand-off</sub>\n${creditMarker(credit)}` : null
 
   return { credit, comment, assign, unassign }
 }

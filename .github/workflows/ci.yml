@@ -1,11 +1,11 @@
-# Type-checks and tests the bot on every PR into kanban-bot.
-name: Kanban bot CI
+# Type-checks and tests the bot on every PR into backlog-wizard.
+name: Backlog Wizard CI
 
 on:
   pull_request:
-    branches: [kanban-bot]
+    branches: [backlog-wizard]
   push:
-    branches: [kanban-bot]
+    branches: [backlog-wizard]
 
 permissions:
   contents: read

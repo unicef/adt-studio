@@ -25,7 +25,7 @@ const jwt = `${unsigned}.${createSign('RSA-SHA256').update(unsigned).sign(readFi
 async function api(path, method = 'GET') {
   const res = await fetch(`https://api.github.com${path}`, {
     method,
-    headers: { authorization: `Bearer ${jwt}`, accept: 'application/vnd.github+json', 'user-agent': 'adt-kanban-bot-check' },
+    headers: { authorization: `Bearer ${jwt}`, accept: 'application/vnd.github+json', 'user-agent': 'adt-backlog-wizard-check' },
   })
   const text = await res.text()
   if (!res.ok) throw new Error(`${method} ${path}: ${res.status} ${text.slice(0, 300)}`)
