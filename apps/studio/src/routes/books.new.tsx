@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { WizardProvider } from "@/components/wizard"
 import { WizardFormProvider } from "@/components/wizard/WizardFormProvider"
-import { BookCreationWizard } from "@/components/wizard/BookCreationWizard"
+import { AddBookFlow } from "@/components/wizard/autoSetup/AddBookFlow"
 
 function AddBookPage() {
   return (
     <WizardProvider>
       <WizardFormProvider>
-        <BookCreationWizard />
+        <AddBookFlow />
       </WizardFormProvider>
     </WizardProvider>
   )

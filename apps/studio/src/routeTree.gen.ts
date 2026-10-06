@@ -13,8 +13,6 @@ import { Route as OnboardingRouteImport } from "./routes/onboarding"
 import { Route as AppRouteImport } from "./routes/_app"
 import { Route as AppIndexRouteImport } from "./routes/_app.index"
 import { Route as PromptsSettingsRouteImport } from "./routes/prompts.settings"
-import { Route as LabsAutoModeBooksRouteImport } from "./routes/labs.auto-mode-books"
-import { Route as LabsAutoModeRouteImport } from "./routes/labs.auto-mode"
 import { Route as BooksNewRouteImport } from "./routes/books.new"
 import { Route as BooksImportRouteImport } from "./routes/books.import"
 import { Route as BooksLabelRouteImport } from "./routes/books.$label"
@@ -53,16 +51,6 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const PromptsSettingsRoute = PromptsSettingsRouteImport.update({
   id: "/prompts/settings",
   path: "/prompts/settings",
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LabsAutoModeBooksRoute = LabsAutoModeBooksRouteImport.update({
-  id: "/labs/auto-mode-books",
-  path: "/labs/auto-mode-books",
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LabsAutoModeRoute = LabsAutoModeRouteImport.update({
-  id: "/labs/auto-mode",
-  path: "/labs/auto-mode",
   getParentRoute: () => rootRouteImport,
 } as any)
 const BooksNewRoute = BooksNewRouteImport.update({
@@ -176,8 +164,6 @@ export interface FileRoutesByFullPath {
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
-  "/labs/auto-mode": typeof LabsAutoModeRoute
-  "/labs/auto-mode-books": typeof LabsAutoModeBooksRoute
   "/prompts/settings": typeof PromptsSettingsRoute
   "/settings/about": typeof AppSettingsAboutRoute
   "/settings/language": typeof AppSettingsLanguageRoute
@@ -200,8 +186,6 @@ export interface FileRoutesByTo {
   "/library": typeof AppLibraryRoute
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
-  "/labs/auto-mode": typeof LabsAutoModeRoute
-  "/labs/auto-mode-books": typeof LabsAutoModeBooksRoute
   "/prompts/settings": typeof PromptsSettingsRoute
   "/": typeof AppIndexRoute
   "/settings/about": typeof AppSettingsAboutRoute
@@ -228,8 +212,6 @@ export interface FileRoutesById {
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
-  "/labs/auto-mode": typeof LabsAutoModeRoute
-  "/labs/auto-mode-books": typeof LabsAutoModeBooksRoute
   "/prompts/settings": typeof PromptsSettingsRoute
   "/_app/": typeof AppIndexRoute
   "/_app/settings/about": typeof AppSettingsAboutRoute
@@ -258,8 +240,6 @@ export interface FileRouteTypes {
     | "/books/$label"
     | "/books/import"
     | "/books/new"
-    | "/labs/auto-mode"
-    | "/labs/auto-mode-books"
     | "/prompts/settings"
     | "/settings/about"
     | "/settings/language"
@@ -282,8 +262,6 @@ export interface FileRouteTypes {
     | "/library"
     | "/books/import"
     | "/books/new"
-    | "/labs/auto-mode"
-    | "/labs/auto-mode-books"
     | "/prompts/settings"
     | "/"
     | "/settings/about"
@@ -309,8 +287,6 @@ export interface FileRouteTypes {
     | "/books/$label"
     | "/books/import"
     | "/books/new"
-    | "/labs/auto-mode"
-    | "/labs/auto-mode-books"
     | "/prompts/settings"
     | "/_app/"
     | "/_app/settings/about"
@@ -335,8 +311,6 @@ export interface RootRouteChildren {
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
   BooksImportRoute: typeof BooksImportRoute
   BooksNewRoute: typeof BooksNewRoute
-  LabsAutoModeRoute: typeof LabsAutoModeRoute
-  LabsAutoModeBooksRoute: typeof LabsAutoModeBooksRoute
   PromptsSettingsRoute: typeof PromptsSettingsRoute
 }
 
@@ -368,20 +342,6 @@ declare module "@tanstack/react-router" {
       path: "/prompts/settings"
       fullPath: "/prompts/settings"
       preLoaderRoute: typeof PromptsSettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    "/labs/auto-mode-books": {
-      id: "/labs/auto-mode-books"
-      path: "/labs/auto-mode-books"
-      fullPath: "/labs/auto-mode-books"
-      preLoaderRoute: typeof LabsAutoModeBooksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    "/labs/auto-mode": {
-      id: "/labs/auto-mode"
-      path: "/labs/auto-mode"
-      fullPath: "/labs/auto-mode"
-      preLoaderRoute: typeof LabsAutoModeRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/books/new": {
@@ -607,8 +567,6 @@ const rootRouteChildren: RootRouteChildren = {
   BooksLabelRoute: BooksLabelRouteWithChildren,
   BooksImportRoute: BooksImportRoute,
   BooksNewRoute: BooksNewRoute,
-  LabsAutoModeRoute: LabsAutoModeRoute,
-  LabsAutoModeBooksRoute: LabsAutoModeBooksRoute,
   PromptsSettingsRoute: PromptsSettingsRoute,
 }
 export const routeTree = rootRouteImport

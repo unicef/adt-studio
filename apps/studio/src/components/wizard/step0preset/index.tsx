@@ -25,7 +25,7 @@ function applyPreset(form: ReturnType<typeof useWizardForm>, id: PresetId) {
   }
 }
 
-export function Step0Preset() {
+export function Step0Preset({ onBack }: { onBack?: () => void } = {}) {
   const {
     setCurrentStep,
     setPhase,
@@ -108,7 +108,7 @@ export function Step0Preset() {
       <div className="flex items-center gap-3">
         <Button
           variant="secondary"
-          onClick={() => setPhase("upload")}
+          onClick={onBack ?? (() => setPhase("upload"))}
           className="h-9 px-3 py-2 bg-muted text-foreground hover:bg-muted border-0"
         >
           <ArrowLeft className="h-4 w-4 mr-1.5" />

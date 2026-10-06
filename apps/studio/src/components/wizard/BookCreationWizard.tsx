@@ -3,20 +3,15 @@ import { useState, useEffect, useRef, type CSSProperties } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Eye, ArrowLeft, ArrowRight, Zap, Loader2 } from "lucide-react"
 import { useStore } from "@tanstack/react-form"
-import { useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
-import { api } from "@/api/client"
-import { useApiKey } from "@/hooks/use-api-key"
-import { useBooks, useCreateBook } from "@/hooks/use-books"
+import { useBooks } from "@/hooks/use-books"
 import { useWizard } from "./index"
 import { useWizardForm } from "./wizardForm"
 import { usePageTitle } from "@/hooks/use-page-title"
 import { STEPS } from "./steps"
-import { buildConfigOverrides } from "./bookCreationConfig"
+import { useBookCreation } from "./shared/useBookCreation"
 import { getPresetAccent, type PresetAccent } from "./constants"
 import { Step0Preset } from "./step0preset"
-import { StepUpload } from "./stepUpload"
 import { FlowTopBar } from "@/components/FlowTopBar"
 import { PdfCoverPreview } from "./shared/PdfCoverPreview"
 import { LayoutPreview, getPreviewWidth } from "./step2LayoutOptions/LayoutPreview"
@@ -201,14 +196,11 @@ function PreviewContainer({
   )
 }
 
-export function BookCreationWizard() {
+export function BookCreationWizard({ onBackFromPresets }: { onBackFromPresets?: () => void } = {}) {
   const { t, i18n } = useLingui()
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const { phase, currentStep, setCurrentStep, stepDirection, previewFocus } = useWizard()
   const form = useWizardForm()
-  const createMutation = useCreateBook()
-  const { apiKey, hasStructuredTextProvider, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
+  const { createBook, willExtract, startExtract, openBook } = useBookCreation()
   const { data: books, isPending: booksLoading } = useBooks()
   const [previewOpen, setPreviewOpen] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -265,16 +257,12 @@ export function BookCreationWizard() {
     if (focusable) setTimeout(() => focusable.focus({ preventScroll: true }), 300)
   }
 
-  if (phase === "upload") {
-    return <StepUpload />
-  }
-
   if (currentStep === 0) {
     return (
       <div className="flex flex-1 min-h-0 flex-col h-full bg-background">
         <FlowTopBar title={<Trans>Add Book</Trans>} />
         <div className="flex flex-1 min-h-0 flex-col overflow-y-auto overflow-x-hidden">
-          <Step0Preset />
+          <Step0Preset onBack={onBackFromPresets} />
         </div>
       </div>
     )
@@ -296,56 +284,15 @@ export function BookCreationWizard() {
     setSubmitError(null)
     setIsCreating(true)
     try {
-      const book = await createMutation.mutateAsync({
-        label: values.label.trim(),
-        pdf: values.file!,
-        config: buildConfigOverrides(values),
-      })
-
-      // Kick off extraction automatically so the user lands on the book home
-      // with the Extract stage already running — but only when the user intends
-      // to process the book here ("whole" or windowed "range"). For the "split"
-      // scope we skip it: each contributor extracts their own page-range part,
-      // so extracting the full book on this machine would be the very cost the
-      // split feature avoids.
-      if (values.scope !== "split" && hasStructuredTextProvider) {
-        // Seed the run status the book page reads, so it paints "Extract
-        // queued" on first render. Without this the page mounts with a cold
-        // cache and shows an idle pipeline until its own step-status fetch
-        // round-trips — several seconds while the server is busy opening the
-        // PDF, which reads as "the run never started".
-        queryClient.setQueryData(["books", book.label, "step-status"], {
-          stages: { extract: "queued" },
-          steps: {},
-          error: null,
-        })
+      const book = await createBook(values)
+      if (willExtract(values)) {
         try {
-          await api.runStages(
-            book.label,
-            apiKey,
-            { fromStage: "extract", toStage: "extract" },
-            {
-              anthropicApiKey: anthropicKey || undefined,
-              googleApiKey: googleKey || undefined,
-              customBaseUrl: customBaseUrl || undefined,
-              customApiKey: customApiKey || undefined,
-              azure: { key: azureKey, region: azureRegion },
-              geminiApiKey: geminiKey || undefined,
-            },
-          )
+          await startExtract(book.label)
         } catch (pipelineError) {
           console.error("[wizard] extract kickoff failed:", pipelineError)
-          // Roll the seeded status back — nothing is running.
-          queryClient.removeQueries({ queryKey: ["books", book.label, "step-status"] })
         }
       }
-
-      // When splitting, surface the Split & merge panel on the overview.
-      if (values.scope === "split" && typeof window !== "undefined") {
-        window.sessionStorage.setItem("adt:focus-parts", book.label)
-      }
-
-      navigate({ to: "/books/$label/$step", params: { label: book.label, step: "book" } })
+      openBook(book.label, values)
     } catch (error) {
       creatingRef.current = false
       setIsCreating(false)
@@ -426,9 +373,9 @@ export function BookCreationWizard() {
           </div>
 
 
-          {(submitError || createMutation.isError) && (
+          {submitError && (
             <p className="px-6 pb-3 text-sm text-center text-destructive animate-btn-label-enter">
-              {submitError ?? createMutation.error?.message ?? t`Failed to create book.`}
+              {submitError}
             </p>
           )}
           <WizardFooter
