@@ -34,6 +34,7 @@ import {
 import { getDefaultProviderRegistry } from "./providers/index.js"
 import type { ProviderRegistry, ResolvedBackend } from "./registry.js"
 import type { StructuredTextBackend } from "./ports/index.js"
+import { StructuredTextError } from "./ports/structured-text-backend.js"
 
 export type { LLMProviderCredentials }
 
@@ -46,7 +47,7 @@ function resolveEffectiveTimeoutMs(
 }
 
 export interface CreateLLMModelOptions {
-  modelId: string // "openai:gpt-5.4" format
+  modelId: string // Qualified "provider:model" format
   cacheDir?: string
   promptEngine?: PromptEngine
   onLog?: (entry: LlmLogEntry) => void
@@ -94,6 +95,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       let system = opts.system
       let messages = opts.messages ?? []
       let resolvedPromptName = opts.prompt
+      let resolvedPromptPath: string | undefined
 
       const context = opts.context ?? {}
       // Per-call signal wins over the model-level signal; either one cancels.
@@ -103,7 +105,9 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
         if (!promptEngine) {
           throw new Error("promptEngine required when using prompt option")
         }
-        resolvedPromptName = promptEngine.resolvePrompt(opts.prompt, { modelId }).resolvedName
+        const promptResolution = promptEngine.resolvePrompt(opts.prompt, { modelId })
+        resolvedPromptName = promptResolution.resolvedName
+        resolvedPromptPath = promptResolution.filePath
         const allMessages = await promptEngine.renderPrompt(
           opts.prompt,
           context,
@@ -183,11 +187,20 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
         )
       }
       const effectiveTemperature = supportsTemperature ? opts.temperature : undefined
+      const effective = registry.get(resolved.providerId).inferenceOptionsFor?.(
+        "structured-text", resolved.modelId, opts.providerOptions, strategy,
+      ) ?? { providerOptions: opts.providerOptions }
+      let callParams: Record<string, unknown> = {
+        requestedModel: modelId, ...effective, strategy,
+        resolvedPromptPath,
+        adapterVersion: resolved.fingerprint.adapterVersion,
+        temperature: effectiveTemperature, maxTokens: opts.maxTokens,
+      }
       const effectiveTimeoutMs = resolveEffectiveTimeoutMs(
         registry.get(resolved.providerId).manifest,
         opts.timeoutMs,
       )
-      const legacyReadable = isLegacyCacheReadable(resolved.fingerprint)
+      const legacyReadable = isLegacyCacheReadable(resolved.fingerprint) && !effective.providerOptions
 
       const generate = async (
         current: Message[],
@@ -201,11 +214,20 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           maxTokens: opts.maxTokens,
           timeoutMs: effectiveTimeoutMs,
           signal: externalSignal,
+          providerOptions: effective.providerOptions,
         })
+        callParams = { ...callParams, ...generated.params }
         return { object: generated.object, usage: generated.usage }
       }
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        // A cache entry contains only validated output, not a provider response.
+        // Never attribute the preceding attempt's returned model to a cache hit.
+        delete callParams.returnedModel
+        delete callParams.remoteCachedInputTokens
+        delete callParams.reasoningTokens
+        delete callParams.attempts
+        delete callParams.inferenceAttempts
         const attemptStartedAt = Date.now()
         const attemptUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
         const hash = computeCacheKeyV2({
@@ -219,6 +241,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           structuredOutputStrategy: strategy,
           temperature: effectiveTemperature,
           maxTokens: opts.maxTokens,
+          providerOptions: effective.providerOptions,
         })
         // Reproduce the exact v1 key so a legacy entry from an unambiguous
         // backend still counts as a hit; configurable-origin providers skip it.
@@ -302,6 +325,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               )
               if (opts.log && onLog) {
                 onLog({
+                  params: { ...callParams },
                   requestId,
                   timestamp: new Date().toISOString(),
                   taskType: opts.log.taskType,
@@ -346,6 +370,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           // Log and return
           if (opts.log && onLog) {
             onLog({
+              params: { ...callParams },
               requestId,
               timestamp: new Date().toISOString(),
               taskType: opts.log.taskType,
@@ -376,6 +401,13 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             cached: lastCacheHit,
           }
         } catch (err) {
+          if (err instanceof StructuredTextError) {
+            attemptUsage.inputTokens += err.usage.inputTokens
+            attemptUsage.outputTokens += err.usage.outputTokens
+            totalUsage.inputTokens += err.usage.inputTokens
+            totalUsage.outputTokens += err.usage.outputTokens
+            callParams = { ...callParams, ...err.params }
+          }
           const errMsg = formatProviderError(err)
           allErrors.push(errMsg)
           if (cacheDir) {
@@ -394,13 +426,16 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
 
           // Provider/credential/model errors are configuration failures, not
           // transient ones — retrying them only delays the real message.
-          if (attempt < maxRetries && !AiProviderError.is(err)) {
+          const configurationError = AiProviderError.is(err) ||
+            err instanceof StructuredTextError && AiProviderError.is(err.cause)
+          if (attempt < maxRetries && !configurationError) {
             const delayMs = backoffDelay(attempt)
             log.error(
               `[LLM] ${label} | error (attempt ${attempt + 1}/${maxRetries + 1}) | ${errMsg} | retrying in ${delayMs}ms`
             )
             if (opts.log && onLog) {
               onLog({
+                params: { ...callParams },
                 requestId,
                 timestamp: new Date().toISOString(),
                 taskType: opts.log.taskType,
@@ -440,6 +475,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
 
           if (opts.log && onLog) {
             onLog({
+              params: { ...callParams },
               requestId,
               timestamp: new Date().toISOString(),
               taskType: opts.log.taskType,

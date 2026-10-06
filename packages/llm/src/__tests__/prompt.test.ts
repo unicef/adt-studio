@@ -5,6 +5,46 @@ import path from "node:path"
 import { createPromptEngine } from "../prompt.js"
 
 const dirs: string[] = []
+
+describe("Sol prompt variants", () => {
+  it("AC-4: ships renderable variants with the original Liquid variables, tags, images and includes", async () => {
+    const root = path.resolve(import.meta.dirname, "../../../../prompts")
+    const folder = path.join(root, "openai_gpt_6_1_sol")
+    const engine = createPromptEngine(root)
+    const files = fs.readdirSync(folder).filter((file) => file.endsWith(".liquid"))
+    expect(files).toHaveLength(43)
+    for (const file of files) {
+      const base = fs.readFileSync(path.join(root, file), "utf8")
+      const variant = fs.readFileSync(path.join(folder, file), "utf8")
+      const liquidTokens = (text: string) => text.match(/\{%[\s\S]*?%\}|\{\{[\s\S]*?\}\}/g)
+      expect(liquidTokens(variant)).toEqual(liquidTokens(base))
+      const name = file.slice(0, -7)
+      expect(engine.resolvePrompt(name, { modelId: "openai:gpt-6.1-sol" }).filePath).toBe(path.join(folder, file))
+      expect(engine.resolvePrompt(name, { modelId: "openai:gpt-5.4" }).resolvedName).toBe(name)
+      await expect(engine.renderPrompt(name, {}, { modelId: "openai:gpt-6.1-sol" })).resolves.toBeDefined()
+    }
+  })
+
+  it("AC-4: keeps global Sol ahead of book base edits and honors version selection and base rollback", async () => {
+    const book = tmpDir()
+    const global = tmpDir()
+    const folder = path.join(global, "openai_gpt_6_1_sol")
+    fs.mkdirSync(folder)
+    fs.writeFileSync(path.join(global, "section.liquid"), "Legacy GPT-5.4")
+    fs.writeFileSync(path.join(book, "section.liquid"), "Book base edit")
+    fs.writeFileSync(path.join(folder, "section.liquid"), "Global Sol")
+    const engine = createPromptEngine([book, global])
+    expect(engine.resolvePrompt("section", { modelId: "gpt-6.1-sol" }).filePath).toBe(path.join(folder, "section.liquid"))
+    expect(engine.resolvePrompt("section", { modelId: "gpt-5.4" }).filePath).toBe(path.join(book, "section.liquid"))
+    const versionDir = path.join(book, ".versions", "section__openai_gpt_6_1_sol")
+    fs.mkdirSync(versionDir, { recursive: true })
+    fs.writeFileSync(path.join(versionDir, "20261005T000000000Z-000.liquid"), "Old Sol edit")
+    fs.writeFileSync(path.join(versionDir, "20261005T000000001Z-000.liquid"), "New Sol edit")
+    fs.writeFileSync(path.join(versionDir, ".current"), "20261005T000000000Z-000.liquid")
+    expect(engine.resolvePrompt("section", { modelId: "gpt-6.1-sol" }).filePath).toBe(path.join(versionDir, "20261005T000000000Z-000.liquid"))
+  })
+})
+
 function tmpDir(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "llm-prompt-test-"))
   dirs.push(dir)

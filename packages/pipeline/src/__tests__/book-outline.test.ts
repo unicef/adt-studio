@@ -3,6 +3,7 @@ import { PNG } from "pngjs"
 import { describe, expect, it } from "vitest"
 import { createPromptEngine } from "@adt/llm"
 import type { GenerateObjectOptions, LLMModel, Message } from "@adt/llm"
+import { DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import type {
   BookOutlineOutput,
   BookOutlineProposalOutput,
@@ -354,17 +355,27 @@ describe("book outline evidence", () => {
 })
 
 describe("book outline generation", () => {
-  it("uses the fast mini model for the shipped OpenAI default", () => {
+  it.each([undefined, DEFAULT_LLM_MODEL_ID])(
+    "uses the fast mini model for the shipped OpenAI default (%s)",
+    (defaultModel) => {
+      expect(
+        buildBookOutlineConfig({
+          default_model: defaultModel,
+          structure_types: {},
+          role_types: {},
+        }).modelId,
+      ).toBe("openai:gpt-5.4-mini")
+    },
+  )
+
+  it("keeps non-default and explicit outline model selections", () => {
     expect(
       buildBookOutlineConfig({
         default_model: "openai:gpt-5.4",
         structure_types: {},
         role_types: {},
       }).modelId,
-    ).toBe("openai:gpt-5.4-mini")
-  })
-
-  it("keeps non-default and explicit outline model selections", () => {
+    ).toBe("openai:gpt-5.4")
     expect(
       buildBookOutlineConfig({
         default_model: "google:gemini-2.5-flash",
@@ -374,7 +385,7 @@ describe("book outline generation", () => {
     ).toBe("google:gemini-2.5-flash")
     expect(
       buildBookOutlineConfig({
-        default_model: "openai:gpt-5.4",
+        default_model: DEFAULT_LLM_MODEL_ID,
         book_outline: { model: "openai:gpt-5.4" },
         structure_types: {},
         role_types: {},

@@ -62,6 +62,24 @@ describe("GET /prompt-models", () => {
 })
 
 describe("PUT /prompt-models", () => {
+  it("AC-4: reserves the built-in Sol folder and versions edits without overwriting shipped prompts", async () => {
+    writePrompt("section", "Base GPT-5.4")
+    writeModelPrompt("openai_gpt_6_1_sol", "section", "Shipped Sol")
+    const collision = await app().request("/prompt-models", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ models: ["openai:gpt_6_1_sol"] }),
+    })
+    expect(collision.status).toBe(400)
+    const routes = app()
+    const url = "/prompts/section?model=openai%3Agpt-6.1-sol"
+    expect((await (await routes.request(url)).json()).content).toBe("Shipped Sol")
+    const edited = await routes.request(url, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: "Edited Sol" }) })
+    expect(edited.status).toBe(200)
+    expect((await (await routes.request(url)).json()).content).toBe("Edited Sol")
+    expect(fs.readFileSync(path.join(promptsDir, "openai_gpt_6_1_sol", "section.liquid"), "utf8")).toBe("Shipped Sol")
+    expect((await (await routes.request("/prompts/section?model=openai%3Agpt-5.4")).json()).content).toBe("Base GPT-5.4")
+  })
+
   it("stores normalized unique prompt model ids", async () => {
     const res = await app().request("/prompt-models", {
       method: "PUT",

@@ -8,7 +8,7 @@ import { TranslationEvaluationConfig } from "./translation-evaluation.js"
 import { REFLOWABLE_FONT_SETTINGS } from "./reflowable-fonts.js"
 
 export const DEFAULT_LLM_MAX_RETRIES = 5
-export const DEFAULT_LLM_MODEL_ID = "openai:gpt-5.4"
+export const DEFAULT_LLM_MODEL_ID = "openai:gpt-6.1-sol"
 export const DEFAULT_IMAGE_GENERATION_MODEL_ID = "openai:gpt-image-2"
 export const DEFAULT_OPENAI_TTS_MODEL_ID = "gpt-4o-mini-tts"
 export const DEFAULT_ELEVENLABS_TTS_MODEL_ID = "eleven_multilingual_v2"

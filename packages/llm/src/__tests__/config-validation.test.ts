@@ -81,7 +81,8 @@ describe("collectStageRunModelChecks", () => {
     ])
   })
 
-  it("falls back to the platform default model when the config sets none", () => {
+  it("AC-1: falls back to Sol when the config sets no model", () => {
+    expect(DEFAULT_LLM_MODEL_ID).toBe("openai:gpt-6.1-sol")
     expect(collectStageRunModelChecks(config({}), ["storyboard"])).toEqual([
       { field: "default_model", modelId: DEFAULT_LLM_MODEL_ID, modality: "structured-text" },
     ])

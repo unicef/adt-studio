@@ -47,6 +47,7 @@ Examples:
 | Model id | Folder name |
 | --- | --- |
 | `openai:gpt-5.5` | `openai_gpt_5_5` |
+| `openai:gpt-6.1-sol` | `openai_gpt_6_1_sol` |
 | `anthropic:claude-opus-4.1` | `anthropic_claude_opus_4_1` |
 | `google:gemini-2.5-pro` | `google_gemini_2_5_pro` |
 
@@ -85,6 +86,38 @@ When a pipeline step renders `page_sectioning` with model
 10. `prompts/page_sectioning.liquid`
 
 If no model-specific prompt exists, the base prompt is used.
+
+A global model variant precedes a book's base edit. To override a Sol prompt
+for one book, edit that book's Sol variant; editing its base prompt alone does
+not override the shipped Sol variant. The prompt response exposes `resolvedName`
+and its source, and structured-call logs record the resolved file path.
+
+### Shipped Sol variants
+
+The distributed execution default is `openai:gpt-6.1-sol`. Base prompt provenance
+remains `openai:gpt-5.4`; selecting GPT-5.4 still resolves the legacy base prompts.
+The `openai_gpt_6_1_sol` directory supplies 43 conversion variants: extraction,
+sectioning and refinement, captioning, translation, easy read, glossary, book
+summary, table of contents, quizzes, typography, styleguides, HTML rendering,
+activities and answers, visual review, HTML edits and verification, activity
+feedback and core TTS text preparation. Shared `_*.liquid` includes keep their
+existing lookup and contracts.
+
+Image generation/editing and image translation use specialized image models.
+The independent book-outline task retains its pinned mini model and base
+prompts. `web_generation_html_old` remains a legacy fallback. Those templates
+have no bundled Sol variant; explicit Sol selections can still use their base
+fallback. Uploaded overrides and saved book files are never rewritten by the
+default change.
+
+Sol uses Responses for all inference, including structured tool-call fallback
+and agent turns. The installed AI SDK 4/OpenAI 1.3 adapter does not recognize
+GPT-6 reasoning or preserve opaque reasoning output, so Sol uses a scoped REST
+adapter without changing dependencies or other providers. Effective effort is
+`low` for omitted/`none`/`minimal`, and explicit supported efforts are preserved.
+The effective options and adapter/endpoint identity participate in caching;
+legacy caches cannot satisfy Sol requests. Reasoning continuation travels with
+the cached book transcript using `store: false` and encrypted reasoning items.
 
 ## Adding a New Model
 

@@ -233,6 +233,7 @@ export const LLM_MODEL_GROUPS: ModelGroup[] = [
   {
     provider: "openai",
     models: [
+      "gpt-6.1-sol",
       "gpt-5.6-sol",
       "gpt-5.5",
       "gpt-5.4",

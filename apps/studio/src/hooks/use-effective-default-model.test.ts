@@ -11,7 +11,7 @@ describe("resolveEffectiveDefaultModel", () => {
     ).toBe("openai:gpt-5.6-sol")
   })
 
-  it("falls back to the platform constant before config loads", () => {
-    expect(resolveEffectiveDefaultModel()).toBe("openai:gpt-5.4")
+  it("AC-1: falls back to Sol before config loads", () => {
+    expect(resolveEffectiveDefaultModel()).toBe("openai:gpt-6.1-sol")
   })
 })

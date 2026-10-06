@@ -36,6 +36,16 @@ describe("RenderStrategyConfig", () => {
 })
 
 describe("AppConfig", () => {
+  it("AC-1: preserves explicit platform, step and agent model selections after parsing and reload", () => {
+    const config = AppConfig.parse({ structure_types: {}, role_types: {},
+      default_model: "openai:gpt-5.4", page_sectioning: { model: "anthropic:claude-sonnet-4-6" }, agents: { model: "openai:gpt-5.5" },
+    })
+    const reloaded = AppConfig.parse(JSON.parse(JSON.stringify(config)))
+    expect(reloaded.default_model).toBe("openai:gpt-5.4")
+    expect(reloaded.page_sectioning?.model).toBe("anthropic:claude-sonnet-4-6")
+    expect(reloaded.agents?.model).toBe("openai:gpt-5.5")
+  })
+
   it("fails when a non-activity render strategy includes answer_prompt", () => {
     const result = AppConfig.safeParse({
       structure_types: { paragraph: "Paragraph" },
