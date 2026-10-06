@@ -1,0 +1,9 @@
+node_modules/
+.wrangler/
+.dev.vars
+# The App's private key and webhook secret never go in the repo.
+*.pem
+*.key
+webhook-secret
+# A rehearsal config for a test org (see AGENTS.md).
+wrangler.test.jsonc

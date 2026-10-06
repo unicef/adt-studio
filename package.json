@@ -1,0 +1,20 @@
+{
+  "name": "adt-kanban-bot",
+  "private": true,
+  "type": "module",
+  "description": "GitHub App on a Cloudflare Worker: hand-offs and sprint blocks for the ADT Studio Kanban Project",
+  "packageManager": "pnpm@10.32.1",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json",
+    "check": "pnpm typecheck && pnpm test",
+    "deploy": "wrangler deploy -c wrangler.jsonc",
+    "tail": "wrangler tail -c wrangler.jsonc",
+    "app": "node scripts/app.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vitest": "^4.1.9",
+    "wrangler": "4.140.0"
+  }
+}

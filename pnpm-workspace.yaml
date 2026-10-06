@@ -1,0 +1,7 @@
+# Same supply-chain rule as develop: only install releases at least 7 days old.
+minimumReleaseAge: 10080
+
+# Wrangler's bundler and runtime need their install steps; nothing else does.
+onlyBuiltDependencies:
+  - esbuild
+  - workerd

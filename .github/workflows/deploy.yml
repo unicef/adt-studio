@@ -1,0 +1,60 @@
+# Deploys the bot to Cloudflare when a change to its code or config reaches the
+# kanban-bot branch (a merged PR).
+#
+# The Cloudflare secrets live in the `kanban-bot` environment, which only this
+# branch may use (Settings → Environments → kanban-bot → Deployment branches).
+# Until CLOUDFLARE_API_TOKEN is set there, the job skips. The bot's own
+# secrets (App key, webhook secret) live in Cloudflare only, never here.
+name: Kanban bot deploy
+
+on:
+  push:
+    branches: [kanban-bot]
+    paths:
+      - 'src/**'
+      - 'wrangler.jsonc'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/deploy.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kanban-bot-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: kanban-bot
+    steps:
+      - name: Check the Cloudflare secrets are set
+        id: ready
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::notice::CLOUDFLARE_API_TOKEN is not set in the kanban-bot environment: skipping the deploy."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.ready.outputs.go == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.ready.outputs.go == 'true'
+        with:
+          node-version: 22
+      - if: steps.ready.outputs.go == 'true'
+        run: corepack enable && pnpm install --frozen-lockfile
+      - name: Test before deploying
+        if: steps.ready.outputs.go == 'true'
+        run: pnpm typecheck && pnpm test
+      - name: Deploy
+        if: steps.ready.outputs.go == 'true'
+        run: pnpm exec wrangler deploy -c wrangler.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
