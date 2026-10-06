@@ -236,7 +236,6 @@ async function _createElectronAccessibilityAuditor(): Promise<AccessibilityAudit
           id,
           filePath,
           ruleIds,
-          axeSource,
           viewport,
         })
         parentPort.postMessage(payload)

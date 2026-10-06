@@ -10,7 +10,6 @@ export const accessibilityAuditIpcRequestSchema = z.object({
   id: z.string().uuid(),
   filePath: z.string().min(1),
   ruleIds: z.array(z.string()),
-  axeSource: z.string().min(1),
   viewport: accessibilityAuditIpcViewportSchema.optional(),
 })
 
