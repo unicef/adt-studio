@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { EFFECTS_KEY, effectsReduced, initEffects, lowEndReasons, readEffectsMode, REDUCED_CLASS, resolvesToReduced, setEffectsMode } from "./effects"
+import { EFFECTS_KEY, effectsReduced, initEffects, lowEndReasons, markNoticeSeen, pendingNotice, readEffectsMode, readNoticeSeen, REDUCED_CLASS, resolvesToReduced, setEffectsMode } from "./effects"
 
 const isReduced = () => document.documentElement.classList.contains(REDUCED_CLASS)
 const strong = { cores: 10, memoryGb: 16, softwareRendering: false }
@@ -95,5 +95,25 @@ describe("reduce effects preference", () => {
     mockHardware(undefined)
     Object.defineProperty(navigator, "hardwareConcurrency", { configurable: true, value: 2 })
     expect(resolvesToReduced("auto")).toBe(true)
+  })
+})
+
+describe("reduced-effects notice", () => {
+  it("tells the user once when Auto turns effects down for the hardware", () => {
+    expect(pendingNotice("auto", ["cores"], null)).toEqual(["cores"])
+    markNoticeSeen(["cores"])
+    expect(pendingNotice("auto", ["cores"], readNoticeSeen())).toEqual([])
+  })
+
+  it("tells them again only when the reasons change", () => {
+    markNoticeSeen(["memory", "cores"])
+    expect(pendingNotice("auto", ["cores", "memory"], readNoticeSeen())).toEqual([])
+    expect(pendingNotice("auto", ["software-rendering", "cores", "memory"], readNoticeSeen())).toHaveLength(3)
+  })
+
+  it("stays quiet when the user chose it, or the machine isn't low-end", () => {
+    expect(pendingNotice("on", ["cores"], null)).toEqual([])
+    expect(pendingNotice("off", ["cores"], null)).toEqual([])
+    expect(pendingNotice("auto", [], null)).toEqual([])
   })
 })

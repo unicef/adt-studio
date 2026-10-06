@@ -6,6 +6,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router"
 import { AppToaster } from "@/components/AppToaster"
+import { ReduceEffectsNotice } from "@/components/effects/ReduceEffectsNotice"
 import { ErrorScreen } from "@/components/ErrorScreen"
 import type { SettingsSection } from "@/components/settings/settingsSections"
 import { UpdateDialogProvider } from "@/components/updates"
@@ -50,6 +51,7 @@ function RootLayout() {
             <Outlet />
           </main>
           <AppToaster />
+          <ReduceEffectsNotice />
         </div>
       </UpdateDialogProvider>
     </SettingsContext>

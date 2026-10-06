@@ -1,17 +1,12 @@
 import { useState } from "react"
-import { Plural, Trans, useLingui } from "@lingui/react/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
 import { Gauge } from "lucide-react"
+import { LowEndReasons } from "@/components/effects/LowEndReasons"
 import { SegmentedControl } from "@/components/ui/segmented-control"
-import { lowEndReasons, readEffectsMode, readHardware, setEffectsMode, systemPrefersReducedMotion, useReducedEffects, type EffectsMode, type LowEndReason } from "@/lib/effects"
+import { lowEndReasons, readEffectsMode, readHardware, setEffectsMode, systemPrefersReducedMotion, useReducedEffects, type EffectsMode } from "@/lib/effects"
 import { EFFECTS_OPTIONS } from "./options"
 import { SETTINGS_ANCHORS } from "./nav"
 import { SettingRow } from "./ui"
-
-function Reason({ reason, cores, memoryGb }: { reason: LowEndReason; cores?: number; memoryGb?: number }) {
-  if (reason === "software-rendering") return <Trans>graphics drawn without the GPU</Trans>
-  if (reason === "cores") return <Plural value={cores ?? 0} one="# processor core" other="# processor cores" />
-  return <Trans>{memoryGb} GB of memory</Trans>
-}
 
 function Status({ mode }: { mode: EffectsMode }) {
   const reduced = useReducedEffects()
@@ -23,14 +18,7 @@ function Status({ mode }: { mode: EffectsMode }) {
   if (mode === "auto" && reasons.length > 0) {
     text = (
       <Trans>
-        Auto turned this on for this computer:{" "}
-        {reasons.map((r, i) => (
-          <span key={r}>
-            {i > 0 && ", "}
-            <Reason reason={r} cores={hw.cores} memoryGb={hw.memoryGb} />
-          </span>
-        ))}
-        .
+        Auto turned this on for this computer: <LowEndReasons reasons={reasons} hw={hw} />.
       </Trans>
     )
   } else if (mode === "auto" && osMotion) {
