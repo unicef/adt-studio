@@ -1,7 +1,7 @@
 ---
 id: SPEC-0016
 title: AI-assisted setup recommender integration
-status: draft
+status: in-review
 owner: "@VictorBrasileiroo"
 approvers: []
 issues: ["#333"]
