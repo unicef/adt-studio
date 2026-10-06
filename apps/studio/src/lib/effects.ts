@@ -90,6 +90,34 @@ export function initEffects(): () => void {
   return () => media.removeEventListener("change", onChange)
 }
 
+export const NOTICE_KEY = "adt.effects-notice"
+
+/**
+ * The hardware reasons to tell the user about, once: only when Auto turned effects down because of
+ * the machine (not the user's own choice, nor the OS motion setting) and this set of reasons hasn't
+ * been shown before. `seen` is the last set shown.
+ */
+export function pendingNotice(mode: EffectsMode, reasons: LowEndReason[], seen: string | null): LowEndReason[] {
+  if (mode !== "auto" || reasons.length === 0) return []
+  return [...reasons].sort().join(",") === seen ? [] : reasons
+}
+
+export function readNoticeSeen(): string | null {
+  try {
+    return localStorage.getItem(NOTICE_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function markNoticeSeen(reasons: LowEndReason[]): void {
+  try {
+    localStorage.setItem(NOTICE_KEY, [...reasons].sort().join(","))
+  } catch {
+    /* best-effort; the worst case is seeing the notice again */
+  }
+}
+
 function subscribe(onChange: () => void): () => void {
   window.addEventListener(CHANGE_EVENT, onChange)
   const media = window.matchMedia?.(MOTION_QUERY)
