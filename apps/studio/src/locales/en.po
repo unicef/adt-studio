@@ -138,6 +138,10 @@ msgstr "{0, plural, one {# page} other {# pages}}"
 msgid "{0, plural, one {# page} other {# pages}} and {imageCount, plural, one {# image} other {# images}} read"
 msgstr "{0, plural, one {# page} other {# pages}} and {imageCount, plural, one {# image} other {# images}} read"
 
+#. placeholder {0}: hw.cores ?? 0
+msgid "{0, plural, one {# processor core} other {# processor cores}}"
+msgstr "{0, plural, one {# processor core} other {# processor cores}}"
+
 #. placeholder {0}: thread.replyCount
 msgid "{0, plural, one {# reply} other {# replies}}"
 msgstr "{0, plural, one {# reply} other {# replies}}"
@@ -279,6 +283,10 @@ msgstr "{0} flagged findings in this review"
 #. placeholder {0}: filtered.length
 msgid "{0} fonts"
 msgstr "{0} fonts"
+
+#. placeholder {0}: hw.memoryGb
+msgid "{0} GB of memory"
+msgstr "{0} GB of memory"
 
 #. placeholder {0}: state.data.issueCount
 #. placeholder {1}: state.data.checkpointable
@@ -2194,6 +2202,9 @@ msgstr "Authors"
 msgid "Auto"
 msgstr "Auto"
 
+msgid "Auto is off: this computer can run full effects."
+msgstr "Auto is off: this computer can run full effects."
+
 msgid "Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML."
 msgstr "Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML."
 
@@ -2206,6 +2217,12 @@ msgstr "Auto recommended"
 #. placeholder {0}: i18n._(presetLabel)
 msgid "Auto recommended for {0}"
 msgstr "Auto recommended for {0}"
+
+msgid "Auto turned this on because your system asks for less motion."
+msgstr "Auto turned this on because your system asks for less motion."
+
+msgid "Auto turned this on for this computer: <0/>."
+msgstr "Auto turned this on for this computer: <0/>."
 
 msgid "Auto-build assessments and key-term lists."
 msgstr "Auto-build assessments and key-term lists."
@@ -2744,6 +2761,9 @@ msgstr "Change and send"
 msgid "Change how you share"
 msgstr "Change how you share"
 
+msgid "Change in Settings"
+msgstr "Change in Settings"
+
 msgid "Change language"
 msgstr "Change language"
 
@@ -3122,8 +3142,8 @@ msgstr "coming soon"
 msgid "Coming soon"
 msgstr "Coming soon"
 
-msgid "Coming soon — not wired up yet."
-msgstr "Coming soon — not wired up yet."
+#~ msgid "Coming soon — not wired up yet."
+#~ msgstr "Coming soon — not wired up yet."
 
 msgid "Command palette"
 msgstr "Command palette"
@@ -4517,6 +4537,9 @@ msgstr "Editing Language"
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Edits go to this Tailwind variant prefix"
 
+msgid "Effects are reduced everywhere in Studio."
+msgstr "Effects are reduced everywhere in Studio."
+
 msgid "Effort"
 msgstr "Effort"
 
@@ -5274,6 +5297,9 @@ msgstr "Full ADT bundle — HTML pages, images, audio, quizzes, and the compiled
 msgid "Full control over render strategies, pruning, and filters."
 msgstr "Full control over render strategies, pruning, and filters."
 
+msgid "Full effects are always used on this computer."
+msgstr "Full effects are always used on this computer."
+
 msgid "Full project backup & transfer"
 msgstr "Full project backup & transfer"
 
@@ -5596,6 +5622,9 @@ msgstr "Grade Level"
 
 msgid "Grammar and fluency"
 msgstr "Grammar and fluency"
+
+msgid "graphics drawn without the GPU"
+msgstr "graphics drawn without the GPU"
 
 msgid "Grid view"
 msgstr "Grid view"
@@ -7185,8 +7214,8 @@ msgstr "Min Size (px)"
 msgid "Min width"
 msgstr "Min width"
 
-msgid "Minimise onboarding and list-reorder animations."
-msgstr "Minimise onboarding and list-reorder animations."
+#~ msgid "Minimise onboarding and list-reorder animations."
+#~ msgstr "Minimise onboarding and list-reorder animations."
 
 msgid "Minimize"
 msgstr "Minimize"
@@ -7318,8 +7347,11 @@ msgstr "Most open feedback"
 msgid "Most used"
 msgstr "Most used"
 
-msgid "motion animation accessibility"
-msgstr "motion animation accessibility"
+#~ msgid "motion animation accessibility"
+#~ msgstr "motion animation accessibility"
+
+msgid "motion animation blur performance slow computer accessibility"
+msgstr "motion animation blur performance slow computer accessibility"
 
 msgid "Move down"
 msgstr "Move down"
@@ -9838,8 +9870,11 @@ msgstr "Recrop from Page"
 msgid "Rectangle"
 msgstr "Rectangle"
 
-msgid "Reduce motion"
-msgstr "Reduce motion"
+msgid "Reduce effects"
+msgstr "Reduce effects"
+
+#~ msgid "Reduce motion"
+#~ msgstr "Reduce motion"
 
 msgid "Reference"
 msgstr "Reference"
@@ -11436,6 +11471,12 @@ msgstr "Signing in only works when ADT Studio and your browser run on the same c
 msgid "Similarity"
 msgstr "Similarity"
 
+msgid "Simpler animations and no blur or 3D, so Studio stays smooth on slower computers."
+msgstr "Simpler animations and no blur or 3D, so Studio stays smooth on slower computers."
+
+msgid "Simpler animations and no blur, for slower computers."
+msgstr "Simpler animations and no blur, for slower computers."
+
 msgid "Simplified Easy Read text variants."
 msgstr "Simplified Easy Read text variants."
 
@@ -11505,6 +11546,9 @@ msgstr "Small"
 
 msgid "Smart Cropping"
 msgstr "Smart Cropping"
+
+msgid "So it stays smooth on this computer: <0/>."
+msgstr "So it stays smooth on this computer: <0/>."
 
 msgid "So only this computer can share or change your books."
 msgstr "So only this computer can share or change your books."
@@ -11957,6 +12001,9 @@ msgstr "Structures each page into a tree of sections and nodes."
 
 msgid "Studio couldn't open this page right now. Open it in the Storyboard to see it."
 msgstr "Studio couldn't open this page right now. Open it in the Storyboard to see it."
+
+msgid "Studio switched to reduced effects"
+msgstr "Studio switched to reduced effects"
 
 msgid "Style"
 msgstr "Style"
@@ -14505,6 +14552,9 @@ msgstr "Your sharing service isn't answering, so what this page says about versi
 
 msgid "Your sharing service needs an update first"
 msgstr "Your sharing service needs an update first"
+
+msgid "Your system asks for less motion, so animations stay reduced."
+msgstr "Your system asks for less motion, so animations stay reduced."
 
 msgid "Z → A"
 msgstr "Z → A"

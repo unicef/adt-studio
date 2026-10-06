@@ -138,6 +138,10 @@ msgstr "{0, plural, one {# página} other {# páginas}}"
 msgid "{0, plural, one {# page} other {# pages}} and {imageCount, plural, one {# image} other {# images}} read"
 msgstr "{0, plural, one {# página} other {# páginas}} y {imageCount, plural, one {# imagen} other {# imágenes}} leídas"
 
+#. placeholder {0}: hw.cores ?? 0
+msgid "{0, plural, one {# processor core} other {# processor cores}}"
+msgstr "{0, plural, one {# núcleo de procesador} other {# núcleos de procesador}}"
+
 #. placeholder {0}: thread.replyCount
 msgid "{0, plural, one {# reply} other {# replies}}"
 msgstr "{0, plural, one {# respuesta} other {# respuestas}}"
@@ -279,6 +283,10 @@ msgstr "{0} hallazgos señalados en esta revisión"
 #. placeholder {0}: filtered.length
 msgid "{0} fonts"
 msgstr "{0} fuentes"
+
+#. placeholder {0}: hw.memoryGb
+msgid "{0} GB of memory"
+msgstr "{0} GB de memoria"
 
 #. placeholder {0}: state.data.issueCount
 #. placeholder {1}: state.data.checkpointable
@@ -2194,6 +2202,9 @@ msgstr "Autores"
 msgid "Auto"
 msgstr "Automático"
 
+msgid "Auto is off: this computer can run full effects."
+msgstr "Automático está desactivado: este ordenador puede usar todos los efectos."
+
 msgid "Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML."
 msgstr "Auto mantiene juntos los gráficos, las imágenes etiquetadas y las infografías complejas, mientras deja los encabezados, los recuadros y las tablas convencionales para un HTML accesible."
 
@@ -2206,6 +2217,12 @@ msgstr "Auto recomendado"
 #. placeholder {0}: i18n._(presetLabel)
 msgid "Auto recommended for {0}"
 msgstr "Auto recomendado para {0}"
+
+msgid "Auto turned this on because your system asks for less motion."
+msgstr "Automático lo activó porque tu sistema pide menos movimiento."
+
+msgid "Auto turned this on for this computer: <0/>."
+msgstr "Automático lo activó para este ordenador: <0/>."
 
 msgid "Auto-build assessments and key-term lists."
 msgstr "Crea automáticamente evaluaciones y listas de términos clave."
@@ -2744,6 +2761,9 @@ msgstr "Cambiar y enviar"
 msgid "Change how you share"
 msgstr "Cambia cómo compartes"
 
+msgid "Change in Settings"
+msgstr "Cambiar en Configuración"
+
 msgid "Change language"
 msgstr "Cambiar idioma"
 
@@ -3122,8 +3142,8 @@ msgstr "próximamente"
 msgid "Coming soon"
 msgstr "Próximamente"
 
-msgid "Coming soon — not wired up yet."
-msgstr "Próximamente — aún no conectado."
+#~ msgid "Coming soon — not wired up yet."
+#~ msgstr "Próximamente — aún no conectado."
 
 msgid "Command palette"
 msgstr "Paleta de comandos"
@@ -4517,6 +4537,9 @@ msgstr "Idioma de edición"
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Las ediciones van a este prefijo de variante Tailwind"
 
+msgid "Effects are reduced everywhere in Studio."
+msgstr "Los efectos están reducidos en todo Studio."
+
 msgid "Effort"
 msgstr "Esfuerzo"
 
@@ -5274,6 +5297,9 @@ msgstr "Paquete ADT completo — páginas HTML, imágenes, audio, cuestionarios 
 msgid "Full control over render strategies, pruning, and filters."
 msgstr "Control total sobre estrategias de renderizado, poda y filtros."
 
+msgid "Full effects are always used on this computer."
+msgstr "Siempre se usan todos los efectos en este ordenador."
+
 msgid "Full project backup & transfer"
 msgstr "Respaldo y transferencia completa del proyecto"
 
@@ -5596,6 +5622,9 @@ msgstr "Nivel de Grado"
 
 msgid "Grammar and fluency"
 msgstr "Gramática y fluidez"
+
+msgid "graphics drawn without the GPU"
+msgstr "gráficos dibujados sin la GPU"
 
 msgid "Grid view"
 msgstr "Vista de cuadrícula"
@@ -7185,8 +7214,8 @@ msgstr "Tamaño Mín (px)"
 msgid "Min width"
 msgstr "Ancho mín"
 
-msgid "Minimise onboarding and list-reorder animations."
-msgstr "Minimizar animaciones de incorporación y reordenamiento de listas."
+#~ msgid "Minimise onboarding and list-reorder animations."
+#~ msgstr "Minimizar animaciones de incorporación y reordenamiento de listas."
 
 msgid "Minimize"
 msgstr "Minimizar"
@@ -7318,8 +7347,11 @@ msgstr "La mayoría de los comentarios abiertos"
 msgid "Most used"
 msgstr "Más usado"
 
-msgid "motion animation accessibility"
-msgstr "movimiento animación accesibilidad"
+#~ msgid "motion animation accessibility"
+#~ msgstr "movimiento animación accesibilidad"
+
+msgid "motion animation blur performance slow computer accessibility"
+msgstr "movimiento animación desenfoque rendimiento ordenador lento accesibilidad"
 
 msgid "Move down"
 msgstr "Mover hacia abajo"
@@ -9838,8 +9870,11 @@ msgstr "Recortar desde la página"
 msgid "Rectangle"
 msgstr "Rectángulo"
 
-msgid "Reduce motion"
-msgstr "Reducir movimiento"
+msgid "Reduce effects"
+msgstr "Reducir efectos"
+
+#~ msgid "Reduce motion"
+#~ msgstr "Reducir movimiento"
 
 msgid "Reference"
 msgstr "Referencia"
@@ -11436,6 +11471,12 @@ msgstr "Iniciar sesión solo funciona cuando ADT Studio y tu navegador se ejecut
 msgid "Similarity"
 msgstr "Similitud"
 
+msgid "Simpler animations and no blur or 3D, so Studio stays smooth on slower computers."
+msgstr "Animaciones más sencillas, sin desenfoque ni 3D, para que Studio siga fluido en ordenadores más lentos."
+
+msgid "Simpler animations and no blur, for slower computers."
+msgstr "Animaciones más sencillas y sin desenfoque, para ordenadores más lentos."
+
 msgid "Simplified Easy Read text variants."
 msgstr "Variantes de texto simplificadas de Lectura Fácil."
 
@@ -11505,6 +11546,9 @@ msgstr "Pequeño"
 
 msgid "Smart Cropping"
 msgstr "Recorte Inteligente"
+
+msgid "So it stays smooth on this computer: <0/>."
+msgstr "Para que siga fluido en este ordenador: <0/>."
 
 msgid "So only this computer can share or change your books."
 msgstr "Así solo este ordenador puede compartir o cambiar tus libros."
@@ -11957,6 +12001,9 @@ msgstr "Estructura cada página en un árbol de secciones y nodos."
 
 msgid "Studio couldn't open this page right now. Open it in the Storyboard to see it."
 msgstr "Studio no pudo abrir esta página ahora. Ábrela en el Storyboard para verla."
+
+msgid "Studio switched to reduced effects"
+msgstr "Studio pasó a usar efectos reducidos"
 
 msgid "Style"
 msgstr "Estilo"
@@ -14505,6 +14552,9 @@ msgstr "Tu servicio para compartir no responde, así que lo que dice esta págin
 
 msgid "Your sharing service needs an update first"
 msgstr "Tu servicio para compartir necesita una actualización primero"
+
+msgid "Your system asks for less motion, so animations stay reduced."
+msgstr "Tu sistema pide menos movimiento, así que las animaciones siguen reducidas."
 
 msgid "Z → A"
 msgstr "Z → A"
