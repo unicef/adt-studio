@@ -133,7 +133,7 @@ export function BookDetails({ flow, className, titleClassName, animated, delay =
   )
 }
 
-export function BoldActions({ flow, className }: { flow: UploadFlow; className?: string }) {
+export function UploadActions({ flow, className }: { flow: UploadFlow; className?: string }) {
   const [ready, setReady] = useState(flow.showCard)
   useEffect(() => {
     if (!flow.showCard || flow.replacing) return setReady(false)

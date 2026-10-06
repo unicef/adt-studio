@@ -3,7 +3,7 @@ import { Trans } from "@lingui/react/macro"
 import { ArrowUp, Check, FileWarning, Lock, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Book3D } from "../../core/Book3D"
-import { BoldActions, BookDetails, DropMessage, Subtitle } from "./cardParts"
+import { UploadActions, BookDetails, DropMessage, Subtitle } from "./cardParts"
 import { UploadChrome } from "./parts"
 import type { UploadFlow } from "./useUploadFlow"
 import { DotGrid } from "../../core/ui"
@@ -156,7 +156,7 @@ export function UploadScreen({ flow }: { flow: UploadFlow }) {
           )}
         </div>
 
-        <BoldActions flow={flow} />
+        <UploadActions flow={flow} />
       </div>
 
     </UploadChrome>
