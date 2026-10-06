@@ -12,7 +12,7 @@ import {
   Wand2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { TwoColumnStoryStrategyIcon } from "@/components/wizard/icons/TwoColumnStoryStrategyIcon"
+import { TwoColumnStoryStrategyIcon } from "@/components/wizard/core/icons/TwoColumnStoryStrategyIcon"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import { i18n as linguiI18n } from "@lingui/core"
