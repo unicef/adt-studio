@@ -8,6 +8,23 @@
  * `dark:text-amber-200` on a light `bg-amber-50`, making warnings illegible. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Built-in motion variants also follow `.reduce-effects` (src/lib/effects.ts). */
+@custom-variant motion-reduce {
+  @media (prefers-reduced-motion: reduce) {
+    @slot;
+  }
+  &:where(.reduce-effects, .reduce-effects *) {
+    @slot;
+  }
+}
+@custom-variant motion-safe {
+  @media (prefers-reduced-motion: no-preference) {
+    &:where(:root:not(.reduce-effects), :root:not(.reduce-effects) *) {
+      @slot;
+    }
+  }
+}
+
 @theme inline {
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
@@ -390,6 +407,9 @@
     animation: none;
   }
 }
+.reduce-effects :is(.animate-finale-rise, .animate-finale-aurora-in, .animate-finale-sheen, .animate-finale-glow) {
+  animation: none;
+}
 
 /* Onboarding surface tokens — flip with the app `.dark` class. Feature-panel
    gradients and white-on-panel text stay vibrant in both themes. */
@@ -617,6 +637,12 @@
     transition: opacity 160ms ease-out;
   }
 }
+.reduce-effects .adt-fit-pill,
+.reduce-effects .adt-fit-pill[data-state="closed"] {
+  transform: none;
+  filter: none;
+  transition: opacity 160ms ease-out;
+}
 
 :root {
   --background: oklch(1 0 0);
@@ -803,4 +829,10 @@
     transform: translate3d(-8px, 6px, 0) scale(1.09);
     opacity: 0.82;
   }
+}
+
+.reduce-effects *,
+.reduce-effects *::before,
+.reduce-effects *::after {
+  backdrop-filter: none !important;
 }

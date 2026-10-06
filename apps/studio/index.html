@@ -21,6 +21,25 @@
           /* private mode or storage disabled — fall back to light */
         }
       })();
+      (function () {
+        try {
+          var mode = localStorage.getItem("adt.effects") || "auto";
+          var hw = (window.api && window.api.hardware) || {
+            cores: navigator.hardwareConcurrency,
+            memoryGb: navigator.deviceMemory,
+          };
+          var lowEnd =
+            hw.softwareRendering === true ||
+            (hw.cores > 0 && hw.cores <= 4) ||
+            (hw.memoryGb > 0 && hw.memoryGb <= 4);
+          var reduced =
+            mode === "on" ||
+            (mode === "auto" &&
+              (lowEnd ||
+                window.matchMedia("(prefers-reduced-motion: reduce)").matches));
+          document.documentElement.classList.toggle("reduce-effects", reduced);
+        } catch (err) {}
+      })();
     </script>
   </head>
   <body>
