@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils"
 import {
   getPreviewPageLabel,
   usePdfPreviewPages,
-} from "@/components/wizard/shared/usePdfPreviewPages"
-import { PreviewShell } from "@/components/wizard/shared/PreviewShell"
-import { PdfPageBadge } from "@/components/wizard/shared/PdfPageBadge"
+} from "@/components/wizard/core/pdf/usePdfPreviewPages"
+import { PreviewShell } from "@/components/wizard/core/previews/PreviewShell"
+import { PdfPageBadge } from "@/components/wizard/core/previews/PdfPageBadge"
 import { getSourcePdfUrl, type PageRange } from "../../api/client"
 
 const RENDER_WIDTH = 640

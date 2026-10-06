@@ -11,7 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { PreviewShell } from "@/components/wizard/shared/PreviewShell"
+import { PreviewShell } from "@/components/wizard/core/previews/PreviewShell"
 import { useDownstreamWithOutput } from "@/hooks/use-downstream-with-output"
 import { BOOK_LEVEL_STAGES, type StageName } from "@adt/types"
 import { PartialMergeNotice } from "@/components/parts/PartialMergeNotice"
