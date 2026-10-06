@@ -140,8 +140,8 @@ export function ProcessingList({ processing, className }: { processing: Processi
   return (
     <ul className={cn("grid grid-cols-2 gap-x-4 gap-y-1.5", className)}>
       {processing.map((p) => (
-        <li key={p.key} className="flex items-center justify-between gap-2 text-[12.5px]">
-          <span className="truncate text-muted-foreground">{p.label}</span>
+        <li key={p.key} className="flex items-start justify-between gap-2 text-[12.5px] leading-snug">
+          <span className="min-w-0 text-muted-foreground">{p.label}</span>
           <span className={cn("inline-flex shrink-0 items-center gap-1 font-semibold", p.on ? "text-foreground" : "text-muted-foreground/70")}>
             <span className={cn("size-1.5 rounded-full", p.on ? "bg-emerald-500" : "bg-muted-foreground/40")} />
             {p.value}
