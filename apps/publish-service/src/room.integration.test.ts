@@ -22,6 +22,9 @@ import {
   ROOM_CLIENT_HEADER,
   ROOM_CODE_HEADER,
   ROOM_MAX_AUTHOR_PEERS,
+  ROOM_MAX_FRAMES_PER_SECOND,
+  ROOM_MAX_JOINS_PER_CLIENT_PER_MINUTE,
+  ROOM_CHECK_MIN_INTERVAL_MS,
   ROOM_MAX_PEERS_PER_CLIENT,
   ROOM_PEER_HEADER,
   ROOM_PROTOCOL,
@@ -987,6 +990,124 @@ describe("when a book's access changes", () => {
     expect((await asOldHost({ ...base, id: "author", is_author: true })).status).toBe(426)
   })
 
+  it("drops a socket's frames beyond its per-second allowance", async () => {
+    const token = await publish()
+    const sender = await join(token, { section: "pg001_sec001" })
+    const watcher = await join(token, { section: "pg001_sec001" })
+    await presenceWith(watcher, 2)
+
+    for (let i = 0; i < ROOM_MAX_FRAMES_PER_SECOND * 3; i += 1) {
+      sender.send({ t: "cursor", section_id: "pg001_sec001", selector: "#content", xOffsetPct: 1, yOffsetPct: 1 })
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    const relayed = watcher.frames.filter((frame) => frame.t === "cursor").length
+    expect(relayed).toBeGreaterThan(0)
+    expect(relayed).toBeLessThanOrEqual(ROOM_MAX_FRAMES_PER_SECOND + 10)
+  })
+
+  /** Roster frames are checked against the book before anyone hears them, so they must not be a
+   *  way to keep D1 reading: a no-op costs nothing, and real changes have a small allowance. */
+  it("keeps a flood of roster frames from becoming a flood of reads", async () => {
+    const token = await publish()
+    const sender = await join(token, { section: "pg001_sec001" })
+    const watcher = await join(token, { section: "pg001_sec001" })
+    await presenceWith(watcher, 2)
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    let reads = 0
+    const room = env.PUBLICATION_ROOM.get(env.PUBLICATION_ROOM.idFromName(token))
+    await runInDurableObject(room, (instance) => {
+      const target = instance as unknown as { env: { DB: D1Database } }
+      const real = target.env.DB
+      target.env = { ...target.env, DB: { prepare: (sql: string) => ((reads += 1), real.prepare(sql)) } as unknown as D1Database }
+    })
+
+    for (let i = 0; i < 60; i += 1) sender.send({ t: "page", section_id: "pg001_sec001" })
+    for (let i = 0; i < 60; i += 1) sender.send({ t: "device", device: "full" })
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    expect(reads).toBe(0)
+
+    for (let i = 0; i < 60; i += 1) sender.send({ t: "page", section_id: i % 2 === 0 ? "pg002_sec001" : "pg003_sec001" })
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    expect(reads).toBeLessThanOrEqual(Math.ceil(300 / ROOM_CHECK_MIN_INTERVAL_MS) + 1)
+    const roster = await waitFor(() => {
+      const frame = watcher.presence().at(-1)
+      return frame?.peers.some((peer) => peer.page_section_id === "pg003_sec001") ? frame : null
+    }, "the roster to show the last page turned to")
+    expect(roster.peers.some((peer) => peer.page_section_id === "pg003_sec001")).toBe(true)
+  })
+
+  /** A roster goes out once per batch, and a `hello` that changed nothing is answered to its
+   *  sender alone, so a flood of either can't multiply into a roster per frame per peer. */
+  it("sends one roster per batch and answers an idle hello only to its sender", async () => {
+    const token = await publish()
+    const watcher = await join(token, { section: "pg001_sec001" })
+    const senders = await Promise.all(Array.from({ length: 8 }, () => join(token, { section: "pg001_sec001" })))
+    await presenceWith(watcher, 9)
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
+    const idle = watcher.presence().length
+    for (let round = 0; round < 20; round += 1) for (const sender of senders) sender.send({ t: "hello", section_id: "pg001_sec001" })
+    await waitFor(() => senders[0]!.presence().length > 1 ? true : null, "the asker's own roster")
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    expect(watcher.presence().length).toBe(idle)
+
+    const busy = watcher.presence().length
+    for (const sender of senders) sender.send({ t: "page", section_id: "pg002_sec001" })
+    await waitFor(() => {
+      const frame = watcher.presence().at(-1)
+      return frame && frame.peers.filter((peer) => peer.page_section_id === "pg002_sec001").length === 8 ? frame : null
+    }, "every page turn in the roster")
+    expect(watcher.presence().length - busy).toBeLessThanOrEqual(3)
+  })
+
+  /** Page turns faster than the room checks land on the last one, not on the first. */
+  it("keeps the last of several quick page turns", async () => {
+    const token = await publish()
+    const sender = await join(token, { section: "pg001_sec001" })
+    const watcher = await join(token, { section: "pg001_sec001" })
+    await presenceWith(watcher, 2)
+
+    for (const section of ["pg002_sec001", "pg003_sec001", "pg004_sec001", "pg002_sec001", "pg001_sec001", "pg004_sec001"]) {
+      sender.send({ t: "page", section_id: section })
+    }
+    await waitFor(() => {
+      const frame = watcher.presence().at(-1)
+      return frame?.peers.some((peer) => peer.page_section_id === "pg004_sec001") ? frame : null
+    }, "the roster to settle on the last page")
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    expect(watcher.presence().at(-1)?.peers.some((peer) => peer.page_section_id === "pg004_sec001")).toBe(true)
+  })
+
+  /** Every join and departure reads the book, so reconnecting in a loop is bounded per network. */
+  it("refuses a network that keeps reconnecting", async () => {
+    const token = await publish()
+    const room = env.PUBLICATION_ROOM.get(env.PUBLICATION_ROOM.idFromName(token))
+    await runInDurableObject(room, (instance) => {
+      const joins = (instance as unknown as { joins: Map<string, number[]> }).joins
+      joins.set("ab12", Array.from({ length: ROOM_MAX_JOINS_PER_CLIENT_PER_MINUTE }, () => Date.now()))
+    })
+    const asReader = (client: string) =>
+      room.fetch("https://publication-room.invalid/connect", {
+        headers: {
+          upgrade: "websocket",
+          [ROOM_PROTOCOL_HEADER]: ROOM_PROTOCOL,
+          [ROOM_PEER_HEADER]: encodeURIComponent(
+            JSON.stringify({ id: "p", name: "Visitor", color: "#336699", is_author: false, page_section_id: null, device: "full" }),
+          ),
+          [ROOM_TOKEN_HEADER]: token,
+          [ROOM_CLIENT_HEADER]: client,
+          [ROOM_CODE_HEADER]: "",
+        },
+      })
+
+    expect((await asReader("ab12")).status).toBe(429)
+    const other = await asReader("cd34")
+    expect(other.status).toBe(101)
+    open.push(other.webSocket as WebSocket)
+    ;(other.webSocket as WebSocket).accept()
+  })
+
   it("seats nobody in a room that is not their book's", async () => {
     const token = await publish()
     const other = await publish()
@@ -1014,10 +1135,11 @@ describe("when a book's access changes", () => {
   describe("live traffic after a lost eviction", () => {
     const cursorOn = (section: string) => ({ t: "cursor" as const, section_id: section, selector: "#content", xOffsetPct: 10, yOffsetPct: 10 })
 
+    /** Stands in for `ROOM_POSITION_CHECK_MS` passing: the next cursor or viewport reads the book. */
     async function forgetLastCheck(token: string): Promise<void> {
       const room = env.PUBLICATION_ROOM.get(env.PUBLICATION_ROOM.idFromName(token))
       await runInDurableObject(room, (instance) => {
-        ;(instance as unknown as { accessCheckedAt: number }).accessCheckedAt = 0
+        ;(instance as unknown as { positions: unknown }).positions = null
       })
     }
 
@@ -1105,17 +1227,92 @@ describe("when a book's access changes", () => {
       author.send(cursorOn("pg001_sec001"))
       await new Promise((resolve) => setTimeout(resolve, 50))
       await env.DB.prepare("UPDATE publications SET access_code = ? WHERE token = ?").bind(await hashAccessCode("MOONRISE"), token).run()
-      const fresh = await join(token, { cookies: [`${PUBLICATION_ACCESS_COOKIE}=${await accessCookie(token, "moonrise")}`], section: "pg001_sec001" })
-      expect(await waitFor(readerClosed, "the old-code reader to close")).toBe(4403)
+      const grant = await accessCookie(token, "moonrise")
+      const joining = join(token, { cookies: [`${PUBLICATION_ACCESS_COOKIE}=${grant}`], section: "pg001_sec001" })
+      await new Promise((resolve) => setTimeout(resolve, 50))
 
       release()
+      const fresh = await joining
+      expect(await waitFor(readerClosed, "the old-code reader to close")).toBe(4403)
       await new Promise((resolve) => setTimeout(resolve, 100))
       let freshClosed: number | null = null
       fresh.ws.addEventListener("close", (event) => (freshClosed = (event as CloseEvent).code))
-      author.send(cursorOn("pg001_sec001"))
+      author.send({ ...cursorOn("pg001_sec001"), xOffsetPct: 77 })
       await waitFor(() => fresh.frames.find((frame) => frame.t === "cursor") ?? null, "the new reader to see the author's cursor")
       expect(freshClosed).toBeNull()
-      expect(reader.frames.some((frame) => frame.t === "cursor")).toBe(false)
+      expect(reader.frames.some((frame) => frame.t === "cursor" && frame.xOffsetPct === 77)).toBe(false)
+    })
+
+    async function failingDatabase(token: string): Promise<void> {
+      const room = env.PUBLICATION_ROOM.get(env.PUBLICATION_ROOM.idFromName(token))
+      await runInDurableObject(room, (instance) => {
+        const target = instance as unknown as { env: { DB: D1Database } }
+        const failing = {
+          prepare: () => {
+            throw new Error("D1 is unavailable")
+          },
+        }
+        target.env = { ...target.env, DB: failing as unknown as D1Database }
+      })
+    }
+
+    const liveFrames = (client: RoomPeerClient) =>
+      client.frames.filter((frame) => frame.t === "cursor" || frame.t === "viewport" || frame.t === "presence").length
+
+    it("sends a reader whose access ended nothing when an author joins", async () => {
+      const { token, reader, author, readerClosed } = await readerAndAuthor()
+      await env.DB.prepare("UPDATE publications SET access_code = ? WHERE token = ?").bind(await hashAccessCode("MOONRISE"), token).run()
+      await forgetLastCheck(token)
+      const before = liveFrames(reader)
+
+      await join(token, { ticket: (await ticketFor(token)).ticket, section: "pg001_sec001" })
+      await presenceWith(author, 2)
+      expect(await waitFor(readerClosed, "the revoked reader to close")).toBe(4403)
+      expect(liveFrames(reader)).toBe(before)
+    })
+
+    /** Rosters are checked on every delivery: no window, however recently positions were read. */
+    it("sends a reader whose access ended no roster, however recently the room last checked", async () => {
+      const { token, reader, author, readerClosed } = await readerAndAuthor()
+      await env.DB.prepare("UPDATE publications SET revoked_at = ? WHERE token = ?").bind(new Date().toISOString(), token).run()
+      const rosters = reader.presence().length
+
+      author.send({ t: "page", section_id: "pg002_sec001" })
+      expect(await waitFor(readerClosed, "the revoked reader to close")).toBe(4403)
+      expect(reader.presence()).toHaveLength(rosters)
+    })
+
+    it("stops positions reaching a reader whose access ended once the position check expires", async () => {
+      const { token, reader, author, readerClosed } = await readerAndAuthor()
+      await env.DB.prepare("UPDATE publications SET revoked_at = ? WHERE token = ?").bind(new Date().toISOString(), token).run()
+      await forgetLastCheck(token)
+      const before = liveFrames(reader)
+
+      author.send({ t: "viewport", section_id: "pg001_sec001", selector: "#content", xOffsetPct: 1, yOffsetPct: 1 })
+      expect(await waitFor(readerClosed, "the revoked reader to close")).toBe(4403)
+      expect(liveFrames(reader)).toBe(before)
+    })
+
+    it("sends readers no live frames while the book can't be read, and keeps the author", async () => {
+      const { token, reader, author, readerClosed } = await readerAndAuthor()
+      const other = await join(token, { cookies: [`${PUBLICATION_ACCESS_COOKIE}=${await accessCookie(token, "sunset")}`], section: "pg001_sec001" })
+      await presenceWith(author, 3)
+      await failingDatabase(token)
+      await forgetLastCheck(token)
+      const before = liveFrames(reader)
+      const authorBefore = author.frames.length
+
+      author.send(cursorOn("pg001_sec001"))
+      author.send({ t: "viewport", section_id: "pg001_sec001", selector: "#content", xOffsetPct: 1, yOffsetPct: 1 })
+      other.send(cursorOn("pg001_sec001"))
+      other.ws.close()
+      await new Promise((resolve) => setTimeout(resolve, 150))
+
+      expect(liveFrames(reader)).toBe(before)
+      expect(readerClosed()).toBeNull()
+      expect(author.frames.slice(authorBefore).some((frame) => frame.t === "cursor")).toBe(false)
+      const second = await join(token, { ticket: (await ticketFor(token)).ticket, section: "pg001_sec001" })
+      await waitFor(() => second.frames.find((frame) => frame.t === "presence") ?? null, "a roster for the second author window")
     })
 
     it("keeps current readers and the author trading cursors", async () => {
