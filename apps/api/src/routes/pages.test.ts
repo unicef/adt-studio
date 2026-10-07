@@ -2053,6 +2053,114 @@ describe("Page routes", () => {
   describe("POST /api/books/:label/images/ai-generate", () => {
     const pageId = "test-book_p1"
     const endpoint = `/api/books/${label}/images/ai-generate?pageId=${pageId}`
+    const png = "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAGCAYAAADkOT91AAAAH0lEQVR4AV3BwREAMAiAMMr+O1ufHsmbxSEhISEh8QGPSwQIxMxWxQAAAABJRU5ErkJggg=="
+    const googleHeaders = { "Content-Type": "application/json", "X-Google-API-Key": "google-test" }
+
+    function mockGoogleImage(data = png, mimeType = "image/png") {
+      fs.appendFileSync(globalConfigPath, 'default_image_generation_model: "google:gemini-3.1-flash-image"\n')
+      const fetchMock = vi.fn(async () => Response.json({ status: "completed", steps: [
+        { type: "model_output", content: [{ type: "image", mime_type: mimeType, data }] },
+      ] }))
+      vi.stubGlobal("fetch", fetchMock)
+      return fetchMock
+    }
+
+    afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs() })
+
+    it.each([false, true])("passes the target ratio for generation (style reference: %s)", async (withStyle) => {
+      const fetchMock = mockGoogleImage()
+      const response = await app.request(endpoint, {
+        method: "POST", headers: googleHeaders,
+        body: JSON.stringify({ prompt: "a diagram", targetImageId: `${pageId}_page`,
+          ...(withStyle ? { styleImageId: "test-book_p2_page" } : {}) }),
+      })
+      expect(response.status).toBe(200)
+      const request = JSON.parse(fetchMock.mock.calls[0][1].body)
+      expect(request.response_format.aspect_ratio).toBe("4:3")
+      expect(request.input.length).toBe(withStyle ? 2 : 1)
+    })
+
+    it("does not force source edits into a size or ratio bucket", async () => {
+      const fetchMock = mockGoogleImage()
+      const response = await app.request(endpoint, {
+        method: "POST", headers: googleHeaders,
+        body: JSON.stringify({ prompt: "translate the labels", targetImageId: `${pageId}_page`, referenceImageId: `${pageId}_page` }),
+      })
+      expect(response.status).toBe(200)
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body)).not.toHaveProperty("response_format")
+    })
+
+    it.each(['style="object-fit:fill;color:red"', "style='object-fit:cover'", ""])(
+      "contains differently proportioned replacements without stretching: %s", async (style) => {
+        mockGoogleImage()
+        const storage = createBookStorage(label, tmpDir)
+        try {
+          storage.putNodeData("web-rendering", pageId, { sections: [{
+            sectionIndex: 0, sectionType: "content", reasoning: "test",
+            html: `<section><img data-id="${pageId}_page" src="/api/books/${label}/images/${pageId}_page" width="800" height="600" ${style}></section>`,
+          }] })
+          const response = await app.request(endpoint, {
+            method: "POST", headers: googleHeaders,
+            body: JSON.stringify({ prompt: "a diagram", targetImageId: `${pageId}_page`, sectionIndex: 0, mode: "swap" }),
+          })
+          expect(response.status).toBe(200)
+          const result = await response.json()
+          expect(result).toMatchObject({ width: 4, height: 6, originalWidth: 800, originalHeight: 600 })
+          const rendering = storage.getLatestNodeData("web-rendering", pageId)!.data as { sections: Array<{ html: string }> }
+          expect(rendering.sections[0].html).toContain(`data-id="${result.imageId}"`)
+          expect(rendering.sections[0].html).toContain("object-fit:contain!important")
+          expect(rendering.sections[0].html).not.toMatch(/object-fit:(fill|cover)/)
+          expect(rendering.sections[0].html).toContain('width="800" height="600"')
+        } finally { storage.close() }
+      },
+    )
+
+    it("rejects undecodable output without saving, swapping, or poisoning the cache", async () => {
+      mockGoogleImage(Buffer.from("ffd8ffd9", "hex").toString("base64"), "image/jpeg")
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        const beforeImages = storage.getPageImages(pageId)
+        const beforeRendering = storage.getLatestNodeData("web-rendering", pageId)
+        const response = await app.request(endpoint, {
+          method: "POST", headers: googleHeaders,
+          body: JSON.stringify({ prompt: "a diagram", targetImageId: `${pageId}_page`, sectionIndex: 0, mode: "swap" }),
+        })
+        expect(response.status).toBe(500)
+        expect(storage.getPageImages(pageId)).toEqual(beforeImages)
+        expect(storage.getLatestNodeData("web-rendering", pageId)).toEqual(beforeRendering)
+        const cache = path.join(tmpDir, label, ".cache")
+        expect(fs.existsSync(cache) ? fs.readdirSync(cache) : []).toEqual([])
+      } finally { storage.close() }
+    })
+
+    it("uses the Google default with no OpenAI key and saves actual returned dimensions", async () => {
+      const png = "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAGCAYAAADkOT91AAAAH0lEQVR4AV3BwREAMAiAMMr+O1ufHsmbxSEhISEh8QGPSwQIxMxWxQAAAABJRU5ErkJggg=="
+      fs.appendFileSync(globalConfigPath, 'default_image_generation_model: "google:gemini-3.1-flash-image"\n')
+      vi.stubEnv("OPENAI_API_KEY", "")
+      const fetchMock = vi.fn(async () => Response.json({ status: "completed", steps: [
+        { type: "model_output", content: [{ type: "image", mime_type: "image/png", data: png }] },
+      ] }))
+      vi.stubGlobal("fetch", fetchMock)
+      try {
+        const response = await app.request(endpoint, {
+          method: "POST", headers: { "Content-Type": "application/json", "X-Google-API-Key": "google-test" },
+          body: JSON.stringify({ prompt: "a labelled diagram" }),
+        })
+        expect(response.status).toBe(200)
+        const result = await response.json()
+        expect(result).toMatchObject({ width: 4, height: 6 })
+        const storage = createBookStorage(label, tmpDir)
+        try {
+          const meta = storage.getImageMeta(result.imageId)!
+          expect(storage.getImageDimensions(result.imageId)).toEqual({ width: 4, height: 6 })
+          expect(fs.readFileSync(path.join(tmpDir, label, meta.relativePath)).toString("base64")).toBe(png)
+        } finally { storage.close() }
+        expect(fetchMock).toHaveBeenCalledTimes(1)
+      } finally {
+        vi.unstubAllGlobals()
+        vi.unstubAllEnvs()
+      }
+    })
 
     it("returns 400 when the selected image provider credential is missing", async () => {
       const res = await app.request(endpoint, {

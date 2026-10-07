@@ -89,6 +89,70 @@ function throwIfAborted(signal?: AbortSignal): void {
   throw signal.reason instanceof Error ? signal.reason : new Error("Operation aborted")
 }
 
+/**
+ * Chromium budget for one whole capture — page load, fonts, and the screenshot
+ * itself share it. Longer than the shared default because this is a background
+ * pass: a dense page can legitimately take a while to lay out, and waiting is
+ * cheaper than throwing away a rendering the LLM already paid for.
+ */
+const SCREENSHOT_TIMEOUT_MS = 60_000
+/** One retry — enough for a transient browser hiccup, bounded for a real hang. */
+const SCREENSHOT_ATTEMPTS = 2
+
+/** Capture one viewport, retrying a failure once. `null` if it never succeeds. */
+async function captureViewport(
+  deps: VisualReviewDeps,
+  screenshotHtml: string,
+  viewport: { label: string; width: number; height: number },
+  pageId: string,
+  signal?: AbortSignal
+): Promise<string | null> {
+  for (let attempt = 1; attempt <= SCREENSHOT_ATTEMPTS; attempt++) {
+    try {
+      return await deps.screenshotRenderer.screenshot(
+        screenshotHtml,
+        { width: viewport.width, height: viewport.height },
+        { signal, timeoutMs: SCREENSHOT_TIMEOUT_MS },
+      )
+    } catch (err) {
+      throwIfAborted(signal)
+      const message = err instanceof Error ? err.message : String(err)
+      console.warn(
+        `[visual-review] ${pageId}: ${viewport.label} screenshot failed` +
+          `${attempt < SCREENSHOT_ATTEMPTS ? ", retrying" : ", giving up"}: ${message}`
+      )
+    }
+  }
+  return null
+}
+
+/**
+ * Render one screenshot per viewport.
+ *
+ * Screenshotting is best-effort: Chromium can time out on a very tall page or
+ * die mid-render, and visual refinement is optional polish on top of an already
+ * generated page. Returns `null` if any viewport can't be captured, so the
+ * caller can keep the current HTML instead of failing the whole page render.
+ * Cancellation still propagates.
+ */
+async function captureViewportScreenshots(
+  deps: VisualReviewDeps,
+  screenshotHtml: string,
+  pageId: string,
+  signal?: AbortSignal
+): Promise<string[] | null> {
+  // Viewports are independent and each takes ~1-2s, so serialising them was a
+  // 3-6s tax per iteration. Each retries on its own — a failure in one doesn't
+  // redo the captures that already succeeded.
+  const results = await Promise.all(
+    SCREENSHOT_VIEWPORTS.map((vp) =>
+      captureViewport(deps, screenshotHtml, vp, pageId, signal)
+    )
+  )
+  throwIfAborted(signal)
+  return results.every((r): r is string => r !== null) ? results : null
+}
+
 export async function runVisualReviewLoop(
   options: RunVisualReviewLoopOptions
 ): Promise<VisualReviewResult> {
@@ -141,17 +205,10 @@ export async function runVisualReviewLoop(
       typographyCss: deps.typographyCss,
     })
 
-    // Render all viewport screenshots in parallel — they're independent and
-    // each takes ~1-2s, so serialising them was a 3-6s tax per iteration.
-    const screenshots = await Promise.all(
-      SCREENSHOT_VIEWPORTS.map((vp) =>
-        deps.screenshotRenderer.screenshot(
-          screenshotHtml,
-          { width: vp.width, height: vp.height },
-          { signal },
-        )
-      )
-    )
+    const screenshots = await captureViewportScreenshots(deps, screenshotHtml, pageId, signal)
+    // No screenshots means no review is possible. Stop here and hand back the
+    // best HTML we have — an unrefined page is far better than a failed one.
+    if (!screenshots) break
     throwIfAborted(signal)
     const screenshotParts: ContentPart[] = []
     for (let i = 0; i < SCREENSHOT_VIEWPORTS.length; i++) {

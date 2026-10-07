@@ -620,6 +620,7 @@ export {
 } from "./cloudflare.js"
 
 export {
+  DEFAULT_SCREENSHOT_TIMEOUT_MS,
   screenshotIpcViewportSchema,
   screenshotIpcRequestSchema,
   screenshotIpcCloseSchema,
@@ -696,3 +697,5 @@ export {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
 } from "./ai-provider.js"
+export { GOOGLE_IMAGE_MODELS, GoogleImageModelId, DEFAULT_GOOGLE_IMAGE_MODEL, GoogleImageResponse } from "./google-image.js"
+export { imageFileExtension, ImageAspectRatio, GeneratedImagePayload, ValidatedGeneratedImage } from "./image.js"

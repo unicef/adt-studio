@@ -74,7 +74,7 @@ export function DetailActions({ book, handlers }: { book: DetailBook; handlers: 
     <div className="flex items-center gap-2.5">
       <Button className={cn(PRESS, "flex-1 bg-brand-600 text-primary-foreground hover:bg-brand-700")} onClick={() => handlers.onEdit(book.label)}>
         <ArrowRight className="size-3.5" />
-        {p.status === "new" ? <Trans>Start</Trans> : <Trans>Continue</Trans>}
+        {p.status === "new" ? <Trans context="book action">Start</Trans> : <Trans>Continue</Trans>}
       </Button>
       {p.baseComplete && (
         <IconBtn onClick={() => handlers.goStep("preview")} label={t`Preview`}>

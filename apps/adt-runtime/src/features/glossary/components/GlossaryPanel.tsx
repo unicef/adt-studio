@@ -16,6 +16,7 @@ import {
   selectedGlossaryTermAtom,
 } from "@/shared/state/ui.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
+import { pageEpochAtom } from "@/features/navigation/state/nav.atoms";
 import { trackToggleEvent } from "@/shared/lib/analytics";
 import { DockContent } from "@/features/dock/components/DockLayout";
 import { GlossaryEntry } from "@/features/glossary/state/glossary.atoms";
@@ -27,6 +28,7 @@ export function GlossaryPanel() {
   const [tab, setTab] = useAtom(activeGlossaryTabAtom);
   const filter = useAtomValue(glossaryFilterAtom);
   const [selected, setSelected] = useAtom(selectedGlossaryTermAtom);
+  const pageEpoch = useAtomValue(pageEpochAtom);
 
   const allTerms = useMemo(
     () => Object.values(data).sort((a, b) => a.word.localeCompare(b.word)),
@@ -43,7 +45,7 @@ export function GlossaryPanel() {
       const candidates = [entry.word, ...(entry.variations ?? [])];
       return candidates.some((c) => haystack.includes(c.toLowerCase()));
     });
-  }, [allTerms]);
+  }, [allTerms, pageEpoch]);
 
   const filteredBookTerms = useMemo(() => {
     const q = filter.trim().toLowerCase();

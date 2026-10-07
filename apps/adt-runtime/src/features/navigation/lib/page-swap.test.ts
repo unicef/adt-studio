@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { getDefaultStore } from "jotai"
+import { translationsAtom } from "@/features/language/state/language.atoms"
+import { claimPageHeadNodes } from "@/features/navigation/lib/page-head"
+import { currentPageNumberAtom, pagesAtom } from "@/features/navigation/state/nav.atoms"
 import { reduceMotionAtom } from "@/shared/state/ui.atoms"
 
 const initializePageContent = vi.fn()
@@ -14,7 +17,7 @@ vi.mock("@/shared/lib/analytics", () => ({
   trackSpaPageView: vi.fn(),
 }))
 
-const { canSoftNavigate, claimPageHeadNodes, prefetchPage, subscribeSoftNavHistory, swapToPage } =
+const { canSoftNavigate, prefetchPage, subscribeSoftNavHistory, swapToPage } =
   await import("@/features/navigation/lib/page-swap")
 
 /** A page as `renderPageHtml` emits one: shared stylesheets, page-scoped head
@@ -114,6 +117,9 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  getDefaultStore().set(pagesAtom, [])
+  getDefaultStore().set(currentPageNumberAtom, null)
+  getDefaultStore().set(translationsAtom, {})
   vi.unstubAllGlobals()
   // Persisted to localStorage, so it would leak into every later test.
   getDefaultStore().set(reduceMotionAtom, false)
@@ -549,6 +555,51 @@ describe("swapToPage crossfade", () => {
     })
 
     expect(await swapToPage("http://localhost/book/pg002_sec001.html")).toBe("failed")
+  })
+})
+
+describe("swapToPage announcement", () => {
+  const sevenPages = Array.from({ length: 7 }, (_, i) => ({
+    section_id: `pg00${i + 1}_sec001`,
+    href: `pg00${i + 1}_sec001.html`,
+  }))
+
+  beforeEach(() => {
+    const store = getDefaultStore()
+    store.set(pagesAtom, sevenPages)
+    // `initializePageContent()` sets this in production; it is mocked here.
+    store.set(currentPageNumberAtom, 2)
+  })
+
+  it("leads with the position in the book, then the page's own heading", async () => {
+    mockFetchOnce(
+      pageHtml({ sectionId: "pg002_sec001", title: "Hyena and Raven", heading: "Why couldn't Hyena fly?" }),
+    )
+
+    await swapToPage("http://localhost/book/pg002_sec001.html")
+
+    expect(announceToScreenReader).toHaveBeenCalledWith("Page 2 of 7, Why couldn't Hyena fly?")
+  })
+
+  it("does not repeat the book title when that is all the page heading says", async () => {
+    mockFetchOnce(
+      pageHtml({ sectionId: "pg002_sec001", title: "Hyena and Raven", heading: "Hyena and Raven" }),
+    )
+
+    await swapToPage("http://localhost/book/pg002_sec001.html")
+
+    expect(announceToScreenReader).toHaveBeenCalledWith("Page 2 of 7")
+  })
+
+  it("speaks the position in the reader's interface language", async () => {
+    getDefaultStore().set(translationsAtom, { "page-n-of-m": "Página ${n} de ${m}" })
+    mockFetchOnce(
+      pageHtml({ sectionId: "pg002_sec001", title: "Hyena and Raven", heading: "Hyena and Raven" }),
+    )
+
+    await swapToPage("http://localhost/book/pg002_sec001.html")
+
+    expect(announceToScreenReader).toHaveBeenCalledWith("Página 2 de 7")
   })
 })
 

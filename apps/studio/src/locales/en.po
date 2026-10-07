@@ -115,6 +115,10 @@ msgstr "{0, plural, one {# comment without a pin} other {# comments without a pi
 msgid "{0, plural, one {# comment} other {# comments}}"
 msgstr "{0, plural, one {# comment} other {# comments}}"
 
+#. placeholder {0}: selectedImageIds.length
+msgid "{0, plural, one {# image selected} other {# images selected}}"
+msgstr "{0, plural, one {# image selected} other {# images selected}}"
+
 #. placeholder {0}: p.optionalDone.length
 msgid "{0, plural, one {# output} other {# outputs}}"
 msgstr "{0, plural, one {# output} other {# outputs}}"
@@ -266,8 +270,8 @@ msgstr "{0} fonts"
 
 #. placeholder {0}: selectedImageIds.length
 #. placeholder {1}: selectedImageIds.length === 1 ? "" : "s"
-msgid "{0} image{1} selected"
-msgstr "{0} image{1} selected"
+#~ msgid "{0} image{1} selected"
+#~ msgstr "{0} image{1} selected"
 
 #. placeholder {0}: String(captions.length)
 #. placeholder {0}: String(group.captions.length)
@@ -554,9 +558,12 @@ msgstr "{generatedFeatureCount} of 6 features generated"
 msgid "{hours}h ago"
 msgstr "{hours}h ago"
 
+msgid "{imageCount, plural, one {# image will be translated} other {# images will be translated}}"
+msgstr "{imageCount, plural, one {# image will be translated} other {# images will be translated}}"
+
 #. placeholder {0}: imageCount === 1 ? "" : "s"
-msgid "{imageCount} image{0} will be translated"
-msgstr "{imageCount} image{0} will be translated"
+#~ msgid "{imageCount} image{0} will be translated"
+#~ msgstr "{imageCount} image{0} will be translated"
 
 msgid "{imageCount} images"
 msgstr "{imageCount} images"
@@ -565,8 +572,8 @@ msgid "{inProgress, plural, one {# in progress} other {# in progress}}"
 msgstr "{inProgress, plural, one {# in progress} other {# in progress}}"
 
 #. placeholder {0}: issueCount === 1 ? "issue" : "issues"
-msgid "{issueCount} {0}"
-msgstr "{issueCount} {0}"
+#~ msgid "{issueCount} {0}"
+#~ msgstr "{issueCount} {0}"
 
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
@@ -623,8 +630,8 @@ msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detecte
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 
 #. placeholder {0}: reviewCount === 1 ? "manual review item" : "manual review items"
-msgid "{reviewCount} {0}"
-msgstr "{reviewCount} {0}"
+#~ msgid "{reviewCount} {0}"
+#~ msgstr "{reviewCount} {0}"
 
 #. placeholder {0}: section.criteria.length
 msgid "{reviewed}/{0} checked"
@@ -1469,6 +1476,10 @@ msgstr "Add your OpenAI API key first"
 msgid "added"
 msgstr "added"
 
+msgid "Added"
+msgstr "Added"
+
+msgctxt "font badge"
 msgid "Added"
 msgstr "Added"
 
@@ -2377,8 +2388,8 @@ msgstr "Browse every Storyboard section and upload, replace, or remove its sign-
 msgid "Browser didn't open? Use this link"
 msgstr "Browser didn't open? Use this link"
 
-msgid "Build"
-msgstr "Build"
+#~ msgid "Build"
+#~ msgstr "Build"
 
 msgid "Build a glossary of key terms and definitions found in the text."
 msgstr "Build a glossary of key terms and definitions found in the text."
@@ -2516,6 +2527,10 @@ msgstr "capped at {0}"
 msgid "Caption"
 msgstr "Caption"
 
+msgctxt "typography role"
+msgid "Caption"
+msgstr "Caption"
+
 #. placeholder {0}: cap.imageId
 msgid "Caption for {0}"
 msgstr "Caption for {0}"
@@ -2529,6 +2544,10 @@ msgstr "Captioned"
 msgid "Captioning Images..."
 msgstr "Captioning Images..."
 
+msgid "Captions"
+msgstr "Captions"
+
+msgctxt "typography role"
 msgid "Captions"
 msgstr "Captions"
 
@@ -4366,8 +4385,8 @@ msgstr "ES"
 msgid "Esc"
 msgstr "Esc"
 
-msgid "Español"
-msgstr "Español"
+#~ msgid "Español"
+#~ msgstr "Español"
 
 msgid "Est. Cost"
 msgstr "Est. Cost"
@@ -4490,14 +4509,23 @@ msgid "Export .zip"
 msgstr "Export .zip"
 
 #. placeholder {0}: formatLabels[selectedFormat].label
-msgid "Export {0}"
-msgstr "Export {0}"
+#~ msgid "Export {0}"
+#~ msgstr "Export {0}"
 
 msgid "Export & return .zip"
 msgstr "Export & return .zip"
 
 msgid "Export a part"
 msgstr "Export a part"
+
+msgid "Export completed part"
+msgstr "Export completed part"
+
+msgid "Export EPUB"
+msgstr "Export EPUB"
+
+msgid "Export for the web"
+msgstr "Export for the web"
 
 msgid "Export is not blocked by the stages below. As soon as Storyboard is done, you can ship a bundle. Enhancements, Localization, and Validation are optional ways to enrich the book — you can export again anytime later."
 msgstr "Export is not blocked by the stages below. As soon as Storyboard is done, you can ship a bundle. Enhancements, Localization, and Validation are optional ways to enrich the book — you can export again anytime later."
@@ -4511,17 +4539,29 @@ msgstr "Export logs to help debug pipeline failures."
 msgid "Export Options"
 msgstr "Export Options"
 
+msgid "Export PNLD package"
+msgstr "Export PNLD package"
+
 msgid "Export preparation failed"
 msgstr "Export preparation failed"
 
 msgid "Export Preview"
 msgstr "Export Preview"
 
+msgid "Export project archive"
+msgstr "Export project archive"
+
+msgid "Export SCORM package"
+msgstr "Export SCORM package"
+
 msgid "Export the finished part from its Export step, then upload that file."
 msgstr "Export the finished part from its Export step, then upload that file."
 
 msgid "Export the packaged book and related artifacts for delivery."
 msgstr "Export the packaged book and related artifacts for delivery."
+
+msgid "Export WebPub"
+msgstr "Export WebPub"
 
 msgid "Exported"
 msgstr "Exported"
@@ -4858,8 +4898,8 @@ msgstr "Forms & controls"
 msgid "FR"
 msgstr "FR"
 
-msgid "Français"
-msgstr "Français"
+#~ msgid "Français"
+#~ msgstr "Français"
 
 msgid "Free"
 msgstr "Free"
@@ -5553,6 +5593,9 @@ msgstr "Image unavailable"
 msgid "Image upload failed"
 msgstr "Image upload failed"
 
+msgid "Image-edit model used to regenerate each image with translated text."
+msgstr "Image-edit model used to regenerate each image with translated text."
+
 msgid "images"
 msgstr "images"
 
@@ -5621,8 +5664,8 @@ msgstr "Importing creates a new book limited to {windowSize} pages. Run the per-
 msgid "Importing..."
 msgstr "Importing..."
 
-msgid "Improvements"
-msgstr "Improvements"
+#~ msgid "Improvements"
+#~ msgstr "Improvements"
 
 msgid "In book:"
 msgstr "In book:"
@@ -6105,6 +6148,10 @@ msgstr "library view layout grid list"
 msgid "Life in the Coral Reef"
 msgstr "Life in the Coral Reef"
 
+msgid "Light"
+msgstr "Light"
+
+msgctxt "translation review depth"
 msgid "Light"
 msgstr "Light"
 
@@ -7635,6 +7682,10 @@ msgstr "of"
 msgid "Off"
 msgstr "Off"
 
+msgctxt "auto-dismiss delay"
+msgid "Off"
+msgstr "Off"
+
 msgid "Offset"
 msgstr "Offset"
 
@@ -7887,8 +7938,8 @@ msgstr "OpenAI"
 #~ msgid "OpenAI API Key"
 #~ msgstr "OpenAI API Key"
 
-msgid "OpenAI image-edit model used to regenerate each image with translated text."
-msgstr "OpenAI image-edit model used to regenerate each image with translated text."
+#~ msgid "OpenAI image-edit model used to regenerate each image with translated text."
+#~ msgstr "OpenAI image-edit model used to regenerate each image with translated text."
 
 #~ msgid "OpenAI key required"
 #~ msgstr "OpenAI key required"
@@ -8500,8 +8551,8 @@ msgstr "Pop-ups where supported, plus browsable glossary pages in the book."
 msgid "Popular"
 msgstr "Popular"
 
-msgid "Português (Brasil)"
-msgstr "Português (Brasil)"
+#~ msgid "Português (Brasil)"
+#~ msgstr "Português (Brasil)"
 
 msgid "Portuguese (BR)"
 msgstr "Portuguese (BR)"
@@ -8594,6 +8645,9 @@ msgstr "Preview: Per-Word"
 
 msgid "Preview: word-by-word"
 msgstr "Preview: word-by-word"
+
+msgid "Preview<0/>Build"
+msgstr "Preview<0/>Build"
 
 msgid "Previewed here — enabled once the AI-agnostic update ships."
 msgstr "Previewed here — enabled once the AI-agnostic update ships."
@@ -8865,8 +8919,11 @@ msgstr "Putting your book online"
 msgid "px"
 msgstr "px"
 
-msgid "Quality"
-msgstr "Quality"
+#~ msgid "Quality"
+#~ msgstr "Quality"
+
+msgid "Quality<0/>Improvements"
+msgstr "Quality<0/>Improvements"
 
 msgid "Query param"
 msgstr "Query param"
@@ -10680,8 +10737,8 @@ msgstr "Showing only terms you added — click to show all"
 msgid "Shown after page {afterNumber}"
 msgstr "Shown after page {afterNumber}"
 
-msgid "Shqip"
-msgstr "Shqip"
+#~ msgid "Shqip"
+#~ msgstr "Shqip"
 
 msgid "Side-by-side image and narrative."
 msgstr "Side-by-side image and narrative."
@@ -11046,6 +11103,10 @@ msgstr "Standard EPUB 3 file for e-readers, reading apps, and accessibility tool
 msgid "Standard EPUB glossary — tapping a term shows its definition. Needs reader support (not Apple Books)."
 msgstr "Standard EPUB glossary — tapping a term shows its definition. Needs reader support (not Apple Books)."
 
+msgid "Start"
+msgstr "Start"
+
+msgctxt "book action"
 msgid "Start"
 msgstr "Start"
 

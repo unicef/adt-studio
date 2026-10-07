@@ -2,8 +2,8 @@
 <!-- what and why, 2–5 lines -->
 
 **Issue:** #
-**Lane:** fast / spec (SPEC-____) / experiment
-**Tier:** must-beta / should-beta / must-stable / 1.1
+**Lane:** fast / spec proposal (SPEC-____) / spec amendment (SPEC-____) / spec implementation (SPEC-____) / experiment
+**Tier:** must-beta / should-beta / must-stable / should-stable / 1.1 / parked
 **Acceptance criteria closed (spec lane):** AC-
 
 ## Verification

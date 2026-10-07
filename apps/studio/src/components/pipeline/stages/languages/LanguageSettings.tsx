@@ -219,7 +219,6 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
       ? merged.default_image_generation_model
       : DEFAULT_IMAGE_GENERATION_MODEL_ID
   const translation = useStepConfig(merged, "translation", markDirty)
-  const imageTranslation = useStepConfig(merged, "image_translation", markDirty)
 
   const configuredEditingLanguage = merged?.editing_language as string | undefined
   const bookLanguage = book?.languageCode ?? book?.metadata?.language_code ?? null
@@ -389,10 +388,14 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
       overrides.output_languages = normalized.length > 0 ? normalized : undefined
     }
     if (shouldWrite("image_translation")) {
-      const existing = (bookConfigData?.config?.image_translation ?? {}) as Record<string, unknown>
+      // `model`/`max_retries` are inherited from the generic step config but the
+      // image-translation runner ignores them (it uses `image_model`), so strip
+      // them instead of persisting dead fields.
+      const existing = { ...(bookConfigData?.config?.image_translation ?? {}) } as Record<string, unknown>
+      delete existing.model
+      delete existing.max_retries
       overrides.image_translation = {
         ...existing,
-        ...imageTranslation.configOverrides,
         enabled: imageTranslationEnabled,
         image_model: imageModel.trim() || undefined,
         selected_image_ids: selectedImageIds.length > 0 ? selectedImageIds : undefined,
@@ -668,7 +671,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
                     }`}
                   >
                     <span className="block text-sm font-semibold">
-                      {style === "light" ? t`Light` : style === "standard" ? t`Standard` : t`Detailed`}
+                      {style === "light" ? t({ message: "Light", context: "translation review depth" }) : style === "standard" ? t`Standard` : t`Detailed`}
                     </span>
                     <span className={`mt-1 block text-xs leading-relaxed ${reviewStyle === style ? "text-white/80" : "text-muted-foreground"}`}>
                       {style === "light"
@@ -1141,7 +1144,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
               inputClassName="h-9 text-sm"
             />
             <p className="text-[11px] text-muted-foreground">
-              {t`OpenAI image-edit model used to regenerate each image with translated text.`}
+              {t`Image-edit model used to regenerate each image with translated text.`}
             </p>
           </div>
 
@@ -1216,10 +1219,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
               title={t`Image translation prompt`}
               description={t`The prompt sent to the image model alongside each selected image.`}
               draft={imagePromptDraft}
-              model={imageTranslation.model}
-              onModelChange={imageTranslation.onModelChange}
-              maxRetries={imageTranslation.maxRetries}
-              onMaxRetriesChange={imageTranslation.onMaxRetriesChange}
+              hideModel
               onContentChange={(content, modelId) => setImagePromptDraft(toPromptDraft(content, modelId))}
               enabled={tab === "image-translation"}
             />

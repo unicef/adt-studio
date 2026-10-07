@@ -45,10 +45,10 @@ export function TermDetails() {
     const target = await findPageWithGlossaryTerm(entry, otherPages).catch(
       () => null,
     )
-    if (!target) {
-      setLocating(false)
-      return
-    }
+    setLocating(false)
+    if (!target) return
+    setDockMenuValue("")
+    setSelected(null)
     navigateToPage(`${target.href}#glossary=${encodeURIComponent(entry.word)}`)
   }
 

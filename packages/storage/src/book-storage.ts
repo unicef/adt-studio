@@ -4,7 +4,7 @@ import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
 import type { ExtractedPage, ExtractedImage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
-import { parseBookLabel } from "@adt/types"
+import { imageFileExtension, parseBookLabel } from "@adt/types"
 import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
 import { openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
@@ -275,7 +275,8 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     putTranslatedImage(input: TranslatedImageInput): string {
       const safeLang = input.languageCode.replace(/[^a-zA-Z0-9-]/g, "_")
       const newImageId = `${input.sourceImageId}_tr_${safeLang}`
-      const filename = `${newImageId}.png`
+      const extension = imageFileExtension(input.mimeType)
+      const filename = `${newImageId}.${extension}`
       fs.writeFileSync(path.join(paths.imagesDir, filename), input.buffer)
 
       db.run(

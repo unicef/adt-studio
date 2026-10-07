@@ -247,7 +247,7 @@ function ElementLabel({
     if (/^h[1-6]$/.test(tagName)) return <Trans>Heading</Trans>
     if (tagName === "p") return <Trans>Paragraph</Trans>
     if (tagName === "blockquote") return <Trans>Quote</Trans>
-    if (tagName === "figcaption") return <Trans>Caption</Trans>
+    if (tagName === "figcaption") return <Trans context="typography role">Caption</Trans>
   }
   return <Trans>Text</Trans>
 }
