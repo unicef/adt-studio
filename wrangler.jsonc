@@ -14,7 +14,7 @@
     // The unicef GitHub App "ADT Backlog Wizard" (docs/ADMIN-SETUP.md). None
     // of these is secret. APP_ID is filled in once the org admin creates it;
     // BOT_LOGIN is <the App's slug>[bot]: check it then (`pnpm app info`).
-    "APP_ID": "",
+    "APP_ID": "5225591",
     "BOT_LOGIN": "adt-backlog-wizard[bot]",
     // Node id of the Kanban Project (unicef #46). The bot ignores every other Project.
     "PROJECTS": "PVT_kwDOAAKu6c4BlQRn"
