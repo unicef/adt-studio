@@ -149,10 +149,22 @@ export interface CreateSessionInput {
   pin?: string | null
 }
 
+/** Threads are one level deep and the root governs the thread: `version`, resolution and
+ *  deletion are read off the root, and replies are kept or dropped with it, so a reply written
+ *  after a republish travels with its root's version. Rows come in `(created_at, id)` order,
+ *  at most `limit` of them, strictly after `after` when given. */
 export interface CommentListFilter {
   token: string
   pageSectionId?: string
+  version?: number
+  includeResolved: boolean
+  includeDeleted: boolean
+  after?: { createdAt: string; id: string }
+  limit: number
 }
+
+/** Reader writes counted per caller, so one reader cannot fill the database every book shares. */
+export type WriteKind = "comment-client" | "comment-session" | "session-client"
 
 export interface CreateCommentInput {
   id: string
@@ -211,14 +223,17 @@ export interface PublicationStore {
   reinstate(token: string): Promise<Publication | null>
   /** Counts recent failures at one door, for one caller and for the publication as a whole.
    *  Both numbers are needed: the per-caller one does the enforcing, and the per-token one is
-   *  the backstop against a distributed guess. Scoped to `kind` throughout — the access code and
-   *  the reviewer PIN are different secrets of very different strength, and a reader who fumbles
-   *  one must not be throttled out of the other. */
+   *  the backstop against a distributed guess. The per-token count takes at most `clientCap`
+   *  from any one caller, so a single caller who keeps guessing past their own limit cannot
+   *  trip the backstop and lock every other reader out. Scoped to `kind` throughout — the
+   *  access code and the reviewer PIN are different secrets of very different strength, and a
+   *  reader who fumbles one must not be throttled out of the other. */
   countAccessFailures(input: {
     token: string
     client: string
     kind: AccessAttemptKind
     since: string
+    clientCap: number
   }): Promise<{ byClient: number; byToken: number }>
   /** Recorded for *this* attempt before its own gate reads a count — see access-throttle.ts's
    *  `attemptGate` for why the order matters. */
@@ -233,6 +248,9 @@ export interface PublicationStore {
    *  passed: a correct access code must not clear a reviewer PIN counter it has nothing to do
    *  with, and vice versa. */
   clearAccessFailures(input: { token: string; client: string; kind: AccessAttemptKind }): Promise<void>
+  /** Writes one caller made at one book since `since`. */
+  countWrites(input: { token: string; client: string; kind: WriteKind; since: string }): Promise<number>
+  recordWrites(input: { token: string; entries: Array<{ client: string; kind: WriteKind }>; at: string }): Promise<void>
 
   /** Erases the publication and everything hanging off it — versions, sessions, comments.
    *  Unlike `revoke`, there is nothing to resume afterwards: the token stops resolving and
@@ -258,6 +276,8 @@ export interface PublicationStore {
   renameSession(id: string, name: string): Promise<CommenterSession | null>
   setSessionPin(id: string, pin: string): Promise<CommenterSession | null>
   countCommenterSessions(token: string): Promise<number>
+  /** Every comment readers have written at a book, deleted ones included: the rows stay. */
+  countReaderComments(token: string): Promise<number>
 
   createComment(input: CreateCommentInput): Promise<PublishComment>
   /** Returns soft-deleted rows too — visibility is a route concern, not a storage one. */

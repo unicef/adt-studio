@@ -57,8 +57,19 @@ describe("control plane artifact", () => {
 describe("book host artifact", () => {
   const bookHost = metadata("book-host-metadata.json")
 
-  it("binds the database, its own assets, the shared room and an author secret", () => {
-    expect(bindingNames(bookHost)).toEqual(["DB", "ASSETS", "PUBLICATION_ROOM", "MGMT_SECRET"])
+  it("binds the database, its own assets, the shared room, an author secret and its book", () => {
+    expect(bindingNames(bookHost)).toEqual(["DB", "ASSETS", "PUBLICATION_ROOM", "MGMT_SECRET", "BOOK_TOKEN"])
+  })
+
+  /** The pin that keeps a host to its one book: declared plain, its value filled per book at
+   *  deploy time, never shipped in the artifact. */
+  it("declares its book's token without a value", () => {
+    const token = bookHost.bindings.find((binding) => binding.name === "BOOK_TOKEN")
+    expect(token?.type).toBe("plain_text")
+    const raw = JSON.parse(
+      fs.readFileSync(path.join(distDir, "book-host-metadata.json"), "utf-8"),
+    ) as { bindings: Array<Record<string, unknown>> }
+    expect(raw.bindings.find((binding) => binding.name === "BOOK_TOKEN")).not.toHaveProperty("text")
   })
 
   /** The declaration is the same shape as the control plane's; what differs is the value the

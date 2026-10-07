@@ -44,6 +44,8 @@ import {
   readContentRevision,
   readLocalBookSnapshot,
   readPublicationRecord,
+  reconcilePendingCommit,
+  restoreInterruptedPublishConfig,
   republishBook,
   savePublicationRecord,
   toPublishErrorEvent,
@@ -53,7 +55,7 @@ import {
   createPublishRunView,
   PublishCancelledError,
 } from "../services/publish-run-progress.js"
-import { bookHostAuthorSecret, bookWorkerName } from "../services/cloudflare/book-host.js"
+import { bookWorkerName } from "../services/cloudflare/book-host.js"
 import { deleteBookHost } from "../services/cloudflare/book-host-deploy.js"
 import { createCloudflareClient, type CloudflareClient } from "../services/cloudflare/client.js"
 import { resolveCloudflareCredentials } from "../services/cloudflare/credentials.js"
@@ -251,22 +253,6 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       controlPlaneSecret: connection.mgmt_secret,
       controlPlaneName: connection.worker_name,
     }
-  }
-
-  /** Reader routes are served by the book's own Worker, so previewing a published snapshot
-   *  talks to that host rather than the control plane — and authenticates with the per-book
-   *  author secret, which is all that host will recognise. */
-  const bookHostClientFor = (
-    connection: CloudflareConnectionRecord,
-    record: BookPublicationRecord,
-  ): PublishWorkerClient => {
-    /** Deliberately not `deps.createClient`: that stands in for the control plane, and a book
-     *  host is a different origin with a different credential. */
-    return createPublishWorkerClient({
-      workerUrl: new URL(record.base_url).origin,
-      mgmtSecret: bookHostAuthorSecret(connection.mgmt_secret, record.token),
-      ...(deps.fetchFn === undefined ? {} : { fetchFn: deps.fetchFn }),
-    })
   }
 
   /** The stored field is the first source; the control plane's own address is the second, since
@@ -640,8 +626,14 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
   app.get("/books/:label/publication", async (c) => {
     const label = parseBookLabel(c.req.param("label"))
     requireBook(label)
-    const record = readPublicationRecord(label, deps.booksDir)
     const connection = store.read()
+    if (!publishesInFlight.has(label)) restoreInterruptedPublishConfig(path.join(resolvedBooksDir(), label))
+    /** A run that lost its commit's reply left a note; while no run is going, find out how it
+     *  ended before answering, so a version that went live is never missing from the record. */
+    if (connection && !publishesInFlight.has(label)) {
+      await reconcilePendingCommit(label, deps.booksDir, clientFor(connection), deps.now)
+    }
+    const record = readPublicationRecord(label, deps.booksDir)
 
     /** Read once here rather than once per branch: it opens the book's database, and this
      *  route is polled while the publish screen is open. */
@@ -735,6 +727,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       )
     }
 
+    await reconcilePendingCommit(label, deps.booksDir, clientFor(connection), deps.now)
     const record = readPublicationRecord(label, deps.booksDir)
     if (isActiveRecord(record, connection)) {
       release()
@@ -799,6 +792,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       )
     }
 
+    await reconcilePendingCommit(label, deps.booksDir, clientFor(connection), deps.now)
     const record = readPublicationRecord(label, deps.booksDir)
     if (!isActiveRecord(record, connection)) {
       release()
@@ -1168,113 +1162,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
   })
 
-  /** GET /books/:label/publication/preview/* — the published snapshot, same-origin.
-   *
-   *  The exact bytes reviewers saw, not a fresh local package. `MGMT_SECRET` goes out with the
-   *  request (so the access gate and the 410 ladder are bypassed for the author) and never
-   *  comes back. */
-  app.get("/books/:label/publication/preview/*", async (c) => {
-    const label = parseBookLabel(c.req.param("label"))
-    requireBook(label)
-
-    const connection = requireConnection(
-      c,
-      store,
-      "Connect a Cloudflare account before previewing this book",
-    )
-    if (connection instanceof Response) return connection
-
-    const record = readPublicationRecord(label, deps.booksDir)
-    if (!record) {
-      /** A 404 rather than the 409 the JSON routes answer: this route's client is an
-       *  `<iframe>`, and a missing snapshot is a missing document, not a bad request. */
-      return c.json(
-        {
-          error: "This book has never been published",
-          code: "not_published" satisfies PublishErrorCodeStudio,
-        },
-        404,
-      )
-    }
-
-    const prefix = `/books/${c.req.param("label")}/publication/preview/`
-    const rawPath = c.req.path.slice(c.req.path.indexOf(prefix) + prefix.length)
-    const decodedPath = decodeSnapshotPath(rawPath)
-    if (decodedPath === null) {
-      /** Before the worker call, not after: `fetchSnapshotFile` attaches `MGMT_SECRET`, which is
-       *  exactly the credential a traversal riding an encoded segment is trying to walk out of
-       *  `/p/<token>/` with and into the authenticated management API. */
-      return c.json({ error: "That path is not valid", code: "invalid_request" }, 400)
-    }
-
-    const forwarded: Record<string, string> = {}
-    const ifNoneMatch = c.req.header("if-none-match")
-    if (ifNoneMatch !== undefined) forwarded["if-none-match"] = ifNoneMatch
-
-    let upstream: Response
-    try {
-      /** The bytes live on this book's own host, not the control plane, and that host knows
-       *  the author by a secret derived for this book alone. */
-      upstream = await bookHostClientFor(connection, record).fetchSnapshotFile(
-        record.token,
-        decodedPath,
-        forwarded,
-      )
-    } catch (error) {
-      return proxyFailure(c, error)
-    }
-
-    return streamSnapshotResponse(upstream)
-  })
-
   return app
-}
-
-/**
- * The wildcard arrives percent-encoded; the client re-encodes per segment, so decoding here
- * keeps a file named `Página 2.png` addressable without double-encoding it. Decoded per original
- * segment so one malformed sequence falls back to its raw text instead of taking the rest down.
- *
- * `null` when a *decoded* segment is `.` or `..`. The check runs against the decoded path
- * re-split on `/`, not the pre-decode split: an encoded slash inside a single segment only
- * becomes a literal `/` here, and `..%2F..%2Fadmin` is indistinguishable from an ordinary file
- * name until it does.
- */
-function decodeSnapshotPath(rawPath: string): string | null {
-  const [withoutQuery] = rawPath.split("?")
-  const decoded = (withoutQuery ?? "")
-    .split("/")
-    .map((segment) => {
-      try {
-        return decodeURIComponent(segment)
-      } catch {
-        return segment
-      }
-    })
-    .join("/")
-  if (decoded.split("/").some((segment) => segment === "." || segment === "..")) return null
-  return decoded
-}
-
-const SNAPSHOT_PASSTHROUGH_HEADERS = ["content-type", "cache-control", "etag", "last-modified"]
-
-function streamSnapshotResponse(upstream: Response): Response {
-  const headers = new Headers()
-  for (const name of SNAPSHOT_PASSTHROUGH_HEADERS) {
-    const value = upstream.headers.get(name)
-    if (value !== null) headers.set(name, value)
-  }
-  /** `fetch` transparently decodes a compressed body, so an upstream `Content-Length` only
-   *  still describes what we are about to write when nothing was encoded. */
-  const length = upstream.headers.get("content-length")
-  if (length !== null && upstream.headers.get("content-encoding") === null) {
-    headers.set("content-length", length)
-  }
-
-  if (upstream.status === 304 || upstream.body === null) {
-    return new Response(null, { status: upstream.status, headers })
-  }
-  return new Response(upstream.body, { status: upstream.status, headers })
 }
 
 function proxyFailure(c: Context, error: unknown): Response {

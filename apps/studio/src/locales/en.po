@@ -849,6 +849,9 @@ msgstr "A → Z"
 msgid "A balanced glossary for most books."
 msgstr "A balanced glossary for most books."
 
+msgid "A book is still being shared, or sharing is still being set up. Quitting stops it partway — you can start it again next time."
+msgstr "A book is still being shared, or sharing is still being set up. Quitting stops it partway — you can start it again next time."
+
 msgid "A book with this name already exists."
 msgstr "A book with this name already exists."
 
@@ -3321,6 +3324,9 @@ msgstr "Couldn't load the PDF preview. You can still mark spreads once the pages
 
 msgid "Couldn't load versions."
 msgstr "Couldn't load versions."
+
+msgid "Couldn't reach Cloudflare"
+msgstr "Couldn't reach Cloudflare"
 
 #~ msgid "Couldn't reach your publishing service"
 #~ msgstr "Couldn't reach your publishing service"
@@ -6041,8 +6047,8 @@ msgstr "Leave empty to use the book language."
 msgid "Leave setup"
 msgstr "Leave setup"
 
-msgid "Leave this step open until it finishes."
-msgstr "Leave this step open until it finishes."
+#~ msgid "Leave this step open until it finishes."
+#~ msgstr "Leave this step open until it finishes."
 
 msgid "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
 msgstr "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
@@ -8893,6 +8899,9 @@ msgstr "Quick fill"
 msgid "Quit anyway"
 msgstr "Quit anyway"
 
+msgid "Quit while sharing?"
+msgstr "Quit while sharing?"
+
 msgid "Quit without saving?"
 msgstr "Quit without saving?"
 
@@ -9085,6 +9094,9 @@ msgstr "Readers don't see your latest edits yet."
 
 #~ msgid "Readers joined"
 #~ msgstr "Readers joined"
+
+msgid "Readers keep the version they already have. Nothing half-finished reaches them."
+msgstr "Readers keep the version they already have. Nothing half-finished reaches them."
 
 #. placeholder {0}: formatPublishDateTime(state.endsAt, i18n.locale)
 msgid "Readers lose access {0}"
@@ -10533,6 +10545,9 @@ msgstr "Sharing didn't finish"
 msgid "Sharing finished."
 msgstr "Sharing finished."
 
+msgid "Sharing in progress"
+msgstr "Sharing in progress"
+
 msgid "Sharing is ready"
 msgstr "Sharing is ready"
 
@@ -11580,6 +11595,9 @@ msgstr "The completed stages below will be reset and need to run again so they u
 
 msgid "The connection check could not be completed."
 msgstr "The connection check could not be completed."
+
+msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
+msgstr "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
 
 msgid "The credits page."
 msgstr "The credits page."
@@ -13387,6 +13405,9 @@ msgstr "You are about to install {0}. Books or settings edited with a newer vers
 
 msgid "You can export at this stage"
 msgstr "You can export at this stage"
+
+msgid "You can leave this screen — just keep ADT Studio open."
+msgstr "You can leave this screen — just keep ADT Studio open."
 
 msgid "You can stop it any time"
 msgstr "You can stop it any time"

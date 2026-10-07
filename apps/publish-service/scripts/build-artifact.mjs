@@ -175,6 +175,11 @@ const bookHostMetadata = {
       description:
         "Per-book author secret, derived from the control plane's at deploy time. Only decides isAuthor; unlocks no management route here",
     },
+    {
+      type: "plain_text",
+      name: "BOOK_TOKEN",
+      description: "The one publication this host serves; every other token is a 404",
+    },
   ],
   d1_migrations: [],
   assets: { config: assetConfig },

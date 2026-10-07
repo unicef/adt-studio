@@ -1,4 +1,5 @@
 import { Hono } from "hono"
+import { createMiddleware } from "hono/factory"
 import { PUBLISH_WORKER_VERSION, type PublishWorkerHealth } from "@adt/types"
 import type { AppEnv } from "./app.js"
 import { createD1PublicationStore } from "./d1-store.js"
@@ -19,9 +20,14 @@ export interface BookHostOptions {
  * The Worker that hosts one book.
  *
  * It carries that book's Static Assets and the reader routes that guard them, and nothing
- * else. There is no `/api/*` surface and no `MGMT_SECRET` binding, so a book host cannot serve
- * a management request even if one reaches it — the routes are absent rather than guarded,
- * which is the only form of "not exposed" that survives a routing mistake.
+ * else. There is no `/api/*` surface, so a book host cannot serve a management request even if
+ * one reaches it — the routes are absent rather than guarded, which is the only form of "not
+ * exposed" that survives a routing mistake. Its `MGMT_SECRET` is the per-book author secret,
+ * never the account's.
+ *
+ * It serves exactly one publication, the `BOOK_TOKEN` bound at deploy time. Every book shares the
+ * account's database, so without that pin any host answered for any book, and one book's author
+ * secret was an author credential for all of them. A host with no token bound serves nothing.
  *
  * The control plane keeps the management API, owns the D1 database this reads from, and owns
  * the `PublicationRoom` class. Book hosts bind that namespace across scripts rather than
@@ -40,6 +46,14 @@ export function createBookHostApp(options: BookHostOptions = {}): Hono<AppEnv> {
     const health: PublishWorkerHealth = { ok: true, version: PUBLISH_WORKER_VERSION }
     return c.json(health)
   })
+
+  const onlyItsOwnBook = createMiddleware<AppEnv>(async (c, next) => {
+    const own = c.env?.BOOK_TOKEN
+    if (!own || c.req.param("token") !== own) return errorResponse(c, "not_found", 404)
+    return next()
+  })
+  app.use("/p/:token", onlyItsOwnBook)
+  app.use("/p/:token/*", onlyItsOwnBook)
 
   registerReaderRoutes(app, {
     resolveStore,

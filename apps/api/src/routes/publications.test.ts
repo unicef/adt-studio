@@ -726,53 +726,23 @@ describe("managing a live publication", () => {
   })
 })
 
-describe("previewing the published snapshot", () => {
-  /** The control plane no longer holds the bytes, so preview reads them from the book's own
-   *  Worker — and that host only recognises the author by a secret derived for this book, never
-   *  the account's own. Byte fidelity itself is covered where a real book host serves a real
-   *  asset, in book-host.integration.test.ts. */
-  it("reads the snapshot from the book\u2019s own host, as its author", async () => {
-    const asked: Array<{ url: string; authorization: string | null }> = []
+
+/** The preview proxy forwarded the book's author secret to whatever address its record named. */
+describe("the published snapshot", () => {
+  it("is never fetched through the Studio API, so no book host is asked for it", async () => {
+    const asked: string[] = []
     const { app } = routes({
-      bookHostFetch: async (url, init) => {
-        asked.push({ url, authorization: new Headers(init?.headers).get("Authorization") })
-        return new Response("<!doctype html><title>Raven</title>", { status: 200 })
+      bookHostFetch: async (url) => {
+        asked.push(url)
+        return new Response("<!doctype html>", { status: 200 })
       },
     })
     await publishOnce(app)
+    const before = asked.length
 
     const response = await app.request(`/books/${LABEL}/publication/preview/index.html`)
 
-    expect(response.status).toBe(200)
-    expect(await response.text()).toBe("<!doctype html><title>Raven</title>")
-    const request = asked.at(-1)
-    expect(request?.url).toMatch(
-      new RegExp(`^https://adt-book-[0-9a-f]{32}\\.teacher\\.workers\\.dev/p/${TOKEN}/index.html$`),
-    )
-    expect(request?.authorization).toBe(
-      `Bearer ${bookHostAuthorSecret(SECRET, TOKEN)}`,
-    )
-    /** Never the account's own secret. */
-    expect(request?.authorization).not.toContain(SECRET)
-  })
-
-  it("refuses a traversal smuggled through an encoded separator", async () => {
-    const { app, worker } = routes()
-    await publishOnce(app)
-    const before = worker.state.calls.length
-
-    const response = await app.request(
-      `/books/${LABEL}/publication/preview/..%2F..%2Fapi%2Fpublications`,
-    )
-
-    expect(response.status).toBe(400)
-    expect(worker.state.calls.length).toBe(before)
-  })
-
-  it("is a 404 for a book that has never been published", async () => {
-    const { app } = routes()
-    const response = await app.request(`/books/${LABEL}/publication/preview/index.html`)
     expect(response.status).toBe(404)
-    expect(await response.json()).toMatchObject({ code: "not_published" })
+    expect(asked).toHaveLength(before)
   })
 })

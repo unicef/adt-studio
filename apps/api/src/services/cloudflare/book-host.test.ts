@@ -3,6 +3,7 @@ import { PublicationToken } from "@adt/types"
 import {
   BOOK_WORKER_NAME_PREFIX,
   MAX_WORKERS_DEV_NAME_LENGTH,
+  bookHostAuthorSecret,
   bookWorkerName,
   isLegalWorkerName,
 } from "./book-host.js"
@@ -56,3 +57,14 @@ describe("book worker naming", () => {
       .not.toBe(bookWorkerName("AKd2mXqR7vLpNwZaBcYtEfGh"))
   })
 })
+
+/** The control plane's throttle derives this same value in WebCrypto; pinning a known answer
+ *  here and there keeps the two from drifting apart. */
+describe("bookHostAuthorSecret known answer", () => {
+  it("is the hex HMAC-SHA256 of the token under the account secret", () => {
+    expect(bookHostAuthorSecret("local-dev-secret", "bookHostRoundTripTokenAbcdefghi1")).toBe(
+      "9f95c2d151e76df9e0c814d95f9b5901bb7039fdd462fef2f83bb56513d9f69e",
+    )
+  })
+})
+

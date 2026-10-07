@@ -1,4 +1,5 @@
 import { CLIENT_ATTEMPT_LIMIT } from "./access-throttle.js"
+import { WRITE_LIMITS } from "./write-throttle.js"
 import { env } from "cloudflare:test"
 import { beforeEach, describe, expect, it } from "vitest"
 import {
@@ -10,7 +11,7 @@ import {
   type PublishCommentListResponse,
 } from "@adt/types"
 import { createApp } from "./app.js"
-import { publishSnapshot } from "../test/fixtures.js"
+import { publishSnapshot, seedWrites } from "../test/fixtures.js"
 
 /**
  * The access gate against real workerd, D1 and R2 — the whole point of the gate is what the
@@ -703,6 +704,23 @@ describe("the access-code door as the identity step", () => {
      *  anywhere, and the form posts the same fields whether the script ran or not. */
     expect(html).not.toContain("<script src")
     expect(html).toContain(`<label for="code" data-i18n="codeLabel">Access code</label>`)
+  })
+
+  /** The door starts sessions too, so it shares the session route's per-address ceiling. The
+   *  code was still right: past the ceiling the book opens and only the name is skipped. */
+  it("still opens the book past the per-address session ceiling, without a new session", async () => {
+    const token = await publish(CODE)
+    const total = async () =>
+      (await env.DB.prepare(`SELECT COUNT(*) AS total FROM sessions WHERE token = ?`).bind(token).first<{ total: number }>())?.total
+    await seedWrites(token, SECRET, { ip: "unknown" }, "session-client", WRITE_LIMITS["session-client"] - 1)
+    expect(cookieFrom(await enterAs(token, CODE, "Last"), COMMENTER_SESSION_COOKIE)).not.toBeNull()
+    expect(await total()).toBe(1)
+
+    const late = await enterAs(token, CODE, "Late")
+    expect(late.status).toBe(204)
+    expect(cookieFrom(late, PUBLICATION_ACCESS_COOKIE)).not.toBeNull()
+    expect(cookieFrom(late, COMMENTER_SESSION_COOKIE)).toBeNull()
+    expect(await total()).toBe(1)
   })
 
   it("grants access and issues a commenter session on the same response", async () => {

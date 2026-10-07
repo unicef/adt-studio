@@ -4,6 +4,8 @@ import {
   RoomClientFrame,
   RoomServerFrame,
 } from "@adt/types"
+import type { Env } from "./env.js"
+import { evictRoomReaders } from "./room-notify.js"
 import { signRoomTicket, verifyRoomTicket } from "./room-ticket.js"
 
 const SECRET = "local-dev-secret"
@@ -178,5 +180,40 @@ describe("server frames", () => {
         peers: [{ id: "abc", name: "Maria", color: "red", is_author: false, page_section_id: null }],
       }).success,
     ).toBe(false)
+  })
+})
+
+describe("evictRoomReaders", () => {
+  function roomThatFails(times: number) {
+    let calls = 0
+    const stub = {
+      fetch: async () => {
+        calls += 1
+        if (calls <= times) throw new Error("room unreachable")
+        return new Response(null, { status: 204 })
+      },
+    }
+    const env = {
+      PUBLICATION_ROOM: { idFromName: (name: string) => name, get: () => stub },
+    } as unknown as Env
+    return { env, calls: () => calls }
+  }
+
+  it("asks twice before the change answers", async () => {
+    const room = roomThatFails(1)
+    let deferred: Promise<unknown> | null = null
+    await evictRoomReaders(room.env, TOKEN, (work) => (deferred = work), [0])
+    expect(room.calls()).toBe(2)
+    expect(deferred).toBeNull()
+  })
+
+  /** A book nobody comments on would otherwise leave a stale reader watching indefinitely. */
+  it("keeps trying after the change has answered, until the room hears it", async () => {
+    const room = roomThatFails(3)
+    let deferred: Promise<unknown> | null = null
+    await evictRoomReaders(room.env, TOKEN, (work) => (deferred = work), [0, 0, 0])
+    expect(room.calls()).toBe(2)
+    await deferred
+    expect(room.calls()).toBe(4)
   })
 })

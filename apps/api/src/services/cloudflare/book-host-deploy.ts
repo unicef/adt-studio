@@ -5,7 +5,13 @@ import { prepareStaticAssets, type RetainedStaticAsset, type StaticAsset } from 
 import type { WorkerArtifactBinding, BookHostArtifact } from "./worker-artifact.js"
 
 export class BookHostDeployError extends Error {
-  constructor(message: string, readonly cause?: unknown) {
+  constructor(
+    message: string,
+    readonly cause?: unknown,
+    /** Set when the account can host no more books, so the author is told to delete one rather
+     *  than to try again. */
+    readonly bookLimitReached = false,
+  ) {
     super(message)
     this.name = "BookHostDeployError"
   }
@@ -32,7 +38,7 @@ function alreadyExists(error: unknown): boolean {
  */
 export function resolveBookHostBindings(
   bindings: WorkerArtifactBinding[],
-  context: { d1DatabaseUuid: string; controlPlaneName: string; authorSecret: string },
+  context: { d1DatabaseUuid: string; controlPlaneName: string; authorSecret: string; token: string },
 ): Array<Record<string, unknown>> {
   return bindings.map((binding) => {
     switch (binding.type) {
@@ -49,6 +55,13 @@ export function resolveBookHostBindings(
         }
       case "secret_text":
         return { type: "secret_text", name: binding.name, text: context.authorSecret }
+      /** The one value a host may carry in the clear: which book it is. It pins the host to that
+       *  book, so it can never answer for another in the account. */
+      case "plain_text":
+        if (binding.name !== "BOOK_TOKEN") {
+          throw new BookHostDeployError(`A book host must not carry plain-text binding ${binding.name}.`)
+        }
+        return { type: "plain_text", name: binding.name, text: context.token }
       default:
         throw new BookHostDeployError(
           `A book host must not carry a ${binding.type} binding (${binding.name}).`,
@@ -114,6 +127,11 @@ export async function deployBookHost(
   if (assets.length === 0) {
     throw new BookHostDeployError("A book host needs at least one asset to serve.")
   }
+  /** A host without its book's token would answer for every book in the account. Checked before
+   *  anything is created, so a mismatched artifact can never put an unpinned host online. */
+  if (!artifact.metadata.bindings.some((binding) => binding.type === "plain_text" && binding.name === "BOOK_TOKEN")) {
+    throw new BookHostDeployError("This book host build doesn't pin itself to one book, so it can't be deployed.")
+  }
 
   const name = bookWorkerName(token)
 
@@ -132,13 +150,16 @@ export async function deployBookHost(
         `This Cloudflare account is already hosting ${liveBooks} published books, which is as ` +
           `many as the free plan allows. Delete a book you no longer need — that frees its ` +
           `slot — then publish this one again.`,
+        undefined,
+        true,
       )
     }
   }
 
   if (!alreadyDeployed) {
     try {
-      await client.createWorker(name)
+      /** A retry after a lost reply meets "already exists", which the catch below accepts. */
+      await retryCloudflareOperation(() => client.createWorker(name), { attempts: 3, ...(sleep === undefined ? {} : { sleep }) })
     } catch (error) {
       if (!alreadyExists(error)) {
         throw new BookHostDeployError(
@@ -159,6 +180,7 @@ export async function deployBookHost(
     d1DatabaseUuid,
     controlPlaneName,
     authorSecret: bookHostAuthorSecret(controlPlaneSecret, token),
+    token,
   })
 
   try {

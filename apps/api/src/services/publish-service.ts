@@ -5,11 +5,13 @@ import { HTTPException } from "hono/http-exception"
 import { createBookStorage } from "@adt/storage"
 import {
   BookPublicationRecord as BookPublicationRecordSchema,
+  PendingPublicationCommit as PendingPublicationCommitSchema,
   PUBLICATION_TOKEN_LENGTH,
   PUBLISH_STEPS,
   PublicationPageEntry,
   parseBookLabel,
   type BookPublicationRecord,
+  type PendingPublicationCommit,
   type Publication,
   type PublicationPageEntry as PublicationPageEntryType,
   type PublicationUploadFile,
@@ -20,8 +22,8 @@ import {
   type PublishStepId,
   isVersionAtLeast,
 } from "@adt/types"
-import { deployBookHost } from "./cloudflare/book-host-deploy.js"
-import type { CloudflareClient } from "./cloudflare/client.js"
+import { BookHostDeployError, deleteBookHost, deployBookHost } from "./cloudflare/book-host-deploy.js"
+import { CloudflareApiError, isRetryableCloudflareError, type CloudflareClient } from "./cloudflare/client.js"
 import type { CloudflareConnectionRecord } from "./cloudflare/connection-store.js"
 import { staticAssetHash, type RetainedStaticAsset, type StaticAsset } from "./cloudflare/static-assets.js"
 import type { BookHostArtifact } from "./cloudflare/worker-artifact.js"
@@ -34,6 +36,7 @@ import {
 
 export const BOOK_PUBLICATION_NODE = "publication"
 export const BOOK_PUBLICATION_ITEM_ID = "book"
+export const PENDING_COMMIT_NODE = "publication-pending-commit"
 
 const PageManifest = PublicationPageEntry.array()
 
@@ -148,6 +151,110 @@ export function clearPublicationRecord(label: string, booksDir: string, deletedA
   savePublicationRecord(label, booksDir, { ...existing, deleted_at: deletedAt })
 }
 
+export function readPendingCommit(label: string, booksDir: string): PendingPublicationCommit | null {
+  const { safeLabel, bookDir } = bookDirOf(label, booksDir)
+  if (!fs.existsSync(path.join(bookDir, `${safeLabel}.db`))) return null
+  const storage = createBookStorage(safeLabel, path.resolve(booksDir))
+  try {
+    const row = storage.getLatestNodeData(PENDING_COMMIT_NODE, BOOK_PUBLICATION_ITEM_ID)
+    if (!row) return null
+    const parsed = PendingPublicationCommitSchema.safeParse(row.data)
+    return parsed.success && parsed.data.settled_at === null ? parsed.data : null
+  } finally {
+    storage.close()
+  }
+}
+
+function savePendingCommit(label: string, booksDir: string, pending: PendingPublicationCommit): void {
+  const { safeLabel } = requireBook(label, booksDir)
+  const storage = createBookStorage(safeLabel, path.resolve(booksDir))
+  try {
+    storage.putNodeData(PENDING_COMMIT_NODE, BOOK_PUBLICATION_ITEM_ID, PendingPublicationCommitSchema.parse(pending))
+  } finally {
+    storage.close()
+  }
+}
+
+function settlePendingCommit(label: string, booksDir: string, pending: PendingPublicationCommit, at: string): void {
+  savePendingCommit(label, booksDir, { ...pending, settled_at: at })
+}
+
+/** The record a commit files, from the note written before it — shared by a run that heard
+ *  back and by the recovery of one that didn't, so the two can never disagree. */
+function recordFromCommit(
+  pending: PendingPublicationCommit,
+  committed: { publication: Publication; version: PublicationVersion; has_access_code: boolean },
+): BookPublicationRecord {
+  const entry = {
+    version: committed.version.version,
+    published_at: committed.version.created_at,
+    page_count: pending.page_count,
+    content_revision: pending.content_revision,
+  }
+  if (pending.previous) {
+    return {
+      ...pending.previous,
+      expires_at: committed.publication.expires_at,
+      revoked_at: committed.publication.revoked_at,
+      versions: [
+        ...pending.previous.versions.filter((version) => version.version !== entry.version),
+        entry,
+      ].sort((a, b) => a.version - b.version),
+      host_version: pending.host_version,
+    }
+  }
+  return {
+    token: pending.token,
+    base_url: pending.base_url,
+    worker_url: pending.worker_url,
+    created_at: committed.publication.created_at,
+    expires_at: committed.publication.expires_at,
+    revoked_at: committed.publication.revoked_at,
+    versions: [entry],
+    access_code: pending.access_code,
+    has_access_code: committed.has_access_code,
+    deleted_at: null,
+    features: pending.features,
+    host_version: pending.host_version,
+  }
+}
+
+/**
+ * Finishes the paperwork of a run that never heard how its commit ended.
+ *
+ * Asks the control plane, and only reads: a committed upload's result becomes the record the run
+ * would have filed; one that never committed is retired and the note settled. Unreachable leaves
+ * the note for next time. Callers must not run this while a run for the book is in flight —
+ * that run's own note is pending on purpose.
+ */
+export async function reconcilePendingCommit(
+  label: string,
+  booksDir: string,
+  client: PublishWorkerClient,
+  now: () => Date = () => new Date(),
+): Promise<BookPublicationRecord | null> {
+  const pending = readPendingCommit(label, booksDir)
+  if (!pending) return null
+  let upload: Awaited<ReturnType<PublishWorkerClient["getUpload"]>>
+  try {
+    upload = await client.getUpload(pending.upload_id)
+  } catch (error) {
+    if (isPublishWorkerError(error) && error.status === 404) {
+      settlePendingCommit(label, booksDir, pending, now().toISOString())
+    }
+    return null
+  }
+  if (upload.state === "committed" && upload.result) {
+    const record = recordFromCommit(pending, upload.result)
+    savePublicationRecord(label, booksDir, record)
+    settlePendingCommit(label, booksDir, pending, now().toISOString())
+    return record
+  }
+  if (upload.state === "open") await abortQuietly(client, pending.upload_id)
+  settlePendingCommit(label, booksDir, pending, now().toISOString())
+  return null
+}
+
 /**
  * Tombstone every book's publication record on this machine.
  *
@@ -256,7 +363,30 @@ function inlineFeaturesComments(
   return source.replace(needle, `${PRELOADER_CONFIG_KEY}${JSON.stringify(patchedConfig)}`)
 }
 
+/** Outside `adt/`, so the copies are never uploaded with the book. */
+const PUBLISH_RESTORE_DIR = ".publish-restore"
+
+/**
+ * Puts back the files a share patched, if the run that patched them never got to.
+ *
+ * The share turns comments on in the book's own `config.json` (and its inlined copy) for as long
+ * as it uploads, and puts them back afterwards. The app quitting mid-share skipped the putting
+ * back, and the author's next offline export shipped with comments switched on. The originals are
+ * copied aside before patching, so whichever comes first — the next share, or the Sharing page
+ * opening — restores them.
+ */
+export function restoreInterruptedPublishConfig(bookDir: string): void {
+  const restoreDir = path.join(bookDir, PUBLISH_RESTORE_DIR)
+  if (!fs.existsSync(restoreDir)) return
+  for (const relative of [PUBLISH_CONFIG_RELATIVE_PATH, PUBLISH_PRELOADER_RELATIVE_PATH]) {
+    const saved = path.join(restoreDir, path.basename(relative))
+    if (fs.existsSync(saved)) fs.copyFileSync(saved, path.join(bookDir, relative))
+  }
+  fs.rmSync(restoreDir, { recursive: true, force: true })
+}
+
 async function withPublishConfig<T>(bookDir: string, run: () => Promise<T>): Promise<T> {
+  restoreInterruptedPublishConfig(bookDir)
   const configPath = path.join(bookDir, PUBLISH_CONFIG_RELATIVE_PATH)
   if (!fs.existsSync(configPath)) {
     throw new PublishStepError(
@@ -302,6 +432,11 @@ async function withPublishConfig<T>(bookDir: string, run: () => Promise<T>): Pro
     }
   }
 
+  const restoreDir = path.join(bookDir, PUBLISH_RESTORE_DIR)
+  fs.mkdirSync(restoreDir, { recursive: true })
+  fs.writeFileSync(path.join(restoreDir, path.basename(configPath)), original)
+  if (preloaderOriginal) fs.writeFileSync(path.join(restoreDir, path.basename(preloaderPath)), preloaderOriginal)
+
   try {
     fs.writeFileSync(configPath, `${JSON.stringify(patched, null, 2)}\n`)
     if (preloaderPatched !== null) fs.writeFileSync(preloaderPath, preloaderPatched)
@@ -309,6 +444,7 @@ async function withPublishConfig<T>(bookDir: string, run: () => Promise<T>): Pro
   } finally {
     fs.writeFileSync(configPath, original)
     if (preloaderOriginal) fs.writeFileSync(preloaderPath, preloaderOriginal)
+    fs.rmSync(restoreDir, { recursive: true, force: true })
   }
 }
 
@@ -528,6 +664,18 @@ function isRetryableRegistration(error: unknown): boolean {
   return error.status !== null && error.status >= 500
 }
 
+/**
+ * A commit is safe to repeat: the control plane answers a second commit of the same upload with
+ * the first one's result. So unlike starting an upload, a reply lost on the way back is worth
+ * asking again — that is exactly the case that otherwise left a version live on Cloudflare and
+ * missing from the book's record.
+ */
+function isRetryableCommit(error: unknown): boolean {
+  if (!isPublishWorkerError(error)) return false
+  if (error.unreachable) return true
+  return error.status !== null && error.status >= 500
+}
+
 async function uploadWithRetry<T>(
   attempt: () => Promise<T>,
   emit: PublishEmit,
@@ -573,13 +721,14 @@ function uploadFailure(error: unknown): PublishStepError {
   return new PublishStepError("upload_failed", "upload", describe(error))
 }
 
-/** The snapshot is already staged behind an id nothing else will ever use, so a failed abort
- *  costs an orphaned prefix the worker expires on its own — never the error the author needs. */
-async function abortQuietly(client: PublishWorkerClient, uploadId: string): Promise<void> {
+/** Retires an upload, and says whether the control plane confirmed it — only then is it known
+ *  that nothing went live. */
+async function abortQuietly(client: PublishWorkerClient, uploadId: string): Promise<boolean> {
   try {
-    await client.abortUpload(uploadId)
+    const aborted = await client.abortUpload(uploadId)
+    return aborted.state === "aborted"
   } catch {
-    return
+    return false
   }
 }
 
@@ -682,6 +831,8 @@ async function stageAndCommit(
   start: (declared: PublicationUploadFile[]) => Promise<{ upload_id: string }>,
   emit: PublishEmit,
   sleep: (ms: number) => Promise<void>,
+  beforeCommit: (staged: { uploadId: string; url: string }) => void,
+  firstShare: boolean,
 ): Promise<StagedCommit> {
   return withPublishConfig(bookDir, async () => {
     const declared = declareSnapshotFiles(bookDir, files)
@@ -714,23 +865,29 @@ async function stageAndCommit(
         sleep,
         isRetryableRegistration,
       )
+      /** The book host serves the reader, not the control plane, so the share link points at
+       *  this book's own Worker. */
+      const url = `${deployed.url}/p/${token}/`
+      beforeCommit({ uploadId: started.upload_id, url })
       const committed = await uploadWithRetry(
         () => client.commitUpload(started.upload_id),
         emit,
         sleep,
-        isRetryableRegistration,
+        isRetryableCommit,
       )
       return {
         publication: committed.publication,
         version: committed.version,
-        /** The book host serves the reader, not the control plane, so the share link points at
-         *  this book's own Worker. */
-        url: `${deployed.url}/p/${committed.publication.token}/`,
+        url,
         hasAccessCode: committed.has_access_code,
         workerName: deployed.workerName,
       }
     } catch (error) {
-      await abortQuietly(client, started.upload_id)
+      const retired = await abortQuietly(client, started.upload_id)
+      /** A first share's Worker is named after the token this run just minted, so nothing else
+       *  can be using it; left behind, every failed share kept one, counting against the
+       *  account's book limit. Removed only once the control plane confirms nothing went live. */
+      if (firstShare && retired) await deleteBookHost(host.client, token).catch(() => {})
       throw error
     }
   })
@@ -774,6 +931,21 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
 
   await emit(stepEvent("upload", "running"))
   const { bookDir } = requireBook(options.label, options.booksDir)
+  const pending = (staged: { uploadId: string; url: string }): PendingPublicationCommit => ({
+    upload_id: staged.uploadId,
+    token,
+    base_url: staged.url,
+    worker_url: options.connection.worker_url,
+    page_count: built.pageManifest.length,
+    content_revision: contentRevision,
+    access_code: options.accessCode ?? null,
+    features: options.features ?? null,
+    host_version: hostVersionOf(options.bookHost),
+    previous: null,
+    started_at: (options.now ?? (() => new Date()))().toISOString(),
+    settled_at: null,
+  })
+  let note: PendingPublicationCommit | null = null
   const committed = await stageAndCommit(
     client,
     options.bookHost,
@@ -793,30 +965,20 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
       }),
     emit,
     options.sleep ?? delay,
+    (staged) => {
+      note = pending(staged)
+      savePendingCommit(options.label, options.booksDir, note)
+    },
+    true,
   )
 
-  const record: BookPublicationRecord = {
-    token,
-    base_url: committed.url,
-    worker_url: options.connection.worker_url,
-    created_at: committed.publication.created_at,
-    expires_at: committed.publication.expires_at,
-    revoked_at: committed.publication.revoked_at,
-    versions: [
-      {
-        version: committed.version.version,
-        published_at: committed.version.created_at,
-        page_count: built.pageManifest.length,
-        content_revision: contentRevision,
-      },
-    ],
-    access_code: options.accessCode ?? null,
+  const record = recordFromCommit(note!, {
+    publication: committed.publication,
+    version: committed.version,
     has_access_code: committed.hasAccessCode,
-    deleted_at: null,
-    features: options.features ?? null,
-    host_version: hostVersionOf(options.bookHost),
-  }
+  })
   savePublicationRecord(options.label, options.booksDir, record)
+  settlePendingCommit(options.label, options.booksDir, note!, (options.now ?? (() => new Date()))().toISOString())
   await emit(stepEvent("register", "done"))
 
   await emit({
@@ -855,6 +1017,7 @@ export async function republishBook(options: RepublishBookOptions): Promise<Publ
   const { bookDir } = requireBook(options.label, options.booksDir)
   /** The worker owns the version counter, so the new version comes back from the upload it
    *  opens rather than being guessed here. */
+  let note: PendingPublicationCommit | null = null
   const committed = await stageAndCommit(
     client,
     options.bookHost,
@@ -870,26 +1033,33 @@ export async function republishBook(options: RepublishBookOptions): Promise<Publ
       }),
     emit,
     options.sleep ?? delay,
-  )
-
-  const record: BookPublicationRecord = {
-    ...options.record,
-    expires_at: committed.publication.expires_at,
-    revoked_at: committed.publication.revoked_at,
-    versions: [
-      ...options.record.versions.filter(
-        (version) => version.version !== committed.version.version,
-      ),
-      {
-        version: committed.version.version,
-        published_at: committed.version.created_at,
+    (staged) => {
+      note = {
+        upload_id: staged.uploadId,
+        token: options.record.token,
+        base_url: options.record.base_url,
+        worker_url: options.record.worker_url,
         page_count: built.pageManifest.length,
         content_revision: contentRevision,
-      },
-    ].sort((a, b) => a.version - b.version),
-    host_version: hostVersionOf(options.bookHost),
-  }
+        access_code: options.record.access_code,
+        features: options.record.features,
+        host_version: hostVersionOf(options.bookHost),
+        previous: options.record,
+        started_at: (options.now ?? (() => new Date()))().toISOString(),
+        settled_at: null,
+      }
+      savePendingCommit(options.label, options.booksDir, note)
+    },
+    false,
+  )
+
+  const record = recordFromCommit(note!, {
+    publication: committed.publication,
+    version: committed.version,
+    has_access_code: committed.hasAccessCode,
+  })
   savePublicationRecord(options.label, options.booksDir, record)
+  settlePendingCommit(options.label, options.booksDir, note!, (options.now ?? (() => new Date()))().toISOString())
   await emit(stepEvent("register", "done"))
 
   await emit({
@@ -911,5 +1081,14 @@ export function toPublishErrorEvent(error: unknown): PublishProgressEvent {
   if (isPublishStepError(error)) {
     return { type: "error", code: error.code, message: error.message, step_id: error.stepId }
   }
-  return { type: "error", code: "upload_failed", message: describe(error), step_id: null }
+  /** Everything else comes from sending the book to Cloudflare — deploying its Worker or its
+   *  files — so it is the upload step, and the code says which kind of trouble it was. */
+  if (error instanceof BookHostDeployError && error.bookLimitReached) {
+    return { type: "error", code: "account_book_limit", message: error.message, step_id: "upload" }
+  }
+  const cause = error instanceof BookHostDeployError ? error.cause : error
+  if (!(cause instanceof CloudflareApiError) && isRetryableCloudflareError(cause)) {
+    return { type: "error", code: "worker_unreachable", message: describe(error), step_id: "upload" }
+  }
+  return { type: "error", code: "upload_failed", message: describe(error), step_id: "upload" }
 }

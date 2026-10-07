@@ -5,6 +5,7 @@ import {
   COMMENTER_PIN_MAX_LENGTH,
   COMMENTER_PIN_MIN_LENGTH,
   PUBLISH_COMMENT_BODY_MAX_LENGTH,
+  PUBLISH_COMMENT_SELECTOR_MAX_LENGTH,
 } from "./publication-limits.js"
 import { PublicationToken } from "./publication.js"
 
@@ -14,6 +15,8 @@ export {
   COMMENTER_PIN_MIN_LENGTH,
   COMMENTER_PIN_MAX_LENGTH,
   PUBLISH_COMMENT_BODY_MAX_LENGTH,
+  PUBLISH_COMMENT_LIST_PAGE_SIZE,
+  PUBLISH_COMMENT_SELECTOR_MAX_LENGTH,
 } from "./publication-limits.js"
 
 /** 90 days. A reviewer who set a PIN can reclaim the identity anywhere; the long-lived
@@ -49,6 +52,15 @@ export const CommentAnchor = z.object({
   yOffsetPct: z.number().min(0).max(100),
 })
 export type CommentAnchor = z.infer<typeof CommentAnchor>
+
+/** What a write may store. Kept apart from `CommentAnchor`, which also describes rows written
+ *  before the cap, so a stored comment never fails to parse on its way back out. */
+export const CommentAnchorInput = CommentAnchor.extend({
+  selector: z.string().min(1).max(PUBLISH_COMMENT_SELECTOR_MAX_LENGTH),
+})
+
+const CommentId = z.string().min(1).max(64)
+const PageSectionId = z.string().min(1).max(256)
 
 export const CommenterSession = z.object({
   id: z.string().min(1),
@@ -102,16 +114,16 @@ export const CommenterSessionResponse = z.object({
 export type CommenterSessionResponse = z.infer<typeof CommenterSessionResponse>
 
 export const PublishCommentCreateRequest = z.object({
-  page_section_id: z.string().min(1),
+  page_section_id: PageSectionId,
   body: z.string().trim().min(1).max(PUBLISH_COMMENT_BODY_MAX_LENGTH),
-  anchor: CommentAnchor.nullable().optional(),
-  parent_id: z.string().min(1).nullable().optional(),
+  anchor: CommentAnchorInput.nullable().optional(),
+  parent_id: CommentId.nullable().optional(),
 })
 export type PublishCommentCreateRequest = z.infer<typeof PublishCommentCreateRequest>
 
 export const PublishCommentUpdateRequest = z.object({
   body: z.string().trim().min(1).max(PUBLISH_COMMENT_BODY_MAX_LENGTH).optional(),
-  anchor: CommentAnchor.nullable().optional(),
+  anchor: CommentAnchorInput.nullable().optional(),
 })
 export type PublishCommentUpdateRequest = z.infer<typeof PublishCommentUpdateRequest>
 
@@ -121,18 +133,22 @@ export const PublishCommentResolveRequest = z.object({
 export type PublishCommentResolveRequest = z.infer<typeof PublishCommentResolveRequest>
 
 export const PublishCommentListQuery = z.object({
-  page_section_id: z.string().min(1).optional(),
+  page_section_id: PageSectionId.optional(),
   version: z.coerce.number().int().min(1).optional(),
   include_resolved: z
     .enum(["true", "false"])
     .transform((value) => value === "true")
     .optional(),
+  /** Opaque: the `next_cursor` of the previous page. */
+  cursor: z.string().min(1).max(256).optional(),
 })
 export type PublishCommentListQuery = z.infer<typeof PublishCommentListQuery>
 
 export const PublishCommentListResponse = z.object({
   comments: z.array(PublishComment),
   session: CommenterSession.nullable(),
+  /** Set while more rows remain; absent from Workers that answered every row at once. */
+  next_cursor: z.string().nullable().optional(),
 })
 export type PublishCommentListResponse = z.infer<typeof PublishCommentListResponse>
 

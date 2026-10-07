@@ -562,16 +562,20 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       return readPublication(token)
     },
 
-    async countAccessFailures({ token, client, kind, since }) {
+    async countAccessFailures({ token, client, kind, since, clientCap }) {
       const rows = (await db
         .prepare(
           `SELECT
-             SUM(CASE WHEN client = ? THEN 1 ELSE 0 END) AS by_client,
-             COUNT(*) AS by_token
-           FROM access_attempts
-           WHERE token = ? AND kind = ? AND at >= ?`,
+             SUM(CASE WHEN client = ? THEN failures ELSE 0 END) AS by_client,
+             SUM(MIN(failures, ?)) AS by_token
+           FROM (
+             SELECT client, COUNT(*) AS failures
+             FROM access_attempts
+             WHERE token = ? AND kind = ? AND at >= ?
+             GROUP BY client
+           )`,
         )
-        .bind(client, token, kind, since)
+        .bind(client, clientCap, token, kind, since)
         .first()) as { by_client: number | null; by_token: number | null } | null
       return { byClient: rows?.by_client ?? 0, byToken: rows?.by_token ?? 0 }
     },
@@ -584,6 +588,25 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
         db
           .prepare(`INSERT INTO access_attempts (token, client, kind, at) VALUES (?, ?, ?, ?)`)
           .bind(token, client, kind, at),
+        db.prepare(`DELETE FROM access_attempts WHERE at < ?`).bind(pruneBefore(at)),
+      ])
+    },
+
+    async countWrites({ token, client, kind, since }) {
+      const row = await db
+        .prepare(`SELECT COUNT(*) AS total FROM access_attempts WHERE token = ? AND client = ? AND kind = ? AND at >= ?`)
+        .bind(token, client, kind, since)
+        .first<{ total: number }>()
+      return row?.total ?? 0
+    },
+
+    async recordWrites({ token, entries, at }) {
+      await db.batch([
+        ...entries.map((entry) =>
+          db
+            .prepare(`INSERT INTO access_attempts (token, client, kind, at) VALUES (?, ?, ?, ?)`)
+            .bind(token, entry.client, entry.kind, at),
+        ),
         db.prepare(`DELETE FROM access_attempts WHERE at < ?`).bind(pruneBefore(at)),
       ])
     },
@@ -700,6 +723,11 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       return row?.total ?? 0
     },
 
+    async countReaderComments(token) {
+      const row = await db.prepare(`SELECT COUNT(*) AS total FROM comments c JOIN sessions s ON s.id = c.session_id WHERE c.token = ? AND s.is_author = 0`).bind(token).first<{ total: number }>()
+      return row?.total ?? 0
+    },
+
     async createComment(input: CreateCommentInput) {
       await db.prepare(`INSERT INTO comments (id, token, version, page_section_id, parent_id, session_id, body, anchor, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(input.id, input.token, input.version, input.pageSectionId,
@@ -711,11 +739,22 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
 
     findComment: readComment,
 
-    async listComments({ token, pageSectionId }: CommentListFilter) {
-      const statement = pageSectionId === undefined
-        ? db.prepare(`SELECT ${COMMENT_COLUMNS} FROM comments c JOIN sessions s ON s.id = c.session_id WHERE c.token = ? ORDER BY c.created_at ASC, c.id ASC`).bind(token)
-        : db.prepare(`SELECT ${COMMENT_COLUMNS} FROM comments c JOIN sessions s ON s.id = c.session_id WHERE c.token = ? AND c.page_section_id = ? ORDER BY c.created_at ASC, c.id ASC`).bind(token, pageSectionId)
-      const result = await statement.all<CommentRow>()
+    async listComments({ token, pageSectionId, version, includeResolved, includeDeleted, after, limit }: CommentListFilter) {
+      const where = ["c.token = ?"]
+      const values: Array<string | number> = [token]
+      if (pageSectionId !== undefined) { where.push("c.page_section_id = ?"); values.push(pageSectionId) }
+      if (version !== undefined) { where.push("r.version = ?"); values.push(version) }
+      if (!includeResolved) where.push("r.resolved_at IS NULL")
+      if (!includeDeleted) where.push("r.deleted_at IS NULL", "c.deleted_at IS NULL")
+      if (after !== undefined) {
+        where.push("(c.created_at > ? OR (c.created_at = ? AND c.id > ?))")
+        values.push(after.createdAt, after.createdAt, after.id)
+      }
+      const result = await db.prepare(`SELECT ${COMMENT_COLUMNS} FROM comments c
+        JOIN sessions s ON s.id = c.session_id
+        JOIN comments r ON r.token = c.token AND r.id = COALESCE(c.parent_id, c.id) AND r.parent_id IS NULL
+        WHERE ${where.join(" AND ")}
+        ORDER BY c.created_at ASC, c.id ASC LIMIT ?`).bind(...values, limit).all<CommentRow>()
       return (result.results ?? []).map(toComment)
     },
 

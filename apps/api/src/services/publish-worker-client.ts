@@ -56,6 +56,12 @@ export interface PublishWorkerClient {
     body: Uint8Array,
   ): Promise<PublicationUploadFileResponse>
   commitUpload(uploadId: string): Promise<PublicationUploadCommitResponse>
+  /** How an upload ended — read-only, so a Studio that lost a commit's reply can find out
+   *  without committing anything itself. */
+  getUpload(uploadId: string): Promise<{
+    state: "open" | "committed" | "aborted"
+    result: PublicationUploadCommitResponse | null
+  }>
   abortUpload(uploadId: string): Promise<PublicationUploadAbortResponse>
   completeStaticAssetUpload(uploadId: string): Promise<{ upload_id: string; state: "complete" }>
   /** The files every live book serves, or — given a token — the files that book's readers are
@@ -72,6 +78,7 @@ export interface PublishWorkerClient {
   deletePublication(token: string): Promise<PublicationDeleteResult>
   listReaders(token: string): Promise<PublicationReaderList>
   roomTicket(token: string): Promise<PublicationRoomTicketResponse>
+  /** Follows `next_cursor` to the end, so the answer holds every comment the query matches. */
   listComments(
     token: string,
     query?: PublishCommentListQuery,
@@ -106,6 +113,8 @@ export interface PublishWorkerClientOptions {
   workerUrl: string
   mgmtSecret: string
   fetchFn?: FetchLike
+  /** Overridable so tests need not wait a minute. */
+  timeoutMs?: number
 }
 
 interface ResponseSchema<T> {
@@ -185,6 +194,9 @@ function worthRepeating(error: unknown, method: string): boolean {
 
 const RETRY_DELAYS_MS = [200, 600, 1200]
 
+/** Without one, a connection that died mid-request hung until the system gave up — minutes. */
+const WORKER_REQUEST_TIMEOUT_MS = 60_000
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -219,6 +231,7 @@ export function createPublishWorkerClient({
   workerUrl,
   mgmtSecret,
   fetchFn,
+  timeoutMs = WORKER_REQUEST_TIMEOUT_MS,
 }: PublishWorkerClientOptions): PublishWorkerClient {
   const doFetch: FetchLike = fetchFn ?? ((input, init) => fetch(input, init))
   const base = workerUrl.replace(/\/+$/, "")
@@ -235,11 +248,26 @@ export function createPublishWorkerClient({
   ): Promise<T> => {
     const method = (init.method ?? "GET").toUpperCase()
     const response = await sendWithRetry(
-      () =>
-        doFetch(`${base}${path}`, {
-          ...init,
-          headers: authorized(init.headers as Record<string, string> | undefined),
-        }),
+      async () => {
+        const deadline = AbortSignal.timeout(timeoutMs)
+        try {
+          return await doFetch(`${base}${path}`, {
+            ...init,
+            signal: deadline,
+            headers: authorized(init.headers as Record<string, string> | undefined),
+          })
+        } catch (error) {
+          /** `ETIMEDOUT` reads as what it is: the request may well have arrived, so a write is
+           *  not blindly repeated, while a read is. */
+          if (deadline.aborted) {
+            throw Object.assign(
+              new Error(`no answer within ${Math.round(timeoutMs / 1000)} seconds`, { cause: error }),
+              { code: "ETIMEDOUT" },
+            )
+          }
+          throw error
+        }
+      },
       method,
       base,
     )
@@ -296,6 +324,7 @@ export function createPublishWorkerClient({
     if (query.include_resolved !== undefined) {
       params.set("include_resolved", String(query.include_resolved))
     }
+    if (query.cursor !== undefined) params.set("cursor", query.cursor)
     const encoded = params.toString()
     return encoded.length === 0 ? "" : `?${encoded}`
   }
@@ -326,6 +355,23 @@ export function createPublishWorkerClient({
         `/api/publication-uploads/${encodeURIComponent(uploadId)}/commit`,
         { method: "POST" },
         PublicationUploadCommitResponse,
+      )
+    },
+
+    getUpload(uploadId) {
+      return request(
+        `/api/publication-uploads/${encodeURIComponent(uploadId)}`,
+        { method: "GET" },
+        { parse: (value) => {
+          const body = value as { state?: unknown }
+          if (body.state !== "open" && body.state !== "committed" && body.state !== "aborted") {
+            throw new Error("Invalid upload state")
+          }
+          return {
+            state: body.state,
+            result: body.state === "committed" ? PublicationUploadCommitResponse.parse(value) : null,
+          }
+        } },
       )
     },
 
@@ -431,12 +477,25 @@ export function createPublishWorkerClient({
       )
     },
 
-    listComments(token, query, authorName) {
-      return request(
-        `/p/${encodeURIComponent(token)}/comments${commentQuery(query)}`,
-        { method: "GET", headers: authorHeaders(authorName) },
-        PublishCommentListResponse,
-      )
+    async listComments(token, query, authorName) {
+      const comments: PublishCommentListResponse["comments"] = []
+      const seen = new Set<string>()
+      let cursor = query?.cursor
+      for (;;) {
+        const page = await request(
+          `/p/${encodeURIComponent(token)}/comments${commentQuery({
+            ...query,
+            ...(cursor === undefined ? {} : { cursor }),
+          })}`,
+          { method: "GET", headers: authorHeaders(authorName) },
+          PublishCommentListResponse,
+        )
+        comments.push(...page.comments)
+        const next = page.next_cursor ?? null
+        if (next === null || seen.has(next)) return { comments, session: page.session, next_cursor: null }
+        seen.add(next)
+        cursor = next
+      }
     },
 
     createComment(token, body, authorName) {

@@ -9,9 +9,15 @@ import { createFakePublishWorker, type FakePublishWorker } from "./fake-publish-
 import {
   isPublishStepError,
   publishBook,
+  readPendingCommit,
   readPublicationRecord,
+  reconcilePendingCommit,
   republishBook,
+  restoreInterruptedPublishConfig,
+  toPublishErrorEvent,
 } from "./publish-service.js"
+import { BookHostDeployError } from "./cloudflare/book-host-deploy.js"
+import { CloudflareTimeoutError } from "./cloudflare/client.js"
 import { createPublishWorkerClient } from "./publish-worker-client.js"
 import { createFakeBookHost, uploadedAssetText } from "./cloudflare/fake-book-host.js"
 
@@ -83,8 +89,11 @@ function connection(worker: FakePublishWorker): CloudflareConnectionRecord {
   }
 }
 
-function harness(bookHostOptions: Parameters<typeof createFakeBookHost>[0] = {}) {
-  const worker = createFakePublishWorker({ now: NOW })
+function harness(
+  bookHostOptions: Parameters<typeof createFakeBookHost>[0] = {},
+  workerOptions: Parameters<typeof createFakePublishWorker>[0] = {},
+) {
+  const worker = createFakePublishWorker({ now: NOW, ...workerOptions })
   const bookHost = createFakeBookHost(bookHostOptions)
   const events: PublishProgressEvent[] = []
   const options = {
@@ -362,3 +371,139 @@ describe("when the upload goes wrong", () => {
     expect((error as { code: string }).code).toBe("package_failed")
   })
 })
+
+/** A commit whose reply never made it back left a version live on Cloudflare that this computer
+ *  had no record of — a first share's link the author never got. */
+describe("a commit whose reply was lost", () => {
+  it("asks again, since a commit is safe to repeat, and files the record", async () => {
+    const { worker, options } = harness({}, { loseCommitReplies: 1 })
+    const result = await publishBook({ ...options, accessCode: "RAVEN7" })
+
+    expect(result.record.token).toBe(TOKEN)
+    expect(readPublicationRecord(LABEL, tmpDir)?.access_code).toBe("RAVEN7")
+    expect(readPendingCommit(LABEL, tmpDir)).toBeNull()
+    expect([...worker.state.uploads.values()].filter((upload) => upload.state === "committed")).toHaveLength(1)
+  })
+
+  it("files the record later when the reply never came back at all", async () => {
+    const { options } = harness({}, { loseCommitReplies: 99 })
+    await expect(publishBook({ ...options, accessCode: "RAVEN7" })).rejects.toThrow()
+    expect(readPublicationRecord(LABEL, tmpDir)).toBeNull()
+    expect(readPendingCommit(LABEL, tmpDir)?.token).toBe(TOKEN)
+
+    const recovered = await reconcilePendingCommit(LABEL, tmpDir, options.createClient())
+
+    expect(recovered?.token).toBe(TOKEN)
+    expect(recovered?.access_code).toBe("RAVEN7")
+    expect(recovered?.versions.map((version) => version.version)).toEqual([1])
+    expect(readPublicationRecord(LABEL, tmpDir)?.base_url).toBe(recovered?.base_url)
+    expect(readPendingCommit(LABEL, tmpDir)).toBeNull()
+  })
+
+  it("adds the version an update committed to the book's history", async () => {
+    const first = harness()
+    const published = await publishBook(first.options)
+    const lossy = harness({}, { loseCommitReplies: 99 })
+    /** Same book, a control plane that already holds the first version. */
+    const worker = lossy.worker
+    worker.state.publications = first.worker.state.publications
+    worker.state.versions = first.worker.state.versions
+    worker.state.uploads = first.worker.state.uploads
+
+    await expect(republishBook({ ...lossy.options, record: published.record })).rejects.toThrow()
+    expect(readPublicationRecord(LABEL, tmpDir)?.versions.map((version) => version.version)).toEqual([1])
+
+    const recovered = await reconcilePendingCommit(LABEL, tmpDir, lossy.options.createClient())
+    expect(recovered?.versions.map((version) => version.version)).toEqual([1, 2])
+    expect(recovered?.base_url).toBe(published.record.base_url)
+  })
+
+  it("settles the note of a run that never committed, and files nothing", async () => {
+    const { worker, options } = harness({}, { failCommitStatus: 500 })
+    await expect(publishBook(options)).rejects.toThrow()
+    expect(readPendingCommit(LABEL, tmpDir)).not.toBeNull()
+
+    expect(await reconcilePendingCommit(LABEL, tmpDir, options.createClient())).toBeNull()
+    expect(readPublicationRecord(LABEL, tmpDir)).toBeNull()
+    expect(readPendingCommit(LABEL, tmpDir)).toBeNull()
+    expect([...worker.state.uploads.values()].every((upload) => upload.state !== "open")).toBe(true)
+  })
+
+  it("leaves the note for next time while the service can't be reached", async () => {
+    const { options } = harness({}, { loseCommitReplies: 99 })
+    await expect(publishBook(options)).rejects.toThrow()
+    const offline = createFakePublishWorker({ now: NOW, unreachable: true })
+    const client = createPublishWorkerClient({ workerUrl: offline.baseUrl, mgmtSecret: "fake-mgmt-secret", fetchFn: offline.fetchFn })
+
+    expect(await reconcilePendingCommit(LABEL, tmpDir, client)).toBeNull()
+    expect(readPendingCommit(LABEL, tmpDir)).not.toBeNull()
+  })
+})
+
+describe("a first share that fails", () => {
+  /** Each failed share used to leave its book's Worker behind, counting against the account's
+   *  limit of live books. */
+  it("removes the Worker it deployed once nothing went live", async () => {
+    const { worker, options, cloudflare } = harness({}, { failCommitStatus: 500 })
+    await expect(publishBook(options)).rejects.toThrow()
+
+    expect([...worker.state.uploads.values()].every((upload) => upload.state === "aborted")).toBe(true)
+    expect([...cloudflare.state.scripts.keys()].some((name) => name.startsWith("adt-book-"))).toBe(false)
+  })
+
+  it("keeps the Worker when it can't confirm nothing went live", async () => {
+    const { options, cloudflare } = harness({}, { loseCommitReplies: 99 })
+    await expect(publishBook(options)).rejects.toThrow()
+
+    expect([...cloudflare.state.scripts.keys()].some((name) => name.startsWith("adt-book-"))).toBe(true)
+  })
+})
+
+describe("the book's config during a share", () => {
+  const configPath = () => path.join(tmpDir, LABEL, "adt", "assets", "config.json")
+
+  it("leaves the config as it found it, with no copies behind", async () => {
+    const before = fs.readFileSync(configPath(), "utf-8")
+    const { options } = harness()
+    await publishBook(options)
+
+    expect(fs.readFileSync(configPath(), "utf-8")).toBe(before)
+    expect(fs.existsSync(path.join(tmpDir, LABEL, ".publish-restore"))).toBe(false)
+  })
+
+  /** Quitting mid-share skipped the restore, and the next offline export shipped with comments
+   *  switched on. */
+  it("restores the config a share was interrupted while patching", () => {
+    const before = fs.readFileSync(configPath(), "utf-8")
+    const restoreDir = path.join(tmpDir, LABEL, ".publish-restore")
+    fs.mkdirSync(restoreDir, { recursive: true })
+    fs.writeFileSync(path.join(restoreDir, "config.json"), before)
+    fs.writeFileSync(configPath(), JSON.stringify({ ...CONFIG, features: { ...CONFIG.features, comments: true } }))
+
+    restoreInterruptedPublishConfig(path.join(tmpDir, LABEL))
+
+    expect(fs.readFileSync(configPath(), "utf-8")).toBe(before)
+    expect(fs.existsSync(restoreDir)).toBe(false)
+  })
+})
+
+describe("what a failed send to Cloudflare is called", () => {
+  it("names a full account, so the author deletes a book instead of retrying", () => {
+    expect(toPublishErrorEvent(new BookHostDeployError("full", undefined, true))).toMatchObject({
+      code: "account_book_limit",
+      step_id: "upload",
+    })
+  })
+
+  it("names a dropped connection as one", () => {
+    expect(toPublishErrorEvent(new BookHostDeployError("deploy", new CloudflareTimeoutError(60_000)))).toMatchObject({
+      code: "worker_unreachable",
+      step_id: "upload",
+    })
+  })
+
+  it("puts any other deploy failure on the upload step", () => {
+    expect(toPublishErrorEvent(new Error("Cloudflare refused"))).toMatchObject({ code: "upload_failed", step_id: "upload" })
+  })
+})
+

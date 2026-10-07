@@ -1179,16 +1179,6 @@ function commentQueryString(query: PublicationCommentQuery = {}): string {
   return search.length === 0 ? "" : `?${search}`
 }
 
-/** Same-origin preview URL for a file in the publication snapshot. */
-export function getPublicationPreviewUrl(label: string, filePath = ""): string {
-  const encoded = filePath
-    .split("/")
-    .filter((segment) => segment.length > 0)
-    .map((segment) => encodeURIComponent(segment))
-    .join("/")
-  return `${BASE_URL}/books/${encodeURIComponent(label)}/publication/preview/${encoded}`
-}
-
 export interface PublishStreamOptions {
   onEvent: (event: PublishProgressEvent) => void
   signal?: AbortSignal

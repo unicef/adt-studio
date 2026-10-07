@@ -162,7 +162,7 @@ const openBookWith = (routerConfig) => new Miniflare({
   compatibilityDate: "2026-07-01",
   d1Databases: { DB: "publish-db" },
   d1Persist: persist,
-  bindings: { MGMT_SECRET: authorSecret },
+  bindings: { MGMT_SECRET: authorSecret, BOOK_TOKEN: TOKEN },
   assets: {
     directory: assetsDir, binding: "ASSETS",
     routerConfig,

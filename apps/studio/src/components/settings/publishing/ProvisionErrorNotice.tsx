@@ -26,6 +26,8 @@ function title(failure: ProvisionFailure): ReactNode {
       return <Trans>Your service isn't answering yet</Trans>
     case "partial_provision":
       return <Trans>Setup stopped partway</Trans>
+    case "cloudflare_unreachable":
+      return <Trans>Couldn't reach Cloudflare</Trans>
     default:
       return <Trans>Setup couldn't finish</Trans>
   }
@@ -87,6 +89,13 @@ function body(failure: ProvisionFailure): ReactNode {
       return (
         <Trans>
           Nothing is broken and nothing was lost. Trying again continues from where it stopped.
+        </Trans>
+      )
+    case "cloudflare_unreachable":
+      return (
+        <Trans>
+          The connection to Cloudflare dropped or timed out. Check your internet, then try again —
+          anything already set up is kept.
         </Trans>
       )
     default:
