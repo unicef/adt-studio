@@ -25,6 +25,8 @@ import {
   ROOM_MAX_FRAMES_PER_SECOND,
   ROOM_MAX_JOINS_PER_CLIENT_PER_MINUTE,
   ROOM_CHECK_MIN_INTERVAL_MS,
+  ROOM_POSITION_CHECK_MS,
+  ROOM_ROSTER_MIN_INTERVAL_MS,
   ROOM_MAX_PEERS_PER_CLIENT,
   ROOM_PEER_HEADER,
   ROOM_PROTOCOL,
@@ -996,13 +998,17 @@ describe("when a book's access changes", () => {
     const watcher = await join(token, { section: "pg001_sec001" })
     await presenceWith(watcher, 2)
 
+    const started = Date.now()
     for (let i = 0; i < ROOM_MAX_FRAMES_PER_SECOND * 3; i += 1) {
       sender.send({ t: "cursor", section_id: "pg001_sec001", selector: "#content", xOffsetPct: 1, yOffsetPct: 1 })
     }
     await new Promise((resolve) => setTimeout(resolve, 300))
     const relayed = watcher.frames.filter((frame) => frame.t === "cursor").length
+    /** The full burst, plus whatever the allowance refilled while a busy machine worked through it. */
+    const allowed = Math.ceil(ROOM_MAX_FRAMES_PER_SECOND * (1 + (Date.now() - started) / 1000))
     expect(relayed).toBeGreaterThan(0)
-    expect(relayed).toBeLessThanOrEqual(ROOM_MAX_FRAMES_PER_SECOND + 10)
+    expect(relayed).toBeLessThanOrEqual(allowed)
+    expect(relayed).toBeLessThan(ROOM_MAX_FRAMES_PER_SECOND * 3)
   })
 
   /** Roster frames are checked against the book before anyone hears them, so they must not be a
@@ -1012,7 +1018,8 @@ describe("when a book's access changes", () => {
     const sender = await join(token, { section: "pg001_sec001" })
     const watcher = await join(token, { section: "pg001_sec001" })
     await presenceWith(watcher, 2)
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    await waitFor(() => watcher.presence().at(-1)?.peers.every((peer) => peer.page_section_id === "pg001_sec001") || null,
+      "both initial page reports")
 
     let reads = 0
     const room = env.PUBLICATION_ROOM.get(env.PUBLICATION_ROOM.idFromName(token))
@@ -1037,6 +1044,34 @@ describe("when a book's access changes", () => {
     expect(roster.peers.some((peer) => peer.page_section_id === "pg003_sec001")).toBe(true)
   })
 
+  it("bounds D1 reads from repeated idle hello requests", async () => {
+    const token = await publish()
+    const reader = await join(token, { section: "pg001_sec001" })
+    await presenceWith(reader, 1)
+    await new Promise((resolve) => setTimeout(resolve, ROOM_ROSTER_MIN_INTERVAL_MS + 20))
+
+    let reads = 0
+    const room = env.PUBLICATION_ROOM.get(env.PUBLICATION_ROOM.idFromName(token))
+    await runInDurableObject(room, (instance) => {
+      const target = instance as unknown as { env: { DB: D1Database } }
+      const real = target.env.DB
+      target.env = { ...target.env, DB: {
+        prepare: (sql: string) => {
+          reads += 1
+          return real.prepare(sql)
+        },
+      } as unknown as D1Database }
+    })
+
+    for (let i = 0; i < 20; i += 1) {
+      reader.send({ t: "hello", section_id: "pg001_sec001" })
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
+    await new Promise((resolve) => setTimeout(resolve, ROOM_ROSTER_MIN_INTERVAL_MS + 20))
+    expect(reads).toBeGreaterThan(0)
+    expect(reads).toBeLessThanOrEqual(6)
+  })
+
   /** A roster goes out once per batch, and a `hello` that changed nothing is answered to its
    *  sender alone, so a flood of either can't multiply into a roster per frame per peer. */
   it("sends one roster per batch and answers an idle hello only to its sender", async () => {
@@ -1044,7 +1079,8 @@ describe("when a book's access changes", () => {
     const watcher = await join(token, { section: "pg001_sec001" })
     const senders = await Promise.all(Array.from({ length: 8 }, () => join(token, { section: "pg001_sec001" })))
     await presenceWith(watcher, 9)
-    await new Promise((resolve) => setTimeout(resolve, 200))
+    await waitFor(() => watcher.presence().at(-1)?.peers.every((peer) => peer.page_section_id === "pg001_sec001") || null,
+      "every initial page report")
 
     const idle = watcher.presence().length
     for (let round = 0; round < 20; round += 1) for (const sender of senders) sender.send({ t: "hello", section_id: "pg001_sec001" })
@@ -1142,6 +1178,88 @@ describe("when a book's access changes", () => {
         ;(instance as unknown as { positions: unknown }).positions = null
       })
     }
+
+    /** Hold a position read after D1 returned its row, so another check or access change can
+     *  overtake it. The room must judge the result again when the cursor is ready to relay. */
+    async function holdNextRoomRead(token: string) {
+      const room = env.PUBLICATION_ROOM.get(env.PUBLICATION_ROOM.idFromName(token))
+      let release = () => {}
+      const held = new Promise<void>((resolve) => (release = resolve))
+      let entered = false
+      let failLaterReads = false
+      let sawFailedRead = false
+      await runInDurableObject(room, (instance) => {
+        const target = instance as unknown as { env: { DB: D1Database }; positions: unknown }
+        const real = target.env.DB
+        target.positions = null
+        let first = true
+        target.env = { ...target.env, DB: {
+          prepare: (sql: string) => {
+            if (failLaterReads) {
+              sawFailedRead = true
+              throw new Error("D1 is unavailable")
+            }
+            const statement = real.prepare(sql)
+            return {
+              bind: (...values: unknown[]) => {
+                const bound = statement.bind(...values)
+                return { first: async () => {
+                  const row = await bound.first()
+                  if (first) {
+                    first = false
+                    entered = true
+                    await held
+                  }
+                  return row
+                } }
+              },
+            }
+          },
+        } as unknown as D1Database }
+      })
+      return {
+        release: () => release(),
+        entered: () => entered,
+        failLaterReads: () => { failLaterReads = true },
+        sawFailedRead: () => sawFailedRead,
+      }
+    }
+
+    it("drops a position read overtaken by a failed strict check", async () => {
+      const { token, reader, author } = await readerAndAuthor()
+      await presenceWith(reader, 2)
+      await new Promise((resolve) => setTimeout(resolve, ROOM_CHECK_MIN_INTERVAL_MS + 20))
+      const held = await holdNextRoomRead(token)
+      const before = reader.frames.length
+
+      author.send({ ...cursorOn("pg001_sec001"), xOffsetPct: 77 })
+      await waitFor(() => held.entered() || null, "the position read to begin")
+      held.failLaterReads()
+      author.send({ t: "page", section_id: "pg002_sec001" })
+      await waitFor(() => held.sawFailedRead() || null, "the newer check to fail")
+      held.release()
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      expect(reader.frames.slice(before).some((frame) => frame.t === "cursor" && frame.xOffsetPct === 77)).toBe(false)
+    })
+
+    it("drops a position read that finishes after its one-second window", async () => {
+      const { token, reader, author } = await readerAndAuthor()
+      await presenceWith(reader, 2)
+      await new Promise((resolve) => setTimeout(resolve, ROOM_CHECK_MIN_INTERVAL_MS + 20))
+      const held = await holdNextRoomRead(token)
+      const before = reader.frames.length
+
+      author.send({ ...cursorOn("pg001_sec001"), xOffsetPct: 88 })
+      await waitFor(() => held.entered() || null, "the position read to begin")
+      await env.DB.prepare("UPDATE publications SET access_code = ? WHERE token = ?")
+        .bind(await hashAccessCode("MOONRISE"), token).run()
+      await new Promise((resolve) => setTimeout(resolve, ROOM_POSITION_CHECK_MS + 100))
+      held.release()
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      expect(reader.frames.slice(before).some((frame) => frame.t === "cursor" && frame.xOffsetPct === 88)).toBe(false)
+    })
 
     it("closes an old-code reader the moment a reader joins under the new code", async () => {
       const { token, reader, readerClosed } = await readerAndAuthor()
@@ -1408,4 +1526,3 @@ describe("when a book's access changes", () => {
     expect(await waitFor(readerClosed, "the reader's socket to close")).toBe(4403)
   })
 })
-

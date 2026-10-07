@@ -18,17 +18,15 @@ import type { Env } from "./env.js"
  *
  * ## Hibernation
  *
- * The room keeps **no in-memory state at all**. Every peer's identity rides on its own socket
- * through `serializeAttachment`, and the roster is derived from `state.getWebSockets()` on
- * demand. That is what makes the WebSocket Hibernation API honest here: workerd may evict this
- * object between any two frames and reconstruct it on the next one, and nothing is lost —
- * there is no `Map` to rebuild, no timer to re-arm, no `blockConcurrencyWhile` to wait on. An
- * idle room with fifty readers holding sockets open costs nothing until somebody moves.
+ * Every peer's identity rides on its own socket through `serializeAttachment`, and the roster
+ * is derived from `state.getWebSockets()` on demand. The in-memory read cache, queues and rate
+ * counters are temporary: hibernation clears them, so the next frame checks access afresh.
+ * An idle room with fifty readers holding sockets open costs nothing until somebody moves.
  *
- * The only storage is the alarm that closes readers when the book's end date arrives. Cursors
- * in particular are relayed and forgotten: they are never attached, never stored, and never
- * reach D1. The room reads D1 for one thing: whether the book still admits its readers, as a
- * reader joins and before a comment reaches them.
+ * The only durable room storage is the alarm that closes readers when the book's end date
+ * arrives. Cursor positions are relayed and forgotten; only the access verdict is cached for
+ * one second. The room checks D1 on joins, comments and roster changes, and periodically while
+ * relaying positions.
  *
  * ## Reachability
  *
@@ -100,9 +98,13 @@ export const ROOM_POSITION_CHECK_MS = 1_000
  *  reader on the wrong page. */
 export const ROOM_MAX_FRAMES_PER_SECOND = 60
 
-/** Strict checks start at least this far apart. An idle room checks at once; a busy one batches
- *  everything waiting into the next read, so a flood costs at most twenty reads a second. */
-export const ROOM_CHECK_MIN_INTERVAL_MS = 50
+/** Routine strict checks start at least this far apart. An idle room checks at once; a busy one
+ *  batches waiting traffic into at most four reads a second. Joins bypass the delay. */
+export const ROOM_CHECK_MIN_INTERVAL_MS = 250
+
+/** Repeated page, device and hello frames from one socket share the latest state before the
+ *  next check. This also bounds idle hello requests, which otherwise each read D1. */
+export const ROOM_ROSTER_MIN_INTERVAL_MS = 250
 
 /** Joins one network may make per minute. Every join and every departure is a D1 read, so
  *  opening and closing sockets in a loop is bounded here rather than by the frame limit. A
@@ -120,6 +122,8 @@ type PeerAttachment = RoomPeer
 /** Who the book admitted when it was last read: `readers` were in the room when the read began,
  *  `admitted` are those of them it still lets in. `null` when the book couldn't be read. */
 type AccessCheck = { readers: ReadonlySet<WebSocket>; admitted: ReadonlySet<WebSocket> } | null
+
+type PositionVerdict = { check: AccessCheck; startedAt: number; readId: number }
 
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
@@ -141,7 +145,7 @@ export class PublicationRoom {
   private readonly closing = new WeakSet<WebSocket>()
 
   /** Outbound work waiting for its access check, and whether a check is running. */
-  private readonly queued: Array<(check: AccessCheck) => void> = []
+  private readonly queued: Array<{ deliver: (check: AccessCheck) => void; urgent: boolean }> = []
 
   private draining = false
 
@@ -168,18 +172,25 @@ export class PublicationRoom {
   /** The read that cursor and viewport frames rely on, while it is younger than
    *  `ROOM_POSITION_CHECK_MS`. A failed read is remembered as `null`, so positions go to no
    *  reader until the next read rather than costing a read per frame. */
-  private positions: { check: AccessCheck; startedAt: number } | null = null
+  private positions: PositionVerdict | null = null
 
-  private positionRead: Promise<AccessCheck> | null = null
+  private positionRead: Promise<PositionVerdict> | null = null
 
-  /** When the newest read of the book started, whichever path made it. */
-  private newestReadAt = 0
+  /** Every read gets a distinct number, even if two start in the same millisecond. An older
+   *  position verdict cannot outlive a newer strict check or an in-flight newer read. */
+  private readId = 0
+
+  /** A newer completed read supersedes an older result that returns late. */
+  private latestCompletedReadId = 0
 
   /** When the last strict check started, to space the next one. */
   private lastStrictReadAt = 0
 
   /** Each socket's frame allowances, refilled continuously. In memory only. */
   private readonly allowance = new WeakMap<WebSocket, { tokens: number; at: number }>()
+
+  /** Last roster update queued by each socket; pending updates coalesce until their turn. */
+  private readonly lastRosterQueuedAt = new WeakMap<WebSocket, number>()
 
   /** Recent join times per caller network. In memory only: a room that hibernated starts over. */
   private readonly joins = new Map<string, number[]>()
@@ -209,17 +220,20 @@ export class PublicationRoom {
    * frame, not after a window. Work that queues while a read is in flight waits for the next
    * read, and shares it: one D1 read per batch, never one per frame and never a reused one.
    */
-  private checked(deliver: (check: AccessCheck) => void): Promise<void> {
+  private checked(deliver: (check: AccessCheck) => void, urgent = false): Promise<void> {
     this.enqueued += 1
     const seq = this.enqueued
     return new Promise((resolve) => {
-      this.queued.push((check) => {
-        try {
-          deliver(check)
-        } finally {
-          this.delivered = seq
-          resolve()
-        }
+      this.queued.push({
+        urgent,
+        deliver: (check) => {
+          try {
+            deliver(check)
+          } finally {
+            this.delivered = seq
+            resolve()
+          }
+        },
       })
       void this.drain()
     })
@@ -245,15 +259,20 @@ export class PublicationRoom {
     this.draining = true
     try {
       while (this.queued.length > 0) {
-        const wait = this.lastStrictReadAt + ROOM_CHECK_MIN_INTERVAL_MS - Date.now()
+        const wait = this.queued.some((entry) => entry.urgent) || this.lastStrictReadAt === 0
+          ? 0
+          : this.lastStrictReadAt + ROOM_CHECK_MIN_INTERVAL_MS - performance.now()
         if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait))
         const batch = this.queued.splice(0)
-        const startedAt = Date.now()
+        const startedAt = performance.now()
+        const readId = ++this.readId
         this.lastStrictReadAt = startedAt
-        const check = await this.admittedReaders()
+        const result = await this.admittedReaders()
+        const check = readId < this.latestCompletedReadId ? null : result
+        this.latestCompletedReadId = Math.max(this.latestCompletedReadId, readId)
         if (check !== null) this.evictReaders(check.admitted, check.readers)
-        this.rememberForPositions(check, startedAt)
-        for (const deliver of batch) deliver(check)
+        this.rememberForPositions(check, startedAt, readId)
+        for (const entry of batch) entry.deliver(check)
         if (this.rosterChanged) {
           this.rosterChanged = false
           this.sendPresence(check)
@@ -271,17 +290,23 @@ export class PublicationRoom {
    * `ROOM_POSITION_CHECK_MS` ago, otherwise one new read shared by every position frame that
    * arrives while it runs. At most one read per window for positions, however busy the room.
    */
-  private async positionCheck(): Promise<AccessCheck> {
-    if (this.positions && Date.now() - this.positions.startedAt < ROOM_POSITION_CHECK_MS) {
-      return this.positions.check
+  private async positionCheck(): Promise<PositionVerdict> {
+    if (this.positions && performance.now() - this.positions.startedAt < ROOM_POSITION_CHECK_MS) {
+      return this.positions
     }
     this.positionRead ??= (async () => {
-      const startedAt = Date.now()
+      const startedAt = performance.now()
+      const readId = ++this.readId
       try {
-        const check = await this.admittedReaders()
-        if (check !== null) this.evictReaders(check.admitted, check.readers)
-        this.rememberForPositions(check, startedAt)
-        return check
+        const result = await this.admittedReaders()
+        const check = readId < this.latestCompletedReadId ? null : result
+        this.latestCompletedReadId = Math.max(this.latestCompletedReadId, readId)
+        /** An expired or overtaken position read cannot authorize delivery or close sockets. */
+        if (readId === this.readId && performance.now() - startedAt < ROOM_POSITION_CHECK_MS) {
+          if (check !== null) this.evictReaders(check.admitted, check.readers)
+          this.rememberForPositions(check, startedAt, readId)
+        }
+        return { check, startedAt, readId }
       } finally {
         this.positionRead = null
       }
@@ -295,14 +320,13 @@ export class PublicationRoom {
    * close somebody is not kept at all, so the next position frame reads the book afresh. A read
    * never replaces a newer one.
    */
-  private rememberForPositions(check: AccessCheck, startedAt: number): void {
-    if (startedAt < this.newestReadAt) return
-    this.newestReadAt = startedAt
+  private rememberForPositions(check: AccessCheck, startedAt: number, readId: number): void {
+    if (readId !== this.readId) return
     if (check !== null && check.admitted.size < check.readers.size) {
       this.positions = null
       return
     }
-    this.positions = { check, startedAt }
+    this.positions = { check, startedAt, readId }
   }
 
   /** Token bucket per socket: refills at `perSecond`, holds as many. */
@@ -476,7 +500,7 @@ export class PublicationRoom {
         }
       }
       this.rosterChanged = true
-    })
+    }, true)
     if (this.closing.has(server)) return new Response(null, { status: 101, webSocket: client })
 
     const expiresAt = Date.parse(request.headers.get(ROOM_EXPIRES_HEADER) ?? "")
@@ -544,7 +568,11 @@ export class PublicationRoom {
     if (frame.t === "cursor" || frame.t === "viewport") {
       if (!this.withinAllowance(this.allowance, ws, ROOM_MAX_FRAMES_PER_SECOND)) return
       await this.caughtUp(this.enqueued)
-      const check = await this.positionCheck()
+      const verdict = await this.positionCheck()
+      /** A slow read may finish after its one-second lease or after a newer check has started.
+       *  Neither result can authorize a position frame, even if it was valid when read. */
+      if (verdict.readId !== this.readId || performance.now() - verdict.startedAt >= ROOM_POSITION_CHECK_MS) return
+      const check = verdict.check
       const peer = attachmentOf(ws)
       if (!peer || !this.hears(ws, check)) return
       this.relayPosition(ws, peer, frame, check)
@@ -563,6 +591,11 @@ export class PublicationRoom {
     if (!pending && !next.hello && next.section === base.section && next.device === base.device) return
     this.pendingRoster.set(ws, next)
     if (pending) return
+
+    const lastQueuedAt = this.lastRosterQueuedAt.get(ws)
+    const wait = lastQueuedAt === undefined ? 0 : lastQueuedAt + ROOM_ROSTER_MIN_INTERVAL_MS - performance.now()
+    if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait))
+    this.lastRosterQueuedAt.set(ws, performance.now())
 
     await this.checked((check) => {
       const latest = this.pendingRoster.get(ws)
