@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { CommenterDisplayName } from "./commenter-name.js"
 
-export const PUBLISH_WORKER_VERSION = "0.14.2"
+export const PUBLISH_WORKER_VERSION = "0.14.3"
 
 /**
  * The oldest control plane this Studio's book host works against.
