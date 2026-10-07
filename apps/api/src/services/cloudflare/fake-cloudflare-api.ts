@@ -22,6 +22,8 @@ export interface FakeCloudflareState {
   assetUploadFailuresLeft: number
   migrationRows: Array<{ name: string; applied_at: string }>
   executedSql: string[]
+  /** Every D1 query body, in order. */
+  d1Queries: string[]
   uploadCount: number
   staticAssetManifests: Array<Record<string, unknown>>
   staticAssetUploads: Array<Record<string, string>>
@@ -68,6 +70,10 @@ export interface FakeCloudflareOptions {
   healthFailures?: number
   healthUnreachable?: boolean
   assetUploadBuckets?: string[][]
+  /** Every Cloudflare API call fails as if the machine were offline. */
+  apiUnreachable?: boolean
+  /** Create the D1 database, then lose this many replies on the way back. */
+  d1CreateLostReplies?: number
   /** Behave like Cloudflare: ask only for the hashes it doesn't already hold. */
   assetKnownHashes?: string[]
   /** Like `assetKnownHashes`, but what it holds is whatever was uploaded earlier in the test. */
@@ -157,6 +163,7 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
     assetUploadFailuresLeft: options.assetUploadTransientFailures ?? 0,
     migrationRows: [...(options.migrationRows ?? [])],
     executedSql: [],
+    d1Queries: [],
     uploadCount: 0,
     staticAssetManifests: [],
     staticAssetUploads: [],
@@ -174,6 +181,7 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
     return Object.fromEntries(new URLSearchParams(String(init?.body ?? "")).entries())
   }
 
+  let lostD1CreateReplies = 0
   const fetchFn: FetchLike = async (input, init) => {
     const method = (init?.method ?? "GET").toUpperCase()
     state.calls.push({ method, url: input })
@@ -220,6 +228,10 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
         throw new TypeError("fetch failed")
       }
       return json({ ok: true, version: options.workerVersion ?? PUBLISH_WORKER_VERSION })
+    }
+
+    if (options.apiUnreachable && input.startsWith(CLOUDFLARE_API_BASE_URL)) {
+      throw new TypeError("fetch failed", { cause: { code: "ENETUNREACH" } })
     }
 
     if (!input.startsWith(CLOUDFLARE_API_BASE_URL)) {
@@ -271,11 +283,20 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
         if (options.d1CreateConflict) {
           return fail(409, 7502, "a database with that name already exists")
         }
+        /** Like Cloudflare, a name is taken once — which is what turns a retried create back
+         *  into "already exists". */
+        if (state.databases.some((entry) => entry.name === body.name)) {
+          return fail(409, 7502, "a database with that name already exists")
+        }
         const created = {
           uuid: options.createdDatabaseUuid ?? "db-uuid-1",
           name: body.name ?? "unnamed",
         }
         state.databases.push(created)
+        if (lostD1CreateReplies < (options.d1CreateLostReplies ?? 0)) {
+          lostD1CreateReplies += 1
+          throw new TypeError("fetch failed", { cause: { code: "ECONNRESET" } })
+        }
         return ok(created)
       }
     }
@@ -285,6 +306,7 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
       if (denied.has("D1:Edit")) return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
       const body = JSON.parse(String(init?.body ?? "{}")) as { sql?: string; params?: string[] }
       const sql = body.sql ?? ""
+      state.d1Queries.push(sql)
 
       if (/CREATE TABLE IF NOT EXISTS _migrations/i.test(sql)) {
         return ok([{ success: true, results: [] }])

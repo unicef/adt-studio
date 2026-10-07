@@ -14,8 +14,8 @@ interface ProvisionFooterActionProps {
  *  reassurance, or a decision. It never reports progress, which belongs to the rail and the
  *  track, and it never leaves a disabled control sitting on screen for two minutes.
  *
- *  The running copy is load-bearing rather than filler: the provisioning stream is aborted on
- *  unmount, so leaving the step really does end the run, and nothing else on screen says so. */
+ *  The running copy says what is true: the setup runs in the Studio's own server, so leaving
+ *  this screen doesn't stop it — coming back picks it up again. Quitting the app does. */
 export function ProvisionFooterAction({
   status,
   onStart,
@@ -34,7 +34,7 @@ export function ProvisionFooterAction({
             <Trans>Nothing needed from you</Trans>
           </span>
           <span className="mt-0.5 text-xs leading-4 text-muted-foreground">
-            <Trans>Leave this step open until it finishes.</Trans>
+            <Trans>You can leave this screen — just keep ADT Studio open.</Trans>
           </span>
         </span>
       ) : status === "done" ? (

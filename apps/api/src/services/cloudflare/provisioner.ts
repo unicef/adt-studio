@@ -14,6 +14,7 @@ import { probeCloudflareAccess } from "./access.js"
 import {
   CloudflareApiError,
   fetchWorkerHealth,
+  isRetryableCloudflareError,
   retryCloudflareOperation,
   type CloudflareClient,
   type FetchLike,
@@ -45,6 +46,12 @@ export function withMigrationRecord(migration: { name: string; sql: string }, at
     `INSERT OR IGNORE INTO ${MIGRATIONS_TABLE} (name, applied_at) ` +
     `VALUES (${sqlString(migration.name)}, ${sqlString(at.toISOString())});`
   return `${body}${body.endsWith(";") ? "" : ";"}\n${record}`
+}
+
+/** The network failing, not Cloudflare refusing: a timeout, a refused or reset connection, no
+ *  route. Reported as such so the author checks their connection instead of their token. */
+function isTransportFailure(error: unknown): boolean {
+  return !(error instanceof CloudflareApiError) && isRetryableCloudflareError(error)
 }
 
 function sqlString(value: string): string {
@@ -140,6 +147,7 @@ export async function provisionCloudflare(
     generateSecret = generateMgmtSecret,
     healthAttempts = 8,
   } = options
+  const retry = { sleep, attempts: 3 }
 
   const existing = store.read()
   let stepMessage: string | undefined
@@ -163,9 +171,11 @@ export async function provisionCloudflare(
       const provisionError = isProvisionError(error)
         ? error
         : new ProvisionError({
-            code: "partial_provision",
+            code: isTransportFailure(error) ? "cloudflare_unreachable" : "partial_provision",
             stepId: id,
-            message: describeError(error),
+            message: isTransportFailure(error)
+              ? `Couldn't reach Cloudflare: ${describeError(error)}`
+              : describeError(error),
             cause: error,
           })
       await emit({
@@ -236,24 +246,26 @@ export async function provisionCloudflare(
   })
 
   const database = await runStep("find-or-create-d1", async () => {
-    const databases = await client.listD1Databases(CLOUDFLARE_D1_DATABASE_NAME)
+    const databases = await retryCloudflareOperation(() => client.listD1Databases(CLOUDFLARE_D1_DATABASE_NAME), retry)
     const found = databases.find((entry) => entry.name === CLOUDFLARE_D1_DATABASE_NAME)
     if (found) {
       stepMessage = `Reusing database ${found.name}`
       return found
     }
     try {
-      const created = await client.createD1Database(CLOUDFLARE_D1_DATABASE_NAME)
+      /** A retry after a lost reply meets "already exists", which the branch below turns back
+       *  into the database the first attempt made. */
+      const created = await retryCloudflareOperation(() => client.createD1Database(CLOUDFLARE_D1_DATABASE_NAME), retry)
       stepMessage = `Created database ${created.name}`
       return created
     } catch (error) {
       if (!alreadyExists(error)) throw error
-      const retry = (await client.listD1Databases(CLOUDFLARE_D1_DATABASE_NAME)).find(
+      const existing = (await client.listD1Databases(CLOUDFLARE_D1_DATABASE_NAME)).find(
         (entry) => entry.name === CLOUDFLARE_D1_DATABASE_NAME,
       )
-      if (retry) {
-        stepMessage = `Reusing database ${retry.name}`
-        return retry
+      if (existing) {
+        stepMessage = `Reusing database ${existing.name}`
+        return existing
       }
       throw new ProvisionError({
         code: "name_collision",
@@ -265,21 +277,26 @@ export async function provisionCloudflare(
   })
 
   await runStep("apply-migrations", async () => {
-    const applied = new Set<string>()
-    try {
-      await client.queryD1(
-        database.uuid,
-        `CREATE TABLE IF NOT EXISTS ${MIGRATIONS_TABLE} (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL);`,
+    const recordedMigrations = async (): Promise<Set<string>> => {
+      const rows = await retryCloudflareOperation(
+        () => client.queryD1(database.uuid, `SELECT name FROM ${MIGRATIONS_TABLE};`),
+        retry,
       )
-      const rows = await client.queryD1(
-        database.uuid,
-        `SELECT name FROM ${MIGRATIONS_TABLE};`,
-      )
+      const names = new Set<string>()
       for (const result of rows) {
         for (const row of result.results) {
-          if (typeof row.name === "string") applied.add(row.name)
+          if (typeof row.name === "string") names.add(row.name)
         }
       }
+      return names
+    }
+    const applied = new Set<string>()
+    try {
+      await retryCloudflareOperation(() => client.queryD1(
+        database.uuid,
+        `CREATE TABLE IF NOT EXISTS ${MIGRATIONS_TABLE} (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL);`,
+      ), retry)
+      for (const name of await recordedMigrations()) applied.add(name)
     } catch (error) {
       throw new ProvisionError({
         code: "migration_failed",
@@ -292,7 +309,12 @@ export async function provisionCloudflare(
     const pending = artifact.migrations.filter((migration) => !applied.has(migration.name))
     for (const migration of pending) {
       try {
-        await client.queryD1(database.uuid, withMigrationRecord(migration, now()))
+        /** Safe to repeat because each attempt first asks whether the last one landed: a
+         *  migration and its record arrive together or not at all. */
+        await retryCloudflareOperation(async () => {
+          if ((await recordedMigrations()).has(migration.name)) return
+          await client.queryD1(database.uuid, withMigrationRecord(migration, now()))
+        }, retry)
       } catch (error) {
         throw new ProvisionError({
           code: "migration_failed",
@@ -316,7 +338,8 @@ export async function provisionCloudflare(
     const scriptExists = scripts.some((script) => script.id === CLOUDFLARE_WORKER_NAME)
     if (!scriptExists) {
       try {
-        await client.createWorker(CLOUDFLARE_WORKER_NAME)
+        /** A retry after a lost reply meets "already exists", which the catch accepts. */
+        await retryCloudflareOperation(() => client.createWorker(CLOUDFLARE_WORKER_NAME), retry)
       } catch (error) {
         if (!alreadyExists(error)) throw error
       }

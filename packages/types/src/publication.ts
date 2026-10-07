@@ -533,6 +533,34 @@ export const BookPublicationRecord = z.object({
 })
 export type BookPublicationRecord = z.infer<typeof BookPublicationRecord>
 
+/**
+ * A commit the Studio sent and may never have heard back from.
+ *
+ * Written just before the commit and settled once its outcome is known. A connection lost on
+ * the way back — or the Studio quitting — used to leave a version live on Cloudflare that this
+ * computer had no record of: a first share's link the author never got, or an update missing
+ * from the book's history. The next status read asks the control plane how the upload ended
+ * and, if it was committed, files the record this run would have filed. It never commits on
+ * the author's behalf.
+ */
+export const PendingPublicationCommit = z.object({
+  upload_id: z.string().min(1),
+  token: PublicationToken,
+  base_url: z.string().url(),
+  worker_url: z.string().min(1),
+  page_count: z.number().int().min(0),
+  content_revision: z.number().int().min(0).nullable(),
+  access_code: z.string().nullable(),
+  features: PublishFeatureSelection.nullable(),
+  host_version: z.string().nullable(),
+  /** The record before this run, for an update; `null` for a first share. */
+  previous: BookPublicationRecord.nullable(),
+  started_at: z.string().datetime(),
+  /** Set once the outcome is known. The note is versioned with the book, never deleted. */
+  settled_at: z.string().datetime().nullable().default(null),
+})
+export type PendingPublicationCommit = z.infer<typeof PendingPublicationCommit>
+
 export const BookPublicationStatus = z.object({
   connected: z.boolean(),
   record: BookPublicationRecord.nullable(),

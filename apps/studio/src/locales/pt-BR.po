@@ -849,6 +849,9 @@ msgstr "A → Z"
 msgid "A balanced glossary for most books."
 msgstr "Um glossário equilibrado para a maioria dos livros."
 
+msgid "A book is still being shared, or sharing is still being set up. Quitting stops it partway — you can start it again next time."
+msgstr "Um livro ainda está sendo compartilhado, ou o compartilhamento ainda está sendo configurado. Sair agora interrompe o processo no meio — você pode começar de novo na próxima vez."
+
 msgid "A book with this name already exists."
 msgstr "Um livro com este nome já existe."
 
@@ -3320,6 +3323,9 @@ msgstr "Não foi possível carregar a pré-visualização do PDF. Você ainda po
 
 msgid "Couldn't load versions."
 msgstr "Não foi possível carregar as versões."
+
+msgid "Couldn't reach Cloudflare"
+msgstr "Não foi possível conectar ao Cloudflare"
 
 #~ msgid "Couldn't reach your publishing service"
 #~ msgstr "Não foi possível alcançar seu serviço de publicação"
@@ -6040,8 +6046,8 @@ msgstr "Deixe vazio para usar o idioma do livro."
 msgid "Leave setup"
 msgstr "Sair da configuração"
 
-msgid "Leave this step open until it finishes."
-msgstr "Deixe esta etapa aberta até terminar."
+#~ msgid "Leave this step open until it finishes."
+#~ msgstr "Deixe esta etapa aberta até terminar."
 
 msgid "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
 msgstr "Deixe sem definir para manter o ritmo do próprio ElevenLabs. Valores extremos reduzem a qualidade."
@@ -8892,6 +8898,9 @@ msgstr "Preenchimento rápido"
 msgid "Quit anyway"
 msgstr "Sair mesmo assim"
 
+msgid "Quit while sharing?"
+msgstr "Sair durante o compartilhamento?"
+
 msgid "Quit without saving?"
 msgstr "Sair sem salvar?"
 
@@ -9084,6 +9093,9 @@ msgstr "Os leitores ainda não veem suas últimas edições."
 
 #~ msgid "Readers joined"
 #~ msgstr "Leitores entraram"
+
+msgid "Readers keep the version they already have. Nothing half-finished reaches them."
+msgstr "Os leitores continuam com a versão que já têm. Nada pela metade chega até eles."
 
 #. placeholder {0}: formatPublishDateTime(state.endsAt, i18n.locale)
 msgid "Readers lose access {0}"
@@ -10532,6 +10544,9 @@ msgstr "O compartilhamento não terminou"
 msgid "Sharing finished."
 msgstr "Compartilhamento concluído."
 
+msgid "Sharing in progress"
+msgstr "Compartilhamento em andamento"
+
 msgid "Sharing is ready"
 msgstr "O compartilhamento está pronto"
 
@@ -11579,6 +11594,9 @@ msgstr "As etapas concluídas abaixo serão redefinidas e precisarão ser execut
 
 msgid "The connection check could not be completed."
 msgstr "Não foi possível concluir a verificação da conexão."
+
+msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
+msgstr "A conexão com o Cloudflare caiu ou demorou demais. Verifique sua internet e tente novamente — o que já foi configurado é mantido."
 
 msgid "The credits page."
 msgstr "A página de créditos."
@@ -13386,6 +13404,9 @@ msgstr "Você está prestes a instalar {0}. Livros ou configurações editados c
 
 msgid "You can export at this stage"
 msgstr "Você pode exportar nesta etapa"
+
+msgid "You can leave this screen — just keep ADT Studio open."
+msgstr "Você pode sair desta tela — só mantenha o ADT Studio aberto."
 
 msgid "You can stop it any time"
 msgstr "Você pode interromper a qualquer momento"

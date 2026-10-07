@@ -523,6 +523,7 @@ export {
   PublishProgressEvent,
   BookPublicationVersionRecord,
   BookPublicationRecord,
+  PendingPublicationCommit,
   BookPublicationStatus,
   BookPublishRequest,
   PublishFeatureSelection,

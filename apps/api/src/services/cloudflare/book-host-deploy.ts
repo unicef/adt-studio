@@ -5,7 +5,13 @@ import { prepareStaticAssets, type RetainedStaticAsset, type StaticAsset } from 
 import type { WorkerArtifactBinding, BookHostArtifact } from "./worker-artifact.js"
 
 export class BookHostDeployError extends Error {
-  constructor(message: string, readonly cause?: unknown) {
+  constructor(
+    message: string,
+    readonly cause?: unknown,
+    /** Set when the account can host no more books, so the author is told to delete one rather
+     *  than to try again. */
+    readonly bookLimitReached = false,
+  ) {
     super(message)
     this.name = "BookHostDeployError"
   }
@@ -132,13 +138,16 @@ export async function deployBookHost(
         `This Cloudflare account is already hosting ${liveBooks} published books, which is as ` +
           `many as the free plan allows. Delete a book you no longer need — that frees its ` +
           `slot — then publish this one again.`,
+        undefined,
+        true,
       )
     }
   }
 
   if (!alreadyDeployed) {
     try {
-      await client.createWorker(name)
+      /** A retry after a lost reply meets "already exists", which the catch below accepts. */
+      await retryCloudflareOperation(() => client.createWorker(name), { attempts: 3, ...(sleep === undefined ? {} : { sleep }) })
     } catch (error) {
       if (!alreadyExists(error)) {
         throw new BookHostDeployError(

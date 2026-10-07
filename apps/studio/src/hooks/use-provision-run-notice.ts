@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useSyncExternalStore } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { msg } from "@lingui/core/macro"
 import { useLingui } from "@lingui/react/macro"
@@ -31,7 +31,30 @@ function unattended(): boolean {
 const listeners = new Set<() => void>()
 
 export function notifyProvisionRunStarted(): void {
+  setProvisionRunning(true)
   for (const listen of listeners) listen()
+}
+
+let provisionRunning = false
+const runningListeners = new Set<() => void>()
+
+function setProvisionRunning(on: boolean): void {
+  if (provisionRunning === on) return
+  provisionRunning = on
+  for (const listen of runningListeners) listen()
+}
+
+/** Whether the sharing setup is running, wherever the author is in the app. */
+export function useProvisionRunning(): boolean {
+  return useSyncExternalStore(
+    (listener) => {
+      runningListeners.add(listener)
+      return () => {
+        runningListeners.delete(listener)
+      }
+    },
+    () => provisionRunning,
+  )
 }
 
 const DONE = msg`Sharing is ready`
@@ -64,9 +87,11 @@ export function useProvisionRunNotice(): void {
         const { run } = await api.getCloudflareProvisionRun()
         if (cancelled || !run) {
           polling = false
+          if (!cancelled) setProvisionRunning(false)
           return
         }
 
+        setProvisionRunning(run.status === "running")
         if (run.status === "running") {
           sawRunning = true
           timer = window.setTimeout(() => void poll(), POLL_MS)

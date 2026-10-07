@@ -44,9 +44,11 @@ const DELETE_BATCH = 1000
  * remainder billed to the author's own bucket forever, with nothing left in D1 pointing at it.
  */
 export async function deleteSnapshotObjects(
-  bucket: R2Bucket,
+  bucket: R2Bucket | undefined,
   prefix: string,
 ): Promise<number> {
+  /** No bucket, no objects: the files live in Static Assets and go with the Worker. */
+  if (!bucket) return 0
   let cursor: string | undefined
   let deleted = 0
 

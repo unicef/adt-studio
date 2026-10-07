@@ -73,6 +73,42 @@ const TRANSIENT_TRANSPORT_CODES = new Set([
   "UND_ERR_SOCKET",
 ])
 
+/** Long enough for any ordinary API call on a slow link; short enough that a connection that
+ *  died mid-request is reported in a minute instead of whenever the system gives up. */
+const REQUEST_TIMEOUT_MS = 60_000
+/** A Worker script or a batch of a book's files can be tens of megabytes on a slow uplink. */
+const UPLOAD_TIMEOUT_MS = 300_000
+
+/** A request Cloudflare never finished answering. Carries `ETIMEDOUT`, so it reads — and
+ *  retries, where the operation allows — like the transport timeout it is. */
+export class CloudflareTimeoutError extends Error {
+  readonly code = "ETIMEDOUT"
+  constructor(timeoutMs: number, cause?: unknown) {
+    super(`Cloudflare didn't answer within ${Math.round(timeoutMs / 1000)} seconds`, { cause })
+    this.name = "CloudflareTimeoutError"
+  }
+}
+
+/** Fetches and reads the whole body under one deadline: a response whose headers arrived but
+ *  whose body stalled hangs exactly as long as one that never answered. */
+async function fetchWithin(
+  fetchFn: FetchLike,
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<{ response: Response; text: string }> {
+  const deadline = AbortSignal.timeout(timeoutMs)
+  const signal = init.signal ? AbortSignal.any([init.signal, deadline]) : deadline
+  try {
+    const response = await fetchFn(url, { ...init, signal })
+    const text = await response.text()
+    return { response, text }
+  } catch (error) {
+    if (deadline.aborted) throw new CloudflareTimeoutError(timeoutMs, error)
+    throw error
+  }
+}
+
 function transportCause(error: unknown): { code: string | null; message: string } {
   let current = error
   let deepest = error instanceof Error ? error.message : String(error)
@@ -189,6 +225,9 @@ export interface CloudflareClientOptions {
   accountId: string
   fetchFn?: FetchLike
   baseUrl?: string
+  /** Deadlines, overridable so tests need not wait a minute. */
+  requestTimeoutMs?: number
+  uploadTimeoutMs?: number
 }
 
 interface CloudflareEnvelope<T> {
@@ -227,6 +266,8 @@ export function createCloudflareClient(
 ): CloudflareClient {
   const { token, accountId } = options
   const fetchFn: FetchLike = options.fetchFn ?? ((input, init) => fetch(input, init))
+  const requestTimeoutMs = options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS
+  const uploadTimeoutMs = options.uploadTimeoutMs ?? UPLOAD_TIMEOUT_MS
   const baseUrl = (options.baseUrl ?? CLOUDFLARE_API_BASE_URL).replace(/\/$/, "")
   const traceEnabled = process.env.ADT_CLOUDFLARE_TRACE === "1"
 
@@ -238,17 +279,18 @@ export function createCloudflareClient(
   async function request<T>(
     pathname: string,
     init: RequestInit = {},
+    timeoutMs: number = requestTimeoutMs,
   ): Promise<T | undefined> {
     const headers = new Headers(init.headers)
     headers.set("Authorization", `Bearer ${token}`)
     let response: Response
+    let text: string
     try {
-      response = await fetchFn(`${baseUrl}${pathname}`, { ...init, headers })
+      ;({ response, text } = await fetchWithin(fetchFn, `${baseUrl}${pathname}`, { ...init, headers }, timeoutMs))
     } catch (error) {
       trace({ method: init.method ?? "GET", path: pathname, network_error: String(error) })
       throw error
     }
-    const text = await response.text()
 
     let envelope: CloudflareEnvelope<T> | null = null
     if (text.length > 0) {
@@ -433,19 +475,18 @@ export function createCloudflareClient(
         form.append(hash, new File([content], hash, { type: STATIC_ASSET_PART_TYPE }), hash)
       }
       let response: Response
+      let text: string
       try {
-        response = await fetchFn(`${baseUrl}${account}/workers/assets/upload?base64=true`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${uploadJwt}`,
-          },
-          body: form,
-        })
+        ;({ response, text } = await fetchWithin(
+          fetchFn,
+          `${baseUrl}${account}/workers/assets/upload?base64=true`,
+          { method: "POST", headers: { Authorization: `Bearer ${uploadJwt}` }, body: form },
+          uploadTimeoutMs,
+        ))
       } catch (error) {
         trace({ method: "POST", path: `${account}/workers/assets/upload`, network_error: String(error) })
         throw error
       }
-      const text = await response.text()
       let envelope: CloudflareEnvelope<{ jwt?: string }> | null = null
       try { envelope = text ? JSON.parse(text) as CloudflareEnvelope<{ jwt?: string }> : null } catch { envelope = null }
       trace({
@@ -498,10 +539,11 @@ export function createCloudflareClient(
         new Blob([script], { type: "application/javascript+module" }),
         mainModule,
       )
-      await request(`${account}/workers/scripts/${encodeURIComponent(name)}`, {
-        method: "PUT",
-        body: form,
-      })
+      await request(
+        `${account}/workers/scripts/${encodeURIComponent(name)}`,
+        { method: "PUT", body: form },
+        uploadTimeoutMs,
+      )
     },
 
     async deleteWorkerScript(name) {

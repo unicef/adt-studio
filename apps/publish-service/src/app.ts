@@ -132,9 +132,11 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", body))).map((byte) => byte.toString(16).padStart(2, "0")).join("")
     if (body.byteLength !== expected.bytes || digest !== expected.sha256) return errorResponse(c, "invalid_request", 400, "File does not match its declared size and digest")
     if (expected.completedAt !== null) return c.json({ path, bytes: expected.bytes })
-    await c.env.SNAPSHOTS.put(`${upload.snapshotPrefix}/${path}`, body)
+    const bucket = c.env.SNAPSHOTS
+    if (!bucket) return errorResponse(c, "invalid_request", 409, "This account stores books as Static Assets; files are not uploaded here")
+    await bucket.put(`${upload.snapshotPrefix}/${path}`, body)
     if (!(await store.completeUploadFile(uploadId, path, timestamp()))) {
-      await c.env.SNAPSHOTS.delete(`${upload.snapshotPrefix}/${path}`)
+      await bucket.delete(`${upload.snapshotPrefix}/${path}`)
       return errorResponse(c, "invalid_request", 409, "Upload is no longer open")
     }
     return c.json({ path, bytes: expected.bytes })
@@ -172,6 +174,24 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
      *  `false` by default and the Studio recorded a gated book as an open one. */
     const { hasAccessCode, ...committed } = result.committed
     return c.json({ upload_id: c.req.param("uploadId"), ...committed, has_access_code: hasAccessCode, url: shareUrl(c, result.committed.publication.token) }, 201)
+  })
+
+  /** How an upload ended, and nothing else: a Studio that lost a commit's reply asks this rather
+   *  than committing again, so it can never publish a version the author didn't finish. */
+  app.get("/api/publication-uploads/:uploadId", async (c) => {
+    const upload = await resolveStore(c.env).findUpload(c.req.param("uploadId"))
+    if (!upload) return errorResponse(c, "not_found", 404)
+    if (upload.state !== "committed" || upload.committedResult === null) {
+      return c.json({ upload_id: upload.uploadId, state: upload.state })
+    }
+    const { hasAccessCode, ...committed } = upload.committedResult
+    return c.json({
+      upload_id: upload.uploadId,
+      state: "committed",
+      ...committed,
+      has_access_code: hasAccessCode,
+      url: shareUrl(c, committed.publication.token),
+    })
   })
 
   app.delete("/api/publication-uploads/:uploadId", async (c) => {

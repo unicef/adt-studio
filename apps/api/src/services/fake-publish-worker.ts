@@ -53,6 +53,10 @@ export interface FakePublishWorkerOptions {
   mgmtSecret?: string
   now?: string
   unreachable?: boolean
+  /** Commit the upload, then lose this many replies on the way back — the ambiguous failure. */
+  loseCommitReplies?: number
+  /** Refuse every commit with this status, without committing. */
+  failCommitStatus?: number
   failStartStatus?: number
   failStartBody?: { error: string; message?: string }
   failListStatus?: number
@@ -158,6 +162,7 @@ export function createFakePublishWorker(
     }
   }
 
+  let lostCommitReplies = 0
   const fetchFn: FetchLike = async (input, init) => {
     if (options.unreachable) {
       throw new TypeError("fetch failed")
@@ -349,10 +354,48 @@ export function createFakePublishWorker(
       return json({ assets })
     }
 
+    const readUploadMatch = /^\/api\/publication-uploads\/([^/]+)$/.exec(url.pathname)
+    if (readUploadMatch && method === "GET") {
+      const upload = state.uploads.get(decodeURIComponent(readUploadMatch[1] as string))
+      if (!upload) return notFound()
+      if (upload.state !== "committed") return json({ upload_id: upload.upload_id, state: upload.state })
+      const publication = state.publications.get(upload.token)!
+      const version = versionsOf(upload.token).find((entry) => entry.version === upload.version)!
+      return json({
+        upload_id: upload.upload_id,
+        state: "committed",
+        publication,
+        version: toWireVersion(version),
+        url: shareUrl(upload.token),
+        has_access_code: state.accessCodes.has(upload.token),
+      })
+    }
+
     const commitMatch = /^\/api\/publication-uploads\/([^/]+)\/commit$/.exec(url.pathname)
     if (commitMatch && method === "POST") {
       const upload = state.uploads.get(decodeURIComponent(commitMatch[1] as string))
       if (!upload) return notFound()
+      if (options.failCommitStatus) return fail("internal_error", options.failCommitStatus)
+      /** Like the real control plane, a second commit of the same upload answers with the first
+       *  one's result rather than refusing — that is what makes a commit safe to repeat. */
+      if (upload.state === "committed") {
+        const publication = state.publications.get(upload.token)!
+        const version = versionsOf(upload.token).find((entry) => entry.version === upload.version)!
+        if (lostCommitReplies < (options.loseCommitReplies ?? 0)) {
+          lostCommitReplies += 1
+          throw new TypeError("fetch failed", { cause: { code: "ECONNRESET" } })
+        }
+        return json(
+          {
+            upload_id: upload.upload_id,
+            publication,
+            version: toWireVersion(version),
+            url: shareUrl(publication.token),
+            has_access_code: state.accessCodes.has(publication.token),
+          },
+          201,
+        )
+      }
       if (upload.state !== "open") return fail("invalid_request", 409)
       if (upload.declared.some((entry) => !upload.received.has(entry.path))) {
         return fail("invalid_request", 400)
@@ -385,6 +428,10 @@ export function createFakePublishWorker(
       if (upload.access_code) state.accessCodes.set(publication.token, upload.access_code)
       upload.state = "committed"
 
+      if (lostCommitReplies < (options.loseCommitReplies ?? 0)) {
+        lostCommitReplies += 1
+        throw new TypeError("fetch failed", { cause: { code: "ECONNRESET" } })
+      }
       return json(
         {
           upload_id: upload.upload_id,

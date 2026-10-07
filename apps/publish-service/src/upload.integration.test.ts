@@ -221,6 +221,48 @@ describe("publication upload lifecycle", () => {
     await expect((await retry.app.request(`${BASE}/p/${TOKEN}/`, {}, env)).text()).resolves.toBe("two")
   })
 
+  /** A Studio that lost a commit's reply asks how the upload ended rather than committing it. */
+  it("says how an upload ended without changing it", async () => {
+    const { app, upload } = await start("create", { "index.html": "one" })
+    const read = async () => (await app.request(`${BASE}/api/publication-uploads/${upload.upload_id}`, { headers: headers() }, env)).json() as Promise<Record<string, unknown>>
+
+    expect(await read()).toEqual({ upload_id: upload.upload_id, state: "open" })
+    expect((await put(app, upload.upload_id, "index.html", "one")).status).toBe(200)
+    expect(await read()).toMatchObject({ state: "open" })
+
+    await app.request(`${BASE}/api/publication-uploads/${upload.upload_id}/commit`, { method: "POST", headers: headers() }, env)
+    expect(await read()).toMatchObject({
+      upload_id: upload.upload_id,
+      state: "committed",
+      publication: { token: TOKEN, current_version: 1 },
+      version: { version: 1 },
+      has_access_code: false,
+    })
+    expect((await app.request(`${BASE}/api/publication-uploads/missing-upload`, { headers: headers() }, env)).status).toBe(404)
+  })
+
+  /** Accounts set up since files moved to Static Assets have no bucket, and their Worker has no
+   *  binding for one — retiring an upload or deleting a book used to answer 500 there. */
+  it("retires an upload and deletes a book on an account with no file bucket", async () => {
+    const bucketless = { ...env, SNAPSHOTS: undefined }
+    const app = createApp()
+    const started = await app.request(`${BASE}/api/publication-uploads`, {
+      method: "POST",
+      headers: { ...headers(), "content-type": "application/json" },
+      body: JSON.stringify({
+        kind: "create", token: TOKEN, title: "No bucket", book_label: "nobucket",
+        page_manifest: [{ section_id: "page-1", href: "index.html", page_number: 1 }],
+        files: [{ path: "index.html", bytes: 1, sha256: digest("x"), asset_hash: "c".repeat(32) }],
+      }),
+    }, bucketless)
+    const { upload_id: uploadId } = await started.json() as { upload_id: string }
+    expect((await app.request(`${BASE}/api/publication-uploads/${uploadId}`, { method: "DELETE", headers: headers() }, bucketless)).status).toBe(200)
+
+    const again = await start("create", { "index.html": "x" })
+    await again.app.request(`${BASE}/api/publication-uploads/${again.upload.upload_id}/complete-static-assets`, { method: "POST", headers: headers() }, bucketless)
+    expect((await app.request(`${BASE}/api/publications/${TOKEN}`, { method: "DELETE", headers: headers() }, bucketless)).status).toBe(200)
+  })
+
   it("aborts an upload without touching the active snapshot", async () => {
     const first = await start("create", { "index.html": "live" })
     expect((await put(first.app, first.upload.upload_id, "index.html", "live")).status).toBe(200)

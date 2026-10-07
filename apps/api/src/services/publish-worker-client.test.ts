@@ -311,3 +311,21 @@ describe("feedback requests", () => {
     )
   })
 })
+
+describe("deadlines", () => {
+  /** A timed-out write may still have arrived, so it is reported as unreachable but *not* as
+   *  never delivered — starting an upload is then not blindly repeated. */
+  it("times out a request that never answers, as an ambiguous failure", async () => {
+    const hang: FetchLike = (_input, init) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(init.signal?.reason))
+      })
+    const client = createPublishWorkerClient({ workerUrl: "https://w.example", mgmtSecret: "s", fetchFn: hang, timeoutMs: 20 })
+
+    const error = await client.commitUpload("u1").catch((caught: unknown) => caught)
+    expect(isPublishWorkerError(error)).toBe(true)
+    expect(error).toMatchObject({ unreachable: true, neverDelivered: false })
+    expect(String((error as Error).message)).toMatch(/ETIMEDOUT/)
+  })
+})
+

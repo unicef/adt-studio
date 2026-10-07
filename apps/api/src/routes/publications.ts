@@ -44,6 +44,8 @@ import {
   readContentRevision,
   readLocalBookSnapshot,
   readPublicationRecord,
+  reconcilePendingCommit,
+  restoreInterruptedPublishConfig,
   republishBook,
   savePublicationRecord,
   toPublishErrorEvent,
@@ -640,8 +642,14 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
   app.get("/books/:label/publication", async (c) => {
     const label = parseBookLabel(c.req.param("label"))
     requireBook(label)
-    const record = readPublicationRecord(label, deps.booksDir)
     const connection = store.read()
+    if (!publishesInFlight.has(label)) restoreInterruptedPublishConfig(path.join(resolvedBooksDir(), label))
+    /** A run that lost its commit's reply left a note; while no run is going, find out how it
+     *  ended before answering, so a version that went live is never missing from the record. */
+    if (connection && !publishesInFlight.has(label)) {
+      await reconcilePendingCommit(label, deps.booksDir, clientFor(connection), deps.now)
+    }
+    const record = readPublicationRecord(label, deps.booksDir)
 
     /** Read once here rather than once per branch: it opens the book's database, and this
      *  route is polled while the publish screen is open. */
@@ -735,6 +743,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       )
     }
 
+    await reconcilePendingCommit(label, deps.booksDir, clientFor(connection), deps.now)
     const record = readPublicationRecord(label, deps.booksDir)
     if (isActiveRecord(record, connection)) {
       release()
@@ -799,6 +808,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       )
     }
 
+    await reconcilePendingCommit(label, deps.booksDir, clientFor(connection), deps.now)
     const record = readPublicationRecord(label, deps.booksDir)
     if (!isActiveRecord(record, connection)) {
       release()

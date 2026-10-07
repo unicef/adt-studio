@@ -57,11 +57,12 @@ export function registerReaderRoutes(app: Hono<AppEnv>, deps: ReaderRouteDeps): 
         headers.set("cache-control", cacheControlFor(relative, c.get("accessCodeHash") !== null))
         return new Response(asset.body, { status: asset.status, statusText: asset.statusText, headers })
       }
-      if (!c.env.SNAPSHOTS) return errorResponse(c, "not_found", 404)
     }
+    const bucket = c.env.SNAPSHOTS
+    if (!bucket) return errorResponse(c, "not_found", 404)
 
     const ifNoneMatch = conditionalEtag(c.req.header("If-None-Match"))
-    const object = await c.env.SNAPSHOTS.get(
+    const object = await bucket.get(
       key,
       ifNoneMatch === undefined ? undefined : { onlyIf: { etagDoesNotMatch: ifNoneMatch } },
     )

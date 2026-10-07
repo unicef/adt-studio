@@ -851,6 +851,9 @@ msgstr "A → Z"
 msgid "A balanced glossary for most books."
 msgstr "Një glosar i ekuilibruar për shumicën e librave."
 
+msgid "A book is still being shared, or sharing is still being set up. Quitting stops it partway — you can start it again next time."
+msgstr "Një libër po ndahet ende, ose ndarja po konfigurohet ende. Nëse dilni tani, procesi ndalet në mes — mund ta nisni përsëri herën tjetër."
+
 msgid "A book with this name already exists."
 msgstr "Një libër me këtë emër ekziston tashmë."
 
@@ -3322,6 +3325,9 @@ msgstr "Nuk mund të ngarkohej parapamja e PDF-së. Ju ende mund të shënoni fa
 
 msgid "Couldn't load versions."
 msgstr "Nuk u ngarkuan dot versionet."
+
+msgid "Couldn't reach Cloudflare"
+msgstr "Nuk u arrit lidhja me Cloudflare"
 
 #~ msgid "Couldn't reach your publishing service"
 #~ msgstr "Nuk mund të arrihej shërbimi juaj i publikimit"
@@ -6042,8 +6048,8 @@ msgstr "Lëre bosh për të përdorur gjuhën e librit."
 msgid "Leave setup"
 msgstr "Dil nga konfigurimi"
 
-msgid "Leave this step open until it finishes."
-msgstr "Mbajeni këtë hap të hapur derisa të përfundojë."
+#~ msgid "Leave this step open until it finishes."
+#~ msgstr "Mbajeni këtë hap të hapur derisa të përfundojë."
 
 msgid "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
 msgstr "Lëreni të papërcaktuar për të ruajtur ritmin e vetë ElevenLabs. Vlerat ekstreme ulin cilësinë."
@@ -8894,6 +8900,9 @@ msgstr "Plotësim i shpejtë"
 msgid "Quit anyway"
 msgstr "Dil gjithsesi"
 
+msgid "Quit while sharing?"
+msgstr "Të dilet gjatë ndarjes?"
+
 msgid "Quit without saving?"
 msgstr "Dil pa ruajtur?"
 
@@ -9086,6 +9095,9 @@ msgstr "Lexuesit nuk i shohin ende ndryshimet tuaja më të fundit."
 
 #~ msgid "Readers joined"
 #~ msgstr "Lexuesit u bashkuan"
+
+msgid "Readers keep the version they already have. Nothing half-finished reaches them."
+msgstr "Lexuesit mbajnë versionin që kanë tashmë. Asgjë e papërfunduar nuk u shkon atyre."
 
 #. placeholder {0}: formatPublishDateTime(state.endsAt, i18n.locale)
 msgid "Readers lose access {0}"
@@ -10534,6 +10546,9 @@ msgstr "Ndarja nuk përfundoi"
 msgid "Sharing finished."
 msgstr "Ndarja përfundoi."
 
+msgid "Sharing in progress"
+msgstr "Ndarja në vazhdim"
+
 msgid "Sharing is ready"
 msgstr "Ndarja është gati"
 
@@ -11581,6 +11596,9 @@ msgstr "Fazat e përfunduara më poshtë do të rivendosen dhe duhet të ekzekut
 
 msgid "The connection check could not be completed."
 msgstr "Kontrolli i lidhjes nuk mundi të përfundohet."
+
+msgid "The connection to Cloudflare dropped or timed out. Check your internet, then try again — anything already set up is kept."
+msgstr "Lidhja me Cloudflare u ndërpre ose zgjati shumë. Kontrolloni internetin, pastaj provoni përsëri — çdo gjë e konfiguruar ruhet."
 
 msgid "The credits page."
 msgstr "Faqja e krediteve."
@@ -13388,6 +13406,9 @@ msgstr "Jeni gati të instaloni {0}. Librat ose cilësimet e redaktuara me një 
 
 msgid "You can export at this stage"
 msgstr "Mund të eksportosh në këtë fazë"
+
+msgid "You can leave this screen — just keep ADT Studio open."
+msgstr "Mund ta lini këtë ekran — thjesht mbajeni ADT Studio të hapur."
 
 msgid "You can stop it any time"
 msgstr "Mund ta ndaloni në çdo kohë"

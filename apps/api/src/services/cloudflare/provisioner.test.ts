@@ -388,17 +388,30 @@ describe("provisionCloudflare — error taxonomy", () => {
     const { fake, error } = await run()
 
     expect(error).toBeNull()
-    const d1Queries = fake.state.calls.filter(
-      (call) => call.method === "POST" && /\/d1\/database\/[^/]+\/query$/.test(call.url),
-    )
-    /** Create the ledger, read it, then one request per migration — never a separate record. */
-    expect(d1Queries).toHaveLength(3)
+    /** The record never travels alone: every request carrying it also carries its migration. */
+    const records = fake.state.d1Queries.filter((sql) => /INSERT OR IGNORE INTO _migrations/i.test(sql))
+    expect(records).toHaveLength(1)
+    expect(records[0]).toContain("CREATE TABLE IF NOT EXISTS publications")
     expect(fake.state.executedSql).toEqual([
       "CREATE TABLE IF NOT EXISTS publications (token TEXT PRIMARY KEY);",
     ])
     expect(fake.state.migrationRows).toEqual([
       { name: "0001_init.sql", applied_at: NOW.toISOString() },
     ])
+  })
+
+  /** Offline, the token check used to fail first and the author was told permissions were
+   *  missing. */
+  it("says Cloudflare couldn't be reached, not that the token is bad, when offline", async () => {
+    const { error } = await run({ fake: { apiUnreachable: true } })
+    expect(error?.code).toBe("cloudflare_unreachable")
+    expect(error?.message).toMatch(/Couldn't reach Cloudflare/)
+  })
+
+  it("keeps the database a lost create reply made, instead of failing", async () => {
+    const { error, fake } = await run({ fake: { d1CreateLostReplies: 1 } })
+    expect(error).toBeNull()
+    expect(fake.state.databases.filter((entry) => entry.name === CLOUDFLARE_D1_DATABASE_NAME)).toHaveLength(1)
   })
 
   it("reports migration_failed with the offending file name", async () => {

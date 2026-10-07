@@ -66,6 +66,11 @@ export function useShareRunning(label: string): boolean {
   return useSyncExternalStore(subscribeRunning, () => running.has(label))
 }
 
+/** Whether any book is being shared right now, wherever the author is in the app. */
+export function useAnyShareRunning(): boolean {
+  return useSyncExternalStore(subscribeRunning, () => running.size > 0)
+}
+
 /**
  * Follows every share run to its end, wherever the author is, and says how it went when they
  * are not on that book's Sharing page.

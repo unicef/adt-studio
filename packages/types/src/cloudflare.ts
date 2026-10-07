@@ -75,6 +75,8 @@ export const ProvisionErrorCode = z.enum([
   "upload_failed",
   "stale_deployment",
   "partial_provision",
+  /** The network, not Cloudflare: the machine couldn't reach it, or it stopped answering. */
+  "cloudflare_unreachable",
 ])
 export type ProvisionErrorCode = z.infer<typeof ProvisionErrorCode>
 
