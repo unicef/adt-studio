@@ -24,9 +24,12 @@ import {
   ROOM_MAX_AUTHOR_PEERS,
   ROOM_MAX_PEERS_PER_CLIENT,
   ROOM_PEER_HEADER,
+  ROOM_PROTOCOL,
+  ROOM_PROTOCOL_HEADER,
   ROOM_TOKEN_HEADER,
 } from "./room.js"
 import { createBookHostApp } from "./book-host-app.js"
+import { hashAccessCode } from "./identity.js"
 import { throttleSecretFor } from "./access-throttle.js"
 import { publishSnapshot, resetBindings } from "../test/fixtures.js"
 
@@ -839,6 +842,7 @@ describe("when a book's access changes", () => {
     const late = await room.fetch("https://publication-room.invalid/connect", {
       headers: {
         upgrade: "websocket",
+        [ROOM_PROTOCOL_HEADER]: ROOM_PROTOCOL,
         [ROOM_PEER_HEADER]: encodeURIComponent(JSON.stringify(peer)),
         [ROOM_TOKEN_HEADER]: token,
         [ROOM_CLIENT_HEADER]: "ab12",
@@ -853,6 +857,88 @@ describe("when a book's access changes", () => {
     socket.accept()
     open.push(socket)
     expect(await waitFor(() => closedWith, "the late join to be closed")).toBe(4403)
+  })
+
+  /** The sweep a code change sends can be lost. The next comment carries the book's code as it
+   *  is now, and a reader who joined under another one is closed before that comment goes out. */
+  it("closes a reader on the next comment when a new code's sweep never reached the room", async () => {
+    const { token, reader, author, readerClosed } = await readerAndAuthor()
+    await env.DB.prepare("UPDATE publications SET access_code = ? WHERE token = ?")
+      .bind(await hashAccessCode("MOONRISE"), token)
+      .run()
+
+    const ctx = createExecutionContext()
+    const res = await app().request(
+      `${BASE}/p/${token}/comments`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", Authorization: `Bearer ${SECRET}` },
+        body: JSON.stringify({ page_section_id: "pg001_sec001", body: "After the new code" }),
+      },
+      env,
+      ctx,
+    )
+    expect(res.status).toBe(201)
+    await waitOnExecutionContext(ctx)
+
+    await waitFor(() => author.frames.find((frame) => frame.t === "comment-created") ?? null, "the author's frame")
+    expect(await waitFor(readerClosed, "the reader's socket to close")).toBe(4403)
+    expect(reader.frames.some((frame) => frame.t === "comment-created")).toBe(false)
+  })
+
+  it("keeps delivering to a reader whose code still holds", async () => {
+    const { token, reader } = await readerAndAuthor()
+    const ctx = createExecutionContext()
+    const res = await app().request(
+      `${BASE}/p/${token}/comments`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", Authorization: `Bearer ${SECRET}` },
+        body: JSON.stringify({ page_section_id: "pg001_sec001", body: "Same code" }),
+      },
+      env,
+      ctx,
+    )
+    expect(res.status).toBe(201)
+    await waitOnExecutionContext(ctx)
+    await waitFor(() => reader.frames.find((frame) => frame.t === "comment-created") ?? null, "the reader's frame")
+  })
+
+  /** A host deployed before the room protocol could mint author tickets for anyone and answer for
+   *  every book. The room cannot tell its honest joins from those, so it takes none of them. */
+  it("refuses every join from a book host that predates the room protocol", async () => {
+    const token = await publish()
+    const room = env.PUBLICATION_ROOM.get(env.PUBLICATION_ROOM.idFromName(token))
+    const asOldHost = (peer: Record<string, unknown>) =>
+      room.fetch("https://publication-room.invalid/connect", {
+        headers: { upgrade: "websocket", [ROOM_PEER_HEADER]: encodeURIComponent(JSON.stringify(peer)) },
+      })
+    const base = { name: "Visitor", color: "#336699", page_section_id: null, device: "full" }
+
+    expect((await asOldHost({ ...base, id: "reader", is_author: false })).status).toBe(426)
+    expect((await asOldHost({ ...base, id: "author", is_author: true })).status).toBe(426)
+  })
+
+  it("seats nobody in a room that is not their book's", async () => {
+    const token = await publish()
+    const other = await publish()
+    const room = env.PUBLICATION_ROOM.get(env.PUBLICATION_ROOM.idFromName(token))
+    const join = (book: string | null, isAuthor: boolean) =>
+      room.fetch("https://publication-room.invalid/connect", {
+        headers: {
+          upgrade: "websocket",
+          [ROOM_PROTOCOL_HEADER]: ROOM_PROTOCOL,
+          [ROOM_PEER_HEADER]: encodeURIComponent(
+            JSON.stringify({ id: "p", name: "Visitor", color: "#336699", is_author: isAuthor, page_section_id: null, device: "full" }),
+          ),
+          [ROOM_CLIENT_HEADER]: "ab12",
+          ...(book === null ? {} : { [ROOM_TOKEN_HEADER]: book }),
+        },
+      })
+
+    expect((await join(other, true)).status).toBe(400)
+    expect((await join(other, false)).status).toBe(400)
+    expect((await join(null, true)).status).toBe(400)
   })
 
   it("stops a revoked reader's cursor reaching the author, and drops them from the roster", async () => {

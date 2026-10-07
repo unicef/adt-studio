@@ -23,6 +23,8 @@ import {
   ROOM_CODE_HEADER,
   ROOM_EXPIRES_HEADER,
   ROOM_PEER_HEADER,
+  ROOM_PROTOCOL,
+  ROOM_PROTOCOL_HEADER,
   ROOM_TOKEN_HEADER,
 } from "./room.js"
 import { signRoomTicket, verifyRoomTicket } from "./room-ticket.js"
@@ -203,6 +205,7 @@ export function registerRoomRoutes(app: Hono<RoomAppEnv>, deps: RoomRoutesDeps):
     return stub.fetch("https://publication-room.invalid/connect", {
       headers: {
         upgrade: "websocket",
+        [ROOM_PROTOCOL_HEADER]: ROOM_PROTOCOL,
         /** Percent-encoded, because a header value must be ASCII: a reviewer called "João" or
          *  "婷婷" would otherwise be a non-conformant header that workerd tolerates and a
          *  browser's `fetch` rejects outright. Found by the two-browser run, not by a test. */

@@ -1,3 +1,4 @@
+import { env } from "cloudflare:test"
 import { beforeEach, describe, expect, it } from "vitest"
 import {
   attemptGate,
@@ -98,9 +99,16 @@ describe("the per-book limit", () => {
   const gate = (store: ReturnType<typeof createTestStore>, ip: string) =>
     attemptGate({ store, secret: SECRET, ip, token: TOKEN, kind: "access", now: NOW })
 
+  /** Rows a caller's earlier attempts left behind, written in one batch. */
+  async function seed(ip: string, count: number): Promise<void> {
+    const client = await clientHandle(ip, SECRET)
+    const insert = env.DB.prepare("INSERT INTO access_attempts (token, client, kind, at) VALUES (?, ?, 'access', ?)")
+    await env.DB.batch(Array.from({ length: count }, () => insert.bind(TOKEN, client, NOW.toISOString())))
+  }
+
   it("takes no more than the per-caller limit from any one caller", async () => {
     const store = createTestStore()
-    for (let i = 0; i < 200; i += 1) await gate(store, IP)
+    await seed(IP, 200)
 
     expect((await gate(store, IP)).refusedFor).not.toBeNull()
     expect((await gate(store, "198.51.100.9")).refusedFor).toBeNull()
@@ -108,9 +116,7 @@ describe("the per-book limit", () => {
 
   it("still trips once enough separate callers have guessed", async () => {
     const store = createTestStore()
-    for (let caller = 0; caller < 7; caller += 1) {
-      for (let i = 0; i < CLIENT_ATTEMPT_LIMIT; i += 1) await gate(store, `198.51.100.${caller}`)
-    }
+    for (let caller = 0; caller < 7; caller += 1) await seed(`198.51.100.${caller}`, CLIENT_ATTEMPT_LIMIT)
 
     expect((await gate(store, "192.0.2.200")).refusedFor).not.toBeNull()
   })

@@ -79,6 +79,13 @@ export const ROOM_MAX_PEERS_PER_CLIENT = 32
  *  bound of their own: a few Studio windows, not an unbounded number of sockets. */
 export const ROOM_MAX_AUTHOR_PEERS = 8
 
+/** On `/connect`: which room protocol the calling Worker speaks. A book host deployed before
+ *  this one cannot vouch for who it admits — its ticket route was open and it served every book
+ *  in the account — so the room refuses it until the host is updated. Only Worker code can set
+ *  it: the room is reachable through its namespace binding alone. */
+export const ROOM_PROTOCOL_HEADER = "x-adt-room-protocol"
+export const ROOM_PROTOCOL = "2"
+
 const AUTHOR_TAG = "author"
 const READER_TAG = "reader"
 const CLIENT_KEY_PATTERN = /^[0-9a-f]{1,64}$/
@@ -136,10 +143,10 @@ export class PublicationRoom {
    * through the door; the ones whose access ended stay out — so one rule covers revoke, a new
    * code, a changed expiry and delete without the room having to know which it was.
    */
-  private evictReaders(): void {
+  private evictReaders(keep: ReadonlySet<WebSocket> = new Set()): void {
     const closed: WebSocket[] = []
     for (const socket of this.state.getWebSockets()) {
-      if (attachmentOf(socket)?.is_author) continue
+      if (attachmentOf(socket)?.is_author || keep.has(socket)) continue
       try {
         socket.close(CLOSE_ACCESS_CHANGED, "Access to this book changed")
       } catch {
@@ -163,6 +170,20 @@ export class PublicationRoom {
   private async connect(request: Request): Promise<Response> {
     if ((request.headers.get("upgrade") ?? "").toLowerCase() !== "websocket") {
       return json(errorBody("invalid_request", "Expected a WebSocket upgrade"), 400)
+    }
+
+    if (request.headers.get(ROOM_PROTOCOL_HEADER) !== ROOM_PROTOCOL) {
+      return json(
+        errorBody("invalid_request", "This book's site needs an update before its live session can open"),
+        426,
+      )
+    }
+
+    /** Every join names its book, and only that book's room takes it: a host can never seat
+     *  anybody in another book's room, whatever it believes it is serving. */
+    const token = request.headers.get(ROOM_TOKEN_HEADER)
+    if (!token || !this.env.PUBLICATION_ROOM.idFromName(token).equals(this.state.id)) {
+      return json(errorBody("invalid_request", "This join is for another book's room"), 400)
     }
 
     const peer = this.peerFrom(request)
@@ -191,7 +212,10 @@ export class PublicationRoom {
 
     /** Accept first, attach second: `getWebSockets()` has to be able to find this peer's
      *  identity the moment the presence broadcast below runs. */
-    this.state.acceptWebSocket(server, peer.is_author ? [AUTHOR_TAG] : [READER_TAG, clientTag(clientKey)])
+    const tags = peer.is_author
+      ? [AUTHOR_TAG]
+      : [READER_TAG, clientTag(clientKey), await codeTag(request.headers.get(ROOM_CODE_HEADER) ?? "")]
+    this.state.acceptWebSocket(server, tags)
     server.serializeAttachment(peer)
 
     /**
@@ -237,7 +261,12 @@ export class PublicationRoom {
      *  the author's whole-publication panel both care about pages nobody is looking at. */
     /** The author may still write to a revoked or expired book; its readers must not hear it. */
     const readersAllowed = request.headers.get(ROOM_READERS_HEADER) !== "0"
+    /** The book's code as the comment's request saw it. A reader who joined under another one
+     *  is closed before the frame goes out, so a rotation the room never heard about — its
+     *  `/evict` lost — still ends that reader's access at the next comment. */
+    const code = request.headers.get(ROOM_CODE_HEADER)
     if (!readersAllowed) this.evictReaders()
+    else if (code !== null) this.evictReaders(new Set(this.state.getWebSockets(await codeTag(code))))
 
     for (const socket of this.state.getWebSockets()) {
       if (!readersAllowed && !attachmentOf(socket)?.is_author) continue
@@ -372,6 +401,14 @@ export class PublicationRoom {
 
 function clientTag(client: string): string {
   return `client:${client}`
+}
+
+/** The access code a reader joined under, as a short digest: the stored hash is longer than a
+ *  socket tag may be. `""` is a book with no code. */
+async function codeTag(code: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code))
+  const hex = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("")
+  return `code:${hex.slice(0, 32)}`
 }
 
 function attachmentOf(socket: WebSocket): PeerAttachment | null {

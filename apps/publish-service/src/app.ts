@@ -217,7 +217,7 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     if (!publication) {
       return errorResponse(c, "not_found", 404)
     }
-    await evictRoomReaders(c.env, token.data)
+    await evictRoomReaders(c.env, token.data, inBackground(c))
 
     return c.json(await publicationBody(store, publication))
   })
@@ -260,7 +260,7 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
       prefixes.map((prefix) => deleteSnapshotObjects(c.env.SNAPSHOTS, prefix)),
     )
     const publication = await store.deletePublication(token.data)
-    await evictRoomReaders(c.env, token.data)
+    await evictRoomReaders(c.env, token.data, inBackground(c))
 
     return c.json({
       token: token.data,
@@ -305,7 +305,7 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     }
     /** A new code makes every old grant worthless, and a new end date may already be past; the
      *  readers who still qualify reconnect on their own. */
-    await evictRoomReaders(c.env, token.data)
+    await evictRoomReaders(c.env, token.data, inBackground(c))
 
     return c.json(await publicationBody(store, publication))
   })
@@ -366,4 +366,17 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
   })
 
   return app
+}
+
+/** Work that may outlive the response. Outside a request context (the route suites call the app
+ *  directly) the promise is detached with its rejection swallowed. */
+function inBackground(c: Context) {
+  return (work: Promise<unknown>): void => {
+    const settled = work.catch(() => undefined)
+    try {
+      c.executionCtx.waitUntil(settled)
+    } catch {
+      void settled
+    }
+  }
 }
