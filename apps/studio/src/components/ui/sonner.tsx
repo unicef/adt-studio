@@ -7,12 +7,30 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react"
+import { useSyncExternalStore } from "react"
 import { Toaster as Sonner, toast, type ToasterProps } from "sonner"
 
+function subscribeToDocumentTheme(onChange: () => void) {
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
+  return () => observer.disconnect()
+}
+
+/** Follows the painted `dark` class rather than the stored preference, so a screen that forces
+ *  light (the pipeline) keeps light toasts on top of it. */
+function useDocumentTheme(): "light" | "dark" {
+  return useSyncExternalStore(
+    subscribeToDocumentTheme,
+    () => (document.documentElement.classList.contains("dark") ? "dark" : "light"),
+    () => "light",
+  )
+}
+
 const Toaster = ({ ...props }: ToasterProps) => {
+  const theme = useDocumentTheme()
   return (
     <Sonner
-      theme="light"
+      theme={theme}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

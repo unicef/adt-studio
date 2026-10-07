@@ -9,20 +9,23 @@ import { toBookVM } from "../../data"
 import { APP_PATHS } from "../../nav"
 import { useAppBooks } from "../../use-app-books"
 import { useAppShell } from "../../AppShellContext"
+import { usePublicationsByBook } from "@/hooks/use-publications"
+import { withPublication } from "../library/publication-decoration"
 import { TopBar } from "@/components/title-bar/TopBar"
 
 export function HomeScreen() {
   const navigate = useNavigate()
   const { books, locale, isLoading, error } = useAppBooks()
   const { openAdd, requestDelete } = useAppShell()
+  const { byLabel: publications, countsKnown } = usePublicationsByBook()
   const openBook = (label: string) => navigate({ to: "/books/$label/$step", params: { label, step: "book" } })
 
   const [detailLabel, setDetailLabel] = useState<string | null>(null)
 
   const vms = useMemo(() => {
     const sorted = [...books].sort((a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime())
-    return sorted.map((b) => toBookVM(b, locale))
-  }, [books, locale])
+    return sorted.map((b) => withPublication(toBookVM(b, locale), publications, countsKnown))
+  }, [books, locale, publications, countsKnown])
 
   const detail = detailLabel ? vms.find((b) => b.label === detailLabel) ?? null : null
 
@@ -43,6 +46,7 @@ export function HomeScreen() {
             onContinue={openBook}
             onAddBook={openAdd}
             onOpenLibrary={() => navigate({ to: APP_PATHS.library })}
+            onReview={(label) => navigate({ to: "/books/$label/$step", params: { label, step: "storyboard" } })}
           />
         </div>
       ) : (

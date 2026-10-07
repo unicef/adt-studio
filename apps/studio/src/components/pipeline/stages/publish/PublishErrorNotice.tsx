@@ -1,0 +1,162 @@
+import type { ReactNode } from "react"
+import { Trans } from "@lingui/react/macro"
+import { AlertTriangle } from "lucide-react"
+import { PUBLICATION_SNAPSHOT_MAX_BYTES } from "@adt/types"
+import type { PublishFailure } from "@/hooks/use-book-publication"
+import { PublishingSettingsLink } from "./PublishingSettingsLink"
+
+const MAX_MEGABYTES = Math.round(PUBLICATION_SNAPSHOT_MAX_BYTES / (1024 * 1024))
+
+function title(failure: PublishFailure): ReactNode {
+  switch (failure.code) {
+    case "publish_not_connected":
+      return <Trans>Sharing isn't connected yet</Trans>
+    case "published_already":
+      return <Trans>This book already has a live link</Trans>
+    case "not_published":
+      return <Trans>This book isn't shared right now</Trans>
+    case "export_failed":
+      return <Trans>The book couldn't be exported</Trans>
+    case "package_failed":
+      return <Trans>The export couldn't be packed up</Trans>
+    case "upload_failed":
+      return <Trans>Cloudflare wouldn't accept the upload</Trans>
+    case "worker_unreachable":
+      return <Trans>Couldn't reach your sharing service</Trans>
+    case "snapshot_too_large":
+      return <Trans>This book is too big to send in one piece</Trans>
+    case "worker_outdated":
+      return <Trans>Your sharing service needs an update first</Trans>
+    default:
+      return <Trans>Sharing couldn't finish</Trans>
+  }
+}
+
+function body(failure: PublishFailure): ReactNode {
+  switch (failure.code) {
+    case "publish_not_connected":
+      return (
+        <Trans>
+          Sharing needs a Cloudflare account connected first. Set that up once in Settings, then
+          come back here.
+        </Trans>
+      )
+    case "published_already":
+      return (
+        <Trans>
+          This book was already shared — another window may have done it. Use "Update site" to
+          push your latest changes to the link you already have.
+        </Trans>
+      )
+    case "not_published":
+      return (
+        <Trans>
+          The link for this book is gone, so there was nothing to change. Share it again to get a
+          new link.
+        </Trans>
+      )
+    case "export_failed":
+      return (
+        <Trans>
+          Sharing starts by exporting the book, and that step didn't finish. Try a normal export
+          above first — it will show you what's wrong — then share again.
+        </Trans>
+      )
+    case "package_failed":
+      return (
+        <Trans>
+          The book exported fine but couldn't be bundled into one file to send. Trying again usually
+          works. If it keeps failing, check that this computer has free disk space.
+        </Trans>
+      )
+    case "upload_failed":
+      /** Says "try again" rather than "check Settings". The overwhelming case here is a 5xx from
+       *  Cloudflare — temporary by definition, and nothing to do with the service being out of
+       *  date, which is what the old copy sent people to look at. The Studio has already retried
+       *  before this notice appears, so it is honest to say the attempts happened. */
+      return (
+        <Trans>
+          Cloudflare didn't accept the upload, after a few tries. This is usually temporary —
+          waiting a moment and sharing again normally works. Nothing was shared, and your book
+          is untouched.
+        </Trans>
+      )
+    case "worker_unreachable":
+      /** No claim about *why* any more. This used to offer "services that haven't been used in a
+       *  while can take a moment to wake up", which is not how Workers behave and sent the author
+       *  looking in the wrong place; the detail line below now carries the actual reason the
+       *  connection failed, so the copy only has to say what is and is not true of their book. */
+      return (
+        <Trans>
+          The Studio couldn't reach the sharing service in your Cloudflare account, so nothing
+          was sent. Your link and everything on it are untouched. It already tried a few times —
+          check this computer's connection and try again.
+        </Trans>
+      )
+    case "snapshot_too_large":
+      return (
+        <Trans>
+          The whole book is sent as a single file, and Cloudflare accepts at most {MAX_MEGABYTES} MB
+          at a time. This book's export is bigger than that. Sharing it will need fewer or
+          smaller videos, audio files or images — the sign-language videos are usually the heaviest
+          part.
+        </Trans>
+      )
+    case "worker_outdated":
+      /** The one failure the author can cure in two clicks, so it says exactly which two. */
+      return (
+        <Trans>
+          This Studio shares books with a newer reader than the sharing service in your Cloudflare
+          account supports. Nothing was shared. Install the update in Settings, then share again —
+          your existing links keep working meanwhile.
+        </Trans>
+      )
+    default:
+      return (
+        <Trans>
+          Sharing stopped before it finished, and nothing was shared. Trying again is safe.
+        </Trans>
+      )
+  }
+}
+
+function action(failure: PublishFailure): ReactNode {
+  if (failure.code === "worker_outdated") {
+    return (
+      <PublishingSettingsLink variant="outline" size="sm" className="self-start">
+        <Trans>Install the update</Trans>
+      </PublishingSettingsLink>
+    )
+  }
+  if (failure.code === "publish_not_connected" || failure.code === "upload_failed") {
+    return (
+      <PublishingSettingsLink variant="outline" size="sm" className="self-start">
+        <Trans>Open sharing settings</Trans>
+      </PublishingSettingsLink>
+    )
+  }
+  return null
+}
+
+interface PublishErrorNoticeProps {
+  failure: PublishFailure
+  children?: ReactNode
+}
+
+export function PublishErrorNotice({ failure, children }: PublishErrorNoticeProps) {
+  return (
+    <div
+      data-testid={`publish-error-${failure.code}`}
+      className="flex flex-col gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200"
+    >
+      <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <AlertTriangle className="size-4 shrink-0 text-destructive" aria-hidden="true" />
+        {title(failure)}
+      </span>
+      <p className="text-sm leading-6 text-muted-foreground">{body(failure)}</p>
+      {failure.detail && <p className="text-xs leading-5 text-muted-foreground">{failure.detail}</p>}
+      {action(failure)}
+      {children}
+    </div>
+  )
+}

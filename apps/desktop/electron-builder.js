@@ -13,6 +13,8 @@ const extraResources = [
   },
   { from: "../api/dist-electron/mupdf-wasm.wasm", to: "./api/mupdf-wasm.wasm" },
   { from: "../api/dist-electron/index_bg.wasm", to: "./api/index_bg.wasm" },
+  { from: "../../apps/publish-service/dist", to: "apps/publish-service/dist" },
+  { from: "../../apps/publish-service/migrations", to: "apps/publish-service/migrations" },
   {
     from: "../../prompts",
     to: "prompts",

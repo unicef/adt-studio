@@ -12,7 +12,7 @@
     "typecheck": "tsc --build",
     "lint": "pnpm --filter @adt/studio lint",
     "clean": "tsc --build --clean",
-    "build": "pnpm tsc --build && pnpm --filter @adt/runtime build",
+    "build": "pnpm tsc --build && pnpm --filter @adt/runtime build && pnpm --filter @adt/publish-service build:artifact",
     "dev": "node scripts/dev.mjs",
     "dev:api": "pnpm --filter @adt/api dev",
     "dev:studio": "pnpm --filter @adt/studio dev",
@@ -38,7 +38,8 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
-      "electron"
+      "electron",
+      "workerd"
     ],
     "overrides": {
       "form-data": "^4.0.6",

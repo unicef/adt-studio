@@ -1,0 +1,207 @@
+/* Keyframes for the export step's candidate animations.
+ *
+ * One file per step so parallel work on different steps cannot collide, and so a rejected step's
+ * motion can be deleted in one move. Imported from globals.css.
+ *
+ * Animations here are referenced with Tailwind arbitrary values —
+ * `[animation:name_4.4s_cubic-bezier(...)_infinite]` — rather than `--animate-*` theme tokens,
+ * because the theme block is a single shared surface and this is explicitly throwaway work.
+ *
+ * IMPORTANT: globals.css kills all animation under `prefers-reduced-motion` for
+ * `[data-publish-run]` with `!important`. Nothing here can rely on `fill-mode` to hold a
+ * final frame — author the resting state as base CSS and make keyframes depart from it.
+ */
+
+/* ---------------------------------------------------------------------------------------------
+ * Shared conventions for everything below
+ *
+ * Four easing curves for the whole step, kept as a set even though only one candidate survived:
+ * the family is what the sibling steps were matched against, and a lone animation that quietly
+ * re-picks its own curves is how four steps end up looking like four different products.
+ *   anticipation / breath  cubic-bezier(.4, 0, .6, 1)     symmetric, zero velocity at both ends
+ *   mechanical travel      cubic-bezier(.45, 0, .25, 1)   long tail, deliberately not ease-in-out
+ *   arrival / settle       cubic-bezier(.22, 1, .36, 1)   fast start, hard decelerate
+ *   fall from apex         cubic-bezier(.55, 0, .85, .35) accelerating
+ *
+ * The fourth exists because a ballistic apex built from two symmetric curves has zero vertical
+ * velocity on both sides of the top, which reads as the card hanging in the air.
+ *
+ * Every keyframe set ends where it begins in *both* position and velocity. Where a value has to
+ * jump (a sheet returning to the start of its arc) the jump is placed inside a window where the
+ * element's composited opacity is 0, and is authored as two keyframes 0.01% apart rather than
+ * relying on the wrap.
+ * ------------------------------------------------------------------------------------------- */
+
+/* ============================================================================================
+ * A — Sheet Feed
+ * ==========================================================================================*/
+
+/* Horizontal travel, rotation and scale, split away from the vertical arc onto its own element.
+ *
+ * The split is the point: the spec asks for one mechanical curve across the whole 1200ms traverse
+ * *and* an apex at the halfway mark. Both on one element means a mid-travel keyframe, which chops
+ * the single ease into two and puts a velocity dip in the middle of the traverse. Two nested
+ * elements give a genuine ballistic arc — constant-feel horizontal drive, independent vertical
+ * throw — for the price of one extra div. */
+@keyframes pe-a-sheet-x {
+  0% {
+    transform: translateX(0) rotate(0deg) scale(1);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
+  4.55% {
+    transform: translateX(0) rotate(-1.5deg) scale(1);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.25, 1);
+  }
+  31.82% {
+    transform: translateX(229.4px) rotate(0.5deg) scale(1.04);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  37.5%,
+  45.45% {
+    transform: translateX(229.4px) rotate(0deg) scale(1);
+  }
+  45.46%,
+  100% {
+    transform: translateX(0) rotate(0deg) scale(1);
+  }
+}
+
+/* The apex rides on `--pe-a-lift`, which the component sets from the book's own trim size.
+ *
+ * The arc is authored in design pixels against a 112-unit card, and 18px of throw over the 42-unit
+ * card a landscape picture book produces is not the same gesture — it is a sheet being lobbed. The
+ * multiplier keeps the *gesture* constant where a raw pixel value would keep only the number. It is
+ * a static custom property read inside a `calc`, not an animated one: each keyframe resolves to a
+ * plain length, so this composites exactly as it did before.
+ *
+ * The fallback of 1 is the 3:4 case, so a stylesheet read on its own still describes what ships. */
+@keyframes pe-a-sheet-y {
+  0% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
+  4.55% {
+    transform: translateY(calc(-4px * var(--pe-a-lift, 1)));
+    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
+  20.45% {
+    transform: translateY(calc(-18px * var(--pe-a-lift, 1)));
+    animation-timing-function: cubic-bezier(0.55, 0, 0.85, 0.35);
+  }
+  31.82% {
+    transform: translateY(calc(-14px * var(--pe-a-lift, 1)));
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  35.23% {
+    transform: translateY(calc(-10px * var(--pe-a-lift, 1)));
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  37.5%,
+  45.45% {
+    transform: translateY(calc(-12px * var(--pe-a-lift, 1)));
+  }
+  45.46%,
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* The sheet is opaque for its whole arc, gone for the 350ms after the merge, and fades back in over
+ * the top of the source pile during the hold — which is also how it gets back to the left without
+ * anything visibly travelling backwards. */
+@keyframes pe-a-sheet-fade {
+  0%,
+  34.32% {
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
+  37.5%,
+  47% {
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
+  68%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* A moving card with a constant shadow looks pasted onto the scene. The shadow spreads and thins
+ * as the sheet climbs and tightens again as it lands; that is the only cue for how high it is. */
+@keyframes pe-a-shadow {
+  0% {
+    opacity: 0.18;
+    transform: scale(1);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
+  4.55% {
+    opacity: 0.1;
+    transform: scale(1.06);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
+  20.45% {
+    opacity: 0.05;
+    transform: scale(1.16);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.85, 0.35);
+  }
+  31.82% {
+    opacity: 0.11;
+    transform: scale(1.06);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  37.5%,
+  100% {
+    opacity: 0.18;
+    transform: scale(1);
+  }
+}
+
+/* Follow-through nobody notices and everybody feels: the pile relaxes upward once the transfer is
+ * done, then compresses again as the next sheet settles onto it. The resting state — relaxed, 0 —
+ * is base CSS, so the reduced-motion frame shows a pile with its top sheet genuinely away. */
+@keyframes pe-a-relax {
+  0%,
+  37.5% {
+    transform: translateY(1.5px);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  45.45%,
+  68% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
+  80%,
+  100% {
+    transform: translateY(1.5px);
+  }
+}
+
+/* 2.4s against a 4.4s loop, and the two piles 800ms out of phase, so nothing on screen ever
+ * pulses in unison and the composite period is 26.4s rather than 4.4s. */
+@keyframes pe-a-breath {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+/* Which of the three pages rides on the sheet, on a 13.2s cycle — three loops long, so the piece
+ * never repeats identically on consecutive passes. The switch is a hard cut placed at 2000ms into
+ * the cycle, which is inside the window where the sheet's own opacity is 0. */
+@keyframes pe-a-page {
+  0%,
+  15.14% {
+    opacity: 0;
+  }
+  15.15%,
+  48.48% {
+    opacity: 1;
+  }
+  48.49%,
+  100% {
+    opacity: 0;
+  }
+}
