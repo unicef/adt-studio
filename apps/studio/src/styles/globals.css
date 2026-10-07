@@ -774,6 +774,39 @@
   -webkit-app-region: no-drag;
 }
 
+/* Soft top edge for scroll areas that sit directly under the title-bar drag
+ * strip: content fades out as it scrolls up instead of being cut by a hard
+ * line. Pair with top padding of at least --topbar-fade-height so nothing is
+ * faded at rest. The right-hand lane stays unmasked so the scrollbar never
+ * fades. */
+@utility topbar-scroll-fade {
+  --topbar-fade-height: 1rem;
+  --topbar-fade-mask: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgb(0 0 0 / 10%) 10%,
+    rgb(0 0 0 / 30%) 24%,
+    rgb(0 0 0 / 58%) 42%,
+    rgb(0 0 0 / 82%) 62%,
+    rgb(0 0 0 / 96%) 82%,
+    black 100%
+  );
+  -webkit-mask-image: var(--topbar-fade-mask), linear-gradient(black, black), linear-gradient(black, black);
+  mask-image: var(--topbar-fade-mask), linear-gradient(black, black), linear-gradient(black, black);
+  -webkit-mask-position: top, bottom, right;
+  mask-position: top, bottom, right;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size:
+    100% calc(var(--topbar-fade-height) + 1px),
+    100% calc(100% - var(--topbar-fade-height)),
+    12px 100%;
+  mask-size:
+    100% calc(var(--topbar-fade-height) + 1px),
+    100% calc(100% - var(--topbar-fade-height)),
+    12px 100%;
+}
+
 /* Update card (UpdateToast) ambient effects. Reduced-motion is handled per
  * element via Tailwind's `motion-reduce:` variants at the call site. */
 @keyframes update-card-shine {

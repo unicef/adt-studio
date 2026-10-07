@@ -11,7 +11,8 @@ export function TopBar(props: TopBarProps) {
   return (
     <div
       className={cn(
-        "w-full flex items-center h-12 text-foreground",
+        "w-full flex items-center text-foreground",
+        platform === "macos" ? "h-8" : "h-12",
         platform === "windows" && "justify-end",
         props.className,
       )}

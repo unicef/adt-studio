@@ -23,10 +23,10 @@ export function HandoffsScreen() {
   const firstRun = splitBooks.length === 0 && parts.length === 0
 
   return (
-    <div className="relative flex h-full flex-col bg-background pt-8">
-      <TopBar className="absolute top-0 drag-region" />
+    <div className="relative flex h-full flex-col bg-background">
+      <TopBar className="shrink-0 drag-region" />
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-auto px-8 pb-10">
+      <div className="topbar-scroll-fade flex min-h-0 flex-1 flex-col overflow-auto px-8 pb-10 pt-4">
         <div className="mb-5 flex items-end gap-3.5">
           <div>
             <div className="mb-1.5 text-2xl font-bold leading-none tracking-[-0.02em]">
