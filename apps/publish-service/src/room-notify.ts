@@ -1,8 +1,7 @@
 import type { Context } from "hono"
-import { publicationStateAt, type Publication, type PublishComment, type RoomCommentEvent, type RoomCommentFrame } from "@adt/types"
+import type { Publication, PublishComment, RoomCommentEvent, RoomCommentFrame } from "@adt/types"
 import type { Env } from "./env.js"
 import type { PublicationVariables } from "./middleware/publication-lookup.js"
-import { ROOM_CODE_HEADER, ROOM_READERS_HEADER } from "./room.js"
 
 /**
  * Comment writes tell the room after D1 has committed.
@@ -25,10 +24,9 @@ export function notifyRoom(
   const namespace = (c.env as Env | undefined)?.PUBLICATION_ROOM
   if (!namespace) return
 
+  /** Who may hear it is the room's to decide, from the book as it is when the frame arrives. */
   const frame: RoomCommentFrame = { t: event, comment }
-  /** The author can still write to a revoked or expired book; only the author hears it. */
-  const readersAllowed = publicationStateAt(publication) === "active"
-  const delivery = deliver(namespace, publication.token, frame, readersAllowed, c.get("accessCodeHash") ?? "")
+  const delivery = deliver(namespace, publication.token, frame)
 
   try {
     c.executionCtx.waitUntil(delivery)
@@ -41,18 +39,12 @@ async function deliver(
   namespace: DurableObjectNamespace,
   token: string,
   frame: RoomCommentFrame,
-  readersAllowed: boolean,
-  accessCode: string,
 ): Promise<void> {
   try {
     const stub = namespace.get(namespace.idFromName(token))
     await stub.fetch("https://publication-room.invalid/notify", {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        [ROOM_READERS_HEADER]: readersAllowed ? "1" : "0",
-        [ROOM_CODE_HEADER]: accessCode,
-      },
+      headers: { "content-type": "application/json" },
       body: JSON.stringify(frame),
     })
   } catch {

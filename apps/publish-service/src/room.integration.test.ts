@@ -886,6 +886,74 @@ describe("when a book's access changes", () => {
     expect(reader.frames.some((frame) => frame.t === "comment-created")).toBe(false)
   })
 
+  /** The room decides who hears a comment from the book as it is when the frame arrives. A
+   *  sender may predate a revoke or a new code, or be a host too old to say anything at all. */
+  describe("whoever sends the comment", () => {
+    async function postedComment(token: string) {
+      const res = await app().request(
+        `${BASE}/p/${token}/comments`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json", Authorization: `Bearer ${SECRET}` },
+          body: JSON.stringify({ page_section_id: "pg001_sec001", body: "Before the change" }),
+        },
+        env,
+      )
+      expect(res.status).toBe(201)
+      return ((await res.json()) as { comment: unknown }).comment
+    }
+
+    function notifyAsOldHost(token: string, comment: unknown, staleHeaders: Record<string, string> = {}) {
+      const room = env.PUBLICATION_ROOM.get(env.PUBLICATION_ROOM.idFromName(token))
+      return room.fetch("https://publication-room.invalid/notify", {
+        method: "POST",
+        headers: { "content-type": "application/json", ...staleHeaders },
+        body: JSON.stringify({ t: "comment-updated", comment }),
+      })
+    }
+
+    const changes: Array<[string, (token: string) => Promise<unknown>]> = [
+      ["revoked", (token) => env.DB.prepare("UPDATE publications SET revoked_at = ? WHERE token = ?").bind(new Date().toISOString(), token).run()],
+      ["expired", (token) => env.DB.prepare("UPDATE publications SET expires_at = ? WHERE token = ?").bind(new Date(Date.now() - 60_000).toISOString(), token).run()],
+      ["given a new code", async (token) => env.DB.prepare("UPDATE publications SET access_code = ? WHERE token = ?").bind(await hashAccessCode("MOONRISE"), token).run()],
+    ]
+
+    it.each(changes)("tells only the author when the book was %s and the sender didn't say", async (_change, apply) => {
+      const { token, reader, author, readerClosed } = await readerAndAuthor()
+      const comment = await postedComment(token)
+      await waitFor(() => reader.frames.find((frame) => frame.t === "comment-created") ?? null, "the reader's first frame")
+      await apply(token)
+
+      expect((await notifyAsOldHost(token, comment)).status).toBe(204)
+
+      await waitFor(() => author.frames.find((frame) => frame.t === "comment-updated") ?? null, "the author's frame")
+      expect(await waitFor(readerClosed, "the reader's socket to close")).toBe(4403)
+      expect(reader.frames.some((frame) => frame.t === "comment-updated")).toBe(false)
+    })
+
+    it("ignores a sender that still believes the book admits its readers", async () => {
+      const { token, reader, author, readerClosed } = await readerAndAuthor()
+      const comment = await postedComment(token)
+      const before = await env.DB.prepare("SELECT access_code FROM publications WHERE token = ?").bind(token).first<{ access_code: string }>()
+      await env.DB.prepare("UPDATE publications SET revoked_at = ? WHERE token = ?").bind(new Date().toISOString(), token).run()
+
+      await notifyAsOldHost(token, comment, { "x-adt-room-readers": "1", [ROOM_CODE_HEADER]: before?.access_code ?? "" })
+
+      await waitFor(() => author.frames.find((frame) => frame.t === "comment-updated") ?? null, "the author's frame")
+      expect(await waitFor(readerClosed, "the reader's socket to close")).toBe(4403)
+      expect(reader.frames.some((frame) => frame.t === "comment-updated")).toBe(false)
+    })
+
+    it("still reaches readers of a book with no code", async () => {
+      const token = await publish()
+      const reader = await join(token, { section: "pg001_sec001" })
+      const comment = await postedComment(token)
+      await waitFor(() => reader.frames.find((frame) => frame.t === "comment-created") ?? null, "the reader's frame")
+      await notifyAsOldHost(token, comment)
+      await waitFor(() => reader.frames.find((frame) => frame.t === "comment-updated") ?? null, "the reader's later frame")
+    })
+  })
+
   it("keeps delivering to a reader whose code still holds", async () => {
     const { token, reader } = await readerAndAuthor()
     const ctx = createExecutionContext()

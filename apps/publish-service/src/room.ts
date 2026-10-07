@@ -25,8 +25,10 @@ import type { Env } from "./env.js"
  * there is no `Map` to rebuild, no timer to re-arm, no `blockConcurrencyWhile` to wait on. An
  * idle room with fifty readers holding sockets open costs nothing until somebody moves.
  *
- * There is no storage write and no alarm anywhere in this class. Cursors in particular are
- * relayed and forgotten: they are never attached, never stored, and never reach D1.
+ * The only storage is the alarm that closes readers when the book's end date arrives. Cursors
+ * in particular are relayed and forgotten: they are never attached, never stored, and never
+ * reach D1. The room reads D1 for one thing: whether the book still admits its readers, as a
+ * reader joins and before a comment reaches them.
  *
  * ## Reachability
  *
@@ -46,10 +48,6 @@ export const ROOM_PEER_HEADER = "x-adt-room-peer"
 /** Internal: closes every reader's socket. Reachable only through the namespace stub, like
  *  `/notify`, so only the worker's own routes can call it. */
 const EVICT_PATH = "/evict"
-
-/** On `/notify`: "0" when the publication no longer admits readers, so the frame goes to the
- *  author alone and any reader still connected is closed first. */
-export const ROOM_READERS_HEADER = "x-adt-room-readers"
 
 /** On `/connect`: when the publication stops admitting readers, so the room can close them then
  *  without a request to prompt it. */
@@ -87,6 +85,8 @@ export const ROOM_PROTOCOL_HEADER = "x-adt-room-protocol"
 export const ROOM_PROTOCOL = "2"
 
 const AUTHOR_TAG = "author"
+/** Which book a reader joined; every reader in a room carries the same one. */
+const BOOK_TAG_PREFIX = "book:"
 const READER_TAG = "reader"
 const CLIENT_KEY_PATTERN = /^[0-9a-f]{1,64}$/
 
@@ -131,6 +131,28 @@ export class PublicationRoom {
     const record = await createD1PublicationStore(this.env.DB).findRecord(token)
     if (!record || publicationStateAt(record.publication) !== "active") return false
     return (record.accessCode ?? "") === (request.headers.get(ROOM_CODE_HEADER) ?? "")
+  }
+
+  /**
+   * The reader sockets the book admits right now: still live, joined under its current code.
+   * `null` when the book can't be read: nobody is evicted on a database hiccup, but nobody but
+   * the author is sent anything either, and readers recover by re-listing.
+   */
+  private async admittedReaders(): Promise<ReadonlySet<WebSocket> | null> {
+    const readers = this.state.getWebSockets(READER_TAG)
+    if (readers.length === 0) return new Set()
+    const token = this.state
+      .getTags(readers[0]!)
+      .find((tag) => tag.startsWith(BOOK_TAG_PREFIX))
+      ?.slice(BOOK_TAG_PREFIX.length)
+    if (!token || !this.env.DB) return null
+    try {
+      const record = await createD1PublicationStore(this.env.DB).findRecord(token)
+      if (!record || publicationStateAt(record.publication) !== "active") return new Set()
+      return new Set(this.state.getWebSockets(await codeTag(record.accessCode ?? "")))
+    } catch {
+      return null
+    }
   }
 
   /** The publication's expiry, set when a reader joined: readers go when it does. */
@@ -214,7 +236,7 @@ export class PublicationRoom {
      *  identity the moment the presence broadcast below runs. */
     const tags = peer.is_author
       ? [AUTHOR_TAG]
-      : [READER_TAG, clientTag(clientKey), await codeTag(request.headers.get(ROOM_CODE_HEADER) ?? "")]
+      : [READER_TAG, clientTag(clientKey), await codeTag(request.headers.get(ROOM_CODE_HEADER) ?? ""), `${BOOK_TAG_PREFIX}${token}`]
     this.state.acceptWebSocket(server, tags)
     server.serializeAttachment(peer)
 
@@ -257,19 +279,18 @@ export class PublicationRoom {
       return json(errorBody("invalid_request", frame.error.message), 400)
     }
 
-    /** Comment events reach every peer, whatever page they are on: a reader's dock badge and
-     *  the author's whole-publication panel both care about pages nobody is looking at. */
-    /** The author may still write to a revoked or expired book; its readers must not hear it. */
-    const readersAllowed = request.headers.get(ROOM_READERS_HEADER) !== "0"
-    /** The book's code as the comment's request saw it. A reader who joined under another one
-     *  is closed before the frame goes out, so a rotation the room never heard about — its
-     *  `/evict` lost — still ends that reader's access at the next comment. */
-    const code = request.headers.get(ROOM_CODE_HEADER)
-    if (!readersAllowed) this.evictReaders()
-    else if (code !== null) this.evictReaders(new Set(this.state.getWebSockets(await codeTag(code))))
+    /**
+     * Comment events reach every peer, whatever page they are on: a reader's dock badge and the
+     * author's whole-publication panel both care about pages nobody is looking at. But only
+     * readers the book admits *now*: the room reads that itself rather than trusting the sender,
+     * whose view of the book may predate a revoke or a new code, and which may be a host too old
+     * to say. The author may still write to a revoked or expired book; only the author hears it.
+     */
+    const admitted = await this.admittedReaders()
+    if (admitted !== null) this.evictReaders(admitted)
 
     for (const socket of this.state.getWebSockets()) {
-      if (!readersAllowed && !attachmentOf(socket)?.is_author) continue
+      if (!attachmentOf(socket)?.is_author && !admitted?.has(socket)) continue
       send(socket, frame.data)
     }
 
