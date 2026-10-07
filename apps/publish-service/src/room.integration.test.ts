@@ -1,4 +1,4 @@
-import { createExecutionContext, env, runDurableObjectAlarm, waitOnExecutionContext } from "cloudflare:test"
+import { createExecutionContext, env, runDurableObjectAlarm, runInDurableObject, waitOnExecutionContext } from "cloudflare:test"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import {
   COMMENTER_SESSION_COOKIE,
@@ -1007,6 +1007,126 @@ describe("when a book's access changes", () => {
     expect((await join(other, true)).status).toBe(400)
     expect((await join(other, false)).status).toBe(400)
     expect((await join(null, true)).status).toBe(400)
+  })
+
+  /** A lost `/evict` used to leave a reader whose access ended trading cursors and the roster for
+   *  as long as their socket lived. */
+  describe("live traffic after a lost eviction", () => {
+    const cursorOn = (section: string) => ({ t: "cursor" as const, section_id: section, selector: "#content", xOffsetPct: 10, yOffsetPct: 10 })
+
+    async function forgetLastCheck(token: string): Promise<void> {
+      const room = env.PUBLICATION_ROOM.get(env.PUBLICATION_ROOM.idFromName(token))
+      await runInDurableObject(room, (instance) => {
+        ;(instance as unknown as { accessCheckedAt: number }).accessCheckedAt = 0
+      })
+    }
+
+    it("closes an old-code reader the moment a reader joins under the new code", async () => {
+      const { token, reader, readerClosed } = await readerAndAuthor()
+      await env.DB.prepare("UPDATE publications SET access_code = ? WHERE token = ?").bind(await hashAccessCode("MOONRISE"), token).run()
+
+      const fresh = await join(token, { cookies: [`${PUBLICATION_ACCESS_COOKIE}=${await accessCookie(token, "moonrise")}`], section: "pg001_sec001" })
+      expect(await waitFor(readerClosed, "the old-code reader to close")).toBe(4403)
+
+      fresh.send(cursorOn("pg001_sec001"))
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      expect(reader.frames.some((frame) => frame.t === "cursor")).toBe(false)
+    })
+
+    it("closes a reader whose book was revoked on the next live frame past the window", async () => {
+      const { token, reader, author, readerClosed } = await readerAndAuthor()
+      await env.DB.prepare("UPDATE publications SET revoked_at = ? WHERE token = ?").bind(new Date().toISOString(), token).run()
+      await forgetLastCheck(token)
+
+      author.send(cursorOn("pg001_sec001"))
+      expect(await waitFor(readerClosed, "the revoked reader to close")).toBe(4403)
+      expect(reader.frames.some((frame) => frame.t === "cursor")).toBe(false)
+    })
+
+    it("drops a cursor sent by a reader whose access ended", async () => {
+      const { token, reader, author, readerClosed } = await readerAndAuthor()
+      await env.DB.prepare("UPDATE publications SET revoked_at = ? WHERE token = ?").bind(new Date().toISOString(), token).run()
+      await forgetLastCheck(token)
+
+      reader.send(cursorOn("pg001_sec001"))
+      expect(await waitFor(readerClosed, "the revoked reader to close")).toBe(4403)
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      expect(author.frames.some((frame) => frame.t === "cursor")).toBe(false)
+    })
+
+    it("sends no roster to a reader whose access ended when someone else leaves", async () => {
+      const { token, reader, author, readerClosed } = await readerAndAuthor()
+      const other = await join(token, { cookies: [`${PUBLICATION_ACCESS_COOKIE}=${await accessCookie(token, "sunset")}`], section: "pg001_sec001" })
+      await presenceWith(author, 3)
+      await env.DB.prepare("UPDATE publications SET revoked_at = ? WHERE token = ?").bind(new Date().toISOString(), token).run()
+      await forgetLastCheck(token)
+      const rostersBefore = reader.presence().length
+
+      other.ws.close()
+      expect(await waitFor(readerClosed, "the revoked reader to close")).toBe(4403)
+      expect(reader.presence()).toHaveLength(rostersBefore)
+    })
+
+    /** A check that read the book before a new code must not close a reader who joined under
+     *  that code while the read was in flight: their own join already judged them. */
+    it("leaves alone a reader who joined while an older check was reading the book", async () => {
+      const { token, reader, author, readerClosed } = await readerAndAuthor()
+      const room = env.PUBLICATION_ROOM.get(env.PUBLICATION_ROOM.idFromName(token))
+      let release = () => {}
+      const held = new Promise<void>((resolve) => (release = resolve))
+      await runInDurableObject(room, (instance) => {
+        const target = instance as unknown as { env: { DB: D1Database }; accessCheckedAt: number }
+        const real = target.env.DB
+        let first = true
+        const slow = {
+          prepare: (sql: string) => {
+            const statement = real.prepare(sql)
+            return {
+              bind: (...values: unknown[]) => {
+                const bound = statement.bind(...values)
+                return {
+                  first: async () => {
+                    const row = await bound.first()
+                    if (first) {
+                      first = false
+                      await held
+                    }
+                    return row
+                  },
+                }
+              },
+            }
+          },
+        }
+        target.env = { ...target.env, DB: slow as unknown as D1Database }
+        target.accessCheckedAt = 0
+      })
+
+      author.send(cursorOn("pg001_sec001"))
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      await env.DB.prepare("UPDATE publications SET access_code = ? WHERE token = ?").bind(await hashAccessCode("MOONRISE"), token).run()
+      const fresh = await join(token, { cookies: [`${PUBLICATION_ACCESS_COOKIE}=${await accessCookie(token, "moonrise")}`], section: "pg001_sec001" })
+      expect(await waitFor(readerClosed, "the old-code reader to close")).toBe(4403)
+
+      release()
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      let freshClosed: number | null = null
+      fresh.ws.addEventListener("close", (event) => (freshClosed = (event as CloseEvent).code))
+      author.send(cursorOn("pg001_sec001"))
+      await waitFor(() => fresh.frames.find((frame) => frame.t === "cursor") ?? null, "the new reader to see the author's cursor")
+      expect(freshClosed).toBeNull()
+      expect(reader.frames.some((frame) => frame.t === "cursor")).toBe(false)
+    })
+
+    it("keeps current readers and the author trading cursors", async () => {
+      const { token, reader, author } = await readerAndAuthor()
+      await forgetLastCheck(token)
+
+      reader.send(cursorOn("pg001_sec001"))
+      await waitFor(() => author.frames.find((frame) => frame.t === "cursor") ?? null, "the author to see the reader's cursor")
+      author.send(cursorOn("pg001_sec001"))
+      await waitFor(() => reader.frames.find((frame) => frame.t === "cursor") ?? null, "the reader to see the author's cursor")
+    })
   })
 
   it("stops a revoked reader's cursor reaching the author, and drops them from the roster", async () => {

@@ -84,6 +84,9 @@ export const ROOM_MAX_AUTHOR_PEERS = 8
 export const ROOM_PROTOCOL_HEADER = "x-adt-room-protocol"
 export const ROOM_PROTOCOL = "2"
 
+/** How stale a reader whose `/evict` was lost can be, at most, while the room has traffic. */
+export const ROOM_ACCESS_RECHECK_MS = 10_000
+
 const AUTHOR_TAG = "author"
 /** Which book a reader joined; every reader in a room carries the same one. */
 const BOOK_TAG_PREFIX = "book:"
@@ -108,6 +111,16 @@ export class PublicationRoom {
 
   private readonly env: Env
 
+  /** Sockets this instance has closed; workerd may still list them until the close completes. */
+  private readonly closing = new WeakSet<WebSocket>()
+
+  /** When the book was last read for live traffic. In memory only: a room that hibernated
+   *  starts at zero and checks on its first frame. */
+  private accessCheckedAt = 0
+
+  /** The check in flight, shared by every frame that arrives while it runs. */
+  private accessCheck: Promise<void> | null = null
+
   constructor(state: DurableObjectState, env: Env) {
     this.state = state
     this.env = env
@@ -124,23 +137,47 @@ export class PublicationRoom {
     return json(errorBody("not_found", "Unknown room endpoint"), 404)
   }
 
-  /** The book as it is now, against what the reader's door saw: still live, same code. */
-  private async readerStillAdmitted(request: Request): Promise<boolean> {
-    const token = request.headers.get(ROOM_TOKEN_HEADER)
-    if (!token || !this.env.DB) return false
-    const record = await createD1PublicationStore(this.env.DB).findRecord(token)
-    if (!record || publicationStateAt(record.publication) !== "active") return false
-    return (record.accessCode ?? "") === (request.headers.get(ROOM_CODE_HEADER) ?? "")
+  /**
+   * Closes readers whose access has ended, from the book as it is now. A lost `/evict` would
+   * otherwise leave such a reader exchanging cursors and the roster for as long as the socket
+   * lives. Live traffic checks at most once per `ROOM_ACCESS_RECHECK_MS`, so a busy room costs one
+   * D1 read per window and an idle one costs nothing.
+   */
+  private async sweepStaleReaders(): Promise<void> {
+    if (Date.now() - this.accessCheckedAt < ROOM_ACCESS_RECHECK_MS) return
+    /** One read per window even when the book can't be read: an outage waits for the next
+     *  window rather than costing a read per frame. */
+    this.accessCheck ??= (async () => {
+      try {
+        const check = await this.admittedReaders()
+        if (check !== null) this.evictReaders(check.admitted, check.readers)
+      } finally {
+        this.accessCheckedAt = Date.now()
+        this.accessCheck = null
+      }
+    })()
+    await this.accessCheck
+  }
+
+  private live(exclude?: WebSocket): WebSocket[] {
+    return this.state.getWebSockets().filter((socket) => socket !== exclude && !this.closing.has(socket))
   }
 
   /**
    * The reader sockets the book admits right now: still live, joined under its current code.
-   * `null` when the book can't be read: nobody is evicted on a database hiccup, but nobody but
-   * the author is sent anything either, and readers recover by re-listing.
+   * `readers` is who was in the room when the book was read, and the verdict covers only them:
+   * a reader who joined while the read was in flight was judged by their own join, against a
+   * book this read may predate. `null` when the book can't be read: nobody is evicted on a
+   * database hiccup, but nobody but the author is sent anything either, and readers recover by
+   * re-listing.
    */
-  private async admittedReaders(): Promise<ReadonlySet<WebSocket> | null> {
+  private async admittedReaders(): Promise<{
+    readers: ReadonlySet<WebSocket>
+    admitted: ReadonlySet<WebSocket>
+  } | null> {
     const readers = this.state.getWebSockets(READER_TAG)
-    if (readers.length === 0) return new Set()
+    const considered = new Set(readers)
+    if (readers.length === 0) return { readers: considered, admitted: new Set() }
     const token = this.state
       .getTags(readers[0]!)
       .find((tag) => tag.startsWith(BOOK_TAG_PREFIX))
@@ -148,8 +185,11 @@ export class PublicationRoom {
     if (!token || !this.env.DB) return null
     try {
       const record = await createD1PublicationStore(this.env.DB).findRecord(token)
-      if (!record || publicationStateAt(record.publication) !== "active") return new Set()
-      return new Set(this.state.getWebSockets(await codeTag(record.accessCode ?? "")))
+      if (!record || publicationStateAt(record.publication) !== "active") {
+        return { readers: considered, admitted: new Set() }
+      }
+      const current = new Set(this.state.getWebSockets(await codeTag(record.accessCode ?? "")))
+      return { readers: considered, admitted: new Set([...considered].filter((socket) => current.has(socket))) }
     } catch {
       return null
     }
@@ -165,19 +205,21 @@ export class PublicationRoom {
    * through the door; the ones whose access ended stay out — so one rule covers revoke, a new
    * code, a changed expiry and delete without the room having to know which it was.
    */
-  private evictReaders(keep: ReadonlySet<WebSocket> = new Set()): void {
-    const closed: WebSocket[] = []
-    for (const socket of this.state.getWebSockets()) {
+  private evictReaders(keep: ReadonlySet<WebSocket> = new Set(), among?: ReadonlySet<WebSocket>): void {
+    let closed = 0
+    for (const socket of this.live()) {
       if (attachmentOf(socket)?.is_author || keep.has(socket)) continue
+      if (among && !among.has(socket)) continue
+      this.closing.add(socket)
       try {
         socket.close(CLOSE_ACCESS_CHANGED, "Access to this book changed")
       } catch {
         /** Already gone. */
       }
-      closed.push(socket)
+      closed += 1
     }
-    if (closed.length === 0) return
-    const remaining = this.state.getWebSockets().filter((socket) => !closed.includes(socket))
+    if (closed === 0) return
+    const remaining = this.live()
     const peers = remaining.flatMap((socket) => {
       const peer = attachmentOf(socket)
       return peer ? [peer] : []
@@ -244,15 +286,26 @@ export class PublicationRoom {
      * Accepted first, checked second: the book is re-read only once this socket is already in the
      * room. A join the door approved just before a revoke or a new code then can't slip past the
      * sweep — either this read sees the change and closes it, or the sweep that follows the change
-     * finds it here and does.
+     * finds it here and does. The same read closes every other reader whose access has ended, so
+     * a lost `/evict` lasts no longer than the next reader's arrival.
      */
-    if (!peer.is_author && !(await this.readerStillAdmitted(request))) {
-      try {
-        server.close(CLOSE_ACCESS_CHANGED, "Access to this book changed")
-      } catch {
-        /** Already gone. */
+    if (!peer.is_author) {
+      const check = await this.admittedReaders()
+      if (check !== null) {
+        this.accessCheckedAt = Date.now()
+        this.evictReaders(check.admitted, check.readers)
       }
-      return new Response(null, { status: 101, webSocket: client })
+      if (check === null || !check.admitted.has(server)) {
+        if (!this.closing.has(server)) {
+          this.closing.add(server)
+          try {
+            server.close(CLOSE_ACCESS_CHANGED, "Access to this book changed")
+          } catch {
+            /** Already gone. */
+          }
+        }
+        return new Response(null, { status: 101, webSocket: client })
+      }
     }
 
     const expiresAt = Date.parse(request.headers.get(ROOM_EXPIRES_HEADER) ?? "")
@@ -286,11 +339,14 @@ export class PublicationRoom {
      * whose view of the book may predate a revoke or a new code, and which may be a host too old
      * to say. The author may still write to a revoked or expired book; only the author hears it.
      */
-    const admitted = await this.admittedReaders()
-    if (admitted !== null) this.evictReaders(admitted)
+    const check = await this.admittedReaders()
+    if (check !== null) {
+      this.accessCheckedAt = Date.now()
+      this.evictReaders(check.admitted, check.readers)
+    }
 
-    for (const socket of this.state.getWebSockets()) {
-      if (!attachmentOf(socket)?.is_author && !admitted?.has(socket)) continue
+    for (const socket of this.live()) {
+      if (!attachmentOf(socket)?.is_author && !check?.admitted.has(socket)) continue
       send(socket, frame.data)
     }
 
@@ -314,7 +370,10 @@ export class PublicationRoom {
     if (!parsed.success) return
 
     const peer = attachmentOf(ws)
-    if (!peer) return
+    if (!peer || this.closing.has(ws)) return
+
+    await this.sweepStaleReaders()
+    if (this.closing.has(ws)) return
 
     const frame = parsed.data
 
@@ -329,8 +388,7 @@ export class PublicationRoom {
       }
       /** Same page only. A cursor is a position inside a document; relaying it to somebody
        *  reading a different one would resolve the selector against the wrong DOM. */
-      for (const socket of this.state.getWebSockets()) {
-        if (socket === ws) continue
+      for (const socket of this.live(ws)) {
         if (attachmentOf(socket)?.page_section_id !== frame.section_id) continue
         send(socket, relay)
       }
@@ -348,8 +406,7 @@ export class PublicationRoom {
         xOffsetPct: frame.xOffsetPct,
         yOffsetPct: frame.yOffsetPct,
       }
-      for (const socket of this.state.getWebSockets()) {
-        if (socket === ws) continue
+      for (const socket of this.live(ws)) {
         if (attachmentOf(socket)?.page_section_id !== frame.section_id) continue
         send(socket, relay)
       }
@@ -383,10 +440,12 @@ export class PublicationRoom {
     } catch {
       /** Already closing from the other end — nothing to complete. */
     }
+    await this.sweepStaleReaders()
     this.broadcastPresence(ws)
   }
 
   async webSocketError(ws: WebSocket): Promise<void> {
+    await this.sweepStaleReaders()
     this.broadcastPresence(ws)
   }
 
@@ -396,7 +455,7 @@ export class PublicationRoom {
    * appear in the roster that announces their leaving.
    */
   private broadcastPresence(exclude?: WebSocket): void {
-    const sockets = this.state.getWebSockets().filter((socket) => socket !== exclude)
+    const sockets = this.live(exclude)
     const entries = sockets.map((socket) => ({ socket, peer: attachmentOf(socket) }))
     const peers = entries.flatMap((entry) => (entry.peer ? [entry.peer] : []))
 
