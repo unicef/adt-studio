@@ -43,6 +43,7 @@ export function ProvisionStep({
       <WizardStepShell
         stepNumber={stepNumber}
         stepCount={stepCount}
+        collapsed={status !== "idle"}
         title={<Trans>Set up sharing</Trans>}
         description={
           <Trans>
@@ -85,6 +86,7 @@ export function ProvisionStep({
           stepStates={stepStates}
           activeStep={activeStep}
           elapsedMs={elapsedMs}
+          headlineAsHeading
           errorContent={
             status === "error" && failure ? <ProvisionErrorNotice failure={failure} /> : undefined
           }

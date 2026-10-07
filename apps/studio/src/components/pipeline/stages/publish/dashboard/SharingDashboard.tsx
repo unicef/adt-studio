@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { AlertTriangle, LayoutDashboard, MessageSquareText, UserPlus, Users } from "lucide-react"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { LinkSettingsPanel } from "./LinkSettingsPanel"
@@ -20,14 +20,14 @@ const panelClassName = "flex min-h-0 flex-1 flex-col outline-none data-[state=in
  * The live Sharing dashboard: one bold hero that says what is out there and hands it over, tabs right under it,
  * and an overview that is the whole dashboard on its own — what's waiting, who joined, and a
  * line for the history. The other tabs hold the full lists; the rarely-changed access settings
- * (end date, removing the code, stopping) sit in a Link settings sheet off the hero.
+ * (end date, removing the code, stopping) sit in a Link settings dialog off the hero.
  */
 export function SharingDashboard({ data }: { data: DashboardData }) {
   const { t } = useLingui()
   const [tab, setTab] = useState<DashboardTabId>("overview")
   const ready = data.status === "ready"
   const readersReady = data.readersStatus === "ready"
-  /** `"end-date"` opens the sheet with the end date already open, for Extend. */
+  /** `"end-date"` opens the dialog with the end date already open, for Extend. */
   const [settings, setSettings] = useState<"closed" | "open" | "end-date">("closed")
   const openSettings = (focus: "open" | "end-date") => {
     data.link.clearFailures()
@@ -40,21 +40,21 @@ export function SharingDashboard({ data }: { data: DashboardData }) {
 
       <SharingHero link={data.link} onOpenSettings={() => openSettings("open")} />
 
-      <Sheet open={settings !== "closed"} onOpenChange={(open) => (open ? openSettings("open") : setSettings("closed"))}>
-        <SheetContent side="right" className="flex w-[440px] flex-col gap-4 overflow-y-auto sm:max-w-[440px]">
-          <SheetHeader>
-            <SheetTitle>
+      <Dialog open={settings !== "closed"} onOpenChange={(open) => (open ? openSettings("open") : setSettings("closed"))}>
+        <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>
               <Trans>Link settings</Trans>
-            </SheetTitle>
-            <SheetDescription>
+            </DialogTitle>
+            <DialogDescription>
               <Trans>Who can open the link and for how long. Changes apply to everyone at once.</Trans>
-            </SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6">
+            </DialogDescription>
+          </DialogHeader>
+          <div className="-mx-6 min-h-0 overflow-y-auto px-6">
             <LinkSettingsPanel key={settings} link={data.link} editEndDate={settings === "end-date"} />
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       <Tabs value={tab} onValueChange={(next) => setTab(next as DashboardTabId)} className="flex min-h-0 flex-1 flex-col gap-4 [@media(max-height:820px)]:gap-3">
         <TabsList

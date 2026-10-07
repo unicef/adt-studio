@@ -13,6 +13,7 @@ interface ProvisionCalmProps {
   errorContent?: ReactNode
   /** Updating runs the same seven steps, but it is not a first setup and must not say so. */
   copy?: Partial<ProvisionRailProps["copy"]>
+  headlineAsHeading?: boolean
 }
 
 /** Provisioning's half of the pipeline view: it owns the words, the rail owns the shape.
@@ -28,6 +29,7 @@ export function ProvisionCalm({
   elapsedMs,
   errorContent,
   copy,
+  headlineAsHeading,
 }: ProvisionCalmProps) {
   const { t } = useLingui()
 
@@ -51,6 +53,7 @@ export function ProvisionCalm({
           ...copy,
         }}
         errorContent={errorContent}
+        headlineAsHeading={headlineAsHeading}
       />
     </div>
   )
