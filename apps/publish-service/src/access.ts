@@ -11,7 +11,8 @@ import {
   type Publication,
 } from "@adt/types"
 import type { Env } from "./env.js"
-import { attemptGate, callerIp } from "./access-throttle.js"
+import { attemptGate, callerIp, throttleSecretFor } from "./access-throttle.js"
+import { BOOK_READER_SESSION_LIMIT, writeAllowance } from "./write-throttle.js"
 import { errorResponse } from "./errors.js"
 import { ADT_ICON_DATA_URI } from "./gate-brand.js"
 import {
@@ -566,6 +567,8 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
    *
    * A name that cannot be taken (the dormant pinned-name reservation) still opens the book: the
    * code was right, and the door is about admission. The session simply keeps the name it had.
+   * So does a caller who has already started more sessions than `WRITE_LIMITS` allows, and a
+   * newcomer to a book that already holds `BOOK_READER_SESSION_LIMIT` reader sessions.
    */
   const establishIdentity = async (
     c: AccessContext,
@@ -575,6 +578,18 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
   ): Promise<void> => {
     const store = deps.resolveStore(c.env)
     const existing = await storedCommenterFromCookie(c, store, token)
+    if (existing === null && (await store.countCommenterSessions(token)) >= BOOK_READER_SESSION_LIMIT) return
+    const refused = await writeAllowance(
+      {
+        store,
+        secret: (await throttleSecretFor(c.env ?? {}, token)) ?? secret,
+        ip: callerIp(c.req.raw.headers),
+        token,
+        now: new Date(deps.timestamp()),
+      },
+      { client: "session-client" },
+    )
+    if (refused !== null) return
     const outcome = await upsertCommenterSession({ store, deps, token, name, existing })
     if (!outcome.ok) return
     await issueSessionCookie(c, token, outcome.session.id, secret)
@@ -603,7 +618,7 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
         ? null
         : await attemptGate({
             store: deps.resolveStore(c.env),
-            secret,
+            secret: (await throttleSecretFor(c.env ?? {}, publication.token)) ?? secret,
             ip: callerIp(c.req.raw.headers),
             token: publication.token,
             kind: "access",

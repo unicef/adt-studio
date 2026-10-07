@@ -11,8 +11,9 @@
  * same reason. Keep this file free of imports — that property is the whole point of it.
  */
 
-/** Refused politely beyond this many concurrent sockets per publication. A classroom is the
- *  target size; a room that grows past it is a sign of a leaked link, not of demand. */
+/** Refused politely beyond this many concurrent reader sockets per publication; the author joins
+ *  outside it. A classroom is the target size; a room that grows past it is a sign of a leaked
+ *  link, not of demand. */
 export const PUBLICATION_ROOM_MAX_PEERS = 64
 
 /** Anything larger is dropped unparsed. A cursor frame is ~140 bytes. */
@@ -68,6 +69,12 @@ export const ROOM_COMMENT_EVENTS = [
 export const COMMENTER_NAME_MAX_LENGTH = 60
 
 export const PUBLISH_COMMENT_BODY_MAX_LENGTH = 2000
+
+/** The same bound a room cursor's selector already has: both are built from the same page. */
+export const PUBLISH_COMMENT_SELECTOR_MAX_LENGTH = 512
+
+/** Rows per `GET /comments` response; the reader and the Studio follow `next_cursor` for more. */
+export const PUBLISH_COMMENT_LIST_PAGE_SIZE = 200
 
 export const COMMENTER_PIN_MIN_LENGTH = 4
 

@@ -159,6 +159,31 @@ describe("buildAnchor", () => {
     expect(resolveAnchor(anchor!, { root })?.element).toBe(target)
   })
 
+  it("falls back to #content when the only unique path is too long to store", () => {
+    const root = renderPage()
+    let parent: Element = root
+    for (let depth = 0; depth < 40; depth += 1) {
+      const pair = root.ownerDocument.createElement("div")
+      pair.appendChild(root.ownerDocument.createElement("div"))
+      const next = root.ownerDocument.createElement("div")
+      pair.appendChild(next)
+      parent.appendChild(pair)
+      parent = next
+    }
+    const twin = (id: string) => {
+      const span = root.ownerDocument.createElement("span")
+      span.setAttribute("data-id", id)
+      return span
+    }
+    root.appendChild(twin("deep"))
+    const target = twin("deep")
+    parent.appendChild(target)
+    stubRect(root, { x: 0, y: 0, width: 1000, height: 1000 })
+
+    const anchor = buildAnchor(target, 250, 500, { root })
+    expect(anchor).toEqual({ selector: "#content", xOffsetPct: 25, yOffsetPct: 50 })
+  })
+
   it("clamps offsets into 0–100 and survives a zero-size box", () => {
     const root = renderPage()
     const span = root.querySelector('[data-id="pg017_n0006"]')!

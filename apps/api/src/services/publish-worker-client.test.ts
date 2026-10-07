@@ -263,6 +263,39 @@ describe("feedback requests", () => {
     expect(result.comments).toEqual([])
   })
 
+  it("follows next_cursor so the Studio still gets every comment", async () => {
+    const row = (id: string) => ({
+      id,
+      token: PUBLICATION.token,
+      version: 1,
+      page_section_id: "pg001",
+      parent_id: null,
+      session_id: "s1",
+      author_name: "Maria",
+      author_color: "#e5484d",
+      body: "Pin",
+      anchor: null,
+      resolved_at: null,
+      edited_at: null,
+      deleted_at: null,
+      created_at: "2026-08-01T09:00:00.000Z",
+    })
+    const urls: string[] = []
+    const fetchFn = vi.fn(async (url: string) => {
+      urls.push(url)
+      const cursor = new URL(url).searchParams.get("cursor")
+      if (cursor === null) return ok({ comments: [row("a")], session: null, next_cursor: "page-2" })
+      if (cursor === "page-2") return ok({ comments: [row("b")], session: null, next_cursor: "page-2" })
+      throw new Error(`unexpected ${url}`)
+    })
+
+    const result = await client(fetchFn).listComments(PUBLICATION.token, { include_resolved: true })
+    expect(result.comments.map((comment) => comment.id)).toEqual(["a", "b"])
+    expect(result.next_cursor).toBeNull()
+    expect(urls[1]).toBe(`${WORKER_URL}/p/${PUBLICATION.token}/comments?include_resolved=true&cursor=page-2`)
+    expect(urls).toHaveLength(2)
+  })
+
   it("encodes comment identifiers and validates reader responses", async () => {
     const fetchFn = vi.fn(async (url: string) => {
       if (url.includes("/readers")) {

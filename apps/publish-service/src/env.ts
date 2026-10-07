@@ -8,4 +8,7 @@ export interface Env {
   ASSETS?: Fetcher
   PUBLICATION_ROOM: DurableObjectNamespace
   MGMT_SECRET?: string
+  /** Set on a book host only: the one publication it serves. Bound at deploy time, so a host can
+   *  never answer for another book in the account. */
+  BOOK_TOKEN?: string
 }

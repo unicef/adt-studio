@@ -1,6 +1,7 @@
 import type { Context, Env as HonoEnv } from "hono"
-import type { PublishComment, RoomCommentEvent, RoomCommentFrame } from "@adt/types"
+import { publicationStateAt, type Publication, type PublishComment, type RoomCommentEvent, type RoomCommentFrame } from "@adt/types"
 import type { Env } from "./env.js"
+import { ROOM_READERS_HEADER } from "./room.js"
 
 /**
  * Comment writes tell the room after D1 has committed.
@@ -16,7 +17,7 @@ import type { Env } from "./env.js"
  */
 export function notifyRoom<E extends HonoEnv>(
   c: Context<E>,
-  token: string,
+  publication: Publication,
   event: RoomCommentEvent,
   comment: PublishComment,
 ): void {
@@ -24,7 +25,9 @@ export function notifyRoom<E extends HonoEnv>(
   if (!namespace) return
 
   const frame: RoomCommentFrame = { t: event, comment }
-  const delivery = deliver(namespace, token, frame)
+  /** The author can still write to a revoked or expired book; only the author hears it. */
+  const readersAllowed = publicationStateAt(publication) === "active"
+  const delivery = deliver(namespace, publication.token, frame, readersAllowed)
 
   try {
     c.executionCtx.waitUntil(delivery)
@@ -37,15 +40,38 @@ async function deliver(
   namespace: DurableObjectNamespace,
   token: string,
   frame: RoomCommentFrame,
+  readersAllowed: boolean,
 ): Promise<void> {
   try {
     const stub = namespace.get(namespace.idFromName(token))
     await stub.fetch("https://publication-room.invalid/notify", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", [ROOM_READERS_HEADER]: readersAllowed ? "1" : "0" },
       body: JSON.stringify(frame),
     })
   } catch {
     /** A dead room is not a failed comment. */
   }
 }
+
+/**
+ * Closes every reader's socket in a book's room, after a change that may have ended their access:
+ * revoked, deleted, a new code or a new expiry. Awaited, so readers are gone before the change's
+ * response returns; readers still allowed simply reconnect. Never fails the change itself.
+ */
+export async function evictRoomReaders(env: Env | undefined, token: string): Promise<void> {
+  const namespace = env?.PUBLICATION_ROOM
+  if (!namespace) return
+  /** Twice, because a reader left connected after a revoke is the failure this exists to stop;
+   *  a room still unreachable after that has, for practical purposes, nobody in it. */
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const stub = namespace.get(namespace.idFromName(token))
+      const response = await stub.fetch("https://publication-room.invalid/evict", { method: "POST" })
+      if (response.ok) return
+    } catch {
+      /** Try once more. */
+    }
+  }
+}
+

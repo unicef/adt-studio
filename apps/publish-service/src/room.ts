@@ -1,4 +1,5 @@
 import {
+  publicationStateAt,
   PUBLICATION_ROOM_MAX_FRAME_BYTES,
   PUBLICATION_ROOM_MAX_PEERS,
   RoomClientFrame,
@@ -9,6 +10,7 @@ import {
   type RoomPeerViewportFrame,
   type RoomPresenceFrame,
 } from "@adt/types"
+import { createD1PublicationStore } from "./d1-store.js"
 import type { Env } from "./env.js"
 
 /**
@@ -41,7 +43,45 @@ const NOTIFY_PATH = "/notify"
 /** How the authenticated worker route hands a validated identity to the room. */
 export const ROOM_PEER_HEADER = "x-adt-room-peer"
 
+/** Internal: closes every reader's socket. Reachable only through the namespace stub, like
+ *  `/notify`, so only the worker's own routes can call it. */
+const EVICT_PATH = "/evict"
+
+/** On `/notify`: "0" when the publication no longer admits readers, so the frame goes to the
+ *  author alone and any reader still connected is closed first. */
+export const ROOM_READERS_HEADER = "x-adt-room-readers"
+
+/** On `/connect`: when the publication stops admitting readers, so the room can close them then
+ *  without a request to prompt it. */
+export const ROOM_EXPIRES_HEADER = "x-adt-room-expires-at"
+
+/** On a reader's `/connect`: the book and the access-code hash its grant was checked against.
+ *  The room re-reads both before admitting the socket, so a join checked just before a revoke
+ *  or a new code can't slip in after the sweep that closed everyone else. */
+export const ROOM_TOKEN_HEADER = "x-adt-room-token"
+export const ROOM_CODE_HEADER = "x-adt-room-code"
+
+/** A reader's access ended — revoked, expired, a new code, or deleted. The reader reconnects as it
+ *  does after any drop, and the door then decides: still allowed, it is back; not, it stays out. */
+const CLOSE_ACCESS_CHANGED = 4403
+
 const CLOSE_GOING_AWAY = 1001
+
+/** On a reader's `/connect`: an HMAC of the caller's network, never the address itself. Kept in
+ *  a socket tag rather than the peer, so it never reaches anybody's roster. */
+export const ROOM_CLIENT_HEADER = "x-adt-room-client"
+
+/** One network's share of the room. A classroom behind one address still fits; one client
+ *  holding sockets open leaves the rest of the room to everybody else. */
+export const ROOM_MAX_PEERS_PER_CLIENT = 32
+
+/** The author joins outside the readers' cap, so a full room never shuts them out, with a
+ *  bound of their own: a few Studio windows, not an unbounded number of sockets. */
+export const ROOM_MAX_AUTHOR_PEERS = 8
+
+const AUTHOR_TAG = "author"
+const READER_TAG = "reader"
+const CLIENT_KEY_PATTERN = /^[0-9a-f]{1,64}$/
 
 type PeerAttachment = RoomPeer
 
@@ -70,10 +110,57 @@ export class PublicationRoom {
     const { pathname } = new URL(request.url)
     if (pathname === CONNECT_PATH) return this.connect(request)
     if (pathname === NOTIFY_PATH) return this.notify(request)
+    if (pathname === EVICT_PATH) {
+      this.evictReaders()
+      return new Response(null, { status: 204 })
+    }
     return json(errorBody("not_found", "Unknown room endpoint"), 404)
   }
 
-  private connect(request: Request): Response {
+  /** The book as it is now, against what the reader's door saw: still live, same code. */
+  private async readerStillAdmitted(request: Request): Promise<boolean> {
+    const token = request.headers.get(ROOM_TOKEN_HEADER)
+    if (!token || !this.env.DB) return false
+    const record = await createD1PublicationStore(this.env.DB).findRecord(token)
+    if (!record || publicationStateAt(record.publication) !== "active") return false
+    return (record.accessCode ?? "") === (request.headers.get(ROOM_CODE_HEADER) ?? "")
+  }
+
+  /** The publication's expiry, set when a reader joined: readers go when it does. */
+  async alarm(): Promise<void> {
+    this.evictReaders()
+  }
+
+  /**
+   * Closes every socket but the author's. Readers who are still allowed come straight back
+   * through the door; the ones whose access ended stay out — so one rule covers revoke, a new
+   * code, a changed expiry and delete without the room having to know which it was.
+   */
+  private evictReaders(): void {
+    const closed: WebSocket[] = []
+    for (const socket of this.state.getWebSockets()) {
+      if (attachmentOf(socket)?.is_author) continue
+      try {
+        socket.close(CLOSE_ACCESS_CHANGED, "Access to this book changed")
+      } catch {
+        /** Already gone. */
+      }
+      closed.push(socket)
+    }
+    if (closed.length === 0) return
+    const remaining = this.state.getWebSockets().filter((socket) => !closed.includes(socket))
+    const peers = remaining.flatMap((socket) => {
+      const peer = attachmentOf(socket)
+      return peer ? [peer] : []
+    })
+    for (const socket of remaining) {
+      const peer = attachmentOf(socket)
+      if (!peer) continue
+      send(socket, { t: "presence", self_id: peer.id, peers } satisfies RoomPresenceFrame)
+    }
+  }
+
+  private async connect(request: Request): Promise<Response> {
     if ((request.headers.get("upgrade") ?? "").toLowerCase() !== "websocket") {
       return json(errorBody("invalid_request", "Expected a WebSocket upgrade"), 400)
     }
@@ -83,13 +170,17 @@ export class PublicationRoom {
       return json(errorBody("invalid_request", "Malformed room peer"), 400)
     }
 
-    const sockets = this.state.getWebSockets()
-    if (sockets.length >= PUBLICATION_ROOM_MAX_PEERS) {
+    const clientKey = request.headers.get(ROOM_CLIENT_HEADER) ?? ""
+    if (!peer.is_author && !CLIENT_KEY_PATTERN.test(clientKey)) {
+      return json(errorBody("invalid_request", "Malformed room client"), 400)
+    }
+    const full = peer.is_author
+      ? this.state.getWebSockets(AUTHOR_TAG).length >= ROOM_MAX_AUTHOR_PEERS
+      : this.state.getWebSockets(READER_TAG).length >= PUBLICATION_ROOM_MAX_PEERS ||
+        this.state.getWebSockets(clientTag(clientKey)).length >= ROOM_MAX_PEERS_PER_CLIENT
+    if (full) {
       return json(
-        errorBody(
-          "rate_limited",
-          `This book already has ${PUBLICATION_ROOM_MAX_PEERS} people in its live session`,
-        ),
+        errorBody("rate_limited", "This book's live session is full. Try again in a little while"),
         429,
       )
     }
@@ -100,8 +191,29 @@ export class PublicationRoom {
 
     /** Accept first, attach second: `getWebSockets()` has to be able to find this peer's
      *  identity the moment the presence broadcast below runs. */
-    this.state.acceptWebSocket(server)
+    this.state.acceptWebSocket(server, peer.is_author ? [AUTHOR_TAG] : [READER_TAG, clientTag(clientKey)])
     server.serializeAttachment(peer)
+
+    /**
+     * Accepted first, checked second: the book is re-read only once this socket is already in the
+     * room. A join the door approved just before a revoke or a new code then can't slip past the
+     * sweep — either this read sees the change and closes it, or the sweep that follows the change
+     * finds it here and does.
+     */
+    if (!peer.is_author && !(await this.readerStillAdmitted(request))) {
+      try {
+        server.close(CLOSE_ACCESS_CHANGED, "Access to this book changed")
+      } catch {
+        /** Already gone. */
+      }
+      return new Response(null, { status: 101, webSocket: client })
+    }
+
+    const expiresAt = Date.parse(request.headers.get(ROOM_EXPIRES_HEADER) ?? "")
+    if (!peer.is_author && Number.isFinite(expiresAt)) {
+      const current = await this.state.storage.getAlarm()
+      if (current === null || expiresAt < current) await this.state.storage.setAlarm(expiresAt)
+    }
 
     this.broadcastPresence()
 
@@ -123,7 +235,12 @@ export class PublicationRoom {
 
     /** Comment events reach every peer, whatever page they are on: a reader's dock badge and
      *  the author's whole-publication panel both care about pages nobody is looking at. */
+    /** The author may still write to a revoked or expired book; its readers must not hear it. */
+    const readersAllowed = request.headers.get(ROOM_READERS_HEADER) !== "0"
+    if (!readersAllowed) this.evictReaders()
+
     for (const socket of this.state.getWebSockets()) {
+      if (!readersAllowed && !attachmentOf(socket)?.is_author) continue
       send(socket, frame.data)
     }
 
@@ -251,6 +368,10 @@ export class PublicationRoom {
       return null
     }
   }
+}
+
+function clientTag(client: string): string {
+  return `client:${client}`
 }
 
 function attachmentOf(socket: WebSocket): PeerAttachment | null {

@@ -2,11 +2,9 @@ import { beforeEach, describe, expect, it } from "vitest"
 import {
   COMMENTER_SESSION_COOKIE,
   type CommenterSessionResponse,
-  type PublishComment,
   type PublishCommentListResponse,
 } from "@adt/types"
 import { createApp } from "./app.js"
-import { filterCommentThreads } from "./comment-threads.js"
 import { createTestStore, resetBindings, testBucket } from "../test/fixtures.js"
 import type { PublicationStore } from "./store.js"
 
@@ -45,82 +43,76 @@ async function harness(): Promise<{ app: ReturnType<typeof createApp>; store: Pu
   return { app, store }
 }
 
-function comment(overrides: Partial<PublishComment> = {}): PublishComment {
-  return {
-    id: "c1",
-    token: TOKEN,
-    version: 1,
-    page_section_id: SECTION,
-    parent_id: null,
-    session_id: "s1",
-    author_name: "Maria",
-    author_color: "#e5484d",
-    body: "Pin",
-    anchor: ANCHOR,
-    resolved_at: null,
-    edited_at: null,
-    deleted_at: null,
-    created_at: "2026-08-03T11:00:00.000Z",
-    ...overrides,
+/** Threads are filtered in SQL, so they are tested against the store rather than a list. */
+describe("listComments", () => {
+  const AT = "2026-08-03T11:00:00.000Z"
+
+  async function seeded() {
+    const { store } = await harness()
+    await store.createSession({ id: "s1", token: TOKEN, name: "Maria", color: "#e5484d", isAuthor: false, createdAt: AT })
+    let minute = 0
+    const add = async (id: string, overrides: { parentId?: string; version?: number } = {}) => {
+      minute += 1
+      await store.createComment({
+        id,
+        token: TOKEN,
+        version: overrides.version ?? 1,
+        pageSectionId: SECTION,
+        parentId: overrides.parentId ?? null,
+        sessionId: "s1",
+        body: "Pin",
+        anchor: overrides.parentId ? null : ANCHOR,
+        createdAt: `2026-08-03T11:${String(minute).padStart(2, "0")}:00.000Z`,
+      })
+    }
+    const ids = async (filter: { version?: number; includeResolved?: boolean; includeDeleted?: boolean } = {}) =>
+      (
+        await store.listComments({
+          token: TOKEN,
+          includeResolved: filter.includeResolved ?? false,
+          includeDeleted: filter.includeDeleted ?? false,
+          ...(filter.version === undefined ? {} : { version: filter.version }),
+          limit: 100,
+        })
+      ).map((entry) => entry.id)
+    return { store, add, ids }
   }
-}
 
-describe("filterCommentThreads", () => {
-  const root = comment({ id: "root" })
-  const reply = comment({ id: "reply", parent_id: "root", anchor: null })
-
-  it("keeps an unresolved thread whole", () => {
-    expect(
-      filterCommentThreads([root, reply], { includeResolved: false, includeDeleted: false }).map(
-        (entry) => entry.id,
-      ),
-    ).toEqual(["root", "reply"])
+  it("keeps an unresolved thread whole", async () => {
+    const { add, ids } = await seeded()
+    await add("root")
+    await add("reply", { parentId: "root" })
+    expect(await ids()).toEqual(["root", "reply"])
   })
 
-  it("drops a resolved root and its replies unless resolved are included", () => {
-    const resolved = comment({ id: "root", resolved_at: "2026-08-03T12:00:00.000Z" })
-    expect(
-      filterCommentThreads([resolved, reply], { includeResolved: false, includeDeleted: false }),
-    ).toEqual([])
-    expect(
-      filterCommentThreads([resolved, reply], { includeResolved: true, includeDeleted: false }).map(
-        (entry) => entry.id,
-      ),
-    ).toEqual(["root", "reply"])
+  it("drops a resolved root and its replies unless resolved are included", async () => {
+    const { store, add, ids } = await seeded()
+    await add("root")
+    await add("reply", { parentId: "root" })
+    await store.setCommentResolved(TOKEN, "root", "2026-08-03T12:00:00.000Z")
+    expect(await ids()).toEqual([])
+    expect(await ids({ includeResolved: true })).toEqual(["root", "reply"])
   })
 
-  it("drops a deleted root's thread but keeps siblings of a deleted reply", () => {
-    const deletedRoot = comment({ id: "root", deleted_at: "2026-08-03T12:00:00.000Z" })
-    expect(
-      filterCommentThreads([deletedRoot, reply], { includeResolved: false, includeDeleted: false }),
-    ).toEqual([])
+  it("drops a deleted root's thread but keeps siblings of a deleted reply", async () => {
+    const { store, add, ids } = await seeded()
+    await add("root")
+    await add("reply", { parentId: "root" })
+    await add("reply-2", { parentId: "root" })
+    await store.softDeleteComment(TOKEN, "reply", "2026-08-03T12:00:00.000Z")
+    expect(await ids()).toEqual(["root", "reply-2"])
+    expect(await ids({ includeDeleted: true })).toEqual(["root", "reply", "reply-2"])
 
-    const deletedReply = comment({ id: "reply", parent_id: "root", deleted_at: "2026-08-03Z" })
-    const otherReply = comment({ id: "reply-2", parent_id: "root" })
-    expect(
-      filterCommentThreads([root, deletedReply, otherReply], {
-        includeResolved: false,
-        includeDeleted: false,
-      }).map((entry) => entry.id),
-    ).toEqual(["root", "reply-2"])
+    await store.softDeleteComment(TOKEN, "root", "2026-08-03T12:00:00.000Z")
+    expect(await ids()).toEqual([])
   })
 
-  it("reads the version off the root so a later reply travels with its thread", () => {
-    const laterReply = comment({ id: "reply", parent_id: "root", version: 2, anchor: null })
-    expect(
-      filterCommentThreads([root, laterReply], {
-        version: 1,
-        includeResolved: false,
-        includeDeleted: false,
-      }).map((entry) => entry.id),
-    ).toEqual(["root", "reply"])
-    expect(
-      filterCommentThreads([root, laterReply], {
-        version: 2,
-        includeResolved: false,
-        includeDeleted: false,
-      }),
-    ).toEqual([])
+  it("reads the version off the root so a later reply travels with its thread", async () => {
+    const { add, ids } = await seeded()
+    await add("root")
+    await add("reply", { parentId: "root", version: 2 })
+    expect(await ids({ version: 1 })).toEqual(["root", "reply"])
+    expect(await ids({ version: 2 })).toEqual([])
   })
 })
 
@@ -256,7 +248,7 @@ describe("comment route shapes", () => {
     const res = await app.request(`/p/${TOKEN}/comments`, {}, env)
     expect(res.status).toBe(200)
     const body = (await res.json()) as PublishCommentListResponse
-    expect(body).toEqual({ comments: [], session: null })
+    expect(body).toEqual({ comments: [], session: null, next_cursor: null })
   })
 
   it("rejects a malformed list query", async () => {

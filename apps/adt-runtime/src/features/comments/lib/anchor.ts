@@ -125,8 +125,9 @@ function selectorFor(element: Element, root: Element): string | null {
   return matchesUniquely(full, element, root) ? full : null
 }
 
-/** The room refuses a cursor frame whose selector is longer than this (`RoomCursorMoveFrame`). */
-const ROOM_SELECTOR_MAX_LENGTH = 512
+/** The room refuses a cursor frame whose selector is longer than this (`RoomCursorMoveFrame`),
+ *  and the worker a pin's (`PUBLISH_COMMENT_SELECTOR_MAX_LENGTH`). */
+export const ROOM_SELECTOR_MAX_LENGTH = 512
 
 /**
  * The exact element, named from its nearest hooked ancestor rather than from `#content`: the
@@ -262,9 +263,13 @@ export function buildAnchor(
   /** The exact element when precise — falling back to the hooked ancestor when the exact one
    *  has no selector that names it alone, so a cursor never degrades to nothing. */
   const exactSelector = precise && element !== hooked ? selectorWithin(element, hooked, root) : null
-  const anchorElement = exactSelector ? element : hooked
-  const selector = exactSelector ?? selectorFor(hooked, root)
-  if (!selector) return null
+  const hookedSelector = exactSelector ? null : selectorFor(hooked, root)
+  if (!exactSelector && !hookedSelector) return null
+
+  /** A path too long to store falls back to `#content` itself: a coarser pin, never a lost one. */
+  const fits = (exactSelector ?? hookedSelector!).length <= ROOM_SELECTOR_MAX_LENGTH
+  const anchorElement = !fits ? root : exactSelector ? element : hooked
+  const selector = !fits ? CONTENT_ROOT_SELECTOR : (exactSelector ?? hookedSelector!)
 
   const rect = measuredBox(anchorElement, precise)
   return {

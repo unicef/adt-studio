@@ -20,6 +20,8 @@ import { hashAccessCode, randomId } from "./identity.js"
 import { mgmtAuth } from "./middleware/mgmt-auth.js"
 import { type PublicationVariables } from "./middleware/publication-lookup.js"
 import { registerReaderRoutes } from "./reader-routes.js"
+import { evictRoomReaders } from "./room-notify.js"
+import { registerRoomTicketRoute } from "./room-routes.js"
 import {
   deleteSnapshotObjects,
   normalizeSnapshotPath,
@@ -215,6 +217,7 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     if (!publication) {
       return errorResponse(c, "not_found", 404)
     }
+    await evictRoomReaders(c.env, token.data)
 
     return c.json(await publicationBody(store, publication))
   })
@@ -257,6 +260,7 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
       prefixes.map((prefix) => deleteSnapshotObjects(c.env.SNAPSHOTS, prefix)),
     )
     const publication = await store.deletePublication(token.data)
+    await evictRoomReaders(c.env, token.data)
 
     return c.json({
       token: token.data,
@@ -299,6 +303,9 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     if (!publication) {
       return errorResponse(c, "not_found", 404)
     }
+    /** A new code makes every old grant worthless, and a new end date may already be past; the
+     *  readers who still qualify reconnect on their own. */
+    await evictRoomReaders(c.env, token.data)
 
     return c.json(await publicationBody(store, publication))
   })
@@ -341,6 +348,8 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     const body: PublicationReaderList = { readers: await store.listReaders(token.data) }
     return c.json(body)
   })
+
+  registerRoomTicketRoute(app, { resolveStore, timestamp, newId: options.newId ?? (() => randomId()) })
 
   registerReaderRoutes(app, {
     resolveStore,

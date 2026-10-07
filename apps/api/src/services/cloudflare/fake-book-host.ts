@@ -22,6 +22,7 @@ export const FAKE_BOOK_HOST_ARTIFACT: BookHostArtifact = {
         class_name: "PublicationRoom",
       },
       { type: "secret_text", name: "MGMT_SECRET" },
+      { type: "plain_text", name: "BOOK_TOKEN" },
     ],
     d1_migrations: [],
     assets: { config: { html_handling: "none", not_found_handling: "none" } },

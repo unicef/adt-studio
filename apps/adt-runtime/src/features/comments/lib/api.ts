@@ -32,6 +32,35 @@ export class CommentsApiError extends Error {
 interface ListResponse {
   comments: PublishComment[]
   session: CommenterSession | null
+  next_cursor?: string | null
+}
+
+/** Far past what a book can hold, so only a misbehaving server ever reaches it. */
+const MAX_LIST_PAGES = 50
+
+/** Follows `next_cursor` to the end: a page holds a bounded number of rows, the reader wants
+ *  them all. A cursor seen twice ends the walk rather than looping on a misbehaving server. */
+async function listEveryPage(url: (cursor: string | null) => string): Promise<ListResponse> {
+  const comments: PublishComment[] = []
+  const seen = new Set<string>()
+  let cursor: string | null = null
+  for (;;) {
+    const page: ListResponse = await request<ListResponse>(url(cursor), { method: "GET" })
+    comments.push(...page.comments)
+    const next = page.next_cursor ?? null
+    if (next === null || seen.has(next) || seen.size + 1 >= MAX_LIST_PAGES) {
+      return { comments, session: page.session }
+    }
+    seen.add(next)
+    cursor = next
+  }
+}
+
+function withCursor(query: URLSearchParams, cursor: string | null): string {
+  const params = new URLSearchParams(query)
+  if (cursor !== null) params.set("cursor", cursor)
+  const search = params.toString()
+  return search ? `?${search}` : ""
 }
 
 interface SessionResponse {
@@ -110,16 +139,13 @@ export function createCommentsApi(apiBase: string): CommentsApi {
     async list(pageSectionId, options = {}) {
       const query = new URLSearchParams({ page_section_id: pageSectionId })
       if (options.includeResolved) query.set("include_resolved", "true")
-      return request<ListResponse>(`${apiBase}comments?${query.toString()}`, { method: "GET" })
+      return listEveryPage((cursor) => `${apiBase}comments${withCursor(query, cursor)}`)
     },
 
     async listAll(options = {}) {
       const query = new URLSearchParams()
       if (options.includeResolved) query.set("include_resolved", "true")
-      const search = query.toString()
-      return request<ListResponse>(`${apiBase}comments${search ? `?${search}` : ""}`, {
-        method: "GET",
-      })
+      return listEveryPage((cursor) => `${apiBase}comments${withCursor(query, cursor)}`)
     },
 
     async createSession(name, pin) {

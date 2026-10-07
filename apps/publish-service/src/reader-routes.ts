@@ -1,4 +1,5 @@
 import type { Context, Hono } from "hono"
+import { bodyLimit } from "hono/body-limit"
 import { COVER_FILES, createAccessGate, registerAccessRoute } from "./access.js"
 import { registerCommentRoutes } from "./comments.js"
 import type { AppEnv } from "./app.js"
@@ -14,6 +15,16 @@ import {
 } from "./serve.js"
 import { normalizeSnapshotPath } from "./snapshot.js"
 import type { PublicationStore } from "./store.js"
+
+/** The largest thing a reader sends is a comment: 2000 characters of body and a 512-character
+ *  selector, which JSON escaping can grow to six bytes a character. Counted as the body
+ *  streams, so a request without a `Content-Length` is held to it too. */
+export const READER_BODY_MAX_BYTES = 32 * 1024
+
+const readerBodyLimit = bodyLimit({
+  maxSize: READER_BODY_MAX_BYTES,
+  onError: (c) => errorResponse(c, "payload_too_large", 413, "This request is larger than a reader can send"),
+})
 
 export interface ReaderRouteDeps {
   resolveStore: (env: Env) => PublicationStore
@@ -87,6 +98,7 @@ export function registerReaderRoutes(app: Hono<AppEnv>, deps: ReaderRouteDeps): 
 
   app.use("/p/:token", requirePublication)
   app.use("/p/:token/*", requirePublication)
+  app.use("/p/:token/*", readerBodyLimit)
 
   /** Order is load-bearing three times over. The lookup ladder runs first, so an unknown token
    *  is still `404` and a revoked one still `410` — the gate only ever guards requests that

@@ -27,6 +27,7 @@ const ARTIFACT: BookHostArtifact = {
       { type: "assets", name: "ASSETS" },
       { type: "durable_object_namespace", name: "PUBLICATION_ROOM", class_name: "PublicationRoom" },
       { type: "secret_text", name: "MGMT_SECRET" },
+      { type: "plain_text", name: "BOOK_TOKEN" },
     ],
     d1_migrations: [],
     assets: { config: { html_handling: "none", not_found_handling: "none" } },
@@ -63,6 +64,7 @@ describe("resolveBookHostBindings", () => {
       d1DatabaseUuid: "db-uuid-1",
       controlPlaneName: CLOUDFLARE_WORKER_NAME,
       authorSecret: "derived-secret",
+      token: TOKEN,
     })
 
     expect(bindings).toEqual([
@@ -75,6 +77,7 @@ describe("resolveBookHostBindings", () => {
         script_name: CLOUDFLARE_WORKER_NAME,
       },
       { type: "secret_text", name: "MGMT_SECRET", text: "derived-secret" },
+      { type: "plain_text", name: "BOOK_TOKEN", text: TOKEN },
     ])
   })
 
@@ -88,13 +91,40 @@ describe("resolveBookHostBindings", () => {
           d1DatabaseUuid: "db-uuid-1",
           controlPlaneName: CLOUDFLARE_WORKER_NAME,
           authorSecret: "derived-secret",
+          token: TOKEN,
         },
       ),
+    ).toThrow(BookHostDeployError)
+  })
+
+  /** The token is the one value allowed in the clear; any other plain-text binding is a value
+   *  a public Worker would expose for nothing. */
+  it("allows no plain-text binding but the book's own token", () => {
+    expect(() =>
+      resolveBookHostBindings([{ type: "plain_text", name: "SOMETHING_ELSE" }], {
+        d1DatabaseUuid: "db-uuid-1",
+        controlPlaneName: CLOUDFLARE_WORKER_NAME,
+        authorSecret: "derived-secret",
+        token: TOKEN,
+      }),
     ).toThrow(BookHostDeployError)
   })
 })
 
 describe("deployBookHost", () => {
+  it("refuses an artifact that doesn't pin the host to its book, before creating anything", async () => {
+    const fake = createFakeCloudflare()
+    const unpinned = {
+      ...ARTIFACT,
+      metadata: {
+        ...ARTIFACT.metadata,
+        bindings: ARTIFACT.metadata.bindings.filter((binding) => binding.name !== "BOOK_TOKEN"),
+      },
+    }
+    await expect(deploy(fake, { artifact: unpinned })).rejects.toThrow(BookHostDeployError)
+    expect(fake.state.calls.filter((call) => call.method !== "GET")).toEqual([])
+  })
+
   it("creates the Worker, uploads only this book's assets and routes it", async () => {
     const hashes = ASSETS.map((asset) => staticAssetHash(asset.path, asset.content))
     const fake = createFakeCloudflare({ assetUploadBuckets: [hashes] })

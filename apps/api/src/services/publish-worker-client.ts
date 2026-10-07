@@ -78,6 +78,7 @@ export interface PublishWorkerClient {
   deletePublication(token: string): Promise<PublicationDeleteResult>
   listReaders(token: string): Promise<PublicationReaderList>
   roomTicket(token: string): Promise<PublicationRoomTicketResponse>
+  /** Follows `next_cursor` to the end, so the answer holds every comment the query matches. */
   listComments(
     token: string,
     query?: PublishCommentListQuery,
@@ -323,6 +324,7 @@ export function createPublishWorkerClient({
     if (query.include_resolved !== undefined) {
       params.set("include_resolved", String(query.include_resolved))
     }
+    if (query.cursor !== undefined) params.set("cursor", query.cursor)
     const encoded = params.toString()
     return encoded.length === 0 ? "" : `?${encoded}`
   }
@@ -475,12 +477,25 @@ export function createPublishWorkerClient({
       )
     },
 
-    listComments(token, query, authorName) {
-      return request(
-        `/p/${encodeURIComponent(token)}/comments${commentQuery(query)}`,
-        { method: "GET", headers: authorHeaders(authorName) },
-        PublishCommentListResponse,
-      )
+    async listComments(token, query, authorName) {
+      const comments: PublishCommentListResponse["comments"] = []
+      const seen = new Set<string>()
+      let cursor = query?.cursor
+      for (;;) {
+        const page = await request(
+          `/p/${encodeURIComponent(token)}/comments${commentQuery({
+            ...query,
+            ...(cursor === undefined ? {} : { cursor }),
+          })}`,
+          { method: "GET", headers: authorHeaders(authorName) },
+          PublishCommentListResponse,
+        )
+        comments.push(...page.comments)
+        const next = page.next_cursor ?? null
+        if (next === null || seen.has(next)) return { comments, session: page.session, next_cursor: null }
+        seen.add(next)
+        cursor = next
+      }
     },
 
     createComment(token, body, authorName) {

@@ -4,6 +4,7 @@ import {
   CommenterSessionCreateRequest,
   PUBLISH_AUTHOR_NAME_HEADER,
   PUBLISH_COMMENT_BODY_MAX_LENGTH,
+  PUBLISH_COMMENT_LIST_PAGE_SIZE,
   PublishCommentCreateRequest,
   PublishCommentListQuery,
   PublishCommentResolveRequest,
@@ -11,12 +12,12 @@ import {
   type CommenterSession,
   type CommenterSessionResponse,
   type Publication,
+  type PublishComment,
   type PublishCommentListResponse,
   type PublishCommentResponse,
 } from "@adt/types"
-import { filterCommentThreads } from "./comment-threads.js"
 import type { Env } from "./env.js"
-import { attemptGate, callerIp } from "./access-throttle.js"
+import { attemptGate, callerIp, throttleSecretFor } from "./access-throttle.js"
 import { errorResponse } from "./errors.js"
 import { exceedsLength, readJsonBody } from "./http.js"
 import { authorSessionMarker, normalizeDisplayName, verifyPin } from "./identity.js"
@@ -30,7 +31,8 @@ import {
   upsertCommenterSession,
   type SessionDeps,
 } from "./sessions.js"
-import type { PublicationStore } from "./store.js"
+import type { PublicationStore, WriteKind } from "./store.js"
+import { BOOK_READER_COMMENT_LIMIT, BOOK_READER_SESSION_LIMIT, writeAllowance } from "./write-throttle.js"
 
 export type CommentAppEnv = { Bindings: Env; Variables: PublicationVariables }
 
@@ -45,6 +47,10 @@ const TOO_MANY_ATTEMPTS_MESSAGE =
 
 const MISSING_SECRET_MESSAGE =
   "This worker has no MGMT_SECRET bound, so it cannot issue commenter sessions"
+
+const TOO_MANY_WRITES_MESSAGE = "You're writing faster than this book allows. Wait a minute and try again."
+
+const BOOK_FULL_MESSAGE = "This book can't take any more comments from readers."
 
 const NO_IDENTITY_MESSAGE =
   "Claim a display name with POST /p/:token/session before writing comments"
@@ -89,6 +95,35 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
 
   const publicationOf = (c: CommentContext): Publication => c.get("publication")
 
+  /** The author writes from the Studio with the book's secret and is never counted. */
+  const refuseReaderWrite = async (
+    c: CommentContext,
+    store: PublicationStore,
+    publication: Publication,
+    kinds: { client: WriteKind; session?: WriteKind },
+    sessionId?: string,
+  ): Promise<Response | null> => {
+    if (c.get("isAuthor")) return null
+    const secret = (await throttleSecretFor(c.env ?? {}, publication.token)) ?? c.env?.MGMT_SECRET
+    if (!secret) return null
+    const retryAfter = await writeAllowance(
+      {
+        store,
+        secret,
+        ip: callerIp(c.req.raw.headers),
+        token: publication.token,
+        now: new Date(deps.timestamp()),
+        ...(sessionId === undefined ? {} : { sessionId }),
+      },
+      kinds,
+    )
+    if (retryAfter === null) return null
+    c.header("Retry-After", String(retryAfter))
+    return errorResponse(c, "rate_limited", 429, TOO_MANY_WRITES_MESSAGE)
+  }
+
+  const commentWrite = { client: "comment-client", session: "comment-session" } as const
+
   app.post("/p/:token/session", async (c) => {
     const publication = publicationOf(c)
     const secret = c.env?.MGMT_SECRET
@@ -103,6 +138,15 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
 
     const store = deps.resolveStore(c.env)
     const existing = await storedCommenterFromCookie(c, store, publication.token)
+    if (
+      existing === null &&
+      !c.get("isAuthor") &&
+      (await store.countCommenterSessions(publication.token)) >= BOOK_READER_SESSION_LIMIT
+    ) {
+      return errorResponse(c, "rate_limited", 429, BOOK_FULL_MESSAGE)
+    }
+    const refused = await refuseReaderWrite(c, store, publication, { client: "session-client" })
+    if (refused) return refused
     const { name, pin } = body.data
 
     const outcome = await upsertCommenterSession({
@@ -145,7 +189,7 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
      *  attempt costs no work and its timing says nothing about how close the guess was. */
     const gate = await attemptGate({
       store,
-      secret,
+      secret: (await throttleSecretFor(c.env ?? {}, publication.token)) ?? secret,
       ip: callerIp(c.req.raw.headers),
       token: publication.token,
       kind: "pin",
@@ -194,14 +238,26 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
       return errorResponse(c, "invalid_request", 400, authorNameMessage())
     }
 
+    const after = query.data.cursor === undefined ? undefined : parseCursor(query.data.cursor)
+    if (after === null) {
+      return errorResponse(c, "invalid_request", 400, "Unknown cursor")
+    }
+
     const store = deps.resolveStore(c.env)
     const isAuthor = c.get("isAuthor")
-    const comments = await store.listComments({
+    const rows = await store.listComments({
       token: publication.token,
       ...(query.data.page_section_id === undefined
         ? {}
         : { pageSectionId: query.data.page_section_id }),
+      ...(query.data.version === undefined ? {} : { version: query.data.version }),
+      includeResolved: query.data.include_resolved ?? false,
+      includeDeleted: isAuthor,
+      ...(after === undefined ? {} : { after }),
+      limit: PUBLISH_COMMENT_LIST_PAGE_SIZE + 1,
     })
+    const comments = rows.slice(0, PUBLISH_COMMENT_LIST_PAGE_SIZE)
+    const last = comments.at(-1)
 
     const session = isAuthor
       ? ((await store.findAuthorSession(publication.token)) ??
@@ -209,12 +265,9 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
       : await commenterFromCookie(c, store, publication.token)
 
     const response: PublishCommentListResponse = {
-      comments: filterCommentThreads(comments, {
-        ...(query.data.version === undefined ? {} : { version: query.data.version }),
-        includeResolved: query.data.include_resolved ?? false,
-        includeDeleted: isAuthor,
-      }),
+      comments,
       session,
+      next_cursor: rows.length > comments.length && last ? cursorOf(last) : null,
     }
     return c.json(response)
   })
@@ -243,6 +296,12 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
     const { page_section_id, body: text, parent_id } = body.data
     const anchor = body.data.anchor ?? null
     const parentId = parent_id ?? null
+
+    if (!c.get("isAuthor") && (await store.countReaderComments(publication.token)) >= BOOK_READER_COMMENT_LIMIT) {
+      return errorResponse(c, "rate_limited", 429, BOOK_FULL_MESSAGE)
+    }
+    const refused = await refuseReaderWrite(c, store, publication, commentWrite, session.id)
+    if (refused) return refused
 
     if (parentId === null) {
       const version = await store.findVersion(publication.token, publication.current_version)
@@ -300,7 +359,7 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
       createdAt: deps.timestamp(),
     })
 
-    notifyRoom(c, publication.token, "comment-created", comment)
+    notifyRoom(c, publication, "comment-created", comment)
 
     const response: PublishCommentResponse = { comment }
     return c.json(response, 201)
@@ -347,6 +406,9 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
       )
     }
 
+    const refused = await refuseReaderWrite(c, store, publication, commentWrite, session.id)
+    if (refused) return refused
+
     const updated = await store.updateComment({
       token: publication.token,
       id: existing.id,
@@ -358,7 +420,7 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
       return errorResponse(c, "not_found", 404)
     }
 
-    notifyRoom(c, publication.token, "comment-updated", updated)
+    notifyRoom(c, publication, "comment-updated", updated)
 
     const response: PublishCommentResponse = { comment: updated }
     return c.json(response)
@@ -388,6 +450,9 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
       return errorResponse(c, "unauthorized", 401, "You can only delete your own comments")
     }
 
+    const refused = await refuseReaderWrite(c, store, publication, commentWrite, session.id)
+    if (refused) return refused
+
     const deleted = await store.softDeleteComment(
       publication.token,
       existing.id,
@@ -397,7 +462,7 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
       return errorResponse(c, "not_found", 404)
     }
 
-    notifyRoom(c, publication.token, "comment-deleted", deleted)
+    notifyRoom(c, publication, "comment-deleted", deleted)
 
     const response: PublishCommentResponse = { comment: deleted }
     return c.json(response)
@@ -442,11 +507,22 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
       return errorResponse(c, "not_found", 404)
     }
 
-    notifyRoom(c, publication.token, "comment-resolved", resolved)
+    notifyRoom(c, publication, "comment-resolved", resolved)
 
     const response: PublishCommentResponse = { comment: resolved }
     return c.json(response)
   })
+}
+
+/** `<created_at>|<id>` of the last row a page returned; neither part can contain a `|`. */
+function cursorOf(comment: PublishComment): string {
+  return `${comment.created_at}|${comment.id}`
+}
+
+function parseCursor(cursor: string): { createdAt: string; id: string } | null {
+  const [createdAt, id, ...rest] = cursor.split("|")
+  if (!createdAt || !id || rest.length > 0 || Number.isNaN(Date.parse(createdAt))) return null
+  return { createdAt, id }
 }
 
 const PARENT_MISSING_MESSAGE = "The parent comment does not exist in this publication"

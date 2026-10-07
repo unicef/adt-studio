@@ -5,6 +5,9 @@ import {
   COMMENTER_SESSION_COOKIE,
   COMMENTER_SESSION_MAX_AGE_SECONDS,
   PUBLISH_AUTHOR_NAME_HEADER,
+  PUBLISH_COMMENT_BODY_MAX_LENGTH,
+  PUBLISH_COMMENT_LIST_PAGE_SIZE,
+  PUBLISH_COMMENT_SELECTOR_MAX_LENGTH,
   type CommenterSession,
   type CommenterSessionResponse,
   type PublishComment,
@@ -12,9 +15,11 @@ import {
   type PublishCommentResponse,
 } from "@adt/types"
 import { createApp } from "./app.js"
-import { publishSnapshot } from "../test/fixtures.js"
+import { publishSnapshot, seedWrites } from "../test/fixtures.js"
 import { Hono } from "hono"
 import { issueSessionCookie } from "./sessions.js"
+import { READER_BODY_MAX_BYTES } from "./reader-routes.js"
+import { BOOK_READER_COMMENT_LIMIT, BOOK_READER_SESSION_LIMIT, WRITE_LIMITS } from "./write-throttle.js"
 
 const SECRET = "local-dev-secret"
 const BASE = "https://adt-publish.example.workers.dev"
@@ -1330,5 +1335,226 @@ describe("guessing a reviewer's PIN", () => {
       await claimIdentity(token, "Maria", "0000", "203.0.113.23")
     }
     expect((await claimIdentity(token, "Maria", "0000", "203.0.113.23")).status).toBe(429)
+  })
+})
+
+/** Every book shares one D1 database, so no reader may grow it, or a response, without bound. */
+describe("reader writes are bounded", () => {
+  const fromIp = (reviewer: Reviewer, ip: string, init: RequestInit): RequestInit =>
+    asReviewer(reviewer, { ...init, headers: { "cf-connecting-ip": ip } })
+
+  const post = (token: string, reviewer: Reviewer, ip: string, payload: Record<string, unknown>) =>
+    app().request(`${BASE}/p/${token}/comments`, fromIp(reviewer, ip, { method: "POST", body: JSON.stringify(payload) }), env)
+
+  const pin = (selector: string) => ({ ...ANCHOR, selector })
+
+  it("refuses a selector longer than a room cursor's, on create and on edit", async () => {
+    const token = await publish()
+    const maria = await claim(token, "Maria")
+    const longest = "#".padEnd(PUBLISH_COMMENT_SELECTOR_MAX_LENGTH, "a")
+
+    const full = await comment(token, maria, {
+      page_section_id: "pg001_sec001",
+      body: "x".repeat(PUBLISH_COMMENT_BODY_MAX_LENGTH),
+      anchor: pin(longest),
+    })
+    const created = await commentBody(full)
+    expect(created.anchor?.selector).toBe(longest)
+
+    const tooLong = await comment(token, maria, { page_section_id: "pg001_sec001", body: "Pin", anchor: pin(`${longest}a`) })
+    expect(tooLong.status).toBe(400)
+
+    const edit = await app().request(
+      `${BASE}/p/${token}/comments/${created.id}`,
+      asReviewer(maria, { method: "PATCH", body: JSON.stringify({ anchor: pin(`${longest}a`) }) }),
+      env,
+    )
+    expect(edit.status).toBe(400)
+  })
+
+  it("refuses an oversized request before reading it, with or without a Content-Length", async () => {
+    const token = await publish()
+    const maria = await claim(token, "Maria")
+    const padding = "x".repeat(READER_BODY_MAX_BYTES)
+    const payload = JSON.stringify({ page_section_id: "pg001_sec001", body: "Pin", padding })
+
+    const declared = await comment(token, maria, { page_section_id: "pg001_sec001", body: "Pin", padding })
+    expect(declared.status).toBe(413)
+
+    const bytes = new TextEncoder().encode(payload)
+    const streamed = new Request(`${BASE}/p/${token}/comments`, {
+      ...asReviewer(maria, { method: "POST" }),
+      body: new ReadableStream({
+        start(controller) {
+          for (let i = 0; i < bytes.length; i += 4096) controller.enqueue(bytes.slice(i, i + 4096))
+          controller.close()
+        },
+      }),
+      duplex: "half",
+    } as RequestInit)
+    expect((await app().request(streamed, undefined, env)).status).toBe(413)
+
+    const name = await app().request(
+      `${BASE}/p/${token}/session`,
+      { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "Ana", padding }) },
+      env,
+    )
+    expect(name.status).toBe(413)
+    expect((await list(token, null)).comments).toEqual([])
+  })
+
+  it("refuses one name's burst of comments, and counts edits and deletes with them", async () => {
+    const token = await publish()
+    const maria = await claim(token, "Maria")
+    const first = await commentBody(await post(token, maria, "198.51.100.1", { page_section_id: "pg001_sec001", body: "First" }))
+    await seedWrites(token, SECRET, { session: maria.session.id }, "comment-session", WRITE_LIMITS["comment-session"] - 3)
+
+    const edit = await app().request(`${BASE}/p/${token}/comments/${first.id}`, asReviewer(maria, { method: "PATCH", body: JSON.stringify({ body: "edited" }) }), env)
+    expect(edit.status).toBe(200)
+    const remove = await app().request(`${BASE}/p/${token}/comments/${first.id}`, asReviewer(maria, { method: "DELETE" }), env)
+    expect(remove.status).toBe(200)
+
+    const refused = await post(token, maria, "198.51.100.250", { page_section_id: "pg001_sec001", body: "one more" })
+    expect(refused.status).toBe(429)
+    expect(Number(refused.headers.get("retry-after"))).toBeGreaterThan(0)
+
+    const ana = await claim(token, "Ana")
+    expect((await post(token, ana, "198.51.100.250", { page_section_id: "pg001_sec001", body: "Hi" })).status).toBe(201)
+  })
+
+  it("refuses one address that keeps starting new names to write more", async () => {
+    const token = await publish()
+    const ip = "203.0.113.77"
+    await seedWrites(token, SECRET, { ip }, "comment-client", WRITE_LIMITS["comment-client"] - 1)
+
+    const fresh = await claim(token, "Fresh name")
+    expect((await post(token, fresh, ip, { page_section_id: "pg001_sec001", body: "Last" })).status).toBe(201)
+    const another = await claim(token, "Another fresh name")
+    expect((await post(token, another, ip, { page_section_id: "pg001_sec001", body: "Over" })).status).toBe(429)
+    expect((await post(token, another, "203.0.113.78", { page_section_id: "pg001_sec001", body: "Next door" })).status).toBe(201)
+  })
+
+  it("refuses one address that keeps starting new names, and never counts what it refused", async () => {
+    const token = await publish()
+    const ip = "203.0.113.88"
+    const start = (name: string, from: string) =>
+      app().request(
+        `${BASE}/p/${token}/session`,
+        { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": from }, body: JSON.stringify({ name }) },
+        env,
+      )
+    await seedWrites(token, SECRET, { ip }, "session-client", WRITE_LIMITS["session-client"] - 1)
+
+    expect((await start("Last", ip)).status).toBe(201)
+    for (let i = 0; i < 5; i += 1) expect((await start("Again", ip)).status).toBe(429)
+
+    const rows = await env.DB.prepare("SELECT COUNT(*) AS total FROM access_attempts WHERE token = ? AND kind = 'session-client'")
+      .bind(token)
+      .first<{ total: number }>()
+    expect(rows?.total).toBe(WRITE_LIMITS["session-client"])
+    expect((await start("Next door", "203.0.113.89")).status).toBe(201)
+  })
+
+  it("stops taking reader comments once a book holds its ceiling, but never the author's", async () => {
+    const token = await publish()
+    const maria = await claim(token, "Maria")
+    const insert = env.DB.prepare(
+      "INSERT INTO comments (id, token, version, page_section_id, parent_id, session_id, body, anchor, created_at, deleted_at) VALUES (?, ?, 1, 'pg001_sec001', NULL, ?, 'Pin', NULL, ?, ?)",
+    )
+    const rows = Array.from({ length: BOOK_READER_COMMENT_LIMIT - 1 }, (_, i) =>
+      insert.bind(`seed-${i}`, token, maria.session.id, "2026-08-03T11:00:00.000Z", i % 2 === 0 ? "2026-08-03T12:00:00.000Z" : null),
+    )
+    for (let i = 0; i < rows.length; i += 500) await env.DB.batch(rows.slice(i, i + 500))
+
+    expect((await comment(token, maria, { page_section_id: "pg001_sec001", body: "Last" })).status).toBe(201)
+    const full = await comment(token, maria, { page_section_id: "pg001_sec001", body: "One too many" })
+    expect(full.status).toBe(429)
+
+    const author = await app().request(
+      `${BASE}/p/${token}/comments`,
+      asAuthor({ method: "POST", body: JSON.stringify({ page_section_id: "pg001_sec001", body: "Still here" }) }),
+      env,
+    )
+    expect(author.status).toBe(201)
+  })
+
+  it("stops starting reader names once a book holds its ceiling, but still renames one it has", async () => {
+    const token = await publish()
+    const insert = env.DB.prepare(
+      "INSERT INTO sessions (id, token, name, color, is_author, created_at) VALUES (?, ?, ?, '#e5484d', 0, '2026-08-03T11:00:00.000Z')",
+    )
+    const rows = Array.from({ length: BOOK_READER_SESSION_LIMIT - 1 }, (_, i) => insert.bind(`seed-${i}`, token, `Seed ${i}`))
+    for (let i = 0; i < rows.length; i += 500) await env.DB.batch(rows.slice(i, i + 500))
+
+    const last = await claim(token, "Last")
+    expect((await session(token, { name: "Late" })).status).toBe(429)
+    expect((await session(token, { name: "Renamed" }, last.cookie)).status).toBe(201)
+  })
+
+  it("never counts the author", async () => {
+    const token = await publish()
+    for (let i = 0; i < WRITE_LIMITS["comment-session"] + 5; i += 1) {
+      const res = await app().request(
+        `${BASE}/p/${token}/comments`,
+        asAuthor({ method: "POST", body: JSON.stringify({ page_section_id: "pg001_sec001", body: `a${i}` }) }),
+        env,
+      )
+      expect(res.status).toBe(201)
+    }
+  })
+
+  it("pages a long list, and the pages hold every row exactly once", async () => {
+    const token = await publish()
+    const maria = await claim(token, "Maria")
+    const roots: string[] = []
+    for (let i = 0; i < PUBLISH_COMMENT_LIST_PAGE_SIZE + 5; i += 1) {
+      await env.DB.prepare(
+        "INSERT INTO comments (id, token, version, page_section_id, parent_id, session_id, body, anchor, created_at) VALUES (?, ?, 1, 'pg001_sec001', NULL, ?, 'Pin', NULL, ?)",
+      )
+        .bind(`root-${String(i).padStart(4, "0")}`, token, maria.session.id, `2026-08-03T11:00:${String(i % 60).padStart(2, "0")}.${String(i).padStart(3, "0")}Z`)
+        .run()
+      roots.push(`root-${String(i).padStart(4, "0")}`)
+    }
+    const lateReply = await commentBody(await comment(token, maria, { page_section_id: "pg001_sec001", body: "Late", parent_id: roots[0] }))
+
+    const first = await list(token, maria)
+    expect(first.comments).toHaveLength(PUBLISH_COMMENT_LIST_PAGE_SIZE)
+    expect(first.next_cursor).toEqual(expect.any(String))
+
+    const seen = [...first.comments.map((entry) => entry.id)]
+    let cursor = first.next_cursor
+    while (cursor) {
+      const page = await list(token, maria, `?cursor=${encodeURIComponent(cursor)}`)
+      seen.push(...page.comments.map((entry) => entry.id))
+      cursor = page.next_cursor
+    }
+    expect(seen.sort()).toEqual([...roots, lateReply.id].sort())
+
+    const sectionPage = await list(token, maria, "?page_section_id=pg001_sec001")
+    expect(sectionPage.comments).toHaveLength(PUBLISH_COMMENT_LIST_PAGE_SIZE)
+  })
+
+  it("answers a small book in one page with no cursor, and refuses a cursor it never issued", async () => {
+    const token = await publish()
+    const maria = await claim(token, "Maria")
+    await commentBody(await comment(token, maria, { page_section_id: "pg001_sec001", body: "Pin", anchor: ANCHOR }))
+
+    const page = await list(token, maria)
+    expect(page.comments).toHaveLength(1)
+    expect(page.next_cursor).toBeNull()
+
+    const bad = await app().request(`${BASE}/p/${token}/comments?cursor=not-a-cursor`, asReviewer(maria), env)
+    expect(bad.status).toBe(400)
+  })
+
+  it("still lists a pin stored before selectors were capped", async () => {
+    const token = await publish()
+    const maria = await claim(token, "Maria")
+    const created = await commentBody(await comment(token, maria, { page_section_id: "pg001_sec001", body: "Pin", anchor: ANCHOR }))
+    const legacy = { ...ANCHOR, selector: "#".padEnd(PUBLISH_COMMENT_SELECTOR_MAX_LENGTH * 2, "a") }
+    await env.DB.prepare("UPDATE comments SET anchor = ? WHERE id = ?").bind(JSON.stringify(legacy), created.id).run()
+
+    const page = await list(token, maria)
+    expect(page.comments[0]?.anchor?.selector).toBe(legacy.selector)
   })
 })
