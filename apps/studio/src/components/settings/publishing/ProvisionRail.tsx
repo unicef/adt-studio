@@ -24,6 +24,9 @@ export interface ProvisionRailProps {
     runningDetail?: string
   }
   errorContent?: ReactNode
+  /** Where the rail is the screen's only title — setup, once it starts — its headline is the
+   *  heading too, not just large text. */
+  headlineAsHeading?: boolean
 }
 
 export function ProvisionRail({
@@ -35,6 +38,7 @@ export function ProvisionRail({
   rootTestId,
   copy,
   errorContent,
+  headlineAsHeading = false,
 }: ProvisionRailProps) {
   const { i18n } = useLingui()
   const durations = useStepDurations(stepStates)
@@ -79,9 +83,13 @@ export function ProvisionRail({
           key={status}
           className="min-w-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-500"
         >
-          <p className="truncate text-base font-semibold tracking-tight text-foreground">
-            {headline}
-          </p>
+          {headlineAsHeading && headline ? (
+            <h2 className="truncate text-lg font-semibold tracking-tight text-foreground">{headline}</h2>
+          ) : (
+            <p className="truncate text-base font-semibold tracking-tight text-foreground">
+              {headline}
+            </p>
+          )}
           <p className="mt-0.5 text-sm leading-6 text-muted-foreground">{detail}</p>
         </div>
         <p className="shrink-0 text-xs tabular-nums text-muted-foreground">
