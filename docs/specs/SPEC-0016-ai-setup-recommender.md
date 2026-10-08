@@ -71,6 +71,13 @@ This first integration deliberately does not:
 - treat historical 15/18 agreement as model accuracy or as a deterministic acceptance
   target.
 
+The historical `15/18` figure is the selected PoC V1 configuration's agreement
+with a frozen benchmark of 18 manually validated setup decisions across four
+books (6 + 4 + 4 + 4). It is in-sample agreement with known-good manual
+configurations, not model accuracy or evidence of generalization, because the
+same books participated in prompt and Decision Spec iteration. See
+[PoC V1 evaluation].
+
 Pre-Create recommendation persistence and auditability are a known follow-up topic.
 They should be revisited before the feature is considered mature for production use.
 
@@ -189,7 +196,10 @@ Pass cancellation through the HTTP adapter and into the LLM `signal`; verify ser
 disconnect handling in the actual runtime. User/online-triggered fresh runs remain
 distinct from automatic retries within one recommendation attempt.
 
-Future provider/model selection is outside this spec.
+The first version supports only `openai:gpt-5.4-mini`. Later versions must make
+setup recommendation provider- and model-agnostic, following the same provider
+abstraction used by the rest of ADT's LLM features. Implementing that flexibility
+remains outside this spec.
 
 ### Shared contract
 
@@ -391,3 +401,4 @@ None blocking.
 
 [#930]: https://github.com/unicef/adt-studio/pull/930
 [adt-poc-llm PoC V1]: https://github.com/VictorBrasileiroo/adt-poc-llm/blob/fd367428b5ca9bf1c2d7df1d980fe02788c02d17/docs/POC_V1.md
+[PoC V1 evaluation]: https://github.com/VictorBrasileiroo/adt-poc-llm/blob/fd367428b5ca9bf1c2d7df1d980fe02788c02d17/docs/POC_V1.md#9-evaluation-and-selection
