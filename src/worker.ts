@@ -18,7 +18,7 @@
 //
 // Secrets: WEBHOOK_SECRET, APP_PRIVATE_KEY (PKCS#8 PEM).
 // Vars: APP_ID, BOT_LOGIN (<slug>[bot]), PROJECTS (comma-separated project node ids).
-import { api, graphql, installationToken, appJwt, verifySignature, type AppEnv } from './github'
+import { api, graphql, installationToken, appJwt, postComment, verifySignature, type AppEnv } from './github'
 import { blockLabel, blockName, blockOnMove, isBlockLabel, reconcileBlock, type Block } from './rules/blocks'
 import { columnFromStatusName } from './rules/flow'
 import { creditsFromComments, handoff } from './rules/handoff'
@@ -146,7 +146,7 @@ async function onMove(env: Env, installation: number, item: { node_id: string },
 
   const h = handoff({ from, to, assignees: card.assignees, mover, approvers: card.approvers, credits })
   console.log(`${card.repo}#${card.number} ${from} → ${to} by @${mover}: comment=${!!h.comment} unassign=[${h.unassign}] assign=[${h.assign}]`)
-  if (h.comment) await api(token, 'POST', `${issue}/comments`, { body: h.comment })
+  if (h.comment) await postComment(token, issue, h.comment, env.BOT_LOGIN)
   if (h.unassign.length) await api(token, 'DELETE', `${issue}/assignees`, { assignees: h.unassign })
   if (h.assign.length) await api(token, 'POST', `${issue}/assignees`, { assignees: h.assign })
 

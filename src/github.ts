@@ -32,7 +32,37 @@ export async function installationToken(env: AppEnv, installation: number) {
   return res.token
 }
 
-export async function api(token: string, method: string, path: string, body?: unknown): Promise<any> {
+// GitHub sometimes fails for a moment (502, 503, 504), rate-limits (429), or
+// drops the connection. Those are retried, a few times with a growing pause;
+// any other error is final. Retrying is safe for everything the bot does except
+// creating a comment, which `postComment` guards against posting twice.
+export const RETRY_DELAYS_MS = [500, 1500, 4000]
+const TRANSIENT = new Set([429, 502, 503, 504])
+
+export class GitHubError extends Error {
+  constructor(message: string, readonly status: number | null) {
+    super(message)
+  }
+  get transient() {
+    return this.status === null || TRANSIENT.has(this.status)
+  }
+}
+
+export async function api(token: string, method: string, path: string, body?: unknown, opts: { retry?: boolean } = {}): Promise<any> {
+  const delays = opts.retry === false ? [] : RETRY_DELAYS_MS
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await request(token, method, path, body)
+    } catch (err) {
+      const e = err instanceof GitHubError ? err : new GitHubError(`${method} ${path}: ${(err as Error).message}`, null)
+      if (!e.transient || attempt >= delays.length) throw e
+      console.warn(`${e.message.slice(0, 120)}; retrying (${attempt + 1}/${delays.length})`)
+      await new Promise((r) => setTimeout(r, delays[attempt]))
+    }
+  }
+}
+
+async function request(token: string, method: string, path: string, body?: unknown): Promise<any> {
   const res = await fetch(`https://api.github.com${path}`, {
     method,
     headers: {
@@ -45,11 +75,28 @@ export async function api(token: string, method: string, path: string, body?: un
     body: body ? JSON.stringify(body) : undefined,
   })
   const text = await res.text()
-  if (!res.ok) throw new Error(`${method} ${path}: ${res.status} ${text.slice(0, 300)}`)
+  if (!res.ok) throw new GitHubError(`${method} ${path}: ${res.status} ${text.slice(0, 300)}`, res.status)
   // Webhook delivery ids do not fit in a JS number: keep long ids as strings.
   const json = text ? JSON.parse(text.replace(/"id":(\d{16,})/g, '"id":"$1"')) : null
-  if (json?.errors?.length) throw new Error(`${path}: ${json.errors.map((e: { message: string }) => e.message).join('; ')}`)
+  if (json?.errors?.length) throw new GitHubError(`${path}: ${json.errors.map((e: { message: string }) => e.message).join('; ')}`, res.status)
   return json
+}
+
+// A 502 can mean GitHub created the comment but failed to say so; posting it
+// again would leave two. So after a transient failure, look for it first.
+export async function postComment(token: string, issuePath: string, body: string, author: string) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await api(token, 'POST', `${issuePath}/comments`, { body }, { retry: false })
+    } catch (err) {
+      if (!(err instanceof GitHubError) || !err.transient || attempt >= RETRY_DELAYS_MS.length) throw err
+      await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]))
+      const recent = (await api(token, 'GET', `${issuePath}/comments?per_page=10&sort=created&direction=desc`)) as { body: string; user: { login: string } | null }[]
+      const posted = recent.find((c) => c.user?.login === author && c.body === body)
+      if (posted) return posted
+      console.warn(`POST ${issuePath}/comments failed (${err.status}) and the comment is not there; posting again`)
+    }
+  }
 }
 
 export async function graphql(token: string, query: string, variables: Record<string, unknown>) {

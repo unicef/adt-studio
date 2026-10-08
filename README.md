@@ -28,6 +28,7 @@ Card moved on #46 ──projects_v2_item webhook──▶ Worker (src/worker.ts)
 
 - **The webhook says who moved the card and from where to where**, so the bot keeps no state: past credits ("Spec done by @ana") are read back from hidden markers in its own comments.
 - **It answers GitHub at once** and does the work just after (GitHub waits 10 s at most).
+- **GitHub's own hiccups are retried**: a 502/503/504, a rate limit or a dropped connection is tried again up to three times. A comment is first looked for before being sent again, so it is never posted twice.
 - **Once an hour** (Cloudflare cron) it redelivers deliveries that failed in the last two hours, and puts back in step any card whose Block field and `block:` label differ.
 - **No personal token**: everything is done as the App, with its permissions, on the repos it is installed on.
 
