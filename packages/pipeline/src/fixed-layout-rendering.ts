@@ -517,15 +517,15 @@ export function processFixedLayoutPages(
     const posTextRow = storage.getLatestNodeData("positioned-text", page.pageId)
     const positionedText = posTextRow ? (posTextRow.data as PositionedTextOutput) : null
 
-    // Viewport comes from the positioned-text extraction (authoritative PDF
-    // page dimensions). Fall back to the page render's pixel size only when
-    // no positioned text was extracted at all.
-    const viewport = positionedText
-      ? { width: Math.round(positionedText.pageWidth), height: Math.round(positionedText.pageHeight) }
-      : pageRender
-        ? { width: pageRender.width, height: pageRender.height }
-        : null
-    if (!viewport) continue
+    // Every drawable — text AND images — comes from `positioned-text`, so a page
+    // without it can only ever render empty. Skip it rather than replacing a
+    // page that already renders (an imported fixed-layout book, or one whose
+    // extraction ran under a reflowable config) with a blank `#content`.
+    if (!positionedText) continue
+    const viewport = {
+      width: Math.round(positionedText.pageWidth),
+      height: Math.round(positionedText.pageHeight),
+    }
 
     const drawItems: DrawItem[] = positionedText?.drawItems ?? []
     totalDrawItems += drawItems.length

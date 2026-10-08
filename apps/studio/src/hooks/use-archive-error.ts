@@ -20,6 +20,20 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
   if (!rawError) return null
   const e = rawError.toLowerCase()
 
+  if (e.includes("size limit") || e.includes("exceeds the size")) {
+    return {
+      title: t`This archive is too large`,
+      hint: t`ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again.`,
+    }
+  }
+
+  if (e.includes("read-only distribution format") || e.includes("cannot be re-imported yet")) {
+    return {
+      title: t`This export format can't be re-imported yet`,
+      hint: t`EPUB, PNLD, and WebPub are read-only distribution formats. Re-import the ADT Web ZIP or a Project backup instead.`,
+    }
+  }
+
   // Order matters: more specific phrases are checked before broader ones.
   if (e.includes("invalid zip file") || e.includes("valid .zip archive")) {
     return {
@@ -32,6 +46,20 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
     return {
       title: t`This isn't a completed part`,
       hint: t`Export the finished part from its Export step, then upload that file.`,
+    }
+  }
+
+  if (e.includes("legacy adt export") || e.includes("recognized legacy adt studio export")) {
+    return {
+      title: t`This legacy ADT export is incomplete`,
+      hint: t`ADT Studio recognized the publication, but required book files are missing or inconsistent. Open the error details to see what must be repaired.`,
+    }
+  }
+
+  if (e.includes("already being edited") || e.includes("database is locked")) {
+    return {
+      title: t`This project is busy`,
+      hint: t`Wait for the current operation to finish, then try the import again.`,
     }
   }
 
@@ -77,6 +105,18 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
     return {
       title: t`This archive can't be opened safely`,
       hint: t`It contains unexpected file paths. Use a .zip exported from ADT Studio.`,
+    }
+  }
+
+  if (
+    e.includes("adt bundle") ||
+    e.includes("manifest.json") ||
+    e.includes("invalid shape") ||
+    e.includes("offline cache")
+  ) {
+    return {
+      title: t`This isn't an editable ADT bundle`,
+      hint: t`Choose a Web Export ZIP created by a current version of ADT Studio.`,
     }
   }
 
