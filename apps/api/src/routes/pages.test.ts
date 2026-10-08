@@ -8,6 +8,13 @@ import { errorHandler } from "../middleware/error-handler.js"
 import { createPageRoutes } from "./pages.js"
 import type { TaskExecutor, TaskService } from "../services/task-service.js"
 
+const reRenderPageMock = vi.hoisted(() => vi.fn())
+vi.mock("../services/page-edit-service.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/page-edit-service.js")>()
+  reRenderPageMock.mockImplementation(actual.reRenderPage)
+  return { ...actual, reRenderPage: reRenderPageMock }
+})
+
 describe("Page routes", () => {
   let tmpDir: string
   let globalConfigPath: string
@@ -2037,6 +2044,57 @@ describe("Page routes", () => {
       expect(res.status).toBe(400)
       const body = await res.json()
       expect(body.error).toContain("out of range")
+    })
+
+    async function reRenderThroughTask(pageId: string): Promise<string[]> {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.markStepCompleted("web-rendering")
+        storage.markStepCompleted("image-captioning")
+      } finally {
+        storage.close()
+      }
+
+      let submittedExecutor: TaskExecutor | undefined
+      const taskService: TaskService = {
+        submitTask(_label, _kind, _description, executor) {
+          submittedExecutor = executor
+          return { taskId: "task-page" }
+        },
+        getActiveTasks: () => [],
+      }
+      const taskApp = new Hono()
+      taskApp.onError(errorHandler)
+      taskApp.route("/api", createPageRoutes(tmpDir, tmpDir, tmpDir, globalConfigPath, taskService))
+
+      reRenderPageMock.mockResolvedValueOnce({ version: 1, rendering: null })
+      const res = await taskApp.request(`/api/books/${label}/pages/${pageId}/re-render`, {
+        method: "POST",
+        headers: { "X-OpenAI-Key": "sk-test" },
+      })
+      expect(res.status).toBe(200)
+      await submittedExecutor!(() => {})
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        return verify.getStepRuns().map((run) => run.step)
+      } finally {
+        verify.close()
+      }
+    }
+
+    it("marks the Storyboard dependents stale after rendering a page that had no rendering", async () => {
+      const steps = await reRenderThroughTask(`${label}_p2`)
+
+      expect(steps).toContain("web-rendering")
+      expect(steps).not.toContain("image-captioning")
+    })
+
+    it("keeps the Storyboard dependents complete when re-rendering an already rendered page", async () => {
+      const steps = await reRenderThroughTask(`${label}_p1`)
+
+      expect(steps).toContain("web-rendering")
+      expect(steps).toContain("image-captioning")
     })
   })
 
