@@ -1,31 +1,20 @@
 import { COLUMN_BY_ID, columnIndex } from './flow'
 
 // Blocks (sprints) are the iterations of the Project's "Block" field. A card's
-// block says when the work is planned:
+// block says when its work is planned, and it lives on the Project only (the
+// issue gets no label), the way the V1 board kept its Iteration:
 //
-//   - set by hand, on the Project's Block field or as a `block:` label
-//     (approve now, plan for B3); the field and the label are kept the same;
+//   - set by hand on the Block field while planning (approve now, plan for B3);
 //   - filled in with the current block when work starts on a card that has
 //     none, so nothing runs outside a block;
 //   - cleared when the card goes back to the Inbox.
 //
-// Approving does not set a block: approved and unscheduled is fine.
-// `label:"block: B2"` finds a block's work anywhere on GitHub, and the
+// Approving does not set a block: approved and unscheduled is fine. The
 // Project's `block:@current` filter follows the calendar.
 
 export type Block = { title: string; startDate: string; duration: number }
 
 const DAY = 86_400_000
-export const BLOCK_PREFIX = 'block:'
-
-// "block: B2" stays as is; "Iteration 3" becomes "block: Iteration 3".
-export function blockLabel(title: string) {
-  return title.toLowerCase().startsWith(BLOCK_PREFIX) ? title : `${BLOCK_PREFIX} ${title}`
-}
-
-export function isBlockLabel(name: string) {
-  return name.toLowerCase().startsWith(BLOCK_PREFIX)
-}
 
 function span(b: Block) {
   const start = Date.parse(`${b.startDate}T00:00:00Z`)
@@ -57,29 +46,4 @@ export function blockOnMove(i: { from: string; to: string; block: string | null;
     return b ? blockName(b.title) : undefined
   }
   return undefined
-}
-
-// The Project's Block field and the issue's `block:` label say the same.
-// The field wins when both are set (it is what people edit while planning);
-// a label alone fills the field in.
-export function reconcileBlock(i: { field: string | null; labels: string[] }) {
-  const labels = i.labels.filter(isBlockLabel)
-  const want = i.field ? blockName(i.field) : labels[0] ? blockName(labels[0]) : null
-  const label = want ? blockLabel(want) : null
-  return {
-    block: want,
-    field: want && (!i.field || blockName(i.field) !== want) ? want : undefined,
-    addLabel: label && !labels.some((l) => l.toLowerCase() === label.toLowerCase()) ? label : null,
-    removeLabels: labels.filter((l) => !label || l.toLowerCase() !== label.toLowerCase()),
-  }
-}
-
-// The block a card was committed in has ended and the card is still open:
-// it carried over. The label stays, so the slip is visible.
-export function carriedOver(labels: string[], blocks: Block[], now = Date.now()) {
-  const label = labels.find(isBlockLabel)
-  if (!label) return null
-  const b = blocks.find((x) => blockLabel(x.title).toLowerCase() === label.toLowerCase())
-  if (!b || span(b).end > now) return null
-  return { label, title: b.title.replace(/^block:\s*/i, '') }
 }

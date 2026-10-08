@@ -72,18 +72,15 @@ A few consequences worth knowing:
 
 ### Blocks (sprints)
 
-The Project's **Block** field says which block a card's work is planned in. The bot keeps a matching `block:` label on the issue (e.g. `block: B3`), so `label:"block: B3"` finds a block's work anywhere on GitHub.
+The Project's **Block** field says which block a card's work is planned in. It lives **on the Project only**, the way the V1 board kept its Iteration: the issue itself gets no label and does not change. To see a block's work, use the Project's views and filters (`block:@current`, `block:B3`, `no:block`, or a view grouped by Block).
 
 | When… | The bot… |
 |---|---|
-| work **starts** (a card enters Specing, Doing or Reviewing going forward) and the card has **no block** | gives it the **current** block, field and label |
+| work **starts** (a card enters Specing, Doing or Reviewing going forward) and the card has **no block** | gives it the **current** block |
 | the card already has a block (planned ahead, e.g. B3) | leaves it alone, even if work starts early |
 | the card goes back to the **Inbox** | clears its block |
-| someone sets the **Block field** by hand | copies it to the label straight away |
-| someone clears the **Block field** by hand | removes the label straight away |
-| someone adds a **`block:` label** by hand | fills in the Block field within the hour |
-| the field and the label disagree | the field wins |
-| a block ends with the card still open | keeps it: the card shows as carried over |
+| someone sets or clears the **Block field** by hand | leaves it: that is planning |
+| a block ends with the card still open | keeps it: the card shows as carried over (a block in the past) |
 
 **Approving does not set a block.** Approve now, plan for B3 later.
 

@@ -23,13 +23,13 @@ Card moved on #46 ──projects_v2_item webhook──▶ Worker (src/worker.ts)
                                                   │    and the bot's earlier comments (past credits)
                                                   │ 5. apply the rules (src/rules/)
                                                   ▼
-                              comment / assign / unassign / block label + field, as <app>[bot]
+                              comment / assign / unassign / Block field, as <app>[bot]
 ```
 
 - **The webhook says who moved the card and from where to where**, so the bot keeps no state: past credits ("Spec done by @ana") are read back from hidden markers in its own comments.
 - **It answers GitHub at once** and does the work just after (GitHub waits 10 s at most).
 - **GitHub's own hiccups are retried**: a 502/503/504, a rate limit or a dropped connection is tried again up to three times. A comment is first looked for before being sent again, so it is never posted twice.
-- **Once an hour** (Cloudflare cron) it redelivers deliveries that failed in the last two hours, and puts back in step any card whose Block field and `block:` label differ.
+- **Once an hour** (Cloudflare cron) it redelivers deliveries that failed in the last two hours.
 - **No personal token**: everything is done as the App, with its permissions, on the repos it is installed on.
 
 | Path | What |
@@ -38,7 +38,7 @@ Card moved on #46 ──projects_v2_item webhook──▶ Worker (src/worker.ts)
 | `src/github.ts` | signature check, App authentication, API calls |
 | `src/rules/flow.ts` | the columns; their names must match the Project's Status options |
 | `src/rules/handoff.ts` | who is credited, assigned and unassigned, and the comment text |
-| `src/rules/blocks.ts` | the sprint block rules |
+| `src/rules/blocks.ts` | the sprint block rules (Project's Block field only; issues get no label) |
 | `wrangler.jsonc` | the Worker's name, schedule and settings (App ID, bot name, Project) |
 | `scripts/app.mjs` | checks a deployment as the App: its setup, the webhook deliveries, a resent ping |
 | `assets/avatar.png` | the Backlog Wizard icon, also the App's logo on GitHub |

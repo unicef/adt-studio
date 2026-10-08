@@ -26,12 +26,12 @@ No personal access token is involved: everything the bot does is done, and shown
 
 | The App can | The App cannot |
 |---|---|
-| comment on, label and assign **adt-studio** issues | read or change **code**: no Contents permission, so no pushes, branches, tags or releases |
+| comment on and assign **adt-studio** issues (it never adds labels) | read or change **code**: no Contents permission, so no pushes, branches, tags or releases |
 | read pull requests (to see who approved) | start workflows or releases (no Actions permission) |
 | read and edit **Projects** fields (to set the Block field) | touch any other unicef repo (installed on adt-studio only) |
 | receive events when a card changes on an org Project | act as a person: everything shows as the bot |
 
-**One thing to be aware of.** GitHub's Projects belong to the org, not to a repo, so the Projects permission and its event are **org-wide**: the App receives card events from **every** unicef Project, private ones included, and could read them. The Worker drops every event that is not from #46 before doing anything with it, but those events do reach the Worker's Cloudflare account. If you prefer, the App can have **Projects: Read-only** instead: the bot then never edits any Project, and only sets the `block:` label (people set the Block field by hand). Everything else works the same.
+**One thing to be aware of.** GitHub's Projects belong to the org, not to a repo, so the Projects permission and its event are **org-wide**: the App receives card events from **every** unicef Project, private ones included, and could read them. The Worker drops every event that is not from #46 before doing anything with it, but those events do reach the Worker's Cloudflare account. If you prefer, the App can have **Projects: Read-only** instead: the bot then never edits any Project, so it cannot fill in the Block field when work starts (people set it by hand). Everything else works the same.
 
 ## Before you start
 

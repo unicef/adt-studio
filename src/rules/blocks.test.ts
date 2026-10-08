@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { blockLabel, blockName, blockOnMove, carriedOver, currentBlock, reconcileBlock, type Block } from './blocks'
+import { blockName, blockOnMove, currentBlock, type Block } from './blocks'
 
 // Blocks as they are on the Projects, September to October 2026.
 const blocks: Block[] = [
@@ -16,10 +16,9 @@ describe('blocks', () => {
     expect(currentBlock(blocks, Date.parse('2026-12-01T00:00:00Z'))).toBeUndefined()
   })
 
-  it('names labels the way the Projects name their blocks', () => {
-    expect(blockLabel('block: B2')).toBe('block: B2')
-    expect(blockLabel('B2')).toBe('block: B2')
+  it('reads "block: B2" and "B2" as the same block', () => {
     expect(blockName('block: B2')).toBe('B2')
+    expect(blockName('B2')).toBe('B2')
   })
 })
 
@@ -43,32 +42,5 @@ describe('blockOnMove', () => {
 
   it('does nothing when a card moves back for changes', () => {
     expect(blockOnMove({ from: 'reviewing', to: 'doing', block: null, blocks }, now)).toBeUndefined()
-  })
-})
-
-describe('reconcileBlock', () => {
-  it('copies the field to the label', () => {
-    expect(reconcileBlock({ field: 'B3', labels: ['lane: fast'] })).toEqual({ block: 'B3', field: undefined, addLabel: 'block: B3', removeLabels: [] })
-  })
-
-  it('fills the field in from a label set by hand', () => {
-    expect(reconcileBlock({ field: null, labels: ['block: B3'] })).toEqual({ block: 'B3', field: 'B3', addLabel: null, removeLabels: [] })
-  })
-
-  it('lets the field win when they disagree', () => {
-    expect(reconcileBlock({ field: 'RC1', labels: ['block: B3'] })).toEqual({ block: 'RC1', field: undefined, addLabel: 'block: RC1', removeLabels: ['block: B3'] })
-  })
-
-  it('does nothing when they already agree, or neither is set', () => {
-    expect(reconcileBlock({ field: 'B2', labels: ['block: B2'] })).toEqual({ block: 'B2', field: undefined, addLabel: null, removeLabels: [] })
-    expect(reconcileBlock({ field: null, labels: [] })).toEqual({ block: null, field: undefined, addLabel: null, removeLabels: [] })
-  })
-})
-
-describe('carriedOver', () => {
-  it('says when planned work carried over from a finished block', () => {
-    expect(carriedOver(['block: B1'], blocks, now)).toEqual({ label: 'block: B1', title: 'B1' })
-    expect(carriedOver(['block: B2'], blocks, now)).toBeNull()
-    expect(carriedOver(['lane: fast'], blocks, now)).toBeNull()
   })
 })

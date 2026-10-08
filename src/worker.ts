@@ -5,21 +5,20 @@
 //
 //   - a Status move runs the hand-off rules (rules/handoff.ts): credit and
 //     unassign whoever finished a stage, assign whoever picked the card up,
-//     tell the story at Done; and the block rules (rules/blocks.ts);
-//   - a Block edit by a person copies the block to the issue's `block:` label.
+//     tell the story at Done; and the block rules (rules/blocks.ts), which
+//     only ever touch the Project's Block field, never the issue.
 //
 // The webhook says who moved the card (sender) and from where to where, so the
 // bot keeps no state: past credits are read back from its own comments.
 // Everything it writes shows as the App (<slug>[bot]), with the App's
 // permissions, on the repos it is installed on. See docs/FLOW.md.
 //
-// Hourly it asks GitHub to redeliver deliveries that failed, and puts back in
-// step any card whose Block field and `block:` label differ.
+// Hourly it asks GitHub to redeliver deliveries that failed.
 //
 // Secrets: WEBHOOK_SECRET, APP_PRIVATE_KEY (PKCS#8 PEM).
 // Vars: APP_ID, BOT_LOGIN (<slug>[bot]), PROJECTS (comma-separated project node ids).
 import { api, graphql, installationToken, appJwt, postComment, verifySignature, type AppEnv } from './github'
-import { blockLabel, blockName, blockOnMove, isBlockLabel, reconcileBlock, type Block } from './rules/blocks'
+import { blockName, blockOnMove, type Block } from './rules/blocks'
 import { columnFromStatusName } from './rules/flow'
 import { creditsFromComments, handoff } from './rules/handoff'
 
@@ -66,8 +65,7 @@ export default {
     }
 
     const change = e.changes?.field_value
-    if (change?.field_name === BLOCK_FIELD) return run('Block edited: syncing the label', onBlockEdit(env, e.installation.id, item))
-    if (change?.field_name !== STATUS_FIELD) return new Response('Ignored: not Status or Block', { status: 202 })
+    if (change?.field_name !== STATUS_FIELD) return new Response('Ignored: not a Status move', { status: 202 })
     const from = columnFromStatusName(change.from?.name)?.id
     const to = columnFromStatusName(change.to?.name)?.id
     if (!from || !to || from === to) return new Response(`Ignored: ${change.from?.name ?? 'none'} → ${change.to?.name ?? 'none'}`, { status: 202 })
@@ -76,7 +74,6 @@ export default {
 
   async scheduled(_controller: unknown, env: Env) {
     await redeliverFailed(env)
-    await reconcileBlocks(env)
   },
 }
 
@@ -94,7 +91,6 @@ const CARD = `query($item: ID!) {
       iterations { id title startDate duration } completedIterations { id title startDate duration } } } } }
     content { ... on Issue { number state repository { nameWithOwner }
       assignees(first: 20) { nodes { login } }
-      labels(first: 50) { nodes { name } }
       closedByPullRequestsReferences(first: 10, includeClosedPrs: true) { nodes { reviews(states: APPROVED, first: 20) { nodes { author { login } } } } } } } } } }`
 
 type Card = {
@@ -104,7 +100,6 @@ type Card = {
   open: boolean
   repo: string // owner/name
   assignees: string[]
-  labels: string[]
   approvers: string[]
   block: string | null // the Block field
   blockField: { id: string; iterations: (Block & { id: string })[] } | null
@@ -122,7 +117,6 @@ async function readCard(token: string, itemId: string): Promise<Card | null> {
     open: issue.state === 'OPEN',
     repo: issue.repository.nameWithOwner,
     assignees: issue.assignees.nodes.map((a: { login: string }) => a.login),
-    labels: issue.labels.nodes.map((l: { name: string }) => l.name),
     approvers: [...new Set<string>(issue.closedByPullRequestsReferences.nodes.flatMap((pr: any) => pr.reviews.nodes.map((r: any) => r.author?.login).filter(Boolean)))],
     block: item.block?.title ?? null,
     blockField: f?.configuration ? { id: f.id, iterations: [...f.configuration.completedIterations, ...f.configuration.iterations] } : null,
@@ -150,45 +144,19 @@ async function onMove(env: Env, installation: number, item: { node_id: string },
   if (h.unassign.length) await api(token, 'DELETE', `${issue}/assignees`, { assignees: h.unassign })
   if (h.assign.length) await api(token, 'POST', `${issue}/assignees`, { assignees: h.assign })
 
-  const current = card.block ?? card.labels.find(isBlockLabel) ?? null
-  const next = blockOnMove({ from, to, block: current ? blockName(current) : null, blocks: card.blockField?.iterations ?? [] })
-  if (next !== undefined) await setBlock(token, card, next, { field: true })
-}
-
-// Someone set or cleared the Block field by hand: the label follows. (Hourly,
-// the label wins over an empty field, so a clear has to be copied right away.)
-async function onBlockEdit(env: Env, installation: number, item: { node_id: string }) {
-  const token = await installationToken(env, installation)
-  const card = await readCard(token, item.node_id)
-  if (!card?.open) return
-  if (card.block === null) await setBlock(token, card, null, { field: false })
-  else await reconcileCard(token, card)
+  const next = blockOnMove({ from, to, block: card.block ? blockName(card.block) : null, blocks: card.blockField?.iterations ?? [] })
+  if (next !== undefined) await setBlock(token, card, next)
 }
 
 // ---------------------------------------------------------------------------
-// Blocks: the Block field and the `block:` label say the same
+// Blocks live on the Project only: the card's Block field. The issue is not
+// touched (no label), the way the V1 board kept its Iteration.
 
-async function reconcileCard(token: string, card: Card) {
-  const r = reconcileBlock({ field: card.block, labels: card.labels })
-  if (r.field !== undefined || r.addLabel || r.removeLabels.length) await setBlock(token, card, r.block, { field: r.field !== undefined })
-}
-
-async function setBlock(token: string, card: Card, name: string | null, opts: { field: boolean }) {
-  const issue = `/repos/${card.repo}/issues/${card.number}`
-  const want = name ? blockLabel(name) : null
-  for (const l of card.labels.filter((l) => isBlockLabel(l) && l.toLowerCase() !== want?.toLowerCase())) {
-    await api(token, 'DELETE', `${issue}/labels/${encodeURIComponent(l)}`)
-  }
-  if (want && !card.labels.some((l) => l.toLowerCase() === want.toLowerCase())) {
-    await api(token, 'POST', `/repos/${card.repo}/labels`, { name: want, color: 'c5def5', description: 'Sprint block this work is planned in' }).catch(() => {
-      // 422: the label already exists in the repo.
-    })
-    await api(token, 'POST', `${issue}/labels`, { labels: [want] })
-  }
-  console.log(`${card.repo}#${card.number} block → ${name ?? 'none'}${opts.field ? ' (label and field)' : ' (label)'}`)
-  if (!opts.field || !card.blockField) return
+async function setBlock(token: string, card: Card, name: string | null) {
+  if (!card.blockField) return
   const iteration = name ? card.blockField.iterations.find((b) => blockName(b.title).toLowerCase() === name.toLowerCase()) : null
-  if (name && !iteration) return // a block the Project does not have: label only
+  if (name && !iteration) return // a block the Project does not have
+  console.log(`${card.repo}#${card.number} block → ${name ?? 'none'}`)
   await graphql(
     token,
     iteration
@@ -212,33 +180,5 @@ async function redeliverFailed(env: Env) {
     if (Date.parse(d.delivered_at) < since || handled.has(d.guid)) continue
     handled.add(d.guid)
     await api(jwt, 'POST', `/app/hook/deliveries/${d.id}/attempts`).catch((err) => console.error(`redeliver ${d.guid}: ${(err as Error).message}`))
-  }
-}
-
-// A `block:` label added by hand fills the Block field in; the bot hears no
-// event for labels, so it looks once an hour.
-async function reconcileBlocks(env: Env) {
-  const jwt = await appJwt(env)
-  for (const inst of (await api(jwt, 'GET', '/app/installations')) as { id: number }[]) {
-    const token = await installationToken(env, inst.id)
-    for (const projectId of projects(env)) {
-      let after: string | null = null
-      do {
-        const page: any = await graphql(
-          token,
-          `query($p: ID!, $after: String) { node(id: $p) { ... on ProjectV2 { items(first: 100, after: $after) {
-            pageInfo { hasNextPage endCursor } nodes { id content { ... on Issue { state } } } } } } }`,
-          { p: projectId, after },
-        ).catch(() => null) // a Project this installation cannot see
-        const items = page?.node?.items
-        if (!items) break
-        for (const it of items.nodes) {
-          if (it.content?.state !== 'OPEN') continue
-          const card = await readCard(token, it.id)
-          if (card) await reconcileCard(token, card).catch((err) => console.error(`${card.repo}#${card.number} block: ${(err as Error).message}`))
-        }
-        after = items.pageInfo.hasNextPage ? items.pageInfo.endCursor : null
-      } while (after)
-    }
   }
 }
