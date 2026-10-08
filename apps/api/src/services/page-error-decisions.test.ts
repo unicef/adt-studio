@@ -128,11 +128,43 @@ describe("page-error decisions broker", () => {
     expect(notified).toEqual(["pg001", "pg002"])
   })
 
-  it("clearForRun forgets skipped pages", () => {
+  it("keeps skipped pages after the run ends until clearSkippedPages", () => {
     const { bus } = withListener()
     const broker = createPageErrorDecisions(bus)
     broker.skipPages(LABEL, ["pg001"])
     broker.clearForRun(LABEL)
+    expect(broker.getSkippedPages(LABEL)).toEqual(["pg001"])
+    broker.clearSkippedPages(LABEL)
     expect(broker.getSkippedPages(LABEL)).toEqual([])
+  })
+
+  it("records web-rendering pages skipped from the error dialog", async () => {
+    const { bus } = withListener()
+    const broker = createPageErrorDecisions(bus)
+
+    const rendering = broker.requestDecision({ label: LABEL, step: "web-rendering", pageId: "pg001", error: "x" })
+    const sectioning = broker.requestDecision({ label: LABEL, step: "page-sectioning", pageId: "pg002", error: "x" })
+    for (const decision of broker.getPendingDecisions(LABEL)) {
+      broker.resolveDecision(decision.decisionId, "skip")
+    }
+    await expect(rendering).resolves.toBe("skip")
+    await expect(sectioning).resolves.toBe("skip")
+
+    expect(broker.getSkippedPages(LABEL)).toEqual(["pg001"])
+  })
+
+  it("records web-rendering pages auto-skipped by an apply-to-all policy", async () => {
+    const { bus } = withListener()
+    const broker = createPageErrorDecisions(bus)
+
+    const first = broker.requestDecision({ label: LABEL, step: "web-rendering", pageId: "pg001", error: "x" })
+    const [decision] = broker.getPendingDecisions(LABEL)
+    broker.resolveDecision(decision.decisionId, "skip", true)
+    await expect(first).resolves.toBe("skip")
+    await expect(
+      broker.requestDecision({ label: LABEL, step: "web-rendering", pageId: "pg002", error: "x" })
+    ).resolves.toBe("skip")
+
+    expect(broker.getSkippedPages(LABEL)).toEqual(["pg001", "pg002"])
   })
 })

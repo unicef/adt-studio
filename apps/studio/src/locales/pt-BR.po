@@ -7918,6 +7918,9 @@ msgstr "Raciocínio de renderização"
 msgid "Render Strategy"
 msgstr "Estratégia de renderização"
 
+msgid "Render this page"
+msgstr "Renderizar esta página"
+
 msgid "Rendering Prompt"
 msgstr "Prompt de renderização"
 
@@ -10016,6 +10019,9 @@ msgstr "Esta página não tem entradas de texto traduzíveis"
 
 msgid "This page has not been reviewed yet"
 msgstr "Esta página ainda não foi revisada"
+
+msgid "This page was skipped during storyboard rendering"
+msgstr "Esta página foi pulada durante a renderização do storyboard"
 
 msgid "This page will not be rendered in this run"
 msgstr "Esta página não será renderizada nesta execução"

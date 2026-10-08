@@ -691,6 +691,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           steps,
           stepMessages: stepMessages && Object.keys(stepMessages).length > 0 ? stepMessages : null,
           error: null,
+          skippedPages: stagesToClear.has("storyboard" as StageName) ? [] : base.skippedPages,
         }
       })
 

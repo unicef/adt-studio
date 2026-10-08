@@ -36,6 +36,7 @@ export interface PageErrorDecisions {
   skipPages(label: string, pageIds: string[]): void
   isPageSkipped(label: string, pageId: string): boolean
   getSkippedPages(label: string): string[]
+  clearSkippedPages(label: string): void
   onPageSkip(label: string, listener: (pageId: string) => void): () => void
 }
 
@@ -60,12 +61,23 @@ export function createPageErrorDecisions(
   const skippedPages = new Map<string, Set<string>>()
   const skipListeners = new Map<string, Set<(pageId: string) => void>>()
 
+  function markSkipped(label: string, pageId: string): void {
+    const skipped = skippedPages.get(label) ?? new Set<string>()
+    skippedPages.set(label, skipped)
+    skipped.add(pageId)
+  }
+
+  function recordRenderingSkip(label: string, step: string, pageId: string, action: PageErrorAction): void {
+    if (action === "skip" && step === "web-rendering") markSkipped(label, pageId)
+  }
+
   function finish(entry: PendingEntry, action: PageErrorAction): void {
     if (entry.resolved) return
     entry.resolved = true
     if (entry.safetyTimer) clearTimeout(entry.safetyTimer)
     if (entry.graceTimer) clearInterval(entry.graceTimer)
     pending.delete(entry.decisionId)
+    recordRenderingSkip(entry.label, entry.step, entry.pageId, action)
     entry.resolve(action)
   }
 
@@ -86,7 +98,10 @@ export function createPageErrorDecisions(
     requestDecision(input: RequestDecisionInput): Promise<PageErrorAction> {
       // Honor a previously chosen "apply to all" without prompting again.
       const bulk = bulkPolicy.get(input.label)
-      if (bulk) return Promise.resolve(bulk)
+      if (bulk) {
+        recordRenderingSkip(input.label, input.step, input.pageId, bulk)
+        return Promise.resolve(bulk)
+      }
 
       const decisionId = crypto.randomUUID()
       return new Promise<PageErrorAction>((resolve) => {
@@ -161,17 +176,14 @@ export function createPageErrorDecisions(
 
     clearForRun(label: string, action: PageErrorAction = "stop"): void {
       bulkPolicy.delete(label)
-      skippedPages.delete(label)
       for (const entry of [...pending.values()]) {
         if (entry.label === label) finish(entry, action)
       }
     },
 
     skipPages(label: string, pageIds: string[]): void {
-      const skipped = skippedPages.get(label) ?? new Set<string>()
-      skippedPages.set(label, skipped)
       const requested = new Set(pageIds)
-      for (const pageId of requested) skipped.add(pageId)
+      for (const pageId of requested) markSkipped(label, pageId)
       for (const entry of [...pending.values()]) {
         if (entry.label === label && requested.has(entry.pageId)) finish(entry, "skip")
       }
@@ -186,6 +198,10 @@ export function createPageErrorDecisions(
 
     getSkippedPages(label: string): string[] {
       return [...(skippedPages.get(label) ?? [])]
+    },
+
+    clearSkippedPages(label: string): void {
+      skippedPages.delete(label)
     },
 
     onPageSkip(label: string, listener: (pageId: string) => void): () => void {

@@ -1214,6 +1214,13 @@ export function StoryboardSectionDetail({
     }
   }
 
+  const renderSkippedPage = () => {
+    if (hasActiveTask || storyboardRunning || !hasStructuredTextProvider) return
+    api.reRenderPage(bookLabel, pageId, apiKey).catch((err) => {
+      setAiError(err instanceof Error ? err.message : t`Re-render failed`)
+    })
+  }
+
   // Manually trigger a re-render of the current section.
   // If there are pending rendering edits, diff them against the saved version
   // and inject structured instructions so the LLM preserves the user's changes.
@@ -2900,12 +2907,33 @@ export function StoryboardSectionDetail({
                 />
             )}
           </>
-        ) : storyboardRunning && !section?.isPruned && skippedPageIds.has(pageId) ? (
+        ) : !section?.isPruned && skippedPageIds.has(pageId) ? (
           <StageEmptyState
             icon={SkipForward}
             color="violet"
             title={t`Page skipped`}
-            subtitle={t`This page will not be rendered in this run`}
+            subtitle={
+              storyboardRunning
+                ? t`This page will not be rendered in this run`
+                : t`This page was skipped during storyboard rendering`
+            }
+            cta={
+              !storyboardRunning && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={renderSkippedPage}
+                  disabled={rerendering || !hasStructuredTextProvider}
+                >
+                  {rerendering ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                  )}
+                  {rerendering ? t`Re-rendering...` : t`Render this page`}
+                </Button>
+              )
+            }
           />
         ) : storyboardRunning && !section?.isPruned ? (
           <div className="flex h-full w-full flex-col items-center pb-8">

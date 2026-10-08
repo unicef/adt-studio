@@ -7920,6 +7920,9 @@ msgstr "Arsyetimi i Renderimit"
 msgid "Render Strategy"
 msgstr "Strategjia e Renderimit"
 
+msgid "Render this page"
+msgstr "Rendero këtë faqe"
+
 msgid "Rendering Prompt"
 msgstr "Kërkesa e Renderimit"
 
@@ -10018,6 +10021,9 @@ msgstr "Kjo faqe nuk ka hyrje teksti të përkthyeshme"
 
 msgid "This page has not been reviewed yet"
 msgstr "Kjo faqe nuk është rishikuar akoma"
+
+msgid "This page was skipped during storyboard rendering"
+msgstr "Kjo faqe u anashkalua gjatë renderimit të storyboard-it"
 
 msgid "This page will not be rendered in this run"
 msgstr "Kjo faqe nuk do të paraqitet në këtë ekzekutim"

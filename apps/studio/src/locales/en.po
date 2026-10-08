@@ -7918,6 +7918,9 @@ msgstr "Render Reasoning"
 msgid "Render Strategy"
 msgstr "Render Strategy"
 
+msgid "Render this page"
+msgstr "Render this page"
+
 msgid "Rendering Prompt"
 msgstr "Rendering Prompt"
 
@@ -10016,6 +10019,9 @@ msgstr "This page has no translatable text entries"
 
 msgid "This page has not been reviewed yet"
 msgstr "This page has not been reviewed yet"
+
+msgid "This page was skipped during storyboard rendering"
+msgstr "This page was skipped during storyboard rendering"
 
 msgid "This page will not be rendered in this run"
 msgstr "This page will not be rendered in this run"

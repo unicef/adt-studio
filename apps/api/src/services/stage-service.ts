@@ -102,6 +102,14 @@ export interface StageService {
 
 let nextId = 1
 
+function runIncludesStage(options: Pick<StageRunOptions, "fromStage" | "toStage">, stage: StageName): boolean {
+  const index = STAGE_ORDER.indexOf(stage)
+  return (
+    STAGE_ORDER.indexOf(options.fromStage as StageName) <= index &&
+    index <= STAGE_ORDER.indexOf(options.toStage as StageName)
+  )
+}
+
 export function createStageService(
   runner: StageRunner,
   eventBus: BookEventBus,
@@ -145,6 +153,8 @@ export function createStageService(
           }
         : undefined,
     }
+
+    if (runIncludesStage(options, "storyboard")) decisions?.clearSkippedPages(label)
 
     try {
       options.beforeRun?.()

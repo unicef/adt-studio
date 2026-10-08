@@ -7920,6 +7920,9 @@ msgstr "Raisonnement de rendu"
 msgid "Render Strategy"
 msgstr "Stratégie de rendu"
 
+msgid "Render this page"
+msgstr "Rendre cette page"
+
 msgid "Rendering Prompt"
 msgstr "Rendering Invite"
 
@@ -10018,6 +10021,9 @@ msgstr "Cette page n'a pas d'entrées de texte traduisibles"
 
 msgid "This page has not been reviewed yet"
 msgstr "Cette page n'a pas encore été révisée"
+
+msgid "This page was skipped during storyboard rendering"
+msgstr "Cette page a été ignorée lors du rendu du storyboard"
 
 msgid "This page will not be rendered in this run"
 msgstr "Cette page ne sera pas rendue lors de cette exécution"
