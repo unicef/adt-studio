@@ -240,12 +240,12 @@ export function PreviewAccessibilityCard({
         ? formatFindingCount(i18n,violationCount, incompleteCount)
         : t`No assessment`
 
-  const pageSummary = currentPage
-    ? formatPageSummary(i18n,currentPage)
-    : assessment
-      ? t`Open a page to see page-level findings`
-      : isLoading
-        ? t`Loading page-level findings`
+  const pageSummary = isLoading
+    ? t`Loading page-level findings`
+    : currentPage
+      ? formatPageSummary(i18n,currentPage)
+      : assessment
+        ? t`Open a page to see page-level findings`
         : t`Package preview to generate results`
 
   const expandedSummary = isLoading
@@ -367,10 +367,12 @@ export function PreviewAccessibilityCard({
 
       <div className="min-h-0 flex-1 overflow-auto px-4 pb-4 pt-3 text-sm">
         <AccessibilityCurrentPagePanel
-          page={currentPageResult}
-          summary={currentPage}
+          page={isLoading ? null : currentPageResult}
+          summary={isLoading ? null : currentPage}
           embedded
-          emptyMessage={t`Open a page in Preview to show its page-specific accessibility findings here.`}
+          emptyMessage={isLoading
+            ? t`Loading page-level findings`
+            : t`Open a page in Preview to show its page-specific accessibility findings here.`}
           onFindingHover={onFindingHover}
         />
       </div>

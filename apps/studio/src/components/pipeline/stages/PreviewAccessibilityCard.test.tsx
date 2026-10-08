@@ -188,4 +188,23 @@ describe("PreviewAccessibilityCard", () => {
     expect(screen.getAllByText("Manual review").length).toBeGreaterThan(0)
     expect(screen.queryByText(/^Issues$/)).toBeNull()
   })
+
+  it("hides the previous build's page findings while the new build is still being audited", async () => {
+    const { PreviewAccessibilityCard } = await import("./PreviewAccessibilityCard")
+
+    render(
+      <PreviewAccessibilityCard
+        label="demo-book"
+        assessment={assessment}
+        isLoading
+        error={null}
+        currentPage={currentPageSummary}
+        currentPageResult={currentPageResult}
+        panelOpen={false}
+      />,
+    )
+
+    expect(screen.getByText("Loading page-level findings")).toBeTruthy()
+    expect(screen.queryByText("Add alt text")).toBeNull()
+  })
 })

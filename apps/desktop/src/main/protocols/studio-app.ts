@@ -1,6 +1,6 @@
 import { readFile, stat } from "node:fs/promises";
 import * as path from "node:path";
-import { protocol } from "electron";
+import { net, protocol } from "electron";
 
 export const STUDIO_APP_HOST = "adt.studio";
 export const STUDIO_APP_ORIGIN = `app://${STUDIO_APP_HOST}`;
@@ -63,13 +63,47 @@ async function serveFile(filePath: string): Promise<Response> {
   });
 }
 
-export function registerStudioAppProtocol(rendererDistDir: string): void {
+const ADT_PREVIEW_PATH = /^\/api\/books\/[^/]+\/adt\//;
+
+/**
+ * The API URL a Studio-origin request for a packaged ADT preview proxies to,
+ * or null when the request is not one.
+ *
+ * Studio reads the preview iframe's document to follow page turns, highlight
+ * accessibility findings and jump to a page. Served straight from the API on
+ * `http://127.0.0.1:<port>` the iframe is cross-origin to `app://adt.studio`
+ * and every one of those reads is blocked, so the preview is routed through
+ * this origin instead. Only the bundle itself is proxied.
+ */
+export function resolvePreviewProxyUrl(
+  url: URL,
+  apiPort: number | null,
+): string | null {
+  if (!apiPort || !ADT_PREVIEW_PATH.test(url.pathname)) return null;
+  return `http://127.0.0.1:${apiPort}${url.pathname}${url.search}`;
+}
+
+export function registerStudioAppProtocol(
+  rendererDistDir: string,
+  getApiPort: () => number | null,
+): void {
   const root = rendererDistDir;
 
   protocol.handle("app", async (request) => {
     const url = new URL(request.url);
     if (url.hostname !== STUDIO_APP_HOST) {
       return new Response("Not Found", { status: 404 });
+    }
+
+    const previewUrl = resolvePreviewProxyUrl(url, getApiPort());
+    if (previewUrl) {
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        return new Response("Method Not Allowed", { status: 405 });
+      }
+      return net.fetch(previewUrl, {
+        method: request.method,
+        headers: request.headers,
+      });
     }
 
     let pathname = decodeURI(url.pathname);

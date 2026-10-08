@@ -52,8 +52,22 @@ export function resolveBaseUrl(
 export const BASE_URL =
   typeof window !== "undefined" ? resolveBaseUrl() : "/api"
 
+/**
+ * Base URL of the packaged ADT preview. The desktop app serves it through its
+ * own `app://` origin (the main process proxies it to the API) so Studio can
+ * read the preview iframe's document; from the API port it would be
+ * cross-origin.
+ */
+export function resolveAdtBaseUrl(
+  loc: Pick<Location, "protocol"> = window.location,
+): string {
+  if (isElectron() && loc.protocol === "app:") return "/api"
+  return resolveBaseUrl()
+}
+
 export function getAdtUrl(label: string): string {
-  return `${BASE_URL}/books/${label}/adt`
+  const base = typeof window !== "undefined" ? resolveAdtBaseUrl() : BASE_URL
+  return `${base}/books/${label}/adt`
 }
 
 export function getAudioUrl(
