@@ -34,7 +34,7 @@ async function api(path, method = 'GET') {
 }
 
 const [command, arg] = process.argv.slice(2)
-const deliveries = () => api('/app/hook/deliveries?per_page=20')
+const deliveries = (n = 20) => api(`/app/hook/deliveries?per_page=${n}`)
 
 if (command === 'info') {
   const app = await api('/app')
@@ -45,7 +45,8 @@ if (command === 'info') {
 } else if (command === 'deliveries') {
   for (const d of await deliveries()) console.log(`${d.delivered_at}  ${d.event}${d.action ? '.' + d.action : ''}  →  ${d.status_code} ${d.status}${d.redelivery ? '  (redelivery)' : ''}  id=${d.id}`)
 } else if (command === 'ping') {
-  const ping = (await deliveries()).find((d) => d.event === 'ping')
+  // Card moves pile up quickly: look far enough back to find the ping.
+  const ping = (await deliveries(100)).find((d) => d.event === 'ping')
   if (!ping) throw new Error('No ping delivery found: GitHub sends one when the webhook is set up.')
   await api(`/app/hook/deliveries/${ping.id}/attempts`, 'POST')
   console.log('Ping redelivered. In a few seconds, `deliveries` shows the answer: 200 means the URL and the secret are right.')
