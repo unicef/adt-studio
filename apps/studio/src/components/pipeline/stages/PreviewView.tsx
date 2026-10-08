@@ -55,6 +55,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   const [isSubmittingPackage, setIsSubmittingPackage] = useState(false)
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null)
   const [pendingVersion, setPendingVersion] = useState<string | null>(null)
+  const [awaitingAssessment, setAwaitingAssessment] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
   const [version, setVersion] = useState("0")
@@ -146,6 +147,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   const handlePreviewLoad = usePreviewPageSync(iframeRef, syncCurrentPreviewPage)
 
   const packaging = !ready && (isSubmittingPackage || isTaskRunning("package-adt"))
+  const assessmentPending = awaitingAssessment || isTaskRunning("package-adt")
 
   useEffect(() => {
     if (!pendingTaskId) return
@@ -163,6 +165,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
       ]).then(() => {
         setVersion(readPackageVersion(task.result) ?? createPreviewVersion())
         setReady(true)
+        setAwaitingAssessment(false)
         // Packaging skips rendered sections it cannot resolve a sectionId for.
         // The bundle is short but the task still succeeds, so without this the
         // omission is invisible.
@@ -172,6 +175,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
       setPendingTaskId(null)
       setPendingVersion(null)
       setIsSubmittingPackage(false)
+      setAwaitingAssessment(false)
       if (!ready) {
         setError(task.error ?? "Packaging failed")
       }
@@ -192,6 +196,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     setPendingVersion(null)
     setError(null)
     setReady(false)
+    setAwaitingAssessment(true)
     setCurrentPreviewPage({ sectionId: null, href: null, title: null, hasImages: false, hasActivity: false, signLanguageEnabled: false })
     let taskId: string | undefined
     try {
@@ -211,6 +216,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
         ])
         setVersion(result.version ?? createPreviewVersion())
         setReady(true)
+        setAwaitingAssessment(false)
         // A cache hit replays the warnings of the build that produced the
         // bundle on disk, so this branch omits exactly as much as the task one.
         toastPackagingWarnings(result, i18n)
@@ -218,6 +224,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Packaging failed")
       setIsSubmittingPackage(false)
+      setAwaitingAssessment(false)
     }
   }, [bookLabel, queryClient, i18n])
 
@@ -375,9 +382,9 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
         <PreviewAccessibilityCard
           label={bookLabel}
           assessment={assessment}
-          isLoading={assessmentLoading}
+          isLoading={assessmentLoading || assessmentPending}
           error={assessmentError ?? null}
-          currentPage={currentPageSummary ?? (currentPreviewPage.href ? {
+          currentPage={currentPageSummary ?? (assessment && currentPreviewPage.href ? {
             sectionId: currentPreviewPage.sectionId ?? currentPreviewPage.href,
             href: currentPreviewPage.href,
             title: currentPreviewPage.title,
