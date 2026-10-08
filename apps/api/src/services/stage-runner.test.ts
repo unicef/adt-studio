@@ -472,6 +472,7 @@ section_types:
       expect.objectContaining({ type: "step-start", step: "book-outline" }),
       expect.objectContaining({ type: "step-complete", step: "book-outline" }),
       expect.objectContaining({ type: "step-complete", step: "page-sectioning" }),
+      expect.objectContaining({ type: "stage-complete", stage: "sectioning" }),
     ]))
 
     const verified = createBookStorage("assembled", booksDir)
@@ -1150,6 +1151,86 @@ output_languages:
     } finally {
       storage.close()
     }
+  })
+})
+
+describe("createStageRunner Google image translation", () => {
+  let tmpDir: string
+  let translatedId: string
+  const fetchMock = vi.fn<typeof fetch>()
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "google-image-translation-"))
+    fs.writeFileSync(path.join(tmpDir, "config.yaml"), `
+structure_types: {}
+role_types: {}
+default_model: google:gemini-2.5-flash
+default_image_generation_model: google:gemini-3.1-flash-image
+output_languages: [fr, es]
+image_translation:
+  enabled: true
+  selected_image_ids: [pg001_im001]
+`)
+    fs.writeFileSync(path.join(tmpDir, "image_translation.liquid"), "Translate labels, preserving the diagram.")
+    seedCaptionBook(tmpDir, "image-book")
+    const storage = createBookStorage("image-book", tmpDir)
+    try {
+      fs.writeFileSync(path.join(tmpDir, "image-book", storage.getImageMeta("pg001_im001")!.relativePath), pngBuffer())
+      translatedId = storage.putTranslatedImage({
+        sourceImageId: "pg001_im001", pageId: "pg001", languageCode: "fr",
+        buffer: pngBuffer(), width: 4, height: 6,
+      })
+    } finally { storage.close() }
+    vi.stubEnv("OPENAI_API_KEY", "")
+    vi.stubEnv("GOOGLE_API_KEY", "")
+    vi.stubEnv("GOOGLE_GENERATIVE_AI_API_KEY", "")
+    fetchMock.mockReset().mockImplementation(async () => Response.json({ status: "completed", steps: [
+      { type: "model_output", content: [{ type: "image", mime_type: "image/png", data: pngBuffer().toString("base64") }] },
+    ] }))
+    vi.stubGlobal("fetch", fetchMock)
+  })
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+    vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
+  })
+
+  function run(credentials: Record<string, Record<string, string>>) {
+    return createStageRunner().run("image-book", {
+      booksDir: tmpDir, promptsDir: tmpDir, configPath: path.join(tmpDir, "config.yaml"),
+      fromStage: "translate", toStage: "translate", credentials,
+    }, { emit: () => undefined })
+  }
+
+  it("inherits the Google default, translates both target languages and reuses cached edits", async () => {
+    await run({ google: { apiKey: "google-test" } })
+    await run({ google: { apiKey: "google-test" } })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const prompts = fetchMock.mock.calls.map(([, init]) => {
+      expect(init!.headers).toHaveProperty("x-goog-api-key", "google-test")
+      const body = JSON.parse(init!.body as string)
+      expect(body.model).toBe("gemini-3.1-flash-image")
+      expect(body.input[1].data).toBe(pngBuffer().toString("base64"))
+      return body.input[0].text as string
+    })
+    expect(prompts.some((prompt) => prompt.includes("Target language: fr"))).toBe(true)
+    expect(prompts.some((prompt) => prompt.includes("Target language: es"))).toBe(true)
+    const storage = createBookStorage("image-book", tmpDir)
+    try {
+      for (const language of ["fr", "es"]) {
+        expect(storage.getImageDimensions(`pg001_im001_tr_${language}`)).toEqual({ width: 4, height: 6 })
+      }
+      expect(storage.getImageBase64("pg001_im001")).toBe(pngBuffer().toString("base64"))
+    } finally { storage.close() }
+  })
+
+  it("rejects a missing Google key before clearing existing translated images", async () => {
+    await expect(run({ openai: { apiKey: "irrelevant-openai-key" } })).rejects.toThrow('Provider "google" requires API key')
+    const storage = createBookStorage("image-book", tmpDir)
+    try { expect(storage.getImageBase64(translatedId)).toBe(pngBuffer().toString("base64")) }
+    finally { storage.close() }
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })
 

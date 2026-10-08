@@ -87,11 +87,13 @@ export function sanitizeMessages(messages: Message[]): LlmLogMessage[] {
 
 /**
  * Read width and height from a base64-encoded image (PNG or JPEG).
- * Only decodes enough bytes to find the header.
+ * Decodes the whole image: a JPEG's SOF marker can sit well past the first few
+ * KB (e.g. after a large ICC/EXIF/JFIF segment — Gemini output puts it near
+ * byte 6000), so reading a fixed prefix misses it and yields 0×0.
  */
 export function imageDimensions(base64: string): { width: number; height: number } {
   try {
-    const buf = Buffer.from(base64.slice(0, 6000), "base64")
+    const buf = Buffer.from(base64, "base64")
     if (buf.length < 4) return { width: 0, height: 0 }
 
     // PNG: bytes 0-3 = 0x89504E47, IHDR at 16 (width) and 20 (height)
@@ -100,13 +102,13 @@ export function imageDimensions(base64: string): { width: number; height: number
       return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) }
     }
 
-    // JPEG: bytes 0-1 = 0xFFD8, scan for SOF0/SOF2 marker
+    // JPEG: baseline, extended sequential, or progressive SOF marker.
     if (buf[0] === 0xff && buf[1] === 0xd8) {
       let i = 2
       while (i < buf.length - 9) {
         if (buf[i] !== 0xff) break
         const marker = buf[i + 1]
-        if (marker === 0xc0 || marker === 0xc2) {
+        if (marker === 0xc0 || marker === 0xc1 || marker === 0xc2) {
           return { height: buf.readUInt16BE(i + 5), width: buf.readUInt16BE(i + 7) }
         }
         i += 2 + buf.readUInt16BE(i + 2)

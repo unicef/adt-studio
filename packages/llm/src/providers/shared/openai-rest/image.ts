@@ -1,5 +1,6 @@
 import type { ImageCapabilities } from "@adt/types"
 import { AiProviderError } from "../../../ports/errors.js"
+import { detectImageMediaType } from "../image-media-type.js"
 import type {
   ImageBackend,
   ImageEditRequest,
@@ -9,6 +10,16 @@ import type {
 
 const DEFAULT_TIMEOUT_MS = 180_000
 const MAX_REFERENCE_BYTES = 25 * 1024 * 1024
+
+/** GPT Image 2 accepts 16px multiples and ratios up to 3:1. Keep ~1MP output. */
+function requestedSize(request: ImageGenerateRequest, options: OpenAiImageBackendOptions): string | undefined {
+  if (request.aspectRatio === undefined || options.providerId !== "openai" ||
+      !/^gpt-image-2(?:-\d{4}-\d{2}-\d{2})?$/.test(options.modelId)) return request.size
+  const ratio = Math.max(1 / 3, Math.min(3, request.aspectRatio))
+  const height = Math.ceil(Math.sqrt(1_048_576 / ratio) / 16) * 16
+  const width = Math.round(height * ratio / 16) * 16
+  return `${width}x${height}`
+}
 
 export interface OpenAiImageBackendOptions {
   providerId: string
@@ -47,14 +58,15 @@ export function createOpenAiImageBackend(
       if (!capabilities.generate) {
         throw AiProviderError.unsupportedCapability(providerId, "image", "generate", modelId)
       }
-      assertSize(request.size)
+      const size = requestedSize(request, options)
+      assertSize(size)
 
       const body: Record<string, unknown> = {
         model: modelId,
         prompt: request.prompt,
         output_format: "png",
       }
-      if (request.size) body.size = request.size
+      if (size) body.size = size
 
       return call(options, "generations", JSON.stringify(body), true, signalFor(request))
     },
@@ -62,7 +74,8 @@ export function createOpenAiImageBackend(
 
   if (capabilities.edit) {
     backend.edit = async (request: ImageEditRequest): Promise<ImageResult> => {
-      assertSize(request.size)
+      const size = requestedSize(request, options)
+      assertSize(size)
 
       const max = capabilities.maxReferenceImages
       if (max !== undefined && request.referenceImages.length > max) {
@@ -79,11 +92,11 @@ export function createOpenAiImageBackend(
       const formData = new FormData()
       formData.append("model", modelId)
       formData.append("prompt", request.prompt)
-      if (request.size) formData.append("size", request.size)
+      if (size) formData.append("size", size)
       formData.append("output_format", "png")
 
       for (const [index, image] of request.referenceImages.entries()) {
-        const mimeType = image.mimeType ?? "image/png"
+        const mimeType = image.mimeType ?? detectImageMediaType(image.data.toString("base64"))
         if (allowedMime.length > 0 && !allowedMime.includes(mimeType)) {
           throw AiProviderError.unsupportedCapability(
             providerId,

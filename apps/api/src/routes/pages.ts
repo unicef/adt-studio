@@ -6,6 +6,7 @@ import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import {
   parseBookLabel,
+  imageFileExtension,
   ImageClassificationOutput,
   PageSectioningOutput,
   WebRenderingOutput,
@@ -229,17 +230,6 @@ function validateImageId(id: string): string {
   return id
 }
 
-function imageFileExtension(mimeType: string | undefined): string {
-  switch (mimeType) {
-    case "image/jpeg":
-      return "jpg"
-    case "image/webp":
-      return "webp"
-    default:
-      return "png"
-  }
-}
-
 interface AiImageGenParams {
   safeLabel: string
   bookDir: string
@@ -329,7 +319,7 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
     }
   }
 
-  // Pick size that best matches the original aspect ratio
+  // Legacy size fallback for adapters without flexible ratio support.
   let size = "1024x1024"
   if (originalWidth > 0 && originalHeight > 0) {
     const ratio = originalWidth / originalHeight
@@ -341,13 +331,13 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
   if (referenceImagePath && fs.existsSync(referenceImagePath)) {
     referenceImages.push({
       data: fs.readFileSync(referenceImagePath),
-      name: `${referenceImageId}.png`,
+      name: path.basename(referenceImagePath),
     })
   }
   if (styleImagePath && fs.existsSync(styleImagePath)) {
     referenceImages.push({
       data: fs.readFileSync(styleImagePath),
-      name: `${styleImageId}.png`,
+      name: path.basename(styleImagePath),
     })
   }
 
@@ -358,7 +348,13 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
       providerCredentials: credentials,
       modelId,
       prompt: finalPrompt,
-      size: size as `${number}x${number}`,
+      // Source edits preserve reference proportions. A style reference alone
+      // still needs the target ratio rather than the style image's proportions.
+      ...(!isEditMode ? {
+        size: size as `${number}x${number}`,
+        ...(originalWidth > 0 && originalHeight > 0
+          ? { aspectRatio: originalWidth / originalHeight } : {}),
+      } : {}),
       referenceImages,
       cacheDir: path.join(bookDir, ".cache"),
       timeoutMs: 180_000,
@@ -376,9 +372,7 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
   const buffer = Buffer.from(generated.base64, "base64")
   const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 16)
 
-  const [widthStr, heightStr] = size.split("x")
-  const width = parseInt(widthStr, 10) || 1024
-  const height = parseInt(heightStr, 10) || 1024
+  const { width, height } = generated
 
   if (originalWidth === 0) originalWidth = width
   if (originalHeight === 0) originalHeight = height
@@ -442,6 +436,13 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
                       let tag = before as string
                       tag = tag.replace(/\s+width="[^"]*"/, "")
                       tag = tag.replace(/\s+height="[^"]*"/, "")
+                      // Keep the existing layout box, but contain the output
+                      // inside it instead of stretching/cropping textbook content.
+                      tag = tag.replace(/\s+style=(["'])(.*?)\1/i, (_, quote: string, css: string) => {
+                        const retained = css.replace(/(?:^|;)\s*object-fit\s*:[^;]*/gi, "")
+                        return ` style=${quote}${retained};object-fit:contain!important${quote}`
+                      })
+                      if (!/\sstyle=/i.test(tag)) tag += ' style="object-fit:contain!important"'
                       return `${tag} width="${originalWidth}" height="${originalHeight}"${close}`
                     }
                   )
