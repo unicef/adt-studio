@@ -1408,6 +1408,9 @@ msgstr "Alfabético"
 msgid "Already handed out"
 msgstr "Já distribuídas"
 
+msgid "Always on"
+msgstr "Sempre ligado"
+
 msgid "Among the Stars"
 msgstr "Entre as estrelas"
 
@@ -5460,6 +5463,9 @@ msgstr "Carregando dados de seccionamento..."
 msgid "Loading speech instructions..."
 msgstr "Carregando instruções de áudio..."
 
+msgid "Loading speech preparation..."
+msgstr "Carregando a preparação de áudio..."
+
 msgid "Loading stats..."
 msgstr "Carregando estatísticas..."
 
@@ -5477,9 +5483,6 @@ msgstr "Carregando catálogo de textos..."
 
 msgid "Loading text sizes…"
 msgstr "Carregando tamanhos de texto…"
-
-msgid "Loading TTS normalization..."
-msgstr "Carregando a normalização de TTS..."
 
 msgid "Loading validation..."
 msgstr "Carregando validação..."
@@ -5603,6 +5606,9 @@ msgstr "Acompanhar o tema do sistema"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Corresponde ao design original do livro com alguma flexibilidade."
+
+msgid "Math read aloud"
+msgstr "Leitura de matemática em voz alta"
 
 msgid "Max height"
 msgstr "Altura máx."
@@ -7306,11 +7312,8 @@ msgstr "Prefira termos centrais ao assunto do livro. Pule vocabulário genérico
 msgid "Preferences"
 msgstr "Preferências"
 
-msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
-msgstr "A preparação resolve primeiro a variante regional exata, depois o idioma base e, por fim, este padrão. A orientação é incluída na chamada ao LLM armazenada em cache e inspecionável."
-
-msgid "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
-msgstr "Prepara números, datas e abreviações para uma fala natural. Matemática e LaTeX são tratados separadamente."
+msgid "Prepare numbers, dates, and abbreviations for natural speech."
+msgstr "Prepara números, datas e abreviações para uma fala natural."
 
 msgid "Prepared speech text"
 msgstr "Texto preparado para narração"
@@ -8226,6 +8229,9 @@ msgstr "Revisando..."
 
 msgid "Revoked"
 msgstr "Revogado"
+
+msgid "Rewrites text before it is read aloud. The text on the page does not change."
+msgstr "Reescreve o texto antes da leitura em voz alta. O texto da página não muda."
 
 msgid "Rewriting the story of this section..."
 msgstr "Reescrevendo a história desta seção..."
@@ -9166,6 +9172,12 @@ msgstr "Geração de áudio"
 msgid "Speech narrates the translated text Language produces. Finish Language before running this stage."
 msgstr "O áudio narra o texto traduzido gerado na etapa Idioma. Termine a etapa Idioma antes de executar esta etapa."
 
+msgid "Speech preparation"
+msgstr "Preparação de áudio"
+
+msgid "Speech Preparation"
+msgstr "Preparação de áudio"
+
 msgid "Speech Preview"
 msgstr "Prévia do áudio"
 
@@ -9664,6 +9676,9 @@ msgstr "Normalização de texto"
 
 msgid "Text Normalization"
 msgstr "Normalização de texto"
+
+msgid "Text normalization guidance, used only when text normalization is on for the book. Math read aloud always runs and does not use it. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+msgstr "Orientação de normalização de texto, usada apenas quando a normalização de texto está ligada para o livro. A leitura de matemática em voz alta sempre é executada e não a usa. A preparação resolve primeiro a variante regional exata, depois o idioma base e, por fim, este padrão. A orientação é incluída na chamada ao LLM armazenada em cache e inspecionável."
 
 msgid "Text Only"
 msgstr "Só texto"
@@ -10349,9 +10364,6 @@ msgstr "Tente resolver o exercício prático"
 msgid "Try this screen again"
 msgstr "Recarregar esta tela"
 
-msgid "TTS Normalization"
-msgstr "Normalização de TTS"
-
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Ajuste como o texto é simplificado nas configurações do Prompt de Leitura Fácil. Após a execução, cada bloco fica editável aqui na etapa de Leitura Fácil."
 
@@ -10366,6 +10378,9 @@ msgstr "Ative para mostrar o cartão de revisão de Validação na Prévia e a a
 
 msgid "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
 msgstr "Ativar a normalização com {elevenLabsModel} exige um plano Enterprise do ElevenLabs. Use “Desligado” ou mude para eleven_multilingual_v2, que aliás normaliza números melhor."
+
+msgid "Turns math and LaTeX into spoken words, so formulas are never read out as raw notation."
+msgstr "Converte matemática e LaTeX em palavras faladas, para que fórmulas nunca sejam lidas como notação bruta."
 
 msgid "Two authentication methods are supported: Bearer tokens passed in the Authorization header, and API keys passed as a query parameter. Bearer tokens are preferred for server-to-server requests due to their short expiry window."
 msgstr "Dois métodos de autenticação são suportados: tokens Bearer passados no cabeçalho de autorização e chaves de API passadas como um parâmetro de consulta. Tokens Bearer são preferidos para solicitações de servidor para servidor devido à sua curta janela de expiração."
