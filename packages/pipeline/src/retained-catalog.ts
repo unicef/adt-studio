@@ -1,5 +1,5 @@
 import type { Storage } from "@adt/storage"
-import { CoreTtsCatalogOutput, EasyReadOutput } from "@adt/types"
+import { CoreTtsCatalogOutput, EasyReadOutput, TextCatalogOutput } from "@adt/types"
 
 /** Source retirement changes membership, not ownership. When a stable source ID
  * reappears, use its last retained output before planning replacement. A current
@@ -36,4 +36,22 @@ export function retainedEasyRead(storage: Storage, activeBlocks: EasyReadOutput[
       return entry ? [{ ...entry, pageId: source.pageId, sectionId: source.sectionId, sectionIndex: source.sectionIndex }] : []
     }),
   })) }
+}
+
+/** Reactivated source IDs recover their own historical corrections. Never infer
+ * authorship or copy a neighboring/positional entry onto a new identity. */
+export function retainedTranslation(storage: Storage, language: string, activeIds: Iterable<string>): TextCatalogOutput | undefined {
+  const itemId = storage.getLatestNodeData("text-catalog-translation", language) ? language : language.replace("-", "_")
+  const current = TextCatalogOutput.safeParse(storage.getLatestNodeData("text-catalog-translation", itemId)?.data)
+  const entries = new Map((current.success ? current.data.entries : []).map((entry) => [entry.id, entry]))
+  const missing = new Set([...activeIds].filter((id) => !entries.has(id)))
+  if (missing.size) for (const row of storage.getAllNodeVersions("text-catalog-translation", itemId).sort((a, b) => b.version - a.version)) {
+    const parsed = TextCatalogOutput.safeParse(row.data)
+    if (!parsed.success) continue
+    for (const entry of parsed.data.entries) if (missing.delete(entry.id)) entries.set(entry.id, entry)
+    if (!missing.size) break
+  }
+  if (!current.success && !entries.size) return undefined
+  if (current.success && entries.size === current.data.entries.length) return current.data
+  return { entries: [...entries.values()], generatedAt: current.success ? current.data.generatedAt : "retained" }
 }
