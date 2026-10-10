@@ -9180,6 +9180,9 @@ msgstr "Préparation de la parole"
 msgid "Speech Preparation"
 msgstr "Préparation de la parole"
 
+msgid "Speech Preparation Prompt"
+msgstr "Invite de préparation de la parole"
+
 msgid "Speech Preview"
 msgstr "Aperçu de la parole"
 
@@ -9837,6 +9840,9 @@ msgstr "Le modèle d'invite utilisé pour découper chaque page en sections logi
 
 msgid "The prompt template used to translate text catalog entries."
 msgstr "Le modèle d'invite utilisé pour traduire les entrées du catalogue de texte."
+
+msgid "The prompt that prepares text for speech. It turns math into spoken words on every run, and applies the text normalization guidance when text normalization is on, so an edit affects both."
+msgstr "L’invite qui prépare le texte pour la parole. Elle convertit les mathématiques en mots prononcés à chaque exécution et applique les consignes de normalisation du texte lorsque la normalisation du texte est activée ; une modification affecte donc les deux."
 
 msgid "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 msgstr "Le prompt utilisé par la passe de revue pour inspecter et corriger un arbre de sectionnement candidat. Partage le modèle et les paramètres de réessai du prompt de sectionnement."

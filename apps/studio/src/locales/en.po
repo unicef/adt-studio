@@ -9178,6 +9178,9 @@ msgstr "Speech preparation"
 msgid "Speech Preparation"
 msgstr "Speech Preparation"
 
+msgid "Speech Preparation Prompt"
+msgstr "Speech Preparation Prompt"
+
 msgid "Speech Preview"
 msgstr "Speech Preview"
 
@@ -9835,6 +9838,9 @@ msgstr "The prompt template used to split each page into logical sections. This 
 
 msgid "The prompt template used to translate text catalog entries."
 msgstr "The prompt template used to translate text catalog entries."
+
+msgid "The prompt that prepares text for speech. It turns math into spoken words on every run, and applies the text normalization guidance when text normalization is on, so an edit affects both."
+msgstr "The prompt that prepares text for speech. It turns math into spoken words on every run, and applies the text normalization guidance when text normalization is on, so an edit affects both."
 
 msgid "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 msgstr "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
