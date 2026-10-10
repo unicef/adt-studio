@@ -1,6 +1,13 @@
 import { PIPELINE, STAGE_ORDER } from "./pipeline.js"
 import type { StageName, StepName } from "./pipeline.js"
 
+/** Content-addressed downstream outputs are retained until validated
+ * publication. Invalidating completion never authorizes deleting their data. */
+export const CATALOG_OUTPUT_NODES: readonly string[] = [
+  "image-captioning", "text-catalog", "easy-read", "text-catalog-translation",
+  "core-tts-catalog", "tts", "tts-timestamps", "image-translation",
+]
+
 export type PipelineNodeName =
   | StepName
   | "text-catalog-translation"

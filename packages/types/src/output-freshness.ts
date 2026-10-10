@@ -53,6 +53,8 @@ export const OutputWarning = z.object({
 export type OutputWarning = z.infer<typeof OutputWarning>
 
 export const OutputStatus = z.object({
+  text: z.string().optional(),
+  sourceText: z.string().optional(),
   identity: OutputIdentity,
   signature: z.string(),
   contentHash: z.string(),
@@ -71,6 +73,7 @@ export const OutputStatus = z.object({
 export type OutputStatus = z.infer<typeof OutputStatus>
 
 export const OutputSelection = z.object({
+  kinds: z.array(OutputKind).optional(),
   pageIds: z.array(z.string()).optional(),
   sectionIds: z.array(z.string()).optional(),
   ids: z.array(z.string()).optional(),
@@ -101,3 +104,32 @@ export const BookWriterOwner = z.object({
   host: z.string().min(1),
 }).strict()
 export type BookWriterOwner = z.infer<typeof BookWriterOwner>
+
+/** Explicit replacement is bound to the content and inputs shown during review. */
+export const OutputReplacement = z.object({
+  identity: OutputIdentity,
+  signature: z.string(),
+  contentHash: z.string(),
+}).strict()
+export type OutputReplacement = z.infer<typeof OutputReplacement>
+export const OutputRunScope = z.object({
+  selection: OutputSelection.optional(),
+  skip: z.array(OutputIdentity).optional(),
+  retry: z.array(OutputIdentity).optional(),
+  replace: z.array(OutputReplacement).optional(),
+}).strict()
+export type OutputRunScope = z.infer<typeof OutputRunScope>
+
+export const TranslatedImageAsset = z.object({
+  ...OutputMetadata.shape,
+  imageId: z.string(), sourceImageId: z.string(), language: z.string(), pageId: z.string(),
+  relativePath: z.string().min(1), hash: z.string().regex(/^(?:[a-f0-9]{16}|[a-f0-9]{64})$/), width: z.number().positive(), height: z.number().positive(),
+})
+export type TranslatedImageAsset = z.infer<typeof TranslatedImageAsset>
+
+/** Captured when opening an editor, never refreshed silently over a draft. */
+export const OutputEditGuard = z.object({
+  baseVersion: z.number().int().nonnegative(),
+  sourceSignature: z.string().min(1),
+})
+export type OutputEditGuard = z.infer<typeof OutputEditGuard>

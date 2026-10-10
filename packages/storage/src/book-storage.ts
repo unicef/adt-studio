@@ -1,10 +1,11 @@
+import { storeImmutableAsset } from "./immutable-assets.js"
 import { createHash } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
 import type { ExtractedPage, ExtractedImage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
-import { imageFileExtension, parseBookLabel } from "@adt/types"
+import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPUT_NODES } from "@adt/types"
 import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
 import { openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
@@ -65,6 +66,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
   }
 
   return {
+    bookDir: paths.bookDir,
     transaction,
 
     clearExtractedData(): void {
@@ -79,11 +81,15 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
         // Quiz history is also the permanent record of spent catalog/audio
         // identities. Invalidate its current output, never erase that record.
         if (nodes.includes("quiz-generation")) invalidateQuizOutput(db)
-        const deletable = nodes.filter((node) => node !== "quiz-generation")
+        const deletable = nodes.filter((node) => node !== "quiz-generation" && !CATALOG_OUTPUT_NODES.includes(node))
         if (deletable.length === 0) return
         const placeholders = deletable.map(() => "?").join(", ")
-        db.run(`DELETE FROM node_data WHERE node IN (${placeholders})`, deletable)
-        db.run(`DELETE FROM node_current WHERE node IN (${placeholders})`, deletable)
+        // Invalidate active output through a new version; never erase history.
+        const items = db.all(`SELECT node, item_id, MAX(version) AS version FROM node_data WHERE node IN (${placeholders}) GROUP BY node, item_id`, deletable) as Array<{ node: string; item_id: string; version: number }>
+        for (const item of items) {
+          db.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, 'null')", [item.node, item.item_id, item.version + 1])
+          db.run("INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?) ON CONFLICT (node, item_id) DO UPDATE SET version = excluded.version", [item.node, item.item_id, item.version + 1])
+        }
       })
     },
 
@@ -273,11 +279,17 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     },
 
     putTranslatedImage(input: TranslatedImageInput): string {
+      return transaction(() => {
       const safeLang = input.languageCode.replace(/[^a-zA-Z0-9-]/g, "_")
       const newImageId = `${input.sourceImageId}_tr_${safeLang}`
       const extension = imageFileExtension(input.mimeType)
-      const filename = `${newImageId}.${extension}`
-      fs.writeFileSync(path.join(paths.imagesDir, filename), input.buffer)
+      const asset = storeImmutableAsset(paths.bookDir, ["images"], newImageId, extension, input.buffer)
+      const filename = asset.fileName
+      const legacy = db.all("SELECT * FROM images WHERE image_id = ?", [newImageId]) as Array<{ path: string; hash: string; width: number; height: number; page_id: string }>
+      if (legacy[0] && !this.getLatestNodeData("image-translation", newImageId)) {
+        this.putNodeData("image-translation", newImageId, { imageId: newImageId, sourceImageId: input.sourceImageId, language: input.languageCode,
+          relativePath: legacy[0].path, hash: legacy[0].hash, width: legacy[0].width, height: legacy[0].height, pageId: legacy[0].page_id })
+      }
 
       db.run(
         `INSERT INTO images
@@ -300,10 +312,14 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
           "translate",
         ]
       )
+      this.putNodeData("image-translation", newImageId, { imageId: newImageId, sourceImageId: input.sourceImageId, language: input.languageCode,
+        relativePath: `images/${filename}`, hash: asset.contentHash, width: input.width, height: input.height, pageId: input.pageId, source: "ai", input: input.input })
       return newImageId
+      })
     },
 
     clearTranslatedImages(filter?: { sourceImageIds?: string[]; languageCodes?: string[] }): void {
+      transaction(() => {
       const conditions: string[] = ["source = 'translate'"]
       const params: string[] = []
 
@@ -330,23 +346,17 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
         params
       ) as Array<{ image_id: string; path: string }>
 
-      for (const row of rows) {
-        const filePath = path.resolve(paths.bookDir, row.path)
-        const rel = path.relative(paths.bookDir, filePath)
-        if (rel.startsWith("..") || path.isAbsolute(rel)) continue
-        try {
-          fs.rmSync(filePath, { force: true })
-        } catch {
-          // Best effort — DB row is removed below either way
-        }
-      }
+      // Removing an active variant never deletes files referenced by history.
+      for (const row of rows) this.putNodeData("image-translation", row.image_id, null)
 
       if (rows.length > 0) {
         db.run(`DELETE FROM images WHERE ${where}`, params)
       }
+      })
     },
 
     putNodeData(node: string, itemId: string, data: unknown): number {
+      return transaction(() => {
       const rows = db.all(
         "SELECT MAX(version) as max_version FROM node_data WHERE node = ? AND item_id = ?",
         [node, itemId]
@@ -363,23 +373,39 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
         [node, itemId, nextVersion]
       )
       return nextVersion
+      })
     },
 
     /** Point (node, itemId) at an existing version. Returns false if that
      *  version doesn't exist. Does NOT create a new version — this is how a
      *  user rolls back to a prior version without appending a duplicate. */
     setCurrentNodeVersion(node: string, itemId: string, version: number): boolean {
+      return transaction(() => {
       const exists = db.all(
         "SELECT 1 FROM node_data WHERE node = ? AND item_id = ? AND version = ? LIMIT 1",
         [node, itemId, version]
       )
       if (exists.length === 0) return false
+      if (node === "image-translation") {
+        const rows = db.all("SELECT data FROM node_data WHERE node = ? AND item_id = ? AND version = ?", [node, itemId, version]) as Array<{ data: string }>
+        const manifest = TranslatedImageAsset.nullable().parse(JSON.parse(rows[0].data))
+        if (manifest) {
+          const root = fs.realpathSync(paths.bookDir)
+          const file = fs.realpathSync(path.resolve(root, manifest.relativePath))
+          const relative = path.relative(root, file)
+          if (relative.startsWith("..") || path.isAbsolute(relative) || createHash("sha256").update(fs.readFileSync(file)).digest("hex").slice(0, manifest.hash.length) !== manifest.hash) throw new Error("Historical image asset is missing or changed")
+          db.run(`INSERT INTO images (image_id, page_id, path, hash, width, height, source) VALUES (?, ?, ?, ?, ?, ?, 'translate')
+            ON CONFLICT(image_id) DO UPDATE SET page_id=excluded.page_id, path=excluded.path, hash=excluded.hash, width=excluded.width, height=excluded.height, source='translate'`,
+            [itemId, manifest.pageId, manifest.relativePath, manifest.hash, manifest.width, manifest.height])
+        } else db.run("DELETE FROM images WHERE image_id = ? AND source = 'translate'", [itemId])
+      }
       db.run(
         `INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?)
          ON CONFLICT (node, item_id) DO UPDATE SET version = excluded.version`,
         [node, itemId, version]
       )
       return true
+      })
     },
 
     /** The active version pointer for (node, itemId), or null when unset

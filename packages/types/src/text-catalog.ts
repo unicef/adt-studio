@@ -5,6 +5,12 @@ export const TextCatalogEntry = z.object({
   ...OutputMetadata.shape,
   id: z.string(),
   text: z.string(),
+  locations: z.array(z.object({
+    pageId: z.string().optional(),
+    sectionId: z.string().optional(),
+    group: z.enum(["glossary", "quizzes"]).optional(),
+    role: z.string().optional(),
+  })).optional(),
 })
 export type TextCatalogEntry = z.infer<typeof TextCatalogEntry>
 

@@ -542,3 +542,13 @@ export { GOOGLE_IMAGE_MODELS, GoogleImageModelId, DEFAULT_GOOGLE_IMAGE_MODEL, Go
 export { imageFileExtension, ImageAspectRatio, GeneratedImagePayload, ValidatedGeneratedImage } from "./image.js"
 
 export { OutputSource, OutputReference, OutputInputEvidence, OutputReview, OutputMetadata, OutputKind, OutputIdentity, OutputWarning, OutputStatus, OutputSelection, OutputReviewRequest, OutputSummary, BookWriterOwner } from "./output-freshness.js"
+
+export { CATALOG_OUTPUT_NODES } from "./pipeline-effects.js"
+
+export { OutputReplacement, OutputRunScope } from "./output-freshness.js"
+
+export { TranslatedImageAsset } from "./output-freshness.js"
+
+export { OUTPUT_KIND_TO_STAGE, OUTPUT_KIND_TO_STEP } from "./pipeline.js"
+
+export { OutputEditGuard } from "./output-freshness.js"

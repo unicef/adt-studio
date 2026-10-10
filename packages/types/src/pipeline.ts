@@ -246,3 +246,10 @@ export const PAGE_PROGRESS_STEPS: ReadonlySet<StepName> = new Set(
 export const BOOK_LEVEL_STAGES: ReadonlySet<StageName> = new Set(
   PIPELINE.filter((stage) => !stage.steps.some((step) => step.pageProgress)).map((stage) => stage.name)
 )
+
+/** Catalog output ownership, derived through the shared step-to-stage map. */
+export const OUTPUT_KIND_TO_STEP = {
+  caption: "image-captioning", translation: "catalog-translation", "easy-read": "easy-read",
+  preparation: "core-tts-catalog", audio: "tts", timestamps: "word-timestamps", "image-translation": "image-translation",
+} as const satisfies Record<import("./output-freshness.js").OutputKind, StepName>
+export const OUTPUT_KIND_TO_STAGE = Object.fromEntries(Object.entries(OUTPUT_KIND_TO_STEP).map(([kind, step]) => [kind, STEP_TO_STAGE[step]])) as Record<import("./output-freshness.js").OutputKind, StageName>

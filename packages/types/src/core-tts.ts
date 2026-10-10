@@ -42,6 +42,7 @@ export const CoreTtsCatalogEntry = z.object({
   transformations: z.array(CoreTtsTransformationKind),
   status: CoreTtsEntryStatus,
   failureReason: z.string().optional(),
+  fallbackReason: z.enum(["failed", "missing", "outdated"]).optional(),
   generation: CoreTtsGenerationMetadata,
 })
 export type CoreTtsCatalogEntry = z.infer<typeof CoreTtsCatalogEntry>

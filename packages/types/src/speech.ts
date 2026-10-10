@@ -367,6 +367,8 @@ export function sortSpeechEntries<T extends { textId: string; voiceSlot?: VoiceS
 }
 
 export const TTSOutput = z.object({
+  legacySnapshotOf: z.number().int().positive().optional(),
+  timingVersion: z.number().int().positive().nullable().optional(),
   entries: z.array(SpeechFileEntry),
   generatedAt: z.string(),
   /** Per-item failures from the run that produced this output, so the UI can
@@ -383,6 +385,8 @@ export const WordTimestamp = z.object({
 export type WordTimestamp = z.infer<typeof WordTimestamp>
 
 export const WordTimestampEntry = z.object({
+  ...OutputMetadata.shape,
+  audioHash: z.string().optional(),
   textId: z.string(),
   language: z.string(),
   words: z.array(WordTimestamp),
