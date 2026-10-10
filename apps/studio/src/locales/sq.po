@@ -9180,6 +9180,9 @@ msgstr "Përgatitja e të folurit"
 msgid "Speech Preparation"
 msgstr "Përgatitja e të Folurit"
 
+msgid "Speech Preparation Prompt"
+msgstr "Prompti i Përgatitjes së të Folurit"
+
 msgid "Speech Preview"
 msgstr "Parashikim i të Folurit"
 
@@ -9837,6 +9840,9 @@ msgstr "Modeli i udhëzimit i përdorur për të ndarë çdo faqe në seksione l
 
 msgid "The prompt template used to translate text catalog entries."
 msgstr "Modeli i udhëzimit i përdorur për të përkthyer hyrjet e katalogut të tekstit."
+
+msgid "The prompt that prepares text for speech. It turns math into spoken words on every run, and applies the text normalization guidance when text normalization is on, so an edit affects both."
+msgstr "Prompti që përgatit tekstin për të folurit. Ai e kthen matematikën në fjalë të folura në çdo ekzekutim dhe zbaton udhëzimin për normalizimin e tekstit kur normalizimi i tekstit është aktiv, prandaj një ndryshim ndikon te të dyja."
 
 msgid "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 msgstr "Udhëzimi i përdorur nga kalimi i rishikuesit për të inspektuar dhe korrigjuar një pemë seksionimi kandidate. Ndan modelin dhe cilësimet e riprovimit të udhëzimit të seksionimit."

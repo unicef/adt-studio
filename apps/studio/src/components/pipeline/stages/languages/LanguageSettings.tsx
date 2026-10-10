@@ -45,7 +45,7 @@ import {
 import { ElevenLabsVoiceTuning } from "./components/ElevenLabsVoiceTuning"
 import { ProviderVoicePicker } from "./components/ProviderVoicePicker"
 
-const PROMPT_TABS = ["prompt", "image-translation"]
+const PROMPT_TABS = ["prompt", "image-translation", "core-tts-prompt"]
 
 type TranslationEvaluationIssueType =
   | "meaning"
@@ -169,6 +169,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
   const [imageModel, setImageModel] = useState("")
   const [selectedImageIds, setSelectedImageIds] = useState<string[]>([])
   const [imagePromptDraft, setImagePromptDraft] = useState<PromptDraft | null>(null)
+  const [coreTtsPromptDraft, setCoreTtsPromptDraft] = useState<PromptDraft | null>(null)
   const [showImagePicker, setShowImagePicker] = useState(false)
 
   // Speech settings
@@ -219,6 +220,10 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
       ? merged.default_image_generation_model
       : DEFAULT_IMAGE_GENERATION_MODEL_ID
   const translation = useStepConfig(merged, "translation", markDirty)
+  const coreTts = useStepConfig(merged, "core_tts", markDirty)
+  const coreTtsConfig = merged?.core_tts as { prompt?: unknown } | undefined
+  const coreTtsPromptName =
+    typeof coreTtsConfig?.prompt === "string" ? coreTtsConfig.prompt : "core_tts_preparation"
 
   const configuredEditingLanguage = merged?.editing_language as string | undefined
   const bookLanguage = book?.languageCode ?? book?.metadata?.language_code ?? null
@@ -383,6 +388,12 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
       const existing = (bookConfigData?.config?.translation ?? {}) as Record<string, unknown>
       overrides.translation = { ...existing, ...translation.configOverrides }
     }
+    // Not shouldWrite: new books always carry core_tts (language_normalization),
+    // which would copy the merged model/retries into every save.
+    if (dirty.core_tts) {
+      const existing = (bookConfigData?.config?.core_tts ?? {}) as Record<string, unknown>
+      overrides.core_tts = { ...existing, ...coreTts.configOverrides }
+    }
     if (shouldWrite("output_languages")) {
       const normalized = Array.from(outputLanguages).map((code) => normalizeLocale(code))
       overrides.output_languages = normalized.length > 0 ? normalized : undefined
@@ -534,12 +545,16 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
     if (imagePromptDraft != null) {
       promptSaves.push(savePromptDraft(queryClient, "image_translation", bookLabel, imagePromptDraft))
     }
+    if (coreTtsPromptDraft != null) {
+      promptSaves.push(savePromptDraft(queryClient, coreTtsPromptName, bookLabel, coreTtsPromptDraft))
+    }
     if (promptSaves.length > 0) await Promise.all(promptSaves)
 
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
     setPromptDraft(null)
     setImagePromptDraft(null)
+    setCoreTtsPromptDraft(null)
     resetMarkedTabs()
   }
 
@@ -556,11 +571,13 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
     tab === "prompt" ||
     tab === "speech" ||
     tab === "image-translation" ||
-    tab === "translation-review"
+    tab === "translation-review" ||
+    tab === "core-tts-prompt"
   const dirtyTabs = [
     ...markedTabs,
     ...(promptDraft != null ? ["prompt"] : []),
     ...(imagePromptDraft != null ? ["image-translation"] : []),
+    ...(coreTtsPromptDraft != null ? ["core-tts-prompt"] : []),
   ].filter((tabKey, i, all) => all.indexOf(tabKey) === i)
   const incompleteSecondaryVoice =
     isSpeechStage &&
@@ -1245,6 +1262,24 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
       )}
       {tab === "core-tts-profiles" && (
         <CoreTtsProfilesEditor bookLabel={bookLabel} />
+      )}
+
+      {tab === "core-tts-prompt" && (
+        <PromptViewer
+          promptName={coreTtsPromptName}
+          bookLabel={bookLabel}
+          title={t`Speech Preparation Prompt`}
+          description={t`The prompt that prepares text for speech. It turns math into spoken words on every run, and applies the text normalization guidance when text normalization is on, so an edit affects both.`}
+          draft={coreTtsPromptDraft}
+          model={coreTts.model}
+          // Speech preparation falls back to the translation model, then the default.
+          modelPlaceholder={translation.model || undefined}
+          onModelChange={coreTts.onModelChange}
+          maxRetries={coreTts.maxRetries}
+          onMaxRetriesChange={coreTts.onMaxRetriesChange}
+          onContentChange={(content, modelId) => setCoreTtsPromptDraft(toPromptDraft(content, modelId))}
+          enabled={tab === "core-tts-prompt"}
+        />
       )}
 
       {tab === "voices" && (

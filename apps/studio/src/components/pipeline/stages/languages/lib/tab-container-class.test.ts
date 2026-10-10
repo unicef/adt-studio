@@ -9,10 +9,11 @@ describe("tabContainerClass", () => {
     expect(tabContainerClass("general")).toContain("max-w-2xl")
   })
 
-  // The prompt tab is a full-height editor that manages its own padding — it
+  // The prompt tabs are full-height editors that manages its own padding — it
   // must not inherit the forms' p-4/space-y-6.
-  it("leaves the full-height prompt tab unpadded and unconstrained", () => {
+  it("leaves the full-height prompt tabs unpadded and unconstrained", () => {
     expect(tabContainerClass("prompt")).toBe("h-full w-full")
+    expect(tabContainerClass("core-tts-prompt")).toBe("h-full w-full")
   })
 
   it("falls back to the constrained form layout for unknown tabs", () => {

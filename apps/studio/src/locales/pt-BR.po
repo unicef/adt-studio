@@ -9178,6 +9178,9 @@ msgstr "Preparação de áudio"
 msgid "Speech Preparation"
 msgstr "Preparação de áudio"
 
+msgid "Speech Preparation Prompt"
+msgstr "Prompt de preparação de áudio"
+
 msgid "Speech Preview"
 msgstr "Prévia do áudio"
 
@@ -9835,6 +9838,9 @@ msgstr "O template de prompt usado para dividir cada página em seções lógica
 
 msgid "The prompt template used to translate text catalog entries."
 msgstr "O template de prompt usado para traduzir entradas do catálogo de textos."
+
+msgid "The prompt that prepares text for speech. It turns math into spoken words on every run, and applies the text normalization guidance when text normalization is on, so an edit affects both."
+msgstr "O prompt que prepara o texto para o áudio. Ele converte matemática em palavras faladas em toda execução e aplica a orientação de normalização de texto quando a normalização de texto está ligada, então uma edição afeta as duas coisas."
 
 msgid "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 msgstr "O prompt usado pela rodada de revisão para inspecionar e corrigir uma árvore de seccionamento candidata. Compartilha o modelo e as configurações de novas tentativas do prompt de seccionamento."
