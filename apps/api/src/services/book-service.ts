@@ -319,6 +319,27 @@ export function getBook(label: string, booksDir: string): BookDetail {
   }
 }
 
+/**
+ * New books start with Core TTS text normalization off until it has a spec
+ * (#946). It is written into the book's own config rather than flipping the
+ * global default, so existing books — which inherit that default unless the
+ * switch was used — keep normalizing. Explicit overrides win.
+ */
+function withNewBookDefaults(
+  overrides: Record<string, unknown> = {}
+): Record<string, unknown> {
+  const coreTts =
+    typeof overrides.core_tts === "object" &&
+    overrides.core_tts !== null &&
+    !Array.isArray(overrides.core_tts)
+      ? overrides.core_tts
+      : {}
+  return {
+    ...overrides,
+    core_tts: { language_normalization: false, ...coreTts },
+  }
+}
+
 export function createBook(
   label: string,
   pdfBuffer: Buffer,
@@ -336,12 +357,10 @@ export function createBook(
   fs.mkdirSync(bookDir, { recursive: true })
   fs.writeFileSync(path.join(bookDir, `${safeLabel}.pdf`), pdfBuffer)
 
-  if (configOverrides && Object.keys(configOverrides).length > 0) {
-    fs.writeFileSync(
-      path.join(bookDir, "config.yaml"),
-      yaml.dump(configOverrides)
-    )
-  }
+  fs.writeFileSync(
+    path.join(bookDir, "config.yaml"),
+    yaml.dump(withNewBookDefaults(configOverrides))
+  )
 
   const nowIso = new Date().toISOString()
 
