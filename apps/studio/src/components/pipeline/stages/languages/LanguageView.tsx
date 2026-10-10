@@ -683,8 +683,10 @@ export function LanguageView({
   >({});
 
   // Get translated entries for selected language
-  const translationData = selectedLang
-    ? catalog?.translations?.[selectedLang]
+  const translationItemId = selectedLang && catalog?.translations?.[selectedLang]
+    ? selectedLang : selectedLang?.replace("-", "_");
+  const translationData = translationItemId
+    ? catalog?.translations?.[translationItemId]
     : undefined;
   const translatedEntries = isSourceLang
     ? entries
@@ -753,12 +755,12 @@ export function LanguageView({
 
   const [saveError, setSaveError] = useState<string | null>(null);
   const saveTranslation = useCallback(async () => {
-    if (!pendingEntries || !selectedLang) return;
+    if (!pendingEntries || !translationItemId) return;
     setSaving(true);
     setSaveError(null);
     try {
     const minDelay = new Promise((r) => setTimeout(r, 400));
-    await api.updateTranslation(bookLabel, selectedLang, {
+    await api.updateTranslation(bookLabel, translationItemId, {
       entries: pendingEntries,
       ...pendingVersions.current,
     });
@@ -781,7 +783,7 @@ export function LanguageView({
     await minDelay;
     } catch (error) { setSaveError(error instanceof Error ? error.message : String(error)); }
     finally { setSaving(false); }
-  }, [pendingEntries, selectedLang, bookLabel, queryClient]);
+  }, [pendingEntries, translationItemId, bookLabel, queryClient]);
 
   const saveRef = useRef(saveTranslation);
   saveRef.current = saveTranslation;
@@ -1509,7 +1511,7 @@ export function LanguageView({
         !isSpeechStage && (
           <VersionPicker
             step="text-catalog-translation"
-            itemId={selectedLang}
+            itemId={translationItemId ?? selectedLang}
             currentVersion={translationVersion}
             saving={saving}
             dirty={dirty}

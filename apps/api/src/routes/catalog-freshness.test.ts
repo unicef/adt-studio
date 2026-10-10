@@ -42,6 +42,15 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); fs.rmSync(root, { recursive: true, force: true }) })
 
 describe("catalog freshness through real API/storage boundaries", () => {
+  it("does not count translation or speech as missing for a decorative image with no caption text", async () => {
+    const page = await (await app.request(`/books/${label}/pages/pg001`)).json()
+    const response = await send("pages/pg001/image-captioning", { captions: [{ imageId: "pg001_im001", caption: "", decorative: true, reasoning: "" }], baseVersion: page.versions.imageCaptioning, sourceSignature: page.captionSourceSignature })
+    expect(response.status, await response.clone().text()).toBe(200)
+    const imageOutputs = (await outputs()).filter((output) => output.identity.id === "pg001_im001")
+    expect(imageOutputs.find((output) => output.identity.kind === "caption")).toMatchObject({ current: true, usable: true, missing: false })
+    expect(imageOutputs.some((output) => ["translation", "preparation", "audio", "timestamps"].includes(output.identity.kind))).toBe(false)
+  })
+
   it("changes only consuming signatures for effective prompt, model and voice edits", async () => {
     const before = await outputs()
     const find = (items: OutputStatus[], kind: string, language?: string) => items.find((output) => output.identity.kind === kind && output.identity.id === (kind === "caption" ? "pg001_im001" : "pg001_t001") && (!language || output.identity.language === language))!
@@ -85,8 +94,31 @@ describe("catalog freshness through real API/storage boundaries", () => {
     expect(preparation.current).toBe(false)
   })
 
+  it("edits a legacy locale in place with the normalized source guard and retained history", async () => {
+    const db = storage()
+    fs.writeFileSync(path.join(db.bookDir!, "config.yaml"), "output_languages: [en, pt-BR]\n")
+    db.putNodeData("text-catalog-translation", "pt_BR", { entries: [{ id: "pg001_t001", text: "Texto legado" }], generatedAt: "old" })
+    db.close()
+    const before = await (await app.request(`/books/${label}/text-catalog`)).json()
+    const draft = { entries: [{ id: "pg001_t001", text: "Texto corrigido" }], baseVersion: before.translations.pt_BR.version, sourceVersion: before.version, sourceSignature: before.translations.pt_BR.sourceSignature }
+    expect((await send("text-catalog-translation/pt_BR", draft)).status).toBe(200)
+    expect((await outputs()).find((output) => output.identity.kind === "translation" && output.identity.id === "pg001_t001" && output.identity.language === "pt-BR")).toMatchObject({ text: "Texto corrigido", manual: true, current: true })
+    const current = await (await app.request(`/books/${label}/text-catalog`)).json()
+    await send("pages/pg001/rendering", rendering("Changed source"))
+    const fresh = await (await app.request(`/books/${label}/text-catalog`)).json()
+    expect((await send("text-catalog-translation/pt_BR", { ...draft, baseVersion: current.translations.pt_BR.version, sourceVersion: fresh.version })).status).toBe(409)
+    const verify = storage()
+    expect(verify.getAllNodeVersions("text-catalog-translation", "pt_BR")).toHaveLength(2)
+    expect(verify.getLatestNodeData("text-catalog-translation", "pt-BR")).toBeNull()
+    verify.close()
+  })
+
   it("exports usable warnings, omits missing files, respects feature gates, and invalidates packaging after audio publication and restore", async () => {
     const db = storage()
+    db.putNodeData("glossary", "book", { items: [
+      { id: "gl001", word: "Shared", definition: "Shared picture", variations: [], emojis: [], imageId: "pg001_im001" },
+      { id: "gl002", word: "Glossary only", definition: "No caption consumer", variations: [], emojis: [], imageId: "missing_glossary_image" },
+    ], pageCount: 1, generatedAt: "now" })
     const bookDir = db.bookDir!
     const config = loadBookConfig(label, root)
     const packageOptions = { bookDir, label, language: "en", outputLanguages: ["en", "fr"], title: "Freshness fixture", webAssetsDir: path.resolve("assets/adt"), config, promptsDir: prompts, configDir: path.resolve("config") }
@@ -102,6 +134,7 @@ describe("catalog freshness through real API/storage boundaries", () => {
     expect(disclosed.find((output) => output.identity.kind === "translation" && output.identity.id === "pg001_t001")).toMatchObject({ included: true, protected: true })
     expect(disclosed.find((output) => output.identity.kind === "audio" && output.identity.id === "pg001_t001")).toMatchObject({ included: true, usable: true })
     expect(disclosed.find((output) => output.identity.kind === "audio" && output.identity.id === "pg001_t002")).toMatchObject({ included: false, missing: true })
+    expect(disclosed.some((output) => output.identity.kind === "caption" && output.identity.id === "missing_glossary_image")).toBe(false)
     expect(await outputs()).toEqual(before)
     expect(fs.readFileSync(path.join(locale, "audio", entry.fileName), "utf8")).toBe("first manual audio")
     const secondAsset = storeImmutableAsset(bookDir, ["audio", "fr"], "pg001_t001", "mp3", Buffer.from("second manual audio"))
@@ -114,6 +147,7 @@ describe("catalog freshness through real API/storage boundaries", () => {
     await packageAdtWeb(db, { ...packageOptions, features: { readAloud: false, glossary: false, quizzes: false } })
     const disabled = JSON.parse(fs.readFileSync(path.join(locale, "freshness.json"), "utf8")).outputs as OutputStatus[]
     expect(disabled.some((output) => ["audio", "timestamps", "preparation"].includes(output.identity.kind))).toBe(false)
+    expect(disabled.find((output) => output.identity.kind === "caption" && output.identity.id === "pg001_im001")).toMatchObject({ included: true, protected: true })
     expect(JSON.parse(fs.readFileSync(path.join(locale, "audios.json"), "utf8"))).toEqual({})
     db.close()
   })

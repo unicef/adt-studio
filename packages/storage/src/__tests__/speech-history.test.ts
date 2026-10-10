@@ -20,6 +20,29 @@ function timing(entry: SpeechFileEntry, word: string): WordTimestampOutput {
 }
 
 describe("paired physical speech history", () => {
+  it("preserves legacy locale audio and timing history when a normalized locale first publishes", () => {
+    const bookDir = storage.bookDir!
+    fs.mkdirSync(path.join(bookDir, "audio/fr_FR"), { recursive: true })
+    fs.writeFileSync(path.join(bookDir, "audio/fr_FR/text.mp3"), "legacy regional recording")
+    const old: SpeechFileEntry = { textId: "text", language: "fr_FR", fileName: "text.mp3", voice: "manual", model: "manual", provider: "manual", cached: false }
+    const version = storage.putNodeData("tts", "fr_FR", { entries: [old], generatedAt: "legacy" })
+    const timings = { ...timing(old, "legacy"), entries: { text: { ...timing(old, "legacy").entries.text, language: "fr_FR" } } }
+    storage.putNodeData("tts-timestamps", "fr_FR", timings)
+    publishSpeechOutput(storage, "fr-FR", { entries: [old], generatedAt: "ordinary run" })
+    const migrated = storage.getLatestNodeData("tts", "fr-FR")!.data as TTSOutput
+    expect(migrated.entries[0].audioHash).toBeTruthy()
+    expect((storage.getLatestNodeData("tts-timestamps", "fr-FR")!.data as WordTimestampOutput).entries.text.words[0].word).toBe("legacy")
+    const replacement = storeImmutableAsset(bookDir, ["audio", "fr-FR"], "text", "mp3", Buffer.from("replacement"))
+    publishSpeechOutput(storage, "fr-FR", { entries: [{ ...old, fileName: replacement.fileName, audioHash: replacement.contentHash }], generatedAt: "replacement" })
+    fs.rmSync(path.join(bookDir, "audio/fr_FR/text.mp3"))
+    fs.rmSync(path.join(bookDir, ".cache"), { recursive: true, force: true })
+    expect(restoreSpeechOutput(storage, bookDir, "fr_FR", version)).toBe(true)
+    const restored = storage.getLatestNodeData("tts", "fr-FR")!.data as TTSOutput
+    expect(fs.readFileSync(path.join(bookDir, "audio/fr-FR", restored.entries[0].fileName), "utf8")).toBe("legacy regional recording")
+    expect((storage.getLatestNodeData("tts-timestamps", "fr-FR")!.data as WordTimestampOutput).entries.text.words[0].word).toBe("legacy")
+    expect(restored.entries[0].source).toBeUndefined()
+  })
+
   it("restores generated and uploaded audio with matching timings after cache deletion", () => {
     const generated = audio("generated")
     const first = publishSpeechOutput(storage, "fr", { entries: [generated], generatedAt: "one" }, timing(generated, "one"))

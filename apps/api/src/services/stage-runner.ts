@@ -2564,17 +2564,20 @@ async function runTranslateStep(
 
       translationConfig.promptSignature = promptEngine.fingerprint(translationConfig.promptName, { modelId: translationConfig.modelId })
       for (const lang of targetLanguages) {
-        const previousRow = storage.getLatestNodeData("text-catalog-translation", lang)
+        const legacyLang = lang.replace("-", "_")
+        const itemId = !storage.getLatestNodeData("text-catalog-translation", lang) && storage.getLatestNodeData("text-catalog-translation", legacyLang) ? legacyLang : lang
+        const readTranslation = () => storage.getLatestNodeData("text-catalog-translation", itemId)
+        const previousRow = readTranslation()
         const previous = previousRow?.data as TextCatalogOutput | undefined
         const captured = readRunOutputs(label, options, storage)
         const output = await translateCatalog({ entries: translationEntries, language: lang, config: translationConfig,
           llmModel: translationModel, previous, references: captureOutputReferences(storage, "translation", lang), scope: options.outputScope, signal: options.signal })
         options.signal?.throwIfAborted()
         if (output !== previous) storage.transaction(() => {
-          if (storage.getLatestNodeData("text-catalog-translation", lang)?.version !== previousRow?.version) throw new Error("Translation changed during generation")
+          if (readTranslation()?.version !== previousRow?.version) throw new Error("Translation changed during generation")
           const changed = output.entries.filter((entry) => inputSignature(entry) !== inputSignature(previous?.entries.find((prior) => prior.id === entry.id)))
           assertOutputPublication(captured, readRunOutputs(label, options, storage), changed.map((entry) => ({ kind: "translation", id: entry.id, language: lang })))
-          storage.putNodeData("text-catalog-translation", lang, output)
+          storage.putNodeData("text-catalog-translation", itemId, output)
         })
       }
 
@@ -2639,7 +2642,10 @@ async function runTranslateStep(
           storage.getLatestNodeData("text-catalog-translation", lang) ??
           storage.getLatestNodeData("text-catalog-translation", legacyLang)
         if (!translatedRow) continue
-        targetDisplayEntries = (translatedRow.data as TextCatalogOutput).entries.filter((entry) => sourceDisplayEntries.some((source) => source.id === entry.id)).map((entry) => ({ ...entry, locations: sourceDisplayEntries.find((source) => source.id === entry.id)?.locations }))
+        // Retained collections may contain retired IDs or an earlier reading
+        // order. Context follows current sources, including missing neighbors.
+        const translatedById = new Map((translatedRow.data as TextCatalogOutput).entries.map((entry) => [entry.id, entry]))
+        targetDisplayEntries = sourceDisplayEntries.map((source) => ({ ...source, text: translatedById.get(source.id)?.text ?? "" }))
       }
       const targetPrepBefore = readRunOutputs(label, options, storage)
       const targetPrepVersion = storage.getLatestNodeData("core-tts-catalog", lang)?.version

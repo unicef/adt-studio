@@ -142,6 +142,7 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
   app.put("/books/:label/text-catalog-translation/:language", async (c) => {
     const { label, language } = c.req.param()
     const safeLabel = parseBookLabel(label)
+    const normalizedLanguage = normalizeLocale(language)
 
     const body = await c.req.json()
     const parsed = TranslationBody.safeParse(body)
@@ -166,7 +167,7 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
       const changes = new Map<string, (typeof parsed.data.entries)[number]>()
       for (const entry of parsed.data.entries) {
         if (changes.has(entry.id)) throw new HTTPException(400, { message: "Duplicate translation identity." })
-        if (!outputs.some((item) => item.identity.kind === "translation" && item.identity.id === entry.id && item.identity.language === language)) {
+        if (!outputs.some((item) => item.identity.kind === "translation" && item.identity.id === entry.id && item.identity.language === normalizedLanguage)) {
           throw new HTTPException(409, { message: "Translation source is no longer available. Refresh before saving." })
         }
         changes.set(entry.id, entry)
@@ -176,7 +177,7 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
           const entry = changes.get(id)
           if (!entry) return previousEntries.get(id)
           const old = previousEntries.get(entry.id)
-          const status = outputs.find((item) => item.identity.kind === "translation" && item.identity.id === entry.id && item.identity.language === language)
+          const status = outputs.find((item) => item.identity.kind === "translation" && item.identity.id === entry.id && item.identity.language === normalizedLanguage)
           return old?.text === entry.text ? old : { ...old, ...entry, source: "manual", review: undefined, input: status ? outputEvidence(status.signature, entry.text, captureOutputReferences(storage, status.identity.kind, status.identity.language)) : undefined }
         }),
         generatedAt: parsed.data.generatedAt
@@ -189,7 +190,6 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
         data
       )
 
-      const normalizedLanguage = normalizeLocale(language)
       invalidateCoreTtsForDisplayEntries({
         storage,
         language: normalizedLanguage,

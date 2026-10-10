@@ -76,6 +76,17 @@ describe("Core TTS configuration", () => {
 })
 
 describe("prepareCoreTtsCatalog", () => {
+  it.each(["missing", "mismatched"])("preserves usable speech with %s input evidence during deterministic fallback", async (evidence) => {
+    const entries = [{ id: "t1", text: "Display text" }]
+    const profile = { key: "default", guidance: "Normalize." }
+    const previous = await prepareCoreTtsCatalog({ entries, language: "en", config, profile,
+      llmModel: modelWith([{ id: "t1", speech_text: "Retained speech", transformation_kinds: [], failure_reason: null }]) })
+    if (evidence === "missing") delete previous.entries[0].input
+    else previous.entries[0].speechText = "Untracked correction"
+    const result = resolveCoreTtsSpeechCatalog({ entries: [{ ...entries[0], text: "Changed display" }], language: "en", config, profile, previous })
+    expect(result.entries[0]).toEqual(previous.entries[0])
+  })
+
   it("uses one structured call for LaTeX and normalization", async () => {
     const llm = modelWith([{ id: "t1", speech_text: "one half", transformation_kinds: ["latex-to-speech", "language-normalization"], failure_reason: null }])
     const result = await prepareCoreTtsCatalog({

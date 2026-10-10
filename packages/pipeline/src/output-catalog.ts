@@ -42,10 +42,12 @@ export function readOutputCatalog(options: {
   const add = (status: OutputStatus) => { statuses.push(status); byKey.set(outputIdentityKey(status.identity), status); return status }
   const find = (kind: OutputStatus["identity"]["kind"], id: string, language?: string) => byKey.get(outputIdentityKey({ kind, id, language }))
   const inventory = buildImageInventory(storage)
+  const decorativeImages = new Set<string>()
   const captionConfig = buildCaptionConfig(config)
   const summary = (storage.getLatestNodeData("book-summary", "book")?.data as { summary?: string })?.summary
   for (const image of inventory) {
     const previous = image.pageId ? (storage.getLatestNodeData("image-captioning", image.pageId)?.data as ImageCaptioningOutput | undefined)?.captions.find((entry) => entry.imageId === image.id) : undefined
+    if (previous?.decorative) decorativeImages.add(image.id)
     let pageImage: string | null = null
     try { if (image.pageId) pageImage = inputSignature(storage.getPageImageBase64(image.pageId)) } catch { /* This input alone is unavailable. */ }
     const status = deriveOutputStatus({ identity: { kind: "caption", id: image.id },
@@ -74,7 +76,7 @@ export function readOutputCatalog(options: {
   // Missing captions still imply expected dependent work for actual consumers.
   const sources = [...catalog.entries]
   for (const image of inventory) {
-    if (image.catalogLocations.length && !sources.some((entry) => entry.id === image.id)) sources.push({ id: image.id, text: "", locations: image.catalogLocations })
+    if (!decorativeImages.has(image.id) && image.catalogLocations.length && !sources.some((entry) => entry.id === image.id)) sources.push({ id: image.id, text: "", locations: image.catalogLocations })
   }
   const easyConfig = buildEasyReadConfig(config, sourceLanguage)
   easyConfig.promptSignature = prompt(easyConfig.promptName, easyConfig.modelId)

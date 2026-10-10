@@ -265,7 +265,12 @@ export function resolveCoreTtsSpeechCatalog(options: {
     entries: options.entries.flatMap((entry, index) => {
       const { input, signature } = coreTtsInputBasis({ ...options, index })
       const previous = prior.get(entry.id)
-      if (previous?.speechText?.trim() && (previous.generation.mode === "manual" || previous.source !== "ai")) return previous
+      if (previous?.speechText?.trim()) {
+        const status = deriveOutputStatus({ identity: { kind: "preparation", id: entry.id, language: normalizeLocale(options.language) },
+          signature, content: previous.speechText, usable: true,
+          metadata: { ...previous, source: previous.generation.mode === "manual" ? "manual" : previous.source } })
+        if (status.protected) return previous
+      }
       if (!entry.text.trim()) return []
       if (previous?.input?.signature === signature && previous.input.contentHash === inputSignature(previous.speechText) && previous.speechText?.trim()) return previous
       const reason = input.enabled_transformations.length === 0 ? undefined

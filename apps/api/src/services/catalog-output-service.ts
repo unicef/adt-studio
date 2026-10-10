@@ -2,7 +2,7 @@ import path from "node:path"
 import { HTTPException } from "hono/http-exception"
 import type { Storage } from "@adt/storage"
 import type { OutputKind, OutputStatus } from "@adt/types"
-import { inputSignature, loadBookConfig, readOutputCatalog } from "@adt/pipeline"
+import { inputSignature, loadBookConfig, normalizeLocale, readOutputCatalog } from "@adt/pipeline"
 
 /** One read model for generation, review and manual-save preconditions. */
 export function catalogOutputs(storage: Storage, label: string, booksDir: string, promptsDir: string, configPath?: string, options: { timestamps?: boolean } = {}): OutputStatus[] {
@@ -15,7 +15,7 @@ export function catalogOutputs(storage: Storage, label: string, booksDir: string
 }
 
 export function editSourceSignature(outputs: OutputStatus[], kind: OutputKind, language?: string, pageId?: string): string {
-  return inputSignature(outputs.filter((output) => output.identity.kind === kind && (!language || output.identity.language === language) && (!pageId || output.pageIds.includes(pageId)))
+  return inputSignature(outputs.filter((output) => output.identity.kind === kind && (!language || output.identity.language === normalizeLocale(language)) && (!pageId || output.pageIds.includes(pageId)))
     .map((output) => ({ identity: output.identity, signature: output.signature, excluded: output.excluded })))
 }
 

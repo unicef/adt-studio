@@ -3,7 +3,7 @@ import { retainedCoreTts, retainedEasyRead } from "./retained-catalog.js"
 import { createPromptEngine } from "@adt/llm"
 import path from "node:path"
 import type { Storage } from "@adt/storage"
-import type { AppConfig, EasyReadOutput, TextCatalogOutput } from "@adt/types"
+import type { AppConfig, EasyReadOutput, ImageCaptioningOutput, TextCatalogOutput } from "@adt/types"
 import { buildTextCatalogSnapshot } from "./text-catalog.js"
 import { flattenEasyReadEntries, buildEasyReadSourceBlocks } from "./easy-read.js"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
@@ -36,7 +36,10 @@ export function reconcileSpeechInputs(options: {
   const source = !hasAuthored ? (storage.getLatestNodeData("text-catalog", "book")?.data as TextCatalogOutput | undefined) ?? catalog : catalog
   const easyRead = retainedEasyRead(storage, buildEasyReadSourceBlocks(storage, storage.getPages()))
   const sourceEntries = [...source.entries]
-  for (const image of buildImageInventory(storage)) if (image.catalogLocations.length && !sourceEntries.some((entry) => entry.id === image.id)) sourceEntries.push({ id: image.id, text: "", locations: image.catalogLocations })
+  for (const image of buildImageInventory(storage)) {
+    const caption = image.pageId ? (storage.getLatestNodeData("image-captioning", image.pageId)?.data as ImageCaptioningOutput | undefined)?.captions.find((entry) => entry.imageId === image.id) : undefined
+    if (!caption?.decorative && image.catalogLocations.length && !sourceEntries.some((entry) => entry.id === image.id)) sourceEntries.push({ id: image.id, text: "", locations: image.catalogLocations })
+  }
   if (options.config.easy_read?.enabled) {
     const existing = new Map(flattenEasyReadEntries(easyRead).map((entry) => [entry.id, entry]))
     for (const block of buildEasyReadSourceBlocks(storage, storage.getPages())) for (const entry of block.entries) sourceEntries.push({ id: entry.easyReadId, text: existing.get(entry.easyReadId)?.text ?? "", locations: [{ pageId: entry.pageId, sectionId: entry.sectionId }] })

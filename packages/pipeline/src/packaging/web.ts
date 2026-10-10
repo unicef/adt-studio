@@ -190,7 +190,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 7
+const PACKAGING_FORMAT_VERSION = 8
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -371,6 +371,7 @@ export async function packageAdtWeb(
   const freshness = options.config ? readOutputCatalog({ storage, config: options.config, bookDir,
     promptsDir: options.promptsDir ?? path.resolve("prompts"), configDir: options.configDir ?? path.resolve("config") }) : []
   const included = new Set<string>()
+  const captionConsumers = new Set(buildImageInventory(storage).filter((image) => image.catalogLocations.length > 0).map((image) => image.id))
 
   const glossaryRow = storage.getLatestNodeData("glossary", "book")
   const glossary = glossaryRow?.data as GlossaryOutput | undefined
@@ -886,6 +887,7 @@ export async function packageAdtWeb(
       const variantId = `${originalImageId}${variantSuffix}`
       const variantFilename = imageMap.get(variantId)
       if (!variantFilename || options.config && (!options.config.image_translation?.enabled || !options.config.image_translation.selected_image_ids?.includes(originalImageId))) continue
+      if (options.config && !freshness.some((output) => output.identity.kind === "image-translation" && output.identity.id === originalImageId && output.identity.language === lang && output.usable)) continue
       const destPath = path.join(imageDir, variantFilename)
       if (!fs.existsSync(destPath)) {
         fs.copyFileSync(
@@ -898,7 +900,8 @@ export async function packageAdtWeb(
     }
     writeJson(path.join(localeDir, "images.json"), imagesMap)
     const disclosure = freshness.filter((output) => !output.excluded && (!output.identity.language || output.identity.language === lang) &&
-      (!output.group || output.group !== "glossary" || features?.glossary !== false) &&
+      (output.identity.kind !== "caption" || captionConsumers.has(output.identity.id)) &&
+      (output.group !== "glossary" || features?.glossary !== false || output.sectionIds.length > 0 || copiedImages.has(output.identity.id)) &&
       (!output.group || output.group !== "quizzes" || features?.quizzes !== false) &&
       (!["audio", "preparation", "timestamps"].includes(output.identity.kind) || features?.readAloud !== false))
       .filter((output) => output.updateNeeded || output.missing || output.warnings.length)
