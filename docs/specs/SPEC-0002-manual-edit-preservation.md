@@ -5,10 +5,10 @@ status: draft
 owner: "@ksokolovic"
 approvers: ["@<integration>", "@elasticsounds"]
 issues: ["#736", "#144"]
-prs: []
+prs: ["#880"]
 adr: ""
 created: 2026-09-21
-updated: 2026-09-28
+updated: 2026-10-10
 ---
 
 <!-- Drafted by an agent from #736, #144, SPEC-0001 and the codebase on 2026-09-21
@@ -90,14 +90,14 @@ Binding.
 - No change to quiz identity allocation (`docs/QUIZ_IDENTITY.md`) beyond documenting that preserved manual quizzes keep their ids.
 - No three-way merge that re-applies a user's delta onto fresh model output.
 - No retrofit of server-side stamping onto glossary, captions or speech; they keep working as they do.
-- No data migration; a stored entry without `source` is treated as AI-generated.
+- No data migration; a stored entry without `source` has unknown authorship and is protected, as required by Decision 4 and AC-11. Absence never authorizes ordinary replacement.
 - No change to the version picker or the restore contract.
 - No per-user identity, timestamps or model keys on entries. Provenance is one value, `ai` or `manual`; that is all the preservation rule reads. Which model wrote an entry is already in the LLM log and in SPEC-0001's input signature; "when" belongs on the stored version, not the entry. Because the field is optional, a later spec can add `author` and `at` beside it without migration, exactly as `source` is added now.
 - No preservation on the CLI/DAG runner. `packages/pipeline/src/pipeline-dag.ts` persists through its own code, and #810 shows a CLI run starts by wiping all node data. The guarantee of this spec covers the API path: Studio and any HTTP caller. The DAG writers stamp `ai` on the four nodes (AC-19) so a book produced by the CLI is not perpetually legacy when opened in Studio; nothing else changes on that path until #810 is resolved, and this spec does not claim it does.
 
 ## Proposed design
 
-**Option A — a `source` tag plus merge on rerun (the glossary/captions pattern), stamped server-side.** Optional `source: "ai" | "manual"` on four schemas (≈20 lines, 4 files in `packages/types`); each PUT route stamps what the user changed (≈80 lines, 4 files in `apps/api/src/routes`); the translation and quiz steps read the prior node, keep manual entries wholesale and send only the rest to the model, the sectioning step skips manual pages, the TOC step is unchanged (≈120 lines across `stage-runner.ts`, `quiz-ids.ts`); one shared helper module (≈80 lines, `packages/pipeline`); a badge in four views and one line in the existing rerun confirmation, plus five catalogs (≈90 lines); tests ≈350 lines. About 750 lines over ≈20 files, in five PRs.
+**Option A — a `source` tag plus merge on rerun (the glossary/captions pattern), stamped server-side.** Optional `source: "ai" | "manual"` on four schemas (≈20 lines, 4 files in `packages/types`); each PUT route stamps what the user changed (≈80 lines, 4 files in `apps/api/src/routes`); the translation and quiz steps read the prior node, keep manual entries wholesale and send only the rest to the model, the sectioning step skips manual pages, the TOC step is unchanged (≈120 lines across `stage-runner.ts`, `quiz-ids.ts`); one shared helper module (≈80 lines, `packages/pipeline`); a badge in four views and one line in the existing rerun confirmation, plus five catalogs (≈90 lines); tests ≈350 lines. The original estimates were about 750 lines over ≈20 files. Under the owner-authorized workflow these are coherent commits in PR #880, not five new PRs; estimates do not bound the required safety work.
 
 **Option B — node-level "user-owned" flag, no schema change.** A user PUT marks the whole node (a language's translation, the book's quizzes or TOC, a page's sectioning) user-owned; the step skips user-owned nodes. ≈120 lines, 5 files. Coarse: one corrected entry freezes a language's 8,850 entries, and new source entries never get translated unless the user regenerates explicitly — which then loses the edits. Reintroduces the problem at a different grain.
 
@@ -117,7 +117,7 @@ Decisions for the reviewer to ratify:
 8. **Quizzes merge by `quizId`, with no page skipping and no reordering.** A rerun keeps every manual quiz with its id, generates fresh-id AI quizzes for every eligible page even when a manual quiz already covers it (the user deletes what they do not want), drops prior AI quizzes, and orders the result by `afterPageId`; an explicit reading order is untouched.
 9. **Replacement is explicit, per entity, and never silent.** Translation uses SPEC-0001's inline *Regenerate and replace my edit*. Quizzes use the existing *Replace* placement. The TOC uses its stage rerun after the confirmation line. Sectioning uses its stage rerun with an opt-in in the existing confirmation, off by default, that replaces the listed hand-edited pages too. A replacement becomes `ai` only when its new version is published; failure or cancellation leaves the manual version current.
 10. **A save is guarded twice, so a stale screen can never stamp stale text as manual.** ADT Studio is one desktop app, but the Studio screen and the local API that owns the book database are separate processes, and the screen can hold a version the API has since moved past — a run finished, a version was restored, a second window saved. So each of the four PUTs requires `baseVersion`, the version the screen loaded; if it is not the current version the API answers 409 with the current version and writes nothing, and Studio reloads and re-applies the pending edits (it already keeps pending entries apart from the loaded document). Second guard: a PUT or a restore while the step that writes that node is running answers 409, as `assertQuizzesIdle` (`quizzes.ts:51`) and `assertNoActivePipelineRun` (`pages.ts:666`) already do; translation and TOC gain the same guard. Without the first guard, one save from a screen opened before a translate run would stamp every entry that run changed as manual.
-11. **Translation batches keep their windows; manual entries leave the request, not the list.** Today the entry list is cut into windows of fifty by position (`catalog-translation.ts:32`; `stage-runner.ts:2575–2580`) and each window is one request whose body is index-plus-text (`catalog-translation.ts:65`), which is what the LLM cache keys on. Removing manual entries from the list before cutting would shift every later window and miss the cache for all of them, making one correction cost a full run. Instead the windows are computed over the full list as today and manual entries are dropped from a window's request body; unchanged windows send identical bodies and hit the cache, and only a window containing a manual entry changes, paying once. The stored manual text fills those entries in the output. About ten lines where the windows are built.
+11. **Translation batches keep their windows; eligibility is decided first by SPEC-0001.** The ordered source list is partitioned into fixed windows of fifty (`catalog-translation.ts`; `runTranslateStep`), then protected and ineligible entries are removed from each request body. Empty windows are skipped. Changing protection within one window must not shift later windows. Request-level cache identity still uses the complete index-plus-text body and effective prompt/model/settings. Current output is skipped before the adapter: it is not a cache hit. A wider request never authorizes wider publication. See the explicitly proposed AC-2 amendment below; no paid generation is required merely because a person corrected a translation.
 
 ### Keeping, accepting and replacing protected work
 
@@ -160,12 +160,50 @@ One ordering requirement follows for sectioning: when a manual page is explicitl
 - Docs: `docs/QUIZ_IDENTITY.md` gains one sentence (preserved manual quizzes keep their ids across full regeneration); `docs/INVARIANTS.md` gains a row (below). `docs/ARCHITECTURE.md` unchanged.
 - Invariants: **entity versioning** (core principle 2) — every write stays a new version; nothing is mutated in place. Registry row 2 (no unconditional clear of user-touched entities) is strengthened in intent; its checker belongs to SPEC-0001. Row 3 (ids only via the factories) — preserved sections and quizzes keep their ids; nothing new is minted outside the factories. New row: "manual entries survive a rerun of their stage" — the route-level survival tests each slice adds.
 - Schema/migration: none. Zod object schemas strip unknown keys, so an older app reads a newer book without error; an older app's rerun still overwrites (accepted for the beta; noted in the support statement alongside SPEC-0001's equivalent). Entries without `source` are protected (decision 4), so upgrading never regenerates over an existing correction.
-- Collisions: **SPEC-0001 slice 1** (*Preservation foundation*: the pre-run clear stops deleting node data) is the prerequisite for every behavioural slice here (PRs 2–5) and for AC-9; **SPEC-0001 slices 2–4** supply lineage, the Warning on a preserved entry whose inputs changed, and the keep / edit / replace actions; **SPEC-0003** (sectioning modes) — a mode change must not silently keep a page sectioned under the old mode (open question 2); **SPEC-0008** / the #784–#787 stack — section-id retirement; #808 (text-catalog race) and #830 (TTS editor) are independent.
+- Collisions: **SPEC-0001 slice 1** (*Preservation foundation*: the pre-run clear stops deleting node data) is the prerequisite for every behavioural slice here (slices 2–5) and for AC-9; **SPEC-0001 slices 2–4** supply lineage, the Warning on a preserved entry whose inputs changed, and the keep / edit / replace actions; **SPEC-0003** (sectioning modes) — a mode change must not silently keep a page sectioned under the old mode; coordinate with SPEC-0003 before integration; **SPEC-0008** / the #784–#787 stack — section-id retirement; #808 (text-catalog race) and #830 (TTS editor) are independent.
+
+## Corrections and implementation status — 2026-10-10
+
+The owner authorized local implementation in this same PR before human approval,
+without pushing. The spec stays `draft`, and every acceptance checkbox stays open.
+[Implementation evidence and AC map](SPEC-0002-implementation-evidence.md) records
+the refreshed baseline, dependencies, delivered slice and verification limits.
+
+- **Authorship correction (requested by the owner):** the old non-goal saying
+  absent `source` meant AI conflicted with Decision 4 and AC-11. It now says
+  unknown and protected. This changes no accepted rule. Unknown authorship stays
+  separate from lineage/freshness and explicit review acceptance. References to
+  manual preservation below also require preserving unknown content; unknown
+  work must be identified as such when requesting explicit replacement.
+- **AC-2 amendment proposed for review:** the previous AC required every AI entry
+  to be regenerated and every window to be submitted on an ordinary rerun, with
+  one provider call after a lone correction. That contradicts SPEC-0001 section 4
+  and AC-8, which skip current output. It can bill a user for unrelated current
+  translations solely because they corrected one word. AC-2 and Decision 11 now
+  separate ordinary eligibility from the controlled full-eligibility cache test.
+  The former submits zero translation requests after that correction when all
+  other translations are current. The latter retains the original fixed-window
+  and one-changed-window cache experiment, explicitly at the adapter boundary.
+  No new full-recompute UI or cache bypass is introduced. Retry counts and cache
+  validity preclude a universal one-provider-call promise. This amendment remains
+  subject to human review; it is not an implemented cost guarantee.
+- **Dependency correction:** #879 currently contains documentation only. The
+  safe dependency-free slice is schemas/helpers, as the rollout already states.
+  Runtime translation, TOC, quiz and Sectioning integration must use the shared
+  admission/freshness/publication foundation once implemented and tested. The
+  omission of `baseVersion` from current routes cannot be papered over by a helper.
+- **AC-9 versus AC-6:** AC-9's TOC survival case uses an ordinary HTTP run without
+  explicit protected-work replacement. AC-6 separately exercises the named,
+  confirmed TOC replacement. An upstream run or generic rerun is not confirmation.
+- **AC-18 conflict handling:** re-applying a draft after reloading must retain the
+  draft and expose overlapping edits for resolution, not automatically save a
+  stale full document or relabel another writer's content as manual. Admission
+  must cover queued execution and recheck captured versions at publication.
 
 ## Acceptance criteria
 
 - [ ] AC-1 Saving a translation document through `PUT …/text-catalog-translation/:language` stamps `source: "manual"` on exactly the entries whose `text` differs from the current version; every other entry keeps its prior `source`; the response version increments.
-- [ ] AC-2 A translate rerun keeps every manual entry byte-for-byte, regenerates every `ai` entry, and drops entries whose id has left the source catalog. Windows are the same fixed positions as today over the full list, and manual entries are absent from a window's request body. Asserted at the adapter boundary: no manual id is among the entries handed to `translateCatalogBatch`. Measured from `llm_log` for the run as four separate numbers: batch requests equal the number of windows; cache hits equal the windows whose body is unchanged; provider calls equal the windows containing a manual or changed entry; cost is the sum over provider calls. After one correction on an otherwise unchanged book: one provider call on the first rerun, none on the second.
+- [ ] AC-2 **Amendment proposed 2026-10-10; human review pending (see below).** An ordinary translate rerun keeps every protected entry byte-for-byte while its source remains active, skips current AI output, regenerates selected changed AI output and fills missing output under SPEC-0001, and removes entries whose source ID is no longer active while retaining history. Build fixed windows over the complete ordered source list before filtering each request body; never compact the full list around protected or ineligible entries. Send only non-empty eligible windows. At the adapter boundary, assert protected entries are absent. Measure adapter requests, cache hits, actual provider calls (including retries) and provider cost separately; a skipped current window is not a cache hit. With all other output current, saving one correction causes zero translation requests/calls on both subsequent ordinary runs. Separately, in a controlled full-eligibility adapter/cache test with valid warmed caches and no retries, excluding one corrected entry changes only its window: the first pass incurs one provider call and other windows hit cache; the identical second pass incurs none. Empty/protected-only windows submit no request. These controlled adapter passes do not authorize publishing current or protected entries or add a force-fresh action.
 - [ ] AC-3 Saving quizzes through `PUT …/quizzes` stamps `source: "manual"` on quizzes whose content changed or that are new; ids are preserved exactly as `saveQuizOutput(…, "edit")` does today.
 - [ ] AC-4 A full quiz rerun keeps every manual quiz with its `quizId` (so `${quizId}_que` / `_o<n>` catalog entries, translations and audio still resolve), generates fresh-id AI quizzes for every eligible page including pages a manual quiz already covers, drops prior AI quizzes, orders by `afterPageId` leaving an explicit reading order untouched, and the "no eligible pages" run keeps the manual quizzes instead of saving an empty set.
 - [ ] AC-5 Saving a TOC through `PUT …/toc` stamps the document `source: "manual"`; the TOC step stamps `ai`.
@@ -192,18 +230,22 @@ One ordering requirement follows for sectioning: when a manual page is explicitl
 - **Route-level survival** (new `apps/api/src/routes/manual-edit-survival.test.ts`, driving the run route through `app.request` as `books.test.ts` does, with `@adt/llm` mocked as `stage-runner.test.ts:55` does): AC-9 and AC-17, one case per entity type, added by the slice that ships that entity, over a three-page synthetic fixture under `packages/pipeline/src/__tests__/fixtures/` with one translation language, two quizzes, three TOC entries and one manual page. Preview is asserted through the `adt-preview.test.ts` pattern; export through the web packaging. This file is the invariant-registry row's checker.
 - **DAG parity** (`packages/pipeline/src/__tests__/`): AC-19, the `ai` stamp on each of the four nodes the DAG runner writes; nothing more is asserted on that path.
 - **Studio**: AC-10, the confirmation halves of AC-6 and AC-15, and the quiz label of AC-16 via the CI `i18n` job (extract + lint) and a check in a running Studio before the spec moves to `verified`; a component test is optional (76 exist under `apps/studio/src`).
-- **Harness** (`pnpm acceptance`, SPEC-0005): on Mathematics STD 5, edit one translation entry, rerun translate twice, and assert AC-2's four numbers at scale: the entry survives; batch requests equal the window count; the first rerun makes one provider call and the second none; cost equals one window on the first rerun and zero on the second.
+- **Harness** (`pnpm acceptance`, SPEC-0005): on Mathematics STD 5, edit one translation entry, rerun translate twice, and assert AC-2's four numbers at scale: the entry survives; ordinary runs skip current output; controlled full-eligibility adapter/cache passes meet the amended AC-2 accounting without claiming those passes are ordinary reruns.
 - Fixtures: `tests/fixtures/raven.pdf` is the only committed book; the synthetic fixture above is enough for every AC except the harness row.
 
 ## Rollout
 
-- **Dependency, stated once:** every behavioural slice (PRs 2–5) lands after SPEC-0001 slice 1, *Preservation foundation*, because until then the pre-run clear deletes the very node each merge must read. Each slice carries its own route-level survival test (AC-9) for its entity. PR 1 has no dependency.
-- **PR 1** — the four optional schema fields and `packages/pipeline/src/manual-edits.ts` with unit tests. No behaviour change. Enables everything; closes nothing. ≈150 lines.
-- **PR 2** — translation: stamp in the PUT, merge and skip in `runTranslateStep`, badge, catalogs. Also the restore guard and the survival test harness. Closes AC-1, AC-2, AC-10 (translation), AC-11, AC-12, AC-14 (translation), AC-17, AC-18 and AC-19 for translation, and AC-9 for translation plus the two already-preserving types (captions, glossary) that share its harness. ≈340 lines.
-- **PR 3** — TOC: stamp in the PUT, `ai` stamp in the step, badge, one line in the rerun confirmation. Closes AC-5, AC-6, AC-10 (TOC), AC-14 (TOC), AC-9, AC-17, AC-18 and AC-19 for TOC. ≈150 lines.
-- **PR 4** — quizzes: closes AC-3, AC-4, AC-10 (quizzes), AC-9, AC-17, AC-18 and AC-19 for quizzes, the quiz half of AC-16; the `QUIZ_IDENTITY.md` sentence. ≈300 lines.
-- **PR 5** — sectioning (retirement interplay at `stages.ts:46` / `section-ids.ts:359`): closes AC-7, AC-8, AC-13, AC-15, the sectioning half of AC-16, AC-10 (sectioning), AC-9, AC-17, AC-18 and AC-19 for sectioning. ≈360 lines.
-- Order: 1 → {2, 3, 4} in any order → 5. The invariant-registry row lands with PR 2. No feature flag. Every PR is independently revertable: the fields are optional and the merges additive, so reverting one returns that entity to overwrite-on-rerun and leaves stored `source` tags inert.
+The original PR slices below are **commit slices in existing PR #880** under the
+owner's authorization. Approval-before-implementation sequencing is overridden
+for this task; the runtime dependency gates and pending human review are not.
+
+- **Dependency, stated once:** every behavioural slice (slices 2–5) lands after SPEC-0001 slice 1, *Preservation foundation*, because until then the pre-run clear deletes the very node each merge must read. Each slice carries its own route-level survival test (AC-9) for its entity. Slice 1 has no dependency.
+- **Slice 1** — the four optional schema fields and `packages/pipeline/src/manual-edits.ts` with unit tests. No behaviour change. Enables everything; closes nothing. ≈150 lines.
+- **Slice 2** — translation: stamp in the PUT, merge and skip in `runTranslateStep`, badge, catalogs. Also the restore guard and the survival test harness. Closes AC-1, AC-2, AC-10 (translation), AC-11, AC-12, AC-14 (translation), AC-17, AC-18 and AC-19 for translation, and AC-9 for translation plus the two already-preserving types (captions, glossary) that share its harness. ≈340 lines.
+- **Slice 3** — TOC: stamp in the PUT, `ai` stamp in the step, badge, one line in the rerun confirmation. Closes AC-5, AC-6, AC-10 (TOC), AC-14 (TOC), AC-9, AC-17, AC-18 and AC-19 for TOC. ≈150 lines.
+- **Slice 4** — quizzes: closes AC-3, AC-4, AC-10 (quizzes), AC-9, AC-17, AC-18 and AC-19 for quizzes, the quiz half of AC-16; the `QUIZ_IDENTITY.md` sentence. ≈300 lines.
+- **Slice 5** — sectioning (retirement interplay at `stages.ts:46` / `section-ids.ts:359`): closes AC-7, AC-8, AC-13, AC-15, the sectioning half of AC-16, AC-10 (sectioning), AC-9, AC-17, AC-18 and AC-19 for sectioning. ≈360 lines.
+- Order: 1 → {2, 3, 4} in any order → 5. The invariant-registry row lands with slice 2. No feature flag. Every slice is independently revertable: the fields are optional and the merges additive, so reverting one returns that entity to overwrite-on-rerun and leaves stored `source` tags inert.
 
 ## Open questions
 
