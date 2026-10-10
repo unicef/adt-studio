@@ -42,6 +42,26 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); fs.rmSync(root, { recursive: true, force: true }) })
 
 describe("catalog freshness through real API/storage boundaries", () => {
+  it("changes only consuming signatures for effective prompt, model and voice edits", async () => {
+    const before = await outputs()
+    const find = (items: OutputStatus[], kind: string, language?: string) => items.find((output) => output.identity.kind === kind && output.identity.id === (kind === "caption" ? "pg001_im001" : "pg001_t001") && (!language || output.identity.language === language))!
+    const db = storage()
+    const promptDirectory = path.join(db.bookDir!, "prompts")
+    fs.mkdirSync(promptDirectory)
+    fs.writeFileSync(path.join(promptDirectory, "translation.liquid"), "A deliberately different effective translation prompt.")
+    const promptChanged = await outputs()
+    expect(find(promptChanged, "translation", "fr").signature).not.toBe(find(before, "translation", "fr").signature)
+    expect(find(promptChanged, "caption").signature).toBe(find(before, "caption").signature)
+    expect(find(promptChanged, "audio", "fr").signature).toBe(find(before, "audio", "fr").signature)
+    fs.appendFileSync(path.join(db.bookDir!, "config.yaml"), "image_captioning:\n  model: ollama:tinyllama\nspeech:\n  default_provider: openai\n  primary_voices:\n    openai:\n      fr:\n        voice: onyx\n")
+    db.close()
+    const configured = await outputs()
+    expect(find(configured, "caption").signature).not.toBe(find(promptChanged, "caption").signature)
+    expect(find(configured, "audio", "fr").signature).not.toBe(find(promptChanged, "audio", "fr").signature)
+    expect(find(configured, "audio", "en").signature).toBe(find(promptChanged, "audio", "en").signature)
+    expect(find(configured, "translation", "fr").signature).toBe(find(promptChanged, "translation", "fr").signature)
+  })
+
   it("keeps legacy regional-language output visible and reviewable without guessing authorship", async () => {
     const db = storage()
     fs.writeFileSync(path.join(db.bookDir!, "config.yaml"), "output_languages: [en, pt-BR]\n")
