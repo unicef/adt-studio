@@ -1,4 +1,4 @@
-export { AuthoredContent } from "./content-authorship.js"
+export { AuthoredContent, AuthoredSaveGuard, AuthoredReplacement, AuthoredRunOptions } from "./content-authorship.js"
 
 export {
   SCHEMA_VERSION,

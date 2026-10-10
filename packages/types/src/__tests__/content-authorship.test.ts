@@ -62,3 +62,12 @@ describe("content authorship", () => {
     expect(page.sections[0]).not.toHaveProperty("source")
   })
 })
+
+it("requires an editor version and defaults protected replacement off", async () => {
+  const { AuthoredSaveGuard, AuthoredRunOptions } = await import("../content-authorship.js")
+  expect(AuthoredSaveGuard.safeParse({}).success).toBe(false)
+  expect(AuthoredSaveGuard.safeParse({ baseVersion: -1 }).success).toBe(false)
+  expect(AuthoredSaveGuard.parse({ baseVersion: 0 })).toEqual({ baseVersion: 0 })
+  expect(AuthoredRunOptions.parse({})).toEqual({ replaceManual: false, protectedReplacements: [] })
+  expect(AuthoredRunOptions.safeParse({ replaceManual: true, protectedReplacements: [{ node: "toc-generation", itemId: "book", version: 0 }] }).success).toBe(false)
+})
