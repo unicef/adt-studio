@@ -76,7 +76,7 @@ export function CoreTtsProfilesEditor({ bookLabel }: { bookLabel: string }) {
   })
 
   if (isLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">{t`Loading TTS normalization...`}</div>
+    return <div className="p-4 text-sm text-muted-foreground">{t`Loading speech preparation...`}</div>
   }
 
   const update = (key: string, value: string) => {
@@ -106,7 +106,7 @@ export function CoreTtsProfilesEditor({ bookLabel }: { bookLabel: string }) {
       <div className="space-y-2">
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t`Default guidance`}</Label>
         <p className="text-xs text-muted-foreground">
-          {t`Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call.`}
+          {t`Text normalization guidance, used only when text normalization is on for the book. Math read aloud always runs and does not use it. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call.`}
         </p>
         <textarea
           value={entries.default ?? ""}

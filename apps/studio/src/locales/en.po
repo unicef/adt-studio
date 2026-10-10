@@ -1408,6 +1408,9 @@ msgstr "Alphabetical"
 msgid "Already handed out"
 msgstr "Already handed out"
 
+msgid "Always on"
+msgstr "Always on"
+
 msgid "Among the Stars"
 msgstr "Among the Stars"
 
@@ -5460,6 +5463,9 @@ msgstr "Loading sectioning data..."
 msgid "Loading speech instructions..."
 msgstr "Loading speech instructions..."
 
+msgid "Loading speech preparation..."
+msgstr "Loading speech preparation..."
+
 msgid "Loading stats..."
 msgstr "Loading stats..."
 
@@ -5477,9 +5483,6 @@ msgstr "Loading text catalog..."
 
 msgid "Loading text sizes…"
 msgstr "Loading text sizes…"
-
-msgid "Loading TTS normalization..."
-msgstr "Loading TTS normalization..."
 
 msgid "Loading validation..."
 msgstr "Loading validation..."
@@ -5603,6 +5606,9 @@ msgstr "Match system theme"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Matches the original book design with some flexibility."
+
+msgid "Math read aloud"
+msgstr "Math read aloud"
 
 msgid "Max height"
 msgstr "Max height"
@@ -7306,11 +7312,8 @@ msgstr "Prefer terms central to the book's subject matter. Skip generic vocabula
 msgid "Preferences"
 msgstr "Preferences"
 
-msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
-msgstr "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
-
-msgid "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
-msgstr "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
+msgid "Prepare numbers, dates, and abbreviations for natural speech."
+msgstr "Prepare numbers, dates, and abbreviations for natural speech."
 
 msgid "Prepared speech text"
 msgstr "Prepared speech text"
@@ -8226,6 +8229,9 @@ msgstr "Reviewing..."
 
 msgid "Revoked"
 msgstr "Revoked"
+
+msgid "Rewrites text before it is read aloud. The text on the page does not change."
+msgstr "Rewrites text before it is read aloud. The text on the page does not change."
 
 msgid "Rewriting the story of this section..."
 msgstr "Rewriting the story of this section..."
@@ -9166,6 +9172,12 @@ msgstr "Speech Generation"
 msgid "Speech narrates the translated text Language produces. Finish Language before running this stage."
 msgstr "Speech narrates the translated text Language produces. Finish Language before running this stage."
 
+msgid "Speech preparation"
+msgstr "Speech preparation"
+
+msgid "Speech Preparation"
+msgstr "Speech Preparation"
+
 msgid "Speech Preview"
 msgstr "Speech Preview"
 
@@ -9664,6 +9676,9 @@ msgstr "Text normalization"
 
 msgid "Text Normalization"
 msgstr "Text Normalization"
+
+msgid "Text normalization guidance, used only when text normalization is on for the book. Math read aloud always runs and does not use it. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+msgstr "Text normalization guidance, used only when text normalization is on for the book. Math read aloud always runs and does not use it. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
 
 msgid "Text Only"
 msgstr "Text Only"
@@ -10349,9 +10364,6 @@ msgstr "Try the practice problem"
 msgid "Try this screen again"
 msgstr "Try this screen again"
 
-msgid "TTS Normalization"
-msgstr "TTS Normalization"
-
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 
@@ -10366,6 +10378,9 @@ msgstr "Turn this on to show the Validation review card in Preview and the Revie
 
 msgid "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
 msgstr "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
+
+msgid "Turns math and LaTeX into spoken words, so formulas are never read out as raw notation."
+msgstr "Turns math and LaTeX into spoken words, so formulas are never read out as raw notation."
 
 msgid "Two authentication methods are supported: Bearer tokens passed in the Authorization header, and API keys passed as a query parameter. Bearer tokens are preferred for server-to-server requests due to their short expiry window."
 msgstr "Two authentication methods are supported: Bearer tokens passed in the Authorization header, and API keys passed as a query parameter. Bearer tokens are preferred for server-to-server requests due to their short expiry window."

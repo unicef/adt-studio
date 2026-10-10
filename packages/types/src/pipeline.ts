@@ -155,7 +155,7 @@ export const PIPELINE: StageDef[] = [
     dependsOn: ["easy-read", "quizzes", "captions", "glossary", "toc"],
     steps: [
       { name: "catalog-translation", label: "Catalog Translation", modelDefault: "llm" },
-      { name: "core-tts-catalog", label: "TTS Normalization", modelDefault: "llm", dependsOn: ["catalog-translation"] },
+      { name: "core-tts-catalog", label: "Speech Preparation", modelDefault: "llm", dependsOn: ["catalog-translation"] },
       { name: "image-translation", label: "Image Translation", modelDefault: "image-generation", dependsOn: ["catalog-translation"] },
     ],
   },

@@ -46,7 +46,7 @@ describe("pipeline-i18n", () => {
   })
 
   it("resolves labels for every pipeline step", () => {
-    expect(getStepLabelI18n("core-tts-catalog")).toBe("TTS Normalization")
+    expect(getStepLabelI18n("core-tts-catalog")).toBe("Speech Preparation")
     expect(getStepLabelI18n("accessibility-assessment")).toBe("Accessibility Assessment")
     expect(Object.keys(STEP_LABEL_MESSAGES).sort()).toEqual(
       PIPELINE.flatMap((stage) => stage.steps.map((step) => step.name)).sort(),

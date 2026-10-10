@@ -299,7 +299,31 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
         </SettingsField>
       </SettingsCard>
 
-      <SettingsCard>
+      <SettingsCard
+        title={<Trans>Speech preparation</Trans>}
+        description={
+          <Trans>
+            Rewrites text before it is read aloud. The text on the page does not
+            change.
+          </Trans>
+        }
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-semibold leading-5 text-foreground">
+              <Trans>Math read aloud</Trans>
+            </span>
+            <p className="text-xs leading-relaxed text-[#737373]">
+              <Trans>
+                Turns math and LaTeX into spoken words, so formulas are never
+                read out as raw notation.
+              </Trans>
+            </p>
+          </div>
+          <span className="inline-flex shrink-0 items-center rounded-full bg-[#f5f5f5] px-2.5 py-1 text-[11px] font-medium text-[#525252]">
+            <Trans>Always on</Trans>
+          </span>
+        </div>
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
             <label
@@ -311,7 +335,6 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
             <p className="text-xs leading-relaxed text-[#737373]">
               <Trans>
                 Prepare numbers, dates, and abbreviations for natural speech.
-                Math and LaTeX are handled separately.
               </Trans>
             </p>
           </div>
