@@ -556,6 +556,9 @@ msgstr "{totalPages} faqe"
 msgid "{totalPages} pages · {totalSections} sections"
 msgstr "{totalPages} faqe · {totalSections} seksione"
 
+msgid "{updates} updates needed · {warnings} warnings · {missing} missing"
+msgstr "{updates} përditësime të nevojshme · {warnings} paralajmërime · {missing} mungojnë"
+
 #. placeholder {0}: String(filterSectionIndex + 1)
 msgid "/ Section {0}"
 msgstr "/ Seksioni {0}"
@@ -1377,6 +1380,9 @@ msgstr "Të gjitha ndryshimet u ruajtën"
 msgid "All issues and manual review items"
 msgstr "Të gjitha problemet dhe elementet e rishikimit manual"
 
+msgid "All outputs"
+msgstr "Të gjitha rezultatet"
+
 msgid "All pages"
 msgstr "Të gjitha faqet"
 
@@ -1433,6 +1439,9 @@ msgstr "Po gjenerohet një imazh me AI. Ta anulosh dhe të vazhdosh?"
 
 msgid "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
 msgstr "Një kyç API i caktuar në mjedisin e serverit ka përparësi ndaj kësaj hyrjeje. Hiqeni atje për të përdorur llogarinë me të cilën keni hyrë."
+
+msgid "An input needs review."
+msgstr "Një e dhënë hyrëse ka nevojë për rishikim."
 
 msgid "An open-ended answer activity."
 msgstr "Një aktivitet me përgjigje të hapur."
@@ -1648,6 +1657,9 @@ msgstr "Fontet e bashkëngjitura"
 
 msgid "Audience or reading level"
 msgstr "Audienca ose niveli i leximit"
+
+msgid "Audio"
+msgstr "Audio"
 
 msgid "Audio narration (largest impact on file size)"
 msgstr "Tregim audio (ndikimi më i madh në madhësinë e skedarit)"
@@ -3780,6 +3792,12 @@ msgstr "Përjashto nga leximi me zë"
 msgid "Exclude from render"
 msgstr "Përjashto nga renderimi"
 
+msgid "Existing output is included."
+msgstr "Rezultati ekzistues përfshihet."
+
+#~ msgid "Existing output may be included."
+#~ msgstr "Rezultati ekzistues mund të përfshihet."
+
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "Seancat ekzistuese të rishikuesit ruajnë fotografinë e tyre të listës së kontrollit. Ndryshimet e reja të listës zbatohen për seancat e krijuara rishtazi."
 
@@ -4191,6 +4209,9 @@ msgstr "Poligon i lirë — lëviz, shto dhe hiq pika"
 msgid "French"
 msgstr "Frëngjisht"
 
+msgid "Freshness is unknown. Existing content has been kept."
+msgstr "Nuk dihet nëse është i përditësuar. Përmbajtja ekzistuese është ruajtur."
+
 msgid "From a single PDF, every edition gains the ways different readers need to reach it."
 msgstr "Nga një PDF i vetëm, çdo botim fiton mënyrat që lexuesit e ndryshëm kanë nevojë për ta arritur atë."
 
@@ -4332,6 +4353,12 @@ msgstr "Gjenero Prompt"
 msgid "Generate quiz"
 msgstr "Gjenero kuiz"
 
+msgid "Generate selected output"
+msgstr "Gjenero rezultatin e përzgjedhur"
+
+msgid "Generate selected outputs"
+msgstr "Gjenero rezultatet e përzgjedhura"
+
 msgid "Generate Styleguide from Pages"
 msgstr "Gjenero Udhëzuesin e Stilit nga Faqet"
 
@@ -4408,6 +4435,9 @@ msgstr "Gjenerimi dështoi. Ju lutemi provoni përsëri."
 
 msgid "Generation Prompt"
 msgstr "Prompt Gjenerimi"
+
+msgid "Generation uses required section or page context and publishes only selected outputs. Current and protected outputs are kept."
+msgstr "Gjenerimi përdor kontekstin e nevojshëm të seksionit ose faqes dhe publikon vetëm rezultatet e përzgjedhura. Rezultatet aktuale dhe të mbrojtura ruhen."
 
 msgid "Get a key"
 msgstr "Merrni një çelës"
@@ -4808,6 +4838,9 @@ msgstr "Zgjedhja e imazhit"
 msgid "Image size"
 msgstr "Madhësia e imazhit"
 
+msgid "Image translation"
+msgstr "Përkthimi i imazhit"
+
 msgid "Image Translation"
 msgstr "Përkthimi i Imazheve"
 
@@ -5096,11 +5129,20 @@ msgstr "Justify"
 msgid "KB"
 msgstr "KB"
 
+msgid "Keep existing content"
+msgstr "Mbaj përmbajtjen ekzistuese"
+
+msgid "Keep my edit"
+msgstr "Mbaj ndryshimin tim"
+
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Mbaji të pandryshuara skemat e daljes dhe ID-të kur redakton promptet."
 
 msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur zbulohen lloje të ndryshme aktivitetesh në të njëjtën faqe."
+
+msgid "Keep selected content"
+msgstr "Mbaj përmbajtjen e përzgjedhur"
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Mban faqet të plota nëse llojet e përziera të aktiviteteve nuk kërkojnë ndarje."
@@ -5555,6 +5597,9 @@ msgstr "Menaxho në libër"
 msgid "Manage sign-language videos"
 msgstr "Menaxho videot e gjuhës së shenjave"
 
+msgid "Manual edit"
+msgstr "Ndryshim manual"
+
 msgid "Manual only"
 msgstr "Vetëm manual"
 
@@ -5584,6 +5629,12 @@ msgstr "Shëno si dekorativ"
 
 msgid "Mark as decorative (hidden from screen readers)"
 msgstr "Shëno si dekorativ (i fshehur nga lexuesit e ekranit)"
+
+msgid "Mark checked"
+msgstr "Shëno si të kontrolluar"
+
+msgid "Mark selected fallbacks checked"
+msgstr "Shëno si të kontrolluara alternativat e përzgjedhura"
 
 msgid "Mark spreads"
 msgstr "Shëno faqet e përbashkëta"
@@ -5821,6 +5872,9 @@ msgstr "Mungon"
 
 msgid "Missing or added content"
 msgstr "Përmbajtje e munguar ose e shtuar"
+
+msgid "Missing output is omitted."
+msgstr "Rezultati që mungon nuk përfshihet."
 
 msgid "Missing:"
 msgstr "Mungojnë:"
@@ -7437,6 +7491,9 @@ msgstr "Promptet"
 msgid "prompts templates instructions"
 msgstr "udhëzime shabllone"
 
+msgid "Protected content"
+msgstr "Përmbajtje e mbrojtur"
+
 msgid "Provider"
 msgstr "Ofruesi"
 
@@ -7835,6 +7892,9 @@ msgstr "Rifresko"
 msgid "Refresh all providers"
 msgstr "Rifresko të gjithë ofruesit"
 
+msgid "Refresh audio status before uploading a recording."
+msgstr "Rifreskoni gjendjen e audios para se të ngarkoni një regjistrim."
+
 msgid "Refresh provider availability, versions, auth state and model metadata in the background. Set to 0 seconds to rely on manual refreshes."
 msgstr "Rifresko disponueshmërinë e ofruesit, versionet, gjendjen e autentikimit dhe metadatat e modelit në sfond. Vendoseni në 0 sekonda për të mbështetur në rifreskime manuale."
 
@@ -7846,6 +7906,12 @@ msgstr "Duke rifreskuar rezultatet për këtë pamje paraprake të paketuar."
 
 msgid "Regenerate"
 msgstr "Rigenero"
+
+msgid "Regenerate and replace my edit"
+msgstr "Rigjenero dhe zëvendëso ndryshimin tim"
+
+msgid "Regenerate and replace selected edits"
+msgstr "Rigjenero dhe zëvendëso ndryshimet e përzgjedhura"
 
 msgid "Regenerate book summary"
 msgstr "Rigjenero përmbledhjen e librit"
@@ -7986,6 +8052,9 @@ msgstr "Renderimi i çdo faqeje në paraqitjen e storyboard-it të përdorur nga
 msgid "Replace"
 msgstr "Zëvendëso"
 
+msgid "Replace {protectedCount} selected protected outputs"
+msgstr "Zëvendëso {protectedCount} rezultate të mbrojtura të përzgjedhura"
+
 msgid "Replace from book"
 msgstr "Zëvendëso nga libri"
 
@@ -8119,6 +8188,9 @@ msgstr "Riprovo {stageLabel}"
 msgid "Retry Export"
 msgstr "Riprovo Eksportimin"
 
+msgid "Retry preparation"
+msgstr "Provo përsëri përgatitjen"
+
 msgid "Return to coordinator"
 msgstr "Kthejeni te koordinatori"
 
@@ -8168,6 +8240,12 @@ msgstr "Progresi i rishikimit"
 
 msgid "Review pruned sections"
 msgstr "Rishiko seksionet e hequra"
+
+msgid "Review scope"
+msgstr "Fushëveprimi i rishikimit"
+
+msgid "Review source"
+msgstr "Rishiko burimin"
 
 msgid "Review spreads"
 msgstr "Shqyrto fletët e dyfishta"
@@ -8418,6 +8496,9 @@ msgstr "Ruaj listën e kontrollit"
 
 msgid "Save failed"
 msgstr "Ruajtja dështoi"
+
+msgid "Save or cancel your draft before reviewing outputs."
+msgstr "Ruani ose anuloni draftin para se të rishikoni rezultatet."
 
 msgid "Save or discard your edits first"
 msgstr "Fillimisht ruani ose hidhni poshtë ndryshimet"
@@ -8783,6 +8864,9 @@ msgstr "Zgjidhni shabllonin..."
 msgid "Select the pages the quiz is written from, then choose where it appears using the buttons between pages."
 msgstr "Zgjidhni faqet nga të cilat është shkruar kuizi, pastaj zgjidhni ku shfaqet duke përdorur butonat ndërmjet faqeve."
 
+msgid "Select this scope"
+msgstr "Përzgjidh këtë fushëveprim"
+
 msgid "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
 msgstr "Zgjidhni deri në 5 faqe për t'i përdorur si referenca vizuale. LLM do t'i analizojë dhe do të gjenerojë një udhëzues stili."
 
@@ -9063,6 +9147,9 @@ msgstr "Kalo segmentimin për imazhet çdofaqja më e shkurtër e të cilave ës
 msgid "Skip this page and continue the step, or stop the step entirely."
 msgstr "Kapërce këtë faqe dhe vazhdo hapin, ose ndale hapin plotësisht."
 
+msgid "Skip this run"
+msgstr "Anashkalo në këtë ekzekutim"
+
 msgid "Skipped"
 msgstr "Kaluar"
 
@@ -9120,6 +9207,9 @@ msgstr "Burimi"
 msgid "Source candidates:"
 msgstr "Kandidatët burimorë:"
 
+msgid "Source changed. Your edit has been kept."
+msgstr "Burimi ka ndryshuar. Ndryshimi juaj është ruajtur."
+
 msgid "Source file"
 msgstr "Skedari burim"
 
@@ -9176,6 +9266,9 @@ msgstr "Prompte të të Folurit"
 
 msgid "Speech Settings"
 msgstr "Cilësimet e të Folurit"
+
+msgid "Speech text"
+msgstr "Teksti për lexim me zë"
 
 msgid "Speech, translations, quizzes and a glossary — built into every book, so every learner can read, listen and understand."
 msgstr "Të folur, përkthime, kuize dhe një fjalorth — të integruara në çdo libër, që çdo nxënës të mund të lexojë, dëgjojë dhe kuptojë."
@@ -9669,6 +9762,24 @@ msgstr "Normalizimi i tekstit"
 
 msgid "Text Only"
 msgstr "Vetëm Tekst"
+
+#~ msgid "Text preparation failed. Audio uses the original text."
+#~ msgstr "Përgatitja e tekstit dështoi. Audioja përdor tekstin origjinal."
+
+msgid "Text preparation failed. Speech text uses the original text."
+msgstr "Përgatitja e tekstit dështoi. Teksti për lexim me zë përdor tekstin origjinal."
+
+#~ msgid "Text preparation is missing. Audio uses the original text."
+#~ msgstr "Mungon përgatitja e tekstit. Audioja përdor tekstin origjinal."
+
+msgid "Text preparation is missing. Speech text uses the original text."
+msgstr "Mungon përgatitja e tekstit. Teksti për lexim me zë përdor tekstin origjinal."
+
+#~ msgid "Text preparation is outdated. Audio uses the original text."
+#~ msgstr "Përgatitja e tekstit është e vjetruar. Audioja përdor tekstin origjinal."
+
+msgid "Text preparation is outdated. Speech text uses the original text."
+msgstr "Përgatitja e tekstit është e vjetruar. Teksti për lexim me zë përdor tekstin origjinal."
 
 msgid "Text recovered from the page image — this page has no embedded text layer"
 msgstr "Teksti u rikuperua nga imazhi i faqes — kjo faqe nuk ka shtresë teksti të integruar"
@@ -10537,6 +10648,9 @@ msgstr "I përditësuar"
 msgid "Update available"
 msgstr "Përditësim i disponueshëm"
 
+msgid "Update needed"
+msgstr "Nevojitet përditësim"
+
 msgid "Update ready to install"
 msgstr "Përditësimi është gati për instalim"
 
@@ -10864,6 +10978,9 @@ msgstr "Duke pritur të përpunohet faqja..."
 
 msgid "Wall Clock"
 msgstr "Orë muri"
+
+msgid "Warning"
+msgstr "Paralajmërim"
 
 msgid "Warning: Image Captions are required for accessibility"
 msgstr "Paralajmërim: Titujt e imazheve kërkohen për aksesueshmëri"

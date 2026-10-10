@@ -1,3 +1,5 @@
+import type { OutputSkipRequest } from "@adt/types"
+import type { OutputStatus, OutputSummary, OutputRunScope, OutputReviewRequest, OutputDisclosureOptions, OutputReplacement } from "@adt/types"
 import { isElectron } from "@/lib/utils"
 import type {
   AccessibilityAssessmentOutput,
@@ -245,6 +247,7 @@ export interface StageRunProviderCredentials {
 }
 
 export interface RunStagesOptions {
+  outputScope?: OutputRunScope
   fromStage: string
   toStage: string
   /** When true, skip page-sectioning and only re-render from existing section data. */
@@ -457,6 +460,7 @@ export interface AiEditHistoryTurn {
 }
 
 export interface PageDetail {
+  captionSourceSignature: string
   pageId: string
   pageNumber: number
   text: string
@@ -609,10 +613,7 @@ export interface QuizzesResponse {
 
 // --- Text Catalog types ---
 
-export interface TextCatalogEntry {
-  id: string
-  text: string
-}
+export type TextCatalogEntry = import("@adt/types").TextCatalogEntry
 
 export interface CoreTtsCatalogEntry {
   id: string
@@ -633,8 +634,8 @@ export interface TextCatalogResponse {
   entries: TextCatalogEntry[]
   generatedAt: string
   version: number
-  translations: Record<string, { entries: TextCatalogEntry[]; version: number }>
-  speechTexts: Record<string, { entries: CoreTtsCatalogEntry[]; version: number }>
+  translations: Record<string, { entries: TextCatalogEntry[]; version: number; sourceSignature: string }>
+  speechTexts: Record<string, { entries: CoreTtsCatalogEntry[]; version: number; sourceSignature: string }>
 }
 
 export interface TranslationEvaluationStatusResponse {
@@ -678,6 +679,7 @@ export interface EasyReadSectionBlock {
 }
 
 export interface EasyReadResponse {
+  sourceSignature: string
   blocks: EasyReadSectionBlock[]
   generatedAt: string
   version: number
@@ -747,6 +749,8 @@ export interface WordTimestamp {
 }
 
 export interface WordTimestampEntry {
+  version: number
+  audioHash?: string
   textId: string
   language: string
   voiceSlot?: "primary" | "secondary"
@@ -1246,6 +1250,9 @@ export const api = {
         body: JSON.stringify(options),
       }
     ),
+
+  skipOutputs: (label: string, body: OutputSkipRequest) =>
+    request(`/books/${label}/stages/skip-outputs`, { method: "POST", body: JSON.stringify(body) }),
 
   getStagesStatus: (label: string) =>
     request<StageRunStatus>(`/books/${label}/stages/status`),
@@ -1832,13 +1839,17 @@ export const api = {
   getTocSections: (label: string) =>
     request<TocSection[]>(`/books/${label}/toc/sections`),
 
+  getOutputDisclosure: (label: string, features: OutputDisclosureOptions = {}) => request<{ outputs: OutputStatus[]; summary: OutputSummary }>(`/books/${label}/outputs/disclosure?features=${encodeURIComponent(JSON.stringify(features))}`),
+  getOutputs: (label: string) => request<{ outputs: OutputStatus[]; summary: OutputSummary }>(`/books/${label}/outputs`),
+  reviewOutput: (label: string, review: OutputReviewRequest) => request<{ version: number }>(`/books/${label}/outputs/review`, { method: "POST", body: JSON.stringify(review) }),
+
   getTextCatalog: (label: string) =>
     request<TextCatalogResponse | null>(`/books/${label}/text-catalog`),
 
   getEasyRead: (label: string) =>
     request<EasyReadResponse | null>(`/books/${label}/easy-read`),
 
-  updateEasyRead: (label: string, data: { blocks: EasyReadSectionBlock[]; generatedAt: string }) =>
+  updateEasyRead: (label: string, data: { blocks: EasyReadSectionBlock[]; generatedAt: string; baseVersion: number; sourceSignature: string }) =>
     request<{ version: number }>(`/books/${label}/easy-read`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -1861,12 +1872,14 @@ export const api = {
     language: string,
     entryId: string,
     speechText: string,
+    baseVersion: number,
+    sourceSignature: string,
   ) =>
     request<{ version: number; entry: CoreTtsCatalogEntry }>(
       `/books/${label}/core-tts-catalog/${language}/${entryId}`,
       {
         method: "PUT",
-        body: JSON.stringify({ speechText }),
+        body: JSON.stringify({ speechText, baseVersion, sourceSignature }),
       },
     ),
 
@@ -1944,8 +1957,10 @@ export const api = {
     language: string,
     voiceSlot: "primary" | "secondary",
     file: File,
+    baseline: OutputReplacement,
   ) => {
     const formData = new FormData()
+    formData.append("baseline", JSON.stringify(baseline))
     formData.append("audio", file)
     formData.append("textId", textId)
     formData.append("language", language)
@@ -1966,7 +1981,7 @@ export const api = {
       body: JSON.stringify({ textId, language, voiceSlot }),
     }),
 
-  saveWordTimestamps: (label: string, language: string, textId: string, data: { words: WordTimestamp[]; duration: number; voiceSlot?: "primary" | "secondary" }) =>
+  saveWordTimestamps: (label: string, language: string, textId: string, data: { words: WordTimestamp[]; duration: number; voiceSlot?: "primary" | "secondary"; baseVersion: number; audioHash: string }) =>
     request<{ ok: boolean }>(`/books/${label}/tts/timestamps/${language}/${textId}`, {
       method: "PUT",
       body: JSON.stringify(data),

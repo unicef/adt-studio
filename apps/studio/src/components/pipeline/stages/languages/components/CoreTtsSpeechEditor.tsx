@@ -1,3 +1,4 @@
+import { OutputReview } from "../../../components/OutputReview"
 import { useEffect, useState } from "react"
 import { Loader2, Pencil, Save } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
@@ -37,24 +38,32 @@ export function CoreTtsSpeechEditor({
   language,
   displayText,
   entry,
+  version,
+  sourceSignature,
 }: {
   bookLabel: string
   language: string
   displayText: string
   entry?: CoreTtsCatalogEntry
+  version: number
+  sourceSignature: string
 }) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
-  const [editing, setEditing] = useState(entry?.status === "failed")
+  const [editing, setEditing] = useState(false)
+  const [baseVersion, setBaseVersion] = useState(version)
+  const [sourceBaseline, setSourceBaseline] = useState(sourceSignature)
   const [value, setValue] = useState(entry?.speechText ?? "")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (editing) return
+    setBaseVersion(version)
+    setSourceBaseline(sourceSignature)
     setValue(entry?.speechText ?? "")
-    setEditing(entry?.status === "failed")
     setError(null)
-  }, [entry?.generation.generatedAt, entry?.speechText, entry?.status])
+  }, [entry?.generation.generatedAt, entry?.speechText, entry?.status, editing, version, sourceSignature])
 
   if (!entry) return null
 
@@ -66,7 +75,7 @@ export function CoreTtsSpeechEditor({
     setSaving(true)
     setError(null)
     try {
-      await api.updateCoreTtsEntry(bookLabel, language, entry.id, value)
+      await api.updateCoreTtsEntry(bookLabel, language, entry.id, value, baseVersion, sourceBaseline)
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["books", bookLabel, "text-catalog"],
@@ -94,7 +103,8 @@ export function CoreTtsSpeechEditor({
 
   if (!editing && !speechDiffers && entry.status !== "failed") {
     return (
-      <div className="relative h-0">
+      <div className="relative">
+        <OutputReview bookLabel={bookLabel} id={entry.id} kinds={["preparation", "audio"]} language={language} dirty={editing} />
         <button
           type="button"
           onClick={() => setEditing(true)}
@@ -110,6 +120,7 @@ export function CoreTtsSpeechEditor({
 
   return (
     <div className="mt-0.5 border-l-2 border-violet-200 pl-2">
+      <OutputReview bookLabel={bookLabel} id={entry.id} kinds={["preparation", "audio"]} language={language} dirty={editing} />
       {entry.status === "failed" && entry.failureReason ? (
         <p className="mb-1 text-[11px] text-red-700">{entry.failureReason}</p>
       ) : null}

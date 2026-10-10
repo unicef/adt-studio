@@ -1,3 +1,4 @@
+import { OutputReview } from "../../components/OutputReview"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { FileText, RotateCcw, Search, Sparkles, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -38,6 +39,7 @@ export function EasyReadEditor({
     enabled: !!bookLabel,
   })
   const [draftBlocks, setDraftBlocks] = useState<EasyReadSectionBlock[] | null>(null)
+  const baseline = useRef({ baseVersion: 0, sourceSignature: "" })
   const [searchQuery, setSearchQuery] = useState("")
   const blocks = draftBlocks ?? data?.blocks ?? []
   const dirty = draftBlocks !== null
@@ -131,12 +133,11 @@ export function EasyReadEditor({
     if (card) card.scrollIntoView({ behavior: "smooth", block: "start" })
   }, [])
 
-  useEffect(() => {
-    setDraftBlocks(null)
-  }, [data?.version])
+  // Incoming versions must not discard an unsaved editor draft.
 
   const invalidateEasyReadDependents = async () => {
     await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] }),
       queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "easy-read"] }),
       queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "text-catalog"] }),
       queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "tts"] }),
@@ -151,6 +152,7 @@ export function EasyReadEditor({
     mutationFn: async (nextBlocks: EasyReadSectionBlock[]) =>
       api.updateEasyRead(bookLabel, {
         blocks: nextBlocks,
+        ...baseline.current,
         generatedAt: data?.generatedAt ?? new Date().toISOString(),
       }),
     onSuccess: async () => {
@@ -166,6 +168,7 @@ export function EasyReadEditor({
     easyReadId: string,
     text: string,
   ) => {
+    if (!draftBlocks) baseline.current = { baseVersion: data?.version ?? 0, sourceSignature: data?.sourceSignature ?? "" }
     const base = draftBlocks ?? data?.blocks ?? []
     setDraftBlocks(base.map((block) => {
       if (
@@ -198,7 +201,7 @@ export function EasyReadEditor({
     discard: () => setDraftBlocks(null),
     preview: (versionData: unknown) => {
       const next = (versionData as { blocks?: EasyReadSectionBlock[] })?.blocks
-      if (next) setDraftBlocks(next)
+      if (next) { baseline.current = { baseVersion: data?.version ?? 0, sourceSignature: data?.sourceSignature ?? "" }; setDraftBlocks(next) }
     },
     regenerate: onRegenerate,
   }
@@ -442,6 +445,7 @@ export function EasyReadEditor({
                               >
                                 {t`Easy Read`}
                               </p>
+                              <OutputReview bookLabel={bookLabel} id={entry.easyReadId} kinds={["easy-read"]} dirty={dirty} />
                               <AutoTextarea
                                 value={entry.text}
                                 onChange={(value) => updateEntry(block, entry.easyReadId, value)}
