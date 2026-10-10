@@ -944,7 +944,7 @@ export function ExportDialog({
                 />
               )}
 
-              {selectedFormat !== "project" && <CatalogSummary bookLabel={bookLabel} disclosure features={{ glossary: featureToggles.glossary, quizzes: featureToggles.quizzes, readAloud: featureToggles.readAloud, languages: orderedLanguages }} />}
+              {selectedFormat !== "project" && <CatalogSummary bookLabel={bookLabel} disclosure features={{ glossary: featureToggles.glossary && availableFeatures.glossary, quizzes: featureToggles.quizzes && availableFeatures.quizzes, readAloud: featureToggles.readAloud && availableFeatures.readAloud, languages: orderedLanguages }} />}
               {selectedFormat !== "project" && (
                 <AccessibilityChecklist items={accessibilityItems} />
               )}

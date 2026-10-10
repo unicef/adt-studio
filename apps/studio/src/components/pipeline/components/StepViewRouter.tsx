@@ -159,7 +159,7 @@ export function StepViewRouter({
             </Link>
           )}
         </StepHeaderBar>
-        {(Object.values(OUTPUT_KIND_TO_STAGE).some((stage) => stage === step) || step === "preview" || step === "export") && <div className="px-4"><CatalogSummary bookLabel={bookLabel} stage={STAGE_ORDER.find((stage) => stage === step)} disclosure={step === "preview" || step === "export"} /></div>}
+        {(Object.values(OUTPUT_KIND_TO_STAGE).some((stage) => stage === step) || step === "preview") && <div className="px-4"><CatalogSummary bookLabel={bookLabel} stage={STAGE_ORDER.find((stage) => stage === step)} disclosure={step === "preview"} /></div>}
 
         {/* Step content */}
         {entry.fullHeight ? (
