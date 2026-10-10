@@ -10,8 +10,11 @@ commits in the same PR.
 
 Published target: `d2348233838ee635f2ef727984fb93e2d8289306`. Refreshed develop:
 `ef31494d`. Published SPEC-0001/#879: `a1fc11a2`, four documentation files only.
-Its local branch at `239c0a95` contains the specification rebased onto develop,
-not an implementation. The target's five spec commits were replayed onto develop;
+At the initial audit its local branch at `239c0a95` contained only the
+specification rebased onto develop. During verification, another chat began
+uncommitted foundation work there; `stages.ts` still retained destructive
+preparation at the follow-up inspection. Those drafts were neither copied nor
+modified and are not treated as a tested prerequisite. The target's five spec commits were replayed onto develop;
 `backup/spec-0002-published-20261010` retains the original head. No inherited
 SPEC-0001 implementation or ADR is claimed. Its proposed ADR-024 remains owned by
 #879. Remote retargeting must accompany the later authorized push so the published
@@ -75,8 +78,117 @@ claim that the check has run. Results follow below.
 | 18 | Translation/TOC saves are unguarded; quiz/page busy guards lack baseVersion | Required baseVersion plus shared admission; retain/reapply drafts | Missing/stale version, queued/active worker, concurrent saves/restores and UI conflict |
 | 19 | Separate DAG writers save all four nodes without AI stamps | Stamp newly generated outputs at DAG persistence boundaries | Execute DAG with stubbed provider and inspect persisted four node types; no CLI preservation claim |
 
+## Delivered slice
+
+- `ContentAuthorship` / `AuthoredContent` in `packages/types` provide optional
+  stored authorship on translation entries, individual quizzes, whole page
+  sectioning records and the whole TOC. No migration or implicit AI default.
+- `stampManualEdits` ignores client source, compares by stable identity, stamps
+  changed/new content and preserves unchanged authorship. It requires the caller
+  to establish admission and a current base version first; it is not a lock or
+  version check.
+- `mergePreservingManual` retains both manual and unknown records wholesale,
+  including metadata and IDs, and stamps trusted generated replacements AI.
+  Duplicate or missing identities throw. Source-membership filtering,
+  current/unselected AI reuse, quiz placement, allocation and atomic publication
+  remain the integrating caller's responsibilities. It is not wired into runners.
+- Stored schemas are also used by existing edit routes. Their input projections
+  continue stripping caller authorship (including nested Storyboard sectioning),
+  preventing the schema addition from making client-provided tags authoritative.
+  This does not implement guarded saves: current routes still do not stamp manual
+  edits or satisfy `baseVersion`/draft-conflict requirements.
+- The spec corrects absent provenance to protected/unknown and explicitly proposes
+  the AC-2 ordinary-selection versus controlled-cache-test reconciliation. No
+  approval or runtime-cost guarantee is claimed. The index still says draft.
+
 ## Verification results
 
-Pending execution. No numbered acceptance criterion is complete from schemas and
-helpers alone. Easy-read ownership and full Storyboard-rerun preservation remain
-coordination gaps; this work does not complete SPEC-0010 or CLI preservation.
+| Check | Result and scope |
+|---|---|
+| Baseline `pnpm build` | Passed before application edits; application source identical to develop `ef31494d` |
+| `pnpm exec vitest run packages/types/src/__tests__/content-authorship.test.ts packages/pipeline/src/__tests__/manual-edits.test.ts apps/api/src/routes/authorship-boundaries.test.ts` | Passed: 3 files, 35 tests (18 schema, 15 helper, 2 real HTTP/SQLite boundary tests covering five edit surfaces each) |
+| `pnpm test` | Passed: 293 files, 3,805 tests, including pretest build; 166.46 seconds |
+| `pnpm typecheck` | Passed; repeated with all 35 focused tests after the final helper return-type/comparison refinement |
+| `pnpm --filter @adt/runtime typecheck` | Passed |
+| `pnpm lint` | Passed: zero errors, eight warnings; no warning cleanup included |
+| `pnpm build` | Passed; runtime assets build included; no installer or Docker image built |
+| `pnpm --filter @adt/studio extract` | Passed: 3,622 messages per locale, zero missing in es/fr/pt-BR/sq; catalogs unchanged |
+| `pnpm --filter @adt/studio compile --strict` | Passed; no changed Studio strings in this slice |
+| Pre-change schema compatibility | Passed for four record kinds with AI/manual tags, using the actual pre-edit compiled schemas from develop; legacy reads remain untagged. This verifies parsing, not a complete old-application/downgrade workflow |
+| `node scripts/probes/spec-0002-foundation.mjs` | Failed with exit 1 both before and after the schema/helper change; expected dependency failure, not a passing acceptance test |
+| `git diff --check` | Passed |
+| Invariant checks | Available identity, storage and pipeline tests ran in the full suite. `lint:invariants` and `acceptance` scripts are absent; no aggregate invariant/harness pass claimed |
+| UI, representative Mathematics STD 5, provider/cost measurements | Not run: runtime integration is blocked; pure helper tests cannot establish these claims |
+| Desktop/Docker/release and hosted CI | Not run; nothing pushed, and development tests do not establish release verification |
+
+### Reproducible HTTP dependency failure
+
+After `pnpm build`, run `node scripts/probes/spec-0002-foundation.mjs`.
+It creates and removes disposable books, makes real translation/TOC PUT requests,
+uses the real HTTP run route and `StageService`, then reads real SQLite current
+and history records. Only the worker is replaced, with a failure before any model
+or publication. No credentials or paid calls are used.
+
+Both documents have two retained versions before the run. The results are:
+
+| Requested run | Translation versions before → after | TOC versions before → after |
+|---|---|---|
+| Translate → Translate | 2 → 0 | 2 → 2 |
+| TOC → TOC | 2 → 0 | 2 → 0 |
+| Sectioning → Sectioning | 2 → 0 | 2 → 0 |
+
+The worker-entry snapshots already lack the affected rows. Failure leaves them
+missing. The saved edits have absent provenance because current PUTs do not stamp
+it; these are explicitly protected by Decision 4/AC-11. The PUTs also succeed
+without `baseVersion`, demonstrating that part of AC-18 is not satisfied. This
+probe deliberately fails instead of encoding destructive behavior as a passing
+regression. It stops short of generation, preview and export and cannot certify
+AC-9/17. Update its saves to use required base versions when that contract lands.
+
+### AC-to-evidence result matrix
+
+**No complete numbered AC is passed by this dependency-free slice.** Partial
+helper/schema evidence below is not behavioral acceptance. Failed marks an
+observed violated requirement; Blocked marks integration requiring the missing
+foundation; Not run identifies deliberately unimplemented/unchecked surfaces.
+
+| AC | Status | Evidence / remaining requirement |
+|---|---|---|
+| 1 | Blocked | Helper stamps changed/new text and ignores forged tags; guarded PUT not integrated |
+| 2 | Blocked | Protected merge tested; selector, transport/cache/cost counts and representative book not run; amendment awaits review |
+| 3 | Blocked | Quiz-key comparison and position-only no-op tested; PUT stamping/version guard absent |
+| 4 | Blocked | Helper keeps protected IDs including empty generated set; full runner/allocation/order/catalog/audio chain absent |
+| 5 | Blocked | Whole-TOC stored schema and untrusted input boundary tested; server/worker stamping absent |
+| 6 | Blocked | No replacement UI/publication; own-stage probe destroys TOC history |
+| 7 | Blocked | Page-level/empty-page schema tested; structural stamping and guarded writes absent |
+| 8 | Blocked | No protected-page runner skip or deferred retirement integration |
+| 9 | Failed | Real PUT → run-route/real-service → storage/history loses corrections before worker entry; full six-entity chain not reached |
+| 10 | Not run | No badges/UI changes in slice 1; extraction/lint passes do not prove this AC |
+| 11 | Blocked | Unknown retained by helper; actual older schemas read new records; legacy warnings and ordinary-run protection absent |
+| 12 | Blocked | Schema JSON round trips retain tags; restore → rerun and concurrent restore not integrated/tested |
+| 13 | Blocked | Empty-page metadata supported; deletion/cross-page operations and rerun preservation not integrated |
+| 14 | Blocked | Helper permits caller-filtered active membership without mutating prior input; no source-removal/history/restore integration |
+| 15 | Blocked | No named, off-by-default protected-page replacement scope or UI |
+| 16 | Blocked | No atomic replacement/cancel/identity-retirement integration; preparation already deletes history before injected failure |
+| 17 | Blocked | Preview/export acceptance not run because the prerequisite survival chain fails |
+| 18 | Failed | Probe PUTs without baseVersion succeed (200); no stale-write/queued-admission/draft-conflict implementation |
+| 19 | Not run | DAG stamping deferred with entity slices; no CLI preservation or SPEC-0010 completion claim |
+
+## Remaining decisions and handoff
+
+1. Integrate and verify SPEC-0001's shared non-destructive preparation, writer
+   admission, captured-input/version publication, active/history reconciliation,
+   freshness/legacy review and physical-asset safeguards. A helper commit or green
+   documentation CI is insufficient. Re-run the HTTP dependency probe first.
+2. Reconcile the proposed AC-2 amendment in human review. Keep the original cache
+   experiment as an adapter/transport test, not an ordinary-run billing promise.
+3. Continue in the same PR with translation, TOC, quizzes and Sectioning, in that
+   order. Reuse the shared foundation; do not merge a descendant into its ancestor.
+4. Easy-read ownership and full Storyboard-rerun preservation remain explicit
+   coordination gaps in #736/#144; no new owner or follow-up issue is invented.
+   The integration approver and ADR confirmation remain human review items.
+5. No branch was pushed or merged. Recheck both remote heads before a future
+   publication, preserve the backup ref, and coordinate rebase/retargeting then.
+   Request review from @elasticsounds in a tagged PR comment because GitHub cannot
+   assign a PR's author as its formal reviewer. The remote description must make
+   clear that this implementation is currently local and unavailable in its diff.
