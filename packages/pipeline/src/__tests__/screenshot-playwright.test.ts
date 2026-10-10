@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { buildBrowserChildEnv } from "../browser-env.js"
 import { _createScreenshotRenderer, DEFAULT_SCREENSHOT_TIMEOUT_MS } from "../screenshot.js"
 import { runVisualReviewLoop } from "../visual-review.js"
 
@@ -49,6 +50,19 @@ function stall(phase: typeof phases[number], mocks: ReturnType<typeof setupBrows
 }
 
 describe("Playwright screenshot lifecycle", () => {
+  it("does not pass provider credentials to Chromium", () => {
+    expect(buildBrowserChildEnv({
+      PATH: "/bin",
+      OPENAI_API_KEY: "openai-secret",
+      ANTHROPIC_AUTH_TOKEN: "anthropic-secret",
+      AZURE_SPEECH_REGION: "region",
+      ADT_ENVIRONMENT: "electron",
+    })).toEqual({
+      PATH: "/bin",
+      ADT_ENVIRONMENT: "electron",
+    })
+  })
+
   it.each(phases)("bounds stalled %s by the whole-capture deadline", async (phase) => {
     const mocks = setupBrowser()
     stall(phase, mocks)

@@ -13,6 +13,7 @@ import {
   screenshotIpcReplySchema,
   screenshotIpcRequestSchema,
 } from "@adt/types"
+import { buildBrowserChildEnv } from "./browser-env.js"
 
 export { DEFAULT_SCREENSHOT_TIMEOUT_MS }
 
@@ -67,10 +68,13 @@ export async function _createScreenshotRenderer(): Promise<ScreenshotRenderer> {
   // Dynamic import keeps this path lazy.
   const pw = await import("playwright" as string) as {
     chromium: {
-      launch(opts: { headless: boolean }): Promise<PlaywrightBrowser>
+      launch(opts: { headless: boolean; env: Record<string, string> }): Promise<PlaywrightBrowser>
     }
   }
-  const browser = await pw.chromium.launch({ headless: true })
+  const browser = await pw.chromium.launch({
+    headless: true,
+    env: buildBrowserChildEnv(),
+  })
 
   return {
     async screenshot(
