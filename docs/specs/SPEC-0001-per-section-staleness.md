@@ -8,10 +8,15 @@ issues: ["#735", "#131", "#733", "#736", "#619", "#626"]
 prs: ["#879"]
 adr: "docs/DECISIONS.md#adr-024"
 created: 2026-09-10
-updated: 2026-09-27
+updated: 2026-10-11
 ---
 
 ## Decision under review
+
+Implementation of the September 27 contract is prepared on this PR's branch.
+The owner authorized implementation before approval; this specification and
+ADR-024 remain under human review. See the [implementation evidence and limits](../verification/spec-0001.md).
+The acceptance criteria below are unchanged.
 
 **Compare each downstream output's relevant inputs through the book's text catalog and image inventory. Preserve existing output and manual corrections. Generate only when requested, using existing caching. Let usable work continue, with Update needed, Warning and Missing explaining unfinished work. Core TTS uses displayed text as an automatic fallback.**
 
