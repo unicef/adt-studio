@@ -459,3 +459,5 @@ export {
   generateActivityFeedback,
   type ActivityFeedbackConfig,
 } from "./activity-feedback.js"
+
+export { inputSignature, outputEvidence, outputIdentityKey, deriveOutputStatus, selectedOutput, summarizeOutputs, needsOutputGeneration } from "./output-freshness.js"

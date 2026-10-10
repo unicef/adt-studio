@@ -709,15 +709,12 @@ function canReuseSpeechEntry(
     elevenLabsUseSpeakerBoost: options.elevenLabsUseSpeakerBoost,
     elevenLabsSpeed: options.elevenLabsSpeed,
   })
-  const cachePath = resolveSpeechCachePath(options.cacheDir, cacheKey, options.format.toLowerCase())
-  if (!cachePath || !fs.existsSync(cachePath)) return false
-
-  const outputPath = resolveSpeechOutputPath(options.bookDir, options.language, entry.fileName)
+  const outputPath = resolveSpeechAudioPath(options.bookDir, options.language, entry.fileName)
   if (!outputPath) return false
-
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true })
-  fs.copyFileSync(cachePath, outputPath)
-  return true
+  if (entry.speechInputSignature) return entry.speechInputSignature === cacheKey
+  // Legacy output has no trustworthy input evidence. Preserve it without
+  // copying a cache result over files referenced by retained manifests.
+  return entry.source !== "ai"
 }
 
 /**

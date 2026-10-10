@@ -19,7 +19,7 @@ import {
   type WordTimestampEntry,
   type WordTimestampOutput,
 } from "@adt/types"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { openBookDb, createBookStorage, storeImmutableAsset } from "@adt/storage"
 import {
   AiProviderError,
   createAzureTTSSynthesizer,
@@ -681,6 +681,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         model: "uploaded",
         cached: false,
         provider: "manual",
+        source: "manual",
         voiceSlot,
         ...(voiceLabel ? { voiceLabel } : {}),
       }
@@ -702,31 +703,11 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         throw new HTTPException(400, { message: "Invalid audio directory" })
       }
 
-      const outputPath = path.resolve(audioDir, nextEntry.fileName)
-      if (!outputPath.startsWith(audioDir + path.sep)) {
-        throw new HTTPException(400, { message: "Invalid audio file path" })
-      }
-
       const existingEntries = getLatestTtsEntries(storage, normalizedLanguage)
-      const existingEntry = existingEntries.find(
-        (entry) => entry.textId === textEntry.id && resolveEntryVoiceSlot(entry) === voiceSlot
-      )
-
-      fs.mkdirSync(audioDir, { recursive: true })
-      fs.writeFileSync(outputPath, buffer)
-
-      if (
-        existingEntry &&
-        existingEntry.fileName !== nextEntry.fileName
-      ) {
-        const previousPath = path.resolve(audioDir, existingEntry.fileName)
-        if (
-          previousPath.startsWith(audioDir + path.sep) &&
-          fs.existsSync(previousPath)
-        ) {
-          fs.rmSync(previousPath, { force: true })
-        }
-      }
+      const asset = storeImmutableAsset(bookDir, ["audio", normalizedLanguage], voiceSlotEntryId(textEntry.id, voiceSlot), format, buffer)
+      nextEntry.fileName = asset.fileName
+      nextEntry.audioHash = asset.contentHash
+      const outputPath = path.join(audioDir, asset.fileName)
 
       const mergedEntries = mergeSpeechEntry(
         existingEntries,

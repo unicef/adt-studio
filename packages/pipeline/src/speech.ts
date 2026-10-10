@@ -1,3 +1,4 @@
+import { storeImmutableAsset } from "@adt/storage"
 import fs from "node:fs"
 import path from "node:path"
 import crypto from "node:crypto"
@@ -1002,24 +1003,25 @@ export async function generateSpeechFile(
     ...elevenLabsVoiceSettings,
   })
 
-  const fileName = `${voiceSlotEntryId(safeTextId, slot)}.${safeFormat}`
+  const assetPrefix = voiceSlotEntryId(safeTextId, slot)
   const audioRoot = path.resolve(bookDir, "audio")
   const audioDir = path.resolve(audioRoot, normalizedLanguage)
   assertWithinBase(audioRoot, audioDir, "audio directory")
-  const outputPath = path.resolve(audioDir, fileName)
-  assertWithinBase(audioDir, outputPath, "audio file")
 
   // Check cache
   const cacheRoot = path.resolve(cacheDir, "tts")
   const cachePath = path.resolve(cacheRoot, `${hash}.${safeFormat}`)
   assertWithinBase(cacheRoot, cachePath, "cache file")
   if (fs.existsSync(cachePath)) {
-    fs.mkdirSync(audioDir, { recursive: true })
-    fs.copyFileSync(cachePath, outputPath)
+    signal?.throwIfAborted()
+    const asset = storeImmutableAsset(bookDir, ["audio", normalizedLanguage], assetPrefix, safeFormat, fs.readFileSync(cachePath))
     return {
       textId: safeTextId,
       language: normalizedLanguage,
-      fileName,
+      fileName: asset.fileName,
+      audioHash: asset.contentHash,
+      speechInputSignature: hash,
+      source: "ai",
       voice,
       model,
       cached: true,
@@ -1049,9 +1051,8 @@ export async function generateSpeechFile(
 
   const buffer = Buffer.from(audioBytes)
 
-  // Write output file
-  fs.mkdirSync(audioDir, { recursive: true })
-  fs.writeFileSync(outputPath, buffer)
+  signal?.throwIfAborted()
+  const asset = storeImmutableAsset(bookDir, ["audio", normalizedLanguage], assetPrefix, safeFormat, buffer)
 
   // Write to cache
   fs.mkdirSync(cacheRoot, { recursive: true })
@@ -1060,7 +1061,10 @@ export async function generateSpeechFile(
   return {
     textId: safeTextId,
     language: normalizedLanguage,
-    fileName,
+    fileName: asset.fileName,
+    audioHash: asset.contentHash,
+    speechInputSignature: hash,
+    source: "ai",
     voice,
     model,
     cached: false,
@@ -1221,19 +1225,14 @@ export async function generatePageSpeechFiles(
     // A short edge fade guarantees zero-amplitude slice edges (belt-and-braces
     // with the silence-snap above) so back-to-back playback has no clicks.
     const slice = sliceWav(pageBytes, range.start, range.end, PAGE_SLICE_FADE_MS)
-    const fileName = `${voiceSlotEntryId(range.id, slot)}.${safeFormat}`
-    const outputPath = path.resolve(audioDir, fileName)
-    assertWithinBase(audioDir, outputPath, "audio file")
-    // Only write when the bytes actually change, so an unchanged slice keeps its
-    // mtime — GET /tts derives its cache-busting `?v=` from mtime, so rewriting
-    // identical audio every run would force the reader to refetch needlessly.
-    if (!fs.existsSync(outputPath) || !fs.readFileSync(outputPath).equals(slice)) {
-      fs.writeFileSync(outputPath, slice)
-    }
+    const asset = storeImmutableAsset(bookDir, ["audio", normalizedLanguage], voiceSlotEntryId(range.id, slot), safeFormat, slice)
     results.push({
       textId: range.id,
       language: normalizedLanguage,
-      fileName,
+      fileName: asset.fileName,
+      audioHash: asset.contentHash,
+      speechInputSignature: pageHash,
+      source: "ai",
       voice,
       model,
       cached,

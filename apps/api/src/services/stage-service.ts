@@ -1,6 +1,6 @@
 import { STAGE_ORDER, type ProgressEvent } from "@adt/types"
 import type { StageName, StepName, PageErrorPolicy, PageErrorAction } from "@adt/types"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, resolveBookPaths, withBookWriter } from "@adt/storage"
 import type { ResolvedCredentials } from "@adt/llm"
 import type { BookEventBus } from "./book-event-bus.js"
 import type { PageErrorDecisions } from "./page-error-decisions.js"
@@ -137,8 +137,11 @@ export function createStageService(
     }
 
     try {
-      options.beforeRun?.()
-      await runner.run(label, effectiveOptions, progress)
+      await withBookWriter(resolveBookPaths(label, options.booksDir).bookDir, async () => {
+        job.controller.signal.throwIfAborted()
+        options.beforeRun?.()
+        await runner.run(label, effectiveOptions, progress)
+      })
       // Resolved: either a real completion, or a cancel that landed after the
       // last checkpoint so all remaining work finished. Both are "completed" —
       // no cancelled event, no step reset (the run genuinely finished).

@@ -192,7 +192,7 @@ describe("POST /books/:label/tts/generate-one", () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.entry.textId).toBe("pg001_t001")
-    expect(body.entry.fileName).toBe("pg001_t001.wav")
+    expect(body.entry.fileName).toMatch(/^pg001_t001--[a-f0-9]{64}\.wav$/)
     expect(body.completed).toBe(true)
     expect(body.remainingItems).toBe(0)
 
@@ -209,7 +209,7 @@ describe("POST /books/:label/tts/generate-one", () => {
     }
 
     expect(
-      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001.wav"))
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", body.entry.fileName))
     ).toBe(true)
   })
 
@@ -375,7 +375,7 @@ describe("POST /books/:label/tts/generate-one", () => {
 
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.entry.fileName).toBe("pg001_t001.wav")
+    expect(body.entry.fileName).toMatch(/^pg001_t001--[a-f0-9]{64}\.wav$/)
     expect(body.remainingItems).toBe(0)
   })
 
@@ -441,7 +441,7 @@ describe("POST /books/:label/tts/generate-one", () => {
 
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.entry.fileName).toBe("pg001_t001.wav")
+    expect(body.entry.fileName).toMatch(/^pg001_t001--[a-f0-9]{64}\.wav$/)
     expect(body.entry.model).toBe("gemini-2.5-pro-preview-tts")
     expect(fetchMock).toHaveBeenCalledTimes(2)
 
@@ -514,7 +514,7 @@ describe("POST /books/:label/tts/generate-one", () => {
 
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.entry.fileName).toBe("pg001_t001.wav")
+    expect(body.entry.fileName).toMatch(/^pg001_t001--[a-f0-9]{64}\.wav$/)
     expect(body.entry.provider).toBe("openai")
     expect(body.entry.model).toBe("tts-1-hd")
     expect(fetchMock).toHaveBeenCalledTimes(3)
@@ -943,11 +943,11 @@ speech:
     const body = await res.json()
     expect(body.entry.voiceSlot).toBe("secondary")
     expect(body.entry.voiceLabel).toBe("Second Narrator")
-    expect(body.entry.fileName).toBe("pg001_t001--secondary.wav")
+    expect(body.entry.fileName).toMatch(/^pg001_t001--secondary--[a-f0-9]{64}\.wav$/)
     expect(body.entry.voice).toBe("Puck")
 
     expect(
-      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001--secondary.wav"))
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", body.entry.fileName))
     ).toBe(true)
   })
 
@@ -1041,7 +1041,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     const body = await res.json()
     expect(body.entry).toMatchObject({
       textId: "pg001_t001",
-      fileName: "pg001_t001.wav",
+      fileName: expect.stringMatching(/^pg001_t001--[a-f0-9]{64}\.wav$/),
       voice: "uploaded",
       model: "uploaded",
       provider: "manual",
@@ -1068,11 +1068,13 @@ describe("POST /books/:label/tts/upload-one", () => {
         {
           textId: "pg001_t001",
           language: "en",
-          fileName: "pg001_t001.wav",
+          fileName: expect.stringMatching(/^pg001_t001--[a-f0-9]{64}\.wav$/),
           voice: "uploaded",
           model: "uploaded",
           cached: false,
           provider: "manual",
+          source: "manual",
+          audioHash: expect.stringMatching(/^[a-f0-9]{64}$/),
           voiceSlot: "primary",
         },
       ])
@@ -1086,11 +1088,11 @@ describe("POST /books/:label/tts/upload-one", () => {
     }
 
     expect(
-      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001.wav"))
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", body.entry.fileName))
     ).toBe(true)
     expect(
       fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001.mp3"))
-    ).toBe(false)
+    ).toBe(true)
   })
 
   it("transcribes with the server-side OpenAI key when the request has no header", async () => {
@@ -1129,7 +1131,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     expect(transcribeRes.status).toBe(200)
     expect(transcribeWithWhisperMock).toHaveBeenCalledWith(
       expect.any(Buffer),
-      "pg001_t001.wav",
+      expect.stringMatching(/^pg001_t001--[a-f0-9]{64}\.wav$/),
       "sk-env-test",
       "en",
       "Hello world",
@@ -1182,7 +1184,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     })
     expect(transcribeWithWhisperMock).toHaveBeenCalledWith(
       expect.any(Buffer),
-      "pg001_t001.wav",
+      expect.stringMatching(/^pg001_t001--[a-f0-9]{64}\.wav$/),
       "sk-test",
       "en",
       "Hello world",
@@ -1231,14 +1233,14 @@ describe("POST /books/:label/tts/upload-one", () => {
     const body = await res.json()
     expect(body.entry).toMatchObject({
       textId: "pg001_t001",
-      fileName: "pg001_t001--secondary.wav",
+      fileName: expect.stringMatching(/^pg001_t001--secondary--[a-f0-9]{64}\.wav$/),
       voiceSlot: "secondary",
       voiceLabel: "Second Narrator",
       provider: "manual",
     })
 
     expect(
-      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001--secondary.wav"))
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", body.entry.fileName))
     ).toBe(true)
 
     const after = createBookStorage(label, tmpDir)
@@ -1300,6 +1302,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     expect(primaryRes.status).toBe(201)
     const secondaryRes = await uploadSlot("secondary", 2)
     expect(secondaryRes.status).toBe(201)
+    const body = await secondaryRes.json()
 
     const after = createBookStorage(label, tmpDir)
     try {
@@ -1308,8 +1311,8 @@ describe("POST /books/:label/tts/upload-one", () => {
       }).entries
       expect(entries).toHaveLength(2)
       const bySlot = Object.fromEntries(entries.map((e) => [e.voiceSlot ?? "primary", e]))
-      expect(bySlot.primary.fileName).toBe("pg001_t001.wav")
-      expect(bySlot.secondary.fileName).toBe("pg001_t001--secondary.wav")
+      expect(bySlot.primary.fileName).toMatch(/^pg001_t001--[a-f0-9]{64}\.wav$/)
+      expect(bySlot.secondary.fileName).toMatch(/^pg001_t001--secondary--[a-f0-9]{64}\.wav$/)
     } finally {
       after.close()
     }
@@ -1318,7 +1321,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     const reuploadPrimary = await uploadSlot("primary", 3)
     expect(reuploadPrimary.status).toBe(201)
     expect(
-      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001--secondary.wav"))
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", body.entry.fileName))
     ).toBe(true)
   })
 })

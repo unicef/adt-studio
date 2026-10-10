@@ -1,3 +1,4 @@
+import { OutputMetadata } from "./output-freshness.js"
 import { z } from "zod"
 import { TextCatalogCategory, getTextCatalogCategory } from "./text-catalog.js"
 
@@ -303,9 +304,12 @@ export function isTtsExcluded(
 }
 
 export const SpeechFileEntry = z.object({
+  ...OutputMetadata.shape,
   textId: z.string(),
   language: z.string(),
   fileName: z.string(),
+  audioHash: z.string().optional(),
+  speechInputSignature: z.string().optional(),
   voice: z.string(),
   model: z.string(),
   cached: z.boolean(),

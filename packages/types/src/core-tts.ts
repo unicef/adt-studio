@@ -1,3 +1,4 @@
+import { OutputMetadata } from "./output-freshness.js"
 import { z } from "zod"
 
 export const CoreTtsTransformationKind = z.enum([
@@ -33,6 +34,7 @@ export type CoreTtsGenerationMetadata = z.infer<typeof CoreTtsGenerationMetadata
  * sent silently to a provider.
  */
 export const CoreTtsCatalogEntry = z.object({
+  ...OutputMetadata.shape,
   id: z.string(),
   displayText: z.string(),
   speechText: z.string().nullable(),

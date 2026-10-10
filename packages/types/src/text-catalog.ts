@@ -1,6 +1,8 @@
+import { OutputMetadata } from "./output-freshness.js"
 import { z } from "zod"
 
 export const TextCatalogEntry = z.object({
+  ...OutputMetadata.shape,
   id: z.string(),
   text: z.string(),
 })
