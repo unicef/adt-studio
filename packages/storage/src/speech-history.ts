@@ -33,6 +33,12 @@ export function publishSpeechOutput(storage: Storage, language: string, output: 
         return { ...entry, fileName: asset.fileName, audioHash: asset.contentHash }
       })
       if (snapshots.some((entry, index) => entry.fileName !== old.data.entries[index].fileName)) storage.putNodeData("tts", language, { ...old.data, entries: snapshots, timingVersion: timestampRow?.version ?? null, legacySnapshotOf: previous.version })
+      const verified = new Map(old.data.entries.map((entry, index) => [entry.fileName, snapshots[index]]))
+      output = { ...output, entries: output.entries.map((entry) => {
+        const snapshot = !entry.audioHash ? verified.get(entry.fileName) : undefined
+        return snapshot?.audioHash ? { ...entry, fileName: snapshot.fileName, audioHash: snapshot.audioHash } : entry
+      }) }
+
     }
     const entries: WordTimestampOutput["entries"] = {}
     for (const audio of output.entries) {
@@ -44,8 +50,9 @@ export function publishSpeechOutput(storage: Storage, language: string, output: 
       else if ((!timestamps || timestamps.failed?.some((failure) => voiceSlotEntryId(failure.textId, failure.voiceSlot) === key)) && retained && (retained.audioHash && retained.audioHash === audio.audioHash || oldAudio?.fileName === audio.fileName)) entries[key] = retained
     }
     let timingVersion = timestampRow?.version ?? null
-    const nextTiming = { entries, generatedAt: timestamps?.generatedAt ?? new Date().toISOString(), ...(timestamps?.failed?.length ? { failed: timestamps.failed } : {}) }
-    if (!equal(oldTiming.success ? oldTiming.data.entries : {}, entries) || !equal(oldTiming.success ? oldTiming.data.failed : undefined, timestamps?.failed)) {
+    const timingFailures = timestamps ? timestamps.failed : oldTiming.success ? oldTiming.data.failed : undefined
+    const nextTiming = { entries, generatedAt: timestamps?.generatedAt ?? new Date().toISOString(), ...(timingFailures?.length ? { failed: timingFailures } : {}) }
+    if (!equal(oldTiming.success ? oldTiming.data.entries : {}, entries) || !equal(oldTiming.success ? oldTiming.data.failed : undefined, timingFailures)) {
       timingVersion = storage.putNodeData("tts-timestamps", language, nextTiming)
     }
     const next = { ...output, timingVersion }

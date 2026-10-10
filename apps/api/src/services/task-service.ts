@@ -68,24 +68,25 @@ export function createTaskService(eventBus: BookEventBus, booksDir?: string): Ta
         startedAt: Date.now(),
       }
 
-      const state = getOrCreate(label)
-      state.tasks.set(taskId, info)
+      const execute = () => {
+        const state = getOrCreate(label)
+        state.tasks.set(taskId, info)
 
-      // Emit start event
-      eventBus.emit(label, {
-        type: "task",
-        data: { type: "task-start", taskId, kind, label, description, pageId: options?.pageId, url: options?.url },
-      })
-
-      const execute = () => executor((message, percent) => {
+        // Emit start only after acquiring book writer admission.
         eventBus.emit(label, {
           type: "task",
-          data: { type: "task-progress", taskId, message, percent },
+          data: { type: "task-start", taskId, kind, label, description, pageId: options?.pageId, url: options?.url },
         })
-      })
-      Promise.resolve().then(() => booksDir
-        ? withBookWriter(resolveBookPaths(label, booksDir).bookDir, execute)
-        : execute())
+
+        return Promise.resolve().then(() => executor((message, percent) => {
+          eventBus.emit(label, {
+            type: "task",
+            data: { type: "task-progress", taskId, message, percent },
+          })
+        }))
+      }
+      const work = booksDir ? withBookWriter(resolveBookPaths(label, booksDir).bookDir, execute) : execute()
+      work
         .then((result) => {
           info.status = "completed"
           info.result = result

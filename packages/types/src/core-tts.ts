@@ -29,9 +29,9 @@ export const CoreTtsGenerationMetadata = z.object({
 export type CoreTtsGenerationMetadata = z.infer<typeof CoreTtsGenerationMetadata>
 
 /**
- * Display text paired with independently editable provider text. Failed LaTeX
- * conversions intentionally carry no speech text, so raw notation cannot be
- * sent silently to a provider.
+ * Display text paired with independently editable provider text. Failed or
+ * unavailable generated preparation may declare display-text fallback with an
+ * inspectable reason; it never claims successful normalization.
  */
 export const CoreTtsCatalogEntry = z.object({
   ...OutputMetadata.shape,

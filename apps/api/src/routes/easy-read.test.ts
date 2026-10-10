@@ -26,6 +26,7 @@ let promptsDir: string
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-easy-read-route-"))
   promptsDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-easy-read-prompts-"))
+  fs.writeFileSync(path.join(promptsDir, "easy_read.liquid"), "{{ section_text }}")
   generateObjectMock.mockReset()
   generateObjectMock.mockImplementation(async (options: {
     context?: { texts?: Array<{ text: string }> }
@@ -110,7 +111,7 @@ function seedRenderedEasyReadSource(label: string): void {
               sectionIndex: 0,
               sectionType: "text_only",
               reasoning: "",
-              html: '<section><p data-id="pg001_tx001">Original text</p></section>',
+              html: '<section><p data-id="pg001_tx001">Original text</p><p data-id="pg001_tx002">Second text</p></section>',
             },
           ],
         }),
@@ -191,8 +192,12 @@ describe("easy read routes", () => {
     expect(await res.json()).toBeNull()
   })
 
-  it("saves a new version and clears downstream nodes", async () => {
+  it("saves a new manual version while retaining downstream content", async () => {
     createTestBook("editable")
+    seedRenderedEasyReadSource("editable")
+    const original = createBookStorage("editable", tmpDir)
+    original.putNodeData("easy-read", "book", easyReadData())
+    original.close()
     const dbPath = path.join(tmpDir, "editable", "editable.db")
     const db = openBookDb(dbPath)
     db.run(
@@ -206,19 +211,20 @@ describe("easy read routes", () => {
     db.close()
 
     const app = createEasyReadRoutes(tmpDir, promptsDir)
+    const current = await (await app.request("/books/editable/easy-read")).json()
     const res = await app.request("/books/editable/easy-read", {
       method: "PUT",
-      body: JSON.stringify(easyReadData("Edited Easy Read")),
+      body: JSON.stringify({ ...easyReadData("Edited Easy Read"), baseVersion: current.version, sourceSignature: current.sourceSignature }),
       headers: { "Content-Type": "application/json" },
     })
 
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ version: 1 })
+    expect(await res.json()).toEqual({ version: 2 })
 
     const verify = openBookDb(dbPath)
     try {
       const latest = verify.get(
-        "SELECT data FROM node_data WHERE node = ? AND item_id = ?",
+        "SELECT data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
         ["easy-read", "book"],
       ) as { data: string }
       expect(JSON.parse(latest.data).blocks[0].entries[0].text).toBe("Edited Easy Read")
@@ -226,7 +232,7 @@ describe("easy read routes", () => {
         "SELECT node FROM node_data WHERE node = ?",
         ["text-catalog-translation"],
       )
-      expect(downstream).toEqual([])
+      expect(downstream).toEqual([{ node: "text-catalog-translation" }])
       const stepRuns = verify.all(
         "SELECT step FROM step_runs WHERE step = ?",
         ["catalog-translation"],
@@ -237,8 +243,9 @@ describe("easy read routes", () => {
     }
   })
 
-  it("keeps unchanged Easy Read speech and removes only changed audio metadata", async () => {
+  it("retains changed and unchanged speech for freshness review", async () => {
     createTestBook("selective-speech")
+    seedRenderedEasyReadSource("selective-speech")
 
     const storage = createBookStorage("selective-speech", tmpDir)
     try {
@@ -313,9 +320,10 @@ describe("easy read routes", () => {
     }
 
     const app = createEasyReadRoutes(tmpDir, promptsDir)
+    const current = await (await app.request("/books/selective-speech/easy-read")).json()
     const res = await app.request("/books/selective-speech/easy-read", {
       method: "PUT",
-      body: JSON.stringify(twoEntryEasyReadData("Edited one", "Easy two")),
+      body: JSON.stringify({ ...twoEntryEasyReadData("Edited one", "Easy two"), baseVersion: current.version, sourceSignature: current.sourceSignature }),
       headers: { "Content-Type": "application/json" },
     })
 
@@ -325,20 +333,20 @@ describe("easy read routes", () => {
     try {
       const ttsRow = after.getLatestNodeData("tts", "en")
       expect((ttsRow?.data as { entries: Array<{ textId: string }> }).entries.map((entry) => entry.textId)).toEqual([
-        "pg001_tx002_easy_read",
+        "pg001_tx001_easy_read", "pg001_tx002_easy_read",
       ])
 
       const timestampsRow = after.getLatestNodeData("tts-timestamps", "en")
       expect(Object.keys((timestampsRow?.data as { entries: Record<string, unknown> }).entries)).toEqual([
-        "pg001_tx002_easy_read",
+        "pg001_tx001_easy_read", "pg001_tx002_easy_read",
       ])
 
       expect(after.getLatestNodeData("core-tts-catalog", "en")?.data).toMatchObject({
         entries: [
           {
             id: "pg001_tx001_easy_read",
-            speechText: null,
-            status: "failed",
+            speechText: "Easy one",
+            status: "ready",
           },
           {
             id: "pg001_tx002_easy_read",

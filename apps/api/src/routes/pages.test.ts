@@ -631,7 +631,7 @@ describe("Page routes", () => {
   })
 
   describe("POST /api/books/:label/pages/:pageId/sections/:sectionIndex/clone", () => {
-    it("assigns fresh ids to cloned containers but preserves leaf ids", async () => {
+    it("assigns fresh identities to cloned containers and text leaves", async () => {
       const sourceContainerId = `${label}_p1_n0001`
       const sourceLeafId = `${label}_p1_n0002`
 
@@ -708,7 +708,7 @@ describe("Page routes", () => {
         const cloned = sectioning.sections[1]
         expect(cloned.sectionId).toBe(`${label}_p1_sec002`)
         expect(cloned.nodes[0]?.nodeId).not.toBe(original.nodes[0]?.nodeId)
-        expect(cloned.nodes[0]?.children?.[0]?.nodeId).toBe(sourceLeafId)
+        expect(cloned.nodes[0]?.children?.[0]?.nodeId).not.toBe(sourceLeafId)
 
         const renderingRow = verify.getLatestNodeData("web-rendering", `${label}_p1`)
         const rendering = renderingRow?.data as {
@@ -717,7 +717,7 @@ describe("Page routes", () => {
         const clonedRendering = rendering.sections.find((section) => section.sectionIndex === 1)
         expect(clonedRendering?.html).toContain(`data-section-id="${label}_p1_sec002"`)
         expect(clonedRendering?.html).toContain(`data-id="${cloned.nodes[0]?.nodeId}"`)
-        expect(clonedRendering?.html).toContain(`data-id="${sourceLeafId}"`)
+        expect(clonedRendering?.html).toContain(`data-id="${cloned.nodes[0]?.children?.[0]?.nodeId}"`)
         expect(clonedRendering?.html).not.toContain(`data-id="${sourceContainerId}"`)
       } finally {
         verify.close()
@@ -1738,14 +1738,7 @@ describe("Page routes", () => {
       ).toEqual([fileName])
     })
 
-    it("clears the speech manifests wholesale, so no entry outlives a retired id", async () => {
-      // This is why `retireSectionIds`' speech prune is moot on the section-level
-      // ops but load-bearing on `spreads/apply` and the stage rerun: those two
-      // drop a page's sectioning history without clearing the manifests, while
-      // every op that goes through `saveStoryboardNode` wipes them entirely
-      // (`clearCaptionData`). If that ever stops being true, the prune is the
-      // only thing standing between a re-minted id and the old recording — so
-      // pin the behaviour rather than leaving it implied.
+    it("retains unrelated speech and retired speech history", async () => {
       seedSections(3)
 
       const audioDir = path.join(tmpDir, label, "audio", "en")
@@ -1780,12 +1773,14 @@ describe("Page routes", () => {
 
       const verify = createBookStorage(label, tmpDir)
       try {
-        expect(verify.getNodeItemIds("tts")).toEqual([])
+        expect(verify.getNodeItemIds("tts")).toEqual(["en"])
+        expect((verify.getLatestNodeData("tts", "en")!.data as { entries: Array<{ textId: string }> }).entries.map((entry) => entry.textId)).toEqual([`${label}_p1_sec003_ans_a`])
+        expect(verify.getAllNodeVersions("tts", "en")[0].data).toMatchObject({ entries: [{ textId: `${label}_p1_sec002_ans_a` }, { textId: `${label}_p1_sec003_ans_a` }] })
         expect(verify.getNodeItemIds("tts-timestamps")).toEqual([])
       } finally {
         verify.close()
       }
-      // The manifests go; the uploads never do.
+      // Physical recordings remain restorable.
       for (const textId of [`${label}_p1_sec002_ans_a`, `${label}_p1_sec003_ans_a`]) {
         expect(fs.existsSync(path.join(audioDir, `${textId}.mp3`))).toBe(true)
       }
@@ -2463,18 +2458,18 @@ describe("Page routes", () => {
     }
   }
 
-  /** Assert that all storyboard-dependent node data and step_runs were cleared. */
-  function expectAllDownstreamCleared(dir: string, bookLabel: string) {
+  /** Assert retained catalog versions and invalidated attempt status. */
+  function expectCatalogOutputsPreserved(dir: string, bookLabel: string) {
     const s = createBookStorage(bookLabel, dir)
     try {
-      // Node data should be gone
-      expect(s.getLatestNodeData("image-captioning", `${bookLabel}_p1`)).toBeNull()
-      expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toBeNull()
-      expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toBeNull()
-      expect(s.getLatestNodeData("core-tts-catalog", "en")).toBeNull()
-      expect(s.getLatestNodeData("easy-read", "book")).toBeNull()
-      expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toBeNull()
-      expect(s.getLatestNodeData("tts-timestamps", "en")).toBeNull()
+      // Catalog content and history remain unchanged; assessment is invalidated.
+      expect(s.getLatestNodeData("image-captioning", `${bookLabel}_p1`)).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("core-tts-catalog", "en")).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("easy-read", "book")).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("tts-timestamps", "en")).toMatchObject({ version: 1 })
       expect(s.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
       // Step runs should be gone
       const runs = s.getStepRuns()
@@ -2499,18 +2494,18 @@ describe("Page routes", () => {
   }
 
   /** Assert that translate/speech (but NOT image-captioning) node data and step_runs were cleared. */
-  function expectTextAndSpeechCleared(dir: string, bookLabel: string) {
+  function expectTextAndSpeechPreserved(dir: string, bookLabel: string) {
     const s = createBookStorage(bookLabel, dir)
     try {
       // image-captioning should still exist
       expect(s.getLatestNodeData("image-captioning", `${bookLabel}_p1`)).not.toBeNull()
       expect(s.getLatestNodeData("easy-read", "book")).not.toBeNull()
       // text-catalog, translations, tts should be gone
-      expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toBeNull()
-      expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toBeNull()
-      expect(s.getLatestNodeData("core-tts-catalog", "en")).toBeNull()
-      expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toBeNull()
-      expect(s.getLatestNodeData("tts-timestamps", "en")).toBeNull()
+      expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("core-tts-catalog", "en")).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toMatchObject({ version: 1 })
+      expect(s.getLatestNodeData("tts-timestamps", "en")).toMatchObject({ version: 1 })
       expect(s.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
       // Step runs: image-captioning should remain, text steps should be gone
       const runs = s.getStepRuns()
@@ -2574,7 +2569,7 @@ describe("Page routes", () => {
       )
 
       expect(res.status).toBe(200)
-      expectAllDownstreamCleared(tmpDir, label)
+      expectCatalogOutputsPreserved(tmpDir, label)
     })
   })
 
@@ -2601,7 +2596,7 @@ describe("Page routes", () => {
       )
 
       expect(res.status).toBe(200)
-      expectAllDownstreamCleared(tmpDir, label)
+      expectCatalogOutputsPreserved(tmpDir, label)
     })
   })
 
@@ -2630,7 +2625,7 @@ describe("Page routes", () => {
       })
 
       expect(res.status).toBe(200)
-      expectAllDownstreamCleared(tmpDir, label)
+      expectCatalogOutputsPreserved(tmpDir, label)
     })
   })
 
@@ -2640,6 +2635,7 @@ describe("Page routes", () => {
 
       const data = {
         captions: [{ imageId: "img1", reasoning: "updated", caption: "A dog" }],
+        baseVersion: 1, sourceSignature: (await (await app.request(`/api/books/${label}/pages/${label}_p1`)).json()).captionSourceSignature,
       }
 
       const res = await app.request(
@@ -2654,7 +2650,7 @@ describe("Page routes", () => {
       expect(res.status).toBe(200)
       // image-captioning was just saved (new version), so it should exist
       // but text-catalog, translations, tts should be cleared
-      expectTextAndSpeechCleared(tmpDir, label)
+      expectTextAndSpeechPreserved(tmpDir, label)
     })
   })
 
@@ -2682,7 +2678,7 @@ describe("Page routes", () => {
       expect(check.getCurrentNodeVersion("web-rendering", `${label}_p1`)).toBe(1)
       expect(check.getLatestNodeData("web-rendering", `${label}_p1`)?.version).toBe(1)
       check.close()
-      expectAllDownstreamCleared(tmpDir, label)
+      expectCatalogOutputsPreserved(tmpDir, label)
     })
 
     it("restores Core TTS text while preserving uploaded recordings", async () => {
@@ -2751,7 +2747,7 @@ describe("Page routes", () => {
       expect(check.getCurrentNodeVersion("core-tts-catalog", "en")).toBe(1)
       expect(
         (check.getLatestNodeData("tts", "en")?.data as { entries: Array<{ textId: string }> }).entries,
-      ).toEqual([expect.objectContaining({ textId: "pg001_t002" })])
+      ).toEqual([expect.objectContaining({ textId: "pg001_t001" }), expect.objectContaining({ textId: "pg001_t002" })])
       check.close()
     })
 

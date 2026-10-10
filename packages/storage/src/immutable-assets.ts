@@ -63,3 +63,12 @@ export function storeImmutableAsset(
   } finally { fs.unlinkSync(temporary) }
   return { fileName, contentHash }
 }
+
+/** Read a retained asset only after resolving every boundary beneath the book. */
+export function readBookAsset(bookDir: string, relativePath: string): Buffer {
+  const root = fs.realpathSync(bookDir)
+  const file = fs.realpathSync(path.resolve(root, relativePath))
+  const relative = path.relative(root, file)
+  if (!relative || relative.startsWith("..") || path.isAbsolute(relative) || !fs.statSync(file).isFile()) throw new Error("Invalid book asset")
+  return fs.readFileSync(file)
+}

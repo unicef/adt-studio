@@ -210,6 +210,27 @@ function history() {
 }
 
 describe("quiz identity validation and legacy compatibility", () => {
+  it("keeps option corrections with their stable IDs through reordering and never assigns them to a new option", async () => {
+    seed([quiz("Question", "qz001")])
+    expect((await put(stored().quizzes)).status).toBe(200)
+    const original = stored().quizzes[0]
+    const correctedId = original.options[0].optionId!
+    useStorage((s) => s.putNodeData("text-catalog-translation", "fr", { entries: [{ id: correctedId, text: "Correction conservée", source: "manual" }], generatedAt: "before" }))
+    const reordered = { ...original, options: [original.options[2], original.options[0], original.options[1]], answerIndex: 1 }
+    expect((await put([reordered])).status).toBe(200)
+    expect(stored().quizzes[0].options[1].optionId).toBe(correctedId)
+    const replacement = { ...reordered, options: [{ text: "Brand new", explanation: "Different explanation" }, ...reordered.options.slice(1)] }
+    expect((await put([replacement])).status).toBe(200)
+    const current = stored().quizzes[0]
+    expect(current.options[0].optionId).not.toBe(original.options[2].optionId)
+    expect(current.options[1].optionId).toBe(correctedId)
+    const db = createBookStorage(label, root)
+    let catalog
+    try { catalog = await buildTextCatalog(db, []) } finally { db.close() }
+    expect(catalog.entries.find((entry) => entry.id === correctedId)?.text).toBe("a")
+    expect(useStorage((s) => s.getLatestNodeData("text-catalog-translation", "fr")!.data)).toMatchObject({ entries: [{ id: correctedId, text: "Correction conservée", source: "manual" }] })
+  })
+
   it.each(["qz000", "qz1", "qz0001", "qz9007199254740992", "", "../qz001", "qz001\n", "qz1000\n", "qz001\r"])("rejects noncanonical id %j without a version write", async (id) => {
     seed([quiz("Original", "qz001")])
     expect((await put([quiz("Changed", id)])).status).toBe(400)
@@ -388,17 +409,18 @@ describe("full-stage quiz regeneration", () => {
     expect(useStorage((s) => s.getStepRuns()).find((s) => s.step === "quiz-generation")?.status).toBe("error")
   })
 
-  it("reserves IDs after upstream invalidation and a complete extraction reset", async () => {
+  it("reserves identities after invalidation and refuses an unsafe extraction reset", async () => {
     seed([quiz("One"), quiz("Two")])
     makeBeforeRun(label, "storyboard", "storyboard", root)()
     expect(useStorage((s) => s.getLatestNodeData("quiz-generation", "book"))).toBeNull()
     useStorage((s) => saveQuizOutput(s, output([quiz("Three")]), "replace"))
     expect(stored().quizzes[0].quizId).toBe("qz003")
-    makeBeforeRun(label, "extract", "quizzes", root)()
-    expect(useStorage((s) => s.getLatestNodeData("quiz-generation", "book"))).toBeNull()
+    const before = history()
+    expect(() => makeBeforeRun(label, "extract", "quizzes", root)()).toThrow("UNSAFE_RESUME_UNAVAILABLE")
+    expect(history()).toEqual(before)
     useStorage((s) => saveQuizOutput(s, output([quiz("Four")]), "replace"))
     expect(stored().quizzes[0].quizId).toBe("qz004")
-    expect(history()).toHaveLength(5)
+    expect(history()).toHaveLength(4)
   })
 
   it("cannot reuse or overwrite old manual audio when the full run preserves the speech manifest", async () => {
@@ -425,10 +447,11 @@ describe("full-stage quiz regeneration", () => {
     }))
     await runStage("speech")
     expect(synthesizeMock).toHaveBeenCalledWith(expect.objectContaining({ input: "New replacement question" }))
-    expect(fs.readFileSync(path.join(audioDir, "qz002_que.mp3"), "utf8")).toBe("AUDIO-FIXTURE: New replacement question")
+
     expect(fs.readFileSync(path.join(audioDir, "qz001_que.mp3"), "utf8")).toBe("ORIGINAL MANUAL RECORDING")
-    const tts = useStorage((s) => s.getLatestNodeData("tts", "en")!.data) as { entries: Array<{textId: string; provider: string}> }
-    expect(tts.entries).toEqual([expect.objectContaining({ textId: "qz002_que", provider: "openai" })])
+    const tts = useStorage((s) => s.getLatestNodeData("tts", "en")!.data) as { entries: Array<{textId: string; provider: string; fileName: string}> }
+    expect(tts.entries).toEqual(expect.arrayContaining([expect.objectContaining({ textId: "qz002_que", provider: "openai" })]))
+    expect(fs.readFileSync(path.join(audioDir, tts.entries.find((entry) => entry.textId === "qz002_que")!.fileName), "utf8")).toBe("AUDIO-FIXTURE: New replacement question")
     useStorage((s) => s.setCurrentNodeVersion("quiz-generation", "book", 1))
     expect(stored().quizzes[0].question).toBe("Original question")
     expect(fs.readFileSync(path.join(audioDir, "qz001_que.mp3"), "utf8")).toBe("ORIGINAL MANUAL RECORDING")

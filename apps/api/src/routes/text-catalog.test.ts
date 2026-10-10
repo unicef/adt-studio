@@ -3,6 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
+import { catalogOutputs, editSourceSignature } from "../services/catalog-output-service.js"
 import { TextCatalogOutput } from "@adt/types"
 import { createTextCatalogRoutes } from "./text-catalog.js"
 
@@ -78,8 +79,8 @@ function seedUnrenderedBook(label: string): void {
   }
 }
 
-describe("GET /books/:label/text-catalog lazy build", () => {
-  it("builds and persists a non-empty catalog on demand", async () => {
+describe("GET /books/:label/text-catalog projection", () => {
+  it("builds a non-empty read model without persisting on open", async () => {
     seedRenderedBook("rendered")
     const app = createTextCatalogRoutes(tmpDir)
     const res = await app.request("/books/rendered/text-catalog")
@@ -87,10 +88,10 @@ describe("GET /books/:label/text-catalog lazy build", () => {
     const body = await res.json()
     expect(body.entries.length).toBeGreaterThan(0)
 
-    // Persisted so downstream consumers (translate, speech, packaging) can read it.
+    // Opening the view must not create entity versions.
     const verify = createBookStorage("rendered", tmpDir)
     try {
-      expect(verify.getLatestNodeData("text-catalog", "book")).toBeTruthy()
+      expect(verify.getLatestNodeData("text-catalog", "book")).toBeNull()
     } finally {
       verify.close()
     }
@@ -123,7 +124,8 @@ describe("GET /books/:label/text-catalog lazy build", () => {
 describe("text catalog routes", () => {
   it("stores edited translations as valid text catalog output", async () => {
     const label = "edited-translations"
-    seedBook(label)
+    seedRenderedBook(label)
+    fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "output_languages: [en, es]\n")
     const seeded = createBookStorage(label, tmpDir)
     seeded.putNodeData("core-tts-catalog", "es", {
       language: "es",
@@ -152,12 +154,15 @@ describe("text catalog routes", () => {
     seeded.markStepCompleted("accessibility-assessment")
     seeded.close()
     const app = createTextCatalogRoutes(tmpDir)
+    const guardStore = createBookStorage(label, tmpDir)
+    const sourceSignature = editSourceSignature(catalogOutputs(guardStore, label, tmpDir, path.resolve("prompts")), "translation", "es")
+    guardStore.close()
 
     const res = await app.request(`/books/${label}/text-catalog-translation/es`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        entries: [{ id: "pg001_t001", text: "¿Lo haces tú?" }],
+        entries: [{ id: "pg001_t001", text: "¿Lo haces tú?" }], baseVersion: 0, sourceVersion: 0, sourceSignature,
       }),
     })
 
@@ -171,9 +176,9 @@ describe("text catalog routes", () => {
       expect(parsed.data?.generatedAt).toEqual(expect.any(String))
       expect(storage.getLatestNodeData("core-tts-catalog", "es")?.data).toMatchObject({
         entries: [{
-          displayText: "¿Lo haces tú?",
-          speechText: null,
-          status: "failed",
+          displayText: "¿Lo haces?",
+          speechText: "¿Lo haces?",
+          status: "ready",
         }],
       })
       expect(storage.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
@@ -193,7 +198,8 @@ describe("text catalog routes", () => {
 
   it("stores manual speech edits as a new Core TTS language version", async () => {
     const label = "edited-speech"
-    seedBook(label)
+    seedRenderedBook(label)
+    fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "output_languages: [en, es]\n")
     const seeded = createBookStorage(label, tmpDir)
     try {
       seeded.putNodeData("core-tts-catalog", "en", {
@@ -248,12 +254,13 @@ describe("text catalog routes", () => {
     }
 
     const app = createTextCatalogRoutes(tmpDir)
+    const read = await (await app.request(`/books/${label}/text-catalog`)).json()
     const res = await app.request(
       `/books/${label}/core-tts-catalog/en/pg001_t001`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ speechText: "twenty-five" }),
+        body: JSON.stringify({ speechText: "twenty-five", baseVersion: 1, sourceSignature: read.speechTexts.en.sourceSignature }),
       },
     )
     expect(res.status).toBe(200)
@@ -266,10 +273,11 @@ describe("text catalog routes", () => {
       expect(current?.data).toMatchObject({
         entries: [{ speechText: "twenty-five", generation: { mode: "manual" } }],
       })
-      expect((storage.getLatestNodeData("tts", "en")?.data as { entries: unknown[] }).entries).toEqual([])
+      expect(storage.getLatestNodeData("tts", "en")?.version).toBe(1)
+      expect((storage.getLatestNodeData("tts", "en")?.data as { entries: unknown[] }).entries).toHaveLength(1)
       expect(
         (storage.getLatestNodeData("tts-timestamps", "en")?.data as { entries: Record<string, unknown> }).entries,
-      ).toEqual({})
+      ).toHaveProperty("pg001_t001")
       expect(storage.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
       for (const step of [
         "tts",
@@ -287,7 +295,8 @@ describe("text catalog routes", () => {
 
   it("preserves an uploaded recording when its speech text is edited", async () => {
     const label = "manual-speech-audio"
-    seedBook(label)
+    seedRenderedBook(label)
+    fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "output_languages: [en, es]\n")
     const seeded = createBookStorage(label, tmpDir)
     try {
       seeded.putNodeData("core-tts-catalog", "en", {
@@ -326,12 +335,13 @@ describe("text catalog routes", () => {
     }
 
     const app = createTextCatalogRoutes(tmpDir)
+    const read = await (await app.request(`/books/${label}/text-catalog`)).json()
     const response = await app.request(
       `/books/${label}/core-tts-catalog/en/pg001_t001`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ speechText: "Hello there" }),
+        body: JSON.stringify({ speechText: "Hello there", baseVersion: 1, sourceSignature: read.speechTexts.en.sourceSignature }),
       },
     )
     expect(response.status).toBe(200)

@@ -1,3 +1,10 @@
+import { captureOutputReferences } from "./output-references.js"
+import { publishSpeechOutput } from "@adt/storage"
+import { readOutputCatalog } from "./output-catalog.js"
+import { outputEvidence, inputSignature } from "./output-freshness.js"
+import { reconcileTextCatalog, buildImageInventory } from "./catalog-reconciliation.js"
+import { withBookWriter, withNewBookWriter, ownsBookWriter, resolveBookPaths } from "@adt/storage"
+import { reconcileSpeechInputs } from "./speech-inputs.js"
 import fs from "node:fs"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
@@ -71,7 +78,8 @@ import { generateAllQuizzes, buildQuizGenerationConfig, batchPages, type QuizPag
 import { saveQuizOutput, assertQuizGenerationCapacity } from "./quiz-ids.js"
 import { buildTextCatalog } from "./text-catalog.js"
 import { buildEasyReadConfig, buildEasyReadSourceBlocks, createEmptyEasyReadOutput, generateEasyRead, flattenEasyReadEntries, isDeterministicEmptyEasyReadOutput } from "./easy-read.js"
-import { translateCatalogBatch, buildCatalogTranslationConfig, getTargetLanguages } from "./catalog-translation.js"
+import { retainedEasyRead } from "./retained-catalog.js"
+import { translateCatalog, buildCatalogTranslationConfig, getTargetLanguages } from "./catalog-translation.js"
 import {
   buildCoreTtsPreparationConfig,
   loadCoreTtsProfiles,
@@ -157,6 +165,19 @@ export async function runFullPipeline(
   options: FullPipelineOptions,
   progress: Progress = nullProgress,
 ): Promise<PipelineDAGResult> {
+  const admissionPath = resolveBookPaths(options.label, options.booksRoot).bookDir
+  if (!ownsBookWriter(admissionPath)) {
+    const admit = fs.existsSync(admissionPath) ? withBookWriter : withNewBookWriter
+    return admit(admissionPath, () => runFullPipeline(options, progress))
+  }
+  // The published SPEC-0010 safe-resume implementation refuses a destructive
+  // full rerun until extraction/source reconciliation is available.
+  const existingDb = path.join(admissionPath, `${options.label}.db`)
+  if (fs.existsSync(existingDb)) {
+    const existing = createBookStorage(options.label, options.booksRoot)
+    try { if (existing.getPages().length) throw new Error("UNSAFE_RESUME_UNAVAILABLE: full extraction rerun cannot preserve this existing book") }
+    finally { existing.close() }
+  }
   const {
     label,
     pdfPath,
@@ -747,27 +768,13 @@ export async function runFullPipeline(
       const model = getModel(captionConfig.modelId)
       const summaryRow = storage.getLatestNodeData("book-summary", "book")
       const bookSummary = (summaryRow?.data as BookSummaryOutput | undefined)?.summary
-      const glossaryRow = storage.getLatestNodeData("glossary", "book")
-      const glossary = glossaryRow?.data as GlossaryOutput | undefined
-      const glossaryImageIdsByPage = groupGlossaryImageIdsByPage(
-        glossary,
-        (imageId) => storage.getImageMeta(imageId)?.pageId,
-      )
+      const inventory = buildImageInventory(storage)
+      const statuses = readOutputCatalog({ storage, config, bookDir: path.join(path.resolve(booksRoot), label), promptsDir, configDir: options.configDir ?? path.resolve("config") })
       const pages = storage.getPages()
       const totalPages = pages.length
       let completed = 0
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
-        const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-        if (!renderingRow) return
-        const rendering = renderingRow.data as WebRenderingOutput
-        const sectioning = getRenderSectioning(storage, page.pageId)
-        const htmlSections = rendering.sections
-          .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
-          .map((s) => s.html)
-        const imageIds = collectCaptionImageIds(
-          htmlSections,
-          glossaryImageIdsByPage.get(page.pageId),
-        )
+        const imageIds = inventory.filter((image) => image.pageId === page.pageId && image.assetHash).map((image) => image.id)
         if (imageIds.length === 0) {
           storage.putNodeData("image-captioning", page.pageId, { captions: [] })
         } else {
@@ -781,7 +788,10 @@ export async function runFullPipeline(
             captionConfig,
             model,
           )
-          storage.putNodeData("image-captioning", page.pageId, result)
+          storage.putNodeData("image-captioning", page.pageId, { ...result, captions: result.captions.map((entry) => {
+            const status = statuses.find((item) => item.identity.kind === "caption" && item.identity.id === entry.imageId)!
+            return { ...entry, source: "ai", input: outputEvidence(status.signature, { caption: entry.caption, decorative: entry.decorative === true }) }
+          }) })
         }
         completed++
         p.emit({
@@ -850,7 +860,7 @@ export async function runFullPipeline(
 
     executors.set("text-catalog", async () => {
       const pages = storage.getPages()
-      const catalog = await buildTextCatalog(storage, pages)
+      const catalog = reconcileTextCatalog(storage)
       storage.putNodeData("text-catalog", "book", catalog)
     })
 
@@ -867,8 +877,11 @@ export async function runFullPipeline(
         return
       }
       const model = getModel(easyReadConfig.modelId)
+      easyReadConfig.promptSignature = promptEngine.fingerprint(easyReadConfig.promptName, { modelId: easyReadConfig.modelId })
       const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
       const output = await generateEasyRead(blocks, easyReadConfig, model, {
+        references: captureOutputReferences(storage, "easy-read", easyReadConfig.language),
+        previous: retainedEasyRead(storage, blocks),
         concurrency: effectiveConcurrency,
         onProgress: (completed, total) => {
           p.emit({
@@ -902,36 +915,12 @@ export async function runFullPipeline(
       if (translationEntries.length === 0) return
       const translationConfig = buildCatalogTranslationConfig(config, language)
       const model = getModel(translationConfig.modelId)
-      const batchSize = translationConfig.batchSize
-      interface WorkItem { language: string; batchIndex: number; entries: TextCatalogEntry[] }
-      const workItems: WorkItem[] = []
-      for (const lang of targetLanguages) {
-        for (let i = 0; i < translationEntries.length; i += batchSize) {
-          workItems.push({ language: lang, batchIndex: Math.floor(i / batchSize), entries: translationEntries.slice(i, i + batchSize) })
-        }
-      }
-      const totalBatches = workItems.length
-      let completedBatches = 0
-      const resultsByLang = new Map<string, TextCatalogEntry[]>()
-      for (const lang of targetLanguages) resultsByLang.set(lang, [])
-      await processWithConcurrency(workItems, effectiveConcurrency, async (item) => {
-        const translated = await translateCatalogBatch(item.entries, item.language, translationConfig, model)
-        resultsByLang.get(item.language)!.push(...translated)
-        completedBatches++
-        p.emit({
-          type: "step-progress",
-          step: "catalog-translation",
-          message: `${completedBatches}/${totalBatches} batches`,
-          page: completedBatches,
-          totalPages: totalBatches,
-        })
+      translationConfig.promptSignature = promptEngine.fingerprint(translationConfig.promptName, { modelId: translationConfig.modelId })
+      await processWithConcurrency(targetLanguages, effectiveConcurrency, async (lang) => {
+        const previous = storage.getLatestNodeData("text-catalog-translation", lang)?.data as TextCatalogOutput | undefined
+        const output = await translateCatalog({ entries: translationEntries, language: lang, config: translationConfig, llmModel: model, previous, references: captureOutputReferences(storage, "translation", lang) })
+        if (output !== previous) storage.putNodeData("text-catalog-translation", lang, output)
       })
-      for (const lang of targetLanguages) {
-        const entries = resultsByLang.get(lang)!
-        const idOrder = new Map(translationEntries.map((e, i) => [e.id, i]))
-        entries.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0))
-        storage.putNodeData("text-catalog-translation", lang, { entries, generatedAt: new Date().toISOString() })
-      }
     })
 
     executors.set("core-tts-catalog", async (p) => {
@@ -948,6 +937,7 @@ export async function runFullPipeline(
       if (sourceDisplayEntries.length === 0) return
 
       const preparationConfig = buildCoreTtsPreparationConfig(config)
+      preparationConfig.promptSignature = promptEngine.fingerprint(preparationConfig.promptName, { modelId: preparationConfig.modelId })
       const model = getModel(preparationConfig.modelId)
       const profiles = loadCoreTtsProfiles(
         options.configDir ?? path.resolve(process.cwd(), "config"),
@@ -956,6 +946,7 @@ export async function runFullPipeline(
         entries: sourceDisplayEntries,
         language,
         config: preparationConfig,
+        references: captureOutputReferences(storage, "preparation", language),
         profile: resolveCoreTtsProfile(language, profiles),
         llmModel: model,
         previous: getCoreTtsCatalog(storage, language),
@@ -986,6 +977,7 @@ export async function runFullPipeline(
           entries: displayEntries,
           language: lang,
           config: preparationConfig,
+          references: captureOutputReferences(storage, "preparation", lang),
           profile: resolveCoreTtsProfile(lang, profiles),
           llmModel: model,
           previous: getCoreTtsCatalog(storage, lang),
@@ -1006,6 +998,8 @@ export async function runFullPipeline(
     executors.set("tts", async (p) => {
       const language = getLanguage(storage, config)
       const outputLanguages = getOutputLanguages(config, language)
+      reconcileSpeechInputs({ storage, config, sourceLanguage: language, languages: outputLanguages,
+        profiles: loadCoreTtsProfiles(options.configDir ?? path.resolve("config")), promptsDir, bookDir: path.join(path.resolve(booksRoot), label) })
       if (!outputLanguages.some((lang) => getReadyCoreTtsEntries(storage, lang).length > 0)) return
 
       const configDir = options.configDir ?? path.resolve(process.cwd(), "config")
@@ -1205,6 +1199,7 @@ export async function runFullPipeline(
           attemptCount++
           const ttsSynthesizer = getSynthesizer(provider)
           return generateSpeechFile({
+          sampleRate: config.speech?.sample_rate, bitRate: config.speech?.bit_rate,
             textId: item.textId,
             text: item.text,
             language: item.language,
@@ -1306,7 +1301,7 @@ export async function runFullPipeline(
       for (const lang of outputLanguages) {
         const entries = resultsByLang.get(lang)!
         const output: TTSOutput = { entries, generatedAt: new Date().toISOString() }
-        storage.putNodeData("tts", lang, output)
+        publishSpeechOutput(storage, lang, output)
       }
     })
 
@@ -1320,6 +1315,7 @@ export async function runFullPipeline(
       const bookMetadata = metadataRow?.data as { title?: string | null } | null
       const bookTitle = bookMetadata?.title ?? label
       await packageAdtWeb(storage, {
+        promptsDir, configDir: options.configDir ?? path.resolve("config"),
         bookDir: path.join(path.resolve(booksRoot), label),
         label,
         language,
@@ -1327,7 +1323,8 @@ export async function runFullPipeline(
         title: bookTitle,
         webAssetsDir: options.webAssetsDir,
         applyBodyBackground: config.apply_body_background,
-        speechConfig: config.speech,
+        config,
+      speechConfig: config.speech,
         fixedLayout: isFixedLayoutBook(config),
         reflowableFont: config.reflowable_font,
         quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,

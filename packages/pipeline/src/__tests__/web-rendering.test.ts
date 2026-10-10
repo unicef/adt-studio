@@ -1043,7 +1043,10 @@ describe("renderPage", () => {
 
     expect(result.sections).toHaveLength(1)
     expect(result.sections[0].activityReasoning).toBe("answer reasoning")
-    expect(result.sections[0].activityAnswers).toEqual({ activity_gen_opt1: "A" })
+    const answerId = Object.keys(result.sections[0].activityAnswers!)[0]
+    expect(answerId).toMatch(/^pg001_sec001_activity_[a-f0-9]+$/)
+    expect(result.sections[0].activityAnswers).toEqual({ [answerId]: "A" })
+    expect(result.sections[0].html).toContain(`data-id="${answerId}"`)
   })
 
   it("derives ordering ranks deterministically without a second LLM call", async () => {

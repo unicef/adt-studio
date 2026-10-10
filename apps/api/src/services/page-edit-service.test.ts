@@ -237,11 +237,11 @@ describe("page-edit-service", () => {
 
       const verifyStorage = createBookStorage(label, tmpDir)
       try {
-        expect(verifyStorage.getLatestNodeData("easy-read", "book")).toBeNull()
-        expect(verifyStorage.getLatestNodeData("text-catalog", "book")).toBeNull()
-        expect(verifyStorage.getLatestNodeData("text-catalog-translation", "es")).toBeNull()
-        expect(verifyStorage.getLatestNodeData("tts", "en")).toBeNull()
-        expect(verifyStorage.getLatestNodeData("tts-timestamps", "en")).toBeNull()
+        expect(verifyStorage.getLatestNodeData("easy-read", "book")).toMatchObject({ version: 1 })
+        expect(verifyStorage.getLatestNodeData("text-catalog", "book")).not.toBeNull()
+        expect(verifyStorage.getLatestNodeData("text-catalog-translation", "es")).toMatchObject({ version: 1 })
+        expect(verifyStorage.getLatestNodeData("tts", "en")).toMatchObject({ version: 1 })
+        expect(verifyStorage.getLatestNodeData("tts-timestamps", "en")).toMatchObject({ version: 1 })
         expect(verifyStorage.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
         const clearedSteps = new Set(verifyStorage.getStepRuns().map((run) => run.step))
         for (const step of [

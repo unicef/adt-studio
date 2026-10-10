@@ -1,6 +1,8 @@
+import type { OutputReference } from "@adt/types"
+import { outputSkipped } from "./output-freshness.js"
 import { z } from "zod"
 import { parseDocument, DomUtils } from "htmlparser2"
-import type { AppConfig, EasyReadOutput, TextCatalogEntry, WebRenderingOutput, PageSectioningOutput } from "@adt/types"
+import type { AppConfig, EasyReadOutput, OutputRunScope, TextCatalogEntry, WebRenderingOutput, PageSectioningOutput } from "@adt/types"
 import { DEFAULT_LLM_MAX_RETRIES, EasyReadOutput as EasyReadOutputSchema, WebRenderingOutput as WebRenderingOutputSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import type { Storage, PageData } from "@adt/storage"
@@ -8,9 +10,12 @@ import { buildLanguageContext, normalizeLocale } from "./language-context.js"
 import { getRenderSectioning } from "./render-sectioning.js"
 import { processWithConcurrency } from "./concurrency.js"
 
+import { inputSignature, outputEvidence, deriveOutputStatus, withOutputLocations, selectedForGeneration } from "./output-freshness.js"
+
 export const DEFAULT_EASY_READ_MODEL_ID = "openai:gpt-4.1"
 
 export interface EasyReadConfig {
+  promptSignature?: string
   enabled: boolean
   language: string
   promptName: string
@@ -76,7 +81,7 @@ function hasImageDataId(dataId: string | undefined): boolean {
 }
 
 function hasActivityGeneratedDataId(dataId: string | undefined): boolean {
-  return !!dataId && dataId.startsWith("activity_gen_")
+  return !!dataId && (dataId.startsWith("activity_gen_") || dataId.includes("__activity_gen_") || dataId.includes("_activity_"))
 }
 
 function hasExcludedAncestor(el: { parent?: unknown } | null): boolean {
@@ -213,12 +218,14 @@ export async function rewriteBlockEasyRead(
   block: EasyReadOutput["blocks"][number],
   config: EasyReadConfig,
   llmModel: LLMModel,
+  selectedSourceIds?: ReadonlySet<string>,
 ): Promise<Map<string, string>> {
   const rewrittenBySourceId = new Map<string, string>()
   const sectionText = block.entries.map((entry) => entry.originalText).join("\n")
 
-  for (let i = 0; i < block.entries.length; i += config.batchSize) {
-    const batch = block.entries.slice(i, i + config.batchSize)
+  const selected = block.entries.filter((entry) => !selectedSourceIds || selectedSourceIds.has(entry.sourceId))
+  for (let i = 0; i < selected.length; i += config.batchSize) {
+    const batch = selected.slice(i, i + config.batchSize)
     const texts = batch.map((entry, index) => ({ index, text: entry.originalText }))
     const result = await llmModel.generateObject<{ texts: string[] }>({
       schema: easyReadSchema,
@@ -259,6 +266,11 @@ export async function rewriteBlockEasyRead(
 }
 
 export interface GenerateEasyReadOptions {
+  previous?: EasyReadOutput
+  scope?: OutputRunScope
+  signal?: AbortSignal
+  references?: OutputReference[]
+  excluded?: ReadonlySet<string>
   /** Maximum number of sections processed in parallel. Defaults to 1 (sequential). */
   concurrency?: number
   /** Called after each section finishes, with the cumulative entry counts. */
@@ -275,33 +287,48 @@ export async function generateEasyRead(
     return createEmptyEasyReadOutput()
   }
 
+  const previous = new Map((options?.previous?.blocks ?? []).flatMap((block) => block.entries.map((entry) => [entry.sourceId, entry] as const)))
+  const generated = new Map<string, EasyReadOutput["blocks"][number]["entries"][number]>()
   const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
-  const rewrittenBySourceId = new Map<string, string>()
   let completed = 0
-
-  // Each block writes a disjoint set of sourceIds, so concurrent writes to the
-  // shared map never collide.
   await processWithConcurrency(blocks, options?.concurrency ?? 1, async (block) => {
-    const rewritten = await rewriteBlockEasyRead(block, config, llmModel)
-    for (const [sourceId, text] of rewritten) {
-      rewrittenBySourceId.set(sourceId, text)
+    options?.signal?.throwIfAborted()
+    const selected = new Set(block.entries.filter((entry) => {
+      const prior = previous.get(entry.sourceId)
+      const signature = easyReadInputSignature(block, entry.sourceId, config)
+      const status = withOutputLocations(deriveOutputStatus({
+        identity: { kind: "easy-read", id: entry.easyReadId, language: config.language },
+        signature, content: prior?.text, metadata: prior, usable: !!prior?.text.trim(),
+        excluded: options?.excluded?.has(entry.easyReadId),
+      }), { id: entry.easyReadId, text: entry.text, locations: [{ pageId: block.pageId, sectionId: block.sectionId }] })
+      return selectedForGeneration(status, prior, options?.scope)
+    }).map((entry) => entry.sourceId))
+    const rewritten = await rewriteBlockEasyRead(block, config, llmModel, selected)
+    options?.signal?.throwIfAborted()
+    for (const entry of block.entries) {
+      if (outputSkipped(options?.scope, { kind: "easy-read", id: entry.easyReadId, language: config.language })) continue
+      const text = rewritten.get(entry.sourceId)
+      if (text !== undefined) generated.set(entry.sourceId, {
+        ...entry, text, source: "ai", input: outputEvidence(easyReadInputSignature(block, entry.sourceId, config), text, options?.references),
+      })
     }
     completed += block.entries.length
     options?.onProgress?.(completed, totalEntries)
   })
+  options?.signal?.throwIfAborted()
+  if (!generated.size && options?.previous) return options.previous
+  const merged = blocks.map((block) => ({ ...block, entries: block.entries.flatMap((entry) => {
+    const result = generated.get(entry.sourceId) ?? previous.get(entry.sourceId)
+    return result ? [result] : []
+  }) }))
+  // Retired entries remain in retained versions; unselected active work survives.
+  return EasyReadOutputSchema.parse({ blocks: merged, generatedAt: new Date().toISOString() })
+}
 
-  const rewrittenBlocks = blocks.map((block) => ({
-    ...block,
-    entries: block.entries.map((entry) => ({
-      ...entry,
-      text: rewrittenBySourceId.get(entry.sourceId) ?? entry.originalText,
-    })),
-  }))
-
-  return EasyReadOutputSchema.parse({
-    blocks: rewrittenBlocks,
-    generatedAt: new Date().toISOString(),
-  })
+export function easyReadInputSignature(block: EasyReadOutput["blocks"][number], sourceId: string, config: EasyReadConfig): string {
+  return inputSignature({ id: sourceId, entries: block.entries.map((entry) => ({ id: entry.sourceId, text: entry.originalText })),
+    sectionType: block.sectionType, language: config.language, model: config.modelId,
+    prompt: config.promptSignature ?? config.promptName })
 }
 
 export function flattenEasyReadEntries(output: EasyReadOutput | null | undefined): TextCatalogEntry[] {
@@ -309,6 +336,8 @@ export function flattenEasyReadEntries(output: EasyReadOutput | null | undefined
     block.entries.map((entry) => ({
       id: entry.easyReadId,
       text: entry.text,
+      source: entry.source, input: entry.input, review: entry.review,
+      locations: [{ pageId: entry.pageId, sectionId: entry.sectionId }],
     }))
   ) ?? []
 }

@@ -47,6 +47,7 @@ function createMockStorage(
     getPageImageBase64: () => "",
     getImageBase64: () => "",
     getPageImages: () => [],
+    getImageMeta: () => null,
     putNodeData: () => 1,
     clearExtractedData: () => {},
     putExtractedPage: () => {},

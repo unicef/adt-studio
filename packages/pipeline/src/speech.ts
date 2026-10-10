@@ -1,3 +1,9 @@
+import { inputSignature } from "./output-freshness.js"
+
+/** Active membership owns context; ID prefixes are only a legacy fallback. */
+export function speechPageId(id: string, pageIds: readonly string[] = []): string | undefined {
+  return id.endsWith("_easy_read") ? undefined : pageIds[0] ?? /^(pg\d+)/.exec(id)?.[1]
+}
 import { storeImmutableAsset } from "@adt/storage"
 import fs from "node:fs"
 import path from "node:path"
@@ -30,6 +36,7 @@ import type {
 } from "@adt/llm"
 import {
   buildElevenLabsOutputFormat,
+  buildAzureOutputFormat,
   resolveElevenLabsVoiceSettings,
   transcribeWithWhisper,
 } from "@adt/llm"
@@ -624,6 +631,9 @@ export function elevenLabsTtsRetryDelayMs(attemptCount: number): number {
 // ---------------------------------------------------------------------------
 
 export function computeSpeechCacheKey(data: {
+  format?: string
+  sampleRate?: number
+  bitRate?: string
   text: string
   voice: string
   model: string
@@ -660,6 +670,7 @@ export function computeSpeechCacheKey(data: {
     elevenLabsStyle,
     elevenLabsUseSpeakerBoost,
     elevenLabsSpeed,
+    format, sampleRate, bitRate,
     ...base
   } = data
   const gemini =
@@ -696,8 +707,10 @@ export function computeSpeechCacheKey(data: {
           }),
         }
       : {}
-  const json = JSON.stringify({ ...base, ...gemini, ...elevenlabs })
-  return crypto.createHash("sha256").update(json).digest("hex")
+  const resolvedFormat = resolveSpeechFormat(base.provider ?? "openai", format)
+  const outputEncoding = base.provider === "elevenlabs" ? buildElevenLabsOutputFormat(resolvedFormat, { sampleRate, bitRate })
+    : base.provider === "azure" ? buildAzureOutputFormat(resolvedFormat, sampleRate, bitRate) : resolvedFormat
+  return inputSignature({ ...base, ...gemini, ...elevenlabs, outputEncoding })
 }
 
 /**
@@ -884,6 +897,8 @@ function assertWithinBase(base: string, target: string, name: string): void {
 // ---------------------------------------------------------------------------
 
 export interface GenerateSpeechFileOptions extends ElevenLabsVoiceSettingsOverrides {
+  sampleRate?: number
+  bitRate?: string
   textId: string
   text: string
   language: string
@@ -990,6 +1005,7 @@ export async function generateSpeechFile(
   )
 
   const hash = computeSpeechCacheKey({
+    format, sampleRate: options.sampleRate, bitRate: options.bitRate,
     text: sanitized,
     voice,
     model,
@@ -1118,6 +1134,14 @@ export interface GeneratePageSpeechFilesOptions {
  * page skip the model entirely and the sliced files are byte-stable (keeping
  * the downstream Whisper word-timestamp cache warm).
  */
+export function computePageSpeechInputSignature(options: Pick<GeneratePageSpeechFilesOptions, "entries" | "voice" | "model" | "instructions" | "provider" | "geminiTemperature" | "geminiSeed">): string {
+  return crypto.createHash("sha256").update(JSON.stringify({
+    entries: options.entries.map((entry) => ({ id: entry.id, text: stripEmojis(entry.text).trim() })).filter((entry) => isSpeakableText(entry.text)),
+    voice: options.voice, model: options.model, instructions: options.instructions,
+    provider: options.provider ?? "", geminiTemperature: options.geminiTemperature, geminiSeed: options.geminiSeed, v: "batch-page-1",
+  })).digest("hex")
+}
+
 export async function generatePageSpeechFiles(
   options: GeneratePageSpeechFilesOptions,
 ): Promise<SpeechFileEntry[]> {
@@ -1146,19 +1170,7 @@ export async function generatePageSpeechFiles(
 
   // Page-level cache key: the audio depends on the whole ordered transcript
   // plus the same knobs the per-item key uses.
-  const pageHash = crypto
-    .createHash("sha256")
-    .update(JSON.stringify({
-      entries: usable,
-      voice,
-      model,
-      instructions,
-      provider: provider ?? "",
-      geminiTemperature,
-      geminiSeed,
-      v: "batch-page-1",
-    }))
-    .digest("hex")
+  const pageHash = computePageSpeechInputSignature({ entries: usable, voice, model, instructions, provider, geminiTemperature, geminiSeed })
 
   const audioRoot = path.resolve(bookDir, "audio")
   const audioDir = path.resolve(audioRoot, normalizedLanguage)

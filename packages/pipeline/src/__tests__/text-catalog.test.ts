@@ -10,6 +10,8 @@ function createMockStorage(
       const data = nodeData[node]?.[itemId]
       return data !== undefined ? { version: 1, data } : null
     },
+    getNodeItemIds: (node: string) => Object.keys(nodeData[node] ?? {}),
+    getImageMeta: () => null,
     getPages: () => [],
     getPageImageBase64: () => "",
     getImageBase64: () => "",
@@ -58,7 +60,7 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, pages)
 
-    expect(result.entries).toEqual([
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toEqual([
       { id: "pg001_gp001_tx001", text: "Hello world" },
       { id: "pg001_gp001_tx002", text: "Second paragraph" },
       { id: "pg002_gp001_tx001", text: "Page two text" },
@@ -90,12 +92,12 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, [pages[0]])
 
-    expect(result.entries).toEqual([
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toEqual([
       { id: "pg001_im001", text: "A beautiful sunset" },
     ])
   })
 
-  it("reassigns activity_gen_* IDs to page-scoped ac IDs", async () => {
+  it("scopes legacy activity IDs by identity instead of reading position", async () => {
     const storage = createMockStorage({
       "web-rendering": {
         pg001: {
@@ -113,10 +115,10 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, [pages[0]])
 
-    expect(result.entries).toEqual([
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toEqual([
       { id: "pg001_gp001_tx001", text: "Question" },
-      { id: "pg001_ac001", text: "Option A" },
-      { id: "pg001_ac002", text: "Option B" },
+      { id: "pg001__activity_gen_opt1", text: "Option A" },
+      { id: "pg001__activity_gen_opt2", text: "Option B" },
     ])
   })
 
@@ -136,7 +138,7 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, [])
 
-    expect(result.entries).toEqual([
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toEqual([
       { id: "gl001", text: "Photosynthesis" },
       { id: "gl001_def", text: "The process by which plants make food" },
       { id: "gl002", text: "Mitosis" },
@@ -166,7 +168,7 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, [])
 
-    expect(result.entries).toEqual([
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toEqual([
       { id: "gl_manual_soil", text: "Soil" },
       { id: "gl_manual_soil_def", text: "The top layer of earth" },
     ])
@@ -200,7 +202,7 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, [])
 
-    expect(result.entries).toEqual([
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toEqual([
       { id: "qz001_que", text: "What is 2+2?" },
       { id: "qz001_o0", text: "3" },
       { id: "qz001_o0_exp", text: "Too low" },
@@ -279,7 +281,7 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, [pages[0]])
 
-    expect(result.entries).toEqual([
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toEqual([
       { id: "pg001_gp001_tx002", text: "Real text" },
     ])
   })
@@ -289,7 +291,7 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, pages)
 
-    expect(result.entries).toEqual([])
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toEqual([])
   })
 
   it("skips images with no caption", async () => {
@@ -311,7 +313,7 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, [pages[0]])
 
-    expect(result.entries).toEqual([])
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toEqual([])
   })
 
   it("combines all sources into a single catalog", async () => {
@@ -368,16 +370,16 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, [pages[0]])
 
-    expect(result.entries).toHaveLength(11)
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toHaveLength(11)
     // Page text
-    expect(result.entries[0]).toEqual({ id: "pg001_gp001_tx001", text: "Hello" })
+    expect(result.entries[0]).toMatchObject({ id: "pg001_gp001_tx001", text: "Hello" })
     // Image caption
-    expect(result.entries[1]).toEqual({ id: "pg001_im001", text: "A photo" })
+    expect(result.entries[1]).toMatchObject({ id: "pg001_im001", text: "A photo" })
     // Glossary
-    expect(result.entries[2]).toEqual({ id: "gl001", text: "Hello" })
-    expect(result.entries[3]).toEqual({ id: "gl001_def", text: "A greeting" })
+    expect(result.entries[2]).toMatchObject({ id: "gl001", text: "Hello" })
+    expect(result.entries[3]).toMatchObject({ id: "gl001_def", text: "A greeting" })
     // Quiz
-    expect(result.entries[4]).toEqual({ id: "qz001_que", text: "What is hello?" })
+    expect(result.entries[4]).toMatchObject({ id: "qz001_que", text: "What is hello?" })
   })
 
   it("includes generatedAt timestamp", async () => {
@@ -422,8 +424,8 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, [pages[0]])
 
-    expect(result.entries).toContainEqual({ id: "pg001_section_0_ans_item-1", text: "sun" })
-    expect(result.entries).toContainEqual({ id: "pg001_section_0_ans_item-2", text: "moon" })
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toContainEqual({ id: "pg001_section_0_ans_item-1", text: "sun" })
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toContainEqual({ id: "pg001_section_0_ans_item-2", text: "moon" })
   })
 
   it("stringifies boolean and number answer values", async () => {
@@ -461,8 +463,8 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, [pages[0]])
 
-    expect(result.entries).toContainEqual({ id: "pg001_sec001_ans_item-1", text: "true" })
-    expect(result.entries).toContainEqual({ id: "pg001_sec001_ans_item-2", text: "42" })
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toContainEqual({ id: "pg001_sec001_ans_item-1", text: "true" })
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toContainEqual({ id: "pg001_sec001_ans_item-2", text: "42" })
   })
 
   it("skips activity answers when no sectioning row resolves the section id", async () => {
@@ -508,7 +510,7 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, [pages[0]])
 
-    expect(result.entries).toEqual([{ id: "pg001_gp001_tx001", text: "Hello" }])
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toEqual([{ id: "pg001_gp001_tx001", text: "Hello" }])
     expect(result.entries.some((e) => e.id.includes("_ans_"))).toBe(false)
   })
 
@@ -535,7 +537,7 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, [pages[0]])
 
-    expect(result.entries).toEqual([
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toEqual([
       { id: "text-pg001-30", text: "Drag and Drop" },
       { id: "text-pg001-31", text: "Drag each item." },
       { id: "text-pg001-32", text: "Autonomous" },
@@ -564,7 +566,7 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, [pages[0]])
 
-    expect(result.entries).toEqual([
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toEqual([
       { id: "text-pg001-1", text: "Visible prompt" },
     ])
     for (const entry of result.entries) {
@@ -596,7 +598,7 @@ describe("buildTextCatalog", () => {
     const result = await buildTextCatalog(storage, [pages[0]])
 
     expect(result.entries.find((e) => e.id === "pg001_s0")).toBeUndefined()
-    expect(result.entries).toEqual([
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toEqual([
       { id: "text-pg001-1", text: "Outer wrapper text leaf" },
       { id: "text-pg001-2", text: "Another leaf" },
     ])
@@ -653,7 +655,7 @@ describe("buildTextCatalog", () => {
 
     const result = await buildTextCatalog(storage, [pages[0]])
 
-    expect(result.entries).toContainEqual({ id: "pg001_section_0_ans_item-1", text: "alpha" })
-    expect(result.entries).toContainEqual({ id: "pg001_section_1_ans_item-1", text: "beta" })
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toContainEqual({ id: "pg001_section_0_ans_item-1", text: "alpha" })
+    expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toContainEqual({ id: "pg001_section_1_ans_item-1", text: "beta" })
   })
 })

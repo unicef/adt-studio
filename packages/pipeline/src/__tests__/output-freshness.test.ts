@@ -15,7 +15,7 @@ describe("catalog output freshness", () => {
     const reviewed = deriveOutputStatus({ ...options, metadata: { review: { signature: "new", contentHash: inputSignature("Bonjour"), action: "keep" } } })
     expect(reviewed).toMatchObject({ protected: true, manual: false, current: true, warnings: [] })
     expect(needsOutputGeneration(reviewed)).toBe(false)
-    expect(deriveOutputStatus({ ...options, signature: "changed-again", metadata: { review: { signature: "new", contentHash: inputSignature("Bonjour"), action: "keep" } } }).current).toBe(false)
+    expect(deriveOutputStatus({ ...options, signature: "changed-again", metadata: { review: { signature: "new", contentHash: inputSignature("Bonjour"), action: "keep" } } })).toMatchObject({ current: false, warnings: [{ reason: "source-changed" }] })
   })
 
   it("does not regenerate matching audio solely to clear an upstream review warning", () => {

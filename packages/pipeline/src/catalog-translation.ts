@@ -1,5 +1,7 @@
+import type { OutputReference } from "@adt/types"
+import { outputSkipped } from "./output-freshness.js"
 import { z } from "zod"
-import type { AppConfig, TextCatalogEntry, TextCatalogOutput } from "@adt/types"
+import type { AppConfig, TextCatalogEntry, TextCatalogOutput, OutputRunScope } from "@adt/types"
 import { DEFAULT_LLM_MAX_RETRIES } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import {
@@ -8,7 +10,10 @@ import {
   normalizeLocale,
 } from "./language-context.js"
 
+import { inputSignature, outputEvidence, deriveOutputStatus, withOutputLocations, selectedForGeneration } from "./output-freshness.js"
+
 export interface CatalogTranslationConfig {
+  promptSignature?: string
   sourceLanguage: string
   promptName: string
   modelId: string
@@ -142,4 +147,54 @@ export async function translateCatalogBatch(
     )
     return [...first, ...second]
   }
+}
+
+/** Translation batching is a transport boundary, not semantic context. */
+export function translationInputSignature(entry: TextCatalogEntry, targetLanguage: string, config: CatalogTranslationConfig): string {
+  return inputSignature({ text: entry.text, sourceLanguage: config.sourceLanguage,
+    targetLanguage: normalizeLocale(targetLanguage), model: config.modelId,
+    prompt: config.promptSignature ?? config.promptName })
+}
+
+export async function translateCatalog(options: {
+  entries: TextCatalogEntry[]
+  previous?: TextCatalogOutput
+  language: string
+  config: CatalogTranslationConfig
+  llmModel: LLMModel
+  scope?: OutputRunScope
+  excluded?: ReadonlySet<string>
+  signal?: AbortSignal
+  references?: OutputReference[]
+}): Promise<TextCatalogOutput> {
+  const { entries, config, language, llmModel } = options
+  const previous = new Map((options.previous?.entries ?? []).map((entry) => [entry.id, entry]))
+  const pending = entries.filter((entry) => {
+    if (!entry.text.trim()) return false
+    const prior = previous.get(entry.id)
+    const status = withOutputLocations(deriveOutputStatus({
+      identity: { kind: "translation", id: entry.id, language },
+      signature: translationInputSignature(entry, language, config), content: prior?.text,
+      metadata: prior, usable: !!prior?.text.trim(), excluded: options.excluded?.has(entry.id),
+    }), entry)
+    return selectedForGeneration(status, prior, options.scope)
+  })
+  const generated = new Map<string, TextCatalogEntry>()
+  for (let offset = 0; offset < pending.length; offset += config.batchSize) {
+    options.signal?.throwIfAborted()
+    const batch = pending.slice(offset, offset + config.batchSize).filter((entry) => !outputSkipped(options.scope, { kind: "translation", id: entry.id, language }))
+    if (!batch.length) continue
+    const translated = await translateCatalogBatch(batch, language, config, llmModel)
+    options.signal?.throwIfAborted()
+    for (const entry of translated) {
+      if (outputSkipped(options.scope, { kind: "translation", id: entry.id, language })) continue
+      const source = batch.find((item) => item.id === entry.id)!
+      generated.set(entry.id, { ...entry, locations: source.locations, source: "ai", input: outputEvidence(translationInputSignature(source, language, config), entry.text, options.references) })
+    }
+  }
+  if (!generated.size) return options.previous ?? { entries: [], generatedAt: new Date().toISOString() }
+  // Keep retired/unselected entries available for reactivation and history.
+  const merged = new Map(previous)
+  for (const [id, entry] of generated) merged.set(id, entry)
+  return { entries: [...merged.values()], generatedAt: new Date().toISOString() }
 }

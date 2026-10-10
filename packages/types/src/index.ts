@@ -303,6 +303,7 @@ export {
   parseQuizId,
   resolveQuizId,
   withResolvedQuizIds,
+  resolveQuizOptionId,
   ensureQuizIds,
   QuizIdExhaustedError,
   QuizId,
@@ -552,3 +553,7 @@ export { TranslatedImageAsset } from "./output-freshness.js"
 export { OUTPUT_KIND_TO_STAGE, OUTPUT_KIND_TO_STEP } from "./pipeline.js"
 
 export { OutputEditGuard } from "./output-freshness.js"
+
+export { OutputSkipRequest } from "./output-freshness.js"
+
+export { OutputDisclosureOptions } from "./output-freshness.js"

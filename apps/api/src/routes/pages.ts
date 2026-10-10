@@ -1,3 +1,12 @@
+import { captureOutputReferences } from "@adt/pipeline"
+import { scopeLegacyActivityIds, getRenderSectioning } from "@adt/pipeline"
+import { saveAuthoredImageAlts } from "../services/authored-captions.js"
+import { catalogOutputs, editSourceSignature, assertEditSource, assertEditVersion } from "../services/catalog-output-service.js"
+import { OutputEditGuard } from "@adt/types"
+import { outputEvidence } from "@adt/pipeline"
+import { restoreSpeechOutput } from "@adt/storage"
+import { reconcileTextCatalog, assignActivityIds } from "@adt/pipeline"
+import { randomUUID } from "node:crypto"
 import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
@@ -140,6 +149,7 @@ interface PageDetail {
   imageClassification: unknown | null
   imageCropping: unknown | null
   rendering: unknown | null
+  captionSourceSignature: string
   imageCaptioning: unknown | null
   /** Per-image metadata for this page (dimensions, optional PDF-point placement bounds). */
   imagesMeta: Array<{
@@ -465,6 +475,8 @@ function clearCaptionData(storage: Storage): void {
 }
 
 const RestorableNode = z.enum([
+  "tts",
+  "image-translation",
   "toc-generation",
   "glossary",
   "quiz-generation",
@@ -562,57 +574,8 @@ function clearRestoredNodeDependents(
     }
 
     case "core-tts-catalog": {
-      const previous = CoreTtsCatalogOutput.safeParse(previousData)
-      const restored = CoreTtsCatalogOutput.safeParse(
-        storage.getLatestNodeData("core-tts-catalog", itemId)?.data,
-      )
-      const previousById = new Map(
-        (previous.success ? previous.data.entries : []).map((entry) => [entry.id, entry]),
-      )
-      const restoredById = new Map(
-        (restored.success ? restored.data.entries : []).map((entry) => [entry.id, entry]),
-      )
-      const changedIds = new Set(
-        [...new Set([...previousById.keys(), ...restoredById.keys()])].filter((id) => {
-          const before = previousById.get(id)
-          const after = restoredById.get(id)
-          return before?.speechText !== after?.speechText || before?.status !== after?.status
-        }),
-      )
-      const legacyItemId = itemId.replace("-", "_")
-      const normalizedTts = storage.getLatestNodeData("tts", itemId)
-      const ttsRow = normalizedTts ?? storage.getLatestNodeData("tts", legacyItemId)
-      if (ttsRow && changedIds.size > 0) {
-        const tts = ttsRow.data as TTSOutput
-        storage.putNodeData("tts", normalizedTts ? itemId : legacyItemId, {
-          ...tts,
-          entries: tts.entries.filter(
-            (entry) => entry.provider === "manual" || !changedIds.has(entry.textId),
-          ),
-          failed: tts.failed?.filter((entry) => !changedIds.has(entry.textId)),
-          generatedAt: new Date().toISOString(),
-        } satisfies TTSOutput)
-      }
-      const normalizedTimestamps = storage.getLatestNodeData("tts-timestamps", itemId)
-      const timestampRow =
-        normalizedTimestamps ??
-        storage.getLatestNodeData("tts-timestamps", legacyItemId)
-      if (timestampRow && changedIds.size > 0) {
-        const timestamps = timestampRow.data as WordTimestampOutput
-        const entries = Object.fromEntries(
-          Object.entries(timestamps.entries).filter(([id]) => !changedIds.has(id)),
-        )
-        storage.putNodeData(
-          "tts-timestamps",
-          normalizedTimestamps ? itemId : legacyItemId,
-          {
-            ...timestamps,
-            entries,
-            failed: timestamps.failed?.filter((entry) => !changedIds.has(entry.textId)),
-            generatedAt: new Date().toISOString(),
-          } satisfies WordTimestampOutput,
-        )
-      }
+      // Restoring speech text keeps prior audio/timings playable. Freshness is
+      // derived from the restored text, and audio is replaced only explicitly.
       storage.clearNodesByType(["accessibility-assessment"])
       storage.clearStepRuns([
         "tts",
@@ -688,7 +651,16 @@ function saveStoryboardNode(
   { renderingInSync = false }: { renderingInSync?: boolean } = {}
 ): number {
   if (node === "page-sectioning") assertNoActivePipelineRun(storage)
-  const version = storage.putNodeData(node, itemId, data)
+  const version = storage.transaction(() => {
+    const parsed = node === "web-rendering" ? WebRenderingOutput.safeParse(data) : null
+    const saved = parsed?.success ? {
+      ...parsed.data,
+      sections: parsed.data.sections.map((section) => scopeLegacyActivityIds(section, getRenderSectioning(storage, itemId)?.sections[section.sectionIndex]?.sectionId ?? itemId)),
+    } : data
+    const nextVersion = storage.putNodeData(node, itemId, saved)
+    reconcileTextCatalog(storage)
+    return nextVersion
+  })
   clearCaptionData(storage)
   // A sectioning change invalidates the storyboard's rendered HTML — and the
   // structural ops go further: a split drops both halves' HTML and a cross-page
@@ -806,15 +778,9 @@ function cloneNodesWithFreshContainerIds(
   containerIdMap: Map<string, string>
 ): ContentNodeData[] {
   return nodes.map((node) => {
-    if (node.role) {
-      return {
-        ...node,
-        ...(node.children
-          ? { children: cloneNodesWithFreshContainerIds(node.children, createId, containerIdMap) }
-          : {}),
-      }
-    }
-
+    // Image references share one asset/caption identity. Every cloned text
+    // leaf and structural container receives a fresh data ID.
+    if (node.role === "image") return { ...node }
     const nextId = createId()
     containerIdMap.set(node.nodeId, nextId)
     return {
@@ -1175,7 +1141,12 @@ export function createPageRoutes(
         return meta
       })
 
+      const catalogStorage = createBookStorage(safeLabel, booksDir)
+      let captionSourceSignature: string
+      try { captionSourceSignature = editSourceSignature(catalogOutputs(catalogStorage, safeLabel, booksDir, promptsDir, configPath), "caption", undefined, pageId) }
+      finally { catalogStorage.close() }
       const result: PageDetail = {
+        captionSourceSignature,
         pageId: page.page_id,
         pageNumber: page.page_number,
         text: page.text,
@@ -1594,7 +1565,11 @@ export function createPageRoutes(
         throw new HTTPException(404, { message: `Page not found: ${pageId}` })
       }
 
-      const version = saveStoryboardNode(storage, "web-rendering", pageId, parsed.data)
+      const outputs = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath)
+      const version = storage.transaction(() => {
+        saveAuthoredImageAlts(storage, pageId, parsed.data, outputs)
+        return saveStoryboardNode(storage, "web-rendering", pageId, parsed.data)
+      })
       return c.json({ version })
     } finally {
       storage.close()
@@ -1662,14 +1637,18 @@ export function createPageRoutes(
 
       // Rendering, sectioning, downstream invalidations, and step status are a
       // single editor save. If any statement fails, none of them may survive.
-      const { renderingVersion, sectioningVersion } = storage.transaction(() => ({
+      const outputs = rendering ? catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath) : []
+      const { renderingVersion, sectioningVersion } = storage.transaction(() => {
+        if (rendering) saveAuthoredImageAlts(storage, pageId, rendering, outputs)
+        return {
         renderingVersion: rendering
           ? saveStoryboardNode(storage, "web-rendering", pageId, rendering)
           : null,
         sectioningVersion: sectioning
           ? saveStoryboardNode(storage, "page-sectioning", pageId, sectioning, { renderingInSync })
           : null,
-      }))
+        }
+      })
 
       return c.json({ sectioningVersion, renderingVersion })
     } finally {
@@ -1710,14 +1689,14 @@ export function createPageRoutes(
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       const previousData = storage.getLatestNodeData(node, itemId)?.data
-      const ok = storage.setCurrentNodeVersion(node, itemId, version)
+      const ok = node === "tts" ? restoreSpeechOutput(storage, path.join(path.resolve(booksDir), safeLabel), itemId, version) : storage.setCurrentNodeVersion(node, itemId, version)
       if (!ok) {
         throw new HTTPException(404, {
           message: `Version ${version} not found for ${node}/${itemId}`,
         })
       }
       clearRestoredNodeDependents(storage, node, itemId, previousData)
-      return c.json({ node, itemId, version })
+      return c.json({ node, itemId, version: storage.getCurrentNodeVersion(node, itemId) ?? version })
     } finally {
       storage.close()
     }
@@ -1729,7 +1708,7 @@ export function createPageRoutes(
     const safeLabel = parseBookLabel(label)
 
     const body = await c.req.json()
-    const parsed = ImageCaptioningOutput.safeParse(body)
+    const parsed = ImageCaptioningOutput.extend(OutputEditGuard.shape).safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid image-captioning data: ${parsed.error.message}`,
@@ -1744,7 +1723,25 @@ export function createPageRoutes(
         throw new HTTPException(404, { message: `Page not found: ${pageId}` })
       }
 
-      const version = storage.putNodeData("image-captioning", pageId, parsed.data)
+      const previous = storage.getLatestNodeData("image-captioning", pageId)
+      assertEditVersion(previous?.version, parsed.data.baseVersion)
+      const outputs = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath)
+      assertEditSource(editSourceSignature(outputs, "caption", undefined, pageId), parsed.data.sourceSignature)
+      const oldEntries = new Map((ImageCaptioningOutput.safeParse(previous?.data).data?.captions ?? []).map((entry) => [entry.imageId, entry]))
+      const captions = parsed.data.captions.map((entry) => {
+        const owner = storage.getImageMeta(entry.imageId)?.pageId
+        if (owner && owner !== pageId) throw new HTTPException(409, { message: "Edit this shared caption on its owning page." })
+        const old = oldEntries.get(entry.imageId)
+        if (old?.caption === entry.caption && !!old.decorative === !!entry.decorative) return old
+        const status = outputs.find((item) => item.identity.kind === "caption" && item.identity.id === entry.imageId)
+        const content = { caption: entry.caption, decorative: entry.decorative === true }
+        return { ...old, ...entry, source: "manual" as const, review: undefined, input: status ? outputEvidence(status.signature, content, captureOutputReferences(storage, status.identity.kind, status.identity.language)) : undefined }
+      })
+      const version = storage.transaction(() => {
+        const next = storage.putNodeData("image-captioning", pageId, { captions })
+        reconcileTextCatalog(storage)
+        return next
+      })
       // Caption change cascades to text-catalog, translations, TTS, and package output.
       storage.clearNodesByType([
         "text-catalog",
@@ -2222,7 +2219,7 @@ export function createPageRoutes(
         sectionId: mintSectionId(storage, pageId),
         nodes: cloneNodesWithFreshContainerIds(
           sectioning.sections[idx].nodes,
-          createNodeIdFactory(pageId, sectioning.sections),
+          () => `${pageId}_n${randomUUID().replaceAll("-", "")}`,
           containerIdMap
         ),
       }

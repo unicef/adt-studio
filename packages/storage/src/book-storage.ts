@@ -87,7 +87,8 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
         // Invalidate active output through a new version; never erase history.
         const items = db.all(`SELECT node, item_id, MAX(version) AS version FROM node_data WHERE node IN (${placeholders}) GROUP BY node, item_id`, deletable) as Array<{ node: string; item_id: string; version: number }>
         for (const item of items) {
-          db.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, 'null')", [item.node, item.item_id, item.version + 1])
+          if (!readCurrentNodeRow(db, item.node, item.item_id)) continue
+          db.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, NULL)", [item.node, item.item_id, item.version + 1])
           db.run("INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?) ON CONFLICT (node, item_id) DO UPDATE SET version = excluded.version", [item.node, item.item_id, item.version + 1])
         }
       })
@@ -287,8 +288,16 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       const filename = asset.fileName
       const legacy = db.all("SELECT * FROM images WHERE image_id = ?", [newImageId]) as Array<{ path: string; hash: string; width: number; height: number; page_id: string }>
       if (legacy[0] && !this.getLatestNodeData("image-translation", newImageId)) {
+        const old = legacy[0]
+        const root = fs.realpathSync(paths.bookDir)
+        const file = fs.realpathSync(path.resolve(root, old.path))
+        const relative = path.relative(root, file)
+        if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Legacy image path escapes book")
+        const bytes = fs.readFileSync(file)
+        if (createHash("sha256").update(bytes).digest("hex").slice(0, old.hash.length) !== old.hash) throw new Error("Legacy image bytes changed before snapshot")
+        const snapshot = storeImmutableAsset(paths.bookDir, ["images"], newImageId, path.extname(file).slice(1), bytes)
         this.putNodeData("image-translation", newImageId, { imageId: newImageId, sourceImageId: input.sourceImageId, language: input.languageCode,
-          relativePath: legacy[0].path, hash: legacy[0].hash, width: legacy[0].width, height: legacy[0].height, pageId: legacy[0].page_id })
+          relativePath: `images/${snapshot.fileName}`, hash: snapshot.contentHash, width: old.width, height: old.height, pageId: old.page_id })
       }
 
       db.run(
@@ -497,8 +506,8 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       const rows = db.all(
         "SELECT version, data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version",
         [node, itemId]
-      ) as Array<{ version: number; data: string }>
-      return rows.map((row) => ({ version: row.version, data: JSON.parse(row.data) }))
+      ) as Array<{ version: number; data: string | null }>
+      return rows.map((row) => ({ version: row.version, data: row.data === null ? null : JSON.parse(row.data) }))
     },
 
     getNodeItemIds(node: string): string[] {

@@ -1,4 +1,4 @@
-import { STAGE_ORDER, type ProgressEvent } from "@adt/types"
+import { STAGE_ORDER, type OutputRunScope, type OutputIdentity, type ProgressEvent } from "@adt/types"
 import type { StageName, StepName, PageErrorPolicy, PageErrorAction } from "@adt/types"
 import { createBookStorage, resolveBookPaths, withBookWriter } from "@adt/storage"
 import type { ResolvedCredentials } from "@adt/llm"
@@ -23,6 +23,7 @@ export interface StageRunJob {
   completedAt?: number
   /** Per-job cancellation. abort() is called by cancelStageRun. */
   controller: AbortController
+  outputScope: OutputRunScope
 }
 
 export interface QueuedStageRun {
@@ -43,6 +44,7 @@ export interface BookRunStatus {
 }
 
 export interface StageRunOptions {
+  outputScope?: OutputRunScope
   booksDir: string
   /** Request-scoped provider credentials. Values are never persisted. */
   credentials: ResolvedCredentials
@@ -94,6 +96,7 @@ export interface StageService {
    *  unwinds, "cancelled" if only a queue was cleared, or null when there is
    *  nothing to cancel (→ 404). */
   cancelStageRun(label: string): { status: "cancelling" | "cancelled" } | null
+  skipStageOutputs(label: string, identities: OutputIdentity[]): boolean
 }
 
 let nextId = 1
@@ -130,6 +133,7 @@ export function createStageService(
     // own controller and a label-bound broker.
     const effectiveOptions: StageRunOptions = {
       ...options,
+      outputScope: job.outputScope,
       signal: job.controller.signal,
       requestPageDecision: decisions
         ? (input) => decisions.requestDecision({ label, ...input })
@@ -205,6 +209,7 @@ export function createStageService(
       toStage: next.toStage,
       startedAt: Date.now(),
       controller: new AbortController(),
+      outputScope: structuredClone(next.options.outputScope ?? {}),
     }
     state.active = job
 
@@ -283,22 +288,31 @@ export function createStageService(
         toStage: options.toStage,
         startedAt: Date.now(),
         controller: new AbortController(),
+        outputScope: structuredClone(options.outputScope ?? {}),
       }
-      state.active = job
-
-      // Defer execution to the next macrotask so this call — and the HTTP
-      // response that triggered it — returns before the job's synchronous
-      // startup runs. A stage's setup (e.g. extract: reading the PDF off disk,
-      // parsing it via WASM, extracting the first page) runs synchronously up
-      // to its first await and would otherwise block the response for several
-      // seconds, stalling the client that just kicked off the run. `state.active`
-      // is already set, so getStatus() reflects "running" right away; the step
-      // run record is written once the deferred job actually starts.
-      setImmediate(() => {
-        executeJob(label, job, options).catch(() => {})
+      // Admission and preparation precede the success response. Retain that
+      // same lease across deferred execution; no competing writer can enter
+      // between preparation and the runner's first instruction.
+      const work = withBookWriter(resolveBookPaths(label, options.booksDir).bookDir, () => {
+        options.beforeRun?.()
+        state.active = job
+        return new Promise<void>((resolve) => setImmediate(() => {
+          executeJob(label, job, { ...options, beforeRun: undefined }).finally(resolve)
+        }))
       })
+      void work.catch(() => {}) // executeJob records the task result.
 
       return { status: "started", id }
+    },
+
+    skipStageOutputs(label: string, identities: OutputIdentity[]): boolean {
+      const job = books.get(label)?.active
+      if (job?.status !== "running") return false
+      const skipped = job.outputScope.skip ??= []
+      for (const identity of identities) {
+        if (!skipped.some((item) => item.kind === identity.kind && item.id === identity.id && item.language === identity.language && item.voiceSlot === identity.voiceSlot)) skipped.push(identity)
+      }
+      return true
     },
 
     cancelStageRun(

@@ -1,7 +1,9 @@
+import { catalogOutputs } from "../services/catalog-output-service.js"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { createHash } from "node:crypto"
 import { createBookStorage, openBookDb } from "@adt/storage"
 const { transcribeWithWhisperMock } = vi.hoisted(() => ({
   transcribeWithWhisperMock: vi.fn(),
@@ -970,6 +972,14 @@ speech:
   })
 })
 
+function addUploadBaseline(formData: FormData, label: string) {
+  const storage = createBookStorage(label, tmpDir)
+  try {
+    const status = catalogOutputs(storage, label, tmpDir, path.resolve("prompts"), configPath).find((output) => output.identity.kind === "audio" && output.identity.id === formData.get("textId") && output.identity.language === formData.get("language") && output.identity.voiceSlot === (formData.get("voiceSlot") ?? "primary"))
+    if (status) formData.set("baseline", JSON.stringify({ identity: status.identity, signature: status.signature, contentHash: status.contentHash }))
+  } finally { storage.close() }
+}
+
 describe("POST /books/:label/tts/upload-one", () => {
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-tts-route-"))
@@ -1032,6 +1042,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     )
 
     const app = createTTSRoutes(tmpDir, configPath)
+    addUploadBaseline(formData, label)
     const res = await app.request(`/books/${label}/tts/upload-one`, {
       method: "POST",
       body: formData,
@@ -1051,7 +1062,8 @@ describe("POST /books/:label/tts/upload-one", () => {
     const after = createBookStorage(label, tmpDir)
     try {
       const ttsRow = after.getLatestNodeData("tts", "en")
-      expect(ttsRow?.version).toBe(2)
+      expect(ttsRow?.version).toBe(3)
+      expect(after.getAllNodeVersions("tts", "en")[1].data).toMatchObject({ legacySnapshotOf: 1 })
       expect(
         (ttsRow?.data as {
           entries: Array<{
@@ -1064,7 +1076,7 @@ describe("POST /books/:label/tts/upload-one", () => {
             provider?: string
           }>
         }).entries
-      ).toEqual([
+      ).toMatchObject([
         {
           textId: "pg001_t001",
           language: "en",
@@ -1116,6 +1128,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     )
 
     const app = createTTSRoutes(tmpDir, configPath)
+    addUploadBaseline(formData, label)
     const uploadRes = await app.request(`/books/${label}/tts/upload-one`, {
       method: "POST",
       body: formData,
@@ -1158,6 +1171,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     )
 
     const app = createTTSRoutes(tmpDir, configPath)
+    addUploadBaseline(formData, label)
     const uploadRes = await app.request(`/books/${label}/tts/upload-one`, {
       method: "POST",
       body: formData,
@@ -1175,7 +1189,8 @@ describe("POST /books/:label/tts/upload-one", () => {
 
     expect(transcribeRes.status).toBe(200)
     const body = await transcribeRes.json()
-    expect(body.entry).toEqual({
+    expect(body.entry).toMatchObject({
+      source: "ai", audioHash: expect.stringMatching(/^[a-f0-9]{64}$/), input: { signature: expect.any(String) },
       textId: "pg001_t001",
       language: "en",
       words: [{ word: "Hello", start: 0, end: 0.5 }],
@@ -1195,7 +1210,7 @@ describe("POST /books/:label/tts/upload-one", () => {
       const timestampsRow = after.getLatestNodeData("tts-timestamps", "en")
       expect((timestampsRow?.data as {
         entries: Record<string, unknown>
-      }).entries.pg001_t001).toEqual({
+      }).entries.pg001_t001).toMatchObject({
         textId: "pg001_t001",
         language: "en",
         words: [{ word: "Hello", start: 0, end: 0.5 }],
@@ -1224,6 +1239,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     )
 
     const app = createTTSRoutes(tmpDir, configPath)
+    addUploadBaseline(formData, label)
     const res = await app.request(`/books/${label}/tts/upload-one`, {
       method: "POST",
       body: formData,
@@ -1270,6 +1286,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     )
 
     const app = createTTSRoutes(tmpDir, configPath)
+    addUploadBaseline(formData, label)
     const res = await app.request(`/books/${label}/tts/upload-one`, {
       method: "POST",
       body: formData,
@@ -1295,6 +1312,7 @@ describe("POST /books/:label/tts/upload-one", () => {
         "audio",
         new File([new Uint8Array([byte])], "custom.wav", { type: "audio/wav" })
       )
+      addUploadBaseline(formData, label)
       return app.request(`/books/${label}/tts/upload-one`, { method: "POST", body: formData })
     }
 
@@ -1372,8 +1390,10 @@ describe("DELETE /books/:label/tts", () => {
 
     const after = createBookStorage(label, tmpDir)
     try {
-      expect(after.getLatestNodeData("tts", "en")).toBeNull()
-      expect(after.getLatestNodeData("tts-timestamps", "en")).toBeNull()
+      expect(after.getLatestNodeData("tts", "en")?.data).toMatchObject({ entries: [] })
+      expect(after.getAllNodeVersions("tts", "en")).toHaveLength(2)
+      expect(after.getLatestNodeData("tts-timestamps", "en")?.data).toMatchObject({ entries: {} })
+      expect(after.getAllNodeVersions("tts-timestamps", "en")).toHaveLength(2)
     } finally {
       after.close()
     }
@@ -1504,6 +1524,18 @@ describe("word timestamps are slot-specific", () => {
     const label = "timestamps-slots"
     seedBook(label)
 
+    const bytes = Buffer.from("timing audio")
+    const audioHash = createHash("sha256").update(bytes).digest("hex")
+    const seed = createBookStorage(label, tmpDir)
+    const dir = path.join(tmpDir, label, "audio", "en")
+    fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(path.join(dir, "timings.mp3"), bytes)
+    seed.putNodeData("tts", "en", { entries: ["primary", "secondary"].map((voiceSlot) => ({
+      textId: "pg001_t001", language: "en", voiceSlot, fileName: "timings.mp3", audioHash,
+      voice: "alloy", model: "tts", provider: "openai", source: "ai", cached: false,
+    })), generatedAt: "now" })
+    seed.close()
+
     const app = createTTSRoutes(tmpDir, configPath)
 
     const putRes1 = await app.request(
@@ -1514,7 +1546,7 @@ describe("word timestamps are slot-specific", () => {
         body: JSON.stringify({
           words: [{ word: "Hello", start: 0, end: 0.4 }],
           duration: 0.4,
-          voiceSlot: "primary",
+          voiceSlot: "primary", baseVersion: 0, audioHash,
         }),
       }
     )
@@ -1528,7 +1560,7 @@ describe("word timestamps are slot-specific", () => {
         body: JSON.stringify({
           words: [{ word: "Hello", start: 0, end: 0.9 }],
           duration: 0.9,
-          voiceSlot: "secondary",
+          voiceSlot: "secondary", baseVersion: 1, audioHash,
         }),
       }
     )
@@ -1548,6 +1580,7 @@ describe("word timestamps are slot-specific", () => {
   })
 
   it("transcribe-one finds the audio for the requested voiceSlot only", async () => {
+    writeSecondaryVoiceConfig()
     const label = "transcribe-one-slots"
     seedBook(label)
 

@@ -53,6 +53,7 @@ export const OutputWarning = z.object({
 export type OutputWarning = z.infer<typeof OutputWarning>
 
 export const OutputStatus = z.object({
+  included: z.boolean().optional(),
   text: z.string().optional(),
   sourceText: z.string().optional(),
   identity: OutputIdentity,
@@ -73,6 +74,7 @@ export const OutputStatus = z.object({
 export type OutputStatus = z.infer<typeof OutputStatus>
 
 export const OutputSelection = z.object({
+  identities: z.array(OutputIdentity).optional(),
   kinds: z.array(OutputKind).optional(),
   pageIds: z.array(z.string()).optional(),
   sectionIds: z.array(z.string()).optional(),
@@ -119,6 +121,8 @@ export const OutputRunScope = z.object({
   replace: z.array(OutputReplacement).optional(),
 }).strict()
 export type OutputRunScope = z.infer<typeof OutputRunScope>
+export const OutputSkipRequest = z.object({ identities: z.array(OutputIdentity).min(1).max(1000) }).strict()
+export type OutputSkipRequest = z.infer<typeof OutputSkipRequest>
 
 export const TranslatedImageAsset = z.object({
   ...OutputMetadata.shape,
@@ -133,3 +137,8 @@ export const OutputEditGuard = z.object({
   sourceSignature: z.string().min(1),
 })
 export type OutputEditGuard = z.infer<typeof OutputEditGuard>
+
+export const OutputDisclosureOptions = z.object({
+  glossary: z.boolean().optional(), quizzes: z.boolean().optional(), readAloud: z.boolean().optional(), languages: z.array(z.string()).optional(),
+}).strict()
+export type OutputDisclosureOptions = z.infer<typeof OutputDisclosureOptions>

@@ -73,7 +73,7 @@ describe("Package routes", () => {
           sectionIndex: 0,
           sectionType: "content",
           reasoning: "ok",
-          html: '<main><img src="cover.png"></main>',
+          html: '<main><p data-id="pg001_n0001">Original text</p><img src="cover.png"></main>',
         },
       ],
     })
@@ -230,6 +230,7 @@ describe("Package routes", () => {
 
     it("repackages when Easy Read content changes even if the stored version is unchanged", { timeout: 20_000 }, async () => {
       createRenderedBook("book-easy-cache")
+      fs.writeFileSync(path.join(tmpDir, "book-easy-cache", "config.yaml"), "easy_read:\n  enabled: true\n")
       createWebAssets()
 
       const storage = createBookStorage("book-easy-cache", tmpDir)

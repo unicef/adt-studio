@@ -1,3 +1,4 @@
+import { createOutputRoutes } from "./routes/outputs.js"
 import path from "node:path"
 import fs from "node:fs"
 import os from "node:os"
@@ -104,29 +105,30 @@ app.route("/api", healthRoutes)
 app.route("/api", createProviderRoutes(configPath))
 // Mounted before /books/:label so GET /books/events is not captured as a label.
 app.route("/api", createBookEventsRoutes(eventBus))
-app.route("/api", createBookRoutes(booksDir, webAssetsDir, configPath, taskService))
+app.route("/api", createBookRoutes(booksDir, webAssetsDir, configPath, taskService, undefined, promptsDir))
 app.route("/api", createPageRoutes(booksDir, promptsDir, webAssetsDir, configPath, taskService))
 app.route("/api", createGlossaryRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createTocRoutes(booksDir))
 app.route("/api", createDebugRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createQuizRoutes(booksDir, promptsDir, configPath))
-app.route("/api", createPackageRoutes(booksDir, webAssetsDir, configPath, taskService))
+app.route("/api", createPackageRoutes(booksDir, webAssetsDir, configPath, taskService, promptsDir))
 app.route("/api", createPromptRoutes(promptsDir, booksDir, configPath))
-app.route("/api", createTextCatalogRoutes(booksDir))
+app.route("/api", createTextCatalogRoutes(booksDir, promptsDir, configPath))
+app.route("/api", createOutputRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createEasyReadRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createBookSummaryRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createBookOutlineRoutes(booksDir))
 app.route("/api", createFontRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createTypographyRoutes(booksDir))
 app.route("/api", createEditableActivitiesRoutes(booksDir, promptsDir, configPath))
-app.route("/api", createTTSRoutes(booksDir, configPath, taskService))
+app.route("/api", createTTSRoutes(booksDir, configPath, taskService, promptsDir))
 app.route(
   "/api",
   createStageRoutes(stageService, eventBus, pageErrorDecisions, booksDir, promptsDir, webAssetsDir, configPath)
 )
 app.route("/api", createTaskRoutes(taskService))
 app.route("/api", createPresetRoutes(configPath, booksDir))
-app.route("/api", createAdtPreviewRoutes(booksDir, webAssetsDir, configPath))
+app.route("/api", createAdtPreviewRoutes(booksDir, webAssetsDir, configPath, promptsDir))
 app.route("/api", createSpeechConfigRoutes(configPath))
 app.route("/api", createReviewerValidationRoutes(booksDir, configFolderPath, configPath))
 app.route("/api", createSignLanguageVideoRoutes(booksDir))
