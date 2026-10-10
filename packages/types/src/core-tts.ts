@@ -1,3 +1,4 @@
+import { OutputMetadata } from "./output-freshness.js"
 import { z } from "zod"
 
 export const CoreTtsTransformationKind = z.enum([
@@ -28,11 +29,12 @@ export const CoreTtsGenerationMetadata = z.object({
 export type CoreTtsGenerationMetadata = z.infer<typeof CoreTtsGenerationMetadata>
 
 /**
- * Display text paired with independently editable provider text. Failed LaTeX
- * conversions intentionally carry no speech text, so raw notation cannot be
- * sent silently to a provider.
+ * Display text paired with independently editable provider text. Failed or
+ * unavailable generated preparation may declare display-text fallback with an
+ * inspectable reason; it never claims successful normalization.
  */
 export const CoreTtsCatalogEntry = z.object({
+  ...OutputMetadata.shape,
   id: z.string(),
   displayText: z.string(),
   speechText: z.string().nullable(),
@@ -40,6 +42,7 @@ export const CoreTtsCatalogEntry = z.object({
   transformations: z.array(CoreTtsTransformationKind),
   status: CoreTtsEntryStatus,
   failureReason: z.string().optional(),
+  fallbackReason: z.enum(["failed", "missing", "outdated"]).optional(),
   generation: CoreTtsGenerationMetadata,
 })
 export type CoreTtsCatalogEntry = z.infer<typeof CoreTtsCatalogEntry>

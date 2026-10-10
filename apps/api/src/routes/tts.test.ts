@@ -1,7 +1,9 @@
+import { catalogOutputs } from "../services/catalog-output-service.js"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { createHash } from "node:crypto"
 import { createBookStorage, openBookDb } from "@adt/storage"
 const { transcribeWithWhisperMock } = vi.hoisted(() => ({
   transcribeWithWhisperMock: vi.fn(),
@@ -192,7 +194,7 @@ describe("POST /books/:label/tts/generate-one", () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.entry.textId).toBe("pg001_t001")
-    expect(body.entry.fileName).toBe("pg001_t001.wav")
+    expect(body.entry.fileName).toMatch(/^pg001_t001--[a-f0-9]{64}\.wav$/)
     expect(body.completed).toBe(true)
     expect(body.remainingItems).toBe(0)
 
@@ -209,7 +211,7 @@ describe("POST /books/:label/tts/generate-one", () => {
     }
 
     expect(
-      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001.wav"))
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", body.entry.fileName))
     ).toBe(true)
   })
 
@@ -375,7 +377,7 @@ describe("POST /books/:label/tts/generate-one", () => {
 
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.entry.fileName).toBe("pg001_t001.wav")
+    expect(body.entry.fileName).toMatch(/^pg001_t001--[a-f0-9]{64}\.wav$/)
     expect(body.remainingItems).toBe(0)
   })
 
@@ -441,7 +443,7 @@ describe("POST /books/:label/tts/generate-one", () => {
 
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.entry.fileName).toBe("pg001_t001.wav")
+    expect(body.entry.fileName).toMatch(/^pg001_t001--[a-f0-9]{64}\.wav$/)
     expect(body.entry.model).toBe("gemini-2.5-pro-preview-tts")
     expect(fetchMock).toHaveBeenCalledTimes(2)
 
@@ -514,7 +516,7 @@ describe("POST /books/:label/tts/generate-one", () => {
 
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.entry.fileName).toBe("pg001_t001.wav")
+    expect(body.entry.fileName).toMatch(/^pg001_t001--[a-f0-9]{64}\.wav$/)
     expect(body.entry.provider).toBe("openai")
     expect(body.entry.model).toBe("tts-1-hd")
     expect(fetchMock).toHaveBeenCalledTimes(3)
@@ -943,11 +945,11 @@ speech:
     const body = await res.json()
     expect(body.entry.voiceSlot).toBe("secondary")
     expect(body.entry.voiceLabel).toBe("Second Narrator")
-    expect(body.entry.fileName).toBe("pg001_t001--secondary.wav")
+    expect(body.entry.fileName).toMatch(/^pg001_t001--secondary--[a-f0-9]{64}\.wav$/)
     expect(body.entry.voice).toBe("Puck")
 
     expect(
-      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001--secondary.wav"))
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", body.entry.fileName))
     ).toBe(true)
   })
 
@@ -969,6 +971,14 @@ speech:
     await expect(res.text()).resolves.toContain("Secondary voice is not configured")
   })
 })
+
+function addUploadBaseline(formData: FormData, label: string) {
+  const storage = createBookStorage(label, tmpDir)
+  try {
+    const status = catalogOutputs(storage, label, tmpDir, path.resolve("prompts"), configPath).find((output) => output.identity.kind === "audio" && output.identity.id === formData.get("textId") && output.identity.language === formData.get("language") && output.identity.voiceSlot === (formData.get("voiceSlot") ?? "primary"))
+    if (status) formData.set("baseline", JSON.stringify({ identity: status.identity, signature: status.signature, contentHash: status.contentHash }))
+  } finally { storage.close() }
+}
 
 describe("POST /books/:label/tts/upload-one", () => {
   beforeEach(() => {
@@ -1032,6 +1042,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     )
 
     const app = createTTSRoutes(tmpDir, configPath)
+    addUploadBaseline(formData, label)
     const res = await app.request(`/books/${label}/tts/upload-one`, {
       method: "POST",
       body: formData,
@@ -1041,7 +1052,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     const body = await res.json()
     expect(body.entry).toMatchObject({
       textId: "pg001_t001",
-      fileName: "pg001_t001.wav",
+      fileName: expect.stringMatching(/^pg001_t001--[a-f0-9]{64}\.wav$/),
       voice: "uploaded",
       model: "uploaded",
       provider: "manual",
@@ -1051,7 +1062,8 @@ describe("POST /books/:label/tts/upload-one", () => {
     const after = createBookStorage(label, tmpDir)
     try {
       const ttsRow = after.getLatestNodeData("tts", "en")
-      expect(ttsRow?.version).toBe(2)
+      expect(ttsRow?.version).toBe(3)
+      expect(after.getAllNodeVersions("tts", "en")[1].data).toMatchObject({ legacySnapshotOf: 1 })
       expect(
         (ttsRow?.data as {
           entries: Array<{
@@ -1064,15 +1076,17 @@ describe("POST /books/:label/tts/upload-one", () => {
             provider?: string
           }>
         }).entries
-      ).toEqual([
+      ).toMatchObject([
         {
           textId: "pg001_t001",
           language: "en",
-          fileName: "pg001_t001.wav",
+          fileName: expect.stringMatching(/^pg001_t001--[a-f0-9]{64}\.wav$/),
           voice: "uploaded",
           model: "uploaded",
           cached: false,
           provider: "manual",
+          source: "manual",
+          audioHash: expect.stringMatching(/^[a-f0-9]{64}$/),
           voiceSlot: "primary",
         },
       ])
@@ -1086,11 +1100,11 @@ describe("POST /books/:label/tts/upload-one", () => {
     }
 
     expect(
-      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001.wav"))
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", body.entry.fileName))
     ).toBe(true)
     expect(
       fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001.mp3"))
-    ).toBe(false)
+    ).toBe(true)
   })
 
   it("transcribes with the server-side OpenAI key when the request has no header", async () => {
@@ -1114,6 +1128,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     )
 
     const app = createTTSRoutes(tmpDir, configPath)
+    addUploadBaseline(formData, label)
     const uploadRes = await app.request(`/books/${label}/tts/upload-one`, {
       method: "POST",
       body: formData,
@@ -1129,7 +1144,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     expect(transcribeRes.status).toBe(200)
     expect(transcribeWithWhisperMock).toHaveBeenCalledWith(
       expect.any(Buffer),
-      "pg001_t001.wav",
+      expect.stringMatching(/^pg001_t001--[a-f0-9]{64}\.wav$/),
       "sk-env-test",
       "en",
       "Hello world",
@@ -1156,6 +1171,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     )
 
     const app = createTTSRoutes(tmpDir, configPath)
+    addUploadBaseline(formData, label)
     const uploadRes = await app.request(`/books/${label}/tts/upload-one`, {
       method: "POST",
       body: formData,
@@ -1173,7 +1189,8 @@ describe("POST /books/:label/tts/upload-one", () => {
 
     expect(transcribeRes.status).toBe(200)
     const body = await transcribeRes.json()
-    expect(body.entry).toEqual({
+    expect(body.entry).toMatchObject({
+      source: "ai", audioHash: expect.stringMatching(/^[a-f0-9]{64}$/), input: { signature: expect.any(String) },
       textId: "pg001_t001",
       language: "en",
       words: [{ word: "Hello", start: 0, end: 0.5 }],
@@ -1182,7 +1199,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     })
     expect(transcribeWithWhisperMock).toHaveBeenCalledWith(
       expect.any(Buffer),
-      "pg001_t001.wav",
+      expect.stringMatching(/^pg001_t001--[a-f0-9]{64}\.wav$/),
       "sk-test",
       "en",
       "Hello world",
@@ -1193,7 +1210,7 @@ describe("POST /books/:label/tts/upload-one", () => {
       const timestampsRow = after.getLatestNodeData("tts-timestamps", "en")
       expect((timestampsRow?.data as {
         entries: Record<string, unknown>
-      }).entries.pg001_t001).toEqual({
+      }).entries.pg001_t001).toMatchObject({
         textId: "pg001_t001",
         language: "en",
         words: [{ word: "Hello", start: 0, end: 0.5 }],
@@ -1222,6 +1239,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     )
 
     const app = createTTSRoutes(tmpDir, configPath)
+    addUploadBaseline(formData, label)
     const res = await app.request(`/books/${label}/tts/upload-one`, {
       method: "POST",
       body: formData,
@@ -1231,14 +1249,14 @@ describe("POST /books/:label/tts/upload-one", () => {
     const body = await res.json()
     expect(body.entry).toMatchObject({
       textId: "pg001_t001",
-      fileName: "pg001_t001--secondary.wav",
+      fileName: expect.stringMatching(/^pg001_t001--secondary--[a-f0-9]{64}\.wav$/),
       voiceSlot: "secondary",
       voiceLabel: "Second Narrator",
       provider: "manual",
     })
 
     expect(
-      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001--secondary.wav"))
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", body.entry.fileName))
     ).toBe(true)
 
     const after = createBookStorage(label, tmpDir)
@@ -1268,6 +1286,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     )
 
     const app = createTTSRoutes(tmpDir, configPath)
+    addUploadBaseline(formData, label)
     const res = await app.request(`/books/${label}/tts/upload-one`, {
       method: "POST",
       body: formData,
@@ -1293,6 +1312,7 @@ describe("POST /books/:label/tts/upload-one", () => {
         "audio",
         new File([new Uint8Array([byte])], "custom.wav", { type: "audio/wav" })
       )
+      addUploadBaseline(formData, label)
       return app.request(`/books/${label}/tts/upload-one`, { method: "POST", body: formData })
     }
 
@@ -1300,6 +1320,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     expect(primaryRes.status).toBe(201)
     const secondaryRes = await uploadSlot("secondary", 2)
     expect(secondaryRes.status).toBe(201)
+    const body = await secondaryRes.json()
 
     const after = createBookStorage(label, tmpDir)
     try {
@@ -1308,8 +1329,8 @@ describe("POST /books/:label/tts/upload-one", () => {
       }).entries
       expect(entries).toHaveLength(2)
       const bySlot = Object.fromEntries(entries.map((e) => [e.voiceSlot ?? "primary", e]))
-      expect(bySlot.primary.fileName).toBe("pg001_t001.wav")
-      expect(bySlot.secondary.fileName).toBe("pg001_t001--secondary.wav")
+      expect(bySlot.primary.fileName).toMatch(/^pg001_t001--[a-f0-9]{64}\.wav$/)
+      expect(bySlot.secondary.fileName).toMatch(/^pg001_t001--secondary--[a-f0-9]{64}\.wav$/)
     } finally {
       after.close()
     }
@@ -1318,7 +1339,7 @@ describe("POST /books/:label/tts/upload-one", () => {
     const reuploadPrimary = await uploadSlot("primary", 3)
     expect(reuploadPrimary.status).toBe(201)
     expect(
-      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001--secondary.wav"))
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", body.entry.fileName))
     ).toBe(true)
   })
 })
@@ -1369,8 +1390,10 @@ describe("DELETE /books/:label/tts", () => {
 
     const after = createBookStorage(label, tmpDir)
     try {
-      expect(after.getLatestNodeData("tts", "en")).toBeNull()
-      expect(after.getLatestNodeData("tts-timestamps", "en")).toBeNull()
+      expect(after.getLatestNodeData("tts", "en")?.data).toMatchObject({ entries: [] })
+      expect(after.getAllNodeVersions("tts", "en")).toHaveLength(2)
+      expect(after.getLatestNodeData("tts-timestamps", "en")?.data).toMatchObject({ entries: {} })
+      expect(after.getAllNodeVersions("tts-timestamps", "en")).toHaveLength(2)
     } finally {
       after.close()
     }
@@ -1501,6 +1524,18 @@ describe("word timestamps are slot-specific", () => {
     const label = "timestamps-slots"
     seedBook(label)
 
+    const bytes = Buffer.from("timing audio")
+    const audioHash = createHash("sha256").update(bytes).digest("hex")
+    const seed = createBookStorage(label, tmpDir)
+    const dir = path.join(tmpDir, label, "audio", "en")
+    fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(path.join(dir, "timings.mp3"), bytes)
+    seed.putNodeData("tts", "en", { entries: ["primary", "secondary"].map((voiceSlot) => ({
+      textId: "pg001_t001", language: "en", voiceSlot, fileName: "timings.mp3", audioHash,
+      voice: "alloy", model: "tts", provider: "openai", source: "ai", cached: false,
+    })), generatedAt: "now" })
+    seed.close()
+
     const app = createTTSRoutes(tmpDir, configPath)
 
     const putRes1 = await app.request(
@@ -1511,7 +1546,7 @@ describe("word timestamps are slot-specific", () => {
         body: JSON.stringify({
           words: [{ word: "Hello", start: 0, end: 0.4 }],
           duration: 0.4,
-          voiceSlot: "primary",
+          voiceSlot: "primary", baseVersion: 0, audioHash,
         }),
       }
     )
@@ -1525,7 +1560,7 @@ describe("word timestamps are slot-specific", () => {
         body: JSON.stringify({
           words: [{ word: "Hello", start: 0, end: 0.9 }],
           duration: 0.9,
-          voiceSlot: "secondary",
+          voiceSlot: "secondary", baseVersion: 1, audioHash,
         }),
       }
     )
@@ -1545,6 +1580,7 @@ describe("word timestamps are slot-specific", () => {
   })
 
   it("transcribe-one finds the audio for the requested voiceSlot only", async () => {
+    writeSecondaryVoiceConfig()
     const label = "transcribe-one-slots"
     seedBook(label)
 

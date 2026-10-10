@@ -69,6 +69,7 @@ RUN --mount=type=cache,target=/root/.npm \
           esbuild: p.devDependencies.esbuild, \
           tailwindcss: p.dependencies.tailwindcss, \
           '@tailwindcss/postcss': p.dependencies['@tailwindcss/postcss'], \
+          'tw-animate-css': p.dependencies['tw-animate-css'], \
           postcss: p.dependencies.postcss, \
           playwright: p.dependencies.playwright, \
           jsdom: p.dependencies.jsdom \
@@ -169,9 +170,12 @@ CMD ["nginx", "-g", "daemon off;"]
 # Users run: docker run -p 8080:80 -v ./books:/app/books ghcr.io/unicef/adt-studio
 # No repo clone or docker-compose needed.
 # =============================================================================
-FROM node:22-alpine AS app
+# Runtime dependencies and Playwright are installed on Debian in the build
+# stage. Keep the same libc here so their native binaries also work at runtime.
+FROM node:22-slim AS app
 
-RUN apk add --no-cache nginx
+RUN apt-get update && apt-get install -y --no-install-recommends nginx ca-certificates && \
+    rm -rf /var/lib/apt/lists/* /etc/nginx/sites-enabled/default
 
 WORKDIR /app
 
@@ -182,20 +186,15 @@ COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /root/.cache/ms-playwright /home/node/.cache/ms-playwright
 RUN chown -R node:node /home/node/.cache/ms-playwright
 ENV PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/ms-playwright
-# Alpine system libraries required by Chromium
-RUN apk add --no-cache \
-    chromium-swiftshader \
-    nss \
-    freetype \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont
+# Install the matching system libraries for the bundled Playwright browser.
+RUN npx --prefix apps/api/dist playwright install-deps chromium && \
+    rm -rf /var/lib/apt/lists/*
 
 # Studio SPA
 COPY --from=build /app/apps/studio/dist /usr/share/nginx/html
 
 # nginx config — proxies /api/* to localhost:3001
-COPY docker/nginx-single.conf /etc/nginx/http.d/default.conf
+COPY docker/nginx-single.conf /etc/nginx/conf.d/default.conf
 
 # Entrypoint — starts Node.js then nginx
 COPY docker/entrypoint.sh /entrypoint.sh

@@ -554,6 +554,9 @@ msgstr "{totalPages} páginas"
 msgid "{totalPages} pages · {totalSections} sections"
 msgstr "{totalPages} páginas · {totalSections} seções"
 
+msgid "{updates} updates needed · {warnings} warnings · {missing} missing"
+msgstr "{updates} atualizações necessárias · {warnings} avisos · {missing} ausentes"
+
 #. placeholder {0}: String(filterSectionIndex + 1)
 msgid "/ Section {0}"
 msgstr "/ Seção {0}"
@@ -1375,6 +1378,9 @@ msgstr "Todas as alterações salvas"
 msgid "All issues and manual review items"
 msgstr "Todos os problemas e itens de revisão manual"
 
+msgid "All outputs"
+msgstr "Todos os resultados"
+
 msgid "All pages"
 msgstr "Todas as páginas"
 
@@ -1431,6 +1437,9 @@ msgstr "Uma imagem com IA está sendo gerada. Cancelar e navegar?"
 
 msgid "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
 msgstr "Uma chave de API definida no ambiente do servidor tem prioridade sobre este login. Remova-a de lá para usar a conta conectada."
+
+msgid "An input needs review."
+msgstr "Uma entrada precisa de revisão."
 
 msgid "An open-ended answer activity."
 msgstr "Uma atividade de resposta aberta."
@@ -1646,6 +1655,9 @@ msgstr "Fontes anexadas"
 
 msgid "Audience or reading level"
 msgstr "Público ou nível de leitura"
+
+msgid "Audio"
+msgstr "Áudio"
 
 msgid "Audio narration (largest impact on file size)"
 msgstr "Narração de áudio (maior impacto no tamanho do arquivo)"
@@ -3778,6 +3790,12 @@ msgstr "Excluir da leitura em voz alta"
 msgid "Exclude from render"
 msgstr "Excluir da renderização"
 
+msgid "Existing output is included."
+msgstr "O resultado existente está incluído."
+
+#~ msgid "Existing output may be included."
+#~ msgstr "O resultado existente pode ser incluído."
+
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "As sessões de revisor existentes mantêm seu próprio snapshot da lista de verificação. Novas alterações na lista valem apenas para sessões criadas depois."
 
@@ -4189,6 +4207,9 @@ msgstr "Polígono livre — mova, adicione e remova pontos"
 msgid "French"
 msgstr "Francês"
 
+msgid "Freshness is unknown. Existing content has been kept."
+msgstr "Não se sabe se está atualizado. O conteúdo existente foi mantido."
+
 msgid "From a single PDF, every edition gains the ways different readers need to reach it."
 msgstr "A partir de um único PDF, cada edição ganha as formas que diferentes leitores precisam para acessá-la."
 
@@ -4330,6 +4351,12 @@ msgstr "Prompt de geração"
 msgid "Generate quiz"
 msgstr "Gerar questionário"
 
+msgid "Generate selected output"
+msgstr "Gerar o resultado selecionado"
+
+msgid "Generate selected outputs"
+msgstr "Gerar os resultados selecionados"
+
 msgid "Generate Styleguide from Pages"
 msgstr "Gerar guia de estilo a partir das páginas"
 
@@ -4406,6 +4433,9 @@ msgstr "Falha na geração. Tente novamente."
 
 msgid "Generation Prompt"
 msgstr "Prompt de geração"
+
+msgid "Generation uses required section or page context and publishes only selected outputs. Current and protected outputs are kept."
+msgstr "A geração usa o contexto necessário da seção ou página e publica apenas os resultados selecionados. Os resultados atuais e protegidos são mantidos."
 
 msgid "Get a key"
 msgstr "Obter uma chave"
@@ -4806,6 +4836,9 @@ msgstr "Seleção de imagem"
 msgid "Image size"
 msgstr "Tamanho da imagem"
 
+msgid "Image translation"
+msgstr "Tradução de imagem"
+
 msgid "Image Translation"
 msgstr "Tradução de imagens"
 
@@ -5094,11 +5127,20 @@ msgstr "Justificar"
 msgid "KB"
 msgstr "KB"
 
+msgid "Keep existing content"
+msgstr "Manter o conteúdo existente"
+
+msgid "Keep my edit"
+msgstr "Manter minha edição"
+
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Mantenha os schemas de saída e os IDs inalterados ao editar prompts."
 
 msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 msgstr "Mantenha as páginas inteiras por padrão, mas divida quando tipos distintos de atividades forem detectados na mesma página."
+
+msgid "Keep selected content"
+msgstr "Manter o conteúdo selecionado"
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Mantém páginas inteiras, a menos que tipos mistos de atividade exijam divisão."
@@ -5553,6 +5595,9 @@ msgstr "Gerenciar no livro"
 msgid "Manage sign-language videos"
 msgstr "Gerenciar vídeos em língua de sinais"
 
+msgid "Manual edit"
+msgstr "Edição manual"
+
 msgid "Manual only"
 msgstr "Somente manual"
 
@@ -5582,6 +5627,12 @@ msgstr "Marcar como decorativa"
 
 msgid "Mark as decorative (hidden from screen readers)"
 msgstr "Marcar como decorativa (oculta para leitores de tela)"
+
+msgid "Mark checked"
+msgstr "Marcar como revisado"
+
+msgid "Mark selected fallbacks checked"
+msgstr "Marcar as alternativas selecionadas como revisadas"
 
 msgid "Mark spreads"
 msgstr "Marcar páginas duplas"
@@ -5819,6 +5870,9 @@ msgstr "Faltando"
 
 msgid "Missing or added content"
 msgstr "Conteúdo ausente ou adicionado"
+
+msgid "Missing output is omitted."
+msgstr "O resultado ausente é omitido."
 
 msgid "Missing:"
 msgstr "Faltando:"
@@ -7435,6 +7489,9 @@ msgstr "Prompts"
 msgid "prompts templates instructions"
 msgstr "prompts templates instruções"
 
+msgid "Protected content"
+msgstr "Conteúdo protegido"
+
 msgid "Provider"
 msgstr "Provedor"
 
@@ -7833,6 +7890,9 @@ msgstr "Atualizar"
 msgid "Refresh all providers"
 msgstr "Atualizar todos os provedores"
 
+msgid "Refresh audio status before uploading a recording."
+msgstr "Atualize o status do áudio antes de enviar uma gravação."
+
 msgid "Refresh provider availability, versions, auth state and model metadata in the background. Set to 0 seconds to rely on manual refreshes."
 msgstr "Atualiza a disponibilidade dos provedores, as versões, o estado de autenticação e os metadados dos modelos em segundo plano. Defina 0 segundos para usar apenas atualizações manuais."
 
@@ -7844,6 +7904,12 @@ msgstr "Atualizando os resultados desta prévia empacotada."
 
 msgid "Regenerate"
 msgstr "Regenerar"
+
+msgid "Regenerate and replace my edit"
+msgstr "Gerar novamente e substituir minha edição"
+
+msgid "Regenerate and replace selected edits"
+msgstr "Gerar novamente e substituir as edições selecionadas"
 
 msgid "Regenerate book summary"
 msgstr "Regenerar resumo do livro"
@@ -7984,6 +8050,9 @@ msgstr "Renderiza cada página no layout de storyboard usado pelo leitor web."
 msgid "Replace"
 msgstr "Substituir"
 
+msgid "Replace {protectedCount} selected protected outputs"
+msgstr "Substituir {protectedCount} resultados protegidos selecionados"
+
 msgid "Replace from book"
 msgstr "Substituir do livro"
 
@@ -8117,6 +8186,9 @@ msgstr "Tentar novamente: {stageLabel}"
 msgid "Retry Export"
 msgstr "Tentar exportar novamente"
 
+msgid "Retry preparation"
+msgstr "Tentar a preparação novamente"
+
 msgid "Return to coordinator"
 msgstr "Devolver ao coordenador"
 
@@ -8166,6 +8238,12 @@ msgstr "Progresso da revisão"
 
 msgid "Review pruned sections"
 msgstr "Revisar seções removidas"
+
+msgid "Review scope"
+msgstr "Escopo da revisão"
+
+msgid "Review source"
+msgstr "Revisar a fonte"
 
 msgid "Review spreads"
 msgstr "Revisar páginas duplas"
@@ -8416,6 +8494,9 @@ msgstr "Salvar lista de verificação"
 
 msgid "Save failed"
 msgstr "Falha ao salvar"
+
+msgid "Save or cancel your draft before reviewing outputs."
+msgstr "Salve ou cancele seu rascunho antes de revisar os resultados."
 
 msgid "Save or discard your edits first"
 msgstr "Salve ou descarte suas edições primeiro"
@@ -8781,6 +8862,9 @@ msgstr "Selecionar template..."
 msgid "Select the pages the quiz is written from, then choose where it appears using the buttons between pages."
 msgstr "Selecione as páginas em que o questionário se baseia e escolha onde ele aparece usando os botões entre as páginas."
 
+msgid "Select this scope"
+msgstr "Selecionar este escopo"
+
 msgid "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
 msgstr "Selecione até 5 páginas para usar como referências visuais. O LLM irá analisá-las e gerar um guia de estilo."
 
@@ -9061,6 +9145,9 @@ msgstr "Pula a segmentação de imagens cujo lado menor esteja abaixo deste limi
 msgid "Skip this page and continue the step, or stop the step entirely."
 msgstr "Pule esta página e continue o passo ou interrompa o passo por completo."
 
+msgid "Skip this run"
+msgstr "Ignorar nesta execução"
+
 msgid "Skipped"
 msgstr "Ignorado"
 
@@ -9118,6 +9205,9 @@ msgstr "Origem"
 msgid "Source candidates:"
 msgstr "Candidatos de origem:"
 
+msgid "Source changed. Your edit has been kept."
+msgstr "A fonte mudou. Sua edição foi mantida."
+
 msgid "Source file"
 msgstr "Arquivo de origem"
 
@@ -9174,6 +9264,9 @@ msgstr "Prompts de áudio"
 
 msgid "Speech Settings"
 msgstr "Configurações de áudio"
+
+msgid "Speech text"
+msgstr "Texto da narração"
 
 msgid "Speech, translations, quizzes and a glossary — built into every book, so every learner can read, listen and understand."
 msgstr "Voz, traduções, questionários e um glossário — integrados a cada livro, para que todos possam ler, ouvir e entender."
@@ -9667,6 +9760,24 @@ msgstr "Normalização de texto"
 
 msgid "Text Only"
 msgstr "Só texto"
+
+#~ msgid "Text preparation failed. Audio uses the original text."
+#~ msgstr "A preparação do texto falhou. O áudio usa o texto original."
+
+msgid "Text preparation failed. Speech text uses the original text."
+msgstr "A preparação do texto falhou. O texto da narração usa o texto original."
+
+#~ msgid "Text preparation is missing. Audio uses the original text."
+#~ msgstr "A preparação do texto está ausente. O áudio usa o texto original."
+
+msgid "Text preparation is missing. Speech text uses the original text."
+msgstr "A preparação do texto está ausente. O texto da narração usa o texto original."
+
+#~ msgid "Text preparation is outdated. Audio uses the original text."
+#~ msgstr "A preparação do texto está desatualizada. O áudio usa o texto original."
+
+msgid "Text preparation is outdated. Speech text uses the original text."
+msgstr "A preparação do texto está desatualizada. O texto da narração usa o texto original."
 
 msgid "Text recovered from the page image — this page has no embedded text layer"
 msgstr "Texto recuperado a partir da imagem da página — esta página não tem camada de texto incorporada"
@@ -10535,6 +10646,9 @@ msgstr "Atualizado"
 msgid "Update available"
 msgstr "Atualização disponível"
 
+msgid "Update needed"
+msgstr "Atualização necessária"
+
 msgid "Update ready to install"
 msgstr "Atualização pronta para instalar"
 
@@ -10862,6 +10976,9 @@ msgstr "Aguardando a página ser processada..."
 
 msgid "Wall Clock"
 msgstr "Tempo decorrido"
+
+msgid "Warning"
+msgstr "Aviso"
 
 msgid "Warning: Image Captions are required for accessibility"
 msgstr "Aviso: o texto alternativo é necessário para a acessibilidade"

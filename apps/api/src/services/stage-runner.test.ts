@@ -3,7 +3,7 @@ import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { PIPELINE, type AppConfig, type ProgressEvent } from "@adt/types"
-import { computeSpeechCacheKey, stripEmojis, retireSectionIds } from "@adt/pipeline"
+import { computeSpeechCacheKey, stripEmojis, retireSectionIds, outputEvidence } from "@adt/pipeline"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import {
   buildStageRunnerImageClassifyConfig,
@@ -382,6 +382,7 @@ describe("createStageRunner assembled-book hierarchy rebuild", () => {
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     fs.writeFileSync(
       configPath,
       `role_types:
@@ -497,6 +498,7 @@ section_types:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     fs.writeFileSync(
       configPath,
       `role_types:
@@ -550,7 +552,7 @@ describe("createStageRunner captions step", () => {
 
   beforeEach(() => {
     capturedCaptionInputs.length = 0
-    captionPageImagesMock.mockClear()
+    captionPageImagesMock.mockReset().mockImplementation(async (input: unknown) => { capturedCaptionInputs.push(input); return { captions: [] } })
     generateSpeechFileMock.mockReset()
     generateSpeechFileMock.mockResolvedValue(undefined)
     transcribeWithWhisperMock.mockReset()
@@ -579,6 +581,7 @@ describe("createStageRunner captions step", () => {
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     writeBaseConfig(configPath)
 
     seedCaptionBook(
@@ -614,6 +617,7 @@ describe("createStageRunner captions step", () => {
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     writeBaseConfig(configPath)
 
     seedCaptionBook(booksDir, "without-summary")
@@ -643,6 +647,7 @@ describe("createStageRunner captions step", () => {
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     writeBaseConfig(configPath)
 
     seedCaptionBook(booksDir, "rerun-manual")
@@ -699,6 +704,7 @@ describe("createStageRunner captions step", () => {
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     writeBaseConfig(configPath)
 
     seedCaptionBook(booksDir, "rerun-ai")
@@ -709,7 +715,7 @@ describe("createStageRunner captions step", () => {
       try {
         storage.putNodeData("image-captioning", "pg001", {
           captions: [
-            { imageId: "pg001_im001", reasoning: "old", caption: "Old caption", source: "ai" },
+            { imageId: "pg001_im001", reasoning: "old", caption: "Old caption", source: "ai", input: outputEvidence("old-inputs", { caption: "Old caption", decorative: false }) },
           ],
         })
       } finally {
@@ -762,6 +768,7 @@ describe("createStageRunner storyboard render-only", () => {
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     writeBaseConfig(configPath)
     seedStoryboardBook(booksDir, "render-only")
 
@@ -826,6 +833,7 @@ describe("createStageRunner easy read step", () => {
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     writeBaseConfig(configPath)
     seedEasyReadBook(booksDir, "explicit-easy-read")
 
@@ -895,6 +903,7 @@ describe("createStageRunner translate without a prebuilt text-catalog", () => {
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     fs.writeFileSync(
       configPath,
       `role_types:
@@ -1003,6 +1012,7 @@ output_languages:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     fs.writeFileSync(
       configPath,
       `role_types:
@@ -1115,6 +1125,7 @@ output_languages:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     fs.writeFileSync(
       configPath,
       `role_types:
@@ -1184,6 +1195,7 @@ image_translation:
     vi.stubEnv("OPENAI_API_KEY", "")
     vi.stubEnv("GOOGLE_API_KEY", "")
     vi.stubEnv("GOOGLE_GENERATIVE_AI_API_KEY", "")
+    fs.writeFileSync(path.join(tmpDir, "core_tts_preparation.liquid"), "Test prompt")
     fetchMock.mockReset().mockImplementation(async () => Response.json({ status: "completed", steps: [
       { type: "model_output", content: [{ type: "image", mime_type: "image/png", data: pngBuffer().toString("base64") }] },
     ] }))
@@ -1203,10 +1215,14 @@ image_translation:
     }, { emit: () => undefined })
   }
 
-  it("inherits the Google default, translates both target languages and reuses cached edits", async () => {
+  it("inherits the Google default, preserves a legacy variant and reuses the new target output", async () => {
+    const before = createBookStorage("image-book", tmpDir)
+    const legacy = before.getLatestNodeData("image-translation", translatedId)
+    before.close()
     await run({ google: { apiKey: "google-test" } })
     await run({ google: { apiKey: "google-test" } })
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    await run({}) // A no-op needs neither a credential nor another provider call.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
     const prompts = fetchMock.mock.calls.map(([, init]) => {
       expect(init!.headers).toHaveProperty("x-goog-api-key", "google-test")
       const body = JSON.parse(init!.body as string)
@@ -1214,10 +1230,11 @@ image_translation:
       expect(body.input[1].data).toBe(pngBuffer().toString("base64"))
       return body.input[0].text as string
     })
-    expect(prompts.some((prompt) => prompt.includes("Target language: fr"))).toBe(true)
+    expect(prompts.some((prompt) => prompt.includes("Target language: fr"))).toBe(false)
     expect(prompts.some((prompt) => prompt.includes("Target language: es"))).toBe(true)
     const storage = createBookStorage("image-book", tmpDir)
     try {
+      expect(storage.getLatestNodeData("image-translation", translatedId)).toEqual(legacy)
       for (const language of ["fr", "es"]) {
         expect(storage.getImageDimensions(`pg001_im001_tr_${language}`)).toEqual({ width: 4, height: 6 })
       }
@@ -1265,6 +1282,7 @@ describe("createStageRunner speech Gemini partial failures", () => {
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     fs.writeFileSync(
       configPath,
       `role_types:
@@ -1333,6 +1351,7 @@ output_languages:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     fs.writeFileSync(
       configPath,
       `role_types:
@@ -1403,6 +1422,7 @@ speech:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     fs.writeFileSync(
       configPath,
       `role_types:
@@ -1472,6 +1492,7 @@ speech:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     fs.writeFileSync(
       configPath,
       `role_types:
@@ -1540,6 +1561,7 @@ speech:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     fs.writeFileSync(
       configPath,
       `role_types:
@@ -1606,6 +1628,7 @@ speech:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     // The primary narrator routes to OpenAI (key present); only the secondary
     // routes to ElevenLabs. A secondary voice carries its own provider, so
     // deriving the pre-flight set from the language's routing would miss it
@@ -1653,6 +1676,7 @@ speech:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     // batch_by_page routes page-scoped Gemini entries into pageGroups, which
     // deliberately skip the per-entry reuse check — so this is the path that
     // reaches the pre-flight via the pageGroups half of its provider set.
@@ -1708,6 +1732,7 @@ speech:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     fs.writeFileSync(
       configPath,
       `role_types:
@@ -1781,6 +1806,7 @@ speech:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     fs.writeFileSync(
       configPath,
       `role_types:
@@ -1863,6 +1889,7 @@ speech:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     writeBaseConfig(configPath)
     seedTextAndSpeechBook(booksDir, "speech-word-timestamps")
     fs.writeFileSync(
@@ -1945,6 +1972,7 @@ speech:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     writeBaseConfig(configPath)
     seedTextAndSpeechBook(booksDir, "speech-word-timestamps-fail")
     fs.writeFileSync(
@@ -2029,6 +2057,7 @@ speech:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     writeBaseConfig(configPath)
     seedTextAndSpeechBook(booksDir, "speech-empty-slice")
     fs.writeFileSync(
@@ -2117,6 +2146,7 @@ speech:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     writeBaseConfig(configPath)
     seedTextAndSpeechBook(booksDir, "speech-word-highlight-disabled")
     fs.writeFileSync(
@@ -2185,12 +2215,12 @@ speech:
     try {
       const row = storage.getLatestNodeData("tts-timestamps", "en")
       expect(row).not.toBeNull()
-      // With highlighting disabled, the seeded timestamps are preserved so that
-      // manually-calculated entries (via the speech view) survive a speech re-run.
+      // Timings for different bytes leave the active manifest, but remain in history.
       const entries = (row?.data as {
         entries: Record<string, { words: Array<{ word: string; start: number; end: number }> }>
       }).entries
-      expect(entries.pg001_t001?.words).toEqual([{ word: "stale", start: 0, end: 0.9 }])
+      expect(entries.pg001_t001).toBeUndefined()
+      expect(storage.getAllNodeVersions("tts-timestamps", "en")[0].data).toMatchObject({ entries: { pg001_t001: { words: [{ word: "stale", start: 0, end: 0.9 }] } } })
     } finally {
       storage.close()
     }
@@ -2202,6 +2232,7 @@ speech:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     writeSecondarySpeechConfig(configPath, {
       provider: "gemini",
       model: "gemini-2.5-flash-preview-tts",
@@ -2309,6 +2340,7 @@ speech:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     writeSecondarySpeechConfig(configPath, {
       provider: "openai",
       voice: "shimmer",
@@ -2518,6 +2550,7 @@ speech:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     fs.writeFileSync(
       configPath,
       `role_types:
@@ -2590,7 +2623,7 @@ structure_types:
         entries: Record<string, { fileName: string; provider?: string; voiceLabel?: string }>
       }
       const entry = Object.values(ttsOutput.entries).find(
-        (e) => e.fileName === "pg001_t001.mp3",
+        (e) => e.fileName.startsWith("pg001_t001--"),
       )
       expect(entry?.provider).toBe("manual")
       expect(entry?.voiceLabel).toBe("Renamed Narrator")
@@ -2682,6 +2715,8 @@ structure_types:
   }
 
   function writeSpeechConfig(tmpDir: string, configPath: string): void {
+    fs.mkdirSync(path.join(tmpDir, "prompts"), { recursive: true })
+    fs.writeFileSync(path.join(tmpDir, "prompts", "core_tts_preparation.liquid"), "Test prompt")
     fs.mkdirSync(path.join(tmpDir, "prompts"), { recursive: true })
     fs.writeFileSync(
       configPath,
@@ -2803,18 +2838,20 @@ structure_types:
       }
       const entry = output.entries.find((e) => e.textId === "pg001_sec001_ans_a")
       expect(entry?.provider).toBe("manual")
-      expect(entry?.fileName).toBe("pg001_sec001_ans_a.mp3")
+      expect(entry?.fileName).toMatch(/^pg001_sec001_ans_a--[a-f0-9]{64}\.mp3$/)
+      expect(fs.readFileSync(path.join(booksDir, "speech-kept-answer", "audio", "en", entry!.fileName), "utf8")).toBe("old-recording")
     } finally {
       storage.close()
     }
   })
 
-  it("marks a page-batched group with no speakable text as skipped", async () => {
+  it("excludes non-speakable page content before planning provider work", async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
     const booksDir = path.join(tmpDir, "books")
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
+    for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     fs.writeFileSync(
       configPath,
       `role_types:
@@ -2837,6 +2874,7 @@ speech:
     // is the row that used to be logged as an ordinary success.
     const seed = createBookStorage("gemini-page-batch-skip", booksDir)
     try {
+      seed.putNodeData("web-rendering", "pg001", { sections: [{ sectionIndex: 0, sectionType: "text", reasoning: "", html: '<p data-id="pg001_t001">—</p>' }] })
       seed.putNodeData("text-catalog", "book", {
         entries: [{ id: "pg001_t001", text: "—" }],
         generatedAt: "2026-01-01T00:00:00.000Z",
@@ -2871,16 +2909,9 @@ speech:
       const rows = db.all("SELECT data FROM llm_log WHERE step = 'tts'") as {
         data: string
       }[]
-      expect(rows).toHaveLength(1)
-      const entry = JSON.parse(rows[0].data) as {
-        success: boolean
-        cacheHit: boolean
-        skippedReason?: string
-      }
-      // Kept, not dropped — an unexplained gap is worse than a marked one —
-      // but marked so it isn't read as a synthesis that happened.
-      expect(entry.success).toBe(true)
-      expect(entry.skippedReason).toBe("no-speakable-text")
+      // The catalog now excludes non-speakable text before provider planning.
+      // No request or synthetic successful-provider record is created.
+      expect(rows).toEqual([])
     } finally {
       db.close()
     }

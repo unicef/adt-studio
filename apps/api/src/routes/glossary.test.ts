@@ -265,7 +265,7 @@ describe("PUT /books/:label/glossary", () => {
     }
   })
 
-  it("clears captions when a term gains a picture that has never been captioned", async () => {
+  it("retains captions while scheduling caption work for a newly referenced picture", async () => {
     createTestBook("new-glossary-image")
     addRawGlossaryData("new-glossary-image", glossaryBody(undefined))
     // `uncaptioned-image` exists on pg001 but the captions run didn't cover it.
@@ -280,7 +280,8 @@ describe("PUT /books/:label/glossary", () => {
 
     expect(res.status).toBe(200)
     expect(await res.json()).toMatchObject({ imageRequirementsChanged: true })
-    expect(captionRows("new-glossary-image")).toEqual({ nodes: [], runs: [] })
+    expect(captionRows("new-glossary-image").nodes).toHaveLength(1)
+    expect(captionRows("new-glossary-image").runs).toEqual([])
   })
 
   it("keeps captions when the assigned picture is already captioned", async () => {

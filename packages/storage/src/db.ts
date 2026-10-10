@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import sqlite from "node-sqlite3-wasm"
 import { SCHEMA_VERSION } from "@adt/types"
+import { withBookWriter, BookBusyError } from "./book-writer.js"
 
 const { Database } = sqlite
 
@@ -495,52 +496,36 @@ export function cleanupInterruptedSteps(booksDir: string): void {
     const dbPath = path.join(bookDir, `${entry}.db`)
     if (!fs.existsSync(dbPath)) continue
 
-    // At startup there are no active writers, so stale lock/journal/WAL
-    // artifacts from a killed process can safely be removed. This must
-    // happen BEFORE the first open — once node-sqlite3-wasm hits a stale
-    // lock, its internal state can't be recovered even after close().
-    // node-sqlite3-wasm uses a .lock directory, plus standard SQLite
-    // -journal, -wal, and -shm files.
-    const staleFiles = [dbPath + "-wal", dbPath + "-shm", dbPath + "-journal"]
-    const staleDirs = [dbPath + ".lock"]
-    for (const f of staleFiles) {
-      try {
-        if (fs.existsSync(f)) {
-          fs.unlinkSync(f)
-          console.log(`[startup] ${entry}: removed stale ${path.basename(f)}`)
-        }
-      } catch { /* best-effort */ }
-    }
-    for (const d of staleDirs) {
-      try {
-        if (fs.existsSync(d)) {
-          fs.rmSync(d, { recursive: true })
-          console.log(`[startup] ${entry}: removed stale ${path.basename(d)}`)
-        }
-      } catch { /* best-effort */ }
-    }
-
-    let db: sqlite.Database | null = null
+    // A CLI or another API process may still be writing. SQLite owns journal
+    // recovery: deleting WAL/journal files here can discard committed content.
     try {
-      db = openBookDb(dbPath)
-      // Check if step_runs table exists (handles pre-v8 DBs gracefully)
-      const tables = db.all(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='step_runs'"
-      )
-      if (tables.length === 0) continue
+      withBookWriter(bookDir, () => {
+        let db: sqlite.Database | null = null
+        try {
+          db = openBookDb(dbPath)
+          // Check if step_runs table exists (handles pre-v8 DBs gracefully)
+          const tables = db.all(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='step_runs'"
+          )
+          if (tables.length === 0) return
 
-      const result = db.run(
-        "UPDATE step_runs SET status = 'error', error = 'Interrupted', completed_at = ? WHERE status = 'running'",
-        [now]
-      )
-      if (result.changes > 0) {
-        console.log(`[startup] ${entry}: marked ${result.changes} interrupted step(s) as errored`)
-      }
+          const result = db.run(
+            "UPDATE step_runs SET status = 'error', error = 'Interrupted', completed_at = ? WHERE status = 'running'",
+            [now]
+          )
+          if (result.changes > 0) {
+            console.log(`[startup] ${entry}: marked ${result.changes} interrupted step(s) as errored`)
+          }
 
-    } catch (err) {
-      console.error(`[startup] ${entry}: failed to clean up interrupted steps:`, err)
-    } finally {
-      db?.close()
+        } catch (err) {
+          console.error(`[startup] ${entry}: failed to clean up interrupted steps:`, err)
+        } finally {
+          db?.close()
+        }
+      })
+    } catch (error) {
+      if (!(error instanceof BookBusyError)) throw error
+      // Busy or uncertain owners are preserved, regardless of heartbeat age.
     }
   }
 }

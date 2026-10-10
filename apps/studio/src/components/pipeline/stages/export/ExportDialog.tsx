@@ -1,3 +1,4 @@
+import { CatalogSummary } from "../../components/OutputReview"
 import { type ReactNode, useState, useRef, useLayoutEffect, useCallback } from "react";
 import {
   Loader2,
@@ -943,6 +944,7 @@ export function ExportDialog({
                 />
               )}
 
+              {selectedFormat !== "project" && <CatalogSummary bookLabel={bookLabel} disclosure features={{ glossary: featureToggles.glossary && availableFeatures.glossary, quizzes: featureToggles.quizzes && availableFeatures.quizzes, readAloud: featureToggles.readAloud && availableFeatures.readAloud, languages: orderedLanguages }} />}
               {selectedFormat !== "project" && (
                 <AccessibilityChecklist items={accessibilityItems} />
               )}

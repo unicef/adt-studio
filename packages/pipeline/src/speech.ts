@@ -1,3 +1,10 @@
+import { inputSignature } from "./output-freshness.js"
+
+/** Active membership owns context; ID prefixes are only a legacy fallback. */
+export function speechPageId(id: string, pageIds: readonly string[] = []): string | undefined {
+  return id.endsWith("_easy_read") ? undefined : pageIds[0] ?? /^(pg\d+)/.exec(id)?.[1]
+}
+import { storeImmutableAsset } from "@adt/storage"
 import fs from "node:fs"
 import path from "node:path"
 import crypto from "node:crypto"
@@ -29,6 +36,7 @@ import type {
 } from "@adt/llm"
 import {
   buildElevenLabsOutputFormat,
+  buildAzureOutputFormat,
   resolveElevenLabsVoiceSettings,
   transcribeWithWhisper,
 } from "@adt/llm"
@@ -623,6 +631,9 @@ export function elevenLabsTtsRetryDelayMs(attemptCount: number): number {
 // ---------------------------------------------------------------------------
 
 export function computeSpeechCacheKey(data: {
+  format?: string
+  sampleRate?: number
+  bitRate?: string
   text: string
   voice: string
   model: string
@@ -659,6 +670,7 @@ export function computeSpeechCacheKey(data: {
     elevenLabsStyle,
     elevenLabsUseSpeakerBoost,
     elevenLabsSpeed,
+    format, sampleRate, bitRate,
     ...base
   } = data
   const gemini =
@@ -695,8 +707,10 @@ export function computeSpeechCacheKey(data: {
           }),
         }
       : {}
-  const json = JSON.stringify({ ...base, ...gemini, ...elevenlabs })
-  return crypto.createHash("sha256").update(json).digest("hex")
+  const resolvedFormat = resolveSpeechFormat(base.provider ?? "openai", format)
+  const outputEncoding = base.provider === "elevenlabs" ? buildElevenLabsOutputFormat(resolvedFormat, { sampleRate, bitRate })
+    : base.provider === "azure" ? buildAzureOutputFormat(resolvedFormat, sampleRate, bitRate) : resolvedFormat
+  return inputSignature({ ...base, ...gemini, ...elevenlabs, outputEncoding })
 }
 
 /**
@@ -883,6 +897,8 @@ function assertWithinBase(base: string, target: string, name: string): void {
 // ---------------------------------------------------------------------------
 
 export interface GenerateSpeechFileOptions extends ElevenLabsVoiceSettingsOverrides {
+  sampleRate?: number
+  bitRate?: string
   textId: string
   text: string
   language: string
@@ -989,6 +1005,7 @@ export async function generateSpeechFile(
   )
 
   const hash = computeSpeechCacheKey({
+    format, sampleRate: options.sampleRate, bitRate: options.bitRate,
     text: sanitized,
     voice,
     model,
@@ -1002,24 +1019,25 @@ export async function generateSpeechFile(
     ...elevenLabsVoiceSettings,
   })
 
-  const fileName = `${voiceSlotEntryId(safeTextId, slot)}.${safeFormat}`
+  const assetPrefix = voiceSlotEntryId(safeTextId, slot)
   const audioRoot = path.resolve(bookDir, "audio")
   const audioDir = path.resolve(audioRoot, normalizedLanguage)
   assertWithinBase(audioRoot, audioDir, "audio directory")
-  const outputPath = path.resolve(audioDir, fileName)
-  assertWithinBase(audioDir, outputPath, "audio file")
 
   // Check cache
   const cacheRoot = path.resolve(cacheDir, "tts")
   const cachePath = path.resolve(cacheRoot, `${hash}.${safeFormat}`)
   assertWithinBase(cacheRoot, cachePath, "cache file")
   if (fs.existsSync(cachePath)) {
-    fs.mkdirSync(audioDir, { recursive: true })
-    fs.copyFileSync(cachePath, outputPath)
+    signal?.throwIfAborted()
+    const asset = storeImmutableAsset(bookDir, ["audio", normalizedLanguage], assetPrefix, safeFormat, fs.readFileSync(cachePath))
     return {
       textId: safeTextId,
       language: normalizedLanguage,
-      fileName,
+      fileName: asset.fileName,
+      audioHash: asset.contentHash,
+      speechInputSignature: hash,
+      source: "ai",
       voice,
       model,
       cached: true,
@@ -1049,9 +1067,8 @@ export async function generateSpeechFile(
 
   const buffer = Buffer.from(audioBytes)
 
-  // Write output file
-  fs.mkdirSync(audioDir, { recursive: true })
-  fs.writeFileSync(outputPath, buffer)
+  signal?.throwIfAborted()
+  const asset = storeImmutableAsset(bookDir, ["audio", normalizedLanguage], assetPrefix, safeFormat, buffer)
 
   // Write to cache
   fs.mkdirSync(cacheRoot, { recursive: true })
@@ -1060,7 +1077,10 @@ export async function generateSpeechFile(
   return {
     textId: safeTextId,
     language: normalizedLanguage,
-    fileName,
+    fileName: asset.fileName,
+    audioHash: asset.contentHash,
+    speechInputSignature: hash,
+    source: "ai",
     voice,
     model,
     cached: false,
@@ -1114,6 +1134,14 @@ export interface GeneratePageSpeechFilesOptions {
  * page skip the model entirely and the sliced files are byte-stable (keeping
  * the downstream Whisper word-timestamp cache warm).
  */
+export function computePageSpeechInputSignature(options: Pick<GeneratePageSpeechFilesOptions, "entries" | "voice" | "model" | "instructions" | "provider" | "geminiTemperature" | "geminiSeed">): string {
+  return crypto.createHash("sha256").update(JSON.stringify({
+    entries: options.entries.map((entry) => ({ id: entry.id, text: stripEmojis(entry.text).trim() })).filter((entry) => isSpeakableText(entry.text)),
+    voice: options.voice, model: options.model, instructions: options.instructions,
+    provider: options.provider ?? "", geminiTemperature: options.geminiTemperature, geminiSeed: options.geminiSeed, v: "batch-page-1",
+  })).digest("hex")
+}
+
 export async function generatePageSpeechFiles(
   options: GeneratePageSpeechFilesOptions,
 ): Promise<SpeechFileEntry[]> {
@@ -1142,19 +1170,7 @@ export async function generatePageSpeechFiles(
 
   // Page-level cache key: the audio depends on the whole ordered transcript
   // plus the same knobs the per-item key uses.
-  const pageHash = crypto
-    .createHash("sha256")
-    .update(JSON.stringify({
-      entries: usable,
-      voice,
-      model,
-      instructions,
-      provider: provider ?? "",
-      geminiTemperature,
-      geminiSeed,
-      v: "batch-page-1",
-    }))
-    .digest("hex")
+  const pageHash = computePageSpeechInputSignature({ entries: usable, voice, model, instructions, provider, geminiTemperature, geminiSeed })
 
   const audioRoot = path.resolve(bookDir, "audio")
   const audioDir = path.resolve(audioRoot, normalizedLanguage)
@@ -1221,19 +1237,14 @@ export async function generatePageSpeechFiles(
     // A short edge fade guarantees zero-amplitude slice edges (belt-and-braces
     // with the silence-snap above) so back-to-back playback has no clicks.
     const slice = sliceWav(pageBytes, range.start, range.end, PAGE_SLICE_FADE_MS)
-    const fileName = `${voiceSlotEntryId(range.id, slot)}.${safeFormat}`
-    const outputPath = path.resolve(audioDir, fileName)
-    assertWithinBase(audioDir, outputPath, "audio file")
-    // Only write when the bytes actually change, so an unchanged slice keeps its
-    // mtime — GET /tts derives its cache-busting `?v=` from mtime, so rewriting
-    // identical audio every run would force the reader to refetch needlessly.
-    if (!fs.existsSync(outputPath) || !fs.readFileSync(outputPath).equals(slice)) {
-      fs.writeFileSync(outputPath, slice)
-    }
+    const asset = storeImmutableAsset(bookDir, ["audio", normalizedLanguage], voiceSlotEntryId(range.id, slot), safeFormat, slice)
     results.push({
       textId: range.id,
       language: normalizedLanguage,
-      fileName,
+      fileName: asset.fileName,
+      audioHash: asset.contentHash,
+      speechInputSignature: pageHash,
+      source: "ai",
       voice,
       model,
       cached,

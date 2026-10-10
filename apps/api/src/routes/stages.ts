@@ -6,7 +6,7 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
+import { OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig,
@@ -28,6 +28,7 @@ const StageRunBody = z
     toStage: StageName,
     renderOnly: z.boolean().optional(),
     pageErrorPolicy: PageErrorPolicy.optional(),
+    outputScope: OutputRunScope.optional(),
   })
   .strict()
 
@@ -167,6 +168,9 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
     if (ran) return
     const storage = createBookStorage(label, booksDir)
     try {
+      if (fromStage === "extract" && storage.getPages().length) {
+        throw new Error("UNSAFE_RESUME_UNAVAILABLE: full extraction rerun cannot preserve this existing book")
+      }
       const { retired, preserved } = retireWithPreservedRecordings(
         storage,
         path.join(path.resolve(booksDir), label),
@@ -244,7 +248,7 @@ export function createStageRoutes(
       })
     }
 
-    const { fromStage, toStage, renderOnly, pageErrorPolicy } = parsed.data
+    const { fromStage, toStage, renderOnly, pageErrorPolicy, outputScope } = parsed.data
     const credentials = readProviderCredentials(c)
 
     // Fail before beforeRun clears any stage data: a run that cannot make a
@@ -275,19 +279,22 @@ export function createStageRoutes(
       configPath,
       fromStage,
       toStage,
+      outputScope,
       renderOnly,
       pageErrorPolicy,
       // Queued jobs clear data when they start executing
       beforeRun: clearData,
     })
 
-    // For immediately started jobs, clear data synchronously so the
-    // frontend can refetch and see the cleared state right away.
-    if (result.status === "started") {
-      clearData()
-    }
-
     return c.json({ status: result.status, label, fromStage, toStage })
+  })
+
+  app.post("/books/:label/stages/skip-outputs", async (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    const parsed = OutputSkipRequest.safeParse(await c.req.json())
+    if (!parsed.success) throw new HTTPException(400, { message: "Invalid output selection" })
+    if (!stageService.skipStageOutputs(label, parsed.data.identities)) throw new HTTPException(409, { message: "No active run to skip" })
+    return c.json({ skipped: parsed.data.identities })
   })
 
   // POST /books/:label/stages/cancel — Cancel the active run. Queued runs remain queued.

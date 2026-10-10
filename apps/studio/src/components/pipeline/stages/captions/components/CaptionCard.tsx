@@ -1,3 +1,4 @@
+import { OutputReview } from "../../../components/OutputReview"
 import { useEffect, useRef } from "react"
 import { Eye, EyeOff, Maximize2, Pencil } from "lucide-react"
 import { BASE_URL } from "@/api/client"
@@ -102,6 +103,7 @@ export function CaptionCard({
       </button>
 
       <div className="flex flex-1 flex-col gap-1.5 p-3">
+        <OutputReview bookLabel={bookLabel} id={cap.imageId} kinds={["caption"]} dirty={isEditing} />
         <div className="flex items-center gap-1.5">
           <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-wide text-teal-700/90 bg-teal-50 rounded px-1.5 py-0.5">
             <span

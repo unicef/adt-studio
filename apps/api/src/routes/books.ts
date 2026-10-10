@@ -103,6 +103,7 @@ export function createBookRoutes(
   configPath?: string,
   taskService?: TaskService,
   registry: ProviderRegistry = getDefaultProviderRegistry(),
+  promptsDir = path.resolve("prompts"),
 ): Hono {
   const app = new Hono()
 
@@ -488,13 +489,13 @@ export function createBookRoutes(
         // — the export otherwise completes looking clean while the bundle is
         // short.
         async () =>
-          await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings),
+          await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings, promptsDir),
         { url: `/books/${safeLabel}/export-${format}` }
       )
       return c.json({ status: "submitted", taskId, label: safeLabel })
     }
 
-    const { warnings } = await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings)
+    const { warnings } = await prepareExport(label, format, booksDir, webAssetsDir ?? "", configPath, features, defaultSettings, promptsDir)
     return c.json({ status: "completed", label: safeLabel, warnings })
   })
 

@@ -372,7 +372,7 @@ describe("generateEasyRead", () => {
     )
 
     expect(sawValidator).toBe(true)
-    expect(flattenEasyReadEntries(output)).toEqual([
+    expect(flattenEasyReadEntries(output).map(({ id, text }) => ({ id, text }))).toEqual([
       { id: "pg001_tx001_easy_read", text: "Easy: A complex sentence." },
     ])
   })
@@ -501,7 +501,7 @@ describe("generateEasyRead", () => {
       model,
     )
 
-    expect(flattenEasyReadEntries(output)).toEqual([
+    expect(flattenEasyReadEntries(output).map(({ id, text }) => ({ id, text }))).toEqual([
       { id: "pg001_tx001_easy_read", text: outputs[0] },
       { id: "pg001_tx002_easy_read", text: outputs[1] },
       { id: "pg001_tx003_easy_read", text: outputs[2] },

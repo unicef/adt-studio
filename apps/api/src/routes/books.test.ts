@@ -545,8 +545,8 @@ describe("PUT /books/:label/metadata", () => {
     expect((stored?.data as { language_code: string }).language_code).toBe("fr")
 
     const state = readState("meta-lang")
-    // Language-dependent outputs cleared...
-    expect(state.easyRead).toBeNull()
+    // Catalog outputs survive a language change; non-catalog stages invalidate.
+    expect(state.easyRead).toMatchObject({ version: 1, data: { blocks: [] } })
     expect(state.quiz).toBeNull()
     expect(state.steps.has("easy-read")).toBe(false)
     expect(state.steps.has("quiz-generation")).toBe(false)
@@ -585,8 +585,8 @@ describe("PUT /books/:label/metadata", () => {
     expect((stored?.data as { language_code: string }).language_code).toBe("es-UY")
 
     const state = readState("meta-locale")
-    // Language-dependent LLM outputs still re-run (the locale feeds prompts)...
-    expect(state.easyRead).toBeNull()
+    // Retained outputs can be reviewed against the changed locale.
+    expect(state.easyRead).toMatchObject({ version: 1, data: { blocks: [] } })
     expect(state.steps.has("easy-read")).toBe(false)
     // ...but the book summary stays — same base language (Spanish).
     expect(state.bookSummary).not.toBeNull()
@@ -737,6 +737,7 @@ describe("POST /books/:label/stages/run", () => {
       getQueuedStages: () => [],
 
       startStageRun: (_label, options) => {
+        options.beforeRun?.()
         receivedOptions = options
         return { status: "started" as const, id: "run-1" }
       },
@@ -931,6 +932,7 @@ describe("POST /books/:label/stages/run", () => {
       getQueuedStages: () => [],
       addListener: () => () => {},
       startStageRun: (_label, options) => {
+        options.beforeRun?.()
         receivedOptions = options
         return { status: "started" as const, id: "run-2" }
       },

@@ -554,6 +554,9 @@ msgstr "{totalPages} pages"
 msgid "{totalPages} pages · {totalSections} sections"
 msgstr "{totalPages} pages · {totalSections} sections"
 
+msgid "{updates} updates needed · {warnings} warnings · {missing} missing"
+msgstr "{updates} updates needed · {warnings} warnings · {missing} missing"
+
 #. placeholder {0}: String(filterSectionIndex + 1)
 msgid "/ Section {0}"
 msgstr "/ Section {0}"
@@ -1375,6 +1378,9 @@ msgstr "All changes saved"
 msgid "All issues and manual review items"
 msgstr "All issues and manual review items"
 
+msgid "All outputs"
+msgstr "All outputs"
+
 msgid "All pages"
 msgstr "All pages"
 
@@ -1431,6 +1437,9 @@ msgstr "An AI image is being generated. Cancel it and navigate?"
 
 msgid "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
 msgstr "An API key set in the server environment takes precedence over this sign-in. Remove it there to run on the signed-in account."
+
+msgid "An input needs review."
+msgstr "An input needs review."
 
 msgid "An open-ended answer activity."
 msgstr "An open-ended answer activity."
@@ -1646,6 +1655,9 @@ msgstr "Attached fonts"
 
 msgid "Audience or reading level"
 msgstr "Audience or reading level"
+
+msgid "Audio"
+msgstr "Audio"
 
 msgid "Audio narration (largest impact on file size)"
 msgstr "Audio narration (largest impact on file size)"
@@ -3778,6 +3790,12 @@ msgstr "Exclude from read-aloud"
 msgid "Exclude from render"
 msgstr "Exclude from render"
 
+msgid "Existing output is included."
+msgstr "Existing output is included."
+
+#~ msgid "Existing output may be included."
+#~ msgstr "Existing output may be included."
+
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 
@@ -4189,6 +4207,9 @@ msgstr "Free-form polygon — move, add, and remove points"
 msgid "French"
 msgstr "French"
 
+msgid "Freshness is unknown. Existing content has been kept."
+msgstr "Freshness is unknown. Existing content has been kept."
+
 msgid "From a single PDF, every edition gains the ways different readers need to reach it."
 msgstr "From a single PDF, every edition gains the ways different readers need to reach it."
 
@@ -4330,6 +4351,12 @@ msgstr "Generate Prompt"
 msgid "Generate quiz"
 msgstr "Generate quiz"
 
+msgid "Generate selected output"
+msgstr "Generate selected output"
+
+msgid "Generate selected outputs"
+msgstr "Generate selected outputs"
+
 msgid "Generate Styleguide from Pages"
 msgstr "Generate Styleguide from Pages"
 
@@ -4406,6 +4433,9 @@ msgstr "Generation failed. Please try again."
 
 msgid "Generation Prompt"
 msgstr "Generation Prompt"
+
+msgid "Generation uses required section or page context and publishes only selected outputs. Current and protected outputs are kept."
+msgstr "Generation uses required section or page context and publishes only selected outputs. Current and protected outputs are kept."
 
 msgid "Get a key"
 msgstr "Get a key"
@@ -4806,6 +4836,9 @@ msgstr "Image selection"
 msgid "Image size"
 msgstr "Image size"
 
+msgid "Image translation"
+msgstr "Image translation"
+
 msgid "Image Translation"
 msgstr "Image Translation"
 
@@ -5094,11 +5127,20 @@ msgstr "Justify"
 msgid "KB"
 msgstr "KB"
 
+msgid "Keep existing content"
+msgstr "Keep existing content"
+
+msgid "Keep my edit"
+msgstr "Keep my edit"
+
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Keep output schemas and IDs unchanged when editing prompts."
 
 msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 msgstr "Keep pages whole by default, but split when distinct activity types are detected on the same page."
+
+msgid "Keep selected content"
+msgstr "Keep selected content"
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Keeps pages whole unless mixed activity types require splitting."
@@ -5553,6 +5595,9 @@ msgstr "Manage in book"
 msgid "Manage sign-language videos"
 msgstr "Manage sign-language videos"
 
+msgid "Manual edit"
+msgstr "Manual edit"
+
 msgid "Manual only"
 msgstr "Manual only"
 
@@ -5582,6 +5627,12 @@ msgstr "Mark as decorative"
 
 msgid "Mark as decorative (hidden from screen readers)"
 msgstr "Mark as decorative (hidden from screen readers)"
+
+msgid "Mark checked"
+msgstr "Mark checked"
+
+msgid "Mark selected fallbacks checked"
+msgstr "Mark selected fallbacks checked"
 
 msgid "Mark spreads"
 msgstr "Mark spreads"
@@ -5819,6 +5870,9 @@ msgstr "Missing"
 
 msgid "Missing or added content"
 msgstr "Missing or added content"
+
+msgid "Missing output is omitted."
+msgstr "Missing output is omitted."
 
 msgid "Missing:"
 msgstr "Missing:"
@@ -7435,6 +7489,9 @@ msgstr "Prompts"
 msgid "prompts templates instructions"
 msgstr "prompts templates instructions"
 
+msgid "Protected content"
+msgstr "Protected content"
+
 msgid "Provider"
 msgstr "Provider"
 
@@ -7833,6 +7890,9 @@ msgstr "Refresh"
 msgid "Refresh all providers"
 msgstr "Refresh all providers"
 
+msgid "Refresh audio status before uploading a recording."
+msgstr "Refresh audio status before uploading a recording."
+
 msgid "Refresh provider availability, versions, auth state and model metadata in the background. Set to 0 seconds to rely on manual refreshes."
 msgstr "Refresh provider availability, versions, auth state and model metadata in the background. Set to 0 seconds to rely on manual refreshes."
 
@@ -7844,6 +7904,12 @@ msgstr "Refreshing results for this packaged preview."
 
 msgid "Regenerate"
 msgstr "Regenerate"
+
+msgid "Regenerate and replace my edit"
+msgstr "Regenerate and replace my edit"
+
+msgid "Regenerate and replace selected edits"
+msgstr "Regenerate and replace selected edits"
 
 msgid "Regenerate book summary"
 msgstr "Regenerate book summary"
@@ -7984,6 +8050,9 @@ msgstr "Renders each page into the storyboard layout used by the web reader."
 msgid "Replace"
 msgstr "Replace"
 
+msgid "Replace {protectedCount} selected protected outputs"
+msgstr "Replace {protectedCount} selected protected outputs"
+
 msgid "Replace from book"
 msgstr "Replace from book"
 
@@ -8117,6 +8186,9 @@ msgstr "Retry {stageLabel}"
 msgid "Retry Export"
 msgstr "Retry Export"
 
+msgid "Retry preparation"
+msgstr "Retry preparation"
+
 msgid "Return to coordinator"
 msgstr "Return to coordinator"
 
@@ -8166,6 +8238,12 @@ msgstr "Review progress"
 
 msgid "Review pruned sections"
 msgstr "Review pruned sections"
+
+msgid "Review scope"
+msgstr "Review scope"
+
+msgid "Review source"
+msgstr "Review source"
 
 msgid "Review spreads"
 msgstr "Review spreads"
@@ -8416,6 +8494,9 @@ msgstr "Save checklist"
 
 msgid "Save failed"
 msgstr "Save failed"
+
+msgid "Save or cancel your draft before reviewing outputs."
+msgstr "Save or cancel your draft before reviewing outputs."
 
 msgid "Save or discard your edits first"
 msgstr "Save or discard your edits first"
@@ -8781,6 +8862,9 @@ msgstr "Select template..."
 msgid "Select the pages the quiz is written from, then choose where it appears using the buttons between pages."
 msgstr "Select the pages the quiz is written from, then choose where it appears using the buttons between pages."
 
+msgid "Select this scope"
+msgstr "Select this scope"
+
 msgid "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
 msgstr "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
 
@@ -9061,6 +9145,9 @@ msgstr "Skip segmentation for images whose shortest side is below this threshold
 msgid "Skip this page and continue the step, or stop the step entirely."
 msgstr "Skip this page and continue the step, or stop the step entirely."
 
+msgid "Skip this run"
+msgstr "Skip this run"
+
 msgid "Skipped"
 msgstr "Skipped"
 
@@ -9118,6 +9205,9 @@ msgstr "Source"
 msgid "Source candidates:"
 msgstr "Source candidates:"
 
+msgid "Source changed. Your edit has been kept."
+msgstr "Source changed. Your edit has been kept."
+
 msgid "Source file"
 msgstr "Source file"
 
@@ -9174,6 +9264,9 @@ msgstr "Speech Prompts"
 
 msgid "Speech Settings"
 msgstr "Speech Settings"
+
+msgid "Speech text"
+msgstr "Speech text"
 
 msgid "Speech, translations, quizzes and a glossary — built into every book, so every learner can read, listen and understand."
 msgstr "Speech, translations, quizzes and a glossary — built into every book, so every learner can read, listen and understand."
@@ -9667,6 +9760,24 @@ msgstr "Text Normalization"
 
 msgid "Text Only"
 msgstr "Text Only"
+
+#~ msgid "Text preparation failed. Audio uses the original text."
+#~ msgstr "Text preparation failed. Audio uses the original text."
+
+msgid "Text preparation failed. Speech text uses the original text."
+msgstr "Text preparation failed. Speech text uses the original text."
+
+#~ msgid "Text preparation is missing. Audio uses the original text."
+#~ msgstr "Text preparation is missing. Audio uses the original text."
+
+msgid "Text preparation is missing. Speech text uses the original text."
+msgstr "Text preparation is missing. Speech text uses the original text."
+
+#~ msgid "Text preparation is outdated. Audio uses the original text."
+#~ msgstr "Text preparation is outdated. Audio uses the original text."
+
+msgid "Text preparation is outdated. Speech text uses the original text."
+msgstr "Text preparation is outdated. Speech text uses the original text."
 
 msgid "Text recovered from the page image — this page has no embedded text layer"
 msgstr "Text recovered from the page image — this page has no embedded text layer"
@@ -10535,6 +10646,9 @@ msgstr "Up to date"
 msgid "Update available"
 msgstr "Update available"
 
+msgid "Update needed"
+msgstr "Update needed"
+
 msgid "Update ready to install"
 msgstr "Update ready to install"
 
@@ -10862,6 +10976,9 @@ msgstr "Waiting for page to be processed..."
 
 msgid "Wall Clock"
 msgstr "Wall Clock"
+
+msgid "Warning"
+msgstr "Warning"
 
 msgid "Warning: Image Captions are required for accessibility"
 msgstr "Warning: Image Captions are required for accessibility"

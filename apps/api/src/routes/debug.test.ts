@@ -340,6 +340,27 @@ describe("Debug routes", () => {
       expect(await res.json()).toEqual({ version: null, assessment: null })
     })
 
+    it("hides invalidated assessment history until its retained version is restored", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.clearNodesByType(["accessibility-assessment"])
+        const cleared = await app.request(`/api/books/${label}/debug/accessibility`)
+        expect(cleared.status).toBe(200)
+        expect(await cleared.json()).toEqual({ version: null, assessment: null })
+        expect(storage.getAllNodeVersions("accessibility-assessment", "book")).toHaveLength(2)
+
+        expect(storage.setCurrentNodeVersion("accessibility-assessment", "book", 1)).toBe(true)
+        const restored = await app.request(`/api/books/${label}/debug/accessibility`)
+        expect(restored.status).toBe(200)
+        expect(await restored.json()).toMatchObject({
+          version: 1,
+          assessment: { summary: { violationCount: 1 } },
+        })
+      } finally {
+        storage.close()
+      }
+    })
+
     it("returns 404 for nonexistent book", async () => {
       const res = await app.request("/api/books/no-such-book/debug/accessibility")
       expect(res.status).toBe(404)
