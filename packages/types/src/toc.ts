@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { AuthoredContent } from "./content-authorship.js"
 
 export const TocEntry = z.object({
   id: z.string(),
@@ -10,7 +11,7 @@ export const TocEntry = z.object({
 })
 export type TocEntry = z.infer<typeof TocEntry>
 
-export const TocGenerationOutput = z.object({
+export const TocGenerationOutput = AuthoredContent.extend({
   entries: z.array(TocEntry),
   pageCount: z.number().int(),
   generatedAt: z.string(),

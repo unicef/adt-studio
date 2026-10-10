@@ -9,7 +9,7 @@ import {
   withResolvedQuizIds,
   QuizIdExhaustedError,
   QuizIdentityError,
-  type Quiz,
+  Quiz,
   type WebRenderingOutput,
 } from "@adt/types"
 import { openBookDb, createBookStorage, readCurrentNodeRow, type Storage } from "@adt/storage"
@@ -124,7 +124,10 @@ export function createQuizRoutes(
     const safeLabel = safeParseLabel(label)
 
     const body = await c.req.json()
-    const parsed = QuizGenerationOutput.safeParse(body)
+    // Keep client authorship out of storage until guarded server stamping lands.
+    const parsed = QuizGenerationOutput.extend({
+      quizzes: z.array(Quiz.omit({ source: true })),
+    }).safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid quiz data: ${parsed.error.message}`,

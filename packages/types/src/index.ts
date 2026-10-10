@@ -1,3 +1,5 @@
+export { AuthoredContent } from "./content-authorship.js"
+
 export {
   SCHEMA_VERSION,
   ImageSource,

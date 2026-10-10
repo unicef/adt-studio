@@ -78,7 +78,9 @@ export function createTocRoutes(booksDir: string): Hono {
     } catch {
       throw new HTTPException(400, { message: "Invalid JSON body" })
     }
-    const parsed = TocGenerationOutput.safeParse(body)
+    // Stored authorship is server-owned; accepting the new optional field here
+    // would let callers forge it before guarded save stamping is integrated.
+    const parsed = TocGenerationOutput.omit({ source: true }).safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid TOC data: ${parsed.error.message}`,

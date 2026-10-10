@@ -1492,7 +1492,8 @@ export function createPageRoutes(
     const safeLabel = parseBookLabel(label)
 
     const body = await c.req.json()
-    const parsed = PageSectioningOutput.safeParse(body)
+    // Authorship is server-owned, not an editable field in the request body.
+    const parsed = PageSectioningOutput.omit({ source: true }).safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid page-sectioning data: ${parsed.error.message}`,
@@ -1600,7 +1601,7 @@ export function createPageRoutes(
     const body = await c.req.json()
     const parsed = z
       .object({
-        sectioning: PageSectioningOutput.optional(),
+        sectioning: PageSectioningOutput.omit({ source: true }).optional(),
         rendering: WebRenderingOutput.optional(),
         renderingInSync: z.boolean().default(false),
       })
