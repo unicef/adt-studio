@@ -187,11 +187,14 @@ the refreshed baseline, dependencies, delivered slice and verification limits.
   No new full-recompute UI or cache bypass is introduced. Retry counts and cache
   validity preclude a universal one-provider-call promise. This amendment remains
   subject to human review; it is not an implemented cost guarantee.
-- **Dependency correction:** #879 currently contains documentation only. The
-  safe dependency-free slice is schemas/helpers, as the rollout already states.
-  Runtime translation, TOC, quiz and Sectioning integration must use the shared
-  admission/freshness/publication foundation once implemented and tested. The
-  omission of `baseVersion` from current routes cannot be papered over by a helper.
+- **Dependency correction:** published #879 contains documentation only. Its
+  local foundation commit `7d974c28` now supplies shared authorship metadata,
+  admission and storage primitives; this branch is based on that exact commit
+  and reuses them. The real HTTP run route still deletes saved output/history
+  before generation. Only the documented schema/helper slice is delivered.
+  Runtime translation, TOC, quiz and Sectioning integration must use the complete
+  shared admission/freshness/publication foundation once implemented and tested.
+  The omission of `baseVersion` from current routes cannot be papered over by a helper.
 - **AC-9 versus AC-6:** AC-9's TOC survival case uses an ordinary HTTP run without
   explicit protected-work replacement. AC-6 separately exercises the named,
   confirmed TOC replacement. An upstream run or generic rerun is not confirmation.

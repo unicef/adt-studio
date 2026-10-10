@@ -95,7 +95,7 @@ try {
   }
   console.log(JSON.stringify(observations, null, 2))
   if (observations.some((entry) => !entry.preserved)) {
-    console.error("BLOCKED: SPEC-0001 preservation foundation is absent; saved output/history was lost before generation.")
+    console.error("BLOCKED: SPEC-0001 preservation foundation is incomplete; saved output/history was lost before generation.")
     process.exitCode = 1
   }
 } finally {

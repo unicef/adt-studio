@@ -10,15 +10,21 @@ commits in the same PR.
 
 Published target: `d2348233838ee635f2ef727984fb93e2d8289306`. Refreshed develop:
 `ef31494d`. Published SPEC-0001/#879: `a1fc11a2`, four documentation files only.
-At the initial audit its local branch at `239c0a95` contained only the
-specification rebased onto develop. During verification, another chat began
-uncommitted foundation work there; `stages.ts` still retained destructive
-preparation at the follow-up inspection. Those drafts were neither copied nor
-modified and are not treated as a tested prerequisite. The target's five spec commits were replayed onto develop;
-`backup/spec-0002-published-20261010` retains the original head. No inherited
-SPEC-0001 implementation or ADR is claimed. Its proposed ADR-024 remains owned by
-#879. Remote retargeting must accompany the later authorized push so the published
-documentation stack is not temporarily misrepresented.
+The dependency advanced during implementation: its first local foundation commit
+`7d974c28` now supplies writer admission, immutable audio storage and shared
+`OutputSource`/`OutputMetadata`. This branch is based on that exact committed
+prerequisite; no uncommitted dependency drafts were copied. SPEC-0002 reuses its
+authorship schema, with a source-only projection for entities outside freshness.
+Its spec/index/ADR-024 remain inherited dependency work, not changes claimed here.
+
+The dependency is **not behaviorally complete**: `stages.ts` still retires IDs and
+calls `clearNodesByType` before generation, and saves/restores are not fully
+integrated with its shared mechanisms. The real-route probe remains the gate.
+The target was first isolated on develop, then rebased onto `7d974c28` when it
+became available. `backup/spec-0002-published-20261010` retains the published head;
+`backup/spec-0002-slice-20261010` retains the tested develop-based slice. Compare
+this PR's own changes against `7d974c28`. The remote base can remain SPEC-0001's
+branch; coordinated publication must check both remote heads first.
 
 The source issues #736 and #144, all their comments, #880's discussion and empty
 inline-review list, and #879's current discussion were read. No separate existing
@@ -38,12 +44,14 @@ but not the runtime dependency or pending human approval.
 
 ### Blocking runtime evidence
 
-On develop, `makeBeforeRun` in `apps/api/src/routes/stages.ts` retires section IDs
+On develop and the exact dependency commit `7d974c28`, `makeBeforeRun` in
+`apps/api/src/routes/stages.ts` retires section IDs
 and calls `clearNodesByType` before the worker runs. The latter deletes all
 versions for most node types. `saveStoryboardNode` also calls the destructive
-`clearCaptionData`. SPEC-0001's admission/publication/freshness foundation is
-absent. A merge helper cannot recover erased input or history, and a running-step
-check alone cannot guard queued work or atomic publication.
+`clearCaptionData`. SPEC-0001's non-destructive preparation and complete
+publication/freshness integration are absent; initial admission/storage
+primitives alone do not suffice. A merge helper cannot recover erased input or
+history, and a running-step check alone cannot guard queued work or atomic publication.
 
 The only dependency-free rollout slice documented by SPEC-0002 is slice 1:
 optional stored authorship schemas and pure helpers. Behavioral slices 2–5 are
@@ -52,9 +60,10 @@ advertise end-to-end preservation before the shared foundation exists.
 
 ## Acceptance map recorded before application edits
 
-The current-behavior column is based on refreshed source, not the old spec's line
-numbers. The verification column is the completion requirement; it is not a
-claim that the check has run. Results follow below.
+The current-behavior column records the initial develop `ef31494d` source audit,
+not the old spec's line numbers or completion of the newer dependency commit.
+The verification column is the completion requirement; it is not a claim that
+the check has run. Results follow below.
 
 | AC | Current behavior | Required change | Concrete verification |
 |---|---|---|---|
@@ -80,9 +89,10 @@ claim that the check has run. Results follow below.
 
 ## Delivered slice
 
-- `ContentAuthorship` / `AuthoredContent` in `packages/types` provide optional
-  stored authorship on translation entries, individual quizzes, whole page
-  sectioning records and the whole TOC. No migration or implicit AI default.
+- SPEC-0001's `OutputSource` / `OutputMetadata` already provide translation
+  authorship. `AuthoredContent` is a source-only projection of that shared schema
+  for individual quizzes, whole page sectioning records and the whole TOC. No
+  duplicate source enum, migration or implicit AI default.
 - `stampManualEdits` ignores client source, compares by stable identity, stamps
   changed/new content and preserves unchanged authorship. It requires the caller
   to establish admission and a current base version first; it is not a lock or
@@ -97,29 +107,46 @@ claim that the check has run. Results follow below.
   preventing the schema addition from making client-provided tags authoritative.
   This does not implement guarded saves: current routes still do not stamp manual
   edits or satisfy `baseVersion`/draft-conflict requirements.
+- The existing quiz/audio regression reads the new audio through the persisted
+  manifest, matching SPEC-0001's immutable asset contract. It still checks the
+  generated bytes and that the old manual recording survives generation and
+  restore; it no longer assumes the generated filename equals its text ID.
 - The spec corrects absent provenance to protected/unknown and explicitly proposes
   the AC-2 ordinary-selection versus controlled-cache-test reconciliation. No
   approval or runtime-cost guarantee is claimed. The index still says draft.
 
 ## Verification results
 
+The develop-based slice passed 293 files / 3,805 tests before rebasing. The final
+checks below are repeated on the exact local dependency `7d974c28` plus this
+slice, unless explicitly identified as a baseline or compatibility check.
+
 | Check | Result and scope |
 |---|---|
 | Baseline `pnpm build` | Passed before application edits; application source identical to develop `ef31494d` |
 | `pnpm exec vitest run packages/types/src/__tests__/content-authorship.test.ts packages/pipeline/src/__tests__/manual-edits.test.ts apps/api/src/routes/authorship-boundaries.test.ts` | Passed: 3 files, 35 tests (18 schema, 15 helper, 2 real HTTP/SQLite boundary tests covering five edit surfaces each) |
-| `pnpm test` | Passed: 293 files, 3,805 tests, including pretest build; 166.46 seconds |
-| `pnpm typecheck` | Passed; repeated with all 35 focused tests after the final helper return-type/comparison refinement |
+| `pnpm test` | Final rerun passed: 296 files, 3,822 tests, including pretest build; 151.71 seconds. Initial dependency-based failure and verified baseline are described below |
+| `pnpm typecheck` | Passed; repeated after the quiz/audio test adaptation |
 | `pnpm --filter @adt/runtime typecheck` | Passed |
 | `pnpm lint` | Passed: zero errors, eight warnings; no warning cleanup included |
 | `pnpm build` | Passed; runtime assets build included; no installer or Docker image built |
 | `pnpm --filter @adt/studio extract` | Passed: 3,622 messages per locale, zero missing in es/fr/pt-BR/sq; catalogs unchanged |
 | `pnpm --filter @adt/studio compile --strict` | Passed; no changed Studio strings in this slice |
 | Pre-change schema compatibility | Passed for four record kinds with AI/manual tags, using the actual pre-edit compiled schemas from develop; legacy reads remain untagged. This verifies parsing, not a complete old-application/downgrade workflow |
-| `node scripts/probes/spec-0002-foundation.mjs` | Failed with exit 1 both before and after the schema/helper change; expected dependency failure, not a passing acceptance test |
+| `node scripts/probes/spec-0002-foundation.mjs` | Failed with exit 1 on the develop baseline, the develop-based slice and the final dependency-based slice; not a passing acceptance test |
 | `git diff --check` | Passed |
 | Invariant checks | Available identity, storage and pipeline tests ran in the full suite. `lint:invariants` and `acceptance` scripts are absent; no aggregate invariant/harness pass claimed |
 | UI, representative Mathematics STD 5, provider/cost measurements | Not run: runtime integration is blocked; pure helper tests cannot establish these claims |
 | Desktop/Docker/release and hosted CI | Not run; nothing pushed, and development tests do not establish release verification |
+
+The first full test run after the dependency rebase had 3,821 passes and one
+failure: `quiz-identity-regressions.test.ts` tried to read the old derived filename
+`qz002_que.mp3`. A clean disposable checkout of **exactly `7d974c28`**, without
+SPEC-0002 changes, reproduced the same ENOENT failure with the focused test. This
+establishes the dependency baseline rather than assuming the failure is unrelated.
+The assertion now follows the saved manifest and retains the manual-byte and
+restore checks. That focused test passed after adaptation; the full rerun is
+reported in the table above. No other PR or working draft was modified.
 
 ### Reproducible HTTP dependency failure
 

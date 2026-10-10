@@ -1,6 +1,7 @@
 import type { AuthoredContent } from "@adt/types"
 
-/** Only explicitly AI-authored content may be replaced by an ordinary run. */
+/** Authorship protection only. Shared freshness/admission can protect additional
+ * output; being AI-authored is necessary, not sufficient, for replacement. */
 export function isProtectedContent(content: AuthoredContent): boolean {
   return content.source !== "ai"
 }
