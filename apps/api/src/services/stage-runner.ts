@@ -1821,6 +1821,12 @@ async function runQuizzesStep(
   const storage = createBookStorage(label, booksDir)
 
   try {
+    const previousVersion = storage.getLatestNodeData("quiz-generation", "book")?.version ?? 0
+    const publish = (output: Parameters<typeof saveQuizOutput>[1]) => storage.transaction(() => {
+      options.signal?.throwIfAborted()
+      assertEditVersion(storage.getLatestNodeData("quiz-generation", "book")?.version, previousVersion)
+      return saveQuizOutput(storage, output, "replace")
+    })
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
@@ -1922,7 +1928,7 @@ async function runQuizzesStep(
         },
       })
       options.signal?.throwIfAborted()
-      saveQuizOutput(storage, quizResult, "replace")
+      publish(quizResult)
       console.log(
         `[stage-run] ${label}: generated ${quizResult.quizzes.length} quiz(zes) from ${quizPages.length} page(s)`
       )
@@ -1932,13 +1938,13 @@ async function runQuizzesStep(
         message: `${quizResult.quizzes.length} quizzes from ${quizPages.length} pages`,
       })
     } else {
-      // A successful empty rerun must not leave the preserved previous quizzes
-      // active. Keep their history, but publish the now-empty result.
+      // With no eligible pages, retire previous AI quizzes while the shared
+      // publisher retains protected quizzes and all prior versions.
       options.signal?.throwIfAborted()
-      saveQuizOutput(storage, {
+      publish({
         generatedAt: new Date().toISOString(), language: quizConfig.language,
         pagesPerQuiz: quizConfig.pagesPerQuiz, quizzes: [],
-      }, "replace")
+      })
       // Nothing to generate. This is the silent "finished instantly, no quizzes"
       // case — surface it loudly instead of completing green with no output.
       console.warn(

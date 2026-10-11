@@ -1,3 +1,5 @@
+import { assertEditVersion } from "../services/catalog-output-service.js"
+import { AuthoredSaveGuard } from "@adt/types"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -124,9 +126,10 @@ export function createQuizRoutes(
     const safeLabel = safeParseLabel(label)
 
     const body = await c.req.json()
-    // Keep client authorship out of storage until guarded server stamping lands.
+    // Ignore client authorship; compare against the guarded stored version.
     const parsed = QuizGenerationOutput.extend({
       quizzes: z.array(Quiz.omit({ source: true })),
+      ...AuthoredSaveGuard.shape,
     }).safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
@@ -137,7 +140,9 @@ export function createQuizRoutes(
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       assertQuizzesIdle(storage)
-      const { version } = withQuizIdentityErrors(() => saveQuizOutput(storage, parsed.data, "edit"))
+      assertEditVersion(storage.getLatestNodeData("quiz-generation", "book")?.version, parsed.data.baseVersion)
+      const { baseVersion: _base, ...content } = parsed.data
+      const { version } = withQuizIdentityErrors(() => saveQuizOutput(storage, content, "edit"))
       return c.json({ version })
     } finally {
       storage.close()
@@ -147,6 +152,8 @@ export function createQuizRoutes(
   // POST /books/:label/quizzes/generate-one — Generate a single quiz from
   // a hand-picked set of pages and insert it at a chosen location.
   const GenerateOneBody = z.object({
+    ...AuthoredSaveGuard.shape,
+    replaceQuizIds: z.array(z.string().min(1)).default([]),
     pageIds: z.array(z.string().min(1)).min(1).max(5),
     afterPageId: z.string().min(1),
     // "replace" swaps out the quiz(zes) already at this position; "after" stacks
@@ -183,6 +190,10 @@ export function createQuizRoutes(
       // until the run completes (the UI also hides the entry points).
       assertQuizzesIdle(storage)
 
+      const before = storage.getLatestNodeData("quiz-generation", "book")
+      assertEditVersion(before?.version, parsed.data.baseVersion)
+      const replacing = placement === "replace" && before ? withResolvedQuizIds(before.data as QuizGenerationOutput).quizzes.filter((quiz) => quiz.afterPageId === afterPageId && quiz.source !== "ai").map((quiz) => quiz.quizId!).sort() : []
+      if (JSON.stringify(replacing) !== JSON.stringify([...parsed.data.replaceQuizIds].sort())) throw new HTTPException(409, { message: "Protected quizzes changed. Review the named quizzes before replacing them." })
       const appConfig = loadBookConfig(safeLabel, booksDir, configPath)
       const metadataRow = storage.getLatestNodeData("metadata", "book")
       const metadata = metadataRow?.data as { language_code?: string | null } | null
@@ -231,6 +242,7 @@ export function createQuizRoutes(
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
       const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
       const llmModel = createLLMModel({
+        signal: c.req.raw.signal,
         modelId: quizConfig.modelId,
         cacheDir,
         promptEngine,
@@ -241,7 +253,7 @@ export function createQuizRoutes(
       withQuizIdentityErrors(() => assertQuizGenerationCapacity(storage, 1))
       const generated = await generateQuiz(batch, 0, quizConfig, llmModel)
       // The user chooses where the quiz lands, independent of its source pages.
-      const newQuiz: Quiz = { ...generated, afterPageId }
+      const newQuiz: Quiz = { ...generated, afterPageId, source: "ai" }
 
       // Add to the existing quiz set (or start a fresh one). A position can hold
       // multiple quizzes shown one after another. With placement "after" the new
@@ -258,6 +270,8 @@ export function createQuizRoutes(
       // and generated audio.
       return storage.transaction(() => {
         assertQuizzesIdle(storage)
+        c.req.raw.signal.throwIfAborted()
+        assertEditVersion(storage.getLatestNodeData("quiz-generation", "book")?.version, parsed.data.baseVersion)
         const existingRow = storage.getLatestNodeData("quiz-generation", "book")
         const existing = existingRow
           ? withResolvedQuizIds(existingRow.data as QuizGenerationOutput)

@@ -10,7 +10,7 @@ import {
   Loader2,
   Plus,
 } from "lucide-react"
-import { useLingui } from "@lingui/react/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
 import { api } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -277,13 +277,14 @@ export function AddQuizDialog({
     ? quizCountByAfterPageId.get(afterPageId) ?? 0
     : 0
   const isOccupied = occupiedCount > 0
+  const protectedQuizzes = (existingQuizzes?.quizzes?.quizzes ?? []).filter((q) => q.afterPageId === afterPageId && q.source !== "ai")
 
   const placementOptions: SegmentedControlOption<QuizPlacement>[] = [
     { value: "after", label: t`Add after` },
     { value: "replace", label: t`Replace` },
   ]
 
-  const generateLabel = !isOccupied
+  const generateLabel = placement === "replace" && protectedQuizzes.length ? t`Replace protected quizzes` : !isOccupied
     ? t`Generate quiz`
     : placement === "replace"
       ? occupiedCount > 1
@@ -337,6 +338,8 @@ export function AddQuizDialog({
           pageIds: selected,
           afterPageId,
           placement: isOccupied ? placement : "after",
+          baseVersion: existingQuizzes?.version ?? 0,
+          replaceQuizIds: placement === "replace" ? protectedQuizzes.flatMap((q) => q.quizId ? [q.quizId] : []) : [],
         },
         {
           anthropicApiKey: anthropicKey || undefined,
@@ -545,6 +548,7 @@ export function AddQuizDialog({
               color="#ea580c"
               className="h-9 max-w-xs"
             />
+            {placement === "replace" && protectedQuizzes.length > 0 && <p className="text-sm text-amber-700"><Trans>Protected quizzes to replace:</Trans> {protectedQuizzes.map((q) => `${q.quizId}: ${q.question}`).join("; ")}</p>}
           </div>
         )}
 
