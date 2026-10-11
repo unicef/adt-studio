@@ -88,9 +88,17 @@ beforeEach(() => {
 })
 afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
 
+// Exercise an actual authored edit: an identical Save is intentionally a no-op.
+// Capture the two independent rows exactly as an editor does before submission.
+function manualSectioningEdit(pageId: string) {
+  const source = read("page-sectioning", pageId)!
+  const rendering = read("web-rendering", pageId)
+  return { ...source.data as object, reasoning: "Manually edited sectioning rationale", baseVersion: source.version, renderingVersion: rendering?.version ?? 0 }
+}
+
 async function saveProtected() {
   for (const id of ["pg001", "pg002", "pg003"]) {
-    expect((await send(`pages/${id}/sectioning`, { ...read("page-sectioning", id)!.data as object, baseVersion: 1 })).status).toBe(200)
+    expect((await send(`pages/${id}/sectioning`, manualSectioningEdit(id))).status).toBe(200)
   }
   const toc = await json("toc")
   expect((await send("toc", { ...toc, entries: [{ ...toc.entries[0], title: "Manual contents" }], baseVersion: toc.version })).status).toBe(200)
@@ -147,11 +155,12 @@ it("requires versions, returns the current version on conflict, rejects a concur
   for (const [url, value, node, itemId] of cases) {
     const version = read(node, itemId)!.version
     expect((await send(url, value)).status).toBe(400)
-    const stale = await send(url, { ...value as object, baseVersion: version - 1 })
+    const companionGuard = node === "page-sectioning" ? { renderingVersion: read("web-rendering", itemId)?.version ?? 0 } : {}
+    const stale = await send(url, { ...value as object, baseVersion: version - 1, ...companionGuard })
     expect(stale.status).toBe(409)
     expect(await stale.json()).toMatchObject({ code: "VERSION_CONFLICT", currentVersion: version })
     const db = book(); db.markStepStarted(node === "quiz-generation" ? "quiz-generation" : node === "toc-generation" ? "toc-generation" : "page-sectioning"); db.close()
-    expect((await send(url, { ...value as object, baseVersion: version })).status).toBe(409)
+    expect((await send(url, { ...value as object, baseVersion: version, ...companionGuard })).status).toBe(409)
     const clear = book(); clear.markStepCompleted(node === "quiz-generation" ? "quiz-generation" : node === "toc-generation" ? "toc-generation" : "page-sectioning"); clear.close()
     expect(read(node, itemId)!.version).toBe(version)
   }
@@ -416,7 +425,7 @@ it.each(["clone", "split", "merge"])("guards and stamps %s as a whole manual pag
     { ...section("pg001", "Last"), sectionId: "pg001_sec002", nodes: [{ nodeId: "pg001_t003", role: "section_text", text: "Last", isPruned: false }] },
   ] })
   db.close()
-  for (const id of ["pg002", "pg003"]) expect((await send(`pages/${id}/sectioning`, { ...read("page-sectioning", id)!.data as object, baseVersion: 1 })).status).toBe(200)
+  for (const id of ["pg002", "pg003"]) expect((await send(`pages/${id}/sectioning`, manualSectioningEdit(id))).status).toBe(200)
   const url = `pages/pg001/sections/0/${operation}${operation === "merge" ? "?direction=next" : ""}`
   const details = operation === "split" ? { beforeNodeIndex: 1 } : {}
   expect((await send(url, details, "POST")).status).toBe(400)
@@ -492,7 +501,7 @@ it("cancels section replacement before publication and rejects a queued stale co
 })
 
 it("regenerates only explicitly AI pages on an ordinary run and keeps protected neighbors exact", async () => {
-  expect((await send("pages/pg001/sectioning", { ...read("page-sectioning", "pg001")!.data as object, baseVersion: 1 })).status).toBe(200)
+  expect((await send("pages/pg001/sectioning", manualSectioningEdit("pg001"))).status).toBe(200)
   const protectedPage = read("page-sectioning", "pg001")
   const db = book()
   for (const stage of PIPELINE.filter((s) => s.name === "extract")) for (const step of stage.steps) db.markStepCompleted(step.name)

@@ -25,13 +25,15 @@ describe("Page routes", () => {
     const restore = url.match(/\/versions\/([^/]+)\/([^/]+)\/restore/)
     const page = url.match(/\/pages\/([^/]+)\/(sectioning|storyboard|sections\/\d+(?:\/(?:clone|split|merge|merge-cross-page|ai-edit))?)(?:\?|$)/)
     if (!restore && !page) return app.request(url, init)
-    if (page?.[2] === "storyboard" && !body.sectioning) return app.request(url, init)
     const requestLabel = url.match(/\/books\/([^/]+)/)?.[1] ?? label
     const exists = fs.existsSync(path.join(tmpDir, requestLabel, `${requestLabel}.db`))
     const storage = exists ? createBookStorage(requestLabel, tmpDir) : null
     try {
       const node = restore?.[1] ?? "page-sectioning", id = restore?.[2] ?? page![1]
       body.baseVersion ??= storage?.getCurrentNodeVersion(node, id) ?? 0
+      if (page?.[2] === "storyboard" || page?.[2] === "sectioning") {
+        body.renderingVersion ??= storage?.getCurrentNodeVersion("web-rendering", id) ?? 0
+      }
       if (url.includes("merge-cross-page") && storage) {
         const pages = storage.getPages()
         const index = pages.findIndex((p) => p.pageId === id)
@@ -295,10 +297,7 @@ describe("Page routes", () => {
       expect(res.status).toBe(404)
     })
 
-    it("marks the storyboard chain as needing a re-run, keeping node data", async () => {
-      // A sectioning edit invalidates the rendered HTML that every later stage
-      // is derived from, so those stages must stop reporting "done" — but their
-      // data (and version history) must survive.
+    it("retains completed attempt records and output while currentness is derived from source signatures", async () => {
       const seed = createBookStorage(label, tmpDir)
       try {
         seed.markStepCompleted("web-rendering")
@@ -322,9 +321,9 @@ describe("Page routes", () => {
       const after = createBookStorage(label, tmpDir)
       try {
         const steps = after.getStepRuns().map((r) => r.step)
-        expect(steps).not.toContain("web-rendering")
-        expect(steps).not.toContain("quiz-generation")
-        expect(steps).not.toContain("toc-generation")
+        expect(steps).toContain("web-rendering")
+        expect(steps).toContain("quiz-generation")
+        expect(steps).toContain("toc-generation")
         // Non-destructive: the rendering itself is untouched.
         expect(after.getLatestNodeData("web-rendering", `${label}_p1`)).toBeTruthy()
       } finally {
@@ -423,21 +422,21 @@ describe("Page routes", () => {
       })
       expect(res.status).toBe(200)
       // Both fixtures are at v1, so one save advances each exactly once.
-      expect(await res.json()).toEqual({ sectioningVersion: 2, renderingVersion: 2 })
+      expect(await res.json()).toMatchObject({ sectioningVersion: 2, renderingVersion: 2, synchronization: { sections: [] } })
 
       const after = createBookStorage(label, tmpDir)
       try {
         const steps = after.getStepRuns().map((r) => r.step)
         expect(steps).toContain("web-rendering")
-        // Everything derived from the HTML still has to be re-run.
-        expect(steps).not.toContain("quiz-generation")
-        expect(steps).not.toContain("toc-generation")
+        // Attempt history remains; shared signatures determine currentness.
+        expect(steps).toContain("quiz-generation")
+        expect(steps).toContain("toc-generation")
       } finally {
         after.close()
       }
     })
 
-    it("marks the storyboard stale when the change needs an LLM re-render", async () => {
+    it("does not use a false client flag to invalidate an empty matching pair", async () => {
       seedCompletedChain()
 
       const res = await save({
@@ -446,16 +445,17 @@ describe("Page routes", () => {
         renderingInSync: false,
       })
       expect(res.status).toBe(200)
+      expect(await res.json()).toMatchObject({ synchronization: { sections: [] } })
 
       const after = createBookStorage(label, tmpDir)
       try {
-        expect(after.getStepRuns().map((r) => r.step)).not.toContain("web-rendering")
+        expect(after.getStepRuns().map((r) => r.step)).toContain("web-rendering")
       } finally {
         after.close()
       }
     })
 
-    it("defaults to marking the storyboard stale", async () => {
+    it("preserves the existing rendering when a source-only save retires its source", async () => {
       seedCompletedChain()
 
       const res = await save({ sectioning: { reasoning: "r", sections: [] } })
@@ -463,7 +463,8 @@ describe("Page routes", () => {
 
       const after = createBookStorage(label, tmpDir)
       try {
-        expect(after.getStepRuns().map((r) => r.step)).not.toContain("web-rendering")
+        expect(after.getStepRuns().map((r) => r.step)).toContain("web-rendering")
+        expect(after.getLatestNodeData("web-rendering", `${label}_p1`)?.version).toBe(1)
       } finally {
         after.close()
       }
@@ -496,8 +497,8 @@ describe("Page routes", () => {
     })
 
     it("rolls back the rendering when the sectioning write fails", async () => {
-      // Force the second node write to fail after rendering has been inserted.
-      // The route must leave both version histories and pointers unchanged.
+      // Source-write rejection must leave both histories and pointers intact;
+      // pages-sync-save.test.ts also injects second/metadata-write failures.
       const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
       db.exec(`
         CREATE TRIGGER reject_storyboard_sectioning
@@ -525,10 +526,7 @@ describe("Page routes", () => {
       }
     })
 
-    it("keeps the stage complete for a per-section edit that queues a re-render", async () => {
-      // Storyboard editing is incremental: change a section's type or pruning,
-      // re-render that one section, carry on. The rest of the stage must survive
-      // untouched or the editor is taken away for a book that is fine.
+    it("retains attempt history without accepting a client in-sync hint as verification", async () => {
       seedCompletedChain()
 
       const res = await save({
@@ -536,22 +534,23 @@ describe("Page routes", () => {
         renderingInSync: true,
       })
       expect(res.status).toBe(200)
+      expect((await res.json()).synchronization.diagnostics).not.toHaveLength(0)
 
       const after = createBookStorage(label, tmpDir)
       try {
         const steps = after.getStepRuns().map((r) => r.step)
         expect(steps).toContain("web-rendering")
-        expect(steps).not.toContain("quiz-generation")
+        expect(steps).toContain("quiz-generation")
       } finally {
         after.close()
       }
     })
 
-    it("rejects an empty save and a rendering-only in-sync claim", async () => {
+    it("rejects an empty save and validates rendering-only content despite a client in-sync claim", async () => {
       expect((await save({})).status).toBe(400)
-      expect(
-        (await save({ rendering: { sections: [] }, renderingInSync: true })).status
-      ).toBe(400)
+      const response = await save({ rendering: { sections: [] }, renderingInSync: true })
+      expect(response.status).toBe(200)
+      expect(await response.json()).toMatchObject({ synchronization: { sections: [{ sectionId: `${label}_p1_sec001`, status: "invalid-rendering" }] } })
     })
 
     it("returns 404 for nonexistent page", async () => {
@@ -2489,7 +2488,7 @@ describe("Page routes", () => {
   }
 
   /** Assert retained catalog versions and invalidated attempt status. */
-  function expectCatalogOutputsPreserved(dir: string, bookLabel: string) {
+  function expectCatalogOutputsPreserved(dir: string, bookLabel: string, retainAttempts = false) {
     const s = createBookStorage(bookLabel, dir)
     try {
       // Catalog content and history remain unchanged; assessment is invalidated.
@@ -2500,7 +2499,8 @@ describe("Page routes", () => {
       expect(s.getLatestNodeData("easy-read", "book")).toMatchObject({ version: 1 })
       expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toMatchObject({ version: 1 })
       expect(s.getLatestNodeData("tts-timestamps", "en")).toMatchObject({ version: 1 })
-      expect(s.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
+      if (retainAttempts) expect(s.getLatestNodeData("accessibility-assessment", "book")).toMatchObject({ version: 1 })
+      else expect(s.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
       // Step runs should be gone
       const runs = s.getStepRuns()
       const clearedSteps = [
@@ -2516,7 +2516,8 @@ describe("Page routes", () => {
         "accessibility-assessment",
       ]
       for (const step of clearedSteps) {
-        expect(runs.find((r) => r.step === step)).toBeUndefined()
+        if (retainAttempts) expect(runs.find((r) => r.step === step)).toBeDefined()
+        else expect(runs.find((r) => r.step === step)).toBeUndefined()
       }
     } finally {
       s.close()
@@ -2558,8 +2559,8 @@ describe("Page routes", () => {
     }
   }
 
-  describe("PUT /api/books/:label/pages/:pageId/sectioning clears downstream", () => {
-    it("clears caption + translate/speech data on sectioning save", async () => {
+  describe("PUT /api/books/:label/pages/:pageId/sectioning preserves downstream", () => {
+    it("retains caption, translation and speech versions on sectioning save", async () => {
       seedDownstreamData(tmpDir, label)
 
       const data = {
@@ -2599,12 +2600,12 @@ describe("Page routes", () => {
       )
 
       expect(res.status).toBe(200)
-      expectCatalogOutputsPreserved(tmpDir, label)
+      expectCatalogOutputsPreserved(tmpDir, label, true)
     })
   })
 
-  describe("PUT /api/books/:label/pages/:pageId/rendering clears downstream", () => {
-    it("clears caption + translate/speech data on rendering save", async () => {
+  describe("PUT /api/books/:label/pages/:pageId/rendering preserves downstream", () => {
+    it("retains caption, translation and speech versions on rendering save", async () => {
       seedDownstreamData(tmpDir, label)
 
       const data = {
@@ -2626,7 +2627,7 @@ describe("Page routes", () => {
       )
 
       expect(res.status).toBe(200)
-      expectCatalogOutputsPreserved(tmpDir, label)
+      expectCatalogOutputsPreserved(tmpDir, label, true)
     })
   })
 
@@ -2708,7 +2709,7 @@ describe("Page routes", () => {
       expect(check.getCurrentNodeVersion("web-rendering", `${label}_p1`)).toBe(1)
       expect(check.getLatestNodeData("web-rendering", `${label}_p1`)?.version).toBe(1)
       check.close()
-      expectCatalogOutputsPreserved(tmpDir, label)
+      expectCatalogOutputsPreserved(tmpDir, label, true)
     })
 
     it("restores Core TTS text while preserving uploaded recordings", async () => {

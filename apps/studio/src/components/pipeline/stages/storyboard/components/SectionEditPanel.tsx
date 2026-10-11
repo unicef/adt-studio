@@ -45,10 +45,6 @@ interface SectionEditPanelProps {
   onChangeSectionType: (type: string) => void
   onToggleSectionPruned: () => void
   onSectionChange: (next: PageSectioningSection) => void
-  onLeafTextEdited: (nodeId: string, text: string) => void
-  onLeafDuplicated: (sourceNodeId: string, newNodeId: string) => void
-  onLeafDeleted: (nodeId: string) => void
-  onStructuralChange: () => void
   onMergeSection: (dir: "prev" | "next") => void
   onMergeCrossPage?: (dir: "prev" | "next") => void
   hasPrevPage?: boolean
@@ -85,10 +81,6 @@ export function SectionEditPanel({
   onChangeSectionType,
   onToggleSectionPruned,
   onSectionChange,
-  onLeafTextEdited,
-  onLeafDuplicated,
-  onLeafDeleted,
-  onStructuralChange,
   onMergeSection,
   onMergeCrossPage,
   hasPrevPage,
@@ -296,10 +288,6 @@ export function SectionEditPanel({
           textRoles={textTypes}
           containerStructures={groupTypes}
           disabled={!!pipelineRunning || saving}
-          onLeafTextEdited={onLeafTextEdited}
-          onLeafDuplicated={onLeafDuplicated}
-          onLeafDeleted={onLeafDeleted}
-          onStructuralChange={onStructuralChange}
         />
 
         {activityAnswers && Object.keys(activityAnswers).length > 0 && (

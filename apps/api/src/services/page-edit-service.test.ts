@@ -240,13 +240,17 @@ describe("page-edit-service", () => {
       const verifyStorage = createBookStorage(label, tmpDir)
       try {
         for (const [node, itemId] of [
-          ["easy-read", "book"], ["text-catalog", "book"],
+          ["easy-read", "book"],
           ["text-catalog-translation", "es"], ["tts", "en"],
           ["tts-timestamps", "en"], ["accessibility-assessment", "book"],
         ]) {
           expect(verifyStorage.getLatestNodeData(node, itemId)).toMatchObject({ version: 1 })
           expect(verifyStorage.getAllNodeVersions(node, itemId)).toHaveLength(1)
         }
+        // Shared scoped reconciliation updates the derived catalog, retaining
+        // its history and all downstream authored rows.
+        expect(verifyStorage.getAllNodeVersions("text-catalog", "book")).toHaveLength(2)
+        expect(verifyStorage.getAllNodeVersions("text-catalog", "book")[0].data).toEqual({ entries: [{ id: "t1", text: "Old text" }] })
         const clearedSteps = new Set(verifyStorage.getStepRuns().map((run) => run.step))
         for (const step of [
           "image-captioning",

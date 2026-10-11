@@ -13,6 +13,9 @@ import {
 import { loadBookConfig } from "./config.js"
 import { preflightSectioning, SectioningPreflightError } from "./sectioning-preflight.js"
 import { FIXED_LAYOUT_SECTIONING_NODE } from "./render-sectioning.js"
+import { PageSectioningOutput, WebRenderingOutput } from "@adt/types"
+import { stampGeneratedRendering } from "./sectioning-sync-evidence.js"
+import { reconcileTextCatalog } from "./catalog-reconciliation.js"
 
 export class SectioningSafetyError extends Error {
   constructor(readonly code: "SECTIONING_REGENERATION_BLOCKED" | "SECTIONING_STALE" | "STORYBOARD_INPUT_CHANGED" | "STORYBOARD_PUBLICATION_INCOMPLETE", message: string) {
@@ -110,7 +113,7 @@ export function completeSectioning(label: string, booksRoot: string, config: App
 /** Stage rendering versions in memory, then publish together in the existing
  * SQLite transaction. Provider failures/cancellation/conflicts keep the prior
  * active versions. Debug logs/screenshots are attempt evidence, not output. */
-export function createStoryboardPublication(storage: Storage, label: string, booksRoot: string, configPath?: string, selectedPageIds?: string[]) {
+export function createStoryboardPublication(storage: Storage, label: string, booksRoot: string, configPath?: string, selectedPageIds?: string[], stampOutput = true) {
   const { bookDir } = resolveBookPaths(label, booksRoot)
   recoverSectioningTransition(bookDir)
   assertExtractionReadable(bookDir)
@@ -130,6 +133,7 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
   const pending: Array<{ node: string; itemId: string; data: unknown }> = []
   const staged: Storage = {
     ...storage,
+    close() {},
     getPages: () => pages,
     putNodeData(node, itemId, data) {
       const versions = storage.getAllNodeVersions(node, itemId)
@@ -138,7 +142,7 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
     },
     getLatestNodeData(node, itemId) {
       const row = [...pending].reverse().find((row) => row.node === node && row.itemId === itemId)
-      return row ? { version: 0, data: row.data } : storage.getLatestNodeData(node, itemId)
+      return row ? { version: Math.max(0, ...storage.getAllNodeVersions(node, itemId).map((value) => value.version)) + pending.filter((value) => value.node === node && value.itemId === itemId).length, data: row.data } : storage.getLatestNodeData(node, itemId)
     },
   }
   return {
@@ -160,9 +164,18 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
             // cancellation/conflict/transaction failure leaves both intact.
             storage.putNodeData(FIXED_LAYOUT_SECTIONING_NODE, row.itemId, null)
           }
-          storage.putNodeData(row.node, row.itemId, row.data)
+          const semantic = storage.getLatestNodeData("page-sectioning", row.itemId)
+          const source = PageSectioningOutput.safeParse(semantic?.data)
+          const renderedOutput = WebRenderingOutput.safeParse(row.data)
+          // Whole-stage generation owns all returned sections. Targeted repair
+          // supplies evidence itself and retains untouched siblings' evidence.
+          const data = stampOutput && row.node === "web-rendering" && !positioned.has(row.itemId) && source.success && renderedOutput.success
+            ? stampGeneratedRendering(renderedOutput.data, source.data, row.itemId, semantic!.version)
+            : row.data
+          storage.putNodeData(row.node, row.itemId, data)
         }
         const downstream = getStageDependents("storyboard")
+        reconcileTextCatalog(storage, { preserveRendering: true })
         storage.clearStepRuns(PIPELINE.filter((stage) => downstream.includes(stage.name)).flatMap((stage) => stage.steps.map((step) => step.name)))
       })
       // Clear the conservative mode-change barrier only after the entire active

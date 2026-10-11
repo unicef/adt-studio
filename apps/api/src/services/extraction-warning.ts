@@ -16,20 +16,24 @@ type SectioningSection = { isPruned?: boolean; nodes?: unknown[] }
  * and pruned leaves. Mirrors the page-level preview walk in the pages route.
  */
 export function flattenVisibleSectioningText(
-  sections: SectioningSection[] | undefined | null
+  sections: unknown
 ): string {
-  if (!sections) return ""
+  if (!Array.isArray(sections)) return ""
   const parts: string[] = []
-  const walk = (node: SectioningNode): void => {
+  const walk = (value: unknown): void => {
+    if (!value || typeof value !== "object") return
+    const node = value as SectioningNode
     if (node.isPruned) return
     if (typeof node.text === "string" && node.text.length > 0) parts.push(node.text)
     if (Array.isArray(node.children)) {
-      for (const child of node.children) walk(child as SectioningNode)
+      for (const child of node.children) walk(child)
     }
   }
-  for (const section of sections) {
+  for (const value of sections) {
+    if (!value || typeof value !== "object") continue
+    const section = value as SectioningSection
     if (section.isPruned) continue
-    for (const node of section.nodes ?? []) walk(node as SectioningNode)
+    if (Array.isArray(section.nodes)) for (const node of section.nodes) walk(node)
   }
   return parts.join("\n")
 }

@@ -36,6 +36,11 @@ const kindStage = (kind: GenerationKind): StageName => kind === "extract-generat
 export function generationContent(value: unknown): unknown {
   if (!value || typeof value !== "object" || Array.isArray(value)) return value
   const { generationEvidence: _evidence, ...content } = value as Record<string, unknown>
+  if (Array.isArray(content.sections)) content.sections = content.sections.map((section) => {
+    if (!section || typeof section !== "object" || typeof section.html !== "string") return section
+    const { generationEvidence: _sectionEvidence, ...rendering } = section
+    return rendering
+  })
   return content
 }
 
@@ -59,6 +64,11 @@ export interface GenerationCatalogOptions {
  * Explicit relevant inputs; downstream language/voice changes cannot invalidate
  * extraction/Sectioning. No completed step is used as generation evidence.
  */
+/** Exact shared content projection for Storyboard freshness and publication. */
+export function storyboardGenerationContent(rendering: unknown, positioned: unknown): unknown {
+  return rendering ? { html: generationContent(rendering), positioned: generationContent(positioned) } : undefined
+}
+
 export function readGenerationCatalog(options: GenerationCatalogOptions): OutputStatus[] {
   const { storage, config, bookDir, promptsDir } = options
   const pages = activeSectioningPages(storage, config, bookDir)
@@ -132,7 +142,7 @@ export function readGenerationCatalog(options: GenerationCatalogOptions): Output
       config: renderConfig, styleguide: fixed ? undefined : loadStyleguideContent(config.styleguide, options.configPath, path.dirname(bookDir), path.basename(bookDir)),
       templates: renderConfig.some((entry) => entry.renderType === "template") ? templateInputs() : undefined,
       fontAssets: directoryContent(path.join(bookDir, "fonts")), fonts: read("font-registry"), assignments: read("font-assignment"), typography: read("typography"), typeScale: read("type-scale"),
-    }, read("web-rendering", page.pageId) ? { html: read("web-rendering", page.pageId), positioned: read(FIXED_LAYOUT_SECTIONING_NODE, page.pageId) } : undefined, false, WebRenderingOutput.safeParse(read("web-rendering", page.pageId)).success && (!isFixedLayoutBook(config) || !!read(FIXED_LAYOUT_SECTIONING_NODE, page.pageId)), !semantic.success || [...referenced, ...sourcePages].some(([, hash]) => hash === null))
+    }, storyboardGenerationContent(read("web-rendering", page.pageId), read(FIXED_LAYOUT_SECTIONING_NODE, page.pageId)), false, WebRenderingOutput.safeParse(read("web-rendering", page.pageId)).success && (!isFixedLayoutBook(config) || !!read(FIXED_LAYOUT_SECTIONING_NODE, page.pageId)), !semantic.success || [...referenced, ...sourcePages].some(([, hash]) => hash === null))
   }
   const quiz = buildQuizGenerationConfig(config, language)
   add("quizzes", "book", { pages: rendered, config: promptConfig(quiz) }, read("quiz-generation"), !quiz, QuizGenerationOutput.safeParse(read("quiz-generation")).success)

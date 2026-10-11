@@ -12,6 +12,9 @@ export interface LLMModel {
 
 export interface GenerateObjectOptions {
   schema: unknown
+  /** Bypass cache reads for every attempt; accepted output still writes through.
+   * Overrides the model's default. Does not change the cache key. */
+  forceFresh?: boolean
 
   /**
    * Semantic traits of the schema. The effective structured-output strategy is

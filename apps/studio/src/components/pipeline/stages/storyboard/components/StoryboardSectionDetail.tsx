@@ -50,9 +50,13 @@ import {
   useBookStructuredTextAvailability,
 } from "@/hooks/use-api-key"
 import { useActiveConfig } from "@/hooks/use-debug"
+import { findRenderedSection, renderedSectionId, mergeQueuedRenderingEdit } from "../lib/rendered-section"
+import { useStoryboardDraft } from "@/hooks/use-storyboard-draft"
+import { DraftConflict } from "../../../components/DraftConflict"
 import { usePage } from "@/hooks/use-pages"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { useBookRun } from "@/hooks/use-book-run"
+import { SectioningSyncNotice } from "../../../components/SectioningSyncNotice"
 import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import { useStepHeader } from "../../../components/StepViewRouter"
 import { LoadingState } from "../../../components/LoadingState"
@@ -223,14 +227,6 @@ function replaceNodeWithSiblings(
   return replaced ? next : nodes
 }
 
-function getRenderedSectionByIndex(
-  rendering: RenderingData | null | undefined,
-  sectionIndex: number
-) {
-  return rendering?.sections.find((s) => s.sectionIndex === sectionIndex)
-}
-
-
 /**
  * Pull the sectionIndex the generate-activity agent actually wrote to out of a
  * completed task's result. The agent's create tools return it directly, which
@@ -253,22 +249,6 @@ function createdSectionIndexOf(result: unknown): number | undefined {
     }
   }
   return undefined
-}
-
-/**
- * Selectable tokens, option markers, and writable fields the activity runtime
- * binds to. A leaf whose rendered element contains any of these cannot have its
- * text mirrored in place — flattening it to a text node destroys the activity
- * (e.g. every `.activity-underline-option` span of an underline sentence, or
- * the `<input>`s of a fill-in-the-blank). Mirrors the guard the pipeline uses
- * before `replaceChildrenWithText` in `packages/pipeline/src/validate-html.ts`.
- */
-const ACTIVITY_INTERACTIVE_DESCENDANT_SELECTOR =
-  // eslint-disable-next-line lingui/no-unlocalized-strings -- CSS selector, not user-visible text
-  ".activity-underline-option, [data-activity-item], input, textarea, select"
-
-function hasActivityInteractiveDescendant(el: Element): boolean {
-  return el.querySelector(ACTIVITY_INTERACTIVE_DESCENDANT_SELECTOR) !== null
 }
 
 /**
@@ -458,24 +438,36 @@ export function StoryboardSectionDetail({
   const applyBodyBackground = (activeConfigData?.merged as Record<string, unknown> | undefined)?.apply_body_background !== false
 
   const [saving, setSaving] = useState(false)
+  const savePromiseRef = useRef<{ scope: string; promise: Promise<void> } | null>(null)
+  const editorScope = `${bookLabel}:${pageId}:${sectionIndex}`
+  const currentEditorScope = useRef(editorScope)
+  currentEditorScope.current = editorScope
+  const runSave = (operation: () => Promise<void>) => {
+    if (savePromiseRef.current?.scope === editorScope) return savePromiseRef.current.promise
+    const promise = operation()
+    const entry = { scope: editorScope, promise }
+    savePromiseRef.current = entry
+    void promise.then(() => { if (savePromiseRef.current === entry) savePromiseRef.current = null }, () => { if (savePromiseRef.current === entry) savePromiseRef.current = null })
+    return promise
+  }
   const [cloning, setCloning] = useState(false)
   const [merging, setMerging] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [confirmDeleteSection, setConfirmDeleteSection] = useState(false)
   const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string; warning?: string; consequence?: string } | null>(null)
-  const sectioningBaseVersion = useRef<number | null>(null)
-  const [pendingSectioning, updatePendingSectioning] = useState<SectioningData | null>(null)
-  const setPendingSectioning: typeof updatePendingSectioning = useCallback((action) => {
-    if (action === null) sectioningBaseVersion.current = null
-    else sectioningBaseVersion.current ??= page.versions.sectioning ?? 0
-    updatePendingSectioning(action)
-  }, [page.versions.sectioning])
-  const [pendingRendering, setPendingRendering] = useState<RenderingData | null>(null)
+  const editorDraft = useStoryboardDraft(bookLabel, pageId, page)
+  const pendingSectioning = editorDraft.sectioning
+  const setPendingSectioning = editorDraft.setSectioning
+  const pendingRendering = editorDraft.rendering
+  const setPendingRendering = editorDraft.setRendering
+  const getRenderedSectionByIndex = (rendering: RenderingData | null | undefined, index: number) =>
+    findRenderedSection(rendering, (pendingSectioning ?? page.sectioningTree)?.sections[index]?.sectionId, page.sectioningSynchronization?.layout === "fixed")
+
   // Inspector edits mutate the iframe DOM directly; this ref stashes the
   // resulting HTML and is committed to React state only at boundaries
   // (selection change, save, unmount) so per-keystroke changes don't
   // re-render BookPreviewFrame and rebuild its body.
-  const pendingHtmlRef = useRef<{ html: string; sectionIndex: number } | null>(null)
+  const pendingHtmlRef = useRef<{ html: string; sectionId?: string; fixedLayout: boolean; scope: string } | null>(null)
   // Stamped by `discardAll` so late debounced commits get dropped.
   const lastDiscardAtRef = useRef(0)
   // Tracks whether iframe-DOM edits exist that haven't been flushed into
@@ -490,17 +482,14 @@ export function StoryboardSectionDetail({
     () => new Set()
   )
   const markPending = useCallback((category: PendingCategory) => {
-    sectioningBaseVersion.current ??= page.versions.sectioning ?? 0
+    editorDraft.markEditing()
     setPendingCategories((prev) => {
       if (prev.has(category)) return prev
       const next = new Set(prev)
       next.add(category)
       return next
     })
-  }, [page.versions.sectioning])
-  // Tracks whether pending sectioning changes require LLM re-render on save.
-  // Pure prune/delete can be resolved locally; unprune/type change/reorder need LLM.
-  const needsRerenderRef = useRef(false)
+  }, [editorDraft.markEditing])
 
   // Inline editing state
   const [selectedElement, setSelectedElement] = useState<{
@@ -816,7 +805,6 @@ export function StoryboardSectionDetail({
     // in the banner opts into the WYSIWYG editor per section.
     setActivityPreviewMode(true)
     setEditActivityPanelOpen(false)
-    needsRerenderRef.current = false
   }, [pageId, sectionIndex])
 
   // Reset scroll position when page or section changes
@@ -869,88 +857,40 @@ export function StoryboardSectionDetail({
   // Tree nodes for the current section (empty if section missing — hooks still run)
   const nodes = section?.nodes ?? []
 
-  // Save / discard sectioning
-  const saveSectioning = async () => {
+  // A semantic save never starts paid generation. The server decides which
+  // text projections are safe and returns persistent drift for everything else.
+  const saveSectioning = () => runSave(async () => {
     if (!pendingSectioning || storyboardRunning) return
+    if (editorDraft.conflict) throw new Error(t`Resolve conflicting edits before saving`)
+    const sourceToSave = pendingSectioning
+    const renderingToSave = flushPendingHtml() ?? pendingRendering
+    if (pendingHtmlRef.current) throw new Error(t`The edited rendering can no longer be matched safely. Your draft is retained; reload and review this page.`)
     setSaving(true)
-    setPanelOpen(false)
-    const shouldRerender = needsRerenderRef.current
-    // Editing here is meant to be incremental: change a section's type, text or
-    // pruning, re-render that one section, carry on. Every such edit either
-    // arrives already mirrored into the HTML or queues a render of the section
-    // it touched, so the storyboard is current (or seconds away from it) and
-    // resetting the whole stage would only take the editor away for a book that
-    // is fine. The stage is marked stale only when we cannot bring the HTML back
-    // in sync at all: no API key, or a custom activity whose inline grading
-    // script a re-render would flatten.
-    const isCustomActivity = section?.sectionType?.startsWith("activity_custom") ?? false
-    const willRerender = shouldRerender && hasStructuredTextProvider && !isCustomActivity
-    const renderingInSync = !shouldRerender || willRerender
+    const ticket = editorDraft.captureSave({
+      sectioning: sourceToSave,
+      rendering: renderingToSave ?? page.rendering,
+    })
     try {
-      const minDelay = new Promise((r) => setTimeout(r, 400))
-
-      // Before saving, strip pruned leaves from the rendered HTML so they
-      // disappear from the preview without needing an LLM re-render.
-      let renderingFromPrune: RenderingData | null = null
-      const sectionToSave = pendingSectioning.sections[sectionIndex]
-      if (sectionToSave) {
-        const prunedIds = collectPrunedLeafIds(sectionToSave.nodes)
-        if (prunedIds.length > 0) {
-          renderingFromPrune = removeElementsFromRendering(prunedIds)
-        }
-      }
-
-      // Save rendering if dirty (from delete/prune removing HTML elements).
-      // Use renderingFromPrune if we just stripped pruned elements above,
-      // since React state won't have updated yet within this async call.
-      const flushed = flushPendingHtml()
-      const renderingToSave = renderingFromPrune ?? flushed ?? pendingRendering
-
-      // Both nodes in one request so a failure can't split them apart.
       const saved = await api.saveStoryboard(bookLabel, pageId, {
-        sectioning: pendingSectioning,
-        baseVersion: sectioningBaseVersion.current ?? page.versions.sectioning ?? 0,
+        sectioning: sourceToSave,
         rendering: renderingToSave ? stripTransientIds(renderingToSave) : undefined,
-        renderingInSync,
+        baseVersion: editorDraft.baseVersion,
+        renderingVersion: editorDraft.baseCompanionVersion,
       })
-
-      setPendingSectioning(null)
-      setPendingRendering(null)
-      setPendingCategories(new Set())
-      needsRerenderRef.current = false
-      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
-      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
-      invalidateStoryboardDependents(queryClient, bookLabel)
-      await minDelay
-
-      // Only re-render when changes require LLM (e.g., unprune, type change, reorder)
-      // Skip for pure prune/delete — those are already handled by local HTML removal.
-      // Also skip custom activities: re-render rebuilds from the flat sectioning
-      // tree and would discard their inline grading script.
-      // The task marks the storyboard stale itself if it fails, so a section that
-      // never gets its HTML cannot leave the stage reporting complete. A rejected
-      // *submission* never reaches the task runner, so that net does not fire and
-      // we have to take the completion mark back here instead.
-      if (willRerender) {
-        api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex).catch(async (err) => {
-          setAiError(err instanceof Error ? err.message : t`Re-render failed`)
-          if (!renderingInSync) return
-          await api
-            .saveStoryboard(bookLabel, pageId, {
-              sectioning: pendingSectioning,
-              baseVersion: saved.sectioningVersion ?? 0,
-              renderingInSync: false,
-            })
-            .catch(() => {})
-          invalidateStoryboardDependents(queryClient, bookLabel)
-        })
+      if (editorDraft.completeSave(ticket, saved.sectioningVersion ?? 0, saved.renderingVersion ?? 0)) {
+        setPendingCategories(new Set())
+      } else if (editorDraft.isCurrentSave(ticket)) {
+        throw new Error(t`Newer edits are still unsaved. Save them before leaving.`)
       }
+      void queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+      invalidateStoryboardDependents(queryClient, bookLabel)
     } catch (err) {
-      setAiError(err instanceof Error ? err.message : t`Save failed`)
+      if (editorDraft.isCurrentSave(ticket)) await editorDraft.handleError(err)
+      throw err
     } finally {
-      setSaving(false)
+      if (currentEditorScope.current === editorScope) setSaving(false)
     }
-  }
+  })
 
   // Wipe every pending change (sectioning, rendering, in-flight class edits)
   // and re-inject the saved HTML into the iframe so live DOM mutations are
@@ -963,51 +903,39 @@ export function StoryboardSectionDetail({
     setPendingCategories(new Set())
     pendingHtmlRef.current = null
     setHasUnflushedEdits(false)
-    needsRerenderRef.current = false
     previewFrameRef.current?.resetContent()
   }
 
-  // Save rendering (including back-propagation to sectioning)
-  const saveRendering = async () => {
-    const flushed = flushPendingHtml()
-    const renderingToSave = flushed ?? pendingRendering
+  // Explicit Storyboard edits may include a source/render pair. Submitted HTML
+  // and matching text are not trusted evidence of generated origin.
+  const saveRendering = () => runSave(async () => {
+    const renderingToSave = flushPendingHtml() ?? pendingRendering
+    if (pendingHtmlRef.current) throw new Error(t`The edited rendering can no longer be matched safely. Your draft is retained; reload and review this page.`)
     if (!renderingToSave || storyboardRunning) return
+    if (editorDraft.conflict) throw new Error(t`Resolve conflicting edits before saving`)
     setSaving(true)
-    setPanelOpen(false)
+    const editedHtml = getRenderedSectionByIndex(renderingToSave, sectionIndex)?.html
+    const sBase = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
+    const updatedSectioning = editedHtml && sBase ? backPropagateTextChanges(sBase, sectionIndex, editedHtml) : sBase
+    const ticket = editorDraft.captureSave({ sectioning: updatedSectioning, rendering: renderingToSave })
     try {
-      const minDelay = new Promise((r) => setTimeout(r, 400))
-
-      // Back-propagate text changes into sectioning. `renderingToSave` already
-      // includes the flushed inspector edit; the closure `pendingRendering`
-      // is stale until React re-renders.
-      const editedHtml = getRenderedSectionByIndex(renderingToSave, sectionIndex)?.html
-      const sBase = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
-      const updatedSectioning =
-        editedHtml && sBase ? backPropagateTextChanges(sBase, sectionIndex, editedHtml) : null
-
-      // The sectioning we send is derived from the HTML we send, so the pair is
-      // in sync by construction — this save leaves the Storyboard current and
-      // only marks the stages downstream of it for re-run.
-      await api.saveStoryboard(bookLabel, pageId, {
+      const saved = await api.saveStoryboard(bookLabel, pageId, {
         rendering: stripTransientIds(renderingToSave),
-        ...(updatedSectioning && updatedSectioning !== sBase
-          ? { sectioning: updatedSectioning, renderingInSync: true, baseVersion: sectioningBaseVersion.current ?? page.versions.sectioning ?? 0 }
-          : {}),
+        ...(updatedSectioning ? { sectioning: updatedSectioning } : {}),
+        baseVersion: editorDraft.baseVersion,
+        renderingVersion: editorDraft.baseCompanionVersion,
       })
-
-      setPendingRendering(null)
-      setPendingSectioning(null)
-      setPendingCategories(new Set())
-      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
-      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+      if (editorDraft.completeSave(ticket, saved.sectioningVersion ?? 0, saved.renderingVersion ?? 0)) setPendingCategories(new Set())
+      else if (editorDraft.isCurrentSave(ticket)) throw new Error(t`Newer edits are still unsaved. Save them before leaving.`)
+      void queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       invalidateStoryboardDependents(queryClient, bookLabel)
-      await minDelay
     } catch (err) {
-      setAiError(err instanceof Error ? err.message : t`Save failed`)
+      if (editorDraft.isCurrentSave(ticket)) await editorDraft.handleError(err)
+      throw err
     } finally {
-      setSaving(false)
+      if (currentEditorScope.current === editorScope) setSaving(false)
     }
-  }
+  })
 
   // Register combined pending state (sectioning + rendering + inspector edits)
   // with the shared floating save bar. Category chips carry over as the label.
@@ -1048,8 +976,12 @@ export function StoryboardSectionDetail({
         </div>
       ) : undefined,
     onSave: () => {
-      if (renderingDirty) void saveRendering()
-      else if (pendingSectioning) void saveSectioning()
+      if (renderingDirty) void saveRendering().catch(() => {})
+      else if (pendingSectioning) void saveSectioning().catch(() => {})
+    },
+    onSaveStay: async () => {
+      if (renderingDirty) await saveRendering()
+      else if (pendingSectioning) await saveSectioning()
     },
     onDiscard: discardAll,
   })
@@ -1171,7 +1103,7 @@ export function StoryboardSectionDetail({
     const ordered = [...(page.rendering?.sections ?? [])].sort(
       (a, b) => a.sectionIndex - b.sectionIndex,
     )
-    const pos = ordered.findIndex((s) => s.sectionIndex === sectionIndex)
+    const pos = ordered.findIndex((s) => renderedSectionId(s) === renderedSectionId(renderedSection) && !!renderedSectionId(renderedSection))
     const neighbor =
       pos >= 0 ? ordered[direction === "next" ? pos + 1 : pos - 1] : undefined
     setConfirmMerge({
@@ -1263,6 +1195,7 @@ export function StoryboardSectionDetail({
 
     api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex, combinedPrompt)
       .catch((err) => {
+        if (currentEditorScope.current !== editorScope) return
         // Restore pending edits so the user doesn't lose their work
         if (savedPending) setPendingRendering(savedPending)
         setAiError(err instanceof Error ? err.message : t`Re-render failed`)
@@ -1307,7 +1240,7 @@ export function StoryboardSectionDetail({
       const updated: RenderingData = {
         ...rBase,
         sections: rBase.sections.map((s) => {
-          if (s.sectionIndex !== sectionIndex) return s
+          if (renderedSectionId(s) !== renderedSectionId(renderedSection) || !renderedSectionId(renderedSection)) return s
           return { ...s, html: newHtml }
         }),
       }
@@ -1375,50 +1308,12 @@ export function StoryboardSectionDetail({
       const updated: RenderingData = {
         ...rBase,
         sections: rBase.sections.map((s) => {
-          if (s.sectionIndex !== sectionIndex) return s
+          if (renderedSectionId(s) !== renderedSectionId(renderedSection) || !renderedSectionId(renderedSection)) return s
           return { ...s, html: newHtml }
         }),
       }
       setPendingRendering(updated)
       markPending("elements")
-    },
-    [pendingRendering, page.rendering, sectionIndex, markPending]
-  )
-
-  // Replace textContent of a single [data-id="..."] element in the rendered
-  // HTML. Returns false when the edit could NOT be mirrored in place (element
-  // missing or an activity leaf) — only the re-render flag was set, so the
-  // caller must create pending state some other way or the edit is lost.
-  const updateElementTextInRendering = useCallback(
-    (dataId: string, newText: string): boolean => {
-      const rBase = pendingRendering ?? page.rendering
-      if (!rBase) return false
-      const currentSection = getRenderedSectionByIndex(rBase, sectionIndex)
-      if (!currentSection?.html) return false
-      const parser = new DOMParser()
-      const doc = parser.parseFromString(currentSection.html, "text/html")
-      const el = doc.querySelector(`[data-id="${dataId}"]`)
-      // Activity leaves can't be mirrored in place: `textContent` would replace
-      // the interactive children (underline option spans, blank inputs) with a
-      // bare text node and leave a dead activity in the saved HTML. Fall back to
-      // the same re-render path used when the element isn't in the HTML at all,
-      // so the activity is regenerated from the new text on save.
-      if (!el || hasActivityInteractiveDescendant(el)) {
-        needsRerenderRef.current = true
-        return false
-      }
-      el.textContent = newText
-      const newHtml = doc.body.innerHTML
-      const updated: RenderingData = {
-        ...rBase,
-        sections: rBase.sections.map((s) => {
-          if (s.sectionIndex !== sectionIndex) return s
-          return { ...s, html: newHtml }
-        }),
-      }
-      setPendingRendering(updated)
-      markPending("text")
-      return true
     },
     [pendingRendering, page.rendering, sectionIndex, markPending]
   )
@@ -1441,7 +1336,7 @@ export function StoryboardSectionDetail({
       if (!rBase) return
       const isCustom = section?.sectionType.startsWith("activity_custom") ?? false
       const isOrdering = section?.sectionType === "activity_ordering"
-      const currentSection = rBase.sections.find((s) => s.sectionIndex === sectionIndex)
+      const currentSection = getRenderedSectionByIndex(rBase, sectionIndex)
       let orderingUpdate: ReturnType<typeof updateOrderingAnswer> = null
       if (isOrdering) {
         const entries = Object.entries(patch)
@@ -1458,7 +1353,7 @@ export function StoryboardSectionDetail({
       const updated = {
         ...rBase,
         sections: rBase.sections.map((s) => {
-          if (s.sectionIndex !== sectionIndex) return s
+          if (renderedSectionId(s) !== renderedSectionId(renderedSection) || !renderedSectionId(renderedSection)) return s
           let html = orderingUpdate?.html ?? s.html
           if (isCustom && html) {
             for (const [itemKey, value] of Object.entries(patch)) {
@@ -1499,7 +1394,7 @@ export function StoryboardSectionDetail({
         // the text catalog and TTS.
         const removed = previewFrameRef.current?.removeElement(dataId)
         if (removed) {
-          pendingHtmlRef.current = { html: removed.html, sectionIndex }
+          pendingHtmlRef.current = { html: removed.html, sectionId: section?.sectionId, fixedLayout: isFixedLayout, scope: editorScope }
           setHasUnflushedEdits(true)
           markPending("elements")
           for (const id of removed.removedDataIds) treeIds.add(id)
@@ -1533,13 +1428,9 @@ export function StoryboardSectionDetail({
     (nodeId: string) => {
       const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
       if (!base || !section) return
-      const target = findNode(section.nodes, nodeId)
-      const wasPruned = target?.isPruned ?? false
       const nextNodes = toggleNodePruned(section.nodes, nodeId)
       if (nextNodes === section.nodes) return
       setPendingSectioning(withSectionNodes(base, sectionIndex, nextNodes))
-      // Unpruning restores the element to the render — LLM re-render required.
-      if (wasPruned) needsRerenderRef.current = true
     },
     [pendingSectioning, page.sectioningTree, sectionIndex, section]
   )
@@ -1549,17 +1440,8 @@ export function StoryboardSectionDetail({
     if (storyboardRunning) return
     const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
     if (!base) return
-    // Pruning a section is a read-time filter — packaging and the text catalog
-    // skip it (`packaging/web.ts`, `text-catalog.ts`) but its HTML stays in
-    // web-rendering. So unpruning restores it as-is and needs no LLM. The one
-    // exception is a section that was already pruned when the storyboard ran:
-    // `web-rendering.ts` skips pruned sections, so it has no HTML to restore.
-    const unpruning = base.sections[sectionIndex]?.isPruned ?? false
-    const renderedHtml = getRenderedSectionByIndex(
-      pendingRendering ?? page.rendering,
-      sectionIndex
-    )?.html
-    if (unpruning && !renderedHtml) needsRerenderRef.current = true
+    // Existing HTML is retained. The server classifies this semantic edit and
+    // reports any drift; no structural regeneration runs as a side effect.
     const updated: SectioningData = {
       ...base,
       sections: base.sections.map((s, si) => {
@@ -1572,7 +1454,6 @@ export function StoryboardSectionDetail({
 
   // Change section type
   const changeSectionType = (newType: string) => {
-    needsRerenderRef.current = true
     const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
     if (!base) return
     const updated: SectioningData = {
@@ -1593,29 +1474,14 @@ export function StoryboardSectionDetail({
       const nextNodes = setLeafRole(section.nodes, nodeId, role)
       if (nextNodes === section.nodes) return
       setPendingSectioning(withSectionNodes(base, sectionIndex, nextNodes))
-      needsRerenderRef.current = true
-    },
+      },
     [pendingSectioning, page.sectioningTree, sectionIndex, section]
   )
 
-  // SectionTreeEditor callbacks — mirror tree changes into the preview HTML.
-  // (The tree editor updates the section tree itself, so the mirror result
-  // can be ignored: pending sectioning state already makes the edit savable.)
-  const handleLeafTextEdited = useCallback(
-    (nodeId: string, newText: string) => {
-      updateElementTextInRendering(nodeId, newText)
-    },
-    [updateElementTextInRendering]
-  )
-
-  // ClassicActivityPanel text edits — unlike the tree editor, the panel edits
-  // nothing else, so when the edit can't be mirrored into the rendered HTML
-  // (activity leaves with interactive children) it must go into the section
-  // tree instead: that creates pending state (Save enables) and the save path
-  // regenerates the activity HTML from the new text.
+  // Activity source edits use the same server-owned text projection as the
+  // semantic tree editor. Structural or interactive HTML remains untouched.
   const handleActivityPanelTextEdited = useCallback(
     (nodeId: string, newText: string) => {
-      if (updateElementTextInRendering(nodeId, newText)) return
       const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
       const currentSection = base?.sections[sectionIndex]
       if (!base || !currentSection) return
@@ -1623,27 +1489,8 @@ export function StoryboardSectionDetail({
       if (nextNodes === currentSection.nodes) return
       setPendingSectioning(withSectionNodes(base, sectionIndex, nextNodes))
     },
-    [updateElementTextInRendering, pendingSectioning, page.sectioningTree, sectionIndex]
+    [pendingSectioning, page.sectioningTree, sectionIndex]
   )
-
-  const handleLeafDuplicated = useCallback(
-    (sourceNodeId: string, newNodeId: string) => {
-      duplicateElementsInRendering([{ sourceDataId: sourceNodeId, newDataId: newNodeId }])
-    },
-    [duplicateElementsInRendering]
-  )
-
-  const handleLeafDeleted = useCallback(
-    (nodeId: string) => {
-      removeElementsFromRendering([nodeId])
-    },
-    [removeElementsFromRendering]
-  )
-
-  // Reorder / regroup: the HTML keeps the old order until re-rendered.
-  const handleStructuralChange = useCallback(() => {
-    needsRerenderRef.current = true
-  }, [])
 
   // Handle inline text edit from BookPreviewFrame
   const handleTextChanged = useCallback(
@@ -1653,7 +1500,7 @@ export function StoryboardSectionDetail({
       const updated: RenderingData = {
         ...base,
         sections: base.sections.map((s) => {
-          if (s.sectionIndex !== sectionIndex) return s
+          if (renderedSectionId(s) !== renderedSectionId(renderedSection) || !renderedSectionId(renderedSection)) return s
           return { ...s, html: fullHtml }
         }),
       }
@@ -1723,11 +1570,11 @@ export function StoryboardSectionDetail({
       if (!fullHtml) return
       setSelectedElementClasses(classes)
       previewFrameRef.current?.refreshCss(fullHtml)
-      pendingHtmlRef.current = { html: fullHtml, sectionIndex }
+      pendingHtmlRef.current = { html: fullHtml, sectionId: section?.sectionId, fixedLayout: isFixedLayout, scope: editorScope }
       setHasUnflushedEdits(true)
       markPending("style")
     },
-    [page.rendering, sectionIndex, markPending]
+    [page.rendering, sectionIndex, section?.sectionId, isFixedLayout, editorScope, markPending]
   )
 
   // Inline-style edits (e.g. per-element font-family). Unlike class edits these
@@ -1742,29 +1589,29 @@ export function StoryboardSectionDetail({
       setSelectedComputedTypography(
         previewFrameRef.current?.getComputedTypographyStyles(dataId) ?? null
       )
-      pendingHtmlRef.current = { html: fullHtml, sectionIndex }
+      pendingHtmlRef.current = { html: fullHtml, sectionId: section?.sectionId, fixedLayout: isFixedLayout, scope: editorScope }
       setHasUnflushedEdits(true)
       markPending("style")
     },
-    [page.rendering, sectionIndex, markPending]
+    [page.rendering, sectionIndex, section?.sectionId, isFixedLayout, editorScope, markPending]
   )
 
   const flushPendingHtml = useCallback((): RenderingData | null => {
     const queued = pendingHtmlRef.current
     if (!queued) return pendingRendering
     if (!page.rendering) return pendingRendering
+    if (queued.scope !== editorScope || currentEditorScope.current !== editorScope) return pendingRendering
+    const base = pendingRendering ?? page.rendering
+    const merged = mergeQueuedRenderingEdit(base, queued)
+    if (!merged) {
+      setAiError(t`The edited rendering can no longer be matched safely. Your draft is retained; reload and review this page.`)
+      return pendingRendering
+    }
     pendingHtmlRef.current = null
     setHasUnflushedEdits(false)
-    const base = pendingRendering ?? page.rendering
-    const merged: RenderingData = {
-      ...base,
-      sections: base.sections.map((s) =>
-        s.sectionIndex !== queued.sectionIndex ? s : { ...s, html: queued.html }
-      ),
-    }
     setPendingRendering(merged)
     return merged
-  }, [page.rendering, pendingRendering])
+  }, [page.rendering, pendingRendering, editorScope, t])
 
   useEffect(() => {
     return () => {
@@ -1811,7 +1658,7 @@ export function StoryboardSectionDetail({
         const updatedRendering: RenderingData = {
           ...rBase,
           sections: rBase.sections.map((s) => {
-            if (s.sectionIndex !== sectionIndex) return s
+            if (renderedSectionId(s) !== renderedSectionId(renderedSection) || !renderedSectionId(renderedSection)) return s
             let html = s.html
             html = html.replace(new RegExp(`data-id="${escapeRegex(cropTarget)}"`, "g"), `data-id="${result.imageId}"`)
             html = html.replace(new RegExp(escapeRegex(oldSrc), "g"), newSrc)
@@ -1878,7 +1725,7 @@ export function StoryboardSectionDetail({
         const updatedRendering: RenderingData = {
           ...rBase,
           sections: rBase.sections.map((s) => {
-            if (s.sectionIndex !== sectionIndex) return s
+            if (renderedSectionId(s) !== renderedSectionId(renderedSection) || !renderedSectionId(renderedSection)) return s
             let html = s.html
             html = html.replace(new RegExp(`data-id="${escapeRegex(targetId)}"`, "g"), `data-id="${result.imageId}"`)
             html = html.replace(new RegExp(escapeRegex(oldSrc), "g"), newSrc)
@@ -1919,7 +1766,7 @@ export function StoryboardSectionDetail({
         const updatedRendering: RenderingData = {
           ...rBase,
           sections: rBase.sections.map((s) => {
-            if (s.sectionIndex !== sectionIndex) return s
+            if (renderedSectionId(s) !== renderedSectionId(renderedSection) || !renderedSectionId(renderedSection)) return s
             let html = s.html
             html = html.replace(new RegExp(`data-id="${escapeRegex(targetId)}"`, "g"), `data-id="${newImageId}"`)
             html = html.replace(new RegExp(escapeRegex(oldSrc), "g"), newSrc)
@@ -2017,7 +1864,7 @@ export function StoryboardSectionDetail({
           return {
             ...rBase,
             sections: rBase.sections.map((s) => {
-              if (s.sectionIndex !== sectionIndex) return s
+              if (renderedSectionId(s) !== renderedSectionId(renderedSection) || !renderedSectionId(renderedSection)) return s
               let html = s.html
               const segImgs = result.segments
                 .map(
@@ -2072,7 +1919,7 @@ export function StoryboardSectionDetail({
         return {
           ...rBase,
           sections: rBase.sections.map((s) => {
-            if (s.sectionIndex !== sectionIndex) return s
+            if (renderedSectionId(s) !== renderedSectionId(renderedSection) || !renderedSectionId(renderedSection)) return s
             let html = s.html
             html = html.replace(new RegExp(`data-id="${escapeRegex(targetId)}"`, "g"), `data-id="${newImageId}"`)
             html = html.replace(new RegExp(escapeRegex(oldSrc), "g"), newSrc)
@@ -2117,7 +1964,7 @@ export function StoryboardSectionDetail({
         return {
           ...rBase,
           sections: rBase.sections.map((s) => {
-            if (s.sectionIndex !== sectionIndex) return s
+            if (renderedSectionId(s) !== renderedSectionId(renderedSection) || !renderedSectionId(renderedSection)) return s
             const closingIdx = s.html.lastIndexOf("</section>")
             const html = closingIdx >= 0
               ? s.html.slice(0, closingIdx) + imgTag + s.html.slice(closingIdx)
@@ -2689,7 +2536,9 @@ export function StoryboardSectionDetail({
     {headerSlotEl && createPortal(headerControls, headerSlotEl)}
     <div className="h-full flex overflow-hidden">
     <div className="flex-1 flex flex-col min-w-0 relative overflow-hidden">
+      <SectioningSyncNotice synchronization={pageDetail?.sectioningSynchronization} bookLabel={bookLabel} pageId={pageId} />
       {/* Error bar below header */}
+      <DraftConflict error={editorDraft.error} paths={editorDraft.conflict?.paths} onResolve={editorDraft.resolve} />
       {aiError && (
         <div className="px-4 py-1.5 border-b shrink-0 text-xs bg-muted/30">
           <p className="text-[10px] text-destructive">{aiError}</p>
@@ -2891,7 +2740,7 @@ export function StoryboardSectionDetail({
                   html={renderedSection.html}
                   bookLabel={bookLabel}
                   className="w-full rounded borde"
-                  editable={!hasActiveTask && !storyboardRunning}
+                  editable={!hasActiveTask && !storyboardRunning && !saving}
                   prunedDataIds={prunedDataIds}
                   changedElements={changedElements}
                   onSelectElement={handleSelectElement}
@@ -3037,7 +2886,7 @@ export function StoryboardSectionDetail({
               const updated: RenderingData = {
                 ...base,
                 sections: base.sections.map((s) => {
-                  if (s.sectionIndex !== sectionIndex) return s
+                  if (renderedSectionId(s) !== renderedSectionId(renderedSection) || !renderedSectionId(renderedSection)) return s
                   return { ...s, html: e.target.value }
                 }),
               }
@@ -3155,8 +3004,8 @@ export function StoryboardSectionDetail({
           onSave={() => {
             // Type/tree changes live in pending sectioning — its save path also
             // persists the rendering AND auto-regenerates when the type changed.
-            if (dirty) void saveSectioning()
-            else void saveRendering()
+            if (dirty) void saveSectioning().catch(() => {})
+            else void saveRendering().catch(() => {})
           }}
           onDiscard={discardAll}
         />
@@ -3179,10 +3028,6 @@ export function StoryboardSectionDetail({
         onChangeSectionType={changeSectionType}
         onToggleSectionPruned={toggleSectionPruned}
         onSectionChange={handleSectionChange}
-        onLeafTextEdited={handleLeafTextEdited}
-        onLeafDuplicated={handleLeafDuplicated}
-        onLeafDeleted={handleLeafDeleted}
-        onStructuralChange={handleStructuralChange}
         onMergeSection={handleMergeSection}
         onMergeCrossPage={handleMergeCrossPage}
         hasPrevPage={hasPrevPage}
@@ -3201,7 +3046,7 @@ export function StoryboardSectionDetail({
             dirty={dirty}
             bookLabel={bookLabel}
             onRestored={discardAll}
-            onSave={saveSectioning}
+            onSave={() => void saveSectioning().catch(() => {})}
             onDiscard={discardAll}
             renderSaveBar={false}
           />

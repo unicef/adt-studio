@@ -1,5 +1,6 @@
 import { resolvePromptOverridesDir } from "../services/prompt-roots.js"
-import { readGenerationCatalog, GENERATION_NODES, isGenerationKind, assertPersistedSectioning, prepareSectioningRun } from "@adt/pipeline"
+import { readGenerationCatalog, GENERATION_NODES, isGenerationKind, assertPersistedSectioning, prepareSectioningRun, renderedSectionId, sectionRenderingContent, inputSignature } from "@adt/pipeline"
+import { PageSectioningOutput, WebRenderingOutput } from "@adt/types"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -79,7 +80,19 @@ export function createOutputRoutes(booksDir: string, promptsDir: string, configP
           const node = GENERATION_NODES[output.identity.kind], itemId = output.identity.id
           const data = storage.getLatestNodeData(node, itemId)?.data as { generationEvidence?: object } | undefined
           if (!data) throw new HTTPException(409, { message: "Output is no longer available." })
-          const version = storage.putNodeData(node, itemId, { ...data, generationEvidence: { ...data.generationEvidence,
+          let reviewedData: object = data
+          if (node === "web-rendering" && review.action === "keep") {
+            const rendered = WebRenderingOutput.safeParse(data)
+            const source = PageSectioningOutput.safeParse(storage.getLatestNodeData("page-sectioning", itemId)?.data)
+            if (rendered.success && source.success) reviewedData = { ...data, ...rendered.data, sections: rendered.data.sections.map((section) => {
+              const id = renderedSectionId(section)
+              const matches = source.data.sections.filter((entry) => entry.sectionId === id && !entry.isPruned)
+              return matches.length === 1 ? { ...section, generationEvidence: { ...section.generationEvidence, review: {
+                signature: inputSignature(matches[0]), contentHash: inputSignature(sectionRenderingContent(section)), action: "keep" as const,
+              } } } : section
+            }) }
+          }
+          const version = storage.putNodeData(node, itemId, { ...reviewedData, generationEvidence: { ...data.generationEvidence,
             review: { signature: review.signature, contentHash: review.contentHash, action: review.action } } })
           return c.json({ version })
         }

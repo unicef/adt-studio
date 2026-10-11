@@ -1093,32 +1093,12 @@ export function createAdtPreviewRoutes(
       if (!parsedSectionId) {
         throw new HTTPException(404, { message: `Section not found: ${pageId}` })
       }
-      const ownerPageId = parsedSectionId.pageId
-
-      const renderRow = storage.getLatestNodeData("web-rendering", ownerPageId)
-      if (!renderRow) {
-        throw new HTTPException(404, { message: `No rendering data for page: ${ownerPageId}` })
-      }
-
-      const parsed = WebRenderingOutput.safeParse(renderRow.data)
-      if (!parsed.success) {
-        throw new HTTPException(500, { message: "Invalid rendering data" })
-      }
-
-      // Get sectioning to look up sectionId → sectionIndex mapping. The id's
-      // sequence number is NOT its array position (ids are allocated once and
-      // never reused), so there is no positional fallback — an unresolvable id
-      // is a 404 rather than a guess that would serve a different section.
+      const item = resolveReadingOrder(storage).items.find((entry) => entry.kind === "section" && entry.id === pageId)
+      if (!item || item.kind !== "section") throw new HTTPException(404, { message: `Section not found: ${pageId}` })
+      const ownerPageId = item.pageId
       const sectioning = getRenderSectioning(storage, ownerPageId)
-      const targetSectionIndex = sectioning
-        ? sectioning.sections.findIndex((s) => s.sectionId === pageId)
-        : -1
-      const storedSection = parsed.data.sections.find((s) => s.sectionIndex === targetSectionIndex)
-      const renderedSection = storedSection ? scopeLegacyActivityIds(storedSection, pageId) : undefined
-
-      if (!renderedSection || targetSectionIndex < 0) {
-        throw new HTTPException(404, { message: `Section not found: ${pageId}` })
-      }
+      const targetSectionIndex = item.sectionIndex
+      const renderedSection = scopeLegacyActivityIds(item.rendering, pageId)
 
       // Determine page index from manifest (includes quiz pages)
       const manifest = buildPagesManifest(storage)

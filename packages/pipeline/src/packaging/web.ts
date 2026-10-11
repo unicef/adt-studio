@@ -1,3 +1,4 @@
+import { renderedSectionId } from "../sectioning-sync-evidence.js"
 import { buildImageInventory } from "../catalog-reconciliation.js"
 import { resolveQuizOptionId } from "@adt/types"
 import { scopeLegacyActivityIds } from "../catalog-reconciliation.js"
@@ -428,7 +429,8 @@ export async function packageAdtWeb(
     const parsed = row ? WebRenderingOutputSchema.safeParse(row.data) : null
     if (!parsed?.success) continue
     for (const rendering of [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)) {
-      if (!sectioning?.sections[rendering.sectionIndex]) {
+      const identity = renderedSectionId(rendering)
+      if (identity ? !sectioning?.sections.some((section) => section.sectionId === identity) : !sectioning?.sections[rendering.sectionIndex]) {
         orphanedRenderings.push({
           kind: "orphaned-rendering",
           pageId: page.pageId,

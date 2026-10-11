@@ -20,3 +20,10 @@ Each spec that establishes an invariant adds its checker in the same change.
 | 9 | B1 mode transitions retain entities/media and gate persisted Storyboard input | `apps/api/src/services/sectioning-lifecycle.test.ts`, `sectioning-preflight-runners.test.ts`, `packages/pipeline/src/__tests__/sectioning-preflight.test.ts`, and `packages/storage/src/__tests__/sectioning-book-writer.test.ts` under `pnpm test` | every PR | SPEC-0003 B1 implementation (review pending) |
 | 10 | Ordinary extraction admission never calls `clearExtractedData` | `scripts/check-invariants.mjs` checks the direct extraction, CLI DAG, stage route and runner; real-storage admission tests cover preservation | every PR | SPEC-0010 safe slice |
 | 11 | Prompt mutations compare the loaded revision under a shared writer gate; reset/restore retain versions and failed publication never selects an orphan | `apps/api/src/routes/prompts-persistence.test.ts`, `packages/llm/src/__tests__/prompt-cache-contract.test.ts`, `apps/api/src/services/prompt-portability.test.ts` | `pnpm test` | SPEC-0011 (in review; implementation authorized) |
+| 12 | Sectioning correspondence reads never patch content or add versions; unknown rendering provenance is never inferred as generated | `packages/pipeline/src/__tests__/sectioning-sync.test.ts` and `apps/api/src/routes/pages-sync.test.ts` | `pnpm test` | SPEC-0012 |
+
+SPEC-0012 also verifies atomic source/render/metadata Save, expected versions,
+scoped preservation and guarded repair with real SQLite/provider transport in
+`apps/api/src/routes/pages-sync-save.test.ts` and
+`apps/api/src/services/sectioning-repair.test.ts`. These are enforced by `pnpm test`;
+the standalone invariant script does not yet independently enforce every row.

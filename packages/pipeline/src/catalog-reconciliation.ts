@@ -6,6 +6,7 @@ import { buildTextCatalogSnapshot } from "./text-catalog.js"
 import { inputSignature } from "./output-freshness.js"
 import { extractImageIds } from "./image-captioning.js"
 import { getRenderSectioning } from "./render-sectioning.js"
+import { renderedSectionId } from "./sectioning-sync-evidence.js"
 
 /** Assign newly generated activity leaves real stored identities once. Reading
  * order is never used as identity. Existing authored data IDs are untouched. */
@@ -40,8 +41,8 @@ export function reconcileActivityIds(storage: Storage): void {
 
 /** Complete snapshot only: a partial page response cannot retire unseen IDs.
  * This is metadata reconciliation; no provider, deletion or output replacement. */
-export function reconcileTextCatalog(storage: Storage): TextCatalogOutput {
-  reconcileActivityIds(storage)
+export function reconcileTextCatalog(storage: Storage, options: { preserveRendering?: boolean } = {}): TextCatalogOutput {
+  if (!options.preserveRendering) reconcileActivityIds(storage)
   const catalog = buildTextCatalogSnapshot(storage, storage.getPages())
   const previous = storage.getLatestNodeData("text-catalog", "book")?.data as TextCatalogOutput | undefined
   if (inputSignature(previous?.entries) !== inputSignature(catalog.entries)) {
@@ -70,7 +71,8 @@ export function buildImageInventory(storage: Storage) {
     if (!rendering.success) continue
     const sectioning = getRenderSectioning(storage, page.pageId)
     for (const section of rendering.data.sections) {
-      const source = sectioning?.sections[section.sectionIndex]
+      const id = renderedSectionId(section)
+      const source = id ? sectioning?.sections.find((entry) => entry.sectionId === id) : sectioning?.sections[section.sectionIndex]
       if (source?.isPruned) continue
       for (const id of extractImageIds([section.html])) add(id, page.pageId, source?.sectionId)
     }

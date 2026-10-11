@@ -204,6 +204,8 @@ describe("ADT preview routes", () => {
     // section is still matched exactly — only the owner-page parse is widened.
     const storage = createBookStorage(label, tmpDir)
     try {
+      const legacy = storage.getLatestNodeData("web-rendering", `${label}_p1`)!.data as { sections: Array<{ html: string }> }
+      storage.putNodeData("web-rendering", `${label}_p1`, { ...legacy, sections: legacy.sections.map((section) => ({ ...section, html: section.html.replaceAll(`${label}_p1_sec002`, `${label}_p1_s2`) })) })
       storage.putNodeData("page-sectioning", `${label}_p1`, {
         reasoning: "ok",
         sections: [

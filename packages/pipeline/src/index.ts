@@ -507,8 +507,11 @@ export { beginSpeechRun, endSpeechRun, getLiveSpeechRun, type LiveSpeechSnapshot
 export type { StageRunner, StageRunOptions, StageRunProgress } from "./stage-execution-options.js"
 
 export { ResumeIncompleteError, catalogResumeStages } from "./catalog-resume.js"
-export { readGenerationCatalog, GENERATION_NODES, isGenerationKind } from "./generation-catalog.js"
+export { readGenerationCatalog, storyboardGenerationContent, GENERATION_NODES, isGenerationKind } from "./generation-catalog.js"
 
 export { assertPackageReadable, recoverPackagePublication } from "./packaging/publication.js"
 
 export { writePackageInventory, packageInventoryValid } from "./packaging/publication.js"
+export { classifySectioningSynchronization } from "./sectioning-sync.js"
+export { classifyStoredSectioning, renderedSectionId, sectionRenderingContent, generatedSectionEvidence, stampGeneratedRendering } from "./sectioning-sync-evidence.js"
+export type { GenerationCatalogOptions } from "./generation-catalog.js"

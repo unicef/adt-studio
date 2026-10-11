@@ -26,6 +26,7 @@ import {
   resolveQuizId,
 } from "@adt/types"
 import { getRenderSectioning } from "./render-sectioning.js"
+import { renderedSectionId } from "./sectioning-sync-evidence.js"
 
 /** One output page, in reading order. */
 export type ResolvedItem =
@@ -100,9 +101,20 @@ function readPageContexts(storage: Storage): PageContext[] {
     const row = storage.getLatestNodeData("web-rendering", page.pageId)
     const parsed = row ? WebRenderingOutputSchema.safeParse(row.data) : null
     const rendering = parsed?.success ? [...parsed.data.sections] : []
-    rendering.sort((a, b) => a.sectionIndex - b.sectionIndex)
-    return { pageId: page.pageId, sections: sectioning?.sections ?? [], rendering }
+    const sections = sectioning?.sections ?? []
+    rendering.sort((a, b) => sections.indexOf(correspondingSection(sections, a)!) - sections.indexOf(correspondingSection(sections, b)!))
+    return { pageId: page.pageId, sections, rendering }
   })
+}
+
+/** Retain read-only display of identityless legacy/fixed output, but an explicit
+ * stable identity can never fall back to a recycled index. Save/repair use the
+ * stricter provenance classifier and cannot act on this legacy display hint. */
+function correspondingSection(sections: PageSectioningSection[], rendering: SectionRendering) {
+  const id = renderedSectionId(rendering)
+  if (!id) return sections[rendering.sectionIndex]
+  const matches = sections.filter((section) => section.sectionId === id)
+  return matches.length === 1 ? matches[0] : undefined
 }
 
 /**
@@ -128,7 +140,7 @@ export function defaultReadingOrder(
   const items: ReadingOrderItem[] = []
   for (const page of pageContexts) {
     for (const entry of page.rendering) {
-      const section = page.sections[entry.sectionIndex]
+      const section = correspondingSection(page.sections, entry)
       if (!section) continue
       items.push({ kind: "section", id: section.sectionId })
     }
@@ -166,13 +178,19 @@ export function resolveReadingOrder(
     string,
     { pageId: string; sectionIndex: number; section: PageSectioningSection; rendering: SectionRendering }
   >()
+  const ambiguous = new Set<string>()
   for (const page of pageContexts) {
     for (const entry of page.rendering) {
-      const section = page.sections[entry.sectionIndex]
+      const section = correspondingSection(page.sections, entry)
       if (!section) continue
+      if (sectionsById.has(section.sectionId) || ambiguous.has(section.sectionId)) {
+        sectionsById.delete(section.sectionId)
+        ambiguous.add(section.sectionId)
+        continue
+      }
       sectionsById.set(section.sectionId, {
         pageId: page.pageId,
-        sectionIndex: entry.sectionIndex,
+        sectionIndex: page.sections.indexOf(section),
         section,
         rendering: entry,
       })

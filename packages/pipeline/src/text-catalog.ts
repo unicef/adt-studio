@@ -20,6 +20,7 @@ import {
 import type { Storage, PageData } from "@adt/storage"
 import { getGlossaryItemTextId } from "./glossary.js"
 import { getRenderSectioning } from "./render-sectioning.js"
+import { renderedSectionId } from "./sectioning-sync-evidence.js"
 
 /**
  * Like DomUtils.textContent but skips the children of any <script>/<style>
@@ -60,10 +61,12 @@ function extractPageEntries(
   const entries: TextCatalogEntry[] = []
 
   for (const section of rendering.sections) {
-    if (prunedSectionIndices?.has(section.sectionIndex)) continue
+    const stableId = renderedSectionId(section)
+    const owner = stableId ? sectioning?.sections.find((entry) => entry.sectionId === stableId) : sectioning?.sections[section.sectionIndex]
+    if (owner?.isPruned || (!stableId && prunedSectionIndices?.has(section.sectionIndex))) continue
 
     const doc = parseDocument(section.html)
-    const sectionId = sectioning?.sections[section.sectionIndex]?.sectionId
+    const sectionId = owner?.sectionId
     const location = { pageId, sectionId }
 
     // Only catalog leaves of the data-id tree. A wrapper element with a

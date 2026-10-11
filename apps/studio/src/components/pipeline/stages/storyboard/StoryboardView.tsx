@@ -17,6 +17,8 @@ import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { useHasUnsavedChanges } from "../../components/floating-save"
 import { parseQuizRouteId } from "@/lib/quiz-route"
+import { useIsFixedLayout } from "@/hooks/use-fixed-layout"
+import { SectioningSyncNotice } from "../../components/SectioningSyncNotice"
 
 
 export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
@@ -30,6 +32,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const { stageState, queueRun } = useBookRun()
   const { apiKey } = useApiKey()
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
+  const fixedLayout = useIsFixedLayout(bookLabel)
   const storyboardState = stageState("storyboard")
   const storyboardDone = storyboardState === "done"
   const storyboardRunning = storyboardState === "running" || storyboardState === "queued"
@@ -360,7 +363,10 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   // reminder, and the one place to regenerate the lot in a single pass, so a
   // restructuring session in Sectioning costs one render rather than one per
   // edit.
-  const storyboardStale = !storyboardDone && !storyboardRunning && hasRenderingData
+  // This recommendation describes semantic-to-rendered correspondence. A
+  // fixed-layout rerun reads the positioned tree and cannot repair that drift.
+  const storyboardStale = !fixedLayout && page?.sectioningSynchronization?.layout !== "fixed"
+    && !storyboardDone && !storyboardRunning && hasRenderingData
   const withStaleBanner = (content: ReactNode) =>
     storyboardStale ? (
       <div className="flex flex-col h-full min-h-0">
@@ -388,9 +394,16 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       content
     )
 
+  // Invalid/empty source and task fallback branches do not mount the section
+  // editor, but still need to show the authoritative unresolved correspondence.
+  const fallbackNotice = page && selectedPageId && !isQuizRoute
+    ? <SectioningSyncNotice synchronization={page.sectioningSynchronization} bookLabel={bookLabel} pageId={selectedPageId} />
+    : null
+
   if (showRunCard) {
     return (
-      <div className="p-4">
+      <div className="p-4 space-y-4">
+        {fallbackNotice}
         <StageRunCard
           stageSlug="storyboard"
           isRunning={storyboardRunning}
@@ -463,10 +476,11 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   if (!page.sectioningTree) {
     if (storyboardRunning) {
-      return <LoadingState stageSlug="storyboard" label={<Trans>Waiting for page to be processed...</Trans>} />
+      return <div className="h-full flex flex-col">{fallbackNotice}<LoadingState stageSlug="storyboard" label={<Trans>Waiting for page to be processed...</Trans>} /></div>
     }
     return (
-      <div className="p-4">
+      <div className="p-4 space-y-4">
+        {fallbackNotice}
         <StageRunCard
           stageSlug="storyboard"
           isRunning={storyboardRunning}
@@ -480,12 +494,15 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   if (sectionCount === 0) {
     return (
-      <StageEmptyState
-        icon={LayoutGrid}
-        color="violet"
-        title={<Trans>No sections for this page</Trans>}
-        subtitle={<Trans>This page has no storyboard sections</Trans>}
-      />
+      <div className="h-full flex flex-col">
+        {fallbackNotice}
+        <StageEmptyState
+          icon={LayoutGrid}
+          color="violet"
+          title={<Trans>No sections for this page</Trans>}
+          subtitle={<Trans>This page has no storyboard sections</Trans>}
+        />
+      </div>
     )
   }
 

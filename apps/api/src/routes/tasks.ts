@@ -20,5 +20,10 @@ export function createTaskRoutes(taskService: TaskService): Hono {
     return c.json({ tasks })
   })
 
+  app.post("/books/:label/tasks/:taskId/cancel", (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    if (!taskService.cancelTask?.(label, c.req.param("taskId"))) throw new HTTPException(404, { message: "Active task not found" })
+    return c.json({ status: "cancelling" })
+  })
   return app
 }

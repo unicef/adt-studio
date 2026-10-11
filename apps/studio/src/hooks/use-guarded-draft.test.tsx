@@ -62,3 +62,43 @@ it.each(["draft", "latest"] as const)("retains edits typed after the conflict be
   act(() => result.current.resolve(choice))
   expect(result.current.pending).toEqual({ title: choice === "draft" ? "Mine" : "Other writer", note: "Typed after conflict" })
 })
+
+
+it("retains edits typed after Save without blessing them against an unseen committed rendering", () => {
+  const reload = vi.fn(async () => ({ value: { text: "Latest" }, version: 3, companionVersion: 7 }))
+  const { result } = renderHook(() => useGuardedDraft({ text: "Before" }, 1, reload, 4))
+  act(() => result.current.setPending({ text: "Submitted" }))
+  const ticket = result.current.captureSave()
+  act(() => result.current.setPending({ text: "Typed while saving" }))
+  act(() => { expect(result.current.completeSave(ticket, 2, 5)).toBe(false) })
+  expect(result.current.pending).toEqual({ text: "Typed while saving" })
+  expect(result.current.baseVersion).toBe(1)
+  expect(result.current.baseCompanionVersion).toBe(4)
+})
+
+it("ignores a late successful response after discard and a different draft begins", () => {
+  const { result } = renderHook(() => useGuardedDraft({ text: "Before" }, 1, vi.fn(), 4))
+  act(() => result.current.setPending({ text: "Submitted" }))
+  const ticket = result.current.captureSave()
+  act(() => result.current.setPending(null))
+  act(() => result.current.setPending({ text: "A different draft" }))
+  act(() => { expect(result.current.completeSave(ticket, 2, 5)).toBe(false) })
+  expect(result.current.isCurrentSave(ticket)).toBe(false)
+  expect(result.current.pending).toEqual({ text: "A different draft" })
+  expect(result.current.baseVersion).toBe(1)
+  expect(result.current.baseCompanionVersion).toBe(4)
+})
+
+it("keeps both original guards on an ambiguous transport failure and reloads both after a conflict", async () => {
+  const reload = vi.fn(async () => ({ value: { text: "Before" }, version: 3, companionVersion: 7 }))
+  const { result, rerender } = renderHook(({ source, rendering }) => useGuardedDraft({ text: "Before" }, source, reload, rendering), { initialProps: { source: 1, rendering: 4 } })
+  act(() => result.current.setPending({ text: "Mine" }))
+  rerender({ source: 2, rendering: 6 })
+  await act(() => result.current.handleError(new Error("Response lost")))
+  expect(result.current.baseVersion).toBe(1)
+  expect(result.current.baseCompanionVersion).toBe(4)
+  await act(() => result.current.handleError(new ApiError("Conflict", 409)))
+  expect(result.current.pending).toEqual({ text: "Mine" })
+  expect(result.current.baseVersion).toBe(3)
+  expect(result.current.baseCompanionVersion).toBe(7)
+})

@@ -12,6 +12,7 @@ import { SectioningPageDetail } from "./SectioningPageDetail"
 import { SectioningOverview } from "../storyboard/components/SectioningOverview"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
+import { SectioningSyncNotice } from "../../components/SectioningSyncNotice"
 
 export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
   const { t } = useLingui()
@@ -183,9 +184,16 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [selectedPageId, canGoPrev, canGoNext, prevPageId, nextPageId, showRunCard])
 
+  // These fallback states do not mount SectioningPageDetail. Keep its read-only
+  // notice visible here as well, especially after deletion or failed work.
+  const fallbackNotice = page && selectedPageId
+    ? <SectioningSyncNotice synchronization={page.sectioningSynchronization} bookLabel={bookLabel} pageId={selectedPageId} showStoryboardLink />
+    : null
+
   if (showRunCard) {
     return (
-      <div className="p-4">
+      <div className="p-4 space-y-4">
+        {fallbackNotice}
         <StageRunCard
           stageSlug="sectioning"
           isRunning={sectioningRunning}
@@ -230,10 +238,11 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   if (!page.sectioningTree) {
     if (sectioningRunning) {
-      return <LoadingState stageSlug="sectioning" label={<Trans>Waiting for page to be processed...</Trans>} />
+      return <div className="h-full flex flex-col">{fallbackNotice}<LoadingState stageSlug="sectioning" label={<Trans>Waiting for page to be processed...</Trans>} /></div>
     }
     return (
-      <div className="p-4">
+      <div className="p-4 space-y-4">
+        {fallbackNotice}
         <StageRunCard
           stageSlug="sectioning"
           isRunning={sectioningRunning}
@@ -247,12 +256,15 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   if (page.sectioningTree.sections.length === 0) {
     return (
-      <StageEmptyState
-        icon={LayoutGrid}
-        color="sky"
-        title={<Trans>No sections for this page</Trans>}
-        subtitle={<Trans>This page has no sectioning output</Trans>}
-      />
+      <div className="h-full flex flex-col">
+        {fallbackNotice}
+        <StageEmptyState
+          icon={LayoutGrid}
+          color="sky"
+          title={<Trans>No sections for this page</Trans>}
+          subtitle={<Trans>This page has no sectioning output</Trans>}
+        />
+      </div>
     )
   }
 

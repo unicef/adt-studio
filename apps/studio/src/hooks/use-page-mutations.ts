@@ -4,6 +4,7 @@ import { api } from "@/api/client"
 
 /** Invalidate data derived from storyboard changes. */
 export function invalidateStoryboardDependents(queryClient: QueryClient, label: string): void {
+  queryClient.invalidateQueries({ queryKey: ["books", label, "outputs"] })
   queryClient.invalidateQueries({ queryKey: ["books", label, "easy-read"] })
   queryClient.invalidateQueries({ queryKey: ["books", label, "text-catalog"] })
   queryClient.invalidateQueries({ queryKey: ["books", label, "tts"] })

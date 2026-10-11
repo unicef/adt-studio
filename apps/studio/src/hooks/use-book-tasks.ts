@@ -15,7 +15,7 @@ export const bookTasksKey = (label: string) => ["books", label, "tasks"] as cons
 // ---------------------------------------------------------------------------
 
 export function useBookTasks(label: string) {
-  const { data } = useQuery({
+  const { data, dataUpdatedAt, isFetching } = useQuery({
     queryKey: bookTasksKey(label),
     queryFn: () => api.getTasks(label),
     enabled: !!label,
@@ -51,6 +51,8 @@ export function useBookTasks(label: string) {
 
   return {
     tasks,
+    dataUpdatedAt,
+    isFetching,
     runningTasks,
     runningCount: runningTasks.length,
     isTaskRunning,

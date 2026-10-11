@@ -48,6 +48,9 @@ function resolveEffectiveTimeoutMs(
 export interface CreateLLMModelOptions {
   modelId: string // "openai:gpt-5.4" format
   cacheDir?: string
+  /** Default for every call, including rendering's answer/review subcalls.
+   * Bypasses reads, retaining write-through of accepted output. */
+  forceFresh?: boolean
   promptEngine?: PromptEngine
   onLog?: (entry: LlmLogEntry) => void
   rateLimiter?: RateLimiter
@@ -96,6 +99,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       let resolvedPromptName = opts.prompt
 
       const context = opts.context ?? {}
+      const forceFresh = opts.forceFresh ?? options.forceFresh ?? false
       // Per-call signal wins over the model-level signal; either one cancels.
       const externalSignal = opts.signal ?? modelSignal
 
@@ -192,6 +196,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       const generate = async (
         current: Message[],
       ): Promise<{ object: T; usage: TokenUsage }> => {
+        if (forceFresh) externalSignal?.throwIfAborted()
         const generated = await resolved.backend.generateStructured<T>({
           system,
           messages: current,
@@ -205,6 +210,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
         return { object: generated.object, usage: generated.usage }
       }
 
+      let originalHash: string | undefined
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         const attemptStartedAt = Date.now()
         const attemptUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
@@ -220,6 +226,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           temperature: effectiveTemperature,
           maxTokens: opts.maxTokens,
         })
+        originalHash ??= hash
         // Reproduce the exact v1 key so a legacy entry from an unambiguous
         // backend still counts as a hit; configurable-origin providers skip it.
         // The v1 key recorded the caller's deprecated `mode` verbatim — omitted
@@ -245,9 +252,9 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
 
           // Check cache
           if (cacheDir) {
-            const cached = readCache<T>(cacheDir, hash)
+            const cached = forceFresh ? null : readCache<T>(cacheDir, hash)
             let legacyCached: T | null = null
-            if (cached === null) {
+            if (!forceFresh && cached === null) {
               for (const legacyHash of legacyHashes) {
                 legacyCached = readCache<T>(cacheDir, legacyHash)
                 if (legacyCached !== null) break
@@ -270,7 +277,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               totalUsage.inputTokens += generated.usage.inputTokens
               totalUsage.outputTokens += generated.usage.outputTokens
               lastCacheHit = false
-              writeCache(cacheDir, hash, result)
+              if (!forceFresh) writeCache(cacheDir, hash, result)
             }
           } else {
             if (rateLimiter) await rateLimiter.acquire()
@@ -288,7 +295,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             const check = opts.validate(result, context)
             if (!check.valid) {
               allErrors.push(...check.errors)
-              if (cacheDir) {
+              if (cacheDir && !forceFresh) {
                 bustCache(cacheDir, hash)
                 for (const legacyHash of legacyHashes) bustCache(cacheDir, legacyHash)
               }
@@ -330,6 +337,17 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             }
             if (check.cleaned !== undefined) {
               result = check.cleaned as T
+            }
+          }
+
+          if (forceFresh) {
+            // Provider failure, cancellation and rejected output must not
+            // replace or evict a usable result. A validated retry also updates the
+            // original key so ordinary reruns reuse the accepted fresh output.
+            externalSignal?.throwIfAborted()
+            if (cacheDir) {
+              writeCache(cacheDir, hash, result)
+              if (originalHash !== hash) writeCache(cacheDir, originalHash, result)
             }
           }
 
@@ -378,7 +396,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
         } catch (err) {
           const errMsg = formatProviderError(err)
           allErrors.push(errMsg)
-          if (cacheDir) {
+          if (cacheDir && !forceFresh) {
             bustCache(cacheDir, hash)
             for (const legacyHash of legacyHashes) bustCache(cacheDir, legacyHash)
           }

@@ -1,5 +1,5 @@
 import { assignActivitySectionIds } from "./catalog-reconciliation.js"
-import { inputSignature } from "./output-freshness.js"
+import { generatedActivityId } from "./generated-activity-identity.js"
 import type { SectionRendering } from "@adt/types"
 import { webRenderingLLMSchema, activityAnswersLLMSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
@@ -235,7 +235,7 @@ export async function renderSectionLlm(
     html: generatedHtml,
     ...(activityReasoning !== undefined && { activityReasoning }),
     ...(activityAnswers !== undefined && { activityAnswers }),
-  }, (id) => `${section.sectionId}_activity_${inputSignature({ id, html: generatedHtml }).slice(0, 24)}`)
+  }, (id) => generatedActivityId(section.sectionId, id, generatedHtml))
 }
 
 function validateWebRendering(

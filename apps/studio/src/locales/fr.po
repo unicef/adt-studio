@@ -2580,6 +2580,9 @@ msgstr "confiance"
 msgid "Config"
 msgstr "Config"
 
+msgid "Configure a generation provider before repairing these sections."
+msgstr "Configurez un fournisseur de génération avant de réparer ces sections."
+
 msgid "Configure activity detection and image processing options for extracted content. Hover any setting to see how it affects the preview."
 msgstr "Configurer les options de détection d'activité et de traitement d'image pour le contenu extrait. Survolez un paramètre pour voir comment il affecte l'aperçu."
 
@@ -4153,6 +4156,9 @@ msgstr "Mise en page fixe à deux colonnes"
 
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Les livres à mise en page fixe utilisent les images de page d'origine comme arrière-plans avec le texte positionné extrait du PDF. La détection d'activités, l'extraction de figures et le rognage ou la segmentation d'images ne s'appliquent pas à cette mise en page."
+
+msgid "Fixed-layout text editing"
+msgstr "Modification du texte à mise en page fixe"
 
 msgid "Flag severity threshold"
 msgstr "Seuil de gravité du signalement"
@@ -6109,6 +6115,9 @@ msgstr "Nouvelle session"
 msgid "new_type_key"
 msgstr "new_type_key"
 
+msgid "Newer edits are still unsaved. Save them before leaving."
+msgstr "Les modifications les plus récentes ne sont pas encore enregistrées. Enregistrez-les avant de quitter."
+
 msgid "Newest"
 msgstr "Plus récentes"
 
@@ -6777,6 +6786,9 @@ msgstr "Ouvrir la demande de tirage {0}"
 
 msgid "Open source PDF in a new tab"
 msgstr "Ouvrir le PDF source dans un nouvel onglet"
+
+msgid "Open Storyboard"
+msgstr "Ouvrir Storyboard"
 
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Ouvrir l'étape des quiz pour modifier ce quiz"
@@ -8118,6 +8130,9 @@ msgstr "Raisonnement de rendu"
 msgid "Render Strategy"
 msgstr "Stratégie de rendu"
 
+msgid "Rendered text is protected or differs from its source. Review it before replacing it."
+msgstr "Le texte rendu est protégé ou diffère de sa source. Vérifiez-le avant de le remplacer."
+
 msgid "Rendering Prompt"
 msgstr "Rendering Invite"
 
@@ -8129,6 +8144,21 @@ msgstr "Rend les activités à partir d'un modèle fixe pour un style cohérent.
 
 msgid "Renders each page into the storyboard layout used by the web reader."
 msgstr "Rend chaque page dans la mise en page du storyboard utilisée par le lecteur web."
+
+msgid "Repair failed. The previous rendering is retained."
+msgstr "La réparation a échoué. Le rendu précédent est conservé."
+
+msgid "Repair is queued or running. The saved preview remains unchanged until verified output is committed."
+msgstr "La réparation est en attente ou en cours. L’aperçu enregistré reste inchangé jusqu’à l’enregistrement d’un résultat vérifié."
+
+msgid "Repair listed sections"
+msgstr "Réparer les sections indiquées"
+
+msgid "Repair regenerates only these sections and may use paid generation:"
+msgstr "La réparation régénère uniquement ces sections et peut utiliser une génération payante :"
+
+msgid "Repair status is unavailable. The saved rendering and drift are retained. Refresh or retry the repair."
+msgstr "L’état de la réparation est indisponible. Le rendu enregistré et l’écart sont conservés. Actualisez ou réessayez la réparation."
 
 msgid "Replace"
 msgstr "Remplacer"
@@ -8355,6 +8385,9 @@ msgstr "Style de révision"
 
 msgid "Review the project details below and confirm the import."
 msgstr "Vérifiez les détails du projet ci-dessous et confirmez l'importation."
+
+#~ msgid "Review the saved source and preview before making further changes. Automatic synchronization and targeted repair are not available for these sections."
+#~ msgstr "Vérifiez la source enregistrée et l’aperçu avant d’effectuer d’autres modifications. La synchronisation automatique et la réparation ciblée ne sont pas disponibles pour ces sections."
 
 msgid "Review the source PDF details below and continue to configure how your book will be converted into an Accessible Digital Textbook."
 msgstr "Examinez les détails du PDF source ci-dessous et continuez à configurer comment votre livre sera converti en manuel numérique accessible."
@@ -8597,14 +8630,17 @@ msgstr "L'enregistrement a échoué"
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Enregistrez ou annulez votre brouillon avant de vérifier les résultats."
 
+msgid "Save or discard your draft before repairing these sections."
+msgstr "Enregistrez ou abandonnez votre brouillon avant de réparer ces sections."
+
 msgid "Save or discard your edits first"
 msgstr "Enregistrez ou abandonnez d'abord vos modifications"
 
 msgid "Save page review"
 msgstr "Enregistrer la révision de la page"
 
-msgid "Save section changes?"
-msgstr "Enregistrer les modifications des sections ?"
+#~ msgid "Save section changes?"
+#~ msgstr "Enregistrer les modifications des sections ?"
 
 msgid "Save selection"
 msgstr "Enregistrer la sélection"
@@ -8629,6 +8665,9 @@ msgstr "Le contenu enregistré est indisponible ; votre brouillon est conservé"
 
 msgid "Saved output is retained, but Sectioning and later stages are not current."
 msgstr "Les résultats enregistrés sont conservés, mais le découpage en sections et les étapes suivantes ne sont plus à jour."
+
+msgid "Saved source text differs from the preview."
+msgstr "Le texte source enregistré diffère de l’aperçu."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Enregistré. Ré-empaquetez l'aperçu pour appliquer."
@@ -8838,6 +8877,9 @@ msgstr "Sectionnement"
 msgid "Sectioning and later stages will need to run again. Saved versions are kept."
 msgstr "Le découpage en sections et les étapes suivantes devront être relancés. Les versions enregistrées sont conservées."
 
+msgid "Sectioning and Storyboard correspondence"
+msgstr "Correspondance entre les sections et Storyboard"
+
 msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
 msgstr "Le découpage a changé depuis le rendu de ces pages. Relancez le Scénarimage pour les régénérer."
 
@@ -9000,6 +9042,9 @@ msgstr "Sélectionner \\\"Aucun\\\" laisse le LLM choisir son propre style pour 
 
 msgid "Self-contained ADT web app"
 msgstr "Application web ADT autonome"
+
+msgid "Semantic text does not update the positioned page."
+msgstr "Le texte sémantique ne met pas à jour la page avec ses éléments positionnés."
 
 msgid "Send a sample notification using these settings."
 msgstr "Envoyer une notification d'exemple en utilisant ces paramètres."
@@ -9300,6 +9345,9 @@ msgstr "Certaines pages n'ont pas de couche de texte intégrée — le texte a �
 msgid "Some requested outputs remain unresolved. Protected content has been kept. Review the output warnings before retrying."
 msgstr "Certains résultats demandés restent non résolus. Le contenu protégé a été conservé. Consultez les avertissements des résultats avant de réessayer."
 
+msgid "Some source or rendering data could not be verified. Review this page in Storyboard."
+msgstr "Certaines données de source ou de rendu n’ont pas pu être vérifiées. Vérifiez cette page dans Storyboard."
+
 msgid "Something went wrong"
 msgstr "Quelque chose s'est mal passé"
 
@@ -9566,6 +9614,9 @@ msgstr "Scénarimage"
 
 msgid "Storyboard cannot run in By Page mode: {total} pages do not contain exactly one valid section. Re-run Sectioning, then try again. Incompatible manual or unknown-origin pages require explicit replacement confirmation. Affected pages: {pages}."
 msgstr "Storyboard ne peut pas être exécuté en mode Par page : {total} pages ne contiennent pas exactement une section valide. Relancez Sectioning, puis réessayez. Les pages incompatibles manuelles ou d’origine inconnue nécessitent une confirmation explicite de remplacement. Pages concernées : {pages}."
+
+msgid "Storyboard correspondence needs review"
+msgstr "La correspondance avec Storyboard doit être vérifiée"
 
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "Le scénarimage a déjà été exécuté. Les modifications effectuées ici ne prendront effet que lorsque le scénarimage sera relancé."
@@ -9875,6 +9926,9 @@ msgstr "Couleur du texte"
 msgid "Text color: {0}"
 msgstr "Texte couleur: {0}"
 
+msgid "Text edits in Sectioning change semantic content, but do not change the visible positioned page. Use Storyboard to edit that page. Rerendering semantic text cannot synchronize it."
+msgstr "Les modifications de texte dans Sectioning changent le contenu sémantique, mais pas la page visible avec ses éléments positionnés. Utilisez Storyboard pour modifier cette page. Un nouveau rendu du texte sémantique ne peut pas la synchroniser."
+
 msgid "Text normalization"
 msgstr "Normalisation du texte"
 
@@ -9983,6 +10037,9 @@ msgstr "Les données envoyées dans le corps d'un message de requête ou de rép
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 msgstr "L'instruction TTS par défaut appliquée à chaque langue sauf si elle est remplacée ci-dessous. OpenAI l'utilise comme instruction vocale et Gemini comme guidage d'accent dans le prompt ; Azure et ElevenLabs l'ignorent."
 
+msgid "The edited rendering can no longer be matched safely. Your draft is retained; reload and review this page."
+msgstr "Le rendu modifié ne peut plus être associé en toute sécurité. Votre brouillon est conservé ; rechargez et examinez cette page."
+
 msgid "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 msgstr "La page entière est traitée comme une seule section — tout le texte et les images restent ensemble en une seule unité. Idéal pour les livres d'histoires, les ouvrages de référence et tout contenu où chaque page est autonome."
 
@@ -10088,6 +10145,12 @@ msgstr "Le vif renard brun saute par-dessus le chien paresseux."
 msgid "The reader experience"
 msgstr "L'expérience du lecteur"
 
+msgid "The relationship between this source and the saved rendering is unverified."
+msgstr "La relation entre cette source et le rendu enregistré n’est pas vérifiée."
+
+msgid "The rendering is missing or cannot be matched safely."
+msgstr "Le rendu est absent ou ne peut pas être associé de manière fiable."
+
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "La stratégie de rendu utilisée pour les sections sans correspondance explicite."
 
@@ -10096,6 +10159,9 @@ msgstr "La même édition dans chaque langue."
 
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "La révision de traduction enregistrée est obsolète. Relancez Réviser pour les traductions visibles."
+
+msgid "The section structure or identity no longer matches the rendering."
+msgstr "La structure ou l’identité de la section ne correspond plus au rendu."
 
 msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 msgstr "La section a été modifiée après la conversion — utilisez « Reconstruire depuis la page » pour actualiser les étapes."
@@ -11408,6 +11474,9 @@ msgstr "Vos polices"
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Vos pages {displayStart}–{displayEnd}"
+
+msgid "Your saved source is retained. Review the affected sections below; repair is available only where their identity and generated origin are verified."
+msgstr "Votre source enregistrée est conservée. Examinez les sections concernées ci-dessous ; la réparation est disponible uniquement lorsque leur identité et leur origine générée sont vérifiées."
 
 msgid "Z → A"
 msgstr "Z → A"

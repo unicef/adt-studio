@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { OutputMetadata } from "./output-freshness.js"
 
 /**
  * Max upscale for a fixed-layout page filling its viewport. Shared by the
@@ -13,6 +14,8 @@ export const SectionRendering = z.object({
   sectionType: z.string(),
   reasoning: z.string(),
   html: z.string(),
+  /** Server-owned evidence for this stable section, using shared freshness. */
+  generationEvidence: OutputMetadata.optional(),
   activityReasoning: z.string().optional(),
   activityAnswers: z
     .record(z.string(), z.union([z.string(), z.boolean(), z.number()]))
@@ -22,6 +25,7 @@ export type SectionRendering = z.infer<typeof SectionRendering>
 
 export const WebRenderingOutput = z.object({
   sections: z.array(SectionRendering),
+  generationEvidence: OutputMetadata.optional(),
 })
 export type WebRenderingOutput = z.infer<typeof WebRenderingOutput>
 

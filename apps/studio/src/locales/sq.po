@@ -2580,6 +2580,9 @@ msgstr "besueshmëri"
 msgid "Config"
 msgstr "Konfigurim"
 
+msgid "Configure a generation provider before repairing these sections."
+msgstr "Konfiguroni një ofrues gjenerimi përpara se të riparoni këto seksione."
+
 msgid "Configure activity detection and image processing options for extracted content. Hover any setting to see how it affects the preview."
 msgstr "Konfiguroni zbulimin e aktivitetit dhe opsionet e përpunimit të imazheve për përmbajtjen e ekstraktuar. Kaloni kursorin mbi çdo cilësim për të parë si ndikon në pamjen paraprake."
 
@@ -4153,6 +4156,9 @@ msgstr "Paraqitje e fiksuar me dy kolona"
 
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Librat me paraqitje të fiksuar përdorin imazhet origjinale të faqeve si sfond me tekst të pozicionuar të nxjerrë nga PDF-i. Zbulimi i aktiviteteve, nxjerrja e figurave dhe prerja ose segmentimi i imazheve nuk zbatohen për këtë paraqitje."
+
+msgid "Fixed-layout text editing"
+msgstr "Redaktimi i tekstit me paraqitje fikse"
 
 msgid "Flag severity threshold"
 msgstr "Pragu i ashpërsisë së flamurit"
@@ -6109,6 +6115,9 @@ msgstr "Sesion i ri"
 msgid "new_type_key"
 msgstr "new_type_key"
 
+msgid "Newer edits are still unsaved. Save them before leaving."
+msgstr "Ndryshimet më të fundit ende nuk janë ruajtur. Ruajini përpara se të largoheni."
+
 msgid "Newest"
 msgstr "Më të rejat"
 
@@ -6777,6 +6786,9 @@ msgstr "Hap pull request-in {0}"
 
 msgid "Open source PDF in a new tab"
 msgstr "Hapni PDF-in burimor në një skedë të re"
+
+msgid "Open Storyboard"
+msgstr "Hap Storyboard"
 
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Hapni fazën Kuizet për të redaktuar këtë kuiz"
@@ -8118,6 +8130,9 @@ msgstr "Arsyetimi i Renderimit"
 msgid "Render Strategy"
 msgstr "Strategjia e Renderimit"
 
+msgid "Rendered text is protected or differs from its source. Review it before replacing it."
+msgstr "Teksti i renderuar është i mbrojtur ose ndryshon nga burimi i tij. Rishikojeni para se ta zëvendësoni."
+
 msgid "Rendering Prompt"
 msgstr "Kërkesa e Renderimit"
 
@@ -8129,6 +8144,21 @@ msgstr "Renderimi i aktiviteteve nga një shabllon i fiksuar për stil të qënd
 
 msgid "Renders each page into the storyboard layout used by the web reader."
 msgstr "Renderimi i çdo faqeje në paraqitjen e storyboard-it të përdorur nga lexuesi web."
+
+msgid "Repair failed. The previous rendering is retained."
+msgstr "Riparimi dështoi. Paraqitja e mëparshme është ruajtur."
+
+msgid "Repair is queued or running. The saved preview remains unchanged until verified output is committed."
+msgstr "Riparimi është në pritje ose në proces. Pamja paraprake e ruajtur mbetet e pandryshuar derisa të ruhet rezultati i verifikuar."
+
+msgid "Repair listed sections"
+msgstr "Riparo seksionet e renditura"
+
+msgid "Repair regenerates only these sections and may use paid generation:"
+msgstr "Riparimi rigjeneron vetëm këto seksione dhe mund të përdorë gjenerim me pagesë:"
+
+msgid "Repair status is unavailable. The saved rendering and drift are retained. Refresh or retry the repair."
+msgstr "Statusi i riparimit nuk është i disponueshëm. Paraqitja e ruajtur dhe mospërputhja mbeten të paprekura. Rifreskoni ose provoni përsëri riparimin."
 
 msgid "Replace"
 msgstr "Zëvendëso"
@@ -8355,6 +8385,9 @@ msgstr "Stili i rishikimit"
 
 msgid "Review the project details below and confirm the import."
 msgstr "Rishikoni detajet e projektit më poshtë dhe konfirmoni importimin."
+
+#~ msgid "Review the saved source and preview before making further changes. Automatic synchronization and targeted repair are not available for these sections."
+#~ msgstr "Rishikoni burimin e ruajtur dhe pamjen paraprake para ndryshimeve të tjera. Sinkronizimi automatik dhe riparimi i synuar nuk janë të disponueshëm për këto seksione."
 
 msgid "Review the source PDF details below and continue to configure how your book will be converted into an Accessible Digital Textbook."
 msgstr "Rishikoni detajet e PDF-it burimor më poshtë dhe vazhdoni të konfiguroni se si libri juaj do të konvertohet në një Tekst Dixhital të Aksesueshëm."
@@ -8597,14 +8630,17 @@ msgstr "Ruajtja dështoi"
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Ruani ose anuloni draftin para se të rishikoni rezultatet."
 
+msgid "Save or discard your draft before repairing these sections."
+msgstr "Ruajeni ose hidhni poshtë draftin tuaj përpara se të riparoni këto seksione."
+
 msgid "Save or discard your edits first"
 msgstr "Fillimisht ruani ose hidhni poshtë ndryshimet"
 
 msgid "Save page review"
 msgstr "Ruaj rishikimin e faqes"
 
-msgid "Save section changes?"
-msgstr "Të ruhen ndryshimet e seksioneve?"
+#~ msgid "Save section changes?"
+#~ msgstr "Të ruhen ndryshimet e seksioneve?"
 
 msgid "Save selection"
 msgstr "Ruaj zgjedhjen"
@@ -8629,6 +8665,9 @@ msgstr "Përmbajtja e ruajtur nuk është e disponueshme; drafti yt ruhet"
 
 msgid "Saved output is retained, but Sectioning and later stages are not current."
 msgstr "Rezultatet e ruajtura mbahen, por ndarja në seksione dhe fazat pasuese nuk janë të përditësuara."
+
+msgid "Saved source text differs from the preview."
+msgstr "Teksti burimor i ruajtur ndryshon nga pamja paraprake."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
@@ -8838,6 +8877,9 @@ msgstr "Seksionim"
 msgid "Sectioning and later stages will need to run again. Saved versions are kept."
 msgstr "Ndarja në seksione dhe fazat pasuese duhet të ekzekutohen përsëri. Versionet e ruajtura mbahen."
 
+msgid "Sectioning and Storyboard correspondence"
+msgstr "Përputhja e seksioneve me Storyboard"
+
 msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
 msgstr "Seksionimi ka ndryshuar që kur u renderizuan këto faqe. Ekzekuto përsëri Storyboard-in për t'i rigjeneruar ato."
 
@@ -9000,6 +9042,9 @@ msgstr "Zgjedhja e \"Asnjë\" i lejon LLM-it të zgjedhë stilin e tij për çdo
 
 msgid "Self-contained ADT web app"
 msgstr "Aplikacion web ADT i pavarur"
+
+msgid "Semantic text does not update the positioned page."
+msgstr "Teksti semantik nuk e përditëson faqen me elemente të pozicionuara."
 
 msgid "Send a sample notification using these settings."
 msgstr "Dërgo një njoftim shembull duke përdorur këto cilësime."
@@ -9300,6 +9345,9 @@ msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua
 msgid "Some requested outputs remain unresolved. Protected content has been kept. Review the output warnings before retrying."
 msgstr "Disa rezultate të kërkuara mbeten të pazgjidhura. Përmbajtja e mbrojtur është ruajtur. Shqyrtoni paralajmërimet e rezultateve para se të provoni përsëri."
 
+msgid "Some source or rendering data could not be verified. Review this page in Storyboard."
+msgstr "Disa të dhëna të burimit ose renderimit nuk mund të verifikoheshin. Rishikoni këtë faqe në Storyboard."
+
 msgid "Something went wrong"
 msgstr "Diçka shkoi keq"
 
@@ -9566,6 +9614,9 @@ msgstr "Storyboard"
 
 msgid "Storyboard cannot run in By Page mode: {total} pages do not contain exactly one valid section. Re-run Sectioning, then try again. Incompatible manual or unknown-origin pages require explicit replacement confirmation. Affected pages: {pages}."
 msgstr "Storyboard nuk mund të ekzekutohet në modalitetin Sipas faqes: {total} faqe nuk përmbajnë saktësisht një seksion të vlefshëm. Ekzekutoni përsëri Sectioning dhe provoni sërish. Faqet e papajtueshme manuale ose me origjinë të panjohur kërkojnë konfirmim të qartë për zëvendësim. Faqet e prekura: {pages}."
+
+msgid "Storyboard correspondence needs review"
+msgstr "Përputhja me Storyboard kërkon rishikim"
 
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "Storyboard-i është ekzekutuar tashmë. Ndryshimet e bëra këtu nuk do të hyjnë në fuqi derisa storyboard-i të ri-ekzekutohet."
@@ -9875,6 +9926,9 @@ msgstr "Ngjyra e tekstit"
 msgid "Text color: {0}"
 msgstr "Ngjyra e tekstit: {0}"
 
+msgid "Text edits in Sectioning change semantic content, but do not change the visible positioned page. Use Storyboard to edit that page. Rerendering semantic text cannot synchronize it."
+msgstr "Ndryshimet e tekstit në Sectioning ndryshojnë përmbajtjen semantike, por jo faqen e dukshme me elemente të pozicionuara. Përdorni Storyboard për ta redaktuar atë faqe. Rirenderimi i tekstit semantik nuk mund ta sinkronizojë atë."
+
 msgid "Text normalization"
 msgstr "Normalizimi i tekstit"
 
@@ -9983,6 +10037,9 @@ msgstr "Të dhënat e dërguara brenda trupit të një mesazhi kërkese ose për
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 msgstr "Udhëzimi i parazgjedhur i TTS-së i aplikuar për çdo gjuhë, përveç rasteve kur anulohet më poshtë. OpenAI e përdor si udhëzim zëri dhe Gemini si drejtim theksi brenda kërkesës; Azure dhe ElevenLabs e injorojnë."
 
+msgid "The edited rendering can no longer be matched safely. Your draft is retained; reload and review this page."
+msgstr "Paraqitja e redaktuar nuk mund të përputhet më në mënyrë të sigurt. Drafti juaj është ruajtur; ringarkoni dhe shqyrtoni këtë faqe."
+
 msgid "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 msgstr "I gjithë faqja trajtohet si një seksion i vetëm — i gjithë teksti dhe imazhet qëndrojnë bashkë si një njësi. Më e mirë për libra me tregime, libra referencë dhe çdo përmbajtje ku çdo faqe është e vetëmjaftueshme."
 
@@ -10088,6 +10145,12 @@ msgstr "Dhelpra e shpejtë kafe kërcen mbi qenin dembel."
 msgid "The reader experience"
 msgstr "Përvoja e lexuesit"
 
+msgid "The relationship between this source and the saved rendering is unverified."
+msgstr "Lidhja midis këtij burimi dhe renderimit të ruajtur nuk është verifikuar."
+
+msgid "The rendering is missing or cannot be matched safely."
+msgstr "Renderimi mungon ose nuk mund të përputhet në mënyrë të sigurt."
+
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "Strategjia e renderimit e përdorur për seksionet pa një hartëzim eksplicit."
 
@@ -10096,6 +10159,9 @@ msgstr "I njëjti botim në çdo gjuhë."
 
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "Rishikimi i ruajtur i përkthimit është i vjetëruar. Ekzekutoni Rishikimin përsëri për përkthimet e dukshme."
+
+msgid "The section structure or identity no longer matches the rendering."
+msgstr "Struktura ose identiteti i seksionit nuk përputhet më me renderimin."
 
 msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 msgstr "Seksioni u ndryshua pas konvertimit — përdor «Rindërto nga faqja» për të rifreskuar hapat."
@@ -11408,6 +11474,9 @@ msgstr "Fontet e tua"
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Faqet tuaja {displayStart}–{displayEnd}"
+
+msgid "Your saved source is retained. Review the affected sections below; repair is available only where their identity and generated origin are verified."
+msgstr "Burimi juaj i ruajtur mbetet i paprekur. Shqyrtoni seksionet e prekura më poshtë; riparimi është i disponueshëm vetëm kur identiteti dhe origjina e tyre e gjeneruar janë verifikuar."
 
 msgid "Z → A"
 msgstr "Z → A"

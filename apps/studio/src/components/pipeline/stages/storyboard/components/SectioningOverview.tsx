@@ -14,12 +14,18 @@ import {
   SlidersHorizontal,
   Eye,
 } from "lucide-react"
+import { findRenderedSection } from "../lib/rendered-section"
 import { SectionActionsDropdown } from "./SectionActionsDropdown"
 import { SectionEditToolbar } from "./SectionEditToolbar"
 import { ImageCropDialog, pageBoundsToCropRect } from "./ImageCropDialog"
 import { AiImageDialog } from "./AiImageDialog"
 import { SectionTreeEditor } from "@/components/section-tree-editor/SectionTreeEditor"
-import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
+import { useGuardedDraft } from "@/hooks/use-guarded-draft"
+import { useFloatingSave } from "../../../components/floating-save"
+import { DraftConflict } from "../../../components/DraftConflict"
+import { SectioningSyncNotice } from "../../../components/SectioningSyncNotice"
+import { Button } from "@/components/ui/button"
+import { useApiKey } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
@@ -37,8 +43,6 @@ interface SectioningOverviewProps {
 export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: SectioningOverviewProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
-  const { apiKey } = useApiKey()
-  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { stageState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
@@ -138,40 +142,11 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
           i === sectionIndex ? { ...s, isPruned: !s.isPruned } : s
         ),
       }
-      // Pruning only filters the section out at read time; its HTML stays in
-      // web-rendering, so the toggle leaves the storyboard current. Unpruning a
-      // section that was pruned when the storyboard ran is the case that needs
-      // work: it was skipped then, so it has no HTML and the LLM has to produce
-      // it. Render just that section rather than marking the whole stage stale —
-      // this is the normal way content gets brought in, one section at a time.
-      const wasPruned = page.sectioningTree.sections[sectionIndex]?.isPruned ?? false
-      const hasHtml = (page.rendering?.sections ?? []).some(
-        (s) => s.sectionIndex === sectionIndex && !!s.html
-      )
-      const needsRerender = wasPruned && !hasHtml
-      return api
-        .saveStoryboard(bookLabel, pageId, {
-          sectioning: updated,
-          baseVersion: page.versions.sectioning ?? 0,
-          // Without a key we cannot fill the HTML, so the stage must report it.
-          renderingInSync: !needsRerender || hasStructuredTextProvider,
-        })
-        .then(async (result) => {
-          // Sectioning is saved with the section unpruned, so the re-render will
-          // actually emit it — `web-rendering` skips pruned sections. The task
-          // marks the storyboard stale itself if it fails; a rejected submission
-          // never reaches the runner, so take the completion mark back here.
-          if (!needsRerender || !hasStructuredTextProvider) return result
-          try {
-            await api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex)
-          } catch (err) {
-            await api
-              .saveStoryboard(bookLabel, pageId, { sectioning: updated, renderingInSync: false, baseVersion: result.sectioningVersion ?? 0 })
-              .catch(() => {})
-            throw err
-          }
-          return result
-        })
+      return api.saveStoryboard(bookLabel, pageId, {
+        sectioning: updated,
+        baseVersion: page.versions.sectioning ?? 0,
+        renderingVersion: page.versions.rendering ?? 0,
+      })
     },
     onSuccess: (_data, vars) => invalidatePages(vars.pageId),
   })
@@ -490,9 +465,7 @@ function PageSectionRows({
         const isExpanded = expanded.has(idx)
 
         // Get rendering reasoning if available
-        const renderSection = page.rendering?.sections.find(
-          (r) => r.sectionIndex === idx
-        )
+        const renderSection = findRenderedSection(page.rendering, section.sectionId, page.sectioningSynchronization?.layout === "fixed")
 
         return (
           <SectionRow
@@ -790,15 +763,15 @@ function SectionDetail({
     const result = await api.uploadCroppedImage(bookLabel, pageId, cropTarget, blob)
     const pageData = queryClient.getQueryData<PageDetail>(["books", bookLabel, "pages", pageId])
     if (pageData?.sectioningTree) {
-      const updated = updateSectionNodes(pageData.sectioningTree, sectionIndex, (nodes) =>
+      const updated = updateSectionNodes(pageData.sectioningTree, pageData.sectioningTree.sections.findIndex((candidate) => candidate.sectionId === section.sectionId), (nodes) =>
         replaceNodeId(nodes, cropTarget, result.imageId)
       )
-      await api.updateSectioning(bookLabel, pageId, { ...updated, baseVersion: pageData.versions.sectioning ?? 0 })
+      await api.updateSectioning(bookLabel, pageId, { ...updated, baseVersion: pageData.versions.sectioning ?? 0, renderingVersion: pageData.versions.rendering ?? 0 })
     }
     setCropTarget(null)
     setRecropPageSrc(null)
     onInvalidatePages(pageId)
-  }, [cropTarget, bookLabel, pageId, sectionIndex, queryClient, onInvalidatePages])
+  }, [cropTarget, bookLabel, pageId, sectionIndex, section.sectionId, queryClient, onInvalidatePages])
 
   const handleRecropFromPage = useCallback(async (dataId: string) => {
     setSelectedImage(null)
@@ -826,13 +799,13 @@ function SectionDetail({
     const result = await api.uploadCroppedImage(bookLabel, pageId, targetId, file)
     const pageData = queryClient.getQueryData<PageDetail>(["books", bookLabel, "pages", pageId])
     if (pageData?.sectioningTree) {
-      const updated = updateSectionNodes(pageData.sectioningTree, sectionIndex, (nodes) =>
+      const updated = updateSectionNodes(pageData.sectioningTree, pageData.sectioningTree.sections.findIndex((candidate) => candidate.sectionId === section.sectionId), (nodes) =>
         replaceNodeId(nodes, targetId, result.imageId)
       )
-      await api.updateSectioning(bookLabel, pageId, { ...updated, baseVersion: pageData.versions.sectioning ?? 0 })
+      await api.updateSectioning(bookLabel, pageId, { ...updated, baseVersion: pageData.versions.sectioning ?? 0, renderingVersion: pageData.versions.rendering ?? 0 })
     }
     onInvalidatePages(pageId)
-  }, [bookLabel, pageId, sectionIndex, queryClient, onInvalidatePages])
+  }, [bookLabel, pageId, sectionIndex, section.sectionId, queryClient, onInvalidatePages])
 
   const handleAiImage = useCallback((dataId: string) => {
     setSelectedImage(null)
@@ -859,38 +832,74 @@ function SectionDetail({
     setSelectedImage(null)
     const pageData = queryClient.getQueryData<PageDetail>(["books", bookLabel, "pages", pageId])
     if (pageData?.sectioningTree) {
-      const updated = updateSectionNodes(pageData.sectioningTree, sectionIndex, (nodes) =>
+      const updated = updateSectionNodes(pageData.sectioningTree, pageData.sectioningTree.sections.findIndex((candidate) => candidate.sectionId === section.sectionId), (nodes) =>
         deleteNode(nodes, dataId)
       )
-      await api.updateSectioning(bookLabel, pageId, { ...updated, baseVersion: pageData.versions.sectioning ?? 0 })
+      await api.updateSectioning(bookLabel, pageId, { ...updated, baseVersion: pageData.versions.sectioning ?? 0, renderingVersion: pageData.versions.rendering ?? 0 })
     }
     onInvalidatePages(pageId)
-  }, [bookLabel, pageId, sectionIndex, queryClient, onInvalidatePages])
+  }, [bookLabel, pageId, sectionIndex, section.sectionId, queryClient, onInvalidatePages])
 
-  const handleSectionChange = useCallback(async (next: PageSectioningSection) => {
-    const pageData = queryClient.getQueryData<PageDetail>(["books", bookLabel, "pages", pageId])
-    if (!pageData?.sectioningTree) return
-    const updated: PageSectioningOutput = {
-      ...pageData.sectioningTree,
-      sections: pageData.sectioningTree.sections.map((s, i) =>
-        i === sectionIndex ? next : s
-      ),
-    }
-    await api.updateSectioning(bookLabel, pageId, { ...updated, baseVersion: pageData.versions.sectioning ?? 0 })
-    onInvalidatePages(pageId)
-  }, [bookLabel, pageId, sectionIndex, queryClient, onInvalidatePages])
+  const { data: sourcePage } = useQuery({
+    queryKey: ["books", bookLabel, "pages", pageId],
+    queryFn: () => api.getPage(bookLabel, pageId),
+    staleTime: 30_000,
+  })
+  const draft = useGuardedDraft<PageSectioningOutput>(sourcePage?.sectioningTree, sourcePage?.versions.sectioning, async () => {
+    const latest = await api.getPage(bookLabel, pageId)
+    queryClient.setQueryData(["books", bookLabel, "pages", pageId], latest)
+    if (!latest.sectioningTree) throw new Error(t`Saved content is unavailable; your draft is retained`)
+    return { value: latest.sectioningTree, version: latest.versions.sectioning ?? 0, companionVersion: latest.versions.rendering ?? 0 }
+  }, sourcePage?.versions.rendering ?? 0)
+  const [savingDraft, setSavingDraft] = useState(false)
+  const draftSaveRef = useRef<Promise<void> | null>(null)
+  const handleSectionChange = useCallback((next: PageSectioningSection) => {
+    if (!sourcePage?.sectioningTree) return
+    draft.setPending((before) => {
+      const base = before ?? sourcePage.sectioningTree!
+      return { ...base, sections: base.sections.map((saved) => saved.sectionId === section.sectionId ? next : saved) }
+    })
+  }, [draft, sourcePage, section.sectionId])
+  const saveDraft = (): Promise<void> => {
+    if (draftSaveRef.current) return draftSaveRef.current
+    const promise = performDraftSave()
+    draftSaveRef.current = promise
+    void promise.then(() => { if (draftSaveRef.current === promise) draftSaveRef.current = null }, () => { if (draftSaveRef.current === promise) draftSaveRef.current = null })
+    return promise
+  }
+  const performDraftSave = async () => {
+    if (!draft.pending) return
+    if (draft.conflict) throw new Error(t`Resolve conflicting edits before saving`)
+    const ticket = draft.captureSave()
+    setSavingDraft(true)
+    try {
+      const saved = await api.updateSectioning(bookLabel, pageId, { ...draft.pending, baseVersion: draft.baseVersion, renderingVersion: draft.baseCompanionVersion })
+      const cleared = draft.completeSave(ticket, saved.sectioningVersion ?? saved.version, saved.renderingVersion ?? 0)
+      onInvalidatePages(pageId)
+      if (!cleared && draft.isCurrentSave(ticket)) throw new Error(t`Newer edits are still unsaved. Save them before leaving.`)
+    } catch (error) {
+      await draft.handleError(error)
+      throw error
+    } finally { setSavingDraft(false) }
+  }
+  useFloatingSave({
+    id: `sectioning-overview:${bookLabel}:${pageId}:${section.sectionId}`,
+    stage: "sectioning", dirty: !!draft.pending, saving: savingDraft,
+    onSave: () => void saveDraft().catch(() => {}), onSaveStay: saveDraft,
+    onDiscard: () => draft.setPending(null),
+  })
 
   const handleTogglePrune = useCallback(async (dataId: string) => {
     setSelectedImage(null)
     const pageData = queryClient.getQueryData<PageDetail>(["books", bookLabel, "pages", pageId])
     if (pageData?.sectioningTree) {
-      const updated = updateSectionNodes(pageData.sectioningTree, sectionIndex, (nodes) =>
+      const updated = updateSectionNodes(pageData.sectioningTree, pageData.sectioningTree.sections.findIndex((candidate) => candidate.sectionId === section.sectionId), (nodes) =>
         toggleNodePruned(nodes, dataId)
       )
-      await api.updateSectioning(bookLabel, pageId, { ...updated, baseVersion: pageData.versions.sectioning ?? 0 })
+      await api.updateSectioning(bookLabel, pageId, { ...updated, baseVersion: pageData.versions.sectioning ?? 0, renderingVersion: pageData.versions.rendering ?? 0 })
     }
     onInvalidatePages(pageId)
-  }, [bookLabel, pageId, sectionIndex, queryClient, onInvalidatePages])
+  }, [bookLabel, pageId, sectionIndex, section.sectionId, queryClient, onInvalidatePages])
 
   // The sectionId names the section's HTML file. Ids are allocated once and
   // never reused, so one cannot be derived from the array index — after a
@@ -971,13 +980,19 @@ function SectionDetail({
                 <Trans>Content</Trans>
               </h4>
               <SectionTreeEditor
-                section={section}
+                section={draft.pending?.sections.find((candidate) => candidate.sectionId === section.sectionId) ?? section}
                 onChange={handleSectionChange}
                 bookLabel={bookLabel}
                 textRoles={textRoles}
                 containerStructures={containerStructures}
-                disabled={isMutating || storyboardRunning}
+                disabled={isMutating || storyboardRunning || savingDraft}
               />
+              <DraftConflict error={draft.error} paths={draft.conflict?.paths} onResolve={draft.resolve} />
+              {draft.pending && <div className="flex gap-2 mt-2">
+                <Button size="sm" disabled={savingDraft || !!draft.conflict} onClick={() => void saveDraft().catch(() => {})}><Trans>Save changes</Trans></Button>
+                <Button size="sm" variant="outline" disabled={savingDraft} onClick={() => draft.setPending(null)}><Trans>Discard</Trans></Button>
+              </div>}
+              <SectioningSyncNotice synchronization={sourcePage?.sectioningSynchronization} bookLabel={bookLabel} pageId={pageId} showStoryboardLink />
             </div>
           )}
 

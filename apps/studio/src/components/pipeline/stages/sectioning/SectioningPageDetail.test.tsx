@@ -13,7 +13,7 @@ vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }))
 
-const updateSectioning = vi.fn(async () => ({ version: 2 }))
+const updateSectioning = vi.fn(async () => ({ version: 2, sectioningVersion: 2, renderingVersion: 5 }))
 const cloneSection = vi.fn(async () => ({ version: 2 }))
 const getPage = vi.fn()
 const queryClient = { invalidateQueries: vi.fn(async () => {}), setQueryData: vi.fn() }
@@ -56,6 +56,7 @@ vi.mock("@/lib/section-constants", () => ({
   getSectionTypeDescription: () => "",
 }))
 
+vi.mock("../../components/SectioningSyncNotice", () => ({ SectioningSyncNotice: () => null }))
 vi.mock("@/hooks/use-pages", () => ({ usePageImage: () => ({ data: undefined }) }))
 vi.mock("@/hooks/use-page-mutations", () => ({ invalidateStoryboardDependents: vi.fn() }))
 vi.mock("../../components/StepViewRouter", () => ({
@@ -150,7 +151,7 @@ const page = {
   text: "hello",
   imageClassification: null,
   imageCropping: null,
-  versions: { sectioning: 1 },
+  versions: { sectioning: 1, rendering: 4 },
   sectioningTree: {
     reasoning: "r",
     sections: [{ sectionId: "bk_p1_sec001", sectionType: "text", nodes: [] }],
@@ -188,27 +189,24 @@ describe("SectioningPageDetail — save confirmation", () => {
   })
   afterEach(cleanup)
 
-  it("confirms before saving when completed downstream stages would be reset", () => {
+  it("saves once with both displayed versions and no obsolete destructive reset confirmation", async () => {
     renderDetail()
-    expect(savedEntry.resetStages).toEqual(["storyboard", "package"])
+    expect(savedEntry.resetStages).toBeUndefined()
     editAndSave()
-
-    expect(screen.getByTestId("cascade-dialog")).toBeTruthy()
-    // Nothing is written until the user confirms.
-    expect(updateSectioning).not.toHaveBeenCalled()
+    await act(async () => {})
+    expect(screen.queryByTestId("cascade-dialog")).toBeNull()
+    expect(updateSectioning).toHaveBeenCalledTimes(1)
+    expect(updateSectioning).toHaveBeenCalledWith("bk", "bk_p1", expect.objectContaining({ baseVersion: 1, renderingVersion: 4 }))
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["books", "bk", "pages", "bk_p1"] })
   })
 
-  it("confirms for fixed-layout books too, since the API resets them all the same", () => {
-    // `markStoryboardChainStale` in apps/api/src/routes/pages.ts clears the whole
-    // chain for every page-sectioning save regardless of render mode, and quiz
-    // generation reads the semantic sectioning even in fixed-layout. Skipping the
-    // warning here would silently discard completed audio and packaged output.
+  it("allows a fixed-layout semantic save without promising a positioned rerender", async () => {
     isFixedLayout.mockReturnValue(true)
     renderDetail()
     editAndSave()
-
-    expect(screen.getByTestId("cascade-dialog")).toBeTruthy()
-    expect(updateSectioning).not.toHaveBeenCalled()
+    await act(async () => {})
+    expect(screen.queryByTestId("cascade-dialog")).toBeNull()
+    expect(updateSectioning).toHaveBeenCalledTimes(1)
   })
 
   it("returns the in-flight save so navigation waits for the existing PUT", async () => {
@@ -237,14 +235,14 @@ describe("SectioningPageDetail — save confirmation", () => {
   })
 
   it("allows saving after explicitly retaining an overlapping draft at the refreshed version", async () => {
-    getPage.mockResolvedValue({ ...page, versions: { sectioning: 2 }, sectioningTree: { ...page.sectioningTree, sections: [{ ...page.sectioningTree!.sections[0], sectionType: "remote" }] } })
+    getPage.mockResolvedValue({ ...page, versions: { sectioning: 2, rendering: 7 }, sectioningTree: { ...page.sectioningTree, sections: [{ ...page.sectioningTree!.sections[0], sectionType: "remote" }] } })
     updateSectioning.mockRejectedValueOnce(new ApiError("Content changed", 409))
     renderDetail()
     fireEvent.click(screen.getByText("edit"))
     await act(async () => { await expect(savedEntry.onSaveStay!()).rejects.toThrow("Content changed") })
     fireEvent.click(screen.getByRole("button", { name: "Keep my conflicting edits" }))
     await act(async () => { await savedEntry.onSaveStay!() })
-    expect(updateSectioning).toHaveBeenLastCalledWith("bk", "bk_p1", expect.objectContaining({ baseVersion: 2, sections: [expect.objectContaining({ sectionType: "edited" })] }))
+    expect(updateSectioning).toHaveBeenLastCalledWith("bk", "bk_p1", expect.objectContaining({ baseVersion: 2, renderingVersion: 7, sections: [expect.objectContaining({ sectionType: "edited" })] }))
   })
 
   it("disables every editor while a structural operation is in flight", async () => {

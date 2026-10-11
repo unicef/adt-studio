@@ -2578,6 +2578,9 @@ msgstr "confidence"
 msgid "Config"
 msgstr "Config"
 
+msgid "Configure a generation provider before repairing these sections."
+msgstr "Configure a generation provider before repairing these sections."
+
 msgid "Configure activity detection and image processing options for extracted content. Hover any setting to see how it affects the preview."
 msgstr "Configure activity detection and image processing options for extracted content. Hover any setting to see how it affects the preview."
 
@@ -4151,6 +4154,9 @@ msgstr "Fixed two-column template layout"
 
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
+
+msgid "Fixed-layout text editing"
+msgstr "Fixed-layout text editing"
 
 msgid "Flag severity threshold"
 msgstr "Flag severity threshold"
@@ -6107,6 +6113,9 @@ msgstr "New session"
 msgid "new_type_key"
 msgstr "new_type_key"
 
+msgid "Newer edits are still unsaved. Save them before leaving."
+msgstr "Newer edits are still unsaved. Save them before leaving."
+
 msgid "Newest"
 msgstr "Newest"
 
@@ -6775,6 +6784,9 @@ msgstr "Open pull request {0}"
 
 msgid "Open source PDF in a new tab"
 msgstr "Open source PDF in a new tab"
+
+msgid "Open Storyboard"
+msgstr "Open Storyboard"
 
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Open the Quizzes stage to edit this quiz"
@@ -8116,6 +8128,9 @@ msgstr "Render Reasoning"
 msgid "Render Strategy"
 msgstr "Render Strategy"
 
+msgid "Rendered text is protected or differs from its source. Review it before replacing it."
+msgstr "Rendered text is protected or differs from its source. Review it before replacing it."
+
 msgid "Rendering Prompt"
 msgstr "Rendering Prompt"
 
@@ -8127,6 +8142,21 @@ msgstr "Renders activities from a fixed template for consistent styling."
 
 msgid "Renders each page into the storyboard layout used by the web reader."
 msgstr "Renders each page into the storyboard layout used by the web reader."
+
+msgid "Repair failed. The previous rendering is retained."
+msgstr "Repair failed. The previous rendering is retained."
+
+msgid "Repair is queued or running. The saved preview remains unchanged until verified output is committed."
+msgstr "Repair is queued or running. The saved preview remains unchanged until verified output is committed."
+
+msgid "Repair listed sections"
+msgstr "Repair listed sections"
+
+msgid "Repair regenerates only these sections and may use paid generation:"
+msgstr "Repair regenerates only these sections and may use paid generation:"
+
+msgid "Repair status is unavailable. The saved rendering and drift are retained. Refresh or retry the repair."
+msgstr "Repair status is unavailable. The saved rendering and drift are retained. Refresh or retry the repair."
 
 msgid "Replace"
 msgstr "Replace"
@@ -8353,6 +8383,9 @@ msgstr "Review style"
 
 msgid "Review the project details below and confirm the import."
 msgstr "Review the project details below and confirm the import."
+
+#~ msgid "Review the saved source and preview before making further changes. Automatic synchronization and targeted repair are not available for these sections."
+#~ msgstr "Review the saved source and preview before making further changes. Automatic synchronization and targeted repair are not available for these sections."
 
 msgid "Review the source PDF details below and continue to configure how your book will be converted into an Accessible Digital Textbook."
 msgstr "Review the source PDF details below and continue to configure how your book will be converted into an Accessible Digital Textbook."
@@ -8595,14 +8628,17 @@ msgstr "Save failed"
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Save or cancel your draft before reviewing outputs."
 
+msgid "Save or discard your draft before repairing these sections."
+msgstr "Save or discard your draft before repairing these sections."
+
 msgid "Save or discard your edits first"
 msgstr "Save or discard your edits first"
 
 msgid "Save page review"
 msgstr "Save page review"
 
-msgid "Save section changes?"
-msgstr "Save section changes?"
+#~ msgid "Save section changes?"
+#~ msgstr "Save section changes?"
 
 msgid "Save selection"
 msgstr "Save selection"
@@ -8627,6 +8663,9 @@ msgstr "Saved content is unavailable; your draft is retained"
 
 msgid "Saved output is retained, but Sectioning and later stages are not current."
 msgstr "Saved output is retained, but Sectioning and later stages are not current."
+
+msgid "Saved source text differs from the preview."
+msgstr "Saved source text differs from the preview."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
@@ -8836,6 +8875,9 @@ msgstr "Sectioning"
 msgid "Sectioning and later stages will need to run again. Saved versions are kept."
 msgstr "Sectioning and later stages will need to run again. Saved versions are kept."
 
+msgid "Sectioning and Storyboard correspondence"
+msgstr "Sectioning and Storyboard correspondence"
+
 msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
 msgstr "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
 
@@ -8998,6 +9040,9 @@ msgstr "Selecting \"None\" lets the LLM choose its own styling for each page."
 
 msgid "Self-contained ADT web app"
 msgstr "Self-contained ADT web app"
+
+msgid "Semantic text does not update the positioned page."
+msgstr "Semantic text does not update the positioned page."
 
 msgid "Send a sample notification using these settings."
 msgstr "Send a sample notification using these settings."
@@ -9298,6 +9343,9 @@ msgstr "Some pages have no embedded text layer — text was recovered from the p
 msgid "Some requested outputs remain unresolved. Protected content has been kept. Review the output warnings before retrying."
 msgstr "Some requested outputs remain unresolved. Protected content has been kept. Review the output warnings before retrying."
 
+msgid "Some source or rendering data could not be verified. Review this page in Storyboard."
+msgstr "Some source or rendering data could not be verified. Review this page in Storyboard."
+
 msgid "Something went wrong"
 msgstr "Something went wrong"
 
@@ -9564,6 +9612,9 @@ msgstr "Storyboard"
 
 msgid "Storyboard cannot run in By Page mode: {total} pages do not contain exactly one valid section. Re-run Sectioning, then try again. Incompatible manual or unknown-origin pages require explicit replacement confirmation. Affected pages: {pages}."
 msgstr "Storyboard cannot run in By Page mode: {total} pages do not contain exactly one valid section. Re-run Sectioning, then try again. Incompatible manual or unknown-origin pages require explicit replacement confirmation. Affected pages: {pages}."
+
+msgid "Storyboard correspondence needs review"
+msgstr "Storyboard correspondence needs review"
 
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
@@ -9873,6 +9924,9 @@ msgstr "Text color"
 msgid "Text color: {0}"
 msgstr "Text color: {0}"
 
+msgid "Text edits in Sectioning change semantic content, but do not change the visible positioned page. Use Storyboard to edit that page. Rerendering semantic text cannot synchronize it."
+msgstr "Text edits in Sectioning change semantic content, but do not change the visible positioned page. Use Storyboard to edit that page. Rerendering semantic text cannot synchronize it."
+
 msgid "Text normalization"
 msgstr "Text normalization"
 
@@ -9981,6 +10035,9 @@ msgstr "The data sent within the body of a request or response message."
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 msgstr "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 
+msgid "The edited rendering can no longer be matched safely. Your draft is retained; reload and review this page."
+msgstr "The edited rendering can no longer be matched safely. Your draft is retained; reload and review this page."
+
 msgid "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 msgstr "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 
@@ -10086,6 +10143,12 @@ msgstr "The quick brown fox jumps over the lazy dog."
 msgid "The reader experience"
 msgstr "The reader experience"
 
+msgid "The relationship between this source and the saved rendering is unverified."
+msgstr "The relationship between this source and the saved rendering is unverified."
+
+msgid "The rendering is missing or cannot be matched safely."
+msgstr "The rendering is missing or cannot be matched safely."
+
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "The rendering strategy used for sections without an explicit mapping."
 
@@ -10094,6 +10157,9 @@ msgstr "The same edition in every language."
 
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "The saved translation review is stale. Run Review again for the visible translations."
+
+msgid "The section structure or identity no longer matches the rendering."
+msgstr "The section structure or identity no longer matches the rendering."
 
 msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 msgstr "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
@@ -11406,6 +11472,9 @@ msgstr "Your fonts"
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Your pages {displayStart}–{displayEnd}"
+
+msgid "Your saved source is retained. Review the affected sections below; repair is available only where their identity and generated origin are verified."
+msgstr "Your saved source is retained. Review the affected sections below; repair is available only where their identity and generated origin are verified."
 
 msgid "Z → A"
 msgstr "Z → A"

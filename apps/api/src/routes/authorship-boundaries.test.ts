@@ -52,9 +52,10 @@ describe("stored authorship is not client-writable", () => {
     for (const { route, node, itemId, body } of cases) {
       const current = createBookStorage(label, booksDir)
       const baseVersion = current.getLatestNodeData(node, itemId)?.version ?? 0
+      const renderingVersion = current.getLatestNodeData("web-rendering", "pg001")?.version ?? 0
       current.close()
       const catalog = route.startsWith("text-catalog") ? await (await app.request(`/books/${label}/text-catalog`)).json() : null
-      const guards = catalog ? { sourceVersion: catalog.version, sourceSignature: catalog.translations.fr.sourceSignature } : {}
+      const guards = catalog ? { sourceVersion: catalog.version, sourceSignature: catalog.translations.fr.sourceSignature } : route.startsWith("pages/") ? { renderingVersion } : {}
       const response = await app.request(`/books/${label}/${route}`, {
         method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, baseVersion, ...guards }),
       })

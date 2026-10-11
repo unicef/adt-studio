@@ -43,6 +43,14 @@ describe("flattenVisibleSectioningText", () => {
     expect(flattenVisibleSectioningText(null)).toBe("")
   })
 
+  it("retains recoverable legacy text while ignoring invalid containers and nodes", () => {
+    expect(flattenVisibleSectioningText([
+      null, "bad", { nodes: {} },
+      { nodes: [null, 42, { text: "Readable", children: [null, { text: "nested" }] }] },
+    ])).toBe("Readable\nnested")
+    expect(flattenVisibleSectioningText({ sections: "bad" })).toBe("")
+  })
+
   it("collects text from nested nodes, skipping pruned sections and leaves", () => {
     const sections = [
       {

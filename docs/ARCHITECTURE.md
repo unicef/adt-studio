@@ -228,6 +228,46 @@ The `.db` file uses entity versioning — `node_data` rows are never overwritten
 
 ---
 
+## Sectioning and Storyboard correspondence
+
+The page detail GET returns `sectioningSynchronization`, a read-only projection of
+the active semantic and rendering versions. It reads current version pointers and
+the active section ownership graph in one database read snapshot. Stable section
+IDs in stored HTML are matched exactly; rendering array indices are not identity.
+The pure classifier lives in `packages/pipeline/src/sectioning-sync.ts`, its shared
+Zod contracts in `packages/types/src/sectioning-sync.ts`, and its read adapter in
+`apps/api/src/services/sectioning-sync.ts`. Studio shows persistent notices in the
+Sectioning and Storyboard editors, including the fixed-layout semantic boundary.
+
+Both Sectioning-only and paired Storyboard saves use the server-owned
+`apps/api/src/services/storyboard-save.ts` transaction under shared book writer
+admission. They validate expected source/render versions, classify trusted
+historical per-section generation evidence, preserve unpatchable/manual/unknown
+renderings, and return committed versions with synchronization results. Catalog
+reconciliation uses the shared freshness model without rewriting unaffected HTML
+or deleting downstream history/media. Matching text alone never proves authorship.
+
+Targeted repair reuses task service, mode preflight, captured prompt inputs and
+staged publication. Stable section IDs select the output; cancellation, stale
+versions and rejected correspondence retain prior output. Custom/protected cases
+use retention review and supported editing. GET is read-only; fixed positioned
+pages retain the explicit semantic editing limitation. See
+[full implementation evidence](verification/spec-0012-full-continuation.md).
+
+---
+
+### Explicit rerender cache policy
+
+Explicit rerenders set the shared LLM model's `forceFresh` default, which applies
+to render, answer-generation and review calls through the existing resolver.
+It bypasses current and legacy cache reads without changing cache keys. Accepted
+fresh output writes through; validation retries also update the original request
+key for ordinary identical-input reuse. Provider failure, cancellation and
+rejected fresh output retain prior cache entries. Ordinary pipeline calls retain
+their existing caching behavior. This policy does not establish content provenance
+or authorize replacing protected output; SPEC-0012 targeted repair separately
+enforces shared protection, admission and scoped invalidation.
+
 ## Real-Time Progress: SSE
 
 Pipeline progress streams from the API to the frontend via Server-Sent Events (SSE). The connection opens when a book view mounts and stays open until unmount — no toggle, no manual reconnect. `EventSource` handles reconnection natively.

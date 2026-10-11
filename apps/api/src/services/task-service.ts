@@ -7,7 +7,7 @@ import { resolveBookPaths, withBookWriter } from "@adt/storage"
 export type TaskProgressEmitter = (message: string, percent?: number) => void
 
 /** The function that executes the actual work. May return a result payload. */
-export type TaskExecutor = (emitProgress: TaskProgressEmitter) => Promise<unknown>
+export type TaskExecutor = (emitProgress: TaskProgressEmitter, signal: AbortSignal) => Promise<unknown>
 
 interface BookTaskState {
   tasks: Map<string, TaskInfo>
@@ -19,9 +19,10 @@ export interface TaskService {
     kind: TaskKind,
     description: string,
     executor: TaskExecutor,
-    options?: { pageId?: string; url?: string }
+    options?: { pageId?: string; url?: string; cancellable?: boolean }
   ): { taskId: string }
 
+  cancelTask?(label: string, taskId: string): boolean
   getActiveTasks(label: string): TaskInfo[]
 }
 
@@ -29,6 +30,7 @@ let nextTaskId = 1
 
 export function createTaskService(eventBus: BookEventBus, booksDir?: string): TaskService {
   const books = new Map<string, BookTaskState>()
+  const controllers = new Map<string, { label: string; controller: AbortController }>()
 
   function getOrCreate(label: string): BookTaskState {
     let state = books.get(label)
@@ -55,9 +57,11 @@ export function createTaskService(eventBus: BookEventBus, booksDir?: string): Ta
       kind: TaskKind,
       description: string,
       executor: TaskExecutor,
-      options?: { pageId?: string; url?: string }
+      options?: { pageId?: string; url?: string; cancellable?: boolean }
     ): { taskId: string } {
       const taskId = `task-${nextTaskId++}`
+      const controller = new AbortController()
+      if (options?.cancellable) controllers.set(taskId, { label, controller })
 
       const info: TaskInfo = {
         taskId,
@@ -79,12 +83,15 @@ export function createTaskService(eventBus: BookEventBus, booksDir?: string): Ta
           data: { type: "task-start", taskId, kind, label, description, pageId: options?.pageId, url: options?.url },
         })
 
-        return Promise.resolve().then(() => executor((message, percent) => {
+        return Promise.resolve().then(() => {
+          controller.signal.throwIfAborted()
+          return executor((message, percent) => {
           eventBus.emit(label, {
             type: "task",
             data: { type: "task-progress", taskId, message, percent },
           })
-        }))
+        }, controller.signal)
+        })
       }
       const work = booksDir ? withBookWriter(resolveBookPaths(label, booksDir).bookDir, () => {
         recoverSectioningTransition(resolveBookPaths(label, booksDir).bookDir)
@@ -111,11 +118,19 @@ export function createTaskService(eventBus: BookEventBus, booksDir?: string): Ta
           })
         })
         .finally(() => {
+          controllers.delete(taskId)
           // Remove completed/failed tasks after a short delay so clients can read the final state
           setTimeout(() => removeTask(label, taskId), 30_000)
         })
 
       return { taskId }
+    },
+
+    cancelTask(label, taskId) {
+      const entry = controllers.get(taskId)
+      if (!entry || entry.label !== label) return false
+      entry.controller.abort(new Error("Task cancelled. Previous output is retained."))
+      return true
     },
 
     getActiveTasks(label: string): TaskInfo[] {

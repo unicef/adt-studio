@@ -24,17 +24,17 @@ export function useHasSavedOutputs(bookLabel: string, stage: StageName) {
     output.identity.kind !== "preparation" && (output.usable || output.protected)) ?? false
 }
 
-export function OutputReview({ bookLabel, id, kinds, language, voiceSlot, dirty = false }: {
-  bookLabel: string; id: string; kinds: OutputKind[]; language?: string; voiceSlot?: string; dirty?: boolean
+export function OutputReview({ bookLabel, id, kinds, language, voiceSlot, dirty = false, allowGeneration = true }: {
+  bookLabel: string; id: string; kinds: OutputKind[]; language?: string; voiceSlot?: string; dirty?: boolean; allowGeneration?: boolean
 }) {
   const { data } = useOutputs(bookLabel)
   const outputs = data?.outputs.filter((output) => output.identity.id === id && kinds.includes(output.identity.kind) &&
     (!language || !output.identity.language || output.identity.language === language) && (!voiceSlot || !output.identity.voiceSlot || output.identity.voiceSlot === voiceSlot)) ?? []
-  return <div className="space-y-1">{outputs.map((output) => <OutputReviewItem key={JSON.stringify(output.identity)} bookLabel={bookLabel} output={output} outputs={data?.outputs ?? []} dirty={dirty} />)}</div>
+  return <div className="space-y-1">{outputs.map((output) => <OutputReviewItem key={JSON.stringify(output.identity)} bookLabel={bookLabel} output={output} outputs={data?.outputs ?? []} dirty={dirty} allowGeneration={allowGeneration} />)}</div>
 }
 
-function OutputReviewItem({ bookLabel, output, outputs, dirty = false, disclosure = false, detail = false }: {
-  bookLabel: string; output: OutputStatus; outputs: OutputStatus[]; dirty?: boolean; disclosure?: boolean; detail?: boolean
+function OutputReviewItem({ bookLabel, output, outputs, dirty = false, disclosure = false, detail = false, allowGeneration = true }: {
+  bookLabel: string; output: OutputStatus; outputs: OutputStatus[]; dirty?: boolean; disclosure?: boolean; detail?: boolean; allowGeneration?: boolean
 }) {
   const { t } = useLingui()
   const { apiKey } = useApiKey()
@@ -49,6 +49,9 @@ function OutputReviewItem({ bookLabel, output, outputs, dirty = false, disclosur
     mutationFn: async (action: "keep" | "checked" | "generate" | "replace" | "retry" | "skip") => {
       if (action === "skip") return api.skipOutputs(bookLabel, { identities: [output.identity] })
       if (action === "keep" || action === "checked") return api.reviewOutput(bookLabel, { identity: output.identity, signature: output.signature, contentHash: output.contentHash, action })
+      // Correspondence review must not route protected/custom output through
+      // generic generation, including a replacement selected before a refresh.
+      if (!allowGeneration) return
       const stage = OUTPUT_KIND_TO_STAGE[output.identity.kind]
       return api.runStages(bookLabel, apiKey, { fromStage: stage, toStage: stage, resume: GENERATION_OUTPUT_KINDS.some((kind) => kind === output.identity.kind), outputScope: {
         selection: { kinds: [output.identity.kind], ids: [output.identity.id], ...(output.identity.language ? { languages: [output.identity.language] } : {}), ...(output.identity.voiceSlot ? { voiceSlots: [output.identity.voiceSlot] } : {}) },
@@ -88,13 +91,13 @@ function OutputReviewItem({ bookLabel, output, outputs, dirty = false, disclosur
       {isRunning && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => mutation.mutate("skip")}>{t`Skip this run`}</Button>}
       {output.usable && output.protected && ownWarning && <Button size="sm" variant="ghost" disabled={mutation.isPending || output.blocked} onClick={() => mutation.mutate("keep")}>{output.manual ? t`Keep my edit` : t`Keep existing content`}</Button>}
       {fallback && output.usable && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => mutation.mutate("checked")}>{t`Mark checked`}</Button>}
-      {fallback && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => mutation.mutate("retry")}>{t`Retry preparation`}</Button>}
-      {(output.updateNeeded || output.missing) && (!output.protected) && <Button size="sm" variant="ghost" disabled={mutation.isPending || output.blocked} onClick={() => mutation.mutate("generate")}>{t`Generate selected output`}</Button>}
-      {output.protected && <Button size="sm" variant="ghost" disabled={mutation.isPending || output.blocked} onClick={() => setReplace(!replace)}>{t`Regenerate`}</Button>}
-      {replace && <Button size="sm" variant="outline" disabled={mutation.isPending || output.blocked} onClick={() => mutation.mutate("replace")}>{t`Regenerate and replace my edit`}</Button>}
+      {allowGeneration && fallback && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => mutation.mutate("retry")}>{t`Retry preparation`}</Button>}
+      {allowGeneration && (output.updateNeeded || output.missing) && (!output.protected) && <Button size="sm" variant="ghost" disabled={mutation.isPending || output.blocked} onClick={() => mutation.mutate("generate")}>{t`Generate selected output`}</Button>}
+      {allowGeneration && output.protected && <Button size="sm" variant="ghost" disabled={mutation.isPending || output.blocked} onClick={() => setReplace(!replace)}>{t`Regenerate`}</Button>}
+      {allowGeneration && replace && <Button size="sm" variant="outline" disabled={mutation.isPending || output.blocked} onClick={() => mutation.mutate("replace")}>{t`Regenerate and replace my edit`}</Button>}
       {upstream && <Button size="sm" variant="ghost" onClick={() => setShowSource(!showSource)}>{t`Review source`}</Button>}
     </div>}
-    {showSource && upstream && <div className="mt-2 border-l pl-2"><p className="mb-1 font-mono">{upstream.identity.id} {upstream.identity.language}</p><OutputReviewItem bookLabel={bookLabel} output={upstream} outputs={outputs} dirty={dirty} disclosure={disclosure} detail /></div>}
+    {showSource && upstream && <div className="mt-2 border-l pl-2"><p className="mb-1 font-mono">{upstream.identity.id} {upstream.identity.language}</p><OutputReviewItem bookLabel={bookLabel} output={upstream} outputs={outputs} dirty={dirty} disclosure={disclosure} detail allowGeneration={allowGeneration} /></div>}
     {mutation.error && <p className="mt-1 text-red-700">{mutation.error.message}</p>}
   </div>
 }

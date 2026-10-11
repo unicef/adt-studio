@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react"
 import { createPortal } from "react-dom"
-import { Copy, Eye, Merge, Save, Scissors, Trash2 } from "lucide-react"
+import { Copy, Eye, Merge, Scissors, Trash2 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type { PageSectioningOutput, PageSectioningSection } from "@adt/types"
@@ -34,6 +34,7 @@ import { useStepHeader } from "../../components/StepViewRouter"
 import { usePendingChanges } from "../../components/change-summary"
 import { useFloatingSave } from "../../components/floating-save"
 import { CascadeResetDialog } from "../../components/CascadeResetDialog"
+import { SectioningSyncNotice } from "../../components/SectioningSyncNotice"
 import { useDownstreamWithOutput } from "@/hooks/use-downstream-with-output"
 
 export function SectioningPageDetail({
@@ -90,8 +91,8 @@ export function SectioningPageDetail({
     const latest = await api.getPage(bookLabel, pageId)
     queryClient.setQueryData(["books", bookLabel, "pages", pageId], latest)
     if (!latest.sectioningTree) throw new Error(t`Saved content is unavailable; your draft is retained`)
-    return { value: latest.sectioningTree as PageSectioningOutput, version: latest.versions.sectioning ?? 0 }
-  })
+    return { value: latest.sectioningTree as PageSectioningOutput, version: latest.versions.sectioning ?? 0, companionVersion: latest.versions.rendering ?? 0 }
+  }, page.versions.rendering ?? 0)
   const pendingBySectionId = Object.fromEntries((draft.pending?.sections ?? []).filter((section) => JSON.stringify(section) !== JSON.stringify(page.sectioningTree?.sections.find((s) => s.sectionId === section.sectionId))).map((s) => [s.sectionId, s]))
   const [saving, setSaving] = useState(false)
   const savePromiseRef = useRef<Promise<void> | null>(null)
@@ -114,15 +115,9 @@ export function SectioningPageDetail({
   }
   const [pendingOp, setPendingOp] = useState<PendingOp | null>(null)
 
-  // A sectioning edit invalidates the storyboard's rendered HTML, and every
-  // later output (text catalog, translations, audio, the packaged book) is
-  // re-derived from that HTML. Saving therefore resets those stages, so warn
-  // first and let the user decide — nothing is re-run automatically.
-  // Held in a ref because the hook returns a fresh array every render, which
-  // would otherwise defeat `performSave`'s memoization.
+  // Structural operations still show their downstream consequences. Ordinary
+  // text Save preserves history and lets the server invalidate actual consumers.
   const downstreamAffected = useDownstreamWithOutput("sectioning")
-  const downstreamRef = useRef(downstreamAffected)
-  downstreamRef.current = downstreamAffected
 
   // Reset pending edits when navigating to a different page. Done during render
   // (React's "adjust state when a prop changes" pattern) rather than in an
@@ -165,13 +160,14 @@ export function SectioningPageDetail({
     const savePromise = (async () => {
       setSaving(true)
       setSaveError(null)
+      const payload: PageSectioningOutput = {
+        reasoning: page.sectioningTree?.reasoning ?? "",
+        sections: mergedSections,
+      }
+      const ticket = draft.captureSave(payload)
       try {
-        const payload: PageSectioningOutput = {
-          reasoning: page.sectioningTree?.reasoning ?? "",
-          sections: mergedSections,
-        }
-        await api.updateSectioning(bookLabel, pageId, { ...payload, baseVersion: draft.baseVersion })
-        draft.setPending(null)
+        const saved = await api.updateSectioning(bookLabel, pageId, { ...payload, baseVersion: draft.baseVersion, renderingVersion: draft.baseCompanionVersion })
+        const cleared = draft.completeSave(ticket, saved.sectioningVersion ?? saved.version, saved.renderingVersion ?? 0)
         // Refresh in the background. The unsaved-changes guard awaits this
         // function before resuming a blocked navigation, and `invalidateQueries`
         // only settles once the refetches finish — awaiting it would hold the
@@ -183,7 +179,9 @@ export function SectioningPageDetail({
           queryKey: ["books", bookLabel, "pages"],
         })
         invalidateStoryboardDependents(queryClient, bookLabel)
+        if (!cleared && draft.isCurrentSave(ticket)) throw new Error(t`Newer edits are still unsaved. Save them before leaving.`)
       } catch (err) {
+        if (!draft.isCurrentSave(ticket)) throw err
         setSaveError(err instanceof Error ? err.message : t`Save failed`)
         await draft.handleError(err)
         // Rethrow so UnsavedChangesGuard's "Save & leave" does NOT navigate away
@@ -215,29 +213,10 @@ export function SectioningPageDetail({
     t,
   ])
 
-  /**
-   * Explicit Save from the floating bar. Saving resets the storyboard chain, so
-   * when there are completed downstream stages to lose we confirm first —
-   * cancelling leaves the edits pending rather than saving them into an
-   * inconsistent state. This applies to fixed-layout books too: the API clears
-   * the chain for every `page-sectioning` save regardless of render mode, and
-   * quiz generation reads the semantic sectioning even in fixed-layout, so
-   * exempting them would silently discard completed audio and packaged output.
-   */
   const requestSave = useCallback(() => {
     if (!dirty || saving) return
-    if (downstreamRef.current.length > 0) {
-      setPendingOp({
-        title: t`Save section changes?`,
-        confirmLabel: t`Save changes`,
-        icon: Save,
-        colorClass: "bg-sky-600 hover:bg-sky-700",
-        run: () => void performSave().catch(() => {}),
-      })
-      return
-    }
     void performSave().catch(() => {})
-  }, [dirty, saving, performSave, t])
+  }, [dirty, saving, performSave])
 
   /**
    * Gate for the server-side structural ops (split / duplicate / merge /
@@ -280,7 +259,6 @@ export function SectioningPageDetail({
   useFloatingSave({
     id: `sectioning:${pageId}`,
     stage: "sectioning",
-    resetStages: downstreamAffected,
     dirty,
     saving,
     label: pendingLabel,
@@ -459,6 +437,8 @@ export function SectioningPageDetail({
       </div>
       <div className="w-1/2 min-w-0 overflow-auto p-4 space-y-4">
         {page.sectioningTree && <AuthorshipBadge source={page.sectioningTree.source} />}
+
+        <SectioningSyncNotice synchronization={page.sectioningSynchronization} bookLabel={bookLabel} pageId={pageId} showStoryboardLink />
         {page.extractionWarning && (
           <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
             <Eye className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
