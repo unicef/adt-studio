@@ -3,32 +3,33 @@ import React from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 
+const { tMock } = vi.hoisted(() => ({
+  tMock(strings: TemplateStringsArray, ...values: unknown[]) {
+    return strings.map((part, i) => part + (i < values.length ? String(values[i]) : "")).join("")
+  },
+}))
 vi.mock("@lingui/react/macro", () => ({
-  useLingui: () => ({
-    t(strings: TemplateStringsArray, ...values: unknown[]) {
-      let out = ""
-      strings.forEach((s, i) => {
-        out += s + (i < values.length ? String(values[i]) : "")
-      })
-      return out
-    },
-  }),
+  useLingui: () => ({ t: tMock }),
   Trans: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }))
 
 const updateSectioning = vi.fn(async () => ({ version: 2 }))
 const cloneSection = vi.fn(async () => ({ version: 2 }))
-vi.mock("@/api/client", () => ({
+const getPage = vi.fn()
+const queryClient = { invalidateQueries: vi.fn(async () => {}), setQueryData: vi.fn() }
+vi.mock("@/api/client", async (original) => ({
+  ...await original<typeof import("@/api/client")>(),
   api: {
     updateSectioning: (...args: unknown[]) => updateSectioning(...args),
     cloneSection: (...args: unknown[]) => cloneSection(...args),
     getActiveConfig: async () => ({ merged: {} }),
+    getPage: (...args: unknown[]) => getPage(...args),
   },
 }))
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: () => ({ data: { merged: { section_types: { text: "Text" } } } }),
-  useQueryClient: () => ({ invalidateQueries: vi.fn(async () => {}) }),
+  useQueryClient: () => queryClient,
 }))
 
 vi.mock("@/components/ui/select", () => ({
@@ -141,7 +142,7 @@ vi.mock("@/components/pipeline/stages/storyboard/components/SectionActionsDropdo
 }))
 
 import { SectioningPageDetail } from "./SectioningPageDetail"
-import type { PageDetail } from "@/api/client"
+import { ApiError, type PageDetail } from "@/api/client"
 
 const page = {
   pageId: "bk_p1",
@@ -149,6 +150,7 @@ const page = {
   text: "hello",
   imageClassification: null,
   imageCropping: null,
+  versions: { sectioning: 1 },
   sectioningTree: {
     reasoning: "r",
     sections: [{ sectionId: "bk_p1_sec001", sectionType: "text", nodes: [] }],
@@ -232,6 +234,17 @@ describe("SectioningPageDetail — save confirmation", () => {
       resolveUpdate({ version: 2 })
       await first
     })
+  })
+
+  it("allows saving after explicitly retaining an overlapping draft at the refreshed version", async () => {
+    getPage.mockResolvedValue({ ...page, versions: { sectioning: 2 }, sectioningTree: { ...page.sectioningTree, sections: [{ ...page.sectioningTree!.sections[0], sectionType: "remote" }] } })
+    updateSectioning.mockRejectedValueOnce(new ApiError("Content changed", 409))
+    renderDetail()
+    fireEvent.click(screen.getByText("edit"))
+    await act(async () => { await expect(savedEntry.onSaveStay!()).rejects.toThrow("Content changed") })
+    fireEvent.click(screen.getByRole("button", { name: "Keep my conflicting edits" }))
+    await act(async () => { await savedEntry.onSaveStay!() })
+    expect(updateSectioning).toHaveBeenLastCalledWith("bk", "bk_p1", expect.objectContaining({ baseVersion: 2, sections: [expect.objectContaining({ sectionType: "edited" })] }))
   })
 
   it("disables every editor while a structural operation is in flight", async () => {

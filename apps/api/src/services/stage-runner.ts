@@ -1351,6 +1351,17 @@ async function runSectioningStep(
   const storage = createBookStorage(label, booksDir)
 
   try {
+    const allPages = storage.getPages()
+    const previous = new Map(allPages.map((page) => [page.pageId, storage.getLatestNodeData("page-sectioning", page.pageId)]))
+    const pages = allPages.filter((page) => {
+      const row = previous.get(page.pageId)
+      return !row || !isProtectedContent(row.data as { source?: "ai" | "manual" }) || replacementConfirmed(options, "page-sectioning", page.pageId, row.version)
+    })
+    if (!pages.length) {
+      progress.emit({ type: "step-skip", step: "page-sectioning" })
+      progress.emit({ type: "step-skip", step: "translation" })
+      return
+    }
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
@@ -1406,7 +1417,6 @@ async function runSectioningStep(
         })
       : null
 
-    const pages = storage.getPages()
     const stepStatus = new Map(storage.getStepRuns().map((run) => [run.step, run.status]))
     const outlineStepStatus = stepStatus.get("book-outline")
     const outlineStepComplete = outlineStepStatus === "done" || outlineStepStatus === "skipped"
@@ -1441,7 +1451,7 @@ async function runSectioningStep(
       })
       bookOutline = await generateAndStoreBookOutline(
         label,
-        pages,
+        allPages,
         storage,
         outlineConfig,
         outlineModel,
@@ -1495,7 +1505,7 @@ async function runSectioningStep(
             pageSectioningConfig,
             structuringModel,
           )
-          storage.putNodeData("page-sectioning", page.pageId, structuringResult)
+          let result = structuringResult
           completedStructuring++
           progress.emit({
             type: "step-progress",
@@ -1512,7 +1522,7 @@ async function runSectioningStep(
               translationConfig,
               translationModel,
             )
-            storage.putNodeData("page-sectioning", page.pageId, translated)
+            result = translated
             completedTranslation++
             progress.emit({
               type: "step-progress",
@@ -1522,6 +1532,17 @@ async function runSectioningStep(
               totalPages,
             })
           }
+          options.signal?.throwIfAborted()
+          storage.transaction(() => {
+            const before = previous.get(page.pageId)
+            assertEditVersion(storage.getLatestNodeData("page-sectioning", page.pageId)?.version, before?.version ?? 0)
+            const mint = createSectionIdFactory(storage, page.pageId)
+            const sections = result.sections.map((section) => ({ ...section, sectionId: mint() }))
+            const old = before?.data as PageSectioningOutput | undefined
+            retireSectionIds(storage, (old?.sections ?? []).flatMap((section) => section.sectionId ? [section.sectionId] : []))
+            storage.putNodeData("page-sectioning", page.pageId, { ...result, sections, source: "ai" })
+            reconcileTextCatalog(storage)
+          })
         } catch (err) {
           const step = err instanceof StepError ? err.step : "page-sectioning"
           console.error(`[stage-run] ${label}: ${page.pageId} failed at ${step}: ${toErrorMessage(err)}`)

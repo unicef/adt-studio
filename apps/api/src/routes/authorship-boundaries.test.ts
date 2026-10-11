@@ -8,8 +8,7 @@ import { createTocRoutes } from "./toc.js"
 import { createQuizRoutes } from "./quizzes.js"
 import { createPageRoutes } from "./pages.js"
 
-/** Slice 1 must not turn stored-schema support into client-authored provenance.
- * These are request-boundary checks, not guarded-save/preservation acceptance. */
+/** All four save surfaces stamp authorship on the server after version admission. */
 describe("stored authorship is not client-writable", () => {
   let booksDir: string
   const label = "authorship"
@@ -22,6 +21,9 @@ describe("stored authorship is not client-writable", () => {
         pageId: "pg001", pageNumber: 1, text: "Source text", images: [],
         pageImage: { imageId: "pg001_page", buffer: Buffer.from("fixture"), format: "png", hash: "fixture", width: 1, height: 1 },
       })
+      book.putNodeData("web-rendering", "pg001", { sections: [{ sectionIndex: 0, sectionType: "text", reasoning: "", html: '<p data-id="pg001_t001">Source text</p>' }] })
+      book.putNodeData("metadata", "book", { language_code: "en" })
+      fs.writeFileSync(path.join(book.bookDir!, "config.yaml"), "output_languages: [en, fr]\n")
     } finally {
       book.close()
     }
@@ -46,18 +48,24 @@ describe("stored authorship is not client-writable", () => {
       } },
       { route: "text-catalog-translation/fr", node: "text-catalog-translation", itemId: "fr", body: { entries: [{ id: "pg001_t001", text: "Bonjour", source }] } },
     ]
+    cases.unshift(cases.pop()!)
     for (const { route, node, itemId, body } of cases) {
+      const current = createBookStorage(label, booksDir)
+      const baseVersion = current.getLatestNodeData(node, itemId)?.version ?? 0
+      current.close()
+      const catalog = route.startsWith("text-catalog") ? await (await app.request(`/books/${label}/text-catalog`)).json() : null
+      const guards = catalog ? { sourceVersion: catalog.version, sourceSignature: catalog.translations.fr.sourceSignature } : {}
       const response = await app.request(`/books/${label}/${route}`, {
-        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, baseVersion, ...guards }),
       })
       expect(response.status, route).toBe(200)
       const book = createBookStorage(label, booksDir)
       try {
         const saved = book.getLatestNodeData(node, itemId)
         expect(saved, route).not.toBeNull()
-        // All source fields in these requests are attacker-controlled; none is
-        // newly trusted just because stored-output schemas gained the field.
-        expect(JSON.stringify(saved!.data), route).not.toContain('"source"')
+        // Both forged AI and forged manual claims produce the same server-owned
+        // manual authorship because the authored values are new/changed.
+        expect(JSON.stringify(saved!.data), route).toContain('"source":"manual"')
       } finally {
         book.close()
       }
