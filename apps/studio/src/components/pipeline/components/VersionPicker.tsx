@@ -281,7 +281,7 @@ export function VersionPicker({
   const restoreTo = async (version: number) => {
     setRestoring(true)
     try {
-      await api.restoreVersion(bookLabel, step, itemId, version)
+      await api.restoreVersion(bookLabel, step, itemId, version, currentVersion)
       const invalidations = [
         queryClient.invalidateQueries({ queryKey: ["books", bookLabel] }),
       ]

@@ -41,6 +41,7 @@ export function CascadeResetDialog({
   confirmDisabledReason,
   confirmIcon: ConfirmIcon = Play,
   onConfirm,
+  children,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -61,6 +62,7 @@ export function CascadeResetDialog({
    * fitting one for other actions (e.g. `Trash2` for a delete).
    */
   confirmIcon?: ComponentType<{ className?: string }>
+  children?: ReactNode
   onConfirm: () => void
 }) {
   const stages = affectedStages
@@ -108,6 +110,8 @@ export function CascadeResetDialog({
             </DialogDescription>
           </div>
         </DialogHeader>
+
+        {children}
 
         {/* Nothing completed downstream — the dialog is then a plain
             confirmation, with no misleading empty "Will be reset · 0" block. */}

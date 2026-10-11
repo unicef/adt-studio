@@ -2582,6 +2582,9 @@ msgstr "Configurado no servidor"
 msgid "Confirm merge"
 msgstr "Confirmar mesclagem"
 
+msgid "Conflicting fields:"
+msgstr "Campos em conflito:"
+
 msgid "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 msgstr "Conecte os motores que executam o pipeline e narram livros. As chaves permanecem nesta máquina; provedores CLI reutilizam o login já presente."
 
@@ -5130,6 +5133,9 @@ msgstr "KB"
 msgid "Keep existing content"
 msgstr "Manter o conteúdo existente"
 
+msgid "Keep my conflicting edits"
+msgstr "Manter minhas alterações em conflito"
+
 msgid "Keep my edit"
 msgstr "Manter minha edição"
 
@@ -5275,6 +5281,9 @@ msgstr "Deixe sem definir para manter o ritmo do próprio ElevenLabs. Valores ex
 
 msgid "Leave without finishing?"
 msgstr "Sair sem concluir?"
+
+msgid "Legacy · protected"
+msgstr "Legado · protegido"
 
 msgid "Legal and compliance manuals"
 msgstr "Manuais legais e de conformidade"
@@ -5595,8 +5604,8 @@ msgstr "Gerenciar no livro"
 msgid "Manage sign-language videos"
 msgstr "Gerenciar vídeos em língua de sinais"
 
-msgid "Manual edit"
-msgstr "Edição manual"
+#~ msgid "Manual edit"
+#~ msgstr "Edição manual"
 
 msgid "Manual only"
 msgstr "Somente manual"
@@ -7492,6 +7501,12 @@ msgstr "prompts templates instruções"
 msgid "Protected content"
 msgstr "Conteúdo protegido"
 
+msgid "Protected pages:"
+msgstr "Páginas protegidas:"
+
+msgid "Protected quizzes to replace:"
+msgstr "Questionários protegidos a substituir:"
+
 msgid "Provider"
 msgstr "Provedor"
 
@@ -8065,11 +8080,17 @@ msgstr "Substituir imagem"
 msgid "Replace PDF"
 msgstr "Substituir PDF"
 
+msgid "Replace protected quizzes"
+msgstr "Substituir questionários protegidos"
+
 msgid "Replace quiz"
 msgstr "Substituir questionário"
 
 msgid "Replace quizzes"
 msgstr "Substituir questionários"
+
+msgid "Replace the protected pages listed above"
+msgstr "Substituir as páginas protegidas listadas acima"
 
 msgid "Replace this audio file"
 msgstr "Substituir este arquivo de áudio"
@@ -8079,6 +8100,10 @@ msgstr "Repetir a introdução guiada ao ADT Studio."
 
 msgid "Report an issue"
 msgstr "Relatar um problema"
+
+#. placeholder {0}: res.status
+msgid "Request failed: {0}"
+msgstr "A solicitação falhou: {0}"
 
 msgid "Request settings"
 msgstr "Configurações da solicitação"
@@ -8127,6 +8152,9 @@ msgstr "Redefinir zoom"
 
 msgid "Resize panel"
 msgstr "Redimensionar o painel"
+
+msgid "Resolve conflicting edits before saving"
+msgstr "Resolva as alterações em conflito antes de salvar"
 
 msgid "Resolving source language..."
 msgstr "Resolvendo idioma de origem..."
@@ -8521,6 +8549,9 @@ msgstr "Salvar tamanhos de texto"
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Salve seu trabalho primeiro se quiser manter estas alterações."
+
+msgid "Saved content is unavailable; your draft is retained"
+msgstr "O conteúdo salvo está indisponível; seu rascunho foi mantido"
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Salvo. Reempacote a Prévia para aplicar."
@@ -10219,6 +10250,9 @@ msgstr "Isso remove todas as versões globais de prompts específicas do modelo 
 msgid "This removes the global version for this prompt file. Shipped fallback files remain available."
 msgstr "Isso remove a versão global deste arquivo de prompt. Os arquivos padrão incluídos no aplicativo continuam disponíveis."
 
+msgid "This replaces the manually edited or legacy table of contents. Its saved version remains in history."
+msgstr "Isso substitui o sumário editado manualmente ou legado. Sua versão salva permanece no histórico."
+
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Isso restaura a fonte padrão em todas as páginas e limpa os ajustes de fonte por elemento e a seleção de fonte do livro todo. As fontes anexadas permanecem na lista. A reversão está disponível por página no histórico de versões."
 
@@ -10748,6 +10782,9 @@ msgstr "Usar como atual"
 msgid "Use as template"
 msgstr "Usar como template"
 
+msgid "Use latest conflicting values"
+msgstr "Usar os valores conflitantes mais recentes"
+
 msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 msgstr "Use a sintaxe Liquid para interpolar variáveis, percorrer arrays e incluir instruções condicionalmente neste prompt."
 
@@ -11219,6 +11256,9 @@ msgstr "Sua IA, suas chaves."
 
 msgid "Your book"
 msgstr "Seu livro"
+
+msgid "Your draft is retained. Review the refreshed content before saving again."
+msgstr "Seu rascunho foi mantido. Revise o conteúdo atualizado antes de salvar novamente."
 
 msgid "Your font has been applied to captions."
 msgstr "Sua fonte foi aplicada às legendas."

@@ -2584,6 +2584,9 @@ msgstr "Configuré sur le serveur"
 msgid "Confirm merge"
 msgstr "Confirmer la fusion"
 
+msgid "Conflicting fields:"
+msgstr "Champs en conflit :"
+
 msgid "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 msgstr "Connectez les moteurs qui exécutent le pipeline et narrent les livres. Les clés restent sur cette machine ; les fournisseurs CLI réutilisent la connexion déjà présente."
 
@@ -5132,6 +5135,9 @@ msgstr "KB"
 msgid "Keep existing content"
 msgstr "Conserver le contenu existant"
 
+msgid "Keep my conflicting edits"
+msgstr "Conserver mes modifications en conflit"
+
 msgid "Keep my edit"
 msgstr "Conserver ma modification"
 
@@ -5277,6 +5283,9 @@ msgstr "Laissez ce réglage vide pour conserver le rythme propre d'ElevenLabs. L
 
 msgid "Leave without finishing?"
 msgstr "Quitter sans terminer ?"
+
+msgid "Legacy · protected"
+msgstr "Ancien contenu · protégé"
 
 msgid "Legal and compliance manuals"
 msgstr "Manuels juridiques et de conformité"
@@ -5597,8 +5606,8 @@ msgstr "Gérer dans le livre"
 msgid "Manage sign-language videos"
 msgstr "Gérer les vidéos en langue des signes"
 
-msgid "Manual edit"
-msgstr "Modification manuelle"
+#~ msgid "Manual edit"
+#~ msgstr "Modification manuelle"
 
 msgid "Manual only"
 msgstr "Manuel uniquement"
@@ -7494,6 +7503,12 @@ msgstr "invites modèles instructions"
 msgid "Protected content"
 msgstr "Contenu protégé"
 
+msgid "Protected pages:"
+msgstr "Pages protégées :"
+
+msgid "Protected quizzes to replace:"
+msgstr "Quiz protégés à remplacer :"
+
 msgid "Provider"
 msgstr "Fournisseur"
 
@@ -8067,11 +8082,17 @@ msgstr "Remplacer l'image"
 msgid "Replace PDF"
 msgstr "Remplacer le PDF"
 
+msgid "Replace protected quizzes"
+msgstr "Remplacer les quiz protégés"
+
 msgid "Replace quiz"
 msgstr "Remplacer le quiz"
 
 msgid "Replace quizzes"
 msgstr "Remplacer les quiz"
+
+msgid "Replace the protected pages listed above"
+msgstr "Remplacer les pages protégées indiquées ci-dessus"
 
 msgid "Replace this audio file"
 msgstr "Remplacer ce fichier audio"
@@ -8081,6 +8102,10 @@ msgstr "Rejouer l'introduction guidée à ADT Studio."
 
 msgid "Report an issue"
 msgstr "Signaler un problème"
+
+#. placeholder {0}: res.status
+msgid "Request failed: {0}"
+msgstr "Échec de la requête : {0}"
 
 msgid "Request settings"
 msgstr "Paramètres de la requête"
@@ -8129,6 +8154,9 @@ msgstr "Réinitialiser le zoom"
 
 msgid "Resize panel"
 msgstr "Redimensionner le panneau"
+
+msgid "Resolve conflicting edits before saving"
+msgstr "Résolvez les modifications en conflit avant d’enregistrer"
 
 msgid "Resolving source language..."
 msgstr "Résolution de la langue source..."
@@ -8523,6 +8551,9 @@ msgstr "Enregistrer les tailles de texte"
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Enregistrez d'abord votre travail si vous souhaitez conserver ces modifications."
+
+msgid "Saved content is unavailable; your draft is retained"
+msgstr "Le contenu enregistré est indisponible ; votre brouillon est conservé"
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Enregistré. Ré-empaquetez l'aperçu pour appliquer."
@@ -10221,6 +10252,9 @@ msgstr "Cela supprime toutes les versions globales de prompts propres au modèle
 msgid "This removes the global version for this prompt file. Shipped fallback files remain available."
 msgstr "Cela supprime la version globale de ce fichier de prompt. Les fichiers de repli fournis avec l’application restent disponibles."
 
+msgid "This replaces the manually edited or legacy table of contents. Its saved version remains in history."
+msgstr "Cette action remplace la table des matières modifiée manuellement ou héritée. Sa version enregistrée reste dans l’historique."
+
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Cela restaure la police par défaut sur toutes les pages et efface les réglages de police par élément ainsi que la sélection de police pour tout le livre. Les polices jointes restent dans la liste. La restauration est disponible par page dans l'historique des versions."
 
@@ -10750,6 +10784,9 @@ msgstr "Utiliser comme actuelle"
 msgid "Use as template"
 msgstr "Utiliser comme modèle"
 
+msgid "Use latest conflicting values"
+msgstr "Utiliser les dernières valeurs en conflit"
+
 msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 msgstr "Utilisez la syntaxe Liquid pour interpoler des variables, parcourir des tableaux et inclure des instructions conditionnelles dans ce prompt."
 
@@ -11221,6 +11258,9 @@ msgstr "Votre IA, vos clés."
 
 msgid "Your book"
 msgstr "Votre livre"
+
+msgid "Your draft is retained. Review the refreshed content before saving again."
+msgstr "Votre brouillon est conservé. Vérifiez le contenu actualisé avant d’enregistrer à nouveau."
 
 msgid "Your font has been applied to captions."
 msgstr "Votre police a été appliquée aux légendes."
