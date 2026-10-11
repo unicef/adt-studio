@@ -8,7 +8,7 @@ issues: ["#736", "#144"]
 prs: ["#880"]
 adr: ""
 created: 2026-09-21
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 <!-- Drafted by an agent from #736, #144, SPEC-0001 and the codebase on 2026-09-21
@@ -26,6 +26,10 @@ updated: 2026-10-10
 - Together: lineage says "this is out of date"; provenance says "replace it quietly, or keep it and ask". The codebase already uses "provenance" in both senses (`packages/types/src/image-captioning.ts:14` for authorship, `packages/types/src/reading-order.ts:9` for source identity); this spec uses it only in the first.
 
 ## Problem (with evidence)
+
+> The diagnosis and code anchors in this section describe the original baseline,
+> not the current stacked implementation. See the dated corrections and evidence
+> for `a10d3fa0` plus this PR.
 
 Three entity types keep a user's hand edits across a rerun of their stage; four do not. The seven share one storage model — every write is a new `node_data` version (`packages/storage/src/book-storage.ts:348`) — so the difference is entirely in whether the step reads the prior version back and merges.
 
@@ -83,7 +87,7 @@ Mathematics STD 5 has about 8,850 catalog entries per language (#733). One corre
 
 Binding.
 
-- No change to freshness semantics: the clear lists, `makeBeforeRun`, `step_runs`, input signatures, the Update needed / Warning / Missing labels, scoped regeneration. SPEC-0001 owns them; this spec uses its terms and never redefines them.
+- No independent freshness subsystem or redefinition of SPEC-0001’s input signatures, Update needed / Warning / Missing labels or scoped generation. This PR extends the existing shared preparation and publication mechanisms to retain the authored units SPEC-0001 explicitly leaves to it (see the dependency correction below).
 - No new panels, routes or dialogs. Each of the four views gains the "Edited manually" indicator; existing confirmations gain at most one sentence and one opt-in (the TOC line of decision 5, the sectioning choice of decision 9); the quiz *Replace* placement gains one label. The Warning on a preserved entry whose lineage changed, and the keep / edit / replace actions that resolve it, come from SPEC-0001 section 6, not from here.
 - No per-page or per-section regenerate in this version. The product direction is that a user can go to one page or one section and regenerate just that, including a page they edited by hand; it arrives with page-scoped runs (#619) as a follow-up, for every stage at once rather than for sectioning alone. Until then a single manual page is replaced by restoring its last `ai` version in the version picker and rerunning.
 - No storyboard (`web-rendering`) full-rerun preservation. #144 marks it "partial" and needing its own design decision.
@@ -93,11 +97,11 @@ Binding.
 - No data migration; a stored entry without `source` has unknown authorship and is protected, as required by Decision 4 and AC-11. Absence never authorizes ordinary replacement.
 - No change to the restored content/version selection or that version's authorship. The save/restore admission guards in Decision 10 and AC-18 still apply.
 - No per-user identity, timestamps or model keys on entries. Provenance is one value, `ai` or `manual`; that is all the preservation rule reads. Which model wrote an entry is already in the LLM log and in SPEC-0001's input signature; "when" belongs on the stored version, not the entry. Because the field is optional, a later spec can add `author` and `at` beside it without migration, exactly as `source` is added now.
-- No preservation on the CLI/DAG runner. `packages/pipeline/src/pipeline-dag.ts` persists through its own code, and #810 shows a CLI run starts by wiping all node data. The guarantee of this spec covers the API path: Studio and any HTTP caller. The DAG writers stamp `ai` on the four nodes (AC-19) so a book produced by the CLI is not perpetually legacy when opened in Studio; nothing else changes on that path until #810 is resolved, and this spec does not claim it does.
+- No preservation on the CLI/DAG runner. `packages/pipeline/src/pipeline-dag.ts` persists through its own code. The original #810 report described destructive restart; the current SPEC-0001 prerequisite instead refuses an existing-book extraction rerun with `UNSAFE_RESUME_UNAVAILABLE`. The guarantee of this spec covers the API path: Studio and any HTTP caller. The DAG writers stamp `ai` on the four nodes (AC-19) so a book produced by the CLI is not perpetually legacy when opened in Studio; nothing else changes on that path until #810 is resolved, and this spec does not claim it does.
 
 ## Proposed design
 
-**Option A — a `source` tag plus merge on rerun (the glossary/captions pattern), stamped server-side.** Optional `source: "ai" | "manual"` on four schemas (≈20 lines, 4 files in `packages/types`); each PUT route stamps what the user changed (≈80 lines, 4 files in `apps/api/src/routes`); the translation and quiz steps read the prior node, keep manual entries wholesale and send only the rest to the model, the sectioning step skips manual pages, the TOC step is unchanged (≈120 lines across `stage-runner.ts`, `quiz-ids.ts`); one shared helper module (≈80 lines, `packages/pipeline`); a badge in four views and one line in the existing rerun confirmation, plus five catalogs (≈90 lines); tests ≈350 lines. The original estimates were about 750 lines over ≈20 files. Under the owner-authorized workflow these are coherent commits in PR #880, not five new PRs; estimates do not bound the required safety work.
+**Option A — a `source` tag plus merge on rerun (the glossary/captions pattern), stamped server-side.** Optional `source: "ai" | "manual"` on four schemas (≈20 lines, 4 files in `packages/types`); each PUT route stamps what the user changed (≈80 lines, 4 files in `apps/api/src/routes`); the translation and quiz steps read the prior node, keep manual entries wholesale and send only the rest to the model, the sectioning step skips manual pages, the TOC step replaces protected output only after named confirmation (≈120 lines across `stage-runner.ts`, `quiz-ids.ts`); one shared helper module (≈80 lines, `packages/pipeline`); a badge in four views and one line in the existing rerun confirmation, plus five catalogs (≈90 lines); tests ≈350 lines. The original estimates were about 750 lines over ≈20 files. Under the owner-authorized workflow these are coherent commits in PR #880, not five new PRs; estimates do not bound the required safety work.
 
 **Option B — node-level "user-owned" flag, no schema change.** A user PUT marks the whole node (a language's translation, the book's quizzes or TOC, a page's sectioning) user-owned; the step skips user-owned nodes. ≈120 lines, 5 files. Coarse: one corrected entry freezes a language's 8,850 entries, and new source entries never get translated unless the user regenerates explicitly — which then loses the edits. Reintroduces the problem at a different grain.
 
@@ -107,9 +111,9 @@ Binding.
 
 Decisions for the reviewer to ratify:
 
-1. **Stamping is done by the API, against the version the editor loaded.** Each PUT carries `baseVersion`; the API compares the incoming document with that version (decision 10 guarantees it is the current one) and sets `source: "manual"` on entries whose content changed or that are new; untouched entries keep their prior `source`. Glossary and captions stamp in Studio today and are left alone. Rationale: the API is the one path every caller shares (layer rule in AGENTS.md), so any future caller is honest by construction.
+1. **Stamping is done by the API, against the version the editor loaded.** Each PUT carries `baseVersion`; the API compares the incoming document with that version (decision 10 guarantees it is the current one) and sets `source: "manual"` on entries whose content changed or that are new; untouched entries keep their prior `source`. Existing glossary/caption save mechanisms are reused; the SPEC-0001 prerequisite already owns guarded caption stamping. Rationale: the API is the one path every caller shares (layer rule in AGENTS.md), so any future caller is honest by construction.
 2. **Manual entries are kept wholesale and excluded from the model request.** They are never regenerated implicitly (SPEC-0001 section 4); the only way to replace one is SPEC-0001's explicit *Regenerate and replace my edit* action (section 6).
-3. **Sectioning is protected per page, stamped in one place.** `saveStoryboardNode` (`pages.ts:682`), which every sectioning edit already passes through (PUT, clone, split, merge, cross-page merge, delete, ai-edit), stamps the page's sectioning record `manual`; the sectioning step stamps `ai`. An ordinary rerun skips a manual page: no model call, record not rewritten, section ids not retired. The structural cases follow by construction: deleting an AI section, or the last section, leaves a manual page the rerun does not refill; a cross-page merge saves both pages, so both are manual and the moved content is not regenerated on the source. Section ids keep their factory, their shape and their retirement rules; the only change to retirement is that manual pages are skipped. Replacing a manual page is only possible through the explicit action defined under open question 6.
+3. **Sectioning is protected per page, stamped in one place.** `saveStoryboardNode` (`pages.ts:682`), which every sectioning edit already passes through (PUT, clone, split, merge, cross-page merge, delete, ai-edit), stamps the page's sectioning record `manual`; the sectioning step stamps `ai`. An ordinary rerun skips a manual page: no model call, record not rewritten, section ids not retired. The structural cases follow by construction: deleting an AI section, or the last section, leaves a manual page the rerun does not refill; a cross-page merge saves both pages, so both are manual and the moved content is not regenerated on the source. Section ids keep their factory, their shape and their retirement rules; ordinary runs skip protected pages, and replacement retirement moves into successful publication. Replacing a protected page requires the explicit action in Decision 9, naming its saved version.
 4. **Only `ai` is replaceable.** An ordinary rerun replaces an entry only when a pipeline step stamped it `ai`. `manual` and absent provenance are both protected: an absent value means the entry predates the field and could be either, and SPEC-0001's legacy walkthrough governs it (kept, reported with a provenance warning, resolved by *Keep existing content* or an explicit regenerate, in bulk where needed). Every step stamps `ai` on what it writes (captions and glossary already do); PUTs stamp changed/new authored content `manual` while untouched entries retain their prior source (Decision 1). No migration: the first rerun after upgrading regenerates nothing it cannot vouch for and still fills missing output.
 5. **The TOC is protected as one document, and its stage rerun is the explicit replacement.** `PUT /books/:label/toc` stamps the document `manual`; the TOC step stamps `ai`. Rerunning the TOC stage on a manual TOC is never silent: the existing rerun confirmation (`LandingPageShell.tsx:78–81`, `CascadeResetDialog.tsx:32`) gains one line — "Your table of contents was edited by hand. Regenerating replaces it; the edited version stays in history." Confirming makes the rerun the explicit replacement of decision 2; cancelling leaves the TOC untouched. Entries can be edited, re-pointed, re-levelled, inserted and deleted in the editor; a deleted entry is simply absent from the saved document. No entry-level merge, no `pruned` flag, no id matching. Retirement still drops entries whose section is gone (`section-ids.ts:372`); that system edit keeps hrefs valid and does not change provenance.
 6. **Survival is tested through the HTTP run route**, so the pre-run clear is exercised and a regression in SPEC-0001's non-destructive invalidation fails this spec's tests too.
@@ -140,7 +144,7 @@ Provenance transitions:
 | *Keep my edit* (translation, SPEC-0001) | stays `manual`; warning cleared | unchanged |
 | Restore a version | that version's tags | unchanged |
 
-One ordering requirement follows for sectioning: when a manual page is explicitly replaced, its section ids are retired when the new page is published, not in the pre-run clear; otherwise a failed page would carry retired ids under a still-active manual record. SPEC-0001 slice 1 already moves reconciliation to publication time, so this is a constraint on that work, not new machinery.
+One ordering requirement follows for sectioning: when a manual page is explicitly replaced, its section ids are retired when the new page is published, not in the pre-run clear; otherwise a failed page would carry retired ids under a still-active manual record. Inspection of the published SPEC-0001 implementation found that it did not yet move page-sectioning reconciliation to publication. This PR moves that existing retirement helper into the page publication transaction; no separate retirement mechanism is introduced.
 
 ### Per-entity policy
 
@@ -153,21 +157,21 @@ One ordering requirement follows for sectioning: when a manual page is explicitl
 
 ## Impact map
 
-- `packages/types`: `text-catalog.ts` (`TextCatalogEntry.source`), `quiz.ts` (`Quiz.source`), `page-sectioning.ts` (`PageSectioningOutput.source`, on the page record, not on sections), `toc.ts` (`TocGenerationOutput.source`, on the document, not on entries). All optional. No change to `PIPELINE` or to `pipeline-effects.ts`.
-- `packages/pipeline`: new `manual-edits.ts` — `stampManualEdits(prev, next, keyOf, isEqual)` and `mergePreservingManual(generated, existing, keyOf)`, extracted from the glossary pattern at `glossary.ts:74`; used by translation and quizzes only; `quiz-ids.ts:82–107` (`"replace"` must keep the ids of preserved manual quizzes); `catalog-translation.ts` (skip list); `section-ids.ts:359` and `apps/api/src/routes/stages.ts:46` (retirement must skip manual pages — PR 5); `pipeline-dag.ts` stamps `ai` where it writes the four nodes (`:568`, `:597`, `:734`, `:840`, `:933`). `toc-generation.ts` is untouched.
+- `packages/types`: `text-catalog.ts` (`TextCatalogEntry.source`), `quiz.ts` (`Quiz.source`), `page-sectioning.ts` (`PageSectioningOutput.source`, on the page record, not on sections), `toc.ts` (`TocGenerationOutput.source`, on the document, not on entries). All optional. No change to `PIPELINE`; `pipeline-effects.ts` retains page sectioning, TOC, quizzes, glossary and rendering during ordinary preparation, so workers can read the prior versions before publication.
+- `packages/pipeline`: new `manual-edits.ts` — `stampManualEdits(prev, next, keyOf, isEqual)` and `mergePreservingManual(generated, existing, keyOf)`, extracted from the glossary pattern at `glossary.ts:74`; used by translation and quizzes only; `quiz-ids.ts:82–107` (`"replace"` must keep the ids of preserved manual quizzes); `catalog-translation.ts` (skip list); `section-ids.ts:359` and `apps/api/src/routes/stages.ts:46` (retirement occurs only on successful page publication — commit slice 5); `pipeline-dag.ts` stamps `ai` where it writes the four nodes (`:568`, `:597`, `:734`, `:840`, `:933`). `toc-generation.ts` is untouched.
 - `apps/api`: `routes/text-catalog.ts:151`, `routes/quizzes.ts:122`, `routes/toc.ts:71`, `routes/pages.ts:682` (`saveStoryboardNode`, which every sectioning edit passes through) — each gains `baseVersion` and the running-step guard; `routes/pages.ts:1683` (restore gains the running-step guard); `routes/stages.ts:29` (run body gains `replaceManual`, default false); `services/stage-runner.ts` at `runTranslateStep` (2546–2634, window bodies per decision 11), `runQuizzesStep` (1918–1931), `runTocStep` (2309–2315), `runSectioningStep` (1479–1508, honours `replaceManual`).
-- `apps/studio`: `LanguageView.tsx`, `QuizzesView.tsx`, `TocView.tsx`, `SectioningPageDetail.tsx` — badge only, copied from `CaptionCard.tsx:38–110`; `LandingPageShell.tsx` / `CascadeResetDialog.tsx` — one line for a manual TOC, one sentence and one opt-in for manual sectioning pages; `AddQuizDialog.tsx:159` — one label when the replaced quiz is manual; the four save calls in `api/client.ts` (`:1297`, `:1770`, `:1826`, `:1853`) pass the loaded version and their views reload and re-apply pending edits on 409; `src/locales/{en,es,fr,pt-BR,sq}.po`.
+- `apps/studio`: `LanguageView.tsx`, `QuizzesView.tsx`, `TocView.tsx`, `SectioningPageDetail.tsx` — badges and guarded draft handling; badge pattern from `CaptionCard.tsx:38–110`; `LandingPageShell.tsx` / `CascadeResetDialog.tsx` — one line for a manual TOC, one sentence and one opt-in for manual sectioning pages; `AddQuizDialog.tsx:159` — one label when the replaced quiz is manual; the four save calls in `api/client.ts` (`:1297`, `:1770`, `:1826`, `:1853`) pass the loaded version and their views reload and re-apply pending edits on 409; `src/locales/{en,es,fr,pt-BR,sq}.po`.
 - Docs: `docs/QUIZ_IDENTITY.md` gains one sentence (preserved manual quizzes keep their ids across full regeneration); `docs/INVARIANTS.md` gains a row (below). `docs/ARCHITECTURE.md` unchanged.
 - Invariants: **entity versioning** (core principle 2) — every write stays a new version; nothing is mutated in place. Registry row 2 (no unconditional clear of user-touched entities) is strengthened in intent; its checker belongs to SPEC-0001. Row 3 (ids only via the factories) — preserved sections and quizzes keep their ids; nothing new is minted outside the factories. New row: "manual entries survive a rerun of their stage" — the route-level survival tests each slice adds.
 - Schema/migration: none. Zod object schemas strip unknown keys, so an older app reads a newer book without error; an older app's rerun still overwrites (accepted for the beta; noted in the support statement alongside SPEC-0001's equivalent). Entries without `source` are protected (decision 4), so upgrading never regenerates over an existing correction.
 - Collisions: **SPEC-0001 slice 1** (*Preservation foundation*: the pre-run clear stops deleting node data) is the prerequisite for every behavioural slice here (slices 2–5) and for AC-9; **SPEC-0001 slices 2–4** supply lineage, the Warning on a preserved entry whose inputs changed, and the keep / edit / replace actions; **SPEC-0003** (sectioning modes) — a mode change must not silently keep a page sectioned under the old mode; coordinate with SPEC-0003 before integration; **SPEC-0008** / the #784–#787 stack — section-id retirement; #808 (text-catalog race) and #830 (TTS editor) are independent.
 
-## Corrections and implementation status — 2026-10-10
+## Corrections and implementation status — 2026-10-11
 
 The owner authorized local implementation in this same PR before human approval,
 without pushing. The spec stays `draft`, and every acceptance checkbox stays open.
 [Implementation evidence and AC map](SPEC-0002-implementation-evidence.md) records
-the refreshed baseline, dependencies, delivered slice and verification limits.
+the refreshed baseline, dependencies, implemented behavior and verification limits.
 
 - **Authorship correction (requested by the owner):** the old non-goal saying
   absent `source` meant AI conflicted with Decision 4 and AC-11. It now says
@@ -187,14 +191,16 @@ the refreshed baseline, dependencies, delivered slice and verification limits.
   No new full-recompute UI or cache bypass is introduced. Retry counts and cache
   validity preclude a universal one-provider-call promise. This amendment remains
   subject to human review; it is not an implemented cost guarantee.
-- **Dependency correction:** published #879 contains documentation only. Its
-  local foundation commit `7d974c28` now supplies shared authorship metadata,
-  admission and storage primitives; this branch is based on that exact commit
-  and reuses them. The real HTTP run route still deletes saved output/history
-  before generation. Only the documented schema/helper slice is delivered.
-  Runtime translation, TOC, quiz and Sectioning integration must use the complete
-  shared admission/freshness/publication foundation once implemented and tested.
-  The omission of `baseVersion` from current routes cannot be papered over by a helper.
+- **Dependency correction:** #879 now publishes the SPEC-0001 implementation at
+  `a10d3fa0`. This branch is stacked on that exact prerequisite before approval
+  or merge, as authorized by the owner. Its shared writer admission, catalog
+  freshness, retained history and publication checks are reused. Inspection of
+  the real run route found that page sectioning, TOC and downstream quizzes still
+  lost activeness in preparation; SPEC-0002 extends that existing preparation
+  mechanism to retain authored units until successful publication. Section IDs
+  are retired in the page publication transaction, after all required model
+  work succeeds. This corrects the earlier assumption that all entity kinds
+  were already covered by SPEC-0001; it does not introduce a parallel subsystem.
 - **AC-9 versus AC-6:** AC-9's TOC survival case uses an ordinary HTTP run without
   explicit protected-work replacement. AC-6 separately exercises the named,
   confirmed TOC replacement. An upstream run or generic rerun is not confirmation.

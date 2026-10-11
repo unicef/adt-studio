@@ -1,5 +1,184 @@
 # SPEC-0002 implementation evidence
 
+## Resumed stacked implementation — 2026-10-11
+
+The owner authorized continuing before SPEC-0001 approval/merge. Published #879
+is now `a10d3fa0` (test/Docker/i18n CI passed); #880 remains at `d2348233` and
+develop at `ef31494d`. Local #880 was rebased onto exactly `a10d3fa0`, retaining
+`backup/spec-0002-before-stack-20261011` at `fc2af185`. The newer prerequisite
+already contains the audio-manifest regression adjustment; its equivalent was
+retained and our duplicate commit omitted. No code is pushed.
+
+The October 10 findings below are historical baseline evidence. They are not the
+current dependency verdict. SPEC-0001 now provides catalog protection, shared
+writer admission, input/version guards and publication. Its explicit non-goals
+leave TOC/quiz/Sectioning protection to this PR. At resume, active-record
+invalidation and pre-generation section retirement still needed integration here;
+the delivered changes and current results below record that integration.
+The earlier SPEC-0002 assumption that SPEC-0001 moved every entity's retirement
+to publication is incorrect. Under the authorized stacked plan, extend the
+existing preparation/publication paths for these units; do not invent new
+freshness or writer-admission mechanisms. Human review remains pending.
+
+Before resumed application edits, the refreshed acceptance map is:
+
+| AC | Current prerequisite / slice behavior | Remaining implementation and verification |
+|---|---|---|
+| 1 | Translation stamps changed entries and guards target/source versions | Reuse; verify exact/no-op/forged stamping, structured 409 current version |
+| 2 | Fixed-window catalog translation and shared selection implemented | Verify full-list stability, ordinary zero calls after correction, controlled cache/provider/cost test |
+| 3 | Quiz IDs/options stable; PUT lacks version guard/authorship | Guard, compare content after identity resolution, stamp; real storage races |
+| 4 | Full quiz replacement drops protected quizzes | Preserve IDs/options and placement, including no eligible pages; read/catalog/audio tests |
+| 5 | TOC field exists; PUT/worker do not stamp | Guarded whole-document save/generation; real HTTP test |
+| 6 | Generic confirmation; active TOC invalidated before generation | Named version-bound confirmation, publish only on success; cancel/failure tests |
+| 7 | Page field exists; edits do not stamp or guard base versions | Central stamp plus guards on PUT/structural paths; test every operation |
+| 8 | Sectioning preparation retires/inactivates pages | Retain records; skip protected pages before calls; publication-time retirement |
+| 9 | Catalog protection now exists; other units still invalidated | Six-entity real HTTP save/run/read/history/preview/export chain, own/upstream |
+| 10 | Translation has shared manual status; three other badges absent | Reuse label/badge, add appropriate indicators and translated confirmations |
+| 11 | Catalog legacy protection exists; whole-record legacy protection absent | Protect unknown quiz/page/TOC, surface unknown labels; compatibility test |
+| 12 | Restore retains stored tags and shared writer lease | Add expected-version/running-step checks; restore/rerun/race tests |
+| 13 | Structural mutations share page-save helper | Guard/stamp both pages and empty pages; prove moved text occurs once |
+| 14 | Catalog membership reconciliation exists; TOC retirement retains source field | Verify removed translation inactive/history and retired TOC entry/history/restore |
+| 15 | No named protected-page replacement scope | Extend existing dialog/request with captured page versions, off by default; stale confirmation test |
+| 16 | Quiz generation checks cancellation; Sectioning publishes before translation finishes | Per-unit successful publication/retirement, cancellation/partial-failure/version guards |
+| 17 | Existing preview/export reads current nodes | Exercise retained manual content through real reader/package paths |
+| 18 | Global writer lease and translation guards exist | All affected save/restore/structural guards, structured conflicts, retain drafts and explicit reapply |
+| 19 | Catalog DAG already stamps some output | Stamp remaining four persistence paths; test new CLI outputs without claiming CLI preservation |
+
+The map above records the pre-edit plan; current results follow. Easy-read
+ownership and full Storyboard-rerun preservation remain coordination gaps, and
+the AC-2 amendment remains proposed for review.
+
+## Current delivery and verification — 2026-10-11
+
+All four entity slices are implemented locally, through Studio, HTTP routes,
+workers, real storage, history and preview/export. This is no longer the
+schema/helper-only safe slice. **Full-spec acceptance is not complete:** the
+representative-book harness, full older-application compatibility and release
+verification have not run, and the contract amendments need human review.
+No implementation commit has been pushed. The published #880 diff still ends at
+`d2348233`; the spec and index remain draft with unchecked acceptance boxes.
+
+Application implementation head: `bc464c9b`, on published SPEC-0001 `a10d3fa0`.
+The final acceptance regression commit adds explicit quiz-preview/page-export
+checks and restores of manual/unknown provenance. That focused 19-test suite was
+rerun successfully afterward. Subsequent documentation commits do not change the
+tested application. New coherent implementation commits:
+
+| Commit | Change |
+|---|---|
+| `61839033` | Shared guarded-save and named-replacement schemas |
+| `a8731d2e` | Fixed translation windows and retained correction recovery |
+| `13b2b7d1` | Shared run preparation, admission and authored-output protection |
+| `f5158f73` | Guarded Studio drafts, conflict choices and named confirmations |
+| `03a23cb1` | Translation route, worker, history and transport accounting |
+| `d60b283f` | Whole-document TOC protection and confirmed publication |
+| `09d8e395` | Protected quiz identities, guarded saves and replacement |
+| `bc464c9b` | Whole-page structural protection and publication-time retirement |
+
+### Verified commands and observable results
+
+Commands ran from the isolated checkout. Git and checks involving Git used
+`DEVELOPER_DIR=/Library/Developer/CommandLineTools`; the machine's default Xcode
+selection otherwise exits at its license gate. Raw logs and UI screenshots are
+local, ignored artifacts in `tmp/spec-0002-evidence` beside this checkout.
+
+| Check | Result and limit |
+|---|---|
+| `pnpm test` | **Passed: 312 files, 3,909 tests**, 152.59 seconds; includes root pretest build. Final run includes conflict-callback and in-flight draft regressions |
+| `pnpm typecheck` | Passed after the final application changes |
+| `pnpm --filter @adt/runtime typecheck` | Passed; this package is excluded from root typecheck |
+| `pnpm lint` | Passed: zero errors, eight existing unused-disable warnings, matching the recorded baseline |
+| `pnpm build` | Passed through the full-suite pretest; this is a development build |
+| `pnpm --filter @adt/studio build` | Passed after the final draft-retention fixes; bundle-size warning remains |
+| `pnpm --filter @adt/studio extract` | Passed: 3,674 messages per locale, zero missing in es/fr/pt-BR/sq; all five changed catalogs committed |
+| `pnpm --filter @adt/studio compile --strict` | Passed for all five final catalogs |
+| `pnpm exec vitest run apps/api/src/routes/manual-edit-survival.test.ts` | Passed: **19 real HTTP/SQLite survival, conflict, cancellation, failure and publication cases**. All 19 passed in the full suite; final strengthened restore/preview/export assertions passed in the focused rerun at `5871ea24` |
+| `node scripts/probes/spec-0002-foundation.mjs` | Passed: the probe now delegates to the complete 19-case real-route regression, replacing the historical failing preparation-only probe |
+| Catalog execution/transport tests | Passed, including a 120-entry, three-window fixture with actual stubbed transport calls and cache logs, described below |
+| CLI authorship test | Passed for the four registered DAG persistence paths using real storage. It stubs the scheduler/provider and does not certify a full CLI run or resume |
+| Electron API bundle | `node apps/api/scripts/bundle-electron-server.mjs` passed, including WASM assets. No signed installer or running Electron application verified |
+| `docker build --target app -t adt-studio:spec-0002-local .` | Passed on local Linux arm64; final image manifest list `sha256:f95cc814a96941cb7513f95e7e835aea976e0cc4824785847818f1cbe813c2ee` |
+| Combined Docker runtime smoke | Passed against a disposable mounted book: SPA/health 200, guarded TOC save v3→v4 with server-owned manual tag, stale save 409/currentVersion 4, actual TOC run completed, v4 retained, all four historical versions readable, saved title in preview. Container stopped after verification |
+| Running Studio | Four manual badges verified; real conflicting TOC save retained the draft, displayed the overlapping field, and saved after explicit Keep mine; Sectioning checkbox reset to off on reopening; ordinary Sectioning run preserved both pages; quiz replacement named its protected ID/question; translation correction survived |
+| `git diff --check` | Passed against `a10d3fa0` and the working diff |
+| Available invariant checks | Storage, identity, catalog and pipeline checks passed in the full suite. There is no `lint:invariants` or `acceptance` script |
+
+Translation accounting is deliberately split. With current output and one saved
+correction, both ordinary runs submit **zero adapter requests, zero provider
+calls and zero provider cost**. In the separate controlled full-eligibility test,
+the complete ordered source list remains partitioned into 50-entry windows.
+Removing the correction from its request changes that window only: first pass
+has **3 requests / 2 cache hits / 1 provider call**, and the identical second pass
+has **3 requests / 3 cache hits / 0 provider calls**. The stub tariff is 0.015 per
+call, so costs are 0.015 then 0. No retries occur in that experiment. These are
+measured stub-transport/cache results, not live provider billing or an ordinary
+rerun cost promise. Empty and protected-only windows make no request.
+
+The final diff review exposed a stale Sectioning save callback after conflict
+rebase. A component regression reproduced the failure before the callback's
+draft dependency was corrected; the fixed regression and full suite pass.
+Translation, quiz and TOC editors also disable editing during an in-flight save
+so a successful response cannot clear newer unsaved keystrokes. Recovery keeps
+drafts if reload fails and ignores a late reload after discard/new editing.
+
+### Current AC-to-evidence matrix
+
+"Passed" below means the listed development evidence passed, not human acceptance
+or release verification. Explicit unchecked portions are shown separately; no
+unavailable check is counted as a pass. All numbered spec checkboxes stay open.
+
+| AC | Status | Evidence and limits |
+|---|---|---|
+| 1 | Passed | Real translation PUT stamps changed/new text, ignores supplied source, retains untouched authorship; current/source versions guarded and version increments |
+| 2 | Passed for proposed amendment; scale not run | Fixed-window adapter/transport/cache/provider/cost tests plus two ordinary zero-request reruns; Mathematics STD 5 harness unavailable; human ratification pending |
+| 3 | Passed | Quiz save compares resolved identities/content, stamps changed/new quizzes, retains IDs/options and unchanged authorship; identity regressions and guarded HTTP saves |
+| 4 | Passed for available ordering; custom-order flow not run | Real full/no-eligible-page runs retain manual/unknown quizzes and stable quiz/option/catalog/audio identities, allocate fresh AI IDs, sort by page. Existing resolver is reused; no user-editable explicit reading-order persistence exists to exercise |
+| 5 | Passed | Guarded TOC PUT stamps manual; confirmed worker publication stamps AI; real HTTP and Docker checks |
+| 6 | Passed | TOC confirmation names protected document; cancellation/failure retain current/history, successful replacement publishes AI; Studio dialog and route tests |
+| 7 | Passed | Whole-page PUT, clone, split, merge, cross-page merge, delete and real queued AI-edit service stamp manual; generation stamps AI; shared factory/retirement paths |
+| 8 | Passed | Manual/unknown page versions and section IDs unchanged with zero sectioning calls; mixed fixture calls only AI pages |
+| 9 | Passed | Six authored entity types survive real Save → HTTP run → worker → current/history for own-stage and Sectioning/upstream chains, followed by real preview/export reads |
+| 10 | Passed | All four badges verified in running Studio; five catalogs fully translated; extraction and lint pass |
+| 11 | Passed for protection/parsing; old-app workflow not run | Unknown records survive ordinary runs and show legacy protection; missing output can be filled; actual pre-change compiled schemas parse tagged records. No full old-app/downgrade run |
+| 12 | Passed | Real restores of AI, manual and absent source retain their tags; subsequent runs regenerate AI and preserve manual/unknown; stale/concurrent restore rejects |
+| 13 | Passed | Real delete/delete-last leaves protected empty page; cross-page merge protects both pages, moved content occurs once after rerun; stale destination writes neither page |
+| 14 | Passed | Source removal retires active translation membership while history survives; same-ID source return recovers correction; restored source/rendering covered; section retirement removes active TOC reference with provenance/history retained |
+| 15 | Passed | Named page/version snapshots checked on execution; checkbox off on every open in component and running Studio checks; ordinary runs preserve, confirmed runs publish AI/history |
+| 16 | Passed | Model failure, cancellation, duplicate/stale confirmation and injected SQLite publication failure retain prior in-flight units; retirement rolls back atomically; explicit quiz Replace names protected work and publishes fresh AI identity only on success |
+| 17 | Passed | Actual preview and web package contain retained manual translation, quiz, TOC and page content after survival chain; saved sections render through current outputs |
+| 18 | Passed | All four saves require baseVersion, missing 400/stale 409 with currentVersion and no write; shared writer/persisted-running guards; queued publication checks; Studio three-way draft recovery with explicit overlap choices |
+| 19 | Passed for stamping only | Four new CLI/DAG output kinds stamped AI at actual registered persistence boundaries; no full CLI preservation or SPEC-0010 completion claim |
+
+### Outstanding decisions and verification limits
+
+- **Blocked on human decisions:** approval of the AC-2 reconciliation, ADR/no-new-
+  ADR confirmation, and coordination of easy-read ownership and the full
+  Storyboard-rerun follow-up. These are not silently added to this implementation.
+  SPEC-0003 mode-change behavior also needs integration coordination before its
+  merge; this PR does not make protected old-mode pages silently replaceable.
+- **Not run:** Mathematics STD 5 / `pnpm acceptance` (fixture and script absent),
+  full old-application/downgrade workflow, a custom reading-order editor flow,
+  live provider billing, signed desktop installers and release-platform runs.
+  The local combined Docker smoke and Electron API bundle do not establish
+  release acceptance.
+- **Not run:** hosted CI for these local commits, because the owner prohibited
+  pushing. The prerequisite's green hosted checks concern `a10d3fa0` only.
+- **Publication:** keep #880 based on #879's `spec/735-per-section-staleness`
+  until that prerequisite merges; recheck remote heads and preserve recoverable
+  refs before any later rebase/push. No descendant was merged into its ancestor.
+  After #879 merges, rebase only #880's own commits onto develop and retarget the
+  same PR. No other PR was modified.
+- **Review:** request @elasticsounds in the existing discussion because GitHub
+  cannot assign a PR's author as its formal reviewer. Implementation diff review
+  on GitHub becomes possible only after separately authorized publication.
+
+<details>
+<summary>Historical October 10 baseline and safe-slice results — superseded by the current results above</summary>
+
+The probe output and blocked matrix below describe the older recorded refs. The
+current probe has been replaced by the passing full-route regression; running it
+on today's branch does not reproduce the historical failure.
+
 ## Scope and dependency audit — 2026-10-10
 
 This is a partial implementation in PR #880, on `spec/736-manual-edit-preservation`.
@@ -219,3 +398,5 @@ foundation; Not run identifies deliberately unimplemented/unchecked surfaces.
    Request review from @elasticsounds in a tagged PR comment because GitHub cannot
    assign a PR's author as its formal reviewer. The remote description must make
    clear that this implementation is currently local and unavailable in its diff.
+
+</details>
