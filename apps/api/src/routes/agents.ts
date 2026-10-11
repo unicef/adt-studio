@@ -1,3 +1,4 @@
+import path from "node:path"
 import { Hono } from "hono"
 import type { Context } from "hono"
 import { HTTPException } from "hono/http-exception"
@@ -8,6 +9,7 @@ import {
 } from "../services/agents-service.js"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import type { TaskService } from "../services/task-service.js"
+import { resolvePromptRoots } from "../services/prompt-roots.js"
 
 interface LayoutMirrorRequestBody {
   source?: { pageId?: unknown; sectionIndex?: unknown }
@@ -209,7 +211,11 @@ export function createAgentRoutes(
       generateActivityService({
         label: safeLabel,
         booksDir,
-        promptsDir,
+        promptRoots: resolvePromptRoots({
+          booksDir,
+          promptsDir,
+          bookPromptsDir: path.join(path.resolve(booksDir), safeLabel, "prompts"),
+        }),
         configPath,
         anchorPageId,
         description,

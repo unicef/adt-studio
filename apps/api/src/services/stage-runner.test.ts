@@ -1183,7 +1183,8 @@ image_translation:
   enabled: true
   selected_image_ids: [pg001_im001]
 `)
-    fs.writeFileSync(path.join(tmpDir, "image_translation.liquid"), "Translate labels, preserving the diagram.")
+    fs.mkdirSync(path.join(tmpDir, "prompts"))
+    fs.writeFileSync(path.join(tmpDir, "prompts", "image_translation.liquid"), "Translate labels, preserving the diagram.")
     seedCaptionBook(tmpDir, "image-book")
     const storage = createBookStorage("image-book", tmpDir)
     try {
@@ -1196,7 +1197,7 @@ image_translation:
     vi.stubEnv("OPENAI_API_KEY", "")
     vi.stubEnv("GOOGLE_API_KEY", "")
     vi.stubEnv("GOOGLE_GENERATIVE_AI_API_KEY", "")
-    fs.writeFileSync(path.join(tmpDir, "core_tts_preparation.liquid"), "Test prompt")
+    fs.writeFileSync(path.join(tmpDir, "prompts", "core_tts_preparation.liquid"), "Test prompt")
     fetchMock.mockReset().mockImplementation(async () => Response.json({ status: "completed", steps: [
       { type: "model_output", content: [{ type: "image", mime_type: "image/png", data: pngBuffer().toString("base64") }] },
     ] }))
@@ -1211,7 +1212,7 @@ image_translation:
 
   function run(credentials: Record<string, Record<string, string>>) {
     return createStageRunner().run("image-book", {
-      booksDir: tmpDir, promptsDir: tmpDir, configPath: path.join(tmpDir, "config.yaml"),
+      booksDir: tmpDir, promptsDir: path.join(tmpDir, "prompts"), configPath: path.join(tmpDir, "config.yaml"),
       fromStage: "translate", toStage: "translate", credentials,
     }, { emit: () => undefined })
   }

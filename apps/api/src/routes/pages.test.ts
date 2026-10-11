@@ -124,7 +124,7 @@ describe("Page routes", () => {
       storage.close()
     }
 
-    const routes = createPageRoutes(tmpDir, tmpDir, tmpDir, globalConfigPath)
+    const routes = createPageRoutes(tmpDir, path.resolve("prompts"), tmpDir, globalConfigPath)
     app = new Hono()
     app.onError(errorHandler)
     app.route("/api", routes)
@@ -1999,7 +1999,7 @@ describe("Page routes", () => {
         },
         getActiveTasks: () => [],
       }
-      const routes = createPageRoutes(tmpDir, tmpDir, tmpDir, globalConfigPath, taskService)
+      const routes = createPageRoutes(tmpDir, path.resolve("prompts"), tmpDir, globalConfigPath, taskService)
       const taskApp = new Hono()
       taskApp.onError(errorHandler)
       taskApp.route("/api", routes)

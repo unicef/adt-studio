@@ -77,6 +77,7 @@ import {
   writeStyleguideFiles,
 } from "../services/styleguide.js"
 import type { TaskService } from "../services/task-service.js"
+import { resolvePromptRoots } from "../services/prompt-roots.js"
 import {
   segmentPageImages,
   getSegmentedImageId,
@@ -94,7 +95,7 @@ import {
   isFixedLayoutBook,
   type ScreenshotRenderer,
 } from "@adt/pipeline"
-import { AiProviderError, assertModelCredentials, createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache } from "@adt/llm"
+import { AiProviderError, assertModelCredentials, createLLMModel, createPromptEngine, renderPromptText, generateImageWithCache } from "@adt/llm"
 import type { ResolvedCredentials } from "@adt/llm"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import { retireWithPreservedRecordings, DETACHED_AUDIO_DIR } from "../services/detached-audio.js"
@@ -249,6 +250,7 @@ interface AiImageGenParams {
   mode?: "swap" | "add"
   booksDir: string
   modelId: string
+  basePromptModelId?: string
 }
 
 async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
@@ -263,24 +265,10 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
   // Choose the correct prompt template: edit vs generate
   const isEditMode = !!referenceImageId
   const promptName = isEditMode ? "ai_image_edit" : "ai_image_generation"
-  const bookPromptPath = path.join(bookDir, "prompts", `${promptName}.liquid`)
-  const globalPromptPath = path.join(path.resolve(promptsDir), `${promptName}.liquid`)
-  let templateContent: string | null = null
-  if (fs.existsSync(bookPromptPath)) {
-    templateContent = fs.readFileSync(bookPromptPath, "utf-8")
-  } else if (fs.existsSync(globalPromptPath)) {
-    templateContent = fs.readFileSync(globalPromptPath, "utf-8")
-  }
-  let finalPrompt: string
-  if (templateContent) {
-    finalPrompt = await renderLiquidTemplate(templateContent.trim(), {
-      user_prompt: prompt,
-      style: style || null,
-      image_type: imageType || null,
-    })
-  } else {
-    finalPrompt = prompt
-  }
+  const finalPrompt = renderPromptText(
+    resolvePromptRoots({ booksDir: params.booksDir, promptsDir, bookPromptsDir: path.join(bookDir, "prompts") }),
+    promptName, { user_prompt: prompt, style: style || null, image_type: imageType || null }, modelId, params.basePromptModelId,
+  )
 
   // Look up target image dimensions
   let originalWidth = 0
@@ -3031,10 +3019,9 @@ export function createPageRoutes(
       const desc = referenceImageId
         ? `Editing image ${referenceImageId}`
         : `Generating image for ${pageId}`
-      const modelId = configPath
-        ? loadBookConfig(safeLabel, booksDir, configPath)
-            .default_image_generation_model ?? DEFAULT_IMAGE_GENERATION_MODEL_ID
-        : DEFAULT_IMAGE_GENERATION_MODEL_ID
+      const config = configPath ? loadBookConfig(safeLabel, booksDir, configPath) : undefined
+      const modelId = config?.default_image_generation_model ?? DEFAULT_IMAGE_GENERATION_MODEL_ID
+      assertModelCredentials("image", modelId, credentials)
 
       // Submit as task if TaskService is available
       if (taskService) {
@@ -3048,7 +3035,7 @@ export function createPageRoutes(
               prompt, referenceImageId, targetImageId,
               style, imageType, styleImageId, promptsDir,
               sectionIndex, mode, booksDir,
-              modelId,
+              modelId, basePromptModelId: config?.base_prompt_model,
             })
           },
           { pageId, url: `/books/${safeLabel}/storyboard/${pageId}` }
@@ -3062,7 +3049,7 @@ export function createPageRoutes(
         prompt, referenceImageId, targetImageId,
         style, imageType, styleImageId, promptsDir,
         sectionIndex, mode, booksDir,
-        modelId,
+        modelId, basePromptModelId: config?.base_prompt_model,
       })
       return c.json(result)
     } catch (err) {
@@ -3288,7 +3275,7 @@ export function createPageRoutes(
         config.image_segmentation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES
 
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+      const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: config.base_prompt_model, capture: true })
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const llmModel = createLLMModel({
         modelId,
@@ -3488,7 +3475,7 @@ export function createPageRoutes(
 
     const bookPromptsDir = path.join(bookDir, "prompts")
     const appConfig = loadBookConfig(safeLabel, booksDir, configPath)
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
+    const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: appConfig.base_prompt_model, capture: true })
     const cacheDir = path.join(bookDir, ".cache")
     const config = buildStyleguideGenerationConfig(
       undefined,

@@ -59,7 +59,7 @@ export async function runCatalogResume(label: string, options: StageRunOptions, 
       if (options.fromStage === "easy-read" && options.toStage === "easy-read") {
         currentConfig.easy_read = { ...currentConfig.easy_read, enabled: true }
       }
-      return [...(stages.some((stage) => stage === "extract" || isGenerationKind(stage)) ? readGenerationCatalog({ storage, config: currentConfig, bookDir, promptsDir: options.promptsDir, templatesDir: options.templatesDir, configPath: options.configPath, webAssetsDir: options.webAssetsDir, configDir: options.configDir ?? (options.configPath ? path.join(path.dirname(options.configPath), "config") : path.resolve("config")) }) : []), ...readOutputCatalog({ storage, bookDir, config: currentConfig, promptsDir: options.promptsDir,
+      return [...(stages.some((stage) => stage === "extract" || isGenerationKind(stage)) ? readGenerationCatalog({ storage, config: currentConfig, bookDir, promptsDir: options.promptsDir, promptOverridesDir: options.promptOverridesDir, templatesDir: options.templatesDir, configPath: options.configPath, webAssetsDir: options.webAssetsDir, configDir: options.configDir ?? (options.configPath ? path.join(path.dirname(options.configPath), "config") : path.resolve("config")) }) : []), ...readOutputCatalog({ storage, bookDir, config: currentConfig, promptsDir: options.promptsDir, promptOverridesDir: options.promptOverridesDir,
         configDir: options.configDir ?? (options.configPath ? path.join(path.dirname(options.configPath), "config") : path.resolve("config")) })]
         .filter((status) => stages.includes(STEP_TO_STAGE[OUTPUT_KIND_STEP[status.identity.kind]]) && selectedOutput(status, options.outputScope?.selection))
     }

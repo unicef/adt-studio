@@ -5,7 +5,7 @@ import { createHash } from "node:crypto"
 import { buildImageTranslationConfig } from "./image-translation.js"
 import path from "node:path"
 import type { Storage } from "@adt/storage"
-import { createPromptEngine } from "@adt/llm"
+import { createPromptEngine, promptRoots, type PromptEngine } from "@adt/llm"
 import { isTtsExcluded, voiceSlotEntryId, type AppConfig, type TextCatalogEntry, type TextCatalogOutput, type EasyReadOutput, type ImageCaptioningOutput, type TTSOutput, type WordTimestampOutput, type OutputStatus, type OutputMetadata, type TranslatedImageAsset } from "@adt/types"
 import { buildTextCatalogSnapshot } from "./text-catalog.js"
 import { buildImageInventory } from "./catalog-reconciliation.js"
@@ -26,20 +26,30 @@ export function captionInputSignature(options: { assetHash: string | null; pageI
 /** Read-only projection. Expected work comes from sources, including inputs for
  * which no successful output exists. The caller owns storage and admission. */
 export function readOutputCatalog(options: {
-  storage: Storage; config: AppConfig; bookDir: string; promptsDir: string; configDir: string
+  storage: Storage; config: AppConfig; bookDir: string; promptsDir: string; promptOverridesDir?: string; promptEngine?: PromptEngine; configDir: string
 }): OutputStatus[] {
   const { storage, config, bookDir, promptsDir, configDir } = options
   const sourceLanguage = normalizeLocale(config.editing_language ?? (storage.getLatestNodeData("metadata", "book")?.data as { language_code?: string })?.language_code ?? "en")
   const languages = [...new Set([sourceLanguage, ...(config.output_languages ?? []).map(normalizeLocale)])]
-  const engine = createPromptEngine([path.join(bookDir, "prompts"), promptsDir], { basePromptModelId: config.base_prompt_model })
-  const prompt = (name: string, model: string) => {
+  const engine = options.promptEngine ?? createPromptEngine(promptRoots(path.dirname(bookDir), promptsDir, options.promptOverridesDir, path.join(bookDir, "prompts")), { basePromptModelId: config.base_prompt_model })
+  const blockedPromptKinds = new Set<OutputStatus["identity"]["kind"]>()
+  const prompt = (name: string, model: string, kind: OutputStatus["identity"]["kind"]) => {
     try { return engine.fingerprint(name, { modelId: model }) }
-    catch { return inputSignature({ missingPrompt: name, model }) }
+    catch (error) {
+      if (error instanceof Error && error.message.includes("Dynamic prompt includes")) blockedPromptKinds.add(kind)
+      return inputSignature({ missingPrompt: name, model })
+    }
   }
   const dependencies = new Map<string, string[]>()
   const statuses: OutputStatus[] = []
   const byKey = new Map<string, OutputStatus>()
-  const add = (status: OutputStatus) => { statuses.push(status); byKey.set(outputIdentityKey(status.identity), status); return status }
+  const add = (status: OutputStatus, consumesPrompt = true) => {
+    if (consumesPrompt && !status.excluded && blockedPromptKinds.has(status.identity.kind)) {
+      status.blocked = true
+      status.current = false
+      status.warnings.push({ reason: "source-changed" })
+    }
+    statuses.push(status); byKey.set(outputIdentityKey(status.identity), status); return status }
   const find = (kind: OutputStatus["identity"]["kind"], id: string, language?: string) => byKey.get(outputIdentityKey({ kind, id, language }))
   const inventory = buildImageInventory(storage)
   const decorativeImages = new Set<string>()
@@ -51,7 +61,7 @@ export function readOutputCatalog(options: {
     let pageImage: string | null = null
     try { if (image.pageId) pageImage = inputSignature(storage.getPageImageBase64(image.pageId)) } catch { /* This input alone is unavailable. */ }
     const status = deriveOutputStatus({ identity: { kind: "caption", id: image.id },
-      signature: captionInputSignature({ assetHash: image.assetHash, pageImage, language: sourceLanguage, summary, config: captionConfig, prompt: prompt(captionConfig.promptName, captionConfig.modelId) }),
+      signature: captionInputSignature({ assetHash: image.assetHash, pageImage, language: sourceLanguage, summary, config: captionConfig, prompt: prompt(captionConfig.promptName, captionConfig.modelId, "caption") }),
       content: previous ? { caption: previous.caption, decorative: previous.decorative === true } : undefined,
       metadata: previous, usable: !!previous && (previous.decorative === true || !!previous.caption.trim()),
     })
@@ -65,7 +75,7 @@ export function readOutputCatalog(options: {
     const relativePath = previous?.relativePath ?? legacy?.relativePath
     const hash = previous?.hash ?? (relativePath ? assetContentHash(bookDir, relativePath) ?? undefined : undefined)
     add({ ...deriveOutputStatus({ identity: { kind: "image-translation", id: image.id, language },
-      signature: inputSignature({ image: image.assetHash, sourceLanguage, language, model: imageConfig.modelId, prompt: prompt(config.image_translation?.prompt ?? "image_translation", imageConfig.modelId) }),
+      signature: inputSignature({ image: image.assetHash, sourceLanguage, language, model: imageConfig.modelId, prompt: prompt(config.image_translation?.prompt ?? "image_translation", imageConfig.modelId, "image-translation") }),
       content: hash, metadata: previous, usable: !!relativePath && usableAsset(bookDir, relativePath, hash),
       excluded: !imageConfig.enabled || !imageConfig.selectedImageIds.includes(image.id),
     }), pageIds: image.pageIds, sectionIds: image.sectionIds, group: image.glossary ? "glossary" : undefined })
@@ -79,7 +89,7 @@ export function readOutputCatalog(options: {
     if (!decorativeImages.has(image.id) && image.catalogLocations.length && !sources.some((entry) => entry.id === image.id)) sources.push({ id: image.id, text: "", locations: image.catalogLocations })
   }
   const easyConfig = buildEasyReadConfig(config, sourceLanguage)
-  easyConfig.promptSignature = prompt(easyConfig.promptName, easyConfig.modelId)
+  easyConfig.promptSignature = prompt(easyConfig.promptName, easyConfig.modelId, "easy-read")
   const easy = retainedEasyRead(storage, buildEasyReadSourceBlocks(storage, storage.getPages()))
   const easyById = new Map((easy?.blocks ?? []).flatMap((block) => block.entries.map((entry) => [entry.easyReadId, entry] as const)))
   if (easyConfig.enabled) for (const block of buildEasyReadSourceBlocks(storage, storage.getPages())) for (const entry of block.entries) {
@@ -91,7 +101,7 @@ export function readOutputCatalog(options: {
     }), source))
   }
   const translationConfig = buildCatalogTranslationConfig(config, sourceLanguage)
-  translationConfig.promptSignature = prompt(translationConfig.promptName, translationConfig.modelId)
+  translationConfig.promptSignature = prompt(translationConfig.promptName, translationConfig.modelId, "translation")
   const displays = new Map<string, TextCatalogEntry[]>([[sourceLanguage, sources]])
   const sourceStatus = (entry: TextCatalogEntry) => find("caption", entry.id) ?? find("easy-read", entry.id, sourceLanguage)
   for (const language of getTargetLanguages(languages, sourceLanguage)) {
@@ -109,7 +119,7 @@ export function readOutputCatalog(options: {
     displays.set(language, display)
   }
   const preparation = buildCoreTtsPreparationConfig(config)
-  preparation.promptSignature = prompt(preparation.promptName, preparation.modelId)
+  preparation.promptSignature = prompt(preparation.promptName, preparation.modelId, "preparation")
   const profiles = loadCoreTtsProfiles(configDir)
   const sourceCore = retainedCoreTts(storage, sourceLanguage, sources.map((entry) => entry.id))
   const effectiveSourceCore = resolveCoreTtsSpeechCatalog({ entries: sources, language: sourceLanguage, config: preparation, profile: resolveCoreTtsProfile(sourceLanguage, profiles), previous: sourceCore })
@@ -134,7 +144,7 @@ export function readOutputCatalog(options: {
       const speechExcluded = isTtsExcluded(source.id, config.speech) || (source.id.endsWith("_easy_read") && !easyConfig.tts) || (!!source.text.trim() && !isSpeakableText(stripEmojis(source.text).trim()))
       const prepStatus = add(withOutputLocations(deriveOutputStatus({ identity: { kind: "preparation", id: source.id, language }, signature,
         content: previous?.speechText, metadata, excluded: speechExcluded, usable: !!previous?.speechText?.trim(), fallback: previous?.fallbackReason, upstream: upstream ? [upstream] : [],
-      }), source))
+      }), source), input.enabled_transformations.length > 0)
       const contextWarnings = (input.enabled_transformations.length ? entries.slice(Math.max(0, index - 1), index + 2) : [source]).flatMap((entry) => {
         const status = getBaseLanguage(language) === getBaseLanguage(sourceLanguage) ? sourceStatus(entry) : find("translation", entry.id, language)
         return status ? [outputIdentityKey(status.identity)] : []

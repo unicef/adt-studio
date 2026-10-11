@@ -18,6 +18,8 @@ import type { Storage, PageData } from "@adt/storage"
 import {
   createLLMModel,
   createPromptEngine,
+  promptRoots,
+  migratePromptOverrides,
   createRateLimiter,
   createTTSSynthesizer,
   createAzureTTSSynthesizer,
@@ -155,6 +157,7 @@ export interface FullPipelineOptions {
   concurrency?: number
   configPath?: string
   promptsDir: string
+  promptOverridesDir?: string
   templatesDir: string
   cacheDir?: string
   logLevel?: LogLevel
@@ -195,7 +198,7 @@ export async function runFullPipeline(options: FullPipelineOptions, progress: Pr
       const result: PipelineDAGResult = { stages: { statuses: new Map(), errors: new Map() }, steps: { statuses: new Map(), errors: new Map() } }
       try {
         await createStageRunner().run(options.label, {
-          resume: true, concurrency: options.concurrency, booksDir: options.booksRoot, promptsDir: options.promptsDir,
+          resume: true, concurrency: options.concurrency, booksDir: options.booksRoot, promptsDir: options.promptsDir, promptOverridesDir: options.promptOverridesDir,
           templatesDir: options.templatesDir, configDir: options.configDir, cacheDir: options.cacheDir, logLevel: options.logLevel,
           pdfPath: options.pdfPath, startPage: options.startPage, endPage: options.endPage,
           webAssetsDir: options.webAssetsDir, configPath: options.configPath,
@@ -268,7 +271,9 @@ async function runAdmittedFullPipeline(
       }
     }
     const cacheDir = options.cacheDir ?? path.join(path.resolve(booksRoot), label, ".cache")
-    const promptEngine = createPromptEngine([path.join(bookDir, "prompts"), promptsDir], { basePromptModelId: config.base_prompt_model })
+    const roots = promptRoots(booksRoot, promptsDir, options.promptOverridesDir, path.join(bookDir, "prompts"))
+    await migratePromptOverrides(promptsDir, roots[1], roots[0])
+    const promptEngine = createPromptEngine(roots, { basePromptModelId: config.base_prompt_model, capture: true })
     const templateEngine = createTemplateEngine(templatesDir)
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
@@ -830,7 +835,7 @@ async function runAdmittedFullPipeline(
       const summaryRow = storage.getLatestNodeData("book-summary", "book")
       const bookSummary = (summaryRow?.data as BookSummaryOutput | undefined)?.summary
       const inventory = buildImageInventory(storage)
-      const statuses = readOutputCatalog({ storage, config, bookDir: path.join(path.resolve(booksRoot), label), promptsDir, configDir: options.configDir ?? path.resolve("config") })
+      const statuses = readOutputCatalog({ storage, config, bookDir: path.join(path.resolve(booksRoot), label), promptsDir, promptOverridesDir: options.promptOverridesDir, configDir: options.configDir ?? path.resolve("config") })
       const pages = storage.getPages()
       const totalPages = pages.length
       let completed = 0
@@ -1059,7 +1064,7 @@ async function runAdmittedFullPipeline(
     executors.set("tts", async (p) => {
       const language = getLanguage(storage, config)
       const outputLanguages = getOutputLanguages(config, language)
-      reconcileSpeechInputs({ storage, config, sourceLanguage: language, languages: outputLanguages,
+      reconcileSpeechInputs({ promptOverridesDir: options.promptOverridesDir, storage, config, sourceLanguage: language, languages: outputLanguages,
         profiles: loadCoreTtsProfiles(options.configDir ?? path.resolve("config")), promptsDir, bookDir: path.join(path.resolve(booksRoot), label) })
       if (!outputLanguages.some((lang) => getReadyCoreTtsEntries(storage, lang).length > 0)) return
 

@@ -1,3 +1,4 @@
+import { resolvePromptRoots } from "../services/prompt-roots.js"
 import { assertEditVersion } from "../services/catalog-output-service.js"
 import { AuthoredSaveGuard } from "@adt/types"
 import fs from "node:fs"
@@ -240,7 +241,7 @@ export function createQuizRoutes(
 
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
+      const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: appConfig.base_prompt_model, capture: true })
       const llmModel = createLLMModel({
         signal: c.req.raw.signal,
         modelId: quizConfig.modelId,

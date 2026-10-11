@@ -1,3 +1,4 @@
+import { resolvePromptOverridesDir } from "./prompt-roots.js"
 import { EditConflictError } from "./edit-conflict.js"
 import path from "node:path"
 import { HTTPException } from "hono/http-exception"
@@ -9,7 +10,7 @@ import { inputSignature, loadBookConfig, normalizeLocale, readOutputCatalog } fr
 export function catalogOutputs(storage: Storage, label: string, booksDir: string, promptsDir: string, configPath?: string, options: { timestamps?: boolean } = {}): OutputStatus[] {
   const config = loadBookConfig(label, booksDir, configPath)
   if (options.timestamps) config.speech = { ...config.speech, word_highlighting: true }
-  return readOutputCatalog({ storage, config,
+  return readOutputCatalog({ promptOverridesDir: resolvePromptOverridesDir(booksDir), storage, config,
     bookDir: path.join(path.resolve(booksDir), label), promptsDir,
     configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
   })

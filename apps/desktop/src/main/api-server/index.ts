@@ -28,6 +28,7 @@ async function startApiServer(): Promise<{
     "Starting API server": paths.serverPath,
     "Books dir": paths.booksDir,
     "Prompts dir": paths.promptsDir,
+    "Prompt overrides dir": paths.promptOverridesDir,
     "Config path": paths.configPath,
     "Debug mode": isApiDebugMode ? "true" : "false",
   });
@@ -45,6 +46,7 @@ async function startApiServer(): Promise<{
       NODE_PATH: join(dirname(paths.serverPath), "node_modules"),
       BOOKS_DIR: paths.booksDir,
       PROMPTS_DIR: paths.promptsDir,
+      PROMPT_OVERRIDES_DIR: paths.promptOverridesDir,
       CONFIG_PATH: paths.configPath,
       PROJECT_ROOT: paths.root,
       ADT_RESOURCES_ZIP: paths.adtResourcesZip,

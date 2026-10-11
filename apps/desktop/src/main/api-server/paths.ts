@@ -14,6 +14,7 @@ export interface ApiServerPaths {
   root: string;
   booksDir: string;
   promptsDir: string;
+  promptOverridesDir: string;
   configPath: string;
   adtResourcesZip: string;
   webAssetsDir: string;
@@ -22,9 +23,12 @@ export interface ApiServerPaths {
 export function resolvePaths(): ApiServerPaths {
   const appDataDir = app.getPath("userData");
   const booksDir = join(appDataDir, "books");
+  const promptOverridesDir = join(appDataDir, "prompt-overrides");
 
-  if (!existsSync(booksDir)) {
-    mkdirSync(booksDir, { recursive: true });
+  for (const writableDir of [booksDir, promptOverridesDir]) {
+    if (!existsSync(writableDir)) {
+      mkdirSync(writableDir, { recursive: true });
+    }
   }
 
   const root = resolveAppResourcesRoot();
@@ -41,6 +45,7 @@ export function resolvePaths(): ApiServerPaths {
       root,
       booksDir,
       promptsDir: join(root, "prompts"),
+      promptOverridesDir,
       configPath: join(root, "config.yaml"),
       adtResourcesZip: join(root, "assets", "adt-resources.zip"),
       webAssetsDir: join(root, "assets", "adt"),
@@ -52,6 +57,7 @@ export function resolvePaths(): ApiServerPaths {
     root,
     booksDir,
     promptsDir: join(root, "prompts"),
+    promptOverridesDir,
     configPath: join(root, "config.yaml"),
     adtResourcesZip: join(root, "assets", "adt-resources.zip"),
     webAssetsDir: join(root, "assets", "adt"),

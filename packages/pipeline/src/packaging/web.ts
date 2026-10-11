@@ -28,9 +28,9 @@ import type {
   TocGenerationOutput,
   Quiz,
   ImageCaptioningOutput,
-  PackagingWarning, AppConfig, OutputStatus,
+  PackagingWarning, OutputStatus,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
+import { AppConfig, WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE, resolveQuizId, withResolvedQuizIds } from "@adt/types"
 import { resolveNarratorLabel } from "../speech.js"
 import {
   GOOGLE_FONTS,
@@ -73,6 +73,7 @@ import { buildTailwindCss } from "../tailwind.js"
 
 export interface PackageAdtWebOptions {
   config?: AppConfig
+  promptOverridesDir?: string
   promptsDir?: string
   configDir?: string
   bookDir: string
@@ -207,6 +208,7 @@ export interface ComputePackagingInputHashOptions {
   bundleVersion?: string
   applyBodyBackground?: boolean
   config: Record<string, unknown>
+  promptOverridesDir?: string
   promptsDir?: string
   configDir?: string
 }
@@ -239,12 +241,14 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
   // 3. Book config (affects rendering, accessibility, etc.)
   hash.update(JSON.stringify(options.config))
 
-  // Effective prompt/profile content changes disclosure even when output bytes
-  // are deliberately retained. Include these files in the package cache basis.
-  for (const directory of [options.promptsDir, options.configDir, path.join(options.bookDir, "prompts")]) {
-    if (!directory) continue
-    hash.update(JSON.stringify(collectDirectoryFingerprint(directory).sort((a, b) => a[0].localeCompare(b[0])).map(([file]) => [file, hashValue(fs.readFileSync(path.join(directory, file), "utf8"))])))
-  }
+  // Packaging consumes freshness disclosure, not the override directory's
+  // history/UUIDs. Restoring equal effective inputs must reuse the same bundle.
+  if (options.promptsDir) hash.update(JSON.stringify(readOutputCatalog({
+    storage: options.storage, config: AppConfig.parse(options.config), bookDir: options.bookDir,
+    promptsDir: options.promptsDir, promptOverridesDir: options.promptOverridesDir,
+    configDir: options.configDir ?? path.resolve("config"),
+  }).filter((output) => !output.excluded).map(({ identity, signature, current, warnings }) => ({ identity, signature, current, warnings }))))
+  if (options.configDir) hash.update(JSON.stringify(collectDirectoryFingerprint(options.configDir).sort((a, b) => a[0].localeCompare(b[0])).map(([file]) => [file, hashValue(fs.readFileSync(path.join(options.configDir!, file), "utf8"))])))
 
   // 4. Sign-language metadata. Assigning or reassigning a video only updates
   // SQLite, so the videos directory fingerprint below does not detect it.
@@ -380,10 +384,10 @@ export async function packageAdtWeb(
   // accept warnings, or change derivation/review evidence.
   const resolvedSpeech = options.config ? reconcileSpeechInputs({ storage, config: options.config, sourceLanguage: language,
     languages: outputLanguages, profiles: loadCoreTtsProfiles(options.configDir ?? path.resolve("config")),
-    promptsDir: options.promptsDir ?? path.resolve("prompts"), bookDir, persist: false }) : undefined
+    promptsDir: options.promptsDir ?? path.resolve("prompts"), promptOverridesDir: options.promptOverridesDir, bookDir, persist: false }) : undefined
   const speechEntries = (lang: string) => ((resolvedSpeech?.find((item) => item.language === lang) ?? getCoreTtsCatalog(storage, lang))?.entries ?? []).filter((entry) => !options.config || eligibleIds.has(entry.id))
   const freshness = options.config ? readOutputCatalog({ storage, config: options.config, bookDir,
-    promptsDir: options.promptsDir ?? path.resolve("prompts"), configDir: options.configDir ?? path.resolve("config") }) : []
+    promptsDir: options.promptsDir ?? path.resolve("prompts"), promptOverridesDir: options.promptOverridesDir, configDir: options.configDir ?? path.resolve("config") }) : []
   const included = new Set<string>()
   const captionConsumers = new Set(buildImageInventory(storage).filter((image) => image.catalogLocations.length > 0).map((image) => image.id))
 

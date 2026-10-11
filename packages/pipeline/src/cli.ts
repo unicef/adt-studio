@@ -130,8 +130,8 @@ async function main(): Promise<void> {
   process.on("SIGINT", cancel)
   process.on("SIGTERM", cancel)
 
-  const promptsDir = path.resolve(process.cwd(), "prompts")
-  const templatesDir = path.resolve(process.cwd(), "templates")
+  const promptsDir = path.resolve(process.env.PROMPTS_DIR ?? path.join(process.cwd(), "prompts"))
+  const templatesDir = path.join(path.dirname(promptsDir), "templates")
   const webAssetsDir = path.resolve(process.cwd(), "assets", "adt")
   const progress = createCliProgress()
 
@@ -148,6 +148,7 @@ async function main(): Promise<void> {
         replaceManual: protectedReplacementsFile !== undefined,
         signal: controller.signal,
         promptsDir,
+        promptOverridesDir: process.env.PROMPT_OVERRIDES_DIR,
         templatesDir,
         webAssetsDir,
         logLevel: "silent",

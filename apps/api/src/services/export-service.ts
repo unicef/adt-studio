@@ -1,3 +1,4 @@
+import { resolvePromptOverridesDir } from "./prompt-roots.js"
 import fs from "node:fs"
 import path from "node:path"
 import { HTTPException } from "hono/http-exception"
@@ -5,7 +6,8 @@ import { parseBookLabel } from "@adt/types"
 import type { PackagingWarning } from "@adt/types"
 import { createBookStorage, withBookWriter, recoverSectioningTransition, resolveBookPaths } from "@adt/storage"
 import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook, prepareSectioningRun } from "@adt/pipeline"
-import { createZipStream } from "./zip-util.js"
+import { collectFilePaths, createZipStream } from "./zip-util.js"
+import { promptPath, withPromptGates } from "@adt/llm"
 import { readPartInfo } from "./book-service.js"
 
 export interface ExportResult {
@@ -167,7 +169,7 @@ async function prepareAdmittedExport(
     })()
 
     const opts = {
-      promptsDir, configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
+      promptsDir, promptOverridesDir: resolvePromptOverridesDir(booksDir), configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
       bookDir,
       label: safeLabel,
       language,
@@ -212,8 +214,19 @@ function createProjectZipStream(bookDir: string): ReadableStream<Uint8Array> {
     start(controller) {
       return withBookWriter(bookDir, async () => {
         recoverSectioningTransition(bookDir)
+
+  // Capture prompt selection metadata and its retained bytes under the same
+  // writer gate used by Save. ZIP streaming yields between batches; reading
+  // these files later could otherwise pair a new pointer with an older list.
+  const promptRoot = path.join(bookDir, "prompts")
+  const promptEntries = await withPromptGates([promptRoot], () =>
+    collectFilePaths(promptRoot)
+      .filter((file) => !file.startsWith(".prompt-write.lock/"))
+      .map((file) => ({ path: `prompts/${file}`, data: new Uint8Array(fs.readFileSync(promptPath(promptRoot, file))) })),
+  )
+  const zipOptions = { excludeDirs: new Set(["adt", "webpub", "prompts"]), extraEntries: promptEntries }
         const reader = createZipStream(bookDir, {
-          excludeDirs: new Set(["adt", "webpub"]),
+          ...zipOptions,
           excludeFiles: new Set([".book-writer.json", ".book-writer.json.recovery"]),
         }).getReader()
         try {

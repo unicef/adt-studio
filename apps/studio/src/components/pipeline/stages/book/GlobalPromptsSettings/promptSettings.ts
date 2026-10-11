@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query"
-import { safeParseModelId } from "@adt/types"
+import { DEFAULT_BASE_PROMPT_MODEL_ID, safeParseModelId } from "@adt/types"
 import type { PromptResponse } from "@/api/client"
 import type { ModelGroup } from "@/components/pipeline/components/ModelSelect"
 import { LLM_MODEL_GROUPS } from "@/components/pipeline/components/ModelSelect"
@@ -24,20 +24,22 @@ export function modelIdsFromGroups(groups: ModelGroup[]): string[] {
 
 export function isDefaultPromptModelId(
   modelId: string,
+  basePromptModelId = DEFAULT_BASE_PROMPT_MODEL_ID,
 ): boolean {
   const normalized = normalizePromptModelInput(modelId)
   return normalized.length > 0
-    && promptModelForSelectedModel(normalized) == null
+    && promptModelForSelectedModel(normalized, basePromptModelId) == null
 }
 
 export function removeDefaultPromptModelGroups(
   groups: ModelGroup[],
+  basePromptModelId = DEFAULT_BASE_PROMPT_MODEL_ID,
 ): ModelGroup[] {
   return groups
     .map((group) => ({
       ...group,
       models: group.models.filter((model) => (
-        !isDefaultPromptModelId(`${group.provider}:${model}`)
+        !isDefaultPromptModelId(`${group.provider}:${model}`, basePromptModelId)
       )),
     }))
     .filter((group) => group.models.length > 0)
@@ -90,11 +92,12 @@ export function promptFileNameForModel(promptName: string, modelId: string): str
 export function promptExistsForModel(
   prompt: { name: string; variants: string[] },
   modelId: string,
+  basePromptModelId = DEFAULT_BASE_PROMPT_MODEL_ID,
 ): boolean {
-  const promptModelId = promptModelForSelectedModel(modelId)
+  const promptModelId = promptModelForSelectedModel(modelId, basePromptModelId)
   if (!promptModelId) return true
   return prompt.variants.includes(
-    promptNameForSelectedModel(prompt.name, promptModelId),
+    promptNameForSelectedModel(prompt.name, promptModelId, basePromptModelId),
   )
 }
 

@@ -1,3 +1,4 @@
+import { resolvePromptOverridesDir } from "../services/prompt-roots.js"
 import { captureOutputReferences } from "@adt/pipeline"
 import { catalogOutputs, assertEditVersion } from "../services/catalog-output-service.js"
 import { assertOutputPublication, outputIdentityKey, selectedForGeneration, outputEvidence, timestampInputSignature } from "@adt/pipeline"
@@ -485,7 +486,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       let readyIds: Set<string>
       try {
         const { config, language: sourceLanguage } = getSourceLanguage(storage, booksDir, safeLabel, configPath)
-        readyIds = new Set(reconcileSpeechInputs({ storage, config, sourceLanguage, languages: [language], profiles: loadCoreTtsProfiles(getConfigDir(configPath)), promptsDir, bookDir: path.join(resolvedBooksDir, safeLabel), persist: false })[0].entries.map((entry) => entry.id))
+        readyIds = new Set(reconcileSpeechInputs({ promptOverridesDir: resolvePromptOverridesDir(booksDir), storage, config, sourceLanguage, languages: [language], profiles: loadCoreTtsProfiles(getConfigDir(configPath)), promptsDir, bookDir: path.join(resolvedBooksDir, safeLabel), persist: false })[0].entries.map((entry) => entry.id))
       } finally {
         storage.close()
       }
@@ -639,7 +640,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         safeLabel,
         configPath
       )
-      reconcileSpeechInputs({ storage, config, sourceLanguage, languages: [normalizedLanguage], profiles: loadCoreTtsProfiles(getConfigDir(configPath)), promptsDir, bookDir: path.join(path.resolve(booksDir), safeLabel) })
+      reconcileSpeechInputs({ promptOverridesDir: resolvePromptOverridesDir(booksDir), storage, config, sourceLanguage, languages: [normalizedLanguage], profiles: loadCoreTtsProfiles(getConfigDir(configPath)), promptsDir, bookDir: path.join(path.resolve(booksDir), safeLabel) })
       const languageEntries = getCatalogEntriesForLanguage(
         storage,
         sourceLanguage,
@@ -856,7 +857,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         azureSpeechRegion,
         elevenLabsApiKey,
       })
-      reconcileSpeechInputs({ storage, config, sourceLanguage, languages: [normalizedLanguage], profiles: loadCoreTtsProfiles(getConfigDir(configPath)), promptsDir, bookDir: path.join(path.resolve(booksDir), safeLabel) })
+      reconcileSpeechInputs({ promptOverridesDir: resolvePromptOverridesDir(booksDir), storage, config, sourceLanguage, languages: [normalizedLanguage], profiles: loadCoreTtsProfiles(getConfigDir(configPath)), promptsDir, bookDir: path.join(path.resolve(booksDir), safeLabel) })
       const languageEntries = getCatalogEntriesForLanguage(
         storage,
         sourceLanguage,
@@ -1438,7 +1439,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       const baseLanguage = getBaseLanguage(normalizedLanguage)
 
       const { config, language: sourceLanguage } = getSourceLanguage(storage, booksDir, safeLabel, configPath)
-      const speech = reconcileSpeechInputs({ storage, config, sourceLanguage, languages: [normalizedLanguage],
+      const speech = reconcileSpeechInputs({ promptOverridesDir: resolvePromptOverridesDir(booksDir), storage, config, sourceLanguage, languages: [normalizedLanguage],
         profiles: loadCoreTtsProfiles(getConfigDir(configPath)), promptsDir, bookDir, persist: false })[0]
       const textPrompt = speech.entries.find((entry) => entry.id === parsed.data.textId)?.speechText ?? undefined
 
@@ -1556,7 +1557,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           const entries = select(storage)
           const bookDir = path.join(path.resolve(booksDir), safeLabel)
           const { config, language: sourceLanguage } = getSourceLanguage(storage, booksDir, safeLabel, configPath)
-          const speech = reconcileSpeechInputs({ storage, config, sourceLanguage, languages: [normalizedLanguage],
+          const speech = reconcileSpeechInputs({ promptOverridesDir: resolvePromptOverridesDir(booksDir), storage, config, sourceLanguage, languages: [normalizedLanguage],
             profiles: loadCoreTtsProfiles(getConfigDir(configPath)), promptsDir, bookDir, persist: false })[0]
           const textMap = new Map(speech.entries.map((entry) => [entry.id, entry.speechText ?? ""]))
           let count = 0

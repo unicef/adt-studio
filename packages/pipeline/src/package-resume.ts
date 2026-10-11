@@ -22,7 +22,7 @@ export async function runPackageResume(label: string, options: StageRunOptions, 
   prepareSectioningRun(label, options.booksDir, "package", "package", options.configPath)
   const storage = createBookStorage(label, options.booksDir)
   const configDir = options.configDir ?? (options.configPath ? path.join(path.dirname(options.configPath), "config") : path.resolve("config"))
-  const read = () => readGenerationCatalog({ storage, config: loadBookConfig(label, options.booksDir, options.configPath), bookDir, promptsDir: options.promptsDir, templatesDir: options.templatesDir, configPath: options.configPath, webAssetsDir: options.webAssetsDir, configDir }).find((status) => status.identity.kind === "package")!
+  const read = () => readGenerationCatalog({ storage, config: loadBookConfig(label, options.booksDir, options.configPath), bookDir, promptsDir: options.promptsDir, promptOverridesDir: options.promptOverridesDir, templatesDir: options.templatesDir, configPath: options.configPath, webAssetsDir: options.webAssetsDir, configDir }).find((status) => status.identity.kind === "package")!
 
   try {
     const before = read()
@@ -34,7 +34,7 @@ export async function runPackageResume(label: string, options: StageRunOptions, 
     const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
     const packageOptions = { bookDir, outputDir: path.join(attempt, "adt"), label, language,
       outputLanguages: [...new Set([language, ...(config.output_languages ?? []).map(normalizeLocale)])],
-      title: metadata?.title ?? label, webAssetsDir: options.webAssetsDir, promptsDir: options.promptsDir, configDir,
+      title: metadata?.title ?? label, webAssetsDir: options.webAssetsDir, promptsDir: options.promptsDir, promptOverridesDir: options.promptOverridesDir, configDir,
       config, speechConfig: config.speech, fixedLayout: isFixedLayoutBook(config), reflowableFont: config.reflowable_font,
       applyBodyBackground: config.apply_body_background, quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
     }

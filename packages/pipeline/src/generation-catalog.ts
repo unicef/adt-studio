@@ -9,7 +9,7 @@ import { loadStyleguideContent } from "./styleguide.js"
 import { computePackagingInputHash } from "./packaging/web.js"
 import fs from "node:fs"
 import path from "node:path"
-import { createPromptEngine } from "@adt/llm"
+import { createPromptEngine, promptRoots, type PromptEngine } from "@adt/llm"
 import { readExtractionManifest, ExtractionAdmissionError, type Storage } from "@adt/storage"
 import { BookMetadata, BookSummaryOutput, BookOutlineOutput, WebRenderingOutput, GlossaryOutput, QuizGenerationOutput, TocGenerationOutput, PageSectioningOutput, OutputMetadata, type AppConfig, type OutputStatus, type StageName } from "@adt/types"
 import { deriveOutputStatus, inputSignature } from "./output-freshness.js"
@@ -52,7 +52,7 @@ export function directoryContent(directory: string): unknown {
 }
 
 export interface GenerationCatalogOptions {
-  storage: Storage; config: AppConfig; bookDir: string; promptsDir: string; templatesDir?: string; webAssetsDir?: string; configDir?: string; configPath?: string
+  storage: Storage; config: AppConfig; bookDir: string; promptsDir: string; promptOverridesDir?: string; promptEngine?: PromptEngine; templatesDir?: string; webAssetsDir?: string; configDir?: string; configPath?: string
 }
 
 /** Shared output projection for the generation units outside the V1 text catalog.
@@ -65,7 +65,7 @@ export function readGenerationCatalog(options: GenerationCatalogOptions): Output
   const read = (node: string, id = "book") => generationContent(storage.getLatestNodeData(node, id)?.data)
   const metadata = read("metadata") as { language_code?: string } | undefined
   const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
-  const engine = createPromptEngine([path.join(bookDir, "prompts"), promptsDir], { basePromptModelId: config.base_prompt_model })
+  const engine = options.promptEngine ?? createPromptEngine(promptRoots(path.dirname(bookDir), promptsDir, options.promptOverridesDir, path.join(bookDir, "prompts")), { basePromptModelId: config.base_prompt_model })
   const promptConfig = (value: unknown): unknown => {
     if (!value || typeof value !== "object") return value
     const c = value as { promptName?: string; modelId?: string; refinementPromptName?: string }
@@ -142,7 +142,7 @@ export function readGenerationCatalog(options: GenerationCatalogOptions): Output
     const hash = computePackagingInputHash({ storage, bookDir, label: path.basename(bookDir), language,
       outputLanguages: [...new Set([language, ...(config.output_languages ?? []).map(normalizeLocale)])],
       title: (read("metadata") as { title?: string })?.title ?? path.basename(bookDir),
-      webAssetsDir: options.webAssetsDir, config, promptsDir, configDir: options.configDir,
+      webAssetsDir: options.webAssetsDir, config, promptsDir, promptOverridesDir: options.promptOverridesDir, configDir: options.configDir,
       applyBodyBackground: config.apply_body_background,
     })
     const assessment = read("accessibility-assessment"), files = directoryContent(path.join(bookDir, "adt"))

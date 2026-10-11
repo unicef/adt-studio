@@ -105,6 +105,15 @@ export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.
 export { ProgressEvent } from "./progress.js"
 
 export {
+  PromptSource,
+  PromptSaveTarget,
+  PromptPersistence,
+  PromptResponse,
+  PromptVersionSummary,
+  PromptVersionsResponse,
+} from "./prompt.js"
+
+export {
   PageErrorPolicy,
   PageErrorAction,
   PendingDecision,
@@ -542,6 +551,7 @@ export {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
 } from "./ai-provider.js"
+export { PromptName, PromptVersion, PromptRevision, PromptMutation, PromptSave, PromptModels, PromptSelection, ResolvedPromptFile } from "./prompt.js"
 export { GOOGLE_IMAGE_MODELS, GoogleImageModelId, DEFAULT_GOOGLE_IMAGE_MODEL, GoogleImageResponse } from "./google-image.js"
 export { imageFileExtension, ImageAspectRatio, GeneratedImagePayload, ValidatedGeneratedImage } from "./image.js"
 

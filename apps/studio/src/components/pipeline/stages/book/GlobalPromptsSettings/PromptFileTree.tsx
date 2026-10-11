@@ -1,3 +1,4 @@
+import { useEffectiveBasePromptModel } from "@/hooks/use-effective-base-prompt-model"
 import { useEffect, useMemo, useState } from "react"
 import { FileText, Folder, FolderOpen } from "lucide-react"
 import type { ModelGroup } from "@/components/pipeline/components/ModelSelect"
@@ -65,6 +66,7 @@ export function PromptFileTree({
   onDeletePrompt,
   onDeleteModel,
 }: PromptFileTreeProps) {
+  const basePromptModel = useEffectiveBasePromptModel()
   const [openFolders, setOpenFolders] = useState<Set<string>>(
     () => new Set([defaultModelId || DEFAULT_MODEL]),
   )
@@ -75,10 +77,10 @@ export function PromptFileTree({
       group.models.map((model) => {
         const modelId = `${group.provider}:${model}`
         const existingPrompts = prompts.filter((prompt) => (
-          promptExistsForModel(prompt, modelId)
+          promptExistsForModel(prompt, modelId, basePromptModel) || modelId === selectedModel
         ))
         const projectDefaultPrompts = existingPrompts.filter((prompt) => (
-          isProjectDefaultPromptVariant(prompt, modelId)
+          isProjectDefaultPromptVariant(prompt, modelId, basePromptModel)
         ))
         return {
           modelId,
@@ -90,12 +92,13 @@ export function PromptFileTree({
             isProjectDefault: isProjectDefaultPromptVariant(
               prompt,
               modelId,
+              basePromptModel,
             ),
           })),
         }
       }),
     ),
-    [modelGroups, prompts],
+    [modelGroups, prompts, basePromptModel, selectedModel],
   )
 
   const visibleFolders = useMemo(
@@ -239,9 +242,10 @@ export function PromptFileTree({
 function isProjectDefaultPromptVariant(
   prompt: PromptSummary,
   modelId: string,
+  basePromptModel: string,
 ): boolean {
-  if (modelId === DEFAULT_MODEL) return true
-  const variantName = promptNameForSelectedModel(prompt.name, modelId)
+  if (modelId === basePromptModel) return true
+  const variantName = promptNameForSelectedModel(prompt.name, modelId, basePromptModel)
   if (!prompt.variants.includes(variantName)) return false
   const source = prompt.variantSources?.[variantName]
   return source === "file" || source === "file+version"

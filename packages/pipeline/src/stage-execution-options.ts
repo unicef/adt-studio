@@ -24,6 +24,8 @@ export interface StageRunOptions {
   booksDir: string
   /** Request-scoped provider credentials. Values are never persisted. */
   credentials: ResolvedCredentials
+  promptEngine?: import("@adt/llm").PromptEngine
+  promptOverridesDir?: string
   promptsDir: string
   webAssetsDir?: string
   configPath?: string

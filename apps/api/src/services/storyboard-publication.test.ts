@@ -25,7 +25,7 @@ const label = "book"
 const config = "structure_types: {}\nrole_types: {}\ndefault_model: ollama:llama3\npage_sectioning:\n  mode: page\n"
 const fixedConfig = "default_render_strategy: fixed\nrender_strategies:\n  fixed:\n    render_type: fixed_layout\n"
 const store = () => createBookStorage(label, root)
-const options = () => ({ booksDir: root, promptsDir: root, configPath, fromStage: "storyboard", toStage: "storyboard", credentials: {} })
+const options = () => ({ booksDir: root, promptsDir: path.resolve("prompts"), configPath, fromStage: "storyboard", toStage: "storyboard", credentials: {} })
 const run = () => createStageRunner().run(label, options(), { emit() {} })
 const semantic = (pageNumber: number) => ({
   reasoning: "semantic", sections: [{
@@ -227,7 +227,7 @@ describe("Storyboard layout publication", () => {
     bus.addListener(label, (event) => { if (event.type === "stage-run-complete") completed() })
     const decisions = createPageErrorDecisions(bus)
     const service = createStageService(createStageRunner(), bus, decisions)
-    const app = new Hono().onError(errorHandler).route("/", createStageRoutes(service, bus, decisions, root, root, root, configPath))
+    const app = new Hono().onError(errorHandler).route("/", createStageRoutes(service, bus, decisions, root, path.resolve("prompts"), root, configPath))
     let finish!: () => void
     render.mockImplementationOnce(() => new Promise((resolve) => { finish = () => resolve({ sections: [] }) }))
     const request = () => app.request(`/books/${label}/stages/run`, {

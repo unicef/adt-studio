@@ -11,7 +11,8 @@ const llmMocks = vi.hoisted(() => ({
   createPromptEngine: vi.fn(),
 }))
 
-vi.mock("@adt/llm", () => ({
+vi.mock("@adt/llm", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@adt/llm")>(),
   createLLMModel: llmMocks.createLLMModel,
   createPromptEngine: llmMocks.createPromptEngine,
 }))
@@ -84,7 +85,7 @@ describe("page-edit-service", () => {
           label,
           pageId: `${label}_p1`,
           booksDir: tmpDir,
-          promptsDir: tmpDir,
+          promptsDir: path.join(tmpDir, "bundled-prompts"),
           apiKey: "test-key",
         })
       ).rejects.toThrow(
@@ -222,7 +223,7 @@ describe("page-edit-service", () => {
         pageId,
         sectionIndex: 1,
         booksDir: tmpDir,
-        promptsDir: tmpDir,
+        promptsDir: path.join(tmpDir, "bundled-prompts"),
         configPath: path.resolve(process.cwd(), "config.yaml"),
         apiKey: "test-key",
       })
@@ -309,7 +310,7 @@ describe("page-edit-service", () => {
         sectionIndex: 2,
         instruction: "Keep layout and wording",
         booksDir: tmpDir,
-        promptsDir: tmpDir,
+        promptsDir: path.join(tmpDir, "bundled-prompts"),
         configPath: path.resolve(process.cwd(), "config.yaml"),
         apiKey: "test-key",
       })
@@ -343,7 +344,7 @@ describe("page-edit-service", () => {
         instruction: "Reverse the correct order",
         currentHtml,
         booksDir: tmpDir,
-        promptsDir: tmpDir,
+        promptsDir: path.join(tmpDir, "bundled-prompts"),
         configPath: path.resolve(process.cwd(), "config.yaml"),
         apiKey: "test-key",
       })
@@ -406,7 +407,7 @@ describe("page-edit-service", () => {
         instruction: "Change the background color and add spacing",
         currentHtml,
         booksDir: tmpDir,
-        promptsDir: tmpDir,
+        promptsDir: path.join(tmpDir, "bundled-prompts"),
         configPath: path.resolve(process.cwd(), "config.yaml"),
         apiKey: "test-key",
       })
@@ -488,7 +489,7 @@ describe("page-edit-service", () => {
         sectionIndex: 0,
         instruction: "Keep layout and wording",
         booksDir: tmpDir,
-        promptsDir: tmpDir,
+        promptsDir: path.join(tmpDir, "bundled-prompts"),
         configPath,
         apiKey: "test-key",
       })

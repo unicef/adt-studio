@@ -4,8 +4,6 @@ This document records all significant technology and architecture decisions made
 
 ---
 
-ADR 024 is reserved by [SPEC-0001 / PR #879](https://github.com/unicef/adt-studio/pull/879), which is reviewed on a separate branch. The proposals below start at 025 to avoid renumbering that decision.
-
 ## Table of Contents
 
 1. [Guiding Principle: Pure JS/TS Over Native](#001-pure-jsts-over-native-bindings)
@@ -33,6 +31,8 @@ ADR 024 is reserved by [SPEC-0001 / PR #879](https://github.com/unicef/adt-studi
 23. [Visual Refinement + File-Based Debug Screenshots](#023-visual-refinement--file-based-debug-screenshots)
 24. [Catalog-Based Freshness from Saved Input Signatures (proposed)](#adr-024)
 25. [Sectioning mode changes preserve content and gate rendering](#025-sectioning-mode-changes-preserve-content-and-gate-rendering)
+26. [Existing books require verified extraction reuse](#026-existing-books-require-verified-extraction-reuse)
+27. [Prompt overrides use writable roots and versioned selections (proposed)](#027-prompt-overrides-use-writable-roots-and-versioned-selections)
 
 ---
 
@@ -1018,6 +1018,36 @@ This ADR is under review with its spec; no implementation acceptance criterion i
 
 ---
 
+## 027: Prompt overrides use writable roots and versioned selections
+
+**Status**: proposed
+**Date**: 2026-09-22
+**Spec**: [SPEC-0011](specs/SPEC-0011-prompt-persistence.md)
+**Issues**: #629
+
+### Context
+
+Prompt versions currently share locations with bundled resources, and callers can disagree about the effective model variant. Save, reset and restore need consistent concurrency and history semantics across supported packaging modes.
+
+### Decision
+
+Keep bundled prompts read-only. Save immutable prompt versions in book-local or writable global override roots, and publish conflict-checked versioned selections for Save, Reset and Restore. Preserve model-specific-first resolution over book, global and bundled candidates and use the same resolver in editor/API/agent/CLI paths.
+
+### Consequences
+
+Clients must supply selection revisions and preserve drafts on conflict. Reset retains history; failed pointer publication cannot activate orphan versions. Migration and deployment roots must be explicit, while template lookup remains tied to bundled resources. No prompt database or new permission system is introduced.
+
+This ADR is under review with its spec; no implementation acceptance criterion is satisfied by publishing it. The spec owns the acceptance/test mapping and approval questions. Existing invariant-registry checks remain as documented; new enforcement belongs to the implementing change.
+
+### Alternatives Considered
+
+| Approach | Why Not |
+|---|---|
+| Only add UI labels to existing bundled-directory writes | Does not solve read-only installations, conflicts or destructive reset. |
+| Move prompt persistence to a new database service | Adds a migration and another source of truth without a need. |
+
+---
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -1045,6 +1075,7 @@ This ADR is under review with its spec; no implementation acceptance criterion i
 | 021 | Top bar button | Context-aware per stage | Per-stage inline buttons in sidebar |
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
+| 027 | Prompt overrides use writable roots and versioned selections (proposed) | See SPEC-0011 | Only add UI labels to existing bundled-directory writes |
 | 024 (proposed) | Downstream freshness | Catalog-based input signatures and scoped regeneration with existing caching | Whole-stage clearing, universal section flags, general dependency graph |
 | 025 | Sectioning mode changes preserve content and gate rendering (proposed) | See SPEC-0003 | UI warning only |
 

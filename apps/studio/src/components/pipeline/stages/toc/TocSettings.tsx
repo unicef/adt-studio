@@ -37,11 +37,10 @@ export function TocSettings({ bookLabel }: { bookLabel: string; headerTarget?: H
 
   const save = async () => {
     if (generationPromptDraft != null) {
-      await savePromptDraft(queryClient, "toc_generation", bookLabel, generationPromptDraft)
+      await savePromptDraft(queryClient, "toc_generation", bookLabel, generationPromptDraft, setGenerationPromptDraft)
     }
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
-    setGenerationPromptDraft(null)
   }
 
   const isDirty = Object.keys(dirty).length > 0 || generationPromptDraft != null
@@ -67,7 +66,7 @@ export function TocSettings({ bookLabel }: { bookLabel: string; headerTarget?: H
         onModelChange={tocGen.onModelChange}
         maxRetries={tocGen.maxRetries}
         onMaxRetriesChange={tocGen.onMaxRetriesChange}
-        onContentChange={(content, modelId) => setGenerationPromptDraft(toPromptDraft(content, modelId))}
+        onContentChange={(content, modelId, revision) => setGenerationPromptDraft(toPromptDraft(content, modelId, revision))}
       />
     </div>
   )

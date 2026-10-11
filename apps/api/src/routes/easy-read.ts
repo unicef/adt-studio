@@ -1,3 +1,4 @@
+import { resolvePromptRoots } from "../services/prompt-roots.js"
 import { captureOutputReferences } from "@adt/pipeline"
 import { catalogOutputs, editSourceSignature, assertEditSource, assertEditVersion } from "../services/catalog-output-service.js"
 import fs from "node:fs"
@@ -184,7 +185,7 @@ export function createEasyReadRoutes(
       const blocks = buildEasyReadSourceBlocks(storage, pages)
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+      const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: config.base_prompt_model, capture: true })
       const rateLimiter = config.rate_limit
         ? createRateLimiter(config.rate_limit.requests_per_minute)
         : undefined

@@ -1,3 +1,4 @@
+import { resolvePromptOverridesDir } from "../services/prompt-roots.js"
 import { readGenerationCatalog, GENERATION_NODES, isGenerationKind, assertPersistedSectioning, prepareSectioningRun } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
@@ -9,7 +10,7 @@ import { loadBookConfig, readOutputCatalog, outputIdentityKey, summarizeOutputs,
 
 export function createOutputRoutes(booksDir: string, promptsDir: string, configPath?: string): Hono {
   const app = new Hono()
-  const read = (label: string, storage: ReturnType<typeof createBookStorage>) => [...readGenerationCatalog({ storage, config: loadBookConfig(label, booksDir, configPath), bookDir: path.join(path.resolve(booksDir), label), promptsDir, configPath }), ...readOutputCatalog({
+  const read = (label: string, storage: ReturnType<typeof createBookStorage>) => [...readGenerationCatalog({ promptOverridesDir: resolvePromptOverridesDir(booksDir), storage, config: loadBookConfig(label, booksDir, configPath), bookDir: path.join(path.resolve(booksDir), label), promptsDir, configPath }), ...readOutputCatalog({ promptOverridesDir: resolvePromptOverridesDir(booksDir),
     storage, config: loadBookConfig(label, booksDir, configPath),
     bookDir: path.join(path.resolve(booksDir), label), promptsDir,
     configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
@@ -69,7 +70,7 @@ export function createOutputRoutes(booksDir: string, promptsDir: string, configP
         if (output.identity.kind === "preparation") {
           const config = loadBookConfig(label, booksDir, configPath)
           const sourceLanguage = config.editing_language ?? (storage.getLatestNodeData("metadata", "book")?.data as { language_code?: string })?.language_code ?? "en"
-          reconcileSpeechInputs({ storage, config, sourceLanguage, languages: [output.identity.language!],
+          reconcileSpeechInputs({ promptOverridesDir: resolvePromptOverridesDir(booksDir), storage, config, sourceLanguage, languages: [output.identity.language!],
             profiles: loadCoreTtsProfiles(configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config")),
             promptsDir, bookDir: path.join(path.resolve(booksDir), label) })
         }

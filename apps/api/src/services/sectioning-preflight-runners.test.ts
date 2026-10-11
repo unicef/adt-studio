@@ -24,7 +24,7 @@ const section = { sectionId: "p2_sec009", sectionType: "text", backgroundColor: 
 const output = (n = 1) => ({ reasoning: "retained", sections: Array.from({ length: n }, () => ({ ...section })) })
 function store() { return createBookStorage(label, root) }
 function history() { const s = store(); try { return s.getPages().map((p) => s.getAllNodeVersions("web-rendering", p.pageId)) } finally { s.close() } }
-const options = () => ({ booksDir: root, promptsDir: root, configPath, fromStage: "storyboard", toStage: "storyboard", credentials: {} })
+const options = () => ({ booksDir: root, promptsDir: path.resolve("prompts"), configPath, fromStage: "storyboard", toStage: "storyboard", credentials: {} })
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), "sectioning-runners-"))
   dir = path.join(root, label)
@@ -93,8 +93,8 @@ describe("production preflight boundaries", () => {
     const decisions = createPageErrorDecisions(bus)
     const stages = createStageService(createStageRunner(), bus, decisions)
     const app = new Hono().onError(errorHandler)
-      .route("/", createStageRoutes(stages, bus, decisions, root, root, root, configPath))
-      .route("/", createPageRoutes(root, root, undefined, configPath))
+      .route("/", createStageRoutes(stages, bus, decisions, root, path.resolve("prompts"), root, configPath))
+      .route("/", createPageRoutes(root, path.resolve("prompts"), undefined, configPath))
     const before = history()
     for (const [url, body] of [[`/books/${label}/stages/run`, { fromStage: "storyboard", toStage: "storyboard" }], [`/books/${label}/pages/p2/re-render`, {}], [`/books/${label}/pages/re-render`, { pageIds: ["p2"] }]] as const) {
       const response = await app.request(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
@@ -131,7 +131,7 @@ describe("production preflight boundaries", () => {
     fs.writeFileSync(path.join(dir, `${label}.pdf`), "original PDF")
     const incoming = path.join(root, "incoming.pdf"); fs.copyFileSync(path.resolve("tests/fixtures/raven.pdf"), incoming)
     const before = history()
-    await expect(runFullPipeline({ label, booksRoot: root, pdfPath: incoming, promptsDir: root, templatesDir: root, configPath })).rejects.toThrow(/EXTRACTION_LEGACY/)
+    await expect(runFullPipeline({ label, booksRoot: root, pdfPath: incoming, promptsDir: path.resolve("prompts"), templatesDir: root, configPath })).rejects.toThrow(/EXTRACTION_LEGACY/)
     expect(fs.readFileSync(path.join(dir, `${label}.pdf`), "utf8")).toBe("original PDF")
     expect(history()).toEqual(before)
   })

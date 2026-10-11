@@ -27,6 +27,8 @@ import {
   AiProviderError,
   createLLMModel,
   createPromptEngine,
+  promptRoots,
+  migratePromptOverrides,
   createRateLimiter,
   createAdaptiveRateLimiter,
   getDefaultProviderRegistry,
@@ -953,6 +955,8 @@ export function createStageRunner(): StageRunner {
             if (!storage.getStepRuns().some((step) => step.step === "extract" && step.status === "done")) storage.markStepCompleted("extract")
           } finally { storage.close() }
         }
+        const roots = promptRoots(options.booksDir, options.promptsDir, options.promptOverridesDir, path.join(bookDir, "prompts"))
+        await migratePromptOverrides(options.promptsDir, roots[1], roots[0])
         if (options.resume || options.fromStage === "extract") return runCatalogResume(label, { ...options, extractionCreated }, progress, (stage) =>
           (stage === "extract" || stage !== "package" && isGenerationKind(stage))
             ? runGenerationStage(label, options, stage, progress, (admitted, publicationProgress) => runner.run(label, { ...admitted, resume: false, fromStage: stage, toStage: stage, beforeRun: undefined }, publicationProgress))
@@ -1175,7 +1179,7 @@ async function runExtractStep(
     const metadataConfig = buildMetadataConfig(config)
     const cacheDir = options.cacheDir ?? path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = options.promptEngine ?? createPromptEngine(promptRoots(booksDir, promptsDir, options.promptOverridesDir, bookPromptsDir), { basePromptModelId: config.base_prompt_model, capture: true })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1435,7 +1439,7 @@ async function runSectioningStep(
     }
     const cacheDir = options.cacheDir ?? path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = options.promptEngine ?? createPromptEngine(promptRoots(booksDir, promptsDir, options.promptOverridesDir, bookPromptsDir), { basePromptModelId: config.base_prompt_model, capture: true })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1697,7 +1701,7 @@ async function runStoryboardStep(
     // Shared infrastructure for LLM calls
     const cacheDir = options.cacheDir ?? path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = options.promptEngine ?? createPromptEngine(promptRoots(booksDir, promptsDir, options.promptOverridesDir, bookPromptsDir), { basePromptModelId: config.base_prompt_model, capture: true })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1945,7 +1949,7 @@ async function runQuizzesStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = options.cacheDir ?? path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = options.promptEngine ?? createPromptEngine(promptRoots(booksDir, promptsDir, options.promptOverridesDir, bookPromptsDir), { basePromptModelId: config.base_prompt_model, capture: true })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2099,7 +2103,7 @@ async function runCaptionsStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = options.cacheDir ?? path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = options.promptEngine ?? createPromptEngine(promptRoots(booksDir, promptsDir, options.promptOverridesDir, bookPromptsDir), { basePromptModelId: config.base_prompt_model, capture: true })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2151,10 +2155,10 @@ async function runCaptionsStep(
     })
 
     const inventory = buildImageInventory(storage)
-    const readOutputs = () => readOutputCatalog({ storage, config: loadBookConfig(label, booksDir, configPath),
-      bookDir: path.join(path.resolve(booksDir), label), promptsDir,
+    const readOutputs = (capturedEngine?: import("@adt/llm").PromptEngine) => readOutputCatalog({ promptEngine: capturedEngine, storage, config: loadBookConfig(label, booksDir, configPath),
+      bookDir: path.join(path.resolve(booksDir), label), promptsDir, promptOverridesDir: options.promptOverridesDir,
       configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config") })
-    const captured = readOutputs()
+    const captured = readOutputs(promptEngine)
     const pages = storage.getPages()
     const totalPages = pages.length
     const effectiveConcurrency = options.concurrency ?? config.concurrency ?? 32
@@ -2274,7 +2278,7 @@ async function runGlossaryStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = options.cacheDir ?? path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = options.promptEngine ?? createPromptEngine(promptRoots(booksDir, promptsDir, options.promptOverridesDir, bookPromptsDir), { basePromptModelId: config.base_prompt_model, capture: true })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2374,7 +2378,7 @@ async function runTocStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = options.cacheDir ?? path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = options.promptEngine ?? createPromptEngine(promptRoots(booksDir, promptsDir, options.promptOverridesDir, bookPromptsDir), { basePromptModelId: config.base_prompt_model, capture: true })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2447,11 +2451,11 @@ async function runTocStep(
 // Easy Read stage (text catalog + Easy Read)
 // ---------------------------------------------------------------------------
 
-function readRunOutputs(label: string, options: StageRunOptions, storage: Storage) {
+function readRunOutputs(label: string, options: StageRunOptions, storage: Storage, promptEngine?: import("@adt/llm").PromptEngine) {
   const config = loadBookConfig(label, options.booksDir, options.configPath)
   if (options.fromStage === "easy-read" && options.toStage === "easy-read") config.easy_read = { ...config.easy_read, enabled: true }
-  return readOutputCatalog({ storage, config,
-    bookDir: path.join(path.resolve(options.booksDir), label), promptsDir: options.promptsDir,
+  return readOutputCatalog({ storage, config, promptEngine,
+    bookDir: path.join(path.resolve(options.booksDir), label), promptsDir: options.promptsDir, promptOverridesDir: options.promptOverridesDir,
     configDir: options.configPath ? path.join(path.dirname(options.configPath), "config") : path.resolve("config") })
 }
 
@@ -2468,7 +2472,7 @@ async function runEasyReadStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = options.cacheDir ?? path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = options.promptEngine ?? createPromptEngine(promptRoots(booksDir, promptsDir, options.promptOverridesDir, bookPromptsDir), { basePromptModelId: config.base_prompt_model, capture: true })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2564,7 +2568,7 @@ async function runEasyReadStep(
         })
         const previousEasyReadRow = storage.getLatestNodeData("easy-read", "book")
         const previousEasyRead = retainedEasyRead(storage, blocks)
-        const captured = readRunOutputs(label, options, storage)
+        const captured = readRunOutputs(label, options, storage, promptEngine)
         const easyRead = await generateEasyRead(blocks, easyReadConfig, easyReadModel, {
           previous: previousEasyRead, references: captureOutputReferences(storage, "easy-read", language), scope: options.outputScope, signal: options.signal,
           concurrency: effectiveConcurrency,
@@ -2620,7 +2624,7 @@ async function runTranslateStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = options.cacheDir ?? path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = options.promptEngine ?? createPromptEngine(promptRoots(booksDir, promptsDir, options.promptOverridesDir, bookPromptsDir), { basePromptModelId: config.base_prompt_model, capture: true })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2722,7 +2726,7 @@ async function runTranslateStep(
         const readTranslation = () => storage.getLatestNodeData("text-catalog-translation", itemId)
         const previousRow = readTranslation()
         const previous = previousRow?.data as TextCatalogOutput | undefined
-        const captured = readRunOutputs(label, options, storage)
+        const captured = readRunOutputs(label, options, storage, promptEngine)
         const output = await translateCatalog({ entries: translationEntries, language: lang, config: translationConfig,
           llmModel: translationModel, previous: retainedTranslation(storage, lang, translationEntries.map((entry) => entry.id)), references: captureOutputReferences(storage, "translation", lang), scope: options.outputScope, signal: options.signal })
         options.signal?.throwIfAborted()
@@ -2757,7 +2761,7 @@ async function runTranslateStep(
       : path.resolve(process.cwd(), "config")
     const profiles = loadCoreTtsProfiles(coreTtsConfigDir)
     const sourceDisplayEntries = [...catalog.entries, ...easyReadEntries]
-    const sourcePrepBefore = readRunOutputs(label, options, storage)
+    const sourcePrepBefore = readRunOutputs(label, options, storage, promptEngine)
     const sourcePrepVersion = storage.getLatestNodeData("core-tts-catalog", language)?.version
     const sourceCoreTts = await prepareCoreTtsCatalog({
       entries: sourceDisplayEntries,
@@ -2801,7 +2805,7 @@ async function runTranslateStep(
         const translatedById = new Map((translatedRow.data as TextCatalogOutput).entries.map((entry) => [entry.id, entry]))
         targetDisplayEntries = sourceDisplayEntries.map((source) => ({ ...source, text: translatedById.get(source.id)?.text ?? "" }))
       }
-      const targetPrepBefore = readRunOutputs(label, options, storage)
+      const targetPrepBefore = readRunOutputs(label, options, storage, promptEngine)
       const targetPrepVersion = storage.getLatestNodeData("core-tts-catalog", lang)?.version
       const targetCoreTts = await prepareCoreTtsCatalog({
         entries: targetDisplayEntries,
@@ -2858,7 +2862,7 @@ async function runTranslateStep(
         diskPath: string
       }
       const bookDir = path.join(path.resolve(booksDir), label)
-      const imageBefore = readRunOutputs(label, options, storage)
+      const imageBefore = readRunOutputs(label, options, storage, promptEngine)
       const items: ImageWork[] = []
       for (const imageId of imageTranslation.selectedImageIds) {
         const meta = storage.getImageMeta(imageId)
@@ -2894,8 +2898,7 @@ async function runTranslateStep(
         )
         const imageApiKey = resolveCredentialField(options, imageProviderId, "apiKey")
         const promptName = config.image_translation?.prompt ?? "image_translation"
-        const imagePromptEngine = createPromptEngine([path.join(path.resolve(booksDir), label, "prompts"), promptsDir], { basePromptModelId: config.base_prompt_model })
-        const promptText = await imagePromptEngine.renderText(promptName, {}, { modelId: imageTranslation.modelId })
+        const promptText = await promptEngine.renderText(promptName, {}, { modelId: imageTranslation.modelId })
         const total = items.length
         let completed = 0
         progress.emit({
@@ -3011,7 +3014,7 @@ async function runSpeechStep(
 
     reconcileSpeechInputs({ storage, config, sourceLanguage: language, languages: outputLanguages,
       profiles: loadCoreTtsProfiles(configDir),
-      promptsDir: options.promptsDir, bookDir })
+      promptsDir: options.promptsDir, promptOverridesDir: options.promptOverridesDir, bookDir })
 
     // Resolve actual requested-language display text before checking for work.
     // This step does not launch translation or text preparation.

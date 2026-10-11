@@ -1,3 +1,4 @@
+import { createPromptEngine, promptRoots } from "@adt/llm"
 import path from "node:path"
 import { createBookStorage, writeSectioningLifecycle, readSectioningLifecycle, readExtractionManifest } from "@adt/storage"
 import { OutputMetadata, STAGE_BY_NAME, type ProgressEvent, type StageName } from "@adt/types"
@@ -15,10 +16,11 @@ export async function runGenerationStage(label: string, options: StageRunOptions
   execute: (options: StageRunOptions, progress: StageRunProgress) => Promise<void>): Promise<void> {
   const base = createBookStorage(label, options.booksDir)
   const bookDir = path.join(path.resolve(options.booksDir), label)
-  const context = (storage = base): GenerationCatalogOptions => ({ storage, bookDir, config: loadBookConfig(label, options.booksDir, options.configPath), promptsDir: options.promptsDir, templatesDir: options.templatesDir, configPath: options.configPath, webAssetsDir: options.webAssetsDir, configDir: options.configDir })
+  const context = (storage = base): GenerationCatalogOptions => ({ storage, bookDir, config: loadBookConfig(label, options.booksDir, options.configPath), promptsDir: options.promptsDir, promptOverridesDir: options.promptOverridesDir, templatesDir: options.templatesDir, configPath: options.configPath, webAssetsDir: options.webAssetsDir, configDir: options.configDir })
   try {
     const read = () => readGenerationCatalog(context()).filter((status) => isGenerationKind(status.identity.kind) && generationStage(status.identity.kind) === stage)
-    const before = read()
+    const promptEngine = createPromptEngine(promptRoots(options.booksDir, options.promptsDir, options.promptOverridesDir, path.join(bookDir, "prompts")), { basePromptModelId: context().config.base_prompt_model, capture: true })
+    const before = readGenerationCatalog({ ...context(), promptEngine }).filter((status) => isGenerationKind(status.identity.kind) && generationStage(status.identity.kind) === stage)
     const selected = before.filter((status) => selectedForGeneration(status, undefined, options.outputScope))
     if (!selected.length) return
     if (stage !== "extract") prepareSectioningRun(label, options.booksDir, stage, stage, options.configPath)
@@ -38,7 +40,7 @@ export async function runGenerationStage(label: string, options: StageRunOptions
       return [{ node, itemId: status.identity.id, version: base.getLatestNodeData(node, status.identity.id)!.version }]
     })
     const completionEvents: ProgressEvent[] = []
-    await execute({ ...options, generationStorage: publication.storage,
+    await execute({ ...options, promptEngine, generationStorage: publication.storage,
       generationReplaceProtected: selected.some((status) => status.protected),
       generationPageIds: stage === "sectioning" || stage === "storyboard" ? selectedIds : undefined,
       ...(explicit.length ? { replaceManual: true, protectedReplacements: explicit } : {}),
@@ -47,7 +49,7 @@ export async function runGenerationStage(label: string, options: StageRunOptions
       else if (event.type !== "stage-complete") progress.emit(event)
     } })
     options.signal?.throwIfAborted()
-    const after = readGenerationCatalog(context(publication.storage))
+    const after = readGenerationCatalog({ ...context(publication.storage), promptEngine })
     for (const status of selected) {
       if (!isGenerationKind(status.identity.kind)) continue
       const node = GENERATION_NODES[status.identity.kind], id = status.identity.id
@@ -87,7 +89,7 @@ export function reconcileCurrentGeneration(label: string, options: StageRunOptio
   const bookDir = path.join(path.resolve(options.booksDir), label)
   try {
     const config = loadBookConfig(label, options.booksDir, options.configPath)
-    const statuses = readGenerationCatalog({ storage: base, config, bookDir, promptsDir: options.promptsDir, templatesDir: options.templatesDir, configPath: options.configPath })
+    const statuses = readGenerationCatalog({ storage: base, config, bookDir, promptsDir: options.promptsDir, promptOverridesDir: options.promptOverridesDir, templatesDir: options.templatesDir, configPath: options.configPath })
       .filter((status) => status.identity.kind === stage)
     if (!statuses.length || !statuses.every((status) => status.current)) return
     assertPersistedSectioning(base, config, bookDir)
