@@ -145,40 +145,45 @@ it("bounds provider preparation failures and retains every requested phrase as f
 
 it("keeps fixed translation windows around a correction and accounts for requests, cache, provider and cost separately", async () => {
   const entries = Array.from({ length: 120 }, (_, i) => ({ id: `entry-${i}`, text: `Phrase ${i}` }))
+  let providerCost = 0
+  const fixtureTariffPerCall = 0.015 // Test provider billing, not a live-model price.
   const respond = transport.getMockImplementation()!
   transport.mockImplementation(async (...args) => {
+    providerCost += fixtureTariffPerCall
     const messages = JSON.stringify(JSON.parse(String(args[1]?.body)).messages)
     response = { translations: [...messages.matchAll(/Phrase \d+/g)].map(([text]) => `French ${text}`) }
     return respond(...args)
   })
-  const logs: import("@adt/types").LlmLogEntry[] = []
+  const logs: import("@adt/llm").LlmLogEntry[] = []
   const llmModel = model(logs)
   const adapter = vi.spyOn(llmModel, "generateObject")
   const initial = await translateCatalog({ entries, language: "fr", config: translationConfig, llmModel })
   const correction = { ...initial.entries[7], text: "Hand correction", source: "manual" as const }
   const saved = { ...initial, entries: initial.entries.map((e, i) => i === 7 ? correction : e) }
-  adapter.mockClear(); transport.mockClear(); logs.length = 0
+  adapter.mockClear(); transport.mockClear(); logs.length = 0; providerCost = 0
   for (let i = 0; i < 2; i++) {
     expect(await translateCatalog({ entries, language: "fr", config: translationConfig, llmModel, previous: saved })).toBe(saved)
   }
   expect(adapter).not.toHaveBeenCalled()
   expect(transport).not.toHaveBeenCalled()
+  expect(providerCost).toBe(0)
   expect(logs).toEqual([]) // Skipped current output is not a cache hit.
 
   // Deliberately missing AI output gives full eligibility without bypassing
   // current-output admission or introducing a force-fresh production switch.
   const previous = { entries: [correction], generatedAt: "fixture" }
   for (let pass = 0; pass < 2; pass++) {
-    adapter.mockClear(); transport.mockClear(); logs.length = 0
+    adapter.mockClear(); transport.mockClear(); logs.length = 0; providerCost = 0
     const output = await translateCatalog({ entries, language: "fr", config: translationConfig, llmModel, previous })
     expect(adapter).toHaveBeenCalledTimes(3)
     expect(adapter.mock.calls.map(([request]) => (request.context as { texts: unknown[] }).texts.length)).toEqual([49, 50, 20])
     expect(JSON.stringify(adapter.mock.calls)).not.toContain('"text":"Phrase 7"')
     expect(output.entries.find((e) => e.id === correction.id)).toEqual(correction)
     expect(transport).toHaveBeenCalledTimes(pass === 0 ? 1 : 0)
+    expect(providerCost).toBe(pass === 0 ? fixtureTariffPerCall : 0)
     expect(logs.filter((l) => l.cacheHit)).toHaveLength(pass === 0 ? 2 : 3)
     expect(logs.filter((l) => !l.cacheHit)).toHaveLength(pass === 0 ? 1 : 0)
-    // The local test provider has zero tariff; usage still records actual calls.
+    // Usage and the transport billing ledger count actual provider calls.
     expect(logs.filter((l) => !l.cacheHit).reduce((sum, l) => sum + (l.usage?.inputTokens ?? 0), 0)).toBe(pass === 0 ? 10 : 0)
   }
   const protectedOnly = { entries: entries.map((e) => ({ ...e, source: "manual" as const })), generatedAt: "fixture" }

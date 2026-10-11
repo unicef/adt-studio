@@ -1,3 +1,5 @@
+import { useGuardedDraft } from "@/hooks/use-guarded-draft"
+import { DraftConflict } from "../../components/DraftConflict"
 import { OutputReview, useOutputs } from "../../components/OutputReview"
 import { useState, useEffect, useRef, useCallback, useMemo, type ChangeEvent } from "react"
 import { createPortal } from "react-dom"
@@ -670,9 +672,6 @@ export function LanguageView({
   }, [selectedVoiceSlot, timestampMap]);
 
   // Pending state for edits (keyed by language)
-  const [pendingEntries, setPendingEntries] = useState<
-    TextCatalogEntry[] | null
-  >(null);
   const [saving, setSaving] = useState(false);
   const pendingVersions = useRef({ baseVersion: 0, sourceVersion: 0, sourceSignature: "" });
   const [generateErrorById, setGenerateErrorById] = useState<
@@ -695,7 +694,17 @@ export function LanguageView({
     ? (catalog?.version ?? null)
     : (translationData?.version ?? null);
 
-  // Reset pending when version or language changes
+  const draft = useGuardedDraft<TextCatalogEntry[]>(translatedEntries, translationVersion, async () => {
+    const latest = await api.getTextCatalog(bookLabel);
+    const translation = translationItemId ? latest?.translations?.[translationItemId] : undefined;
+    if (!latest || !translation) throw new Error(t`Saved content is unavailable; your draft is retained`);
+    queryClient.setQueryData(["books", bookLabel, "text-catalog"], latest);
+    pendingVersions.current = { baseVersion: translation.version ?? 0, sourceVersion: latest.version ?? 0, sourceSignature: translation.sourceSignature ?? "" };
+    return { value: translation.entries, version: translation.version ?? 0 };
+  });
+  const { pending: pendingEntries, setPending: setPendingEntries } = draft;
+
+  // Changing the selected language discards its draft; query refreshes do not.
   useEffect(() => {
     setPendingEntries(null);
     setAppliedSuggestionEntryIds(new Set());
@@ -755,6 +764,7 @@ export function LanguageView({
 
   const [saveError, setSaveError] = useState<string | null>(null);
   const saveTranslation = useCallback(async () => {
+    if (draft.conflict) throw new Error(t`Resolve conflicting edits before saving`);
     if (!pendingEntries || !translationItemId) return;
     setSaving(true);
     setSaveError(null);
@@ -763,6 +773,7 @@ export function LanguageView({
     await api.updateTranslation(bookLabel, translationItemId, {
       entries: pendingEntries,
       ...pendingVersions.current,
+      baseVersion: draft.baseVersion,
     });
     setPendingEntries(null);
     setAppliedSuggestionEntryIds(new Set());
@@ -781,9 +792,9 @@ export function LanguageView({
       queryKey: ["books", bookLabel, "step-status"],
     });
     await minDelay;
-    } catch (error) { setSaveError(error instanceof Error ? error.message : String(error)); }
+    } catch (error) { setSaveError(error instanceof Error ? error.message : String(error)); await draft.handleError(error); throw error; }
     finally { setSaving(false); }
-  }, [pendingEntries, translationItemId, bookLabel, queryClient]);
+  }, [pendingEntries, translationItemId, bookLabel, queryClient, draft]);
 
   const saveRef = useRef(saveTranslation);
   saveRef.current = saveTranslation;
@@ -1869,7 +1880,7 @@ export function LanguageView({
       {headerSlotEl &&
         headerControls &&
         createPortal(headerControls, headerSlotEl)}
-      <div className="flex flex-col h-full">
+      <fieldset disabled={saving} className="flex min-w-0 flex-col h-full border-0 p-0">
         {/* Fixed header: alerts, language tabs, column headers */}
         <div className="shrink-0 px-4 pt-4 space-y-3">
           {isSpeechStage && hasStageError && runError && (
@@ -2217,7 +2228,7 @@ export function LanguageView({
               </div>
             )}
 
-          {saveError && <p role="alert" className="text-xs text-red-700">{saveError}</p>}
+          <DraftConflict error={draft.error ?? saveError} paths={draft.conflict?.paths} onResolve={draft.resolve} />
           {!isSourceLang && !isSpeechStage && evaluationStatus?.isStale && (
             <div
               role="status"
@@ -2822,7 +2833,7 @@ export function LanguageView({
             onClose={() => setLightbox(null)}
           />
         )}
-      </div>
+      </fieldset>
     </>
   );
 }

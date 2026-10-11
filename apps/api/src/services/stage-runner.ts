@@ -2548,9 +2548,22 @@ async function runTranslateStep(
 
     // ── Step 2: Translate catalog to target languages ────────────────
     const targetLanguages = getTargetLanguages(outputLanguages, language)
-    if (targetLanguages.length === 0 || translationEntries.length === 0) {
+    if (targetLanguages.length === 0) {
       progress.emit({ type: "step-skip", step: "catalog-translation" })
       console.log(`[stage-run] ${label}: catalog translation skipped`)
+    } else if (translationEntries.length === 0) {
+      // Retire membership without resolving a prompt/provider for an empty
+      // source. The prior document remains in version history.
+      options.signal?.throwIfAborted()
+      storage.transaction(() => {
+        for (const language of targetLanguages) {
+          const itemId = storage.getLatestNodeData("text-catalog-translation", language) ? language : language.replace("-", "_")
+          const row = storage.getLatestNodeData("text-catalog-translation", itemId)
+          const previous = row?.data as TextCatalogOutput | undefined
+          if (previous?.entries.length) storage.putNodeData("text-catalog-translation", itemId, { ...previous, entries: [], generatedAt: new Date().toISOString() })
+        }
+      })
+      progress.emit({ type: "step-skip", step: "catalog-translation" })
     } else {
       progress.emit({ type: "step-start", step: "catalog-translation" })
 
@@ -2574,9 +2587,9 @@ async function runTranslateStep(
         const previous = previousRow?.data as TextCatalogOutput | undefined
         const captured = readRunOutputs(label, options, storage)
         const output = await translateCatalog({ entries: translationEntries, language: lang, config: translationConfig,
-          llmModel: translationModel, previous, references: captureOutputReferences(storage, "translation", lang), scope: options.outputScope, signal: options.signal })
+          llmModel: translationModel, previous: retainedTranslation(storage, lang, translationEntries.map((entry) => entry.id)), references: captureOutputReferences(storage, "translation", lang), scope: options.outputScope, signal: options.signal })
         options.signal?.throwIfAborted()
-        if (output !== previous) storage.transaction(() => {
+        if (inputSignature(output.entries) !== inputSignature(previous?.entries)) storage.transaction(() => {
           if (readTranslation()?.version !== previousRow?.version) throw new Error("Translation changed during generation")
           const changed = output.entries.filter((entry) => inputSignature(entry) !== inputSignature(previous?.entries.find((prior) => prior.id === entry.id)))
           assertOutputPublication(captured, readRunOutputs(label, options, storage), changed.map((entry) => ({ kind: "translation", id: entry.id, language: lang })))

@@ -1,5 +1,6 @@
+import { assertAuthoredIdle } from "../services/authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
-import { catalogOutputs, editSourceSignature, assertEditSource } from "../services/catalog-output-service.js"
+import { catalogOutputs, editSourceSignature, assertEditSource, assertEditVersion } from "../services/catalog-output-service.js"
 import fs from "node:fs"
 import path from "node:path"
 import crypto from "node:crypto"
@@ -99,6 +100,10 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
         }
       }
 
+      for (const language of new Set(outputs.filter((output) => output.identity.kind === "translation").map((output) => output.identity.language!))) {
+        if (!translations[language] && !translations[language.replace("-", "_")]) translations[language] = { entries: [], version: 0, sourceSignature: editSourceSignature(outputs, "translation", language) }
+      }
+
       const speechRows = db.all(
         `SELECT nd.item_id AS item_id, nd.data AS data, nd.version AS version
          FROM node_data nd
@@ -154,35 +159,38 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const previous = storage.getLatestNodeData("text-catalog-translation", language)
-      if ((previous?.version ?? 0) !== parsed.data.baseVersion || (storage.getLatestNodeData("text-catalog", "book")?.version ?? 0) !== parsed.data.sourceVersion) {
-        throw new HTTPException(409, { message: "Translation or source changed. Refresh before saving." })
-      }
-      const outputs = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath)
-      assertEditSource(editSourceSignature(outputs, "translation", language), parsed.data.sourceSignature)
-      const previousEntries = new Map(((previous?.data as { entries?: Array<{ id: string; text: string }> })?.entries ?? []).map((entry) => [entry.id, entry]))
-      const previousData = previous?.data && typeof previous.data === "object"
-        ? previous.data as { generatedAt?: unknown }
-        : null
-      const changes = new Map<string, (typeof parsed.data.entries)[number]>()
-      for (const entry of parsed.data.entries) {
-        if (changes.has(entry.id)) throw new HTTPException(400, { message: "Duplicate translation identity." })
-        if (!outputs.some((item) => item.identity.kind === "translation" && item.identity.id === entry.id && item.identity.language === normalizedLanguage)) {
-          throw new HTTPException(409, { message: "Translation source is no longer available. Refresh before saving." })
+      return storage.transaction(() => {
+        const previous = storage.getLatestNodeData("text-catalog-translation", language)
+        assertAuthoredIdle(storage)
+        assertEditVersion(previous?.version, parsed.data.baseVersion)
+        if ((storage.getLatestNodeData("text-catalog", "book")?.version ?? 0) !== parsed.data.sourceVersion) {
+          throw new HTTPException(409, { message: "Translation or source changed. Refresh before saving." })
         }
-        changes.set(entry.id, entry)
-      }
-      const data = TextCatalogOutput.parse({
-        entries: [...new Set([...previousEntries.keys(), ...changes.keys()])].map((id) => {
-          const entry = changes.get(id)
-          if (!entry) return previousEntries.get(id)
-          const old = previousEntries.get(entry.id)
-          const status = outputs.find((item) => item.identity.kind === "translation" && item.identity.id === entry.id && item.identity.language === normalizedLanguage)
-          return old?.text === entry.text ? old : { ...old, ...entry, source: "manual", review: undefined, input: status ? outputEvidence(status.signature, entry.text, captureOutputReferences(storage, status.identity.kind, status.identity.language)) : undefined }
-        }),
-        generatedAt: parsed.data.generatedAt
-          ?? (typeof previousData?.generatedAt === "string" ? previousData.generatedAt : undefined)
-          ?? new Date().toISOString(),
+        const outputs = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath)
+        assertEditSource(editSourceSignature(outputs, "translation", language), parsed.data.sourceSignature)
+        const previousEntries = new Map(((previous?.data as { entries?: Array<{ id: string; text: string }> })?.entries ?? []).map((entry) => [entry.id, entry]))
+        const previousData = previous?.data && typeof previous.data === "object"
+          ? previous.data as { generatedAt?: unknown }
+          : null
+        const changes = new Map<string, (typeof parsed.data.entries)[number]>()
+        for (const entry of parsed.data.entries) {
+          if (changes.has(entry.id)) throw new HTTPException(400, { message: "Duplicate translation identity." })
+          if (!outputs.some((item) => item.identity.kind === "translation" && item.identity.id === entry.id && item.identity.language === normalizedLanguage)) {
+            throw new HTTPException(409, { message: "Translation source is no longer available. Refresh before saving." })
+          }
+          changes.set(entry.id, entry)
+        }
+        const data = TextCatalogOutput.parse({
+          entries: [...new Set([...previousEntries.keys(), ...changes.keys()])].map((id) => {
+            const entry = changes.get(id)
+            if (!entry) return previousEntries.get(id)
+            const old = previousEntries.get(entry.id)
+            const status = outputs.find((item) => item.identity.kind === "translation" && item.identity.id === entry.id && item.identity.language === normalizedLanguage)
+            return old?.text === entry.text ? old : { ...old, ...entry, source: "manual", review: undefined, input: status ? outputEvidence(status.signature, entry.text, captureOutputReferences(storage, status.identity.kind, status.identity.language)) : undefined }
+          }),
+          generatedAt: parsed.data.generatedAt
+            ?? (typeof previousData?.generatedAt === "string" ? previousData.generatedAt : undefined)
+            ?? new Date().toISOString(),
       })
       const version = storage.putNodeData(
         "text-catalog-translation",
@@ -204,6 +212,7 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
         "accessibility-assessment",
       ])
       return c.json({ version })
+      })
     } finally {
       storage.close()
     }
