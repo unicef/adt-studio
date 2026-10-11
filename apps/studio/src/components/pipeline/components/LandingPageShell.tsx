@@ -82,6 +82,7 @@ export function LandingPageShell({
   const downstreamAffected = useDownstreamWithOutput(stageSlug)
   const { data: runStatus } = useQuery({ queryKey: ["books", bookLabel, "step-status"], queryFn: () => api.getStepStatus(bookLabel) })
   const protectedWork = (runStatus?.protectedWork ?? []).filter((r) => r.node === (stageSlug === "sectioning" ? "page-sectioning" : stageSlug === "toc" ? "toc-generation" : ""))
+  const [protectedSnapshot, setProtectedSnapshot] = useState<typeof protectedWork>([])
   const [replaceManual, setReplaceManual] = useState(false)
   const needsConfirmation = (isCompleted && downstreamAffected.length > 0) || protectedWork.length > 0
   const { isCancelling, cancelRun } = useBookRun()
@@ -102,6 +103,9 @@ export function LandingPageShell({
   // the cascade-reset confirmation, then the run itself.
   const proceedRun = () => {
     if (needsConfirmation) {
+      // A background refresh must not authorize replacing a newer version than
+      // the one named when the confirmation opened. The API rejects stale scope.
+      setProtectedSnapshot(protectedWork.map((record) => ({ ...record })))
       setReplaceManual(false)
       setConfirmOpen(true)
     } else {
@@ -124,8 +128,8 @@ export function LandingPageShell({
 
   const handleConfirm = () => {
     setConfirmOpen(false)
-    const replace = protectedWork.length > 0 && (stageSlug === "toc" || replaceManual)
-    onRun({ replaceManual: replace, protectedReplacements: replace ? protectedWork.map(({ node, itemId, version }) => ({ node, itemId, version })) : [] })
+    const replace = protectedSnapshot.length > 0 && (stageSlug === "toc" || replaceManual)
+    onRun({ replaceManual: replace, protectedReplacements: replace ? protectedSnapshot.map(({ node, itemId, version }) => ({ node, itemId, version })) : [] })
   }
 
   const stageLabel = getStageLabelI18n(stageSlug)
@@ -250,11 +254,11 @@ export function LandingPageShell({
         confirmColorClass={hasError ? errorColorClass : colorClass}
         onConfirm={handleConfirm}
       >
-        {protectedWork.length > 0 && (stageSlug === "toc" ? (
+        {protectedSnapshot.length > 0 && (stageSlug === "toc" ? (
           <p className="text-sm"><Trans>This replaces the manually edited or legacy table of contents. Its saved version remains in history.</Trans></p>
         ) : (
           <div className="space-y-2 text-sm">
-            <p><Trans>Protected pages:</Trans> {protectedWork.map((r) => r.pageNumber ?? r.itemId).join(", ")}</p>
+            <p><Trans>Protected pages:</Trans> {protectedSnapshot.map((r) => r.pageNumber ?? r.itemId).join(", ")}</p>
             <label className="flex gap-2"><input type="checkbox" checked={replaceManual} onChange={(e) => setReplaceManual(e.target.checked)} /><Trans>Replace the protected pages listed above</Trans></label>
           </div>
         ))}

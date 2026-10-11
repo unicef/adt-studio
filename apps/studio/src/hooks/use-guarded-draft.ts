@@ -41,7 +41,11 @@ export function useGuardedDraft<T>(current: T | null | undefined, version: numbe
   }, [])
   const resolve = useCallback((choice: "draft" | "latest") => {
     if (!conflict) return
-    pendingRef.current = choice === "draft" ? conflict.mine : conflict.latest
+    // The editor stays usable while a conflict is shown. Apply the choice to
+    // that conflict without dropping unrelated edits typed since it appeared.
+    const selected = choice === "draft" ? conflict.mine : conflict.latest
+    pendingRef.current = rebaseDraft(conflict.mine, pendingRef.current ?? conflict.mine, selected, choice).value
+    epoch.current++
     update(pendingRef.current)
     setConflict(null)
     setError(null)

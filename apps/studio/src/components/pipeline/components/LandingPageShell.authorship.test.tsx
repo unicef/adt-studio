@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react"
 import { afterEach, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 vi.mock("@lingui/react/macro", () => ({ Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>, useLingui: () => ({ i18n: { _: (d: { id: string }) => d.id } }) }))
 vi.mock("@tanstack/react-router", () => ({ Link: ({ children }: { children: React.ReactNode }) => <span>{children}</span> }))
@@ -20,10 +20,10 @@ async function mount(stageSlug: string, protectedWork: unknown[]) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(<QueryClientProvider client={client}><LandingPageShell bookLabel="book" stageSlug={stageSlug} colorClass="bg-blue-500" isRunning={false} isCompleted hasError={false} canRun runLabel="Run" rerunLabel="Rerun" previewLabel="Preview" onRun={onRun} preview={null}>{null}</LandingPageShell></QueryClientProvider>)
   await waitFor(() => expect(client.getQueryState(["books", "book", "step-status"])?.status).toBe("success"))
-  return onRun
+  return { onRun, client }
 }
 it("lists protected page numbers, defaults replacement off on every open and sends only the named versions", async () => {
-  const onRun = await mount("sectioning", [{ node: "page-sectioning", itemId: "pg003", pageNumber: 3, version: 7 }])
+  const { onRun } = await mount("sectioning", [{ node: "page-sectioning", itemId: "pg003", pageNumber: 3, version: 7 }])
   await waitFor(() => expect(api.getStepStatus).toHaveBeenCalled())
   fireEvent.click(screen.getByRole("button", { name: "Rerun" }))
   expect(await screen.findByText(/Protected pages:/)).toBeTruthy()
@@ -38,7 +38,7 @@ it("lists protected page numbers, defaults replacement off on every open and sen
   expect(onRun).toHaveBeenCalledWith({ replaceManual: true, protectedReplacements: [{ node: "page-sectioning", itemId: "pg003", version: 7 }] })
 })
 it("requires the TOC replacement notice to be confirmed and cancellation makes no request", async () => {
-  const onRun = await mount("toc", [{ node: "toc-generation", itemId: "book", version: 2 }])
+  const { onRun } = await mount("toc", [{ node: "toc-generation", itemId: "book", version: 2 }])
   await waitFor(() => expect(api.getStepStatus).toHaveBeenCalled())
   fireEvent.click(screen.getByRole("button", { name: "Rerun" }))
   expect(await screen.findByText(/This replaces the manually edited/)).toBeTruthy()
@@ -47,4 +47,18 @@ it("requires the TOC replacement notice to be confirmed and cancellation makes n
   fireEvent.click(screen.getByRole("button", { name: "Rerun" }))
   fireEvent.click(screen.getAllByRole("button", { name: "Rerun" }).at(-1)!)
   expect(onRun).toHaveBeenCalledWith({ replaceManual: true, protectedReplacements: [{ node: "toc-generation", itemId: "book", version: 2 }] })
+})
+
+it.each(["sectioning", "toc"])("keeps the %s replacement confirmation bound to the version shown when opened", async (stage) => {
+  const record = { node: stage === "toc" ? "toc-generation" : "page-sectioning", itemId: stage === "toc" ? "book" : "pg003", version: 2 }
+  const { onRun, client } = await mount(stage, [record])
+  fireEvent.click(screen.getByRole("button", { name: "Rerun" }))
+  if (stage === "sectioning") fireEvent.click(screen.getByRole("checkbox"))
+  await act(async () => {
+    client.setQueryData(["books", "book", "step-status"], { protectedWork: [{ ...record, version: 3 }] })
+    // Let TanStack Query deliver its scheduled cache notification to React.
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  })
+  fireEvent.click(screen.getAllByRole("button", { name: "Rerun" }).at(-1)!)
+  expect(onRun).toHaveBeenCalledWith({ replaceManual: true, protectedReplacements: [record] })
 })

@@ -51,3 +51,14 @@ it("keeps the draft and original version if the conflict reload fails, and ignor
   expect(result.current.pending).toBeNull()
   expect(result.current.conflict).toBeNull()
 })
+
+it.each(["draft", "latest"] as const)("retains edits typed after the conflict before choosing %s", async (choice) => {
+  const base = { title: "Before", note: "Original note" }
+  const reload = vi.fn(async () => ({ value: { ...base, title: "Other writer" }, version: 2 }))
+  const { result } = renderHook(() => useGuardedDraft(base, 1, reload))
+  act(() => result.current.setPending({ ...base, title: "Mine" }))
+  await act(() => result.current.handleError(new ApiError("Conflict", 409)))
+  act(() => result.current.setPending((pending) => ({ ...pending!, note: "Typed after conflict" })))
+  act(() => result.current.resolve(choice))
+  expect(result.current.pending).toEqual({ title: choice === "draft" ? "Mine" : "Other writer", note: "Typed after conflict" })
+})
