@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { AuthoredContent } from "./content-authorship.js"
 import { TextBlockBounds } from "./positioned-text.js"
 
 // ── Tree node ───────────────────────────────────────────────────
@@ -190,7 +191,7 @@ export const PageSectioningSection = z.object({
 })
 export type PageSectioningSection = z.infer<typeof PageSectioningSection>
 
-export const PageSectioningOutput = z.object({
+export const PageSectioningOutput = AuthoredContent.extend({
   reasoning: z.string(),
   sections: z.array(PageSectioningSection),
 })

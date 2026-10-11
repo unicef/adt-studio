@@ -2584,6 +2584,9 @@ msgstr "Konfiguruar në server"
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
 
+msgid "Conflicting fields:"
+msgstr "Fusha në konflikt:"
+
 msgid "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 msgstr "Lidh motorët që drejtojnë linjën dhe tregojnë libra. Çelësat qëndrojnë në këtë makinë; ofruesit CLI ripërdorin hyrjen tashmë në të."
 
@@ -5132,6 +5135,9 @@ msgstr "KB"
 msgid "Keep existing content"
 msgstr "Mbaj përmbajtjen ekzistuese"
 
+msgid "Keep my conflicting edits"
+msgstr "Mbaji ndryshimet e mia në konflikt"
+
 msgid "Keep my edit"
 msgstr "Mbaj ndryshimin tim"
 
@@ -5277,6 +5283,9 @@ msgstr "Lëreni të papërcaktuar për të ruajtur ritmin e vetë ElevenLabs. Vl
 
 msgid "Leave without finishing?"
 msgstr "Dil pa përfunduar?"
+
+msgid "Legacy · protected"
+msgstr "Përmbajtje e vjetër · e mbrojtur"
 
 msgid "Legal and compliance manuals"
 msgstr "Manuale ligjore dhe të pajtueshmërisë"
@@ -5597,8 +5606,8 @@ msgstr "Menaxho në libër"
 msgid "Manage sign-language videos"
 msgstr "Menaxho videot e gjuhës së shenjave"
 
-msgid "Manual edit"
-msgstr "Ndryshim manual"
+#~ msgid "Manual edit"
+#~ msgstr "Ndryshim manual"
 
 msgid "Manual only"
 msgstr "Vetëm manual"
@@ -7494,6 +7503,12 @@ msgstr "udhëzime shabllone"
 msgid "Protected content"
 msgstr "Përmbajtje e mbrojtur"
 
+msgid "Protected pages:"
+msgstr "Faqet e mbrojtura:"
+
+msgid "Protected quizzes to replace:"
+msgstr "Kuizet e mbrojtura për t’u zëvendësuar:"
+
 msgid "Provider"
 msgstr "Ofruesi"
 
@@ -8067,11 +8082,17 @@ msgstr "Zëvendëso imazhin"
 msgid "Replace PDF"
 msgstr "Zëvendëso PDF-in"
 
+msgid "Replace protected quizzes"
+msgstr "Zëvendëso kuizet e mbrojtura"
+
 msgid "Replace quiz"
 msgstr "Zëvendëso kuizin"
 
 msgid "Replace quizzes"
 msgstr "Zëvendëso kuizet"
+
+msgid "Replace the protected pages listed above"
+msgstr "Zëvendëso faqet e mbrojtura të renditura më sipër"
 
 msgid "Replace this audio file"
 msgstr "Zëvendëso këtë skedar audio"
@@ -8081,6 +8102,10 @@ msgstr "Riluaj prezantimin e udhëzuar të ADT Studio."
 
 msgid "Report an issue"
 msgstr "Raporto një problem"
+
+#. placeholder {0}: res.status
+msgid "Request failed: {0}"
+msgstr "Kërkesa dështoi: {0}"
 
 msgid "Request settings"
 msgstr "Cilësimet e kërkesës"
@@ -8129,6 +8154,9 @@ msgstr "Rivendos zmadhimin"
 
 msgid "Resize panel"
 msgstr "Ripërmasoni panelin"
+
+msgid "Resolve conflicting edits before saving"
+msgstr "Zgjidh ndryshimet në konflikt para ruajtjes"
 
 msgid "Resolving source language..."
 msgstr "Duke zgjidhur gjuhën burimore..."
@@ -8523,6 +8551,9 @@ msgstr "Ruaj madhësitë e tekstit"
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Ruaje punën tënde më parë nëse dëshiron t'i mbash këto ndryshime."
+
+msgid "Saved content is unavailable; your draft is retained"
+msgstr "Përmbajtja e ruajtur nuk është e disponueshme; drafti yt ruhet"
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
@@ -10221,6 +10252,9 @@ msgstr "Kjo heq të gjitha versionet globale të prompteve specifike për modeli
 msgid "This removes the global version for this prompt file. Shipped fallback files remain available."
 msgstr "Kjo heq versionin global për këtë skedar prompti. Skedarët fallback të përfshirë mbeten të disponueshëm."
 
+msgid "This replaces the manually edited or legacy table of contents. Its saved version remains in history."
+msgstr "Kjo zëvendëson tabelën e përmbajtjes të redaktuar manualisht ose të vjetër. Versioni i saj i ruajtur mbetet në historik."
+
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Kjo rikthen fontin e parazgjedhur në çdo faqe dhe pastron mbishkrimet e fontit për element dhe përzgjedhjen e fontit për të gjithë librin. Fontet e bashkëngjitura mbeten në listë. Kthimi është i disponueshëm për çdo faqe nga historiku i versioneve."
 
@@ -10750,6 +10784,9 @@ msgstr "Përdor si aktual"
 msgid "Use as template"
 msgstr "Përdor si shabllon"
 
+msgid "Use latest conflicting values"
+msgstr "Përdor vlerat më të fundit në konflikt"
+
 msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 msgstr "Përdor sintaksën Liquid për të interpoluar variabla, për të iteruar mbi array dhe për të përfshirë udhëzime me kusht në këtë prompt."
 
@@ -11221,6 +11258,9 @@ msgstr "IA-ja juaj, çelësat tuaj."
 
 msgid "Your book"
 msgstr "Libri yt"
+
+msgid "Your draft is retained. Review the refreshed content before saving again."
+msgstr "Drafti yt ruhet. Shqyrto përmbajtjen e rifreskuar para se ta ruash sërish."
 
 msgid "Your font has been applied to captions."
 msgstr "Fonti juaj u zbatua te përshkrimet."

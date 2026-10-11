@@ -37,12 +37,15 @@ describe("pipeline effects", () => {
     ])
   })
 
-  it("spares the glossary node only when the glossary stage is re-run", () => {
+  it("retains authored units when upstream completion is cleared", () => {
     expect(getStageClearNodes("glossary")).toContain("glossary")
     expect(getStageRerunClearNodes("glossary", "glossary")).not.toContain("glossary")
     expect(getStageRerunClearNodes("storyboard", "package")).not.toContain("glossary")
     expect(getStageClearNodes("storyboard")).toContain("glossary")
-    expect(getStageRerunClearNodes("storyboard", "storyboard")).toContain("glossary")
+    expect(getStageRerunClearNodes("storyboard", "storyboard")).not.toContain("glossary")
+    for (const node of ["page-sectioning", "toc-generation", "quiz-generation", "web-rendering"]) {
+      expect(getStageRerunClearNodes("sectioning", "sectioning")).not.toContain(node)
+    }
   })
 
   it("keeps merge inputs while clearing derived speech timestamps", () => {

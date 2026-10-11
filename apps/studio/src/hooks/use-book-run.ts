@@ -37,6 +37,8 @@ export interface StepProgress {
 }
 
 export interface QueueRunOptions {
+  replaceManual?: boolean
+  protectedReplacements?: import("@adt/types").AuthoredReplacement[]
   fromStage: string
   toStage: string
   apiKey: string
@@ -760,7 +762,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       runChainRef.current = runChainRef.current.then(async () => {
         try {
           // The Studio always opts into interactive page-error handling.
-          await api.runStages(label, apiKey, { fromStage, toStage, renderOnly, pageErrorPolicy: "ask" }, providerCredentials)
+          await api.runStages(label, apiKey, { fromStage, toStage, renderOnly, pageErrorPolicy: "ask", replaceManual: options.replaceManual, protectedReplacements: options.protectedReplacements }, providerCredentials)
         } catch (error) {
           // The server refused to start (e.g. a model in the run's range has no
           // credential). Nothing ran, so say why instead of silently snapping

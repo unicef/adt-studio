@@ -1,3 +1,5 @@
+import { AuthoredSaveGuard } from "@adt/types"
+import { assertAuthoredIdle } from "../services/authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
 import { scopeLegacyActivityIds, getRenderSectioning } from "@adt/pipeline"
 import { saveAuthoredImageAlts } from "../services/authored-captions.js"
@@ -651,31 +653,36 @@ function saveStoryboardNode(
   { renderingInSync = false }: { renderingInSync?: boolean } = {}
 ): number {
   if (node === "page-sectioning") assertNoActivePipelineRun(storage)
-  const version = storage.transaction(() => {
+  return storage.transaction(() => {
     const parsed = node === "web-rendering" ? WebRenderingOutput.safeParse(data) : null
     const saved = parsed?.success ? {
       ...parsed.data,
       sections: parsed.data.sections.map((section) => scopeLegacyActivityIds(section, getRenderSectioning(storage, itemId)?.sections[section.sectionIndex]?.sectionId ?? itemId)),
-    } : data
+    } : node === "page-sectioning" ? { ...PageSectioningOutput.parse(data), source: "manual" } : data
+    if (node === "page-sectioning") {
+      const before = PageSectioningOutput.safeParse(storage.getLatestNodeData(node, itemId)?.data)
+      const after = PageSectioningOutput.parse(saved)
+      const active = new Set(after.sections.map((section) => section.sectionId))
+      if (before.success) retireSectionIds(storage, before.data.sections.filter((section) => !active.has(section.sectionId)).map((section) => section.sectionId))
+    }
     const nextVersion = storage.putNodeData(node, itemId, saved)
     reconcileTextCatalog(storage)
+    clearCaptionData(storage)
+    // A sectioning change invalidates the storyboard's rendered HTML — and the
+    // structural ops go further: a split drops both halves' HTML and a cross-page
+    // merge empties both pages, so those sections would silently vanish from the
+    // packaged book while the stage still read "done". A `web-rendering` save is
+    // itself the storyboard's output, so it must NOT mark storyboard stale.
+    //
+    // `renderingInSync` is the Storyboard editor saving a per-section edit whose
+    // HTML it has already mirrored, or has queued a targeted re-render for. The
+    // storyboard is current (or seconds from it) and only its dependents are
+    // behind, so resetting the stage would take the editor away for nothing.
+    if (node === "page-sectioning") {
+      markStoryboardChainStale(storage, { includeStoryboard: !renderingInSync })
+    }
     return nextVersion
   })
-  clearCaptionData(storage)
-  // A sectioning change invalidates the storyboard's rendered HTML — and the
-  // structural ops go further: a split drops both halves' HTML and a cross-page
-  // merge empties both pages, so those sections would silently vanish from the
-  // packaged book while the stage still read "done". A `web-rendering` save is
-  // itself the storyboard's output, so it must NOT mark storyboard stale.
-  //
-  // `renderingInSync` is the Storyboard editor saving a per-section edit whose
-  // HTML it has already mirrored, or has queued a targeted re-render for. The
-  // storyboard is current (or seconds from it) and only its dependents are
-  // behind, so resetting the stage would take the editor away for nothing.
-  if (node === "page-sectioning") {
-    markStoryboardChainStale(storage, { includeStoryboard: !renderingInSync })
-  }
-  return version
 }
 
 /**
@@ -1492,7 +1499,8 @@ export function createPageRoutes(
     const safeLabel = parseBookLabel(label)
 
     const body = await c.req.json()
-    const parsed = PageSectioningOutput.safeParse(body)
+    // Authorship is server-owned, not an editable field in the request body.
+    const parsed = PageSectioningOutput.omit({ source: true }).extend(AuthoredSaveGuard.shape).safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid page-sectioning data: ${parsed.error.message}`,
@@ -1507,6 +1515,7 @@ export function createPageRoutes(
         throw new HTTPException(404, { message: `Page not found: ${pageId}` })
       }
 
+      assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, parsed.data.baseVersion)
       // Sectioning change cascades to everything downstream.
       const version = saveStoryboardNode(storage, "page-sectioning", pageId, parsed.data)
       return c.json({ version })
@@ -1600,7 +1609,8 @@ export function createPageRoutes(
     const body = await c.req.json()
     const parsed = z
       .object({
-        sectioning: PageSectioningOutput.optional(),
+        sectioning: PageSectioningOutput.omit({ source: true }).optional(),
+        baseVersion: AuthoredSaveGuard.shape.baseVersion.optional(),
         rendering: WebRenderingOutput.optional(),
         renderingInSync: z.boolean().default(false),
       })
@@ -1633,7 +1643,12 @@ export function createPageRoutes(
       }
 
       // Guard before either write, so a rejected save changes nothing at all.
-      if (sectioning) assertNoActivePipelineRun(storage)
+      if (sectioning) {
+        const guard = AuthoredSaveGuard.safeParse(parsed.data)
+        if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for sectioning saves" })
+        assertNoActivePipelineRun(storage)
+        assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
+      }
 
       // Rendering, sectioning, downstream invalidations, and step status are a
       // single editor save. If any statement fails, none of them may survive.
@@ -1671,7 +1686,7 @@ export function createPageRoutes(
     const node = parsedNode.data
 
     const parsed = z
-      .object({ version: z.number().int().positive() })
+      .object({ version: z.number().int().positive(), ...AuthoredSaveGuard.shape })
       .safeParse(await c.req.json().catch(() => ({})))
     if (!parsed.success) {
       throw new HTTPException(400, {
@@ -1688,15 +1703,19 @@ export function createPageRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const previousData = storage.getLatestNodeData(node, itemId)?.data
-      const ok = node === "tts" ? restoreSpeechOutput(storage, path.join(path.resolve(booksDir), safeLabel), itemId, version) : storage.setCurrentNodeVersion(node, itemId, version)
-      if (!ok) {
-        throw new HTTPException(404, {
-          message: `Version ${version} not found for ${node}/${itemId}`,
-        })
-      }
-      clearRestoredNodeDependents(storage, node, itemId, previousData)
-      return c.json({ node, itemId, version: storage.getCurrentNodeVersion(node, itemId) ?? version })
+      assertAuthoredIdle(storage)
+      assertEditVersion(storage.getCurrentNodeVersion(node, itemId) ?? undefined, parsed.data.baseVersion)
+      return storage.transaction(() => {
+        const previousData = storage.getLatestNodeData(node, itemId)?.data
+        const ok = node === "tts" ? restoreSpeechOutput(storage, path.join(path.resolve(booksDir), safeLabel), itemId, version) : storage.setCurrentNodeVersion(node, itemId, version)
+        if (!ok) {
+          throw new HTTPException(404, {
+            message: `Version ${version} not found for ${node}/${itemId}`,
+          })
+        }
+        clearRestoredNodeDependents(storage, node, itemId, previousData)
+        return c.json({ node, itemId, version: storage.getCurrentNodeVersion(node, itemId) ?? version })
+      })
     } finally {
       storage.close()
     }
@@ -1996,6 +2015,16 @@ export function createPageRoutes(
     const credentials = readProviderCredentials(c)
 
     const body = await c.req.json()
+    const guard = AuthoredSaveGuard.safeParse(body)
+    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for AI edits" })
+    const checkBase = () => {
+      const storage = createBookStorage(safeLabel, booksDir)
+      try {
+        assertAuthoredIdle(storage)
+        assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
+      } finally { storage.close() }
+    }
+    checkBase()
     const instruction = body?.instruction
     if (!instruction || typeof instruction !== "string") {
       throw new HTTPException(400, { message: "Missing instruction in request body" })
@@ -2009,6 +2038,7 @@ export function createPageRoutes(
         "ai-edit",
         desc,
         async () => {
+          checkBase()
           const result = await aiEditSection({
             label: safeLabel,
             pageId,
@@ -2025,29 +2055,34 @@ export function createPageRoutes(
           // Save the edited HTML as a new rendering version
           const storage = createBookStorage(safeLabel, booksDir)
           try {
-            const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
-            const renderingParsed = renderingRow ? WebRenderingOutput.safeParse(renderingRow.data) : null
-            if (renderingParsed?.success) {
-              const updated = {
-                sections: renderingParsed.data.sections.map((s) =>
-                  s.sectionIndex === idx
-                    ? {
-                        ...s,
-                        html: result.html,
-                        ...(result.activityAnswers
-                          ? { activityAnswers: result.activityAnswers }
-                          : {}),
-                      }
-                    : s
-                ),
+            checkBase()
+            return storage.transaction(() => {
+              const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
+              const renderingParsed = renderingRow ? WebRenderingOutput.safeParse(renderingRow.data) : null
+              if (renderingParsed?.success) {
+                const updated = {
+                  sections: renderingParsed.data.sections.map((s) =>
+                    s.sectionIndex === idx
+                      ? {
+                          ...s,
+                          html: result.html,
+                          ...(result.activityAnswers
+                            ? { activityAnswers: result.activityAnswers }
+                            : {}),
+                        }
+                      : s
+                  ),
+                }
+                const sectioning = storage.getLatestNodeData("page-sectioning", pageId)
+                if (sectioning) saveStoryboardNode(storage, "page-sectioning", pageId, sectioning.data, { renderingInSync: true })
+                saveStoryboardNode(storage, "web-rendering", pageId, updated)
               }
-              saveStoryboardNode(storage, "web-rendering", pageId, updated)
-            }
+              return result
+            })
           } finally {
             storage.close()
           }
 
-          return result
         },
         { pageId, url: `/books/${safeLabel}/storyboard/${pageId}` }
       )
@@ -2189,102 +2224,108 @@ export function createPageRoutes(
     const { label, pageId, sectionIndex: idx } = parsedParams.data
     const safeLabel = parseBookLabel(label)
 
+    const guard = AuthoredSaveGuard.safeParse(await c.req.json().catch(() => ({})))
+    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for structural edits" })
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const pages = storage.getPages()
-      if (!pages.find((p) => p.pageId === pageId)) {
-        throw new HTTPException(404, { message: `Page not found: ${pageId}` })
-      }
-
-      // Read latest sectioning
-      const sectioningRow = storage.getLatestNodeData("page-sectioning", pageId)
-      if (!sectioningRow) {
-        throw new HTTPException(400, { message: "Page has no sectioning data" })
-      }
-      const sectioningParsed = PageSectioningOutput.safeParse(sectioningRow.data)
-      if (!sectioningParsed.success) {
-        throw new HTTPException(400, { message: "Invalid page-sectioning data" })
-      }
-      const sectioning = sectioningParsed.data
-
-      if (idx >= sectioning.sections.length) {
-        throw new HTTPException(400, { message: `Section index ${idx} out of range (page has ${sectioning.sections.length} sections)` })
-      }
-
-      // Clone the section and insert after the original. The original keeps its
-      // sectionId — only the clone gets a new one.
-      const containerIdMap = new Map<string, string>()
-      const clonedSection = {
-        ...sectioning.sections[idx],
-        sectionId: mintSectionId(storage, pageId),
-        nodes: cloneNodesWithFreshContainerIds(
-          sectioning.sections[idx].nodes,
-          () => `${pageId}_n${randomUUID().replaceAll("-", "")}`,
-          containerIdMap
-        ),
-      }
-      const newSections = [...sectioning.sections]
-      newSections.splice(idx + 1, 0, clonedSection)
-
-      const updatedSectioning = { ...sectioning, sections: newSections }
-
-      // Clone rendering if present
-      let updatedRendering: z.infer<typeof WebRenderingOutput> | null = null
-      let renderingVersion: number | null = null
-      const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
-      if (renderingRow) {
-        const renderingParsed = WebRenderingOutput.safeParse(renderingRow.data)
-        if (!renderingParsed.success) {
-          throw new HTTPException(400, { message: "Invalid web-rendering data" })
+      assertNoActivePipelineRun(storage)
+      assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
+      return storage.transaction(() => {
+        const pages = storage.getPages()
+        if (!pages.find((p) => p.pageId === pageId)) {
+          throw new HTTPException(404, { message: `Page not found: ${pageId}` })
         }
-        const rendering = renderingParsed.data
 
-        // Shift sectionIndex for entries after the cloned position
-        const shifted = rendering.sections.map((s) =>
-          s.sectionIndex > idx ? { ...s, sectionIndex: s.sectionIndex + 1 } : { ...s }
-        )
+        // Read latest sectioning
+        const sectioningRow = storage.getLatestNodeData("page-sectioning", pageId)
+        if (!sectioningRow) {
+          throw new HTTPException(400, { message: "Page has no sectioning data" })
+        }
+        const sectioningParsed = PageSectioningOutput.safeParse(sectioningRow.data)
+        if (!sectioningParsed.success) {
+          throw new HTTPException(400, { message: "Invalid page-sectioning data" })
+        }
+        const sectioning = sectioningParsed.data
 
-        // Clone the rendering entry for the source section
-        const sourceRendering = shifted.find((s) => s.sectionIndex === idx)
-        if (sourceRendering) {
-          const clonedRendering = structuredClone(sourceRendering)
-          clonedRendering.sectionIndex = idx + 1
-          clonedRendering.html = rewriteContainerIdsInHtml(
-            clonedRendering.html,
+        if (idx >= sectioning.sections.length) {
+          throw new HTTPException(400, { message: `Section index ${idx} out of range (page has ${sectioning.sections.length} sections)` })
+        }
+
+        // Clone the section and insert after the original. The original keeps its
+        // sectionId — only the clone gets a new one.
+        const containerIdMap = new Map<string, string>()
+        const clonedSection = {
+          ...sectioning.sections[idx],
+          sectionId: mintSectionId(storage, pageId),
+          nodes: cloneNodesWithFreshContainerIds(
+            sectioning.sections[idx].nodes,
+            () => `${pageId}_n${randomUUID().replaceAll("-", "")}`,
             containerIdMap
+          ),
+        }
+        const newSections = [...sectioning.sections]
+        newSections.splice(idx + 1, 0, clonedSection)
+
+        const updatedSectioning = { ...sectioning, sections: newSections }
+
+        // Clone rendering if present
+        let updatedRendering: z.infer<typeof WebRenderingOutput> | null = null
+        let renderingVersion: number | null = null
+        const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
+        if (renderingRow) {
+          const renderingParsed = WebRenderingOutput.safeParse(renderingRow.data)
+          if (!renderingParsed.success) {
+            throw new HTTPException(400, { message: "Invalid web-rendering data" })
+          }
+          const rendering = renderingParsed.data
+
+          // Shift sectionIndex for entries after the cloned position
+          const shifted = rendering.sections.map((s) =>
+            s.sectionIndex > idx ? { ...s, sectionIndex: s.sectionIndex + 1 } : { ...s }
           )
 
-          // Insert clone after the source in the array
-          const insertPos = shifted.indexOf(sourceRendering) + 1
-          shifted.splice(insertPos, 0, clonedRendering)
-        }
+          // Clone the rendering entry for the source section
+          const sourceRendering = shifted.find((s) => s.sectionIndex === idx)
+          if (sourceRendering) {
+            const clonedRendering = structuredClone(sourceRendering)
+            clonedRendering.sectionIndex = idx + 1
+            clonedRendering.html = rewriteContainerIdsInHtml(
+              clonedRendering.html,
+              containerIdMap
+            )
 
-        rewriteRenderingSectionIds(shifted, newSections)
-        updatedRendering = { sections: shifted }
-      }
-      // Cloning rebuilds the rendering to match: indexes shift, the source's HTML
-      // is copied for the clone, and container and section ids are rewritten. No
-      // LLM is involved and nothing is left behind, so the storyboard stays
-      // current — only the stages derived from it need a re-run.
-      const sectioningVersion = saveStoryboardNode(
-        storage,
-        "page-sectioning",
-        pageId,
-        updatedSectioning,
-        { renderingInSync: updatedRendering !== null }
-      )
-      if (updatedRendering) {
-        renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
-      }
-      migrateEditableActivities(storage, pageId, {
-        mapIndex: (i) => (i > idx ? i + 1 : i),
-        cloneIndex: idx,
+            // Insert clone after the source in the array
+            const insertPos = shifted.indexOf(sourceRendering) + 1
+            shifted.splice(insertPos, 0, clonedRendering)
+          }
+
+          rewriteRenderingSectionIds(shifted, newSections)
+          updatedRendering = { sections: shifted }
+        }
+        // Cloning rebuilds the rendering to match: indexes shift, the source's HTML
+        // is copied for the clone, and container and section ids are rewritten. No
+        // LLM is involved and nothing is left behind, so the storyboard stays
+        // current — only the stages derived from it need a re-run.
+        const sectioningVersion = saveStoryboardNode(
+          storage,
+          "page-sectioning",
+          pageId,
+          updatedSectioning,
+          { renderingInSync: updatedRendering !== null }
+        )
+        if (updatedRendering) {
+          renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
+        }
+        migrateEditableActivities(storage, pageId, {
+          mapIndex: (i) => (i > idx ? i + 1 : i),
+          cloneIndex: idx,
       })
 
       return c.json({
         clonedSectionIndex: idx + 1,
         sectioningVersion,
         renderingVersion,
+      })
       })
     } finally {
       storage.close()
@@ -2309,6 +2350,7 @@ export function createPageRoutes(
 
     const SplitSectionBody = z
       .object({
+        ...AuthoredSaveGuard.shape,
         beforeNodeIndex: z.number().int().min(1).optional(),
         beforeNodeId: z.string().min(1).optional(),
       })
@@ -2323,155 +2365,161 @@ export function createPageRoutes(
     }
     const { beforeNodeIndex, beforeNodeId } = parsedBody.data
 
+    const guard = AuthoredSaveGuard.safeParse(parsedBody.data)
+    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for structural edits" })
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const pages = storage.getPages()
-      if (!pages.find((p) => p.pageId === pageId)) {
-        throw new HTTPException(404, { message: `Page not found: ${pageId}` })
-      }
-
-      // Read latest sectioning
-      const sectioningRow = storage.getLatestNodeData("page-sectioning", pageId)
-      if (!sectioningRow) {
-        throw new HTTPException(400, { message: "Page has no sectioning data" })
-      }
-      const sectioningParsed = PageSectioningOutput.safeParse(sectioningRow.data)
-      if (!sectioningParsed.success) {
-        throw new HTTPException(400, { message: "Invalid page-sectioning data" })
-      }
-      const sectioning = sectioningParsed.data
-
-      if (idx >= sectioning.sections.length) {
-        throw new HTTPException(400, { message: `Section index ${idx} out of range (page has ${sectioning.sections.length} sections)` })
-      }
-      const section = sectioning.sections[idx]
-
-      let keptNodes: ContentNodeData[]
-      let movedNodes: ContentNodeData[]
-      if (beforeNodeId != null) {
-        // Split before a node at any depth: ancestor containers along the
-        // path are split too, with the moved shells getting fresh ids.
-        const result = splitNodesBefore(
-          section.nodes,
-          beforeNodeId,
-          createNodeIdFactory(pageId, sectioning.sections)
-        )
-        if (!result) {
-          throw new HTTPException(400, { message: `Cannot split before node ${beforeNodeId}: node not found in section ${idx}, or nothing would remain in the first half` })
+      assertNoActivePipelineRun(storage)
+      assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
+      return storage.transaction(() => {
+        const pages = storage.getPages()
+        if (!pages.find((p) => p.pageId === pageId)) {
+          throw new HTTPException(404, { message: `Page not found: ${pageId}` })
         }
-        keptNodes = result.before
-        movedNodes = result.after
-      } else {
-        if (beforeNodeIndex! >= section.nodes.length) {
-          throw new HTTPException(400, { message: `Cannot split before node ${beforeNodeIndex}: section has ${section.nodes.length} top-level nodes and both halves need at least one` })
-        }
-        keptNodes = section.nodes.slice(0, beforeNodeIndex!)
-        movedNodes = section.nodes.slice(beforeNodeIndex!)
-      }
 
-      // Partition the fixed-layout placement sidecar by subtree membership.
-      // Entries for nodes in neither half (ancestor shells dropped by a
-      // nested split) are discarded.
-      let keptPlacement: typeof section.placement
-      let movedPlacement: typeof section.placement
-      if (section.placement) {
-        const collectIds = (nodes: ContentNodeData[], into: Set<string>) => {
-          for (const node of nodes) {
-            into.add(node.nodeId)
-            if (node.children) collectIds(node.children, into)
+        // Read latest sectioning
+        const sectioningRow = storage.getLatestNodeData("page-sectioning", pageId)
+        if (!sectioningRow) {
+          throw new HTTPException(400, { message: "Page has no sectioning data" })
+        }
+        const sectioningParsed = PageSectioningOutput.safeParse(sectioningRow.data)
+        if (!sectioningParsed.success) {
+          throw new HTTPException(400, { message: "Invalid page-sectioning data" })
+        }
+        const sectioning = sectioningParsed.data
+
+        if (idx >= sectioning.sections.length) {
+          throw new HTTPException(400, { message: `Section index ${idx} out of range (page has ${sectioning.sections.length} sections)` })
+        }
+        const section = sectioning.sections[idx]
+
+        let keptNodes: ContentNodeData[]
+        let movedNodes: ContentNodeData[]
+        if (beforeNodeId != null) {
+          // Split before a node at any depth: ancestor containers along the
+          // path are split too, with the moved shells getting fresh ids.
+          const result = splitNodesBefore(
+            section.nodes,
+            beforeNodeId,
+            createNodeIdFactory(pageId, sectioning.sections)
+          )
+          if (!result) {
+            throw new HTTPException(400, { message: `Cannot split before node ${beforeNodeId}: node not found in section ${idx}, or nothing would remain in the first half` })
+          }
+          keptNodes = result.before
+          movedNodes = result.after
+        } else {
+          if (beforeNodeIndex! >= section.nodes.length) {
+            throw new HTTPException(400, { message: `Cannot split before node ${beforeNodeIndex}: section has ${section.nodes.length} top-level nodes and both halves need at least one` })
+          }
+          keptNodes = section.nodes.slice(0, beforeNodeIndex!)
+          movedNodes = section.nodes.slice(beforeNodeIndex!)
+        }
+
+        // Partition the fixed-layout placement sidecar by subtree membership.
+        // Entries for nodes in neither half (ancestor shells dropped by a
+        // nested split) are discarded.
+        let keptPlacement: typeof section.placement
+        let movedPlacement: typeof section.placement
+        if (section.placement) {
+          const collectIds = (nodes: ContentNodeData[], into: Set<string>) => {
+            for (const node of nodes) {
+              into.add(node.nodeId)
+              if (node.children) collectIds(node.children, into)
+            }
+          }
+          const keptIds = new Set<string>()
+          const movedIds = new Set<string>()
+          collectIds(keptNodes, keptIds)
+          collectIds(movedNodes, movedIds)
+          keptPlacement = {}
+          movedPlacement = {}
+          for (const [nodeId, placement] of Object.entries(section.placement)) {
+            if (movedIds.has(nodeId)) movedPlacement[nodeId] = placement
+            else if (keptIds.has(nodeId)) keptPlacement[nodeId] = placement
           }
         }
-        const keptIds = new Set<string>()
-        const movedIds = new Set<string>()
-        collectIds(keptNodes, keptIds)
-        collectIds(movedNodes, movedIds)
-        keptPlacement = {}
-        movedPlacement = {}
-        for (const [nodeId, placement] of Object.entries(section.placement)) {
-          if (movedIds.has(nodeId)) movedPlacement[nodeId] = placement
-          else if (keptIds.has(nodeId)) keptPlacement[nodeId] = placement
-        }
-      }
 
-      // Narrow cross-page provenance per half: a half keeps a source page
-      // only while it still contains nodes originating from it (node ids
-      // embed their source page as a `${pageId}_` prefix).
-      const narrowSourcePageIds = (nodes: ContentNodeData[]): string[] | undefined => {
-        const containsPrefix = (list: ContentNodeData[], prefix: string): boolean =>
-          list.some(
-            (node) =>
-              node.nodeId.startsWith(prefix) ||
-              (node.children ? containsPrefix(node.children, prefix) : false)
+        // Narrow cross-page provenance per half: a half keeps a source page
+        // only while it still contains nodes originating from it (node ids
+        // embed their source page as a `${pageId}_` prefix).
+        const narrowSourcePageIds = (nodes: ContentNodeData[]): string[] | undefined => {
+          const containsPrefix = (list: ContentNodeData[], prefix: string): boolean =>
+            list.some(
+              (node) =>
+                node.nodeId.startsWith(prefix) ||
+                (node.children ? containsPrefix(node.children, prefix) : false)
+            )
+          const kept = (section.sourcePageIds ?? []).filter((sourcePageId) =>
+            containsPrefix(nodes, `${sourcePageId}_`)
           )
-        const kept = (section.sourcePageIds ?? []).filter((sourcePageId) =>
-          containsPrefix(nodes, `${sourcePageId}_`)
-        )
-        return kept.length > 0 ? kept : undefined
-      }
-
-      const keptSection = {
-        ...section,
-        nodes: keptNodes,
-        ...(keptPlacement ? { placement: keptPlacement } : {}),
-      }
-      // The first half keeps the original sectionId (it inherits it from
-      // `section`); only the new second half gets a fresh one.
-      const movedSection = {
-        ...section,
-        sectionId: mintSectionId(storage, pageId),
-        nodes: movedNodes,
-        ...(movedPlacement ? { placement: movedPlacement } : {}),
-      }
-      delete keptSection.sourcePageIds
-      delete movedSection.sourcePageIds
-      const keptProvenance = narrowSourcePageIds(keptNodes)
-      const movedProvenance = narrowSourcePageIds(movedNodes)
-      if (keptProvenance) keptSection.sourcePageIds = keptProvenance
-      if (movedProvenance) movedSection.sourcePageIds = movedProvenance
-
-      const newSections = [...sectioning.sections]
-      newSections[idx] = keptSection
-      newSections.splice(idx + 1, 0, movedSection)
-
-      const updatedSectioning = { ...sectioning, sections: newSections }
-
-      // Update rendering if present: the split section's HTML cannot be
-      // partitioned mechanically, so drop its entry (both halves re-render);
-      // other sections keep their HTML with shifted indexes.
-      let updatedRendering: z.infer<typeof WebRenderingOutput> | null = null
-      let renderingVersion: number | null = null
-      const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
-      if (renderingRow) {
-        const renderingParsed = WebRenderingOutput.safeParse(renderingRow.data)
-        if (!renderingParsed.success) {
-          throw new HTTPException(400, { message: "Invalid web-rendering data" })
+          return kept.length > 0 ? kept : undefined
         }
-        const rendering = renderingParsed.data
 
-        const shifted = rendering.sections
-          .filter((s) => s.sectionIndex !== idx)
-          .map((s) =>
-            s.sectionIndex > idx ? { ...s, sectionIndex: s.sectionIndex + 1 } : { ...s }
-          )
+        const keptSection = {
+          ...section,
+          nodes: keptNodes,
+          ...(keptPlacement ? { placement: keptPlacement } : {}),
+        }
+        // The first half keeps the original sectionId (it inherits it from
+        // `section`); only the new second half gets a fresh one.
+        const movedSection = {
+          ...section,
+          sectionId: mintSectionId(storage, pageId),
+          nodes: movedNodes,
+          ...(movedPlacement ? { placement: movedPlacement } : {}),
+        }
+        delete keptSection.sourcePageIds
+        delete movedSection.sourcePageIds
+        const keptProvenance = narrowSourcePageIds(keptNodes)
+        const movedProvenance = narrowSourcePageIds(movedNodes)
+        if (keptProvenance) keptSection.sourcePageIds = keptProvenance
+        if (movedProvenance) movedSection.sourcePageIds = movedProvenance
 
-        rewriteRenderingSectionIds(shifted, newSections)
-        updatedRendering = { sections: shifted }
-      }
+        const newSections = [...sectioning.sections]
+        newSections[idx] = keptSection
+        newSections.splice(idx + 1, 0, movedSection)
 
-      const sectioningVersion = saveStoryboardNode(storage, "page-sectioning", pageId, updatedSectioning)
-      if (updatedRendering) {
-        renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
-      }
-      // The split section's entry is dropped (like its rendering) — the stored
-      // extraction covered the whole section and matches neither half.
-      migrateEditableActivities(storage, pageId, {
-        mapIndex: (i) => (i === idx ? null : i > idx ? i + 1 : i),
+        const updatedSectioning = { ...sectioning, sections: newSections }
+
+        // Update rendering if present: the split section's HTML cannot be
+        // partitioned mechanically, so drop its entry (both halves re-render);
+        // other sections keep their HTML with shifted indexes.
+        let updatedRendering: z.infer<typeof WebRenderingOutput> | null = null
+        let renderingVersion: number | null = null
+        const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
+        if (renderingRow) {
+          const renderingParsed = WebRenderingOutput.safeParse(renderingRow.data)
+          if (!renderingParsed.success) {
+            throw new HTTPException(400, { message: "Invalid web-rendering data" })
+          }
+          const rendering = renderingParsed.data
+
+          const shifted = rendering.sections
+            .filter((s) => s.sectionIndex !== idx)
+            .map((s) =>
+              s.sectionIndex > idx ? { ...s, sectionIndex: s.sectionIndex + 1 } : { ...s }
+            )
+
+          rewriteRenderingSectionIds(shifted, newSections)
+          updatedRendering = { sections: shifted }
+        }
+
+        const sectioningVersion = saveStoryboardNode(storage, "page-sectioning", pageId, updatedSectioning)
+        if (updatedRendering) {
+          renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
+        }
+        // The split section's entry is dropped (like its rendering) — the stored
+        // extraction covered the whole section and matches neither half.
+        migrateEditableActivities(storage, pageId, {
+          mapIndex: (i) => (i === idx ? null : i > idx ? i + 1 : i),
       })
 
       return c.json({
         splitSectionIndex: idx + 1,
         sectioningVersion,
         renderingVersion,
+      })
       })
     } finally {
       storage.close()
@@ -2503,135 +2551,140 @@ export function createPageRoutes(
     // opts out of marking the stage stale. Off by default for every other caller.
     const renderingInSync = c.req.query("renderingInSync") === "1"
 
+    const guard = AuthoredSaveGuard.safeParse(await c.req.json().catch(() => ({})))
+    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for structural edits" })
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const pages = storage.getPages()
-      if (!pages.find((p) => p.pageId === pageId)) {
-        throw new HTTPException(404, { message: `Page not found: ${pageId}` })
-      }
-
-      // Read latest sectioning
-      const sectioningRow = storage.getLatestNodeData("page-sectioning", pageId)
-      if (!sectioningRow) {
-        throw new HTTPException(400, { message: "Page has no sectioning data" })
-      }
-      const sectioningParsed = PageSectioningOutput.safeParse(sectioningRow.data)
-      if (!sectioningParsed.success) {
-        throw new HTTPException(400, { message: "Invalid page-sectioning data" })
-      }
-      const sectioning = sectioningParsed.data
-
-      if (idx >= sectioning.sections.length) {
-        throw new HTTPException(400, { message: `Section index ${idx} out of range (page has ${sectioning.sections.length} sections)` })
-      }
-
-      // Determine which two sections to merge
-      if (direction === "next" && idx >= sectioning.sections.length - 1) {
-        throw new HTTPException(400, { message: `Cannot merge "next": section ${idx} is the last section` })
-      }
-      if (direction === "prev" && idx === 0) {
-        throw new HTTPException(400, { message: `Cannot merge "prev": section ${idx} is the first section` })
-      }
-
-      const keepIdx = direction === "next" ? idx : idx - 1
-      const removeIdx = direction === "next" ? idx + 1 : idx
-
-      // Combine: append remove section's nodes into keep section
-      const newSections = [...sectioning.sections]
-      const keepSection = newSections[keepIdx]
-      const removeSection = newSections[removeIdx]
-      newSections[keepIdx] = {
-        ...keepSection,
-        nodes: [...keepSection.nodes, ...removeSection.nodes],
-      }
-      // Carry over the fixed-layout sidecar from the removed section — its
-      // nodes keep their placement, and keep's entries win on conflict.
-      if (keepSection.placement || removeSection.placement) {
-        newSections[keepIdx].placement = {
-          ...removeSection.placement,
-          ...keepSection.placement,
-        }
-      }
-      if (!keepSection.viewport && removeSection.viewport) {
-        newSections[keepIdx].viewport = removeSection.viewport
-      }
-      // Union cross-page provenance from both sections.
-      if (keepSection.sourcePageIds || removeSection.sourcePageIds) {
-        newSections[keepIdx].sourcePageIds = [
-          ...new Set([
-            ...(keepSection.sourcePageIds ?? []),
-            ...(removeSection.sourcePageIds ?? []),
-          ]),
-        ]
-      }
-      newSections.splice(removeIdx, 1)
-
-      // The surviving section keeps its sectionId (inherited from `keepSection`);
-      // the removed section's id is retired, never reassigned to a survivor.
-      const retiredSectionIds = [removeSection.sectionId]
-
-      const updatedSectioning = { ...sectioning, sections: newSections }
-
-      // Update rendering if present
-      let updatedRendering: z.infer<typeof WebRenderingOutput> | null = null
-      let renderingVersion: number | null = null
-      const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
-      if (renderingRow) {
-        const renderingParsed = WebRenderingOutput.safeParse(renderingRow.data)
-        if (!renderingParsed.success) {
-          throw new HTTPException(400, { message: "Invalid web-rendering data" })
-        }
-        const rendering = renderingParsed.data
-
-        const shifted = [...rendering.sections]
-
-        // Find rendering entries for keepIdx and removeIdx
-        const keepEntry = shifted.find((s) => s.sectionIndex === keepIdx)
-        const removeEntry = shifted.find((s) => s.sectionIndex === removeIdx)
-
-        // Merge HTML if both entries exist
-        if (keepEntry && removeEntry) {
-          // Extract inner content from remove section's <section> tag and append into keep section's <section>
-          const innerContentMatch = removeEntry.html.match(/<section[^>]*>([\s\S]*)<\/section>/)
-          const innerContent = innerContentMatch ? innerContentMatch[1] : removeEntry.html
-          keepEntry.html = keepEntry.html.replace(/<\/section>\s*$/, `${innerContent}</section>`)
+      assertNoActivePipelineRun(storage)
+      assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
+      return storage.transaction(() => {
+        const pages = storage.getPages()
+        if (!pages.find((p) => p.pageId === pageId)) {
+          throw new HTTPException(404, { message: `Page not found: ${pageId}` })
         }
 
-        // Remove the removeIdx rendering entry
-        const removeEntryIndex = shifted.findIndex((s) => s.sectionIndex === removeIdx)
-        if (removeEntryIndex !== -1) {
-          shifted.splice(removeEntryIndex, 1)
+        // Read latest sectioning
+        const sectioningRow = storage.getLatestNodeData("page-sectioning", pageId)
+        if (!sectioningRow) {
+          throw new HTTPException(400, { message: "Page has no sectioning data" })
+        }
+        const sectioningParsed = PageSectioningOutput.safeParse(sectioningRow.data)
+        if (!sectioningParsed.success) {
+          throw new HTTPException(400, { message: "Invalid page-sectioning data" })
+        }
+        const sectioning = sectioningParsed.data
+
+        if (idx >= sectioning.sections.length) {
+          throw new HTTPException(400, { message: `Section index ${idx} out of range (page has ${sectioning.sections.length} sections)` })
         }
 
-        // Shift sectionIndex for entries after removeIdx (subtract 1)
-        for (const s of shifted) {
-          if (s.sectionIndex > removeIdx) {
-            s.sectionIndex = s.sectionIndex - 1
+        // Determine which two sections to merge
+        if (direction === "next" && idx >= sectioning.sections.length - 1) {
+          throw new HTTPException(400, { message: `Cannot merge "next": section ${idx} is the last section` })
+        }
+        if (direction === "prev" && idx === 0) {
+          throw new HTTPException(400, { message: `Cannot merge "prev": section ${idx} is the first section` })
+        }
+
+        const keepIdx = direction === "next" ? idx : idx - 1
+        const removeIdx = direction === "next" ? idx + 1 : idx
+
+        // Combine: append remove section's nodes into keep section
+        const newSections = [...sectioning.sections]
+        const keepSection = newSections[keepIdx]
+        const removeSection = newSections[removeIdx]
+        newSections[keepIdx] = {
+          ...keepSection,
+          nodes: [...keepSection.nodes, ...removeSection.nodes],
+        }
+        // Carry over the fixed-layout sidecar from the removed section — its
+        // nodes keep their placement, and keep's entries win on conflict.
+        if (keepSection.placement || removeSection.placement) {
+          newSections[keepIdx].placement = {
+            ...removeSection.placement,
+            ...keepSection.placement,
           }
         }
+        if (!keepSection.viewport && removeSection.viewport) {
+          newSections[keepIdx].viewport = removeSection.viewport
+        }
+        // Union cross-page provenance from both sections.
+        if (keepSection.sourcePageIds || removeSection.sourcePageIds) {
+          newSections[keepIdx].sourcePageIds = [
+            ...new Set([
+              ...(keepSection.sourcePageIds ?? []),
+              ...(removeSection.sourcePageIds ?? []),
+            ]),
+          ]
+        }
+        newSections.splice(removeIdx, 1)
 
-        rewriteRenderingSectionIds(shifted, newSections)
-        updatedRendering = { sections: shifted }
-      }
+        // The surviving section keeps its sectionId (inherited from `keepSection`);
+        // the removed section's id is retired, never reassigned to a survivor.
+        const retiredSectionIds = [removeSection.sectionId]
 
-      // Merging concatenates the two sections' HTML into the kept entry, so no
-      // section is left without one — the caller's re-render replaces the naive
-      // join with properly combined markup rather than filling a gap.
-      const sectioningVersion = saveStoryboardNode(
-        storage,
-        "page-sectioning",
-        pageId,
-        updatedSectioning,
-        { renderingInSync: renderingInSync && updatedRendering !== null }
-      )
-      if (updatedRendering) {
-        renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
-      }
-      // Both merged sections' entries are dropped: the kept section's content
-      // changed (the stored extraction is stale) and the removed one is gone.
-      migrateEditableActivities(storage, pageId, {
-        mapIndex: (i) =>
-          i === keepIdx || i === removeIdx ? null : i > removeIdx ? i - 1 : i,
+        const updatedSectioning = { ...sectioning, sections: newSections }
+
+        // Update rendering if present
+        let updatedRendering: z.infer<typeof WebRenderingOutput> | null = null
+        let renderingVersion: number | null = null
+        const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
+        if (renderingRow) {
+          const renderingParsed = WebRenderingOutput.safeParse(renderingRow.data)
+          if (!renderingParsed.success) {
+            throw new HTTPException(400, { message: "Invalid web-rendering data" })
+          }
+          const rendering = renderingParsed.data
+
+          const shifted = [...rendering.sections]
+
+          // Find rendering entries for keepIdx and removeIdx
+          const keepEntry = shifted.find((s) => s.sectionIndex === keepIdx)
+          const removeEntry = shifted.find((s) => s.sectionIndex === removeIdx)
+
+          // Merge HTML if both entries exist
+          if (keepEntry && removeEntry) {
+            // Extract inner content from remove section's <section> tag and append into keep section's <section>
+            const innerContentMatch = removeEntry.html.match(/<section[^>]*>([\s\S]*)<\/section>/)
+            const innerContent = innerContentMatch ? innerContentMatch[1] : removeEntry.html
+            keepEntry.html = keepEntry.html.replace(/<\/section>\s*$/, `${innerContent}</section>`)
+          }
+
+          // Remove the removeIdx rendering entry
+          const removeEntryIndex = shifted.findIndex((s) => s.sectionIndex === removeIdx)
+          if (removeEntryIndex !== -1) {
+            shifted.splice(removeEntryIndex, 1)
+          }
+
+          // Shift sectionIndex for entries after removeIdx (subtract 1)
+          for (const s of shifted) {
+            if (s.sectionIndex > removeIdx) {
+              s.sectionIndex = s.sectionIndex - 1
+            }
+          }
+
+          rewriteRenderingSectionIds(shifted, newSections)
+          updatedRendering = { sections: shifted }
+        }
+
+        // Merging concatenates the two sections' HTML into the kept entry, so no
+        // section is left without one — the caller's re-render replaces the naive
+        // join with properly combined markup rather than filling a gap.
+        const sectioningVersion = saveStoryboardNode(
+          storage,
+          "page-sectioning",
+          pageId,
+          updatedSectioning,
+          { renderingInSync: renderingInSync && updatedRendering !== null }
+        )
+        if (updatedRendering) {
+          renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
+        }
+        // Both merged sections' entries are dropped: the kept section's content
+        // changed (the stored extraction is stale) and the removed one is gone.
+        migrateEditableActivities(storage, pageId, {
+          mapIndex: (i) =>
+            i === keepIdx || i === removeIdx ? null : i > removeIdx ? i - 1 : i,
       })
       retireSectionIds(storage, retiredSectionIds)
 
@@ -2639,6 +2692,7 @@ export function createPageRoutes(
         mergedSectionIndex: keepIdx,
         sectioningVersion,
         renderingVersion,
+      })
       })
     } finally {
       storage.close()
@@ -2671,122 +2725,129 @@ export function createPageRoutes(
       })
     }
     const { direction } = parsedQuery.data
+    const guard = AuthoredSaveGuard.extend({ targetBaseVersion: z.number().int().nonnegative().optional() }).safeParse(await c.req.raw.clone().json().catch(() => ({})))
+    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for structural edits" })
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const pages = storage.getPages()
-      const pageIndex = pages.findIndex((p) => p.pageId === pageId)
-      if (pageIndex === -1) {
-        throw new HTTPException(404, { message: `Page not found: ${pageId}` })
-      }
-
-      // Determine the target page
-      const targetPageIndex = direction === "next" ? pageIndex + 1 : pageIndex - 1
-      if (targetPageIndex < 0 || targetPageIndex >= pages.length) {
-        throw new HTTPException(400, { message: `No ${direction === "next" ? "next" : "previous"} page to merge into` })
-      }
-      const targetPageId = pages[targetPageIndex].pageId
-
-      // Load source sectioning
-      const srcRow = storage.getLatestNodeData("page-sectioning", pageId)
-      if (!srcRow) {
-        throw new HTTPException(400, { message: "Source page has no sectioning data" })
-      }
-      const srcParsed = PageSectioningOutput.safeParse(srcRow.data)
-      if (!srcParsed.success) {
-        throw new HTTPException(400, { message: "Invalid source page-sectioning data" })
-      }
-      const srcSectioning = srcParsed.data
-
-      if (idx >= srcSectioning.sections.length) {
-        throw new HTTPException(400, { message: `Section index ${idx} out of range (page has ${srcSectioning.sections.length} sections)` })
-      }
-      const movedSection = srcSectioning.sections[idx]
-
-      // Load target sectioning
-      const tgtRow = storage.getLatestNodeData("page-sectioning", targetPageId)
-      if (!tgtRow) {
-        throw new HTTPException(400, { message: "Target page has no sectioning data" })
-      }
-      const tgtParsed = PageSectioningOutput.safeParse(tgtRow.data)
-      if (!tgtParsed.success) {
-        throw new HTTPException(400, { message: "Invalid target page-sectioning data" })
-      }
-      const tgtSectioning = tgtParsed.data
-
-      if (tgtSectioning.sections.length === 0) {
-        throw new HTTPException(400, { message: "Target page has no sections to merge into" })
-      }
-
-      // Merge into the adjacent section on the target page:
-      // "next" → prepend nodes into first section of next page
-      // "prev" → append nodes into last section of previous page
-      const tgtIdx = direction === "next" ? 0 : tgtSectioning.sections.length - 1
-      const newTgtSections = [...tgtSectioning.sections]
-      if (direction === "next") {
-        newTgtSections[tgtIdx] = {
-          ...newTgtSections[tgtIdx],
-          nodes: [...movedSection.nodes, ...newTgtSections[tgtIdx].nodes],
+      assertNoActivePipelineRun(storage)
+      assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
+      return storage.transaction(() => {
+        const pages = storage.getPages()
+        const pageIndex = pages.findIndex((p) => p.pageId === pageId)
+        if (pageIndex === -1) {
+          throw new HTTPException(404, { message: `Page not found: ${pageId}` })
         }
-      } else {
-        newTgtSections[tgtIdx] = {
-          ...newTgtSections[tgtIdx],
-          nodes: [...newTgtSections[tgtIdx].nodes, ...movedSection.nodes],
+
+        // Determine the target page
+        const targetPageIndex = direction === "next" ? pageIndex + 1 : pageIndex - 1
+        if (targetPageIndex < 0 || targetPageIndex >= pages.length) {
+          throw new HTTPException(400, { message: `No ${direction === "next" ? "next" : "previous"} page to merge into` })
         }
-      }
+        const targetPageId = pages[targetPageIndex].pageId
+        if (guard.data.targetBaseVersion === undefined) throw new HTTPException(400, { message: "targetBaseVersion is required for cross-page merge" })
+        assertEditVersion(storage.getLatestNodeData("page-sectioning", targetPageId)?.version, guard.data.targetBaseVersion)
 
-      // Record provenance: the merged section now contains content from the
-      // source page (and any pages already merged into either section), so
-      // renderers can supply those page images as visual references.
-      const provenance = new Set<string>([
-        ...(newTgtSections[tgtIdx].sourcePageIds ?? []),
-        ...(movedSection.sourcePageIds ?? []),
-        pageId,
-      ])
-      provenance.delete(targetPageId)
-      if (provenance.size > 0) {
-        newTgtSections[tgtIdx].sourcePageIds = [...provenance]
-      }
+        // Load source sectioning
+        const srcRow = storage.getLatestNodeData("page-sectioning", pageId)
+        if (!srcRow) {
+          throw new HTTPException(400, { message: "Source page has no sectioning data" })
+        }
+        const srcParsed = PageSectioningOutput.safeParse(srcRow.data)
+        if (!srcParsed.success) {
+          throw new HTTPException(400, { message: "Invalid source page-sectioning data" })
+        }
+        const srcSectioning = srcParsed.data
 
-      // Remove from source
-      const newSrcSections = [...srcSectioning.sections]
-      newSrcSections.splice(idx, 1)
+        if (idx >= srcSectioning.sections.length) {
+          throw new HTTPException(400, { message: `Section index ${idx} out of range (page has ${srcSectioning.sections.length} sections)` })
+        }
+        const movedSection = srcSectioning.sections[idx]
 
-      // The target section keeps its sectionId; the moved section's id is
-      // retired. Surviving sections on *either* page keep theirs — this op used
-      // to renumber both pages wholesale, which silently reassigned every later
-      // section's TOC entry, sign-language video and answer-text catalog keys.
-      const retiredSectionIds = [movedSection.sectionId]
+        // Load target sectioning
+        const tgtRow = storage.getLatestNodeData("page-sectioning", targetPageId)
+        if (!tgtRow) {
+          throw new HTTPException(400, { message: "Target page has no sectioning data" })
+        }
+        const tgtParsed = PageSectioningOutput.safeParse(tgtRow.data)
+        if (!tgtParsed.success) {
+          throw new HTTPException(400, { message: "Invalid target page-sectioning data" })
+        }
+        const tgtSectioning = tgtParsed.data
 
-      // Save updated sectionings
-      const srcVersion = saveStoryboardNode(
-        storage,
-        "page-sectioning",
-        pageId,
-        { ...srcSectioning, sections: newSrcSections }
-      )
-      const tgtVersion = saveStoryboardNode(
-        storage,
-        "page-sectioning",
-        targetPageId,
-        { ...tgtSectioning, sections: newTgtSections }
-      )
+        if (tgtSectioning.sections.length === 0) {
+          throw new HTTPException(400, { message: "Target page has no sections to merge into" })
+        }
 
-      // Clear rendering for both pages (merged content invalidates existing renders)
-      let srcRenderVersion: number | null = null
-      let tgtRenderVersion: number | null = null
-      const srcRenderRow = storage.getLatestNodeData("web-rendering", pageId)
-      if (srcRenderRow) {
-        srcRenderVersion = saveStoryboardNode(storage, "web-rendering", pageId, { sections: [] })
-      }
-      const tgtRenderRow = storage.getLatestNodeData("web-rendering", targetPageId)
-      if (tgtRenderRow) {
-        tgtRenderVersion = saveStoryboardNode(storage, "web-rendering", targetPageId, { sections: [] })
-      }
+        // Merge into the adjacent section on the target page:
+        // "next" → prepend nodes into first section of next page
+        // "prev" → append nodes into last section of previous page
+        const tgtIdx = direction === "next" ? 0 : tgtSectioning.sections.length - 1
+        const newTgtSections = [...tgtSectioning.sections]
+        if (direction === "next") {
+          newTgtSections[tgtIdx] = {
+            ...newTgtSections[tgtIdx],
+            nodes: [...movedSection.nodes, ...newTgtSections[tgtIdx].nodes],
+          }
+        } else {
+          newTgtSections[tgtIdx] = {
+            ...newTgtSections[tgtIdx],
+            nodes: [...newTgtSections[tgtIdx].nodes, ...movedSection.nodes],
+          }
+        }
 
-      // Source: the moved section's entry goes away and later entries shift.
-      // Target: the receiving section's content changed, so its entry is stale.
-      migrateEditableActivities(storage, pageId, {
-        mapIndex: (i) => (i === idx ? null : i > idx ? i - 1 : i),
+        // Record provenance: the merged section now contains content from the
+        // source page (and any pages already merged into either section), so
+        // renderers can supply those page images as visual references.
+        const provenance = new Set<string>([
+          ...(newTgtSections[tgtIdx].sourcePageIds ?? []),
+          ...(movedSection.sourcePageIds ?? []),
+          pageId,
+        ])
+        provenance.delete(targetPageId)
+        if (provenance.size > 0) {
+          newTgtSections[tgtIdx].sourcePageIds = [...provenance]
+        }
+
+        // Remove from source
+        const newSrcSections = [...srcSectioning.sections]
+        newSrcSections.splice(idx, 1)
+
+        // The target section keeps its sectionId; the moved section's id is
+        // retired. Surviving sections on *either* page keep theirs — this op used
+        // to renumber both pages wholesale, which silently reassigned every later
+        // section's TOC entry, sign-language video and answer-text catalog keys.
+        const retiredSectionIds = [movedSection.sectionId]
+
+        // Save updated sectionings
+        const srcVersion = saveStoryboardNode(
+          storage,
+          "page-sectioning",
+          pageId,
+          { ...srcSectioning, sections: newSrcSections }
+        )
+        const tgtVersion = saveStoryboardNode(
+          storage,
+          "page-sectioning",
+          targetPageId,
+          { ...tgtSectioning, sections: newTgtSections }
+        )
+
+        // Clear rendering for both pages (merged content invalidates existing renders)
+        let srcRenderVersion: number | null = null
+        let tgtRenderVersion: number | null = null
+        const srcRenderRow = storage.getLatestNodeData("web-rendering", pageId)
+        if (srcRenderRow) {
+          srcRenderVersion = saveStoryboardNode(storage, "web-rendering", pageId, { sections: [] })
+        }
+        const tgtRenderRow = storage.getLatestNodeData("web-rendering", targetPageId)
+        if (tgtRenderRow) {
+          tgtRenderVersion = saveStoryboardNode(storage, "web-rendering", targetPageId, { sections: [] })
+        }
+
+        // Source: the moved section's entry goes away and later entries shift.
+        // Target: the receiving section's content changed, so its entry is stale.
+        migrateEditableActivities(storage, pageId, {
+          mapIndex: (i) => (i === idx ? null : i > idx ? i - 1 : i),
       })
       migrateEditableActivities(storage, targetPageId, {
         mapIndex: (i) => (i === tgtIdx ? null : i),
@@ -2801,6 +2862,7 @@ export function createPageRoutes(
         targetSectioningVersion: tgtVersion,
         sourceRenderingVersion: srcRenderVersion,
         targetRenderingVersion: tgtRenderVersion,
+      })
       })
     } finally {
       storage.close()
@@ -2823,81 +2885,86 @@ export function createPageRoutes(
     const { label, pageId, sectionIndex: idx } = parsedParams.data
     const safeLabel = parseBookLabel(label)
 
+    const guard = AuthoredSaveGuard.safeParse(await c.req.json().catch(() => ({})))
+    if (!guard.success) throw new HTTPException(400, { message: "baseVersion is required for structural edits" })
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const pages = storage.getPages()
-      if (!pages.find((p) => p.pageId === pageId)) {
-        throw new HTTPException(404, { message: `Page not found: ${pageId}` })
-      }
-
-      // Read latest sectioning
-      const sectioningRow = storage.getLatestNodeData("page-sectioning", pageId)
-      if (!sectioningRow) {
-        throw new HTTPException(400, { message: "Page has no sectioning data" })
-      }
-      const sectioningParsed = PageSectioningOutput.safeParse(sectioningRow.data)
-      if (!sectioningParsed.success) {
-        throw new HTTPException(400, { message: "Invalid page-sectioning data" })
-      }
-      const sectioning = sectioningParsed.data
-
-      if (idx >= sectioning.sections.length) {
-        throw new HTTPException(400, { message: `Section index ${idx} out of range (page has ${sectioning.sections.length} sections)` })
-      }
-
-      // Remove section at idx. Survivors keep their sectionIds; only the
-      // deleted section's id is retired.
-      const newSections = [...sectioning.sections]
-      const [deletedSection] = newSections.splice(idx, 1)
-
-      const updatedSectioning = { ...sectioning, sections: newSections }
-
-      // Update rendering if present
-      let updatedRendering: z.infer<typeof WebRenderingOutput> | null = null
-      let renderingVersion: number | null = null
-      const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
-      if (renderingRow) {
-        const renderingParsed = WebRenderingOutput.safeParse(renderingRow.data)
-        if (!renderingParsed.success) {
-          throw new HTTPException(400, { message: "Invalid web-rendering data" })
-        }
-        const rendering = renderingParsed.data
-
-        const shifted = [...rendering.sections]
-
-        // Remove the rendering entry for idx
-        const removeEntryIndex = shifted.findIndex((s) => s.sectionIndex === idx)
-        if (removeEntryIndex !== -1) {
-          shifted.splice(removeEntryIndex, 1)
+      assertNoActivePipelineRun(storage)
+      assertEditVersion(storage.getLatestNodeData("page-sectioning", pageId)?.version, guard.data.baseVersion)
+      return storage.transaction(() => {
+        const pages = storage.getPages()
+        if (!pages.find((p) => p.pageId === pageId)) {
+          throw new HTTPException(404, { message: `Page not found: ${pageId}` })
         }
 
-        // Shift sectionIndex for entries after idx (subtract 1)
-        for (const s of shifted) {
-          if (s.sectionIndex > idx) {
-            s.sectionIndex = s.sectionIndex - 1
+        // Read latest sectioning
+        const sectioningRow = storage.getLatestNodeData("page-sectioning", pageId)
+        if (!sectioningRow) {
+          throw new HTTPException(400, { message: "Page has no sectioning data" })
+        }
+        const sectioningParsed = PageSectioningOutput.safeParse(sectioningRow.data)
+        if (!sectioningParsed.success) {
+          throw new HTTPException(400, { message: "Invalid page-sectioning data" })
+        }
+        const sectioning = sectioningParsed.data
+
+        if (idx >= sectioning.sections.length) {
+          throw new HTTPException(400, { message: `Section index ${idx} out of range (page has ${sectioning.sections.length} sections)` })
+        }
+
+        // Remove section at idx. Survivors keep their sectionIds; only the
+        // deleted section's id is retired.
+        const newSections = [...sectioning.sections]
+        const [deletedSection] = newSections.splice(idx, 1)
+
+        const updatedSectioning = { ...sectioning, sections: newSections }
+
+        // Update rendering if present
+        let updatedRendering: z.infer<typeof WebRenderingOutput> | null = null
+        let renderingVersion: number | null = null
+        const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
+        if (renderingRow) {
+          const renderingParsed = WebRenderingOutput.safeParse(renderingRow.data)
+          if (!renderingParsed.success) {
+            throw new HTTPException(400, { message: "Invalid web-rendering data" })
           }
+          const rendering = renderingParsed.data
+
+          const shifted = [...rendering.sections]
+
+          // Remove the rendering entry for idx
+          const removeEntryIndex = shifted.findIndex((s) => s.sectionIndex === idx)
+          if (removeEntryIndex !== -1) {
+            shifted.splice(removeEntryIndex, 1)
+          }
+
+          // Shift sectionIndex for entries after idx (subtract 1)
+          for (const s of shifted) {
+            if (s.sectionIndex > idx) {
+              s.sectionIndex = s.sectionIndex - 1
+            }
+          }
+
+          rewriteRenderingSectionIds(shifted, newSections)
+          updatedRendering = { sections: shifted }
         }
 
-        rewriteRenderingSectionIds(shifted, newSections)
-        updatedRendering = { sections: shifted }
-      }
-
-      // Deleting rebuilds the rendering to match: the section's HTML entry is
-      // dropped and later indexes shift down. The surviving sections keep both
-      // their sectionIds and the HTML they already had, so nothing needs
-      // re-rendering and the storyboard stays current.
-      const sectioningVersion = saveStoryboardNode(
-        storage,
-        "page-sectioning",
-        pageId,
-        updatedSectioning,
-        { renderingInSync: updatedRendering !== null }
-      )
-      if (updatedRendering) {
-        renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
-      }
-      migrateEditableActivities(storage, pageId, {
-        mapIndex: (i) => (i === idx ? null : i > idx ? i - 1 : i),
+        // Deleting rebuilds the rendering to match: the section's HTML entry is
+        // dropped and later indexes shift down. The surviving sections keep both
+        // their sectionIds and the HTML they already had, so nothing needs
+        // re-rendering and the storyboard stays current.
+        const sectioningVersion = saveStoryboardNode(
+          storage,
+          "page-sectioning",
+          pageId,
+          updatedSectioning,
+          { renderingInSync: updatedRendering !== null }
+        )
+        if (updatedRendering) {
+          renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
+        }
+        migrateEditableActivities(storage, pageId, {
+          mapIndex: (i) => (i === idx ? null : i > idx ? i - 1 : i),
       })
       retireSectionIds(storage, [deletedSection.sectionId])
 
@@ -2905,6 +2972,7 @@ export function createPageRoutes(
         sectioningVersion,
         renderingVersion,
         remainingSections: newSections.length,
+      })
       })
     } finally {
       storage.close()

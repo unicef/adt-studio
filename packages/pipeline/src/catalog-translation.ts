@@ -169,7 +169,7 @@ export async function translateCatalog(options: {
 }): Promise<TextCatalogOutput> {
   const { entries, config, language, llmModel } = options
   const previous = new Map((options.previous?.entries ?? []).map((entry) => [entry.id, entry]))
-  const pending = entries.filter((entry) => {
+  const pending = new Set(entries.filter((entry) => {
     if (!entry.text.trim()) return false
     const prior = previous.get(entry.id)
     const status = withOutputLocations(deriveOutputStatus({
@@ -178,11 +178,12 @@ export async function translateCatalog(options: {
       metadata: prior, usable: !!prior?.text.trim(), excluded: options.excluded?.has(entry.id),
     }), entry)
     return selectedForGeneration(status, prior, options.scope)
-  })
+  }).map((entry) => entry.id))
   const generated = new Map<string, TextCatalogEntry>()
-  for (let offset = 0; offset < pending.length; offset += config.batchSize) {
+  for (let offset = 0; offset < entries.length; offset += config.batchSize) {
     options.signal?.throwIfAborted()
-    const batch = pending.slice(offset, offset + config.batchSize).filter((entry) => !outputSkipped(options.scope, { kind: "translation", id: entry.id, language }))
+    // Form windows before eligibility filtering so edits never shift later requests.
+    const batch = entries.slice(offset, offset + config.batchSize).filter((entry) => pending.has(entry.id) && !outputSkipped(options.scope, { kind: "translation", id: entry.id, language }))
     if (!batch.length) continue
     const translated = await translateCatalogBatch(batch, language, config, llmModel)
     options.signal?.throwIfAborted()
@@ -192,9 +193,11 @@ export async function translateCatalog(options: {
       generated.set(entry.id, { ...entry, locations: source.locations, source: "ai", input: outputEvidence(translationInputSignature(source, language, config), entry.text, options.references) })
     }
   }
-  if (!generated.size) return options.previous ?? { entries: [], generatedAt: new Date().toISOString() }
-  // Keep retired/unselected entries available for reactivation and history.
-  const merged = new Map(previous)
+  const activeIds = new Set(entries.map((entry) => entry.id))
+  const retired = [...previous.keys()].some((id) => !activeIds.has(id))
+  if (!generated.size && !retired) return options.previous ?? { entries: [], generatedAt: new Date().toISOString() }
+  // Source removal changes active membership; storage retains previous versions.
+  const merged = new Map([...previous].filter(([id]) => activeIds.has(id)))
   for (const [id, entry] of generated) merged.set(id, entry)
   return { entries: [...merged.values()], generatedAt: new Date().toISOString() }
 }

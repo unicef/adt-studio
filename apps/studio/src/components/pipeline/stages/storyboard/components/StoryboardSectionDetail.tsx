@@ -463,7 +463,13 @@ export function StoryboardSectionDetail({
   const [deleting, setDeleting] = useState(false)
   const [confirmDeleteSection, setConfirmDeleteSection] = useState(false)
   const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string; warning?: string; consequence?: string } | null>(null)
-  const [pendingSectioning, setPendingSectioning] = useState<SectioningData | null>(null)
+  const sectioningBaseVersion = useRef<number | null>(null)
+  const [pendingSectioning, updatePendingSectioning] = useState<SectioningData | null>(null)
+  const setPendingSectioning: typeof updatePendingSectioning = useCallback((action) => {
+    if (action === null) sectioningBaseVersion.current = null
+    else sectioningBaseVersion.current ??= page.versions.sectioning ?? 0
+    updatePendingSectioning(action)
+  }, [page.versions.sectioning])
   const [pendingRendering, setPendingRendering] = useState<RenderingData | null>(null)
   // Inspector edits mutate the iframe DOM directly; this ref stashes the
   // resulting HTML and is committed to React state only at boundaries
@@ -484,13 +490,14 @@ export function StoryboardSectionDetail({
     () => new Set()
   )
   const markPending = useCallback((category: PendingCategory) => {
+    sectioningBaseVersion.current ??= page.versions.sectioning ?? 0
     setPendingCategories((prev) => {
       if (prev.has(category)) return prev
       const next = new Set(prev)
       next.add(category)
       return next
     })
-  }, [])
+  }, [page.versions.sectioning])
   // Tracks whether pending sectioning changes require LLM re-render on save.
   // Pure prune/delete can be resolved locally; unprune/type change/reorder need LLM.
   const needsRerenderRef = useRef(false)
@@ -900,8 +907,9 @@ export function StoryboardSectionDetail({
       const renderingToSave = renderingFromPrune ?? flushed ?? pendingRendering
 
       // Both nodes in one request so a failure can't split them apart.
-      await api.saveStoryboard(bookLabel, pageId, {
+      const saved = await api.saveStoryboard(bookLabel, pageId, {
         sectioning: pendingSectioning,
+        baseVersion: sectioningBaseVersion.current ?? page.versions.sectioning ?? 0,
         rendering: renderingToSave ? stripTransientIds(renderingToSave) : undefined,
         renderingInSync,
       })
@@ -930,6 +938,7 @@ export function StoryboardSectionDetail({
           await api
             .saveStoryboard(bookLabel, pageId, {
               sectioning: pendingSectioning,
+              baseVersion: saved.sectioningVersion ?? 0,
               renderingInSync: false,
             })
             .catch(() => {})
@@ -982,7 +991,7 @@ export function StoryboardSectionDetail({
       await api.saveStoryboard(bookLabel, pageId, {
         rendering: stripTransientIds(renderingToSave),
         ...(updatedSectioning && updatedSectioning !== sBase
-          ? { sectioning: updatedSectioning, renderingInSync: true }
+          ? { sectioning: updatedSectioning, renderingInSync: true, baseVersion: sectioningBaseVersion.current ?? page.versions.sectioning ?? 0 }
           : {}),
       })
 
@@ -1050,7 +1059,7 @@ export function StoryboardSectionDetail({
     if (cloning || dirty || renderingDirty || saving || storyboardRunning) return
     setCloning(true)
     try {
-      const result = await api.cloneSection(bookLabel, pageId, sectionIndex)
+      const result = await api.cloneSection(bookLabel, pageId, sectionIndex, page.versions.sectioning ?? 0)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
@@ -1076,6 +1085,7 @@ export function StoryboardSectionDetail({
         sectionIndex,
         direction,
         hasStructuredTextProvider,
+        page.versions.sectioning ?? 0,
       )
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
@@ -1107,6 +1117,7 @@ export function StoryboardSectionDetail({
         pageId,
         sectionIndex,
         direction,
+        page.versions.sectioning ?? 0,
       )
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.sourcePageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.targetPageId] })
@@ -1200,7 +1211,7 @@ export function StoryboardSectionDetail({
     setConfirmDeleteSection(false)
     setDeleting(true)
     try {
-      const result = await api.deleteSection(bookLabel, pageId, sectionIndex)
+      const result = await api.deleteSection(bookLabel, pageId, sectionIndex, page.versions.sectioning ?? 0)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
@@ -2229,6 +2240,7 @@ export function StoryboardSectionDetail({
       instruction,
       apiKey,
       currentHtml,
+      page.versions.sectioning ?? 0,
     ).catch((err) => {
       setAiError(err instanceof Error ? err.message : t`AI edit failed`)
     })

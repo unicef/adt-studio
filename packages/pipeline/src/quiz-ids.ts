@@ -1,3 +1,4 @@
+import { isProtectedContent, stampManualEdits } from "./manual-edits.js"
 import { randomUUID } from "node:crypto"
 import type { Storage } from "@adt/storage"
 import {
@@ -88,8 +89,15 @@ export function saveQuizOutput(
   return storage.transaction(() => {
     const spent = collectSpentQuizIds(storage)
     let incoming = output
+    const currentRow = storage.getLatestNodeData("quiz-generation", "book")
+    const currentData = currentRow?.data as QuizGenerationOutput | undefined
+    // Invalid AI identities need not become current again to be regenerated.
+    // Protected legacy quizzes resolve their positional IDs before filtering.
+    const protectedQuizzes = mode === "replace" && currentData ? withResolvedQuizIds({ ...currentData, quizzes: currentData.quizzes.flatMap((quiz, index) =>
+      isProtectedContent(quiz) ? [{ ...quiz, quizId: quiz.quizId ?? formatQuizId(index + 1) }] : []
+    ) }).quizzes : []
     if (mode === "replace") {
-      incoming = { ...output, quizzes: output.quizzes.map(({ quizId: _id, ...quiz }) => quiz) }
+      incoming = { ...output, quizzes: [...protectedQuizzes, ...output.quizzes.map(({ quizId: _id, ...quiz }) => ({ ...quiz, source: "ai" as const }))] }
     } else {
       const row = storage.getLatestNodeData("quiz-generation", "book")
       const current = row ? withResolvedQuizIds(row.data as QuizGenerationOutput).quizzes : []
@@ -103,9 +111,10 @@ export function saveQuizOutput(
     }
     const stamped = ensureQuizIds(incoming, spent).output
     const priorRow = storage.getLatestNodeData("quiz-generation", "book")
-    const prior = mode !== "replace" && priorRow ? withResolvedQuizIds(priorRow.data as QuizGenerationOutput).quizzes : []
+    const prior = mode === "replace" ? protectedQuizzes : priorRow ? withResolvedQuizIds(priorRow.data as QuizGenerationOutput).quizzes : []
     const quizzes = stamped.quizzes.map((quiz, quizIndex) => {
-      const old = mode === "replace" ? undefined : prior.find((item) => item.quizId === quiz.quizId)
+      const old = prior.find((item) => item.quizId === quiz.quizId)
+      if (mode === "replace" && old && isProtectedContent(old)) return { ...old, quizIndex }
       const claimed = new Set(quiz.options.flatMap((option) => option.optionId ? [option.optionId] : []))
       const options = quiz.options.map((option, index) => {
         if (mode !== "replace" && option.optionId) {
@@ -119,7 +128,14 @@ export function saveQuizOutput(
       })
       return { ...quiz, quizIndex, options }
     })
-    const normalized = withResolvedQuizIds({ ...stamped, quizzes })
+    // Resolve legacy identities/options first; only authored content participates
+    // in the comparison. Position-only reorder does not change ownership.
+    const authored = mode === "edit" ? stampManualEdits(prior, quizzes, (quiz) => quiz.quizId!, (a, b) => contentKey(a) === contentKey(b)) : quizzes
+    if (mode === "replace") {
+      const pageOrder = new Map(storage.getPages().map((page, index) => [page.pageId, index]))
+      authored.sort((a, b) => (pageOrder.get(a.afterPageId) ?? 0) - (pageOrder.get(b.afterPageId) ?? 0))
+    }
+    const normalized = withResolvedQuizIds({ ...stamped, quizzes: authored.map((quiz, quizIndex) => ({ ...quiz, quizIndex })) })
     const version = storage.putNodeData("quiz-generation", "book", normalized)
     return { output: normalized, version }
   })

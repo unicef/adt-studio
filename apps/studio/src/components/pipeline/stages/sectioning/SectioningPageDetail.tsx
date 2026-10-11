@@ -1,3 +1,6 @@
+import { useGuardedDraft } from "@/hooks/use-guarded-draft"
+import { DraftConflict } from "../../components/DraftConflict"
+import { AuthorshipBadge } from "../../components/AuthorshipBadge"
 import {
   useCallback,
   useMemo,
@@ -83,9 +86,13 @@ export function SectioningPageDetail({
 
   // Keyed by sectionId — a section only appears here once the user has edited
   // it, and the saved version replaces the original on `onChange`.
-  const [pendingBySectionId, setPendingBySectionId] = useState<
-    Record<string, PageSectioningSection>
-  >({})
+  const draft = useGuardedDraft<PageSectioningOutput>(page.sectioningTree as PageSectioningOutput | null, page.versions.sectioning, async () => {
+    const latest = await api.getPage(bookLabel, pageId)
+    queryClient.setQueryData(["books", bookLabel, "pages", pageId], latest)
+    if (!latest.sectioningTree) throw new Error(t`Saved content is unavailable; your draft is retained`)
+    return { value: latest.sectioningTree as PageSectioningOutput, version: latest.versions.sectioning ?? 0 }
+  })
+  const pendingBySectionId = Object.fromEntries((draft.pending?.sections ?? []).filter((section) => JSON.stringify(section) !== JSON.stringify(page.sectioningTree?.sections.find((s) => s.sectionId === section.sectionId))).map((s) => [s.sectionId, s]))
   const [saving, setSaving] = useState(false)
   const savePromiseRef = useRef<Promise<void> | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -125,7 +132,7 @@ export function SectioningPageDetail({
   const [pendingPageId, setPendingPageId] = useState(pageId)
   if (pendingPageId !== pageId) {
     setPendingPageId(pageId)
-    setPendingBySectionId({})
+    draft.setPending(null)
     setSaveError(null)
     setPendingOp(null)
   }
@@ -133,21 +140,25 @@ export function SectioningPageDetail({
   const sectionsFromServer = (page.sectioningTree?.sections ??
     []) as PageSectioningSection[]
   const mergedSections: PageSectioningSection[] = useMemo(
-    () => sectionsFromServer.map((s) => pendingBySectionId[s.sectionId] ?? s),
-    [sectionsFromServer, pendingBySectionId]
+    () => draft.pending?.sections ?? sectionsFromServer,
+    [draft.pending, sectionsFromServer]
   )
   const dirty = Object.keys(pendingBySectionId).length > 0
 
   const handleSectionChange = useCallback((next: PageSectioningSection) => {
-    setPendingBySectionId((prev) => ({ ...prev, [next.sectionId]: next }))
-  }, [])
+    draft.setPending((prev) => {
+      const base = prev ?? page.sectioningTree as PageSectioningOutput
+      return { ...base, sections: base.sections.map((s) => s.sectionId === next.sectionId ? next : s) }
+    })
+  }, [draft, page.sectioningTree])
 
   const handleDiscard = useCallback(() => {
-    setPendingBySectionId({})
+    draft.setPending(null)
     setSaveError(null)
-  }, [])
+  }, [draft])
 
   const performSave = useCallback((): Promise<void> => {
+    if (draft.conflict) return Promise.reject(new Error(t`Resolve conflicting edits before saving`))
     if (!dirty) return Promise.resolve()
     if (savePromiseRef.current) return savePromiseRef.current
 
@@ -159,8 +170,8 @@ export function SectioningPageDetail({
           reasoning: page.sectioningTree?.reasoning ?? "",
           sections: mergedSections,
         }
-        await api.updateSectioning(bookLabel, pageId, payload)
-        setPendingBySectionId({})
+        await api.updateSectioning(bookLabel, pageId, { ...payload, baseVersion: draft.baseVersion })
+        draft.setPending(null)
         // Refresh in the background. The unsaved-changes guard awaits this
         // function before resuming a blocked navigation, and `invalidateQueries`
         // only settles once the refetches finish — awaiting it would hold the
@@ -174,6 +185,7 @@ export function SectioningPageDetail({
         invalidateStoryboardDependents(queryClient, bookLabel)
       } catch (err) {
         setSaveError(err instanceof Error ? err.message : t`Save failed`)
+        await draft.handleError(err)
         // Rethrow so UnsavedChangesGuard's "Save & leave" does NOT navigate away
         // (dropping the edits) when the save failed.
         throw err
@@ -194,6 +206,7 @@ export function SectioningPageDetail({
     return savePromise
   }, [
     dirty,
+    draft,
     page.sectioningTree?.reasoning,
     mergedSections,
     bookLabel,
@@ -296,7 +309,7 @@ export function SectioningPageDetail({
       setSaveError(null)
       try {
         const otherPageId = await op()
-        setPendingBySectionId({})
+        draft.setPending(null)
         await queryClient.invalidateQueries({
           queryKey: ["books", bookLabel, "pages", pageId],
         })
@@ -322,12 +335,12 @@ export function SectioningPageDetail({
         setStructuralBusy(false)
       }
     },
-    [saving, structuralBusy, queryClient, bookLabel, pageId, t]
+    [saving, structuralBusy, queryClient, bookLabel, pageId, t, draft]
   )
 
   const handleMergeSection = (sectionIndex: number, direction: "next" | "prev") =>
     runStructural(async () => {
-      await api.mergeSection(bookLabel, pageId, sectionIndex, direction)
+      await api.mergeSection(bookLabel, pageId, sectionIndex, direction, false, page.versions.sectioning ?? 0)
       return null
     })
 
@@ -337,20 +350,21 @@ export function SectioningPageDetail({
         bookLabel,
         pageId,
         sectionIndex,
-        direction
+        direction,
+        page.versions.sectioning ?? 0
       )
       return result.targetPageId
     })
 
   const handleCloneSection = (sectionIndex: number) =>
     runStructural(async () => {
-      await api.cloneSection(bookLabel, pageId, sectionIndex)
+      await api.cloneSection(bookLabel, pageId, sectionIndex, page.versions.sectioning ?? 0)
       return null
     })
 
   const handleDeleteSection = (sectionIndex: number) =>
     runStructural(async () => {
-      await api.deleteSection(bookLabel, pageId, sectionIndex)
+      await api.deleteSection(bookLabel, pageId, sectionIndex, page.versions.sectioning ?? 0)
       return null
     })
 
@@ -379,7 +393,7 @@ export function SectioningPageDetail({
       colorClass: "bg-sky-600 hover:bg-sky-700",
       run: () =>
         void runStructural(async () => {
-          await api.splitSection(bookLabel, pageId, sectionIndex, at)
+          await api.splitSection(bookLabel, pageId, sectionIndex, at, page.versions.sectioning ?? 0)
           return null
         }),
     })
@@ -427,6 +441,7 @@ export function SectioningPageDetail({
 
   return (
     <>
+    <DraftConflict error={draft.error} paths={draft.conflict?.paths} onResolve={draft.resolve} />
     {headerSlotEl && createPortal(headerControls, headerSlotEl)}
     <div className="flex h-full min-h-0">
       <div className="w-1/2 min-w-0 border-r overflow-auto bg-muted/10 p-4">
@@ -443,6 +458,7 @@ export function SectioningPageDetail({
         )}
       </div>
       <div className="w-1/2 min-w-0 overflow-auto p-4 space-y-4">
+        {page.sectioningTree && <AuthorshipBadge source={page.sectioningTree.source} />}
         {page.extractionWarning && (
           <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
             <Eye className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />

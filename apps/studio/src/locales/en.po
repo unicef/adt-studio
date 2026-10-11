@@ -2582,6 +2582,9 @@ msgstr "Configured on server"
 msgid "Confirm merge"
 msgstr "Confirm merge"
 
+msgid "Conflicting fields:"
+msgstr "Conflicting fields:"
+
 msgid "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 msgstr "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 
@@ -5130,6 +5133,9 @@ msgstr "KB"
 msgid "Keep existing content"
 msgstr "Keep existing content"
 
+msgid "Keep my conflicting edits"
+msgstr "Keep my conflicting edits"
+
 msgid "Keep my edit"
 msgstr "Keep my edit"
 
@@ -5275,6 +5281,9 @@ msgstr "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce qualit
 
 msgid "Leave without finishing?"
 msgstr "Leave without finishing?"
+
+msgid "Legacy · protected"
+msgstr "Legacy · protected"
 
 msgid "Legal and compliance manuals"
 msgstr "Legal and compliance manuals"
@@ -5595,8 +5604,8 @@ msgstr "Manage in book"
 msgid "Manage sign-language videos"
 msgstr "Manage sign-language videos"
 
-msgid "Manual edit"
-msgstr "Manual edit"
+#~ msgid "Manual edit"
+#~ msgstr "Manual edit"
 
 msgid "Manual only"
 msgstr "Manual only"
@@ -7492,6 +7501,12 @@ msgstr "prompts templates instructions"
 msgid "Protected content"
 msgstr "Protected content"
 
+msgid "Protected pages:"
+msgstr "Protected pages:"
+
+msgid "Protected quizzes to replace:"
+msgstr "Protected quizzes to replace:"
+
 msgid "Provider"
 msgstr "Provider"
 
@@ -8065,11 +8080,17 @@ msgstr "Replace image"
 msgid "Replace PDF"
 msgstr "Replace PDF"
 
+msgid "Replace protected quizzes"
+msgstr "Replace protected quizzes"
+
 msgid "Replace quiz"
 msgstr "Replace quiz"
 
 msgid "Replace quizzes"
 msgstr "Replace quizzes"
+
+msgid "Replace the protected pages listed above"
+msgstr "Replace the protected pages listed above"
 
 msgid "Replace this audio file"
 msgstr "Replace this audio file"
@@ -8079,6 +8100,10 @@ msgstr "Replay the guided introduction to ADT Studio."
 
 msgid "Report an issue"
 msgstr "Report an issue"
+
+#. placeholder {0}: res.status
+msgid "Request failed: {0}"
+msgstr "Request failed: {0}"
 
 msgid "Request settings"
 msgstr "Request settings"
@@ -8127,6 +8152,9 @@ msgstr "Reset zoom"
 
 msgid "Resize panel"
 msgstr "Resize panel"
+
+msgid "Resolve conflicting edits before saving"
+msgstr "Resolve conflicting edits before saving"
 
 msgid "Resolving source language..."
 msgstr "Resolving source language..."
@@ -8521,6 +8549,9 @@ msgstr "Save text sizes"
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Save your work first if you want to keep these changes."
+
+msgid "Saved content is unavailable; your draft is retained"
+msgstr "Saved content is unavailable; your draft is retained"
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
@@ -10219,6 +10250,9 @@ msgstr "This removes all model-specific global prompt versions in this folder. S
 msgid "This removes the global version for this prompt file. Shipped fallback files remain available."
 msgstr "This removes the global version for this prompt file. Shipped fallback files remain available."
 
+msgid "This replaces the manually edited or legacy table of contents. Its saved version remains in history."
+msgstr "This replaces the manually edited or legacy table of contents. Its saved version remains in history."
+
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 
@@ -10748,6 +10782,9 @@ msgstr "Use as current"
 msgid "Use as template"
 msgstr "Use as template"
 
+msgid "Use latest conflicting values"
+msgstr "Use latest conflicting values"
+
 msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 msgstr "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 
@@ -11219,6 +11256,9 @@ msgstr "Your AI, your keys."
 
 msgid "Your book"
 msgstr "Your book"
+
+msgid "Your draft is retained. Review the refreshed content before saving again."
+msgstr "Your draft is retained. Review the refreshed content before saving again."
 
 msgid "Your font has been applied to captions."
 msgstr "Your font has been applied to captions."

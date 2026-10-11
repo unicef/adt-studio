@@ -586,7 +586,7 @@ export async function runFullPipeline(
           pageSectioningConfig,
           model,
         )
-        storage.putNodeData("page-sectioning", page.pageId, result)
+        storage.putNodeData("page-sectioning", page.pageId, { ...result, source: "ai" })
         p.emit({
           type: "step-progress",
           step: "page-sectioning",
@@ -615,7 +615,7 @@ export async function runFullPipeline(
           translationConfig,
           model,
         )
-        storage.putNodeData("page-sectioning", page.pageId, translated)
+        storage.putNodeData("page-sectioning", page.pageId, { ...translated, source: "ai" })
         p.emit({
           type: "step-progress",
           step: "translation",
@@ -847,7 +847,7 @@ export async function runFullPipeline(
         config: tocConfig,
         llmModel: model,
       })
-      storage.putNodeData("toc-generation", "book", toc)
+      storage.putNodeData("toc-generation", "book", { ...toc, source: "ai" })
 
       p.emit({
         type: "step-progress",

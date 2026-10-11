@@ -1,4 +1,4 @@
-import { retainedCoreTts, retainedEasyRead } from "./retained-catalog.js"
+import { retainedCoreTts, retainedEasyRead, retainedTranslation } from "./retained-catalog.js"
 import { supportsPageBatchedSpeech } from "./speech-batch.js"
 import fs from "node:fs"
 import { createHash } from "node:crypto"
@@ -95,7 +95,7 @@ export function readOutputCatalog(options: {
   const displays = new Map<string, TextCatalogEntry[]>([[sourceLanguage, sources]])
   const sourceStatus = (entry: TextCatalogEntry) => find("caption", entry.id) ?? find("easy-read", entry.id, sourceLanguage)
   for (const language of getTargetLanguages(languages, sourceLanguage)) {
-    const prior = ((storage.getLatestNodeData("text-catalog-translation", language) ?? storage.getLatestNodeData("text-catalog-translation", language.replace("-", "_")))?.data as TextCatalogOutput | undefined)?.entries ?? []
+    const prior = retainedTranslation(storage, language, sources.map((entry) => entry.id))?.entries ?? []
     const byId = new Map(prior.map((entry) => [entry.id, entry]))
     const display: TextCatalogEntry[] = []
     for (const source of sources) {

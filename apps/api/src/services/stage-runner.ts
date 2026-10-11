@@ -1,3 +1,6 @@
+import { retainedTranslation, isProtectedContent, createSectionIdFactory, retireSectionIds } from "@adt/pipeline"
+import { assertEditVersion } from "./catalog-output-service.js"
+import { replacementConfirmed } from "./authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
 import { outputSkipped } from "@adt/pipeline"
 import { retainedCoreTts, retainedEasyRead } from "@adt/pipeline"
@@ -1348,6 +1351,17 @@ async function runSectioningStep(
   const storage = createBookStorage(label, booksDir)
 
   try {
+    const allPages = storage.getPages()
+    const previous = new Map(allPages.map((page) => [page.pageId, storage.getLatestNodeData("page-sectioning", page.pageId)]))
+    const pages = allPages.filter((page) => {
+      const row = previous.get(page.pageId)
+      return !row || !isProtectedContent(row.data as { source?: "ai" | "manual" }) || replacementConfirmed(options, "page-sectioning", page.pageId, row.version)
+    })
+    if (!pages.length) {
+      progress.emit({ type: "step-skip", step: "page-sectioning" })
+      progress.emit({ type: "step-skip", step: "translation" })
+      return
+    }
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
@@ -1403,7 +1417,6 @@ async function runSectioningStep(
         })
       : null
 
-    const pages = storage.getPages()
     const stepStatus = new Map(storage.getStepRuns().map((run) => [run.step, run.status]))
     const outlineStepStatus = stepStatus.get("book-outline")
     const outlineStepComplete = outlineStepStatus === "done" || outlineStepStatus === "skipped"
@@ -1438,7 +1451,7 @@ async function runSectioningStep(
       })
       bookOutline = await generateAndStoreBookOutline(
         label,
-        pages,
+        allPages,
         storage,
         outlineConfig,
         outlineModel,
@@ -1492,7 +1505,7 @@ async function runSectioningStep(
             pageSectioningConfig,
             structuringModel,
           )
-          storage.putNodeData("page-sectioning", page.pageId, structuringResult)
+          let result = structuringResult
           completedStructuring++
           progress.emit({
             type: "step-progress",
@@ -1509,7 +1522,7 @@ async function runSectioningStep(
               translationConfig,
               translationModel,
             )
-            storage.putNodeData("page-sectioning", page.pageId, translated)
+            result = translated
             completedTranslation++
             progress.emit({
               type: "step-progress",
@@ -1519,6 +1532,17 @@ async function runSectioningStep(
               totalPages,
             })
           }
+          options.signal?.throwIfAborted()
+          storage.transaction(() => {
+            const before = previous.get(page.pageId)
+            assertEditVersion(storage.getLatestNodeData("page-sectioning", page.pageId)?.version, before?.version ?? 0)
+            const mint = createSectionIdFactory(storage, page.pageId)
+            const sections = result.sections.map((section) => ({ ...section, sectionId: mint() }))
+            const old = before?.data as PageSectioningOutput | undefined
+            retireSectionIds(storage, (old?.sections ?? []).flatMap((section) => section.sectionId ? [section.sectionId] : []))
+            storage.putNodeData("page-sectioning", page.pageId, { ...result, sections, source: "ai" })
+            reconcileTextCatalog(storage)
+          })
         } catch (err) {
           const step = err instanceof StepError ? err.step : "page-sectioning"
           console.error(`[stage-run] ${label}: ${page.pageId} failed at ${step}: ${toErrorMessage(err)}`)
@@ -1818,6 +1842,12 @@ async function runQuizzesStep(
   const storage = createBookStorage(label, booksDir)
 
   try {
+    const previousVersion = storage.getLatestNodeData("quiz-generation", "book")?.version ?? 0
+    const publish = (output: Parameters<typeof saveQuizOutput>[1]) => storage.transaction(() => {
+      options.signal?.throwIfAborted()
+      assertEditVersion(storage.getLatestNodeData("quiz-generation", "book")?.version, previousVersion)
+      return saveQuizOutput(storage, output, "replace")
+    })
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
@@ -1919,7 +1949,7 @@ async function runQuizzesStep(
         },
       })
       options.signal?.throwIfAborted()
-      saveQuizOutput(storage, quizResult, "replace")
+      publish(quizResult)
       console.log(
         `[stage-run] ${label}: generated ${quizResult.quizzes.length} quiz(zes) from ${quizPages.length} page(s)`
       )
@@ -1929,13 +1959,13 @@ async function runQuizzesStep(
         message: `${quizResult.quizzes.length} quizzes from ${quizPages.length} pages`,
       })
     } else {
-      // A successful empty rerun must not leave the preserved previous quizzes
-      // active. Keep their history, but publish the now-empty result.
+      // With no eligible pages, retire previous AI quizzes while the shared
+      // publisher retains protected quizzes and all prior versions.
       options.signal?.throwIfAborted()
-      saveQuizOutput(storage, {
+      publish({
         generatedAt: new Date().toISOString(), language: quizConfig.language,
         pagesPerQuiz: quizConfig.pagesPerQuiz, quizzes: [],
-      }, "replace")
+      })
       // Nothing to generate. This is the silent "finished instantly, no quizzes"
       // case — surface it loudly instead of completing green with no output.
       console.warn(
@@ -2238,6 +2268,11 @@ async function runTocStep(
   const storage = createBookStorage(label, booksDir)
 
   try {
+    const previous = storage.getLatestNodeData("toc-generation", "book")
+    if (previous && isProtectedContent(previous.data as { source?: "ai" | "manual" }) && !replacementConfirmed(options, "toc-generation", "book", previous.version)) {
+      progress.emit({ type: "step-skip", step: "toc-generation" })
+      return
+    }
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
@@ -2291,7 +2326,11 @@ async function runTocStep(
       config: tocConfig,
       llmModel: tocModel,
     })
-    storage.putNodeData("toc-generation", "book", toc)
+    options.signal?.throwIfAborted()
+    storage.transaction(() => {
+      assertEditVersion(storage.getLatestNodeData("toc-generation", "book")?.version, previous?.version ?? 0)
+      storage.putNodeData("toc-generation", "book", { ...toc, source: "ai" })
+    })
 
     progress.emit({
       type: "step-progress",
@@ -2545,9 +2584,22 @@ async function runTranslateStep(
 
     // ── Step 2: Translate catalog to target languages ────────────────
     const targetLanguages = getTargetLanguages(outputLanguages, language)
-    if (targetLanguages.length === 0 || translationEntries.length === 0) {
+    if (targetLanguages.length === 0) {
       progress.emit({ type: "step-skip", step: "catalog-translation" })
       console.log(`[stage-run] ${label}: catalog translation skipped`)
+    } else if (translationEntries.length === 0) {
+      // Retire membership without resolving a prompt/provider for an empty
+      // source. The prior document remains in version history.
+      options.signal?.throwIfAborted()
+      storage.transaction(() => {
+        for (const language of targetLanguages) {
+          const itemId = storage.getLatestNodeData("text-catalog-translation", language) ? language : language.replace("-", "_")
+          const row = storage.getLatestNodeData("text-catalog-translation", itemId)
+          const previous = row?.data as TextCatalogOutput | undefined
+          if (previous?.entries.length) storage.putNodeData("text-catalog-translation", itemId, { ...previous, entries: [], generatedAt: new Date().toISOString() })
+        }
+      })
+      progress.emit({ type: "step-skip", step: "catalog-translation" })
     } else {
       progress.emit({ type: "step-start", step: "catalog-translation" })
 
@@ -2571,9 +2623,9 @@ async function runTranslateStep(
         const previous = previousRow?.data as TextCatalogOutput | undefined
         const captured = readRunOutputs(label, options, storage)
         const output = await translateCatalog({ entries: translationEntries, language: lang, config: translationConfig,
-          llmModel: translationModel, previous, references: captureOutputReferences(storage, "translation", lang), scope: options.outputScope, signal: options.signal })
+          llmModel: translationModel, previous: retainedTranslation(storage, lang, translationEntries.map((entry) => entry.id)), references: captureOutputReferences(storage, "translation", lang), scope: options.outputScope, signal: options.signal })
         options.signal?.throwIfAborted()
-        if (output !== previous) storage.transaction(() => {
+        if (inputSignature(output.entries) !== inputSignature(previous?.entries)) storage.transaction(() => {
           if (readTranslation()?.version !== previousRow?.version) throw new Error("Translation changed during generation")
           const changed = output.entries.filter((entry) => inputSignature(entry) !== inputSignature(previous?.entries.find((prior) => prior.id === entry.id)))
           assertOutputPublication(captured, readRunOutputs(label, options, storage), changed.map((entry) => ({ kind: "translation", id: entry.id, language: lang })))

@@ -1,3 +1,6 @@
+import { assertAuthoredIdle } from "../services/authored-output-service.js"
+import { assertEditVersion } from "../services/catalog-output-service.js"
+import { AuthoredSaveGuard } from "@adt/types"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -78,7 +81,8 @@ export function createTocRoutes(booksDir: string): Hono {
     } catch {
       throw new HTTPException(400, { message: "Invalid JSON body" })
     }
-    const parsed = TocGenerationOutput.safeParse(body)
+    // Ignore client authorship; the guarded save stamps the document on the server.
+    const parsed = TocGenerationOutput.omit({ source: true }).extend(AuthoredSaveGuard.shape).safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid TOC data: ${parsed.error.message}`,
@@ -87,7 +91,10 @@ export function createTocRoutes(booksDir: string): Hono {
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const version = storage.putNodeData("toc-generation", "book", parsed.data)
+      assertAuthoredIdle(storage)
+      assertEditVersion(storage.getLatestNodeData("toc-generation", "book")?.version, parsed.data.baseVersion)
+      const { baseVersion: _base, ...content } = parsed.data
+      const version = storage.putNodeData("toc-generation", "book", { ...content, source: "manual" })
       return c.json({ version })
     } finally {
       storage.close()

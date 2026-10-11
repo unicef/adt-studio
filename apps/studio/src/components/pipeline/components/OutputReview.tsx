@@ -72,7 +72,7 @@ function OutputReviewItem({ bookLabel, output, outputs, dirty = false, disclosur
   return <div className="rounded border border-amber-200/70 bg-amber-50/40 px-2 py-1 text-xs">
     <div className="flex flex-wrap items-center gap-2">
       <span className="font-medium">{label}</span>
-      {output.manual && <span>{t`Manual edit`}</span>}
+      {output.manual && <span>{t`Edited manually`}</span>}
       {output.updateNeeded && <span className="font-medium">{t`Update needed`}</span>}
       {warnings.length > 0 && <span className="inline-flex items-center gap-1 font-medium"><AlertTriangle className="h-3 w-3" />{t`Warning`}</span>}
       {output.missing && <span className="font-medium">{t`Missing`}</span>}

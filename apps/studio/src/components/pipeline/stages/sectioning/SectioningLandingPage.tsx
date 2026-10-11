@@ -1,3 +1,4 @@
+import type { RunStagesOptions } from "@/api/client"
 import { useState, useEffect, useMemo } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
@@ -87,7 +88,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
     persist({ generate_activities: next })
   }
 
-  const handleRun = () => {
+  const handleRun = (options?: Pick<RunStagesOptions, "replaceManual" | "protectedReplacements">) => {
     if (!hasStructuredTextProvider || status.isRunning || resolvingStoredState) return
     // Cue from here even if Extract hasn't run yet. If Extract is already
     // done/running/queued it will produce its output, so queue Sectioning
@@ -96,7 +97,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
     // outline is deliberately stale. Start at Sectioning: the API rebuilds the
     // authoritative outline from those stored pages without clearing them.
     const fromStage = resolveSectioningStartStage(extractCovered, hasAssembledPages)
-    queueRun({ fromStage, toStage: "sectioning", apiKey, viewAfter: true })
+    queueRun({ fromStage, toStage: "sectioning", apiKey, viewAfter: true, ...options })
   }
 
   const modeOptions = useMemo(

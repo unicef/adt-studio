@@ -94,7 +94,7 @@ describe("quiz history recovery", () => {
     expect(screen.queryByDisplayValue("Retained question")).toBeNull()
     fireEvent.click(trigger)
     fireEvent.click(await screen.findByRole("button", { name: /^v\s*1/ }))
-    await waitFor(() => expect(api.restoreVersion).toHaveBeenCalledWith("book", "quiz-generation", "book", 1))
+    await waitFor(() => expect(api.restoreVersion).toHaveBeenCalledWith("book", "quiz-generation", "book", 1, 2))
     expect(await screen.findByDisplayValue("Retained question")).toBeTruthy()
     expect(api.getVersionHistory).toHaveBeenCalledWith("book", "quiz-generation", "book", true, true)
 
@@ -102,7 +102,7 @@ describe("quiz history recovery", () => {
     fireEvent.click(await screen.findByRole("button", { name: /^v\s*2\s*Invalidated/ }))
     expect(await screen.findByRole("button", { name: /^v\s*2\s*Invalidated$/ })).toBeTruthy()
     expect(screen.queryByDisplayValue("Retained question")).toBeNull()
-    expect(api.restoreVersion).toHaveBeenLastCalledWith("book", "quiz-generation", "book", 2)
+    expect(api.restoreVersion).toHaveBeenLastCalledWith("book", "quiz-generation", "book", 2, 1)
   })
 
   it("keeps recovery available after a failed restore", async () => {

@@ -233,7 +233,11 @@ export function getStageRerunClearNodes(
   const fromIndex = STAGE_ORDER.indexOf(fromStage)
   const toIndex = STAGE_ORDER.indexOf(toStage)
 
-  const preservedNodes = new Set<PipelineNodeName>()
+  // Authored units remain current until successful publication, even when the
+  // downstream stage is outside this run. Clearing completion is independent.
+  const preservedNodes = new Set<PipelineNodeName>([
+    "page-sectioning", "toc-generation", "quiz-generation", "glossary", "web-rendering",
+  ])
   for (const stage of STAGES_PRESERVING_OWN_OUTPUT) {
     const index = STAGE_ORDER.indexOf(stage)
     if (index >= fromIndex && index <= toIndex) {

@@ -16,8 +16,10 @@ a new version in one storage transaction. The reservation includes the current
 version and versions newer than a restored version.
 
 - Editing, deleting, or repositioning an existing quiz preserves its ID.
-- Generate-one replacement and full-stage regeneration create new quizzes with
-  fresh IDs. Identical or cached model output does not reuse an old identity.
+- Full-stage regeneration preserves manual and unknown-authorship quizzes with
+  their exact IDs and creates fresh IDs for generated AI quizzes. Identical or
+  cached model output does not reuse a retired identity. Generate-one replacement
+  must name the protected quiz IDs at that position and supply the current version.
 - Restoring a version selects its existing quizzes and IDs. It does not allocate
   new entities or release IDs used by later versions.
 - Removing quizzes, restoring a version, or rerunning extraction does not
@@ -30,9 +32,11 @@ version and versions newer than a restored version.
 
 Full quiz reruns keep prior quiz output until successful persistence. A failed
 run leaves that output available; a successful run with no eligible pages saves
-an empty quiz set. This also applies to the CLI DAG generation path.
+the protected quizzes and drops prior AI quizzes. New CLI/DAG output is stamped
+AI; this does not establish full CLI rerun preservation or complete SPEC-0010.
 
-Upstream invalidation and extraction resets retain quiz history and append a
+Ordinary upstream run preparation retains active quizzes. Explicit storage
+invalidation retains quiz history and appends a
 `null` invalidation version. Both storage and API current-row readers interpret
 that selected version as absent output, without falling back to an older quiz
 set. Repeated invalidation is idempotent. Other nodes retain their existing reset
@@ -52,7 +56,8 @@ a book with an older archive cannot be reconstructed by this change.
 
 `GET /books/:label/quizzes` resolves legacy IDs in each quiz's original array
 position without writing a backfill version. Clients should retain those IDs
-when saving edits. PUT accepts only canonical, unique IDs and rejects an
+when saving edits. PUT requires `baseVersion`, stamps changed/new quizzes manual on the server,
+and accepts only canonical, unique IDs and rejects an
 explicit retired ID unless its version has first been restored.
 Alternate spellings such as `qz0001`, exponent notation, whitespace, and unsafe
 integers are rejected. Existing three-digit IDs and filenames remain valid.
