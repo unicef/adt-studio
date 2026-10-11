@@ -168,8 +168,9 @@ One ordering requirement follows for sectioning: when a manual page is explicitl
 
 ## Corrections and implementation status — 2026-10-11
 
-The owner authorized local implementation in this same PR before human approval,
-without pushing. The spec stays `draft`, and every acceptance checkbox stays open.
+The owner authorized implementation in this same PR before human approval,
+initially without pushing, then authorized publication after an independent review
+on 2026-10-11. The spec stays `draft`, and every acceptance checkbox stays open.
 [Implementation evidence and AC map](SPEC-0002-implementation-evidence.md) records
 the refreshed baseline, dependencies, implemented behavior and verification limits.
 

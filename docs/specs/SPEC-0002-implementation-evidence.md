@@ -1,5 +1,53 @@
 # SPEC-0002 implementation evidence
 
+## Independent review and authorized publication — 2026-10-11
+
+The owner requested a fresh review before publishing this same branch, restoring
+the original PR description and asking for review in a short comment instead.
+The description and title have been restored from the saved pre-edit snapshot.
+The no-push notes below describe the earlier handoff, not the current authorization.
+SPEC-0002 remains a separate PR stacked on #879 at `a10d3fa0`; it does not need
+SPEC-0001 approval or merge to be reviewed. Neither PR is approved by this agent.
+
+This pass started from source, the specification and the actual discussion:
+[the four review areas](https://github.com/unicef/adt-studio/pull/880#issuecomment-5776174130)
+and [the author's response](https://github.com/unicef/adt-studio/pull/880#issuecomment-5868235633).
+There were no submitted reviews or inline review threads. The checks followed
+unknown-authorship protection, own/upstream preparation, structural deletion,
+stable identity, explicit replacement, stale saves, retained history and output
+consumers. The existing green suite was not used as a substitute for that trace.
+
+### Findings reproduced and fixed
+
+| Severity | Reproduction and impact | Correction and regression |
+|---|---|---|
+| P1 | Edit another field after a 409, then choose either conflict resolution. The conflict snapshot replaced the entire draft and discarded the newer field edit | `961cfe66`: resolve the known conflict against the latest pending draft. Both choices retain later independent edits; `use-guarded-draft.test.tsx` failed before the fix and passes after |
+| P1 | Open a Sectioning/TOC confirmation or choose quiz Replace, then receive a background refresh. Submission used the newer version, silently widening consent to work the user had not chosen to replace | `961cfe66`: freeze the displayed work and expected versions for the open dialog. Three component regressions prove stale snapshots remain bound to the original versions so the API can reject them |
+| P1 | Store a protected `fr_CA` translation, then save through `fr-CA` with baseVersion 0. The route returned 200 and created a preferred canonical document instead of rejecting the stale guard | `00f34460`: resolve canonical/legacy storage identity before version comparison and publication, matching the runner. Real HTTP/SQLite regression verifies 409/currentVersion, guarded update of the original record and no duplicate document |
+| P2 | Remove a source entry, then correct a different active translation before the next Translate run. The full editor round trip carried the untouched removed entry and received an unrecoverable 409 | `00f34460`: allow unchanged retained entries in the round trip while rejecting edits against removed sources. Real-route regression saves the active correction, rejects the removed-source edit and verifies subsequent membership retirement/history |
+
+All four findings were demonstrated by failing tests before production fixes.
+On application head `00f34460`, `pnpm test` passed **313 files / 3,916 tests**
+(153.34 seconds), including the root pretest build. The focused final command
+passed 37 tests across five files, including 21 real-route preservation cases.
+Both typechecks, lint (zero errors, the same eight baseline warnings) and catalog
+extraction/strict compilation passed; no additional translated strings were
+introduced by these fixes. All 3,674 messages remain translated in five locales.
+The combined `app` Docker image was rebuilt from the reviewed application and
+passed a new runtime smoke: SPA/health, TOC save v4→v5, stale-save 409, completed
+real TOC run with v5 still manual/current, five readable historical versions and
+the saved title in preview. The disposable container was then stopped. Image
+manifest list: `sha256:09caf6651a62aca79f630be84f2203992514a16434e31e2171d91e44f8fdfff9`.
+No signed desktop installer, representative-book harness or release-platform
+verification is implied. Hosted CI is checked separately after publication.
+
+The four entity implementation slices are present; confidence in that bounded
+API/Studio behavior is high after these fixes. This is not full release acceptance
+or human specification approval. The AC-2 amendment, easy-read ownership and
+full Storyboard-rerun coordination remain explicit, and the unavailable checks
+listed in the AC matrix are not promoted to passes by this review. AC-19 still
+establishes CLI stamping only.
+
 ## Resumed stacked implementation — 2026-10-11
 
 The owner authorized continuing before SPEC-0001 approval/merge. Published #879
@@ -48,7 +96,7 @@ The map above records the pre-edit plan; current results follow. Easy-read
 ownership and full Storyboard-rerun preservation remain coordination gaps, and
 the AC-2 amendment remains proposed for review.
 
-## Current delivery and verification — 2026-10-11
+## Initial delivery and verification — 2026-10-11
 
 All four entity slices are implemented locally, through Studio, HTTP routes,
 workers, real storage, history and preview/export. This is no longer the
