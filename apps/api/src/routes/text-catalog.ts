@@ -160,7 +160,13 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       return storage.transaction(() => {
-        const previous = storage.getLatestNodeData("text-catalog-translation", language)
+        // Match the runner's canonical/legacy lookup. A spelling alias must not
+        // create a second document and bypass the existing version guard.
+        const canonical = storage.getLatestNodeData("text-catalog-translation", normalizedLanguage)
+        const legacyLanguage = normalizedLanguage.replace("-", "_")
+        const legacy = canonical ? null : storage.getLatestNodeData("text-catalog-translation", legacyLanguage)
+        const itemId = legacy ? legacyLanguage : normalizedLanguage
+        const previous = canonical ?? legacy
         assertAuthoredIdle(storage)
         assertEditVersion(previous?.version, parsed.data.baseVersion)
         if ((storage.getLatestNodeData("text-catalog", "book")?.version ?? 0) !== parsed.data.sourceVersion) {
@@ -175,7 +181,11 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
         const changes = new Map<string, (typeof parsed.data.entries)[number]>()
         for (const entry of parsed.data.entries) {
           if (changes.has(entry.id)) throw new HTTPException(400, { message: "Duplicate translation identity." })
-          if (!outputs.some((item) => item.identity.kind === "translation" && item.identity.id === entry.id && item.identity.language === normalizedLanguage)) {
+          // A full editor round trip can still contain an untouched translation
+          // whose source was removed before the next Translate run. Keep that
+          // historical content until membership reconciliation; reject new edits
+          // against the removed source without blocking corrections elsewhere.
+          if (previousEntries.get(entry.id)?.text !== entry.text && !outputs.some((item) => item.identity.kind === "translation" && item.identity.id === entry.id && item.identity.language === normalizedLanguage)) {
             throw new HTTPException(409, { message: "Translation source is no longer available. Refresh before saving." })
           }
           changes.set(entry.id, entry)
@@ -194,7 +204,7 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
       })
       const version = storage.putNodeData(
         "text-catalog-translation",
-        language,
+        itemId,
         data
       )
 

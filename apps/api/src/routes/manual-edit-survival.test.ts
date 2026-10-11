@@ -358,6 +358,47 @@ it("stamps only changed translations and rejects stale, missing and running-step
   expect((read("text-catalog-translation", "fr")!.data as { entries: object[] }).entries).toEqual(expect.arrayContaining([expect.objectContaining({ id: "pg001_t001", text: "Corrected", source: "manual" }), { id: "pg002_t001", text: "Legacy" }]))
 })
 
+it("allows an active translation correction when an untouched saved entry has lost its source", async () => {
+  await saveProtected()
+  const db = book()
+  db.putNodeData("web-rendering", "pg002", { sections: [] })
+  reconcileTextCatalog(db)
+  db.close()
+  const catalog = await json("text-catalog")
+  expect(catalog.entries.some((entry: { id: string }) => entry.id === "pg002_t001")).toBe(false)
+  const body = {
+    baseVersion: catalog.translations.fr.version, sourceVersion: catalog.version,
+    sourceSignature: catalog.translations.fr.sourceSignature,
+    entries: catalog.translations.fr.entries.map((entry: { id: string; text: string }) => ({ id: entry.id, text: entry.id === "pg001_t001" ? "New active correction" : entry.text })),
+  }
+  const save = await send("text-catalog-translation/fr", body)
+  expect(save.status, await save.clone().text()).toBe(200)
+  const latest = await json("text-catalog")
+  const removedEdit = await send("text-catalog-translation/fr", { ...body, baseVersion: latest.translations.fr.version, entries: [{ id: "pg002_t001", text: "Cannot edit retired source" }] })
+  expect(removedEdit.status).toBe(409)
+  expect((await run("translate")).status).toBe("completed")
+  const active = read("text-catalog-translation", "fr")!.data as { entries: { id: string; text: string }[] }
+  expect(active.entries.find((entry) => entry.id === "pg001_t001")?.text).toBe("New active correction")
+  expect(active.entries.some((entry) => entry.id === "pg002_t001")).toBe(false)
+  expect(JSON.stringify(await json("debug/versions/text-catalog-translation/fr?includeData=true"))).toContain("Manual French pg002_t001")
+})
+
+it("guards the same saved translation version through canonical and legacy language aliases", async () => {
+  fs.writeFileSync(configPath, fs.readFileSync(configPath, "utf8").replace("[en, fr]", "[en, fr-CA]"))
+  const db = book()
+  db.putNodeData("text-catalog-translation", "fr_CA", { entries: [{ id: "pg001_t001", text: "Protected correction", source: "manual" }], generatedAt: "fixture" })
+  db.close()
+  const catalog = await json("text-catalog")
+  const body = { entries: [{ id: "pg001_t001", text: "New correction" }], sourceVersion: catalog.version, sourceSignature: catalog.translations.fr_CA.sourceSignature }
+  const stale = await send("text-catalog-translation/fr-CA", { ...body, baseVersion: 0 })
+  expect(stale.status).toBe(409)
+  expect(await stale.json()).toMatchObject({ code: "VERSION_CONFLICT", currentVersion: 1 })
+  expect((await send("text-catalog-translation/fr-CA", { ...body, baseVersion: 1 })).status).toBe(200)
+  expect(read("text-catalog-translation", "fr-CA")).toBeNull()
+  expect(read("text-catalog-translation", "fr_CA")!.data).toMatchObject({ entries: [{ text: "New correction", source: "manual" }] })
+  expect((await send("text-catalog-translation/fr_CA", { ...body, baseVersion: 1 })).status).toBe(409)
+})
+
 it.each(["clone", "split", "merge"])("guards and stamps %s as a whole manual page and preserves it on rerun", async (operation) => {
   const db = book()
   db.putNodeData("page-sectioning", "pg001", { source: "ai", reasoning: "", sections: [
