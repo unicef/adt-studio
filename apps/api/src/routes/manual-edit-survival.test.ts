@@ -122,13 +122,18 @@ it("saves, runs real admission/preparation/workers, reads history, previews and 
   expect(JSON.stringify(await json("adt-preview/content/toc.json"))).toContain("Manual contents")
   expect(JSON.stringify(await json("adt-preview/content/i18n/fr/texts.json"))).toContain("Manual French pg001_t001")
   const preview = await app.request(`/books/${label}/adt-preview/pg001_sec001.html`)
+  expect(preview.status).toBe(200)
   expect(await preview.text()).toContain("Saved page text")
+  const quizPreview = await app.request(`/books/${label}/adt-preview/${manualQuizId}.html`)
+  expect(quizPreview.status).toBe(200)
+  expect(await quizPreview.text()).toContain("Manual question")
   const db = book()
   try {
     await packageAdtWeb(db, { bookDir: db.bookDir!, label, language: "en", outputLanguages: ["en", "fr"], title: "Fixture", webAssetsDir: assets, promptsDir: prompts, configDir: path.resolve("config"), config: loadBookConfig(label, root, configPath) })
     expect(fs.readFileSync(path.join(db.bookDir!, "adt/content/toc.json"), "utf8")).toContain("Manual contents")
     expect(fs.readFileSync(path.join(db.bookDir!, "adt/content/i18n/fr/texts.json"), "utf8")).toContain("Manual French pg001_t001")
     expect(fs.readFileSync(path.join(db.bookDir!, `adt/${manualQuizId}.html`), "utf8")).toContain("Manual question")
+    expect(fs.readFileSync(path.join(db.bookDir!, "adt/pg001_sec001.html"), "utf8")).toContain("Saved page text")
   } finally { db.close() }
 }, 60_000)
 
@@ -162,6 +167,25 @@ it("requires versions, returns the current version on conflict, rejects a concur
   expect((await json("toc")).source).toBe("ai")
   expect((await run("toc")).status).toBe("completed")
   expect(generateToc).toHaveBeenCalledTimes(1)
+
+  // Restoring protected content must not convert it to AI or authorize a rerun.
+  expect((await send("versions/toc-generation/book/restore", { version: 2, baseVersion: 3 }, "POST")).status).toBe(200)
+  generateToc.mockClear()
+  expect((await run("toc")).status).toBe("completed")
+  expect((await json("toc"))).toMatchObject({ source: "manual", version: 2 })
+  expect(generateToc).not.toHaveBeenCalled()
+
+  const db = book()
+  const legacyVersion = db.putNodeData("toc-generation", "book", { entries: [], pageCount: 3, generatedAt: "legacy" })
+  db.close()
+  const save = await send("toc", { ...await json("toc"), baseVersion: legacyVersion })
+  expect(save.status).toBe(200)
+  const saved = await save.json()
+  expect((await send("versions/toc-generation/book/restore", { version: legacyVersion, baseVersion: saved.version }, "POST")).status).toBe(200)
+  expect((await run("toc")).status).toBe("completed")
+  expect((await json("toc")).source).toBeUndefined()
+  expect(read("toc-generation")!.version).toBe(legacyVersion)
+  expect(generateToc).not.toHaveBeenCalled()
 })
 
 it("protects the empty page after deletion and both pages after a cross-page merge", async () => {
