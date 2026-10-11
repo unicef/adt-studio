@@ -847,7 +847,7 @@ export async function runFullPipeline(
         config: tocConfig,
         llmModel: model,
       })
-      storage.putNodeData("toc-generation", "book", toc)
+      storage.putNodeData("toc-generation", "book", { ...toc, source: "ai" })
 
       p.emit({
         type: "step-progress",

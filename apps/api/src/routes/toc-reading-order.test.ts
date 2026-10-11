@@ -59,7 +59,7 @@ describe("TOC hierarchy across saved data, preview and export", () => {
       const toc = createTocRoutes(root)
       const save = await toc.request(`/books/${label}/toc`, {
         method: "PUT", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ entries, pageCount: 3, generatedAt: "2026-01-01T00:00:00Z" }),
+        body: JSON.stringify({ baseVersion: 0, entries, pageCount: 3, generatedAt: "2026-01-01T00:00:00Z" }),
       })
       expect(save.status).toBe(200)
       const readSaved = async () => (await (await toc.request(`/books/${label}/toc`)).json()).entries

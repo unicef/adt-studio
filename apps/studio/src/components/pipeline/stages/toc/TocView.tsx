@@ -1,3 +1,6 @@
+import { AuthorshipBadge } from "../../components/AuthorshipBadge"
+import { useGuardedDraft } from "@/hooks/use-guarded-draft"
+import { DraftConflict } from "../../components/DraftConflict"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { ChevronDown, ChevronRight, ChevronLeft, ExternalLink, List, Plus, Search, Trash2, X } from "lucide-react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
@@ -132,7 +135,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
   const { apiKey } = useApiKey()
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const tocState = stageState("toc")
-  const tocDone = tocState === "done"
+  const tocDone = tocState === "done" || !!data
   const tocRunning = tocState === "running" || tocState === "queued"
   const showRunCard = !tocDone || tocRunning
 
@@ -147,14 +150,16 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
     queueRun({ fromStage: "toc", toStage: "toc", apiKey })
   }, [hasStructuredTextProvider, tocRunning, apiKey, queueRun])
 
-  const [pending, setPending] = useState<TocData | null>(null)
+  const draft = useGuardedDraft<TocData>(data, data?.version, async () => {
+    const latest = await api.getToc(bookLabel)
+    if (!latest) throw new Error(t`Saved content is unavailable; your draft is retained`)
+    queryClient.setQueryData(["books", bookLabel, "toc"], latest)
+    return { value: latest, version: latest.version ?? 0 }
+  })
+  const { pending, setPending } = draft
   const [saving, setSaving] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Reset pending when data changes
-  useEffect(() => {
-    setPending(null)
-  }, [data?.version])
 
   const effective = pending ?? data
   const entries = effective?.entries ?? []
@@ -182,18 +187,22 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
   }, [entries, searchQuery])
 
   const saveToc = useCallback(async () => {
+    if (draft.conflict) throw new Error(t`Resolve conflicting edits before saving`)
     if (!pending) return
     setSaving(true)
     const minDelay = new Promise((r) => setTimeout(r, 400))
     try {
-      await api.updateToc(bookLabel, pending)
+      await api.updateToc(bookLabel, { ...pending, baseVersion: draft.baseVersion })
       setPending(null)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "toc"] })
+    } catch (err) {
+      await draft.handleError(err)
+      throw err
     } finally {
       await minDelay
       setSaving(false)
     }
-  }, [pending, bookLabel, queryClient])
+  }, [pending, bookLabel, queryClient, draft])
 
   const saveRef = useRef(saveToc)
   saveRef.current = saveToc
@@ -332,8 +341,11 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
         />
       }
     >
-      <div className="flex flex-1 flex-col overflow-y-auto">
+      <DraftConflict error={draft.error} paths={draft.conflict?.paths} onResolve={draft.resolve} />
+
+      <fieldset disabled={saving} className="flex min-w-0 flex-1 flex-col overflow-y-auto border-0 p-0">
         <TocHintBanner />
+        {data && <AuthorshipBadge source={data.source} />}
         <div
           className="sticky top-0 z-20 flex items-center gap-3 px-6 py-3 bg-background/95 backdrop-blur-md border-b border-border/60"
           style={{ height: TOOLBAR_HEIGHT }}
@@ -452,7 +464,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
             ))
           )}
         </div>
-      </div>
+      </fieldset>
     </StageContentGuard>
   )
 }
