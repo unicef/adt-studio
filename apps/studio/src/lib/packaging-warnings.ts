@@ -34,11 +34,15 @@ export function describePackagingWarnings(
 ): string | null {
   if (warnings.length === 0) return null
 
-  const pages = [...new Set(warnings.map((w) => w.pageId))].sort()
+  const missing = [...new Set(warnings.filter((warning) => warning.kind === "missing-storyboard").map((warning) => warning.pageId))].sort().join(", ")
+  const ownership = warnings.filter((warning) => warning.kind === "orphaned-rendering")
+  const coverageMessage = missing ? i18n._(msg`This bundle is incomplete. Storyboard output is missing on pages ${missing}. Render those pages to complete it.`) : ""
+  if (!ownership.length) return coverageMessage || null
+  const pages = [...new Set(ownership.map((w) => w.pageId))].sort()
   const pageList = pages.join(", ")
-  return i18n._(
-    msg`Some content was left out of the bundle: ${warnings.length} rendered section(s) on ${pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again.`,
-  )
+  return [coverageMessage, i18n._(
+    msg`Some content was left out of the bundle: ${ownership.length} rendered section(s) on ${pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again.`,
+  )].filter(Boolean).join(" ")
 }
 
 /**

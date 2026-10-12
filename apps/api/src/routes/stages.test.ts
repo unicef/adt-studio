@@ -372,6 +372,32 @@ describe("section reference retirement and non-destructive preparation", () => {
     prepare()
     expect(withStorage((storage) => storage.getNodeVersionFingerprint())).toEqual(completed)
   })
+  it.each(["extract"] as const)(
+    "blocks unsafe %s regeneration before retirement, backup or deletion",
+    (fromStage) => {
+      const section = formatSectionId(pageId, 3)
+      const textId = `${section}_ans_a`
+      seedTts("en", [{ textId, manual: true }])
+      seedTimestamps("en", [textId])
+      withStorage((storage) => {
+        storage.putSignLanguageVideo("kept-video", Buffer.from("video"), "kept.mp4", "video/mp4")
+        storage.assignSignLanguageVideo("kept-video", section)
+      })
+      const before = withStorage((storage) => storage.getNodeVersionFingerprint())
+      const run = makeBeforeRun(label, fromStage, "speech", tmpDir)
+      const copy = vi.spyOn(fs, "copyFileSync")
+      try {
+        expect(run).toThrow(/manual or unknown-origin/)
+        expect(run).toThrow(/manual or unknown-origin/)
+        expect(copy).not.toHaveBeenCalled()
+      } finally { copy.mockRestore() }
+      expect(withStorage((storage) => storage.getNodeVersionFingerprint())).toEqual(before)
+      expect(sectionIdsByVideo().get("kept-video")).toBe(section)
+      expect(ttsTextIds("en")).toEqual([textId])
+      expect(timestampKeys("en")).toEqual([textId])
+      expect(fs.readFileSync(path.join(tmpDir, label, "audio", "en", `${textId}.mp3`), "utf8")).toBe("fake-audio")
+    },
+  )
 
   it("reconciles both the canonical and legacy language row spellings", () => {
     const retiredSection = formatSectionId(pageId, 3)

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { openBookDb, createBookStorage, writeSectioningLifecycle } from "@adt/storage"
 import { zipSync } from "fflate"
 import { SCHEMA_VERSION } from "@adt/types"
 import type { StageName } from "@adt/types"
@@ -743,6 +743,7 @@ describe("POST /books/:label/stages/run", () => {
       },
     }
 
+    writeSectioningLifecycle(path.join(tmpDir, label), "dynamic", true)
     const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath)
     const res = await app.request(`/books/${label}/stages/run`, {
       method: "POST",
@@ -766,7 +767,7 @@ describe("POST /books/:label/stages/run", () => {
       expect(verifyStorage.getLatestNodeData("web-rendering", "pg001")).not.toBeNull()
       const runs = new Map(verifyStorage.getStepRuns().map((r) => [r.step, r.status]))
       expect(runs.get("page-sectioning")).toBe("done")
-      expect(runs.has("web-rendering")).toBe(false)
+      expect(runs.get("web-rendering")).toBe("done")
     } finally {
       verifyStorage.close()
     }
@@ -1312,7 +1313,7 @@ describe("GET /books/:label/step-status", () => {
     expect(body.stages.extract).toBe("done")
   })
 
-  it("marks preview done when adt directory exists", async () => {
+  it("does not claim preview completion from an empty adt directory", async () => {
     createTestBook("preview-done")
     fs.mkdirSync(path.join(tmpDir, "preview-done", "adt"), { recursive: true })
 
@@ -1320,7 +1321,7 @@ describe("GET /books/:label/step-status", () => {
     const res = await app.request("/books/preview-done/step-status")
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.stages.preview).toBe("done")
+    expect(body.stages.preview).toBeUndefined()
   })
 
   it("returns 400 for invalid book labels", async () => {
@@ -1359,11 +1360,11 @@ describe("GET /books/:label/export-project", () => {
     expect(res.status).toBe(404)
   })
 
-  it("returns 500 when web assets directory is missing (prepare-export)", async () => {
+  it("returns 500 when a generated ADT export is missing web assets", async () => {
     createTestBook("missing-assets-export")
     addPagesAndRenderings("missing-assets-export", 1)
     const app = createBookRoutes(tmpDir, path.join(tmpDir, "no-web-assets"))
-    const res = await app.request("/books/missing-assets-export/prepare-export", { method: "POST" })
+    const res = await app.request("/books/missing-assets-export/prepare-export?format=adt", { method: "POST" })
     expect(res.status).toBe(500)
   })
 })

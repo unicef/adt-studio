@@ -1,3 +1,4 @@
+import { storyboardPackageComplete } from "./storyboard-package-coverage.js"
 import fs from "node:fs"
 import path from "node:path"
 import yaml from "js-yaml"
@@ -13,7 +14,9 @@ import {
   type BookDetail,
   type PartRange,
 } from "@adt/types"
-import { openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, withBookWriter, BookBusyError, recoverSectioningTransition, publishSectioningTransition, atomicBookFile } from "@adt/storage"
+import { storyboardCoverage, activeSectioningPages, loadBookConfig, loadConfig, deepMerge, effectiveSectioningMode } from "@adt/pipeline"
+import { AppConfig } from "@adt/types"
 
 type BookDb = ReturnType<typeof openBookDb>
 
@@ -76,7 +79,7 @@ export function readSplitSummary(
   }
 }
 
-function computeCompletedStages(db: BookDb, bookDir: string): string[] {
+function computeCompletedStages(db: BookDb, bookDir: string, configPath?: string): string[] {
   const rows = db.all("SELECT step, status FROM step_runs") as Array<{
     step: string
     status: string
@@ -93,11 +96,15 @@ function computeCompletedStages(db: BookDb, bookDir: string): string[] {
     if (allDone) completed.push(stage.name)
   }
 
-  if (fs.existsSync(path.join(bookDir, "adt"))) {
-    completed.push("preview")
-  }
-
-  return completed
+  const label = path.basename(bookDir)
+  const booksDir = path.dirname(bookDir)
+  const storage = createBookStorage(label, booksDir)
+  try {
+    const coverage = storyboardCoverage(storage, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), bookDir).map((page) => page.pageId))
+    if (!coverage.complete) return completed.filter((stage) => stage !== "storyboard" && stage !== "package")
+    if (storyboardPackageComplete(storage, bookDir, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), bookDir).map((page) => page.pageId))) completed.push("preview")
+    return completed
+  } finally { storage.close() }
 }
 
 function toIsoDate(ms: number): string {
@@ -132,7 +139,7 @@ function isRecoverableDbError(err: unknown): err is Error {
   return err.message.includes("Schema version mismatch") || err.message.includes("database is locked")
 }
 
-export function listBooks(booksDir: string): BookSummary[] {
+export function listBooks(booksDir: string, configPath?: string): BookSummary[] {
   const resolvedDir = path.resolve(booksDir)
   if (!fs.existsSync(resolvedDir)) return []
 
@@ -181,7 +188,7 @@ export function listBooks(booksDir: string): BookSummary[] {
             }
           }
 
-          completedStages = computeCompletedStages(db, bookDir)
+          completedStages = computeCompletedStages(db, bookDir, configPath)
         } finally {
           db.close()
         }
@@ -221,7 +228,7 @@ export function listBooks(booksDir: string): BookSummary[] {
   return books
 }
 
-export function getBook(label: string, booksDir: string): BookDetail {
+export function getBook(label: string, booksDir: string, configPath?: string): BookDetail {
   const safeLabel = parseBookLabel(label)
   const resolvedDir = path.resolve(booksDir)
   const bookDir = path.join(resolvedDir, safeLabel)
@@ -281,7 +288,7 @@ export function getBook(label: string, booksDir: string): BookDetail {
           }
         }
 
-        completedStages = computeCompletedStages(db, bookDir)
+        completedStages = computeCompletedStages(db, bookDir, configPath)
       } finally {
         db.close()
       }
@@ -375,6 +382,7 @@ export function getBookConfig(
     throw new Error(`Book not found: ${safeLabel}`)
   }
 
+  recoverSectioningTransition(bookDir)
   const configPath = path.join(bookDir, "config.yaml")
   if (!fs.existsSync(configPath)) {
     return null
@@ -386,28 +394,30 @@ export function getBookConfig(
 }
 
 export function updateBookConfig(
-  label: string,
-  booksDir: string,
-  overrides: Record<string, unknown>
+  label: string, booksDir: string, overrides: Record<string, unknown>, configPath?: string,
 ): void {
   const safeLabel = parseBookLabel(label)
-  const resolvedDir = path.resolve(booksDir)
-  const bookDir = path.join(resolvedDir, safeLabel)
-
-  if (!fs.existsSync(bookDir)) {
-    throw new Error(`Book not found: ${safeLabel}`)
-  }
-
-  const configPath = path.join(bookDir, "config.yaml")
-
-  if (!overrides || Object.keys(overrides).length === 0) {
-    if (fs.existsSync(configPath)) {
-      fs.unlinkSync(configPath)
+  const bookDir = path.join(path.resolve(booksDir), safeLabel)
+  if (!fs.existsSync(bookDir)) throw new Error(`Book not found: ${safeLabel}`)
+  withBookWriter(bookDir, () => {
+    recoverSectioningTransition(bookDir)
+    const previous = loadBookConfig(label, booksDir, configPath)
+    const proposed = AppConfig.parse(deepMerge(loadConfig(configPath), overrides))
+    const oldMode = effectiveSectioningMode(previous)
+    const newMode = effectiveSectioningMode(proposed)
+    // Empty overrides are an empty YAML mapping, preserving inheritance without
+    // a delete/rename ambiguity in the transition journal.
+    const text = yaml.dump(overrides)
+    if (oldMode === newMode) {
+      atomicBookFile(path.join(bookDir, "config.yaml"), text)
+      return
     }
-    return
-  }
-
-  fs.writeFileSync(configPath, yaml.dump(overrides))
+    const db = openBookDb(path.join(bookDir, `${safeLabel}.db`))
+    try {
+      if (db.all("SELECT step FROM step_runs WHERE status = 'running'").length) throw new BookBusyError()
+    } finally { db.close() }
+    publishSectioningTransition(bookDir, text, newMode, [])
+  })
 }
 
 export function deleteBook(label: string, booksDir: string): void {
@@ -425,4 +435,3 @@ export function deleteBook(label: string, booksDir: string): void {
 
   fs.rmSync(bookDir, { recursive: true, force: true })
 }
-

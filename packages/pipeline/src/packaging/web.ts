@@ -63,6 +63,8 @@ import { buildTextCatalog } from "../text-catalog.js"
 import { flattenEasyReadEntries, buildEasyReadSourceBlocks } from "../easy-read.js"
 import { retainedEasyRead } from "../retained-catalog.js"
 import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "../core-tts.js"
+import { storyboardCoverage } from "../storyboard-coverage.js"
+import { activeSectioningPages } from "../sectioning-lifecycle.js"
 import { renderingOwnershipWarnings } from "../render-sectioning.js"
 import { resolveReadingOrder, toPageEntry, type PageEntry } from "../reading-order.js"
 import { orderTocEntries } from "../toc-reading-order.js"
@@ -1068,7 +1070,10 @@ export async function packageAdtWeb(
 
   progress.emit({ type: "step-complete", step })
 
-  return { warnings: orphanedRenderings }
+  const coverage = storyboardCoverage(storage, options.config
+    ? activeSectioningPages(storage, options.config, bookDir).map((page) => page.pageId) : undefined)
+  const missing = [...new Set([...coverage.missingPages, ...coverage.missingSections.map((section) => section.pageId)])]
+  return { warnings: [...orphanedRenderings, ...missing.map((pageId) => ({ kind: "missing-storyboard" as const, pageId }))] }
 }
 
 // ---------------------------------------------------------------------------

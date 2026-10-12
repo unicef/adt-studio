@@ -496,3 +496,10 @@ export { authoredImageAlts } from "./catalog-reconciliation.js"
 export { outputSkipped } from "./output-freshness.js"
 
 export { captureOutputReferences } from "./output-references.js"
+export { SectioningSafetyError, effectiveSectioningMode, sectioningInvalidationSteps, activeSectioningPages, assertSectioningReplacementSafe, prepareSectioningRun, completeSectioning, createStoryboardPublication } from "./sectioning-lifecycle.js"
+
+export { extractionOptionsFromConfig, prepareExtractionAdmission, assertSafeExtractionRun } from "./extraction-admission.js"
+
+export { protectedAuthoredRecords, assertAuthoredReplacement, replacementConfirmed, selectSectioningPages, resetSectioningStoryboard, AuthoredReplacementError } from "./authored-output.js"
+
+export { storyboardCoverage, missingStoryboardInputMessage } from "./storyboard-coverage.js"

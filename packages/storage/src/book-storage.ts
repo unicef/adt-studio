@@ -5,10 +5,13 @@ import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
 import type { ExtractedPage, ExtractedImage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
-import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPUT_NODES } from "@adt/types"
+import { TranslatedImageAsset, imageFileExtension, parseBookLabel, CATALOG_OUTPUT_NODES, STAGE_OUTPUT_NODES, PIPELINE } from "@adt/types"
 import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput, SegmentedImageInput, SignLanguageVideoData, TranslatedImageInput } from "./storage.js"
 import { openBookDb } from "./db.js"
 import { readCurrentNodeRow } from "./node-current.js"
+import { invalidateSectioningLifecycle } from "./sectioning-transition.js"
+
+const storageDirectories = new WeakMap<Storage, string>()
 
 export interface BookPaths {
   bookDir: string
@@ -65,7 +68,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     }
   }
 
-  return {
+  const storage: Storage = {
     bookDir: paths.bookDir,
     transaction,
 
@@ -77,6 +80,9 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
 
     clearNodesByType(nodes: string[]): void {
       if (nodes.length === 0) return
+      if (STAGE_OUTPUT_NODES.sectioning.some((node) => nodes.includes(node))) {
+        invalidateSectioningLifecycle(paths.bookDir, PIPELINE.find((stage) => stage.name === "sectioning")!.steps.map((step) => step.name))
+      }
       transaction(() => {
         // Quiz history is also the permanent record of spent catalog/audio
         // identities. Invalidate its current output, never erase that record.
@@ -419,6 +425,10 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
 
     /** The active version pointer for (node, itemId), or null when unset
      *  (in which case current == MAX(version)). */
+    getSelectedNodeVersion(node: string, itemId: string): number | null {
+      return readCurrentNodeRow(db, node, itemId, { includeInvalidated: true })?.version ?? null
+    },
+
     getCurrentNodeVersion(node: string, itemId: string): number | null {
       const rows = db.all(
         "SELECT version FROM node_current WHERE node = ? AND item_id = ?",
@@ -483,6 +493,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
 
     clearStepRuns(steps: string[]): void {
       if (steps.length === 0) return
+      invalidateSectioningLifecycle(paths.bookDir, steps)
       const placeholders = steps.map(() => "?").join(", ")
       db.run(`DELETE FROM step_runs WHERE step IN (${placeholders})`, steps)
     },
@@ -624,6 +635,8 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       db.close()
     },
   }
+  storageDirectories.set(storage, paths.bookDir)
+  return storage
 }
 
 function clearImageFiles(imagesDir: string): void {
@@ -725,4 +738,10 @@ function ensureWithinRoot(target: string, root: string): void {
   if (target !== root && !target.startsWith(root + path.sep)) {
     throw new Error("Resolved path escapes books root")
   }
+}
+
+export function getStorageBookDir(storage: Storage): string {
+  const directory = storageDirectories.get(storage)
+  if (!directory) throw new Error("Extraction requires book-backed storage")
+  return directory
 }

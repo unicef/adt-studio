@@ -2002,6 +2002,7 @@ describe("packageAdtWeb", () => {
     expect(result.warnings).toEqual([
       { kind: "orphaned-rendering", pageId: "pg002", sectionIndex: 0 },
       { kind: "orphaned-rendering", pageId: "pg002", sectionIndex: 1 },
+      { kind: "missing-storyboard", pageId: "pg002" },
     ])
   })
 

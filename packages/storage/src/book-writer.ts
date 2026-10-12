@@ -37,6 +37,9 @@ function deadOwner(lock: string): boolean {
 function acquire(dir: string): Lease {
   const lock = path.join(dir, lockName)
   const token = randomUUID()
+  // A reaper can die between removing the old owner and creating its lease.
+  // Adapted from SPEC-0010 (#886): absence of an owner is not proof that an
+  // unfinished recovery is safe to bypass. Preserve the reservation/evidence.
   if (fs.existsSync(`${lock}.recovery`)) throw new BookBusyError()
   const create = () => {
     const fd = fs.openSync(lock, "wx", 0o600)
@@ -54,12 +57,13 @@ function acquire(dir: string): Lease {
     try {
       fd = fs.openSync(recovery, "wx", 0o600)
       if (!deadOwner(lock)) throw new BookBusyError()
-      // Keep SQLite mutex/journal/WAL files. Reclaiming process admission does
-      // not prove it is safe to discard another connection's recovery state.
-      // The WASM mutex is anonymous. A dead admission owner does not prove
-      // that a reader or another version of ADT is not holding this mutex.
-      if (fs.existsSync(path.join(dir, `${path.basename(dir)}.db.lock`))) {
-        throw new BookBusyError("An interrupted write left a database lock. Stop other ADT processes and inspect the retained recovery state before retrying.")
+      const databaseLock = path.join(dir, `${path.basename(dir)}.db.lock`)
+      // The journal blocks newly opened readers, but cannot exclude a reader
+      // whose connection predates it. This anonymous mutex has no identity we
+      // can safely attribute to the dead writer, even during mode recovery.
+      // Preserve the lock and journal; never reclaim by elapsed time.
+      if (fs.existsSync(databaseLock)) {
+        throw new BookBusyError("An interrupted book write left a database lock. Stop other ADT processes and have the book's recovery state inspected before retrying; saved recovery files have been retained.")
       }
       fs.unlinkSync(lock)
       create()
@@ -75,7 +79,8 @@ function acquire(dir: string): Lease {
     release() {
       lease.references--
       if (lease.references !== 0) return
-      if (!fs.existsSync(lock)) return // Explicit whole-book deletion.
+      // Explicit book deletion removes its lease along with the directory.
+      if (!fs.existsSync(dir)) return
       const owner = BookWriterOwner.parse(JSON.parse(fs.readFileSync(lock, "utf8")))
       if (owner.token !== token) throw new BookBusyError("Book writer ownership changed during the operation.")
       fs.unlinkSync(lock)

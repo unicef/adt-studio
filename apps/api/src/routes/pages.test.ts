@@ -3,7 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import os from "node:os"
 import { Hono } from "hono"
-import { createBookStorage, openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/storage"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createPageRoutes } from "./pages.js"
 import type { TaskExecutor, TaskService } from "../services/task-service.js"
@@ -114,6 +114,7 @@ describe("Page routes", () => {
         sections: [
           {
             sectionIndex: 0,
+            sectionId: `${label}_p1_sec001`,
             sectionType: "content",
             reasoning: "rendered",
             html: "<div>Hello world</div>",
@@ -138,7 +139,7 @@ describe("Page routes", () => {
     it.each(["SQL", "JSON"])("does not resurrect %s NULL rendering or its activity flags, and respects a restored pointer", async (kind) => {
       const storage = createBookStorage(label, tmpDir)
       const pageId = `${label}_p1`
-      const version = storage.putNodeData("web-rendering", pageId, { sections: [{ sectionIndex: 0, sectionType: "content", html: "<p>Old activity</p>", activityAnswers: { answer: "old" } }] })
+      const version = storage.putNodeData("web-rendering", pageId, { sections: [{ sectionIndex: 0, sectionId: `${pageId}_sec001`, sectionType: "content", reasoning: "rendered", html: "<p>Old activity</p>", activityAnswers: { answer: "old" } }] })
       if (kind === "SQL") storage.clearNodesByType(["web-rendering"])
       else storage.putNodeData("web-rendering", pageId, null)
       storage.close()
@@ -2016,6 +2017,7 @@ describe("Page routes", () => {
   })
 
   describe("POST /api/books/:label/pages/re-render", () => {
+    beforeEach(() => writeSectioningLifecycle(path.join(tmpDir, label), "dynamic", true))
     it("marks the Storyboard running before submitting one task for all pages", async () => {
       const storage = createBookStorage(label, tmpDir)
       try {
@@ -2076,6 +2078,7 @@ describe("Page routes", () => {
   })
 
   describe("POST /api/books/:label/pages/:pageId/re-render", () => {
+    beforeEach(() => writeSectioningLifecycle(path.join(tmpDir, label), "dynamic", true))
     it("validates the request without requiring an unconditional OpenAI key", async () => {
       const res = await requestPageEdit(
         `/api/books/${label}/pages/${label}_p1/re-render?sectionIndex=99`,

@@ -12,9 +12,10 @@
  * packaging, TTS, easy-read, glossary, toc, captions, quizzes) must read the
  * tree that matches the rendered HTML, so it goes through this resolver.
  *
- * Selection is by active node presence. The positioned tree and rendering are
- * retained together during regeneration; successful reflowable publication
- * invalidates the positioned tree in the same transaction as its new HTML.
+ * Selection follows published output rather than config. Fixed rendering
+ * publishes its positioned tree alongside HTML. Reflowable publication appends
+ * a null positioned-tree version in that same transaction, retaining the old
+ * tree in history. A config change alone never switches the active tree.
  */
 import type { NodeDataRow, Storage } from "@adt/storage"
 import type { PageSectioningOutput, PageSectioningSection, SectionRendering, PackagingWarning } from "@adt/types"
@@ -78,10 +79,10 @@ export function getRenderSectioningRow(
   storage: Storage,
   pageId: string,
 ): NodeDataRow | null {
-  return (
-    storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId) ??
-    storage.getLatestNodeData(PAGE_SECTIONING_NODE, pageId)
-  )
+  const positioned = storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)
+  return positioned && positioned.data !== null
+    ? positioned
+    : storage.getLatestNodeData(PAGE_SECTIONING_NODE, pageId)
 }
 
 /** Parsed convenience wrapper around {@link getRenderSectioningRow}. */

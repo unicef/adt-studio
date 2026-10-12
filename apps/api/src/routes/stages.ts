@@ -1,15 +1,18 @@
+import { storyboardPackageComplete } from "../services/storyboard-package-coverage.js"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
-import { createBookStorage, openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, withBookWriter } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import { AuthoredRunOptions, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
-  loadBookConfig,
+  loadBookConfig, activeSectioningPages, selectSectioningPages, storyboardCoverage,
+  isFixedLayoutBook,
+  prepareSectioningRun,
   collectSpentSectionIds,
   retireSectionIds,
   NOTHING_RETIRED,
@@ -38,8 +41,8 @@ const StageRunBody = z
  * Does this rerun delete the `page-sectioning` history that section ids are
  * allocated from?
  *
- * Only that node. `fixed-layout-sectioning` is cleared by a storyboard rerun
- * too, but its id is not allocated — `sectionFixedLayoutPage` derives the page's
+ * Only that node. Storyboard keeps `fixed-layout-sectioning` history and switches
+ * its active tree during publication. Its id is not allocated — `sectionFixedLayoutPage` derives the page's
  * single section id from the pageId alone, so regenerating it produces the same
  * id and nothing pinned to it was ever at risk. Retiring those ids would detach
  * every pinned video on each storyboard rerun of a fixed-layout book, and on a
@@ -123,11 +126,12 @@ export function retireSectionIdsForClearedSectioning(
 
 /** Invalidate downstream execution status while retaining authored output.
  *  The returned function is idempotent — only runs once even if called multiple times.
- *  Exported so tests can pin the real preparation boundary. */
-export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string): () => void {
+ *  Exported so tests can pin the preserve-retirement-clear boundary. */
+export function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string, configPath?: string): () => void {
   let ran = false
   return () => {
     if (ran) return
+    prepareSectioningRun(label, booksDir, fromStage, toStage, configPath)
     const storage = createBookStorage(label, booksDir)
     try {
       if (fromStage === "extract" && storage.getPages().length) {
@@ -155,15 +159,15 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
         // clearExtractedData also clears step_runs
         storage.clearExtractedData()
       } else {
-        const nodes = getStageRerunClearNodes(fromStage, toStage)
+        // Content changes belong to the admitted worker: Sectioning has an
+        // explicit reset transaction; ordinary Storyboard publishes per page.
+        const nodes = fromStage === "sectioning" || fromStage === "storyboard"
+          ? [] : getStageRerunClearNodes(fromStage, toStage)
         if (nodes.length > 0) {
           storage.clearNodesByType(nodes)
         }
-        if (fromStage === "storyboard" && typeof storage.clearDebugImages === "function") {
-          storage.clearDebugImages()
-        }
         // Clear step run records for all downstream stages
-        const stagesToClear = getStageClearOrder(fromStage)
+        const stagesToClear = fromStage === "sectioning" || fromStage === "storyboard" ? [] : getStageClearOrder(fromStage)
         const stepsToClear = PIPELINE
           .filter((s) => stagesToClear.includes(s.name))
           .flatMap((s) => s.steps.map((step) => step.name))
@@ -220,23 +224,39 @@ export function createStageRoutes(
     // Keyless providers pass through.
     const fromIndex = STAGE_ORDER.indexOf(fromStage)
     const toIndex = STAGE_ORDER.indexOf(toStage)
-    assertStageRunModelCredentials(
-      loadBookConfig(label, booksDir, configPath),
-      fromIndex <= toIndex ? STAGE_ORDER.slice(fromIndex, toIndex + 1) : STAGE_ORDER,
-      credentials,
-    )
+    const config = loadBookConfig(label, booksDir, configPath)
+    const requestedStages = fromIndex <= toIndex ? STAGE_ORDER.slice(fromIndex, toIndex + 1) : STAGE_ORDER
+    // Fixed Storyboard uses extracted positioned content, with no model call.
+    // Sectioning and any other requested generative stages still need keys.
+    const modelStages = isFixedLayoutBook(config)
+      ? requestedStages.filter((stage) => stage !== "storyboard") : requestedStages
+    assertStageRunModelCredentials(config, modelStages, credentials)
 
     console.log(
       `[stages] ${label}: ${fromStage}→${toStage}${renderOnly ? " (render-only)" : ""} ` +
       `credentialProviders=${Object.keys(credentials).join(",") || "(none)"}`,
     )
 
-    const prepare = makeBeforeRun(label, fromStage, toStage, booksDir)
+    const activeRun = stageService.getStatus(label).active
+    if (activeRun?.status !== "running" && activeRun?.status !== "cancelling") {
+      withBookWriter(path.join(path.resolve(booksDir), parseBookLabel(label)), () => {
+        prepareSectioningRun(label, booksDir, fromStage, toStage, configPath)
+        const storage = createBookStorage(label, booksDir)
+        try {
+          assertAuthoredReplacement(storage, { fromStage, toStage, replaceManual, protectedReplacements })
+          selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), path.join(path.resolve(booksDir), label)), { replaceManual, protectedReplacements })
+        }
+        finally { storage.close() }
+      })
+    }
+    const prepare = makeBeforeRun(label, fromStage, toStage, booksDir, configPath)
     const clearData = () => {
       const storage = createBookStorage(label, booksDir)
       try {
-        assertAuthoredReplacement(storage, { fromStage, toStage, replaceManual, protectedReplacements })
-      } finally { storage.close() }
+          assertAuthoredReplacement(storage, { fromStage, toStage, replaceManual, protectedReplacements })
+          selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), path.join(path.resolve(booksDir), label)), { replaceManual, protectedReplacements })
+        }
+      finally { storage.close() }
       prepare()
     }
 
@@ -388,6 +408,17 @@ export function createStageRoutes(
       }
     }
 
+    let coverage: ReturnType<typeof storyboardCoverage> | undefined
+    let packagedComplete = false
+    if (fs.existsSync(dbPath)) {
+      const storage = createBookStorage(safeLabel, booksDir)
+      try {
+        coverage = storyboardCoverage(storage, activeSectioningPages(storage, loadBookConfig(safeLabel, booksDir, configPath), path.dirname(dbPath)).map((page) => page.pageId))
+        packagedComplete = storyboardPackageComplete(storage, path.dirname(dbPath), activeSectioningPages(storage, loadBookConfig(safeLabel, booksDir, configPath), path.dirname(dbPath)).map((page) => page.pageId))
+        if (!coverage.complete && ["done", "skipped"].includes(steps["web-rendering"])) steps["web-rendering"] = "idle"
+      } finally { storage.close() }
+    }
+
     // Derive stage state from steps.
     // Two sources of "queued":
     //   queuedStages — explicit queue items waiting behind the active run.
@@ -414,8 +445,7 @@ export function createStageRoutes(
     }
 
     // Check if ADT is packaged (preview stage)
-    const adtDir = path.join(resolvedDir, safeLabel, "adt")
-    if (fs.existsSync(adtDir)) stages.preview = "done"
+    if (packagedComplete) stages.preview = "done"
 
     const hasStepErrors = Object.keys(stepErrors).length > 0
     const hasStepMessages = Object.keys(stepMessages).length > 0
@@ -431,12 +461,13 @@ export function createStageRoutes(
     if (fs.existsSync(dbPath)) {
       const storage = createBookStorage(safeLabel, booksDir)
       try {
-        const numbers = new Map(storage.getPages().map((p) => [p.pageId, p.pageNumber]))
-        protectedWork = protectedAuthoredRecords(storage).map((record) => ({ ...record, pageNumber: numbers.get(record.itemId) }))
+        const numbers = new Map(activeSectioningPages(storage, loadBookConfig(safeLabel, booksDir, configPath), path.dirname(dbPath)).map((p) => [p.pageId, p.pageNumber]))
+        protectedWork = protectedAuthoredRecords(storage).filter((record) => record.node !== "page-sectioning" || numbers.has(record.itemId)).map((record) => ({ ...record, pageNumber: numbers.get(record.itemId) }))
       } finally { storage.close() }
     }
     return c.json({
       protectedWork,
+      coverage,
       stages,
       steps,
       error,
@@ -498,6 +529,7 @@ export function createStageRoutes(
                   data: JSON.stringify({
                     label: event.label,
                     error: event.error,
+                    code: event.code,
                   }),
                 })
               } else if (event.type === "stage-run-cancelled") {

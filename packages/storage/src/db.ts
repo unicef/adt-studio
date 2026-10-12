@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import sqlite from "node-sqlite3-wasm"
 import { SCHEMA_VERSION } from "@adt/types"
-import { withBookWriter, BookBusyError } from "./book-writer.js"
+import { BookBusyError, ownsBookWriter, withBookWriter } from "./book-writer.js"
 
 const { Database } = sqlite
 
@@ -85,6 +85,10 @@ CREATE TABLE IF NOT EXISTS sign_language_videos (
 `
 
 export function openBookDb(dbPath: string): sqlite.Database {
+  const bookDir = path.dirname(dbPath)
+  if (fs.existsSync(path.join(bookDir, ".sectioning-transition.json")) && !ownsBookWriter(bookDir)) {
+    throw new BookBusyError("Sectioning configuration recovery is pending. Reopen the book configuration to reconcile it before reading completion state.")
+  }
   const db = new Database(dbPath)
   try {
     db.exec("PRAGMA busy_timeout = 1000")

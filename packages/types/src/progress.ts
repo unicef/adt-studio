@@ -9,6 +9,7 @@ export const ProgressEvent = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("step-progress"),
     step: StepName,
+    publishedPageId: z.string().optional(),
     message: z.string(),
     page: z.number().int().optional(),
     totalPages: z.number().int().optional(),
@@ -16,6 +17,7 @@ export const ProgressEvent = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("step-complete"),
     step: StepName,
+    outputComplete: z.boolean().optional(),
     message: z.string().optional(),
   }),
   z.object({

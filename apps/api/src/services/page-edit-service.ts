@@ -1,3 +1,8 @@
+import { withBookWriter, resolveBookPaths } from "@adt/storage"
+import {
+  resolveRenderedSection, createStoryboardPublication, FIXED_LAYOUT_SECTIONING_NODE, SectioningSafetyError,
+  isFixedLayoutBook, processFixedLayoutPages, missingStoryboardInputMessage,
+} from "@adt/pipeline"
 import crypto from "node:crypto"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
@@ -46,28 +51,82 @@ export interface AiEditSectionResult {
   activityAnswers?: Record<string, string>
 }
 
-export async function reRenderPage(
-  options: ReRenderOptions
+export async function reRenderPage(options: ReRenderOptions): Promise<ReRenderResult> {
+  return (await reRenderPages([options]))[0]
+}
+
+export async function reRenderPages(options: ReRenderOptions[]): Promise<ReRenderResult[]> {
+  if (!options.length) return []
+  const { label, booksDir, configPath } = options[0]
+  if (options.some((item) => item.label !== label || item.booksDir !== booksDir || item.configPath !== configPath)) throw new Error("A rendering batch must belong to one book")
+  return withBookWriter(resolveBookPaths(label, booksDir).bookDir, async () => {
+    const storage = createBookStorage(label, booksDir)
+    try {
+      const publication = createStoryboardPublication(storage, label, booksDir, configPath)
+      const pages = new Set(publication.storage.getPages().map((page) => page.pageId))
+      if (options.some((item) => !pages.has(item.pageId))) throw new Error("Requested page is outside the active source-page window")
+      publication.assertScope([...new Set(options.map((item) => item.pageId))])
+      if (isFixedLayoutBook(loadBookConfig(label, booksDir, configPath))) {
+        if (options.some((item) => item.sectionIndex !== undefined)) {
+          throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "A fixed-layout page must be re-rendered as a whole. Existing output is kept.")
+        }
+        if (options.some((item) => item.prompt?.trim())) {
+          throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "Fixed-layout rendering uses extracted positioned content and cannot apply an LLM prompt. Existing output is kept.")
+        }
+        const pageIds = options.map((item) => item.pageId)
+        const unavailable: string[] = []
+        processFixedLayoutPages(publication.storage, `/api/books/${label}/images`, pageIds, {
+          onPage: (id) => publication.publishPage(id),
+          onUnavailable: (id) => unavailable.push(id),
+        })
+        publication.publish()
+        if (unavailable.length) throw new SectioningSafetyError("STORYBOARD_PAGE_INPUT_MISSING", missingStoryboardInputMessage(unavailable))
+        return pageIds.map((pageId) => {
+          const row = storage.getLatestNodeData("web-rendering", pageId)!
+          return { version: row.version, rendering: row.data }
+        })
+      }
+      const unavailable: string[] = []
+      for (const item of options) {
+        try {
+          await reRenderAdmittedPage(item, publication)
+          publication.publishPage(item.pageId)
+        } catch (error) {
+          if (!(error instanceof SectioningSafetyError) || error.code !== "STORYBOARD_PAGE_INPUT_MISSING") throw error
+          publication.discardPage(item.pageId)
+          unavailable.push(item.pageId)
+        }
+      }
+      publication.publish()
+      if (unavailable.length) throw new SectioningSafetyError("STORYBOARD_PAGE_INPUT_MISSING", missingStoryboardInputMessage(unavailable))
+      return options.map((item) => {
+        const row = storage.getLatestNodeData("web-rendering", item.pageId)!
+        return { version: row.version, rendering: row.data }
+      })
+    } finally { storage.close() }
+  })
+}
+
+async function reRenderAdmittedPage(
+  options: ReRenderOptions, publication: ReturnType<typeof createStoryboardPublication>,
 ): Promise<ReRenderResult> {
   const { label, pageId, sectionIndex, prompt, booksDir, promptsDir, webAssetsDir, configPath, credentials } = options
 
-  const storage = createBookStorage(label, booksDir)
+  const storage = publication.storage
   let visualRefinement: VisualRefinementDeps | undefined
   // Book typography (editable size-per-role map), shared with every rendered page.
   const typography = readTypography(storage)
 
   try {
-    const structuringRow = storage.getLatestNodeData("page-sectioning", pageId)
-
-    if (!structuringRow) {
-      throw new Error(
-        "Page must have page-sectioning data before re-rendering"
-      )
+    if (sectionIndex !== undefined && storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)?.data != null) {
+      throw new SectioningSafetyError("STORYBOARD_INPUT_CHANGED", "A positioned page must be re-rendered as a whole before re-rendering a semantic section. Existing output is kept.")
     }
-
-    const structuringParsed = PageSectioningOutput.safeParse(structuringRow.data)
+    let structuringRow
+    try { structuringRow = storage.getLatestNodeData("page-sectioning", pageId) }
+    catch (error) { if (!(error instanceof SyntaxError)) throw error }
+    const structuringParsed = PageSectioningOutput.safeParse(structuringRow?.data)
     if (!structuringParsed.success) {
-      throw new Error("Invalid page-sectioning data")
+      throw new SectioningSafetyError("STORYBOARD_PAGE_INPUT_MISSING", missingStoryboardInputMessage([pageId]))
     }
     const sectioning = structuringParsed.data
 
@@ -194,13 +253,18 @@ export async function reRenderPage(
     const existingRenderingParsed = existingRenderingRow
       ? WebRenderingOutput.safeParse(existingRenderingRow.data)
       : null
-    if (existingRenderingRow && !existingRenderingParsed?.success) {
+    if (existingRenderingRow?.data != null && !existingRenderingParsed?.success) {
       throw new Error("Invalid web-rendering data")
     }
     const existingSections = existingRenderingParsed?.success
       ? existingRenderingParsed.data.sections
       : []
-    const withoutTarget = existingSections.filter((s) => s.sectionIndex !== sectionIndex)
+    const withoutTarget = existingSections.flatMap((entry) => {
+      const owner = resolveRenderedSection(entry, sectioning.sections)
+      if (!owner) return []
+      const index = sectioning.sections.indexOf(owner)
+      return index === sectionIndex ? [] : [{ ...entry, sectionIndex: index }]
+    })
     const newTarget = renderResult.sections.find((s) => s.sectionIndex === sectionIndex)
     const mergedSections = newTarget
       ? [...withoutTarget, newTarget].sort((a, b) => a.sectionIndex - b.sectionIndex)
@@ -213,29 +277,6 @@ export async function reRenderPage(
     if (visualRefinement) {
       await visualRefinement.screenshotRenderer.close()
     }
-    storage.clearNodesByType([
-      "image-captioning",
-      "text-catalog",
-      "easy-read",
-      "text-catalog-translation",
-      "core-tts-catalog",
-      "tts",
-      "tts-timestamps",
-      "accessibility-assessment",
-    ])
-    storage.clearStepRuns([
-      "image-captioning",
-      "text-catalog",
-      "easy-read",
-      "catalog-translation",
-      "core-tts-catalog",
-      "image-translation",
-      "tts",
-      "word-timestamps",
-      "package-web",
-      "accessibility-assessment",
-    ])
-    storage.close()
   }
 }
 

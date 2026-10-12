@@ -27,19 +27,15 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const [outlineMode, setOutlineMode] = useState(false)
   const hasUnsavedChanges = useHasUnsavedChanges()
   const { setExtra, setOnLabelClick } = useStepHeader()
-  const { stageState, queueRun } = useBookRun()
+  const { stageState, queueRun, storyboardCoverage } = useBookRun()
   const { apiKey } = useApiKey()
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const storyboardState = stageState("storyboard")
   const storyboardDone = storyboardState === "done"
   const storyboardRunning = storyboardState === "running" || storyboardState === "queued"
-  const sectioningReady = stageState("sectioning") === "done"
-  // Show page content during a run (or after an error) once pages have data.
-  // Keyed on sectioning (which a render-only re-run preserves) so the view drops
-  // into the per-page storyboard view during a re-run — there each section shows
-  // its own "Rendering this section…" loading state while web-rendering
-  // regenerates (the page's stale rendering is cleared optimistically on re-run,
-  // see queueRun). Only show the run card when idle or no data exists yet.
+  const sectioningReady = stageState("sectioning") === "done" || (pages ?? []).some((page) => page.sectioningVersion != null)
+  // Saved pages stay available during attempts; starting or cancelling a run
+  // does not remove the current rendering from the query cache.
   const hasPageData = (pages ?? []).some((p) => p.sectionCount > 0)
   // When idle, existing renderings outrank a stale stage status: a sectioning
   // edit marks storyboard for re-run without touching the HTML, and pushing the
@@ -354,21 +350,16 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [selectedPageId, sectionIndex, sectionCount, canGoPrev, canGoNext, prevPageId, nextPageId, showRunCard])
 
-  // Sectioning edits mark the storyboard stale without touching the renderings,
-  // so the editor stays open on pages that are still perfectly editable — but
-  // nothing said they were now behind the sections they came from. This is that
-  // reminder, and the one place to regenerate the lot in a single pass, so a
-  // restructuring session in Sectioning costs one render rather than one per
-  // edit.
-  const storyboardStale = !storyboardDone && !storyboardRunning && hasRenderingData
+  // Attempt state is not evidence that Sectioning changed. Only the shared
+  // saved-output read model can identify genuinely missing output here.
+  const storyboardStale = storyboardCoverage?.complete === false && !storyboardRunning && hasRenderingData
   const withStaleBanner = (content: ReactNode) =>
     storyboardStale ? (
       <div className="flex flex-col h-full min-h-0">
         <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-3 py-2">
           <div className="text-xs text-amber-900">
             <Trans>
-              Sectioning has changed since these pages were rendered. Re-run Storyboard to
-              regenerate them.
+              Some pages or sections are missing Storyboard output. Existing pages remain available.
             </Trans>
           </div>
           <Button

@@ -12,7 +12,7 @@ already holds its number — check both before taking one
 |-----------|-----------------------------------------------------------------|--------|-------------|-----------|
 | SPEC-0001 | Catalog-based freshness and scoped regeneration | in-review | @ksokolovic | Block 1 |
 | [SPEC-0002](SPEC-0002-manual-edit-preservation.md) | Manual-edit preservation for translation, quiz, sectioning, TOC | draft  | @ksokolovic | Block 1   |
-| SPEC-0003 | Three sectioning modes and auto cross-page merge                | draft  | TBD         | Block 2   |
+| [SPEC-0003](SPEC-0003-sectioning-modes.md) | Sectioning modes — B1 generation preferences and safe publication | in-review | @ksokolovic | [Reviewed B1 implementation evidence](../verification/spec-0003-oct12-audit.md); generation-only modes, explicit scoped reset and per-page publication; fresh CLI supported, broader resume deferred; approval pending; B2 deferred |
 | SPEC-0004 | Style guide, Styles panel, token-enforced rendering             | draft  | TBD         | Block 2   |
 | SPEC-0005 | Acceptance harness over the acceptance set                      | draft  | TBD         | Block 1   |
 | SPEC-0006 | Cloudflare publishing: scope, ops surface, security             | draft  | TBD         | Block 2   |

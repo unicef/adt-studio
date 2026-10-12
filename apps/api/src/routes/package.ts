@@ -1,8 +1,10 @@
+import { storyboardPackageComplete } from "../services/storyboard-package-coverage.js"
+import { storyboardCoverage, activeSectioningPages } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel, PackagingWarning } from "@adt/types"
+import { parseBookLabel, PackagingWarning, type PackagingStatus } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import {
   packageAdtWeb,
@@ -13,6 +15,8 @@ import {
   runBrowserAccessibilityAssessment,
   mergeAccessibilityResults,
   isFixedLayoutBook,
+  prepareSectioningRun,
+
 } from "@adt/pipeline"
 import type { Storage } from "@adt/storage"
 import type { TaskService } from "../services/task-service.js"
@@ -22,12 +26,6 @@ const PACKAGE_VERSION_LENGTH = 16
 interface PackagingCacheState {
   cached: boolean
   version: string
-}
-
-interface PackagingStatus {
-  label: string
-  hasAdt: boolean
-  version?: string
 }
 
 interface PackagingResult {
@@ -137,6 +135,9 @@ function resolvePackagingParams(
   booksDir: string,
   configPath?: string,
 ) {
+  // Cached builds and direct preview tasks obey the same stale-state boundary
+  // as the Package stage; retained files alone do not authorize a rebuild.
+  prepareSectioningRun(safeLabel, booksDir, "package", "package", configPath)
   const config = loadBookConfig(safeLabel, booksDir, configPath)
   const metadataRow = storage.getLatestNodeData("metadata", "book")
   const metadata = metadataRow?.data as {
@@ -195,7 +196,7 @@ export function createPackageRoutes(
     try {
       const pages = storage.getPages()
       const hasRendering = pages.some(
-        (p) => storage.getLatestNodeData("web-rendering", p.pageId) !== null,
+        (p) => storyboardCoverage(storage, [p.pageId]).rendered > 0,
       )
       if (!hasRendering) {
         throw new HTTPException(409, {
@@ -278,6 +279,16 @@ export function createPackageRoutes(
 
     const status: PackagingStatus = { label: safeLabel, hasAdt }
     if (version) status.version = version
+    if (fs.existsSync(path.join(bookDir, `${safeLabel}.db`))) {
+      const storage = createBookStorage(safeLabel, booksDir)
+      try {
+        const coverage = storyboardCoverage(storage, activeSectioningPages(storage, loadBookConfig(safeLabel, booksDir, configPath), bookDir).map((page) => page.pageId))
+        status.complete = storyboardPackageComplete(storage, bookDir, activeSectioningPages(storage, loadBookConfig(safeLabel, booksDir, configPath), bookDir).map((page) => page.pageId))
+        status.hasAdt = status.hasAdt && coverage.rendered > 0
+      }
+      finally { storage.close() }
+
+    }
     return c.json(status)
   })
 

@@ -1438,8 +1438,8 @@ msgstr "Alfabético"
 msgid "Already handed out"
 msgstr "Ya repartidas"
 
-msgid "Also regenerate these pages and replace their saved content"
-msgstr "También regenerar estas páginas y reemplazar su contenido guardado"
+#~ msgid "Also regenerate these pages and replace their saved content"
+#~ msgstr "También regenerar estas páginas y reemplazar su contenido guardado"
 
 msgid "Among the Stars"
 msgstr "Entre las Estrellas"
@@ -2243,8 +2243,14 @@ msgstr "Cambiar"
 msgid "Change language"
 msgstr "Cambiar idioma"
 
+msgid "Change mode"
+msgstr "Cambiar modo"
+
 msgid "Change Preset"
 msgstr "Cambiar Preajuste"
+
+msgid "Change Sectioning mode?"
+msgstr "¿Cambiar el modo de seccionado?"
 
 msgid "Change the book language?"
 msgstr "¿Cambiar el idioma del libro?"
@@ -2260,6 +2266,9 @@ msgstr "Cambios sin guardar"
 
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Cambiar las fuentes afecta cómo se renderizan las páginas — vuelve a ejecutar Storyboard y Exportar para aplicar las nuevas fuentes."
+
+msgid "Changing layout requires every active page to render successfully. Run the whole Storyboard stage. Previous output is retained."
+msgstr "Para cambiar el diseño, todas las páginas activas deben renderizarse correctamente. Ejecuta toda la etapa Storyboard. Se conserva el resultado anterior."
 
 msgid "Changing the language resets downstream work."
 msgstr "Cambiar el idioma restablece el trabajo posterior."
@@ -2808,6 +2817,9 @@ msgstr "No se pudieron eliminar {failed} de {total} videos — por favor, intén
 
 msgid "Could not revert this page. Your edits were kept. Try again."
 msgstr "No se pudieron deshacer los cambios de esta página. Se conservaron tus cambios. Inténtalo de nuevo."
+
+msgid "Could not save Sectioning mode."
+msgstr "No se pudo guardar el modo de seccionado."
 
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
@@ -3865,8 +3877,14 @@ msgstr "Se incluye el resultado existente."
 #~ msgid "Existing output may be included."
 #~ msgstr "El resultado existente puede incluirse."
 
+msgid "Existing pages stay unchanged. This run fills missing Sectioning only unless you explicitly choose replacement."
+msgstr "Las páginas existentes permanecen sin cambios. Esta ejecución solo genera la división en secciones que falta, salvo que elijas reemplazarla explícitamente."
+
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "Las sesiones de revisor existentes conservan su propia instantánea de la lista de verificación. Los nuevos cambios en la lista se aplican solo a las sesiones creadas a partir de ahora."
+
+msgid "Existing-book extraction and CLI resume are unavailable here. Use Sectioning in Studio to review and confirm any replacement."
+msgstr "La extracción de libros existentes y la reanudación mediante CLI no están disponibles aquí. Usa la división en secciones en Studio para revisar y confirmar cualquier reemplazo."
 
 msgid "Expand"
 msgstr "Expandir"
@@ -4505,6 +4523,9 @@ msgstr "Falló la generación"
 
 msgid "Generation failed. Please try again."
 msgstr "Falló la generación. Por favor, inténtalo de nuevo."
+
+msgid "Generation preferences changed or their history is unknown. Saved content remains usable. Existing pages are kept unless you explicitly replace them."
+msgstr "Las preferencias de generación cambiaron o se desconoce su historial. El contenido guardado sigue siendo utilizable. Las páginas existentes se conservan salvo que las reemplaces explícitamente."
 
 msgid "Generation Prompt"
 msgstr "Prompt de generación"
@@ -6994,6 +7015,9 @@ msgstr "Desincronizado"
 msgid "Outline ID:"
 msgstr "ID del esquema:"
 
+msgid "output available"
+msgstr "contenido disponible"
+
 msgid "Output languages"
 msgstr "Idiomas de salida"
 
@@ -7091,6 +7115,14 @@ msgstr "Página {0}"
 #. placeholder {1}: i + 1
 msgid "Page {0} — Section {1}"
 msgstr "Página {0} — Sección {1}"
+
+#. placeholder {0}: r.pageNumber ?? r.itemId
+#. placeholder {1}: r.itemId
+#. placeholder {2}: r.version
+#. placeholder {3}: r.renderingVersion ?? 0
+#. placeholder {4}: r.renderTreeVersion ?? 0
+msgid "Page {0} ({1}): Sectioning v{2}, Storyboard v{3}, render tree v{4}"
+msgstr "Página {0} ({1}): división en secciones v{2}, Storyboard v{3}, árbol de renderizado v{4}"
 
 #. placeholder {0}: String(pageNumber)
 msgid "Page {0} captions"
@@ -7212,8 +7244,8 @@ msgstr "páginas {shownStr}"
 msgid "Pages in the selected range"
 msgstr "Páginas del intervalo seleccionado"
 
-msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
-msgstr "Las páginas indicadas abajo conservarán su contenido guardado a menos que elijas reemplazarlo. Todas las demás páginas se regenerarán."
+#~ msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
+#~ msgstr "Las páginas indicadas abajo conservarán su contenido guardado a menos que elijas reemplazarlo. Todas las demás páginas se regenerarán."
 
 msgid "pages per quiz"
 msgstr "páginas por cuestionario"
@@ -7224,8 +7256,8 @@ msgstr "Páginas por quiz"
 msgid "Pages reviewed"
 msgstr "Páginas revisadas"
 
-msgid "Pages with manual edits or unknown authorship:"
-msgstr "Páginas con cambios manuales o autoría desconocida:"
+#~ msgid "Pages with manual edits or unknown authorship:"
+#~ msgstr "Páginas con cambios manuales o autoría desconocida:"
 
 msgid "Paper Collage"
 msgstr "Collage en papel"
@@ -8236,11 +8268,17 @@ msgstr "Reemplazar cuestionarios"
 #~ msgid "Replace the protected pages listed above"
 #~ msgstr "Reemplazar las páginas protegidas indicadas arriba"
 
+msgid "Replace these pages and reset their Storyboard"
+msgstr "Reemplazar estas páginas y restablecer su Storyboard"
+
 msgid "Replace this audio file"
 msgstr "Reemplazar este archivo de audio"
 
 msgid "Replace your overlapping changes with the latest saved values."
 msgstr "Reemplaza tus cambios superpuestos por los últimos valores guardados."
+
+msgid "Replacing these pages resets their current Storyboard, including manual edits. Saved versions and media stay in history; Storyboard must be rebuilt even if generation is cancelled or fails."
+msgstr "Al reemplazar estas páginas se restablece su Storyboard actual, incluidas las ediciones manuales. Las versiones guardadas y los archivos multimedia permanecen en el historial; Storyboard debe reconstruirse aunque la generación se cancele o falle."
 
 msgid "Replay the guided introduction to ADT Studio."
 msgstr "Reproducir la introducción guiada a ADT Studio."
@@ -8440,6 +8478,9 @@ msgstr "Rigor de la revisión"
 
 msgid "Review style"
 msgstr "Estilo de revisión"
+
+msgid "Review the affected pages and their current versions, then explicitly confirm replacement and the Storyboard reset."
+msgstr "Revisa las páginas afectadas y sus versiones actuales y confirma explícitamente el reemplazo y el restablecimiento de Storyboard."
 
 msgid "Review the chosen document, then save again."
 msgstr "Revisa el documento elegido y vuelve a guardar."
@@ -8718,6 +8759,12 @@ msgstr "Guarda tu trabajo primero si quieres conservar estos cambios."
 msgid "Saved content is unavailable; your draft is retained"
 msgstr "El contenido guardado no está disponible; tu borrador se conserva"
 
+#~ msgid "Saved output is retained, but Sectioning and later stages are not current."
+#~ msgstr "Se conservan los resultados guardados, pero el seccionado y las etapas posteriores están desactualizados."
+
+msgid "Saved pages:"
+msgstr "Páginas guardadas:"
+
 msgid "Saved. Re-package Preview to apply."
 msgstr "Guardado. Vuelva a empaquetar la Vista previa para aplicar."
 
@@ -8920,8 +8967,11 @@ msgstr "Tipos de sección"
 msgid "Sectioning"
 msgstr "Seccionamiento"
 
-msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
-msgstr "La segmentación ha cambiado desde que se renderizaron estas páginas. Vuelve a ejecutar Storyboard para regenerarlas."
+#~ msgid "Sectioning and later stages will need to run again. Saved versions are kept."
+#~ msgstr "Será necesario volver a ejecutar el seccionado y las etapas posteriores. Se conservan las versiones guardadas."
+
+#~ msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
+#~ msgstr "La segmentación ha cambiado desde que se renderizaron estas páginas. Vuelve a ejecutar Storyboard para regenerarlas."
 
 msgid "Sectioning mode"
 msgstr "Modo de sección"
@@ -9376,15 +9426,24 @@ msgstr "Estado de la actualización de software"
 #~ msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no sectioning row, so they could not be included. Re-run the storyboard render for those pages, then package again."
 #~ msgstr "Parte del contenido quedó fuera del paquete: {0} sección(es) renderizada(s) en {pageList} no tienen fila de seccionamiento, por lo que no se pudieron incluir. Vuelve a ejecutar la renderización del storyboard para esas páginas y empaqueta de nuevo."
 
-#. placeholder {0}: warnings.length
+#. placeholder {0}: ownership.length
 msgid "Some content was left out of the bundle: {0} rendered section(s) on {pageList} have no verified section owner, so they could not be included. Their content and history are retained. Review their section identities in Storyboard, then package again."
 msgstr "Parte del contenido quedó fuera del paquete: {0} secciones renderizadas de {pageList} no tienen una sección de origen verificada y no pudieron incluirse. Su contenido e historial se conservan. Revisa sus identidades de sección en Storyboard y vuelve a crear el paquete."
 
 msgid "Some items could not be updated. The list has been refreshed; completed changes are kept."
 msgstr "No se pudieron actualizar algunos elementos. La lista se ha actualizado; los cambios completados se conservan."
 
+msgid "Some pages have missing or unreadable input ({total} total; showing up to 20): {pages}. Other runnable pages remain available."
+msgstr "Algunas páginas tienen datos de entrada ausentes o ilegibles ({total} en total; se muestran hasta 20): {pages}. Las demás páginas procesables siguen disponibles."
+
+msgid "Some pages have missing or unreadable input: {pages}. Other runnable pages remain available."
+msgstr "Algunas páginas tienen datos de entrada ausentes o ilegibles: {pages}. Las demás páginas que se pueden procesar siguen disponibles."
+
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Algunas páginas no tienen capa de texto incrustado — el texto se recuperó a partir de la imagen de la página. Usa preferentemente un PDF basado en texto."
+
+msgid "Some pages or sections are missing Storyboard output. Existing pages remain available."
+msgstr "Algunas páginas o secciones no tienen contenido de Storyboard. Las páginas existentes siguen disponibles."
 
 msgid "Some rendered sections on {ownershipPages} have no verified section owner and are omitted from preview and export. Their content and history are retained. Review their section identities in Storyboard."
 msgstr "Algunas secciones renderizadas de {ownershipPages} no tienen una sección de origen verificada y se omiten en la vista previa y la exportación. Su contenido e historial se conservan. Revisa sus identidades de sección en Storyboard."
@@ -9656,8 +9715,17 @@ msgstr "Almacenado localmente en este ordenador"
 msgid "Storyboard"
 msgstr "Storyboard"
 
+#~ msgid "Storyboard cannot run in By Page mode: {total} pages do not contain exactly one valid section. Re-run Sectioning, then try again. Affected pages: {pages}."
+#~ msgstr "El guion gráfico no puede ejecutarse en modo Por página: {total} páginas no contienen exactamente una sección válida. Vuelve a ejecutar el seccionado e inténtalo de nuevo. Páginas afectadas: {pages}."
+
+#~ msgid "Storyboard cannot run in By Page mode: {total} pages do not contain exactly one valid section. Re-run Sectioning, then try again. Incompatible manual or unknown-origin pages require explicit replacement confirmation. Affected pages: {pages}."
+#~ msgstr "Storyboard no puede ejecutarse en el modo Por página: {total} páginas no contienen exactamente una sección válida. Vuelva a ejecutar Sectioning e inténtelo de nuevo. Las páginas incompatibles manuales o de origen desconocido requieren una confirmación explícita de reemplazo. Páginas afectadas: {pages}."
+
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "El storyboard ya se ejecutó. Los cambios realizados aquí no tendrán efecto hasta que se vuelva a ejecutar el storyboard."
+
+msgid "Storyboard inputs changed or the requested scope is incompatible with this layout. Refresh the saved content and render the affected pages again."
+msgstr "Los datos de entrada de Storyboard cambiaron o el alcance solicitado es incompatible con este diseño. Actualiza el contenido guardado y vuelve a renderizar las páginas afectadas."
 
 msgid "Storyboard nodes:"
 msgstr "Nodos del guion gráfico:"
@@ -9867,8 +9935,11 @@ msgid "Task failed"
 msgstr "La tarea falló"
 
 #. placeholder {0}: d.error
-msgid "Task failed: {0}"
-msgstr "La tarea falló: {0}"
+#~ msgid "Task failed: {0}"
+#~ msgstr "La tarea falló: {0}"
+
+msgid "Task failed: {taskError}"
+msgstr "Error en la tarea: {taskError}"
 
 msgid "Task Running"
 msgstr "Tarea en Ejecución"
@@ -10171,6 +10242,9 @@ msgstr "La estrategia de renderización usada para secciones sin un mapeo explí
 msgid "The same edition in every language."
 msgstr "La misma edición en cada idioma."
 
+msgid "The saved content changed. Your draft is retained. Refresh and review the current versions before retrying."
+msgstr "El contenido guardado cambió. Tu borrador se conserva. Actualiza y revisa las versiones actuales antes de volver a intentarlo."
+
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "La revisión de traducción guardada está obsoleta. Vuelve a ejecutar Revisar para las traducciones visibles."
 
@@ -10279,6 +10353,9 @@ msgstr "Este libro es una parte: su rango de páginas es fijo, corresponde al su
 msgid "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
 msgstr "Este libro es una parte. Expórtalo como <0>Parte completada</0> y envía el archivo al coordinador para combinarlo en el libro de origen."
 
+msgid "This book is being changed by another operation. Wait for it to finish, then retry."
+msgstr "Otra operación está modificando este libro. Espera a que termine y vuelve a intentarlo."
+
 msgid "This book is fully assembled"
 msgstr "Este libro está completamente ensamblado"
 
@@ -10292,6 +10369,12 @@ msgstr "Este libro aún no está completo — las páginas <0>{0}</0> no se han 
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Este libro se renderiza con diseño fijo, por lo que mantiene las fuentes originales del PDF. Las fuentes adjuntas igualmente guían a la IA en actividades y páginas generadas."
+
+msgid "This bundle is incomplete. Storyboard output is missing on pages {missing}. Render those pages to complete it."
+msgstr "Este paquete está incompleto. Falta el resultado de Storyboard en las páginas {missing}. Renderiza esas páginas para completarlo."
+
+msgid "This changes how new Sectioning is generated. Saved content and Storyboard stay available. Replacing existing pages requires a separate confirmation."
+msgstr "Esto cambia cómo se genera la nueva división en secciones. El contenido guardado y Storyboard siguen disponibles. Reemplazar las páginas existentes requiere una confirmación aparte."
 
 msgid "This computer"
 msgstr "Este ordenador"
@@ -10401,6 +10484,9 @@ msgstr "Esta página cambió después de que empezaras a editarla, por lo que al
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "La capa de texto incrustado de esta página está vacía, pero el paso de Seccionamiento recuperó texto a partir de la imagen de la página, por lo que parece una página escaneada o solo de imagen. La canalización aún puede funcionar con el texto recuperado, pero para obtener mejores resúmenes, metadatos y traducciones, intenta conseguir una versión de este PDF basada en texto (con una capa de texto real) en lugar de una copia escaneada."
 
+msgid "This page's saved Sectioning is unreadable. Restore a valid historical version before replacing it. History and media are retained."
+msgstr "La división en secciones guardada de esta página es ilegible. Restaura una versión válida del historial antes de reemplazarla. El historial y los archivos multimedia se conservan."
+
 msgid "This part cannot be merged"
 msgstr "Esta parte no se puede fusionar"
 
@@ -10449,8 +10535,11 @@ msgstr "Esto reemplaza el índice editado manualmente o heredado. Su versión gu
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Esto restaura la fuente predeterminada en todas las páginas y borra los ajustes de fuente por elemento y la selección de fuente para todo el libro. Las fuentes adjuntas permanecen en la lista. La reversión está disponible por página en el historial de versiones."
 
-msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
-msgstr "Esto restaura la última división en secciones generada para esta página. Tu versión editada permanece en el historial. Las demás páginas conservan sus cambios. Esta página podrá regenerarse en la próxima ejecución."
+msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. Replacing this page later requires a separate confirmation."
+msgstr "Esto restaura la última división en secciones generada para esta página. Tu versión editada permanece en el historial. Las demás páginas conservan sus ediciones. Reemplazar esta página más adelante requiere una confirmación aparte."
+
+#~ msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
+#~ msgstr "Esto restaura la última división en secciones generada para esta página. Tu versión editada permanece en el historial. Las demás páginas conservan sus cambios. Esta página podrá regenerarse en la próxima ejecución."
 
 msgid "This screen couldn’t load"
 msgstr "Esta pantalla no pudo cargarse"
@@ -11224,6 +11313,9 @@ msgstr "Espera a que termine la generación del glosario"
 
 msgid "Wait for storyboard to complete"
 msgstr "Espere a que el storyboard se complete"
+
+msgid "Wait for the current operation to finish."
+msgstr "Espera a que termine la operación actual."
 
 msgid "Waiting for API output…"
 msgstr "Esperando salida de API…"

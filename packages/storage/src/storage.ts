@@ -125,6 +125,8 @@ export interface Storage {
    *  (rollback). Returns false if that version doesn't exist. */
   setCurrentNodeVersion(node: string, itemId: string, version: number): boolean
   /** The active version pointer, or null when unset (current == MAX). */
+  getSelectedNodeVersion(node: string, itemId: string): number | null
+
   getCurrentNodeVersion(node: string, itemId: string): number | null
 
   /** Mark a pipeline step as started (running). */

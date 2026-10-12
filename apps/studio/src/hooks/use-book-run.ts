@@ -1,3 +1,4 @@
+import { sectioningErrorMessage } from "@/lib/sectioning-error"
 import { useEffect, useCallback, useRef, createContext, useContext, useState } from "react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
@@ -62,6 +63,7 @@ interface StepStatusResponse {
   stepMessages?: Record<string, string> | null
   runStatus?: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
   pendingDecisions?: PendingDecision[]
+  coverage?: import("@adt/types").StoryboardCoverage
 }
 
 // ---------------------------------------------------------------------------
@@ -69,6 +71,8 @@ interface StepStatusResponse {
 // ---------------------------------------------------------------------------
 
 export interface BookRunContextValue {
+  /** Actual saved-output coverage, independent of the last attempt. */
+  storyboardCoverage?: import("@adt/types").StoryboardCoverage
   /** Stage state: idle / queued / running / done / error */
   stageState(stage: string): StageState
   /** Step state: idle / running / done / error */
@@ -204,6 +208,8 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
     es.addEventListener("progress", (e) => {
       const d = JSON.parse(e.data)
+      if (d.error) d.error = sectioningErrorMessage(d.error, d.code)
+      if (d.message) d.message = sectioningErrorMessage(d.message, d.code)
       const pipelineStep = d.step as string
       const uiStage = (STEP_TO_STAGE as Record<string, string>)[pipelineStep]
       if (!uiStage) return
@@ -279,7 +285,9 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         // Progressively refresh page data during storyboard steps so the UI
         // can show sections/renderings as they complete (throttled to ~2s).
         // Invalidates both the page list (sidebar) and individual page details.
-        if ((PAGE_PROGRESS_STEPS as ReadonlySet<string>).has(pipelineStep) && (totalPages ?? 0) > 0) {
+        if (pipelineStep === "web-rendering" && typeof d.publishedPageId === "string") {
+          queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
+        } else if ((PAGE_PROGRESS_STEPS as ReadonlySet<string>).has(pipelineStep) && (totalPages ?? 0) > 0) {
           const now = Date.now()
           if (now - lastPageInvalidateRef.current > 2000) {
             lastPageInvalidateRef.current = now
@@ -300,7 +308,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         // The step finished — its failure toast/beep dedup no longer applies.
         errorCountByStepRef.current.delete(pipelineStep)
         // Mark step as done/skipped, recompute stage state
-        const nextStepState: StepState = d.type === "step-skip" ? "skipped" : "done"
+        const nextStepState: StepState = d.outputComplete === false ? "idle" : d.type === "step-skip" ? "skipped" : "done"
         // Only chime on the transition into done — not on every trailing
         // step event for a stage that's already complete (which would
         // re-register the same completion and beep repeatedly).
@@ -330,7 +338,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             ? "done"
             : anyError
               ? "error"
-              : old.stages[uiStage]
+              : d.outputComplete === false ? "idle" : old.stages[uiStage]
           const stages = { ...old.stages, [uiStage]: nextStageState }
 
           // Recompute the run-level error banner from the remaining step errors.
@@ -480,7 +488,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       if (me.data) {
         try {
           const d = JSON.parse(me.data)
-          const runError = d.error ?? i18n._(msg`Step run failed`)
+          const runError = sectioningErrorMessage(d.error, d.code) ?? i18n._(msg`Step run failed`)
           queryClient.setQueryData<StepStatusResponse>(stepStatusKey(label), (old) => {
             if (!old) return old
             return { ...old, error: runError }
@@ -593,7 +601,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           queryClient.invalidateQueries({ queryKey: bookTasksKey(label) })
         } else if (d.type === "task-error") {
           if (idx !== -1) {
-            tasks[idx] = { ...tasks[idx], status: "failed", error: d.error, completedAt: Date.now() }
+            tasks[idx] = { ...tasks[idx], status: "failed", error: sectioningErrorMessage(d.error), completedAt: Date.now() }
           }
         } else if (d.type === "task-progress") {
           if (idx !== -1) {
@@ -627,8 +635,9 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             ?.tasks.find((t) => t.taskId === d.taskId)?.kind
         announceRef.current(taskCompleteMessage(kind))
       } else if (d.type === "task-error") {
+        const taskError = sectioningErrorMessage(d.error)
         announceRef.current(
-          d.error ? i18n._(msg`Task failed: ${d.error}`) : i18n._(msg`Task failed`),
+          taskError ? i18n._(msg`Task failed: ${taskError}`) : i18n._(msg`Task failed`),
           "assertive",
         )
       }
@@ -809,14 +818,14 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       if (progress) return progress
       if (data?.steps?.[step] !== "running") return undefined
       const message = data?.stepMessages?.[step]
-      return message ? { message } : undefined
+      return message ? { message: sectioningErrorMessage(message) } : undefined
     },
     [data?.stepMessages, data?.steps, progressTick]
   )
 
   const stepErrorAccessor = useCallback(
     (step: string): string | undefined => {
-      return data?.stepErrors?.[step]
+      return sectioningErrorMessage(data?.stepErrors?.[step])
     },
     [data]
   )
@@ -884,11 +893,12 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   }, [polledDecisions])
 
   return {
+    storyboardCoverage: data?.coverage,
     stageState,
     stepState: stepStateAccessor,
     stepProgress: stepProgressAccessor,
     stepError: stepErrorAccessor,
-    error: data?.error ?? null,
+    error: sectioningErrorMessage(data?.error ?? undefined) ?? null,
     isRunning,
     isCancelling,
     isStatusLoading: isPending,

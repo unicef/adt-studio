@@ -4,7 +4,7 @@ import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { PIPELINE, type AppConfig, type ProgressEvent } from "@adt/types"
 import { computeSpeechCacheKey, stripEmojis, retireSectionIds, outputEvidence } from "@adt/pipeline"
-import { createBookStorage, openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, writeSectioningLifecycle } from "@adt/storage"
 import {
   buildStageRunnerImageClassifyConfig,
   createStageRunner,
@@ -772,6 +772,7 @@ describe("createStageRunner storyboard render-only", () => {
     for (const name of ["image_captioning", "translation", "core_tts_preparation", "easy_read"]) fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), "Test prompt")
     writeBaseConfig(configPath)
     seedStoryboardBook(booksDir, "render-only")
+    writeSectioningLifecycle(path.join(booksDir, "render-only"), "dynamic", true)
 
     const events: ProgressEvent[] = []
     const controller = new AbortController()

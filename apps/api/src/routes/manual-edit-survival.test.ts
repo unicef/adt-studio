@@ -140,7 +140,7 @@ it("saves, runs real admission/preparation/workers, reads history, previews and 
   } finally { db.close() }
 }, 60_000)
 
-it("AC-12: reverting one manual page keeps other pages and history, and makes only that page eligible on rerun", async () => {
+it("SPEC-0003 refinement of AC-12: restored AI pages remain unchanged until separately confirmed", async () => {
   const db = book()
   for (const stage of PIPELINE.filter((s) => s.name === "extract")) for (const step of stage.steps) db.markStepCompleted(step.name)
   db.putNodeData("book-outline", "book", { entries: [], styleClusters: [], reasoning: "fixture" })
@@ -159,6 +159,11 @@ it("AC-12: reverting one manual page keeps other pages and history, and makes on
   expect(sectionPage).not.toHaveBeenCalled()
 
   expect((await run("sectioning")).status).toBe("completed")
+  expect(sectionPage).not.toHaveBeenCalled()
+  expect(read("page-sectioning", "pg001")).toEqual(generated)
+  const consent = await json("step-status")
+  const protectedReplacements = consent.protectedWork.filter((r: { node: string; itemId: string }) => r.node === "page-sectioning" && r.itemId === "pg001").map(({ pageNumber: _, ...record }: Record<string, unknown>) => record)
+  expect((await run("sectioning", { replaceManual: true, protectedReplacements })).status).toBe("completed")
   expect(sectionPage).toHaveBeenCalledTimes(1)
   expect(read("page-sectioning", "pg001")!.version).toBeGreaterThan(3)
   expect([read("page-sectioning", "pg002"), read("page-sectioning", "pg003")]).toEqual(neighbors)
@@ -231,7 +236,7 @@ it("names protected replacement snapshots and leaves them current on failed or c
   await saveProtected()
   expect((await send("stages/run", { fromStage: "sectioning", toStage: "sectioning", replaceManual: true }, "POST")).status).toBe(409)
   const status = await json("step-status")
-  const replacement = { replaceManual: true, protectedReplacements: status.protectedWork.filter((r: { node: string }) => r.node === "page-sectioning").map(({ node, itemId, version }: import("@adt/types").AuthoredReplacement) => ({ node, itemId, version })) }
+  const replacement = { replaceManual: true, protectedReplacements: status.protectedWork.filter((r: { node: string }) => r.node === "page-sectioning").map(({ node, itemId, version, renderingVersion, renderTreeVersion }: import("@adt/types").AuthoredReplacement) => ({ node, itemId, version, renderingVersion, renderTreeVersion })) }
   const db = book()
   for (const stage of PIPELINE.filter((s) => s.name === "extract")) for (const step of stage.steps) db.markStepCompleted(step.name)
   // Valid outline so no unrelated LLM prerequisite is involved.
@@ -267,7 +272,7 @@ it("retires sections and TOC references only when replacement publishes, with fr
   for (const stage of PIPELINE.filter((s) => s.name === "extract")) for (const step of stage.steps) db.markStepCompleted(step.name)
   db.putNodeData("book-outline", "book", { entries: [], styleClusters: [], reasoning: "fixture" })
   db.close()
-  const protectedReplacements = ["pg001", "pg002", "pg003"].map((itemId) => ({ node: "page-sectioning", itemId, version: 2 }))
+  const protectedReplacements = ["pg001", "pg002", "pg003"].map((itemId) => ({ node: "page-sectioning", itemId, version: 2, renderingVersion: read("web-rendering", itemId)?.version ?? 0, renderTreeVersion: read("fixed-layout-sectioning", itemId)?.version ?? 0 }))
   let release!: () => void
   sectionPage.mockImplementation(async ({ pageId }: { pageId: string }) => {
     if (pageId === "pg001") await new Promise<void>((resolve) => { release = resolve })
@@ -533,7 +538,7 @@ it("rolls retirement and reference writes back if publishing a replacement page 
   sql.close()
   const previousToc = read("toc-generation")
   sectionPage.mockImplementation(async ({ pageId }: { pageId: string }) => ({ reasoning: "new", sections: [section(pageId, "New")] }))
-  const protectedReplacements = ["pg001", "pg002", "pg003"].map((itemId) => ({ node: "page-sectioning", itemId, version: 2 }))
+  const protectedReplacements = ["pg001", "pg002", "pg003"].map((itemId) => ({ node: "page-sectioning", itemId, version: 2, renderingVersion: read("web-rendering", itemId)?.version ?? 0, renderTreeVersion: read("fixed-layout-sectioning", itemId)?.version ?? 0 }))
   expect((await run("sectioning", { replaceManual: true, protectedReplacements })).status).toBe("failed")
   expect(read("toc-generation")).toEqual(previousToc)
   for (const id of ["pg001", "pg002", "pg003"]) expect(read("page-sectioning", id)!.version).toBe(2)
@@ -548,7 +553,7 @@ it("cancels section replacement before publication and rejects a queued stale co
   db.close()
   const releases: Array<() => void> = []
   sectionPage.mockImplementation(async () => { await new Promise<void>((resolve) => releases.push(resolve)); return { reasoning: "new", sections: [] } })
-  const protectedReplacements = ["pg001", "pg002", "pg003"].map((itemId) => ({ node: "page-sectioning", itemId, version: 2 }))
+  const protectedReplacements = ["pg001", "pg002", "pg003"].map((itemId) => ({ node: "page-sectioning", itemId, version: 2, renderingVersion: read("web-rendering", itemId)?.version ?? 0, renderTreeVersion: read("fixed-layout-sectioning", itemId)?.version ?? 0 }))
   const cancelled = run("sectioning", { replaceManual: true, protectedReplacements })
   await vi.waitFor(() => expect(releases).toHaveLength(3))
   expect((await send("stages/cancel", {}, "POST")).status).toBe(202)
@@ -574,7 +579,7 @@ it("cancels section replacement before publication and rejects a queued stale co
   expect(read("toc-generation")!.version).toBe(3)
 })
 
-it("regenerates only explicitly AI pages on an ordinary run and keeps protected neighbors exact", async () => {
+it("keeps every existing page on an ordinary run and replaces only explicitly named AI neighbors", async () => {
   expect((await send("pages/pg001/sectioning", { ...read("page-sectioning", "pg001")!.data as object, sections: [section("pg001", "Manual source")], baseVersion: 1 })).status).toBe(200)
   const protectedPage = read("page-sectioning", "pg001")
   const db = book()
@@ -583,6 +588,10 @@ it("regenerates only explicitly AI pages on an ordinary run and keeps protected 
   db.close()
   sectionPage.mockImplementation(async ({ pageId }: { pageId: string }) => ({ reasoning: "new", sections: [section(pageId, "New")] }))
   expect((await run("sectioning")).status).toBe("completed")
+  expect(sectionPage).not.toHaveBeenCalled()
+  const consent = await json("step-status")
+  const protectedReplacements = consent.protectedWork.filter((r: { node: string; itemId: string }) => r.node === "page-sectioning" && r.itemId !== "pg001").map(({ pageNumber: _, ...record }: Record<string, unknown>) => record)
+  expect((await run("sectioning", { replaceManual: true, protectedReplacements })).status).toBe("completed")
   expect(sectionPage.mock.calls.map(([input]) => input.pageId).sort()).toEqual(["pg002", "pg003"])
   expect(read("page-sectioning", "pg001")).toEqual(protectedPage)
   expect(read("page-sectioning", "pg002")!.data).toMatchObject({ source: "ai", sections: [expect.objectContaining({ sectionId: "pg002_sec002" })] })
@@ -636,13 +645,16 @@ it("F1: a replaced section URL never borrows retained HTML; restore recovers the
   const oldRendering = read("web-rendering", "pg001")
   sectionPage.mockImplementation(async ({ pageId }: { pageId: string }) => ({ reasoning: "replacement", sections: [section(pageId, "Replacement source")] }))
   const status = await json("step-status")
-  const protectedReplacements = status.protectedWork.filter((r: { node: string }) => r.node === "page-sectioning").map(({ node, itemId, version }: import("@adt/types").AuthoredReplacement) => ({ node, itemId, version }))
+  const protectedReplacements = status.protectedWork.filter((r: { node: string }) => r.node === "page-sectioning").map(({ node, itemId, version, renderingVersion, renderTreeVersion }: import("@adt/types").AuthoredReplacement) => ({ node, itemId, version, renderingVersion, renderTreeVersion }))
   expect((await run("sectioning", { replaceManual: true, protectedReplacements })).status).toBe("completed")
-  expect(read("web-rendering", "pg001")).toEqual(oldRendering)
+  expect(read("web-rendering", "pg001")?.data).toBeNull()
   const replacement = await app.request(`/books/${label}/adt-preview/pg001_sec002.html`)
   expect(replacement.status).toBe(404)
   expect((await app.request(`/books/${label}/adt-preview/pg001_sec001.html`)).status).toBe(404)
   expect((await send("versions/page-sectioning/pg001/restore", { version: 2, baseVersion: 3 }, "POST")).status).toBe(200)
+  // Restoring source alone does not undo an explicitly confirmed output reset.
+  expect((await app.request(`/books/${label}/adt-preview/pg001_sec001.html`)).status).toBe(404)
+  expect((await send("versions/web-rendering/pg001/restore", { version: oldRendering!.version, baseVersion: read("web-rendering", "pg001")!.version }, "POST")).status).toBe(200)
   const restored = await app.request(`/books/${label}/adt-preview/pg001_sec001.html`)
   expect(restored.status).toBe(200)
   expect(await restored.text()).toContain("Saved page text")
@@ -664,7 +676,9 @@ it.each(["success", "failure", "cancellation"])("F3: %s on a neighboring page re
   if (outcome === "cancellation") sectionPage.mockImplementation(async () => { await new Promise<void>((resolve) => { release = resolve }); return { reasoning: "", sections: [] } })
   // Serial generation makes cancellation deterministic, without sleeping.
   fs.appendFileSync(configPath, "concurrency: 1\n")
-  const running = run("sectioning")
+  const consent = await json("step-status")
+  const protectedReplacements = consent.protectedWork.filter((r: { node: string; itemId: string }) => r.node === "page-sectioning" && r.itemId !== "pg001").map(({ pageNumber: _, ...record }: Record<string, unknown>) => record)
+  const running = run("sectioning", { replaceManual: true, protectedReplacements })
   if (outcome === "cancellation") {
     await vi.waitFor(() => expect(release).toBeDefined())
     expect((await send("stages/cancel", {}, "POST")).status).toBe(202)
@@ -693,7 +707,7 @@ it("F4: combined confirmed Sectioning to TOC replaces the consented document aft
   })
   generateToc.mockImplementation(async () => ({ entries: [{ id: "toc_001", title: "New chapter", sectionId: "pg001_sec002", href: "pg001_sec002.html", chapterId: "ch1", level: 1 }], pageCount: 3, generatedAt: "new" }))
   const status = await json("step-status")
-  const running = run("sectioning", { toStage: "toc", replaceManual: true, protectedReplacements: status.protectedWork.map(({ node, itemId, version }: import("@adt/types").AuthoredReplacement) => ({ node, itemId, version })) })
+  const running = run("sectioning", { toStage: "toc", replaceManual: true, protectedReplacements: status.protectedWork.map(({ node, itemId, version, renderingVersion, renderTreeVersion }: import("@adt/types").AuthoredReplacement) => ({ node, itemId, version, renderingVersion, renderTreeVersion })) })
   await vi.waitFor(() => expect(release).toBeDefined())
   expect((await send("toc", { ...before.data as object, baseVersion: before.version })).status).toBe(409)
   release()
@@ -802,7 +816,7 @@ it("F4: exact combined consent refuses a separate SQLite writer instead of refre
     if (pageId === "pg001") await new Promise<void>(resolve => { release = resolve })
     return { reasoning: "New", sections: [section(pageId, "Generated")] }
   })
-  const running = run("sectioning", { toStage: "toc", replaceManual: true, protectedReplacements: status.protectedWork.map(({node,itemId,version}: {node:string,itemId:string,version:number}) => ({node,itemId,version})) })
+  const running = run("sectioning", { toStage: "toc", replaceManual: true, protectedReplacements: status.protectedWork.map(({ pageNumber: _, ...record }: Record<string, unknown>) => record) })
   await vi.waitFor(() => expect(release).toBeDefined())
   const external = book()
   const changed = { ...originalToc, source: "manual", entries: [{ ...originalToc.entries[0], title: "Independent writer's chapter" }] }

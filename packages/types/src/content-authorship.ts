@@ -15,6 +15,8 @@ export const AuthoredReplacement = z.object({
   node: z.enum(["page-sectioning", "toc-generation"]),
   itemId: z.string().min(1),
   version: z.number().int().positive(),
+  renderingVersion: z.number().int().nonnegative().optional(),
+  renderTreeVersion: z.number().int().nonnegative().optional(),
 }).strict()
 export type AuthoredReplacement = z.infer<typeof AuthoredReplacement>
 export const AuthoredRunOptions = z.object({

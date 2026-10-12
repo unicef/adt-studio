@@ -19,15 +19,13 @@ import type {
   AppConfig,
   ContentNodeData,
   DrawItem,
-  ImageClassificationOutput,
   NodePlacement,
   PageSectioningOutput,
   PageSectioningSection,
   SectionTextSegment,
   WebRenderingOutput,
-  PositionedTextOutput,
 } from "@adt/types"
-import { AUTO_FIT_SCRIPT_SRC } from "@adt/types"
+import { ImageClassificationOutput as ImageClassificationSchema, PositionedTextOutput as PositionedTextSchema, AUTO_FIT_SCRIPT_SRC } from "@adt/types"
 import { escapeHtml } from "./html-escape.js"
 
 /**
@@ -484,8 +482,11 @@ ${elements.join("\n")}${fitScript}
 export function processFixedLayoutPages(
   storage: Storage,
   imageUrlPrefix: string,
+  targetPageIds?: readonly string[],
+  events?: { onPage?: (pageId: string) => void; onUnavailable?: (pageId: string) => void },
 ): void {
   const pages = storage.getPages()
+  const targets = targetPageIds ? new Set(targetPageIds) : undefined
   let totalDrawItems = 0
 
   // Pass 1: resolve each page's viewport + inputs. We collect these up front
@@ -505,28 +506,35 @@ export function processFixedLayoutPages(
     // extracted image survives except the full-page render itself (which
     // image-filtering always prunes — using it as a background would
     // double-draw the page).
-    const allImages = storage.getPageImages(page.pageId)
-    const pageRender = allImages.find((img) => img.imageId.endsWith("_page"))
-    const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
-    const classification = classRow ? (classRow.data as ImageClassificationOutput) : null
+    let classRow, posTextRow
+    try {
+      classRow = storage.getLatestNodeData("image-filtering", page.pageId)
+      posTextRow = storage.getLatestNodeData("positioned-text", page.pageId)
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) throw error
+      if (!targets || targets.has(page.pageId)) events?.onUnavailable?.(page.pageId)
+      continue
+    }
+    const classParsed = ImageClassificationSchema.safeParse(classRow?.data)
+    const posParsed = PositionedTextSchema.safeParse(posTextRow?.data)
+    if (!classParsed.success || !posParsed.success) {
+      if (!targets || targets.has(page.pageId)) events?.onUnavailable?.(page.pageId)
+      continue
+    }
+    const classification = classParsed.data
     const availableImageIds = new Set(
-      classification
-        ? classification.images.filter((c) => !c.isPruned).map((c) => c.imageId)
-        : []
+      classification.images.filter((c) => !c.isPruned).map((c) => c.imageId)
     )
 
-    const posTextRow = storage.getLatestNodeData("positioned-text", page.pageId)
-    const positionedText = posTextRow ? (posTextRow.data as PositionedTextOutput) : null
+    const positionedText = posParsed.data
 
-    // Viewport comes from the positioned-text extraction (authoritative PDF
-    // page dimensions). Fall back to the page render's pixel size only when
-    // no positioned text was extracted at all.
-    const viewport = positionedText
-      ? { width: Math.round(positionedText.pageWidth), height: Math.round(positionedText.pageHeight) }
-      : pageRender
-        ? { width: pageRender.width, height: pageRender.height }
-        : null
-    if (!viewport) continue
+    // Absent extraction is not an empty page. Only an explicit validated
+    // positioned result can authorize replacing output, including a blank PDF.
+    const viewport = { width: Math.round(positionedText.pageWidth), height: Math.round(positionedText.pageHeight) }
+    if (!viewport || !Number.isFinite(viewport.width) || !Number.isFinite(viewport.height) || viewport.width <= 0 || viewport.height <= 0) {
+      if (!targets || targets.has(page.pageId)) events?.onUnavailable?.(page.pageId)
+      continue
+    }
 
     const drawItems: DrawItem[] = positionedText?.drawItems ?? []
     totalDrawItems += drawItems.length
@@ -541,6 +549,9 @@ export function processFixedLayoutPages(
 
   // Pass 2: section + render each page with the shared reference width.
   for (const { page, viewport, drawItems, availableImageIds } of prepared) {
+    // Targeted rerenders still measure the complete active window above, so a
+    // single page keeps the same spread scale as its untouched neighbours.
+    if (targets && !targets.has(page.pageId)) continue
     const sectioning = sectionFixedLayoutPage({
       pageId: page.pageId,
       pageNumber: page.pageNumber,
@@ -559,6 +570,7 @@ export function processFixedLayoutPages(
       referenceWidth,
     )
     storage.putNodeData("web-rendering", page.pageId, rendering)
+    events?.onPage?.(page.pageId)
   }
 
   // Positioned text is produced by the Extract stage only when the book is

@@ -3,8 +3,11 @@ import { msg } from "@lingui/core/macro"
 export class ApiError extends Error {
   constructor(message: string, readonly status: number) { super(message) }
 }
-import type { OutputSkipRequest } from "@adt/types"
+import type { OutputSkipRequest, PackagingStatus } from "@adt/types"
 import type { OutputStatus, OutputSummary, OutputRunScope, OutputReviewRequest, OutputDisclosureOptions, OutputReplacement } from "@adt/types"
+
+import { sectioningErrorMessage } from "@/lib/sectioning-error"
+import type { SectioningModeState } from "@adt/types"
 import { isElectron } from "@/lib/utils"
 import type {
   AccessibilityAssessmentOutput,
@@ -120,7 +123,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const text = await res.text().catch(() => "")
     let message: string | undefined
     try {
-      message = (JSON.parse(text) as { error?: string }).error
+      const details = JSON.parse(text) as { code?: string; error?: string }
+      message = sectioningErrorMessage(details.error, details.code)
     } catch {
       message = text || undefined
     }
@@ -1723,6 +1727,9 @@ export const api = {
       { method: "POST", body: JSON.stringify({ version, baseVersion }) }
     ),
 
+  getSectioningModeState: (label: string) =>
+    request<SectioningModeState>(`/books/${label}/sectioning-state`),
+
   getBookConfig: (label: string) =>
     request<BookConfigResponse>(`/books/${label}/config`),
 
@@ -1951,6 +1958,7 @@ export const api = {
       stepMessages: Record<string, string> | null
       runStatus: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
       pendingDecisions: PendingDecision[]
+      coverage?: import("@adt/types").StoryboardCoverage
       protectedWork?: Array<import("@adt/types").AuthoredReplacement & { pageNumber?: number }>
     }>(`/books/${label}/step-status`),
 
@@ -2041,7 +2049,7 @@ export const api = {
     request<{ tasks: TaskInfoResponse[] }>(`/books/${label}/tasks`),
 
   getPackageAdtStatus: (label: string) =>
-    request<{ label: string; hasAdt: boolean; version?: string }>(
+    request<PackagingStatus>(
       `/books/${label}/package-adt/status`
     ),
 

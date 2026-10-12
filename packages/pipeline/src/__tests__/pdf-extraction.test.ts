@@ -97,23 +97,23 @@ describe("extractPDF", () => {
 
         db.close()
 
-        // Re-run with a smaller range; previous pages/images should be cleared first.
-        await extractPDF(
+        // Changed extraction settings must preserve the complete original book.
+        await expect(extractPDF(
           { pdfPath: RAVEN_PDF, startPage: 1, endPage: 1 },
           storage,
           progress
-        )
+        )).rejects.toMatchObject({ code: "EXTRACTION_INPUTS_CHANGED" })
 
         const dbAfterRerun = openBookDb(paths.dbPath)
         const pageRowsAfterRerun = dbAfterRerun.all(
           "SELECT page_id FROM pages ORDER BY page_number"
         ) as Array<{ page_id: string }>
-        expect(pageRowsAfterRerun).toEqual([{ page_id: "pg001" }])
+        expect(pageRowsAfterRerun).toEqual([{ page_id: "pg001" }, { page_id: "pg002" }, { page_id: "pg003" }])
 
         const imagePageIds = dbAfterRerun.all(
           "SELECT DISTINCT page_id FROM images ORDER BY page_id"
         ) as Array<{ page_id: string }>
-        expect(imagePageIds).toEqual([{ page_id: "pg001" }])
+        expect(imagePageIds).toEqual([{ page_id: "pg001" }, { page_id: "pg002" }, { page_id: "pg003" }])
         dbAfterRerun.close()
       } finally {
         storage.close()

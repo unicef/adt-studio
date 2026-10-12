@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { usePages } from "@/hooks/use-pages"
 import { useBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { useActiveConfig } from "@/hooks/use-debug"
@@ -144,13 +145,16 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
   const status = useStageStatus("storyboard")
   const sectioningStatus = useStageStatus("sectioning")
   const extractStatus = useStageStatus("extract")
-  const sectioningReady = sectioningStatus.isCompleted
+  const { data: pages, isLoading: pagesLoading } = usePages(bookLabel)
+  const sectioningReady = pages?.length
+    ? pages.every((page) => page.sectioningVersion != null)
+    : sectioningStatus.isCompleted
   // "Covered" = already done, running, or queued — it will produce its output
   // without us starting it, so we can queue Storyboard behind it instead of
   // pulling it into the run.
-  const extractCovered = extractStatus.isCompleted || extractStatus.isRunning
+  const extractCovered = extractStatus.isCompleted || extractStatus.isRunning || (pages?.length ?? 0) > 0
   const sectioningCovered =
-    sectioningStatus.isCompleted || sectioningStatus.isRunning
+    sectioningReady || sectioningStatus.isRunning
   const upstreamCovered = extractCovered && sectioningCovered
 
   const [defaultRenderStrategy, setDefaultRenderStrategy] = useState("")
@@ -232,7 +236,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasStructuredTextProvider || status.isRunning) return
+    if (!hasStructuredTextProvider || status.isRunning || pagesLoading) return
     // Cue from here even if upstream stages haven't run. Queue from the first
     // upstream stage that isn't already covered (done/running/queued) so we
     // never try to re-run a stage that's mid-flight.
@@ -275,7 +279,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasStructuredTextProvider}
+      extraDisabled={!hasStructuredTextProvider || pagesLoading}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Storyboard</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}

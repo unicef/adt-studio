@@ -1,5 +1,6 @@
-import type { RunStagesOptions } from "@/api/client"
+import type { BookConfigResponse, RunStagesOptions } from "@/api/client"
 import { useState, useEffect, useMemo } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
 import { CascadeWarning } from "@/components/pipeline/components/CascadeWarning"
@@ -8,7 +9,8 @@ import { SettingsCard, SettingsField } from "@/components/pipeline/components/Se
 import { SettingExplainer } from "@/components/pipeline/components/SettingExplainer"
 import { ToggleCard } from "@/components/pipeline/components/ToggleCard"
 import { SegmentedControl } from "@/components/ui/segmented-control"
-import { useBookConfig } from "@/hooks/use-book-config"
+import { useSectioningModeConfirmation } from "@/hooks/use-sectioning-mode-confirmation"
+import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { usePages } from "@/hooks/use-pages"
 import { useSplitStatus } from "@/hooks/use-parts"
 import { useActiveConfig } from "@/hooks/use-debug"
@@ -24,11 +26,14 @@ type SectioningModeKey = "dynamic" | "page"
 
 export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
+  const queryClient = useQueryClient()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: pages, isLoading: pagesLoading } = usePages(bookLabel)
   const { data: splitStatus, isLoading: splitStatusLoading } = useSplitStatus(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
+  const updateMode = useUpdateBookConfig()
+  const modeConfirmation = useSectioningModeConfirmation(bookLabel, updateMode.isPending || !bookConfigData)
   const { apiKey } = useApiKey()
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { queueRun } = useBookRun()
@@ -69,17 +74,23 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   useEffect(() => {
     if (!activeConfigData) return
     const m = activeConfigData.merged as Record<string, unknown>
-    if (m.page_sectioning && typeof m.page_sectioning === "object") {
-      const ps = m.page_sectioning as Record<string, unknown>
-      if (ps.mode === "page" || ps.mode === "dynamic") setSectioningMode(ps.mode)
-    }
+    const ps = m.page_sectioning && typeof m.page_sectioning === "object"
+      ? m.page_sectioning as Record<string, unknown>
+      : {}
+    setSectioningMode(ps.mode === "page" ? "page" : "dynamic")
     setGenerateActivities(m.generate_activities !== false)
   }, [activeConfigData])
 
   const handleModeChange = (value: SectioningModeKey) => {
-    setSectioningMode(value)
-    const existingPS = (bookConfigData?.config?.page_sectioning ?? {}) as Record<string, unknown>
-    persist({ page_sectioning: { ...existingPS, mode: value } })
+    if (value === modeConfirmation.state?.effectiveMode) return
+    modeConfirmation.request(value, () => {
+      // Confirmation can outlive a config refetch. The API replaces the whole
+      // override map, so merge into the latest loaded map, not the dialog's snapshot.
+      const latest = queryClient.getQueryData<BookConfigResponse>(["book-config", bookLabel])
+      if (!latest) return
+      const existing = (latest.config?.page_sectioning ?? {}) as Record<string, unknown>
+      updateMode.mutate({ label: bookLabel, config: { ...latest.config, page_sectioning: { ...existing, mode: value } } })
+    })
   }
 
   const handleActivityDetectionChange = (next: boolean) => {
@@ -171,6 +182,9 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
         />
       ) : null}
 
+      {modeConfirmation.dialog}
+      {updateMode.error && <p role="alert" className="text-sm text-destructive">{t`Could not save Sectioning mode.`} {updateMode.error.message}</p>}
+      {modeConfirmation.state?.preferenceChanged && <p role="status" className="text-sm text-muted-foreground"><Trans>Generation preferences changed or their history is unknown. Saved content remains usable. Existing pages are kept unless you explicitly replace them.</Trans></p>}
       <SettingsCard>
         <SettingsField
           label={<Trans>Sectioning Mode</Trans>}
@@ -182,7 +196,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
             />
           }
           hint={
-            sectioningMode === "page" ? (
+            (modeConfirmation.state?.effectiveMode ?? sectioningMode) === "page" ? (
               <Trans>
                 Treat each page as a single section. Best for storybooks and
                 self-contained pages.
@@ -196,8 +210,8 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
           }
         >
           <SegmentedControl
-            options={modeOptions}
-            value={sectioningMode}
+            options={modeOptions.map((option) => ({ ...option, disabled: modeConfirmation.busy }))}
+            value={modeConfirmation.state?.effectiveMode ?? sectioningMode}
             onValueChange={handleModeChange}
           />
         </SettingsField>
@@ -213,7 +227,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
           </Trans>
         }
         checked={activitiesEnabled}
-        disabled={activityNames.length === 0}
+        disabled={activityNames.length === 0 || modeConfirmation.busy}
         onCheckedChange={handleActivityDetectionChange}
       />
     </LandingPageShell>

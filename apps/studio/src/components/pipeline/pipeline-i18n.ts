@@ -124,6 +124,7 @@ export const STAGE_STATUS_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
   done: msg`done`,
   error: msg`failed`,
   "needs-update": msg`needs update`,
+  "output-available": msg`output available`,
 }
 
 /** Resolve a stage label message descriptor to a translated string. Safe to call outside React. */

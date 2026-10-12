@@ -4,6 +4,8 @@ This document records all significant technology and architecture decisions made
 
 ---
 
+ADR 024 is reserved by [SPEC-0001 / PR #879](https://github.com/unicef/adt-studio/pull/879), which is reviewed on a separate branch. The proposals below start at 025 to avoid renumbering that decision.
+
 ## Table of Contents
 
 1. [Guiding Principle: Pure JS/TS Over Native](#001-pure-jsts-over-native-bindings)
@@ -30,6 +32,7 @@ This document records all significant technology and architecture decisions made
 22. [Unified Stage/Step Status via useBookRun](#022-unified-stagestep-status-via-usebookrun)
 23. [Visual Refinement + File-Based Debug Screenshots](#023-visual-refinement--file-based-debug-screenshots)
 24. [Catalog-Based Freshness from Saved Input Signatures (proposed)](#adr-024)
+25. [Sectioning generation preferences, scoped reset and per-page publication](#025-sectioning-mode-changes-preserve-content-and-gate-rendering)
 
 ---
 
@@ -955,6 +958,56 @@ separate action after saving. #619 and #626 remain background/deferred.
 
 ---
 
+<a id="025-sectioning-mode-changes-preserve-content-and-gate-rendering"></a>
+
+## 025: Sectioning generation preferences, scoped reset and per-page publication
+
+**Status**: proposed
+**Date**: 2026-09-22
+**Spec**: [SPEC-0003](specs/SPEC-0003-sectioning-modes.md)
+**Issues**: #708
+
+### Context
+
+By Page generation was fixed by #692. The previous B1 proposal imposed persisted
+cardinality/lifecycle gates, blocking manual editing and older books; it also
+withheld ordinary Storyboard pages until a whole run completed. The September 30
+and October 12 product reviews supersede those policies. The owner authorized
+amendment and implementation, not specification approval.
+
+### Decision
+
+By Page constrains generation/cache validation only. Preferences are informational;
+ordinary Sectioning fills missing pages. Explicit exact-version replacement also
+confirms a scoped, version-preserving active Storyboard reset before generation.
+The reset is a database transaction; failed generation retains prior authored
+Sectioning and history while reset Storyboard remains missing. Ordinary rendering
+publishes each page's HTML/tree transaction immediately. Only a real layout switch
+requires whole-window all-success publication. Shared ownership/coverage, not
+mode bookkeeping, governs output usability and completeness.
+
+### Consequences
+
+Reuse SPEC-0001/0002 admission, versioning, ownership and freshness. Retain shared
+cross-process protection instead of adding/replacing it with a second lock; retain
+necessary journal/crash recovery and fail closed on ambiguous SQLite ownership.
+Sectioning ordinary-AI replacement and fixed-pair active retention from SPEC-0002
+are refined only as documented in the amended spec. Full CLI resume belongs to
+SPEC-0010; B2 remains deferred. Unknown rendered-owner omission stays qualified.
+
+See [the amended contract](specs/SPEC-0003-sectioning-modes.md) and
+[original AC mapping and evidence](verification/spec-0003-oct12-audit.md).
+This decision remains proposed, with human review pending.
+
+### Alternatives Considered
+
+| Approach | Why not |
+|---|---|
+| Persisted By Page cardinality/lifecycle gates | Invalidates intentional editing and blocks usable older books. |
+| Retain incompatible HTML actively after confirmed Sectioning regeneration | Reassigns historical ownership/indexes and makes incomplete work appear current. |
+| Whole-book publication for every Storyboard run | Withholds successful pages and discards work after unrelated failure. |
+| Replace shared writer gate with in-process-only serialization | Does not coordinate supported prerequisite writers. |
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -983,6 +1036,7 @@ separate action after saving. #619 and #626 remain background/deferred.
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
 | 024 (proposed) | Downstream freshness | Catalog-based input signatures and scoped regeneration with existing caching | Whole-stage clearing, universal section flags, general dependency graph |
+| 025 (proposed) | Sectioning generation preferences and publication | Scoped versioned reset; ordinary per-page publication; shared ownership and coverage | Persisted mode gates, automatic replacement, all-run buffering |
 
 ---
 
@@ -997,7 +1051,7 @@ This file has **two** hand-maintained indexes, and a new ADR must appear in both
 2. The **Decision Log Summary** table at the bottom.
 
 The heading continues the existing numbering in this file's own style — `## NNN: Title`,
-matching all 23 entries above. Retrospective ADRs use the same shape, dated when the
+matching the existing numbered entries above. Retrospective ADRs use the same shape, dated when the
 decision was actually taken, with a note that it is recorded after the fact.
 
 See [SPEC_DRIVEN_DEVELOPMENT.md §6](SPEC_DRIVEN_DEVELOPMENT.md#6-adrs) for when an ADR is

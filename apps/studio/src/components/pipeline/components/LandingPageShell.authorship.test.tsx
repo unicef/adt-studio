@@ -23,10 +23,10 @@ async function mount(stageSlug: string, protectedWork: unknown[]) {
   return { onRun, client }
 }
 it("lists protected page numbers, defaults replacement off on every open and sends only the named versions", async () => {
-  const { onRun } = await mount("sectioning", [{ node: "page-sectioning", itemId: "pg003", pageNumber: 3, version: 7 }])
+  const { onRun } = await mount("sectioning", [{ node: "page-sectioning", itemId: "pg003", pageNumber: 3, version: 7, renderingVersion: 9, renderTreeVersion: 2 }])
   await waitFor(() => expect(api.getStepStatus).toHaveBeenCalled())
   fireEvent.click(screen.getByRole("button", { name: "Rerun" }))
-  expect(await screen.findByText(/Pages with manual edits or unknown authorship:/)).toBeTruthy()
+  expect(await screen.findByText(/Saved pages:/)).toBeTruthy()
   expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false)
   fireEvent.click(screen.getByRole("checkbox"))
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
@@ -35,7 +35,7 @@ it("lists protected page numbers, defaults replacement off on every open and sen
   expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false)
   fireEvent.click(screen.getByRole("checkbox"))
   fireEvent.click(screen.getAllByRole("button", { name: "Rerun" }).at(-1)!)
-  expect(onRun).toHaveBeenCalledWith({ replaceManual: true, protectedReplacements: [{ node: "page-sectioning", itemId: "pg003", version: 7 }] })
+  expect(onRun).toHaveBeenCalledWith({ replaceManual: true, protectedReplacements: [{ node: "page-sectioning", itemId: "pg003", version: 7, renderingVersion: 9, renderTreeVersion: 2 }] })
 })
 it("requires the TOC replacement notice to be confirmed and cancellation makes no request", async () => {
   const { onRun } = await mount("toc", [{ node: "toc-generation", itemId: "book", version: 2 }])

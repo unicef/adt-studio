@@ -246,6 +246,7 @@ export {
 
 export { ExtractionWarning } from "./extraction-warning.js"
 export { PackagingWarning } from "./packaging-warning.js"
+export { PackagingStatus } from "./packaging-status.js"
 
 export {
   FIXED_LAYOUT_MAX_SCALE,
@@ -560,3 +561,6 @@ export { OutputEditGuard } from "./output-freshness.js"
 export { OutputSkipRequest } from "./output-freshness.js"
 
 export { OutputDisclosureOptions } from "./output-freshness.js"
+export * from "./sectioning-lifecycle.js"
+
+export * from "./extraction.js"
