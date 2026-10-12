@@ -1,3 +1,4 @@
+import { localizeExtractionError } from "@/lib/extraction-errors"
 import { sectioningErrorMessage } from "@/lib/sectioning-error"
 import { useEffect, useCallback, useRef, createContext, useContext, useState } from "react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
@@ -488,7 +489,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       if (me.data) {
         try {
           const d = JSON.parse(me.data)
-          const runError = sectioningErrorMessage(d.error, d.code) ?? i18n._(msg`Step run failed`)
+          const runError = localizeExtractionError(sectioningErrorMessage(d.error, d.code) ?? i18n._(msg`Step run failed`))
           queryClient.setQueryData<StepStatusResponse>(stepStatusKey(label), (old) => {
             if (!old) return old
             return { ...old, error: runError }

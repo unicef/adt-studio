@@ -410,3 +410,16 @@ After.{% endchat %}`
     })
   })
 })
+
+describe("generation input fingerprints", () => {
+  it("includes Liquid layout dependencies and refuses unresolved dynamic layouts", () => {
+    const dir = tmpDir()
+    fs.writeFileSync(path.join(dir, "page.liquid"), '{% layout "frame" %}{% block content %}Book{% endblock %}')
+    fs.writeFileSync(path.join(dir, "frame.liquid"), 'First {% block content %}{% endblock %}')
+    const engine = createPromptEngine(dir), before = engine.fingerprint("page")
+    fs.writeFileSync(path.join(dir, "frame.liquid"), 'Changed {% block content %}{% endblock %}')
+    expect(engine.fingerprint("page")).not.toBe(before)
+    fs.writeFileSync(path.join(dir, "page.liquid"), '{% layout selected_layout %}')
+    expect(() => engine.fingerprint("page")).toThrow("Dynamic prompt includes")
+  })
+})

@@ -976,7 +976,7 @@ function addUploadBaseline(formData: FormData, label: string) {
   const storage = createBookStorage(label, tmpDir)
   try {
     const status = catalogOutputs(storage, label, tmpDir, path.resolve("prompts"), configPath).find((output) => output.identity.kind === "audio" && output.identity.id === formData.get("textId") && output.identity.language === formData.get("language") && output.identity.voiceSlot === (formData.get("voiceSlot") ?? "primary"))
-    if (status) formData.set("baseline", JSON.stringify({ identity: status.identity, signature: status.signature, contentHash: status.contentHash }))
+    if (status) formData.set("baseline", JSON.stringify({ identity: status.identity, signature: status.signature, contentHash: status.contentHash, revision: status.revision }))
   } finally { storage.close() }
 }
 

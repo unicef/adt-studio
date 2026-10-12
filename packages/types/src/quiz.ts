@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { OutputMetadata } from "./output-freshness.js"
 import { AuthoredContent } from "./content-authorship.js"
 
 /** IDs retain their three-digit minimum padding and grow without renumbering. */
@@ -32,6 +33,7 @@ export function resolveQuizOptionId(option: QuizOption, quizId: string, index: n
 }
 
 export const Quiz = AuthoredContent.extend({
+  generationEvidence: OutputMetadata.optional(),
   /**
    * Stable output-page id (`qz001`, …), permanently reserved by retained history. Names
    * the quiz's HTML file and, through `${quizId}_que` / `${quizId}_o${n}`, its

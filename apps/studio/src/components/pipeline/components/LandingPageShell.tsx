@@ -241,7 +241,7 @@ export function LandingPageShell({
       <CascadeResetDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        affectedStages={stageSlug === "sectioning" && !replaceManual ? [] : downstreamAffected}
+        affectedStages={stageSlug === "extract" || (stageSlug === "sectioning" && !replaceManual) ? [] : downstreamAffected}
         headerStageSlug={stageSlug}
         title={<Trans>Re-run {stageLabel}?</Trans>}
         description={stageSlug === "sectioning" && protectedSnapshot.length > 0 ? (

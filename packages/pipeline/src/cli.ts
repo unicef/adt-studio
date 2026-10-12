@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import fs from "node:fs"
+import { OutputRunScope, AuthoredReplacement } from "@adt/types"
 
 import path from "node:path"
 import cliProgress from "cli-progress"
@@ -118,8 +120,11 @@ async function main(): Promise<void> {
     process.exit(args.length === 0 ? 1 : 0)
   }
 
-  const { label, pdfPath, startPage, endPage, booksRoot, concurrency } =
+  const { label, pdfPath, startPage, endPage, booksRoot, concurrency, fromStage, toStage, protectedReplacementsFile, outputScopeFile } =
     parseCliArgs(args)
+  const protectedReplacements = protectedReplacementsFile
+    ? AuthoredReplacement.array().parse(JSON.parse(fs.readFileSync(protectedReplacementsFile, "utf8"))) : undefined
+  const outputScope = outputScopeFile ? OutputRunScope.parse(JSON.parse(fs.readFileSync(outputScopeFile, "utf8"))) : undefined
   const controller = new AbortController()
   const cancel = () => controller.abort()
   process.on("SIGINT", cancel)
@@ -139,6 +144,8 @@ async function main(): Promise<void> {
         startPage,
         endPage,
         concurrency,
+        fromStage, toStage, protectedReplacements, outputScope,
+        replaceManual: protectedReplacementsFile !== undefined,
         signal: controller.signal,
         promptsDir,
         templatesDir,
@@ -148,6 +155,8 @@ async function main(): Promise<void> {
       progress,
     )
     progress.stop()
+
+    if (result.resume) log(`\nResume: ${JSON.stringify(result.resume)}\n`)
 
     if (result.stages.errors.size > 0) {
       const failed = [...result.stages.errors.entries()]
@@ -170,7 +179,7 @@ main().catch((err) => {
   if (err instanceof ExtractionAdmissionError || err instanceof BookBusyError) {
     process.stderr.write(`\nFailed: ${err.message}\n`)
     if (err instanceof ExtractionAdmissionError && err.summary) {
-      process.stderr.write("Extraction: verified reusable\nDownstream: blocked; no work started\nCurrent/stale/protected scopes: not assessed\nContent changed: no. Generated output: none.\nPipeline incomplete; exiting with status 1.\nExisting-book CLI resume is deferred to SPEC-0010. Use Studio for Sectioning replacement.\n")
+      process.stderr.write("Extraction: verified reusable\nDownstream: blocked; no work started\nCurrent/stale/protected scopes: not assessed\nContent changed: no. Generated output: none.\nPipeline incomplete; exiting with status 1.\nComplete the required upstream stages, then retry the requested range.\n")
     }
     process.exit(1)
   }

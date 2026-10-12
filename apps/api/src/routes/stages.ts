@@ -1,4 +1,5 @@
 import { storyboardPackageComplete } from "../services/storyboard-package-coverage.js"
+import { assertSafeExtractionRun } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -8,7 +9,6 @@ import { z } from "zod"
 import { createBookStorage, openBookDb, withBookWriter } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import { AuthoredRunOptions, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
-import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig, activeSectioningPages, selectSectioningPages, storyboardCoverage,
   isFixedLayoutBook,
@@ -34,6 +34,7 @@ const StageRunBody = z
     renderOnly: z.boolean().optional(),
     pageErrorPolicy: PageErrorPolicy.optional(),
     outputScope: OutputRunScope.optional(),
+    resume: z.boolean().optional(),
   })
   .strict()
 
@@ -131,12 +132,10 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
   let ran = false
   return () => {
     if (ran) return
+    if (fromStage === "extract") return // Common execution admission owns Extract; never clear imports.
     prepareSectioningRun(label, booksDir, fromStage, toStage, configPath)
     const storage = createBookStorage(label, booksDir)
     try {
-      if (fromStage === "extract" && storage.getPages().length) {
-        throw new Error("UNSAFE_RESUME_UNAVAILABLE: full extraction rerun cannot preserve this existing book")
-      }
       const { retired, preserved } = retireWithPreservedRecordings(
         storage,
         path.join(path.resolve(booksDir), label),
@@ -155,12 +154,8 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
         )
       }
 
-      if (fromStage === "extract") {
-        // clearExtractedData also clears step_runs
-        storage.clearExtractedData()
-      } else {
-        // Content changes belong to the admitted worker: Sectioning has an
-        // explicit reset transaction; ordinary Storyboard publishes per page.
+      {
+        // Admitted workers own content/reset publication; preparation only clears attempts.
         const nodes = fromStage === "sectioning" || fromStage === "storyboard"
           ? [] : getStageRerunClearNodes(fromStage, toStage)
         if (nodes.length > 0) {
@@ -214,24 +209,13 @@ export function createStageRoutes(
       })
     }
 
-    const { fromStage, toStage, renderOnly, pageErrorPolicy, outputScope, replaceManual, protectedReplacements } = parsed.data
+    const { fromStage, toStage, renderOnly, pageErrorPolicy, outputScope, replaceManual, protectedReplacements, resume } = parsed.data
+    const active = stageService.getStatus(label).active
+    if (fromStage === "extract" && active?.status !== "running" && active?.status !== "cancelling") assertSafeExtractionRun(label, booksDir, configPath)
     const credentials = readProviderCredentials(c)
 
-    // Fail before beforeRun clears any stage data: a run that cannot make a
-    // single LLM call must not wipe the book. Scoped to the stages being run —
-    // a speech-only rerun must not demand the text default's key, and a
-    // per-step model override must be credentialed too, not just the default.
-    // Keyless providers pass through.
-    const fromIndex = STAGE_ORDER.indexOf(fromStage)
-    const toIndex = STAGE_ORDER.indexOf(toStage)
-    const config = loadBookConfig(label, booksDir, configPath)
-    const requestedStages = fromIndex <= toIndex ? STAGE_ORDER.slice(fromIndex, toIndex + 1) : STAGE_ORDER
-    // Fixed Storyboard uses extracted positioned content, with no model call.
-    // Sectioning and any other requested generative stages still need keys.
-    const modelStages = isFixedLayoutBook(config)
-      ? requestedStages.filter((stage) => stage !== "storyboard") : requestedStages
-    assertStageRunModelCredentials(config, modelStages, credentials)
-
+    // Credentials are resolved by the selected executor. Current, protected,
+    // template and fixed output can finish without a provider request.
     console.log(
       `[stages] ${label}: ${fromStage}→${toStage}${renderOnly ? " (render-only)" : ""} ` +
       `credentialProviders=${Object.keys(credentials).join(",") || "(none)"}`,
@@ -240,6 +224,7 @@ export function createStageRoutes(
     const activeRun = stageService.getStatus(label).active
     if (activeRun?.status !== "running" && activeRun?.status !== "cancelling") {
       withBookWriter(path.join(path.resolve(booksDir), parseBookLabel(label)), () => {
+        if (fromStage === "extract" || resume) return // Shared planner owns admission and publication.
         prepareSectioningRun(label, booksDir, fromStage, toStage, configPath)
         const storage = createBookStorage(label, booksDir)
         try {
@@ -249,17 +234,6 @@ export function createStageRoutes(
         finally { storage.close() }
       })
     }
-    const prepare = makeBeforeRun(label, fromStage, toStage, booksDir, configPath)
-    const clearData = () => {
-      const storage = createBookStorage(label, booksDir)
-      try {
-          assertAuthoredReplacement(storage, { fromStage, toStage, replaceManual, protectedReplacements })
-          selectSectioningPages(storage, activeSectioningPages(storage, loadBookConfig(label, booksDir, configPath), path.join(path.resolve(booksDir), label)), { replaceManual, protectedReplacements })
-        }
-      finally { storage.close() }
-      prepare()
-    }
-
     const result = stageService.startStageRun(label, {
       booksDir,
       credentials,
@@ -268,13 +242,11 @@ export function createStageRoutes(
       configPath,
       fromStage,
       toStage,
-      outputScope,
+      outputScope, resume,
       replaceManual,
       protectedReplacements,
       renderOnly,
       pageErrorPolicy,
-      // Queued jobs clear data when they start executing
-      beforeRun: clearData,
     })
 
     return c.json({ status: result.status, label, fromStage, toStage })
@@ -474,6 +446,7 @@ export function createStageRoutes(
       stepErrors: hasStepErrors ? stepErrors : null,
       stepMessages: hasStepMessages ? stepMessages : null,
       runStatus,
+      resumeSummary: stageService.getStatus(label).summary,
       pendingDecisions,
     })
   })
@@ -521,7 +494,7 @@ export function createStageRoutes(
               } else if (event.type === "stage-run-complete") {
                 await stream.writeSSE({
                   event: "complete",
-                  data: JSON.stringify({ label: event.label }),
+                  data: JSON.stringify({ label: event.label, ...(event.summary ? { summary: event.summary } : {}) }),
                 })
               } else if (event.type === "stage-run-error") {
                 await stream.writeSSE({
@@ -530,12 +503,13 @@ export function createStageRoutes(
                     label: event.label,
                     error: event.error,
                     code: event.code,
+                    ...(event.summary ? { summary: event.summary } : {}),
                   }),
                 })
               } else if (event.type === "stage-run-cancelled") {
                 await stream.writeSSE({
                   event: "cancelled",
-                  data: JSON.stringify({ label: event.label }),
+                  data: JSON.stringify({ label: event.label, ...(event.summary ? { summary: event.summary } : {}) }),
                 })
               } else if (event.type === "decision-required") {
                 await stream.writeSSE({
@@ -568,9 +542,9 @@ export function createStageRoutes(
     }
 
     // JSON fallback for non-SSE requests
-    const { active, queue } = stageService.getStatus(label)
+    const { active, queue, summary } = stageService.getStatus(label)
     if (!active) {
-      return c.json({ status: "idle", label, queue: [] })
+      return c.json({ status: "idle", label, queue: [], ...(summary ? { summary } : {}) })
     }
     // Omit the internal AbortController from the serialized payload.
     const { controller: _controller, ...activepublic } = active

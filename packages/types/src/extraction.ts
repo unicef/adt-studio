@@ -1,4 +1,6 @@
 import { z } from "zod"
+import { StageName } from "./pipeline.js"
+import { OutputIdentity } from "./output-freshness.js"
 
 export const ExtractionErrorCode = z.enum([
   "BOOK_BUSY", "EXTRACTION_LEGACY", "EXTRACTION_INCOMPLETE",
@@ -60,3 +62,23 @@ export const ExtractionManifest = z.object({
   }
 })
 export type ExtractionManifest = z.infer<typeof ExtractionManifest>
+
+/** Observed persisted outputs, never a claim that unassessed stages are current. */
+export const PipelineResumeSummary = z.object({
+  kind: z.literal("catalog-resume"),
+  extraction: z.enum(["created", "verified-reusable", "not-requested"]),
+  status: z.enum(["complete", "incomplete", "failed", "cancelled"]),
+  stages: z.array(StageName),
+  outputs: z.array(z.object({
+    identity: OutputIdentity,
+    state: z.enum(["completed", "reused", "skipped", "blocked"]),
+    reason: z.enum(["current", "generated", "excluded", "user-skipped", "protected", "upstream-warning", "unresolved"]),
+    usable: z.boolean(),
+    current: z.boolean(),
+    protected: z.boolean(),
+  }).strict()),
+}).strict()
+export type PipelineResumeSummary = z.infer<typeof PipelineResumeSummary>
+
+export const PackagePublication = z.object({ version: z.literal(1), attemptId: z.string().uuid() }).strict()
+export type PackagePublication = z.infer<typeof PackagePublication>

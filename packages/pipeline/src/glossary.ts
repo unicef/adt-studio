@@ -76,9 +76,9 @@ export function mergeGeneratedGlossaryWithManualItems(
   generated: GlossaryOutput,
   existingItems: GlossaryItem[],
 ): GlossaryOutput {
-  const manualItems = existingItems.filter(isManualGlossaryItem)
+  const manualItems = existingItems.filter((item) => item.source !== "ai")
   const prunedItems = existingItems.filter(
-    (item) => isPrunedGlossaryItem(item) && !isManualGlossaryItem(item),
+    (item) => isPrunedGlossaryItem(item) && item.source === "ai",
   )
   const prunedWords = new Set(prunedItems.map((item) => normalizeGlossaryWord(item.word)))
 
@@ -102,14 +102,14 @@ export function mergeGeneratedGlossaryWithManualItems(
         ...generatedItem,
         ...manualItem,
         id: manualItem.id ?? generatedItem.id,
-        source: "manual",
+        source: manualItem.source,
       }
       continue
     }
 
     mergedItems.push({
       ...manualItem,
-      source: "manual",
+      source: manualItem.source,
     })
   }
 
@@ -350,16 +350,16 @@ export async function generateGlossary(
  * Relies on the prior glossary node surviving any pre-run clear (see
  * getStageRerunClearNodes). */
 export async function regenerateGlossaryPreservingEdits(
-  options: Omit<GenerateGlossaryOptions, "excludedWords">
+  options: Omit<GenerateGlossaryOptions, "excludedWords"> & { replaceProtected?: boolean }
 ): Promise<GlossaryOutput> {
   const existingRow = options.storage.getLatestNodeData("glossary", "book")
   const existingItems = ((existingRow?.data as GlossaryOutput | undefined)?.items ?? [])
     .map((item, index) => ({ ...item, id: getGlossaryItemTextId(item, index) }))
   const generated = await generateGlossary({
     ...options,
-    excludedWords: getPrunedGlossaryWords(existingItems),
+    excludedWords: options.replaceProtected ? [] : getPrunedGlossaryWords(existingItems),
   })
-  const merged = mergeGeneratedGlossaryWithManualItems(generated, existingItems)
+  const merged = options.replaceProtected ? generated : mergeGeneratedGlossaryWithManualItems(generated, existingItems)
   // Legacy positional IDs are materialized before merging. Reserve every ID in
   // history so deleting a term or restoring an old version cannot reassign its
   // translations, recordings or corrections to a different term.

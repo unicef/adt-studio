@@ -30,9 +30,7 @@ export function ReviewActions({ bookLabel, outputs, catalog, filtered, heading, 
     mutationFn: async (action: "keep" | "update" | "replace") => {
       if (dirty || isRunning) return
       if (action === "keep") {
-        for (const output of plan.keep) {
-          await api.reviewOutput(bookLabel, { ...reviewGuard(output), action: output.protected ? "keep" : "checked" })
-        }
+        await api.reviewOutputs(bookLabel, plan.keep.map((output) => ({ ...reviewGuard(output), action: output.protected ? "keep" : "checked" })))
         return
       }
       const targets = action === "replace" ? plan.replacement : plan.update

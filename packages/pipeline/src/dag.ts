@@ -80,6 +80,7 @@ export async function runDAG<T extends string>(
 export type StepExecutor = (progress: Progress) => Promise<void>
 
 export interface PipelineDAGResult {
+  resume?: import("@adt/types").PipelineResumeSummary
   stages: DAGResult<StageName>
   steps: DAGResult<StepName>
 }

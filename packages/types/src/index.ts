@@ -295,6 +295,7 @@ export {
   GlossaryItem,
   GlossaryOutput,
   glossaryLLMSchema,
+  SaveGlossaryRequest,
 } from "./glossary.js"
 
 export {
@@ -546,7 +547,7 @@ export {
 export { GOOGLE_IMAGE_MODELS, GoogleImageModelId, DEFAULT_GOOGLE_IMAGE_MODEL, GoogleImageResponse } from "./google-image.js"
 export { imageFileExtension, ImageAspectRatio, GeneratedImagePayload, ValidatedGeneratedImage } from "./image.js"
 
-export { OutputSource, OutputReference, OutputInputEvidence, OutputReview, OutputMetadata, OutputKind, OutputIdentity, OutputWarning, OutputLocation, OutputStatus, OutputSelection, OutputReviewRequest, OutputSummary, OutputScopeSummary, OutputSummaries, BookWriterOwner } from "./output-freshness.js"
+export { OutputSource, OutputReference, OutputInputEvidence, OutputReview, OutputMetadata, OutputKind, OutputIdentity, OutputWarning, OutputLocation, OutputStatus, OutputSelection, OutputReviewRequest, OutputReviewBatchRequest, OutputSummary, OutputScopeSummary, OutputSummaries, BookWriterOwner } from "./output-freshness.js"
 
 export { CATALOG_OUTPUT_NODES } from "./pipeline-effects.js"
 
@@ -564,3 +565,9 @@ export { OutputDisclosureOptions } from "./output-freshness.js"
 export * from "./sectioning-lifecycle.js"
 
 export * from "./extraction.js"
+
+export { PipelineResumeSummary } from "./extraction.js"
+export { OUTPUT_KIND_STEP } from "./pipeline.js"
+export { GENERATION_OUTPUT_KINDS } from "./output-freshness.js"
+
+export { PackagePublication } from "./extraction.js"

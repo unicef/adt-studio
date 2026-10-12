@@ -86,10 +86,9 @@ it("runs fixed Storyboard through HTTP without requiring the unused LLM or visua
   bus.addListener(label, (event) => { if (event.type === "stage-run-complete") completed = true })
   const app = new Hono().onError(errorHandler).route("/", createStageRoutes(service, bus, decisions, root, path.join(repository, "prompts"), path.join(repository, "assets/adt"), configPath))
   const send = (fromStage: string) => app.request(`/books/${label}/stages/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fromStage, toStage: "storyboard" }) })
-  expect((await send("sectioning")).status).toBe(400)
-  expect((await send("storyboard")).status).toBe(200)
+  expect((await send("sectioning")).status).toBe(200)
   await vi.waitFor(() => expect(completed).toBe(true))
-  expect(history()[0]["web-rendering"]).toHaveLength(2)
+  expect(history()[0]["web-rendering"]).toHaveLength(1)
   expect(transport).not.toHaveBeenCalled()
 })
 

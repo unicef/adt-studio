@@ -128,6 +128,7 @@ it.each(["reflowable", "fixed", "reflowable-part", "fixed-part"].flatMap((layout
 })
 
 it("older books render intentional By Page edits without lifecycle initialization", async () => {
+  const storage = store(); for (const id of ["p2", "p7"]) storage.putNodeData("web-rendering", id, null); storage.close()
   fs.rmSync(path.join(dir, ".sectioning-lifecycle.json"))
   fs.appendFileSync(configPath, "# inherited preference\n")
   await send("config", { page_sectioning: { mode: "page" } }, "PUT")
@@ -182,12 +183,13 @@ it.each(["page-sectioning", "web-rendering", "fixed-layout-sectioning"])("reject
 })
 
 it.each([null, "null", "{broken json", JSON.stringify({ sections: "invalid" })])("ordinary Sectioning retains unreadable current records and Storyboard skips only that page: %s", async (raw) => {
+  const storage = store(); storage.putNodeData("web-rendering", "p7", null); storage.close()
   const db = openBookDb(path.join(dir, `${label}.db`))
   db.run("UPDATE node_data SET data = ? WHERE node = 'page-sectioning' AND item_id = 'p2'", [raw])
   db.close()
-  expect((await run({ toStage: "sectioning" })).status).toBe("completed")
+  expect((await run({ toStage: "sectioning" })).status).toBe("failed")
   expect(sectionPage).not.toHaveBeenCalled()
-  expect((await run({ fromStage: "storyboard" })).status).toBe("completed")
+  expect((await run({ fromStage: "storyboard" })).status).toBe("failed")
   expect(renderPage.mock.calls.map(([input]) => input.pageId)).toEqual(["p7"])
   const status = await (await app.request(`/books/${label}/step-status`)).json()
   expect(status.coverage).toMatchObject({ complete: false, missingPages: ["p2"] })
@@ -213,6 +215,7 @@ it("partial section rendering stays usable but incomplete across page, library, 
 })
 
 it("newly completed source output cannot complete an older partial package", async () => {
+  const storage = store(); for (const id of ["p2", "p7"]) storage.putNodeData("web-rendering", id, null); storage.close()
   expect((await run({ fromStage: "storyboard" })).status).toBe("completed")
   const adt = path.join(dir, "adt")
   fs.mkdirSync(path.join(adt, "content"), { recursive: true })

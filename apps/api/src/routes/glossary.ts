@@ -1,3 +1,4 @@
+import { assertEditVersion } from "../services/catalog-output-service.js"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -5,18 +6,20 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import {
   GlossaryOutput,
-  IMAGE_SET_CHANGE_CLEAR_NODE_TYPES,
+  SaveGlossaryRequest,
   parseBookLabel,
 } from "@adt/types"
 import type { ImageCaptioningOutput } from "@adt/types"
 import { openBookDb, createBookStorage, readCurrentNodeRow } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import {
-  buildTextCatalog,
+  reconcileTextCatalog,
   buildGlossaryConfig,
   generateGlossaryItem,
   loadBookConfig,
   normalizeLocale,
+  getGlossaryItemTextId,
+  inputSignature,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
@@ -133,7 +136,7 @@ export function createGlossaryRoutes(
     const safeLabel = safeParseLabel(label)
 
     const body = await c.req.json()
-    const parsed = GlossaryOutput.safeParse(body)
+    const parsed = SaveGlossaryRequest.safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid glossary data: ${parsed.error.message}`,
@@ -143,23 +146,34 @@ export function createGlossaryRoutes(
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       const previousRow = storage.getLatestNodeData("glossary", "book")
+      assertEditVersion(previousRow?.version, parsed.data.baseVersion)
+      const { baseVersion: _base, ...content } = parsed.data
       const previous = GlossaryOutput.safeParse(previousRow?.data)
+      const previousItems = previous.success ? previous.data.items : []
+      const evidence = (previousRow?.data as { generationEvidence?: unknown } | undefined)?.generationEvidence
+      const next = { ...content, ...(evidence ? { generationEvidence: evidence } : {}), items: parsed.data.items.map((item, index) => {
+        const id = getGlossaryItemTextId(item, index)
+        const matches = previousItems.filter((prior, priorIndex) => getGlossaryItemTextId(prior, priorIndex) === id)
+        const prior = matches.length === 1 ? matches[0] : undefined
+        const content = (value: typeof item) => { const { id: _id, ...fields } = value; return fields }
+        const { generationEvidence, source, ...oldContent } = prior ?? {}
+        const unchanged = prior && inputSignature(content(oldContent as typeof item)) === inputSignature(content(item))
+        return { ...item, source: unchanged ? source : "manual" as const, ...(prior?.generationEvidence ? { generationEvidence: prior.generationEvidence } : {}) }
+      }) }
       const imageRequirementsChanged = needsCaptionRerun(
         storage,
         previous.success ? previous.data : undefined,
-        parsed.data,
+        next,
       )
 
-      const version = storage.putNodeData("glossary", "book", parsed.data)
-      if (imageRequirementsChanged) {
-        // A glossary picture that has never been captioned changes the captions
-        // output, which invalidates every derived translation/audio/package
-        // result — same cascade as adding an image elsewhere in the book.
-        storage.clearNodesByType([...IMAGE_SET_CHANGE_CLEAR_NODE_TYPES])
-      }
-      const pages = storage.getPages()
-      const catalog = await buildTextCatalog(storage, pages)
-      storage.putNodeData("text-catalog", "book", catalog)
+      const version = storage.transaction(() => {
+        assertEditVersion(storage.getLatestNodeData("glossary", "book")?.version, parsed.data.baseVersion)
+        const version = storage.putNodeData("glossary", "book", next)
+        // Freshness follows actual inputs. Adding a picture must not retire
+        // authored captions, translations or audio while awaiting generation.
+        reconcileTextCatalog(storage)
+        return version
+      })
       return c.json({ version, imageRequirementsChanged })
     } finally {
       storage.close()

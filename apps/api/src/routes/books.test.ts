@@ -773,7 +773,7 @@ describe("POST /books/:label/stages/run", () => {
     }
   })
 
-  it("rejects a keyless run for a credentialed default model before clearing any data", async () => {
+  it("admits a keyless run for execution-time eligibility without clearing any data", async () => {
     const label = "missing-credential-run"
     createTestBook(label)
     fs.writeFileSync(
@@ -812,10 +812,9 @@ describe("POST /books/:label/stages/run", () => {
         body: JSON.stringify({ fromStage: "storyboard", toStage: "storyboard" }),
       })
 
-      expect(res.status).toBe(400)
-      const body = await res.json()
-      expect(body.code).toBe("missing-credential")
-      expect(started).toBe(false)
+      expect(res.status).toBe(200)
+      expect(await res.json()).toMatchObject({ status: "started" })
+      expect(started).toBe(true)
 
       const verifyStorage = createBookStorage(label, tmpDir)
       try {
@@ -830,7 +829,7 @@ describe("POST /books/:label/stages/run", () => {
     }
   })
 
-  it("rejects a run whose per-step model override lacks credentials before clearing any data", async () => {
+  it("does not require credentials for an unused per-step override during admission", async () => {
     const label = "override-credential-run"
     createTestBook(label)
     fs.writeFileSync(
@@ -870,11 +869,9 @@ describe("POST /books/:label/stages/run", () => {
         body: JSON.stringify({ fromStage: "sectioning", toStage: "sectioning" }),
       })
 
-      expect(res.status).toBe(400)
-      const body = await res.json()
-      expect(body.code).toBe("missing-credential")
-      expect(body.error).toContain("translation.model")
-      expect(started).toBe(false)
+      expect(res.status).toBe(200)
+      expect(await res.json()).toMatchObject({ status: "started" })
+      expect(started).toBe(true)
 
       const verifyStorage = createBookStorage(label, tmpDir)
       try {

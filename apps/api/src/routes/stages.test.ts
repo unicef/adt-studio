@@ -373,7 +373,7 @@ describe("section reference retirement and non-destructive preparation", () => {
     expect(withStorage((storage) => storage.getNodeVersionFingerprint())).toEqual(completed)
   })
   it.each(["extract"] as const)(
-    "blocks unsafe %s regeneration before retirement, backup or deletion",
+    "leaves %s preparation to common admission without retirement, backup or deletion",
     (fromStage) => {
       const section = formatSectionId(pageId, 3)
       const textId = `${section}_ans_a`
@@ -387,8 +387,8 @@ describe("section reference retirement and non-destructive preparation", () => {
       const run = makeBeforeRun(label, fromStage, "speech", tmpDir)
       const copy = vi.spyOn(fs, "copyFileSync")
       try {
-        expect(run).toThrow(/manual or unknown-origin/)
-        expect(run).toThrow(/manual or unknown-origin/)
+        expect(run).not.toThrow()
+        expect(run).not.toThrow()
         expect(copy).not.toHaveBeenCalled()
       } finally { copy.mockRestore() }
       expect(withStorage((storage) => storage.getNodeVersionFingerprint())).toEqual(before)

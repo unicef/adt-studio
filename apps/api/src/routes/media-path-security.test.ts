@@ -67,7 +67,7 @@ function upload() {
     try {
       const status = catalogOutputs(storage, label, books, path.resolve("prompts"), config)
         .find((item) => item.identity.kind === "audio" && item.identity.id === textId)
-      if (status) form.set("baseline", JSON.stringify({ identity: status.identity, signature: status.signature, contentHash: status.contentHash }))
+      if (status) form.set("baseline", JSON.stringify({ identity: status.identity, signature: status.signature, contentHash: status.contentHash, revision: status.revision }))
     } finally { storage.close() }
   }
   return createTTSRoutes(books, config).request(`/books/${label}/tts/upload-one`, { method: "POST", body: form })

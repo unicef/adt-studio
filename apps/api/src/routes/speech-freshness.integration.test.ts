@@ -54,7 +54,7 @@ it("uses requested-language fallback without Translate, reuses audio after cache
   const before = await outputs()
   const translation = before.find((output) => output.identity.kind === "translation" && output.identity.id === "stable")!
   expect(before.find((output) => output.identity.kind === "audio" && output.identity.language === "fr" && output.identity.id === "stable")?.warnings.length).toBeGreaterThan(0)
-  const reviewed = await app.request(`/books/${label}/outputs/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identity: translation.identity, signature: translation.signature, contentHash: translation.contentHash, action: "keep" }) })
+  const reviewed = await app.request(`/books/${label}/outputs/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identity: translation.identity, signature: translation.signature, contentHash: translation.contentHash, revision: translation.revision, action: "keep" }) })
   expect(reviewed.status).toBe(200)
   expect((await request()).status).toBe(200)
   expect(transport).toHaveBeenCalledTimes(1)
@@ -80,7 +80,7 @@ it.each(["source", "target", "exclusion", "cancel"] as const)("rejects late %s c
     }
     return new Response(new Uint8Array([9, 9, 9]))
   })
-  const result = await request({ replacement: { identity: status.identity, signature: status.signature, contentHash: status.contentHash } }, controller.signal)
+  const result = await request({ replacement: { identity: status.identity, signature: status.signature, contentHash: status.contentHash, revision: status.revision } }, controller.signal)
   expect(result.status).toBeGreaterThanOrEqual(400)
   const after = audio()!
   expect(after.data.entries[0].fileName).toBe(original.data.entries[0].fileName)

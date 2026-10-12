@@ -1,3 +1,5 @@
+import { useGuardedDraft } from "@/hooks/use-guarded-draft"
+import { DraftConflict } from "../../components/DraftConflict"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import {
   ArrowDownAZ,
@@ -91,18 +93,19 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
     queueRun({ fromStage: "glossary", toStage: "glossary", apiKey })
   }, [hasStructuredTextProvider, glossaryRunning, apiKey, queueRun])
 
-  const [pending, setPending] = useState<GlossaryData | null>(null)
+  const draft = useGuardedDraft<GlossaryData>(data, data?.version, async () => {
+    const latest = await api.getGlossary(bookLabel)
+    if (!latest) throw new Error(t`Saved content is unavailable; your draft is retained`)
+    queryClient.setQueryData(["books", bookLabel, "glossary"], latest)
+    return { value: latest, version: latest.version ?? 0 }
+  })
+  const { pending, setPending } = draft
   const [saving, setSaving] = useState(false)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [filter, setFilter] = useState<GlossaryFilter>("active")
   const [manualOnly, setManualOnly] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>("default")
-
-  // Reset pending when data changes
-  useEffect(() => {
-    setPending(null)
-  }, [data?.version])
 
   const effective = pending ?? data ?? null
   const items = effective?.items ?? []
@@ -202,9 +205,11 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
 
   const saveGlossary = useCallback(async () => {
     if (!pending) return
+    if (draft.conflict) throw new Error(t`Resolve conflicting edits before saving`)
     setSaving(true)
+    try {
     const minDelay = new Promise((r) => setTimeout(r, 400))
-    const result = await api.updateGlossary(bookLabel, pending)
+    const result = await api.updateGlossary(bookLabel, { ...pending, baseVersion: draft.baseVersion })
     setPending(null)
     if (result.imageRequirementsChanged) {
       queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
@@ -215,8 +220,8 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
       queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "text-catalog"] }),
     ])
     await minDelay
-    setSaving(false)
-  }, [pending, bookLabel, queryClient])
+    } catch (error) { await draft.handleError(error); throw error } finally { setSaving(false) }
+  }, [pending, bookLabel, queryClient, draft])
 
   // Use ref so the header always calls the latest save
   const saveRef = useRef(saveGlossary)
@@ -370,6 +375,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
         </>
       }
     >
+      <DraftConflict error={draft.error} paths={draft.conflict?.paths} onResolve={draft.resolve} />
       <div className="flex flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]">
         <GlossaryHintBanner />
         <div

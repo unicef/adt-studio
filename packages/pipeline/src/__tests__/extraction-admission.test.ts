@@ -185,36 +185,20 @@ describe("SPEC-0010 extraction admission", { timeout: 30_000 }, () => {
     } finally { f.storage.close() }
   })
 
-  it("blocks the actual full DAG and CLI with no transport calls or content mutation after reuse", async () => {
+  it("rejects changed stored source in the actual DAG and CLI without transport or mutation", async () => {
     const f = fixture()
     try {
       await extractPDF(f.options, f.storage, quiet)
+      fs.appendFileSync(path.join(f.bookDir, "book.pdf"), "changed snapshot")
       const before = bytes(f.bookDir)
       const transport = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Provider transport must not run"))
-      await expect(runFullPipeline({ label: "book", booksRoot: f.booksRoot, ...f.options, configPath: path.join(root, "config.yaml"), promptsDir: path.join(root, "prompts"), templatesDir: path.join(root, "templates") })).rejects.toMatchObject({ code: "UNSAFE_RESUME_UNAVAILABLE" })
-      expect(transport).not.toHaveBeenCalled()
-      const hook = path.join(f.booksRoot, "reject-provider.mjs")
-      fs.writeFileSync(hook, `globalThis.fetch = async () => {
-        process.stderr.write("UNEXPECTED_PROVIDER_CALL\\n"); process.exit(79);
-      };`)
-      const cli = spawnSync(process.execPath, ["--import", pathToFileURL(hook).href, path.join(root, "packages/pipeline/dist/cli.js"), "book", pdf, "--books-dir", f.booksRoot, "--start-page", "1", "--end-page", "1"], { cwd: root, encoding: "utf8", timeout: 20000 })
-      expect(cli.error).toBeUndefined()
-      expect(cli.status).toBe(1)
-      expect(cli.stderr).toContain("UNSAFE_RESUME_UNAVAILABLE")
-      expect(cli.stderr).toContain("Extraction: verified reusable")
-      expect(cli.stderr).toContain("Downstream: blocked; no work started")
-      expect(cli.stderr).toContain("Current/stale/protected scopes: not assessed")
-      expect(cli.stderr).toContain("Content changed: no. Generated output: none")
-      expect(cli.stderr).toContain("Pipeline incomplete; exiting with status 1")
-      expect(cli.stderr).not.toContain("UNEXPECTED_PROVIDER_CALL")
-      expect(cli.stderr).not.toContain("Output:")
-      expect(bytes(f.bookDir)).toEqual(before)
-
-      fs.appendFileSync(path.join(f.bookDir, "book.pdf"), "changed snapshot")
+      await expect(runFullPipeline({ label: "book", booksRoot: f.booksRoot, ...f.options, configPath: path.join(root, "config.yaml"), promptsDir: path.join(root, "prompts"), templatesDir: path.join(root, "templates") })).rejects.toMatchObject({ code: "EXTRACTION_ASSETS_INVALID" })
       const invalid = spawnSync(process.execPath, [path.join(root, "packages/pipeline/dist/cli.js"), "book", pdf, "--books-dir", f.booksRoot, "--start-page", "1", "--end-page", "1"], { cwd: root, encoding: "utf8", timeout: 20000 })
       expect(invalid.status).toBe(1)
       expect(invalid.stderr).toContain("EXTRACTION_ASSETS_INVALID")
       expect(invalid.stderr).not.toContain("Extraction: verified reusable")
+      expect(transport).not.toHaveBeenCalled()
+      expect(bytes(f.bookDir)).toEqual(before)
     } finally { f.storage.close() }
   })
 

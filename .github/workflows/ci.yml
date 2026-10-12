@@ -22,6 +22,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      - run: pnpm lint:invariants
       - run: pnpm test
 
   docker:

@@ -1,7 +1,7 @@
+import { assertSafeExtractionRun } from "@adt/pipeline"
 import { STAGE_ORDER, type OutputRunScope, type OutputIdentity, type ProgressEvent } from "@adt/types"
-import { prepareSectioningRun } from "@adt/pipeline"
 import type { StageName, StepName, PageErrorPolicy, PageErrorAction } from "@adt/types"
-import { createBookStorage, resolveBookPaths, withBookWriter } from "@adt/storage"
+import { assertExtractionReadable, createBookStorage, resolveBookPaths, withBookWriter } from "@adt/storage"
 import type { ResolvedCredentials } from "@adt/llm"
 import type { BookEventBus } from "./book-event-bus.js"
 import type { PageErrorDecisions } from "./page-error-decisions.js"
@@ -15,6 +15,7 @@ export type StageRunStatus =
   | "failed"
 
 export interface StageRunJob {
+  summary?: import("@adt/types").PipelineResumeSummary
   label: string
   status: StageRunStatus
   fromStage: string
@@ -35,56 +36,19 @@ export interface QueuedStageRun {
 }
 
 interface BookRunState {
+  summary?: import("@adt/types").PipelineResumeSummary
   active: StageRunJob | null
   queue: QueuedStageRun[]
 }
 
 export interface BookRunStatus {
+  summary?: import("@adt/types").PipelineResumeSummary
   active: StageRunJob | null
   queue: Array<{ id: string; fromStage: string; toStage: string }>
 }
 
-export interface StageRunOptions {
-  replaceManual?: boolean
-  protectedReplacements?: import("@adt/types").AuthoredReplacement[]
-  outputScope?: OutputRunScope
-  booksDir: string
-  /** Request-scoped provider credentials. Values are never persisted. */
-  credentials: ResolvedCredentials
-  promptsDir: string
-  webAssetsDir?: string
-  configPath?: string
-  fromStage: string
-  toStage: string
-  /** When true, skip page-sectioning and only re-render from existing section data. */
-  renderOnly?: boolean
-  beforeRun?: () => void
-  /** Cancellation signal for the run. Aborts in-flight LLM calls and stops the
-   *  runner at the next checkpoint. Set by the service per job. */
-  signal?: AbortSignal
-  /** How to react when a page fails inside a per-page step. Defaults to "stop"
-   *  (accumulate + fail at the end — the historical behavior). */
-  pageErrorPolicy?: PageErrorPolicy
-  /** Ask the user how to handle a failed page (only used when pageErrorPolicy
-   *  is "ask"). Bound to this run's label by the service. */
-  requestPageDecision?: (input: {
-    step: StepName
-    pageId: string
-    error: string
-  }) => Promise<PageErrorAction>
-}
-
-export interface StageRunProgress {
-  emit(event: ProgressEvent): void
-}
-
-export interface StageRunner {
-  run(
-    label: string,
-    options: StageRunOptions,
-    progress: StageRunProgress
-  ): Promise<void>
-}
+import type { StageRunner, StageRunOptions, StageRunProgress } from "@adt/pipeline"
+export type { StageRunner, StageRunOptions, StageRunProgress } from "@adt/pipeline"
 
 export interface StageService {
   getStatus(label: string): BookRunStatus
@@ -137,6 +101,7 @@ export function createStageService(
     const effectiveOptions: StageRunOptions = {
       ...options,
       outputScope: job.outputScope,
+      onResumeSummary: (summary) => { job.summary = summary; getOrCreateState(label).summary = summary; options.onResumeSummary?.(summary) },
       signal: job.controller.signal,
       requestPageDecision: decisions
         ? (input) => decisions.requestDecision({ label, ...input })
@@ -145,42 +110,43 @@ export function createStageService(
 
     try {
       await withBookWriter(resolveBookPaths(label, options.booksDir).bookDir, async () => {
+        let enteredRunner = false
+        try {
         job.controller.signal.throwIfAborted()
-        prepareSectioningRun(label, options.booksDir, options.fromStage as StageName, options.toStage as StageName, options.configPath)
-        options.beforeRun?.()
+        if (options.fromStage === "extract") assertSafeExtractionRun(label, options.booksDir, options.configPath)
+        else assertExtractionReadable(resolveBookPaths(label, options.booksDir).bookDir)
+        enteredRunner = true
         await runner.run(label, effectiveOptions, progress)
+        } catch (error) {
+          // The same writer still owns the book while cancellation unwinds.
+          if (job.controller.signal.aborted && enteredRunner) {
+            const storage = createBookStorage(label, options.booksDir)
+            try { storage.clearRunningStepRuns() } finally { storage.close() }
+          }
+          throw error
+        }
       })
       // Resolved: either a real completion, or a cancel that landed after the
       // last checkpoint so all remaining work finished. Both are "completed" —
       // no cancelled event, no step reset (the run genuinely finished).
       job.status = "completed"
       job.completedAt = Date.now()
-      eventBus.emit(label, { type: "stage-run-complete", label })
+      eventBus.emit(label, { type: "stage-run-complete", label, ...(job.summary ? { summary: job.summary } : {}) })
     } catch (err) {
       if (job.controller.signal.aborted) {
         // Cancel branch — runs only here, after runner.run() has settled, so the
         // runner is no longer touching step_runs. Return in-flight steps to idle
         // (deliberate action, not a failure) and announce completion of the cancel.
-        try {
-          const storage = createBookStorage(label, options.booksDir)
-          try {
-            storage.clearRunningStepRuns()
-          } finally {
-            storage.close()
-          }
-        } catch (cleanupErr) {
-          console.error(`[stage-run] ${label} cancel cleanup failed:`, cleanupErr)
-        }
         job.status = "cancelled"
         job.completedAt = Date.now()
-        eventBus.emit(label, { type: "stage-run-cancelled", label })
+        eventBus.emit(label, { type: "stage-run-cancelled", label, ...(job.summary ? { summary: job.summary } : {}) })
       } else {
         const message = err instanceof Error ? err.message : String(err)
         console.error(`[stage-run] ${label} failed:`, message)
         job.status = "failed"
         job.error = message
         job.completedAt = Date.now()
-        eventBus.emit(label, { type: "stage-run-error", label, error: message, ...((err instanceof Error && "code" in err && typeof err.code === "string") ? { code: err.code } : {}) })
+        eventBus.emit(label, { type: "stage-run-error", label, error: message, ...(job.summary ? { summary: job.summary } : {}), ...((err instanceof Error && "code" in err && typeof err.code === "string") ? { code: err.code } : {}) })
       }
     } finally {
       // Clear any per-run page-error policy / pending decisions so they never
@@ -216,6 +182,7 @@ export function createStageService(
       outputScope: structuredClone(next.options.outputScope ?? {}),
     }
     state.active = job
+    state.summary = undefined
 
     eventBus.emit(label, {
       type: "queue-next",
@@ -233,6 +200,7 @@ export function createStageService(
       if (!state) return { active: null, queue: [] }
       return {
         active: state.active,
+        ...(state.summary ? { summary: state.summary } : {}),
         queue: state.queue.map((q) => ({
           id: q.id,
           fromStage: q.fromStage,
@@ -299,6 +267,7 @@ export function createStageService(
       // between preparation and the runner's first instruction.
       const work = withBookWriter(resolveBookPaths(label, options.booksDir).bookDir, () => {
         state.active = job
+        state.summary = undefined
         return new Promise<void>((resolve) => setImmediate(() => {
           executeJob(label, job, options).finally(resolve)
         }))

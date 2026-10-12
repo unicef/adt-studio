@@ -592,7 +592,7 @@ describe("createStageRunner captions step", () => {
     )
 
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       "with-summary",
       {
         booksDir,
@@ -603,7 +603,7 @@ describe("createStageRunner captions step", () => {
         toStage: "captions",
       },
       { emit: () => {} }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     expect(captionPageImagesMock).toHaveBeenCalledTimes(1)
     const firstInput = capturedCaptionInputs[0] as { bookSummary?: string }
@@ -624,7 +624,7 @@ describe("createStageRunner captions step", () => {
     seedCaptionBook(booksDir, "without-summary")
 
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       "without-summary",
       {
         booksDir,
@@ -635,7 +635,7 @@ describe("createStageRunner captions step", () => {
         toStage: "captions",
       },
       { emit: () => {} }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     expect(captionPageImagesMock).toHaveBeenCalledTimes(1)
     const firstInput = capturedCaptionInputs[0] as { bookSummary?: string }
@@ -777,7 +777,7 @@ describe("createStageRunner storyboard render-only", () => {
     const events: ProgressEvent[] = []
     const controller = new AbortController()
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       "render-only",
       {
         booksDir,
@@ -790,7 +790,7 @@ describe("createStageRunner storyboard render-only", () => {
         signal: controller.signal,
       },
       { emit: (event) => events.push(event) }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     expect(sectionPageMock).not.toHaveBeenCalled()
     expect(renderPageMock).toHaveBeenCalledTimes(1)
@@ -1214,6 +1214,7 @@ image_translation:
     return createStageRunner().run("image-book", {
       booksDir: tmpDir, promptsDir: tmpDir, configPath: path.join(tmpDir, "config.yaml"),
       fromStage: "translate", toStage: "translate", credentials,
+      outputScope: { selection: { kinds: ["image-translation"] } },
     }, { emit: () => undefined })
   }
 
@@ -1253,6 +1254,9 @@ image_translation:
   })
 })
 
+// These legacy catalog fixtures intentionally lack reviewed input provenance;
+// several provider stubs also omit physical audio. A combined continuation must
+// preserve usable results while reporting those required gaps as incomplete.
 describe("createStageRunner speech Gemini partial failures", () => {
   let tmpDir = ""
 
@@ -1378,7 +1382,7 @@ speech:
 
     const events: ProgressEvent[] = []
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       "gemini-tts-failure",
       {
         booksDir,
@@ -1389,7 +1393,7 @@ speech:
         toStage: "speech",
       },
       { emit: (event) => events.push(event) }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     // The step completes with gaps rather than erroring, so the stage finishes
     // and downstream export isn't blocked by a stray failed item.
@@ -1451,7 +1455,7 @@ speech:
 
     const events: ProgressEvent[] = []
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       "gemini-tts-retry",
       {
         booksDir,
@@ -1462,7 +1466,7 @@ speech:
         toStage: "speech",
       },
       { emit: (event) => events.push(event) }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     expect(generateSpeechFileMock).toHaveBeenCalledTimes(2)
     expect(
@@ -1523,7 +1527,7 @@ speech:
 
     const events: ProgressEvent[] = []
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       "gemini-tts-transient",
       {
         booksDir,
@@ -1534,7 +1538,7 @@ speech:
         toStage: "speech",
       },
       { emit: (event) => events.push(event) }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     expect(generateSpeechFileMock).toHaveBeenCalledTimes(2)
     expect(
@@ -1783,7 +1787,7 @@ speech:
 
     const events: ProgressEvent[] = []
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       label,
       {
         booksDir,
@@ -1794,7 +1798,7 @@ speech:
         toStage: "speech",
       },
       { emit: (event) => events.push(event) }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     expect(generateSpeechFileMock).not.toHaveBeenCalled()
     expect(
@@ -1924,7 +1928,7 @@ speech:
 
     const events: ProgressEvent[] = []
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       "speech-word-timestamps",
       {
         booksDir,
@@ -1935,7 +1939,7 @@ speech:
         toStage: "speech",
       },
       { emit: (event) => events.push(event) }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     expect(
       events.some(
@@ -2009,7 +2013,7 @@ speech:
 
     const events: ProgressEvent[] = []
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       "speech-word-timestamps-fail",
       {
         booksDir,
@@ -2020,7 +2024,7 @@ speech:
         toStage: "speech",
       },
       { emit: (event) => events.push(event) }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     // The step completes with gaps rather than erroring, so the Speech view
     // renders (instead of stranding the user on the landing page).
@@ -2112,7 +2116,7 @@ speech:
     })
 
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       "speech-empty-slice",
       {
         booksDir,
@@ -2123,7 +2127,7 @@ speech:
         toStage: "speech",
       },
       { emit: () => {} }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     // The empty slice is caught up front — no doomed transcription call.
     expect(transcribeWithWhisperMock).not.toHaveBeenCalled()
@@ -2198,7 +2202,7 @@ speech:
     })
 
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       "speech-word-highlight-disabled",
       {
         booksDir,
@@ -2209,7 +2213,7 @@ speech:
         toStage: "speech",
       },
       { emit: () => {} }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     expect(transcribeWithWhisperMock).not.toHaveBeenCalled()
 
@@ -2284,7 +2288,7 @@ speech:
 
     const events: ProgressEvent[] = []
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       "speech-dual-voice",
       {
         booksDir,
@@ -2295,7 +2299,7 @@ speech:
         toStage: "speech",
       },
       { emit: (event) => events.push(event) }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     expect(
       events.some((event) => event.type === "step-complete" && event.step === "tts")
@@ -2408,7 +2412,7 @@ speech:
     })
 
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       "speech-dual-voice-rerun",
       {
         booksDir,
@@ -2419,13 +2423,13 @@ speech:
         toStage: "speech",
       },
       { emit: () => {} }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
     expect(generateSpeechFileMock).toHaveBeenCalledTimes(2)
 
     // Rerun with no changes: both slots must be reused from cache, so
     // generateSpeechFile is not called again for either variant.
     generateSpeechFileMock.mockClear()
-    await runner.run(
+    await expect(runner.run(
       "speech-dual-voice-rerun",
       {
         booksDir,
@@ -2436,7 +2440,7 @@ speech:
         toStage: "speech",
       },
       { emit: () => {} }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
     expect(generateSpeechFileMock).not.toHaveBeenCalled()
 
     // A label-only change must keep both audio files cached while refreshing
@@ -2446,7 +2450,7 @@ speech:
       voice: "shimmer",
       label: "Alt Two",
     })
-    await runner.run(
+    await expect(runner.run(
       "speech-dual-voice-rerun",
       {
         booksDir,
@@ -2457,7 +2461,7 @@ speech:
         toStage: "speech",
       },
       { emit: () => {} },
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
     expect(generateSpeechFileMock).not.toHaveBeenCalled()
     const storage = createBookStorage("speech-dual-voice-rerun", booksDir)
     try {
@@ -2479,7 +2483,7 @@ speech:
       voice: "nova",
     })
     generateSpeechFileMock.mockClear()
-    await runner.run(
+    await expect(runner.run(
       "speech-dual-voice-rerun",
       {
         booksDir,
@@ -2490,7 +2494,7 @@ speech:
         toStage: "speech",
       },
       { emit: () => {} }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     expect(generateSpeechFileMock).toHaveBeenCalledTimes(1)
     expect(generateSpeechFileMock).toHaveBeenCalledWith(
@@ -2513,7 +2517,7 @@ speech:
 `
     )
     generateSpeechFileMock.mockClear()
-    await runner.run(
+    await expect(runner.run(
       "speech-dual-voice-rerun",
       {
         booksDir,
@@ -2524,7 +2528,7 @@ speech:
         toStage: "speech",
       },
       { emit: () => {} }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     expect(generateSpeechFileMock).toHaveBeenCalledTimes(1)
     expect(generateSpeechFileMock).toHaveBeenCalledWith(
@@ -2603,7 +2607,7 @@ structure_types:
     }
 
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       label,
       {
         booksDir,
@@ -2614,7 +2618,7 @@ structure_types:
         toStage: "speech",
       },
       { emit: () => {} }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     // The manual recording is reused (never regenerated) but its persisted
     // label is refreshed from the currently resolved primary profile.
@@ -2771,7 +2775,7 @@ structure_types:
       })
     )
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       label,
       {
         booksDir,
@@ -2782,7 +2786,7 @@ structure_types:
         toStage: "speech",
       },
       { emit: () => {} }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     // Generated from the answer the id now names, not reused from the old one.
     expect(generateSpeechFileMock).toHaveBeenCalledWith(
@@ -2818,7 +2822,7 @@ structure_types:
     // throw away a recording that still describes its own section.
     generateSpeechFileMock.mockClear()
     const runner = createStageRunner()
-    await runner.run(
+    await expect(runner.run(
       label,
       {
         booksDir,
@@ -2829,7 +2833,7 @@ structure_types:
         toStage: "speech",
       },
       { emit: () => {} }
-    )
+    )).rejects.toMatchObject({ code: "RESUME_INCOMPLETE", summary: { status: "incomplete", outputs: expect.arrayContaining([expect.objectContaining({ state: "blocked" })]) } })
 
     expect(generateSpeechFileMock).not.toHaveBeenCalledWith(
       expect.objectContaining({ textId: "pg001_sec001_ans_a" })

@@ -10,7 +10,7 @@ export const hasFallback = (output: OutputStatus) => output.identity.kind === "p
   output.warnings.some((warning) => !warning.source && warning.reason.startsWith("preparation-"))
 
 export const reviewGuard = (output: OutputStatus) => ({
-  identity: output.identity, signature: output.signature, contentHash: output.contentHash,
+  identity: output.identity, signature: output.signature, contentHash: output.contentHash, revision: output.revision,
 })
 
 /** Resolve inherited warnings at their source, once even when many rows share it.
@@ -33,10 +33,10 @@ export function buildReviewPlan(selected: OutputStatus[], catalog: OutputStatus[
   const keep = outputs.filter((output) => output.usable && (
     output.protected && output.warnings.some((warning) => !warning.source) || hasFallback(output)
   ))
-  const replace = outputs.filter((output) => output.protected && needsAttention(output))
+  const replace = outputs.filter((output) => output.protected && needsAttention(output) && output.identity.kind !== "sectioning" && !((output.identity.kind === "quizzes" || output.identity.kind === "glossary") && output.identity.id !== "book"))
 
   function generationTargets(replacing: boolean) {
-    const targets = new Set(outputs.filter((output) => replacing && output.protected && needsAttention(output) ||
+    const targets = new Set(outputs.filter((output) => replacing && replace.includes(output) ||
       !output.protected && (output.updateNeeded || output.missing || hasFallback(output)))
       .map((output) => identityKey(output.identity)))
     // A warning can cross multiple stages; add consumers only when a source in

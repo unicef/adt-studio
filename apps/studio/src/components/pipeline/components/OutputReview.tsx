@@ -1,4 +1,6 @@
 import { OutputReviewPanel } from "./output-review/OutputReviewPanel"
+import { GENERATION_OUTPUT_KINDS } from "@adt/types"
+import { getStageLabelI18n } from "../pipeline-i18n"
 import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
@@ -47,12 +49,12 @@ function OutputReviewItem({ bookLabel, output, outputs, dirty = false, disclosur
   const mutation = useMutation({
     mutationFn: async (action: "keep" | "checked" | "generate" | "replace" | "retry" | "skip") => {
       if (action === "skip") return api.skipOutputs(bookLabel, { identities: [output.identity] })
-      if (action === "keep" || action === "checked") return api.reviewOutput(bookLabel, { identity: output.identity, signature: output.signature, contentHash: output.contentHash, action })
+      if (action === "keep" || action === "checked") return api.reviewOutput(bookLabel, { identity: output.identity, signature: output.signature, contentHash: output.contentHash, revision: output.revision, action })
       const stage = OUTPUT_KIND_TO_STAGE[output.identity.kind]
       return api.runStages(bookLabel, apiKey, { fromStage: stage, toStage: stage, outputScope: {
         selection: { kinds: [output.identity.kind], ids: [output.identity.id], ...(output.identity.language ? { languages: [output.identity.language] } : {}), ...(output.identity.voiceSlot ? { voiceSlots: [output.identity.voiceSlot] } : {}) },
         ...(action === "retry" ? { retry: [output.identity] } : {}),
-        ...(action === "replace" ? { replace: [{ identity: output.identity, signature: output.signature, contentHash: output.contentHash }] } : {}),
+        ...(action === "replace" ? { replace: [{ identity: output.identity, signature: output.signature, contentHash: output.contentHash, revision: output.revision }] } : {}),
       } })
     }, onSuccess: async () => { setReplace(false); await refresh() },
   })
@@ -61,14 +63,16 @@ function OutputReviewItem({ bookLabel, output, outputs, dirty = false, disclosur
   const fallback = output.identity.kind === "preparation" && warnings.some((warning) => !warning.source && warning.reason.startsWith("preparation-"))
   const ownWarning = warnings.some((warning) => !warning.source)
   const upstream = outputs.filter((item) => warnings.some(({ source }) => source && item.identity.kind === source.kind && item.identity.id === source.id && item.identity.language === source.language && item.identity.voiceSlot === source.voiceSlot))
+  if (output.identity.kind === "sectioning") return null
   if (!warnings.length && !output.updateNeeded && !output.missing && !output.manual && !edited) return null
-  const label = output.identity.kind === "translation" ? t`Translation` : output.identity.kind === "preparation" ? t`Speech text` : output.identity.kind === "audio" ? t`Audio` : output.identity.kind === "caption" ? t`Caption` : output.identity.kind === "easy-read" ? t`Easy Read` : output.identity.kind === "timestamps" ? t`Timestamps` : t`Image translation`
+  const label = GENERATION_OUTPUT_KINDS.some((kind) => kind === output.identity.kind) ? getStageLabelI18n(OUTPUT_KIND_TO_STAGE[output.identity.kind]) : output.identity.kind === "translation" ? t`Translation` : output.identity.kind === "preparation" ? t`Speech text` : output.identity.kind === "audio" ? t`Audio` : output.identity.kind === "caption" ? t`Caption` : output.identity.kind === "easy-read" ? t`Easy Read` : output.identity.kind === "timestamps" ? t`Timestamps` : t`Image translation`
   const reasons = [...new Set(warnings.map((warning) => warning.reason === "legacy" ? t`Freshness is unknown. Existing content has been kept.`
     : warning.reason === "source-changed" ? t`Source changed. Your edit has been kept.`
     : warning.reason === "preparation-failed" ? t`Text preparation failed. Speech text uses the original text.`
     : warning.reason === "preparation-outdated" ? t`Text preparation is outdated. Speech text uses the original text.`
     : warning.reason === "preparation-missing" ? t`Text preparation is missing. Speech text uses the original text.`
     : t`An input needs review.`))]
+  const collectionItem = (output.identity.kind === "quizzes" || output.identity.kind === "glossary") && output.identity.id !== "book"
   const content = <div className={compact || inline ? "space-y-2 text-xs" : "rounded border border-amber-200/70 bg-amber-50/40 px-2 py-1 text-xs"}>
     <div className="flex flex-wrap items-center gap-2">
       <span className="font-medium">{label}</span>
@@ -86,12 +90,12 @@ function OutputReviewItem({ bookLabel, output, outputs, dirty = false, disclosur
     {!compact && !inline && !hasDraft && !disclosure && ["easy-read", "preparation", "audio", "caption"].includes(output.identity.kind) && <p className="mt-1 text-muted-foreground">{t`Generation uses required section or page context and publishes only selected outputs. Current and protected outputs are kept.`}</p>}
     {!hasDraft && !disclosure && <div className="mt-1 flex flex-wrap gap-1">
       {isRunning && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => mutation.mutate("skip")}>{t`Skip this run`}</Button>}
-      {output.usable && output.protected && ownWarning && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => mutation.mutate("keep")}>{output.manual ? t`Keep my edit` : t`Keep existing content`}</Button>}
+      {output.usable && output.protected && ownWarning && <Button size="sm" variant="ghost" disabled={mutation.isPending || output.blocked} onClick={() => mutation.mutate("keep")}>{output.manual ? t`Keep my edit` : t`Keep existing content`}</Button>}
       {fallback && output.usable && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => mutation.mutate("checked")}>{t`Mark checked`}</Button>}
       {fallback && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => mutation.mutate("retry")}>{t`Retry preparation`}</Button>}
-      {(output.updateNeeded || output.missing) && (!output.protected) && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => mutation.mutate("generate")}>{t`Generate selected output`}</Button>}
-      {output.protected && <Button size="sm" variant="ghost" disabled={mutation.isPending} onClick={() => setReplace(!replace)}>{t`Regenerate`}</Button>}
-      {replace && <Button size="sm" variant="outline" disabled={mutation.isPending} onClick={() => mutation.mutate("replace")}>{t`Regenerate and replace my edit`}</Button>}
+      {(output.updateNeeded || output.missing) && (!output.protected) && <Button size="sm" variant="ghost" disabled={mutation.isPending || output.blocked} onClick={() => mutation.mutate("generate")}>{t`Generate selected output`}</Button>}
+      {output.protected && !collectionItem && <Button size="sm" variant="ghost" disabled={mutation.isPending || output.blocked} onClick={() => setReplace(!replace)}>{t`Regenerate`}</Button>}
+      {replace && <Button size="sm" variant="outline" disabled={mutation.isPending || output.blocked} onClick={() => mutation.mutate("replace")}>{t`Regenerate and replace my edit`}</Button>}
       {upstream.length > 0 && <Button size="sm" variant="ghost" onClick={() => setShowSource(!showSource)}>{t`Review source`}</Button>}
     </div>}
     {showSource && upstream.map((source) => <div key={JSON.stringify(source.identity)} className="mt-2 border-l pl-2"><p className="mb-1 font-mono">{source.identity.id} {source.identity.language}</p><OutputReviewItem bookLabel={bookLabel} output={source} outputs={outputs} dirty={dirty} disclosure={disclosure} detail inline={inline} /></div>)}

@@ -4,7 +4,7 @@ import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Hono } from "hono"
 import { createBookStorage, writeSectioningLifecycle } from "@adt/storage"
-import { runFullPipeline } from "@adt/pipeline"
+import { runFullPipeline, outputEvidence } from "@adt/pipeline"
 import { createStageRunner } from "./stage-runner.js"
 import { reRenderPages } from "./page-edit-service.js"
 import { createBookEventBus } from "./book-event-bus.js"
@@ -21,7 +21,7 @@ let dir: string
 let configPath: string
 const label = "book"
 const section = { sectionId: "p2_sec009", sectionType: "text", backgroundColor: "white", textColor: "black", pageNumber: 2, isPruned: false, nodes: [] }
-const output = (n = 1) => ({ reasoning: "retained", sections: Array.from({ length: n }, (_, index) => ({ ...section, sectionId: `p2_sec00${index + 1}` })) })
+const output = (n = 1, pageId = "p2") => ({ reasoning: "retained", sections: Array.from({ length: n }, (_, index) => ({ ...section, sectionId: `${pageId}_sec00${index + 1}` })) })
 function store() { return createBookStorage(label, root) }
 function history() { const s = store(); try { return s.getPages().map((p) => s.getAllNodeVersions("web-rendering", p.pageId)) } finally { s.close() } }
 const options = () => ({ booksDir: root, promptsDir: root, configPath, fromStage: "storyboard", toStage: "storyboard", credentials: {} })
@@ -33,8 +33,8 @@ beforeEach(() => {
   const s = store()
   for (const n of [2, 7]) {
     s.putExtractedPage({ pageId: `p${n}`, pageNumber: n, text: "text", pageImage: { imageId: `p${n}_page`, buffer: Buffer.from("image"), hash: "test", width: 4, height: 6, format: "png" }, images: [] })
-    s.putNodeData("page-sectioning", `p${n}`, output(n === 7 ? 2 : 1))
-    s.putNodeData("web-rendering", `p${n}`, { sections: [{ html: "saved" }] })
+    s.putNodeData("page-sectioning", `p${n}`, output(n === 7 ? 2 : 1, `p${n}`))
+    s.putNodeData("web-rendering", `p${n}`, { ...rendered({ sectioning: output(n === 7 ? 2 : 1, `p${n}`) }), generationEvidence: { source: "ai", input: outputEvidence("old-input", { html: rendered({ sectioning: output(n === 7 ? 2 : 1, `p${n}`) }) }) } })
   }
   s.close()
   writeSectioningLifecycle(dir, "page", true)
@@ -63,7 +63,7 @@ describe("revised saved-content and per-page publication boundaries", () => {
       expect(response.status).toBe(200)
       const pages = await response.json()
       expect(pages.find((p: { pageId: string }) => p.pageId === "p2")).toMatchObject({ hasRendering: true })
-      const row = store(); try { expect(row.getLatestNodeData("web-rendering", "p2")?.data).toEqual(rendered({ sectioning: output(1) })) } finally { row.close() }
+      const row = store(); try { expect(row.getLatestNodeData("web-rendering", "p2")?.data).toMatchObject({ ...rendered({ sectioning: output(1) }), generationEvidence: { source: "ai" } }) } finally { row.close() }
     } finally { finish?.(); await running }
     expect(render).toHaveBeenCalledTimes(2)
   })
@@ -78,7 +78,7 @@ describe("revised saved-content and per-page publication boundaries", () => {
     const running = createStageRunner().run(label, { ...options(), signal: controller.signal,
       ...(outcome === "skip" ? { pageErrorPolicy: "ask" as const, requestPageDecision: async () => "skip" as const } : {}),
     }, { emit() {} })
-    if (outcome === "skip") await running
+    if (outcome === "skip") await expect(running).rejects.toMatchObject({ code: "RESUME_INCOMPLETE" })
     else await expect(running).rejects.toThrow()
     expect(history()[0]).toHaveLength(before[0].length + 1)
     expect(history()[1]).toEqual(before[1])

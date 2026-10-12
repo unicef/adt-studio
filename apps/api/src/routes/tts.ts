@@ -697,7 +697,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       const identity = { kind: "audio" as const, id: textEntry.id, language: normalizedLanguage, voiceSlot }
       const before = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath)
       const status = before.find((item) => outputIdentityKey(item.identity) === outputIdentityKey(identity))
-      if (!baseline.success || outputIdentityKey(baseline.data.identity) !== outputIdentityKey(identity) || !status || status.signature !== baseline.data.signature || status.contentHash !== baseline.data.contentHash) {
+      if (!baseline.success || outputIdentityKey(baseline.data.identity) !== outputIdentityKey(identity) || !status || status.signature !== baseline.data.signature || status.contentHash !== baseline.data.contentHash || status.revision !== baseline.data.revision) {
         throw new HTTPException(409, { message: "Audio or its inputs changed. Refresh before uploading your recording." })
       }
       const format = resolveUploadedAudioFormat(audioFile)

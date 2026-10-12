@@ -38,7 +38,7 @@ import type {
   VoiceSlot,
   WebRenderingOutput,
 } from "@adt/types"
-import { ImageClassificationOutput, PageSectioningOutput, isTtsExcluded, voiceSlotEntryId, PIPELINE } from "@adt/types"
+import { ImageClassificationOutput, PageSectioningOutput, isTtsExcluded, voiceSlotEntryId, PIPELINE, STAGE_ORDER, StageName, AuthoredRunOptions, type AuthoredReplacement } from "@adt/types"
 import { extractPDF, figureExtractionFlags, resolveFigureExtractionMode } from "./pdf-extraction.js"
 import {
   resolveFontsCacheDir,
@@ -140,6 +140,11 @@ function progressOnly(p: Progress): Progress {
 }
 
 export interface FullPipelineOptions {
+  fromStage?: import("@adt/types").StageName
+  toStage?: import("@adt/types").StageName
+  outputScope?: import("@adt/types").OutputRunScope
+  replaceManual?: boolean
+  protectedReplacements?: AuthoredReplacement[]
   signal?: AbortSignal
   label: string
   pdfPath: string
@@ -175,15 +180,42 @@ export async function runFullPipeline(options: FullPipelineOptions, progress: Pr
     recoverSectioningTransition(bookDir)
     const config = loadBookConfig(options.label, options.booksRoot, options.configPath)
     const admission = prepareExtractionAdmission(bookDir, {
-      ...extractionOptionsFromConfig(options.pdfPath, config),
+      ...extractionOptionsFromConfig(options.pdfPath, config, bookDir),
       startPage: options.startPage ?? config.start_page,
       endPage: options.endPage ?? config.end_page,
     })
-    // Expanded existing-book resume is owned by SPEC-0010, not this increment.
-    if (admission.outcome === "reused" || "fromStage" in options || "toStage" in options) {
-      throw new ExtractionAdmissionError("UNSAFE_RESUME_UNAVAILABLE")
+    const from = options.fromStage ?? STAGE_ORDER[0]
+    const to = options.toStage ?? STAGE_ORDER[STAGE_ORDER.length - 1]
+    if (!STAGE_ORDER.includes(from) || !STAGE_ORDER.includes(to) || STAGE_ORDER.indexOf(from) > STAGE_ORDER.indexOf(to)) throw new Error("Invalid stage range")
+    {
+      const { createStageRunner } = await import("./stage-execution.js")
+      const stages = STAGE_ORDER.slice(STAGE_ORDER.indexOf(from), STAGE_ORDER.indexOf(to) + 1)
+      const result: PipelineDAGResult = { stages: { statuses: new Map(), errors: new Map() }, steps: { statuses: new Map(), errors: new Map() } }
+      try {
+        await createStageRunner().run(options.label, {
+          resume: true, concurrency: options.concurrency, booksDir: options.booksRoot, promptsDir: options.promptsDir,
+          templatesDir: options.templatesDir, configDir: options.configDir, cacheDir: options.cacheDir, logLevel: options.logLevel,
+          pdfPath: options.pdfPath, startPage: options.startPage, endPage: options.endPage,
+          webAssetsDir: options.webAssetsDir, configPath: options.configPath,
+          fromStage: from, toStage: to, outputScope: options.outputScope, signal: options.signal,
+          replaceManual: options.replaceManual, protectedReplacements: options.protectedReplacements,
+          credentials: { azure: { ...(options.azureSpeechKey ? { apiKey: options.azureSpeechKey } : {}), ...(options.azureSpeechRegion ? { region: options.azureSpeechRegion } : {}) },
+            gemini: options.geminiApiKey ? { apiKey: options.geminiApiKey } : {}, elevenlabs: options.elevenLabsApiKey ? { apiKey: options.elevenLabsApiKey } : {} },
+          onResumeSummary: (summary) => { result.resume = summary },
+        }, { emit(event) {
+          if (event.type === "stage-complete") result.stages.statuses.set(event.stage, "complete")
+          if (event.type === "step-complete") result.steps.statuses.set(event.step, "complete")
+          progress.emit(event)
+        } })
+      } catch (error) {
+        const failed = stages.find((stage) => !result.stages.statuses.has(stage)) ?? stages[stages.length - 1]
+        result.stages.errors.set(failed, error instanceof Error ? error : new Error(String(error)))
+        result.stages.statuses.set(failed, "failed")
+      }
+      for (const stage of stages) if (!result.stages.statuses.has(stage)) result.stages.statuses.set(stage, "skipped")
+      return result
     }
-    return runAdmittedFullPipeline(options, progress)
+
   })
 }
 

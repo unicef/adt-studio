@@ -9,7 +9,7 @@ import { isFixedLayoutBook } from "./fixed-layout-rendering.js"
 import { loadBookConfig } from "./config.js"
 
 /** The same production resolver feeds API, CLI and the extraction fingerprint. */
-export function extractionOptionsFromConfig(pdfPath: string, config: AppConfig): ExtractOptions {
+export function extractionOptionsFromConfig(pdfPath: string, config: AppConfig, bookDir?: string): ExtractOptions {
   return {
     pdfPath,
     startPage: config.start_page,
@@ -18,7 +18,7 @@ export function extractionOptionsFromConfig(pdfPath: string, config: AppConfig):
     spreadPairs: config.spread_pairs,
     ...figureExtractionFlags(config),
     removeWatermarks: config.remove_watermarks === true,
-    fixedLayout: isFixedLayoutBook(config),
+    fixedLayout: (bookDir ? readExtractionManifest(bookDir)?.inputs.fixedLayout : undefined) ?? isFixedLayoutBook(config),
   }
 }
 
@@ -70,7 +70,8 @@ export function assertSafeExtractionRun(label: string, booksRoot: string, config
   const { bookDir } = resolveBookPaths(label, booksRoot)
   withBookWriter(bookDir, () => {
     const config = loadBookConfig(label, booksRoot, configPath)
-    const admission = prepareExtractionAdmission(bookDir, extractionOptionsFromConfig(path.join(bookDir, `${label}.pdf`), config))
-    if (admission.outcome === "reused") throw new ExtractionAdmissionError("UNSAFE_RESUME_UNAVAILABLE")
+    const admission = prepareExtractionAdmission(bookDir, extractionOptionsFromConfig(path.join(bookDir, `${label}.pdf`), config, bookDir))
+    // Reuse enters the shared generation planner; never the legacy full-run body.
+    void admission
   })
 }

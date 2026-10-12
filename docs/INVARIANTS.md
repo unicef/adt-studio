@@ -3,8 +3,7 @@
 Principles that only live in prose do not survive agent throughput. Every row here names a check.
 Each spec that establishes an invariant adds its checker in the same change.
 
-> **Not every check below exists yet**, and the `pnpm lint:invariants` entry point that would
-> run them together is itself still planned — the first spec that needs it introduces it. Until
+> **Not every check below exists yet**, and the `pnpm lint:invariants` currently enforces the SPEC-0010 extraction-reset rule only. Until
 > then the checks that do exist run under `pnpm typecheck`, `pnpm test` and `pnpm lint`. Treat a
 > row whose check is not yet implemented as a debt marker, not as enforcement.
 
@@ -19,3 +18,4 @@ Each spec that establishes an invariant adds its checker in the same change.
 | 7 | No provider key in logs or model-call records | log scrubber test + grep in CI | every PR | security chain (Block 1) |
 | 8 | Manual and unknown-authorship units survive ordinary own-stage and upstream runs; guarded saves reject stale versions; replacement retires identities only on successful publication | `apps/api/src/routes/manual-edit-survival.test.ts`, `packages/pipeline/src/__tests__/catalog-execution.test.ts`, Studio draft conflict tests | `pnpm test`; human UI/release verification remains separate | SPEC-0002 (draft; review pending) |
 | 9 | B1 generation preferences preserve content; explicit reset retains history; ordinary Storyboard publishes safe page pairs with honest coverage | `apps/api/src/services/sectioning-lifecycle.test.ts`, `sectioning-preflight-runners.test.ts`, `apps/api/src/services/storyboard-publication.test.ts`, and `packages/storage/src/__tests__/sectioning-book-writer.test.ts` under `pnpm test` | every PR | SPEC-0003 B1 implementation (review pending) |
+| 10 | Ordinary extraction admission never calls `clearExtractedData` | `scripts/check-invariants.mjs` checks the direct extraction, CLI DAG, stage route and runner; real-storage admission tests cover preservation | every PR | SPEC-0010 safe slice |

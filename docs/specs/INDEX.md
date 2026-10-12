@@ -20,6 +20,8 @@ already holds its number — check both before taking one
 | SPEC-0008 | Stable identifiers and reading order (retrospective)            | draft  | TBD         | Block 1   |
 | [SPEC-0015](SPEC-0015-nano-banana-image-models.md) | Nano Banana image models | in-review | @elasticsounds | #579 / #904 |
 
+| [SPEC-0010](SPEC-0010-safe-cli-reruns.md) | Safe CLI reruns and extraction admission | in-review | @ksokolovic | [Revised-stack acceptance](../verification/spec-0010-oct12-acceptance.md); shared full-book resume on revised SPEC-0003/0002/0001; independent review; approval pending |
+
 Legacy notes, from before this process existed, now in [`docs/analysis/`](../analysis/):
 [SECTIONING_CROSSWORD_BUG.md](../analysis/SECTIONING_CROSSWORD_BUG.md),
 [SECTIONING_VALIDATION_FAILURES.md](../analysis/SECTIONING_VALIDATION_FAILURES.md)

@@ -15,7 +15,7 @@ vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: undefined })
 vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ isRunning: calls.running }) }))
 vi.mock("../floating-save", () => ({ useFloatingSaveDirtyEntries: () => calls.dirty ? [{ id: "draft" }] : [] }))
 vi.mock("../../pipeline-i18n", () => ({ getStageLabelI18n: (value: string) => value === "easy-read" ? "Easy Read" : value }))
-vi.mock("@/api/client", () => ({ api: { runStages: calls.run, reviewOutput: calls.review } }))
+vi.mock("@/api/client", () => ({ api: { runStages: calls.run, reviewOutputs: calls.review } }))
 
 const { OutputReviewPanel } = await import("./OutputReviewPanel")
 const clients: QueryClient[] = []
@@ -144,7 +144,7 @@ it("accepts protected source warnings and usable fallbacks once with guards, wit
   fireEvent.click(screen.getByRole("button", { name: "Keep all existing content" }))
   await waitFor(() => expect(refresh).toHaveBeenCalled())
   expect(calls.review.mock.calls).toEqual([
-    ["book", { ...reviewGuard(source), action: "keep" }], ["book", { ...reviewGuard(fallback), action: "checked" }],
+    ["book", [{ ...reviewGuard(source), action: "keep" }, { ...reviewGuard(fallback), action: "checked" }]],
   ])
   expect(calls.run).not.toHaveBeenCalled()
 })
@@ -178,12 +178,12 @@ it.each(["draft", "run"])("blocks all bulk changes during a %s", (mode) => {
   expect(calls.run).not.toHaveBeenCalled(); expect(calls.review).not.toHaveBeenCalled()
 })
 
-it("refreshes and reports partial acceptance if a later content guard rejects", async () => {
-  calls.review.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error("Content changed while reviewing"))
+it("refreshes and reports a rejected batch without silently refreshing its consent", async () => {
+  calls.review.mockRejectedValueOnce(new Error("Content changed while reviewing"))
   const { refresh } = setup(["one", "two", "three"].map((id) => output(id, { protected: true, warnings: [{ reason: "legacy" }] })))
   fireEvent.click(screen.getByRole("button", { name: "Keep all existing content" }))
   await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Content changed while reviewing"))
-  expect(calls.review).toHaveBeenCalledTimes(2)
+  expect(calls.review).toHaveBeenCalledTimes(1)
   expect(refresh).toHaveBeenCalledWith({ queryKey: ["books", "book"] })
 })
 

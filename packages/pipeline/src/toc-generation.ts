@@ -68,7 +68,7 @@ function findFirstHeading(section: PageSectioningSection): ContentNodeData | nul
 /**
  * Collect all section headings and any original TOC page text from storage.
  */
-function collectHeadingsAndToc(
+export function collectHeadingsAndToc(
   storage: Storage,
   pages: PageData[],
 ): { headings: HeadingInfo[]; originalTocText: string | null } {

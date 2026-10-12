@@ -503,3 +503,19 @@ export { extractionOptionsFromConfig, prepareExtractionAdmission, assertSafeExtr
 export { protectedAuthoredRecords, assertAuthoredReplacement, replacementConfirmed, selectSectioningPages, resetSectioningStoryboard, AuthoredReplacementError } from "./authored-output.js"
 
 export { storyboardCoverage, missingStoryboardInputMessage } from "./storyboard-coverage.js"
+export { getBundledStyleguidesDir, getWritableStyleguidesDir, getBookStyleguidesDir, getGeneratedStyleguideName, getStyleguideSearchDirs, resolveStyleguideSource, loadStyleguideContent, StyleguideWriteError, writeStyleguideFiles, type StyleguideSourceKind, type ResolvedStyleguideSource } from "./styleguide.js"
+
+export { beginSpeechRun, endSpeechRun, getLiveSpeechRun, type LiveSpeechSnapshot } from "./speech-progress.js"
+
+export type { StageRunner, StageRunOptions, StageRunProgress } from "./stage-execution-options.js"
+
+export { ResumeIncompleteError, catalogResumeStages } from "./catalog-resume.js"
+export { readGenerationCatalog, GENERATION_NODES, isGenerationKind } from "./generation-catalog.js"
+
+export { assertPackageReadable, recoverPackagePublication } from "./packaging/publication.js"
+
+export { writePackageInventory, packageInventoryValid } from "./packaging/publication.js"
+
+export { storyboardPackageComplete } from "./storyboard-package-coverage.js"
+
+export { annotateGeneration } from "./generation-catalog.js"

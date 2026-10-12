@@ -87,6 +87,7 @@ export function saveQuizOutput(
   storage: Storage,
   output: QuizGenerationOutput,
   mode: "edit" | "insert" | "replace",
+  replaceProtected = false,
 ): { output: QuizGenerationOutput; version: number } {
   return storage.transaction(() => {
     const spent = collectSpentQuizIds(storage)
@@ -95,7 +96,7 @@ export function saveQuizOutput(
     const currentData = currentRow?.data as QuizGenerationOutput | undefined
     // Invalid AI identities need not become current again to be regenerated.
     // Protected legacy quizzes resolve their positional IDs before filtering.
-    const protectedQuizzes = mode === "replace" && currentData ? withResolvedQuizIds({ ...currentData, quizzes: currentData.quizzes.flatMap((quiz, index) =>
+    const protectedQuizzes = mode === "replace" && !replaceProtected && currentData ? withResolvedQuizIds({ ...currentData, quizzes: currentData.quizzes.flatMap((quiz, index) =>
       isProtectedContent(quiz) ? [{ ...quiz, quizId: quiz.quizId ?? formatQuizId(index + 1) }] : []
     ) }).quizzes : []
     if (mode === "replace") {
@@ -120,6 +121,11 @@ export function saveQuizOutput(
     const prior = mode === "replace" ? protectedQuizzes : priorRow ? withResolvedQuizIds(priorRow.data as QuizGenerationOutput).quizzes : []
     const quizzes = stamped.quizzes.map((quiz, quizIndex) => {
       const old = prior.find((item) => item.quizId === quiz.quizId)
+      if (mode === "edit") {
+        // Review and generation evidence are server-owned, never client input.
+        const { generationEvidence: _untrusted, ...content } = quiz
+        quiz = { ...content, ...(old?.generationEvidence ? { generationEvidence: old.generationEvidence } : {}) }
+      }
       if (mode === "replace" && old && isProtectedContent(old)) return { ...old, quizIndex }
       const claimed = new Set(quiz.options.flatMap((option) => option.optionId ? [option.optionId] : []))
       const options = quiz.options.map((option, index) => {
@@ -142,7 +148,9 @@ export function saveQuizOutput(
       authored.sort((a, b) => (pageOrder.get(a.afterPageId) ?? 0) - (pageOrder.get(b.afterPageId) ?? 0))
     }
     const normalized = withResolvedQuizIds({ ...stamped, quizzes: authored.map((quiz, quizIndex) => ({ ...quiz, quizIndex })) })
-    const version = storage.putNodeData("quiz-generation", "book", normalized)
+    const evidence = (priorRow?.data as { generationEvidence?: unknown } | undefined)?.generationEvidence
+    const persisted = { ...normalized, ...(mode === "edit" && evidence ? { generationEvidence: evidence } : {}) }
+    const version = storage.putNodeData("quiz-generation", "book", persisted)
     return { output: normalized, version }
   })
 }

@@ -1,3 +1,4 @@
+import { bindOutputRevisions } from "./output-revision.js"
 import { retainedCoreTts, retainedEasyRead, retainedTranslation } from "./retained-catalog.js"
 import { supportsPageBatchedSpeech } from "./speech-batch.js"
 import fs from "node:fs"
@@ -219,7 +220,7 @@ export function readOutputCatalog(options: {
       if (!status.warnings.some((warning) => warning.source && outputIdentityKey(warning.source) === key)) status.warnings.push({ reason: "upstream", source: upstream.identity })
     }
   }
-  return statuses
+  return bindOutputRevisions(storage, statuses)
 }
 
 export function timestampInputSignature(audioHash: string | null, language: string, text: string): string {

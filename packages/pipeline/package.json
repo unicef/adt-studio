@@ -5,7 +5,8 @@
   "type": "module",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./dist/index.js",
+    "./stage-execution": "./dist/stage-execution.js"
   },
   "bin": {
     "pipeline": "./dist/cli.js"

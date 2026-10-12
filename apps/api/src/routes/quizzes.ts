@@ -128,7 +128,7 @@ export function createQuizRoutes(
     const body = await c.req.json()
     // Ignore client authorship; compare against the guarded stored version.
     const parsed = QuizGenerationOutput.extend({
-      quizzes: z.array(Quiz.omit({ source: true })),
+      quizzes: z.array(Quiz.omit({ source: true, generationEvidence: true })),
       ...AuthoredSaveGuard.shape,
     }).safeParse(body)
     if (!parsed.success) {

@@ -56,6 +56,8 @@ import {
   maskStepperPayloads,
 } from "../render-editable-activity.js"
 import type { Progress } from "../progress.js"
+import { withBookWriter } from "@adt/storage"
+import { newPackageAttempt, publishPackageAttempt } from "./publication.js"
 import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
@@ -77,6 +79,8 @@ export interface PackageAdtWebOptions {
   promptsDir?: string
   configDir?: string
   bookDir: string
+  /** Internal staging destination; source assets still resolve from bookDir. */
+  outputDir?: string
   label: string
   language: string
   outputLanguages: string[]
@@ -252,8 +256,11 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
     .sort((a, b) => a.videoId.localeCompare(b.videoId))
   hash.update(JSON.stringify(signLanguageVideos))
 
-  // 5. Web assets directory fingerprint (file names + sizes + mtimes)
-  const assetEntries = collectDirectoryFingerprint(options.webAssetsDir).sort((a, b) => a[0].localeCompare(b[0]))
+  // Byte identity detects same-size replacements with preserved timestamps.
+  const assetFingerprint = (directory: string) => collectDirectoryFingerprint(directory).sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([file]) => [file, createHash("sha256").update(fs.readFileSync(path.join(directory, file))).digest("hex")])
+  // 5. Web runtime assets
+  const assetEntries = assetFingerprint(options.webAssetsDir)
   hash.update(JSON.stringify(assetEntries))
 
   // 6. Verify physical image bytes, including same-size/restored-mtime edits.
@@ -270,8 +277,9 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
 
   // 7. Videos directory fingerprint
   const videosDir = path.join(options.bookDir, "videos")
-  const videoEntries = collectDirectoryFingerprint(videosDir).sort((a, b) => a[0].localeCompare(b[0]))
+  const videoEntries = assetFingerprint(videosDir)
   hash.update(JSON.stringify(videoEntries))
+  hash.update(JSON.stringify(assetFingerprint(path.join(options.bookDir, "fonts"))))
 
   return hash.digest("hex")
 }
@@ -307,6 +315,12 @@ export async function packageAdtWeb(
   options: PackageAdtWebOptions,
   progress: Progress = nullProgress,
 ): Promise<PackageAdtWebResult> {
+  if (!options.outputDir) return withBookWriter(options.bookDir, async () => {
+    const attempt = newPackageAttempt(options.bookDir)
+    const result = await packageAdtWeb(storage, { ...options, outputDir: path.join(attempt, "adt") }, progress)
+    publishPackageAttempt(options.bookDir, attempt)
+    return result
+  })
   const {
     bookDir,
     label,
@@ -348,7 +362,7 @@ export async function packageAdtWeb(
   progress.emit({ type: "step-start", step })
   progress.emit({ type: "step-progress", step, message: "Setting up directories..." })
 
-  const adtDir = path.join(bookDir, "adt")
+  const adtDir = options.outputDir ?? path.join(bookDir, "adt")
   const imageDir = path.join(adtDir, "images")
   const contentDir = path.join(adtDir, "content")
 

@@ -9,7 +9,7 @@ const reasons: Record<ExtractionErrorCode, string> = {
   EXTRACTION_INPUTS_CHANGED: "The extraction settings or extraction contract differ.",
   EXTRACTION_ASSETS_INVALID: "Required original extraction data is missing or corrupt.",
   EXTRACTION_INPUT_INVALID: "The PDF or effective extraction inputs are invalid.",
-  UNSAFE_RESUME_UNAVAILABLE: "Extraction is reusable. Full downstream resume is blocked; only the explicit Sectioning–Storyboard range is supported. No downstream work was started.",
+  UNSAFE_RESUME_UNAVAILABLE: "Extraction is reusable, but required upstream rendering or the requested resume capability is unavailable. No downstream work was started.",
 }
 
 /** Safe, stable diagnostics: never include source text, credentials or paths. */

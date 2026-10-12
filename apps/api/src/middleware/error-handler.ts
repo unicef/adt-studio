@@ -21,7 +21,7 @@ export const errorHandler: ErrorHandler = (err, c) => {
     code: err.code, currentVersion: err.currentVersion,
   }, err.status)
   if (err instanceof EditConflictError) return c.json({ error: err.message, code: err.code, currentVersion: err.currentVersion }, 409)
-  if (err instanceof BookBusyError || err instanceof SectioningSafetyError || err instanceof ExtractionAdmissionError) return c.json({ error: err.message, code: err.code }, 409)
+  if (err instanceof BookBusyError || err instanceof SectioningSafetyError || err instanceof ExtractionAdmissionError) return c.json({ error: err.message, code: err.code, ...(err instanceof ExtractionAdmissionError && err.summary ? { summary: err.summary } : {}) }, 409)
   if (err instanceof HTTPException) {
     return c.json({ error: err.message }, err.status)
   }

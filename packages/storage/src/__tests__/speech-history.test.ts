@@ -20,6 +20,15 @@ function timing(entry: SpeechFileEntry, word: string): WordTimestampOutput {
 }
 
 describe("paired physical speech history", () => {
+  it("reuses unchanged audio and timing versions despite object key order", () => {
+    const generated = audio("generated")
+    const version = publishSpeechOutput(storage, "fr", { entries: [generated], generatedAt: "first" }, timing(generated, "one"))
+    const before = storage.getNodeVersionFingerprint()
+    const reordered = Object.fromEntries(Object.entries(generated).reverse()) as SpeechFileEntry
+    expect(publishSpeechOutput(storage, "fr", { generatedAt: "second", entries: [reordered] }, timing(generated, "one"))).toBe(version)
+    expect(storage.getNodeVersionFingerprint()).toEqual(before)
+  })
+
   it("preserves legacy locale audio and timing history when a normalized locale first publishes", () => {
     const bookDir = storage.bookDir!
     fs.mkdirSync(path.join(bookDir, "audio/fr_FR"), { recursive: true })

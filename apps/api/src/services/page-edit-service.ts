@@ -1,6 +1,6 @@
 import { withBookWriter, resolveBookPaths } from "@adt/storage"
 import {
-  resolveRenderedSection, createStoryboardPublication, FIXED_LAYOUT_SECTIONING_NODE, SectioningSafetyError,
+  annotateGeneration, resolveRenderedSection, createStoryboardPublication, FIXED_LAYOUT_SECTIONING_NODE, SectioningSafetyError,
   isFixedLayoutBook, processFixedLayoutPages, missingStoryboardInputMessage,
 } from "@adt/pipeline"
 import crypto from "node:crypto"
@@ -62,7 +62,16 @@ export async function reRenderPages(options: ReRenderOptions[]): Promise<ReRende
   return withBookWriter(resolveBookPaths(label, booksDir).bookDir, async () => {
     const storage = createBookStorage(label, booksDir)
     try {
-      const publication = createStoryboardPublication(storage, label, booksDir, configPath)
+      const bookDir = resolveBookPaths(label, booksDir).bookDir
+      const generatedStorage = { ...storage, putNodeData(node: string, id: string, data: unknown) {
+        const request = options.find((item) => item.pageId === id)
+        if (node !== "web-rendering" || !data || !request) return storage.putNodeData(node, id, data)
+        const stamped = request.sectionIndex !== undefined || request.prompt?.trim()
+          ? { ...(data as object), generationEvidence: { source: "manual" } }
+          : annotateGeneration({ storage, bookDir, config: loadBookConfig(label, booksDir, configPath), configPath, promptsDir: request.promptsDir }, "storyboard", id, data as object)
+        return storage.putNodeData(node, id, stamped)
+      } }
+      const publication = createStoryboardPublication(generatedStorage, label, booksDir, configPath)
       const pages = new Set(publication.storage.getPages().map((page) => page.pageId))
       if (options.some((item) => !pages.has(item.pageId))) throw new Error("Requested page is outside the active source-page window")
       publication.assertScope([...new Set(options.map((item) => item.pageId))])

@@ -1,11 +1,16 @@
 import { storeImmutableAsset } from "./immutable-assets.js"
 import fs from "node:fs"
+import { isDeepStrictEqual } from "node:util"
 import path from "node:path"
 import { createHash } from "node:crypto"
 import { TTSOutput, WordTimestampOutput, voiceSlotEntryId, type SpeechFileEntry } from "@adt/types"
 import type { Storage } from "./storage.js"
 
-function equal(a: unknown, b: unknown) { return JSON.stringify(a) === JSON.stringify(b) }
+// Compare the persisted JSON value, ignoring key order and optional undefined
+// fields that SQLite serialization omits.
+function equal(a: unknown, b: unknown) {
+  return isDeepStrictEqual(JSON.parse(JSON.stringify(a) ?? "null"), JSON.parse(JSON.stringify(b) ?? "null"))
+}
 
 function verifyAudio(bookDir: string, language: string, entry: SpeechFileEntry): Buffer {
   if (!/^[a-zA-Z0-9_-]+$/.test(language) || path.basename(entry.fileName) !== entry.fileName) throw new Error("Invalid audio path")

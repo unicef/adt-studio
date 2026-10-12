@@ -552,7 +552,7 @@ function saveStoryboardNode(
     const conflictsBefore = buildTextCatalogSnapshot(storage, storage.getPages()).conflicts ?? []
     const parsed = node === "web-rendering" ? WebRenderingOutput.safeParse(data) : null
     const priorSectioning = node === "page-sectioning" ? PageSectioningOutput.safeParse(storage.getLatestNodeData(node, itemId)?.data) : null
-    const saved = parsed?.success ? {
+    let saved = parsed?.success ? {
       ...parsed.data,
       sections: parsed.data.sections.map((section) => {
         const owner = renderedSectionId(section)
@@ -568,6 +568,16 @@ function saveStoryboardNode(
       const after = PageSectioningOutput.parse(saved)
       const active = new Set(after.sections.map((section) => section.sectionId))
       if (before.success) retireSectionIds(storage, before.data.sections.filter((section) => !active.has(section.sectionId)).map((section) => section.sectionId))
+    }
+    if (node === "web-rendering" && parsed?.success) {
+      const previous = storage.getLatestNodeData(node, itemId)?.data as { generationEvidence?: unknown; source?: string } | undefined
+      const previousRendering = WebRenderingOutput.safeParse(previous)
+      const normalizedPrevious = previousRendering.success ? { ...previousRendering.data, sections: previousRendering.data.sections.map((section) => { const owner = renderedSectionId(section); return owner ? { ...scopeLegacyActivityIds(section, owner), sectionId: owner } : section }) } : undefined
+      const unchanged = !!normalizedPrevious && inputSignature(normalizedPrevious) === inputSignature(saved)
+      // Inputs from Studio cannot author evidence. Exact saves retain the
+      // server's baseline; actual HTML edits become protected manual output.
+      saved = { ...(saved as object), ...(unchanged ? { source: previous?.source } : { source: "manual" }),
+        ...(previous?.generationEvidence ? { generationEvidence: previous.generationEvidence } : {}) }
     }
     const nextVersion = storage.putNodeData(node, itemId, saved)
     const conflictsAfter = buildTextCatalogSnapshot(storage, storage.getPages()).conflicts ?? []

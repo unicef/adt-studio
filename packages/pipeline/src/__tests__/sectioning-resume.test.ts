@@ -45,12 +45,13 @@ async function fixture(layout = "fixed", part = false) {
   return { booksRoot, bookDir, label, pageId, n, previous, options, configFile }
 }
 
-it.each(["fixed", "reflowable", "fixed-part", "reflowable-part"])("verified extraction does not authorize deferred existing-book resume: %s", { timeout: 30_000 }, async (kind) => {
+it.each(["fixed", "reflowable", "fixed-part", "reflowable-part"])("verified extraction does not authorize incomplete reset consent: %s", { timeout: 30_000 }, async (kind) => {
   const f = await fixture(kind.startsWith("fixed") ? "fixed" : "reflowable", kind.endsWith("part"))
   const manifest = fs.readFileSync(path.join(f.bookDir, "extraction.json"))
   const pdf = fs.readFileSync(path.join(f.bookDir, `${f.label}.pdf`))
   const transport = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Unexpected provider call"))
-  await expect(runFullPipeline(f.options)).rejects.toThrow("UNSAFE_RESUME_UNAVAILABLE")
+  const result = await runFullPipeline(f.options)
+  expect([...result.stages.errors.values()][0]?.message).toContain("Storyboard changed")
   expect(transport).not.toHaveBeenCalled()
   const s = createBookStorage(f.label, f.booksRoot)
   try {
@@ -62,19 +63,22 @@ it.each(["fixed", "reflowable", "fixed-part", "reflowable-part"])("verified extr
   expect(fs.readFileSync(path.join(f.bookDir, `${f.label}.pdf`)).equals(pdf)).toBe(true)
 })
 
-it("the actual CLI refuses verified existing extraction without rewriting output", async () => {
+it("the actual CLI retains existing authored Sectioning on an ordinary scoped run", async () => {
   const f = await fixture()
-  const child = spawnSync(process.execPath, [path.join(repository, "packages/pipeline/dist/cli.js"), f.label, pdfPath, "--books-dir", f.booksRoot], {
+  const child = spawnSync(process.execPath, [path.join(repository, "packages/pipeline/dist/cli.js"), f.label, pdfPath, "--books-dir", f.booksRoot, "--from-stage", "sectioning", "--to-stage", "sectioning"], {
     encoding: "utf8", timeout: 15000, cwd: repository, env: { PATH: process.env.PATH },
   })
-  expect(child.status, child.stderr).toBe(1)
-  expect(child.stderr).toContain("UNSAFE_RESUME_UNAVAILABLE")
+  expect(child.status, child.stderr).toBe(0)
+  expect(child.stderr).toContain('"state":"reused"')
   expect(child.stderr).not.toContain("Use --from-stage")
   const s = createBookStorage(f.label, f.booksRoot)
   try { expect(s.getAllNodeVersions("page-sectioning", f.pageId)).toEqual([{ version: 1, data: f.previous }]) }
   finally { s.close() }
 })
 
-it.each(["--from-stage", "--to-stage", "--protected-replacements"])("does not advertise or accept deferred CLI scope: %s", (flag) => {
-  expect(() => parseCliArgs(["book", pdfPath, flag, "sectioning"])).toThrow("Unknown option")
+it("validates bounded CLI ranges and requires named replacement input", () => {
+  expect(parseCliArgs(["book", "source.pdf", "--from-stage", "sectioning", "--to-stage", "storyboard", "--protected-replacements", "replace.json"]).fromStage).toBe("sectioning")
+  for (const flags of [["--from-stage", "sectioning"], ["--from-stage", "storyboard", "--to-stage", "sectioning"], ["--protected-replacements", "replace.json"]]) {
+    expect(() => parseCliArgs(["book", "source.pdf", ...flags])).toThrow()
+  }
 })

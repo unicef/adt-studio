@@ -66,8 +66,8 @@ export function createPromptEngine(
         if (sources.has(filePath)) return
         const source = fs.readFileSync(filePath, "utf-8")
         sources.set(filePath, source)
-        if (/{%-?\s*(?:include|render)\s+[^"'\s]/.test(source)) throw new Error("Dynamic prompt includes need an explicit input basis before catalog generation")
-        for (const match of source.matchAll(/{%-?\s*(?:include|render)\s+["']([^"']+)["']/g)) {
+        if (/{%-?\s*(?:include|render|layout)\s+[^"'\s]/.test(source)) throw new Error("Dynamic prompt includes need an explicit input basis before catalog generation")
+        for (const match of source.matchAll(/{%-?\s*(?:include|render|layout)\s+["']([^"']+)["']/g)) {
           const name = match[1].replace(/\.liquid$/, "")
           const partial = searchRoots.map((root) => path.join(root, `${name}.liquid`)).find((candidate) => fs.existsSync(candidate))
           if (!partial) throw new Error(`Prompt partial not found: ${name}`)

@@ -38,17 +38,23 @@ const send = (url: string, body: unknown, method = "PUT") => app.request(`/books
 async function json(url: string) { const response = await app.request(`/books/${label}/${url}`); expect(response.status, await response.clone().text()).toBe(200); return response.json() }
 function read(node: string, itemId = "book") { const db = book(); try { return db.getLatestNodeData(node, itemId) } finally { db.close() } }
 async function run(stage: string, extra = {}) {
-  let done: { status: string; error?: string } | undefined
-  const dispose = bus.addListener(label, (event) => {
-    if (event.type === "stage-run-complete") done = { status: "completed" }
-    if (event.type === "stage-run-error") done = { status: "failed", error: event.error }
-    if (event.type === "stage-run-cancelled") done = { status: "cancelled" }
+  let dispose = () => {}
+  const done = new Promise<{ status: string; error?: string }>((resolve) => {
+    dispose = bus.addListener(label, (event) => {
+      if (event.type === "stage-run-complete") resolve({ status: "completed" })
+      if (event.type === "stage-run-error") resolve({ status: "failed", error: event.error })
+      if (event.type === "stage-run-cancelled") resolve({ status: "cancelled" })
+    })
   })
-  const response = await send("stages/run", { fromStage: stage, toStage: stage, ...extra }, "POST")
-  expect(response.status, await response.clone().text()).toBe(200)
-  await vi.waitFor(() => expect(done).toBeDefined(), { timeout: 5000 })
-  dispose()
-  return done!
+  try {
+    const response = await send("stages/run", { fromStage: stage, toStage: stage, ...extra }, "POST")
+    expect(response.status, await response.clone().text()).toBe(200)
+    const result = await done
+    // In-memory Hono requests can run before the outer admission promise has
+    // settled. Cross the same event-loop boundary as a subsequent HTTP request.
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    return result
+  } finally { dispose() }
 }
 
 beforeEach(() => {
@@ -98,7 +104,7 @@ async function saveProtected() {
   expect((await send("quizzes", { ...quizzes.quizzes, quizzes: [{ ...quizzes.quizzes.quizzes[0], question: "Manual question" }], baseVersion: quizzes.version })).status).toBe(200)
   const page = await json("pages/pg001")
   expect((await send("pages/pg001/image-captioning", { captions: [{ imageId: "pg001_im001", caption: "Manual caption", reasoning: "" }], baseVersion: 0, sourceSignature: page.captionSourceSignature })).status).toBe(200)
-  expect((await send("glossary", { items: [{ id: "gl001", word: "Term", definition: "Manual definition", variations: [], emojis: [], source: "manual" }], pageCount: 3, generatedAt: "fixture" })).status).toBe(200)
+  expect((await send("glossary", { baseVersion: 0, items: [{ id: "gl001", word: "Term", definition: "Manual definition", variations: [], emojis: [], source: "manual" }], pageCount: 3, generatedAt: "fixture" })).status).toBe(200)
   const catalog = await json("text-catalog")
   expect((await send("text-catalog-translation/fr", { entries: catalog.entries.map((e: { id: string }) => ({ id: e.id, text: `Manual French ${e.id}` })), baseVersion: 0, sourceVersion: catalog.version, sourceSignature: catalog.translations.fr.sourceSignature })).status).toBe(200)
 }
@@ -115,7 +121,7 @@ it("saves, runs real admission/preparation/workers, reads history, previews and 
   // The stub returns an alternative for the protected group. Publication must
   // reject it too, even if an adapter supplies a retained/generated candidate.
   expect((await json("quizzes")).quizzes.quizzes).toHaveLength(1)
-  expect((await run("sectioning", { toStage: "translate" })).status).toBe("completed")
+  expect(await run("sectioning", { toStage: "translate" })).toMatchObject({ status: "failed", error: expect.stringContaining("RESUME_INCOMPLETE") })
   expect(read("image-captioning", "pg001")!.data).toMatchObject({ captions: [expect.objectContaining({ source: "manual", caption: "Manual caption" })] })
   expect(read("glossary")!.data).toMatchObject({ items: [expect.objectContaining({ source: "manual", definition: "Manual definition" })] })
   for (const [node, itemId] of [["page-sectioning", "pg001"], ["toc-generation", "book"], ["quiz-generation", "book"], ["text-catalog-translation", "fr"], ["image-captioning", "pg001"], ["glossary", "book"]]) {
@@ -198,10 +204,12 @@ it("requires versions, returns the current version on conflict, rejects a concur
   expect((await send("versions/toc-generation/book/restore", { version: 1, baseVersion: 2 }, "POST")).status).toBe(200)
   expect((await json("toc")).source).toBe("ai")
   expect((await run("toc")).status).toBe("completed")
-  expect(generateToc).toHaveBeenCalledTimes(1)
+  // The old AI tag lacks verifiable generation evidence; restoration must
+  // not silently authorize regeneration of that legacy document.
+  expect(generateToc).not.toHaveBeenCalled()
 
   // Restoring protected content must not convert it to AI or authorize a rerun.
-  expect((await send("versions/toc-generation/book/restore", { version: 2, baseVersion: 3 }, "POST")).status).toBe(200)
+  expect((await send("versions/toc-generation/book/restore", { version: 2, baseVersion: 1 }, "POST")).status).toBe(200)
   generateToc.mockClear()
   expect((await run("toc")).status).toBe("completed")
   expect((await json("toc"))).toMatchObject({ source: "manual", version: 2 })
@@ -351,8 +359,8 @@ it.each(["manual", "unknown"] as const)("AC-4: repeated HTTP reruns skip the %s 
     expect(current).toHaveLength(2)
     expect(current[0]).toEqual(protectedQuiz)
     expect(current[1]).toMatchObject({ source: "ai", pageIds: ["pg009", "pg010", "pg011"] })
-    expect(generateObject).toHaveBeenCalledTimes(1)
-    expect(generateObject.mock.calls[0][0].context.page_texts.map((page: { pageId: string }) => page.pageId)).toEqual(["pg009", "pg010", "pg011"])
+    expect(generateObject).toHaveBeenCalledTimes(attempt === 0 ? 1 : 0)
+    if (attempt === 0) expect(generateObject.mock.calls[0][0].context.page_texts.map((page: { pageId: string }) => page.pageId)).toEqual(["pg009", "pg010", "pg011"])
   }
   const history = await json("debug/versions/quiz-generation/book?includeData=true")
   expect(JSON.stringify(history)).toContain('"qz003"')
@@ -452,7 +460,7 @@ it("stamps only changed translations and rejects stale, missing and running-step
   expect((await send("versions/text-catalog-translation/fr/restore", { version: 1, baseVersion: 2 }, "POST")).status).toBe(409)
   const stopped = book(); stopped.markStepCompleted("text-catalog-translation"); stopped.close()
   expect(read("text-catalog-translation", "fr")!.version).toBe(2)
-  expect((await run("translate")).status).toBe("completed")
+  expect(await run("translate")).toMatchObject({ status: "failed", error: expect.stringContaining("RESUME_INCOMPLETE") })
   expect((read("text-catalog-translation", "fr")!.data as { entries: object[] }).entries).toEqual(expect.arrayContaining([expect.objectContaining({ id: "pg001_t001", text: "Corrected", source: "manual" }), { id: "pg002_t001", text: "Legacy" }]))
 })
 
@@ -545,38 +553,72 @@ it("rolls retirement and reference writes back if publishing a replacement page 
   expect((await json("debug/versions/page-sectioning/pg001?includeData=true")).versions).toHaveLength(2)
 })
 
-it("cancels section replacement before publication and rejects a queued stale confirmation", async () => {
+it("cancels section replacement before publication while preserving saved semantics", async () => {
   await saveProtected()
   const db = book()
   for (const stage of PIPELINE.filter((s) => s.name === "extract")) for (const step of stage.steps) db.markStepCompleted(step.name)
   db.putNodeData("book-outline", "book", { entries: [], styleClusters: [], reasoning: "fixture" })
   db.close()
   const releases: Array<() => void> = []
-  sectionPage.mockImplementation(async () => { await new Promise<void>((resolve) => releases.push(resolve)); return { reasoning: "new", sections: [] } })
+  let started!: () => void
+  const allStarted = new Promise<void>((resolve) => { started = resolve })
+  sectionPage.mockImplementation(async () => {
+    await new Promise<void>((resolve) => {
+      releases.push(resolve)
+      if (releases.length === 3) started()
+    })
+    return { reasoning: "new", sections: [] }
+  })
   const protectedReplacements = ["pg001", "pg002", "pg003"].map((itemId) => ({ node: "page-sectioning", itemId, version: 2, renderingVersion: read("web-rendering", itemId)?.version ?? 0, renderTreeVersion: read("fixed-layout-sectioning", itemId)?.version ?? 0 }))
-  const cancelled = run("sectioning", { replaceManual: true, protectedReplacements })
-  await vi.waitFor(() => expect(releases).toHaveLength(3))
-  expect((await send("stages/cancel", {}, "POST")).status).toBe(202)
-  releases.forEach((release) => release())
-  expect((await cancelled).status).toBe("cancelled")
+  // Synchronize with actual provider entry/completion, not a one-second polling
+  // deadline whose failure could leave three blocked providers in the next test.
+  let unsubscribe = () => {}
+  const cancelled = new Promise<void>((resolve, reject) => {
+    unsubscribe = bus.addListener(label, (event) => {
+      if (event.type === "stage-run-cancelled") resolve()
+      if (event.type === "stage-run-error") reject(new Error(event.error))
+    })
+  })
+  try {
+    expect((await send("stages/run", { fromStage: "sectioning", toStage: "sectioning", replaceManual: true, protectedReplacements }, "POST")).status).toBe(200)
+    await Promise.race([allStarted, cancelled.then(() => { throw new Error("Cancelled before provider entry") })])
+    expect((await send("stages/cancel", {}, "POST")).status).toBe(202)
+    releases.forEach((release) => release())
+    await cancelled
+  } finally {
+    releases.forEach((release) => release())
+    unsubscribe()
+  }
   for (const id of ["pg001", "pg002", "pg003"]) expect(read("page-sectioning", id)!.version).toBe(2)
   expect((await json("toc")).entries[0].sectionId).toBe("pg001_sec001")
 
+})
+
+it("rejects a queued stale confirmation after the preceding TOC run publishes", async () => {
+  await saveProtected()
   // Queue a TOC replacement behind another run of the same document. Admission
   // must check again after the first run publishes, before preparation/model work.
-  let finish!: () => void
-  generateToc.mockImplementationOnce(async () => { await new Promise<void>((resolve) => { finish = resolve }); return { entries: [], pageCount: 3, generatedAt: "new" } })
+  let finish: (() => void) | undefined
+  let started!: () => void
+  const providerStarted = new Promise<void>((resolve) => { started = resolve })
+  generateToc.mockImplementationOnce(async () => {
+    await new Promise<void>((resolve) => { finish = resolve; started() })
+    return { entries: [], pageCount: 3, generatedAt: "new" }
+  })
   const body = { fromStage: "toc", toStage: "toc", replaceManual: true, protectedReplacements: [{ node: "toc-generation", itemId: "book", version: 2 }] }
-  const errors: string[] = []
-  const dispose = bus.addListener(label, (event) => { if (event.type === "stage-run-error") errors.push(event.error) })
-  expect((await send("stages/run", body, "POST")).status).toBe(200)
-  await vi.waitFor(() => expect(finish).toBeDefined())
-  expect((await send("stages/run", body, "POST")).status).toBe(200)
-  finish()
-  await vi.waitFor(() => expect(errors.join(" ")).toContain("Content changed"))
-  dispose()
-  expect(generateToc).toHaveBeenCalledTimes(1)
-  expect(read("toc-generation")!.version).toBe(3)
+  let dispose = () => {}
+  const failed = new Promise<string>((resolve) => {
+    dispose = bus.addListener(label, (event) => { if (event.type === "stage-run-error") resolve(event.error) })
+  })
+  try {
+    expect((await send("stages/run", body, "POST")).status).toBe(200)
+    await Promise.race([providerStarted, failed.then((error) => { throw new Error(error) })])
+    expect((await send("stages/run", body, "POST")).status).toBe(200)
+    finish!()
+    expect(await failed).toContain("Content changed")
+    expect(generateToc).toHaveBeenCalledTimes(1)
+    expect(read("toc-generation")!.version).toBe(3)
+  } finally { finish?.(); dispose() }
 })
 
 it("keeps every existing page on an ordinary run and replaces only explicitly named AI neighbors", async () => {
@@ -711,7 +753,7 @@ it("F4: combined confirmed Sectioning to TOC replaces the consented document aft
   await vi.waitFor(() => expect(release).toBeDefined())
   expect((await send("toc", { ...before.data as object, baseVersion: before.version })).status).toBe(409)
   release()
-  expect((await running).status).toBe("completed")
+  expect(await running).toMatchObject({ status: "failed", error: expect.stringContaining("RESUME_INCOMPLETE") })
   expect(generateToc).toHaveBeenCalledTimes(1)
   expect(read("toc-generation")!.data).toMatchObject({ source: "ai", entries: [expect.objectContaining({ title: "New chapter", sectionId: "pg001_sec002" })] })
   const history = await json("debug/versions/toc-generation/book?includeData=true")

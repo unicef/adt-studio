@@ -1,4 +1,3 @@
-import path from "node:path"
 import { recoverSectioningTransition } from "@adt/storage"
 import type { TaskKind, TaskInfo, TaskStatus } from "@adt/types"
 import type { BookEventBus } from "./book-event-bus.js"
@@ -87,7 +86,10 @@ export function createTaskService(eventBus: BookEventBus, booksDir?: string): Ta
           })
         }))
       }
-      const work = booksDir ? withBookWriter(resolveBookPaths(label, booksDir).bookDir, execute) : execute()
+      const work = booksDir ? withBookWriter(resolveBookPaths(label, booksDir).bookDir, () => {
+        recoverSectioningTransition(resolveBookPaths(label, booksDir).bookDir)
+        return execute()
+      }) : execute()
       work
         .then((result) => {
           info.status = "completed"

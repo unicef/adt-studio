@@ -1,3 +1,4 @@
+import { GENERATION_OUTPUT_KINDS } from "@adt/types"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -94,7 +95,7 @@ describe("catalog freshness through real API/storage boundaries", () => {
     expect(reopened.getStepRuns().find((step) => step.step === "catalog-translation")?.status).toBe("done")
     reopened.close()
     if (source === "manual") {
-      expect((await send("outputs/review", { identity: output.identity, signature: output.signature, contentHash: output.contentHash, action: "keep" }, "POST")).status).toBe(200)
+      expect((await send("outputs/review", { identity: output.identity, signature: output.signature, contentHash: output.contentHash, revision: output.revision, action: "keep" }, "POST")).status).toBe(200)
       const reviewed = await read()
       expect(reviewed.summaries.stages.translate).toEqual(before.summaries.stages.translate)
       expect(reviewed.outputs.find((item: OutputStatus) => item.identity.kind === "translation" && item.identity.id === target.identity.id && item.identity.language === "fr")).toMatchObject({ text: "Bonjour", manual: true, protected: true, current: true })
@@ -112,7 +113,10 @@ describe("catalog freshness through real API/storage boundaries", () => {
     const reopened = storage()
     expect(reopened.getStepRuns()).toEqual(attempts)
     reopened.close()
-    expect(await outputs()).toEqual(before)
+    const after = await outputs()
+    const catalogs = (items: OutputStatus[]) => items.filter((item) => !(GENERATION_OUTPUT_KINDS as readonly string[]).includes(item.identity.kind))
+    expect(catalogs(after)).toEqual(catalogs(before))
+    expect(after.find((item) => item.identity.kind === "storyboard")).toMatchObject({ protected: true, manual: true })
     expect(provider).not.toHaveBeenCalled()
   })
   it("reads each shared page/audio asset once per projection and detects changed bytes on the next read", async () => {
@@ -223,7 +227,7 @@ describe("catalog freshness through real API/storage boundaries", () => {
     db.close()
     const status = (await outputs()).find((output) => output.identity.kind === "translation" && output.identity.id === "pg001_t001" && output.identity.language === "pt-BR")!
     expect(status).toMatchObject({ usable: true, protected: true, text: "Texto legado" })
-    expect((await send("outputs/review", { identity: status.identity, signature: status.signature, contentHash: status.contentHash, action: "keep" }, "POST")).status).toBe(200)
+    expect((await send("outputs/review", { identity: status.identity, signature: status.signature, contentHash: status.contentHash, revision: status.revision, action: "keep" }, "POST")).status).toBe(200)
     const verify = storage()
     const result = verify.getLatestNodeData("text-catalog-translation", "pt_BR")!.data as TextCatalogOutput
     expect(result.entries[0].source).toBeUndefined()
@@ -233,7 +237,7 @@ describe("catalog freshness through real API/storage boundaries", () => {
 
   it("inherits a neighboring protected translation warning through required preparation context", async () => {
     const first = (await outputs()).find((output) => output.identity.kind === "translation" && output.identity.id === "pg001_t001")!
-    expect((await send("outputs/review", { identity: first.identity, signature: first.signature, contentHash: first.contentHash, action: "keep" }, "POST")).status).toBe(200)
+    expect((await send("outputs/review", { identity: first.identity, signature: first.signature, contentHash: first.contentHash, revision: first.revision, action: "keep" }, "POST")).status).toBe(200)
     const preparation = (await outputs()).find((output) => output.identity.kind === "preparation" && output.identity.id === "pg001_t001" && output.identity.language === "fr")!
     expect(preparation.warnings).toContainEqual({ reason: "upstream", source: { kind: "translation", id: "pg001_t002", language: "fr" } })
     expect(preparation.current).toBe(false)
@@ -304,7 +308,9 @@ describe("catalog freshness through real API/storage boundaries", () => {
     const db = storage(); const translation = db.getLatestNodeData("text-catalog-translation", "fr"); const caption = db.getLatestNodeData("image-captioning", "pg001"); const catalog = db.getLatestNodeData("text-catalog", "book"); db.close()
     expect((await send("pages/pg001/rendering", rendering("Hello", "bg-red-500 p-4"))).status).toBe(200)
     const after = await outputs()
-    expect(after).toEqual(before)
+    // Cosmetic HTML edits protect the authored rendering itself; V1 catalog consumers are unaffected.
+    const catalogOnly = (items: typeof after) => items.filter((item) => !GENERATION_OUTPUT_KINDS.some((kind) => kind === item.identity.kind))
+    expect(catalogOnly(after)).toEqual(catalogOnly(before))
     await app.request(`/books/${label}/text-catalog`)
     const verify = storage()
     expect(verify.getLatestNodeData("text-catalog-translation", "fr")).toEqual(translation)
@@ -317,10 +323,10 @@ describe("catalog freshness through real API/storage boundaries", () => {
   it("source edit keeps manual/legacy outputs and rejects review captured before that edit", async () => {
     const before = (await outputs()).find((item) => item.identity.kind === "translation" && item.identity.id === "pg001_t001")!
     expect((await send("pages/pg001/rendering", rendering("Changed"))).status).toBe(200)
-    expect((await send("outputs/review", { identity: before.identity, signature: before.signature, contentHash: before.contentHash, action: "keep" }, "POST")).status).toBe(409)
+    expect((await send("outputs/review", { identity: before.identity, signature: before.signature, contentHash: before.contentHash, revision: before.revision, action: "keep" }, "POST")).status).toBe(409)
     const after = (await outputs()).find((item) => item.identity.kind === "translation" && item.identity.id === "pg001_t001")!
     expect(after).toMatchObject({ protected: true, manual: true, usable: true, current: false, text: "Bonjour" })
-    expect((await send("outputs/review", { identity: after.identity, signature: after.signature, contentHash: after.contentHash, action: "keep" }, "POST")).status).toBe(200)
+    expect((await send("outputs/review", { identity: after.identity, signature: after.signature, contentHash: after.contentHash, revision: after.revision, action: "keep" }, "POST")).status).toBe(200)
     const current = (await outputs()).find((item) => item.identity.kind === "translation" && item.identity.id === "pg001_t001")!
     expect(current).toMatchObject({ protected: true, manual: true, current: true, text: "Bonjour" })
     const db = storage(); expect(db.getAllNodeVersions("text-catalog-translation", "fr")).toHaveLength(2); db.close()
@@ -414,11 +420,31 @@ it("retires removed membership, discovers new text and image work, and restores 
 it("checking a declared fallback resolves only that warning and reappears after relevant input changes", async () => {
   const before = (await outputs()).find((output) => output.identity.kind === "preparation" && output.identity.id === "pg001_t001" && output.identity.language === "fr")!
   expect(before.warnings.some((warning) => warning.reason.startsWith("preparation-"))).toBe(true)
-  expect((await send("outputs/review", { identity: before.identity, signature: before.signature, contentHash: before.contentHash, action: "checked" }, "POST")).status).toBe(200)
+  expect((await send("outputs/review", { identity: before.identity, signature: before.signature, contentHash: before.contentHash, revision: before.revision, action: "checked" }, "POST")).status).toBe(200)
   const checked = (await outputs()).find((output) => output.identity.kind === "preparation" && output.identity.id === "pg001_t001" && output.identity.language === "fr")!
   expect(checked.warnings.some((warning) => warning.reason.startsWith("preparation-"))).toBe(false)
   expect(checked.warnings.some((warning) => warning.reason === "upstream")).toBe(true)
   const db = storage(); db.putNodeData("text-catalog-translation", "fr", { entries: [{ id: "pg001_t001", text: "Bonjour encore", source: "manual" }], generatedAt: "changed" }); db.close()
   const changed = (await outputs()).find((output) => output.identity.kind === "preparation" && output.identity.id === "pg001_t001" && output.identity.language === "fr")!
   expect(changed.warnings.some((warning) => warning.reason.startsWith("preparation-"))).toBe(true)
+})
+
+
+it("rejects same-content version ABA and atomically accepts a shared collection batch", async () => {
+  const targets = (await outputs()).filter((output) => output.identity.kind === "translation" && output.identity.language === "fr" && output.usable)
+  const decisions = targets.map((output) => ({ identity: output.identity, signature: output.signature, contentHash: output.contentHash, revision: output.revision, action: "keep" }))
+  const db = storage()
+  const prior = db.getLatestNodeData("text-catalog-translation", "fr")!
+  db.putNodeData("text-catalog-translation", "fr", prior.data)
+  const before = db.getAllNodeVersions("text-catalog-translation", "fr")
+  db.close()
+  expect((await send("outputs/review", { reviews: decisions }, "POST")).status).toBe(409)
+  const checked = storage()
+  expect(checked.getAllNodeVersions("text-catalog-translation", "fr")).toEqual(before)
+  checked.close()
+  const current = (await outputs()).filter((output) => targets.some((target) => target.identity.kind === output.identity.kind && target.identity.id === output.identity.id && target.identity.language === output.identity.language))
+  const response = await send("outputs/review", { reviews: current.map((output) => ({ identity: output.identity, signature: output.signature, contentHash: output.contentHash, revision: output.revision, action: "keep" })) }, "POST")
+  expect(response.status).toBe(200)
+  const kept = await outputs()
+  for (const target of targets) expect(kept.find((item) => item.identity.kind === "translation" && item.identity.id === target.identity.id && item.identity.language === "fr")).toMatchObject({ protected: true, current: true })
 })

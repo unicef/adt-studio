@@ -1008,6 +1008,48 @@ This decision remains proposed, with human review pending.
 | Whole-book publication for every Storyboard run | Withholds successful pages and discards work after unrelated failure. |
 | Replace shared writer gate with in-process-only serialization | Does not coordinate supported prerequisite writers. |
 
+## 026: Existing books require verified extraction reuse
+
+**Status**: proposed
+**Date**: 2026-09-22
+**Spec**: [SPEC-0010](specs/SPEC-0010-safe-cli-reruns.md)
+**Issues**: #810
+
+### Context
+
+At drafting, CLI and API extraction entry points could clear the existing page graph and historical entities; retained LLM caches did not restore user edits. A same-label run did not distinguish compatible reuse from changed-source replacement. Current implementation evidence is recorded in the [revised-stack acceptance report](verification/spec-0010-oct12-acceptance.md), separately from product approval.
+
+### Decision
+
+Admit an existing book only when a completed extraction manifest proves the same source bytes, effective extraction inputs and intact extraction-owned assets. Reuse that extraction and enter only preservation-aware downstream execution; otherwise reject before mutation. In B1, changed-source or unverifiable legacy extraction requires a new user-chosen book destination.
+
+### Consequences
+
+This deliberately restricts same-label reruns for legacy or changed-source books. Provenance and writer admission stay book-local, destructive force/reset behavior is excluded, and safe full resume uses the published shared downstream policies. In-place extraction generations require a later design.
+
+The authorized October 12 reconciliation adopts revised ADR 025: Sectioning
+preferences are informational, ordinary Sectioning is missing-only, explicit
+versioned reset persists independently of subsequent generation, and ordinary
+Storyboard publication is per page. Config-based resume preserves the verified
+extraction-time fixed-layout capability when only rendering layout changes;
+explicit extraction-input changes still require a fresh label. Current coverage
+and real package files, not lifecycle history, establish completion. See the
+SPEC-0010 amendment and original acceptance mapping. Review/Keep decisions bind
+exact selected-owner revisions as well as content and input hashes. Collection
+generation consent never authorizes replacement of adjacent authored items.
+No approval is implied.
+
+This ADR is under review with its spec; no implementation acceptance criterion is satisfied by publishing it. The spec owns the acceptance/test mapping and approval questions. Existing invariant-registry checks remain as documented; new enforcement belongs to the implementing change.
+
+### Alternatives Considered
+
+| Approach | Why Not |
+|---|---|
+| Warn and reset or expand survivor allowlists | Does not preserve history or establish source identity. |
+| Version every extraction generation now | Requires a broader active-graph, reader and media migration beyond B1. |
+
+---
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -1039,6 +1081,8 @@ This decision remains proposed, with human review pending.
 | 025 (proposed) | Sectioning generation preferences and publication | Scoped versioned reset; ordinary per-page publication; shared ownership and coverage | Persisted mode gates, automatic replacement, all-run buffering |
 
 ---
+
+| 026 | Existing books require verified extraction reuse (proposed) | See SPEC-0010 | Warn and reset or expand survivor allowlists |
 
 ## ADR template
 

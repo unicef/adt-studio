@@ -124,6 +124,7 @@ function addCaptionDerivedData(
 /** Body for a one-term glossary carrying (or not carrying) a picture. */
 function glossaryBody(imageId: string | undefined, definition = "Trees"): string {
   return JSON.stringify({
+    baseVersion: 1,
     items: [
       {
         word: "Forest",
@@ -218,6 +219,7 @@ describe("PUT /books/:label/glossary", () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        baseVersion: 0,
         items: [
           {
             id: "gl_manual_soil",

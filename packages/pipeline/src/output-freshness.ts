@@ -144,11 +144,12 @@ export function selectedForGeneration(status: OutputStatus, metadata?: OutputMet
   if (outputSkipped(scope, status.identity)) return false
   const replacement = scope?.replace?.find((item) => outputIdentityKey(item.identity) === key)
   if (replacement) {
-    if (replacement.signature !== status.signature || replacement.contentHash !== status.contentHash) {
+    if (replacement.signature !== status.signature || replacement.contentHash !== status.contentHash || status.revision !== undefined && status.revision !== replacement.revision) {
       throw new Error("Output changed since review. Refresh before replacing it.")
     }
-    return true
+    return !status.blocked
   }
+  if (status.blocked) return false
   if (status.protected) return false
   return scope?.retry?.some((identity) => outputIdentityKey(identity) === key) || needsOutputGeneration(status, metadata)
 }

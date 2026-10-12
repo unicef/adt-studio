@@ -51,7 +51,7 @@ it("uses current page membership for a moved stable ID and preserves neighboring
   const generated = audio()
   expect(generated.data.entries.find((entry) => entry.textId === neighbor.textId)).toMatchObject(neighbor)
   const status = statuses().find((output) => output.identity.kind === "audio" && output.identity.id === "pg002_t001")!
-  await run({ selection: { sectionIds: ["selected"] }, replace: [{ identity: status.identity, signature: status.signature, contentHash: status.contentHash }] })
+  await run({ selection: { sectionIds: ["selected"] }, replace: [{ identity: status.identity, signature: status.signature, contentHash: status.contentHash, revision: status.revision }] })
   expect(transport).toHaveBeenCalledTimes(2)
   expect(audio().data.entries.find((entry) => entry.textId === neighbor.textId)).toMatchObject(neighbor)
   expect(fs.readFileSync(path.join(root, label, "audio", "en", neighbor.fileName), "utf8")).toBe("manual neighbor recording")

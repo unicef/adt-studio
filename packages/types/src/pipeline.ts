@@ -249,7 +249,11 @@ export const BOOK_LEVEL_STAGES: ReadonlySet<StageName> = new Set(
 
 /** Catalog output ownership, derived through the shared step-to-stage map. */
 export const OUTPUT_KIND_TO_STEP = {
+  "extract-generation": "metadata", sectioning: "page-sectioning", storyboard: "web-rendering", quizzes: "quiz-generation", glossary: "glossary", toc: "toc-generation", package: "package-web",
   caption: "image-captioning", translation: "catalog-translation", "easy-read": "easy-read",
   preparation: "core-tts-catalog", audio: "tts", timestamps: "word-timestamps", "image-translation": "image-translation",
 } as const satisfies Record<import("./output-freshness.js").OutputKind, StepName>
 export const OUTPUT_KIND_TO_STAGE = Object.fromEntries(Object.entries(OUTPUT_KIND_TO_STEP).map(([kind, step]) => [kind, STEP_TO_STAGE[step]])) as Record<import("./output-freshness.js").OutputKind, StageName>
+
+/** Compatibility alias; both consumers use the same ownership table. */
+export const OUTPUT_KIND_STEP = OUTPUT_KIND_TO_STEP

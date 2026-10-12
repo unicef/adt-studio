@@ -14,7 +14,10 @@ import { createStageService } from "./stage-service.js"
 import { createStageRoutes } from "../routes/stages.js"
 import { errorHandler } from "../middleware/error-handler.js"
 
-const render = vi.hoisted(() => vi.fn(async () => ({ sections: [] })))
+const render = vi.hoisted(() => vi.fn(async (_input: { sectioning: import("@adt/types").PageSectioningOutput }) => ({ sections: [] as import("@adt/types").WebRenderingOutput["sections"] })))
+function rendered(input: { sectioning: import("@adt/types").PageSectioningOutput }) {
+  return { sections: input.sectioning.sections.map((section, sectionIndex) => ({ sectionIndex, sectionId: section.sectionId, sectionType: section.sectionType, reasoning: "fixture", html: `<section data-section-id="${section.sectionId}" data-section-type="${section.sectionType}">Rendered text</section>` })) }
+}
 vi.mock("@adt/pipeline", async (original) => ({
   ...await original<typeof import("@adt/pipeline")>(), renderPage: render,
 }))
@@ -51,7 +54,7 @@ beforeEach(() => {
     }
   } finally { s.close() }
   writeSectioningLifecycle(path.join(root, label), "page", true)
-  render.mockReset().mockResolvedValue({ sections: [] })
+  render.mockReset().mockImplementation(async (input) => rendered(input))
 })
 afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
 
@@ -195,7 +198,7 @@ describe("Storyboard layout publication", () => {
     const after = store()
     try {
       expect([after.getAllNodeVersions("web-rendering", "p2"), after.getAllNodeVersions("fixed-layout-sectioning", "p2")]).toEqual(outside)
-      expect(after.getAllNodeVersions("web-rendering", "p7")).toHaveLength(2)
+      expect(after.getAllNodeVersions("web-rendering", "p7")).toHaveLength(layout === "fixed" ? 1 : 2)
       expect(getRenderSectioning(after, "p7")?.sections[0].sectionType).toBe(layout === "fixed" ? "fixed-layout-page" : "text")
     } finally { after.close() }
     expect(render).toHaveBeenCalledTimes(layout === "fixed" ? 0 : 1)
@@ -229,7 +232,7 @@ describe("Storyboard layout publication", () => {
     const service = createStageService(createStageRunner(), bus, decisions)
     const app = new Hono().onError(errorHandler).route("/", createStageRoutes(service, bus, decisions, root, root, root, configPath))
     let finish!: () => void
-    render.mockImplementationOnce(() => new Promise((resolve) => { finish = () => resolve({ sections: [] }) }))
+    render.mockImplementationOnce((input) => new Promise((resolve) => { finish = () => resolve(rendered(input)) }))
     const request = () => app.request(`/books/${label}/stages/run`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fromStage: "storyboard", toStage: "storyboard" }),
@@ -249,10 +252,10 @@ describe("Storyboard layout publication", () => {
     }, { timeout: 10000 })
     const after = store()
     try {
-      for (const id of ["p2", "p7"]) expect(after.getAllNodeVersions("web-rendering", id)).toHaveLength(2)
+      for (const id of ["p2", "p7"]) expect(after.getAllNodeVersions("web-rendering", id)).toHaveLength(1)
       expect(after.getStepRuns()).toContainEqual(expect.objectContaining({ step: "web-rendering", status: "done" }))
     } finally { after.close() }
-    expect(render).toHaveBeenCalledTimes(4)
+    expect(render).toHaveBeenCalledTimes(2)
   })
 
   it("keeps the real CLI's existing-book fallback non-destructive", () => {
@@ -305,12 +308,14 @@ it.each(["positioned-text", "image-filtering"])("missing %s keeps old fixed outp
   s.putNodeData(node, "p2", null)
   s.close()
   const image = fs.readFileSync(path.join(root, label, "images", "p2_page.png"))
-  await expect(run()).rejects.toThrow("STORYBOARD_PAGE_INPUT_MISSING")
+  // The manually changed page is protected; ordinary rerun does not attempt
+  // to overwrite it, and the proven-current neighbor incurs no version churn.
+  await run()
   const after = store()
   try {
     expect(after.getLatestNodeData("web-rendering", "p2")).toEqual(before)
     expect(after.getLatestNodeData("fixed-layout-sectioning", "p2")).toEqual(tree)
-    expect(after.getSelectedNodeVersion("web-rendering", "p7")).toBe(neighborVersion + 1)
+    expect(after.getSelectedNodeVersion("web-rendering", "p7")).toBe(neighborVersion)
   } finally { after.close() }
   expect(fs.readFileSync(path.join(root, label, "images", "p2_page.png"))).toEqual(image)
 })
@@ -321,7 +326,7 @@ it("a reflowable-to-fixed switch cannot replace readable output with absent extr
   const before = [2, 7].map((n) => s.getAllNodeVersions("web-rendering", `p${n}`))
   s.putNodeData("positioned-text", "p2", null)
   s.close()
-  await expect(run()).rejects.toThrow("STORYBOARD_PUBLICATION_INCOMPLETE")
+  await expect(run()).rejects.toThrow("RESUME_INCOMPLETE")
   const after = store()
   try {
     expect([2, 7].map((n) => after.getAllNodeVersions("web-rendering", `p${n}`))).toEqual(before)
