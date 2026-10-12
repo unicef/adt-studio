@@ -19,6 +19,12 @@ type NotificationActivatedCallback = (target: {
 
 export type ElectronPlatform = NodeJS.Platform
 
+export interface HardwareProfile {
+  cores: number
+  memoryGb: number
+  softwareRendering: boolean
+}
+
 const windowControls = {
   minimize: (): Promise<void> => ipcRenderer.invoke('window:minimize'),
   toggleMaximize: (): Promise<boolean> =>
@@ -123,6 +129,9 @@ const api = {
   },
   get systemLocales(): string[] {
     return ipcRenderer.sendSync('app:system-locales') as string[]
+  },
+  get hardware(): HardwareProfile {
+    return ipcRenderer.sendSync('app:hardware') as HardwareProfile
   },
   windowControls,
   updates,

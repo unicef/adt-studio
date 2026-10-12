@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { effectsReduced } from "./effects"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -22,9 +23,7 @@ export function isZipFile(f: File): boolean {
 }
 
 export function prefersReducedMotion(): boolean {
-  if (typeof window === "undefined" || !window.matchMedia) return false
-  /* eslint-disable-next-line lingui/no-unlocalized-strings -- CSS media query */
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  return effectsReduced()
 }
 
 export function scrollBehavior(): ScrollBehavior {

@@ -117,6 +117,10 @@ msgstr "{0, plural, one {# página substituída} other {# páginas substituídas
 msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# página} other {# páginas}}"
 
+#. placeholder {0}: hw.cores ?? 0
+msgid "{0, plural, one {# processor core} other {# processor cores}}"
+msgstr "{0, plural, one {# núcleo de processador} other {# núcleos de processador}}"
+
 #. placeholder {0}: discs.length
 msgid "{0, plural, one {# stage} other {# stages}}"
 msgstr "{0, plural, one {# etapa} other {# etapas}}"
@@ -208,6 +212,10 @@ msgstr "{0} apontamentos sinalizados nesta revisão"
 #. placeholder {0}: filtered.length
 msgid "{0} fonts"
 msgstr "{0} fontes"
+
+#. placeholder {0}: hw.memoryGb
+msgid "{0} GB of memory"
+msgstr "{0} GB de memória"
 
 #. placeholder {0}: selectedImageIds.length
 #. placeholder {1}: selectedImageIds.length === 1 ? "" : "s"
@@ -1681,6 +1689,9 @@ msgstr "Autores"
 msgid "Auto"
 msgstr "Automático"
 
+msgid "Auto is off: this computer can run full effects."
+msgstr "O Automático está desligado: este computador consegue usar todos os efeitos."
+
 msgid "Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML."
 msgstr "O modo Automático mantém juntos gráficos, imagens rotuladas e infográficos complexos, deixando títulos, caixas de destaque e tabelas convencionais para HTML acessível."
 
@@ -1693,6 +1704,12 @@ msgstr "Automático (recomendado)"
 #. placeholder {0}: i18n._(presetLabel)
 msgid "Auto recommended for {0}"
 msgstr "Automático (recomendado para {0})"
+
+msgid "Auto turned this on because your system asks for less motion."
+msgstr "O Automático ligou isso porque seu sistema pede menos movimento."
+
+msgid "Auto turned this on for this computer: <0/>."
+msgstr "O Automático ligou isso para este computador: <0/>."
 
 msgid "Auto-build assessments and key-term lists."
 msgstr "Crie automaticamente avaliações e listas de termos-chave."
@@ -2198,6 +2215,9 @@ msgstr "Centro"
 msgid "Change"
 msgstr "Alterar"
 
+msgid "Change in Settings"
+msgstr "Alterar nas Configurações"
+
 msgid "Change language"
 msgstr "Mudar idioma"
 
@@ -2468,8 +2488,8 @@ msgstr "em breve"
 msgid "Coming soon"
 msgstr "Em breve"
 
-msgid "Coming soon — not wired up yet."
-msgstr "Em breve — ainda não conectado."
+#~ msgid "Coming soon — not wired up yet."
+#~ msgstr "Em breve — ainda não conectado."
 
 msgid "Command palette"
 msgstr "Paleta de comandos"
@@ -3560,6 +3580,9 @@ msgstr "Idioma de edição"
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Edições vão para este prefixo de variante Tailwind"
 
+msgid "Effects are reduced everywhere in Studio."
+msgstr "Os efeitos estão reduzidos em todo o Studio."
+
 msgid "Effort"
 msgstr "Esforço"
 
@@ -4213,6 +4236,9 @@ msgstr "Pacote ADT completo: páginas HTML, imagens, áudio, questionários e ap
 msgid "Full control over render strategies, pruning, and filters."
 msgstr "Controle total sobre estratégias de renderização, remoção e filtros."
 
+msgid "Full effects are always used on this computer."
+msgstr "Todos os efeitos são sempre usados neste computador."
+
 msgid "Full project backup & transfer"
 msgstr "Backup completo do projeto e transferência"
 
@@ -4508,6 +4534,9 @@ msgstr "Ano escolar"
 
 msgid "Grammar and fluency"
 msgstr "Gramática e fluência"
+
+msgid "graphics drawn without the GPU"
+msgstr "gráficos desenhados sem a GPU"
 
 msgid "Grid view"
 msgstr "Visualização em grade"
@@ -5772,8 +5801,8 @@ msgstr "Tamanho mín. (px)"
 msgid "Min width"
 msgstr "Largura mín."
 
-msgid "Minimise onboarding and list-reorder animations."
-msgstr "Reduz as animações da apresentação inicial e da reordenação de listas."
+#~ msgid "Minimise onboarding and list-reorder animations."
+#~ msgstr "Reduz as animações da apresentação inicial e da reordenação de listas."
 
 msgid "Minimize"
 msgstr "Minimizar"
@@ -5877,8 +5906,11 @@ msgstr "Mais comum"
 msgid "Most used"
 msgstr "Mais usado"
 
-msgid "motion animation accessibility"
-msgstr "movimento animação acessibilidade"
+#~ msgid "motion animation accessibility"
+#~ msgstr "movimento animação acessibilidade"
+
+msgid "motion animation blur performance slow computer accessibility"
+msgstr "movimento animação desfoque desempenho computador lento acessibilidade"
 
 msgid "Move down"
 msgstr "Mover para baixo"
@@ -7818,8 +7850,11 @@ msgstr "Recortar da página"
 msgid "Rectangle"
 msgstr "Retângulo"
 
-msgid "Reduce motion"
-msgstr "Reduzir movimento"
+msgid "Reduce effects"
+msgstr "Reduzir efeitos"
+
+#~ msgid "Reduce motion"
+#~ msgstr "Reduzir movimento"
 
 msgid "Reference"
 msgstr "Referência"
@@ -9007,6 +9042,12 @@ msgstr "Você saiu da conta."
 msgid "Similarity"
 msgstr "Semelhança"
 
+msgid "Simpler animations and no blur or 3D, so Studio stays smooth on slower computers."
+msgstr "Animações mais simples, sem desfoque nem 3D, para o Studio continuar fluido em computadores mais lentos."
+
+msgid "Simpler animations and no blur, for slower computers."
+msgstr "Animações mais simples e sem desfoque, para computadores mais lentos."
+
 msgid "Simplified Easy Read text variants."
 msgstr "Variantes de texto simplificadas de Leitura Fácil."
 
@@ -9079,6 +9120,9 @@ msgstr "Pequeno"
 
 msgid "Smart Cropping"
 msgstr "Recorte inteligente"
+
+msgid "So it stays smooth on this computer: <0/>."
+msgstr "Para continuar fluido neste computador: <0/>."
 
 msgid "Software update"
 msgstr "Atualização de software"
@@ -9401,6 +9445,9 @@ msgstr "Estrutura cada página em uma árvore de seções e nós."
 
 #~ msgid "Studio actions"
 #~ msgstr "Ações do estúdio"
+
+msgid "Studio switched to reduced effects"
+msgstr "O Studio passou a usar efeitos reduzidos"
 
 msgid "Style"
 msgstr "Estilo"
@@ -11120,6 +11167,9 @@ msgstr "Suas fontes"
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Suas páginas {displayStart}–{displayEnd}"
+
+msgid "Your system asks for less motion, so animations stay reduced."
+msgstr "Seu sistema pede menos movimento, então as animações continuam reduzidas."
 
 msgid "Z → A"
 msgstr "Z → A"

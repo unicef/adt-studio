@@ -98,13 +98,13 @@ const THEME_ENTRIES: SettingsSearchEntry[] = [
     icon: theme.icon,
   })),
   {
-    id: "settings-theme-reduce-motion",
+    id: "settings-theme-reduce-effects",
     kind: "option",
     section: "theme",
-    label: msg`Reduce motion`,
-    hint: msg`Minimise onboarding and list-reorder animations.`,
-    keywords: msg`motion animation accessibility`,
-    anchor: SETTINGS_ANCHORS.reduceMotion,
+    label: msg`Reduce effects`,
+    hint: msg`Simpler animations and no blur, for slower computers.`,
+    keywords: msg`motion animation blur performance slow computer accessibility`,
+    anchor: SETTINGS_ANCHORS.reduceEffects,
   },
 ]
 

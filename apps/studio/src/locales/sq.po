@@ -119,6 +119,10 @@ msgstr "{0, plural, one {# faqe e zëvendësuar} other {# faqe të zëvendësuar
 msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# faqe} other {# faqe}}"
 
+#. placeholder {0}: hw.cores ?? 0
+msgid "{0, plural, one {# processor core} other {# processor cores}}"
+msgstr "{0, plural, one {# bërthamë procesori} other {# bërthama procesori}}"
+
 #. placeholder {0}: discs.length
 msgid "{0, plural, one {# stage} other {# stages}}"
 msgstr "{0, plural, one {# fazë} other {# faza}}"
@@ -210,6 +214,10 @@ msgstr "{0} gjetje të shënuara në këtë rishikim"
 #. placeholder {0}: filtered.length
 msgid "{0} fonts"
 msgstr "{0} fonte"
+
+#. placeholder {0}: hw.memoryGb
+msgid "{0} GB of memory"
+msgstr "{0} GB memorie"
 
 #. placeholder {0}: selectedImageIds.length
 #. placeholder {1}: selectedImageIds.length === 1 ? "" : "s"
@@ -1683,6 +1691,9 @@ msgstr "Autorët"
 msgid "Auto"
 msgstr "Automatik"
 
+msgid "Auto is off: this computer can run full effects."
+msgstr "Automatiku është joaktiv: ky kompjuter mund t’i shfaqë të gjitha efektet."
+
 msgid "Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML."
 msgstr "Modaliteti Auto i mban së bashku grafikët, imazhet me etiketa dhe infografikat komplekse, ndërsa titujt, kutitë e veçuara dhe tabelat e zakonshme i lë për HTML të qasshme."
 
@@ -1695,6 +1706,12 @@ msgstr "Rekomandohet Auto"
 #. placeholder {0}: i18n._(presetLabel)
 msgid "Auto recommended for {0}"
 msgstr "Auto rekomandohet për {0}"
+
+msgid "Auto turned this on because your system asks for less motion."
+msgstr "Automatiku e aktivizoi sepse sistemi juaj kërkon më pak lëvizje."
+
+msgid "Auto turned this on for this computer: <0/>."
+msgstr "Automatiku e aktivizoi për këtë kompjuter: <0/>."
 
 msgid "Auto-build assessments and key-term lists."
 msgstr "Ndërto automatikisht vlerësime dhe lista termash kyç."
@@ -2200,6 +2217,9 @@ msgstr "Qendër"
 msgid "Change"
 msgstr "Ndrysho"
 
+msgid "Change in Settings"
+msgstr "Ndryshoje te Cilësimet"
+
 msgid "Change language"
 msgstr "Ndrysho gjuhën"
 
@@ -2470,8 +2490,8 @@ msgstr "së shpejti"
 msgid "Coming soon"
 msgstr "Së shpejti"
 
-msgid "Coming soon — not wired up yet."
-msgstr "Së shpejti — ende nuk është lidhur."
+#~ msgid "Coming soon — not wired up yet."
+#~ msgstr "Së shpejti — ende nuk është lidhur."
 
 msgid "Command palette"
 msgstr "Paleta e komandave"
@@ -3562,6 +3582,9 @@ msgstr "Gjuha e redaktimit"
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Ndryshimet shkojnë tek ky prefiks i variantit Tailwind"
 
+msgid "Effects are reduced everywhere in Studio."
+msgstr "Efektet janë të reduktuara kudo në Studio."
+
 msgid "Effort"
 msgstr "Përpjekje"
 
@@ -4215,6 +4238,9 @@ msgstr "Paketa e plotë ADT — faqe HTML, imazhe, audio, kuize dhe aplikacioni 
 msgid "Full control over render strategies, pruning, and filters."
 msgstr "Kontroll i plotë mbi strategjitë e renderimit, prerjes dhe filtrave."
 
+msgid "Full effects are always used on this computer."
+msgstr "Në këtë kompjuter përdoren gjithmonë të gjitha efektet."
+
 msgid "Full project backup & transfer"
 msgstr "Kopje rezervë dhe transferim i plotë i projektit"
 
@@ -4510,6 +4536,9 @@ msgstr "Niveli Shkollor"
 
 msgid "Grammar and fluency"
 msgstr "Gramatika dhe rrjedhshmëria"
+
+msgid "graphics drawn without the GPU"
+msgstr "grafika e vizatuar pa GPU"
 
 msgid "Grid view"
 msgstr "Pamje rrjeti"
@@ -5774,8 +5803,8 @@ msgstr "Madhësia Minimale (px)"
 msgid "Min width"
 msgstr "Gjerësia minimale"
 
-msgid "Minimise onboarding and list-reorder animations."
-msgstr "Minimizo animacionet e hyrjes dhe riorganizimit të listës."
+#~ msgid "Minimise onboarding and list-reorder animations."
+#~ msgstr "Minimizo animacionet e hyrjes dhe riorganizimit të listës."
 
 msgid "Minimize"
 msgstr "Minimizo"
@@ -5879,8 +5908,11 @@ msgstr "Më të zakonshmet"
 msgid "Most used"
 msgstr "Më i përdorur"
 
-msgid "motion animation accessibility"
-msgstr "lëvizje animacion aksesueshmëri"
+#~ msgid "motion animation accessibility"
+#~ msgstr "lëvizje animacion aksesueshmëri"
+
+msgid "motion animation blur performance slow computer accessibility"
+msgstr "lëvizje animacion turbullim performancë kompjuter i ngadaltë qasshmëri"
 
 msgid "Move down"
 msgstr "Zhvendos poshtë"
@@ -7820,8 +7852,11 @@ msgstr "Rirritjo nga Faqja"
 msgid "Rectangle"
 msgstr "Drejtkëndësh"
 
-msgid "Reduce motion"
-msgstr "Redukto lëvizjen"
+msgid "Reduce effects"
+msgstr "Redukto efektet"
+
+#~ msgid "Reduce motion"
+#~ msgstr "Redukto lëvizjen"
 
 msgid "Reference"
 msgstr "Referencë"
@@ -9009,6 +9044,12 @@ msgstr "Dolët nga llogaria."
 msgid "Similarity"
 msgstr "Ngjashmëria"
 
+msgid "Simpler animations and no blur or 3D, so Studio stays smooth on slower computers."
+msgstr "Animacione më të thjeshta, pa turbullim e pa 3D, që Studio të mbetet i rrjedhshëm në kompjuterë më të ngadaltë."
+
+msgid "Simpler animations and no blur, for slower computers."
+msgstr "Animacione më të thjeshta dhe pa turbullim, për kompjuterë më të ngadaltë."
+
 msgid "Simplified Easy Read text variants."
 msgstr "Variante të thjeshtuara të tekstit Easy Read."
 
@@ -9081,6 +9122,9 @@ msgstr "I vogël"
 
 msgid "Smart Cropping"
 msgstr "Prerje Inteligjente"
+
+msgid "So it stays smooth on this computer: <0/>."
+msgstr "Që të mbetet i rrjedhshëm në këtë kompjuter: <0/>."
 
 msgid "Software update"
 msgstr "Përditësim softueri"
@@ -9403,6 +9447,9 @@ msgstr "Strukturon çdo faqe në një pemë seksionesh dhe nyjesh."
 
 #~ msgid "Studio actions"
 #~ msgstr "Veprimet e studios"
+
+msgid "Studio switched to reduced effects"
+msgstr "Studio kaloi në efekte të reduktuara"
 
 msgid "Style"
 msgstr "Stili"
@@ -11122,6 +11169,9 @@ msgstr "Fontet e tua"
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Faqet tuaja {displayStart}–{displayEnd}"
+
+msgid "Your system asks for less motion, so animations stay reduced."
+msgstr "Sistemi juaj kërkon më pak lëvizje, ndaj animacionet mbeten të reduktuara."
 
 msgid "Z → A"
 msgstr "Z → A"
