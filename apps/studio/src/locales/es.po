@@ -1653,6 +1653,13 @@ msgstr "Adjunta archivos de fuentes o elige Google Fonts para este libro. La IA 
 msgid "Attached fonts"
 msgstr "Fuentes adjuntas"
 
+msgid "Attempt"
+msgstr "Intento"
+
+#. placeholder {0}: current.attemptCount
+msgid "Attempts made: {0}"
+msgstr "Intentos realizados: {0}"
+
 msgid "Audience or reading level"
 msgstr "Audiencia o nivel de lectura"
 
@@ -2136,6 +2143,9 @@ msgstr "Cancelar descarga"
 
 msgid "Cancel run"
 msgstr "Cancelar ejecución"
+
+msgid "Cancelled"
+msgstr "Cancelado"
 
 msgid "Cancelling {stageLabel}"
 msgstr "Cancelando {stageLabel}"
@@ -2637,8 +2647,14 @@ msgstr "Conectado exitosamente."
 msgid "Connected through the login already present on this machine."
 msgstr "Conectado a través del inicio de sesión ya presente en esta máquina."
 
+msgid "Connection closed"
+msgstr "Conexión cerrada"
+
 msgid "Connection not checked yet."
 msgstr "Conexión no verificada aún."
+
+msgid "Connection timeout"
+msgstr "Tiempo de conexión agotado"
 
 msgid "Consulting the style council..."
 msgstr "Consultando al consejo de estilo..."
@@ -3755,6 +3771,9 @@ msgstr "Exportar EPUB"
 
 msgid "Error"
 msgstr "Error"
+
+msgid "Error class"
+msgstr "Categoría del error"
 
 msgid "Error output"
 msgstr "Salida de error"
@@ -5651,6 +5670,9 @@ msgstr "Valores más bajos producen estilos más consistentes entre páginas."
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Asegúrese de subir un archivo .zip exportado desde ADT Studio."
 
+msgid "Malformed model output"
+msgstr "Salida del modelo no válida"
+
 msgid "Manage all sections"
 msgstr "Gestionar todas las secciones"
 
@@ -6544,6 +6566,9 @@ msgstr "Nodes"
 msgid "noise"
 msgstr "ruido"
 
+msgid "Non-retryable error"
+msgstr "Error que no permite reintentos"
+
 msgid "None"
 msgstr "Ninguno"
 
@@ -6932,6 +6957,9 @@ msgstr "En procesamiento"
 
 msgid "Out of date"
 msgstr "Desactualizado"
+
+msgid "Outcome"
+msgstr "Resultado"
 
 msgid "Outline ID:"
 msgstr "ID del esquema:"
@@ -7494,6 +7522,9 @@ msgstr "Previsualización<0/>Compilación"
 msgid "Previewed here — enabled once the AI-agnostic update ships."
 msgstr "Previsualizado aquí — habilitado una vez que se lance la actualización AI-agnóstica."
 
+msgid "Previous content is retained. This page is not confirmed current."
+msgstr "Se conserva el contenido anterior. No se ha confirmado que esta página esté actualizada."
+
 msgid "Previous image"
 msgstr "Imagen anterior"
 
@@ -7596,6 +7627,9 @@ msgstr "El proveedor \"{providerId}\" no está registrado. Agrega sus claves de 
 
 #~ msgid "Provider available"
 #~ msgstr "Proveedor disponible"
+
+msgid "Provider call"
+msgstr "Llamada al proveedor"
 
 #~ msgid "Provider coming soon"
 #~ msgstr "Proveedor próximamente"
@@ -7786,6 +7820,9 @@ msgstr "Cita"
 
 msgid "Radius"
 msgstr "Radio"
+
+msgid "Rate limit"
+msgstr "Límite de solicitudes"
 
 msgid "Re-enable type"
 msgstr "Reactivar tipo"
@@ -7985,6 +8022,9 @@ msgstr "Actualiza el estado del audio antes de subir una grabación."
 
 msgid "Refresh provider availability, versions, auth state and model metadata in the background. Set to 0 seconds to rely on manual refreshes."
 msgstr "Actualizar disponibilidad de proveedores, versiones, estado de autenticación y metadatos de modelos en segundo plano. Configura a 0 segundos para depender de actualizaciones manuales."
+
+msgid "Refresh status"
+msgstr "Actualizar estado"
 
 msgid "Refresh validation"
 msgstr "Actualizar validación"
@@ -8201,8 +8241,14 @@ msgstr "Reportar un problema"
 msgid "Request failed: {0}"
 msgstr "La solicitud falló: {0}"
 
+msgid "Request ID"
+msgstr "ID de solicitud"
+
 msgid "Request settings"
 msgstr "Ajustes de la solicitud"
+
+msgid "Request timeout"
+msgstr "Tiempo de solicitud agotado"
 
 msgid "Require comment on failure"
 msgstr "Exigir comentario en caso de fallo"
@@ -8310,8 +8356,17 @@ msgstr "Reintentar {stageLabel}"
 msgid "Retry Export"
 msgstr "Reintentar exportación"
 
+msgid "Retry only this page with another bounded round of provider calls, skip it with an error, or stop the step."
+msgstr "Reintenta solo esta página con otra ronda limitada de llamadas al proveedor, omítela con un error o detén el paso."
+
 msgid "Retry preparation"
 msgstr "Reintentar la preparación"
+
+msgid "Retry this page"
+msgstr "Reintentar esta página"
+
+msgid "Retrying"
+msgstr "Reintentando"
 
 msgid "Return to coordinator"
 msgstr "Devolver al coordinador"
@@ -9078,6 +9133,9 @@ msgstr "grave"
 msgid "Serious"
 msgstr "Grave"
 
+msgid "Server error"
+msgstr "Error del servidor"
+
 msgid "Session comments"
 msgstr "Comentarios de la sesión"
 
@@ -9307,6 +9365,9 @@ msgstr "Omitir en esta ejecución"
 
 msgid "Skipped"
 msgstr "Omitido"
+
+msgid "Skipped after error"
+msgstr "Omitida tras un error"
 
 msgid "Sky"
 msgstr "Cielo"
@@ -10032,6 +10093,9 @@ msgstr "La página de créditos."
 msgid "The data sent within the body of a request or response message."
 msgstr "Los datos enviados en el cuerpo de un mensaje de solicitud o respuesta."
 
+msgid "The decision was not accepted. Refresh its status before trying again."
+msgstr "La decisión no fue aceptada. Actualiza su estado antes de volver a intentarlo."
+
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 msgstr "La instrucción TTS predeterminada aplicada a todos los idiomas salvo que se anule más abajo. OpenAI la usa como instrucción de voz y Gemini como guía de acento dentro del prompt; Azure y ElevenLabs la ignoran."
 
@@ -10384,6 +10448,9 @@ msgstr "Esta página no tiene entradas de texto traducibles"
 
 msgid "This page has not been reviewed yet"
 msgstr "Esta página aún no ha sido revisada"
+
+msgid "This page was skipped after an error. The decision sent no additional provider request. Review retained results before continuing."
+msgstr "Esta página se omitió tras un error. La decisión no envió ninguna solicitud adicional al proveedor. Revise los resultados conservados antes de continuar."
 
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "La capa de texto incrustado de esta página está vacía, pero el paso de Seccionamiento recuperó texto a partir de la imagen de la página, por lo que parece una página escaneada o solo de imagen. La canalización aún puede funcionar con el texto recuperado, pero para obtener mejores resúmenes, metadatos y traducciones, intenta conseguir una versión de este PDF basada en texto (con una capa de texto real) en lugar de una copia escaneada."
@@ -10827,6 +10894,9 @@ msgstr "Autor desconocido"
 msgid "Unknown criterion"
 msgstr "Criterio desconocido"
 
+msgid "Unknown error"
+msgstr "Error desconocido"
+
 msgid "Unknown stage"
 msgstr "Etapa desconocida"
 
@@ -10949,6 +11019,9 @@ msgstr "Sube un ZIP o arrastra y suelta"
 
 msgid "Uploading..."
 msgstr "Subiendo..."
+
+msgid "Usage is unavailable for {unknownUsageCalls} provider calls. Token totals include recorded usage only."
+msgstr "No se dispone del uso de {unknownUsageCalls} llamadas al proveedor. Los totales de tokens solo incluyen el uso registrado."
 
 msgid "Use \"{trimmedQuery}\""
 msgstr "Usar \"{trimmedQuery}\""

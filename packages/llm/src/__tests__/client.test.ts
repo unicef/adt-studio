@@ -343,7 +343,7 @@ describe("createLLMModel cancellation", () => {
     await expect(
       llm.generateObject({ schema, messages, maxRetries: 5 }),
     ).rejects.toThrow()
-    expect(generate).toHaveBeenCalledTimes(1)
+    expect(generate).toHaveBeenCalledTimes(0)
   })
 
   it("still retries a normal failure when no signal is aborted", async () => {

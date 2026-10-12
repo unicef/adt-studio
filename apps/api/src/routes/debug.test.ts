@@ -272,6 +272,8 @@ describe("Debug routes", () => {
         const rows = [
           { promptName: "tts-azure", modelId: "azure/azure-tts", cacheHit: false, success: true, durationMs: 900 },
           { promptName: "tts-azure", modelId: "azure/azure-tts", cacheHit: false, success: true, durationMs: 0, skippedReason: "no-speakable-text" },
+          { promptName: "tts-azure", modelId: "azure/azure-tts", cacheHit: false, providerCall: false, success: false, outcome: "cancelled", durationMs: 1000 },
+          { promptName: "page-error-decision", modelId: "", cacheHit: false, providerCall: false, success: false, outcome: "skipped-with-error", skippedReason: "page-error", durationMs: 0 },
         ]
         for (const data of rows) {
           db.run(
@@ -291,11 +293,15 @@ describe("Debug routes", () => {
       expect(ttsStep.cacheMisses).toBe(1)
       expect(ttsStep.avgDurationMs).toBe(900)
       expect(body.totals.calls).toBe(1)
+      expect(body.totals.unknownUsageCalls).toBe(1)
+      expect(body.totals.errorCount).toBe(0)
 
       // The row still has to be inspectable — it explains the missing audio.
       const logsRes = await app.request(`/api/books/${skippedLabel}/debug/llm-logs`)
       const logs = await logsRes.json()
-      expect(logs.logs).toHaveLength(2)
+      expect(logs.logs).toHaveLength(4)
+      expect(body.totals.skipped).toBe(2)
+      expect(logs.logs.some((row: { data: { outcome?: string } }) => row.data.outcome === "skipped-with-error")).toBe(true)
       expect(
         logs.logs.some(
           (row: { data: { skippedReason?: string } }) =>

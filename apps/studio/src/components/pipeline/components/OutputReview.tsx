@@ -85,6 +85,9 @@ function OutputReviewItem({ bookLabel, output, outputs, dirty = false, disclosur
     {detail && output.sourceText && <p className="mt-1 text-muted-foreground">{output.sourceText}</p>}
     {detail && output.text && output.text !== output.sourceText && <p className="mt-1">{output.text}</p>}
     {reason && <p className="mt-1">{reason}</p>}
+    {output.pageErrors?.map((error) => <p role="status" key={`${error.step}/${error.pageId}`} className="mt-1">
+      {t`Skipped after error`}: {error.pageId}. {t`Previous content is retained. This page is not confirmed current.`}
+    </p>)}
     {disclosure && <p>{output.included ? t`Existing output is included.` : t`Missing output is omitted.`}</p>}
     {!hasDraft && !disclosure && ["easy-read", "preparation", "audio", "caption"].includes(output.identity.kind) && <p className="mt-1 text-muted-foreground">{t`Generation uses required section or page context and publishes only selected outputs. Current and protected outputs are kept.`}</p>}
     {!hasDraft && !disclosure && <div className="mt-1 flex flex-wrap gap-1">
@@ -116,6 +119,7 @@ export function CatalogSummary({ bookLabel, stage, disclosure = false, features 
     <button type="button" className="flex items-center gap-2 text-xs" onClick={() => setOpen(!open)} aria-expanded={open}>
       <AlertTriangle className="h-4 w-4" />{t`${updates} updates needed · ${warnings} warnings · ${missing} missing`}
     </button>
+    {outputs.flatMap((output) => output.pageErrors ?? []).filter((error, index, all) => all.findIndex((other) => other.step === error.step && other.pageId === error.pageId) === index).map((error) => <p key={`${error.step}/${error.pageId}`} role="status" className="mt-1 text-xs">{t`Skipped after error`}: {error.pageId}</p>)}
     {open && !disclosure && <BulkOutputReview bookLabel={bookLabel} outputs={outputs} />}
     {open && <div className="mt-2 max-h-96 space-y-2 overflow-auto">{outputs.filter((output) => output.updateNeeded || output.missing || output.warnings.length).map((output) => <div key={JSON.stringify(output.identity)}>
       <p className="mb-1 text-xs font-mono">{output.identity.id} {output.identity.language} {output.identity.voiceSlot}</p>

@@ -1,5 +1,7 @@
+import { AiProviderError } from "../../ports/errors.js"
+import { createCliRequestBudget } from "../shared/cli-request-budget.js"
 import { spawn } from "node:child_process"
-import { mkdtemp, rm, writeFile } from "node:fs/promises"
+import { mkdtemp, rm, writeFile, readFile } from "node:fs/promises"
 import { join } from "node:path"
 
 export interface ClaudeAgentTextBlock {
@@ -34,6 +36,7 @@ export interface ClaudeAgentResultEvent {
   result?: string
   structured_output?: unknown
   usage?: ClaudeAgentUsage
+  api_error_status?: number | null
   total_cost_usd?: number
   errors?: string[]
 }
@@ -45,6 +48,7 @@ export interface ClaudeAgentTurn {
 }
 
 export interface ClaudeCliRequest {
+  onProviderRequest?: () => void
   executable: string
   model: string
   userMessage: ClaudeAgentUserMessage
@@ -76,8 +80,8 @@ export interface ClaudeCliArgsOptions {
  * Headless print mode, fully isolated: no settings sources, no built-in tools,
  * no MCP servers, no session files. stream-json is the only print-mode input
  * format that carries image blocks, and stream-json output requires
- * `--verbose`. Without tools a user turn cannot fan out, so no turn cap is
- * needed.
+ * `--verbose`. Transport retries, structured-output repair and stream fallback
+ * are disabled through the child environment so the facade owns those budgets.
  */
 export function buildClaudeArgs(options: ClaudeCliArgsOptions): string[] {
   const args = [
@@ -110,15 +114,54 @@ export function buildClaudeArgs(options: ClaudeCliArgsOptions): string[] {
  * non-recursive and small.
  */
 export const runClaudeCli: ClaudeCliRunner = async (request) => {
+  // ADT's registered adapter supports Anthropic key / Claude login. Ambient
+  // AWS, Vertex or Foundry selectors choose different authentication protocols
+  // and bypass ANTHROPIC_BASE_URL; never silently send unbudgeted paid work.
+  const alternate = [
+    "CLAUDE_CODE_USE_BEDROCK",
+    "CLAUDE_CODE_USE_VERTEX",
+    "CLAUDE_CODE_USE_FOUNDRY",
+    "CLAUDE_CODE_USE_ANTHROPIC_AWS",
+    "CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD",
+    "CLAUDE_CODE_USE_MANTLE",
+    "CLAUDE_CODE_USE_GATEWAY",
+  ].find(
+    (name) =>
+      request.env[name] && !["0", "false", "no", "off"].includes(request.env[name]!.toLowerCase()),
+  )
+  if (alternate)
+    throw new AiProviderError(
+      "unsupported-capability",
+      `Claude Agent supports Anthropic API keys or Claude login. Unset ${alternate} for this adapter; alternate backend requests cannot use its bounded transport.`,
+      { providerId: "claude-agent", modality: "structured-text", capability: "alternate-backend" },
+    )
   let workDir: string | undefined
   let systemPromptPath: string | undefined
-  if (request.systemPrompt) {
-    workDir = await mkdtemp(join(request.cwd, "adt-claude-"))
-    systemPromptPath = join(workDir, "system-prompt.txt")
-    await writeFile(systemPromptPath, request.systemPrompt, "utf-8")
-  }
-
+  let budget: Awaited<ReturnType<typeof createCliRequestBudget>> | undefined
   try {
+    if (request.systemPrompt) {
+      workDir = await mkdtemp(join(request.cwd, "adt-claude-"))
+      systemPromptPath = join(workDir, "system-prompt.txt")
+      await writeFile(systemPromptPath, request.systemPrompt, "utf-8")
+    }
+
+    budget = await createCliRequestBudget({
+      signal: request.signal,
+      env: request.env,
+      onProviderRequest: request.onProviderRequest,
+      clientTls: {
+        ...(request.env.CLAUDE_CODE_CLIENT_CERT
+          ? { cert: await readFile(request.env.CLAUDE_CODE_CLIENT_CERT) }
+          : {}),
+        ...(request.env.CLAUDE_CODE_CLIENT_KEY
+          ? { key: await readFile(request.env.CLAUDE_CODE_CLIENT_KEY) }
+          : {}),
+        ...(request.env.CLAUDE_CODE_CLIENT_KEY_PASSPHRASE
+          ? { passphrase: request.env.CLAUDE_CODE_CLIENT_KEY_PASSPHRASE }
+          : {}),
+      },
+      upstream: () => request.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com",
+    })
     const args = buildClaudeArgs({
       model: request.model,
       ...(systemPromptPath ? { systemPromptPath } : {}),
@@ -128,13 +171,18 @@ export const runClaudeCli: ClaudeCliRunner = async (request) => {
     const outcome = await spawnClaudeCommand(
       request.executable,
       args,
-      request.env,
-      request.signal,
+      { ...budget.env, ANTHROPIC_BASE_URL: budget.url },
+      budget.signal,
       `${JSON.stringify(request.userMessage)}\n`,
       request.cwd,
     )
+    budget.check()
     return readClaudeTurn(outcome)
+  } catch (error) {
+    budget?.check()
+    throw error
   } finally {
+    await budget?.close()
     // A cleanup failure (Windows can briefly hold the file while a killed
     // child exits) must never mask the turn's own error.
     if (workDir) await rm(workDir, { recursive: true, force: true }).catch(() => {})

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import { assertSafeExtractionRun } from "@adt/pipeline"
 import { STAGE_ORDER, type OutputRunScope, type OutputIdentity, type ProgressEvent } from "@adt/types"
 import { prepareSectioningRun, SectioningPreflightError } from "@adt/pipeline"
@@ -17,6 +18,7 @@ export type StageRunStatus =
 
 export interface StageRunJob {
   summary?: import("@adt/types").PipelineResumeSummary
+  runId: string
   label: string
   status: StageRunStatus
   fromStage: string
@@ -90,6 +92,7 @@ export function createStageService(
     job: StageRunJob,
     options: StageRunOptions
   ): Promise<void> {
+    decisions?.beginRun(label, job.runId, job.controller.signal)
     const progress: StageRunProgress = {
       emit(event: ProgressEvent) {
         eventBus.emit(label, { type: "progress", data: event })
@@ -105,7 +108,7 @@ export function createStageService(
       onResumeSummary: (summary) => { job.summary = summary; getOrCreateState(label).summary = summary; options.onResumeSummary?.(summary) },
       signal: job.controller.signal,
       requestPageDecision: decisions
-        ? (input) => decisions.requestDecision({ label, ...input })
+        ? (input) => decisions.requestDecision({ ...input, label, runId: job.runId })
         : undefined,
     }
 
@@ -151,7 +154,7 @@ export function createStageService(
     } finally {
       // Clear any per-run page-error policy / pending decisions so they never
       // leak into the next run of this book.
-      decisions?.clearForRun(label)
+      decisions?.clearForRun(label, "stop", job.runId)
     }
 
     drainQueue(label)
@@ -173,6 +176,7 @@ export function createStageService(
 
     const next = state.queue.shift()!
     const job: StageRunJob = {
+      runId: randomUUID(),
       label,
       status: "running",
       fromStage: next.fromStage,
@@ -254,6 +258,7 @@ export function createStageService(
 
       // Start immediately
       const job: StageRunJob = {
+        runId: randomUUID(),
         label,
         status: "running",
         fromStage: options.fromStage,

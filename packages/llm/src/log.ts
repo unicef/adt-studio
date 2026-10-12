@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto"
 import type { Message, TokenUsage } from "./types.js"
 
-export interface LlmLogEntry {
+import type { LLMCallDiagnostics } from "@adt/types"
+
+export interface LlmLogEntry extends LLMCallDiagnostics {
   requestId: string
   timestamp: string
   taskType: string

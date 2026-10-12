@@ -1,4 +1,4 @@
-import type { ProgressEvent, TaskEvent, SectioningPreflightResult } from "@adt/types"
+import type { ProgressEvent, TaskEvent, SectioningPreflightResult, PendingDecision } from "@adt/types"
 
 export type BookSSEEvent =
   | { type: "progress"; data: ProgressEvent }
@@ -6,14 +6,7 @@ export type BookSSEEvent =
   | { type: "stage-run-error"; label: string; summary?: import("@adt/types").PipelineResumeSummary; error: string; sectioningPreflight?: SectioningPreflightResult }
   | { type: "stage-run-cancelled"; label: string; summary?: import("@adt/types").PipelineResumeSummary }
   | { type: "queue-next"; label: string; fromStage: string; toStage: string }
-  | {
-      type: "decision-required"
-      label: string
-      decisionId: string
-      step: string
-      pageId: string
-      error: string
-    }
+  | ({ type: "decision-required"; label: string } & PendingDecision)
   | { type: "task"; data: TaskEvent }
 
 export type BookEventListener = (event: BookSSEEvent) => void

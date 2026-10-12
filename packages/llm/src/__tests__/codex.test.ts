@@ -301,9 +301,10 @@ describe("createCodexStructuredTextBackend", () => {
   it("rejects output that does not match the schema", async () => {
     const fake = fakeCli(successTurn({ finalMessage: '{"title":"Atlas"}' }))
 
-    await expect(backendWith(fake).generateStructured(makeRequest())).rejects.toThrow(
-      /did not match the schema/,
-    )
+    await expect(backendWith(fake).generateStructured(makeRequest())).rejects.toMatchObject({
+      name: "LLMValidationError",
+      feedback: [expect.stringContaining("did not match the schema")],
+    })
   })
 
   it("names the configured API key when OpenAI rejects it", async () => {
@@ -383,6 +384,26 @@ describe("buildCodexArgs", () => {
     expect(args).toContain("--skip-git-repo-check")
     expect(args).toContain('approval_policy="never"')
     expect(args).toContain("tools.web_search=false")
+  })
+
+  it("retains OpenAI authentication while disabling internal transport retries", () => {
+    expect(args).toContain('model_provider="adt_bounded_openai"')
+    expect(args).toContain("model_providers.adt_bounded_openai.requires_openai_auth=true")
+    expect(args).toContain("model_providers.adt_bounded_openai.request_max_retries=0")
+    expect(args).toContain("model_providers.adt_bounded_openai.stream_max_retries=0")
+    expect(args).toContain("model_providers.adt_bounded_openai.supports_websockets=false")
+    expect(args).toContain("features.unbounded_connection_retries=false")
+    expect(args.some((arg) => arg.startsWith("model_providers.openai."))).toBe(false)
+    // Leave the CLI free to select its API-key or subscription endpoint.
+    expect(args.some((arg) => arg.includes(".base_url="))).toBe(false)
+  })
+
+  it("preserves and safely quotes the configured base URL", () => {
+    const apiBaseUrl = 'https://gateway.example/v1?value="quoted"'
+    const configured = buildCodexArgs({ model: "gpt-5.1", workDir: "/tmp/work", apiBaseUrl })
+    expect(configured).toContain(`model_providers.adt_bounded_openai.base_url=${JSON.stringify(apiBaseUrl)}`)
+    const blank = buildCodexArgs({ model: "gpt-5.1", workDir: "/tmp/work", apiBaseUrl: "  " })
+    expect(blank.some((arg) => arg.includes(".base_url="))).toBe(false)
   })
 
   it("pins the working directory and the model, and reads the prompt from stdin", () => {
@@ -661,5 +682,16 @@ describe("codex toJsonSchema", () => {
 
     expect(toJsonSchema(plain)).toBe(plain)
     expect(() => toJsonSchema("nope")).toThrow(/Codex structured output/)
+  })
+})
+
+it("keeps absent Codex usage unknown and preserves usage on schema rejection", async () => {
+  const missing = fakeCli(successTurn({ usage: undefined }))
+  expect((await backendWith(missing).generateStructured(makeRequest())).usage).toBeUndefined()
+  const invalid = fakeCli(successTurn({ finalMessage: '{"title":"bad","pages":"wrong"}' }))
+  await expect(backendWith(invalid).generateStructured(makeRequest())).rejects.toMatchObject({
+    name: "LLMValidationError",
+    usage: { inputTokens: 10, outputTokens: 6 },
+    output: { title: "bad", pages: "wrong" },
   })
 })

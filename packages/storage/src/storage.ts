@@ -149,6 +149,7 @@ export interface Storage {
   /** Get a compact fingerprint of all entity versions for cache invalidation. */
   getNodeVersionFingerprint(excludeNodes?: string[]): Array<{ node: string; itemId: string; version: number }>
 
+  getPageRecovery(): import("@adt/types").PageRecoverySummary[]
   appendLlmLog(entry: LlmLogEntry): void
 
   /** Store a debug image (e.g. screenshot) by hash as a file under the book directory. */

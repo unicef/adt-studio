@@ -9,6 +9,8 @@ import type { Storage, CroppedImageInput, SegmentedImageInput } from "@adt/stora
  */
 export function createGenerationPublication(base: Storage, validate: () => void) {
   const nodes: Array<{ node: string; itemId: string; version: number; data: unknown }> = []
+  const written = new Set<string>()
+  const recovered: Parameters<Storage["appendLlmLog"]>[0][] = []
   const images = new Map<string, { input: CroppedImageInput | SegmentedImageInput; segment: boolean }>()
   const assignments = new Map<string, string | null>()
   const clearedSteps = new Set<string>()
@@ -20,10 +22,14 @@ export function createGenerationPublication(base: Storage, validate: () => void)
   const storage: Storage = {
     ...base,
     close() {},
+    appendLlmLog(entry) {
+      if (entry.pageRecovery && entry.success) recovered.push(entry)
+      else base.appendLlmLog(entry)
+    },
     transaction(operation) {
-      const count = nodes.length, priorImages = new Map(images), priorAssignments = new Map(assignments), priorSteps = new Set(clearedSteps), priorCompleted = new Map(completedSteps)
+      const count = nodes.length, recoveredCount = recovered.length, priorImages = new Map(images), priorAssignments = new Map(assignments), priorSteps = new Set(clearedSteps), priorCompleted = new Map(completedSteps)
       try { return operation() } catch (error) {
-        nodes.splice(count); images.clear(); assignments.clear(); clearedSteps.clear(); completedSteps.clear()
+        nodes.splice(count); recovered.splice(recoveredCount); images.clear(); assignments.clear(); clearedSteps.clear(); completedSteps.clear()
         priorImages.forEach((v, k) => images.set(k, v)); priorAssignments.forEach((v, k) => assignments.set(k, v)); priorSteps.forEach((v) => clearedSteps.add(v)); priorCompleted.forEach((v, k) => completedSteps.set(k, v))
         throw error
       }
@@ -55,11 +61,18 @@ export function createGenerationPublication(base: Storage, validate: () => void)
     clearNodesByType() { throw new Error("Generation publication cannot clear retained content") },
     clearExtractedData() { throw new Error("Generation publication cannot clear extraction") },
   }
-  return { storage, hasWritten: (node: string, itemId: string) => nodes.some((row) => row.node === node && row.itemId === itemId), publish() {
+  return { storage, discardPage(pageId: string) {
+    for (let index = recovered.length - 1; index >= 0; index--) if (recovered[index].pageId === pageId) recovered.splice(index, 1)
+    for (let index = nodes.length - 1; index >= 0; index--) if (nodes[index].itemId === pageId) nodes.splice(index, 1)
+    for (const [id, { input }] of images) if (input.pageId === pageId) images.delete(id)
+  }, hasWritten: (node: string, itemId: string) => written.has(JSON.stringify([node, itemId])) || nodes.some((row) => row.node === node && row.itemId === itemId), publish(itemIds?: ReadonlySet<string>) {
+    const included = (id: string) => !itemIds || itemIds.has(id)
+    const selectedNodes = nodes.filter((row) => included(row.itemId))
     validate()
     base.transaction(() => {
       validate()
       for (const { input, segment } of images.values()) {
+        if (!included(input.pageId)) continue
         // Refuse collisions, including an orphan left by a prior failed commit.
         // Equal bytes are safe to reuse; differing bytes never overwrite history.
         const id = imageId(input)
@@ -76,12 +89,18 @@ export function createGenerationPublication(base: Storage, validate: () => void)
         if (segment) base.putSegmentedImage(input as SegmentedImageInput)
         else base.putCroppedImage(input as CroppedImageInput)
       }
-      for (const row of nodes) {
+      for (const row of selectedNodes) {
         if (base.putNodeData(row.node, row.itemId, row.data) !== row.version) throw new Error("Generation version changed during publication")
       }
-      assignments.forEach((sectionId, id) => base.assignSignLanguageVideo(id, sectionId))
-      base.clearStepRuns([...clearedSteps])
-      completedSteps.forEach((value, step) => value.skipped ? base.markStepSkipped(step) : base.markStepCompleted(step, value.message))
+      for (const entry of recovered) if (included(entry.pageId ?? "book")) base.appendLlmLog(entry)
+      if (!itemIds) assignments.forEach((sectionId, id) => base.assignSignLanguageVideo(id, sectionId))
+      if (!itemIds) base.clearStepRuns([...clearedSteps])
+      if (!itemIds) completedSteps.forEach((value, step) => value.skipped ? base.markStepSkipped(step) : base.markStepCompleted(step, value.message))
     })
+    for (let index = recovered.length - 1; index >= 0; index--) if (included(recovered[index].pageId ?? "book")) recovered.splice(index, 1)
+    for (const row of selectedNodes) written.add(JSON.stringify([row.node, row.itemId]))
+    for (let index = nodes.length - 1; index >= 0; index--) if (included(nodes[index].itemId)) nodes.splice(index, 1)
+    for (const [id, { input }] of images) if (included(input.pageId)) images.delete(id)
+    if (!itemIds) { assignments.clear(); clearedSteps.clear(); completedSteps.clear() }
   } }
 }

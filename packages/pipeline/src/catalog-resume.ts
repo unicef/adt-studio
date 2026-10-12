@@ -84,7 +84,7 @@ export async function runCatalogResume(label: string, options: StageRunOptions, 
           : output.usable && output.warnings.length ? "upstream-warning" : "unresolved"
         return { identity: output.identity, state, reason, usable: output.usable, current: output.current, protected: output.protected }
       })
-      return { kind: "catalog-resume", extraction: options.extractionCreated ? "created" : "verified-reusable", stages,
+      return { kind: "catalog-resume", pageErrors: storage.getPageRecovery(), extraction: options.extractionCreated ? "created" : "verified-reusable", stages,
         status: status === "complete" && outputs.some((output) => output.state === "blocked" || (output.reason === "user-skipped" && !output.current)) ? "incomplete" : status, outputs }
     }
     try {

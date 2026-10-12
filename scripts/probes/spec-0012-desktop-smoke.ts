@@ -4,6 +4,7 @@ import path from "node:path"
 import assert from "node:assert/strict"
 import { once } from "node:events"
 import { startApiServer, stopApiServer } from "../../apps/desktop/src/main/api-server/index"
+import { exercisePackagedRecovery } from "./spec-0013-packaged-common.mjs"
 import { copyBooks, exercisePackagedSynchronization, hashes } from "./spec-0012-packaged-common.mjs"
 
 // Bundle with esbuild --platform=node --external:electron --format=cjs, then
@@ -36,7 +37,7 @@ app.whenReady().then(async () => {
       assert.equal(response.status, 200, await response.clone().text())
       return response.json()
     }
-    const result = await exercisePackagedSynchronization({ request, books: path.join(userData, "books"), restart: async () => { await stop(); server = await startApiServer() } })
+    const result = await (process.argv.includes("--recovery") ? exercisePackagedRecovery : exercisePackagedSynchronization)({ request, books: path.join(userData, "books"), restart: async () => { await stop(); server = await startApiServer() } })
     await stop()
     assert.deepEqual(resourceHashes(), resourcesBefore)
     const report = { platform: process.platform, arch: process.arch, electron: process.versions.electron, resources, userData, resourceFiles: Object.keys(resourcesBefore).length, ...result }

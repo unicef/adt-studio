@@ -48,7 +48,7 @@ export const customManifest: ProviderManifest = {
   capabilities: {
     "structured-text": {
       // A self-hosted server may or may not honour a JSON schema, so the
-      // fallback chain ends in client-side parsing with one repair round.
+      // fallback chain ends in client-side parsing; repair uses the shared retry budget.
       strategies: ["json-mode", "tool-call", "parse-repair"],
       recursiveSchemas: true,
       imageInput: false,

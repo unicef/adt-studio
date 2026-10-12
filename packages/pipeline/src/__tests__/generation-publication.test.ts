@@ -88,3 +88,30 @@ it("a process killed after bundle activation leaves a reader barrier and recover
   withBookWriter(book, () => recoverPackagePublication(book))
   expect(fs.readFileSync(path.join(book, "adt/index.html"), "utf8")).toBe("previous")
 })
+
+it("page checkpoints publish only the chosen page and roll back a failed transaction without consuming staged work", () => {
+  const { storage } = fixture()
+  try {
+    storage.putNodeData("image-filtering", "pg001", { images: [{ imageId: "kept", isPruned: true }] })
+    const before = storage.getAllNodeVersions("image-filtering", "pg001")
+    let reject = true
+    const base = { ...storage, putNodeData: (...args: Parameters<typeof storage.putNodeData>) => {
+      if (reject && args[0] === "metadata") throw new Error("injected publication failure")
+      return storage.putNodeData(...args)
+    } }
+    const publication = createGenerationPublication(base, () => {})
+    publication.storage.putNodeData("image-filtering", "pg001", { images: [] })
+    publication.storage.putNodeData("metadata", "book", { title: "candidate" })
+    publication.storage.putNodeData("image-filtering", "pg002", { images: [] })
+    expect(() => publication.publish(new Set(["book", "pg001"]))).toThrow("injected")
+    expect(storage.getAllNodeVersions("image-filtering", "pg001")).toEqual(before)
+    expect(storage.getLatestNodeData("image-filtering", "pg002")).toBeNull()
+    reject = false
+    publication.publish(new Set(["book", "pg001"]))
+    expect(storage.getAllNodeVersions("image-filtering", "pg001")).toHaveLength(before.length + 1)
+    expect(storage.getLatestNodeData("image-filtering", "pg002")).toBeNull()
+    publication.publish()
+    expect(storage.getAllNodeVersions("image-filtering", "pg001")).toHaveLength(before.length + 1)
+    expect(storage.getLatestNodeData("image-filtering", "pg002")).not.toBeNull()
+  } finally { storage.close() }
+})

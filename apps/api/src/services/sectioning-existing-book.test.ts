@@ -53,6 +53,9 @@ beforeEach(() => {
   for (const n of [2, 7]) {
     const id = `p${n}`
     s.putExtractedPage({ pageId: id, pageNumber: n, text: "Source", images: [], pageImage: { imageId: `${id}_page`, buffer: Buffer.from("retained pixels"), format: "png", hash: "pixels", width: 4, height: 6 } })
+    // New Sectioning requires a persisted filtering decision, even for an
+    // image-free page. A completed step marker alone is not that evidence.
+    s.putNodeData("image-filtering", id, { images: [] })
     s.putNodeData("page-sectioning", id, tree(id, 2, n === 2 ? "manual" : undefined))
     s.putNodeData("web-rendering", id, { sections: [{ sectionIndex: 0, sectionType: "text_only", reasoning: "old", html: "Retained HTML" }] })
   }

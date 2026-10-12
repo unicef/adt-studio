@@ -1,3 +1,5 @@
+import { qualifyPageRecovery } from "./page-recovery.js"
+import { STEP_TO_STAGE, getStageDependents, type StepName } from "@adt/types"
 import { FIXED_LAYOUT_SECTIONING_NODE } from "./render-sectioning.js"
 import { isFixedLayoutBook } from "./fixed-layout-rendering.js"
 import { collectReferencedImageIds } from "./web-rendering.js"
@@ -11,7 +13,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { createPromptEngine, promptRoots, type PromptEngine } from "@adt/llm"
 import { readExtractionManifest, ExtractionAdmissionError, type Storage } from "@adt/storage"
-import { BookMetadata, BookSummaryOutput, BookOutlineOutput, WebRenderingOutput, GlossaryOutput, QuizGenerationOutput, TocGenerationOutput, PageSectioningOutput, OutputMetadata, type AppConfig, type OutputStatus, type StageName } from "@adt/types"
+import { ImageClassificationOutput, BookMetadata, BookSummaryOutput, BookOutlineOutput, WebRenderingOutput, GlossaryOutput, QuizGenerationOutput, TocGenerationOutput, PageSectioningOutput, OutputMetadata, type AppConfig, type OutputStatus, type StageName } from "@adt/types"
 import { deriveOutputStatus, inputSignature } from "./output-freshness.js"
 import { buildMetadataConfig } from "./metadata-extraction.js"
 import { buildBookSummaryConfig } from "./book-summary.js"
@@ -94,6 +96,7 @@ export function readGenerationCatalog(options: GenerationCatalogOptions): Output
     (WebRenderingOutput.safeParse(read("web-rendering", page.pageId)).data?.sections ?? []).map((section) => extractTextFromHtml(section.html)),
     read("page-sectioning", page.pageId)])
   const statuses: OutputStatus[] = []
+  const pageErrors = storage.getPageRecovery()
   const add = (kind: GenerationKind, id: string, inputs: unknown, content: unknown, excluded = false, usable = content != null, blocked = false) => {
     const raw = storage.getLatestNodeData(GENERATION_NODES[kind], id)?.data as { generationEvidence?: unknown } | undefined
     const parsed = OutputMetadata.safeParse(raw?.generationEvidence)
@@ -115,7 +118,7 @@ export function readGenerationCatalog(options: GenerationCatalogOptions): Output
     metadata: promptConfig(buildMetadataConfig(config)), summary: promptConfig(buildBookSummaryConfig(config, config.editing_language ?? "detected")), outline: promptConfig(buildBookOutlineConfig(config)),
     imageConfig: { filters: config.image_filters, meaningfulness: promptConfig(buildMeaningfulnessConfig(config)), segmentation: promptConfig(buildSegmentationConfig(config)), cropping: promptConfig(buildCroppingConfig(config)) }, typeScale: read("type-scale"),
 
-  }, !onlyExtractionMetadata && extractedOutputs.some(([, value]) => value !== undefined) ? { extractedOutputs, classification } : undefined, false, [BookMetadata.safeParse(read("metadata")), BookSummaryOutput.safeParse(read("book-summary")), BookOutlineOutput.safeParse(read("book-outline"))].every((result) => result.success) && pages.every((page) => !!read("image-filtering", page.pageId)))
+  }, !onlyExtractionMetadata && extractedOutputs.some(([, value]) => value !== undefined) ? { extractedOutputs, classification } : undefined, false, [BookMetadata.safeParse(read("metadata")), BookSummaryOutput.safeParse(read("book-summary")), BookOutlineOutput.safeParse(read("book-outline"))].every((result) => result.success) && pages.every((page) => ImageClassificationOutput.safeParse(read("image-filtering", page.pageId)).success))
   const fixed = isFixedLayoutBook(config)
   const templateInputs = () => directoryContent(options.templatesDir ?? path.join(path.dirname(promptsDir), "templates"))
   const referenceWidth = fixed ? Math.max(0, ...pages.map((page) => {
@@ -124,7 +127,7 @@ export function readGenerationCatalog(options: GenerationCatalogOptions): Output
   })) : undefined
   for (const page of pages) {
     add("sectioning", page.pageId, { page, images: pageImages(page.pageId), classification: read("image-filtering", page.pageId), outline: read("book-outline"),
-      sectioning: promptConfig(buildPageSectioningConfig(config)), translation: promptConfig(buildTranslationConfig(config, metadata?.language_code ?? null)) }, read("page-sectioning", page.pageId), false, PageSectioningOutput.safeParse(read("page-sectioning", page.pageId)).success)
+      sectioning: promptConfig(buildPageSectioningConfig(config)), translation: promptConfig(buildTranslationConfig(config, metadata?.language_code ?? null)) }, read("page-sectioning", page.pageId), false, PageSectioningOutput.safeParse(read("page-sectioning", page.pageId)).success, !ImageClassificationOutput.safeParse(read("image-filtering", page.pageId)).success && (!PageSectioningOutput.safeParse(read("page-sectioning", page.pageId)).success || pageErrors.some((error) => error.pageId === page.pageId && ["image-filtering", "image-meaningfulness"].includes(error.step))))
     const sections = PageSectioningOutput.safeParse(read("page-sectioning", page.pageId)).data?.sections ?? []
     const renderConfig = fixed ? [] : sections.map((section) => {
       const c = buildRenderStrategyResolver(config)(section.sectionType)
@@ -142,7 +145,7 @@ export function readGenerationCatalog(options: GenerationCatalogOptions): Output
       config: renderConfig, styleguide: fixed ? undefined : loadStyleguideContent(config.styleguide, options.configPath, path.dirname(bookDir), path.basename(bookDir)),
       templates: renderConfig.some((entry) => entry.renderType === "template") ? templateInputs() : undefined,
       fontAssets: directoryContent(path.join(bookDir, "fonts")), fonts: read("font-registry"), assignments: read("font-assignment"), typography: read("typography"), typeScale: read("type-scale"),
-    }, storyboardGenerationContent(read("web-rendering", page.pageId), read(FIXED_LAYOUT_SECTIONING_NODE, page.pageId)), false, WebRenderingOutput.safeParse(read("web-rendering", page.pageId)).success && (!isFixedLayoutBook(config) || !!read(FIXED_LAYOUT_SECTIONING_NODE, page.pageId)), !semantic.success || [...referenced, ...sourcePages].some(([, hash]) => hash === null))
+    }, storyboardGenerationContent(read("web-rendering", page.pageId), read(FIXED_LAYOUT_SECTIONING_NODE, page.pageId)), false, WebRenderingOutput.safeParse(read("web-rendering", page.pageId)).success && (!isFixedLayoutBook(config) || !!read(FIXED_LAYOUT_SECTIONING_NODE, page.pageId)), (!ImageClassificationOutput.safeParse(read("image-filtering", page.pageId)).success && (!WebRenderingOutput.safeParse(read("web-rendering", page.pageId)).success || pageErrors.some((error) => error.pageId === page.pageId && ["image-filtering", "image-meaningfulness"].includes(error.step)))) || !semantic.success || [...referenced, ...sourcePages].some(([, hash]) => hash === null))
   }
   const quiz = buildQuizGenerationConfig(config, language)
   add("quizzes", "book", { pages: rendered, config: promptConfig(quiz) }, read("quiz-generation"), !quiz, QuizGenerationOutput.safeParse(read("quiz-generation")).success)
@@ -158,7 +161,7 @@ export function readGenerationCatalog(options: GenerationCatalogOptions): Output
     const assessment = read("accessibility-assessment"), files = directoryContent(path.join(bookDir, "adt"))
     add("package", "book", hash, assessment && files ? { assessment, files } : undefined)
   }
-  return statuses
+  return qualifyPageRecovery(statuses, pageErrors)
 }
 
 export function generationStage(kind: GenerationKind): StageName { return kindStage(kind) }

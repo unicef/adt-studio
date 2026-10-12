@@ -94,8 +94,9 @@ export interface BookRunContextValue {
   cancelRun(): void
   /** Page failures awaiting a skip/stop decision (interactive mode). */
   pendingDecisions: PendingDecision[]
+  refreshDecisions(): Promise<void>
   /** Resolve the head pending decision. */
-  resolveDecision(decisionId: string, action: "skip" | "stop", applyToAll?: boolean): void
+  resolveDecision(decisionId: string, action: "retry" | "skip" | "stop", applyToAll?: boolean): Promise<void>
 }
 
 const BookRunContext = createContext<BookRunContextValue | null>(null)
@@ -149,6 +150,11 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     queryFn: () => api.getStepStatus(label),
     enabled: !!label,
     refetchInterval: (query) => {
+      if (
+        query.state.data?.runStatus === "running" ||
+        query.state.data?.runStatus === "cancelling" ||
+        query.state.data?.pendingDecisions?.length
+      ) return 2000
       const stages = query.state.data?.stages
       if (!stages) return false
       return Object.values(stages).some((s) => s === "running" || s === "queued")
@@ -181,7 +187,21 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   // Interactive page-error decisions, keyed by decisionId. Fed by both the SSE
   // `decision-required` event and the polled `pendingDecisions` (recovery after
   // refresh/reconnect), deduped by id.
-  const [pendingDecisions, setPendingDecisions] = useState<PendingDecision[]>([])
+  const pendingDecisions = data?.pendingDecisions ?? []
+  const setPendingDecisions = useCallback(
+    (update: PendingDecision[] | ((previous: PendingDecision[]) => PendingDecision[])) => {
+      queryClient.setQueryData<StepStatusResponse>(stepStatusKey(label), (previous) => {
+        if (!previous) return previous
+        return {
+          ...previous,
+          pendingDecisions: typeof update === "function"
+            ? update(previous.pendingDecisions ?? [])
+            : update,
+        }
+      })
+    },
+    [label, queryClient],
+  )
 
   // Per-step failed-page counts for toast/sound dedup within one run. A page
   // step emits one step-error per failed page; without this we'd fire a toast +
@@ -467,9 +487,11 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       if (!me.data) return
       try {
         const d = JSON.parse(me.data) as PendingDecision
+        void queryClient.cancelQueries({ queryKey: stepStatusKey(label) })
         setPendingDecisions((prev) =>
           prev.some((p) => p.decisionId === d.decisionId) ? prev : [...prev, d],
         )
+        void queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
       } catch { /* ignore */ }
     })
 
@@ -639,7 +661,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     return () => {
       es.close()
     }
-  }, [label, queryClient])
+  }, [label, queryClient, setPendingDecisions])
 
   // ------------------------------------------------------------------
   // queueRun — optimistic update + API call
@@ -846,15 +868,20 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   }, [label, queryClient])
 
   const resolveDecision = useCallback(
-    (decisionId: string, action: "skip" | "stop", applyToAll?: boolean) => {
-      // Optimistically drop it from the local queue; the server call (409 ==
-      // already resolved) is treated as success.
-      setPendingDecisions((prev) => prev.filter((p) => p.decisionId !== decisionId))
-      void api.resolveDecision(label, { decisionId, action, applyToAll }).catch(() => {
-        queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
+    async (decisionId: string, action: "retry" | "skip" | "stop", applyToAll?: boolean) => {
+      const decision = pendingDecisions.find((entry) => entry.decisionId === decisionId)
+      await api.resolveDecision(label, {
+        decisionId,
+        action,
+        applyToAll,
+        runId: decision?.runId,
+        step: decision?.step,
+        pageId: decision?.pageId,
       })
+      setPendingDecisions((prev) => prev.filter((entry) => entry.decisionId !== decisionId))
+      void queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
     },
-    [label, queryClient]
+    [label, queryClient, pendingDecisions, setPendingDecisions]
   )
 
   // Reconcile "cancelling…" across refresh/reconnect from the polled runStatus.
@@ -876,20 +903,6 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     }
   }, [polledRunStatus])
 
-  // Recover pending decisions from the poll (after refresh/reconnect) — union
-  // with the SSE-learned ones, deduped by id. Resolution is driven by
-  // resolveDecision / the cancelled event / a 409, not by absence here, so a
-  // just-arrived SSE decision doesn't flicker while the poll catches up.
-  const polledDecisions = data?.pendingDecisions
-  useEffect(() => {
-    if (!polledDecisions || polledDecisions.length === 0) return
-    setPendingDecisions((prev) => {
-      const ids = new Set(prev.map((p) => p.decisionId))
-      const additions = polledDecisions.filter((d) => !ids.has(d.decisionId))
-      return additions.length > 0 ? [...prev, ...additions] : prev
-    })
-  }, [polledDecisions])
-
   return {
     stageState,
     stepState: stepStateAccessor,
@@ -902,6 +915,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     queueRun,
     cancelRun,
     pendingDecisions,
+    refreshDecisions: () => queryClient.invalidateQueries({ queryKey: stepStatusKey(label) }),
     resolveDecision,
   }
 }

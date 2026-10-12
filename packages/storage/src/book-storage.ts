@@ -1,3 +1,4 @@
+import { PageRecoverySummary } from "@adt/types"
 import { storeImmutableAsset } from "./immutable-assets.js"
 import { createHash } from "node:crypto"
 import fs from "node:fs"
@@ -542,6 +543,23 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       sql += " GROUP BY nd.node, nd.item_id ORDER BY nd.node, nd.item_id"
       const rows = db.all(sql, params) as Array<{ node: string; item_id: string; version: number }>
       return rows.map((r) => ({ node: r.node, itemId: r.item_id, version: r.version }))
+    },
+
+    getPageRecovery() {
+      // Only committed control outcomes can resolve a Skip; a successful model
+      // response whose publication failed is not recovery evidence.
+      const rows = db.all(`SELECT data FROM llm_log WHERE id IN (
+        SELECT MAX(id) FROM llm_log WHERE json_valid(data) AND
+        (json_extract(data, '$.outcome') = 'skipped-with-error' OR json_extract(data, '$.pageRecovery') = 1)
+        GROUP BY step, item_id
+      ) ORDER BY step, item_id`) as Array<{ data: string }>
+      return rows.flatMap(({ data }) => {
+        const entry = JSON.parse(data)
+        const parsed = PageRecoverySummary.safeParse({ step: entry.taskType, pageId: entry.pageId,
+          outcome: entry.outcome, errorClass: entry.errorClass,
+          attemptCount: typeof entry.attempt === "number" ? entry.attempt + 1 : undefined })
+        return parsed.success ? [parsed.data] : []
+      })
     },
 
     appendLlmLog(entry: LlmLogEntry): void {

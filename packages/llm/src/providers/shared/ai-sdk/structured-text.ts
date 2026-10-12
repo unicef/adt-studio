@@ -1,3 +1,4 @@
+import { LLMValidationError } from "../../../errors.js"
 import { generateObject, generateText, type LanguageModel } from "ai"
 import type {
   StructuredTextBackend,
@@ -104,65 +105,31 @@ async function generateWithParseRepair<T>(
     : "Respond with a single JSON object and nothing else. No markdown fences, no prose."
   const system = request.system ? `${request.system}\n\n${instruction}` : instruction
 
-  let usage = { inputTokens: 0, outputTokens: 0 }
-  let conversation = [...messages]
-
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const options: Record<string, unknown> = {
-      model,
-      system,
-      messages: conversation,
-      maxRetries: 0,
-      abortSignal,
-    }
-    if (request.maxTokens) options.maxTokens = request.maxTokens
-    if (request.temperature !== undefined) options.temperature = request.temperature
-
-    const generated = (await (generateText as Function)(options)) as Awaited<
-      ReturnType<typeof generateText>
-    >
-    usage = {
-      inputTokens: usage.inputTokens + generated.usage.promptTokens,
-      outputTokens: usage.outputTokens + generated.usage.completionTokens,
-    }
-
-    const extracted = extractJsonObject(generated.text)
-    if (extracted !== null) {
-      if (!zod) {
-        return { object: extracted as T, usage, rawText: generated.text }
-      }
-      const parsed = zod.safeParse(extracted)
-      if (parsed.success) {
-        return { object: parsed.data as T, usage, rawText: generated.text }
-      }
-      if (attempt === 0) {
-        conversation = [
-          ...conversation,
-          { role: "assistant", content: generated.text },
-          {
-            role: "user",
-            content: schemaJson
-              ? `That JSON did not match the required schema. Return corrected JSON only, validating against this JSON Schema.\n\n${schemaJson}`
-              : "That JSON did not match the required schema. Return corrected JSON only.",
-          },
-        ]
-        continue
-      }
-    } else if (attempt === 0) {
-      conversation = [
-        ...conversation,
-        { role: "assistant", content: generated.text },
-        { role: "user", content: "That was not valid JSON. Return a JSON object only." },
-      ]
-      continue
-    }
-
-    throw new Error(
-      `Model did not return schema-valid JSON after ${attempt + 1} attempt(s). Response: ${generated.text.slice(0, 400)}`,
-    )
+  // Exactly one SDK request per facade attempt. Repair feedback and budget are
+  // owned by createLLMModel, including parse-repair models.
+  const generated = await generateText({
+    model, system, messages, maxRetries: 0, abortSignal,
+    ...(request.maxTokens ? { maxTokens: request.maxTokens } : {}),
+    ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
+  })
+  const usage = {
+    inputTokens: generated.usage.promptTokens,
+    outputTokens: generated.usage.completionTokens,
   }
-
-  throw new Error("Model did not return schema-valid JSON")
+  const extracted = extractJsonObject(generated.text)
+  if (extracted === null) {
+    throw new LLMValidationError(["That was not valid JSON. Return a JSON object only."], generated.text, usage)
+  }
+  if (!zod) return { object: extracted as T, usage, rawText: generated.text }
+  const parsed = zod.safeParse(extracted)
+  if (!parsed.success) {
+    throw new LLMValidationError([
+      schemaJson
+        ? `That JSON did not match the required schema. Return corrected JSON only, validating against this JSON Schema.\n\n${schemaJson}`
+        : "That JSON did not match the required schema. Return corrected JSON only.",
+    ], extracted, usage)
+  }
+  return { object: parsed.data as T, usage, rawText: generated.text }
 }
 
 function serializeSchema(schema: unknown): string | undefined {

@@ -21,6 +21,7 @@ already holds its number — check both before taking one
 | [SPEC-0010](SPEC-0010-safe-cli-reruns.md) | Safe CLI reruns and extraction admission | in-review | @ksokolovic | [Full implementation evidence](../verification/spec-0010-full-resume.md); safe extraction and shared full-book resume on SPEC-0003/0002/0001; approval pending |
 | [SPEC-0011](SPEC-0011-prompt-persistence.md) | Explicit prompt scope and durable prompt persistence | in-review | @ksokolovic | Block 1 |
 | [SPEC-0012](SPEC-0012-sectioning-storyboard-sync.md) | Sectioning and Storyboard synchronization | in-review | @ksokolovic | Block 1 |
+| [SPEC-0013](SPEC-0013-page-failure-recovery.md) | Bounded LLM retries and page-scoped failure recovery | in-review | @ksokolovic | Block 1 |
 | [SPEC-0015](SPEC-0015-nano-banana-image-models.md) | Nano Banana image models | in-review | @elasticsounds | #579 / #904 |
 
 

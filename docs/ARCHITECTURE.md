@@ -285,6 +285,47 @@ API ──── step-start ────► mark step + stage as "running"
 
 ---
 
+## Structured-output failures and decisions
+
+`packages/llm/src/client.ts` owns the configured automatic retry budget. Each
+HTTP structured-text adapter invocation makes one SDK request with SDK retries
+disabled. Parse repair and semantic validation feed back through that same
+budget. Valid cache entries are schema-validated and are recorded separately
+from provider calls; invalid output is never published as a successful cache
+entry. Terminal errors expose bounded classifications, not raw provider bodies.
+Codex and Claude structured-output attempts use an ephemeral loopback forwarding
+gate. It reserves one provider request before upstream egress, so executable tool,
+token or transport continuations cannot multiply the facade budget. Authentication
+headers remain owned by the executable; the gate preserves configured upstream
+routing, proxy and Claude mTLS. Bounded diagnostic decoding preserves compressed
+error classification and explicit provider no-retry guidance without changing
+response bytes delivered to the CLI. Unsupported alternate Claude backend selectors
+fail before spawn. Real installed-executable probes are opt-in and must be run
+separately from the default suite; see [provider evidence](verification/spec-0013-provider-wire.md).
+
+The page-error broker binds each pending decision and bulk policy to a live
+book/run. The decision route validates ownership and resolves at most once;
+polling and SSE share the pending state. Cancel/end clears the run, and missing
+listeners stop unresolved decisions after a 30-second grace period. A connected
+but unanswered decision stops after ten minutes. No decision database or
+restart auto-resume is added.
+
+Interactive Retry is restricted to Image Meaningfulness. One accepted decision
+grants one bounded round for its captured page inputs; re-exhaustion creates a new
+decision. Shared writer admission, captured prompt/input/protection evidence and
+generation staging guard Retry preflight and page publication. Successful sibling
+pages stay committed and are reused, including their segmentation/cropping proof.
+Protected filtering is retained rather than recertified as generated output.
+
+Skip retains source identities and committed filtering/history/media. Durable
+step/page recovery records qualify generation and output catalog readiness; only
+a successful committed recovery clears the corresponding warning. Missing or
+invalid filtering blocks new dependent work. Stop/cancel cannot publish staged
+work or admit dependent paid passes. Headless callers fail without a dialog;
+process restart retains committed data and reports interruption without automatic
+paid work. See the current [acceptance evidence](verification/spec-0013-full-continuation.md).
+Human specification approval remains pending.
+
 ## Key File Reference
 
 | Purpose | File |

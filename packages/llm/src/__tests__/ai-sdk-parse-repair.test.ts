@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { z } from "zod"
+import { createLLMModel } from "../client.js"
 import { ollamaProvider } from "../providers/ollama/index.js"
 import { toJsonSchema } from "../providers/shared/json-schema.js"
 
@@ -78,7 +79,7 @@ describe("ai-sdk parse-repair schema embedding", () => {
       .mockResolvedValueOnce(chatCompletion('{"title":42}'))
       .mockResolvedValueOnce(chatCompletion('{"title":"fixed"}'))
 
-    const result = await generate()
+    const result = await createLLMModel({ modelId: "ollama:tinyllama", logLevel: "silent" }).generateObject({ schema, messages: [{ role: "user", content: "hi" }], maxRetries: 1 })
 
     expect(result.object).toEqual({ title: "fixed" })
     expect(fetchMock).toHaveBeenCalledTimes(2)

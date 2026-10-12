@@ -1,7 +1,16 @@
 import { z } from "zod"
+import { LLMErrorClass } from "./llm-error.js"
 import { StepName, StageName } from "./pipeline.js"
 
 export const ProgressEvent = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("page-error-skipped"),
+    step: StepName,
+    pageId: z.string(),
+    errorClass: LLMErrorClass,
+    requestId: z.string().optional(),
+    attemptCount: z.number().int().nonnegative().optional(),
+  }),
   z.object({
     type: z.literal("step-start"),
     step: StepName,

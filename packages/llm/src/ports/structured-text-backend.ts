@@ -15,6 +15,7 @@ export interface StructuredRequestTraits {
 }
 
 export interface StructuredTextRequest {
+  onProviderRequest?: () => void
   system?: string
   messages: Message[]
   schema: unknown
@@ -29,12 +30,14 @@ export interface StructuredTextRequest {
 
 export interface StructuredTextResult<T> {
   object: T
-  usage: TokenUsage
+  usage?: TokenUsage
   /** Present only when the adapter parsed the object client-side. */
   rawText?: string
 }
 
 export interface StructuredTextBackend {
+  /** CLI forwarding gates report real transport attempts, including zero-call failures. */
+  reportsProviderRequests?: true
   generateStructured<T>(
     request: StructuredTextRequest,
   ): Promise<StructuredTextResult<T>>

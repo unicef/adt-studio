@@ -59,6 +59,9 @@ beforeEach(() => {
   for (let n = 1; n <= 3; n++) {
     const id = `pg00${n}`
     db.putExtractedPage({ pageId: id, pageNumber: n, text: "Source", images: n === 1 ? [{ imageId: "pg001_im001", buffer: Buffer.from("image"), format: "png", hash: "image", width: 1, height: 1 }] : [], pageImage: { imageId: `${id}_page`, buffer: Buffer.from("image"), format: "png", hash: "image", width: 1, height: 1 } })
+    // Seed the actual upstream decisions used when an authorized replacement
+    // generates new Sectioning; retained manual content remains independently protected.
+    db.putNodeData("image-filtering", id, { images: n === 1 ? [{ imageId: "pg001_im001", isPruned: false, reason: "Retained source image" }] : [] })
     db.putNodeData("page-sectioning", id, { source: "ai", reasoning: "", sections: [section(id, "Saved page text")] })
     db.putNodeData("web-rendering", id, { sections: [{ sectionIndex: 0, sectionType: "text_only", reasoning: "", html: `<section data-section-id="${id}_sec001"><p data-id="${id}_t001">Saved page text</p>${n === 1 ? '<img data-id="pg001_im001" />' : ""}</section>` }] })
   }

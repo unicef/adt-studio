@@ -9,6 +9,12 @@ export interface StageRunOptions {
   generationStorage?: import("@adt/storage").Storage
   generationPageIds?: string[]
   generationReplaceProtected?: boolean
+  generationRetainedProtected?: () => void
+  generationExtractTrusted?: boolean
+  /** Internal page checkpoint in the shared guarded generation publication. */
+  generationCheckpoint?: (pageId: string) => void
+  validateGeneration?: () => void
+  discardGenerationPage?: (pageId: string) => void
   cacheDir?: string
   logLevel?: import("@adt/llm").LogLevel
   templatesDir?: string
@@ -46,6 +52,12 @@ export interface StageRunOptions {
     step: StepName
     pageId: string
     error: string
+    signal?: AbortSignal
+    errorClass?: import("@adt/types").LLMErrorClass
+    attemptCount?: number
+    canRetry?: boolean
+    /** Synchronous pre-consumption guard; never serialized or accepted from HTTP. */
+    validateRetry?: () => void
   }) => Promise<PageErrorAction>
 }
 

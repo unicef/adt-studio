@@ -1,3 +1,4 @@
+import { PageRecoverySummary } from "./page-error.js"
 import { z } from "zod"
 import { StageName } from "./pipeline.js"
 import { OutputIdentity } from "./output-freshness.js"
@@ -66,6 +67,7 @@ export type ExtractionManifest = z.infer<typeof ExtractionManifest>
 /** Observed persisted outputs, never a claim that unassessed stages are current. */
 export const PipelineResumeSummary = z.object({
   kind: z.literal("catalog-resume"),
+  pageErrors: z.array(PageRecoverySummary).optional(),
   extraction: z.enum(["created", "verified-reusable"]),
   status: z.enum(["complete", "incomplete", "failed", "cancelled"]),
   stages: z.array(StageName),

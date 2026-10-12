@@ -1,3 +1,4 @@
+import { PageRecoverySummary } from "./page-error.js"
 import { z } from "zod"
 
 /** Authorship of content, never inferred from a timestamp or a successful run. */
@@ -27,6 +28,8 @@ export const OutputReview = z.object({
 export type OutputReview = z.infer<typeof OutputReview>
 
 export const OutputMetadata = z.object({
+  /** A partial generation commit is usable but cannot certify completion. */
+  incomplete: z.boolean().optional(),
   source: OutputSource.optional(),
   input: OutputInputEvidence.optional(),
   review: OutputReview.optional(),
@@ -54,6 +57,7 @@ export const OutputWarning = z.object({
 export type OutputWarning = z.infer<typeof OutputWarning>
 
 export const OutputStatus = z.object({
+  pageErrors: z.array(PageRecoverySummary).optional(),
   blocked: z.boolean().optional(),
   included: z.boolean().optional(),
   text: z.string().optional(),

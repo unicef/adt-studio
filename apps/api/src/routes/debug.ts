@@ -102,10 +102,12 @@ export function createDebugRoutes(
       // nothing speakable in it), so they are counted separately: treating them
       // as calls would understate the cache-hit rate, and their ~0ms would drag
       // the average latency down. They stay queryable via /debug/llm-logs.
-      const notSkipped = "json_extract(data, '$.skippedReason') IS NULL"
+      const notSkipped = "json_extract(data, '$.skippedReason') IS NULL AND (json_extract(data, '$.providerCall') IS NULL OR json_extract(data, '$.providerCall') = 1 OR json_extract(data, '$.cacheHit') = 1)"
+      const unknownUsage = `(${notSkipped}) AND COALESCE(json_extract(data, '$.cacheHit'), 0) = 0 AND (COALESCE(json_type(data, '$.usage.inputTokens'), '') NOT IN ('integer', 'real') OR COALESCE(json_type(data, '$.usage.outputTokens'), '') NOT IN ('integer', 'real'))`
       const stepRows = db.all(`
         SELECT
           step,
+          SUM(CASE WHEN ${unknownUsage} THEN 1 ELSE 0 END) as unknownUsageCalls,
           SUM(CASE WHEN ${notSkipped} THEN 1 ELSE 0 END) as calls,
           SUM(CASE WHEN json_extract(data, '$.cacheHit') = 1 AND ${notSkipped} THEN 1 ELSE 0 END) as cacheHits,
           SUM(CASE WHEN (json_extract(data, '$.cacheHit') = 0 OR json_extract(data, '$.cacheHit') IS NULL) AND ${notSkipped} THEN 1 ELSE 0 END) as cacheMisses,
@@ -113,12 +115,13 @@ export function createDebugRoutes(
           COALESCE(SUM(json_extract(data, '$.usage.outputTokens')), 0) as outputTokens,
           COALESCE(ROUND(AVG(CASE WHEN ${notSkipped} THEN json_extract(data, '$.durationMs') END), 0), 0) as avgDurationMs,
           SUM(CASE
+            WHEN json_extract(data, '$.outcome') IN ('cancelled', 'skipped-with-error') THEN 0
             WHEN json_extract(data, '$.success') = 0 THEN 1
             WHEN json_extract(data, '$.success') IS NULL
               AND json_array_length(json_extract(data, '$.validationErrors')) > 0 THEN 1
             ELSE 0
           END) as errorCount,
-          SUM(CASE WHEN ${notSkipped} THEN 0 ELSE 1 END) as skipped
+          SUM(CASE WHEN json_extract(data, '$.skippedReason') IS NOT NULL THEN 1 ELSE 0 END) as skipped
         FROM llm_log
         GROUP BY step
         ORDER BY step
@@ -132,6 +135,7 @@ export function createDebugRoutes(
         avgDurationMs: number
         errorCount: number
         skipped: number
+        unknownUsageCalls: number
       }>
 
       // Compute totals
@@ -143,6 +147,7 @@ export function createDebugRoutes(
         outputTokens: 0,
         errorCount: 0,
         skipped: 0,
+        unknownUsageCalls: 0,
       }
       for (const row of stepRows) {
         totals.calls += row.calls
@@ -152,6 +157,7 @@ export function createDebugRoutes(
         totals.outputTokens += row.outputTokens
         totals.errorCount += row.errorCount
         totals.skipped += row.skipped
+        totals.unknownUsageCalls += row.unknownUsageCalls
       }
 
       // Full-pipeline job tracking was removed; keep nullable field for compatibility.

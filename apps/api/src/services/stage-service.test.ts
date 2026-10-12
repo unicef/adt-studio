@@ -285,6 +285,7 @@ describe("stage-service cancellation", () => {
     await tick()
 
     const decisionPromise = decisions.requestDecision({
+      runId: svc.getStatus(label).active!.runId,
       label,
       step: "web-rendering",
       pageId: "pg001",

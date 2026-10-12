@@ -1,3 +1,5 @@
+import { LLMValidationError } from "../../errors.js"
+import { knownTokenUsage } from "../../token-usage.js"
 import { tmpdir } from "node:os"
 import type {
   BackendContext,
@@ -14,10 +16,7 @@ import {
   type ClaudeAgentUsage,
   type ClaudeCliRunner,
 } from "./cli.js"
-import {
-  MISSING_CLAUDE_CLI_MESSAGE,
-  resolveClaudeAgentExecutable,
-} from "./executable.js"
+import { MISSING_CLAUDE_CLI_MESSAGE, resolveClaudeAgentExecutable } from "./executable.js"
 import { asZodLike, toJsonSchema, toPromptBlocks } from "./request.js"
 
 /** A type alias, not an interface: `ProviderCredentialValues` needs an implicit index signature. */
@@ -65,9 +64,8 @@ export function createClaudeAgentStructuredTextBackend(
   const cwd = options.scratchDir ?? tmpdir()
 
   return {
-    async generateStructured<T>(
-      request: StructuredTextRequest,
-    ): Promise<StructuredTextResult<T>> {
+    reportsProviderRequests: true,
+    async generateStructured<T>(request: StructuredTextRequest): Promise<StructuredTextResult<T>> {
       const executable = resolveExecutable()
       if (!executable) {
         throw new Error(MISSING_CLAUDE_CLI_MESSAGE)
@@ -78,6 +76,7 @@ export function createClaudeAgentStructuredTextBackend(
       const systemPrompt = buildSystemPrompt(request.system, native ? undefined : schema)
 
       const turn = await runCli({
+        onProviderRequest: request.onProviderRequest,
         executable,
         model: context.modelId,
         userMessage: {
@@ -101,13 +100,27 @@ export function createClaudeAgentStructuredTextBackend(
           }${authFailureHint(context.credentials.apiKey)}`,
         )
       }
+      const usage = toTokenUsage(result.usage)
+      if (result.subtype === "error_max_structured_output_retries") {
+        throw new LLMValidationError(
+          [
+            "Claude Agent did not provide valid structured output. Return corrected JSON matching the schema.",
+          ],
+          result.result,
+          usage,
+        )
+      }
       if (result.subtype !== "success" || result.is_error) {
         throw new Error(
           `Claude Agent turn failed (${result.subtype})${formatErrors(result)}${authFailureHint(context.credentials.apiKey)}`,
+          {
+            cause: Number.isInteger(result.api_error_status)
+              ? { statusCode: result.api_error_status }
+              : undefined,
+          },
         )
       }
 
-      const usage = toTokenUsage(result.usage)
       const rawText = result.result
       const value =
         result.structured_output !== undefined
@@ -117,8 +130,10 @@ export function createClaudeAgentStructuredTextBackend(
             : null
 
       if (value === null || value === undefined) {
-        throw new Error(
-          `Claude Agent returned no structured output. Response: ${(rawText ?? "").slice(0, 400)}`,
+        throw new LLMValidationError(
+          ["Claude Agent returned no structured output. Return a JSON object only."],
+          rawText,
+          usage,
         )
       }
 
@@ -129,8 +144,10 @@ export function createClaudeAgentStructuredTextBackend(
 
       const parsed = zod.safeParse(value)
       if (!parsed.success) {
-        throw new Error(
-          `Claude Agent output did not match the schema. Response: ${JSON.stringify(value).slice(0, 400)}`,
+        throw new LLMValidationError(
+          ["Claude Agent output did not match the schema. Return corrected JSON."],
+          value,
+          usage,
         )
       }
       return { object: parsed.data as T, usage, ...(rawText ? { rawText } : {}) }
@@ -174,6 +191,12 @@ export function buildClaudeAgentEnv(
   for (const key of CLI_CREDENTIAL_ENV_KEYS) delete env[key]
   if (apiKey) env.ANTHROPIC_API_KEY = apiKey
   env.MAX_THINKING_TOKENS = "0"
+  // Disable known internal retry paths, verified with CLI 2.1.260 at loopback.
+  // Token-limit continuation remains outside these controls; older CLIs may
+  // also ignore them. See the opt-in wire-budget acceptance test.
+  env.CLAUDE_CODE_MAX_RETRIES = "0"
+  env.MAX_STRUCTURED_OUTPUT_RETRIES = "0"
+  env.CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK = "1"
   return env
 }
 
@@ -189,14 +212,15 @@ function buildAbortSignal(request: StructuredTextRequest): AbortSignal {
 }
 
 /** Session-cumulative in the CLI's result event, which equals the turn for a single round. */
-function toTokenUsage(usage: ClaudeAgentUsage | undefined): TokenUsage {
-  return {
+function toTokenUsage(usage: ClaudeAgentUsage | undefined): TokenUsage | undefined {
+  if (!usage) return undefined
+  return knownTokenUsage({
     inputTokens:
-      (usage?.input_tokens ?? 0) +
+      (usage.input_tokens ?? NaN) +
       (usage?.cache_creation_input_tokens ?? 0) +
       (usage?.cache_read_input_tokens ?? 0),
-    outputTokens: usage?.output_tokens ?? 0,
-  }
+    outputTokens: usage.output_tokens,
+  })
 }
 
 function formatErrors(result: ClaudeAgentResultEvent): string {

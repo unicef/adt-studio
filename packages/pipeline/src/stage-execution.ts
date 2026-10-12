@@ -1,3 +1,5 @@
+import { ImageClassificationOutput } from "@adt/types"
+import { filteringEvidence, filteringSignature, filteringStatus, imagePassCurrent, imagePassEvidence, imagePassSignature } from "./image-recovery.js"
 import { isGenerationKind } from "./generation-catalog.js"
 import { runPackageResume } from "./package-resume.js"
 import { extractionOptionsFromConfig, prepareExtractionAdmission } from "./extraction-admission.js"
@@ -25,6 +27,8 @@ import { publishSpeechOutput, assertExtractionReadable, createBookStorage, withB
 import type { Storage } from "@adt/storage"
 import {
   AiProviderError,
+  classifyLLMError,
+  LLMCallError,
   createLLMModel,
   createPromptEngine,
   promptRoots,
@@ -159,7 +163,6 @@ import type { PageErrorPolicy, PageErrorAction } from "@adt/types"
 import { beginSpeechRun, endSpeechRun } from "./speech-progress.js"
 import type {
   AppConfig,
-  ImageClassificationOutput,
   PageSectioningOutput,
   WebRenderingOutput,
   ImageCaptioningOutput,
@@ -245,21 +248,22 @@ interface FailedPage {
 
 /** One-shot admission gate for processWithConcurrency. Closed while a page-error
  *  decision is pending (interactive mode) so no new items start; in-flight work
- *  continues. Opened again once the decision resolves. */
+ *  continues. Opened again once all pending decisions resolve. */
 class AdmissionGate {
-  private closed = false
+  private pending = 0
   private waiters: Array<() => void> = []
   close(): void {
-    this.closed = true
+    this.pending++
   }
   open(): void {
-    this.closed = false
+    this.pending = Math.max(0, this.pending - 1)
+    if (this.pending > 0) return
     const waiters = this.waiters
     this.waiters = []
     for (const w of waiters) w()
   }
   wait(): Promise<void> {
-    if (!this.closed) return Promise.resolve()
+    if (this.pending === 0) return Promise.resolve()
     return new Promise((resolve) => this.waiters.push(resolve))
   }
 }
@@ -277,17 +281,15 @@ interface PageFailureContext {
   stepController: AbortController
   gate: AdmissionGate
   policy: PageErrorPolicy
-  requestDecision?: (input: {
-    step: StepName
-    pageId: string
-    error: string
-  }) => Promise<PageErrorAction>
+  requestDecision?: StageRunOptions["requestPageDecision"]
+  canRetry?: boolean
+  validateRetry?: () => void
 }
 
 /** Shared handling for a page failure inside a per-page step. Covers all six
  *  emission points. Returns after recording/handling; throws only to unwind a
  *  run cancel (an aborted page is not a failure — it re-runs cheaply via cache). */
-async function handlePageFailure(ctx: PageFailureContext): Promise<void> {
+async function handlePageFailure(ctx: PageFailureContext): Promise<PageErrorAction> {
   const { runSignal, stepController } = ctx
 
   // 1. Run cancel — re-throw so the run tears down at once.
@@ -296,7 +298,7 @@ async function handlePageFailure(ctx: PageFailureContext): Promise<void> {
   }
   // 2. Step already stopping (a prior "stop" decision aborted in-flight work) —
   //    swallow quietly; the step throws its own StepError after the loop.
-  if (stepController.signal.aborted) return
+  if (stepController.signal.aborted) return "stop"
 
   const msg = toErrorMessage(ctx.err)
   // Emit step-error as before (per-page). In interactive mode this briefly paints
@@ -315,27 +317,44 @@ async function handlePageFailure(ctx: PageFailureContext): Promise<void> {
         step: ctx.step,
         pageId: ctx.pageId,
         error: msg,
+        signal: stepController.signal,
+        canRetry: ctx.canRetry,
+        validateRetry: ctx.validateRetry,
+        errorClass: classifyLLMError(ctx.err).errorClass,
+        attemptCount: ctx.err instanceof LLMCallError ? ctx.err.attempts : undefined,
       })
     } finally {
       ctx.gate.open()
     }
+    if (action === "retry" && ctx.canRetry) return "retry"
     if (action === "skip") {
+      // Persist the choice before continuing. This is a diagnostic outcome,
+      // not permission to replace retained content or declare it current.
+      ctx.progress.emit({
+        type: "page-error-skipped",
+        step: ctx.step,
+        pageId: ctx.pageId,
+        errorClass: classifyLLMError(ctx.err).errorClass,
+        requestId: ctx.err instanceof LLMCallError ? ctx.err.requestId : undefined,
+        attemptCount: ctx.err instanceof LLMCallError ? ctx.err.attempts : undefined,
+      })
       let set = ctx.skippedByStep.get(ctx.step)
       if (!set) {
         set = new Set()
         ctx.skippedByStep.set(ctx.step, set)
       }
       set.add(ctx.pageId)
-      return
+      return "skip"
     }
     // "stop": abort the step. processWithConcurrency stops admitting new items;
     // the step then throws a StepError so it's marked error and later stages halt.
     stepController.abort()
-    return
+    return "stop"
   }
 
   // Default "stop" policy: accumulate and fail the step at the end.
   ctx.failedPages.push({ pageId: ctx.pageId, step: ctx.step, msg })
+  return "stop"
 }
 
 /** Per-step failure-handling dependencies, built once per page-processing step
@@ -370,7 +389,7 @@ function reportPageFailure(
   step: StepName,
   pageId: string,
   err: unknown
-): Promise<void> {
+): Promise<PageErrorAction> {
   return handlePageFailure({ ...deps, progress, step, pageId, err })
 }
 
@@ -527,6 +546,8 @@ export async function processWithConcurrency<T>(
       // `concurrency` items are in flight, completions pace the rest, so no ramp.
       if (rampMs > 0 && launched > 0 && launched < concurrency) {
         await sleep(rampMs, controls?.runSignal)
+        // A failure may have closed admission during the launch ramp.
+        if (controls?.gate) await controls.gate.wait()
         if (controls?.runSignal?.aborted) throw new RunCancelledError()
         if (controls?.stopSignal?.aborted) break
       }
@@ -999,7 +1020,27 @@ function createAdmittedStageRunner(): StageRunner {
       try {
         const trackingProgress: StageRunProgress = {
           emit(event) {
-            if (event.type === "step-start") {
+            if (event.type === "page-error-skipped") {
+              completionStorage.appendLlmLog({
+                requestId: event.requestId ?? crypto.randomUUID(),
+                timestamp: new Date().toISOString(),
+                taskType: event.step,
+                pageId: event.pageId,
+                promptName: "page-error-decision",
+                modelId: "",
+                durationMs: 0,
+                attempt: Math.max(0, (event.attemptCount ?? 1) - 1),
+                errorClass: event.errorClass,
+                success: false,
+                errorCount: 0,
+                cacheHit: false,
+                providerCall: false,
+                pageRecovery: true,
+                outcome: "skipped-with-error",
+                skippedReason: "page-error",
+                messages: [],
+              })
+            } else if (event.type === "step-start") {
               // Cancellation checkpoint before every step: a cancel that lands
               // between steps stops the run here, before the step is recorded.
               if (options.signal?.aborted) throw new RunCancelledError()
@@ -1342,6 +1383,19 @@ async function runExtractStep(
     console.log(`[stage-run] ${label}: classifying images for ${totalPages} pages (concurrency=${effectiveConcurrency})`)
 
     const pageResults = new Map<string, ImageClassificationOutput>()
+    const filteringInputs = new Map(pages.map((page) => [page.pageId, filteringSignature(storage, page, config, promptEngine)]))
+    const protectedFiltering = new Set(pages.filter((page) => filteringStatus(storage, page.pageId, filteringInputs.get(page.pageId)!).protected && !(options.generationExtractTrusted && !(storage.getLatestNodeData("image-filtering", page.pageId)?.data as { generationEvidence?: unknown } | undefined)?.generationEvidence)).map((page) => page.pageId))
+    if (protectedFiltering.size) options.generationRetainedProtected?.()
+    const currentFiltering = new Set(pages.filter((page) => filteringStatus(storage, page.pageId, filteringInputs.get(page.pageId)!, "image-meaningfulness").current).map((page) => page.pageId))
+    const validatePage = (pageId: string) => {
+      options.signal?.throwIfAborted()
+      options.validateGeneration?.()
+      const liveConfig = loadBookConfig(label, booksDir, configPath)
+      const liveEngine = createPromptEngine(promptRoots(booksDir, promptsDir, options.promptOverridesDir, bookPromptsDir), { basePromptModelId: liveConfig.base_prompt_model })
+      const page = storage.getPages().find((item) => item.pageId === pageId)
+      if (!page || filteringSignature(storage, page, liveConfig, liveEngine) !== filteringInputs.get(pageId)) throw new Error("Page inputs changed. Stop or skip this page, then start a refreshed run.")
+    }
+    const recovery = { options, signatures: filteringInputs, protected: protectedFiltering, current: currentFiltering, validate: validatePage }
     // The four classification passes share one failure/skip/gate/step-controller
     // context: a "stop" decision in any pass halts the whole classification phase,
     // and the end-of-stage throw considers real (non-skipped) failures per step.
@@ -1358,28 +1412,28 @@ async function runExtractStep(
 
     await runFilterPass(
       label, pages, storage, imageClassifyConfig,
-      effectiveConcurrency, pageResults, pageFailureDeps, progress
+      effectiveConcurrency, pageResults, pageFailureDeps, progress, recovery
     )
 
-    if (!stepController.signal.aborted) {
+    if (!stepController.signal.aborted && failedPages.length === 0) {
       await runMeaningfulnessPass(
         label, pages, storage, meaningfulnessConfig, meaningfulnessModel,
         resolveFigureExtractionMode(config) === "auto",
-        effectiveConcurrency, pageResults, pageFailureDeps, progress
+        effectiveConcurrency, pageResults, pageFailureDeps, progress, recovery
       )
     }
 
-    if (!stepController.signal.aborted) {
+    if (!stepController.signal.aborted && failedPages.length === 0) {
       await runSegmentationPass(
-        label, pages, storage, segmentationConfig, segmentationModel,
-        effectiveConcurrency, pageResults, progress, options.signal
+        label, pages.filter((page) => !protectedFiltering.has(page.pageId) && !skippedByStep.get("image-meaningfulness")?.has(page.pageId)), storage, segmentationConfig, segmentationModel,
+        effectiveConcurrency, pageResults, progress, options.signal, recovery, promptEngine
       )
     }
 
-    if (!stepController.signal.aborted) {
+    if (!stepController.signal.aborted && failedPages.length === 0) {
       await runCroppingPass(
-        label, pages, storage, croppingConfig, croppingModel,
-        effectiveConcurrency, pageResults, progress, options.signal
+        label, pages.filter((page) => !protectedFiltering.has(page.pageId) && !skippedByStep.get("image-meaningfulness")?.has(page.pageId)), storage, croppingConfig, croppingModel,
+        effectiveConcurrency, pageResults, progress, options.signal, recovery, promptEngine
       )
     }
 
@@ -1561,7 +1615,7 @@ async function runSectioningStep(
       async (page: PageData) => {
         try {
           const imageClassRow = storage.getLatestNodeData("image-filtering", page.pageId)
-          const imageClassification = (imageClassRow?.data as ImageClassificationOutput) ?? { images: [] }
+          const imageClassification = ImageClassificationOutput.parse(imageClassRow?.data)
           const unprunedImageIds = imageClassRow
             ? imageClassification.images.filter((img) => !img.isPruned).map((img) => img.imageId)
             : storage.getPageImages(page.pageId).map((img) => img.imageId)
@@ -1623,6 +1677,8 @@ async function runSectioningStep(
             retireSectionIds(storage, (old?.sections ?? []).flatMap((section) => section.sectionId ? [section.sectionId] : []))
             storage.putNodeData("page-sectioning", page.pageId, { ...result, sections, source: "ai" })
             reconcileTextCatalog(storage)
+            recordPageRecovery(storage, "page-sectioning", page.pageId)
+            if (translationConfig) recordPageRecovery(storage, "translation", page.pageId)
           })
         } catch (err) {
           const step = err instanceof StepError ? err.step : "page-sectioning"
@@ -1886,6 +1942,7 @@ async function runStoryboardStep(
           )
           if (options.signal?.aborted) throw new RunCancelledError()
           storage.putNodeData("web-rendering", page.pageId, renderResult)
+          recordPageRecovery(storage, "web-rendering", page.pageId)
           completedRendering++
           progress.emit({
             type: "step-progress",
@@ -2155,7 +2212,7 @@ async function runCaptionsStep(
     })
 
     const inventory = buildImageInventory(storage)
-    const readOutputs = (capturedEngine?: import("@adt/llm").PromptEngine) => readOutputCatalog({ promptEngine: capturedEngine, storage, config: loadBookConfig(label, booksDir, configPath),
+    const readOutputs = (capturedEngine?: import("@adt/llm").PromptEngine, committedProof = false) => readOutputCatalog({ promptEngine: capturedEngine, storage: committedProof ? { ...storage, getPageRecovery: () => [] } : storage, config: loadBookConfig(label, booksDir, configPath),
       bookDir: path.join(path.resolve(booksDir), label), promptsDir, promptOverridesDir: options.promptOverridesDir,
       configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config") })
     const captured = readOutputs(promptEngine)
@@ -2232,6 +2289,8 @@ async function runCaptionsStep(
               merged.set(entry.imageId, { ...entry, source: "ai", input: outputEvidence(status.signature, { caption: entry.caption, decorative: entry.decorative === true }, captureOutputReferences(storage, "caption")) })
             }
             storage.putNodeData("image-captioning", page.pageId, { captions: [...merged.values()] })
+            const pageOutputs = readOutputs(undefined, true).filter((output) => output.identity.kind === "caption" && output.pageIds?.includes(page.pageId))
+            if (pageOutputs.length && pageOutputs.every((output) => output.current || output.excluded)) recordPageRecovery(storage, "image-captioning", page.pageId)
             reconcileTextCatalog(storage)
           })
 
@@ -3901,6 +3960,22 @@ async function runSpeechStep(
   }
 }
 
+function recordPageRecovery(storage: Storage, step: StepName, pageId: string) {
+  storage.appendLlmLog({ requestId: crypto.randomUUID(), timestamp: new Date().toISOString(),
+    taskType: step, pageId, promptName: "page-recovery", modelId: "",
+    durationMs: 0, attempt: 0, success: true, errorCount: 0, cacheHit: false, providerCall: false,
+    pageRecovery: true, outcome: "success", messages: [],
+  })
+}
+
+interface FilteringRecovery {
+  options: StageRunOptions
+  signatures: Map<string, string>
+  protected: Set<string>
+  current: Set<string>
+  validate: (pageId: string) => void
+}
+
 async function runFilterPass(
   label: string,
   pages: PageData[],
@@ -3910,6 +3985,7 @@ async function runFilterPass(
   results: Map<string, ImageClassificationOutput>,
   deps: PageFailureDeps,
   progress: StageRunProgress,
+  recovery: FilteringRecovery,
 ): Promise<void> {
   const total = pages.length
   let completed = 0
@@ -3919,10 +3995,30 @@ async function runFilterPass(
     concurrency,
     async (page) => {
       try {
+        const previous = storage.getLatestNodeData("image-filtering", page.pageId)
+        if (previous) {
+          // Retain every prior decision, including manual prune choices. Unknown
+          // authorship is protected; an interrupted generated filter can resume.
+          const parsed = ImageClassificationOutput.parse(previous.data)
+          const evidence = (previous.data as { generationEvidence?: { input?: { signature?: string } } }).generationEvidence
+          if (recovery.current.has(page.pageId) && !recovery.protected.has(page.pageId)) {
+            results.set(page.pageId, ImageClassificationOutput.parse(storage.getLatestNodeData("image-meaningfulness", page.pageId)!.data))
+            return
+          }
+          if (recovery.protected.has(page.pageId) || evidence?.input?.signature === recovery.signatures.get(page.pageId)) {
+            results.set(page.pageId, parsed)
+            return
+          }
+        }
+        recovery.validate(page.pageId)
         const images = storage.getPageImages(page.pageId)
         const result = classifyPageImages(page.pageId, images, config)
         results.set(page.pageId, result)
-        storage.putNodeData("image-filtering", page.pageId, result)
+        if (!previous) {
+          storage.putNodeData("image-filtering", page.pageId, filteringEvidence(result, recovery.signatures.get(page.pageId)!, true))
+          recordPageRecovery(storage, "image-filtering", page.pageId)
+          recovery.options.generationCheckpoint?.(page.pageId)
+        }
       } catch (err) {
         console.error(`[stage-run] ${label}: ${page.pageId} failed at image-filtering: ${toErrorMessage(err)}`)
         await reportPageFailure(deps, progress, "image-filtering", page.pageId, err)
@@ -3963,81 +4059,60 @@ async function runMeaningfulnessPass(
   results: Map<string, ImageClassificationOutput>,
   deps: PageFailureDeps,
   progress: StageRunProgress,
+  recovery: FilteringRecovery,
 ): Promise<void> {
-  if (!config || !model) {
-    if (autoDedup) {
-      for (const page of pages) {
-        const existing = results.get(page.pageId)
-        if (!existing) continue
-        const updated = dedupAutoFigureCandidatesInStorage(storage, page.pageId, existing)
-        if (updated !== existing) results.set(page.pageId, updated)
-      }
-    }
-    progress.emit({ type: "step-skip", step: "image-meaningfulness" })
-    return
-  }
-
   const total = pages.length
   let completed = 0
   progress.emit({ type: "step-start", step: "image-meaningfulness" })
-  await processWithConcurrency(
-    pages,
-    concurrency,
-    async (page) => {
-    const existing = results.get(page.pageId)
-    if (!existing) {
-      completed++
-      progress.emit({
-        type: "step-progress",
-        step: "image-meaningfulness",
-        message: `${completed}/${total}`,
-        page: completed,
-        totalPages: total,
-      })
-      return
-    }
+  await processWithConcurrency(pages, concurrency, async (page) => {
     try {
-      const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, existing)
-
-      if (unprunedImages.length > 0) {
-        const updated = await filterPageImageMeaningfulness(
-          {
-            pageId: page.pageId,
-            pageImageBase64: storage.getPageImageBase64(page.pageId),
-            pageText: page.text,
-            images: unprunedImages,
-          },
-          existing,
-          config,
-          model,
-        )
-        results.set(page.pageId, updated)
-        storage.putNodeData("image-filtering", page.pageId, updated)
+      if (recovery.protected.has(page.pageId) || recovery.current.has(page.pageId)) return
+      const existing = results.get(page.pageId)
+      if (!existing) throw new Error("Image filtering is missing or invalid; this page remains blocked.")
+      // Each explicit decision authorizes exactly one new facade round. Success
+      // exits this page callback; successful sibling callbacks are never replayed.
+      for (;;) {
+        try {
+          recovery.validate(page.pageId)
+          const images = buildMeaningfulnessImages(storage, page.pageId, existing)
+          let updated = existing
+          if (config && model && images.length) {
+            updated = await filterPageImageMeaningfulness({ pageId: page.pageId,
+              pageImageBase64: storage.getPageImageBase64(page.pageId), pageText: page.text, images,
+            }, existing, config, model)
+          } else if (autoDedup) {
+            // Existing dedup helper writes a version through the staged storage.
+            updated = dedupAutoFigureCandidatesInStorage(storage, page.pageId, existing)
+          }
+          deps.runSignal?.throwIfAborted()
+          if (deps.stepController.signal.aborted) return
+          recovery.validate(page.pageId)
+          storage.putNodeData("image-meaningfulness", page.pageId, filteringEvidence(updated, recovery.signatures.get(page.pageId)!, false))
+          storage.putNodeData("image-filtering", page.pageId, filteringEvidence(updated, recovery.signatures.get(page.pageId)!, false))
+          recordPageRecovery(storage, "image-meaningfulness", page.pageId)
+          recovery.options.generationCheckpoint?.(page.pageId)
+          results.set(page.pageId, updated)
+          return
+        } catch (err) {
+          const action = await handlePageFailure({ ...deps, progress, step: "image-meaningfulness", pageId: page.pageId, err,
+            canRetry: !!config && !!model && !!recovery.options.validateGeneration && classifyLLMError(err).retryable,
+            validateRetry: () => recovery.validate(page.pageId),
+          })
+          if (action === "retry") continue
+          recovery.options.discardGenerationPage?.(page.pageId)
+          const retained = ImageClassificationOutput.safeParse(storage.getLatestNodeData("image-filtering", page.pageId)?.data)
+          if (retained.success) results.set(page.pageId, retained.data)
+          else results.delete(page.pageId)
+          return
+        }
       }
-    } catch (err) {
-      console.error(`[stage-run] ${label}: ${page.pageId} failed at image-meaningfulness: ${toErrorMessage(err)}`)
-      await reportPageFailure(deps, progress, "image-meaningfulness", page.pageId, err)
     } finally {
       completed++
-      progress.emit({
-        type: "step-progress",
-        step: "image-meaningfulness",
-        message: `${completed}/${total}`,
-        page: completed,
-        totalPages: total,
-      })
+      progress.emit({ type: "step-progress", step: "image-meaningfulness", message: `${completed}/${total}`, page: completed, totalPages: total })
     }
-    },
-    { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate },
-  )
-  const failed = deps.failedPages.some((f) => f.step === "image-meaningfulness")
-  if (!failed && !deps.stepController.signal.aborted) {
-    progress.emit({
-      type: "step-complete",
-      step: "image-meaningfulness",
-      message: skipMessage(deps.skippedByStep, "image-meaningfulness"),
-    })
-  }
+  }, { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate })
+  const failed = deps.failedPages.some((failure) => failure.step === "image-meaningfulness")
+  if (!failed && !deps.stepController.signal.aborted) progress.emit({ type: !config || !model ? "step-skip" : "step-complete", step: "image-meaningfulness", message: skipMessage(deps.skippedByStep, "image-meaningfulness") })
 }
 
 async function runSegmentationPass(
@@ -4049,7 +4124,9 @@ async function runSegmentationPass(
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
   progress: StageRunProgress,
-  runSignal?: AbortSignal,
+  runSignal: AbortSignal | undefined,
+  recovery: FilteringRecovery,
+  promptEngine: import("@adt/llm").PromptEngine,
 ): Promise<void> {
   if (!config || !model) {
     progress.emit({ type: "step-skip", step: "image-segmentation" })
@@ -4073,6 +4150,12 @@ async function runSegmentationPass(
       return
     }
     try {
+      const signature = imagePassSignature(inputSignature([recovery.signatures.get(page.pageId), existing]), config, promptEngine)
+      if (imagePassCurrent(storage, "image-segmentation", page.pageId, signature)) {
+        const previous = storage.getLatestNodeData("image-segmentation", page.pageId)!.data as { filtering?: unknown }
+        const retained = ImageClassificationOutput.safeParse(previous.filtering)
+        if (retained.success) { results.set(page.pageId, retained.data); return }
+      }
       const images = storage.getPageImages(page.pageId)
       const unprunedIds = new Set(
         existing.images.filter((img) => !img.isPruned).map((img) => img.imageId)
@@ -4098,7 +4181,7 @@ async function runSegmentationPass(
           config,
           model,
         )
-        const segVersion = storage.putNodeData("image-segmentation", page.pageId, segmentationResult)
+        const segVersion = Math.max(0, ...storage.getAllNodeVersions("image-segmentation", page.pageId).map((row) => row.version)) + 1
         const segDims = new Map(images.map((img) => [img.imageId, { width: img.width, height: img.height }]))
         const applied = applySegmentation(
           segmentationResult,
@@ -4135,8 +4218,9 @@ async function runSegmentationPass(
               origEntry.reason = "segmented"
             }
           }
-          storage.putNodeData("image-filtering", page.pageId, existing)
+          storage.putNodeData("image-filtering", page.pageId, filteringEvidence(existing, recovery.signatures.get(page.pageId)!, false))
         }
+        storage.putNodeData("image-segmentation", page.pageId, imagePassEvidence({ ...segmentationResult, filtering: existing }, signature))
       }
     } catch (err) {
       if (isCancellation(err, [runSignal])) throw err
@@ -4166,7 +4250,9 @@ async function runCroppingPass(
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
   progress: StageRunProgress,
-  runSignal?: AbortSignal,
+  runSignal: AbortSignal | undefined,
+  recovery: FilteringRecovery,
+  promptEngine: import("@adt/llm").PromptEngine,
 ): Promise<void> {
   if (!config || !model) {
     progress.emit({ type: "step-skip", step: "image-cropping" })
@@ -4190,18 +4276,17 @@ async function runCroppingPass(
       return
     }
     try {
-      const images = storage.getPageImages(page.pageId)
-      const prunedIds = new Set(
-        existing.images.filter((img) => img.isPruned).map((img) => img.imageId)
-      )
-      const unprunedImages = images
-        .filter((img) => !prunedIds.has(img.imageId))
-        .map((img) => ({
-          imageId: img.imageId,
-          imageBase64: storage.getImageBase64(img.imageId),
-          width: img.width,
-          height: img.height,
-        }))
+      const signature = imagePassSignature(inputSignature([recovery.signatures.get(page.pageId), existing]), config, promptEngine)
+      if (imagePassCurrent(storage, "image-cropping", page.pageId, signature)) {
+        const previous = storage.getLatestNodeData("image-cropping", page.pageId)!.data as { filtering?: unknown }
+        const retained = ImageClassificationOutput.safeParse(previous.filtering)
+        if (retained.success) { results.set(page.pageId, retained.data); return }
+      }
+      const unprunedImages = existing.images.filter((image) => !image.isPruned).map(({ imageId }) => {
+        const dimensions = storage.getImageDimensions(imageId)
+        if (!dimensions) throw new Error("Retained image dimensions are missing")
+        return { imageId, imageBase64: storage.getImageBase64(imageId), ...dimensions }
+      })
 
       if (unprunedImages.length > 0) {
         const croppingResult = await cropPageImages(
@@ -4213,7 +4298,7 @@ async function runCroppingPass(
           config,
           model,
         )
-        const croppingVersion = storage.putNodeData("image-cropping", page.pageId, croppingResult)
+        const croppingVersion = Math.max(0, ...storage.getAllNodeVersions("image-cropping", page.pageId).map((row) => row.version)) + 1
         const applied = applyCrops(
           croppingResult,
           (imageId) => storage.getImageBase64(imageId)
@@ -4238,8 +4323,9 @@ async function runCroppingPass(
           })
         }
         if (applied.length > 0) {
-          storage.putNodeData("image-filtering", page.pageId, existing)
+          storage.putNodeData("image-filtering", page.pageId, filteringEvidence(existing, recovery.signatures.get(page.pageId)!, false))
         }
+        storage.putNodeData("image-cropping", page.pageId, imagePassEvidence({ ...croppingResult, filtering: existing }, signature))
       }
     } catch (err) {
       if (isCancellation(err, [runSignal])) throw err

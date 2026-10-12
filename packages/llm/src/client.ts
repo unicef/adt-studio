@@ -23,9 +23,17 @@ import {
 } from "./cache.js"
 import { sanitizeMessages, type LlmLogEntry } from "./log.js"
 import { createLogger, type LogLevel } from "./logger.js"
-import { formatProviderError } from "./error-format.js"
-import { AiProviderError } from "./ports/errors.js"
-import type { ResolvedCredentials } from "./credentials.js"
+import {
+  boundedRetryDelay,
+  classifyLLMError,
+  safeLLMErrorMessage,
+  LLMCallError,
+  LLMValidationError,
+} from "./errors.js"
+import { NoObjectGeneratedError } from "ai"
+import { asZodLike } from "./providers/shared/json-schema.js"
+import { resolveProviderCredentials, type ResolvedCredentials } from "./credentials.js"
+import { knownTokenUsage } from "./token-usage.js"
 import {
   mergeResolvedCredentials,
   toResolvedCredentials,
@@ -48,8 +56,7 @@ function resolveEffectiveTimeoutMs(
 export interface CreateLLMModelOptions {
   modelId: string // "openai:gpt-5.4" format
   cacheDir?: string
-  /** Default for every call, including rendering's answer/review subcalls.
-   * Bypasses reads, retaining write-through of accepted output. */
+  /** Bypass reads while publishing only validated output under ordinary keys. */
   forceFresh?: boolean
   promptEngine?: PromptEngine
   onLog?: (entry: LlmLogEntry) => void
@@ -71,7 +78,16 @@ export interface CreateLLMModelOptions {
  * retries, inspectable logging and optional prompt rendering.
  */
 export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
-  const { modelId, cacheDir, promptEngine, onLog, rateLimiter, credentials, logLevel, signal: modelSignal } = options
+  const {
+    modelId,
+    cacheDir,
+    promptEngine,
+    onLog,
+    rateLimiter,
+    credentials,
+    logLevel,
+    signal: modelSignal,
+  } = options
   const log = createLogger(logLevel)
   const registry = options.registry ?? getDefaultProviderRegistry()
   const providerCredentials = mergeResolvedCredentials(
@@ -80,19 +96,14 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
   )
 
   return {
-    async renderPrompt(
-      name: string,
-      context: Record<string, unknown>,
-    ): Promise<Message[]> {
+    async renderPrompt(name: string, context: Record<string, unknown>): Promise<Message[]> {
       if (!promptEngine) {
         throw new Error("promptEngine required for renderPrompt")
       }
       return promptEngine.renderPrompt(name, context, { modelId })
     },
 
-    async generateObject<T>(
-      opts: GenerateObjectOptions
-    ): Promise<GenerateObjectResult<T>> {
+    async generateObject<T>(opts: GenerateObjectOptions): Promise<GenerateObjectResult<T>> {
       // Resolve prompt to system + messages if needed
       let system = opts.system
       let messages = opts.messages ?? []
@@ -100,35 +111,32 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
 
       const context = opts.context ?? {}
       const forceFresh = opts.forceFresh ?? options.forceFresh ?? false
-      // Per-call signal wins over the model-level signal; either one cancels.
-      const externalSignal = opts.signal ?? modelSignal
+      // Either the per-call or model-level signal cancels this request.
+      const signals = [opts.signal, modelSignal].filter((s): s is AbortSignal => !!s)
+      const externalSignal = signals.length > 1 ? AbortSignal.any(signals) : signals[0]
+      externalSignal?.throwIfAborted()
 
       if (opts.prompt) {
         if (!promptEngine) {
           throw new Error("promptEngine required when using prompt option")
         }
         resolvedPromptName = promptEngine.resolvePrompt(opts.prompt, { modelId }).resolvedName
-        const allMessages = await promptEngine.renderPrompt(
-          opts.prompt,
-          context,
-          { modelId },
-        )
+        const allMessages = await promptEngine.renderPrompt(opts.prompt, context, { modelId })
         const systemMsg = allMessages.find((m) => m.role === "system")
-        system =
-          typeof systemMsg?.content === "string"
-            ? systemMsg.content
-            : undefined
+        system = typeof systemMsg?.content === "string" ? systemMsg.content : undefined
         messages = allMessages.filter((m) => m.role !== "system")
       }
 
       const maxRetries = opts.maxRetries ?? 0
+      if (!Number.isSafeInteger(maxRetries) || maxRetries < 0) {
+        throw new Error("maxRetries must be a non-negative safe integer")
+      }
       const t0 = Date.now()
       const requestId = randomUUID()
 
       let currentMessages = messages
-      let allErrors: string[] = []
-      let lastCacheHit = false
-      let totalUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
+      const totalUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
+      let totalUsageKnown = true
 
       const label = opts.log
         ? `${opts.log.taskType}${opts.log.pageId ? ` ${opts.log.pageId}` : ""}`
@@ -150,7 +158,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           logLevel,
         })
       } catch (err) {
-        const errMsg = formatProviderError(err)
+        const classification = classifyLLMError(err)
+        const errMsg = safeLLMErrorMessage(classification)
         log.error(`[LLM] ${label} | error | ${errMsg}`)
         if (opts.log && onLog) {
           onLog({
@@ -164,6 +173,10 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             correlationId: opts.log.correlationId,
             modelId,
             cacheHit: false,
+            providerCall: false,
+            ...classification,
+            outcome: "failed",
+            finalError: true,
             success: false,
             errorCount: 1,
             attempt: 0,
@@ -193,27 +206,28 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       )
       const legacyReadable = isLegacyCacheReadable(resolved.fingerprint)
 
-      const generate = async (
-        current: Message[],
-      ): Promise<{ object: T; usage: TokenUsage }> => {
-        if (forceFresh) externalSignal?.throwIfAborted()
-        const generated = await resolved.backend.generateStructured<T>({
-          system,
-          messages: current,
-          schema: opts.schema,
-          strategy,
-          temperature: effectiveTemperature,
-          maxTokens: opts.maxTokens,
-          timeoutMs: effectiveTimeoutMs,
-          signal: externalSignal,
-        })
-        return { object: generated.object, usage: generated.usage }
+      let providerCalls = 0
+      const provider = registry.get(resolved.providerId)
+      const effectiveCredentials = resolveProviderCredentials(provider, providerCredentials)
+      const secrets = provider.manifest.credentialFields
+        .filter((field) => field.kind === "secret")
+        .map((field) => effectiveCredentials[field.key])
+        .filter((secret): secret is string => !!secret)
+      const redact = (message: string): string => {
+        let safe = message
+        for (const secret of secrets) safe = safe.split(secret).join("[redacted]")
+        return safe
       }
+      const scrub = (message: string) => redact(message).slice(0, 4096)
 
       let originalHash: string | undefined
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        externalSignal?.throwIfAborted()
         const attemptStartedAt = Date.now()
-        const attemptUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
+        let attemptUsage: TokenUsage | undefined
+        let providerCall = false
+        let cacheHit = false
+        let validated = false
         const hash = computeCacheKeyV2({
           providerId: resolved.providerId,
           modelId: resolved.modelId,
@@ -227,16 +241,9 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           maxTokens: opts.maxTokens,
         })
         originalHash ??= hash
-        // Reproduce the exact v1 key so a legacy entry from an unambiguous
-        // backend still counts as a hit; configurable-origin providers skip it.
-        // The v1 key recorded the caller's deprecated `mode` verbatim — omitted
-        // when none was passed, even for providers whose default strategy maps
-        // to one (e.g. anthropic's tool-call) — so probe the raw value and the
-        // strategy's mapping, which differ for migrated call sites.
-        const legacyModes = legacyReadable
-          ? [...new Set([opts.mode, legacyModeForStrategy(strategy)])]
-          : []
-        const legacyHashes = legacyModes.map((mode) =>
+        const legacyHashes = (
+          legacyReadable ? [...new Set([opts.mode, legacyModeForStrategy(strategy)])] : []
+        ).map((mode) =>
           computeHash({
             modelId,
             mode,
@@ -246,249 +253,188 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             temperature: opts.temperature,
           }),
         )
-
+        let cachedHash: string | undefined
+        const record = (fields: Partial<LlmLogEntry>, output: unknown | null = null) => {
+          if (!opts.log || !onLog) return
+          onLog({
+            requestId,
+            timestamp: new Date().toISOString(),
+            taskType: opts.log.taskType,
+            pageId: opts.log.pageId,
+            promptName: logPromptName ?? opts.log.promptName,
+            requestedPromptName,
+            sectionIndex: opts.log.sectionIndex,
+            correlationId: opts.log.correlationId,
+            modelId,
+            cacheHit,
+            providerCall,
+            maxAttempts: maxRetries + 1,
+            success: false,
+            errorCount: 0,
+            attempt,
+            durationMs: Date.now() - attemptStartedAt,
+            usage: attemptUsage,
+            messages: sanitizeMessages(buildLogMessages(system, currentMessages, output)).map(
+              (message) => ({
+                ...message,
+                content: message.content.map((part) =>
+                  part.type === "text" ? { ...part, text: redact(part.text) } : part,
+                ),
+              }),
+            ),
+            ...fields,
+          })
+        }
         try {
-          let result: T
-
-          // Check cache
-          if (cacheDir) {
-            const cached = forceFresh ? null : readCache<T>(cacheDir, hash)
-            let legacyCached: T | null = null
-            if (!forceFresh && cached === null) {
-              for (const legacyHash of legacyHashes) {
-                legacyCached = readCache<T>(cacheDir, legacyHash)
-                if (legacyCached !== null) break
+          let result: T | null = null
+          if (cacheDir && !forceFresh) {
+            for (const candidate of [hash, ...legacyHashes]) {
+              result = readCache<T>(cacheDir, candidate)
+              if (result !== null) {
+                cachedHash = candidate
+                cacheHit = true
+                break
               }
             }
-            if (cached !== null) {
-              result = cached
-              lastCacheHit = true
-            } else if (legacyCached !== null) {
-              // Promote the legacy hit into v2 so future reads skip the fallback.
-              result = legacyCached
-              lastCacheHit = true
-              writeCache(cacheDir, hash, result)
-            } else {
-              if (rateLimiter) await rateLimiter.acquire()
-              const generated = await generate(currentMessages)
-              result = generated.object
-              attemptUsage.inputTokens += generated.usage.inputTokens
-              attemptUsage.outputTokens += generated.usage.outputTokens
-              totalUsage.inputTokens += generated.usage.inputTokens
-              totalUsage.outputTokens += generated.usage.outputTokens
-              lastCacheHit = false
-              if (!forceFresh) writeCache(cacheDir, hash, result)
-            }
-          } else {
-            if (rateLimiter) await rateLimiter.acquire()
-            const generated = await generate(currentMessages)
-            result = generated.object
-            attemptUsage.inputTokens += generated.usage.inputTokens
-            attemptUsage.outputTokens += generated.usage.outputTokens
-            totalUsage.inputTokens += generated.usage.inputTokens
-            totalUsage.outputTokens += generated.usage.outputTokens
-            lastCacheHit = false
           }
-
-          // Validate if validator provided
+          if (!cacheHit) {
+            await rateLimiter?.acquire(externalSignal)
+            externalSignal?.throwIfAborted()
+            providerCall = !resolved.backend.reportsProviderRequests
+            if (providerCall) providerCalls++
+            const generated = await resolved.backend.generateStructured<T>({
+              onProviderRequest: () => { providerCall = true; providerCalls++ },
+              system,
+              messages: currentMessages,
+              schema: opts.schema,
+              strategy,
+              temperature: effectiveTemperature,
+              maxTokens: opts.maxTokens,
+              timeoutMs: effectiveTimeoutMs,
+              signal: externalSignal,
+            })
+            attemptUsage = knownTokenUsage(generated.usage)
+            if (attemptUsage) {
+              totalUsage.inputTokens += attemptUsage.inputTokens
+              totalUsage.outputTokens += attemptUsage.outputTokens
+            } else totalUsageKnown = false
+            result = generated.object
+          }
+          externalSignal?.throwIfAborted()
+          // Disk entries (including legacy ones) must satisfy today's schema too.
+          const schema = asZodLike(opts.schema)
+          if (schema) {
+            const parsed = schema.safeParse(result)
+            if (!parsed.success)
+              throw new LLMValidationError(
+                ["Response must match the required JSON schema."],
+                result,
+              )
+            result = parsed.data as T
+          }
           if (opts.validate) {
             const check = opts.validate(result, context)
-            if (!check.valid) {
-              allErrors.push(...check.errors)
-              if (cacheDir && !forceFresh) {
-                bustCache(cacheDir, hash)
-                for (const legacyHash of legacyHashes) bustCache(cacheDir, legacyHash)
-              }
-              currentMessages = appendValidationFeedback(
-                currentMessages,
-                result,
-                check.errors
-              )
-              log.info(
-                `[LLM] ${label} | validation failed (attempt ${attempt + 1}/${maxRetries + 1}) | retrying`
-              )
-              if (opts.log && onLog) {
-                onLog({
-                  requestId,
-                  timestamp: new Date().toISOString(),
-                  taskType: opts.log.taskType,
-                  pageId: opts.log.pageId,
-                  promptName: logPromptName ?? opts.log.promptName,
-                  requestedPromptName,
-                  sectionIndex: opts.log.sectionIndex,
-                  correlationId: opts.log.correlationId,
-                  modelId,
-                  cacheHit: lastCacheHit,
-                  success: false,
-                  errorCount: check.errors.length,
-                  attempt,
-                  durationMs: Date.now() - attemptStartedAt,
-                  usage:
-                    attemptUsage.inputTokens > 0 || attemptUsage.outputTokens > 0
-                      ? attemptUsage
-                      : undefined,
-                  validationErrors: check.errors,
-                  messages: sanitizeMessages(
-                    buildLogMessages(system, currentMessages, null)
-                  ),
-                })
-              }
-              continue
-            }
-            if (check.cleaned !== undefined) {
-              result = check.cleaned as T
-            }
+            if (!check.valid) throw new LLMValidationError(check.errors.map(scrub), result)
+            if (check.cleaned !== undefined) result = check.cleaned as T
           }
-
-          if (forceFresh) {
-            // Provider failure, cancellation and rejected output must not
-            // replace or evict a usable result. A validated retry also updates the
-            // original key so ordinary reruns reuse the accepted fresh output.
-            externalSignal?.throwIfAborted()
-            if (cacheDir) {
-              writeCache(cacheDir, hash, result)
-              if (originalHash !== hash) writeCache(cacheDir, originalHash, result)
-            }
+          externalSignal?.throwIfAborted()
+          validated = true
+          // Validated fresh output replaces ordinary keys; failed fresh calls retain them.
+          if (cacheDir && (!cacheHit || cachedHash !== hash)) {
+            writeCache(cacheDir, hash, result)
+            if (forceFresh && originalHash !== hash) writeCache(cacheDir, originalHash, result)
           }
-
-          const durationMs = Date.now() - t0
-          if (lastCacheHit) {
-            log.info(`[LLM] ${label} | cached | ${durationMs}ms`)
-          } else {
-            const tokens = `${totalUsage.inputTokens}+${totalUsage.outputTokens} tokens`
-            log.info(
-              `[LLM] ${label} | ok${attempt > 0 ? ` (attempt ${attempt + 1}/${maxRetries + 1})` : ""} | ${durationMs}ms | ${tokens}`
-            )
-          }
-
-          // Log and return
-          if (opts.log && onLog) {
-            onLog({
-              requestId,
-              timestamp: new Date().toISOString(),
-              taskType: opts.log.taskType,
-              pageId: opts.log.pageId,
-              promptName: logPromptName ?? opts.log.promptName,
-              requestedPromptName,
-              sectionIndex: opts.log.sectionIndex,
-              correlationId: opts.log.correlationId,
-              modelId,
-              cacheHit: lastCacheHit,
-              success: true,
-              errorCount: 0,
-              attempt,
-              durationMs: Date.now() - attemptStartedAt,
-              usage:
-                attemptUsage.inputTokens > 0 || attemptUsage.outputTokens > 0
-                  ? attemptUsage
-                  : undefined,
-              messages: sanitizeMessages(
-                buildLogMessages(system, currentMessages, result)
-              ),
-            })
-          }
-
+          record({ success: true, outcome: "success" }, result)
+          log.info(`[LLM] ${label} | ${cacheHit ? "cached" : "ok"} | ${Date.now() - t0}ms`)
           return {
-            object: result,
-            usage: totalUsage,
-            cached: lastCacheHit,
+            object: result as T,
+            usage: totalUsageKnown ? totalUsage : undefined,
+            cached: cacheHit,
           }
         } catch (err) {
-          const errMsg = formatProviderError(err)
-          allErrors.push(errMsg)
-          if (cacheDir && !forceFresh) {
-            bustCache(cacheDir, hash)
-            for (const legacyHash of legacyHashes) bustCache(cacheDir, legacyHash)
-          }
-
-          // A deliberate external cancel never retries — detected by the signal,
-          // not the error name (the SDK may wrap the AbortError). The internal
-          // timeout also aborts the call but leaves the signal intact, so those
-          // keep retrying as before.
-          if (externalSignal?.aborted) {
-            log.error(`[LLM] ${label} | cancelled | ${errMsg}`)
-            throw err
-          }
-
-          // Provider/credential/model errors are configuration failures, not
-          // transient ones — retrying them only delays the real message.
-          if (attempt < maxRetries && !AiProviderError.is(err)) {
-            const delayMs = backoffDelay(attempt)
-            log.error(
-              `[LLM] ${label} | error (attempt ${attempt + 1}/${maxRetries + 1}) | ${errMsg} | retrying in ${delayMs}ms`
-            )
-            if (opts.log && onLog) {
-              onLog({
-                requestId,
-                timestamp: new Date().toISOString(),
-                taskType: opts.log.taskType,
-                pageId: opts.log.pageId,
-                promptName: logPromptName ?? opts.log.promptName,
-                requestedPromptName,
-                sectionIndex: opts.log.sectionIndex,
-                correlationId: opts.log.correlationId,
-                modelId,
-                cacheHit: false,
-                success: false,
-                errorCount: 1,
-                attempt,
-                durationMs: Date.now() - attemptStartedAt,
-                usage:
-                  attemptUsage.inputTokens > 0 || attemptUsage.outputTokens > 0
-                    ? attemptUsage
-                    : undefined,
-                validationErrors: [errMsg],
-                messages: sanitizeMessages(
-                  buildLogMessages(system, currentMessages, null)
-                ),
-              })
+          const classification = externalSignal?.aborted
+            ? { errorClass: "cancelled" as const, retryable: false }
+            : validated
+              ? { errorClass: "non-retryable" as const, retryable: false }
+              : classifyLLMError(err)
+          const message = safeLLMErrorMessage(classification)
+          if (!attemptUsage) {
+            const usage =
+              err instanceof LLMValidationError
+                ? err.usage
+                : NoObjectGeneratedError.isInstance(err) && err.usage
+                  ? {
+                      inputTokens: err.usage.promptTokens,
+                      outputTokens: err.usage.completionTokens,
+                    }
+                  : undefined
+            attemptUsage = knownTokenUsage(usage)
+            if (attemptUsage) {
+              totalUsage.inputTokens += attemptUsage.inputTokens
+              totalUsage.outputTokens += attemptUsage.outputTokens
             }
-            await sleep(delayMs, externalSignal)
-            // Cancelled during backoff — stop instead of firing one more attempt.
-            if (externalSignal?.aborted) {
-              log.error(`[LLM] ${label} | cancelled during backoff`)
-              throw err
-            }
-            continue
           }
-
-          log.error(
-            `[LLM] ${label} | error (attempt ${attempt + 1}/${maxRetries + 1}) | ${errMsg}`
+          if (providerCall && !attemptUsage) totalUsageKnown = false
+          const validation = classification.errorClass === "model-output"
+          if (validation && cacheDir && cachedHash) bustCache(cacheDir, cachedHash)
+          const feedback = err instanceof LLMValidationError ? err.feedback.map(scrub) : [message]
+          const failedOutput = validation
+            ? err instanceof LLMValidationError
+              ? err.output
+              : NoObjectGeneratedError.isInstance(err)
+                ? err.text
+                : null
+            : null
+          const retry = classification.retryable && attempt < maxRetries
+          // Validation retries keep their existing immediate feedback behavior.
+          const delayMs =
+            retry && !validation ? boundedRetryDelay(err, backoffDelay(attempt)) : undefined
+          record(
+            {
+              ...classification,
+              errorCount: feedback.length,
+              validationErrors: feedback,
+              error: validation ? undefined : message,
+              finalError: !retry,
+              retryDelayMs: delayMs,
+              outcome:
+                classification.errorClass === "cancelled"
+                  ? "cancelled"
+                  : retry
+                    ? "retrying"
+                    : "failed",
+            },
+            failedOutput ?? null,
           )
-
-          if (opts.log && onLog) {
-            onLog({
-              requestId,
-              timestamp: new Date().toISOString(),
-              taskType: opts.log.taskType,
-              pageId: opts.log.pageId,
-              promptName: logPromptName ?? opts.log.promptName,
-              requestedPromptName,
-              sectionIndex: opts.log.sectionIndex,
-              correlationId: opts.log.correlationId,
-              modelId,
-              cacheHit: false,
-              success: false,
-              errorCount: 1,
-              attempt,
-              durationMs: Date.now() - attemptStartedAt,
-              usage:
-                attemptUsage.inputTokens > 0 || attemptUsage.outputTokens > 0
-                  ? attemptUsage
-                  : undefined,
-              validationErrors: [errMsg],
-              messages: sanitizeMessages(
-                buildLogMessages(system, currentMessages, null)
-              ),
-            })
+          if (validation)
+            currentMessages = appendValidationFeedback(
+              currentMessages,
+              failedOutput ?? null,
+              feedback,
+              redact,
+            )
+          if (!retry) throw new LLMCallError(classification, attempt + 1, providerCalls, requestId)
+          if (delayMs !== undefined) {
+            log.info(`[LLM] ${label} | ${message} | retrying in ${delayMs}ms`)
+            await sleep(delayMs, externalSignal)
+            if (externalSignal?.aborted) {
+              const cancelled = { errorClass: "cancelled" as const, retryable: false }
+              // Terminal control record: no request or usage; not another paid attempt.
+              providerCall = false
+              cacheHit = false
+              attemptUsage = undefined
+              record({
+                ...cancelled,
+                finalError: true,
+                outcome: "cancelled",
+                error: "Request cancelled",
+              })
+              throw new LLMCallError(cancelled, attempt + 1, providerCalls, requestId)
+            }
           }
-          throw err
         }
       }
-
-      throw new Error(
-        `Failed after ${maxRetries + 1} attempts. Errors:\n${allErrors.join("\n")}`
-      )
+      throw new Error("Retry budget exhausted")
     },
   }
 }
@@ -532,9 +478,7 @@ function selectStrategy(
 
 /** Maps an effective strategy back to the deprecated `mode` the v1 cache key
  *  recorded, so a legacy dual-read still lands on the original entry. */
-function legacyModeForStrategy(
-  strategy: StructuredOutputStrategy,
-): GenerateObjectOptions["mode"] {
+function legacyModeForStrategy(strategy: StructuredOutputStrategy): GenerateObjectOptions["mode"] {
   if (strategy === "json-mode") return "json"
   if (strategy === "tool-call") return "tool"
   return undefined
@@ -568,7 +512,7 @@ function backoffDelay(attempt: number): number {
 function buildLogMessages(
   system: string | undefined,
   messages: Message[],
-  finalResult: unknown | null
+  finalResult: unknown | null,
 ): Message[] {
   const log: Message[] = []
   if (system) {
@@ -587,13 +531,14 @@ function buildLogMessages(
 function appendValidationFeedback(
   messages: Message[],
   failedResult: unknown,
-  errors: string[]
+  errors: string[],
+  redact: (message: string) => string,
 ): Message[] {
   return [
     ...messages,
     {
       role: "assistant" as const,
-      content: JSON.stringify(failedResult, null, 2),
+      content: redact(JSON.stringify(failedResult, null, 2)),
     },
     {
       role: "user" as const,

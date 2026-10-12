@@ -203,3 +203,4 @@ export {
 export { resolvePromptFile, promptRoots } from "./prompt-resolution.js"
 export { PromptFileError, promptPath, promptVersionDir, readPromptSelection, legacyPromptSelection, listPromptVersionFiles, initializePromptSelection, publishPromptSelection, savePromptVersion, writePromptFileAtomic, writePromptFileExclusive, withPromptGates, promptDigest } from "./prompt-files.js"
 export { migratePromptOverrides } from "./prompt-migration.js"
+export { classifyLLMError, safeLLMErrorMessage, LLMCallError, LLMValidationError } from "./errors.js"

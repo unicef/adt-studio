@@ -51,7 +51,7 @@ export function deriveOutputStatus(options: {
   // An old caller changing content without updating evidence must not leave it
   // eligible for an ordinary generated replacement.
   const protectedContent = (options.content !== undefined || metadata !== undefined) && (metadata?.source !== "ai" || !input || !evidenceValid)
-  const ownCurrent = usable && ((evidenceValid && input.signature === signature) || (reviewed && review.action === "keep"))
+  const ownCurrent = !metadata?.incomplete && usable && ((evidenceValid && input.signature === signature) || (reviewed && review.action === "keep"))
   const warnings: OutputWarning[] = []
   if (usable && !ownCurrent && protectedContent) warnings.push({ reason: input || review ? "source-changed" : "legacy" })
   if (fallback && !(reviewed && review.action === "checked")) warnings.push({ reason: `preparation-${fallback}` })

@@ -50,12 +50,21 @@ export function StatsTab({ label, isRunning }: StatsTabProps) {
   if (!data) return null
 
   const { steps, totals, pipelineRun } = data
+  const unknownUsageCalls = totals.unknownUsageCalls ?? 0
   const cacheHitRate = totals.calls > 0
     ? ((totals.cacheHits / totals.calls) * 100).toFixed(1)
     : "0"
 
   return (
     <div className="p-6 space-y-6 text-sm">
+      {unknownUsageCalls > 0 && (
+        <p role="status" className="text-muted-foreground">
+          <Trans>
+            Usage is unavailable for {unknownUsageCalls} provider calls. Token totals include recorded
+            usage only.
+          </Trans>
+        </p>
+      )}
       <div className="grid grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="rounded-lg border bg-card p-4">
           <div className="text-xs text-muted-foreground mb-1">
@@ -99,7 +108,7 @@ export function StatsTab({ label, isRunning }: StatsTabProps) {
             <Trans>Est. Cost</Trans>
           </div>
           <div className="text-2xl font-semibold tabular-nums">
-            {estimateCost(totals.inputTokens, totals.outputTokens)}
+            {unknownUsageCalls > 0 ? "—" : estimateCost(totals.inputTokens, totals.outputTokens)}
           </div>
         </div>
         <div className={`rounded-lg border p-4 ${totals.errorCount > 0 ? "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900" : "bg-card"}`}>

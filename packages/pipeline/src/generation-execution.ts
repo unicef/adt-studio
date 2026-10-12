@@ -20,19 +20,39 @@ export async function runGenerationStage(label: string, options: StageRunOptions
   try {
     const read = () => readGenerationCatalog(context()).filter((status) => isGenerationKind(status.identity.kind) && generationStage(status.identity.kind) === stage)
     const promptEngine = createPromptEngine(promptRoots(options.booksDir, options.promptsDir, options.promptOverridesDir, path.join(bookDir, "prompts")), { basePromptModelId: context().config.base_prompt_model, capture: true })
-    const before = readGenerationCatalog({ ...context(), promptEngine }).filter((status) => isGenerationKind(status.identity.kind) && generationStage(status.identity.kind) === stage)
+    let before = readGenerationCatalog({ ...context(), promptEngine }).filter((status) => isGenerationKind(status.identity.kind) && generationStage(status.identity.kind) === stage)
     const selected = before.filter((status) => selectedForGeneration(status, undefined, options.outputScope))
     if (!selected.length) return
     if (stage !== "extract") prepareSectioningRun(label, options.booksDir, stage, stage, options.configPath)
     const config = context().config
-    const versions = inputSignature(base.getNodeVersionFingerprint())
+    let versions = inputSignature(base.getNodeVersionFingerprint())
     const sourceIds = new Set(readExtractionManifest(bookDir)?.images.map((image) => image.imageId) ?? [])
     const sourceView = stage === "extract" ? { ...base, getPageImages: (pageId: string) => base.getPageImages(pageId).filter((image) => sourceIds.has(image.imageId)) } : base
-    const publication = createGenerationPublication(sourceView, () => {
+    const validate = () => {
       options.signal?.throwIfAborted()
       if (inputSignature(base.getNodeVersionFingerprint()) !== versions) throw new Error("Content changed during generation. Previous output is retained.")
       assertOutputPublication(before, read(), selected.map((status) => status.identity))
-    })
+    }
+    let retainedProtected = false
+    const publication = createGenerationPublication(sourceView, validate)
+    const checkpoint = stage === "extract" ? (pageId: string) => {
+      validate()
+      // Only this page and prerequisite book outputs become visible. Other
+      // pages remain staged. Evidence identifies a partial, never current run.
+      const row = publication.storage.getLatestNodeData("metadata", "book")
+      if (!row) throw new Error("Missing extraction metadata")
+      const view = { ...publication.storage,
+        getLatestNodeData: (node: string, id: string) => id === pageId || id === "book"
+          ? publication.storage.getLatestNodeData(node, id) : base.getLatestNodeData(node, id),
+      }
+      const output = readGenerationCatalog({ ...context(view), promptEngine }).find((value) => value.identity.kind === "extract-generation")!
+      publication.storage.putNodeData("metadata", "book", { ...(row.data as object), generationEvidence: {
+        ...(retainedProtected ? {} : { source: "ai" }), incomplete: true, input: { ...outputEvidence(output.signature, null), contentHash: output.contentHash },
+      } })
+      publication.publish(new Set(["book", pageId]))
+      versions = inputSignature(base.getNodeVersionFingerprint())
+      before = read().map((status) => ({ ...status, signature: before.find((old) => old.identity.kind === status.identity.kind && old.identity.id === status.identity.id)?.signature ?? status.signature }))
+    } : undefined
     const selectedIds = selected.map((status) => status.identity.id)
     const explicit = selected.filter((status) => status.protected).flatMap((status) => {
       const node = isGenerationKind(status.identity.kind) ? GENERATION_NODES[status.identity.kind] : undefined
@@ -41,7 +61,9 @@ export async function runGenerationStage(label: string, options: StageRunOptions
     })
     const completionEvents: ProgressEvent[] = []
     await execute({ ...options, promptEngine, generationStorage: publication.storage,
+      generationRetainedProtected: () => { retainedProtected = true }, generationCheckpoint: checkpoint, validateGeneration: validate, discardGenerationPage: (id) => publication.discardPage(id),
       generationReplaceProtected: selected.some((status) => status.protected),
+      generationExtractTrusted: stage === "extract" && before.every((status) => !status.protected),
       generationPageIds: stage === "sectioning" || stage === "storyboard" ? selectedIds : undefined,
       ...(explicit.length ? { replaceManual: true, protectedReplacements: explicit } : {}),
     }, { emit(event) {
@@ -56,7 +78,7 @@ export async function runGenerationStage(label: string, options: StageRunOptions
       const row = publication.storage.getLatestNodeData(node, id)
       const output = after.find((value) => value.identity.kind === status.identity.kind && value.identity.id === id)
       if (!row || !output?.usable || !publication.hasWritten(node, id)) throw new Error("Generation did not produce its required output")
-      publication.storage.putNodeData(node, id, { ...(row.data as object), generationEvidence: { source: "ai", input: { ...outputEvidence(output.signature, null), contentHash: output.contentHash } } })
+      publication.storage.putNodeData(node, id, { ...(row.data as object), generationEvidence: { ...(retainedProtected ? {} : { source: "ai", input: { ...outputEvidence(output.signature, null), contentHash: output.contentHash } }), ...(stage === "extract" && base.getPageRecovery().some((error) => error.step === "image-meaningfulness" || error.step === "image-filtering") ? { incomplete: true } : {}) } })
     }
     // Revoke rendering readiness immediately before the content transaction.
     // A crash after commit keeps the barrier; a rolled-back publication restores

@@ -16,6 +16,8 @@ export const MISSING_CODEX_CLI_MESSAGE = `Codex CLI not found on this machine. $
 /** The ChatGPT desktop app for macOS ships a full Codex CLI inside its bundle. */
 export function chatGptAppCodexPaths(home: string): string[] {
   return [
+    "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+    join(home, "Applications", "ChatGPT.app", "Contents", "Resources", "codex-cli", "CodexCLI.app", "Contents", "MacOS", "codex"),
     "/Applications/ChatGPT.app/Contents/Resources/codex",
     join(home, "Applications", "ChatGPT.app", "Contents", "Resources", "codex"),
   ]

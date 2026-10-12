@@ -213,7 +213,12 @@ describe("resolveCodexExecutable", () => {
       homeDir: home,
       fileExists: (path) => path === bundled,
     })
-    expect(executable).toBe("/Applications/ChatGPT.app/Contents/Resources/codex")
+    expect(executable).toBe(bundled)
+  })
+
+  it("continues to discover the legacy ChatGPT CLI location", () => {
+    const legacy = "/Applications/ChatGPT.app/Contents/Resources/codex"
+    expect(resolveCodexExecutable({ env: {}, platform: "darwin", homeDir: "/fixture", fileExists: (file) => file === legacy })).toBe(legacy)
   })
 
   it("does not look inside the ChatGPT app on other platforms", () => {

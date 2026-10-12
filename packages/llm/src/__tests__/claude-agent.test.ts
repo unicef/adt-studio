@@ -299,9 +299,10 @@ describe("createClaudeAgentStructuredTextBackend", () => {
   it("rejects output that does not validate against the schema", async () => {
     const fake = fakeRunner(successTurn({ structured_output: { title: "Atlas" } }))
 
-    await expect(backendWith(fake).generateStructured(makeRequest())).rejects.toThrow(
-      /did not match the schema/,
-    )
+    await expect(backendWith(fake).generateStructured(makeRequest())).rejects.toMatchObject({
+      name: "LLMValidationError",
+      feedback: [expect.stringContaining("did not match the schema")],
+    })
   })
 
   it("fails on a non-success result subtype", async () => {
@@ -507,4 +508,38 @@ describe("toJsonSchema", () => {
   it("rejects a value that is neither a Zod schema nor an object", () => {
     expect(() => toJsonSchema("nope")).toThrow(/object or Zod schema/)
   })
+})
+
+it("keeps absent Claude usage unknown and preserves usage on schema rejection", async () => {
+  const missing = fakeRunner(successTurn({ usage: undefined }))
+  expect((await backendWith(missing).generateStructured(makeRequest())).usage).toBeUndefined()
+  const invalid = fakeRunner(successTurn({ structured_output: { title: "bad", pages: "wrong" } }))
+  await expect(backendWith(invalid).generateStructured(makeRequest())).rejects.toMatchObject({
+    name: "LLMValidationError",
+    usage: { inputTokens: 10, outputTokens: 4 },
+    output: { title: "bad", pages: "wrong" },
+  })
+})
+
+it("overrides ambient settings for known Claude retry controls", async () => {
+  vi.stubEnv("CLAUDE_CODE_MAX_RETRIES", "99")
+  vi.stubEnv("MAX_STRUCTURED_OUTPUT_RETRIES", "99")
+  vi.stubEnv("CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK", "0")
+  try {
+    const fake = fakeRunner(successTurn())
+    await backendWith(fake).generateStructured(makeRequest())
+    expect(fake.calls[0].env.CLAUDE_CODE_MAX_RETRIES).toBe("0")
+    expect(fake.calls[0].env.MAX_STRUCTURED_OUTPUT_RETRIES).toBe("0")
+    expect(fake.calls[0].env.CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK).toBe("1")
+  } finally { vi.unstubAllEnvs() }
+})
+it("returns structured-output exhaustion to facade validation feedback", async () => {
+  const fake = fakeRunner(successTurn({ subtype: "error_max_structured_output_retries", is_error: true }))
+  await expect(backendWith(fake).generateStructured(makeRequest())).rejects.toMatchObject({
+    name: "LLMValidationError", usage: { inputTokens: 10, outputTokens: 4 },
+  })
+})
+it("preserves a CLI-reported HTTP failure status for classification", async () => {
+  const fake = fakeRunner(successTurn({ is_error: true, api_error_status: 403 }))
+  await expect(backendWith(fake).generateStructured(makeRequest())).rejects.toMatchObject({ cause: { statusCode: 403 } })
 })
