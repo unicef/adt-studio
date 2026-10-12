@@ -268,3 +268,39 @@ describe("SectionTreeEditor inherited prune (#596)", () => {
     for (const button of include) expect(button.disabled).toBe(false)
   })
 })
+
+describe("SectionTreeEditor highlightNodeId (#596)", () => {
+  function HighlightHarness({ highlightNodeId }: { highlightNodeId: string | null }) {
+    const [section, setSection] = useState(initialSection)
+    return (
+      <SectionTreeEditor
+        section={section}
+        onChange={setSection}
+        bookLabel="test-book"
+        highlightNodeId={highlightNodeId}
+      />
+    )
+  }
+
+  it("marks the highlighted row and scrolls it into view", () => {
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+    render(<HighlightHarness highlightNodeId="sense-text" />)
+
+    const row = document.querySelector('[data-node-id="sense-text"]')
+    expect(row?.getAttribute("data-highlighted")).toBe("true")
+    expect(document.querySelectorAll('[data-highlighted="true"]')).toHaveLength(1)
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+  })
+
+  it("expands a collapsed group so the highlighted row is reachable", () => {
+    Element.prototype.scrollIntoView = vi.fn()
+    const { rerender } = render(<HighlightHarness highlightNodeId={null} />)
+    const senseGroup = document.querySelector('[data-node-id="sense-group"]')!
+    fireEvent.click(senseGroup.querySelector('button[title="Collapse"]')!)
+    expect(screen.queryByText("Sense")).toBeNull()
+
+    rerender(<HighlightHarness highlightNodeId="sense-text" />)
+    expect(screen.getByText("Sense")).toBeTruthy()
+  })
+})

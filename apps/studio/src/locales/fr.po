@@ -397,6 +397,9 @@ msgstr "{count} pages ont échoué dans {stageLabel}"
 msgid "{count} translations"
 msgstr "{count} traductions"
 
+msgid "{count} visible {count, plural, one {element is} other {elements are}} missing from the rendered page"
+msgstr "{count} {count, plural, one {élément visible est absent} other {éléments visibles sont absents}} de la page rendue"
+
 msgid "{countSummary} this page"
 msgstr "{countSummary} cette page"
 
@@ -1448,6 +1451,9 @@ msgstr "Analyse de la partie…"
 
 msgid "Analyzing..."
 msgstr "Analyse en cours..."
+
+msgid "and {more} more"
+msgstr "et {more} de plus"
 
 msgid "and many more blocks across the entire book"
 msgstr "et bien d'autres blocs à travers tout le livre"
@@ -7665,6 +7671,9 @@ msgstr "La régénération est désactivée pour les activités personnalisées 
 
 msgid "Re-render section"
 msgstr "Re-rendre la section"
+
+msgid "Re-render the section to bring them back, or hide them in the tree if they were removed on purpose."
+msgstr "Re-rendez la section pour les rétablir, ou masquez-les dans l'arborescence s'ils ont été retirés volontairement."
 
 msgid "Re-render this section"
 msgstr "Re-rendre cette section"

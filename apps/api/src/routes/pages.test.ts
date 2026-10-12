@@ -151,6 +151,38 @@ describe("Page routes", () => {
       )
     })
 
+    // #596: the fixture's HTML carries no data-id for the visible leaf.
+    it("reports visible text leaves missing from the rendered HTML", async () => {
+      const res = await app.request(`/api/books/${label}/pages/${label}_p1`)
+      const body = await res.json()
+      expect(body.missingRenderedLeaves).toEqual([
+        { sectionIndex: 0, nodeId: `${label}_p1_n001`, text: "Hello world" },
+      ])
+    })
+
+    // Fixed-layout pages render from a positioned tree whose ids never match
+    // the semantic tree's, so comparing the two would flag every leaf.
+    it("reports no missing leaves for a fixed-layout page", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("fixed-layout-sectioning", `${label}_p1`, {
+          reasoning: "positioned",
+          sections: [],
+        })
+      } finally {
+        storage.close()
+      }
+      const res = await app.request(`/api/books/${label}/pages/${label}_p1`)
+      const body = await res.json()
+      expect(body.missingRenderedLeaves).toEqual([])
+    })
+
+    it("reports no missing leaves for a page that is not rendered", async () => {
+      const res = await app.request(`/api/books/${label}/pages/${label}_p2`)
+      const body = await res.json()
+      expect(body.missingRenderedLeaves).toEqual([])
+    })
+
     it("returns page without pipeline data if not processed", async () => {
       const res = await app.request(
         `/api/books/${label}/pages/${label}_p2`

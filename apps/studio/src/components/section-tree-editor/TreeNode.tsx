@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from "react"
+import { useEffect, useRef, useState, type ComponentType } from "react"
 import {
   ChevronDown,
   ChevronRight,
@@ -29,7 +29,7 @@ import {
   Trash2,
 } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
-import { isHeadingRole, type ContentNodeData } from "@adt/types"
+import { findNode, isHeadingRole, type ContentNodeData } from "@adt/types"
 import { BASE_URL } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/action-menu"
@@ -181,6 +181,8 @@ export interface TreeNodeProps {
   defaultStructure: string
   /** True when an ancestor container is pruned, so this node is hidden too. */
   ancestorPruned?: boolean
+  /** Node to draw attention to: its row is ringed and scrolled into view. */
+  highlightNodeId?: string | null
 }
 
 export function TreeNode(props: TreeNodeProps) {
@@ -188,6 +190,24 @@ export function TreeNode(props: TreeNodeProps) {
   if (node.role === "image") return <ImageLeaf {...props} />
   if (node.role) return <TextLeaf {...props} />
   return <ContainerNode {...props} />
+}
+
+// Ring + scroll the row the caller pointed at (e.g. from the storyboard's
+// missing-elements notice, #596).
+function useHighlightedRow(props: TreeNodeProps) {
+  const highlighted = props.highlightNodeId === props.node.nodeId
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (highlighted) ref.current?.scrollIntoView({ block: "center", behavior: "smooth" })
+  }, [highlighted])
+  return {
+    ref,
+    highlighted,
+    rowProps: {
+      "data-node-id": props.node.nodeId,
+      "data-highlighted": highlighted ? "true" : undefined,
+    },
+  }
 }
 
 // ── Shared drag handle ──────────────────────────────────────────
@@ -385,6 +405,14 @@ function ContainerNode(props: TreeNodeProps) {
   const structureLabel = node.structure ?? "group"
   const isDragging = drag?.nodeId === node.nodeId
   const visual = getStructureVisual(node.structure)
+  const highlight = useHighlightedRow(props)
+
+  // A highlighted descendant must be reachable: open the group if collapsed.
+  const containsHighlight =
+    !!props.highlightNodeId && !!findNode(children, props.highlightNodeId)
+  useEffect(() => {
+    if (containsHighlight) setCollapsed(false)
+  }, [containsHighlight, props.highlightNodeId])
 
   // Dropping directly onto a container (e.g. when it is collapsed or empty)
   // appends the moved node as the container's last child.
@@ -392,8 +420,11 @@ function ContainerNode(props: TreeNodeProps) {
 
   return (
     <div
+      ref={highlight.ref}
+      {...highlight.rowProps}
       className={cn(
         "relative rounded-md border border-transparent border-l-2 border-l-slate-300 pl-1.5 pr-1 py-1 transition-colors hover:border-slate-200",
+        highlight.highlighted && "ring-2 ring-amber-400 ring-offset-1 bg-amber-50/60 dark:bg-amber-950/30",
         visual.border,
         node.isPruned && "opacity-40",
         isDragging && "opacity-30",
@@ -616,6 +647,7 @@ function ContainerNode(props: TreeNodeProps) {
                 defaultTextRole={defaultTextRole}
                 defaultStructure={defaultStructure}
                 ancestorPruned={props.ancestorPruned || node.isPruned}
+                highlightNodeId={props.highlightNodeId}
               />
               <DropZone
                 parentNodeId={node.nodeId}
@@ -657,11 +689,15 @@ function TextLeaf(props: TreeNodeProps) {
   const { t } = useLingui()
   const isDragging = props.drag?.nodeId === node.nodeId
   const visual = getRoleVisual(node.role)
+  const highlight = useHighlightedRow(props)
 
   return (
     <div
+      ref={highlight.ref}
+      {...highlight.rowProps}
       className={cn(
         "group/row flex items-start gap-1.5 rounded pl-0.5 pr-1 py-0.5 transition-colors hover:bg-muted/40",
+        highlight.highlighted && "ring-2 ring-amber-400 ring-offset-1 bg-amber-50/60 dark:bg-amber-950/30",
         node.isPruned && "opacity-40",
         isDragging && "opacity-30"
       )}
@@ -806,10 +842,14 @@ function ImageLeaf(props: TreeNodeProps) {
   const { t } = useLingui()
   const isDragging = props.drag?.nodeId === node.nodeId
   const visual = getRoleVisual("image")
+  const highlight = useHighlightedRow(props)
   return (
     <div
+      ref={highlight.ref}
+      {...highlight.rowProps}
       className={cn(
         "group/row flex items-center gap-2 rounded pl-1 pr-2 py-1 transition-colors hover:bg-muted/40",
+        highlight.highlighted && "ring-2 ring-amber-400 ring-offset-1 bg-amber-50/60 dark:bg-amber-950/30",
         node.isPruned && "opacity-40",
         isDragging && "opacity-30"
       )}

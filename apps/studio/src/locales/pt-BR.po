@@ -395,6 +395,9 @@ msgstr "{count} páginas falharam na etapa {stageLabel}"
 msgid "{count} translations"
 msgstr "{count} traduções"
 
+msgid "{count} visible {count, plural, one {element is} other {elements are}} missing from the rendered page"
+msgstr "{count} {count, plural, one {elemento visível não aparece} other {elementos visíveis não aparecem}} na página renderizada"
+
 msgid "{countSummary} this page"
 msgstr "{countSummary} nesta página"
 
@@ -1446,6 +1449,9 @@ msgstr "Analisando a parte…"
 
 msgid "Analyzing..."
 msgstr "Analisando..."
+
+msgid "and {more} more"
+msgstr "e mais {more}"
 
 msgid "and many more blocks across the entire book"
 msgstr "e muitos outros blocos em todo o livro"
@@ -7663,6 +7669,9 @@ msgstr "A rerrenderização está desativada para atividades personalizadas: ela
 
 msgid "Re-render section"
 msgstr "Rerrenderizar seção"
+
+msgid "Re-render the section to bring them back, or hide them in the tree if they were removed on purpose."
+msgstr "Rerenderize a seção para recuperá-los ou oculte-os na árvore se foram removidos de propósito."
 
 msgid "Re-render this section"
 msgstr "Rerrenderizar esta seção"
