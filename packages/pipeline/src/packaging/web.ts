@@ -585,8 +585,9 @@ export async function packageAdtWeb(
 
   // Table of contents — prefer stored TOC (generated or edited), fallback to headings
   if (llmToc && llmToc.entries.length > 0) {
-    // Preserve stored parent-child groups in the runtime TOC, resolving
-    // hrefs from the page list (the first page is always index.html)
+    // Preserve stored parent-child groups in the runtime TOC, resolving hrefs
+    // from the page list. Every page is id-named; `index.html` is the entry
+    // redirect and is not in the list.
     const hrefMap = new Map(pageList.map((p) => [p.section_id, p.href]))
     const tocJson = orderTocEntries(llmToc.entries, readingOrder.positionById)
       .map((e) => ({

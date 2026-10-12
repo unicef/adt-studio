@@ -71,6 +71,7 @@ export {
   STEP_TO_STAGE,
   STAGE_BY_NAME,
   ALL_STEP_NAMES,
+  READING_ORDER_BLOCKING_STEPS,
   STEPS_BY_DEFAULT_MODEL_KIND,
   PAGE_PROGRESS_STEPS,
   BOOK_LEVEL_STAGES,
@@ -87,6 +88,7 @@ export {
   getStageDependents,
   getStageClearNodes,
   getStageRerunClearNodes,
+  rebuildsSectionIds,
   getCacheResourcesForNode,
   getCacheResourcesForNodes,
   getCacheResourcesForStageOutput,
@@ -388,6 +390,9 @@ export {
   READING_ORDER_ITEM_ID,
   ReadingOrderItem,
   ReadingOrderOutput,
+  SECTIONING_GENERATION_NODE,
+  SECTIONING_GENERATION_ITEM_ID,
+  SectioningGenerationOutput,
 } from "./reading-order.js"
 
 export {

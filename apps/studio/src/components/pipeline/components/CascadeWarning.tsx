@@ -5,13 +5,24 @@ import {
   getStageLabelI18n,
 } from "../pipeline-i18n"
 import { useDownstreamWithOutput } from "@/hooks/use-downstream-with-output"
+import { ReadingOrderResetWarning } from "./ReadingOrderResetWarning"
 
 /**
  * Cascade warning shown on a stage's landing page when re-running the stage
  * would reset downstream stages with existing output. Lists only the stages
  * that actually have output to lose, formatted per locale via Intl.ListFormat.
  */
-export function CascadeWarning({ stageSlug }: { stageSlug: string }) {
+export function CascadeWarning({
+  stageSlug,
+  bookLabel,
+}: {
+  stageSlug: string
+  /**
+   * Optional so the shared `PrereqGuard` can keep using this without a label.
+   * When given, the warning also says what the re-run does to the page order.
+   */
+  bookLabel?: string
+}) {
   const { i18n } = useLingui()
   const affected = useDownstreamWithOutput(stageSlug)
   if (affected.length === 0) return null
@@ -39,10 +50,15 @@ export function CascadeWarning({ stageSlug }: { stageSlug: string }) {
       variant="cascade"
       title={<Trans>Re-running clears later stages</Trans>}
       description={
-        <Trans>
-          {formatted} will be reset and need to run again before final outputs
-          are available.
-        </Trans>
+        <>
+          <Trans>
+            {formatted} will be reset and need to run again before final outputs
+            are available.
+          </Trans>
+          {bookLabel && (
+            <ReadingOrderResetWarning bookLabel={bookLabel} stageSlug={stageSlug} />
+          )}
+        </>
       }
     />
   )

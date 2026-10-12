@@ -106,7 +106,7 @@ Click **Run** next to any stage. A progress bar shows live updates as each step 
 
 After each stage completes, you can inspect the results directly in the UI:
 
-- **Storyboard** — preview each page as rendered HTML; flag pages that need manual review
+- **Storyboard** — preview each page as rendered HTML; flag pages that need manual review; fix the page order and remove pages that do not belong in the book (see [Step 5](#step-5--fix-the-page-order))
 - **Quizzes** — read through generated questions and answers
 - **Glossary** — check extracted terms
 - **Captions** — review image alt-text
@@ -115,7 +115,68 @@ If you are not satisfied with any output, adjust the configuration or prompt and
 
 ---
 
-## Step 5 — Review Accessibility
+## Step 5 — Fix the Page Order
+
+Source PDFs do not always present pages in the order a reader should meet them: front matter can be out of sequence, a spread can be split the wrong way round, and some pages — colophons, blank sheets, publisher notices — do not belong in the finished book at all.
+
+You can fix both in the **Storyboard** stage, in the page list down the left-hand side.
+
+### Reordering pages
+
+There are three ways to move a page, and they do the same thing:
+
+| How | What to do |
+|-----|-----------|
+| **Drag and drop** | Click **Rearrange** in the page-list header (it turns violet), then drag any row. A line shows where the row will land. Click it again to leave rearrange mode. |
+| **The row menu** | Click the **⋮** button on a row and choose **Move up** or **Move down**. No need to turn on **Rearrange**. |
+| **Keyboard** | Focus a row and press **Alt+↑** or **Alt+↓**. Plain arrow keys just move between rows, so you cannot reorder the book by accident. |
+
+Dragging is off until you ask for it because the page list is mostly something you click through, and an accidental drag would quietly rewrite the book.
+
+### Saving, or changing your mind
+
+Moves are held as a **pending change**, exactly like every other edit in ADT Studio. Rearrange as many pages as you like; nothing is written until you press **Save** in the bar at the bottom of the screen, and **Discard** puts everything back the way the book was. The whole rearrangement is saved as **one** version, not one version per page you moved.
+
+If you try to leave the page with moves still pending, ADT Studio will ask before letting the change go.
+
+### Book pages and PDF pages are different things
+
+Once you reorder a book, two different page numbers exist, and the page list shows both:
+
+- **Book page** — where the page now falls for the reader. This renumbers as you rearrange.
+- **PDF *n*** — which sheet the page came from in the source PDF. This never changes: it is where the content came from, not where it sits.
+
+The same two appear as the **Book page** and **PDF page** columns in the overview table (the small table icon in the stage header, tooltip **Overview**). Where a page's printed number differs from its sheet number — as on unnumbered front matter — hovering the cell shows the printed one.
+
+### Undoing a rearrangement
+
+The **v*N*** button beside **Rearrange** holds the full history of the page order. Pick any earlier version to roll the order back to it.
+
+The list also offers **Original — PDF order**, which puts every page back where the source PDF had it. You need this more often than it sounds: the page order is only stored once you first rearrange something, so even the earliest version in the history is already a rearrangement. This is the only route back to the book's original sequence — and it is saved as a new version, so the arrangement you just undid is still one entry up if you want it back.
+
+Rolling back the order **does not** touch your captions, glossary, translations or generated speech. It only invalidates the packaged bundle and the accessibility assessment, which are the two things that depend on the sequence — so re-run **Package** afterwards.
+
+### Removing a page from the book
+
+Some pages should not reach the reader. On a row's **⋮** menu:
+
+- **Remove from book** takes the page out of the finished book while keeping everything about it. The row stays in the list, greyed out and struck through, with a **–** instead of a book page number, and the pages after it renumber. Nothing is destroyed.
+- **Add back to book** — the same menu item, on a page you have removed — puts it back **in its original place**, not at the end.
+- **Delete permanently** destroys the section and its content. It cannot be undone, and the confirmation says so; prefer **Remove from book** unless you are certain.
+
+Putting a page back is usually instant, because its HTML was kept. The exception is a page that was already out of the book the last time **Storyboard** ran: that page has no HTML to restore, so ADT Studio re-renders just that one section, which needs a working API key and takes a moment.
+
+### When reordering is unavailable
+
+The controls grey out while a stage is running that changes what the book is made of — **Extract**, **Page Structuring**, **Web Rendering** or **Quiz Generation** — because those rewrite the very pages and quiz slots an order refers to. The tooltip names the step responsible. Stages that only add material to pages that already have their place, such as Captions, Glossary, Translate and Speech, do not block rearranging.
+
+### What follows the order
+
+Everything downstream reads the same order, so preview and export cannot disagree. The reader's navigation, the table of contents, quiz placement, the EPUB spine and the packaged `pages.json` all follow the sequence you set. **Filenames never change** — each page's file is named after its identity, not its position — so reordering a book does not invalidate any link into it.
+
+---
+
+## Step 6 — Review Accessibility
 
 ADT Studio's pipeline builds in accessibility from the start, but a human review pass is recommended before publication. Things to check:
 
@@ -126,7 +187,7 @@ ADT Studio's pipeline builds in accessibility from the start, but a human review
 
 ---
 
-## Step 6 — Package and Download
+## Step 7 — Package and Download
 
 Once all stages have completed:
 
@@ -144,13 +205,25 @@ The packaged output looks like this:
 
 ```
 your-book-name/
-├── index.html           # Entry point — opens in any browser
-├── assets/              # CSS and JavaScript
-├── pages/               # One HTML file per storyboard page
+├── index.html           # Entry point — redirects to the first page in reading order
+├── pg001_sec001.html    # One HTML file per page, named after the page's identity
+├── pg002_sec001.html    #   (never after its position — see below)
+├── …
+├── assets/              # CSS, JavaScript and fonts
 ├── images/              # Extracted and cropped images
-├── audio/               # Text-to-speech audio files (per section, per language)
-└── manifest.json        # Offline-capable web app manifest
+├── cover.png            # Cover image
+├── imsmanifest.xml      # SCORM manifest
+└── content/
+    ├── pages.json       # The reading order — the sequence the reader follows
+    ├── toc.json         # Table of contents
+    ├── navigation/      # Navigation markup
+    └── i18n/<lang>/     # Per-language text, audio, timings and glossary
 ```
+
+Two things here follow directly from the page order:
+
+- **`index.html` is a redirect**, not a page. It points at whichever page is *first in the book*, so it keeps working when you rearrange.
+- **Page filenames never change.** Each file is named for the page's identity, not its position, so reordering the book renames nothing and never breaks a link into it. `content/pages.json` is what carries the sequence.
 
 ---
 
@@ -161,6 +234,15 @@ Processing time depends on the number of pages, the configured LLM models, and y
 
 **What if a page is not rendered correctly?**
 You can re-run individual stages after adjusting configuration. The previous version of each entity is always preserved, so you can compare results.
+
+**The pages are in the wrong order — do I have to re-run anything?**
+No. Rearranging is an edit, not a pipeline run: see [Step 5](#step-5--fix-the-page-order). It costs nothing and makes no LLM calls. Re-run **Package** afterwards so the downloaded bundle picks the new order up.
+
+**I removed a page by mistake. Is it gone?**
+Not if you used **Remove from book** — the page keeps its slot in the list, greyed out, and **Add back to book** returns it to exactly where it was. Only **Delete permanently** destroys content, and it asks first.
+
+**Will reordering lose my translations or audio?**
+No. Changing the page order only invalidates the packaged bundle and the accessibility assessment. Captions, glossary, translations and generated speech are attached to the pages themselves and are unaffected.
 
 **Can I process a book in multiple sessions?**
 Yes. All progress is saved automatically. Close the browser and come back — the book will be exactly where you left it.

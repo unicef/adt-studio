@@ -1,3 +1,12 @@
+/**
+ * The synthetic `$pageId` a quiz is addressed by. A quiz is an output page with
+ * no source page of its own, so it borrows the slot in the URL that sections
+ * reach through their page.
+ */
+export function quizRouteId(quizId: string): string {
+  return `quiz-${quizId}`
+}
+
 /** Storyboard URL parsing belongs to the UI. Numeric links predate stored
  * quiz IDs and encode the original zero-based array position. */
 export function parseQuizRouteId(pageId: string): string | null {

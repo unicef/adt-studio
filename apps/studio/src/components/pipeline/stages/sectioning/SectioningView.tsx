@@ -216,6 +216,9 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
       <SectioningOverview
         bookLabel={bookLabel}
         pages={pageList}
+        // This stage has no storyboard sidebar, so the page-order history has
+        // to travel with the table that can change it.
+        showOrderHistory
         onNavigateToSection={(pageId) => {
           setOverviewMode(false)
           setSelectedPageId(pageId)

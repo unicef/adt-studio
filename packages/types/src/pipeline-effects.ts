@@ -12,6 +12,10 @@ export type PipelineNodeName =
   // pipeline. Kept separate from `page-sectioning` (which always holds the
   // semantic tree) so switching render strategy never destroys sectioning.
   | "fixed-layout-sectioning"
+  // The reader-facing page order. USER INTENT, not pipeline output — it is
+  // deliberately absent from every stage's output nodes so that re-running a
+  // stage never deletes it. See EXTRA_STAGE_OUTPUT_NODES below.
+  | "reading-order"
 
 /**
  * Shared, UI-agnostic cache/resource tags used by apps to derive
@@ -29,6 +33,14 @@ export type PipelineCacheResource =
   | "step-status"
   | "debug"
 
+/**
+ * Nodes a stage writes beyond its own step names. Anything listed here is
+ * *deleted* when that stage is re-run (see `getStageClearNodes`).
+ *
+ * `reading-order` must never appear here. It is the user's own arrangement of
+ * the book, not something a stage produces, and clearing it would throw that
+ * away irrecoverably on the next storyboard re-run.
+ */
 const EXTRA_STAGE_OUTPUT_NODES: Partial<Record<StageName, readonly PipelineNodeName[]>> = {
   "translate": ["text-catalog-translation"],
   "extract": ["positioned-text"],
@@ -142,6 +154,7 @@ const NODE_CACHE_RESOURCES: Record<PipelineNodeName, readonly PipelineCacheResou
   "text-catalog-translation": ["text-catalog"],
   "positioned-text": ["pages"],
   "fixed-layout-sectioning": ["pages"],
+  "reading-order": ["pages", "toc"],
 }
 
 const CACHE_RESOURCE_ORDER: readonly PipelineCacheResource[] = [
@@ -259,6 +272,36 @@ export function getStageRerunClearNodes(
 
   if (preservedNodes.size === 0) return clearNodes
   return clearNodes.filter((node) => !preservedNodes.has(node))
+}
+
+/**
+ * Does this rerun throw away the section-id history, so the re-run re-mints
+ * ids densely from `_sec001`?
+ *
+ * Section ids are allocated from a high-water mark read out of the stored
+ * `page-sectioning` versions, so clearing that node is what makes the next run
+ * reuse ids for different content. Two things hang off this: retiring the
+ * references the clear does not reach (`retireSectionIds`), and bumping the
+ * `sectioning-generation` that tells a saved reading order which id space it
+ * was written against.
+ *
+ * Only `page-sectioning` counts. `fixed-layout-sectioning` is cleared by a
+ * storyboard rerun too, but its id is not allocated — `sectionFixedLayoutPage`
+ * derives the page's single section id from the pageId alone, so regenerating
+ * it produces the same id and nothing pinned to it was ever at risk. Treating
+ * that as a rebuild would detach every pinned video on each storyboard rerun of
+ * a fixed-layout book, and on a reflowable book carrying a stale fixed-layout
+ * row it would retire a `_sec001` the live `page-sectioning` still owns.
+ *
+ * Lives here, beside the clear lists it is derived from, because the API and
+ * the UI both have to agree on it — the UI has to warn about exactly the reruns
+ * the backend will actually reset. A set defined on one side and re-guessed on
+ * the other is how the reorder-blocking rule came to disagree with itself.
+ */
+export function rebuildsSectionIds(fromStage: StageName, toStage: StageName): boolean {
+  // `clearExtractedData` drops every node except the font ones, sectioning included.
+  if (fromStage === "extract") return true
+  return getStageRerunClearNodes(fromStage, toStage).includes("page-sectioning")
 }
 
 /** Resource tags that should be refreshed when a node is updated or cleared. */

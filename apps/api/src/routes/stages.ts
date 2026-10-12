@@ -6,7 +6,7 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
+import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, rebuildsSectionIds, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig,
@@ -14,6 +14,7 @@ import {
   retireSectionIds,
   NOTHING_RETIRED,
   PAGE_SECTIONING_NODE,
+  bumpSectioningGeneration,
 } from "@adt/pipeline"
 import type { SectionIdRetirementResult } from "@adt/pipeline"
 import type { StageService } from "../services/stage-service.js"
@@ -30,25 +31,6 @@ const StageRunBody = z
     pageErrorPolicy: PageErrorPolicy.optional(),
   })
   .strict()
-
-/**
- * Does this rerun delete the `page-sectioning` history that section ids are
- * allocated from?
- *
- * Only that node. `fixed-layout-sectioning` is cleared by a storyboard rerun
- * too, but its id is not allocated — `sectionFixedLayoutPage` derives the page's
- * single section id from the pageId alone, so regenerating it produces the same
- * id and nothing pinned to it was ever at risk. Retiring those ids would detach
- * every pinned video on each storyboard rerun of a fixed-layout book, and on a
- * reflowable book carrying a stale fixed-layout row it would retire a `_sec001`
- * the live `page-sectioning` still owns.
- */
-function clearsSectionIdHistory(fromStage: StageName, toStage: StageName): boolean {
-  // `clearExtractedData` drops every node except the font ones, sectioning included.
-  if (fromStage === "extract") return true
-  const cleared: string[] = getStageRerunClearNodes(fromStage, toStage)
-  return cleared.includes(PAGE_SECTIONING_NODE)
-}
 
 /**
  * Does any speech manifest hold audio keyed to a section at all?
@@ -135,7 +117,7 @@ export function retireSectionIdsForClearedSectioning(
   fromStage: StageName,
   toStage: StageName
 ): SectionIdRetirementResult {
-  if (!clearsSectionIdHistory(fromStage, toStage)) return NOTHING_RETIRED
+  if (!rebuildsSectionIds(fromStage, toStage)) return NOTHING_RETIRED
   // Scanning every stored sectioning version of every page is not free —
   // `JSON.stringify` plus a global regex per version — so establish that
   // *something* could be retired before paying for it. "Any book that has run
@@ -174,6 +156,17 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
       )
       // A failed preservation rolls retirement back and must remain retryable.
       ran = true
+
+      // Same predicate as the retirement above, called directly rather than
+      // inferred from its result: `retireSectionIdsForClearedSectioning`
+      // short-circuits when the book has no pinned video or answer audio, and
+      // the ids are re-minted either way. Before the clear, so it reads the
+      // pre-rebuild counter — and so the extract branch, which deletes every
+      // node including this one, wipes it back to zero along with the reading
+      // order it would otherwise be stale against.
+      if (rebuildsSectionIds(fromStage, toStage)) {
+        bumpSectioningGeneration(storage)
+      }
       if (retired.videos > 0) {
         console.warn(
           `[stages] ${label}: unassigned ${retired.videos} sign-language video(s) — the sections they were pinned to are being regenerated. The uploads are kept and can be reattached.`

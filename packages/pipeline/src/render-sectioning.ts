@@ -34,11 +34,14 @@ export const PAGE_SECTIONING_NODE = "page-sectioning"
 export function getRenderSectioningRow(
   storage: Storage,
   pageId: string,
-): NodeDataRow | null {
-  return (
-    storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId) ??
-    storage.getLatestNodeData(PAGE_SECTIONING_NODE, pageId)
-  )
+): (NodeDataRow & { node: string }) | null {
+  const fixed = storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)
+  if (fixed) return { ...fixed, node: FIXED_LAYOUT_SECTIONING_NODE }
+  const semantic = storage.getLatestNodeData(PAGE_SECTIONING_NODE, pageId)
+  // The node name travels with the row so a caller that cannot parse the data
+  // can say which entity is at fault, rather than reporting the preference
+  // rule's two candidates and leaving the reader to guess.
+  return semantic ? { ...semantic, node: PAGE_SECTIONING_NODE } : null
 }
 
 /** Parsed convenience wrapper around {@link getRenderSectioningRow}. */

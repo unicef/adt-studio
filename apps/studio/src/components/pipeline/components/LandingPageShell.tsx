@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/tooltip"
 import { PreviewShell } from "@/components/wizard/shared/PreviewShell"
 import { useDownstreamWithOutput } from "@/hooks/use-downstream-with-output"
+import { ReadingOrderResetWarning } from "./ReadingOrderResetWarning"
 import { BOOK_LEVEL_STAGES, type StageName } from "@adt/types"
 import { PartialMergeNotice } from "@/components/parts/PartialMergeNotice"
 import { getStageLabelI18n } from "../pipeline-i18n"
@@ -234,10 +235,13 @@ export function LandingPageShell({
         headerStageSlug={stageSlug}
         title={<Trans>Re-run {stageLabel}?</Trans>}
         description={
-          <Trans>
-            The completed stages below will be reset and need to run again
-            before final outputs are available.
-          </Trans>
+          <>
+            <Trans>
+              The completed stages below will be reset and need to run again
+              before final outputs are available.
+            </Trans>
+            <ReadingOrderResetWarning bookLabel={bookLabel} stageSlug={stageSlug} />
+          </>
         }
         confirmLabel={rerunLabel}
         confirmColorClass={hasError ? errorColorClass : colorClass}

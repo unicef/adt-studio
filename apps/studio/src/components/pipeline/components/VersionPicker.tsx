@@ -9,7 +9,9 @@ import {
   Image as ImageIcon,
   Languages,
   List,
+  ListOrdered,
   Loader2,
+  RotateCcw,
   type LucideIcon,
 } from "lucide-react"
 import { msg } from "@lingui/core/macro"
@@ -54,6 +56,7 @@ export type VersionedStep =
   | "image-captioning"
   | "page-sectioning"
   | "web-rendering"
+  | "reading-order"
 
 type Variant = "header" | "muted"
 
@@ -76,6 +79,7 @@ const STEP_STYLING: Record<VersionedStep, StepStyling> = {
   "image-filtering": { variant: "muted", triggerClass: MUTED_TRIGGER },
   "image-captioning": { variant: "muted", triggerClass: MUTED_TRIGGER },
   "page-sectioning": { variant: "muted", triggerClass: MUTED_TRIGGER },
+  "reading-order": { variant: "muted", triggerClass: MUTED_TRIGGER },
 }
 
 /** Default pending-change descriptor shown in the floating save bar per step. */
@@ -89,6 +93,24 @@ const STEP_PENDING: Partial<
   "easy-read": { icon: FileText, label: msg`Easy Read` },
   "image-filtering": { icon: ImageIcon, label: msg`Image selection` },
   "image-captioning": { icon: ImageIcon, label: msg`Captions` },
+  "reading-order": { icon: ListOrdered, label: msg`Page order` },
+}
+
+/**
+ * The chip a step shows in the floating save bar — icon plus short label, the
+ * same one the picker registers for its own pending edits.
+ *
+ * Exported because the reading order registers its pending change from a
+ * provider rather than from a picker (both the sidebar and the overview can
+ * rearrange the book, so the draft lives above them). Building the chip there
+ * by hand is how it ended up as unstyled body text next to everything else's
+ * pill.
+ */
+export function useStepPendingLabel(step: VersionedStep): ReactNode | undefined {
+  const { i18n } = useLingui()
+  const stepPending = STEP_PENDING[step]
+  if (!stepPending) return undefined
+  return <PendingChip icon={stepPending.icon}>{i18n._(stepPending.label)}</PendingChip>
 }
 
 interface VersionPickerProps {
@@ -110,6 +132,30 @@ interface VersionPickerProps {
   /** Legacy: load a version's data as a pending edit. Used by steps not yet
    *  migrated to restore (onRestored). Ignored when onRestored is set. */
   onPreview?: (data: unknown) => void
+  /**
+   * Versions stamped with a `sectioningGeneration` below this one are shown but
+   * not selectable, with the reason on hover.
+   *
+   * The reading order needs this: a full Sectioning rebuild re-mints section
+   * ids, so an older arrangement names sections that no longer exist. The
+   * server refuses those restores either way — offering them and then failing
+   * reads as a bug rather than as the history being out of date.
+   */
+  staleBefore?: number
+  /**
+   * An extra row below the version list, for a state the history cannot reach.
+   *
+   * The reading order needs this: the entity is not written until the user's
+   * first rearrangement, so its v1 is already a rearrangement and no version
+   * holds the order the book started in. The action computes that state and
+   * saves it as a new version.
+   */
+  footerAction?: {
+    label: string
+    /** Tooltip / accessible description of what picking it will do. */
+    description?: string
+    onSelect: () => void
+  }
   onSave?: () => void
   onDiscard: () => void
   saveDisabledReason?: string
@@ -169,6 +215,8 @@ export function VersionPicker({
   bookLabel,
   onRestored,
   onPreview,
+  footerAction,
+  staleBefore,
   onSave,
   onDiscard,
   saveDisabledReason,
@@ -213,8 +261,15 @@ export function VersionPicker({
     <PendingChip icon={stepPending.icon}>{i18n._(stepPending.label)}</PendingChip>
   ) : undefined
 
+  // Not every versioned entity is a pipeline step: the reading order is the
+  // user's own arrangement, edited on the storyboard stage but produced by no
+  // step, and catalog translations belong to the translate stage.
   const stage: StageName =
-    step === "text-catalog-translation" ? "translate" : STEP_TO_STAGE[step]
+    step === "text-catalog-translation"
+      ? "translate"
+      : step === "reading-order"
+        ? "storyboard"
+        : STEP_TO_STAGE[step]
 
   useFloatingSave({
     id: `${step}:${itemId}`,
@@ -276,6 +331,17 @@ export function VersionPicker({
     }
   }
 
+  // A version made before the book's sections were rebuilt refers to sections
+  // that no longer exist. `staleBefore` is the current generation; an unstamped
+  // version predates the stamp and stays restorable, matching the server.
+  const isStaleVersion = (v: VersionEntry): boolean => {
+    if (staleBefore == null) return false
+    const stamp = (v.data as { sectioningGeneration?: unknown } | undefined)
+      ?.sectioningGeneration
+    return typeof stamp === "number" && stamp < staleBefore
+  }
+  const staleReason = t`Made before the book's sections were rebuilt, so it refers to sections that no longer exist`
+
   // Roll back to an existing version: move the pointer (no new version) and
   // refresh. Shared by the list rows and the compare dialog.
   const restoreTo = async (version: number) => {
@@ -295,10 +361,15 @@ export function VersionPicker({
       await Promise.all(invalidations)
       onRestored?.()
       toast.success(t`Restored to v${version}`)
-    } catch {
+    } catch (err) {
       // Never throw to callers (they close popovers/dialogs after this) — a
       // failed restore surfaces as a toast, not an unhandled rejection.
-      toast.error(t`Couldn't restore v${version}. Please try again.`)
+      //
+      // A refusal the server can explain is repeated verbatim: "please try
+      // again" is actively misleading for one that will never succeed, such as
+      // an order made against sections the book has since rebuilt.
+      const reason = err instanceof Error ? err.message.trim() : ""
+      toast.error(reason || t`Couldn't restore v${version}. Please try again.`)
     } finally {
       setRestoring(false)
     }
@@ -627,26 +698,52 @@ export function VersionPicker({
             ) : diff ? (
               richPopover(diffRow, { scrollClassName: "max-h-64 overflow-auto p-1" })
             ) : (
-              versions.map((v) => {
-                const isCurrent = v.version === currentVersion
-                return (
-                  <button
-                    key={v.version}
-                    type="button"
-                    onClick={() => handlePick(v)}
-                    className={`flex w-full items-center gap-1.5 text-left px-3 py-1 text-xs rounded hover:bg-accent transition-colors ${
-                      isCurrent ? "font-semibold text-foreground" : "text-muted-foreground"
-                    }`}
-                  >
-                    {isCurrent ? (
-                      <Check className="h-3 w-3 shrink-0" strokeWidth={2.5} />
-                    ) : (
-                      <span className="w-3 shrink-0" />
-                    )}
-                    v{v.version}
-                  </button>
-                )
-              })
+              <>
+                {versions.map((v) => {
+                  const isCurrent = v.version === currentVersion
+                  const isStale = isStaleVersion(v)
+                  return (
+                    <button
+                      key={v.version}
+                      type="button"
+                      disabled={isStale}
+                      title={isStale ? staleReason : undefined}
+                      onClick={() => handlePick(v)}
+                      className={`flex w-full items-center gap-1.5 text-left px-3 py-1 text-xs rounded transition-colors ${
+                        isStale
+                          ? "text-muted-foreground/50 cursor-not-allowed line-through"
+                          : "hover:bg-accent"
+                      } ${
+                        isCurrent ? "font-semibold text-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      {isCurrent ? (
+                        <Check className="h-3 w-3 shrink-0" strokeWidth={2.5} />
+                      ) : (
+                        <span className="w-3 shrink-0" />
+                      )}
+                      v{v.version}
+                    </button>
+                  )
+                })}
+                {footerAction ? (
+                  <>
+                    <div className="my-1 border-t" />
+                    <button
+                      type="button"
+                      title={footerAction.description}
+                      onClick={() => {
+                        setOpen(false)
+                        footerAction.onSelect()
+                      }}
+                      className="flex w-full items-center gap-1.5 text-left px-3 py-1 text-xs rounded text-muted-foreground hover:bg-accent transition-colors"
+                    >
+                      <RotateCcw className="h-3 w-3 shrink-0" />
+                      {footerAction.label}
+                    </button>
+                  </>
+                ) : null}
+              </>
             )
           ) : (
             <div className="px-3 py-1 text-xs text-muted-foreground">
