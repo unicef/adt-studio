@@ -1,8 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useCallback } from "react"
 import { StepViewRouter } from "@/components/pipeline/components/StepViewRouter"
+import { parseBookStepSearch } from "@/lib/book-step-search"
 
 export const Route = createFileRoute("/books/$label/$step/$pageId")({
+  validateSearch: parseBookStepSearch,
   component: StepPageDetailPage,
 })
 
@@ -16,12 +18,16 @@ function StepPageDetailPage() {
         navigate({
           to: "/books/$label/$step/$pageId",
           params: { label, step, pageId: newPageId },
+          search: (previous) => ({ ...previous, sectionId: undefined }),
+          hash: true,
           replace: true,
         })
       } else {
         navigate({
           to: "/books/$label/$step",
           params: { label, step },
+          search: (previous) => ({ ...previous, sectionId: undefined }),
+          hash: true,
         })
       }
     },

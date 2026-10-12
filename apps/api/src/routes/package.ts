@@ -1,11 +1,18 @@
 import fs from "node:fs"
 import path from "node:path"
+import { z } from "zod"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel, PackagingWarning, type PackagingStatus } from "@adt/types"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, withBookWriter } from "@adt/storage"
 import {
   packageAdtWeb,
+  validationArtifactHash,
+  createGenerationPublication,
+  newPackageAttempt,
+  publishPackageAttempt,
+  recoverPackagePublication,
+  inputSignature,
   packageInventoryValid,
   writePackageInventory,
   computePackagingInputHash,
@@ -16,6 +23,7 @@ import {
   mergeAccessibilityResults,
   isFixedLayoutBook,
   prepareSectioningRun,
+  assertDownstreamSectioningCurrent,
   SectioningSafetyError,
 } from "@adt/pipeline"
 import type { Storage } from "@adt/storage"
@@ -168,6 +176,9 @@ export function createPackageRoutes(
   const app = new Hono()
 
   app.post("/books/:label/package-adt", async (c) => {
+    const query = z.enum(["true", "false"]).optional().safeParse(c.req.query("refreshValidation"))
+    if (!query.success) throw new HTTPException(400, { message: "Invalid validation refresh option" })
+    const refreshValidation = query.data === "true"
     const { label } = c.req.param()
     let safeLabel: string
     try {
@@ -208,7 +219,7 @@ export function createPackageRoutes(
       // The bundle on disk is whatever the cached build produced, omissions
       // included, so replay that build's warnings rather than reporting none.
       cacheState = getPackagingCacheState(storage, safeLabel, booksDir, bookDir, webAssetsDir, configPath)
-      if (cacheState.cached) {
+      if (cacheState.cached && !refreshValidation) {
         return c.json({
           status: "completed",
           label: safeLabel,
@@ -223,7 +234,7 @@ export function createPackageRoutes(
     if (taskService) {
       const existingTask = taskService
         .getActiveTasks(safeLabel)
-        .find((task) => task.kind === "package-adt" && task.status === "running")
+        .find((task) => task.kind === "package-adt" && (task.status === "running" || task.status === "queued"))
       if (existingTask) {
         return c.json({
           status: "submitted",
@@ -238,7 +249,7 @@ export function createPackageRoutes(
         "package-adt",
         "Packaging ADT preview",
         async () => {
-          return await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath, promptsDir)
+          return await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath, promptsDir, refreshValidation)
         },
         { url: `/books/${safeLabel}/preview` },
       )
@@ -246,7 +257,7 @@ export function createPackageRoutes(
     }
 
     try {
-      const result = await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath, promptsDir)
+      const result = await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath, promptsDir, refreshValidation)
       return c.json({
         status: "completed",
         label: safeLabel,
@@ -302,85 +313,61 @@ async function runPackaging(
   webAssetsDir: string,
   configPath?: string,
   promptsDir = path.resolve("prompts"),
+  refreshValidation = false,
 ): Promise<PackagingResult> {
-  const storage = createBookStorage(safeLabel, booksDir)
-  try {
-    const { config, language, outputLanguages, title } = resolvePackagingParams(
-      storage, safeLabel, booksDir, configPath,
-    )
-
-    // Check build cache — skip if all inputs are unchanged
-    const hashOptions = {
-      storage,
-      bookDir,
-      label: safeLabel,
-      language,
-      outputLanguages,
-      title,
-      webAssetsDir,
-      applyBodyBackground: config.apply_body_background,
-      config: config as unknown as Record<string, unknown>,
-    promptsDir, configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
-    }
-    const hashPath = getBuildHashPath(bookDir)
-    const versionPath = getBuildVersionPath(bookDir)
-    const preHash = computePackagingInputHash(hashOptions)
-    const bundleVersion = packageVersionFromHash(preHash)
-    if (isBuildCacheValid(bookDir, preHash)) {
-      return {
-        version: readBuildVersion(bookDir, preHash),
-        warnings: readBuildWarnings(bookDir),
-      }
-    }
-
-    const { warnings } = await packageAdtWeb(storage, {
-      promptsDir, configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
-      bookDir,
-      label: safeLabel,
-      language,
-      outputLanguages,
-      title,
-      webAssetsDir,
-      bundleVersion,
-      applyBodyBackground: config.apply_body_background,
-      config,
-      speechConfig: config.speech,
-      fixedLayout: isFixedLayoutBook(config),
-      reflowableFont: config.reflowable_font,
-      quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
-    })
-    fs.writeFileSync(versionPath, bundleVersion, "utf-8")
-    writeBuildWarnings(bookDir, warnings)
-
-    const baseAccessibility = await runAccessibilityAssessment({
-      bookDir,
-      config: config.accessibility_assessment,
-    })
-
-    // Recheck JSDOM incompletes with a real browser (Playwright) when available.
-    // Falls back to the JSDOM-only result if Chromium is not installed.
-    let accessibilityOutput = baseAccessibility
+  return withBookWriter(bookDir, async () => {
+    recoverPackagePublication(bookDir)
+    const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const browserAccessibility = await runBrowserAccessibilityAssessment({
-        bookDir,
-        baseAssessment: baseAccessibility,
+      const { config, language, outputLanguages, title } = resolvePackagingParams(storage, safeLabel, booksDir, configPath)
+      const configDir = configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config")
+      const hashOptions = {
+        storage, bookDir, label: safeLabel, language, outputLanguages, title,
+        webAssetsDir, applyBodyBackground: config.apply_body_background,
+        config: config as unknown as Record<string, unknown>, promptsDir, configDir,
+      }
+      const preHash = computePackagingInputHash(hashOptions)
+      const bundleVersion = packageVersionFromHash(preHash)
+      if (!refreshValidation && isBuildCacheValid(bookDir, preHash)) {
+        return { version: readBuildVersion(bookDir, preHash), warnings: readBuildWarnings(bookDir) }
+      }
+      const configSignature = inputSignature(config)
+      const publication = createGenerationPublication(storage, () => {
+        assertDownstreamSectioningCurrent(loadBookConfig(safeLabel, booksDir, configPath), bookDir, "package")
+        if (configSignature !== inputSignature(loadBookConfig(safeLabel, booksDir, configPath)) || computePackagingInputHash(hashOptions) !== preHash) {
+          throw new Error("Packaging inputs changed during assessment; no evidence was published")
+        }
       })
-      accessibilityOutput = mergeAccessibilityResults(baseAccessibility, browserAccessibility)
-    } catch {
-      // Playwright/Chromium not available — use JSDOM results as-is
-    }
-
-    storage.putNodeData("accessibility-assessment", "book", accessibilityOutput)
-
-    // Recompute hash after build — packageAdtWeb may update storage (e.g. text-catalog)
-    const postHash = computePackagingInputHash(hashOptions)
-    fs.writeFileSync(hashPath, postHash, "utf-8")
-    fs.writeFileSync(versionPath, bundleVersion, "utf-8")
-    writePackageInventory(path.join(bookDir, "adt"))
-    return { version: bundleVersion, warnings }
-  } finally {
-    storage.close()
-  }
+      const attempt = newPackageAttempt(bookDir)
+      const directory = path.join(attempt, "adt")
+      const { warnings } = await packageAdtWeb(publication.storage, {
+        promptsDir, configDir, bookDir, outputDir: directory, label: safeLabel,
+        language, outputLanguages, title, webAssetsDir, bundleVersion,
+        applyBodyBackground: config.apply_body_background, config, speechConfig: config.speech,
+        fixedLayout: isFixedLayoutBook(config), reflowableFont: config.reflowable_font,
+        quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
+      })
+      const baseAccessibility = await runAccessibilityAssessment({ bookDir: attempt, config: config.accessibility_assessment })
+      let accessibilityOutput = baseAccessibility
+      try {
+        const browserAccessibility = await runBrowserAccessibilityAssessment({ bookDir: attempt, baseAssessment: baseAccessibility })
+        accessibilityOutput = mergeAccessibilityResults(baseAccessibility, browserAccessibility)
+      } catch {
+        // An unavailable browser leaves unresolved JSDOM checks incomplete.
+      }
+      if (baseAccessibility.artifactHash !== validationArtifactHash(directory)) {
+        throw new Error("Packaged artifact changed during browser assessment; no evidence was published")
+      }
+      const version = publication.storage.putNodeData("accessibility-assessment", "book", accessibilityOutput)
+      const postHash = computePackagingInputHash({ ...hashOptions, storage: publication.storage })
+      fs.writeFileSync(getBuildHashPath(attempt), postHash, "utf8")
+      fs.writeFileSync(getBuildVersionPath(attempt), bundleVersion, "utf8")
+      writeBuildWarnings(attempt, warnings)
+      writePackageInventory(directory)
+      publishPackageAttempt(bookDir, attempt, () => publication.publish(), { version, artifactHash: baseAccessibility.artifactHash! })
+      return { version: bundleVersion, warnings }
+    } finally { storage.close() }
+  })
 }
 
 function hasPackagedAdtPages(pagesPath: string): boolean {

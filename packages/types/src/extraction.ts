@@ -82,5 +82,11 @@ export const PipelineResumeSummary = z.object({
 }).strict()
 export type PipelineResumeSummary = z.infer<typeof PipelineResumeSummary>
 
-export const PackagePublication = z.object({ version: z.literal(1), attemptId: z.string().uuid() }).strict()
+export const PackagePublication = z.object({
+  version: z.literal(1), attemptId: z.string().uuid(),
+  hadPrevious: z.boolean().optional(),
+  evidence: z.object({
+    version: z.number().int().positive(), artifactHash: z.string().regex(/^[a-f0-9]{64}$/),
+  }).strict().optional(),
+}).strict()
 export type PackagePublication = z.infer<typeof PackagePublication>

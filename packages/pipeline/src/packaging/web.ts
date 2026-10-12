@@ -1,3 +1,4 @@
+import { stampValidationArtifact, writeValidationArtifact } from "../validation-artifact.js"
 import { renderedSectionId } from "../sectioning-sync-evidence.js"
 import { buildImageInventory } from "../catalog-reconciliation.js"
 import { resolveQuizOptionId } from "@adt/types"
@@ -1073,6 +1074,7 @@ export async function packageAdtWeb(
 
   // Offline preloader must run after all asset writes — it snapshots the
   // final state of every file it inlines (page HTML, content JSON, nav.html).
+  const validationArtifactId = stampValidationArtifact(adtDir, pageList, storage)
   generateOfflinePreloader(adtDir, outputLanguages)
 
   generateImsManifest(adtDir, title, label, pageList)
@@ -1100,6 +1102,7 @@ export async function packageAdtWeb(
 
   progress.emit({ type: "step-complete", step })
 
+  writeValidationArtifact(storage, adtDir, pageList, validationArtifactId)
   return { warnings: orphanedRenderings }
 }
 

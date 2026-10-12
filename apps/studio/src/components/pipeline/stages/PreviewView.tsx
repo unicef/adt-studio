@@ -60,6 +60,8 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   const [version, setVersion] = useState("0")
   const [currentPreviewPage, setCurrentPreviewPage] = useState<{
     sectionId: string | null
+    artifactId?: string
+    ownerPageId?: string
     href: string | null
     title: string | null
     hasImages: boolean
@@ -85,11 +87,12 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     [matchedPage],
   )
   const currentValidationPage = useMemo(() => {
-    const pageId = deriveReviewPageId(currentPreviewPage.sectionId, currentPreviewPage.href)
+    const pageId = currentPreviewPage.ownerPageId ?? deriveReviewPageId(currentPreviewPage.sectionId, currentPreviewPage.href)
     return {
       pageId,
       pageNumber: matchedPage?.pageNumber ?? deriveReviewPageNumber(pageId),
       sectionId: currentPreviewPage.sectionId,
+      artifactId: currentPreviewPage.artifactId,
       href: currentPreviewPage.href,
       title: currentPreviewPage.title,
       hasImages: currentPreviewPage.hasImages,
@@ -137,7 +140,9 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
       const signLanguageEnabled =
         iframe.contentDocument.querySelector("#sl-quick-toggle-button, #sign-language-video") !== null
 
-      setCurrentPreviewPage({ sectionId, href, title, hasImages, hasActivity, signLanguageEnabled })
+      const artifactId = iframe.contentDocument.querySelector('meta[name="adt-validation-artifact"]')?.getAttribute("content") ?? undefined
+      const ownerPageId = iframe.contentDocument.querySelector('meta[name="adt-validation-page"]')?.getAttribute("content") || undefined
+      setCurrentPreviewPage({ sectionId, artifactId, ownerPageId, href, title, hasImages, hasActivity, signLanguageEnabled })
     } catch {
       setCurrentPreviewPage({ sectionId: null, href: null, title: null, hasImages: false, hasActivity: false, signLanguageEnabled: false })
     }

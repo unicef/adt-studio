@@ -1,3 +1,4 @@
+import { readValidationArtifact, isValidationArtifactPage, assertPackageReadable } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import {
@@ -7,7 +8,7 @@ import {
   type ReviewerPageValidationRecord,
   type ReviewerValidationSession,
 } from "@adt/types"
-import { createBookStorage, openBookDb } from "@adt/storage"
+import { createBookStorage, openBookDb, withBookWriter } from "@adt/storage"
 import { HTTPException } from "hono/http-exception"
 import { z, type ZodType } from "zod"
 
@@ -98,9 +99,20 @@ export function saveReviewerValidationSession(
 
   const storage = createBookStorage(safeLabel, booksDir)
   try {
-    const parsed = ReviewerValidationSessionSchema.parse(session)
-    const version = storage.putNodeData(REVIEWER_VALIDATION_SESSION_NODE, parsed.session_id, parsed)
-    return { version, session: parsed as ReviewerValidationSession }
+    return storage.transaction(() => {
+      const parsed = ReviewerValidationSessionSchema.parse(session)
+      const previous = storage.getLatestNodeData(REVIEWER_VALIDATION_SESSION_NODE, parsed.session_id)
+      // Ownership belongs to the original session, including legacy sessions
+      // that never had a snapshot. A stale writer cannot replace that meaning.
+      if (previous) {
+        const original = ReviewerValidationSessionSchema.parse(previous.data)
+        parsed.catalog_snapshot = original.catalog_snapshot
+        parsed.artifact = original.artifact
+      }
+      if (!previous) parsed.artifact = readValidationArtifact(path.join(storage.bookDir!, "adt"))
+      const version = storage.putNodeData(REVIEWER_VALIDATION_SESSION_NODE, parsed.session_id, parsed)
+      return { version, session: parsed as ReviewerValidationSession }
+    })
   } finally {
     storage.close()
   }
@@ -137,14 +149,25 @@ export function saveReviewerPageValidationRecord(
   const { safeLabel, dbPath } = getDbPath(label, booksDir)
   ensureBookExists(dbPath, safeLabel)
 
-  const storage = createBookStorage(safeLabel, booksDir)
-  try {
-    const parsed = ReviewerPageValidationRecordSchema.parse(record)
-    const version = storage.putNodeData(REVIEWER_PAGE_VALIDATION_NODE, buildReviewerPageValidationItemId(parsed), parsed)
-    return { version, record: parsed as ReviewerPageValidationRecord }
-  } finally {
-    storage.close()
-  }
+  return withBookWriter(path.dirname(dbPath), () => {
+    assertPackageReadable(path.dirname(dbPath))
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const parsed = ReviewerPageValidationRecordSchema.parse(record)
+      // Ignore client-supplied snapshots. Only the identity read from the loaded
+      // Preview document can bind this explicit review to server-owned evidence.
+      parsed.artifact = undefined
+      if (parsed.artifact_id) {
+        const artifact = readValidationArtifact(path.join(storage.bookDir!, "adt"))
+        if (artifact?.id !== parsed.artifact_id) throw new HTTPException(409, { message: "Preview changed while this review was open. Your unsaved notes are retained; reload Preview and review the current artifact before saving." })
+        const targets = artifact.sections.filter((section) => section.href === parsed.href && (!parsed.section_id || section.sectionId === parsed.section_id))
+        if (!isValidationArtifactPage(path.join(storage.bookDir!, "adt"), parsed.artifact_id, parsed.href) || targets.length > 1 || (targets.length === 1 && targets[0].pageId !== parsed.page_id)) throw new HTTPException(409, { message: "The reviewed page is not proven in this artifact. Reload Preview before saving; your notes are retained." })
+        parsed.artifact = artifact
+      }
+      const version = storage.putNodeData(REVIEWER_PAGE_VALIDATION_NODE, buildReviewerPageValidationItemId(parsed), parsed)
+      return { version, record: parsed as ReviewerPageValidationRecord }
+    } finally { storage.close() }
+  })
 }
 
 export const ReviewerValidationListQuery = z.object({

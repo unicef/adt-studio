@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import * as pipelineModule from "@adt/pipeline"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -132,7 +133,7 @@ describe("Package routes", () => {
       createRenderedBook("stale-mode")
       createWebAssets()
       const first = await app.request("/api/books/stale-mode/package-adt", { method: "POST" })
-      expect(first.status).toBe(200)
+      expect(first.status, await first.clone().text()).toBe(200)
       const dir = path.join(tmpDir, "stale-mode")
       const hash = fs.readFileSync(path.join(dir, "adt", ".build-hash"), "utf8")
       writeSectioningLifecycle(dir, "dynamic", false)
@@ -239,6 +240,86 @@ describe("Package routes", () => {
       const parsed = AccessibilityAssessmentOutput.safeParse(row?.data)
       expect(parsed.success).toBe(true)
       expect(parsed.success && parsed.data.summary.pageCount).toBe(1)
+      expect(parsed.success && parsed.data.artifactHash).toBe(pipelineModule.validationArtifactHash(path.join(tmpDir, "book-a11y", "adt")))
+    })
+
+    it("rejects changed artifacts after browser recheck, including an unavailable-browser fallback", { timeout: 20_000 }, async () => {
+      createRenderedBook("book-browser-race"); createWebAssets()
+      const spy = vi.spyOn(pipelineModule, "runBrowserAccessibilityAssessment").mockImplementation(async ({ bookDir }) => {
+        fs.writeFileSync(path.join(bookDir, "adt", "changed-during-browser.html"), "different artifact")
+        throw new Error("Browser stopped after files changed")
+      })
+      try {
+        const res = await app.request("/api/books/book-browser-race/package-adt", { method: "POST" })
+        expect(res.status).toBe(500)
+        const storage = createBookStorage("book-browser-race", tmpDir)
+        try { expect(storage.getAllNodeVersions("accessibility-assessment", "book")).toEqual([]) } finally { storage.close() }
+      } finally { spy.mockRestore() }
+    })
+
+    it("explicit revalidation creates separate evidence and failed rechecks preserve package bytes and all prior evidence", { timeout: 40000 }, async () => {
+      const label = "revalidate-history", url = `/api/books/${label}/package-adt`
+      createRenderedBook(label); createWebAssets()
+      expect((await app.request(url, { method: "POST" })).status).toBe(200)
+      const book = path.join(tmpDir, label), active = path.join(book, "adt")
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        const before = structuredClone(storage.getAllNodeVersions("accessibility-assessment", "book"))
+        const artifactHash = pipelineModule.validationArtifactHash(active)
+        const inventory = fs.readFileSync(path.join(active, ".build-inventory"), "utf8")
+        const spy = vi.spyOn(pipelineModule, "runBrowserAccessibilityAssessment").mockImplementation(async ({ bookDir }) => {
+          fs.writeFileSync(path.join(bookDir, "adt", "interrupted.html"), "must never replace active bundle")
+          throw new Error("interrupted recheck")
+        })
+        try {
+          expect((await app.request(`${url}?refreshValidation=true`, { method: "POST" })).status).toBe(500)
+          expect(storage.getAllNodeVersions("accessibility-assessment", "book")).toEqual(before)
+          expect(pipelineModule.validationArtifactHash(active)).toBe(artifactHash)
+          expect(fs.readFileSync(path.join(active, ".build-inventory"), "utf8")).toBe(inventory)
+        } finally { spy.mockRestore() }
+        expect((await app.request(url, { method: "POST" })).status).toBe(200)
+        expect(storage.getAllNodeVersions("accessibility-assessment", "book")).toEqual(before)
+        expect((await app.request(`${url}?refreshValidation=true`, { method: "POST" })).status).toBe(200)
+        const after = storage.getAllNodeVersions("accessibility-assessment", "book")
+        expect(after).toHaveLength(before.length + 1)
+        expect(after.slice(0, before.length)).toEqual(before)
+        expect((after.at(-1)!.data as { artifactHash: string }).artifactHash).toBe(pipelineModule.validationArtifactHash(active))
+        expect(fs.readdirSync(book).some((name) => name.startsWith(".package-attempt-") && fs.existsSync(path.join(book, name, "previous", ".build-inventory")))).toBe(true)
+      } finally { storage.close() }
+    })
+
+    it("rolls back package activation and staged rows when SQLite refuses fresh evidence", { timeout: 40000 }, async () => {
+      const label = "revalidate-db-failure", url = `/api/books/${label}/package-adt`
+      createRenderedBook(label); createWebAssets()
+      expect((await app.request(url, { method: "POST" })).status).toBe(200)
+      const book = path.join(tmpDir, label), active = path.join(book, "adt")
+      const db = openBookDb(path.join(book, `${label}.db`))
+      try {
+        const rows = () => db.all("SELECT * FROM node_data ORDER BY node, item_id, version")
+        const before = rows(), hash = pipelineModule.validationArtifactHash(active)
+        db.exec("CREATE TRIGGER fail_assessment BEFORE INSERT ON node_data WHEN NEW.node = 'accessibility-assessment' BEGIN SELECT RAISE(ABORT, 'injected assessment failure'); END")
+        expect((await app.request(`${url}?refreshValidation=true`, { method: "POST" })).status).toBe(500)
+        expect(rows()).toEqual(before)
+        expect(pipelineModule.validationArtifactHash(active)).toBe(hash)
+        expect(fs.existsSync(path.join(book, ".package-publication.json"))).toBe(false)
+      } finally { db.close() }
+    })
+
+    it("rejects a pending Storyboard transition during assessment without changing package or evidence", { timeout: 40000 }, async () => {
+      const label = "pending-during-validation", url = `/api/books/${label}/package-adt`
+      createRenderedBook(label); createWebAssets()
+      expect((await app.request(url, { method: "POST" })).status).toBe(200)
+      const book = path.join(tmpDir, label), active = path.join(book, "adt"), hash = pipelineModule.validationArtifactHash(active)
+      const storage = createBookStorage(label, tmpDir), before = storage.getAllNodeVersions("accessibility-assessment", "book")
+      const spy = vi.spyOn(pipelineModule, "runBrowserAccessibilityAssessment").mockImplementation(async () => {
+        writeSectioningLifecycle(book, "dynamic", true, true)
+        throw new Error("Browser unavailable after concurrent lifecycle change")
+      })
+      try {
+        expect((await app.request(`${url}?refreshValidation=true`, { method: "POST" })).status).toBe(500)
+        expect(pipelineModule.validationArtifactHash(active)).toBe(hash)
+        expect(storage.getAllNodeVersions("accessibility-assessment", "book")).toEqual(before)
+      } finally { spy.mockRestore(); storage.close() }
     })
 
     it("repackages when Easy Read content changes even if the stored version is unchanged", { timeout: 20_000 }, async () => {

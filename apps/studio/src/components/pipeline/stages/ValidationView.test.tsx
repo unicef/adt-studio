@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 
+let storyboardState = "done"
+let allPruned = false
 const navigateMock = vi.fn()
 const packageAdtMock = vi.fn(() => Promise.resolve({ status: "completed", label: "demo-book" }))
 const useSearchMock = vi.fn(() => ({ tab: "accessibility-summary" }))
@@ -10,8 +12,12 @@ const reviewerCatalogMock = vi.fn(() => ({ data: { enabled: false }, isLoading: 
 const isTaskRunningMock = vi.fn(() => false)
 const getTaskMock = vi.fn(() => undefined)
 const warningToastMock = vi.fn()
+const invalidateQueries = vi.fn()
+const queryClient = { invalidateQueries }
+vi.mock("@tanstack/react-query", () => ({ useQueryClient: () => queryClient }))
 
 vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
   useNavigate: () => navigateMock,
   useSearch: () => useSearchMock(),
 }))
@@ -51,7 +57,7 @@ vi.mock("@/api/client", () => ({
 }))
 
 vi.mock("@/hooks/use-book-run", () => ({
-  useBookRun: () => ({ stageState: (slug: string) => (slug === "storyboard" ? "done" : "idle") }),
+  useBookRun: () => ({ stageState: (slug: string) => (slug === "storyboard" ? storyboardState : "idle") }),
 }))
 
 vi.mock("@/hooks/use-book-tasks", () => ({
@@ -66,7 +72,7 @@ vi.mock("@/hooks/use-reviewer-validation", () => ({
 }))
 
 vi.mock("@/hooks/use-all-pages-pruned", () => ({
-  useAllPagesPruned: () => ({ allPruned: false, isLoading: false }),
+  useAllPagesPruned: () => ({ allPruned, isLoading: false }),
 }))
 
 vi.mock("@/components/validation/AccessibilityValidationTabs", () => ({
@@ -79,6 +85,8 @@ vi.mock("@/components/validation/ReviewerValidationSummaryTab", () => ({
 
 afterEach(() => {
   cleanup()
+  storyboardState = "done"
+  allPruned = false
   vi.clearAllMocks()
   packageAdtMock.mockResolvedValue({ status: "completed", label: "demo-book" })
   reviewerCatalogMock.mockReturnValue({ data: { enabled: false }, isLoading: false, error: null })
@@ -92,7 +100,7 @@ describe("ValidationView", () => {
     const { ValidationView } = await import("./ValidationView")
     render(<ValidationView bookLabel="demo-book" />)
 
-    await waitFor(() => expect(packageAdtMock).toHaveBeenCalledWith("demo-book"))
+    expect(packageAdtMock).not.toHaveBeenCalled()
 
     expect(screen.getByText("Accessibility Summary")).toBeTruthy()
     expect(screen.queryByText("Reviewer Validation")).toBeNull()
@@ -105,7 +113,7 @@ describe("ValidationView", () => {
     const { ValidationView } = await import("./ValidationView")
     render(<ValidationView bookLabel="demo-book" />)
 
-    await waitFor(() => expect(packageAdtMock).toHaveBeenCalledWith("demo-book"))
+    expect(packageAdtMock).not.toHaveBeenCalled()
 
     expect(screen.getByText("Reviewer Validation")).toBeTruthy()
   })
@@ -119,8 +127,9 @@ describe("ValidationView", () => {
 
     const { ValidationView } = await import("./ValidationView")
     render(<ValidationView bookLabel="demo-book" />)
+    fireEvent.click(screen.getByRole("button", { name: "Refresh validation" }))
 
-    await waitFor(() => expect(packageAdtMock).toHaveBeenCalledWith("demo-book"))
+    await waitFor(() => expect(packageAdtMock).toHaveBeenCalledWith("demo-book", true))
     await waitFor(() => expect(screen.getByText("Accessibility Summary")).toBeTruthy())
 
     expect(screen.getByText(/accessibility-summary:demo-book/)).toBeTruthy()
@@ -138,6 +147,7 @@ describe("ValidationView", () => {
 
     const { ValidationView } = await import("./ValidationView")
     render(<ValidationView bookLabel="demo-book" />)
+    fireEvent.click(screen.getByRole("button", { name: "Refresh validation" }))
 
     await waitFor(() => expect(warningToastMock).toHaveBeenCalledTimes(1))
     expect(String(warningToastMock.mock.calls[0][0])).toContain("pg002")
@@ -146,8 +156,41 @@ describe("ValidationView", () => {
   it("stays quiet when packaging left nothing out", async () => {
     const { ValidationView } = await import("./ValidationView")
     render(<ValidationView bookLabel="demo-book" />)
+    fireEvent.click(screen.getByRole("button", { name: "Refresh validation" }))
 
-    await waitFor(() => expect(packageAdtMock).toHaveBeenCalledWith("demo-book"))
+    await waitFor(() => expect(packageAdtMock).toHaveBeenCalledWith("demo-book", true))
     expect(warningToastMock).not.toHaveBeenCalled()
   })
+})
+
+it.each(["stale-storyboard", "all-pruned"])("keeps reviewer history readable after a repair leaves %s", async (state) => {
+  storyboardState = state === "stale-storyboard" ? "idle" : "done"
+  allPruned = state === "all-pruned"
+  reviewerCatalogMock.mockReturnValue({ data: { enabled: true }, isLoading: false, error: null })
+  useSearchMock.mockReturnValue({ tab: "reviewer-validation" })
+  const { ValidationView } = await import("./ValidationView")
+  render(<ValidationView bookLabel="demo-book" />)
+  expect(screen.getByText("reviewer-validation:demo-book")).toBeTruthy()
+  expect((screen.getByRole("button", { name: "Refresh validation" }) as HTMLButtonElement).disabled).toBe(true)
+  expect(packageAdtMock).not.toHaveBeenCalled()
+})
+
+it("explicit successful refresh selects new assessment evidence without losing filters or review context", async () => {
+  const { ValidationView } = await import("./ValidationView")
+  const original = { tab: "accessibility-summary", validationContext: { tab: "accessibility-summary", assessment: "old-evidence", severity: "serious", pageId: "pg001" }, unrelated: "keep" }
+  useSearchMock.mockReturnValue(original)
+  render(<ValidationView bookLabel="demo-book" />)
+  fireEvent.click(screen.getByRole("button", { name: "Refresh validation" }))
+  await waitFor(() => expect(navigateMock).toHaveBeenCalled())
+  const update = navigateMock.mock.calls.at(-1)![0]
+  expect(update.replace).toBe(true); expect(update.hash).toBe(true)
+  expect(update.search(original)).toEqual({ ...original, validationContext: { ...original.validationContext, assessment: undefined } })
+})
+
+
+it("refreshes cached evidence even when the assessment route was already unpinned", async () => {
+  const { ValidationView } = await import("./ValidationView")
+  render(<ValidationView bookLabel="demo-book" />)
+  fireEvent.click(screen.getByRole("button", { name: /Refresh Validation/i }))
+  await waitFor(() => expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["debug", "accessibility", "demo-book"] }))
 })

@@ -4,6 +4,7 @@ import path from "node:path"
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import { randomUUID } from "node:crypto"
+import { exercisePackagedValidation } from "./spec-0009-packaged-common.mjs"
 import { exercisePackagedRecovery } from "./spec-0013-packaged-common.mjs"
 import { copyBooks, exercisePackagedSynchronization, hashes } from "./spec-0012-packaged-common.mjs"
 
@@ -44,7 +45,7 @@ try {
   const javascript = await fetch(new URL(script[1], base))
   assert.equal(javascript.status, 200)
   assert.ok((await javascript.text()).length > 1000)
-  const result = await (process.argv.includes("--recovery") ? exercisePackagedRecovery : exercisePackagedSynchronization)({ request, books, restart: async () => { docker("rm", "-f", container); await start() } })
+  const result = await (process.argv.includes("--validation") ? exercisePackagedValidation : process.argv.includes("--recovery") ? exercisePackagedRecovery : exercisePackagedSynchronization)({ request, books, restart: async () => { docker("rm", "-f", container); await start() } })
   assert.deepEqual({ prompts: hashes(path.join(repository, "prompts")), templates: hashes(path.join(repository, "templates")) }, before)
   const report = { image, imageId: docker("image", "inspect", image, "--format", "{{.Id}}"), spaScript: script[1], books, ...result }
   fs.writeFileSync(path.join(out, "report.json"), JSON.stringify(report, null, 2))

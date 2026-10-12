@@ -92,7 +92,7 @@ export function buildBrowserAccessibilityRecheckPlan(
       const uniqueRuleIds = uniqueStrings(ruleIds)
       if (uniqueRuleIds.length === 0) return null
       return {
-        pageId: derivePageId(entry.section_id),
+        pageId: basePage ? basePage.pageId : derivePageId(entry.section_id),
         sectionId: entry.section_id,
         href: entry.href,
         pageNumber: entry.page_number ?? null,

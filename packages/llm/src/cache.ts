@@ -112,3 +112,10 @@ export function bustCache(cacheDir: string, hash: string): void {
     // File may already be gone
   }
 }
+
+/** A crashed rendering publication must be reconciled by a book writer before
+ * any cache use or provider work. Never resume paid work during recovery. */
+export function assertCacheReadable(cacheDir: string): void {
+  if (fs.existsSync(path.join(path.dirname(cacheDir), ".render-cache-publication.json")))
+    throw new Error("Rendering cache publication needs recovery. Retry through the book's rendering workflow; committed content is retained.")
+}

@@ -1,3 +1,4 @@
+import { z } from "zod"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
@@ -18,6 +19,14 @@ export function createTaskRoutes(taskService: TaskService): Hono {
     }
     const tasks = taskService.getActiveTasks(safeLabel)
     return c.json({ tasks })
+  })
+
+  app.get("/books/:label/tasks/requests/:requestId", (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    const id = z.string().uuid().safeParse(c.req.param("requestId"))
+    if (!id.success) throw new HTTPException(400, { message: "Invalid request identity" })
+    const task = taskService.getRequest?.(label, id.data)
+    return c.json({ task: task ?? null })
   })
 
   app.post("/books/:label/tasks/:taskId/cancel", (c) => {

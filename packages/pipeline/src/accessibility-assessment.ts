@@ -1,3 +1,4 @@
+import { readValidationArtifact, validationArtifactHash } from "./validation-artifact.js"
 import fs from "node:fs"
 import path from "node:path"
 import { JSDOM } from "jsdom"
@@ -222,6 +223,8 @@ export async function runAccessibilityAssessment(
     ? [...options.config.disabled_rules]
     : [...DEFAULT_DISABLED_AXE_RULES]
   const adtDir = path.join(bookDir, "adt")
+  const artifact = readValidationArtifact(adtDir)
+  const artifactHash = validationArtifactHash(adtDir)
   const pageEntries = getUniquePackagedPageEntries(bookDir)
 
   const axeSource = getAxeSource(await import("axe-core"))
@@ -236,10 +239,16 @@ export async function runAccessibilityAssessment(
       page: index + 1,
       totalPages: pageEntries.length,
     })
-    pages.push(await auditPackagedPage(adtDir, entry, axeSource, { runOnlyTags, disabledRules }))
+    const page = await auditPackagedPage(adtDir, entry, axeSource, { runOnlyTags, disabledRules })
+    const owners = artifact?.sections.filter(section => section.sectionId === entry.section_id && section.href === entry.href)
+    // The stable ID may retain its original page prefix after a move.
+    if (owners?.length === 1) page.pageId = owners[0].pageId
+    else if (owners && owners.length > 1) page.pageId = null
+    pages.push(page)
   }
 
   const output: AccessibilityAssessmentOutputType = {
+    artifact, artifactHash,
     generatedAt: new Date().toISOString(),
     tool: "axe-core",
     runOnlyTags,
@@ -255,5 +264,6 @@ export async function runAccessibilityAssessment(
   }
 
   progress.emit({ type: "step-complete", step: STEP })
+  if (validationArtifactHash(adtDir) !== artifactHash) throw new Error("Packaged artifact changed during assessment; no evidence was published")
   return AccessibilityAssessmentOutput.parse(output)
 }

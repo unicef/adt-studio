@@ -1731,6 +1731,9 @@ msgstr "Auto-fill from book context"
 msgid "Auto-scroll"
 msgstr "Auto-scroll"
 
+msgid "Automatic routing"
+msgstr "Automatic routing"
+
 msgid "Automatically adapts the layout based on each page's content using AI."
 msgstr "Automatically adapts the layout based on each page's content using AI."
 
@@ -2144,6 +2147,9 @@ msgstr "Cancel download"
 msgid "Cancel run"
 msgstr "Cancel run"
 
+msgid "Cancel task"
+msgstr "Cancel task"
+
 msgid "Cancelled"
 msgstr "Cancelled"
 
@@ -2308,6 +2314,9 @@ msgstr "Chart / Graph"
 
 msgid "Check for updates"
 msgstr "Check for updates"
+
+msgid "Check or retry same request"
+msgstr "Check or retry same request"
 
 msgid "Checked"
 msgstr "Checked"
@@ -2624,6 +2633,9 @@ msgstr "Configured on server"
 msgid "Confirm merge"
 msgstr "Confirm merge"
 
+msgid "Confirm rerender"
+msgstr "Confirm rerender"
+
 msgid "Conflicting fields:"
 msgstr "Conflicting fields:"
 
@@ -2803,6 +2815,9 @@ msgstr "Could not read this PDF. The file may be corrupted or password-protected
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Could not remove {failed} of {total} videos. Please try again."
 
+msgid "Could not resolve the repair destination. Your finding is unchanged. Try again."
+msgstr "Could not resolve the repair destination. Your finding is unchanged. Try again."
+
 msgid "Could not save Sectioning mode."
 msgstr "Could not save Sectioning mode."
 
@@ -2976,6 +2991,9 @@ msgstr "Current book font"
 
 msgid "Current effective values"
 msgstr "Current effective values"
+
+msgid "Current output cannot be validated. Existing findings remain available; restore eligible Storyboard output before refreshing validation."
+msgstr "Current output cannot be validated. Existing findings remain available; restore eligible Storyboard output before refreshing validation."
 
 msgid "Current Preview Page"
 msgstr "Current Preview Page"
@@ -4069,6 +4087,9 @@ msgstr "Failed to read archive"
 msgid "Failed to save metadata. Please try again."
 msgstr "Failed to save metadata. Please try again."
 
+msgid "Failed to save reviewer changes"
+msgstr "Failed to save reviewer changes"
+
 msgid "Failed:"
 msgstr "Failed:"
 
@@ -4161,6 +4182,12 @@ msgstr "Fit to panel · showing {display}% of full size"
 
 msgid "Fix"
 msgstr "Fix"
+
+msgid "Fix destination"
+msgstr "Fix destination"
+
+#~ msgid "Fix in {fixStageLabel}"
+#~ msgstr "Fix in {fixStageLabel}"
 
 msgid "Fixed layout"
 msgstr "Fixed layout"
@@ -5691,6 +5718,9 @@ msgstr "Manual only"
 msgid "Manual review"
 msgstr "Manual review"
 
+msgid "Manual, custom or unknown-origin content requires review in the editor."
+msgstr "Manual, custom or unknown-origin content requires review in the editor."
+
 msgid "Manually edited"
 msgstr "Manually edited"
 
@@ -6750,6 +6780,15 @@ msgstr "open"
 msgid "Open"
 msgstr "Open"
 
+#. placeholder {0}: entry.sectionId ?? entry.pageId
+#. placeholder {1}: i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])
+msgid "Open {0} in {1}"
+msgstr "Open {0} in {1}"
+
+#. placeholder {0}: page.sectionId ? `${formatFindingPageLabel(i18n, page)} (${page.sectionId})` : formatFindingPageLabel(i18n, page)
+msgid "Open {0} in {fixStageLabel}"
+msgstr "Open {0} in {fixStageLabel}"
+
 msgid "Open a page in Preview to show its page-specific accessibility findings here."
 msgstr "Open a page in Preview to show its page-specific accessibility findings here."
 
@@ -6788,6 +6827,10 @@ msgstr "Open edit panel"
 msgid "Open image preview"
 msgstr "Open image preview"
 
+#. placeholder {0}: i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])
+msgid "Open in {0}"
+msgstr "Open in {0}"
+
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 
@@ -6812,6 +6855,9 @@ msgstr "Open source PDF in a new tab"
 
 msgid "Open Storyboard"
 msgstr "Open Storyboard"
+
+msgid "Open task output in Storyboard"
+msgstr "Open task output in Storyboard"
 
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Open the Quizzes stage to edit this quiz"
@@ -8020,6 +8066,9 @@ msgstr "Refresh all providers"
 msgid "Refresh audio status before uploading a recording."
 msgstr "Refresh audio status before uploading a recording."
 
+msgid "Refresh current target"
+msgstr "Refresh current target"
+
 msgid "Refresh provider availability, versions, auth state and model metadata in the background. Set to 0 seconds to rely on manual refreshes."
 msgstr "Refresh provider availability, versions, auth state and model metadata in the background. Set to 0 seconds to rely on manual refreshes."
 
@@ -8198,6 +8247,9 @@ msgstr "Repair regenerates only these sections and may use paid generation:"
 msgid "Repair status is unavailable. The saved rendering and drift are retained. Refresh or retry the repair."
 msgstr "Repair status is unavailable. The saved rendering and drift are retained. Refresh or retry the repair."
 
+msgid "Repair suggestion. Review decisions remain unchanged."
+msgstr "Repair suggestion. Review decisions remain unchanged."
+
 msgid "Replace"
 msgstr "Replace"
 
@@ -8209,6 +8261,10 @@ msgstr "Replace from book"
 
 msgid "Replace from Book"
 msgstr "Replace from Book"
+
+#. placeholder {0}: target.sectionId
+msgid "Replace generated output for {0} on {pageId}. Provider calls may cost money. Other sections and human review decisions are retained. This does not mark the finding fixed."
+msgstr "Replace generated output for {0} on {pageId}. Provider calls may cost money. Other sections and human review decisions are retained. This does not mark the finding fixed."
 
 msgid "Replace image"
 msgstr "Replace image"
@@ -8261,6 +8317,16 @@ msgstr "Required"
 
 msgid "Required Fields"
 msgstr "Required Fields"
+
+msgid "Rerender section"
+msgstr "Rerender section"
+
+#. placeholder {0}: target.sectionId
+msgid "Rerender section {0}"
+msgstr "Rerender section {0}"
+
+msgid "Rerender selected section?"
+msgstr "Rerender selected section?"
 
 msgid "Reset"
 msgstr "Reset"
@@ -8370,6 +8436,9 @@ msgstr "Retrying"
 
 msgid "Return to coordinator"
 msgstr "Return to coordinator"
+
+msgid "Return to Validation"
+msgstr "Return to Validation"
 
 msgid "Revert language change"
 msgstr "Revert language change"
@@ -9609,6 +9678,9 @@ msgstr "Start"
 msgid "Start a <0>new book</0> from a source PDF — ADT Studio creates a fresh project and you run the pipeline stages on it. <1>.pdf → new ADT project</1>"
 msgstr "Start a <0>new book</0> from a source PDF — ADT Studio creates a fresh project and you run the pipeline stages on it. <1>.pdf → new ADT project</1>"
 
+msgid "Start a new rerender"
+msgstr "Start a new rerender"
+
 msgid "Start a reviewer session"
 msgstr "Start a reviewer session"
 
@@ -10114,6 +10186,9 @@ msgstr "The file may be damaged or incomplete. Try downloading it again from the
 msgid "The file you uploaded and the options you picked won't be kept."
 msgstr "The file you uploaded and the options you picked won't be kept."
 
+msgid "The finding is unchanged. Run validation again for new automated evidence; human decisions require an explicit review action."
+msgstr "The finding is unchanged. Run validation again for new automated evidence; human decisions require an explicit review action."
+
 msgid "The following terms are used throughout this manual. Familiarity with these definitions is required before proceeding to the implementation chapters."
 msgstr "The following terms are used throughout this manual. Familiarity with these definitions is required before proceeding to the implementation chapters."
 
@@ -10144,8 +10219,17 @@ msgstr "The Lost Forest"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "The model detects bounding boxes so each visual element can be stored and laid out separately."
 
+msgid "The original assessment is no longer available. Refresh validation when Storyboard output is ready; no finding has been marked resolved."
+msgstr "The original assessment is no longer available. Refresh validation when Storyboard output is ready; no finding has been marked resolved."
+
+msgid "The original assessment is no longer current. Showing the available assessment; navigation has not changed any verdict."
+msgstr "The original assessment is no longer current. Showing the available assessment; navigation has not changed any verdict."
+
 msgid "The original extraction is verified. Safe downstream resume is not available yet, so no content was changed or generated."
 msgstr "The original extraction is verified. Safe downstream resume is not available yet, so no content was changed or generated."
+
+msgid "The original reviewer session is no longer available. Showing available reviews."
+msgstr "The original reviewer session is no longer available. Showing available reviews."
 
 msgid "The PDF has changed. Import it as a new book; the existing book will be kept."
 msgstr "The PDF has changed. Import it as a new book; the existing book will be kept."
@@ -10216,6 +10300,24 @@ msgstr "The rendering is missing or cannot be matched safely."
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "The rendering strategy used for sections without an explicit mapping."
 
+msgid "The request was rejected. Refresh before trying again; your finding and draft are unchanged."
+msgstr "The request was rejected. Refresh before trying again; your finding and draft are unchanged."
+
+#~ msgid "The requested section is no longer available. Opened the first section instead."
+#~ msgstr "The requested section is no longer available. Opened the first section instead."
+
+msgid "The requested section is no longer available. Opened the page instead."
+msgstr "The requested section is no longer available. Opened the page instead."
+
+msgid "The response is uncertain. Checking the accepted request; retrying uses the same request identity."
+msgstr "The response is uncertain. Checking the accepted request; retrying uses the same request identity."
+
+msgid "The review source is unavailable. Your unsaved notes have been kept."
+msgstr "The review source is unavailable. Your unsaved notes have been kept."
+
+#~ msgid "The river meets the sea"
+#~ msgstr "The river meets the sea"
+
 msgid "The same edition in every language."
 msgstr "The same edition in every language."
 
@@ -10239,6 +10341,9 @@ msgstr "The sun heats water in oceans, lakes, and rivers, turning it into vapor 
 
 msgid "The table of contents."
 msgstr "The table of contents."
+
+msgid "The target cannot be proven safe to rerender. Open the editor to inspect it."
+msgstr "The target cannot be proven safe to rerender. Open the editor to inspect it."
 
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
@@ -10362,6 +10467,9 @@ msgstr "This feature is not compatible with Fixed Layout. If you proceed, you ma
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "This file couldn't be read as a ZIP archive"
 
+msgid "This finding describes older output. Open the editor or run validation again."
+msgstr "This finding describes older output. Open the editor or run validation again."
+
 msgid "This font's license is not open-source and restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "This font's license is not open-source and restricts embedding — distributing it inside the book bundle may be illegal."
 
@@ -10400,6 +10508,9 @@ msgstr "This isn't a valid ADT Studio project"
 
 msgid "This isn't a valid part file"
 msgstr "This isn't a valid part file"
+
+msgid "This layout does not support semantic section rerendering."
+msgstr "This layout does not support semantic section rerendering."
 
 msgid "This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via \"View HTML source\" instead of merging."
 msgstr "This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via \"View HTML source\" instead of merging."
@@ -11054,6 +11165,9 @@ msgstr "Use Liquid syntax to interpolate variables, loop over arrays, and condit
 msgid "Use page {0} for the quiz"
 msgstr "Use page {0} for the quiz"
 
+msgid "Use section destination"
+msgstr "Use section destination"
+
 msgid "Use section headings verbatim. Fast, deterministic, and preserves the original wording from the book."
 msgstr "Use section headings verbatim. Fast, deterministic, and preserves the original wording from the book."
 
@@ -11548,6 +11662,9 @@ msgstr "Your pages {displayStart}–{displayEnd}"
 
 msgid "Your saved source is retained. Review the affected sections below; repair is available only where their identity and generated origin are verified."
 msgstr "Your saved source is retained. Review the affected sections below; repair is available only where their identity and generated origin are verified."
+
+msgid "Your unsaved review still belongs to the page shown below. Save or discard it before reviewing another page."
+msgstr "Your unsaved review still belongs to the page shown below. Save or discard it before reviewing another page."
 
 msgid "Z → A"
 msgstr "Z → A"

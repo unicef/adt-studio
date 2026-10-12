@@ -29,11 +29,11 @@ export function synchronizationLayout(storage: Storage, pageId: string, config: 
   return isFixedLayoutBook(config) || storage.getLatestNodeData("fixed-layout-sectioning", pageId)?.data != null ? "fixed" : "reflowable"
 }
 
-export function storedSynchronization(storage: Storage, pageId: string, layout: SectioningSynchronization["layout"], proposed?: PageSectioningOutput) {
+export function storedSynchronization(storage: Storage, pageId: string, layout: SectioningSynchronization["layout"], proposed?: PageSectioningOutput, purpose?: "synchronization" | "validation") {
   const source = storage.getLatestNodeData("page-sectioning", pageId)
   const rendering = storage.getLatestNodeData("web-rendering", pageId)
   if (!source || !PageSectioningOutput.safeParse(source.data).success) throw new HTTPException(409, { message: "The saved source is missing or invalid. Reload and review the page." })
-  return classifyStoredSectioning({ pageId, source, rendering, proposed, layout,
+  return classifyStoredSectioning({ pageId, source, rendering, proposed, layout, purpose,
     history: storage.getAllNodeVersions("page-sectioning", pageId), sectionOwners: sectionOwners(storage) })
 }
 

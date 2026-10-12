@@ -329,7 +329,7 @@ describe("SPEC-0003 persisted data and publication", () => {
     s.close()
   })
 
-  it.each(["config", "sectioning", "rollback", "rendering", "pages", "lifecycle"])("rejects an edit to %s after preflight, without publishing any page", (target) => {
+  it.each(["config", "sectioning", "rollback", "rendering", "pages", "lifecycle"])("rejects an edit to %s after preflight, without publishing any page", (target) => withBookWriter(dir, () => {
     const s = createBookStorage(label, root)
     s.setCurrentNodeVersion("page-sectioning", "pg002", 2)
     writeSectioningLifecycle(dir, "dynamic", true)
@@ -349,9 +349,9 @@ describe("SPEC-0003 persisted data and publication", () => {
     expect(() => publication.publish()).toThrow(/changed after preflight/)
     expect(s.getAllNodeVersions("web-rendering", "pg002")).toEqual(old)
     s.close()
-  })
+  }))
 
-  it("rolls back all staged rendering versions when a later page fails to persist", () => {
+  it("rolls back all staged rendering versions when a later page fails to persist", () => withBookWriter(dir, () => {
     const s = createBookStorage(label, root)
     const db = openBookDb(path.join(dir, `${label}.db`))
     db.run("INSERT INTO pages (page_id, page_number, text) VALUES (?, ?, ?)", ["pg007", 7, "second page"])
@@ -369,9 +369,9 @@ describe("SPEC-0003 persisted data and publication", () => {
       expect(snapshot()).toEqual(before)
       expect(runs()).toEqual(oldRuns)
     } finally { db.close(); s.close() }
-  })
+  }))
 
-  it("publishes a successful rendering version while retaining all downstream entities", () => {
+  it("publishes a successful rendering version while retaining all downstream entities", () => withBookWriter(dir, () => {
     const s = createBookStorage(label, root)
     s.putNodeData("image-captioning", "book", { manual: "retained" })
     writeSectioningLifecycle(dir, "dynamic", true)
@@ -386,7 +386,7 @@ describe("SPEC-0003 persisted data and publication", () => {
     expect(getBook(label, root).completedStages).not.toContain("preview")
     expect(fs.existsSync(path.join(dir, "adt"))).toBe(true)
     s.close()
-  })
+  }))
 
   it("blocks unknown mode provenance but admits protected Sectioning orchestration without mutating content", () => {
     const before = snapshot()

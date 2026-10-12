@@ -1733,6 +1733,9 @@ msgstr "Plotëso automatikisht nga konteksti i librit"
 msgid "Auto-scroll"
 msgstr "Lëvizje automatike"
 
+msgid "Automatic routing"
+msgstr "Drejtim automatik"
+
 msgid "Automatically adapts the layout based on each page's content using AI."
 msgstr "Përshtaton automatikisht paraqitjen bazuar në përmbajtjen e çdo faqeje duke përdorur AI."
 
@@ -2146,6 +2149,9 @@ msgstr "Anulo shkarkimin"
 msgid "Cancel run"
 msgstr "Anulo ekzekutimin"
 
+msgid "Cancel task"
+msgstr "Anulo detyrën"
+
 msgid "Cancelled"
 msgstr "Anuluar"
 
@@ -2310,6 +2316,9 @@ msgstr "Tabelë / Grafik"
 
 msgid "Check for updates"
 msgstr "Kontrollo për përditësime"
+
+msgid "Check or retry same request"
+msgstr "Kontrollo ose riprovo të njëjtën kërkesë"
 
 msgid "Checked"
 msgstr "Kontrolluar"
@@ -2626,6 +2635,9 @@ msgstr "Konfiguruar në server"
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
 
+msgid "Confirm rerender"
+msgstr "Konfirmo rirenderimin"
+
 msgid "Conflicting fields:"
 msgstr "Fusha në konflikt:"
 
@@ -2805,6 +2817,9 @@ msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i m
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Nuk u hoqën dot {failed} nga {total} video — ju lutem provoni përsëri."
 
+msgid "Could not resolve the repair destination. Your finding is unchanged. Try again."
+msgstr "Nuk u përcaktua destinacioni i korrigjimit. Gjetja mbetet e pandryshuar. Provoni përsëri."
+
 msgid "Could not save Sectioning mode."
 msgstr "Nuk u ruajt modaliteti i ndarjes në seksione."
 
@@ -2978,6 +2993,9 @@ msgstr "Fonti aktual i librit"
 
 msgid "Current effective values"
 msgstr "Vlerat aktuale efektive"
+
+msgid "Current output cannot be validated. Existing findings remain available; restore eligible Storyboard output before refreshing validation."
+msgstr "Rezultati aktual nuk mund të validohet. Gjetjet ekzistuese mbeten të disponueshme; riktheni përmbajtje të përshtatshme të Storyboard para se të rifreskoni validimin."
 
 msgid "Current Preview Page"
 msgstr "Faqja aktuale e pamjes paraprake"
@@ -4071,6 +4089,9 @@ msgstr "Dështoi leximi i arkivit"
 msgid "Failed to save metadata. Please try again."
 msgstr "Ruajtja e të dhënave dështoi. Ju lutemi provoni përsëri."
 
+msgid "Failed to save reviewer changes"
+msgstr "Ndryshimet e rishikimit nuk u ruajtën"
+
 msgid "Failed:"
 msgstr "Dështoi:"
 
@@ -4163,6 +4184,12 @@ msgstr "Përshtatur me panelin · duke shfaqur {display}% të madhësisë së pl
 
 msgid "Fix"
 msgstr "Rregullo"
+
+msgid "Fix destination"
+msgstr "Destinacioni i korrigjimit"
+
+#~ msgid "Fix in {fixStageLabel}"
+#~ msgstr "Korrigjo në {fixStageLabel}"
 
 msgid "Fixed layout"
 msgstr "Strukturë fikse"
@@ -5693,6 +5720,9 @@ msgstr "Vetëm manual"
 msgid "Manual review"
 msgstr "Rishikim manual"
 
+msgid "Manual, custom or unknown-origin content requires review in the editor."
+msgstr "Përmbajtja manuale, e personalizuar ose me origjinë të panjohur kërkon shqyrtim në redaktues."
+
 msgid "Manually edited"
 msgstr "Redaktuar manualisht"
 
@@ -6752,6 +6782,15 @@ msgstr "hap"
 msgid "Open"
 msgstr "Hapni"
 
+#. placeholder {0}: entry.sectionId ?? entry.pageId
+#. placeholder {1}: i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])
+msgid "Open {0} in {1}"
+msgstr "Hap {0} në {1}"
+
+#. placeholder {0}: page.sectionId ? `${formatFindingPageLabel(i18n, page)} (${page.sectionId})` : formatFindingPageLabel(i18n, page)
+msgid "Open {0} in {fixStageLabel}"
+msgstr "Hap {0} në {fixStageLabel}"
+
 msgid "Open a page in Preview to show its page-specific accessibility findings here."
 msgstr "Hapni një faqe në Pamjen Paraprake për të shfaqur këtu gjetjet e aksesueshmërisë specifike të faqes."
 
@@ -6790,6 +6829,10 @@ msgstr "Hapni panelin e redaktimit"
 msgid "Open image preview"
 msgstr "Hapni pamjen paraprake të imazhit"
 
+#. placeholder {0}: i18n._(STAGE_LABEL_MESSAGES[routeOverrides[`${activeSessionId}:${entry.pageId}:${entry.criterionId}`] ?? entry.fixStage])
+msgid "Open in {0}"
+msgstr "Hap në {0}"
+
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Hapeni në çdo lexues EPUB 3, e-reader, ose mjet aksesueshmërie."
 
@@ -6814,6 +6857,9 @@ msgstr "Hapni PDF-in burimor në një skedë të re"
 
 msgid "Open Storyboard"
 msgstr "Hap Storyboard"
+
+msgid "Open task output in Storyboard"
+msgstr "Hap rezultatin e detyrës në Storyboard"
 
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Hapni fazën Kuizet për të redaktuar këtë kuiz"
@@ -8022,6 +8068,9 @@ msgstr "Rifresko të gjithë ofruesit"
 msgid "Refresh audio status before uploading a recording."
 msgstr "Rifreskoni gjendjen e audios para se të ngarkoni një regjistrim."
 
+msgid "Refresh current target"
+msgstr "Rifresko objektivin aktual"
+
 msgid "Refresh provider availability, versions, auth state and model metadata in the background. Set to 0 seconds to rely on manual refreshes."
 msgstr "Rifresko disponueshmërinë e ofruesit, versionet, gjendjen e autentikimit dhe metadatat e modelit në sfond. Vendoseni në 0 sekonda për të mbështetur në rifreskime manuale."
 
@@ -8200,6 +8249,9 @@ msgstr "Riparimi rigjeneron vetëm këto seksione dhe mund të përdorë gjeneri
 msgid "Repair status is unavailable. The saved rendering and drift are retained. Refresh or retry the repair."
 msgstr "Statusi i riparimit nuk është i disponueshëm. Paraqitja e ruajtur dhe mospërputhja mbeten të paprekura. Rifreskoni ose provoni përsëri riparimin."
 
+msgid "Repair suggestion. Review decisions remain unchanged."
+msgstr "Sugjerim korrigjimi. Vendimet e shqyrtimit mbeten të pandryshuara."
+
 msgid "Replace"
 msgstr "Zëvendëso"
 
@@ -8211,6 +8263,10 @@ msgstr "Zëvendëso nga libri"
 
 msgid "Replace from Book"
 msgstr "Zëvendëso nga Libri"
+
+#. placeholder {0}: target.sectionId
+msgid "Replace generated output for {0} on {pageId}. Provider calls may cost money. Other sections and human review decisions are retained. This does not mark the finding fixed."
+msgstr "Zëvendëso rezultatin e gjeneruar për {0} në {pageId}. Thirrjet te ofruesi mund të kenë kosto. Seksionet e tjera dhe vendimet e shqyrtimit njerëzor ruhen. Kjo nuk e shënon gjetjen si të korrigjuar."
 
 msgid "Replace image"
 msgstr "Zëvendëso imazhin"
@@ -8263,6 +8319,16 @@ msgstr "E detyrueshme"
 
 msgid "Required Fields"
 msgstr "Fushat e Detyrueshme"
+
+msgid "Rerender section"
+msgstr "Rirendero seksionin"
+
+#. placeholder {0}: target.sectionId
+msgid "Rerender section {0}"
+msgstr "Rirendero seksionin {0}"
+
+msgid "Rerender selected section?"
+msgstr "Të rirenderohet seksioni i zgjedhur?"
 
 msgid "Reset"
 msgstr "Reseto"
@@ -8372,6 +8438,9 @@ msgstr "Duke riprovuar"
 
 msgid "Return to coordinator"
 msgstr "Kthejeni te koordinatori"
+
+msgid "Return to Validation"
+msgstr "Kthehu te Validimi"
 
 msgid "Revert language change"
 msgstr "Kthe ndryshimin e gjuhës"
@@ -9611,6 +9680,9 @@ msgstr "Fillo"
 msgid "Start a <0>new book</0> from a source PDF — ADT Studio creates a fresh project and you run the pipeline stages on it. <1>.pdf → new ADT project</1>"
 msgstr "Fillo një <0>libër të ri</0> nga një PDF burimor — ADT Studio krijon një projekt të ri dhe ju drejtoni fazat e linjës mbi të. <1>.pdf → projekt i ri ADT</1>"
 
+msgid "Start a new rerender"
+msgstr "Nis një rirenderim të ri"
+
 msgid "Start a reviewer session"
 msgstr "Fillo një sesion rishikimi"
 
@@ -10116,6 +10188,9 @@ msgstr "Skedari mund të jetë i dëmtuar ose i paplotë. Provo ta shkarkosh së
 msgid "The file you uploaded and the options you picked won't be kept."
 msgstr "Skedari që ngarkove dhe opsionet që zgjodhe nuk do të ruhen."
 
+msgid "The finding is unchanged. Run validation again for new automated evidence; human decisions require an explicit review action."
+msgstr "Gjetja mbetet e pandryshuar. Kryej validimin përsëri për prova të reja të automatizuara; vendimet njerëzore kërkojnë një veprim të shprehur shqyrtimi."
+
 msgid "The following terms are used throughout this manual. Familiarity with these definitions is required before proceeding to the implementation chapters."
 msgstr "Termat e mëposhtëm përdoren gjatë gjithë këtij manuali. Njohja me këto përkufizime kërkohet para se të vazhdohet me kapitujt e zbatimit."
 
@@ -10146,8 +10221,17 @@ msgstr "Pylli i Humbur"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të ruhet dhe të vendoset veçmas."
 
+msgid "The original assessment is no longer available. Refresh validation when Storyboard output is ready; no finding has been marked resolved."
+msgstr "Vlerësimi fillestar nuk është më i disponueshëm. Rifreskoni validimin kur rezultati i Storyboard të jetë gati; asnjë gjetje nuk është shënuar si e zgjidhur."
+
+msgid "The original assessment is no longer current. Showing the available assessment; navigation has not changed any verdict."
+msgstr "Vlerësimi fillestar nuk është më aktual. Shfaqet vlerësimi i disponueshëm; navigimi nuk ka ndryshuar asnjë vendim."
+
 msgid "The original extraction is verified. Safe downstream resume is not available yet, so no content was changed or generated."
 msgstr "Nxjerrja origjinale është verifikuar. Vazhdimi i sigurt i fazave të mëtejshme ende nuk është i disponueshëm, prandaj asnjë përmbajtje nuk u ndryshua ose u gjenerua."
+
+msgid "The original reviewer session is no longer available. Showing available reviews."
+msgstr "Seanca fillestare e shqyrtuesit nuk është më e disponueshme. Shfaqen shqyrtimet e disponueshme."
 
 msgid "The PDF has changed. Import it as a new book; the existing book will be kept."
 msgstr "PDF-ja ka ndryshuar. Importojeni si libër të ri; libri ekzistues do të ruhet."
@@ -10218,6 +10302,24 @@ msgstr "Renderimi mungon ose nuk mund të përputhet në mënyrë të sigurt."
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "Strategjia e renderimit e përdorur për seksionet pa një hartëzim eksplicit."
 
+msgid "The request was rejected. Refresh before trying again; your finding and draft are unchanged."
+msgstr "Kërkesa u refuzua. Rifresko para se të provosh përsëri; gjetja dhe drafti mbeten të pandryshuar."
+
+#~ msgid "The requested section is no longer available. Opened the first section instead."
+#~ msgstr "Seksioni i kërkuar nuk është më i disponueshëm. Në vend të tij u hap seksioni i parë."
+
+msgid "The requested section is no longer available. Opened the page instead."
+msgstr "Seksioni i kërkuar nuk është më i disponueshëm. Në vend të tij u hap faqja."
+
+msgid "The response is uncertain. Checking the accepted request; retrying uses the same request identity."
+msgstr "Përgjigjja është e pasigurt. Po kontrollohet kërkesa e pranuar; riprovimi përdor të njëjtin identitet kërkese."
+
+msgid "The review source is unavailable. Your unsaved notes have been kept."
+msgstr "Burimi i rishikimit nuk është i disponueshëm. Shënimet tuaja të paruajtura janë ruajtur përkohësisht."
+
+#~ msgid "The river meets the sea"
+#~ msgstr "Lumi takon detin"
+
 msgid "The same edition in every language."
 msgstr "I njëjti botim në çdo gjuhë."
 
@@ -10241,6 +10343,9 @@ msgstr "Dielli ngroh ujin në oqeane, liqene dhe lumenj, duke e kthyer në avull
 
 msgid "The table of contents."
 msgstr "Tabela e përmbajtjes."
+
+msgid "The target cannot be proven safe to rerender. Open the editor to inspect it."
+msgstr "Nuk mund të konfirmohet se objektivi mund të rirenderohet në mënyrë të sigurt. Hape redaktuesin për ta inspektuar."
 
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "TOC liston seksionet e shtypura të vendosura nga Storyboard. Përfundo Storyboard para se të ekzekutosh këtë fazë."
@@ -10364,6 +10469,9 @@ msgstr "Kjo veçori nuk është e pajtueshme me Paraqitjen e fiksuar. Nëse vazh
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "Ky skedar nuk mund të lexohej si arkiv ZIP"
 
+msgid "This finding describes older output. Open the editor or run validation again."
+msgstr "Kjo gjetje përshkruan një rezultat të mëparshëm. Hape redaktuesin ose kryej validimin përsëri."
+
 msgid "This font's license is not open-source and restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "Licenca e këtij fonti nuk është open-source dhe kufizon përfshirjen — shpërndarja e tij brenda paketës së librit mund të jetë e paligjshme."
 
@@ -10402,6 +10510,9 @@ msgstr "Ky nuk është një projekt i vlefshëm i ADT Studio"
 
 msgid "This isn't a valid part file"
 msgstr "Ky nuk është një skedar i vlefshëm pjese"
+
+msgid "This layout does not support semantic section rerendering."
+msgstr "Kjo paraqitje nuk mbështet rirenderimin e seksioneve semantike."
 
 msgid "This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via \"View HTML source\" instead of merging."
 msgstr "Kjo bashkon një aktivitet të personalizuar. Seksioni i kombinuar ri-renderohet, gjë që do të hedhë poshtë skriptin interaktiv të vlerësimit të aktivitetit të personalizuar. Për ta ruajtur, redaktoni përmes \"Shiko burimin HTML\" në vend që të bashkoni."
@@ -11056,6 +11167,9 @@ msgstr "Përdor sintaksën Liquid për të interpoluar variabla, për të iterua
 msgid "Use page {0} for the quiz"
 msgstr "Përdor faqen {0} për kuizin"
 
+msgid "Use section destination"
+msgstr "Përdor destinacionin e seksionit"
+
 msgid "Use section headings verbatim. Fast, deterministic, and preserves the original wording from the book."
 msgstr "Përdor titujt e seksioneve fjalë për fjalë. I shpejtë, deterministik dhe ruan formulimin origjinal të librit."
 
@@ -11550,6 +11664,9 @@ msgstr "Faqet tuaja {displayStart}–{displayEnd}"
 
 msgid "Your saved source is retained. Review the affected sections below; repair is available only where their identity and generated origin are verified."
 msgstr "Burimi juaj i ruajtur mbetet i paprekur. Shqyrtoni seksionet e prekura më poshtë; riparimi është i disponueshëm vetëm kur identiteti dhe origjina e tyre e gjeneruar janë verifikuar."
+
+msgid "Your unsaved review still belongs to the page shown below. Save or discard it before reviewing another page."
+msgstr "Rishikimi juaj i paruajtur i përket ende faqes së shfaqur më poshtë. Ruajeni ose hidheni poshtë para se të rishikoni një faqe tjetër."
 
 msgid "Z → A"
 msgstr "Z → A"

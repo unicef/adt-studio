@@ -1,3 +1,4 @@
+import { recoverRenderCachePublication } from "./render-cache-publication.js"
 import fs from "node:fs"
 import path from "node:path"
 import {
@@ -70,6 +71,18 @@ export function assertSectioningReplacementSafe(storage: Storage): void {
   }
 }
 
+/** Read-only downstream admission, also safe inside the caller's SQLite commit. */
+export function assertDownstreamSectioningCurrent(config: AppConfig, bookDir: string, from: StageName): void {
+  if (!getStageDependents("storyboard").includes(from)) return
+  const lifecycle = readSectioningLifecycle(bookDir)
+  if (lifecycle && (!lifecycle.sectioningReady || lifecycle.mode !== effectiveSectioningMode(config))) {
+    throw new SectioningSafetyError("SECTIONING_STALE", "Sectioning is stale after a mode change. Downstream generation is blocked; saved output remains inspectable.")
+  }
+  if (lifecycle?.storyboardPending) {
+    throw new SectioningSafetyError("SECTIONING_STALE", "Storyboard still contains retained output from before Sectioning changed. Run Storyboard for the active book before generating downstream output or exporting it.")
+  }
+}
+
 export function prepareSectioningRun(label: string, booksRoot: string, from: StageName, to: StageName, configPath?: string): void {
   const { bookDir } = resolveBookPaths(label, booksRoot)
   withBookWriter(bookDir, () => {
@@ -78,19 +91,14 @@ export function prepareSectioningRun(label: string, booksRoot: string, from: Sta
     const config = loadBookConfig(label, booksRoot, configPath)
     const storage = createBookStorage(label, booksRoot)
     try {
+      recoverRenderCachePublication(storage)
       const stages = STAGE_ORDER.slice(STAGE_ORDER.indexOf(from), STAGE_ORDER.indexOf(to) + 1)
       if (from === "extract") assertSectioningReplacementSafe(storage)
       if (from === "extract" && storage.getPages().length) {
         throw new SectioningSafetyError("SECTIONING_REGENERATION_BLOCKED", "Re-extraction of an existing book requires preservation-safe CLI/Extract admission. Existing pages and assets are kept.")
       }
       if (stages.includes("storyboard") && !stages.includes("sectioning")) assertSectioningCurrent(storage, config, bookDir)
-      const lifecycle = readSectioningLifecycle(bookDir)
-      if (getStageDependents("storyboard").includes(from) && lifecycle && (!lifecycle.sectioningReady || lifecycle.mode !== effectiveSectioningMode(config))) {
-        throw new SectioningSafetyError("SECTIONING_STALE", "Sectioning is stale after a mode change. Downstream generation is blocked; saved output remains inspectable.")
-      }
-      if (getStageDependents("storyboard").includes(from) && lifecycle?.storyboardPending) {
-        throw new SectioningSafetyError("SECTIONING_STALE", "Storyboard still contains retained output from before Sectioning changed. Run Storyboard for the active book before generating downstream output or exporting it.")
-      }
+      assertDownstreamSectioningCurrent(config, bookDir, from)
     } finally { storage.close() }
   })
 }
@@ -113,9 +121,10 @@ export function completeSectioning(label: string, booksRoot: string, config: App
 /** Stage rendering versions in memory, then publish together in the existing
  * SQLite transaction. Provider failures/cancellation/conflicts keep the prior
  * active versions. Debug logs/screenshots are attempt evidence, not output. */
-export function createStoryboardPublication(storage: Storage, label: string, booksRoot: string, configPath?: string, selectedPageIds?: string[], stampOutput = true) {
+export function createStoryboardPublication(storage: Storage, label: string, booksRoot: string, configPath?: string, selectedPageIds?: string[], stampOutput = true, invalidateConsumers?: () => import("@adt/types").StepName[]) {
   const { bookDir } = resolveBookPaths(label, booksRoot)
   recoverSectioningTransition(bookDir)
+  recoverRenderCachePublication(storage)
   assertExtractionReadable(bookDir)
   const config = loadBookConfig(label, booksRoot, configPath)
   assertSectioningCurrent(storage, config, bookDir)
@@ -176,7 +185,7 @@ export function createStoryboardPublication(storage: Storage, label: string, boo
         }
         const downstream = getStageDependents("storyboard")
         reconcileTextCatalog(storage, { preserveRendering: true })
-        storage.clearStepRuns(PIPELINE.filter((stage) => downstream.includes(stage.name)).flatMap((stage) => stage.steps.map((step) => step.name)))
+        storage.clearStepRuns(invalidateConsumers ? invalidateConsumers() : PIPELINE.filter((stage) => downstream.includes(stage.name)).flatMap((stage) => stage.steps.map((step) => step.name)))
       })
       // Clear the conservative mode-change barrier only after the entire active
       // rendering set commits. A crash or metadata-write failure leaves it

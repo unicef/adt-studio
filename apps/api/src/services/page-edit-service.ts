@@ -1,3 +1,4 @@
+import { createRenderCachePublication, readOutputCatalog, outputIdentityKey } from "@adt/pipeline"
 import { withBookWriter, resolveBookPaths } from "@adt/storage"
 import {
   createStoryboardPublication, FIXED_LAYOUT_SECTIONING_NODE, SectioningSafetyError,
@@ -11,7 +12,7 @@ import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel, ResolvedCredentials, PromptEngine } from "@adt/llm"
 import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, readTypography, buildTypographyCss, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS, inspectOrderingActivityHtml, validateRetainedHeadingHierarchy } from "@adt/pipeline"
 import type { VisualRefinementDeps } from "@adt/pipeline"
-import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema, editVerifyLLMSchema, DEFAULT_LLM_MODEL_ID } from "@adt/types"
+import { OUTPUT_KIND_TO_STEP, STAGE_BY_NAME, type OutputStatus, type StepName, PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema, editVerifyLLMSchema, DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
 import { resolvePromptRoots, resolvePromptOverridesDir } from "./prompt-roots.js"
 import { storedSynchronization, synchronizationLayout } from "./storyboard-save.js"
@@ -23,6 +24,8 @@ export interface ReRenderOptions {
   pageId: string
   sectionIndex?: number
   repair?: SectioningRepairRequest
+  repairPurpose?: "synchronization" | "validation"
+  recheckAdmission?: () => void
   signal?: AbortSignal
   /** Optional user prompt/instructions to guide the LLM during re-render */
   prompt?: string
@@ -69,9 +72,35 @@ export async function reRenderPages(options: ReRenderOptions[]): Promise<ReRende
   return withBookWriter(resolveBookPaths(label, booksDir).bookDir, async () => {
     const storage = createBookStorage(label, booksDir)
     try {
-      const publication = createStoryboardPublication(storage, label, booksDir, configPath, undefined, false)
+      const cachePublication = createRenderCachePublication(storage)
       const config = loadBookConfig(label, booksDir, configPath)
       const capturedEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir: options[0].promptsDir, bookPromptsDir: path.join(resolveBookPaths(label, booksDir).bookDir, "prompts") }), { basePromptModelId: config.base_prompt_model, capture: true })
+      const scoped = options.every((item) => item.repair)
+      const consumers = (): OutputStatus[] => {
+        const shared = { storage, config: loadBookConfig(label, booksDir, configPath), bookDir: storage.bookDir!,
+          promptsDir: options[0].promptsDir, promptOverridesDir: resolvePromptOverridesDir(booksDir),
+          configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"), configPath }
+        return [...readOutputCatalog(shared), ...readGenerationCatalog({ ...shared, webAssetsDir: options[0].webAssetsDir })]
+          .filter((value) => !["extract-generation", "sectioning", "storyboard"].includes(value.identity.kind))
+      }
+      const beforeConsumers = scoped ? new Map(consumers().map((value) => [outputIdentityKey(value.identity), value])) : null
+      const invalidateConsumers = beforeConsumers ? () => {
+        const after = new Map(consumers().map((value) => [outputIdentityKey(value.identity), value]))
+        const steps = new Set<StepName>()
+        for (const key of new Set([...beforeConsumers.keys(), ...after.keys()])) {
+          const previous = beforeConsumers.get(key), current = after.get(key)
+          if (previous?.signature === current?.signature && previous?.excluded === current?.excluded) continue
+          const kind = (current ?? previous)!.identity.kind
+          if (kind === "package") STAGE_BY_NAME.package.steps.forEach((step) => steps.add(step.name))
+          else steps.add(OUTPUT_KIND_TO_STEP[kind])
+        }
+        // Even a caller without packaged-asset options has changed the rendered
+        // artifact. Its package/evidence step is the direct consumer.
+        STAGE_BY_NAME.package.steps.forEach((step) => steps.add(step.name))
+        return [...steps]
+      } : undefined
+      const publication = createStoryboardPublication(storage, label, booksDir, configPath,
+        scoped ? options.map((item) => item.pageId) : undefined, false, invalidateConsumers)
       const generationInputs = (promptEngine?: PromptEngine) => readGenerationCatalog({ storage, promptEngine, config: loadBookConfig(label, booksDir, configPath),
         bookDir: resolveBookPaths(label, booksDir).bookDir, promptsDir: options[0].promptsDir,
         promptOverridesDir: resolvePromptOverridesDir(booksDir), configPath }).filter((status) => status.identity.kind === "storyboard" && options.some((item) => item.pageId === status.identity.id))
@@ -79,10 +108,11 @@ export async function reRenderPages(options: ReRenderOptions[]): Promise<ReRende
       const validate = () => {
         for (const item of options) {
           item.signal?.throwIfAborted()
+          item.recheckAdmission?.()
           if (!item.repair) continue
           assertEditVersion(storage.getLatestNodeData("page-sectioning", item.pageId)?.version, item.repair.baseVersion)
           assertEditVersion(storage.getLatestNodeData("web-rendering", item.pageId)?.version, item.repair.renderingVersion)
-          const sync = storedSynchronization(storage, item.pageId, synchronizationLayout(storage, item.pageId, config))
+          const sync = storedSynchronization(storage, item.pageId, synchronizationLayout(storage, item.pageId, config), undefined, item.repairPurpose)
           if (item.repair.sectionIds.some((id) => sync.sections.filter((section) => section.sectionId === id && section.action === "repair").length !== 1)) {
             throw new Error("The requested sections are no longer eligible for repair. Reload and review their current protection and source.")
           }
@@ -108,13 +138,16 @@ export async function reRenderPages(options: ReRenderOptions[]): Promise<ReRende
         })
       }
       const results: ReRenderResult[] = []
-      for (const item of options) results.push(await reRenderAdmittedPage(item, publication, capturedEngine))
+      for (const item of options) results.push(await reRenderAdmittedPage(item, publication, capturedEngine, cachePublication.write))
       validate()
       for (const item of options) if (item.repair) {
         const verified = storedSynchronization(publication.storage, item.pageId, "reflowable")
         if (item.repair.sectionIds.some((id) => verified.sections.find((section) => section.sectionId === id)?.status !== "current")) throw new Error("Generated output did not establish safe source correspondence. Previous output is retained; review the section.")
       }
-      publication.publish(options.map((item) => item.pageId))
+      cachePublication.publish(options.map((item) => {
+        const row = publication.storage.getLatestNodeData("web-rendering", item.pageId)!
+        return { pageId: item.pageId, version: row.version, signature: inputSignature(row.data) }
+      }), () => { validate(); publication.publish(options.map((item) => item.pageId)) })
       return results.map((result, index) => ({ ...result, version: storage.getLatestNodeData("web-rendering", options[index].pageId)!.version }))
     } finally { storage.close() }
   })
@@ -122,6 +155,7 @@ export async function reRenderPages(options: ReRenderOptions[]): Promise<ReRende
 
 async function reRenderAdmittedPage(
   options: ReRenderOptions, publication: ReturnType<typeof createStoryboardPublication>, capturedEngine: PromptEngine,
+  writeCache: ReturnType<typeof createRenderCachePublication>["write"],
 ): Promise<ReRenderResult> {
   const { label, pageId, sectionIndex, prompt, booksDir, promptsDir, webAssetsDir, configPath, credentials } = options
 
@@ -188,6 +222,7 @@ async function reRenderAdmittedPage(
         modelId,
         cacheDir,
         forceFresh: true,
+        writeCache,
         promptEngine,
         onLog: (entry) => storage.appendLlmLog(entry),
         providerCredentials: credentials,

@@ -253,7 +253,16 @@ export function createDebugRoutes(
 
     const db = openBookDb(dbPath)
     try {
-      const row = readCurrentNodeRow(db, "accessibility-assessment", "book")
+      // Invalidation makes evidence old, not nonexistent. Historical verdicts
+      // remain readable; only a new assessment creates a new result.
+      const requested = c.req.query("assessment")
+      if (requested && requested.length > 255) throw new HTTPException(400, { message: "Invalid assessment reference" })
+      const rows = db.all("SELECT version, data FROM node_data WHERE node = ? AND item_id = ? AND data IS NOT NULL ORDER BY version DESC", ["accessibility-assessment", "book"]) as Array<{ version: number; data: string }>
+      const active = requested ? null : readCurrentNodeRow(db, "accessibility-assessment", "book")
+      const row = active ?? rows.find((entry) => {
+        const value = JSON.parse(entry.data)
+        return value && (!requested || value.generatedAt === requested)
+      })
 
       if (!row) {
         return c.json({ version: null, assessment: null })

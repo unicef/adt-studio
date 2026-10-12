@@ -82,3 +82,22 @@ describe("CLI sign-in requests", () => {
     }
   })
 })
+
+it("Validation rerender sends stored provider credentials as headers and keeps them out of the request body", async () => {
+  const { api } = await import("./client.js")
+  mockedIsElectron.mockReturnValue(false)
+  localStorage.setItem("validation-test-provider-key", "test-secret")
+  const spy = vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+    const data = String(url).endsWith("/providers") ? { providers: [{ manifest: {
+      id: "openai", credentialFields: [{ key: "apiKey", header: "X-OpenAI-Key", storageKey: "validation-test-provider-key", legacyStorageKeys: [] }],
+    } }] } : { taskId: "accepted" }
+    return new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json" } })
+  })
+  try {
+    await api.submitValidationRepair("book", "page", { requestId: crypto.randomUUID(), sectionId: "stable", baseVersion: 1, renderingVersion: 2,
+      finding: { kind: "violation", assessmentVersion: 3, ruleId: "heading-order" } })
+    const [url, init] = spy.mock.calls.find(([url]) => String(url).endsWith("/render-tasks"))!
+    expect(new Headers(init?.headers).get("X-OpenAI-Key")).toBe("test-secret")
+    expect(String(url)).not.toContain("test-secret"); expect(init?.body).not.toContain("test-secret")
+  } finally { spy.mockRestore(); localStorage.removeItem("validation-test-provider-key") }
+})

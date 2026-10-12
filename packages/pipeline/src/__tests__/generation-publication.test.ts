@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { afterEach, expect, it } from "vitest"
+import { afterEach, expect, it, vi } from "vitest"
 import { createBookStorage, withBookWriter } from "@adt/storage"
 import { createGenerationPublication } from "../generation-publication.js"
 import { assertPackageReadable, newPackageAttempt, publishPackageAttempt, recoverPackagePublication, PACKAGE_JOURNAL } from "../packaging/publication.js"
@@ -114,4 +114,84 @@ it("page checkpoints publish only the chosen page and roll back a failed transac
     expect(storage.getAllNodeVersions("image-filtering", "pg001")).toHaveLength(before.length + 1)
     expect(storage.getLatestNodeData("image-filtering", "pg002")).not.toBeNull()
   } finally { storage.close() }
+})
+
+
+it.each([false, true])("package recovery follows SQLite evidence across process death (committed=%s)", { timeout: 30000 }, async (committed) => {
+  const { spawnSync } = await import("node:child_process")
+  const { pathToFileURL } = await import("node:url")
+  const { storage, book } = fixture()
+  storage.putNodeData("accessibility-assessment", "book", { artifactHash: "a".repeat(64), verdict: "old" })
+  storage.close()
+  fs.mkdirSync(path.join(book, "adt")); fs.writeFileSync(path.join(book, "adt/index.html"), "previous")
+  const repository = path.resolve(import.meta.dirname, "../../../..")
+  const child = spawnSync(process.execPath, ["--input-type=module", "-e", `
+    import fs from 'node:fs'; import path from 'node:path';
+    import { withBookWriter, createBookStorage } from ${JSON.stringify(pathToFileURL(path.join(repository, "packages/storage/dist/index.js")).href)};
+    import { newPackageAttempt, publishPackageAttempt } from ${JSON.stringify(pathToFileURL(path.join(repository, "packages/pipeline/dist/packaging/publication.js")).href)};
+    const book = ${JSON.stringify(book)};
+    withBookWriter(book, () => {
+      const storage = createBookStorage('book', path.dirname(book));
+      const attempt = newPackageAttempt(book);
+      fs.mkdirSync(path.join(attempt, 'adt')); fs.writeFileSync(path.join(attempt, 'adt/index.html'), 'replacement');
+      publishPackageAttempt(book, attempt, () => {
+        if (${committed}) storage.transaction(() => storage.putNodeData('accessibility-assessment', 'book', { artifactHash: 'b'.repeat(64), verdict: 'new' }));
+        process.kill(process.pid, 'SIGKILL');
+      }, { version: 2, artifactHash: 'b'.repeat(64) });
+    });
+  `], { encoding: "utf8", timeout: 15000 })
+  expect(child.signal, child.stderr).toBe("SIGKILL")
+  expect(() => assertPackageReadable(book)).toThrow("BOOK_BUSY")
+  withBookWriter(book, () => recoverPackagePublication(book))
+  expect(fs.readFileSync(path.join(book, "adt/index.html"), "utf8")).toBe(committed ? "replacement" : "previous")
+  const reopened = createBookStorage("book", path.dirname(book))
+  try {
+    expect(reopened.getAllNodeVersions("accessibility-assessment", "book")).toHaveLength(committed ? 2 : 1)
+    expect(reopened.getAllNodeVersions("accessibility-assessment", "book")[0].data).toEqual({ artifactHash: "a".repeat(64), verdict: "old" })
+  } finally { reopened.close() }
+})
+
+it("postcommit journal cleanup failure never rolls the bundle back or reports committed evidence as failed", () => {
+  const { storage, book } = fixture()
+  try { withBookWriter(book, () => {
+    fs.mkdirSync(path.join(book, "adt")); fs.writeFileSync(path.join(book, "adt/index.html"), "previous")
+    const attempt = newPackageAttempt(book)
+    fs.mkdirSync(path.join(attempt, "adt")); fs.writeFileSync(path.join(attempt, "adt/index.html"), "replacement")
+    const unlink = fs.unlinkSync
+    const spy = vi.spyOn(fs, "unlinkSync").mockImplementation((file) => {
+      if (String(file).endsWith(PACKAGE_JOURNAL)) throw new Error("injected journal cleanup failure")
+      unlink(file)
+    })
+    try {
+      expect(() => publishPackageAttempt(book, attempt, () => {
+        storage.putNodeData("accessibility-assessment", "book", { artifactHash: "b".repeat(64) })
+      }, { version: 1, artifactHash: "b".repeat(64) })).not.toThrow()
+      expect(fs.readFileSync(path.join(book, "adt/index.html"), "utf8")).toBe("replacement")
+      expect(() => assertPackageReadable(book)).toThrow("BOOK_BUSY")
+    } finally { spy.mockRestore() }
+    recoverPackagePublication(book)
+    expect(fs.readFileSync(path.join(book, "adt/index.html"), "utf8")).toBe("replacement")
+    expect(fs.readFileSync(path.join(attempt, "previous/index.html"), "utf8")).toBe("previous")
+  }) } finally { storage.close() }
+})
+
+
+it("filesystem-only publication still fails and restores its predecessor when the intent cannot clear", () => {
+  const { storage, book } = fixture()
+  try { withBookWriter(book, () => {
+    fs.mkdirSync(path.join(book, "adt")); fs.writeFileSync(path.join(book, "adt/index.html"), "previous")
+    const attempt = newPackageAttempt(book)
+    fs.mkdirSync(path.join(attempt, "adt")); fs.writeFileSync(path.join(attempt, "adt/index.html"), "replacement")
+    const unlink = fs.unlinkSync
+    let fail = true
+    const spy = vi.spyOn(fs, "unlinkSync").mockImplementation((file) => {
+      if (fail && String(file).endsWith(PACKAGE_JOURNAL)) { fail = false; throw new Error("injected cleanup failure") }
+      unlink(file)
+    })
+    try {
+      expect(() => publishPackageAttempt(book, attempt)).toThrow("cleanup failure")
+      expect(fs.readFileSync(path.join(book, "adt/index.html"), "utf8")).toBe("previous")
+    } finally { spy.mockRestore() }
+    expect(() => assertPackageReadable(book)).not.toThrow()
+  }) } finally { storage.close() }
 })

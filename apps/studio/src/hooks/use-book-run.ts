@@ -528,7 +528,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
     // Handle ad-hoc task events (image generation, packaging, etc.)
     es.addEventListener("task", (e) => {
-      const d = JSON.parse(e.data) as { type: string; taskId: string; kind?: string; description?: string; pageId?: string; url?: string; error?: string; result?: unknown; message?: string; percent?: number }
+      const d = JSON.parse(e.data) as { type: string; task?: TaskInfoResponse; taskId: string; kind?: string; description?: string; pageId?: string; url?: string; error?: string; result?: unknown; message?: string; percent?: number }
       const tasksKey = bookTasksKey(label)
       const taskBeforeEvent = queryClient
         .getQueryData<{ tasks: TaskInfoResponse[] }>(tasksKey)
@@ -540,7 +540,14 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         const tasks = [...(old?.tasks ?? [])]
         const idx = tasks.findIndex((t) => t.taskId === d.taskId)
 
-        if (d.type === "task-start") {
+        if (d.type === "task-queued" && d.task) {
+          const queued = d.task
+          if (!tasks.some((task) => task.taskId === queued.taskId)) tasks.push(queued)
+        } else if (d.type === "task-cancelled") {
+          if (idx !== -1) tasks[idx] = { ...tasks[idx], status: "cancelled", completedAt: Date.now() }
+          queryClient.invalidateQueries({ queryKey: tasksKey })
+        } else if (d.type === "task-start") {
+          if (idx !== -1) tasks[idx] = { ...tasks[idx], status: "running", startedAt: Date.now() }
           if (idx === -1) {
             tasks.push({
               taskId: d.taskId,

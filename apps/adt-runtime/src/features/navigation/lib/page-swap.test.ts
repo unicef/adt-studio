@@ -644,3 +644,15 @@ describe("prefetchPage", () => {
     expect(document.head.querySelector('link[rel="prefetch"]')).toBeNull()
   })
 })
+
+
+it("updates the tested-artifact identity when Preview soft-navigates into a newer package", async () => {
+  const prior = document.createElement("meta")
+  prior.name = "adt-validation-artifact"; prior.content = "artifact-a"; document.head.appendChild(prior)
+  const priorOwner = document.createElement("meta")
+  priorOwner.name = "adt-validation-page"; priorOwner.content = "pg001"; document.head.appendChild(priorOwner)
+  mockFetchOnce(pageHtml({ sectionId: "pg002_sec001", title: "New package" }).replace("<head>", '<head><meta name="adt-validation-artifact" content="artifact-b"><meta name="adt-validation-page" content="pg009">'))
+  expect(await swapToPage("http://localhost/book/pg002_sec001.html")).toBe("ok")
+  expect([...document.querySelectorAll('meta[name="adt-validation-artifact"]')].map((node) => node.getAttribute("content"))).toEqual(["artifact-b"])
+  expect([...document.querySelectorAll('meta[name="adt-validation-page"]')].map((node) => node.getAttribute("content"))).toEqual(["pg009"])
+})

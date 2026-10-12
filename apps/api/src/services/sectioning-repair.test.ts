@@ -169,3 +169,19 @@ describe("stable targeted repair at the real provider transport", () => {
   })
 
 })
+
+it("a selected-section repair cannot clear the whole-book mode barrier or fail after commit on that metadata write", async () => {
+  const lifecycle = path.join(booksDir, label, ".sectioning-lifecycle.json")
+  const before = fs.readFileSync(lifecycle, "utf8"), rename = fs.renameSync.bind(fs)
+  const spy = vi.spyOn(fs, "renameSync").mockImplementation((from, to) => {
+    if (String(to) === lifecycle) throw new Error("Injected lifecycle metadata write failure")
+    return rename(from, to)
+  })
+  try {
+    fetchMock.mockResolvedValueOnce(repairedResponse())
+    const result = await reRenderPage(options())
+    expect(result.version).toBe(3)
+    expect(fs.readFileSync(lifecycle, "utf8")).toBe(before)
+    expect(spy.mock.calls.some(([, to]) => String(to) === lifecycle)).toBe(false)
+  } finally { spy.mockRestore() }
+})

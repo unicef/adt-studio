@@ -15,6 +15,8 @@ export function bookWriterMiddleware(booksDir: string): MiddlewareHandler {
     // Run submission is queued by StageService. Cancellation/decisions must
     // remain available while a writer holds the lease, including a slow LLM.
     if (suffix.startsWith("/stages") || suffix.startsWith("/tasks")) return next()
+    // This handler performs durable duplicate lookup before shared task admission.
+    if (c.req.method === "POST" && /^\/pages\/[^/]+\/render-tasks$/.test(suffix)) return next()
     let bookDir: string
     try { bookDir = resolveBookPaths(label, booksDir).bookDir }
     catch { throw new HTTPException(400, { message: "Invalid book label" }) }

@@ -40,6 +40,7 @@ export function stampGeneratedRendering(rendering: WebRenderingOutput, source: P
  * reference must all agree before the classifier receives a generated proof. */
 export function classifyStoredSectioning(input: {
   pageId: string
+  purpose?: "synchronization" | "validation"
   source: { version: number; data: unknown }
   proposed?: PageSectioningOutput
   rendering: { version: number; data: unknown } | null
@@ -88,6 +89,11 @@ export function classifyStoredSectioning(input: {
     // unambiguous owned identities; legacy bytes are never presumed unrelated.
     const ids = rendering.success ? rendering.data.sections.map(renderedSectionId) : []
     const missing = matches.length === 0 && (!input.rendering || (rendering.success && ids.every((id) => !!id && input.sectionOwners[id]?.length === 1 && input.sectionOwners[id][0] === input.pageId) && new Set(ids).size === ids.length))
+    // Validation repair needs no semantic drift. It still requires the same
+    // retained, exact generated proof; a manual Keep is never replacement consent.
+    if (input.purpose === "validation") return { ...result, action:
+      input.layout === "reflowable" && current && owned && !custom && generated && matches.length === 1
+        ? "repair" as const : "review" as const }
     const resolved = result.status === "current" || (!!input.proposed && result.status === "text-patched")
     return { ...result,
       ...(!input.proposed && result.status === "text-patched" ? { status: "text-drift" as const, diagnostics: ["Stored rendering has not incorporated the current source text."] } : {}),

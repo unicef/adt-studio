@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { ValidationArtifactSnapshot } from "./validation-repair.js"
 
 export const AccessibilityNodeResult = z.object({
   target: z.array(z.string()),
@@ -54,6 +55,8 @@ export const BrowserAccessibilityAssessmentSummary = AccessibilityAssessmentSumm
 export type BrowserAccessibilityAssessmentSummary = z.infer<typeof BrowserAccessibilityAssessmentSummary>
 
 export const AccessibilityAssessmentOutput = z.object({
+  artifact: ValidationArtifactSnapshot.optional(),
+  artifactHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   generatedAt: z.string(),
   tool: z.literal("axe-core"),
   runOnlyTags: z.array(z.string()),

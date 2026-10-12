@@ -1,3 +1,4 @@
+import type { ValidationRepairAvailability, ValidationRepairTarget, ValidationRepairRequest } from "@adt/types"
 import { localizeExtractionError } from "@/lib/extraction-errors"
 import { i18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
@@ -438,6 +439,8 @@ export interface StageRunStatus {
 }
 
 export interface PageSummarySection {
+  /** False for synthesized display-only IDs in legacy data. */
+  hasStableId?: boolean
   sectionId: string
   sectionIndex: number
   sectionType: string
@@ -1015,7 +1018,7 @@ export function getBookFontFileUrl(label: string, fontId: string, file: string):
 export interface TaskInfoResponse {
   taskId: string
   kind: string
-  status: "queued" | "running" | "completed" | "failed"
+  status: "queued" | "running" | "completed" | "failed" | "cancelled"
   description: string
   pageId?: string
   url?: string
@@ -1023,6 +1026,8 @@ export interface TaskInfoResponse {
   result?: unknown
   startedAt?: number
   completedAt?: number
+  cancellable?: boolean
+  interrupted?: boolean
   progressMessage?: string
   progressPercent?: number
 }
@@ -1671,8 +1676,8 @@ export const api = {
   getActiveConfig: (label: string) =>
     request<ActiveConfigResponse>(`/books/${label}/debug/config`),
 
-  getAccessibilityAssessment: (label: string) =>
-    request<AccessibilityAssessmentResponse>(`/books/${label}/debug/accessibility`),
+  getAccessibilityAssessment: (label: string, assessment?: string) =>
+    request<AccessibilityAssessmentResponse>(`/books/${label}/debug/accessibility${assessment ? `?assessment=${encodeURIComponent(assessment)}` : ""}`),
 
   getReviewerValidationCatalog: (label: string) =>
     request<ReviewerValidationCatalogResponse>(`/books/${label}/validation/catalog`),
@@ -2043,15 +2048,23 @@ export const api = {
   // server with no task service). When it returns a taskId the warnings ride the
   // task result instead. Either way the caller must surface them — a short
   // bundle otherwise looks like a clean one.
-  packageAdt: (label: string) =>
+  packageAdt: (label: string, refreshValidation = false) =>
     request<{
       status: string
       label: string
       taskId?: string
       version?: string
       warnings?: PackagingWarning[]
-    }>(`/books/${label}/package-adt`, { method: "POST" }),
+    }>(`/books/${label}/package-adt${refreshValidation ? "?refreshValidation=true" : ""}`, { method: "POST" }),
 
+  getValidationRepairAvailability: (label: string, pageId: string, target: ValidationRepairTarget) =>
+    request<ValidationRepairAvailability>(`/books/${encodeURIComponent(label)}/pages/${encodeURIComponent(pageId)}/render-tasks/availability?target=${encodeURIComponent(JSON.stringify(target))}`),
+  submitValidationRepair: async (label: string, pageId: string, body: ValidationRepairRequest) =>
+    request<{ taskId: string }>(`/books/${encodeURIComponent(label)}/pages/${encodeURIComponent(pageId)}/render-tasks`, { method: "POST", headers: await buildApiHeaders(""), body: JSON.stringify(body), signal: AbortSignal.timeout(30_000) }),
+  getTaskRequest: (label: string, requestId: string) =>
+    request<{ task: TaskInfoResponse | null }>(`/books/${encodeURIComponent(label)}/tasks/requests/${encodeURIComponent(requestId)}`),
+  cancelTask: (label: string, taskId: string) =>
+    request<{ status: string }>(`/books/${encodeURIComponent(label)}/tasks/${encodeURIComponent(taskId)}/cancel`, { method: "POST" }),
   getTasks: (label: string) =>
     request<{ tasks: TaskInfoResponse[] }>(`/books/${label}/tasks`),
 

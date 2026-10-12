@@ -10,7 +10,7 @@ vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useLingui: () => ({ t: (strings: TemplateStringsArray, ...values: unknown[]) => strings.map((s, i) => s + (values[i] ?? "")).join("") }),
 }))
-vi.mock("@tanstack/react-router", () => ({ Link: ({ children }: { children: React.ReactNode }) => <a href="/storyboard">{children}</a> }))
+vi.mock("@tanstack/react-router", () => ({ useSearch: () => ({}), useNavigate: () => vi.fn(), Link: ({ children }: { children: React.ReactNode }) => <a href="/storyboard">{children}</a> }))
 vi.mock("@/hooks/use-pages", () => ({
   usePage: () => ({ data: state.page, isLoading: false }),
   usePages: () => ({ data: [{ pageId: "pg001", pageNumber: 1, hasRendering: true, sectionCount: state.page?.sectioningTree?.sections.length ?? 0 }], isLoading: false }),

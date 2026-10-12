@@ -125,6 +125,7 @@ export {
   TaskStatus,
   TaskEvent,
   TaskInfo,
+  TaskLedgerRecord,
 } from "./task.js"
 
 export { BookLabel, BookSummary, BookDetail, parseBookLabel } from "./book.js"
@@ -438,6 +439,8 @@ export { TypographyStyle, BookTypography, DEFAULT_TYPOGRAPHY } from "./typograph
 export {
   ReviewerValidationStatus,
   ReviewerValidationFieldType,
+  ValidationFixStage,
+  ValidationNavigationContext,
   ReviewerValidationIdentificationField,
   ReviewerValidationInstruction,
   ReviewerValidationCriterion,
@@ -589,9 +592,11 @@ export {
   SectioningSyncCandidate,
   StoryboardSaveRequest,
   StoryboardSaveResponse,
-  SectioningRepairRequest,
+  SectioningRepairRequest, RenderCachePublication,
 } from "./sectioning-sync.js"
 
 export { LLMErrorClass, LLMErrorClassification, LLMCallDiagnostics } from "./llm-error.js"
 
 export { PageRecoverySummary } from "./page-error.js"
+
+export * from "./validation-repair.js"

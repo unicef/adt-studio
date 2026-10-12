@@ -20,6 +20,7 @@ import {
   readCache,
   writeCache,
   bustCache,
+  assertCacheReadable,
 } from "./cache.js"
 import { sanitizeMessages, type LlmLogEntry } from "./log.js"
 import { createLogger, type LogLevel } from "./logger.js"
@@ -58,6 +59,8 @@ export interface CreateLLMModelOptions {
   cacheDir?: string
   /** Bypass reads while publishing only validated output under ordinary keys. */
   forceFresh?: boolean
+  /** Host publication may stage validated cache writes until its output commits. */
+  writeCache?: (cacheDir: string, hash: string, result: unknown) => void
   promptEngine?: PromptEngine
   onLog?: (entry: LlmLogEntry) => void
   rateLimiter?: RateLimiter
@@ -111,6 +114,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
 
       const context = opts.context ?? {}
       const forceFresh = opts.forceFresh ?? options.forceFresh ?? false
+      if (cacheDir) assertCacheReadable(cacheDir)
       // Either the per-call or model-level signal cancels this request.
       const signals = [opts.signal, modelSignal].filter((s): s is AbortSignal => !!s)
       const externalSignal = signals.length > 1 ? AbortSignal.any(signals) : signals[0]
@@ -341,8 +345,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           validated = true
           // Validated fresh output replaces ordinary keys; failed fresh calls retain them.
           if (cacheDir && (!cacheHit || cachedHash !== hash)) {
-            writeCache(cacheDir, hash, result)
-            if (forceFresh && originalHash !== hash) writeCache(cacheDir, originalHash, result)
+            (options.writeCache ?? writeCache)(cacheDir, hash, result)
+            if (forceFresh && originalHash !== hash) (options.writeCache ?? writeCache)(cacheDir, originalHash, result)
           }
           record({ success: true, outcome: "success" }, result)
           log.info(`[LLM] ${label} | ${cacheHit ? "cached" : "ok"} | ${Date.now() - t0}ms`)

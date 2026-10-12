@@ -73,6 +73,9 @@ export default [
             // Form field name constants (e.g. const RADIO_NAME = "renderStrategy")
             "RADIO_NAME",
             "radioName",
+            // Internal Select sentinel values; labels are translated separately.
+            "AUTOMATIC_FIX_STAGE",
+            "INHERIT_FIX_STAGE",
             // Image processing preview pane focus key (ImageProcessingPreviewFocus — not user-visible)
             "previewFocus",
             // Day.js unit / format tokens are API identifiers, never UI copy.

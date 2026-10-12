@@ -346,13 +346,14 @@ describe("Debug routes", () => {
       expect(await res.json()).toEqual({ version: null, assessment: null })
     })
 
-    it("hides invalidated assessment history until its retained version is restored", async () => {
+    it("retains invalidated assessment history without rewriting its verdict or activating it", async () => {
       const storage = createBookStorage(label, tmpDir)
       try {
         storage.clearNodesByType(["accessibility-assessment"])
         const cleared = await app.request(`/api/books/${label}/debug/accessibility`)
         expect(cleared.status).toBe(200)
-        expect(await cleared.json()).toEqual({ version: null, assessment: null })
+        expect(await cleared.json()).toMatchObject({ version: 1, assessment: { summary: { violationCount: 1 } } })
+        expect(storage.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
         expect(storage.getAllNodeVersions("accessibility-assessment", "book")).toHaveLength(2)
 
         expect(storage.setCurrentNodeVersion("accessibility-assessment", "book", 1)).toBe(true)

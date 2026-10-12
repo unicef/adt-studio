@@ -21,10 +21,10 @@ export function usePipelineStats(
   })
 }
 
-export function useAccessibilityAssessment(label: string) {
+export function useAccessibilityAssessment(label: string, assessment?: string) {
   return useQuery({
-    queryKey: ["debug", "accessibility", label],
-    queryFn: () => api.getAccessibilityAssessment(label),
+    queryKey: ["debug", "accessibility", label, assessment],
+    queryFn: () => api.getAccessibilityAssessment(label, assessment),
     enabled: !!label,
   })
 }

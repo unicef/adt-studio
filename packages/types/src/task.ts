@@ -15,10 +15,29 @@ export const TaskKind = z.enum([
 ])
 export type TaskKind = z.infer<typeof TaskKind>
 
-export const TaskStatus = z.enum(["queued", "running", "completed", "failed"])
+export const TaskStatus = z.enum(["queued", "running", "completed", "failed", "cancelled"])
 export type TaskStatus = z.infer<typeof TaskStatus>
 
+export const TaskInfo = z.object({
+  taskId: z.string(),
+  kind: TaskKind,
+  status: TaskStatus,
+  description: z.string(),
+  pageId: z.string().optional(),
+  url: z.string().optional(),
+  error: z.string().optional(),
+  result: z.unknown().optional(),
+  startedAt: z.number().optional(),
+  completedAt: z.number().optional(),
+  cancellable: z.boolean().optional(),
+  interrupted: z.boolean().optional(),
+})
+export type TaskInfo = z.infer<typeof TaskInfo>
+
+
 export const TaskEvent = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("task-queued"), task: TaskInfo }),
+  z.object({ type: z.literal("task-cancelled"), taskId: z.string(), kind: TaskKind, pageId: z.string().optional() }),
   z.object({
     type: z.literal("task-start"),
     taskId: z.string(),
@@ -51,16 +70,11 @@ export const TaskEvent = z.discriminatedUnion("type", [
 ])
 export type TaskEvent = z.infer<typeof TaskEvent>
 
-export const TaskInfo = z.object({
-  taskId: z.string(),
-  kind: TaskKind,
-  status: TaskStatus,
-  description: z.string(),
-  pageId: z.string().optional(),
-  url: z.string().optional(),
-  error: z.string().optional(),
-  result: z.unknown().optional(),
-  startedAt: z.number().optional(),
-  completedAt: z.number().optional(),
+/** Immutable common-task receipt/event; no credentials or executable closure. */
+export const TaskLedgerRecord = z.object({
+  requestId: z.string().uuid(),
+  fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+  owner: z.object({ pid: z.number().int().positive(), host: z.string(), runtime: z.string().uuid(), writerToken: z.string().uuid().optional() }),
+  task: TaskInfo,
 })
-export type TaskInfo = z.infer<typeof TaskInfo>
+export type TaskLedgerRecord = z.infer<typeof TaskLedgerRecord>

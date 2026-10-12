@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { writeValidationArtifact, stampValidationArtifact } from "../../../../packages/pipeline/src/validation-artifact.js"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -80,6 +81,44 @@ describe("Reviewer validation routes", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true })
   })
 
+  it("binds each explicit review to its loaded artifact, preserves old records and rejects stale Preview drafts", async () => {
+    enableReviewerValidation(configPath)
+    const storage = createBookStorage(label, tmpDir), adt = path.join(tmpDir, label, "adt")
+    const entries = [{ section_id: "pg001_sec001", href: "page.html" }]
+    fs.mkdirSync(path.join(adt, "content"), { recursive: true })
+    fs.writeFileSync(path.join(adt, "content/pages.json"), JSON.stringify(entries))
+    const publish = (content: string) => {
+      fs.writeFileSync(path.join(adt, "page.html"), `<html><head><title>Review</title></head><body>${content}</body></html>`)
+      const id = stampValidationArtifact(adt, entries)
+      writeValidationArtifact(storage, adt, entries, id)
+      return id
+    }
+    const post = (suffix: string, body: unknown) => app.request(`/api/books/${label}/validation/${suffix}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+    try {
+      const a = publish("Artifact A")
+      expect((await post("sessions", { session_id: "same-session", reviewer_name: "Reviewer" })).status).toBe(201)
+      const record = { session_id: "same-session", page_id: "pg001", section_id: "pg001_sec001", href: "page.html", artifact_id: a,
+        results: [{ criterion_id: "reading", status: "needs-changes", comment: "Keep my review" }] }
+      const first = await post("page-results", record)
+      expect(first.status, await first.clone().text()).toBe(201)
+      expect((await first.json()).record.artifact.id).toBe(a)
+      const previous = storage.getAllNodeVersions("reviewer-page-validation", "same-session:pg001:default")
+      const b = publish("Artifact B")
+      const stale = await post("page-results", record)
+      expect(stale.status).toBe(409)
+      expect(storage.getAllNodeVersions("reviewer-page-validation", "same-session:pg001:default")).toEqual(previous)
+      const next = await post("page-results", { ...record, artifact_id: b, artifact: { id: a, sections: [] } })
+      expect(next.status, await next.clone().text()).toBe(201)
+      expect((await next.json()).record.artifact.id).toBe(b)
+      const history = storage.getAllNodeVersions("reviewer-page-validation", "same-session:pg001:default")
+      expect(history).toHaveLength(2); expect(history[0]).toEqual(previous[0])
+      expect((storage.getLatestNodeData("reviewer-validation-session", "same-session")!.data as { artifact: { id: string } }).artifact.id).toBe(a)
+      // Older clients remain writable but cannot fabricate a tested snapshot.
+      expect((await post("page-results", { ...record, artifact_id: undefined, artifact: { id: b, sections: [] } })).status).toBe(201)
+      expect((storage.getLatestNodeData("reviewer-page-validation", "same-session:pg001:default")!.data as { artifact?: unknown }).artifact).toBeUndefined()
+    } finally { storage.close() }
+  })
+
   it("returns the reviewer validation catalog", async () => {
     const res = await app.request(`/api/books/${label}/validation/catalog`)
     expect(res.status).toBe(200)
@@ -139,6 +178,7 @@ describe("Reviewer validation routes", () => {
     const initial: ReviewerPageValidationRecord = {
       session_id: "session-1",
       page_id: "pg001",
+      section_id: "pg001_sec001",
       page_number: 1,
       href: "content/pages/pg001.html",
       language: "sw",
@@ -188,6 +228,7 @@ describe("Reviewer validation routes", () => {
     expect(listBody.records[0].version).toBe(2)
 
     expect(listBody.records[0].record.overall_comment).toBe("Fixed after template update.")
+    expect(listBody.records[0].record.section_id).toBe("pg001_sec001")
   })
 
   it("validates required sessionId query params for page-result listings", async () => {
@@ -240,10 +281,12 @@ describe("Reviewer validation routes", () => {
       "  sections:",
       "    - id: custom-checks",
       "      label: Custom checks",
+      "      fix_stage: sectioning",
       "      criteria:",
       "        - id: custom-criterion",
       "          label: Custom criterion",
       "          guidance: Check this custom requirement.",
+      "          fix_stage: storyboard",
       "  instructions:",
       "    - id: custom-workflow",
       "      title: Custom workflow",
@@ -265,8 +308,68 @@ describe("Reviewer validation routes", () => {
     expect(body.enabled).toBe(true)
     expect(body.pageSections).toHaveLength(1)
     expect(body.pageSections[0].id).toBe("custom-checks")
+    expect(body.pageSections[0].fix_stage).toBe("sectioning")
+    expect(body.pageSections[0].criteria[0].fix_stage).toBe("storyboard")
     expect(body.instructions[0].id).toBe("custom-workflow")
     expect(body.identificationFields).toHaveLength(1)
+  })
+
+
+  it("keeps original ownership across concurrent session saves and a catalog edit", async () => {
+    enableReviewerValidation(configPath)
+    const endpoint = `/api/books/${label}/validation/sessions`
+    const post = (body: unknown) => app.request(endpoint, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    })
+    const initial = await (await post({ session_id: "immutable", reviewer_name: "Original" })).json()
+    const changed = structuredClone(initial.session)
+    changed.catalog_snapshot.pageSections[0].fix_stage = "speech"
+    const replies = await Promise.all([
+      post({ ...changed, reviewer_name: "Writer one" }),
+      post({ ...changed, reviewer_name: "Writer two" }),
+    ])
+    expect(replies.map((reply) => reply.status)).toEqual([201, 201])
+    // Reopen through the HTTP read path: metadata and all versions remain.
+    const stored = await (await app.request(endpoint)).json()
+    expect(stored.sessions[0].session.catalog_snapshot).toEqual(initial.session.catalog_snapshot)
+    expect(stored.sessions[0].version).toBe(3)
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      expect(storage.getAllNodeVersions("reviewer-validation-session", "immutable")[0]?.data).toEqual(initial.session)
+      expect(storage.getLatestNodeData("metadata", "book")?.version).toBe(1)
+      expect(storage.getImageBase64("pg001_page")).toBe(Buffer.from("fake-png").toString("base64"))
+    } finally { storage.close() }
+  })
+
+  it("does not attach today's checklist to a legacy session on resave", async () => {
+    enableReviewerValidation(configPath)
+    const storage = createBookStorage(label, tmpDir)
+    storage.putNodeData("reviewer-validation-session", "legacy", { session_id: "legacy", reviewer_name: "Legacy" })
+    storage.close()
+    const response = await app.request(`/api/books/${label}/validation/sessions`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: "legacy", reviewer_name: "Legacy updated" }),
+    })
+    expect(response.status).toBe(201)
+    expect((await response.json()).session.catalog_snapshot).toBeUndefined()
+  })
+
+  it("rejects invalid checklist and answer ownership without persisting records", async () => {
+    enableReviewerValidation(configPath)
+    const catalog = await (await app.request(`/api/books/${label}/validation/catalog`)).json()
+    catalog.pageSections[0].fix_stage = "https://evil.example"
+    const badSession = await app.request(`/api/books/${label}/validation/sessions`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: "invalid", reviewer_name: "Reviewer", catalog_snapshot: catalog }),
+    })
+    expect(badSession.status).toBe(400)
+    const badRecord = await app.request(`/api/books/${label}/validation/page-results`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: "invalid", page_id: "pg001", href: "pg001.html", results: [], fix_stage: "bad" }),
+    })
+    expect(badRecord.status).toBe(400)
+    expect((await (await app.request(`/api/books/${label}/validation/sessions`)).json()).sessions).toEqual([])
+    expect((await (await app.request(`/api/books/${label}/validation/page-results?sessionId=invalid`)).json()).records).toEqual([])
   })
 
 })

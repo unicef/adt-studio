@@ -53,7 +53,7 @@ function isPageScopedHeadNode(el: Element, source: "current" | "incoming"): bool
   if (tag === "style") return source === "incoming" || el.hasAttribute(PAGE_HEAD_ATTR)
   if (tag === "meta") {
     const name = el.getAttribute("name")
-    return name === "title-id" || name === "page-section-id" || name === "viewport"
+    return name === "adt-validation-artifact" || name === "adt-validation-page" || name === "title-id" || name === "page-section-id" || name === "viewport"
   }
   if (tag === "link") {
     const rel = el.getAttribute("rel")

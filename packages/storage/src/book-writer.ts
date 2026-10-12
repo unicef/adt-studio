@@ -21,6 +21,13 @@ const canonical = (dir: string) => {
 }
 const lockName = ".book-writer.json"
 
+/** Read-only ownership evidence for operational receipts. Missing ownership is
+ * not permission to execute: every writer still acquires the common lease. */
+export function readBookWriterOwner(bookDir: string): import("@adt/types").BookWriterOwner | null {
+  try { return BookWriterOwner.parse(JSON.parse(fs.readFileSync(path.join(bookDir, lockName), "utf8"))) }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error }
+}
+
 export function ownsBookWriter(bookDir: string): boolean {
   const lease = context.getStore()?.get(canonical(bookDir))
   return !!lease && lease.references > 0

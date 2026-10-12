@@ -57,6 +57,7 @@ export async function runPackageResume(label: string, options: StageRunOptions, 
     options.signal?.throwIfAborted()
     const current = read()
     if (current.signature !== before.signature || current.contentHash !== before.contentHash) throw new Error("Packaging inputs changed during generation")
+    const expectedVersion = Math.max(0, ...storage.getAllNodeVersions("accessibility-assessment", "book").map((row) => row.version)) + 2
     publishPackageAttempt(bookDir, attempt, () => storage.transaction(() => {
       options.signal?.throwIfAborted()
       const version = storage.putNodeData("accessibility-assessment", "book", assessment)
@@ -64,7 +65,7 @@ export async function runPackageResume(label: string, options: StageRunOptions, 
       storage.putNodeData("accessibility-assessment", "book", { ...assessment,
         generationEvidence: { source: "ai", input: { signature: before.signature, contentHash: output.contentHash, references: [{ node: "accessibility-assessment", itemId: "book", version }] } },
       })
-    }))
+    }), { version: expectedVersion, artifactHash: assessment.artifactHash! })
     events.forEach((event) => progress.emit(event))
     progress.emit({ type: "stage-complete", stage: "package" })
   } finally { storage.close() }

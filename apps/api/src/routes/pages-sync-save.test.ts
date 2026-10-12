@@ -415,13 +415,20 @@ describe("server-owned atomic synchronization Save", () => {
     expect(current.rendering).toEqual(before.rendering)
     expect(current.sectioningTree.sections[0].nodes[0].children![0].text).toBe("Semantic only ___")
     expect(withStorage((db) => db.getAllNodeVersions("fixed-layout-sectioning", pageId))).toEqual(positioned)
+    expect(fs.readFileSync(path.join(root, label, "adt", "pg001_sec001.html"), "utf8")).toBe(beforePackage.pg001_sec001)
     const afterPreview = await preview("pg001_sec001")
     const afterPackage = await packaged()
     for (const html of [beforePreview, afterPreview, beforePackage.pg001_sec001, afterPackage.pg001_sec001]) {
       expect(html).toContain("Positioned original")
       expect(html).not.toContain("Semantic only")
     }
-    expect(afterPackage.pg001_sec001).toBe(beforePackage.pg001_sec001)
+    const artifactMeta = /<meta name="adt-validation-artifact" content="([a-f0-9-]{36})">/
+    const oldArtifact = beforePackage.pg001_sec001.match(artifactMeta)?.[1]
+    const newArtifact = afterPackage.pg001_sec001.match(artifactMeta)?.[1]
+    expect(oldArtifact).toBeTruthy()
+    expect(newArtifact).toBeTruthy()
+    expect(newArtifact).not.toBe(oldArtifact)
+    expect(afterPackage.pg001_sec001.replace(artifactMeta, "")).toBe(beforePackage.pg001_sec001.replace(artifactMeta, ""))
   })
   it("rejects submitted duplicate identities atomically without blessing a client sync flag", async () => {
     const before = rows()

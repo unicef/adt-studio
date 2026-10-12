@@ -84,3 +84,11 @@ export const SectioningRepairRequest = z.object({
   sectionIds: z.array(z.string().min(1)).min(1).refine((ids) => new Set(ids).size === ids.length, "Duplicate section identities"),
 })
 export type SectioningRepairRequest = z.infer<typeof SectioningRepairRequest>
+
+/** Common rendering/cache publication recovery, not a Validation job record. */
+export const RenderCachePublication = z.object({
+  version: z.literal(1),
+  attemptId: z.string().uuid(),
+  entries: z.array(z.object({ hash: z.string().regex(/^[a-f0-9]{64}$/), existed: z.boolean() })),
+  renderings: z.array(z.object({ pageId: z.string().min(1), version: z.number().int().positive(), signature: z.string().regex(/^[a-f0-9]{64}$/) })).min(1),
+})

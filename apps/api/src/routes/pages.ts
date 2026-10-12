@@ -1,3 +1,5 @@
+import { ValidationRepairRequest, ValidationRepairTarget } from "@adt/types"
+import { validationRepairAvailability, assertValidationRepair } from "../services/validation-repair.js"
 import { StoryboardSaveRequest, SectioningRepairRequest, AuthoredSaveGuard } from "@adt/types"
 import { assertAuthoredIdle } from "../services/authored-output-service.js"
 import { captureOutputReferences } from "@adt/pipeline"
@@ -123,6 +125,8 @@ function getSharedScreenshotRenderer(): Promise<ScreenshotRenderer> {
 }
 
 interface PageSummarySection {
+  /** False for synthesized display-only IDs in legacy data. */
+  hasStableId?: boolean
   sectionId: string
   sectionIndex: number
   sectionType: string
@@ -969,6 +973,7 @@ export function createPageRoutes(
             const sectionText = collectText(s.nodes, { skipPruned: false })
             return {
               sectionId,
+              hasStableId: typeof s.sectionId === "string" && s.sectionId.length > 0,
               sectionIndex: i,
               sectionType: s.sectionType ?? "",
               // Flag activities by section type (covers types with no fixed
@@ -1625,6 +1630,49 @@ export function createPageRoutes(
         (rendering) => saveAuthoredImageAlts(storage, pageId, rendering, outputs),
         { bookDir: storage.bookDir!, promptsDir, configPath, promptOverridesDir: resolvePromptOverridesDir(booksDir) }))
     } finally { storage.close() }
+  })
+
+  // A finding is an admission context for the common renderer, not a second
+  // rendering engine. Durable request lookup happens before writer acquisition.
+  app.get("/books/:label/pages/:pageId/render-tasks/availability", (c) => {
+    const label = parseBookLabel(c.req.param("label")), pageId = c.req.param("pageId")
+    if (!fs.existsSync(getDbPath(label, booksDir))) throw new HTTPException(404, { message: "Book not found" })
+    let body: unknown
+    try { body = JSON.parse(c.req.query("target") ?? "null") } catch { throw new HTTPException(400, { message: "Invalid finding reference" }) }
+    const target = ValidationRepairTarget.safeParse(body)
+    if (!target.success) throw new HTTPException(400, { message: "Invalid finding reference" })
+    const storage = createBookStorage(label, booksDir)
+    try { return c.json(validationRepairAvailability(storage, pageId, target.data, loadBookConfig(label, booksDir, configPath))) }
+    finally { storage.close() }
+  })
+
+  app.post("/books/:label/pages/:pageId/render-tasks", async (c) => {
+    const label = parseBookLabel(c.req.param("label")), pageId = c.req.param("pageId")
+    if (!fs.existsSync(getDbPath(label, booksDir))) throw new HTTPException(404, { message: "Book not found" })
+    const parsed = ValidationRepairRequest.safeParse(await c.req.json())
+    if (!parsed.success) throw new HTTPException(400, { message: "Invalid targeted rendering request" })
+    if (!taskService?.getRequest) throw new HTTPException(503, { message: "Durable rendering tasks are unavailable; use safe editor navigation." })
+    const request = parsed.data
+    const fingerprint = inputSignature({ pageId, ...request })
+    const accepted = taskService.getRequest(label, request.requestId, fingerprint)
+    if (accepted) return c.json({ taskId: accepted.taskId })
+    const credentials = readProviderCredentials(c)
+    const recheckAdmission = () => {
+      const storage = createBookStorage(label, booksDir)
+      try { assertValidationRepair(storage, pageId, request, loadBookConfig(label, booksDir, configPath)) }
+      finally { storage.close() }
+    }
+    const result = taskService.submitTask(label, "re-render", `Rerendering ${request.sectionId} on ${pageId}`,
+      (_progress, signal) => reRenderPage({ label, pageId, repair: { baseVersion: request.baseVersion,
+        renderingVersion: request.renderingVersion, sectionIds: [request.sectionId] }, repairPurpose: "validation",
+        recheckAdmission, signal, booksDir, promptsDir, webAssetsDir, configPath, credentials }),
+      { pageId, url: `/books/${encodeURIComponent(label)}/storyboard/${encodeURIComponent(pageId)}`, cancellable: true,
+        request: { id: request.requestId, fingerprint }, admit() {
+          if (taskService.getActiveTasks(label).some((task) => task.status === "queued" || task.status === "running"))
+            throw new HTTPException(409, { message: "Wait for the active task before starting a new rendering request." })
+          recheckAdmission()
+        } })
+    return c.json(result, 202)
   })
 
   app.post("/books/:label/pages/:pageId/synchronization/repair", async (c) => {
