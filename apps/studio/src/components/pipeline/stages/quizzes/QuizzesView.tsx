@@ -1,3 +1,6 @@
+import { AuthorshipBadge } from "../../components/AuthorshipBadge"
+import { useGuardedDraft } from "@/hooks/use-guarded-draft"
+import { DraftConflict } from "../../components/DraftConflict"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   CheckCircle2,
@@ -145,17 +148,20 @@ export function QuizzesView({
     return m;
   }, [pages]);
 
-  const [pending, setPending] = useState<QuizData | null>(null);
+  const draft = useGuardedDraft<QuizData>(data?.quizzes, data?.version, async () => {
+    const latest = await api.getQuizzes(bookLabel)
+    if (!latest?.quizzes) throw new Error(t`Saved content is unavailable; your draft is retained`)
+    queryClient.setQueryData(["books", bookLabel, "quizzes"], latest)
+    return { value: latest.quizzes, version: latest.version ?? 0 }
+  })
+  const { pending, setPending } = draft
+  const [restoring, setRestoring] = useState(false);
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [lightboxPageId, setLightboxPageId] = useState<string | null>(null);
   const [confirmDeleteIdx, setConfirmDeleteIdx] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Reset pending when data changes
-  useEffect(() => {
-    setPending(null);
-  }, [data?.version]);
 
   const effective = pending ?? data?.quizzes;
   const quizzes = effective?.quizzes ?? [];
@@ -258,17 +264,19 @@ export function QuizzesView({
   );
 
   const saveQuizzes = useCallback(async () => {
+    if (draft.conflict) throw new Error(t`Resolve conflicting edits before saving`)
     if (!pending) return;
     setSaving(true);
     const minDelay = new Promise((r) => setTimeout(r, 400));
-    await api.updateQuizzes(bookLabel, pending);
+    try {
+    await api.updateQuizzes(bookLabel, { ...pending, baseVersion: draft.baseVersion });
     setPending(null);
     await queryClient.invalidateQueries({
       queryKey: ["books", bookLabel, "quizzes"],
     });
     await minDelay;
-    setSaving(false);
-  }, [pending, bookLabel, queryClient]);
+    } catch (err) { await draft.handleError(err); throw err } finally { setSaving(false) }
+  }, [pending, bookLabel, queryClient, draft]);
 
   const saveRef = useRef(saveQuizzes);
   saveRef.current = saveQuizzes;
@@ -292,15 +300,18 @@ export function QuizzesView({
           .filter((_, i) => i !== idx)
           .map((q, i) => ({ ...q, quizIndex: i })),
       };
-      await api.updateQuizzes(bookLabel, next);
+      setPending(next);
+      try {
+      await api.updateQuizzes(bookLabel, { ...next, baseVersion: draft.baseVersion });
       setPending(null);
       await queryClient.invalidateQueries({
         queryKey: ["books", bookLabel, "quizzes"],
       });
       setDeleting(false);
       setConfirmDeleteIdx(null);
+      } catch (err) { await draft.handleError(err, next) } finally { setDeleting(false); setConfirmDeleteIdx(null) }
     },
-    [pending, data?.quizzes, bookLabel, queryClient],
+    [pending, data?.quizzes, bookLabel, queryClient, draft, setPending],
   );
 
   useEffect(() => {
@@ -313,6 +324,7 @@ export function QuizzesView({
           currentVersion={data.historyVersion ?? data.version}
           currentVersionInactive={data.quizzes === null}
           saving={saving}
+          onRestoringChange={setRestoring}
           dirty={dirty}
           bookLabel={bookLabel}
           pendingLabel={pendingLabel}
@@ -501,6 +513,8 @@ export function QuizzesView({
       showRunCard={false}
       runCard={null}
     >
+      <DraftConflict error={draft.error} paths={draft.conflict?.paths} onResolve={draft.resolve} />
+
       {showPerPageEmpty ? (
         <StageEmptyState
           icon={HelpCircle}
@@ -509,7 +523,7 @@ export function QuizzesView({
           subtitle={t`Quizzes are linked to other pages in this book`}
         />
       ) : (
-        <div className="flex flex-1 flex-col">
+        <fieldset disabled={saving || restoring || deleting} className="flex min-w-0 flex-1 flex-col border-0 p-0">
           <QuizzesHintBanner />
           <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur-md">
             <div className="relative max-w-md flex-1">
@@ -627,6 +641,7 @@ export function QuizzesView({
                   )}
                 </div>
                 <div className="px-4 py-3">
+                  <AuthorshipBadge source={quiz.source} />
                   <textarea
                     value={quiz.question}
                     onChange={(e) => updateQuestion(idx, e.target.value)}
@@ -740,7 +755,7 @@ export function QuizzesView({
             </DialogContent>
           </Dialog>
           </div>
-        </div>
+        </fieldset>
       )}
     </StageContentGuard>
   );

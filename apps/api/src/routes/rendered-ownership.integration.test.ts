@@ -32,7 +32,7 @@ it("AC-4/9 keeps answers, contexts, images and packaged corrections with their o
   const before = storage(); const corrections = before.getLatestNodeData("text-catalog-translation", "fr"); const raw = before.getLatestNodeData("web-rendering", "pg001"); before.close()
   const provider = vi.fn(() => { throw new Error("Save must not generate") }); vi.stubGlobal("fetch", provider)
   const reordered = { ...sections, sections: [...sections.sections].reverse() }
-  const response = await app.request(`/books/${label}/pages/pg001/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(reordered) })
+  const response = await app.request(`/books/${label}/pages/pg001/sectioning`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...reordered, baseVersion: 1 }) })
   expect(response.status).toBe(200)
   expect(answerMap()).toEqual({ "A_ans_item-1": "sun", "B_ans_item-1": "moon" })
   const db = storage()

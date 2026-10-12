@@ -1440,6 +1440,9 @@ msgstr "Alphabétique"
 msgid "Already handed out"
 msgstr "Déjà distribuées"
 
+msgid "Also regenerate these pages and replace their saved content"
+msgstr "Régénérer aussi ces pages et remplacer leur contenu enregistré"
+
 msgid "Among the Stars"
 msgstr "Parmi les étoiles"
 
@@ -2254,6 +2257,9 @@ msgstr "Changer l'image de ce terme"
 msgid "Changes detected"
 msgstr "Modifications détectées"
 
+msgid "Changes not saved"
+msgstr "Modifications non enregistrées"
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Changer les polices affecte le rendu des pages — relancez le Storyboard et l'Export pour appliquer les nouvelles polices."
 
@@ -2611,6 +2617,12 @@ msgstr "Configuré sur le serveur"
 msgid "Confirm merge"
 msgstr "Confirmer la fusion"
 
+msgid "Conflicting changes detected"
+msgstr "Modifications en conflit détectées"
+
+#~ msgid "Conflicting fields:"
+#~ msgstr "Champs en conflit :"
+
 msgid "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 msgstr "Connectez les moteurs qui exécutent le pipeline et narrent les livres. Les clés restent sur cette machine ; les fournisseurs CLI réutilisent la connexion déjà présente."
 
@@ -2772,6 +2784,12 @@ msgstr "Réponse correcte (alternatives séparées par |)"
 msgid "Correct the metadata extracted from the document."
 msgstr "Corrigez les métadonnées extraites du document."
 
+msgid "Could not load saved content."
+msgstr "Impossible de charger le contenu enregistré."
+
+msgid "Could not load saved content. Retry"
+msgstr "Impossible de charger le contenu enregistré. Réessayer"
+
 msgid "Could not load the AI provider catalogue."
 msgstr "Impossible de charger le catalogue des fournisseurs d’IA."
 
@@ -2789,6 +2807,9 @@ msgstr "Impossible de lire ce PDF. Le fichier est peut-être corrompu ou protég
 
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Impossible de supprimer {failed} vidéos sur {total} — veuillez réessayer."
+
+msgid "Could not revert this page. Your edits were kept. Try again."
+msgstr "Impossible d’annuler les modifications de cette page. Vos modifications ont été conservées. Réessayez."
 
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
@@ -3317,6 +3338,9 @@ msgstr "Abandonner"
 
 msgid "Discard & leave"
 msgstr "Abandonner et quitter"
+
+msgid "Discard this draft and load the entire latest saved table of contents."
+msgstr "Abandonnez ce brouillon et chargez la dernière table des matières enregistrée dans son intégralité."
 
 msgid "Discard unsaved prompt changes?"
 msgstr "Abandonner les modifications non enregistrées du prompt ?"
@@ -5204,6 +5228,12 @@ msgstr "Conserver le contenu existant"
 msgid "Keep filtered content"
 msgstr "Conserver le contenu filtré"
 
+msgid "Keep my changes"
+msgstr "Conserver mes modifications"
+
+#~ msgid "Keep my conflicting edits"
+#~ msgstr "Conserver mes modifications en conflit"
+
 msgid "Keep my edit"
 msgstr "Conserver ma modification"
 
@@ -5218,6 +5248,12 @@ msgstr "Gardez les pages entières par défaut, mais divisez-les lorsque des typ
 
 #~ msgid "Keep selected content"
 #~ msgstr "Conserver le contenu sélectionné"
+
+msgid "Keep the values you entered where changes overlap."
+msgstr "Conservez les valeurs que vous avez saisies là où les modifications se chevauchent."
+
+msgid "Keep your entire table of contents, including its chapter targets and order."
+msgstr "Conservez toute votre table des matières, y compris les destinations et l’ordre des chapitres."
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Garde les pages entières sauf si des types d'activités mixtes nécessitent un découpage."
@@ -5352,6 +5388,9 @@ msgstr "Laissez ce réglage vide pour conserver le rythme propre d'ElevenLabs. L
 
 msgid "Leave without finishing?"
 msgstr "Quitter sans terminer ?"
+
+msgid "Legacy · protected"
+msgstr "Ancien contenu · protégé"
 
 msgid "Legal and compliance manuals"
 msgstr "Manuels juridiques et de conformité"
@@ -5492,6 +5531,9 @@ msgstr "Segmentation basée sur le LLM pour détecter et séparer les images com
 msgid "LMS-ready with completion tracking"
 msgstr "Prêt pour LMS avec suivi de l'achèvement"
 
+msgid "Load latest saved values"
+msgstr "Charger les dernières valeurs enregistrées"
+
 msgid "Loading accessibility summary..."
 msgstr "Chargement du résumé d'accessibilité..."
 
@@ -5572,6 +5614,9 @@ msgstr "Chargement du résumé de validation du réviseur..."
 
 msgid "Loading reviewer validation…"
 msgstr "Chargement de la validation du réviseur…"
+
+msgid "Loading saved content…"
+msgstr "Chargement du contenu enregistré…"
 
 msgid "Loading sectioning data..."
 msgstr "Chargement des données de sectionnement..."
@@ -5674,6 +5719,9 @@ msgstr "Gérer les vidéos en langue des signes"
 
 msgid "Manual edit"
 msgstr "Modification manuelle"
+
+msgid "Manual edits reverted for page {pageNumber}"
+msgstr "Modifications manuelles annulées pour la page {pageNumber}"
 
 msgid "Manual only"
 msgstr "Manuel uniquement"
@@ -6246,6 +6294,9 @@ msgstr "Aucune différence avec le prompt de repli."
 
 msgid "No disabled rules"
 msgstr "Aucune règle désactivée"
+
+msgid "No earlier AI-generated version is available for this page."
+msgstr "Aucune version antérieure générée par l’IA n’est disponible pour cette page."
 
 msgid "No Easy Read for this page"
 msgstr "Pas de lecture facile pour cette page"
@@ -7163,6 +7214,9 @@ msgstr "pages {shownStr}"
 msgid "Pages in the selected range"
 msgstr "Pages de la plage sélectionnée"
 
+msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
+msgstr "Les pages ci-dessous conserveront leur contenu enregistré, sauf si vous choisissez de le remplacer. Toutes les autres pages seront régénérées."
+
 msgid "pages per quiz"
 msgstr "pages par quiz"
 
@@ -7171,6 +7225,9 @@ msgstr "Pages par quiz"
 
 msgid "Pages reviewed"
 msgstr "Pages révisées"
+
+msgid "Pages with manual edits or unknown authorship:"
+msgstr "Pages avec des modifications manuelles ou d’origine inconnue :"
 
 msgid "Paper Collage"
 msgstr "Collage papier"
@@ -7580,6 +7637,12 @@ msgstr "invites modèles instructions"
 
 #~ msgid "Protected content"
 #~ msgstr "Contenu protégé"
+
+#~ msgid "Protected pages:"
+#~ msgstr "Pages protégées :"
+
+msgid "Protected quizzes to replace:"
+msgstr "Quiz protégés à remplacer :"
 
 msgid "Provider"
 msgstr "Fournisseur"
@@ -8163,20 +8226,33 @@ msgstr "Remplacer l'image"
 msgid "Replace PDF"
 msgstr "Remplacer le PDF"
 
+msgid "Replace protected quizzes"
+msgstr "Remplacer les quiz protégés"
+
 msgid "Replace quiz"
 msgstr "Remplacer le quiz"
 
 msgid "Replace quizzes"
 msgstr "Remplacer les quiz"
 
+#~ msgid "Replace the protected pages listed above"
+#~ msgstr "Remplacer les pages protégées indiquées ci-dessus"
+
 msgid "Replace this audio file"
 msgstr "Remplacer ce fichier audio"
+
+msgid "Replace your overlapping changes with the latest saved values."
+msgstr "Remplacez vos modifications qui se chevauchent par les dernières valeurs enregistrées."
 
 msgid "Replay the guided introduction to ADT Studio."
 msgstr "Rejouer l'introduction guidée à ADT Studio."
 
 msgid "Report an issue"
 msgstr "Signaler un problème"
+
+#. placeholder {0}: res.status
+msgid "Request failed: {0}"
+msgstr "Échec de la requête : {0}"
 
 msgid "Request settings"
 msgstr "Paramètres de la requête"
@@ -8225,6 +8301,9 @@ msgstr "Réinitialiser le zoom"
 
 msgid "Resize panel"
 msgstr "Redimensionner le panneau"
+
+msgid "Resolve conflicting edits before saving"
+msgstr "Résolvez les modifications en conflit avant d’enregistrer"
 
 msgid "Resolving source language..."
 msgstr "Résolution de la langue source..."
@@ -8293,6 +8372,12 @@ msgstr "Renvoyer au coordinateur"
 msgid "Revert language change"
 msgstr "Annuler le changement de langue"
 
+msgid "Revert manual edits"
+msgstr "Annuler les modifications manuelles"
+
+msgid "Revert manual edits on page {pageNumber}?"
+msgstr "Annuler les modifications manuelles de la page {pageNumber} ?"
+
 msgid "Revert to {originalLanguageName}"
 msgstr "Revenir à {originalLanguageName}"
 
@@ -8357,6 +8442,9 @@ msgstr "Rigueur de la révision"
 
 msgid "Review style"
 msgstr "Style de révision"
+
+msgid "Review the chosen document, then save again."
+msgstr "Vérifiez le document choisi, puis enregistrez-le à nouveau."
 
 msgid "Review the project details below and confirm the import."
 msgstr "Vérifiez les détails du projet ci-dessous et confirmez l'importation."
@@ -8602,6 +8690,9 @@ msgstr "L'enregistrement a échoué"
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Enregistrez ou annulez votre brouillon avant de vérifier les résultats."
 
+msgid "Save or discard changes before restoring a version."
+msgstr "Enregistrez ou abandonnez vos modifications avant de restaurer une version."
+
 msgid "Save or discard your edits first"
 msgstr "Enregistrez ou abandonnez d'abord vos modifications"
 
@@ -8625,6 +8716,9 @@ msgstr "Enregistrer les tailles de texte"
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Enregistrez d'abord votre travail si vous souhaitez conserver ces modifications."
+
+msgid "Saved content is unavailable; your draft is retained"
+msgstr "Le contenu enregistré est indisponible ; votre brouillon est conservé"
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Enregistré. Ré-empaquetez l'aperçu pour appliquer."
@@ -10094,6 +10188,9 @@ msgstr "Le storyboard doit être complété avant de générer {stageName}. Exé
 msgid "The sun heats water in oceans, lakes, and rivers, turning it into vapor that rises into the atmosphere. As the vapor cools at higher altitudes, it condenses into tiny droplets that form clouds."
 msgstr "Le soleil chauffe l'eau des océans, des lacs et des rivières, la transformant en vapeur qui s'élève dans l'atmosphère. Lorsque la vapeur se refroidit en altitude, elle se condense en gouttelettes minuscules qui forment les nuages."
 
+msgid "The table of contents was reorganized or replaced. Your draft is intact. Choose which complete document to keep before editing again."
+msgstr "La table des matières a été réorganisée ou remplacée. Votre brouillon est intact. Choisissez le document complet à conserver avant de reprendre la modification."
+
 msgid "The table of contents."
 msgstr "La table des matières."
 
@@ -10273,6 +10370,9 @@ msgstr "Cela ne change que l'interface de ADT Studio. Cela n'affecte pas les lan
 msgid "This option has no answer key entry"
 msgstr "Cette option n'a pas d'entrée dans le corrigé"
 
+msgid "This page changed or a run started. Your edits were kept. Try again."
+msgstr "Cette page a changé ou un traitement a démarré. Vos modifications ont été conservées. Réessayez."
+
 msgid "This page has no captioned images"
 msgstr "Cette page n'a pas d'images légendées"
 
@@ -10296,6 +10396,9 @@ msgstr "Cette page n'a pas d'entrées de texte traduisibles"
 
 msgid "This page has not been reviewed yet"
 msgstr "Cette page n'a pas encore été révisée"
+
+msgid "This page was changed after you started editing, so some values are now out of sync. Your changes have not been saved."
+msgstr "Cette page a été modifiée après le début de votre saisie. Certaines valeurs ne correspondent donc plus. Vos modifications n’ont pas été enregistrées."
 
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "La couche de texte intégrée de cette page est vide, mais l'étape de Sectionnement a récupéré du texte à partir de l'image de la page — elle semble donc numérisée ou uniquement composée d'images. Le pipeline peut toujours fonctionner à partir du texte récupéré, mais pour de meilleurs résumés, métadonnées et traductions, essayez d'obtenir une version de ce PDF basée sur du texte (avec une vraie couche de texte) plutôt qu'une copie numérisée."
@@ -10342,8 +10445,14 @@ msgstr "Cela supprime toutes les versions globales de prompts propres au modèle
 msgid "This removes the global version for this prompt file. Shipped fallback files remain available."
 msgstr "Cela supprime la version globale de ce fichier de prompt. Les fichiers de repli fournis avec l’application restent disponibles."
 
+msgid "This replaces the manually edited or legacy table of contents. Its saved version remains in history."
+msgstr "Cette action remplace la table des matières modifiée manuellement ou héritée. Sa version enregistrée reste dans l’historique."
+
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Cela restaure la police par défaut sur toutes les pages et efface les réglages de police par élément ainsi que la sélection de police pour tout le livre. Les polices jointes restent dans la liste. La restauration est disponible par page dans l'historique des versions."
+
+msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
+msgstr "Cela restaure le dernier découpage en sections généré pour cette page. Votre version modifiée reste dans l’historique. Les autres pages conservent leurs modifications. Cette page pourra être régénérée lors de la prochaine relance."
 
 msgid "This screen couldn’t load"
 msgstr "Cet écran n'a pas pu se charger"
@@ -10362,6 +10471,9 @@ msgstr "Cette session utilise un ancien instantané de la liste de contrôle du 
 
 msgid "This system cannot show desktop notifications."
 msgstr "Ce système ne peut pas afficher de notifications du bureau."
+
+msgid "This table of contents has conflicting chapter identities. Restore an earlier version before editing."
+msgstr "Cette table des matières contient des identités de chapitres en conflit. Restaurez une version antérieure avant de la modifier."
 
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Ce texte n'est perceptible que par les technologies d'assistance."
@@ -10892,6 +11004,9 @@ msgstr "Utiliser comme actuelle"
 msgid "Use as template"
 msgstr "Utiliser comme modèle"
 
+#~ msgid "Use latest conflicting values"
+#~ msgstr "Utiliser les dernières valeurs en conflit"
+
 msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 msgstr "Utilisez la syntaxe Liquid pour interpoler des variables, parcourir des tableaux et inclure des instructions conditionnelles dans ce prompt."
 
@@ -11367,6 +11482,12 @@ msgstr "Votre IA, vos clés."
 msgid "Your book"
 msgstr "Votre livre"
 
+msgid "Your changes are still here. Review them before saving again."
+msgstr "Vos modifications sont toujours là. Vérifiez-les avant d’enregistrer à nouveau."
+
+#~ msgid "Your draft is retained. Review the refreshed content before saving again."
+#~ msgstr "Votre brouillon est conservé. Vérifiez le contenu actualisé avant d’enregistrer à nouveau."
+
 msgid "Your font has been applied to captions."
 msgstr "Votre police a été appliquée aux légendes."
 
@@ -11381,6 +11502,9 @@ msgstr "Votre police a été appliquée à tout le livre."
 
 msgid "Your fonts"
 msgstr "Vos polices"
+
+msgid "Your other edits will be kept. Review the result, then save again."
+msgstr "Vos autres modifications seront conservées. Vérifiez le résultat, puis enregistrez à nouveau."
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Vos pages {displayStart}–{displayEnd}"

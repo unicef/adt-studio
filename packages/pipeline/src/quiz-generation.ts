@@ -112,22 +112,31 @@ export function isContentPage(
   })
 }
 
+/** Source coverage, independent of the quiz's placement or page selection order. */
+export function quizPageGroupKey(pageIds: readonly string[]): string {
+  return JSON.stringify([...new Set(pageIds)].sort())
+}
+
 /**
  * Batch content pages into groups of N for quiz generation.
  * Non-content pages (all sections pruned) are skipped.
  * When quizSectionTypes is provided, only pages with matching section types count.
+ * Form every batch before excluding protected groups so neighboring batches
+ * keep their original inputs and cache keys.
  */
 export function batchPages(
   pages: QuizPageInput[],
   pagesPerQuiz: number,
-  quizSectionTypes?: string[]
+  quizSectionTypes?: string[],
+  protectedPageGroups: readonly (readonly string[])[] = [],
 ): QuizPageInput[][] {
   const contentPages = pages.filter((p) => isContentPage(p.sectioning, quizSectionTypes))
   const batches: QuizPageInput[][] = []
   for (let i = 0; i < contentPages.length; i += pagesPerQuiz) {
     batches.push(contentPages.slice(i, i + pagesPerQuiz))
   }
-  return batches
+  const protectedKeys = new Set(protectedPageGroups.map(quizPageGroupKey))
+  return batches.filter((batch) => !protectedKeys.has(quizPageGroupKey(batch.map((page) => page.pageId))))
 }
 
 /**
@@ -223,10 +232,11 @@ export async function generateAllQuizzes(
   llmModel: LLMModel,
   options?: {
     concurrency?: number
+    protectedPageGroups?: readonly (readonly string[])[]
     onQuizComplete?: (completed: number, total: number) => void
   }
 ): Promise<QuizGenerationOutput> {
-  const batches = batchPages(pages, config.pagesPerQuiz, config.quizSectionTypes)
+  const batches = batchPages(pages, config.pagesPerQuiz, config.quizSectionTypes, options?.protectedPageGroups)
   const quizzes: Quiz[] = []
   const concurrency = options?.concurrency ?? 1
   let completed = 0

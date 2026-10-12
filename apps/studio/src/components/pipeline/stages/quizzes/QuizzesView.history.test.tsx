@@ -94,7 +94,7 @@ describe("quiz history recovery", () => {
     expect(screen.queryByDisplayValue("Retained question")).toBeNull()
     fireEvent.click(trigger)
     fireEvent.click(await screen.findByRole("button", { name: /^v\s*1/ }))
-    await waitFor(() => expect(api.restoreVersion).toHaveBeenCalledWith("book", "quiz-generation", "book", 1))
+    await waitFor(() => expect(api.restoreVersion).toHaveBeenCalledWith("book", "quiz-generation", "book", 1, 2))
     expect(await screen.findByDisplayValue("Retained question")).toBeTruthy()
     expect(api.getVersionHistory).toHaveBeenCalledWith("book", "quiz-generation", "book", true, true)
 
@@ -102,7 +102,7 @@ describe("quiz history recovery", () => {
     fireEvent.click(await screen.findByRole("button", { name: /^v\s*2\s*Invalidated/ }))
     expect(await screen.findByRole("button", { name: /^v\s*2\s*Invalidated$/ })).toBeTruthy()
     expect(screen.queryByDisplayValue("Retained question")).toBeNull()
-    expect(api.restoreVersion).toHaveBeenLastCalledWith("book", "quiz-generation", "book", 2)
+    expect(api.restoreVersion).toHaveBeenLastCalledWith("book", "quiz-generation", "book", 2, 1)
   })
 
   it("keeps recovery available after a failed restore", async () => {
@@ -122,4 +122,40 @@ describe("quiz history recovery", () => {
     expect(screen.queryByRole("button", { name: /^v\s*\d/ })).toBeNull()
     expect(api.getVersionHistory).not.toHaveBeenCalled()
   })
+})
+
+it("locks the editor until restore and refetch finish, then permits a new draft", async () => {
+  response = { quizzes: output, version: 2, historyVersion: 2 }
+  let complete!: () => void
+  const barrier = new Promise<void>((resolve) => { complete = resolve })
+  vi.mocked(api.restoreVersion).mockImplementationOnce(async () => {
+    await barrier
+    response = { quizzes: { ...output, quizzes: [{ ...output.quizzes[0], question: "Old restored question" }] }, version: 1, historyVersion: 1 }
+    return { node: "quiz-generation", itemId: "book", version: 1 }
+  })
+  renderView()
+  await screen.findByDisplayValue("Retained question")
+  fireEvent.click(await screen.findByRole("button", { name: /^v\s*2$/ }))
+  fireEvent.click(await screen.findByRole("button", { name: /^v\s*1/ }))
+  await waitFor(() => expect(api.restoreVersion).toHaveBeenCalled())
+  expect(screen.getByDisplayValue("Retained question").matches(":disabled")).toBe(true)
+  complete()
+  await waitFor(() => expect(toast.success).toHaveBeenCalled())
+  const input = screen.getByDisplayValue("Old restored question")
+  expect(input.matches(":disabled")).toBe(false)
+  fireEvent.change(input, { target: { value: "New draft after restore" } })
+  expect(screen.getByDisplayValue("New draft after restore")).toBeTruthy()
+})
+
+it("refuses to restore over an existing draft, including through an open history picker", async () => {
+  response = { quizzes: output, version: 2, historyVersion: 2 }
+  renderView()
+  const input = await screen.findByDisplayValue("Retained question")
+  fireEvent.click(await screen.findByRole("button", { name: /^v\s*2$/ }))
+  await screen.findByRole("button", { name: /^v\s*1/ })
+  fireEvent.change(input, { target: { value: "Keep my draft" } })
+  fireEvent.click(screen.getByRole("button", { name: /^v\s*1/ }))
+  await waitFor(() => expect(toast.error).toHaveBeenCalled())
+  expect(api.restoreVersion).not.toHaveBeenCalled()
+  expect(screen.getByDisplayValue("Keep my draft")).toBeTruthy()
 })

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { createBookStorage } from "@adt/storage"
 import { packageAdtWeb, packageWebpub } from "@adt/pipeline"
 import { createAdtPreviewRoutes } from "./adt-preview.js"
+import { createPageRoutes } from "./pages.js"
 import { createTocRoutes } from "./toc.js"
 
 describe("TOC hierarchy across saved data, preview and export", () => {
@@ -36,7 +37,7 @@ describe("TOC hierarchy across saved data, preview and export", () => {
         storage.putNodeData("page-sectioning", pageId, {
           reasoning: "", sections: [{
             sectionId: `${pageId}_sec001`, sectionType: "content", backgroundColor: "#fff", textColor: "#000",
-            pageNumber: n, isPruned: n === 2,
+            pageNumber: n, isPruned: false,
             nodes: [{ nodeId: `${pageId}_h1`, role: "heading", text: `Chapter ${n}`, isPruned: false }],
           }],
         })
@@ -59,9 +60,21 @@ describe("TOC hierarchy across saved data, preview and export", () => {
       const toc = createTocRoutes(root)
       const save = await toc.request(`/books/${label}/toc`, {
         method: "PUT", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ entries, pageCount: 3, generatedAt: "2026-01-01T00:00:00Z" }),
+        body: JSON.stringify({ baseVersion: 0, entries, pageCount: 3, generatedAt: "2026-01-01T00:00:00Z" }),
       })
       expect(save.status).toBe(200)
+      const pageRoutes = createPageRoutes(root, path.resolve("prompts"), assets)
+      const originalPage = storage.getLatestNodeData("page-sectioning", "pg002")!
+      const originalRendering = storage.getLatestNodeData("web-rendering", "pg002")!
+      const originalToc = storage.getLatestNodeData("toc-generation", "book")!
+      if (parentKind === "pruned") {
+        const prune = await pageRoutes.request(`/books/${label}/pages/pg002/sectioning`, {
+          method: "PUT", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ ...originalPage.data, baseVersion: originalPage.version,
+            sections: originalPage.data.sections.map((section) => ({ ...section, isPruned: true })) }),
+        })
+        expect(prune.status).toBe(200)
+      }
       const readSaved = async () => (await (await toc.request(`/books/${label}/toc`)).json()).entries
       expect(await readSaved()).toEqual(entries)
 
@@ -73,6 +86,11 @@ describe("TOC hierarchy across saved data, preview and export", () => {
         "Unit one", "Chapter one", "Unit two", "Chapter two",
       ])
 
+      expect(previewToc.find((entry: { title: string }) => entry.title === "Unit one").href).toBe("")
+      if (parentKind === "pruned") {
+        expect((await preview.request(`/books/${label}/adt-preview/${parentId}.html`)).status).toBe(404)
+      }
+
       const bookDir = path.join(root, label)
       const options = { bookDir, label, language: "en", outputLanguages: ["en"], title: "TOC book", webAssetsDir: assets }
       await packageAdtWeb(storage, options)
@@ -82,11 +100,49 @@ describe("TOC hierarchy across saved data, preview and export", () => {
       expect(packagedToc.map((e: { title: string; level: number }) => [e.title, e.level]))
         .toEqual(previewToc.map((e: { title: string; level: number }) => [e.title, e.level]))
       const manifest = JSON.parse(fs.readFileSync(path.join(bookDir, "webpub/manifest.json"), "utf8"))
-      expect(manifest.toc).toEqual([
-        { title: "Unit one", href: parentId ? `${parentId}.html` : "", children: [{ title: "Chapter one", href: "pg001_sec001.html" }] },
-        { title: "Unit two", href: "pg003_sec001.html", children: [{ title: "Chapter two", href: "pg003_sec001.html" }] },
-      ])
+      expect(manifest.toc).toBeUndefined()
+      expect(manifest.resources).toContainEqual({ href: "contents.html", type: "text/html", rel: "contents" })
+      const contents = fs.readFileSync(path.join(bookDir, "webpub/contents.html"), "utf8")
+      expect(contents).toContain('<li><span>Unit one</span><ol><li><a href="pg001_sec001.html">Chapter one</a></li></ol></li>')
+      expect(contents).toContain('<li><a href="pg003_sec001.html">Unit two</a><ol><li><a href="pg003_sec001.html">Chapter two</a></li></ol></li>')
+      expect(contents).not.toContain('href=""')
+      expect(contents).not.toContain('href="pg002_sec001.html"')
       expect(await readSaved()).toEqual(entries)
+      expect(storage.getLatestNodeData("toc-generation", "book")).toEqual(originalToc)
+      expect(storage.getLatestNodeData("web-rendering", "pg002")).toEqual(originalRendering)
+      expect(packagedToc.find((entry: { title: string }) => entry.title === "Unit one").href).toBe("")
+      if (parentKind === "pruned") {
+        expect(fs.existsSync(path.join(bookDir, "adt", `${parentId}.html`))).toBe(false)
+        const restore = await pageRoutes.request(`/books/${label}/versions/page-sectioning/pg002/restore`, {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ version: originalPage.version, baseVersion: storage.getCurrentNodeVersion("page-sectioning", "pg002") }),
+        })
+        expect(restore.status).toBe(200)
+        const restored = await (await preview.request(`/books/${label}/adt-preview/content/toc.json`)).json()
+        expect(restored.find((entry: { title: string }) => entry.title === "Unit one").href).toBe(`${parentId}.html`)
+        expect((await preview.request(`/books/${label}/adt-preview/${parentId}.html`)).status).toBe(200)
+        await packageAdtWeb(storage, options)
+        packageWebpub(storage, options)
+        const restoredManifest = JSON.parse(fs.readFileSync(path.join(bookDir, "webpub/manifest.json"), "utf8"))
+        expect(restoredManifest.toc.find((entry: { title: string }) => entry.title === "Unit one").href).toBe(`${parentId}.html`)
+        expect(fs.existsSync(path.join(bookDir, "webpub/contents.html"))).toBe(false)
+        const restoredPackage = JSON.parse(fs.readFileSync(path.join(bookDir, "adt/content/toc.json"), "utf8"))
+        expect(restoredPackage.find((entry: { title: string }) => entry.title === "Unit one").href).toBe(`${parentId}.html`)
+        expect(fs.existsSync(path.join(bookDir, "adt", `${parentId}.html`))).toBe(true)
+        expect(storage.getLatestNodeData("toc-generation", "book")).toEqual(originalToc)
+        expect(storage.getLatestNodeData("web-rendering", "pg002")).toEqual(originalRendering)
+      }
+      // Deleting every authored heading is a saved document, not permission to
+      // reconstruct a fresh heading-based TOC in preview/export.
+      const empty = await toc.request(`/books/${label}/toc`, {
+        method: "PUT", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ baseVersion: originalToc.version, entries: [], pageCount: 3, generatedAt: "2026-01-01T00:00:00Z" }),
+      })
+      expect(empty.status).toBe(200)
+      expect(await (await preview.request(`/books/${label}/adt-preview/content/toc.json`)).json()).toEqual([])
+      await packageAdtWeb(storage, options)
+      expect(JSON.parse(fs.readFileSync(path.join(bookDir, "adt/content/toc.json"), "utf8"))).toEqual([])
+      expect(storage.getLatestNodeData("toc-generation", "book")?.data).toMatchObject({ entries: [], source: "manual" })
     } finally {
       storage.close()
     }

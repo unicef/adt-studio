@@ -107,6 +107,8 @@ interface VersionPickerProps {
    * preview-as-pending-edit flow.
    */
   onRestored?: () => void
+  /** Keep editor inputs locked until restore and its refetch both finish. */
+  onRestoringChange?: (restoring: boolean) => void
   /** Legacy: load a version's data as a pending edit. Used by steps not yet
    *  migrated to restore (onRestored). Ignored when onRestored is set. */
   onPreview?: (data: unknown) => void
@@ -168,6 +170,7 @@ export function VersionPicker({
   dirty,
   bookLabel,
   onRestored,
+  onRestoringChange,
   onPreview,
   onSave,
   onDiscard,
@@ -279,9 +282,14 @@ export function VersionPicker({
   // Roll back to an existing version: move the pointer (no new version) and
   // refresh. Shared by the list rows and the compare dialog.
   const restoreTo = async (version: number) => {
+    if (dirty || saving || restoring) {
+      toast.error(t`Save or discard changes before restoring a version.`)
+      return
+    }
     setRestoring(true)
+    onRestoringChange?.(true)
     try {
-      await api.restoreVersion(bookLabel, step, itemId, version)
+      await api.restoreVersion(bookLabel, step, itemId, version, currentVersion)
       const invalidations = [
         queryClient.invalidateQueries({ queryKey: ["books", bookLabel] }),
       ]
@@ -301,6 +309,7 @@ export function VersionPicker({
       toast.error(t`Couldn't restore v${version}. Please try again.`)
     } finally {
       setRestoring(false)
+      onRestoringChange?.(false)
     }
   }
 

@@ -10,7 +10,7 @@ import {
   Loader2,
   Plus,
 } from "lucide-react"
-import { useLingui } from "@lingui/react/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
 import { api } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -205,6 +205,12 @@ export function AddQuizDialog({
   const { t } = useLingui()
   const { data: pages } = usePages(bookLabel)
   const { data: existingQuizzes } = useQuizzes(bookLabel)
+  const [quizSnapshot, setQuizSnapshot] = useState(existingQuizzes)
+  useEffect(() => {
+    // Keep the displayed questions and expected version together while open.
+    // Reopening after a conflict captures the newly saved quizzes.
+    setQuizSnapshot((previous) => open ? previous ?? existingQuizzes : undefined)
+  }, [open, existingQuizzes])
   const {
     apiKey,
     anthropicKey,
@@ -239,11 +245,11 @@ export function AddQuizDialog({
   // spot lets the user stack a new quiz after them or replace what's there.
   const quizCountByAfterPageId = useMemo(() => {
     const counts = new Map<string, number>()
-    for (const q of existingQuizzes?.quizzes?.quizzes ?? []) {
+    for (const q of quizSnapshot?.quizzes?.quizzes ?? []) {
       counts.set(q.afterPageId, (counts.get(q.afterPageId) ?? 0) + 1)
     }
     return counts
-  }, [existingQuizzes])
+  }, [quizSnapshot])
 
   useEffect(() => {
     if (open) {
@@ -277,13 +283,14 @@ export function AddQuizDialog({
     ? quizCountByAfterPageId.get(afterPageId) ?? 0
     : 0
   const isOccupied = occupiedCount > 0
+  const protectedQuizzes = (quizSnapshot?.quizzes?.quizzes ?? []).filter((q) => q.afterPageId === afterPageId && q.source !== "ai")
 
   const placementOptions: SegmentedControlOption<QuizPlacement>[] = [
     { value: "after", label: t`Add after` },
     { value: "replace", label: t`Replace` },
   ]
 
-  const generateLabel = !isOccupied
+  const generateLabel = placement === "replace" && protectedQuizzes.length ? t`Replace protected quizzes` : !isOccupied
     ? t`Generate quiz`
     : placement === "replace"
       ? occupiedCount > 1
@@ -321,6 +328,7 @@ export function AddQuizDialog({
   const handleGenerate = async () => {
     if (
       !hasStructuredTextProvider ||
+      !quizSnapshot ||
       selected.length === 0 ||
       !afterPageId ||
       generating ||
@@ -337,6 +345,8 @@ export function AddQuizDialog({
           pageIds: selected,
           afterPageId,
           placement: isOccupied ? placement : "after",
+          baseVersion: quizSnapshot.version ?? 0,
+          replaceQuizIds: placement === "replace" ? protectedQuizzes.flatMap((q) => q.quizId ? [q.quizId] : []) : [],
         },
         {
           anthropicApiKey: anthropicKey || undefined,
@@ -545,6 +555,7 @@ export function AddQuizDialog({
               color="#ea580c"
               className="h-9 max-w-xs"
             />
+            {placement === "replace" && protectedQuizzes.length > 0 && <p className="text-sm text-amber-700"><Trans>Protected quizzes to replace:</Trans> {protectedQuizzes.map((q) => `${q.quizId}: ${q.question}`).join("; ")}</p>}
           </div>
         )}
 
@@ -565,6 +576,7 @@ export function AddQuizDialog({
             disabled={
               generating ||
               !hasStructuredTextProvider ||
+              !quizSnapshot ||
               selected.length === 0 ||
               !afterPageId ||
               stageRunning

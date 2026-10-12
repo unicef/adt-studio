@@ -1,3 +1,4 @@
+import { collectSpentSectionIds, retireSectionIds } from "@adt/pipeline"
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import path from "node:path"
@@ -7,18 +8,9 @@ import type { Storage } from "@adt/storage"
 import { formatSectionId, parseVoiceSlotEntryId } from "@adt/types"
 import { retireSectionIdsForClearedSectioning, makeBeforeRun } from "./stages.js"
 
-/**
- * A rerun that clears `page-sectioning` deletes the history section ids are
- * allocated from, so the re-section re-mints densely from `_sec001`. These cover
- * the references that clear does not reach, which is what would otherwise let
- * them reappear on unrelated regenerated content:
- *
- * - `sign_language_videos` lives in a table, not `node_data`.
- * - `tts` is deliberately preserved whenever Speech is in the rerun range, and
- *   `tts-timestamps` is in no clear list at all — both are keyed by language,
- *   not by page.
- */
-describe("retireSectionIdsForClearedSectioning", () => {
+/** Reference retirement remains covered at the shared publication helper.
+ * Run preparation now retains sectioning, its IDs and referenced assets. */
+describe("section reference retirement and non-destructive preparation", () => {
   let tmpDir: string
   const label = "rerun-book"
   const pageId = `${label}_p1`
@@ -164,7 +156,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     })
 
     const retired = withStorage((storage) =>
-      retireSectionIdsForClearedSectioning(storage, "sectioning", "speech")
+      retireSectionIds(storage, collectSpentSectionIds(storage, pageId, ["page-sectioning"]))
     )
 
     expect(retired.videos).toBe(1)
@@ -182,7 +174,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     seedSectioning([1])
 
     const retired = withStorage((storage) =>
-      retireSectionIdsForClearedSectioning(storage, "sectioning", "speech")
+      retireSectionIds(storage, collectSpentSectionIds(storage, pageId, ["page-sectioning"]))
     )
 
     expect(retired.videos).toBe(1)
@@ -196,7 +188,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     })
 
     const retired = withStorage((storage) =>
-      retireSectionIdsForClearedSectioning(storage, "sectioning", "speech")
+      retireSectionIds(storage, collectSpentSectionIds(storage, pageId, ["page-sectioning"]))
     )
 
     expect(retired.videos).toBe(0)
@@ -250,7 +242,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     ])
 
     const retired = withStorage((storage) =>
-      retireSectionIdsForClearedSectioning(storage, "sectioning", "speech")
+      retireSectionIds(storage, collectSpentSectionIds(storage, pageId, ["page-sectioning"]))
     )
 
     expect(retired.speechEntries).toBe(2)
@@ -275,7 +267,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     )
 
     const retired = withStorage((storage) =>
-      retireSectionIdsForClearedSectioning(storage, "sectioning", "speech")
+      retireSectionIds(storage, collectSpentSectionIds(storage, pageId, ["page-sectioning"]))
     )
 
     expect(retired.wordTimestamps).toBe(3)
@@ -295,7 +287,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     ])
 
     const retired = withStorage((storage) =>
-      retireSectionIdsForClearedSectioning(storage, "sectioning", "speech")
+      retireSectionIds(storage, collectSpentSectionIds(storage, pageId, ["page-sectioning"]))
     )
 
     expect(retired.speechEntries).toBe(0)
@@ -317,7 +309,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     ])
 
     const retired = withStorage((storage) =>
-      retireSectionIdsForClearedSectioning(storage, "sectioning", "speech")
+      retireSectionIds(storage, collectSpentSectionIds(storage, pageId, ["page-sectioning"]))
     )
 
     expect(retired.speechEntries).toBe(1)
@@ -329,7 +321,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     seedTts("en", [{ textId: "pg001_t001" }], [`${retiredSection}_ans_a`, "pg001_t002"])
 
     withStorage((storage) =>
-      retireSectionIdsForClearedSectioning(storage, "sectioning", "speech")
+      retireSectionIds(storage, collectSpentSectionIds(storage, pageId, ["page-sectioning"]))
     )
 
     expect(ttsFailedIds("en")).toEqual(["pg001_t002"])
@@ -345,7 +337,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     withStorage((storage) => storage.markStepCompleted("tts"))
 
     withStorage((storage) =>
-      retireSectionIdsForClearedSectioning(storage, "sectioning", "speech")
+      retireSectionIds(storage, collectSpentSectionIds(storage, pageId, ["page-sectioning"]))
     )
 
     expect(
@@ -358,75 +350,28 @@ describe("retireSectionIdsForClearedSectioning", () => {
     )
   })
 
-  it("backs up a detached recording before the run can overwrite it, then clears", () => {
-    // The ordering `makeBeforeRun` depends on, end to end: retire, move the
-    // upload to a separate path the re-mint cannot regenerate into, then clear — and
-    // the pruned `tts` row has to survive that clear, which is the only reason
-    // pruning it was worth doing.
-    const retiredSection = formatSectionId(pageId, 3)
-    const fileName = `${retiredSection}_ans_a.mp3`
-    seedTts("en", [{ textId: `${retiredSection}_ans_a`, manual: true }, { textId: "pg001_t001" }])
-
-    makeBeforeRun(label, "sectioning", "speech", tmpDir)()
-
-    // The original remains usable if a later step fails; its backup is safe
-    // outside the language dir that regeneration writes into.
-    expect(audioExists("en", fileName)).toBe(true)
-    const parked = path.join(tmpDir, label, "audio", ".detached")
-    const found = fs
-      .readdirSync(parked)
-      .flatMap((stamp) => fs.readdirSync(path.join(parked, stamp, "en")))
-    expect(found).toEqual([fileName])
-    // `page-sectioning` is gone; the pruned manifest is not.
-    expect(withStorage((storage) => storage.getLatestNodeData("page-sectioning", pageId))).toBeNull()
-    expect(ttsTextIds("en")).toEqual(["pg001_t001"])
+  it("keeps current sections, recordings and assignments during preparation, without moving files", () => {
+    const section = formatSectionId(pageId, 3)
+    const textId = `${section}_ans_a`
+    seedTts("en", [{ textId, manual: true }, { textId: "pg001_t001" }])
+    seedTimestamps("en", [textId])
+    withStorage((storage) => {
+      storage.putSignLanguageVideo("vid", Buffer.from("video"), "video.mp4", "video/mp4")
+      storage.assignSignLanguageVideo("vid", section)
+    })
+    const before = withStorage((storage) => storage.getLatestNodeData("page-sectioning", pageId))
+    const copy = vi.spyOn(fs, "copyFileSync").mockImplementation(() => { throw new Error("No backup should be attempted") })
+    const prepare = makeBeforeRun(label, "sectioning", "speech", tmpDir)
+    try { expect(prepare).not.toThrow(); expect(copy).not.toHaveBeenCalled() } finally { copy.mockRestore() }
+    expect(withStorage((storage) => storage.getLatestNodeData("page-sectioning", pageId))).toEqual(before)
+    expect(ttsTextIds("en")).toEqual([textId, "pg001_t001"])
+    expect(timestampKeys("en")).toEqual([textId])
+    expect(sectionIdsByVideo().get("vid")).toBe(section)
+    expect(audioExists("en", `${textId}.mp3`)).toBe(true)
+    const completed = withStorage((storage) => storage.getNodeVersionFingerprint())
+    prepare()
+    expect(withStorage((storage) => storage.getNodeVersionFingerprint())).toEqual(completed)
   })
-
-  it.each(["sectioning"] as const)(
-    "rolls back retirement when backup fails on a %s rerun, and can retry",
-    (fromStage) => {
-      const section = formatSectionId(pageId, 3)
-      const textId = `${section}_ans_a`
-      const fileName = `${textId}.mp3`
-      seedTts("en", [{ textId, manual: true }])
-      seedTimestamps("en", [textId])
-      withStorage((storage) => {
-        storage.putSignLanguageVideo("retry-video", Buffer.from("video"), "retry.mp4", "video/mp4")
-        storage.assignSignLanguageVideo("retry-video", section)
-      })
-      const before = withStorage((storage) => storage.getNodeVersionFingerprint())
-      const run = makeBeforeRun(label, fromStage, "speech", tmpDir)
-      const copy = vi.spyOn(fs, "copyFileSync").mockImplementationOnce(() => {
-        throw Object.assign(new Error("permission denied"), { code: "EACCES" })
-      })
-      try {
-        expect(run).toThrow("Could not preserve uploaded recording")
-      } finally {
-        copy.mockRestore()
-      }
-      expect(withStorage((storage) => storage.getNodeVersionFingerprint())).toEqual(before)
-      expect(sectionIdsByVideo().get("retry-video")).toBe(section)
-      expect(ttsTextIds("en")).toEqual([textId])
-      expect(timestampKeys("en")).toEqual([textId])
-      expect(fs.readFileSync(path.join(tmpDir, label, "audio", "en", fileName), "utf8")).toBe("fake-audio")
-
-      // Reuse the same callback: failed preservation must not trip its once guard.
-      expect(run).not.toThrow()
-      expect(ttsTextIds("en")).toEqual([])
-      expect(sectionIdsByVideo().get("retry-video")).toBeNull()
-      expect(withStorage((storage) => storage.getLatestNodeData("page-sectioning", pageId))).toBeNull()
-      const backupRoot = path.join(tmpDir, label, "audio", ".detached")
-      const backups = fs.readdirSync(backupRoot)
-        .map((batch) => path.join(backupRoot, batch, "en", fileName))
-        .filter((file) => fs.existsSync(file))
-      expect(backups).toHaveLength(1)
-      fs.writeFileSync(path.join(tmpDir, label, "audio", "en", fileName), "new generated audio")
-      expect(fs.readFileSync(backups[0], "utf8")).toBe("fake-audio")
-      const completed = withStorage((storage) => storage.getNodeVersionFingerprint())
-      run()
-      expect(withStorage((storage) => storage.getNodeVersionFingerprint())).toEqual(completed)
-    }
-  )
 
   it("reconciles both the canonical and legacy language row spellings", () => {
     const retiredSection = formatSectionId(pageId, 3)
@@ -434,7 +379,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     seedTts("pt_BR", [{ textId: `${retiredSection}_ans_a`, manual: true }])
 
     const retired = withStorage((storage) =>
-      retireSectionIdsForClearedSectioning(storage, "sectioning", "speech")
+      retireSectionIds(storage, collectSpentSectionIds(storage, pageId, ["page-sectioning"]))
     )
 
     expect(retired.speechEntries).toBe(2)
@@ -482,7 +427,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     seedTts("en", [{ textId: `${formatSectionId(pageId, 3)}_ans_a`, manual: true }])
 
     const retired = withStorage((storage) =>
-      retireSectionIdsForClearedSectioning(storage, "sectioning", "speech")
+      retireSectionIds(storage, collectSpentSectionIds(storage, pageId, ["page-sectioning"]))
     )
 
     expect(retired.detachedRecordings).toHaveLength(1)
@@ -496,7 +441,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     seedTimestamps("en", ["pg001_t001"])
 
     const retired = withStorage((storage) =>
-      retireSectionIdsForClearedSectioning(storage, "sectioning", "speech")
+      retireSectionIds(storage, collectSpentSectionIds(storage, pageId, ["page-sectioning"]))
     )
 
     expect(retired).toEqual({
@@ -514,7 +459,7 @@ describe("retireSectionIdsForClearedSectioning", () => {
     })
 
     const retired = withStorage((storage) =>
-      retireSectionIdsForClearedSectioning(storage, "sectioning", "speech")
+      retireSectionIds(storage, collectSpentSectionIds(storage, pageId, ["page-sectioning"]))
     )
 
     expect(retired).toEqual({

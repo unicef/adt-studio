@@ -44,6 +44,8 @@ export interface BookRunStatus {
 }
 
 export interface StageRunOptions {
+  replaceManual?: boolean
+  protectedReplacements?: import("@adt/types").AuthoredReplacement[]
   outputScope?: OutputRunScope
   booksDir: string
   /** Request-scoped provider credentials. Values are never persisted. */

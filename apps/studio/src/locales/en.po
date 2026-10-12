@@ -1438,6 +1438,9 @@ msgstr "Alphabetical"
 msgid "Already handed out"
 msgstr "Already handed out"
 
+msgid "Also regenerate these pages and replace their saved content"
+msgstr "Also regenerate these pages and replace their saved content"
+
 msgid "Among the Stars"
 msgstr "Among the Stars"
 
@@ -2252,6 +2255,9 @@ msgstr "Change the picture for this term"
 msgid "Changes detected"
 msgstr "Changes detected"
 
+msgid "Changes not saved"
+msgstr "Changes not saved"
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 
@@ -2609,6 +2615,12 @@ msgstr "Configured on server"
 msgid "Confirm merge"
 msgstr "Confirm merge"
 
+msgid "Conflicting changes detected"
+msgstr "Conflicting changes detected"
+
+#~ msgid "Conflicting fields:"
+#~ msgstr "Conflicting fields:"
+
 msgid "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 msgstr "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 
@@ -2770,6 +2782,12 @@ msgstr "Correct answer (alternatives separated by |)"
 msgid "Correct the metadata extracted from the document."
 msgstr "Correct the metadata extracted from the document."
 
+msgid "Could not load saved content."
+msgstr "Could not load saved content."
+
+msgid "Could not load saved content. Retry"
+msgstr "Could not load saved content. Retry"
+
 msgid "Could not load the AI provider catalogue."
 msgstr "Could not load the AI provider catalogue."
 
@@ -2787,6 +2805,9 @@ msgstr "Could not read this PDF. The file may be corrupted or password-protected
 
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Could not remove {failed} of {total} videos. Please try again."
+
+msgid "Could not revert this page. Your edits were kept. Try again."
+msgstr "Could not revert this page. Your edits were kept. Try again."
 
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
@@ -3315,6 +3336,9 @@ msgstr "Discard"
 
 msgid "Discard & leave"
 msgstr "Discard & leave"
+
+msgid "Discard this draft and load the entire latest saved table of contents."
+msgstr "Discard this draft and load the entire latest saved table of contents."
 
 msgid "Discard unsaved prompt changes?"
 msgstr "Discard unsaved prompt changes?"
@@ -5202,6 +5226,12 @@ msgstr "Keep existing content"
 msgid "Keep filtered content"
 msgstr "Keep filtered content"
 
+msgid "Keep my changes"
+msgstr "Keep my changes"
+
+#~ msgid "Keep my conflicting edits"
+#~ msgstr "Keep my conflicting edits"
+
 msgid "Keep my edit"
 msgstr "Keep my edit"
 
@@ -5216,6 +5246,12 @@ msgstr "Keep pages whole by default, but split when distinct activity types are 
 
 #~ msgid "Keep selected content"
 #~ msgstr "Keep selected content"
+
+msgid "Keep the values you entered where changes overlap."
+msgstr "Keep the values you entered where changes overlap."
+
+msgid "Keep your entire table of contents, including its chapter targets and order."
+msgstr "Keep your entire table of contents, including its chapter targets and order."
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Keeps pages whole unless mixed activity types require splitting."
@@ -5350,6 +5386,9 @@ msgstr "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce qualit
 
 msgid "Leave without finishing?"
 msgstr "Leave without finishing?"
+
+msgid "Legacy · protected"
+msgstr "Legacy · protected"
 
 msgid "Legal and compliance manuals"
 msgstr "Legal and compliance manuals"
@@ -5490,6 +5529,9 @@ msgstr "LLM-based segmentation to detect and split composited images into indivi
 msgid "LMS-ready with completion tracking"
 msgstr "LMS-ready with completion tracking"
 
+msgid "Load latest saved values"
+msgstr "Load latest saved values"
+
 msgid "Loading accessibility summary..."
 msgstr "Loading accessibility summary..."
 
@@ -5570,6 +5612,9 @@ msgstr "Loading reviewer validation summary..."
 
 msgid "Loading reviewer validation…"
 msgstr "Loading reviewer validation…"
+
+msgid "Loading saved content…"
+msgstr "Loading saved content…"
 
 msgid "Loading sectioning data..."
 msgstr "Loading sectioning data..."
@@ -5672,6 +5717,9 @@ msgstr "Manage sign-language videos"
 
 msgid "Manual edit"
 msgstr "Manual edit"
+
+msgid "Manual edits reverted for page {pageNumber}"
+msgstr "Manual edits reverted for page {pageNumber}"
 
 msgid "Manual only"
 msgstr "Manual only"
@@ -6244,6 +6292,9 @@ msgstr "No differences from the fallback prompt."
 
 msgid "No disabled rules"
 msgstr "No disabled rules"
+
+msgid "No earlier AI-generated version is available for this page."
+msgstr "No earlier AI-generated version is available for this page."
 
 msgid "No Easy Read for this page"
 msgstr "No Easy Read for this page"
@@ -7161,6 +7212,9 @@ msgstr "pages {shownStr}"
 msgid "Pages in the selected range"
 msgstr "Pages in the selected range"
 
+msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
+msgstr "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
+
 msgid "pages per quiz"
 msgstr "pages per quiz"
 
@@ -7169,6 +7223,9 @@ msgstr "Pages per Quiz"
 
 msgid "Pages reviewed"
 msgstr "Pages reviewed"
+
+msgid "Pages with manual edits or unknown authorship:"
+msgstr "Pages with manual edits or unknown authorship:"
 
 msgid "Paper Collage"
 msgstr "Paper Collage"
@@ -7578,6 +7635,12 @@ msgstr "prompts templates instructions"
 
 #~ msgid "Protected content"
 #~ msgstr "Protected content"
+
+#~ msgid "Protected pages:"
+#~ msgstr "Protected pages:"
+
+msgid "Protected quizzes to replace:"
+msgstr "Protected quizzes to replace:"
 
 msgid "Provider"
 msgstr "Provider"
@@ -8161,20 +8224,33 @@ msgstr "Replace image"
 msgid "Replace PDF"
 msgstr "Replace PDF"
 
+msgid "Replace protected quizzes"
+msgstr "Replace protected quizzes"
+
 msgid "Replace quiz"
 msgstr "Replace quiz"
 
 msgid "Replace quizzes"
 msgstr "Replace quizzes"
 
+#~ msgid "Replace the protected pages listed above"
+#~ msgstr "Replace the protected pages listed above"
+
 msgid "Replace this audio file"
 msgstr "Replace this audio file"
+
+msgid "Replace your overlapping changes with the latest saved values."
+msgstr "Replace your overlapping changes with the latest saved values."
 
 msgid "Replay the guided introduction to ADT Studio."
 msgstr "Replay the guided introduction to ADT Studio."
 
 msgid "Report an issue"
 msgstr "Report an issue"
+
+#. placeholder {0}: res.status
+msgid "Request failed: {0}"
+msgstr "Request failed: {0}"
 
 msgid "Request settings"
 msgstr "Request settings"
@@ -8223,6 +8299,9 @@ msgstr "Reset zoom"
 
 msgid "Resize panel"
 msgstr "Resize panel"
+
+msgid "Resolve conflicting edits before saving"
+msgstr "Resolve conflicting edits before saving"
 
 msgid "Resolving source language..."
 msgstr "Resolving source language..."
@@ -8291,6 +8370,12 @@ msgstr "Return to coordinator"
 msgid "Revert language change"
 msgstr "Revert language change"
 
+msgid "Revert manual edits"
+msgstr "Revert manual edits"
+
+msgid "Revert manual edits on page {pageNumber}?"
+msgstr "Revert manual edits on page {pageNumber}?"
+
 msgid "Revert to {originalLanguageName}"
 msgstr "Revert to {originalLanguageName}"
 
@@ -8355,6 +8440,9 @@ msgstr "Review strictness"
 
 msgid "Review style"
 msgstr "Review style"
+
+msgid "Review the chosen document, then save again."
+msgstr "Review the chosen document, then save again."
 
 msgid "Review the project details below and confirm the import."
 msgstr "Review the project details below and confirm the import."
@@ -8600,6 +8688,9 @@ msgstr "Save failed"
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Save or cancel your draft before reviewing outputs."
 
+msgid "Save or discard changes before restoring a version."
+msgstr "Save or discard changes before restoring a version."
+
 msgid "Save or discard your edits first"
 msgstr "Save or discard your edits first"
 
@@ -8623,6 +8714,9 @@ msgstr "Save text sizes"
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Save your work first if you want to keep these changes."
+
+msgid "Saved content is unavailable; your draft is retained"
+msgstr "Saved content is unavailable; your draft is retained"
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
@@ -10092,6 +10186,9 @@ msgstr "The storyboard must be completed before generating {stageName}. Run the 
 msgid "The sun heats water in oceans, lakes, and rivers, turning it into vapor that rises into the atmosphere. As the vapor cools at higher altitudes, it condenses into tiny droplets that form clouds."
 msgstr "The sun heats water in oceans, lakes, and rivers, turning it into vapor that rises into the atmosphere. As the vapor cools at higher altitudes, it condenses into tiny droplets that form clouds."
 
+msgid "The table of contents was reorganized or replaced. Your draft is intact. Choose which complete document to keep before editing again."
+msgstr "The table of contents was reorganized or replaced. Your draft is intact. Choose which complete document to keep before editing again."
+
 msgid "The table of contents."
 msgstr "The table of contents."
 
@@ -10271,6 +10368,9 @@ msgstr "This only changes ADT Studio's interface. It does not affect the languag
 msgid "This option has no answer key entry"
 msgstr "This option has no answer key entry"
 
+msgid "This page changed or a run started. Your edits were kept. Try again."
+msgstr "This page changed or a run started. Your edits were kept. Try again."
+
 msgid "This page has no captioned images"
 msgstr "This page has no captioned images"
 
@@ -10294,6 +10394,9 @@ msgstr "This page has no translatable text entries"
 
 msgid "This page has not been reviewed yet"
 msgstr "This page has not been reviewed yet"
+
+msgid "This page was changed after you started editing, so some values are now out of sync. Your changes have not been saved."
+msgstr "This page was changed after you started editing, so some values are now out of sync. Your changes have not been saved."
 
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
@@ -10340,8 +10443,14 @@ msgstr "This removes all model-specific global prompt versions in this folder. S
 msgid "This removes the global version for this prompt file. Shipped fallback files remain available."
 msgstr "This removes the global version for this prompt file. Shipped fallback files remain available."
 
+msgid "This replaces the manually edited or legacy table of contents. Its saved version remains in history."
+msgstr "This replaces the manually edited or legacy table of contents. Its saved version remains in history."
+
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
+
+msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
+msgstr "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
 
 msgid "This screen couldn’t load"
 msgstr "This screen couldn’t load"
@@ -10360,6 +10469,9 @@ msgstr "This session is using an older reviewer checklist snapshot. Newer checkl
 
 msgid "This system cannot show desktop notifications."
 msgstr "This system cannot show desktop notifications."
+
+msgid "This table of contents has conflicting chapter identities. Restore an earlier version before editing."
+msgstr "This table of contents has conflicting chapter identities. Restore an earlier version before editing."
 
 msgid "This text is only perceptible to assistive technologies."
 msgstr "This text is only perceptible to assistive technologies."
@@ -10890,6 +11002,9 @@ msgstr "Use as current"
 msgid "Use as template"
 msgstr "Use as template"
 
+#~ msgid "Use latest conflicting values"
+#~ msgstr "Use latest conflicting values"
+
 msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 msgstr "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 
@@ -11365,6 +11480,12 @@ msgstr "Your AI, your keys."
 msgid "Your book"
 msgstr "Your book"
 
+msgid "Your changes are still here. Review them before saving again."
+msgstr "Your changes are still here. Review them before saving again."
+
+#~ msgid "Your draft is retained. Review the refreshed content before saving again."
+#~ msgstr "Your draft is retained. Review the refreshed content before saving again."
+
 msgid "Your font has been applied to captions."
 msgstr "Your font has been applied to captions."
 
@@ -11379,6 +11500,9 @@ msgstr "Your font has been applied to the whole book."
 
 msgid "Your fonts"
 msgstr "Your fonts"
+
+msgid "Your other edits will be kept. Review the result, then save again."
+msgstr "Your other edits will be kept. Review the result, then save again."
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Your pages {displayStart}–{displayEnd}"

@@ -142,3 +142,112 @@ it("bounds provider preparation failures and retains every requested phrase as f
   expect(repeated.entries).toEqual(result.entries)
   expect(transport).toHaveBeenCalledTimes(1)
 })
+
+it("counts translation validation retries at transport without resubmitting protected text", async () => {
+  const entries = [{ id: "a", text: "First" }, { id: "b", text: "Protected source" }, { id: "c", text: "Last" }]
+  const protectedEntry = { id: "b", text: "Hand correction", source: "manual" as const }
+  const previous = { entries: [protectedEntry], generatedAt: "old" }
+  const respond = transport.getMockImplementation()!
+  let providerCost = 0
+  transport.mockImplementation(async (...args) => {
+    providerCost += 0.015 // Fixture tariff per actual HTTP call, including failed validation.
+    response = { translations: transport.mock.calls.length === 1 ? [] : ["Premier", "Dernier"] }
+    return respond(...args)
+  })
+  const logs: import("@adt/llm").LlmLogEntry[] = []
+  const llmModel = model(logs)
+  const adapter = vi.spyOn(llmModel, "generateObject")
+  const config = { ...translationConfig, maxRetries: 1 }
+  const result = await translateCatalog({ entries, language: "fr", config, previous, llmModel })
+  expect(adapter).toHaveBeenCalledTimes(1)
+  expect(transport).toHaveBeenCalledTimes(2)
+  expect(providerCost).toBe(0.03)
+  expect(logs.map(({ attempt, cacheHit, success, usage }) => ({ attempt, cacheHit, success, usage }))).toEqual([
+    { attempt: 0, cacheHit: false, success: false, usage: { inputTokens: 10, outputTokens: 5 } },
+    { attempt: 1, cacheHit: false, success: true, usage: { inputTokens: 10, outputTokens: 5 } },
+  ])
+  for (const [, request] of transport.mock.calls) {
+    const messages = JSON.stringify(JSON.parse(String(request?.body)).messages)
+    expect(messages).not.toContain("Protected source")
+    expect(messages).not.toContain("Hand correction")
+  }
+  expect(result.entries).toHaveLength(3)
+  expect(result.entries).toEqual(expect.arrayContaining([
+    expect.objectContaining({ id: "a", text: "Premier", source: "ai" }),
+    protectedEntry,
+    expect.objectContaining({ id: "c", text: "Dernier", source: "ai" }),
+  ]))
+  const logCount = logs.length
+  expect(await translateCatalog({ entries, language: "fr", config, previous: result, llmModel })).toBe(result)
+  expect(adapter).toHaveBeenCalledTimes(1)
+  expect(transport).toHaveBeenCalledTimes(2)
+  expect(logs).toHaveLength(logCount)
+  expect(providerCost).toBe(0.03)
+})
+
+it.each([120, 8_850])("keeps fixed translation windows across %i entries and accounts for requests, cache, provider and cost separately", async (entryCount) => {
+  const entries = Array.from({ length: entryCount }, (_, i) => ({ id: `entry-${i}`, text: `Phrase ${i}` }))
+  const windowCount = Math.ceil(entryCount / translationConfig.batchSize)
+  // Exercise a middle window at textbook scale, so neither earlier nor later
+  // windows may shift when a correction is excluded from a request.
+  const correctionIndex = entryCount === 120 ? 7 : 4_407
+  let providerCost = 0
+  const fixtureTariffPerCall = 0.015 // Test provider billing, not a live-model price.
+  const respond = transport.getMockImplementation()!
+  transport.mockImplementation(async (...args) => {
+    providerCost += fixtureTariffPerCall
+    const messages = JSON.stringify(JSON.parse(String(args[1]?.body)).messages)
+    response = { translations: [...messages.matchAll(/Phrase \d+/g)].map(([text]) => `French ${text}`) }
+    return respond(...args)
+  })
+  const logs: import("@adt/llm").LlmLogEntry[] = []
+  const llmModel = model(logs)
+  const adapter = vi.spyOn(llmModel, "generateObject")
+  const initial = await translateCatalog({ entries, language: "fr", config: translationConfig, llmModel })
+  expect(transport).toHaveBeenCalledTimes(windowCount)
+  const originalWindows = adapter.mock.calls.map(([request]) => (request.context as { texts: Array<{ text: string }> }).texts)
+  const correction = { ...initial.entries[correctionIndex], text: "Hand correction", source: "manual" as const }
+  const saved = { ...initial, entries: initial.entries.map((e, i) => i === correctionIndex ? correction : e) }
+  adapter.mockClear(); transport.mockClear(); logs.length = 0; providerCost = 0
+  for (let i = 0; i < 2; i++) {
+    expect(await translateCatalog({ entries, language: "fr", config: translationConfig, llmModel, previous: saved })).toBe(saved)
+  }
+  expect(adapter).not.toHaveBeenCalled()
+  expect(transport).not.toHaveBeenCalled()
+  expect(providerCost).toBe(0)
+  expect(logs).toEqual([]) // Skipped current output is not a cache hit.
+
+  // Deliberately missing AI output gives full eligibility without bypassing
+  // current-output admission or introducing a force-fresh production switch.
+  const previous = { entries: [correction], generatedAt: "fixture" }
+  for (let pass = 0; pass < 2; pass++) {
+    adapter.mockClear(); transport.mockClear(); logs.length = 0; providerCost = 0
+    const output = await translateCatalog({ entries, language: "fr", config: translationConfig, llmModel, previous })
+    expect(adapter).toHaveBeenCalledTimes(windowCount)
+    const requests = adapter.mock.calls.map(([request]) => (request.context as { texts: Array<{ text: string }> }).texts)
+    requests.forEach((request, index) => {
+      if (index === Math.floor(correctionIndex / translationConfig.batchSize)) {
+        expect(request.map((entry) => entry.text)).toEqual(originalWindows[index].map((entry) => entry.text).filter((text) => text !== entries[correctionIndex].text))
+      } else {
+        expect(request).toEqual(originalWindows[index]) // Unchanged complete cache bodies, including indexes.
+      }
+    })
+    expect(requests.flat().some((entry) => entry.text === entries[correctionIndex].text)).toBe(false)
+    expect(output.entries).toHaveLength(entryCount)
+    expect(output.entries.find((e) => e.id === correction.id)).toEqual(correction)
+    expect(transport).toHaveBeenCalledTimes(pass === 0 ? 1 : 0)
+    expect(providerCost).toBe(pass === 0 ? fixtureTariffPerCall : 0)
+    expect(logs.filter((l) => l.cacheHit)).toHaveLength(windowCount - (pass === 0 ? 1 : 0))
+    expect(logs.filter((l) => !l.cacheHit)).toHaveLength(pass === 0 ? 1 : 0)
+    // Usage and the transport billing ledger count actual provider calls.
+    expect(logs.filter((l) => !l.cacheHit).reduce((sum, l) => sum + (l.usage?.inputTokens ?? 0), 0)).toBe(pass === 0 ? 10 : 0)
+  }
+  const protectedOnly = { entries: entries.map((e) => ({ ...e, source: "manual" as const })), generatedAt: "fixture" }
+  adapter.mockClear(); transport.mockClear()
+  await translateCatalog({ entries, language: "fr", config: translationConfig, llmModel, previous: protectedOnly })
+  expect(adapter).not.toHaveBeenCalled()
+  expect(transport).not.toHaveBeenCalled()
+  const removed = await translateCatalog({ entries: [], language: "fr", config: translationConfig, llmModel, previous: saved })
+  expect(removed.entries).toEqual([])
+  expect(saved.entries[correctionIndex]).toEqual(correction)
+}, 30_000)

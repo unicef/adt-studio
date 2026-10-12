@@ -603,14 +603,15 @@ export async function packageAdtWeb(
   writeJson(path.join(contentDir, "pages.json"), pageList)
 
   // Table of contents — prefer stored TOC (generated or edited), fallback to headings
-  if (llmToc && llmToc.entries.length > 0) {
+  if (llmToc) {
     // Preserve stored parent-child groups in the runtime TOC, resolving
     // hrefs from the page list (the first page is always index.html)
     const hrefMap = new Map(pageList.map((p) => [p.section_id, p.href]))
     const tocJson = orderTocEntries(llmToc.entries, readingOrder.positionById)
       .map((e) => ({
         section_id: e.sectionId,
-        href: hrefMap.get(e.sectionId) ?? e.href,
+        // A pruned/retired target remains an authored heading, not a dead link.
+        href: hrefMap.get(e.sectionId) ?? "",
         title: e.title,
         chapter_id: e.chapterId,
         level: e.level,

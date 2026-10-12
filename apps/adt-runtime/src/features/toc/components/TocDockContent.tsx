@@ -23,26 +23,12 @@ export function TocContent() {
   const [tab, setTab] = useAtom(activeNavTabAtom);
   const { t } = useTranslation();
 
-  const tocEntries: TocEntry[] = useMemo(
-    () =>
-      toc.length > 0
-        ? toc
-        : pages.map((p) => ({
-            section_id: p.section_id,
-            href: p.href,
-            title: p.section_id,
-            chapter_id: p.section_id,
-            level: undefined,
-          })),
-    [toc, pages],
-  );
-
   const filteredTocEntries = useMemo(
     () =>
-      tocEntries.filter((entry) =>
+      toc.filter((entry) =>
         entry.title.toLowerCase().includes(searchTerm.toLowerCase()),
       ),
-    [tocEntries, searchTerm],
+    [toc, searchTerm],
   );
 
   return (
@@ -94,23 +80,25 @@ function TocList({
 }) {
   return (
     <ul className="py-1">
-      {entries.map((entry) => {
+      {entries.map((entry, index) => {
         const active = entry.section_id === currentSectionId;
         return (
-          <li key={entry.section_id}>
+          <li key={`${entry.section_id}:${index}`}>
             <button
               type="button"
               title={entry.title}
+              disabled={!entry.href}
               onClick={() => {
                 navigateToPage(entry.href);
               }}
-              onPointerEnter={() => prefetchPage(entry.href)}
-              onFocus={() => prefetchPage(entry.href)}
+              onPointerEnter={() => entry.href && prefetchPage(entry.href)}
+              onFocus={() => entry.href && prefetchPage(entry.href)}
               className={cn(
                 "w-full text-left rounded-md px-2.5 py-1.5 text-base",
                 "hover:bg-accent hover:text-accent-foreground",
                 "focus:outline-none focus:bg-accent focus:text-accent-foreground",
                 "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                "disabled:text-muted-foreground disabled:hover:bg-transparent",
                 active && "bg-accent text-accent-foreground font-medium",
                 entry.level === 2 && "pl-6",
                 entry.level === 3 && "pl-9",

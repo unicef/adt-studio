@@ -3,6 +3,7 @@ import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 
+const stageStateMock = vi.fn(() => "done")
 const navigateMock = vi.fn()
 const packageAdtMock = vi.fn(() => Promise.resolve({ status: "completed", label: "demo-book" }))
 const useSearchMock = vi.fn(() => ({ tab: "accessibility-summary" }))
@@ -51,9 +52,10 @@ vi.mock("@/api/client", () => ({
 }))
 
 vi.mock("@/hooks/use-book-run", () => ({
-  useBookRun: () => ({ stageState: (slug: string) => (slug === "storyboard" ? "done" : "idle") }),
+  useBookRun: () => ({ stageState: stageStateMock }),
 }))
 
+vi.mock("@/hooks/use-pages", () => ({ usePages: () => ({ data: [{ hasRendering: true }], isLoading: false }) }))
 vi.mock("@/hooks/use-book-tasks", () => ({
   useBookTasks: () => ({
     isTaskRunning: (...args: unknown[]) => isTaskRunningMock(...args),
@@ -150,4 +152,11 @@ describe("ValidationView", () => {
     await waitFor(() => expect(packageAdtMock).toHaveBeenCalledWith("demo-book"))
     expect(warningToastMock).not.toHaveBeenCalled()
   })
+})
+
+it("validates retained output after Storyboard completion is invalidated", async () => {
+  stageStateMock.mockReturnValue("idle")
+  const { ValidationView } = await import("./ValidationView")
+  render(<ValidationView bookLabel="retained" />)
+  await waitFor(() => expect(packageAdtMock).toHaveBeenCalledWith("retained"))
 })

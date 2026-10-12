@@ -342,19 +342,18 @@ function buildTocManifest(storage: Storage): Array<{ section_id: string; href: s
   const tocRow = storage.getLatestNodeData("toc-generation", "book")
   if (tocRow) {
     const tocData = tocRow.data as TocGenerationOutput
-    if (tocData.entries.length > 0) {
-      // Build href map from pages manifest for accurate hrefs
-      const readingOrder = resolveReadingOrder(storage)
-      const hrefMap = new Map(readingOrder.items.map((i) => [i.id, readingOrderHref(i)]))
-      return orderTocEntries(tocData.entries, readingOrder.positionById)
-        .map((e) => ({
-          section_id: e.sectionId,
-          href: hrefMap.get(e.sectionId) ?? e.href,
-          title: e.title,
-          chapter_id: e.chapterId,
-          level: e.level,
-        }))
-    }
+    // Build href map from pages manifest for accurate hrefs
+    const readingOrder = resolveReadingOrder(storage)
+    const hrefMap = new Map(readingOrder.items.map((i) => [i.id, readingOrderHref(i)]))
+    return orderTocEntries(tocData.entries, readingOrder.positionById)
+      .map((e) => ({
+        section_id: e.sectionId,
+        // Keep authored headings, but never navigate to an unavailable owner.
+        href: hrefMap.get(e.sectionId) ?? "",
+        title: e.title,
+        chapter_id: e.chapterId,
+        level: e.level,
+      }))
   }
 
   // Fallback: build from headings
@@ -1102,41 +1101,21 @@ export function createAdtPreviewRoutes(
       if (!parsedSectionId) {
         throw new HTTPException(404, { message: `Section not found: ${pageId}` })
       }
-      const ownerPageId = parsedSectionId.pageId
-
-      const renderRow = storage.getLatestNodeData("web-rendering", ownerPageId)
-      if (!renderRow) {
-        throw new HTTPException(404, { message: `No rendering data for page: ${ownerPageId}` })
-      }
-
-      const parsed = WebRenderingOutput.safeParse(renderRow.data)
-      if (!parsed.success) {
-        throw new HTTPException(500, { message: "Invalid rendering data" })
-      }
-
-      // Get sectioning to look up sectionId → sectionIndex mapping. The id's
-      // sequence number is NOT its array position (ids are allocated once and
-      // never reused), so there is no positional fallback — an unresolvable id
-      // is a 404 rather than a guess that would serve a different section.
+      // Use the same stable-owner resolution as catalog and packaging (adapted
+      // from PR #888). Current array positions cannot identify retained HTML.
+      const item = resolveReadingOrder(storage).items.find((entry) => entry.kind === "section" && entry.id === pageId)
+      if (!item || item.kind !== "section") throw new HTTPException(404, { message: `Section not found: ${pageId}` })
+      const ownerPageId = item.pageId
       const sectioning = getRenderSectioning(storage, ownerPageId)
-      const targetSectionIndex = sectioning
-        ? sectioning.sections.findIndex((s) => s.sectionId === pageId)
-        : -1
-      const storedSection = parsed.data.sections.find((s) => s.sectionIndex === targetSectionIndex)
-      const renderedSection = storedSection ? scopeLegacyActivityIds(storedSection, pageId) : undefined
-
-      if (!renderedSection || targetSectionIndex < 0) {
-        throw new HTTPException(404, { message: `Section not found: ${pageId}` })
-      }
+      const targetSectionIndex = item.sectionIndex
+      const renderedSection = scopeLegacyActivityIds(item.rendering, pageId)
 
       // Determine page index from manifest (includes quiz pages)
       const manifest = buildPagesManifest(storage)
       const manifestIndex = manifest.findIndex((e) => e.section_id === pageId)
       const previewBundleVersion = getPreviewContentVersion(storage, webAssetsDir)
 
-      const sectionMeta = sectioning
-        ? sectioning.sections[targetSectionIndex]
-        : undefined
+      const sectionMeta = item.section
 
       // Step-by-step override: an enabled editable activity replaces the
       // stored LLM HTML with the stepper shell, matching packaged output.

@@ -1440,6 +1440,9 @@ msgstr "Alfabetik"
 msgid "Already handed out"
 msgstr "Tashmë të shpërndara"
 
+msgid "Also regenerate these pages and replace their saved content"
+msgstr "Rigjenero edhe këto faqe dhe zëvendëso përmbajtjen e tyre të ruajtur"
+
 msgid "Among the Stars"
 msgstr "Mes yjeve"
 
@@ -2254,6 +2257,9 @@ msgstr "Ndrysho figurën e këtij termi"
 msgid "Changes detected"
 msgstr "U zbuluan ndryshime"
 
+msgid "Changes not saved"
+msgstr "Ndryshimet nuk janë ruajtur"
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Ndryshimi i fonteve ndikon në mënyrën se si shfaqen faqet — riekzekutoni Storyboard dhe Eksportin për të zbatuar fontet e reja."
 
@@ -2611,6 +2617,12 @@ msgstr "Konfiguruar në server"
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
 
+msgid "Conflicting changes detected"
+msgstr "U zbuluan ndryshime që bien ndesh"
+
+#~ msgid "Conflicting fields:"
+#~ msgstr "Fusha në konflikt:"
+
 msgid "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 msgstr "Lidh motorët që drejtojnë linjën dhe tregojnë libra. Çelësat qëndrojnë në këtë makinë; ofruesit CLI ripërdorin hyrjen tashmë në të."
 
@@ -2772,6 +2784,12 @@ msgstr "Përgjigja e saktë (alternativat ndahen me |)"
 msgid "Correct the metadata extracted from the document."
 msgstr "Korrigjoni meta të dhënat e nxjerra nga dokumenti."
 
+msgid "Could not load saved content."
+msgstr "Përmbajtja e ruajtur nuk mund të ngarkohej."
+
+msgid "Could not load saved content. Retry"
+msgstr "Përmbajtja e ruajtur nuk mund të ngarkohej. Provo përsëri"
+
 msgid "Could not load the AI provider catalogue."
 msgstr "Katalogu i ofruesve të IA-së nuk mund të ngarkohej."
 
@@ -2789,6 +2807,9 @@ msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i m
 
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Nuk u hoqën dot {failed} nga {total} video — ju lutem provoni përsëri."
+
+msgid "Could not revert this page. Your edits were kept. Try again."
+msgstr "Ndryshimet e kësaj faqeje nuk mund të zhbëheshin. Ndryshimet tuaja u ruajtën. Provoni përsëri."
 
 #. placeholder {0}: getStageLabelI18n(fromStage)
 msgid "Could not start {0}: {detail}"
@@ -3317,6 +3338,9 @@ msgstr "Hidh poshtë"
 
 msgid "Discard & leave"
 msgstr "Hidh poshtë dhe dil"
+
+msgid "Discard this draft and load the entire latest saved table of contents."
+msgstr "Hidhni poshtë këtë draft dhe ngarkoni të gjithë tabelën e fundit të ruajtur të përmbajtjes."
 
 msgid "Discard unsaved prompt changes?"
 msgstr "Të hidhen poshtë ndryshimet e paruajtura të promptit?"
@@ -5204,6 +5228,12 @@ msgstr "Mbaj përmbajtjen ekzistuese"
 msgid "Keep filtered content"
 msgstr "Mbaj përmbajtjen e filtruar"
 
+msgid "Keep my changes"
+msgstr "Mbaj ndryshimet e mia"
+
+#~ msgid "Keep my conflicting edits"
+#~ msgstr "Mbaji ndryshimet e mia në konflikt"
+
 msgid "Keep my edit"
 msgstr "Mbaj ndryshimin tim"
 
@@ -5218,6 +5248,12 @@ msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur zbulohen lloje të 
 
 #~ msgid "Keep selected content"
 #~ msgstr "Mbaj përmbajtjen e përzgjedhur"
+
+msgid "Keep the values you entered where changes overlap."
+msgstr "Mbani vlerat që keni futur aty ku ndryshimet mbivendosen."
+
+msgid "Keep your entire table of contents, including its chapter targets and order."
+msgstr "Mbani të gjithë tabelën tuaj të përmbajtjes, përfshirë destinacionet dhe renditjen e kapitujve."
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Mban faqet të plota nëse llojet e përziera të aktiviteteve nuk kërkojnë ndarje."
@@ -5352,6 +5388,9 @@ msgstr "Lëreni të papërcaktuar për të ruajtur ritmin e vetë ElevenLabs. Vl
 
 msgid "Leave without finishing?"
 msgstr "Dil pa përfunduar?"
+
+msgid "Legacy · protected"
+msgstr "Përmbajtje e vjetër · e mbrojtur"
 
 msgid "Legal and compliance manuals"
 msgstr "Manuale ligjore dhe të pajtueshmërisë"
@@ -5492,6 +5531,9 @@ msgstr "Segmentim i bazuar në LLM për të zbuluar dhe ndarë imazhet e kompozu
 msgid "LMS-ready with completion tracking"
 msgstr "Gati për LMS me gjurmim të përfundimit"
 
+msgid "Load latest saved values"
+msgstr "Ngarko vlerat e fundit të ruajtura"
+
 msgid "Loading accessibility summary..."
 msgstr "Duke ngarkuar përmbledhjen e aksesueshmërisë..."
 
@@ -5572,6 +5614,9 @@ msgstr "Duke ngarkuar përmbledhjen e vërtetimit të rishikuesit..."
 
 msgid "Loading reviewer validation…"
 msgstr "Duke ngarkuar vërtetimin e rishikuesit…"
+
+msgid "Loading saved content…"
+msgstr "Duke ngarkuar përmbajtjen e ruajtur…"
 
 msgid "Loading sectioning data..."
 msgstr "Duke ngarkuar të dhënat e seksionimit..."
@@ -5674,6 +5719,9 @@ msgstr "Menaxho videot e gjuhës së shenjave"
 
 msgid "Manual edit"
 msgstr "Ndryshim manual"
+
+msgid "Manual edits reverted for page {pageNumber}"
+msgstr "Ndryshimet manuale të faqes {pageNumber} u zhbënë"
 
 msgid "Manual only"
 msgstr "Vetëm manual"
@@ -6246,6 +6294,9 @@ msgstr "Nuk ka dallime nga prompt-i fallback."
 
 msgid "No disabled rules"
 msgstr "Nuk ka rregulla të çaktiviziuara"
+
+msgid "No earlier AI-generated version is available for this page."
+msgstr "Nuk ka version të mëparshëm të gjeneruar nga IA-ja për këtë faqe."
 
 msgid "No Easy Read for this page"
 msgstr "Nuk ka Lexim të Lehtë për këtë faqe"
@@ -7163,6 +7214,9 @@ msgstr "faqet {shownStr}"
 msgid "Pages in the selected range"
 msgstr "Faqet në intervalin e zgjedhur"
 
+msgid "Pages listed below will keep their saved content unless you choose to replace them. All other pages will be regenerated."
+msgstr "Faqet e renditura më poshtë do ta ruajnë përmbajtjen e tyre, përveç nëse zgjidhni ta zëvendësoni. Të gjitha faqet e tjera do të rigjenerohen."
+
 msgid "pages per quiz"
 msgstr "faqe për kuiz"
 
@@ -7171,6 +7225,9 @@ msgstr "Faqe për Kuiz"
 
 msgid "Pages reviewed"
 msgstr "Faqe të rishikuara"
+
+msgid "Pages with manual edits or unknown authorship:"
+msgstr "Faqe me ndryshime manuale ose autorësi të panjohur:"
 
 msgid "Paper Collage"
 msgstr "Kolazh Letre"
@@ -7580,6 +7637,12 @@ msgstr "udhëzime shabllone"
 
 #~ msgid "Protected content"
 #~ msgstr "Përmbajtje e mbrojtur"
+
+#~ msgid "Protected pages:"
+#~ msgstr "Faqet e mbrojtura:"
+
+msgid "Protected quizzes to replace:"
+msgstr "Kuizet e mbrojtura për t’u zëvendësuar:"
 
 msgid "Provider"
 msgstr "Ofruesi"
@@ -8163,20 +8226,33 @@ msgstr "Zëvendëso imazhin"
 msgid "Replace PDF"
 msgstr "Zëvendëso PDF-in"
 
+msgid "Replace protected quizzes"
+msgstr "Zëvendëso kuizet e mbrojtura"
+
 msgid "Replace quiz"
 msgstr "Zëvendëso kuizin"
 
 msgid "Replace quizzes"
 msgstr "Zëvendëso kuizet"
 
+#~ msgid "Replace the protected pages listed above"
+#~ msgstr "Zëvendëso faqet e mbrojtura të renditura më sipër"
+
 msgid "Replace this audio file"
 msgstr "Zëvendëso këtë skedar audio"
+
+msgid "Replace your overlapping changes with the latest saved values."
+msgstr "Zëvendësoni ndryshimet tuaja që mbivendosen me vlerat e fundit të ruajtura."
 
 msgid "Replay the guided introduction to ADT Studio."
 msgstr "Riluaj prezantimin e udhëzuar të ADT Studio."
 
 msgid "Report an issue"
 msgstr "Raporto një problem"
+
+#. placeholder {0}: res.status
+msgid "Request failed: {0}"
+msgstr "Kërkesa dështoi: {0}"
 
 msgid "Request settings"
 msgstr "Cilësimet e kërkesës"
@@ -8225,6 +8301,9 @@ msgstr "Rivendos zmadhimin"
 
 msgid "Resize panel"
 msgstr "Ripërmasoni panelin"
+
+msgid "Resolve conflicting edits before saving"
+msgstr "Zgjidh ndryshimet në konflikt para ruajtjes"
 
 msgid "Resolving source language..."
 msgstr "Duke zgjidhur gjuhën burimore..."
@@ -8293,6 +8372,12 @@ msgstr "Kthejeni te koordinatori"
 msgid "Revert language change"
 msgstr "Kthe ndryshimin e gjuhës"
 
+msgid "Revert manual edits"
+msgstr "Zhbëj ndryshimet manuale"
+
+msgid "Revert manual edits on page {pageNumber}?"
+msgstr "Të zhbëhen ndryshimet manuale të faqes {pageNumber}?"
+
 msgid "Revert to {originalLanguageName}"
 msgstr "Kthehu te {originalLanguageName}"
 
@@ -8357,6 +8442,9 @@ msgstr "Rreptësia e rishikimit"
 
 msgid "Review style"
 msgstr "Stili i rishikimit"
+
+msgid "Review the chosen document, then save again."
+msgstr "Rishikoni dokumentin e zgjedhur dhe ruajeni përsëri."
 
 msgid "Review the project details below and confirm the import."
 msgstr "Rishikoni detajet e projektit më poshtë dhe konfirmoni importimin."
@@ -8602,6 +8690,9 @@ msgstr "Ruajtja dështoi"
 msgid "Save or cancel your draft before reviewing outputs."
 msgstr "Ruani ose anuloni draftin para se të rishikoni rezultatet."
 
+msgid "Save or discard changes before restoring a version."
+msgstr "Ruani ose hidhni poshtë ndryshimet para se të riktheni një version."
+
 msgid "Save or discard your edits first"
 msgstr "Fillimisht ruani ose hidhni poshtë ndryshimet"
 
@@ -8625,6 +8716,9 @@ msgstr "Ruaj madhësitë e tekstit"
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Ruaje punën tënde më parë nëse dëshiron t'i mbash këto ndryshime."
+
+msgid "Saved content is unavailable; your draft is retained"
+msgstr "Përmbajtja e ruajtur nuk është e disponueshme; drafti yt ruhet"
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
@@ -10094,6 +10188,9 @@ msgstr "Storyboard duhet të plotësohet para gjenerimit të {stageName}. Ekzeku
 msgid "The sun heats water in oceans, lakes, and rivers, turning it into vapor that rises into the atmosphere. As the vapor cools at higher altitudes, it condenses into tiny droplets that form clouds."
 msgstr "Dielli ngroh ujin në oqeane, liqene dhe lumenj, duke e kthyer në avull që ngjitet në atmosferë. Ndërsa avulli ftohet në lartësi më të mëdha, kondensohet në pika të vogla që formojnë retë."
 
+msgid "The table of contents was reorganized or replaced. Your draft is intact. Choose which complete document to keep before editing again."
+msgstr "Tabela e përmbajtjes është riorganizuar ose zëvendësuar. Drafti juaj është i paprekur. Zgjidhni cilin dokument të plotë të mbani para se të vazhdoni redaktimin."
+
 msgid "The table of contents."
 msgstr "Tabela e përmbajtjes."
 
@@ -10273,6 +10370,9 @@ msgstr "Kjo ndryshon vetëm ndërfaqen e ADT Studio. Nuk ndikon në gjuhët në 
 msgid "This option has no answer key entry"
 msgstr "Ky opsion nuk ka hyrje në çelësin e përgjigjeve"
 
+msgid "This page changed or a run started. Your edits were kept. Try again."
+msgstr "Kjo faqe ndryshoi ose filloi një ekzekutim. Ndryshimet tuaja u ruajtën. Provoni përsëri."
+
 msgid "This page has no captioned images"
 msgstr "Kjo faqe nuk ka imazhe me tituj"
 
@@ -10296,6 +10396,9 @@ msgstr "Kjo faqe nuk ka hyrje teksti të përkthyeshme"
 
 msgid "This page has not been reviewed yet"
 msgstr "Kjo faqe nuk është rishikuar akoma"
+
+msgid "This page was changed after you started editing, so some values are now out of sync. Your changes have not been saved."
+msgstr "Kjo faqe u ndryshua pasi filluat redaktimin, prandaj disa vlera tani nuk përputhen. Ndryshimet tuaja nuk janë ruajtur."
 
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "Shtresa e tekstit të integruar e kësaj faqeje është bosh, por hapi i Seksionimit rikuperoi tekst nga imazhi i faqes — pra duket si një faqe e skanuar ose vetëm me imazhe. Procesi ende mund të punojë me tekstin e rikuperuar, por për përmbledhje, metadata dhe përkthime më të mira, provoni të siguroni një version të këtij PDF-je të bazuar në tekst (me një shtresë teksti reale) në vend të një kopjeje të skanuar."
@@ -10342,8 +10445,14 @@ msgstr "Kjo heq të gjitha versionet globale të prompteve specifike për modeli
 msgid "This removes the global version for this prompt file. Shipped fallback files remain available."
 msgstr "Kjo heq versionin global për këtë skedar prompti. Skedarët fallback të përfshirë mbeten të disponueshëm."
 
+msgid "This replaces the manually edited or legacy table of contents. Its saved version remains in history."
+msgstr "Kjo zëvendëson tabelën e përmbajtjes të redaktuar manualisht ose të vjetër. Versioni i saj i ruajtur mbetet në historik."
+
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Kjo rikthen fontin e parazgjedhur në çdo faqe dhe pastron mbishkrimet e fontit për element dhe përzgjedhjen e fontit për të gjithë librin. Fontet e bashkëngjitura mbeten në listë. Kthimi është i disponueshëm për çdo faqe nga historiku i versioneve."
+
+msgid "This restores the last generated sectioning for this page. Your edited version stays in history. Other pages keep their edits. This page can be regenerated on the next Re-run."
+msgstr "Kjo rikthen ndarjen e fundit në seksione të gjeneruar për këtë faqe. Versioni juaj i redaktuar mbetet në historik. Faqet e tjera i ruajnë ndryshimet e tyre. Kjo faqe mund të rigjenerohet në ekzekutimin e ardhshëm."
 
 msgid "This screen couldn’t load"
 msgstr "Ky ekran nuk mund të ngarkohej"
@@ -10362,6 +10471,9 @@ msgstr "Kjo sesion po përdor një fotografi të vjetër të listës së kontrol
 
 msgid "This system cannot show desktop notifications."
 msgstr "Ky sistem nuk mund të shfaqë njoftime në desktop."
+
+msgid "This table of contents has conflicting chapter identities. Restore an earlier version before editing."
+msgstr "Kjo tabelë e përmbajtjes ka identitete kapitujsh që bien ndesh. Riktheni një version të mëparshëm para redaktimit."
 
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Ky tekst perceptohet vetëm nga teknologjitë ndihmëse."
@@ -10892,6 +11004,9 @@ msgstr "Përdor si aktual"
 msgid "Use as template"
 msgstr "Përdor si shabllon"
 
+#~ msgid "Use latest conflicting values"
+#~ msgstr "Përdor vlerat më të fundit në konflikt"
+
 msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 msgstr "Përdor sintaksën Liquid për të interpoluar variabla, për të iteruar mbi array dhe për të përfshirë udhëzime me kusht në këtë prompt."
 
@@ -11367,6 +11482,12 @@ msgstr "IA-ja juaj, çelësat tuaj."
 msgid "Your book"
 msgstr "Libri yt"
 
+msgid "Your changes are still here. Review them before saving again."
+msgstr "Ndryshimet tuaja janë ende këtu. Rishikojini para se të ruani përsëri."
+
+#~ msgid "Your draft is retained. Review the refreshed content before saving again."
+#~ msgstr "Drafti yt ruhet. Shqyrto përmbajtjen e rifreskuar para se ta ruash sërish."
+
 msgid "Your font has been applied to captions."
 msgstr "Fonti juaj u zbatua te përshkrimet."
 
@@ -11381,6 +11502,9 @@ msgstr "Fonti juaj u zbatua në të gjithë librin."
 
 msgid "Your fonts"
 msgstr "Fontet e tua"
+
+msgid "Your other edits will be kept. Review the result, then save again."
+msgstr "Ndryshimet tuaja të tjera do të ruhen. Rishikoni rezultatin, pastaj ruani përsëri."
 
 msgid "Your pages {displayStart}–{displayEnd}"
 msgstr "Faqet tuaja {displayStart}–{displayEnd}"

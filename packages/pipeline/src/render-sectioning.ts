@@ -12,12 +12,9 @@
  * packaging, TTS, easy-read, glossary, toc, captions, quizzes) must read the
  * tree that matches the rendered HTML, so it goes through this resolver.
  *
- * Selection is by node presence rather than config: `fixed-layout-sectioning`
- * is a `storyboard`-stage output, so `clearNodesByType` deletes it at the start
- * of every storyboard rerun and `processFixedLayoutPages` only re-writes it for
- * fixed-layout books. Its presence therefore reliably means "this page is
- * currently rendered fixed-layout" — including after a fixed→reflowable toggle,
- * which clears it.
+ * Selection is by active node presence. The positioned tree and rendering are
+ * retained together during regeneration; successful reflowable publication
+ * invalidates the positioned tree in the same transaction as its new HTML.
  */
 import type { NodeDataRow, Storage } from "@adt/storage"
 import type { PageSectioningOutput, PageSectioningSection, SectionRendering, PackagingWarning } from "@adt/types"

@@ -1,3 +1,4 @@
+import { useToc } from "@/hooks/use-toc"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { TocLandingPage } from "./TocLandingPage"
 import { TocView } from "./TocView"
@@ -12,7 +13,9 @@ export function TocIndex({
 }) {
   const status = useStageStatus("toc")
 
-  if (status.isCompleted || status.isRunning) {
+  const { data } = useToc(bookLabel)
+
+  if (status.isCompleted || status.isRunning || data) {
     return <TocView bookLabel={bookLabel} />
   }
 

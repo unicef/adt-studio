@@ -30,7 +30,6 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
   const captionsState = stageState("captions")
   const captionsDone = captionsState === "done"
   const captionsRunning = captionsState === "running" || captionsState === "queued"
-  const showRunCard = !captionsDone || captionsRunning
   const { sectionIndex, setSectionIndex } = useSectionNav()
   const [decorativeFilter, setDecorativeFilter] = useState<DecorativeFilter>("all")
   const [searchQuery, setSearchQuery] = useState("")
@@ -47,6 +46,7 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
     [pages],
   )
   const hasCaptionData = pagesWithImages.some((p) => p.hasCaptioning)
+  const showRunCard = (!captionsDone && !hasCaptionData) || captionsRunning
 
   const displayPages = useMemo(
     () =>
