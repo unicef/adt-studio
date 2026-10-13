@@ -334,6 +334,26 @@ describe("ADT preview routes", () => {
     expect(texts.pg001_tx002).toBe("Just plain prose.")
   })
 
+  it("confines preview audio to the book's language directory", async () => {
+    const audioDir = path.join(tmpDir, label, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "sample.mp3"), "audio")
+    fs.writeFileSync(path.join(tmpDir, "outside.txt"), "outside book")
+
+    const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
+
+    const valid = await app.request(
+      `/books/${label}/adt-preview/content/i18n/en/audio/sample.mp3`,
+    )
+    expect(valid.status).toBe(200)
+    expect(await valid.text()).toBe("audio")
+
+    const traversal = await app.request(
+      `/books/${label}/adt-preview/content/i18n/..%2f..%2f/audio/outside.txt`,
+    )
+    expect(traversal.status).toBe(400)
+  })
+
   it("serves prepared speech separately and withholds failed entries from audio", async () => {
     const storage = createBookStorage(label, tmpDir)
     try {

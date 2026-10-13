@@ -219,12 +219,25 @@ describe("createBookStorage", () => {
     expect(newId).toBe("pg001_im001_tr_es")
     expect(fs.existsSync(path.join(paths.imagesDir, "pg001_im001_tr_es.png"))).toBe(true)
 
+    // A JPEG variant (e.g. from the Google image backend) gets a .jpg extension.
+    storage.putTranslatedImage({
+      sourceImageId: "pg001_im001",
+      pageId: "pg001",
+      languageCode: "fr",
+      buffer: fakePng(200, 150),
+      mimeType: "image/jpeg",
+      width: 200,
+      height: 150,
+    })
+    expect(fs.existsSync(path.join(paths.imagesDir, "pg001_im001_tr_fr.jpg"))).toBe(true)
+
     const db = openBookDb(paths.dbPath)
     const rows = db.all(
-      "SELECT image_id, source, page_id FROM images WHERE source = 'translate'"
+      "SELECT image_id, source, page_id FROM images WHERE source = 'translate' ORDER BY image_id"
     ) as Array<{ image_id: string; source: string; page_id: string }>
     expect(rows).toEqual([
       { image_id: "pg001_im001_tr_es", source: "translate", page_id: "pg001" },
+      { image_id: "pg001_im001_tr_fr", source: "translate", page_id: "pg001" },
     ])
     db.close()
     storage.close()

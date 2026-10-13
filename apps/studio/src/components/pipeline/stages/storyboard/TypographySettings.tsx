@@ -35,7 +35,7 @@ function useStyleLabel() {
       case "body":
         return t`Body`
       case "caption":
-        return t`Caption`
+        return t({ message: "Caption", context: "typography role" })
       default:
         return s.label
     }

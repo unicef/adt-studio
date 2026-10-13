@@ -55,7 +55,7 @@ export function HomeHeroAnchor({ books, pinnedLabels, onOpen, onContinue, onAddB
   const shelf = [...rest.filter((b) => pins.has(b.label)), ...rest.filter((b) => !pins.has(b.label))].slice(0, 5)
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto px-10 pb-8 pt-5">
+    <div className="topbar-scroll-fade flex h-full flex-col overflow-y-auto px-10 pb-8 pt-4">
       <div className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col pb-4">
         <div>
           <h1 className="text-[26px] font-bold tracking-[-0.02em]">{greeting}</h1>

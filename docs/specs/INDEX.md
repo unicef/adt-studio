@@ -3,6 +3,11 @@
 One row per spec. Status moves with the spec's front matter; keep the two in sync in the same PR.
 Statuses: draft · in-review · approved · in-progress · implemented · verified · superseded.
 
+This table is not the whole list of taken numbers. A spec proposed after it was last
+updated appears only in its PR title (`SPEC-NNNN: …`) until that PR merges, and it
+already holds its number — check both before taking one
+([SPEC_DRIVEN_DEVELOPMENT.md §5](../SPEC_DRIVEN_DEVELOPMENT.md#5-writing-a-spec)).
+
 | Spec      | Title                                                           | Status | Owner       | Needed by |
 |-----------|-----------------------------------------------------------------|--------|-------------|-----------|
 | SPEC-0001 | Per-section staleness and scoped regeneration                   | draft  | @ksokolovic | Block 1   |
@@ -13,6 +18,7 @@ Statuses: draft · in-review · approved · in-progress · implemented · verifi
 | SPEC-0006 | Cloudflare publishing: scope, ops surface, security             | draft  | TBD         | Block 2   |
 | SPEC-0007 | Accessibility harness as a blocking CI gate                     | draft  | TBD         | 0.9.0     |
 | SPEC-0008 | Stable identifiers and reading order (retrospective)            | draft  | TBD         | Block 1   |
+| [SPEC-0015](SPEC-0015-nano-banana-image-models.md) | Nano Banana image models | in-review | @elasticsounds | #579 / #904 |
 
 Legacy notes, from before this process existed, now in [`docs/analysis/`](../analysis/):
 [SECTIONING_CROSSWORD_BUG.md](../analysis/SECTIONING_CROSSWORD_BUG.md),

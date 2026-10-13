@@ -16,8 +16,10 @@ vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useLingui: () => ({
     i18n: { locale: "en", _: (d: { id?: string }) => d.id ?? "" },
-    t: (strings: TemplateStringsArray, ...values: unknown[]) =>
-      strings.reduce((text, part, i) => text + part + String(values[i] ?? ""), ""),
+    t: (strings: TemplateStringsArray | { message: string }, ...values: unknown[]) =>
+      "message" in strings
+        ? strings.message
+        : strings.reduce((text, part, i) => text + part + String(values[i] ?? ""), ""),
   }),
 }))
 vi.mock("@/components/ui/sonner", () => ({

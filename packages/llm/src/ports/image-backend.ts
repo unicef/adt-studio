@@ -8,6 +8,8 @@ export interface ImageGenerateRequest {
   prompt: string
   /** `WxH`, validated against the backend's declared sizes. */
   size?: string
+  /** Preferred width / height; adapters select a supported size without resizing inputs. */
+  aspectRatio?: number
   timeoutMs?: number
   signal?: AbortSignal
 }

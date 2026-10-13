@@ -83,6 +83,7 @@
     "page": "",
     "previous-page": "Previous page",
     "next-page": "Next page",
+    "page-n-of-m": "Page ${n} of ${m}",
     "text-read-aloud-speed": "Speed",
     "activity-to-do": "To do",
     "activity-completed": "Completed",

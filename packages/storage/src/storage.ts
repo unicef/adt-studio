@@ -53,6 +53,8 @@ export interface TranslatedImageInput {
   pageId: string
   languageCode: string
   buffer: Buffer
+  /** MIME type of the buffer; selects the on-disk extension. Defaults to PNG. */
+  mimeType?: string
   width: number
   height: number
 }
@@ -89,7 +91,7 @@ export interface Storage {
   /** Write a segmented image to disk as {sourceImageId}_seg{NNN}_v{version}.png and register it in the DB with source="segment". */
   putSegmentedImage(input: SegmentedImageInput): void
 
-  /** Write a localized image variant to disk as {sourceImageId}_tr_{langCode}.png and register it in the DB with source="translate". Returns the new image id. */
+  /** Write a localized image variant to disk as {sourceImageId}_tr_{langCode}.{ext} (extension from input.mimeType, default png) and register it in the DB with source="translate". Returns the new image id. */
   putTranslatedImage(input: TranslatedImageInput): string
 
   /** Delete all translated image rows and their on-disk files. Optionally restrict to a set of source image ids and/or languages. */
