@@ -41,7 +41,10 @@ vi.mock("@/hooks/use-all-pages-pruned", () => ({ useAllPagesPruned: () => ({ all
 vi.mock("@/hooks/use-debug", () => ({
   useAccessibilityAssessment: () => ({ data: undefined, isLoading: false, error: null }),
 }))
-vi.mock("@/hooks/use-books", () => ({ usePackageAdtStatus: () => ({ data: undefined }) }))
+vi.mock("@/hooks/use-books", () => ({
+  useBook: () => ({ data: { label: "book" }, isLoading: false }),
+  usePackageAdtStatus: () => ({ data: undefined }),
+}))
 vi.mock("@/hooks/use-reviewer-validation", () => ({ useReviewerValidationCatalog: () => ({ data: { enabled: false } }) }))
 vi.mock("@/components/debug/debug-panel-state", () => ({ useDebugPanelState: () => ({ panelOpen: false }) }))
 vi.mock("@/components/pipeline/components/StepViewRouter", () => ({

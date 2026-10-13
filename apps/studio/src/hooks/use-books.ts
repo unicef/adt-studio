@@ -82,6 +82,22 @@ export function useImportBook() {
   })
 }
 
+export function useImportAdtProject() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      zip,
+      activityDecisions,
+    }: {
+      zip: File
+      activityDecisions: Array<{ sectionId: string; type: string | null }>
+    }) => api.importAdtProject(zip, activityDecisions),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["books"] })
+    },
+  })
+}
+
 export function usePackageAdt() {
   const queryClient = useQueryClient()
   return useMutation({
