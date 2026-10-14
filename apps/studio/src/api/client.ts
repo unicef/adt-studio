@@ -1915,6 +1915,13 @@ export const api = {
       { method: "POST" },
     ),
 
+  /** Accept retained Quiz, Glossary or TOC content as current for today's inputs. */
+  keepSourceGeneration: (label: string, stage: string) =>
+    request<{ stage: string; step: string; inputSignature: string }>(
+      `/books/${label}/source-generation/${stage}/keep`,
+      { method: "POST" },
+    ),
+
   getStepStatus: (label: string) =>
     request<{
       sourceUpdateStages: string[]

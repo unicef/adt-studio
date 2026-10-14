@@ -12,6 +12,7 @@ import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig,
   getSourceGenerationUpdates,
+  keepSourceGeneration,
   withSourceGenerationTracking,
   collectSpentSectionIds,
   retireSectionIds,
@@ -293,6 +294,26 @@ export function createStageRoutes(
     })
 
     return c.json({ id: result.id, status: result.status, label, fromStage, toStage })
+  })
+
+  // Accept retained Quiz, Glossary or TOC content as current for today's
+  // inputs (SPEC-0001 Keep). The book writer middleware admits this route, so
+  // an active run or task answers 409 instead of racing a publication.
+  app.post("/books/:label/source-generation/:stage/keep", (c) => {
+    const safeLabel = parseBookLabel(c.req.param("label"))
+    const stage = c.req.param("stage")
+    const step = SourceGeneratorStep.options.find((candidate) => STEP_TO_STAGE[candidate] === stage)
+    if (!step) throw new HTTPException(400, { message: "Keep applies to Quizzes, Glossary and Table of Contents." })
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      if (!storage.getLatestNodeData(step, "book")) {
+        throw new HTTPException(409, { message: "No retained content to keep. Run this stage to generate it." })
+      }
+      const kept = keepSourceGeneration(storage, step)
+      return c.json({ stage, step, inputSignature: kept.inputSignature })
+    } finally {
+      storage.close()
+    }
   })
 
   app.post("/books/:label/stages/skip-outputs", async (c) => {

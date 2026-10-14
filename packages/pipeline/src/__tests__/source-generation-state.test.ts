@@ -4,7 +4,7 @@ import path from "node:path"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { createBookStorage, type Storage } from "@adt/storage"
 import { SourceGeneratorStep, type PageSectioningOutput, type WebRenderingOutput } from "@adt/types"
-import { putReflowableRendering, putSourceNodeData, withSourceGenerationTracking, captureSourceGeneration, publishSourceGeneration, getSourceGenerationUpdates } from "../source-generation-state.js"
+import { putReflowableRendering, putSourceNodeData, withSourceGenerationTracking, captureSourceGeneration, publishSourceGeneration, getSourceGenerationUpdates, keepSourceGeneration } from "../source-generation-state.js"
 import { resolveReadingOrder } from "../reading-order.js"
 import { getRenderSectioningSelection } from "../render-sectioning.js"
 import { collectPageTexts } from "../glossary.js"
@@ -194,4 +194,19 @@ it("does not dirty malformed legacy books on cosmetic paired saves", () => {
   db.putNodeData("web-rendering", "pg002", { invalid: true })
   withSourceGenerationTracking(db, () => editHtml(html => html.replace('<p ', '<p style="color:red" ')))
   expectUpdates([])
+})
+it("keeps retained content as the accepted baseline until the next source change", () => {
+  editHtml(html => html.replace("Body", "New body"))
+  expect(getSourceGenerationUpdates(db).sort()).toEqual(["glossary", "quiz-generation"])
+  const kept = keepSourceGeneration(db, "glossary")
+  expect(kept).toEqual({ version: 1, needsUpdate: false, policy: {}, inputSignature: captureSourceGeneration(db, "glossary").inputSignature })
+  expect(getSourceGenerationUpdates(db)).toEqual(["quiz-generation"])
+  expect(db.getStepRuns().find(run => run.step === "glossary")?.status).toBe("done")
+  // Nothing was generated: content versions and the retained asset are untouched.
+  expect(db.getAllNodeVersions("glossary", "book").map(row => row.data)).toEqual([{ manual: "older" }, { manual: "latest" }])
+  expect(fs.readFileSync(path.join(db.bookDir!, "retained.wav"), "utf8")).toBe("historical physical audio")
+  db.close(); db = createBookStorage("book", root)
+  expect(getSourceGenerationUpdates(db)).toEqual(["quiz-generation"])
+  editHtml(html => html.replace("New body", "Newer body"))
+  expect(getSourceGenerationUpdates(db).sort()).toEqual(["glossary", "quiz-generation"])
 })

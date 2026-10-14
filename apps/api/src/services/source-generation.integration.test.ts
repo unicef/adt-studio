@@ -3,7 +3,7 @@ import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { createBookStorage } from "@adt/storage"
-import { getSourceGenerationUpdates, putSourceNodeData } from "@adt/pipeline"
+import { getSourceGenerationUpdates, putSourceNodeData, captureSourceGeneration, publishSourceGeneration } from "@adt/pipeline"
 import { createStageRunner } from "./stage-runner.js"
 import { createStageRoutes, makeBeforeRun } from "../routes/stages.js"
 import { createPageRoutes } from "../routes/pages.js"
@@ -133,4 +133,23 @@ it("generates only eligible Quiz pages even when an excluded page has malformed 
   expect(done.getLatestNodeData("quiz-generation", "book")?.data).toMatchObject({ quizzes: [{ pageIds: ["pg001"] }] })
   expect(done.getLatestNodeData("web-rendering", "pg002")?.data).toEqual({ invalid: "excluded rendering" })
   expect(getSourceGenerationUpdates(done)).toEqual([]); done.close()
+})
+it("keeps retained content as current through the API, restoring completion, and warns again after the next source change", async () => {
+  const app = statusApp()
+  expect((await app.request(`/books/${label}/source-generation/glossary/keep`, { method: "POST" })).status).toBe(409)
+  expect((await app.request(`/books/${label}/source-generation/speech/keep`, { method: "POST" })).status).toBe(400)
+  const seed = storage()
+  publishSourceGeneration(seed, captureSourceGeneration(seed, "glossary"), () => seed.putNodeData("glossary", "book", { items: [] }))
+  seed.markStepCompleted("glossary")
+  seed.close()
+  changeSource()
+  const status = async () => (await app.request(`/books/${label}/step-status`)).json() as Promise<{ sourceUpdateStages: string[]; stages: Record<string, string> }>
+  expect(await status()).toMatchObject({ sourceUpdateStages: ["glossary"], stages: expect.objectContaining({ glossary: "idle" }) })
+  expect((await app.request(`/books/${label}/source-generation/glossary/keep`, { method: "POST" })).status).toBe(200)
+  expect(await status()).toMatchObject({ sourceUpdateStages: [], stages: expect.objectContaining({ glossary: "done" }) })
+  const kept = storage()
+  expect(kept.getAllNodeVersions("glossary", "book").map(row => row.data)).toEqual([{ items: [] }])
+  putSourceNodeData(kept, "web-rendering", "pg001", { sections: [{ ...rendering.sections[0], html: rendering.sections[0].html.replace("Body", "Edited twice") }] })
+  kept.close()
+  expect(await status()).toMatchObject({ sourceUpdateStages: ["glossary"], stages: expect.objectContaining({ glossary: "idle" }) })
 })

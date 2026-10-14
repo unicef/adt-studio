@@ -60,11 +60,16 @@ reset of all three generators on any substantive source edit:
   and reading order; original TOC text only for extract mode.
 
 Retained affected content shows “Generated before your latest edits,” an amber
-sidebar state and an explicit Re-run action. The warning survives reload,
-skip, failed/cancelled runs and manual output edits. Only successful complete
-publication against unchanged captured inputs clears it. The existing stage
-Overview/Run and content editor remain reachable. Preparing a run alone does
-not declare unaffected retained generators outdated.
+sidebar state, an explicit Re-run action and a stage-level Keep existing
+content action, presented like the catalog stages' attention panel. The
+warning survives reload, skip, failed/cancelled runs and manual output edits.
+It clears on successful complete publication against unchanged captured
+inputs, or on Keep, which records the inputs current at that moment as the
+accepted baseline under the writer lease and restores the stage's completed
+status without generating anything or writing a content version. The next
+source change compares against that baseline and warns again. The existing
+stage Overview/Run and content editor remain reachable. Preparing a run alone
+does not declare unaffected retained generators outdated.
 
 Saving compares edited HTML against the saved rendering before propagating
 real text changes into sectioning. Cosmetic renderer/source differences, such

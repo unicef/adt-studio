@@ -108,6 +108,39 @@ export function publishSourceGeneration<T>(storage: Storage, receipt: SourceGene
   })
 }
 
+/** The signature tracking and Keep compare. A malformed retained rendering
+ * cannot prove generator inputs; its page basis stands in so an editor save
+ * beside it still succeeds. Storage/IO failures propagate and roll back. */
+export function currentSourceInputSignature(storage: Storage, step: SourceGeneratorStep, policy: SourceGenerationPolicy): string {
+  try { return captureSourceGeneration(storage, step, policy).inputSignature }
+  catch (error) {
+    if (error instanceof Error && error.message.startsWith("Invalid web-rendering output")) {
+      return inputSignature({ unprovable: true, pages: storage.getPages().map(page => ({
+        pageId: page.pageId, pageNumber: page.pageNumber,
+        source: ["page-sectioning", "fixed-layout-sectioning", "web-rendering"].map(node =>
+          sourceGenerationBasis(node, storage.getLatestNodeData(node, page.pageId)?.data)),
+      })) })
+    }
+    throw error
+  }
+}
+
+/** Accept retained content as current for the inputs at this moment. Records
+ * that baseline, clears the warning and restores the stage's completed status.
+ * Nothing is generated and no content version is written; the next source
+ * change compares against this baseline and warns again. */
+export function keepSourceGeneration(storage: Storage, step: SourceGeneratorStep): SourceGenerationState {
+  return storage.transaction(() => {
+    if (!storage.getLatestNodeData(step, "book")) throw new Error("No retained content to keep. Run this stage to generate it.")
+    const previous = state(storage, step)
+    const kept: SourceGenerationState = { version: 1, needsUpdate: false, policy: previous.policy,
+      inputSignature: currentSourceInputSignature(storage, step, previous.policy) }
+    storage.putNodeData(STATE_NODE, step, kept)
+    storage.markStepCompleted(step)
+    return kept
+  })
+}
+
 export function markSourceGenerationNeedsUpdate(storage: Storage, step: SourceGeneratorStep): void {
   storage.clearStepRuns([step])
   const previous = state(storage, step)
@@ -124,21 +157,7 @@ export function withSourceGenerationTracking<T>(storage: Storage, mutate: () => 
   return storage.transaction(() => {
     const attempted = new Set(storage.getStepRuns().map(run => run.step))
     const steps = SourceGeneratorStep.options.filter(step => attempted.has(step) || storage.getLatestNodeData(step, "book"))
-    const read = (step: SourceGeneratorStep) => {
-      try { return captureSourceGeneration(storage, step, state(storage, step).policy).inputSignature }
-      catch (error) {
-        // An invalid retained rendering must not make every editor save fail.
-        // Only validation failures are unprovable; storage/IO failures rollback.
-        if (error instanceof Error && error.message.startsWith("Invalid web-rendering output")) {
-          return inputSignature({ unprovable: true, pages: storage.getPages().map(page => ({
-            pageId: page.pageId, pageNumber: page.pageNumber,
-            source: ["page-sectioning", "fixed-layout-sectioning", "web-rendering"].map(node =>
-              sourceGenerationBasis(node, storage.getLatestNodeData(node, page.pageId)?.data)),
-          })) })
-        }
-        throw error
-      }
-    }
+    const read = (step: SourceGeneratorStep) => currentSourceInputSignature(storage, step, state(storage, step).policy)
     const before = new Map(steps.map(step => [step, read(step)]))
     tracking.add(storage)
     try {
