@@ -1,3 +1,5 @@
+import { catalogOutputs } from "../services/catalog-output-service.js"
+import { reconcileSpeechInputs, loadCoreTtsProfiles, scopeLegacyActivityIds, activeEasyRead, buildEasyReadSourceBlocks } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { createHash } from "node:crypto"
@@ -222,6 +224,7 @@ function buildTextsMap(
   lang: string,
   sourceLanguage: string,
   catalog: TextCatalogOutput | undefined,
+  easyReadEnabled = true,
 ): Record<string, string> {
   const normalizedLang = normalizeLocale(lang)
   const baseLang = getBaseLanguage(normalizedLang)
@@ -231,8 +234,7 @@ function buildTextsMap(
     if (catalog?.entries) {
       for (const e of catalog.entries) textsMap[e.id] = e.text
     }
-    const easyReadRow = storage.getLatestNodeData("easy-read", "book")
-    const easyReadEntries = flattenEasyReadEntries(easyReadRow?.data as EasyReadOutput | undefined)
+    const easyReadEntries = easyReadEnabled ? flattenEasyReadEntries(activeEasyRead(storage, buildEasyReadSourceBlocks(storage, storage.getPages()))) : []
     for (const e of easyReadEntries) textsMap[e.id] = e.text
   } else {
     const legacyLang = normalizedLang.replace("-", "_")
@@ -241,7 +243,10 @@ function buildTextsMap(
       storage.getLatestNodeData("text-catalog-translation", legacyLang)
     if (transRow) {
       const translated = transRow.data as TextCatalogOutput
-      for (const e of translated.entries) textsMap[e.id] = e.text
+      const active = new Set((catalog?.entries ?? []).map((entry) => entry.id))
+      const easy = activeEasyRead(storage, buildEasyReadSourceBlocks(storage, storage.getPages()))
+      if (easyReadEnabled) for (const entry of flattenEasyReadEntries(easy)) active.add(entry.id)
+      for (const e of translated.entries) if (active.has(e.id) && !Object.hasOwn(textsMap, e.id)) textsMap[e.id] = e.text
     }
   }
 
@@ -384,6 +389,8 @@ function buildPreviewConfig(
   speechConfig?: SpeechConfig,
   configuredOutputLanguages?: string[],
   fixedLayout?: boolean,
+  readyIds?: Set<string>,
+  easyReadEnabled = true,
 ) {
   const glossary = getGlossary(storage)
   const hasGlossary = glossary !== undefined && glossary.items.length > 0
@@ -392,9 +399,7 @@ function buildPreviewConfig(
   const ttsRow =
     storage.getLatestNodeData("tts", language) ??
     storage.getLatestNodeData("tts", legacyLanguage)
-  const readySpeechIds = new Set(
-    getReadyCoreTtsEntries(storage, language).map((entry) => entry.id),
-  )
+  const readySpeechIds = readyIds ?? new Set(getReadyCoreTtsEntries(storage, language).map((entry) => entry.id))
   const ttsData = ttsRow?.data as TTSOutput | undefined
   const hasTTS = ttsData?.entries.some((entry) => readySpeechIds.has(entry.textId)) === true
   const highlightEnabled = hasTTS && speechConfig?.word_highlighting === true
@@ -422,8 +427,7 @@ function buildPreviewConfig(
   }
 
   const hasSignLanguageVideos = storage.getSignLanguageVideos().some((v) => v.sectionId !== null)
-  const easyReadRow = storage.getLatestNodeData("easy-read", "book")
-  const hasEasyRead = flattenEasyReadEntries(easyReadRow?.data as EasyReadOutput | undefined).length > 0
+  const hasEasyRead = easyReadEnabled && flattenEasyReadEntries(activeEasyRead(storage, buildEasyReadSourceBlocks(storage, storage.getPages()))).length > 0
 
   // Available languages = the source language + every translation actually
   // present in the DB. We restrict against the book's configured
@@ -486,6 +490,7 @@ export function createAdtPreviewRoutes(
   booksDir: string,
   webAssetsDir: string,
   configPath?: string,
+  promptsDir = path.resolve("prompts"),
 ): Hono {
   const app = new Hono()
 
@@ -524,6 +529,19 @@ export function createAdtPreviewRoutes(
     return result
   }
 
+  function previewSpeech(storage: Storage, label: string, language: string) {
+    const config = loadBookConfig(label, booksDir, configPath)
+    return reconcileSpeechInputs({ storage, config, sourceLanguage: config.editing_language ?? getBookLanguage(storage),
+      languages: [language], profiles: loadCoreTtsProfiles(configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config")),
+      promptsDir, bookDir: path.join(path.resolve(booksDir), label), persist: false })[0]?.entries ?? []
+  }
+  function includedSpeechIds(storage: Storage, label: string, language: string, voiceSlot?: VoiceSlot, kind: "audio" | "timestamps" = "audio") {
+    const usableSpeech = new Set(previewSpeech(storage, label, language).filter((entry) => entry.speechText?.trim()).map((entry) => entry.id))
+    return new Set(catalogOutputs(storage, label, booksDir, promptsDir, configPath)
+      .filter((output) => output.identity.kind === kind && output.identity.language === language && (!voiceSlot || output.identity.voiceSlot === voiceSlot) && output.usable && !output.excluded && usableSpeech.has(output.identity.id))
+      .map((output) => output.identity.id))
+  }
+
   // /assets/config.json — Dynamic config reflecting book capabilities
   app.get("/books/:label/adt-preview/assets/config.json", (c) => {
     const safeLabel = parseBookLabel(c.req.param("label"))
@@ -537,6 +555,8 @@ export function createAdtPreviewRoutes(
         bookConfig.speech,
         bookConfig.output_languages,
         isFixedLayoutBook(bookConfig),
+        includedSpeechIds(storage, safeLabel, language),
+        bookConfig.easy_read?.enabled === true,
       )
     })
     setNoStoreHeaders(c)
@@ -723,7 +743,7 @@ export function createAdtPreviewRoutes(
       const language = getBookLanguage(storage)
       const sourceLanguage = getBaseLanguage(language)
       const catalog = await getTextCatalog(storage)
-      return buildTextsMap(storage, lang, sourceLanguage, catalog)
+      return buildTextsMap(storage, lang, sourceLanguage, catalog, loadBookConfig(parseBookLabel(c.req.param("label")), booksDir, configPath).easy_read?.enabled === true)
     })
     setNoStoreHeaders(c)
     c.header("Content-Type", "application/json")
@@ -736,8 +756,8 @@ export function createAdtPreviewRoutes(
     const lang = safePreviewLanguage(c.req.param("lang"))
     const speechTexts = withStorage(c.req.param("label"), (storage) => {
       const map: Record<string, string> = {}
-      for (const entry of getCoreTtsCatalog(storage, lang)?.entries ?? []) {
-        if (entry.status === "ready" && entry.speechText !== null) {
+      for (const entry of previewSpeech(storage, parseBookLabel(c.req.param("label")), lang)) {
+        if ((entry.status === "ready" || entry.fallbackReason) && entry.speechText !== null) {
           map[entry.id] = entry.speechText
         }
       }
@@ -756,14 +776,14 @@ export function createAdtPreviewRoutes(
       const sourceLanguage = getBaseLanguage(language)
       const catalog = await getTextCatalog(storage)
       const glossary = getGlossary(storage)
-      const textsMap = buildTextsMap(storage, lang, sourceLanguage, catalog)
+      const textsMap = buildTextsMap(storage, lang, sourceLanguage, catalog, loadBookConfig(parseBookLabel(c.req.param("label")), booksDir, configPath).easy_read?.enabled === true)
       const baseLang = getBaseLanguage(lang)
 
       // Mirror packaging: term pictures resolve through the images proxy
       // (`images/<filename>`), sign-language videos through the video route
       // (`content/i18n/<lang>/video/sl_<glId>.<ext>`, resolved back to the
       // stored file by sectionId).
-      const imageMap = buildImageMap(path.join(bookDir, "images"))
+      const imageMap = buildImageMap(path.join(bookDir, "images"), storage)
       const imageHrefs = new Map<string, string>()
       for (const item of glossary?.items ?? []) {
         if (item.pruned || !item.imageId || imageHrefs.has(item.imageId)) continue
@@ -806,11 +826,7 @@ export function createAdtPreviewRoutes(
         storage.getLatestNodeData("tts", lang) ??
         storage.getLatestNodeData("tts", legacyLang)
       const ttsData = ttsRow?.data as TTSOutput | undefined
-      const readySpeechIds = new Set(
-        (getCoreTtsCatalog(storage, lang)?.entries ?? [])
-          .filter((entry) => entry.status === "ready" && entry.speechText !== null)
-          .map((entry) => entry.id),
-      )
+      const readySpeechIds = includedSpeechIds(storage, safeLabel, lang, "primary")
       const map: Record<string, string> = {}
       if (ttsData?.entries) {
         for (const entry of ttsData.entries) {
@@ -840,17 +856,18 @@ export function createAdtPreviewRoutes(
         storage.getLatestNodeData("tts", lang) ??
         storage.getLatestNodeData("tts", legacyLang)
       )?.data as TTSOutput | undefined
-      const readySpeechIds = new Set(
-        getReadyCoreTtsEntries(storage, lang).map((entry) => entry.id),
-      )
+      const readySpeechIds = {
+        primary: includedSpeechIds(storage, parseBookLabel(c.req.param("label")), lang, "primary"),
+        secondary: includedSpeechIds(storage, parseBookLabel(c.req.param("label")), lang, "secondary"),
+      }
       const voices = {
         primary: { label: "Primary", audios: {} as Record<string, string> },
         secondary: { label: "Secondary", audios: {} as Record<string, string> },
       }
       const bySlot: Record<VoiceSlot, SpeechFileEntry[]> = { primary: [], secondary: [] }
       for (const entry of ttsData?.entries ?? []) {
-        if (!readySpeechIds.has(entry.textId) || isTtsExcluded(entry.textId, speechConfig)) continue
         const slot = resolveEntryVoiceSlot(entry)
+        if (!readySpeechIds[slot].has(entry.textId) || isTtsExcluded(entry.textId, speechConfig)) continue
         voices[slot].audios[entry.textId] = entry.fileName
         bySlot[slot].push(entry)
       }
@@ -874,9 +891,7 @@ export function createAdtPreviewRoutes(
     const bookConfig = loadBookConfig(safeLabel, booksDir, configPath)
     const timecodes = bookConfig.speech?.word_highlighting === true
       ? withStorage(c.req.param("label"), (storage) => {
-          const readySpeechIds = new Set(
-            getReadyCoreTtsEntries(storage, lang).map((entry) => entry.id),
-          )
+          const readySpeechIds = includedSpeechIds(storage, safeLabel, lang, "primary", "timestamps")
           return buildRuntimeTimecodeMap(
             getWordTimestamps(storage, lang),
             bookConfig.speech,
@@ -894,16 +909,14 @@ export function createAdtPreviewRoutes(
     const safeLabel = parseBookLabel(c.req.param("label"))
     const bookConfig = loadBookConfig(safeLabel, booksDir, configPath)
     const timecodes = withStorage(c.req.param("label"), (storage) => {
-      const readySpeechIds = new Set(
-        getReadyCoreTtsEntries(storage, lang).map((entry) => entry.id),
-      )
+      const readySpeechIds = includedSpeechIds(storage, parseBookLabel(c.req.param("label")), lang)
       const timestamps = getWordTimestamps(storage, lang)
       return {
         primary: bookConfig.speech?.word_highlighting === true
-          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, readySpeechIds, "primary")
+          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, includedSpeechIds(storage, safeLabel, lang, "primary", "timestamps"), "primary")
           : {},
         secondary: bookConfig.speech?.word_highlighting === true
-          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, readySpeechIds, "secondary")
+          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, includedSpeechIds(storage, safeLabel, lang, "secondary", "timestamps"), "secondary")
           : {},
       }
     })
@@ -1091,44 +1104,24 @@ export function createAdtPreviewRoutes(
       }
       const ownerPageId = parsedSectionId.pageId
 
-      const renderRow = storage.getLatestNodeData("web-rendering", ownerPageId)
-      if (!renderRow) {
-        throw new HTTPException(404, { message: `No rendering data for page: ${ownerPageId}` })
-      }
-
-      const parsed = WebRenderingOutput.safeParse(renderRow.data)
-      if (!parsed.success) {
-        throw new HTTPException(500, { message: "Invalid rendering data" })
-      }
-
-      // Get sectioning to look up sectionId → sectionIndex mapping. The id's
-      // sequence number is NOT its array position (ids are allocated once and
-      // never reused), so there is no positional fallback — an unresolvable id
-      // is a 404 rather than a guess that would serve a different section.
-      const sectioning = getRenderSectioning(storage, ownerPageId)
-      const targetSectionIndex = sectioning
-        ? sectioning.sections.findIndex((s) => s.sectionId === pageId)
-        : -1
-      const renderedSection = parsed.data.sections.find((s) => s.sectionIndex === targetSectionIndex)
-
-      if (!renderedSection || targetSectionIndex < 0) {
+      const item = resolveReadingOrder(storage).items.find((entry) => entry.kind === "section" && entry.id === pageId && entry.pageId === ownerPageId)
+      if (!item || item.kind !== "section") {
         throw new HTTPException(404, { message: `Section not found: ${pageId}` })
       }
+      const renderedSection = scopeLegacyActivityIds(item.rendering, pageId)
 
       // Determine page index from manifest (includes quiz pages)
       const manifest = buildPagesManifest(storage)
       const manifestIndex = manifest.findIndex((e) => e.section_id === pageId)
       const previewBundleVersion = getPreviewContentVersion(storage, webAssetsDir)
 
-      const sectionMeta = sectioning
-        ? sectioning.sections[targetSectionIndex]
-        : undefined
+      const sectionMeta = item.section
 
       // Step-by-step override: an enabled editable activity replaces the
       // stored LLM HTML with the stepper shell, matching packaged output.
       const stepperActivity = enabledEditableActivity(
         readEditableActivities(storage, ownerPageId),
-        targetSectionIndex,
+        item.sectionIndex,
         renderedSection.sectionType,
       )
 

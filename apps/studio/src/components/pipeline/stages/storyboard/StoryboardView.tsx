@@ -490,6 +490,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   }
 
   return withStaleBanner(
+    <>
     <StoryboardSectionDetail
       bookLabel={bookLabel}
       pageId={selectedPageId!}
@@ -502,5 +503,6 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       hasPrevPage={!!prevPageId}
       hasNextPage={!!nextPageId}
     />
+    </>
   )
 }

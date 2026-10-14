@@ -1,3 +1,4 @@
+import { OutputReview } from "../../components/OutputReview"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { FileText, RotateCcw, Search, Sparkles, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -38,9 +39,23 @@ export function EasyReadEditor({
     enabled: !!bookLabel,
   })
   const [draftBlocks, setDraftBlocks] = useState<EasyReadSectionBlock[] | null>(null)
+  const baseline = useRef({ baseVersion: 0, sourceSignature: "" })
   const [searchQuery, setSearchQuery] = useState("")
   const blocks = draftBlocks ?? data?.blocks ?? []
   const dirty = draftBlocks !== null
+  const sharedSections = useMemo(() => {
+    const owners = new Map<string, Set<string>>()
+    for (const block of blocks) for (const entry of block.entries) {
+      const sections = owners.get(entry.easyReadId) ?? new Set<string>()
+      sections.add(JSON.stringify([block.pageId, block.sectionId]))
+      owners.set(entry.easyReadId, sections)
+    }
+    return owners
+  }, [blocks])
+  const savedTexts = useMemo(
+    () => new Map((data?.blocks ?? []).flatMap((block) => block.entries.map((entry) => [entry.easyReadId, entry.text] as const))),
+    [data?.blocks],
+  )
 
   const pageScopedBlocks = useMemo(
     () => (selectedPageId ? blocks.filter((block) => block.pageId === selectedPageId) : blocks),
@@ -131,12 +146,11 @@ export function EasyReadEditor({
     if (card) card.scrollIntoView({ behavior: "smooth", block: "start" })
   }, [])
 
-  useEffect(() => {
-    setDraftBlocks(null)
-  }, [data?.version])
+  // Incoming versions must not discard an unsaved editor draft.
 
   const invalidateEasyReadDependents = async () => {
     await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] }),
       queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "easy-read"] }),
       queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "text-catalog"] }),
       queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "tts"] }),
@@ -151,6 +165,7 @@ export function EasyReadEditor({
     mutationFn: async (nextBlocks: EasyReadSectionBlock[]) =>
       api.updateEasyRead(bookLabel, {
         blocks: nextBlocks,
+        ...baseline.current,
         generatedAt: data?.generatedAt ?? new Date().toISOString(),
       }),
     onSuccess: async () => {
@@ -162,19 +177,13 @@ export function EasyReadEditor({
   const mutationError = getErrorMessage(saveMutation.error)
 
   const updateEntry = (
-    blockKey: { pageId: string; sectionId: string; sectionIndex: number },
+    _blockKey: { pageId: string; sectionId: string; sectionIndex: number },
     easyReadId: string,
     text: string,
   ) => {
+    if (!draftBlocks) baseline.current = { baseVersion: data?.version ?? 0, sourceSignature: data?.sourceSignature ?? "" }
     const base = draftBlocks ?? data?.blocks ?? []
     setDraftBlocks(base.map((block) => {
-      if (
-        block.pageId !== blockKey.pageId ||
-        block.sectionId !== blockKey.sectionId ||
-        block.sectionIndex !== blockKey.sectionIndex
-      ) {
-        return block
-      }
       return {
         ...block,
         entries: block.entries.map((entry) =>
@@ -198,7 +207,7 @@ export function EasyReadEditor({
     discard: () => setDraftBlocks(null),
     preview: (versionData: unknown) => {
       const next = (versionData as { blocks?: EasyReadSectionBlock[] })?.blocks
-      if (next) setDraftBlocks(next)
+      if (next) { baseline.current = { baseVersion: data?.version ?? 0, sourceSignature: data?.sourceSignature ?? "" }; setDraftBlocks(next) }
     },
     regenerate: onRegenerate,
   }
@@ -435,13 +444,19 @@ export function EasyReadEditor({
                               </div>
                             </div>
                             <div className="flex flex-col gap-1">
-                              <p
-                                className={`text-[10px] font-medium uppercase tracking-wider transition-colors duration-150 ${
-                                  unchanged ? "text-muted-foreground/50" : "text-fuchsia-600"
-                                }`}
-                              >
-                                {t`Easy Read`}
-                              </p>
+                              <div className="flex items-center gap-1.5">
+                                <p
+                                  className={`text-[10px] font-medium uppercase tracking-wider transition-colors duration-150 ${
+                                    unchanged ? "text-muted-foreground/50" : "text-fuchsia-600"
+                                  }`}
+                                >
+                                  {t`Easy Read`}
+                                </p>
+                                {/* Same compact pill as Language: details and regenerate live in its popover. */}
+                                <OutputReview bookLabel={bookLabel} id={entry.easyReadId} kinds={["easy-read"]} dirty={dirty}
+                                  edited={dirty && entry.text !== (savedTexts.get(entry.easyReadId) ?? "")} compact />
+                              </div>
+                              {(sharedSections.get(entry.easyReadId)?.size ?? 0) > 1 && <p className="text-xs text-muted-foreground">{t`This Easy Read text is shared across sections. Saving it updates every referring section, including sections outside the current filter.`}</p>}
                               <AutoTextarea
                                 value={entry.text}
                                 onChange={(value) => updateEntry(block, entry.easyReadId, value)}

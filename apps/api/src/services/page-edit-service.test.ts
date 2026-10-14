@@ -237,11 +237,11 @@ describe("page-edit-service", () => {
 
       const verifyStorage = createBookStorage(label, tmpDir)
       try {
-        expect(verifyStorage.getLatestNodeData("easy-read", "book")).toBeNull()
-        expect(verifyStorage.getLatestNodeData("text-catalog", "book")).toBeNull()
-        expect(verifyStorage.getLatestNodeData("text-catalog-translation", "es")).toBeNull()
-        expect(verifyStorage.getLatestNodeData("tts", "en")).toBeNull()
-        expect(verifyStorage.getLatestNodeData("tts-timestamps", "en")).toBeNull()
+        expect(verifyStorage.getLatestNodeData("easy-read", "book")).toMatchObject({ version: 1 })
+        expect(verifyStorage.getLatestNodeData("text-catalog", "book")).not.toBeNull()
+        expect(verifyStorage.getLatestNodeData("text-catalog-translation", "es")).toMatchObject({ version: 1 })
+        expect(verifyStorage.getLatestNodeData("tts", "en")).toMatchObject({ version: 1 })
+        expect(verifyStorage.getLatestNodeData("tts-timestamps", "en")).toMatchObject({ version: 1 })
         expect(verifyStorage.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
         const clearedSteps = new Set(verifyStorage.getStepRuns().map((run) => run.step))
         for (const step of [
@@ -255,7 +255,7 @@ describe("page-edit-service", () => {
           "package-web",
           "accessibility-assessment",
         ]) {
-          expect(clearedSteps.has(step)).toBe(false)
+          expect(clearedSteps.has(step)).toBe(true)
         }
       } finally {
         verifyStorage.close()
@@ -495,4 +495,61 @@ describe("page-edit-service", () => {
       )
     })
   })
+})
+
+
+it.each([false, true])("section re-render after source reorder retains the other owner (legacy=%s)", async legacy => {
+  const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-rerender-owner-"))
+  const label = "owners"
+  const pageId = "pg001"
+  const section = (letter: "A" | "B") => ({
+    sectionId: `pg001_sec00${letter === "A" ? 1 : 2}`,
+    sectionType: "content", backgroundColor: "white", textColor: "black", pageNumber: 1, isPruned: false,
+    nodes: [{ nodeId: letter, role: "body_text", text: letter, isPruned: false }],
+  })
+  const storage = createBookStorage(label, booksDir)
+  try {
+    storage.putExtractedPage({ pageId, pageNumber: 1, text: "", pageImage: { imageId: "pg001_page", buffer: Buffer.from("image"), format: "png", hash: "page", width: 10, height: 10 }, images: [] })
+    storage.putNodeData("page-sectioning", pageId, { reasoning: "reordered", sections: [section("B"), section("A")] })
+    storage.putNodeData("web-rendering", pageId, {
+      sections: (["A", "B"] as const).map((letter, sectionIndex) => ({
+        ...(legacy ? {} : { sectionId: section(letter).sectionId }), sectionIndex, sectionType: "content", reasoning: "old",
+        html: `<section${legacy ? "" : ` data-section-id="${section(letter).sectionId}"`}><p data-id="${letter}">${letter}</p></section>`,
+      })),
+    })
+    fs.writeFileSync(path.join(storage.bookDir!, "config.yaml"), "default_render_strategy: llm\n")
+  } finally { storage.close() }
+  llmMocks.createPromptEngine.mockReturnValue({} as never)
+  llmMocks.createLLMModel.mockReturnValue({ generateObject: llmMocks.generateObject } as never)
+  llmMocks.generateObject.mockImplementation(async (options: { context: { section_id: string } }) => ({
+    object: { reasoning: "new B", content: `<section data-section-id="${options.context.section_id}"><p data-id="B">B</p></section>` },
+  }))
+  try {
+    const result = await reRenderPage({ label, pageId, sectionIndex: 0, booksDir, promptsDir: path.resolve("prompts"), configPath: path.resolve("config.yaml"), credentials: {} })
+    const rows = (result.rendering as import("@adt/types").WebRenderingOutput).sections
+    expect(rows.map((row) => row.sectionId).sort()).toEqual(["pg001_sec001", "pg001_sec002"])
+    expect(rows.find((row) => row.sectionId === "pg001_sec001")?.html).toBe(legacy ? '<section><p data-id="A">A</p></section>' : '<section data-section-id="pg001_sec001"><p data-id="A">A</p></section>')
+  } finally { fs.rmSync(booksDir, { recursive: true, force: true }) }
+})
+
+
+it.each([false, true])("preserves positioned pages and avoids providers on unsafe scoped/legacy reflow (legacy=%s)", async legacy => {
+  const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-fixed-rerender-"))
+  const label = "fixed"
+  const storage = createBookStorage(label, booksDir)
+  const source = { reasoning: "", sections: [{ sectionId: "pg001_sec001", sectionType: "content", backgroundColor: "white", textColor: "black", pageNumber: 1, isPruned: false, nodes: [{ nodeId: "text", role: "body_text", text: "Retained", isPruned: false }] }] }
+  const positioned = { reasoning: "", sections: [{ ...source.sections[0], sectionType: "fixed-layout-page", viewport: { width: 100, height: 100 }, placement: { text: { position: { top: 0, left: 0, lineHeight: 10 } } }, nodes: source.sections[0].nodes }] }
+  const rendering = { sections: [{ sectionId: "pg001_sec001", sectionIndex: 0, sectionType: "fixed-layout-page", reasoning: "", html: '<section data-section-id="pg001_sec001"><p data-id="text">Retained</p></section>' }] }
+  try {
+    storage.putExtractedPage({ pageId: "pg001", pageNumber: 1, text: "", pageImage: { imageId: "pg001_page", buffer: Buffer.from("image"), format: "png", hash: "page", width: 100, height: 100 }, images: [] })
+    storage.putNodeData("page-sectioning", "pg001", legacy ? positioned : source)
+    if (!legacy) storage.putNodeData("fixed-layout-sectioning", "pg001", positioned)
+    storage.putNodeData("web-rendering", "pg001", rendering)
+    const before = storage.getLatestNodeData("web-rendering", "pg001")
+    llmMocks.createLLMModel.mockClear()
+    await expect(reRenderPage({ label, pageId: "pg001", ...(legacy ? {} : { sectionIndex: 0 }), booksDir, promptsDir: path.resolve("prompts"), configPath: path.resolve("config.yaml"), credentials: {} })).rejects.toMatchObject({ status: 409 })
+    expect(llmMocks.createLLMModel).not.toHaveBeenCalled()
+    expect(storage.getLatestNodeData("web-rendering", "pg001")).toEqual(before)
+    expect(storage.getAllNodeVersions("web-rendering", "pg001")).toHaveLength(1)
+  } finally { storage.close(); fs.rmSync(booksDir, { recursive: true, force: true }) }
 })

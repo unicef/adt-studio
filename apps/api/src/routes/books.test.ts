@@ -16,6 +16,8 @@ import { createPageErrorDecisions } from "../services/page-error-decisions.js"
 import { createBookRoutes } from "./books.js"
 import { createStageRoutes } from "./stages.js"
 import { errorHandler } from "../middleware/error-handler.js"
+import { bookWriterMiddleware } from "../middleware/book-writer.js"
+import { Hono } from "hono"
 
 const mockEventBus = createBookEventBus()
 const mockDecisions = createPageErrorDecisions(mockEventBus)
@@ -545,8 +547,8 @@ describe("PUT /books/:label/metadata", () => {
     expect((stored?.data as { language_code: string }).language_code).toBe("fr")
 
     const state = readState("meta-lang")
-    // Language-dependent outputs cleared...
-    expect(state.easyRead).toBeNull()
+    // Catalog outputs survive a language change; non-catalog stages invalidate.
+    expect(state.easyRead).toMatchObject({ version: 1, data: { blocks: [] } })
     expect(state.quiz).toBeNull()
     expect(state.steps.has("easy-read")).toBe(false)
     expect(state.steps.has("quiz-generation")).toBe(false)
@@ -585,8 +587,8 @@ describe("PUT /books/:label/metadata", () => {
     expect((stored?.data as { language_code: string }).language_code).toBe("es-UY")
 
     const state = readState("meta-locale")
-    // Language-dependent LLM outputs still re-run (the locale feeds prompts)...
-    expect(state.easyRead).toBeNull()
+    // Retained outputs can be reviewed against the changed locale.
+    expect(state.easyRead).toMatchObject({ version: 1, data: { blocks: [] } })
     expect(state.steps.has("easy-read")).toBe(false)
     // ...but the book summary stays — same base language (Spanish).
     expect(state.bookSummary).not.toBeNull()
@@ -737,6 +739,7 @@ describe("POST /books/:label/stages/run", () => {
       getQueuedStages: () => [],
 
       startStageRun: (_label, options) => {
+        options.beforeRun?.()
         receivedOptions = options
         return { status: "started" as const, id: "run-1" }
       },
@@ -762,7 +765,7 @@ describe("POST /books/:label/stages/run", () => {
     const verifyStorage = createBookStorage(label, tmpDir)
     try {
       expect(verifyStorage.getLatestNodeData("page-sectioning", "pg001")).not.toBeNull()
-      expect(verifyStorage.getLatestNodeData("web-rendering", "pg001")).toBeNull()
+      expect(verifyStorage.getLatestNodeData("web-rendering", "pg001")).not.toBeNull()
       const runs = new Map(verifyStorage.getStepRuns().map((r) => [r.step, r.status]))
       expect(runs.get("page-sectioning")).toBe("done")
       expect(runs.has("web-rendering")).toBe(false)
@@ -931,6 +934,7 @@ describe("POST /books/:label/stages/run", () => {
       getQueuedStages: () => [],
       addListener: () => () => {},
       startStageRun: (_label, options) => {
+        options.beforeRun?.()
         receivedOptions = options
         return { status: "started" as const, id: "run-2" }
       },
@@ -1898,5 +1902,104 @@ describe("GET /books/:label/translated-images", () => {
     const res = await app.request("/books/empty-tr/translated-images")
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ images: [] })
+  })
+})
+
+describe("book admission before the first extraction", () => {
+  function lifecycleApp(started: string[]) {
+    const stageService = {
+      getStatus: () => ({ active: null, queue: [] }),
+      getQueuedStages: () => [],
+      startStageRun: (label: string, options: StageRunOptions) => {
+        options.beforeRun?.()
+        started.push(label)
+        return { status: "started" as const, id: "run-1" }
+      },
+    } as unknown as StageService
+    const app = new Hono()
+    app.onError(errorHandler)
+    app.use("/books/:label", bookWriterMiddleware(tmpDir))
+    app.use("/books/:label/*", bookWriterMiddleware(tmpDir))
+    app.route("/", createBookRoutes(tmpDir, undefined, globalConfigPath))
+    app.route("/", createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "", globalConfigPath))
+    return app
+  }
+  const json = { "Content-Type": "application/json" }
+  const runExtract = (app: Hono) => app.request("/books/fresh/stages/run", {
+    method: "POST", headers: { ...json, "X-OpenAI-Key": "sk-test" }, body: JSON.stringify({ fromStage: "extract", toStage: "extract" }),
+  })
+
+  it("lets a new book run Extract, save settings and be deleted, then rejects stale work without recreating it", async () => {
+    const started: string[] = []
+    const app = lifecycleApp(started)
+    const form = new FormData()
+    form.set("label", "fresh")
+    form.set("pdf", new File([Buffer.from("%PDF-1.4 test")], "fresh.pdf", { type: "application/pdf" }))
+    expect((await app.request("/books", { method: "POST", body: form })).status).toBe(201)
+    // The database is created by the first extraction, not by book creation.
+    expect(fs.existsSync(path.join(tmpDir, "fresh", "fresh.db"))).toBe(false)
+
+    const first = await runExtract(app)
+    expect(first.status, await first.clone().text()).toBe(200)
+    expect(started).toEqual(["fresh"])
+    const config = await app.request("/books/fresh/config", { method: "PUT", headers: json, body: JSON.stringify({ config: { output_languages: ["en"] } }) })
+    expect(config.status, await config.clone().text()).toBe(200)
+    expect((await app.request("/books/fresh", { method: "DELETE" })).status).toBe(200)
+    expect(fs.existsSync(path.join(tmpDir, "fresh"))).toBe(false)
+
+    expect((await runExtract(app)).status).toBe(404)
+    expect(fs.existsSync(path.join(tmpDir, "fresh"))).toBe(false)
+    expect(started).toEqual(["fresh"])
+  })
+
+  it("still rejects a folder recreated without its database or source PDF", async () => {
+    const started: string[] = []
+    const app = lifecycleApp(started)
+    // A stale writer lease can recreate an empty book directory after deletion.
+    fs.mkdirSync(path.join(tmpDir, "fresh"))
+    fs.writeFileSync(path.join(tmpDir, "fresh", ".book-writer.json"), "{}")
+    expect((await runExtract(app)).status).toBe(404)
+    expect((await app.request("/books/fresh/config", { method: "PUT", headers: json, body: JSON.stringify({ config: {} }) })).status).toBe(404)
+    expect(fs.existsSync(path.join(tmpDir, "fresh", "fresh.db"))).toBe(false)
+    expect(started).toEqual([])
+  })
+
+  it.each(["escaping-link", "dangling-link", "directory"])("does not let a valid source PDF mask an invalid database path (%s)", async (kind) => {
+    const started: string[] = []
+    const app = lifecycleApp(started)
+    const bookDir = path.join(tmpDir, "fresh")
+    fs.mkdirSync(bookDir)
+    fs.writeFileSync(path.join(bookDir, "fresh.pdf"), "%PDF-1.4 fixture")
+    const database = path.join(bookDir, "fresh.db")
+    const outside = path.join(tmpDir, "outside.db")
+    fs.writeFileSync(outside, "external data must remain unchanged")
+    if (kind === "directory") fs.mkdirSync(database)
+    else fs.symlinkSync(kind === "escaping-link" ? outside : path.join(bookDir, "missing.db"), database)
+
+    expect((await runExtract(app)).status).toBe(404)
+    expect((await app.request("/books/fresh/config", { method: "PUT", headers: json, body: JSON.stringify({ config: {} }) })).status).toBe(404)
+    expect(started).toEqual([])
+    expect(fs.readFileSync(outside, "utf8")).toBe("external data must remain unchanged")
+    expect(fs.existsSync(path.join(bookDir, "config.yaml"))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, "missing.db"))).toBe(false)
+    expect(fs.lstatSync(database).isSymbolicLink()).toBe(kind !== "directory")
+  })
+
+  it("rejects a cross-book database alias before metadata can modify its real SQLite target", async () => {
+    createTestBook("outside")
+    const original = createBookStorage("outside", tmpDir)
+    const before = original.getLatestNodeData("metadata", "book")
+    original.close()
+    const bookDir = path.join(tmpDir, "fresh")
+    fs.mkdirSync(bookDir)
+    fs.writeFileSync(path.join(bookDir, "fresh.pdf"), "%PDF-1.4 fixture")
+    fs.symlinkSync(path.join(tmpDir, "outside", "outside.db"), path.join(bookDir, "fresh.db"))
+    const app = lifecycleApp([])
+    const response = await app.request("/books/fresh/metadata", { method: "PUT", headers: json,
+      body: JSON.stringify({ title: "Unexpected cross-book write", authors: [], publisher: null, language_code: "en" }) })
+    expect(response.status).toBe(404)
+    const retained = createBookStorage("outside", tmpDir)
+    try { expect(retained.getLatestNodeData("metadata", "book")).toEqual(before) }
+    finally { retained.close() }
   })
 })

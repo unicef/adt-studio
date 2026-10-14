@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import type { Storage } from "@adt/storage"
 import {
   ensureQuizIds,
@@ -101,7 +102,24 @@ export function saveQuizOutput(
       if (mode === "edit") incoming = reconcileLegacyUpdate(output, current)
     }
     const stamped = ensureQuizIds(incoming, spent).output
-    const normalized = { ...stamped, quizzes: stamped.quizzes.map((quiz, quizIndex) => ({ ...quiz, quizIndex })) }
+    const priorRow = storage.getLatestNodeData("quiz-generation", "book")
+    const prior = mode !== "replace" && priorRow ? withResolvedQuizIds(priorRow.data as QuizGenerationOutput).quizzes : []
+    const quizzes = stamped.quizzes.map((quiz, quizIndex) => {
+      const old = mode === "replace" ? undefined : prior.find((item) => item.quizId === quiz.quizId)
+      const claimed = new Set(quiz.options.flatMap((option) => option.optionId ? [option.optionId] : []))
+      const options = quiz.options.map((option, index) => {
+        if (mode !== "replace" && option.optionId) {
+          if (old && !old.options.some((item) => item.optionId === option.optionId)) throw new QuizIdentityError("Option identity is no longer current. Reload before editing.")
+          return option
+        }
+        const matches = old?.options.filter((item) => !claimed.has(item.optionId!) && item.text === option.text && item.explanation === option.explanation) ?? []
+        const optionId = matches.length === 1 ? matches[0].optionId! : old ? `${quiz.quizId}_o_${randomUUID()}` : `${quiz.quizId}_o${index}`
+        claimed.add(optionId)
+        return { ...option, optionId }
+      })
+      return { ...quiz, quizIndex, options }
+    })
+    const normalized = withResolvedQuizIds({ ...stamped, quizzes })
     const version = storage.putNodeData("quiz-generation", "book", normalized)
     return { output: normalized, version }
   })

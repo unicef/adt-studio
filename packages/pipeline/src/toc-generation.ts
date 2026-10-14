@@ -16,7 +16,7 @@ import type { LLMModel } from "@adt/llm"
 import type { Storage, PageData } from "@adt/storage"
 import { buildLanguageContext } from "./language-context.js"
 import { stripHtml } from "./glossary.js"
-import { getRenderSectioning, getSemanticSectioning } from "./render-sectioning.js"
+import { withLegacyRenderingOwnership, getRenderSectioning, getSemanticSectioning, resolveRenderedSection } from "./render-sectioning.js"
 import { resolveReadingOrder } from "./reading-order.js"
 
 export interface TocGenerationConfig {
@@ -68,7 +68,7 @@ function findFirstHeading(section: PageSectioningSection): ContentNodeData | nul
 /**
  * Collect all section headings and any original TOC page text from storage.
  */
-function collectHeadingsAndToc(
+export function collectHeadingsAndToc(
   storage: Storage,
   pages: PageData[],
 ): { headings: HeadingInfo[]; originalTocText: string | null } {
@@ -88,9 +88,9 @@ function collectHeadingsAndToc(
       if (renderRow) {
         const renderParsed = WebRenderingOutput.safeParse(renderRow.data)
         if (renderParsed.success) {
-          const tocHtml = renderParsed.data.sections
+          const tocHtml = withLegacyRenderingOwnership(storage, page.pageId, renderParsed.data).sections
             .filter((s) => {
-              const meta = sectioning.sections[s.sectionIndex]
+              const meta = resolveRenderedSection(s, sectioning.sections)
               return meta?.sectionType === "table_of_contents" && !meta.isPruned
             })
             .map((s) => s.html)

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { Image as ImageIcon } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
@@ -51,16 +51,19 @@ export function PageCaptions({
   // immediately without a bar and held until the refetch lands (no flicker).
   const [pending, setPending] = useState<CaptioningData | null>(null)
   const [optimistic, setOptimistic] = useState<CaptioningData | null>(null)
+  const baseline = useRef({ baseVersion: 0, sourceSignature: "" })
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
+  const savingIds = useRef(new Set<string>())
   const [editing, setEditing] = useState<CaptionEdit | null>(null)
   const [lightbox, setLightbox] = useState<{ imageIds: string[]; index: number } | null>(null)
 
   useEffect(() => {
-    setPending(null)
+    if (pending || editing || saving) return
+    baseline.current = { baseVersion: page?.versions.imageCaptioning ?? 0, sourceSignature: page?.captionSourceSignature ?? "" }
     setOptimistic(null)
-    setEditing(null)
-    setLightbox(null)
-  }, [page?.versions.imageCaptioning])
+  }, [page?.versions.imageCaptioning, page?.captionSourceSignature, pending, editing, saving])
 
   const effective = pending ?? optimistic ?? page?.imageCaptioning
   const captions = effective?.captions ?? []
@@ -114,23 +117,35 @@ export function PageCaptions({
     await queryClient.invalidateQueries({
       queryKey: ["books", bookLabel, "pages", pageId],
     })
-    invalidateStoryboardDependents(queryClient, bookLabel)
+    await invalidateStoryboardDependents(queryClient, bookLabel)
   }
 
 
   const saveCaptions = async (data?: CaptioningData) => {
     const next = data ?? pending
-    if (!next) return
+    if (!next || savingRef.current) return
+    savingRef.current = true
+    savingIds.current = new Set(next.captions.filter((caption) => {
+      const previous = page.imageCaptioning?.captions.find((entry) => entry.imageId === caption.imageId)
+      return previous?.caption !== caption.caption || previous?.decorative !== caption.decorative
+    }).map((caption) => caption.imageId))
     setSaving(true)
     setPending(next)
     const minDelay = new Promise((r) => setTimeout(r, 400))
     try {
-      await api.updateImageCaptioning(bookLabel, pageId, next)
+      const submittedBaseline = baseline.current
+      const result = await api.updateImageCaptioning(bookLabel, pageId, { ...next, ...submittedBaseline })
+      // A newer draft may already exist. Advance only to our acknowledged
+      // write, never to an unrelated background refresh that it did not review.
+      baseline.current = { ...submittedBaseline, baseVersion: result.version }
       await refreshAfterSave()
+      setPending((current) => current === next ? null : current)
+      setSaveError(null)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : String(error))
     } finally {
       await minDelay
-      setPending(null)
-      setEditing(null)
+      savingRef.current = false
       setSaving(false)
     }
   }
@@ -161,15 +176,8 @@ export function PageCaptions({
         c.imageId === imageId ? { ...c, ...patch, source: "manual" } : c,
       ),
     }
-    setOptimistic(next)
-    void (async () => {
-      try {
-        await api.updateImageCaptioning(bookLabel, pageId, next)
-        await refreshAfterSave()
-      } catch {
-        setOptimistic(null)
-      }
-    })()
+    if (pending || savingRef.current) setPending(next)
+    else void saveCaptions(next)
   }
 
 
@@ -261,6 +269,8 @@ export function PageCaptions({
       onOpenLightbox={handleOpenLightbox}
       pageId={pageId}
       pageNumber={pageNumber}
+      edited={(saving && savingIds.current.has(cap.imageId)) || (editing?.imageId === cap.imageId ? editing.draft : cap.caption) !==
+        (page?.imageCaptioning?.captions.find((saved) => saved.imageId === cap.imageId)?.caption ?? "")}
     />
   )
 
@@ -302,7 +312,8 @@ export function PageCaptions({
             )}
           </div>
           <div className="ml-auto">
-            <VersionPicker
+            {saveError && <p role="alert" className="text-xs text-red-700">{saveError}</p>}
+        <VersionPicker
               step="image-captioning"
               currentVersion={page.versions.imageCaptioning}
               saving={saving}
@@ -359,7 +370,7 @@ export function PageCaptions({
           </div>
         </div>
       </div>
-      <div className="pt-4 pb-2">
+      <fieldset className="pt-4 pb-2">
         {filterSectionIndex != null ? (
           <div className={gridClass}>
             {filteredCaptions.map((cap) => renderCard(cap, filteredCaptions))}
@@ -392,7 +403,7 @@ export function PageCaptions({
             {filteredCaptions.map((cap) => renderCard(cap, filteredCaptions))}
           </div>
         )}
-      </div>
+      </fieldset>
 
       {lightbox && lightboxEntries.length > 0 && (
         <Lightbox

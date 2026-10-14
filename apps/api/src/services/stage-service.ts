@@ -1,6 +1,8 @@
-import { STAGE_ORDER, type ProgressEvent } from "@adt/types"
+import { randomUUID } from "node:crypto"
+import { requireExistingBook } from "../utils/book-exists.js"
+import { STAGE_ORDER, type OutputRunScope, type OutputIdentity, type ProgressEvent } from "@adt/types"
 import type { StageName, StepName, PageErrorPolicy, PageErrorAction } from "@adt/types"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, resolveBookPaths, withBookWriter } from "@adt/storage"
 import type { ResolvedCredentials } from "@adt/llm"
 import type { BookEventBus } from "./book-event-bus.js"
 import type { PageErrorDecisions } from "./page-error-decisions.js"
@@ -14,6 +16,7 @@ export type StageRunStatus =
   | "failed"
 
 export interface StageRunJob {
+  id: string
   label: string
   status: StageRunStatus
   fromStage: string
@@ -23,6 +26,7 @@ export interface StageRunJob {
   completedAt?: number
   /** Per-job cancellation. abort() is called by cancelStageRun. */
   controller: AbortController
+  outputScope: OutputRunScope
 }
 
 export interface QueuedStageRun {
@@ -35,14 +39,21 @@ export interface QueuedStageRun {
 interface BookRunState {
   active: StageRunJob | null
   queue: QueuedStageRun[]
+  runRevision: string
+  publicationTime: number
 }
 
 export interface BookRunStatus {
+  /** Changes after a run settles or the service restarts; survives queue drain. */
+  runRevision?: string
+  /** Monotonic age of the publication/epoch, independent of client wall clocks. */
+  publicationAgeMs?: number
   active: StageRunJob | null
   queue: Array<{ id: string; fromStage: string; toStage: string }>
 }
 
 export interface StageRunOptions {
+  outputScope?: OutputRunScope
   booksDir: string
   /** Request-scoped provider credentials. Values are never persisted. */
   credentials: ResolvedCredentials
@@ -94,9 +105,9 @@ export interface StageService {
    *  unwinds, "cancelled" if only a queue was cleared, or null when there is
    *  nothing to cancel (→ 404). */
   cancelStageRun(label: string): { status: "cancelling" | "cancelled" } | null
+  skipStageOutputs(label: string, identities: OutputIdentity[]): boolean
 }
 
-let nextId = 1
 
 export function createStageService(
   runner: StageRunner,
@@ -104,11 +115,13 @@ export function createStageService(
   decisions?: PageErrorDecisions
 ): StageService {
   const books = new Map<string, BookRunState>()
+  const initialRunRevision = randomUUID()
+  const initialPublicationTime = performance.now()
 
   function getOrCreateState(label: string): BookRunState {
     let state = books.get(label)
     if (!state) {
-      state = { active: null, queue: [] }
+      state = { active: null, queue: [], runRevision: initialRunRevision, publicationTime: initialPublicationTime }
       books.set(label, state)
     }
     return state
@@ -130,6 +143,7 @@ export function createStageService(
     // own controller and a label-bound broker.
     const effectiveOptions: StageRunOptions = {
       ...options,
+      outputScope: job.outputScope,
       signal: job.controller.signal,
       requestPageDecision: decisions
         ? (input) => decisions.requestDecision({ label, ...input })
@@ -137,13 +151,17 @@ export function createStageService(
     }
 
     try {
-      options.beforeRun?.()
-      await runner.run(label, effectiveOptions, progress)
+      await withBookWriter(requireExistingBook(label, options.booksDir), async () => {
+        job.controller.signal.throwIfAborted()
+        options.beforeRun?.()
+        await runner.run(label, effectiveOptions, progress)
+      })
       // Resolved: either a real completion, or a cancel that landed after the
       // last checkpoint so all remaining work finished. Both are "completed" —
       // no cancelled event, no step reset (the run genuinely finished).
       job.status = "completed"
       job.completedAt = Date.now()
+      Object.assign(getOrCreateState(label), { runRevision: job.id, publicationTime: performance.now() })
       eventBus.emit(label, { type: "stage-run-complete", label })
     } catch (err) {
       if (job.controller.signal.aborted) {
@@ -151,6 +169,7 @@ export function createStageService(
         // runner is no longer touching step_runs. Return in-flight steps to idle
         // (deliberate action, not a failure) and announce completion of the cancel.
         try {
+          requireExistingBook(label, options.booksDir)
           const storage = createBookStorage(label, options.booksDir)
           try {
             storage.clearRunningStepRuns()
@@ -162,6 +181,7 @@ export function createStageService(
         }
         job.status = "cancelled"
         job.completedAt = Date.now()
+        Object.assign(getOrCreateState(label), { runRevision: job.id, publicationTime: performance.now() })
         eventBus.emit(label, { type: "stage-run-cancelled", label })
       } else {
         const message = err instanceof Error ? err.message : String(err)
@@ -169,6 +189,7 @@ export function createStageService(
         job.status = "failed"
         job.error = message
         job.completedAt = Date.now()
+        Object.assign(getOrCreateState(label), { runRevision: job.id, publicationTime: performance.now() })
         eventBus.emit(label, { type: "stage-run-error", label, error: message })
       }
     } finally {
@@ -196,12 +217,14 @@ export function createStageService(
 
     const next = state.queue.shift()!
     const job: StageRunJob = {
+      id: next.id,
       label,
       status: "running",
       fromStage: next.fromStage,
       toStage: next.toStage,
       startedAt: Date.now(),
       controller: new AbortController(),
+      outputScope: structuredClone(next.options.outputScope ?? {}),
     }
     state.active = job
 
@@ -218,9 +241,11 @@ export function createStageService(
   return {
     getStatus(label: string): BookRunStatus {
       const state = books.get(label)
-      if (!state) return { active: null, queue: [] }
+      if (!state) return { active: null, queue: [], runRevision: initialRunRevision, publicationAgeMs: performance.now() - initialPublicationTime }
       return {
         active: state.active,
+        runRevision: state.runRevision,
+        publicationAgeMs: performance.now() - state.publicationTime,
         queue: state.queue.map((q) => ({
           id: q.id,
           fromStage: q.fromStage,
@@ -251,8 +276,9 @@ export function createStageService(
       label: string,
       options: StageRunOptions
     ): { status: "started" | "queued"; id: string } {
+      requireExistingBook(label, options.booksDir)
       const state = getOrCreateState(label)
-      const id = String(nextId++)
+      const id = randomUUID()
 
       // Queue behind a run that is active OR still unwinding a cancel. Without
       // the "cancelling" case a start during the cancel window would begin
@@ -274,28 +300,38 @@ export function createStageService(
 
       // Start immediately
       const job: StageRunJob = {
+        id,
         label,
         status: "running",
         fromStage: options.fromStage,
         toStage: options.toStage,
         startedAt: Date.now(),
         controller: new AbortController(),
+        outputScope: structuredClone(options.outputScope ?? {}),
       }
-      state.active = job
-
-      // Defer execution to the next macrotask so this call — and the HTTP
-      // response that triggered it — returns before the job's synchronous
-      // startup runs. A stage's setup (e.g. extract: reading the PDF off disk,
-      // parsing it via WASM, extracting the first page) runs synchronously up
-      // to its first await and would otherwise block the response for several
-      // seconds, stalling the client that just kicked off the run. `state.active`
-      // is already set, so getStatus() reflects "running" right away; the step
-      // run record is written once the deferred job actually starts.
-      setImmediate(() => {
-        executeJob(label, job, options).catch(() => {})
+      // Admission and preparation precede the success response. Retain that
+      // same lease across deferred execution; no competing writer can enter
+      // between preparation and the runner's first instruction.
+      const work = withBookWriter(requireExistingBook(label, options.booksDir), () => {
+        options.beforeRun?.()
+        state.active = job
+        return new Promise<void>((resolve) => setImmediate(() => {
+          executeJob(label, job, { ...options, beforeRun: undefined }).finally(resolve)
+        }))
       })
+      void work.catch(() => {}) // executeJob records the task result.
 
       return { status: "started", id }
+    },
+
+    skipStageOutputs(label: string, identities: OutputIdentity[]): boolean {
+      const job = books.get(label)?.active
+      if (job?.status !== "running") return false
+      const skipped = job.outputScope.skip ??= []
+      for (const identity of identities) {
+        if (!skipped.some((item) => item.kind === identity.kind && item.id === identity.id && item.language === identity.language && item.voiceSlot === identity.voiceSlot)) skipped.push(identity)
+      }
+      return true
     },
 
     cancelStageRun(

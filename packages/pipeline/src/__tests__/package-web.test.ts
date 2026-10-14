@@ -38,6 +38,15 @@ function createMockStorage(
   pages: PageData[],
   nodeData: Record<string, Record<string, unknown>>,
 ): Storage {
+  // These fixtures are paired source/render publications, not identityless legacy imports.
+  for (const [pageId, value] of Object.entries(nodeData["web-rendering"] ?? {})) {
+    const rendering = value as { sections: Array<{ sectionIndex: number; sectionId?: string }> }
+    const source = (nodeData["fixed-layout-sectioning"]?.[pageId] ?? nodeData["page-sectioning"]?.[pageId]) as { sections: Array<{ sectionId: string }> } | undefined
+    for (const entry of rendering.sections) {
+      const owner = source?.sections[entry.sectionIndex]?.sectionId
+      if (owner) entry.sectionId = owner
+    }
+  }
   return {
     getLatestNodeData(node: string, itemId: string) {
       const data = nodeData[node]?.[itemId]
@@ -47,12 +56,14 @@ function createMockStorage(
     getPageImageBase64: () => "",
     getImageBase64: () => "",
     getPageImages: () => [],
+    getImageMeta: () => null,
     putNodeData: () => 1,
     clearExtractedData: () => {},
     putExtractedPage: () => {},
     appendLlmLog: () => {},
     getSignLanguageVideos: () => [],
     getSignLanguageVideoPath: () => null,
+    getNodeItemIds: () => [],
     getNodeVersionFingerprint: (excludeNodes: string[] = []) =>
       Object.entries(nodeData)
         .filter(([node]) => !excludeNodes.includes(node))
@@ -1924,7 +1935,7 @@ describe("packageAdtWeb", () => {
     ])
 
     const warning = messages.find((m) => m.startsWith("Warning:"))
-    expect(warning).toContain("skipped 1 rendered section(s) with no sectioning row")
+    expect(warning).toContain("skipped 1 rendered section(s) with no verified section owner")
     expect(warning).toContain("pg001[1]")
   })
 

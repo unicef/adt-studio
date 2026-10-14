@@ -20,6 +20,10 @@ export const GlossaryOutput = z.object({
 })
 export type GlossaryOutput = z.infer<typeof GlossaryOutput>
 
+/** Versionless legacy editors remain supported conservatively. */
+export const GlossaryEditRequest = GlossaryOutput.extend({ version: z.number().int().min(1).optional() })
+export type GlossaryEditRequest = z.infer<typeof GlossaryEditRequest>
+
 export const glossaryLLMSchema = z.object({
   reasoning: z.string(),
   items: z.array(

@@ -291,6 +291,7 @@ export {
 export {
   GlossaryItem,
   GlossaryOutput,
+  GlossaryEditRequest,
   glossaryLLMSchema,
 } from "./glossary.js"
 
@@ -303,6 +304,7 @@ export {
   parseQuizId,
   resolveQuizId,
   withResolvedQuizIds,
+  resolveQuizOptionId,
   ensureQuizIds,
   QuizIdExhaustedError,
   QuizId,
@@ -314,6 +316,7 @@ export {
 export {
   TextCatalogEntry,
   TextCatalogOutput,
+  CatalogConflict,
   TextCatalogCategory,
   getTextCatalogCategory,
   ANSWER_ID_SEPARATOR,
@@ -540,3 +543,22 @@ export {
 } from "./ai-provider.js"
 export { GOOGLE_IMAGE_MODELS, GoogleImageModelId, DEFAULT_GOOGLE_IMAGE_MODEL, GoogleImageResponse } from "./google-image.js"
 export { imageFileExtension, ImageAspectRatio, GeneratedImagePayload, ValidatedGeneratedImage } from "./image.js"
+
+export { OutputSource, OutputReference, OutputInputEvidence, OutputReview, OutputMetadata, OutputKind, OutputIdentity, OutputWarning, OutputLocation, OutputStatus, OutputSelection, OutputReviewRequest, OutputSummary, OutputScopeSummary, OutputSummaries, OutputStageSummaryResponse, BookWriterOwner } from "./output-freshness.js"
+
+export { CATALOG_OUTPUT_NODES } from "./pipeline-effects.js"
+
+export { OutputReplacement, OutputRunScope } from "./output-freshness.js"
+
+export { TranslatedImageAsset } from "./output-freshness.js"
+
+export { OUTPUT_KIND_TO_STAGE, OUTPUT_KIND_TO_STEP } from "./pipeline.js"
+
+export { OutputEditGuard } from "./output-freshness.js"
+
+export { OutputSkipRequest } from "./output-freshness.js"
+
+export { OutputDisclosureOptions } from "./output-freshness.js"
+
+export { SOURCE_GENERATION_RESET_STEPS } from "./pipeline.js"
+export { SourceGeneratorStep, SourceGenerationPolicy, SourceGenerationState, SourceGenerationReceipt } from "./source-generation-state.js"

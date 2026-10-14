@@ -411,7 +411,13 @@ export { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rende
 export {
   getRenderSectioning,
   getRenderSectioningRow,
+  getRenderSectioningSelection,
   getSemanticSectioning,
+  renderedSectionId,
+  withLegacyRenderingOwnership,
+  withLegacyRenderingOwnership as withLegacyFixedLayoutOwnership,
+  resolveRenderedSection,
+  renderingOwnershipWarnings,
   FIXED_LAYOUT_SECTIONING_NODE,
   PAGE_SECTIONING_NODE,
 } from "./render-sectioning.js"
@@ -459,3 +465,52 @@ export {
   generateActivityFeedback,
   type ActivityFeedbackConfig,
 } from "./activity-feedback.js"
+
+export { inputSignature, outputEvidence, outputIdentityKey, deriveOutputStatus, selectedOutput, summarizeOutputs, summarizeOutputScopes, needsOutputGeneration } from "./output-freshness.js"
+
+export { buildTextCatalogSnapshot } from "./text-catalog.js"
+export { assignActivityIds, reconcileActivityIds, reconcileTextCatalog, buildImageInventory } from "./catalog-reconciliation.js"
+
+export { coreTtsInputBasis, resolveCoreTtsSpeechCatalog } from "./core-tts.js"
+export { reconcileSpeechInputs } from "./speech-inputs.js"
+
+export { withOutputLocations, selectedForGeneration } from "./output-freshness.js"
+
+export { translationInputSignature, translateCatalog } from "./catalog-translation.js"
+
+export { easyReadInputSignature } from "./easy-read.js"
+
+export { readOutputCatalog, captionInputSignature } from "./output-catalog.js"
+
+export { assertOutputPublication } from "./output-freshness.js"
+
+export { computePageSpeechInputSignature, speechPageId } from "./speech.js"
+
+export { timestampInputSignature } from "./output-catalog.js"
+
+export { scopeLegacyActivityIds } from "./catalog-reconciliation.js"
+
+export { retainedCoreTts, retainedEasyRead, activeEasyRead } from "./retained-catalog.js"
+
+export { authoredImageAlts } from "./catalog-reconciliation.js"
+
+export { outputSkipped } from "./output-freshness.js"
+
+export { captureOutputReferences } from "./output-references.js"
+
+export { buildOutputSources, firstCatalogEntries, translatedDisplayEntries } from "./output-sources.js"
+
+export { OutputPublicationConflict } from "./output-freshness.js"
+
+export { materializeGlossaryIds, reconcileGlossaryEditIds } from "./glossary.js"
+
+export { reconcileSectioningIdentities, collectSpentContentIds } from "./sectioning-identity.js"
+export { cloneRenderedIdentities, stampRenderedOwner } from "./rendered-identity.js"
+
+export { indexEasyReadEntries } from "./easy-read.js"
+
+export { sourceGenerationBasis, putSourceNodeData, putReflowableRendering, withSourceGenerationTracking, captureSourceGeneration, publishSourceGeneration, getSourceGenerationUpdates, markSourceGenerationNeedsUpdate, keepSourceGeneration, currentSourceInputSignature } from "./source-generation-state.js"
+
+export { collectQuizPages } from "./quiz-generation.js"
+
+export { assertReflowableSectioning } from "./render-sectioning.js"

@@ -3,6 +3,8 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
+import { renderedSectionId } from "@adt/pipeline"
+import { WebRenderingOutput } from "@adt/types"
 import { createBookTools } from "../tools/book-tools.js"
 
 const dirs: string[] = []
@@ -269,4 +271,48 @@ describe("createCustomSection — sectionId allocation", () => {
 
     expect(await createSection(storage, pageId)).toBe("pg001_sec003")
   })
+})
+
+
+it("rejects a copied custom owner without writes, then publishes the corrected activity safely", async () => {
+  const storage = tempStorage()
+  try {
+    storage.putNodeData("page-sectioning", "pg001", { reasoning: "", sections: [sectioningSection("pg001_sec001", "text_only")] })
+    const previous = { ...renderingSection(0, "text_only"), sectionId: "pg001_sec001" }
+    storage.putNodeData("web-rendering", "pg001", { sections: [previous] })
+    const { tools } = createBookTools({ storage, bookLabel: "test-book", booksDir: "", promptsDir: "", credentials: {} })
+    const script = "window.adtRegisterCustomActivity(document.currentScript.closest('section'),{validate:()=>true});"
+    const args = { pageId: "pg001", sectionType: "activity_custom_test", html: `<section data-section-id="pg001_sec001" id="widget"><p data-id="new-question">Question</p><input data-activity-item="answer" data-answer="yes"><script>${script}</script></section>`, reasoning: "", activityAnswers: null }
+    const history = storage.getAllNodeVersions("web-rendering", "pg001")
+    const sectionHistory = storage.getAllNodeVersions("page-sectioning", "pg001")
+    const rejected = await tools.createCustomSection!.execute!(args, {} as never)
+    expect(rejected).toMatchObject({ ok: false, error: expect.stringContaining("cannot copy data-section-id") })
+    expect(storage.getAllNodeVersions("web-rendering", "pg001")).toEqual(history)
+    expect(storage.getAllNodeVersions("page-sectioning", "pg001")).toEqual(sectionHistory)
+    const result = await tools.createCustomSection!.execute!({ ...args, html: args.html.replace(' data-section-id="pg001_sec001"', "") }, {} as never)
+    expect(result).toMatchObject({ ok: true, sectionId: "pg001_sec002" })
+    const saved = WebRenderingOutput.parse(storage.getLatestNodeData("web-rendering", "pg001")?.data)
+    expect(saved.sections[0]).toEqual(previous)
+    expect(renderedSectionId(saved.sections[1])).toBe("pg001_sec002")
+    expect(saved.sections[1].html).toContain(`<script>${script}</script>`)
+    expect(saved.sections[1].html).toContain('id="widget"')
+    expect(saved.sections[1].activityAnswers).toEqual({ answer: "yes" })
+  } finally { storage.close() }
+})
+
+it.each(["active", "retired", "duplicate"])("rejects %s text identity reuse while allowing shared images", async mode => {
+  const storage = tempStorage()
+  try {
+    storage.putNodeData("page-sectioning", "pg001", { reasoning: "", sections: [] })
+    storage.putNodeData("web-rendering", "pg001", { sections: [] })
+    storage.putNodeData("web-rendering", "pg099", { sections: [{ ...renderingSection(0, "content"), html: '<p data-id="copied-text">Original text</p><img data-id="shared-image">' }] })
+    if (mode === "retired") storage.putNodeData("web-rendering", "pg099", { sections: [] })
+    const { tools } = createBookTools({ storage, bookLabel: "test-book", booksDir: "", promptsDir: "", credentials: {} })
+    const html = mode === "duplicate" ? '<p data-id="new-text">One</p><p data-id="new-text">Two</p>' : '<p data-id="copied-text">Different text</p>'
+    const args = { pageId: "pg001", sectionType: "content", html, reasoning: "", activityAnswers: null }
+    const before = storage.getNodeVersionFingerprint()
+    expect(await tools.createCustomSection!.execute!(args, {} as never)).toMatchObject({ ok: false, error: expect.stringContaining("data-id") })
+    expect(storage.getNodeVersionFingerprint()).toEqual(before)
+    expect(await tools.createCustomSection!.execute!({ ...args, html: '<section id="local-widget"><p data-id="unused-text">New question</p><img data-id="shared-image"></section>' }, {} as never)).toMatchObject({ ok: true })
+  } finally { storage.close() }
 })

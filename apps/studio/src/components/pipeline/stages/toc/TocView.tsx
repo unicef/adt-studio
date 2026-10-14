@@ -134,12 +134,13 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
   const tocState = stageState("toc")
   const tocDone = tocState === "done"
   const tocRunning = tocState === "running" || tocState === "queued"
-  const showRunCard = !tocDone || tocRunning
+  const hasRetainedToc = !!data?.entries.length
+  const showRunCard = (!tocDone && !hasRetainedToc) || tocRunning
 
   const { data: sections } = useQuery({
     queryKey: ["books", bookLabel, "toc-sections"],
     queryFn: () => api.getTocSections(bookLabel),
-    enabled: !!bookLabel && tocDone,
+    enabled: !!bookLabel && (tocDone || hasRetainedToc),
   })
 
   const handleRunToc = useCallback(() => {

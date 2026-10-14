@@ -25,7 +25,7 @@ import {
   withResolvedQuizIds,
   resolveQuizId,
 } from "@adt/types"
-import { getRenderSectioning } from "./render-sectioning.js"
+import { withLegacyRenderingOwnership, getRenderSectioning, resolveRenderedSection } from "./render-sectioning.js"
 
 /** One output page, in reading order. */
 export type ResolvedItem =
@@ -99,7 +99,7 @@ function readPageContexts(storage: Storage): PageContext[] {
     const sectioning = getRenderSectioning(storage, page.pageId)
     const row = storage.getLatestNodeData("web-rendering", page.pageId)
     const parsed = row ? WebRenderingOutputSchema.safeParse(row.data) : null
-    const rendering = parsed?.success ? [...parsed.data.sections] : []
+    const rendering = parsed?.success ? [...withLegacyRenderingOwnership(storage, page.pageId, parsed.data).sections] : []
     rendering.sort((a, b) => a.sectionIndex - b.sectionIndex)
     return { pageId: page.pageId, sections: sectioning?.sections ?? [], rendering }
   })
@@ -128,7 +128,7 @@ export function defaultReadingOrder(
   const items: ReadingOrderItem[] = []
   for (const page of pageContexts) {
     for (const entry of page.rendering) {
-      const section = page.sections[entry.sectionIndex]
+      const section = resolveRenderedSection(entry, page.sections)
       if (!section) continue
       items.push({ kind: "section", id: section.sectionId })
     }
@@ -168,7 +168,7 @@ export function resolveReadingOrder(
   >()
   for (const page of pageContexts) {
     for (const entry of page.rendering) {
-      const section = page.sections[entry.sectionIndex]
+      const section = resolveRenderedSection(entry, page.sections)
       if (!section) continue
       sectionsById.set(section.sectionId, {
         pageId: page.pageId,

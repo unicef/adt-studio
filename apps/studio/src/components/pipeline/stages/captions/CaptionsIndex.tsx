@@ -1,4 +1,5 @@
 import { useStageStatus } from "@/hooks/use-stage-status"
+import { useHasSavedOutputs } from "../../components/OutputReview"
 import { CaptionsLandingPage } from "./CaptionsLandingPage"
 import { CaptionsView } from "./CaptionsView"
 
@@ -13,8 +14,9 @@ export function CaptionsIndex({
   onSelectPage?: (pageId: string | null) => void
 }) {
   const status = useStageStatus("captions")
+  const hasSaved = useHasSavedOutputs(bookLabel, "captions")
 
-  if (status.isCompleted || status.isRunning) {
+  if (status.isCompleted || status.isRunning || hasSaved) {
     return (
       <CaptionsView
         bookLabel={bookLabel}

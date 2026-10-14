@@ -1,3 +1,4 @@
+import { OutputMetadata } from "./output-freshness.js"
 import { z } from "zod"
 import { TextCatalogCategory, getTextCatalogCategory } from "./text-catalog.js"
 
@@ -303,9 +304,15 @@ export function isTtsExcluded(
 }
 
 export const SpeechFileEntry = z.object({
+  ...OutputMetadata.shape,
   textId: z.string(),
   language: z.string(),
   fileName: z.string(),
+  audioHash: z.string().optional(),
+  speechInputSignature: z.string().optional(),
+  /** Explicit single-item synthesis under a page-batch preference when no
+   * alignment key was available. Its input/context remains per item. */
+  pageBatchFallback: z.literal("single-item").optional(),
   voice: z.string(),
   model: z.string(),
   cached: z.boolean(),
@@ -363,6 +370,8 @@ export function sortSpeechEntries<T extends { textId: string; voiceSlot?: VoiceS
 }
 
 export const TTSOutput = z.object({
+  legacySnapshotOf: z.number().int().positive().optional(),
+  timingVersion: z.number().int().positive().nullable().optional(),
   entries: z.array(SpeechFileEntry),
   generatedAt: z.string(),
   /** Per-item failures from the run that produced this output, so the UI can
@@ -379,6 +388,8 @@ export const WordTimestamp = z.object({
 export type WordTimestamp = z.infer<typeof WordTimestamp>
 
 export const WordTimestampEntry = z.object({
+  ...OutputMetadata.shape,
+  audioHash: z.string().optional(),
   textId: z.string(),
   language: z.string(),
   words: z.array(WordTimestamp),

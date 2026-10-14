@@ -31,7 +31,7 @@ vi.mock("./components/QuizzesHintBanner", () => ({ QuizzesHintBanner: () => null
 vi.mock("./components/QuizJumper", () => ({ QuizJumper: () => null }))
 vi.mock("./AddQuizDialog", () => ({ AddQuizDialog: () => null }))
 vi.mock("../../components/PageLightbox", () => ({ PageLightbox: () => null }))
-vi.mock("@/api/client", () => ({ api: { getQuizzes: vi.fn(), getVersionHistory: vi.fn(), restoreVersion: vi.fn() } }))
+vi.mock("@/api/client", () => ({ api: { getQuizzes: vi.fn(), getVersionHistory: vi.fn(), restoreVersion: vi.fn(), updateQuizzes: vi.fn() } }))
 vi.mock("@/components/ui/sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 const { api } = await import("@/api/client")
@@ -121,5 +121,18 @@ describe("quiz history recovery", () => {
     await waitFor(() => expect(client.isFetching()).toBe(0))
     expect(screen.queryByRole("button", { name: /^v\s*\d/ })).toBeNull()
     expect(api.getVersionHistory).not.toHaveBeenCalled()
+  })
+})
+
+describe("sidebar attention", () => {
+  it("refreshes Language and Speech attention after a quiz is deleted", async () => {
+    response = { quizzes: output, version: 1, historyVersion: 1 }
+    vi.mocked(api.updateQuizzes).mockResolvedValue({} as never)
+    renderView()
+    fireEvent.click(await screen.findByRole("button", { name: "Delete this quiz" }))
+    const refresh = vi.spyOn(client, "invalidateQueries")
+    fireEvent.click(await screen.findByRole("button", { name: "Delete quiz" }))
+    await waitFor(() => expect(api.updateQuizzes).toHaveBeenCalled())
+    await waitFor(() => expect(refresh).toHaveBeenCalledWith({ queryKey: ["books", "book", "outputs"] }))
   })
 })

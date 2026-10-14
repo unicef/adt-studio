@@ -1,3 +1,4 @@
+import { requireExistingBook } from "../utils/book-exists.js"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -6,10 +7,13 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
+import { SourceGeneratorStep, OutputSkipRequest, OutputRunScope, StageName, STAGE_ORDER, STEP_TO_STAGE, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, TTSOutput, WordTimestampOutput, parseVoiceSlotEntryId, sectionIdOfAnswerTextId } from "@adt/types"
 import { assertStageRunModelCredentials } from "@adt/llm"
 import {
   loadBookConfig,
+  getSourceGenerationUpdates,
+  keepSourceGeneration,
+  withSourceGenerationTracking,
   collectSpentSectionIds,
   retireSectionIds,
   NOTHING_RETIRED,
@@ -28,6 +32,7 @@ const StageRunBody = z
     toStage: StageName,
     renderOnly: z.boolean().optional(),
     pageErrorPolicy: PageErrorPolicy.optional(),
+    outputScope: OutputRunScope.optional(),
   })
   .strict()
 
@@ -165,8 +170,12 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
   let ran = false
   return () => {
     if (ran) return
+    requireExistingBook(label, booksDir)
     const storage = createBookStorage(label, booksDir)
     try {
+      if (fromStage === "extract" && storage.getPages().length) {
+        throw new Error("UNSAFE_RESUME_UNAVAILABLE: full extraction rerun cannot preserve this existing book")
+      }
       const { retired, preserved } = retireWithPreservedRecordings(
         storage,
         path.join(path.resolve(booksDir), label),
@@ -191,7 +200,7 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
       } else {
         const nodes = getStageRerunClearNodes(fromStage, toStage)
         if (nodes.length > 0) {
-          storage.clearNodesByType(nodes)
+          withSourceGenerationTracking(storage, () => storage.clearNodesByType(nodes))
         }
         if (fromStage === "storyboard" && typeof storage.clearDebugImages === "function") {
           storage.clearDebugImages()
@@ -201,7 +210,8 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
         const stepsToClear = PIPELINE
           .filter((s) => stagesToClear.includes(s.name))
           .flatMap((s) => s.steps.map((step) => step.name))
-        storage.clearStepRuns(stepsToClear)
+        const selectedStages = new Set(STAGE_ORDER.slice(STAGE_ORDER.indexOf(fromStage), STAGE_ORDER.indexOf(toStage) + 1))
+        storage.clearStepRuns(stepsToClear.filter(step => !SourceGeneratorStep.safeParse(step).success || selectedStages.has(STEP_TO_STAGE[step])))
       }
     } finally {
       storage.close()
@@ -229,6 +239,7 @@ export function createStageRoutes(
   // POST /books/:label/stages/run — Start or queue a stage-scoped run
   app.post("/books/:label/stages/run", async (c) => {
     const { label } = c.req.param()
+    requireExistingBook(label, booksDir)
 
     let body: unknown
     try {
@@ -244,7 +255,7 @@ export function createStageRoutes(
       })
     }
 
-    const { fromStage, toStage, renderOnly, pageErrorPolicy } = parsed.data
+    const { fromStage, toStage, renderOnly, pageErrorPolicy, outputScope } = parsed.data
     const credentials = readProviderCredentials(c)
 
     // Fail before beforeRun clears any stage data: a run that cannot make a
@@ -275,19 +286,42 @@ export function createStageRoutes(
       configPath,
       fromStage,
       toStage,
+      outputScope,
       renderOnly,
       pageErrorPolicy,
       // Queued jobs clear data when they start executing
       beforeRun: clearData,
     })
 
-    // For immediately started jobs, clear data synchronously so the
-    // frontend can refetch and see the cleared state right away.
-    if (result.status === "started") {
-      clearData()
-    }
+    return c.json({ id: result.id, status: result.status, label, fromStage, toStage })
+  })
 
-    return c.json({ status: result.status, label, fromStage, toStage })
+  // Accept retained Quiz, Glossary or TOC content as current for today's
+  // inputs (SPEC-0001 Keep). The book writer middleware admits this route, so
+  // an active run or task answers 409 instead of racing a publication.
+  app.post("/books/:label/source-generation/:stage/keep", (c) => {
+    const safeLabel = parseBookLabel(c.req.param("label"))
+    const stage = c.req.param("stage")
+    const step = SourceGeneratorStep.options.find((candidate) => STEP_TO_STAGE[candidate] === stage)
+    if (!step) throw new HTTPException(400, { message: "Keep applies to Quizzes, Glossary and Table of Contents." })
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      if (!storage.getLatestNodeData(step, "book")) {
+        throw new HTTPException(409, { message: "No retained content to keep. Run this stage to generate it." })
+      }
+      const kept = keepSourceGeneration(storage, step)
+      return c.json({ stage, step, inputSignature: kept.inputSignature })
+    } finally {
+      storage.close()
+    }
+  })
+
+  app.post("/books/:label/stages/skip-outputs", async (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    const parsed = OutputSkipRequest.safeParse(await c.req.json())
+    if (!parsed.success) throw new HTTPException(400, { message: "Invalid output selection" })
+    if (!stageService.skipStageOutputs(label, parsed.data.identities)) throw new HTTPException(409, { message: "No active run to skip" })
+    return c.json({ skipped: parsed.data.identities })
   })
 
   // POST /books/:label/stages/cancel — Cancel the active run. Queued runs remain queued.
@@ -341,7 +375,7 @@ export function createStageRoutes(
     const resolvedDir = path.resolve(booksDir)
     const dbPath = path.join(resolvedDir, safeLabel, `${safeLabel}.db`)
 
-    const { active } = stageService.getStatus(label)
+    const { active, runRevision, publicationAgeMs } = stageService.getStatus(label)
     // Explicitly queued stages (waiting behind the active run) — always
     // override "done" so re-runs show as queued before data is cleared.
     const queuedStages = new Set(stageService.getQueuedStages(label))
@@ -375,12 +409,14 @@ export function createStageRoutes(
 
     // Read step_runs from DB (or empty if no DB)
     let stepRunRows: Array<{ step: string; status: string; error: string | null; message: string | null }> = []
+    let sourceUpdateStages: string[] = []
     if (fs.existsSync(dbPath)) {
-      const db = openBookDb(dbPath)
+      const storage = createBookStorage(safeLabel, booksDir)
       try {
-        stepRunRows = db.all("SELECT step, status, error, message FROM step_runs") as typeof stepRunRows
+        stepRunRows = storage.getStepRuns()
+        sourceUpdateStages = getSourceGenerationUpdates(storage).map(step => STEP_TO_STAGE[step])
       } finally {
-        db.close()
+        storage.close()
       }
     }
 
@@ -452,10 +488,13 @@ export function createStageRoutes(
     return c.json({
       stages,
       steps,
+      sourceUpdateStages,
       error,
       stepErrors: hasStepErrors ? stepErrors : null,
       stepMessages: hasStepMessages ? stepMessages : null,
       runStatus,
+      runRevision,
+      publicationAgeMs,
       pendingDecisions,
     })
   })

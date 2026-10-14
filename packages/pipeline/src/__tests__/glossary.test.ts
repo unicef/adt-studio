@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import type { AppConfig, WebRenderingOutput } from "@adt/types"
 import type {
   GenerateObjectOptions,
@@ -583,7 +583,7 @@ describe("getGlossaryItemTextId", () => {
 })
 
 describe("regenerateGlossaryPreservingEdits", () => {
-  it("preserves media for unchanged words and remaps shifted video ids", async () => {
+  it("preserves media and stable video identities for unchanged words", async () => {
     const rendering: WebRenderingOutput = {
       sections: [
         {
@@ -628,6 +628,8 @@ describe("regenerateGlossaryPreservingEdits", () => {
         }
         return null
       },
+      getAllNodeVersions: () => [{ version: 1, data: existing }],
+      putNodeData: vi.fn(() => 2),
       getSignLanguageVideos: () => [
         { videoId: "v1", sectionId: "gl001" },
         { videoId: "v2", sectionId: "gl_manual_river" },
@@ -676,8 +678,6 @@ describe("regenerateGlossaryPreservingEdits", () => {
       { word: "River", imageId: "pg001_im002" },
     ])
     expect(assignments).toEqual([
-      { videoId: "v1", sectionId: "gl002" },
-      { videoId: "v2", sectionId: "gl003" },
       { videoId: "v4", sectionId: null },
     ])
   })
@@ -718,6 +718,8 @@ describe("regenerateGlossaryPreservingEdits", () => {
         }
         return null
       },
+      getAllNodeVersions: () => [{ version: 1, data: existing }],
+      putNodeData: vi.fn(() => 2),
       getSignLanguageVideos: () => [
         { videoId: "v1", sectionId: "gl001" },
         { videoId: "v2", sectionId: "pg001_sec001" },
@@ -833,7 +835,7 @@ describe("mergeGeneratedGlossaryWithManualItems", () => {
     ])
   })
 
-  it("lets manual glossary entries override generated ones while preserving generated ids", () => {
+  it("lets manual glossary entries override generated ones while preserving manual ids", () => {
     const merged = mergeGeneratedGlossaryWithManualItems(
       {
         items: [
@@ -862,7 +864,7 @@ describe("mergeGeneratedGlossaryWithManualItems", () => {
 
     expect(merged.items).toEqual([
       {
-        id: "gl001",
+        id: "gl_manual_forest",
         source: "manual",
         word: "Forest",
         definition: "Manual definition",

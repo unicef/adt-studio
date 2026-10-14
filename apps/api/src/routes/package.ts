@@ -113,6 +113,7 @@ function getPackagingCacheState(
   bookDir: string,
   webAssetsDir: string,
   configPath?: string,
+  promptsDir = path.resolve("prompts"),
 ): PackagingCacheState {
   const { language, outputLanguages, title, config } = resolvePackagingParams(
     storage, safeLabel, booksDir, configPath,
@@ -121,6 +122,7 @@ function getPackagingCacheState(
     storage, bookDir, label: safeLabel, language, outputLanguages, title,
     webAssetsDir, applyBodyBackground: config.apply_body_background,
     config: config as unknown as Record<string, unknown>,
+    promptsDir, configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
   })
   const cached = isBuildCacheValid(bookDir, hash)
   return {
@@ -160,6 +162,7 @@ export function createPackageRoutes(
   webAssetsDir: string,
   configPath?: string,
   taskService?: TaskService,
+  promptsDir = path.resolve("prompts"),
 ): Hono {
   const app = new Hono()
 
@@ -234,7 +237,7 @@ export function createPackageRoutes(
         "package-adt",
         "Packaging ADT preview",
         async () => {
-          return await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath)
+          return await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath, promptsDir)
         },
         { url: `/books/${safeLabel}/preview` },
       )
@@ -242,7 +245,7 @@ export function createPackageRoutes(
     }
 
     try {
-      const result = await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath)
+      const result = await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath, promptsDir)
       return c.json({
         status: "completed",
         label: safeLabel,
@@ -287,6 +290,7 @@ async function runPackaging(
   bookDir: string,
   webAssetsDir: string,
   configPath?: string,
+  promptsDir = path.resolve("prompts"),
 ): Promise<PackagingResult> {
   const storage = createBookStorage(safeLabel, booksDir)
   try {
@@ -305,6 +309,7 @@ async function runPackaging(
       webAssetsDir,
       applyBodyBackground: config.apply_body_background,
       config: config as unknown as Record<string, unknown>,
+    promptsDir, configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
     }
     const hashPath = getBuildHashPath(bookDir)
     const versionPath = getBuildVersionPath(bookDir)
@@ -318,6 +323,7 @@ async function runPackaging(
     }
 
     const { warnings } = await packageAdtWeb(storage, {
+      promptsDir, configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"),
       bookDir,
       label: safeLabel,
       language,
@@ -326,6 +332,7 @@ async function runPackaging(
       webAssetsDir,
       bundleVersion,
       applyBodyBackground: config.apply_body_background,
+      config,
       speechConfig: config.speech,
       fixedLayout: isFixedLayoutBook(config),
       reflowableFont: config.reflowable_font,

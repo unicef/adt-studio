@@ -25,6 +25,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
+import { toast } from "@/components/ui/sonner"
 import { api, BASE_URL, getSignLanguageVideoUrl } from "@/api/client"
 import type { GlossaryItem, GlossaryOutput, SignLanguageVideo, VersionEntry } from "@/api/client"
 import { useGlossary } from "@/hooks/use-glossary"
@@ -60,7 +61,7 @@ import { GlossaryHintBanner } from "./components/GlossaryHintBanner"
 import { useGlossaryOccurrences, type TermOccurrence } from "./lib/occurrences"
 
 
-type GlossaryData = Omit<GlossaryOutput, "version">
+type GlossaryData = Omit<GlossaryOutput, "version"> & { version?: number }
 type GlossaryFilter = "all" | "active" | "pruned"
 type SortMode = "default" | "az" | "za" | "usage-desc" | "usage-asc"
 
@@ -99,10 +100,11 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
   const [manualOnly, setManualOnly] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>("default")
 
-  // Reset pending when data changes
+  // Background refetches (including after a conflict) must not discard edits.
+  // Successful save, explicit discard and restore clear the draft themselves.
   useEffect(() => {
     setPending(null)
-  }, [data?.version])
+  }, [bookLabel])
 
   const effective = pending ?? data ?? null
   const items = effective?.items ?? []
@@ -204,19 +206,28 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
     if (!pending) return
     setSaving(true)
     const minDelay = new Promise((r) => setTimeout(r, 400))
-    const result = await api.updateGlossary(bookLabel, pending)
-    setPending(null)
-    if (result.imageRequirementsChanged) {
-      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
-      invalidateStoryboardDependents(queryClient, bookLabel)
+    try {
+      const result = await api.updateGlossary(bookLabel, pending)
+      setPending(null)
+      if (result.imageRequirementsChanged) {
+        queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+        invalidateStoryboardDependents(queryClient, bookLabel)
+      } else {
+        // Glossary text feeds Language and Speech; refresh the sidebar's
+        // attention (the branch above already does, so don't read it twice).
+        void queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] })
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "glossary"] }),
+        queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "text-catalog"] }),
+      ])
+    } catch {
+      toast.error(t`Couldn't save the glossary. Your draft is kept; check for newer changes before trying again.`)
+    } finally {
+      await minDelay
+      setSaving(false)
     }
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "glossary"] }),
-      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "text-catalog"] }),
-    ])
-    await minDelay
-    setSaving(false)
-  }, [pending, bookLabel, queryClient])
+  }, [pending, bookLabel, queryClient, t])
 
   // Use ref so the header always calls the latest save
   const saveRef = useRef(saveGlossary)

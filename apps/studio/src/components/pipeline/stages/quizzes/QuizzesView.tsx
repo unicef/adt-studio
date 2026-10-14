@@ -263,6 +263,8 @@ export function QuizzesView({
     const minDelay = new Promise((r) => setTimeout(r, 400));
     await api.updateQuizzes(bookLabel, pending);
     setPending(null);
+    // Quiz text feeds Language and Speech; refresh the sidebar's attention too.
+    void queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] });
     await queryClient.invalidateQueries({
       queryKey: ["books", bookLabel, "quizzes"],
     });
@@ -294,6 +296,7 @@ export function QuizzesView({
       };
       await api.updateQuizzes(bookLabel, next);
       setPending(null);
+      void queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] });
       await queryClient.invalidateQueries({
         queryKey: ["books", bookLabel, "quizzes"],
       });

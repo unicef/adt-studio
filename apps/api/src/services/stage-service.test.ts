@@ -4,6 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import { openBookDb } from "@adt/storage"
 import { createBookEventBus, type BookSSEEvent } from "./book-event-bus.js"
+import { createStageRoutes } from "../routes/stages.js"
 import { createPageErrorDecisions } from "./page-error-decisions.js"
 import {
   createStageService,
@@ -272,4 +273,132 @@ describe("stage-service cancellation", () => {
     svc.cancelStageRun(label)
     await expect(decisionPromise).resolves.toBe("stop")
   })
+})
+
+describe("catalog run admission and skip scope", () => {
+  it("refuses a competing writer before preparing or announcing a run", async () => {
+    const { withBookWriter } = await import("@adt/storage")
+    const label = "competing"
+    makeBook(label)
+    let release!: () => void
+    const lease = withBookWriter(path.join(tmpDir, label), () => new Promise<void>((resolve) => { release = resolve }))
+    const prepare = vi.fn()
+    const run = vi.fn(async () => {})
+    const svc = createStageService({ run }, createBookEventBus())
+    try {
+      expect(() => svc.startStageRun(label, { ...baseOptions(label), beforeRun: prepare })).toThrow(/busy|writer/i)
+      expect(prepare).not.toHaveBeenCalled()
+      expect(run).not.toHaveBeenCalled()
+      expect(svc.getStatus(label).active).toBeNull()
+    } finally { release(); await lease }
+  })
+
+  it("delivers late skip to the active executor without carrying it into a later run", async () => {
+    const label = "skip-run"
+    makeBook(label)
+    const scopes: import("@adt/types").OutputRunScope[] = []
+    let finish: (() => void) | undefined
+    const svc = createStageService({ run: async (_label, options) => {
+      scopes.push(options.outputScope!)
+      await new Promise<void>((resolve) => { finish = resolve })
+    } }, createBookEventBus())
+    const identity = { kind: "translation" as const, id: "a", language: "fr" }
+    svc.startStageRun(label, baseOptions(label))
+    await tick()
+    expect(svc.skipStageOutputs?.(label, [identity])).toBe(true)
+    expect(scopes[0].skip).toEqual([identity])
+    finish!(); await tick()
+    svc.startStageRun(label, baseOptions(label)); await tick()
+    expect(scopes[1].skip).toBeUndefined()
+    finish!(); await tick()
+  })
+})
+
+it("rejects a deleted book before admission without recreating its directory", () => {
+  const run = vi.fn(async () => {})
+  const service = createStageService({ run }, createBookEventBus())
+  expect(() => service.startStageRun("deleted", baseOptions("deleted"))).toThrow("Book not found")
+  expect(fs.existsSync(path.join(tmpDir, "deleted"))).toBe(false)
+  expect(run).not.toHaveBeenCalled()
+})
+
+it("rechecks a queued book before preparation after an external deletion", async () => {
+  const label = "deleted-queued"
+  makeBook(label)
+  const runner = controllableRunner()
+  const service = createStageService(runner.runner, createBookEventBus())
+  service.startStageRun(label, baseOptions(label))
+  await tick()
+  const beforeRun = vi.fn()
+  service.startStageRun(label, { ...baseOptions(label), beforeRun })
+  fs.rmSync(path.join(tmpDir, label), { recursive: true, force: true })
+  runner.finish()
+  await tick()
+  await tick()
+  expect(beforeRun).not.toHaveBeenCalled()
+  expect(fs.existsSync(path.join(tmpDir, label))).toBe(false)
+  expect(service.getStatus(label).active?.status).toBe("failed")
+})
+
+
+it("exposes the accepted run identity through HTTP before and after queue promotion", async () => {
+  const label = "review-run-identity"
+  makeBook(label)
+  const runner = controllableRunner()
+  const bus = createBookEventBus()
+  const service = createStageService(runner.runner, bus)
+  const app = createStageRoutes(service, bus, createPageErrorDecisions(bus), tmpDir, path.resolve("prompts"), path.resolve("assets/adt"))
+  const status = async () => (await (await app.request(`/books/${label}/stages/status`)).json())
+  const first = service.startStageRun(label, baseOptions(label))
+  await tick()
+  const second = service.startStageRun(label, baseOptions(label))
+  expect(await status()).toMatchObject({ id: first.id, status: "running", queue: [{ id: second.id }] })
+  runner.finish()
+  await tick()
+  expect(await status()).toMatchObject({ id: second.id, status: "running", queue: [] })
+  runner.finish()
+  await tick()
+  expect(await status()).toMatchObject({ status: "idle", queue: [] })
+})
+
+
+it.each(["completed", "cancelled", "failed"])("retains a publication receipt for %s after queue drain and exposes it to polling", async (outcome) => {
+  const label = `receipt-${outcome}`
+  makeBook(label)
+  const bus = createBookEventBus()
+  const rc = controllableRunner()
+  const service = createStageService(rc.runner, bus)
+  const age = vi.spyOn(performance, "now")
+  age.mockReturnValue(100)
+  const before = service.getStatus(label).runRevision
+  let receiptAtEvent: string | undefined
+  bus.addListener(label, (event) => {
+    if (event.type.startsWith("stage-run-")) receiptAtEvent = service.getStatus(label).runRevision
+  })
+  const run = service.startStageRun(label, baseOptions(label))
+  await tick()
+  expect(service.getStatus(label).runRevision).toBe(before)
+  age.mockReturnValue(150)
+  if (outcome === "completed") rc.finish()
+  else {
+    if (outcome === "cancelled") service.cancelStageRun(label)
+    rc.fail(new Error(outcome))
+  }
+  await tick()
+  expect(receiptAtEvent).toBe(run.id)
+  expect(service.getStatus(label).runRevision).toBe(run.id)
+  const routes = createStageRoutes(service, bus, createPageErrorDecisions(), tmpDir, "", "")
+  const response = await routes.request(`/books/${label}/step-status`)
+  expect(response.status).toBe(200)
+  expect(await response.json()).toMatchObject({ runRevision: run.id, publicationAgeMs: 0 })
+  age.mockReturnValue(250)
+  const second = service.startStageRun(label, baseOptions(label))
+  await tick()
+  expect(service.getStatus(label).runRevision).toBe(run.id)
+  expect(service.getStatus(label).publicationAgeMs).toBe(100)
+  rc.finish()
+  await tick()
+  expect(service.getStatus(label).runRevision).toBe(second.id)
+  expect(createStageService(rc.runner, bus).getStatus(label).runRevision).not.toBe(run.id)
+  age.mockRestore()
 })
