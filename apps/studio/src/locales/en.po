@@ -4779,8 +4779,11 @@ msgstr "How Easy Read works"
 msgid "How it works"
 msgstr "How it works"
 
-msgid "How many pages of content go into each quiz. A lower number means more quizzes across the book."
-msgstr "How many pages of content go into each quiz. A lower number means more quizzes across the book."
+msgid "How many eligible pages go into each quiz. A lower number means more quizzes across the book. Only pages with the section types chosen in <0>Quiz settings</0> count; covers, the table of contents and pruned sections are skipped."
+msgstr "How many eligible pages go into each quiz. A lower number means more quizzes across the book. Only pages with the section types chosen in <0>Quiz settings</0> count; covers, the table of contents and pruned sections are skipped."
+
+#~ msgid "How many pages of content go into each quiz. A lower number means more quizzes across the book."
+#~ msgstr "How many pages of content go into each quiz. A lower number means more quizzes across the book."
 
 msgid "How much of this book do you want to process?"
 msgstr "How much of this book do you want to process?"

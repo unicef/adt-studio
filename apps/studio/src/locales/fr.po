@@ -4781,8 +4781,11 @@ msgstr "Comment fonctionne la lecture facile"
 msgid "How it works"
 msgstr "Comment ça marche"
 
-msgid "How many pages of content go into each quiz. A lower number means more quizzes across the book."
-msgstr "Combien de pages de contenu entrent dans chaque quiz. Un nombre plus faible signifie plus de quiz dans le livre."
+msgid "How many eligible pages go into each quiz. A lower number means more quizzes across the book. Only pages with the section types chosen in <0>Quiz settings</0> count; covers, the table of contents and pruned sections are skipped."
+msgstr "Combien de pages éligibles composent chaque quiz. Un nombre plus bas signifie plus de quiz dans le livre. Seules les pages contenant les types de section choisis dans <0>Paramètres des quiz</0> comptent ; les couvertures, la table des matières et les sections élaguées sont ignorées."
+
+#~ msgid "How many pages of content go into each quiz. A lower number means more quizzes across the book."
+#~ msgstr "Combien de pages de contenu entrent dans chaque quiz. Un nombre plus faible signifie plus de quiz dans le livre."
 
 msgid "How much of this book do you want to process?"
 msgstr "Quelle partie de ce livre souhaitez-vous traiter ?"

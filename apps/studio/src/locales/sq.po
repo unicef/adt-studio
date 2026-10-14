@@ -4781,8 +4781,11 @@ msgstr "Si funksionon Easy Read"
 msgid "How it works"
 msgstr "Si funksionon"
 
-msgid "How many pages of content go into each quiz. A lower number means more quizzes across the book."
-msgstr "Sa faqe përmbajtjeje shkohen në çdo kuiz. Një numër më i ulët nënkupton më shumë kuize në të gjithë librin."
+msgid "How many eligible pages go into each quiz. A lower number means more quizzes across the book. Only pages with the section types chosen in <0>Quiz settings</0> count; covers, the table of contents and pruned sections are skipped."
+msgstr "Sa faqe të pranueshme hyjnë në çdo kuiz. Një numër më i ulët do të thotë më shumë kuize në libër. Llogariten vetëm faqet me llojet e seksioneve të zgjedhura te <0>Cilësimet e kuizeve</0>; kopertinat, tabela e përmbajtjes dhe seksionet e shkurtuara anashkalohen."
+
+#~ msgid "How many pages of content go into each quiz. A lower number means more quizzes across the book."
+#~ msgstr "Sa faqe përmbajtjeje shkohen në çdo kuiz. Një numër më i ulët nënkupton më shumë kuize në të gjithë librin."
 
 msgid "How much of this book do you want to process?"
 msgstr "Sa nga ky libër dëshironi të përpunoni?"
