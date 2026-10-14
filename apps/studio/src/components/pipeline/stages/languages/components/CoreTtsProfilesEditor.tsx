@@ -120,7 +120,7 @@ export function CoreTtsProfilesEditor({ bookLabel }: { bookLabel: string }) {
       <div className="space-y-2">
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t`Default guidance`}</Label>
         <p className="text-xs text-muted-foreground">
-          {t`Text normalization guidance, used only when text normalization is on for the book. Math read aloud always runs and does not use it. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call.`}
+          {t`Applies only to text normalization. Math read aloud runs either way. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call.`}
         </p>
         <textarea
           value={entries.default ?? ""}

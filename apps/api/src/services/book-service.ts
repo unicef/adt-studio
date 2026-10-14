@@ -323,7 +323,9 @@ export function getBook(label: string, booksDir: string): BookDetail {
  * New books start with Core TTS text normalization off until it has a spec
  * (#946). It is written into the book's own config rather than flipping the
  * global default, so existing books — which inherit that default unless the
- * switch was used — keep normalizing. Explicit overrides win.
+ * switch was used — keep normalizing. Explicit overrides win. Removing this
+ * later only affects books created afterwards: the `false` stays in the
+ * config of books created before, like any switch setting.
  */
 function withNewBookDefaults(
   overrides: Record<string, unknown> = {}

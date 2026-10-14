@@ -1549,6 +1549,9 @@ msgstr "Aplikacioni"
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Ndërfaqe Programimi Aplikacioni — një grup rregullash që lejon programet të komunikojnë."
 
+msgid "Applies only to text normalization. Math read aloud runs either way. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+msgstr "Zbatohet vetëm për normalizimin e tekstit. Leximi me zë i matematikës ekzekutohet gjithsesi. Përgatitja zgjedh fillimisht lokalin e saktë, pastaj gjuhën bazë dhe në fund këtë parazgjedhje. Udhëzimi përfshihet në thirrjen LLM të ruajtur në memorie dhe të inspektueshme."
+
 msgid "Applies to every language routed to ElevenLabs."
 msgstr "Zbatohet për çdo gjuhë të drejtuar në ElevenLabs."
 
@@ -9681,9 +9684,6 @@ msgstr "Normalizimi i tekstit"
 
 msgid "Text Normalization"
 msgstr "Normalizimi i tekstit"
-
-msgid "Text normalization guidance, used only when text normalization is on for the book. Math read aloud always runs and does not use it. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
-msgstr "Udhëzim për normalizimin e tekstit, i përdorur vetëm kur normalizimi i tekstit është aktiv për librin. Leximi me zë i matematikës ekzekutohet gjithmonë dhe nuk e përdor atë. Përgatitja zgjedh fillimisht lokalin e saktë, pastaj gjuhën bazë dhe në fund këtë parazgjedhje. Udhëzimi përfshihet në thirrjen LLM të ruajtur në memorie dhe të inspektueshme."
 
 msgid "Text Only"
 msgstr "Vetëm Tekst"

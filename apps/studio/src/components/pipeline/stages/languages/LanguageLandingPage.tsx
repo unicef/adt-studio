@@ -68,6 +68,11 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   const baseLanguage = normalizeLocale(
     configuredEditingLanguage ?? bookLanguage ?? "en",
   )
+  // Studio has no switch for it, but `core_tts.latex_to_speech` can still be
+  // turned off in config.yaml, so show the merged value rather than assume it.
+  const mathReadAloudEnabled =
+    (activeConfigData?.merged?.core_tts as { latex_to_speech?: unknown } | undefined)
+      ?.latex_to_speech !== false
 
   useEffect(() => {
     if (!activeConfigData || !book) return
@@ -321,7 +326,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
             </p>
           </div>
           <span className="inline-flex shrink-0 items-center rounded-full bg-[#f5f5f5] px-2.5 py-1 text-[11px] font-medium text-[#525252]">
-            <Trans>Always on</Trans>
+            {mathReadAloudEnabled ? <Trans>Always on</Trans> : <Trans>Off</Trans>}
           </span>
         </div>
         <div className="flex items-center justify-between gap-4">
