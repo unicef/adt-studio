@@ -47,7 +47,7 @@ The full chain works from a synthetic entry, **without touching the schema or th
 This validates the architectural bet, and establishes two design facts:
 
 - The audio is published under the **synthetic** id, so reaching it from a click **requires the
-  remap** to the element's key (`audios["pg001_im001"]`) — as F-03c anticipated.
+  remap** to the element's key (`audios["pg001_im001"]`).
 - The uncaptioned image produced the catalog `{pg001_h001, pg001_t001}` — **no entry for the
   image**. The entry must be **created from scratch**, which is exactly the gap in **#710** (its
   route answers `404 Text entry not found` for an unknown id).
@@ -88,8 +88,8 @@ something an author does routinely — clears `text-catalog` **book-wide**.
 
 Had the authored script been persisted the way **#710** does it (`persistCatalogTextVersion` →
 `text-catalog` / `text-catalog-translation`), the author's work would be destroyed by all four routes
-in the table above, **including the most common one of all** (changing an image). This confirms R-18
-by measurement rather than by reading.
+in the table above, **including the most common one of all** (changing an image). This is the measured
+form of the risk SPEC-0014's Problem section states.
 
 ## Recommendation
 
@@ -107,7 +107,7 @@ without needing to argue.
 Out of scope for a mechanism probe; none of it blocks the spec.
 
 1. **Real translation cost under positional batching** — irrelevant for v1: multi-language
-   translation is a non-goal (F-05/F-06) and every book in the working set is single-language.
+   translation is a non-goal and every book in the working set is single-language.
 2. **Latency and cost of `tts` against a real provider** (Azure/OpenAI) — not measured; a stub
    synthesizer was used to avoid API spend.
 3. **Behaviour with transformations enabled** (`latex_to_speech` / `language_normalization`) — there

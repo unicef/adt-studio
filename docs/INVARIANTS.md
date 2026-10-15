@@ -7,6 +7,9 @@ Each spec that establishes an invariant adds its checker in the same change.
 > run them together is itself still planned — the first spec that needs it introduces it. Until
 > then the checks that do exist run under `pnpm typecheck`, `pnpm test` and `pnpm lint`. Treat a
 > row whose check is not yet implemented as a debt marker, not as enforcement.
+>
+> Rows 8–10 are reserved by the SPEC-0002 / SPEC-0003 B1 / SPEC-0010 stack (#880, #884, #886) and
+> land with it; SPEC-0014 adds row 11.
 
 | # | Invariant | Check | Runs | Established by |
 |---|-----------|-------|------|----------------|
@@ -17,3 +20,4 @@ Each spec that establishes an invariant adds its checker in the same change.
 | 5 | Staleness semantics (per-section, input-version comparison, never delete) | contract tests in `packages/pipeline/test/staleness.contract.test.ts` | every PR | SPEC-0001 |
 | 6 | Prompt output contracts | validator suite per prompt (page sectioning exists; extend) | every PR | SPEC-0003, SPEC-0004 |
 | 7 | No provider key in logs or model-call records | log scrubber test + grep in CI | every PR | security chain (Block 1) |
+| 11 | Per-element authored content (`element-audio`) is never cleared or deleted | source scan over `apps/api/src/**` asserting `"element-audio"` appears in no `clearNodesByType` literal, `deletePage` or `clearExtractedData`, plus storage tests per preserved path | every PR | SPEC-0014 |

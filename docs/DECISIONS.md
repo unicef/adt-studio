@@ -29,7 +29,7 @@ This document records all significant technology and architecture decisions made
 21. [Context-Aware Top Bar Button](#021-context-aware-top-bar-button)
 22. [Unified Stage/Step Status via useBookRun](#022-unified-stagestep-status-via-usebookrun)
 23. [Visual Refinement + File-Based Debug Screenshots](#023-visual-refinement--file-based-debug-screenshots)
-24. [Authored per-element content is never stored in a cleared node](#028-authored-per-element-content-is-never-stored-in-a-cleared-node)
+28. [Per-element authored fields with no catalog home live in their own versioned node](#028-per-element-authored-fields-with-no-catalog-home-live-in-their-own-versioned-node)
 
 ---
 
@@ -865,7 +865,7 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 
 ---
 
-## 028: Authored per-element content is never stored in a cleared node
+## 028: Per-element authored fields with no catalog home live in their own versioned node
 
 **Status**: proposed
 **Date**: 2026-09-23
@@ -875,50 +875,49 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 ### Context
 
 SPEC-0014 needs content the *user* authors per element — a spoken script. The obvious home is the
-text catalog, because that is the node every downstream speech step already reads. Measured on
-`develop` @ 737d3314, that home is destructive:
+text catalog, because that is the node every downstream speech step already reads. The catalog,
+however, is **derived from the rendered HTML**: `buildTextCatalog` rebuilds it on every run, so any
+entry that did not come from the HTML is dropped. Measured on a seeded book, an injected entry was
+present after `prepareCoreTtsCatalog` and `generateSpeechFile`, then **deleted** by the next
+`buildTextCatalog`. Full measurements:
+[`docs/experiments/890-element-audio-survival.md`](experiments/890-element-audio-survival.md).
 
-- `buildTextCatalog` **rebuilds the catalog from the rendered HTML**, so an authored entry is deleted
-  on the next run.
-- `text-catalog`, `text-catalog-translation`, `core-tts-catalog` and `tts` are all cleared by
-  `getStageClearNodes("easy-read")`, by a `translate` rerun, and by
-  `IMAGE_SET_CHANGE_CLEAR_NODE_TYPES` — so **changing any image destroys the authored text
-  book-wide**. Note the irony that the step which builds the catalog clears it first.
-
-PR #710 (`persistCatalogTextVersion`) writes user-edited text into exactly those nodes, and therefore
-inherits the loss. Full measurements: [`docs/experiments/890-element-audio-survival.md`](experiments/890-element-audio-survival.md).
-
-None of this is specific to audio. Every future per-element authored field faces the same choice,
-which is what makes this a standing decision rather than a detail of one spec.
+That reason — the catalog is *derived*, not authoritative — holds on **every** branch. SPEC-0001
+(#879) changes *how* invalidation works (`clearNodesByType` stops deleting and skips
+`CATALOG_OUTPUT_NODES`), but it keeps the catalog derived. It also introduces
+`OutputMetadata { source: "ai" | "manual" }` for **generated outputs** (`text-catalog`,
+`core-tts-catalog`, `tts`, `word-timestamps`), which is a different thing from an authored *input*
+that has no generated home.
 
 ### Decision
 
-**User-authored content is stored in its own versioned artifact and is never persisted in a node
-that pipeline invalidation clears.** A node that appears in `getStageRerunClearNodes` or
-`IMAGE_SET_CHANGE_CLEAR_NODE_TYPES` is treated as *regenerable output*: it may be derived from user
-input, but it is never the authoritative store for it.
+**A per-element field the user authors, which has no home in the derived catalog, lives in its own
+versioned `node_data` artifact and is kept out of every clear/delete list.** The artifact is the
+authoritative store for that input; it is not a generated output, so it does not carry the
+`source: "ai" | "manual"` provenance that describes generated outputs.
 
 ### Consequences
 
-- **Easier.** User work survives regeneration, sectioning reruns and image changes. Rollback comes
-  free from `putNodeData` versioning (Core Principle 2), and no schema migration is needed because
-  `node_data.node` is free `TEXT`.
+- **Easier.** Authored work is not lost to catalog rebuilds; rollback comes free from `putNodeData`
+  versioning (Core Principle 2), and no schema migration is needed because `node_data.node` is free
+  `TEXT`.
 - **Harder.** Authored content is decoupled from the tree it describes, so it needs an explicit
   lifecycle: orphans are kept by default (SPEC-0014), and the artifact must be registered wherever
-  node types are enumerated (`VersionPicker`, the per-node route switch in `apps/api/src/routes/pages.ts`).
-- **Invariant created.** Every new user-owned artifact must be *deliberately* kept out of the clear
-  lists. SPEC-0014 adds the registry row in `docs/INVARIANTS.md` together with its checker.
-- **Constrains future design.** "Put it in the catalog and let the pipeline carry it" is no longer an
-  available shortcut for user input.
+  node names are enumerated (`RestorableNode`, `VersionedStep`, `PipelineNodeName`,
+  `NODE_CACHE_RESOURCES`).
+- **Invariant created.** Every new authored artifact must be *deliberately* kept out of the clear
+  lists and the destructive storage primitives. SPEC-0014 adds the registry row in
+  `docs/INVARIANTS.md` together with its checker.
+- **Constrains future design.** "Put it in the catalog and let the pipeline carry it" is not an
+  available shortcut for user input the catalog does not derive.
 
 ### Alternatives Considered
 
 | Approach | Why Not |
 |----------|---------|
-| Store in `text-catalog` / `text-catalog-translation` | Measured: deleted by `buildTextCatalog` and by every clear in the easy-read, translate and image-set paths |
-| Add a field to `ContentNodeData` in the sectioning tree | `makeBeforeRun` deletes every version of `page-sectioning` on a sectioning rerun — the same loss for the same reason |
-| Store in `core-tts-catalog` or the `tts` output node | Both are pipeline outputs and both appear in the clear lists |
-| Rely on `provider: "manual"` entries inside the `tts` node | Cleared by easy-read, by a translate rerun and by image-set changes, like the rest of `tts` |
+| Store the script in `text-catalog` / `text-catalog-translation` | Measured: deleted by the next `buildTextCatalog`, which rebuilds from the rendered HTML |
+| Add a field to `ContentNodeData` in the sectioning tree | `page-sectioning` is itself rebuilt/cleared, and text ids renumber by position (SPEC-0014 Non-goals) |
+| Rely on `source: "manual"` provenance inside a catalog output | That marks a *generated* output as manually edited; the catalog still does not derive a script that is not in the HTML |
 
 ---
 
@@ -949,7 +948,7 @@ input, but it is never the authoritative store for it.
 | 021 | Top bar button | Context-aware per stage | Per-stage inline buttons in sidebar |
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
-| 028 | Authored per-element content storage | Dedicated versioned artifact, never an invalidation-cleared node | Text catalog, sectioning tree, speech output nodes |
+| 028 | Per-element authored fields with no catalog home | Dedicated versioned artifact, never a catalog output | Store in the derived text catalog |
 
 ---
 
