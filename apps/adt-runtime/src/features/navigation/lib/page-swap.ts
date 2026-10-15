@@ -131,11 +131,12 @@ function resetCustomActivityRegistrar(): void {
 /**
  * True when in-place navigation is safe. `file://` is excluded on purpose:
  * `history.pushState` is rejected for opaque origins, and the hard-navigation
- * path already works there via the inlined offline preloader.
+ * path already works there via the inlined offline preloader. `app:` is the
+ * desktop Studio's own origin, which serves its preview same-origin.
  */
 export function canSoftNavigate(): boolean {
   if (typeof window === "undefined" || typeof document === "undefined") return false
-  if (!/^https?:$/.test(window.location.protocol)) return false
+  if (!/^(https?|app):$/.test(window.location.protocol)) return false
   if (typeof window.history?.pushState !== "function") return false
   if (new URLSearchParams(window.location.search).get("embed") === "1") return false
   return true

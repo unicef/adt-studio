@@ -9,6 +9,7 @@ import { isElectron } from "@/lib/utils"
 import {
   cancelProviderCliLogin,
   logoutProviderCli,
+  resolveAdtBaseUrl,
   resolveBaseUrl,
   startProviderCliLogin,
 } from "./client.js"
@@ -60,6 +61,29 @@ describe("resolveBaseUrl", () => {
       delete (window as { api?: unknown }).api
       expect(resolveBaseUrl({ protocol: "http:", hostname: "localhost" })).toBe("/api")
     })
+  })
+})
+
+describe("resolveAdtBaseUrl", () => {
+  afterEach(() => {
+    delete (window as { api?: unknown }).api
+  })
+
+  it("serves the desktop preview from the app:// origin so the iframe is same-origin", () => {
+    mockedIsElectron.mockReturnValue(true)
+    ;(window as { api: { apiPort: number } }).api = { apiPort: 5421 }
+    expect(resolveAdtBaseUrl({ protocol: "app:" })).toBe("/api")
+  })
+
+  it("keeps the API port in desktop dev, where Studio is not on app://", () => {
+    mockedIsElectron.mockReturnValue(true)
+    ;(window as { api: { apiPort: number } }).api = { apiPort: 5421 }
+    expect(resolveAdtBaseUrl({ protocol: "http:" })).toBe("http://127.0.0.1:5421/api")
+  })
+
+  it("uses the regular API base in the browser", () => {
+    mockedIsElectron.mockReturnValue(false)
+    expect(resolveAdtBaseUrl({ protocol: "http:" })).toBe("/api")
   })
 })
 

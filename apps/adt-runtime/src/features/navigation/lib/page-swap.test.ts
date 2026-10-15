@@ -133,6 +133,11 @@ describe("canSoftNavigate", () => {
     expect(canSoftNavigate()).toBe(true)
   })
 
+  it("is enabled for the desktop Studio preview served from app://", () => {
+    setLocation("app://adt.studio/api/books/demo/adt/v-1/pg001_sec001.html")
+    expect(canSoftNavigate()).toBe(true)
+  })
+
   it("is disabled under file:// so double-clicked bundles keep hard navigation", () => {
     setLocation("file:///Users/someone/book/pg001_sec001.html")
     expect(canSoftNavigate()).toBe(false)
