@@ -1,28 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
-import { isAllowedExternalUrl } from "./onboarding";
-
-vi.mock("electron", () => ({
-  BrowserWindow: class {},
-  protocol: {},
-  shell: {},
-}));
-
-vi.mock("@electron-toolkit/utils", () => ({
-  is: { dev: false },
-}));
+import { describe, expect, it } from "vitest";
+import { isAllowedExternalUrl } from "./external-url";
 
 describe("isAllowedExternalUrl", () => {
-  it("allows HTTPS URLs", () => {
-    expect(isAllowedExternalUrl("https://example.com/path")).toBe(true);
+  it.each([
+    "https://example.com/path",
+    "http://example.com/path",
+    "http://127.0.0.1:3001/api/books/example-book/source-pdf",
+  ])("allows web URLs, including the desktop source-PDF URL: %s", (url) => {
+    expect(isAllowedExternalUrl(url)).toBe(true);
   });
 
   it.each([
-    "http://example.com",
     "file:///etc/passwd",
     "javascript:alert(1)",
     "mailto:user@example.com",
+    "custom-scheme://example.com",
     "not a URL",
-  ])("rejects non-HTTPS or invalid URLs: %s", (url) => {
+  ])("rejects non-web or invalid URLs: %s", (url) => {
     expect(isAllowedExternalUrl(url)).toBe(false);
   });
 });

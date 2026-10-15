@@ -5,7 +5,7 @@ import icon from "../../../build/icon.png?asset";
 import betaIcon from "../../../build/beta-icons/icon.png?asset";
 import { STUDIO_APP_ORIGIN } from "../protocols/studio-app";
 import { attachCloseGuard } from "../ipc/window-close";
-import { isAllowedExternalUrl } from "./onboarding";
+import { getExternalUrlProtocol, isAllowedExternalUrl } from "./external-url";
 
 const appIcon = app.getVersion().includes("-beta") ? betaIcon : icon;
 
@@ -53,6 +53,10 @@ export function createMainWindow(startPath = "/"): BrowserWindow {
   mainWindow.webContents.setWindowOpenHandler((details) => {
     if (isAllowedExternalUrl(details.url)) {
       shell.openExternal(details.url);
+    } else {
+      console.warn(
+        `Blocked external URL with scheme: ${getExternalUrlProtocol(details.url) ?? "invalid"}`,
+      );
     }
     return { action: "deny" };
   });
