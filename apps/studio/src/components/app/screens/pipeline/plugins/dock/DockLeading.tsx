@@ -128,7 +128,7 @@ export function DockLeading({
     const observer = new ResizeObserver(measure)
     observer.observe(content)
     return () => observer.disconnect()
-  }, [hoverStyle, layout])
+  }, [hoverStyle, layout, tip?.item?.slug, lastTip?.item?.slug])
 
   useLayoutEffect(() => {
     const bar = barRef.current

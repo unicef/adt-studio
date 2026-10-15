@@ -18,7 +18,8 @@ export interface StepDetailProps {
   onAction?: () => void
 }
 
-const chipClassName = "flex h-6 items-center gap-1.5 rounded-full px-2 text-[11.5px] whitespace-nowrap"
+const chipClassName = "flex h-6 items-center gap-1 rounded-full px-2 text-[11.5px] whitespace-nowrap"
+const flowChipClassName = "flex h-[22px] items-center gap-1 rounded-full px-1.5 text-[11px] whitespace-nowrap"
 
 function StatusLine({ item, here, inBook, notice }: Pick<StepDetailProps, "item" | "here" | "inBook" | "notice">) {
   if (notice) return <span className="text-[11.5px] font-medium text-amber-700 dark:text-amber-300">{notice}</span>
@@ -81,12 +82,12 @@ export function StepDetail({ item, group, here, inBook, notice, wide = false, on
           <Trans>Where it fits</Trans>
         </p>
         <div className="mt-1.5 flex flex-wrap items-center gap-1">
-          <span className={cn(chipClassName, "bg-white text-zinc-600 ring-1 ring-zinc-950/[0.07] dark:bg-zinc-900 dark:text-white/65 dark:ring-white/[0.08]")}>
+          <span className={cn(flowChipClassName, "bg-white text-zinc-600 ring-1 ring-zinc-950/[0.07] dark:bg-zinc-900 dark:text-white/65 dark:ring-white/[0.08]")}>
             {facts.before}
           </span>
-          <ChevronRight className={cn("size-3 shrink-0", SKIN.muted)} strokeWidth={2.25} />
+          <ChevronRight className={cn("size-3 shrink-0 -mx-0.5", SKIN.muted)} strokeWidth={2.25} />
           <span
-            className={cn(chipClassName, "font-semibold text-white")}
+            className={cn(flowChipClassName, "font-semibold text-white")}
             style={{ background: item.hex }}
           >
             <item.icon className="size-3 shrink-0" strokeWidth={2.2} />
@@ -94,8 +95,8 @@ export function StepDetail({ item, group, here, inBook, notice, wide = false, on
           </span>
           {facts.after && (
             <>
-              <ChevronRight className={cn("size-3 shrink-0", SKIN.muted)} strokeWidth={2.25} />
-              <span className={cn(chipClassName, "bg-white text-zinc-600 ring-1 ring-zinc-950/[0.07] dark:bg-zinc-900 dark:text-white/65 dark:ring-white/[0.08]")}>
+              <ChevronRight className={cn("size-3 shrink-0 -mx-0.5", SKIN.muted)} strokeWidth={2.25} />
+              <span className={cn(flowChipClassName, "bg-white text-zinc-600 ring-1 ring-zinc-950/[0.07] dark:bg-zinc-900 dark:text-white/65 dark:ring-white/[0.08]")}>
                 {facts.after}
               </span>
             </>
