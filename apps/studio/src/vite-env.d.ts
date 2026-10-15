@@ -71,17 +71,19 @@ type ElectronUpdateStatus =
       releaseDate?: string
       releaseNotes?: string
       totalBytes?: number
+      offered?: boolean
     }
   | { phase: "not-available" }
   | {
       phase: "downloading"
       version: string
+      offered?: boolean
       percent: number
       bytesPerSecond: number
       transferred: number
       total: number
     }
-  | { phase: "downloaded"; version: string; releaseNotes?: string }
+  | { phase: "downloaded"; version: string; releaseNotes?: string; offered?: boolean }
   | { phase: "installing"; version: string }
   | { phase: "error"; message: string }
 
@@ -126,6 +128,14 @@ interface ElectronReleaseSource {
   compare?: { label: string; url: string }
 }
 
+interface ElectronPreviewBuildStatus {
+  version: string
+  pullRequest: { number: number; url: string; title?: string; author?: string }
+  state: "open" | "merged" | "closed"
+  shippedIn?: string
+  latestBeta?: string
+}
+
 interface ElectronPostUpdateInfo {
   version: string
   releaseNotes?: string
@@ -141,6 +151,7 @@ interface ElectronUpdatesApi {
   listVersions: (force?: boolean) => Promise<ElectronAvailableRelease[]>
   selectVersion: (version: string) => Promise<ElectronUpdateStatus>
   getPostUpdate: () => Promise<ElectronPostUpdateInfo | null>
+  previewBuild: () => Promise<ElectronPreviewBuildStatus | null>
   onStatus: (cb: (status: ElectronUpdateStatus) => void) => () => void
 }
 

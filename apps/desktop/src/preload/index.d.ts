@@ -5,6 +5,7 @@ import type {
   UpdateStatus,
 } from '../main/services/auto-updater'
 import type { PostUpdateInfo } from '../main/services/update-state'
+import type { PreviewBuildStatus } from '../main/services/preview-build'
 import type { DebugSnapshot } from '../main/services/debug-info'
 
 export type ElectronPlatform = NodeJS.Platform
@@ -37,6 +38,7 @@ export interface UpdatesApi {
   listVersions: (force?: boolean) => Promise<AvailableRelease[]>
   selectVersion: (version: string) => Promise<UpdateStatus>
   getPostUpdate: () => Promise<PostUpdateInfo | null>
+  previewBuild: () => Promise<PreviewBuildStatus | null>
   onStatus: (cb: (status: UpdateStatus) => void) => () => void
 }
 
