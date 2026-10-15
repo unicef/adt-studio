@@ -1,3 +1,4 @@
+import { useVariant } from "@/components/app/lab/variants"
 import type { ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { LandingPageWarning } from "@/components/pipeline/components/LandingPageWarning"
@@ -16,6 +17,7 @@ export function ValidationLanding({
   beforeRun?: ReactNode
 }) {
   const { t } = useLingui()
+  const friendly = useVariant("features") === "suggested"
   const assessment = useAccessibilityAssessment(bookLabel)
   const packageAdt = usePackageAdt()
   const { isTaskRunning } = useBookTasks(bookLabel)
@@ -41,13 +43,13 @@ export function ValidationLanding({
       }
       runLabel={<Trans>Package and check</Trans>}
       rerunLabel={<Trans>Re-check</Trans>}
-      previewLabel={t`Validation Preview`}
+      previewLabel={friendly ? t`Example: check results` : t`Validation Preview`}
       onRun={() => packageAdt.mutate(bookLabel)}
       preview={<ValidationPreview />}
     >
       <div className="flex flex-col gap-2">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          <Trans>Validation</Trans>
+          {friendly ? <Trans>Accessibility check</Trans> : <Trans>Validation</Trans>}
         </h1>
         <p className="text-[14px] leading-relaxed text-muted-foreground">
           <Trans>

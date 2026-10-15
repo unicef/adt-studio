@@ -66,9 +66,6 @@ export function findDockEntry(slug: string): DockEntry | undefined {
   return [...FOUNDATIONS, ...PLUGINS].find((p) => p.slug === slug)
 }
 
-export function tint(hex: string, alpha = 0.12): string {
-  const value = Math.round(alpha * 255)
-    .toString(16)
-    .padStart(2, "0")
-  return `${hex}${value}`
-}
+export const STORYBOARD_HEX: string = STAGES.find((stage) => stage.slug === "storyboard")?.hex ?? "#7c3aed"
+
+export { tint } from "./tint"

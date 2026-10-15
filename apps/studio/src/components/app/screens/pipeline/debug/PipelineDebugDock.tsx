@@ -47,6 +47,7 @@ export function PipelineDebugDock({
           onClick={() => setOpen(true)}
           title={t`Debug panel (⌘⇧D)`}
           aria-label={t`Open the debug panel`}
+          style={{ viewTransitionName: "step-debug" }}
           className="fixed bottom-[74px] right-6 z-50 grid size-9 place-items-center rounded-full border bg-card/85 text-muted-foreground opacity-60 shadow-md backdrop-blur-sm transition-[opacity,color] hover:text-foreground hover:opacity-100"
         >
           <Terminal className="size-4" />

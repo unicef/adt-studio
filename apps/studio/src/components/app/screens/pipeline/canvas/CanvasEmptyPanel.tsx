@@ -1,5 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro"
 import { StageRunningPanel } from "@/components/app/screens/pipeline/runs/StageRunningPanel"
+import { LiveRunPanel, RunStripOnly } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
+import { useVariant } from "@/components/app/lab/variants"
 import type { RunActivity, RunStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
 import type { SectioningRun } from "@/components/app/screens/pipeline/runs/useSectioningRun"
 import type { StoryboardRun } from "@/components/app/screens/pipeline/runs/useStoryboardRun"
@@ -13,6 +15,8 @@ export interface CanvasEmptyPanelProps {
   sectionCount: number
   emptyRun: SectioningRun | StoryboardRun
   onOpenSettings: () => void
+  label?: string
+  pages?: ReadonlyArray<{ pageId: string; pageNumber: number }>
 }
 
 export function CanvasEmptyPanel({
@@ -23,8 +27,40 @@ export function CanvasEmptyPanel({
   sectionCount,
   emptyRun,
   onOpenSettings,
+  label,
+  pages,
 }: CanvasEmptyPanelProps) {
   const { t } = useLingui()
+  const runningVariant = useVariant("running")
+  const live = runningVariant === "live"
+
+  if (foundationRunning && runningVariant === "strip") {
+    return (
+      <div className="flex w-full flex-1 px-6">
+        <RunStripOnly stage={foundationRunning} />
+      </div>
+    )
+  }
+
+  if (foundationRunning && live) {
+    return (
+      <div className="flex w-full flex-1 overflow-y-auto px-6">
+        <LiveRunPanel
+          stage={foundationRunning}
+          total={pageCount || 12}
+          label={label}
+          pages={foundationRunning.slug === "extract" ? undefined : pages}
+          outcome={
+            foundationRunning.slug === "extract"
+              ? t`Each page lands here as it is extracted.`
+              : foundationRunning.slug === "sectioning"
+                ? t`Each page is structured into sections in turn.`
+                : t`Rendered pages replace these placeholders as each page is built.`
+          }
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-1 items-center pb-24">

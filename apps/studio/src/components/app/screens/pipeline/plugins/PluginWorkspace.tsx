@@ -1,19 +1,26 @@
+import { useEffect } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { ArrowLeft, Settings } from "lucide-react"
-import { TitleBarControls } from "@/components/title-bar/title-bar-controls"
-import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
+import { ChevronRight, Settings } from "lucide-react"
+import { getStageLabelI18n, getStageRunningLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { NO_DRAG_REGION } from "@/constants"
 import { cn } from "@/lib/utils"
 import { AiEditPanel } from "./AiEditPanel"
 import { WorkspaceRunButton } from "./WorkspaceRunButton"
-import { DockHandle } from "@/components/app/screens/pipeline/chrome/DockHandle"
-import { PluginDockPills as PluginDock } from "./PluginDockPills"
+import { useStepVariant } from "@/components/app/screens/pipeline/shared/useStepVariant"
 import { useOptionalStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
 import { SideRail } from "@/components/app/screens/pipeline/rail/SideRail"
-import { type DockEntry } from "@/components/app/screens/pipeline/shared/plugins"
+import { FOUNDATION_SLUGS, type DockEntry } from "@/components/app/screens/pipeline/shared/plugins"
 import type { DockItem, PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
-import { useDockMinimized } from "../shared/workspacePrefs"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { toast } from "@/components/ui/sonner"
+import { useVariant } from "@/components/app/lab/variants"
+import { useBooks } from "@/hooks/use-books"
+import { useChromeRoot } from "@/components/app/lab/chrome"
+import { StepMap } from "@/components/app/screens/pipeline/chrome/StepMap"
+import { TopBar } from "@/components/app/screens/pipeline/chrome/PipelineChrome"
+import { useRunFinished } from "@/components/app/screens/pipeline/runs/useRunFinished"
+import { RunFinishedBanner } from "@/components/app/screens/pipeline/runs/RunFinishedBanner"
+import { LiveRunStrip } from "@/components/app/screens/pipeline/runs/LiveRunPanel"
 
 export interface PluginWorkspaceProps {
   label: string
@@ -26,6 +33,7 @@ export interface PluginWorkspaceProps {
   headerExtra?: React.ReactNode
   canApply: boolean
   rail: React.ReactNode
+  railEmpty?: boolean
   children: React.ReactNode
   pages: PipelinePage[]
   hasSections: boolean
@@ -43,6 +51,7 @@ export function PluginWorkspace({
   chips,
   headerExtra,
   rail,
+  railEmpty,
   children,
   pages,
   hasSections,
@@ -54,142 +63,160 @@ export function PluginWorkspace({
   bodyViewportClassName,
 }: PluginWorkspaceProps) {
   const { t } = useLingui()
-  const [dockMinimized, setDockMinimized] = useDockMinimized()
   const name = getStageLabelI18n(plugin.slug)
   const chatPage = pages[0] ?? null
 
-  const activity = useOptionalStageActivity(plugin.slug)
+  const runningVariant = useStepVariant("running", plugin.slug)
+  const tbNav = useVariant("topnav")
+  const topstep = useVariant("topstep")
+  const tbStatus = useVariant("topstatus")
+  const { data: books } = useBooks()
+  const bookTitle = books?.find((book) => book.label === label)?.title || label
+  const chrome = useChromeRoot(plugin.hex)
+  const activityStage = runningVariant !== "current" && plugin.slug === "validation" ? "package" : plugin.slug
+  const rawActivity = useOptionalStageActivity(activityStage)
+  const activity =
+    rawActivity && activityStage !== plugin.slug
+      ? {
+          ...rawActivity,
+          label: getStageLabelI18n(plugin.slug),
+          runningLabel: getStageRunningLabelI18n(plugin.slug),
+          hex: plugin.hex,
+          icon: plugin.icon,
+        }
+      : rawActivity
   const isActive = activity?.isActive ?? false
-  const runChips = !isActive || !activity
-    ? []
-    : activity.state === "queued"
-      ? [t`Queued`]
-      : [
-          activity.runningLabel,
-          ...(activity.current
-            ? [
-                activity.current.progress
-                  ? `${activity.current.label} · ${activity.current.progress}`
-                  : activity.current.label,
-              ]
-            : []),
-        ]
+  const returnVariant = useVariant("return")
+  const isFoundation = (FOUNDATION_SLUGS as readonly string[]).includes(plugin.slug)
+  const [finished, dismissFinished] = useRunFinished(activity)
+  const showBanner = finished && returnVariant === "banner"
 
-  return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
-      <header
-        className="drag-region relative flex h-12.5 shrink-0 items-center gap-3 px-3.5 text-white"
-        style={{ background: plugin.hex }}
-      >
-        <div className="flex flex-1 items-center justify-start gap-1">
-            <button
-            type="button"
-            onClick={onBack}
-            style={NO_DRAG_REGION}
-            className="flex h-7 items-center gap-1.5 rounded-lg bg-white/16 px-2.5 text-xs font-semibold transition-colors hover:bg-white/24"
-            >
-            <ArrowLeft className="size-3.5" />
-            <Trans>Storyboard</Trans>
-            </button>
+  useEffect(() => {
+    if (!finished || returnVariant !== "toast") return
+    toast.success(t`${name} finished`, {
+      duration: 10000,
+      action: { label: t`View on storyboard`, onClick: onBack },
+    })
+    dismissFinished()
+  }, [finished, returnVariant, name, onBack, dismissFinished, t])
+  const statusChips =
+    tbStatus === "current" ? chips : tbStatus === "summary" && chips.length > 0 ? [chips.join(" · ")] : []
 
-            <span className="grid size-6.5 place-items-center rounded-full bg-white/20">
-            <plugin.icon className="size-3.5" strokeWidth={2.4} />
+  const topChrome = (
+    <TopBar
+      tone={{ hex: plugin.hex, stage: true }}
+      left={
+        <>
+          {tbNav === "book-step" && (
+            <>
+              <span title={bookTitle} className="min-w-0 max-w-[220px] truncate text-[13px] opacity-75">
+                {bookTitle}
+              </span>
+              <ChevronRight aria-hidden className="size-3.5 shrink-0 opacity-50" />
+            </>
+          )}
+          {tbNav === "crumbs" && (
+            <>
+              <ChevronRight aria-hidden className="-ml-2 size-3.5 shrink-0 opacity-50" />
+              <span title={bookTitle} className="min-w-0 max-w-[260px] truncate text-[13px] opacity-80">
+                {bookTitle}
+              </span>
+              <ChevronRight aria-hidden className="size-3.5 shrink-0 opacity-50" />
+            </>
+          )}
+          <span data-stage-label="" className="flex shrink-0 items-center gap-2 transition-[background-color,color,box-shadow,padding] duration-300">
+            <span data-stage-icon="" className="grid size-6.5 shrink-0 place-items-center rounded-full bg-white/20">
+              <plugin.icon className="size-3.5" strokeWidth={2.4} />
             </span>
-
-            <span className="text-sm font-semibold">{name}</span>
-        </div>
-
-        <div className="flex flex-1 items-center justify-center gap-1.5 drag-region">
-          {[...runChips, ...chips].map((chip, index) => (
-            <span
-              key={`${index}-${chip}`}
-              className="max-w-[220px] truncate rounded-full bg-white/18 px-2.5 py-0.5 text-[11px] tabular-nums"
-              title={chip}
-            >
-              {chip}
-            </span>
-          ))}
+            <span className="whitespace-nowrap text-sm font-semibold">{name}</span>
+          </span>
+          {topstep === "map" && <StepMap items={[...foundations, ...plugins]} activeSlug={plugin.slug} />}
+        </>
+      }
+      center={
+        <>
+          {showBanner && <RunFinishedBanner name={name} onReturn={onBack} onDismiss={dismissFinished} />}
+          {!showBanner &&
+            statusChips.map((chip, index) => (
+              <span
+                key={`${index}-${chip}`}
+                className="max-w-[220px] truncate rounded-full bg-white/18 px-2.5 py-0.5 text-[11px] tabular-nums"
+                title={chip}
+              >
+                {chip}
+              </span>
+            ))}
           {headerExtra && (
             <div className="flex items-center" style={NO_DRAG_REGION}>
               {headerExtra}
             </div>
           )}
-        </div>
+        </>
+      }
+      right={
+        <>
+          <WorkspaceRunButton label={label} slug={plugin.slug} />
+          {onOpenSettings && (
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              aria-label={t`${name} settings`}
+              title={t`${name} settings`}
+              className="grid size-7 place-items-center rounded-lg transition-colors hover:bg-white/16"
+            >
+              <Settings className="size-3.5" />
+            </button>
+          )}
+        </>
+      }
+    />
+  )
+
+  return (
+    <div {...chrome} className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
+      {topChrome}
 
 
-        <div className="flex flex-1 justify-end">
-            <div className="flex items-center gap-2">
-            <WorkspaceRunButton label={label} slug={plugin.slug} />
-            {onOpenSettings && (
-                <button
-                type="button"
-                onClick={onOpenSettings}
-                aria-label={t`${name} settings`}
-                title={t`${name} settings`}
-                className="grid size-7 place-items-center rounded-lg transition-colors hover:bg-white/16"
-                >
-                <Settings className="size-3.5" />
-                </button>
-            )}
-            </div>
-            <TitleBarControls darkMode className="-my-px -mr-3.5 h-12.5" />
-        </div>
-
-              {isActive && activity && (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] overflow-hidden bg-black/15"
-          >
-            {activity.isDeterminate ? (
-              <span
-                className="block h-full bg-white/90 transition-[width] duration-500 ease-out motion-reduce:transition-none"
-                style={{ width: `${activity.fraction * 100}%` }}
-              />
-            ) : (
-              <span className="absolute inset-y-0 left-0 w-2/5 bg-white/90 motion-safe:animate-indeterminate" />
-            )}
-          </span>
-        )}
-      </header>
-
-      <div className="relative flex min-h-0 flex-1 ">
-        <SideRail widthClass="w-56">
+      <div data-chrome="row" className="relative flex min-h-0 flex-1 ">
+        <SideRail widthClass="w-64" empty={railEmpty}>
           <aside
-            className="flex h-full w-56 shrink-0 flex-col gap-2.5 border-r p-3"
+            className="flex h-full w-64 shrink-0 flex-col gap-2.5 border-r p-3"
           >
             {rail}
           </aside>
         </SideRail>
 
-        <ScrollArea
-          horizontal
-          className={cn(
-            "min-w-0 flex-1 transition-opacity duration-300 ease-out motion-reduce:transition-none",
-            isActive && "opacity-60",
-          )}
-          viewportClassName={cn("flex px-6 [&>div]:mx-auto", bodyViewportClassName)}
-        >
-          {children}
-        </ScrollArea>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div data-chrome="center" className="flex min-h-0 flex-1 flex-col" style={{ viewTransitionName: "step-center" }}>
+          <ScrollArea
+            horizontal
+            className={cn(
+              "min-h-0 min-w-0 flex-1 transition-opacity duration-300 ease-out motion-reduce:transition-none",
+              isActive && runningVariant === "current" && "opacity-60",
+            )}
+            viewportClassName={cn("flex px-6 [&>div]:mx-auto", bodyViewportClassName)}
+          >
+            {activityStage !== plugin.slug && isActive && activity && (
+              <div className="mx-auto w-full max-w-[860px] pt-6">
+                <LiveRunStrip stage={activity} />
+              </div>
+            )}
+            {children}
+          </ScrollArea>
+          </div>
+        </div>
 
-        <AiEditPanel
-          label={label}
-          pageId={chatPage?.pageId ?? null}
-          pageLabel={chatPage ? t`page ${chatPage.pageNumber}` : undefined}
-          sectionIndex={chatPage?.sections[0]?.sectionIndex ?? 0}
-          empty={!hasSections}
-        />
+        {!isFoundation && (
+          <AiEditPanel
+            label={label}
+            pageId={chatPage?.pageId ?? null}
+            pageLabel={chatPage ? t`page ${chatPage.pageNumber}` : undefined}
+            sectionIndex={chatPage?.sections[0]?.sectionIndex ?? 0}
+            empty={!hasSections}
+          />
+        )}
       </div>
 
-      <PluginDock
-        foundations={foundations}
-        plugins={plugins}
-        activeSlug={plugin.slug}
-        onOpenPlugin={onOpenPlugin}
-        minimized={dockMinimized}
-        onMinimize={() => setDockMinimized(true)}
-      />
-      <DockHandle visible={dockMinimized} onShow={() => setDockMinimized(false)} />
     </div>
   )
 }

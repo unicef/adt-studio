@@ -125,10 +125,10 @@ function ExportLandingBody({
       preview={<ExportPreview format={selectedFormat} isPart={isPart} />}
     >
       <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a] dark:text-foreground">
           <Trans>Export</Trans>
         </h1>
-        <p className="text-[14px] text-[#737373] leading-relaxed">
+        <p className="text-[14px] text-[#737373] leading-relaxed dark:text-muted-foreground">
           <Trans>
             Package the book for distribution. Pick a format, choose what
             content goes in, and we'll bundle everything into a downloadable

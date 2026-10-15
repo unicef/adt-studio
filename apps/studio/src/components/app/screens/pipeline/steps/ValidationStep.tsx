@@ -1,3 +1,4 @@
+import { useVariant } from "@/components/app/lab/variants"
 import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { RotateCcw } from "lucide-react"
@@ -20,6 +21,7 @@ type ValidationTab = "accessibility" | "reviewer"
 export function ValidationStep(props: StepProps) {
   const { label, plugin, frame } = props
   const { t } = useLingui()
+  const friendly = useVariant("features") === "suggested"
   const assessment = useAccessibilityAssessment(label)
   const catalog = useReviewerValidationCatalog(label)
   const sessions = useReviewerValidationSessions(label)
@@ -99,7 +101,7 @@ export function ValidationStep(props: StepProps) {
         <div className="flex shrink-0 items-center justify-end border-b px-4 py-2">
           <Button variant="outline" size="sm" onClick={repackage} disabled={packaging}>
             <RotateCcw className="size-3.5" />
-            <Trans>Refresh validation</Trans>
+            {friendly ? <Trans>Re-check</Trans> : <Trans>Refresh validation</Trans>}
           </Button>
         </div>
         <div className="min-h-0 flex-1 overflow-auto">

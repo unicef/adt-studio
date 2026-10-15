@@ -99,8 +99,8 @@ export function SectioningPreview() {
         {/* INPUT — extracted blocks */}
         <div className="flex flex-col items-center gap-2 w-full shrink-0">
           <div className="flex items-center gap-1.5">
-            <FileText className="w-3.5 h-3.5 text-sky-600" strokeWidth={2} />
-            <span className="font-semibold text-[10px] tracking-[0.18em] uppercase text-sky-700">
+            <FileText className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" strokeWidth={2} />
+            <span className="font-semibold text-[10px] tracking-[0.18em] uppercase text-sky-700 dark:text-sky-300">
               <Trans>Extracted Blocks</Trans>
             </span>
           </div>
@@ -110,8 +110,8 @@ export function SectioningPreview() {
                 key={block.key}
                 className="flex items-center gap-1 px-2 py-1 rounded-md bg-background ring-1 ring-border"
               >
-                <span className="text-sky-500">{block.icon}</span>
-                <span className="text-[9px] text-sky-700 font-medium leading-none">
+                <span className="text-sky-500 dark:text-sky-400">{block.icon}</span>
+                <span className="text-[9px] text-sky-700 font-medium leading-none dark:text-sky-300">
                   {block.label}
                 </span>
               </div>
@@ -121,16 +121,16 @@ export function SectioningPreview() {
 
         {/* CONNECTOR */}
         <div className="flex flex-col items-center shrink-0" aria-hidden>
-          <div className="w-px h-2 bg-sky-200" />
+          <div className="w-px h-2 bg-sky-200 dark:bg-sky-400/30" />
           <div className="flex items-center justify-center w-6 h-6 rounded-full bg-sky-600 text-white shadow-sm">
             <ArrowDown className="w-3 h-3" strokeWidth={2.5} />
           </div>
-          <div className="w-px h-2 bg-sky-200" />
+          <div className="w-px h-2 bg-sky-200 dark:bg-sky-400/30" />
         </div>
 
         {/* OUTPUT — typed sections (flex-1 fills remaining space) */}
         <div className="flex flex-col items-stretch w-full gap-2 flex-1 min-h-0">
-          <span className="font-semibold text-[10px] tracking-[0.18em] uppercase text-sky-700 shrink-0">
+          <span className="font-semibold text-[10px] tracking-[0.18em] uppercase text-sky-700 shrink-0 dark:text-sky-300">
             <Trans>Typed Sections</Trans>
           </span>
 
@@ -149,7 +149,7 @@ export function SectioningPreview() {
         {/* FOOTER */}
         <div className="flex items-center justify-center gap-2 shrink-0">
           <span className="tracking-[0.3em] text-[10px] font-bold text-sky-400">···</span>
-          <span className="text-[10px] font-medium text-sky-600/70">
+          <span className="text-[10px] font-medium text-sky-600/70 dark:text-sky-300/70">
             <Trans>and more sections across the page</Trans>
           </span>
         </div>
@@ -170,20 +170,20 @@ function SectionCard({
   return (
     <div className="rounded-md border border-border bg-background px-3 py-2.5 flex flex-col gap-2 flex-1 min-h-0 justify-center">
       <div className="flex items-center gap-2">
-        <span className="font-semibold text-[9px] tracking-[0.16em] uppercase text-sky-700">
+        <span className="font-semibold text-[9px] tracking-[0.16em] uppercase text-sky-700 dark:text-sky-300">
           {label}
         </span>
-        <span className="text-sky-300">/</span>
-        <span className="font-mono text-[9px] text-sky-500/70">{container}</span>
+        <span className="text-sky-300 dark:text-sky-400/60">/</span>
+        <span className="font-mono text-[9px] text-sky-500/70 dark:text-sky-300/60">{container}</span>
       </div>
       <div className="flex flex-col gap-1 pl-1">
         {leaves.map((leaf, i) => (
           <div key={i} className="flex items-center gap-1.5">
-            <span className="font-mono text-[9px] text-sky-300 leading-none select-none">
+            <span className="font-mono text-[9px] text-sky-300 leading-none select-none dark:text-sky-400/60">
               {i === leaves.length - 1 ? "└─" : "├─"}
             </span>
-            <span className="text-sky-500">{leaf.icon}</span>
-            <span className="font-mono text-[10px] text-sky-700">{leaf.label}</span>
+            <span className="text-sky-500 dark:text-sky-400">{leaf.icon}</span>
+            <span className="font-mono text-[10px] text-sky-700 dark:text-sky-300">{leaf.label}</span>
             {leaf.meta && (
               <span className="ml-auto text-[10px] text-muted-foreground italic truncate">
                 {leaf.meta}

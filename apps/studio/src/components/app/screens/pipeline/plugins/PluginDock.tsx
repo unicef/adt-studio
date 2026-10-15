@@ -24,6 +24,8 @@ export interface PluginDockProps {
   hint?: React.ReactNode
   onMinimize?: () => void
   minimized?: boolean
+  bookLabel?: string
+  onStoryboard?: boolean
 }
 
 const GROUP_LABEL_CLASS =
@@ -223,6 +225,8 @@ export function PluginDock({
     <div
       inert={minimized}
       aria-hidden={minimized}
+      data-pipeline-dock={minimized ? "hidden" : "shown"}
+      style={{ viewTransitionName: "step-dock" }}
       className={cn(
         "fixed bottom-6 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2 transition-[translate,opacity] duration-300 ease-out motion-reduce:transition-none",
         minimized

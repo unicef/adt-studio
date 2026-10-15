@@ -1,3 +1,4 @@
+import { plural } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Loader2, Workflow, X } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -47,8 +48,8 @@ export function PipelineRunIndicator({ className }: PipelineRunIndicatorProps) {
       <PopoverTrigger asChild>
         <button
           type="button"
-          title={active ? t`${run.badgeCount} pipeline steps running` : t`Pipeline`}
-          aria-label={active ? t`${run.badgeCount} pipeline steps running` : t`Pipeline`}
+          title={active ? t`${plural(run.badgeCount, { one: "# pipeline step running", other: "# pipeline steps running" })}` : t`Pipeline`}
+          aria-label={active ? t`${plural(run.badgeCount, { one: "# pipeline step running", other: "# pipeline steps running" })}` : t`Pipeline`}
           className={cn(
             "relative grid size-8 place-items-center rounded-lg border transition-colors hover:bg-muted",
             active ? "border-brand-200 bg-brand-50 text-brand-700" : "text-foreground",

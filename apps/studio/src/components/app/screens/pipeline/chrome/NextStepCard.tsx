@@ -1,0 +1,98 @@
+import { useState, type ReactNode } from "react"
+import { Trans, useLingui } from "@lingui/react/macro"
+import { ArrowRight } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { useNextStep } from "@/components/app/screens/pipeline/shared/useNextStep"
+
+export interface NextStepConfirm {
+  title: ReactNode
+  body: ReactNode
+  reviewLabel: ReactNode
+  onReview: () => void
+}
+
+export function NextStepCard({
+  label,
+  slug,
+  partial = false,
+  confirm,
+}: {
+  label: string
+  slug: string
+  partial?: boolean
+  confirm?: NextStepConfirm | null
+}) {
+  const { t } = useLingui()
+  const next = useNextStep(label, slug, { partial })
+  const [asking, setAsking] = useState(false)
+  if (!next) return null
+  const why =
+    next.slug === "sectioning"
+      ? t`Group each page's text and images into sections. The storyboard is built from them.`
+      : t`Turn the sections into the pages your readers will see.`
+
+  const goButton = (
+    <button
+      type="button"
+      onClick={confirm ? undefined : next.open}
+      className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 text-[12.5px] font-semibold transition-colors hover:bg-white/90"
+      style={{ color: next.hex }}
+    >
+      <Trans>Go to {next.name}</Trans>
+      <ArrowRight className="size-3.5" />
+    </button>
+  )
+
+  return (
+    <section
+      className="overflow-hidden rounded-xl text-white shadow-sm animate-in fade-in slide-in-from-top-1 duration-300 motion-reduce:animate-none"
+      style={{ background: next.hex }}
+    >
+      <div className="flex items-center gap-3.5 px-5 py-4">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/20">
+          <next.icon className="size-5" strokeWidth={2.2} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] font-semibold leading-snug">
+            <Trans>Next: {next.name}</Trans>
+          </p>
+          <p className="mt-0.5 text-[12.5px] leading-relaxed text-white/85">{why}</p>
+        </div>
+        {confirm ? (
+          <Popover open={asking} onOpenChange={setAsking}>
+            <PopoverTrigger asChild>{goButton}</PopoverTrigger>
+            <PopoverContent align="end" sideOffset={8} className="w-[340px] p-4">
+              <p className="text-[13px] font-semibold">{confirm.title}</p>
+              <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{confirm.body}</p>
+              <div className="mt-3 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAsking(false)
+                    next.open()
+                  }}
+                  className="h-8 rounded-lg px-3 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <Trans>Continue anyway</Trans>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAsking(false)
+                    confirm.onReview()
+                  }}
+                  className="h-8 rounded-lg px-3 text-[12.5px] font-semibold text-white transition-opacity hover:opacity-90"
+                  style={{ background: next.hex }}
+                >
+                  {confirm.reviewLabel}
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        ) : (
+          goButton
+        )}
+      </div>
+    </section>
+  )
+}

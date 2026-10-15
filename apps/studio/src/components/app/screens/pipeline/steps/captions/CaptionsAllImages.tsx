@@ -1,7 +1,9 @@
+import { useVariant } from "@/components/app/lab/variants"
 import { useMemo, useState } from "react"
 import { useQueries } from "@tanstack/react-query"
 import { ChevronRight, Loader2, Search, X } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { plural } from "@lingui/core/macro"
 import { api, type PageDetail } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
@@ -28,6 +30,7 @@ export function CaptionsAllImages({
   onOpenPage: (pageId: string) => void
 }) {
   const { t } = useLingui()
+  const friendly = useVariant("features") === "suggested"
   const [filter, setFilter] = useState<DecorativeFilter>("all")
   const [search, setSearch] = useState("")
 
@@ -71,7 +74,7 @@ export function CaptionsAllImages({
           {(
             [
               { value: "all", label: t`All`, count: counts.all },
-              { value: "captioned", label: t`Captioned`, count: counts.captioned },
+              { value: "captioned", label: friendly ? t`Described` : t`Captioned`, count: counts.captioned },
               { value: "decorative", label: t`Decorative`, count: counts.decorative },
             ] as const
           ).map((option) => {
@@ -107,7 +110,7 @@ export function CaptionsAllImages({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t`Search captions or image IDs…`}
+            placeholder={friendly ? t`Search descriptions or image IDs…` : t`Search captions or image IDs…`}
             className="h-8 w-full rounded-md border bg-background pl-8 pr-8 text-[12px] placeholder:text-muted-foreground/60 focus:border-brand-400 focus:outline-none focus:shadow-[0_0_0_3px_var(--brand-50)]"
           />
           {search && (
@@ -209,6 +212,7 @@ function CaptionsPageSection({
       <div className="flex items-center gap-3 border-b pb-2">
         <PageThumb label={label} pageId={pageId} sectionIndex={null} className="h-14 w-11" />
         <button
+          data-page-card={pageId}
           type="button"
           onClick={() => onOpen(pageId)}
           title={t`Open page ${pageNumber}`}
@@ -218,7 +222,7 @@ function CaptionsPageSection({
           <ChevronRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
         </button>
         <span className="text-[11px] tabular-nums text-muted-foreground">
-          {t`${edits.captions.length} images`}
+          {t`${plural(edits.captions.length, { one: "# image", other: "# images" })}`}
         </span>
         <div className="ml-auto">
           <CaptionsVersionPicker

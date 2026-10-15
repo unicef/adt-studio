@@ -10,6 +10,7 @@ import { AppToaster } from "@/components/AppToaster"
 import { ErrorScreen } from "@/components/ErrorScreen"
 import type { SettingsSection } from "@/components/settings/settingsSections"
 import { UpdateDialogProvider } from "@/components/updates"
+import { VariantBar } from "@/components/app/lab/VariantBar"
 
 const SettingsContext = createContext<{
   openSettings: (section?: SettingsSection) => void
@@ -53,6 +54,7 @@ function RootLayout() {
             <Outlet />
           </main>
           <AppToaster />
+          <VariantBar />
         </div>
       </UpdateDialogProvider>
     </SettingsContext>

@@ -1,4 +1,4 @@
-import { useCallback } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import { useNavigate, useSearch } from "@tanstack/react-router"
 
 export interface PageParam {
@@ -15,20 +15,40 @@ export function usePageParam(label: string, slug: string): PageParam {
   const pageParam = typeof search.page === "string" && search.page ? search.page : null
 
   const go = useCallback(
-    (page: string | null, replace: boolean) => {
+    (page: string | null, replace: boolean, viewTransition = false) => {
       void navigate({
         to: "/pipeline/$label/$step",
         params: { label, step: slug },
         search: (prev) => ({ ...prev, page: page ?? undefined }),
         replace,
+        viewTransition,
       })
     },
     [navigate, label, slug],
   )
 
-  const openPage = useCallback((pageId: string) => go(pageId, false), [go])
+  const openPage = useCallback((pageId: string) => go(pageId, false, true), [go])
   const stepPage = useCallback((pageId: string) => go(pageId, true), [go])
-  const closeDetail = useCallback(() => go(null, false), [go])
+  const closeDetail = useCallback(() => go(null, false, true), [go])
 
   return { pageParam, openPage, stepPage, closeDetail }
+}
+
+export function useDetailFocus(pageParam: string | null) {
+  const lastOpened = useRef<string | null>(null)
+  useEffect(() => {
+    let frame = 0
+    if (pageParam) {
+      lastOpened.current = pageParam
+      frame = requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-step-heading]")?.focus({ preventScroll: true }))
+    } else if (lastOpened.current) {
+      const pageId = lastOpened.current
+      frame = requestAnimationFrame(() => {
+        const card = document.querySelector<HTMLElement>(`[data-page-card="${CSS.escape(pageId)}"]`)
+        card?.scrollIntoView({ block: "center" })
+        card?.focus({ preventScroll: true })
+      })
+    }
+    return () => cancelAnimationFrame(frame)
+  }, [pageParam])
 }

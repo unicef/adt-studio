@@ -122,6 +122,15 @@ describe("Page routes", () => {
       expect(body[1].hasRendering).toBe(false)
     })
 
+    it("includes each page's image size so the UI can show its orientation", async () => {
+      const res = await app.request(`/api/books/${label}/pages`)
+      const body = await res.json()
+      expect(body[0].pageWidth).toBe(800)
+      expect(body[0].pageHeight).toBe(600)
+      expect(body[1].pageWidth).toBe(800)
+      expect(body[1].pageHeight).toBe(600)
+    })
+
     it("returns 404 for nonexistent book", async () => {
       const res = await app.request("/api/books/no-such-book/pages")
       expect(res.status).toBe(404)

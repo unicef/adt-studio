@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import { ArrowDown, BookOpen, FileText, Image as ImageIcon, List, Type } from "lucide-react"
-import { Trans } from "@lingui/react/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
+import { plural } from "@lingui/core/macro"
 import { cn } from "@/lib/utils"
 
 export function ExtractPreview({
@@ -10,6 +11,7 @@ export function ExtractPreview({
   bookTitle: string
   pageCount: number | null
 }) {
+  const { t } = useLingui()
   const totalPages = pageCount ?? 0
   const truncatedTitle =
     bookTitle.length > 32 ? `${bookTitle.slice(0, 32)}…` : bookTitle
@@ -19,21 +21,21 @@ export function ExtractPreview({
         {/* SOURCE PDF */}
         <div className="flex flex-col items-center gap-1.5">
           <div className="flex items-center gap-1.5">
-            <FileText className="w-3.5 h-3.5 text-blue-600" strokeWidth={2} />
-            <span className="font-semibold text-[10px] tracking-[0.18em] uppercase text-blue-700">
+            <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
+            <span className="font-semibold text-[10px] tracking-[0.18em] uppercase text-blue-700 dark:text-blue-300">
               <Trans>Source PDF</Trans>
             </span>
           </div>
-          <div className="w-[88px] aspect-[3/4] rounded-md bg-blue-50/80 ring-1 ring-border flex items-center justify-center">
-            <BookOpen className="w-7 h-7 text-blue-300" strokeWidth={1.5} />
+          <div className="w-[88px] aspect-[3/4] rounded-md bg-blue-50/80 ring-1 ring-border flex dark:bg-blue-500/10 dark:ring-blue-400/20 items-center justify-center">
+            <BookOpen className="w-7 h-7 text-blue-300 dark:text-blue-400/70" strokeWidth={1.5} />
           </div>
           <div className="flex flex-col items-center gap-0.5">
-            <span className="text-[11px] font-medium text-blue-700/90 truncate max-w-[200px]">
+            <span className="text-[11px] font-medium text-blue-700/90 truncate dark:text-blue-300/90 max-w-[200px]">
               {truncatedTitle}
             </span>
             {totalPages > 0 && (
-              <span className="font-mono text-[9px] tabular-nums text-blue-500/70">
-                <Trans>{totalPages} pages</Trans>
+              <span className="font-mono text-[9px] tabular-nums text-blue-500/70 dark:text-blue-300/60">
+                {t`${plural(totalPages, { one: "# page", other: "# pages" })}`}
               </span>
             )}
           </div>
@@ -41,16 +43,16 @@ export function ExtractPreview({
 
         {/* CONNECTOR */}
         <div className="flex flex-col items-center" aria-hidden>
-          <div className="w-px h-2 bg-blue-200" />
+          <div className="w-px h-2 bg-blue-200 dark:bg-blue-400/30" />
           <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white shadow-sm">
             <ArrowDown className="w-3 h-3" strokeWidth={2.5} />
           </div>
-          <div className="w-px h-2 bg-blue-200" />
+          <div className="w-px h-2 bg-blue-200 dark:bg-blue-400/30" />
         </div>
 
         {/* EXTRACTED BLOCKS */}
         <div className="flex flex-col items-stretch w-full gap-1.5">
-          <span className="font-semibold text-[10px] tracking-[0.18em] uppercase text-blue-700">
+          <span className="font-semibold text-[10px] tracking-[0.18em] uppercase text-blue-700 dark:text-blue-300">
             <Trans>Extracted Blocks</Trans>
           </span>
 
@@ -100,7 +102,7 @@ export function ExtractPreview({
             label={<Trans>Image</Trans>}
             meta="842×320"
           >
-            <div className="w-full h-9 rounded-[3px] bg-gradient-to-br from-blue-100 via-sky-100 to-indigo-100" />
+            <div className="w-full h-9 rounded-[3px] bg-gradient-to-br from-blue-100 via-sky-100 to-indigo-100 dark:from-blue-500/25 dark:via-sky-500/15 dark:to-indigo-500/25" />
           </BlockCard>
 
           <BlockCard
@@ -109,16 +111,16 @@ export function ExtractPreview({
             faded
           >
             <div className="flex flex-col gap-[3px]">
-              <div className="h-[3px] w-full rounded-[1px] bg-blue-200/60" />
-              <div className="h-[3px] w-[80%] rounded-[1px] bg-blue-200/60" />
+              <div className="h-[3px] w-full rounded-[1px] bg-blue-200/60 dark:bg-blue-400/20" />
+              <div className="h-[3px] w-[80%] rounded-[1px] bg-blue-200/60 dark:bg-blue-400/20" />
             </div>
           </BlockCard>
         </div>
 
         {/* FOOTER */}
         <div className="flex items-center justify-center gap-2 mt-auto pt-1">
-          <span className="tracking-[0.3em] text-[10px] font-bold text-blue-400">···</span>
-          <span className="text-[10px] font-medium text-blue-600/70">
+          <span className="tracking-[0.3em] text-[10px] font-bold text-blue-400 dark:text-blue-400/70">···</span>
+          <span className="text-[10px] font-medium text-blue-600/70 dark:text-blue-300/70">
             <Trans>and many more blocks across the entire book</Trans>
           </span>
         </div>
@@ -147,24 +149,24 @@ function BlockCard({
       className={cn(
         "rounded-md border px-3 py-2 flex flex-col gap-1.5 transition-colors",
         highlighted
-          ? "border-blue-400/60 bg-blue-50/70"
+          ? "border-blue-400/60 bg-blue-50/70 dark:border-blue-400/40 dark:bg-blue-500/12"
           : faded
-            ? "border-dashed border-blue-200/70 bg-background/60"
-            : "border-blue-200 bg-background",
+            ? "border-dashed border-blue-200/70 bg-background/60 dark:border-blue-400/20"
+            : "border-blue-200 bg-background dark:border-blue-400/20 dark:bg-white/[0.02]",
       )}
     >
       <div className="flex items-center gap-1.5">
-        <span className={cn(faded ? "text-blue-400" : "text-blue-500")}>{icon}</span>
+        <span className={cn(faded ? "text-blue-400 dark:text-blue-400/60" : "text-blue-500 dark:text-blue-400")}>{icon}</span>
         <span
           className={cn(
             "font-semibold text-[8.5px] tracking-[0.16em] uppercase",
-            faded ? "text-blue-500/70" : "text-blue-700",
+            faded ? "text-blue-500/70 dark:text-blue-400/60" : "text-blue-700 dark:text-blue-300",
           )}
         >
           {label}
         </span>
         {meta && (
-          <span className="ml-auto font-mono text-[8.5px] text-blue-500/70 tabular-nums">
+          <span className="ml-auto font-mono text-[8.5px] text-blue-500/70 tabular-nums dark:text-blue-300/60">
             {meta}
           </span>
         )}

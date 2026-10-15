@@ -1,3 +1,4 @@
+import { useVariant } from "@/components/app/lab/variants"
 import { useState } from "react"
 import { ChevronLeft, ChevronRight, LayoutGrid, Loader2, Search, X } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
@@ -84,6 +85,7 @@ function CaptionsEditor({
   accent: string
 }) {
   const { t } = useLingui()
+  const friendly = useVariant("features") === "suggested"
   const edits = useCaptionEdits(label, pageId, page)
 
   const [filter, setFilter] = useState<DecorativeFilter>("all")
@@ -104,7 +106,7 @@ function CaptionsEditor({
           {(
             [
               { value: "all", label: t`All`, count: counts.all },
-              { value: "captioned", label: t`Captioned`, count: counts.captioned },
+              { value: "captioned", label: friendly ? t`Described` : t`Captioned`, count: counts.captioned },
               { value: "decorative", label: t`Decorative`, count: counts.decorative },
             ] as const
           ).map((option) => {
@@ -140,7 +142,7 @@ function CaptionsEditor({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t`Search captions or image IDs…`}
+            placeholder={friendly ? t`Search descriptions or image IDs…` : t`Search captions or image IDs…`}
             className="h-8 w-full rounded-md border bg-background pl-8 pr-8 text-[12px] placeholder:text-muted-foreground/60 focus:border-brand-400 focus:outline-none focus:shadow-[0_0_0_3px_var(--brand-50)]"
           />
           {search && (

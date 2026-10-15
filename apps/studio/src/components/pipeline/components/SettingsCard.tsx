@@ -15,17 +15,17 @@ export function SettingsCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-5 rounded-xl border border-[#e5e5e5] bg-white p-5",
+        "flex flex-col gap-5 rounded-xl border border-[#e5e5e5] bg-white p-5 dark:border-border dark:bg-card",
         className
       )}
     >
       {(title || description) && (
         <div className="flex flex-col gap-1">
           {title && (
-            <h3 className="text-[15px] font-semibold text-[#0a0a0a] tracking-tight">{title}</h3>
+            <h3 className="text-[15px] font-semibold text-[#0a0a0a] tracking-tight dark:text-foreground">{title}</h3>
           )}
           {description && (
-            <p className="text-[12.5px] text-[#737373] leading-relaxed">
+            <p className="text-[12.5px] text-[#737373] leading-relaxed dark:text-muted-foreground">
               {description}
             </p>
           )}
@@ -62,7 +62,7 @@ export function SettingsField({
         {labelAction}
       </div>
       {children}
-      {hint && <p className="text-xs text-[#737373] leading-relaxed">{hint}</p>}
+      {hint && <p className="text-xs text-[#737373] leading-relaxed dark:text-muted-foreground">{hint}</p>}
     </div>
   )
 }

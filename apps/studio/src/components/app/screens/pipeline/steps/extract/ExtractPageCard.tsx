@@ -9,20 +9,25 @@ export const ExtractPageCard = memo(function ExtractPageCard({
   label,
   page,
   onOpen,
+  aspect = 3 / 4,
+  fit = "cover",
 }: {
   label: string
   page: PipelinePage
   onOpen: (pageId: string) => void
+  aspect?: number
+  fit?: "cover" | "contain"
 }) {
   const { t } = useLingui()
   return (
     <button
       type="button"
       onClick={() => onOpen(page.pageId)}
+      data-page-card={page.pageId}
       aria-label={t`Open page ${page.pageNumber}`}
       className={cn(
         "flex w-full flex-col overflow-hidden rounded-xl border bg-card text-left",
-        "transition-colors duration-200 animate-in fade-in-0 motion-reduce:animate-none",
+        "transition-colors duration-200",
         "hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
       )}
     >
@@ -30,7 +35,9 @@ export const ExtractPageCard = memo(function ExtractPageCard({
         label={label}
         pageId={page.pageId}
         sectionIndex={null}
-        className="aspect-[3/4] w-full rounded-none border-0 border-b"
+        className="w-full rounded-none border-0 border-b"
+        style={{ aspectRatio: aspect }}
+        fit={fit}
       />
       <div className="flex flex-col gap-0.5 px-2.5 py-2">
         <div className="flex items-center justify-between gap-2">

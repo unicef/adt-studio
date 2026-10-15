@@ -1,5 +1,6 @@
 import { SectioningPageCard } from "./SectioningPageCard"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
+import { usePageAspect } from "@/components/app/screens/pipeline/shared/usePageAspect"
 
 export function SectioningPageGrid({
   label,
@@ -10,10 +11,11 @@ export function SectioningPageGrid({
   pages: PipelinePage[]
   onOpen: (pageId: string) => void
 }) {
+  const aspect = usePageAspect(label, pages)
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    <div className={aspect.gridClass}>
       {pages.map((page) => (
-        <SectioningPageCard key={page.pageId} label={label} page={page} onOpen={onOpen} />
+        <SectioningPageCard key={page.pageId} label={label} page={page} onOpen={onOpen} aspect={aspect.ratio} fit={aspect.fitOf(page)} />
       ))}
     </div>
   )

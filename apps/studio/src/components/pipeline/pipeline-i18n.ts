@@ -134,8 +134,53 @@ export const STAGE_STATUS_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
 }
 
 /** Resolve a stage label message descriptor to a translated string. Safe to call outside React. */
+export const FRIENDLY_STAGE_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
+  captions: msg`Image descriptions`,
+  speech: msg`Read aloud`,
+  translate: msg`Languages`,
+  validation: msg`Accessibility check`,
+}
+
+const FRIENDLY_STAGE_RUNNING_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
+  captions: msg`Describing the images…`,
+  speech: msg`Creating the audio…`,
+  translate: msg`Translating…`,
+  validation: msg`Checking accessibility…`,
+}
+
+const FRIENDLY_STAGE_DESCRIPTION_MESSAGES: Record<string, MessageDescriptor> = {
+  captions: msg`Written descriptions of every picture, read out by screen readers.`,
+  speech: msg`Every text read aloud, with words highlighted as they are spoken.`,
+  translate: msg`Translate the book into other languages, like Portuguese or Spanish.`,
+  validation: msg`An accessibility check of the finished book. Readers never see it.`,
+}
+
+const FRIENDLY_STEP_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
+  extract: msg`Reading the PDF`,
+  "page-sectioning": msg`Finding text and pictures`,
+  translation: msg`Translating page text`,
+  "web-rendering": msg`Laying out pages`,
+  "image-captioning": msg`Describing images`,
+  "catalog-translation": msg`Translating text`,
+  "image-translation": msg`Translating images`,
+  tts: msg`Recording audio`,
+  "word-timestamps": msg`Highlighting words`,
+  "package-web": msg`Packaging the book`,
+  "accessibility-assessment": msg`Checking accessibility`,
+}
+
+let friendlyStageNames: () => boolean = () => false
+
+export function setFriendlyStageNames(isOn: () => boolean) {
+  friendlyStageNames = isOn
+}
+
+export function usesFriendlyStageNames(): boolean {
+  return friendlyStageNames()
+}
+
 export function getStageLabelI18n(slug: string): string {
-  const descriptor = STAGE_LABEL_MESSAGES[slug]
+  const descriptor = (friendlyStageNames() && FRIENDLY_STAGE_LABEL_MESSAGES[slug]) || STAGE_LABEL_MESSAGES[slug]
   return descriptor ? i18n._(descriptor) : slug
 }
 
@@ -153,19 +198,19 @@ export function getStageStatusLabelI18n(status: string): string {
 
 /** Resolve a stage running label message descriptor to a translated string. Safe to call outside React. */
 export function getStageRunningLabelI18n(slug: string): string {
-  const descriptor = STAGE_RUNNING_LABEL_MESSAGES[slug]
+  const descriptor = (friendlyStageNames() && FRIENDLY_STAGE_RUNNING_LABEL_MESSAGES[slug]) || STAGE_RUNNING_LABEL_MESSAGES[slug]
   return descriptor ? i18n._(descriptor) : slug
 }
 
 /** Resolve a stage description message descriptor to a translated string. Safe to call outside React. */
 export function getStageDescriptionI18n(slug: string): string | undefined {
-  const descriptor = STAGE_DESCRIPTION_MESSAGES[slug]
+  const descriptor = (friendlyStageNames() && FRIENDLY_STAGE_DESCRIPTION_MESSAGES[slug]) || STAGE_DESCRIPTION_MESSAGES[slug]
   return descriptor ? i18n._(descriptor) : undefined
 }
 
 /** Resolve a step label message descriptor to a translated string. Safe to call outside React. */
 export function getStepLabelI18n(slug: string): string {
-  const descriptor = STEP_LABEL_MESSAGES[slug as StepName]
+  const descriptor = (friendlyStageNames() && FRIENDLY_STEP_LABEL_MESSAGES[slug]) || STEP_LABEL_MESSAGES[slug as StepName]
   return descriptor ? i18n._(descriptor) : slug
 }
 

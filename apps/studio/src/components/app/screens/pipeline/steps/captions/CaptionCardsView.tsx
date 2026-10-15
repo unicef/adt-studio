@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { plural } from "@lingui/core/macro"
 import type { PageDetail } from "@/api/client"
 import { tint } from "@/components/app/screens/pipeline/shared/plugins"
 import { CaptionCard } from "@/components/pipeline/stages/captions/components/CaptionCard"
@@ -161,7 +162,7 @@ export function CaptionCardsView({
                   )}
                 </span>
                 <span className="text-[10px] tabular-nums text-muted-foreground">
-                  {t`${group.captions.length} images`}
+                  {t`${plural(group.captions.length, { one: "# image", other: "# images" })}`}
                 </span>
               </div>
               <div className={GRID_CLASS}>

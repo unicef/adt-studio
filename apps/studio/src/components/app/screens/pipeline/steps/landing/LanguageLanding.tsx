@@ -1,3 +1,4 @@
+import { useVariant } from "@/components/app/lab/variants"
 import { useState, useEffect, useRef , type ReactNode } from "react"
 import { flushSync } from "react-dom"
 import { AlertCircle, Images, Pencil, X } from "lucide-react"
@@ -36,6 +37,7 @@ const viewTransitionNameFor = (code: string) => `lang-chip-${code.replace(/[^a-z
 
 export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; beforeRun?: ReactNode }) {
   const { t } = useLingui()
+  const friendly = useVariant("features") === "suggested"
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const { data: book } = useBook(bookLabel)
@@ -187,9 +189,9 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
       canRun={true}
       extraDisabled={!hasApiKey || !storyboardReady || !hasLanguages}
       disabledReason={disabledReason}
-      runLabel={<Trans>Run Translation</Trans>}
+      runLabel={friendly ? <Trans>Translate</Trans> : <Trans>Run Translation</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
-      previewLabel={t`Translation Preview`}
+      previewLabel={friendly ? t`Example: a translated page` : t`Translation Preview`}
       onRun={handleRun}
       preview={
         <LanguagePreview
@@ -209,7 +211,7 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
     >
       <div className="flex flex-col gap-2">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          <Trans>Language</Trans>
+          {friendly ? <Trans>Languages</Trans> : <Trans>Language</Trans>}
         </h1>
         <p className="text-[14px] text-muted-foreground leading-relaxed">
           <Trans>
@@ -366,17 +368,17 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
               )}
 
               {!captionsReady && (
-                <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11.5px] text-amber-800">
+                <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11.5px] text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
                   <AlertCircle
                     className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
                     strokeWidth={2}
                     aria-hidden
                   />
                   <span>
-                    <Trans>
+                    {friendly ? <Trans>Run Image descriptions first — only described images appear in this list.</Trans> : <Trans>
                       Run Image Captions first — only captioned images appear
                       in this list.
-                    </Trans>
+                    </Trans>}
                   </span>
                 </div>
               )}

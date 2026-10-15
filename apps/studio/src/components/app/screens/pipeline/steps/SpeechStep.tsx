@@ -1,3 +1,4 @@
+import { useVariant } from "@/components/app/lab/variants"
 import { useCallback, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { AlertTriangle, Search } from "lucide-react"
@@ -28,6 +29,7 @@ function languageName(code: string, locale: string): string {
 export function SpeechStep(props: StepProps) {
   const { label, plugin } = props
   const { t, i18n } = useLingui()
+  const friendly = useVariant("features") === "suggested"
   const query = useSpeech(label)
   const catalog = useTextCatalog(label)
   const config = useActiveConfig(label)
@@ -148,7 +150,7 @@ export function SpeechStep(props: StepProps) {
       bodyViewportClassName={STEP_FILL_VIEWPORT_CLASSNAME}
       rail={
         <StepRail
-          heading={<Trans>Narration languages</Trans>}
+          heading={friendly ? <Trans>Read-aloud languages</Trans> : <Trans>Narration languages</Trans>}
           hex={plugin.hex}
           entries={languages.map((code) => ({
             key: code,
@@ -173,7 +175,7 @@ export function SpeechStep(props: StepProps) {
     >
       <StepScrollBody
         viewportRef={setScrollElement}
-        title={<Trans>Narration</Trans>}
+        title={friendly ? <Trans>Read aloud</Trans> : <Trans>Narration</Trans>}
         meta={languageName(language, i18n.locale)}
         actions={
           <Input

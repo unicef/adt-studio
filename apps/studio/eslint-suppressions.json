@@ -34,11 +34,6 @@
       "count": 2
     }
   },
-  "src/components/pipeline/stages/storyboard/components/iframe-html.ts": {
-    "lingui/no-unlocalized-strings": {
-      "count": 1
-    }
-  },
   "src/routes/books.$label.debug.tsx": {
     "lingui/no-unlocalized-strings": {
       "count": 1

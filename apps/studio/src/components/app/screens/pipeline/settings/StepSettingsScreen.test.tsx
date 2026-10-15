@@ -133,7 +133,7 @@ describe("StepSettingsScreen", () => {
   it("renders the step's settings for the active tab", () => {
     renderScreen()
 
-    expect(screen.getByText("Extraction")).toBeTruthy()
+    expect(screen.getByText("Extraction settings")).toBeTruthy()
     expect(screen.getByTestId("extract-settings").textContent).toContain("extract-settings:demo-book:general")
   })
 
@@ -162,17 +162,6 @@ describe("StepSettingsScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cropping Prompt" }))
 
     expect(props.onSelectTab).toHaveBeenCalledWith("cropping-prompt")
-  })
-
-  it("keeps the plugin dock available and marks the step being configured", () => {
-    const props = renderScreen()
-
-    const dock = screen.getByTestId("dock")
-    expect(dock.textContent).toContain("dock:extract")
-
-    fireEvent.click(dock)
-
-    expect(props.onOpenPlugin).toHaveBeenCalledWith("quizzes")
   })
 
   it("filters the rail to the settings matching the search", () => {
@@ -243,12 +232,11 @@ describe("StepSettingsScreen", () => {
     expect(screen.queryByRole("searchbox")).toBeNull()
   })
 
-  it("closes from both the back button and the close button", () => {
+  it("closes from the close button", () => {
     const props = renderScreen()
 
-    fireEvent.click(screen.getByRole("button", { name: "Extraction" }))
     fireEvent.click(screen.getByRole("button", { name: "Close Extraction settings" }))
 
-    expect(props.onClose).toHaveBeenCalledTimes(2)
+    expect(props.onClose).toHaveBeenCalledTimes(1)
   })
 })

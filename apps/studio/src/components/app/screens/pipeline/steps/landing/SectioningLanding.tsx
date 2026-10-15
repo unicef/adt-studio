@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo , type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { StepLandingShell } from "./StepLandingShell"
+import { RunErrorNotice } from "../shared/RunErrorNotice"
 import { CascadeWarning } from "@/components/pipeline/components/CascadeWarning"
 import { LandingPageWarning } from "@/components/pipeline/components/LandingPageWarning"
 import { SettingsCard, SettingsField } from "./ui/SettingsCard"
@@ -102,6 +103,44 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
 
   return (
     <StepLandingShell
+      title={<Trans>Sectioning</Trans>}
+      description={
+        <Trans>
+          Group each page's text and images into typed sections with a
+          structured content tree. Sections drive how downstream stages
+          render, translate, and read the book aloud.
+        </Trans>
+      }
+      notice={
+        <>
+          {status.hasError && <RunErrorNotice label={bookLabel} stage="sectioning" />}
+          {extractReady ? (
+            <CascadeWarning stageSlug="sectioning" />
+          ) : !extractCovered && hasAssembledPages ? (
+            <LandingPageWarning
+              variant="prereq"
+              title={<Trans>Book hierarchy needs rebuilding</Trans>}
+              description={
+                <Trans>
+                  Running Sectioning will rebuild the book-wide outline from the
+                  merged pages, then apply it without re-running PDF extraction.
+                </Trans>
+              }
+            />
+          ) : !extractCovered ? (
+            <LandingPageWarning
+              variant="prereq"
+              title={<Trans>Extract hasn't run yet</Trans>}
+              description={
+                <Trans>
+                  Running Sectioning will run Extract first, then section the
+                  extracted pages.
+                </Trans>
+              }
+            />
+          ) : null}
+        </>
+      }
       beforeRun={beforeRun}
       bookLabel={bookLabel}
       stageSlug="sectioning"
@@ -117,45 +156,6 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
       onRun={handleRun}
       preview={<SectioningPreview />}
     >
-      <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          <Trans>Sectioning</Trans>
-        </h1>
-        <p className="text-[14px] text-muted-foreground leading-relaxed">
-          <Trans>
-            Group each page's text and images into typed sections with a
-            structured content tree. Sections drive how downstream stages
-            render, translate, and read the book aloud.
-          </Trans>
-        </p>
-      </div>
-
-      {extractReady ? (
-        <CascadeWarning stageSlug="sectioning" />
-      ) : !extractCovered && hasAssembledPages ? (
-        <LandingPageWarning
-          variant="prereq"
-          title={<Trans>Book hierarchy needs rebuilding</Trans>}
-          description={
-            <Trans>
-              Running Sectioning will rebuild the book-wide outline from the
-              merged pages, then apply it without re-running PDF extraction.
-            </Trans>
-          }
-        />
-      ) : !extractCovered ? (
-        <LandingPageWarning
-          variant="prereq"
-          title={<Trans>Extract hasn't run yet</Trans>}
-          description={
-            <Trans>
-              Running Sectioning will run Extract first, then section the
-              extracted pages.
-            </Trans>
-          }
-        />
-      ) : null}
-
       <SettingsCard>
         <SettingsField
           label={<Trans>Sectioning Mode</Trans>}

@@ -5,6 +5,7 @@ import type { FigureExtractionMode } from "@adt/types"
 import { useBook } from "@/hooks/use-books"
 import { useSourcePdfInfo } from "@/hooks/use-source-pdf-info"
 import { StepLandingShell } from "./StepLandingShell"
+import { RunErrorNotice } from "../shared/RunErrorNotice"
 import { CascadeWarning } from "@/components/pipeline/components/CascadeWarning"
 import { SettingsCard, SettingsField } from "./ui/SettingsCard"
 import { SettingExplainer } from "./ui/SettingExplainer"
@@ -108,6 +109,15 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
 
   return (
     <StepLandingShell
+      notice={status.hasError ? <RunErrorNotice label={bookLabel} stage="extract" /> : undefined}
+      title={<Trans>Extract</Trans>}
+      description={
+        <Trans>
+          Pull structured content from the source PDF. Extraction identifies
+          headings, paragraphs, lists, and images so downstream stages work
+          with clean, typed content instead of raw PDF.
+        </Trans>
+      }
       beforeRun={beforeRun}
       bookLabel={bookLabel}
       stageSlug="extract"
@@ -128,19 +138,6 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
         />
       }
     >
-      <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          <Trans>Extract</Trans>
-        </h1>
-        <p className="text-[14px] text-muted-foreground leading-relaxed">
-          <Trans>
-            Pull structured content from the source PDF. Extraction identifies
-            headings, paragraphs, lists, and images so downstream stages work
-            with clean, typed content instead of raw PDF.
-          </Trans>
-        </p>
-      </div>
-
       <CascadeWarning stageSlug="extract" />
 
       <SettingsCard>

@@ -1,3 +1,4 @@
+import { useVariant } from "@/components/app/lab/variants"
 import { useState, useEffect, useMemo , type ReactNode } from "react"
 import { BookOpen, GraduationCap, Sprout } from "lucide-react"
 import { CustomInstructionsField } from "./ui/CustomInstructionsField"
@@ -29,8 +30,15 @@ const GRADE_LEVEL_HINTS: Record<GradeLevelKey, MessageDescriptor> = {
   advanced: msg`Detailed, technical captions for college and adult readers.`,
 }
 
+const FRIENDLY_GRADE_LEVEL_HINTS: Record<GradeLevelKey, MessageDescriptor> = {
+  early: msg`Short, simple sentences for kindergarten through 5th grade.`,
+  middle: msg`Clear descriptions for middle and high school readers.`,
+  advanced: msg`Detailed descriptions for college and adult readers.`,
+}
+
 export function CaptionsLanding({ bookLabel, beforeRun }: { bookLabel: string; beforeRun?: ReactNode }) {
   const { t } = useLingui()
+  const friendly = useVariant("features") === "suggested"
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
   const { apiKey, hasApiKey } = useApiKey()
@@ -116,22 +124,29 @@ export function CaptionsLanding({ bookLabel, beforeRun }: { bookLabel: string; b
       canRun={true}
       extraDisabled={!hasApiKey || !storyboardReady}
       disabledReason={disabledReason}
-      runLabel={<Trans>Run Captions</Trans>}
+      runLabel={friendly ? <Trans>Describe the images</Trans> : <Trans>Run Captions</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
-      previewLabel={t`Captions Preview`}
+      previewLabel={friendly ? t`Example: image descriptions` : t`Captions Preview`}
       onRun={handleRun}
-      preview={<CaptionsPreview grade={gradeLevel} />}
+      preview={<CaptionsPreview grade={gradeLevel} friendly={friendly} />}
     >
       <div className="flex flex-col gap-2">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          <Trans>Image Captions</Trans>
+          {friendly ? <Trans>Image descriptions</Trans> : <Trans>Image Captions</Trans>}
         </h1>
         <p className="text-[14px] text-muted-foreground leading-relaxed">
-          <Trans>
+          {friendly ? (
+            <Trans>
+              Write a description of every picture in the book. Pick a reading level so the descriptions suit your
+              readers, and add instructions if you want to nudge the tone or focus.
+            </Trans>
+          ) : (
+            <Trans>
             Generate descriptive captions for every image in the book. Pick a
             reading level so captions match your audience, and add custom
             instructions if you want to nudge the tone or focus.
           </Trans>
+          )}
         </p>
       </div>
 
@@ -149,7 +164,7 @@ export function CaptionsLanding({ bookLabel, beforeRun }: { bookLabel: string; b
       <SettingsCard>
         <SettingsField
           label={<Trans>Grade Level</Trans>}
-          hint={linguiI18n._(GRADE_LEVEL_HINTS[gradeLevel])}
+          hint={linguiI18n._((friendly ? FRIENDLY_GRADE_LEVEL_HINTS : GRADE_LEVEL_HINTS)[gradeLevel])}
         >
           <SegmentedControl
             options={gradeOptions}

@@ -12,7 +12,7 @@ import { useBookRun } from "@/hooks/use-book-run"
 import { useDownstreamWithOutput } from "@/hooks/use-downstream-with-output"
 import { useIsFixedLayout } from "@/hooks/use-fixed-layout"
 import type { DockSlug } from "@/components/app/screens/pipeline/shared/plugins"
-import { STEP_PREREQ_REASON } from "@/components/app/screens/pipeline/shared/stepPrereq"
+import { stepPrereqReason } from "@/components/app/screens/pipeline/shared/stepPrereq"
 import { useStageRun } from "./useStageRun"
 import { useStepPrereq } from "./useStepPrereq"
 
@@ -54,7 +54,7 @@ export function useStageRerun(label: string, slug: DockSlug): StageRerun {
   }, [slug, runEasyRead, queueStage])
 
   const name = getStageLabelI18n(slug)
-  const prereqReason = STEP_PREREQ_REASON[slug]
+  const prereqReason = stepPrereqReason(slug)
 
   const disabledReason = !prereq.isMet
     ? prereqReason

@@ -8,11 +8,13 @@ import {
   TriangleAlertIcon,
 } from "lucide-react"
 import { Toaster as Sonner, toast, type ToasterProps } from "sonner"
+import { useIsDark } from "@/hooks/use-is-dark"
 
 const Toaster = ({ ...props }: ToasterProps) => {
+  const isDark = useIsDark()
   return (
     <Sonner
-      theme="light"
+      theme={isDark ? "dark" : "light"}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

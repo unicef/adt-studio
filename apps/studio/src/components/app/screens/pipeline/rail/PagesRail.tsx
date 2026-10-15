@@ -21,7 +21,12 @@ export interface PagesRailProps {
   onSelectQuiz: (quizIndex: number) => void
   storyboardRunning?: boolean
   outdatedPageIds?: ReadonlySet<string>
+  tab?: RailTab
+  onTabChange?: (tab: RailTab) => void
+  layers?: React.ReactNode
 }
+
+export type RailTab = "pages" | "layers"
 
 type RailItem =
   | { type: "page"; page: PipelinePage }
@@ -40,6 +45,9 @@ export function PagesRail({
   onSelectQuiz,
   storyboardRunning,
   outdatedPageIds,
+  tab,
+  onTabChange,
+  layers,
 }: PagesRailProps) {
   const { t } = useLingui()
 
@@ -81,14 +89,25 @@ export function PagesRail({
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-card">
       <div className="flex items-center gap-2 px-3.5 pb-2 pt-3.5">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          <Trans>Pages</Trans>
-        </span>
-        <span className="ml-auto font-mono text-[11px] text-muted-foreground">{pages.length}</span>
+        {tab && onTabChange ? (
+          <RailTabs value={tab} onChange={onTabChange} pageCount={pages.length} />
+        ) : (
+          <>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              <Trans>Pages</Trans>
+            </span>
+            <span className="ml-auto font-mono text-[11px] text-muted-foreground">{pages.length}</span>
+          </>
+        )}
         <RailCollapseButton className="-mr-1" />
       </div>
 
-      <ScrollArea className="min-h-0 flex-1" viewportRef={parentRef} viewportClassName="px-2.5 pb-2.5">
+      {tab === "layers" && layers}
+      <ScrollArea
+        className={cn("min-h-0 flex-1", tab === "layers" && "hidden")}
+        viewportRef={parentRef}
+        viewportClassName="px-2.5 pb-2.5"
+      >
         <div style={{ height: virtualizer.getTotalSize(), width: "100%", position: "relative" }}>
           {virtualizer.getVirtualItems().map((virtualRow) => {
             const item = items[virtualRow.index]
@@ -146,9 +165,7 @@ export function PagesRail({
                   }
                   className={cn(
                     "flex w-full gap-2.5 rounded-[9px] p-2 text-left transition-colors",
-                    active
-                      ? "bg-brand-50 shadow-[inset_0_0_0_1px_var(--brand-200)]"
-                      : "hover:bg-muted",
+                    active ? "bg-brand-50 shadow-[inset_0_0_0_1px_var(--brand-200)]" : "hover:bg-muted",
                     page.isDiscarded && "opacity-50",
                   )}
                 >
@@ -200,5 +217,37 @@ export function PagesRail({
         </div>
       </ScrollArea>
     </aside>
+  )
+}
+
+
+function RailTabs({ value, onChange, pageCount }: { value: RailTab; onChange: (tab: RailTab) => void; pageCount: number }) {
+  return (
+    <div role="tablist" className="relative mr-auto grid grid-cols-2 rounded-lg bg-muted p-0.5 text-[11.5px] font-medium">
+      <span
+        aria-hidden
+        className="absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-md bg-card shadow-sm transition-transform duration-250 ease-[cubic-bezier(.22,.61,.36,1)] motion-reduce:transition-none"
+        style={{ transform: value === "layers" ? "translateX(100%)" : "translateX(0)" }}
+      />
+      <button
+        type="button"
+        role="tab"
+        aria-selected={value === "pages"}
+        onClick={() => onChange("pages")}
+        className={cn("relative z-10 flex items-center justify-center gap-1.5 px-3 py-1 transition-colors", value === "pages" ? "text-foreground" : "text-muted-foreground")}
+      >
+        <Trans>Pages</Trans>
+        <span className="font-mono text-[10px] text-muted-foreground">{pageCount}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={value === "layers"}
+        onClick={() => onChange("layers")}
+        className={cn("relative z-10 px-3 py-1 transition-colors", value === "layers" ? "text-foreground" : "text-muted-foreground")}
+      >
+        <Trans>Layers</Trans>
+      </button>
+    </div>
   )
 }

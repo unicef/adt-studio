@@ -4,7 +4,6 @@ import {
   ChevronRight,
   FileText,
   ImageOff,
-  Info,
   LayoutGrid,
   Loader2,
   TriangleAlert,
@@ -16,7 +15,6 @@ import { usePage, usePageImage } from "@/hooks/use-pages"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
-import { usePipelineNavigation } from "@/components/app/screens/pipeline/shared/usePipelineNavigation"
 import {
   ImageCropDialog,
   pageBoundsToCropRect,
@@ -48,7 +46,6 @@ export function ExtractPageDetail({
   const { data: activeConfigData } = useActiveConfig(label)
   const { hasApiKey } = useApiKey()
   const { stageState, stepState } = useBookRun()
-  const nav = usePipelineNavigation(label)
   const [pageImageDims, setPageImageDims] = useState<{ w: number; h: number } | null>(null)
   usePrefetchAdjacentPages(label, prevPageId, nextPageId)
 
@@ -107,9 +104,6 @@ export function ExtractPageDetail({
             onClick={() => nextPageId && onStep(nextPageId)}
             disabled={!nextPageId}
           />
-          <DetailNavButton icon={Info} label={t`Book info`} onClick={nav.openBookInfo}>
-            <Trans>Book info</Trans>
-          </DetailNavButton>
           <DetailNavButton icon={LayoutGrid} label={t`All pages`} onClick={onClose}>
             <Trans>All pages</Trans>
           </DetailNavButton>

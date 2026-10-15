@@ -22,7 +22,7 @@ export function StepBody({
       <div className="mx-auto flex container flex-col gap-4 px-4 py-7">
 
         <div className="flex items-baseline gap-3">
-          <h1 className="text-[19px] font-bold tracking-[-0.01em]">{title}</h1>
+          <h1 data-step-heading="" tabIndex={-1} className="text-[19px] font-bold tracking-[-0.01em] outline-none">{title}</h1>
           {meta && <span className="font-mono text-[11px] text-muted-foreground">{meta}</span>}
           <div className="ml-auto flex items-center gap-2">{actions}</div>
         </div>

@@ -1,5 +1,7 @@
+import { useVariant } from "@/components/app/lab/variants"
 import { useMemo } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { plural } from "@lingui/core/macro"
 import { usePages } from "@/hooks/use-pages"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
@@ -8,7 +10,7 @@ import { UnsavedChangesGuard } from "@/components/pipeline/components/UnsavedCha
 import { StepEmpty, StepLoading, StepRunning, StepShell, useStepLoading } from "./shared/StepShell"
 import { StepBody, StepRail } from "./shared/ui"
 import { usePageDetailKeys } from "./shared/usePageDetailKeys"
-import { usePageParam } from "./shared/usePageParam"
+import { useDetailFocus, usePageParam } from "./shared/usePageParam"
 import { CaptionsAllImages } from "./captions/CaptionsAllImages"
 import { CaptionsPageDetail } from "./captions/CaptionsPageDetail"
 import type { StepProps } from "./shared/types"
@@ -16,10 +18,12 @@ import type { StepProps } from "./shared/types"
 export function CaptionsStep(props: StepProps) {
   const { label, plugin, pages } = props
   const { t } = useLingui()
+  const friendly = useVariant("features") === "suggested"
   const run = useRunActivity()
   const captions = useStageActivity("captions")
   const pagesQuery = usePages(label)
   const { pageParam, openPage, stepPage, closeDetail } = usePageParam(label, plugin.slug)
+  useDetailFocus(pageParam)
 
   const withImages = useMemo(() => pages.filter((page) => page.imageCount > 0), [pages])
   const totalImages = useMemo(
@@ -89,9 +93,10 @@ export function CaptionsStep(props: StepProps) {
   return (
     <StepShell
       {...props}
+      railEmpty={!selectedPage}
       chips={[
-        t`${totalImages} images`,
-        missing > 0 ? t`${missing} awaiting captions` : t`All captioned`,
+        t`${plural(totalImages, { one: "# image", other: "# images" })}`,
+        missing > 0 ? (friendly ? t`${missing} still to describe` : t`${missing} awaiting captions`) : friendly ? t`All described` : t`All captioned`,
       ]}
       canApply={missing === 0}
       rail={
@@ -134,7 +139,7 @@ export function CaptionsStep(props: StepProps) {
             onClose={closeDetail}
           />
         ) : (
-          <StepBody title={<Trans>Image descriptions</Trans>} meta={t`${totalImages} images`}>
+          <StepBody title={<Trans>Image descriptions</Trans>} meta={t`${plural(totalImages, { one: "# image", other: "# images" })}`}>
             <CaptionsAllImages
               label={label}
               pages={withImages}

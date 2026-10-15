@@ -2,6 +2,7 @@ import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import type { StageName } from "@adt/types"
 import type { DockSlug } from "./plugins"
+import { usesFriendlyStageNames } from "@/components/pipeline/pipeline-i18n"
 
 export const STEP_PREREQ: Record<DockSlug, StageName | null> = {
   extract: null,
@@ -47,4 +48,14 @@ export const STEP_PREREQ_REASON: Partial<Record<DockSlug, MessageDescriptor>> = 
   speech: msg`Speech narrates the translated text Language produces. Finish Language before running this stage.`,
   "sign-language": msg`Sign Language assigns one video per Storyboard section. Finish Storyboard first so you have sections to match against.`,
   validation: msg`Validation checks the packaged book Storyboard produces. Finish Storyboard before running this stage.`,
+}
+
+const FRIENDLY_PREREQ_REASON: Partial<Record<DockSlug, MessageDescriptor>> = {
+  captions: msg`Image descriptions are written for the pictures Storyboard placed. Finish Storyboard before running this stage.`,
+  speech: msg`Read aloud speaks the text that Languages prepares, in each language you picked. Run Languages first — it can be just the book's own language.`,
+  validation: msg`The accessibility check looks at the finished book Storyboard produces. Finish Storyboard before running this stage.`,
+}
+
+export function stepPrereqReason(slug: DockSlug): MessageDescriptor | undefined {
+  return (usesFriendlyStageNames() && FRIENDLY_PREREQ_REASON[slug]) || STEP_PREREQ_REASON[slug]
 }

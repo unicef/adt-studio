@@ -1,3 +1,4 @@
+import { useVariant } from "@/components/app/lab/variants"
 import { memo, useMemo } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
@@ -21,11 +22,12 @@ export const TranslateCategoryFilter = memo(function TranslateCategoryFilter({
   onSelect,
 }: TranslateCategoryFilterProps) {
   const { t } = useLingui()
+  const friendly = useVariant("features") === "suggested"
 
   const pills = useMemo(() => {
     const labels: Record<(typeof CATEGORY_KEYS)[number], string> = {
       text: t`Text`,
-      captions: t`Captions`,
+      captions: friendly ? t`Image descriptions` : t`Captions`,
       answers: t`Answers`,
       glossary: t`Glossary`,
       "easy-read": t`Easy Read`,
@@ -40,7 +42,7 @@ export const TranslateCategoryFilter = memo(function TranslateCategoryFilter({
       out.push({ key, label: labels[key], count })
     }
     return out
-  }, [counts, total, t])
+  }, [friendly, counts, total, t])
 
   if (total === 0) return null
 

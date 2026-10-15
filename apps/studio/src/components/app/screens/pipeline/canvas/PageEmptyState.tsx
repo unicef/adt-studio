@@ -1,10 +1,13 @@
 import { Trans, useLingui } from "@lingui/react/macro"
+import { plural } from "@lingui/core/macro"
 import { FileQuestion, Images, Loader2, Network, Type } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/app/ui/EmptyState"
 import { PageThumb } from "./PageThumb"
 import type { SectioningRun } from "@/components/app/screens/pipeline/runs/useSectioningRun"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
+import { useVariant } from "@/components/app/lab/variants"
+import { BuildingPagePreview } from "./BuildingPagePreview"
 
 export interface PageEmptyStateProps {
   label: string
@@ -41,6 +44,7 @@ export function PageEmptyState({
   onOpenSectioning,
 }: PageEmptyStateProps) {
   const { t } = useLingui()
+  const contentLoaders = useVariant("loaders") === "content"
   const blank = page.wordCount === 0 && page.imageCount === 0
 
   if (page.isDiscarded) {
@@ -73,6 +77,14 @@ export function PageEmptyState({
         </Button>
       </EmptyState>
     )
+  }
+
+  if (storyboardRunning && !page.hasRendering && contentLoaders) {
+    return <BuildingPagePreview label={label} page={page} mode="building" />
+  }
+
+  if (sectioning.isRunning && contentLoaders) {
+    return <BuildingPagePreview label={label} page={page} mode="sectioning" />
   }
 
   if (storyboardRunning && !page.hasRendering) {
@@ -150,7 +162,7 @@ export function PageEmptyState({
         <div className="flex items-center gap-4 rounded-lg border bg-card px-3.5 py-2">
           <Stat icon={<Type />}>{t`${page.wordCount} words`}</Stat>
           <span aria-hidden className="h-3.5 w-px bg-border" />
-          <Stat icon={<Images />}>{t`${page.imageCount} images`}</Stat>
+          <Stat icon={<Images />}>{t`${plural(page.imageCount, { one: "# image", other: "# images" })}`}</Stat>
         </div>
 
         <div className="flex flex-col items-center gap-2">

@@ -1,5 +1,6 @@
 import { useMemo } from "react"
-import { useNavigate } from "@tanstack/react-router"
+import { useNavigate, useRouter } from "@tanstack/react-router"
+import { getVariant } from "@/components/app/lab/variants"
 import { i18n } from "@lingui/core"
 import {
   DEFAULT_BOOK_SETTINGS_SECTION,
@@ -26,9 +27,17 @@ export interface PipelineNavigation {
 
 export function usePipelineNavigation(label: string): PipelineNavigation {
   const navigate = useNavigate()
+  const router = useRouter()
 
   return useMemo(() => {
     const openWorkspace = () => {
+      if (getVariant("return") !== "current") {
+        const page = (router.state.location.search as { page?: unknown }).page
+        if (typeof page === "string" && page) {
+          void navigate({ to: "/pipeline/$label/pages/$pageId", params: { label, pageId: page } })
+          return
+        }
+      }
       void navigate({ to: "/pipeline/$label", params: { label } })
     }
 
@@ -105,5 +114,5 @@ export function usePipelineNavigation(label: string): PipelineNavigation {
         openBookSettings(DEFAULT_BOOK_SETTINGS_SECTION)
       },
     }
-  }, [navigate, label])
+  }, [navigate, router, label])
 }

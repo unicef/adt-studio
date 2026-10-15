@@ -76,6 +76,8 @@ export interface BookRunContextValue {
   stepProgress(step: string): StepProgress | undefined
   /** Per-step error message (if in error state) */
   stepError(step: string): string | undefined
+  /** Per-step completion note, e.g. how many pages a step skipped */
+  stepMessage?(step: string): string | undefined
   /** Run error message */
   error: string | null
   /** Is any stage running or queued? */
@@ -836,6 +838,13 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     [data]
   )
 
+  const stepMessageAccessor = useCallback(
+    (step: string): string | undefined => {
+      return data?.stepMessages?.[step]
+    },
+    [data]
+  )
+
   const isRunning = Object.values(data?.stages ?? {}).some(
     (s) => s === "running" || s === "queued"
   )
@@ -903,6 +912,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     stepState: stepStateAccessor,
     stepProgress: stepProgressAccessor,
     stepError: stepErrorAccessor,
+    stepMessage: stepMessageAccessor,
     error: data?.error ?? null,
     isRunning,
     isCancelling,

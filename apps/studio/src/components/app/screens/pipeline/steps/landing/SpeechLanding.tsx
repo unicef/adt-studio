@@ -1,3 +1,4 @@
+import { useVariant } from "@/components/app/lab/variants"
 import { useState, useEffect, useMemo , type ReactNode } from "react"
 import { AlertCircle, Pencil, Settings2 } from "lucide-react"
 import { Link } from "@tanstack/react-router"
@@ -40,6 +41,7 @@ const SHOW_VOICES_ACCENTS_CARD = false
 
 export function SpeechLanding({ bookLabel, beforeRun }: { bookLabel: string; beforeRun?: ReactNode }) {
   const { t } = useLingui()
+  const friendly = useVariant("features") === "suggested"
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
@@ -164,7 +166,11 @@ export function SpeechLanding({ bookLabel, beforeRun }: { bookLabel: string; bef
   ) : selectedProviderKeyMissing ? (
     <Trans>Add the selected provider's API key in Book settings to run speech.</Trans>
   ) : !translateReady ? (
-    <Trans>Run Language first — speech narrates the translated text.</Trans>
+    friendly ? (
+      <Trans>Run Languages first — Read aloud speaks the text it prepares, even if you keep only the book's own language.</Trans>
+    ) : (
+      <Trans>Run Language first — speech narrates the translated text.</Trans>
+    )
   ) : undefined
 
   return (
@@ -178,15 +184,15 @@ export function SpeechLanding({ bookLabel, beforeRun }: { bookLabel: string; bef
       canRun={true}
       extraDisabled={!hasApiKey || selectedProviderKeyMissing || !translateReady}
       disabledReason={disabledReason}
-      runLabel={<Trans>Run Speech</Trans>}
+      runLabel={friendly ? <Trans>Create the audio</Trans> : <Trans>Run Speech</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
-      previewLabel={t`Speech Preview`}
+      previewLabel={friendly ? t`Example: read aloud` : t`Speech Preview`}
       onRun={handleRun}
       preview={<SpeechPreview wordHighlighting={wordHighlighting} />}
     >
       <div className="flex flex-col gap-2">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
-          <Trans>Speech</Trans>
+          {friendly ? <Trans>Read aloud</Trans> : <Trans>Speech</Trans>}
         </h1>
         <p className="text-[14px] text-muted-foreground leading-relaxed">
           <Trans>
@@ -201,10 +207,13 @@ export function SpeechLanding({ bookLabel, beforeRun }: { bookLabel: string; bef
         upstreamSlug="translate"
         stageSlug="speech"
         description={
+          friendly ? (
+            <Trans>Read aloud speaks the text that Languages prepares, in each language you picked. Run Languages first — it can be just the book's own language.</Trans>
+          ) : (
           <Trans>
             Speech narrates the translated text Language produces. Finish
             Language before running this stage.
-          </Trans>
+          </Trans>)
         }
       />
 
@@ -229,7 +238,7 @@ export function SpeechLanding({ bookLabel, beforeRun }: { bookLabel: string; bef
               onValueChange={handleProviderChange}
             />
             {disabledProviderLabels.length > 0 && (
-              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11.5px] text-amber-800">
+              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11.5px] text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
                 <AlertCircle
                   className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
                   strokeWidth={2}

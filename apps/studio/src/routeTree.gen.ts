@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from "./routes/__root"
 import { Route as OnboardingRouteImport } from "./routes/onboarding"
+import { Route as LabRouteImport } from "./routes/lab"
 import { Route as AppRouteImport } from "./routes/_app"
 import { Route as AppIndexRouteImport } from "./routes/_app.index"
 import { Route as PromptsSettingsRouteImport } from "./routes/prompts.settings"
@@ -38,6 +39,7 @@ import { Route as BooksLabelStepPageIdRouteImport } from "./routes/books.$label.
 import { Route as AppPipelineLabelSettingsRouteImport } from "./routes/_app.pipeline.$label.settings"
 import { Route as AppPipelineLabelPreviewRouteImport } from "./routes/_app.pipeline.$label.preview"
 import { Route as AppPipelineLabelInfoRouteImport } from "./routes/_app.pipeline.$label.info"
+import { Route as AppPipelineLabelExportRouteImport } from "./routes/_app.pipeline.$label.export"
 import { Route as AppPipelineLabelStepRouteImport } from "./routes/_app.pipeline.$label.$step"
 import { Route as AppPipelineLabelSettingsIndexRouteImport } from "./routes/_app.pipeline.$label.settings.index"
 import { Route as AppPipelineLabelStepIndexRouteImport } from "./routes/_app.pipeline.$label.$step.index"
@@ -50,6 +52,11 @@ import { Route as AppPipelineLabelStepSettingsTabRouteImport } from "./routes/_a
 const OnboardingRoute = OnboardingRouteImport.update({
   id: "/onboarding",
   path: "/onboarding",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabRoute = LabRouteImport.update({
+  id: "/lab",
+  path: "/lab",
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -193,6 +200,11 @@ const AppPipelineLabelInfoRoute = AppPipelineLabelInfoRouteImport.update({
   path: "/info",
   getParentRoute: () => AppPipelineLabelRoute,
 } as any)
+const AppPipelineLabelExportRoute = AppPipelineLabelExportRouteImport.update({
+  id: "/export",
+  path: "/export",
+  getParentRoute: () => AppPipelineLabelRoute,
+} as any)
 const AppPipelineLabelStepRoute = AppPipelineLabelStepRouteImport.update({
   id: "/$step",
   path: "/$step",
@@ -243,6 +255,7 @@ const AppPipelineLabelStepSettingsTabRoute =
 
 export interface FileRoutesByFullPath {
   "/": typeof AppIndexRoute
+  "/lab": typeof LabRoute
   "/onboarding": typeof OnboardingRoute
   "/handoffs": typeof AppHandoffsRoute
   "/library": typeof AppLibraryRoute
@@ -264,6 +277,7 @@ export interface FileRoutesByFullPath {
   "/settings/": typeof AppSettingsIndexRoute
   "/books/$label/": typeof BooksLabelIndexRoute
   "/pipeline/$label/$step": typeof AppPipelineLabelStepRouteWithChildren
+  "/pipeline/$label/export": typeof AppPipelineLabelExportRoute
   "/pipeline/$label/info": typeof AppPipelineLabelInfoRoute
   "/pipeline/$label/preview": typeof AppPipelineLabelPreviewRoute
   "/pipeline/$label/settings": typeof AppPipelineLabelSettingsRouteWithChildren
@@ -280,6 +294,7 @@ export interface FileRoutesByFullPath {
   "/pipeline/$label/$step/settings/": typeof AppPipelineLabelStepSettingsIndexRoute
 }
 export interface FileRoutesByTo {
+  "/lab": typeof LabRoute
   "/onboarding": typeof OnboardingRoute
   "/handoffs": typeof AppHandoffsRoute
   "/library": typeof AppLibraryRoute
@@ -297,6 +312,7 @@ export interface FileRoutesByTo {
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/settings": typeof AppSettingsIndexRoute
   "/books/$label": typeof BooksLabelIndexRoute
+  "/pipeline/$label/export": typeof AppPipelineLabelExportRoute
   "/pipeline/$label/info": typeof AppPipelineLabelInfoRoute
   "/pipeline/$label/preview": typeof AppPipelineLabelPreviewRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
@@ -313,6 +329,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/_app": typeof AppRouteWithChildren
+  "/lab": typeof LabRoute
   "/onboarding": typeof OnboardingRoute
   "/_app/handoffs": typeof AppHandoffsRoute
   "/_app/library": typeof AppLibraryRoute
@@ -335,6 +352,7 @@ export interface FileRoutesById {
   "/_app/settings/": typeof AppSettingsIndexRoute
   "/books/$label/": typeof BooksLabelIndexRoute
   "/_app/pipeline/$label/$step": typeof AppPipelineLabelStepRouteWithChildren
+  "/_app/pipeline/$label/export": typeof AppPipelineLabelExportRoute
   "/_app/pipeline/$label/info": typeof AppPipelineLabelInfoRoute
   "/_app/pipeline/$label/preview": typeof AppPipelineLabelPreviewRoute
   "/_app/pipeline/$label/settings": typeof AppPipelineLabelSettingsRouteWithChildren
@@ -354,6 +372,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | "/"
+    | "/lab"
     | "/onboarding"
     | "/handoffs"
     | "/library"
@@ -375,6 +394,7 @@ export interface FileRouteTypes {
     | "/settings/"
     | "/books/$label/"
     | "/pipeline/$label/$step"
+    | "/pipeline/$label/export"
     | "/pipeline/$label/info"
     | "/pipeline/$label/preview"
     | "/pipeline/$label/settings"
@@ -391,6 +411,7 @@ export interface FileRouteTypes {
     | "/pipeline/$label/$step/settings/"
   fileRoutesByTo: FileRoutesByTo
   to:
+    | "/lab"
     | "/onboarding"
     | "/handoffs"
     | "/library"
@@ -408,6 +429,7 @@ export interface FileRouteTypes {
     | "/books/$label/debug"
     | "/settings"
     | "/books/$label"
+    | "/pipeline/$label/export"
     | "/pipeline/$label/info"
     | "/pipeline/$label/preview"
     | "/books/$label/$step/$pageId"
@@ -423,6 +445,7 @@ export interface FileRouteTypes {
   id:
     | "__root__"
     | "/_app"
+    | "/lab"
     | "/onboarding"
     | "/_app/handoffs"
     | "/_app/library"
@@ -445,6 +468,7 @@ export interface FileRouteTypes {
     | "/_app/settings/"
     | "/books/$label/"
     | "/_app/pipeline/$label/$step"
+    | "/_app/pipeline/$label/export"
     | "/_app/pipeline/$label/info"
     | "/_app/pipeline/$label/preview"
     | "/_app/pipeline/$label/settings"
@@ -463,6 +487,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  LabRoute: typeof LabRoute
   OnboardingRoute: typeof OnboardingRoute
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
   BooksImportRoute: typeof BooksImportRoute
@@ -477,6 +502,13 @@ declare module "@tanstack/react-router" {
       path: "/onboarding"
       fullPath: "/onboarding"
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/lab": {
+      id: "/lab"
+      path: "/lab"
+      fullPath: "/lab"
+      preLoaderRoute: typeof LabRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/_app": {
@@ -675,6 +707,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AppPipelineLabelInfoRouteImport
       parentRoute: typeof AppPipelineLabelRoute
     }
+    "/_app/pipeline/$label/export": {
+      id: "/_app/pipeline/$label/export"
+      path: "/export"
+      fullPath: "/pipeline/$label/export"
+      preLoaderRoute: typeof AppPipelineLabelExportRouteImport
+      parentRoute: typeof AppPipelineLabelRoute
+    }
     "/_app/pipeline/$label/$step": {
       id: "/_app/pipeline/$label/$step"
       path: "/$step"
@@ -809,6 +848,7 @@ const AppPipelineLabelSettingsRouteWithChildren =
 
 interface AppPipelineLabelRouteChildren {
   AppPipelineLabelStepRoute: typeof AppPipelineLabelStepRouteWithChildren
+  AppPipelineLabelExportRoute: typeof AppPipelineLabelExportRoute
   AppPipelineLabelInfoRoute: typeof AppPipelineLabelInfoRoute
   AppPipelineLabelPreviewRoute: typeof AppPipelineLabelPreviewRoute
   AppPipelineLabelSettingsRoute: typeof AppPipelineLabelSettingsRouteWithChildren
@@ -818,6 +858,7 @@ interface AppPipelineLabelRouteChildren {
 
 const AppPipelineLabelRouteChildren: AppPipelineLabelRouteChildren = {
   AppPipelineLabelStepRoute: AppPipelineLabelStepRouteWithChildren,
+  AppPipelineLabelExportRoute: AppPipelineLabelExportRoute,
   AppPipelineLabelInfoRoute: AppPipelineLabelInfoRoute,
   AppPipelineLabelPreviewRoute: AppPipelineLabelPreviewRoute,
   AppPipelineLabelSettingsRoute: AppPipelineLabelSettingsRouteWithChildren,
@@ -880,6 +921,7 @@ const BooksLabelRouteWithChildren = BooksLabelRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  LabRoute: LabRoute,
   OnboardingRoute: OnboardingRoute,
   BooksLabelRoute: BooksLabelRouteWithChildren,
   BooksImportRoute: BooksImportRoute,

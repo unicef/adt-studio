@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro"
+import { plural } from "@lingui/core/macro"
 import { Sparkles } from "lucide-react"
 import { RailCollapseButton } from "@/components/app/screens/pipeline/rail/SideRail"
 import { tint } from "@/components/app/screens/pipeline/shared/plugins"
@@ -8,9 +9,10 @@ export interface PluginRailEmptyProps {
   title: React.ReactNode
   pageCount: number
   sectionCount: number
+  running?: boolean
 }
 
-export function PluginRailEmpty({ hex, title, pageCount, sectionCount }: PluginRailEmptyProps) {
+export function PluginRailEmpty({ hex, title, pageCount, sectionCount, running = false }: PluginRailEmptyProps) {
   const { t } = useLingui()
 
   return (
@@ -45,13 +47,17 @@ export function PluginRailEmpty({ hex, title, pageCount, sectionCount }: PluginR
       </div>
 
       <p className="text-[10.5px] leading-relaxed text-muted-foreground">
-        <Trans>Nothing here yet. Pages with results show up in this list after the scan.</Trans>
+        {running ? (
+          <Trans>Running now. Each page lands here as soon as it finishes.</Trans>
+        ) : (
+          <Trans>Nothing here yet. Results show up in this list once this step has run.</Trans>
+        )}
       </p>
 
       <p className="mt-auto border-t pt-2.5 text-[10px] leading-relaxed text-muted-foreground">
         {t`Book: ${pageCount} pages`}
         <br />
-        {t`${sectionCount} sections`}
+        {t`${plural(sectionCount, { one: "# section", other: "# sections" })}`}
       </p>
     </>
   )

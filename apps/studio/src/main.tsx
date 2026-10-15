@@ -1,6 +1,8 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { RouterProvider, createBrowserHistory, createRouter } from "@tanstack/react-router"
+import { getVariant } from "@/components/app/lab/variants"
+import { AppBootSkeleton, BootSplash } from "@/components/app/ui/BootSkeleton"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { I18nProvider } from "@lingui/react"
 import { i18n } from "@lingui/core"
@@ -82,7 +84,14 @@ const router = createRouter({
     },
   },
     history: createBrowserHistory(),
-  defaultPreload: "intent"
+  defaultPreload: "intent",
+  ...(getVariant("boot") !== "current"
+    ? {
+        defaultPendingComponent: getVariant("boot") === "splash" ? BootSplash : AppBootSkeleton,
+        defaultPendingMs: 120,
+        defaultPendingMinMs: 300,
+      }
+    : {}),
 })
 
 declare module "@tanstack/react-router" {

@@ -129,6 +129,9 @@ interface PageSummary {
    *  Sectioning step (vision) recovered text from the page image (a scanned /
    *  image-only page); null otherwise. */
   extractionWarning: ExtractionWarning | null
+  /** Pixel size of the rendered full-page image, so the UI can show each page in its real orientation. */
+  pageWidth: number | null
+  pageHeight: number | null
 }
 
 interface PageDetail {
@@ -1018,6 +1021,12 @@ export function createPageRoutes(
         }
       }
 
+      const pageSizes = new Map<string, { width: number; height: number }>()
+      const pageImageRows = db.all(
+        "SELECT page_id, width, height FROM images WHERE image_id = page_id || '_page'",
+      ) as Array<{ page_id: string; width: number; height: number }>
+      for (const row of pageImageRows) pageSizes.set(row.page_id, { width: row.width, height: row.height })
+
       const result: PageSummary[] = pages.map((p) => ({
         pageId: p.page_id,
         pageNumber: p.page_number,
@@ -1035,6 +1044,8 @@ export function createPageRoutes(
         // recovered text from the page image → the PDF isn't exposing this
         // page's text directly (scanned/image-only page).
         extractionWarning: classifyExtractionWarning(p.text, structuredText.get(p.page_id)),
+        pageWidth: pageSizes.get(p.page_id)?.width ?? null,
+        pageHeight: pageSizes.get(p.page_id)?.height ?? null,
       }))
 
       return c.json(result)

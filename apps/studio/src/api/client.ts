@@ -97,7 +97,27 @@ export function getBookCoverUrl(label: string, cacheKey?: string): string {
   return `${base}?${params.toString()}`
 }
 
+export type RequestInterceptor = (
+  path: string,
+  options: RequestInit | undefined,
+  passthrough: () => Promise<unknown>,
+) => Promise<unknown> | null
+
+let requestInterceptor: RequestInterceptor | null = null
+
+export function setRequestInterceptor(interceptor: RequestInterceptor | null): void {
+  requestInterceptor = interceptor
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  if (requestInterceptor) {
+    const intercepted = requestInterceptor(path, options, () => sendRequest(path, options))
+    if (intercepted) return intercepted as Promise<T>
+  }
+  return sendRequest<T>(path, options)
+}
+
+async function sendRequest<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${BASE_URL}${path}`
   const res = await fetch(url, {
     ...options,
@@ -437,6 +457,9 @@ export interface PageSummaryItem {
    *  Sectioning step (vision) recovered text from the page image (a scanned /
    *  image-only page); null otherwise. */
   extractionWarning: ExtractionWarning | null
+  /** Pixel size of the full-page image; absent from older API builds. */
+  pageWidth?: number | null
+  pageHeight?: number | null
 }
 
 export interface SectionRendering {

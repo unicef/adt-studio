@@ -1,10 +1,17 @@
-import { Link } from "@tanstack/react-router"
+import { useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { ArrowLeft, Eye, Settings } from "lucide-react"
-import { TitleBarControls } from "@/components/title-bar/title-bar-controls"
+import { ChevronRight, Eye, FileDown } from "lucide-react"
+import { BookCover } from "@/components/app/BookCover"
+import { deriveCover } from "@/components/app/data"
 import { NO_DRAG_REGION } from "@/constants"
-import { APP_PATHS } from "@/components/app/nav"
 import { PipelineRunIndicator } from "@/components/app/screens/pipeline/runs/PipelineRunIndicator"
+import { useVariant } from "@/components/app/lab/variants"
+import { useBooks } from "@/hooks/use-books"
+import { useBookRun } from "@/hooks/use-book-run"
+import { cn } from "@/lib/utils"
+import { STORYBOARD_HEX } from "@/components/app/screens/pipeline/shared/plugins"
+import { BookInfoPopover } from "./BookInfoPopover"
+import { TopBar } from "./PipelineChrome"
 
 export interface PipelineTopBarProps {
   label: string
@@ -15,88 +22,105 @@ export interface PipelineTopBarProps {
   rerun?: React.ReactNode
   onPreview?: () => void
   previewDisabled?: boolean
-  onOpenBookInfo: () => void
 }
 export function PipelineTopBar({
   label,
   pageLabel,
   version,
   versionPicker,
+  status,
   rerun,
   onPreview,
   previewDisabled,
-  onOpenBookInfo,
 }: PipelineTopBarProps) {
   const { t } = useLingui()
+  const { data: books } = useBooks()
+  const tbNav = useVariant("topnav")
+  const tbBook = useVariant("topbook")
+  const book = books?.find((candidate) => candidate.label === label)
+  const title = books?.find((book) => book.label === label)?.title || label
+  const exportVariant = useVariant("export")
+  const { stageState } = useBookRun()
+  const waitReason = previewDisabled && pageLabel ? t`Available once all pages are built` : undefined
+  const navigate = useNavigate()
+  const buttonTone = "text-foreground hover:bg-muted"
 
   return (
-    <header className="drag-region flex h-13 shrink-0 items-center gap-3.5 border-b bg-card px-3.5">
-      <Link
-        to={APP_PATHS.library}
-        style={NO_DRAG_REGION}
-        className="flex h-8 items-center gap-2 rounded-lg px-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        <Trans>Library</Trans>
-      </Link>
-
-      <div className="h-5.5 w-px bg-border" />
-
-      <nav aria-label={t`Breadcrumb`} className="flex min-w-0 items-center gap-2 text-[13px]">
-        <span className="truncate text-muted-foreground">{label}</span>
-        {pageLabel && (
-          <>
-            <span className="text-muted-foreground/50">/</span>
-            <span className="truncate font-semibold">{pageLabel}</span>
-          </>
-        )}
-        {versionPicker ? (
-          <span style={NO_DRAG_REGION} className="flex items-center">
-            {versionPicker}
-          </span>
-        ) : (
-          version != null && (
-            <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
-              v{version}
+    <TopBar
+      tone={{ hex: STORYBOARD_HEX, topStep: "home" }}
+      left={
+        <nav aria-label={t`Breadcrumb`} className="flex min-w-0 items-center gap-2 text-[13px]">
+          {tbNav === "crumbs" && <ChevronRight aria-hidden className="-ml-2 size-3.5 shrink-0 text-muted-foreground/50" />}
+          {tbBook === "cover" && book && (
+            <span className="h-7 w-[21px] shrink-0 overflow-hidden rounded-[4px] shadow-[0_1px_3px_rgb(0_0_0/0.2)] [&>div]:rounded-[4px] [&>div]:border-0">
+              <BookCover title={title} author={book.authors.join(", ")} cover={deriveCover(book)} fit="cover" />
             </span>
-          )
-        )}
-        {!pageLabel && (
-          <span className="text-muted-foreground/70">
-            <Trans>no sections yet</Trans>
-          </span>
-        )}
-      </nav>
-
-      <div className="flex-1" />
-
-      <div style={NO_DRAG_REGION} className="flex items-center gap-1.5">
-        {rerun}
-        {onPreview && (
-          <button
-            type="button"
-            onClick={onPreview}
-            disabled={previewDisabled}
-            title={t`Preview the book`}
-            className="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
-          >
-            <Eye className="size-3.5" />
-            <Trans>Preview</Trans>
-          </button>
-        )}
-        <PipelineRunIndicator />
-        <button
-          type="button"
-          onClick={onOpenBookInfo}
-          title={t`Book information`}
-          aria-label={t`Book information`}
-          className="grid size-8 place-items-center rounded-lg border text-foreground transition-colors hover:bg-muted"
-        >
-          <Settings className="size-3.5" />
-        </button>
-      </div>
-
-      <TitleBarControls className="-my-px -mr-3.5 h-13" />
-    </header>
+          )}
+          <span title={title} className={cn("max-w-[260px] truncate", tbBook === "cover" ? "font-medium text-foreground" : "text-muted-foreground")}>{title}</span>
+          {pageLabel && (
+            <>
+              <span className="text-muted-foreground/50">/</span>
+              <span className="truncate font-semibold">{pageLabel}</span>
+            </>
+          )}
+          {versionPicker ? (
+            <span style={NO_DRAG_REGION} className="flex items-center">
+              {versionPicker}
+            </span>
+          ) : (
+            version != null && (
+              <span
+                className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground"
+              >
+                v{version}
+              </span>
+            )
+          )}
+          {!pageLabel && (
+            <span className="text-muted-foreground/70">
+              <Trans>no sections yet</Trans>
+            </span>
+          )}
+        </nav>
+      }
+      center={status}
+      right={
+        <>
+          {rerun}
+          {onPreview && (
+            <button
+              type="button"
+              onClick={onPreview}
+              disabled={previewDisabled}
+              title={waitReason ?? t`Preview the book`}
+              className={cn(
+                "flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
+                buttonTone,
+              )}
+            >
+              <Eye className="size-3.5" />
+              <Trans>Preview</Trans>
+            </button>
+          )}
+          {exportVariant === "topbar" && (
+            <button
+              type="button"
+              onClick={() => void navigate({ to: "/pipeline/$label/export", params: { label } })}
+              disabled={previewDisabled}
+              title={waitReason ?? t`Export the book`}
+              className={cn(
+                "flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] font-medium transition-colors animate-in fade-in zoom-in-95 duration-300 disabled:pointer-events-none disabled:opacity-50",
+                buttonTone,
+              )}
+            >
+              <FileDown className="size-3.5" />
+              <Trans>Export</Trans>
+            </button>
+          )}
+          <PipelineRunIndicator />
+          <BookInfoPopover label={label} triggerClassName={cn("size-8 rounded-lg border transition-colors", buttonTone)} />
+        </>
+      }
+    />
   )
 }

@@ -1,6 +1,7 @@
 import { memo } from "react"
 import { EyeOff, Layers, TriangleAlert } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { plural } from "@lingui/core/macro"
 import { cn } from "@/lib/utils"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
@@ -9,10 +10,14 @@ export const SectioningPageCard = memo(function SectioningPageCard({
   label,
   page,
   onOpen,
+  aspect = 3 / 4,
+  fit = "cover",
 }: {
   label: string
   page: PipelinePage
   onOpen: (pageId: string) => void
+  aspect?: number
+  fit?: "cover" | "contain"
 }) {
   const { t } = useLingui()
   const prunedCount = page.prunedSections.length
@@ -20,10 +25,11 @@ export const SectioningPageCard = memo(function SectioningPageCard({
     <button
       type="button"
       onClick={() => onOpen(page.pageId)}
+      data-page-card={page.pageId}
       aria-label={t`Open page ${page.pageNumber}`}
       className={cn(
         "flex w-full flex-col overflow-hidden rounded-xl border bg-card text-left",
-        "transition-colors duration-200 animate-in fade-in-0 motion-reduce:animate-none",
+        "transition-colors duration-200",
         "hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
       )}
     >
@@ -31,7 +37,9 @@ export const SectioningPageCard = memo(function SectioningPageCard({
         label={label}
         pageId={page.pageId}
         sectionIndex={null}
-        className="aspect-[3/4] w-full rounded-none border-0 border-b"
+        className="w-full rounded-none border-0 border-b"
+        style={{ aspectRatio: aspect }}
+        fit={fit}
       />
       <div className="flex flex-col gap-0.5 px-2.5 py-2">
         <div className="flex items-center justify-between gap-2">
@@ -50,7 +58,7 @@ export const SectioningPageCard = memo(function SectioningPageCard({
               </span>
             )}
             <span
-              title={t`${page.sectionCount} sections`}
+              title={t`${plural(page.sectionCount, { one: "# section", other: "# sections" })}`}
               className="flex items-center gap-0.5 font-mono text-[10px] tabular-nums text-muted-foreground"
             >
               <Layers className="size-2.5" />
