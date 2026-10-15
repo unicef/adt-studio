@@ -24,7 +24,7 @@ describe("html-render protocol", () => {
     });
   });
 
-  it("serves stored HTML with a restrictive CSP", async () => {
+  it("serves stored HTML with a sandbox CSP", async () => {
     htmlStore.set("screenshot-id", "<script>untrusted()</script>");
     registerHtmlRenderProtocol();
 
@@ -37,14 +37,7 @@ describe("html-render protocol", () => {
     const policy = response.headers.get("Content-Security-Policy");
 
     expect(await response.text()).toBe("<script>untrusted()</script>");
-    expect(policy).toContain("default-src 'none'");
-    expect(policy).toContain("img-src data:");
-    expect(policy).toContain("font-src data:");
-    expect(policy).toContain("style-src 'unsafe-inline'");
-    expect(policy?.match(/script-src [^;]+/)?.[0]).toBe(
-      "script-src 'sha256-+miJbuqVasNIjP3K3SJ/uFZdSixGSCT81PIrua6INnE='",
-    );
-    expect(policy).toContain("sandbox allow-scripts");
+    expect(policy).toBe("sandbox allow-scripts");
     expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
   });
 });

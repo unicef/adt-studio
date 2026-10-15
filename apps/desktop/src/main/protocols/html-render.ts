@@ -6,20 +6,10 @@ const HTML_RENDER_SCHEME_PRIVILEGES = {
   privileges: { standard: true },
 } as Electron.CustomScheme;
 
-const CONTENT_SECURITY_POLICY = [
-  "default-src 'none'",
-  "img-src data:",
-  "font-src data:",
-  "style-src 'unsafe-inline'",
-  // This hash permits only the fixed FITB hydration script from screenshot-html.ts.
-  "script-src 'sha256-+miJbuqVasNIjP3K3SJ/uFZdSixGSCT81PIrua6INnE='",
-  "sandbox allow-scripts",
-  "connect-src 'none'",
-  "object-src 'none'",
-  "frame-src 'none'",
-  "base-uri 'none'",
-  "form-action 'none'",
-].join("; ");
+// Screenshot HTML carries its resource policy in a CSP meta tag so Playwright
+// and Electron use the same dynamically calculated FITB script hash. Keep the
+// sandbox in the response header: CSP meta tags cannot provide this boundary.
+const CONTENT_SECURITY_POLICY = "sandbox allow-scripts";
 
 function registerHtmlRenderProtocol(): void {
   protocol.handle("html-render", async (request) => {
