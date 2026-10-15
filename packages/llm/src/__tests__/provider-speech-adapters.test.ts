@@ -101,7 +101,8 @@ describe("gemini speech adapter", () => {
     )
     const body = JSON.parse(String(init?.body))
     expect(body.contents[0].parts[0].text).toBe(
-      "### PERFORMANCE\nKosovo accent.\n\n#### TRANSCRIPT\nHello world",
+      "Read the text under #### TRANSCRIPT aloud. Do not read the notes above it, and do not change the words.\n\n" +
+        "### PERFORMANCE\nKosovo accent.\n\n#### TRANSCRIPT\nHello world",
     )
     expect(body.generationConfig.temperature).toBe(0.15)
     expect(body.generationConfig.seed).toBe(7)
