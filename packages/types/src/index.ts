@@ -250,6 +250,7 @@ export {
   SectionRendering,
   WebRenderingOutput,
   webRenderingLLMSchema,
+  htmlEditLLMSchema,
   activityAnswersLLMSchema,
   visualReviewLLMSchema,
   editVerifyLLMSchema,
