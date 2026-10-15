@@ -407,16 +407,19 @@ driven with a stub synthesizer and no API keys.
 ## Rollout
 
 Independently revertable PRs, each within the §9 review budget. **Nothing is user-visible until the
-last one.**
+last one.** (The four are tracked as #895–#898 under #894.)
 
 1. **PR 1 — plumbing, no UI.** `element-audio` schema + storage read/write + `buildTextCatalog`
-   emitting synthetic entries + node registration + the invariant row and its checker. Value:
-   verifiable by test that an authored script produces audio.
-2. **PR 2 — authoring.** The Storyboard inspector section in the **classic** `StyleEditorPanel`
-   (unconditional pattern), the save path, `VersionedStep` registration, i18n. **Depends on the UI
-   decision in #5**: it targets the classic UI now and a follow-up ports it to the new pipeline UI
+   emitting synthetic entries + node registration (`PipelineNodeName`, `NODE_CACHE_RESOURCES`) + the
+   invariant row and its checker. Value: verifiable by test that an authored script produces audio.
+2. **PR 2 — API, no UI.** The `element-audio` read/write route with immediate save, `RestorableNode`
+   registration, the restore case that clears nothing, and batch exclusion. Value: the script can be
+   saved and versioned through the API.
+3. **PR 3 — authoring.** The Storyboard inspector section in the **classic** `StyleEditorPanel`
+   (unconditional pattern), the save-path wiring, `VersionedStep` registration, i18n. **Depends on the
+   UI decision in #5**: it targets the classic UI now and a follow-up ports it to the new pipeline UI
    once #758 lands. Value: the author can write the script.
-3. **PR 3 — playback.** The packaging remap (bundle **and** preview mirrors), the runtime trigger and
+4. **PR 4 — playback.** The packaging remap (bundle **and** preview mirrors), the runtime trigger and
    badge, the a11y attributes. **Depends on #879** for the filename/freshness contract. Value: the
    reader hears it.
 
