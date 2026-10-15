@@ -5,7 +5,7 @@ import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel, ResolvedCredentials } from "@adt/llm"
 import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, readTypography, buildTypographyCss, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS, inspectOrderingActivityHtml, validateRetainedHeadingHierarchy } from "@adt/pipeline"
 import type { VisualRefinementDeps } from "@adt/pipeline"
-import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema, editVerifyLLMSchema, DEFAULT_LLM_MODEL_ID } from "@adt/types"
+import { PageSectioningOutput, WebRenderingOutput, htmlEditLLMSchema, editVerifyLLMSchema, DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
 
 export interface ReRenderOptions {
@@ -40,10 +40,64 @@ export interface AiEditSectionOptions {
   credentials: ResolvedCredentials
 }
 
-export interface AiEditSectionResult {
-  html: string
+export interface AiEditVerification {
+  applied: boolean
+  reason: string
+}
+
+export type AiEditSectionResult =
+  | {
+      status: "applied"
+      html: string
+      reasoning: string
+      activityAnswers?: Record<string, string>
+      verification?: AiEditVerification
+    }
+  | {
+      status: "unsupported"
+      reason: string
+      reasoning: string
+    }
+
+interface HtmlEditResponse {
   reasoning: string
-  activityAnswers?: Record<string, string>
+  feasible: boolean
+  unsupported_reason: string
+  content: string
+}
+
+const IMG_TAG_REGEX = /<img\b[^>]*>/gi
+
+function readAttribute(tag: string, name: string): string | undefined {
+  const match = new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, "i").exec(tag)
+  return match ? (match[1] ?? match[2]) : undefined
+}
+
+function collectImageReferences(html: string) {
+  const ids = new Set<string>()
+  const srcs = new Set<string>()
+  let hasImageWithoutSrc = false
+  for (const tag of html.match(IMG_TAG_REGEX) ?? []) {
+    const id = readAttribute(tag, "data-id")
+    const src = readAttribute(tag, "src")
+    if (id !== undefined) ids.add(id)
+    if (src === undefined) hasImageWithoutSrc = true
+    else srcs.add(src)
+  }
+  return { ids, srcs, hasImageWithoutSrc }
+}
+
+export function findInventedImages(originalHtml: string, editedHtml: string): string[] {
+  const original = collectImageReferences(originalHtml)
+  const invented: string[] = []
+  for (const tag of editedHtml.match(IMG_TAG_REGEX) ?? []) {
+    const id = readAttribute(tag, "data-id")
+    const src = readAttribute(tag, "src")
+    const unknownId = id !== undefined && !original.ids.has(id)
+    const unknownSrc = src === undefined ? !original.hasImageWithoutSrc : !original.srcs.has(src)
+    if (unknownId || unknownSrc) invented.push(src ?? id ?? tag)
+  }
+  return invented
 }
 
 export async function reRenderPage(
@@ -341,9 +395,6 @@ export async function aiEditSection(
       }
     }
 
-    // Structural check only. We deliberately do NOT enforce data-id / image
-    // preservation here: the instruction may legitimately ask the LLM to remove
-    // or replace elements, and silently retrying three times hides that intent.
     const validateEditedHtml = (rawHtml: string) => {
       const cleanedHtml = rawHtml
         .replace(/^```(?:html)?\s*\n?/i, "")
@@ -353,6 +404,12 @@ export async function aiEditSection(
         errors.push("Result must contain a <section> element")
       }
       errors.push(...validateRetainedHeadingHierarchy(currentHtml, cleanedHtml))
+      const inventedImages = findInventedImages(currentHtml, cleanedHtml)
+      if (inventedImages.length > 0) {
+        errors.push(
+          `AI editing cannot create or change images, but the result references images that are not in the current HTML: ${inventedImages.join(", ")}. Reuse only the existing <img> elements, or set feasible to false if the instruction needs new or changed images.`
+        )
+      }
       if (originalOrdering.isOrdering) {
         const ordering = inspectOrderingActivityHtml(cleanedHtml)
         if (!ordering.isOrdering) {
@@ -370,8 +427,8 @@ export async function aiEditSection(
     const correlationId = crypto.randomUUID()
 
     const runEditPass = async (previousAttemptFailure?: string) => {
-      const r = await model.generateObject<{ reasoning: string; content: string }>({
-        schema: webRenderingLLMSchema,
+      const r = await model.generateObject<HtmlEditResponse>({
+        schema: htmlEditLLMSchema,
         prompt: "html_edit",
         context: {
           current_html: currentHtml,
@@ -380,7 +437,12 @@ export async function aiEditSection(
           previous_attempt_failure: previousAttemptFailure,
         },
         validate: (obj) => {
-          const resp = obj as { content: string }
+          const resp = obj as HtmlEditResponse
+          if (!resp.feasible) {
+            return resp.unsupported_reason.trim()
+              ? { valid: true, errors: [] }
+              : { valid: false, errors: ["unsupported_reason must explain why the instruction is not feasible"] }
+          }
           const check = validateEditedHtml(resp.content)
           return { valid: check.valid, errors: check.errors }
         },
@@ -394,12 +456,23 @@ export async function aiEditSection(
         },
       })
       return {
+        feasible: r.object.feasible,
+        unsupportedReason: r.object.unsupported_reason.trim(),
         html: validateEditedHtml(r.object.content).cleanedHtml,
         reasoning: r.object.reasoning,
       }
     }
 
-    let { html, reasoning } = await runEditPass()
+    const unsupported = (pass: { unsupportedReason: string; reasoning: string }): AiEditSectionResult => ({
+      status: "unsupported",
+      reason: pass.unsupportedReason,
+      reasoning: pass.reasoning,
+    })
+
+    const firstPass = await runEditPass()
+    if (!firstPass.feasible) return unsupported(firstPass)
+    let { html, reasoning } = firstPass
+    let verification: AiEditVerification | undefined
 
     // Lightweight verification: screenshot the edited HTML at desktop width and
     // ask a small vision model whether the instruction was actually applied.
@@ -478,21 +551,24 @@ export async function aiEditSection(
         })
       }
 
-      const verify = await runVerify(html)
+      verification = (await runVerify(html)).object
 
-      if (!verify.object.applied) {
-        const retry = await runEditPass(verify.object.reason)
+      if (!verification.applied) {
+        const retry = await runEditPass(verification.reason)
+        if (!retry.feasible) return unsupported(retry)
         html = retry.html
         reasoning = retry.reasoning
-        await runVerify(html)
+        verification = (await runVerify(html)).object
       }
     }
 
     const ordering = inspectOrderingActivityHtml(html)
     return {
+      status: "applied",
       html,
       reasoning,
       ...(ordering.contract ? { activityAnswers: ordering.contract.answers } : {}),
+      ...(verification ? { verification } : {}),
     }
   } finally {
     storage.close()

@@ -98,6 +98,8 @@ import { AddImageDialog } from "./AddImageDialog"
 import { ReplaceFromBookDialog } from "./ReplaceFromBookDialog"
 import { SegmentPreviewDialog, type SegmentRegion } from "./SegmentPreviewDialog"
 import { AiEditHistoryDrawer } from "./AiEditHistoryDrawer"
+import { AiEditNotice } from "./AiEditNotice"
+import { useAiEditOutcomes } from "./use-ai-edit-outcomes"
 import { LayoutMirrorDialog } from "./LayoutMirrorDialog"
 import { GenerateActivityDialog } from "./GenerateActivityDialog"
 import { Input } from "@/components/ui/input"
@@ -674,6 +676,12 @@ export function StoryboardSectionDetail({
   const [showAiHistory, setShowAiHistory] = useState(false)
   const [layoutMirrorOpen, setLayoutMirrorOpen] = useState(false)
   const [generateActivityOpen, setGenerateActivityOpen] = useState(false)
+  const {
+    notice: aiEditNotice,
+    dismissNotice: dismissAiEditNotice,
+    trackSubmission: trackAiEditSubmission,
+    reportResult: reportAiEditResult,
+  } = useAiEditOutcomes(bookTasks, setAiError, setAiInstruction)
 
   // Derive AI editing state from active tasks
   const aiEditing = useMemo(
@@ -2217,6 +2225,7 @@ export function StoryboardSectionDetail({
   const handleAiEdit = async () => {
     if (!aiInstruction.trim() || !hasStructuredTextProvider || hasActiveTask || storyboardRunning) return
     setAiError(null)
+    dismissAiEditNotice()
 
     const currentHtml = renderedSection?.html
     const instruction = aiInstruction.trim()
@@ -2229,7 +2238,13 @@ export function StoryboardSectionDetail({
       instruction,
       apiKey,
       currentHtml,
-    ).catch((err) => {
+    ).then((response) => {
+      if (response.status === "submitted") {
+        trackAiEditSubmission(response.taskId, instruction)
+      } else {
+        reportAiEditResult(response, instruction)
+      }
+    }).catch((err) => {
       setAiError(err instanceof Error ? err.message : t`AI edit failed`)
     })
   }
@@ -2682,6 +2697,10 @@ export function StoryboardSectionDetail({
         <div className="px-4 py-1.5 border-b shrink-0 text-xs bg-muted/30">
           <p className="text-[10px] text-destructive">{aiError}</p>
         </div>
+      )}
+
+      {aiEditNotice && (
+        <AiEditNotice notice={aiEditNotice} onDismiss={dismissAiEditNotice} />
       )}
 
       {/* Agent completion banner */}

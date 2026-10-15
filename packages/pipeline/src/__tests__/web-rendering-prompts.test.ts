@@ -159,6 +159,22 @@ describe("web rendering reading-order prompts", () => {
     expect(prompt).toContain("Intentional removal of the entire heading remains allowed")
   })
 
+  it("tells AI edits to report instructions they cannot carry out", async () => {
+    const messages = await promptEngine.renderPrompt("html_edit", {
+      instruction: "Modify all the images on this page",
+      current_html: `<section><img data-id="img-1" src="/api/books/book/images/img-1"></section>`,
+      screenshots: [],
+      previous_attempt_failure: "",
+    })
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("## What AI editing cannot do")
+    expect(prompt).toContain("Never invent image sources or identifiers")
+    expect(prompt).toContain("Set `feasible` to `false`")
+    expect(prompt).toContain("`unsupported_reason`")
+    expect(prompt).toContain("Return the current HTML unchanged in `content`")
+  })
+
   it("keeps styleguide and visual-review prompts subordinate to outline typography", async () => {
     const [styleguideMessages, reviewMessages, flexibleMessages] = await Promise.all([
       promptEngine.renderPrompt("styleguide_generation", {

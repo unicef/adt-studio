@@ -30,6 +30,13 @@ export const webRenderingLLMSchema = z.object({
   content: z.string(),
 })
 
+export const htmlEditLLMSchema = z.object({
+  reasoning: z.string(),
+  feasible: z.boolean(),
+  unsupported_reason: z.string(),
+  content: z.string(),
+})
+
 export const activityAnswersLLMSchema = z.object({
   reasoning: z.string(),
   answers: z.array(

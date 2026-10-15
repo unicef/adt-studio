@@ -16,7 +16,18 @@ vi.mock("@adt/llm", () => ({
   createPromptEngine: llmMocks.createPromptEngine,
 }))
 
-import { reRenderPage, aiEditSection } from "./page-edit-service.js"
+const screenshotMocks = vi.hoisted(() => ({
+  createScreenshotRenderer: vi.fn(),
+  buildScreenshotHtml: vi.fn(),
+}))
+
+vi.mock("@adt/pipeline", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@adt/pipeline")>()),
+  createScreenshotRenderer: screenshotMocks.createScreenshotRenderer,
+  buildScreenshotHtml: screenshotMocks.buildScreenshotHtml,
+}))
+
+import { reRenderPage, aiEditSection, findInventedImages } from "./page-edit-service.js"
 
 describe("page-edit-service", () => {
   let tmpDir: string
@@ -31,6 +42,13 @@ describe("page-edit-service", () => {
     llmMocks.createLLMModel.mockReturnValue({
       generateObject: llmMocks.generateObject,
     } as never)
+    screenshotMocks.buildScreenshotHtml.mockReset()
+    screenshotMocks.buildScreenshotHtml.mockResolvedValue("<html></html>")
+    screenshotMocks.createScreenshotRenderer.mockReset()
+    screenshotMocks.createScreenshotRenderer.mockResolvedValue({
+      screenshot: vi.fn().mockResolvedValue(Buffer.from("screenshot").toString("base64")),
+      close: vi.fn().mockResolvedValue(undefined),
+    })
 
     // Create a book with extracted pages but no pipeline data
     const storage = createBookStorage(label, tmpDir)
@@ -263,7 +281,132 @@ describe("page-edit-service", () => {
     })
   })
 
+  describe("findInventedImages", () => {
+    const original = `<section><img data-id="a" src="/api/books/b/images/a" /><img data-id="b" src="/api/books/b/images/b" /></section>`
+
+    it("accepts reordered and removed existing images", () => {
+      expect(findInventedImages(original, `<section><img src="/api/books/b/images/b" data-id="b"></section>`)).toEqual([])
+    })
+
+    it("flags images with a source or id the section never had", () => {
+      expect(findInventedImages(original, `<section><img data-id="a" src="https://example.com/new.png" /></section>`))
+        .toEqual(["https://example.com/new.png"])
+      expect(findInventedImages(original, `<section><img data-id="new" src="/api/books/b/images/a" /></section>`))
+        .toEqual(["/api/books/b/images/a"])
+      expect(findInventedImages(original, `<section><img data-id="a" /></section>`)).toEqual(["a"])
+    })
+  })
+
   describe("aiEditSection", () => {
+    const imageHtml = `<section><img data-id="${label}_p1_im001" src="/api/books/${label}/images/${label}_p1_im001" /><img data-id="${label}_p1_im002" src="/api/books/${label}/images/${label}_p1_im002" /></section>`
+
+    type EditResponse = { reasoning: string; feasible: boolean; unsupported_reason: string; content: string }
+    type Validate = (result: EditResponse, context: Record<string, unknown>) => { valid: boolean; errors: string[] }
+
+    const editResponse = (overrides: Partial<EditResponse> = {}) =>
+      ({ object: { reasoning: "ok", feasible: true, unsupported_reason: "", content: imageHtml, ...overrides } }) as never
+
+    const promptNameOf = (opts: unknown) => (opts as { prompt: string }).prompt
+
+    const runImageEdit = (instruction: string, webAssetsDir?: string) =>
+      aiEditSection({
+        label,
+        pageId: `${label}_p1`,
+        sectionIndex: 0,
+        instruction,
+        currentHtml: imageHtml,
+        booksDir: tmpDir,
+        promptsDir: tmpDir,
+        webAssetsDir,
+        configPath: path.resolve(process.cwd(), "config.yaml"),
+        apiKey: "test-key",
+      } as Parameters<typeof aiEditSection>[0])
+
+    it("reports an instruction AI editing cannot do without verifying it", async () => {
+      llmMocks.generateObject.mockResolvedValue(
+        editResponse({
+          reasoning: "The instruction asks to redraw the images.",
+          feasible: false,
+          unsupported_reason: "AI editing can't change images. Use the image tools instead.",
+        })
+      )
+
+      const result = await runImageEdit("Modify all the images on this page", tmpDir)
+
+      expect(result).toEqual({
+        status: "unsupported",
+        reason: "AI editing can't change images. Use the image tools instead.",
+        reasoning: "The instruction asks to redraw the images.",
+      })
+      expect(llmMocks.generateObject).toHaveBeenCalledTimes(1)
+      expect(promptNameOf(llmMocks.generateObject.mock.calls[0][0])).toBe("html_edit")
+    })
+
+    it("rejects invented images and unexplained unsupported answers", async () => {
+      let validate: Validate | undefined
+      llmMocks.generateObject.mockImplementation(async (opts: unknown) => {
+        validate = (opts as { validate: Validate }).validate
+        return editResponse()
+      })
+
+      await runImageEdit("Replace the images with new drawings")
+
+      const invented = validate!(
+        { reasoning: "", feasible: true, unsupported_reason: "", content: `<section><img data-id="new_drawing" src="https://example.com/drawing.png" /></section>` },
+        {},
+      )
+      expect(invented.valid).toBe(false)
+      expect(invented.errors).toContainEqual(expect.stringContaining("cannot create or change images"))
+
+      const removed = validate!(
+        { reasoning: "", feasible: true, unsupported_reason: "", content: `<section><img data-id="${label}_p1_im002" src="/api/books/${label}/images/${label}_p1_im002" /></section>` },
+        {},
+      )
+      expect(removed.valid).toBe(true)
+
+      expect(validate!({ reasoning: "", feasible: false, unsupported_reason: " ", content: "" }, {}).valid).toBe(false)
+      expect(validate!({ reasoning: "", feasible: false, unsupported_reason: "Not possible.", content: "" }, {}).valid).toBe(true)
+    })
+
+    it("retries once and reports a verification that still fails", async () => {
+      const editedHtml = imageHtml.replace("<section>", `<section class="bg-blue-50">`)
+      llmMocks.generateObject.mockImplementation(async (opts: unknown) =>
+        promptNameOf(opts) === "html_edit_verify"
+          ? ({ object: { applied: false, reason: "The background is unchanged." } } as never)
+          : editResponse({ content: editedHtml })
+      )
+
+      const result = await runImageEdit("Make the background blue", tmpDir)
+
+      expect(result).toMatchObject({
+        status: "applied",
+        html: editedHtml,
+        verification: { applied: false, reason: "The background is unchanged." },
+      })
+      const prompts = llmMocks.generateObject.mock.calls.map(([opts]) => promptNameOf(opts))
+      expect(prompts).toEqual(["html_edit", "html_edit_verify", "html_edit", "html_edit_verify"])
+    })
+
+    it("reports unsupported when the retry concludes the edit is not possible", async () => {
+      let editCalls = 0
+      llmMocks.generateObject.mockImplementation(async (opts: unknown) => {
+        if (promptNameOf(opts) === "html_edit_verify") {
+          return { object: { applied: false, reason: "The images are unchanged." } } as never
+        }
+        editCalls += 1
+        return editCalls === 1
+          ? editResponse()
+          : editResponse({ feasible: false, unsupported_reason: "Images can only be changed with the image tools." })
+      })
+
+      const result = await runImageEdit("Make every image black and white", tmpDir)
+
+      expect(result).toMatchObject({
+        status: "unsupported",
+        reason: "Images can only be changed with the image tools.",
+      })
+    })
+
     it("resolves section by sectionIndex value instead of array position", async () => {
       const pageId = `${label}_p1`
       const storage = createBookStorage(label, tmpDir)
@@ -295,6 +438,8 @@ describe("page-edit-service", () => {
         return {
           object: {
             reasoning: "ok",
+            feasible: true,
+            unsupported_reason: "",
             content: context.current_html,
           },
         } as never
@@ -330,7 +475,7 @@ describe("page-edit-service", () => {
         "item-3,item-2,item-1",
       )
       llmMocks.generateObject.mockResolvedValue({
-        object: { reasoning: "Changed the sequence", content: editedHtml },
+        object: { reasoning: "Changed the sequence", feasible: true, unsupported_reason: "", content: editedHtml },
       } as never)
 
       const result = await aiEditSection({
@@ -380,19 +525,19 @@ describe("page-edit-service", () => {
         }
         expect(editOptions.maxRetries).toBe(3)
         const rejected = editOptions.validate?.(
-          { reasoning: "Changed the background", content: invalidHtml },
+          { reasoning: "Changed the background", feasible: true, unsupported_reason: "", content:invalidHtml },
           {},
         )
         expect(rejected?.valid).toBe(false)
         rejectionErrors = rejected?.errors ?? []
 
         const accepted = editOptions.validate?.(
-          { reasoning: "Changed the background", content: validHtml },
+          { reasoning: "Changed the background", feasible: true, unsupported_reason: "", content:validHtml },
           {},
         )
         expect(accepted?.valid).toBe(true)
         return {
-          object: { reasoning: "Changed the background", content: validHtml },
+          object: { reasoning: "Changed the background", feasible: true, unsupported_reason: "", content:validHtml },
         } as never
       })
 
@@ -475,7 +620,7 @@ describe("page-edit-service", () => {
       llmMocks.generateObject.mockImplementation(async (opts: unknown) => {
         const context = (opts as { context: { current_html: string } }).context
         return {
-          object: { reasoning: "ok", content: context.current_html },
+          object: { reasoning: "ok", feasible: true, unsupported_reason: "", content: context.current_html },
         } as never
       })
 

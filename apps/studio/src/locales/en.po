@@ -1287,11 +1287,17 @@ msgstr "AI analysis reasoning"
 msgid "AI Edit"
 msgstr "AI Edit"
 
+msgid "AI edit complete"
+msgstr "AI edit complete"
+
 msgid "AI edit failed"
 msgstr "AI edit failed"
 
 msgid "AI edit history"
 msgstr "AI edit history"
+
+msgid "AI editing can't do this"
+msgstr "AI editing can't do this"
 
 msgid "AI editing..."
 msgstr "AI editing..."
@@ -4743,8 +4749,8 @@ msgstr "Image Cropping"
 msgid "Image Cropping Prompt"
 msgstr "Image Cropping Prompt"
 
-msgid "Image edit complete"
-msgstr "Image edit complete"
+#~ msgid "Image edit complete"
+#~ msgstr "Image edit complete"
 
 msgid "Image Edit Prompt"
 msgstr "Image Edit Prompt"
@@ -6451,6 +6457,9 @@ msgstr "Not found in the book text"
 
 msgid "Not generated"
 msgstr "Not generated"
+
+msgid "Not possible with AI editing"
+msgstr "Not possible with AI editing"
 
 msgid "Not rendered yet"
 msgstr "Not rendered yet"
@@ -9931,6 +9940,9 @@ msgstr "They release oxygen directly into the air."
 
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
+
+msgid "This AI edit may not have been fully applied"
+msgstr "This AI edit may not have been fully applied"
 
 msgid "This archive can't be opened safely"
 msgstr "This archive can't be opened safely"

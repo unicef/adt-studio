@@ -914,7 +914,7 @@ function taskCompleteMessage(kind: string | undefined): string {
     case "image-generate":
       return i18n._(msg`Image generated`)
     case "ai-edit":
-      return i18n._(msg`Image edit complete`)
+      return i18n._(msg`AI edit complete`)
     case "re-render":
       return i18n._(msg`Page re-rendered`)
     case "transcribe-timestamps":

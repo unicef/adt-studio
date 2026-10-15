@@ -1289,11 +1289,17 @@ msgstr "Arsyetimi i analizës së IA-së"
 msgid "AI Edit"
 msgstr "Editim me AI"
 
+msgid "AI edit complete"
+msgstr "Editimi me AI përfundoi"
+
 msgid "AI edit failed"
 msgstr "Editimi me AI dështoi"
 
 msgid "AI edit history"
 msgstr "Historia e editimit me AI"
+
+msgid "AI editing can't do this"
+msgstr "Editimi me AI nuk mund ta bëjë këtë"
 
 msgid "AI editing..."
 msgstr "Duke edituar me AI..."
@@ -4745,8 +4751,8 @@ msgstr "Prerja e Imazheve"
 msgid "Image Cropping Prompt"
 msgstr "Prompt i Prerjes së Imazheve"
 
-msgid "Image edit complete"
-msgstr "Modifikimi i imazhit u krye"
+#~ msgid "Image edit complete"
+#~ msgstr "Modifikimi i imazhit u krye"
 
 msgid "Image Edit Prompt"
 msgstr "Prompt i Editimit të Imazhit"
@@ -6453,6 +6459,9 @@ msgstr "Nuk u gjet në tekstin e librit"
 
 msgid "Not generated"
 msgstr "Nuk u gjenerua"
+
+msgid "Not possible with AI editing"
+msgstr "Nuk është e mundur me editimin me AI"
 
 msgid "Not rendered yet"
 msgstr "Nuk u gjenerua ende"
@@ -9933,6 +9942,9 @@ msgstr "Ato lëshojnë oksigjen drejtpërdrejt në ajër."
 
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "Ky aktivitet nuk ka tekste apo përgjigje të adresueshme. Rigjeneroni atë ose përdorni \"Ndrysho paraqitjen\" për ta ndryshuar faqen drejtpërdrejt."
+
+msgid "This AI edit may not have been fully applied"
+msgstr "Ky editim me AI mund të mos jetë zbatuar plotësisht"
 
 msgid "This archive can't be opened safely"
 msgstr "Ky arkiv nuk mund të hapet në mënyrë të sigurt"
