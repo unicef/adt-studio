@@ -4,11 +4,12 @@ import { useNavigate } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react"
 import { msg } from "@lingui/core/macro"
-import { AlertTriangle, ArrowLeftRight, CheckCircle2, EyeOff, FileText, HelpCircle, Loader2, Monitor, Puzzle } from "lucide-react"
+import { AlertTriangle, ArrowLeftRight, CheckCircle2, EyeOff, FileText, HelpCircle, Loader2, Monitor, Puzzle, SkipForward } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useQuizzes } from "@/hooks/use-quizzes"
+import { useBookRun } from "@/hooks/use-book-run"
 import { getSectionScreenshotUrl, type PageSummaryItem, type PageSummarySection } from "@/api/client"
 import { STAGES } from "../stage-config"
 import type { Quiz } from "@adt/types"
@@ -35,6 +36,7 @@ export function StoryboardIndex({
 }) {
   const { data: pages } = usePages(bookLabel)
   const { data: quizzesData } = useQuizzes(bookLabel)
+  const { skippedPageIds } = useBookRun()
   const navigate = useNavigate()
   const parentRef = useRef<HTMLDivElement>(null)
   const storyboardStageDef = STAGES.find((s) => s.slug === "storyboard")
@@ -171,7 +173,8 @@ export function StoryboardIndex({
                   onSelect={() =>
                     onSelectSection?.(item.page.pageId, item.section.sectionIndex)
                   }
-                  stageRunning={stageRunning}
+                  stageRunning={stageRunning && !skippedPageIds.has(item.page.pageId)}
+                  skipped={skippedPageIds.has(item.page.pageId)}
                 />
               ) : (
                 <QuizRow
@@ -205,6 +208,7 @@ function SectionRow({
   activeText,
   onSelect,
   stageRunning,
+  skipped,
 }: {
   bookLabel: string
   page: PageSummaryItem
@@ -214,6 +218,7 @@ function SectionRow({
   activeText?: string
   onSelect: () => void
   stageRunning?: boolean
+  skipped?: boolean
 }) {
   const { i18n } = useLingui()
   const { data: pageImageData, isLoading: pageImageLoading } = usePageImage(bookLabel, page.pageId)
@@ -235,6 +240,7 @@ function SectionRow({
     : null
 
   const sectionPending = stageRunning && !page.hasRendering
+  const sectionSkipped = skipped && !page.hasRendering && !section.isPruned
 
   const hover = useHoverPreview(rowRef)
 
@@ -287,6 +293,14 @@ function SectionRow({
         {sectionPending && (
           <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/30">
             <Loader2 className="w-4 h-4 animate-spin text-white" />
+          </div>
+        )}
+        {sectionSkipped && (
+          <div
+            className="absolute inset-0 flex items-center justify-center rounded-md bg-black/30"
+            title={i18n._(msg`Page skipped`)}
+          >
+            <SkipForward className="w-4 h-4 text-white" />
           </div>
         )}
         {section.isActivity && (

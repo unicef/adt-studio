@@ -1910,6 +1910,7 @@ export function createPageRoutes(
       // No body or not JSON — that's fine, prompt is optional
     }
 
+    let hadRendering = true
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       const pages = storage.getPages()
@@ -1917,6 +1918,7 @@ export function createPageRoutes(
       if (!page) {
         throw new HTTPException(404, { message: `Page not found: ${pageId}` })
       }
+      hadRendering = storage.getLatestNodeData("web-rendering", pageId) !== null
 
       if (sectionIndex !== undefined) {
         const structuringRow = storage.getLatestNodeData("page-sectioning", pageId)
@@ -1944,8 +1946,9 @@ export function createPageRoutes(
     // arrives, so take the mark back here — the browser may be long gone by then,
     // and a stage claiming output it does not have is what #642 set out to fix.
     const runReRender = async () => {
+      let result: Awaited<ReturnType<typeof reRenderPage>>
       try {
-        return await reRenderPage({
+        result = await reRenderPage({
           label: safeLabel,
           pageId,
           sectionIndex,
@@ -1965,6 +1968,15 @@ export function createPageRoutes(
         }
         throw err
       }
+      if (!hadRendering) {
+        const storage = createBookStorage(safeLabel, booksDir)
+        try {
+          markStoryboardChainStale(storage, { includeStoryboard: false })
+        } finally {
+          storage.close()
+        }
+      }
+      return result
     }
 
     // Submit as task if TaskService is available

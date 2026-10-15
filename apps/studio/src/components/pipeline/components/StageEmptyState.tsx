@@ -50,7 +50,7 @@ export function StageEmptyState({
 }: StageEmptyStateProps) {
   const { iconBg, iconColor } = COLOR_CLASSES[color]
   return (
-    <div className="flex flex-col items-center justify-center text-muted-foreground flex-1">
+    <div className="flex min-h-full flex-col items-center justify-center text-muted-foreground flex-1">
       <div className={`w-12 h-12 rounded-full ${iconBg} flex items-center justify-center mb-3`}>
         <Icon className={`w-6 h-6 ${iconColor}`} />
       </div>
