@@ -170,6 +170,18 @@ describe("Sol migration", () => {
     expect(fetchMock).toHaveBeenCalledTimes(4)
   })
 
+  it("sends the configured step effort, letting call-level effort and explicit provider options win", async () => {
+    fetchMock.mockImplementation(async () => textResponse())
+    const llm = createLLMModel({ modelId, registry: registry(), providerCredentials: credentials, logLevel: "silent", reasoningEffort: "medium" })
+    await llm.generateObject({ schema, messages })
+    await llm.generateObject({ schema, messages, reasoningEffort: "xhigh" })
+    await llm.generateObject({ schema, messages, reasoningEffort: "xhigh", providerOptions: { openai: { reasoningEffort: "high" } } })
+    await client().generateObject({ schema, messages })
+    expect([0, 1, 2, 3].map((index) => body(index).reasoning)).toEqual([
+      { effort: "medium" }, { effort: "xhigh" }, { effort: "high" }, { effort: "low" },
+    ])
+  })
+
   it("AC-4: logs effective parameters and all failed repair usage without double-counting reasoning", async () => {
     fetchMock.mockImplementation(async () => textResponse('{"title":false}'))
     const entries: LlmLogEntry[] = []

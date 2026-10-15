@@ -107,6 +107,18 @@ directory ships only two variants:
   original, and treats raw LaTeX in math leaves as expected (it becomes MathML
   at packaging; see #951).
 
+Both variants end with a short "GPT-6.1 Sol execution guidance" block. It only
+references inputs the prompt actually receives and must not contradict the
+task rules above it (GPT-6 models stall or over-apply instructions when the
+prompt conflicts with itself). Task data is delimited with XML tags:
+`<content_tree>` in both prompts, `<user_instructions>` in the
+`web_generation_html` user message, and `<current_html>` in the visual-review
+user message (built by `packages/pipeline/src/visual-review.ts` for every
+model). `web_generation_html` states the instruction priority explicitly:
+`<user_instructions>` override the default visual choices and the styleguide,
+but never the `data-id`, exact-text, reading-order, allowed-tag or `adt-*`
+type-scale rules.
+
 Every other task resolves the base prompts on Sol. Shared `_*.liquid` includes
 keep their existing lookup and contracts. A goal-oriented rewrite of the full
 prompt set for Sol, validated on a representative page set, is tracked as its
@@ -122,6 +134,37 @@ and agent turns. The installed AI SDK 4/OpenAI 1.3 adapter does not recognize
 GPT-6 reasoning or preserve opaque reasoning output, so Sol uses a scoped REST
 adapter without changing dependencies or other providers. Effective effort is
 `low` for omitted/`none`/`minimal`, and explicit supported efforts are preserved.
+
+### Reasoning effort per step
+
+`low` is the shipped default. Each LLM step can raise it with `reasoning_effort`
+(`none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`) in `config.yaml` or
+the book config:
+
+```yaml
+page_sectioning:
+  reasoning_effort: medium
+render_strategies:
+  llm:
+    render_type: llm
+    config:
+      reasoning_effort: medium
+      visual_refinement:
+        enabled: true
+        reasoning_effort: medium
+```
+
+The field exists on every `StepConfig` step (`metadata`, `book_summary`,
+`book_outline`, `page_sectioning`, `image_meaningfulness`, `image_segmentation`,
+`image_cropping`, `image_captioning`, `translation`, `quiz_generation`,
+`glossary`, `toc_generation`, `easy_read`, `font_assignment`), on `core_tts`,
+on a render strategy's `config` (HTML generation and activity answers) and on
+its `visual_refinement` block (visual review). It is sent as
+`providerOptions.openai.reasoningEffort`; on Sol, `none` and `minimal` still
+become `low`. Other OpenAI models receive the value through the AI SDK, and
+non-OpenAI providers ignore it. Unset leaves today's behaviour and cache keys
+unchanged. A different effort is a different request, so it misses the LLM
+cache. Agents, `html_edit` and translation evaluation do not read the field yet.
 The effective options and adapter/endpoint identity participate in caching;
 legacy caches cannot satisfy Sol requests. Reasoning continuation travels with
 the cached book transcript using `store: false` and encrypted reasoning items.

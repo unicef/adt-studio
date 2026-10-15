@@ -11,6 +11,9 @@ export type InferenceOptions = z.infer<typeof InferenceOptions>
 export const ProviderContinuation = z.array(z.record(z.unknown()))
 export type ProviderContinuation = z.infer<typeof ProviderContinuation>
 
+export const ReasoningEffort = z.enum(["none", "minimal", "low", "medium", "high", "xhigh", "max"])
+export type ReasoningEffort = z.infer<typeof ReasoningEffort>
+
 export const SolReasoningEffort = z.enum(["low", "medium", "high", "xhigh", "max"])
 export type SolReasoningEffort = z.infer<typeof SolReasoningEffort>
 

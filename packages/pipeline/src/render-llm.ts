@@ -90,6 +90,7 @@ export async function renderSectionLlm(
     maxRetries: config.maxRetries,
     maxTokens: 32768,
     temperature: config.temperature,
+    reasoningEffort: config.reasoningEffort,
     timeoutMs: config.timeoutMs,
     signal: options.signal,
     log: {
@@ -131,6 +132,7 @@ export async function renderSectionLlm(
       maxIterations: vr.maxIterations,
       timeoutMs: vr.timeoutMs,
       temperature: vr.temperature,
+      reasoningEffort: vr.reasoningEffort,
       pageImageBase64: input.pageImageBase64,
       additionalPageImages: input.sourcePages,
       promptContext: {
@@ -211,6 +213,7 @@ export async function renderSectionLlm(
       maxRetries: config.maxRetries,
       maxTokens: 4096,
       temperature: config.temperature,
+      reasoningEffort: config.reasoningEffort,
       timeoutMs: config.timeoutMs,
       signal: options.signal,
       log: {

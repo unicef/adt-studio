@@ -429,6 +429,7 @@ export function createFontRoutes(
 
       const model = createLLMModel({
         modelId: assignmentConfig.modelId,
+        reasoningEffort: config.font_assignment?.reasoning_effort,
         cacheDir: llmCacheDir,
         promptEngine,
         rateLimiter,

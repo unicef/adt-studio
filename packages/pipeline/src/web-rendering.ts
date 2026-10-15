@@ -6,6 +6,7 @@ import {
   type SectionRendering,
   type BookTypography,
   type WebRenderingOutput,
+  type ReasoningEffort,
   DEFAULT_LLM_MAX_RETRIES,
   DEFAULT_LLM_MODEL_ID,
 } from "@adt/types"
@@ -21,6 +22,7 @@ export interface VisualRefinementConfig {
   promptName: string
   timeoutMs: number
   temperature: number
+  reasoningEffort?: ReasoningEffort
 }
 
 export interface RenderConfig {
@@ -31,6 +33,7 @@ export interface RenderConfig {
   maxRetries: number
   timeoutMs: number
   temperature: number
+  reasoningEffort?: ReasoningEffort
   // activity fields — answer generation prompt
   answerPromptName: string
   // template fields
@@ -472,6 +475,7 @@ export function buildRenderStrategyResolver(
       maxRetries: cfg?.max_retries ?? DEFAULT_RENDER_CONFIG.max_retries,
       timeoutMs: (cfg?.timeout ?? DEFAULT_RENDER_CONFIG.timeout) * 1000,
       temperature: cfg?.temperature ?? DEFAULT_RENDER_CONFIG.temperature,
+      reasoningEffort: cfg?.reasoning_effort,
       answerPromptName: cfg?.answer_prompt ?? "",
       templateName: cfg?.template ?? "",
       ...(vr?.enabled && {
@@ -484,6 +488,7 @@ export function buildRenderStrategyResolver(
           promptName: appConfig.visual_review_prompt ?? vr.prompt ?? DEFAULT_VISUAL_REFINEMENT.prompt,
           timeoutMs: (vr.timeout ?? DEFAULT_VISUAL_REFINEMENT.timeout) * 1000,
           temperature: vr.temperature ?? DEFAULT_VISUAL_REFINEMENT.temperature,
+          reasoningEffort: vr.reasoning_effort,
         },
       }),
     }

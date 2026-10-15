@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { ReasoningEffort } from "./llm-inference.js"
 
 export const CoreTtsTransformationKind = z.enum([
   "latex-to-speech",
@@ -55,6 +56,7 @@ export const CoreTtsConfig = z.object({
   model: z.string().optional(),
   prompt: z.string().optional(),
   max_retries: z.number().int().min(0).optional(),
+  reasoning_effort: ReasoningEffort.optional(),
   batch_size: z.number().int().min(1).max(200).optional(),
   latex_to_speech: z.boolean().optional(),
   language_normalization: z.boolean().optional(),

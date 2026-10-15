@@ -229,6 +229,7 @@ export function createQuizRoutes(
       const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
       const llmModel = createLLMModel({
         modelId: quizConfig.modelId,
+        reasoningEffort: appConfig.quiz_generation?.reasoning_effort,
         cacheDir,
         promptEngine,
         onLog: (entry) => storage.appendLlmLog(entry),

@@ -1,4 +1,4 @@
-import { visualReviewLLMSchema, DEFAULT_LLM_MODEL_ID } from "@adt/types"
+import { visualReviewLLMSchema, DEFAULT_LLM_MODEL_ID, type ReasoningEffort } from "@adt/types"
 import type { LLMModel, Message, ContentPart } from "@adt/llm"
 import { buildScreenshotHtml } from "./screenshot-html.js"
 import { SCREENSHOT_VIEWPORTS, getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
@@ -31,6 +31,7 @@ export interface RunVisualReviewLoopOptions {
   maxIterations: number
   timeoutMs: number
   temperature?: number
+  reasoningEffort?: ReasoningEffort
   pageImageBase64?: string
   /**
    * Page images for content merged into the section from other pages —
@@ -166,6 +167,7 @@ export async function runVisualReviewLoop(
     maxIterations,
     timeoutMs,
     temperature,
+    reasoningEffort,
     pageImageBase64,
     additionalPageImages,
     promptContext,
@@ -248,7 +250,7 @@ export async function runVisualReviewLoop(
     userParts.push(...screenshotParts)
     userParts.push({
       type: "text",
-      text: `\n${trailingContextText}\n\nCurrent HTML:\n\`\`\`html\n${html}\n\`\`\``,
+      text: `\n${trailingContextText}\n\nCurrent HTML:\n<current_html>\n${html}\n</current_html>`,
     })
     if (pendingValidationFeedback) {
       userParts.push({ type: "text", text: pendingValidationFeedback })
@@ -269,6 +271,7 @@ export async function runVisualReviewLoop(
       maxRetries: 2,
       maxTokens: 16384,
       temperature,
+      reasoningEffort,
       timeoutMs,
       signal,
       log: {

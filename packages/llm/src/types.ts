@@ -1,3 +1,4 @@
+import type { ReasoningEffort } from "@adt/types"
 import type { PromptRenderOptions } from "./prompt.js"
 
 export interface LLMModel {
@@ -42,6 +43,7 @@ export interface GenerateObjectOptions {
   maxTokens?: number
   temperature?: number
   providerOptions?: Record<string, unknown>
+  reasoningEffort?: ReasoningEffort
   timeoutMs?: number
   /** External cancellation signal. Combined with the internal request timeout;
    *  when it aborts, the in-flight call aborts and the retry loop stops. */

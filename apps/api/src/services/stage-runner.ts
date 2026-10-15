@@ -1137,6 +1137,7 @@ async function runExtractStep(
 
     const metadataModel = createLLMModel({
       modelId: metadataConfig.modelId,
+      reasoningEffort: config.metadata?.reasoning_effort,
       cacheDir,
       promptEngine,
       rateLimiter,
@@ -1174,6 +1175,7 @@ async function runExtractStep(
       const bookSummaryConfig = buildBookSummaryConfig(config, summaryLanguage)
       const summaryModel = createLLMModel({
         modelId: bookSummaryConfig.modelId,
+        reasoningEffort: config.book_summary?.reasoning_effort,
         cacheDir,
         promptEngine,
         rateLimiter,
@@ -1204,6 +1206,7 @@ async function runExtractStep(
     const outlineConfig = buildBookOutlineConfig(config)
     const outlineModel = createLLMModel({
       modelId: outlineConfig.modelId,
+      reasoningEffort: config.book_outline?.reasoning_effort,
       cacheDir,
       promptEngine,
       rateLimiter,
@@ -1231,6 +1234,7 @@ async function runExtractStep(
     const meaningfulnessModel = meaningfulnessConfig
       ? createLLMModel({
           modelId: meaningfulnessConfig.modelId,
+          reasoningEffort: config.image_meaningfulness?.reasoning_effort,
           cacheDir,
           promptEngine,
           rateLimiter,
@@ -1243,6 +1247,7 @@ async function runExtractStep(
     const segmentationModel = segmentationConfig
       ? createLLMModel({
           modelId: segmentationConfig.modelId,
+          reasoningEffort: config.image_segmentation?.reasoning_effort,
           cacheDir,
           promptEngine,
           rateLimiter,
@@ -1255,6 +1260,7 @@ async function runExtractStep(
     const croppingModel = croppingConfig
       ? createLLMModel({
           modelId: croppingConfig.modelId,
+          reasoningEffort: config.image_cropping?.reasoning_effort,
           cacheDir,
           promptEngine,
           rateLimiter,
@@ -1379,6 +1385,7 @@ async function runSectioningStep(
 
     const structuringModel = createLLMModel({
       modelId: pageSectioningConfig.modelId,
+      reasoningEffort: config.page_sectioning?.reasoning_effort,
       cacheDir,
       promptEngine,
       rateLimiter,
@@ -1390,6 +1397,7 @@ async function runSectioningStep(
     const translationModel = translationConfig
       ? createLLMModel({
           modelId: translationConfig.modelId,
+          reasoningEffort: config.translation?.reasoning_effort,
           cacheDir,
           promptEngine,
           rateLimiter,
@@ -1425,6 +1433,7 @@ async function runSectioningStep(
       const outlineConfig = buildBookOutlineConfig(config)
       const outlineModel = createLLMModel({
         modelId: outlineConfig.modelId,
+        reasoningEffort: config.book_outline?.reasoning_effort,
         cacheDir,
         promptEngine,
         rateLimiter,
@@ -1854,6 +1863,7 @@ async function runQuizzesStep(
 
     const quizModel = createLLMModel({
       modelId: quizConfig.modelId,
+      reasoningEffort: config.quiz_generation?.reasoning_effort,
       cacheDir,
       promptEngine,
       rateLimiter,
@@ -2012,6 +2022,7 @@ async function runCaptionsStep(
     const captionConfig = buildCaptionConfig(config)
     const captionModel = createLLMModel({
       modelId: captionConfig.modelId,
+      reasoningEffort: config.image_captioning?.reasoning_effort,
       cacheDir,
       promptEngine,
       rateLimiter,
@@ -2200,6 +2211,7 @@ async function runGlossaryStep(
     const glossaryConfig = buildGlossaryConfig(config, language)
     const glossaryModel = createLLMModel({
       modelId: glossaryConfig.modelId,
+      reasoningEffort: config.glossary?.reasoning_effort,
       cacheDir,
       promptEngine,
       rateLimiter,
@@ -2292,6 +2304,7 @@ async function runTocStep(
     const tocConfig = buildTocGenerationConfig(config, language)
     const tocModel = createLLMModel({
       modelId: tocConfig.modelId,
+      reasoningEffort: config.toc_generation?.reasoning_effort,
       cacheDir,
       promptEngine,
       rateLimiter,
@@ -2421,6 +2434,7 @@ async function runEasyReadStep(
       } else {
         const easyReadModel = createLLMModel({
           modelId: easyReadConfig.modelId,
+          reasoningEffort: config.easy_read?.reasoning_effort,
           cacheDir,
           promptEngine,
           rateLimiter,
@@ -2556,6 +2570,7 @@ async function runTranslateStep(
       const translationConfig = buildCatalogTranslationConfig(config, language)
       const translationModel = createLLMModel({
         modelId: translationConfig.modelId,
+        reasoningEffort: config.translation?.reasoning_effort,
         cacheDir,
         promptEngine,
         rateLimiter,
@@ -2643,6 +2658,7 @@ async function runTranslateStep(
     const coreTtsConfig = buildCoreTtsPreparationConfig(config)
     const coreTtsModel = createLLMModel({
       modelId: coreTtsConfig.modelId,
+      reasoningEffort: config.core_tts?.reasoning_effort,
       cacheDir,
       promptEngine,
       rateLimiter,

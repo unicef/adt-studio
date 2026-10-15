@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 import type {
   ProviderManifest,
+  ReasoningEffort,
   StructuredOutputStrategy,
   StructuredTextCapabilities,
 } from "@adt/types"
@@ -62,6 +63,18 @@ export interface CreateLLMModelOptions {
    *  Combined with each request's internal timeout; when it aborts, in-flight
    *  calls abort and the retry loop stops (a run cancel, not a timeout). */
   signal?: AbortSignal
+  reasoningEffort?: ReasoningEffort
+}
+
+export function withReasoningEffort(
+  providerOptions: Record<string, unknown> | undefined,
+  effort: ReasoningEffort | undefined,
+): Record<string, unknown> | undefined {
+  if (!effort) return providerOptions
+  const raw = providerOptions?.openai
+  const openai = raw && typeof raw === "object" ? raw as Record<string, unknown> : {}
+  if (openai.reasoningEffort !== undefined) return providerOptions
+  return { ...providerOptions, openai: { ...openai, reasoningEffort: effort } }
 }
 
 /**
@@ -187,9 +200,12 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
         )
       }
       const effectiveTemperature = supportsTemperature ? opts.temperature : undefined
+      const providerOptions = withReasoningEffort(
+        opts.providerOptions, opts.reasoningEffort ?? options.reasoningEffort,
+      )
       const effective = registry.get(resolved.providerId).inferenceOptionsFor?.(
-        "structured-text", resolved.modelId, opts.providerOptions, strategy,
-      ) ?? { providerOptions: opts.providerOptions }
+        "structured-text", resolved.modelId, providerOptions, strategy,
+      ) ?? { providerOptions }
       let callParams: Record<string, unknown> = {
         requestedModel: modelId, ...effective, strategy,
         resolvedPromptPath,

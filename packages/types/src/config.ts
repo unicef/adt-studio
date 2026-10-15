@@ -6,6 +6,7 @@ import { CoreTtsConfig } from "./core-tts.js"
 import { ReviewerValidationConfig } from "./reviewer-validation-config.js"
 import { TranslationEvaluationConfig } from "./translation-evaluation.js"
 import { REFLOWABLE_FONT_SETTINGS } from "./reflowable-fonts.js"
+import { ReasoningEffort } from "./llm-inference.js"
 
 export const DEFAULT_LLM_MAX_RETRIES = 5
 export const DEFAULT_LLM_MODEL_ID = "openai:gpt-6.1-sol"
@@ -144,6 +145,7 @@ export const StepConfig = z.object({
   max_retries: z.number().int().min(0).optional(),
   timeout: z.number().int().min(1).optional(),
   temperature: z.number().min(0).max(2).optional(),
+  reasoning_effort: ReasoningEffort.optional(),
 })
 export type StepConfig = z.infer<typeof StepConfig>
 
@@ -196,6 +198,7 @@ export const VisualRefinementStrategyConfig = z.object({
   prompt: z.string().optional(),
   timeout: z.number().int().min(1).optional(),
   temperature: z.number().min(0).max(2).optional(),
+  reasoning_effort: ReasoningEffort.optional(),
 })
 export type VisualRefinementStrategyConfig = z.infer<typeof VisualRefinementStrategyConfig>
 
@@ -210,6 +213,7 @@ export const RenderStrategyConfig = z
         max_retries: z.number().int().min(0).optional(),
         timeout: z.number().int().min(1).optional(),
         temperature: z.number().min(0).max(2).optional(),
+        reasoning_effort: ReasoningEffort.optional(),
         // activity render type — answer generation prompt
         answer_prompt: z.string().optional(),
         // template render type
