@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { buildBrowserChildEnv } from "../browser-env.js"
 import { _createScreenshotRenderer, DEFAULT_SCREENSHOT_TIMEOUT_MS } from "../screenshot.js"
 import { runVisualReviewLoop } from "../visual-review.js"
 
@@ -33,7 +32,7 @@ function setupBrowser() {
 }
 
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(0) })
-afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllEnvs() })
 
 const phases = ["context", "page", "content", "fonts", "capture", "cleanup"] as const
 
@@ -50,17 +49,24 @@ function stall(phase: typeof phases[number], mocks: ReturnType<typeof setupBrows
 }
 
 describe("Playwright screenshot lifecycle", () => {
-  it("does not pass provider credentials to Chromium", () => {
-    expect(buildBrowserChildEnv({
-      PATH: "/bin",
-      OPENAI_API_KEY: "openai-secret",
-      ANTHROPIC_AUTH_TOKEN: "anthropic-secret",
-      AZURE_SPEECH_REGION: "region",
-      ADT_ENVIRONMENT: "electron",
-    })).toEqual({
-      PATH: "/bin",
-      ADT_ENVIRONMENT: "electron",
-    })
+  it("passes a credential-filtered environment to Chromium", async () => {
+    setupBrowser()
+    vi.stubEnv("PATH", "/browser-path")
+    vi.stubEnv("ADT_ENVIRONMENT", "electron")
+    vi.stubEnv("CLAUDE_CODE_OAUTH_TOKEN", "claude-oauth-secret")
+    vi.stubEnv("GENERIC_TOKEN", "generic-secret")
+    vi.stubEnv("AWS_SECRET_ACCESS_KEY", "aws-secret")
+
+    await _createScreenshotRenderer()
+
+    const launchOptions = playwright.launch.mock.calls[0]?.[0] as {
+      env: Record<string, string>
+    }
+    expect(launchOptions.env.PATH).toBe("/browser-path")
+    expect(launchOptions.env.ADT_ENVIRONMENT).toBe("electron")
+    expect(launchOptions.env.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined()
+    expect(launchOptions.env.GENERIC_TOKEN).toBeUndefined()
+    expect(launchOptions.env.AWS_SECRET_ACCESS_KEY).toBeUndefined()
   })
 
   it.each(phases)("bounds stalled %s by the whole-capture deadline", async (phase) => {

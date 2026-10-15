@@ -1,9 +1,11 @@
 /**
- * Chromium does not need provider credentials. Keep them out of its inherited
- * environment so a browser child cannot expose server secrets to page content
- * or a renderer running for another request.
+ * Playwright launches Chromium as a child process. Page JavaScript cannot read
+ * this environment, but removing credential-like variables limits exposure if
+ * a renderer is compromised and in Chromium crash reports or child processes.
+ * This helper covers Playwright launches only; Electron BrowserWindow paths are
+ * separate.
  */
-const SECRET_ENV_KEY = /(?:^|_)(?:API_KEY|API_TOKEN|AUTH_TOKEN|SPEECH_KEY|SPEECH_REGION)$/
+const SECRET_ENV_KEY = /(?:^|_)(?:TOKEN|SECRET|PASSWORD|ACCESS_KEY|KEY|SPEECH_REGION)$/i
 
 export function buildBrowserChildEnv(
   source: NodeJS.ProcessEnv = process.env,
