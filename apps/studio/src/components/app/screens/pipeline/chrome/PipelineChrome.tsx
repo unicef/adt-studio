@@ -15,6 +15,7 @@ import { usePipelineNavigation } from "@/components/app/screens/pipeline/shared/
 import { usePipelineState } from "@/components/app/screens/pipeline/shared/usePipelineState"
 import { useDockMinimized } from "@/components/app/screens/pipeline/shared/workspacePrefs"
 import { DockHandle } from "./DockHandle"
+import { WorkspaceTopBar } from "./WorkspaceTopBar"
 
 export interface TopBarTone {
   hex: string
@@ -178,17 +179,23 @@ export function PipelineChrome({ label, children }: { label: string; children: R
   const section = bookSection(pathname)
   const chrome = useChromeRoot(tone.hex)
   const host = useMemo<ChromeHost>(() => ({ slots: { left, center, right }, setTone }), [left, center, right])
+  const workspace = useVariant("tbstyle") === "workspace"
+  const slotRefs = { left: setLeft, center: setCenter, right: setRight }
 
-  if (section === "settings") return <>{children}</>
+  if (section === "settings" && !workspace) return <>{children}</>
 
   return (
     <ChromeContext.Provider value={host}>
       <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
         <div {...chrome} data-top-step={tone.topStep ?? chrome["data-top-step"]} className="shrink-0">
-          <TopBarShell tone={tone} slotRefs={{ left: setLeft, center: setCenter, right: setRight }} />
+          {workspace ? (
+            <WorkspaceTopBar label={label} section={section} stage={tone.stage} slotRefs={slotRefs} />
+          ) : (
+            <TopBarShell tone={tone} slotRefs={slotRefs} />
+          )}
         </div>
         <div className="relative min-h-0 flex-1">{children}</div>
-        <PersistentDock label={label} section={section} />
+        {section !== "settings" && <PersistentDock label={label} section={section} />}
       </div>
     </ChromeContext.Provider>
   )

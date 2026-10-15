@@ -7,6 +7,7 @@ import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
 import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { FOUNDATIONS, PLUGINS, type DockEntry, type DockSlug } from "./plugins"
 import { STEP_PREREQ, isStepLocked, type StageEvidence } from "./stepPrereq"
+import { useFlowSim } from "@/components/app/lab/flowSim"
 
 export type DockState = "done" | "running" | "queued" | "error" | "ready" | "locked"
 
@@ -45,6 +46,7 @@ export const ARTIFACT_DERIVED_SLUGS: ReadonlySet<DockSlug> = new Set<DockSlug>([
 ])
 
 export function usePipelineState(label: string): PipelineState {
+  const [flowSim] = useFlowSim()
   const booksQuery = useBooks()
   const pagesQuery = usePages(label)
   const { stageState } = useBookRun()
@@ -103,6 +105,7 @@ export function usePipelineState(label: string): PipelineState {
     // step_runs with no notion of running or queued, so a re-run of a finished
     // stage kept showing it as done.
     const resolveState = (slug: DockSlug, locked: boolean): DockState => {
+      if (slug === "glossary" && flowSim.content !== "final") return flowSim.content === "running" ? "running" : "error"
       if (slug === "sign-language" && signLanguageDone) return "done"
       if (slug === "validation" && validationDone) return "done"
       const run = stageState(slug)
@@ -137,5 +140,5 @@ export function usePipelineState(label: string): PipelineState {
       foundations: FOUNDATIONS.map((item) => toItem(item, isLocked(item.slug))),
       plugins: PLUGINS.map((item) => toItem(item, isLocked(item.slug))),
     }
-  }, [book, pagesQuery.data, booksQuery.isLoading, pagesQuery.isLoading, booksQuery.error, pagesQuery.error, stageState, signLanguageDone, validationDone])
+  }, [book, pagesQuery.data, booksQuery.isLoading, pagesQuery.isLoading, booksQuery.error, pagesQuery.error, stageState, signLanguageDone, validationDone, flowSim.content])
 }

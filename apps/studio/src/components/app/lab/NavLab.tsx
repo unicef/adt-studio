@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo } from "react"
 import { useLingui } from "@lingui/react/macro"
-import { Link2, PanelLeft, RotateCcw } from "lucide-react"
+import { Link2, PanelBottom, PanelLeft, PanelTop, RotateCcw, SignpostBig } from "lucide-react"
 import { useRouter } from "@tanstack/react-router"
 import { createPersistentStore } from "@/hooks/create-persistent-store"
 import { readThemeMode, setThemeMode } from "@/lib/theme"
-import { DevToolbar, type LabControl, type LabValues } from "./DevToolbar"
+import { DevToolbar, type LabControl, type LabGroup, type LabValues } from "./DevToolbar"
 import { clearAddedOutputs, clearNeedsDismissed } from "./outputs"
+import { setFlowSim, useFlowSim } from "./flowSim"
+import { resetNextSkipped } from "@/components/app/screens/pipeline/shared/contentFlow"
 import { stopScenario } from "./simulate"
 import { applyState, clearActiveState, statesFor } from "./testPlan/states"
 import { LAB_TESTS, RECOMMENDED, TEST_BOOKS } from "./testPlan/tests"
@@ -13,7 +15,7 @@ import { getVariant, resetVariants, setVariantValue, useVariants, type VariantKe
 
 export const NAV_LAB_PARAM = "navlab"
 
-const DOCK_KEYS = ["dockstyle", "docklabels"] as const
+const DOCK_KEYS = ["dockstyle", "docklabels", "tbstyle", "tbleft", "tbcenter", "docklayout", "hoverstyle", "nextcue", "dockorder"] as const
 
 interface NavLabState {
   on: boolean
@@ -62,6 +64,7 @@ export function NavLab() {
   const router = useRouter()
   const variants = useVariants()
   const [state, setState] = store.use()
+  const [flowSim] = useFlowSim()
 
   const books = [
     { value: "ready", label: t`Ready` },
@@ -82,17 +85,138 @@ export function NavLab() {
       ],
     },
   ]
-  const controls: LabControl[] = [
+  const groups: LabGroup[] = [
     {
-      key: "dockstyle",
-      label: t`Dock style`,
-      cycle: true,
-      options: [
-        { value: "pills", label: t`Pills` },
-        { value: "leading", label: t`Storyboard first` },
+      key: "dock",
+      label: t`Dock`,
+      icon: <PanelBottom className="size-3.5" />,
+      controls: [
+        {
+          key: "dockstyle",
+          label: t`Dock style`,
+          cycle: true,
+          options: [
+            { value: "pills", label: t`Pills` },
+            { value: "leading", label: t`Storyboard first` },
+          ],
+        },
+        ...(tabs
+          ? [
+              {
+                key: "docklayout",
+                label: t`Layout`,
+                options: [
+                  { value: "groups", label: t`Groups` },
+                  { value: "flat", label: t`Every step` },
+                  { value: "path", label: t`Add button` },
+                ],
+              },
+              ...(variants.docklayout === "flat"
+                ? [
+                    {
+                      key: "hoverstyle",
+                      label: t`Hover`,
+                      options: [
+                        { value: "popover", label: t`Popover` },
+                        { value: "sheet", label: t`Sheet` },
+                        { value: "morph", label: t`Morph` },
+                      ],
+                    },
+                  ]
+                : []),
+            ]
+          : pillControls),
       ],
+      note: tabs
+        ? t`Decided: icon groups (Setup, Accessibility, Enhancements, Languages & voices), sheet menu, gliding highlight, Ink · theme, instant screen changes. Outputs join the book once they run.`
+        : t`The dock as it is today, plus a Storyboard pill.`,
     },
-    ...(tabs ? [] : pillControls),
+    {
+      key: "flow",
+      label: t`Flow`,
+      icon: <SignpostBig className="size-3.5" />,
+      controls: [
+        {
+          key: "nextcue",
+          label: t`What's next`,
+          cycle: true,
+          options: [
+            { value: "chip", label: t`Chip` },
+            { value: "card", label: t`Card` },
+            { value: "menu", label: t`In menu` },
+          ],
+        },
+        {
+          key: "dockorder",
+          label: t`Show the order`,
+          options: [
+            { value: "none", label: t`Hidden` },
+            { value: "arrow", label: t`Arrow` },
+            { value: "cluster", label: t`Grouped` },
+          ],
+        },
+        {
+          key: "flowcontent",
+          label: t`Simulate: content`,
+          options: [
+            { value: "final", label: t`Final` },
+            { value: "running", label: t`Glossary running` },
+            { value: "failed", label: t`Glossary failed` },
+          ],
+        },
+        {
+          key: "flowchanged",
+          label: t`Simulate: after translating`,
+          options: [
+            { value: "none", label: t`Nothing new` },
+            { value: "terms", label: t`3 new terms` },
+          ],
+        },
+      ],
+      note: t`Translation copies every text, so it comes after your content. Skipped suggestions come back when you switch Book.`,
+    },
+    {
+      key: "topbar",
+      label: t`Top bar`,
+      icon: <PanelTop className="size-3.5" />,
+      controls: [
+        {
+          key: "tbstyle",
+          label: t`Style`,
+          cycle: true,
+          options: [
+            { value: "current", label: t`Today` },
+            { value: "workspace", label: t`Workspace` },
+          ],
+        },
+        ...(variants.tbstyle === "workspace"
+          ? [
+              {
+                key: "tbleft",
+                label: t`Left`,
+                options: [
+                  { value: "book", label: t`Book name` },
+                  { value: "tabs", label: t`Area tabs` },
+                ],
+              },
+              {
+                key: "tbcenter",
+                label: t`Centre`,
+                options: [
+                  { value: "location", label: t`Where you are` },
+                  { value: "status", label: t`Step status` },
+                ],
+              },
+            ]
+          : []),
+      ],
+      note:
+        variants.tbstyle === "workspace"
+          ? t`Based on Ycode: one bar for the book. Right side: run status, ▶ Preview, Export.`
+          : t`Today's bar: Home, then what each screen adds.`,
+    },
+  ]
+  const controls: LabControl[] = [
     { key: "book", label: t`Book`, options: books },
     {
       key: "theme",
@@ -141,6 +265,15 @@ export function NavLab() {
   const values: LabValues = {
     dockstyle: variants.dockstyle,
     docklabels: variants.docklabels,
+    tbstyle: variants.tbstyle,
+    docklayout: variants.docklayout,
+    hoverstyle: variants.hoverstyle,
+    nextcue: variants.nextcue,
+    dockorder: variants.dockorder,
+    flowcontent: flowSim.content,
+    flowchanged: flowSim.changed,
+    tbleft: variants.tbleft,
+    tbcenter: variants.tbcenter,
     book: state.book,
     theme: readThemeMode() === "dark" ? "dark" : "light",
   }
@@ -150,6 +283,14 @@ export function NavLab() {
       setVariantValue(key as VariantKey, value)
       return
     }
+    if (key === "flowcontent") {
+      setFlowSim((current) => ({ ...current, content: value as typeof current.content }))
+      return
+    }
+    if (key === "flowchanged") {
+      setFlowSim((current) => ({ ...current, changed: value as typeof current.changed }))
+      return
+    }
     if (key === "theme") {
       setThemeMode(value === "dark" ? "dark" : "light")
       setState((current) => ({ ...current }))
@@ -157,6 +298,7 @@ export function NavLab() {
     }
     const next = { ...state, [key]: value }
     next.screen = "storyboard"
+    if (key === "book") resetNextSkipped()
     setState(next)
     go(next.book, next.screen)
   }
@@ -174,6 +316,7 @@ export function NavLab() {
   return (
     <DevToolbar
       controls={controls}
+      groups={groups}
       values={values}
       onChange={onChange}
       actions={[

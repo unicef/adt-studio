@@ -20,6 +20,7 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { useBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SpeechPreview } from "@/components/pipeline/stages/speech/components/SpeechPreview"
+import { useContentFlow, useFlowCopy } from "@/components/app/screens/pipeline/shared/contentFlow"
 
 type ProviderKey = "openai" | "azure" | "gemini" | "elevenlabs"
 
@@ -40,6 +41,8 @@ const PROVIDER_HINTS: Record<ProviderKey, MessageDescriptor> = {
 const SHOW_VOICES_ACCENTS_CARD = false
 
 export function SpeechLanding({ bookLabel, beforeRun }: { bookLabel: string; beforeRun?: ReactNode }) {
+  const flow = useContentFlow(bookLabel)
+  const flowCopy = useFlowCopy()
   const { t } = useLingui()
   const friendly = useVariant("features") === "suggested"
   const { data: bookConfigData } = useBookConfig(bookLabel)
@@ -178,6 +181,11 @@ export function SpeechLanding({ bookLabel, beforeRun }: { bookLabel: string; bef
       beforeRun={beforeRun}
       bookLabel={bookLabel}
       stageSlug="speech"
+      runWarning={
+        flow.unfinished.length > 0
+          ? { title: flowCopy.warningTitle, description: flowCopy.warningBody(flow.unfinished), confirmLabel: <Trans>Generate anyway</Trans> }
+          : null
+      }
       isRunning={status.isRunning}
       isCompleted={status.isCompleted}
       hasError={status.hasError}

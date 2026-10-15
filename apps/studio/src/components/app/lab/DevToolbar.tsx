@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { useLingui } from "@lingui/react/macro"
-import { FlaskConical, X } from "lucide-react"
+import { ChevronDown, FlaskConical, X } from "lucide-react"
 import { createPersistentStore } from "@/hooks/create-persistent-store"
 
 export interface LabOption {
@@ -33,6 +33,7 @@ export interface LabGroup {
 export type LabValues = Record<string, string>
 
 const hiddenStore = createPersistentStore<boolean>("adt.lab.toolbar-hidden", false, (value): value is boolean => typeof value === "boolean")
+const collapsedStore = createPersistentStore<boolean>("adt.lab.toolbar-collapsed", false, (value): value is boolean => typeof value === "boolean")
 const groupStore = createPersistentStore<string>("adt.lab.toolbar-group", "", (value): value is string => typeof value === "string")
 
 function Segment({ control, value, onChange }: { control: LabControl; value: string; onChange: (value: string) => void }) {
@@ -79,6 +80,7 @@ export function DevToolbar({
   const { t } = useLingui()
   const [hidden, setHidden] = hiddenStore.use()
   const [groupKey, setGroupKey] = groupStore.use()
+  const [collapsed, setCollapsed] = collapsedStore.use()
   const [shown, setShown] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const group = groups.find((candidate) => candidate.key === groupKey) ?? groups[0]
@@ -145,7 +147,10 @@ export function DevToolbar({
                       type="button"
                       role="tab"
                       aria-selected={active}
-                      onClick={() => setGroupKey(candidate.key)}
+                      onClick={() => {
+                        setGroupKey(candidate.key)
+                        setCollapsed(false)
+                      }}
                       className={
                         "flex h-8 items-center gap-1.5 whitespace-nowrap rounded-[10px] px-3 text-[12.5px] font-semibold transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.97] motion-reduce:transition-none " +
                         (active ? "bg-white text-zinc-900 shadow-sm" : "text-white/65 hover:bg-white/10 hover:text-white")
@@ -156,7 +161,29 @@ export function DevToolbar({
                     </button>
                   )
                 })}
+                <button
+                  type="button"
+                  onClick={() => setCollapsed((current) => !current)}
+                  aria-expanded={!collapsed}
+                  aria-label={collapsed ? t`Expand the lab toolbar` : t`Collapse the lab toolbar`}
+                  title={collapsed ? t`Expand` : t`Collapse`}
+                  className="ml-auto grid size-8 shrink-0 place-items-center rounded-[10px] text-white/60 transition-[background-color,color] duration-150 ease-out hover:bg-white/10 hover:text-white"
+                >
+                  <ChevronDown className={"size-4 transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none " + (collapsed ? "rotate-180" : "rotate-0")} />
+                </button>
               </div>
+            </>
+          )}
+          <div
+            className={
+              "grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none " +
+              (group && collapsed ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100")
+            }
+            inert={!!group && collapsed}
+          >
+          <div className="flex min-h-0 flex-col gap-1 overflow-hidden">
+          {group && (
+            <>
               <div key={group.key} role="tabpanel" className="flex flex-col gap-1 animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out motion-reduce:animate-none">
                 {group.controls.map((control) => (
                   <Segment key={control.key} control={control} value={values[control.key]} onChange={(value) => onChange(control.key, value)} />
@@ -195,6 +222,8 @@ export function DevToolbar({
           >
             <X className="size-4" />
           </button>
+          </div>
+          </div>
           </div>
         </div>
       )}

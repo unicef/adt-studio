@@ -32,12 +32,15 @@ import { displayLang } from "@/components/pipeline/stages/languages/lib/display-
 import { SelectImagesDialog } from "@/components/pipeline/stages/languages/components/SelectImagesDialog"
 import { ImageTranslationVisual } from "@/components/pipeline/stages/languages/components/ImageTranslationVisual"
 import { LanguagePreview } from "@/components/pipeline/stages/languages/components/LanguagePreview"
+import { useContentFlow, useFlowCopy } from "@/components/app/screens/pipeline/shared/contentFlow"
 
 const viewTransitionNameFor = (code: string) => `lang-chip-${code.replace(/[^a-zA-Z0-9_-]/g, "_")}`
 
 export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; beforeRun?: ReactNode }) {
   const { t } = useLingui()
   const friendly = useVariant("features") === "suggested"
+  const flow = useContentFlow(bookLabel)
+  const flowCopy = useFlowCopy()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const { data: book } = useBook(bookLabel)
@@ -201,7 +204,9 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
         />
       }
       runWarning={
-        isFixedLayout && hasAdditionalLanguages
+        flow.unfinished.length > 0
+          ? { title: flowCopy.warningTitle, description: flowCopy.warningBody(flow.unfinished), confirmLabel: <Trans>Translate anyway</Trans> }
+          : isFixedLayout && hasAdditionalLanguages
           ? {
               title: <FixedLayoutWarningTitle />,
               description: <FixedLayoutExtraLanguagesDescription />,

@@ -142,6 +142,7 @@ export function StageRerunButton({ slug, rerun, variant = "header" }: StageRerun
           onOpenChange={setWarnOpen}
           title={rerun.warning.title}
           description={rerun.warning.description}
+          confirmLabel={rerun.warning.confirmLabel}
           confirmColorClass={confirmColorClass}
           onConfirm={() => {
             setWarnOpen(false)

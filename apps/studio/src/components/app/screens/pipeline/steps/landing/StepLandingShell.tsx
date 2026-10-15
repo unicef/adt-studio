@@ -35,7 +35,7 @@ export interface StepLandingShellProps {
   previewBodyClassName?: string
   onRun: () => void
   preview: ReactNode
-  runWarning?: { title: ReactNode; description: ReactNode } | null
+  runWarning?: { title: ReactNode; description: ReactNode; confirmLabel?: ReactNode } | null
   hideRunButton?: boolean
   beforeRun?: ReactNode
   title?: ReactNode
@@ -333,6 +333,7 @@ export function StepLandingShell({
           onOpenChange={setWarnOpen}
           title={runWarning.title}
           description={runWarning.description}
+          confirmLabel={runWarning.confirmLabel}
           confirmColorClass={hasError ? "bg-destructive" : (stage?.color ?? "bg-gray-600")}
           onConfirm={() => {
             setWarnOpen(false)

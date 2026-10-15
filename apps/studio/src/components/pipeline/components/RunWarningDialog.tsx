@@ -25,6 +25,7 @@ export function RunWarningDialog({
   title,
   description,
   confirmColorClass,
+  confirmLabel,
   onConfirm,
 }: {
   open: boolean
@@ -32,6 +33,7 @@ export function RunWarningDialog({
   title: ReactNode
   description: ReactNode
   confirmColorClass: string
+  confirmLabel?: ReactNode
   onConfirm: () => void
 }) {
   return (
@@ -71,7 +73,7 @@ export function RunWarningDialog({
             )}
           >
             <Play className="w-4 h-4 mr-2" />
-            <Trans>Run anyway</Trans>
+            {confirmLabel ?? <Trans>Run anyway</Trans>}
           </Button>
         </DialogFooter>
       </DialogContent>

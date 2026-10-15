@@ -53,6 +53,13 @@ export interface VariantState {
   landing: "current" | "action-first" | "compact"
   dockstyle: "pills" | "leading"
   docklabels: "current" | "hover"
+  tbstyle: "current" | "workspace"
+  docklayout: "groups" | "flat" | "path"
+  hoverstyle: "popover" | "sheet" | "morph"
+  nextcue: "chip" | "card" | "menu"
+  dockorder: "none" | "arrow" | "cluster"
+  tbleft: "book" | "tabs"
+  tbcenter: "location" | "status"
   running: "current" | "live" | "strip"
   return: "current" | "banner" | "toast"
   tree: "off" | "rail" | "floating"
@@ -169,6 +176,73 @@ export const VARIANT_GROUPS = [
     options: [
       { value: "pills", label: msg`Pills`, hint: msg`Today's dock: every step is its own coloured circle.` },
       { value: "leading", label: msg`Storyboard first`, hint: msg`Storyboard leads the bar, then icon groups: Setup, Accessibility, Enhancements and Languages & voices. Whatever you're on fills with its colour.` },
+    ],
+  },
+  {
+    key: "docklayout",
+    icon: PanelBottom,
+    label: msg`Dock layout`,
+    options: [
+      { value: "groups", label: msg`Groups`, hint: msg`Storyboard, then group icons (Accessibility, Enhancements, Languages & voices) that open a menu.` },
+      { value: "flat", label: msg`Every step`, hint: msg`No groups: every step is its own icon in order, steps not in the book are dashed. Hover explains a step; one click opens it.` },
+      { value: "path", label: msg`Add button`, hint: msg`Just the Storyboard, the step you're on and an Add button whose menu explains every feature and the order to do them in.` },
+    ],
+  },
+  {
+    key: "hoverstyle",
+    icon: MousePointerClick,
+    label: msg`Step hover`,
+    options: [
+      { value: "popover", label: msg`Popover`, hint: msg`A detailed card floats above the step you hover.` },
+      { value: "sheet", label: msg`Sheet`, hint: msg`The dock opens upward like its menus and shows the step in a wide layout.` },
+      { value: "morph", label: msg`Morph`, hint: msg`The dock grows a bubble upward right where you hover, and the card unfolds inside it.` },
+    ],
+  },
+  {
+    key: "nextcue",
+    icon: SignpostBig,
+    label: msg`What's next cue`,
+    options: [
+      { value: "chip", label: msg`Chip on the dock`, hint: msg`A small "Next" badge on the dock group to visit next; the step is marked inside.` },
+      { value: "card", label: msg`Card above the dock`, hint: msg`A card above the dock on the storyboard: the suggested step, Open and Not now.` },
+      { value: "menu", label: msg`Inside the menu`, hint: msg`Nothing on the bar; the suggestion shows when you open the group.` },
+    ],
+  },
+  {
+    key: "dockorder",
+    icon: SignpostBig,
+    label: msg`Dock order`,
+    options: [
+      { value: "none", label: msg`Hidden`, hint: msg`The groups sit side by side; the order only shows through hints and warnings.` },
+      { value: "arrow", label: msg`Arrow`, hint: msg`A small arrow before Languages & voices: your content first, then languages.` },
+      { value: "cluster", label: msg`Grouped`, hint: msg`Accessibility and Enhancements share a soft background, then an arrow to Languages & voices.` },
+    ],
+  },
+  {
+    key: "tbstyle",
+    icon: PanelTop,
+    label: msg`Top bar style`,
+    options: [
+      { value: "current", label: msg`Today`, hint: msg`Home, then what each screen puts in the bar.` },
+      { value: "workspace", label: msg`Workspace`, hint: msg`One bar for the whole book, like a design tool: logo, book, where you are, then run status, Preview and Export.` },
+    ],
+  },
+  {
+    key: "tbleft",
+    icon: PanelTop,
+    label: msg`Top bar left`,
+    options: [
+      { value: "book", label: msg`Book name`, hint: msg`The logo and the book's name.` },
+      { value: "tabs", label: msg`Area tabs`, hint: msg`The logo and tabs for Storyboard, Settings and Export.` },
+    ],
+  },
+  {
+    key: "tbcenter",
+    icon: PanelTop,
+    label: msg`Top bar centre`,
+    options: [
+      { value: "location", label: msg`Where you are`, hint: msg`The page or step you're looking at sits in the middle; step status moves to the right.` },
+      { value: "status", label: msg`Step status`, hint: msg`The step's status sits in the middle; the page or step name moves to the left.` },
     ],
   },
   {
@@ -298,6 +372,13 @@ export const GROUP_META: Record<VariantKey, { tier: VariantTier }> = {
   landing: { tier: "step" },
   dockstyle: { tier: "layout" },
   docklabels: { tier: "layout" },
+  tbstyle: { tier: "layout" },
+  docklayout: { tier: "layout" },
+  hoverstyle: { tier: "layout" },
+  nextcue: { tier: "layout" },
+  dockorder: { tier: "layout" },
+  tbleft: { tier: "layout" },
+  tbcenter: { tier: "layout" },
   running: { tier: "step" },
   loaders: { tier: "step" },
 }
@@ -306,11 +387,11 @@ export const GROUP_META: Record<VariantKey, { tier: VariantTier }> = {
 export type LabStep = "extract" | "sectioning" | "storyboard" | "output" | "validation" | "preview"
 
 export const STEP_GROUPS: Record<LabStep, VariantKey[]> = {
-  extract: ["dockstyle", "docklabels", "panels", "topnav", "topstep", "topstatus", "topaction", "topother"],
-  sectioning: ["dockstyle", "docklabels", "panels", "topnav", "topstep", "topstatus", "topaction", "topother"],
-  storyboard: ["dockstyle", "docklabels", "panels", "topbook", "topnav", "topstatus", "topaction", "features", "tree", "editor", "ai", "loaders", "boot"],
-  output: ["dockstyle", "docklabels", "panels", "topnav", "topstep", "topstatus", "topaction", "topother", "landing", "running", "return", "features"],
-  validation: ["dockstyle", "docklabels", "panels", "topnav", "topstep", "topstatus", "topaction", "topother", "landing", "running", "return"],
+  extract: ["dockstyle", "docklabels", "tbstyle", "tbleft", "tbcenter", "docklayout", "hoverstyle", "nextcue", "dockorder", "panels", "topnav", "topstep", "topstatus", "topaction", "topother"],
+  sectioning: ["dockstyle", "docklabels", "tbstyle", "tbleft", "tbcenter", "docklayout", "hoverstyle", "nextcue", "dockorder", "panels", "topnav", "topstep", "topstatus", "topaction", "topother"],
+  storyboard: ["dockstyle", "docklabels", "tbstyle", "tbleft", "tbcenter", "docklayout", "hoverstyle", "nextcue", "dockorder", "panels", "topbook", "topnav", "topstatus", "topaction", "features", "tree", "editor", "ai", "loaders", "boot"],
+  output: ["dockstyle", "docklabels", "tbstyle", "tbleft", "tbcenter", "docklayout", "hoverstyle", "nextcue", "dockorder", "panels", "topnav", "topstep", "topstatus", "topaction", "topother", "landing", "running", "return", "features"],
+  validation: ["dockstyle", "docklabels", "tbstyle", "tbleft", "tbcenter", "docklayout", "hoverstyle", "nextcue", "dockorder", "panels", "topnav", "topstep", "topstatus", "topaction", "topother", "landing", "running", "return"],
   preview: ["topother", "export"],
 }
 
@@ -337,6 +418,13 @@ export const DEFAULT_VARIANTS: VariantState = {
   landing: "current",
   dockstyle: "pills",
   docklabels: "current",
+  tbstyle: "workspace",
+  docklayout: "groups",
+  hoverstyle: "popover",
+  nextcue: "chip",
+  dockorder: "arrow",
+  tbleft: "book",
+  tbcenter: "location",
   running: "current",
   return: "current",
   tree: "off",

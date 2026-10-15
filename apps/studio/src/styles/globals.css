@@ -887,6 +887,9 @@ body:has([data-pipeline-dock="shown"]) [data-sonner-toaster][data-y-position="bo
 [data-chrome="topbar"][data-stage] :is(.hover\:bg-white\/16, .hover\:bg-white\/24):hover {
   background: var(--accent);
 }
+[data-chrome-panels="arc"] [data-chrome="topbar"][data-tb-style="workspace"] {
+  border-bottom-color: var(--border);
+}
 [data-chrome-panels="arc"] [aria-label="Book setup"] {
   background: transparent;
   border-bottom-color: transparent;

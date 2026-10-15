@@ -29,7 +29,9 @@ import { isHiddenByJourney } from "@/components/app/lab/simulate";
 import { toast } from "@/components/ui/sonner";
 import { useBookRun } from "@/hooks/use-book-run";
 import { usePipelineNavigation } from "@/components/app/screens/pipeline/shared/usePipelineNavigation";
-import { DockLeading } from "./DockLeading";
+import { DockLeading } from "./dock/DockLeading";
+import { NextStepCard } from "./NextStepCue";
+import { useContentFlow, useFlowCopy, useNextSuggestion } from "@/components/app/screens/pipeline/shared/contentFlow";
 
 const PRESENT_STATES = new Set<DockItem["state"]>(["done", "running", "queued", "error"]);
 
@@ -230,6 +232,18 @@ export function PluginDockPills({
   const available = featuresMode ? plugins.filter((item) => !present(item)) : [];
   const groups = groupDockEntries([...foundations, ...shownPlugins]);
   const dockStyle = useVariant("dockstyle");
+  const nextCue = useVariant("nextcue");
+  const dockLayout = useVariant("docklayout");
+  const hoverStyle = useVariant("hoverstyle");
+  const dockOrder = useVariant("dockorder");
+  const flow = useContentFlow(bookLabel ?? "");
+  const flowCopy = useFlowCopy();
+  const { next, skip } = useNextSuggestion(bookLabel ?? "");
+  const notices: Partial<Record<string, string>> = flow.unfinished.length > 0
+    ? { translate: flowCopy.waitFor(flow.unfinished), speech: flowCopy.waitFor(flow.unfinished) }
+    : flow.outOfDate
+      ? { translate: flowCopy.outOfDate(flow.outOfDate) }
+      : {};
   const addAndOpen = (slug: string) => {
     markJustAdded(slug);
     onOpenPlugin(slug);
@@ -250,7 +264,23 @@ export function PluginDockPills({
         )}
       >
         {hint && <div className="rounded-full border bg-card px-3 py-1 text-[10.5px] text-muted-foreground">{hint}</div>}
+        {nextCue === "card" && dockLayout !== "flat" && next && onStoryboard && (
+          <NextStepCard
+            next={next}
+            item={plugins.find((candidate) => candidate.slug === next.slug)}
+            onOpen={() => onOpenPlugin(next.slug)}
+            onSkip={() => skip(next.key)}
+          />
+        )}
         <DockLeading
+          layout={dockLayout}
+          hoverStyle={hoverStyle}
+          next={next}
+          cue={nextCue}
+          order={dockOrder}
+          notices={notices}
+          attention={flow.outOfDate ? ["translate"] : []}
+          onSkipNext={skip}
           book={bookLabel ?? ""}
           groups={tabGroups}
           available={available}

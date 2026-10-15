@@ -37,6 +37,7 @@ export function PipelineTopBar({
   const { data: books } = useBooks()
   const tbNav = useVariant("topnav")
   const tbBook = useVariant("topbook")
+  const workspace = useVariant("tbstyle") === "workspace"
   const book = books?.find((candidate) => candidate.label === label)
   const title = books?.find((book) => book.label === label)?.title || label
   const exportVariant = useVariant("export")
@@ -50,16 +51,16 @@ export function PipelineTopBar({
       tone={{ hex: STORYBOARD_HEX, topStep: "home" }}
       left={
         <nav aria-label={t`Breadcrumb`} className="flex min-w-0 items-center gap-2 text-[13px]">
-          {tbNav === "crumbs" && <ChevronRight aria-hidden className="-ml-2 size-3.5 shrink-0 text-muted-foreground/50" />}
-          {tbBook === "cover" && book && (
+          {!workspace && tbNav === "crumbs" && <ChevronRight aria-hidden className="-ml-2 size-3.5 shrink-0 text-muted-foreground/50" />}
+          {!workspace && tbBook === "cover" && book && (
             <span className="h-7 w-[21px] shrink-0 overflow-hidden rounded-[4px] shadow-[0_1px_3px_rgb(0_0_0/0.2)] [&>div]:rounded-[4px] [&>div]:border-0">
               <BookCover title={title} author={book.authors.join(", ")} cover={deriveCover(book)} fit="cover" />
             </span>
           )}
-          <span title={title} className={cn("max-w-[260px] truncate", tbBook === "cover" ? "font-medium text-foreground" : "text-muted-foreground")}>{title}</span>
+          {!workspace && <span title={title} className={cn("max-w-[260px] truncate", tbBook === "cover" ? "font-medium text-foreground" : "text-muted-foreground")}>{title}</span>}
           {pageLabel && (
             <>
-              <span className="text-muted-foreground/50">/</span>
+              {!workspace && <span className="text-muted-foreground/50">/</span>}
               <span className="truncate font-semibold">{pageLabel}</span>
             </>
           )}
@@ -87,7 +88,7 @@ export function PipelineTopBar({
       right={
         <>
           {rerun}
-          {onPreview && (
+          {!workspace && onPreview && (
             <button
               type="button"
               onClick={onPreview}
@@ -102,7 +103,7 @@ export function PipelineTopBar({
               <Trans>Preview</Trans>
             </button>
           )}
-          {exportVariant === "topbar" && (
+          {!workspace && exportVariant === "topbar" && (
             <button
               type="button"
               onClick={() => void navigate({ to: "/pipeline/$label/export", params: { label } })}
@@ -117,8 +118,8 @@ export function PipelineTopBar({
               <Trans>Export</Trans>
             </button>
           )}
-          <PipelineRunIndicator />
-          <BookInfoPopover label={label} triggerClassName={cn("size-8 rounded-lg border transition-colors", buttonTone)} />
+          {!workspace && <PipelineRunIndicator />}
+          {!workspace && <BookInfoPopover label={label} triggerClassName={cn("size-8 rounded-lg border transition-colors", buttonTone)} />}
         </>
       }
     />

@@ -36,9 +36,10 @@ function StageBlock({ stage }: { stage: RunStageActivity }) {
 
 export interface PipelineRunIndicatorProps {
   className?: string
+  variant?: "icon" | "text"
 }
 
-export function PipelineRunIndicator({ className }: PipelineRunIndicatorProps) {
+export function PipelineRunIndicator({ className, variant = "icon" }: PipelineRunIndicatorProps) {
   const { t } = useLingui()
   const run = useRunActivity()
   const active = run.badgeCount > 0
@@ -46,6 +47,20 @@ export function PipelineRunIndicator({ className }: PipelineRunIndicatorProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
+        {variant === "text" ? (
+          <button
+            type="button"
+            title={active ? t`${plural(run.badgeCount, { one: "# pipeline step running", other: "# pipeline steps running" })}` : t`Nothing is running`}
+            className={cn(
+              "flex h-8 items-center gap-1.5 rounded-lg px-2 text-[13px] font-medium transition-colors hover:bg-muted",
+              active ? "text-brand-700 dark:text-brand-300" : "text-muted-foreground",
+              className,
+            )}
+          >
+            {active ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" /> : <span className="size-1.5 rounded-full bg-emerald-500" />}
+            {active ? <Trans>Running</Trans> : <Trans>Ready</Trans>}
+          </button>
+        ) : (
         <button
           type="button"
           title={active ? t`${plural(run.badgeCount, { one: "# pipeline step running", other: "# pipeline steps running" })}` : t`Pipeline`}
@@ -66,6 +81,7 @@ export function PipelineRunIndicator({ className }: PipelineRunIndicatorProps) {
             </span>
           )}
         </button>
+        )}
       </PopoverTrigger>
 
       <PopoverContent align="end" className="w-[336px] p-2.5">

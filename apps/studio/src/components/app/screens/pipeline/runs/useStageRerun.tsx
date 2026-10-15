@@ -15,10 +15,13 @@ import type { DockSlug } from "@/components/app/screens/pipeline/shared/plugins"
 import { stepPrereqReason } from "@/components/app/screens/pipeline/shared/stepPrereq"
 import { useStageRun } from "./useStageRun"
 import { useStepPrereq } from "./useStepPrereq"
+import { useContentFlow, useFlowCopy } from "@/components/app/screens/pipeline/shared/contentFlow"
+import { Trans } from "@lingui/react/macro"
 
 export interface StageRerunWarning {
   title: ReactNode
   description: ReactNode
+  confirmLabel?: ReactNode
 }
 
 export interface StageRerun {
@@ -43,6 +46,8 @@ export function useStageRerun(label: string, slug: DockSlug): StageRerun {
   const isFixedLayout = useIsFixedLayout(label)
   const { isCancelling, cancelRun, stageState } = useBookRun()
   const { runEasyRead } = useRunEasyRead(label)
+  const flow = useContentFlow(label)
+  const flowCopy = useFlowCopy()
 
   const queueStage = stageRun.run
   const run = useCallback(() => {
@@ -64,8 +69,17 @@ export function useStageRerun(label: string, slug: DockSlug): StageRerun {
       ? t`Add an API key in Book settings to re-run ${name}.`
       : null
 
-  const warning =
-    isFixedLayout && FIXED_LAYOUT_SENSITIVE_STAGES.has(slug)
+  const contentWarning: StageRerunWarning | null =
+    (slug === "translate" || slug === "speech") && flow.unfinished.length > 0
+      ? {
+          title: flowCopy.warningTitle,
+          description: flowCopy.warningBody(flow.unfinished),
+          confirmLabel: slug === "translate" ? <Trans>Translate anyway</Trans> : <Trans>Generate anyway</Trans>,
+        }
+      : null
+
+  const warning = contentWarning ??
+    (isFixedLayout && FIXED_LAYOUT_SENSITIVE_STAGES.has(slug)
       ? {
           title: <FixedLayoutWarningTitle />,
           description:
@@ -75,7 +89,7 @@ export function useStageRerun(label: string, slug: DockSlug): StageRerun {
               <FixedLayoutWarningDescription />
             ),
         }
-      : null
+      : null)
 
   return {
     hasRun: stageRun.isRunnable && stageState(slug) !== "idle",
