@@ -19,6 +19,7 @@ already holds its number — check both before taking one
 | SPEC-0007 | Accessibility harness as a blocking CI gate                     | draft  | TBD         | 0.9.0     |
 | SPEC-0008 | Stable identifiers and reading order (retrospective)            | draft  | TBD         | Block 1   |
 | [SPEC-0015](SPEC-0015-nano-banana-image-models.md) | Nano Banana image models | in-review | @elasticsounds | #579 / #904 |
+| [SPEC-0016](SPEC-0016-ai-setup-recommender.md) | AI-assisted setup recommender integration | in-review | @VictorBrasileiroo | #333 |
 
 Legacy notes, from before this process existed, now in [`docs/analysis/`](../analysis/):
 [SECTIONING_CROSSWORD_BUG.md](../analysis/SECTIONING_CROSSWORD_BUG.md),
