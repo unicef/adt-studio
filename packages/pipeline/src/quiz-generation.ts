@@ -7,7 +7,7 @@ import type {
   QuizGenerationOutput,
   Quiz,
 } from "@adt/types"
-import { quizLLMSchema, DEFAULT_LLM_MAX_RETRIES } from "@adt/types"
+import { quizLLMSchema, DEFAULT_LLM_MAX_RETRIES, DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import { processWithConcurrency } from "./concurrency.js"
 import { buildLanguageContext, normalizeLocale } from "./language-context.js"
@@ -79,7 +79,7 @@ export function buildQuizGenerationConfig(
       appConfig.quiz_generation?.model ??
       appConfig.page_sectioning?.model ??
       appConfig.default_model ??
-      "openai:gpt-5.4",
+      DEFAULT_LLM_MODEL_ID,
     maxRetries:
       appConfig.quiz_generation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     timeoutMs: (appConfig.quiz_generation?.timeout ?? 90) * 1000,

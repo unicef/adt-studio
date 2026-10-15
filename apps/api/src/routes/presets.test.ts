@@ -146,10 +146,10 @@ describe("POST /styleguides/upload", () => {
 })
 
 describe("global default model", () => {
-  it("returns GPT-5.4 when no override is configured", async () => {
+  it("AC-1: returns Sol when no override is configured", async () => {
     const response = await app().request("/config/default-model")
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ model: "openai:gpt-5.4" })
+    expect(await response.json()).toEqual({ model: "openai:gpt-6.1-sol" })
   })
 
   it("updates the model without discarding the config formatting", async () => {

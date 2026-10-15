@@ -176,7 +176,7 @@ describe("buildPageSectioningConfig", () => {
     expect(config.prunedSectionTypes).toEqual(["credits"])
   })
 
-  it("applies defaults when page_sectioning is not specified", () => {
+  it("AC-1: applies Sol defaults when page_sectioning is not specified", () => {
     const appConfig: AppConfig = {
       role_types: { text: "Body" },
       structure_types: { paragraph: "Paragraph" },
@@ -184,7 +184,7 @@ describe("buildPageSectioningConfig", () => {
 
     const config = buildPageSectioningConfig(appConfig)
     expect(config.promptName).toBe("page_sectioning")
-    expect(config.modelId).toBe("openai:gpt-5.4")
+    expect(config.modelId).toBe("openai:gpt-6.1-sol")
     expect(config.maxRetries).toBe(5)
     expect(config.maxRefinements).toBe(0)
   })

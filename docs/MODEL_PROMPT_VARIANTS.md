@@ -47,6 +47,7 @@ Examples:
 | Model id | Folder name |
 | --- | --- |
 | `openai:gpt-5.5` | `openai_gpt_5_5` |
+| `openai:gpt-6.1-sol` | `openai_gpt_6_1_sol` |
 | `anthropic:claude-opus-4.1` | `anthropic_claude_opus_4_1` |
 | `google:gemini-2.5-pro` | `google_gemini_2_5_pro` |
 
@@ -85,6 +86,45 @@ When a pipeline step renders `page_sectioning` with model
 10. `prompts/page_sectioning.liquid`
 
 If no model-specific prompt exists, the base prompt is used.
+
+A global model variant precedes a book's base edit. To override a Sol prompt
+for one book, edit that book's Sol variant; editing its base prompt alone does
+not override the shipped Sol variant. The prompt response exposes `resolvedName`
+and its source, and structured-call logs record the resolved file path.
+
+### Shipped Sol variants
+
+The distributed execution default is `openai:gpt-6.1-sol`. Base prompt provenance
+remains `openai:gpt-5.4`; selecting GPT-5.4 still resolves the legacy base prompts.
+Following OpenAI's GPT-6 migration guidance — keep working prompts, then make
+the smallest edit that fixes a measured regression — the `openai_gpt_6_1_sol`
+directory ships only two variants:
+
+- `web_generation_html`: sizes and places images by their footprint on the
+  original page. Sol applies the base "standalone image fills the column" rule
+  literally, so every figure rendered full width in a single column.
+- `visual_review`: checks image size, placement and column structure against the
+  original, and treats raw LaTeX in math leaves as expected (it becomes MathML
+  at packaging; see #951).
+
+Every other task resolves the base prompts on Sol. Shared `_*.liquid` includes
+keep their existing lookup and contracts. A goal-oriented rewrite of the full
+prompt set for Sol, validated on a representative page set, is tracked as its
+own spec (#954).
+
+Image generation/editing and image translation use specialized image models.
+The independent book-outline task retains its pinned mini model and base
+prompts. Uploaded overrides and saved book files are never rewritten by the
+default change.
+
+Sol uses Responses for all inference, including structured tool-call fallback
+and agent turns. The installed AI SDK 4/OpenAI 1.3 adapter does not recognize
+GPT-6 reasoning or preserve opaque reasoning output, so Sol uses a scoped REST
+adapter without changing dependencies or other providers. Effective effort is
+`low` for omitted/`none`/`minimal`, and explicit supported efforts are preserved.
+The effective options and adapter/endpoint identity participate in caching;
+legacy caches cannot satisfy Sol requests. Reasoning continuation travels with
+the cached book transcript using `store: false` and encrypted reasoning items.
 
 ## Adding a New Model
 

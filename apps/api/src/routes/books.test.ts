@@ -249,6 +249,33 @@ describe("DELETE /books/:label", () => {
 })
 
 describe("GET /books/:label/config", () => {
+  it("AC-3: opening a book under Sol preserves saved selections, IDs, edits, versions and completions", async () => {
+    const label = "sol-upgrade"
+    createTestBook(label)
+    fs.writeFileSync(globalConfigPath, 'structure_types: {}\nrole_types: {}\ndefault_model: "openai:gpt-6.1-sol"\n')
+    const configPath = path.join(tmpDir, label, "config.yaml")
+    const savedConfig = 'default_model: "openai:gpt-5.4"\npage_sectioning:\n  model: "anthropic:claude-sonnet-4-6"\nagents:\n  model: "openai:gpt-5.5"\n'
+    fs.writeFileSync(configPath, savedConfig)
+    const seed = createBookStorage(label, tmpDir)
+    seed.putNodeData("page-sectioning", "pg001", { sections: [{ section_id: "pg001_s001", text: "Original" }] })
+    seed.putNodeData("page-sectioning", "pg001", { sections: [{ section_id: "pg001_s001", text: "User edit" }] })
+    seed.putNodeData("web-rendering", "pg001", { html: '<p data-id="pg001_s001">User edit</p>' })
+    seed.markStepCompleted("page-sectioning")
+    seed.markStepCompleted("web-rendering")
+    const snapshot = { versions: seed.getAllNodeVersions("page-sectioning", "pg001"), rendering: seed.getLatestNodeData("web-rendering", "pg001"), runs: seed.getStepRuns(), fingerprint: seed.getNodeVersionFingerprint() }
+    seed.close()
+    const routes = createBookRoutes(tmpDir, undefined, globalConfigPath)
+    expect((await routes.request(`/books/${label}`)).status).toBe(200)
+    const readConfig = await routes.request(`/books/${label}/config`)
+    expect(readConfig.status).toBe(200)
+    expect((await readConfig.json()).config).toMatchObject({ default_model: "openai:gpt-5.4", page_sectioning: { model: "anthropic:claude-sonnet-4-6" }, agents: { model: "openai:gpt-5.5" } })
+    const reloaded = createBookStorage(label, tmpDir)
+    try {
+      expect({ versions: reloaded.getAllNodeVersions("page-sectioning", "pg001"), rendering: reloaded.getLatestNodeData("web-rendering", "pg001"), runs: reloaded.getStepRuns(), fingerprint: reloaded.getNodeVersionFingerprint() }).toEqual(snapshot)
+      expect(fs.readFileSync(configPath, "utf8")).toBe(savedConfig)
+    } finally { reloaded.close() }
+  })
+
   it("returns empty config when no overrides exist", async () => {
     createTestBook("config-test")
     const app = createBookRoutes(tmpDir)

@@ -281,18 +281,19 @@ describe("built-in provider registry", () => {
     expect(registry.get("openai").manifest.minimumRequestTimeoutMs).toBeUndefined()
   })
 
-  it("produces a descriptor payload that validates and carries no secrets", () => {
+  it("AC-1: produces a descriptor payload with Sol defaults that validates and carries no secrets", () => {
     const registry = createDefaultProviderRegistry()
     const payload = {
       providers: registry.descriptors(),
       defaults: {
-        "structured-text": "openai:gpt-5.4",
+        "structured-text": `openai:${registry.defaultModelFor("openai", "structured-text")}`,
         image: "openai:gpt-image-2",
       },
     }
 
     const parsed = ProvidersResponse.safeParse(payload)
     expect(parsed.success).toBe(true)
+    expect(payload.defaults["structured-text"]).toBe("openai:gpt-6.1-sol")
     expect(JSON.stringify(payload)).not.toMatch(/sk-[a-zA-Z0-9]{10,}/)
   })
 

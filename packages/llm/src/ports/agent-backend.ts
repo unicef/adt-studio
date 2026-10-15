@@ -1,4 +1,5 @@
 import type { TokenUsage } from "./common.js"
+import type { ProviderContinuation } from "@adt/types"
 
 /**
  * `parameters` is a Zod schema; adapters translate it into their SDK's shape.
@@ -40,7 +41,7 @@ export interface AgentToolResult {
 
 export type AgentMessage =
   | { role: "user"; content: string }
-  | { role: "assistant"; text: string; toolCalls: AgentToolCall[] }
+  | { role: "assistant"; text: string; toolCalls: AgentToolCall[]; providerContinuation?: ProviderContinuation }
   | { role: "tool"; results: AgentToolResult[] }
 
 export interface AgentTurnRequest {
@@ -51,6 +52,7 @@ export interface AgentTurnRequest {
   maxTokens?: number
   timeoutMs?: number
   signal?: AbortSignal
+  providerOptions?: Record<string, unknown>
 }
 
 export interface AgentTurnResponse {
@@ -58,6 +60,8 @@ export interface AgentTurnResponse {
   toolCalls: AgentToolCall[]
   finishReason: string
   usage: TokenUsage
+  providerContinuation?: ProviderContinuation
+  params?: Record<string, unknown>
 }
 
 /**

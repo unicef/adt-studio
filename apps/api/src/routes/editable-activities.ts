@@ -12,6 +12,7 @@ import {
   WebRenderingOutput,
   parseBookLabel,
   DEFAULT_LLM_MAX_RETRIES,
+  DEFAULT_LLM_MODEL_ID,
 } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import {
@@ -338,7 +339,7 @@ export function createEditableActivitiesRoutes(
             appConfig.quiz_generation?.model ??
             appConfig.page_sectioning?.model ??
             appConfig.default_model ??
-            "openai:gpt-5.4",
+            DEFAULT_LLM_MODEL_ID,
           cacheDir,
           promptEngine,
           onLog: (entry) => storage.appendLlmLog(entry),

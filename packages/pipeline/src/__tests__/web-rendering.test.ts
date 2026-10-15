@@ -74,7 +74,7 @@ describe("buildRenderStrategyResolver", () => {
     expect(textOnly.modelId).toBe("openai:gpt-5.4")
   })
 
-  it("falls back to hardcoded defaults when no config provided", () => {
+  it("AC-1: falls back to Sol defaults when no config provided", () => {
     const appConfig: AppConfig = {
       role_types: { heading: "Heading" },
       structure_types: { paragraph: "Paragraph" },
@@ -84,7 +84,7 @@ describe("buildRenderStrategyResolver", () => {
     const config = resolve("anything")
     expect(config.renderType).toBe("llm")
     expect(config.promptName).toBe("web_generation_html")
-    expect(config.modelId).toBe("openai:gpt-5.4")
+    expect(config.modelId).toBe("openai:gpt-6.1-sol")
     expect(config.maxRetries).toBe(5)
     expect(config.timeoutMs).toBe(180000)
     expect(config.templateName).toBe("")

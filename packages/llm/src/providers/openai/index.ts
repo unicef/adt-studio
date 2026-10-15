@@ -11,6 +11,7 @@ import {
 import { listOpenAiCompatibleModels } from "../shared/openai-rest/models.js"
 import { LABEL_API_KEY } from "../shared/i18n.js"
 import { createOpenAI } from "@ai-sdk/openai"
+import { createSolBackends, isSol, solInferenceOptions } from "./sol.js"
 
 export const OPENAI_PROVIDER_ID = "openai"
 export const OPENAI_API_BASE_URL = "https://api.openai.com/v1"
@@ -79,8 +80,8 @@ export const openaiManifest: ProviderManifest = {
     },
   },
   defaultModels: {
-    "structured-text": "gpt-5.4",
-    agent: "gpt-5.4",
+    "structured-text": "gpt-6.1-sol",
+    agent: "gpt-6.1-sol",
     image: "gpt-image-2",
     tts: "gpt-4o-mini-tts",
     stt: "whisper-1",
@@ -91,12 +92,12 @@ export const openaiManifest: ProviderManifest = {
 type OpenAiCredentials = z.infer<typeof credentialSchema>
 
 /**
- * Reasoning models (gpt-5.x, o-series) reject a `temperature` other than the
+ * Reasoning models (gpt-5.x, gpt-6.x, o-series) reject a `temperature` other than the
  * default, so the capability is reported per model rather than per provider.
  */
 function structuredTextCapabilitiesFor(modelId: string): StructuredTextCapabilities {
   const base = openaiManifest.capabilities["structured-text"]!
-  const isReasoning = /^(gpt-5|o[1-9])/i.test(modelId)
+  const isReasoning = /^(gpt-[56]|o[1-9])/i.test(modelId)
   return isReasoning ? { ...base, temperature: false } : base
 }
 
@@ -111,10 +112,14 @@ export const openaiProvider: ProviderModule<OpenAiCredentials> = {
       ? (structuredTextCapabilitiesFor(modelId) as never)
       : undefined,
 
-  cacheFingerprint: () => ({
-    adapterVersion: ADAPTER_VERSION,
+  cacheFingerprint: (context) => ({
+    adapterVersion: isSol(context.modelId) ? "openai-sol-responses-1" : ADAPTER_VERSION,
     origin: "https://api.openai.com",
+    ...(isSol(context.modelId) ? { extra: { endpoint: "responses" }, legacyCacheReadable: false } : {}),
   }),
+
+  inferenceOptionsFor: (_modality, modelId, providerOptions) =>
+    isSol(modelId) ? solInferenceOptions(providerOptions) : { providerOptions },
 
   listModels: (context) =>
     listOpenAiCompatibleModels({
@@ -124,6 +129,7 @@ export const openaiProvider: ProviderModule<OpenAiCredentials> = {
     }),
 
   createStructuredTextBackend: (context) => {
+    if (isSol(context.modelId)) return createSolBackends(context).structured
     const client = createOpenAI({ apiKey: context.credentials.apiKey })
     return createAiSdkStructuredTextBackend((options) =>
       client(
@@ -136,7 +142,7 @@ export const openaiProvider: ProviderModule<OpenAiCredentials> = {
   },
 
   createAgentBackend: (context) =>
-    createAiSdkAgentBackend(
+    isSol(context.modelId) ? createSolBackends(context).agent : createAiSdkAgentBackend(
       createOpenAI({ apiKey: context.credentials.apiKey })(context.modelId),
     ),
 

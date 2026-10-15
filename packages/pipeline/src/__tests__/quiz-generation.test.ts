@@ -236,7 +236,7 @@ describe("batchPages", () => {
 })
 
 describe("buildQuizGenerationConfig", () => {
-  it("builds config with defaults", () => {
+  it("AC-1: builds config with Sol defaults", () => {
     const appConfig: AppConfig = {
       role_types: { section_text: "Body text" },
       structure_types: { paragraph: "Paragraph" },
@@ -247,7 +247,7 @@ describe("buildQuizGenerationConfig", () => {
       pagesPerQuiz: 3,
       quizSectionTypes: FALLBACK_QUIZ_SECTION_TYPES,
       promptName: "quiz_generation",
-      modelId: "openai:gpt-5.4",
+      modelId: "openai:gpt-6.1-sol",
       maxRetries: 5,
       timeoutMs: 90_000,
     })

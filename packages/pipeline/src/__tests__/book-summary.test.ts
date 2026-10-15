@@ -101,7 +101,7 @@ describe("buildBookSummaryConfig", () => {
     expect(config.outputLanguage).toBe("pt-BR")
   })
 
-  it("defaults prompt/model/output language", () => {
+  it("AC-1: defaults prompt/model/output language with Sol", () => {
     const appConfig: AppConfig = {
       role_types: { heading: "Heading" },
       structure_types: { paragraph: "Paragraph" },
@@ -109,7 +109,7 @@ describe("buildBookSummaryConfig", () => {
 
     const config = buildBookSummaryConfig(appConfig)
     expect(config.promptName).toBe("book_summary")
-    expect(config.modelId).toBe("openai:gpt-5.4")
+    expect(config.modelId).toBe("openai:gpt-6.1-sol")
     expect(config.maxRetries).toBe(5)
     expect(config.outputLanguage).toBe("en")
   })

@@ -123,7 +123,7 @@ describe("buildMetadataConfig", () => {
     expect(config.maxRetries).toBe(9)
   })
 
-  it("defaults metadata prompt and model", () => {
+  it("AC-1: defaults metadata prompt and model to Sol", () => {
     const appConfig: AppConfig = {
       role_types: { heading: "Heading" },
       structure_types: { paragraph: "Paragraph" },
@@ -131,7 +131,7 @@ describe("buildMetadataConfig", () => {
 
     const config = buildMetadataConfig(appConfig)
     expect(config.promptName).toBe("metadata_extraction")
-    expect(config.modelId).toBe("openai:gpt-5.4")
+    expect(config.modelId).toBe("openai:gpt-6.1-sol")
     expect(config.maxRetries).toBe(5)
   })
 
