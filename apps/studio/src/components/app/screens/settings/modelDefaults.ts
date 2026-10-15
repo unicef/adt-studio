@@ -12,6 +12,7 @@ import {
   DEFAULT_MODEL,
   mergePromptModelGroups,
   normalizePromptModelInput,
+  promptExistsForModel,
 } from "@/components/pipeline/stages/book/GlobalPromptsSettings/promptSettings"
 import { promptModelForSelectedModel } from "@/components/pipeline/components/PromptViewer/promptModel"
 import { toast } from "@/components/ui/sonner"
@@ -54,6 +55,10 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
   const promptModelsQuery = useQuery({
     queryKey: ["prompt-models"],
     queryFn: api.listPromptModels,
+  })
+  const promptListQuery = useQuery({
+    queryKey: ["prompts"],
+    queryFn: api.listPrompts,
   })
 
   const savedModel = defaultModelQuery.data?.model ?? DEFAULT_MODEL
@@ -98,9 +103,14 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
 
   const promptModels = promptModelsQuery.data?.models ?? []
   const savedModelRequiresPrompts = promptModelForSelectedModel(savedModel) != null
+  // Tuned prompts exist when they were generated for the model (listed in
+  // .models.json) or ship as a model folder, like the built-in Sol variants.
   const hasPromptsForSavedModel = promptModels.some(
     (model) => normalizePromptModelInput(model) === normalizePromptModelInput(savedModel),
+  ) || (promptListQuery.data?.prompts ?? []).some(
+    (prompt) => promptExistsForModel(prompt, savedModel),
   )
+  const promptsLoaded = promptModelsQuery.isSuccess && promptListQuery.isSuccess
 
   const normalizedDraft = normalizeQualifiedModelInput(draft)
   const support =
@@ -117,7 +127,7 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
     isLoading: defaultModelQuery.isLoading || promptModelsQuery.isLoading,
     isError: defaultModelQuery.isError,
     isSaving: mutation.isPending,
-    showPromptWarning: savedModelRequiresPrompts && !hasPromptsForSavedModel,
+    showPromptWarning: promptsLoaded && savedModelRequiresPrompts && !hasPromptsForSavedModel,
     support,
     save: () => mutation.mutate(),
   }

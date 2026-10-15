@@ -53,7 +53,7 @@ This section combines content merged from MORE THAN ONE original page (for examp
 - Content that is cut off or accidentally hidden (EXCEPTION: text intentionally hidden with `sr-only` — e.g. a transcription of words already baked into an image — is NOT a defect; leave it hidden, do not surface it)
 - Text that is genuinely unreadable — but do NOT treat the book's large accessible type as a defect, and NEVER shrink it (see the typography rule under RULES). The intentionally large text is required, even if the original page used smaller text
 - Images that are missing, broken, wildly misplaced, or distorted (stretched to the wrong aspect ratio — keep `h-auto` so proportions are preserved)
-- Content images (photos, diagrams, illustrations) rendered as small thumbnails when the original shows them filling much of the page — enlarge them to fill the content column (`w-full h-auto`); modest upscaling of a low-resolution source is fine and preferable to a tiny image
+- Content images (photos, diagrams, illustrations) whose size or placement clearly differs from the original page: an image stretched to the full column when it spans only part of the column in the original, an image shrunk to a thumbnail, or an image stacked above/below the text it sits BESIDE in the original. Fix it by giving the image (or its wrapper) the nearest width to its share of the original text column (`w-1/4` … `w-3/4`, `w-full` only when it spans the column; never below `w-1/4`; keep `h-auto`), and by restoring the side-by-side row or float on the same side as the original at desktop and tablet, stacking at mobile
 - A header/banner whose title or badge is misaligned or clipped — the banner background may span the full width, but its text must sit in the same centered `max-w-5xl` reading column as the body and must never be cut off
 - Text alignment that differs from the original — body text and headings that are left-aligned in the original should NOT be centered (and vice versa)
 - Layout that fundamentally differs from the original (e.g., wrong number of columns, completely wrong ordering)
@@ -65,7 +65,8 @@ This section combines content merged from MORE THAN ONE original page (for examp
 - Minor differences in spacing, padding, or margins vs the original
 - The book's fixed, large accessible typography (the `adt-*` classes) — this is intentional and REQUIRED; accept it as-is and never reduce it or swap it for smaller `text-*` sizes, even if the original page used smaller text
 - Text hidden with `sr-only` because it is already legible inside an image — this is intentional (kept for screen readers / read-aloud, not shown on screen); keep it `sr-only` and do NOT make it visible or treat it as missing
-- Content images upscaled modestly to fill the reading column (do NOT reject or shrink them for this)
+- Small differences in image size versus the original, and images that stack and widen at mobile
+- Raw LaTeX source in math elements (e.g. `\hat{O}`, `^\circ`, `\text{…}`) — it is converted to MathML when the book is packaged, so it is expected in these screenshots and is NOT a defect
 - Responsive adaptations (e.g., a two-column layout stacking to single column on mobile, or overlay text flowing below the image on mobile instead of on top of it)
 - Color or background differences that maintain the overall feel
 - Subtle styling improvements that enhance the appearance
@@ -107,7 +108,8 @@ Keep any schema-required reasoning brief, grounded in observable evidence and un
 Return only the artifact required by the existing schema. Do not ask follow-up questions.
 
 Report actionable defects: missing or changed text, incorrect reading order, wrong answers,
-clipping, overlap, unreadable contrast and broken controls. Identify affected supplied IDs.
+clipping, overlap, unreadable contrast, broken controls, and layout that departs from the original page
+(column structure, image size, an image moved away from the text it sits beside). Identify affected supplied IDs.
 Apply or describe the smallest correction allowed by this task's existing review schema.
-Separate observed defects from uncertainty. Avoid cosmetic changes unless they violate the supplied layout rules.
+Separate observed defects from uncertainty. Do not make purely cosmetic changes, but DO correct layout that departs from the original page.
 {% endchat %}

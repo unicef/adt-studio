@@ -80,9 +80,14 @@ describe("Sol migration", () => {
         messages: [{ role: "user", content: [{ type: "text", text: "Page" }, { type: "image", image: "data:image/png;base64,iVBORw0KGgo" }] }],
       })
       expect(fetchMock.mock.calls[0][0]).toBe("https://api.openai.com/v1/responses")
+      // JSON-mode prompts must mention JSON in the input itself; `instructions` does not satisfy the API.
+      const jsonPrompt = strategy === "json-mode" || strategy === "parse-repair"
+        ? [{ role: "developer", content: expect.stringMatching(/^Return only JSON matching this schema:/) }]
+        : []
       expect(body(0)).toMatchObject({ model: "gpt-6.1-sol", reasoning: { effort: "max" }, max_output_tokens: 100, store: false,
-        input: [{ role: "user", content: [{ type: "input_text", text: "Page" }, { type: "input_image", image_url: "data:image/png;base64,iVBORw0KGgo" }] }],
+        input: [...jsonPrompt, { role: "user", content: [{ type: "input_text", text: "Page" }, { type: "input_image", image_url: "data:image/png;base64,iVBORw0KGgo" }] }],
       })
+      expect(body(0).instructions).toBeUndefined()
       for (const key of ["temperature", "top_p", "logprobs", "top_logprobs"]) expect(body(0)).not.toHaveProperty(key)
       if (strategy === "tool-call") expect(body(0)).toHaveProperty("tool_choice", { type: "function", name: "structured_output" })
       expect(result.object).toEqual({ title: "Page" })
@@ -134,6 +139,20 @@ describe("Sol migration", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(body(0).model).toBe("gpt-6.1-sol")
     expect(JSON.stringify(entries)).not.toContain("sk-private-fixture")
+  })
+
+  it("AC-2: surfaces OpenAI's rejection reason without retrying or echoing the key", async () => {
+    fetchMock.mockImplementation(async () => new Response(JSON.stringify({ error: {
+      message: "Response input messages must contain the word 'json' in some form (key sk-proj-abc*****1234).",
+    } }), { status: 400 }))
+    const entries: LlmLogEntry[] = []
+    const pending = client(undefined, (entry) => entries.push(entry)).generateObject({ schema, messages, maxRetries: 3,
+      log: { taskType: "sectioning", promptName: "page_sectioning" },
+    })
+    await expect(pending).rejects.toThrow("OpenAI rejected the gpt-6.1-sol request (HTTP 400): Response input messages must contain the word 'json'")
+    await expect(pending).rejects.not.toThrow("does not support")
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(JSON.stringify(entries)).not.toContain("sk-proj-abc")
   })
 
   it("AC-4: identical calls hit cache; effort, prompt and adapter changes miss, and legacy Sol entries are skipped", async () => {

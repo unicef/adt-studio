@@ -11,8 +11,12 @@ describe("Sol prompt variants", () => {
     const root = path.resolve(import.meta.dirname, "../../../../prompts")
     const folder = path.join(root, "openai_gpt_6_1_sol")
     const engine = createPromptEngine(root)
-    const files = fs.readdirSync(folder).filter((file) => file.endsWith(".liquid"))
-    expect(files).toHaveLength(43)
+    const files = fs.readdirSync(folder).filter((file) => file.endsWith(".liquid")).sort()
+    // Only prompts with a measured Sol-specific change ship a variant; the rest
+    // fall back to the base templates.
+    expect(files).toEqual(["visual_review.liquid", "web_generation_html.liquid"])
+    expect(engine.resolvePrompt("page_sectioning", { modelId: "openai:gpt-6.1-sol" }).filePath)
+      .toBe(path.join(root, "page_sectioning.liquid"))
     for (const file of files) {
       const base = fs.readFileSync(path.join(root, file), "utf8")
       const variant = fs.readFileSync(path.join(folder, file), "utf8")

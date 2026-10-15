@@ -39,12 +39,22 @@ export function createSolBackends(context: BackendContext<{ apiKey: string }>): 
       signal,
     })
     if (!response.ok) {
-      // Never echo arbitrary provider text, which could contain request secrets.
-      if ([400, 401, 403, 404].includes(response.status)) {
-        throw AiProviderError.unsupportedCapability("openai", context.modality,
-          `Responses request rejected (HTTP ${response.status}); verify access to ${context.modelId} and its request settings`, context.modelId)
+      const detail = await providerErrorMessage(response)
+      const reason = `(HTTP ${response.status})${detail ? `: ${detail}` : ""}`
+      const details = { providerId: "openai", modelId: context.modelId, modality: context.modality }
+      // Rejected requests are deterministic, so they surface without retrying.
+      if (response.status === 401 || response.status === 403) {
+        throw new AiProviderError("invalid-credential",
+          `OpenAI rejected the API key for ${context.modelId} ${reason} — verify access to ${context.modelId}`, details)
       }
-      throw new Error(`OpenAI Responses ${context.modelId} failed (HTTP ${response.status})`)
+      if (response.status === 404) {
+        throw new AiProviderError("unsupported-capability",
+          `OpenAI could not find ${context.modelId} ${reason} — verify access to ${context.modelId}`, details)
+      }
+      if (response.status === 400) {
+        throw new AiProviderError("unsupported-capability", `OpenAI rejected the ${context.modelId} request ${reason}`, details)
+      }
+      throw new Error(`OpenAI Responses ${context.modelId} failed ${reason}`)
     }
     return OpenAiResponse.parse(await response.json())
   }
@@ -64,10 +74,12 @@ export function createSolBackends(context: BackendContext<{ apiKey: string }>): 
       const tool = request.strategy === "tool-call"
       const repair = request.strategy === "parse-repair"
       const strict = request.strategy === "native-schema"
-      const instructions = [request.system, !strict && !tool
-        ? `Return only JSON matching this schema:\n${JSON.stringify(schema)}` : undefined].filter(Boolean).join("\n\n")
+      if (!strict && !tool) {
+        // JSON mode requires "JSON" in the input messages; `instructions` does not count.
+        input.unshift({ role: "developer", content: `Return only JSON matching this schema:\n${JSON.stringify(schema)}` })
+      }
       const body: Record<string, unknown> = {
-        instructions,
+        instructions: request.system,
         input,
         reasoning: reasoning(effective),
         max_output_tokens: request.maxTokens,
@@ -168,6 +180,17 @@ export function createSolBackends(context: BackendContext<{ apiKey: string }>): 
 function reasoning(effective: InferenceOptions) {
   const openai = effective.providerOptions?.openai as { reasoningEffort: string }
   return { effort: openai.reasoningEffort }
+}
+
+/** OpenAI's `error.message`, with any echoed API key redacted; raw non-JSON bodies are never surfaced. */
+async function providerErrorMessage(response: Response): Promise<string | undefined> {
+  try {
+    const parsed = JSON.parse(await response.text()) as { error?: { message?: unknown } }
+    const message = parsed.error?.message
+    return typeof message === "string" ? message.replace(/\bsk-[\w*.-]+/g, "sk-…").slice(0, 500) : undefined
+  } catch {
+    return undefined
+  }
 }
 
 function signalFor(request: { timeoutMs?: number; signal?: AbortSignal }, fallback: number): AbortSignal {

@@ -55,7 +55,8 @@ The content tree is the current saved user state. Its depth-first order is the R
   `<aside class="float-right w-[34%] ml-8 mb-6 max-lg:float-none max-lg:w-full max-lg:ml-0"> …panel… </aside>` followed by the `<p class="adt-body">` paragraphs in reading order.
 - A wide element that must sit BELOW everything (a full-width image or diagram) should clear the float with `clear-both`.
 - Use a real multi-column split (flex/grid) ONLY when both columns hold comparable, self-contained content (e.g. a paired image + its explanation) — never for a short sidebar beside long running text.
-- Size content images (photos, diagrams, illustrations) to the layout, matching how prominently they appear in the original page image. A standalone image should fill the content column (`w-full h-auto`); images paired in a row each fill their share of the row. Do NOT render content images as small thumbnails — prefer filling the available width even if it means modestly upscaling a low-resolution source. Keep an image small ONLY if it is a genuinely small inline icon or decoration in the original.
+- Size content images (photos, diagrams, illustrations) to their footprint in the original page image. Estimate how much of the original text column each image spans and give the image (or its wrapper) the nearest width — `w-1/4`, `w-1/3`, `w-2/5`, `w-1/2`, `w-3/5`, `w-2/3`, `w-3/4` or `w-full` — with `h-auto`. Use `w-full` ONLY when the image spans (nearly) the whole text column in the original. Never go below `w-1/4` for a content image; keep an image smaller only if it is a genuinely small inline icon or decoration. An `image_group` whose labels are `sr-only` is sized the same way — hidden labels do not make it a full-width figure.
+- Keep an image where the book puts it. When the original shows an image BESIDE the text it illustrates, keep them side by side at desktop and tablet: a two-column row (`flex items-start gap-8 max-sm:flex-col`) with the image in its sized wrapper, or a float (`float-left mr-8 mb-4` / `float-right ml-8 mb-4`) when the text is long enough to wrap below it. Place the image on the same side as in the original. A narrower-than-column image that stands alone keeps the original's alignment (left unless clearly centered). At mobile, stack it with its text and let it widen (`max-sm:w-full`).
 - Text baked into an image: if an image already contains legible text (a labeled diagram, a poster, a text graphic) and that same text is also provided as an associated text leaf, do NOT show the words twice. Render the image on its own, and emit the associated text leaf as VISUALLY HIDDEN with `sr-only` (it stays available to read-aloud and screen readers but is not drawn on screen). Never overlay or caption a transcription on top of text that is already legible inside the image. Only overlay/caption text on an image when the words are NOT already present in the image.
 ## RESPONSIVE DESIGN (DESKTOP-FIRST)
 Your HTML will be tested at these viewport widths. Use ONLY these Tailwind responsive prefixes:
@@ -102,10 +103,11 @@ Keep any schema-required reasoning brief, grounded in observable evidence and un
 Return only the artifact required by the existing schema. Do not ask follow-up questions.
 
 The supplied saved content tree is authoritative for text, IDs and reading order.
-Use the original page image as a visual reference. Preserve every supplied content ID exactly once and its exact text.
+Use the original page image as the layout reference: match its column structure, image sizes and image placement.
+Preserve every supplied content ID exactly once and its exact text.
 Keep learner answer areas unfilled. Follow the supplied layout mode, styleguide and activity rules.
-Prioritize content fidelity, accessible semantics and responsive reading order.
-Before returning, check ID coverage, text fidelity, overflow and answer blanks.
+Prioritize content fidelity, accessible semantics, a layout that resembles the book, and responsive reading order.
+Before returning, check ID coverage, text fidelity, image size and placement against the original, overflow and answer blanks.
 {% endchat %}
 
 {% chat role: "user" %}

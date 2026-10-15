@@ -96,18 +96,25 @@ and its source, and structured-call logs record the resolved file path.
 
 The distributed execution default is `openai:gpt-6.1-sol`. Base prompt provenance
 remains `openai:gpt-5.4`; selecting GPT-5.4 still resolves the legacy base prompts.
-The `openai_gpt_6_1_sol` directory supplies 43 conversion variants: extraction,
-sectioning and refinement, captioning, translation, easy read, glossary, book
-summary, table of contents, quizzes, typography, styleguides, HTML rendering,
-activities and answers, visual review, HTML edits and verification, activity
-feedback and core TTS text preparation. Shared `_*.liquid` includes keep their
-existing lookup and contracts.
+Following OpenAI's GPT-6 migration guidance — keep working prompts, then make
+the smallest edit that fixes a measured regression — the `openai_gpt_6_1_sol`
+directory ships only two variants:
+
+- `web_generation_html`: sizes and places images by their footprint on the
+  original page. Sol applies the base "standalone image fills the column" rule
+  literally, so every figure rendered full width in a single column.
+- `visual_review`: checks image size, placement and column structure against the
+  original, and treats raw LaTeX in math leaves as expected (it becomes MathML
+  at packaging; see #951).
+
+Every other task resolves the base prompts on Sol. Shared `_*.liquid` includes
+keep their existing lookup and contracts. A goal-oriented rewrite of the full
+prompt set for Sol, validated on a representative page set, is tracked as its
+own spec (#954).
 
 Image generation/editing and image translation use specialized image models.
 The independent book-outline task retains its pinned mini model and base
-prompts. `web_generation_html_old` remains a legacy fallback. Those templates
-have no bundled Sol variant; explicit Sol selections can still use their base
-fallback. Uploaded overrides and saved book files are never rewritten by the
+prompts. Uploaded overrides and saved book files are never rewritten by the
 default change.
 
 Sol uses Responses for all inference, including structured tool-call fallback

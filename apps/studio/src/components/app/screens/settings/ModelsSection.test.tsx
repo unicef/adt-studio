@@ -53,6 +53,11 @@ const PROVIDERS = [
 ]
 
 const updateDefaultModel = vi.fn(async (model: string) => ({ model }))
+const apiState: {
+  defaultModel: string
+  promptModels: string[]
+  prompts: Array<{ name: string; variants: string[] }>
+} = { defaultModel: SAVED_LLM, promptModels: [SAVED_LLM], prompts: [] }
 
 vi.mock("@lingui/core/macro", () => ({
   msg: (strings: TemplateStringsArray, ...values: unknown[]) => ({
@@ -83,8 +88,9 @@ vi.mock("@/hooks/use-provider-credentials", () => ({
 }))
 vi.mock("@/api/client", () => ({
   api: {
-    getDefaultModel: async () => ({ model: SAVED_LLM }),
-    listPromptModels: async () => ({ models: [SAVED_LLM] }),
+    getDefaultModel: async () => ({ model: apiState.defaultModel }),
+    listPromptModels: async () => ({ models: apiState.promptModels }),
+    listPrompts: async () => ({ prompts: apiState.prompts }),
     getSpecializedModelDefaults: async () => ({
       imageGeneration: SAVED_IMAGE,
       speechGeneration: "gpt-4o-mini-tts",
@@ -121,6 +127,9 @@ async function renderLoaded() {
 
 beforeEach(() => {
   updateDefaultModel.mockClear()
+  apiState.defaultModel = SAVED_LLM
+  apiState.promptModels = [SAVED_LLM]
+  apiState.prompts = []
 })
 
 afterEach(cleanup)
@@ -176,5 +185,39 @@ describe("ModelsSection — provider-aware model defaults", () => {
     await waitFor(() =>
       expect(screen.getAllByText(/claude-from-discovery/).length).toBeGreaterThan(0),
     )
+  })
+})
+
+describe("ModelsSection — tuned prompt warning", () => {
+  const SOL = "openai:gpt-6.1-sol"
+  const shippedSolPrompts = [
+    { name: "web_generation_html", variants: ["web_generation_html__openai_gpt_6_1_sol"] },
+  ]
+
+  async function renderWithDefault(model: string) {
+    apiState.defaultModel = model
+    apiState.promptModels = []
+    apiState.prompts = shippedSolPrompts
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <ModelsSection />
+      </QueryClientProvider>,
+    )
+    await waitFor(() => expect(defaultLlmInput().value).toBe(model))
+  }
+
+  it("does not ask for new prompts when the model's variants ship in a model folder", async () => {
+    await renderWithDefault(SOL)
+
+    // Give the prompt queries time to settle before asserting absence.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(screen.queryByText("Generate global prompts")).toBeNull()
+  })
+
+  it("still asks for new prompts when the model has no tuned variants", async () => {
+    await renderWithDefault("anthropic:claude-opus-4")
+
+    expect(await screen.findByText("Generate global prompts")).toBeTruthy()
   })
 })
