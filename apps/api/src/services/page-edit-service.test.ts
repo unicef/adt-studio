@@ -295,6 +295,29 @@ describe("page-edit-service", () => {
         .toEqual(["/api/books/b/images/a"])
       expect(findInventedImages(original, `<section><img data-id="a" /></section>`)).toEqual(["a"])
     })
+
+    it("flags new images in srcset, picture sources, svg images, and CSS backgrounds", () => {
+      expect(findInventedImages(original, `<section><img data-id="a" src="/api/books/b/images/a" srcset="/new-2x.png 2x" /></section>`))
+        .toEqual(["/new-2x.png"])
+      expect(findInventedImages(original, `<section><picture><source srcset="/new.webp" /><img data-id="a" src="/api/books/b/images/a" /></picture></section>`))
+        .toEqual(["/new.webp"])
+      expect(findInventedImages(original, `<section><svg><image href="/new.svg" /></svg></section>`))
+        .toEqual(["/new.svg"])
+      expect(findInventedImages(original, `<section><div style="background-image: url(&quot;https://example.com/bg.png&quot;)"></div></section>`))
+        .toEqual(["https://example.com/bg.png"])
+    })
+
+    it("accepts existing images reused as CSS backgrounds", () => {
+      expect(findInventedImages(original, `<section><div style="background-image: url('/api/books/b/images/a')"></div></section>`))
+        .toEqual([])
+    })
+
+    it("reads unquoted attributes and quoted values containing >", () => {
+      expect(findInventedImages(original, `<section><img alt="a > b" data-id=a src=/api/books/b/images/a></section>`))
+        .toEqual([])
+      expect(findInventedImages(original, `<section><img alt="a > b" data-id="a" src="/new.png"></section>`))
+        .toEqual(["/new.png"])
+    })
   })
 
   describe("aiEditSection", () => {

@@ -32,9 +32,19 @@ export const webRenderingLLMSchema = z.object({
 
 export const htmlEditLLMSchema = z.object({
   reasoning: z.string(),
-  feasible: z.boolean(),
-  unsupported_reason: z.string(),
-  content: z.string(),
+  feasible: z
+    .boolean()
+    .describe(
+      "true when the instruction was applied with HTML, text, layout, and styling changes alone; false when it needs new or changed images, a heading rank change, or changes outside this section",
+    ),
+  unsupported_reason: z
+    .string()
+    .describe(
+      "Empty when feasible is true; otherwise one or two short sentences for a non-technical user, in the language of the instruction, saying what cannot be done and which storyboard tool to use instead",
+    ),
+  content: z
+    .string()
+    .describe("The edited section HTML, or the current HTML unchanged when feasible is false"),
 })
 
 export const activityAnswersLLMSchema = z.object({

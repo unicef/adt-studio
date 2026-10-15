@@ -681,7 +681,13 @@ export function StoryboardSectionDetail({
     dismissNotice: dismissAiEditNotice,
     trackSubmission: trackAiEditSubmission,
     reportResult: reportAiEditResult,
-  } = useAiEditOutcomes(bookTasks, setAiError, setAiInstruction)
+  } = useAiEditOutcomes({
+    tasks: bookTasks,
+    pageId,
+    sectionIndex,
+    onFailed: setAiError,
+    setInstruction: setAiInstruction,
+  })
 
   // Derive AI editing state from active tasks
   const aiEditing = useMemo(
@@ -2229,6 +2235,7 @@ export function StoryboardSectionDetail({
 
     const currentHtml = renderedSection?.html
     const instruction = aiInstruction.trim()
+    const target = { pageId, sectionIndex, instruction }
     setAiInstruction("")
 
     api.aiEditSection(
@@ -2240,9 +2247,9 @@ export function StoryboardSectionDetail({
       currentHtml,
     ).then((response) => {
       if (response.status === "submitted") {
-        trackAiEditSubmission(response.taskId, instruction)
+        trackAiEditSubmission(response.taskId, target)
       } else {
-        reportAiEditResult(response, instruction)
+        reportAiEditResult(response, target)
       }
     }).catch((err) => {
       setAiError(err instanceof Error ? err.message : t`AI edit failed`)

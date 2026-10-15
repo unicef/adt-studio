@@ -3,43 +3,78 @@ import { useLingui } from "@lingui/react/macro"
 import type { TaskInfoResponse } from "@/api/client"
 import { aiEditNoticeFor, type AiEditOutcomeNotice } from "../lib/ai-edit-outcome"
 
-export function useAiEditOutcomes(
-  tasks: TaskInfoResponse[],
-  onFailed: (message: string) => void,
-  setInstruction: Dispatch<SetStateAction<string>>,
-) {
+export interface AiEditTarget {
+  pageId: string
+  sectionIndex: number
+  instruction: string
+}
+
+interface UseAiEditOutcomesOptions {
+  tasks: TaskInfoResponse[]
+  pageId: string
+  sectionIndex: number
+  onFailed: (message: string) => void
+  setInstruction: Dispatch<SetStateAction<string>>
+}
+
+export function useAiEditOutcomes({
+  tasks,
+  pageId,
+  sectionIndex,
+  onFailed,
+  setInstruction,
+}: UseAiEditOutcomesOptions) {
   const { t } = useLingui()
   const [notice, setNotice] = useState<AiEditOutcomeNotice | null>(null)
-  const submittedInstructions = useRef(new Map<string, string>())
+  const [tracked, setTracked] = useState<ReadonlyMap<string, AiEditTarget>>(() => new Map())
+  const location = useRef({ pageId, sectionIndex })
+
+  useEffect(() => {
+    location.current = { pageId, sectionIndex }
+    setNotice(null)
+  }, [pageId, sectionIndex])
+
+  const isCurrent = useCallback(
+    (target: AiEditTarget) =>
+      target.pageId === location.current.pageId && target.sectionIndex === location.current.sectionIndex,
+    [],
+  )
 
   const reportResult = useCallback(
-    (result: unknown, instruction: string) => {
+    (result: unknown, target: AiEditTarget) => {
+      if (!isCurrent(target)) return
       const next = aiEditNoticeFor(result)
       if (!next) return
       setNotice(next)
       if (next.kind === "unsupported") {
-        setInstruction((current) => current || instruction)
+        setInstruction((current) => current || target.instruction)
       }
     },
-    [setInstruction],
+    [isCurrent, setInstruction],
   )
 
   useEffect(() => {
-    for (const task of tasks) {
-      const instruction = submittedInstructions.current.get(task.taskId)
-      if (instruction === undefined) continue
+    const settled = tasks.filter(
+      (task) => tracked.has(task.taskId) && (task.status === "completed" || task.status === "failed"),
+    )
+    if (settled.length === 0) return
+    setTracked((previous) => {
+      const next = new Map(previous)
+      for (const task of settled) next.delete(task.taskId)
+      return next
+    })
+    for (const task of settled) {
+      const target = tracked.get(task.taskId)!
       if (task.status === "completed") {
-        submittedInstructions.current.delete(task.taskId)
-        reportResult(task.result, instruction)
-      } else if (task.status === "failed") {
-        submittedInstructions.current.delete(task.taskId)
+        reportResult(task.result, target)
+      } else if (isCurrent(target)) {
         onFailed(task.error ?? t`AI edit failed`)
       }
     }
-  }, [tasks, reportResult, onFailed, t])
+  }, [tasks, tracked, reportResult, isCurrent, onFailed, t])
 
-  const trackSubmission = useCallback((taskId: string, instruction: string) => {
-    submittedInstructions.current.set(taskId, instruction)
+  const trackSubmission = useCallback((taskId: string, target: AiEditTarget) => {
+    setTracked((previous) => new Map(previous).set(taskId, target))
   }, [])
 
   const dismissNotice = useCallback(() => setNotice(null), [])

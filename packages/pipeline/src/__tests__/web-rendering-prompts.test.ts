@@ -173,6 +173,7 @@ describe("web rendering reading-order prompts", () => {
     expect(prompt).toContain("Set `feasible` to `false`")
     expect(prompt).toContain("`unsupported_reason`")
     expect(prompt).toContain("Return the current HTML unchanged in `content`")
+    expect(prompt).toContain("including putting it into another language, is an ordinary text edit and IS possible")
   })
 
   it("keeps styleguide and visual-review prompts subordinate to outline typography", async () => {

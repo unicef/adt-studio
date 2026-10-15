@@ -66,38 +66,88 @@ interface HtmlEditResponse {
   content: string
 }
 
-const IMG_TAG_REGEX = /<img\b[^>]*>/gi
-
-function readAttribute(tag: string, name: string): string | undefined {
-  const match = new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, "i").exec(tag)
-  return match ? (match[1] ?? match[2]) : undefined
+const IMAGE_TAG_REGEX = /<(img|source|image)\b(?:[^>"']|"[^"]*"|'[^']*')*>/gi
+const CSS_URL_REGEX = /url\(\s*(["']?)(.*?)\1\s*\)/gi
+const HTML_ENTITY_REGEX = /&(?:quot|apos|amp|#34|#39|#x27);/gi
+const HTML_ENTITIES: Record<string, string> = {
+  "&quot;": '"',
+  "&#34;": '"',
+  "&apos;": "'",
+  "&#39;": "'",
+  "&#x27;": "'",
+  "&amp;": "&",
 }
 
-function collectImageReferences(html: string) {
-  const ids = new Set<string>()
-  const srcs = new Set<string>()
-  let hasImageWithoutSrc = false
-  for (const tag of html.match(IMG_TAG_REGEX) ?? []) {
-    const id = readAttribute(tag, "data-id")
-    const src = readAttribute(tag, "src")
-    if (id !== undefined) ids.add(id)
-    if (src === undefined) hasImageWithoutSrc = true
-    else srcs.add(src)
+interface ImageReferences {
+  ids: Set<string>
+  urls: Set<string>
+  hasImgWithoutSource: boolean
+}
+
+function decodeEntities(value: string): string {
+  return value.replace(HTML_ENTITY_REGEX, (entity) => HTML_ENTITIES[entity.toLowerCase()] ?? entity)
+}
+
+function readAttribute(tag: string, name: string): string | undefined {
+  const match = new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'=<>\`]+))`, "i").exec(tag)
+  return match ? decodeEntities(match[1] ?? match[2] ?? match[3]) : undefined
+}
+
+function imageTagUrls(tagName: string, tag: string): string[] {
+  const attributes = tagName === "image" ? ["href", "xlink:href"] : ["src"]
+  const urls = attributes
+    .map((attribute) => readAttribute(tag, attribute)?.trim())
+    .filter((url): url is string => !!url)
+  const srcset = readAttribute(tag, "srcset")
+  if (srcset) {
+    urls.push(...srcset.split(",").map((candidate) => candidate.trim().split(/\s+/)[0]).filter(Boolean))
   }
-  return { ids, srcs, hasImageWithoutSrc }
+  return urls
+}
+
+function cssImageUrls(html: string): string[] {
+  return [...decodeEntities(html).matchAll(CSS_URL_REGEX)]
+    .map((match) => match[2].trim())
+    .filter(Boolean)
+}
+
+function collectImageReferences(html: string): ImageReferences {
+  const references: ImageReferences = {
+    ids: new Set<string>(),
+    urls: new Set(cssImageUrls(html)),
+    hasImgWithoutSource: false,
+  }
+  for (const [tag, rawTagName] of html.matchAll(IMAGE_TAG_REGEX)) {
+    const tagName = rawTagName.toLowerCase()
+    const urls = imageTagUrls(tagName, tag)
+    for (const url of urls) references.urls.add(url)
+    if (tagName !== "img") continue
+    const id = readAttribute(tag, "data-id")
+    if (id !== undefined) references.ids.add(id)
+    if (urls.length === 0) references.hasImgWithoutSource = true
+  }
+  return references
 }
 
 export function findInventedImages(originalHtml: string, editedHtml: string): string[] {
   const original = collectImageReferences(originalHtml)
-  const invented: string[] = []
-  for (const tag of editedHtml.match(IMG_TAG_REGEX) ?? []) {
-    const id = readAttribute(tag, "data-id")
-    const src = readAttribute(tag, "src")
-    const unknownId = id !== undefined && !original.ids.has(id)
-    const unknownSrc = src === undefined ? !original.hasImageWithoutSrc : !original.srcs.has(src)
-    if (unknownId || unknownSrc) invented.push(src ?? id ?? tag)
+  const invented = new Set<string>()
+  for (const [tag, rawTagName] of editedHtml.matchAll(IMAGE_TAG_REGEX)) {
+    const tagName = rawTagName.toLowerCase()
+    const urls = imageTagUrls(tagName, tag)
+    if (tagName === "img") {
+      const id = readAttribute(tag, "data-id")
+      if (id !== undefined && !original.ids.has(id)) invented.add(urls[0] ?? id)
+      if (urls.length === 0 && !original.hasImgWithoutSource) invented.add(id ?? tag)
+    }
+    for (const url of urls) {
+      if (!original.urls.has(url)) invented.add(url)
+    }
   }
-  return invented
+  for (const url of cssImageUrls(editedHtml)) {
+    if (!original.urls.has(url)) invented.add(url)
+  }
+  return [...invented]
 }
 
 export async function reRenderPage(
@@ -407,7 +457,7 @@ export async function aiEditSection(
       const inventedImages = findInventedImages(currentHtml, cleanedHtml)
       if (inventedImages.length > 0) {
         errors.push(
-          `AI editing cannot create or change images, but the result references images that are not in the current HTML: ${inventedImages.join(", ")}. Reuse only the existing <img> elements, or set feasible to false if the instruction needs new or changed images.`
+          `AI editing cannot create or change images, but the result references images that are not in the current HTML: ${inventedImages.join(", ")}. Reuse only the images already in the section, or set feasible to false if the instruction needs new or changed images.`
         )
       }
       if (originalOrdering.isOrdering) {
