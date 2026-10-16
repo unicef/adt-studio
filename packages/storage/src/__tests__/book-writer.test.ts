@@ -5,7 +5,7 @@ import path from "node:path"
 import { spawn, type ChildProcess } from "node:child_process"
 import { once } from "node:events"
 import { pathToFileURL } from "node:url"
-import { withBookWriter, withNewBookWriter } from "../book-writer.js"
+import { ownsBookWriter, withBookWriter, withNewBookWriter } from "../book-writer.js"
 import { cleanupInterruptedSteps, openBookDb } from "../db.js"
 
 const dirs: string[] = []
@@ -146,4 +146,25 @@ it.each([false, true])("admits exactly one of six independent contenders (dead o
   winner.send("release")
   await finished
   expect(withBookWriter(f.bookDir, () => "next")).toBe("next")
+})
+
+it("removes the WASM lock directory together with a proven dead local owner's lease", async () => {
+  const f = fixture()
+  const child = await owner(f.bookDir)
+  // A force-quit mid-statement leaves node-sqlite3-wasm's mkdir mutex behind.
+  const databaseLock = path.join(f.bookDir, "book.db.lock")
+  fs.mkdirSync(databaseLock)
+  child.kill("SIGKILL")
+  await once(child, "exit")
+  expect(withBookWriter(f.bookDir, () => "recovered")).toBe("recovered")
+  expect(fs.existsSync(databaseLock)).toBe(false)
+  expect(fs.existsSync(path.join(f.bookDir, ".book-writer.json"))).toBe(false)
+})
+
+it("never creates a book directory just to check or take ownership", () => {
+  const f = fixture()
+  const missing = path.join(f.root, "missing")
+  expect(ownsBookWriter(missing)).toBe(false)
+  expect(() => withBookWriter(missing, () => "must not run")).toThrow()
+  expect(fs.existsSync(missing)).toBe(false)
 })

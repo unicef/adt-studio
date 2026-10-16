@@ -455,35 +455,3 @@ export function buildCoreTtsSourceContext(
     ]),
   )
 }
-
-/**
- * Compatibility entry point for old Save callers. Freshness is derived from
- * display inputs; saving preserves existing text and makes no provider calls.
- */
-export function invalidateCoreTtsForDisplayEntries(options: {
-  storage: Storage
-  language: string
-  entries: TextCatalogEntry[]
-  reason?: string
-  now?: string
-}): CoreTtsCatalogOutput | null {
-  // Save never replaces provider text, including manually edited speech.
-  // Reconciliation before planning derives freshness from current display text.
-  return getCoreTtsCatalog(options.storage, options.language)
-}
-
-/**
- * Compatibility entry point: upstream changes never delete existing speech.
- * Speech admission reconciles requested-language display inputs before use.
- */
-export function invalidateCoreTtsEntriesById(options: {
-  storage: Storage
-  textIds: ReadonlySet<string>
-  reason?: string
-  now?: string
-}): number {
-  if (options.textIds.size === 0) return 0
-
-  // Retain existing output and history. Current inputs are checked before use.
-  return 0
-}

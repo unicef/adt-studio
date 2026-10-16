@@ -2,6 +2,8 @@ import { createHash, randomUUID } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
 
+const NO_HARD_LINKS = new Set(["EPERM", "ENOTSUP", "EXDEV", "EACCES", "ENOSYS"])
+
 export class UnsafeAssetPathError extends Error {
   constructor() { super("Invalid asset destination") }
 }
@@ -66,9 +68,20 @@ export function storeImmutableAsset(
     // temporary inode has already been flushed and is in the same directory.
     fs.linkSync(temporary, destination)
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error
+    let conflict = error as NodeJS.ErrnoException
+    if (NO_HARD_LINKS.has(conflict.code ?? "")) {
+      // exFAT and FAT32 drives, some SMB shares and container bind mounts have
+      // no hard links. An exclusive copy keeps the same never-replace rule.
+      try {
+        fs.copyFileSync(temporary, destination, fs.constants.COPYFILE_EXCL)
+        return { fileName, contentHash }
+      } catch (copyError) {
+        conflict = copyError as NodeJS.ErrnoException
+      }
+    }
+    if (conflict.code !== "EEXIST") throw conflict
     if (!fs.lstatSync(destination).isFile()) throw new UnsafeAssetPathError()
-    if (!fs.readFileSync(destination).equals(Buffer.from(bytes))) throw error
+    if (!fs.readFileSync(destination).equals(Buffer.from(bytes))) throw conflict
   } finally { fs.unlinkSync(temporary) }
   return { fileName, contentHash }
 }

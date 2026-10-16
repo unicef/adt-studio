@@ -171,6 +171,34 @@ describe("GET /books/:label/glossary", () => {
     expect(body.pageCount).toBe(5)
   })
 
+  it("serves legacy ids in memory while another writer holds the book, then persists them once it is free", async () => {
+    createTestBook("busy-legacy")
+    addGlossaryData("busy-legacy")
+    const bookDir = path.join(tmpDir, "busy-legacy")
+    const lease = path.join(bookDir, ".book-writer.json")
+    // A live process (this one) holds the writer: a read must not answer 409.
+    fs.writeFileSync(lease, JSON.stringify({ token: "other-run", pid: process.pid, host: os.hostname() }))
+    const versions = () => {
+      const db = openBookDb(path.join(bookDir, "busy-legacy.db"))
+      try { return (db.all("SELECT count(*) AS n FROM node_data WHERE node = 'glossary'") as Array<{ n: number }>)[0].n } finally { db.close() }
+    }
+    const app = createGlossaryRoutes(tmpDir)
+    const busy = await app.request("/books/busy-legacy/glossary")
+    expect(busy.status).toBe(200)
+    const projected = await busy.json() as { version: number; items: Array<{ id?: string }> }
+    expect(projected.items.every((item) => !!item.id)).toBe(true)
+    expect(projected.version).toBe(1)
+    expect(versions()).toBe(1)
+
+    fs.unlinkSync(lease)
+    const free = await app.request("/books/busy-legacy/glossary")
+    expect(free.status).toBe(200)
+    const persisted = await free.json() as { version: number; items: Array<{ id?: string }> }
+    expect(persisted.items.map((item) => item.id)).toEqual(projected.items.map((item) => item.id))
+    expect(persisted.version).toBe(2)
+    expect(versions()).toBe(2)
+  })
+
   it("returns 404 for missing book", async () => {
     const app = createGlossaryRoutes(tmpDir)
     const res = await app.request("/books/ghost/glossary")

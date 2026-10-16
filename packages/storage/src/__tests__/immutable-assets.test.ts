@@ -1,11 +1,11 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { storeImmutableAsset } from "../immutable-assets.js"
 
 const roots: string[] = []
-afterEach(() => { for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true }) })
+afterEach(() => { vi.restoreAllMocks(); for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true }) })
 function book() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "adt-retained-assets-"))
   roots.push(root)
@@ -33,6 +33,23 @@ describe("retained physical assets", () => {
     fs.writeFileSync(file, "corrupted")
     expect(() => storeImmutableAsset(root, ["audio", "en"], "text", "wav", Buffer.from("recording"))).toThrow("content identity")
     expect(fs.readFileSync(file, "utf8")).toBe("corrupted")
+  })
+
+  it("falls back to an exclusive copy where the filesystem has no hard links", () => {
+    const root = book()
+    const link = vi.spyOn(fs, "linkSync").mockImplementation(() => {
+      const error = new Error("EPERM: operation not permitted, link") as NodeJS.ErrnoException
+      error.code = "EPERM"
+      throw error
+    })
+    const result = storeImmutableAsset(root, ["audio", "en"], "text", "mp3", Buffer.from("portable audio"))
+    expect(link).toHaveBeenCalled()
+    expect(fs.readFileSync(path.join(root, "audio/en", result.fileName), "utf8")).toBe("portable audio")
+    expect(fs.readdirSync(path.join(root, "audio/en")).some((name) => name.startsWith(".pending-"))).toBe(false)
+    // Identical bytes are still recognised, and different bytes are still refused.
+    expect(storeImmutableAsset(root, ["audio", "en"], "text", "mp3", Buffer.from("portable audio"))).toEqual(result)
+    fs.writeFileSync(path.join(root, "audio/en", result.fileName), "corrupted")
+    expect(() => storeImmutableAsset(root, ["audio", "en"], "text", "mp3", Buffer.from("portable audio"))).toThrow()
   })
 
   it.each(["escape", "dangling"])("fails closed on %s directory symlinks", (kind) => {

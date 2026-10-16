@@ -15,14 +15,16 @@ export class BookBusyError extends Error {
 
 type Lease = { token: string; references: number; release: () => void }
 const context = new AsyncLocalStorage<ReadonlyMap<string, Lease>>()
-const canonical = (dir: string) => {
-  fs.mkdirSync(dir, { recursive: true })
-  return fs.realpathSync(dir)
-}
+// Resolving a path must not create a book: admission for a deleted or
+// mistyped label is refused upstream, and new books reserve their directory
+// explicitly through withNewBookWriter.
+const canonical = (dir: string) => fs.realpathSync(dir)
 const lockName = ".book-writer.json"
 
 export function ownsBookWriter(bookDir: string): boolean {
-  const lease = context.getStore()?.get(canonical(bookDir))
+  let dir: string
+  try { dir = canonical(bookDir) } catch { return false } // A missing book owns nothing.
+  const lease = context.getStore()?.get(dir)
   return !!lease && lease.references > 0
 }
 
@@ -54,12 +56,16 @@ function acquire(dir: string): Lease {
     try {
       fd = fs.openSync(recovery, "wx", 0o600)
       if (!deadOwner(lock)) throw new BookBusyError()
-      // Keep SQLite mutex/journal/WAL files. Reclaiming process admission does
-      // not prove it is safe to discard another connection's recovery state.
-      // The WASM mutex is anonymous. A dead admission owner does not prove
-      // that a reader or another version of ADT is not holding this mutex.
-      if (fs.existsSync(path.join(dir, `${path.basename(dir)}.db.lock`))) {
-        throw new BookBusyError("An interrupted write left a database lock. Stop other ADT processes and inspect the retained recovery state before retrying.")
+      // Keep SQLite journal/WAL files: SQLite recovers those itself. The
+      // `<label>.db.lock` directory is different: node-sqlite3-wasm's own mutex,
+      // created by a process's statements and removed on unlock, so a same-host
+      // owner proven dead (ESRCH) cannot still hold it. Left in place it makes
+      // every later statement fail with "database is locked" until someone
+      // deletes it by hand (the common desktop force-quit case).
+      const databaseLock = path.join(dir, `${path.basename(dir)}.db.lock`)
+      if (fs.existsSync(databaseLock)) {
+        fs.rmSync(databaseLock, { recursive: true, force: true })
+        console.warn(`[book-writer] ${path.basename(dir)}: removed stale ${path.basename(databaseLock)} left by dead pid`)
       }
       fs.unlinkSync(lock)
       create()

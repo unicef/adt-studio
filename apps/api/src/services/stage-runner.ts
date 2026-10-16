@@ -2020,9 +2020,11 @@ async function runCaptionsStep(
     })
 
     const inventory = buildImageInventory(storage)
+    // Only caption statuses are compared at publication: projecting every
+    // kind, language and voice inside each page's transaction is 3x slower.
     const readOutputs = () => readOutputCatalog({ storage, config: loadBookConfig(label, booksDir, configPath),
       bookDir: path.join(path.resolve(booksDir), label), promptsDir,
-      configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config") })
+      configDir: configPath ? path.join(path.dirname(configPath), "config") : path.resolve("config"), kinds: ["caption"] })
     const captured = readOutputs()
     const pages = storage.getPages()
     const totalPages = pages.length
@@ -2942,7 +2944,10 @@ async function runSpeechStep(
     // synthesized in one request then sliced back into per-entry files, which
     // needs an OpenAI key for the Whisper alignment pass. Non-page entries
     // (glossary, quiz, easy-read) and non-Gemini languages keep per-entry.
-    const batchByPage = config.speech?.batch_by_page === true
+    const batchByPage = config.speech?.batch_by_page === true && !!openaiApiKey
+    if (config.speech?.batch_by_page === true && !openaiApiKey) {
+      console.warn(`[stage-run] ${label}: batch_by_page is enabled but no OpenAI key was provided; falling back to per-entry TTS (the Whisper alignment pass needs an OpenAI key)`)
+    }
     interface PageGroup {
       language: string
       pageKey: string

@@ -78,21 +78,29 @@ function glossaryIdentityAllocator(storage: Storage, extraIds: string[] = []) {
  * Preserve the IDs already used by their catalog consumers exactly once. */
 export function materializeGlossaryIds(storage: Storage) {
   const row = storage.getLatestNodeData("glossary", "book")
-  const parsed = GlossaryOutputSchema.safeParse(row?.data)
-  if (!parsed.success) return row
+  const data = projectMaterializedGlossary(storage, row?.data)
+  if (!data) return row
+  storage.putNodeData("glossary", "book", data)
+  return storage.getLatestNodeData("glossary", "book")
+}
+
+/** The same materialization without writing it, for reads that cannot take
+ * the writer lease. Deterministic for a given book state, so a later write
+ * under the lease assigns the identical ids. Null when nothing is missing. */
+export function projectMaterializedGlossary(storage: Storage, data: unknown): GlossaryOutput | null {
+  const parsed = GlossaryOutputSchema.safeParse(data)
+  if (!parsed.success) return null
   const ids = parsed.data.items.map(getGlossaryItemTextId)
-  if (parsed.data.items.every((item) => item.id?.trim()) && new Set(ids).size === ids.length) return row
+  if (parsed.data.items.every((item) => item.id?.trim()) && new Set(ids).size === ids.length) return null
   const allocate = glossaryIdentityAllocator(storage, ids)
   const seen = new Set<string>()
-  const data = { ...parsed.data, items: parsed.data.items.map((item, index) => {
+  return { ...parsed.data, items: parsed.data.items.map((item, index) => {
     // Catalog readers have always used the first copy of an identity. A later
     // legacy collision must never acquire that first term's manual outputs.
     const id = seen.has(ids[index]) ? allocate() : ids[index]
     seen.add(id)
     return { ...item, id }
   }) }
-  storage.putNodeData("glossary", "book", data)
-  return storage.getLatestNodeData("glossary", "book")
 }
 
 /** Older clients may submit an idless subset. Match only a unique retained

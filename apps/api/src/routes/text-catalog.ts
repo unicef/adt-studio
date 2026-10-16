@@ -20,7 +20,6 @@ import { openBookDb, createBookStorage, readCurrentNodeRow, CURRENT_VERSION_ORDE
 import { buildTextCatalogSnapshot, outputEvidence } from "@adt/pipeline"
 import {
   getCoreTtsCatalog,
-  invalidateCoreTtsForDisplayEntries,
   normalizeLocale,
 } from "@adt/pipeline"
 
@@ -207,11 +206,6 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
         data
       )
 
-      invalidateCoreTtsForDisplayEntries({
-        storage,
-        language: normalizedLanguage,
-        entries: data.entries,
-      })
       storage.clearNodesByType(["accessibility-assessment"])
       return c.json({ version })
     } finally {

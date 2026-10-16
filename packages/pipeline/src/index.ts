@@ -209,8 +209,6 @@ export {
   getCoreTtsCatalog,
   getReadyCoreTtsEntries,
   buildCoreTtsSourceContext,
-  invalidateCoreTtsForDisplayEntries,
-  invalidateCoreTtsEntriesById,
   type CoreTtsProfiles,
   type ResolvedCoreTtsProfile,
   type CoreTtsPreparationLocale,
@@ -502,7 +500,7 @@ export { buildOutputSources, firstCatalogEntries, translatedDisplayEntries } fro
 
 export { OutputPublicationConflict } from "./output-freshness.js"
 
-export { materializeGlossaryIds, reconcileGlossaryEditIds } from "./glossary.js"
+export { materializeGlossaryIds, projectMaterializedGlossary, reconcileGlossaryEditIds } from "./glossary.js"
 
 export { reconcileSectioningIdentities, collectSpentContentIds } from "./sectioning-identity.js"
 export { cloneRenderedIdentities, stampRenderedOwner } from "./rendered-identity.js"

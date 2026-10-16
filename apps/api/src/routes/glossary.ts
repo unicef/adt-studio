@@ -1,4 +1,4 @@
-import { materializeGlossaryIds, reconcileGlossaryEditIds } from "@adt/pipeline"
+import { materializeGlossaryIds, projectMaterializedGlossary, reconcileGlossaryEditIds } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -11,7 +11,7 @@ import {
   parseBookLabel,
 } from "@adt/types"
 import type { ImageCaptioningOutput } from "@adt/types"
-import { createBookStorage, withBookWriter } from "@adt/storage"
+import { BookBusyError, createBookStorage, withBookWriter } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import {
   buildTextCatalogSnapshot,
@@ -111,7 +111,15 @@ export function createGlossaryRoutes(
       if (!validated.success) throw new HTTPException(500, { message: `Stored glossary data is invalid for book: ${safeLabel}` })
       const ids = validated.data.items.map((item) => item.id?.trim())
       if (ids.some((id) => !id) || new Set(ids).size !== ids.length) {
-        row = withBookWriter(storage.bookDir!, () => storage.transaction(() => materializeGlossaryIds(storage)))!
+        try {
+          row = withBookWriter(storage.bookDir!, () => storage.transaction(() => materializeGlossaryIds(storage)))!
+        } catch (error) {
+          // A run or task holds the writer. Serve the same ids in memory rather
+          // than answer 409 to a read; the next write persists them.
+          if (!(error instanceof BookBusyError)) throw error
+          const projected = projectMaterializedGlossary(storage, validated.data)
+          return c.json({ ...(projected ?? validated.data), version: row.version })
+        }
       }
       return c.json({ ...GlossaryOutput.parse(row.data), version: row.version })
     } finally { storage.close() }

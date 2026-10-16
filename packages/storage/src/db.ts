@@ -516,6 +516,15 @@ export function cleanupInterruptedSteps(booksDir: string): void {
     // recovery: deleting WAL/journal files here can discard committed content.
     try {
       withBookWriter(bookDir, () => {
+        // Holding the lease proves no live writer. A `<label>.db.lock` directory
+        // is node-sqlite3-wasm's own mutex, left behind only by a killed process;
+        // it never self-heals and makes every later statement fail with
+        // "database is locked". WAL and journal files stay: SQLite recovers them.
+        const databaseLock = `${dbPath}.lock`
+        if (fs.existsSync(databaseLock)) {
+          fs.rmSync(databaseLock, { recursive: true, force: true })
+          console.log(`[startup] ${entry}: removed stale ${path.basename(databaseLock)} left by an interrupted process`)
+        }
         let db: sqlite.Database | null = null
         try {
           db = openBookDb(dbPath)
@@ -540,8 +549,11 @@ export function cleanupInterruptedSteps(booksDir: string): void {
         }
       })
     } catch (error) {
-      if (!(error instanceof BookBusyError)) throw error
       // Busy or uncertain owners are preserved, regardless of heartbeat age.
+      if (error instanceof BookBusyError) continue
+      // One unwritable or corrupt book directory must not stop the API for
+      // every other book.
+      console.error(`[startup] ${entry}: skipped interrupted-step cleanup:`, error instanceof Error ? error.message : error)
     }
   }
 }

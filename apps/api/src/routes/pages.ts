@@ -56,7 +56,6 @@ import {
   figureExtractionFlags,
   readEditableActivities,
   remapEditableActivities,
-  invalidateCoreTtsForDisplayEntries,
   resolveFigureExtractionMode,
   createSectionIdFactory,
   collectSpentSectionIds,
@@ -505,10 +504,8 @@ function clearRestoredNodeDependents(
   if (SourceGeneratorStep.safeParse(node).success && previousVersion !== storage.getLatestNodeData(node, itemId)?.version) {
     markSourceGenerationNeedsUpdate(storage, SourceGeneratorStep.parse(node))
   }
-  if (node === "text-catalog-translation") {
-    const restored = TextCatalogOutput.safeParse(storage.getLatestNodeData(node, itemId)?.data)
-    if (restored.success) invalidateCoreTtsForDisplayEntries({ storage, language: itemId, entries: restored.data.entries })
-  }
+  // Speech preparation freshness is derived from current display text on read;
+  // a restored translation needs no explicit invalidation.
   clearCaptionData(storage)
 }
 
