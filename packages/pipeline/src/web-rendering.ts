@@ -475,7 +475,7 @@ export function buildRenderStrategyResolver(
       maxRetries: cfg?.max_retries ?? DEFAULT_RENDER_CONFIG.max_retries,
       timeoutMs: (cfg?.timeout ?? DEFAULT_RENDER_CONFIG.timeout) * 1000,
       temperature: cfg?.temperature ?? DEFAULT_RENDER_CONFIG.temperature,
-      reasoningEffort: cfg?.reasoning_effort,
+      reasoningEffort: cfg?.reasoning_effort ?? appConfig.default_reasoning_effort,
       answerPromptName: cfg?.answer_prompt ?? "",
       templateName: cfg?.template ?? "",
       ...(vr?.enabled && {
@@ -488,7 +488,8 @@ export function buildRenderStrategyResolver(
           promptName: appConfig.visual_review_prompt ?? vr.prompt ?? DEFAULT_VISUAL_REFINEMENT.prompt,
           timeoutMs: (vr.timeout ?? DEFAULT_VISUAL_REFINEMENT.timeout) * 1000,
           temperature: vr.temperature ?? DEFAULT_VISUAL_REFINEMENT.temperature,
-          reasoningEffort: vr.reasoning_effort,
+          reasoningEffort:
+            appConfig.visual_review?.reasoning_effort ?? vr.reasoning_effort ?? appConfig.default_reasoning_effort,
         },
       }),
     }

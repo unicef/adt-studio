@@ -476,6 +476,12 @@ msgstr "{missingForCurrentStage} entrée(s) sans audio. Relancez pour générer 
 msgid "{missingForCurrentStage} entry/entries are missing translations. Re-run to fill the missing items."
 msgstr "{missingForCurrentStage} entrée(s) sans traduction. Relancez pour compléter les éléments manquants."
 
+msgid "{model} does not support a reasoning effort setting. Use the default."
+msgstr "{model} ne prend pas en charge le réglage de l'effort de raisonnement. Utilisez la valeur par défaut."
+
+msgid "{model} does not support the {level} effort. Choose another level."
+msgstr "{model} ne prend pas en charge l'effort {level}. Choisissez un autre niveau."
+
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} signalés"
 
@@ -2975,6 +2981,10 @@ msgstr "par défaut"
 msgid "Default"
 msgstr "Par défaut"
 
+#. placeholder {0}: effortLabel(inherited)
+msgid "Default · {0}"
+msgstr "Par défaut · {0}"
+
 msgid "Default (from prompt)"
 msgstr "Par défaut (from invite)"
 
@@ -3013,6 +3023,9 @@ msgstr "Les dossiers de prompts par défaut ne peuvent pas être supprimés."
 
 msgid "Default Provider"
 msgstr "Fournisseur par défaut"
+
+msgid "Default reasoning effort"
+msgstr "Effort de raisonnement par défaut"
 
 msgid "Default Render Strategy"
 msgstr "Par défaut Render Strategy"
@@ -3854,6 +3867,9 @@ msgstr "Exportation..."
 
 msgid "Expressive TTS voices for narration."
 msgstr "Voix TTS expressives pour la narration."
+
+msgid "Extra high"
+msgstr "Très élevé"
 
 msgid "Extract"
 msgstr "Extraire"
@@ -5583,6 +5599,9 @@ msgstr "Suivre le thème du système"
 msgid "Matches the original book design with some flexibility."
 msgstr "Correspond au design original du livre avec une certaine flexibilité."
 
+msgid "Max"
+msgstr "Maximum"
+
 msgid "Max height"
 msgstr "Hauteur max"
 
@@ -5751,6 +5770,9 @@ msgstr "Taille min (px)"
 msgid "Min width"
 msgstr "Largeur min"
 
+msgid "Minimal"
+msgstr "Minimal"
+
 msgid "Minimise onboarding and list-reorder animations."
 msgstr "Minimiser les animations d'intégration et de réorganisation de liste."
 
@@ -5810,6 +5832,9 @@ msgstr "Mobile"
 
 msgid "Model"
 msgstr "Modèle"
+
+msgid "Model default"
+msgstr "Valeur par défaut du modèle"
 
 msgid "Model overrides"
 msgstr "Remplacements de modèles"
@@ -6460,6 +6485,9 @@ msgstr "Non démarré"
 
 msgid "Not started yet"
 msgstr "Pas encore commencé"
+
+msgid "Not supported"
+msgstr "Non pris en charge"
 
 msgid "Not yet split:"
 msgstr "Pas encore divisé :"
@@ -7743,6 +7771,12 @@ msgstr "Réaliste / Photo"
 
 msgid "Rearranging atoms of HTML..."
 msgstr "Réarrangement des atomes de HTML..."
+
+msgid "Reasoning effort"
+msgstr "Effort de raisonnement"
+
+msgid "Reasoning effort for {label}"
+msgstr "Effort de raisonnement pour {label}"
 
 msgid "Rebuild"
 msgstr "Reconstruire"

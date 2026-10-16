@@ -46,6 +46,11 @@ export const openaiManifest: ProviderManifest = {
       recursiveSchemas: false,
       imageInput: true,
       temperature: true,
+      reasoningEfforts: [
+        { models: "gpt-6\\.1-sol(?:-\\d{4}-\\d{2}-\\d{2})?", efforts: ["low", "medium", "high", "xhigh", "max"], default: "low" },
+        { models: "gpt-6-luna(?:-\\d{4}-\\d{2}-\\d{2})?", efforts: ["none", "low", "medium", "high", "xhigh", "max"], default: "low" },
+        { models: "(?:gpt-5|o[1-9]).*", efforts: ["low", "medium", "high"], default: "medium" },
+      ],
     },
     agent: { tools: true, streaming: true },
     image: {

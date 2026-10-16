@@ -51,21 +51,26 @@ const PROVIDERS = [
   descriptor("openai", ["structured-text", "agent", "image"]),
   descriptor("anthropic", ["structured-text", "agent"]),
 ]
+PROVIDERS[0].manifest.capabilities["structured-text"]!.reasoningEfforts = [
+  { models: "gpt-5.*", efforts: ["low", "medium", "high"], default: "medium" },
+]
 
 const updateDefaultModel = vi.fn(async (model: string) => ({ model }))
 const taskModelsResponse = () => ({
   defaultModel: apiState.defaultModel,
+  defaultReasoningEffort: null,
   tasks: [
-    { id: "metadata", kind: "step", configKey: "metadata", step: "metadata", prompts: ["metadata_extraction"], model: null },
-    { id: "render_strategies.llm", kind: "render-strategy", configKey: "llm", prompts: ["web_generation_html"], model: "openai:gpt-5.4" },
+    { id: "metadata", kind: "step", configKey: "metadata", step: "metadata", prompts: ["metadata_extraction"], model: null, reasoningEffort: null },
+    { id: "render_strategies.llm", kind: "render-strategy", configKey: "llm", prompts: ["web_generation_html"], model: "openai:gpt-5.4", reasoningEffort: apiState.renderingEffort },
   ],
 })
-const updateTaskModel = vi.fn(async (_id: string, _model: string | null) => taskModelsResponse())
+const updateTaskModel = vi.fn(async (_id: string, _change: Record<string, unknown>) => taskModelsResponse())
 const apiState: {
   defaultModel: string
   promptModels: string[]
   prompts: Array<{ name: string; variants: string[] }>
-} = { defaultModel: SAVED_LLM, promptModels: [SAVED_LLM], prompts: [] }
+  renderingEffort: string | null
+} = { defaultModel: SAVED_LLM, promptModels: [SAVED_LLM], prompts: [], renderingEffort: null }
 
 vi.mock("@lingui/core/macro", () => ({
   msg: (strings: TemplateStringsArray, ...values: unknown[]) => ({
@@ -145,6 +150,7 @@ beforeEach(() => {
   apiState.defaultModel = SAVED_LLM
   apiState.promptModels = [SAVED_LLM]
   apiState.prompts = []
+  apiState.renderingEffort = null
 })
 
 afterEach(cleanup)
@@ -215,8 +221,33 @@ describe("ModelsSection — model per task", () => {
     fireEvent.click(saveButton())
 
     await waitFor(() => expect(updateTaskModel).toHaveBeenCalledTimes(2))
-    expect(updateTaskModel).toHaveBeenNthCalledWith(1, "metadata", "anthropic:claude-opus-4")
-    expect(updateTaskModel).toHaveBeenNthCalledWith(2, "render_strategies.llm", null)
+    expect(updateTaskModel).toHaveBeenNthCalledWith(1, "metadata", { model: "anthropic:claude-opus-4" })
+    expect(updateTaskModel).toHaveBeenNthCalledWith(2, "render_strategies.llm", { model: null })
+  })
+})
+
+describe("ModelsSection — reasoning effort", () => {
+  const effortTrigger = (id: string) => document.getElementById(`${id}-effort`) as HTMLElement
+
+  it("shows the inherited effort for the effective model", async () => {
+    await renderLoaded()
+    expect(effortTrigger("task-model-metadata").textContent).toContain("Default · Medium")
+    expect(document.getElementById("app-default-reasoning-effort")?.textContent).toContain("Model default")
+  })
+
+  it("marks the effort as unsupported when the task model has no effort setting", async () => {
+    await renderLoaded()
+    fireEvent.change(byId("task-model-metadata"), { target: { value: "anthropic:claude-opus-4" } })
+    await waitFor(() => expect(effortTrigger("task-model-metadata").textContent).toBe("Not supported"))
+  })
+
+  it("blocks saving an effort the task model does not support", async () => {
+    apiState.renderingEffort = "xhigh"
+    await renderLoaded()
+    expect(screen.getByText("openai:gpt-5.4 does not support the Extra high effort. Choose another level.")).toBeTruthy()
+
+    fireEvent.change(byId("task-model-metadata"), { target: { value: "anthropic:claude-opus-4" } })
+    await waitFor(() => expect(saveButton().hasAttribute("disabled")).toBe(true))
   })
 })
 

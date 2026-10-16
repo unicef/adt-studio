@@ -13,6 +13,7 @@ import {
   ResetToDefaultButton,
   taskModelInputId,
 } from "../taskModels/TaskModelIndicators"
+import { EffortProblemNotice, EffortSelect, useEffortLabel } from "../taskModels/EffortSelect"
 import { Highlight, matchesQuery, normalizeQuery } from "./search"
 import {
   PromptWarning,
@@ -30,7 +31,7 @@ function GroupRow({ id, children }: { id?: string; children: ReactNode }) {
     <tr id={id} className="scroll-mt-24 max-md:block">
       <th
         scope="colgroup"
-        colSpan={4}
+        colSpan={5}
         className="border-t bg-muted/30 px-4 py-2 text-left text-[11.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground max-md:block max-md:px-[18px]"
       >
         {children}
@@ -44,6 +45,7 @@ export function ModelsTable(props: ModelsTableProps) {
   const { llm, specialized, tasks } = props
   useModelsFloatingSave(props)
   const specializedItems = useSpecializedItems(specialized)
+  const effortLabel = useEffortLabel()
   const searchRef = useRef<HTMLInputElement>(null)
   const [search, setSearch] = useState("")
   const query = normalizeQuery(search)
@@ -60,6 +62,11 @@ export function ModelsTable(props: ModelsTableProps) {
           group.label,
           ...task.prompts,
           tasks.draftOf(task.id) || tasks.defaultModel,
+          (() => {
+            const effort = tasks.effortOf(task.id)
+            const level = effort.draft || effort.inherited
+            return level ? effortLabel(level) : null
+          })(),
         ]),
       ),
     }))
@@ -144,6 +151,7 @@ export function ModelsTable(props: ModelsTableProps) {
             <col className="w-[26%]" />
             <col />
             <col className="w-[300px]" />
+            <col className="w-[180px]" />
             <col className="w-14" />
           </colgroup>
           <thead className="max-md:hidden">
@@ -156,6 +164,9 @@ export function ModelsTable(props: ModelsTableProps) {
               </th>
               <th scope="col" className="px-4 py-3 font-semibold">
                 <Trans>Model</Trans>
+              </th>
+              <th scope="col" className="px-4 py-3 font-semibold">
+                <Trans>Reasoning effort</Trans>
               </th>
               <th scope="col" className="px-4 py-3">
                 <span className="sr-only">
@@ -172,7 +183,7 @@ export function ModelsTable(props: ModelsTableProps) {
                 className={cn(
                   ROW,
                   "scroll-mt-24 border-t bg-brand-50/40 dark:bg-brand-500/5",
-                  llm.isDirty && "bg-brand-50/80 dark:bg-brand-500/10",
+                  (llm.isDirty || tasks.isDefaultEffortDirty) && "bg-brand-50/80 dark:bg-brand-500/10",
                 )}
               >
                 <td className={CELL}>
@@ -206,6 +217,20 @@ export function ModelsTable(props: ModelsTableProps) {
                   />
                   <UnsupportedModelNotice support={llm.support} modality="text" className="mt-1.5" />
                 </td>
+                <td className={CELL}>
+                  <EffortSelect
+                    id="app-default-reasoning-effort"
+                    label={t`Default reasoning effort`}
+                    value={tasks.defaultEffort}
+                    onChange={tasks.setDefaultEffort}
+                    support={tasks.defaultModelEffortSupport}
+                    inherited={undefined}
+                    inheritLabel={t`Model default`}
+                    problem={null}
+                    disabled={tasks.busy}
+                    anyModel
+                  />
+                </td>
                 <td className={CELL} />
               </tr>
             </tbody>
@@ -215,7 +240,7 @@ export function ModelsTable(props: ModelsTableProps) {
             <tbody className="max-md:block" aria-hidden="true">
               {[0, 1, 2, 3].map((index) => (
                 <tr key={index} className="border-t border-border/60 max-md:block">
-                  <td colSpan={4} className="px-4 py-3 max-md:block">
+                  <td colSpan={5} className="px-4 py-3 max-md:block">
                     <div className="h-8 animate-pulse rounded-lg bg-muted/60 motion-reduce:animate-none" />
                   </td>
                 </tr>
@@ -232,6 +257,7 @@ export function ModelsTable(props: ModelsTableProps) {
                 const label = tasks.labelOf(task)
                 const custom = tasks.isCustom(task.id)
                 const inputId = taskModelInputId(task.id)
+                const effort = tasks.effortOf(task.id)
                 return (
                   <tr
                     key={task.id}
@@ -264,6 +290,24 @@ export function ModelsTable(props: ModelsTableProps) {
                         commitOnInput
                       />
                       <UnsupportedModelNotice support={tasks.supportFor(task.id)} modality="text" className="mt-1.5" />
+                    </td>
+                    <td className={CELL}>
+                      <EffortSelect
+                        id={`${inputId}-effort`}
+                        label={t`Reasoning effort for ${label}`}
+                        value={effort.draft}
+                        onChange={(value) => tasks.setEffort(task.id, value)}
+                        support={effort.support}
+                        inherited={effort.inherited}
+                        problem={effort.problem}
+                        disabled={tasks.busy}
+                      />
+                      <EffortProblemNotice
+                        problem={effort.problem}
+                        model={tasks.draftOf(task.id) || tasks.defaultModel}
+                        effort={effort.draft}
+                        className="mt-1.5"
+                      />
                     </td>
                     <td className={cn(CELL, "text-right max-md:text-left")}>
                       <ResetToDefaultButton
@@ -326,6 +370,9 @@ export function ModelsTable(props: ModelsTableProps) {
                     />
                     <UnsupportedModelNotice support={item.support} modality="image" className="mt-1.5" />
                   </td>
+                  <td className={cn(CELL, "text-[12.5px] text-muted-foreground")}>
+                    <span aria-hidden="true">—</span>
+                  </td>
                   <td className={CELL} />
                 </tr>
               ))}
@@ -335,7 +382,7 @@ export function ModelsTable(props: ModelsTableProps) {
           {query && shown === 0 && (
             <tbody className="max-md:block">
               <tr className="border-t max-md:block">
-                <td colSpan={4} className="px-4 py-12 text-center max-md:block">
+                <td colSpan={5} className="px-4 py-12 text-center max-md:block">
                   <p className="text-[13px] font-medium">
                     <Trans>No tasks, prompts or models match “{search}”.</Trans>
                   </p>

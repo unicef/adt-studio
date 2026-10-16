@@ -474,6 +474,12 @@ msgstr "{missingForCurrentStage} entry/entries are missing audio. Re-run to gene
 msgid "{missingForCurrentStage} entry/entries are missing translations. Re-run to fill the missing items."
 msgstr "{missingForCurrentStage} entry/entries are missing translations. Re-run to fill the missing items."
 
+msgid "{model} does not support a reasoning effort setting. Use the default."
+msgstr "{model} does not support a reasoning effort setting. Use the default."
+
+msgid "{model} does not support the {level} effort. Choose another level."
+msgstr "{model} does not support the {level} effort. Choose another level."
+
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} flagged"
 
@@ -2973,6 +2979,10 @@ msgstr "default"
 msgid "Default"
 msgstr "Default"
 
+#. placeholder {0}: effortLabel(inherited)
+msgid "Default · {0}"
+msgstr "Default · {0}"
+
 msgid "Default (from prompt)"
 msgstr "Default (from prompt)"
 
@@ -3011,6 +3021,9 @@ msgstr "Default prompt folders cannot be deleted."
 
 msgid "Default Provider"
 msgstr "Default Provider"
+
+msgid "Default reasoning effort"
+msgstr "Default reasoning effort"
 
 msgid "Default Render Strategy"
 msgstr "Default Render Strategy"
@@ -3852,6 +3865,9 @@ msgstr "Exporting..."
 
 msgid "Expressive TTS voices for narration."
 msgstr "Expressive TTS voices for narration."
+
+msgid "Extra high"
+msgstr "Extra high"
 
 msgid "Extract"
 msgstr "Extract"
@@ -5581,6 +5597,9 @@ msgstr "Match system theme"
 msgid "Matches the original book design with some flexibility."
 msgstr "Matches the original book design with some flexibility."
 
+msgid "Max"
+msgstr "Max"
+
 msgid "Max height"
 msgstr "Max height"
 
@@ -5749,6 +5768,9 @@ msgstr "Min Size (px)"
 msgid "Min width"
 msgstr "Min width"
 
+msgid "Minimal"
+msgstr "Minimal"
+
 msgid "Minimise onboarding and list-reorder animations."
 msgstr "Minimise onboarding and list-reorder animations."
 
@@ -5808,6 +5830,9 @@ msgstr "Mobile"
 
 msgid "Model"
 msgstr "Model"
+
+msgid "Model default"
+msgstr "Model default"
 
 msgid "Model overrides"
 msgstr "Model overrides"
@@ -6458,6 +6483,9 @@ msgstr "Not started"
 
 msgid "Not started yet"
 msgstr "Not started yet"
+
+msgid "Not supported"
+msgstr "Not supported"
 
 msgid "Not yet split:"
 msgstr "Not yet split:"
@@ -7741,6 +7769,12 @@ msgstr "Realistic / Photo"
 
 msgid "Rearranging atoms of HTML..."
 msgstr "Rearranging atoms of HTML..."
+
+msgid "Reasoning effort"
+msgstr "Reasoning effort"
+
+msgid "Reasoning effort for {label}"
+msgstr "Reasoning effort for {label}"
 
 msgid "Rebuild"
 msgstr "Rebuild"

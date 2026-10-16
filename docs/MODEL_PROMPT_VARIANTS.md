@@ -154,37 +154,50 @@ model has its own adapter version in the cache fingerprint.
 
 ### Reasoning effort per step
 
-`low` is the shipped default. Each LLM step can raise it with `reasoning_effort`
-(`none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`) in `config.yaml` or
-the book config:
+Settings > Models sets the effort per task and a general default, next to each
+task's model. Both are written to the global `config.yaml`; a book config can
+override them the same way:
 
 ```yaml
+default_reasoning_effort: medium
 page_sectioning:
-  reasoning_effort: medium
+  reasoning_effort: high
+visual_review:
+  reasoning_effort: high
 render_strategies:
   llm:
     render_type: llm
     config:
       reasoning_effort: medium
-      visual_refinement:
-        enabled: true
-        reasoning_effort: medium
 ```
 
 The field exists on every `StepConfig` step (`metadata`, `book_summary`,
 `book_outline`, `page_sectioning`, `image_meaningfulness`, `image_segmentation`,
 `image_cropping`, `image_captioning`, `translation`, `quiz_generation`,
-`glossary`, `toc_generation`, `easy_read`, `font_assignment`), on `core_tts`,
-on a render strategy's `config` (HTML generation and activity answers) and on
-its `visual_refinement` block (visual review). It is sent as
-`providerOptions.openai.reasoningEffort`; on Sol, `none` and `minimal` still
-become `low`. Other OpenAI models receive the value through the AI SDK, and
-non-OpenAI providers ignore it. Unset leaves today's behaviour and cache keys
-unchanged. A different effort is a different request, so it misses the LLM
-cache. Agents, `html_edit` and translation evaluation do not read the field yet.
-The effective options and adapter/endpoint identity participate in caching;
-legacy caches cannot satisfy Sol requests. Reasoning continuation travels with
-the cached book transcript using `store: false` and encrypted reasoning items.
+`glossary`, `toc_generation`, `easy_read`, `font_assignment`,
+`styleguide_generation`, `visual_review`), on `core_tts` and on a render
+strategy's `config` (HTML generation and activity answers). A task without its
+own value uses `default_reasoning_effort`; with neither, the model's own default
+applies (`low` on Sol and Luna). Visual review reads `visual_review.reasoning_effort`,
+then the strategy's `visual_refinement.reasoning_effort`, then the default.
+
+Which levels a model accepts is declared in its provider manifest
+(`capabilities["structured-text"].reasoningEfforts`: a model-id pattern, the
+accepted levels and the model default). Sol accepts `low`–`max`, Luna `none`–`max`,
+and other OpenAI reasoning models (`gpt-5`, `o`-series) `low`–`high`. Models
+without an entry, including every non-OpenAI provider, have no effort setting.
+The settings screen only offers accepted levels and blocks saving an unsupported
+one, the API rejects it with 400, and at request time
+`fitReasoningEffort` (`packages/types/src/reasoning-effort.ts`) moves an
+unsupported value to the closest accepted level or drops it. The adjustment is
+logged and recorded as `reasoningEffortAdjustment` in the call's parameters.
+
+The effort is sent as `providerOptions.openai.reasoningEffort`. A different effort
+is a different request, so it misses the LLM cache. Agents, `html_edit` and
+translation evaluation do not read the field yet. The effective options and
+adapter/endpoint identity participate in caching; legacy caches cannot satisfy
+Sol requests. Reasoning continuation travels with the cached book transcript
+using `store: false` and encrypted reasoning items.
 
 ## Adding a New Model
 

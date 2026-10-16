@@ -476,6 +476,12 @@ msgstr "{missingForCurrentStage} hyrje/hyrjet mungojnë audio. Ekzekutoni përs�
 msgid "{missingForCurrentStage} entry/entries are missing translations. Re-run to fill the missing items."
 msgstr "{missingForCurrentStage} hyrje/hyrjet mungojnë përkthime. Ekzekutoni përsëri për të plotësuar elementet që mungojnë."
 
+msgid "{model} does not support a reasoning effort setting. Use the default."
+msgstr "{model} nuk mbështet cilësimin e përpjekjes së arsyetimit. Përdorni të parazgjedhurin."
+
+msgid "{model} does not support the {level} effort. Choose another level."
+msgstr "{model} nuk mbështet përpjekjen {level}. Zgjidhni një nivel tjetër."
+
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} të shënuara"
 
@@ -2975,6 +2981,10 @@ msgstr "parazgjedhje"
 msgid "Default"
 msgstr "Parazgjedhje"
 
+#. placeholder {0}: effortLabel(inherited)
+msgid "Default · {0}"
+msgstr "E parazgjedhur · {0}"
+
 msgid "Default (from prompt)"
 msgstr "Parazgjedhje (nga prompt-i)"
 
@@ -3013,6 +3023,9 @@ msgstr "Dosjet e parazgjedhura të prompteve nuk mund të fshihen."
 
 msgid "Default Provider"
 msgstr "Ofruesi parazgjedhës"
+
+msgid "Default reasoning effort"
+msgstr "Përpjekja e parazgjedhur e arsyetimit"
 
 msgid "Default Render Strategy"
 msgstr "Strategjia parazgjedhëse e renderimit"
@@ -3854,6 +3867,9 @@ msgstr "Duke eksportuar..."
 
 msgid "Expressive TTS voices for narration."
 msgstr "Zëra TTS shprehës për rrëfimin."
+
+msgid "Extra high"
+msgstr "Shumë e lartë"
 
 msgid "Extract"
 msgstr "Nxjerr"
@@ -5583,6 +5599,9 @@ msgstr "Ndiq temën e sistemit"
 msgid "Matches the original book design with some flexibility."
 msgstr "Përputhet me dizajnin origjinal të librit me pak fleksibilitet."
 
+msgid "Max"
+msgstr "Maksimale"
+
 msgid "Max height"
 msgstr "Lartësia maksimale"
 
@@ -5751,6 +5770,9 @@ msgstr "Madhësia Minimale (px)"
 msgid "Min width"
 msgstr "Gjerësia minimale"
 
+msgid "Minimal"
+msgstr "Minimale"
+
 msgid "Minimise onboarding and list-reorder animations."
 msgstr "Minimizo animacionet e hyrjes dhe riorganizimit të listës."
 
@@ -5810,6 +5832,9 @@ msgstr "Celular"
 
 msgid "Model"
 msgstr "Model"
+
+msgid "Model default"
+msgstr "E parazgjedhura e modelit"
 
 msgid "Model overrides"
 msgstr "Mbivendosjet e modeleve"
@@ -6460,6 +6485,9 @@ msgstr "Nuk ka filluar"
 
 msgid "Not started yet"
 msgstr "Nuk ka filluar ende"
+
+msgid "Not supported"
+msgstr "Nuk mbështetet"
 
 msgid "Not yet split:"
 msgstr "Ende të pandara:"
@@ -7743,6 +7771,12 @@ msgstr "Realist / Foto"
 
 msgid "Rearranging atoms of HTML..."
 msgstr "Duke riorganizuar atomet e HTML-it..."
+
+msgid "Reasoning effort"
+msgstr "Përpjekja e arsyetimit"
+
+msgid "Reasoning effort for {label}"
+msgstr "Përpjekja e arsyetimit për {label}"
 
 msgid "Rebuild"
 msgstr "Rindërto"

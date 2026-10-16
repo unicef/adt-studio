@@ -5,6 +5,7 @@ import type {
   StructuredOutputStrategy,
   StructuredTextCapabilities,
 } from "@adt/types"
+import { findReasoningEffortSupport, fitReasoningEffort } from "@adt/types"
 import type {
   LLMModel,
   GenerateObjectOptions,
@@ -200,9 +201,17 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
         )
       }
       const effectiveTemperature = supportsTemperature ? opts.temperature : undefined
-      const providerOptions = withReasoningEffort(
-        opts.providerOptions, opts.reasoningEffort ?? options.reasoningEffort,
+      const requestedEffort = opts.reasoningEffort ?? options.reasoningEffort
+      const appliedEffort = fitReasoningEffort(
+        findReasoningEffortSupport(resolved.capabilities.reasoningEfforts, resolved.modelId),
+        requestedEffort,
       )
+      if (requestedEffort && appliedEffort !== requestedEffort) {
+        log.info(
+          `[LLM] ${label} | reasoning effort ${requestedEffort} ${appliedEffort ? `adjusted to ${appliedEffort}` : "ignored"} | ${resolved.qualifiedModelId} does not support it`,
+        )
+      }
+      const providerOptions = withReasoningEffort(opts.providerOptions, appliedEffort)
       const effective = registry.get(resolved.providerId).inferenceOptionsFor?.(
         "structured-text", resolved.modelId, providerOptions, strategy,
       ) ?? { providerOptions }
@@ -211,6 +220,9 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
         resolvedPromptPath,
         adapterVersion: resolved.fingerprint.adapterVersion,
         temperature: effectiveTemperature, maxTokens: opts.maxTokens,
+        ...(requestedEffort && appliedEffort !== requestedEffort
+          ? { reasoningEffortAdjustment: { requested: requestedEffort, applied: appliedEffort ?? null } }
+          : {}),
       }
       const effectiveTimeoutMs = resolveEffectiveTimeoutMs(
         registry.get(resolved.providerId).manifest,

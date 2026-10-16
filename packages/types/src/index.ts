@@ -549,4 +549,13 @@ export {
   TaskModelEntry,
   TaskModelsResponse,
   UpdateTaskModelRequest,
+  UpdateDefaultReasoningEffortRequest,
 } from "./task-models.js"
+
+export {
+  REASONING_EFFORT_ORDER,
+  SELECTABLE_REASONING_EFFORTS,
+  ReasoningEffortSupport,
+  findReasoningEffortSupport,
+  fitReasoningEffort,
+} from "./reasoning-effort.js"

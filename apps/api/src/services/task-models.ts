@@ -1,6 +1,7 @@
 import {
   STEP_TASK_MODEL_TARGETS,
   type AppConfig,
+  type ReasoningEffort,
   type TaskModelEntry,
 } from "@adt/types"
 
@@ -9,6 +10,7 @@ const RENDER_STRATEGY_ID_PREFIX = "render_strategies."
 interface StepSettings {
   prompt?: string
   model?: string
+  reasoning_effort?: ReasoningEffort
 }
 
 function unique(values: Array<string | undefined>): string[] {
@@ -30,6 +32,7 @@ export function listTaskModels(config: AppConfig): TaskModelEntry[] {
         ...target.extraPrompts,
       ]),
       model: step?.model ?? null,
+      reasoningEffort: step?.reasoning_effort ?? null,
     }
   })
 
@@ -43,14 +46,15 @@ export function listTaskModels(config: AppConfig): TaskModelEntry[] {
         configKey: name,
         prompts: unique([strategyConfig?.prompt ?? "web_generation_html", strategyConfig?.answer_prompt]),
         model: strategyConfig?.model ?? null,
+        reasoningEffort: strategyConfig?.reasoning_effort ?? null,
       }
     })
 
   return [...steps, ...strategies]
 }
 
-export function taskModelConfigPath(task: TaskModelEntry): string[] {
+export function taskConfigPath(task: TaskModelEntry, field: "model" | "reasoning_effort"): string[] {
   return task.kind === "step"
-    ? [task.configKey, "model"]
-    : ["render_strategies", task.configKey, "config", "model"]
+    ? [task.configKey, field]
+    : ["render_strategies", task.configKey, "config", field]
 }

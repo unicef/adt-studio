@@ -54,7 +54,7 @@ export function createBookSummaryRoutes(
 
       const model = createLLMModel({
         modelId: summaryConfig.modelId,
-        reasoningEffort: config.book_summary?.reasoning_effort,
+        reasoningEffort: config.book_summary?.reasoning_effort ?? config.default_reasoning_effort,
         cacheDir,
         promptEngine,
         rateLimiter,

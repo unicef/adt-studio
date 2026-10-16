@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { StepName } from "./pipeline.js"
 import { LLMModelId } from "./config.js"
+import { ReasoningEffort } from "./llm-inference.js"
 
 export interface StepTaskModelTarget {
   configKey: string
@@ -80,17 +81,29 @@ export const TaskModelEntry = z.object({
   step: StepName.optional(),
   prompts: z.array(z.string()),
   model: z.string().nullable(),
+  reasoningEffort: ReasoningEffort.nullable(),
 })
 export type TaskModelEntry = z.infer<typeof TaskModelEntry>
 
 export const TaskModelsResponse = z.object({
   defaultModel: z.string(),
+  defaultReasoningEffort: ReasoningEffort.nullable(),
   tasks: z.array(TaskModelEntry),
 })
 export type TaskModelsResponse = z.infer<typeof TaskModelsResponse>
 
-export const UpdateTaskModelRequest = z.object({
-  id: z.string().min(1),
-  model: LLMModelId.nullable(),
-})
+export const UpdateTaskModelRequest = z
+  .object({
+    id: z.string().min(1),
+    model: LLMModelId.nullable().optional(),
+    reasoningEffort: ReasoningEffort.nullable().optional(),
+  })
+  .refine((value) => value.model !== undefined || value.reasoningEffort !== undefined, {
+    message: "Provide a model or a reasoning effort",
+  })
 export type UpdateTaskModelRequest = z.infer<typeof UpdateTaskModelRequest>
+
+export const UpdateDefaultReasoningEffortRequest = z.object({
+  reasoningEffort: ReasoningEffort.nullable(),
+})
+export type UpdateDefaultReasoningEffortRequest = z.infer<typeof UpdateDefaultReasoningEffortRequest>

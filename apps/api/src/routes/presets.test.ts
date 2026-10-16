@@ -286,6 +286,40 @@ describe("global task models", () => {
     expect(fs.readFileSync(configPath, "utf-8")).toBe("# keep this comment\nstructure_types: {}\nrole_types: {}\n")
   })
 
+  it("sets and clears a task reasoning effort supported by its model", async () => {
+    const saved = await put({ id: "metadata", reasoningEffort: "xhigh" })
+    expect(saved.status).toBe(200)
+    const body = await saved.json() as { tasks: Array<{ id: string; reasoningEffort: string | null }> }
+    expect(body.tasks.find((task) => task.id === "metadata")?.reasoningEffort).toBe("xhigh")
+    expect(fs.readFileSync(configPath, "utf-8")).toContain("metadata:\n  reasoning_effort: \"xhigh\"")
+
+    expect((await put({ id: "metadata", reasoningEffort: null })).status).toBe(200)
+    expect(fs.readFileSync(configPath, "utf-8")).toBe("# keep this comment\nstructure_types: {}\nrole_types: {}\n")
+  })
+
+  it("rejects an effort the effective model does not support", async () => {
+    const response = await put({ id: "metadata", model: "openai:gpt-5.4", reasoningEffort: "max" })
+    expect(response.status).toBe(400)
+    expect(await response.text()).toContain("does not support reasoning effort")
+    expect((await put({ id: "metadata", model: "openai:gpt-4.1", reasoningEffort: "low" })).status).toBe(400)
+    expect(fs.readFileSync(configPath, "utf-8")).toBe("# keep this comment\nstructure_types: {}\nrole_types: {}\n")
+  })
+
+  it("sets and clears the default reasoning effort", async () => {
+    const request = (reasoningEffort: string | null) => app().request("/config/default-reasoning-effort", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reasoningEffort }),
+    })
+    const saved = await request("medium")
+    expect(saved.status).toBe(200)
+    expect((await saved.json() as { defaultReasoningEffort: string | null }).defaultReasoningEffort).toBe("medium")
+    expect(fs.readFileSync(configPath, "utf-8")).toContain("default_reasoning_effort: \"medium\"")
+    expect((await request(null)).status).toBe(200)
+    expect(fs.readFileSync(configPath, "utf-8")).toBe("# keep this comment\nstructure_types: {}\nrole_types: {}\n")
+    expect((await request("extreme")).status).toBe(400)
+  })
+
   it("rejects unknown tasks and invalid models", async () => {
     expect((await put({ id: "nope", model: "openai:gpt-5.4" })).status).toBe(404)
     expect((await put({ id: "metadata", model: "../invalid" })).status).toBe(400)

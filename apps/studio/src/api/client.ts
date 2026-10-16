@@ -25,6 +25,7 @@ import type {
   ProviderHealthResponse,
   AiModality,
   TaskModelsResponse,
+  ReasoningEffort,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 import {
@@ -2090,10 +2091,16 @@ export const api = {
   getTaskModels: () =>
     request<TaskModelsResponse>(`/config/task-models`),
 
-  updateTaskModel: (id: string, model: string | null) =>
+  updateTaskModel: (id: string, change: { model?: string | null; reasoningEffort?: ReasoningEffort | null }) =>
     request<TaskModelsResponse>(`/config/task-models`, {
       method: "PUT",
-      body: JSON.stringify({ id, model }),
+      body: JSON.stringify({ id, ...change }),
+    }),
+
+  updateDefaultReasoningEffort: (reasoningEffort: ReasoningEffort | null) =>
+    request<TaskModelsResponse>(`/config/default-reasoning-effort`, {
+      method: "PUT",
+      body: JSON.stringify({ reasoningEffort }),
     }),
 
   getSpeechInstructions: () =>

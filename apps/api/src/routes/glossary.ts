@@ -212,7 +212,7 @@ export function createGlossaryRoutes(
       const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
       const llmModel = createLLMModel({
         modelId: glossaryConfig.modelId,
-        reasoningEffort: appConfig.glossary?.reasoning_effort,
+        reasoningEffort: appConfig.glossary?.reasoning_effort ?? appConfig.default_reasoning_effort,
         cacheDir,
         promptEngine,
         onLog: (entry) => storage.appendLlmLog(entry),

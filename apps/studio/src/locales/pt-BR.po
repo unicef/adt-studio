@@ -474,6 +474,12 @@ msgstr "{missingForCurrentStage} entrada(s) sem áudio. Execute novamente para g
 msgid "{missingForCurrentStage} entry/entries are missing translations. Re-run to fill the missing items."
 msgstr "{missingForCurrentStage} entrada(s) sem tradução. Execute novamente para preencher os itens faltantes."
 
+msgid "{model} does not support a reasoning effort setting. Use the default."
+msgstr "{model} não aceita configuração de esforço de raciocínio. Use o padrão."
+
+msgid "{model} does not support the {level} effort. Choose another level."
+msgstr "{model} não aceita o esforço {level}. Escolha outro nível."
+
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} sinalizados"
 
@@ -2973,6 +2979,10 @@ msgstr "padrão"
 msgid "Default"
 msgstr "Padrão"
 
+#. placeholder {0}: effortLabel(inherited)
+msgid "Default · {0}"
+msgstr "Padrão · {0}"
+
 msgid "Default (from prompt)"
 msgstr "Padrão (do prompt)"
 
@@ -3011,6 +3021,9 @@ msgstr "As pastas de prompt padrão não podem ser excluídas."
 
 msgid "Default Provider"
 msgstr "Provedor padrão"
+
+msgid "Default reasoning effort"
+msgstr "Esforço de raciocínio padrão"
 
 msgid "Default Render Strategy"
 msgstr "Estratégia de renderização padrão"
@@ -3852,6 +3865,9 @@ msgstr "Exportando..."
 
 msgid "Expressive TTS voices for narration."
 msgstr "Vozes de TTS expressivas para narração."
+
+msgid "Extra high"
+msgstr "Muito alto"
 
 msgid "Extract"
 msgstr "Extração"
@@ -5581,6 +5597,9 @@ msgstr "Acompanhar o tema do sistema"
 msgid "Matches the original book design with some flexibility."
 msgstr "Corresponde ao design original do livro com alguma flexibilidade."
 
+msgid "Max"
+msgstr "Máximo"
+
 msgid "Max height"
 msgstr "Altura máx"
 
@@ -5749,6 +5768,9 @@ msgstr "Tamanho Mín (px)"
 msgid "Min width"
 msgstr "Largura mín"
 
+msgid "Minimal"
+msgstr "Mínimo"
+
 msgid "Minimise onboarding and list-reorder animations."
 msgstr "Minimizar animações de integração e reordenação de listas."
 
@@ -5808,6 +5830,9 @@ msgstr "Celular"
 
 msgid "Model"
 msgstr "Modelo"
+
+msgid "Model default"
+msgstr "Padrão do modelo"
 
 msgid "Model overrides"
 msgstr "Substituições de modelos"
@@ -6458,6 +6483,9 @@ msgstr "Não iniciado"
 
 msgid "Not started yet"
 msgstr "Ainda não iniciado"
+
+msgid "Not supported"
+msgstr "Não suportado"
 
 msgid "Not yet split:"
 msgstr "Ainda não dividido:"
@@ -7741,6 +7769,12 @@ msgstr "Realista / Foto"
 
 msgid "Rearranging atoms of HTML..."
 msgstr "Reorganizando os átomos de HTML..."
+
+msgid "Reasoning effort"
+msgstr "Esforço de raciocínio"
+
+msgid "Reasoning effort for {label}"
+msgstr "Esforço de raciocínio de {label}"
 
 msgid "Rebuild"
 msgstr "Reconstruir"

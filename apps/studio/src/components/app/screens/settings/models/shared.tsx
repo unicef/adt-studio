@@ -137,7 +137,7 @@ export function useSpecializedItems(specialized: SpecializedDefaults): Specializ
 export function useModelsFloatingSave({ llm, specialized, tasks }: ModelsTableProps) {
   const { t } = useLingui()
   const llmDirty = llm.isDirty
-  const changeCount = Number(llmDirty) + specialized.changeCount + tasks.changes.length
+  const changeCount = Number(llmDirty) + specialized.changeCount + tasks.changeCount
   const blocked =
     llm.support?.ok === false || specialized.imageSupport?.ok === false || tasks.hasUnsupported
 
@@ -160,7 +160,7 @@ export function useModelsFloatingSave({ llm, specialized, tasks }: ModelsTablePr
     onSave: () => {
       if (llmDirty) llm.save()
       if (specialized.isDirty) specialized.save()
-      if (tasks.changes.length > 0) tasks.save()
+      if (tasks.changeCount > 0) tasks.save()
     },
   })
 }

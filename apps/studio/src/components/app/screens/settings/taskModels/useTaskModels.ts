@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
-import type { TaskModelsResponse } from "@adt/types"
+import type { ReasoningEffort, TaskModelsResponse } from "@adt/types"
 import { api } from "@/api/client"
 import { toast } from "@/components/ui/sonner"
 
@@ -8,7 +8,13 @@ export const TASK_MODELS_QUERY_KEY = ["task-models"] as const
 
 export interface TaskModelChange {
   id: string
-  model: string | null
+  model?: string | null
+  reasoningEffort?: ReasoningEffort | null
+}
+
+export interface TaskModelsSave {
+  changes: TaskModelChange[]
+  defaultReasoningEffort?: ReasoningEffort | null
 }
 
 export interface TaskModelsState {
@@ -16,7 +22,7 @@ export interface TaskModelsState {
   isLoading: boolean
   isError: boolean
   isSaving: boolean
-  save: (changes: TaskModelChange[]) => void
+  save: (save: TaskModelsSave) => void
 }
 
 export function useTaskModels(): TaskModelsState {
@@ -28,10 +34,13 @@ export function useTaskModels(): TaskModelsState {
   })
 
   const mutation = useMutation({
-    mutationFn: async (changes: TaskModelChange[]) => {
+    mutationFn: async ({ changes, defaultReasoningEffort }: TaskModelsSave) => {
       let latest: TaskModelsResponse | undefined
-      for (const change of changes) {
-        latest = await api.updateTaskModel(change.id, change.model)
+      if (defaultReasoningEffort !== undefined) {
+        latest = await api.updateDefaultReasoningEffort(defaultReasoningEffort)
+      }
+      for (const { id, ...change } of changes) {
+        latest = await api.updateTaskModel(id, change)
       }
       return latest
     },
@@ -54,6 +63,6 @@ export function useTaskModels(): TaskModelsState {
     isLoading: query.isLoading,
     isError: query.isError,
     isSaving: mutation.isPending,
-    save: (changes) => mutation.mutate(changes),
+    save: (save) => mutation.mutate(save),
   }
 }

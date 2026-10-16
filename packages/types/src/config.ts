@@ -283,6 +283,7 @@ export type AgentsConfig = z.infer<typeof AgentsConfig>
 export const AppConfig = z
   .object({
     default_model: LLMModelId.optional(),
+    default_reasoning_effort: ReasoningEffort.optional(),
     default_image_generation_model: LLMModelId.optional(),
     default_speech_generation_model: SpeechGenerationModelId.optional(),
     /** Model the base (un-suffixed) prompt templates target. Defaults to

@@ -202,6 +202,27 @@ describe("Sol migration", () => {
     ])
   })
 
+  it("fits an unsupported effort to the model and records the adjustment", async () => {
+    fetchMock.mockImplementation(async () => textResponse())
+    const entries: LlmLogEntry[] = []
+    const llm = createLLMModel({ modelId, registry: registry(), providerCredentials: credentials, logLevel: "silent", cacheDir,
+      onLog: (entry) => entries.push(entry), reasoningEffort: "none" })
+    await llm.generateObject({ schema, messages, log: { taskType: "sectioning", promptName: "page_sectioning" } })
+    expect(body(0).reasoning).toEqual({ effort: "low" })
+    expect(entries[0].params).toMatchObject({ reasoningEffortAdjustment: { requested: "none", applied: "low" } })
+  })
+
+  it("drops the effort for a model without reasoning effort support", async () => {
+    fetchMock.mockImplementation(async () => textResponse())
+    const entries: LlmLogEntry[] = []
+    const { reasoningEfforts: _ignored, ...withoutEfforts } = openaiProvider.manifest.capabilities["structured-text"]!
+    const llm = createLLMModel({ modelId, registry: createProviderRegistry().register({ ...openaiProvider,
+      capabilitiesFor: (modality) => modality === "structured-text" ? (withoutEfforts as never) : undefined,
+    }).freeze(), providerCredentials: credentials, cacheDir, logLevel: "silent", onLog: (entry) => entries.push(entry), reasoningEffort: "max" })
+    await llm.generateObject({ schema, messages, log: { taskType: "sectioning", promptName: "page_sectioning" } })
+    expect(entries[0].params).toMatchObject({ reasoningEffortAdjustment: { requested: "max", applied: null } })
+  })
+
   it("AC-4: logs effective parameters and all failed repair usage without double-counting reasoning", async () => {
     fetchMock.mockImplementation(async () => textResponse('{"title":false}'))
     const entries: LlmLogEntry[] = []

@@ -3441,6 +3441,7 @@ export function createPageRoutes(
       cacheDir,
       promptEngine,
       providerCredentials: credentials,
+      reasoningEffort: appConfig.styleguide_generation?.reasoning_effort ?? appConfig.default_reasoning_effort,
     })
 
     const result = await generateStyleguide(

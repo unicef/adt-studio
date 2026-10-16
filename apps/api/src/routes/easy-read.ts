@@ -220,7 +220,7 @@ export function createEasyReadRoutes(
         : undefined
       const model = createLLMModel({
         modelId: easyReadConfig.modelId,
-        reasoningEffort: config.easy_read?.reasoning_effort,
+        reasoningEffort: config.easy_read?.reasoning_effort ?? config.default_reasoning_effort,
         cacheDir,
         promptEngine,
         rateLimiter,

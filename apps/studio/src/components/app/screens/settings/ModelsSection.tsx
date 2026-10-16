@@ -7,7 +7,7 @@ import { ModelsTable } from "./models/ModelsTable"
 export function ModelsSection() {
   const llm = useDefaultLlmSetting()
   const specialized = useSpecializedDefaults()
-  const tasks = useTaskModelDrafts()
+  const tasks = useTaskModelDrafts(llm.draft)
 
   return (
     <>
