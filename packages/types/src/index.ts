@@ -542,3 +542,11 @@ export {
 } from "./ai-provider.js"
 export { GOOGLE_IMAGE_MODELS, GoogleImageModelId, DEFAULT_GOOGLE_IMAGE_MODEL, GoogleImageResponse } from "./google-image.js"
 export { imageFileExtension, ImageAspectRatio, GeneratedImagePayload, ValidatedGeneratedImage } from "./image.js"
+export {
+  STEP_TASK_MODEL_TARGETS,
+  type StepTaskModelTarget,
+  TaskModelKind,
+  TaskModelEntry,
+  TaskModelsResponse,
+  UpdateTaskModelRequest,
+} from "./task-models.js"

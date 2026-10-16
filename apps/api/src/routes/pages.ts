@@ -3433,7 +3433,7 @@ export function createPageRoutes(
     const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
     const cacheDir = path.join(bookDir, ".cache")
     const config = buildStyleguideGenerationConfig(
-      undefined,
+      appConfig.styleguide_generation,
       appConfig.default_model,
     )
     const llmModel = createLLMModel({

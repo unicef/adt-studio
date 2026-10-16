@@ -219,3 +219,70 @@ describe("global specialized model defaults", () => {
     expect(response.status).toBe(400)
   })
 })
+
+describe("global task models", () => {
+  function writeConfig(content: string) {
+    fs.writeFileSync(configPath, content, "utf-8")
+  }
+
+  const put = (body: unknown) =>
+    app().request("/config/task-models", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+
+  it("lists step tasks and LLM render strategies with their prompts", async () => {
+    writeConfig([
+      "# keep this comment",
+      "structure_types: {}",
+      "role_types: {}",
+      "page_sectioning:",
+      "  prompt: page_sectioning",
+      "  model: \"openai:gpt-5.4\"",
+      "render_strategies:",
+      "  llm:",
+      "    render_type: llm",
+      "    config:",
+      "      prompt: web_generation_html",
+      "      visual_refinement:",
+      "        enabled: true",
+      "  one_column:",
+      "    render_type: template",
+      "",
+    ].join("\n"))
+
+    const body = await (await app().request("/config/task-models")).json() as {
+      defaultModel: string
+      tasks: Array<{ id: string; prompts: string[]; model: string | null }>
+    }
+    expect(body.defaultModel).toBe("openai:gpt-6.1-sol")
+    expect(body.tasks.find((task) => task.id === "page_sectioning")).toMatchObject({
+      model: "openai:gpt-5.4",
+      prompts: ["page_sectioning", "page_sectioning_refinement", "html_edit", "html_edit_verify"],
+    })
+    expect(body.tasks.find((task) => task.id === "render_strategies.llm")).toMatchObject({
+      kind: "render-strategy",
+      model: null,
+      prompts: ["web_generation_html", "visual_review"],
+    })
+    expect(body.tasks.some((task) => task.id === "render_strategies.one_column")).toBe(false)
+  })
+
+  it("sets and clears a task model without discarding comments", async () => {
+    const saved = await put({ id: "metadata", model: " OpenAI:GPT-5.4 " })
+    expect(saved.status).toBe(200)
+    const savedBody = await saved.json() as { tasks: Array<{ id: string; model: string | null }> }
+    expect(savedBody.tasks.find((task) => task.id === "metadata")?.model).toBe("openai:GPT-5.4")
+    expect(fs.readFileSync(configPath, "utf-8")).toContain("# keep this comment")
+
+    const cleared = await put({ id: "metadata", model: null })
+    expect(cleared.status).toBe(200)
+    expect(fs.readFileSync(configPath, "utf-8")).toBe("# keep this comment\nstructure_types: {}\nrole_types: {}\n")
+  })
+
+  it("rejects unknown tasks and invalid models", async () => {
+    expect((await put({ id: "nope", model: "openai:gpt-5.4" })).status).toBe(404)
+    expect((await put({ id: "metadata", model: "../invalid" })).status).toBe(400)
+  })
+})

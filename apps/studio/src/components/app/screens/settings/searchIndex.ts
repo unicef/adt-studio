@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro"
 import type { I18n, MessageDescriptor } from "@lingui/core"
-import { AudioLines, Brain, ImageIcon, type LucideIcon } from "lucide-react"
+import { AudioLines, Brain, ImageIcon, ListTree, type LucideIcon } from "lucide-react"
 import { LOCALE_OPTIONS, THEME_OPTIONS } from "./options"
 import { PROVIDER_IDS, PROVIDER_META } from "./providerSearchMeta"
 import {
@@ -172,6 +172,15 @@ const MODEL_ENTRIES: SettingsSearchEntry[] = [
     hint: msg`Every text task falls back to this model unless it overrides it.`,
     anchor: SETTINGS_ANCHORS.defaultLlm,
     icon: Brain,
+  },
+  {
+    id: "settings-model-per-task",
+    kind: "option",
+    section: "models",
+    label: msg`Model per task`,
+    hint: msg`Choose a different model for each text task.`,
+    anchor: SETTINGS_ANCHORS.taskModels,
+    icon: ListTree,
   },
   {
     id: "settings-model-image",

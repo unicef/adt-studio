@@ -118,16 +118,16 @@ msgid "{0, plural, one {# stage} other {# stages}}"
 msgstr "{0, plural, one {# etapa} other {# etapas}}"
 
 #. placeholder {0}: llmSteps.length
-msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
-msgstr "{0, plural, one {# tarea hereda este modelo} other {# tareas heredan este modelo}}"
+#~ msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
+#~ msgstr "{0, plural, one {# tarea hereda este modelo} other {# tareas heredan este modelo}}"
 
 #. placeholder {0}: health.modelCount
 msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
 msgstr "{0, plural, one {Conectado correctamente: # modelo disponible.} other {Conectado correctamente: # modelos disponibles.}}"
 
 #. placeholder {0}: steps.length
-msgid "{0, plural, one {Used by # task} other {Used by # tasks}}"
-msgstr "{0, plural, one {Usado por # tarea} other {Usado por # tareas}}"
+#~ msgid "{0, plural, one {Used by # task} other {Used by # tasks}}"
+#~ msgstr "{0, plural, one {Usado por # tarea} other {Usado por # tareas}}"
 
 #. placeholder {0}: lockedLang.name
 msgid "{0} — type country or Enter for base"
@@ -373,6 +373,9 @@ msgstr "Hace {0}min"
 msgid "{0}s ago"
 msgstr "Hace {0}s"
 
+msgid "{changeCount, plural, one {# model change} other {# model changes}}"
+msgstr "{changeCount, plural, one {# cambio de modelo} other {# cambios de modelo}}"
+
 msgid "{commentCount, plural, one {# comment to review} other {# comments to review}}"
 msgstr "{commentCount, plural, one {# comentario para revisar} other {# comentarios para revisar}}"
 
@@ -430,6 +433,9 @@ msgstr "{imageCount} imagen{0} será traducida"
 
 msgid "{imageCount} images"
 msgstr "{imageCount} imágenes"
+
+msgid "{inheritCount, plural, one {# task inherits it} other {# tasks inherit it}}"
+msgstr "{inheritCount, plural, one {# tarea lo hereda} other {# tareas lo heredan}}"
 
 msgid "{inProgress, plural, one {# in progress} other {# in progress}}"
 msgstr "{inProgress, plural, one {# en progreso} other {# en progreso}}"
@@ -500,6 +506,9 @@ msgstr "{reviewers, plural, one {de # revisor} other {de # revisores}}"
 msgid "{sections} sections"
 msgstr "{sections} secciones"
 
+msgid "{shown} of {total}"
+msgstr "{shown} de {total}"
+
 msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
 msgstr "{spreadCount} {spreadCount, plural, one {doble página seleccionada} other {dobles páginas seleccionadas}}"
 
@@ -540,6 +549,9 @@ msgstr "{title} - página {0}"
 
 msgid "{toggleShortcut} to toggle"
 msgstr "{toggleShortcut} para alternar"
+
+msgid "{total, plural, one {# model setting} other {# model settings}}"
+msgstr "{total, plural, one {# ajuste de modelo} other {# ajustes de modelo}}"
 
 msgid "{totalPages} pages"
 msgstr "{totalPages} páginas"
@@ -2271,6 +2283,12 @@ msgstr "opción"
 
 msgid "Choose a beta release to install."
 msgstr "Elige una versión beta para instalar."
+
+msgid "Choose a different model for each text task."
+msgstr "Elige un modelo diferente para cada tarea de texto."
+
+msgid "Choose a model from a registered provider before saving."
+msgstr "Elige un modelo de un proveedor registrado antes de guardar."
 
 msgid "Choose a PDF"
 msgstr "Elegir un PDF"
@@ -4092,8 +4110,11 @@ msgstr "Fuente"
 msgid "Font Analysis"
 msgstr "Análisis de fuentes"
 
-msgid "Font assignment, styleguide generation, and visual review also use this default unless overridden."
-msgstr "La asignación de fuentes, la generación de guías de estilo y la revisión visual también usan este valor predeterminado, salvo que se reemplace."
+msgid "Font Assignment"
+msgstr "Asignación de fuentes"
+
+#~ msgid "Font assignment, styleguide generation, and visual review also use this default unless overridden."
+#~ msgstr "La asignación de fuentes, la generación de guías de estilo y la revisión visual también usan este valor predeterminado, salvo que se reemplace."
 
 msgid "Fonts"
 msgstr "Fuentes"
@@ -5791,6 +5812,9 @@ msgstr "Modelo"
 msgid "Model overrides"
 msgstr "Sustituciones de modelos"
 
+msgid "Model per task"
+msgstr "Modelo por tarea"
+
 msgid "Model reasoning"
 msgstr "Razonamiento del modelo"
 
@@ -6320,6 +6344,9 @@ msgstr "No se encontraron secciones de storyboard. Ejecuta Storyboard para gener
 
 msgid "No suggestions are pending save in this view."
 msgstr "No hay sugerencias pendientes de guardar en esta vista."
+
+msgid "No tasks, prompts or models match “{search}”."
+msgstr "Ninguna tarea, prompt o modelo coincide con “{search}”."
 
 msgid "No terms match your search"
 msgstr "No hay términos que coincidan con tu búsqueda"
@@ -7172,8 +7199,8 @@ msgstr "Pixel Art"
 msgid "Platform"
 msgstr "Plataforma"
 
-msgid "Platform default"
-msgstr "Valor predeterminado de la plataforma"
+#~ msgid "Platform default"
+#~ msgstr "Valor predeterminado de la plataforma"
 
 msgid "Platform default: {platformImageModel}"
 msgstr "Valor predeterminado de la plataforma: {platformImageModel}"
@@ -8492,6 +8519,12 @@ msgstr "Buscar configuraciones…"
 msgid "Search style guides..."
 msgstr "Buscar guías de estilo..."
 
+msgid "Search tasks, prompts or models"
+msgstr "Buscar tareas, prompts o modelos"
+
+msgid "Search tasks, prompts or models…"
+msgstr "Buscar tareas, prompts o modelos…"
+
 msgid "Search terms or definitions…"
 msgstr "Buscar términos o definiciones…"
 
@@ -9377,6 +9410,9 @@ msgstr "Estilo:"
 msgid "Styleguide"
 msgstr "Guía de estilo"
 
+msgid "Styleguide Generation"
+msgstr "Generación de la guía de estilo"
+
 msgid "Styleguide Preview"
 msgstr "Vista previa de guía de estilo"
 
@@ -9497,6 +9533,9 @@ msgstr "Idioma de destino"
 msgid "Target model"
 msgstr "Modelo de destino"
 
+msgid "Task"
+msgstr "Tarea"
+
 msgid "Task complete"
 msgstr "Tarea completada"
 
@@ -9506,6 +9545,9 @@ msgstr "La tarea falló"
 #. placeholder {0}: d.error
 msgid "Task failed: {0}"
 msgstr "La tarea falló: {0}"
+
+msgid "Task models updated."
+msgstr "Modelos por tarea actualizados."
 
 msgid "Task Running"
 msgstr "Tarea en Ejecución"
@@ -9850,11 +9892,11 @@ msgstr "Estas páginas fueron extraídas una a la vez. Si una ilustración abarc
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "Estas etapas son opcionales. No dependen unas de otras: ejecuta cualquiera en cualquier orden una vez completado el flujo principal."
 
-msgid "These tasks inherit the default LLM unless their own settings specify another model."
-msgstr "Estas tareas heredan el LLM predeterminado, salvo que sus propios ajustes especifiquen otro modelo."
+#~ msgid "These tasks inherit the default LLM unless their own settings specify another model."
+#~ msgstr "Estas tareas heredan el LLM predeterminado, salvo que sus propios ajustes especifiquen otro modelo."
 
-msgid "These tasks require specialized models and do not inherit the default LLM above."
-msgstr "Estas tareas requieren modelos especializados y no heredan el LLM predeterminado anterior."
+#~ msgid "These tasks require specialized models and do not inherit the default LLM above."
+#~ msgstr "Estas tareas requieren modelos especializados y no heredan el LLM predeterminado anterior."
 
 msgid "These values reflect either the saved book override or the latest packaged defaults."
 msgstr "Estos valores reflejan la anulación guardada del libro o los valores predeterminados del último empaquetado."
@@ -10369,6 +10411,9 @@ msgstr "No se pudo cargar la configuración de modelos."
 msgid "Unable to load the provider list. Check that the local API is running, then refresh."
 msgstr "No se pudo cargar la lista de proveedores. Comprueba que la API local esté en ejecución y vuelve a actualizar."
 
+msgid "Unable to load the task models."
+msgstr "No se pudieron cargar los modelos por tarea."
+
 msgid "Unable to load the task-specific model defaults."
 msgstr "No se pudieron cargar los modelos predeterminados específicos de cada tarea."
 
@@ -10398,6 +10443,9 @@ msgstr "No se pudieron actualizar las sustituciones de modelos del libro."
 
 msgid "Unable to update the default LLM."
 msgstr "No se puede actualizar el LLM predeterminado."
+
+msgid "Unable to update the task models."
+msgstr "No se pudieron actualizar los modelos por tarea."
 
 msgid "Unable to update the task-specific model defaults."
 msgstr "No se pudieron actualizar los modelos predeterminados específicos de cada tarea."
@@ -10591,6 +10639,12 @@ msgstr "Usa Extendido para libros impresos con diseños de páginas enfrentadas 
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Usa el + entre las páginas para colocar el cuestionario"
+
+msgid "Use the default LLM"
+msgstr "Usar el LLM predeterminado"
+
+msgid "Use the default LLM for {label}"
+msgstr "Usar el LLM predeterminado en {label}"
 
 msgid "Use the sidebar on the left to open any stage of the pipeline. Each stage has its own page where you can review its content, configure its settings, and start a run. The cards below mirror that navigation — click a card to jump straight to that stage's page."
 msgstr "Usa la barra lateral a la izquierda para abrir cualquier etapa del proceso. Cada etapa tiene su propia página donde puedes revisar su contenido, configurar sus ajustes e iniciar una ejecución. Las tarjetas a continuación reflejan esa navegación: haz clic en una tarjeta para ir directamente a la página de esa etapa."
@@ -10850,6 +10904,9 @@ msgstr "Publicación Web"
 
 msgid "Web Rendering"
 msgstr "Renderización web"
+
+msgid "Web Rendering (overlay)"
+msgstr "Renderizado web (superposición)"
 
 msgid "WebPub"
 msgstr "WebPub"

@@ -39,6 +39,7 @@ export interface DefaultLlmSetting {
   /** Advisory manifest check for the drafted model; null until `/providers` resolves. */
   support: ModelModalitySupport | null
   save: () => void
+  discard: () => void
 }
 
 export function useDefaultLlmSetting(): DefaultLlmSetting {
@@ -89,6 +90,7 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["global-config"] }),
         queryClient.invalidateQueries({ queryKey: ["prompts"] }),
+        queryClient.invalidateQueries({ queryKey: ["task-models"] }),
         queryClient.invalidateQueries({ queryKey: ["debug", "config"] }),
         queryClient.invalidateQueries({ queryKey: ["providers"] }),
       ])
@@ -130,6 +132,7 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
     showPromptWarning: promptsLoaded && savedModelRequiresPrompts && !hasPromptsForSavedModel,
     support,
     save: () => mutation.mutate(),
+    discard: () => setDraft(savedModel),
   }
 }
 
@@ -139,12 +142,14 @@ export interface SpecializedDefaults {
   speechDraft: string
   setSpeechDraft: (value: string) => void
   isDirty: boolean
+  changeCount: number
   isLoading: boolean
   isError: boolean
   isSaving: boolean
   /** Advisory manifest check for the drafted image model; null until `/providers` resolves. */
   imageSupport: ModelModalitySupport | null
   save: () => void
+  discard: () => void
 }
 
 export function useSpecializedDefaults(): SpecializedDefaults {
@@ -205,18 +210,25 @@ export function useSpecializedDefaults(): SpecializedDefaults {
       ? checkModelModalitySupport(providers, normalizedImageDraft, "image")
       : null
 
+  const changeCount =
+    Number(normalizedImageDraft !== saved.imageGeneration) +
+    Number(normalizeSpeechModelInput(speechDraft) !== saved.speechGeneration)
+
   return {
     imageDraft,
     setImageDraft,
     speechDraft,
     setSpeechDraft,
-    isDirty:
-      normalizedImageDraft !== saved.imageGeneration ||
-      normalizeSpeechModelInput(speechDraft) !== saved.speechGeneration,
+    isDirty: changeCount > 0,
+    changeCount,
     isLoading: query.isLoading,
     isError: query.isError,
     isSaving: mutation.isPending,
     imageSupport,
     save: () => mutation.mutate(),
+    discard: () => {
+      setImageDraft(saved.imageGeneration)
+      setSpeechDraft(saved.speechGeneration)
+    },
   }
 }

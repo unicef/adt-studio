@@ -11,7 +11,9 @@ import {
   DefaultModelConfig,
   SpecializedModelDefaultsConfig,
   StyleguideName,
+  UpdateTaskModelRequest,
   type AiModality,
+  type TaskModelsResponse,
 } from "@adt/types"
 import {
   AiProviderError,
@@ -26,6 +28,8 @@ import {
   StyleguideWriteError,
   writeStyleguideFiles,
 } from "../services/styleguide.js"
+import { ConfigYamlEditError, setYamlPathValue } from "../services/config-yaml.js"
+import { listTaskModels, taskModelConfigPath } from "../services/task-models.js"
 
 function assertModelSupported(
   registry: ProviderRegistry,
@@ -266,6 +270,55 @@ table{border-collapse:collapse;width:100%;margin:0.75rem 0;}th,td{border:1px sol
     fs.writeFileSync(configPath, updated, "utf-8")
 
     return c.json(result.data)
+  })
+
+  const readTaskModels = (content: string): TaskModelsResponse => {
+    const parsed = AppConfig.parse(yaml.load(content))
+    return {
+      defaultModel: parsed.default_model ?? DEFAULT_LLM_MODEL_ID,
+      tasks: listTaskModels(parsed),
+    }
+  }
+
+  app.get("/config/task-models", (c) => {
+    if (!fs.existsSync(configPath)) {
+      throw new HTTPException(404, { message: "Global config not found" })
+    }
+    return c.json(readTaskModels(fs.readFileSync(configPath, "utf-8")))
+  })
+
+  app.put("/config/task-models", async (c) => {
+    if (!fs.existsSync(configPath)) {
+      throw new HTTPException(404, { message: "Global config not found" })
+    }
+
+    const result = UpdateTaskModelRequest.safeParse(await c.req.json())
+    if (!result.success) {
+      throw new HTTPException(400, { message: "Invalid task model" })
+    }
+
+    const content = fs.readFileSync(configPath, "utf-8")
+    const task = readTaskModels(content).tasks.find((entry) => entry.id === result.data.id)
+    if (!task) {
+      throw new HTTPException(404, { message: `Unknown task: ${result.data.id}` })
+    }
+    if (result.data.model !== null) {
+      assertModelSupported(registry, result.data.model, "structured-text")
+    }
+
+    let updated: string
+    try {
+      updated = setYamlPathValue(content, taskModelConfigPath(task), result.data.model)
+    } catch (error) {
+      if (error instanceof ConfigYamlEditError) {
+        throw new HTTPException(409, { message: error.message })
+      }
+      throw error
+    }
+    const response = readTaskModels(updated)
+    fs.writeFileSync(configPath, updated, "utf-8")
+
+    return c.json(response)
   })
 
   return app

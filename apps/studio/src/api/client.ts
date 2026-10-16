@@ -24,6 +24,7 @@ import type {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
   AiModality,
+  TaskModelsResponse,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 import {
@@ -2085,6 +2086,15 @@ export const api = {
         body: JSON.stringify(defaults),
       },
     ),
+
+  getTaskModels: () =>
+    request<TaskModelsResponse>(`/config/task-models`),
+
+  updateTaskModel: (id: string, model: string | null) =>
+    request<TaskModelsResponse>(`/config/task-models`, {
+      method: "PUT",
+      body: JSON.stringify({ id, model }),
+    }),
 
   getSpeechInstructions: () =>
     request<Record<string, string>>("/speech-config/instructions"),

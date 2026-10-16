@@ -120,16 +120,16 @@ msgid "{0, plural, one {# stage} other {# stages}}"
 msgstr "{0, plural, one {# fazë} other {# faza}}"
 
 #. placeholder {0}: llmSteps.length
-msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
-msgstr "{0, plural, one {# detyrë trashëgon këtë model} other {# detyra trashëgojnë këtë model}}"
+#~ msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
+#~ msgstr "{0, plural, one {# detyrë trashëgon këtë model} other {# detyra trashëgojnë këtë model}}"
 
 #. placeholder {0}: health.modelCount
 msgid "{0, plural, one {Connected successfully — # model available.} other {Connected successfully — # models available.}}"
 msgstr "{0, plural, one {Lidhja u krye me sukses — # model në dispozicion.} other {Lidhja u krye me sukses — # modele në dispozicion.}}"
 
 #. placeholder {0}: steps.length
-msgid "{0, plural, one {Used by # task} other {Used by # tasks}}"
-msgstr "{0, plural, one {Përdorur nga # detyrë} other {Përdorur nga # detyra}}"
+#~ msgid "{0, plural, one {Used by # task} other {Used by # tasks}}"
+#~ msgstr "{0, plural, one {Përdorur nga # detyrë} other {Përdorur nga # detyra}}"
 
 #. placeholder {0}: lockedLang.name
 msgid "{0} — type country or Enter for base"
@@ -375,6 +375,9 @@ msgstr "{0}m më parë"
 msgid "{0}s ago"
 msgstr "{0}s më parë"
 
+msgid "{changeCount, plural, one {# model change} other {# model changes}}"
+msgstr "{changeCount, plural, one {# ndryshim modeli} other {# ndryshime modeli}}"
+
 msgid "{commentCount, plural, one {# comment to review} other {# comments to review}}"
 msgstr "{commentCount, plural, one {# koment për të shqyrtuar} other {# komente për të shqyrtuar}}"
 
@@ -432,6 +435,9 @@ msgstr "{imageCount} imazh{0} do të përkthehet"
 
 msgid "{imageCount} images"
 msgstr "{imageCount} imazhe"
+
+msgid "{inheritCount, plural, one {# task inherits it} other {# tasks inherit it}}"
+msgstr "{inheritCount, plural, one {# detyrë e trashëgon} other {# detyra e trashëgojnë}}"
 
 msgid "{inProgress, plural, one {# in progress} other {# in progress}}"
 msgstr "{inProgress, plural, one {# në progres} other {# në progres}}"
@@ -502,6 +508,9 @@ msgstr "{reviewers, plural, one {nga # recensues} other {nga # recensues}}"
 msgid "{sections} sections"
 msgstr "{sections} seksione"
 
+msgid "{shown} of {total}"
+msgstr "{shown} nga {total}"
+
 msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
 msgstr "{spreadCount} {spreadCount, plural, one {fletë e dyfishtë e zgjedhur} other {fletë të dyfishta të zgjedhura}}"
 
@@ -542,6 +551,9 @@ msgstr "{title} - faqe {0}"
 
 msgid "{toggleShortcut} to toggle"
 msgstr "{toggleShortcut} për të ndërruar"
+
+msgid "{total, plural, one {# model setting} other {# model settings}}"
+msgstr "{total, plural, one {# cilësim modeli} other {# cilësime modeli}}"
 
 msgid "{totalPages} pages"
 msgstr "{totalPages} faqe"
@@ -2273,6 +2285,12 @@ msgstr "zgjedhje"
 
 msgid "Choose a beta release to install."
 msgstr "Zgjidhni një version beta për ta instaluar."
+
+msgid "Choose a different model for each text task."
+msgstr "Zgjidhni një model tjetër për çdo detyrë teksti."
+
+msgid "Choose a model from a registered provider before saving."
+msgstr "Zgjidhni një model nga një ofrues i regjistruar para se të ruani."
 
 msgid "Choose a PDF"
 msgstr "Zgjidh një PDF"
@@ -4094,8 +4112,11 @@ msgstr "Font"
 msgid "Font Analysis"
 msgstr "Analiza e fonteve"
 
-msgid "Font assignment, styleguide generation, and visual review also use this default unless overridden."
-msgstr "Caktimi i fonteve, gjenerimi i udhëzuesit të stilit dhe shqyrtimi vizual e përdorin gjithashtu këtë model të parazgjedhur, përveç nëse zëvendësohet."
+msgid "Font Assignment"
+msgstr "Caktimi i shkronjave"
+
+#~ msgid "Font assignment, styleguide generation, and visual review also use this default unless overridden."
+#~ msgstr "Caktimi i fonteve, gjenerimi i udhëzuesit të stilit dhe shqyrtimi vizual e përdorin gjithashtu këtë model të parazgjedhur, përveç nëse zëvendësohet."
 
 msgid "Fonts"
 msgstr "Fontet"
@@ -5793,6 +5814,9 @@ msgstr "Model"
 msgid "Model overrides"
 msgstr "Mbivendosjet e modeleve"
 
+msgid "Model per task"
+msgstr "Modeli për detyrë"
+
 msgid "Model reasoning"
 msgstr "Arsyetimi i modelit"
 
@@ -6322,6 +6346,9 @@ msgstr "Nuk u gjetën seksione storyboard. Ekzekutoni Storyboard-in për të gje
 
 msgid "No suggestions are pending save in this view."
 msgstr "Nuk ka sugjerime në pritje të ruajtjes në këtë pamje."
+
+msgid "No tasks, prompts or models match “{search}”."
+msgstr "Asnjë detyrë, prompt apo model nuk përputhet me “{search}”."
 
 msgid "No terms match your search"
 msgstr "Asnjë term nuk përputhet me kërkimin tuaj"
@@ -7174,8 +7201,8 @@ msgstr "Pixel Art"
 msgid "Platform"
 msgstr "Platforma"
 
-msgid "Platform default"
-msgstr "Parazgjedhja e platformës"
+#~ msgid "Platform default"
+#~ msgstr "Parazgjedhja e platformës"
 
 msgid "Platform default: {platformImageModel}"
 msgstr "Parazgjedhja e platformës: {platformImageModel}"
@@ -8494,6 +8521,12 @@ msgstr "Kërko cilësimet…"
 msgid "Search style guides..."
 msgstr "Kërko udhëzues stili..."
 
+msgid "Search tasks, prompts or models"
+msgstr "Kërko detyra, prompte ose modele"
+
+msgid "Search tasks, prompts or models…"
+msgstr "Kërko detyra, prompte ose modele…"
+
 msgid "Search terms or definitions…"
 msgstr "Kërko terma ose përkufizime…"
 
@@ -9379,6 +9412,9 @@ msgstr "Stili:"
 msgid "Styleguide"
 msgstr "Udhëzues Stili"
 
+msgid "Styleguide Generation"
+msgstr "Gjenerimi i udhëzuesit të stilit"
+
 msgid "Styleguide Preview"
 msgstr "Parashikim i Udhëzuesit të Stilit"
 
@@ -9499,6 +9535,9 @@ msgstr "Gjuha e synuar"
 msgid "Target model"
 msgstr "Modeli i synuar"
 
+msgid "Task"
+msgstr "Detyrë"
+
 msgid "Task complete"
 msgstr "Detyra u krye"
 
@@ -9508,6 +9547,9 @@ msgstr "Detyra dështoi"
 #. placeholder {0}: d.error
 msgid "Task failed: {0}"
 msgstr "Detyra dështoi: {0}"
+
+msgid "Task models updated."
+msgstr "Modelet për detyrë u përditësuan."
 
 msgid "Task Running"
 msgstr "Detyra po Ekzekutohet"
@@ -9852,11 +9894,11 @@ msgstr "Këto faqe u ekstraktuan një nga një. Nëse një ilustrim shtrihet në
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "Këto faza janë opsionale. Ato nuk varen nga njëra-tjetra — ekzekuto cilëndo prej tyre në çfarëdo rendi pasi të jetë plotësuar tubi kryesor."
 
-msgid "These tasks inherit the default LLM unless their own settings specify another model."
-msgstr "Këto detyra trashëgojnë LLM-në e parazgjedhur, përveç nëse cilësimet e tyre përcaktojnë një model tjetër."
+#~ msgid "These tasks inherit the default LLM unless their own settings specify another model."
+#~ msgstr "Këto detyra trashëgojnë LLM-në e parazgjedhur, përveç nëse cilësimet e tyre përcaktojnë një model tjetër."
 
-msgid "These tasks require specialized models and do not inherit the default LLM above."
-msgstr "Këto detyra kërkojnë modele të specializuara dhe nuk e trashëgojnë LLM-në e parazgjedhur më sipër."
+#~ msgid "These tasks require specialized models and do not inherit the default LLM above."
+#~ msgstr "Këto detyra kërkojnë modele të specializuara dhe nuk e trashëgojnë LLM-në e parazgjedhur më sipër."
 
 msgid "These values reflect either the saved book override or the latest packaged defaults."
 msgstr "Këto vlera pasqyrojnë ose anashkalimin e ruajtur të librit ose parazgjedhjeve më të fundit të paketuara."
@@ -10371,6 +10413,9 @@ msgstr "Cilësimet e modeleve nuk mund të ngarkoheshin."
 msgid "Unable to load the provider list. Check that the local API is running, then refresh."
 msgstr "Lista e ofruesve nuk u ngarkua dot. Kontrollo që API-ja lokale po funksionon, pastaj rifresko."
 
+msgid "Unable to load the task models."
+msgstr "Modelet për detyrë nuk mund të ngarkoheshin."
+
 msgid "Unable to load the task-specific model defaults."
 msgstr "Parazgjedhjet e modeleve sipas detyrës nuk mund të ngarkoheshin."
 
@@ -10400,6 +10445,9 @@ msgstr "Mbivendosjet e modeleve të librit nuk mund të përditësoheshin."
 
 msgid "Unable to update the default LLM."
 msgstr "LLM-ja e parazgjedhur nuk mund të përditësohej."
+
+msgid "Unable to update the task models."
+msgstr "Modelet për detyrë nuk mund të përditësoheshin."
 
 msgid "Unable to update the task-specific model defaults."
 msgstr "Parazgjedhjet e modeleve sipas detyrës nuk mund të përditësoheshin."
@@ -10593,6 +10641,12 @@ msgstr "Përdor Spread për libra të shtypur me paraqitje faqesh ballë për ba
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Përdor + ndërmjet faqeve për të vendosur kuizin"
+
+msgid "Use the default LLM"
+msgstr "Përdor LLM-në e parazgjedhur"
+
+msgid "Use the default LLM for {label}"
+msgstr "Përdor LLM-në e parazgjedhur për {label}"
 
 msgid "Use the sidebar on the left to open any stage of the pipeline. Each stage has its own page where you can review its content, configure its settings, and start a run. The cards below mirror that navigation — click a card to jump straight to that stage's page."
 msgstr "Përdor shiritin anësor majtas për të hapur çdo fazë të linjës. Çdo fazë ka faqen e saj ku mund të shqyrtosh përmbajtjen, të konfigurosh cilësimet dhe të nisësh një ekzekutim. Kartat më poshtë pasqyrojnë atë navigim — kliko një kartë për të kaluar direkt te faqja e asaj faze."
@@ -10852,6 +10906,9 @@ msgstr "Publikim web"
 
 msgid "Web Rendering"
 msgstr "Renderim web"
+
+msgid "Web Rendering (overlay)"
+msgstr "Paraqitja në ueb (mbivendosje)"
 
 msgid "WebPub"
 msgstr "WebPub"

@@ -316,6 +316,7 @@ export const AppConfig = z
       .optional(),
     image_filters: ImageFilters.optional(),
     font_assignment: StepConfig.optional(),
+    styleguide_generation: StepConfig.optional(),
     image_meaningfulness: StepConfig.optional(),
     glossary: StepConfig.optional(),
     toc_generation: StepConfig.optional(),

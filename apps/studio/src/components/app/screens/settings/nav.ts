@@ -28,6 +28,7 @@ export interface SettingsTab {
   label: MessageDescriptor
   icon: LucideIcon
   fullWidth?: boolean
+  wide?: boolean
 }
 
 export interface SettingsGroup {
@@ -51,7 +52,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     label: msg`Artificial intelligence`,
     tabs: [
       { key: "providers", label: msg`AI providers`, icon: Sparkles },
-      { key: "models", label: msg`Models`, icon: Brain },
+      { key: "models", label: msg`Models`, icon: Brain, wide: true },
       { key: "prompts", label: msg`Prompts`, icon: ScrollText, fullWidth: true },
     ],
   },
@@ -77,6 +78,7 @@ export const SETTINGS_ANCHORS = {
   notificationOsAlerts: "settings-notification-os-alerts",
   notificationTest: "settings-notification-test",
   defaultLlm: "settings-default-llm",
+  taskModels: "settings-task-models",
   imageModel: "settings-image-model",
   speechModel: "settings-speech-model",
   appVersion: "settings-app-version",
