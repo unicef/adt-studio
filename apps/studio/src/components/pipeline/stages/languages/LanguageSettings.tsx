@@ -1395,7 +1395,19 @@ function SpeechLanguageCards({
   // A provider with no key can be picked here but fails the whole Speech run
   // on the first item it reaches, so mirror the Speech landing page and offer
   // only the providers this browser actually holds a credential for.
-  const { hasApiKey, hasAzureKey, hasGeminiKey, hasElevenLabsKey } = useApiKey()
+  const {
+    hasApiKey,
+    hasAzureKey,
+    hasGeminiKey,
+    hasElevenLabsKey,
+    hasTranscriber,
+    isLoading: providersLoading,
+  } = useApiKey()
+  // Word timestamps come from OpenAI Whisper; without an OpenAI key the speech
+  // run skips them, so the toggle is shown off and disabled. The saved
+  // preference is kept so it applies again once a key is added.
+  const wordHighlightingUnavailable = !providersLoading && !hasTranscriber
+  const effectiveWordHighlighting = wordHighlighting && !wordHighlightingUnavailable
   const providerKeyAvailable: ProviderKeyAvailability = {
     openai: hasApiKey,
     azure: hasAzureKey,
@@ -1713,15 +1725,18 @@ function SpeechLanguageCards({
         <div className="flex items-start gap-3 pt-2">
           <Switch
             id="word-highlighting"
-            checked={wordHighlighting}
+            checked={effectiveWordHighlighting}
+            disabled={wordHighlightingUnavailable}
             onCheckedChange={(v) => { setWordHighlighting(v); markDirty("speech") }}
           />
           <div className="space-y-2 flex-1">
             <Label htmlFor="word-highlighting" className="text-xs">{t`Word-level highlighting`}</Label>
             <p className="text-[11px] text-muted-foreground">
-              {t`When enabled, word-level timestamps are calculated automatically during speech generation so the reader can highlight words as they're spoken. When disabled, you can still calculate timestamps manually from the speech view.`}
+              {wordHighlightingUnavailable
+                ? t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it.`
+                : t`When enabled, word-level timestamps are calculated automatically during speech generation so the reader can highlight words as they're spoken. When disabled, you can still calculate timestamps manually from the speech view.`}
             </p>
-            <WordHighlightPreview enabled={wordHighlighting} />
+            <WordHighlightPreview enabled={effectiveWordHighlighting} />
           </div>
         </div>
       </div>

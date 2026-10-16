@@ -47,8 +47,8 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   },
   google: {
     name: "Google AI",
-    desc: msg`Gemini — LLM and TTS voices.`,
-    hint: msg`Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)`,
+    desc: msg`Gemini models for text and image generation.`,
+    hint: msg`Used for Gemini text and image models (gemini-3.1-pro-preview, gemini-3.1-flash-image, etc.). Speech uses the separate Gemini Speech provider, which takes the same API key.`,
     icon: Sparkles,
     tile: "bg-blue-50 text-blue-600",
   },
@@ -83,7 +83,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   gemini: {
     name: "Gemini Speech",
     desc: msg`Google TTS voices.`,
-    hint: msg`Used for Gemini text-to-speech.`,
+    hint: msg`Used for Gemini text-to-speech. Takes the same API key as the Google AI provider.`,
     icon: AudioLines,
     tile: "bg-blue-50 text-blue-600",
   },

@@ -4240,9 +4240,6 @@ msgstr "Reuniendo la evidencia"
 msgid "Gemini"
 msgstr "Gemini"
 
-msgid "Gemini — LLM and TTS voices."
-msgstr "Gemini — LLM y voces TTS."
-
 msgid "Gemini API key is required to generate audio."
 msgstr "Se necesita una clave de API de Gemini para generar audio."
 
@@ -4251,6 +4248,9 @@ msgstr "Gemini genera cada oración en su propia solicitud, por lo que su tono p
 
 msgid "Gemini models + TTS voices."
 msgstr "Modelos Gemini + voces TTS."
+
+msgid "Gemini models for text and image generation."
+msgstr "Modelos Gemini para generación de texto e imágenes."
 
 msgid "Gemini settings"
 msgstr "Ajustes de Gemini"
@@ -5958,6 +5958,9 @@ msgstr "Navegue por la Vista previa para registrar notas de revisión específic
 msgid "Navigation"
 msgstr "Navegación"
 
+msgid "Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it."
+msgstr "Requiere una clave de API de OpenAI (OpenAI Whisper alinea las palabras con el audio). Añade una en Configuración → Proveedores de IA para activarlo."
+
 msgid "Needs attention"
 msgstr "Requiere atención"
 
@@ -7144,6 +7147,9 @@ msgstr "Desglose por etapa"
 
 msgid "Per-Word"
 msgstr "Por-Palabra"
+
+msgid "Per-word highlighting needs an OpenAI API key."
+msgstr "El resaltado por palabra requiere una clave de API de OpenAI."
 
 msgid "Perfect for children's books, pairing large images with minimal text."
 msgstr "Perfecto para libros infantiles, combinando imágenes grandes con texto mínimo."
@@ -10710,11 +10716,11 @@ msgstr "Utilizada para modelos Claude (claude-opus-4-6, claude-sonnet-4-6, etc.)
 msgid "Used for ElevenLabs text-to-speech."
 msgstr "Se usa para la síntesis de voz de ElevenLabs."
 
-msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
-msgstr "Utilizada para modelos Gemini — tanto LLM (gemini-2.5-pro, etc.) como TTS (gemini-2.5-pro-preview-tts, etc.)"
+msgid "Used for Gemini text and image models (gemini-3.1-pro-preview, gemini-3.1-flash-image, etc.). Speech uses the separate Gemini Speech provider, which takes the same API key."
+msgstr "Se usa para los modelos de texto e imagen de Gemini (gemini-3.1-pro-preview, gemini-3.1-flash-image, etc.). La voz usa el proveedor independiente Gemini Speech, que acepta la misma clave de API."
 
-msgid "Used for Gemini text-to-speech."
-msgstr "Se usa para la síntesis de voz de Gemini."
+msgid "Used for Gemini text-to-speech. Takes the same API key as the Google AI provider."
+msgstr "Se usa para la síntesis de voz de Gemini. Acepta la misma clave de API que el proveedor Google AI."
 
 #~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
 #~ msgstr "Se utiliza para la conversión de texto a voz de OpenAI en estas tareas del flujo de trabajo:"
