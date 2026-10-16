@@ -139,9 +139,22 @@ prompt set for Sol, validated on a representative page set, is tracked as its
 own spec (#954).
 
 Image generation/editing and image translation use specialized image models.
-The independent book-outline task retains its pinned mini model and base
-prompts. Uploaded overrides and saved book files are never rewritten by the
+The independent book-outline task retains its pinned mini model
+(`openai:gpt-5.4-mini`) while `default_model` is the shipped default, and uses
+base prompts. Uploaded overrides and saved book files are never rewritten by the
 default change.
+
+Settings > Models shows the model each task actually runs on. A task without its
+own model shows its inherited model as the placeholder, with the source under it:
+another task (translation, quiz, captioning, glossary and TOC inherit
+`page_sectioning`; easy read inherits `translation`, then `page_sectioning`;
+TTS preparation inherits `translation`; image cropping inherits
+`image_meaningfulness`) or, for book outline, an amber notice that the pinned
+`gpt-5.4-mini` overrides the default LLM. The
+chains are declared in `STEP_TASK_MODEL_TARGETS` (`packages/types/src/task-models.ts`),
+and `apps/api/src/services/task-models.test.ts` checks them against the pipeline's
+own config builders, so a change to a fallback chain fails that test until the
+table is updated.
 
 Sol and Luna use Responses for all inference, including structured tool-call
 fallback and agent turns. The installed AI SDK 4/OpenAI 1.3 adapter does not

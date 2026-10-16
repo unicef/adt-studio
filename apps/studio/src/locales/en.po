@@ -480,6 +480,9 @@ msgstr "{model} does not support a reasoning effort setting. Use the default."
 msgid "{model} does not support the {level} effort. Choose another level."
 msgstr "{model} does not support the {level} effort. Choose another level."
 
+msgid "{model} overrides the default LLM for this task"
+msgstr "{model} overrides the default LLM for this task"
+
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} flagged"
 
@@ -4942,6 +4945,9 @@ msgstr "Individual sides"
 
 msgid "Infographic"
 msgstr "Infographic"
+
+msgid "Inherited from {sourceLabel}"
+msgstr "Inherited from {sourceLabel}"
 
 msgid "Inherited from a parent element. Choose a value here to override on this element."
 msgstr "Inherited from a parent element. Choose a value here to override on this element."

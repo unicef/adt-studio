@@ -80,6 +80,7 @@ export {
 export {
   generateBookOutline,
   buildBookOutlineConfig,
+  DEFAULT_OPENAI_BOOK_OUTLINE_MODEL_ID,
   readBookOutline,
   outlineContextForPage,
   BOOK_OUTLINE_NODE,

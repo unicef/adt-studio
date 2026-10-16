@@ -482,6 +482,9 @@ msgstr "{model} nuk mbështet cilësimin e përpjekjes së arsyetimit. Përdorni
 msgid "{model} does not support the {level} effort. Choose another level."
 msgstr "{model} nuk mbështet përpjekjen {level}. Zgjidhni një nivel tjetër."
 
+msgid "{model} overrides the default LLM for this task"
+msgstr "{model} zëvendëson LLM-në e parazgjedhur për këtë detyrë"
+
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} të shënuara"
 
@@ -4944,6 +4947,9 @@ msgstr "Anë individuale"
 
 msgid "Infographic"
 msgstr "Infografikë"
+
+msgid "Inherited from {sourceLabel}"
+msgstr "Trashëguar nga {sourceLabel}"
 
 msgid "Inherited from a parent element. Choose a value here to override on this element."
 msgstr "Trashëguar nga një element prind. Zgjidhni një vlerë këtu për ta anuluar në këtë element."

@@ -9,6 +9,7 @@ export interface StepTaskModelTarget {
   defaultPrompt: string
   extraPrompts: readonly string[]
   promptKey?: string
+  inheritsFrom?: readonly string[]
 }
 
 export const STEP_TASK_MODEL_TARGETS: readonly StepTaskModelTarget[] = [
@@ -32,34 +33,67 @@ export const STEP_TASK_MODEL_TARGETS: readonly StepTaskModelTarget[] = [
     defaultPrompt: "image_segmentation",
     extraPrompts: [],
   },
-  { configKey: "image_cropping", step: "image-cropping", defaultPrompt: "image_cropping", extraPrompts: [] },
+  {
+    configKey: "image_cropping",
+    step: "image-cropping",
+    defaultPrompt: "image_cropping",
+    extraPrompts: [],
+    inheritsFrom: ["image_meaningfulness"],
+  },
   {
     configKey: "page_sectioning",
     step: "page-sectioning",
     defaultPrompt: "page_sectioning",
     extraPrompts: ["page_sectioning_refinement", "html_edit", "html_edit_verify"],
   },
-  { configKey: "translation", step: "translation", defaultPrompt: "translation", extraPrompts: [] },
+  {
+    configKey: "translation",
+    step: "translation",
+    defaultPrompt: "translation",
+    extraPrompts: [],
+    inheritsFrom: ["page_sectioning"],
+  },
   {
     configKey: "quiz_generation",
     step: "quiz-generation",
     defaultPrompt: "quiz_generation",
     extraPrompts: ["activity_feedback"],
+    inheritsFrom: ["page_sectioning"],
   },
   {
     configKey: "image_captioning",
     step: "image-captioning",
     defaultPrompt: "image_captioning",
     extraPrompts: [],
+    inheritsFrom: ["page_sectioning"],
   },
-  { configKey: "glossary", step: "glossary", defaultPrompt: "glossary", extraPrompts: ["glossary_one"] },
-  { configKey: "toc_generation", step: "toc-generation", defaultPrompt: "toc_generation", extraPrompts: [] },
-  { configKey: "easy_read", step: "easy-read", defaultPrompt: "easy_read", extraPrompts: [] },
+  {
+    configKey: "glossary",
+    step: "glossary",
+    defaultPrompt: "glossary",
+    extraPrompts: ["glossary_one"],
+    inheritsFrom: ["page_sectioning"],
+  },
+  {
+    configKey: "toc_generation",
+    step: "toc-generation",
+    defaultPrompt: "toc_generation",
+    extraPrompts: [],
+    inheritsFrom: ["page_sectioning"],
+  },
+  {
+    configKey: "easy_read",
+    step: "easy-read",
+    defaultPrompt: "easy_read",
+    extraPrompts: [],
+    inheritsFrom: ["translation", "page_sectioning"],
+  },
   {
     configKey: "core_tts",
     step: "core-tts-catalog",
     defaultPrompt: "core_tts_preparation",
     extraPrompts: [],
+    inheritsFrom: ["translation"],
   },
   { configKey: "font_assignment", defaultPrompt: "font_assignment", extraPrompts: [] },
   { configKey: "styleguide_generation", defaultPrompt: "styleguide_generation", extraPrompts: [] },
@@ -74,6 +108,12 @@ export const STEP_TASK_MODEL_TARGETS: readonly StepTaskModelTarget[] = [
 export const TaskModelKind = z.enum(["step", "render-strategy"])
 export type TaskModelKind = z.infer<typeof TaskModelKind>
 
+export const DefaultModelOverride = z.object({
+  whenDefaultModel: z.string(),
+  model: z.string(),
+})
+export type DefaultModelOverride = z.infer<typeof DefaultModelOverride>
+
 export const TaskModelEntry = z.object({
   id: z.string(),
   kind: TaskModelKind,
@@ -82,8 +122,28 @@ export const TaskModelEntry = z.object({
   prompts: z.array(z.string()),
   model: z.string().nullable(),
   reasoningEffort: ReasoningEffort.nullable(),
+  inheritsFrom: z.array(z.string()),
+  defaultModelOverride: DefaultModelOverride.nullable(),
 })
 export type TaskModelEntry = z.infer<typeof TaskModelEntry>
+
+export type InheritedModelSource = { kind: "default" } | { kind: "task"; taskId: string } | { kind: "override" }
+
+export function resolveInheritedTaskModel(
+  task: Pick<TaskModelEntry, "inheritsFrom" | "defaultModelOverride">,
+  modelOf: (taskId: string) => string | null | undefined,
+  defaultModel: string,
+): { model: string; source: InheritedModelSource } {
+  for (const taskId of task.inheritsFrom) {
+    const model = modelOf(taskId)
+    if (model) return { model, source: { kind: "task", taskId } }
+  }
+  const override = task.defaultModelOverride
+  if (override && override.whenDefaultModel === defaultModel) {
+    return { model: override.model, source: { kind: "override" } }
+  }
+  return { model: defaultModel, source: { kind: "default" } }
+}
 
 export const TaskModelsResponse = z.object({
   defaultModel: z.string(),

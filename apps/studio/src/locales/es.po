@@ -480,6 +480,9 @@ msgstr "{model} no admite configurar el esfuerzo de razonamiento. Usa el predete
 msgid "{model} does not support the {level} effort. Choose another level."
 msgstr "{model} no admite el esfuerzo {level}. Elige otro nivel."
 
+msgid "{model} overrides the default LLM for this task"
+msgstr "{model} reemplaza el LLM predeterminado en esta tarea"
+
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} marcados"
 
@@ -4942,6 +4945,9 @@ msgstr "Lados individuales"
 
 msgid "Infographic"
 msgstr "Infografía"
+
+msgid "Inherited from {sourceLabel}"
+msgstr "Heredado de {sourceLabel}"
 
 msgid "Inherited from a parent element. Choose a value here to override on this element."
 msgstr "Heredado de un elemento padre. Elige un valor aquí para sobrescribir en este elemento."

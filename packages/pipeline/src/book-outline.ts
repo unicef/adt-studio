@@ -18,7 +18,7 @@ export const BOOK_OUTLINE_CHUNK_PAGE_LIMIT = 24
 const BOOK_OUTLINE_CHUNK_PROMPT = "book_outline_chunk"
 const BOOK_OUTLINE_SYNTHESIS_PROMPT = "book_outline_synthesis"
 const BOOK_OUTLINE_CHUNK_MAX_TOKENS = 16_384
-const DEFAULT_OPENAI_BOOK_OUTLINE_MODEL_ID = "openai:gpt-5.4-mini"
+export const DEFAULT_OPENAI_BOOK_OUTLINE_MODEL_ID = "openai:gpt-5.4-mini"
 
 export interface BookOutlineConfig {
   promptName: string

@@ -14,6 +14,7 @@ import {
   UpdateDefaultReasoningEffortRequest,
   UpdateTaskModelRequest,
   findReasoningEffortSupport,
+  resolveInheritedTaskModel,
   type AiModality,
   type ReasoningEffort,
   type TaskModelsResponse,
@@ -329,7 +330,13 @@ table{border-collapse:collapse;width:100%;margin:0.75rem 0;}th,td{border:1px sol
     if (model) {
       assertModelSupported(registry, model, "structured-text")
     }
-    const effectiveModel = (model === undefined ? task.model : model) ?? current.defaultModel
+    const effectiveModel =
+      (model === undefined ? task.model : model) ??
+      resolveInheritedTaskModel(
+        task,
+        (taskId) => current.tasks.find((entry) => entry.id === taskId)?.model,
+        current.defaultModel,
+      ).model
     const effectiveEffort = reasoningEffort === undefined ? task.reasoningEffort : reasoningEffort
     if (effectiveEffort) {
       assertReasoningEffortSupported(registry, effectiveModel, effectiveEffort)

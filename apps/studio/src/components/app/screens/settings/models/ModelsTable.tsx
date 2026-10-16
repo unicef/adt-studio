@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from "react"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
-import { Brain, Search, X } from "lucide-react"
+import { Brain, Search, TriangleAlert, X } from "lucide-react"
 import { ModelSelect } from "@/components/pipeline/components/ModelSelect"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -61,7 +61,7 @@ export function ModelsTable(props: ModelsTableProps) {
           tasks.labelOf(task),
           group.label,
           ...task.prompts,
-          tasks.draftOf(task.id) || tasks.defaultModel,
+          tasks.effectiveModelOf(task.id),
           (() => {
             const effort = tasks.effortOf(task.id)
             const level = effort.draft || effort.inherited
@@ -80,7 +80,20 @@ export function ModelsTable(props: ModelsTableProps) {
     Number(showDefault) +
     visibleGroups.reduce((sum, group) => sum + group.tasks.length, 0) +
     visibleSpecialized.length
-  const inheritCount = tasks.tasks.length - tasks.customCount
+  const inheritCount = tasks.tasks.filter(
+    (task) => !tasks.isCustom(task.id) && tasks.inheritedOf(task.id).source.kind === "default",
+  ).length
+  const inheritanceHint = (taskId: string): { text: string; override: boolean } | null => {
+    if (tasks.isCustom(taskId)) return null
+    const { model, source } = tasks.inheritedOf(taskId)
+    if (source.kind === "override") {
+      return { text: t`${model} overrides the default LLM for this task`, override: true }
+    }
+    if (source.kind !== "task") return null
+    const sourceTask = tasks.tasks.find((entry) => entry.id === source.taskId)
+    const sourceLabel = sourceTask ? tasks.labelOf(sourceTask) : source.taskId
+    return { text: t`Inherited from ${sourceLabel}`, override: false }
+  }
 
   const clearSearch = () => {
     setSearch("")
@@ -258,6 +271,7 @@ export function ModelsTable(props: ModelsTableProps) {
                 const custom = tasks.isCustom(task.id)
                 const inputId = taskModelInputId(task.id)
                 const effort = tasks.effortOf(task.id)
+                const hint = inheritanceHint(task.id)
                 return (
                   <tr
                     key={task.id}
@@ -283,12 +297,23 @@ export function ModelsTable(props: ModelsTableProps) {
                         inputId={inputId}
                         value={tasks.draftOf(task.id)}
                         onChange={(value) => tasks.setDraft(task.id, value)}
-                        placeholder={tasks.defaultModel}
+                        placeholder={tasks.inheritedOf(task.id).model}
                         groups={llm.modelGroups}
                         inputClassName="h-9 font-mono text-[13px]"
                         disabled={tasks.busy}
                         commitOnInput
                       />
+                      {hint && (
+                        <p
+                          className={cn(
+                            "mt-1 flex items-start gap-1.5 text-[11.5px]",
+                            hint.override ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground",
+                          )}
+                        >
+                          {hint.override && <TriangleAlert className="mt-px size-3 shrink-0" aria-hidden="true" />}
+                          <span className="text-pretty">{hint.text}</span>
+                        </p>
+                      )}
                       <UnsupportedModelNotice support={tasks.supportFor(task.id)} modality="text" className="mt-1.5" />
                     </td>
                     <td className={CELL}>
@@ -304,7 +329,7 @@ export function ModelsTable(props: ModelsTableProps) {
                       />
                       <EffortProblemNotice
                         problem={effort.problem}
-                        model={tasks.draftOf(task.id) || tasks.defaultModel}
+                        model={tasks.effectiveModelOf(task.id)}
                         effort={effort.draft}
                         className="mt-1.5"
                       />

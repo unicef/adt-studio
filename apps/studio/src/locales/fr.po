@@ -482,6 +482,9 @@ msgstr "{model} ne prend pas en charge le réglage de l'effort de raisonnement. 
 msgid "{model} does not support the {level} effort. Choose another level."
 msgstr "{model} ne prend pas en charge l'effort {level}. Choisissez un autre niveau."
 
+msgid "{model} overrides the default LLM for this task"
+msgstr "{model} remplace le LLM par défaut pour cette tâche"
+
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} signalés"
 
@@ -4944,6 +4947,9 @@ msgstr "Côtés individuels"
 
 msgid "Infographic"
 msgstr "Infographie"
+
+msgid "Inherited from {sourceLabel}"
+msgstr "Hérité de {sourceLabel}"
 
 msgid "Inherited from a parent element. Choose a value here to override on this element."
 msgstr "Hérité d'un élément parent. Choisissez une valeur ici pour remplacer sur cet élément."

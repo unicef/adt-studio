@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react"
 import { useLingui } from "@lingui/react/macro"
 import {
   fitReasoningEffort,
+  resolveInheritedTaskModel,
+  type InheritedModelSource,
   type ReasoningEffort,
   type ReasoningEffortSupport,
   type TaskModelEntry,
@@ -33,6 +35,8 @@ export interface TaskModelDrafts {
   groups: TaskModelGroup[]
   defaultModel: string
   draftOf: (id: string) => string
+  inheritedOf: (id: string) => { model: string; source: InheritedModelSource }
+  effectiveModelOf: (id: string) => string
   setDraft: (id: string, value: string) => void
   effortOf: (id: string) => TaskEffortState
   setEffort: (id: string, value: EffortDraft) => void
@@ -87,6 +91,13 @@ export function useTaskModelDrafts(defaultModelDraft: string): TaskModelDrafts {
   const defaultModel = normalizeQualifiedModelInput(defaultModelDraft) || taskModels.data?.defaultModel || ""
   const normalized = (id: string) => normalizeQualifiedModelInput(drafts[id] ?? "")
   const taskOf = (id: string) => tasks.find((task) => task.id === id)
+  const inheritedOf = (id: string) => {
+    const task = taskOf(id)
+    return task
+      ? resolveInheritedTaskModel(task, (sourceId) => normalized(sourceId) || null, defaultModel)
+      : { model: defaultModel, source: { kind: "default" } as InheritedModelSource }
+  }
+  const effectiveModelOf = (id: string) => normalized(id) || inheritedOf(id).model
   const isModelDirty = (id: string) => normalized(id) !== (taskOf(id)?.model ?? "")
   const isEffortDirty = (id: string) => (effortDrafts[id] ?? "") !== (taskOf(id)?.reasoningEffort ?? "")
   const isDirty = (id: string) => isModelDirty(id) || isEffortDirty(id)
@@ -99,7 +110,7 @@ export function useTaskModelDrafts(defaultModelDraft: string): TaskModelDrafts {
 
   const effortOf = (id: string): TaskEffortState => {
     const draft = effortDrafts[id] ?? ""
-    const support = providers.length > 0 ? reasoningEffortSupportFor(providers, normalized(id) || defaultModel) : null
+    const support = providers.length > 0 ? reasoningEffortSupportFor(providers, effectiveModelOf(id)) : null
     const inherited = fitReasoningEffort(support, defaultEffort || undefined) ?? support?.default
     const problem: EffortProblem =
       !draft || providers.length === 0
@@ -126,6 +137,8 @@ export function useTaskModelDrafts(defaultModelDraft: string): TaskModelDrafts {
     groups,
     defaultModel,
     draftOf: (id) => drafts[id] ?? "",
+    inheritedOf,
+    effectiveModelOf,
     setDraft: (id, value) => setDrafts((current) => ({ ...current, [id]: value })),
     effortOf,
     setEffort: (id, value) => setEffortDrafts((current) => ({ ...current, [id]: value })),

@@ -60,8 +60,11 @@ const taskModelsResponse = () => ({
   defaultModel: apiState.defaultModel,
   defaultReasoningEffort: null,
   tasks: [
-    { id: "metadata", kind: "step", configKey: "metadata", step: "metadata", prompts: ["metadata_extraction"], model: null, reasoningEffort: null },
-    { id: "render_strategies.llm", kind: "render-strategy", configKey: "llm", prompts: ["web_generation_html"], model: "openai:gpt-5.4", reasoningEffort: apiState.renderingEffort },
+    { id: "metadata", kind: "step", configKey: "metadata", step: "metadata", prompts: ["metadata_extraction"], model: null, reasoningEffort: null, inheritsFrom: [], defaultModelOverride: null },
+    { id: "page_sectioning", kind: "step", configKey: "page_sectioning", step: "page-sectioning", prompts: ["page_sectioning"], model: null, reasoningEffort: null, inheritsFrom: [], defaultModelOverride: null },
+    { id: "glossary", kind: "step", configKey: "glossary", step: "glossary", prompts: ["glossary"], model: null, reasoningEffort: null, inheritsFrom: ["page_sectioning"], defaultModelOverride: null },
+    { id: "book_outline", kind: "step", configKey: "book_outline", step: "book-outline", prompts: ["book_outline"], model: null, reasoningEffort: null, inheritsFrom: [], defaultModelOverride: { whenDefaultModel: SAVED_LLM, model: "openai:gpt-5.4-mini" } },
+    { id: "render_strategies.llm", kind: "render-strategy", configKey: "llm", prompts: ["web_generation_html"], model: "openai:gpt-5.4", reasoningEffort: apiState.renderingEffort, inheritsFrom: [], defaultModelOverride: null },
   ],
 })
 const updateTaskModel = vi.fn(async (_id: string, _change: Record<string, unknown>) => taskModelsResponse())
@@ -248,6 +251,26 @@ describe("ModelsSection — reasoning effort", () => {
 
     fireEvent.change(byId("task-model-metadata"), { target: { value: "anthropic:claude-opus-4" } })
     await waitFor(() => expect(saveButton().hasAttribute("disabled")).toBe(true))
+  })
+})
+
+describe("ModelsSection — inherited models", () => {
+  it("shows the model each task really inherits and where it comes from", async () => {
+    await renderLoaded()
+    expect(byId("task-model-book_outline").placeholder).toBe("openai:gpt-5.4-mini")
+    expect(screen.getByText("openai:gpt-5.4-mini overrides the default LLM for this task")).toBeTruthy()
+    expect(byId("task-model-glossary").placeholder).toBe(SAVED_LLM)
+    expect(screen.queryByText("Inherited from page-sectioning")).toBeNull()
+
+    fireEvent.change(byId("task-model-page_sectioning"), { target: { value: "anthropic:claude-opus-4" } })
+    await waitFor(() => expect(byId("task-model-glossary").placeholder).toBe("anthropic:claude-opus-4"))
+    expect(screen.getByText("Inherited from page-sectioning")).toBeTruthy()
+  })
+
+  it("drops the outline pin once the default model changes", async () => {
+    await renderLoaded()
+    fireEvent.change(defaultLlmInput(), { target: { value: "anthropic:claude-opus-4" } })
+    await waitFor(() => expect(byId("task-model-book_outline").placeholder).toBe("anthropic:claude-opus-4"))
   })
 })
 
