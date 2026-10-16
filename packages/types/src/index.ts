@@ -1,4 +1,4 @@
-export { InferenceOptions, ProviderContinuation, ReasoningEffort, SolReasoningEffort, OpenAiResponse } from "./llm-inference.js"
+export { InferenceOptions, ProviderContinuation, ReasoningEffort, SolReasoningEffort, LunaReasoningEffort, OpenAiResponse } from "./llm-inference.js"
 
 export {
   SCHEMA_VERSION,

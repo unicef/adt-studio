@@ -8,6 +8,7 @@ import {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
   ProvidersResponse,
+  DEFAULT_LLM_MODEL_ID,
 } from "@adt/types"
 import { createProviderRegistry, type AnyProviderModule, type CliLoginSession } from "@adt/llm"
 import {
@@ -79,7 +80,7 @@ describe("GET /providers", () => {
 
   it("AC-1: falls back to built-in defaults when config.yaml is absent", async () => {
     const body = await getProviders()
-    expect(body.defaults["structured-text"]).toBe("openai:gpt-6.1-sol")
+    expect(body.defaults["structured-text"]).toBe(DEFAULT_LLM_MODEL_ID)
     expect(body.defaults.agent).toBe("openai:gpt-5.5")
     expect(body.defaults.image).toBe("openai:gpt-image-2")
     expect(body.defaults.tts).toBe("openai:gpt-4o-mini-tts")
@@ -202,14 +203,14 @@ describe("GET /providers", () => {
     expect(body.defaults.agent).toBe("google:gemini-2.5-pro")
   })
 
-  it("AC-1: uses Sol for malformed config.yaml without failing the request", async () => {
+  it("AC-1: uses the default model for malformed config.yaml without failing the request", async () => {
     fs.writeFileSync(
       configPath,
       "structure_types: {}\nrole_types: {}\ndefault_model: [not, a, string]\n",
       "utf-8",
     )
     const body = await getProviders()
-    expect(body.defaults["structured-text"]).toBe("openai:gpt-6.1-sol")
+    expect(body.defaults["structured-text"]).toBe(DEFAULT_LLM_MODEL_ID)
   })
 
   it("exposes localized labels for every supported locale", async () => {

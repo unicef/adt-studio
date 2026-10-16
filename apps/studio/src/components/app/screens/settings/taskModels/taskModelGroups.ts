@@ -7,6 +7,7 @@ import { getSectionTypeLabel } from "@/lib/section-constants"
 const STANDALONE_TASK_LABELS: Record<string, MessageDescriptor> = {
   font_assignment: msg`Font Assignment`,
   styleguide_generation: msg`Styleguide Generation`,
+  visual_review: msg`Visual Review`,
 }
 
 const STRATEGY_LABELS: Record<string, MessageDescriptor> = {

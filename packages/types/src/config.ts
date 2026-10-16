@@ -9,7 +9,7 @@ import { REFLOWABLE_FONT_SETTINGS } from "./reflowable-fonts.js"
 import { ReasoningEffort } from "./llm-inference.js"
 
 export const DEFAULT_LLM_MAX_RETRIES = 5
-export const DEFAULT_LLM_MODEL_ID = "openai:gpt-6.1-sol"
+export const DEFAULT_LLM_MODEL_ID = "openai:gpt-6-luna"
 export const DEFAULT_IMAGE_GENERATION_MODEL_ID = "openai:gpt-image-2"
 export const DEFAULT_OPENAI_TTS_MODEL_ID = "gpt-4o-mini-tts"
 export const DEFAULT_ELEVENLABS_TTS_MODEL_ID = "eleven_multilingual_v2"
@@ -317,6 +317,7 @@ export const AppConfig = z
     image_filters: ImageFilters.optional(),
     font_assignment: StepConfig.optional(),
     styleguide_generation: StepConfig.optional(),
+    visual_review: StepConfig.optional(),
     image_meaningfulness: StepConfig.optional(),
     glossary: StepConfig.optional(),
     toc_generation: StepConfig.optional(),

@@ -11,7 +11,7 @@ import {
 import { listOpenAiCompatibleModels } from "../shared/openai-rest/models.js"
 import { LABEL_API_KEY } from "../shared/i18n.js"
 import { createOpenAI } from "@ai-sdk/openai"
-import { createSolBackends, isSol, solInferenceOptions } from "./sol.js"
+import { createGpt6ResponsesBackends, gpt6AdapterVersion, gpt6InferenceOptions, usesGpt6Responses } from "./sol.js"
 
 export const OPENAI_PROVIDER_ID = "openai"
 export const OPENAI_API_BASE_URL = "https://api.openai.com/v1"
@@ -80,7 +80,7 @@ export const openaiManifest: ProviderManifest = {
     },
   },
   defaultModels: {
-    "structured-text": "gpt-6.1-sol",
+    "structured-text": "gpt-6-luna",
     agent: "gpt-6.1-sol",
     image: "gpt-image-2",
     tts: "gpt-4o-mini-tts",
@@ -113,13 +113,13 @@ export const openaiProvider: ProviderModule<OpenAiCredentials> = {
       : undefined,
 
   cacheFingerprint: (context) => ({
-    adapterVersion: isSol(context.modelId) ? "openai-sol-responses-1" : ADAPTER_VERSION,
+    adapterVersion: usesGpt6Responses(context.modelId) ? gpt6AdapterVersion(context.modelId) : ADAPTER_VERSION,
     origin: "https://api.openai.com",
-    ...(isSol(context.modelId) ? { extra: { endpoint: "responses" }, legacyCacheReadable: false } : {}),
+    ...(usesGpt6Responses(context.modelId) ? { extra: { endpoint: "responses" }, legacyCacheReadable: false } : {}),
   }),
 
   inferenceOptionsFor: (_modality, modelId, providerOptions) =>
-    isSol(modelId) ? solInferenceOptions(providerOptions) : { providerOptions },
+    usesGpt6Responses(modelId) ? gpt6InferenceOptions(modelId, providerOptions) : { providerOptions },
 
   listModels: (context) =>
     listOpenAiCompatibleModels({
@@ -129,7 +129,7 @@ export const openaiProvider: ProviderModule<OpenAiCredentials> = {
     }),
 
   createStructuredTextBackend: (context) => {
-    if (isSol(context.modelId)) return createSolBackends(context).structured
+    if (usesGpt6Responses(context.modelId)) return createGpt6ResponsesBackends(context).structured
     const client = createOpenAI({ apiKey: context.credentials.apiKey })
     return createAiSdkStructuredTextBackend((options) =>
       client(
@@ -142,7 +142,7 @@ export const openaiProvider: ProviderModule<OpenAiCredentials> = {
   },
 
   createAgentBackend: (context) =>
-    isSol(context.modelId) ? createSolBackends(context).agent : createAiSdkAgentBackend(
+    usesGpt6Responses(context.modelId) ? createGpt6ResponsesBackends(context).agent : createAiSdkAgentBackend(
       createOpenAI({ apiKey: context.credentials.apiKey })(context.modelId),
     ),
 

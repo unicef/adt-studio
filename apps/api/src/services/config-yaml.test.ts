@@ -88,7 +88,8 @@ describe("setYamlPathValue", () => {
       ["page_sectioning", "model"],
       ["styleguide_generation", "model"],
       ["render_strategies", "llm-overlay", "config", "model"],
-      ["render_strategies", "activity_open_ended_answer", "config", "model"],
+      ["render_strategies", "llm", "config", "model"],
+      ["visual_review", "prompt"],
     ]
     for (const target of paths) {
       const added = setYamlPathValue(shipped, target, "openai:gpt-5.4")

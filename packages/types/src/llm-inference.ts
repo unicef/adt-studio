@@ -17,6 +17,9 @@ export type ReasoningEffort = z.infer<typeof ReasoningEffort>
 export const SolReasoningEffort = z.enum(["low", "medium", "high", "xhigh", "max"])
 export type SolReasoningEffort = z.infer<typeof SolReasoningEffort>
 
+export const LunaReasoningEffort = z.enum(["none", "low", "medium", "high", "xhigh", "max"])
+export type LunaReasoningEffort = z.infer<typeof LunaReasoningEffort>
+
 export const OpenAiResponse = z.object({
   model: z.string(),
   status: z.string(),

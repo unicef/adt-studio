@@ -3,6 +3,7 @@ import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { createPresetRoutes } from "./presets.js"
+import { DEFAULT_LLM_MODEL_ID } from "@adt/types"
 
 let tmpDir: string
 let booksDir: string
@@ -146,10 +147,10 @@ describe("POST /styleguides/upload", () => {
 })
 
 describe("global default model", () => {
-  it("AC-1: returns Sol when no override is configured", async () => {
+  it("AC-1: returns the default model when no override is configured", async () => {
     const response = await app().request("/config/default-model")
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ model: "openai:gpt-6.1-sol" })
+    expect(await response.json()).toEqual({ model: DEFAULT_LLM_MODEL_ID })
   })
 
   it("updates the model without discarding the config formatting", async () => {
@@ -256,7 +257,7 @@ describe("global task models", () => {
       defaultModel: string
       tasks: Array<{ id: string; prompts: string[]; model: string | null }>
     }
-    expect(body.defaultModel).toBe("openai:gpt-6.1-sol")
+    expect(body.defaultModel).toBe(DEFAULT_LLM_MODEL_ID)
     expect(body.tasks.find((task) => task.id === "page_sectioning")).toMatchObject({
       model: "openai:gpt-5.4",
       prompts: ["page_sectioning", "page_sectioning_refinement", "html_edit", "html_edit_verify"],
@@ -264,9 +265,13 @@ describe("global task models", () => {
     expect(body.tasks.find((task) => task.id === "render_strategies.llm")).toMatchObject({
       kind: "render-strategy",
       model: null,
-      prompts: ["web_generation_html", "visual_review"],
+      prompts: ["web_generation_html"],
     })
     expect(body.tasks.some((task) => task.id === "render_strategies.one_column")).toBe(false)
+    expect(body.tasks.find((task) => task.id === "visual_review")).toMatchObject({
+      model: null,
+      prompts: ["visual_review"],
+    })
   })
 
   it("sets and clears a task model without discarding comments", async () => {

@@ -1,4 +1,4 @@
-import { OpenAiResponse, SolReasoningEffort, type InferenceOptions } from "@adt/types"
+import { LunaReasoningEffort, OpenAiResponse, SolReasoningEffort, type InferenceOptions } from "@adt/types"
 import type { BackendContext, AgentBackend, AgentMessage, StructuredTextBackend, StructuredTextRequest } from "../../ports/index.js"
 import { AiProviderError } from "../../ports/errors.js"
 import { StructuredTextError } from "../../ports/structured-text-backend.js"
@@ -11,15 +11,45 @@ export function isSol(modelId: string): boolean {
   return /^gpt-6\.1-sol(?:-\d{4}-\d{2}-\d{2})?$/.test(modelId)
 }
 
-export function solInferenceOptions(providerOptions?: Record<string, unknown>): InferenceOptions {
+export function isLuna(modelId: string): boolean {
+  return /^gpt-6-luna(?:-\d{4}-\d{2}-\d{2})?$/.test(modelId)
+}
+
+export function usesGpt6Responses(modelId: string): boolean {
+  return isSol(modelId) || isLuna(modelId)
+}
+
+function requestedEffort(providerOptions?: Record<string, unknown>): unknown {
   const raw = providerOptions?.openai
   const openai = raw && typeof raw === "object" ? raw as Record<string, unknown> : {}
-  const effort = openai.reasoningEffort
-  const reasoningEffort = SolReasoningEffort.parse(
-    effort === undefined || effort === "none" || effort === "minimal" ? "low" : effort,
-  )
+  return openai.reasoningEffort
+}
+
+function responsesOptions(reasoningEffort: string): InferenceOptions {
   // Only supported inference options cross this boundary; no sampling/logprobs.
   return { endpoint: "responses", providerOptions: { openai: { reasoningEffort } } }
+}
+
+export function solInferenceOptions(providerOptions?: Record<string, unknown>): InferenceOptions {
+  const effort = requestedEffort(providerOptions)
+  return responsesOptions(SolReasoningEffort.parse(
+    effort === undefined || effort === "none" || effort === "minimal" ? "low" : effort,
+  ))
+}
+
+export function lunaInferenceOptions(providerOptions?: Record<string, unknown>): InferenceOptions {
+  const effort = requestedEffort(providerOptions)
+  return responsesOptions(LunaReasoningEffort.parse(
+    effort === undefined || effort === "minimal" ? "low" : effort,
+  ))
+}
+
+export function gpt6InferenceOptions(modelId: string, providerOptions?: Record<string, unknown>): InferenceOptions {
+  return isLuna(modelId) ? lunaInferenceOptions(providerOptions) : solInferenceOptions(providerOptions)
+}
+
+export function gpt6AdapterVersion(modelId: string): string {
+  return isLuna(modelId) ? "openai-luna-responses-1" : "openai-sol-responses-1"
 }
 
 /**
@@ -27,7 +57,7 @@ export function solInferenceOptions(providerOptions?: Record<string, unknown>): 
  * reasoning items. Direct Responses requests avoid a cross-provider SDK upgrade.
  * Stateless encrypted output travels in the book's cached agent transcript.
  */
-export function createSolBackends(context: BackendContext<{ apiKey: string }>): {
+export function createGpt6ResponsesBackends(context: BackendContext<{ apiKey: string }>): {
   structured: StructuredTextBackend
   agent: AgentBackend
 } {
@@ -61,7 +91,7 @@ export function createSolBackends(context: BackendContext<{ apiKey: string }>): 
 
   const structured: StructuredTextBackend = {
     async generateStructured<T>(request: StructuredTextRequest) {
-      const effective = solInferenceOptions(request.providerOptions)
+      const effective = gpt6InferenceOptions(context.modelId, request.providerOptions)
       const params: Record<string, unknown> = { ...effective, strategy: request.strategy }
       const input: unknown[] = request.messages.map((message) => ({
         role: message.role,
@@ -134,7 +164,7 @@ export function createSolBackends(context: BackendContext<{ apiKey: string }>): 
 
   const agent: AgentBackend = {
     async generateTurn(request) {
-      const effective = solInferenceOptions(request.providerOptions)
+      const effective = gpt6InferenceOptions(context.modelId, request.providerOptions)
       const body = {
         instructions: request.system,
         input: agentInput(request.messages),

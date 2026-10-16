@@ -19,12 +19,16 @@ export function listTaskModels(config: AppConfig): TaskModelEntry[] {
   const settings = config as Record<string, unknown>
   const steps = STEP_TASK_MODEL_TARGETS.map((target): TaskModelEntry => {
     const step = settings[target.configKey] as StepSettings | undefined
+    const promptOverride = target.promptKey ? settings[target.promptKey] : step?.prompt
     return {
       id: target.configKey,
       kind: "step",
       configKey: target.configKey,
       ...(target.step ? { step: target.step } : {}),
-      prompts: unique([step?.prompt ?? target.defaultPrompt, ...target.extraPrompts]),
+      prompts: unique([
+        typeof promptOverride === "string" ? promptOverride : target.defaultPrompt,
+        ...target.extraPrompts,
+      ]),
       model: step?.model ?? null,
     }
   })
@@ -33,18 +37,11 @@ export function listTaskModels(config: AppConfig): TaskModelEntry[] {
     .filter(([, strategy]) => strategy.render_type === "llm" || strategy.render_type === "activity")
     .map(([name, strategy]): TaskModelEntry => {
       const strategyConfig = strategy.config
-      const refinement = strategyConfig?.visual_refinement
       return {
         id: `${RENDER_STRATEGY_ID_PREFIX}${name}`,
         kind: "render-strategy",
         configKey: name,
-        prompts: unique([
-          strategyConfig?.prompt ?? "web_generation_html",
-          strategyConfig?.answer_prompt,
-          refinement?.enabled
-            ? config.visual_review_prompt ?? refinement.prompt ?? "visual_review"
-            : undefined,
-        ]),
+        prompts: unique([strategyConfig?.prompt ?? "web_generation_html", strategyConfig?.answer_prompt]),
         model: strategyConfig?.model ?? null,
       }
     })

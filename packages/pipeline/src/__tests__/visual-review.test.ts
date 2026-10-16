@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { GenerateObjectResult, LLMModel } from "@adt/llm"
-import { runVisualReviewLoop } from "../visual-review.js"
+import { DEFAULT_LLM_MODEL_ID } from "@adt/types"
+import type { AppConfig } from "@adt/types"
+import { resolveVisualReviewModelId, runVisualReviewLoop } from "../visual-review.js"
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -380,5 +382,15 @@ describe("runVisualReviewLoop", () => {
         signal: controller.signal,
       })
     ).rejects.toThrow()
+  })
+})
+
+describe("resolveVisualReviewModelId", () => {
+  const base = { structure_types: {}, role_types: {} } as AppConfig
+
+  it("prefers the visual_review model, then default_model, then the built-in default", () => {
+    expect(resolveVisualReviewModelId({ ...base, default_model: "openai:gpt-6-luna", visual_review: { model: "openai:gpt-6.1-sol" } })).toBe("openai:gpt-6.1-sol")
+    expect(resolveVisualReviewModelId({ ...base, default_model: "anthropic:claude-opus-4" })).toBe("anthropic:claude-opus-4")
+    expect(resolveVisualReviewModelId(base)).toBe(DEFAULT_LLM_MODEL_ID)
   })
 })

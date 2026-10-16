@@ -1,7 +1,12 @@
 # Fallback LLM for text generation and visual analysis. Image generation and
 # speech use their own task-specific defaults; step-level `model` values still
 # override this one. This can also be changed in Studio under Settings > Models.
-default_model: "openai:gpt-6.1-sol"
+default_model: "openai:gpt-6-luna"
+
+# Visual review and activity rendering run on GPT-6.1 Sol; every other text task
+# uses default_model unless it sets its own model (Settings > Models).
+visual_review:
+  model: "openai:gpt-6.1-sol"
 
 book_outline:
   prompt: book_outline
@@ -236,6 +241,7 @@ render_strategies:
     render_type: activity
     config:
       prompt: activity_multiple_choice
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_multiple_choice_answers
       max_retries: 5
       timeout: 180
@@ -245,6 +251,7 @@ render_strategies:
     render_type: activity
     config:
       prompt: activity_multi_select
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_multi_select_answers
       max_retries: 5
       timeout: 180
@@ -254,6 +261,7 @@ render_strategies:
     render_type: activity
     config:
       prompt: activity_underline_text
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_underline_text_answers
       max_retries: 5
       timeout: 180
@@ -263,6 +271,7 @@ render_strategies:
     render_type: activity
     config:
       prompt: activity_true_false
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_true_false_answers
       max_retries: 5
       timeout: 180
@@ -272,6 +281,7 @@ render_strategies:
     render_type: activity
     config:
       prompt: activity_fill_in_the_blank
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_fill_in_the_blank_answers
       max_retries: 5
       timeout: 180
@@ -281,6 +291,7 @@ render_strategies:
     render_type: activity
     config:
       prompt: activity_fill_in_a_table
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_fill_in_a_table_answers
       max_retries: 5
       timeout: 180
@@ -290,6 +301,7 @@ render_strategies:
     render_type: activity
     config:
       prompt: activity_matching
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_matching_answers
       max_retries: 5
       timeout: 180
@@ -299,6 +311,7 @@ render_strategies:
     render_type: activity
     config:
       prompt: activity_sorting
+      model: "openai:gpt-6.1-sol"
       answer_prompt: activity_sorting_answers
       max_retries: 5
       timeout: 180
@@ -308,6 +321,7 @@ render_strategies:
     render_type: activity
     config:
       prompt: activity_ordering
+      model: "openai:gpt-6.1-sol"
       max_retries: 5
       timeout: 180
       visual_refinement:
@@ -316,6 +330,7 @@ render_strategies:
     render_type: activity
     config:
       prompt: activity_open_ended_answer
+      model: "openai:gpt-6.1-sol"
       max_retries: 5
       timeout: 180
       visual_refinement:

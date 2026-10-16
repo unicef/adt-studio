@@ -129,7 +129,11 @@ export function useDefaultLlmSetting(): DefaultLlmSetting {
     isLoading: defaultModelQuery.isLoading || promptModelsQuery.isLoading,
     isError: defaultModelQuery.isError,
     isSaving: mutation.isPending,
-    showPromptWarning: promptsLoaded && savedModelRequiresPrompts && !hasPromptsForSavedModel,
+    showPromptWarning:
+      promptsLoaded &&
+      savedModel !== DEFAULT_MODEL &&
+      savedModelRequiresPrompts &&
+      !hasPromptsForSavedModel,
     support,
     save: () => mutation.mutate(),
     discard: () => setDraft(savedModel),

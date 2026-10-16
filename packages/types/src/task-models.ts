@@ -7,6 +7,7 @@ export interface StepTaskModelTarget {
   step?: StepName
   defaultPrompt: string
   extraPrompts: readonly string[]
+  promptKey?: string
 }
 
 export const STEP_TASK_MODEL_TARGETS: readonly StepTaskModelTarget[] = [
@@ -61,6 +62,12 @@ export const STEP_TASK_MODEL_TARGETS: readonly StepTaskModelTarget[] = [
   },
   { configKey: "font_assignment", defaultPrompt: "font_assignment", extraPrompts: [] },
   { configKey: "styleguide_generation", defaultPrompt: "styleguide_generation", extraPrompts: [] },
+  {
+    configKey: "visual_review",
+    defaultPrompt: "visual_review",
+    extraPrompts: [],
+    promptKey: "visual_review_prompt",
+  },
 ]
 
 export const TaskModelKind = z.enum(["step", "render-strategy"])

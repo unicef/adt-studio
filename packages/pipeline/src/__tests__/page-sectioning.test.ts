@@ -1,5 +1,6 @@
 import path from "node:path"
 import { describe, expect, it } from "vitest"
+import { DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import type { AppConfig } from "@adt/types"
 import { createPromptEngine } from "@adt/llm"
 import type {
@@ -176,7 +177,7 @@ describe("buildPageSectioningConfig", () => {
     expect(config.prunedSectionTypes).toEqual(["credits"])
   })
 
-  it("AC-1: applies Sol defaults when page_sectioning is not specified", () => {
+  it("AC-1: applies defaults when page_sectioning is not specified", () => {
     const appConfig: AppConfig = {
       role_types: { text: "Body" },
       structure_types: { paragraph: "Paragraph" },
@@ -184,7 +185,7 @@ describe("buildPageSectioningConfig", () => {
 
     const config = buildPageSectioningConfig(appConfig)
     expect(config.promptName).toBe("page_sectioning")
-    expect(config.modelId).toBe("openai:gpt-6.1-sol")
+    expect(config.modelId).toBe(DEFAULT_LLM_MODEL_ID)
     expect(config.maxRetries).toBe(5)
     expect(config.maxRefinements).toBe(0)
   })

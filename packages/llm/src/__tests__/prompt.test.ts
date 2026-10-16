@@ -6,6 +6,23 @@ import { createPromptEngine } from "../prompt.js"
 
 const dirs: string[] = []
 
+describe("Luna prompt variants", () => {
+  it("ships only the image-sizing web rendering variant, identical to Sol apart from its heading", async () => {
+    const root = path.resolve(import.meta.dirname, "../../../../prompts")
+    const folder = path.join(root, "openai_gpt_6_luna")
+    const engine = createPromptEngine(root)
+    expect(fs.readdirSync(folder).filter((file) => file.endsWith(".liquid"))).toEqual(["web_generation_html.liquid"])
+    expect(engine.resolvePrompt("web_generation_html", { modelId: "openai:gpt-6-luna" }).filePath)
+      .toBe(path.join(folder, "web_generation_html.liquid"))
+    expect(engine.resolvePrompt("visual_review", { modelId: "openai:gpt-6-luna" }).filePath)
+      .toBe(path.join(root, "visual_review.liquid"))
+    const sol = fs.readFileSync(path.join(root, "openai_gpt_6_1_sol", "web_generation_html.liquid"), "utf8")
+    const luna = fs.readFileSync(path.join(folder, "web_generation_html.liquid"), "utf8")
+    expect(luna).toBe(sol.replace("## GPT-6.1 Sol execution guidance", "## GPT-6 Luna execution guidance"))
+    await expect(engine.renderPrompt("web_generation_html", {}, { modelId: "openai:gpt-6-luna" })).resolves.toBeDefined()
+  })
+})
+
 describe("Sol prompt variants", () => {
   it("AC-4: ships renderable variants with the original Liquid variables, tags, images and includes", async () => {
     const root = path.resolve(import.meta.dirname, "../../../../prompts")

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { z } from "zod"
 import { DEFAULT_BASE_PROMPT_MODEL_ID, DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import { openaiProvider } from "../providers/openai/index.js"
-import { solInferenceOptions } from "../providers/openai/sol.js"
+import { lunaInferenceOptions, solInferenceOptions } from "../providers/openai/sol.js"
 import { createProviderRegistry } from "../registry.js"
 import { createLLMModel } from "../client.js"
 import { runAgentLoop } from "../agent-loop.js"
@@ -53,10 +53,30 @@ function client(adapterVersion?: string, onLog?: (entry: LlmLogEntry) => void) {
 }
 
 describe("Sol migration", () => {
-  it("AC-1: selects Sol for text and agents while retaining base provenance and specialized models", () => {
-    expect(DEFAULT_LLM_MODEL_ID).toBe(modelId)
+  it("AC-1: uses the default model for text and Sol for agents while retaining base provenance and specialized models", () => {
     expect(DEFAULT_BASE_PROMPT_MODEL_ID).toBe("openai:gpt-5.4")
-    expect(openaiProvider.manifest.defaultModels).toMatchObject({ "structured-text": "gpt-6.1-sol", agent: "gpt-6.1-sol", image: "gpt-image-2", tts: "gpt-4o-mini-tts", stt: "whisper-1" })
+    expect(openaiProvider.manifest.defaultModels).toMatchObject({ "structured-text": DEFAULT_LLM_MODEL_ID.replace(/^openai:/, ""), agent: "gpt-6.1-sol", image: "gpt-image-2", tts: "gpt-4o-mini-tts", stt: "whisper-1" })
+  })
+
+  it.each([undefined, "none", "minimal", "low", "medium", "high", "xhigh", "max"])(
+    "AC-2: normalizes Luna effort %s, keeping none", (effort) => {
+      expect(lunaInferenceOptions({ openai: { reasoningEffort: effort, topP: 0.9 } })).toEqual({
+        endpoint: "responses",
+        providerOptions: { openai: { reasoningEffort: [undefined, "minimal"].includes(effort) ? "low" : effort } },
+      })
+    },
+  )
+
+  it("AC-2: sends Luna through Responses without sampling and with its own cache adapter", async () => {
+    fetchMock.mockResolvedValue(textResponse())
+    const luna = { ...context, modelId: "gpt-6-luna" }
+    await openaiProvider.createStructuredTextBackend!(luna).generateStructured({ schema, strategy: "native-schema", temperature: 0.8,
+      maxTokens: 100, providerOptions: { openai: { reasoningEffort: "none" } }, messages })
+    expect(fetchMock.mock.calls[0][0]).toBe("https://api.openai.com/v1/responses")
+    expect(body(0)).toMatchObject({ model: "gpt-6-luna", reasoning: { effort: "none" }, store: false })
+    expect(body(0)).not.toHaveProperty("temperature")
+    expect(openaiProvider.cacheFingerprint!(luna).adapterVersion).toBe("openai-luna-responses-1")
+    expect(openaiProvider.cacheFingerprint!(context).adapterVersion).toBe("openai-sol-responses-1")
   })
 
   it.each([undefined, "none", "minimal", "low", "medium", "high", "xhigh", "max"])(

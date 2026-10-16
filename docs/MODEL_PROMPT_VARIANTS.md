@@ -48,6 +48,7 @@ Examples:
 | --- | --- |
 | `openai:gpt-5.5` | `openai_gpt_5_5` |
 | `openai:gpt-6.1-sol` | `openai_gpt_6_1_sol` |
+| `openai:gpt-6-luna` | `openai_gpt_6_luna` |
 | `anthropic:claude-opus-4.1` | `anthropic_claude_opus_4_1` |
 | `google:gemini-2.5-pro` | `google_gemini_2_5_pro` |
 
@@ -94,8 +95,16 @@ and its source, and structured-call logs record the resolved file path.
 
 ### Shipped Sol variants
 
-The distributed execution default is `openai:gpt-6.1-sol`. Base prompt provenance
-remains `openai:gpt-5.4`; selecting GPT-5.4 still resolves the legacy base prompts.
+The distributed execution default is `openai:gpt-6-luna`. The shipped
+`config.yaml` pins `openai:gpt-6.1-sol` for visual review (`visual_review.model`)
+and for every activity render strategy (`render_strategies.activity_*.config.model`);
+agents keep the provider's agent default, `gpt-6.1-sol`. Each of these is a
+task-model override shown in Settings > Models. Base prompt provenance remains `openai:gpt-5.4`;
+selecting GPT-5.4 still resolves the legacy base prompts.
+
+Visual review resolves its model as `visual_review.model`, then `default_model`
+(`resolveVisualReviewModelId` in `packages/pipeline/src/visual-review.ts`).
+
 Following OpenAI's GPT-6 migration guidance — keep working prompts, then make
 the smallest edit that fixes a measured regression — the `openai_gpt_6_1_sol`
 directory ships only two variants:
@@ -106,6 +115,11 @@ directory ships only two variants:
 - `visual_review`: checks image size, placement and column structure against the
   original, and treats raw LaTeX in math leaves as expected (it becomes MathML
   at packaging; see #951).
+
+The `openai_gpt_6_luna` directory ships one variant, `web_generation_html`, so
+web rendering on the default model also sizes and places images by their
+footprint on the original page. It is the Sol variant with only its guidance
+heading renamed; every other task resolves the base prompts on Luna.
 
 Both variants end with a short "GPT-6.1 Sol execution guidance" block. It only
 references inputs the prompt actually receives and must not contradict the
@@ -129,11 +143,14 @@ The independent book-outline task retains its pinned mini model and base
 prompts. Uploaded overrides and saved book files are never rewritten by the
 default change.
 
-Sol uses Responses for all inference, including structured tool-call fallback
-and agent turns. The installed AI SDK 4/OpenAI 1.3 adapter does not recognize
-GPT-6 reasoning or preserve opaque reasoning output, so Sol uses a scoped REST
-adapter without changing dependencies or other providers. Effective effort is
-`low` for omitted/`none`/`minimal`, and explicit supported efforts are preserved.
+Sol and Luna use Responses for all inference, including structured tool-call
+fallback and agent turns. The installed AI SDK 4/OpenAI 1.3 adapter does not
+recognize GPT-6 reasoning or preserve opaque reasoning output, so both use a
+scoped REST adapter (`packages/llm/src/providers/openai/sol.ts`) without changing
+dependencies or other providers. Effective effort is `low` when omitted. Sol
+rejects `none` and `minimal`, so they become `low`; Luna accepts `none` and
+maps only `minimal` to `low`. Explicit supported efforts are preserved, and each
+model has its own adapter version in the cache fingerprint.
 
 ### Reasoning effort per step
 

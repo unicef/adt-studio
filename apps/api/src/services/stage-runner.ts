@@ -124,7 +124,7 @@ import {
   buildSegmentationConfig,
   getSegmentedImageId,
   createScreenshotRenderer,
-  DEFAULT_VISUAL_REVIEW_MODEL_ID,
+  resolveVisualReviewModelId,
   isFixedLayoutBook,
 } from "@adt/pipeline"
 import type { BookOutlineConfig, PageSectioningConfig, TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig, CroppingConfig, SegmentationConfig, VisualRefinementDeps } from "@adt/pipeline"
@@ -1629,9 +1629,7 @@ async function runStoryboardStep(
         visualRefinement = {
           screenshotRenderer,
           webAssetsDir,
-          llmModel: resolveRenderModel(
-            config.default_model ?? DEFAULT_VISUAL_REVIEW_MODEL_ID,
-          ),
+          llmModel: resolveRenderModel(resolveVisualReviewModelId(config)),
           storeScreenshot: (base64: string) => {
             const hash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16)
             storage.putDebugImage(hash, Buffer.from(base64, "base64"))
