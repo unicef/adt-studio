@@ -8,6 +8,7 @@ overrides:
   form-data: ^4.0.6
   '@xmldom/xmldom': 0.9.10
   plist>@xmldom/xmldom: ^0.8.13
+  seroval: ^1.6.2
 
 patchedDependencies:
   app-builder-lib@26.8.1:
@@ -5503,10 +5504,10 @@ packages:
     resolution: {integrity: sha512-EAHqADIQondwRZIdeW2I636zgsODzoBDwb3PT/+7TLDWyw1Dy/Xv7iGUIEXXav7usHDE9HVhOU61irI3EnyyHA==}
     engines: {node: '>=10'}
     peerDependencies:
-      seroval: ^1.0
+      seroval: ^1.6.2
 
-  seroval@1.5.0:
-    resolution: {integrity: sha512-OE4cvmJ1uSPrKorFIH9/w/Qwuvi/IMcGbv5RKgcJ/zjA/IohDLU6SVaxFN9FwajbP7nsX0dQqMDes1whk3y+yw==}
+  seroval@1.6.9:
+    resolution: {integrity: sha512-UeEzHwAK+yl0YLbsvROV1t5yMYEwZZ0CfKYxDvUgS2fO9Vxdf8djqVIB+OuVpuawRNPqw68LE1Du/GMsW2ZPqA==}
     engines: {node: '>=10'}
 
   set-function-length@1.2.2:
@@ -8243,8 +8244,8 @@ snapshots:
       '@tanstack/history': 1.154.14
       '@tanstack/store': 0.8.0
       cookie-es: 2.0.0
-      seroval: 1.5.0
-      seroval-plugins: 1.5.0(seroval@1.5.0)
+      seroval: 1.6.9
+      seroval-plugins: 1.5.0(seroval@1.6.9)
       tiny-invariant: 1.3.3
       tiny-warning: 1.0.3
 
@@ -11260,11 +11261,11 @@ snapshots:
       type-fest: 0.13.1
     optional: true
 
-  seroval-plugins@1.5.0(seroval@1.5.0):
+  seroval-plugins@1.5.0(seroval@1.6.9):
     dependencies:
-      seroval: 1.5.0
+      seroval: 1.6.9
 
-  seroval@1.5.0: {}
+  seroval@1.6.9: {}
 
   set-function-length@1.2.2:
     dependencies:
