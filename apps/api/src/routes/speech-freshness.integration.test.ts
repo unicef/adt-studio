@@ -4,6 +4,7 @@ import path from "node:path"
 import { Hono } from "hono"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { createBookStorage } from "@adt/storage"
+import { inputSignature } from "@adt/pipeline"
 import { createOutputRoutes } from "./outputs.js"
 import { createTTSRoutes } from "./tts.js"
 import { bookWriterMiddleware } from "../middleware/book-writer.js"
@@ -87,4 +88,28 @@ it.each(["source", "target", "exclusion", "cancel"] as const)("rejects late %s c
   expect(fs.readFileSync(path.join(root, label, "audio", "fr", original.data.entries[0].fileName))).toEqual(bytes)
   if (kind === "target") expect(after.data.entries[0].source).toBe("manual")
   else expect(after).toEqual(original)
+})
+
+it("keeps a legacy audio entry current on the first Keep, across its content-addressed snapshot", async () => {
+  // An entry from before immutable assets: no audioHash, a plain file name.
+  const storage = db()
+  fs.mkdirSync(path.join(storage.bookDir!, "audio", "fr"), { recursive: true })
+  fs.writeFileSync(path.join(storage.bookDir!, "audio", "fr", "stable.mp3"), Buffer.from([9, 9, 9, 9]))
+  storage.putNodeData("tts", "fr", { generatedAt: "then", entries: [{ textId: "stable", language: "fr", fileName: "stable.mp3", voice: "alloy", model: "gpt-4o-mini-tts", cached: false, provider: "openai", source: "ai" }] })
+  storage.close()
+  const find = (list: OutputStatus[]) => list.find((output) => output.identity.kind === "audio" && output.identity.id === "stable" && output.identity.language === "fr")!
+  const before = find(await outputs())
+  expect(before.protected).toBe(true)
+  expect(before.warnings.some((warning) => warning.reason === "legacy")).toBe(true)
+  const kept = await app.request(`/books/${label}/outputs/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identity: before.identity, signature: before.signature, contentHash: before.contentHash, action: "keep" }) })
+  expect(kept.status, await kept.clone().text()).toBe(200)
+  // The first publication snapshots the file; the review must follow the new identity.
+  const entry = audio()!.data.entries[0]
+  expect(entry.audioHash).toBeDefined()
+  expect(entry.fileName).toContain("--")
+  expect(entry.review?.contentHash).toBe(inputSignature(entry.audioHash))
+  const after = find(await outputs())
+  expect(after.protected).toBe(true)
+  expect(after.warnings.some((warning) => warning.reason === "legacy" || warning.reason === "source-changed")).toBe(false)
+  expect(transport).not.toHaveBeenCalled()
 })

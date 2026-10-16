@@ -227,7 +227,9 @@ it("allocates ambiguous legacy edits a fresh ID but preserves trustworthy modern
   after.close()
 })
 
-it("allows role-only changes and fewer copies of existing source and image-alt conflicts, but rejects new values atomically", async () => {
+it("allows role-only changes and fewer copies of an existing source conflict, but rejects new values atomically", async () => {
+  // Image alt attributes are not an authoring input since the 2026-10-16 decision
+  // (the caption store is the only source), so only text-id conflicts are checked.
   const transport = vi.fn(() => { throw new Error("Save must not call a provider") })
   vi.stubGlobal("fetch", transport)
   const storage = db()
@@ -244,7 +246,7 @@ it("allows role-only changes and fewer copies of existing source and image-alt c
   const before = db()
   const fingerprint = before.getNodeVersionFingerprint([])
   before.close()
-  for (const [oldValue, newValue] of [["Second</p>", "Third</p>"], ["Second alt", "Third alt"]]) {
+  for (const [oldValue, newValue] of [["Second</p>", "Third</p>"]]) {
     const changed = structuredClone(cleanup)
     changed.sections[0].html = changed.sections[0].html.replace(oldValue, newValue)
     expect((await send("pages/pg001/rendering", changed)).status).toBe(409)

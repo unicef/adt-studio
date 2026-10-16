@@ -2,9 +2,25 @@ import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { createBookStorage, publishSpeechOutput, publishSpeechTimings } from "@adt/storage"
+import { createBookStorage, publishSpeechOutput, publishSpeechTimings, type Storage } from "@adt/storage"
 import { OutputReviewRequest, OutputDisclosureOptions, parseBookLabel, STAGE_ORDER, OUTPUT_KIND_TO_STAGE, OUTPUT_KIND_TO_STEP, type OutputKind, type OutputStatus, type CatalogConflict, type StageName, type TTSOutput } from "@adt/types"
-import { loadBookConfig, readOutputCatalog, outputIdentityKey, summarizeOutputs, summarizeOutputScopes, buildTextCatalogSnapshot, reconcileSpeechInputs, loadCoreTtsProfiles, renderingOwnershipWarnings } from "@adt/pipeline"
+import { inputSignature, loadBookConfig, readOutputCatalog, outputIdentityKey, summarizeOutputs, summarizeOutputScopes, buildTextCatalogSnapshot, reconcileSpeechInputs, loadCoreTtsProfiles, renderingOwnershipWarnings } from "@adt/pipeline"
+
+/** A legacy audio entry is renamed to its content-addressed file on its first
+ * publication, which changes the content hash the review was just recorded
+ * against (`audioHash` replaces `fileName`). Re-stamp the review against the
+ * published entry so a Keep sticks the first time instead of flipping to
+ * "source changed". A no-op for entries that already carried a hash. */
+function alignAudioReview(storage: Storage, language: string, identity: OutputStatus["identity"], version: number): number {
+  const data = storage.getLatestNodeData("tts", language)?.data as TTSOutput | undefined
+  const slot = identity.voiceSlot ?? "primary"
+  const entry = data?.entries.find((item) => item.textId === identity.id && (item.voiceSlot ?? "primary") === slot)
+  if (!data || !entry?.review) return version
+  const expected = inputSignature(entry.audioHash ?? entry.fileName)
+  if (entry.review.contentHash === expected) return version
+  const entries = data.entries.map((item) => item === entry ? { ...item, review: { ...item.review!, contentHash: expected } } : item)
+  return publishSpeechOutput(storage, language, { ...data, entries })
+}
 
 export function createOutputRoutes(booksDir: string, promptsDir: string, configPath?: string): Hono {
   const app = new Hono()
@@ -115,7 +131,7 @@ export function createOutputRoutes(booksDir: string, promptsDir: string, configP
         // Shared Easy Read references carry the same reviewed identity. Do not
         // certify a conflicting legacy copy whose content was not shown.
         for (const entry of matching) if ((field !== "blocks" && field !== "entries") || entry.text === output.text || entry.speechText === output.text) entry.review = { signature: review.signature, contentHash: review.contentHash, action: review.action }
-        const version = node === "tts" ? publishSpeechOutput(storage, itemId, data as unknown as import("@adt/types").TTSOutput)
+        const version = node === "tts" ? alignAudioReview(storage, itemId, output.identity, publishSpeechOutput(storage, itemId, data as unknown as import("@adt/types").TTSOutput))
           : node === "tts-timestamps" ? publishSpeechTimings(storage, itemId, data as unknown as import("@adt/types").WordTimestampOutput)
           : storage.putNodeData(node, itemId, data)
         return c.json({ version })
