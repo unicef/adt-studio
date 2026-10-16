@@ -250,13 +250,30 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
       )}
       <div className="p-4">
       {showRunCard ? (
-        <StageRunCard
-          stageSlug="extract"
-          isRunning={extractRunning}
-          completed={extractDone}
-          onRun={handleRetryExtract}
-          disabled={(!extractError && !extractInterrupted) || !hasStructuredTextProvider || extractRunning}
-        />
+        <>
+          {hasPages && !extractRunning && (
+            <div className="mb-4">
+              <LandingPageWarning
+                variant="prereq"
+                title={t`Re-extraction is not available in this version`}
+                description={
+                  <Trans>
+                    This book already has extracted pages, so extraction cannot run
+                    again here. Its content is preserved. To extract again, create a
+                    new book from the PDF.
+                  </Trans>
+                }
+              />
+            </div>
+          )}
+          <StageRunCard
+            stageSlug="extract"
+            isRunning={extractRunning}
+            completed={extractDone}
+            onRun={handleRetryExtract}
+            disabled={(!extractError && !extractInterrupted) || !hasStructuredTextProvider || extractRunning || hasPages}
+          />
+        </>
       ) : pageList.length === 0 ? (
         <StageEmptyState
           icon={FileText}

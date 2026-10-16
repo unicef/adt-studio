@@ -174,7 +174,9 @@ export function makeBeforeRun(label: string, fromStage: StageName, toStage: Stag
     const storage = createBookStorage(label, booksDir)
     try {
       if (fromStage === "extract" && storage.getPages().length) {
-        throw new Error("UNSAFE_RESUME_UNAVAILABLE: full extraction rerun cannot preserve this existing book")
+        // Interim mapping until SPEC-0010 (#886) lands its typed admission error:
+        // a plain Error became an opaque 500 in Studio.
+        throw new HTTPException(409, { message: "UNSAFE_RESUME_UNAVAILABLE: Re-extracting an existing book is not available in this version. Create a new book to extract it again; this book's content has been preserved." })
       }
       const { retired, preserved } = retireWithPreservedRecordings(
         storage,

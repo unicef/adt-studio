@@ -2786,13 +2786,13 @@ describe("rewriteImageUrls", () => {
     expect(out).toContain('alt="A labeled diagram"')
   })
 
-  it("preserves existing alt text when caption data is also available", () => {
-    const html = `<img data-id="abc123" src="/api/books/mybook/images/abc123" alt="Existing alt">`
+  it("replaces a renderer alt with the caption store's description", () => {
+    const html = `<img data-id="abc123" src="/api/books/mybook/images/abc123" alt="Renderer alt">`
     const imageMap = new Map([["abc123", "photo.jpg"]])
     const altMap = new Map([["abc123", "Caption alt"]])
     const { html: out } = rewriteImageUrls(html, "mybook", imageMap, altMap)
-    expect(out).toContain('alt="Existing alt"')
-    expect(out).not.toContain('alt="Caption alt"')
+    expect(out).toContain('alt="Caption alt"')
+    expect(out).not.toContain('alt="Renderer alt"')
   })
 
 

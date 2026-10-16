@@ -490,7 +490,6 @@ export { scopeLegacyActivityIds } from "./catalog-reconciliation.js"
 
 export { retainedCoreTts, retainedEasyRead, activeEasyRead } from "./retained-catalog.js"
 
-export { authoredImageAlts } from "./catalog-reconciliation.js"
 
 export { outputSkipped } from "./output-freshness.js"
 

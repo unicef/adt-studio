@@ -167,22 +167,6 @@ describe("catalog freshness through real API/storage boundaries", () => {
     verify.close()
   })
 
-  it("reports conflicting shared-image alt edits as 409 and leaves rendering/captions unchanged", async () => {
-    const db = storage()
-    const before = db.getLatestNodeData("web-rendering", "pg001")
-    const captions = db.getLatestNodeData("image-captioning", "pg001")
-    db.close()
-    const changed = rendering()
-    changed.sections[0].html = '<img data-id="pg001_im001" alt="First"/><img data-id="pg001_im001" alt="Second"/>'
-    const response = await send("pages/pg001/rendering", changed)
-    expect(response.status).toBe(409)
-    expect(await response.text()).toContain("pg001_im001")
-    const verify = storage()
-    expect(verify.getLatestNodeData("web-rendering", "pg001")).toEqual(before)
-    expect(verify.getLatestNodeData("image-captioning", "pg001")).toEqual(captions)
-    verify.close()
-  })
-
   it("a stale save to a deleted book returns 404 without recreating its directory", async () => {
     fs.rmSync(path.join(root, label), { recursive: true })
     const response = await send("pages/pg001/rendering", rendering())
@@ -379,27 +363,6 @@ describe("catalog freshness through real API/storage boundaries", () => {
     release(); await run
     const verify = storage(); expect(verify.getLatestNodeData("web-rendering", "pg001")!.data).toEqual(rendering()); verify.close()
   })
-  it("HTML alt edits use the authoritative caption store and reject an intervening caption edit atomically", async () => {
-    const first = rendering()
-    first.sections[0].html = first.sections[0].html.replace('<img data-id="pg001_im001" />', '<img data-id="pg001_im001" alt="A picture" />')
-    expect((await send("pages/pg001/rendering", first)).status).toBe(200)
-    const draft = structuredClone(first)
-    draft.sections[0].html = draft.sections[0].html.replace('alt="A picture"', 'alt="My authored caption"')
-    expect((await send("pages/pg001/rendering", draft)).status).toBe(200)
-    const db = storage()
-    expect(db.getLatestNodeData("image-captioning", "pg001")!.data).toMatchObject({ captions: [{ caption: "My authored caption", source: "manual" }] })
-    expect(db.getLatestNodeData("text-catalog", "book")!.data).toMatchObject({ entries: expect.arrayContaining([{ id: "pg001_im001", text: "My authored caption", locations: expect.any(Array) }]) })
-    const before = db.getLatestNodeData("web-rendering", "pg001")
-    db.putNodeData("image-captioning", "pg001", { captions: [{ imageId: "pg001_im001", caption: "Concurrent correction", reasoning: "", source: "manual" }] })
-    db.close()
-    draft.sections[0].html = draft.sections[0].html.replace('alt="My authored caption"', 'alt="Stale draft"')
-    expect((await send("pages/pg001/rendering", draft)).status).toBe(409)
-    const verify = storage()
-    expect(verify.getLatestNodeData("web-rendering", "pg001")).toEqual(before)
-    expect(verify.getLatestNodeData("image-captioning", "pg001")!.data).toMatchObject({ captions: [{ caption: "Concurrent correction" }] })
-    verify.close()
-  })
-
 })
 
 it("retires removed membership, discovers new text and image work, and restores the original identities without losing corrections (Example 4)", async () => {

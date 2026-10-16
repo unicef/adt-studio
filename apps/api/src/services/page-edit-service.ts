@@ -10,7 +10,6 @@ import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, r
 import type { VisualRefinementDeps } from "@adt/pipeline"
 import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema, editVerifyLLMSchema, DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
-import { assertImageAltConflicts } from "./authored-captions.js"
 
 export interface ReRenderOptions {
   label: string
@@ -223,7 +222,6 @@ export async function reRenderPage(
           return owner ? { ...entry, sectionIndex: sectioning.sections.indexOf(owner) } : entry
         }).sort((a, b) => a.sectionIndex - b.sectionIndex) }
       }
-      assertImageAltConflicts(initialRendering.success ? initialRendering.data : undefined, rendering)
       const version = sectionIndex === undefined
         ? putReflowableRendering(storage, pageId, rendering)
         : putSourceNodeData(storage, "web-rendering", pageId, rendering)

@@ -109,20 +109,6 @@ export function assignActivitySectionIds(section: SectionRendering, allocate: (o
   return { ...section, html }
 }
 
-export function authoredImageAlts(rendering: WebRenderingOutput, onConflict?: (id: string, alt: string) => void): Map<string, string> {
-  const values = new Map<string, string>()
-  for (const section of rendering.sections) {
-    const doc = parseDocument(section.html)
-    for (const element of DomUtils.findAll((element) => element.name === "img" && !!element.attribs["data-id"], doc.children)) {
-      const id = element.attribs["data-id"]
-      const alt = element.attribs.alt
-      if (alt === undefined) continue
-      if (values.has(id) && values.get(id) !== alt) { onConflict?.(id, alt); continue }
-      values.set(id, alt)
-    }
-  }
-  return values
-}
 
 
 function restoreReactivatedSpeech(storage: Storage, active: Set<string>): void {

@@ -1972,9 +1972,9 @@ export function rewriteImageUrls(
     } else {
       const hasPreferredAlt = imageIdForAlt ? altTextByImageId?.has(imageIdForAlt) ?? false : false
       const altText = imageIdForAlt ? altTextByImageId?.get(imageIdForAlt)?.trim() ?? "" : ""
-      if (hasPreferredAlt && (img.attribs.alt === undefined || img.attribs.alt.trim() === "")) {
-        img.attribs.alt = altText
-      }
+      // The caption store is the only source of an image description; the
+      // renderer's own alt attribute is never authoritative (decision 2026-10-16).
+      if (hasPreferredAlt) img.attribs.alt = altText
     }
   }
 

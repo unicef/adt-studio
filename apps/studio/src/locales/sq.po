@@ -7831,6 +7831,9 @@ msgstr "Rrezja"
 msgid "Re-enable type"
 msgstr "Ri-aktivizo tipin"
 
+msgid "Re-extraction is not available in this version"
+msgstr "Rinxjerrja nuk është e disponueshme në këtë version"
+
 msgid "Re-package ADT"
 msgstr "Ri-paketo ADT"
 
@@ -8893,8 +8896,11 @@ msgstr "Llojet e Seksionit"
 msgid "Sectioning"
 msgstr "Seksionim"
 
-msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
-msgstr "Seksionimi ka ndryshuar që kur u renderizuan këto faqe. Ekzekuto përsëri Storyboard-in për t'i rigjeneruar ato."
+msgid "Sectioning has changed since some sections were rendered. Open a section and use “Re-render this section” to update it, or re-run Storyboard to regenerate every page."
+msgstr "Seksionimi ka ndryshuar që kur u renderizuan disa seksione. Hapni një seksion dhe përdorni “Ri-renderizo këtë seksion” për ta përditësuar, ose riekzekutoni Storyboard për të rigjeneruar çdo faqe."
+
+#~ msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
+#~ msgstr "Seksionimi ka ndryshuar që kur u renderizuan këto faqe. Ekzekuto përsëri Storyboard-in për t'i rigjeneruar ato."
 
 msgid "Sectioning mode"
 msgstr "Modaliteti i seksionimit"
@@ -10236,6 +10242,12 @@ msgstr "Ky aktivitet nuk ka tekste apo përgjigje të adresueshme. Rigjeneroni a
 
 msgid "This archive can't be opened safely"
 msgstr "Ky arkiv nuk mund të hapet në mënyrë të sigurt"
+
+msgid "This book already has extracted pages, so extraction cannot run again here. Its content is preserved. To extract again, create a new book from the PDF."
+msgstr "Ky libër ka tashmë faqe të ekstraktuara, kështu që ekstraktimi nuk mund të ekzekutohet përsëri këtu. Përmbajtja e tij ruhet. Për të ekstraktuar përsëri, krijoni një libër të ri nga PDF-ja."
+
+msgid "This book already has extracted pages. Re-extracting an existing book is not available in this version; to extract again, create a new book from the PDF. This book's content is preserved."
+msgstr "Ky libër ka tashmë faqe të ekstraktuara. Riekstraktimi i një libri ekzistues nuk është i disponueshëm në këtë version; për të ekstraktuar përsëri, krijoni një libër të ri nga PDF-ja. Përmbajtja e këtij libri ruhet."
 
 msgid "This book has {pageCount} pages."
 msgstr "Ky libër ka {pageCount} faqe."

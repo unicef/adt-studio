@@ -3,7 +3,6 @@ import { putSourceNodeData, withSourceGenerationTracking, markSourceGenerationNe
 import { cloneRenderedIdentities, stampRenderedOwner } from "@adt/pipeline"
 import { captureOutputReferences } from "@adt/pipeline"
 import { scopeLegacyActivityIds, renderedSectionId, withLegacyRenderingOwnership } from "@adt/pipeline"
-import { assertImageAltConflicts, saveAuthoredImageAlts } from "../services/authored-captions.js"
 import { catalogOutputs, editSourceSignature, assertEditSource, assertEditVersion } from "../services/catalog-output-service.js"
 import { OutputEditGuard } from "@adt/types"
 import { outputEvidence } from "@adt/pipeline"
@@ -550,10 +549,6 @@ function saveStoryboardNode(
   const version = storage.transaction(() => {
     const conflictsBefore = buildTextCatalogSnapshot(storage, storage.getPages()).conflicts ?? []
     const parsed = node === "web-rendering" ? WebRenderingOutput.safeParse(data) : null
-    if (parsed?.success) {
-      const previous = WebRenderingOutput.safeParse(storage.getLatestNodeData(node, itemId)?.data)
-      assertImageAltConflicts(previous.success ? previous.data : undefined, parsed.data)
-    }
     const saved = parsed?.success ? {
       ...parsed.data,
       sections: withLegacyRenderingOwnership(storage, itemId, parsed.data).sections.map((section) => {
@@ -613,6 +608,24 @@ function migrateEditableActivities(
   }
   if (!changed) return null
   return storage.putNodeData(EDITABLE_ACTIVITY_NODE, pageId, { activities })
+}
+
+/**
+ * Index map for a sectioning save that may reorder or drop sections. Step-by-step
+ * activities are keyed by section index, so the remap that clone, split, merge
+ * and delete already run must run here too; otherwise a reorder in Sectioning
+ * leaves a stepper attached to whatever section now occupies its old index.
+ * Returns null when every section kept its position.
+ */
+function sectionReorderMap(
+  previous: PageSectioningOutput | undefined,
+  next: PageSectioningOutput,
+): ((index: number) => number | null) | null {
+  if (!previous) return null
+  const positions = new Map(next.sections.map((section, index) => [section.sectionId, index]))
+  const moves = previous.sections.map((section) => positions.get(section.sectionId) ?? null)
+  if (moves.length === next.sections.length && moves.every((to, from) => to === from)) return null
+  return (index) => (index < moves.length ? moves[index] : null)
 }
 
 /**
@@ -1445,7 +1458,13 @@ export function createPageRoutes(
       }
 
       // Sectioning change cascades to everything downstream.
-      const version = saveStoryboardNode(storage, "page-sectioning", pageId, parsed.data)
+      const previous = PageSectioningOutput.safeParse(storage.getLatestNodeData("page-sectioning", pageId)?.data)
+      const version = withSourceGenerationTracking(storage, () => {
+        const saved = saveStoryboardNode(storage, "page-sectioning", pageId, parsed.data)
+        const remap = sectionReorderMap(previous.success ? previous.data : undefined, parsed.data)
+        if (remap) migrateEditableActivities(storage, pageId, { mapIndex: remap })
+        return saved
+      })
       return c.json({ version })
     } finally {
       storage.close()
@@ -1502,11 +1521,7 @@ export function createPageRoutes(
         throw new HTTPException(404, { message: `Page not found: ${pageId}` })
       }
 
-      const outputs = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath, { kinds: ["caption"] })
-      const version = storage.transaction(() => {
-        saveAuthoredImageAlts(storage, pageId, parsed.data, outputs)
-        return saveStoryboardNode(storage, "web-rendering", pageId, parsed.data)
-      })
+      const version = storage.transaction(() => saveStoryboardNode(storage, "web-rendering", pageId, parsed.data))
       return c.json({ version })
     } finally {
       storage.close()
@@ -1574,17 +1589,21 @@ export function createPageRoutes(
 
       // Rendering, sectioning, downstream invalidations, and step status are a
       // single editor save. If any statement fails, none of them may survive.
-      const outputs = rendering ? catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath, { kinds: ["caption"] }) : []
+      const previousSectioning = sectioning ? PageSectioningOutput.safeParse(storage.getLatestNodeData("page-sectioning", pageId)?.data) : null
       const { renderingVersion, sectioningVersion } = withSourceGenerationTracking(storage, () => {
-        if (rendering) saveAuthoredImageAlts(storage, pageId, rendering, outputs)
-        return {
-        renderingVersion: rendering
-          ? saveStoryboardNode(storage, "web-rendering", pageId, rendering)
-          : null,
-        sectioningVersion: sectioning
-          ? saveStoryboardNode(storage, "page-sectioning", pageId, sectioning, { renderingInSync })
-          : null,
+        const saved = {
+          renderingVersion: rendering
+            ? saveStoryboardNode(storage, "web-rendering", pageId, rendering)
+            : null,
+          sectioningVersion: sectioning
+            ? saveStoryboardNode(storage, "page-sectioning", pageId, sectioning, { renderingInSync })
+            : null,
         }
+        if (sectioning) {
+          const remap = sectionReorderMap(previousSectioning?.success ? previousSectioning.data : undefined, sectioning)
+          if (remap) migrateEditableActivities(storage, pageId, { mapIndex: remap })
+        }
+        return saved
       })
 
       return c.json({ sectioningVersion, renderingVersion })

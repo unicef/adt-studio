@@ -7831,6 +7831,9 @@ msgstr "Rayon"
 msgid "Re-enable type"
 msgstr "Réactiver le type"
 
+msgid "Re-extraction is not available in this version"
+msgstr "La réextraction n'est pas disponible dans cette version"
+
 msgid "Re-package ADT"
 msgstr "Réempaqueter l'ADT"
 
@@ -8893,8 +8896,11 @@ msgstr "Types de section"
 msgid "Sectioning"
 msgstr "Sectionnement"
 
-msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
-msgstr "Le découpage a changé depuis le rendu de ces pages. Relancez le Scénarimage pour les régénérer."
+msgid "Sectioning has changed since some sections were rendered. Open a section and use “Re-render this section” to update it, or re-run Storyboard to regenerate every page."
+msgstr "Le sectionnement a changé depuis le rendu de certaines sections. Ouvrez une section et utilisez « Re-rendre cette section » pour la mettre à jour, ou relancez Scénarimage pour régénérer toutes les pages."
+
+#~ msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
+#~ msgstr "Le découpage a changé depuis le rendu de ces pages. Relancez le Scénarimage pour les régénérer."
 
 msgid "Sectioning mode"
 msgstr "Mode de sectionnement"
@@ -10236,6 +10242,12 @@ msgstr "Cette activité ne contient aucun texte ni aucune réponse adressable. R
 
 msgid "This archive can't be opened safely"
 msgstr "Cette archive ne peut pas être ouverte en toute sécurité"
+
+msgid "This book already has extracted pages, so extraction cannot run again here. Its content is preserved. To extract again, create a new book from the PDF."
+msgstr "Ce livre a déjà des pages extraites ; l'extraction ne peut donc pas être relancée ici. Son contenu est conservé. Pour extraire à nouveau, créez un nouveau livre à partir du PDF."
+
+msgid "This book already has extracted pages. Re-extracting an existing book is not available in this version; to extract again, create a new book from the PDF. This book's content is preserved."
+msgstr "Ce livre a déjà des pages extraites. La réextraction d'un livre existant n'est pas disponible dans cette version ; pour extraire à nouveau, créez un nouveau livre à partir du PDF. Le contenu de ce livre est conservé."
 
 msgid "This book has {pageCount} pages."
 msgstr "Ce livre comporte {pageCount} pages."

@@ -815,6 +815,39 @@ describe("Page routes", () => {
       ],
     })
 
+    it("reordering sections through a sectioning save moves step-by-step activities with their sections", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("page-sectioning", `${label}_p1`, {
+          reasoning: "two same-type activities",
+          sections: [section(1), section(2)],
+        })
+        storage.putNodeData("editable-activity", `${label}_p1`, {
+          activities: { "0": mcActivity("first"), "1": mcActivity("second") },
+        })
+      } finally {
+        storage.close()
+      }
+      // The Sectioning view saves a reordered tree through the plain PUT; the
+      // storyboard route carries the same payload. Both must remap (K2).
+      const res = await app.request(`/api/books/${label}/pages/${label}_p1/sectioning`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reasoning: "reordered", sections: [section(2), section(1)] }),
+      })
+      expect(res.status).toBe(200)
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const activities = (verify.getLatestNodeData("editable-activity", `${label}_p1`)?.data as {
+          activities: Record<string, { title?: { text: string } }>
+        }).activities
+        expect(activities["0"]?.title?.text).toBe("second")
+        expect(activities["1"]?.title?.text).toBe("first")
+      } finally {
+        verify.close()
+      }
+    })
+
     it("deleting a section drops its entry and shifts the rest down", async () => {
       const storage = createBookStorage(label, tmpDir)
       try {
