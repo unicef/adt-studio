@@ -295,7 +295,9 @@ describe("catalog freshness through real API/storage boundaries", () => {
     expect(disabled.find((output) => output.identity.kind === "caption" && output.identity.id === "pg001_im001")).toMatchObject({ included: true, protected: true })
     expect(JSON.parse(fs.readFileSync(path.join(locale, "audios.json"), "utf8"))).toEqual({})
     db.close()
-  })
+  // Real export plus audio publication and restore: ~10 s alone, so the project's
+  // 20 s budget is exceeded whenever the machine is loaded.
+  }, 60_000)
 
   it("cosmetic Save and opening read models preserve signatures, outputs, history and make no provider calls", async () => {
     const transport = vi.fn(() => { throw new Error("Save must not call a provider") })
