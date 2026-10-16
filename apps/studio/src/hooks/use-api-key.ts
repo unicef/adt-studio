@@ -17,6 +17,26 @@ export function useBookStructuredTextAvailability(bookLabel: string): boolean {
 }
 
 /**
+ * Speech availability resolved against the book's `speech.default_provider` —
+ * the provider a Speech run of this book synthesizes with — instead of the
+ * global default the bare `hasSpeechProvider` flag checks. Without this, a
+ * book switched to Gemini keeps its Run buttons disabled when only a Gemini
+ * key is configured. Prefer this in any component with a book in scope.
+ */
+export function useBookSpeechAvailability(bookLabel: string): boolean {
+  const { isAvailable } = useProviderCredentials()
+  const speech = useActiveConfig(bookLabel).data?.merged?.speech as
+    | { default_provider?: unknown }
+    | undefined
+  const provider =
+    typeof speech?.default_provider === "string" && speech.default_provider.trim()
+      ? speech.default_provider.trim()
+      : "openai" // the speech stage's own fallback
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- qualified model identifier, never rendered
+  return isAvailable("tts", `${provider}:default`)
+}
+
+/**
  * Agent availability resolved against the model an agent run of this book
  * actually uses. Mirrors agents-service's chain: the merged config's
  * `agents.model` (a documented per-book override), else the default model's

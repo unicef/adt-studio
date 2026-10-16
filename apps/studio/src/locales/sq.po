@@ -4242,9 +4242,6 @@ msgstr "Mbledhja e dëshmive"
 msgid "Gemini"
 msgstr "Gemini"
 
-msgid "Gemini — LLM and TTS voices."
-msgstr "Gemini — Zërat LLM dhe TTS."
-
 msgid "Gemini API key is required to generate audio."
 msgstr "Çelësi API i Gemini është i nevojshëm për të gjeneruar audio."
 
@@ -4253,6 +4250,9 @@ msgstr "Gemini e gjeneron çdo fjali në kërkesën e vet, prandaj toni mund të
 
 msgid "Gemini models + TTS voices."
 msgstr "Modele Gemini + zëra TTS."
+
+msgid "Gemini models for text and image generation."
+msgstr "Modele Gemini për gjenerimin e tekstit dhe imazheve."
 
 msgid "Gemini settings"
 msgstr "Cilësimet e Gemini"
@@ -5960,6 +5960,9 @@ msgstr "Navigo brenda Paraparjes për të regjistruar shënimet e rishikimit spe
 msgid "Navigation"
 msgstr "Navigimi"
 
+msgid "Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it."
+msgstr "Kërkon një çelës API të OpenAI (OpenAI Whisper i përputh fjalët me audion). Shtoni një te Cilësime → Ofruesit e AI për ta aktivizuar."
+
 msgid "Needs attention"
 msgstr "Kërkon vëmendje"
 
@@ -7146,6 +7149,9 @@ msgstr "Ndarja Hap-pas-Hapi"
 
 msgid "Per-Word"
 msgstr "Për-Fjalë"
+
+msgid "Per-word highlighting needs an OpenAI API key."
+msgstr "Theksimi në nivel fjale kërkon një çelës API të OpenAI."
 
 msgid "Perfect for children's books, pairing large images with minimal text."
 msgstr "E përsosur për librat e fëmijëve, duke çiftëzuar imazhe të mëdha me tekst minimal."
@@ -10712,11 +10718,11 @@ msgstr "Përdoret për modelet Claude (claude-opus-4-6, claude-sonnet-4-6, etj.)
 msgid "Used for ElevenLabs text-to-speech."
 msgstr "Përdoret për tekst-në-të-folur të ElevenLabs."
 
-msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
-msgstr "Përdoret për modelet Gemini — si LLM (gemini-2.5-pro, etj.) ashtu edhe TTS (gemini-2.5-pro-preview-tts, etj.)"
+msgid "Used for Gemini text and image models (gemini-3.1-pro-preview, gemini-3.1-flash-image, etc.). Speech uses the separate Gemini Speech provider, which takes the same API key."
+msgstr "Përdoret për modelet e tekstit dhe imazheve të Gemini (gemini-3.1-pro-preview, gemini-3.1-flash-image, etj.). Të folurit përdor ofruesin e veçantë Gemini Speech, i cili pranon të njëjtin çelës API."
 
-msgid "Used for Gemini text-to-speech."
-msgstr "Përdoret për tekst-në-të-folur të Gemini."
+msgid "Used for Gemini text-to-speech. Takes the same API key as the Google AI provider."
+msgstr "Përdoret për sintezën e të folurit të Gemini. Pranon të njëjtin çelës API si ofruesi Google AI."
 
 #~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
 #~ msgstr "Përdoret për shndërrimin e tekstit në të folur nga OpenAI në këto detyra të rrjedhës së punës:"

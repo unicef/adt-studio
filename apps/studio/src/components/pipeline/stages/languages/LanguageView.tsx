@@ -15,7 +15,11 @@ import { LoadingState } from "../../components/LoadingState"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
-import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
+import {
+  useApiKey,
+  useBookSpeechAvailability,
+  useBookStructuredTextAvailability,
+} from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
 import { StageEmptyState } from "../../components/StageEmptyState"
 import { useVirtualizer } from "@tanstack/react-virtual"
@@ -291,8 +295,8 @@ export function LanguageView({
   const { isTaskRunning, tasks } = useBookTasks(bookLabel);
   const {
     apiKey,
-    hasSpeechProvider,
     hasTranscriber,
+    isLoading: providersLoading,
     isAvailable,
     azureKey,
     azureRegion,
@@ -304,6 +308,7 @@ export function LanguageView({
     customApiKey,
   } = useApiKey();
   const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel);
+  const hasSpeechProvider = useBookSpeechAvailability(bookLabel);
   // Resolve opaque ElevenLabs voice IDs to names for the speech summary chip.
   const { describeVoice: describeElevenLabsVoice } = useElevenLabsVoices();
   const translateState = stageState("translate");
@@ -387,6 +392,11 @@ export function LanguageView({
     isTranslationEvaluationEnabled(merged?.translation_evaluation);
   const wordHighlightingEnabled =
     speechConfigRecord?.word_highlighting === true;
+  // Word timestamps come from OpenAI Whisper; without an OpenAI key the speech
+  // run skips them, so the toggle is shown off and disabled.
+  const wordHighlightingUnavailable = !providersLoading && !hasTranscriber;
+  const effectiveWordHighlighting =
+    wordHighlightingEnabled && !wordHighlightingUnavailable;
   const configExcludedTextIds = useMemo(
     () =>
       Array.isArray(speechConfigRecord?.excluded_text_ids)
@@ -1816,17 +1826,23 @@ export function LanguageView({
                         {t`Word-level highlighting`}
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        {t`Highlights words in sync with the audio. Adds noticeable time to speech generation.`}
+                        {wordHighlightingUnavailable
+                          ? t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it.`
+                          : t`Highlights words in sync with the audio. Adds noticeable time to speech generation.`}
                       </p>
                     </div>
                     <Switch
                       id="word-highlight-landing"
-                      checked={wordHighlightingEnabled}
+                      checked={effectiveWordHighlighting}
                       onCheckedChange={toggleWordHighlighting}
-                      disabled={updateConfig.isPending || isRunning}
+                      disabled={
+                        updateConfig.isPending ||
+                        isRunning ||
+                        wordHighlightingUnavailable
+                      }
                     />
                   </div>
-                  <WordHighlightPreview enabled={wordHighlightingEnabled} />
+                  <WordHighlightPreview enabled={effectiveWordHighlighting} />
                 </div>
                 <Link
                   to="/books/$label/$step/settings"
