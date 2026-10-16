@@ -98,6 +98,22 @@ export function openBookDb(dbPath: string): sqlite.Database {
   }
 }
 
+/** Read a book database's schema version without opening it for writing and
+ * without running migrations. Null means the file has no schema table. */
+export function readBookSchemaVersion(dbPath: string): number | null {
+  const db = new Database(dbPath, { readOnly: true, fileMustExist: true })
+  try {
+    const tables = db.all(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'"
+    )
+    if (tables.length === 0) return null
+    const rows = db.all("SELECT version FROM schema_version WHERE id = 1") as Array<{ version: number }>
+    return rows[0]?.version ?? null
+  } finally {
+    try { db.close() } catch { /* best-effort */ }
+  }
+}
+
 function initSchema(db: sqlite.Database): void {
   const tables = db.all(
     "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'"
