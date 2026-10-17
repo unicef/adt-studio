@@ -34,6 +34,7 @@
     "@adt/types": "workspace:*",
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "axe-core": "^4.11.0",
     "@lingui/core": "^5.9.3",
     "@lingui/react": "^5.9.3",
     "@tanstack/react-router": "^1.159.5",
