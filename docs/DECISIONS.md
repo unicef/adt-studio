@@ -29,6 +29,7 @@ This document records all significant technology and architecture decisions made
 21. [Context-Aware Top Bar Button](#021-context-aware-top-bar-button)
 22. [Unified Stage/Step Status via useBookRun](#022-unified-stagestep-status-via-usebookrun)
 23. [Visual Refinement + File-Based Debug Screenshots](#023-visual-refinement--file-based-debug-screenshots)
+24. [Preserve Selected TTS Output on Failure](#024-preserve-selected-tts-output-on-failure)
 
 ---
 
@@ -864,6 +865,42 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 
 ---
 
+## 024: Preserve Selected TTS Output on Failure
+
+**Status**: proposed
+**Date**: 2026-10-12
+**Spec**: [SPEC-0018](specs/SPEC-0018-gemini-tts-resilience.md)
+**Issues**: #846
+
+### Context
+
+A TTS provider can fail deterministically or return unusable audio.  Substituting a
+different configured provider, model, or voice makes a failed request look successful but
+changes the narrator the user selected and obscures the cause.  Empty audio can likewise
+overwrite a usable recording unless failure handling is explicit.
+
+### Decision
+
+On TTS synthesis failure, ADT preserves the selected provider, model, and voice and
+reports the failure; it does not silently substitute another provider, model, or voice.
+Previously valid audio remains unchanged unless the user explicitly starts a successful
+replacement generation.
+
+### Consequences
+
+Users may need to adjust settings or retry after a provider failure, but their selected
+output and provenance remain trustworthy.  Future TTS implementations must make any
+intentional provider/model/voice change explicit and user-visible.
+
+### Alternatives Considered
+
+| Approach | Why Not |
+|---|---|
+| Cross-provider or model fallback | Produces different narration without user consent and hides actionable provider behavior. |
+| Overwrite failed output with a placeholder | Risks replacing usable audio and falsely signals successful generation. |
+
+---
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -891,6 +928,7 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 | 021 | Top bar button | Context-aware per stage | Per-stage inline buttons in sidebar |
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
+| 024 | TTS failure output | Preserve selected provider/model/voice; report failure | Silent fallback or placeholder replacement |
 
 ---
 
