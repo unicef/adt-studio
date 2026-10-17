@@ -158,7 +158,7 @@ export function buildPageEasyReadBlocks(
   const blocks: EasyReadOutput["blocks"] = []
 
   for (const renderedSection of rendering.sections) {
-    const section = resolveRenderedSection(renderedSection, sectioning.sections)
+    const section = resolveRenderedSection(renderedSection, sectioning.sections, rendering.sections)
     if (!section || section.isPruned) continue
     const sectionType = section.sectionType || renderedSection.sectionType
 

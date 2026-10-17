@@ -48,7 +48,14 @@ it.each(["unique", "ambiguous"])("uses pre-edit leaf ownership for %s legacy mir
   db.putNodeData("web-rendering", "pg001", legacy)
   const history = db.getAllNodeVersions("web-rendering", "pg001")
   generateObject.mockResolvedValue({ object: { reasoning: "cosmetic", content: legacy.sections[0].html.replace("<section", '<section style="color:red"') } })
-  const result = await mirrorLayout({ storage: db, bookLabel: "book", booksDir: root, source: { pageId: "pg001", sectionIndex: 0 }, targets: [{ pageId: "pg001", sectionIndex: 0 }], modelId: "fixture" })
+  const attempt = mirrorLayout({ storage: db, bookLabel: "book", booksDir: root, source: { pageId: "pg001", sectionIndex: 0 }, targets: [{ pageId: "pg001", sectionIndex: 0 }], modelId: "fixture" })
+  if (mode === "ambiguous") {
+    await expect(attempt).rejects.toThrow("Section 0 not found")
+    expect(generateObject).not.toHaveBeenCalled()
+    expect(db.getAllNodeVersions("web-rendering", "pg001")).toEqual(history)
+    return
+  }
+  const result = await attempt
   expect(result.results[0].ok).toBe(mode === "unique")
   expect(generateObject).toHaveBeenCalledTimes(mode === "unique" ? 1 : 0)
   if (mode === "unique") {

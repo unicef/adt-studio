@@ -9371,6 +9371,9 @@ msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua
 msgid "Some rendered sections on {ownershipPages} have no verified section owner and are omitted from preview and export. Their content and history are retained. Review their section identities in Storyboard."
 msgstr "Disa seksione të paraqitura në {ownershipPages} nuk kanë një seksion burimor të verifikuar dhe lihen jashtë pamjes paraprake dhe eksportimit. Përmbajtja dhe historiku i tyre ruhen. Kontrolloni identitetet e seksioneve në Storyboard."
 
+msgid "Some retained renderings no longer match this page’s sections. Their content and history are preserved, but they are omitted from Preview and export. Editing a section changes only its matching rendering."
+msgstr "Disa paraqitje të ruajtura nuk përputhen më me seksionet e kësaj faqeje. Përmbajtja dhe historiku i tyre ruhen, por ato lihen jashtë pamjes paraprake dhe eksportimit. Redaktimi i një seksioni ndryshon vetëm paraqitjen përkatëse."
+
 msgid "Something went wrong"
 msgstr "Diçka shkoi keq"
 
@@ -10735,6 +10738,9 @@ msgstr "Nuk u arrit të fshihej skedari i promptit."
 
 msgid "Unable to delete prompt folder."
 msgstr "Nuk u arrit të fshihej dosja e prompteve."
+
+msgid "Unable to load pages. Refresh and try again."
+msgstr "Faqet nuk mund të ngarkohen. Rifreskoni dhe provoni përsëri."
 
 msgid "Unable to load reviewer checklist settings."
 msgstr "Nuk mund të ngarkohen cilësimet e listës së kontrollit të rishikuesit."

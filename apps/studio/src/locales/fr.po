@@ -9371,6 +9371,9 @@ msgstr "Certaines pages n'ont pas de couche de texte intégrée — le texte a �
 msgid "Some rendered sections on {ownershipPages} have no verified section owner and are omitted from preview and export. Their content and history are retained. Review their section identities in Storyboard."
 msgstr "Certaines sections rendues sur {ownershipPages} ne sont rattachées à aucune section vérifiée et sont omises de l’aperçu et de l’exportation. Leur contenu et leur historique sont conservés. Vérifiez leurs identités de section dans Storyboard."
 
+msgid "Some retained renderings no longer match this page’s sections. Their content and history are preserved, but they are omitted from Preview and export. Editing a section changes only its matching rendering."
+msgstr "Certaines mises en page conservées ne correspondent plus aux sections de cette page. Leur contenu et leur historique sont préservés, mais elles sont omises de l’aperçu et de l’exportation. La modification d’une section ne change que la mise en page correspondante."
+
 msgid "Something went wrong"
 msgstr "Quelque chose s'est mal passé"
 
@@ -10735,6 +10738,9 @@ msgstr "Impossible de supprimer le fichier de prompt."
 
 msgid "Unable to delete prompt folder."
 msgstr "Impossible de supprimer le dossier de prompts."
+
+msgid "Unable to load pages. Refresh and try again."
+msgstr "Impossible de charger les pages. Actualisez et réessayez."
 
 msgid "Unable to load reviewer checklist settings."
 msgstr "Impossible de charger les paramètres de la liste de contrôle du réviseur."

@@ -1,3 +1,4 @@
+export { SectionSyncStatus, SectionSyncResult, SectioningSynchronization } from "./sectioning-sync.js"
 export {
   SCHEMA_VERSION,
   ImageSource,

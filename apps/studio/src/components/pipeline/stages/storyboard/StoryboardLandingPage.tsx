@@ -152,8 +152,9 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
   const extractCovered = extractStatus.isCompleted || extractStatus.isRunning
   // A book that already has pages cannot be re-extracted in this version
   // (SPEC-0010 owns safe re-extraction), so never pull Extract into the run.
-  const { data: storyboardPages } = usePages(bookLabel)
+  const { data: storyboardPages, isPending: pagesPending, isFetching: pagesFetching, isError: pagesError } = usePages(bookLabel)
   const hasExtractedPages = (storyboardPages?.length ?? 0) > 0
+  const resolvingStoredState = !extractCovered && !hasExtractedPages && (pagesPending || pagesFetching || pagesError)
   const sectioningCovered =
     sectioningStatus.isCompleted || sectioningStatus.isRunning
   const upstreamCovered = extractCovered && sectioningCovered
@@ -237,7 +238,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasStructuredTextProvider || status.isRunning) return
+    if (!hasStructuredTextProvider || status.isRunning || resolvingStoredState) return
     // Cue from here even if upstream stages haven't run. Queue from the first
     // upstream stage that isn't already covered (done/running/queued) so we
     // never try to re-run a stage that's mid-flight.
@@ -266,6 +267,8 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Add an API key in Book settings to run storyboard.</Trans>
+  ) : !hasExtractedPages && pagesError ? (
+    <Trans>Unable to load pages. Refresh and try again.</Trans>
   ) : undefined
 
   return (
@@ -280,7 +283,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasStructuredTextProvider}
+      extraDisabled={!hasStructuredTextProvider || resolvingStoredState}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Storyboard</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}

@@ -108,6 +108,18 @@ describe("Page routes", () => {
   })
 
   describe("GET /api/books/:label/pages", () => {
+    it("returns empty pages for a PDF-only new book without creating its database", async () => {
+      const dir = path.join(tmpDir, "new-book")
+      fs.mkdirSync(dir)
+      fs.writeFileSync(path.join(dir, "new-book.pdf"), "PDF fixture")
+      const response = await app.request("/api/books/new-book/pages")
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual([])
+      expect(fs.existsSync(path.join(dir, "new-book.db"))).toBe(false)
+      expect((await app.request("/api/books/missing-book/pages")).status).toBe(404)
+      expect(fs.existsSync(path.join(tmpDir, "missing-book"))).toBe(false)
+    })
+
     it("does not resurrect invalidated rendering or its activity flags, and respects a restored pointer", async () => {
       const storage = createBookStorage(label, tmpDir)
       const pageId = `${label}_p1`
@@ -2171,6 +2183,26 @@ describe("Page routes", () => {
       expect(request.input.length).toBe(withStyle ? 2 : 1)
     })
 
+    it("rejects image publication after the selected owner changes during provider work", async () => {
+      const transport = mockGoogleImage()
+      const original = transport.getMockImplementation()!
+      const storage = createBookStorage(label, tmpDir)
+      const before = storage.getLatestNodeData("web-rendering", pageId)!
+      transport.mockImplementation(async (...args) => {
+        const source = storage.getLatestNodeData("page-sectioning", pageId)!.data
+        storage.putNodeData("page-sectioning", pageId, source)
+        return original(...args)
+      })
+      try {
+        const response = await app.request(endpoint, { method: "POST", headers: googleHeaders,
+          body: JSON.stringify({ prompt: "a diagram", sectionIndex: 0, mode: "add" }) })
+        expect(response.status).toBe(409)
+        expect(transport).toHaveBeenCalledTimes(1)
+        expect(storage.getLatestNodeData("web-rendering", pageId)).toEqual(before)
+        expect(storage.getPageImages(pageId).some(image => image.imageId.includes("_ai"))).toBe(false)
+      } finally { storage.close() }
+    })
+
     it("does not force source edits into a size or ratio bucket", async () => {
       const fetchMock = mockGoogleImage()
       const response = await app.request(endpoint, {
@@ -2187,7 +2219,7 @@ describe("Page routes", () => {
         const storage = createBookStorage(label, tmpDir)
         try {
           storage.putNodeData("web-rendering", pageId, { sections: [{
-            sectionIndex: 0, sectionType: "content", reasoning: "test",
+            sectionIndex: 0, sectionId: `${pageId}_sec001`, sectionType: "content", reasoning: "test",
             html: `<section><img data-id="${pageId}_page" src="/api/books/${label}/images/${pageId}_page" width="800" height="600" ${style}></section>`,
           }] })
           const response = await app.request(endpoint, {

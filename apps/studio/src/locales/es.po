@@ -9369,6 +9369,9 @@ msgstr "Algunas páginas no tienen capa de texto incrustado — el texto se recu
 msgid "Some rendered sections on {ownershipPages} have no verified section owner and are omitted from preview and export. Their content and history are retained. Review their section identities in Storyboard."
 msgstr "Algunas secciones renderizadas de {ownershipPages} no tienen una sección de origen verificada y se omiten en la vista previa y la exportación. Su contenido e historial se conservan. Revisa sus identidades de sección en Storyboard."
 
+msgid "Some retained renderings no longer match this page’s sections. Their content and history are preserved, but they are omitted from Preview and export. Editing a section changes only its matching rendering."
+msgstr "Algunas representaciones conservadas ya no coinciden con las secciones de esta página. Su contenido e historial se conservan, pero se omiten en la vista previa y la exportación. Al editar una sección, solo se modifica su representación correspondiente."
+
 msgid "Something went wrong"
 msgstr "Algo salió mal"
 
@@ -10733,6 +10736,9 @@ msgstr "No se pudo eliminar el archivo de prompt."
 
 msgid "Unable to delete prompt folder."
 msgstr "No se pudo eliminar la carpeta de prompts."
+
+msgid "Unable to load pages. Refresh and try again."
+msgstr "No se pueden cargar las páginas. Actualiza e inténtalo de nuevo."
 
 msgid "Unable to load reviewer checklist settings."
 msgstr "No se pudo cargar la configuración de la lista de verificación del revisor."

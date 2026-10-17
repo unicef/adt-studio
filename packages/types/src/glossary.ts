@@ -21,7 +21,11 @@ export const GlossaryOutput = z.object({
 export type GlossaryOutput = z.infer<typeof GlossaryOutput>
 
 /** Versionless legacy editors remain supported conservatively. */
-export const GlossaryEditRequest = GlossaryOutput.extend({ version: z.number().int().min(1).optional() })
+export const GlossaryEditRequest = GlossaryOutput.extend({
+  version: z.number().int().min(1).optional(),
+  /** Identifies the read-only ID projection shown by the current editor. */
+  identitySignature: z.string().optional(),
+})
 export type GlossaryEditRequest = z.infer<typeof GlossaryEditRequest>
 
 export const glossaryLLMSchema = z.object({

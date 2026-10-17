@@ -88,9 +88,10 @@ export function collectHeadingsAndToc(
       if (renderRow) {
         const renderParsed = WebRenderingOutput.safeParse(renderRow.data)
         if (renderParsed.success) {
-          const tocHtml = withLegacyRenderingOwnership(storage, page.pageId, renderParsed.data).sections
+          const rendering = withLegacyRenderingOwnership(storage, page.pageId, renderParsed.data)
+          const tocHtml = rendering.sections
             .filter((s) => {
-              const meta = resolveRenderedSection(s, sectioning.sections)
+              const meta = resolveRenderedSection(s, sectioning.sections, rendering.sections)
               return meta?.sectionType === "table_of_contents" && !meta.isPruned
             })
             .map((s) => s.html)

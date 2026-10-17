@@ -108,3 +108,19 @@ it("accepts the documented whole-tree-movement limitation only for already unown
   expect(resolve([section("new-owner", ["text"])], [old])[0].sectionId).toBe("new-owner")
   expect(resolve([section("new-owner", ["text"])], [{ ...old, sectionId: "old-owner" }])[0].sectionId).toBe("old-owner")
 })
+
+it.each(["duplicate", "contradictory"])("makes every %s explicit claim unselectable without rewriting retained content", async mode => {
+  const { resolveRenderedSection, renderingOwnershipSynchronization } = await import("../render-sectioning.js")
+  const sources = [section("A", ["a"]), section("B", ["b"])]
+  const outputs = [rendering(["a"], { sectionId: "A" }), rendering(["copy"], { sectionId: "A" }), rendering(["b"], { sectionId: "B" })]
+  if (mode === "contradictory") outputs[1].html = '<section data-section-id="missing"><p data-id="copy">Copy</p></section>'
+  resolve(sources, outputs)
+  storage.putNodeData("web-rendering", "pg001", { sections: outputs })
+  const before = storage.getNodeVersionFingerprint()
+  const projected = withLegacyRenderingOwnership(storage, "pg001", { sections: outputs }, true)
+  expect(projected.sections.map(entry => entry.sectionIndex)).toEqual(mode === "duplicate" ? [-1, -2, 1] : [0, -2, 1])
+  expect(projected.sections.map(entry => resolveRenderedSection(entry, sources, projected.sections)?.sectionId)).toEqual(mode === "duplicate" ? [undefined, undefined, "B"] : ["A", undefined, "B"])
+  expect(renderingOwnershipSynchronization(storage, "pg001")?.sections).toHaveLength(mode === "duplicate" ? 2 : 1)
+  expect(projected.sections.map(entry => entry.html)).toEqual(outputs.map(entry => entry.html))
+  expect(storage.getNodeVersionFingerprint()).toEqual(before)
+})

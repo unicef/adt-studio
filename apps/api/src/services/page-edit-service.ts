@@ -217,8 +217,9 @@ export async function reRenderPage(
         const replacement = renderResult.sections.find((entry) => renderedSectionId(entry) === targetId)
         if (!replacement) throw new HTTPException(409, { message: "The requested section was not rendered. Existing content has been preserved." })
         const retained = existing.filter((entry) => renderedSectionId(entry) !== targetId)
-        rendering = { sections: [...retained, replacement].map((entry) => {
-          const owner = resolveRenderedSection(entry, sectioning.sections)
+        const merged = [...retained, replacement]
+        rendering = { sections: merged.map((entry) => {
+          const owner = resolveRenderedSection(entry, sectioning.sections, merged)
           return owner ? { ...entry, sectionIndex: sectioning.sections.indexOf(owner) } : entry
         }).sort((a, b) => a.sectionIndex - b.sectionIndex) }
       }

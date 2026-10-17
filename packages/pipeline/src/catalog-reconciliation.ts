@@ -75,8 +75,9 @@ export function buildImageInventory(storage: Storage) {
     const rendering = WebRenderingOutput.safeParse(storage.getLatestNodeData("web-rendering", page.pageId)?.data)
     if (!rendering.success) continue
     const sectioning = getRenderSectioning(storage, page.pageId)
-    for (const section of withLegacyRenderingOwnership(storage, page.pageId, rendering.data).sections) {
-      const source = resolveRenderedSection(section, sectioning?.sections)
+    const projected = withLegacyRenderingOwnership(storage, page.pageId, rendering.data)
+    for (const section of projected.sections) {
+      const source = resolveRenderedSection(section, sectioning?.sections, projected.sections)
       if (source?.isPruned || (renderedSectionId(section) && sectioning && !source)) continue
       for (const id of extractImageIds([section.html])) add(id, page.pageId, source?.sectionId)
     }

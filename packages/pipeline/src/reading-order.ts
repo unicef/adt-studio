@@ -128,7 +128,7 @@ export function defaultReadingOrder(
   const items: ReadingOrderItem[] = []
   for (const page of pageContexts) {
     for (const entry of page.rendering) {
-      const section = resolveRenderedSection(entry, page.sections)
+      const section = resolveRenderedSection(entry, page.sections, page.rendering)
       if (!section) continue
       items.push({ kind: "section", id: section.sectionId })
     }
@@ -168,7 +168,7 @@ export function resolveReadingOrder(
   >()
   for (const page of pageContexts) {
     for (const entry of page.rendering) {
-      const section = resolveRenderedSection(entry, page.sections)
+      const section = resolveRenderedSection(entry, page.sections, page.rendering)
       if (!section) continue
       sectionsById.set(section.sectionId, {
         pageId: page.pageId,

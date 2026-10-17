@@ -1,4 +1,4 @@
-import { materializeGlossaryIds, projectMaterializedGlossary, reconcileGlossaryEditIds } from "@adt/pipeline"
+import { inputSignature, projectMaterializedGlossary, reconcileGlossaryEditIds } from "@adt/pipeline"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -11,7 +11,7 @@ import {
   parseBookLabel,
 } from "@adt/types"
 import type { ImageCaptioningOutput } from "@adt/types"
-import { BookBusyError, createBookStorage, withBookWriter } from "@adt/storage"
+import { createBookStorage, withBookWriter } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import {
   buildTextCatalogSnapshot,
@@ -101,27 +101,21 @@ export function createGlossaryRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      let row
-      try { row = storage.getLatestNodeData("glossary", "book") } catch (error) {
-        if (error instanceof SyntaxError) throw new HTTPException(500, { message: `Stored glossary data is corrupted for book: ${safeLabel}` })
-        throw error
-      }
-      if (!row) return c.json(null)
-      const validated = GlossaryOutput.safeParse(row.data)
-      if (!validated.success) throw new HTTPException(500, { message: `Stored glossary data is invalid for book: ${safeLabel}` })
-      const ids = validated.data.items.map((item) => item.id?.trim())
-      if (ids.some((id) => !id) || new Set(ids).size !== ids.length) {
-        try {
-          row = withBookWriter(storage.bookDir!, () => storage.transaction(() => materializeGlossaryIds(storage)))!
-        } catch (error) {
-          // A run or task holds the writer. Serve the same ids in memory rather
-          // than answer 409 to a read; the next write persists them.
-          if (!(error instanceof BookBusyError)) throw error
-          const projected = projectMaterializedGlossary(storage, validated.data)
-          return c.json({ ...(projected ?? validated.data), version: row.version })
+      return storage.readSnapshot(() => {
+        let row
+        try { row = storage.getLatestNodeData("glossary", "book") } catch (error) {
+          if (error instanceof SyntaxError) throw new HTTPException(500, { message: `Stored glossary data is corrupted for book: ${safeLabel}` })
+          throw error
         }
-      }
-      return c.json({ ...GlossaryOutput.parse(row.data), version: row.version })
+        if (!row) return c.json(null)
+        const validated = GlossaryOutput.safeParse(row.data)
+        if (!validated.success) throw new HTTPException(500, { message: `Stored glossary data is invalid for book: ${safeLabel}` })
+        // A read never competes with generation for the book writer. PUT and
+        // generation materialize these same deterministic IDs before mutation.
+        const projected = projectMaterializedGlossary(storage, validated.data) ?? validated.data
+        return c.json({ ...projected, version: row.version,
+          identitySignature: inputSignature({ version: row.version, ids: projected.items.map(item => item.id) }) })
+      })
     } finally { storage.close() }
   })
 
@@ -145,7 +139,15 @@ export function createGlossaryRoutes(
       if (parsed.data.version !== undefined && parsed.data.version !== current?.version) {
         throw new HTTPException(409, { message: "Glossary changed since it was loaded. Reload before saving; your draft has not been applied." })
       }
-      const next = reconcileGlossaryEditIds(storage, GlossaryOutput.parse(parsed.data), parsed.data.version)
+      if (parsed.data.identitySignature !== undefined) {
+        const retained = GlossaryOutput.safeParse(current?.data)
+        const projected = retained.success ? projectMaterializedGlossary(storage, retained.data) ?? retained.data : undefined
+        const signature = projected && inputSignature({ version: current!.version, ids: projected.items.map(item => item.id) })
+        if (parsed.data.identitySignature !== signature || parsed.data.version !== current?.version) {
+          throw new HTTPException(409, { message: "Glossary identities changed since it was loaded. Reload before saving; your draft has not been applied." })
+        }
+      }
+      const next = reconcileGlossaryEditIds(storage, GlossaryOutput.parse(parsed.data), parsed.data.version, parsed.data.identitySignature)
       const previousRow = storage.getLatestNodeData("glossary", "book")
       const previous = GlossaryOutput.safeParse(previousRow?.data)
       const imageRequirementsChanged = needsCaptionRerun(

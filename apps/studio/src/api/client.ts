@@ -461,6 +461,7 @@ export interface AiEditHistoryTurn {
 }
 
 export interface PageDetail {
+  sectioningSynchronization?: import("@adt/types").SectioningSynchronization | null
   captionSourceSignature: string
   pageId: string
   pageNumber: number
@@ -545,6 +546,7 @@ export interface GlossaryItem {
 }
 
 export interface GlossaryOutput {
+  identitySignature?: string
   items: GlossaryItem[]
   pageCount: number
   generatedAt: string

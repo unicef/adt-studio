@@ -19,7 +19,7 @@
  * readable; successful fixed-layout publication writes both in one transaction.
  */
 import type { NodeDataRow, Storage } from "@adt/storage"
-import type { PageSectioningOutput, PageSectioningSection, SectionRendering, PackagingWarning, ContentNodeData } from "@adt/types"
+import type { PageSectioningOutput, PageSectioningSection, SectionRendering, PackagingWarning, ContentNodeData, SectioningSynchronization } from "@adt/types"
 import { PageSectioningOutput as PageSectioningOutputSchema, WebRenderingOutput } from "@adt/types"
 import { parseDocument, DomUtils } from "htmlparser2"
 
@@ -123,20 +123,51 @@ export function withLegacyRenderingOwnership(storage: Storage, pageId: string, r
   })
   // Editor routes address current source indices. Reader/export ordering keeps
   // its existing rendered order; neither path uses position to establish owner.
-  return { ...projected, sections: alignToSource ? resolved.map(entry => {
-    const owner = renderedSectionId(entry)
-    const indexes = sections.flatMap((section, index) => section.sectionId === owner ? [index] : [])
-    return indexes.length === 1 ? { ...entry, sectionIndex: indexes[0] } : entry
+  return { ...projected, sections: alignToSource ? resolved.map((entry, index) => {
+    const owner = resolveRenderedSection(entry, sections, resolved)
+    const indexes = sections.flatMap((section, index) => section === owner ? [index] : [])
+    // An orphan's saved position may now belong to a different live section
+    // (e.g. after restoring Sectioning). Keep its content, but never expose it
+    // under a selectable source index. A later save can retain the negative
+    // index; restoring its owner realigns it without relying on that position.
+    return { ...entry, sectionIndex: indexes.length === 1 ? indexes[0] : -index - 1 }
   }) : resolved }
 
+}
+
+/** Page-local ownership diagnostics using SPEC-0012's read-only contract.
+ * Null means no ownership drift was found, not that all content is in sync.
+ */
+export function renderingOwnershipSynchronization(storage: Storage, pageId: string): SectioningSynchronization | null {
+  const row = storage.getLatestNodeData("web-rendering", pageId)
+  const rendering = WebRenderingOutput.safeParse(row?.data)
+  if (!rendering.success) return null
+  const source = getRenderSectioning(storage, pageId)
+  const projected = withLegacyRenderingOwnership(storage, pageId, rendering.data)
+  const unowned = projected.sections.filter(entry => !resolveRenderedSection(entry, source?.sections, projected.sections))
+  if (!unowned.length) return null
+  return {
+    sourceVersion: getRenderSectioningRow(storage, pageId)?.version ?? null,
+    renderingVersion: row?.version ?? null,
+    layout: !source ? "unknown" : source.sections.some(section => section.sectionType === "fixed-layout-page") ? "fixed" : "reflowable",
+    sections: unowned.map(entry => ({ sectionId: renderedSectionId(entry) ?? "", status: "structural-drift", action: "review",
+      diagnostics: [`unresolved-rendering-owner:${entry.sectionIndex}`] })),
+    diagnostics: ["unresolved-rendering-ownership"],
+  }
 }
 
 export function resolveRenderedSection(
   rendering: SectionRendering,
   sections: readonly PageSectioningSection[] | undefined,
+  renderings: readonly SectionRendering[],
 ): PageSectioningSection | undefined {
   const id = renderedSectionId(rendering)
   if (!id) return undefined
+  // Require unique valid ownership in both directions. An invalid contradictory
+  // entry remains unresolved; its mentions cannot disqualify a separate valid
+  // rendering. Raw declarations still reserve legacy inference candidates above.
+  const claimants = renderings.filter(entry => renderedSectionId(entry) === id)
+  if (claimants.length !== 1 || claimants[0] !== rendering) return undefined
   const matches = sections?.filter((section) => section.sectionId === id)
   return matches?.length === 1 ? matches[0] : undefined
 }
@@ -147,7 +178,8 @@ export function renderingOwnershipWarnings(storage: Storage): PackagingWarning[]
     const rendering = WebRenderingOutput.safeParse(storage.getLatestNodeData("web-rendering", page.pageId)?.data)
     if (!rendering.success) return []
     const sections = getRenderSectioning(storage, page.pageId)?.sections
-    return withLegacyRenderingOwnership(storage, page.pageId, rendering.data).sections.filter((entry) => !resolveRenderedSection(entry, sections))
+    const projected = withLegacyRenderingOwnership(storage, page.pageId, rendering.data)
+    return projected.sections.filter((entry) => !resolveRenderedSection(entry, sections, projected.sections))
       .map((entry) => ({ kind: "orphaned-rendering" as const, pageId: page.pageId, sectionIndex: entry.sectionIndex }))
   })
 }

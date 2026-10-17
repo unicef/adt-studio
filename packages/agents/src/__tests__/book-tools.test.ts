@@ -64,8 +64,8 @@ describe("createCustomSection — sectionIndex assignment", () => {
     })
     storage.putNodeData("web-rendering", pageId, {
       sections: [
-        renderingSection(0, "text_only"),
-        renderingSection(2, "text_only"),
+        { ...renderingSection(0, "text_only"), sectionId: "pg001_sec000" },
+        { ...renderingSection(2, "text_only"), sectionId: "pg001_sec002" },
       ],
     })
 

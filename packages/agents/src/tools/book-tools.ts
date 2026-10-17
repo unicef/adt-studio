@@ -220,7 +220,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
         const rendering = loadRendering(ctx.storage, pageId)
         const sectioning = loadSectioning(ctx.storage, pageId)
         const sections = rendering.sections.map((r): SectionSummary => {
-          const s = resolveRenderedSection(r, sectioning.sections)
+          const s = resolveRenderedSection(r, sectioning.sections, rendering.sections)
           return {
             sectionIndex: r.sectionIndex,
             sectionId: s?.sectionId ?? `unknown_${r.sectionIndex}`,
@@ -257,7 +257,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           )
         }
         const sectioning = loadSectioning(ctx.storage, pageId)
-        const s = resolveRenderedSection(r, sectioning.sections)
+        const s = resolveRenderedSection(r, sectioning.sections, rendering.sections)
         return {
           sectionIndex: r.sectionIndex,
           sectionId: s?.sectionId ?? `unknown_${sectionIndex}`,
@@ -343,7 +343,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
 
           // Refresh the sectioning tree so the edit panel and downstream
           // steps stay in sync with the rewritten HTML.
-          const oldSection = resolveRenderedSection(found, sectioning.sections)
+          const oldSection = resolveRenderedSection(found, sectioning.sections, rendering.sections)
           // sectionIds are allocated once and never reused, so one cannot be
           // derived from an array position — a guessed id would likely name a
           // *different* section, and it names this section's HTML file in every

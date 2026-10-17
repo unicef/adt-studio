@@ -83,7 +83,7 @@ function sectionCandidates(storage: Storage, pageId: string, rendering: WebRende
   const entry = rendering.sections[entryIndex]
   const ownedElsewhere = new Set(rendering.sections.flatMap((other, index) => {
     if (index === entryIndex) return []
-    const owner = resolveRenderedSection(other, sections)?.sectionId
+    const owner = resolveRenderedSection(other, sections, rendering.sections)?.sectionId
     return owner ? [owner] : []
   }))
   const leafIds = htmlLeafIds(entry.html)

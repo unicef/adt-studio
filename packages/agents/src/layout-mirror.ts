@@ -159,7 +159,7 @@ export async function mirrorLayout(
         (s) => s.sectionIndex === target.sectionIndex,
       )
       const sectioning = loadSectioning(storage, target.pageId)
-      const oldSection = targetSection ? resolveRenderedSection(targetSection, sectioning.sections) : undefined
+      const oldSection = targetSection ? resolveRenderedSection(targetSection, sectioning.sections, rendering.sections) : undefined
       // sectionIds are allocated once and never reused, so one cannot be
       // derived from an array position — a guessed id would likely name a
       // *different* section, and it names this section's HTML file in every

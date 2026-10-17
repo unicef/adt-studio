@@ -413,6 +413,7 @@ export {
   getSemanticSectioning,
   renderedSectionId,
   withLegacyRenderingOwnership,
+  renderingOwnershipSynchronization,
   withLegacyRenderingOwnership as withLegacyFixedLayoutOwnership,
   resolveRenderedSection,
   renderingOwnershipWarnings,

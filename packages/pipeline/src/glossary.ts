@@ -105,12 +105,17 @@ export function projectMaterializedGlossary(storage: Storage, data: unknown): Gl
 
 /** Older clients may submit an idless subset. Match only a unique retained
  * word; new/renamed ambiguous terms get fresh IDs, never another term's slot. */
-export function reconcileGlossaryEditIds(storage: Storage, edited: GlossaryOutput, verifiedVersion?: number): GlossaryOutput {
+export function reconcileGlossaryEditIds(storage: Storage, edited: GlossaryOutput, verifiedVersion?: number, identitySignature?: string): GlossaryOutput {
   const base = storage.getLatestNodeData("glossary", "book")
   const baseItems = GlossaryOutputSchema.safeParse(base?.data)
   const verifiedIds = new Set<string>()
-  if (verifiedVersion === base?.version && baseItems.success) {
-    const ids = baseItems.data.items.map((item) => item.id?.trim())
+  if (base && verifiedVersion === base.version && baseItems.success) {
+    // GET projects legacy IDs without persisting them. A version-guarded
+    // edit may trust that exact projection, including a deliberately renamed
+    // term among colliding legacy IDs.
+    const projected = projectMaterializedGlossary(storage, baseItems.data) ?? baseItems.data
+    const signature = inputSignature({ version: base.version, ids: projected.items.map(item => item.id) })
+    const ids = (identitySignature === signature ? projected : baseItems.data).items.map((item) => item.id?.trim())
     for (const id of ids) if (id && ids.filter((candidate) => candidate === id).length === 1) verifiedIds.add(id)
   }
   const current = GlossaryOutputSchema.safeParse(materializeGlossaryIds(storage)?.data)
@@ -329,7 +334,7 @@ export function collectPageTexts(
     const sectioning = getRenderSectioning(storage, page.pageId)
     const htmlParts = rendering.sections
       .filter(
-        (s) => !sectioning || !resolveRenderedSection(s, sectioning.sections)?.isPruned
+        (s) => !sectioning || !resolveRenderedSection(s, sectioning.sections, rendering.sections)?.isPruned
       )
       .map((s) => s.html)
     const text = stripHtml(htmlParts.join(" "))

@@ -2,7 +2,7 @@ import { SourceGeneratorStep } from "@adt/types"
 import { putSourceNodeData, withSourceGenerationTracking, markSourceGenerationNeedsUpdate } from "@adt/pipeline"
 import { cloneRenderedIdentities, stampRenderedOwner } from "@adt/pipeline"
 import { captureOutputReferences } from "@adt/pipeline"
-import { scopeLegacyActivityIds, renderedSectionId, withLegacyRenderingOwnership } from "@adt/pipeline"
+import { scopeLegacyActivityIds, getRenderSectioning, resolveRenderedSection, renderedSectionId, withLegacyRenderingOwnership, renderingOwnershipSynchronization } from "@adt/pipeline"
 import { catalogOutputs, editSourceSignature, assertEditSource, assertEditVersion } from "../services/catalog-output-service.js"
 import { OutputEditGuard } from "@adt/types"
 import { outputEvidence } from "@adt/pipeline"
@@ -139,6 +139,7 @@ interface PageSummary {
 }
 
 interface PageDetail {
+  sectioningSynchronization: import("@adt/types").SectioningSynchronization | null
   pageId: string
   pageNumber: number
   text: string
@@ -240,8 +241,35 @@ interface AiImageGenParams {
   sectionIndex?: number
   /** "swap" replaces targetImageId, "add" appends to section */
   mode?: "swap" | "add"
+  sectionTarget?: ReturnType<typeof readImageSectionTarget>
   booksDir: string
   modelId: string
+}
+
+/** Capture ownership before asynchronous provider work. Positions are selection
+ * addresses only; publication must still target the same unchanged snapshot. */
+function readImageSectionTarget(safeLabel: string, booksDir: string, pageId: string, sectionIndex: number) {
+  const storage = createBookStorage(safeLabel, booksDir)
+  try {
+    const row = storage.getLatestNodeData("web-rendering", pageId)
+    const parsed = WebRenderingOutput.safeParse(row?.data)
+    const source = getRenderSectioning(storage, pageId)
+    const projected = parsed.success && withLegacyRenderingOwnership(storage, pageId, parsed.data, true)
+    const entry = projected && projected.sections.find(section => section.sectionIndex === sectionIndex)
+    const owner = entry && projected && resolveRenderedSection(entry, source?.sections, projected.sections)
+    if (!owner) throw new HTTPException(409, { message: "Section ownership is unresolved. The existing content has been preserved." })
+    return { sectionId: owner.sectionId, renderingVersion: row!.version,
+      sectioningVersion: storage.getLatestNodeData("page-sectioning", pageId)?.version,
+      fixedVersion: storage.getLatestNodeData("fixed-layout-sectioning", pageId)?.version }
+  } finally { storage.close() }
+}
+
+function assertImageSectionTarget(params: AiImageGenParams): void {
+  if (!params.sectionTarget || params.sectionIndex === undefined) return
+  const current = readImageSectionTarget(params.safeLabel, params.booksDir, params.pageId, params.sectionIndex)
+  if (JSON.stringify(current) !== JSON.stringify(params.sectionTarget)) {
+    throw new HTTPException(409, { message: "Page changed during image generation. The existing rendering has been preserved." })
+  }
 }
 
 async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
@@ -252,6 +280,8 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
     referenceImageId, targetImageId, style, imageType, styleImageId, promptsDir,
     modelId,
   } = params
+
+  assertImageSectionTarget(params)
 
   // Choose the correct prompt template: edit vs generate
   const isEditMode = !!referenceImageId
@@ -362,6 +392,7 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
     logStorage.close()
   }
 
+  assertImageSectionTarget(params)
   const buffer = Buffer.from(generated.base64, "base64")
   const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 16)
 
@@ -416,7 +447,7 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
               const si = params.sectionIndex
               const urlPrefix = `/api/books/${params.safeLabel}/images`
               rendering.sections = rendering.sections.map((s) => {
-                if (s.sectionIndex !== si) return s
+                if (s.sectionIndex !== si || renderedSectionId(s) !== params.sectionTarget?.sectionId) return s
                 let html = s.html
                 if (params.mode === "swap" && params.targetImageId) {
                   const tid = params.targetImageId
@@ -455,7 +486,7 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
           storage.close()
         }
       } catch (err) {
-        console.error("[ai-image] Auto-save rendering failed:", err)
+        throw err
       }
     }
 
@@ -746,6 +777,8 @@ export function createPageRoutes(
     const dbPath = getDbPath(safeLabel, booksDir)
 
     if (!fs.existsSync(dbPath)) {
+      // The wizard creates the PDF before Extract creates the database.
+      if (fs.existsSync(path.join(path.dirname(dbPath), `${safeLabel}.pdf`))) return c.json([])
       throw new HTTPException(404, {
         message: `Book not found or not yet extracted: ${safeLabel}`,
       })
@@ -982,11 +1015,15 @@ export function createPageRoutes(
       const imageClassNode = getNodeData("image-filtering")
       const imageCroppingNode = getNodeData("image-cropping")
       const renderingNode = getNodeData("web-rendering")
+      let sectioningSynchronization: PageDetail["sectioningSynchronization"] = null
       if (renderingNode) {
         const parsed = WebRenderingOutput.safeParse(renderingNode.data)
         if (parsed.success) {
           const storage = createBookStorage(safeLabel, booksDir)
-          try { renderingNode.data = withLegacyRenderingOwnership(storage, pageId, parsed.data, true) }
+          try {
+            renderingNode.data = withLegacyRenderingOwnership(storage, pageId, parsed.data, true)
+            sectioningSynchronization = renderingOwnershipSynchronization(storage, pageId)
+          }
           finally { storage.close() }
         }
       }
@@ -1086,6 +1123,7 @@ export function createPageRoutes(
       try { captionSourceSignature = editSourceSignature(catalogOutputs(catalogStorage, safeLabel, booksDir, promptsDir, configPath, { kinds: ["caption"] }), "caption", undefined, pageId) }
       finally { catalogStorage.close() }
       const result: PageDetail = {
+        sectioningSynchronization,
         captionSourceSignature,
         pageId: page.page_id,
         pageNumber: page.page_number,
@@ -2891,8 +2929,13 @@ export function createPageRoutes(
       const styleImageId =
         typeof body.styleImageId === "string" ? validateImageId(body.styleImageId) : undefined
       // Section index and mode for auto-saving sectioning/rendering after generation
-      const sectionIndex = typeof body.sectionIndex === "number" ? body.sectionIndex : undefined
+      if (body.sectionIndex !== undefined && (!Number.isInteger(body.sectionIndex) || body.sectionIndex < 0)) {
+        return c.json({ error: "Invalid section index" }, 400)
+      }
+      const sectionIndex = body.sectionIndex as number | undefined
       const mode = body.mode === "swap" || body.mode === "add" ? body.mode : undefined
+      const sectionTarget = sectionIndex !== undefined && mode
+        ? readImageSectionTarget(safeLabel, booksDir, pageId, sectionIndex) : undefined
 
       // Validate reference images exist before submitting task
       if (referenceImageId) {
@@ -2927,7 +2970,7 @@ export function createPageRoutes(
               safeLabel, bookDir, dbPath, credentials, pageId,
               prompt, referenceImageId, targetImageId,
               style, imageType, styleImageId, promptsDir,
-              sectionIndex, mode, booksDir,
+              sectionIndex, mode, sectionTarget, booksDir,
               modelId,
             })
           },
@@ -2941,7 +2984,7 @@ export function createPageRoutes(
         safeLabel, bookDir, dbPath, credentials, pageId,
         prompt, referenceImageId, targetImageId,
         style, imageType, styleImageId, promptsDir,
-        sectionIndex, mode, booksDir,
+        sectionIndex, mode, sectionTarget, booksDir,
         modelId,
       })
       return c.json(result)

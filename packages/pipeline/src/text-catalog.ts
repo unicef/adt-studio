@@ -59,7 +59,7 @@ function extractPageEntries(
   const entries: TextCatalogEntry[] = []
 
   for (const section of rendering.sections) {
-    const owner = resolveRenderedSection(section, sectioning?.sections)
+    const owner = resolveRenderedSection(section, sectioning?.sections, rendering.sections)
     if (owner?.isPruned || (renderedSectionId(section) && sectioning && !owner)) continue
 
     const doc = parseDocument(section.html)

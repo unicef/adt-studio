@@ -264,20 +264,23 @@ describe("page-edit-service", () => {
   })
 
   describe("aiEditSection", () => {
-    it("resolves section by sectionIndex value instead of array position", async () => {
+    it("resolves a stable owner at the selected source index despite sparse rendered positions", async () => {
       const pageId = `${label}_p1`
       const storage = createBookStorage(label, tmpDir)
       try {
+        storage.putNodeData("page-sectioning", pageId, { reasoning: "source", sections: ["first", "pruned", "dup"].map(sectionId => ({
+          sectionId, sectionType: "content", backgroundColor: "white", textColor: "black", pageNumber: 1, isPruned: sectionId === "pruned", nodes: [],
+        })) })
         storage.putNodeData("web-rendering", pageId, {
           sections: [
             {
-              sectionIndex: 0,
+              sectionIndex: 0, sectionId: "first",
               sectionType: "content",
               reasoning: "ok",
               html: `<section data-id="first"><img data-id="img-first" src="/api/books/${label}/images/img-first" /></section>`,
             },
             {
-              sectionIndex: 2,
+              sectionIndex: 42, sectionId: "dup",
               sectionType: "content",
               reasoning: "ok",
               html: `<section data-id="dup"><img data-id="img-dup" src="/api/books/${label}/images/img-dup" /></section>`,
@@ -442,10 +445,13 @@ describe("page-edit-service", () => {
       const pageId = `${label}_p1`
       const storage = createBookStorage(label, tmpDir)
       try {
+        storage.putNodeData("page-sectioning", pageId, { reasoning: "source", sections: [{
+          sectionId: "first", sectionType: "content", backgroundColor: "white", textColor: "black", pageNumber: 1, isPruned: false, nodes: [],
+        }] })
         storage.putNodeData("web-rendering", pageId, {
           sections: [
             {
-              sectionIndex: 0,
+              sectionIndex: 0, sectionId: "first",
               sectionType: "content",
               reasoning: "ok",
               html: `<section data-id="first">hello</section>`,

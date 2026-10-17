@@ -345,3 +345,32 @@ it.each(["translation", "easy-read"] as const)("rejects a stale %s replacement w
   reopened.close()
   expect(transport).not.toHaveBeenCalled()
 })
+
+
+it("preserves projected glossary identities when renaming same-word legacy collisions, and rejects an obsolete projection", async () => {
+  const storage = db()
+  const items = [
+    { id: "gl001", word: "Bank", definition: "Money", variations: [], emojis: [] },
+    { id: "gl001", word: "Bank", definition: "River", variations: [], emojis: [] },
+  ]
+  const original = storage.putNodeData("glossary", "book", { items, pageCount: 1, generatedAt: "legacy" })
+  storage.putNodeData("text-catalog-translation", "fr", { entries: [{ id: "gl001_word", text: "Banque", source: "manual" }], generatedAt: "legacy" })
+  const manual = storage.getLatestNodeData("text-catalog-translation", "fr")
+  const fingerprint = storage.getNodeVersionFingerprint()
+  const shown = await (await app.request(`/books/${label}/glossary`)).json()
+  expect(storage.getNodeVersionFingerprint()).toEqual(fingerprint)
+  expect(shown.items.map((item: { id: string }) => item.id)).toEqual(["gl001", "gl002"])
+  expect(shown.identitySignature).toBeTruthy()
+  const edited = { ...shown, items: shown.items.map((item: { word: string }, index: number) => index === 0 ? { ...item, word: "Lender" } : item) }
+  expect((await send("glossary", edited)).status).toBe(200)
+  const saved = storage.getLatestNodeData("glossary", "book")!.data as GlossaryOutput
+  expect(saved.items.map(item => [item.id, item.word])).toEqual([["gl001", "Lender"], ["gl002", "Bank"]])
+  expect(storage.getLatestNodeData("text-catalog-translation", "fr")).toEqual(manual)
+  // Restoring the same raw version does not restore its ID allocation space:
+  // the saved second identity remains reserved in history.
+  storage.setCurrentNodeVersion("glossary", "book", original)
+  const beforeRejected = storage.getNodeVersionFingerprint()
+  expect((await send("glossary", edited)).status).toBe(409)
+  expect(storage.getNodeVersionFingerprint()).toEqual(beforeRejected)
+  storage.close()
+})

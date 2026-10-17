@@ -9369,6 +9369,9 @@ msgstr "Some pages have no embedded text layer — text was recovered from the p
 msgid "Some rendered sections on {ownershipPages} have no verified section owner and are omitted from preview and export. Their content and history are retained. Review their section identities in Storyboard."
 msgstr "Some rendered sections on {ownershipPages} have no verified section owner and are omitted from preview and export. Their content and history are retained. Review their section identities in Storyboard."
 
+msgid "Some retained renderings no longer match this page’s sections. Their content and history are preserved, but they are omitted from Preview and export. Editing a section changes only its matching rendering."
+msgstr "Some retained renderings no longer match this page’s sections. Their content and history are preserved, but they are omitted from Preview and export. Editing a section changes only its matching rendering."
+
 msgid "Something went wrong"
 msgstr "Something went wrong"
 
@@ -10733,6 +10736,9 @@ msgstr "Unable to delete prompt file."
 
 msgid "Unable to delete prompt folder."
 msgstr "Unable to delete prompt folder."
+
+msgid "Unable to load pages. Refresh and try again."
+msgstr "Unable to load pages. Refresh and try again."
 
 msgid "Unable to load reviewer checklist settings."
 msgstr "Unable to load reviewer checklist settings."

@@ -171,7 +171,7 @@ describe("GET /books/:label/glossary", () => {
     expect(body.pageCount).toBe(5)
   })
 
-  it("serves legacy ids in memory while another writer holds the book, then persists them once it is free", async () => {
+  it("serves identical legacy IDs read-only with and without an active writer; persists them on PUT", async () => {
     createTestBook("busy-legacy")
     addGlossaryData("busy-legacy")
     const bookDir = path.join(tmpDir, "busy-legacy")
@@ -195,8 +195,11 @@ describe("GET /books/:label/glossary", () => {
     expect(free.status).toBe(200)
     const persisted = await free.json() as { version: number; items: Array<{ id?: string }> }
     expect(persisted.items.map((item) => item.id)).toEqual(projected.items.map((item) => item.id))
-    expect(persisted.version).toBe(2)
-    expect(versions()).toBe(2)
+    expect(persisted.version).toBe(1)
+    expect(versions()).toBe(1)
+    const saved = await app.request("/books/busy-legacy/glossary", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(persisted) })
+    expect(saved.status).toBe(200)
+    expect(versions()).toBeGreaterThan(1)
   })
 
   it("returns 404 for missing book", async () => {
