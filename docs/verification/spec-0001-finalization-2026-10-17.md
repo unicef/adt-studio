@@ -1,5 +1,9 @@
 # SPEC-0001 local finalization — 17 October 2026
 
+**Follow-up:** the [18 October UI report](spec-0001-worked-examples-2026-10-18.md)
+completes the four worked examples, resolves download confirmation and records a
+new caption-discovery correction. This report retains its original dated results.
+
 **The original full specification is not fully implemented or accepted.** All four
 implementation slices are present. The current Note 7 A/B corrections are
 implemented locally, with the explicit Note 7 D deferrals and the acceptance limits
