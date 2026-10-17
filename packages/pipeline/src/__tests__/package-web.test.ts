@@ -1726,7 +1726,7 @@ describe("packageAdtWeb", () => {
     expect(activityHtml).not.toContain('role="activity"')
   })
 
-  it("uses image_associated_text as a fallback alt source for single-image sections", async () => {
+  it("does not use source caption text as an alt fallback when the caption store has no description", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")
     const imagesDir = path.join(bookDir, "images")
@@ -1799,7 +1799,8 @@ describe("packageAdtWeb", () => {
     })
 
     const pageHtml = readFirstPage(path.join(bookDir, "adt"))
-    expect(pageHtml).toContain('alt="A lifecycle diagram with six stages"')
+    expect(pageHtml).toContain('alt=""')
+    expect(pageHtml).not.toContain('alt="A lifecycle diagram with six stages"')
   })
 
   it("sets activities true from the rendered section type, not the sectioning's", async () => {
@@ -2785,6 +2786,16 @@ describe("rewriteImageUrls", () => {
     const { html: out } = rewriteImageUrls(html, "mybook", imageMap, altMap)
     expect(out).toContain('alt="A labeled diagram"')
   })
+
+  it.each([undefined, new Map<string, string>(), new Map([["abc123", "  "]])])(
+    "clears renderer alt when the caption description is missing or blank (%s)",
+    (captions) => {
+      const html = '<img data-id="abc123" src="/api/books/mybook/images/abc123" alt="Stale renderer description">'
+      const { html: output } = rewriteImageUrls(html, "mybook", new Map([["abc123", "photo.jpg"]]), captions)
+      expect(output).toContain('alt=""')
+      expect(output).not.toContain("Stale renderer description")
+    },
+  )
 
   it("replaces a renderer alt with the caption store's description", () => {
     const html = `<img data-id="abc123" src="/api/books/mybook/images/abc123" alt="Renderer alt">`

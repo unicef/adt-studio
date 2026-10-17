@@ -256,6 +256,28 @@ describe("ADT preview routes", () => {
     expect(html).toContain('data-id="hero-image-duplicate" src="/api/books/preview-book/images/hero-image-duplicate" alt=""')
   })
 
+  it.each([{ captions: [] }, { captions: [{ imageId: "hero-image", caption: "  " }] }])(
+    "does not expose renderer alt when its stored caption is missing or blank (%j)",
+    async ({ captions }) => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        const row = storage.getLatestNodeData("web-rendering", `${label}_p1`)!
+        const data = row.data as { sections: Array<{ html: string }> }
+        data.sections[1].html = data.sections[1].html.replace('<img data-id="hero-image"', '<img alt="Stale renderer description" data-id="hero-image"')
+        storage.putNodeData("web-rendering", `${label}_p1`, data)
+        storage.putNodeData("image-captioning", `${label}_p1`, { captions })
+      } finally {
+        storage.close()
+      }
+      const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
+      const res = await app.request(`/books/${label}/adt-preview/${label}_p1_sec002.html`)
+      expect(res.status).toBe(200)
+      const html = await res.text()
+      expect(html).toContain('alt="" data-id="hero-image"')
+      expect(html).not.toContain("Stale renderer description")
+    },
+  )
+
   it("hides decorative images from assistive tech in preview output", async () => {
     const storage = createBookStorage(label, tmpDir)
     try {

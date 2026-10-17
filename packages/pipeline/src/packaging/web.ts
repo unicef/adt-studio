@@ -191,7 +191,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 11
+const PACKAGING_FORMAT_VERSION = 12
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -1854,35 +1854,6 @@ function collectImageGroups(section: PageSectioningSection): Array<{ group: Cont
   return out
 }
 
-/** Collect all non-pruned leaf texts matching a role within a subtree. */
-function collectLeafTextsByRole(node: ContentNodeData, role: string): string[] {
-  const out: string[] = []
-  const walk = (n: ContentNodeData): void => {
-    if (n.isPruned) return
-    if (n.role === role && n.text) {
-      const trimmed = n.text.replace(/\s+/g, " ").trim()
-      if (trimmed.length > 0) out.push(trimmed)
-    }
-    if (n.children) {
-      for (const c of n.children) walk(c)
-    }
-  }
-  walk(node)
-  return out
-}
-
-function buildSectionImageAltMap(section: PageSectioningSection): Map<string, string> {
-  const imageGroups = collectImageGroups(section)
-  const map = new Map<string, string>()
-  if (imageGroups.length !== 1) return map
-
-  const captions = collectLeafTextsByRole(imageGroups[0].group, "caption")
-  if (captions.length === 0) return map
-
-  map.set(imageGroups[0].imageId, captions.join(" "))
-  return map
-}
-
 function applyDuplicateImageAltPolicy(
   section: PageSectioningSection,
   altTextByImageId: Map<string, string>,
@@ -1913,13 +1884,10 @@ export function buildPreferredImageAltMap(
   pageId: string,
   section?: PageSectioningSection,
 ): Map<string, string> {
-  const imageCaptionMap = loadImageCaptionMap(storage, pageId)
-  const sectionImageAltMap = section ? buildSectionImageAltMap(section) : new Map<string, string>()
-  const preferredImageAltMap = new Map(sectionImageAltMap)
-  for (const [imageId, altText] of imageCaptionMap) {
-    preferredImageAltMap.set(imageId, altText)
-  }
-  return section ? applyDuplicateImageAltPolicy(section, preferredImageAltMap) : preferredImageAltMap
+  // Source caption-role text and renderer alt attributes are retained authoring
+  // data, but are not image descriptions. Only the caption store supplies alt.
+  const captions = loadImageCaptionMap(storage, pageId)
+  return section ? applyDuplicateImageAltPolicy(section, captions) : captions
 }
 
 /** Rewrite image URLs from /api/books/{label}/images/{id} to images/{filename} */
@@ -1970,11 +1938,10 @@ export function rewriteImageUrls(
       img.attribs.role = "presentation"
       img.attribs["aria-hidden"] = "true"
     } else {
-      const hasPreferredAlt = imageIdForAlt ? altTextByImageId?.has(imageIdForAlt) ?? false : false
       const altText = imageIdForAlt ? altTextByImageId?.get(imageIdForAlt)?.trim() ?? "" : ""
       // The caption store is the only source of an image description; the
       // renderer's own alt attribute is never authoritative (decision 2026-10-16).
-      if (hasPreferredAlt) img.attribs.alt = altText
+      img.attribs.alt = altText
     }
   }
 
