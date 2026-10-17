@@ -8,17 +8,17 @@ issues: ["#735", "#131", "#733", "#736", "#619", "#626"]
 prs: ["#879"]
 adr: "docs/DECISIONS.md#adr-024"
 created: 2026-09-10
-updated: 2026-10-14
+updated: 2026-10-17
 ---
 
 ## Decision under review
 
 Implementation of the September 27 contract is prepared on this PR's branch.
 The owner authorized implementation before approval; this specification and
-ADR-024 remain under human review. See the [implementation evidence and limits](../verification/spec-0001.md).
+ADR-024 remain under integration review. Elasticsounds ratified the product clarifications and remaining scope in [review Note 7](https://github.com/unicef/adt-studio/pull/879#pullrequestreview-5552755170); this does not assign an integration approver or certify release acceptance. See the [implementation evidence and limits](../verification/spec-0001.md).
 The acceptance criteria below are unchanged.
 
-**Compare each downstream output's relevant inputs through the book's text catalog and image inventory. Preserve existing output and manual corrections. Generate only when requested, using existing caching. Let usable work continue, with Update needed, Warning and Missing explaining unfinished work. Core TTS uses displayed text as an automatic fallback.**
+**Compare each downstream output's relevant inputs through the book's text catalog and image inventory. Preserve existing output and manual corrections. Generate only when requested, using existing caching. Let usable work continue, with Out of sync, Needs review, Warnings and Missing explaining unfinished work. Core TTS uses displayed text as an automatic fallback.**
 
 This is a proposed amendment to the section-only design in PR #879. Freshness belongs to an output identified by its data ID and applicable language/voice. Sections remain useful for selection, status and operations that need section context, especially easy-read. They are no longer the universal freshness unit. Ordinary regeneration need not replace every output in a selected section.
 
@@ -26,11 +26,13 @@ The mechanism is input comparison and fixed rules for existing steps, not a gene
 
 ## Problem and evidence
 
-Local edits currently reach book-wide clears: `saveStoryboardNode` in `apps/api/src/routes/pages.ts`, `reRenderPage`'s `finally` block in `apps/api/src/services/page-edit-service.ts`, and `makeBeforeRun` in `apps/api/src/routes/stages.ts`. Most node-type clears remove historical rows as well as current output (`packages/storage/src/book-storage.ts:76`).
+The following describes the pre-implementation baseline; code anchors are historical, not assertions about the current branch.
 
-The code already has a useful foundation: `packages/pipeline/src/text-catalog.ts` gathers page text, captions, activity answers, glossary entries and quiz text. However, `TextCatalogEntry` currently records only `{ id, text }`; it does not prove freshness or manual ownership. Easy-read uses full-section context (`packages/pipeline/src/easy-read.ts:203`), Core TTS uses neighboring text (`packages/pipeline/src/core-tts.ts:248`), and speech writes live filenames on both generation and cache reuse (`packages/pipeline/src/speech.ts:1005`). These paths require explicit handling.
+Local edits originally reach book-wide clears: `saveStoryboardNode` in `apps/api/src/routes/pages.ts`, `reRenderPage`'s `finally` block in `apps/api/src/services/page-edit-service.ts`, and `makeBeforeRun` in `apps/api/src/routes/stages.ts`. Most node-type clears remove historical rows as well as current output (`packages/storage/src/book-storage.ts:76`).
 
-Core TTS currently stores failed preparation with null speech text and omits it from `getReadyCoreTtsEntries`. V1 deliberately changes this behavior to a visible fallback, including failed LaTeX conversion; raw notation may sound awkward. This document specifies proposed behavior, not guarantees already implemented.
+The original code already had a useful foundation: `packages/pipeline/src/text-catalog.ts` gathers page text, captions, activity answers, glossary entries and quiz text. However, `TextCatalogEntry` originally recorded only `{ id, text }`; it does not prove freshness or manual ownership. Easy-read uses full-section context (`packages/pipeline/src/easy-read.ts:203`), Core TTS uses neighboring text (`packages/pipeline/src/core-tts.ts:248`), and speech writes live filenames on both generation and cache reuse (`packages/pipeline/src/speech.ts:1005`). These paths require explicit handling.
+
+Core TTS originally stored failed preparation with null speech text and omits it from `getReadyCoreTtsEntries`. V1 deliberately changes this behavior to a visible fallback, including failed LaTeX conversion; raw notation may sound awkward. This document specifies proposed behavior, not guarantees already implemented.
 
 ## Scope and non-goals
 
@@ -45,7 +47,7 @@ All step names and ordering remain derived from `PIPELINE`. A deterministic whol
 
 Storyboard's own freshness is excluded. Editing Sectioning and having a Storyboard run select only affected pages remains a follow-up. Generation of glossary, quizzes and TOC also remains outside scope: their saved content is retained, while edits to their existing catalog entries can affect translations and speech. This does not certify those generated source artifacts as semantically current under every source edit; their existing generation policies remain separate.
 
-**Compatibility clarification (October 14, Note 3 refinement; human review pending):**
+**Compatibility clarification (October 14, Note 3 refinement; ratified by elasticsounds in October 16 Note 7):**
 Source generators remain outside catalog-scoped regeneration. Compare each
 existing generator's actual inputs before and after source edits, restores,
 structural changes and successful generation publication. Reset only the
@@ -117,8 +119,10 @@ The catalog remains derived from the latest saved authored content, not a second
 
 Moves retain identity; new or cloned elements receive new IDs. Reject new or changed conflicting duplicate IDs on save with HTTP 409 and the ID. Reads of legacy conflicts keep the first value in reading order and report one source-conflict warning per ID in the attention panel. An unchanged legacy conflict does not block unrelated or cosmetic saves; resolving it must not reassign retained corrections to a different ID. Positional activity IDs currently minted during catalog extraction must be made stable before relying on them for correction preservation. Reconcile a complete snapshot or an explicit source contribution; never treat a partial-page response as a complete catalog and retire unseen entries.
 
-**October 13 compatibility clarification, pending human review:** legacy glossary
-IDs are materialized before editing. Where explicit and positional IDs collide,
+**October 13 compatibility clarification, ratified in October 16 Note 7:** legacy glossary
+IDs are projected without writes or writer admission on GET and materialized on
+the next successful write. A version-bound projection signature identifies the
+IDs shown to the editor; stale projections are rejected without applying a draft. Where explicit and positional IDs collide,
 the first catalog owner keeps its ID; later terms receive unused IDs without
 moving the first owner's translations or recordings. Divergent retained
 translations display their first copy. For divergent legacy Easy Read copies,
@@ -129,7 +133,7 @@ generation preserves the conflict, and a warning requires an actual edit or
 explicit replacement. Keep cannot certify conflicting copies. Replacement is
 bound to every retained copy, including values not displayed. Current source
 membership alone controls Preview/export inclusion. This Easy Read authority
-rule is an explicit compatibility assumption, not specification approval.
+rule is a ratified compatibility assumption; integration approval remains separate.
 
 Keep an image inventory alongside the text catalog using existing book image storage. It records active image IDs, physical availability and references from Storyboard/glossary. An image must be discoverable before a caption exists. Image freshness is ID-based: in-app crops and generated replacements mint new image IDs; displayed size and CSS do not affect freshness. Per elasticsounds’ October 13 review decision, changed pixels under the same ID (including re-extraction or external file edits) do not invalidate captions or image translations in this revision; detecting that case is deferred. Decision (October 16): the caption store is the only source of an image description. The HTML `alt` attribute is derived from that store at export and in the reader and is not an authoring input; Storyboard saves never read it into captions, and export writes the stored description regardless of the renderer's attribute. Descriptions are edited through catalog editors: the Captions stage today, a Storyboard panel field with the Pipeline UI work later.
 
@@ -153,19 +157,20 @@ V1 catalog translation is entry-based: batch membership is a transport choice, n
 
 Captioning may similarly expand to its actual page/image context. Shared assets have one authoritative output with multiple consumers, not conflicting copies assigned to arbitrary sections. Glossary and Quizzes are selection groups for their existing IDs, not synthetic section identities.
 
-### 3. Use three macro labels and plain explanations
+### 3. Use four labels and plain explanations
 
 | Condition | Display and ordinary action |
 |-----------|-----------------------------|
-| Generated output exists but relevant inputs changed | **Update needed**; regenerate affected output |
-| Protected content needs review, legacy freshness is unknown, or a usable fallback needs checking | **Warning** with a reason; preserve usable content and continue |
+| Generated output exists but relevant inputs changed | **Out of sync**; regenerate affected output |
+| Protected content needs a keep/edit/replace decision | **Needs review**; preserve it until the decision |
+| Usable fallback needs checking or another informational warning remains | **Warnings** with a reason; usable work can continue |
 | Applicable output has no usable result, including never generated, failed or skipped items | **Missing** with a reason; generate when selected and usable inputs exist |
-| Inputs match a valid generation/fallback or review baseline and upstream freshness is resolved | Current; no additional badge |
+| Inputs match valid generation/fallback or review evidence and upstream freshness is resolved | Current; no additional badge |
 | Disabled, pruned or genuinely no eligible input | Excluded/not applicable; not unfinished work |
 
 Manual content has a **Manual edit** label; the edit itself is not a warning. Running, failed, cancelled and skipped describe attempts, not replacement rules. An unsuccessful attempt may leave valid current output intact. Missing means no usable output for that output kind: playable fallback audio is not missing just because normalization failed.
 
-Derive page/section/group/stage summaries, including glossary/quiz IDs. Show counts such as “5 updates needed · 2 warnings · 1 missing”; the stage warning icon opens affected items. Count each output once per category. Warning can accompany Missing or Update needed and must not hide either. Excluded entries do not contribute outstanding counts. Before a stage's first attempt (no completed or failed run and no saved output), its never-generated output is expected work, not attention: hide Missing from that stage's badge, counts and item indicators until then. Other issues are unaffected, and preview/export disclosure still lists the missing output.
+Derive page/section/group/stage summaries, including glossary/quiz IDs. Show counts such as “5 out of sync · 2 needs review · 1 warning · 1 missing”; the stage warning icon opens affected items. Count each output once under its primary issue: Missing first, then Out of sync, then Needs review, then Warnings. Details retain all reasons. Excluded entries do not contribute outstanding counts. Before a stage's first attempt (no completed or failed run and no saved output), its never-generated output is expected work, not attention: hide Missing from that stage's badge, counts and item indicators until then. Other issues are unaffected, and preview/export disclosure still lists the missing output.
 
 A section/stage is current when every included, applicable output has valid matching input evidence or a review baseline, and upstream freshness is resolved. A declared Core TTS fallback satisfies the speech-input requirement and can be current while carrying a quality warning. Unreviewed protected/legacy inputs or stale translations cannot be certified current merely because dependent generation finished. Usable and current are distinct internally; no extra user-facing status vocabulary is required.
 
@@ -218,10 +223,10 @@ Resolve warnings only against the reviewed output and relevant inputs; reject ac
 
 **Protected correction walkthrough:** English changes beneath edited French. Keep French with a warning. Speech may use it and inherits the warning, without repeatedly regenerating matching audio. Keep my edit confirms French against the new source and rechecks speech; unchanged speech inputs reuse audio. Edit/replace changes only actual consumers and retains history.
 
-**Legacy walkthrough:** Open a book with audio/translation but no trustworthy input evidence. Keep usable content with a warning and preserve known provenance; unknown authorship is protected. Keep existing content establishes a review baseline, not fabricated generation history. Missing/invalid files remain Missing. Opening the book performs no generation or deletion; metadata migration is allowed. Downgrade support is not assumed.
+**Legacy walkthrough (October 16 Note 7 ratification):** On first open through the sidebar-summary read, accept existing usable, included outputs with neither input evidence nor review as an initial Keep baseline, preserving provenance and protection; perform this metadata migration under the shared writer lease, skip quietly if busy and retry on the next sidebar-summary read, create at most one new version per changed node/item, and do not force an audio snapshot. This is a compatibility assumption: older versions deleted downstream output on source changes, so surviving legacy content is treated as initially consistent. It is not fabricated generation history. A one-time book receipt prevents a later restore from silently accepting old content against new inputs. Existing evidence (including older speech input signatures), conflicting copies and malformed collections are not overwritten or automatically accepted. Missing/invalid files remain Missing; omitted or excluded content is not certified. A later relevant source change warns again. Opening performs no provider calls, content deletion or media-byte hashing. The first verified physical snapshot carries matching reviews and timing evidence through a representation-only filename change; stale evidence stays stale. Downgrade support is not assumed.
 
 **Implementation assumption / compatibility clarification (October 13 Teams
-follow-up, user-authorized; human spec review pending):** When both the saved
+follow-up, user-authorized; ratified by elasticsounds in October 16 Note 7):** When both the saved
 `sectionId` and HTML `data-section-id` are absent, a legacy rendering may inherit
 a same-page section of the same type if that section is unclaimed, has at least
 one content leaf, and every leaf's exact `data-id` appears as an HTML attribute.
@@ -237,7 +242,7 @@ an entire content tree can yield a misleading match; the reviewer explicitly
 accepts that limitation. Historical reconstruction, migration tracking and a
 repair screen are deferred. The former root/receipt lookup and ownership repair
 workflow are superseded. A pre-edit snapshot supplies ownership for structural
-changes, re-rendering and assistant edits. Read projections do not rewrite books.
+changes, re-rendering and assistant edits. Ownership read projections do not rewrite books. The separate first-open baseline migration above changes review metadata only.
 Successful edits persist resolved ownership in a new version, preserving existing
 IDs, HTML/scripts, answers, translations and history except changes explicitly
 requested by the edit itself. Resolving ownership does not certify freshness or
@@ -247,7 +252,10 @@ partition arbitrary custom scripts or retain deliberately deleted active content
 Unrelated content and prior versions remain protected.
 
 If no unique match exists, retain the rendering/history and its omission warning
-without assigning an owner. Preview/export remain read-only and add no approval
+without assigning an owner. The editor projection gives unmatched renderings no
+selectable live section index; the page exposes structural drift through the
+shared SPEC-0012 synchronization response shape. Restoring a source owner
+realigns it by stable identity, never by the retained index. Preview/export remain read-only and add no approval
 popup. De-codable pg006 acceptance is assigned to elasticsounds by the user; the
 implementation ledger must keep that verification pending until reported.
 
@@ -338,6 +346,39 @@ A whole-stage execution fallback broadens selection only; disclose it and apply 
 
 ## Review and issue coverage
 
-Owner @ksokolovic and product reviewer @elasticsounds should ratify the change from section-only freshness to per-output signatures, the fixed input rules, review/export behavior and rollout gates. The integration approver remains unassigned. Hash representation and physical-file publication mechanism are implementation choices, subject to these criteria.
+Owner @ksokolovic authorized implementation; product reviewer @elasticsounds ratified the clarifications and scope decisions in October 16 Note 7. Integration approval and the final historical-book product pass remain pending. The integration approver remains unassigned. Hash representation and physical-file publication mechanism are implementation choices, subject to these criteria.
 
-#735 is partially addressed; Storyboard/Sectioning freshness remains deferred. #131's inline regeneration is not delivered: saving is free of paid generation and regeneration is explicit. #619 and #626 are background/deferred requirements. The preservation contract addresses #733/#736, but a documentation-only PR closes none of these implementation issues.
+#735 is partially addressed; Storyboard/Sectioning freshness remains deferred. #131's inline regeneration is not delivered: saving is free of paid generation and regeneration is explicit. #619 and #626 are background/deferred requirements. The preservation contract addresses #733/#736, but this combined specification/implementation PR does not by itself close those wider issues.
+
+
+## Ratified compatibility limits and follow-up ownership
+
+The following are explicit October 16 Note 7 decisions, not claims that the
+original promises were all verified. They must remain visible in acceptance and
+release reporting:
+
+- **Positional activity IDs:** carry-over for old sorting/multi-select labels is
+  deferred. Those books need Language and Speech runs after upgrade; old manual
+  output and history remain retained, but automatic reattachment across the
+  changed IDs is not delivered. Matching by page/text/uniqueness is follow-up work.
+- **Speech publication order:** previous playable output is preserved, but newly
+  synthesized audio is still published after Word Highlighting. Until the staged
+  publication follow-up lands, do not cancel Speech during Word Highlighting if
+  the newly synthesized output is needed. Coordinate with #958.
+- **Provider-wide preparation failures:** distinguishing authentication/quota
+  failure from content fallback depends on SPEC-0013/#889's classifier.
+- **Legacy ownership:** ambiguous or pruned-leaf custom activities remain retained
+  with omission disclosure. Ownership-claim UI/history reconstruction is deferred;
+  the doctor finding these on a real book triggers that follow-up. Books older
+  than schema 14 and already-saved historical blank drift are not certified here.
+- **Other follow-ups:** bulk review; projection caching after a 100-page measure;
+  no-op Storyboard-save short-circuit; listing unassigned sign-language videos;
+  a server-computed quiz plan; Storyboard caption field/preview mirroring with
+  Pipeline UI; lease parsing/release-lock with SPEC-0010/#886; and selecting only
+  out-of-sync Storyboard pages with #619/SPEC-0012. Quiz remainder grouping stays.
+
+Before field release, run the read-only doctor over the Tanzania sample and
+verify a clean Docker `app` image. Elasticsounds owns the final Frankenstein and
+De-codable spot checks. Product ratification does not replace those checks or the
+unassigned integration maintainer's approval. No release verification is inferred
+from development tests.

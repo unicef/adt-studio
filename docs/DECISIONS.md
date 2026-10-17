@@ -871,7 +871,7 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 
 **Date**: 2026-09-11
 
-**Updated**: 2026-09-27
+**Updated**: 2026-10-17
 
 **Spec**: [SPEC-0001](specs/SPEC-0001-per-section-staleness.md)
 
@@ -891,11 +891,11 @@ settings and context. Use the derived book-local text catalog and image inventor
 retain provenance, manual protection and review evidence separately. Sections
 remain selection/context groups. Saves preserve output and make no provider calls.
 
-Expose **Update needed**, **Warning** and **Missing**, with plain explanations.
+Expose **Out of sync**, **Needs review**, **Warnings** and **Missing**, with plain explanations and one primary issue per output.
 Manual content keeps a **Manual edit** label and survives ordinary runs, including
 full-section easy-read processing. Attach keep/edit/explicit-replacement actions
 to its warning. Successful replacement becomes generated content; retain history.
-Unknown authorship stays protected. Derive stage warning counts from affected
+Unknown authorship stays protected. The October 16 Note 7 product decision accepts usable legacy output with no input/review evidence once on open through metadata-only Keep reviews under the shared writer lease, without generation or forced audio snapshots; later relevant changes warn again. Conflicting or malformed content is retained without automatic acceptance. Derive stage warning counts from affected
 outputs; review resolves against the inputs/output shown and is reassessed on
 relevant change. Bulk replacement identifies the edits and is off by default.
 
