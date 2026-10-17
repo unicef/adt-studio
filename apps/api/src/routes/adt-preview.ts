@@ -909,7 +909,6 @@ export function createAdtPreviewRoutes(
     const safeLabel = parseBookLabel(c.req.param("label"))
     const bookConfig = loadBookConfig(safeLabel, booksDir, configPath)
     const timecodes = withStorage(c.req.param("label"), (storage) => {
-      const readySpeechIds = includedSpeechIds(storage, parseBookLabel(c.req.param("label")), lang)
       const timestamps = getWordTimestamps(storage, lang)
       return {
         primary: bookConfig.speech?.word_highlighting === true
