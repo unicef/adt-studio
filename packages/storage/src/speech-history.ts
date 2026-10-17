@@ -7,6 +7,20 @@ import type { Storage } from "./storage.js"
 
 function equal(a: unknown, b: unknown) { return JSON.stringify(a) === JSON.stringify(b) }
 
+/** A physical snapshot changes the representation, not the audible content.
+ * Carry only evidence that matched the previous identity; stale reviews must
+ * stay stale. These are canonical JSON string hashes, as in inputSignature.
+ */
+function withAudioIdentity(entry: SpeechFileEntry, asset: { fileName: string; audioHash: string }): SpeechFileEntry {
+  const hash = (value: string) => createHash("sha256").update(JSON.stringify(value)).digest("hex")
+  const before = hash(entry.audioHash ?? entry.fileName)
+  const after = hash(asset.audioHash)
+  return { ...entry, ...asset,
+    ...(entry.review?.contentHash === before ? { review: { ...entry.review, contentHash: after } } : {}),
+    ...(entry.input?.contentHash === before ? { input: { ...entry.input, contentHash: after } } : {}),
+  }
+}
+
 function verifyAudio(bookDir: string, language: string, entry: SpeechFileEntry): Buffer {
   if (!/^[a-zA-Z0-9_-]+$/.test(language) || path.basename(entry.fileName) !== entry.fileName) throw new Error("Invalid audio path")
   const root = fs.realpathSync(bookDir)
@@ -21,7 +35,7 @@ function verifyAudio(bookDir: string, language: string, entry: SpeechFileEntry):
 function copyRetainedAudio(bookDir: string, from: string, to: string, entry: SpeechFileEntry): SpeechFileEntry {
   const bytes = verifyAudio(bookDir, from, entry)
   const asset = storeImmutableAsset(bookDir, ["audio", to], voiceSlotEntryId(entry.textId, entry.voiceSlot), path.extname(entry.fileName).slice(1), bytes)
-  return { ...entry, fileName: asset.fileName, audioHash: asset.contentHash }
+  return withAudioIdentity(entry, { fileName: asset.fileName, audioHash: asset.contentHash })
 }
 
 /** Publish a paired manifest. Unmatched old timings remain historical but can
@@ -49,13 +63,14 @@ export function publishSpeechOutput(storage: Storage, language: string, output: 
       output = { ...output, entries: output.entries.map((entry) => {
         const replacement = replacements.get(voiceSlotEntryId(entry.textId, entry.voiceSlot))
         return replacement?.previous.fileName === entry.fileName && replacement.retained.audioHash && (!entry.audioHash || entry.audioHash === replacement.retained.audioHash)
-          ? { ...entry, fileName: replacement.retained.fileName, audioHash: replacement.retained.audioHash } : entry
+          ? withAudioIdentity(entry, { fileName: replacement.retained.fileName, audioHash: replacement.retained.audioHash }) : entry
       }) }
     }
     const previous = storage.getLatestNodeData("tts", language)
     const old = TTSOutput.safeParse(previous?.data)
-    const timestampRow = storage.getLatestNodeData("tts-timestamps", language)
+    let timestampRow = storage.getLatestNodeData("tts-timestamps", language)
     const oldTiming = WordTimestampOutput.safeParse(timestampRow?.data)
+    const timingAliases = new Map<string, { audioHash: string; legacyAudioFileName: string }>()
     let snapshotted = false
     if (old.success && previous && storage.bookDir && old.data.entries.some((entry) => !entry.audioHash)) {
       const snapshots = old.data.entries.map((entry) => {
@@ -63,11 +78,31 @@ export function publishSpeechOutput(storage: Storage, language: string, output: 
         return copyRetainedAudio(storage.bookDir!, language, language, entry)
       })
       snapshotted = snapshots.some((entry, index) => entry.fileName !== old.data.entries[index].fileName)
+      for (let index = 0; index < snapshots.length; index++) {
+        const before = old.data.entries[index]
+        const after = snapshots[index]
+        if (!before.audioHash && after.audioHash) timingAliases.set(voiceSlotEntryId(before.textId, before.voiceSlot),
+          { audioHash: after.audioHash, legacyAudioFileName: before.fileName })
+      }
+      // Pair the immutable historical snapshot with timings carrying the
+      // verified filename-to-hash equivalence too, so explicit restore keeps
+      // valid review/input evidence without inventing new acceptance.
+      if (oldTiming.success) {
+        const entries = Object.fromEntries(Object.entries(oldTiming.data.entries).map(([key, entry]) => {
+          const alias = timingAliases.get(key)
+          return [key, alias && (!entry.audioHash || entry.audioHash === alias.audioHash) ? { ...entry, ...alias } : entry]
+        }))
+        if (!equal(entries, oldTiming.data.entries)) {
+          oldTiming.data.entries = entries
+          storage.putNodeData("tts-timestamps", language, oldTiming.data)
+          timestampRow = storage.getLatestNodeData("tts-timestamps", language)
+        }
+      }
       if (snapshotted) storage.putNodeData("tts", language, { ...old.data, entries: snapshots, timingVersion: timestampRow?.version ?? null, legacySnapshotOf: previous.version })
       const verified = new Map(old.data.entries.map((entry, index) => [entry.fileName, snapshots[index]]))
       output = { ...output, entries: output.entries.map((entry) => {
         const snapshot = !entry.audioHash ? verified.get(entry.fileName) : undefined
-        return snapshot?.audioHash ? { ...entry, fileName: snapshot.fileName, audioHash: snapshot.audioHash } : entry
+        return snapshot?.audioHash ? withAudioIdentity(entry, { fileName: snapshot.fileName, audioHash: snapshot.audioHash }) : entry
       }) }
       // The bytes are unchanged: keep their matching legacy timings even
       // though the active filename is now immutable.
@@ -76,7 +111,10 @@ export function publishSpeechOutput(storage: Storage, language: string, output: 
     const entries: WordTimestampOutput["entries"] = {}
     for (const audio of output.entries) {
       const key = voiceSlotEntryId(audio.textId, audio.voiceSlot)
-      const proposed = timestamps?.entries[key]
+      const requested = timestamps?.entries[key]
+      const alias = timingAliases.get(key)
+      const proposed = requested && alias && (!requested.audioHash || requested.audioHash === alias.audioHash)
+        ? { ...requested, ...alias } : requested
       const retained = oldTiming.success ? oldTiming.data.entries[key] : undefined
       const oldAudio = old.success ? old.data.entries.find((entry) => voiceSlotEntryId(entry.textId, entry.voiceSlot) === key) : undefined
       if (proposed && (proposed.audioHash ? proposed.audioHash === audio.audioHash : oldAudio?.fileName === audio.fileName)) entries[key] = { ...proposed, audioHash: audio.audioHash }

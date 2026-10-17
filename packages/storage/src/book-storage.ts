@@ -181,13 +181,13 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       return { width: rows[0].width, height: rows[0].height }
     },
 
-    getImageMeta(imageId: string): { pageId: string; relativePath: string } | null {
+    getImageMeta(imageId: string): { pageId: string; relativePath: string; hash: string; width: number; height: number } | null {
       const rows = db.all(
-        "SELECT page_id, path FROM images WHERE image_id = ?",
+        "SELECT page_id, path, hash, width, height FROM images WHERE image_id = ?",
         [imageId]
-      ) as Array<{ page_id: string; path: string }>
+      ) as Array<{ page_id: string; path: string; hash: string; width: number; height: number }>
       if (rows.length === 0) return null
-      return { pageId: rows[0].page_id, relativePath: rows[0].path }
+      return { pageId: rows[0].page_id, relativePath: rows[0].path, hash: rows[0].hash, width: rows[0].width, height: rows[0].height }
     },
 
     getPageImages(pageId: string): ImageData[] {

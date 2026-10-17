@@ -42,7 +42,8 @@ function setup() {
     usable: true, current: false, protected: true, manual: true, excluded: false, missing: false, updateNeeded: false,
     warnings: [{ reason: "source-changed" }], pageIds: ["pg001"], sectionIds: ["pg001_sec001"] }
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  client.setQueryData(["books", "book", "outputs", false, undefined], { outputs: [output] })
+  client.setQueryData(["books", "book", "outputs", "summary"], { legacyBaselineRevision: 0, stages: {}, stagesWithoutMissing: {}, missingStages: [] })
+  client.setQueryData(["books", "book", "outputs", false, undefined, 0], { outputs: [output] })
   render(<QueryClientProvider client={client}><TooltipProvider>
     <EasyReadEditor bookLabel="book" isRunning={false} hasStructuredTextProvider onRegenerate={vi.fn()} />
   </TooltipProvider></QueryClientProvider>)
@@ -70,6 +71,7 @@ it("discloses that a shared edit also updates the section hidden by the page fil
     { pageId: "pg002", sectionId: "shared-section", sectionIndex: 0, sectionType: "text", entries: [{ ...entry, pageId: "pg002", sectionId: "shared-section" }] },
   ] })
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  client.setQueryData(["books", "book", "outputs", "summary"], { legacyBaselineRevision: 0, stages: {}, stagesWithoutMissing: {}, missingStages: [] })
   render(<QueryClientProvider client={client}><TooltipProvider>
     <EasyReadEditor bookLabel="book" selectedPageId="pg001" isRunning={false} hasStructuredTextProvider onRegenerate={vi.fn()} />
   </TooltipProvider></QueryClientProvider>)

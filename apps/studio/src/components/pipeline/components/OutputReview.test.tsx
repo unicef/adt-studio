@@ -37,7 +37,8 @@ function status(overrides: Partial<OutputStatus> = {}): OutputStatus {
 
 function setup(outputs: OutputStatus[], ownershipWarnings: PackagingWarning[] = [], missingStages: StageName[] = STAGE_ORDER) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
-  client.setQueryData(["books", "book", "outputs", false, undefined], { outputs, ownershipWarnings, missingStages })
+  client.setQueryData(["books", "book", "outputs", "summary"], { legacyBaselineRevision: 0, stages: {}, stagesWithoutMissing: {}, missingStages: [] })
+  client.setQueryData(["books", "book", "outputs", false, undefined, 0], { outputs, ownershipWarnings, missingStages })
   clients.push(client)
   return ({ children }: { children: React.ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>
 }

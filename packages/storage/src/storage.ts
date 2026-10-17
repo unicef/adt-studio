@@ -88,7 +88,7 @@ export interface Storage {
   getImageBase64(imageId: string): string
   getImageDimensions(imageId: string): { width: number; height: number } | null
   /** Look up basic metadata for an image: its page id and book-relative path on disk. */
-  getImageMeta(imageId: string): { pageId: string; relativePath: string } | null
+  getImageMeta(imageId: string): { pageId: string; relativePath: string; hash?: string; width?: number; height?: number } | null
   getPageImages(pageId: string): ImageData[]
 
   /** Write a cropped image to disk as {imageId}_crop_v{version}.png and register it in the DB with source="crop". */

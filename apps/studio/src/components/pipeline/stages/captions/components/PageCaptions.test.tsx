@@ -11,7 +11,7 @@ vi.mock("@lingui/react/macro", () => ({
   useLingui: () => ({ t: (strings: TemplateStringsArray, ...values: unknown[]) =>
     strings.reduce((text, part, index) => text + part + (values[index] ?? ""), ""), i18n: { locale: "en" } }),
 }))
-vi.mock("@/api/client", () => ({ BASE_URL: "", api: { updateImageCaptioning: calls.save, getOutputs: calls.outputs } }))
+vi.mock("@/api/client", () => ({ BASE_URL: "", api: { updateImageCaptioning: calls.save, getOutputs: calls.outputs, getOutputSummary: async () => ({ legacyBaselineRevision: 1, stages: {}, stagesWithoutMissing: {}, missingStages: [] }) } }))
 vi.mock("@/hooks/use-pages", () => ({
   usePage: (label: string, pageId: string) => useQuery({ queryKey: ["books", label, "pages", pageId], queryFn: calls.page, staleTime: Infinity }),
   usePageImage: () => ({ data: undefined }),
@@ -37,8 +37,9 @@ it("keeps the edited caption and its pill until both content and output-status r
     usable: true, current: true, protected: false, manual: false, excluded: false, missing: false,
     updateNeeded: false, warnings: [], pageIds: ["pg001"], sectionIds: [],
   }
+  client.setQueryData(["books", "book", "outputs", "summary"], { legacyBaselineRevision: 1, stages: {}, stagesWithoutMissing: {}, missingStages: [] })
   client.setQueryData(["books", "book", "pages", "pg001"], initialPage)
-  client.setQueryData(["books", "book", "outputs", false, undefined], { outputs: [output] })
+  client.setQueryData(["books", "book", "outputs", false, undefined, 1], { outputs: [output] })
   calls.save.mockResolvedValue({ version: 2 })
   let releasePage!: () => void
   let releaseOutputs!: () => void

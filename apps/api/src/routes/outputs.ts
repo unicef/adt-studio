@@ -2,25 +2,12 @@ import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { createBookStorage, publishSpeechOutput, publishSpeechTimings, type Storage } from "@adt/storage"
+import { createBookStorage, publishSpeechOutput, publishSpeechTimings } from "@adt/storage"
 import { OutputReviewRequest, OutputDisclosureOptions, parseBookLabel, STAGE_ORDER, OUTPUT_KIND_TO_STAGE, OUTPUT_KIND_TO_STEP, type OutputKind, type OutputStatus, type CatalogConflict, type StageName, type TTSOutput } from "@adt/types"
 import { inputSignature, loadBookConfig, readOutputCatalog, outputIdentityKey, summarizeOutputs, summarizeOutputScopes, buildTextCatalogSnapshot, reconcileSpeechInputs, loadCoreTtsProfiles, renderingOwnershipWarnings } from "@adt/pipeline"
 
-/** A legacy audio entry is renamed to its content-addressed file on its first
- * publication, which changes the content hash the review was just recorded
- * against (`audioHash` replaces `fileName`). Re-stamp the review against the
- * published entry so a Keep sticks the first time instead of flipping to
- * "source changed". A no-op for entries that already carried a hash. */
-function alignAudioReview(storage: Storage, language: string, identity: OutputStatus["identity"], version: number): number {
-  const data = storage.getLatestNodeData("tts", language)?.data as TTSOutput | undefined
-  const slot = identity.voiceSlot ?? "primary"
-  const entry = data?.entries.find((item) => item.textId === identity.id && (item.voiceSlot ?? "primary") === slot)
-  if (!data || !entry?.review) return version
-  const expected = inputSignature(entry.audioHash ?? entry.fileName)
-  if (entry.review.contentHash === expected) return version
-  const entries = data.entries.map((item) => item === entry ? { ...item, review: { ...item.review!, contentHash: expected } } : item)
-  return publishSpeechOutput(storage, language, { ...data, entries })
-}
+import { outputLocation, outputReviewEntries } from "../services/output-review.js"
+import { acceptLegacyOutputBaseline, legacyOutputBaselineRevision } from "../services/legacy-output-baseline.js"
 
 export function createOutputRoutes(booksDir: string, promptsDir: string, configPath?: string): Hono {
   const app = new Hono()
@@ -56,9 +43,10 @@ export function createOutputRoutes(booksDir: string, promptsDir: string, configP
     if (!fs.existsSync(path.join(path.resolve(booksDir), label, `${label}.db`))) throw new HTTPException(404, { message: "Book not found" })
     const storage = createBookStorage(label, booksDir)
     try {
+      acceptLegacyOutputBaseline(storage, () => read(label, storage))
       let conflicts: CatalogConflict[] = []
       const outputs = read(label, storage, (items) => { conflicts = items })
-      return c.json({ stages: summarizeOutputScopes(outputs, conflicts, { stagesOnly: true }).stages,
+      return c.json({ legacyBaselineRevision: legacyOutputBaselineRevision(storage), stages: summarizeOutputScopes(outputs, conflicts, { stagesOnly: true }).stages,
         stagesWithoutMissing: summarizeOutputScopes(withoutMissing(outputs), conflicts, { stagesOnly: true }).stages,
         missingStages: missingStages(storage, outputs) })
     } finally { storage.close() }
@@ -125,13 +113,12 @@ export function createOutputRoutes(booksDir: string, promptsDir: string, configP
         const current = storage.getLatestNodeData(node, itemId)
         if (!current || !current.data || typeof current.data !== "object") throw new HTTPException(409, { message: "Output is no longer available." })
         const data = structuredClone(current.data) as Record<string, unknown>
-        const entries = field === "self" ? [data] : field === "timings" ? Object.values(data.entries as Record<string, Record<string, unknown>>) : field === "blocks" ? (data.blocks as Array<{ entries: Record<string, unknown>[] }>).flatMap((block) => block.entries) : data[field] as Record<string, unknown>[]
-        const matching = entries.filter((item) => item[idField] === output.identity.id && (!["audio", "timestamps"].includes(output.identity.kind) || (item.voiceSlot ?? "primary") === (output.identity.voiceSlot ?? "primary")))
+        const matching = outputReviewEntries(data, output, { node, itemId, field, idField })
         if (!matching.length) throw new HTTPException(409, { message: "Output is no longer available." })
         // Shared Easy Read references carry the same reviewed identity. Do not
         // certify a conflicting legacy copy whose content was not shown.
         for (const entry of matching) if ((field !== "blocks" && field !== "entries") || entry.text === output.text || entry.speechText === output.text) entry.review = { signature: review.signature, contentHash: review.contentHash, action: review.action }
-        const version = node === "tts" ? alignAudioReview(storage, itemId, output.identity, publishSpeechOutput(storage, itemId, data as unknown as import("@adt/types").TTSOutput))
+        const version = node === "tts" ? publishSpeechOutput(storage, itemId, data as unknown as import("@adt/types").TTSOutput)
           : node === "tts-timestamps" ? publishSpeechTimings(storage, itemId, data as unknown as import("@adt/types").WordTimestampOutput)
           : storage.putNodeData(node, itemId, data)
         return c.json({ version })
@@ -139,19 +126,4 @@ export function createOutputRoutes(booksDir: string, promptsDir: string, configP
     } finally { storage.close() }
   })
   return app
-}
-
-function outputLocation(output: OutputStatus, storage: ReturnType<typeof createBookStorage>) {
-  const { identity } = output
-  const languageItem = (node: string) => storage.getLatestNodeData(node, identity.language!) ? identity.language! : identity.language!.replace("-", "_")
-  switch (identity.kind) {
-    case "translation": return { node: "text-catalog-translation", itemId: languageItem("text-catalog-translation"), field: "entries", idField: "id" }
-    case "preparation": return { node: "core-tts-catalog", itemId: languageItem("core-tts-catalog"), field: "entries", idField: "id" }
-    case "image-translation": return { node: "image-translation", itemId: `${identity.id}_tr_${identity.language}`, field: "self", idField: "sourceImageId" }
-    case "timestamps": return { node: "tts-timestamps", itemId: languageItem("tts-timestamps"), field: "timings", idField: "textId" }
-    case "audio": return { node: "tts", itemId: languageItem("tts"), field: "entries", idField: "textId" }
-    case "easy-read": return { node: "easy-read", itemId: "book", field: "blocks", idField: "easyReadId" }
-    case "caption": return { node: "image-captioning", itemId: storage.getImageMeta(identity.id)?.pageId ?? output.pageIds[0], field: "captions", idField: "imageId" }
-    default: throw new HTTPException(400, { message: "This output does not support this review action." })
-  }
 }

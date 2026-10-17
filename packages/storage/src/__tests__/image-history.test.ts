@@ -25,7 +25,11 @@ it("restores translated image bytes and metadata after replacement, retirement a
   expect(storage.getImageMeta(id)).toBeNull()
   fs.rmSync(path.join(storage.bookDir!, ".cache"), { recursive: true, force: true })
   expect(storage.setCurrentNodeVersion("image-translation", id, firstVersion)).toBe(true)
-  expect(storage.getImageMeta(id)).toEqual(first)
+  // The image inventory originally uses a short hash; restoration records
+  // the complete verified manifest identity without changing the asset.
+  const manifest = storage.getLatestNodeData("image-translation", id)!.data as { hash: string }
+  expect(manifest.hash.startsWith(first.hash!)).toBe(true)
+  expect(storage.getImageMeta(id)).toEqual({ ...first, hash: manifest.hash })
   expect(fs.readFileSync(path.join(storage.bookDir!, first.relativePath), "utf8")).toBe("first")
   expect(fs.readFileSync(path.join(storage.bookDir!, second.relativePath), "utf8")).toBe("second")
 })

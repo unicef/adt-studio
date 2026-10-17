@@ -247,9 +247,19 @@ function projectOutputCatalog(options: Parameters<typeof readOutputCatalog>[0]):
         dependencies.set(outputIdentityKey(audioStatus.identity), speechContext.map((id) => outputIdentityKey({ kind: "preparation", id, language })))
         if (config.speech?.word_highlighting) {
           const timing = timings?.[voiceSlotEntryId(source.id, voiceSlot)]
+          const signature = timestampInputSignature(prior?.audioHash ?? prior?.fileName ?? null, language, speechEntries[index].text)
+          // The first physical snapshot can rename the same audible bytes.
+          // Accept only that verified equivalence; changed text, language,
+          // timings or audio still fails the ordinary evidence checks.
+          const legacySignature = timing?.legacyAudioFileName && timing.audioHash && timing.audioHash === prior?.audioHash
+            ? timestampInputSignature(timing.legacyAudioFileName, language, speechEntries[index].text) : undefined
+          const metadata = timing && legacySignature ? { ...timing,
+            ...(timing.review?.signature === legacySignature ? { review: { ...timing.review, signature } } : {}),
+            ...(timing.input?.signature === legacySignature ? { input: { ...timing.input, signature } } : {}),
+          } : timing
           add(withOutputLocations(deriveOutputStatus({ identity: { kind: "timestamps", id: source.id, language, voiceSlot },
-            signature: timestampInputSignature(prior?.audioHash ?? prior?.fileName ?? null, language, speechEntries[index].text),
-            content: timing ? { words: timing.words, duration: timing.duration } : undefined, metadata: timing,
+            signature,
+            content: timing ? { words: timing.words, duration: timing.duration } : undefined, metadata,
             usable: usable && !!timing?.words.length && (!timing.audioHash || timing.audioHash === prior?.audioHash),
             excluded: speechExcluded, upstream: [audioStatus],
           }), source))

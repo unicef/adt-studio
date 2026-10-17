@@ -390,6 +390,10 @@ export type WordTimestamp = z.infer<typeof WordTimestamp>
 export const WordTimestampEntry = z.object({
   ...OutputMetadata.shape,
   audioHash: z.string().optional(),
+  /** Verified representation change on the first physical audio snapshot.
+   * Existing input/review signatures can still name this legacy filename;
+   * valid only while audioHash matches the active audio. No media is rehashed. */
+  legacyAudioFileName: z.string().optional(),
   textId: z.string(),
   language: z.string(),
   words: z.array(WordTimestamp),

@@ -28,8 +28,9 @@ function setup(edited = false) {
     usable: true, current: false, protected: true, manual: true, excluded: false, missing: false, updateNeeded: false,
     warnings: [{ reason: "source-changed" }], pageIds: ["pg001"], sectionIds: [] }
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+  client.setQueryData(["books", "book", "outputs", "summary"], { legacyBaselineRevision: 0, stages: {}, stagesWithoutMissing: {}, missingStages: [] })
   clients.push(client)
-  client.setQueryData(["books", "book", "outputs", false, undefined], { outputs: [output] })
+  client.setQueryData(["books", "book", "outputs", false, undefined, 0], { outputs: [output] })
   render(<QueryClientProvider client={client}>
     <CaptionCard bookLabel="book" cap={cap} list={[cap]} editing={null} onStartEdit={vi.fn()} onChangeDraft={vi.fn()}
       onCommitEdit={vi.fn()} onCancelEdit={vi.fn()} onToggleDecorative={vi.fn()} onOpenLightbox={vi.fn()}

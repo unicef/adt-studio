@@ -351,7 +351,7 @@ describe("createBookStorage", () => {
     storage.putExtractedPage(makePage(1))
 
     const meta = storage.getImageMeta("pg001_im001")
-    expect(meta).toEqual({ pageId: "pg001", relativePath: "images/pg001_im001.png" })
+    expect(meta).toMatchObject({ pageId: "pg001", relativePath: "images/pg001_im001.png", hash: expect.any(String), width: expect.any(Number), height: expect.any(Number) })
     expect(storage.getImageMeta("nonexistent")).toBeNull()
     storage.close()
   })

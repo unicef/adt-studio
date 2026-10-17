@@ -27,7 +27,8 @@ it.each([
   [SpeechIndex, "audio", "Saved speech"],
 ] as const)("keeps the saved editor available when source Save clears job status (%s)", (View, kind, label) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  client.setQueryData(["books", "retained", "outputs", false, undefined], { outputs: [{ identity: { kind, id: "stable" }, usable: true, protected: true, current: false }] })
+  client.setQueryData(["books", "retained", "outputs", "summary"], { legacyBaselineRevision: 0, stages: {}, stagesWithoutMissing: {}, missingStages: [] })
+  client.setQueryData(["books", "retained", "outputs", false, undefined, 0], { outputs: [{ identity: { kind, id: "stable" }, usable: true, protected: true, current: false }] })
   render(<QueryClientProvider client={client}><View bookLabel="retained" /></QueryClientProvider>)
   expect(screen.queryByText("First run")).toBeNull()
   expect(screen.getByText(label)).toBeTruthy()

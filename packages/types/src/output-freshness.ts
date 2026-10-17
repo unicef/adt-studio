@@ -130,6 +130,8 @@ export type OutputSummaries = z.infer<typeof OutputSummaries>
 /** Compact sidebar projection. Missing output becomes attention only in
  * `missingStages`, the stages that have been attempted (SPEC-0001 §6). */
 export const OutputStageSummaryResponse = z.object({
+  // Separates pre-baseline in-flight detail reads from the accepted projection.
+  legacyBaselineRevision: z.number().int().nonnegative().optional(),
   stages: z.record(OutputScopeSummary),
   stagesWithoutMissing: z.record(OutputScopeSummary),
   missingStages: z.array(StageName),
