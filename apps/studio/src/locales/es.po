@@ -1438,6 +1438,9 @@ msgstr "Alfabético"
 msgid "Already handed out"
 msgstr "Ya repartidas"
 
+msgid "Always on"
+msgstr "Siempre activo"
+
 msgid "Among the Stars"
 msgstr "Entre las Estrellas"
 
@@ -1576,6 +1579,9 @@ msgstr "Aplicación"
 
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Interfaz de programación de aplicaciones (API): conjunto de reglas que permite que los programas se comuniquen."
+
+msgid "Applies only to text normalization. Math read aloud runs either way. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+msgstr "Solo se aplica a la normalización del texto. La lectura de matemáticas en voz alta se ejecuta en cualquier caso. La preparación resuelve primero la configuración regional exacta, después el idioma base y, por último, este valor predeterminado. La orientación se incluye en la llamada al LLM almacenada en caché e inspeccionable."
 
 msgid "Applies to every language routed to ElevenLabs."
 msgstr "Se aplica a todos los idiomas dirigidos a ElevenLabs."
@@ -5610,6 +5616,9 @@ msgstr "Cargando datos de sección..."
 msgid "Loading speech instructions..."
 msgstr "Cargando instrucciones de voz..."
 
+msgid "Loading speech preparation..."
+msgstr "Cargando la preparación de voz..."
+
 msgid "Loading stats..."
 msgstr "Cargando estadísticas..."
 
@@ -5627,9 +5636,6 @@ msgstr "Cargando catálogo de textos..."
 
 msgid "Loading text sizes…"
 msgstr "Cargando tamaños de texto…"
-
-msgid "Loading TTS normalization..."
-msgstr "Cargando la normalización de TTS..."
 
 msgid "Loading validation..."
 msgstr "Cargando validación..."
@@ -5765,6 +5771,9 @@ msgstr "Coincide con el diseño original del libro con cierta flexibilidad."
 
 #~ msgid "Matching source section"
 #~ msgstr "Sección de origen correspondiente"
+
+msgid "Math read aloud"
+msgstr "Lectura de matemáticas en voz alta"
 
 msgid "Max height"
 msgstr "Altura máx"
@@ -7489,11 +7498,8 @@ msgstr "Prefiere términos centrales al tema del libro. Omite vocabulario genér
 msgid "Preferences"
 msgstr "Preferencias"
 
-msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
-msgstr "La preparación resuelve primero la configuración regional exacta, después el idioma base y, por último, este valor predeterminado. La orientación se incluye en la llamada al LLM almacenada en caché e inspeccionable."
-
-msgid "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
-msgstr "Preparar números, fechas y abreviaturas para una locución natural. Las matemáticas y LaTeX se tratan por separado."
+msgid "Prepare numbers, dates, and abbreviations for natural speech."
+msgstr "Preparar números, fechas y abreviaturas para una locución natural."
 
 msgid "Prepared speech text"
 msgstr "Texto preparado para voz"
@@ -8468,6 +8474,9 @@ msgstr "Revisando..."
 
 msgid "Revoked"
 msgstr "Revocado"
+
+msgid "Rewrites text before it is read aloud. The text on the page does not change."
+msgstr "Reescribe el texto antes de leerlo en voz alta. El texto de la página no cambia."
 
 msgid "Rewriting the story of this section..."
 msgstr "Reescribiendo la historia de esta sección..."
@@ -9448,6 +9457,15 @@ msgstr "Generación de voz"
 msgid "Speech narrates the translated text Language produces. Finish Language before running this stage."
 msgstr "La voz narra el texto traducido que produce Idioma. Termina Idioma antes de ejecutar esta etapa."
 
+msgid "Speech preparation"
+msgstr "Preparación de voz"
+
+msgid "Speech Preparation"
+msgstr "Preparación de voz"
+
+msgid "Speech Preparation Prompt"
+msgstr "Prompt de preparación de voz"
+
 msgid "Speech Preview"
 msgstr "Vista previa de Voz"
 
@@ -10127,6 +10145,9 @@ msgstr "La plantilla de prompt usada para dividir cada página en secciones lóg
 msgid "The prompt template used to translate text catalog entries."
 msgstr "La plantilla de prompt usada para traducir entradas del catálogo de textos."
 
+msgid "The prompt that prepares text for speech. It turns math into spoken words on every run, and applies the text normalization guidance when text normalization is on, so an edit affects both."
+msgstr "El prompt que prepara el texto para la voz. Convierte las matemáticas en palabras habladas en cada ejecución y aplica la orientación de normalización del texto cuando la normalización del texto está activada, así que una edición afecta a ambas."
+
 msgid "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 msgstr "El prompt utilizado por la pasada de revisión para inspeccionar y corregir un árbol de sección candidato. Comparte el modelo y la configuración de reintentos del prompt de sección."
 
@@ -10671,9 +10692,6 @@ msgstr "Prueba el problema de práctica"
 msgid "Try this screen again"
 msgstr "Intenta esta pantalla de nuevo"
 
-msgid "TTS Normalization"
-msgstr "Normalización de TTS"
-
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Ajusta cómo se simplifica el texto en la configuración del Prompt de Lectura Fácil. Después de ejecutar, cada bloque se puede editar aquí en el paso de Lectura Fácil."
 
@@ -10688,6 +10706,9 @@ msgstr "Actívelo para mostrar la tarjeta de revisión de Validación en la Vist
 
 msgid "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
 msgstr "Activar la normalización con {elevenLabsModel} requiere un plan Enterprise de ElevenLabs. Usa \"Desactivada\" o cambia a eleven_multilingual_v2, que además normaliza mejor los números."
+
+msgid "Turns math and LaTeX into spoken words, so formulas are never read out as raw notation."
+msgstr "Convierte las matemáticas y el LaTeX en palabras habladas, para que las fórmulas nunca se lean como notación sin procesar."
 
 msgid "Two authentication methods are supported: Bearer tokens passed in the Authorization header, and API keys passed as a query parameter. Bearer tokens are preferred for server-to-server requests due to their short expiry window."
 msgstr "Se admiten dos métodos de autenticación: tokens Bearer pasados en el encabezado de Autorización y claves de API pasadas como un parámetro de consulta. Se prefieren los tokens Bearer para solicitudes de servidor a servidor debido a su corta ventana de expiración."
