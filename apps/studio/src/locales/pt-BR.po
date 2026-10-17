@@ -419,8 +419,8 @@ msgstr "{disabledProvidersText} está desativado — adicione a chave de API del
 msgid "{elapsed}s"
 msgstr "{elapsed}s"
 
-msgid "{formatted} will be reset and need to run again before final outputs are available."
-msgstr "Estas etapas serão redefinidas e precisarão ser executadas novamente antes que os resultados finais fiquem disponíveis: {formatted}."
+#~ msgid "{formatted} will be reset and need to run again before final outputs are available."
+#~ msgstr "Estas etapas serão redefinidas e precisarão ser executadas novamente antes que os resultados finais fiquem disponíveis: {formatted}."
 
 msgid "{generatedFeatureCount} of 6 features generated"
 msgstr "{generatedFeatureCount} de 6 recursos gerados"
@@ -1204,8 +1204,11 @@ msgstr "Adicionado {0}"
 msgid "Added manually"
 msgstr "Adicionado manualmente"
 
-msgid "Adding a new image resets downstream work"
-msgstr "Adicionar uma nova imagem redefine o trabalho das etapas posteriores"
+msgid "Adding a new image may affect other stages"
+msgstr "Adicionar uma nova imagem pode afetar outras etapas"
+
+#~ msgid "Adding a new image resets downstream work"
+#~ msgstr "Adicionar uma nova imagem redefine o trabalho das etapas posteriores"
 
 msgid "Adding languages beyond the original is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Adicionar idiomas além do original não é compatível com Layout Fixo. Se você continuar, poderá obter resultados indesejados."
@@ -2261,8 +2264,11 @@ msgstr "Alterações detectadas"
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Alterar as fontes afeta como as páginas são renderizadas — execute novamente o Storyboard e a Exportação para aplicar as novas fontes."
 
-msgid "Changing the language resets downstream work."
-msgstr "Alterar o idioma redefine o trabalho das etapas seguintes."
+msgid "Changing the language may affect saved work."
+msgstr "Alterar o idioma pode afetar o trabalho salvo."
+
+#~ msgid "Changing the language resets downstream work."
+#~ msgstr "Alterar o idioma redefine o trabalho das etapas seguintes."
 
 msgid "Chapter"
 msgstr "Capítulo"
@@ -2543,8 +2549,8 @@ msgstr "Comparado com o prompt padrão."
 msgid "Completed"
 msgstr "Concluído"
 
-msgid "Completed language-based stages (quizzes, glossary, captions, audio) will be cleared and need to run again. You'll confirm first."
-msgstr "As etapas concluídas que dependem do idioma (questionários, glossário, texto alternativo, áudio) serão apagadas e precisarão ser executadas novamente. Você poderá confirmar antes."
+#~ msgid "Completed language-based stages (quizzes, glossary, captions, audio) will be cleared and need to run again. You'll confirm first."
+#~ msgstr "As etapas concluídas que dependem do idioma (questionários, glossário, texto alternativo, áudio) serão apagadas e precisarão ser executadas novamente. Você poderá confirmar antes."
 
 msgid "Completed Part"
 msgstr "Parte concluída"
@@ -2908,8 +2914,11 @@ msgstr "Criados {created} arquivos de prompt para {normalizedTargetModel}."
 msgid "Creates a ZIP archive of the full project — database, source PDF, and all pipeline outputs. Use it to back up or transfer the project to another machine."
 msgstr "Cria um arquivo ZIP do projeto completo — banco de dados, PDF de origem e todas as saídas do pipeline. Use para fazer backup ou transferir o projeto para outra máquina."
 
-msgid "Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again."
-msgstr "A criação de uma nova imagem de glossário altera o conjunto de imagens do livro. As etapas concluídas abaixo serão apagadas e precisarão ser executadas novamente."
+msgid "Creating a new glossary image changes the book's image set. Review the affected stages after this change."
+msgstr "Criar uma nova imagem para o glossário altera o conjunto de imagens do livro. Revise as etapas afetadas após essa alteração."
+
+#~ msgid "Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again."
+#~ msgstr "A criação de uma nova imagem de glossário altera o conjunto de imagens do livro. As etapas concluídas abaixo serão apagadas e precisarão ser executadas novamente."
 
 msgid "Creating..."
 msgstr "Criando..."
@@ -5803,6 +5812,9 @@ msgstr "Maximizar"
 msgid "Maximum length is {0} characters."
 msgstr "O comprimento máximo é de {0} caracteres."
 
+msgid "May need attention"
+msgstr "Pode precisar de atenção"
+
 msgid "Meaning"
 msgstr "Significado"
 
@@ -6979,6 +6991,9 @@ msgstr "Outros itens"
 msgid "Other options"
 msgstr "Outras opções"
 
+msgid "Other stages may need attention"
+msgstr "Outras etapas podem precisar de atenção"
+
 msgid "Other text"
 msgstr "Outro texto"
 
@@ -7886,8 +7901,8 @@ msgstr "Execute novamente estas etapas no livro montado:"
 msgid "Re-run translation"
 msgstr "Reexecutar tradução"
 
-msgid "Re-running clears later stages"
-msgstr "Reexecutar limpa as etapas posteriores"
+#~ msgid "Re-running clears later stages"
+#~ msgstr "Reexecutar limpa as etapas posteriores"
 
 msgid "Read it in their language."
 msgstr "Cada leitor no seu idioma."
@@ -8368,6 +8383,9 @@ msgstr "Reverter para {originalLanguageName}"
 msgid "Review"
 msgstr "Revisar"
 
+msgid "Review {formatted} after this run."
+msgstr "Revise {formatted} após esta execução."
+
 msgid "Review {label} outputs"
 msgstr "Revisar resultados de {label}"
 
@@ -8426,6 +8444,9 @@ msgstr "Rigor da revisão"
 
 msgid "Review style"
 msgstr "Estilo de revisão"
+
+msgid "Review the affected stages after this change."
+msgstr "Revise as etapas afetadas após essa alteração."
 
 msgid "Review the project details below and confirm the import."
 msgstr "Revise os detalhes do projeto abaixo e confirme a importação."
@@ -8703,6 +8724,12 @@ msgstr "Salve o novo tipo e escolha Regenerar para atualizar a atividade."
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Salve seu trabalho primeiro se quiser manter estas alterações."
+
+msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
+msgstr "O conteúdo salvo e as seções das páginas são mantidos. Revise as etapas afetadas após alterar o idioma. Nenhuma geração é iniciada automaticamente."
+
+msgid "Saved content is kept. Review language-dependent outputs after saving. No generation starts automatically."
+msgstr "O conteúdo salvo é mantido. Revise os resultados que dependem do idioma após salvar. Nenhuma geração é iniciada automaticamente."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Salvo. Reempacote a Prévia para aplicar."
@@ -10058,11 +10085,11 @@ msgstr "A ferramenta de linha de comando exigida por este provedor não foi enco
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "A comunidade de organismos vivos em um lugar e a forma como interagem entre si e com o ambiente."
 
-msgid "The completed stages below will be reset and need to run again before final outputs are available."
-msgstr "As etapas concluídas abaixo serão redefinidas e precisarão ser executadas novamente antes que os resultados finais estejam disponíveis."
+#~ msgid "The completed stages below will be reset and need to run again before final outputs are available."
+#~ msgstr "As etapas concluídas abaixo serão redefinidas e precisarão ser executadas novamente antes que os resultados finais estejam disponíveis."
 
-msgid "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
-msgstr "As etapas concluídas abaixo serão redefinidas e precisarão ser executadas novamente para usar o novo idioma. Suas seções de página são mantidas."
+#~ msgid "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
+#~ msgstr "As etapas concluídas abaixo serão redefinidas e precisarão ser executadas novamente para usar o novo idioma. Suas seções de página são mantidas."
 
 msgid "The connection check could not be completed."
 msgstr "Não foi possível concluir a verificação da conexão."
@@ -11387,8 +11414,8 @@ msgstr "Ampla cobertura multilíngue com vozes neurais para muitas variantes reg
 msgid "Width"
 msgstr "Largura"
 
-msgid "Will be reset"
-msgstr "Serão redefinidas"
+#~ msgid "Will be reset"
+#~ msgstr "Serão redefinidas"
 
 msgid "Windows"
 msgstr "Intervalos"

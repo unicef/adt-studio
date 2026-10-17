@@ -419,8 +419,8 @@ msgstr "{disabledProvidersText} is disabled — add its API key in Book settings
 msgid "{elapsed}s"
 msgstr "{elapsed}s"
 
-msgid "{formatted} will be reset and need to run again before final outputs are available."
-msgstr "{formatted} will be reset and need to run again before final outputs are available."
+#~ msgid "{formatted} will be reset and need to run again before final outputs are available."
+#~ msgstr "{formatted} will be reset and need to run again before final outputs are available."
 
 msgid "{generatedFeatureCount} of 6 features generated"
 msgstr "{generatedFeatureCount} of 6 features generated"
@@ -1204,8 +1204,11 @@ msgstr "Added {0}"
 msgid "Added manually"
 msgstr "Added manually"
 
-msgid "Adding a new image resets downstream work"
-msgstr "Adding a new image resets downstream work"
+msgid "Adding a new image may affect other stages"
+msgstr "Adding a new image may affect other stages"
+
+#~ msgid "Adding a new image resets downstream work"
+#~ msgstr "Adding a new image resets downstream work"
 
 msgid "Adding languages beyond the original is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Adding languages beyond the original is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
@@ -2261,8 +2264,11 @@ msgstr "Changes detected"
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 
-msgid "Changing the language resets downstream work."
-msgstr "Changing the language resets downstream work."
+msgid "Changing the language may affect saved work."
+msgstr "Changing the language may affect saved work."
+
+#~ msgid "Changing the language resets downstream work."
+#~ msgstr "Changing the language resets downstream work."
 
 msgid "Chapter"
 msgstr "Chapter"
@@ -2543,8 +2549,8 @@ msgstr "Compared with fallback prompt."
 msgid "Completed"
 msgstr "Completed"
 
-msgid "Completed language-based stages (quizzes, glossary, captions, audio) will be cleared and need to run again. You'll confirm first."
-msgstr "Completed language-based stages (quizzes, glossary, captions, audio) will be cleared and need to run again. You'll confirm first."
+#~ msgid "Completed language-based stages (quizzes, glossary, captions, audio) will be cleared and need to run again. You'll confirm first."
+#~ msgstr "Completed language-based stages (quizzes, glossary, captions, audio) will be cleared and need to run again. You'll confirm first."
 
 msgid "Completed Part"
 msgstr "Completed Part"
@@ -2908,8 +2914,11 @@ msgstr "Created {created} prompt files for {normalizedTargetModel}."
 msgid "Creates a ZIP archive of the full project — database, source PDF, and all pipeline outputs. Use it to back up or transfer the project to another machine."
 msgstr "Creates a ZIP archive of the full project — database, source PDF, and all pipeline outputs. Use it to back up or transfer the project to another machine."
 
-msgid "Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again."
-msgstr "Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again."
+msgid "Creating a new glossary image changes the book's image set. Review the affected stages after this change."
+msgstr "Creating a new glossary image changes the book's image set. Review the affected stages after this change."
+
+#~ msgid "Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again."
+#~ msgstr "Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again."
 
 msgid "Creating..."
 msgstr "Creating..."
@@ -5803,6 +5812,9 @@ msgstr "Maximize"
 msgid "Maximum length is {0} characters."
 msgstr "Maximum length is {0} characters."
 
+msgid "May need attention"
+msgstr "May need attention"
+
 msgid "Meaning"
 msgstr "Meaning"
 
@@ -6979,6 +6991,9 @@ msgstr "Other items"
 msgid "Other options"
 msgstr "Other options"
 
+msgid "Other stages may need attention"
+msgstr "Other stages may need attention"
+
 msgid "Other text"
 msgstr "Other text"
 
@@ -7886,8 +7901,8 @@ msgstr "Re-run these stages on the assembled book:"
 msgid "Re-run translation"
 msgstr "Re-run translation"
 
-msgid "Re-running clears later stages"
-msgstr "Re-running clears later stages"
+#~ msgid "Re-running clears later stages"
+#~ msgstr "Re-running clears later stages"
 
 msgid "Read it in their language."
 msgstr "Read it in their language."
@@ -8368,6 +8383,9 @@ msgstr "Revert to {originalLanguageName}"
 msgid "Review"
 msgstr "Review"
 
+msgid "Review {formatted} after this run."
+msgstr "Review {formatted} after this run."
+
 msgid "Review {label} outputs"
 msgstr "Review {label} outputs"
 
@@ -8426,6 +8444,9 @@ msgstr "Review strictness"
 
 msgid "Review style"
 msgstr "Review style"
+
+msgid "Review the affected stages after this change."
+msgstr "Review the affected stages after this change."
 
 msgid "Review the project details below and confirm the import."
 msgstr "Review the project details below and confirm the import."
@@ -8703,6 +8724,12 @@ msgstr "Save the new type, then choose Regenerate to update the activity."
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Save your work first if you want to keep these changes."
+
+msgid "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
+msgstr "Saved content and page sections are kept. Review the affected stages after changing the language. No generation starts automatically."
+
+msgid "Saved content is kept. Review language-dependent outputs after saving. No generation starts automatically."
+msgstr "Saved content is kept. Review language-dependent outputs after saving. No generation starts automatically."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
@@ -10058,11 +10085,11 @@ msgstr "The command-line tool this provider needs was not found on this machine.
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "The community of living organisms in a place and the way they interact with each other and their environment."
 
-msgid "The completed stages below will be reset and need to run again before final outputs are available."
-msgstr "The completed stages below will be reset and need to run again before final outputs are available."
+#~ msgid "The completed stages below will be reset and need to run again before final outputs are available."
+#~ msgstr "The completed stages below will be reset and need to run again before final outputs are available."
 
-msgid "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
-msgstr "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
+#~ msgid "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
+#~ msgstr "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
 
 msgid "The connection check could not be completed."
 msgstr "The connection check could not be completed."
@@ -11387,8 +11414,8 @@ msgstr "Wide multilingual coverage with neural voices for many locales."
 msgid "Width"
 msgstr "Width"
 
-msgid "Will be reset"
-msgstr "Will be reset"
+#~ msgid "Will be reset"
+#~ msgstr "Will be reset"
 
 msgid "Windows"
 msgstr "Windows"

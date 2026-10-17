@@ -5,6 +5,7 @@ import path from "node:path"
 import { openBookDb, createBookStorage } from "@adt/storage"
 import { zipSync } from "fflate"
 import { SCHEMA_VERSION } from "@adt/types"
+import { getSourceGenerationUpdates, keepSourceGeneration } from "@adt/pipeline"
 import type { StageName } from "@adt/types"
 import type {
   StageService,
@@ -445,12 +446,12 @@ describe("PUT /books/:label/metadata", () => {
           reasoning: "test",
         })
       }
-      // page-sectioning must survive a language change; the rest must be cleared.
+      // A language change keeps saved work; source generators need review.
       storage.putNodeData("page-sectioning", "pg001", { sections: [] })
       storage.putNodeData("easy-read", "book", { blocks: [] })
       storage.putNodeData("quiz-generation", "book", { quizzes: [] })
       // book-summary (Extract stage) is written in the book's language and only
-      // regenerates on a true base-language change.
+      // changes only when explicitly regenerated.
       storage.putNodeData("book-summary", "book", { summary: "x" })
       storage.markStepCompleted("page-sectioning")
       storage.markStepCompleted("translation")
@@ -491,7 +492,7 @@ describe("PUT /books/:label/metadata", () => {
   it("updates bibliographic fields without cascading to LLM stages", async () => {
     createTestBook("meta-biblio")
     seedDownstream("meta-biblio")
-    const app = createBookRoutes(tmpDir)
+    const app = createBookRoutes(tmpDir, undefined, globalConfigPath)
     const res = await app.request("/books/meta-biblio/metadata", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -523,10 +524,10 @@ describe("PUT /books/:label/metadata", () => {
     expect(state.quiz).not.toBeNull()
   })
 
-  it("cascades downstream LLM stages on a base-language change, signaling summary regen without clearing it", async () => {
+  it("marks retained generators for review after a base-language change without resetting catalog attempts", async () => {
     createTestBook("meta-lang") // seeded language "en"
     seedDownstream("meta-lang")
-    const app = createBookRoutes(tmpDir)
+    const app = createBookRoutes(tmpDir, undefined, globalConfigPath)
     const res = await app.request("/books/meta-lang/metadata", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -540,20 +541,20 @@ describe("PUT /books/:label/metadata", () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.languageChanged).toBe(true)
-    // Signals the client to regenerate the summary via the dedicated endpoint.
+    // Describes the change; saving must not trigger summary regeneration.
     expect(body.baseLanguageChanged).toBe(true)
 
     const stored = readMetadata("meta-lang")
     expect((stored?.data as { language_code: string }).language_code).toBe("fr")
 
     const state = readState("meta-lang")
-    // Catalog outputs survive a language change; non-catalog stages invalidate.
+    // All saved output survives; generator warnings are separate metadata.
     expect(state.easyRead).toMatchObject({ version: 1, data: { blocks: [] } })
-    expect(state.quiz).toBeNull()
-    expect(state.steps.has("easy-read")).toBe(false)
+    expect(state.quiz).toMatchObject({ version: 1, data: { quizzes: [] } })
+    expect(state.steps.get("easy-read")).toBe("done")
     expect(state.steps.has("quiz-generation")).toBe(false)
     // ...but the book summary is NOT cleared here — it stays visible and is
-    // refreshed via the book-summary regenerate endpoint, so Extract isn't reset.
+    // refreshed only on an explicit run, so Extract is not reset.
     expect(state.bookSummary).not.toBeNull()
     expect(state.steps.get("book-summary")).toBe("done")
     // ...and Sectioning (page structure + in-place translation) survives.
@@ -565,7 +566,7 @@ describe("PUT /books/:label/metadata", () => {
   it("keeps the book summary on a locale-only refinement (es -> es-UY)", async () => {
     createTestBook("meta-locale")
     seedDownstream("meta-locale", "es") // start from base Spanish
-    const app = createBookRoutes(tmpDir)
+    const app = createBookRoutes(tmpDir, undefined, globalConfigPath)
     const res = await app.request("/books/meta-locale/metadata", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -579,7 +580,7 @@ describe("PUT /books/:label/metadata", () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.languageChanged).toBe(true)
-    // Same base language → no summary regeneration signal.
+    // Same base language; summary regeneration remains an explicit action.
     expect(body.baseLanguageChanged).toBe(false)
 
     const stored = readMetadata("meta-locale")
@@ -589,16 +590,94 @@ describe("PUT /books/:label/metadata", () => {
     const state = readState("meta-locale")
     // Retained outputs can be reviewed against the changed locale.
     expect(state.easyRead).toMatchObject({ version: 1, data: { blocks: [] } })
-    expect(state.steps.has("easy-read")).toBe(false)
+    expect(state.steps.get("easy-read")).toBe("done")
     // ...but the book summary stays — same base language (Spanish).
     expect(state.bookSummary).not.toBeNull()
     expect(state.steps.get("book-summary")).toBe("done")
     expect(state.sectioning).not.toBeNull()
   })
 
+  it("retains current generators, manual captions and translated image bytes through a language change", async () => {
+    createTestBook("meta-retained")
+    const storage = createBookStorage("meta-retained", tmpDir)
+    storage.putExtractedPage({ pageId: "pg001", pageNumber: 1, text: "Text", pageImage: {
+      imageId: "pg001_page", buffer: Buffer.from("page"), format: "png", hash: "page", width: 1, height: 1,
+    }, images: [] })
+    const generators = ["quiz-generation", "glossary", "toc-generation"] as const
+    for (const node of generators) storage.putNodeData(node, "book", { retained: "authored" })
+    storage.putNodeData("image-captioning", "pg001", { captions: [{ imageId: "pg001_im001", caption: "Hand edited", source: "manual", reasoning: "" }] })
+    storage.markStepCompleted("image-captioning")
+    const imageId = storage.putTranslatedImage({ sourceImageId: "pg001_im001", pageId: "pg001", languageCode: "fr", buffer: Buffer.from("retained-image"), width: 1, height: 1 })
+    const image = storage.getImageMeta(imageId)!
+    const manifest = storage.getLatestNodeData("image-translation", imageId)
+    const caption = storage.getLatestNodeData("image-captioning", "pg001")
+    storage.close()
+
+    const app = createBookRoutes(tmpDir, undefined, globalConfigPath)
+    const response = await app.request("/books/meta-retained/metadata", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Test Book", authors: ["Author"], publisher: null, language_code: "de" }),
+    })
+    expect(response.status).toBe(200)
+    // Reopen real SQLite; saved content and physical images remain usable,
+    // without appending null versions or resetting catalog attempt history.
+    const reopened = createBookStorage("meta-retained", tmpDir)
+    try {
+      for (const node of generators) {
+        expect(reopened.getLatestNodeData(node, "book")).toMatchObject({ version: 1, data: { retained: "authored" } })
+        expect(reopened.getAllNodeVersions(node, "book")).toHaveLength(1)
+      }
+      expect(getSourceGenerationUpdates(reopened)).toEqual([...generators])
+      expect(reopened.getLatestNodeData("image-captioning", "pg001")).toEqual(caption)
+      expect(reopened.getStepRuns().find(run => run.step === "image-captioning")?.status).toBe("done")
+      expect(reopened.getImageMeta(imageId)).toEqual(image)
+      expect(reopened.getLatestNodeData("image-translation", imageId)).toEqual(manifest)
+      expect(fs.readFileSync(path.join(reopened.bookDir, image.relativePath))).toEqual(Buffer.from("retained-image"))
+      keepSourceGeneration(reopened, "glossary")
+      expect(getSourceGenerationUpdates(reopened)).not.toContain("glossary")
+      expect(reopened.getAllNodeVersions("glossary", "book")).toHaveLength(1)
+    } finally { reopened.close() }
+  })
+
+  it.each(["global", "book"])("does not warn when the %s editing-language override keeps actual inputs unchanged", async (scope) => {
+    createTestBook("meta-override")
+    seedDownstream("meta-override")
+    const overridePath = scope === "global" ? globalConfigPath : path.join(tmpDir, "meta-override", "config.yaml")
+    fs.writeFileSync(overridePath, "structure_types: {}\nrole_types: {}\nediting_language: fr\n")
+    const app = createBookRoutes(tmpDir, undefined, globalConfigPath)
+    const response = await app.request("/books/meta-override/metadata", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Test Book", authors: ["Author"], publisher: null, language_code: "de" }),
+    })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ languageChanged: true, baseLanguageChanged: true })
+    const storage = createBookStorage("meta-override", tmpDir)
+    try {
+      expect(getSourceGenerationUpdates(storage)).toEqual([])
+      expect(storage.getStepRuns().find(run => run.step === "quiz-generation")?.status).toBe("done")
+      expect(storage.getLatestNodeData("quiz-generation", "book")?.version).toBe(1)
+      expect(storage.getStepRuns().find(run => run.step === "package-web")).toBeUndefined()
+    } finally { storage.close() }
+  })
+
+  it("keeps generator attempts when clearing English metadata still resolves to default English", async () => {
+    createTestBook("meta-default")
+    seedDownstream("meta-default")
+    const response = await createBookRoutes(tmpDir, undefined, globalConfigPath).request("/books/meta-default/metadata", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Test Book", authors: ["Author"], publisher: null, language_code: null }),
+    })
+    expect(response.status).toBe(200)
+    const storage = createBookStorage("meta-default", tmpDir)
+    try {
+      expect(getSourceGenerationUpdates(storage)).toEqual([])
+      expect(storage.getStepRuns().find(run => run.step === "quiz-generation")?.status).toBe("done")
+    } finally { storage.close() }
+  })
+
   it("preserves cover_page_number and reasoning when the client omits them", async () => {
     createTestBook("meta-preserve")
-    const app = createBookRoutes(tmpDir)
+    const app = createBookRoutes(tmpDir, undefined, globalConfigPath)
     const res = await app.request("/books/meta-preserve/metadata", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -622,7 +701,7 @@ describe("PUT /books/:label/metadata", () => {
   it("returns 404 when the book has no metadata to edit", async () => {
     const storage = createBookStorage("meta-empty", tmpDir)
     storage.close()
-    const app = createBookRoutes(tmpDir)
+    const app = createBookRoutes(tmpDir, undefined, globalConfigPath)
     const res = await app.request("/books/meta-empty/metadata", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -632,7 +711,7 @@ describe("PUT /books/:label/metadata", () => {
   })
 
   it("returns 400 for invalid label", async () => {
-    const app = createBookRoutes(tmpDir)
+    const app = createBookRoutes(tmpDir, undefined, globalConfigPath)
     const res = await app.request("/books/-bad/metadata", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
