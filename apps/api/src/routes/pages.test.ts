@@ -108,6 +108,34 @@ describe("Page routes", () => {
   })
 
   describe("GET /api/books/:label/pages", () => {
+    it("includes referenced glossary images before captions exist without double counting extraction images", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      const pageId = `${label}_p1`
+      storage.putExtractedPage({
+        pageId, pageNumber: 1, text: "Page one text content",
+        pageImage: { imageId: `${pageId}_page`, buffer: Buffer.from("page"), format: "png", hash: "page", width: 800, height: 600 },
+        images: ["kept", "glossary-only"].map(imageId => ({ imageId, buffer: Buffer.from(imageId), format: "png" as const, hash: imageId, width: 50, height: 50 })),
+      })
+      storage.putNodeData("image-filtering", pageId, { images: [{ imageId: "kept" }] })
+      storage.putNodeData("glossary", "book", { items: [
+        { id: "gl001", word: "Apple", definition: "Fruit", variations: [], emojis: [], imageId: "glossary-only" },
+        { id: "gl002", word: "Tree", definition: "Plant", variations: [], emojis: [], imageId: "kept" },
+      ] })
+      storage.close()
+
+      const pages = await (await app.request(`/api/books/${label}/pages`)).json()
+      expect(pages[0]).toMatchObject({ imageCount: 2, hasCaptioning: false })
+      expect(pages[1].imageCount).toBe(0)
+
+      const reopened = createBookStorage(label, tmpDir)
+      expect(reopened.getLatestNodeData("image-captioning", pageId)).toBeNull()
+      const glossary = reopened.getLatestNodeData("glossary", "book")!
+      reopened.putNodeData("glossary", "book", { items: (glossary.data as { items: Array<Record<string, unknown>> }).items.map(item => ({ ...item, pruned: true })) })
+      reopened.close()
+      const pruned = await (await app.request(`/api/books/${label}/pages`)).json()
+      expect(pruned[0].imageCount).toBe(1)
+    })
+
     it("returns empty pages for a PDF-only new book without creating its database", async () => {
       const dir = path.join(tmpDir, "new-book")
       fs.mkdirSync(dir)

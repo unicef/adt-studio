@@ -7,7 +7,7 @@ import { catalogOutputs, editSourceSignature, assertEditSource, assertEditVersio
 import { OutputEditGuard } from "@adt/types"
 import { outputEvidence } from "@adt/pipeline"
 import { restoreSpeechOutput } from "@adt/storage"
-import { reconcileTextCatalog, assignActivityIds, buildTextCatalogSnapshot, inputSignature } from "@adt/pipeline"
+import { reconcileTextCatalog, assignActivityIds, buildTextCatalogSnapshot, buildImageInventory, inputSignature } from "@adt/pipeline"
 import { randomUUID } from "node:crypto"
 import crypto from "node:crypto"
 import fs from "node:fs"
@@ -840,8 +840,10 @@ export function createPageRoutes(
         captioned.add(row.item_id)
       }
 
-      // Get image counts per page from image-filtering node data
-      const imageCounts = new Map<string, number>()
+      // Preserve extraction counts and include active assets introduced later
+      // through Storyboard or Glossary. Captions must discover these before a
+      // caption exists, even on pages with no retained extracted images.
+      const imageIdsByPage = new Map<string, Set<string>>()
       const imageRows = db.all(
         `SELECT nd.item_id AS item_id, nd.data AS data
          FROM node_data nd
@@ -851,17 +853,29 @@ export function createPageRoutes(
         ["image-filtering"]
       ) as Array<{ item_id: string; data: string }>
       for (const row of imageRows) {
-        if (!imageCounts.has(row.item_id)) {
+        if (!imageIdsByPage.has(row.item_id)) {
           try {
             const parsed = JSON.parse(row.data)
             const images = parsed.images as Array<{ imageId: string }>
             // Exclude page image from count
-            const count = images.filter((img) => img.imageId !== `${row.item_id}_page`).length
-            imageCounts.set(row.item_id, count)
+            imageIdsByPage.set(row.item_id, new Set(images
+              .filter((img) => img.imageId !== `${row.item_id}_page`)
+              .map((img) => img.imageId)))
           } catch {
-            imageCounts.set(row.item_id, 0)
+            imageIdsByPage.set(row.item_id, new Set())
           }
         }
+      }
+      const inventoryStorage = createBookStorage(safeLabel, booksDir)
+      try {
+        for (const image of inventoryStorage.readSnapshot(() => buildImageInventory(inventoryStorage))) {
+          if (!image.pageId || !image.available) continue
+          const ids = imageIdsByPage.get(image.pageId) ?? new Set<string>()
+          ids.add(image.id)
+          imageIdsByPage.set(image.pageId, ids)
+        }
+      } finally {
+        inventoryStorage.close()
       }
 
       // Get section counts, pruned indices, sectionIds, and flattened text per page from page-sectioning node data
@@ -956,7 +970,7 @@ export function createPageRoutes(
         hasRendering: rendered.has(p.page_id),
         hasCaptioning: captioned.has(p.page_id),
         textPreview: structuredText.get(p.page_id) ?? p.text.slice(0, 150),
-        imageCount: imageCounts.get(p.page_id) ?? 0,
+        imageCount: imageIdsByPage.get(p.page_id)?.size ?? 0,
         wordCount: p.text.trim() ? p.text.trim().split(/\s+/).length : 0,
         sectionCount: sectionCounts.get(p.page_id) ?? 0,
         prunedSections: prunedSections.get(p.page_id) ?? [],
