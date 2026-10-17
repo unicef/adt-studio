@@ -7504,6 +7504,9 @@ msgstr "Prepara números, datas e abreviações para uma fala natural."
 msgid "Prepared speech text"
 msgstr "Texto preparado para narração"
 
+msgid "Prepares math and LaTeX as spoken words for audio."
+msgstr "Prepara matemática e LaTeX como palavras faladas para o áudio."
+
 msgid "Preparing speech..."
 msgstr "Preparando o áudio..."
 
@@ -10706,9 +10709,6 @@ msgstr "Ative para mostrar o cartão de revisão de Validação na Prévia e a a
 
 msgid "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
 msgstr "Ativar a normalização com {elevenLabsModel} exige um plano Enterprise do ElevenLabs. Use “Desligado” ou mude para eleven_multilingual_v2, que aliás normaliza números melhor."
-
-msgid "Turns math and LaTeX into spoken words, so formulas are never read out as raw notation."
-msgstr "Converte matemática e LaTeX em palavras faladas, para que fórmulas nunca sejam lidas como notação bruta."
 
 msgid "Two authentication methods are supported: Bearer tokens passed in the Authorization header, and API keys passed as a query parameter. Bearer tokens are preferred for server-to-server requests due to their short expiry window."
 msgstr "Dois métodos de autenticação são suportados: tokens Bearer passados no cabeçalho de autorização e chaves de API passadas como um parâmetro de consulta. Tokens Bearer são preferidos para solicitações de servidor para servidor devido à sua curta janela de expiração."

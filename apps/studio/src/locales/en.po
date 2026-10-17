@@ -7504,6 +7504,9 @@ msgstr "Prepare numbers, dates, and abbreviations for natural speech."
 msgid "Prepared speech text"
 msgstr "Prepared speech text"
 
+msgid "Prepares math and LaTeX as spoken words for audio."
+msgstr "Prepares math and LaTeX as spoken words for audio."
+
 msgid "Preparing speech..."
 msgstr "Preparing speech..."
 
@@ -10706,9 +10709,6 @@ msgstr "Turn this on to show the Validation review card in Preview and the Revie
 
 msgid "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
 msgstr "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
-
-msgid "Turns math and LaTeX into spoken words, so formulas are never read out as raw notation."
-msgstr "Turns math and LaTeX into spoken words, so formulas are never read out as raw notation."
 
 msgid "Two authentication methods are supported: Bearer tokens passed in the Authorization header, and API keys passed as a query parameter. Bearer tokens are preferred for server-to-server requests due to their short expiry window."
 msgstr "Two authentication methods are supported: Bearer tokens passed in the Authorization header, and API keys passed as a query parameter. Bearer tokens are preferred for server-to-server requests due to their short expiry window."
