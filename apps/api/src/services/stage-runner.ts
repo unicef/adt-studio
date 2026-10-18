@@ -636,6 +636,62 @@ function getExistingSpeechEntries(
 }
 
 /**
+ * Word timestamps describe one specific audio file. When a speech run
+ * regenerates audio but cannot re-transcribe it (word highlighting is on but
+ * there is no OpenAI key for Whisper), the stored timestamps for those entries
+ * no longer match what the reader plays — and the preview/export keep serving
+ * them because `speech.word_highlighting` is still on. Drop exactly those
+ * entries, keeping timestamps whose audio was reused unchanged and entries this
+ * run never touched (manual recordings, failed items). A new version is written
+ * only when something was dropped.
+ */
+function pruneTimestampsForRegeneratedAudio(
+  label: string,
+  storage: Storage,
+  outputLanguages: string[],
+  ttsResultsByLang: Map<string, SpeechFileEntry[]>,
+  reusedSlotIdsByLang: Map<string, Set<string>>,
+): void {
+  for (const lang of outputLanguages) {
+    const reused = reusedSlotIdsByLang.get(lang) ?? new Set<string>()
+    const regenerated = new Set(
+      (ttsResultsByLang.get(lang) ?? [])
+        .map((entry) => voiceSlotEntryId(entry.textId, entry.voiceSlot))
+        .filter((slotId) => !reused.has(slotId)),
+    )
+    if (regenerated.size === 0) continue
+
+    const normalizedLanguage = normalizeLocale(lang)
+    const legacyLanguage = normalizedLanguage.replace("-", "_")
+    const row =
+      storage.getLatestNodeData("tts-timestamps", normalizedLanguage) ??
+      storage.getLatestNodeData("tts-timestamps", legacyLanguage)
+    const existing = row?.data as WordTimestampOutput | undefined
+    if (!existing) continue
+
+    const existingEntries = existing.entries ?? {}
+    const entries = Object.fromEntries(
+      Object.entries(existingEntries).filter(([slotId]) => !regenerated.has(slotId)),
+    )
+    const existingFailed = existing.failed ?? []
+    const failed = existingFailed.filter(
+      (item) => !regenerated.has(voiceSlotEntryId(item.textId, item.voiceSlot)),
+    )
+    const dropped = Object.keys(existingEntries).length - Object.keys(entries).length
+    if (dropped === 0 && failed.length === existingFailed.length) continue
+
+    storage.putNodeData("tts-timestamps", normalizedLanguage, {
+      entries,
+      generatedAt: new Date().toISOString(),
+      ...(failed.length > 0 ? { failed } : {}),
+    } satisfies WordTimestampOutput)
+    console.warn(
+      `[stage-run] ${label}: dropped ${dropped} stale word timestamp entries for ${lang} — their audio was regenerated but could not be re-transcribed without an OpenAI key`,
+    )
+  }
+}
+
+/**
  * Page id a text-catalog entry belongs to (`pg001`, spread `pg001002`), or null
  * for book-level ids (glossary/quiz) that carry no page prefix. Matches the id
  * convention `pg<NNN>[_sec…]` with an optional `_easy_read` suffix. Used to
@@ -3012,10 +3068,15 @@ async function runSpeechStep(
     const ttsResultsByLang = new Map<string, SpeechFileEntry[]>()
     const failedByLang = new Map<string, SpeechFailedEntry[]>()
     const reusedEntriesByLang = new Map<string, number>()
+    // Slot-qualified ids whose audio was carried over unchanged from the
+    // previous TTS output. The word-timestamps skip path uses this to tell
+    // which stored timestamps still describe the audio on disk.
+    const reusedSlotIdsByLang = new Map<string, Set<string>>()
     for (const lang of outputLanguages) {
       ttsResultsByLang.set(lang, [])
       failedByLang.set(lang, [])
       reusedEntriesByLang.set(lang, 0)
+      reusedSlotIdsByLang.set(lang, new Set())
     }
     // Expose the (live-mutated) result arrays so GET /tts can serve a
     // progressive snapshot while this run is active. Cleared in `finally`.
@@ -3154,6 +3215,7 @@ async function runSpeechStep(
             }
             ttsResultsByLang.get(lang)?.push(refreshedEntry)
             reusedEntriesByLang.set(lang, (reusedEntriesByLang.get(lang) ?? 0) + 1)
+            reusedSlotIdsByLang.get(lang)?.add(slotEntryId)
             continue
           }
 
@@ -3653,9 +3715,11 @@ async function runSpeechStep(
     progress.emit({ type: "step-complete", step: "tts" })
 
     // Word timestamps come from OpenAI Whisper. Without an OpenAI key the step
-    // is skipped exactly like a disabled one (Studio shows it as unavailable),
-    // so existing timestamp rows are left alone instead of being replaced by an
-    // empty version that reports the step as complete.
+    // is skipped (Studio shows it as unavailable) instead of saving an empty
+    // version that reports the step as complete. Unlike the disabled case,
+    // `speech.word_highlighting` stays on, so the preview keeps serving stored
+    // timestamps — the skip path below drops the ones whose audio this run
+    // regenerated so the reader never highlights against the wrong audio.
     const wordHighlightingRequested = config.speech?.word_highlighting === true
     const hasWhisperKey = Boolean(openaiApiKey?.trim())
     const wordHighlightingEnabled = wordHighlightingRequested && hasWhisperKey
@@ -3706,6 +3770,13 @@ async function runSpeechStep(
       progress.emit({ type: "step-skip", step: "word-timestamps" })
       if (wordHighlightingRequested) {
         console.warn(`[stage-run] ${label}: word-level highlighting needs an OpenAI key (Whisper); skipping timestamp generation`)
+        pruneTimestampsForRegeneratedAudio(
+          label,
+          storage,
+          outputLanguages,
+          ttsResultsByLang,
+          reusedSlotIdsByLang,
+        )
       } else {
         console.log(`[stage-run] ${label}: word-level highlighting disabled; skipping timestamp generation`)
       }
