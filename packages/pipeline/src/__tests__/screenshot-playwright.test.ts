@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { _createScreenshotRenderer, DEFAULT_SCREENSHOT_TIMEOUT_MS } from "../screenshot.js"
+import {
+  _createScreenshotRenderer,
+  _resetCaptureSemaphore,
+  _withCaptureLimit,
+  DEFAULT_SCREENSHOT_TIMEOUT_MS,
+} from "../screenshot.js"
 import { runVisualReviewLoop } from "../visual-review.js"
 
 const playwright = vi.hoisted(() => ({ launch: vi.fn() }))
@@ -209,6 +214,52 @@ describe("Playwright screenshot lifecycle", () => {
     await expect(result).resolves.toEqual({ html: "<section>Generated content</section>", approved: false })
     expect(mocks.browser.newContext).toHaveBeenCalledTimes(6)
     expect(generateObject).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+})
+
+describe("Playwright screenshot behind the capture limit", () => {
+  const original = process.env.ADT_SCREENSHOT_CONCURRENCY
+
+  beforeEach(() => {
+    process.env.ADT_SCREENSHOT_CONCURRENCY = "1"
+    _resetCaptureSemaphore()
+  })
+
+  afterEach(() => {
+    if (original === undefined) delete process.env.ADT_SCREENSHOT_CONCURRENCY
+    else process.env.ADT_SCREENSHOT_CONCURRENCY = original
+    _resetCaptureSemaphore()
+  })
+
+  it("starts the whole-capture deadline once the capture holds a slot, not when it queues", async () => {
+    const mocks = setupBrowser()
+    const firstLoad = deferred<void>()
+    mocks.page.setContent
+      .mockReturnValueOnce(firstLoad.promise)
+      .mockReturnValueOnce(new Promise<never>(() => {}))
+    const renderer = _withCaptureLimit(await _createScreenshotRenderer())
+
+    const first = renderer.screenshot("first", undefined, { timeoutMs: 10_000 })
+    let queuedSettled = false
+    const queued = renderer.screenshot("queued", undefined, { timeoutMs: 100 })
+    void queued.then(() => {}, () => {}).finally(() => { queuedSettled = true })
+
+    // Five times the queued capture's budget passes while it waits for the slot.
+    await vi.advanceTimersByTimeAsync(500)
+    expect(queuedSettled).toBe(false)
+    expect(mocks.browser.newContext).toHaveBeenCalledTimes(1)
+
+    firstLoad.resolve()
+    await expect(first).resolves.toBe(Buffer.from("png").toString("base64"))
+    expect(mocks.browser.newContext).toHaveBeenCalledTimes(2)
+
+    // Its own load stalls, so its full 100ms budget runs from the grant.
+    const rejection = expect(queued).rejects.toThrow("Screenshot timed out after 100ms")
+    await vi.advanceTimersByTimeAsync(99)
+    expect(queuedSettled).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    await rejection
     expect(vi.getTimerCount()).toBe(0)
   })
 })
