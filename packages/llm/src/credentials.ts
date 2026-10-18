@@ -1,4 +1,4 @@
-import type { ProviderFieldStatus } from "@adt/types"
+import { applySharedCredentialFallbacks, type ProviderFieldStatus } from "@adt/types"
 import { AiProviderError } from "./ports/errors.js"
 import type { AnyProviderModule, ProviderCredentialValues } from "./ports/index.js"
 
@@ -31,7 +31,13 @@ export function extractCredentialsFromHeaders(
     }
   }
 
-  return credentials
+  // A field declared as shared (Gemini Speech ← Google) takes the other
+  // provider's header when its own is absent, so the browser only has to hold
+  // one key. Own header first; the result is what every route sees.
+  return applySharedCredentialFallbacks(
+    modules.map((module) => module.manifest),
+    credentials,
+  )
 }
 
 /**

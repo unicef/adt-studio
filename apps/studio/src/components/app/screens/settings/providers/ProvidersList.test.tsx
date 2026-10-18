@@ -107,8 +107,12 @@ vi.mock("@/hooks/use-cli-login", () => ({ useCliLogin: () => cliLogin }))
 vi.mock("@/hooks/use-provider-credentials", () => ({
   useProviderCredentials: () => ({
     providers,
-    credentials: {},
-    credentialValue: () => "",
+    credentials,
+    credentialValue: (providerId: string, fieldKey: string) =>
+      credentials[providerId]?.[fieldKey] ?? "",
+    ownCredentials,
+    ownCredentialValue: (providerId: string, fieldKey: string) =>
+      ownCredentials[providerId]?.[fieldKey] ?? "",
     setCredential,
     isLoading: false,
     error: null,
@@ -116,6 +120,9 @@ vi.mock("@/hooks/use-provider-credentials", () => ({
 }))
 
 const setCredential = vi.fn()
+/** Effective values (shared fallbacks applied) and own stored values, per test. */
+let credentials: Record<string, Record<string, string>> = {}
+let ownCredentials: Record<string, Record<string, string>> = {}
 
 const { ProvidersList } = await import("./ProvidersList")
 
@@ -137,6 +144,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   setCredential.mockClear()
+  credentials = {}
+  ownCredentials = {}
   cliLogin.status = null
   cliLogin.start.mockClear()
   cliLogin.logout.mockClear()
@@ -266,5 +275,42 @@ describe("ProvidersList — live manifests", () => {
     await waitFor(() =>
       expect(within(panel).getByText("The provider could not be reached.")).toBeTruthy(),
     )
+  })
+
+  it("tells a shared-key card whose key it is using and who else reads the source", async () => {
+    const google = descriptor("google", { displayName: "Google" })
+    const gemini = descriptor("gemini", {
+      displayName: "Gemini Speech",
+      modalities: ["tts"],
+      capabilities: {
+        tts: { formats: ["wav"], voices: [], languages: [], instructions: true, rateLimitMode: "fixed" },
+      },
+      credentialFields: [
+        {
+          ...descriptor("gemini").manifest.credentialFields[0],
+          sharedWith: { providerId: "google", fieldKey: "apiKey" },
+        },
+      ],
+    })
+    providers = [google, gemini]
+    ownCredentials = { google: { apiKey: "AIza-google" } }
+    credentials = { google: { apiKey: "AIza-google" }, gemini: { apiKey: "AIza-google" } }
+    render(<ProvidersList />)
+
+    const geminiPanel = panelFor("gemini")
+    await waitFor(() =>
+      expect(
+        within(geminiPanel).getByText(
+          "Using the Google API key. Enter a key here only to use a different one.",
+        ),
+      ).toBeTruthy(),
+    )
+    // Nothing is stored for Gemini Speech itself, so there is nothing to remove.
+    expect(within(geminiPanel).queryByRole("button", { name: "Remove" })).toBeNull()
+
+    const googlePanel = panelFor("google")
+    expect(
+      within(googlePanel).getByText("Also used by Gemini Speech unless that provider has its own key."),
+    ).toBeTruthy()
   })
 })

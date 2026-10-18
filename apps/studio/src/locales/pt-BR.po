@@ -1408,6 +1408,9 @@ msgstr "Alfabético"
 msgid "Already handed out"
 msgstr "Já distribuídas"
 
+msgid "Also used by {readerNames} unless that provider has its own key."
+msgstr "Também usada por {readerNames}, a menos que esse provedor tenha a própria chave."
+
 msgid "Always on"
 msgstr "Sempre ligado"
 
@@ -10716,11 +10719,11 @@ msgstr "Utilizada para modelos Claude (claude-opus-4-6, claude-sonnet-4-6, etc.)
 msgid "Used for ElevenLabs text-to-speech."
 msgstr "Usado para a conversão de texto em fala do ElevenLabs."
 
-msgid "Used for Gemini text and image models (gemini-3.1-pro-preview, gemini-3.1-flash-image, etc.). Speech uses the separate Gemini Speech provider, which takes the same API key."
-msgstr "Usado para os modelos de texto e imagem do Gemini (gemini-3.1-pro-preview, gemini-3.1-flash-image, etc.). A fala usa o provedor separado Gemini Speech, que aceita a mesma chave de API."
+msgid "Used for Gemini text and image models (gemini-3.1-pro-preview, gemini-3.1-flash-image, etc.). Gemini Speech uses this key too unless it has one of its own."
+msgstr "Usado para os modelos de texto e imagem do Gemini (gemini-3.1-pro-preview, gemini-3.1-flash-image, etc.). O Gemini Speech também usa esta chave, a menos que tenha uma própria."
 
-msgid "Used for Gemini text-to-speech. Takes the same API key as the Google AI provider."
-msgstr "Usado para a síntese de voz do Gemini. Aceita a mesma chave de API do provedor Google AI."
+msgid "Used for Gemini text-to-speech. Uses your Google AI key unless you enter a different one here."
+msgstr "Usado para a síntese de voz do Gemini. Usa a sua chave do Google AI, a menos que você informe uma diferente aqui."
 
 #~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
 #~ msgstr "Usado para conversão de texto em fala da OpenAI nestas tarefas do pipeline:"
@@ -10742,6 +10745,9 @@ msgstr "Usada neste questionário"
 
 msgid "Using fallback"
 msgstr "Usando o prompt padrão"
+
+msgid "Using the {sourceName} API key. Enter a key here only to use a different one."
+msgstr "Usando a chave de API de {sourceName}. Informe uma chave aqui apenas para usar uma diferente."
 
 msgid "v{hovered} preview"
 msgstr "Prévia da v{hovered}"

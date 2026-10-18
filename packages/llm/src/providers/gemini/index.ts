@@ -12,6 +12,7 @@ import {
   audioMimeType,
 } from "../shared/openai-rest/speech.js"
 import { LABEL_API_KEY } from "../shared/i18n.js"
+import { GOOGLE_PROVIDER_ID } from "../google/index.js"
 
 export const GEMINI_PROVIDER_ID = "gemini"
 const ADAPTER_VERSION = "gemini-tts-1"
@@ -41,6 +42,10 @@ export const geminiManifest: ProviderManifest = {
       legacyHeaders: [],
       storageKey: "adt-studio-gemini-key",
       legacyStorageKeys: [],
+      // The same Google AI Studio key as the text/image provider. Falls back
+      // to it wherever credentials are read, so the key is entered once; a
+      // key saved for this provider still wins.
+      sharedWith: { providerId: GOOGLE_PROVIDER_ID, fieldKey: "apiKey" },
     },
   ],
   capabilities: {
@@ -118,7 +123,14 @@ export const geminiProvider: ProviderModule<GeminiCredentials> = {
   manifest: geminiManifest,
   credentialSchema,
 
-  resolveServerCredentials: () => ({ apiKey: process.env.GEMINI_API_KEY }),
+  // GEMINI_API_KEY stays the dedicated override; the Google provider's env
+  // vars cover speech too, the server-side half of the manifest's `sharedWith`.
+  resolveServerCredentials: () => ({
+    apiKey:
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+      process.env.GOOGLE_API_KEY,
+  }),
 
   capabilitiesFor: (modality, modelId) =>
     modality === "tts" ? (ttsCapabilitiesFor(modelId) as never) : undefined,

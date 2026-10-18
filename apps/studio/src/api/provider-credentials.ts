@@ -1,4 +1,8 @@
-import type { AiModality, ProviderDescriptor } from "@adt/types"
+import {
+  applySharedCredentialFallbacks,
+  type AiModality,
+  type ProviderDescriptor,
+} from "@adt/types"
 
 /** Credential values keyed by provider id, then manifest field key. */
 export type ProviderCredentialValues = Record<string, Record<string, string>>
@@ -119,8 +123,12 @@ export function isAiOperationAvailable(
   )
 }
 
-/** Read current and legacy storage keys declared by each provider. */
-export function readProviderCredentialsFromStorage(
+/**
+ * Read current and legacy storage keys declared by each provider — a
+ * provider's own stored values only, which is what the Settings editors show
+ * and write. Prefer {@link readProviderCredentialsFromStorage} everywhere else.
+ */
+export function readOwnProviderCredentialsFromStorage(
   providers: readonly ProviderDescriptor[],
   storage: CredentialStorage,
 ): ProviderCredentialValues {
@@ -141,6 +149,22 @@ export function readProviderCredentialsFromStorage(
   }
 
   return credentials
+}
+
+/**
+ * Effective credentials: each provider's own stored values plus the shared
+ * fallbacks the manifests declare (`sharedWith`), so Gemini Speech picks up
+ * the Google key without a second entry. Availability checks and request
+ * headers must use this one.
+ */
+export function readProviderCredentialsFromStorage(
+  providers: readonly ProviderDescriptor[],
+  storage: CredentialStorage,
+): ProviderCredentialValues {
+  return applySharedCredentialFallbacks(
+    providers.map(({ manifest }) => manifest),
+    readOwnProviderCredentialsFromStorage(providers, storage),
+  )
 }
 
 /** Write the canonical key and clear legacy copies so stale values cannot return. */

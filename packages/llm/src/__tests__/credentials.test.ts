@@ -73,6 +73,23 @@ describe("extractCredentialsFromHeaders", () => {
     expect(credentials.anthropic).toBeUndefined()
     expect(credentials.gemini).toBeUndefined()
   })
+
+  it("fills a shared credential from the other provider's header", () => {
+    const credentials = extractCredentialsFromHeaders(
+      BUILT_IN_PROVIDERS,
+      headerReader({ "X-Google-API-Key": "AIza-shared" }),
+    )
+    expect(credentials.google).toEqual({ apiKey: "AIza-shared" })
+    expect(credentials.gemini).toEqual({ apiKey: "AIza-shared" })
+  })
+
+  it("keeps a provider's own header over the shared one", () => {
+    const credentials = extractCredentialsFromHeaders(
+      BUILT_IN_PROVIDERS,
+      headerReader({ "X-Google-API-Key": "AIza-google", "X-Gemini-API-Key": "AIza-gemini" }),
+    )
+    expect(credentials.gemini).toEqual({ apiKey: "AIza-gemini" })
+  })
 })
 
 describe("mergeWithServerCredentials", () => {
@@ -228,7 +245,14 @@ describe("server configuration reporting", () => {
   const original = { ...process.env }
 
   afterEach(() => {
-    for (const key of ["OPENAI_API_KEY", "AZURE_SPEECH_KEY", "AZURE_SPEECH_REGION"]) {
+    for (const key of [
+      "OPENAI_API_KEY",
+      "AZURE_SPEECH_KEY",
+      "AZURE_SPEECH_REGION",
+      "GEMINI_API_KEY",
+      "GOOGLE_API_KEY",
+      "GOOGLE_GENERATIVE_AI_API_KEY",
+    ]) {
       if (original[key] === undefined) delete process.env[key]
       else process.env[key] = original[key]
     }
@@ -252,6 +276,24 @@ describe("server configuration reporting", () => {
 
   it("treats a provider with no required fields as configured", () => {
     expect(isProviderConfiguredOnServer(registry.get("ollama"))).toBe(true)
+  })
+
+  it("counts the Google env key as configuring Gemini Speech", () => {
+    delete process.env.GEMINI_API_KEY
+    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    process.env.GOOGLE_API_KEY = "AIza-env"
+    expect(isProviderConfiguredOnServer(registry.get("gemini"))).toBe(true)
+    expect(mergeWithServerCredentials(registry.get("gemini"), undefined)).toEqual({
+      apiKey: "AIza-env",
+    })
+  })
+
+  it("prefers a dedicated GEMINI_API_KEY over the Google env key", () => {
+    process.env.GOOGLE_API_KEY = "AIza-google"
+    process.env.GEMINI_API_KEY = "AIza-gemini"
+    expect(mergeWithServerCredentials(registry.get("gemini"), undefined)).toEqual({
+      apiKey: "AIza-gemini",
+    })
   })
 })
 
