@@ -315,7 +315,7 @@ export function ModelsSection() {
           icon={AudioLines}
           tile="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400"
           title={<Trans>Speech generation</Trans>}
-          description={<Trans>OpenAI, Azure, and Gemini text-to-speech.</Trans>}
+          description={<Trans>Text-to-speech. Applies to books whose speech provider matches this model's provider; other providers run on their own default or the model set in Speech settings.</Trans>}
           inputId="app-speech-generation-model"
           value={specialized.speechDraft}
           onChange={specialized.setSpeechDraft}

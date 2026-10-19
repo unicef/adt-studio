@@ -9718,6 +9718,9 @@ msgstr "Llojet e Tekstit"
 msgid "Text-to-speech engines that narrate the finished book."
 msgstr "Motorët tekst në fjalim që tregojnë librin e përfunduar."
 
+msgid "Text-to-speech. Applies to books whose speech provider matches this model's provider; other providers run on their own default or the model set in Speech settings."
+msgstr "Sintezë e të folurit. Zbatohet për librat ofruesi i të folurit i të cilëve përputhet me atë të këtij modeli; ofruesit e tjerë përdorin modelin e tyre të parazgjedhur ose atë të caktuar te cilësimet e Të folurit."
+
 msgid "Textbooks & Activities"
 msgstr "Tekste Shkollore dhe Aktivitete"
 

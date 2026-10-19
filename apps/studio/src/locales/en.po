@@ -9716,6 +9716,9 @@ msgstr "Text Types"
 msgid "Text-to-speech engines that narrate the finished book."
 msgstr "Text-to-speech engines that narrate the finished book."
 
+msgid "Text-to-speech. Applies to books whose speech provider matches this model's provider; other providers run on their own default or the model set in Speech settings."
+msgstr "Text-to-speech. Applies to books whose speech provider matches this model's provider; other providers run on their own default or the model set in Speech settings."
+
 msgid "Textbooks & Activities"
 msgstr "Textbooks & Activities"
 
