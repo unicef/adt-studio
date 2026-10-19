@@ -21,6 +21,7 @@ import {
   useBookStructuredTextAvailability,
 } from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
+import { UnavailableHint } from "../../components/UnavailableHint"
 import { StageEmptyState } from "../../components/StageEmptyState"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
@@ -1826,21 +1827,39 @@ export function LanguageView({
                         {t`Word-level highlighting`}
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        {wordHighlightingUnavailable
-                          ? t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it.`
-                          : t`Highlights words in sync with the audio. Adds noticeable time to speech generation.`}
+                        {t`Highlights words in sync with the audio. Adds noticeable time to speech generation.`}
                       </p>
                     </div>
-                    <Switch
-                      id="word-highlight-landing"
-                      checked={effectiveWordHighlighting}
-                      onCheckedChange={toggleWordHighlighting}
-                      disabled={
-                        updateConfig.isPending ||
-                        isRunning ||
-                        wordHighlightingUnavailable
-                      }
-                    />
+                    {(() => {
+                      const toggle = (
+                        <Switch
+                          id="word-highlight-landing"
+                          checked={effectiveWordHighlighting}
+                          onCheckedChange={toggleWordHighlighting}
+                          disabled={
+                            updateConfig.isPending ||
+                            isRunning ||
+                            wordHighlightingUnavailable
+                          }
+                          className={
+                            wordHighlightingUnavailable ? "pointer-events-none" : undefined
+                          }
+                        />
+                      );
+                      // A disabled switch gets no pointer events, so the
+                      // focusable wrapper carries the "why" tooltip instead.
+                      return wordHighlightingUnavailable ? (
+                        <UnavailableHint
+                          hint={t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio.`}
+                        >
+                          <span tabIndex={0} className="inline-flex rounded-full">
+                            {toggle}
+                          </span>
+                        </UnavailableHint>
+                      ) : (
+                        toggle
+                      );
+                    })()}
                   </div>
                   <WordHighlightPreview enabled={effectiveWordHighlighting} />
                 </div>

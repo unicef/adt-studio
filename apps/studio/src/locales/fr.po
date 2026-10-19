@@ -5963,8 +5963,8 @@ msgstr "Naviguez dans l'aperçu pour capturer des notes de révision spécifique
 msgid "Navigation"
 msgstr "Navigation"
 
-msgid "Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it."
-msgstr "Nécessite une clé API OpenAI (OpenAI Whisper aligne les mots sur l'audio). Ajoutez-en une dans Paramètres → Fournisseurs IA pour l'activer."
+msgid "Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio."
+msgstr "Nécessite une clé API OpenAI (OpenAI Whisper aligne les mots sur l'audio). Ajoutez-en une dans Paramètres → Fournisseurs IA pour l'activer. En attendant, l'audio régénéré est surligné par phrase ; les minutages par mot déjà calculés sont conservés pour l'audio inchangé."
 
 msgid "Needs attention"
 msgstr "Nécessite une attention"
@@ -7152,9 +7152,6 @@ msgstr "Détail par étape"
 
 msgid "Per-Word"
 msgstr "Par mot"
-
-msgid "Per-word highlighting needs an OpenAI API key."
-msgstr "Le surlignage mot à mot nécessite une clé API OpenAI."
 
 msgid "Perfect for children's books, pairing large images with minimal text."
 msgstr "Parfait pour les livres pour enfants, associant de grandes images avec un minimum de texte."

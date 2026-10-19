@@ -5963,8 +5963,8 @@ msgstr "Navigo brenda Paraparjes për të regjistruar shënimet e rishikimit spe
 msgid "Navigation"
 msgstr "Navigimi"
 
-msgid "Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it."
-msgstr "Kërkon një çelës API të OpenAI (OpenAI Whisper i përputh fjalët me audion). Shtoni një te Cilësime → Ofruesit e AI për ta aktivizuar."
+msgid "Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio."
+msgstr "Kërkon një çelës API të OpenAI (OpenAI Whisper i përputh fjalët me audion). Shtoni një te Cilësime → Ofruesit e AI për ta aktivizuar. Ndërkohë, audioja e rigjeneruar theksohet sipas fjalisë; kohëzgjatjet e fjalëve të llogaritura tashmë ruhen për audion e pandryshuar."
 
 msgid "Needs attention"
 msgstr "Kërkon vëmendje"
@@ -7152,9 +7152,6 @@ msgstr "Ndarja Hap-pas-Hapi"
 
 msgid "Per-Word"
 msgstr "Për-Fjalë"
-
-msgid "Per-word highlighting needs an OpenAI API key."
-msgstr "Theksimi në nivel fjale kërkon një çelës API të OpenAI."
 
 msgid "Perfect for children's books, pairing large images with minimal text."
 msgstr "E përsosur për librat e fëmijëve, duke çiftëzuar imazhe të mëdha me tekst minimal."
