@@ -1,6 +1,6 @@
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { Link } from "@tanstack/react-router"
-import { AudioLines, Brain, ImageIcon, Loader2, TriangleAlert } from "lucide-react"
+import { AudioLines, Brain, ImageIcon, Info, Loader2, TriangleAlert } from "lucide-react"
 import {
   DEFAULT_IMAGE_GENERATION_MODEL_ID,
   DEFAULT_OPENAI_TTS_MODEL_ID,
@@ -17,6 +17,7 @@ import {
 import { getStepLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { SettingsHeading, SettingsLead } from "./ui"
 import { SETTINGS_ANCHORS } from "./nav"
 import {
@@ -99,6 +100,7 @@ function SpecializedCard({
   tile,
   title,
   description,
+  info,
   inputId,
   value,
   onChange,
@@ -114,6 +116,8 @@ function SpecializedCard({
   tile: string
   title: React.ReactNode
   description: React.ReactNode
+  /** Longer explanation behind an (i) icon, so the card keeps its one-line description. */
+  info?: React.ReactNode
   inputId: string
   value: string
   onChange: (value: string) => void
@@ -124,6 +128,7 @@ function SpecializedCard({
   steps: readonly StepDef[]
   support?: ModelModalitySupport | null
 }) {
+  const { t } = useLingui()
   return (
     <article id={anchorId} className="flex scroll-mt-24 flex-col rounded-2xl border bg-card p-[18px] shadow-sm">
       <div className="flex items-center gap-3">
@@ -131,7 +136,25 @@ function SpecializedCard({
           <Icon className="size-[19px]" />
         </span>
         <div className="min-w-0">
-          <div className="text-sm font-semibold">{title}</div>
+          <div className="flex items-center gap-1.5">
+            <div className="text-sm font-semibold">{title}</div>
+            {info && (
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label={t`More info`}
+                      className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Info className="size-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[280px]">{info}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
           <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
         </div>
       </div>
@@ -315,7 +338,13 @@ export function ModelsSection() {
           icon={AudioLines}
           tile="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400"
           title={<Trans>Speech generation</Trans>}
-          description={<Trans>Text-to-speech. Applies to books whose speech provider matches this model's provider; other providers run on their own default or the model set in Speech settings.</Trans>}
+          description={<Trans>OpenAI, Azure, and Gemini text-to-speech.</Trans>}
+          info={
+            <Trans>
+              Applies to books whose speech provider matches this model's provider. Other
+              providers run on their own default, or on the model set in Speech settings.
+            </Trans>
+          }
           inputId="app-speech-generation-model"
           value={specialized.speechDraft}
           onChange={specialized.setSpeechDraft}

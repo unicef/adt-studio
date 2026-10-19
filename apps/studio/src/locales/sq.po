@@ -1612,6 +1612,9 @@ msgstr "Ndërfaqe Programimi Aplikacioni — një grup rregullash që lejon prog
 msgid "Applies only to text normalization. Math read aloud runs either way. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
 msgstr "Zbatohet vetëm për normalizimin e tekstit. Leximi me zë i matematikës ekzekutohet gjithsesi. Përgatitja zgjedh fillimisht lokalin e saktë, pastaj gjuhën bazë dhe në fund këtë parazgjedhje. Udhëzimi përfshihet në thirrjen LLM të ruajtur në memorie dhe të inspektueshme."
 
+msgid "Applies to books whose speech provider matches this model's provider. Other providers run on their own default, or on the model set in Speech settings."
+msgstr "Zbatohet për librat ofruesi i të folurit i të cilëve përputhet me atë të këtij modeli. Ofruesit e tjerë përdorin modelin e tyre të parazgjedhur ose atë të caktuar te cilësimet e Të folurit."
+
 msgid "Applies to every language routed to ElevenLabs."
 msgstr "Zbatohet për çdo gjuhë të drejtuar në ElevenLabs."
 
@@ -10150,9 +10153,6 @@ msgstr "Llojet e Tekstit"
 
 msgid "Text-to-speech engines that narrate the finished book."
 msgstr "Motorët tekst në fjalim që tregojnë librin e përfunduar."
-
-msgid "Text-to-speech. Applies to books whose speech provider matches this model's provider; other providers run on their own default or the model set in Speech settings."
-msgstr "Sintezë e të folurit. Zbatohet për librat ofruesi i të folurit i të cilëve përputhet me atë të këtij modeli; ofruesit e tjerë përdorin modelin e tyre të parazgjedhur ose atë të caktuar te cilësimet e Të folurit."
 
 msgid "Textbooks & Activities"
 msgstr "Tekste Shkollore dhe Aktivitete"
