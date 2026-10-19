@@ -113,6 +113,50 @@ function readDatabase(dbPath: string): { steps: StepRun[]; calls: LlmCall[] } {
   }
 }
 
+function coverPageNumber(db: InstanceType<typeof Database>): number | null {
+  const [row] = db.all("select data from node_data where node = 'metadata' and item_id = 'book' order by version desc limit 1") as { data: string }[]
+  if (!row) return null
+  try {
+    const parsed = JSON.parse(row.data) as { cover_page_number?: unknown }
+    return typeof parsed.cover_page_number === "number" ? parsed.cover_page_number : null
+  } catch {
+    return null
+  }
+}
+
+function coverImagePath(dbPath: string): string | null {
+  const db = new Database(dbPath, { readOnly: true, fileMustExist: true })
+  try {
+    const tables = new Set((db.all("select name from sqlite_master where type = 'table'") as { name: string }[]).map((r) => r.name))
+    if (!tables.has("pages") || !tables.has("images")) return null
+    const pageNumber = tables.has("node_data") ? coverPageNumber(db) : null
+    const [page] = (
+      pageNumber !== null
+        ? db.all("select page_id from pages where page_number = ? limit 1", [pageNumber])
+        : db.all("select page_id from pages order by page_number asc limit 1")
+    ) as { page_id: string }[]
+    if (!page) return null
+    const [image] = db.all("select path from images where image_id = ?", [`${page.page_id}_page`]) as { path: string }[]
+    return image ? image.path : null
+  } finally {
+    db.close()
+  }
+}
+
+const COVER_TYPES: Record<string, string> = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp" }
+
+export async function readCover(booksDir: string, name: string): Promise<{ bytes: Buffer; type: string } | null> {
+  const dir = resolveConversionDir(booksDir, name)
+  const files = await conversionFiles(dir)
+  if (!files) return null
+  const relative = coverImagePath(files.db)
+  if (!relative) return null
+  const file = path.resolve(dir, relative)
+  const type = COVER_TYPES[path.extname(file).toLowerCase()]
+  if (!type || !file.startsWith(dir + path.sep) || !(await fileOrNull(file))) return null
+  return { bytes: await fs.readFile(file), type }
+}
+
 export async function readConversion(booksDir: string, name: string): Promise<ConversionSummary> {
   const dir = resolveConversionDir(booksDir, name)
   const files = await conversionFiles(dir)

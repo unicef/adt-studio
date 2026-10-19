@@ -10,20 +10,11 @@ interface CardProps {
 
 export function Card({ id, title, note, children }: CardProps) {
   return (
-    <section id={id} className="flex min-w-0 flex-col gap-3 rounded-lg border border-line bg-surface p-5">
+    <section id={id} className="flex min-w-0 scroll-mt-20 flex-col gap-3 rounded-lg border border-line bg-surface p-5">
       <div className="flex flex-col gap-1">
         <h3 className="text-base font-medium text-ink">{title}</h3>
         {note && <p className="max-w-[80ch] text-xs leading-relaxed text-muted">{note}</p>}
       </div>
-      {children}
-    </section>
-  )
-}
-
-export function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
-  return (
-    <section id={id} className="flex flex-col gap-3">
-      <h2 className="text-lg font-medium text-ink">{title}</h2>
       {children}
     </section>
   )

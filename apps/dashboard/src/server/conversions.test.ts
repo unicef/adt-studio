@@ -3,7 +3,7 @@ import os from "node:os"
 import path from "node:path"
 import sqlite from "node-sqlite3-wasm"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
-import { defaultFolder, listConversions, readConversion, resolveConversionDir } from "./conversions"
+import { defaultFolder, listConversions, readConversion, readCover, resolveConversionDir } from "./conversions"
 
 const { Database } = sqlite
 
@@ -43,7 +43,23 @@ beforeAll(() => {
   fs.mkdirSync(path.join(books, "not-a-book"), { recursive: true })
   makeBook("book-a")
   makeBook("book-b")
+  addCover("book-a")
 })
+
+function addCover(name: string) {
+  const dir = path.join(books, name)
+  fs.mkdirSync(path.join(dir, "images"), { recursive: true })
+  fs.writeFileSync(path.join(dir, "images", "pg001_page.png"), "page one")
+  fs.writeFileSync(path.join(dir, "images", "pg002_page.png"), "page two")
+  const db = new Database(path.join(dir, `${name}.db`))
+  db.exec("create table pages (page_id text primary key, page_number integer)")
+  db.exec("create table images (image_id text primary key, path text)")
+  db.exec("create table node_data (node text, item_id text, version integer, data text)")
+  db.run("insert into pages values ('pg001', 1), ('pg002', 2)")
+  db.run("insert into images values ('pg001_page', 'images/pg001_page.png'), ('pg002_page', 'images/pg002_page.png')")
+  db.run("insert into node_data values ('metadata', 'book', 1, ?)", [JSON.stringify({ cover_page_number: 2 })])
+  db.close()
+}
 
 afterAll(() => {
   fs.rmSync(root, { recursive: true, force: true })
@@ -96,5 +112,17 @@ describe("readConversion", () => {
     expect(() => resolveConversionDir(books, "..")).toThrow("Invalid conversion name")
     expect(() => resolveConversionDir(books, "../book-a")).toThrow("Invalid conversion name")
     expect(() => resolveConversionDir(books, "book-a/sub")).toThrow("Invalid conversion name")
+  })
+})
+
+describe("readCover", () => {
+  it("serves the page chosen as cover in the book metadata", async () => {
+    const cover = await readCover(books, "book-a")
+    expect(cover?.type).toBe("image/png")
+    expect(cover?.bytes.toString()).toBe("page two")
+  })
+
+  it("returns null when the book has no page images", async () => {
+    expect(await readCover(books, "book-b")).toBeNull()
   })
 })

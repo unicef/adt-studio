@@ -89,3 +89,65 @@ body {
   stroke: var(--axis);
   stroke-width: 1;
 }
+
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+.press {
+  transition:
+    transform 140ms var(--ease-out),
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    opacity 150ms ease,
+    filter 150ms ease;
+}
+
+.press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.enter {
+  animation: enter 240ms var(--ease-out) backwards;
+}
+
+.pop {
+  transform-origin: var(--origin, top left);
+  animation: pop 160ms var(--ease-out) backwards;
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-4px);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press:active:not(:disabled) {
+    transform: none;
+  }
+
+  .enter,
+  .pop {
+    animation-name: fade;
+  }
+}
