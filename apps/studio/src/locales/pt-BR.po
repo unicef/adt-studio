@@ -10149,6 +10149,9 @@ msgstr "Tipos de texto"
 msgid "Text-to-speech engines that narrate the finished book."
 msgstr "Mecanismos de conversão de texto em fala que narram o livro finalizado."
 
+msgid "Text-to-speech. Applies to books whose speech provider matches this model's provider; other providers run on their own default or the model set in Speech settings."
+msgstr "Síntese de voz. Aplica-se aos livros cujo provedor de fala corresponde ao deste modelo; os demais provedores usam o próprio padrão ou o modelo definido nas configurações de Áudio."
+
 msgid "Textbooks & Activities"
 msgstr "Livros didáticos e atividades"
 
