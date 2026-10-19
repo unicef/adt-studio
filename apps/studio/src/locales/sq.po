@@ -1449,6 +1449,9 @@ msgstr "Alfabetik"
 msgid "Already handed out"
 msgstr "Tashmë të shpërndara"
 
+msgid "Always on"
+msgstr "Gjithmonë aktiv"
+
 msgid "Among the Stars"
 msgstr "Mes yjeve"
 
@@ -1584,6 +1587,9 @@ msgstr "Aplikacioni"
 
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Ndërfaqe Programimi Aplikacioni — një grup rregullash që lejon programet të komunikojnë."
+
+msgid "Applies only to text normalization. Math read aloud runs either way. Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+msgstr "Zbatohet vetëm për normalizimin e tekstit. Leximi me zë i matematikës ekzekutohet gjithsesi. Përgatitja zgjedh fillimisht lokalin e saktë, pastaj gjuhën bazë dhe në fund këtë parazgjedhje. Udhëzimi përfshihet në thirrjen LLM të ruajtur në memorie dhe të inspektueshme."
 
 msgid "Applies to every language routed to ElevenLabs."
 msgstr "Zbatohet për çdo gjuhë të drejtuar në ElevenLabs."
@@ -5655,6 +5661,9 @@ msgstr "Duke ngarkuar të dhënat e seksionimit..."
 msgid "Loading speech instructions..."
 msgstr "Duke ngarkuar udhëzimet e fjalës..."
 
+msgid "Loading speech preparation..."
+msgstr "Po ngarkohet përgatitja e të folurit..."
+
 msgid "Loading stats..."
 msgstr "Duke ngarkuar statistikat..."
 
@@ -5672,9 +5681,6 @@ msgstr "Duke ngarkuar katalogun e tekstit..."
 
 msgid "Loading text sizes…"
 msgstr "Po ngarkohen madhësitë e tekstit…"
-
-msgid "Loading TTS normalization..."
-msgstr "Po ngarkohet normalizimi TTS..."
 
 msgid "Loading validation..."
 msgstr "Duke ngarkuar vërtetimin..."
@@ -5801,6 +5807,9 @@ msgstr "Përputhet me dizajnin origjinal të librit me pak fleksibilitet."
 
 msgid "Matching"
 msgstr "Përputhje"
+
+msgid "Math read aloud"
+msgstr "Leximi me zë i matematikës"
 
 msgid "Max height"
 msgstr "Lartësia maksimale"
@@ -7551,11 +7560,8 @@ msgstr "Preferoni terma qendrore për lëndën e librit. Anashkaloni fjalor gjen
 msgid "Preferences"
 msgstr "Preferencat"
 
-msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
-msgstr "Përgatitja zgjedh fillimisht lokalin e saktë, pastaj gjuhën bazë dhe në fund këtë parazgjedhje. Udhëzimi përfshihet në thirrjen LLM të ruajtur në memorie dhe të inspektueshme."
-
-msgid "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
-msgstr "Përgatit numrat, datat dhe shkurtesat për shqiptim natyral. Matematika dhe LaTeX-i trajtohen veçmas."
+msgid "Prepare numbers, dates, and abbreviations for natural speech."
+msgstr "Përgatit numrat, datat dhe shkurtesat për shqiptim natyral."
 
 msgid "Prepared speech text"
 msgstr "Teksti i përgatitur për të folur"
@@ -8512,6 +8518,9 @@ msgstr "Duke rishikuar..."
 msgid "Revoked"
 msgstr "Revokuar"
 
+msgid "Rewrites text before it is read aloud. The text on the page does not change."
+msgstr "Rishkruan tekstin përpara se të lexohet me zë. Teksti në faqe nuk ndryshon."
+
 msgid "Rewriting the story of this section..."
 msgstr "Duke rishkruar historinë e këtij seksioni..."
 
@@ -9466,6 +9475,15 @@ msgstr "Gjenerimi i të Folurit"
 msgid "Speech narrates the translated text Language produces. Finish Language before running this stage."
 msgstr "Të folurit rrëfen tekstin e përkthyer që prodhon hapi Language. Përfundo Language para se të ekzekutosh këtë fazë."
 
+msgid "Speech preparation"
+msgstr "Përgatitja e të folurit"
+
+msgid "Speech Preparation"
+msgstr "Përgatitja e të Folurit"
+
+msgid "Speech Preparation Prompt"
+msgstr "Prompti i Përgatitjes së të Folurit"
+
 msgid "Speech Preview"
 msgstr "Parashikim i të Folurit"
 
@@ -10145,6 +10163,9 @@ msgstr "Modeli i udhëzimit i përdorur për të ndarë çdo faqe në seksione l
 msgid "The prompt template used to translate text catalog entries."
 msgstr "Modeli i udhëzimit i përdorur për të përkthyer hyrjet e katalogut të tekstit."
 
+msgid "The prompt that prepares text for speech. It turns math into spoken words on every run, and applies the text normalization guidance when text normalization is on, so an edit affects both."
+msgstr "Prompti që përgatit tekstin për të folurit. Ai e kthen matematikën në fjalë të folura në çdo ekzekutim dhe zbaton udhëzimin për normalizimin e tekstit kur normalizimi i tekstit është aktiv, prandaj një ndryshim ndikon te të dyja."
+
 msgid "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 msgstr "Udhëzimi i përdorur nga kalimi i rishikuesit për të inspektuar dhe korrigjuar një pemë seksionimi kandidate. Ndan modelin dhe cilësimet e riprovimit të udhëzimit të seksionimit."
 
@@ -10724,9 +10745,6 @@ msgstr "Provo problemin praktik"
 msgid "Try this screen again"
 msgstr "Provo këtë ekran sërish"
 
-msgid "TTS Normalization"
-msgstr "Normalizimi TTS"
-
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Rregullo se si thjeshtohet teksti në cilësimet e Udhëzimit Easy Read. Pas ekzekutimit, çdo bllok bëhet i redaktueshëm këtu në hapin Easy Read."
 
@@ -10741,6 +10759,9 @@ msgstr "Aktivizo këtë për të shfaqur kartën e rishikimit të Validimit në 
 
 msgid "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
 msgstr "Aktivizimi i normalizimit me {elevenLabsModel} kërkon një plan Enterprise të ElevenLabs. Përdorni \"Off\", ose kaloni në eleven_multilingual_v2 — ai gjithsesi normalizon numrat më mirë."
+
+msgid "Turns math and LaTeX into spoken words, so formulas are never read out as raw notation."
+msgstr "I kthen matematikën dhe LaTeX-in në fjalë të folura, që formulat të mos lexohen kurrë si shënim i papërpunuar."
 
 msgid "Two authentication methods are supported: Bearer tokens passed in the Authorization header, and API keys passed as a query parameter. Bearer tokens are preferred for server-to-server requests due to their short expiry window."
 msgstr "Mbështeten dy metoda autentikimi: tokenët Bearer të kaluar në kokën Authorization dhe çelësat API të kaluar si parametër pyetjeje. Tokenët Bearer preferohen për kërkesat server-te-server për shkak të dritares së tyre të shkurtër të skadimit."
