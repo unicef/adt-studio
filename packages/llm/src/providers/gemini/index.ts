@@ -123,14 +123,9 @@ export const geminiProvider: ProviderModule<GeminiCredentials> = {
   manifest: geminiManifest,
   credentialSchema,
 
-  // GEMINI_API_KEY stays the dedicated override; the Google provider's env
-  // vars cover speech too, the server-side half of the manifest's `sharedWith`.
-  resolveServerCredentials: () => ({
-    apiKey:
-      process.env.GEMINI_API_KEY ||
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
-      process.env.GOOGLE_API_KEY,
-  }),
+  // Own env only. The Google provider's env vars reach speech through the
+  // manifest's `sharedWith`, resolved by the registry.
+  resolveServerCredentials: () => ({ apiKey: process.env.GEMINI_API_KEY }),
 
   capabilitiesFor: (modality, modelId) =>
     modality === "tts" ? (ttsCapabilitiesFor(modelId) as never) : undefined,

@@ -1,4 +1,4 @@
-import { applySharedCredentialFallbacks, type ProviderFieldStatus } from "@adt/types"
+import type { CredentialFieldManifest, ProviderFieldStatus } from "@adt/types"
 import { AiProviderError } from "./ports/errors.js"
 import type { AnyProviderModule, ProviderCredentialValues } from "./ports/index.js"
 
@@ -31,13 +31,7 @@ export function extractCredentialsFromHeaders(
     }
   }
 
-  // A field declared as shared (Gemini Speech ← Google) takes the other
-  // provider's header when its own is absent, so the browser only has to hold
-  // one key. Own header first; the result is what every route sees.
-  return applySharedCredentialFallbacks(
-    modules.map((module) => module.manifest),
-    credentials,
-  )
+  return credentials
 }
 
 /**
@@ -95,30 +89,79 @@ export function validateProviderCredentials<C extends ProviderCredentialValues>(
   return parsed.data as C
 }
 
+/** Finds the provider a `sharedWith` field points at; `undefined` when unknown. */
+export type ProviderLookup = (providerId: string) => AnyProviderModule | undefined
+
+function trimmed(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined
+}
+
+/** The shared provider's server-side value for a `sharedWith` field, if any. */
+function sharedServerValue(
+  field: CredentialFieldManifest,
+  lookup: ProviderLookup | undefined,
+): string | undefined {
+  const share = field.sharedWith
+  if (!share) return undefined
+  return trimmed(lookup?.(share.providerId)?.resolveServerCredentials?.()?.[share.fieldKey])
+}
+
+/**
+ * A provider's credential values with every source applied and nothing
+ * validated: own request header, own server env, then — for a field that
+ * declares `sharedWith` — the shared provider's request header and its server
+ * env. A provider's own key therefore beats a shared one wherever each lives,
+ * and within one kind the request beats the server. Studio sends only the
+ * keys it stores, so this is the one place a borrowed key is introduced.
+ */
+export function resolveCredentialValues(
+  module: AnyProviderModule,
+  credentials: ResolvedCredentials | undefined,
+  lookup?: ProviderLookup,
+): Record<string, string> {
+  const values = mergeWithServerCredentials(module, credentials?.[module.manifest.id])
+  for (const field of module.manifest.credentialFields) {
+    const share = field.sharedWith
+    if (!share || values[field.key]) continue
+    const shared =
+      trimmed(credentials?.[share.providerId]?.[share.fieldKey]) ??
+      sharedServerValue(field, lookup)
+    if (shared) values[field.key] = shared
+  }
+  return values
+}
+
 export function resolveProviderCredentials<C extends ProviderCredentialValues>(
   module: AnyProviderModule,
   credentials: ResolvedCredentials | undefined,
+  lookup?: ProviderLookup,
 ): C {
   return validateProviderCredentials<C>(
     module,
-    mergeWithServerCredentials(module, credentials?.[module.manifest.id]),
+    resolveCredentialValues(module, credentials, lookup),
   )
 }
 
-/** Presence only; never a value. */
+/** Presence only; never a value. A shared field counts the shared provider's env too. */
 export function providerFieldStatus(
   module: AnyProviderModule,
+  lookup?: ProviderLookup,
 ): ProviderFieldStatus[] {
   const fromServer = module.resolveServerCredentials?.() ?? {}
   return module.manifest.credentialFields.map((field) => ({
     key: field.key,
-    configuredOnServer: Boolean(fromServer[field.key]?.trim()),
+    configuredOnServer: Boolean(
+      trimmed(fromServer[field.key]) ?? sharedServerValue(field, lookup),
+    ),
   }))
 }
 
-export function isProviderConfiguredOnServer(module: AnyProviderModule): boolean {
+export function isProviderConfiguredOnServer(
+  module: AnyProviderModule,
+  lookup?: ProviderLookup,
+): boolean {
   const status = new Map(
-    providerFieldStatus(module).map((entry) => [entry.key, entry.configuredOnServer]),
+    providerFieldStatus(module, lookup).map((entry) => [entry.key, entry.configuredOnServer]),
   )
   const required = module.manifest.credentialFields.filter((field) => field.required)
   if (required.length === 0) return true

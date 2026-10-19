@@ -134,6 +134,25 @@ describe("createProviderRegistry", () => {
     )
   })
 
+  it("rejects a sharedWith that points nowhere at freeze", () => {
+    const borrower = makeModule({ manifest: makeManifest({ id: "borrower" }) })
+    borrower.manifest.credentialFields[0].sharedWith = { providerId: "lender", fieldKey: "apiKey" }
+    expect(() => createProviderRegistry().register(borrower).freeze()).toThrow(
+      /unknown provider "lender"/,
+    )
+
+    const lender = makeModule({ manifest: makeManifest({ id: "lender" }) })
+    expect(() =>
+      createProviderRegistry().register(borrower).register(lender).freeze(),
+    ).not.toThrow()
+
+    const wrongField = makeModule({ manifest: makeManifest({ id: "borrower" }) })
+    wrongField.manifest.credentialFields[0].sharedWith = { providerId: "lender", fieldKey: "token" }
+    expect(() => createProviderRegistry().register(lender).register(wrongField).freeze()).toThrow(
+      /no field "token"/,
+    )
+  })
+
   it("refuses registration after freeze", () => {
     const registry = createProviderRegistry()
     registry.freeze()

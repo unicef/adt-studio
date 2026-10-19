@@ -74,10 +74,12 @@ const CREDENTIAL_FIELD_KEY_PATTERN = /^[a-z][a-zA-Z0-9]{0,63}$/
 
 /**
  * Another provider's credential field whose value this field falls back to
- * when it has none of its own — Gemini Speech reuses the Google API key. The
- * fallback is applied wherever credentials are read (request headers, browser
- * storage, server environment) so one key covers both providers. Writes never
- * touch the shared field, and a value saved for this field always wins.
+ * when it has none of its own — Gemini Speech reuses the Google API key.
+ * Resolution order, applied by the API's credential resolver: own request
+ * header, own server env, shared request header, shared server env. A
+ * provider's own key beats a shared one wherever each lives. Studio stores
+ * and sends only own keys and uses the same rule, without the env, to
+ * predict availability. Writes never touch the shared field.
  */
 export const CredentialFieldShare = z.object({
   providerId: ProviderId,
@@ -227,9 +229,10 @@ type SharedCredentialManifest = Pick<ProviderManifest, "id" | "credentialFields"
 
 /**
  * Fill every credential field that declares `sharedWith` and has no value of
- * its own from the shared provider's value. Pure: `values` is never mutated
- * and is returned as-is when nothing changes. One hop only — a field whose
- * shared source is itself empty stays empty — so chains are not a thing.
+ * its own from the shared provider's value, within one source (the browser's
+ * stored keys, or one request's headers). Pure: `values` is never mutated and
+ * is returned as-is when nothing changes. One hop only — a field whose shared
+ * source is itself empty stays empty — so chains are not a thing.
  */
 export function applySharedCredentialFallbacks<
   V extends Record<string, Record<string, string>>,

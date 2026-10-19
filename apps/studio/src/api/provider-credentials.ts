@@ -153,9 +153,10 @@ export function readOwnProviderCredentialsFromStorage(
 
 /**
  * Effective credentials: each provider's own stored values plus the shared
- * fallbacks the manifests declare (`sharedWith`), so Gemini Speech picks up
- * the Google key without a second entry. Availability checks and request
- * headers must use this one.
+ * fallbacks the manifests declare (`sharedWith`), so Gemini Speech shows as
+ * available with only the Google key stored. For availability checks only —
+ * request headers carry own values (see `buildApiHeaders` in client.ts) and
+ * the API applies the fallback itself.
  */
 export function readProviderCredentialsFromStorage(
   providers: readonly ProviderDescriptor[],

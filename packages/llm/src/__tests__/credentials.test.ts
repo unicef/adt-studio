@@ -6,6 +6,8 @@ import {
   isProviderConfiguredOnServer,
   mergeWithServerCredentials,
   providerFieldStatus,
+  resolveCredentialValues,
+  resolveProviderCredentials,
   validateProviderCredentials,
 } from "../credentials.js"
 import { AiProviderError } from "../ports/errors.js"
@@ -74,21 +76,96 @@ describe("extractCredentialsFromHeaders", () => {
     expect(credentials.gemini).toBeUndefined()
   })
 
-  it("fills a shared credential from the other provider's header", () => {
+  it("does not borrow a shared provider's header at extraction time", () => {
+    // The fallback lives in resolveCredentialValues, where the server's own
+    // key can still take precedence; the headers map stays one-to-one.
     const credentials = extractCredentialsFromHeaders(
       BUILT_IN_PROVIDERS,
       headerReader({ "X-Google-API-Key": "AIza-shared" }),
     )
     expect(credentials.google).toEqual({ apiKey: "AIza-shared" })
-    expect(credentials.gemini).toEqual({ apiKey: "AIza-shared" })
+    expect(credentials.gemini).toBeUndefined()
+  })
+})
+
+describe("shared credentials (sharedWith)", () => {
+  const original = { ...process.env }
+  const gemini = () => registry.get("gemini")
+  const envKeys = ["GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY"]
+
+  const clearEnv = () => {
+    for (const key of envKeys) delete process.env[key]
+  }
+
+  afterEach(() => {
+    for (const key of envKeys) {
+      if (original[key] === undefined) delete process.env[key]
+      else process.env[key] = original[key]
+    }
   })
 
-  it("keeps a provider's own header over the shared one", () => {
-    const credentials = extractCredentialsFromHeaders(
-      BUILT_IN_PROVIDERS,
-      headerReader({ "X-Google-API-Key": "AIza-google", "X-Gemini-API-Key": "AIza-gemini" }),
-    )
-    expect(credentials.gemini).toEqual({ apiKey: "AIza-gemini" })
+  it("falls back to the shared provider's request header", () => {
+    clearEnv()
+    expect(
+      resolveCredentialValues(gemini(), { google: { apiKey: "AIza-google" } }, registry.tryGet),
+    ).toEqual({ apiKey: "AIza-google" })
+  })
+
+  it("prefers the provider's own request header over the shared one", () => {
+    clearEnv()
+    expect(
+      resolveCredentialValues(
+        gemini(),
+        { google: { apiKey: "AIza-google" }, gemini: { apiKey: "AIza-gemini" } },
+        registry.tryGet,
+      ),
+    ).toEqual({ apiKey: "AIza-gemini" })
+  })
+
+  it("prefers the provider's own server key over a shared request header", () => {
+    clearEnv()
+    process.env.GEMINI_API_KEY = "AIza-server-gemini"
+    expect(
+      resolveCredentialValues(gemini(), { google: { apiKey: "AIza-google" } }, registry.tryGet),
+    ).toEqual({ apiKey: "AIza-server-gemini" })
+  })
+
+  it("prefers the provider's own server key over the shared provider's", () => {
+    clearEnv()
+    process.env.GOOGLE_API_KEY = "AIza-server-google"
+    process.env.GEMINI_API_KEY = "AIza-server-gemini"
+    expect(resolveCredentialValues(gemini(), {}, registry.tryGet)).toEqual({
+      apiKey: "AIza-server-gemini",
+    })
+  })
+
+  it("falls back to the shared provider's server key last", () => {
+    clearEnv()
+    process.env.GOOGLE_API_KEY = "AIza-server-google"
+    expect(resolveCredentialValues(gemini(), {}, registry.tryGet)).toEqual({
+      apiKey: "AIza-server-google",
+    })
+    // A shared request header still beats the shared server key.
+    expect(
+      resolveCredentialValues(gemini(), { google: { apiKey: "AIza-google" } }, registry.tryGet),
+    ).toEqual({ apiKey: "AIza-google" })
+  })
+
+  it("cannot reach the shared server key without a provider lookup", () => {
+    clearEnv()
+    process.env.GOOGLE_API_KEY = "AIza-server-google"
+    expect(resolveCredentialValues(gemini(), {})).toEqual({})
+    expect(() => resolveProviderCredentials(gemini(), {})).toThrow(AiProviderError)
+  })
+
+  it("counts the shared provider's server key as configuring the provider", () => {
+    clearEnv()
+    process.env.GOOGLE_API_KEY = "AIza-server-google"
+    expect(isProviderConfiguredOnServer(gemini(), registry.tryGet)).toBe(true)
+    expect(providerFieldStatus(gemini(), registry.tryGet)).toEqual([
+      { key: "apiKey", configuredOnServer: true },
+    ])
+    expect(isProviderConfiguredOnServer(gemini())).toBe(false)
   })
 })
 
@@ -245,14 +322,7 @@ describe("server configuration reporting", () => {
   const original = { ...process.env }
 
   afterEach(() => {
-    for (const key of [
-      "OPENAI_API_KEY",
-      "AZURE_SPEECH_KEY",
-      "AZURE_SPEECH_REGION",
-      "GEMINI_API_KEY",
-      "GOOGLE_API_KEY",
-      "GOOGLE_GENERATIVE_AI_API_KEY",
-    ]) {
+    for (const key of ["OPENAI_API_KEY", "AZURE_SPEECH_KEY", "AZURE_SPEECH_REGION"]) {
       if (original[key] === undefined) delete process.env[key]
       else process.env[key] = original[key]
     }
@@ -278,23 +348,6 @@ describe("server configuration reporting", () => {
     expect(isProviderConfiguredOnServer(registry.get("ollama"))).toBe(true)
   })
 
-  it("counts the Google env key as configuring Gemini Speech", () => {
-    delete process.env.GEMINI_API_KEY
-    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY
-    process.env.GOOGLE_API_KEY = "AIza-env"
-    expect(isProviderConfiguredOnServer(registry.get("gemini"))).toBe(true)
-    expect(mergeWithServerCredentials(registry.get("gemini"), undefined)).toEqual({
-      apiKey: "AIza-env",
-    })
-  })
-
-  it("prefers a dedicated GEMINI_API_KEY over the Google env key", () => {
-    process.env.GOOGLE_API_KEY = "AIza-google"
-    process.env.GEMINI_API_KEY = "AIza-gemini"
-    expect(mergeWithServerCredentials(registry.get("gemini"), undefined)).toEqual({
-      apiKey: "AIza-gemini",
-    })
-  })
 })
 
 describe("describeCredentialPresence", () => {
