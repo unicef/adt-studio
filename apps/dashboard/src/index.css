@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #6f6d67;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --line: rgba(11, 11, 11, 0.1);
+  --accent: #2a78d6;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --critical: #d03b3b;
+  --good-text: #006300;
+  --bad-text: #b3261e;
+  --warn-text: #8a5a00;
+  --warn-bg: #fff4d6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #9a9890;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --line: rgba(255, 255, 255, 0.1);
+    --accent: #3987e5;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --critical: #e66767;
+    --good-text: #0ca30c;
+    --bad-text: #e66767;
+    --warn-text: #fab219;
+    --warn-bg: #2a2310;
+  }
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-grid: var(--grid);
+  --color-axis: var(--axis);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-critical: var(--critical);
+  --color-good: var(--good-text);
+  --color-bad: var(--bad-text);
+  --color-warn: var(--warn-text);
+  --color-warn-bg: var(--warn-bg);
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+.chart text {
+  fill: var(--muted);
+  font-size: 12px;
+  font-family: var(--font-sans);
+}
+
+.chart text.strong {
+  fill: var(--ink);
+}
+
+.chart .gridline {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.chart .axis {
+  stroke: var(--axis);
+  stroke-width: 1;
+}
