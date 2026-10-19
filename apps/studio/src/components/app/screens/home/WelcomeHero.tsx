@@ -1,5 +1,8 @@
 import { useNavigate } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
+import { WelcomeKeyPrompt } from "@/components/key-prompt/KeyPrompt"
+import { useConnectProvider } from "@/hooks/use-connect-provider"
+import { useProviderCredentials } from "@/hooks/use-provider-credentials"
 import { FileText, Sparkles, Package, ArrowRight, Plus, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +14,21 @@ export interface WelcomeHeroProps {
 /** Home first-run welcome (design 1c): headline + PDF→AI→bundle flow card + CTAs. */
 export function WelcomeHero({ onOpenAdd }: WelcomeHeroProps) {
   const navigate = useNavigate()
+  const connect = useConnectProvider()
+  const { isAvailable, isLoading, error } = useProviderCredentials()
+  const needsKey = !isLoading && !error && !isAvailable("structured-text")
+  const ctas = (
+    <>
+      <Button variant={needsKey ? "outline" : "default"} onClick={onOpenAdd}>
+        <Plus className="size-3.5" />
+        <Trans>Add your first book</Trans>
+      </Button>
+      <Button variant="outline" onClick={() => navigate({ to: "/books/import" })}>
+        <Upload className="size-3.5" />
+        <Trans>Import existing project</Trans>
+      </Button>
+    </>
+  )
   return (
     <>
       <div className="text-[30px] font-bold leading-[1.08] tracking-[-0.02em]">
@@ -45,16 +63,14 @@ export function WelcomeHero({ onOpenAdd }: WelcomeHeroProps) {
           <p className="mb-6 max-w-[62ch] text-[15px] leading-relaxed text-muted-foreground">
             <Trans>Drop in a textbook PDF and we&apos;ll extract pages, generate accessible captions, build storyboards, and assemble quizzes — every step inspectable, every result versioned.</Trans>
           </p>
-          <div className="flex flex-wrap gap-3">
-            <Button onClick={onOpenAdd}>
-              <Plus className="size-3.5" />
-              <Trans>Add your first book</Trans>
-            </Button>
-            <Button variant="outline" onClick={() => navigate({ to: "/books/import" })}>
-              <Upload className="size-3.5" />
-              <Trans>Import existing project</Trans>
-            </Button>
-          </div>
+          {needsKey ? (
+            <WelcomeKeyPrompt
+              onConnect={connect}
+              ctas={ctas}
+            />
+          ) : (
+            <div className="flex flex-wrap gap-3">{ctas}</div>
+          )}
         </div>
       </div>
     </>

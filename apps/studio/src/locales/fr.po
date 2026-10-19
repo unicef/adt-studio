@@ -987,41 +987,41 @@ msgstr "Ajouter un quiz"
 msgid "Add after"
 msgstr "Ajouter à la suite"
 
-msgid "Add an API key in Book settings to add a quiz."
-msgstr "Ajoutez une clé d'API dans les paramètres du livre pour ajouter un quiz."
+#~ msgid "Add an API key in Book settings to add a quiz."
+#~ msgstr "Ajoutez une clé d'API dans les paramètres du livre pour ajouter un quiz."
 
-msgid "Add an API key in Book settings to generate a quiz."
-msgstr "Ajoutez une clé d'API dans les paramètres du livre pour générer un quiz."
+#~ msgid "Add an API key in Book settings to generate a quiz."
+#~ msgstr "Ajoutez une clé d'API dans les paramètres du livre pour générer un quiz."
 
-msgid "Add an API key in Book settings to generate Easy Read content."
-msgstr "Ajoutez une clé API dans les paramètres du livre pour générer du contenu Lecture Facile."
+#~ msgid "Add an API key in Book settings to generate Easy Read content."
+#~ msgstr "Ajoutez une clé API dans les paramètres du livre pour générer du contenu Lecture Facile."
 
-msgid "Add an API key in Book settings to generate quizzes."
-msgstr "Ajoutez une clé d'API dans les paramètres du livre pour générer des quiz."
+#~ msgid "Add an API key in Book settings to generate quizzes."
+#~ msgstr "Ajoutez une clé d'API dans les paramètres du livre pour générer des quiz."
 
-msgid "Add an API key in Book settings to run captions."
-msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter les sous-titres."
+#~ msgid "Add an API key in Book settings to run captions."
+#~ msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter les sous-titres."
 
-msgid "Add an API key in Book settings to run extraction."
-msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter l'extraction."
+#~ msgid "Add an API key in Book settings to run extraction."
+#~ msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter l'extraction."
 
-msgid "Add an API key in Book settings to run sectioning."
-msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter le découpage."
+#~ msgid "Add an API key in Book settings to run sectioning."
+#~ msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter le découpage."
 
 #~ msgid "Add an API key in Book settings to run speech."
 #~ msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter la parole."
 
-msgid "Add an API key in Book settings to run storyboard."
-msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter le storyboard."
+#~ msgid "Add an API key in Book settings to run storyboard."
+#~ msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter le storyboard."
 
-msgid "Add an API key in Book settings to run the glossary."
-msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter le glossaire."
+#~ msgid "Add an API key in Book settings to run the glossary."
+#~ msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter le glossaire."
 
-msgid "Add an API key in Book settings to run TOC generation."
-msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter la génération de la table des matières."
+#~ msgid "Add an API key in Book settings to run TOC generation."
+#~ msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter la génération de la table des matières."
 
-msgid "Add an API key in Book settings to run translation."
-msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter la traduction."
+#~ msgid "Add an API key in Book settings to run translation."
+#~ msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter la traduction."
 
 msgid "Add an API key to re-run"
 msgstr "Ajoutez une clé API pour relancer"
@@ -2578,8 +2578,59 @@ msgstr "Configuré sur le serveur"
 msgid "Confirm merge"
 msgstr "Confirmer la fusion"
 
+msgid "Connect"
+msgstr "Connecter"
+
+msgid "Connect an AI provider to add a quiz."
+msgstr "Connectez un fournisseur d'IA pour ajouter un quiz."
+
+msgid "Connect an AI provider to generate a quiz."
+msgstr "Connectez un fournisseur d'IA pour générer un quiz."
+
+msgid "Connect an AI provider to generate Easy Read content."
+msgstr "Connectez un fournisseur d'IA pour générer du contenu Facile à lire."
+
+msgid "Connect an AI provider to generate quizzes."
+msgstr "Connectez un fournisseur d'IA pour générer des quiz."
+
+msgid "Connect an AI provider to process your book"
+msgstr "Connectez un fournisseur d'IA pour traiter votre livre"
+
+msgid "Connect an AI provider to retry."
+msgstr "Connectez un fournisseur d'IA pour réessayer."
+
+msgid "Connect an AI provider to run captions."
+msgstr "Connectez un fournisseur d'IA pour lancer les légendes."
+
+msgid "Connect an AI provider to run extraction."
+msgstr "Connectez un fournisseur d'IA pour lancer l'extraction."
+
+msgid "Connect an AI provider to run sectioning."
+msgstr "Connectez un fournisseur d'IA pour lancer le découpage en sections."
+
+msgid "Connect an AI provider to run storyboard."
+msgstr "Connectez un fournisseur d'IA pour lancer le storyboard."
+
+msgid "Connect an AI provider to run the glossary."
+msgstr "Connectez un fournisseur d'IA pour lancer le glossaire."
+
+msgid "Connect an AI provider to run TOC generation."
+msgstr "Connectez un fournisseur d'IA pour générer la table des matières."
+
+msgid "Connect an AI provider to run translation."
+msgstr "Connectez un fournisseur d'IA pour lancer la traduction."
+
+msgid "Connect provider"
+msgstr "Connecter un fournisseur"
+
 msgid "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 msgstr "Connectez les moteurs qui exécutent le pipeline et narrent les livres. Les clés restent sur cette machine ; les fournisseurs CLI réutilisent la connexion déjà présente."
+
+msgid "Connect your AI provider to extract and process pages. You can still set up the book without one."
+msgstr "Connectez votre fournisseur d'IA pour extraire et traiter les pages. Vous pouvez quand même configurer le livre sans lui."
+
+msgid "Connect your AI provider to process books."
+msgstr "Connectez votre fournisseur d'IA pour traiter des livres."
 
 #. placeholder {0}: health.modelCount
 msgid "Connected — {0} models available."
@@ -2660,6 +2711,9 @@ msgstr "Continuer pour recadrer"
 
 msgid "Continue to upload"
 msgstr "Continuer pour téléverser"
+
+msgid "Continue without a provider"
+msgstr "Continuer sans fournisseur"
 
 msgid "Continuing will reset your current configuration."
 msgstr "Continuer réinitialisera votre configuration actuelle."
@@ -3916,6 +3970,9 @@ msgstr "Extrait Texte"
 
 msgid "Extracting..."
 msgstr "Extraction..."
+
+msgid "Extraction and the other AI steps run on your own AI provider."
+msgstr "L'extraction et les autres étapes d'IA s'exécutent avec votre propre fournisseur d'IA."
 
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "L'extraction est en cours — vous pouvez revoir les fusions une fois terminée."
@@ -6048,6 +6105,12 @@ msgstr "Aucun résultat d'accessibilité n'a été signalé pour cette page."
 msgid "No AI edits yet for this section."
 msgstr "Aucune modification IA pour cette section pour l'instant."
 
+msgid "No AI provider"
+msgstr "Aucun fournisseur d'IA"
+
+msgid "No AI provider. Connect an AI provider."
+msgstr "Aucun fournisseur d'IA. Connectez un fournisseur d'IA."
+
 msgid "No answer set"
 msgstr "Aucune réponse définie"
 
@@ -6288,6 +6351,9 @@ msgstr "Aucun fichier de prompt pour ce modèle."
 
 msgid "No prompt files found."
 msgstr "Aucun fichier de prompt trouvé."
+
+msgid "No provider connected yet. Open one below and sign in or add a key to start processing books."
+msgstr "Aucun fournisseur connecté pour l'instant. Ouvrez-en un ci-dessous, connectez-vous ou ajoutez une clé pour commencer à traiter des livres."
 
 msgid "No pruned terms"
 msgstr "Pas de termes élagués"
@@ -6568,6 +6634,9 @@ msgstr "Une colonne"
 
 msgid "One column for every section. Clean and predictable."
 msgstr "Une colonne pour chaque section. Propre et prévisible."
+
+msgid "One step before you can run this"
+msgstr "Une étape avant de pouvoir lancer ceci"
 
 msgid "One tag per line or comma-separated. Leave as-is to keep the current package defaults."
 msgstr "Un tag par ligne ou séparé par des virgules. Laissez tel quel pour conserver les valeurs par défaut du package."

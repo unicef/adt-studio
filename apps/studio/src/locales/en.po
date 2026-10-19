@@ -985,41 +985,41 @@ msgstr "Add a quiz"
 msgid "Add after"
 msgstr "Add after"
 
-msgid "Add an API key in Book settings to add a quiz."
-msgstr "Add an API key in Book settings to add a quiz."
+#~ msgid "Add an API key in Book settings to add a quiz."
+#~ msgstr "Add an API key in Book settings to add a quiz."
 
-msgid "Add an API key in Book settings to generate a quiz."
-msgstr "Add an API key in Book settings to generate a quiz."
+#~ msgid "Add an API key in Book settings to generate a quiz."
+#~ msgstr "Add an API key in Book settings to generate a quiz."
 
-msgid "Add an API key in Book settings to generate Easy Read content."
-msgstr "Add an API key in Book settings to generate Easy Read content."
+#~ msgid "Add an API key in Book settings to generate Easy Read content."
+#~ msgstr "Add an API key in Book settings to generate Easy Read content."
 
-msgid "Add an API key in Book settings to generate quizzes."
-msgstr "Add an API key in Book settings to generate quizzes."
+#~ msgid "Add an API key in Book settings to generate quizzes."
+#~ msgstr "Add an API key in Book settings to generate quizzes."
 
-msgid "Add an API key in Book settings to run captions."
-msgstr "Add an API key in Book settings to run captions."
+#~ msgid "Add an API key in Book settings to run captions."
+#~ msgstr "Add an API key in Book settings to run captions."
 
-msgid "Add an API key in Book settings to run extraction."
-msgstr "Add an API key in Book settings to run extraction."
+#~ msgid "Add an API key in Book settings to run extraction."
+#~ msgstr "Add an API key in Book settings to run extraction."
 
-msgid "Add an API key in Book settings to run sectioning."
-msgstr "Add an API key in Book settings to run sectioning."
+#~ msgid "Add an API key in Book settings to run sectioning."
+#~ msgstr "Add an API key in Book settings to run sectioning."
 
 #~ msgid "Add an API key in Book settings to run speech."
 #~ msgstr "Add an API key in Book settings to run speech."
 
-msgid "Add an API key in Book settings to run storyboard."
-msgstr "Add an API key in Book settings to run storyboard."
+#~ msgid "Add an API key in Book settings to run storyboard."
+#~ msgstr "Add an API key in Book settings to run storyboard."
 
-msgid "Add an API key in Book settings to run the glossary."
-msgstr "Add an API key in Book settings to run the glossary."
+#~ msgid "Add an API key in Book settings to run the glossary."
+#~ msgstr "Add an API key in Book settings to run the glossary."
 
-msgid "Add an API key in Book settings to run TOC generation."
-msgstr "Add an API key in Book settings to run TOC generation."
+#~ msgid "Add an API key in Book settings to run TOC generation."
+#~ msgstr "Add an API key in Book settings to run TOC generation."
 
-msgid "Add an API key in Book settings to run translation."
-msgstr "Add an API key in Book settings to run translation."
+#~ msgid "Add an API key in Book settings to run translation."
+#~ msgstr "Add an API key in Book settings to run translation."
 
 msgid "Add an API key to re-run"
 msgstr "Add an API key to re-run"
@@ -2576,8 +2576,59 @@ msgstr "Configured on server"
 msgid "Confirm merge"
 msgstr "Confirm merge"
 
+msgid "Connect"
+msgstr "Connect"
+
+msgid "Connect an AI provider to add a quiz."
+msgstr "Connect an AI provider to add a quiz."
+
+msgid "Connect an AI provider to generate a quiz."
+msgstr "Connect an AI provider to generate a quiz."
+
+msgid "Connect an AI provider to generate Easy Read content."
+msgstr "Connect an AI provider to generate Easy Read content."
+
+msgid "Connect an AI provider to generate quizzes."
+msgstr "Connect an AI provider to generate quizzes."
+
+msgid "Connect an AI provider to process your book"
+msgstr "Connect an AI provider to process your book"
+
+msgid "Connect an AI provider to retry."
+msgstr "Connect an AI provider to retry."
+
+msgid "Connect an AI provider to run captions."
+msgstr "Connect an AI provider to run captions."
+
+msgid "Connect an AI provider to run extraction."
+msgstr "Connect an AI provider to run extraction."
+
+msgid "Connect an AI provider to run sectioning."
+msgstr "Connect an AI provider to run sectioning."
+
+msgid "Connect an AI provider to run storyboard."
+msgstr "Connect an AI provider to run storyboard."
+
+msgid "Connect an AI provider to run the glossary."
+msgstr "Connect an AI provider to run the glossary."
+
+msgid "Connect an AI provider to run TOC generation."
+msgstr "Connect an AI provider to run TOC generation."
+
+msgid "Connect an AI provider to run translation."
+msgstr "Connect an AI provider to run translation."
+
+msgid "Connect provider"
+msgstr "Connect provider"
+
 msgid "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 msgstr "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
+
+msgid "Connect your AI provider to extract and process pages. You can still set up the book without one."
+msgstr "Connect your AI provider to extract and process pages. You can still set up the book without one."
+
+msgid "Connect your AI provider to process books."
+msgstr "Connect your AI provider to process books."
 
 #. placeholder {0}: health.modelCount
 msgid "Connected — {0} models available."
@@ -2658,6 +2709,9 @@ msgstr "Continue to crop"
 
 msgid "Continue to upload"
 msgstr "Continue to upload"
+
+msgid "Continue without a provider"
+msgstr "Continue without a provider"
 
 msgid "Continuing will reset your current configuration."
 msgstr "Continuing will reset your current configuration."
@@ -3914,6 +3968,9 @@ msgstr "Extracted Text"
 
 msgid "Extracting..."
 msgstr "Extracting..."
+
+msgid "Extraction and the other AI steps run on your own AI provider."
+msgstr "Extraction and the other AI steps run on your own AI provider."
 
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "Extraction is running — you can review spreads once it finishes."
@@ -6046,6 +6103,12 @@ msgstr "No accessibility findings were reported for this page."
 msgid "No AI edits yet for this section."
 msgstr "No AI edits yet for this section."
 
+msgid "No AI provider"
+msgstr "No AI provider"
+
+msgid "No AI provider. Connect an AI provider."
+msgstr "No AI provider. Connect an AI provider."
+
 msgid "No answer set"
 msgstr "No answer set"
 
@@ -6286,6 +6349,9 @@ msgstr "No prompt files for this model."
 
 msgid "No prompt files found."
 msgstr "No prompt files found."
+
+msgid "No provider connected yet. Open one below and sign in or add a key to start processing books."
+msgstr "No provider connected yet. Open one below and sign in or add a key to start processing books."
 
 msgid "No pruned terms"
 msgstr "No pruned terms"
@@ -6566,6 +6632,9 @@ msgstr "One Column"
 
 msgid "One column for every section. Clean and predictable."
 msgstr "One column for every section. Clean and predictable."
+
+msgid "One step before you can run this"
+msgstr "One step before you can run this"
 
 msgid "One tag per line or comma-separated. Leave as-is to keep the current package defaults."
 msgstr "One tag per line or comma-separated. Leave as-is to keep the current package defaults."

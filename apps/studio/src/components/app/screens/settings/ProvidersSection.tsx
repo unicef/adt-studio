@@ -1,9 +1,12 @@
 import { Trans } from "@lingui/react/macro"
-import { ShieldCheck } from "lucide-react"
+import { KeyRound, ShieldCheck } from "lucide-react"
+import { useProviderCredentials } from "@/hooks/use-provider-credentials"
 import { SettingsHeading, SettingsLead } from "./ui"
 import { ProvidersList } from "./providers/ProvidersList"
 
 export function ProvidersSection() {
+  const { isAvailable, isLoading, error } = useProviderCredentials()
+  const needsProvider = !isLoading && !error && !isAvailable("structured-text")
   return (
     <>
       <SettingsHeading>
@@ -12,6 +15,13 @@ export function ProvidersSection() {
       <SettingsLead>
         <Trans>Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it.</Trans>
       </SettingsLead>
+
+      {needsProvider && (
+        <p className="mb-4 flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-[13px] text-muted-foreground">
+          <KeyRound className="size-4 shrink-0 text-brand-600" aria-hidden />
+          <Trans>No provider connected yet. Open one below and sign in or add a key to start processing books.</Trans>
+        </p>
+      )}
 
       <ProvidersList />
 

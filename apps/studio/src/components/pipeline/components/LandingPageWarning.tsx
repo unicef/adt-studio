@@ -13,11 +13,13 @@ export function LandingPageWarning({
   variant = "prereq",
   title,
   description,
+  action,
 }: {
   show?: boolean
   variant?: Variant
   title: ReactNode
   description: ReactNode
+  action?: ReactNode
 }) {
   if (!show) return null
   const Icon = ICON_BY_VARIANT[variant]
@@ -29,6 +31,7 @@ export function LandingPageWarning({
         <span className="text-[12px] text-amber-700 leading-relaxed">
           {description}
         </span>
+        {action && <div className="mt-2">{action}</div>}
       </div>
     </div>
   )

@@ -191,7 +191,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   )
 
   const disabledReason = !hasStructuredTextProvider ? (
-    <Trans>Add an API key in Book settings to run translation.</Trans>
+    <Trans>Connect an AI provider to run translation.</Trans>
   ) : !storyboardReady ? (
     <Trans>Run Storyboard first — translation needs the typed sections placed by Storyboard.</Trans>
   ) : !hasLanguages ? (
@@ -201,6 +201,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   return (
     <LandingPageShell
       bookLabel={bookLabel}
+      requiresProvider
       stageSlug="translate"
       settingsTab="general"
       colorClass="bg-pink-600 hover:bg-pink-700"

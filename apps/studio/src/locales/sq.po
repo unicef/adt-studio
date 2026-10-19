@@ -987,41 +987,41 @@ msgstr "Shto një kuiz"
 msgid "Add after"
 msgstr "Shto pas"
 
-msgid "Add an API key in Book settings to add a quiz."
-msgstr "Shto një çelës API në cilësimet e Librit për të shtuar një kuiz."
+#~ msgid "Add an API key in Book settings to add a quiz."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të shtuar një kuiz."
 
-msgid "Add an API key in Book settings to generate a quiz."
-msgstr "Shto një çelës API në cilësimet e Librit për të gjeneruar një kuiz."
+#~ msgid "Add an API key in Book settings to generate a quiz."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të gjeneruar një kuiz."
 
-msgid "Add an API key in Book settings to generate Easy Read content."
-msgstr "Shto një çelës API në cilësimet e Librit për të gjeneruar përmbajtje Lexim të Lehtë."
+#~ msgid "Add an API key in Book settings to generate Easy Read content."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të gjeneruar përmbajtje Lexim të Lehtë."
 
-msgid "Add an API key in Book settings to generate quizzes."
-msgstr "Shto një çelës API në cilësimet e Librit për të gjeneruar kuize."
+#~ msgid "Add an API key in Book settings to generate quizzes."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të gjeneruar kuize."
 
-msgid "Add an API key in Book settings to run captions."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar titujt."
+#~ msgid "Add an API key in Book settings to run captions."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar titujt."
 
-msgid "Add an API key in Book settings to run extraction."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar nxjerrjen."
+#~ msgid "Add an API key in Book settings to run extraction."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar nxjerrjen."
 
-msgid "Add an API key in Book settings to run sectioning."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar ndarjen në seksione."
+#~ msgid "Add an API key in Book settings to run sectioning."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar ndarjen në seksione."
 
 #~ msgid "Add an API key in Book settings to run speech."
 #~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar të folurit."
 
-msgid "Add an API key in Book settings to run storyboard."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar storyboard-in."
+#~ msgid "Add an API key in Book settings to run storyboard."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar storyboard-in."
 
-msgid "Add an API key in Book settings to run the glossary."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar fjalorthin."
+#~ msgid "Add an API key in Book settings to run the glossary."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar fjalorthin."
 
-msgid "Add an API key in Book settings to run TOC generation."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar gjenerimin e TOC."
+#~ msgid "Add an API key in Book settings to run TOC generation."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar gjenerimin e TOC."
 
-msgid "Add an API key in Book settings to run translation."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar përkthimin."
+#~ msgid "Add an API key in Book settings to run translation."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar përkthimin."
 
 msgid "Add an API key to re-run"
 msgstr "Shto një çelës API për të ri-ekzekutuar"
@@ -2578,8 +2578,59 @@ msgstr "Konfiguruar në server"
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
 
+msgid "Connect"
+msgstr "Lidhu"
+
+msgid "Connect an AI provider to add a quiz."
+msgstr "Lidhni një ofrues IA për të shtuar një kuiz."
+
+msgid "Connect an AI provider to generate a quiz."
+msgstr "Lidhni një ofrues IA për të gjeneruar një kuiz."
+
+msgid "Connect an AI provider to generate Easy Read content."
+msgstr "Lidhni një ofrues IA për të gjeneruar përmbajtje Easy Read."
+
+msgid "Connect an AI provider to generate quizzes."
+msgstr "Lidhni një ofrues IA për të gjeneruar kuize."
+
+msgid "Connect an AI provider to process your book"
+msgstr "Lidhni një ofrues IA për të përpunuar librin tuaj"
+
+msgid "Connect an AI provider to retry."
+msgstr "Lidhni një ofrues IA për të provuar sërish."
+
+msgid "Connect an AI provider to run captions."
+msgstr "Lidhni një ofrues IA për të nisur titrat."
+
+msgid "Connect an AI provider to run extraction."
+msgstr "Lidhni një ofrues IA për të nisur nxjerrjen."
+
+msgid "Connect an AI provider to run sectioning."
+msgstr "Lidhni një ofrues IA për të nisur ndarjen në seksione."
+
+msgid "Connect an AI provider to run storyboard."
+msgstr "Lidhni një ofrues IA për të nisur storyboard-in."
+
+msgid "Connect an AI provider to run the glossary."
+msgstr "Lidhni një ofrues IA për të nisur fjalorin."
+
+msgid "Connect an AI provider to run TOC generation."
+msgstr "Lidhni një ofrues IA për të gjeneruar tabelën e përmbajtjes."
+
+msgid "Connect an AI provider to run translation."
+msgstr "Lidhni një ofrues IA për të nisur përkthimin."
+
+msgid "Connect provider"
+msgstr "Lidh ofruesin"
+
 msgid "Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it."
 msgstr "Lidh motorët që drejtojnë linjën dhe tregojnë libra. Çelësat qëndrojnë në këtë makinë; ofruesit CLI ripërdorin hyrjen tashmë në të."
+
+msgid "Connect your AI provider to extract and process pages. You can still set up the book without one."
+msgstr "Lidhni ofruesin tuaj IA për të nxjerrë dhe përpunuar faqet. Prapë mund ta konfiguroni librin pa të."
+
+msgid "Connect your AI provider to process books."
+msgstr "Lidhni ofruesin tuaj të IA për të përpunuar libra."
 
 #. placeholder {0}: health.modelCount
 msgid "Connected — {0} models available."
@@ -2660,6 +2711,9 @@ msgstr "Vazhdo te prerja"
 
 msgid "Continue to upload"
 msgstr "Vazhdo te ngarkimi"
+
+msgid "Continue without a provider"
+msgstr "Vazhdo pa ofrues"
 
 msgid "Continuing will reset your current configuration."
 msgstr "Vazhdimi do të rivendosë konfigurimin tuaj aktual."
@@ -3916,6 +3970,9 @@ msgstr "Tekst i nxjerrë"
 
 msgid "Extracting..."
 msgstr "Duke nxjerrë..."
+
+msgid "Extraction and the other AI steps run on your own AI provider."
+msgstr "Nxjerrja dhe hapat e tjerë të IA ekzekutohen te ofruesi juaj i IA."
 
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "Ekstraktimi është në proces — mund të rishikoni faqet e përbashkëta pasi të përfundojë."
@@ -6048,6 +6105,12 @@ msgstr "Nuk u raportuan gjetje aksesueshmërie për këtë faqe."
 msgid "No AI edits yet for this section."
 msgstr "Nuk ka redaktime të AI ende për këtë seksion."
 
+msgid "No AI provider"
+msgstr "Pa ofrues IA"
+
+msgid "No AI provider. Connect an AI provider."
+msgstr "Pa ofrues IA. Lidhni një ofrues IA."
+
 msgid "No answer set"
 msgstr "Pa përgjigje të caktuar"
 
@@ -6288,6 +6351,9 @@ msgstr "Nuk ka skedarë prompti për këtë model."
 
 msgid "No prompt files found."
 msgstr "Nuk u gjet asnjë skedar prompti."
+
+msgid "No provider connected yet. Open one below and sign in or add a key to start processing books."
+msgstr "Ende pa ofrues të lidhur. Hapni një më poshtë dhe hyni ose shtoni një çelës për të filluar përpunimin e librave."
 
 msgid "No pruned terms"
 msgstr "Nuk ka terma të hequr"
@@ -6568,6 +6634,9 @@ msgstr "Një kolonë"
 
 msgid "One column for every section. Clean and predictable."
 msgstr "Një kolonë për çdo seksion. E pastër dhe e parashikueshme."
+
+msgid "One step before you can run this"
+msgstr "Një hap para se ta ekzekutoni"
 
 msgid "One tag per line or comma-separated. Leave as-is to keep the current package defaults."
 msgstr "Një etiketë për rresht ose të ndara me presje. Lërini siç janë për të mbajtur paracaktimet aktuale të paketës."
