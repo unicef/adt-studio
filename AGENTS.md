@@ -316,6 +316,87 @@ provider around the whole body:
 - **`cn` is exempt from `minimumReleaseAge`** in `pnpm-workspace.yaml` — the
   skin depends on it and only a recent version exists.
 
+**Responsive controls experiment:** this experiment branch adds a toggle in
+`EditorCanvas` and the `editor/responsive/` adapter around the library's flow
+viewport. The standalone `/responsive-playground.html` entry runs in the Studio
+dev server. See [the finding](docs/experiments/responsive-canvas-controls.md) for
+gesture semantics, limits, verification, and the spec recommendation. This is a
+local prototype, not an approved production contract.
+Image-only blocks move as a unit when their image is dragged vertically. Blocked
+image drags offer explicit, undoable wrapping where valid; inline text and constrained
+layouts offer parent selection instead.
+**Wrap in container** also accepts whole block components in simple rows and
+grids, giving them a normal-flow area for width handles. It retains the component
+and its content, uses available row/cell space, and warns that neighbour spacing
+can change. The stored `data-responsive-container` marker prevents repeated
+wrapping and keeps the wrapper together during reordering. Locked descendants,
+positioned diagrams and restricted HTML structures remain protected.
+Selected asides, figures, headers/footers, image/caption divs, decorated divs and
+resize wrappers now use **Reposition** when dragged, including over their children.
+A single purple **Reposition** control in the quick toolbar starts the same gesture
+when dragged; clicking it toggles Reposition mode. It replaces the separate outline
+handle, black Move button and legacy drag grip. Its label and hover/focus outline
+show the whole component, including captions.
+Child images and paragraphs keep alignment/local reordering; ambiguous plain divs
+keep those gestures and can use the handle for whole-component moves. Clicks still
+select children, and editing text/embedded controls is excluded. One router chooses
+the gesture at pointer-down and blocks the library's competing native drag path.
+Ordinary reordering groups consecutive text/inline siblings into one target to
+preserve reading order. Clicking **Reposition** remains an explicit override and
+previews whole-group drops before, after, inside, or beside another component.
+**Component layout** offers float left/right,
+two columns with aligned tops, stacking, and swapping a pair. These are deterministic,
+undoable prototype actions; AI free placement and full sidebar synchronization are
+not implemented. The playground includes a **Components and columns** sample.
+Explicit float/column actions stack below 640px so they work inside the narrower
+Storyboard canvas. Drops recognize gaps and explain invalid/no-op outcomes. The
+Layout menu can pair a block with its previous/next neighbour. The playground
+accepts `?book=<label>&page=<pageId>` to load an in-memory page copy with a prepared
+text/aside column example; it never saves the copy to the book.
+The Layout menu now offers **Wrap text · object on left/right**, **Side by side**
+and **One below another**. Wrapping converts plain nested layout wrappers around
+paragraphs and one object into continuous text flow; selecting an inner grid or
+the aside discovers neighbouring paragraphs. Arrange edge drops beside paragraphs
+prefer wrapping. Shift-click consecutive siblings to use the group Layout menu.
+Decorated cards, activities, locks and semantic boundaries remain protected. See
+the experiment finding for tested cases and limits; this does not introduce the
+proposed reusable block system.
+Visual groups also offer **Row · align tops/centres/bottoms** and **Centre contents**
+for simple text badges. Multi-selection can promote labels through single-content
+decorative div wrappers. **Size** edits height and inner padding; a blue bottom
+handle reduces spare height/padding while respecting content height. Rows stack
+below 640px. The responsive Styles sidebar now inserts **Position** below Spacing:
+X/Y pixel offsets, **Free transform**, and **Reset offsets**. Free transform drags
+the exact selection; arrows nudge by 1px (Shift: 10px), Done/Escape exits, and a
+cancelled drag restores its preview. It writes independent inline CSS `translate`
+with one Undo step, preserving normal flow, existing transforms and percentage
+bases during dragging. Offsets can overlap content and apply to every viewport.
+Position inputs and Inline CSS track the live value. Locked content, inline text,
+internal table structures, positioned selections and complex ancestor transforms
+remain protected. `PositionProvider` scopes mode and selection to the editor; no
+UI state enters saved HTML. Free-placement containers, unrestricted CSS positioning
+and AI reflow remain design recommendations, not implemented editor modes.
+The tag in the quick toolbar and Styles header is now a picker for paragraphs,
+heading levels and compatible container tags. It preserves content, authored IDs,
+attributes, class order and inline styles in one Undo step. Invalid nesting, locks,
+text editing, groups and structural/media roots are protected. `tags/retag.ts` uses
+public editor transactions to replace only the outer node and move its existing
+children; only that outer node gets a new internal editor ID. It does not reparse
+or replace the document, clear history or change heading classes automatically.
+The Styles sidebar starts with the selected element's icon and tag. **Inline CSS**
+and **Tailwind Classes** initially start expanded; **Computed CSS** starts collapsed.
+Each section remembers its open/closed state as a local sidebar preference across
+elements, pages, panel/tab changes and reloads.
+Inline percentages show rendered pixels quietly beside them. **Edit** in Tailwind
+Classes opens the existing add/reorder/delete controls; **Done** returns to the
+compact class list. Changing selection replaces the readout and closes the class
+editor without resetting the accordions; there is no recent-change log. Computed CSS lists properties from
+the element's inline CSS and matching rules, excluding the browser's full defaults
+catalogue and universal resets. Gesture tooltips show changing values only (target
+labels remain for nested edits).
+`StyleInspection` holds only transient gesture previews, never saved HTML or history.
+The existing mixed style writers and Inspector input mismatch are unchanged.
+
 ## Key Rules
 
 - All types defined as Zod schemas in `packages/types/`, infer TS types with `z.infer<>`

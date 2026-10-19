@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react"
+import { memo, useMemo, useState } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { useLayoutMode } from "adt-html-editor"
 import { HtmlEditor } from "adt-html-editor/shadcn"
@@ -6,6 +6,7 @@ import type { Viewport } from "@/components/app/screens/pipeline/shared/types"
 import { CanvasWidthControl } from "./CanvasWidthControl"
 import { SectionTabs } from "./SectionTabs"
 import type { EditorSection } from "./useStoryboardEditor"
+import { ResponsiveCanvas } from "./responsive/ResponsiveCanvas"
 
 export interface EditorCanvasProps {
   pageId: string
@@ -16,8 +17,8 @@ export interface EditorCanvasProps {
   onViewportChange: (viewport: Viewport) => void
 }
 
-const CanvasBody = memo(function CanvasBody({ fixed }: { fixed: boolean }) {
-  if (!fixed) return <HtmlEditor.Canvas.Viewport />
+const CanvasBody = memo(function CanvasBody({ fixed, direct }: { fixed: boolean; direct: boolean }) {
+  if (!fixed) return direct ? <ResponsiveCanvas /> : <HtmlEditor.Canvas.Viewport />
   return (
     <HtmlEditor.Canvas.FixedPage>
       <HtmlEditor.Canvas.Guides />
@@ -38,6 +39,7 @@ export const EditorCanvas = memo(function EditorCanvas({
   const { t } = useLingui()
   const layout = useLayoutMode()
   const fixed = layout === "fixed"
+  const [direct, setDirect] = useState(true)
 
   const zoomLevels = useMemo(
     () => [
@@ -58,6 +60,10 @@ export const EditorCanvas = memo(function EditorCanvas({
         ) : (
           <CanvasWidthControl viewport={viewport} onViewportChange={onViewportChange} />
         )}
+        {!fixed && <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+          <input type="checkbox" checked={direct} onChange={event => setDirect(event.target.checked)} />
+          {t`Direct controls · prototype`}
+        </label>}
       </HtmlEditor.Canvas.Toolbar>
 
       {sections.length > 1 && (
@@ -71,7 +77,7 @@ export const EditorCanvas = memo(function EditorCanvas({
         </div>
       )}
 
-      <CanvasBody fixed={fixed} />
+      <CanvasBody fixed={fixed} direct={direct} />
     </HtmlEditor.Canvas>
   )
 })
