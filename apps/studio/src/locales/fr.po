@@ -7150,9 +7150,6 @@ msgstr "Détail par étape"
 msgid "Per-Word"
 msgstr "Par mot"
 
-msgid "Per-word highlighting needs an OpenAI API key."
-msgstr "Le surlignage mot à mot nécessite une clé API OpenAI."
-
 msgid "Perfect for children's books, pairing large images with minimal text."
 msgstr "Parfait pour les livres pour enfants, associant de grandes images avec un minimum de texte."
 

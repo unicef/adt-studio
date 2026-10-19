@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { ModelSelect, OPENAI_TTS_MODELS, AZURE_TTS_MODELS, GEMINI_TTS_MODELS, ELEVENLABS_TTS_MODELS, IMAGE_MODEL_GROUPS, LLM_MODEL_GROUPS } from "@/components/pipeline/components/ModelSelect"
+import { UnavailableHint } from "@/components/pipeline/components/UnavailableHint"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -1723,18 +1724,32 @@ function SpeechLanguageCards({
           </p>
         </div>
         <div className="flex items-start gap-3 pt-2">
-          <Switch
-            id="word-highlighting"
-            checked={effectiveWordHighlighting}
-            disabled={wordHighlightingUnavailable}
-            onCheckedChange={(v) => { setWordHighlighting(v); markDirty("speech") }}
-          />
+          {(() => {
+            const toggle = (
+              <Switch
+                id="word-highlighting"
+                checked={effectiveWordHighlighting}
+                disabled={wordHighlightingUnavailable}
+                onCheckedChange={(v) => { setWordHighlighting(v); markDirty("speech") }}
+                className={wordHighlightingUnavailable ? "pointer-events-none" : undefined}
+              />
+            )
+            // A disabled switch gets no pointer events, so the focusable
+            // wrapper carries the "why" tooltip instead.
+            return wordHighlightingUnavailable ? (
+              <UnavailableHint
+                hint={t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio.`}
+              >
+                <span tabIndex={0} className="inline-flex rounded-full">{toggle}</span>
+              </UnavailableHint>
+            ) : (
+              toggle
+            )
+          })()}
           <div className="space-y-2 flex-1">
             <Label htmlFor="word-highlighting" className="text-xs">{t`Word-level highlighting`}</Label>
             <p className="text-[11px] text-muted-foreground">
-              {wordHighlightingUnavailable
-                ? t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio.`
-                : t`When enabled, word-level timestamps are calculated automatically during speech generation so the reader can highlight words as they're spoken. When disabled, you can still calculate timestamps manually from the speech view.`}
+              {t`When enabled, word-level timestamps are calculated automatically during speech generation so the reader can highlight words as they're spoken. When disabled, you can still calculate timestamps manually from the speech view.`}
             </p>
             <WordHighlightPreview enabled={effectiveWordHighlighting} />
           </div>

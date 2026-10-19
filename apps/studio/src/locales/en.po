@@ -7148,9 +7148,6 @@ msgstr "Per-Step Breakdown"
 msgid "Per-Word"
 msgstr "Per-Word"
 
-msgid "Per-word highlighting needs an OpenAI API key."
-msgstr "Per-word highlighting needs an OpenAI API key."
-
 msgid "Perfect for children's books, pairing large images with minimal text."
 msgstr "Perfect for children's books, pairing large images with minimal text."
 

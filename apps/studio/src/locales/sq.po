@@ -7150,9 +7150,6 @@ msgstr "Ndarja Hap-pas-Hapi"
 msgid "Per-Word"
 msgstr "Për-Fjalë"
 
-msgid "Per-word highlighting needs an OpenAI API key."
-msgstr "Theksimi në nivel fjale kërkon një çelës API të OpenAI."
-
 msgid "Perfect for children's books, pairing large images with minimal text."
 msgstr "E përsosur për librat e fëmijëve, duke çiftëzuar imazhe të mëdha me tekst minimal."
 

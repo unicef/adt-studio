@@ -174,7 +174,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
         value: "word" as const,
         label: t`Per-Word`,
         disabled: wordHighlightingUnavailable,
-        disabledHint: t`Per-word highlighting needs an OpenAI API key.`,
+        disabledHint: t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio.`,
       },
     ],
     [t, wordHighlightingUnavailable],
@@ -280,9 +280,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
         <SettingsField
           label={<Trans>Reader Highlighting</Trans>}
           hint={
-            wordHighlightingUnavailable ? (
-              t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio.`
-            ) : effectiveWordHighlighting ? (
+            effectiveWordHighlighting ? (
               <Trans>
                 Highlights each word as it's narrated. Adds a transcription
                 step so audio aligns with text on the page.
