@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { Link } from "@tanstack/react-router"
 import { AudioLines, Brain, ImageIcon, Info, Loader2, TriangleAlert } from "lucide-react"
@@ -94,6 +95,36 @@ function SaveButton({
   )
 }
 
+/**
+ * (i) icon whose tooltip opens on hover and focus like any tooltip, and also
+ * toggles on click. Radix closes a tooltip on trigger click by default, so the
+ * open state is controlled and the click handler prevents that default.
+ */
+function InfoTooltip({ content }: { content: React.ReactNode }) {
+  const { t } = useLingui()
+  const [open, setOpen] = useState(false)
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip open={open} onOpenChange={setOpen}>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={t`More info`}
+            onClick={(event) => {
+              event.preventDefault()
+              setOpen((current) => !current)
+            }}
+            className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Info className="size-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-[280px]">{content}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
+
 function SpecializedCard({
   anchorId,
   icon: Icon,
@@ -128,7 +159,6 @@ function SpecializedCard({
   steps: readonly StepDef[]
   support?: ModelModalitySupport | null
 }) {
-  const { t } = useLingui()
   return (
     <article id={anchorId} className="flex scroll-mt-24 flex-col rounded-2xl border bg-card p-[18px] shadow-sm">
       <div className="flex items-center gap-3">
@@ -138,22 +168,7 @@ function SpecializedCard({
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <div className="text-sm font-semibold">{title}</div>
-            {info && (
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      aria-label={t`More info`}
-                      className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <Info className="size-3.5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-[280px]">{info}</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
+            {info && <InfoTooltip content={info} />}
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
         </div>
