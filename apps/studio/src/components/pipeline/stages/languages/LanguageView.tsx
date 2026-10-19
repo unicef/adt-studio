@@ -1827,7 +1827,7 @@ export function LanguageView({
                       </Label>
                       <p className="text-xs text-muted-foreground">
                         {wordHighlightingUnavailable
-                          ? t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it.`
+                          ? t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio.`
                           : t`Highlights words in sync with the audio. Adds noticeable time to speech generation.`}
                       </p>
                     </div>

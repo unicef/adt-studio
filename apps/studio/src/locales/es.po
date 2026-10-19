@@ -5958,8 +5958,8 @@ msgstr "Navegue por la Vista previa para registrar notas de revisión específic
 msgid "Navigation"
 msgstr "Navegación"
 
-msgid "Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it."
-msgstr "Requiere una clave de API de OpenAI (OpenAI Whisper alinea las palabras con el audio). Añade una en Configuración → Proveedores de IA para activarlo."
+msgid "Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio."
+msgstr "Requiere una clave de API de OpenAI (OpenAI Whisper alinea las palabras con el audio). Añade una en Configuración → Proveedores de IA para activarlo. Mientras tanto, el audio regenerado se resalta por oración; los tiempos por palabra ya calculados se conservan para el audio sin cambios."
 
 msgid "Needs attention"
 msgstr "Requiere atención"

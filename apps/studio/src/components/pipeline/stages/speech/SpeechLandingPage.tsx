@@ -281,7 +281,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
           label={<Trans>Reader Highlighting</Trans>}
           hint={
             wordHighlightingUnavailable ? (
-              t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it.`
+              t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio.`
             ) : effectiveWordHighlighting ? (
               <Trans>
                 Highlights each word as it's narrated. Adds a transcription

@@ -1733,7 +1733,7 @@ function SpeechLanguageCards({
             <Label htmlFor="word-highlighting" className="text-xs">{t`Word-level highlighting`}</Label>
             <p className="text-[11px] text-muted-foreground">
               {wordHighlightingUnavailable
-                ? t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it.`
+                ? t`Needs an OpenAI API key (OpenAI Whisper aligns words with the audio). Add one in Settings → AI providers to enable it. Meanwhile, regenerated audio is highlighted per sentence; word timings already calculated are kept for unchanged audio.`
                 : t`When enabled, word-level timestamps are calculated automatically during speech generation so the reader can highlight words as they're spoken. When disabled, you can still calculate timestamps manually from the speech view.`}
             </p>
             <WordHighlightPreview enabled={effectiveWordHighlighting} />
