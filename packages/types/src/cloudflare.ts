@@ -129,6 +129,7 @@ export const CloudflareOAuthErrorCode = z.enum([
   "oauth_exchange_failed",
   "oauth_no_accounts",
   "reconnect_required",
+  "oauth_refresh_unavailable",
   "account_choice_required",
 ])
 export type CloudflareOAuthErrorCode = z.infer<typeof CloudflareOAuthErrorCode>

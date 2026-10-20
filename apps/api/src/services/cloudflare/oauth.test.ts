@@ -196,6 +196,59 @@ describe("cloudflare oauth", () => {
       expect(service.status(flow.state).accountChoiceRequired).toBe(false)
     })
 
+    describe("signing in again over an existing connection", () => {
+      function writeConnection(accountId: string) {
+        store.write({
+          account_id: accountId,
+          account_name: "Sharing Account",
+          worker_name: "adt-publish",
+          worker_url: "https://adt-publish.teacher.workers.dev",
+          worker_version: "0.1.0",
+          worker_migration_tag: "v1",
+          workers_dev_subdomain: "teacher",
+          d1_database_name: "adt-publish",
+          d1_database_uuid: "db-uuid-1",
+          r2_bucket_name: "adt-publish-snapshots",
+          mgmt_secret: "mgmt-secret-1",
+          provisioned_at: "2026-08-03T12:00:00.000Z",
+          updated_at: "2026-08-03T12:00:00.000Z",
+        })
+      }
+
+      it("binds the login to the connection's account without asking", async () => {
+        writeConnection("acct-2")
+        const { service, listener } = build({
+          oauthAccounts: [
+            { id: "acct-1", name: "One" },
+            { id: "acct-2", name: "Two" },
+          ],
+        })
+        const flow = await service.start()
+        await listener.handle?.(callbackUrl({ code: "auth-code", state: flow.state }))
+
+        expect(service.status(flow.state)).toMatchObject({
+          status: "complete",
+          accountId: "acct-2",
+          accountChoiceRequired: false,
+        })
+        expect(store.readOAuth()?.account_id).toBe("acct-2")
+      })
+
+      it("refuses a login that cannot reach the connection's account and stores nothing", async () => {
+        writeConnection("acct-9")
+        const { service, listener } = build()
+        const flow = await service.start()
+        await listener.handle?.(callbackUrl({ code: "auth-code", state: flow.state }))
+
+        expect(service.status(flow.state)).toMatchObject({
+          status: "error",
+          errorCode: "oauth_no_accounts",
+        })
+        expect(store.readOAuth()).toBeNull()
+        expect(store.read()?.account_id).toBe("acct-9")
+      })
+    })
+
     it("rejects an account that is not part of the login", async () => {
       const { service, listener } = build({
         oauthAccounts: [
@@ -371,6 +424,99 @@ describe("cloudflare oauth", () => {
       )
       expect(store.readOAuth()).toBeNull()
       expect(await revoked.ensureFreshToken()).toBeNull()
+    })
+
+    describe("when the renewal cannot reach a verdict", () => {
+      type TokenFailure = (init?: RequestInit) => Promise<Response>
+
+      const failures: Array<[string, TokenFailure]> = [
+        ["the network is down", () => Promise.reject(new TypeError("fetch failed"))],
+        [
+          "the request times out",
+          (init) =>
+            new Promise((_, reject) => {
+              init?.signal?.addEventListener("abort", () => reject(init.signal?.reason))
+            }),
+        ],
+        [
+          "Cloudflare rate-limits the request",
+          () => Promise.resolve(Response.json({ error: "rate_limited" }, { status: 429 })),
+        ],
+        [
+          "Cloudflare answers with a server error",
+          () => Promise.resolve(new Response("upstream unavailable", { status: 503 })),
+        ],
+        [
+          "the answer is not JSON",
+          () => Promise.resolve(new Response("<html>gateway</html>", { status: 200 })),
+        ],
+        [
+          "the answer has no access token",
+          () => Promise.resolve(Response.json({ token_type: "bearer" }, { status: 200 })),
+        ],
+      ]
+
+      /** Fails the next `failCount` token requests the given way, then lets the fake answer. */
+      async function connectThenFailRenewal(fail: TokenFailure, failCount = 1) {
+        const { fake } = await connect()
+        let remaining = failCount
+        let failedAttempts = 0
+        const flaky = createCloudflareOAuthService({
+          store,
+          now: () => new Date(clock),
+          tokenTimeoutMs: 20,
+          fetchFn: (input, init) => {
+            if (input.includes("/oauth2/token") && remaining > 0) {
+              remaining -= 1
+              failedAttempts += 1
+              return fail(init)
+            }
+            return fake.fetchFn(input, init)
+          },
+        })
+        clock += 3600_000
+        return { flaky, fake, failedAttempts: () => failedAttempts }
+      }
+
+      it.each(failures)("keeps the saved login when %s", async (_label, fail) => {
+        const { flaky } = await connectThenFailRenewal(fail)
+        const before = store.readOAuth()
+
+        await expect(flaky.ensureFreshToken()).rejects.toSatisfy(
+          (error: unknown) =>
+            isCloudflareOAuthError(error) && error.code === "oauth_refresh_unavailable",
+        )
+        expect(store.readOAuth()).toEqual(before)
+      })
+
+      it("renews with the same saved login once Cloudflare answers again", async () => {
+        const { flaky, fake } = await connectThenFailRenewal(() =>
+          Promise.reject(new TypeError("fetch failed")),
+        )
+
+        await expect(flaky.ensureFreshToken()).rejects.toThrow()
+        const fresh = await flaky.ensureFreshToken()
+
+        expect(fresh?.access_token).toBe("cf-oauth-access-2")
+        expect(store.readOAuth()?.refresh_token).toBe("cf-oauth-refresh-2")
+        expect(fake.state.tokenRequests.at(-1)).toMatchObject({
+          grant_type: "refresh_token",
+          refresh_token: "cf-oauth-refresh-1",
+        })
+      })
+
+      it("tries once per call instead of looping", async () => {
+        const { flaky, failedAttempts } = await connectThenFailRenewal(
+          () => Promise.reject(new TypeError("fetch failed")),
+          Number.POSITIVE_INFINITY,
+        )
+
+        await expect(flaky.ensureFreshToken()).rejects.toThrow()
+        expect(failedAttempts()).toBe(1)
+        await expect(flaky.ensureFreshToken()).rejects.toThrow()
+        expect(failedAttempts()).toBe(2)
+        expect(store.readOAuth()).not.toBeNull()
+      })
     })
 
     it("keeps a connection record intact when the grant is cleared", async () => {
