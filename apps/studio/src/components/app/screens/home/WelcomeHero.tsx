@@ -2,7 +2,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import { WelcomeKeyPrompt } from "@/components/key-prompt/KeyPrompt"
 import { useConnectProvider } from "@/hooks/use-connect-provider"
-import { useProviderCredentials } from "@/hooks/use-provider-credentials"
+import { useNeedsTextProvider } from "@/hooks/use-api-key"
 import { FileText, Sparkles, Package, ArrowRight, Plus, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,8 +15,7 @@ export interface WelcomeHeroProps {
 export function WelcomeHero({ onOpenAdd }: WelcomeHeroProps) {
   const navigate = useNavigate()
   const connect = useConnectProvider()
-  const { isAvailable, isLoading, error } = useProviderCredentials()
-  const needsKey = !isLoading && !error && !isAvailable("structured-text")
+  const needsKey = useNeedsTextProvider()
   const ctas = (
     <>
       <Button variant={needsKey ? "outline" : "default"} onClick={onOpenAdd}>

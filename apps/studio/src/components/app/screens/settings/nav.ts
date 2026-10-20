@@ -86,7 +86,7 @@ export const SETTINGS_ANCHORS = {
 
 export const localeAnchor = (locale: string) => `settings-locale-${locale}`
 
-export { providerAnchor, providerFromAnchor } from "./provider-anchor"
+export { providerAnchor, providerFromAnchor, type ProviderAuthSearch } from "./provider-anchor"
 
 export function activeSettingsTab(pathname: string): SettingsTab {
   return (

@@ -1,6 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro"
 import { useConnectProvider } from "@/hooks/use-connect-provider"
-import { useProviderCredentials } from "@/hooks/use-provider-credentials"
+import { useNeedsTextProvider } from "@/hooks/use-api-key"
 
 /**
  * Status chip for the flow top bar: shown while no AI provider can run text
@@ -10,8 +10,8 @@ import { useProviderCredentials } from "@/hooks/use-provider-credentials"
 export function ProviderStatusChip() {
   const { t } = useLingui()
   const connect = useConnectProvider()
-  const { isAvailable, isLoading, error } = useProviderCredentials()
-  if (isLoading || error || isAvailable("structured-text")) return null
+  const needsProvider = useNeedsTextProvider()
+  if (!needsProvider) return null
   return (
     <button
       type="button"

@@ -1,12 +1,11 @@
 import { Trans } from "@lingui/react/macro"
 import { KeyRound, ShieldCheck } from "lucide-react"
-import { useProviderCredentials } from "@/hooks/use-provider-credentials"
+import { useNeedsTextProvider } from "@/hooks/use-api-key"
 import { SettingsHeading, SettingsLead } from "./ui"
 import { ProvidersList } from "./providers/ProvidersList"
 
 export function ProvidersSection() {
-  const { isAvailable, isLoading, error } = useProviderCredentials()
-  const needsProvider = !isLoading && !error && !isAvailable("structured-text")
+  const needsProvider = useNeedsTextProvider()
   return (
     <>
       <SettingsHeading>

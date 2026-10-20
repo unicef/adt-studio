@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useLocation } from "@tanstack/react-router"
+import { useLocation, useSearch } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ChevronDown, Loader2, Plus, RefreshCw, Info } from "lucide-react"
@@ -12,9 +12,9 @@ import { ComingSoon } from "../ui"
 import { ProviderCard } from "./ProviderEditor"
 import { useProviders } from "./useProviders"
 import { GroupHeading } from "./GroupHeading"
-import { providerAnchor, providerFromAnchor } from "../nav"
+import { providerAnchor, providerFromAnchor, type ProviderAuthSearch } from "../nav"
 
-function Row({ cardKey, open, onToggle, store }: { cardKey: string; open: boolean; onToggle: () => void; store: ReturnType<typeof useProviders> }) {
+function Row({ cardKey, open, onToggle, store, requestedAuth }: { cardKey: string; open: boolean; onToggle: () => void; store: ReturnType<typeof useProviders>; requestedAuth?: ProviderAuthSearch["auth"] }) {
   const card = PROVIDER_CARDS[cardKey]
   const registered = isCardRegistered(cardKey, store)
   const health = useCardHealth(cardKey, store)
@@ -63,7 +63,7 @@ function Row({ cardKey, open, onToggle, store }: { cardKey: string; open: boolea
       >
         <div className="overflow-hidden">
           <div className={cn("border-t bg-muted/20 px-4 py-4 transition-opacity duration-300 motion-reduce:transition-none", open ? "opacity-100" : "opacity-0")}>
-            <ProviderCard cardKey={cardKey} store={store} active={open} />
+            <ProviderCard cardKey={cardKey} store={store} active={open} requestedAuth={requestedAuth} />
           </div>
         </div>
       </div>
@@ -76,12 +76,13 @@ export function ProvidersList() {
   const store = useProviders()
   const queryClient = useQueryClient()
   const { hash } = useLocation()
+  const { auth } = useSearch({ strict: false })
+  const linkedCard = hash ? providerFromAnchor(hash) : null
   const [openId, setOpenId] = useState<string | null>(null)
 
   useEffect(() => {
-    const cardKey = hash ? providerFromAnchor(hash) : null
-    if (cardKey && PROVIDER_CARDS[cardKey]) setOpenId(cardKey)
-  }, [hash])
+    if (linkedCard && PROVIDER_CARDS[linkedCard]) setOpenId(linkedCard)
+  }, [linkedCard])
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ["providers"] })
@@ -168,6 +169,7 @@ export function ProvidersList() {
                     open={openId === cardKey}
                     onToggle={() => setOpenId((prev) => (prev === cardKey ? null : cardKey))}
                     store={store}
+                    requestedAuth={cardKey === linkedCard ? auth : undefined}
                   />
                 ))}
               </div>

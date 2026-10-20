@@ -32,6 +32,7 @@ describe("WelcomeHero", () => {
     fireEvent.click(screen.getByText("Connect provider"))
     expect(navigate).toHaveBeenCalledWith({
       to: "/settings/providers",
+      search: { auth: "api-key" },
       hash: "settings-provider-openai",
     })
   })

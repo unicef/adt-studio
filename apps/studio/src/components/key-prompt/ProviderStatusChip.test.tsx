@@ -32,6 +32,7 @@ describe("ProviderStatusChip", () => {
     fireEvent.click(screen.getByRole("button"))
     expect(navigate).toHaveBeenCalledWith({
       to: "/settings/providers",
+      search: { auth: "api-key" },
       hash: "settings-provider-openai",
     })
   })

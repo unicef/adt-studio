@@ -33,6 +33,16 @@ export function useBookStructuredTextStatus(bookLabel: string): { available: boo
 }
 
 /**
+ * True once the provider list has loaded and no provider can run text steps
+ * on the global default model. False while loading or on a failed load, so
+ * prompts asking the user to connect a provider never flash.
+ */
+export function useNeedsTextProvider(): boolean {
+  const { isAvailable, isLoading, error } = useProviderCredentials()
+  return !isLoading && !error && !isAvailable("structured-text")
+}
+
+/**
  * Agent availability resolved against the model an agent run of this book
  * actually uses. Mirrors agents-service's chain: the merged config's
  * `agents.model` (a documented per-book override), else the default model's

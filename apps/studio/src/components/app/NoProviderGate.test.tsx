@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { NoProviderGate } from "./NoProviderGate"
 
@@ -53,11 +53,18 @@ describe("NoProviderGate", () => {
     expect(screen.queryByRole("dialog")).toBeNull()
   })
 
+  it("opens with the connect action focused, not the way out", async () => {
+    renderGate()
+    const connect = screen.getByText("Connect provider").closest("button")
+    await waitFor(() => expect(document.activeElement).toBe(connect))
+  })
+
   it("sends the user to the OpenAI provider card", () => {
     renderGate()
     fireEvent.click(screen.getByText("Connect provider"))
     expect(navigate).toHaveBeenCalledWith({
       to: "/settings/providers",
+      search: { auth: "api-key" },
       hash: "settings-provider-openai",
     })
   })

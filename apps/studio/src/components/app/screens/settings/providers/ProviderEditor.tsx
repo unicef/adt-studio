@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowRight } from "lucide-react"
@@ -21,6 +21,7 @@ import {
   useDraft,
 } from "./shared"
 import type { Providers } from "./useProviders"
+import type { ProviderAuthSearch } from "../provider-anchor"
 import { CliLoginControls } from "./CliLogin"
 
 function Handles({ descriptor }: { descriptor: ProviderDescriptor }) {
@@ -58,12 +59,22 @@ function HelpText({ descriptor }: { descriptor: ProviderDescriptor }) {
   return <p className="text-[11.5px] leading-normal text-muted-foreground">{localize(descriptor.manifest.localizedHelp, i18n.locale)}</p>
 }
 
+const EXPAND_MS = 300
+
 /** API-key (and local base-URL) backend: editable credential form + status. */
-function ApiKeyPanel({ descriptor, store, active }: { descriptor: ProviderDescriptor; store: Providers; active: boolean }) {
+function ApiKeyPanel({ descriptor, store, active, focusKey = false }: { descriptor: ProviderDescriptor; store: Providers; active: boolean; focusKey?: boolean }) {
   const draft = useDraft(descriptor, store)
   const health = useProviderHealth(descriptor.manifest.id, draft.values, active)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!focusKey || !active) return
+    const timeout = window.setTimeout(() => panelRef.current?.querySelector("input")?.focus(), EXPAND_MS)
+    return () => window.clearTimeout(timeout)
+  }, [focusKey, active])
+
   return (
-    <div className="flex flex-col gap-4">
+    <div ref={panelRef} className="flex flex-col gap-4">
       <HealthLine health={health.data ?? null} isFetching={health.isFetching} onRefresh={() => void health.refetch()} />
       <Handles descriptor={descriptor} />
       <CredentialFields draft={draft} onSubmit={draft.canSave ? draft.save : undefined} />
@@ -97,11 +108,11 @@ function CliPanel({ descriptor, store, active }: { descriptor: ProviderDescripto
   )
 }
 
-function Panel({ descriptor, store, active }: { descriptor: ProviderDescriptor; store: Providers; active: boolean }) {
+function Panel({ descriptor, store, active, focusKey }: { descriptor: ProviderDescriptor; store: Providers; active: boolean; focusKey: boolean }) {
   return authKind(descriptor) === "cli" ? (
     <CliPanel descriptor={descriptor} store={store} active={active} />
   ) : (
-    <ApiKeyPanel descriptor={descriptor} store={store} active={active} />
+    <ApiKeyPanel descriptor={descriptor} store={store} active={active} focusKey={focusKey} />
   )
 }
 
@@ -109,14 +120,26 @@ function Panel({ descriptor, store, active }: { descriptor: ProviderDescriptor; 
  * A vendor. Vendors offering both an API and a local CLI (OpenAI→Codex, Anthropic→Claude
  * Agent) show a CLI ↔ API-key toggle that swaps which backend you configure; each mode keeps
  * its own modalities and connection state. Single-backend vendors render one panel. A backend
- * the server does not register is left out of the toggle entirely.
+ * the server does not register is left out of the toggle entirely. `requestedAuth` (from a
+ * "connect provider" link) opens the card on its API-key backend with the key field focused.
  */
-export function ProviderCard({ cardKey, store, active }: { cardKey: string; store: Providers; active: boolean }) {
+export function ProviderCard({
+  cardKey,
+  store,
+  active,
+  requestedAuth,
+}: {
+  cardKey: string
+  store: Providers
+  active: boolean
+  requestedAuth?: ProviderAuthSearch["auth"]
+}) {
   const card = PROVIDER_CARDS[cardKey]
   const apiDesc = card.apiKeyProviderId ? store.descriptorById(card.apiKeyProviderId) : undefined
   const cliDesc = card.cliProviderId ? store.descriptorById(card.cliProviderId) : undefined
   const localDesc = card.localProviderId ? store.descriptorById(card.localProviderId) : undefined
-  const [mode, setMode] = useState<"api-key" | "cli">(() => defaultCardMode(cardKey, store))
+  const [mode, setMode] = useState<"api-key" | "cli">(() => requestedAuth ?? defaultCardMode(cardKey, store))
+  const focusKey = requestedAuth === "api-key"
 
   if (apiDesc && cliDesc) {
     return (
@@ -128,7 +151,7 @@ export function ProviderCard({ cardKey, store, active }: { cardKey: string; stor
           <AuthModeToggle mode={mode} onChange={setMode} cliLabel={card.cliLabel} />
         </div>
         {mode === "api-key" ? (
-          <ApiKeyPanel descriptor={apiDesc} store={store} active={active} />
+          <ApiKeyPanel descriptor={apiDesc} store={store} active={active} focusKey={focusKey} />
         ) : (
           <CliPanel descriptor={cliDesc} store={store} active={active} />
         )}
@@ -144,5 +167,5 @@ export function ProviderCard({ cardKey, store, active }: { cardKey: string; stor
       </p>
     )
   }
-  return <Panel descriptor={only} store={store} active={active} />
+  return <Panel descriptor={only} store={store} active={active} focusKey={focusKey} />
 }
