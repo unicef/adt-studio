@@ -107,16 +107,20 @@ function setSystemReducedMotion(matches: boolean): void {
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches })))
 }
 
+let disposeSoftNav: (() => void) | undefined
+
 beforeEach(() => {
   installDocument(pageHtml({ sectionId: "pg001_sec001", title: "Page one" }))
   setLocation("http://localhost/book/pg001_sec001.html")
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })))
+  disposeSoftNav = subscribeSoftNavHistory()
   initializePageContent.mockClear()
   disposeActivityInitializers.mockClear()
   announceToScreenReader.mockClear()
 })
 
 afterEach(() => {
+  disposeSoftNav?.()
   getDefaultStore().set(pagesAtom, [])
   getDefaultStore().set(currentPageNumberAtom, null)
   getDefaultStore().set(translationsAtom, {})
@@ -657,4 +661,61 @@ it("clears page-owned grading state before initializing an answerless legacy pag
   })
   expect(await swapToPage("pg003_sec001.html")).toBe("ok")
   expect(initializePageContent).toHaveBeenCalledOnce()
+})
+
+it("does not commit a superseded page after waiting for a view transition", async () => {
+  const commits: Array<() => void> = []
+  Object.defineProperty(document, "startViewTransition", {
+    configurable: true,
+    value: (callback: () => void) => {
+      const done = new Promise<void>((resolve) => commits.push(() => { callback(); resolve() }))
+      return { updateCallbackDone: done, finished: done }
+    },
+  })
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => ({ ok: true, text: async () => pageHtml({ sectionId: url, title: url }) })))
+  const older = swapToPage("older.html", { pushUrl: true })
+  await vi.waitFor(() => expect(commits).toHaveLength(1))
+  const latest = swapToPage("latest.html", { pushUrl: true })
+  await vi.waitFor(() => expect(commits).toHaveLength(2))
+  commits[1]()
+  expect(await latest).toBe("ok")
+  commits[0]()
+  expect(await older).toBe("aborted")
+  expect(document.querySelector("h1")?.textContent).toBe("latest.html")
+  expect(initializePageContent).toHaveBeenCalledTimes(1)
+})
+
+it("treats an old HTTP error as superseded instead of requesting a hard-navigation fallback", async () => {
+  let finish!: (response: { ok: boolean }) => void
+  vi.stubGlobal("fetch", vi.fn((url: string) => url === "old-error.html"
+    ? new Promise((resolve) => { finish = resolve })
+    : Promise.resolve({ ok: true, text: async () => pageHtml({ sectionId: "latest", title: "Latest" }) })))
+  const older = swapToPage("old-error.html")
+  expect(await swapToPage("latest.html")).toBe("ok")
+  finish({ ok: false })
+  expect(await older).toBe("aborted")
+  expect(document.querySelector("h1")?.textContent).toBe("Latest")
+})
+
+
+it("keeps standalone HTTP activities on document navigation", async () => {
+  disposeSoftNav?.()
+  const fetcher = vi.fn()
+  vi.stubGlobal("fetch", fetcher)
+  expect(canSoftNavigate()).toBe(false)
+  const { navigateToPage } = await import("./page-swap")
+  navigateToPage("http://localhost/book/next.html")
+  expect(window.location.href).toBe("http://localhost/book/next.html")
+  expect(fetcher).not.toHaveBeenCalled()
+})
+
+it("aborts a pending navigation when the full reader is disposed", async () => {
+  let finish!: (response: unknown) => void
+  vi.stubGlobal("fetch", vi.fn(() => new Promise((resolve) => { finish = resolve })))
+  const pending = swapToPage("late.html")
+  disposeSoftNav?.()
+  finish({ ok: true, text: async () => pageHtml({ sectionId: "late", title: "Late" }) })
+  expect(await pending).toBe("aborted")
+  expect(initializePageContent).not.toHaveBeenCalled()
+  expect(canSoftNavigate()).toBe(false)
 })

@@ -21,6 +21,7 @@
  * absence of `[[blank:]]` markers in tables.
  */
 import { getDefaultStore } from "jotai"
+import { getTextInputs as getActivityInputs, type TextInput } from "../lib/text-inputs"
 import { translationsAtom } from "../../language/state/language.atoms"
 import {
   pagesAtom,
@@ -53,7 +54,6 @@ const FITB_SELECTOR =
 // `window.correctAnswers` / `window.interchangeablePairs` are declared once in
 // ./activity-globals.d.ts (shared by every activity initializer).
 
-type TextInput = HTMLInputElement | HTMLTextAreaElement
 
 function tr(key: string, fallback: string): string {
   const dict = getDefaultStore().get(translationsAtom)
@@ -228,14 +228,6 @@ function escapeAttr(value: string): string {
   return String(value).replace(/"/g, "&quot;")
 }
 
-function getActivityInputs(section: HTMLElement): TextInput[] {
-  // Saved custom HTML may omit type (or contain an unrecognized value).
-  // The browser treats those inputs as text; use that effective type without
-  // rewriting legacy markup or including hidden/checkbox/numeric controls.
-  return Array.from(section.querySelectorAll<TextInput>(
-    "input:not(#filter-input), textarea:not(#filter-input)",
-  )).filter((input) => input.tagName === "TEXTAREA" || input.type === "text")
-}
 
 function normalize(value: string): string {
   return value.trim().toLowerCase()
