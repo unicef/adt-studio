@@ -7,6 +7,8 @@ import type { StoryboardEditorSession } from "./useStoryboardEditor"
 import { StyleInspection } from "./responsive/inspection/StyleInspection"
 import { PositionProvider } from "./responsive/position/PositionProvider"
 
+const FLOW_LAYOUT = { directControls: true }
+
 export interface StoryboardShellProps {
   session: StoryboardEditorSession
   children: React.ReactNode
@@ -33,6 +35,7 @@ export function StoryboardShell({ session, children }: StoryboardShellProps) {
       value={html}
       onChange={onChange}
       fixedLayout={fixedLayout}
+      flowLayout={FLOW_LAYOUT}
       className="relative min-h-0 flex-1 bg-transparent text-base"
     >
       <StyleInspection><PositionProvider>{children}</PositionProvider></StyleInspection>

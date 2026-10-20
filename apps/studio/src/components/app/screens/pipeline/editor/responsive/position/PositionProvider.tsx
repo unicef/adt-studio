@@ -1,5 +1,5 @@
 import { createContext, useContext, useLayoutEffect, useRef, useState, type ReactNode } from "react"
-import { useEditor, useEditorStoreApi } from "adt-html-editor"
+import { useDirectControls, useEditor, useEditorStoreApi } from "adt-html-editor"
 import { useLingui } from "@lingui/react/macro"
 import { usePositionTarget } from "./usePositionTarget"
 import { offsetStyle, readTranslation, translationMatches } from "./translation"
@@ -9,7 +9,7 @@ function usePositionController() {
   const root = useRef<HTMLDivElement>(null)
   const target = usePositionTarget(root)
   const editor = useEditor(), store = useEditorStoreApi()
-  const [enabled, setEnabled] = useState(false)
+  const enabled = useDirectControls()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [error, setError] = useState("")
   const cancel = useRef<(() => void) | null>(null)
@@ -44,7 +44,7 @@ function usePositionController() {
     if (active) stop()
     else if (enabled && target.node && target.measured && !target.measured.reason) setActiveId(target.node.id)
   }
-  return { ...target, root, enabled, setEnabled, active, apply, setAxis, stop, toggle, cancel, error, blocked }
+  return { ...target, root, enabled, active, apply, setAxis, stop, toggle, cancel, error, blocked }
 }
 
 const PositionContext = createContext<ReturnType<typeof usePositionController> | null>(null)

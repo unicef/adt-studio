@@ -409,8 +409,8 @@ importers:
         specifier: ^3.13.23
         version: 3.13.23(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       adt-html-editor:
-        specifier: npm:@zignaggo/adt-html-editor@0.1.1
-        version: '@zignaggo/adt-html-editor@0.1.1(@base-ui/react@1.8.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(class-variance-authority@0.7.1)(cmdk@1.1.1(@types/react-dom@19.2.3(@types/react@19.2.13))(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(lucide-react@0.469.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-resizable-panels@4.12.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)'
+        specifier: npm:@zignaggo/adt-html-editor@0.2.0
+        version: '@zignaggo/adt-html-editor@0.2.0(@base-ui/react@1.8.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(class-variance-authority@0.7.1)(cmdk@1.1.1(@types/react-dom@19.2.3(@types/react@19.2.13))(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(lucide-react@0.469.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-resizable-panels@4.12.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)'
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.1
@@ -3799,8 +3799,8 @@ packages:
     resolution: {integrity: sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw==}
     engines: {node: '>=10.0.0'}
 
-  '@zignaggo/adt-html-editor@0.1.1':
-    resolution: {integrity: sha512-E7o8uTscLHJtJFlOTU3VMawWzlnhnPTKWUxWX3IzOI3UJRNYr4P/hC5D72pRzl4Ezdu16KB6z5JUxFXFTVf6Mw==, tarball: https://npm.pkg.github.com/download/@zignaggo/adt-html-editor/0.1.1/fd5f63b58d725b5d0c09f9c74d6fb9f7d02e15e8}
+  '@zignaggo/adt-html-editor@0.2.0':
+    resolution: {integrity: sha512-b56ec0l9nVN5RNkPXqSgV7hk6Ov0C/vOLMO6tSokSX85tEws/jUD6hpb/5nmNzrgGtiiqR55gUpLm8KHmgT3jw==, tarball: https://npm.pkg.github.com/download/@zignaggo/adt-html-editor/0.2.0/22ae5d8973df92b0baeec0bbd5a20465888c5a08}
     peerDependencies:
       '@base-ui/react': ^1.8.0
       class-variance-authority: ^0.7.0
@@ -5914,8 +5914,8 @@ packages:
   oxc-resolver@11.24.2:
     resolution: {integrity: sha512-FY91FiDBj7ls5MsFS9jN3tjz2o0/zsdSsymlakySaBwVJZorHhkWyICLZMKxlu1R9vYo+sd3z1jwb4J8x7bNDw==}
 
-  oxlint-plugin-react-doctor@0.9.14:
-    resolution: {integrity: sha512-YGdwFmQXGQulT63SnVD9JI1hV2EwGnZHrgSlUMQaOkvnhYA200QwDeb7DfVT8UBt34lBvbkjtz8VRFJugHjsRQ==}
+  oxlint-plugin-react-doctor@0.9.18:
+    resolution: {integrity: sha512-1mfeb/jzXnduWOZJxrvdJjvKT0pFNKrNFYcPO4ncpFAnfW41M0mLz/23lAFzHb0knNLYayEgIQ5DjI4ZfFe+DQ==}
     engines: {node: ^20.19.0 || >=22.13.0}
 
   oxlint@1.81.0:
@@ -6142,8 +6142,8 @@ packages:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
 
-  react-doctor@0.9.14:
-    resolution: {integrity: sha512-JzOwAY/hoSxHa4Siyqgfxr/KCNak0SB9pSTseFVStFHAnWS+XxR6RsWU6Q5Ho+J5Jmyb9LZRXc6ZK5jt3cfcQQ==}
+  react-doctor@0.9.18:
+    resolution: {integrity: sha512-4Ach00KtfnfjTBGgr2PyPgHua85vT/UfPY5sR0bHgRAc/QSu0JInA0GHCL6a7WFGMeGUrxtGnI8oqZinG44BOA==}
     engines: {node: ^20.19.0 || >=22.13.0}
     hasBin: true
 
@@ -8011,7 +8011,7 @@ snapshots:
   '@lingui/babel-plugin-lingui-macro@5.9.5(babel-plugin-macros@3.1.0)(typescript@5.9.3)':
     dependencies:
       '@babel/core': 7.29.0
-      '@babel/runtime': 7.29.2
+      '@babel/runtime': 7.29.7
       '@babel/types': 7.29.0
       '@lingui/conf': 5.9.5(typescript@5.9.3)
       '@lingui/core': 5.9.5(@lingui/babel-plugin-lingui-macro@5.9.5(babel-plugin-macros@3.1.0)(typescript@5.9.3))(babel-plugin-macros@3.1.0)
@@ -8105,7 +8105,7 @@ snapshots:
 
   '@lingui/conf@5.9.5(typescript@5.9.3)':
     dependencies:
-      '@babel/runtime': 7.29.2
+      '@babel/runtime': 7.29.7
       cosmiconfig: 8.3.6(typescript@5.9.3)
       jest-validate: 29.7.0
       jiti: 2.6.1
@@ -8130,7 +8130,7 @@ snapshots:
 
   '@lingui/core@5.9.5(@lingui/babel-plugin-lingui-macro@5.9.3(babel-plugin-macros@3.1.0)(typescript@5.9.3))(babel-plugin-macros@3.1.0)':
     dependencies:
-      '@babel/runtime': 7.29.2
+      '@babel/runtime': 7.29.7
       '@lingui/message-utils': 5.9.5
     optionalDependencies:
       '@lingui/babel-plugin-lingui-macro': 5.9.3(babel-plugin-macros@3.1.0)(typescript@5.9.3)
@@ -8138,7 +8138,7 @@ snapshots:
 
   '@lingui/core@5.9.5(@lingui/babel-plugin-lingui-macro@5.9.5(babel-plugin-macros@3.1.0)(typescript@5.9.3))(babel-plugin-macros@3.1.0)':
     dependencies:
-      '@babel/runtime': 7.29.2
+      '@babel/runtime': 7.29.7
       '@lingui/message-utils': 5.9.5
     optionalDependencies:
       '@lingui/babel-plugin-lingui-macro': 5.9.5(babel-plugin-macros@3.1.0)(typescript@5.9.3)
@@ -10065,7 +10065,7 @@ snapshots:
 
   '@xmldom/xmldom@0.8.13': {}
 
-  '@zignaggo/adt-html-editor@0.1.1(@base-ui/react@1.8.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(class-variance-authority@0.7.1)(cmdk@1.1.1(@types/react-dom@19.2.3(@types/react@19.2.13))(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(lucide-react@0.469.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-resizable-panels@4.12.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)':
+  '@zignaggo/adt-html-editor@0.2.0(@base-ui/react@1.8.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(class-variance-authority@0.7.1)(cmdk@1.1.1(@types/react-dom@19.2.3(@types/react@19.2.13))(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(lucide-react@0.469.0(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-resizable-panels@4.12.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)':
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop': 3.1.0
       '@atlaskit/pragmatic-drag-and-drop-auto-scroll': 3.2.1
@@ -12494,7 +12494,7 @@ snapshots:
       '@oxc-resolver/binding-win32-arm64-msvc': 11.24.2
       '@oxc-resolver/binding-win32-x64-msvc': 11.24.2
 
-  oxlint-plugin-react-doctor@0.9.14:
+  oxlint-plugin-react-doctor@0.9.18:
     dependencies:
       '@shaderfrog/glsl-parser': 7.0.1
       '@typescript-eslint/types': 8.68.0
@@ -12706,7 +12706,7 @@ snapshots:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
 
-  react-doctor@0.9.14(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))(eslint@9.39.4(jiti@2.7.0))(react@19.2.4):
+  react-doctor@0.9.18(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))(eslint@9.39.4(jiti@2.7.0))(react@19.2.4):
     dependencies:
       '@astrojs/compiler': 4.0.0
       '@sentry/node': 10.72.0(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))
@@ -12721,7 +12721,7 @@ snapshots:
       oxc-parser: 0.148.0
       oxc-resolver: 11.24.2
       oxlint: 1.81.0
-      oxlint-plugin-react-doctor: 0.9.14
+      oxlint-plugin-react-doctor: 0.9.18
       playwright-core: 1.63.0
       prompts: 2.4.2
       typescript: 5.9.3
@@ -12792,7 +12792,7 @@ snapshots:
       preact: 10.29.8
       prompts: 2.4.2
       react: 19.2.4
-      react-doctor: 0.9.14(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))(eslint@9.39.4(jiti@2.7.0))(react@19.2.4)
+      react-doctor: 0.9.18(@opentelemetry/core@2.10.0(@opentelemetry/api@1.9.1))(eslint@9.39.4(jiti@2.7.0))(react@19.2.4)
       react-dom: 19.2.4(react@19.2.4)
       react-grab: 0.2.0(react@19.2.4)
     optionalDependencies:

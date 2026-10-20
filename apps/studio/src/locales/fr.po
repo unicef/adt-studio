@@ -818,9 +818,6 @@ msgstr "Une activité à compléter."
 msgid "A glossary term with this word already exists."
 msgstr "Un terme du glossaire avec ce mot existe déjà."
 
-msgid "A hands-on prototype · changes stay in this playground"
-msgstr "Un prototype interactif · les modifications restent dans cet espace de test"
-
 msgid "A language is required so downstream stages can localize the book."
 msgstr "Une langue est requise pour que les étapes en aval puissent localiser le livre."
 
@@ -832,9 +829,6 @@ msgstr "Une activité d'appariement où les élèves relient des éléments conn
 
 msgid "A multiple choice activity."
 msgstr "Une activité à choix multiple."
-
-msgid "A nested layout"
-msgstr "Une mise en page imbriquée"
 
 msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
 msgstr "Une nouvelle section d'activité sera ajoutée à la page {anchorPageNumber} ({anchorPageId}). L'agent peut lire d'autres pages du livre pour reproduire leur mise en page."
@@ -853,9 +847,6 @@ msgstr "Un quiz se trouve déjà ici — ajoutez-en un autre à la suite ou remp
 
 msgid "A required credential is missing."
 msgstr "Une information d'identification requise est manquante."
-
-msgid "A responsive page is a conversation between its content and its containers. Try moving, resizing, and giving things a little more room."
-msgstr "Une page adaptative est un dialogue entre son contenu et ses conteneurs. Essayez de déplacer les éléments, de les redimensionner et de leur donner un peu plus de place."
 
 msgid "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
 msgstr "Une deuxième voix narre chaque ligne à nouveau, ce qui double le coût de génération vocale et de synchronisation des mots pour cette langue."
@@ -1143,17 +1134,8 @@ msgstr "Ajouter {0} Images"
 msgid "Add a book"
 msgstr "Ajouter un livre"
 
-msgid "Add a container that uses the available space in this row or column. Keep the component together and start at its current width, then use the corner handles to resize it inside that space. This can redistribute space between neighbouring items. Undo restores the original layout."
-msgstr "Ajoutez un conteneur qui utilise l’espace disponible dans cette ligne ou colonne. Le composant reste groupé et conserve sa largeur actuelle ; utilisez ensuite les poignées des coins pour le redimensionner dans cet espace. Cela peut redistribuer l’espace entre les éléments voisins. Annuler rétablit la disposition d’origine."
-
 msgid "Add a definition…"
 msgstr "Ajouter une définition…"
-
-msgid "Add a full-width container around the selected component, keeping its content and decoration together. Use the corner handles to resize it inside the container. Undo removes the container."
-msgstr "Ajoutez un conteneur de pleine largeur autour du composant sélectionné, en gardant son contenu et sa décoration ensemble. Utilisez les poignées des coins pour le redimensionner dans le conteneur. Annuler supprime le conteneur."
-
-msgid "Add a full-width container around this image. Its size and image details stay the same. Resize or align it inside the container. Where the surrounding layout allows it, drag vertically to move the whole block. Undo removes the container."
-msgstr "Ajoutez un conteneur pleine largeur autour de cette image. Sa taille et ses détails restent identiques. Redimensionnez-la ou alignez-la dans le conteneur. Si la mise en page le permet, faites glisser verticalement pour déplacer tout le bloc. Annuler supprime le conteneur."
 
 msgid "Add a Google Fonts family"
 msgstr "Ajouter une famille Google Fonts"
@@ -1633,9 +1615,6 @@ msgstr "Alphabétique"
 msgid "Already handed out"
 msgstr "Déjà distribuées"
 
-msgid "Already in this position. Choose a different block or gap."
-msgstr "Déjà à cette position. Choisissez un autre bloc ou espace."
-
 msgid "alt-text · 148 characters"
 msgstr "texte alternatif · 148 caractères"
 
@@ -1683,9 +1662,6 @@ msgstr "Analyse de la partie…"
 
 msgid "Analyzing..."
 msgstr "Analyse en cours..."
-
-msgid "Ancestors"
-msgstr "Ancêtres"
 
 msgid "and many more blocks across the entire book"
 msgstr "et bien d'autres blocs à travers tout le livre"
@@ -1851,14 +1827,8 @@ msgstr "Êtes-vous sûr de vouloir générer les horodatages au niveau des mots 
 msgid "areas"
 msgstr "zones"
 
-#~ msgid "Arrange component"
-#~ msgstr "Organiser le composant"
-
 msgid "Arrange extracted content into a structured storyboard with pages, sections, and layouts."
 msgstr "Organisez le contenu extrait en un scénarimage structuré avec des pages, des sections et des mises en page."
-
-#~ msgid "Arrange: drag the whole component above, below, beside, or inside another container. Esc cancels."
-#~ msgstr "Organisation : faites glisser le composant entier au-dessus, en dessous, à côté ou à l’intérieur d’un autre conteneur. Échap annule."
 
 msgid "Article"
 msgstr "Article"
@@ -2070,9 +2040,6 @@ msgstr "Équilibré"
 msgid "Balances accuracy, fluency, terminology, and page context."
 msgstr "Équilibre exactitude, fluidité, terminologie et contexte de la page."
 
-msgid "Bare image"
-msgstr "Image sans conteneur"
-
 msgid "base"
 msgstr "base"
 
@@ -2235,12 +2202,6 @@ msgstr "Plan du livre"
 
 msgid "Book package ready"
 msgstr "Paquet du livre prêt"
-
-msgid "Book page · original layout"
-msgstr "Page du livre · disposition originale"
-
-msgid "Book page · two columns"
-msgstr "Page du livre · deux colonnes"
 
 msgid "Book pages. Scroll horizontally to see more."
 msgstr "Pages du livre. Faites défiler horizontalement pour voir plus."
@@ -2517,23 +2478,14 @@ msgstr "Catégorie"
 msgid "Center"
 msgstr "Centrer"
 
-msgid "Centre contents"
-msgstr "Centrer le contenu"
-
 msgid "Change"
 msgstr "Modifier"
-
-msgid "Change HTML tag"
-msgstr "Changer la balise HTML"
 
 msgid "Change language"
 msgstr "Changer de langue"
 
 msgid "Change Preset"
 msgstr "Changer de préréglage"
-
-msgid "Change tag · keep classes and inline styles"
-msgstr "Changer la balise · conserver les classes et les styles en ligne"
 
 msgid "Change the book language?"
 msgstr "Changer la langue du livre ?"
@@ -2757,9 +2709,6 @@ msgstr "Cliquez sur les images pour les sélectionner"
 msgid "Click Next to continue to language settings."
 msgstr "Cliquez sur Suivant pour passer aux paramètres de langue."
 
-msgid "Click the image, then drag it toward the center or right. Pull a corner to resize it. The dashed outline shows the parent it belongs to."
-msgstr "Cliquez sur l’image, puis faites-la glisser vers le centre ou la droite. Tirez un coin pour la redimensionner. Le contour en pointillés indique son conteneur parent."
-
 msgid "Click to edit"
 msgstr "Cliquer pour modifier"
 
@@ -2876,15 +2825,6 @@ msgstr "Progression sur les pages qui ont été ouvertes et révisées au cours 
 
 msgid "Completion across the assigned page range for this reviewer session."
 msgstr "Progression sur la plage de pages assignée pour cette session de révision."
-
-msgid "Component layout"
-msgstr "Disposition du composant"
-
-msgid "Component moved. Undo restores its previous position."
-msgstr "Composant déplacé. Annuler rétablit sa position précédente."
-
-msgid "Components and columns"
-msgstr "Composants et colonnes"
 
 msgid "Comprehension checks per section."
 msgstr "Vérifications de compréhension par section."
@@ -3197,12 +3137,6 @@ msgstr "Créer une section manuellement"
 msgid "Create ADT"
 msgstr "Créer ADT"
 
-msgid "Create columns: place on the left"
-msgstr "Créer des colonnes : placer à gauche"
-
-msgid "Create columns: place on the right"
-msgstr "Créer des colonnes : placer à droite"
-
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Créez des légendes descriptives pour les images afin d'améliorer l'accessibilité."
 
@@ -3367,15 +3301,6 @@ msgstr "Diminuer l'indentation"
 
 msgid "Decrease interval"
 msgstr "Diminuer l'intervalle"
-
-msgid "Decrease space below"
-msgstr "Réduire l’espace en dessous"
-
-msgid "Decrease text size"
-msgstr "Réduire la taille du texte"
-
-msgid "Decrease width"
-msgstr "Réduire la largeur"
 
 msgid "DeepSeek-V3 & R1 reasoning."
 msgstr "Raisonnement DeepSeek-V3 et R1."
@@ -3667,9 +3592,6 @@ msgstr "Diff"
 msgid "Diff against fallback"
 msgstr "Diff avec le repli"
 
-msgid "Direct controls · prototype"
-msgstr "Commandes directes · prototype"
-
 msgid "Direction"
 msgstr "Direction"
 
@@ -3760,56 +3682,17 @@ msgstr "Glissez-déposez des fichiers de police ici"
 msgid "Drag a block onto the page to insert it."
 msgstr "Faites glisser un bloc sur la page pour l’insérer."
 
-msgid "Drag Reposition to place the whole component."
-msgstr "Faites glisser Repositionner pour placer le composant entier."
-
-msgid "Drag the component · click to cancel"
-msgstr "Faites glisser le composant · cliquez pour annuler"
-
 msgid "Drag the handles to crop a rectangle. Drag inside to move."
 msgstr "Faites glisser les poignées pour rogner un rectangle. Faites glisser à l'intérieur pour déplacer."
 
 msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
 msgstr "Faites glisser les poignées pour redimensionner (rapport d'aspect verrouillé). Faites glisser à l'intérieur pour déplacer."
 
-#~ msgid "Drag the Move handle to place the whole component."
-#~ msgstr "Faites glisser la poignée Déplacer pour placer tout le composant."
-
-msgid "Drag this component to move it · corners resize · Esc cancels"
-msgstr "Faites glisser ce composant pour le déplacer · les coins redimensionnent · Échap annule"
-
-#~ msgid "Drag to align or reorder"
-#~ msgstr "Faire glisser pour aligner ou réordonner"
-
-msgid "Drag to align or reorder · corners resize width · blue bottom handle changes height · amber handle adds space · Esc cancels"
-msgstr "Glissez pour aligner ou réordonner · les coins règlent la largeur · la poignée bleue du bas règle la hauteur · la poignée orange ajoute de l’espace · Échap annule"
-
-msgid "Drag to change height"
-msgstr "Glissez pour modifier la hauteur"
-
-msgid "Drag to change space below"
-msgstr "Faire glisser pour régler l’espace en dessous"
-
 msgid "Drag to move"
 msgstr "Glisser pour déplacer"
 
-#~ msgid "Drag to move · click to activate"
-#~ msgstr "Faites glisser pour déplacer · cliquez pour activer"
-
 msgid "Drag to move boxes, drag edges/corners to resize"
 msgstr "Glissez pour déplacer les cadres, glissez les bords/coins pour redimensionner"
-
-#~ msgid "Drag to move component"
-#~ msgstr "Faites glisser pour déplacer le composant"
-
-msgid "Drag to reposition · click to activate"
-msgstr "Glissez pour repositionner · cliquez pour activer"
-
-msgid "Drag to reposition component"
-msgstr "Glisser pour repositionner le composant"
-
-msgid "Drag to resize width"
-msgstr "Faire glisser pour régler la largeur"
 
 msgid "Drag vertices to reshape. Click midpoints (+) to add points. Right-click a vertex to remove it."
 msgstr "Glissez les sommets pour remodeler. Cliquez sur les points médians (+) pour ajouter des points. Clic droit sur un sommet pour le supprimer."
@@ -4078,12 +3961,6 @@ msgstr "La modification est désactivée pendant l'exécution du scénarimage"
 
 msgid "Editing Language"
 msgstr "Langue d'édition"
-
-msgid "Editor width"
-msgstr "Largeur de l’éditeur"
-
-msgid "Edits apply at every screen size"
-msgstr "Les modifications s’appliquent à toutes les tailles d’écran"
 
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Les modifications vont à ce préfixe de variante Tailwind"
@@ -4579,9 +4456,6 @@ msgstr "Message affiché en cas de bonne réponse…"
 msgid "Feedback shown when this option is picked…"
 msgstr "Message affiché quand cette option est choisie…"
 
-msgid "Field notes / Chapter 01"
-msgstr "Notes de terrain / Chapitre 01"
-
 msgid "figure"
 msgstr "figure"
 
@@ -4635,9 +4509,6 @@ msgstr "Page finale"
 
 msgid "Finish editing classes"
 msgstr "Terminer la modification des classes"
-
-msgid "Finish editing text to change its tag."
-msgstr "Terminez la modification du texte pour changer sa balise."
 
 msgid "Finish signing in with ChatGPT in the browser window that just opened."
 msgstr "Terminez la connexion avec ChatGPT dans la fenêtre du navigateur qui vient de s'ouvrir."
@@ -4739,9 +4610,6 @@ msgstr "Les polices ont été réinitialisées par défaut."
 msgid "Fonts successfully uploaded."
 msgstr "Polices importées avec succès."
 
-msgid "Footer"
-msgstr "Pied de page"
-
 msgid "for"
 msgstr "pour"
 
@@ -4783,9 +4651,6 @@ msgstr "Rectangle libre — redimensionner sans déformer"
 
 msgid "Free transform"
 msgstr "Transformation libre"
-
-msgid "Free transform: drag the selected element · arrows nudge · Shift 10px · Esc to finish"
-msgstr "Transformation libre : glissez l’élément sélectionné · flèches pour ajuster · Maj 10px · Échap pour terminer"
 
 msgid "Free-form polygon — move, add, and remove points"
 msgstr "Polygone libre — déplacer, ajouter et supprimer des points"
@@ -5026,20 +4891,11 @@ msgstr "La génération a échoué. Veuillez réessayer."
 msgid "Generation Prompt"
 msgstr "Génération Invite"
 
-msgid "Gesture cancelled"
-msgstr "Geste annulé"
-
 msgid "Get a key"
 msgstr "Obtenir une clé"
 
 msgid "Give each illustration its own section"
 msgstr "Donner à chaque illustration sa propre section"
-
-msgid "Give this component room to resize?"
-msgstr "Donner à ce composant de la place pour le redimensionner ?"
-
-msgid "Give this image its own container?"
-msgstr "Donner à cette image son propre conteneur ?"
 
 msgid "Global prompt reset to default."
 msgstr "Prompt global réinitialisé par défaut."
@@ -5158,9 +5014,6 @@ msgstr "Grouper par à traiter"
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Regroupez le texte et les images de chaque page en sections tapées avec un arbre de contenu structuré. Les sections déterminent comment les étapes en aval rendent, traduisent et lisent le livre à haute voix."
 
-msgid "Group layout controls"
-msgstr "Commandes de disposition du groupe"
-
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Regroupe les régions d'image en illustrations distinctes sur chaque page."
 
@@ -5189,24 +5042,6 @@ msgstr "titre"
 msgid "Heading"
 msgstr "Titre"
 
-msgid "Heading 1"
-msgstr "Titre 1"
-
-msgid "Heading 2"
-msgstr "Titre 2"
-
-msgid "Heading 3"
-msgstr "Titre 3"
-
-msgid "Heading 4"
-msgstr "Titre 4"
-
-msgid "Heading 5"
-msgstr "Titre 5"
-
-msgid "Heading 6"
-msgstr "Titre 6"
-
 msgid "Heading level 4"
 msgstr "Niveau de titre 4"
 
@@ -5233,15 +5068,6 @@ msgstr "Intervalle de vérification de l'état"
 
 msgid "Height"
 msgstr "Hauteur"
-
-msgid "Height removes spare space first. Content can grow on smaller screens. Inner space controls the padding around the contents."
-msgstr "La hauteur réduit d’abord l’espace superflu. Le contenu peut s’agrandir sur les petits écrans. L’espace intérieur règle les marges autour du contenu."
-
-msgid "Height: {height}px"
-msgstr "Hauteur : {height}px"
-
-msgid "Height: {height}px · content needs this space"
-msgstr "Hauteur : {height}px · le contenu a besoin de cet espace"
 
 msgid "Help"
 msgstr "Aide"
@@ -5333,9 +5159,6 @@ msgstr "Accueil / Chapitre 1"
 msgid "Home guide"
 msgstr "Guide d'accueil"
 
-msgid "Horizontal inner space"
-msgstr "Espace intérieur horizontal"
-
 msgid "Hover a card to find it in the page and click to pin it — or click anything in the page to edit it here."
 msgstr "Survolez une carte pour la localiser dans la page et cliquez pour l'épingler — ou cliquez sur n'importe quel élément de la page pour le modifier ici."
 
@@ -5387,9 +5210,6 @@ msgstr "Comment ajouter des quiz"
 msgid "HTML"
 msgstr "HTML"
 
-msgid "HTML tag"
-msgstr "Balise HTML"
-
 msgid "HTML5 + EPUB"
 msgstr "HTML5 + EPUB"
 
@@ -5411,9 +5231,6 @@ msgstr "Si vous quittez maintenant, vos modifications non enregistrées seront p
 msgid "Illustrated children's books"
 msgstr "Livres illustrés pour enfants"
 
-msgid "Illustrated mountain landscape"
-msgstr "Paysage de montagne illustré"
-
 msgid "Illustration"
 msgstr "Illustration"
 
@@ -5428,9 +5245,6 @@ msgstr "Image"
 
 msgid "Image Alt-Text"
 msgstr "Texte alternatif de l'image"
-
-msgid "Image beside loose text"
-msgstr "Image à côté de texte non structuré"
 
 msgid "Image Captioning"
 msgstr "Légendes d'images"
@@ -5492,9 +5306,6 @@ msgstr "génération d'images illustration prompt"
 msgid "Image Generation Prompt"
 msgstr "Génération d'images Invite"
 
-msgid "Image in a sentence"
-msgstr "Image dans une phrase"
-
 msgid "Image Meaningfulness"
 msgstr "Pertinence d'image"
 
@@ -5525,9 +5336,6 @@ msgstr "Sélection d'image"
 msgid "Image size"
 msgstr "Taille de l'image"
 
-msgid "Image structure"
-msgstr "Structure de l’image"
-
 msgid "Image Translation"
 msgstr "Traduction d'images"
 
@@ -5551,9 +5359,6 @@ msgstr "image-alt"
 
 msgid "Image-edit model used to regenerate each image with translated text."
 msgstr "Modèle de retouche d’images utilisé pour régénérer chaque image avec le texte traduit."
-
-msgid "Image-only paragraph"
-msgstr "Paragraphe contenant uniquement une image"
 
 msgid "images"
 msgstr "images"
@@ -5680,15 +5485,6 @@ msgstr "Augmenter l'indentation"
 msgid "Increase interval"
 msgstr "Augmenter l'intervalle"
 
-msgid "Increase space below"
-msgstr "Augmenter l’espace en dessous"
-
-msgid "Increase text size"
-msgstr "Augmenter la taille du texte"
-
-msgid "Increase width"
-msgstr "Augmenter la largeur"
-
 msgid "Individual sides"
 msgstr "Côtés individuels"
 
@@ -5707,12 +5503,6 @@ msgstr "Page initiale"
 msgid "Inline CSS"
 msgstr "CSS en ligne"
 
-msgid "Inline text"
-msgstr "Texte en ligne"
-
-msgid "Inline text stays in its sentence. Use text controls or select its parent."
-msgstr "Le texte en ligne reste dans sa phrase. Utilisez les commandes de texte ou sélectionnez son parent."
-
 msgid "Input"
 msgstr "Entrée"
 
@@ -5722,14 +5512,8 @@ msgstr "Jetons d'entrée"
 msgid "Insert the quiz here"
 msgstr "Insérer le quiz ici"
 
-msgid "Inside {parentTag}"
-msgstr "Dans {parentTag}"
-
 msgid "Inside Cover"
 msgstr "Page de garde"
-
-msgid "Inspect HTML"
-msgstr "Inspecter le HTML"
 
 msgid "Install"
 msgstr "Installer"
@@ -5872,9 +5656,6 @@ msgstr "Gardez les schémas de sortie et les ID inchangés lorsque vous modifiez
 
 msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 msgstr "Gardez les pages entières par défaut, mais divisez-les lorsque des types d'activités distincts sont détectés sur la même page."
-
-msgid "Keep the structure"
-msgstr "Conserver la structure"
 
 #~ msgid "Keep this image"
 #~ msgstr "Conserver cette image"
@@ -6319,9 +6100,6 @@ msgstr "Localisation"
 msgid "Lock"
 msgstr "Verrouiller"
 
-msgid "Lock element"
-msgstr "Verrouiller l’élément"
-
 msgid "Lock the current aspect ratio"
 msgstr "Verrouiller le rapport d'aspect actuel"
 
@@ -6719,23 +6497,8 @@ msgstr "Le plus utilisé"
 msgid "motion animation accessibility"
 msgstr "mouvement animation accessibilité"
 
-#~ msgid "Move"
-#~ msgstr "Déplacer"
-
 msgid "Move down"
 msgstr "Déplacer vers le bas"
-
-msgid "Move earlier"
-msgstr "Déplacer avant"
-
-msgid "Move inside"
-msgstr "Déplacer à l’intérieur"
-
-msgid "Move later"
-msgstr "Déplacer après"
-
-msgid "Move this image with its parent"
-msgstr "Déplacer cette image avec son parent"
 
 msgid "Move up"
 msgstr "Déplacer vers le haut"
@@ -7003,9 +6766,6 @@ msgstr "Aucune différence avec le prompt de repli."
 
 msgid "No disabled rules"
 msgstr "Aucune règle désactivée"
-
-msgid "No drop here. Move over another block or a gap between blocks."
-msgstr "Impossible de déposer ici. Survolez un autre bloc ou un espace entre les blocs."
 
 msgid "No Easy Read for this page"
 msgstr "Pas de lecture facile pour cette page"
@@ -7466,9 +7226,6 @@ msgstr "Rien d'important n'est manquant ou ajouté"
 msgid "Nothing is running right now. Stages you start show their steps here."
 msgstr "Rien n'est en cours d'exécution pour le moment. Les étapes que vous lancez affichent ici leurs sous-étapes."
 
-msgid "Nothing moved. Drop on a highlighted target inside the page."
-msgstr "Aucun déplacement. Déposez sur une cible surlignée dans la page."
-
 #~ msgid "Nothing pending review"
 #~ msgstr "Rien à relire"
 
@@ -7537,9 +7294,6 @@ msgstr "Visite d'intégration"
 
 msgid "Once the sections exist, ask here for any change to the page HTML."
 msgstr "Une fois les sections créées, demandez ici toute modification du HTML de la page."
-
-msgid "One below another"
-msgstr "Les uns sous les autres"
 
 msgid "One book."
 msgstr "Un livre."
@@ -8125,9 +7879,6 @@ msgstr "Page Sectioning Invite"
 msgid "Page Sectioning Refinement Prompt"
 msgstr "Prompt de raffinement du sectionnement"
 
-msgid "Page test copy · changes are not saved to the book"
-msgstr "Copie de test de la page · les modifications ne sont pas enregistrées dans le livre"
-
 msgid "Page text, headings, and quiz content."
 msgstr "Texte de page, titres et contenu des quiz."
 
@@ -8399,12 +8150,6 @@ msgstr "Étapes du pipeline"
 
 msgid "Pixel Art"
 msgstr "Pixel Art"
-
-msgid "Place after"
-msgstr "Placer après"
-
-msgid "Place before"
-msgstr "Placer avant"
 
 msgid "Platform"
 msgstr "Plateforme"
@@ -8777,9 +8522,6 @@ msgstr "En file d'attente — démarre dès que l'étape en cours se termine"
 
 msgid "Quick fill"
 msgstr "Remplissage rapide"
-
-msgid "Quick layout controls"
-msgstr "Commandes rapides de mise en page"
 
 msgid "Quit anyway"
 msgstr "Quitter quand même"
@@ -9235,9 +8977,6 @@ msgstr "Rend les activités à partir d'un modèle fixe pour un style cohérent.
 msgid "Renders each page into the storyboard layout used by the web reader."
 msgstr "Rend chaque page dans la mise en page du storyboard utilisée par le lecteur web."
 
-msgid "Reorder within this parent"
-msgstr "Réordonner dans ce conteneur parent"
-
 msgid "Replace"
 msgstr "Remplacer"
 
@@ -9267,12 +9006,6 @@ msgstr "Rejouer l'introduction guidée à ADT Studio."
 
 msgid "Report an issue"
 msgstr "Signaler un problème"
-
-msgid "Reposition"
-msgstr "Repositionner"
-
-msgid "Reposition: drag the whole component above, below, beside, or inside another container. Esc cancels."
-msgstr "Repositionner : faites glisser le composant entier au-dessus, en dessous, à côté ou dans un autre conteneur. Échap annule."
 
 msgid "Request settings"
 msgstr "Paramètres de la requête"
@@ -9304,9 +9037,6 @@ msgstr "Réinitialiser les polices par défaut ?"
 msgid "Reset offsets"
 msgstr "Réinitialiser les décalages"
 
-msgid "Reset sample"
-msgstr "Réinitialiser l’exemple"
-
 msgid "Reset to defaults"
 msgstr "Réinitialiser aux valeurs par défaut"
 
@@ -9333,9 +9063,6 @@ msgstr "Résolution de la langue source..."
 
 msgid "Respiration"
 msgstr "Respiration"
-
-msgid "Responsive canvas lab"
-msgstr "Atelier de canevas adaptatif"
 
 msgid "Restart"
 msgstr "Redémarrer"
@@ -9539,9 +9266,6 @@ msgstr "Fleuves et deltas"
 msgid "Role"
 msgstr "Rôle"
 
-msgid "Room to explore"
-msgstr "De la place pour explorer"
-
 msgid "Rotate"
 msgstr "Pivoter"
 
@@ -9553,15 +9277,6 @@ msgstr "Pivoter de 90° dans le sens antihoraire"
 
 msgid "Row"
 msgstr "Ligne"
-
-msgid "Row · align bottoms"
-msgstr "Rangée · aligner en bas"
-
-msgid "Row · align centres"
-msgstr "Rangée · aligner les centres"
-
-msgid "Row · align tops"
-msgstr "Rangée · aligner en haut"
 
 msgid "Row reverse"
 msgstr "Ligne inversée"
@@ -10128,12 +9843,6 @@ msgstr "Segmentation…"
 msgid "Select a .zip project archive exported from ADT Studio."
 msgstr "Sélectionnez une archive de projet .zip exportée depuis ADT Studio."
 
-msgid "Select a figure or aside and drag it to move. Use Reposition to move a whole group, or Layout to try columns, stacking, and floats."
-msgstr "Sélectionnez une figure ou un encadré et faites-le glisser pour le déplacer. Utilisez Repositionner pour déplacer un groupe entier, ou Disposition pour essayer les colonnes, l’empilement et les éléments flottants."
-
-#~ msgid "Select a figure or aside and drag it to move. Use the Move handle to move a whole group, or Layout to try columns, stacking, and floats."
-#~ msgstr "Sélectionnez une figure ou un encadré et faites-le glisser pour le déplacer. Utilisez la poignée Déplacer pour déplacer un groupe entier, ou Disposition pour essayer les colonnes, l’empilement et l’habillage du texte."
-
 msgid "Select a node type and enter an item ID to view versions."
 msgstr "Sélectionnez un type de nœud et saisissez un ID d'élément pour voir les versions."
 
@@ -10145,9 +9854,6 @@ msgstr "Sélectionnez un regroupement de pages pour continuer"
 
 msgid "Select a page to filter. Click again to show all."
 msgstr "Sélectionnez une page pour filtrer. Cliquez à nouveau pour tout afficher."
-
-msgid "Select a parent to change this layout"
-msgstr "Sélectionnez un élément parent pour modifier cette disposition"
 
 msgid "Select a render strategy to continue"
 msgstr "Sélectionnez une stratégie de rendu pour continuer"
@@ -10179,29 +9885,17 @@ msgstr "Sélectionnez le type d'activité..."
 msgid "Select all"
 msgstr "Tout sélectionner"
 
-msgid "Select an element to try responsive controls"
-msgstr "Sélectionnez un élément pour essayer les commandes adaptatives"
-
-#~ msgid "Select an image or container. Use Arrange component to move the whole group, or Component layout to try columns, stacking, and floats."
-#~ msgstr "Sélectionnez une image ou un conteneur. Utilisez Organiser le composant pour déplacer tout le groupe, ou Disposition du composant pour essayer les colonnes, l’empilement et les éléments flottants."
-
 msgid "Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank."
 msgstr "Sélectionnez un élément pour modifier son texte : [[blank:…]] indique l'emplacement d'un blanc, conservez-le pour conserver le blanc."
 
 msgid "Select images to translate"
 msgstr "Sélectionner les images à traduire"
 
-msgid "Select neighbouring items in the same container to arrange them together."
-msgstr "Sélectionnez des éléments voisins dans le même conteneur pour les disposer ensemble."
-
 msgid "Select node type..."
 msgstr "Sélectionnez le type de nœud..."
 
 msgid "Select or wrap a container to offset this element."
 msgstr "Sélectionnez un conteneur ou placez cet élément dans un conteneur pour le décaler."
-
-msgid "Select parent"
-msgstr "Sélectionner le parent"
 
 msgid "Select reviewer session"
 msgstr "Sélectionner une session de révision"
@@ -10227,17 +9921,11 @@ msgstr "Sélectionnez les pages sur lesquelles le quiz est basé, puis choisisse
 msgid "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
 msgstr "Sélectionnez jusqu'à 5 pages à utiliser comme références visuelles. Le LLM les analysera et générera un guide de style."
 
-msgid "Select whole component"
-msgstr "Sélectionner le composant entier"
-
 msgid "Selected file"
 msgstr "Fichier sélectionné"
 
 msgid "Selected images"
 msgstr "Images sélectionnées"
-
-msgid "Selected items"
-msgstr "Éléments sélectionnés"
 
 #. placeholder {0}: fmtRange(w)
 msgid "Selected pages {0}."
@@ -10340,9 +10028,6 @@ msgstr "Partagé"
 msgid "Shared by every book on this machine."
 msgstr "Partagées par tous les livres de cette machine."
 
-msgid "Shift-click neighbouring items to select a group."
-msgstr "Cliquez avec Maj sur des éléments voisins pour sélectionner un groupe."
-
 msgid "Ship"
 msgstr "Livrer"
 
@@ -10440,15 +10125,6 @@ msgstr "Affiché après la page {afterNumber}"
 msgid "Shqip"
 msgstr "Shqip"
 
-msgid "Side by side · equal columns"
-msgstr "Côte à côte · colonnes égales"
-
-msgid "Side by side with next item"
-msgstr "Côte à côte avec l’élément suivant"
-
-msgid "Side by side with previous item"
-msgstr "Côte à côte avec l’élément précédent"
-
 msgid "Side-by-side image and narrative."
 msgstr "Image et narration côte à côte."
 
@@ -10543,9 +10219,6 @@ msgstr "Mise en page de modèle à une colonne"
 msgid "Size"
 msgstr "Taille"
 
-msgid "Size and spacing"
-msgstr "Taille et espacement"
-
 msgid "Sizing"
 msgstr "Dimensionnement"
 
@@ -10605,9 +10278,6 @@ msgstr "Certaines pages n'ont pas de couche de texte intégrée — le texte a �
 msgid "Some steps didn't finish — resume the run to complete this stage."
 msgstr "Certaines étapes ne sont pas terminées — reprenez l'exécution pour terminer cette étape."
 
-msgid "Some tags are unavailable for this content or parent."
-msgstr "Certaines balises ne sont pas disponibles pour ce contenu ou ce parent."
-
 msgid "Someone who prefers to live alone and avoids the company of others."
 msgstr "Personne qui préfère vivre isolée et évite la compagnie des autres."
 
@@ -10658,9 +10328,6 @@ msgstr "Texte source"
 
 msgid "Space around"
 msgstr "Espace autour"
-
-msgid "Space below: {spacing}px"
-msgstr "Espace en dessous : {spacing}px"
 
 msgid "Space between"
 msgstr "Espace entre"
@@ -10840,9 +10507,6 @@ msgstr "Commencez à taper pour voir les mots du livre…"
 
 msgid "Start with"
 msgstr "Commencez par"
-
-msgid "Start with this image"
-msgstr "Commencez par cette image"
 
 msgid "Starting…"
 msgstr "Démarrage…"
@@ -11043,9 +10707,6 @@ msgstr "Basculer entre le nouvel écran de pipeline et le classique."
 
 msgid "Switch languages in a tap."
 msgstr "Changez de langue d'un geste."
-
-msgid "Switch order"
-msgstr "Inverser l’ordre"
 
 msgid "Switch to dark theme"
 msgstr "Passer au thème sombre"
@@ -11525,9 +11186,6 @@ msgstr "Ces tâches héritent du LLM par défaut, sauf si leurs propres paramèt
 msgid "These tasks require specialized models and do not inherit the default LLM above."
 msgstr "Ces tâches nécessitent des modèles spécialisés et n’héritent pas du LLM par défaut ci-dessus."
 
-msgid "These two cards share a flex row. Select a card to see which controls are safe, or select the text inside it."
-msgstr "Ces deux cartes partagent une ligne flexible. Sélectionnez une carte pour voir les commandes adaptées, ou sélectionnez le texte qu’elle contient."
-
 msgid "These values reflect either the saved book override or the latest packaged defaults."
 msgstr "Ces valeurs reflètent soit le remplacement enregistré du livre, soit les valeurs par défaut du dernier empaquetage."
 
@@ -11584,9 +11242,6 @@ msgstr "Ce livre n'est pas encore complet — les pages <0>{0}</0> n'ont pas ét
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ce livre est rendu en mise en page fixe, il conserve donc les polices d'origine du PDF. Les polices jointes guident tout de même l'IA pour les activités et les pages générées."
 
-msgid "This component has locked content or a layout that cannot safely be wrapped. Select its parent or use the Styles panel."
-msgstr "Ce composant contient du contenu verrouillé ou une disposition qui ne peut pas être placée dans un conteneur en toute sécurité. Sélectionnez son élément parent ou utilisez le panneau Styles."
-
 msgid "This computer"
 msgstr "Cet ordinateur"
 
@@ -11610,9 +11265,6 @@ msgstr "La licence de cette police n'est pas open source et restreint l'intégra
 
 msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "La licence de cette police restreint l'incorporation — la distribuer dans le paquet du livre peut être illégal."
-
-msgid "This image belongs to text or a constrained layout. Adding a container here could change the surrounding content. Select its parent to move the content together, or use the Styles panel."
-msgstr "Cette image fait partie d’un texte ou d’une mise en page contrainte. Ajouter un conteneur ici pourrait modifier le contenu environnant. Sélectionnez son parent pour déplacer le contenu ensemble, ou utilisez le panneau Styles."
 
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Cette image est décorative. Les lecteurs d'écran l'ignoreront et aucune légende n'est nécessaire."
@@ -11646,12 +11298,6 @@ msgstr "Ce n'est pas un projet ADT Studio valide"
 
 msgid "This isn't a valid part file"
 msgstr "Ce n'est pas un fichier de partie valide"
-
-msgid "This layout cannot move in that direction"
-msgstr "Cette mise en page ne permet pas ce déplacement"
-
-msgid "This layout needs the Styles panel. Select a parent to edit its layout."
-msgstr "Cette mise en page nécessite le panneau Styles. Sélectionnez un parent pour modifier sa mise en page."
 
 msgid "This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via \"View HTML source\" instead of merging."
 msgstr "Cette opération fusionne une activité personnalisée. La section combinée est régénérée, ce qui supprimera le script de notation interactif de l'activité personnalisée. Pour le conserver, modifiez-la via « Voir la source HTML » au lieu de fusionner."
@@ -11689,9 +11335,6 @@ msgstr "Cette page contient des modifications HTML non enregistrées. Enregistre
 msgid "This page has images without an alternative description."
 msgstr "Cette page contient des images sans description alternative."
 
-msgid "This page has no available HTML to test."
-msgstr "Cette page ne contient pas de HTML disponible à tester."
-
 msgid "This page has no captioned images"
 msgstr "Cette page n'a pas d'images légendées"
 
@@ -11727,9 +11370,6 @@ msgstr "Cette page n'a pas encore été révisée"
 
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "La couche de texte intégrée de cette page est vide, mais l'étape de Sectionnement a récupéré du texte à partir de l'image de la page — elle semble donc numérisée ou uniquement composée d'images. Le pipeline peut toujours fonctionner à partir du texte récupéré, mais pour de meilleurs résumés, métadonnées et traductions, essayez d'obtenir une version de ce PDF basée sur du texte (avec une vraie couche de texte) plutôt qu'une copie numérisée."
-
-msgid "This parent controls the layout. Resize its children in Styles or select the parent."
-msgstr "Ce parent contrôle la mise en page. Redimensionnez ses enfants dans Styles ou sélectionnez le parent."
 
 msgid "This part cannot be merged"
 msgstr "Cette partie ne peut pas être fusionnée"
@@ -11850,9 +11490,6 @@ msgstr "Pour remplacer une image, utilisez \\\"Modifier la mise en page\\\" et c
 
 msgid "to stream API logs here."
 msgstr "pour diffuser les journaux API ici."
-
-msgid "To wrap text, select an object beside paragraphs, or a container with paragraphs and one object. Separate cards and activities keep their own layout."
-msgstr "Pour habiller un objet avec du texte, sélectionnez un objet à côté de paragraphes, ou un conteneur avec des paragraphes et un objet. Les cartes et activités distinctes conservent leur disposition."
 
 msgid "Toast position"
 msgstr "Position des notifications"
@@ -12011,9 +11648,6 @@ msgstr "Essayez une autre recherche ou un autre filtre"
 
 msgid "Try a different title or author."
 msgstr "Essayez un autre titre ou auteur."
-
-msgid "Try a narrow viewport after editing. Every change can be undone with the history controls."
-msgstr "Essayez une vue étroite après les modifications. Chaque changement peut être annulé avec les commandes de l’historique."
 
 msgid "Try Activity"
 msgstr "Essayer l'activité"
@@ -12198,9 +11832,6 @@ msgstr "Identifiant d'étape inconnu : {step}"
 msgid "Unknown step: {step}"
 msgstr "Étape inconnue : {step}"
 
-msgid "Unlock element"
-msgstr "Déverrouiller l’élément"
-
 msgid "Unlock this element and its contents first."
 msgstr "Déverrouillez d’abord cet élément et son contenu."
 
@@ -12348,9 +11979,6 @@ msgstr "Utilisez un LLM pour détecter et séparer les images composites (par ex
 msgid "Use an LLM to filter out decorative or non-educational images."
 msgstr "Utiliser un LLM pour filtrer les images décoratives ou non éducatives."
 
-#~ msgid "Use Arrange component to move this group, or Component layout to change its arrangement."
-#~ msgstr "Utilisez Organiser le composant pour déplacer ce groupe, ou Disposition du composant pour modifier son agencement."
-
 msgid "Use as current"
 msgstr "Utiliser comme actuelle"
 
@@ -12372,9 +12000,6 @@ msgstr "Utilisez l'étalement pour les livres imprimés avec des mises en page e
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Utilisez le + entre les pages pour placer le quiz"
-
-msgid "Use the parent button to work one level up. Text stays in its container and flows when the viewport changes."
-msgstr "Utilisez le bouton du parent pour remonter d’un niveau. Le texte reste dans son conteneur et s’adapte quand la largeur de la vue change."
 
 msgid "Use the sidebar on the left to open any stage of the pipeline. Each stage has its own page where you can review its content, configure its settings, and start a run. The cards below mirror that navigation — click a card to jump straight to that stage's page."
 msgstr "Utilisez la barre latérale à gauche pour ouvrir n'importe quelle étape du pipeline. Chaque étape a sa propre page où vous pouvez examiner son contenu, configurer ses paramètres et lancer une exécution. Les cartes ci-dessous reflètent cette navigation — cliquez sur une carte pour accéder directement à la page de cette étape."
@@ -12488,9 +12113,6 @@ msgstr "Versionné"
 
 msgid "Versions"
 msgstr "Versions"
-
-msgid "Vertical inner space"
-msgstr "Espace intérieur vertical"
 
 msgid "video"
 msgstr "vidéo"
@@ -12775,9 +12397,6 @@ msgstr "Large couverture multilingue avec des voix neuronales pour de nombreux l
 msgid "Width"
 msgstr "Largeur"
 
-msgid "Width: {percentage}% of parent"
-msgstr "Largeur : {percentage}% du parent"
-
 msgid "Will be reset"
 msgstr "Sera réinitialisé"
 
@@ -12820,29 +12439,8 @@ msgstr "Surlignage mot à mot"
 msgid "words"
 msgstr "mots"
 
-msgid "Wrap in container"
-msgstr "Placer dans un conteneur"
-
-msgid "Wrap in container to resize this component within its row or column."
-msgstr "Placez ce composant dans un conteneur pour le redimensionner dans sa ligne ou sa colonne."
-
 msgid "Wrap in group"
 msgstr "Encapsuler dans un groupe"
-
-msgid "Wrap text · object on left"
-msgstr "Habiller avec le texte · objet à gauche"
-
-msgid "Wrap text · object on right"
-msgstr "Habiller avec le texte · objet à droite"
-
-msgid "Wrap text around the component on the left"
-msgstr "Habiller le texte autour du composant à gauche"
-
-msgid "Wrap text around the component on the right"
-msgstr "Habiller le texte autour du composant à droite"
-
-msgid "Wrap text lets paragraphs continue beside the object and fill the width below it. Side by side keeps separate columns. Both stack on small screens. Undo restores the original layout."
-msgstr "L’habillage permet aux paragraphes de continuer à côté de l’objet et d’occuper toute la largeur en dessous. Côte à côte conserve des colonnes distinctes. Les deux dispositions s’empilent sur les petits écrans. Annuler rétablit la disposition d’origine."
 
 msgid "Wraps 'Edit this image' requests. The AI receives the original image alongside this prompt. Supports user_prompt and style variables."
 msgstr "Encapsule les requêtes « Modifier cette image ». L'IA reçoit l'image originale avec cette invite. Prend en charge les variables user_prompt et style."

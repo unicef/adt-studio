@@ -1,31 +1,28 @@
 import { useLayoutEffect, useRef, useState } from "react"
-import { useEditorStoreApi } from "adt-html-editor"
-import type { useFlowSelection } from "../useFlowSelection"
+import { useCanvasHost, useEditorStoreApi } from "adt-html-editor"
 import { useStylePreview } from "../inspection/StyleInspection"
 import { previewStyle, snapshotStyles } from "../inspection/styleChanges"
 import { usePosition } from "./PositionProvider"
 import { addOffset, ancestorScale, readTranslation, translationMatches } from "./translation"
 
-export function useFreeTransform(selection: ReturnType<typeof useFlowSelection>) {
-  const position = usePosition(), store = useEditorStoreApi(), reportPreview = useStylePreview()
-  const enabled = position?.setEnabled
+export function useFreeTransform() {
+  const position = usePosition(), store = useEditorStoreApi(), reportPreview = useStylePreview(), host = useCanvasHost()
   const cancel = useRef<(() => void) | null>(null)
   const [origin, setOrigin] = useState<{ left: number; top: number; width: number; height: number } | null>(null)
   const active = position?.active ?? false
   const element = position?.measured?.element
-  useLayoutEffect(() => { enabled?.(true); return () => enabled?.(false) }, [enabled])
-  useLayoutEffect(() => () => cancel.current?.(), [active, element, selection.doc, selection.locked])
+  useLayoutEffect(() => () => cancel.current?.(), [active, element, position?.doc, position?.locked])
 
   function start(event: PointerEvent) {
-    if (!active || !position || !element || !selection.node || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey) return
+    if (!active || !position?.node || !element || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey) return
     if ((event.target as Element).closest('input,textarea,select,button,a,[role="button"],[contenteditable]:not([contenteditable="false"])')) return
-    const values = readTranslation(element), scale = ancestorScale(element)
-    if (!values || !scale) return
+    const values = readTranslation(element), scale = ancestorScale(element), stage = host.host()
+    if (!values || !scale || !stage) return
     cancel.current?.()
     event.preventDefault(); event.stopImmediatePropagation()
-    const target = element, id = selection.node.id, model = selection.doc
+    const target = element, id = position.node.id, model = position.doc
     const startX = event.clientX, startY = event.clientY
-    const rect = target.getBoundingClientRect(), bounds = selection.host.current!.getBoundingClientRect()
+    const rect = target.getBoundingClientRect(), bounds = stage.getBoundingClientRect()
     const before = snapshotStyles(target)
     const scroll = target.closest(".adt-canvas")?.parentElement
     const scrollX = scroll?.scrollLeft ?? 0, scrollY = scroll?.scrollTop ?? 0
@@ -42,7 +39,6 @@ export function useFreeTransform(selection: ReturnType<typeof useFlowSelection>)
       // The browser simplifies nested calc expressions, retaining percentage bases.
       value = getComputedStyle(target).translate
       setOrigin({ left: rect.left - bounds.left, top: rect.top - bounds.top, width: rect.width, height: rect.height })
-      selection.refresh.current()
       reportPreview({ entries: [previewStyle(model, target, { translate: value }, before)], point: { x: e.clientX, y: e.clientY }, bounds })
     }
     function cleanup() {
@@ -59,7 +55,7 @@ export function useFreeTransform(selection: ReturnType<typeof useFlowSelection>)
       target.style.setProperty("translate", style.getPropertyValue("translate"), style.getPropertyPriority("translate"))
       cancel.current = null
       if (position) position.cancel.current = null
-      setOrigin(null); reportPreview(null); selection.refresh.current()
+      setOrigin(null); reportPreview(null)
     }
     function abort(e?: PointerEvent) { if (!e || e.pointerId === event.pointerId) cleanup() }
     function blur() { cleanup(); position?.stop() }

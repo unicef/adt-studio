@@ -1,5 +1,14 @@
 # Finding — responsive canvas controls
 
+**Status (2026-10-20):** the direct canvas controls described below were migrated
+into `adt-html-editor` 0.2.0 and the Studio now uses the library's
+`Canvas.FlowControls`, `Canvas.FlowToolbar`, `Canvas.FlowStatusBar` and
+`Inspector.TagHeader`. The Studio adapter, the `/responsive-playground.html` entry,
+the **Direct controls · prototype** toggle, **Wrap in container** and the
+`scripts/experiments/responsive-*.mjs` checks were removed with it. Only the Styles
+panel inspection accordions and the Position/Free transform section remain in
+`editor/responsive/`. The rest of this document records the experiment as it was.
+
 **Question:** can direct gestures make common responsive HTML edits easier while
 keeping elements in normal flow and preserving their nesting?
 

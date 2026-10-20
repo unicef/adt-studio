@@ -818,9 +818,6 @@ msgstr "Një aktivitet me plotësim boshllëqesh."
 msgid "A glossary term with this word already exists."
 msgstr "Një term glosari me këtë fjalë ekziston tashmë."
 
-msgid "A hands-on prototype · changes stay in this playground"
-msgstr "Një prototip interaktiv · ndryshimet mbeten në këtë hapësirë prove"
-
 msgid "A language is required so downstream stages can localize the book."
 msgstr "Kërkohet një gjuhë që fazat e mëvonshme të mund ta lokalizojnë librin."
 
@@ -832,9 +829,6 @@ msgstr "Një aktivitet çiftëzimi ku nxënësit lidhin elementet e lidhura."
 
 msgid "A multiple choice activity."
 msgstr "Një aktivitet me zgjedhje të shumëfishtë."
-
-msgid "A nested layout"
-msgstr "Një strukturë e ndërthurur"
 
 msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
 msgstr "Një seksion i ri aktiviteti do të shtohet në faqen {anchorPageNumber} ({anchorPageId}). Agjenti mund të lexojë faqe të tjera të librit për të pasqyruar strukturën e tyre."
@@ -853,9 +847,6 @@ msgstr "Një kuiz ekziston tashmë këtu — shtoni një tjetër pas tij ose zë
 
 msgid "A required credential is missing."
 msgstr "Një kredencial i kërkuar mungon."
-
-msgid "A responsive page is a conversation between its content and its containers. Try moving, resizing, and giving things a little more room."
-msgstr "Një faqe përshtatëse është një dialog midis përmbajtjes dhe kontejnerëve të saj. Provoni të lëvizni elementet, të ndryshoni madhësinë dhe t’u jepni pak më shumë hapësirë."
 
 msgid "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
 msgstr "Një zë i dytë e narron çdo rresht sërish, ndaj dyfishon koston e gjenerimit të të folurit dhe të sinkronizimit të fjalëve për këtë gjuhë."
@@ -1143,17 +1134,8 @@ msgstr "Shto {0} Imazhe"
 msgid "Add a book"
 msgstr "Shto një libër"
 
-msgid "Add a container that uses the available space in this row or column. Keep the component together and start at its current width, then use the corner handles to resize it inside that space. This can redistribute space between neighbouring items. Undo restores the original layout."
-msgstr "Shtoni një kontejner që përdor hapësirën e lirë në këtë rresht ose kolonë. Mbajeni komponentin të bashkuar me gjerësinë aktuale, pastaj përdorni dorezat në qoshe për ta ndryshuar madhësinë brenda asaj hapësire. Kjo mund ta rishpërndajë hapësirën ndërmjet elementeve fqinje. Zhbërja rikthen paraqitjen fillestare."
-
 msgid "Add a definition…"
 msgstr "Shto një përkufizim…"
-
-msgid "Add a full-width container around the selected component, keeping its content and decoration together. Use the corner handles to resize it inside the container. Undo removes the container."
-msgstr "Shtoni një kontejner me gjerësi të plotë rreth komponentit të zgjedhur, duke mbajtur së bashku përmbajtjen dhe dekorimin e tij. Përdorni dorezat në qoshe për t’ia ndryshuar madhësinë brenda kontejnerit. Zhbërja e heq kontejnerin."
-
-msgid "Add a full-width container around this image. Its size and image details stay the same. Resize or align it inside the container. Where the surrounding layout allows it, drag vertically to move the whole block. Undo removes the container."
-msgstr "Shtoni një kontejner me gjerësi të plotë rreth kësaj figure. Madhësia dhe detajet e figurës mbeten të njëjta. Ndryshoni madhësinë ose rreshtojeni brenda kontejnerit. Kur paraqitja përreth e lejon, tërhiqeni vertikalisht për të lëvizur të gjithë bllokun. Zhbërja e heq kontejnerin."
 
 msgid "Add a Google Fonts family"
 msgstr "Shto një familje nga Google Fonts"
@@ -1633,9 +1615,6 @@ msgstr "Alfabetik"
 msgid "Already handed out"
 msgstr "Tashmë të shpërndara"
 
-msgid "Already in this position. Choose a different block or gap."
-msgstr "Është tashmë në këtë pozicion. Zgjidhni një bllok ose hapësirë tjetër."
-
 msgid "alt-text · 148 characters"
 msgstr "tekst alternativ · 148 shenja"
 
@@ -1683,9 +1662,6 @@ msgstr "Po analizohet pjesa…"
 
 msgid "Analyzing..."
 msgstr "Duke analizuar..."
-
-msgid "Ancestors"
-msgstr "Paraardhësit"
 
 msgid "and many more blocks across the entire book"
 msgstr "dhe shumë blloqe të tjera në të gjithë librin"
@@ -1851,14 +1827,8 @@ msgstr "Jeni të sigurt që dëshironi të gjeneroni vulat kohore në nivel fjal
 msgid "areas"
 msgstr "zona"
 
-#~ msgid "Arrange component"
-#~ msgstr "Rregullo komponentin"
-
 msgid "Arrange extracted content into a structured storyboard with pages, sections, and layouts."
 msgstr "Organizoni përmbajtjen e nxjerrë në një storyboard të strukturuar me faqe, seksione dhe paraqitje."
-
-#~ msgid "Arrange: drag the whole component above, below, beside, or inside another container. Esc cancels."
-#~ msgstr "Rregullimi: tërhiqeni të gjithë komponentin sipër, poshtë, pranë ose brenda një kontejneri tjetër. Esc anulon."
 
 msgid "Article"
 msgstr "Artikull"
@@ -2070,9 +2040,6 @@ msgstr "I balancuar"
 msgid "Balances accuracy, fluency, terminology, and page context."
 msgstr "Balancohet saktësia, rrjedhshmëria, terminologjia dhe konteksti i faqes."
 
-msgid "Bare image"
-msgstr "Figurë pa kontejner"
-
 msgid "base"
 msgstr "bazë"
 
@@ -2235,12 +2202,6 @@ msgstr "Struktura e librit"
 
 msgid "Book package ready"
 msgstr "Paketa e librit gati"
-
-msgid "Book page · original layout"
-msgstr "Faqja e librit · paraqitja origjinale"
-
-msgid "Book page · two columns"
-msgstr "Faqja e librit · dy kolona"
 
 msgid "Book pages. Scroll horizontally to see more."
 msgstr "Faqet e librit. Lëviz horizontalisht për të parë më shumë."
@@ -2517,23 +2478,14 @@ msgstr "Kategoria"
 msgid "Center"
 msgstr "Qendër"
 
-msgid "Centre contents"
-msgstr "Qendroni përmbajtjen"
-
 msgid "Change"
 msgstr "Ndrysho"
-
-msgid "Change HTML tag"
-msgstr "Ndrysho etiketën HTML"
 
 msgid "Change language"
 msgstr "Ndrysho gjuhën"
 
 msgid "Change Preset"
 msgstr "Ndrysho Presetin"
-
-msgid "Change tag · keep classes and inline styles"
-msgstr "Ndrysho etiketën · ruaj klasat dhe stilet inline"
 
 msgid "Change the book language?"
 msgstr "Të ndryshohet gjuha e librit?"
@@ -2757,9 +2709,6 @@ msgstr "Klikoni imazhet për të zgjedhur"
 msgid "Click Next to continue to language settings."
 msgstr "Klikoni Tjetër për të vazhduar te cilësimet e gjuhës."
 
-msgid "Click the image, then drag it toward the center or right. Pull a corner to resize it. The dashed outline shows the parent it belongs to."
-msgstr "Klikoni figurën, pastaj tërhiqeni drejt qendrës ose djathtas. Tërhiqni një cep për ta ndryshuar madhësinë. Vija e ndërprerë tregon elementin prind të saj."
-
 msgid "Click to edit"
 msgstr "Klikoni për të redaktuar"
 
@@ -2876,15 +2825,6 @@ msgstr "Përfundimi për faqet që janë hapur dhe rishikuar në këtë sesion."
 
 msgid "Completion across the assigned page range for this reviewer session."
 msgstr "Përfundimi për gamën e faqeve të caktuara për këtë sesion rishikuesi."
-
-msgid "Component layout"
-msgstr "Paraqitja e komponentit"
-
-msgid "Component moved. Undo restores its previous position."
-msgstr "Komponenti u zhvendos. Zhbërja rikthen pozicionin e mëparshëm."
-
-msgid "Components and columns"
-msgstr "Komponentët dhe kolonat"
 
 msgid "Comprehension checks per section."
 msgstr "Kontrolle të kuptimit për seksion."
@@ -3197,12 +3137,6 @@ msgstr "Krijo një seksion manualisht"
 msgid "Create ADT"
 msgstr "Krijo ADT"
 
-msgid "Create columns: place on the left"
-msgstr "Krijo kolona: vendos majtas"
-
-msgid "Create columns: place on the right"
-msgstr "Krijo kolona: vendos djathtas"
-
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Krijoni përshkrime përshkruese për imazhet për të përmirësuar aksesueshmërinë."
 
@@ -3367,15 +3301,6 @@ msgstr "Zvogëlo dhëmbëzimin"
 
 msgid "Decrease interval"
 msgstr "Ule intervalin"
-
-msgid "Decrease space below"
-msgstr "Zvogëlo hapësirën poshtë"
-
-msgid "Decrease text size"
-msgstr "Zvogëlo madhësinë e tekstit"
-
-msgid "Decrease width"
-msgstr "Zvogëlo gjerësinë"
 
 msgid "DeepSeek-V3 & R1 reasoning."
 msgstr "Arsyetim DeepSeek-V3 dhe R1."
@@ -3667,9 +3592,6 @@ msgstr "Diff"
 msgid "Diff against fallback"
 msgstr "Diff ndaj fallback"
 
-msgid "Direct controls · prototype"
-msgstr "Kontrolle të drejtpërdrejta · prototip"
-
 msgid "Direction"
 msgstr "Drejtim"
 
@@ -3760,56 +3682,17 @@ msgstr "Tërhiq dhe lësho skedarët e fontit këtu"
 msgid "Drag a block onto the page to insert it."
 msgstr "Tërhiq një bllok mbi faqe për ta futur."
 
-msgid "Drag Reposition to place the whole component."
-msgstr "Tërhiq Ripoziciono për ta vendosur të gjithë komponentin."
-
-msgid "Drag the component · click to cancel"
-msgstr "Tërhiq komponentin · kliko për të anuluar"
-
 msgid "Drag the handles to crop a rectangle. Drag inside to move."
 msgstr "Tërhiqni dorezat për të prerë një drejtkëndësh. Tërhiqni brenda për ta lëvizur."
 
 msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
 msgstr "Tërhiqni dorezat për të ripërmasuar (raporti i pamjes i kyçur). Tërhiqni brenda për ta lëvizur."
 
-#~ msgid "Drag the Move handle to place the whole component."
-#~ msgstr "Tërhiq dorezën Lëviz për të vendosur të gjithë komponentin."
-
-msgid "Drag this component to move it · corners resize · Esc cancels"
-msgstr "Tërhiq këtë komponent për ta lëvizur · qoshet ndryshojnë madhësinë · Esc anulon"
-
-#~ msgid "Drag to align or reorder"
-#~ msgstr "Tërhiqni për të rreshtuar ose rirenditur"
-
-msgid "Drag to align or reorder · corners resize width · blue bottom handle changes height · amber handle adds space · Esc cancels"
-msgstr "Tërhiqni për të rreshtuar ose rirenditur · qoshet ndryshojnë gjerësinë · doreza blu poshtë ndryshon lartësinë · doreza portokalli shton hapësirë · Esc anulon"
-
-msgid "Drag to change height"
-msgstr "Tërhiqni për të ndryshuar lartësinë"
-
-msgid "Drag to change space below"
-msgstr "Tërhiqni për të ndryshuar hapësirën poshtë"
-
 msgid "Drag to move"
 msgstr "Tërhiq për të lëvizur"
 
-#~ msgid "Drag to move · click to activate"
-#~ msgstr "Tërhiq për të lëvizur · kliko për të aktivizuar"
-
 msgid "Drag to move boxes, drag edges/corners to resize"
 msgstr "Tërhiq për të lëvizur kutitë, tërhiq skajet/cepat për të ndryshuar madhësinë"
-
-#~ msgid "Drag to move component"
-#~ msgstr "Tërhiq për të lëvizur komponentin"
-
-msgid "Drag to reposition · click to activate"
-msgstr "Tërhiq për të ripozicionuar · kliko për të aktivizuar"
-
-msgid "Drag to reposition component"
-msgstr "Tërhiq për të ripozicionuar komponentin"
-
-msgid "Drag to resize width"
-msgstr "Tërhiqni për të ndryshuar gjerësinë"
 
 msgid "Drag vertices to reshape. Click midpoints (+) to add points. Right-click a vertex to remove it."
 msgstr "Tërhiq kulmet për të ndryshuar formën. Kliko pikat e mesit (+) për të shtuar pika. Kliko me të djathtën një kulm për ta hequr."
@@ -4078,12 +3961,6 @@ msgstr "Redaktimi është i çaktivizuar ndërsa storyboard-i është duke u ekz
 
 msgid "Editing Language"
 msgstr "Gjuha e redaktimit"
-
-msgid "Editor width"
-msgstr "Gjerësia e redaktorit"
-
-msgid "Edits apply at every screen size"
-msgstr "Ndryshimet zbatohen në çdo madhësi ekrani"
 
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Ndryshimet shkojnë tek ky prefiks i variantit Tailwind"
@@ -4579,9 +4456,6 @@ msgstr "Mesazhi që shfaqet kur përgjigjeni saktë…"
 msgid "Feedback shown when this option is picked…"
 msgstr "Mesazhi që shfaqet kur zgjidhet ky opsion…"
 
-msgid "Field notes / Chapter 01"
-msgstr "Shënime terreni / Kapitulli 01"
-
 msgid "figure"
 msgstr "figurë"
 
@@ -4635,9 +4509,6 @@ msgstr "Faqja e fundit"
 
 msgid "Finish editing classes"
 msgstr "Përfundo redaktimin e klasave"
-
-msgid "Finish editing text to change its tag."
-msgstr "Përfundo redaktimin e tekstit për të ndryshuar etiketën e tij."
 
 msgid "Finish signing in with ChatGPT in the browser window that just opened."
 msgstr "Përfundoni hyrjen me ChatGPT në dritaren e shfletuesit që sapo u hap."
@@ -4739,9 +4610,6 @@ msgstr "Fontet u rivendosën në parazgjedhje."
 msgid "Fonts successfully uploaded."
 msgstr "Fontet u ngarkuan me sukses."
 
-msgid "Footer"
-msgstr "Fundi i faqes"
-
 msgid "for"
 msgstr "për"
 
@@ -4783,9 +4651,6 @@ msgstr "Drejtkëndësh i lirë — ripërmaso pa shtrembëruar"
 
 msgid "Free transform"
 msgstr "Transformim i lirë"
-
-msgid "Free transform: drag the selected element · arrows nudge · Shift 10px · Esc to finish"
-msgstr "Transformim i lirë: tërhiq elementin e zgjedhur · shigjetat për ta zhvendosur · Shift 10px · Esc për të përfunduar"
 
 msgid "Free-form polygon — move, add, and remove points"
 msgstr "Poligon i lirë — lëviz, shto dhe hiq pika"
@@ -5026,20 +4891,11 @@ msgstr "Gjenerimi dështoi. Ju lutemi provoni përsëri."
 msgid "Generation Prompt"
 msgstr "Prompt Gjenerimi"
 
-msgid "Gesture cancelled"
-msgstr "Veprimi u anulua"
-
 msgid "Get a key"
 msgstr "Merrni një çelës"
 
 msgid "Give each illustration its own section"
 msgstr "Jepi çdo ilustrimi seksionin e vet"
-
-msgid "Give this component room to resize?"
-msgstr "T’i jepet hapësirë këtij komponenti për ndryshimin e madhësisë?"
-
-msgid "Give this image its own container?"
-msgstr "T’i jepet kësaj figure një kontejner më vete?"
 
 msgid "Global prompt reset to default."
 msgstr "Prompti global u resetua në parazgjedhje."
@@ -5158,9 +5014,6 @@ msgstr "Gruponi sipas kërkon vëmendje"
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Grupo tekstin dhe imazhet e çdo faqeje në seksione të tipizuara me një pemë të strukturuar përmbajtjeje. Seksionet drejtojnë mënyrën se si fazat pasuese renderojnë, përkthejnë dhe lexojnë librin me zë."
 
-msgid "Group layout controls"
-msgstr "Kontrollet e paraqitjes së grupit"
-
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Grupon rajonet e imazheve në ilustrime të veçanta në çdo faqe."
 
@@ -5189,24 +5042,6 @@ msgstr "titull"
 msgid "Heading"
 msgstr "Titull"
 
-msgid "Heading 1"
-msgstr "Titull 1"
-
-msgid "Heading 2"
-msgstr "Titull 2"
-
-msgid "Heading 3"
-msgstr "Titull 3"
-
-msgid "Heading 4"
-msgstr "Titull 4"
-
-msgid "Heading 5"
-msgstr "Titull 5"
-
-msgid "Heading 6"
-msgstr "Titull 6"
-
 msgid "Heading level 4"
 msgstr "Niveli i titullit 4"
 
@@ -5233,15 +5068,6 @@ msgstr "Intervali i kontrollit të shëndetit"
 
 msgid "Height"
 msgstr "Lartësia"
-
-msgid "Height removes spare space first. Content can grow on smaller screens. Inner space controls the padding around the contents."
-msgstr "Lartësia zvogëlon fillimisht hapësirën e tepërt. Përmbajtja mund të zgjerohet në ekrane më të vogla. Hapësira e brendshme përcakton largësinë rreth përmbajtjes."
-
-msgid "Height: {height}px"
-msgstr "Lartësia: {height}px"
-
-msgid "Height: {height}px · content needs this space"
-msgstr "Lartësia: {height}px · përmbajtja ka nevojë për këtë hapësirë"
 
 msgid "Help"
 msgstr "Ndihmë"
@@ -5333,9 +5159,6 @@ msgstr "Kryefaqja / Kapitulli 1"
 msgid "Home guide"
 msgstr "Udhëzuesi i shtëpisë"
 
-msgid "Horizontal inner space"
-msgstr "Hapësira e brendshme horizontale"
-
 msgid "Hover a card to find it in the page and click to pin it — or click anything in the page to edit it here."
 msgstr "Kaloni kursorin mbi një kartë për ta gjetur në faqe dhe klikoni për ta fiksuar — ose klikoni çdo element në faqe për ta redaktuar këtu."
 
@@ -5387,9 +5210,6 @@ msgstr "Si të shtohen kuizet"
 msgid "HTML"
 msgstr "HTML"
 
-msgid "HTML tag"
-msgstr "Etiketë HTML"
-
 msgid "HTML5 + EPUB"
 msgstr "HTML5 + EPUB"
 
@@ -5411,9 +5231,6 @@ msgstr "Nëse del tani, ndryshimet e tua të paruajtura do të humbasin."
 msgid "Illustrated children's books"
 msgstr "Libra për fëmijë të ilustruar"
 
-msgid "Illustrated mountain landscape"
-msgstr "Peizazh malor i ilustruar"
-
 msgid "Illustration"
 msgstr "Ilustrim"
 
@@ -5428,9 +5245,6 @@ msgstr "Imazh"
 
 msgid "Image Alt-Text"
 msgstr "Teksti Alternativ i Imazhit"
-
-msgid "Image beside loose text"
-msgstr "Figurë pranë tekstit të pastrukturuar"
 
 msgid "Image Captioning"
 msgstr "Titullimi i Imazheve"
@@ -5492,9 +5306,6 @@ msgstr "generim imazhesh ilustrim prompt"
 msgid "Image Generation Prompt"
 msgstr "Prompt i Gjenerimit të Imazheve"
 
-msgid "Image in a sentence"
-msgstr "Figurë brenda një fjalie"
-
 msgid "Image Meaningfulness"
 msgstr "Kuptimësia e Imazhit"
 
@@ -5525,9 +5336,6 @@ msgstr "Zgjedhja e imazhit"
 msgid "Image size"
 msgstr "Madhësia e imazhit"
 
-msgid "Image structure"
-msgstr "Struktura e figurës"
-
 msgid "Image Translation"
 msgstr "Përkthimi i Imazheve"
 
@@ -5551,9 +5359,6 @@ msgstr "image-alt"
 
 msgid "Image-edit model used to regenerate each image with translated text."
 msgstr "Modeli i redaktimit të imazheve që përdoret për të rigjeneruar çdo imazh me tekst të përkthyer."
-
-msgid "Image-only paragraph"
-msgstr "Paragraf vetëm me figurë"
 
 msgid "images"
 msgstr "imazhe"
@@ -5680,15 +5485,6 @@ msgstr "Rrit dhëmbëzimin"
 msgid "Increase interval"
 msgstr "Rrit intervalin"
 
-msgid "Increase space below"
-msgstr "Rrit hapësirën poshtë"
-
-msgid "Increase text size"
-msgstr "Rrit madhësinë e tekstit"
-
-msgid "Increase width"
-msgstr "Rrit gjerësinë"
-
 msgid "Individual sides"
 msgstr "Anë individuale"
 
@@ -5707,12 +5503,6 @@ msgstr "Faqja fillestare"
 msgid "Inline CSS"
 msgstr "CSS brenda elementit"
 
-msgid "Inline text"
-msgstr "Tekst inline"
-
-msgid "Inline text stays in its sentence. Use text controls or select its parent."
-msgstr "Teksti brenda rreshtit mbetet në fjalinë e tij. Përdorni kontrollet e tekstit ose zgjidhni elementin prind."
-
 msgid "Input"
 msgstr "Hyrje"
 
@@ -5722,14 +5512,8 @@ msgstr "Token-ët hyrës"
 msgid "Insert the quiz here"
 msgstr "Vendos kuizin këtu"
 
-msgid "Inside {parentTag}"
-msgstr "Brenda {parentTag}"
-
 msgid "Inside Cover"
 msgstr "Kapaku i brendshëm"
-
-msgid "Inspect HTML"
-msgstr "Inspekto HTML-në"
 
 msgid "Install"
 msgstr "Instalo"
@@ -5872,9 +5656,6 @@ msgstr "Mbaji të pandryshuara skemat e daljes dhe ID-të kur redakton promptet.
 
 msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur zbulohen lloje të ndryshme aktivitetesh në të njëjtën faqe."
-
-msgid "Keep the structure"
-msgstr "Ruaj strukturën"
 
 #~ msgid "Keep this image"
 #~ msgstr "Mbaj këtë imazh"
@@ -6319,9 +6100,6 @@ msgstr "Lokalizim"
 msgid "Lock"
 msgstr "Kyç"
 
-msgid "Lock element"
-msgstr "Blloko elementin"
-
 msgid "Lock the current aspect ratio"
 msgstr "Kyç raportin aktual të pamjes"
 
@@ -6719,23 +6497,8 @@ msgstr "Më i përdorur"
 msgid "motion animation accessibility"
 msgstr "lëvizje animacion aksesueshmëri"
 
-#~ msgid "Move"
-#~ msgstr "Lëviz"
-
 msgid "Move down"
 msgstr "Zhvendos poshtë"
-
-msgid "Move earlier"
-msgstr "Zhvendos më herët"
-
-msgid "Move inside"
-msgstr "Lëviz brenda"
-
-msgid "Move later"
-msgstr "Zhvendos më vonë"
-
-msgid "Move this image with its parent"
-msgstr "Lëvizeni këtë figurë me elementin prind"
 
 msgid "Move up"
 msgstr "Zhvendos lart"
@@ -7003,9 +6766,6 @@ msgstr "Nuk ka dallime nga prompt-i fallback."
 
 msgid "No disabled rules"
 msgstr "Nuk ka rregulla të çaktiviziuara"
-
-msgid "No drop here. Move over another block or a gap between blocks."
-msgstr "Nuk mund të vendoset këtu. Tërhiqeni mbi një bllok tjetër ose një hapësirë mes blloqeve."
 
 msgid "No Easy Read for this page"
 msgstr "Nuk ka Lexim të Lehtë për këtë faqe"
@@ -7466,9 +7226,6 @@ msgstr "Asgjë e rëndësishme nuk mungon ose nuk është shtuar"
 msgid "Nothing is running right now. Stages you start show their steps here."
 msgstr "Asgjë nuk është në ekzekutim tani. Fazat që nisni shfaqin hapat e tyre këtu."
 
-msgid "Nothing moved. Drop on a highlighted target inside the page."
-msgstr "Asgjë nuk u zhvendos. Lëshojeni në një destinacion të theksuar brenda faqes."
-
 #~ msgid "Nothing pending review"
 #~ msgstr "Asgjë në pritje për shqyrtim"
 
@@ -7537,9 +7294,6 @@ msgstr "Tur i hyrjes"
 
 msgid "Once the sections exist, ask here for any change to the page HTML."
 msgstr "Pasi të ekzistojnë seksionet, kërkoni këtu çdo ndryshim në HTML-në e faqes."
-
-msgid "One below another"
-msgstr "Njëri poshtë tjetrit"
 
 msgid "One book."
 msgstr "Një libër."
@@ -8125,9 +7879,6 @@ msgstr "Prompt i Ndarjes së Faqeve"
 msgid "Page Sectioning Refinement Prompt"
 msgstr "Prompt i Rafinimit të Ndarjes së Faqeve"
 
-msgid "Page test copy · changes are not saved to the book"
-msgstr "Kopje provuese e faqes · ndryshimet nuk ruhen në libër"
-
 msgid "Page text, headings, and quiz content."
 msgstr "Teksti i faqes, titujt dhe përmbajtja e kuizeve."
 
@@ -8399,12 +8150,6 @@ msgstr "Fazat e procesit"
 
 msgid "Pixel Art"
 msgstr "Pixel Art"
-
-msgid "Place after"
-msgstr "Vendos pas"
-
-msgid "Place before"
-msgstr "Vendos para"
 
 msgid "Platform"
 msgstr "Platforma"
@@ -8777,9 +8522,6 @@ msgstr "Në radhë — nis sapo të përfundojë faza në ekzekutim"
 
 msgid "Quick fill"
 msgstr "Plotësim i shpejtë"
-
-msgid "Quick layout controls"
-msgstr "Kontrolle të shpejta të paraqitjes"
 
 msgid "Quit anyway"
 msgstr "Dil gjithsesi"
@@ -9235,9 +8977,6 @@ msgstr "Renderimi i aktiviteteve nga një shabllon i fiksuar për stil të qënd
 msgid "Renders each page into the storyboard layout used by the web reader."
 msgstr "Renderimi i çdo faqeje në paraqitjen e storyboard-it të përdorur nga lexuesi web."
 
-msgid "Reorder within this parent"
-msgstr "Rirendit brenda këtij elementi prind"
-
 msgid "Replace"
 msgstr "Zëvendëso"
 
@@ -9267,12 +9006,6 @@ msgstr "Riluaj prezantimin e udhëzuar të ADT Studio."
 
 msgid "Report an issue"
 msgstr "Raporto një problem"
-
-msgid "Reposition"
-msgstr "Ripoziciono"
-
-msgid "Reposition: drag the whole component above, below, beside, or inside another container. Esc cancels."
-msgstr "Ripoziciono: tërhiq të gjithë komponentin sipër, poshtë, anash ose brenda një kontejneri tjetër. Esc anulon."
 
 msgid "Request settings"
 msgstr "Cilësimet e kërkesës"
@@ -9304,9 +9037,6 @@ msgstr "Të rivendosen fontet në parazgjedhje?"
 msgid "Reset offsets"
 msgstr "Rivendos zhvendosjet"
 
-msgid "Reset sample"
-msgstr "Rivendos shembullin"
-
 msgid "Reset to defaults"
 msgstr "Rivendos në paracaktimet"
 
@@ -9333,9 +9063,6 @@ msgstr "Duke zgjidhur gjuhën burimore..."
 
 msgid "Respiration"
 msgstr "Frymëmarrja"
-
-msgid "Responsive canvas lab"
-msgstr "Laboratori i kanavacës përshtatëse"
 
 msgid "Restart"
 msgstr "Rinis"
@@ -9539,9 +9266,6 @@ msgstr "Lumenj dhe delta"
 msgid "Role"
 msgstr "Rol"
 
-msgid "Room to explore"
-msgstr "Hapësirë për të eksploruar"
-
 msgid "Rotate"
 msgstr "Rrotullo"
 
@@ -9553,15 +9277,6 @@ msgstr "Rrotullo 90° në kahun kundërorar"
 
 msgid "Row"
 msgstr "Rresht"
-
-msgid "Row · align bottoms"
-msgstr "Rresht · rreshtoni skajet e poshtme"
-
-msgid "Row · align centres"
-msgstr "Rresht · rreshtoni qendrat"
-
-msgid "Row · align tops"
-msgstr "Rresht · rreshtoni skajet e sipërme"
 
 msgid "Row reverse"
 msgstr "Rresht i anasjelltë"
@@ -10128,12 +9843,6 @@ msgstr "Po segmentohet…"
 msgid "Select a .zip project archive exported from ADT Studio."
 msgstr "Zgjidhni një arkivë projekti .zip të eksportuar nga ADT Studio."
 
-msgid "Select a figure or aside and drag it to move. Use Reposition to move a whole group, or Layout to try columns, stacking, and floats."
-msgstr "Zgjidh një figurë ose një kuti anësore dhe tërhiqe për ta lëvizur. Përdor Ripoziciono për të lëvizur një grup të tërë, ose Paraqitja për të provuar kolona, renditje vertikale dhe elemente lundruese."
-
-#~ msgid "Select a figure or aside and drag it to move. Use the Move handle to move a whole group, or Layout to try columns, stacking, and floats."
-#~ msgstr "Zgjidh një figurë ose kuti anësore dhe tërhiqe për ta lëvizur. Përdor dorezën Lëviz për të lëvizur një grup të tërë, ose Paraqitja për të provuar kolona, vendosje njëra mbi tjetrën dhe tekst rreth objekteve."
-
 msgid "Select a node type and enter an item ID to view versions."
 msgstr "Zgjidhni një lloj nyje dhe shkruani një ID elementi për të parë versionet."
 
@@ -10145,9 +9854,6 @@ msgstr "Zgjidhni një grupim faqesh për të vazhduar"
 
 msgid "Select a page to filter. Click again to show all."
 msgstr "Zgjidh një faqe për të filtruar. Kliko sërish për t'i shfaqur të gjitha."
-
-msgid "Select a parent to change this layout"
-msgstr "Zgjidhni një element prind për të ndryshuar këtë paraqitje"
 
 msgid "Select a render strategy to continue"
 msgstr "Zgjidhni një strategji renderimi për të vazhduar"
@@ -10179,29 +9885,17 @@ msgstr "Zgjidhni llojin e aktivitetit..."
 msgid "Select all"
 msgstr "Zgjidhni të gjitha"
 
-msgid "Select an element to try responsive controls"
-msgstr "Zgjidhni një element për të provuar kontrollet përshtatëse"
-
-#~ msgid "Select an image or container. Use Arrange component to move the whole group, or Component layout to try columns, stacking, and floats."
-#~ msgstr "Zgjidhni një figurë ose kontejner. Përdorni Rregullo komponentin për të lëvizur të gjithë grupin, ose Paraqitja e komponentit për të provuar kolonat, renditjen vertikale dhe vendosjen me tekst përreth."
-
 msgid "Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank."
 msgstr "Zgjidhni një element për të redaktuar tekstin e tij — [[blank:…]] shënon vendin ku shfaqet një hapësirë bosh, prandaj ruajeni që të ruhet hapësira."
 
 msgid "Select images to translate"
 msgstr "Zgjidhni imazhet për të përkthyer"
 
-msgid "Select neighbouring items in the same container to arrange them together."
-msgstr "Zgjidhni elemente fqinje në të njëjtin kontejner për t’i rregulluar së bashku."
-
 msgid "Select node type..."
 msgstr "Zgjidhni llojin e nyjes..."
 
 msgid "Select or wrap a container to offset this element."
 msgstr "Zgjidh një kontejner ose mbështille këtë element në një për ta zhvendosur."
-
-msgid "Select parent"
-msgstr "Zgjidh elementin prind"
 
 msgid "Select reviewer session"
 msgstr "Zgjidhni sesionin e rishikuesit"
@@ -10227,17 +9921,11 @@ msgstr "Zgjidhni faqet nga të cilat është shkruar kuizi, pastaj zgjidhni ku s
 msgid "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
 msgstr "Zgjidhni deri në 5 faqe për t'i përdorur si referenca vizuale. LLM do t'i analizojë dhe do të gjenerojë një udhëzues stili."
 
-msgid "Select whole component"
-msgstr "Zgjidh të gjithë komponentin"
-
 msgid "Selected file"
 msgstr "Skedari i zgjedhur"
 
 msgid "Selected images"
 msgstr "Imazhe të zgjedhura"
-
-msgid "Selected items"
-msgstr "Elementet e zgjedhura"
 
 #. placeholder {0}: fmtRange(w)
 msgid "Selected pages {0}."
@@ -10340,9 +10028,6 @@ msgstr "E ndarë"
 msgid "Shared by every book on this machine."
 msgstr "Ndahen nga të gjithë librat në këtë kompjuter."
 
-msgid "Shift-click neighbouring items to select a group."
-msgstr "Klikoni me Shift mbi elemente fqinje për të zgjedhur një grup."
-
 msgid "Ship"
 msgstr "Dërgo"
 
@@ -10440,15 +10125,6 @@ msgstr "Shfaqur pas faqes {afterNumber}"
 msgid "Shqip"
 msgstr "Shqip"
 
-msgid "Side by side · equal columns"
-msgstr "Krah për krah · kolona të barabarta"
-
-msgid "Side by side with next item"
-msgstr "Krah për krah me elementin pasues"
-
-msgid "Side by side with previous item"
-msgstr "Krah për krah me elementin paraprak"
-
 msgid "Side-by-side image and narrative."
 msgstr "Imazh dhe narrativë krah për krah."
 
@@ -10543,9 +10219,6 @@ msgstr "Faqosje shablloni me një kolonë"
 msgid "Size"
 msgstr "Madhësia"
 
-msgid "Size and spacing"
-msgstr "Madhësia dhe hapësira"
-
 msgid "Sizing"
 msgstr "Dimensionimi"
 
@@ -10605,9 +10278,6 @@ msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua
 msgid "Some steps didn't finish — resume the run to complete this stage."
 msgstr "Disa hapa nuk përfunduan — rifillo ekzekutimin për të përfunduar këtë fazë."
 
-msgid "Some tags are unavailable for this content or parent."
-msgstr "Disa etiketa nuk janë të disponueshme për këtë përmbajtje ose element prind."
-
 msgid "Someone who prefers to live alone and avoids the company of others."
 msgstr "Person që parapëlqen të jetojë i izoluar dhe shmang shoqërinë e të tjerëve."
 
@@ -10658,9 +10328,6 @@ msgstr "Teksti burimor"
 
 msgid "Space around"
 msgstr "Hapësirë rreth"
-
-msgid "Space below: {spacing}px"
-msgstr "Hapësira poshtë: {spacing}px"
 
 msgid "Space between"
 msgstr "Hapësirë midis"
@@ -10840,9 +10507,6 @@ msgstr "Fillo të shkruash për të parë fjalë nga libri…"
 
 msgid "Start with"
 msgstr "Fillo me"
-
-msgid "Start with this image"
-msgstr "Filloni me këtë figurë"
 
 msgid "Starting…"
 msgstr "Po fillon…"
@@ -11043,9 +10707,6 @@ msgstr "Kalo midis ekranit të re të pipeline-it dhe atij klasik."
 
 msgid "Switch languages in a tap."
 msgstr "Ndërro gjuhë me një prekje."
-
-msgid "Switch order"
-msgstr "Ndërroni renditjen"
 
 msgid "Switch to dark theme"
 msgstr "Kalo në temën e errët"
@@ -11525,9 +11186,6 @@ msgstr "Këto detyra trashëgojnë LLM-në e parazgjedhur, përveç nëse cilës
 msgid "These tasks require specialized models and do not inherit the default LLM above."
 msgstr "Këto detyra kërkojnë modele të specializuara dhe nuk e trashëgojnë LLM-në e parazgjedhur më sipër."
 
-msgid "These two cards share a flex row. Select a card to see which controls are safe, or select the text inside it."
-msgstr "Këto dy karta ndajnë një rresht fleksibël. Zgjidhni një kartë për të parë cilat kontrolle janë të sigurta, ose zgjidhni tekstin brenda saj."
-
 msgid "These values reflect either the saved book override or the latest packaged defaults."
 msgstr "Këto vlera pasqyrojnë ose anashkalimin e ruajtur të librit ose parazgjedhjeve më të fundit të paketuara."
 
@@ -11584,9 +11242,6 @@ msgstr "Ky libër ende nuk është plotësuar — faqet <0>{0}</0> nuk janë bas
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ky libër shfaqet me strukturë fikse, kështu që ruan fontet origjinale të PDF-së. Fontet e bashkëngjitura gjithsesi udhëzojnë IA-në për aktivitetet dhe faqet e gjeneruara."
 
-msgid "This component has locked content or a layout that cannot safely be wrapped. Select its parent or use the Styles panel."
-msgstr "Ky komponent ka përmbajtje të kyçur ose një paraqitje që nuk mund të vendoset në kontejner në mënyrë të sigurt. Zgjidhni elementin e tij prind ose përdorni panelin Stilet."
-
 msgid "This computer"
 msgstr "Ky kompjuter"
 
@@ -11610,9 +11265,6 @@ msgstr "Licenca e këtij fonti nuk është open-source dhe kufizon përfshirjen 
 
 msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "Licenca e kësaj fonti kufizon ngulitjen — shpërndarja e saj brenda paketës së librit mund të jetë e paligjshme."
-
-msgid "This image belongs to text or a constrained layout. Adding a container here could change the surrounding content. Select its parent to move the content together, or use the Styles panel."
-msgstr "Kjo figurë është pjesë e tekstit ose e një paraqitjeje me kufizime. Shtimi i një kontejneri këtu mund të ndryshojë përmbajtjen përreth. Zgjidhni elementin prind për ta lëvizur përmbajtjen së bashku, ose përdorni panelin Stilet."
 
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Ky imazh është dekorativ. Lexuesit e ekranit do ta anashkalojnë dhe nuk nevojitet titull."
@@ -11646,12 +11298,6 @@ msgstr "Ky nuk është një projekt i vlefshëm i ADT Studio"
 
 msgid "This isn't a valid part file"
 msgstr "Ky nuk është një skedar i vlefshëm pjese"
-
-msgid "This layout cannot move in that direction"
-msgstr "Kjo paraqitje nuk lejon lëvizjen në atë drejtim"
-
-msgid "This layout needs the Styles panel. Select a parent to edit its layout."
-msgstr "Kjo paraqitje kërkon panelin Stilet. Zgjidhni një element prind për të redaktuar paraqitjen e tij."
 
 msgid "This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via \"View HTML source\" instead of merging."
 msgstr "Kjo bashkon një aktivitet të personalizuar. Seksioni i kombinuar ri-renderohet, gjë që do të hedhë poshtë skriptin interaktiv të vlerësimit të aktivitetit të personalizuar. Për ta ruajtur, redaktoni përmes \"Shiko burimin HTML\" në vend që të bashkoni."
@@ -11689,9 +11335,6 @@ msgstr "Kjo faqe ka ndryshime HTML që nuk janë ruajtur. Ruaji para se të dal�
 msgid "This page has images without an alternative description."
 msgstr "Kjo faqe ka imazhe pa përshkrim alternativ."
 
-msgid "This page has no available HTML to test."
-msgstr "Kjo faqe nuk ka HTML të disponueshëm për provë."
-
 msgid "This page has no captioned images"
 msgstr "Kjo faqe nuk ka imazhe me tituj"
 
@@ -11727,9 +11370,6 @@ msgstr "Kjo faqe nuk është rishikuar akoma"
 
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "Shtresa e tekstit të integruar e kësaj faqeje është bosh, por hapi i Seksionimit rikuperoi tekst nga imazhi i faqes — pra duket si një faqe e skanuar ose vetëm me imazhe. Procesi ende mund të punojë me tekstin e rikuperuar, por për përmbledhje, metadata dhe përkthime më të mira, provoni të siguroni një version të këtij PDF-je të bazuar në tekst (me një shtresë teksti reale) në vend të një kopjeje të skanuar."
-
-msgid "This parent controls the layout. Resize its children in Styles or select the parent."
-msgstr "Ky element prind kontrollon paraqitjen. Ndryshoni madhësinë e elementeve të tij te Stilet ose zgjidhni prindin."
 
 msgid "This part cannot be merged"
 msgstr "Kjo pjesë nuk mund të bashkohet"
@@ -11850,9 +11490,6 @@ msgstr "Për të zëvendësuar një imazh, përdorni \\\"Modifiko strukturën\\\
 
 msgid "to stream API logs here."
 msgstr "për të transmetuar regjistrat API këtu."
-
-msgid "To wrap text, select an object beside paragraphs, or a container with paragraphs and one object. Separate cards and activities keep their own layout."
-msgstr "Për të vendosur tekstin rreth një objekti, zgjidhni një objekt pranë paragrafëve ose një kontejner me paragrafë dhe një objekt. Kartat dhe aktivitetet e veçanta ruajnë paraqitjen e tyre."
 
 msgid "Toast position"
 msgstr "Pozicioni i njoftimeve"
@@ -12011,9 +11648,6 @@ msgstr "Provo një kërkim ose filtër tjetër"
 
 msgid "Try a different title or author."
 msgstr "Provoni një titull ose autor tjetër."
-
-msgid "Try a narrow viewport after editing. Every change can be undone with the history controls."
-msgstr "Provoni një pamje të ngushtë pas redaktimit. Çdo ndryshim mund të zhbëhet me kontrollet e historikut."
 
 msgid "Try Activity"
 msgstr "Provo Aktivitetin"
@@ -12198,9 +11832,6 @@ msgstr "Slug i hapit i panjohur: {step}"
 msgid "Unknown step: {step}"
 msgstr "Hap i panjohur: {step}"
 
-msgid "Unlock element"
-msgstr "Zhblloko elementin"
-
 msgid "Unlock this element and its contents first."
 msgstr "Fillimisht zhblloko këtë element dhe përmbajtjen e tij."
 
@@ -12348,9 +11979,6 @@ msgstr "Përdor një LLM për të zbuluar dhe ndarë imazhet e kompozuara (p.sh.
 msgid "Use an LLM to filter out decorative or non-educational images."
 msgstr "Përdor një LLM për të filtruar imazhet dekorative ose jo-edukative."
 
-#~ msgid "Use Arrange component to move this group, or Component layout to change its arrangement."
-#~ msgstr "Përdorni Rregullo komponentin për të lëvizur këtë grup, ose Paraqitja e komponentit për të ndryshuar renditjen e tij."
-
 msgid "Use as current"
 msgstr "Përdor si aktual"
 
@@ -12372,9 +12000,6 @@ msgstr "Përdor Spread për libra të shtypur me paraqitje faqesh ballë për ba
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Përdor + ndërmjet faqeve për të vendosur kuizin"
-
-msgid "Use the parent button to work one level up. Text stays in its container and flows when the viewport changes."
-msgstr "Përdorni butonin e prindit për të punuar një nivel më lart. Teksti mbetet në kontejnerin e tij dhe përshtatet kur ndryshon gjerësia e pamjes."
 
 msgid "Use the sidebar on the left to open any stage of the pipeline. Each stage has its own page where you can review its content, configure its settings, and start a run. The cards below mirror that navigation — click a card to jump straight to that stage's page."
 msgstr "Përdor shiritin anësor majtas për të hapur çdo fazë të linjës. Çdo fazë ka faqen e saj ku mund të shqyrtosh përmbajtjen, të konfigurosh cilësimet dhe të nisësh një ekzekutim. Kartat më poshtë pasqyrojnë atë navigim — kliko një kartë për të kaluar direkt te faqja e asaj faze."
@@ -12488,9 +12113,6 @@ msgstr "Me version"
 
 msgid "Versions"
 msgstr "Versione"
-
-msgid "Vertical inner space"
-msgstr "Hapësira e brendshme vertikale"
 
 msgid "video"
 msgstr "video"
@@ -12775,9 +12397,6 @@ msgstr "Mbulim i gjerë shumëgjuhësh me zëra neural për shumë lokale."
 msgid "Width"
 msgstr "Gjerësi"
 
-msgid "Width: {percentage}% of parent"
-msgstr "Gjerësia: {percentage}% e prindit"
-
 msgid "Will be reset"
 msgstr "Do të rivendoset"
 
@@ -12820,29 +12439,8 @@ msgstr "Theksim në nivel fjale"
 msgid "words"
 msgstr "fjalë"
 
-msgid "Wrap in container"
-msgstr "Vendos në kontejner"
-
-msgid "Wrap in container to resize this component within its row or column."
-msgstr "Vendoseni këtë komponent në një kontejner për t’ia ndryshuar madhësinë brenda rreshtit ose kolonës së tij."
-
 msgid "Wrap in group"
 msgstr "Mbështjell në grup"
-
-msgid "Wrap text · object on left"
-msgstr "Tekst rreth objektit · objekti majtas"
-
-msgid "Wrap text · object on right"
-msgstr "Tekst rreth objektit · objekti djathtas"
-
-msgid "Wrap text around the component on the left"
-msgstr "Vendos tekstin përreth komponentit në të majtë"
-
-msgid "Wrap text around the component on the right"
-msgstr "Vendos tekstin përreth komponentit në të djathtë"
-
-msgid "Wrap text lets paragraphs continue beside the object and fill the width below it. Side by side keeps separate columns. Both stack on small screens. Undo restores the original layout."
-msgstr "Teksti vazhdon pranë objektit dhe mbush gjerësinë poshtë tij. Krah për krah ruan kolona të veçanta. Të dyja vendosen njëra poshtë tjetrës në ekrane të vogla. Zhbërja rikthen paraqitjen fillestare."
 
 msgid "Wraps 'Edit this image' requests. The AI receives the original image alongside this prompt. Supports user_prompt and style variables."
 msgstr "Mbështjell kërkesat 'Redakto këtë imazh'. AI-ja merr imazhin origjinal bashkë me këtë prompt. Mbështet variablat user_prompt dhe style."
