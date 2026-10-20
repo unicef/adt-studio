@@ -10,6 +10,7 @@ import { useDisconnectCloudflare } from "@/hooks/use-cloudflare-connection"
 import { DisconnectDialog } from "./DisconnectDialog"
 import { ProvisionCalm } from "./ProvisionCalm"
 import { ProvisionErrorNotice } from "./ProvisionErrorNotice"
+import { SignInAgainNotice } from "./SignInAgainNotice"
 import { useElapsed } from "@/lib/elapsed"
 
 /** The card swaps between a short summary and a much taller loader; animating the
@@ -45,6 +46,7 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
   const elapsedMs = useElapsed(upgrade.status)
 
   const isUpdating = upgrade.status === "running" || upgrade.status === "error"
+  const signInNeeded = connection.auth_method === null
   const body = useMeasuredHeight<HTMLDivElement>()
 
   function confirmDisconnect(deleteResources: boolean) {
@@ -147,8 +149,12 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
                   <span data-testid={`connection-method-${connection.auth_method ?? "unknown"}`}>
                     {connection.auth_method === "oauth" ? (
                       <Trans>Connected via Cloudflare login</Trans>
-                    ) : (
+                    ) : connection.auth_method === "token" ? (
                       <Trans>Connected with API token</Trans>
+                    ) : (
+                      <span className="font-medium text-amber-700 dark:text-amber-300">
+                        <Trans>Sign-in needed</Trans>
+                      </span>
                     )}
                   </span>
                   <span aria-hidden="true">·</span>
@@ -167,6 +173,10 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
                 </span>
               </div>
             </div>
+
+            {signInNeeded && (
+              <SignInAgainNotice accountName={connection.resources?.account_name || null} />
+            )}
 
             <EmptyState
               className="flex flex-1 items-center justify-center px-5 py-12"
