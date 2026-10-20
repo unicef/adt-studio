@@ -19,7 +19,7 @@ import {
   videoFilesAtom,
 } from "@/features/language/state/language.atoms"
 import { applyPlainTextWithLineBreaks } from "./text-formatting"
-import { rebuildSegmentedInnerHtml } from "@/shared/lib/fl-segments"
+import { parseSegments, styleToInline } from "@/shared/lib/fl-segments"
 
 const EASY_READ_FORMATTED_ATTR = "data-easy-read-formatted"
 const EASY_READ_PREVIOUS_STYLE_ATTRS = {
@@ -81,7 +81,7 @@ function replaceTextPreservingUnderlineOptions(
     element.querySelectorAll<HTMLElement>(".activity-underline-option[data-activity-item]"),
   )
   if (options.length === 0) {
-    element.innerHTML = translatedText.replace(/\n/g, "<br>")
+    applyPlainTextWithLineBreaks(element, translatedText)
     return
   }
 
@@ -117,6 +117,50 @@ function replaceTextPreservingUnderlineOptions(
   }
   if (lastIndex < translatedText.length) {
     fragment.append(doc.createTextNode(translatedText.slice(lastIndex)))
+  }
+
+  element.replaceChildren(fragment)
+}
+
+function normalizeSegmentText(text: string): string {
+  return text.replace(/\s+/g, " ").trim()
+}
+
+/**
+ * Replace translated content with DOM text nodes while retaining fixed-layout
+ * segment styling. Catalog values are book content and must never be parsed as
+ * HTML; the only markup created here is the runtime-owned <br> / MathML output
+ * produced by applyPlainTextWithLineBreaks.
+ */
+function replaceTextWithSegments(
+  element: HTMLElement,
+  text: string,
+  segmentsAttr: string,
+): void {
+  const segments = parseSegments(segmentsAttr)
+  if (!segments || segments.length === 0) {
+    applyPlainTextWithLineBreaks(element, text)
+    return
+  }
+
+  const sourceText = segments.map((segment) => segment.text).join("")
+  const runs = normalizeSegmentText(sourceText) === normalizeSegmentText(text)
+    ? segments
+    : [{ text, style: segments[0].style }]
+  const fragment = element.ownerDocument.createDocumentFragment()
+
+  for (const run of runs) {
+    if (!run.style) {
+      const plain = element.ownerDocument.createElement("span")
+      applyPlainTextWithLineBreaks(plain, run.text)
+      while (plain.firstChild) fragment.appendChild(plain.firstChild)
+      continue
+    }
+
+    const styled = element.ownerDocument.createElement("span")
+    styled.setAttribute("style", styleToInline(run.style))
+    applyPlainTextWithLineBreaks(styled, run.text)
+    fragment.appendChild(styled)
   }
 
   element.replaceChildren(fragment)
@@ -335,7 +379,6 @@ export function applyTranslationsToDOM(
 
     const elements = document.querySelectorAll(`[data-id="${cssEscape(key)}"]`)
     const isEasyRead = translationKey.endsWith("_easy_read")
-    const renderedHtml = text.replace(/\n/g, "<br>")
     elements.forEach((el) => {
       // Step-by-step activities render their own React-managed DOM (with
       // inputs inside sentence texts) and translate through the same dict —
@@ -367,13 +410,16 @@ export function applyTranslationsToDOM(
         replaceTextPreservingUnderlineOptions(htmlElement, text)
         return
       }
-      const html = segmentsAttr
-        ? rebuildSegmentedInnerHtml(segmentsAttr, renderedHtml)
-        : renderedHtml
-      if (htmlElement.hasAttribute("data-tts-original-html")) {
-        htmlElement.setAttribute("data-tts-original-html", html)
+      if (segmentsAttr) {
+        replaceTextWithSegments(htmlElement, text, segmentsAttr)
+      } else {
+        applyPlainTextWithLineBreaks(htmlElement, text)
       }
-      htmlElement.innerHTML = html
+      if (htmlElement.hasAttribute("data-tts-original-html")) {
+        // Serialization here is only for the audio highlighter's restore
+        // cache; the content was already inserted as text nodes above.
+        htmlElement.setAttribute("data-tts-original-html", htmlElement.innerHTML)
+      }
     })
 
     const placeholders = document.querySelectorAll(
