@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Sparkles, X, Pencil, ImagePlus, ChevronDown, Image as ImageIcon } from "lucide-react"
+import { Sparkles, X, Pencil, ImagePlus, ChevronDown, Image as ImageIcon, ScanLine } from "lucide-react"
+import { FigureCleanupFromBook } from "@/components/pipeline/components/figure-cleanup/FigureCleanupFromBook"
 import { api, BASE_URL } from "@/api/client"
 import { useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
@@ -40,6 +41,7 @@ interface AiImageDialogProps {
   imageId: string
   /** Book label (for fetching images for style reference) */
   bookLabel: string
+  cleanupDisabled?: boolean
   /** Called when the user submits — dialog closes immediately, parent handles async */
   onSubmit: (prompt: string, referenceImageId?: string, options?: { style?: string; imageType?: string; styleImageId?: string }) => void
   /** Called when user cancels */
@@ -55,12 +57,14 @@ export function AiImageDialog({
   currentImageSrc,
   imageId,
   bookLabel,
+  cleanupDisabled = false,
   onSubmit,
   onClose,
 }: AiImageDialogProps) {
   const { t } = useLingui()
   const [prompt, setPrompt] = useState("")
   const [mode, setMode] = useState<"edit" | "generate">("edit")
+  const [cleanupOpen, setCleanupOpen] = useState(false)
   const [stylePreset, setStylePreset] = useState("")
   const [imageType, setImageType] = useState("")
   const [showStylePicker, setShowStylePicker] = useState(false)
@@ -96,9 +100,11 @@ export function AiImageDialog({
     )
   }
 
+  if (cleanupOpen) return <FigureCleanupFromBook bookLabel={bookLabel} imageId={imageId} onClose={onClose} />
+
   return (
     <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-8">
-      <div className="bg-background rounded-xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden max-h-[85vh]">
+      <div className="bg-background rounded-xl shadow-2xl w-full max-w-xl flex flex-col overflow-hidden max-h-[85vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b shrink-0">
           <div className="flex items-center gap-2">
@@ -117,7 +123,7 @@ export function AiImageDialog({
         {/* Body */}
         <div className="p-5 space-y-4 overflow-y-auto">
           {/* Mode toggle cards */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
               onClick={() => setMode("edit")}
@@ -156,7 +162,16 @@ export function AiImageDialog({
                 </p>
               </div>
             </button>
+            <button type="button" onClick={() => setCleanupOpen(true)} disabled={cleanupDisabled}
+              className="flex items-start gap-2.5 rounded-lg border p-3 text-left transition-colors hover:border-purple-500 disabled:opacity-40 disabled:cursor-not-allowed">
+              <ScanLine className="mt-0.5 size-4 shrink-0 text-purple-600" />
+              <div>
+                <p className="text-xs font-semibold">{t`Clean up figure`}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">{t`Recover from the original PDF page`}</p>
+              </div>
+            </button>
           </div>
+          {cleanupDisabled && <p className="text-xs text-muted-foreground">{t`Save or discard Storyboard changes and wait for active tasks before cleanup.`}</p>}
 
           {/* Current image thumbnail + prompt */}
           <div className="flex gap-3">

@@ -3321,8 +3321,9 @@ export function StoryboardSectionDetail({
         currentImageSrc={`${BASE_URL}/books/${bookLabel}/images/${aiImageDialogTarget}`}
         imageId={aiImageDialogTarget}
         bookLabel={bookLabel}
+        cleanupDisabled={dirty || renderingDirty || saving || hasActiveTask || storyboardRunning}
         onSubmit={handleAiImageSubmit}
-        onClose={() => setAiImageDialogTarget(null)}
+        onClose={() => { setAiImageDialogTarget(null); setSelectedElement(null) }}
       />
     )}
 

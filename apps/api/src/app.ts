@@ -10,6 +10,7 @@ import { healthRoutes } from "./routes/health.js"
 import { createBookRoutes } from "./routes/books.js"
 import { createBookEventsRoutes } from "./routes/book-events.js"
 import { createPageRoutes } from "./routes/pages.js"
+import { createImageCleanupRoutes } from "./routes/image-cleanup.js"
 import { createDebugRoutes } from "./routes/debug.js"
 import { createGlossaryRoutes } from "./routes/glossary.js"
 import { createQuizRoutes } from "./routes/quizzes.js"
@@ -103,6 +104,7 @@ app.route("/api", createProviderRoutes(configPath))
 app.route("/api", createBookEventsRoutes(eventBus))
 app.route("/api", createBookRoutes(booksDir, webAssetsDir, configPath, taskService))
 app.route("/api", createPageRoutes(booksDir, promptsDir, webAssetsDir, configPath, taskService))
+app.route("/api", createImageCleanupRoutes(booksDir, configPath, taskService))
 app.route("/api", createGlossaryRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createTocRoutes(booksDir))
 app.route("/api", createDebugRoutes(booksDir, promptsDir, configPath))

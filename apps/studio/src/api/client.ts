@@ -24,6 +24,8 @@ import type {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
   AiModality,
+  ImageCleanupRequest,
+  ImageCleanupCandidate,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 import {
@@ -1552,6 +1554,19 @@ export const api = {
       { method: "POST", body: formData }
     )
   },
+
+  cleanExtractedImage: async (label: string, pageId: string, input: ImageCleanupRequest, signal?: AbortSignal) =>
+    request<ImageCleanupCandidate>(`/books/${label}/pages/${pageId}/image-cleanup`, {
+      method: "POST",
+      headers: await buildApiHeaders(""),
+      body: JSON.stringify(input),
+      signal: signal ?? AbortSignal.timeout(200_000),
+    }),
+
+  acceptImageCleanup: (label: string, pageId: string, imageId: string) =>
+    request<{ version: number | null }>(`/books/${label}/pages/${pageId}/image-cleanup/accept`, {
+      method: "POST", body: JSON.stringify({ imageId }),
+    }),
 
   aiGenerateImage: async (
     label: string,

@@ -792,6 +792,9 @@ msgstr "Prompt de sotaque"
 msgid "Accept anyway"
 msgstr "Aceitar mesmo assim"
 
+msgid "Accept cleaned figure"
+msgstr "Aceitar figura limpa"
+
 msgid "Accept reasonable web redesigns. Reject only for functional defects (visible placeholder tokens, missing content, overlap, overflow). Fewest rejections."
 msgstr "Aceite reformulações web razoáveis. Rejeite apenas por defeitos funcionais (tokens de espaço reservado visíveis, conteúdo ausente, sobreposição, transbordamento). Menos rejeições."
 
@@ -800,6 +803,15 @@ msgstr "Aceitável"
 
 msgid "Accepted anyway"
 msgstr "Aceito mesmo assim"
+
+msgid "Accepted figure cleanups also update Storyboard. For other extraction changes, rerun Sectioning, then Storyboard."
+msgstr "As limpezas de figuras aceitas também atualizam o Storyboard. Para outras alterações de extração, execute novamente o Seccionamento e depois o Storyboard."
+
+#~ msgid "Accepting creates a new extraction version. You can restore the original from image version history. Rerun Sectioning, then Storyboard to use it in existing pages."
+#~ msgstr "Ao aceitar, uma nova versão da extração é criada. Você pode restaurar o original pelo histórico de versões de imagens. Execute novamente o seccionamento e depois o storyboard para usá-la nas páginas existentes."
+
+msgid "Accepting updates this image in Extract and wherever it appears in Storyboard. Each changed page gets a new version, preserving its layout and text. Earlier versions remain available in history."
+msgstr "Ao aceitar, esta imagem é atualizada na Extração e em todos os lugares onde aparece no Storyboard. Cada página alterada recebe uma nova versão, preservando seu layout e texto. As versões anteriores continuam disponíveis no histórico."
 
 msgid "Accepts any answer"
 msgstr "Aceita qualquer resposta"
@@ -1209,6 +1221,9 @@ msgstr "Adiciona páginas de glossário ao livro. Os termos levam à sua entrada
 
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Adiciona orientações do Desenho Universal para a Aprendizagem (linguagem clara, alternativa por teclado e clique para arrastar, correção com aria-live, sem retorno apenas por cor). Desative para comparar a saída sem essa orientação."
+
+msgid "Adjust and retry"
+msgstr "Ajustar e tentar novamente"
 
 msgid "ADT Book"
 msgstr "Livro ADT"
@@ -2267,6 +2282,9 @@ msgstr "Gráfico"
 msgid "Check for updates"
 msgstr "Verificar atualizações"
 
+msgid "Check labels, fine details, and edges against the page crop. Click an image to inspect it at full size. AI can change content; transparency depends on the image model."
+msgstr "Compare os rótulos, os detalhes finos e as bordas com o recorte da página. Clique em uma imagem para vê-la em tamanho real. A IA pode alterar o conteúdo; a transparência depende do modelo de imagens."
+
 msgid "Checked"
 msgstr "Verificados"
 
@@ -2371,6 +2389,21 @@ msgstr "Claude Opus e Sonnet."
 
 msgid "Clean & focused"
 msgstr "Limpo e focado"
+
+msgid "Clean selected region"
+msgstr "Limpar região selecionada"
+
+msgid "Clean up figure"
+msgstr "Limpar figura"
+
+msgid "Cleaned candidate"
+msgstr "Proposta limpa"
+
+msgid "Cleaning the selected figure…"
+msgstr "Limpando a figura selecionada…"
+
+msgid "Cleanup instructions"
+msgstr "Instruções de limpeza"
 
 msgid "Clear"
 msgstr "Limpar"
@@ -2737,6 +2770,9 @@ msgstr "Não foi possível carregar a estrutura do livro."
 msgid "Could not load the Google Fonts catalog. Check your connection and try again."
 msgstr "Não foi possível carregar o catálogo do Google Fonts. Verifique sua conexão e tente novamente."
 
+msgid "Could not load the original page."
+msgstr "Não foi possível carregar a página original."
+
 msgid "Could not read image dimensions"
 msgstr "Não foi possível ler as dimensões da imagem"
 
@@ -2916,6 +2952,12 @@ msgstr "Fonte atual do livro"
 
 msgid "Current effective values"
 msgstr "Valores efetivos atuais"
+
+#~ msgid "Current extraction"
+#~ msgstr "Extração atual"
+
+msgid "Current image"
+msgstr "Imagem atual"
 
 msgid "Current Preview Page"
 msgstr "Página atual da prévia"
@@ -3324,6 +3366,12 @@ msgstr "Rascunho"
 
 msgid "Drag & drop font files here"
 msgstr "Arraste e solte arquivos de fonte aqui"
+
+#~ msgid "Drag around the complete figure, or enter its region in pixels. Include any labels you want to keep."
+#~ msgstr "Arraste ao redor da figura completa ou informe sua região em pixels. Inclua os rótulos que deseja manter."
+
+msgid "Drag inside the box to move it, use the corners to resize, or draw a new box outside it. Include any labels you want to keep."
+msgstr "Arraste dentro da caixa para movê-la, use os cantos para redimensioná-la ou desenhe uma nova caixa fora dela. Inclua os rótulos que deseja manter."
 
 msgid "Drag the handles to crop a rectangle. Drag inside to move."
 msgstr "Arraste as alças para recortar um retângulo. Arraste dentro para mover."
@@ -3793,6 +3841,9 @@ msgstr "Expandir"
 msgid "Expand all sections"
 msgstr "Expandir todas as seções"
 
+msgid "Experimental · Select the correct figure on the page, clean it with AI, then compare before accepting."
+msgstr "Experimental · Selecione a figura correta na página, limpe-a com IA e compare antes de aceitar."
+
 msgid "Experimental configurations"
 msgstr "Configurações experimentais"
 
@@ -3895,6 +3946,9 @@ msgstr "Prévia da extração"
 
 msgid "Extract text and images from each page of the PDF using AI-powered analysis."
 msgstr "Extrai texto e imagens de cada página do PDF usando análise com IA."
+
+msgid "Extract the complete figure from this crop of the original PDF page. Remove surrounding page background, unrelated text, and fragments of neighboring figures. Preserve the figure's shapes, colors, proportions, and all labels and text belonging to it exactly. Do not redraw, invent, translate, or repair missing content. Keep the entire figure without clipping. Use a transparent background if supported; otherwise use a plain white background. Return only the isolated figure."
+msgstr "Extraia a figura completa deste recorte da página PDF original. Remova o fundo da página ao redor, o texto não relacionado e os fragmentos de figuras vizinhas. Preserve exatamente as formas, as cores, as proporções e todos os rótulos e textos que pertencem à figura. Não redesenhe, invente, traduza nem repare conteúdo ausente. Mantenha a figura inteira sem cortar nenhuma parte. Use um fundo transparente se houver suporte; caso contrário, use um fundo branco liso. Retorne apenas a figura isolada."
 
 msgid "Extracted"
 msgstr "Extraído"
@@ -4503,6 +4557,9 @@ msgstr "Vozes do Google com forte entonação para conteúdo narrativo."
 msgid "Got it"
 msgstr "Entendi"
 
+msgid "GPT Image 2.5 Flare (OpenAI)"
+msgstr "GPT Image 2.5 Flare (OpenAI)"
+
 msgid "GPT models for pipeline tasks."
 msgstr "Modelos GPT para tarefas de pipeline."
 
@@ -4790,6 +4847,9 @@ msgstr "Prompt de relevância de imagem"
 
 msgid "Image model"
 msgstr "Modelo de imagem"
+
+msgid "Image model: {modelId}"
+msgstr "Modelo de imagens: {modelId}"
 
 msgid "Image not translated for this language"
 msgstr "Imagem não traduzida para este idioma"
@@ -5240,6 +5300,9 @@ msgstr "Deixe sem definir para manter o ritmo do próprio ElevenLabs. Valores ex
 msgid "Leave without finishing?"
 msgstr "Sair sem concluir?"
 
+msgid "Left"
+msgstr "Esquerda"
+
 msgid "Legal and compliance manuals"
 msgstr "Manuais legais e de conformidade"
 
@@ -5423,6 +5486,9 @@ msgstr "Carregando apontamentos da página"
 
 msgid "Loading page..."
 msgstr "Carregando página..."
+
+msgid "Loading page…"
+msgstr "Carregando página…"
 
 msgid "Loading pages..."
 msgstr "Carregando páginas..."
@@ -5927,6 +5993,9 @@ msgstr "N/A"
 
 msgid "Names and terms are consistent"
 msgstr "Nomes e termos são consistentes"
+
+msgid "Nano Banana (Google)"
+msgstr "Nano Banana (Google)"
 
 msgid "Narration"
 msgstr "Narração"
@@ -6786,6 +6855,9 @@ msgstr "PDF original"
 #. placeholder {0}: i18n._(selectedBook.title)
 msgid "Original PDF - {0}"
 msgstr "PDF original - {0}"
+
+msgid "Original PDF page"
+msgstr "Página PDF original"
 
 msgid "os native system desktop banner background unfocused"
 msgstr "so nativo sistema desktop banner segundo plano sem foco"
@@ -7815,6 +7887,9 @@ msgstr "Recomendado para {0}"
 msgid "Record reviewer findings for the current page and save them to the active validation session."
 msgstr "Registre os apontamentos do revisor para a página atual e salve-os na sessão de validação ativa."
 
+msgid "Recover from the original PDF page"
+msgstr "Recuperar da página PDF original"
+
 msgid "Recrop from page"
 msgstr "Recortar da página"
 
@@ -8126,6 +8201,9 @@ msgstr "Tentar exportar novamente"
 msgid "Return to coordinator"
 msgstr "Devolver ao coordenador"
 
+msgid "Reused a cached result."
+msgstr "Um resultado em cache foi reutilizado."
+
 msgid "Revert language change"
 msgstr "Reverter alteração de idioma"
 
@@ -8425,6 +8503,12 @@ msgstr "Salvar lista de verificação"
 
 msgid "Save failed"
 msgstr "Falha ao salvar"
+
+#~ msgid "Save or discard image changes first"
+#~ msgstr "Primeiro salve ou descarte as alterações de imagens"
+
+msgid "Save or discard Storyboard changes and wait for active tasks before cleanup."
+msgstr "Salve ou descarte as alterações do Storyboard e aguarde a conclusão das tarefas ativas antes da limpeza."
 
 msgid "Save or discard your edits first"
 msgstr "Salve ou descarte suas edições primeiro"
@@ -8766,6 +8850,9 @@ msgstr "Selecionar tudo"
 msgid "Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank."
 msgstr "Selecione um item para editar seu texto: [[blank:…]] marca onde aparece uma lacuna, então mantenha-o para preservar a lacuna."
 
+msgid "Select at least 16 × 16 pixels inside the page."
+msgstr "Selecione pelo menos 16 × 16 pixels dentro da página."
+
 msgid "Select images to translate"
 msgstr "Selecionar imagens para traduzir"
 
@@ -8798,6 +8885,9 @@ msgstr "Arquivo selecionado"
 
 msgid "Selected images"
 msgstr "Imagens selecionadas"
+
+msgid "Selected page region"
+msgstr "Região selecionada da página"
 
 #. placeholder {0}: fmtRange(w)
 msgid "Selected pages {0}."
@@ -9369,8 +9459,8 @@ msgstr "Armazenado localmente neste computador"
 msgid "Storyboard"
 msgstr "Storyboard"
 
-msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
-msgstr "O Storyboard já foi executado. As alterações feitas aqui só terão efeito quando o Storyboard for reexecutado."
+#~ msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
+#~ msgstr "O Storyboard já foi executado. As alterações feitas aqui só terão efeito quando o Storyboard for reexecutado."
 
 msgid "Storyboard nodes:"
 msgstr "Nós do storyboard:"
@@ -9806,6 +9896,12 @@ msgstr "A floresta perdida"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "O modelo detecta caixas delimitadoras para que cada elemento visual possa ser armazenado e disposto separadamente."
 
+#~ msgid "The model receives the selected page region. The current extraction is kept until you accept a result."
+#~ msgstr "O modelo recebe a região selecionada da página. A extração atual é mantida até você aceitar um resultado."
+
+msgid "The model receives the selected page region. Your current image is kept until you accept a result."
+msgstr "O modelo recebe a região selecionada da página. A imagem atual é mantida até você aceitar um resultado."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "O processo que as plantas usam para transformar luz solar, água e dióxido de carbono em alimento."
 
@@ -10230,6 +10326,9 @@ msgstr "Muito grande"
 
 msgid "Too small"
 msgstr "Muito pequeno"
+
+msgid "Top"
+msgstr "Topo"
 
 msgid "Top center"
 msgstr "Superior central"

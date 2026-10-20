@@ -11,10 +11,10 @@ import type {
 const DEFAULT_TIMEOUT_MS = 180_000
 const MAX_REFERENCE_BYTES = 25 * 1024 * 1024
 
-/** GPT Image 2 accepts 16px multiples and ratios up to 3:1. Keep ~1MP output. */
+/** GPT Image 2 / 2.5 Flare accept 16px multiples and ratios up to 3:1. Keep ~1MP output. */
 function requestedSize(request: ImageGenerateRequest, options: OpenAiImageBackendOptions): string | undefined {
   if (request.aspectRatio === undefined || options.providerId !== "openai" ||
-      !/^gpt-image-2(?:-\d{4}-\d{2}-\d{2})?$/.test(options.modelId)) return request.size
+      !/^gpt-image-2(?:\.5-flare)?(?:-\d{4}-\d{2}-\d{2})?$/.test(options.modelId)) return request.size
   const ratio = Math.max(1 / 3, Math.min(3, request.aspectRatio))
   const height = Math.ceil(Math.sqrt(1_048_576 / ratio) / 16) * 16
   const width = Math.round(height * ratio / 16) * 16

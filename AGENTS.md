@@ -211,7 +211,7 @@ version-calculation flow.
 
 ## Internationalization (i18n)
 
-The Studio app uses **Lingui v5** for i18n. All user-visible text in `apps/studio/` must be translated to all supported locales: **`en`, `pt-BR`, `es`, `fr`, `sq`**.
+The Studio app uses **Lingui v6** for i18n. All user-visible text in `apps/studio/` must be translated to all supported locales: **`en`, `pt-BR`, `es`, `fr`, `sq`**.
 
 ### Rules
 - **Every user-visible string must be wrapped** in a Lingui macro — no raw string literals in JSX or component output

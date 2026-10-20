@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { AlertTriangle, Check, Crop, Eye, EyeOff, FileText, Image, ImageOff, Layers, Loader2, ChevronDown, Scissors, Square, Type, X } from "lucide-react"
+import { AlertTriangle, Check, Crop, Eye, EyeOff, FileText, Image, ImageOff, Layers, Loader2, ChevronDown, Scissors, Sparkles, Square, Type, X } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import { usePage, usePageImage } from "@/hooks/use-pages"
 import { api, BASE_URL } from "@/api/client"
@@ -13,8 +13,9 @@ import { SegmentPreviewDialog, type SegmentRegion } from "@/components/pipeline/
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
 import { usePendingChanges } from "@/components/pipeline/components/change-summary"
 import { resolveReflowableFont } from "@adt/types"
+import { FigureCleanupDialog } from "@/components/pipeline/components/figure-cleanup/FigureCleanupDialog"
 
-function ImageCard({ imageId, bookLabel, isPruned, reason, bounds, onTogglePrune, onRecrop, onSegment, segmenting, cacheBust }: { imageId: string; bookLabel: string; isPruned?: boolean; reason?: string; bounds?: { x: number; y: number; width: number; height: number }; onTogglePrune?: () => void; onRecrop?: () => void; onSegment?: () => void; segmenting?: boolean; cacheBust?: number }) {
+function ImageCard({ imageId, bookLabel, isPruned, reason, bounds, onTogglePrune, onRecrop, onSegment, onCleanup, cleanupDisabled, segmenting, cacheBust }: { imageId: string; bookLabel: string; isPruned?: boolean; reason?: string; bounds?: { x: number; y: number; width: number; height: number }; onTogglePrune?: () => void; onRecrop?: () => void; onSegment?: () => void; onCleanup?: () => void; cleanupDisabled?: boolean; segmenting?: boolean; cacheBust?: number }) {
   const { t } = useLingui()
   const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(null)
   // eslint-disable-next-line lingui/no-unlocalized-strings
@@ -34,6 +35,13 @@ function ImageCard({ imageId, bookLabel, isPruned, reason, bounds, onTogglePrune
         </div>
       )}
       <div className="absolute top-1 right-1 z-10 flex items-center gap-1">
+        {onCleanup && (
+          <button type="button" onClick={onCleanup} disabled={cleanupDisabled}
+            title={t`Clean up figure`} aria-label={t`Clean up figure`}
+            className="flex size-6 items-center justify-center rounded-full bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
+            <Sparkles className="size-3.5" />
+          </button>
+        )}
         {onRecrop && (
           <button
             type="button"
@@ -132,6 +140,7 @@ export function ExtractPageDetail({
   const [savingImages, setSavingImages] = useState(false)
   const [pendingImageData, setPendingImageData] = useState<ImageClassData | null>(null)
   const [cropTarget, setCropTarget] = useState<string | null>(null)
+  const [cleanupTarget, setCleanupTarget] = useState<string | null>(null)
   const [cropPageSrc, setCropPageSrc] = useState<string | null>(null)
   const [cacheBust, setCacheBust] = useState(0)
   // Image segmentation state
@@ -150,6 +159,7 @@ export function ExtractPageDetail({
   useEffect(() => {
     setPendingImageData(null)
     setCropTarget(null)
+    setCleanupTarget(null)
     setCropPageSrc(null)
     setSegmentingId(null)
     setSegmentPreview(null)
@@ -335,7 +345,7 @@ export function ExtractPageDetail({
       {storyboardDone && (
         <div className="flex items-center gap-2 rounded border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-400">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-          <Trans>Storyboard has already been run. Changes made here will not take effect until storyboard is re-run.</Trans>
+          <Trans>Accepted figure cleanups also update Storyboard. For other extraction changes, rerun Sectioning, then Storyboard.</Trans>
         </div>
       )}
       <div className="flex gap-6">
@@ -486,6 +496,8 @@ export function ExtractPageDetail({
                     onSegment={hasStructuredTextProvider && !storyboardRunning ? () => handleSegment(img.imageId) : undefined}
                     segmenting={segmentingId === img.imageId}
                     cacheBust={cacheBust}
+                    onCleanup={() => setCleanupTarget(img.imageId)}
+                    cleanupDisabled={storyboardRunning || imageDirty || savingImages || imageFilterRunning || !page.versions.imageClassification}
                   />
                 </div>
               ))}
@@ -614,6 +626,11 @@ export function ExtractPageDetail({
           onApply={handleSegmentApply}
           onClose={() => setSegmentPreview(null)}
         />
+      )}
+      {cleanupTarget && page.versions.imageClassification && (
+        <FigureCleanupDialog key={`${pageId}-${cleanupTarget}`} bookLabel={bookLabel} pageId={pageId}
+          imageId={cleanupTarget} expectedVersion={page.versions.imageClassification}
+          bounds={boundsByImageId.get(cleanupTarget)} onClose={() => setCleanupTarget(null)} />
       )}
     </div>
   )

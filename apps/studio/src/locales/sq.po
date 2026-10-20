@@ -794,6 +794,9 @@ msgstr "Prompt Akcenti"
 msgid "Accept anyway"
 msgstr "Prano gjithsesi"
 
+msgid "Accept cleaned figure"
+msgstr "Prano figurën e pastruar"
+
 msgid "Accept reasonable web redesigns. Reject only for functional defects (visible placeholder tokens, missing content, overlap, overflow). Fewest rejections."
 msgstr "Pranoni ridesenimet e arsyeshme të faqes. Refuzoni vetëm për defekte funksionale (shenja të dukshme të vendmbajtësve, përmbajtje mungon, mbivendosje, tejkalim). Sa më pak refuzime."
 
@@ -802,6 +805,15 @@ msgstr "E pranueshme"
 
 msgid "Accepted anyway"
 msgstr "Pranuar gjithsesi"
+
+msgid "Accepted figure cleanups also update Storyboard. For other extraction changes, rerun Sectioning, then Storyboard."
+msgstr "Pastrimi i pranuar i figurave përditëson edhe Storyboard-in. Për ndryshime të tjera të nxjerrjes, ekzekutoni sërish ndarjen në seksione dhe më pas Storyboard-in."
+
+#~ msgid "Accepting creates a new extraction version. You can restore the original from image version history. Rerun Sectioning, then Storyboard to use it in existing pages."
+#~ msgstr "Pranimi krijon një version të ri të nxjerrjes. Mund ta riktheni origjinalin nga historiku i versioneve të imazheve. Ekzekutoni sërish ndarjen në seksione, pastaj storyboard-in për ta përdorur në faqet ekzistuese."
+
+msgid "Accepting updates this image in Extract and wherever it appears in Storyboard. Each changed page gets a new version, preserving its layout and text. Earlier versions remain available in history."
+msgstr "Pranimi përditëson këtë imazh te Nxjerrja dhe kudo ku shfaqet në Storyboard. Çdo faqe e ndryshuar merr një version të ri, duke ruajtur paraqitjen dhe tekstin e saj. Versionet e mëparshme mbeten të disponueshme në historik."
 
 msgid "Accepts any answer"
 msgstr "Pranon çdo përgjigje"
@@ -1211,6 +1223,9 @@ msgstr "Shton faqe glosari në libër. Termat lidhen me zërin e tyre dhe çdo z
 
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Shton udhëzime për Dizajnin Universal për të Nxënit (gjuhë e thjeshtë, alternativë me tastierë + klikim për tërheqjen, vlerësim aria-live, pa reagime vetëm me ngjyra). Çaktivizoje për të krahasuar rezultatin pa këto udhëzime."
+
+msgid "Adjust and retry"
+msgstr "Rregullo dhe provo sërish"
 
 msgid "ADT Book"
 msgstr "Libër ADT"
@@ -2269,6 +2284,9 @@ msgstr "Tabelë / Grafik"
 msgid "Check for updates"
 msgstr "Kontrollo për përditësime"
 
+msgid "Check labels, fine details, and edges against the page crop. Click an image to inspect it at full size. AI can change content; transparency depends on the image model."
+msgstr "Krahasoni etiketat, hollësitë dhe skajet me prerjen e faqes. Klikoni një imazh për ta parë në madhësi të plotë. IA mund të ndryshojë përmbajtjen; transparenca varet nga modeli i imazheve."
+
 msgid "Checked"
 msgstr "Kontrolluar"
 
@@ -2373,6 +2391,21 @@ msgstr "Claude Opus dhe Sonnet."
 
 msgid "Clean & focused"
 msgstr "I pastër dhe i fokusuar"
+
+msgid "Clean selected region"
+msgstr "Pastro zonën e përzgjedhur"
+
+msgid "Clean up figure"
+msgstr "Pastro figurën"
+
+msgid "Cleaned candidate"
+msgstr "Propozimi i pastruar"
+
+msgid "Cleaning the selected figure…"
+msgstr "Duke pastruar figurën e përzgjedhur…"
+
+msgid "Cleanup instructions"
+msgstr "Udhëzimet e pastrimit"
 
 msgid "Clear"
 msgstr "Pastro"
@@ -2739,6 +2772,9 @@ msgstr "Struktura e librit nuk mund të ngarkohej."
 msgid "Could not load the Google Fonts catalog. Check your connection and try again."
 msgstr "Katalogu i Google Fonts nuk u ngarkua dot. Kontrolloni lidhjen tuaj dhe provoni përsëri."
 
+msgid "Could not load the original page."
+msgstr "Faqja origjinale nuk mund të ngarkohej."
+
 msgid "Could not read image dimensions"
 msgstr "Nuk u lexuan dot përmasat e imazhit"
 
@@ -2918,6 +2954,12 @@ msgstr "Fonti aktual i librit"
 
 msgid "Current effective values"
 msgstr "Vlerat aktuale efektive"
+
+#~ msgid "Current extraction"
+#~ msgstr "Nxjerrja aktuale"
+
+msgid "Current image"
+msgstr "Imazhi aktual"
 
 msgid "Current Preview Page"
 msgstr "Faqja aktuale e pamjes paraprake"
@@ -3326,6 +3368,12 @@ msgstr "Draft"
 
 msgid "Drag & drop font files here"
 msgstr "Tërhiq dhe lësho skedarët e fontit këtu"
+
+#~ msgid "Drag around the complete figure, or enter its region in pixels. Include any labels you want to keep."
+#~ msgstr "Tërhiqni rreth figurës së plotë ose vendosni zonën e saj në pikselë. Përfshini etiketat që dëshironi të mbani."
+
+msgid "Drag inside the box to move it, use the corners to resize, or draw a new box outside it. Include any labels you want to keep."
+msgstr "Tërhiqni brenda kutisë për ta lëvizur, përdorni cepat për t’ia ndryshuar madhësinë ose vizatoni një kuti të re jashtë saj. Përfshini etiketat që dëshironi të mbani."
 
 msgid "Drag the handles to crop a rectangle. Drag inside to move."
 msgstr "Tërhiqni dorezat për të prerë një drejtkëndësh. Tërhiqni brenda për ta lëvizur."
@@ -3795,6 +3843,9 @@ msgstr "Zgjer"
 msgid "Expand all sections"
 msgstr "Zgjer të gjitha seksionet"
 
+msgid "Experimental · Select the correct figure on the page, clean it with AI, then compare before accepting."
+msgstr "Eksperimentale · Përzgjidhni figurën e saktë në faqe, pastrojeni me IA dhe krahasojeni para se ta pranoni."
+
 msgid "Experimental configurations"
 msgstr "Konfigurime eksperimentale"
 
@@ -3897,6 +3948,9 @@ msgstr "Pamje paraprake e nxjerrjes"
 
 msgid "Extract text and images from each page of the PDF using AI-powered analysis."
 msgstr "Nxirrni tekst dhe imazhe nga çdo faqe e PDF-it duke përdorur analizë të bazuar në AI."
+
+msgid "Extract the complete figure from this crop of the original PDF page. Remove surrounding page background, unrelated text, and fragments of neighboring figures. Preserve the figure's shapes, colors, proportions, and all labels and text belonging to it exactly. Do not redraw, invent, translate, or repair missing content. Keep the entire figure without clipping. Use a transparent background if supported; otherwise use a plain white background. Return only the isolated figure."
+msgstr "Nxirr figurën e plotë nga kjo prerje e faqes origjinale PDF. Hiq sfondin e faqes përreth, tekstin që nuk lidhet me figurën dhe fragmentet e figurave fqinje. Ruaj saktësisht format, ngjyrat, përmasat relative dhe të gjitha etiketat e tekstet që i përkasin figurës. Mos rivizato, shpik, përkthe apo riparo përmbajtjen që mungon. Mbaje figurën të plotë pa prerë asnjë pjesë. Përdor sfond transparent nëse mbështetet; përndryshe përdor sfond të bardhë të njëtrajtshëm. Kthe vetëm figurën e izoluar."
 
 msgid "Extracted"
 msgstr "Nxjerrë"
@@ -4505,6 +4559,9 @@ msgstr "Zërat e Google me intonacion të fortë për përmbajtje narrative."
 msgid "Got it"
 msgstr "Në rregull"
 
+msgid "GPT Image 2.5 Flare (OpenAI)"
+msgstr "GPT Image 2.5 Flare (OpenAI)"
+
 msgid "GPT models for pipeline tasks."
 msgstr "Modelet GPT për detyrat e linjës."
 
@@ -4792,6 +4849,9 @@ msgstr "Prompt i Kuptimësisë së Imazhit"
 
 msgid "Image model"
 msgstr "Modeli i imazhit"
+
+msgid "Image model: {modelId}"
+msgstr "Modeli i imazheve: {modelId}"
 
 msgid "Image not translated for this language"
 msgstr "Imazhi nuk është përkthyer për këtë gjuhë"
@@ -5242,6 +5302,9 @@ msgstr "Lëreni të papërcaktuar për të ruajtur ritmin e vetë ElevenLabs. Vl
 msgid "Leave without finishing?"
 msgstr "Dil pa përfunduar?"
 
+msgid "Left"
+msgstr "Majtas"
+
 msgid "Legal and compliance manuals"
 msgstr "Manuale ligjore dhe të pajtueshmërisë"
 
@@ -5425,6 +5488,9 @@ msgstr "Duke ngarkuar gjetjet në nivel faqeje"
 
 msgid "Loading page..."
 msgstr "Duke ngarkuar faqen..."
+
+msgid "Loading page…"
+msgstr "Duke ngarkuar faqen…"
 
 msgid "Loading pages..."
 msgstr "Duke ngarkuar faqet..."
@@ -5929,6 +5995,9 @@ msgstr "N/A"
 
 msgid "Names and terms are consistent"
 msgstr "Emrat dhe termat janë të qëndrueshëm"
+
+msgid "Nano Banana (Google)"
+msgstr "Nano Banana (Google)"
 
 msgid "Narration"
 msgstr "Narracion"
@@ -6788,6 +6857,9 @@ msgstr "PDF origjinal"
 #. placeholder {0}: i18n._(selectedBook.title)
 msgid "Original PDF - {0}"
 msgstr "PDF origjinal - {0}"
+
+msgid "Original PDF page"
+msgstr "Faqja origjinale PDF"
 
 msgid "os native system desktop banner background unfocused"
 msgstr "os vendas sistem desktop banderolë sfond pa fokus"
@@ -7817,6 +7889,9 @@ msgstr "I rekomanduar për {0}"
 msgid "Record reviewer findings for the current page and save them to the active validation session."
 msgstr "Regjistroni gjetjet e rishikuesit për faqen aktuale dhe ruajini në sesionin aktiv të validimit."
 
+msgid "Recover from the original PDF page"
+msgstr "Rikupero nga faqja origjinale PDF"
+
 msgid "Recrop from page"
 msgstr "Rirritjo nga faqja"
 
@@ -8128,6 +8203,9 @@ msgstr "Riprovo Eksportimin"
 msgid "Return to coordinator"
 msgstr "Kthejeni te koordinatori"
 
+msgid "Reused a cached result."
+msgstr "U ripërdor një rezultat nga cache."
+
 msgid "Revert language change"
 msgstr "Kthe ndryshimin e gjuhës"
 
@@ -8427,6 +8505,12 @@ msgstr "Ruaj listën e kontrollit"
 
 msgid "Save failed"
 msgstr "Ruajtja dështoi"
+
+#~ msgid "Save or discard image changes first"
+#~ msgstr "Fillimisht ruani ose hidhni poshtë ndryshimet e imazheve"
+
+msgid "Save or discard Storyboard changes and wait for active tasks before cleanup."
+msgstr "Ruani ose hidhni poshtë ndryshimet e Storyboard-it dhe prisni përfundimin e detyrave aktive para pastrimit."
 
 msgid "Save or discard your edits first"
 msgstr "Fillimisht ruani ose hidhni poshtë ndryshimet"
@@ -8768,6 +8852,9 @@ msgstr "Zgjidhni të gjitha"
 msgid "Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank."
 msgstr "Zgjidhni një element për të redaktuar tekstin e tij — [[blank:…]] shënon vendin ku shfaqet një hapësirë bosh, prandaj ruajeni që të ruhet hapësira."
 
+msgid "Select at least 16 × 16 pixels inside the page."
+msgstr "Përzgjidhni të paktën 16 × 16 pikselë brenda faqes."
+
 msgid "Select images to translate"
 msgstr "Zgjidhni imazhet për të përkthyer"
 
@@ -8800,6 +8887,9 @@ msgstr "Skedari i zgjedhur"
 
 msgid "Selected images"
 msgstr "Imazhe të zgjedhura"
+
+msgid "Selected page region"
+msgstr "Zona e përzgjedhur e faqes"
 
 #. placeholder {0}: fmtRange(w)
 msgid "Selected pages {0}."
@@ -9371,8 +9461,8 @@ msgstr "Ruajtur lokalisht në këtë kompjuter"
 msgid "Storyboard"
 msgstr "Storyboard"
 
-msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
-msgstr "Storyboard-i është ekzekutuar tashmë. Ndryshimet e bëra këtu nuk do të hyjnë në fuqi derisa storyboard-i të ri-ekzekutohet."
+#~ msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
+#~ msgstr "Storyboard-i është ekzekutuar tashmë. Ndryshimet e bëra këtu nuk do të hyjnë në fuqi derisa storyboard-i të ri-ekzekutohet."
 
 msgid "Storyboard nodes:"
 msgstr "Nyjet e storyboard-it:"
@@ -9808,6 +9898,12 @@ msgstr "Pylli i Humbur"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të ruhet dhe të vendoset veçmas."
 
+#~ msgid "The model receives the selected page region. The current extraction is kept until you accept a result."
+#~ msgstr "Modeli merr zonën e përzgjedhur të faqes. Nxjerrja aktuale ruhet derisa të pranoni një rezultat."
+
+msgid "The model receives the selected page region. Your current image is kept until you accept a result."
+msgstr "Modeli merr zonën e përzgjedhur të faqes. Imazhi aktual ruhet derisa të pranoni një rezultat."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "Procesi që bimët përdorin për të kthyer dritën e diellit, ujin dhe dioksidin e karbonit në ushqim."
 
@@ -10232,6 +10328,9 @@ msgstr "Shumë i madh"
 
 msgid "Too small"
 msgstr "Shumë i vogël"
+
+msgid "Top"
+msgstr "Sipër"
 
 msgid "Top center"
 msgstr "Qendra e sipërme"

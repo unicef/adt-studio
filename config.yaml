@@ -7,7 +7,7 @@ book_outline:
   prompt: book_outline
   timeout: 300
 
-default_image_generation_model: "openai:gpt-image-2"
+default_image_generation_model: "openai:gpt-image-2.5-flare"
 default_speech_generation_model: "gpt-4o-mini-tts"
 
 # Provider text is versioned separately from display translations. These two
