@@ -6368,9 +6368,6 @@ msgstr "Nuk ka skedarë prompti për këtë model."
 msgid "No prompt files found."
 msgstr "Nuk u gjet asnjë skedar prompti."
 
-msgid "No provider connected yet. Open one below and sign in or add a key to start processing books."
-msgstr "Ende pa ofrues të lidhur. Hapni një më poshtë dhe hyni ose shtoni një çelës për të filluar përpunimin e librave."
-
 msgid "No pruned terms"
 msgstr "Nuk ka terma të hequr"
 

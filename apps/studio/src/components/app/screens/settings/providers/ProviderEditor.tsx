@@ -21,7 +21,7 @@ import {
   useDraft,
 } from "./shared"
 import type { Providers } from "./useProviders"
-import type { ProviderAuthSearch } from "../provider-anchor"
+import type { ProviderAuthSearch } from "../nav"
 import { CliLoginControls } from "./CliLogin"
 
 function Handles({ descriptor }: { descriptor: ProviderDescriptor }) {

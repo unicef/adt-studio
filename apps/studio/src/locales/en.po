@@ -6366,9 +6366,6 @@ msgstr "No prompt files for this model."
 msgid "No prompt files found."
 msgstr "No prompt files found."
 
-msgid "No provider connected yet. Open one below and sign in or add a key to start processing books."
-msgstr "No provider connected yet. Open one below and sign in or add a key to start processing books."
-
 msgid "No pruned terms"
 msgstr "No pruned terms"
 

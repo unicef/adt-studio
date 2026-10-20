@@ -18,7 +18,6 @@ import { getPresetAccent, type PresetAccent } from "./constants"
 import { Step0Preset } from "./step0preset"
 import { StepUpload } from "./stepUpload"
 import { FlowTopBar } from "@/components/FlowTopBar"
-import { ProviderStatusChip } from "@/components/key-prompt/ProviderStatusChip"
 import { PdfCoverPreview } from "./shared/PdfCoverPreview"
 import { LayoutPreview, getPreviewWidth } from "./step2LayoutOptions/LayoutPreview"
 import { ImageProcessingPreviewPane } from "./step3ContentProcessing/ImageProcessingPreviewPane"
@@ -273,7 +272,7 @@ export function BookCreationWizard() {
   if (currentStep === 0) {
     return (
       <div className="flex flex-1 min-h-0 flex-col h-full bg-background">
-        <FlowTopBar title={<Trans>Add Book</Trans>} actions={<ProviderStatusChip />} />
+        <FlowTopBar title={<Trans>Add Book</Trans>} />
         <div className="flex flex-1 min-h-0 flex-col overflow-y-auto overflow-x-hidden">
           <Step0Preset />
         </div>
@@ -398,7 +397,7 @@ export function BookCreationWizard() {
 
   return (
     <div className="flex flex-1 min-h-0 flex-col h-full bg-muted">
-      <FlowTopBar title={<Trans>Add Book</Trans>} actions={<ProviderStatusChip />} />
+      <FlowTopBar title={<Trans>Add Book</Trans>} />
       <div className="flex flex-1 min-h-0 lg:gap-[10px] overflow-hidden">
         <aside className="bg-background flex flex-col w-full lg:w-[633px] lg:shrink-0 overflow-hidden">
           <div className="flex items-center justify-end px-4 py-2.5 border-b border-border lg:hidden">
