@@ -1,5 +1,9 @@
 # SPEC-0001 final local gate — 20 October 2026
 
+The subsequent [adversarial round](spec-0001-adversarial-e2e-2026-10-20.md)
+found and repaired additional draft/identity defects. Use that report for the
+latest source, checks and readiness limits; this report preserves earlier evidence.
+
 **Recommendation: ready to publish for a final human review of the ratified PR
 scope. Not a declaration that the original full spec, original-book acceptance,
 or release gates are complete.** No confirmed non-deferred implementation defect
