@@ -312,6 +312,13 @@ unchanged legacy collisions remain editable. Cosmetic saves do not require an
 additional history scan when they introduce no IDs. No media bytes are read or
 hashed for these checks.
 
+New text identities must also be nonblank: reject newly introduced empty or
+whitespace-only IDs before publishing an editor or assistant change. Preserve
+an unchanged malformed legacy ID and its retained corrections; this is not an
+automatic repair of historical blank drift. Cloning that content allocates a
+fresh ID and stamps it consistently in the copied source and HTML, while its
+old corrections remain attached only to the original identity.
+
 Preview/export may include usable stale or review-needed content under existing eligibility rules. Show outdated content included, missing content omitted, and actual fallback use. Warnings introduce no extra approval popup or freshness gate; exporting does not clear them. Disabled/excluded features do not warn about work not included. Apart from Core TTS fallback, this spec adds no new export fallback.
 
 ### 7. Preserve physical assets

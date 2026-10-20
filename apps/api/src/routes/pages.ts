@@ -60,6 +60,7 @@ import {
   collectSpentSectionIds,
   collectSpentContentIds,
   sourceTextIds,
+  findIntroducedBlankContentId,
   findIntroducedDerivedIdCollision,
   retireSectionIds,
   SectionIdExhaustedError,
@@ -596,6 +597,8 @@ function saveStoryboardNode(
       }),
     } : data
     const proposedIds = sourceTextIds(saved)
+    const blankId = findIntroducedBlankContentId(proposedIds, [...localIds, ...(movedIds ?? [])])
+    if (blankId !== undefined) throw new HTTPException(409, { message: "New content requires a nonblank data ID. Use distinct unused IDs." })
     const derivedCollision = findIntroducedDerivedIdCollision(proposedIds, [...localIds, ...(movedIds ?? [])])
     if (derivedCollision) throw new HTTPException(409, { message: `New content conflicts with derived data ID: ${derivedCollision}. Use distinct unused IDs.` })
     const introducedIds = [...proposedIds].filter(id => !localIds.has(id) && !movedIds?.has(id))

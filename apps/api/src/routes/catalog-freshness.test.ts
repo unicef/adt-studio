@@ -4,7 +4,7 @@ import path from "node:path"
 import { Hono } from "hono"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createBookStorage, withBookWriter, storeImmutableAsset, publishSpeechOutput, restoreSpeechOutput } from "@adt/storage"
-import { outputEvidence, reconcileTextCatalog, packageAdtWeb, computePackagingInputHash, loadBookConfig } from "@adt/pipeline"
+import { outputEvidence, reconcileTextCatalog, packageAdtWeb, computePackagingInputHash, loadBookConfig, buildTextCatalogSnapshot } from "@adt/pipeline"
 import type { OutputStatus, TextCatalogOutput } from "@adt/types"
 import { createOutputRoutes } from "./outputs.js"
 import { createPageRoutes } from "./pages.js"
@@ -350,6 +350,29 @@ describe("catalog freshness through real API/storage boundaries", () => {
     expect((await send("text-catalog-translation/fr", { ...draft, baseVersion: fresh.translations.fr.version, sourceVersion: fresh.version, sourceSignature: fresh.translations.fr.sourceSignature })).status).toBe(409)
   })
 
+  it.each(["output-edit", "disabled-language", "excluded-section"])("a captured Keep cannot accept %s and creates no additional version", async change => {
+    const provider = vi.fn(() => { throw new Error("Review must not call a provider") })
+    vi.stubGlobal("fetch", provider)
+    const before = (await outputs()).find(item => item.identity.kind === "translation" && item.identity.id === "pg001_t001")!
+    const db = storage()
+    if (change === "output-edit") {
+      const prior = db.getLatestNodeData("text-catalog-translation", "fr")!.data as TextCatalogOutput
+      db.putNodeData("text-catalog-translation", "fr", { ...prior, entries: prior.entries.map(entry => entry.id === "pg001_t001" ? { ...entry, text: "New manual correction" } : entry) })
+    } else if (change === "disabled-language") {
+      fs.writeFileSync(path.join(db.bookDir!, "config.yaml"), "output_languages: [en]\n")
+    } else {
+      const prior = db.getLatestNodeData("page-sectioning", "pg001")!.data as import("@adt/types").PageSectioningOutput
+      db.putNodeData("page-sectioning", "pg001", { ...prior, sections: prior.sections.map(section => ({ ...section, isPruned: true })) })
+    }
+    const fingerprint = db.getNodeVersionFingerprint()
+    db.close()
+    expect((await send("outputs/review", { identity: before.identity, signature: before.signature, contentHash: before.contentHash, action: "keep" }, "POST")).status).toBe(409)
+    const verify = storage()
+    expect(verify.getNodeVersionFingerprint()).toEqual(fingerprint)
+    verify.close()
+    expect(provider).not.toHaveBeenCalled()
+  })
+
   it("glossary-only missing images are counted before captions exist; shared references retain one authoritative caption", async () => {
     const db = storage()
     db.putNodeData("glossary", "book", { items: [{ id: "gl001", word: "Term", definition: "Meaning", variations: [], emojis: [], imageId: "missing_image" }, { id: "gl002", word: "Picture", definition: "Meaning", variations: [], emojis: [], imageId: "pg001_im001" }], pageCount: 1, generatedAt: "now" })
@@ -489,5 +512,21 @@ it("rejects a same-draft source/derived ID collision without losing the existing
   expect(await response.text()).toContain("fresh_easy_read")
   const after = storage()
   expect(after.getNodeVersionFingerprint()).toEqual(before)
+  after.close()
+})
+
+it.each(["", " ", "\t"])("rejects newly introduced blank data ID %j without attaching old output", async (id) => {
+  const db = storage()
+  db.putNodeData("text-catalog-translation", "fr", { entries: [{ id, text: "Retired manual correction", source: "manual" }], generatedAt: "old" })
+  const before = db.getNodeVersionFingerprint()
+  db.close()
+  const next = rendering()
+  next.sections[0].html = next.sections[0].html.replace("</section>", `<p data-id="${id}">Unrelated source</p></section>`)
+  const response = await send("pages/pg001/rendering", next)
+  expect(response.status).toBe(409)
+  expect(await response.text()).toContain("nonblank data ID")
+  const after = storage()
+  expect(after.getNodeVersionFingerprint()).toEqual(before)
+  expect(buildTextCatalogSnapshot(after, after.getPages()).entries.some(entry => entry.id === id)).toBe(false)
   after.close()
 })

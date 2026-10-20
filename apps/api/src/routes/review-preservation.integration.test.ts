@@ -110,6 +110,32 @@ it("clones catalog identities while preserving local DOM and activity answer ref
   reopened.close()
 })
 
+it.each(["", "   "])("cloning a legacy blank identity %j does not move its retained manual translation", async (id) => {
+  const storage = db()
+  const source = tree(["Legacy text"])
+  source.sections[0].nodes[0].nodeId = id
+  storage.putNodeData("page-sectioning", "pg001", source)
+  const original = rendered(source)
+  storage.putNodeData("web-rendering", "pg001", original)
+  storage.putNodeData("text-catalog-translation", "fr", { entries: [{ id, text: "Original correction", source: "manual" }], generatedAt: "before" })
+  const translation = storage.getLatestNodeData("text-catalog-translation", "fr")
+  const history = storage.getAllNodeVersions("web-rendering", "pg001")
+  storage.close()
+  expect((await send("pages/pg001/sections/0/clone", {}, "POST")).status).toBe(200)
+  const reopened = db()
+  const nextTree = reopened.getLatestNodeData("page-sectioning", "pg001")!.data as PageSectioningOutput
+  const freshId = nextTree.sections[1].nodes[0].nodeId
+  expect(freshId.trim()).not.toBe("")
+  const next = reopened.getLatestNodeData("web-rendering", "pg001")!.data as WebRenderingOutput
+  expect(next.sections[0]).toEqual(original.sections[0])
+  expect(next.sections[1].html).toContain(`data-id="${freshId}"`)
+  const catalog = buildTextCatalogSnapshot(reopened, reopened.getPages())
+  expect(catalog.entries.filter(entry => entry.text === "Legacy text").map(entry => entry.id)).toEqual([id, freshId])
+  expect(reopened.getLatestNodeData("text-catalog-translation", "fr")).toEqual(translation)
+  expect(reopened.getAllNodeVersions("web-rendering", "pg001").filter(row => history.some(previous => previous.version === row.version))).toEqual(history)
+  reopened.close()
+})
+
 it("materializes legacy glossary IDs once and retains the second term identity after deletion", async () => {
   const storage = db()
   const glossary = { items: ["Forest", "River"].map((word) => ({ word, definition: word + " definition", variations: [], emojis: [] })), pageCount: 1, generatedAt: "before" }

@@ -9,8 +9,15 @@ export function getGlossaryItemTextId(item: Pick<GlossaryItem, "id">, index: num
 /** Includes empty controls and containers: they may already have retained
  * answers or become text leaves after an edit. Images remain shareable. */
 export function renderedTextIds(html: string): string[] {
-  return DomUtils.findAll(element => element.type === "tag" && element.name !== "img" && !!element.attribs["data-id"], parseDocument(html).children)
+  return DomUtils.findAll(element => element.type === "tag" && element.name !== "img" && element.attribs["data-id"] !== undefined, parseDocument(html).children)
     .map(element => element.attribs["data-id"])
+}
+
+/** Retain malformed legacy identities verbatim; never admit a new blank one.
+ * Callers must compare with undefined because an empty string is a finding. */
+export function findIntroducedBlankContentId(proposed: Iterable<string>, previous: Iterable<string>): string | undefined {
+  const prior = new Set(previous)
+  return [...proposed].find(id => !id.trim() && !prior.has(id))
 }
 
 /** Existing local source/rendering IDs may be edited without changing identity. */
@@ -33,7 +40,7 @@ export function sourceTextIds(value: unknown): Set<string> {
 export function collectSpentContentIds(storage: Storage): Set<string> {
   const spent = new Set<string>()
   const add = (value: unknown) => {
-    if (typeof value !== "string" || !value) return
+    if (typeof value !== "string") return
     spent.add(value)
     // The derived slot belongs to its source even before Easy Read exists.
     // Reserve the reverse as well: a fresh source must not claim an already

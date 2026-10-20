@@ -11,7 +11,7 @@ import {
   type PageSectioningSection,
   type SectionRendering,
 } from "@adt/types"
-import { collectSpentContentIds, renderedTextIds, findIntroducedDerivedIdCollision, createSectionIdFactory, renderedSectionId, resolveRenderedSection, withLegacyRenderingOwnership } from "@adt/pipeline"
+import { collectSpentContentIds, renderedTextIds, findIntroducedBlankContentId, findIntroducedDerivedIdCollision, createSectionIdFactory, renderedSectionId, resolveRenderedSection, withLegacyRenderingOwnership } from "@adt/pipeline"
 import { buildSectioningSectionFromHtml } from "./build-sectioning.js"
 import {
   TEMPLATED_ACTIVITY_TYPES,
@@ -98,6 +98,7 @@ function extractDataIds(html: string): string[] {
 /** New text cannot inherit another entity's corrections. Existing local IDs
  * and unchanged legacy duplicates may survive an edit; images remain shared. */
 function assertUnusedTextIds(storage: Storage, proposed: string[], previous: string[] = []): void {
+  if (findIntroducedBlankContentId(proposed, previous) !== undefined) throw new Error("New content requires a non-blank data-id. Retry with unused IDs; preserve existing local IDs and shared image IDs.")
   const collision = findIntroducedDerivedIdCollision(proposed, previous)
   if (collision) throw new Error(`New content conflicts with derived data-id "${collision}". Retry with distinct unused IDs.`)
   const spent = collectSpentContentIds(storage)

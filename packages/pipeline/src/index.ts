@@ -514,4 +514,4 @@ export { collectQuizPages } from "./quiz-generation.js"
 
 export { assertReflowableSectioning } from "./render-sectioning.js"
 
-export { renderedTextIds, sourceTextIds, findIntroducedDerivedIdCollision } from "./content-ids.js"
+export { renderedTextIds, sourceTextIds, findIntroducedBlankContentId, findIntroducedDerivedIdCollision } from "./content-ids.js"

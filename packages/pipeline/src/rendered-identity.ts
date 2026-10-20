@@ -9,10 +9,10 @@ export function rewriteRenderedIdentityReferences(html: string, ids: Map<string,
     // Custom sorting supports data-id as a legacy answer-key fallback. Make
     // that section-local key explicit before changing the catalog identity.
     const oldId = element.attribs["data-id"]
-    if (oldId && ids.has(oldId) && element.attribs["data-correct-items"] !== undefined && element.attribs["data-activity-target"] === undefined) {
+    if (oldId !== undefined && ids.has(oldId) && element.attribs["data-correct-items"] !== undefined && element.attribs["data-activity-target"] === undefined) {
       element.attribs["data-activity-target"] = oldId
     }
-    if (element.name !== "img" && oldId && ids.has(oldId)) element.attribs["data-id"] = ids.get(oldId)!
+    if (element.name !== "img" && oldId !== undefined && ids.has(oldId)) element.attribs["data-id"] = ids.get(oldId)!
   }
   return DomUtils.getOuterHTML(doc)
 }
@@ -29,7 +29,7 @@ export function cloneRenderedIdentities(html: string, ids: Map<string, string>, 
     // local aliases (legacy scripts select their root); only add missing leaves
     // that really enter the text catalog, not every attribute in the DOM.
     const hasIdentifiedChild = DomUtils.findOne(child => child.type === "tag" && child.attribs["data-id"] !== undefined, element.children, true)
-    if (id && element.name !== "img" && !hasIdentifiedChild && !ids.has(id)) ids.set(id, allocate())
+    if (id !== undefined && element.name !== "img" && !hasIdentifiedChild && !ids.has(id)) ids.set(id, allocate())
   }
   return rewriteRenderedIdentityReferences(html, ids)
 }

@@ -29,6 +29,16 @@ it("reserves derived answers, legacy glossary/quiz slots, malformed history and 
   expect(storage.getNodeVersionFingerprint()).toEqual(before)
 })
 
+it("reserves blank legacy identities verbatim even after their source disappears", () => {
+  storage.putNodeData("text-catalog-translation", "fr", { entries: [{ id: "", text: "Retained empty-ID correction", source: "manual" }, { id: "   ", text: "Retained whitespace-ID correction", source: "manual" }] })
+  storage.putNodeData("text-catalog-translation", "fr", { entries: [] })
+  const before = storage.getNodeVersionFingerprint()
+  const ids = collectSpentContentIds(storage)
+  expect(ids.has("")).toBe(true)
+  expect(ids.has("   ")).toBe(true)
+  expect(storage.getNodeVersionFingerprint()).toEqual(before)
+})
+
 it("new glossary terms skip identities already spent by other source kinds, including a definition-only correction", () => {
   storage.putNodeData("text-catalog-translation", "fr", { entries: [{ id: "gl001_def", text: "Retained correction", source: "manual" }] })
   const correction = storage.getLatestNodeData("text-catalog-translation", "fr")

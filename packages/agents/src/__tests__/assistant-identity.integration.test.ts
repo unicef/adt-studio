@@ -30,8 +30,8 @@ beforeEach(() => {
 })
 afterEach(() => { vi.unstubAllGlobals(); storage.close(); fs.rmSync(root, { recursive: true, force: true }) })
 
-function renderer(id: string) {
-  const transport = vi.fn<typeof fetch>().mockImplementation(async () => Response.json({ id: "test", object: "chat.completion", created: 0, model: "test", choices: [{ index: 0, message: { role: "assistant", content: JSON.stringify({ reasoning: "test", content: `<div id="content"><section data-section-id="pg001_sec002" data-section-type="activity_open_ended_answer"><p data-id="${id}" class="adt-body">New question</p><img data-id="shared-image" src="shared-image.png"/><textarea data-id="activity_gen_input1" aria-label="Answer"></textarea></section></div>` }) }, finish_reason: "stop" }], usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 } }))
+function renderer(id: string, extraHtml = "") {
+  const transport = vi.fn<typeof fetch>().mockImplementation(async () => Response.json({ id: "test", object: "chat.completion", created: 0, model: "test", choices: [{ index: 0, message: { role: "assistant", content: JSON.stringify({ reasoning: "test", content: `<div id="content"><section data-section-id="pg001_sec002" data-section-type="activity_open_ended_answer"><p data-id="${id}" class="adt-body">New question</p><img data-id="shared-image" src="shared-image.png"/>${extraHtml}<textarea data-id="activity_gen_input1" aria-label="Answer"></textarea></section></div>` }) }, finish_reason: "stop" }], usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 } }))
   vi.stubGlobal("fetch", transport)
   return transport
 }
@@ -115,4 +115,45 @@ it("rejects two new source IDs that would occupy the same future Easy Read slot"
   const result = await tools.createCustomSection!.execute!({ pageId: "pg001", sectionType: "content", html: '<section><p data-id="fresh">New source</p><p data-id="fresh_easy_read">Different source</p></section>', reasoning: "new", activityAnswers: null }, {} as never)
   expect(result).toMatchObject({ ok: false, error: expect.stringContaining("fresh_easy_read") })
   expect(storage.getNodeVersionFingerprint()).toEqual(before)
+})
+
+it.each(["", "   ", "\t"])("rejects new blank custom content IDs %j before publication", async id => {
+  storage.putNodeData("text-catalog-translation", "fr", { entries: [{ id, text: "Retained manual correction", source: "manual" }] })
+  const before = storage.getNodeVersionFingerprint()
+  const transport = renderer("unused")
+  const result = await tools.createCustomSection!.execute!({ pageId: "pg001", sectionType: "content", html: `<section><p data-id="${id}">Unrelated new instruction</p></section>`, reasoning: "new", activityAnswers: null }, {} as never)
+  expect(result).toMatchObject({ ok: false, error: expect.stringContaining("non-blank data-id") })
+  expect(transport).not.toHaveBeenCalled()
+  expect(storage.getNodeVersionFingerprint()).toEqual(before)
+  expect(buildTextCatalogSnapshot(storage, storage.getPages()).entries.some(entry => entry.id === id)).toBe(false)
+})
+
+it.each(["", "   "])("rejects blank templated source ID %j before calling the provider", async id => {
+  const transport = renderer("new-question")
+  const before = storage.getNodeVersionFingerprint()
+  const result = await tools.createTemplatedActivity!.execute!({ pageId: "pg001", sectionType: "activity_open_ended_answer", sectioningJson: JSON.stringify({ reasoning: "test", nodes: [{ nodeId: id, role: "activity_question", text: "New question" }] }), userInstructions: null }, {} as never)
+  expect(result).toMatchObject({ ok: false, error: expect.stringContaining("non-blank data-id") })
+  expect(transport).not.toHaveBeenCalled()
+  expect(storage.getNodeVersionFingerprint()).toEqual(before)
+})
+
+it.each(["", "   "])("rejects renderer-invented blank identity %j without publishing either entity", async id => {
+  const transport = renderer("new-question", `<p data-id="${id}">Unexpected extra text</p>`)
+  const before = storage.getNodeVersionFingerprint()
+  const result = await tools.createTemplatedActivity!.execute!({ pageId: "pg001", sectionType: "activity_open_ended_answer", sectioningJson: JSON.stringify({ reasoning: "test", nodes: [{ nodeId: "new-question", role: "activity_question", text: "New question" }, { nodeId: "shared-image", role: "image" }] }), userInstructions: null }, {} as never)
+  expect(result).toMatchObject({ ok: false, error: expect.stringContaining(`Unknown data-id: "${id}"`) })
+  expect(transport).toHaveBeenCalledTimes(1)
+  expect(storage.getNodeVersionFingerprint()).toEqual(before)
+})
+
+it.each(["", "   "])("preserves unchanged local legacy identity %j and its correction during an assistant edit", async id => {
+  storage.putNodeData("web-rendering", "pg001", { sections: [rendered("pg001_sec001", id, "Legacy text")] })
+  storage.putNodeData("text-catalog-translation", "fr", { entries: [{ id, text: "Retained manual correction", source: "manual" }] })
+  const history = storage.getAllNodeVersions("web-rendering", "pg001")
+  const correction = storage.getLatestNodeData("text-catalog-translation", "fr")
+  const result = await tools.updateSection!.execute!({ pageId: "pg001", sectionIndex: 0, html: `<section class="p-8"><p data-id="${id}">Legacy text</p></section>`, reasoning: "cosmetic edit", activityAnswers: null }, {} as never)
+  expect(result).toMatchObject({ ok: true })
+  expect(buildTextCatalogSnapshot(storage, storage.getPages()).entries.find(entry => entry.id === id)?.text).toBe("Legacy text")
+  for (const row of history) expect(storage.getAllNodeVersions("web-rendering", "pg001")).toContainEqual(row)
+  expect(storage.getLatestNodeData("text-catalog-translation", "fr")).toEqual(correction)
 })
