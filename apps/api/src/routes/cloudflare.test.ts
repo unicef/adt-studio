@@ -391,6 +391,28 @@ describe("cloudflare routes", () => {
       const connection = await app.request("/api/cloudflare/connection")
       expect(await connection.json()).toMatchObject({ connected: false, auth_method: null })
     })
+
+    it("503s with a retryable code and keeps the login when the renewal cannot reach Cloudflare", async () => {
+      const fake = createFakeCloudflare({ oauthExpiresIn: 0 })
+      let offline = false
+      const flaky: FetchLike = async (url, init) => {
+        if (offline && url.includes("/oauth2/token")) throw new TypeError("fetch failed")
+        return fake.fetchFn(url, init)
+      }
+      const { app, listener } = buildApp({}, { fetchFn: flaky })
+      await completeOAuthFlow(app, listener)
+
+      offline = true
+      const failed = await app.request("/api/cloudflare/verify", { method: "POST" })
+      expect(failed.status).toBe(503)
+      expect(await failed.json()).toMatchObject({ code: "oauth_refresh_unavailable" })
+      expect(createConnectionStore(stateDir).readOAuth()).not.toBeNull()
+
+      offline = false
+      const recovered = await app.request("/api/cloudflare/verify", { method: "POST" })
+      expect(recovered.status).toBe(200)
+      expect(createConnectionStore(stateDir).readOAuth()?.refresh_token).toBe("cf-oauth-refresh-2")
+    })
   })
 
   describe("POST /cloudflare/verify", () => {
@@ -581,7 +603,7 @@ describe("cloudflare routes", () => {
     it("reports the provisioned resources and the live worker version", async () => {
       createConnectionStore(stateDir).write(record)
       const { app } = buildApp()
-      const res = await app.request("/api/cloudflare/connection")
+      const res = await app.request("/api/cloudflare/connection", { headers: AUTH })
 
       const body = await res.json()
       expect(body).toMatchObject({
@@ -594,6 +616,13 @@ describe("cloudflare routes", () => {
       })
       expect(body.resources).toMatchObject({ d1_database_uuid: "db-uuid-1" })
       expect(JSON.stringify(body)).not.toContain("mgmt-secret-1")
+    })
+
+    it("reports no auth method when neither a login nor a token stands behind the connection", async () => {
+      createConnectionStore(stateDir).write(record)
+      const { app } = buildApp()
+      const res = await app.request("/api/cloudflare/connection")
+      expect(await res.json()).toMatchObject({ connected: true, auth_method: null })
     })
 
     it("flags an available upgrade from the deployed version", async () => {
@@ -661,11 +690,22 @@ describe("cloudflare routes", () => {
       expect(after.status).toBe(200)
     })
 
-    it("requires the token before deleting resources", async () => {
+    it("asks for a reconnect before deleting resources when no credential is left", async () => {
       createConnectionStore(stateDir).write(record)
       const { app } = buildApp()
       const res = await app.request("/api/cloudflare/connection?delete_resources=1", {
         method: "DELETE",
+      })
+      expect(res.status).toBe(401)
+      expect(await res.json()).toMatchObject({ code: "reconnect_required" })
+    })
+
+    it("still names the missing header when only half of a pasted token arrives", async () => {
+      createConnectionStore(stateDir).write(record)
+      const { app } = buildApp()
+      const res = await app.request("/api/cloudflare/connection?delete_resources=1", {
+        method: "DELETE",
+        headers: { [CLOUDFLARE_ACCOUNT_ID_HEADER]: "acct-1" },
       })
       expect(res.status).toBe(400)
       expect((await res.json()).error).toContain(CLOUDFLARE_TOKEN_HEADER)

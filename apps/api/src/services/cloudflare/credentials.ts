@@ -52,6 +52,14 @@ export async function resolveCloudflareCredentials(
     return { token: fresh.access_token, accountId: fresh.account_id, authMethod: "oauth" }
   }
 
+  /** A connection with neither credential behind it lost its login (refused by Cloudflare, or
+   *  signed out): the user needs to sign in again, not to be told about a request header. */
+  if (!token && !accountId && deps.store.read()) {
+    throw new CloudflareOAuthError(
+      "reconnect_required",
+      "ADT Studio is no longer signed in to Cloudflare. Connect to Cloudflare again.",
+    )
+  }
   if (!token) {
     throw new HTTPException(400, { message: `Missing ${CLOUDFLARE_TOKEN_HEADER} header` })
   }
@@ -63,10 +71,12 @@ export async function resolveCloudflareCredentials(
   return { token, accountId, authMethod: "token" }
 }
 
-export function oauthErrorStatus(error: CloudflareOAuthError): 401 | 409 | 502 {
+export function oauthErrorStatus(error: CloudflareOAuthError): 401 | 409 | 502 | 503 {
   switch (error.code) {
     case "reconnect_required":
       return 401
+    case "oauth_refresh_unavailable":
+      return 503
     case "oauth_flow_pending":
     case "oauth_port_busy":
     case "oauth_expired":

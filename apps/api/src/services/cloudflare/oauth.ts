@@ -48,6 +48,7 @@ const STATE_LENGTH = 32
 
 const OAUTH_FLOW_TTL_MS = 10 * 60 * 1000
 const OAUTH_REFRESH_MARGIN_MS = 60 * 1000
+const OAUTH_TOKEN_TIMEOUT_MS = 15 * 1000
 
 export class CloudflareOAuthError extends Error {
   readonly code: CloudflareOAuthErrorCode
@@ -117,6 +118,24 @@ interface TokenEndpointOptions {
   fetchFn?: FetchLike
   tokenUrl?: string
   clientId?: string
+  timeoutMs?: number
+}
+
+/**
+ * A token request that did not produce a token, and whether Cloudflare refused the grant itself.
+ *
+ * Only `invalid_grant` proves the saved login is dead. A dropped connection, a timeout, a rate
+ * limit, a server error or an unreadable answer says nothing about the grant, and treating them
+ * the same way signed people out every time their network blinked during a renewal.
+ */
+class TokenEndpointError extends Error {
+  readonly grantRejected: boolean
+
+  constructor(message: string, grantRejected: boolean, cause?: unknown) {
+    super(message, cause === undefined ? undefined : { cause })
+    this.name = "TokenEndpointError"
+    this.grantRejected = grantRejected
+  }
 }
 
 async function postToTokenEndpoint(
@@ -124,13 +143,24 @@ async function postToTokenEndpoint(
   options: TokenEndpointOptions,
 ): Promise<OAuthTokenResponse> {
   const fetchFn: FetchLike = options.fetchFn ?? ((input, init) => fetch(input, init))
-  const response = await fetchFn(options.tokenUrl ?? CLOUDFLARE_OAUTH_TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: params.toString(),
-  })
+  let response: Response
+  let text: string
+  try {
+    response = await fetchFn(options.tokenUrl ?? CLOUDFLARE_OAUTH_TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
+      signal: AbortSignal.timeout(options.timeoutMs ?? OAUTH_TOKEN_TIMEOUT_MS),
+    })
+    text = await response.text()
+  } catch (error) {
+    throw new TokenEndpointError(
+      `Cloudflare could not be reached: ${describeError(error)}`,
+      false,
+      error,
+    )
+  }
 
-  const text = await response.text()
   let payload: Record<string, unknown> = {}
   try {
     payload = JSON.parse(text) as Record<string, unknown>
@@ -145,18 +175,15 @@ async function postToTokenEndpoint(
         : typeof payload.error === "string"
           ? payload.error
           : `status ${response.status}`
-    throw new CloudflareOAuthError(
-      "oauth_exchange_failed",
+    throw new TokenEndpointError(
       `Cloudflare rejected the login: ${detail}`,
+      payload.error === "invalid_grant",
     )
   }
 
   const accessToken = typeof payload.access_token === "string" ? payload.access_token : ""
   if (!accessToken) {
-    throw new CloudflareOAuthError(
-      "oauth_exchange_failed",
-      "Cloudflare returned no access token for this login.",
-    )
+    throw new TokenEndpointError("Cloudflare returned no access token for this login.", false)
   }
 
   return {
@@ -391,6 +418,7 @@ export interface CloudflareOAuthServiceOptions {
   apiBaseUrl?: string
   createListener?: OAuthCallbackListenerFactory
   flowTtlMs?: number
+  tokenTimeoutMs?: number
 }
 
 export interface CloudflareOAuthService {
@@ -420,6 +448,7 @@ export function createCloudflareOAuthService(
     ...(fetchFn === undefined ? {} : { fetchFn }),
     ...(options.tokenUrl === undefined ? {} : { tokenUrl: options.tokenUrl }),
     ...(options.clientId === undefined ? {} : { clientId: options.clientId }),
+    ...(options.tokenTimeoutMs === undefined ? {} : { timeoutMs: options.tokenTimeoutMs }),
   }
 
   const flows = new Map<string, PendingFlow>()
@@ -552,7 +581,23 @@ export function createCloudflareOAuthService(
         return { status: 200, html: oauthErrorPage(String(flow.errorMessage)) }
       }
 
-      const accountId = accounts.length === 1 ? String(accounts[0]?.id) : null
+      /** Signing in again over an existing connection must land on the account its sharing
+       *  service lives in: any other account would pair this login with a Worker it cannot
+       *  reach. */
+      const connection = store.read()
+      if (connection && !accounts.some((account) => account.id === connection.account_id)) {
+        flow.status = "error"
+        flow.errorCode = "oauth_no_accounts"
+        flow.errorMessage = `This Cloudflare login cannot reach "${connection.account_name || connection.account_id}", where sharing is set up. Sign in with that Cloudflare account.`
+        await releaseListener(flow)
+        return { status: 200, html: oauthErrorPage(String(flow.errorMessage)) }
+      }
+
+      const accountId = connection
+        ? connection.account_id
+        : accounts.length === 1
+          ? String(accounts[0]?.id)
+          : null
       persist(token, accounts, accountId)
 
       flow.status = "complete"
@@ -716,10 +761,18 @@ export function createCloudflareOAuthService(
           store.writeOAuth(rotated)
           return rotated
         } catch (error) {
-          store.clearOAuth()
+          if (error instanceof TokenEndpointError && error.grantRejected) {
+            store.clearOAuth()
+            throw new CloudflareOAuthError(
+              "reconnect_required",
+              `The Cloudflare login is no longer valid (${describeError(error)}). Connect to Cloudflare again.`,
+              error,
+            )
+          }
+          /** The grant stays on disk: the next attempt renews with the same refresh token. */
           throw new CloudflareOAuthError(
-            "reconnect_required",
-            `The Cloudflare login is no longer valid (${describeError(error)}). Connect to Cloudflare again.`,
+            "oauth_refresh_unavailable",
+            "Couldn't reach Cloudflare to renew the login. Check your connection and try again.",
             error,
           )
         }
