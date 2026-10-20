@@ -186,4 +186,3 @@ history need deliberate recovery evidence if pursued later, not silent repair.
 [Machine-readable results](evidence/spec-0001-note3.json) summarize the checks.
 Local detailed logs, browser harnesses, copied fixtures, screenshots and ZIP use
 `/private/tmp/spec0001-note3-*`; they are local evidence, not hosted CI artifacts.
-

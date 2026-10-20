@@ -4,9 +4,11 @@ The book writer admission protocol and process-level regression tests are adapte
 from the published SPEC-0010 PR #886 (`876cc2ae`, initially `7d5cec5f`), which itself
 attributes applicable writer work to SPEC-0003 PR #884 (`e3737abe`). These use one
 book-local `.book-writer.json` lease, nested async ownership, exclusive creation
-and fail-closed recovery. SPEC-0001 retains the stricter #884 refusal when a dead
-owner left an anonymous SQLite mutex. SQLite journal/WAL recovery data is never
-deleted by startup cleanup.
+and fail-closed recovery. The October 16 Note 7 adaptation removes a stale
+anonymous SQLite mutex only after establishing that the writer owner is dead;
+this supersedes the initially retained #884 refusal. SQLite journal/WAL
+recovery data is never deleted by startup cleanup. Uncertain ownership still
+fails closed and remains a documented follow-up.
 
 Only the shared writer module, its owner schema, startup cleanup integration and
 applicable tests are adapted. No specification, acceptance claim, extraction

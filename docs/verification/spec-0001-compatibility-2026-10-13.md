@@ -241,4 +241,3 @@ Clean Docker builds, signed installers, notarization, Windows/Linux installers,
 Desktop GUI behavior and a release certification are distinct checks. No live
 paid provider was called. The development checks and bundled runtime acceptance
 do not establish release approval.
-

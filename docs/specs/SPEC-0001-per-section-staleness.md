@@ -193,6 +193,15 @@ When preparation is requested, use the existing bounded retry policy. On failure
 
 Successful fallback audio shows “Text preparation failed. Audio uses the original text,” or the corresponding missing/outdated-preparation reason. Ordinary runs reuse a failed attempt's fallback for unchanged preparation inputs and reuse audio when its actual speech inputs match. A fallback recorded without an attempt (missing or outdated preparation) keeps that reason and is prepared on the next requested preparation run, unless it was checked for the same inputs and text. **Retry preparation** explicitly attempts normalization again; relevant input changes make preparation eligible again when requested. If new preparation produces identical speech inputs, reuse audio. Fallback never substitutes a different language or creates missing text/audio. A synthesis failure retains previous audio; without usable audio, Speech is Missing even though speech text exists.
 
+**October 20 implementation clarification:** A failed preparation describes its
+recorded input basis, not every later fallback with the same display text.
+If prompt, model, profile or required context changes, Speech records an
+outdated, not-yet-attempted fallback for the new basis. The next requested
+Language run may prepare it; Speech itself makes no preparation call. Matching
+failed inputs and checked fallbacks are reused, manual speech remains protected,
+and the old attempt/review remains in entity history. This clarifies AC-14,
+without broadening the deferred provider-failure classifier.
+
 **Skip this run** makes no further attempt for the selected operation in that run; it does not exclude content or erase existing output. The next explicit run retries selected unfinished eligible work, preserving protected content. Skip/cancel must not commit a late result for that abandoned operation. **Prune/exclude** persists until restored, using existing scope: excluding speech does not delete source text. Source exclusion removes only affected active references; shared consumers remain. Restoring inclusion rechecks retained output rather than automatically regenerating it.
 
 ### 6. Resolve warnings beside the content
@@ -259,7 +268,29 @@ realigns it by stable identity, never by the retained index. Preview/export rema
 popup. De-codable pg006 acceptance is assigned to elasticsounds by the user; the
 implementation ledger must keep that verification pending until reported.
 
-New custom activities cannot copy a section owner or active/historical text ID.
+**October 20 implementation clarification:** Omission also excludes that
+rendering's contributions from the active text catalog and image inventory,
+before deduplication or first-open baseline acceptance. Retained HTML cannot
+supply a live section's text merely by preceding it with the same data ID.
+Independently owned active references still contribute shared text and images.
+Within each page, catalog and Easy Read traversal follows the reader's ascending
+section index, not incidental saved-array order; reads preserve the raw rows.
+This applies the existing ownership/reading-order contract, without adding an
+ownership repair or migration framework.
+
+The same pre-edit ownership snapshot applies when restoring a sectioning
+version. Freeze an inferred owner in a new rendering version before moving the
+source pointer, within one transaction. A failed restore rolls both back; a
+successful restore may omit the retained rendering until its actual owner is
+present again. Never re-infer it as a different owner from the restored tree.
+
+New activities, both custom and templated, cannot copy a section owner or
+active/historical text ID. Templated creation checks the supplied tree before
+rendering and the returned HTML before publication. Assistant section edits
+retain local IDs but reject newly introduced reused IDs and new or changed
+catalog conflicts, with the same transactional conflict rule as editor saves.
+Unchanged legacy conflicts remain editable cosmetically; shared images are
+allowed. Rejecting an edit publishes neither source nor rendering changes.
 The tool rejects these inputs before writing and requests a corrected retry;
 it does not rewrite arbitrary JavaScript selectors. It stamps the corrected
 activity's server-allocated owner, preserving local DOM/activity keys and shared

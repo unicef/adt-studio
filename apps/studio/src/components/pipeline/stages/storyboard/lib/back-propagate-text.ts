@@ -102,4 +102,3 @@ export function sectioningSaveFromRendering(
     ? { sectioning: updated, renderingInSync: !needsRerender }
     : {}
 }
-
