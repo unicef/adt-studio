@@ -4,6 +4,8 @@ import { HTTPException } from "hono/http-exception"
 import { streamSSE } from "hono/streaming"
 import { z } from "zod"
 import {
+  CLOUDFLARE_ACCOUNT_ID_HEADER,
+  CLOUDFLARE_TOKEN_HEADER,
   CloudflareOAuthAccountRequest,
   type CloudflareConnectionDeleteResponse,
   type CloudflareOAuthAccountResponse,
@@ -303,6 +305,10 @@ export function createCloudflareRoutes(deps: CloudflareRoutesDeps): Hono {
   app.get("/cloudflare/connection", async (c) => {
     const status = await readConnectionStatus(store, {
       ...(deps.fetchFn === undefined ? {} : { fetchFn: deps.fetchFn }),
+      hasTokenHeaders: Boolean(
+        c.req.header(CLOUDFLARE_TOKEN_HEADER)?.trim() &&
+          c.req.header(CLOUDFLARE_ACCOUNT_ID_HEADER)?.trim(),
+      ),
     })
     return c.json(status)
   })
