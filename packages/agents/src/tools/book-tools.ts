@@ -1,4 +1,4 @@
-import { withSourceGenerationTracking, putSourceNodeData } from "@adt/pipeline"
+import { withSourceGenerationTracking, putSourceNodeData, buildTextCatalogSnapshot, findIntroducedCatalogConflict } from "@adt/pipeline"
 import { stampRenderedOwner } from "@adt/pipeline"
 import { z } from "zod"
 import { parseDocument, DomUtils } from "htmlparser2"
@@ -92,6 +92,36 @@ function extractDataIds(html: string): string[] {
     ids.add(m[1])
   }
   return [...ids]
+}
+
+function textDataIds(html: string): string[] {
+  return DomUtils.findAll(element => element.type === "tag" && element.name !== "img" && !!element.attribs["data-id"], parseDocument(html).children)
+    .map(element => element.attribs["data-id"])
+}
+
+/** New text cannot inherit another entity's corrections. Existing local IDs
+ * and unchanged legacy duplicates may survive an edit; images remain shared. */
+function assertUnusedTextIds(storage: Storage, proposed: string[], previous: string[] = []): void {
+  const spent = collectSpentContentIds(storage)
+  const priorCounts = new Map<string, number>()
+  for (const id of previous) priorCounts.set(id, (priorCounts.get(id) ?? 0) + 1)
+  const counts = new Map<string, number>()
+  for (const id of proposed) {
+    if (spent.has(id) && !priorCounts.has(id)) throw new Error(`New content cannot reuse data-id "${id}" from existing or historical content. Retry with unused IDs; preserve existing local IDs and shared image IDs.`)
+    const count = (counts.get(id) ?? 0) + 1
+    counts.set(id, count)
+    if (count > Math.max(1, priorCounts.get(id) ?? 0)) throw new Error(`New content repeats data-id "${id}". Retry with a distinct unused ID for each text element.`)
+  }
+}
+
+function publishSourceEdit<T>(storage: Storage, mutate: () => T): T {
+  return withSourceGenerationTracking(storage, () => {
+    const before = buildTextCatalogSnapshot(storage, storage.getPages()).conflicts
+    const result = mutate()
+    const conflict = findIntroducedCatalogConflict(before, buildTextCatalogSnapshot(storage, storage.getPages()).conflicts)
+    if (conflict) throw new Error(`Conflicting catalog data ID: ${conflict.id}. Give different content distinct IDs before saving.`)
+    return result
+  })
 }
 
 function loadSectioning(
@@ -356,6 +386,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           }
           const sectionId = oldSection.sectionId
           html = stampRenderedOwner(html, sectionId)
+          assertUnusedTextIds(ctx.storage, textDataIds(html), textDataIds(found.html))
           const updatedRendering: WebRenderingOutput = {
             sections: rendering.sections.map((s) =>
               s.sectionIndex === sectionIndex
@@ -386,7 +417,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
               s.sectionId === sectionId ? newSectioningSection : s,
             ),
           }
-          const version = withSourceGenerationTracking(ctx.storage, () => {
+          const version = publishSourceEdit(ctx.storage, () => {
             putSourceNodeData(ctx.storage, "page-sectioning", pageId, updatedSectioning)
             return putSourceNodeData(ctx.storage, "web-rendering", pageId, updatedRendering)
           })
@@ -485,6 +516,13 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
             ...(n.children ? { children: n.children.map(promote) } : {}),
           })
           const nodes = sectioning.nodes.map(promote)
+          const proposedIds: string[] = []
+          const collect = (node: ContentNodeData): void => {
+            if (node.role !== "image") proposedIds.push(node.nodeId)
+            node.children?.forEach(collect)
+          }
+          nodes.forEach(collect)
+          assertUnusedTextIds(ctx.storage, proposedIds)
 
           const { section, rendering: newRendering } =
             await renderSyntheticActivity({
@@ -503,6 +541,10 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
               credentials: ctx.credentials,
             })
 
+          // The renderer may invent additional leaves. Check the actual HTML
+          // as well as the proposed tree before either entity is published.
+          assertUnusedTextIds(ctx.storage, textDataIds(newRendering.html))
+
           // The renderer returns sectionIndex/sectionType etc., but its
           // sectionIndex is whatever we asked for. Persist alongside the
           // existing sections.
@@ -513,7 +555,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
             ...existingSectioning,
             sections: [...existingSectioning.sections, section],
           }
-          const version = withSourceGenerationTracking(ctx.storage, () => {
+          const version = publishSourceEdit(ctx.storage, () => {
             putSourceNodeData(ctx.storage, "page-sectioning", pageId, updatedSectioning)
             return putSourceNodeData(ctx.storage, "web-rendering", pageId, updatedRendering)
           })
@@ -618,16 +660,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           if (owners.length > 1 || owners.some(owner => owner.attribs["data-section-id"] !== sectionId)) {
             throw new Error("New sections cannot copy data-section-id from another section. Retry without data-section-id; the server assigns it. Register the activity using document.currentScript.closest('section'), preserving its local IDs and answer keys.")
           }
-          const spent = collectSpentContentIds(ctx.storage)
-          const proposedIds = DomUtils.findAll(element => element.type === "tag" && element.name !== "img" && !!element.attribs["data-id"], parseDocument(html).children)
-          const collision = proposedIds.find(element => spent.has(element.attribs["data-id"]))
-          if (collision) throw new Error(`New custom content cannot reuse data-id "${collision.attribs["data-id"]}" from existing or historical content. Retry with unused data-id values. Keep image IDs and local DOM/activity keys unchanged.`)
-          const uniqueIds = new Set<string>()
-          for (const element of proposedIds) {
-            const id = element.attribs["data-id"]
-            if (uniqueIds.has(id)) throw new Error(`New custom content repeats data-id "${id}". Retry with a distinct unused data-id for each text element.`)
-            uniqueIds.add(id)
-          }
+          assertUnusedTextIds(ctx.storage, textDataIds(html))
           html = stampRenderedOwner(html, sectionId)
 
           const newRendering: SectionRendering = {
@@ -648,7 +681,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
             ...sectioning,
             sections: [...sectioning.sections, newSectioningSection],
           }
-          const version = withSourceGenerationTracking(ctx.storage, () => {
+          const version = publishSourceEdit(ctx.storage, () => {
             putSourceNodeData(ctx.storage, "page-sectioning", pageId, updatedSectioning)
             return putSourceNodeData(ctx.storage, "web-rendering", pageId, updatedRendering)
           })

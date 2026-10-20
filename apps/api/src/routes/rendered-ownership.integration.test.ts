@@ -88,6 +88,83 @@ it.each(["removed", "identityless", "conflicting", "nested"] as const)("AC-4/12 
 })
 
 
+it("uses reader section order for legacy duplicate text and Easy Read context without rewriting rendering history", () => {
+  const db = storage()
+  try {
+    const reversed = { sections: [...rendering.sections].reverse().map(section => ({ ...section, html: section.html.replace(/text-[AB]/, "shared") })) }
+    db.putNodeData("web-rendering", "pg001", reversed)
+    const raw = db.getAllNodeVersions("web-rendering", "pg001")
+    expect(resolveReadingOrder(db).items.map(item => item.id)).toEqual(["A", "B"])
+    const catalog = buildTextCatalogSnapshot(db, db.getPages())
+    expect(catalog.entries.find(entry => entry.id === "shared")).toMatchObject({ text: "Question A", locations: [{ pageId: "pg001", sectionId: "A", role: "p" }, { pageId: "pg001", sectionId: "B", role: "p" }] })
+    expect(catalog.conflicts?.find(conflict => conflict.id === "shared")?.texts).toEqual(["Question A", "Question B"])
+    const easyRead = buildEasyReadSourceBlocks(db, db.getPages())
+    expect(easyRead.map(block => block.sectionId)).toEqual(["A", "B"])
+    expect(db.getAllNodeVersions("web-rendering", "pg001")).toEqual(raw)
+    db.putNodeData("web-rendering", "pg001", { sections: [...reversed.sections].reverse() })
+    expect(buildTextCatalogSnapshot(db, db.getPages()).entries).toEqual(catalog.entries)
+    expect(buildEasyReadSourceBlocks(db, db.getPages())).toEqual(easyRead)
+  } finally { db.close() }
+})
+
+it.each(["identityless", "conflicting", "ambiguous", "removed"] as const)("omitted %s content cannot supply live text, image consumers or a legacy baseline", async scenario => {
+  const db = storage()
+  const orphan = { ...rendering.sections[0], html: '<section><p data-id="shared">Unowned retained text</p><p data-id="ghost">Retained orphan</p><img data-id="orphan-image"/><img data-id="shared-image"/></section>' }
+  if (scenario === "conflicting") {
+    orphan.sectionId = "B"
+    orphan.html = orphan.html.replace("<section>", '<section data-section-id="A">')
+  }
+  if (scenario === "removed") orphan.sectionId = "removed"
+  const live = { ...rendering.sections[1], sectionId: "B", html: '<section data-section-id="B"><p data-id="shared">Visible live text</p><img data-id="shared-image"/></section>' }
+  const source = { ...sections, sections: [sections.sections[1]] }
+  if (scenario === "ambiguous") source.sections.push(...["C", "D"].map(sectionId => ({ ...sections.sections[0], sectionId, nodes: [{ nodeId: "ghost", role: "body_text", text: "Retained orphan", isPruned: false }] })))
+  db.putNodeData("page-sectioning", "pg001", source)
+  db.putNodeData("web-rendering", "pg001", { sections: [orphan, live] })
+  db.putNodeData("text-catalog-translation", "fr", { entries: [{ id: "shared", text: "Texte manuel", source: "manual" }, { id: "ghost", text: "Orphelin manuel", source: "manual" }], generatedAt: "before" })
+  db.putNodeData("image-captioning", "pg001", { captions: [{ imageId: "orphan-image", caption: "Retained orphan caption", reasoning: "", source: "manual" }] })
+  const raw = db.getAllNodeVersions("web-rendering", "pg001")
+  const translations = db.getLatestNodeData("text-catalog-translation", "fr")!
+  const captions = db.getLatestNodeData("image-captioning", "pg001")
+  expect(buildTextCatalogSnapshot(db, db.getPages()).entries.map(({ id, text }) => ({ id, text }))).toEqual([
+    { id: "shared", text: "Visible live text" }, { id: "B_ans_item-1", text: "moon" },
+  ])
+  expect(buildImageInventory(db).map(({ id, sectionIds }) => ({ id, sectionIds }))).toEqual([{ id: "shared-image", sectionIds: ["B"] }])
+  expect(buildEasyReadSourceBlocks(db, db.getPages()).flatMap(block => block.entries).map(entry => entry.sourceId)).toEqual(["shared"])
+  expect(resolveReadingOrder(db).items.map(item => item.id)).toEqual(["B"])
+  db.close()
+
+  const outputs = createOutputRoutes(root, path.resolve("prompts"))
+  expect((await outputs.request(`/books/${label}/outputs/summary`)).status).toBe(200)
+  const disclosure = await (await outputs.request(`/books/${label}/outputs/disclosure`)).json()
+  expect(disclosure.ownershipWarnings).toHaveLength(1)
+  expect(disclosure.outputs.filter((output: { identity: { id: string }; included: boolean }) => ["ghost", "orphan-image"].includes(output.identity.id) && output.included)).toEqual([])
+  const reopened = storage()
+  try {
+    const current = reopened.getLatestNodeData("text-catalog-translation", "fr")!.data as { entries: Array<{ id: string; review?: unknown }> }
+    expect(current.entries.find(entry => entry.id === "ghost")).toEqual({ id: "ghost", text: "Orphelin manuel", source: "manual" })
+    expect(current.entries.find(entry => entry.id === "shared")?.review).toBeDefined()
+    expect(reopened.getLatestNodeData("image-captioning", "pg001")).toEqual(captions)
+    await packageAdtWeb(reopened, { bookDir: reopened.bookDir!, label, language: "en", outputLanguages: ["en", "fr"], title: "Owners", webAssetsDir: path.resolve("assets/adt"), config: loadBookConfig(label, root), promptsDir: path.resolve("prompts"), configDir: path.resolve("config") })
+    const dictionary = JSON.parse(fs.readFileSync(path.join(reopened.bookDir!, "adt/content/i18n/en/texts.json"), "utf8"))
+    expect(dictionary.shared).toBe("Visible live text")
+    expect(dictionary).not.toHaveProperty("ghost")
+    expect(dictionary).not.toHaveProperty("orphan-image")
+    expect(JSON.parse(fs.readFileSync(path.join(reopened.bookDir!, "adt/content/i18n/fr/texts.json"), "utf8"))).toMatchObject({ shared: "Texte manuel" })
+    expect(reopened.getAllNodeVersions("web-rendering", "pg001")).toEqual(raw)
+    expect(reopened.getAllNodeVersions("text-catalog-translation", "fr").find(row => row.version === translations.version)).toEqual(translations)
+    // Restoring the known owner reactivates its contributions, never the orphan's.
+    reopened.putNodeData("page-sectioning", "pg001", { ...source, sections: source.sections.map(section => ({ ...section, isPruned: true })) })
+    expect(buildImageInventory(reopened)).toEqual([])
+    expect(buildTextCatalogSnapshot(reopened, reopened.getPages()).entries).toEqual([])
+    reopened.setCurrentNodeVersion("page-sectioning", "pg001", 2)
+    expect(buildTextCatalogSnapshot(reopened, reopened.getPages()).entries.find(entry => entry.id === "shared")?.text).toBe("Visible live text")
+  } finally { reopened.close() }
+  const preview = createAdtPreviewRoutes(root, path.resolve("assets/adt"))
+  const previewTexts = await (await preview.request(`/books/${label}/adt-preview/content/i18n/en/texts.json`)).json()
+  expect(previewTexts.shared).toBe("Visible live text")
+  expect(previewTexts).not.toHaveProperty("ghost")
+})
+
 it.each(["fixed-layout-sectioning", "page-sectioning"])("keeps legacy fixed-layout content stored in %s available without regenerating or rewriting it", async (node) => {
   const db = storage()
   const id = "pg001_sec001"
@@ -121,6 +198,42 @@ it("Preview uses the rendering's owner after sectioning restore rather than its 
   expect(html).toContain("Question B")
   expect(html).not.toContain("Question A")
   expect(html).toContain('"item-1":"moon"')
+})
+
+it("restoring sectioning freezes the pre-edit legacy owner atomically, retaining corrections and history", async () => {
+  const node = "page-sectioning"
+  const db = storage()
+  const source = (sectionId: string) => ({ reasoning: "", sections: [{ ...sections.sections[0], sectionId, sectionType: "activity_custom", nodes: [{ nodeId: "question", role: "text", text: "Current question", isPruned: false }] }] })
+  const first = db.putNodeData(node, "pg001", source("A"))
+  const second = db.putNodeData(node, "pg001", source("B"))
+  db.putNodeData("web-rendering", "pg001", { sections: [{ sectionIndex: 0, sectionType: "activity_custom", reasoning: "legacy", html: '<section><p data-id="question">Current question</p></section>', activityAnswers: { answer: "Current answer for B" } }] })
+  db.putNodeData("text-catalog-translation", "fr", { entries: [{ id: "A_ans_answer", text: "Ancienne réponse de A", source: "manual" }, { id: "B_ans_answer", text: "Réponse corrigée de B", source: "manual" }], generatedAt: "before" })
+  const raw = db.getAllNodeVersions("web-rendering", "pg001")
+  const corrections = db.getLatestNodeData("text-catalog-translation", "fr")
+  const before = db.getNodeVersionFingerprint()
+  expect(resolveReadingOrder(db).items.map(item => item.id)).toEqual(["B"])
+  db.close()
+  const app = createPageRoutes(root, path.resolve("prompts"), path.resolve("assets"))
+  const restore = (version: number) => app.request(`/books/${label}/versions/${node}/pg001/restore`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version }) })
+  expect((await restore(999)).status).toBe(404)
+  const failed = storage()
+  expect(failed.getNodeVersionFingerprint()).toEqual(before)
+  failed.close()
+  expect((await restore(first)).status).toBe(200)
+  const changed = storage()
+  expect(resolveReadingOrder(changed).items).toEqual([])
+  expect(buildTextCatalogSnapshot(changed, changed.getPages()).entries).toEqual([])
+  expect(renderingOwnershipWarnings(changed)).toHaveLength(1)
+  expect((changed.getLatestNodeData("web-rendering", "pg001")!.data as WebRenderingOutput).sections[0].sectionId).toBe("B")
+  expect(changed.getLatestNodeData("text-catalog-translation", "fr")).toEqual(corrections)
+  for (const row of raw) expect(changed.getAllNodeVersions("web-rendering", "pg001")).toContainEqual(row)
+  changed.close()
+  expect((await restore(second)).status).toBe(200)
+  const restored = storage()
+  expect(resolveReadingOrder(restored).items.map(item => item.id)).toEqual(["B"])
+  expect(buildTextCatalogSnapshot(restored, restored.getPages()).entries.find(entry => entry.id === "B_ans_answer")?.text).toBe("Current answer for B")
+  expect(restored.getLatestNodeData("text-catalog-translation", "fr")).toEqual(corrections)
+  restored.close()
 })
 
 it("new assistant custom activities and their updates have stable owners in Preview and export", async () => {

@@ -58,9 +58,11 @@ function extractPageEntries(
 ): TextCatalogEntry[] {
   const entries: TextCatalogEntry[] = []
 
-  for (const section of rendering.sections) {
+  for (const section of [...rendering.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)) {
     const owner = resolveRenderedSection(section, sectioning?.sections, rendering.sections)
-    if (owner?.isPruned || (renderedSectionId(section) && sectioning && !owner)) continue
+    // Match reader eligibility before deduplication: retained, omitted HTML
+    // must never supply a live owner's text or certify its downstream outputs.
+    if (!owner || owner.isPruned) continue
 
     const doc = parseDocument(section.html)
     const sectionId = renderedSectionId(section)
@@ -230,6 +232,15 @@ export async function buildTextCatalog(
   pages: PageData[]
 ): Promise<TextCatalogOutput> {
   return buildTextCatalogSnapshot(storage, pages)
+}
+
+/** Cosmetic edits may retain a legacy conflict, but must not introduce a new
+ * divergent value under an existing identity. Shared by editor and assistant. */
+export function findIntroducedCatalogConflict(
+  before: TextCatalogOutput["conflicts"],
+  after: TextCatalogOutput["conflicts"],
+) {
+  return after?.find(conflict => !before?.some(previous => previous.id === conflict.id && conflict.texts.every(text => previous.texts.includes(text))))
 }
 
 /** Synchronous snapshot for atomic authored-save/catalog reconciliation. */

@@ -173,19 +173,24 @@ export function withSourceGenerationTracking<T>(storage: Storage, mutate: () => 
 
 /** Publish source and reset only the separate source generators atomically.
  * Catalog-managed attempts, entity versions and physical assets are retained. */
+/** Freeze uniquely inferred ownership against the pre-edit source snapshot.
+ * Call inside the source mutation transaction, including version restores. */
+export function preserveRenderedOwnership(storage: Storage, itemId: string): void {
+  const retained = WebRenderingOutput.safeParse(storage.getLatestNodeData("web-rendering", itemId)?.data)
+  if (!retained.success) return
+  const resolved = withLegacyRenderingOwnership(storage, itemId, retained.data)
+  if (resolved.sections.some((entry, index) => entry.sectionId !== retained.data.sections[index].sectionId)) {
+    storage.putNodeData("web-rendering", itemId, resolved)
+  }
+}
+
 export function putSourceNodeData(storage: Storage, node: string, itemId: string, data: unknown): number {
   const write = () => {
     if (node === "page-sectioning" || node === "fixed-layout-sectioning") {
       // Capture ownership while all original leaves are still in their source
       // sections. Otherwise a successful reorder/split/move could change what
       // the next read infers. This metadata-only version stays in this transaction.
-      const retained = WebRenderingOutput.safeParse(storage.getLatestNodeData("web-rendering", itemId)?.data)
-      if (retained.success) {
-        const resolved = withLegacyRenderingOwnership(storage, itemId, retained.data)
-        if (resolved.sections.some((entry, index) => entry.sectionId !== retained.data.sections[index].sectionId)) {
-          storage.putNodeData("web-rendering", itemId, resolved)
-        }
-      }
+      preserveRenderedOwnership(storage, itemId)
     }
     return storage.putNodeData(node, itemId, data)
   }

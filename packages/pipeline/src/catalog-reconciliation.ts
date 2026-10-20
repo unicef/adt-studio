@@ -78,8 +78,8 @@ export function buildImageInventory(storage: Storage) {
     const projected = withLegacyRenderingOwnership(storage, page.pageId, rendering.data)
     for (const section of projected.sections) {
       const source = resolveRenderedSection(section, sectioning?.sections, projected.sections)
-      if (source?.isPruned || (renderedSectionId(section) && sectioning && !source)) continue
-      for (const id of extractImageIds([section.html])) add(id, page.pageId, source?.sectionId)
+      if (!source || source.isPruned) continue
+      for (const id of extractImageIds([section.html])) add(id, page.pageId, source.sectionId)
     }
   }
   const glossary = storage.getLatestNodeData("glossary", "book")?.data as GlossaryOutput | undefined

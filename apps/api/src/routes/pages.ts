@@ -1,5 +1,5 @@
 import { SourceGeneratorStep } from "@adt/types"
-import { putSourceNodeData, withSourceGenerationTracking, markSourceGenerationNeedsUpdate } from "@adt/pipeline"
+import { putSourceNodeData, preserveRenderedOwnership, withSourceGenerationTracking, markSourceGenerationNeedsUpdate } from "@adt/pipeline"
 import { cloneRenderedIdentities, stampRenderedOwner } from "@adt/pipeline"
 import { captureOutputReferences } from "@adt/pipeline"
 import { scopeLegacyActivityIds, getRenderSectioning, resolveRenderedSection, renderedSectionId, withLegacyRenderingOwnership, renderingOwnershipSynchronization } from "@adt/pipeline"
@@ -7,7 +7,7 @@ import { catalogOutputs, editSourceSignature, assertEditSource, assertEditVersio
 import { OutputEditGuard } from "@adt/types"
 import { outputEvidence } from "@adt/pipeline"
 import { restoreSpeechOutput } from "@adt/storage"
-import { reconcileTextCatalog, assignActivityIds, buildTextCatalogSnapshot, buildImageInventory, inputSignature } from "@adt/pipeline"
+import { reconcileTextCatalog, assignActivityIds, buildTextCatalogSnapshot, findIntroducedCatalogConflict, buildImageInventory, inputSignature } from "@adt/pipeline"
 import { randomUUID } from "node:crypto"
 import crypto from "node:crypto"
 import fs from "node:fs"
@@ -589,7 +589,7 @@ function saveStoryboardNode(
     } : data
     const nextVersion = putSourceNodeData(storage, node, itemId, saved)
     const conflictsAfter = buildTextCatalogSnapshot(storage, storage.getPages()).conflicts ?? []
-    const introduced = conflictsAfter.find((conflict) => !conflictsBefore.some((previous) => previous.id === conflict.id && conflict.texts.every((text) => previous.texts.includes(text))))
+    const introduced = findIntroducedCatalogConflict(conflictsBefore, conflictsAfter)
     if (introduced) throw new HTTPException(409, { message: `Conflicting catalog data ID: ${introduced.id}. Give different content distinct IDs before saving.` })
     reconcileTextCatalog(storage)
     return nextVersion
@@ -1665,8 +1665,9 @@ export function createPageRoutes(
   })
 
   // POST /books/:label/versions/:node/:itemId/restore — roll an entity back to
-  // an existing version by moving its current-version pointer (no new version
-  // is created). Supports the nodes exposed by the shared version picker
+  // an existing version by moving its current-version pointer. Source restores
+  // may first version inferred rendering ownership against the pre-edit source.
+  // Supports the nodes exposed by the shared version picker
   // (itemId = page id / "book" / language code).
   app.post("/books/:label/versions/:node/:itemId/restore", async (c) => {
     const { label, itemId } = c.req.param()
@@ -1698,6 +1699,7 @@ export function createPageRoutes(
     try {
       return withSourceGenerationTracking(storage, () => {
         const previousVersion = storage.getLatestNodeData(node, itemId)?.version
+        if (node === "page-sectioning") preserveRenderedOwnership(storage, itemId)
         const ok = node === "tts" ? restoreSpeechOutput(storage, path.join(path.resolve(booksDir), safeLabel), itemId, version) : storage.setCurrentNodeVersion(node, itemId, version)
         if (!ok) {
           throw new HTTPException(404, {

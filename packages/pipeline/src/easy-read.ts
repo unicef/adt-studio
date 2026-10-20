@@ -157,7 +157,8 @@ export function buildPageEasyReadBlocks(
 ): EasyReadOutput["blocks"] {
   const blocks: EasyReadOutput["blocks"] = []
 
-  for (const renderedSection of rendering.sections) {
+  // Match reading-order.ts even when a historical array is stored out of order.
+  for (const renderedSection of [...rendering.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)) {
     const section = resolveRenderedSection(renderedSection, sectioning.sections, rendering.sections)
     if (!section || section.isPruned) continue
     const sectionType = section.sectionType || renderedSection.sectionType

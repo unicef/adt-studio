@@ -467,7 +467,7 @@ export {
 
 export { inputSignature, outputEvidence, outputIdentityKey, deriveOutputStatus, selectedOutput, summarizeOutputs, summarizeOutputScopes, needsOutputGeneration } from "./output-freshness.js"
 
-export { buildTextCatalogSnapshot } from "./text-catalog.js"
+export { buildTextCatalogSnapshot, findIntroducedCatalogConflict } from "./text-catalog.js"
 export { assignActivityIds, reconcileActivityIds, reconcileTextCatalog, buildImageInventory } from "./catalog-reconciliation.js"
 
 export { coreTtsInputBasis, resolveCoreTtsSpeechCatalog } from "./core-tts.js"
@@ -508,7 +508,7 @@ export { cloneRenderedIdentities, stampRenderedOwner } from "./rendered-identity
 export { indexEasyReadEntries } from "./easy-read.js"
 
 export { diagnoseBook, diagnoseBooks, formatDiagnosis, hasFindings, type BookDiagnosis, type UnownedRendering, type OwnerCandidate } from "./book-doctor.js"
-export { sourceGenerationBasis, putSourceNodeData, putReflowableRendering, withSourceGenerationTracking, captureSourceGeneration, publishSourceGeneration, getSourceGenerationUpdates, markSourceGenerationNeedsUpdate, keepSourceGeneration, currentSourceInputSignature } from "./source-generation-state.js"
+export { sourceGenerationBasis, putSourceNodeData, preserveRenderedOwnership, putReflowableRendering, withSourceGenerationTracking, captureSourceGeneration, publishSourceGeneration, getSourceGenerationUpdates, markSourceGenerationNeedsUpdate, keepSourceGeneration, currentSourceInputSignature } from "./source-generation-state.js"
 
 export { collectQuizPages } from "./quiz-generation.js"
 

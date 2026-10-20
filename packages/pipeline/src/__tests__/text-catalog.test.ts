@@ -3,11 +3,19 @@ import type { Storage, PageData } from "@adt/storage"
 import { buildTextCatalog } from "../text-catalog.js"
 
 function createMockStorage(
-  nodeData: Record<string, Record<string, unknown>>
+  nodeData: Record<string, Record<string, unknown>>,
+  withOwners = true,
 ): Storage {
   // These fixtures are paired source/render publications, not identityless legacy imports.
   for (const [pageId, value] of Object.entries(nodeData["web-rendering"] ?? {})) {
-    const rendering = value as { sections: Array<{ sectionIndex: number; sectionId?: string }> }
+    const rendering = value as { sections: Array<{ sectionIndex: number; sectionId?: string; sectionType: string }> }
+    if (withOwners && !nodeData["fixed-layout-sectioning"]?.[pageId] && !nodeData["page-sectioning"]?.[pageId]) {
+      nodeData["page-sectioning"] ??= {}
+      nodeData["page-sectioning"][pageId] = { reasoning: "Paired test fixture", sections: rendering.sections.map((entry, index) => ({
+        sectionId: entry.sectionId ?? `${pageId}_fixture_${index}`, sectionType: entry.sectionType,
+        nodes: [], backgroundColor: "white", textColor: "black", pageNumber: 1, isPruned: false,
+      })) }
+    }
     const source = (nodeData["fixed-layout-sectioning"]?.[pageId] ?? nodeData["page-sectioning"]?.[pageId]) as { sections: Array<{ sectionId: string }> } | undefined
     for (const entry of rendering.sections) {
       const owner = source?.sections[entry.sectionIndex]?.sectionId
@@ -477,7 +485,7 @@ describe("buildTextCatalog", () => {
     expect(result.entries.map(({ locations: _locations, ...entry }) => entry)).toContainEqual({ id: "pg001_sec001_ans_item-2", text: "42" })
   })
 
-  it("skips activity answers when no sectioning row resolves the section id", async () => {
+  it("omits all catalog contributions when no sectioning row resolves the section id", async () => {
     // sectionIds are allocated once and never reused, so they cannot be derived
     // from `sectionIndex`. Emitting a guessed id would attach these answers'
     // translations and generated audio to whichever section owns that id.
@@ -495,11 +503,11 @@ describe("buildTextCatalog", () => {
           ],
         },
       },
-    })
+    }, false)
 
     const result = await buildTextCatalog(storage, [pages[0]])
 
-    expect(result.entries.filter((e) => e.id.includes("_ans_"))).toEqual([])
+    expect(result.entries).toEqual([])
   })
 
   it("skips sections without activity answers", async () => {
