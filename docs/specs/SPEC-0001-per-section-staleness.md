@@ -8,7 +8,7 @@ issues: ["#735", "#131", "#733", "#736", "#619", "#626"]
 prs: ["#879"]
 adr: "docs/DECISIONS.md#adr-024"
 created: 2026-09-10
-updated: 2026-10-17
+updated: 2026-10-20
 ---
 
 ## Decision under review
@@ -183,6 +183,11 @@ Unresolved-input warnings propagate to actual dependents and link to their sourc
 3. Expand work where a step requires a context group. Easy-read regenerates an affected section's eligible generated entries. Existing request batching may compute additional results, but cannot publish outputs outside the affected selection or replace protected work. Display shared/context-driven scope expansion before running.
 4. Reuse the existing LLM cache. Only identical complete requests with valid cache entries avoid provider calls. A changed batch can miss the cache even if some entries are unchanged. Per-output freshness and request-level caching are different checks.
 5. Read/merge/write new versions of page/book/language collections. Validate captured inputs and target version/protection/selection before publication. Pre-existing warnings may remain; an input change or conflicting edit during execution rejects obsolete publication. Retain previous output on failure, cancellation or rejection. Concurrent partial runs must not overwrite each other's results.
+
+Cancellation cleanup is part of the admitted writer's operation. Clear its running
+step records before releasing that same admission; a cancelled queued job must
+not clear records belonging to a subsequently admitted writer. Failure to acquire
+admission does not authorize cleanup of another writer's state.
 6. Reconcile changed published output before dependent execution. Later steps in an explicitly requested stage range may consume successful earlier results. Speech alone does not silently start Translate or other upstream provider calls; it can resolve the deterministic fallback below.
 
 If the actual chosen input signature already has a valid output, reuse it even while an upstream warning remains. Do not repeatedly generate identical audio merely because its translation awaits review. Retaining old rows must not make runners incorrectly skip actual input changes.
@@ -296,6 +301,16 @@ it does not rewrite arbitrary JavaScript selectors. It stamps the corrected
 activity's server-allocated owner, preserving local DOM/activity keys and shared
 image IDs. A cloned non-catalog wrapper retains its local `data-id` alias so a
 legacy script can still locate it; cloned catalog leaves receive fresh IDs.
+
+ID reservation is book-wide across source kinds and retained output history,
+including legacy glossary/quiz IDs and source-less translations, speech, captions
+and answers. Reserve deterministic Easy Read slots before generation as well as
+afterward. Reject a draft introducing both a source ID and its derived slot, in
+either order. This is a preservation rule, not evidence of historical ownership:
+existing local IDs, explicit moves and restores retain their identities, and
+unchanged legacy collisions remain editable. Cosmetic saves do not require an
+additional history scan when they introduce no IDs. No media bytes are read or
+hashed for these checks.
 
 Preview/export may include usable stale or review-needed content under existing eligibility rules. Show outdated content included, missing content omitted, and actual fallback use. Warnings introduce no extra approval popup or freshness gate; exporting does not clear them. Disabled/excluded features do not warn about work not included. Apart from Core TTS fallback, this spec adds no new export fallback.
 
