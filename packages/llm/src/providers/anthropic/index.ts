@@ -1,9 +1,10 @@
 import { z } from "zod"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import type { ProviderManifest } from "@adt/types"
-import type { ProviderModule } from "../../ports/index.js"
+import type { CapabilitiesFor, ProviderModule } from "../../ports/index.js"
 import { createAiSdkStructuredTextBackend } from "../shared/ai-sdk/structured-text.js"
 import { createAiSdkAgentBackend } from "../shared/ai-sdk/agent.js"
+import { claudeModelRules, claudeTimeoutMs, withClaudeModelRules } from "./claude-models.js"
 import {
   ANTHROPIC_ORIGIN,
   listAnthropicModels,
@@ -60,6 +61,14 @@ export const anthropicProvider: ProviderModule<AnthropicCredentials> = {
 
   resolveServerCredentials: () => ({ apiKey: process.env.ANTHROPIC_API_KEY }),
 
+  capabilitiesFor: (modality, modelId) =>
+    modality === "structured-text" && claudeModelRules(modelId).rejectsSampling
+      ? ({
+          ...anthropicManifest.capabilities["structured-text"]!,
+          temperature: false,
+        } as CapabilitiesFor<typeof modality>)
+      : undefined,
+
   cacheFingerprint: () => ({
     adapterVersion: ADAPTER_VERSION,
     origin: ANTHROPIC_ORIGIN,
@@ -70,11 +79,31 @@ export const anthropicProvider: ProviderModule<AnthropicCredentials> = {
 
   createStructuredTextBackend: (context) => {
     const client = createAnthropic({ apiKey: context.credentials.apiKey })
-    return createAiSdkStructuredTextBackend(() => client(context.modelId))
+    const backend = createAiSdkStructuredTextBackend(() =>
+      withClaudeModelRules(context.modelId, client(context.modelId)),
+    )
+    return {
+      generateStructured: (request) =>
+        backend.generateStructured({
+          ...request,
+          timeoutMs: claudeTimeoutMs(context.modelId, request.timeoutMs),
+        }),
+    }
   },
 
-  createAgentBackend: (context) =>
-    createAiSdkAgentBackend(
-      createAnthropic({ apiKey: context.credentials.apiKey })(context.modelId),
-    ),
+  createAgentBackend: (context) => {
+    const backend = createAiSdkAgentBackend(
+      withClaudeModelRules(
+        context.modelId,
+        createAnthropic({ apiKey: context.credentials.apiKey })(context.modelId),
+      ),
+    )
+    return {
+      generateTurn: (request) =>
+        backend.generateTurn({
+          ...request,
+          timeoutMs: claudeTimeoutMs(context.modelId, request.timeoutMs),
+        }),
+    }
+  },
 }

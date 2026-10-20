@@ -1,5 +1,6 @@
 export {
   AiProviderError,
+  ModelRefusalError,
   type AiProviderErrorDetails,
   type CredentialValidationIssue,
 } from "./errors.js"

@@ -41,7 +41,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   anthropic: {
     name: "Anthropic",
     desc: msg`Claude models — Opus, Sonnet.`,
-    hint: msg`Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)`,
+    hint: msg`Used for Claude models (claude-opus-5-5, claude-sonnet-5-5, etc.)`,
     icon: Sparkles,
     tile: "bg-amber-50 text-amber-600",
   },

@@ -24,7 +24,7 @@ import {
 import { sanitizeMessages, type LlmLogEntry } from "./log.js"
 import { createLogger, type LogLevel } from "./logger.js"
 import { formatProviderError } from "./error-format.js"
-import { AiProviderError } from "./ports/errors.js"
+import { AiProviderError, ModelRefusalError } from "./ports/errors.js"
 import type { ResolvedCredentials } from "./credentials.js"
 import {
   mergeResolvedCredentials,
@@ -392,9 +392,10 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             throw err
           }
 
-          // Provider/credential/model errors are configuration failures, not
-          // transient ones — retrying them only delays the real message.
-          if (attempt < maxRetries && !AiProviderError.is(err)) {
+          // Provider/credential/model errors are configuration failures, and a
+          // safety decline repeats for the same input — neither is transient,
+          // so retrying only delays the real message.
+          if (attempt < maxRetries && !AiProviderError.is(err) && !ModelRefusalError.is(err)) {
             const delayMs = backoffDelay(attempt)
             log.error(
               `[LLM] ${label} | error (attempt ${attempt + 1}/${maxRetries + 1}) | ${errMsg} | retrying in ${delayMs}ms`
