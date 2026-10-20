@@ -247,6 +247,26 @@ describe("speech fallback and retry admission", () => {
     expect(neighborChanged.entries[0].fallbackReason).toBe("missing")
     expect(neighborChanged.entries[1].fallbackReason).toBe("outdated")
   })
+  it.each(["checked", "manual"])("a changed source context invalidates only the %s fallback acceptance", async mode => {
+    const failing = modelWith([])
+    vi.mocked(failing.generateObject).mockRejectedValue(new Error("Controlled failure"))
+    const previous = await prepareCoreTtsCatalog({ entries, language: "fr", config, profile, llmModel: failing })
+    const retained = previous.entries[0]
+    if (mode === "checked") retained.review = { action: "checked", signature: retained.input!.signature, contentHash: inputSignature(retained.speechText) }
+    else retained.generation.mode = "manual"
+    expect(resolveCoreTtsSpeechCatalog({ entries, language: "fr", config, profile, previous }).entries[0]).toEqual(retained)
+    const sourceContext = new Map([["t1", { displayText: "Changed source", speechText: "Changed prepared source" }]])
+    const resolved = resolveCoreTtsSpeechCatalog({ entries, language: "fr", config, profile, previous, sourceContext })
+    if (mode === "manual") expect(resolved.entries[0]).toEqual(retained)
+    else {
+      expect(resolved.entries[0]).toMatchObject({ fallbackReason: "outdated", speechText: "Bonjour" })
+      expect(resolved.entries[0].review).toBeUndefined()
+    }
+    const llm = modelWith([{ id: "t1", speech_text: "Bonjour", transformation_kinds: [], failure_reason: null }])
+    const prepared = await prepareCoreTtsCatalog({ entries, language: "fr", config, profile, previous: resolved, sourceContext, llmModel: llm })
+    expect(llm.generateObject).toHaveBeenCalledTimes(mode === "checked" ? 1 : 0)
+    expect(prepared.entries[0]).toEqual(mode === "manual" ? retained : expect.objectContaining({ status: "ready" }))
+  })
   it("keeps every phrase on exhausted batch failure without adding retries", async () => {
     const llm = modelWith([])
     vi.mocked(llm.generateObject).mockRejectedValue(new Error("provider unavailable"))

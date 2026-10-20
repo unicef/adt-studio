@@ -273,11 +273,14 @@ export function resolveCoreTtsSpeechCatalog(options: {
       }
       if (!entry.text.trim()) return []
       if (previous?.input?.signature === signature && previous.input.contentHash === inputSignature(previous.speechText) && previous.speechText?.trim()) return previous
-      // Every fallback is stored with status "failed"; keep its recorded reason
-      // so a never-attempted ("missing"/"outdated") entry is not reported as failed.
+      // Matching failed attempts returned above. A new basis has not been
+      // attempted: Speech must not stamp an old failure onto it and consume
+      // the next requested preparation. Retain a never-attempted reason when
+      // only its context changed; the old failure remains in entity history.
       const reason = input.enabled_transformations.length === 0 ? undefined
-        : !previous ? "missing" : previous.status === "failed" && previous.displayText === entry.text ? previous.fallbackReason ?? "failed" : "outdated"
-      return fallbackEntry({ entry, signature, language: options.language, profile: options.profile, enabled: input.enabled_transformations, reason, failureReason: reason === "failed" ? previous?.failureReason : undefined, now })
+        : !previous ? "missing"
+        : previous.displayText === entry.text && previous.fallbackReason === "missing" ? "missing" : "outdated"
+      return fallbackEntry({ entry, signature, language: options.language, profile: options.profile, enabled: input.enabled_transformations, reason, now })
     }),
   }
 }
