@@ -4,6 +4,7 @@ import { catalogOutputs, editSourceSignature, assertEditSource } from "../servic
 import fs from "node:fs"
 import path from "node:path"
 import crypto from "node:crypto"
+import { isDeepStrictEqual } from "node:util"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
@@ -13,6 +14,7 @@ import {
   OutputEditGuard,
   parseBookLabel,
   type CoreTtsCatalogEntry,
+  type OutputStatus,
   type TTSOutput,
   type WordTimestampOutput,
 } from "@adt/types"
@@ -38,6 +40,12 @@ const SpeechTextBody = z.object({ speechText: z.string().min(1), ...OutputEditGu
 
 function hash(value: unknown): string {
   return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex")
+}
+
+/** Editor receipts also identify the saved locale namespace; its versions are
+ * independent from the canonical alias's version history. */
+function speechEditSourceSignature(outputs: OutputStatus[], itemId: string): string {
+  return hash({ itemId, source: editSourceSignature(outputs, "preparation", itemId) })
 }
 
 export function createTextCatalogRoutes(booksDir: string, promptsDir = path.resolve("prompts"), configPath?: string): Hono {
@@ -121,7 +129,7 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
             speechTexts[row.item_id] = {
               entries: parsed.data.entries,
               version: row.version,
-              sourceSignature: editSourceSignature(outputs, "preparation", row.item_id),
+              sourceSignature: speechEditSourceSignature(outputs, row.item_id),
             }
           }
         } catch {
@@ -228,62 +236,78 @@ export function createTextCatalogRoutes(booksDir: string, promptsDir = path.reso
     const normalizedLanguage = normalizeLocale(language)
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const current = getCoreTtsCatalog(storage, normalizedLanguage)
-      if (!current) {
-        throw new HTTPException(404, {
-          message: `Core TTS catalog not found for ${normalizedLanguage}`,
-        })
-      }
-      const currentRow = storage.getLatestNodeData("core-tts-catalog", normalizedLanguage) ?? storage.getLatestNodeData("core-tts-catalog", normalizedLanguage.replace("-", "_"))
-      if (currentRow?.version !== parsed.data.baseVersion) throw new HTTPException(409, { message: "Speech text changed. Refresh before saving." })
-      const index = current.entries.findIndex((entry) => entry.id === entryId)
-      if (index < 0) {
-        throw new HTTPException(404, { message: `Core TTS entry not found: ${entryId}` })
-      }
+      return storage.transaction(() => {
+        const current = getCoreTtsCatalog(storage, normalizedLanguage)
+        if (!current) {
+          throw new HTTPException(404, {
+            message: `Core TTS catalog not found for ${normalizedLanguage}`,
+          })
+        }
+        const normalizedRow = storage.getLatestNodeData("core-tts-catalog", normalizedLanguage)
+        const itemId = normalizedRow ? normalizedLanguage : normalizedLanguage.replace("-", "_")
+        const currentRow = normalizedRow ?? storage.getLatestNodeData("core-tts-catalog", itemId)
+        const matching = current.entries.filter(entry => entry.id === entryId)
+        if (matching.length > 1) throw new HTTPException(409, { message: "Speech text has conflicting identities. Refresh before saving." })
+        const index = current.entries.findIndex((entry) => entry.id === entryId)
+        if (index < 0) {
+          throw new HTTPException(404, { message: `Core TTS entry not found: ${entryId}` })
+        }
 
-      const outputs = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath, { kinds: ["translation", "preparation"] })
-      assertEditSource(editSourceSignature(outputs, "preparation", normalizedLanguage), parsed.data.sourceSignature)
-      const status = outputs.find((item) => item.identity.kind === "preparation" && item.identity.id === entryId && item.identity.language === normalizedLanguage)
-      const now = new Date().toISOString()
-      const previous = current.entries[index]
-      const speechText = parsed.data.speechText
-      const nextEntry: CoreTtsCatalogEntry = {
-        ...previous,
-        speechText,
-        source: "manual", review: undefined, fallbackReason: undefined,
-        input: status ? outputEvidence(status.signature, speechText, captureOutputReferences(storage, status.identity.kind, status.identity.language)) : undefined,
-        changed: speechText !== previous.displayText,
-        status: "ready",
-        failureReason: undefined,
-        generation: {
-          ...previous.generation,
-          mode: "manual",
-          generatedAt: now,
-          sourceTextHash: hash(previous.displayText),
-          contextHash: hash({
-            displayText: previous.displayText,
-            speechText,
+        const outputs = catalogOutputs(storage, safeLabel, booksDir, promptsDir, configPath, { kinds: ["translation", "preparation"] })
+        // Bind the existing receipt to the exact legacy/canonical storage chain.
+        // Equal version numbers in different locale namespaces are not evidence.
+        assertEditSource(speechEditSourceSignature(outputs, itemId), parsed.data.sourceSignature)
+        if (currentRow?.version !== parsed.data.baseVersion) {
+          const baseline = currentRow && parsed.data.baseVersion < currentRow.version
+            ? storage.getAllNodeVersions("core-tts-catalog", itemId).find(row => row.version === parsed.data.baseVersion)
+            : undefined
+          const historical = CoreTtsCatalogOutput.safeParse(baseline?.data)
+          const previousEntries = historical.success ? historical.data.entries.filter(entry => entry.id === entryId) : []
+          // A different entry may have been saved since this editor opened. Merge
+          // only if this complete target is unchanged in the actual saved history.
+          // Compare raw entries as well, retaining unknown legacy metadata.
+          const rawEntry = (data: unknown) => (data as { entries: CoreTtsCatalogEntry[] }).entries.find(entry => entry.id === entryId)
+          if (previousEntries.length !== 1 || !isDeepStrictEqual(rawEntry(baseline!.data), rawEntry(currentRow!.data))) {
+            throw new HTTPException(409, { message: "Speech text changed. Refresh before saving." })
+          }
+        }
+        const status = outputs.find((item) => item.identity.kind === "preparation" && item.identity.id === entryId && item.identity.language === normalizedLanguage)
+        const now = new Date().toISOString()
+        const currentData = currentRow!.data as { entries: CoreTtsCatalogEntry[] }
+        const previous = currentData.entries[index]
+        const speechText = parsed.data.speechText
+        const nextEntry: CoreTtsCatalogEntry = {
+          ...previous,
+          speechText,
+          source: "manual", review: undefined, fallbackReason: undefined,
+          input: status ? outputEvidence(status.signature, speechText, captureOutputReferences(storage, status.identity.kind, status.identity.language)) : undefined,
+          changed: speechText !== previous.displayText,
+          status: "ready",
+          failureReason: undefined,
+          generation: {
+            ...previous.generation,
             mode: "manual",
-          }),
-          cached: false,
-        },
-      }
-      const entries = [...current.entries]
-      entries[index] = nextEntry
-      const version = storage.putNodeData(
-        "core-tts-catalog",
-        normalizedLanguage,
-        CoreTtsCatalogOutput.parse({
-          language: normalizedLanguage,
-          entries,
-          generatedAt: now,
-        }),
-      )
+            generatedAt: now,
+            sourceTextHash: hash(previous.displayText),
+            contextHash: hash({
+              displayText: previous.displayText,
+              speechText,
+              mode: "manual",
+            }),
+            cached: false,
+          },
+        }
+        const entries = [...currentData.entries]
+        entries[index] = nextEntry
+        const next = { ...currentData, language: normalizedLanguage, entries, generatedAt: now }
+        CoreTtsCatalogOutput.parse(next)
+        const version = storage.putNodeData("core-tts-catalog", itemId, next)
 
-      // Keep prior playable audio/timing versions. Actual speech-input evidence
-      // marks them for an explicit update; a Save never removes user output.
-      storage.clearNodesByType(["accessibility-assessment"])
-      return c.json({ version, entry: nextEntry })
+        // Keep prior playable audio/timing versions. Actual speech-input evidence
+        // marks them for an explicit update; a Save never removes user output.
+        storage.clearNodesByType(["accessibility-assessment"])
+        return c.json({ version, entry: nextEntry })
+      })
     } finally {
       storage.close()
     }

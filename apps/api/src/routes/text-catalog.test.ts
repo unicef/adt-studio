@@ -360,3 +360,117 @@ describe("text catalog routes", () => {
     }
   })
 })
+
+describe("independent speech-entry saves in one versioned language catalog", () => {
+  function seedSpeechCatalog(itemId = "en") {
+    const label = "speech-entry-merge"
+    seedRenderedBook(label)
+    const storage = createBookStorage(label, tmpDir)
+    const entries = ["pg001_t001", "pg001_t002"].map((id, index) => ({
+      id, displayText: index === 0 ? "Hello world" : "Another sentence", speechText: index === 0 ? "Hello world" : "Another sentence",
+      changed: false, transformations: [], status: "ready", retainedLegacyNote: `Keep ${id}`,
+      generation: { mode: "unchanged", generatedAt: "before", enabledTransformations: [], sourceTextHash: "source", contextHash: "context" },
+    }))
+    storage.putNodeData("web-rendering", "pg001", { sections: [{ sectionIndex: 0, sectionId: "pg001_sec001", sectionType: "content", reasoning: "", html: '<p data-id="pg001_t001">Hello world</p><p data-id="pg001_t002">Another sentence</p>' }] })
+    const catalog = { language: itemId.replace("_", "-"), generatedAt: "before", entries, retainedLegacyNote: "Keep catalog metadata" }
+    storage.putNodeData("core-tts-catalog", itemId, catalog)
+    storage.close()
+    const app = createTextCatalogRoutes(tmpDir)
+    const read = async () => (await (await app.request(`/books/${label}/text-catalog`)).json()).speechTexts
+    const save = (id: string, speechText: string, baseVersion: number, sourceSignature: string) => app.request(`/books/${label}/core-tts-catalog/${itemId.replace("_", "-")}/${id}`, {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ speechText, baseVersion, sourceSignature }),
+    })
+    return { label, app, catalog, read, save }
+  }
+
+  it("merges two independently loaded entries while preserving unrelated current metadata and history", async () => {
+    const { label, catalog, read, save } = seedSpeechCatalog()
+    const guard = (await read()).en
+    const first = await save("pg001_t001", "Manual first", guard.version, guard.sourceSignature)
+    expect(first.status).toBe(200)
+    expect((await first.json()).version).toBe(2)
+    const second = await save("pg001_t002", "Manual second", guard.version, guard.sourceSignature)
+    expect(second.status).toBe(200)
+    expect((await second.json()).version).toBe(3)
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      const current = storage.getLatestNodeData("core-tts-catalog", "en")!
+      expect(current.data).toMatchObject({ retainedLegacyNote: "Keep catalog metadata", entries: [
+        { id: "pg001_t001", speechText: "Manual first", retainedLegacyNote: "Keep pg001_t001" },
+        { id: "pg001_t002", speechText: "Manual second", retainedLegacyNote: "Keep pg001_t002" },
+      ] })
+      expect(storage.getAllNodeVersions("core-tts-catalog", "en")[0].data).toEqual(catalog)
+    } finally { storage.close() }
+  })
+
+  it("rejects a stale same-entry writer and leaves the successful edit intact", async () => {
+    const { label, read, save } = seedSpeechCatalog()
+    const guard = (await read()).en
+    expect((await save("pg001_t001", "First writer", guard.version, guard.sourceSignature)).status).toBe(200)
+    const storage = createBookStorage(label, tmpDir)
+    const before = storage.getNodeVersionFingerprint()
+    expect((await save("pg001_t001", "Stale writer", guard.version, guard.sourceSignature)).status).toBe(409)
+    expect(storage.getNodeVersionFingerprint()).toEqual(before)
+    storage.close()
+  })
+
+  it.each(["future", "missing", "malformed", "duplicate-history", "duplicate-current", "source", "exclusion", "restored-future"])("rejects %s evidence without publishing a version", async mode => {
+    const { label, catalog, read, save } = seedSpeechCatalog()
+    const guard = (await read()).en
+    const storage = createBookStorage(label, tmpDir)
+    let baseVersion = guard.version
+    if (mode === "future") baseVersion = 5
+    if (mode === "missing") baseVersion = 0
+    if (mode === "malformed" || mode === "duplicate-history") {
+      baseVersion = storage.putNodeData("core-tts-catalog", "en", mode === "malformed" ? { invalid: true } : { ...catalog, entries: [catalog.entries[0], catalog.entries[0]] })
+      storage.putNodeData("core-tts-catalog", "en", catalog)
+    }
+    if (mode === "duplicate-current") storage.putNodeData("core-tts-catalog", "en", { ...catalog, entries: [catalog.entries[0], catalog.entries[0]] })
+    if (mode === "source") storage.putNodeData("web-rendering", "pg001", { sections: [{ sectionIndex: 0, sectionId: "pg001_sec001", sectionType: "content", reasoning: "", html: '<p data-id="pg001_t001">Changed source</p><p data-id="pg001_t002">Another sentence</p>' }] })
+    if (mode === "exclusion") fs.writeFileSync(path.join(tmpDir, label, "config.yaml"), "speech:\n  excluded_text_ids: [pg001_t001]\n")
+    if (mode === "restored-future") { baseVersion = storage.putNodeData("core-tts-catalog", "en", catalog); storage.setCurrentNodeVersion("core-tts-catalog", "en", 1) }
+    const before = storage.getNodeVersionFingerprint()
+    expect((await save("pg001_t001", "Unsafe edit", baseVersion, guard.sourceSignature)).status).toBe(409)
+    expect(storage.getNodeVersionFingerprint()).toEqual(before)
+    storage.close()
+  })
+
+  it("compares the current restored branch with its real historical baseline", async () => {
+    const { label, catalog, read, save } = seedSpeechCatalog()
+    const guard = (await read()).en
+    const storage = createBookStorage(label, tmpDir)
+    storage.putNodeData("core-tts-catalog", "en", { ...catalog, entries: [{ ...catalog.entries[0], speechText: "Abandoned target" }, catalog.entries[1]] })
+    storage.setCurrentNodeVersion("core-tts-catalog", "en", 1)
+    storage.putNodeData("core-tts-catalog", "en", { ...catalog, entries: [catalog.entries[0], { ...catalog.entries[1], speechText: "Current neighbor" }] })
+    expect((await save("pg001_t001", "Manual target", guard.version, guard.sourceSignature)).status).toBe(200)
+    expect(storage.getLatestNodeData("core-tts-catalog", "en")?.data).toMatchObject({ entries: [{ speechText: "Manual target" }, { speechText: "Current neighbor" }] })
+    expect(storage.getAllNodeVersions("core-tts-catalog", "en")[1].data).toMatchObject({ entries: [{ speechText: "Abandoned target" }, { speechText: "Another sentence" }] })
+    storage.close()
+  })
+
+  it("keeps legacy locale saves in their actual version namespace", async () => {
+    const { label, read, save } = seedSpeechCatalog("pt_BR")
+    const guard = (await read()).pt_BR
+    expect((await save("pg001_t001", "Primeiro", guard.version, guard.sourceSignature)).status).toBe(200)
+    expect((await save("pg001_t002", "Segundo", guard.version, guard.sourceSignature)).status).toBe(200)
+    const storage = createBookStorage(label, tmpDir)
+    expect(storage.getLatestNodeData("core-tts-catalog", "pt_BR")?.version).toBe(3)
+    expect(storage.getLatestNodeData("core-tts-catalog", "pt-BR")).toBeNull()
+    storage.close()
+  })
+
+  it("rejects a legacy guard when another canonical namespace has the same numeric version", async () => {
+    const { label, catalog, read, save } = seedSpeechCatalog("pt_BR")
+    const legacy = (await read()).pt_BR
+    const storage = createBookStorage(label, tmpDir)
+    storage.putNodeData("core-tts-catalog", "pt-BR", catalog)
+    const before = storage.getNodeVersionFingerprint()
+    expect((await save("pg001_t001", "Wrong namespace", legacy.version, legacy.sourceSignature)).status).toBe(409)
+    expect(storage.getNodeVersionFingerprint()).toEqual(before)
+    const current = (await read())["pt-BR"]
+    expect((await save("pg001_t001", "Correct namespace", current.version, current.sourceSignature)).status).toBe(200)
+    expect(storage.getLatestNodeData("core-tts-catalog", "pt_BR")?.data).toEqual(catalog)
+    expect(storage.getLatestNodeData("core-tts-catalog", "pt-BR")?.version).toBe(2)
+    storage.close()
+  })
+})
