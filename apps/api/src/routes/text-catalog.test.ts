@@ -41,10 +41,12 @@ function seedRenderedBook(label: string): void {
       },
       images: [],
     })
+    storage.putNodeData("page-sectioning", "pg001", { reasoning: "", sections: [{ sectionId: "pg001_sec001", sectionType: "content", backgroundColor: "white", textColor: "black", pageNumber: 1, isPruned: false, nodes: [] }] })
     storage.putNodeData("web-rendering", "pg001", {
       sections: [
         {
           sectionIndex: 0,
+          sectionId: "pg001_sec001",
           sectionType: "content",
           reasoning: "",
           html: '<p data-id="pg001_t001">Hello world</p>',

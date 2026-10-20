@@ -11,7 +11,7 @@ function putReadyCoreTts(
 ): void {
   const page = storage.getPages()[0]
   const rendered = storage.getLatestNodeData("web-rendering", page.pageId)!.data as { sections: Array<{ html: string }> }
-  rendered.sections[0].html += ids.map((id) => `<p data-id="${id}">${id}</p>`).join("")
+  rendered.sections[0].html = rendered.sections[0].html.replace("</section>", ids.map((id) => `<p data-id="${id}">${id}</p>`).join("") + "</section>")
   storage.putNodeData("web-rendering", page.pageId, rendered)
   const audioDir = path.join(storage.bookDir, "audio", "en")
   fs.mkdirSync(audioDir, { recursive: true })

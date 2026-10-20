@@ -127,6 +127,11 @@ ${secondaryLines}
  )
 }
 
+// These runner fixtures represent published, owned content, not omitted imports.
+function seedContentOwner(storage: ReturnType<typeof createBookStorage>): void {
+  storage.putNodeData("page-sectioning", "pg001", { reasoning: "", sections: [{ sectionId: "pg001_sec001", sectionType: "content", backgroundColor: "white", textColor: "black", pageNumber: 1, isPruned: false, nodes: [] }] })
+}
+
 function seedCaptionBook(
   booksDir: string,
   label: string,
@@ -158,10 +163,12 @@ function seedCaptionBook(
       ],
     })
 
+    seedContentOwner(storage)
     storage.putNodeData("web-rendering", "pg001", {
       sections: [
         {
           sectionIndex: 0,
+          sectionId: "pg001_sec001",
           sectionType: "content",
           reasoning: "",
           html: '<section><img data-id="pg001_im001" src="x" /></section>',
@@ -316,10 +323,12 @@ function seedTextAndSpeechBook(booksDir: string, label: string): void {
       images: [],
     })
 
+    seedContentOwner(storage)
     storage.putNodeData("web-rendering", "pg001", {
       sections: [
         {
           sectionIndex: 0,
+          sectionId: "pg001_sec001",
           sectionType: "content",
           reasoning: "",
           html: '<p data-id="pg001_t001">Hello world</p>',
@@ -933,10 +942,12 @@ output_languages:
         },
         images: [],
       })
+      seedContentOwner(seed)
       seed.putNodeData("web-rendering", "pg001", {
         sections: [
           {
             sectionIndex: 0,
+            sectionId: "pg001_sec001",
             sectionType: "content",
             reasoning: "",
             html: '<p data-id="pg001_t001">Hello world</p>',
@@ -1042,10 +1053,12 @@ output_languages:
         },
         images: [],
       })
+      seedContentOwner(seed)
       seed.putNodeData("web-rendering", "pg001", {
         sections: [
           {
             sectionIndex: 0,
+            sectionId: "pg001_sec001",
             sectionType: "content",
             reasoning: "",
             html: '<p data-id="pg001_t001">Hello world</p>',
@@ -2876,7 +2889,7 @@ speech:
     // is the row that used to be logged as an ordinary success.
     const seed = createBookStorage("gemini-page-batch-skip", booksDir)
     try {
-      seed.putNodeData("web-rendering", "pg001", { sections: [{ sectionIndex: 0, sectionType: "text", reasoning: "", html: '<p data-id="pg001_t001">—</p>' }] })
+      seed.putNodeData("web-rendering", "pg001", { sections: [{ sectionIndex: 0, sectionId: "pg001_sec001", sectionType: "text", reasoning: "", html: '<p data-id="pg001_t001">—</p>' }] })
       seed.putNodeData("text-catalog", "book", {
         entries: [{ id: "pg001_t001", text: "—" }],
         generatedAt: "2026-01-01T00:00:00.000Z",

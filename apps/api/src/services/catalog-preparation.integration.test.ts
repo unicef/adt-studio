@@ -22,7 +22,8 @@ beforeEach(() => {
   const seed = storage()
   seed.putExtractedPage({ pageId: "pg001", pageNumber: 1, text: "source", pageImage: { imageId: "pg001_page", buffer: Buffer.from("page"), format: "png", hash: "page", width: 10, height: 10 }, images: [] })
   seed.putNodeData("metadata", "book", { language_code: "en" })
-  seed.putNodeData("web-rendering", "pg001", { sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "", html: '<p data-id="a">Hello</p><p data-id="b">World</p>' }] })
+  seed.putNodeData("page-sectioning", "pg001", { reasoning: "", sections: [{ sectionId: "pg001_sec001", sectionType: "content", backgroundColor: "white", textColor: "black", pageNumber: 1, isPruned: false, nodes: [] }] })
+  seed.putNodeData("web-rendering", "pg001", { sections: [{ sectionIndex: 0, sectionId: "pg001_sec001", sectionType: "content", reasoning: "", html: '<p data-id="a">Hello</p><p data-id="b">World</p>' }] })
   seed.close()
   transport.mockReset().mockImplementation(async (_url, request) => {
     const body = JSON.parse(String(request?.body))

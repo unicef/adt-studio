@@ -119,7 +119,7 @@ describe("catalog freshness through real API/storage boundaries", () => {
     const db = storage()
     db.putExtractedPage({ pageId: "pg001", pageNumber: 1, text: "Hello", pageImage: { imageId: "pg001_page", buffer: Buffer.from("page"), format: "png", hash: "page", width: 100, height: 100 }, images: [1, 2, 3].map((i) => ({ imageId: `pg001_im00${i}`, buffer: Buffer.from(`image ${i}`), format: "png", hash: `image-${i}`, width: 20, height: 20 })) })
     const next = rendering()
-    next.sections[0].html += '<img data-id="pg001_im002"/><img data-id="pg001_im003"/>'
+    next.sections[0].html = next.sections[0].html.replace('</section>', '<img data-id="pg001_im002"/><img data-id="pg001_im003"/></section>')
     db.putNodeData("web-rendering", "pg001", next)
     const pageFile = path.join(db.bookDir!, db.getImageMeta("pg001_page")!.relativePath)
     const asset = storeImmutableAsset(db.bookDir!, ["audio", "fr"], "shared", "mp3", Buffer.from("shared recording"))
@@ -129,24 +129,32 @@ describe("catalog freshness through real API/storage boundaries", () => {
     const reads = vi.spyOn(fs, "readFileSync")
     try {
       const before = await outputs()
+      const caption = (items: OutputStatus[]) => items.find((item) => item.identity.kind === "caption" && item.identity.id === "pg001_im001")!
+      const audio = (items: OutputStatus[]) => items.filter((item) => item.identity.kind === "audio" && item.identity.language === "fr" && ["pg001_t001", "pg001_t002"].includes(item.identity.id))
+      expect(caption(before)).toBeDefined()
+      expect(audio(before)).toHaveLength(2)
       const count = (file: string) => reads.mock.calls.filter(([input]) => String(input) === file || String(input) === fs.realpathSync(file)).length
       expect(count(pageFile)).toBe(0)
       expect(count(audioFile)).toBe(0)
       fs.writeFileSync(pageFile, "changed page")
       fs.writeFileSync(audioFile, "corrupt recording")
       const after = await outputs()
-      expect(after.find((item) => item.identity.kind === "caption")?.signature).toBe(before.find((item) => item.identity.kind === "caption")?.signature)
-      expect(after.filter((item) => item.identity.kind === "audio" && item.identity.language === "fr" && ["pg001_t001", "pg001_t002"].includes(item.identity.id)).every((item) => item.usable)).toBe(true)
+      expect(caption(after).signature).toBe(caption(before).signature)
+      expect(audio(after)).toHaveLength(2)
+      expect(audio(after).every((item) => item.usable)).toBe(true)
       fs.unlinkSync(audioFile)
       const missing = await outputs()
-      expect(missing.filter((item) => item.identity.kind === "audio" && item.identity.language === "fr" && ["pg001_t001", "pg001_t002"].includes(item.identity.id)).every((item) => !item.usable)).toBe(true)
+      expect(audio(missing)).toHaveLength(2)
+      expect(audio(missing).every((item) => !item.usable)).toBe(true)
     } finally { reads.mockRestore() }
   })
 
   it("opens legacy conflicting IDs with one warning, permits an unchanged save and rejects a new conflict atomically", async () => {
     const legacy = rendering()
-    legacy.sections.push({ ...legacy.sections[0], sectionIndex: 1, html: '<p data-id="pg001_t001">A different legacy copy</p>' })
+    legacy.sections.push({ ...legacy.sections[0], sectionIndex: 1, sectionId: "pg001_sec002", html: '<p data-id="pg001_t001">A different legacy copy</p>' })
     const db = storage()
+    const source = db.getLatestNodeData("page-sectioning", "pg001")!.data as import("@adt/types").PageSectioningOutput
+    db.putNodeData("page-sectioning", "pg001", { ...source, sections: [...source.sections, { ...source.sections[0], sectionId: "pg001_sec002" }] })
     db.putNodeData("web-rendering", "pg001", legacy)
     const retained = db.getLatestNodeData("text-catalog-translation", "fr")
     db.close()
