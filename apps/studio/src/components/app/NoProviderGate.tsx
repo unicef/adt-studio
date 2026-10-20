@@ -44,7 +44,7 @@ function ProviderFlow() {
  * continue without a provider.
  */
 export function NoProviderGate({ children }: { children: ReactNode }) {
-  const connect = useConnectProvider()
+  const connect = useConnectProvider({ from: "add-book" })
   const needsProvider = useNeedsTextProvider()
   const [dismissed, setDismissed] = useState(false)
   const connectRef = useRef<HTMLButtonElement>(null)

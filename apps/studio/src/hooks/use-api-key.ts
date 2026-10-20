@@ -18,9 +18,11 @@ export function useBookStructuredTextAvailability(bookLabel: string): boolean {
 
 /**
  * Same check, plus whether it can be trusted yet. `ready` is false while the
- * provider list or the book's config is still loading, and when the provider
- * list failed to load; UI that announces a missing provider should wait for it
- * so users with a key never see a flash of "no provider".
+ * provider list or the book's config is still loading, and when either failed
+ * to load (a failed config would fall back to the global default model and
+ * misjudge a book set to another provider); UI that announces a missing
+ * provider should wait for it so users with a key never see a false "no
+ * provider".
  */
 export function useBookStructuredTextStatus(bookLabel: string): { available: boolean; ready: boolean } {
   const { isAvailable, isLoading, error } = useProviderCredentials()
@@ -28,7 +30,7 @@ export function useBookStructuredTextStatus(bookLabel: string): { available: boo
   const effectiveModel = resolveEffectiveDefaultModel(config.data)
   return {
     available: isAvailable("structured-text", effectiveModel),
-    ready: !isLoading && !error && !config.isLoading,
+    ready: !isLoading && !error && !config.isLoading && !config.error,
   }
 }
 

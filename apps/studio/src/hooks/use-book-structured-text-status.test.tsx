@@ -11,7 +11,7 @@ const credentials = {
   credentialValue: () => "",
   setCredential: vi.fn(),
 }
-const config = { data: undefined as unknown, isLoading: false }
+const config = { data: undefined as unknown, isLoading: false, error: null as unknown }
 
 vi.mock("./use-provider-credentials", () => ({ useProviderCredentials: () => credentials }))
 vi.mock("./use-debug", () => ({ useActiveConfig: () => config }))
@@ -20,7 +20,7 @@ describe("useBookStructuredTextStatus", () => {
   beforeEach(() => {
     credentials.isAvailable.mockReset().mockReturnValue(false)
     Object.assign(credentials, { isLoading: false, error: null })
-    Object.assign(config, { data: undefined, isLoading: false })
+    Object.assign(config, { data: undefined, isLoading: false, error: null })
   })
 
   it("is not ready while the provider list is loading", () => {
@@ -35,6 +35,11 @@ describe("useBookStructuredTextStatus", () => {
 
   it("is not ready while the book config is loading", () => {
     config.isLoading = true
+    expect(renderHook(() => useBookStructuredTextStatus("b")).result.current.ready).toBe(false)
+  })
+
+  it("is not ready when the book config failed to load, instead of judging the global default", () => {
+    config.error = new Error("bad config.yaml")
     expect(renderHook(() => useBookStructuredTextStatus("b")).result.current.ready).toBe(false)
   })
 

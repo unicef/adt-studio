@@ -9,7 +9,7 @@ import { useNeedsTextProvider } from "@/hooks/use-api-key"
  */
 export function ProviderStatusChip() {
   const { t } = useLingui()
-  const connect = useConnectProvider()
+  const connect = useConnectProvider({ from: "add-book" })
   const needsProvider = useNeedsTextProvider()
   if (!needsProvider) return null
   return (

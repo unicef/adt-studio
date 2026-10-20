@@ -12,9 +12,9 @@ import { ComingSoon } from "../ui"
 import { ProviderCard } from "./ProviderEditor"
 import { useProviders } from "./useProviders"
 import { GroupHeading } from "./GroupHeading"
-import { providerAnchor, providerFromAnchor, type ProviderAuthSearch } from "../nav"
+import { providerAnchor, providerFromAnchor, type ProvidersSearch } from "../nav"
 
-function Row({ cardKey, open, onToggle, store, requestedAuth }: { cardKey: string; open: boolean; onToggle: () => void; store: ReturnType<typeof useProviders>; requestedAuth?: ProviderAuthSearch["auth"] }) {
+function Row({ cardKey, open, onToggle, store, requestedAuth }: { cardKey: string; open: boolean; onToggle: () => void; store: ReturnType<typeof useProviders>; requestedAuth?: ProvidersSearch["auth"] }) {
   const card = PROVIDER_CARDS[cardKey]
   const registered = isCardRegistered(cardKey, store)
   const health = useCardHealth(cardKey, store)

@@ -21,7 +21,7 @@ import {
   useDraft,
 } from "./shared"
 import type { Providers } from "./useProviders"
-import type { ProviderAuthSearch } from "../nav"
+import type { ProvidersSearch } from "../nav"
 import { CliLoginControls } from "./CliLogin"
 
 function Handles({ descriptor }: { descriptor: ProviderDescriptor }) {
@@ -132,7 +132,7 @@ export function ProviderCard({
   cardKey: string
   store: Providers
   active: boolean
-  requestedAuth?: ProviderAuthSearch["auth"]
+  requestedAuth?: ProvidersSearch["auth"]
 }) {
   const card = PROVIDER_CARDS[cardKey]
   const apiDesc = card.apiKeyProviderId ? store.descriptorById(card.apiKeyProviderId) : undefined

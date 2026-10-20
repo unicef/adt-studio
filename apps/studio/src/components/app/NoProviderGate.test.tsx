@@ -64,7 +64,7 @@ describe("NoProviderGate", () => {
     fireEvent.click(screen.getByText("Connect provider"))
     expect(navigate).toHaveBeenCalledWith({
       to: "/settings/providers",
-      search: { auth: "api-key" },
+      search: { auth: "api-key", from: "add-book" },
       hash: "settings-provider-openai",
     })
   })

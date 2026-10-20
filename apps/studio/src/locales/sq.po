@@ -1328,6 +1328,9 @@ msgstr "AI vendos imazhet dhe tekstin për çdo seksion, duke iu përshtatur sa 
 msgid "AI Overlay"
 msgstr "Mbivendosje AI"
 
+msgid "AI provider connected. Your book can be processed now."
+msgstr "Ofruesi i AI u lidh. Libri juaj tani mund të përpunohet."
+
 msgid "AI provider credentials"
 msgstr "Kredencialet e ofruesve të IA-së"
 
@@ -2705,6 +2708,9 @@ msgstr "Konteksti i përfshirë"
 
 msgid "Continue"
 msgstr "Vazhdo"
+
+msgid "Continue adding your book"
+msgstr "Vazhdo shtimin e librit"
 
 #. placeholder {0}: resumeTarget.pageNumber ?? resumeTarget.pageId
 msgid "Continue on page {0}"

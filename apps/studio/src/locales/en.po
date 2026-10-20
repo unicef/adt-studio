@@ -1326,6 +1326,9 @@ msgstr "AI lays out images and text per section, matching the original book's de
 msgid "AI Overlay"
 msgstr "AI Overlay"
 
+msgid "AI provider connected. Your book can be processed now."
+msgstr "AI provider connected. Your book can be processed now."
+
 msgid "AI provider credentials"
 msgstr "AI provider credentials"
 
@@ -2703,6 +2706,9 @@ msgstr "Context included"
 
 msgid "Continue"
 msgstr "Continue"
+
+msgid "Continue adding your book"
+msgstr "Continue adding your book"
 
 #. placeholder {0}: resumeTarget.pageNumber ?? resumeTarget.pageId
 msgid "Continue on page {0}"

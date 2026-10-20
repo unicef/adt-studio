@@ -15,4 +15,14 @@ describe("useConnectProvider", () => {
       hash: "settings-provider-openai",
     })
   })
+
+  it("marks prompts from the Add Book wizard so Settings can offer a way back", () => {
+    navigate.mockClear()
+    renderHook(() => useConnectProvider({ from: "add-book" })).result.current()
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/settings/providers",
+      search: { auth: "api-key", from: "add-book" },
+      hash: "settings-provider-openai",
+    })
+  })
 })

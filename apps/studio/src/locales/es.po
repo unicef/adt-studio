@@ -1326,6 +1326,9 @@ msgstr "La IA organiza imágenes y texto por sección, igualando el diseño del 
 msgid "AI Overlay"
 msgstr "Superposición por IA"
 
+msgid "AI provider connected. Your book can be processed now."
+msgstr "Proveedor de IA conectado. Ya se puede procesar tu libro."
+
 msgid "AI provider credentials"
 msgstr "Credenciales de proveedores de IA"
 
@@ -2703,6 +2706,9 @@ msgstr "Contexto incluido"
 
 msgid "Continue"
 msgstr "Continuar"
+
+msgid "Continue adding your book"
+msgstr "Seguir añadiendo tu libro"
 
 #. placeholder {0}: resumeTarget.pageNumber ?? resumeTarget.pageId
 msgid "Continue on page {0}"
