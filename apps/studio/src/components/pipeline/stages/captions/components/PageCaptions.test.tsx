@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-quer
 import type { OutputStatus } from "@adt/types"
 
 const calls = vi.hoisted(() => ({ save: vi.fn(), page: vi.fn(), outputs: vi.fn() }))
+const saveActions = vi.hoisted(() => ({ stay: async () => {}, discard: () => {}, restore: () => {} }))
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: ReactNode }) => <>{children}</>,
   useLingui: () => ({ t: (strings: TemplateStringsArray, ...values: unknown[]) =>
@@ -20,7 +21,12 @@ vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: undefined })
 vi.mock("@/hooks/use-stage-status", () => ({ useStageStatus: () => ({ isRunning: false }) }))
 vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ isRunning: false }) }))
 vi.mock("../../../pipeline-i18n", () => ({ getStageLabelI18n: (value: string) => value }))
-vi.mock("../../../components/VersionPicker", () => ({ VersionPicker: ({ onSave, saving, dirty }: { onSave: () => void; saving: boolean; dirty: boolean }) => <button aria-busy={saving} disabled={saving || !dirty} onClick={() => onSave()}>Save staged captions</button> }))
+vi.mock("../../../components/VersionPicker", () => ({ VersionPicker: ({ onSave, onSaveStay, onDiscard, onRestored, saving, dirty }: { onSave: () => void; onSaveStay: () => Promise<void>; onDiscard: () => void; onRestored: () => void; saving: boolean; dirty: boolean }) => {
+  saveActions.stay = onSaveStay
+  saveActions.discard = onDiscard
+  saveActions.restore = onRestored
+  return <button aria-busy={saving} disabled={saving || !dirty} onClick={() => onSave()}>Save staged captions</button>
+} }))
 vi.mock("../../../components/floating-save", () => ({ PendingChip: () => null, useFloatingSaveDirtyEntries: () => [] }))
 vi.mock("./Lightbox", () => ({ Lightbox: () => null }))
 
@@ -125,4 +131,57 @@ it("retains a second committed edit made during an in-flight save until it is ex
   fireEvent.click(screen.getByRole("button", { name: "Save staged captions" }))
   await waitFor(() => expect(calls.save).toHaveBeenCalledTimes(2))
   expect(calls.save.mock.calls[1][2]).toMatchObject({ baseVersion: 2, captions: [{ caption: "Newer saved draft" }] })
+})
+
+it.each(["conflict", "successor"])("Save & leave retains a caption %s draft and retries against its own baseline", async mode => {
+  client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+  let page = { versions: { imageCaptioning: 1 }, captionSourceSignature: "source", imageCaptioning: { captions: [{ imageId: "image", caption: "Original", reasoning: "", source: "ai" }] } }
+  client.setQueryData(["books", "book", "pages", "pg001"], page)
+  calls.page.mockImplementation(async () => page)
+  calls.outputs.mockResolvedValue({ outputs: [] })
+  let finish!: () => void
+  calls.save.mockImplementationOnce((_book, _page, data) => new Promise((resolve, reject) => {
+    finish = () => {
+      if (mode === "conflict") { reject(new Error("Caption changed")); return }
+      page = { ...page, versions: { imageCaptioning: 2 }, imageCaptioning: { captions: data.captions } }
+      resolve({ version: 2 })
+    }
+  })).mockImplementation(async (_book, _page, data) => {
+    page = { ...page, versions: { imageCaptioning: 3 }, imageCaptioning: { captions: data.captions } }
+    return { version: 3 }
+  })
+  render(<QueryClientProvider client={client}><PageCaptions bookLabel="book" pageId="pg001" pageNumber={1} decorativeFilter="all" searchQuery="" toolbarHeight={0} /></QueryClientProvider>)
+  fireEvent.click(screen.getByTitle("Click to edit caption"))
+  fireEvent.change(screen.getByRole("textbox"), { target: { value: "First submitted caption" } })
+  expect((screen.getByRole("button", { name: "Save staged captions" }) as HTMLButtonElement).disabled).toBe(false)
+  let saved!: Promise<void>
+  let settled = false
+  await act(async () => { saved = saveActions.stay(); void saved.then(() => { settled = true }, () => { settled = true }) })
+  expect(settled).toBe(false)
+  await expect(saveActions.stay()).rejects.toBeInstanceOf(Error)
+  expect(calls.save).toHaveBeenCalledTimes(1)
+  if (mode === "successor") fireEvent.change(screen.getByRole("textbox"), { target: { value: "Newer caption while saving" } })
+  await act(async () => { finish(); await expect(saved).rejects.toBeInstanceOf(Error) })
+  const retained = mode === "successor" ? "Newer caption while saving" : "First submitted caption"
+  expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe(retained)
+  await act(async () => { await saveActions.stay() })
+  expect(calls.save.mock.calls[1][2]).toMatchObject({ baseVersion: mode === "successor" ? 2 : 1, captions: [{ caption: retained }] })
+  expect(screen.queryByRole("textbox")).toBeNull()
+  expect((screen.getByRole("button", { name: "Save staged captions" }) as HTMLButtonElement).disabled).toBe(true)
+})
+
+it.each(["discard", "restore"] as const)("%s clears the active caption textarea as well as staged state", async action => {
+  client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
+  client.setQueryData(["books", "book", "pages", "pg001"], { versions: { imageCaptioning: 1 }, captionSourceSignature: "source", imageCaptioning: { captions: [{ imageId: "image", caption: "Original", reasoning: "", source: "ai" }] } })
+  calls.outputs.mockResolvedValue({ outputs: [] })
+  render(<QueryClientProvider client={client}><PageCaptions bookLabel="book" pageId="pg001" pageNumber={1} decorativeFilter="all" searchQuery="" toolbarHeight={0} /></QueryClientProvider>)
+  fireEvent.click(screen.getByTitle("Click to edit caption"))
+  fireEvent.change(screen.getByRole("textbox"), { target: { value: "Discard this active draft" } })
+  expect((screen.getByRole("button", { name: "Save staged captions" }) as HTMLButtonElement).disabled).toBe(false)
+  act(() => saveActions[action]())
+  expect(screen.queryByRole("textbox")).toBeNull()
+  expect(screen.getByText("Original")).toBeTruthy()
+  expect((screen.getByRole("button", { name: "Save staged captions" }) as HTMLButtonElement).disabled).toBe(true)
+  await act(async () => { await saveActions.stay() })
+  expect(calls.save).not.toHaveBeenCalled()
 })

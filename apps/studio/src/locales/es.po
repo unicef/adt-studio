@@ -699,6 +699,12 @@ msgstr "Aquí ya hay un cuestionario; añade otro después o reemplázalo"
 msgid "A required credential is missing."
 msgstr "Falta una credencial obligatoria."
 
+msgid "A save is still in progress. Wait for it to finish before leaving."
+msgstr "Hay un guardado en curso. Espera a que termine antes de salir."
+
+msgid "A save or run is still in progress. Wait for it to finish before leaving."
+msgstr "Hay un guardado o una ejecución en curso. Espera a que termine antes de salir."
+
 #~ msgid "A scenic view at dusk."
 #~ msgstr "Una vista panorámica al anochecer."
 
@@ -6182,6 +6188,9 @@ msgstr "Nueva sesión"
 
 msgid "new_type_key"
 msgstr "nuevo_tipo"
+
+msgid "Newer edits are still unsaved. Save them before leaving."
+msgstr "Los cambios más recientes aún no se han guardado. Guárdalos antes de salir."
 
 msgid "Newest"
 msgstr "Más recientes"

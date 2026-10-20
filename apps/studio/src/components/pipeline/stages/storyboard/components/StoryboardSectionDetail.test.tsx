@@ -131,8 +131,14 @@ vi.mock("./GenerateActivityDialog", () => ({
   GenerateActivityDialog: () => null,
 }))
 
-import { FloatingSaveProvider } from "../../../components/floating-save"
+import { FloatingSaveProvider, useFloatingSaveLeaveAction } from "../../../components/floating-save"
 import { StoryboardSectionDetail } from "./StoryboardSectionDetail"
+
+let leaveAction: ReturnType<typeof useFloatingSaveLeaveAction>
+function LeaveProbe() {
+  leaveAction = useFloatingSaveLeaveAction()
+  return null
+}
 
 function fixture(): PageDetail {
   const section = {
@@ -186,6 +192,85 @@ beforeEach(() => {
   state.save.mockResolvedValue({})
 })
 afterEach(cleanup)
+
+it.each([false, true])("Save & leave waits for Storyboard persistence and retains a rejected draft; source=%s", async (sourceDraft) => {
+  let reject!: (reason: Error) => void
+  state.save.mockImplementationOnce(() => new Promise((_resolve, fail) => { reject = fail }))
+  render(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={fixture()} /><LeaveProbe /></FloatingSaveProvider>)
+  if (sourceDraft) {
+    act(() => state.panel.onSectionChange({ ...state.panel.section, nodes: state.panel.section.nodes.map((n) => n.nodeId === "retire" ? { ...n, isPruned: true } : n) }))
+  } else {
+    act(() => state.style.onClassesChange("keep", ["text-blue-600"]))
+  }
+  expect(leaveAction.canSave).toBe(true)
+  let settled = false
+  let failure: unknown
+  let completion!: Promise<void>
+  await act(async () => { completion = leaveAction.saveAndStay().then(() => { settled = true }, (error) => { settled = true; failure = error }); await Promise.resolve() })
+  expect(state.save).toHaveBeenCalledTimes(1)
+  expect(settled).toBe(false)
+  await act(async () => { reject(new Error("Concurrent source change")); await completion })
+  expect(failure).toEqual(new Error("Concurrent source change"))
+  expect(screen.getByText("Concurrent source change")).toBeTruthy()
+  expect(leaveAction.canSave).toBe(true)
+  const rejectedPayload = state.save.mock.calls[0][2]
+  await act(async () => { await leaveAction.saveAndStay() })
+  expect(state.save.mock.calls[1][2]).toEqual(rejectedPayload)
+  await waitFor(() => expect(screen.queryByRole("button", { name: "Save", exact: true })).toBeNull())
+  expect(state.generate).not.toHaveBeenCalled()
+})
+
+it.each([false, true])("preserves successor source and inspector drafts after an earlier Save; first source draft=%s", async (sourceFirst) => {
+  const page = fixture()
+  let acknowledge!: (value: object) => void
+  state.save.mockImplementationOnce(() => new Promise((resolve) => { acknowledge = resolve }))
+  render(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={page} /><LeaveProbe /></FloatingSaveProvider>)
+  if (sourceFirst) {
+    act(() => state.panel.onSectionChange({ ...state.panel.section, nodes: state.panel.section.nodes.map((n) => n.nodeId === "retire" ? { ...n, isPruned: true } : n) }))
+  } else {
+    act(() => state.style.onClassesChange("keep", ["text-blue-600"]))
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Save", exact: true }))
+  await waitFor(() => expect(state.save).toHaveBeenCalledTimes(1))
+  await expect(leaveAction.saveAndStay()).rejects.toThrow("still in progress")
+  expect(state.save).toHaveBeenCalledTimes(1)
+  act(() => {
+    state.panel.onSectionChange({ ...state.panel.section, nodes: state.panel.section.nodes.map((n) => n.nodeId === "keep" ? { ...n, text: "Second source draft" } : n) })
+    state.panel.onStructuralChange?.()
+    state.style.onClassesChange("keep", ["text-red-600"])
+  })
+  await act(async () => { acknowledge({}); await new Promise((resolve) => setTimeout(resolve, 450)) })
+  expect(state.panel.section.nodes).toContainEqual(expect.objectContaining({ nodeId: "keep", text: "Second source draft" }))
+  fireEvent.click(screen.getByRole("button", { name: "Save", exact: true }))
+  await waitFor(() => expect(state.save).toHaveBeenCalledTimes(2))
+  const payload = state.save.mock.calls[1][2]
+  expect(payload.sectioning.sections[0].nodes).toContainEqual(expect.objectContaining({ nodeId: "keep", text: "Second source draft" }))
+  const doc = new DOMParser().parseFromString(payload.rendering.sections[0].html, "text/html")
+  expect(doc.querySelector('[data-id="keep"]')?.className).toBe("text-red-600")
+  if (sourceFirst) expect(doc.querySelector('[data-id="retire"]')).toBeNull()
+  expect(payload.rendering.sections[1]).toEqual(page.rendering!.sections[1])
+  expect(payload.renderingInSync).toBe(false)
+  expect(state.generate).not.toHaveBeenCalled()
+  await waitFor(() => expect(screen.queryByRole("button", { name: "Save", exact: true })).toBeNull())
+})
+
+it("Save & leave rejects if a successor inspector draft is created during the request", async () => {
+  let acknowledge!: (value: object) => void
+  state.save.mockImplementationOnce(() => new Promise(resolve => { acknowledge = resolve }))
+  render(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={fixture()} /><LeaveProbe /></FloatingSaveProvider>)
+  act(() => state.style.onClassesChange("keep", ["text-blue-600"]))
+  let failure: unknown
+  let completion!: Promise<void>
+  await act(async () => { completion = leaveAction.saveAndStay().catch(error => { failure = error }); await Promise.resolve() })
+  act(() => state.style.onClassesChange("keep", ["text-red-600"]))
+  await act(async () => { acknowledge({}); await completion })
+  expect(failure).toEqual(new Error("Newer edits are still unsaved. Save them before leaving."))
+  expect(screen.getByRole("button", { name: "Save", exact: true })).toBeTruthy()
+  fireEvent.click(screen.getByRole("button", { name: "Save", exact: true }))
+  await waitFor(() => expect(state.save).toHaveBeenCalledTimes(2))
+  expect(state.save.mock.calls[1][2].rendering.sections[0].html).toContain("text-red-600")
+  await waitFor(() => expect(screen.queryByRole("button", { name: "Save", exact: true })).toBeNull())
+})
 
 it.each([false, true])(
   "floating Save combines exclusions, new image and unflushed style; failed first save=%s",
@@ -362,4 +447,21 @@ it("pruning a repeated image removes all local references and preserves the neig
       screen.queryByRole("button", { name: "Save", exact: true })
     ).toBeNull()
   )
+})
+
+it("source successor survives same-turn response before React commits state", async () => {
+  let acknowledge!: (value: object) => void
+  state.save.mockImplementationOnce(() => new Promise(resolve => { acknowledge = resolve }))
+  render(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={fixture()} /><LeaveProbe /></FloatingSaveProvider>)
+  act(() => state.style.onClassesChange("keep", ["text-blue-600"]))
+  fireEvent.click(screen.getByRole("button", { name: "Save", exact: true }))
+  await waitFor(() => expect(state.save).toHaveBeenCalledTimes(1))
+  await act(async () => {
+    state.panel.onSectionChange({ ...state.panel.section, nodes: state.panel.section.nodes.map(n => n.nodeId === "keep" ? { ...n, text: "Same-turn successor" } : n) })
+    state.panel.onStructuralChange?.()
+    acknowledge({})
+    await new Promise(resolve => setTimeout(resolve, 450))
+  })
+  expect(state.panel.section.nodes).toContainEqual(expect.objectContaining({ nodeId: "keep", text: "Same-turn successor" }))
+  expect(screen.getByRole("button", { name: "Save", exact: true })).toBeTruthy()
 })

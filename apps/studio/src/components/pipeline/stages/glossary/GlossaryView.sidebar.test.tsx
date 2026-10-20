@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import React, { createContext, useContext, useState, type ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 const join = (strings: TemplateStringsArray, ...values: unknown[]) =>
   strings.reduce((text, part, index) => text + part + (index < values.length ? String(values[index]) : ""), "")
+const saveActions = vi.hoisted(() => ({ stay: async () => {} }))
 
 // Vitest does not compile Lingui macros.
 vi.mock("@lingui/core/macro", () => ({
@@ -18,6 +19,7 @@ vi.mock("@lingui/react/macro", () => ({
 
 const glossary = {
   version: 1,
+  identitySignature: "identity-1",
   generatedAt: "2026-01-01T00:00:00.000Z",
   items: [{ id: "gl001", word: "Nile", definition: "A river in Africa", variations: [], emojis: [], source: "ai" }],
 }
@@ -37,7 +39,10 @@ vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ stageState: () => 
 vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: "" }), useBookStructuredTextAvailability: () => true }))
 vi.mock("../../components/StageRunCard", () => ({ StageRunCard: () => null }))
 vi.mock("../../components/VersionPicker", () => ({
-  VersionPicker: ({ onSave, dirty, saving }: { onSave: () => void; dirty: boolean; saving: boolean }) => <button type="button" disabled={!dirty || saving} onClick={onSave}>Save</button>,
+  VersionPicker: ({ onSave, onSaveStay, dirty, saving }: { onSave: () => void; onSaveStay: () => Promise<void>; dirty: boolean; saving: boolean }) => {
+    saveActions.stay = onSaveStay
+    return <button type="button" disabled={!dirty || saving} onClick={onSave}>Save</button>
+  },
 }))
 vi.mock("./AddGlossaryDialog", () => ({ AddGlossaryDialog: () => null }))
 vi.mock("./components/GlossaryImagePickerDialog", () => ({ GlossaryImagePickerDialog: () => null }))
@@ -52,11 +57,11 @@ const { TooltipProvider } = await import("@/components/ui/tooltip")
 const { GlossaryIndex } = await import("./GlossaryIndex")
 let client: QueryClient
 
-function Harness() {
+function Harness({ bookLabel = "book" }: { bookLabel?: string }) {
   const [extra, setExtra] = useState<ReactNode>(null)
   return <HeaderContext.Provider value={{ setExtra }}>
     <header>{extra}</header>
-    <GlossaryIndex bookLabel="book" />
+    <GlossaryIndex bookLabel={bookLabel} />
   </HeaderContext.Provider>
 }
 
@@ -105,4 +110,53 @@ it.each([false, true])("retains a rejected glossary draft through the route and 
   fireEvent.click(screen.getByRole("button", { name: "Save" }))
   await waitFor(() => expect(api.updateGlossary).toHaveBeenCalledTimes(2))
   expect(api.updateGlossary).toHaveBeenLastCalledWith("book", expect.objectContaining({ version: 1 }))
+})
+
+it.each(["conflict", "successor"])("Save & leave retains a glossary %s draft and permits a safe retry", async mode => {
+  let finish!: () => void
+  vi.mocked(api.updateGlossary).mockImplementationOnce(() => new Promise((resolve, reject) => {
+    finish = () => mode === "conflict" ? reject(new Error("Glossary changed")) : resolve({ version: 2, identitySignature: "identity-2", imageRequirementsChanged: false })
+  })).mockResolvedValue({ version: 3, identitySignature: "identity-3", imageRequirementsChanged: false })
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  render(<QueryClientProvider client={client}><TooltipProvider><Harness /></TooltipProvider></QueryClientProvider>)
+  fireEvent.change(await screen.findByLabelText("Definition for Nile"), { target: { value: "First submitted draft" } })
+  let saved!: Promise<void>
+  let settled = false
+  await act(async () => { saved = saveActions.stay(); void saved.then(() => { settled = true }, () => { settled = true }) })
+  expect(settled).toBe(false)
+  if (mode === "successor") fireEvent.change(screen.getByLabelText("Definition for Nile"), { target: { value: "Newer unsaved definition" } })
+  await act(async () => { finish(); await expect(saved).rejects.toBeInstanceOf(Error) })
+  const retained = mode === "successor" ? "Newer unsaved definition" : "First submitted draft"
+  expect((screen.getByLabelText("Definition for Nile") as HTMLTextAreaElement).value).toBe(retained)
+  await act(async () => { await saveActions.stay() })
+  expect(api.updateGlossary).toHaveBeenLastCalledWith("book", expect.objectContaining({ version: mode === "successor" ? 2 : 1, identitySignature: mode === "successor" ? "identity-2" : "identity-1", items: [expect.objectContaining({ definition: retained })] }))
+  expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true)
+})
+
+it.each(["success", "failure"])("ignores a previous book's late %s while the new book owns a save", async outcome => {
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  let finishA!: () => void
+  let finishB!: () => void
+  vi.mocked(api.updateGlossary)
+    .mockImplementationOnce(() => new Promise((resolve, reject) => { finishA = () => outcome === "failure" ? reject(new Error("Book A changed")) : resolve({ version: 2, identitySignature: "book-a-2", imageRequirementsChanged: false }) }))
+    .mockImplementationOnce(() => new Promise(resolve => { finishB = () => resolve({ version: 8, identitySignature: "book-b-8", imageRequirementsChanged: false }) }))
+    .mockResolvedValue({ version: 9, identitySignature: "book-b-9", imageRequirementsChanged: false })
+  const view = render(<QueryClientProvider client={client}><TooltipProvider><Harness bookLabel="book-a" /></TooltipProvider></QueryClientProvider>)
+  fireEvent.change(await screen.findByLabelText("Definition for Nile"), { target: { value: "Book A draft" } })
+  fireEvent.click(screen.getByRole("button", { name: "Save" }))
+  await waitFor(() => expect(api.updateGlossary).toHaveBeenCalledTimes(1))
+  servedGlossary = { ...glossary, version: 7, identitySignature: "book-b-7" }
+  view.rerender(<QueryClientProvider client={client}><TooltipProvider><Harness bookLabel="book-b" /></TooltipProvider></QueryClientProvider>)
+  fireEvent.change(await screen.findByLabelText("Definition for Nile"), { target: { value: "Book B submitted" } })
+  fireEvent.click(screen.getByRole("button", { name: "Save" }))
+  await waitFor(() => expect(api.updateGlossary).toHaveBeenCalledTimes(2))
+  expect(api.updateGlossary).toHaveBeenLastCalledWith("book-b", expect.objectContaining({ version: 7, identitySignature: "book-b-7" }))
+  fireEvent.change(screen.getByLabelText("Definition for Nile"), { target: { value: "Book B successor" } })
+  await act(async () => { finishA(); await new Promise(resolve => setTimeout(resolve, 450)) })
+  expect((screen.getByLabelText("Definition for Nile") as HTMLTextAreaElement).value).toBe("Book B successor")
+  expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true)
+  expect(toast.error).not.toHaveBeenCalled()
+  await act(async () => { finishB(); await new Promise(resolve => setTimeout(resolve, 450)) })
+  await act(async () => { await saveActions.stay() })
+  expect(api.updateGlossary).toHaveBeenLastCalledWith("book-b", expect.objectContaining({ version: 8, identitySignature: "book-b-8" }))
 })

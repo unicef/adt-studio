@@ -699,6 +699,12 @@ msgstr "A quiz already sits here — add another after it or replace it"
 msgid "A required credential is missing."
 msgstr "A required credential is missing."
 
+msgid "A save is still in progress. Wait for it to finish before leaving."
+msgstr "A save is still in progress. Wait for it to finish before leaving."
+
+msgid "A save or run is still in progress. Wait for it to finish before leaving."
+msgstr "A save or run is still in progress. Wait for it to finish before leaving."
+
 #~ msgid "A scenic view at dusk."
 #~ msgstr "A scenic view at dusk."
 
@@ -6182,6 +6188,9 @@ msgstr "New session"
 
 msgid "new_type_key"
 msgstr "new_type_key"
+
+msgid "Newer edits are still unsaved. Save them before leaving."
+msgstr "Newer edits are still unsaved. Save them before leaving."
 
 msgid "Newest"
 msgstr "Newest"

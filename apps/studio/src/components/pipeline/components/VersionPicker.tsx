@@ -110,7 +110,10 @@ interface VersionPickerProps {
   /** Legacy: load a version's data as a pending edit. Used by steps not yet
    *  migrated to restore (onRestored). Ignored when onRestored is set. */
   onPreview?: (data: unknown) => void
-  onSave?: () => void
+  /** Return the save promise so Save & leave waits and retains failed drafts. */
+  onSave?: () => void | Promise<void>
+  /** Navigation must reject if a save fails or a newer draft remains. */
+  onSaveStay?: () => Promise<void>
   onDiscard: () => void
   saveDisabledReason?: string
   /**
@@ -170,6 +173,7 @@ export function VersionPicker({
   onRestored,
   onPreview,
   onSave,
+  onSaveStay,
   onDiscard,
   saveDisabledReason,
   renderSaveBar = true,
@@ -224,6 +228,7 @@ export function VersionPicker({
     label: pendingLabel ?? defaultLabel,
     labelKey: pendingLabelKey ?? step,
     onSave,
+    onSaveStay,
     onDiscard,
     saveDisabledReason,
   })

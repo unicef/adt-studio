@@ -701,6 +701,12 @@ msgstr "Një kuiz ekziston tashmë këtu — shtoni një tjetër pas tij ose zë
 msgid "A required credential is missing."
 msgstr "Mungon një kredencial i detyrueshëm."
 
+msgid "A save is still in progress. Wait for it to finish before leaving."
+msgstr "Ruajtja është ende në proces. Prisni të përfundojë para se të largoheni."
+
+msgid "A save or run is still in progress. Wait for it to finish before leaving."
+msgstr "Ruajtja ose ekzekutimi është ende në proces. Prisni të përfundojë para se të largoheni."
+
 #~ msgid "A scenic view at dusk."
 #~ msgstr "Një pamje piktoreske në muzg."
 
@@ -6184,6 +6190,9 @@ msgstr "Sesion i ri"
 
 msgid "new_type_key"
 msgstr "new_type_key"
+
+msgid "Newer edits are still unsaved. Save them before leaving."
+msgstr "Ndryshimet më të fundit ende nuk janë ruajtur. Ruajini para se të largoheni."
 
 msgid "Newest"
 msgstr "Më të rejat"

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { Image as ImageIcon } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
@@ -30,6 +30,7 @@ export function PageCaptions({
   decorativeFilter,
   searchQuery,
   toolbarHeight,
+  onPendingChange,
 }: {
   bookLabel: string
   pageId: string
@@ -40,6 +41,7 @@ export function PageCaptions({
   decorativeFilter: DecorativeFilter
   searchQuery: string
   toolbarHeight: number
+  onPendingChange?: (pageId: string, pending: boolean) => void
 }) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
@@ -49,14 +51,24 @@ export function PageCaptions({
   // `pending` = manually staged changes awaiting an explicit save (drives the
   // floating bar). `optimistic` = the in-flight result of an auto-save, shown
   // immediately without a bar and held until the refetch lands (no flicker).
-  const [pending, setPending] = useState<CaptioningData | null>(null)
+  const [pending, setPendingState] = useState<CaptioningData | null>(null)
+  const pendingRef = useRef<CaptioningData | null>(null)
+  const setPending = useCallback((next: CaptioningData | null) => {
+    pendingRef.current = next
+    setPendingState(next)
+  }, [])
   const [optimistic, setOptimistic] = useState<CaptioningData | null>(null)
   const baseline = useRef({ baseVersion: 0, sourceSignature: "" })
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const savingRef = useRef(false)
   const savingIds = useRef(new Set<string>())
-  const [editing, setEditing] = useState<CaptionEdit | null>(null)
+  const [editing, setEditingState] = useState<CaptionEdit | null>(null)
+  const editingRef = useRef<CaptionEdit | null>(null)
+  const setEditing = useCallback((next: CaptionEdit | null) => {
+    editingRef.current = next
+    setEditingState(next)
+  }, [])
   const [lightbox, setLightbox] = useState<{ imageIds: string[]; index: number } | null>(null)
 
   useEffect(() => {
@@ -67,14 +79,21 @@ export function PageCaptions({
 
   const effective = pending ?? optimistic ?? page?.imageCaptioning
   const captions = effective?.captions ?? []
-  const dirty = pending != null
+  const dirty = pending != null || !!editing && editing.draft !== captions.find(caption => caption.imageId === editing.imageId)?.caption
+
+  useEffect(() => {
+    onPendingChange?.(pageId, dirty || saving)
+    return () => onPendingChange?.(pageId, false)
+  }, [onPendingChange, pageId, dirty, saving])
 
   const visibleCaptions = useMemo(
     () =>
       captions.filter(
-        (c) => matchesDecorativeFilter(c, decorativeFilter) && matchesSearch(c, searchQuery),
+        // Keep the editor and its navigation guard mounted until the draft or
+        // save settles, even if filters (or edited caption text) hide this page.
+        (c) => dirty || saving || matchesDecorativeFilter(c, decorativeFilter) && matchesSearch(c, searchQuery),
       ),
-    [captions, decorativeFilter, searchQuery],
+    [captions, decorativeFilter, searchQuery, dirty, saving],
   )
 
   const imageSectionMap = useMemo(() => buildImageSectionMap(page), [page?.sectioningTree])
@@ -111,7 +130,7 @@ export function PageCaptions({
   }, [visibleCaptions, imageSectionMap, page?.sectioningTree?.sections])
 
   if (!page?.imageCaptioning || captions.length === 0) return emptyState ?? null
-  if (visibleCaptions.length === 0) return emptyState ?? null
+  if (visibleCaptions.length === 0) return null
 
   const refreshAfterSave = async () => {
     await queryClient.invalidateQueries({
@@ -121,9 +140,23 @@ export function PageCaptions({
   }
 
 
-  const saveCaptions = async (data?: CaptioningData) => {
-    const next = data ?? pending
-    if (!next || savingRef.current) return
+  const saveCaptions = async (data?: CaptioningData, forNavigation = false) => {
+    if (savingRef.current) {
+      // An unresolved autosave cannot authorize leaving with a staged draft.
+      if (forNavigation) {
+        const message = t`A save is still in progress. Wait for it to finish before leaving.`
+        setSaveError(message)
+        throw new Error(message)
+      }
+      return
+    }
+    const submittedEditing = editingRef.current
+    let next = data ?? pendingRef.current
+    if (!data && submittedEditing) {
+      const base = next ?? page.imageCaptioning
+      if (base) next = { ...base, captions: base.captions.map(caption => caption.imageId === submittedEditing.imageId ? { ...caption, caption: submittedEditing.draft, source: "manual" } : caption) }
+    }
+    if (!next) return
     savingRef.current = true
     savingIds.current = new Set(next.captions.filter((caption) => {
       const previous = page.imageCaptioning?.captions.find((entry) => entry.imageId === caption.imageId)
@@ -139,14 +172,21 @@ export function PageCaptions({
       // write, never to an unrelated background refresh that it did not review.
       baseline.current = { ...submittedBaseline, baseVersion: result.version }
       await refreshAfterSave()
-      setPending((current) => current === next ? null : current)
+      if (pendingRef.current === next) setPending(null)
+      if (editingRef.current === submittedEditing && submittedEditing && next.captions.some(caption => caption.imageId === submittedEditing.imageId && caption.caption === submittedEditing.draft)) setEditing(null)
       setSaveError(null)
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : String(error))
+      if (forNavigation) throw error
     } finally {
       await minDelay
       savingRef.current = false
       setSaving(false)
+    }
+    if (forNavigation && (pendingRef.current || editingRef.current && editingRef.current.draft !== next.captions.find(caption => caption.imageId === editingRef.current?.imageId)?.caption)) {
+      const message = t`Newer edits are still unsaved. Save them before leaving.`
+      setSaveError(message)
+      throw new Error(message)
     }
   }
 
@@ -206,7 +246,8 @@ export function PageCaptions({
   }
 
   const handleChangeDraft = (value: string) => {
-    setEditing((prev) => (prev ? { ...prev, draft: value } : prev))
+    const current = editingRef.current
+    if (current) setEditing({ ...current, draft: value })
   }
 
   const handleCommitEdit = () => {
@@ -219,7 +260,13 @@ export function PageCaptions({
     setEditing(null)
   }
 
-  const filteredCaptions = filterSectionIndex != null
+  const discardDraft = () => {
+    setPending(null)
+    setEditing(null)
+    setSaveError(null)
+  }
+
+  const filteredCaptions = filterSectionIndex != null && !dirty && !saving
     ? visibleCaptions.filter((cap) => imageSectionMap.get(cap.imageId) === filterSectionIndex)
     : visibleCaptions
 
@@ -326,9 +373,10 @@ export function PageCaptions({
                 </PendingChip>
               }
               pendingLabelKey={`captions:${pageNumber}`}
-              onRestored={() => setPending(null)}
+              onRestored={discardDraft}
               onSave={saveCaptions}
-              onDiscard={() => setPending(null)}
+              onSaveStay={() => saveCaptions(undefined, true)}
+              onDiscard={discardDraft}
               diff={{
                 items: (d) => (d as CaptioningData | null)?.captions ?? [],
                 keyOf: (it) => (it as CaptionEntry).imageId,
@@ -417,7 +465,7 @@ export function PageCaptions({
           onCaptionChange={(entry, newCaption) => applyCaption(entry.cap.imageId, newCaption)}
           onToggleDecorative={(entry) => toggleDecorative(entry.cap.imageId)}
           onSave={saveCaptions}
-          onDiscard={() => setPending(null)}
+          onDiscard={discardDraft}
         />
       )}
     </section>

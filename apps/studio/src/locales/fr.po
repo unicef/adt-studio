@@ -701,6 +701,12 @@ msgstr "Un quiz se trouve déjà ici — ajoutez-en un autre à la suite ou remp
 msgid "A required credential is missing."
 msgstr "Un identifiant obligatoire est manquant."
 
+msgid "A save is still in progress. Wait for it to finish before leaving."
+msgstr "Un enregistrement est en cours. Attendez qu’il se termine avant de quitter."
+
+msgid "A save or run is still in progress. Wait for it to finish before leaving."
+msgstr "Un enregistrement ou une exécution est en cours. Attendez qu’il se termine avant de quitter."
+
 #~ msgid "A scenic view at dusk."
 #~ msgstr "Un panorama au crépuscule."
 
@@ -6184,6 +6190,9 @@ msgstr "Nouvelle session"
 
 msgid "new_type_key"
 msgstr "new_type_key"
+
+msgid "Newer edits are still unsaved. Save them before leaving."
+msgstr "Les modifications les plus récentes ne sont pas encore enregistrées. Enregistrez-les avant de quitter."
 
 msgid "Newest"
 msgstr "Plus récentes"

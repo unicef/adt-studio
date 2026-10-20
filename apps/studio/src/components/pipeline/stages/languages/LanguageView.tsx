@@ -47,7 +47,7 @@ import { ImageLightbox } from "./components/ImageLightbox";
 import { WordHighlightPreview } from "./components/WordHighlightPreview";
 import { CoreTtsBadges, CoreTtsSpeechEditor } from "./components/CoreTtsSpeechEditor";
 import { SpeechHighlightedText } from "./components/SpeechHighlightedText";
-import { usePendingChanges } from "../../components/change-summary";
+import { diffById, usePendingChanges } from "../../components/change-summary";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 
@@ -669,10 +669,16 @@ export function LanguageView({
   }, [selectedVoiceSlot, timestampMap]);
 
   // Pending state for edits (keyed by language)
-  const [pendingEntries, setPendingEntries] = useState<
+  const [pendingEntries, setPendingEntriesState] = useState<
     TextCatalogEntry[] | null
   >(null);
+  const pendingEntriesRef = useRef<TextCatalogEntry[] | null>(null);
+  const setPendingEntries = useCallback((next: TextCatalogEntry[] | null) => {
+    pendingEntriesRef.current = next;
+    setPendingEntriesState(next);
+  }, []);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const pendingVersions = useRef({ baseVersion: 0, sourceVersion: 0, sourceSignature: "" });
   const [generateErrorById, setGenerateErrorById] = useState<
     Record<string, string>
@@ -684,6 +690,9 @@ export function LanguageView({
   // Get translated entries for selected language
   const translationItemId = selectedLang && catalog?.translations?.[selectedLang]
     ? selectedLang : selectedLang?.replace("-", "_");
+  const translationScope = useMemo(() => ({ bookLabel, translationItemId }), [bookLabel, translationItemId]);
+  const translationScopeRef = useRef(translationScope);
+  translationScopeRef.current = translationScope;
   const translationData = translationItemId
     ? catalog?.translations?.[translationItemId]
     : undefined;
@@ -694,11 +703,13 @@ export function LanguageView({
     ? (catalog?.version ?? null)
     : (translationData?.version ?? null);
 
-  // Reset pending when version or language changes
+  // Language changes are allowed only after the current draft/save is settled.
   useEffect(() => {
     setPendingEntries(null);
     setAppliedSuggestionEntryIds(new Set());
-  }, [selectedLang]);
+    savingRef.current = false;
+    setSaving(false);
+  }, [bookLabel, selectedLang]);
 
   // Effective translated entries (pending overrides fetched data)
   const effectiveEntries = pendingEntries ?? translatedEntries;
@@ -711,15 +722,16 @@ export function LanguageView({
     [translatedEntries],
   );
   const [speechDrafts, setSpeechDrafts] = useState<Set<string>>(() => new Set());
+  const speechDraftsRef = useRef(speechDrafts);
   const onSpeechEditingChange = useCallback((id: string, language: string, editing: boolean) => {
     const key = JSON.stringify([id, language]);
-    setSpeechDrafts((previous) => {
-      if (previous.has(key) === editing) return previous;
-      const next = new Set(previous);
-      if (editing) next.add(key);
-      else next.delete(key);
-      return next;
-    });
+    const previous = speechDraftsRef.current;
+    if (previous.has(key) === editing) return;
+    const next = new Set(previous);
+    if (editing) next.add(key);
+    else next.delete(key);
+    speechDraftsRef.current = next;
+    setSpeechDrafts(next);
   }, []);
   const hasOutputDraft = !!pendingEntries || speechDrafts.size > 0;
 
@@ -768,17 +780,45 @@ export function LanguageView({
     noun: { one: t`translation`, other: t`translations` },
   });
 
+  const languageSwitchBlocked = dirty || speechDrafts.size > 0 || saving;
+  const languageSwitchReason = dirty || speechDrafts.size > 0
+    ? t`Save or discard your edits first`
+    : t`Please wait for the current operation to finish`;
+  const selectLanguage = (language: string) => {
+    // Read the synchronous draft as well as disabling the pills. Reverting all
+    // text to the saved value must allow switching without an unavailable Save.
+    const pending = pendingEntriesRef.current;
+    const diff = pending && diffById(translatedEntries, pending, entry => entry.id, (a, b) => a.text === b.text);
+    if (diff && (diff.added.length || diff.removed.length || diff.changed.length) || savingRef.current || speechDraftsRef.current.size > 0) return;
+    setSelectedLang(language);
+  };
+
   const [saveError, setSaveError] = useState<string | null>(null);
-  const saveTranslation = useCallback(async () => {
-    if (!pendingEntries || !translationItemId) return;
+  const saveTranslation = useCallback(async (forNavigation = false) => {
+    if (savingRef.current) {
+      if (forNavigation) {
+        const message = t`A save is still in progress. Wait for it to finish before leaving.`;
+        setSaveError(message);
+        throw new Error(message);
+      }
+      return;
+    }
+    const submitted = pendingEntriesRef.current;
+    if (!submitted || !translationItemId) return;
+    const submittedVersions = pendingVersions.current;
+    const submittedScope = translationScope;
+    savingRef.current = true;
     setSaving(true);
     setSaveError(null);
     try {
     const minDelay = new Promise((r) => setTimeout(r, 400));
-    await api.updateTranslation(bookLabel, translationItemId, {
-      entries: pendingEntries,
-      ...pendingVersions.current,
+    const result = await api.updateTranslation(bookLabel, translationItemId, {
+      entries: submitted,
+      ...submittedVersions,
     });
+    if (translationScopeRef.current === submittedScope && pendingVersions.current === submittedVersions) {
+      pendingVersions.current = { ...submittedVersions, baseVersion: result.version };
+    }
     await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "outputs"] });
     await queryClient.invalidateQueries({
       queryKey: ["books", bookLabel, "text-catalog"],
@@ -794,11 +834,27 @@ export function LanguageView({
       queryKey: ["books", bookLabel, "step-status"],
     });
     await minDelay;
-    setPendingEntries((current) => current === pendingEntries ? null : current);
-    setAppliedSuggestionEntryIds(new Set());
-    } catch (error) { setSaveError(error instanceof Error ? error.message : String(error)); }
-    finally { setSaving(false); }
-  }, [pendingEntries, translationItemId, bookLabel, queryClient]);
+    if (translationScopeRef.current === submittedScope) {
+      if (pendingEntriesRef.current === submitted) setPendingEntries(null);
+      setSaveError(null);
+      setAppliedSuggestionEntryIds(new Set());
+    }
+    } catch (error) {
+      if (translationScopeRef.current === submittedScope) setSaveError(error instanceof Error ? error.message : String(error));
+      if (forNavigation) throw error;
+    }
+    finally {
+      if (translationScopeRef.current === submittedScope) {
+        savingRef.current = false;
+        setSaving(false);
+      }
+    }
+    if (forNavigation && translationScopeRef.current === submittedScope && pendingEntriesRef.current) {
+      const message = t`Newer edits are still unsaved. Save them before leaving.`;
+      setSaveError(message);
+      throw new Error(message);
+    }
+  }, [translationItemId, translationScope, bookLabel, queryClient, setPendingEntries, t]);
 
   const saveRef = useRef(saveTranslation);
   saveRef.current = saveTranslation;
@@ -1540,6 +1596,7 @@ export function LanguageView({
               setAppliedSuggestionEntryIds(new Set());
             }}
             onSave={() => saveRef.current()}
+            onSaveStay={() => saveRef.current(true)}
             onDiscard={() => {
               setPendingEntries(null);
               setAppliedSuggestionEntryIds(new Set());
@@ -1968,9 +2025,11 @@ export function LanguageView({
                   <button
                     key={lang}
                     type="button"
-                    onClick={() => setSelectedLang(lang)}
+                    onClick={() => selectLanguage(lang)}
+                    disabled={!isActive && languageSwitchBlocked}
+                    title={!isActive && languageSwitchBlocked ? languageSwitchReason : undefined}
                     className={cn(
-                      "text-xs px-3 rounded-md font-medium transition-colors cursor-pointer text-left",
+                      "text-xs px-3 rounded-md font-medium transition-colors cursor-pointer text-left disabled:cursor-default disabled:opacity-50",
                       isSpeechStage && ttsSummary ? "h-auto py-1.5" : "h-7",
                       isActive
                         ? "bg-foreground text-background"
@@ -2005,6 +2064,9 @@ export function LanguageView({
                   </button>
                 );
               })}
+              {languageSwitchBlocked && (
+                <span className="text-xs text-muted-foreground">{languageSwitchReason}</span>
+              )}
               {!isSpeechStage && (
                 <Link
                   to="/books/$label/$step/settings"

@@ -166,7 +166,8 @@ export function createGlossaryRoutes(
       const pages = storage.getPages()
       const catalog = buildTextCatalogSnapshot(storage, pages)
       storage.putNodeData("text-catalog", "book", catalog)
-      return c.json({ version, imageRequirementsChanged })
+      return c.json({ version, imageRequirementsChanged,
+        identitySignature: inputSignature({ version, ids: next.items.map(item => item.id) }) })
       }))
     } finally {
       storage.close()

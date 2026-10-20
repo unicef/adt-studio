@@ -227,6 +227,21 @@ Show “Source changed. Your edit has been kept” for protected translations, e
 
 When a user edits, show Save/Cancel instead of acceptance until the draft is resolved. A small regenerate icon must expose “Regenerate and replace my edit” as an explicit inline choice before replacing protected content. An already explicit replacement action needs no additional modal. Bulk replacement identifies affected manual items and is off by default. Do not add popups to ordinary runs.
 
+A Save response acknowledges only the submitted draft. Edits made while it is
+pending, including in the same UI batch as its response, stay unsaved and
+recoverable. A follow-up save advances to that response's own version and
+identity evidence, never a later writer's refreshed version. “Save & leave”
+waits for persistence and stays on the editor after rejection, while another
+save is pending, or while a newer draft remains. An open caption textarea is
+part of that draft even before its local commit button is pressed. These rules
+also apply to internal selectors: language switching waits for translation or
+speech drafts to settle, and caption filtering keeps an unsaved/saving editor
+and its navigation guard visible. A response from an earlier book or language
+cannot acknowledge or rebase the current editor's draft. These rules use the
+existing navigation guard and save/version mechanisms; stale authored
+source-screen guards remain the explicitly coordinated SPEC-0002 Decision 10
+work, not a guarantee supplied by writer serialization alone.
+
 The stage summary is a neutral, compact panel with one count of affected items across the book, not a checklist of every output. Offer **Update all** and **Keep all existing content** directly when applicable. Update regenerates eligible outdated/missing output and retries preparation fallbacks, preserving protected content. Keep acknowledges existing protected content or usable preparation fallbacks using the existing guarded review actions; it does not accept missing output or ordinary outdated generated output. Resolve inherited warnings at their linked sources, deduplicating shared sources and naming any source stages affected by the bulk actions. Queue source updates before their selected consumers, using the pipeline's stage order. **Replace edits…** separately lists the protected content before an explicit replacement action.
 
 Show compact, clickable counts for **Out of sync**, **Needs review**, **Warnings** and **Missing** beside the summary. Each item has one primary issue (missing first, then outdated generated content, then protected content needing a keep/replace decision, then other warnings); details retain every warning reason. These counts reflect the selected content, language, page and section, so switching the issue filter remains possible. Style **Update all** as a small amber button with a refresh icon, matching the stage warning icon, with text meeting WCAG AA contrast. While updates run it reads “Updating…”, stays focusable and reports that it is busy. When the stage rail is collapsed, the stage icon carries the same amber attention badge.

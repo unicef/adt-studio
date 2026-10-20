@@ -38,7 +38,14 @@ export function EasyReadEditor({
     queryFn: () => api.getEasyRead(bookLabel),
     enabled: !!bookLabel,
   })
-  const [draftBlocks, setDraftBlocks] = useState<EasyReadSectionBlock[] | null>(null)
+  const [draftBlocks, setDraftBlocksState] = useState<EasyReadSectionBlock[] | null>(null)
+  const draftBlocksRef = useRef<EasyReadSectionBlock[] | null>(null)
+  const setDraftBlocks = useCallback((next: EasyReadSectionBlock[] | null) => {
+    draftBlocksRef.current = next
+    setDraftBlocksState(next)
+  }, [])
+  const savingRef = useRef(false)
+  const [navigationError, setNavigationError] = useState<string | null>(null)
   const baseline = useRef({ baseVersion: 0, sourceSignature: "" })
   const [searchQuery, setSearchQuery] = useState("")
   const blocks = draftBlocks ?? data?.blocks ?? []
@@ -168,13 +175,40 @@ export function EasyReadEditor({
         ...baseline.current,
         generatedAt: data?.generatedAt ?? new Date().toISOString(),
       }),
-    onSuccess: async () => {
-      setDraftBlocks(null)
+    onSuccess: async (result, submittedBlocks) => {
+      // Only acknowledge the submitted snapshot. A user may keep typing while
+      // the request is pending; its successor draft still needs to be saved.
+      // Advance to our own response, never to a later concurrent writer's row.
+      baseline.current = { ...baseline.current, baseVersion: result.version }
+      if (draftBlocksRef.current === submittedBlocks) setDraftBlocks(null)
       await invalidateEasyReadDependents()
     },
   })
 
-  const mutationError = getErrorMessage(saveMutation.error)
+  const mutationError = navigationError ?? getErrorMessage(saveMutation.error)
+
+  const saveBlocks = async (forNavigation = false) => {
+    if (savingRef.current) {
+      if (forNavigation) {
+        const message = t`A save is still in progress. Wait for it to finish before leaving.`
+        setNavigationError(message)
+        throw new Error(message)
+      }
+      return
+    }
+    savingRef.current = true
+    setNavigationError(null)
+    try {
+      await saveMutation.mutateAsync(draftBlocksRef.current ?? blocks)
+      setNavigationError(null)
+    }
+    finally { savingRef.current = false }
+    if (forNavigation && draftBlocksRef.current) {
+      const message = t`Newer edits are still unsaved. Save them before leaving.`
+      setNavigationError(message)
+      throw new Error(message)
+    }
+  }
 
   const updateEntry = (
     _blockKey: { pageId: string; sectionId: string; sectionIndex: number },
@@ -197,13 +231,17 @@ export function EasyReadEditor({
   // Quizzes). Refs keep the handlers fresh without re-running the effect on
   // every render.
   const actions = useRef({
-    save: () => {},
+    save: async () => {},
+    saveStay: async () => {},
     discard: () => {},
     preview: (_data: unknown) => {},
     regenerate: () => {},
   })
   actions.current = {
-    save: () => saveMutation.mutate(blocks),
+    // The navigation guard awaits this callback. Propagate rejection so a
+    // failed save keeps the editor (and its draft) on screen.
+    save: () => saveBlocks(),
+    saveStay: () => saveBlocks(true),
     discard: () => setDraftBlocks(null),
     preview: (versionData: unknown) => {
       const next = (versionData as { blocks?: EasyReadSectionBlock[] })?.blocks
@@ -240,6 +278,7 @@ export function EasyReadEditor({
           bookLabel={bookLabel}
           onRestored={() => actions.current.discard()}
           onSave={() => actions.current.save()}
+          onSaveStay={() => actions.current.saveStay()}
           onDiscard={() => actions.current.discard()}
           diff={{
             items: (d) => (d as { blocks?: EasyReadSectionBlock[] } | null)?.blocks?.flatMap((bl) => bl.entries) ?? [],

@@ -1,5 +1,5 @@
 import { sectioningSaveFromRendering } from "../lib/back-propagate-text"
-import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode, type SetStateAction } from "react"
 import { createPortal } from "react-dom"
 import {
   AlertTriangle,
@@ -422,13 +422,14 @@ export function StoryboardSectionDetail({
   const applyBodyBackground = (activeConfigData?.merged as Record<string, unknown> | undefined)?.apply_body_background !== false
 
   const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
   const [cloning, setCloning] = useState(false)
   const [merging, setMerging] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [confirmDeleteSection, setConfirmDeleteSection] = useState(false)
   const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string; warning?: string; consequence?: string } | null>(null)
-  const [pendingSectioning, setPendingSectioning] = useState<SectioningData | null>(null)
-  const [pendingRendering, setPendingRendering] = useState<RenderingData | null>(null)
+  const [pendingSectioning, setPendingSectioningState] = useState<SectioningData | null>(null)
+  const [pendingRendering, setPendingRenderingState] = useState<RenderingData | null>(null)
   // Inspector edits mutate the iframe DOM directly; this ref stashes the
   // resulting HTML and is committed to React state only at boundaries
   // (selection change, save, unmount) so per-keystroke changes don't
@@ -458,6 +459,35 @@ export function StoryboardSectionDetail({
   // Tracks whether saved sectioning will still require an explicit LLM re-render.
   // Pure prune/delete can be resolved locally; unprune/type change/reorder need LLM.
   const needsRerenderRef = useRef(false)
+  const draftScope = useMemo(() => ({ bookLabel, pageId, sectionIndex }), [bookLabel, pageId, sectionIndex])
+  const latestDraftRef = useRef({ scope: draftScope, sectioning: pendingSectioning, rendering: pendingRendering })
+  latestDraftRef.current.scope = draftScope
+  // Update refs at the edit boundary, before React commits the next render.
+  // A response can arrive in the same batch as a successor edit.
+  const setPendingSectioning = useCallback((next: SetStateAction<SectioningData | null>) => {
+    const value = typeof next === "function" ? next(latestDraftRef.current.sectioning) : next
+    latestDraftRef.current.sectioning = value
+    setPendingSectioningState(value)
+  }, [])
+  const setPendingRendering = useCallback((next: SetStateAction<RenderingData | null>) => {
+    const value = typeof next === "function" ? next(latestDraftRef.current.rendering) : next
+    latestDraftRef.current.rendering = value
+    setPendingRenderingState(value)
+  }, [])
+
+  // A response acknowledges only the draft sent with that request. Editors
+  // remain usable while saving; later source, HTML and inspector edits must
+  // stay dirty, including when the user has navigated to a different section.
+  const acknowledgeDraft = (sectioning: SectioningData | null, rendering: RenderingData | null) => {
+    const latest = latestDraftRef.current
+    if (latest.scope !== draftScope || latest.sectioning !== sectioning || latest.rendering !== rendering || pendingHtmlRef.current) return false
+    setPendingSectioning(null)
+    setPendingRendering(null)
+    setPendingCategories(new Set())
+    needsRerenderRef.current = false
+    return true
+  }
+  const draftIsSaved = () => latestDraftRef.current.scope === draftScope && !latestDraftRef.current.sectioning && !latestDraftRef.current.rendering && !pendingHtmlRef.current
 
   // Inline editing state
   const [selectedElement, setSelectedElement] = useState<{
@@ -769,6 +799,7 @@ export function StoryboardSectionDetail({
     setAiInstruction("")
     setAiError(null)
     setSaving(false)
+    savingRef.current = false
     // Activities open interactive (matching step-by-step); "Edit activity"
     // in the banner opts into the WYSIWYG editor per section.
     setActivityPreviewMode(true)
@@ -827,8 +858,13 @@ export function StoryboardSectionDetail({
   const nodes = section?.nodes ?? []
 
   // Save / discard sectioning
-  const saveSectioning = async () => {
-    if (!pendingSectioning || storyboardRunning) return
+  const saveSectioning = async (forNavigation = false) => {
+    if (savingRef.current || storyboardRunning) {
+      if (forNavigation) throw new Error(t`A save or run is still in progress. Wait for it to finish before leaving.`)
+      return
+    }
+    if (!pendingSectioning) return
+    savingRef.current = true
     setSaving(true)
     setPanelOpen(false)
     // Save retains the draft without invoking generation. Structural changes
@@ -868,19 +904,18 @@ export function StoryboardSectionDetail({
         rendering: renderingToSave ? stripTransientIds(renderingToSave) : undefined,
       })
 
-      setPendingSectioning(null)
-      setPendingRendering(null)
-      setPendingCategories(new Set())
-      needsRerenderRef.current = false
+      const acknowledged = acknowledgeDraft(pendingSectioning, renderingToSave)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       invalidateStoryboardDependents(queryClient, bookLabel)
       await minDelay
+      if (forNavigation && (!acknowledged || !draftIsSaved())) throw new Error(t`Newer edits are still unsaved. Save them before leaving.`)
 
     } catch (err) {
-      setAiError(err instanceof Error ? err.message : t`Save failed`)
+      if (latestDraftRef.current.scope === draftScope) setAiError(err instanceof Error ? err.message : t`Save failed`)
+      if (forNavigation) throw err
     } finally {
-      setSaving(false)
+      if (latestDraftRef.current.scope === draftScope) { savingRef.current = false; setSaving(false) }
     }
   }
 
@@ -900,16 +935,21 @@ export function StoryboardSectionDetail({
   }
 
   // Save rendering (including back-propagation to sectioning)
-  const saveRendering = async () => {
+  const saveRendering = async (forNavigation = false) => {
     // Every Save entrypoint must apply pending exclusions as well as HTML
     // edits. The floating bar and HTML panel can both carry a mixed draft.
     if (pendingSectioning) {
-      await saveSectioning()
+      await saveSectioning(forNavigation)
+      return
+    }
+    if (savingRef.current || storyboardRunning) {
+      if (forNavigation) throw new Error(t`A save or run is still in progress. Wait for it to finish before leaving.`)
       return
     }
     const flushed = flushPendingHtml()
     const renderingToSave = flushed ?? pendingRendering
-    if (!renderingToSave || storyboardRunning) return
+    if (!renderingToSave) return
+    savingRef.current = true
     setSaving(true)
     setPanelOpen(false)
     try {
@@ -931,19 +971,17 @@ export function StoryboardSectionDetail({
         rendering: stripTransientIds(renderingToSave),
         ...sourceSave,
       })
-      needsRerenderRef.current = false
-
-      setPendingRendering(null)
-      setPendingSectioning(null)
-      setPendingCategories(new Set())
+      const acknowledged = acknowledgeDraft(pendingSectioning, renderingToSave)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       invalidateStoryboardDependents(queryClient, bookLabel)
       await minDelay
+      if (forNavigation && (!acknowledged || !draftIsSaved())) throw new Error(t`Newer edits are still unsaved. Save them before leaving.`)
     } catch (err) {
-      setAiError(err instanceof Error ? err.message : t`Save failed`)
+      if (latestDraftRef.current.scope === draftScope) setAiError(err instanceof Error ? err.message : t`Save failed`)
+      if (forNavigation) throw err
     } finally {
-      setSaving(false)
+      if (latestDraftRef.current.scope === draftScope) { savingRef.current = false; setSaving(false) }
     }
   }
 
@@ -986,8 +1024,12 @@ export function StoryboardSectionDetail({
         </div>
       ) : undefined,
     onSave: () => {
-      if (renderingDirty) void saveRendering()
-      else if (pendingSectioning) void saveSectioning()
+      if (renderingDirty) return saveRendering()
+      if (pendingSectioning) return saveSectioning()
+    },
+    onSaveStay: () => {
+      if (renderingDirty) return saveRendering(true)
+      if (pendingSectioning) return saveSectioning(true)
     },
     onDiscard: discardAll,
   })

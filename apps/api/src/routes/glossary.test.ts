@@ -239,6 +239,30 @@ describe("GET /books/:label/glossary", () => {
 })
 
 describe("PUT /books/:label/glossary", () => {
+  it("returns its own identity guard for a successor edit and still rejects intervening writers", async () => {
+    createTestBook("successor-glossary")
+    addRawGlossaryData("successor-glossary", JSON.stringify({ items: [{ id: "gl001", word: "Forest", definition: "Original definition", variations: [], emojis: [] }], pageCount: 1, generatedAt: "before" }))
+    const app = createGlossaryRoutes(tmpDir)
+    const url = "/books/successor-glossary/glossary"
+    const original = await (await app.request(url)).json()
+    const put = (data: unknown) => app.request(url, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
+    const first = await put({ ...original, items: [{ ...original.items[0], definition: "First submitted draft" }] })
+    expect(first.status).toBe(200)
+    const acknowledged = await first.json()
+    expect(acknowledged.identitySignature).toBeTypeOf("string")
+    expect(acknowledged.identitySignature).not.toBe(original.identitySignature)
+    expect(await (await app.request(url)).json()).toMatchObject({ version: acknowledged.version, identitySignature: acknowledged.identitySignature })
+    // This successor uses only its own response, never a later GET's guard.
+    const second = await put({ ...original, version: acknowledged.version, identitySignature: acknowledged.identitySignature, items: [{ ...original.items[0], definition: "Newer draft typed while saving" }] })
+    expect(second.status).toBe(200)
+    const successor = await second.json()
+    const competitor = await put({ ...original, version: successor.version, identitySignature: successor.identitySignature, items: [{ ...original.items[0], definition: "Concurrent writer" }] })
+    expect(competitor.status).toBe(200)
+    const stale = await put({ ...original, version: successor.version, identitySignature: successor.identitySignature, items: [{ ...original.items[0], definition: "Stale follow-up" }] })
+    expect(stale.status).toBe(409)
+    expect(await (await app.request(url)).json()).toMatchObject({ items: [{ id: "gl001", definition: "Concurrent writer" }] })
+  })
+
   it("stores manual glossary items and rebuilds text catalog", async () => {
     createTestBook("save-glossary")
     const app = createGlossaryRoutes(tmpDir)

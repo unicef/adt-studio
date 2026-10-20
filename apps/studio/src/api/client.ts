@@ -1807,7 +1807,7 @@ export const api = {
     request<GlossaryOutput | null>(`/books/${label}/glossary`),
 
   updateGlossary: (label: string, data: unknown) =>
-    request<{ version: number; imageRequirementsChanged: boolean }>(
+    request<{ version: number; identitySignature: string; imageRequirementsChanged: boolean }>(
       `/books/${label}/glossary`,
       {
         method: "PUT",
