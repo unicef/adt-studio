@@ -384,6 +384,53 @@ describe("renderPageHtml", () => {
     expect((html.match(/<h1\b/g) ?? [])).toHaveLength(1)
     expect(html).not.toContain('id="page-heading"')
   })
+
+  it("injects the sr-only h1 fallback on fixed-layout pages too", () => {
+    const html = renderPageHtml({
+      content:
+        '<div id="content" data-section-type="fixed-layout-page" style="position:relative;width:800px;height:600px"><img src="images/pg001_im001.png" alt=""><p data-id="pg001_t1" style="position:absolute;left:10px;top:10px">Hello</p></div>',
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Book Title",
+      pageHeading: "Lesson heading",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+      fixedViewport: { width: 800, height: 600 },
+    })
+
+    expect((html.match(/<h1\b/g) ?? [])).toHaveLength(1)
+    expect(html).toContain('<h1 class="sr-only" id="page-heading">Lesson heading</h1>')
+    // The fixed-layout shell is otherwise unchanged: bare <main>, fixed viewport
+    // meta, and the heading sits inside <main> ahead of #content.
+    expect(html).toContain("<main>")
+    expect(html).not.toContain('<main class="w-full">')
+    expect(html).toContain('content="width=800, height=600"')
+    const mainAt = html.indexOf("<main>")
+    const headingAt = html.indexOf('id="page-heading"')
+    const contentAt = html.indexOf('id="content"')
+    expect(headingAt).toBeGreaterThan(mainAt)
+    expect(headingAt).toBeLessThan(contentAt)
+  })
+
+  it("does not duplicate the h1 on a fixed-layout page that already has one", () => {
+    const html = renderPageHtml({
+      content:
+        '<div id="content" data-section-type="fixed-layout-page" style="position:relative;width:800px;height:600px"><h1 data-id="pg001_t1" style="position:absolute;left:10px;top:10px">Visible heading</h1></div>',
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Book Title",
+      pageHeading: "Lesson heading",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+      fixedViewport: { width: 800, height: 600 },
+    })
+
+    expect((html.match(/<h1\b/g) ?? [])).toHaveLength(1)
+    expect(html).toContain("<h1 data-id=\"pg001_t1\"")
+    expect(html).not.toContain('id="page-heading"')
+  })
 })
 
 describe("resolveReflowableFontChain", () => {

@@ -1401,11 +1401,9 @@ export function renderPageHtml(opts: RenderPageOptions): string {
     : `      <h1 class="sr-only" id="page-heading">${escapeHtml(fallbackPageHeading)}</h1>
 `
 
-  const mainBlock = opts.fixedViewport
-    ? `    <main>
-${contentBlock}
-    </main>`
-    : `    <main class="w-full">
+  // Both shells carry the fallback heading: the sr-only h1 is absolutely
+  // positioned, so it stays out of the fixed-layout fit flow (#509).
+  const mainBlock = `    <main${opts.fixedViewport ? "" : ` class="w-full"`}>
 ${fallbackHeadingHtml}${contentBlock}
     </main>`
 
