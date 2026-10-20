@@ -313,6 +313,7 @@ export interface LoadTranslationsResult {
 export async function loadTranslations(
   lang: string,
   bundleVersion?: string,
+  isCurrent: () => boolean = () => true,
 ): Promise<LoadTranslationsResult> {
   const versionParam = bundleVersion ? `?v=${bundleVersion}` : ""
 
@@ -320,6 +321,10 @@ export async function loadTranslations(
     loadInterfaceTranslations(lang, versionParam),
     loadContentFiles(lang, versionParam),
   ])
+
+  // A language switch or reader disposal can supersede this request while
+  // any catalog is loading. Do not publish stale content, including fallbacks.
+  if (!isCurrent()) return { interface: interfaceData, content }
 
   const store = getDefaultStore()
   // Interface keys + content text keys live in the same translation map (legacy
