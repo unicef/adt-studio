@@ -78,6 +78,15 @@ function getCorrectAnswer(itemId: string): string | undefined {
   // must survive rather than collapse to undefined.
   const raw = window.correctAnswers?.[itemId]
   if (raw === undefined || raw === null) return undefined
+  // Only authored text answers use the display-language catalog. Packaging
+  // supplies the exact owner/key; the reader never infers ownership from DOM
+  // position. Missing/blank translations keep the original grading contract,
+  // and an explicitly open-ended source stays open-ended.
+  const catalogId = window.activityAnswerTextIds?.[itemId]
+  if (typeof raw === "string" && raw.length > 0 && catalogId) {
+    const translated = getDefaultStore().get(translationsAtom)[catalogId]
+    if (typeof translated === "string" && translated.trim().length > 0) return translated
+  }
   return typeof raw === "string" ? raw : String(raw)
 }
 
@@ -104,7 +113,7 @@ function saveInputState(input: TextInput): void {
   if (key) localStorage.setItem(key, input.value)
 }
 
-function loadInputState(inputs: NodeListOf<TextInput>): void {
+function loadInputState(inputs: readonly TextInput[]): void {
   inputs.forEach((input) => {
     const key = persistenceKey(input)
     if (!key) return
@@ -219,10 +228,13 @@ function escapeAttr(value: string): string {
   return String(value).replace(/"/g, "&quot;")
 }
 
-function getActivityInputs(section: HTMLElement): NodeListOf<TextInput> {
-  return section.querySelectorAll<TextInput>(
-    'input[type="text"]:not(#filter-input), textarea:not(#filter-input)',
-  )
+function getActivityInputs(section: HTMLElement): TextInput[] {
+  // Saved custom HTML may omit type (or contain an unrecognized value).
+  // The browser treats those inputs as text; use that effective type without
+  // rewriting legacy markup or including hidden/checkbox/numeric controls.
+  return Array.from(section.querySelectorAll<TextInput>(
+    "input:not(#filter-input), textarea:not(#filter-input)",
+  )).filter((input) => input.tagName === "TEXTAREA" || input.type === "text")
 }
 
 function normalize(value: string): string {

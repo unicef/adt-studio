@@ -149,6 +149,37 @@ function createMinimalStorage(): Storage {
 }
 
 describe("renderPageHtml", () => {
+  it("publishes section-owned text answer keys without translating structural answers or rewriting inputs", () => {
+    const answers = { answer1: "sun", activity_gen_legacy: "moon", open: "", numeric: 100, choice: true }
+    const window: Record<string, unknown> = {}
+    for (const sectionId of ["pg012_s2", "pg012_sec003"]) {
+      const html = renderPageHtml({
+        content: '<section><input data-activity-item="answer1"></section>',
+        language: "en", sectionId, pageTitle: "Legacy", pageIndex: 1,
+        hasMath: false, bundleVersion: "1", activityAnswers: answers,
+      })
+      const dom = new JSDOM(html)
+      for (const script of dom.window.document.querySelectorAll("script")) {
+        if (script.textContent?.includes("window.activityAnswerTextIds")) runInNewContext(script.textContent, { window })
+      }
+      expect(window.activityAnswerTextIds).toEqual({
+        answer1: `${sectionId}_ans_answer1`,
+        activity_gen_legacy: `${sectionId}_ans_${sectionId}__activity_gen_legacy`,
+      })
+      expect(dom.window.document.querySelector("input")?.getAttribute("type")).toBeNull()
+      dom.window.close()
+    }
+    const plain = new JSDOM(renderPageHtml({
+      content: "<p>Following page</p>", language: "en", sectionId: "next",
+      pageTitle: "Legacy", pageIndex: 2, hasMath: false, bundleVersion: "1",
+    }))
+    for (const script of plain.window.document.querySelectorAll("script")) {
+      if (script.textContent?.includes("window.activityAnswerTextIds")) runInNewContext(script.textContent, { window })
+    }
+    expect(window.activityAnswerTextIds).toEqual({})
+    plain.window.close()
+  })
+
   it("does not emit font preload links (fonts are declared in fonts.css)", () => {
     const html = renderPageHtml({
       content: "<p>Hello</p>",

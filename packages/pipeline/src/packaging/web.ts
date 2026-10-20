@@ -1,5 +1,5 @@
 import { buildImageInventory } from "../catalog-reconciliation.js"
-import { resolveQuizOptionId } from "@adt/types"
+import { answerTextId, resolveQuizOptionId } from "@adt/types"
 import { scopeLegacyActivityIds } from "../catalog-reconciliation.js"
 import { reconcileSpeechInputs } from "../speech-inputs.js"
 import { loadCoreTtsProfiles } from "../core-tts.js"
@@ -191,7 +191,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 13
+const PACKAGING_FORMAT_VERSION = 14
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -1399,10 +1399,20 @@ export function renderPageHtml(opts: RenderPageOptions): string {
   // so no client-side math library is needed.
   const mathScript = ""
 
-  const answersScript =
+  // Keep answer identities aligned with text-catalog.ts, including historical
+  // generated keys. String values receive IDs, but only free-text validators
+  // consult this map; choice/slot validators retain their structural rules.
+  const answerTextIds = Object.fromEntries(
+    Object.entries(opts.activityAnswers ?? {})
+      .filter(([, answer]) => typeof answer === "string" && answer.length > 0)
+      .map(([key]) => [key, answerTextId(opts.sectionId,
+        key.startsWith("activity_gen_") ? `${opts.sectionId}__${key}` : key)]),
+  )
+  const answerTextIdsScript = `\n    <script type="text/javascript">\n        window.activityAnswerTextIds = JSON.parse('${escapeInlineScriptJson(JSON.stringify(answerTextIds))}');\n    </script>`
+  const answersScript = answerTextIdsScript + (
     opts.activityAnswers && Object.keys(opts.activityAnswers).length > 0
       ? `\n    <script type="text/javascript">\n        window.correctAnswers = JSON.parse('${escapeInlineScriptJson(JSON.stringify(opts.activityAnswers))}');\n    </script>`
-      : ""
+      : "")
 
   // Stepper JSON payloads are masked for the whole assembly below — the
   // regex passes over the page HTML (contenteditable strip, background-color

@@ -9,6 +9,7 @@ import {
   validateHandlerAtom,
 } from "../state/activity.atoms"
 import { pagesAtom, currentSectionIdAtom } from "../../navigation/state/nav.atoms"
+import { translationsAtom } from "../../language/state/language.atoms"
 
 const store = getDefaultStore()
 
@@ -18,6 +19,7 @@ const store = getDefaultStore()
 declare global {
   interface Window {
     correctAnswers?: Record<string, unknown>
+    activityAnswerTextIds?: Record<string, string>
   }
 }
 
@@ -49,6 +51,8 @@ function setupSectionWithStandaloneInput(): HTMLInputElement {
 beforeEach(() => {
   document.body.innerHTML = ""
   window.correctAnswers = {}
+  window.activityAnswerTextIds = undefined
+  store.set(translationsAtom, {})
   store.set(submitEnabledAtom, false)
   store.set(skipEnabledAtom, false)
   store.set(submitStateAtom, "submit")
@@ -146,6 +150,126 @@ describe("initializeFillInTheBlankActivity — inline blanks", () => {
 })
 
 describe("initializeFillInTheBlankActivity — standalone inputs", () => {
+  it("grades against the active page's catalog answer and rechecks it after a language change", () => {
+    window.localStorage.clear()
+    const input = setupSectionWithStandaloneInput()
+    window.correctAnswers = { "item-1": "sun" }
+    window.activityAnswerTextIds = { "item-1": "pg001_sec002_ans_item-1" }
+    store.set(translationsAtom, {
+      "pg001_sec001_ans_item-1": "wrong owner",
+      "pg001_sec002_ans_item-1": "soleil manuel|soleil",
+    })
+    const cleanup = initializeFillInTheBlankActivity()
+    input.value = "wrong owner"
+    store.get(validateHandlerAtom)?.()
+    expect(store.get(submitStateAtom)).toBe("submit")
+    input.value = "soleil manuel"
+    store.get(validateHandlerAtom)?.()
+    expect(store.get(submitStateAtom)).toBe("next")
+
+    cleanup?.()
+    const revisitedCleanup = initializeFillInTheBlankActivity()
+    store.set(translationsAtom, { "pg001_sec002_ans_item-1": "sun" })
+    store.get(validateHandlerAtom)?.()
+    expect(store.get(submitStateAtom)).toBe("submit")
+    input.value = "sun"
+    store.get(validateHandlerAtom)?.()
+    expect(store.get(submitStateAtom)).toBe("next")
+    expect(window.correctAnswers).toEqual({ "item-1": "sun" })
+    revisitedCleanup?.()
+  })
+
+  it.each([undefined, "", "   "])("uses the source answer when its catalog translation is %s", (translation) => {
+    window.localStorage.clear()
+    const input = setupSectionWithStandaloneInput()
+    window.correctAnswers = { "item-1": "sun" }
+    window.activityAnswerTextIds = { "item-1": "pg001_sec002_ans_item-1" }
+    store.set(translationsAtom, translation === undefined ? {} : { "pg001_sec002_ans_item-1": translation })
+    const cleanup = initializeFillInTheBlankActivity()
+    input.value = "anything"
+    store.get(validateHandlerAtom)?.()
+    expect(store.get(submitStateAtom)).toBe("submit")
+    input.value = "sun"
+    store.get(validateHandlerAtom)?.()
+    expect(store.get(submitStateAtom)).toBe("next")
+    cleanup?.()
+  })
+
+  it("keeps a source open-ended field open even if a stale translation exists", () => {
+    window.localStorage.clear()
+    const input = setupSectionWithStandaloneInput()
+    window.activityAnswerTextIds = { "item-1": "pg001_sec002_ans_item-1" }
+    store.set(translationsAtom, { "pg001_sec002_ans_item-1": "stale answer" })
+    const cleanup = initializeFillInTheBlankActivity()
+    input.value = "my own response"
+    store.get(validateHandlerAtom)?.()
+    expect(store.get(submitStateAtom)).toBe("next")
+    cleanup?.()
+  })
+
+  it("does not infer an answer owner when older exported HTML has no catalog map", () => {
+    window.localStorage.clear()
+    const input = setupSectionWithStandaloneInput()
+    window.correctAnswers = { "item-1": "sun" }
+    store.set(translationsAtom, { "pg001_sec002_ans_item-1": "soleil" })
+    const cleanup = initializeFillInTheBlankActivity()
+    input.value = "soleil"
+    store.get(validateHandlerAtom)?.()
+    expect(store.get(submitStateAtom)).toBe("submit")
+    input.value = "sun"
+    store.get(validateHandlerAtom)?.()
+    expect(store.get(submitStateAtom)).toBe("next")
+    cleanup?.()
+  })
+
+  it.each([undefined, "", "unknown", "TEXT"])("accepts a legacy text field whose saved type is %s", (type) => {
+    window.localStorage.clear()
+    const input = setupSectionWithStandaloneInput()
+    if (type === undefined) input.removeAttribute("type")
+    else input.setAttribute("type", type)
+    window.correctAnswers = { "item-1": "soleil manuel" }
+    initializeFillInTheBlankActivity()
+
+    expect(store.get(submitEnabledAtom)).toBe(false)
+    input.value = "wrong"
+    input.dispatchEvent(new Event("input", { bubbles: true }))
+    expect(store.get(submitEnabledAtom)).toBe(true)
+    store.get(validateHandlerAtom)?.()
+    expect(store.get(submitStateAtom)).toBe("submit")
+    expect(input.classList.contains("border-red-500")).toBe(true)
+
+    input.value = "soleil manuel"
+    input.dispatchEvent(new Event("input", { bubbles: true }))
+    store.get(validateHandlerAtom)?.()
+    expect(store.get(submitStateAtom)).toBe("next")
+    // Recognition does not migrate the saved markup or mint an identity.
+    expect(input.getAttribute("type")).toBe(type ?? null)
+    expect(input.dataset.activityItem).toBe("item-1")
+  })
+
+  it("ignores hidden, checkbox, numeric and filter controls beside an implicit text input", () => {
+    window.localStorage.clear()
+    const input = setupSectionWithStandaloneInput()
+    input.removeAttribute("type")
+    input.closest("section")!.insertAdjacentHTML("beforeend", `
+      <input type="hidden" value="retained" data-activity-item="hidden" />
+      <input type="checkbox" data-activity-item="checkbox" />
+      <input type="number" data-activity-item="number" />
+      <input id="filter-input" value="filter" />
+    `)
+    initializeFillInTheBlankActivity()
+    expect(store.get(submitEnabledAtom)).toBe(false)
+    input.value = "A complete response"
+    input.dispatchEvent(new Event("input", { bubbles: true }))
+    expect(store.get(submitEnabledAtom)).toBe(true)
+    store.get(validateHandlerAtom)?.()
+    expect(store.get(submitStateAtom)).toBe("next")
+    for (const other of document.querySelectorAll<HTMLInputElement>('input:not([data-activity-item="item-1"])')) {
+      expect(other.classList.contains("border-red-500")).toBe(false)
+      expect(other.classList.contains("border-green-500")).toBe(false)
+    }
+  })
+
   it("treats empty correctAnswer as open-ended (any non-empty value counts as correct)", () => {
     setupSectionWithStandaloneInput()
     initializeFillInTheBlankActivity()
