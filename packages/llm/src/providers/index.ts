@@ -10,6 +10,7 @@ import { ollamaProvider } from "./ollama/index.js"
 import { azureProvider } from "./azure/index.js"
 import { elevenLabsProvider } from "./elevenlabs/index.js"
 import { geminiProvider } from "./gemini/index.js"
+import { replicateProvider } from "./replicate/index.js"
 
 export { openaiProvider, openaiManifest, OPENAI_PROVIDER_ID } from "./openai/index.js"
 export {
@@ -51,6 +52,7 @@ export const BUILT_IN_PROVIDERS: readonly AnyProviderModule[] = [
   azureProvider as AnyProviderModule,
   elevenLabsProvider as AnyProviderModule,
   geminiProvider as AnyProviderModule,
+  replicateProvider as AnyProviderModule,
 ]
 
 export function createDefaultProviderRegistry(

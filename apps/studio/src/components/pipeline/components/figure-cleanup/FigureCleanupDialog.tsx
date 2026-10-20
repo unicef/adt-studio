@@ -2,14 +2,16 @@ import { useEffect, useRef, useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Loader2, Sparkles } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import type { ImageCleanupRegion, ImageCleanupCandidate } from "@adt/types"
-import { DEFAULT_IMAGE_GENERATION_MODEL_ID, DEFAULT_GOOGLE_IMAGE_MODEL } from "@adt/types"
+import type { ImageCleanupRegion, ImageCleanupCandidate, ImageCleanupRequest } from "@adt/types"
+import { DEFAULT_IMAGE_GENERATION_MODEL_ID } from "@adt/types"
 import { api, BASE_URL } from "@/api/client"
 import { usePageImage } from "@/hooks/use-pages"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { FigureRegionPicker } from "./FigureRegionPicker"
+import { FigureCleanupOptions } from "./FigureCleanupOptions"
+import { FigureCleanupComparison } from "./FigureCleanupComparison"
 
 export function FigureCleanupDialog({ bookLabel, pageId, imageId, expectedVersion, bounds, onClose }: {
   bookLabel: string
@@ -27,7 +29,10 @@ export function FigureCleanupDialog({ bookLabel, pageId, imageId, expectedVersio
   const configuredModel = config.data?.merged.default_image_generation_model
   const defaultModel = typeof configuredModel === "string" ? configuredModel : DEFAULT_IMAGE_GENERATION_MODEL_ID
   const requestModel = selectedModel ?? defaultModel
-  const googleModel = `google:${DEFAULT_GOOGLE_IMAGE_MODEL}`
+  const [operation, setOperation] = useState<NonNullable<ImageCleanupRequest["operation"]>>("cleanup")
+  const [inputSource, setInputSource] = useState<NonNullable<ImageCleanupRequest["inputSource"]>>("current-image")
+  const removeBackground = operation === "remove-background"
+  const useCurrentImage = removeBackground && inputSource === "current-image"
   const [region, setRegion] = useState<ImageCleanupRegion>(() => bounds
     ? { x: Math.max(0, Math.round(bounds.x * 2)), y: Math.max(0, Math.round(bounds.y * 2)), width: Math.max(16, Math.round(bounds.width * 2)), height: Math.max(16, Math.round(bounds.height * 2)) }
     : { x: 0, y: 0, width: 100, height: 100 })
@@ -40,7 +45,12 @@ export function FigureCleanupDialog({ bookLabel, pageId, imageId, expectedVersio
   const generate = useMutation({
     mutationFn: async () => {
       controller.current = new AbortController()
-      return api.cleanExtractedImage(bookLabel, pageId, { sourceImageId: imageId, region, prompt, expectedVersion, modelId: requestModel },
+      return api.cleanExtractedImage(bookLabel, pageId, {
+        sourceImageId: imageId, expectedVersion, operation,
+        inputSource: useCurrentImage ? "current-image" : "page-region",
+        ...(!useCurrentImage ? { region } : {}),
+        ...(!removeBackground ? { prompt, modelId: requestModel } : {}),
+      },
         AbortSignal.any([controller.current.signal, AbortSignal.timeout(200_000)]))
     },
     onSuccess: setCandidate,
@@ -71,67 +81,51 @@ export function FigureCleanupDialog({ bookLabel, pageId, imageId, expectedVersio
         }}>
         <div className="space-y-2 pr-8">
           <DialogTitle className="flex items-center gap-2"><Sparkles className="size-5 text-violet-500" /><Trans>Clean up figure</Trans></DialogTitle>
-          <DialogDescription><Trans>Experimental · Select the correct figure on the page, clean it with AI, then compare before accepting.</Trans></DialogDescription>
+          <DialogDescription><Trans>Experimental · Choose generative cleanup or background removal, then compare before accepting.</Trans></DialogDescription>
         </div>
+        {!candidate && <fieldset disabled={busy} className="grid grid-cols-2 gap-3">
+          <legend className="sr-only"><Trans>Cleanup method</Trans></legend>
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm">
+            <input type="radio" name="cleanup-operation" checked={!removeBackground} onChange={() => { setOperation("cleanup"); generate.reset() }} />
+            <Trans>Clean up with AI</Trans>
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm">
+            <input type="radio" name="cleanup-operation" checked={removeBackground} onChange={() => { setOperation("remove-background"); generate.reset() }} />
+            <Trans>Remove background</Trans>
+          </label>
+        </fieldset>}
         {candidate ? (
-          <>
-            <div className="grid gap-4 md:grid-cols-3">
-              {[
-                { id: imageId, label: t`Current image` },
-                { id: candidate.cropImageId, label: t`Selected page region` },
-                { id: candidate.imageId, label: t`Cleaned candidate` },
-              ].map((item) => (
-                <figure key={item.id} className="space-y-2">
-                  <figcaption className="text-sm font-medium">{item.label}</figcaption>
-                  <a href={imageUrl(item.id)} target="_blank" rel="noreferrer" className="flex h-72 items-center justify-center rounded-lg border bg-muted/30 p-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
-                    <img src={imageUrl(item.id)} alt={item.label} className="max-h-full max-w-full object-contain" />
-                  </a>
-                </figure>
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground"><Trans>Check labels, fine details, and edges against the page crop. Click an image to inspect it at full size. AI can change content; transparency depends on the image model.</Trans></p>
-            <p className="text-sm text-muted-foreground"><Trans>Accepting updates this image in Extract and wherever it appears in Storyboard. Each changed page gets a new version, preserving its layout and text. Earlier versions remain available in history.</Trans></p>
-          </>
+          <FigureCleanupComparison bookLabel={bookLabel} imageId={imageId} candidate={candidate} />
         ) : (
           <div className="grid gap-6 md:grid-cols-[3fr_2fr]">
-            {pageImage.data ? <FigureRegionPicker imageSrc={`data:image/png;base64,${pageImage.data.imageBase64}`} region={region} onChange={setRegion} onValidityChange={setValidRegion} disabled={busy} />
+            {useCurrentImage ? <img src={imageUrl(imageId)} alt={t`Current image`} className="max-h-[55vh] w-full rounded-lg border object-contain" />
+              : pageImage.data ? <FigureRegionPicker imageSrc={`data:image/png;base64,${pageImage.data.imageBase64}`} region={region} onChange={setRegion} onValidityChange={setValidRegion} disabled={busy} />
               : <p role="status">{pageImage.isError ? t`Could not load the original page.` : t`Loading page…`}</p>}
             <div className="space-y-4">
               <figure className="space-y-2">
                 <figcaption className="text-sm font-medium"><Trans>Current image</Trans></figcaption>
                 <img src={imageUrl(imageId)} alt={t`Current image`} className="max-h-32 max-w-full rounded border object-contain" />
               </figure>
-              <label className="block space-y-2 text-sm font-medium">
-                <span><Trans>Image model</Trans></span>
-                <select value={requestModel} onChange={(event) => setSelectedModel(event.target.value)} disabled={busy || config.isLoading}
-                  className="w-full rounded-md border bg-background p-2 text-sm font-normal focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
-                  <option value={DEFAULT_IMAGE_GENERATION_MODEL_ID}><Trans>GPT Image 2.5 Flare (OpenAI)</Trans></option>
-                  <option value={googleModel}><Trans>Nano Banana (Google)</Trans></option>
-                  {defaultModel !== DEFAULT_IMAGE_GENERATION_MODEL_ID && defaultModel !== googleModel && <option value={defaultModel}>{defaultModel}</option>}
-                </select>
-              </label>
-              <label className="block space-y-2 text-sm font-medium">
-                <span><Trans>Cleanup instructions</Trans></span>
-                <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} disabled={busy} maxLength={4000}
-                  className="min-h-56 w-full resize-y rounded-md border bg-background p-3 text-sm font-normal focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring" />
-              </label>
-              <p className="text-xs text-muted-foreground"><Trans>The model receives the selected page region. Your current image is kept until you accept a result.</Trans></p>
+              <FigureCleanupOptions removeBackground={removeBackground} inputSource={inputSource} onInputSource={setInputSource}
+                modelId={requestModel} defaultModel={defaultModel} onModel={setSelectedModel} prompt={prompt} onPrompt={setPrompt}
+                disabled={busy || (!removeBackground && config.isLoading)} />
             </div>
           </div>
         )}
-        {modelId && <p className="text-xs text-muted-foreground"><Trans>Image model: {modelId}</Trans></p>}
+        <p className="break-all text-xs text-muted-foreground">{removeBackground
+          ? <Trans>Background removal: Replicate · 851-labs/background-remover</Trans> : <Trans>Image model: {modelId}</Trans>}</p>
         {error && <p role="alert" className="text-sm text-destructive">{error.message}</p>}
         <div className="flex items-center justify-end gap-2 border-t pt-4">
           <span role="status" className="mr-auto text-sm text-muted-foreground">
-            {generate.isPending && <Trans>Cleaning the selected figure…</Trans>}
+            {generate.isPending && (removeBackground ? <Trans>Removing the background…</Trans> : <Trans>Cleaning the selected figure…</Trans>)}
             {candidate?.cached && <Trans>Reused a cached result.</Trans>}
           </span>
           <Button variant="outline" disabled={accept.isPending} onClick={onClose}><Trans>Cancel</Trans></Button>
           {candidate ? <>
             <Button variant="outline" disabled={busy} onClick={() => { setCandidate(null); generate.reset(); accept.reset() }}><Trans>Adjust and retry</Trans></Button>
             <Button disabled={busy} onClick={() => accept.mutate()}>{accept.isPending && <Loader2 className="size-4 animate-spin" />}<Trans>Accept cleaned figure</Trans></Button>
-          </> : <Button disabled={busy || config.isLoading || !pageImage.data || !prompt.trim() || !validRegion} onClick={() => generate.mutate()}>
-            {generate.isPending ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}<Trans>Clean selected region</Trans>
+          </> : <Button disabled={busy || (!removeBackground && (config.isLoading || !prompt.trim())) || (!useCurrentImage && (!pageImage.data || !validRegion))} onClick={() => generate.mutate()}>
+            {generate.isPending ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}{removeBackground ? <Trans>Remove background</Trans> : <Trans>Clean selected region</Trans>}
           </Button>}
         </div>
       </DialogContent>

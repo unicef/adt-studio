@@ -13,14 +13,17 @@ export type ImageCleanupRegion = z.infer<typeof ImageCleanupRegion>
 
 export const ImageCleanupRequest = z.object({
   sourceImageId: CleanupImageId,
-  region: ImageCleanupRegion,
-  prompt: z.string().trim().min(1).max(4000),
+  operation: z.enum(["cleanup", "remove-background"]).optional(),
+  inputSource: z.enum(["page-region", "current-image"]).optional(),
+  region: ImageCleanupRegion.optional(),
+  prompt: z.string().trim().min(1).max(4000).optional(),
   modelId: z.string().trim().min(1).max(200).optional(),
   expectedVersion: z.number().int().positive().nullable(),
 })
 export type ImageCleanupRequest = z.infer<typeof ImageCleanupRequest>
 
 export const ImageCleanupCandidate = ImageCleanupRequest.extend({
+  prompt: z.string(),
   imageId: CleanupImageId,
   cropImageId: CleanupImageId,
   pageId: CleanupImageId,

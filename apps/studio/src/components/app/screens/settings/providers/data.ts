@@ -18,6 +18,12 @@ export const ROLE_GROUPS: RoleGroup[] = [
     cards: ["openai", "anthropic", "google", "custom", "ollama"],
   },
   {
+    key: "images",
+    label: msg`Image tools`,
+    hint: msg`Background removal for extracted figures.`,
+    cards: ["replicate"],
+  },
+  {
     key: "speech",
     label: msg`Speech & voices`,
     hint: msg`Text-to-speech engines that narrate the finished book.`,
@@ -45,6 +51,7 @@ export const PROVIDER_CARDS: Record<string, ProviderCardDef> = {
   openai: { key: "openai", displayName: "OpenAI", uiId: "openai", apiKeyProviderId: "openai", cliProviderId: "codex", cliLabel: "Codex CLI" },
   anthropic: { key: "anthropic", displayName: "Anthropic", uiId: "anthropic", apiKeyProviderId: "anthropic", cliProviderId: "claude-agent", cliLabel: "Claude Code" },
   google: { key: "google", displayName: "Google", uiId: "google", apiKeyProviderId: "google" },
+  replicate: { key: "replicate", displayName: "Replicate", uiId: "replicate", apiKeyProviderId: "replicate" },
   custom: { key: "custom", displayName: "Custom (OpenAI-compatible)", uiId: "custom", apiKeyProviderId: "custom" },
   ollama: { key: "ollama", displayName: "Ollama", uiId: "ollama", localProviderId: "ollama" },
   azure: { key: "azure", displayName: "Azure Speech", uiId: "azure", apiKeyProviderId: "azure" },

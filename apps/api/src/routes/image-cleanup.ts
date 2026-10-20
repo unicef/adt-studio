@@ -6,14 +6,16 @@ import {
   DEFAULT_IMAGE_GENERATION_MODEL_ID, ImageClassificationOutput,
   ImageCleanupRequest, ImageCleanupCandidate, ImageCleanupAcceptance,
   imageFileExtension, parseBookLabel,
+  BACKGROUND_REMOVER_MODEL_ID, BACKGROUND_REMOVER_INSTRUCTIONS,
 } from "@adt/types"
 import { createBookStorage, openBookDb, type Storage } from "@adt/storage"
-import { applyCrop, loadBookConfig } from "@adt/pipeline"
+import { loadBookConfig } from "@adt/pipeline"
 import { assertModelCredentials, generateImageWithCache } from "@adt/llm"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 import { resolvePathWithin } from "../utils/path-security.js"
 import { replaceCleanupInStoryboard } from "../services/cleanup-storyboard.js"
 import type { TaskService } from "../services/task-service.js"
+import { prepareCleanupSource } from "../services/cleanup-source.js"
 
 function safePath(root: string, ...parts: string[]): string {
   const resolved = resolvePathWithin(root, ...parts)
@@ -50,39 +52,29 @@ export function createImageCleanupRoutes(booksDir: string, configPath: string, t
     const parsed = ImageCleanupRequest.safeParse(await c.req.json().catch(() => null))
     if (!parsed.success) throw new HTTPException(400, { message: "Invalid cleanup request" })
     const input = parsed.data
+    const removeBackground = input.operation === "remove-background"
+    if (!removeBackground && !input.prompt) throw new HTTPException(400, { message: "Cleanup instructions are required" })
+    const prompt = removeBackground ? BACKGROUND_REMOVER_INSTRUCTIONS : input.prompt!
     const dbPath = safePath(booksDir, label, `${label}.db`)
     if (!fs.existsSync(dbPath)) throw new HTTPException(404, { message: "Book not found" })
     const storage = createBookStorage(label, booksDir)
     try {
       assertNoActiveTasks(label)
       currentClassification(storage, pageId, input.expectedVersion, input.sourceImageId)
-      const pageMeta = storage.getImageMeta(`${pageId}_page`)
-      if (!pageMeta) throw new HTTPException(404, { message: "Page image not found" })
-      const pageBytes = fs.readFileSync(safePath(booksDir, label, pageMeta.relativePath))
-      // Page renders are PNGs. Check their actual IHDR rather than trusting DB dimensions.
-      if (pageBytes.length < 24 || pageBytes.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a") {
-        throw new HTTPException(400, { message: "Cleanup requires a PNG page render" })
+      const source = prepareCleanupSource(storage, booksDir, label, pageId, input)
+      const modelId = removeBackground ? BACKGROUND_REMOVER_MODEL_ID
+        : input.modelId ?? loadBookConfig(label, booksDir, configPath).default_image_generation_model ?? DEFAULT_IMAGE_GENERATION_MODEL_ID
+      if (!removeBackground && modelId.startsWith("replicate:")) {
+        throw new HTTPException(400, { message: "Choose Remove background to use Replicate" })
       }
-      const width = pageBytes.readUInt32BE(16)
-      const height = pageBytes.readUInt32BE(20)
-      const { region } = input
-      if (width * height > 64_000_000 || region.x + region.width > width || region.y + region.height > height) {
-        throw new HTTPException(400, { message: "Crop must fit inside the page image" })
-      }
-      const modelId = input.modelId ?? loadBookConfig(label, booksDir, configPath).default_image_generation_model
-        ?? DEFAULT_IMAGE_GENERATION_MODEL_ID
       const credentials = readProviderCredentials(c)
       assertModelCredentials("image", modelId, credentials)
-      const crop = applyCrop(pageBytes, {
-        cropLeft: region.x, cropTop: region.y,
-        cropRight: region.x + region.width, cropBottom: region.y + region.height,
-      })
       const generated = await generateImageWithCache({
-        modelId, providerCredentials: credentials, prompt: input.prompt,
-        referenceImages: [{ data: crop, mimeType: "image/png", name: "source-page-region.png" }],
+        modelId, providerCredentials: credentials, prompt,
+        referenceImages: [{ data: source.bytes, mimeType: source.mimeType, name: `source.${imageFileExtension(source.mimeType)}` }],
         cacheDir: safePath(booksDir, label, ".cache"), timeoutMs: 180_000,
         signal: c.req.raw.signal,
-        log: { taskType: "image-cleanup", pageId, promptName: "experimental-figure-cleanup" },
+        log: { taskType: "image-cleanup", pageId, promptName: removeBackground ? "experimental-background-removal" : "experimental-figure-cleanup" },
         onLog: (entry) => storage.appendLlmLog(entry),
       })
 
@@ -94,7 +86,7 @@ export function createImageCleanupRoutes(booksDir: string, configPath: string, t
       const db = openBookDb(dbPath)
       try {
         for (const image of [
-          { id: cropImageId, bytes: crop, width: region.width, height: region.height, ext: "png" },
+          { id: cropImageId, bytes: source.bytes, width: source.width, height: source.height, ext: imageFileExtension(source.mimeType) },
           { id: imageId, bytes: Buffer.from(generated.base64, "base64"), width: generated.width, height: generated.height, ext: imageFileExtension(generated.mimeType) },
         ]) {
           const filename = `${image.id}.${image.ext}`
@@ -103,12 +95,13 @@ export function createImageCleanupRoutes(booksDir: string, configPath: string, t
             `INSERT INTO images (image_id, page_id, path, hash, width, height, source, bounds_x, bounds_y, bounds_w, bounds_h)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [image.id, pageId, `images/${filename}`, crypto.createHash("sha256").update(image.bytes).digest("hex"),
-              image.width, image.height, "crop", region.x / 2, region.y / 2, region.width / 2, region.height / 2],
+              image.width, image.height, "crop", source.bounds?.x ?? null, source.bounds?.y ?? null, source.bounds?.width ?? null, source.bounds?.height ?? null],
           )
         }
       } finally { db.close() }
       const candidate = ImageCleanupCandidate.parse({
-        ...input, imageId, cropImageId, pageId, modelId,
+        ...input, prompt, imageId, cropImageId, pageId, modelId,
+        operation: removeBackground ? "remove-background" : "cleanup", inputSource: input.inputSource ?? "page-region",
         width: generated.width, height: generated.height, mimeType: generated.mimeType,
         cached: generated.cached, createdAt: new Date().toISOString(),
       })

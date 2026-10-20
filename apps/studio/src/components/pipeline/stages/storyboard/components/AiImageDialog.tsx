@@ -167,7 +167,7 @@ export function AiImageDialog({
               <ScanLine className="mt-0.5 size-4 shrink-0 text-purple-600" />
               <div>
                 <p className="text-xs font-semibold">{t`Clean up figure`}</p>
-                <p className="mt-0.5 text-[10px] text-muted-foreground">{t`Recover from the original PDF page`}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">{t`Clean up or remove background`}</p>
               </div>
             </button>
           </div>

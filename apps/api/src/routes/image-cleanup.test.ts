@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import { renderSvgToPng, getPngMetadata } from "@adt/pdf"
 import type { ImageCleanupCandidate } from "@adt/types"
+import { BACKGROUND_REMOVER_MODEL_ID, BACKGROUND_REMOVER_INSTRUCTIONS } from "@adt/types"
 import { createImageCleanupRoutes } from "./image-cleanup.js"
 import { errorHandler } from "../middleware/error-handler.js"
 
@@ -124,6 +125,77 @@ it("switches between OpenAI and Nano Banana without sharing cache entries or cha
 
 it.each(["", "x".repeat(201), 42])("rejects invalid model selection %j before calling a provider", async (modelId) => {
   expect((await post({ ...input, modelId })).status).toBe(400)
+  expect(provider).not.toHaveBeenCalled()
+})
+
+it.each(["current-image", "page-region"])("removes background from %s with Replicate and accepts an immutable result", async (inputSource) => {
+  const outputUrl = "https://replicate.delivery/figure.png"
+  provider.mockImplementation(async (url) => url === outputUrl
+    ? new Response(generatedBytes, { headers: { "Content-Type": "image/png" } })
+    : Response.json({ id: "background1", status: "succeeded", output: outputUrl }))
+  if (inputSource === "current-image") {
+    // Removing the current image's background must not depend on a page render.
+    const db = openBookDb(path.join(root, label, `${label}.db`))
+    db.run("DELETE FROM images WHERE image_id = ?", [`${pageId}_page`])
+    db.close()
+  }
+  const request = { sourceImageId, expectedVersion: 1, operation: "remove-background", inputSource,
+    ...(inputSource === "page-region" ? { region: input.region } : {}),
+    // The operation fixes both model and parameters; stale cleanup controls cannot alter it.
+    modelId: "openai:gpt-image-2.5-flare", prompt: "stale prompt",
+  }
+  const headers = { "X-ADT-Provider-Replicate-API-Token": "fake-replicate-token" }
+  const response = await post(request, "", pageId, headers)
+  expect(response.status).toBe(200)
+  const result = await response.json() as ImageCleanupCandidate
+  expect(result).toMatchObject({ operation: "remove-background", inputSource, modelId: BACKGROUND_REMOVER_MODEL_ID,
+    prompt: BACKGROUND_REMOVER_INSTRUCTIONS, mimeType: "image/png", cached: false })
+  const sent = JSON.parse(provider.mock.calls[0][1]!.body as string)
+  const sourceBytes = Buffer.from(sent.input.image.split(",")[1], "base64")
+  expect(getPngMetadata(sourceBytes)).toMatchObject(inputSource === "current-image" ? { width: 80, height: 60 } : { width: 20, height: 30 })
+  expect(provider.mock.calls[0][1]!.headers).toMatchObject({ Authorization: "Bearer fake-replicate-token" })
+  expect(await (await post(request, "", pageId, headers)).json()).toMatchObject({ cached: true })
+  expect(provider).toHaveBeenCalledTimes(2)
+  const storage = createBookStorage(label, root)
+  storage.putNodeData("web-rendering", pageId, { sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "original",
+    html: `<img data-id="${sourceImageId}" src="/api/books/${label}/images/${sourceImageId}" alt="Preserved label" />`,
+  }] })
+  storage.close()
+  expect((await post({ imageId: result.imageId }, "/accept")).status).toBe(200)
+  const current = createBookStorage(label, root)
+  try {
+    expect(current.getImageBase64(result.imageId)).toBe(generatedBytes.toString("base64"))
+    expect(current.getImageBase64(result.cropImageId)).toBe(sourceBytes.toString("base64"))
+    expect(current.getImageBase64(sourceImageId)).toBe(pageBytes.toString("base64"))
+    expect(current.getAllNodeVersions("image-filtering", pageId)).toHaveLength(2)
+    expect(JSON.stringify(current.getLatestNodeData("web-rendering", pageId)?.data)).toContain(result.imageId)
+  } finally { current.close() }
+})
+
+it("requires the Replicate token for background removal and does not fall back to OpenAI", async () => {
+  vi.stubEnv("REPLICATE_API_TOKEN", "")
+  try {
+    expect((await post({ sourceImageId, expectedVersion: 1, operation: "remove-background", inputSource: "current-image" })).status).toBe(400)
+    expect(provider).not.toHaveBeenCalled()
+  } finally { vi.unstubAllEnvs() }
+})
+
+it.each([
+  { ...input, operation: "unknown" },
+  { ...input, inputSource: "current-image" },
+  { ...input, region: undefined },
+  { ...input, prompt: undefined },
+  { ...input, modelId: BACKGROUND_REMOVER_MODEL_ID },
+])("rejects mismatched cleanup methods and inputs before a provider call: %j", async (request) => {
+  expect((await post(request)).status).toBe(400)
+  expect(provider).not.toHaveBeenCalled()
+})
+
+it("rejects current-image source paths outside the book", async () => {
+  const db = openBookDb(path.join(root, label, `${label}.db`))
+  db.run("UPDATE images SET path = ? WHERE image_id = ?", ["../config.yaml", sourceImageId])
+  db.close()
+  expect((await post({ sourceImageId, expectedVersion: 1, operation: "remove-background", inputSource: "current-image" })).status).toBe(400)
   expect(provider).not.toHaveBeenCalled()
 })
 

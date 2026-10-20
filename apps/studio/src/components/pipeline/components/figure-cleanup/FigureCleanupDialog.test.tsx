@@ -55,3 +55,30 @@ it("honors a book override and keeps it available after choosing another model",
   fireEvent.change(select, { target: { value: mocks.configuredModel } })
   expect(select.value).toBe(mocks.configuredModel)
 })
+
+it("offers background removal on the current image without a generative prompt or model", async () => {
+  const view = dialog()
+  fireEvent.click(view.getByRole("radio", { name: "Remove background" }))
+  expect(view.queryByLabelText("Cleanup instructions")).toBeNull()
+  expect(view.queryByLabelText("Image model")).toBeNull()
+  expect((view.getByLabelText("Image to process") as HTMLSelectElement).value).toBe("current-image")
+  fireEvent.click(view.getByRole("button", { name: "Remove background" }))
+  await waitFor(() => expect(mocks.generate).toHaveBeenCalled())
+  expect(mocks.generate.mock.calls[0][2]).toEqual({ sourceImageId: "pg001_im001", expectedVersion: 1,
+    operation: "remove-background", inputSource: "current-image" })
+  expect(await view.findByRole("img", { name: "Background removed" })).toBeTruthy()
+  expect(view.getAllByRole("img")).toHaveLength(2)
+})
+
+it("can remove a page crop's background and switch back to generative cleanup on retry", async () => {
+  const view = dialog()
+  fireEvent.click(view.getByRole("radio", { name: "Remove background" }))
+  fireEvent.change(view.getByLabelText("Image to process"), { target: { value: "page-region" } })
+  fireEvent.click(view.getByRole("button", { name: "Remove background" }))
+  await waitFor(() => expect(mocks.generate).toHaveBeenCalled())
+  expect(mocks.generate.mock.calls[0][2]).toMatchObject({ operation: "remove-background", inputSource: "page-region", region: { x: 0, y: 0, width: 100, height: 100 } })
+  fireEvent.click(await view.findByRole("button", { name: "Adjust and retry" }))
+  fireEvent.click(view.getByRole("radio", { name: "Clean up with AI" }))
+  expect(view.getByLabelText("Cleanup instructions")).toBeTruthy()
+  expect((view.getByLabelText("Image model") as HTMLSelectElement).value).toBe("openai:gpt-image-2.5-flare")
+})

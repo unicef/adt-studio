@@ -2,8 +2,8 @@
 
 **Issue:** [#986](https://github.com/unicef/adt-studio/issues/986), a bounded feasibility slice of the broader image-cleaning proposal [#695](https://github.com/unicef/adt-studio/issues/695). Related foundation: #325; alpha preservation: #326.
 **Branch:** `elasticsounds/malformed-images-cleanup` (kept as requested).
-**Question:** Can a user recover a broken extracted image by selecting the correct figure on the rendered PDF page and asking an image model to isolate it?
-**Time box:** 2026-10-19 → 2026-10-20; extended for one session at the user's request to test the same cleanup flow in Storyboard and synchronize existing uses.
+**Question:** Can a user recover or isolate an extracted figure using generative cleanup of a page crop or a dedicated background-removal model?
+**Time box:** 2026-10-19 → 2026-10-20; extended at the user's request for Storyboard synchronization, model switching, and one additional session to implement a dedicated Replicate background-removal comparison route. This remains a feasibility experiment.
 **Demo:** local Studio, Extract → a page → **Clean up figure**. An isolated synthetic demo book is running at `http://localhost:5199/books/figure-cleanup-demo/extract/pg001?lang=en`; it is not a staging deployment. Local comparison screenshot: `.context/figure-cleanup-comparison.jpg`.
 
 ## What we tried
@@ -14,7 +14,7 @@
 - Compare the original extraction, selected page crop, and generated candidate. Open any image at full size; adjust the crop/instructions and retry, cancel, or explicitly accept.
 - Accept into a new `image-filtering` version when the source is in the extraction. In the same transaction, replace every current Storyboard use across pages: nested image leaves, placement keys, and matching HTML image tags. Save new sectioning/rendering versions only where changed; keep layout, text, alt text, and prior versions. Existing captions, text catalogs, and speech survive, while downstream pipeline steps become stale. No Storyboard rerun is needed.
 
-The prototype uses the existing provider registry and `generateImageWithCache`; no dependencies, database migration, or pipeline steps were added. PNG/JPEG outputs keep their returned format and validated dimensions. Inputs, source crops, candidates, provenance, and model logs remain inside the book. Candidate files have unique IDs and exclusive writes. An `image-cleanup` node records source image, pixel region, prompt, model, candidate, timestamp, and accepted extraction version (nullable for Storyboard-only images). Acceptance checks that the extraction version has not changed and that no pipeline step or background task is running; duplicate acceptance is idempotent. Storyboard resolves the source page from the image catalog, including images reused across pages. Unsaved local Storyboard edits must be saved or discarded before cleanup.
+The prototype uses the provider registry and `generateImageWithCache`; no dependencies, database migration, or pipeline steps were added. PNG/JPEG outputs keep their returned format and validated dimensions. Inputs, source crops, candidates, provenance, and model logs remain inside the book. Candidate files have unique IDs and exclusive writes. An `image-cleanup` node records source image, operation, input source, optional pixel region, prompt, model, candidate, timestamp, and accepted extraction version (nullable for Storyboard-only images). Older cleanup candidates remain readable. Acceptance checks that the extraction version has not changed and that no pipeline step or background task is running; duplicate acceptance is idempotent. Storyboard resolves the source page from the image catalog, including images reused across pages. Unsaved local Storyboard edits must be saved or discarded before cleanup.
 
 ## What we learned
 
@@ -99,3 +99,20 @@ This is feasibility evidence on one synthetic diagram, not a measured success ra
 - [ ] Extend this time box.
 
 The local context map corrections made during this session update Lingui to v6 and correct the API/router/stage-runner paths encountered while tracing the implementation.
+
+## Replicate alternative (2026-10-20)
+
+The user requested a choice between generative cleanup and [851-labs/background-remover](https://replicate.com/851-labs/background-remover/api). The shared cleanup dialog now offers **Clean up with AI** and **Remove background** in Extract and Storyboard. Removal defaults to the current image and also supports a selected page crop. The current-image path does not require a page render or a generative prompt. Both paths preserve the explicit preview/accept flow, immutable candidates, cached calls, and synchronized Storyboard acceptance. A checkerboard makes transparency visible in the comparison.
+
+The Replicate adapter is limited to this model, pinned to version `a029dff38972b5fda4ec5d75d7d1cd25aeff621d2cf4946a41055d7db66b80bc`. Its [versioned input schema](https://replicate.com/851-labs/background-remover/versions/a029dff38972b5fda4ec5d75d7d1cd25aeff621d2cf4946a41055d7db66b80bc/api) specifies `background_type: rgba`, `format: png`, `threshold: 0` (soft alpha), and `reverse: false`; these are fixed for this experiment. The adapter uses the [HTTP prediction API](https://replicate.com/docs/reference/http), waits synchronously then polls if necessary, and downloads the returned PNG immediately into the book. It accepts PNG/JPEG inputs up to 5 MB and bounds output downloads to 20 MB. Actual PNG decoding happens before cache/storage; there is no white-background flattening.
+
+Configure the token in **Settings → AI providers → Replicate**, or set `REPLICATE_API_TOKEN` on the server. The manifest adds a namespaced credential header and integrates with the existing local credential store. Tokens and signed output URLs are not logged. Downloads are restricted to HTTPS `replicate.delivery` hosts with redirects disabled; prediction polling/cancellation uses a fixed API origin. Cancellation attempts to stop a known prediction, while `Cancel-After` bounds runs when the initial creation response is interrupted before its ID is known.
+
+Verification for this extension:
+
+- `pnpm typecheck` passed. `pnpm lint` passed with the same eight unrelated warnings. Studio `extract`/`compile` passed; zero missing translations in all five locales. `git diff --check` passed.
+- **123 tests passed across six files**: cleanup routes, Replicate image adapter, provider registry, provider routes, cleanup dialog, and provider settings. Credentials were removed from the test environment. Coverage includes the current-image and page-crop paths, provider routing, fixed RGBA parameters, polling, cancellation, failure/redirection/URL checks, bounded output, credential isolation, immutable storage, cache reuse, and Storyboard acceptance.
+- Browser-checked the method switch, current-image preview, page-crop controls, missing-token feedback, and the Replicate settings entry. Screenshot: `.context/replicate-background-removal.png`.
+- **No live Replicate prediction was run: no token was configured in the test environment.** Foreground/label fidelity, actual alpha coverage, latency, and cost remain unmeasured for this alternative. Full-suite, production, and packaged Electron verification were not rerun for this extension.
+
+Recommendation remains a production spec after representative trials. This alternate method supplies a comparison path; it does not establish that background removal will preserve detached labels, thin lines, or every educational detail.

@@ -1799,6 +1799,15 @@ msgstr "Background"
 msgid "Background polling cadence for provider availability and auth state."
 msgstr "Background polling cadence for provider availability and auth state."
 
+msgid "Background removal for extracted figures."
+msgstr "Background removal for extracted figures."
+
+msgid "Background removal: Replicate · 851-labs/background-remover"
+msgstr "Background removal: Replicate · 851-labs/background-remover"
+
+msgid "Background removed"
+msgstr "Background removed"
+
 #. placeholder {0}: section.backgroundColor
 msgid "Background: {0}"
 msgstr "Background: {0}"
@@ -2285,6 +2294,9 @@ msgstr "Check for updates"
 msgid "Check labels, fine details, and edges against the page crop. Click an image to inspect it at full size. AI can change content; transparency depends on the image model."
 msgstr "Check labels, fine details, and edges against the page crop. Click an image to inspect it at full size. AI can change content; transparency depends on the image model."
 
+msgid "Check that labels, thin lines, and all parts of the figure remain. The checkerboard shows transparent areas. Click an image to inspect it at full size."
+msgstr "Check that labels, thin lines, and all parts of the figure remain. The checkerboard shows transparent areas. Click an image to inspect it at full size."
+
 msgid "Checked"
 msgstr "Checked"
 
@@ -2396,6 +2408,12 @@ msgstr "Clean selected region"
 msgid "Clean up figure"
 msgstr "Clean up figure"
 
+msgid "Clean up or remove background"
+msgstr "Clean up or remove background"
+
+msgid "Clean up with AI"
+msgstr "Clean up with AI"
+
 msgid "Cleaned candidate"
 msgstr "Cleaned candidate"
 
@@ -2404,6 +2422,9 @@ msgstr "Cleaning the selected figure…"
 
 msgid "Cleanup instructions"
 msgstr "Cleanup instructions"
+
+msgid "Cleanup method"
+msgstr "Cleanup method"
 
 msgid "Clear"
 msgstr "Clear"
@@ -2593,6 +2614,9 @@ msgstr "Configure features to include in the export"
 
 #~ msgid "Configure provider credentials used by AI pipeline features on this machine."
 #~ msgstr "Configure provider credentials used by AI pipeline features on this machine."
+
+msgid "Configure Replicate API token"
+msgstr "Configure Replicate API token"
 
 msgid "Configure the credentials used by AI features on this device."
 msgstr "Configure the credentials used by AI features on this device."
@@ -3841,8 +3865,11 @@ msgstr "Expand"
 msgid "Expand all sections"
 msgstr "Expand all sections"
 
-msgid "Experimental · Select the correct figure on the page, clean it with AI, then compare before accepting."
-msgstr "Experimental · Select the correct figure on the page, clean it with AI, then compare before accepting."
+msgid "Experimental · Choose generative cleanup or background removal, then compare before accepting."
+msgstr "Experimental · Choose generative cleanup or background removal, then compare before accepting."
+
+#~ msgid "Experimental · Select the correct figure on the page, clean it with AI, then compare before accepting."
+#~ msgstr "Experimental · Select the correct figure on the page, clean it with AI, then compare before accepting."
 
 msgid "Experimental configurations"
 msgstr "Experimental configurations"
@@ -4871,6 +4898,12 @@ msgstr "Image selection"
 
 msgid "Image size"
 msgstr "Image size"
+
+msgid "Image to process"
+msgstr "Image to process"
+
+msgid "Image tools"
+msgstr "Image tools"
 
 msgid "Image Translation"
 msgstr "Image Translation"
@@ -7887,8 +7920,8 @@ msgstr "Recommended for {0}"
 msgid "Record reviewer findings for the current page and save them to the active validation session."
 msgstr "Record reviewer findings for the current page and save them to the active validation session."
 
-msgid "Recover from the original PDF page"
-msgstr "Recover from the original PDF page"
+#~ msgid "Recover from the original PDF page"
+#~ msgstr "Recover from the original PDF page"
 
 msgid "Recrop from page"
 msgstr "Recrop from page"
@@ -7979,6 +8012,9 @@ msgstr "Remove all sign-language videos?"
 msgid "Remove author"
 msgstr "Remove author"
 
+msgid "Remove background"
+msgstr "Remove background"
+
 msgid "Remove checklist item"
 msgstr "Remove checklist item"
 
@@ -8041,6 +8077,9 @@ msgstr "removed"
 msgid "Removed"
 msgstr "Removed"
 
+msgid "Removing the background…"
+msgstr "Removing the background…"
+
 msgid "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
 msgstr "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
 
@@ -8088,6 +8127,9 @@ msgstr "Replace this audio file"
 
 msgid "Replay the guided introduction to ADT Studio."
 msgstr "Replay the guided introduction to ADT Studio."
+
+msgid "Replicate isolates the foreground and returns a transparent PNG. Review labels and thin lines before accepting."
+msgstr "Replicate isolates the foreground and returns a transparent PNG. Review labels and thin lines before accepting."
 
 msgid "Report an issue"
 msgstr "Report an issue"

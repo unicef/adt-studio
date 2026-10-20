@@ -1801,6 +1801,15 @@ msgstr "Sfond"
 msgid "Background polling cadence for provider availability and auth state."
 msgstr "Kadenca e sondazhit në sfond për disponueshmërinë e ofruesit dhe gjendjen e autentikimit."
 
+msgid "Background removal for extracted figures."
+msgstr "Heqja e sfondit për figurat e nxjerra."
+
+msgid "Background removal: Replicate · 851-labs/background-remover"
+msgstr "Heqja e sfondit: Replicate · 851-labs/background-remover"
+
+msgid "Background removed"
+msgstr "Sfondi u hoq"
+
 #. placeholder {0}: section.backgroundColor
 msgid "Background: {0}"
 msgstr "Sfond: {0}"
@@ -2287,6 +2296,9 @@ msgstr "Kontrollo për përditësime"
 msgid "Check labels, fine details, and edges against the page crop. Click an image to inspect it at full size. AI can change content; transparency depends on the image model."
 msgstr "Krahasoni etiketat, hollësitë dhe skajet me prerjen e faqes. Klikoni një imazh për ta parë në madhësi të plotë. IA mund të ndryshojë përmbajtjen; transparenca varet nga modeli i imazheve."
 
+msgid "Check that labels, thin lines, and all parts of the figure remain. The checkerboard shows transparent areas. Click an image to inspect it at full size."
+msgstr "Kontrolloni që etiketat, vijat e holla dhe të gjitha pjesët e figurës të jenë ruajtur. Modeli me katrorë tregon zonat transparente. Klikoni një imazh për ta parë në madhësi të plotë."
+
 msgid "Checked"
 msgstr "Kontrolluar"
 
@@ -2398,6 +2410,12 @@ msgstr "Pastro zonën e përzgjedhur"
 msgid "Clean up figure"
 msgstr "Pastro figurën"
 
+msgid "Clean up or remove background"
+msgstr "Pastro ose hiq sfondin"
+
+msgid "Clean up with AI"
+msgstr "Pastro me IA"
+
 msgid "Cleaned candidate"
 msgstr "Propozimi i pastruar"
 
@@ -2406,6 +2424,9 @@ msgstr "Duke pastruar figurën e përzgjedhur…"
 
 msgid "Cleanup instructions"
 msgstr "Udhëzimet e pastrimit"
+
+msgid "Cleanup method"
+msgstr "Metoda e pastrimit"
 
 msgid "Clear"
 msgstr "Pastro"
@@ -2595,6 +2616,9 @@ msgstr "Konfiguroni funksionet për t'i përfshirë në eksportim"
 
 #~ msgid "Configure provider credentials used by AI pipeline features on this machine."
 #~ msgstr "Konfiguroni kredencialet e ofruesve që përdoren nga veçoritë e pipeline-it të IA-së në këtë pajisje."
+
+msgid "Configure Replicate API token"
+msgstr "Konfiguro tokenin API të Replicate"
 
 msgid "Configure the credentials used by AI features on this device."
 msgstr "Konfiguroni kredencialet që përdoren nga veçoritë e IA-së në këtë pajisje."
@@ -3843,8 +3867,11 @@ msgstr "Zgjer"
 msgid "Expand all sections"
 msgstr "Zgjer të gjitha seksionet"
 
-msgid "Experimental · Select the correct figure on the page, clean it with AI, then compare before accepting."
-msgstr "Eksperimentale · Përzgjidhni figurën e saktë në faqe, pastrojeni me IA dhe krahasojeni para se ta pranoni."
+msgid "Experimental · Choose generative cleanup or background removal, then compare before accepting."
+msgstr "Eksperimentale · Zgjidhni pastrimin gjenerues ose heqjen e sfondit, pastaj krahasoni para se të pranoni."
+
+#~ msgid "Experimental · Select the correct figure on the page, clean it with AI, then compare before accepting."
+#~ msgstr "Eksperimentale · Përzgjidhni figurën e saktë në faqe, pastrojeni me IA dhe krahasojeni para se ta pranoni."
 
 msgid "Experimental configurations"
 msgstr "Konfigurime eksperimentale"
@@ -4873,6 +4900,12 @@ msgstr "Zgjedhja e imazhit"
 
 msgid "Image size"
 msgstr "Madhësia e imazhit"
+
+msgid "Image to process"
+msgstr "Imazhi për përpunim"
+
+msgid "Image tools"
+msgstr "Mjetet e imazhit"
 
 msgid "Image Translation"
 msgstr "Përkthimi i Imazheve"
@@ -7889,8 +7922,8 @@ msgstr "I rekomanduar për {0}"
 msgid "Record reviewer findings for the current page and save them to the active validation session."
 msgstr "Regjistroni gjetjet e rishikuesit për faqen aktuale dhe ruajini në sesionin aktiv të validimit."
 
-msgid "Recover from the original PDF page"
-msgstr "Rikupero nga faqja origjinale PDF"
+#~ msgid "Recover from the original PDF page"
+#~ msgstr "Rikupero nga faqja origjinale PDF"
 
 msgid "Recrop from page"
 msgstr "Rirritjo nga faqja"
@@ -7981,6 +8014,9 @@ msgstr "Hiqni të gjitha videot e gjuhës së shenjave?"
 msgid "Remove author"
 msgstr "Hiq autorin"
 
+msgid "Remove background"
+msgstr "Hiq sfondin"
+
 msgid "Remove checklist item"
 msgstr "Hiq artikullin e listës kontrolluese"
 
@@ -8043,6 +8079,9 @@ msgstr "hequr"
 msgid "Removed"
 msgstr "Hequr"
 
+msgid "Removing the background…"
+msgstr "Duke hequr sfondin…"
+
 msgid "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
 msgstr "Renderoni çdo seksion të shtypur në një faqe HTML interaktive. Zgjidhni një strategji paraqitjeje që përshtatet me librin dhe lini storyboard-in të kujdeset për pjesën tjetër."
 
@@ -8090,6 +8129,9 @@ msgstr "Zëvendëso këtë skedar audio"
 
 msgid "Replay the guided introduction to ADT Studio."
 msgstr "Riluaj prezantimin e udhëzuar të ADT Studio."
+
+msgid "Replicate isolates the foreground and returns a transparent PNG. Review labels and thin lines before accepting."
+msgstr "Replicate izolon pjesën e përparme dhe kthen një PNG transparent. Kontrolloni etiketat dhe vijat e holla para se të pranoni."
 
 msgid "Report an issue"
 msgstr "Raporto një problem"

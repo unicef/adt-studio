@@ -1799,6 +1799,15 @@ msgstr "Fondo"
 msgid "Background polling cadence for provider availability and auth state."
 msgstr "Frecuencia de sondeo en segundo plano para disponibilidad del proveedor y estado de autenticación."
 
+msgid "Background removal for extracted figures."
+msgstr "Eliminación del fondo de las figuras extraídas."
+
+msgid "Background removal: Replicate · 851-labs/background-remover"
+msgstr "Eliminación del fondo: Replicate · 851-labs/background-remover"
+
+msgid "Background removed"
+msgstr "Fondo eliminado"
+
 #. placeholder {0}: section.backgroundColor
 msgid "Background: {0}"
 msgstr "Fondo: {0}"
@@ -2285,6 +2294,9 @@ msgstr "Buscar actualizaciones"
 msgid "Check labels, fine details, and edges against the page crop. Click an image to inspect it at full size. AI can change content; transparency depends on the image model."
 msgstr "Compara las etiquetas, los detalles finos y los bordes con el recorte de la página. Haz clic en una imagen para verla a tamaño completo. La IA puede cambiar el contenido; la transparencia depende del modelo de imágenes."
 
+msgid "Check that labels, thin lines, and all parts of the figure remain. The checkerboard shows transparent areas. Click an image to inspect it at full size."
+msgstr "Compruebe que se conserven las etiquetas, las líneas finas y todas las partes de la figura. El patrón de cuadros muestra las áreas transparentes. Haga clic en una imagen para verla a tamaño completo."
+
 msgid "Checked"
 msgstr "Comprobado"
 
@@ -2396,6 +2408,12 @@ msgstr "Limpiar región seleccionada"
 msgid "Clean up figure"
 msgstr "Limpiar figura"
 
+msgid "Clean up or remove background"
+msgstr "Limpiar o eliminar el fondo"
+
+msgid "Clean up with AI"
+msgstr "Limpiar con IA"
+
 msgid "Cleaned candidate"
 msgstr "Propuesta limpia"
 
@@ -2404,6 +2422,9 @@ msgstr "Limpiando la figura seleccionada…"
 
 msgid "Cleanup instructions"
 msgstr "Instrucciones de limpieza"
+
+msgid "Cleanup method"
+msgstr "Método de limpieza"
 
 msgid "Clear"
 msgstr "Borrar"
@@ -2593,6 +2614,9 @@ msgstr "Configura las características a incluir en la exportación"
 
 #~ msgid "Configure provider credentials used by AI pipeline features on this machine."
 #~ msgstr "Configura las credenciales de los proveedores utilizadas por las funciones del pipeline de IA en este equipo."
+
+msgid "Configure Replicate API token"
+msgstr "Configurar el token de API de Replicate"
 
 msgid "Configure the credentials used by AI features on this device."
 msgstr "Configura las credenciales que usan las funciones de IA en este dispositivo."
@@ -3841,8 +3865,11 @@ msgstr "Expandir"
 msgid "Expand all sections"
 msgstr "Expandir todas las secciones"
 
-msgid "Experimental · Select the correct figure on the page, clean it with AI, then compare before accepting."
-msgstr "Experimental · Selecciona la figura correcta en la página, límpiala con IA y compárala antes de aceptar."
+msgid "Experimental · Choose generative cleanup or background removal, then compare before accepting."
+msgstr "Experimental · Elija la limpieza generativa o la eliminación del fondo y compare antes de aceptar."
+
+#~ msgid "Experimental · Select the correct figure on the page, clean it with AI, then compare before accepting."
+#~ msgstr "Experimental · Selecciona la figura correcta en la página, límpiala con IA y compárala antes de aceptar."
 
 msgid "Experimental configurations"
 msgstr "Configuraciones experimentales"
@@ -4871,6 +4898,12 @@ msgstr "Selección de imagen"
 
 msgid "Image size"
 msgstr "Tamaño de imagen"
+
+msgid "Image to process"
+msgstr "Imagen para procesar"
+
+msgid "Image tools"
+msgstr "Herramientas de imagen"
 
 msgid "Image Translation"
 msgstr "Traducción de imágenes"
@@ -7887,8 +7920,8 @@ msgstr "Recomendado para {0}"
 msgid "Record reviewer findings for the current page and save them to the active validation session."
 msgstr "Registre los hallazgos del revisor para la página actual y guárdelos en la sesión de validación activa."
 
-msgid "Recover from the original PDF page"
-msgstr "Recuperar desde la página PDF original"
+#~ msgid "Recover from the original PDF page"
+#~ msgstr "Recuperar desde la página PDF original"
 
 msgid "Recrop from page"
 msgstr "Recortar desde la página"
@@ -7979,6 +8012,9 @@ msgstr "¿Eliminar todos los videos de lenguaje de señas?"
 msgid "Remove author"
 msgstr "Eliminar autor"
 
+msgid "Remove background"
+msgstr "Eliminar el fondo"
+
 msgid "Remove checklist item"
 msgstr "Eliminar ítem de la lista de verificación"
 
@@ -8041,6 +8077,9 @@ msgstr "eliminado"
 msgid "Removed"
 msgstr "Eliminado"
 
+msgid "Removing the background…"
+msgstr "Eliminando el fondo…"
+
 msgid "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
 msgstr "Renderiza cada sección escrita en una página HTML interactiva. Elige una estrategia de diseño que coincida con el libro y deja que el storyboard maneje el resto."
 
@@ -8088,6 +8127,9 @@ msgstr "Reemplazar este archivo de audio"
 
 msgid "Replay the guided introduction to ADT Studio."
 msgstr "Reproducir la introducción guiada a ADT Studio."
+
+msgid "Replicate isolates the foreground and returns a transparent PNG. Review labels and thin lines before accepting."
+msgstr "Replicate aísla el primer plano y devuelve un PNG transparente. Revise las etiquetas y las líneas finas antes de aceptar."
 
 msgid "Report an issue"
 msgstr "Reportar un problema"
