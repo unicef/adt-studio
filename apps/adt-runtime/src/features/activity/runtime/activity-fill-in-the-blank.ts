@@ -264,7 +264,7 @@ function validateValue(
 
   // Pipe-separated alternatives ("madre|mamá").
   if (correct.includes("|")) {
-    const acceptable = correct.split("|").map((a) => a.trim().toLowerCase())
+    const acceptable = correct.split("|").map(normalize)
     return { isCorrect: acceptable.includes(value), isFilled: true }
   }
 
@@ -274,8 +274,8 @@ function validateValue(
   if (pair && pair.length > 0) {
     const alternates = pair.map((id) => getCorrectAnswer(id))
     const matchesAny =
-      value === correct.toLowerCase() ||
-      alternates.some((a) => a != null && value === a.toLowerCase())
+      value === normalize(correct) ||
+      alternates.some((a) => a != null && value === normalize(a))
     if (!matchesAny) return { isCorrect: false, isFilled: true }
 
     // Reject duplicates across the pair.
@@ -293,7 +293,7 @@ function validateValue(
     return { isCorrect: true, isFilled: true }
   }
 
-  return { isCorrect: correct.toLowerCase() === value, isFilled: true }
+  return { isCorrect: normalize(correct) === value, isFilled: true }
 }
 
 function liveValidate(input: TextInput): void {
@@ -510,10 +510,10 @@ export function initializeFillInTheBlankActivity(): (() => void) | null {
   store.set(skipHandlerAtom, () => handleSkip)
   resetSubmit()
 
-  // Re-hydrate on language changes — translations overwrite innerHTML on each
-  // [data-id] element, which destroys the live <input>s we hydrated in. Walk
-  // the section again to restore them and re-attach listeners.
-  const unsubTranslations = store.sub(translationsAtom, () => {
+  // Dictionary publication precedes DOM translation. Rehydrate only after
+  // that replacement finishes, including Easy Read changes, so the new
+  // inputs and their persisted drafts survive the whole render lifecycle.
+  const onTranslationsApplied = () => {
     const focused = document.activeElement as HTMLElement | null
     const focusedItem = focused?.getAttribute?.("data-activity-item") ?? null
     hydrateFitbSentences(section)
@@ -527,11 +527,12 @@ export function initializeFillInTheBlankActivity(): (() => void) | null {
       )
       restored?.focus()
     }
-  })
+  }
+  document.addEventListener("adt:translations-applied", onTranslationsApplied)
 
   return () => {
     listenerCleanups.forEach((off) => off())
-    unsubTranslations()
+    document.removeEventListener("adt:translations-applied", onTranslationsApplied)
     store.set(validateHandlerAtom, () => null)
     store.set(skipHandlerAtom, () => null)
     store.set(submitEnabledAtom, false)

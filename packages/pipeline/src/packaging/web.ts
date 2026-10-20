@@ -191,7 +191,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 14
+const PACKAGING_FORMAT_VERSION = 15
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage

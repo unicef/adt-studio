@@ -644,3 +644,17 @@ describe("prefetchPage", () => {
     expect(document.head.querySelector('link[rel="prefetch"]')).toBeNull()
   })
 })
+
+it("clears page-owned grading state before initializing an answerless legacy page", async () => {
+  window.correctAnswers = { "item-1": "sun" }
+  window.activityAnswerTextIds = { "item-1": "old_ans_item-1" }
+  window.interchangeablePairs = { "item-1": ["item-2"] }
+  mockFetchOnce(pageHtml({ sectionId: "pg003_sec001", title: "Free response" }))
+  initializePageContent.mockImplementationOnce(() => {
+    expect(window.correctAnswers).toBeUndefined()
+    expect(window.activityAnswerTextIds).toBeUndefined()
+    expect(window.interchangeablePairs).toBeUndefined()
+  })
+  expect(await swapToPage("pg003_sec001.html")).toBe("ok")
+  expect(initializePageContent).toHaveBeenCalledOnce()
+})

@@ -439,6 +439,10 @@ export function applyTranslationsToDOM(
     if (id && translations[id]) document.title = translations[id]
   }
 
+  // Activities embedded in translated text must rebuild their controls after
+  // the DOM replacement, not when the dictionary is first published.
+  document.dispatchEvent(new Event("adt:translations-applied"))
+
   // Re-run fixed-layout auto-fit after rebuilding segment spans — the new
   // elements have no `data-adt-fs` cache and the translated content has a
   // different length than the source, so an earlier auto-fit pass against

@@ -197,6 +197,13 @@ function swapMain(next: Document): void {
  * fixed-layout fit script — are imported and appended.
  */
 function runPageScripts(next: Document): void {
+  // These globals belong to one page, including legacy exports without an
+  // answer map. Clear the previous owner before custom scripts run so their
+  // authored grading state survives and answerless pages stay open-ended.
+  window.correctAnswers = undefined
+  window.activityAnswerTextIds = undefined
+  window.interchangeablePairs = undefined
+
   const main = document.querySelector("main")
   if (main) {
     for (const script of Array.from(

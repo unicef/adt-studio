@@ -357,3 +357,14 @@ describe("initializeFillInTheBlankActivity — fill-in-a-table", () => {
     expect(section.getAttribute("aria-label")).toBe("Fill in the table activity")
   })
 })
+
+it.each([" source ", " SOURCE ", "wrong | source "])("normalizes expected answer %j without changing authored data", (answer) => {
+  const input = setupSectionWithStandaloneInput()
+  window.correctAnswers = { "item-1": answer }
+  const cleanup = initializeFillInTheBlankActivity()
+  input.value = " source "
+  store.get(validateHandlerAtom)?.()
+  expect(store.get(submitStateAtom)).toBe("next")
+  expect(window.correctAnswers["item-1"]).toBe(answer)
+  cleanup?.()
+})
