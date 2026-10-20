@@ -1,3 +1,4 @@
+import { collectSpentContentIds } from "./content-ids.js"
 import type { Storage } from "@adt/storage"
 import {
   formatSectionId,
@@ -101,7 +102,12 @@ function spentSeq(pageId: string, id: string): number | null {
  */
 export function createSectionIdFactory(storage: Storage, pageId: string): () => string {
   let highWaterMark = 0
-  for (const id of collectSpentSectionIds(storage, pageId)) {
+  const spent = collectSpentSectionIds(storage, pageId)
+  for (const id of collectSpentContentIds(storage)) {
+    const owner = sectionIdOfAnswerTextId(id) ?? id.split("__activity_gen_")[0]
+    if (spentSeq(pageId, owner) !== null) spent.add(owner)
+  }
+  for (const id of spent) {
     const seq = spentSeq(pageId, id)
     if (seq !== null) highWaterMark = Math.max(highWaterMark, seq)
   }

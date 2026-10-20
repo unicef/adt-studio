@@ -11,7 +11,7 @@ import {
   type PageSectioningSection,
   type SectionRendering,
 } from "@adt/types"
-import { collectSpentContentIds, createSectionIdFactory, renderedSectionId, resolveRenderedSection, withLegacyRenderingOwnership } from "@adt/pipeline"
+import { collectSpentContentIds, renderedTextIds, findIntroducedDerivedIdCollision, createSectionIdFactory, renderedSectionId, resolveRenderedSection, withLegacyRenderingOwnership } from "@adt/pipeline"
 import { buildSectioningSectionFromHtml } from "./build-sectioning.js"
 import {
   TEMPLATED_ACTIVITY_TYPES,
@@ -94,14 +94,12 @@ function extractDataIds(html: string): string[] {
   return [...ids]
 }
 
-function textDataIds(html: string): string[] {
-  return DomUtils.findAll(element => element.type === "tag" && element.name !== "img" && !!element.attribs["data-id"], parseDocument(html).children)
-    .map(element => element.attribs["data-id"])
-}
 
 /** New text cannot inherit another entity's corrections. Existing local IDs
  * and unchanged legacy duplicates may survive an edit; images remain shared. */
 function assertUnusedTextIds(storage: Storage, proposed: string[], previous: string[] = []): void {
+  const collision = findIntroducedDerivedIdCollision(proposed, previous)
+  if (collision) throw new Error(`New content conflicts with derived data-id "${collision}". Retry with distinct unused IDs.`)
   const spent = collectSpentContentIds(storage)
   const priorCounts = new Map<string, number>()
   for (const id of previous) priorCounts.set(id, (priorCounts.get(id) ?? 0) + 1)
@@ -386,7 +384,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           }
           const sectionId = oldSection.sectionId
           html = stampRenderedOwner(html, sectionId)
-          assertUnusedTextIds(ctx.storage, textDataIds(html), textDataIds(found.html))
+          assertUnusedTextIds(ctx.storage, renderedTextIds(html), renderedTextIds(found.html))
           const updatedRendering: WebRenderingOutput = {
             sections: rendering.sections.map((s) =>
               s.sectionIndex === sectionIndex
@@ -543,7 +541,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
 
           // The renderer may invent additional leaves. Check the actual HTML
           // as well as the proposed tree before either entity is published.
-          assertUnusedTextIds(ctx.storage, textDataIds(newRendering.html))
+          assertUnusedTextIds(ctx.storage, renderedTextIds(newRendering.html))
 
           // The renderer returns sectionIndex/sectionType etc., but its
           // sectionIndex is whatever we asked for. Persist alongside the
@@ -660,7 +658,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
           if (owners.length > 1 || owners.some(owner => owner.attribs["data-section-id"] !== sectionId)) {
             throw new Error("New sections cannot copy data-section-id from another section. Retry without data-section-id; the server assigns it. Register the activity using document.currentScript.closest('section'), preserving its local IDs and answer keys.")
           }
-          assertUnusedTextIds(ctx.storage, textDataIds(html))
+          assertUnusedTextIds(ctx.storage, renderedTextIds(html))
           html = stampRenderedOwner(html, sectionId)
 
           const newRendering: SectionRendering = {

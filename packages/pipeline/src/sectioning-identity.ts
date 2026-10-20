@@ -1,7 +1,8 @@
-import { parseDocument, DomUtils } from "htmlparser2"
 import type { Storage } from "@adt/storage"
 import { PageSectioningOutput, type ContentNodeData } from "@adt/types"
 import { createSectionIdFactory } from "./section-ids.js"
+import { collectSpentContentIds } from "./content-ids.js"
+export { collectSpentContentIds } from "./content-ids.js"
 
 function nodeKey(node: ContentNodeData): string {
   return JSON.stringify(node.children?.length
@@ -39,7 +40,7 @@ export function reconcileSectioningIdentities(
   const priorIds = uniqueByKey(priorNodes, (node) => node.nodeId)
   const uniqueOld = uniqueByKey(priorNodes, nodeKey)
   const uniqueNew = uniqueByKey(newNodes, nodeKey)
-  const spent = collectSpentContentIds(storage, [pageId])
+  const spent = collectSpentContentIds(storage)
   let next = 1
   const allocate = () => {
     let id: string
@@ -64,30 +65,4 @@ export function reconcileSectioningIdentities(
     const match = newSections.has(key) ? oldSections.get(key) : undefined
     return { ...section, sectionId: match && priorSectionIds.has(match.sectionId) ? match.sectionId : allocateSection(), nodes: section.nodes.map(assign) }
   }) }
-}
-
-
-/** Reserve identities in retained source/rendering versions, including retired
- * pages. Images may be shared; a new text entity must never inherit these IDs. */
-export function collectSpentContentIds(storage: Storage, pageIds = [...new Set([...storage.getNodeItemIds("page-sectioning"), ...storage.getNodeItemIds("web-rendering")])]): Set<string> {
-  const spent = new Set<string>()
-  for (const pageId of pageIds) {
-    for (const row of storage.getAllNodeVersions("page-sectioning", pageId)) {
-      // Raw inspection also reserves IDs in legacy versions that no longer parse.
-      const collect = (value: unknown): void => {
-        if (!value || typeof value !== "object") return
-        if ("nodeId" in value && typeof value.nodeId === "string") spent.add(value.nodeId)
-        for (const child of Object.values(value)) collect(child)
-      }
-      collect(row.data)
-    }
-    for (const row of storage.getAllNodeVersions("web-rendering", pageId)) {
-      const data = row.data as { sections?: Array<{ html?: string }> } | null
-      for (const section of data?.sections ?? []) {
-        const doc = parseDocument(section.html ?? "")
-        for (const element of DomUtils.findAll((element) => element.type === "tag" && !!element.attribs["data-id"], doc.children)) spent.add(element.attribs["data-id"])
-      }
-    }
-  }
-  return spent
 }

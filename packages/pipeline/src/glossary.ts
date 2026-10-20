@@ -1,3 +1,5 @@
+import { getGlossaryItemTextId, collectSpentContentIds } from "./content-ids.js"
+export { getGlossaryItemTextId } from "./content-ids.js"
 import { renderedText } from "./rendered-text.js"
 import type { AppConfig, GlossaryItem, GlossaryOutput } from "@adt/types"
 import {
@@ -55,12 +57,9 @@ function normalizeGlossaryWord(word: string): string {
   return word.trim().toLocaleLowerCase()
 }
 
-export function getGlossaryItemTextId(item: Pick<GlossaryItem, "id">, index: number): string {
-  return item.id?.trim() || `gl${String(index + 1).padStart(3, "0")}`
-}
 
 function glossaryIdentityAllocator(storage: Storage, extraIds: string[] = []) {
-  const reserved = new Set(extraIds)
+  const reserved = new Set([...collectSpentContentIds(storage), ...extraIds])
   for (const row of storage.getAllNodeVersions("glossary", "book")) {
     const parsed = GlossaryOutputSchema.safeParse(row.data)
     if (parsed.success) parsed.data.items.forEach((item, index) => reserved.add(getGlossaryItemTextId(item, index)))
@@ -68,7 +67,7 @@ function glossaryIdentityAllocator(storage: Storage, extraIds: string[] = []) {
   let next = 1
   return () => {
     let id: string
-    do { id = `gl${String(next++).padStart(3, "0")}` } while (reserved.has(id))
+    do { id = `gl${String(next++).padStart(3, "0")}` } while (reserved.has(id) || reserved.has(`${id}_def`))
     reserved.add(id)
     return id
   }
@@ -120,7 +119,7 @@ export function reconcileGlossaryEditIds(storage: Storage, edited: GlossaryOutpu
   }
   const current = GlossaryOutputSchema.safeParse(materializeGlossaryIds(storage)?.data)
   const previous = current.success ? current.data.items : []
-  const reserved = new Set<string>()
+  const reserved = collectSpentContentIds(storage)
   const collided = new Set<string>()
   for (const row of storage.getAllNodeVersions("glossary", "book")) {
     const data = GlossaryOutputSchema.safeParse(row.data)
@@ -163,8 +162,8 @@ export function reconcileGlossaryEditIds(storage: Storage, edited: GlossaryOutpu
       : previousIndex === undefined
         ? submittedId && !collided.has(submittedId) ? submittedId : undefined
         : previous[previousIndex].id
-    if (!id || assigned.has(id) || (historical.has(id) && !currentIds.has(id))) {
-      do { id = `gl${String(next++).padStart(3, "0")}` } while (reserved.has(id))
+    if (!id || assigned.has(id) || ((historical.has(id) || historical.has(`${id}_def`)) && !currentIds.has(id))) {
+      do { id = `gl${String(next++).padStart(3, "0")}` } while (reserved.has(id) || reserved.has(`${id}_def`))
       reserved.add(id)
     }
     assigned.add(id)
@@ -475,7 +474,7 @@ export async function regenerateGlossaryPreservingEdits(
   // Legacy positional IDs are materialized before merging. Reserve every ID in
   // history so deleting a term or restoring an old version cannot reassign its
   // translations, recordings or corrections to a different term.
-  const reserved = new Set(existingItems.map((item) => item.id))
+  const reserved = new Set([...collectSpentContentIds(options.storage), ...existingItems.map((item) => item.id)])
   for (const row of options.storage.getAllNodeVersions("glossary", "book")) {
     const historical = GlossaryOutputSchema.safeParse(row.data)
     if (historical.success) historical.data.items.forEach((item, index) => reserved.add(getGlossaryItemTextId(item, index)))
@@ -492,8 +491,8 @@ export async function regenerateGlossaryPreservingEdits(
     let id = previousIndex === undefined ? item.id : existingItems[previousIndex].id
     const retainedIdentity = existingItems.some((previous) => previous.id === id && normalizeGlossaryWord(previous.word) === word)
     // Seed settings can carry a stale ID from another book or retired term.
-    if (!id || assigned.has(id) || (historicalIds.has(id) && !retainedIdentity)) {
-      do { id = `gl${String(next++).padStart(3, "0")}` } while (reserved.has(id))
+    if (!id || assigned.has(id) || ((historicalIds.has(id) || historicalIds.has(`${id}_def`)) && !retainedIdentity)) {
+      do { id = `gl${String(next++).padStart(3, "0")}` } while (reserved.has(id) || reserved.has(`${id}_def`))
       reserved.add(id)
     }
     assigned.add(id)

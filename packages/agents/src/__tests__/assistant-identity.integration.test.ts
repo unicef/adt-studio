@@ -80,3 +80,39 @@ it.each(["active", "retired", "duplicate", "changed-conflict", "cosmetic-conflic
   for (const row of history) expect(storage.getAllNodeVersions("web-rendering", "pg001")).toContainEqual(row)
   expect(storage.getLatestNodeData("text-catalog-translation", "fr")).toEqual(correction)
 })
+
+// Retired output can outlive every source row that originally supplied it.
+it.each([
+  ["glossary", "book", { items: [{ id: "retired", word: "Apple", definition: "A fruit", variations: [], emojis: [] }] }, "retired_def"],
+  ["quiz-generation", "book", { quizzes: [{ quizId: "qz001", question: "Old question", options: [{ text: "Apple", explanation: "A fruit" }] }] }, "qz001_o0_exp"],
+  ["text-catalog", "book", { entries: [{ id: "retired", text: "Old source" }] }, "retired"],
+  ["text-catalog-translation", "fr", { entries: [{ id: "retired", text: "Correction", source: "manual" }] }, "retired"],
+  ["core-tts-catalog", "fr", { entries: [{ id: "retired", speechText: "Correction", source: "manual" }] }, "retired"],
+  ["easy-read", "book", { blocks: [{ entries: [{ sourceId: "old-source", easyReadId: "retired", text: "Old simpler text" }] }] }, "retired"],
+  ["tts", "fr", { entries: [{ textId: "retired", fileName: "old.wav", source: "manual" }] }, "retired"],
+] as const)("new assistant content cannot acquire retired %s identity", async (node, item, data, id) => {
+  storage.putNodeData(node, item, data)
+  storage.putNodeData(node, item, {})
+  const before = storage.getNodeVersionFingerprint()
+  const result = await tools.createCustomSection!.execute!({ pageId: "pg001", sectionType: "content", html: `<section><p data-id="${id}">Unrelated new instruction</p></section>`, reasoning: "new", activityAnswers: null }, {} as never)
+  expect(result).toMatchObject({ ok: false, error: expect.stringContaining(id) })
+  expect(storage.getNodeVersionFingerprint()).toEqual(before)
+  expect(buildTextCatalogSnapshot(storage, storage.getPages()).entries.some(entry => entry.id === id)).toBe(false)
+})
+
+
+it.each([["source", "source_easy_read"], ["source_easy_read", "source"], ["source_easy_read", "source_easy_read_easy_read"]])("reserves the future Easy Read identity %s against %s", async (occupied, proposed) => {
+  storage.putNodeData("web-rendering", "pg002", { sections: [rendered("pg002_sec001", occupied, "Existing text")] })
+  const before = storage.getNodeVersionFingerprint()
+  const result = await tools.createCustomSection!.execute!({ pageId: "pg001", sectionType: "content", html: `<section><p data-id="${proposed}">Unrelated new text</p></section>`, reasoning: "new", activityAnswers: null }, {} as never)
+  expect(result).toMatchObject({ ok: false, error: expect.stringContaining(proposed) })
+  expect(storage.getNodeVersionFingerprint()).toEqual(before)
+})
+
+
+it("rejects two new source IDs that would occupy the same future Easy Read slot", async () => {
+  const before = storage.getNodeVersionFingerprint()
+  const result = await tools.createCustomSection!.execute!({ pageId: "pg001", sectionType: "content", html: '<section><p data-id="fresh">New source</p><p data-id="fresh_easy_read">Different source</p></section>', reasoning: "new", activityAnswers: null }, {} as never)
+  expect(result).toMatchObject({ ok: false, error: expect.stringContaining("fresh_easy_read") })
+  expect(storage.getNodeVersionFingerprint()).toEqual(before)
+})

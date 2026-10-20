@@ -1,3 +1,4 @@
+import { collectSpentContentIds } from "./content-ids.js"
 import { randomUUID } from "node:crypto"
 import type { Storage } from "@adt/storage"
 import {
@@ -15,6 +16,10 @@ import {
  * versions still spent IDs even if their other fields no longer validate. */
 export function collectSpentQuizIds(storage: Storage): Set<string> {
   const ids = new Set<string>()
+  for (const id of collectSpentContentIds(storage)) {
+    const base = /^(qz[0-9]+)(?:_|$)/.exec(id)?.[1]
+    if (base && parseQuizId(base) !== null) ids.add(base)
+  }
   for (const row of storage.getAllNodeVersions("quiz-generation", "book")) {
     const quizzes = (row.data as { quizzes?: unknown } | null)?.quizzes
     if (!Array.isArray(quizzes)) continue

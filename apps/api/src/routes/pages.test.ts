@@ -2015,6 +2015,26 @@ describe("Page routes", () => {
       }
     }
 
+    it("preserves an unchanged legacy source/derived ID pair in an explicit cross-page move", async () => {
+      seedBothPages()
+      const db = createBookStorage(label, tmpDir)
+      const original = db.getLatestNodeData("page-sectioning", `${label}_p1`)!
+      const historyBefore = structuredClone(original)
+      const data = original.data as { sections: Array<{ nodes: Array<{ nodeId: string; role: string; text: string; isPruned: boolean }> }> }
+      const source = data.sections[0].nodes[0]
+      data.sections[0].nodes.push({ ...source, nodeId: `${source.nodeId}_easy_read`, text: "Legacy second source" })
+      db.putNodeData("page-sectioning", `${label}_p1`, data)
+      db.close()
+      const response = await app.request(`/api/books/${label}/pages/${label}_p1/sections/0/merge-cross-page?direction=next`, { method: "POST" })
+      expect(response.status).toBe(200)
+      const after = createBookStorage(label, tmpDir)
+      try {
+        const moved = after.getLatestNodeData("page-sectioning", `${label}_p2`)!.data as typeof data
+        expect(moved.sections[0].nodes.slice(0, 2).map(node => node.nodeId)).toEqual([source.nodeId, `${source.nodeId}_easy_read`])
+        expect(after.getAllNodeVersions("page-sectioning", `${label}_p1`)).toContainEqual(historyBefore)
+      } finally { after.close() }
+    })
+
     it("records the source page in the target section's sourcePageIds", async () => {
       seedBothPages()
 

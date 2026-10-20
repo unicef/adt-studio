@@ -456,3 +456,38 @@ it("shows Missing as stage attention only after that stage's first attempt", asy
   const listed = await (await app.request(`/books/${label}/outputs`)).json()
   expect(listed.missingStages).toEqual(["captions", "easy-read", "translate"])
 })
+
+
+it("rejects a new Storyboard leaf using a retired glossary identity before it can inherit a correction", async () => {
+  const db = storage()
+  db.putNodeData("glossary", "book", { items: [{ id: "gl001", word: "Apple", definition: "A fruit", variations: [], emojis: [] }], pageCount: 1, generatedAt: "old" })
+  db.putNodeData("glossary", "book", { items: [], pageCount: 1, generatedAt: "retired" })
+  db.putNodeData("text-catalog-translation", "fr", { entries: [{ id: "gl001_def", text: "Un fruit", source: "manual" }], generatedAt: "old" })
+  const before = db.getNodeVersionFingerprint()
+  db.close()
+  const next = rendering()
+  next.sections[0].html = next.sections[0].html.replace("</section>", '<p data-id="gl001_def">Unrelated instruction</p></section>')
+  const response = await send("pages/pg001/rendering", next)
+  expect(response.status).toBe(409)
+  expect(await response.text()).toContain("gl001_def")
+  const after = storage()
+  expect(after.getNodeVersionFingerprint()).toEqual(before)
+  after.close()
+  await app.request(`/books/${label}/outputs/summary`)
+  expect((await outputs()).some(output => output.identity.id === "gl001_def")).toBe(false)
+})
+
+
+it("rejects a same-draft source/derived ID collision without losing the existing rendering", async () => {
+  const db = storage()
+  const before = db.getNodeVersionFingerprint()
+  db.close()
+  const next = rendering()
+  next.sections[0].html = next.sections[0].html.replace("</section>", '<p data-id="fresh">New source</p><p data-id="fresh_easy_read">Different source</p></section>')
+  const response = await send("pages/pg001/rendering", next)
+  expect(response.status).toBe(409)
+  expect(await response.text()).toContain("fresh_easy_read")
+  const after = storage()
+  expect(after.getNodeVersionFingerprint()).toEqual(before)
+  after.close()
+})

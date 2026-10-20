@@ -58,6 +58,9 @@ import {
   resolveFigureExtractionMode,
   createSectionIdFactory,
   collectSpentSectionIds,
+  collectSpentContentIds,
+  sourceTextIds,
+  findIntroducedDerivedIdCollision,
   retireSectionIds,
   SectionIdExhaustedError,
 } from "@adt/pipeline"
@@ -574,11 +577,16 @@ function saveStoryboardNode(
   node: "page-sectioning" | "web-rendering",
   itemId: string,
   data: unknown,
-  { renderingInSync = false }: { renderingInSync?: boolean } = {}
+  { renderingInSync = false, movedIds }: { renderingInSync?: boolean; movedIds?: ReadonlySet<string> } = {}
 ): number {
   if (node === "page-sectioning") assertNoActivePipelineRun(storage)
   const version = storage.transaction(() => {
-    const conflictsBefore = buildTextCatalogSnapshot(storage, storage.getPages()).conflicts ?? []
+    const beforeCatalog = buildTextCatalogSnapshot(storage, storage.getPages())
+    const conflictsBefore = beforeCatalog.conflicts ?? []
+    const localIds = sourceTextIds([
+      storage.getLatestNodeData("page-sectioning", itemId)?.data,
+      storage.getLatestNodeData("web-rendering", itemId)?.data,
+    ])
     const parsed = node === "web-rendering" ? WebRenderingOutput.safeParse(data) : null
     const saved = parsed?.success ? {
       ...parsed.data,
@@ -587,10 +595,24 @@ function saveStoryboardNode(
         return owner ? { ...scopeLegacyActivityIds(section, owner), sectionId: owner } : section
       }),
     } : data
+    const proposedIds = sourceTextIds(saved)
+    const derivedCollision = findIntroducedDerivedIdCollision(proposedIds, [...localIds, ...(movedIds ?? [])])
+    if (derivedCollision) throw new HTTPException(409, { message: `New content conflicts with derived data ID: ${derivedCollision}. Use distinct unused IDs.` })
+    const introducedIds = [...proposedIds].filter(id => !localIds.has(id) && !movedIds?.has(id))
+    // Cosmetic and same-ID edits need no book-history scan. Read reservations
+    // before writing, and only when this save actually introduces identities.
+    const spent = introducedIds.length ? collectSpentContentIds(storage) : new Set<string>()
     const nextVersion = putSourceNodeData(storage, node, itemId, saved)
-    const conflictsAfter = buildTextCatalogSnapshot(storage, storage.getPages()).conflicts ?? []
+    const afterCatalog = buildTextCatalogSnapshot(storage, storage.getPages())
+    const conflictsAfter = afterCatalog.conflicts ?? []
     const introduced = findIntroducedCatalogConflict(conflictsBefore, conflictsAfter)
     if (introduced) throw new HTTPException(409, { message: `Conflicting catalog data ID: ${introduced.id}. Give different content distinct IDs before saving.` })
+    // A raw editor may add a reference to active, identical shared text. It
+    // cannot revive an unrelated retired ID and inherit its retained output;
+    // explicit history restore remains the deliberate reactivation path.
+    const reused = introducedIds.find(id => spent.has(id)
+      && !beforeCatalog.entries.some(previous => previous.id === id && afterCatalog.entries.some(next => next.id === id && next.text === previous.text)))
+    if (reused) throw new HTTPException(409, { message: `New content cannot reuse historical data ID: ${reused}. Use an unused ID or restore the original version.` })
     reconcileTextCatalog(storage)
     return nextVersion
   })
@@ -697,10 +719,11 @@ function rewriteRenderingSectionIds(
 }
 
 function createNodeIdFactory(
+  storage: Storage,
   pageId: string,
   sections: Array<{ nodes: ContentNodeData[] }>
 ): () => string {
-  const usedIds = new Set<string>()
+  const usedIds = collectSpentContentIds(storage)
   const collect = (nodes: ContentNodeData[]): void => {
     for (const node of nodes) {
       usedIds.add(node.nodeId)
@@ -2356,7 +2379,7 @@ export function createPageRoutes(
           const result = splitNodesBefore(
             section.nodes,
             beforeNodeId,
-            createNodeIdFactory(pageId, sectioning.sections)
+            createNodeIdFactory(storage, pageId, sectioning.sections)
           )
           if (!result) {
             throw new HTTPException(400, { message: `Cannot split before node ${beforeNodeId}: node not found in section ${idx}, or nothing would remain in the first half` })
@@ -2765,7 +2788,8 @@ export function createPageRoutes(
           storage,
           "page-sectioning",
           targetPageId,
-          { ...tgtSectioning, sections: newTgtSections }
+          { ...tgtSectioning, sections: newTgtSections },
+          { movedIds: sourceTextIds(movedSection) }
         )
 
         // Clear rendering for both pages (merged content invalidates existing renders)

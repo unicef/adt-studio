@@ -628,7 +628,10 @@ describe("regenerateGlossaryPreservingEdits", () => {
         }
         return null
       },
-      getAllNodeVersions: () => [{ version: 1, data: existing }],
+      getPages: () => [{ pageId: "pg001", pageNumber: 1, text: "" }],
+      getPageImages: () => [],
+      getNodeItemIds: (node: string) => node === "glossary" ? ["book"] : node === "web-rendering" ? ["pg001"] : [],
+      getAllNodeVersions: (node: string) => node === "glossary" ? [{ version: 1, data: existing }] : node === "web-rendering" ? [{ version: 1, data: rendering }] : [],
       putNodeData: vi.fn(() => 2),
       getSignLanguageVideos: () => [
         { videoId: "v1", sectionId: "gl001" },
@@ -718,7 +721,10 @@ describe("regenerateGlossaryPreservingEdits", () => {
         }
         return null
       },
-      getAllNodeVersions: () => [{ version: 1, data: existing }],
+      getPages: () => [{ pageId: "pg001", pageNumber: 1, text: "" }],
+      getPageImages: () => [],
+      getNodeItemIds: (node: string) => node === "glossary" ? ["book"] : node === "web-rendering" ? ["pg001"] : [],
+      getAllNodeVersions: (node: string) => node === "glossary" ? [{ version: 1, data: existing }] : node === "web-rendering" ? [{ version: 1, data: rendering }] : [],
       putNodeData: vi.fn(() => 2),
       getSignLanguageVideos: () => [
         { videoId: "v1", sectionId: "gl001" },
