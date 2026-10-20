@@ -601,6 +601,29 @@ describe("PublishingSettings — connect with Cloudflare (OAuth)", () => {
     )
     expect(localStorage.getItem(TOKEN_KEY)).toBeNull()
   })
+
+  it("asks for a new sign-in instead of claiming a token when the login is gone", async () => {
+    localStorage.setItem(AUTH_METHOD_KEY, "oauth")
+    getCloudflareConnection.mockResolvedValue(connectionStatus({ auth_method: null }))
+    startCloudflareOAuth.mockResolvedValue({ auth_url: AUTH_URL, state: "state-1" })
+    deferredStatus()
+
+    renderSettings()
+
+    await waitFor(() => expect(screen.getByTestId("connection-method-unknown")).toBeTruthy())
+    expect(screen.getByTestId("connection-method-unknown").textContent).toContain("Sign-in needed")
+    expect(document.body.textContent).not.toContain("Connected with API token")
+    expect(screen.getByTestId("cloudflare-sign-in-needed").textContent).toContain(
+      "Books you already shared stay online",
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: /sign in again/i }))
+
+    await waitFor(() => expect(startCloudflareOAuth).toHaveBeenCalledTimes(1))
+    await waitFor(() =>
+      expect(document.body.textContent).toContain("Finish signing in in your browser."),
+    )
+  })
 })
 
 describe("PublishingSettings — already connected", () => {

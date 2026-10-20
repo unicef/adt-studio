@@ -41,7 +41,7 @@ export function toConnectionStatus(
   const workerVersion = live.workerVersion ?? record.worker_version
   return {
     connected: true,
-    auth_method: live.authMethod ?? "token",
+    auth_method: live.authMethod ?? null,
     worker_url: record.worker_url,
     worker_version: workerVersion,
     worker_version_live: live.workerVersion !== null,
@@ -64,21 +64,29 @@ export function toConnectionStatus(
 export interface ReadConnectionStatusOptions {
   fetchFn?: FetchLike
   probeWorker?: boolean
+  /** The request carried a pasted API token: the server never stores one, so only the
+   *  request can say a token stands behind the connection. */
+  hasTokenHeaders?: boolean
 }
 
 /** A grant still waiting for its account choice cannot be the credential behind a
- *  connection, so it is not reported as the auth method either. */
-export function readAuthMethod(store: ConnectionStore): CloudflareAuthMethod | null {
+ *  connection, so it is not reported as the auth method either. With neither a grant nor a
+ *  pasted token the answer is `null`, which on a connected status means the login was lost
+ *  and the user has to sign in again. */
+export function readAuthMethod(
+  store: ConnectionStore,
+  hasTokenHeaders = false,
+): CloudflareAuthMethod | null {
   const grant = store.readOAuth()
   if (grant && grant.account_id !== null) return "oauth"
-  return store.read() ? "token" : null
+  return hasTokenHeaders ? "token" : null
 }
 
 export async function readConnectionStatus(
   store: ConnectionStore,
   options: ReadConnectionStatusOptions = {},
 ): Promise<CloudflareConnectionStatus> {
-  const authMethod = readAuthMethod(store)
+  const authMethod = readAuthMethod(store, options.hasTokenHeaders)
   const record = store.read()
   if (!record) return disconnectedStatus(authMethod)
 

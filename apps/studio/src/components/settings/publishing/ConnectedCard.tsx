@@ -10,6 +10,7 @@ import { useDisconnectCloudflare } from "@/hooks/use-cloudflare-connection"
 import { DisconnectDialog } from "./DisconnectDialog"
 import { ProvisionCalm } from "./ProvisionCalm"
 import { ProvisionErrorNotice } from "./ProvisionErrorNotice"
+import { SignInAgainNotice } from "./SignInAgainNotice"
 import { useElapsed } from "@/lib/elapsed"
 
 interface ConnectedCardProps {
@@ -26,6 +27,7 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
   const elapsedMs = useElapsed(upgrade.status)
 
   const isUpdating = upgrade.status === "running" || upgrade.status === "error"
+  const signInNeeded = connection.auth_method === null
   function confirmDisconnect(deleteResources: boolean) {
     disconnect.mutate(
       { credentials: credentials ?? {}, deleteResources },
@@ -127,8 +129,12 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
                   <span data-testid={`connection-method-${connection.auth_method ?? "unknown"}`}>
                     {connection.auth_method === "oauth" ? (
                       <Trans>Connected via Cloudflare login</Trans>
-                    ) : (
+                    ) : connection.auth_method === "token" ? (
                       <Trans>Connected with API token</Trans>
+                    ) : (
+                      <span className="font-medium text-amber-700 dark:text-amber-300">
+                        <Trans>Sign-in needed</Trans>
+                      </span>
                     )}
                   </span>
                   <span aria-hidden="true">·</span>
@@ -151,6 +157,10 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
                 </span>
               </div>
             </div>
+
+            {signInNeeded && (
+              <SignInAgainNotice accountName={connection.resources?.account_name || null} />
+            )}
 
             <section
               aria-labelledby="hosted-books-heading"
