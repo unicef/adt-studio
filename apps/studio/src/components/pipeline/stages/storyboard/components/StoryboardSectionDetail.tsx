@@ -1,4 +1,5 @@
 import { sectioningSaveFromRendering } from "../lib/back-propagate-text"
+import { EditorBusyBoundary, useVersionRestoreBusy } from "../../../components/version-restore"
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode, type SetStateAction } from "react"
 import { createPortal } from "react-dom"
 import {
@@ -421,6 +422,7 @@ export function StoryboardSectionDetail({
   const { data: pageDetail } = usePage(bookLabel, pageId)
   const applyBodyBackground = (activeConfigData?.merged as Record<string, unknown> | undefined)?.apply_body_background !== false
 
+  const { restoring, restoringRef, onRestoringChange } = useVersionRestoreBusy(JSON.stringify([bookLabel, pageId, sectionIndex]))
   const [saving, setSaving] = useState(false)
   const savingRef = useRef(false)
   const [cloning, setCloning] = useState(false)
@@ -449,6 +451,7 @@ export function StoryboardSectionDetail({
     () => new Set()
   )
   const markPending = useCallback((category: PendingCategory) => {
+    if (restoringRef.current) return
     setPendingCategories((prev) => {
       if (prev.has(category)) return prev
       const next = new Set(prev)
@@ -465,11 +468,13 @@ export function StoryboardSectionDetail({
   // Update refs at the edit boundary, before React commits the next render.
   // A response can arrive in the same batch as a successor edit.
   const setPendingSectioning = useCallback((next: SetStateAction<SectioningData | null>) => {
+    if (restoringRef.current) return
     const value = typeof next === "function" ? next(latestDraftRef.current.sectioning) : next
     latestDraftRef.current.sectioning = value
     setPendingSectioningState(value)
   }, [])
   const setPendingRendering = useCallback((next: SetStateAction<RenderingData | null>) => {
+    if (restoringRef.current) return
     const value = typeof next === "function" ? next(latestDraftRef.current.rendering) : next
     latestDraftRef.current.rendering = value
     setPendingRenderingState(value)
@@ -859,7 +864,7 @@ export function StoryboardSectionDetail({
 
   // Save / discard sectioning
   const saveSectioning = async (forNavigation = false) => {
-    if (savingRef.current || storyboardRunning) {
+    if (savingRef.current || restoringRef.current || storyboardRunning) {
       if (forNavigation) throw new Error(t`A save or run is still in progress. Wait for it to finish before leaving.`)
       return
     }
@@ -942,7 +947,7 @@ export function StoryboardSectionDetail({
       await saveSectioning(forNavigation)
       return
     }
-    if (savingRef.current || storyboardRunning) {
+    if (savingRef.current || restoringRef.current || storyboardRunning) {
       if (forNavigation) throw new Error(t`A save or run is still in progress. Wait for it to finish before leaving.`)
       return
     }
@@ -1011,7 +1016,8 @@ export function StoryboardSectionDetail({
     id: `storyboard:${pageId}`,
     stage: "storyboard",
     dirty: dirty || renderingDirty,
-    saving,
+    saving: saving || restoring,
+    saveDisabledReason: restoring ? t`Please wait for the current operation to finish` : undefined,
     labelKey: pendingChipCats.join(","),
     label:
       pendingChipCats.length > 0 ? (
@@ -1031,11 +1037,12 @@ export function StoryboardSectionDetail({
       if (renderingDirty) return saveRendering(true)
       if (pendingSectioning) return saveSectioning(true)
     },
-    onDiscard: discardAll,
+    onDiscard: () => { if (!restoringRef.current) discardAll() },
   })
 
   // Clone current section
   const handleCloneSection = async () => {
+    if (restoringRef.current) return
     if (cloning || dirty || renderingDirty || saving || storyboardRunning) return
     setCloning(true)
     try {
@@ -1142,6 +1149,7 @@ export function StoryboardSectionDetail({
 
   // Confirmation wrappers for merge actions
   const handleMergeSection = (direction: "next" | "prev") => {
+    if (restoringRef.current) return
     if (merging || dirty || renderingDirty || saving || storyboardRunning) return
     const label = direction === "prev" ? t`merge with previous` : t`merge with next`
     // Look up the same-page neighbor's type so the warning also fires when
@@ -1163,6 +1171,7 @@ export function StoryboardSectionDetail({
   }
 
   const handleMergeCrossPage = (direction: "next" | "prev") => {
+    if (restoringRef.current) return
     if (merging || dirty || renderingDirty || saving || storyboardRunning) return
     const label = direction === "prev" ? t`merge this section into the last section of the previous page` : t`merge this section into the first section of the next page`
     // The cross-page neighbor lives on another page we don't have loaded here,
@@ -1181,11 +1190,13 @@ export function StoryboardSectionDetail({
 
   // Delete current section
   const handleDeleteSection = () => {
+    if (restoringRef.current) return
     if (deleting || dirty || renderingDirty || saving || storyboardRunning) return
     setConfirmDeleteSection(true)
   }
 
   const confirmAndDeleteSection = async () => {
+    if (restoringRef.current) return
     setConfirmDeleteSection(false)
     setDeleting(true)
     try {
@@ -1206,6 +1217,7 @@ export function StoryboardSectionDetail({
   // If there are pending rendering edits, diff them against the saved version
   // and inject structured instructions so the LLM preserves the user's changes.
   const handleRerender = (prompt?: string) => {
+    if (restoringRef.current) return
     if (hasActiveTask || storyboardRunning || dirty || renderingDirty || saving || !hasStructuredTextProvider) return
     // Custom activities can't be re-rendered: the renderer rebuilds from the
     // flat, script-less sectioning tree and would discard the inline grading
@@ -1370,6 +1382,7 @@ export function StoryboardSectionDetail({
   // caller must create pending state some other way or the edit is lost.
   const updateElementTextInRendering = useCallback(
     (dataId: string, newText: string): boolean => {
+    if (restoringRef.current) return false
       const rBase = pendingRendering ?? page.rendering
       if (!rBase) return false
       const currentSection = getRenderedSectionByIndex(rBase, sectionIndex)
@@ -1416,6 +1429,7 @@ export function StoryboardSectionDetail({
   // displaced item and update both representations.
   const updateAnswers = useCallback(
     (patch: Record<string, string | boolean>) => {
+    if (restoringRef.current) return
       const rBase = pendingRendering ?? page.rendering
       if (!rBase) return
       const isCustom = section?.sectionType.startsWith("activity_custom") ?? false
@@ -1466,6 +1480,7 @@ export function StoryboardSectionDetail({
   // Delete selected block from rendered HTML and remove the matching leaf from sectioning.
   const handleDeleteBlock = useCallback(
     (dataId: string) => {
+    if (restoringRef.current) return
       const treeIds = new Set([dataId])
       if (!removeElementsFromRendering([dataId])) {
         // Containers the renderer emitted without a data-id carry a transient
@@ -1500,6 +1515,7 @@ export function StoryboardSectionDetail({
   // Replace the current section with an updated copy (from SectionTreeEditor).
   const handleSectionChange = useCallback(
     (next: PageSectioningSection) => {
+    if (restoringRef.current) return
       const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
       if (!base) return
       setPendingSectioning(replaceSection(base, sectionIndex, next))
@@ -1510,6 +1526,7 @@ export function StoryboardSectionDetail({
   // Toggle isPruned on a leaf or container in the current section (by nodeId).
   const toggleLeafPrunedById = useCallback(
     (nodeId: string) => {
+    if (restoringRef.current) return
       const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
       if (!base || !section) return
       const target = findNode(section.nodes, nodeId)
@@ -1525,6 +1542,7 @@ export function StoryboardSectionDetail({
 
   // Toggle isPruned on the current section
   const toggleSectionPruned = () => {
+    if (restoringRef.current) return
     if (storyboardRunning) return
     const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
     if (!base) return
@@ -1551,6 +1569,7 @@ export function StoryboardSectionDetail({
 
   // Change section type
   const changeSectionType = (newType: string) => {
+    if (restoringRef.current) return
     needsRerenderRef.current = true
     const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
     if (!base) return
@@ -1582,6 +1601,7 @@ export function StoryboardSectionDetail({
   // can be ignored: pending sectioning state already makes the edit savable.)
   const handleLeafTextEdited = useCallback(
     (nodeId: string, newText: string) => {
+    if (restoringRef.current) return
       updateElementTextInRendering(nodeId, newText)
     },
     [updateElementTextInRendering]
@@ -1594,6 +1614,7 @@ export function StoryboardSectionDetail({
   // retains the source draft for an explicit re-render without provider calls.
   const handleActivityPanelTextEdited = useCallback(
     (nodeId: string, newText: string) => {
+    if (restoringRef.current) return
       if (updateElementTextInRendering(nodeId, newText)) return
       const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
       const currentSection = base?.sections[sectionIndex]
@@ -1607,6 +1628,7 @@ export function StoryboardSectionDetail({
 
   const handleLeafDuplicated = useCallback(
     (sourceNodeId: string, newNodeId: string) => {
+    if (restoringRef.current) return
       duplicateElementsInRendering([{ sourceDataId: sourceNodeId, newDataId: newNodeId }])
     },
     [duplicateElementsInRendering]
@@ -1614,6 +1636,7 @@ export function StoryboardSectionDetail({
 
   const handleLeafDeleted = useCallback(
     (nodeId: string) => {
+    if (restoringRef.current) return
       removeElementsFromRendering([nodeId])
     },
     [removeElementsFromRendering]
@@ -1621,12 +1644,14 @@ export function StoryboardSectionDetail({
 
   // Reorder / regroup: the HTML keeps the old order until re-rendered.
   const handleStructuralChange = useCallback(() => {
+    if (restoringRef.current) return
     needsRerenderRef.current = true
   }, [])
 
   // Handle inline text edit from BookPreviewFrame
   const handleTextChanged = useCallback(
     (_dataId: string, _newText: string, fullHtml: string) => {
+    if (restoringRef.current) return
       if (!page.rendering) return
       const base = pendingRendering ?? page.rendering
       const updated: RenderingData = {
@@ -1695,6 +1720,7 @@ export function StoryboardSectionDetail({
 
   const handleClassesChange = useCallback(
     (dataId: string, classes: string[]) => {
+    if (restoringRef.current) return
       if (!page.rendering) return
       // 250ms covers the inspector's 200ms debounce plus slack.
       if (Date.now() - lastDiscardAtRef.current < 250) return
@@ -1714,6 +1740,7 @@ export function StoryboardSectionDetail({
   // element's computed/inline typography so the inspector reflects the change.
   const handleStyleChange = useCallback(
     (dataId: string, property: string, value: string) => {
+    if (restoringRef.current) return
       if (!page.rendering) return
       if (Date.now() - lastDiscardAtRef.current < 250) return
       const fullHtml = previewFrameRef.current?.setElementStyleProp(dataId, property, value)
@@ -1770,6 +1797,7 @@ export function StoryboardSectionDetail({
   // Handle crop apply: upload cropped image, update sectioning + rendering HTML
   const handleCropApply = useCallback(
     async (blob: Blob) => {
+    if (restoringRef.current) return
       if (!cropTarget) return
       const result = await api.uploadCroppedImage(bookLabel, pageId, cropTarget, blob)
 
@@ -1810,6 +1838,7 @@ export function StoryboardSectionDetail({
 
   // Recrop from page: fetch the full page image and open crop dialog with it
   const handleRecropFromPage = useCallback(async (dataId: string) => {
+    if (restoringRef.current) return
     try {
       const { imageBase64 } = await api.getPageImage(bookLabel, pageId)
       setCropTarget(dataId)
@@ -1828,6 +1857,7 @@ export function StoryboardSectionDetail({
   // Process uploaded file: upload to API, swap image in sectioning + rendering
   const handleImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (restoringRef.current) return
       const file = e.target.files?.[0]
       const targetId = replaceTargetRef.current
       if (!file || !targetId) return
@@ -1879,6 +1909,7 @@ export function StoryboardSectionDetail({
   // Process replace-from-book selection: swap image in sectioning + rendering
   const handleReplaceFromBookSelect = useCallback(
     (newImageId: string) => {
+    if (restoringRef.current) return
       const targetId = replaceFromBookTarget
       if (!targetId) return
       setReplaceFromBookTarget(null)
@@ -1920,6 +1951,7 @@ export function StoryboardSectionDetail({
   // Run LLM segmentation analysis on a single image (phase 1: get bounding boxes)
   const handleSegment = useCallback(
     async (dataId: string) => {
+    if (restoringRef.current) return
       if (!hasStructuredTextProvider) return
       setSegmenting(true)
 
@@ -1953,6 +1985,7 @@ export function StoryboardSectionDetail({
   // Apply confirmed segmentation (phase 2: crop and save)
   const handleSegmentApply = useCallback(
     async (confirmedRegions: SegmentRegion[]) => {
+    if (restoringRef.current) return
       if (!segmentPreview) return
       const { imageId } = segmentPreview
 
@@ -2138,6 +2171,7 @@ export function StoryboardSectionDetail({
   // Handlers for AddImageDialog
   const handleAddExistingImage = useCallback(
     (imageIds: string[]) => {
+    if (restoringRef.current) return
       setAddImageDialogOpen(false)
       for (const id of imageIds) {
         addImageToSection(id)
@@ -2148,6 +2182,7 @@ export function StoryboardSectionDetail({
 
   const handleAddImageUpload = useCallback(
     async (file: File) => {
+    if (restoringRef.current) return
       setAddImageDialogOpen(false)
       try {
         const result = await api.uploadNewImage(bookLabel, pageId, file)
@@ -2161,6 +2196,7 @@ export function StoryboardSectionDetail({
 
   const handleAddImageGenerate = useCallback(
     async (prompt: string) => {
+    if (restoringRef.current) return
       setAddImageDialogOpen(false)
       try {
         const result = await api.aiGenerateImage(bookLabel, pageId, prompt, apiKey, pageId, undefined, undefined, {
@@ -2182,6 +2218,7 @@ export function StoryboardSectionDetail({
   // Submit from AI image dialog: close dialog, submit task for generation
   const handleAiImageSubmit = useCallback(
     async (prompt: string, referenceImageId?: string, options?: { style?: string; imageType?: string; styleImageId?: string }) => {
+    if (restoringRef.current) return
       const targetId = aiImageDialogTarget
       if (!targetId) return
       setAiImageDialogTarget(null)
@@ -2205,6 +2242,7 @@ export function StoryboardSectionDetail({
 
   // AI edit handler
   const handleAiEdit = async () => {
+    if (restoringRef.current) return
     if (!aiInstruction.trim() || !hasStructuredTextProvider || hasActiveTask || storyboardRunning) return
     setAiError(null)
 
@@ -2228,6 +2266,7 @@ export function StoryboardSectionDetail({
     source: { pageId: string; sectionIndex: number },
     instruction: string | undefined,
   ) => {
+    if (restoringRef.current) return
     setLayoutMirrorOpen(false)
     if (!hasAgentProvider) return
     setAiError(null)
@@ -2252,6 +2291,7 @@ export function StoryboardSectionDetail({
     description: string,
     options: { inclusiveDesign: boolean; mode: "auto" | "templated" | "custom" },
   ) => {
+    if (restoringRef.current) return
     setGenerateActivityOpen(false)
     if (!hasAgentProvider) return
     setAiError(null)
@@ -2409,6 +2449,7 @@ export function StoryboardSectionDetail({
   }, [editActivityPanelOpen, sectionIndex, pageId])
 
   const handleToggleStepper = () => {
+    if (restoringRef.current) return
     if (
       activityDraftDirty &&
       !window.confirm(t`If you leave now, your unsaved changes will be lost.`)
@@ -2444,6 +2485,7 @@ export function StoryboardSectionDetail({
   // classic activity (or extraction improvements like the word bank) after the
   // first conversion. It discards manual edits to the steps, so confirm first.
   const handleReExtract = () => {
+    if (restoringRef.current) return
     if (
       !window.confirm(
         t`Rebuild this step-by-step activity from the page? Any manual edits to the steps, answers, or feedback will be replaced.`,
@@ -2504,9 +2546,10 @@ export function StoryboardSectionDetail({
         step="web-rendering"
         itemId={pageId}
         currentVersion={page.versions.rendering}
-        saving={saving}
+        saving={saving || restoring || hasActiveTask || storyboardRunning}
         dirty={renderingDirty}
         bookLabel={bookLabel}
+        onRestoringChange={onRestoringChange}
         onRestored={discardAll}
         onSave={saveRendering}
         onDiscard={discardAll}
@@ -2663,7 +2706,7 @@ export function StoryboardSectionDetail({
   const previewSectionId = section?.sectionId
 
   return (
-    <>
+    <EditorBusyBoundary busy={restoring}>
     {headerSlotEl && createPortal(headerControls, headerSlotEl)}
     <div className="h-full flex overflow-hidden">
     <div className="flex-1 flex flex-col min-w-0 relative overflow-hidden">
@@ -2869,7 +2912,7 @@ export function StoryboardSectionDetail({
                   html={renderedSection.html}
                   bookLabel={bookLabel}
                   className="w-full rounded borde"
-                  editable={!hasActiveTask && !storyboardRunning}
+                  editable={!hasActiveTask && !storyboardRunning && !restoring}
                   prunedDataIds={prunedDataIds}
                   changedElements={changedElements}
                   onSelectElement={handleSelectElement}
@@ -3175,9 +3218,10 @@ export function StoryboardSectionDetail({
             step="page-sectioning"
             itemId={pageId}
             currentVersion={page.versions.sectioning}
-            saving={saving}
+            saving={saving || restoring || hasActiveTask || storyboardRunning}
             dirty={dirty}
             bookLabel={bookLabel}
+            onRestoringChange={onRestoringChange}
             onRestored={discardAll}
             onSave={saveSectioning}
             onDiscard={discardAll}
@@ -3426,6 +3470,6 @@ export function StoryboardSectionDetail({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-    </>
+    </EditorBusyBoundary>
   )
 }

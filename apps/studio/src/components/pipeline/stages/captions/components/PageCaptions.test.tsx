@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-quer
 import type { OutputStatus } from "@adt/types"
 
 const calls = vi.hoisted(() => ({ save: vi.fn(), page: vi.fn(), outputs: vi.fn() }))
-const saveActions = vi.hoisted(() => ({ stay: async () => {}, discard: () => {}, restore: () => {} }))
+const saveActions = vi.hoisted(() => ({ stay: async () => {}, discard: () => {}, restore: () => {}, restoring: (_next: boolean) => {} }))
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: ReactNode }) => <>{children}</>,
   useLingui: () => ({ t: (strings: TemplateStringsArray, ...values: unknown[]) =>
@@ -21,10 +21,11 @@ vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: undefined })
 vi.mock("@/hooks/use-stage-status", () => ({ useStageStatus: () => ({ isRunning: false }) }))
 vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ isRunning: false }) }))
 vi.mock("../../../pipeline-i18n", () => ({ getStageLabelI18n: (value: string) => value }))
-vi.mock("../../../components/VersionPicker", () => ({ VersionPicker: ({ onSave, onSaveStay, onDiscard, onRestored, saving, dirty }: { onSave: () => void; onSaveStay: () => Promise<void>; onDiscard: () => void; onRestored: () => void; saving: boolean; dirty: boolean }) => {
+vi.mock("../../../components/VersionPicker", () => ({ VersionPicker: ({ onSave, onSaveStay, onDiscard, onRestored, onRestoringChange, saving, dirty }: { onRestoringChange: (next: boolean) => void; onSave: () => void; onSaveStay: () => Promise<void>; onDiscard: () => void; onRestored: () => void; saving: boolean; dirty: boolean }) => {
   saveActions.stay = onSaveStay
   saveActions.discard = onDiscard
   saveActions.restore = onRestored
+  saveActions.restoring = onRestoringChange
   return <button aria-busy={saving} disabled={saving || !dirty} onClick={() => onSave()}>Save staged captions</button>
 } }))
 vi.mock("../../../components/floating-save", () => ({ PendingChip: () => null, useFloatingSaveDirtyEntries: () => [] }))
@@ -183,5 +184,26 @@ it.each(["discard", "restore"] as const)("%s clears the active caption textarea 
   expect(screen.getByText("Original")).toBeTruthy()
   expect((screen.getByRole("button", { name: "Save staged captions" }) as HTMLButtonElement).disabled).toBe(true)
   await act(async () => { await saveActions.stay() })
+  expect(calls.save).not.toHaveBeenCalled()
+})
+
+
+it("retains an active caption textarea and blocks edits while restore is pending", async () => {
+  client = new QueryClient({defaultOptions: {queries: {retry: false, staleTime: Infinity}}})
+  const page = {versions: {imageCaptioning: 1}, captionSourceSignature: "source", imageCaptioning: {captions: [{imageId: "image1", caption: "Original", reasoning: "", source: "ai"}]}}
+  client.setQueryData(["books", "book", "pages", "pg001"], page)
+  calls.page.mockResolvedValue(page)
+  calls.outputs.mockResolvedValue({outputs: []})
+  render(<QueryClientProvider client={client}><PageCaptions bookLabel="book" pageId="pg001" pageNumber={1} decorativeFilter="all" searchQuery="" toolbarHeight={0} /></QueryClientProvider>)
+  fireEvent.click(screen.getByTitle("Click to edit caption"))
+  fireEvent.change(screen.getByRole("textbox"), {target: {value: "Retained textarea draft"}})
+  act(() => saveActions.restoring(true))
+  const input = screen.getByRole("textbox") as HTMLTextAreaElement
+  expect(input.matches(":disabled")).toBe(true)
+  fireEvent.change(input, {target: {value: "Blocked caption"}})
+  expect(input.value).toBe("Retained textarea draft")
+  act(() => saveActions.restoring(false))
+  expect(input.value).toBe("Retained textarea draft")
+  expect(input.matches(":disabled")).toBe(false)
   expect(calls.save).not.toHaveBeenCalled()
 })

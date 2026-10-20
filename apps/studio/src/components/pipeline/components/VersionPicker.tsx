@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState, useRef, type ReactNode } from "react"
 import {
   BookOpen,
   Check,
@@ -107,6 +107,8 @@ interface VersionPickerProps {
    * preview-as-pending-edit flow.
    */
   onRestored?: () => void
+  /** Synchronously lock the owning editor for the restore and its refresh. */
+  onRestoringChange?: (restoring: boolean) => boolean | void
   /** Legacy: load a version's data as a pending edit. Used by steps not yet
    *  migrated to restore (onRestored). Ignored when onRestored is set. */
   onPreview?: (data: unknown) => void
@@ -171,6 +173,7 @@ export function VersionPicker({
   dirty,
   bookLabel,
   onRestored,
+  onRestoringChange,
   onPreview,
   onSave,
   onSaveStay,
@@ -193,6 +196,24 @@ export function VersionPicker({
   const [hoverCandidate, setHoverCandidate] = useState<number | null>(null)
   const [hovered, setHovered] = useState<number | null>(null)
   const [restoring, setRestoring] = useState(false)
+  const scope = useMemo(() => ({ bookLabel, step, itemId }), [bookLabel, step, itemId])
+  const scopeRef = useRef(scope)
+  scopeRef.current = scope
+  const operationRef = useRef<{ scope: typeof scope; unlock: () => boolean | void } | null>(null)
+  useEffect(() => {
+    setRestoring(false)
+    setVersions(null)
+    setLoadingVersions(false)
+    setLoadError(false)
+    setOpen(false)
+    return () => {
+      const operation = operationRef.current
+      if (operation?.scope === scope) {
+        operationRef.current = null
+        operation.unlock()
+      }
+    }
+  }, [scope])
   const [loadError, setLoadError] = useState(false)
   // Reserve the first hovered preview's height for later ones so switching
   // versions doesn't grow the flyout from the skeleton up (same page ≈ same
@@ -224,13 +245,16 @@ export function VersionPicker({
     id: `${step}:${itemId}`,
     stage,
     dirty: dirty && renderSaveBar && currentVersion != null,
-    saving,
+    saving: saving || restoring,
     label: pendingLabel ?? defaultLabel,
     labelKey: pendingLabelKey ?? step,
-    onSave,
-    onSaveStay,
-    onDiscard,
-    saveDisabledReason,
+    onSave: () => { if (!operationRef.current) return onSave?.() },
+    onSaveStay: async () => {
+      if (operationRef.current) throw new Error(t`Please wait for the current operation to finish`)
+      await (onSaveStay ?? onSave)?.()
+    },
+    onDiscard: () => { if (!operationRef.current) onDiscard() },
+    saveDisabledReason: restoring ? t`Please wait for the current operation to finish` : saveDisabledReason,
   })
 
   // Per-kind change counts vs current, precomputed once per version set (avoids
@@ -272,11 +296,11 @@ export function VersionPicker({
       setLoadError(false)
       try {
         const res = await api.getVersionHistory(bookLabel, step, itemId, true, step === "quiz-generation")
-        setVersions(res.versions)
+        if (scopeRef.current === scope) setVersions(res.versions)
       } catch {
-        setLoadError(true)
+        if (scopeRef.current === scope) setLoadError(true)
       } finally {
-        setLoadingVersions(false)
+        if (scopeRef.current === scope) setLoadingVersions(false)
       }
     }
   }
@@ -284,6 +308,9 @@ export function VersionPicker({
   // Roll back to an existing version: move the pointer (no new version) and
   // refresh. Shared by the list rows and the compare dialog.
   const restoreTo = async (version: number) => {
+    if (saving || operationRef.current || onRestoringChange?.(true) === false) return
+    const operation = { scope, unlock: () => onRestoringChange?.(false) }
+    operationRef.current = operation
     setRestoring(true)
     try {
       await api.restoreVersion(bookLabel, step, itemId, version)
@@ -298,14 +325,24 @@ export function VersionPicker({
         )
       }
       await Promise.all(invalidations)
-      onRestored?.()
-      toast.success(t`Restored to v${version}`)
+      if (scopeRef.current === scope && operationRef.current === operation) {
+        // Unlock and acknowledge synchronously, before the editor can accept
+        // another input. Never clear a later book/page/language's draft.
+        if (operation.unlock() !== false) {
+          onRestored?.()
+          toast.success(t`Restored to v${version}`)
+        }
+      }
     } catch {
       // Never throw to callers (they close popovers/dialogs after this) — a
       // failed restore surfaces as a toast, not an unhandled rejection.
-      toast.error(t`Couldn't restore v${version}. Please try again.`)
+      if (scopeRef.current === scope && operationRef.current === operation) toast.error(t`Couldn't restore v${version}. Please try again.`)
     } finally {
-      setRestoring(false)
+      if (operationRef.current === operation) {
+        operationRef.current = null
+        operation.unlock()
+        if (scopeRef.current === scope) setRestoring(false)
+      }
     }
   }
 

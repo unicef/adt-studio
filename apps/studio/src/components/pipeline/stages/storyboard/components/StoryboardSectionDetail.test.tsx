@@ -15,6 +15,9 @@ import type { SectionEditPanel } from "./SectionEditPanel"
 import type { StyleEditorPanel } from "./style-editor"
 
 const state = vi.hoisted(() => ({
+  headerSlot: null as HTMLElement | null,
+  pickers: {} as Record<string, {onRestoringChange: (busy: boolean) => void; onRestored: () => void}>,
+  frame: {} as {editable: boolean; onTextChanged?: (dataId: string, text: string) => void},
   panel: null as unknown as ComponentProps<typeof SectionEditPanel>,
   style: null as unknown as ComponentProps<typeof StyleEditorPanel>,
   save: vi.fn().mockResolvedValue({}),
@@ -56,7 +59,7 @@ vi.mock("@/hooks/use-page-mutations", () => ({
   invalidateStoryboardDependents: vi.fn(),
 }))
 vi.mock("../../../components/StepViewRouter", () => ({
-  useStepHeader: () => ({ headerSlotEl: null }),
+  useStepHeader: () => ({ headerSlotEl: state.headerSlot }),
 }))
 vi.mock("@/hooks/use-editable-activities", () => ({
   useActivityStructure: () => ({}),
@@ -67,7 +70,7 @@ vi.mock("@/hooks/use-editable-activities", () => ({
 vi.mock("./SectionEditPanel", () => ({
   SectionEditPanel: (props: ComponentProps<typeof SectionEditPanel>) => {
     state.panel = props
-    return null
+    return props.versionPickerNode
   },
 }))
 vi.mock("./style-editor", () => ({
@@ -79,7 +82,9 @@ vi.mock("./style-editor", () => ({
 vi.mock("./BookPreviewFrame", async () => {
   const { forwardRef, useImperativeHandle } = await import("react")
   return {
-    BookPreviewFrame: forwardRef(({ html }: { html: string }, ref) => {
+    BookPreviewFrame: forwardRef((props: { html: string; editable: boolean; onTextChanged?: (dataId: string, text: string) => void }, ref) => {
+      const { html } = props
+      state.frame = props
       useImperativeHandle(
         ref,
         () => ({
@@ -101,6 +106,7 @@ vi.mock("./BookPreviewFrame", async () => {
     }),
   }
 })
+vi.mock("@/components/pipeline/components/VersionPicker", () => ({ VersionPicker: (props: {step: string; onRestoringChange: (busy: boolean) => void; onRestored: () => void}) => { state.pickers[props.step] = props; return null } }))
 vi.mock("./AddImageDialog", () => ({
   AddImageDialog: ({
     onSelectExisting,
@@ -189,6 +195,8 @@ beforeEach(() => {
   i18n.load("en", {})
   i18n.activate("en")
   vi.clearAllMocks()
+  state.headerSlot = null
+  state.pickers = {}
   state.save.mockResolvedValue({})
 })
 afterEach(cleanup)
@@ -464,4 +472,29 @@ it("source successor survives same-turn response before React commits state", as
   })
   expect(state.panel.section.nodes).toContainEqual(expect.objectContaining({ nodeId: "keep", text: "Same-turn successor" }))
   expect(screen.getByRole("button", { name: "Save", exact: true })).toBeTruthy()
+})
+
+
+it.each(["page-sectioning", "web-rendering"])("blocks iframe and inspector mutations during %s restore, retaining prior drafts after failure", async step => {
+  state.headerSlot = document.body
+  render(<FloatingSaveProvider><StoryboardSectionDetail bookLabel="fixture" pageId="pg001" sectionIndex={0} page={fixture()} /><LeaveProbe /></FloatingSaveProvider>)
+  act(() => state.panel.onSectionChange({...state.panel.section, nodes: state.panel.section.nodes.map(node => node.nodeId === "keep" ? {...node, text: "Retained source draft"} : node)}))
+  act(() => state.pickers[step].onRestoringChange(true))
+  expect(state.frame.editable).toBe(false)
+  act(() => {
+    state.panel.onSectionChange({...state.panel.section, nodes: []})
+    state.style.onClassesChange("keep", ["blocked-class"])
+    state.frame.onTextChanged?.("keep", "Blocked iframe edit")
+  })
+  expect(state.panel.section.nodes.find(node => node.nodeId === "keep")?.text).toBe("Retained source draft")
+  await act(async () => { await expect(leaveAction.saveAndStay()).rejects.toBeInstanceOf(Error) })
+  act(() => state.pickers[step].onRestoringChange(false))
+  expect(state.frame.editable).toBe(true)
+  expect(leaveAction.canSave).toBe(true)
+  await act(async () => {await leaveAction.saveAndStay()})
+  expect(state.save).toHaveBeenCalledTimes(1)
+  const payload = JSON.stringify(state.save.mock.calls[0])
+  expect(payload).toContain("Retained source draft")
+  expect(payload).not.toContain("blocked-class")
+  expect(payload).not.toContain("Blocked iframe edit")
 })

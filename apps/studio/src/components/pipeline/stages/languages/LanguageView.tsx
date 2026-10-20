@@ -1,4 +1,5 @@
 import { useTTSData } from "@/hooks/use-tts";
+import { EditorBusyBoundary, useVersionRestoreBusy } from "../../components/version-restore"
 import { OutputReview, useOutputs } from "../../components/OutputReview"
 import { useState, useEffect, useRef, useCallback, useMemo, type ChangeEvent } from "react"
 import { createPortal } from "react-dom"
@@ -668,12 +669,14 @@ export function LanguageView({
     return map;
   }, [selectedVoiceSlot, timestampMap]);
 
+  const { restoring, restoringRef, onRestoringChange } = useVersionRestoreBusy(JSON.stringify([bookLabel, selectedLang]))
   // Pending state for edits (keyed by language)
   const [pendingEntries, setPendingEntriesState] = useState<
     TextCatalogEntry[] | null
   >(null);
   const pendingEntriesRef = useRef<TextCatalogEntry[] | null>(null);
   const setPendingEntries = useCallback((next: TextCatalogEntry[] | null) => {
+    if (restoringRef.current) return;
     pendingEntriesRef.current = next;
     setPendingEntriesState(next);
   }, []);
@@ -780,7 +783,7 @@ export function LanguageView({
     noun: { one: t`translation`, other: t`translations` },
   });
 
-  const languageSwitchBlocked = dirty || speechDrafts.size > 0 || saving;
+  const languageSwitchBlocked = dirty || speechDrafts.size > 0 || saving || restoring;
   const languageSwitchReason = dirty || speechDrafts.size > 0
     ? t`Save or discard your edits first`
     : t`Please wait for the current operation to finish`;
@@ -789,13 +792,13 @@ export function LanguageView({
     // text to the saved value must allow switching without an unavailable Save.
     const pending = pendingEntriesRef.current;
     const diff = pending && diffById(translatedEntries, pending, entry => entry.id, (a, b) => a.text === b.text);
-    if (diff && (diff.added.length || diff.removed.length || diff.changed.length) || savingRef.current || speechDraftsRef.current.size > 0) return;
+    if (diff && (diff.added.length || diff.removed.length || diff.changed.length) || savingRef.current || restoringRef.current || speechDraftsRef.current.size > 0) return;
     setSelectedLang(language);
   };
 
   const [saveError, setSaveError] = useState<string | null>(null);
   const saveTranslation = useCallback(async (forNavigation = false) => {
-    if (savingRef.current) {
+    if (savingRef.current || restoringRef.current) {
       if (forNavigation) {
         const message = t`A save is still in progress. Wait for it to finish before leaving.`;
         setSaveError(message);
@@ -1586,11 +1589,12 @@ export function LanguageView({
             step="text-catalog-translation"
             itemId={translationItemId ?? selectedLang}
             currentVersion={translationVersion}
-            saving={saving}
+            saving={saving || restoring}
             dirty={dirty}
             bookLabel={bookLabel}
             pendingLabel={pendingLabel}
             pendingLabelKey={pendingLabelKey}
+            onRestoringChange={onRestoringChange}
             onRestored={() => {
               setPendingEntries(null);
               setAppliedSuggestionEntryIds(new Set());
@@ -1655,9 +1659,10 @@ export function LanguageView({
           step="core-tts-catalog"
           itemId={normalizeLocale(audioLang)}
           currentVersion={speechCatalogVersion}
-          saving={false}
+          saving={saving || restoring || speechDrafts.size > 0}
           dirty={false}
           bookLabel={bookLabel}
+          onRestoringChange={onRestoringChange}
           onRestored={() => undefined}
           onDiscard={() => undefined}
           diff={{
@@ -1939,7 +1944,7 @@ export function LanguageView({
 
   // Language tabs + entries
   return (
-    <>
+    <EditorBusyBoundary busy={restoring}>
       {headerSlotEl &&
         headerControls &&
         createPortal(headerControls, headerSlotEl)}
@@ -2566,6 +2571,7 @@ export function LanguageView({
                               />
                               {audioLang ? (
                                 <CoreTtsSpeechEditor
+                                      restoring={restoring}
                                   showSpeechStatus={isSpeechStage}
                                   dirty={hasOutputDraft}
                                   onEditingChange={onSpeechEditingChange}
@@ -2688,6 +2694,7 @@ export function LanguageView({
                                   </p>
                                   {editingLanguage ? (
                                     <CoreTtsSpeechEditor
+                                      restoring={restoring}
                                       showSpeechStatus={isSpeechStage}
                                       dirty={hasOutputDraft}
                                       onEditingChange={onSpeechEditingChange}
@@ -2785,6 +2792,7 @@ export function LanguageView({
                                       />
                                       {audioLang ? (
                                         <CoreTtsSpeechEditor
+                                      restoring={restoring}
                                           showSpeechStatus={isSpeechStage}
                                           dirty={hasOutputDraft}
                                           onEditingChange={onSpeechEditingChange}
@@ -2815,6 +2823,7 @@ export function LanguageView({
                                       />
                                       {audioLang ? (
                                         <CoreTtsSpeechEditor
+                                      restoring={restoring}
                                           showSpeechStatus={isSpeechStage}
                                           dirty={hasOutputDraft}
                                           onEditingChange={onSpeechEditingChange}
@@ -2928,7 +2937,7 @@ export function LanguageView({
           />
         )}
       </div>
-    </>
+    </EditorBusyBoundary>
   );
 }
 

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
-const saveActions = vi.hoisted(() => ({ stay: async () => {}, discard: () => {}, speechEditing: (_id: string, _language: string, _editing: boolean) => {} }))
+const saveActions = vi.hoisted(() => ({ stay: async () => {}, restoring: (_next: boolean) => {}, speechRestoring: false, discard: () => {}, speechEditing: (_id: string, _language: string, _editing: boolean) => {} }))
 const join = (strings: TemplateStringsArray, ...values: unknown[]) => strings.reduce((text, part, index) => text + part + (values[index] ?? ""), "")
 vi.mock("@lingui/core/macro", () => ({ msg: (strings: TemplateStringsArray, ...values: unknown[]) => ({ message: join(strings, ...values) }) }))
 vi.mock("@lingui/react/macro", () => ({ Trans: ({ children }: { children: ReactNode }) => <>{children}</>, useLingui: () => ({ t: join, i18n: { locale: "en", _: (value: { message: string }) => value.message } }) }))
@@ -21,10 +21,11 @@ vi.mock("@/hooks/use-elevenlabs-voices", () => ({ useElevenLabsVoices: () => ({ 
 vi.mock("@/hooks/use-tts", () => ({ useTTSData: () => ({ data: { languages: {} } }) }))
 vi.mock("../../components/StepViewRouter", () => ({ useStepHeader: () => ({ headerSlotEl: document.body }) }))
 vi.mock("../../components/OutputReview", () => ({ OutputReview: () => null, useOutputs: () => ({ data: { outputs: [] } }) }))
-vi.mock("./components/CoreTtsSpeechEditor", () => ({ CoreTtsBadges: () => null, CoreTtsSpeechEditor: ({ onEditingChange }: { onEditingChange: typeof saveActions.speechEditing }) => { saveActions.speechEditing = onEditingChange; return null } }))
-vi.mock("@/components/pipeline/components/VersionPicker", () => ({ VersionPicker: ({ onSave, onSaveStay, onDiscard, dirty, saving }: { onSave: () => Promise<void>; onSaveStay: () => Promise<void>; onDiscard: () => void; dirty: boolean; saving: boolean }) => {
+vi.mock("./components/CoreTtsSpeechEditor", () => ({ CoreTtsBadges: () => null, CoreTtsSpeechEditor: ({ onEditingChange, restoring }: { onEditingChange: typeof saveActions.speechEditing; restoring: boolean }) => { saveActions.speechEditing = onEditingChange; saveActions.speechRestoring = restoring; return null } }))
+vi.mock("@/components/pipeline/components/VersionPicker", () => ({ VersionPicker: ({ onSave, onSaveStay, onDiscard, onRestoringChange, dirty, saving }: { onRestoringChange: (next: boolean) => void; onSave: () => Promise<void>; onSaveStay: () => Promise<void>; onDiscard: () => void; dirty: boolean; saving: boolean }) => {
   saveActions.stay = onSaveStay
   saveActions.discard = onDiscard
+  saveActions.restoring = onRestoringChange
   return <button disabled={!dirty || saving} onClick={() => { void onSave().catch(() => {}) }}>Save translation</button>
 } }))
 vi.mock("@/api/client", () => ({ BASE_URL: "", getAudioUrl: () => "", api: { getTextCatalog: vi.fn(), getEasyRead: vi.fn().mockResolvedValue(null), listTranslatedImages: vi.fn().mockResolvedValue({ images: [] }), updateTranslation: vi.fn() } }))
@@ -173,4 +174,20 @@ it.each(["success", "failure"])("ignores an old book's late translation %s while
   await act(async () => { finishOther(); await new Promise(resolve => setTimeout(resolve, 450)) })
   await act(async () => { await saveActions.stay() })
   expect(api.updateTranslation).toHaveBeenLastCalledWith("other", "fr", expect.objectContaining({ baseVersion: 8, sourceSignature: "other-source", entries: [{ id: "pg001_text", text: "Other book successor" }] }))
+})
+
+
+it("blocks translation, language selection and prepared speech editing during restore", async () => {
+  renderLanguages()
+  fireEvent.change(await screen.findByPlaceholderText("Pending..."), {target: {value: "Retained translation draft"}})
+  act(() => saveActions.restoring(true))
+  const input = screen.getByPlaceholderText("Pending...") as HTMLTextAreaElement
+  expect(input.matches(":disabled")).toBe(true)
+  fireEvent.change(input, {target: {value: "Blocked translation"}})
+  expect(input.value).toBe("Retained translation draft")
+  expect(saveActions.speechRestoring).toBe(true)
+  act(() => saveActions.restoring(false))
+  expect(input.value).toBe("Retained translation draft")
+  expect(input.matches(":disabled")).toBe(false)
+  expect(saveActions.speechRestoring).toBe(false)
 })

@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 const join = (strings: TemplateStringsArray, ...values: unknown[]) =>
   strings.reduce((text, part, index) => text + part + (index < values.length ? String(values[index]) : ""), "")
-const saveActions = vi.hoisted(() => ({ stay: async () => {} }))
+const saveActions = vi.hoisted(() => ({ stay: async () => {}, restoring: (_next: boolean) => {} }))
 
 // Vitest does not compile Lingui macros.
 vi.mock("@lingui/core/macro", () => ({
@@ -39,8 +39,9 @@ vi.mock("@/hooks/use-book-run", () => ({ useBookRun: () => ({ stageState: () => 
 vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: "" }), useBookStructuredTextAvailability: () => true }))
 vi.mock("../../components/StageRunCard", () => ({ StageRunCard: () => null }))
 vi.mock("../../components/VersionPicker", () => ({
-  VersionPicker: ({ onSave, onSaveStay, dirty, saving }: { onSave: () => void; onSaveStay: () => Promise<void>; dirty: boolean; saving: boolean }) => {
+  VersionPicker: ({ onSave, onSaveStay, onRestoringChange, dirty, saving }: { onRestoringChange: (next: boolean) => void; onSave: () => void; onSaveStay: () => Promise<void>; dirty: boolean; saving: boolean }) => {
     saveActions.stay = onSaveStay
+    saveActions.restoring = onRestoringChange
     return <button type="button" disabled={!dirty || saving} onClick={onSave}>Save</button>
   },
 }))
@@ -159,4 +160,20 @@ it.each(["success", "failure"])("ignores a previous book's late %s while the new
   await act(async () => { finishB(); await new Promise(resolve => setTimeout(resolve, 450)) })
   await act(async () => { await saveActions.stay() })
   expect(api.updateGlossary).toHaveBeenLastCalledWith("book-b", expect.objectContaining({ version: 8, identitySignature: "book-b-8" }))
+})
+
+
+it("blocks glossary edits during restore without losing the pre-existing draft after failure", async () => {
+  client = new QueryClient({defaultOptions: {queries: {retry: false}}})
+  render(<QueryClientProvider client={client}><TooltipProvider><Harness /></TooltipProvider></QueryClientProvider>)
+  fireEvent.change(await screen.findByLabelText("Definition for Nile"), {target: {value: "Retain manual definition"}})
+  act(() => saveActions.restoring(true))
+  const input = screen.getByLabelText("Definition for Nile") as HTMLTextAreaElement
+  expect(input.matches(":disabled")).toBe(true)
+  fireEvent.change(input, {target: {value: "Blocked definition"}})
+  expect(input.value).toBe("Retain manual definition")
+  act(() => saveActions.restoring(false))
+  expect(input.value).toBe("Retain manual definition")
+  expect(input.matches(":disabled")).toBe(false)
+  expect((screen.getByRole("button", {name: "Save"}) as HTMLButtonElement).disabled).toBe(false)
 })

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
+import { EditorBusyBoundary, useVersionRestoreBusy } from "../../../components/version-restore"
 import { Image as ImageIcon } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
@@ -48,12 +49,14 @@ export function PageCaptions({
   const { data: page } = usePage(bookLabel, pageId)
   const { data: pageImage } = usePageImage(bookLabel, pageId)
 
+  const { restoring, restoringRef, onRestoringChange } = useVersionRestoreBusy(JSON.stringify([bookLabel, pageId]))
   // `pending` = manually staged changes awaiting an explicit save (drives the
   // floating bar). `optimistic` = the in-flight result of an auto-save, shown
   // immediately without a bar and held until the refetch lands (no flicker).
   const [pending, setPendingState] = useState<CaptioningData | null>(null)
   const pendingRef = useRef<CaptioningData | null>(null)
   const setPending = useCallback((next: CaptioningData | null) => {
+    if (restoringRef.current) return
     pendingRef.current = next
     setPendingState(next)
   }, [])
@@ -66,6 +69,7 @@ export function PageCaptions({
   const [editing, setEditingState] = useState<CaptionEdit | null>(null)
   const editingRef = useRef<CaptionEdit | null>(null)
   const setEditing = useCallback((next: CaptionEdit | null) => {
+    if (restoringRef.current) return
     editingRef.current = next
     setEditingState(next)
   }, [])
@@ -141,7 +145,7 @@ export function PageCaptions({
 
 
   const saveCaptions = async (data?: CaptioningData, forNavigation = false) => {
-    if (savingRef.current) {
+    if (savingRef.current || restoringRef.current) {
       // An unresolved autosave cannot authorize leaving with a staged draft.
       if (forNavigation) {
         const message = t`A save is still in progress. Wait for it to finish before leaving.`
@@ -322,6 +326,7 @@ export function PageCaptions({
   )
 
   return (
+    <EditorBusyBoundary busy={restoring}>
     <section
       id={`page-${pageId}`}
       data-page-id={pageId}
@@ -363,7 +368,7 @@ export function PageCaptions({
         <VersionPicker
               step="image-captioning"
               currentVersion={page.versions.imageCaptioning}
-              saving={saving}
+              saving={saving || restoring}
               dirty={dirty}
               bookLabel={bookLabel}
               itemId={pageId}
@@ -373,6 +378,7 @@ export function PageCaptions({
                 </PendingChip>
               }
               pendingLabelKey={`captions:${pageNumber}`}
+              onRestoringChange={onRestoringChange}
               onRestored={discardDraft}
               onSave={saveCaptions}
               onSaveStay={() => saveCaptions(undefined, true)}
@@ -469,5 +475,6 @@ export function PageCaptions({
         />
       )}
     </section>
+    </EditorBusyBoundary>
   )
 }

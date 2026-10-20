@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { EditorBusyBoundary, useVersionRestoreBusy } from "../../components/version-restore"
 import {
   ArrowDownAZ,
   ArrowDownWideNarrow,
@@ -92,9 +93,11 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
     queueRun({ fromStage: "glossary", toStage: "glossary", apiKey })
   }, [hasStructuredTextProvider, glossaryRunning, apiKey, queueRun])
 
+  const { restoring, restoringRef, onRestoringChange } = useVersionRestoreBusy(bookLabel)
   const [pending, setPendingState] = useState<GlossaryData | null>(null)
   const pendingRef = useRef<GlossaryData | null>(null)
   const setPending = useCallback((next: GlossaryData | null) => {
+    if (restoringRef.current) return
     pendingRef.current = next
     setPendingState(next)
   }, [])
@@ -214,7 +217,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
   }, [])
 
   const saveGlossary = useCallback(async (forNavigation = false) => {
-    if (savingRef.current) {
+    if (savingRef.current || restoringRef.current) {
       // The navigation guard must stay while a different save owns the draft.
       if (forNavigation) {
         const message = t`A save is still in progress. Wait for it to finish before leaving.`
@@ -278,12 +281,13 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
           step="glossary"
           itemId="book"
           currentVersion={currentVersion}
-          saving={saving}
+          saving={saving || restoring}
           dirty={dirty}
           bookLabel={bookLabel}
           saveDisabledReason={glossaryRunning ? t`Wait for glossary generation to finish` : undefined}
           pendingLabel={pendingLabel}
           pendingLabelKey={pendingLabelKey}
+          onRestoringChange={onRestoringChange}
           onRestored={() => setPending(null)}
           onSave={() => saveRef.current()}
           onSaveStay={() => saveRef.current(true)}
@@ -318,7 +322,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
       </div>
     )
     return () => setExtra(null)
-  }, [visibleCount, saving, dirty, bookLabel, currentVersion, glossaryRunning, t, setExtra, pendingLabel, pendingLabelKey])
+  }, [visibleCount, saving, restoring, onRestoringChange, dirty, bookLabel, currentVersion, glossaryRunning, t, setExtra, pendingLabel, pendingLabelKey])
 
   const updateDefinition = (itemId: string, newDefinition: string) => {
     const base = pending ?? data ?? createEmptyGlossary()
@@ -395,6 +399,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
     "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-medium transition-all duration-200 cursor-pointer"
 
   return (
+    <EditorBusyBoundary busy={restoring}>
     <StageContentGuard
       stageSlug="glossary"
       isLoading={isLoading && !effective}
@@ -594,6 +599,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
         />
       </div>
     </StageContentGuard>
+    </EditorBusyBoundary>
   )
 }
 

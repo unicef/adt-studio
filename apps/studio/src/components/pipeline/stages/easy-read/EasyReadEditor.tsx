@@ -1,4 +1,5 @@
 import { OutputReview } from "../../components/OutputReview"
+import { EditorBusyBoundary, useVersionRestoreBusy } from "../../components/version-restore"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { FileText, RotateCcw, Search, Sparkles, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -38,9 +39,11 @@ export function EasyReadEditor({
     queryFn: () => api.getEasyRead(bookLabel),
     enabled: !!bookLabel,
   })
+  const { restoring, restoringRef, onRestoringChange } = useVersionRestoreBusy(bookLabel)
   const [draftBlocks, setDraftBlocksState] = useState<EasyReadSectionBlock[] | null>(null)
   const draftBlocksRef = useRef<EasyReadSectionBlock[] | null>(null)
   const setDraftBlocks = useCallback((next: EasyReadSectionBlock[] | null) => {
+    if (restoringRef.current) return
     draftBlocksRef.current = next
     setDraftBlocksState(next)
   }, [])
@@ -188,7 +191,7 @@ export function EasyReadEditor({
   const mutationError = navigationError ?? getErrorMessage(saveMutation.error)
 
   const saveBlocks = async (forNavigation = false) => {
-    if (savingRef.current) {
+    if (savingRef.current || restoringRef.current) {
       if (forNavigation) {
         const message = t`A save is still in progress. Wait for it to finish before leaving.`
         setNavigationError(message)
@@ -251,7 +254,7 @@ export function EasyReadEditor({
   }
 
   const currentVersion = data?.version ?? null
-  const saving = saveMutation.isPending
+  const saving = saveMutation.isPending || restoring
   const regenerateDisabled = !hasStructuredTextProvider || isRunning || dirty
 
   useEffect(() => {
@@ -276,6 +279,7 @@ export function EasyReadEditor({
           saving={saving}
           dirty={dirty}
           bookLabel={bookLabel}
+          onRestoringChange={onRestoringChange}
           onRestored={() => actions.current.discard()}
           onSave={() => actions.current.save()}
           onSaveStay={() => actions.current.saveStay()}
@@ -346,6 +350,7 @@ export function EasyReadEditor({
   }
 
   return (
+    <EditorBusyBoundary busy={restoring}>
     <div ref={scrollContainerRef} className="flex flex-1 flex-col overflow-y-auto">
       <EasyReadHintBanner />
 
@@ -499,7 +504,7 @@ export function EasyReadEditor({
                               <AutoTextarea
                                 value={entry.text}
                                 onChange={(value) => updateEntry(block, entry.easyReadId, value)}
-                                disabled={isRunning}
+                                disabled={isRunning || restoring}
                                 muted={unchanged}
                                 ariaLabel={t`Easy Read text`}
                               />
@@ -525,6 +530,7 @@ export function EasyReadEditor({
         }}
       />
     </div>
+    </EditorBusyBoundary>
   )
 }
 

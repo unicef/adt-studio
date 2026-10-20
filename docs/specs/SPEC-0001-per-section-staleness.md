@@ -242,6 +242,26 @@ existing navigation guard and save/version mechanisms; stale authored
 source-screen guards remain the explicitly coordinated SPEC-0002 Decision 10
 work, not a guarantee supplied by writer serialization alone.
 
+Restoring a version temporarily disables edits in that owning editor until the
+restore and its refresh settle, including controls rendered in a header or
+portal. A successful restore acknowledges only its original owner; failure
+keeps the prior draft. An older completion cannot clear a different book, page
+or language. Editors that disable input during saves must keep the same gate
+through persistence and refresh, release it after failure, and retain the draft
+for retry. This is an interaction safeguard, not a second writer lock.
+
+Prepared speech is edited per output even though its storage version belongs
+to a language catalog. Two independently opened speech entries may save in
+sequence without making the second editor adopt an arbitrary refreshed
+baseline: a stale collection version may merge only when the complete target
+entry is identical in the requested historical version and the current
+version, and its source/exclusion receipt still matches. Merge into the current
+collection, preserving every other entry and unknown retained metadata. Missing,
+malformed or ambiguous historical evidence fails closed. The receipt identifies
+the actual locale storage namespace as well as its inputs; equal version numbers
+in legacy and canonical locale namespaces are not interchangeable. Manual saves
+retain that namespace and its history. Same-entry conflicts remain rejected.
+
 The stage summary is a neutral, compact panel with one count of affected items across the book, not a checklist of every output. Offer **Update all** and **Keep all existing content** directly when applicable. Update regenerates eligible outdated/missing output and retries preparation fallbacks, preserving protected content. Keep acknowledges existing protected content or usable preparation fallbacks using the existing guarded review actions; it does not accept missing output or ordinary outdated generated output. Resolve inherited warnings at their linked sources, deduplicating shared sources and naming any source stages affected by the bulk actions. Queue source updates before their selected consumers, using the pipeline's stage order. **Replace edits…** separately lists the protected content before an explicit replacement action.
 
 Show compact, clickable counts for **Out of sync**, **Needs review**, **Warnings** and **Missing** beside the summary. Each item has one primary issue (missing first, then outdated generated content, then protected content needing a keep/replace decision, then other warnings); details retain every warning reason. These counts reflect the selected content, language, page and section, so switching the issue filter remains possible. Style **Update all** as a small amber button with a refresh icon, matching the stage warning icon, with text meeting WCAG AA contrast. While updates run it reads “Updating…”, stays focusable and reports that it is busy. When the stage rail is collapsed, the stage icon carries the same amber attention badge.
