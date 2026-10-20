@@ -152,9 +152,24 @@ export function createStageService(
 
     try {
       await withBookWriter(requireExistingBook(label, options.booksDir), async () => {
-        job.controller.signal.throwIfAborted()
-        options.beforeRun?.()
-        await runner.run(label, effectiveOptions, progress)
+        try {
+          job.controller.signal.throwIfAborted()
+          options.beforeRun?.()
+          await runner.run(label, effectiveOptions, progress)
+        } catch (err) {
+          if (job.controller.signal.aborted) {
+            // Keep the same lease through cancellation unwind. A queued job
+            // has no outer admission lease: releasing here before cleanup
+            // would let us erase a subsequent writer's running-step records.
+            try {
+              const storage = createBookStorage(label, options.booksDir)
+              try { storage.clearRunningStepRuns() } finally { storage.close() }
+            } catch (cleanupErr) {
+              console.error(`[stage-run] ${label} cancel cleanup failed:`, cleanupErr)
+            }
+          }
+          throw err
+        }
       })
       // Resolved: either a real completion, or a cancel that landed after the
       // last checkpoint so all remaining work finished. Both are "completed" —
@@ -165,20 +180,7 @@ export function createStageService(
       eventBus.emit(label, { type: "stage-run-complete", label })
     } catch (err) {
       if (job.controller.signal.aborted) {
-        // Cancel branch — runs only here, after runner.run() has settled, so the
-        // runner is no longer touching step_runs. Return in-flight steps to idle
-        // (deliberate action, not a failure) and announce completion of the cancel.
-        try {
-          requireExistingBook(label, options.booksDir)
-          const storage = createBookStorage(label, options.booksDir)
-          try {
-            storage.clearRunningStepRuns()
-          } finally {
-            storage.close()
-          }
-        } catch (cleanupErr) {
-          console.error(`[stage-run] ${label} cancel cleanup failed:`, cleanupErr)
-        }
+        // The runner and its cleanup have settled under the writer lease.
         job.status = "cancelled"
         job.completedAt = Date.now()
         Object.assign(getOrCreateState(label), { runRevision: job.id, publicationTime: performance.now() })

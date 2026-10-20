@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb } from "@adt/storage"
+import { openBookDb, createBookStorage, withBookWriter } from "@adt/storage"
 import { createBookEventBus, type BookSSEEvent } from "./book-event-bus.js"
 import { createStageRoutes } from "../routes/stages.js"
 import { createPageErrorDecisions } from "./page-error-decisions.js"
@@ -401,4 +401,53 @@ it.each(["completed", "cancelled", "failed"])("retains a publication receipt for
   expect(service.getStatus(label).runRevision).toBe(second.id)
   expect(createStageService(rc.runner, bus).getStatus(label).runRevision).not.toBe(run.id)
   age.mockRestore()
+})
+
+
+it("queued cancellation finishes cleanup before admitting an independent writer", async () => {
+  const label = "queued-cancel-admission"
+  makeBook(label)
+  const bookDir = fs.realpathSync(path.join(tmpDir, label))
+  let finishFirst!: () => void
+  let rejectSecond!: (error: Error) => void
+  let releaseWriter: (() => void) | undefined
+  let independent: Promise<void> | undefined
+  let calls = 0
+  let concurrentEntered = false
+  const svc = createStageService({ run() {
+    calls++
+    return new Promise<void>((resolve, reject) => { if (calls === 1) finishFirst = resolve; else rejectSecond = reject })
+  } }, createBookEventBus())
+  svc.startStageRun(label, baseOptions(label))
+  await tick()
+  svc.startStageRun(label, baseOptions(label))
+  finishFirst()
+  await tick()
+  expect(calls).toBe(2)
+  const unlink = fs.unlinkSync
+  const spy = vi.spyOn(fs, "unlinkSync").mockImplementation(target => {
+    unlink(target)
+    // Admit real work at the release boundary, before the old promise's catch.
+    // No storage/admission mocks: the new step is persisted under a real lease.
+    if (String(target) === path.join(bookDir, ".book-writer.json") && !concurrentEntered) queueMicrotask(() => {
+      concurrentEntered = true
+      independent = withBookWriter(bookDir, async () => {
+        const db = createBookStorage(label, tmpDir)
+        try { db.markStepStarted("glossary") } finally { db.close() }
+        await new Promise<void>(resolve => { releaseWriter = resolve })
+      })
+    })
+  })
+  try {
+    svc.cancelStageRun(label)
+    rejectSecond(new Error("cancelled"))
+    await tick()
+    expect(concurrentEntered).toBe(true)
+    expect(fs.existsSync(path.join(bookDir, ".book-writer.json"))).toBe(true)
+    expect(stepRunStatuses(label)).toEqual(new Map([["glossary", "running"]]))
+  } finally {
+    spy.mockRestore()
+    releaseWriter?.()
+    await independent
+  }
 })
