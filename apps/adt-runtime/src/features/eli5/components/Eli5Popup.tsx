@@ -70,10 +70,7 @@ export function Eli5Popup() {
             <span className="sr-only">{t("eli5-label") || "Explain to me"}</span>
           </DialogTitle>
         </DialogHeader>
-        <div
-          className="text-base leading-relaxed text-foreground"
-          dangerouslySetInnerHTML={{ __html: text }}
-        />
+        <div className="text-base leading-relaxed text-foreground">{text}</div>
       </DialogContent>
     </Dialog>
   )

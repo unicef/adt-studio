@@ -77,7 +77,7 @@ export function QuizzesLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const disabledReason = !hasStructuredTextProvider ? (
-    <Trans>Add an API key in Book settings to generate quizzes.</Trans>
+    <Trans>Connect an AI provider to generate quizzes.</Trans>
   ) : !storyboardReady ? (
     <Trans>
       Run Storyboard first — quizzes are written from the content placed into
@@ -95,6 +95,7 @@ export function QuizzesLandingPage({ bookLabel }: { bookLabel: string }) {
   return (
     <LandingPageShell
       bookLabel={bookLabel}
+      requiresProvider
       stageSlug="quizzes"
       settingsTab="general"
       colorClass="bg-orange-600 hover:bg-orange-700"

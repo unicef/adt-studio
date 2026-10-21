@@ -549,7 +549,7 @@ export function QuizzesView({
                 disabled={!hasStructuredTextProvider || quizzesStatus.isRunning}
                 title={
                   !hasStructuredTextProvider
-                    ? t`Add an API key in Book settings to add a quiz.`
+                    ? t`Connect an AI provider to add a quiz.`
                     : quizzesStatus.isRunning
                       ? t`Quizzes are generating. Wait for the run to finish before adding a quiz.`
                       : undefined

@@ -435,10 +435,29 @@ describe("createBook", () => {
     expect(content).toContain("concurrency: 4")
   })
 
-  it("does not write config when no overrides provided", () => {
+  it("turns TTS text normalization off for a new book", () => {
     createBook("no-config", fakePdf, tmpDir)
-    const configPath = path.join(tmpDir, "no-config", "config.yaml")
-    expect(fs.existsSync(configPath)).toBe(false)
+    expect(getBookConfig("no-config", tmpDir)).toEqual({
+      core_tts: { language_normalization: false },
+    })
+  })
+
+  it("keeps other core_tts overrides alongside the normalization default", () => {
+    createBook("tts-model", fakePdf, tmpDir, {
+      core_tts: { model: "openai:gpt-5.4" },
+    })
+    expect(getBookConfig("tts-model", tmpDir)).toEqual({
+      core_tts: { model: "openai:gpt-5.4", language_normalization: false },
+    })
+  })
+
+  it("lets an explicit override turn TTS text normalization on", () => {
+    createBook("tts-on", fakePdf, tmpDir, {
+      core_tts: { language_normalization: true },
+    })
+    expect(getBookConfig("tts-on", tmpDir)).toEqual({
+      core_tts: { language_normalization: true },
+    })
   })
 
   it("rejects invalid labels", () => {
@@ -466,7 +485,10 @@ describe("getBookConfig", () => {
     const fakePdf = Buffer.from("%PDF-1.0 fake")
     createBook("with-config", fakePdf, tmpDir, { concurrency: 4 })
     const config = getBookConfig("with-config", tmpDir)
-    expect(config).toEqual({ concurrency: 4 })
+    expect(config).toEqual({
+      concurrency: 4,
+      core_tts: { language_normalization: false },
+    })
   })
 
   it("throws for non-existent book", () => {

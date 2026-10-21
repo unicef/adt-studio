@@ -52,6 +52,7 @@ import {
   computeSplitStatus,
 } from "../services/part-service.js"
 import type { TaskService } from "../services/task-service.js"
+import { resolvePathWithin } from "../utils/path-security.js"
 
 function assertModelSupported(
   registry: ProviderRegistry,
@@ -939,7 +940,8 @@ export function createBookRoutes(
       const message = err instanceof Error ? err.message : String(err)
       throw new HTTPException(400, { message })
     }
-    const adtDir = path.join(path.resolve(booksDir), safeLabel, "adt")
+    const adtDir = resolvePathWithin(booksDir, safeLabel, "adt")
+    if (!adtDir) throw new HTTPException(400, { message: "Invalid path" })
     if (!fs.existsSync(adtDir)) {
       throw new HTTPException(404, {
         message: `ADT not packaged for book: ${safeLabel}`,
@@ -957,7 +959,8 @@ export function createBookRoutes(
 
     if (!filePath) {
       // Root request — redirect to first page
-      const pagesPath = path.join(adtDir, "content", "pages.json")
+      const pagesPath = resolvePathWithin(adtDir, "content", "pages.json")
+      if (!pagesPath) throw new HTTPException(400, { message: "Invalid path" })
       if (!fs.existsSync(pagesPath)) {
         throw new HTTPException(404, {
           message: `ADT not packaged for book: ${safeLabel}`,
@@ -973,8 +976,8 @@ export function createBookRoutes(
       return c.redirect(`/api/books/${safeLabel}/adt/${versionPrefix}${pages[0].href}`)
     }
 
-    const resolvedPath = path.resolve(adtDir, filePath)
-    if (!resolvedPath.startsWith(adtDir + path.sep)) {
+    const resolvedPath = resolvePathWithin(adtDir, filePath)
+    if (!resolvedPath) {
       throw new HTTPException(400, { message: "Invalid path" })
     }
 
