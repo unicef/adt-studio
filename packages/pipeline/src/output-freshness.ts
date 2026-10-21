@@ -40,6 +40,9 @@ export function deriveOutputStatus(options: {
   content: unknown
   metadata?: OutputMetadata
   usable: boolean
+  /** No usable artifact remains: a failed generated preparation or an absent
+   * nonmanual recording. This never overrides manual or usable content. */
+  recoverableFailure?: boolean
   excluded?: boolean
   fallback?: "failed" | "missing" | "outdated"
   upstream?: OutputStatus[]
@@ -52,7 +55,8 @@ export function deriveOutputStatus(options: {
   const reviewed = review?.signature === signature && review.contentHash === contentHash
   // An old caller changing content without updating evidence must not leave it
   // eligible for an ordinary generated replacement.
-  const protectedContent = (options.content !== undefined || metadata !== undefined) && (metadata?.source !== "ai" || !input || !evidenceValid)
+  const recoverable = options.recoverableFailure === true && !usable && metadata?.source !== "manual"
+  const protectedContent = !recoverable && (options.content !== undefined || metadata !== undefined) && (metadata?.source !== "ai" || !input || !evidenceValid)
   const ownCurrent = usable && ((evidenceValid && input.signature === signature) || (reviewed && review.action === "keep"))
   const warnings: OutputWarning[] = []
   if (usable && !ownCurrent && protectedContent) warnings.push({ reason: input || review ? "source-changed" : "legacy" })

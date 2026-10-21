@@ -4,7 +4,7 @@ import path from "node:path"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { createBookStorage } from "@adt/storage"
 import { loadBookConfig, readOutputCatalog } from "@adt/pipeline"
-import type { TextCatalogOutput } from "@adt/types"
+import type { CoreTtsCatalogOutput, TextCatalogOutput } from "@adt/types"
 import { createStageRunner } from "./stage-runner.js"
 
 let root: string
@@ -68,4 +68,27 @@ it("prepares translated speech in current source order after a move, independent
     expect(preparation).toHaveLength(2)
     expect(preparation.every((output) => !output.warnings.some((warning) => warning.reason.startsWith("preparation-")))).toBe(true)
   } finally { verify.close() }
+})
+
+
+it.each(["ordinary", "retry"])("%s Language run repairs legacy null-speech failures with one transport call and retains manual speech", async action => {
+  fs.writeFileSync(path.join(root, "config", "core_tts_profiles.yaml"), "fr: Normalize French.\n")
+  const seed = storage()
+  seed.putNodeData("text-catalog-translation", "fr-FR", {entries: [{id: "a", text: "Bonjour", source: "manual"}, {id: "b", text: "Monde", source: "manual"}], generatedAt: "legacy"})
+  const legacy: CoreTtsCatalogOutput = {language: "fr-FR", generatedAt: "legacy", entries: [
+    {id: "a", displayText: "Bonjour", speechText: null, status: "failed", changed: false, transformations: [], failureReason: "Old failure", generation: {mode: "generated", generatedAt: "legacy", enabledTransformations: ["language-normalization"], sourceTextHash: "old", contextHash: "old"}},
+    {id: "b", displayText: "Monde", speechText: "Manual pronunciation", status: "ready", changed: true, transformations: [], generation: {mode: "manual", generatedAt: "legacy", enabledTransformations: [], sourceTextHash: "old", contextHash: "old"}},
+  ]}
+  seed.putNodeData("core-tts-catalog", "fr-FR", legacy)
+  seed.close()
+  await createStageRunner().run(label, {...options(), ...(action === "retry" ? {outputScope: {selection: {kinds: ["preparation" as const], ids: ["a"]}, retry: [{kind: "preparation" as const, id: "a", language: "fr-FR"}]}} : {})}, {emit: () => {}})
+  expect(transport).toHaveBeenCalledTimes(1)
+  const verify = storage()
+  const result = verify.getLatestNodeData("core-tts-catalog", "fr-FR")!.data as CoreTtsCatalogOutput
+  expect(result.entries.find(entry => entry.id === "a")).toMatchObject({status: "ready", speechText: "Bonjour", source: "ai"})
+  expect(result.entries.find(entry => entry.id === "b")).toEqual(legacy.entries[1])
+  expect(verify.getAllNodeVersions("core-tts-catalog", "fr-FR").some(row => JSON.stringify(row.data) === JSON.stringify(legacy))).toBe(true)
+  verify.close()
+  await createStageRunner().run(label, options(), {emit: () => {}})
+  expect(transport).toHaveBeenCalledTimes(1)
 })

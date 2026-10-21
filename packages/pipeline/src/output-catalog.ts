@@ -231,7 +231,7 @@ function projectOutputCatalog(options: Parameters<typeof readOutputCatalog>[0]):
         const audioMetadata = prior ? { ...prior, source: prior.provider === "manual" ? "manual" as const : prior.source,
           input: prior.speechInputSignature ? { signature: prior.speechInputSignature, contentHash: inputSignature(prior.audioHash ?? prior.fileName), references: [] } : prior.input } : undefined
         const audioStatus = add(withOutputLocations(deriveOutputStatus({ identity: { kind: "audio", id: source.id, language, voiceSlot }, signature: speechSignature,
-          content: prior?.audioHash ?? prior?.fileName, metadata: audioMetadata, usable, excluded: speechExcluded, upstream: [prepStatus],
+          content: prior?.audioHash ?? prior?.fileName, metadata: audioMetadata, usable, recoverableFailure: !!prior, excluded: speechExcluded, upstream: [prepStatus],
         }), source))
         let speechContext = [source.id]
         if (prior?.pageBatchFallback !== "single-item" && config.speech?.batch_by_page && voice.provider === "gemini" && supportsPageBatchedSpeech(language) && pageId && !source.id.endsWith("_easy_read")) {

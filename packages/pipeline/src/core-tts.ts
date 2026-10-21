@@ -316,7 +316,9 @@ export async function prepareCoreTtsCatalog(options: {
     signatures.set(entry.id, signature)
     const metadata = previous ? { ...previous, source: previous.generation.mode === "manual" ? "manual" as const : previous.source } : undefined
     const status = withOutputLocations(deriveOutputStatus({ identity: { kind: "preparation", id: entry.id, language }, signature,
-      content: previous?.speechText, metadata, usable: !!previous?.speechText?.trim() }), entry)
+      content: previous?.speechText, metadata, usable: !!previous?.speechText?.trim(),
+      recoverableFailure: previous?.status === "failed" && previous.generation.mode === "generated",
+    }), entry)
     const explicitRetry = options.retryIds?.includes(entry.id)
     // Only a failed attempt is reused until retry or an input change. A fallback
     // recorded without an attempt ("missing"/"outdated") is still owed a

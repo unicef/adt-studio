@@ -207,6 +207,17 @@ failed inputs and checked fallbacks are reused, manual speech remains protected,
 and the old attempt/review remains in entity history. This clarifies AC-14,
 without broadening the deferred provider-failure classifier.
 
+**October 21 legacy recovery assumption:** A pre-evidence preparation explicitly
+recorded as a failed generated attempt with no usable speech is unfinished work,
+not protected authored speech. It may be prepared on a requested Language run or
+Retry; subsequent attempts obey the normal evidence-based retry rules. An absent
+physical audio file likewise permits requested synthesis unless its row declares
+manual origin (including `provider: manual`). Usable unknown-origin content and
+manual output remain protected. Recovery appends versions and preserves the old
+failure/recording metadata and surviving assets; it does not infer provenance for
+usable content or certify freshness from ownership alone. This deliberately
+cannot recover a missing historical recording's bytes.
+
 **Skip this run** makes no further attempt for the selected operation in that run; it does not exclude content or erase existing output. The next explicit run retries selected unfinished eligible work, preserving protected content. Skip/cancel must not commit a late result for that abandoned operation. **Prune/exclude** persists until restored, using existing scope: excluding speech does not delete source text. Source exclusion removes only affected active references; shared consumers remain. Restoring inclusion rechecks retained output rather than automatically regenerating it.
 
 ### 6. Resolve warnings beside the content

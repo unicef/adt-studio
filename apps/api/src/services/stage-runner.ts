@@ -2938,6 +2938,7 @@ async function runSpeechStep(
       model: string
       voice: string
       voiceLabel?: string
+      pageBatchFallback?: "single-item"
     }
     const ttsWorkItems: TTSWorkItem[] = []
     // Page-batched TTS (experimental, Gemini only): a page's entries are
@@ -3079,6 +3080,11 @@ async function runSpeechStep(
             continue
           }
 
+          // Record the context actually synthesized, including cache reuse. A
+          // page preference without an alignment credential uses item inputs.
+          const pageBatchFallback = config.speech?.batch_by_page && !openaiApiKey && provider === "gemini" &&
+            supportsPageBatchedSpeech(lang) && pageById.get(entry.id) !== undefined && !entry.id.endsWith("_easy_read")
+            ? "single-item" as const : undefined
           const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
           // OpenAI consumes instructions via its `instructions` field; Gemini embeds
           // them in the prompt text (it rejects systemInstruction). Both paths must
@@ -3125,6 +3131,7 @@ async function runSpeechStep(
           ) {
             const refreshedEntry = {
               ...existingEntry,
+              ...(pageBatchFallback ? { pageBatchFallback } : {}),
               voiceSlot: slot,
             }
             if (voiceLabel) {
@@ -3148,6 +3155,7 @@ async function runSpeechStep(
             model: providerModel,
             voice,
             voiceLabel,
+            pageBatchFallback,
           })
         }
       }
@@ -3530,7 +3538,7 @@ async function runSpeechStep(
         })
 
         if (entry) {
-          storeGenerated(item.language, entry)
+          storeGenerated(item.language, { ...entry, ...(item.pageBatchFallback ? { pageBatchFallback: item.pageBatchFallback } : {}) })
         }
       } catch (err) {
         // Run cancel — re-throw so processWithConcurrency unwinds; an aborted

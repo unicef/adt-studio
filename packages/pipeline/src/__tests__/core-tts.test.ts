@@ -282,3 +282,32 @@ describe("speech fallback and retry admission", () => {
     await expect(prepareCoreTtsCatalog({ entries, language: "fr", config, profile, llmModel: llm, signal: controller.signal })).rejects.toThrow()
   })
 })
+
+
+it.each(["ordinary", "retry"])("%s preparation recovers a legacy generated failure without usable speech", async action => {
+  const entries = [{id: "t1", text: "Hello"}]
+  const profile = {key: "en", guidance: "Normalize English."}
+  const previous = resolveCoreTtsSpeechCatalog({entries, language: "en", config, profile})
+  previous.entries[0] = {...previous.entries[0], speechText: null, status: "failed", source: undefined, input: undefined, fallbackReason: undefined,
+    generation: {...previous.entries[0].generation, mode: "generated"}}
+  const llm = modelWith([{id: "t1", speech_text: "Hello aloud", transformation_kinds: ["language-normalization"], failure_reason: null}])
+  const result = await prepareCoreTtsCatalog({entries, language: "en", config, profile, previous, llmModel: llm, ...(action === "retry" ? {retryIds: ["t1"]} : {})})
+  expect(llm.generateObject).toHaveBeenCalledTimes(1)
+  expect(result.entries[0]).toMatchObject({speechText: "Hello aloud", status: "ready", source: "ai"})
+  expect(previous.entries[0].speechText).toBeNull()
+  const reused = await prepareCoreTtsCatalog({entries, language: "en", config, profile, previous: result, llmModel: llm})
+  expect(llm.generateObject).toHaveBeenCalledTimes(1)
+  expect(reused.entries).toEqual(result.entries)
+})
+
+it.each(["manual", "usable-unknown", "empty-unknown"])("Retry preserves %s preparation without explicit replacement", async kind => {
+  const entries = [{id: "t1", text: "Hello"}]
+  const profile = {key: "en", guidance: "Normalize English."}
+  const previous = resolveCoreTtsSpeechCatalog({entries, language: "en", config, profile})
+  previous.entries[0] = {...previous.entries[0], speechText: kind === "usable-unknown" ? "Legacy correction" : null, status: kind === "empty-unknown" ? "ready" : "failed", source: undefined, input: undefined,
+    generation: {...previous.entries[0].generation, mode: kind === "manual" ? "manual" : "generated"}}
+  const llm = modelWith([])
+  const result = await prepareCoreTtsCatalog({entries, language: "en", config, profile, previous, llmModel: llm, retryIds: ["t1"]})
+  expect(llm.generateObject).not.toHaveBeenCalled()
+  expect(result.entries).toEqual(previous.entries)
+})

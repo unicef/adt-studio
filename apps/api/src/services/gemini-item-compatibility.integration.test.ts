@@ -138,3 +138,57 @@ it.each(["model", "instructions"])("marks an item stale when its actual %s chang
   else { fs.mkdirSync(path.join(root, "config")); fs.writeFileSync(path.join(root, "config", "speech_instructions.yaml"), "default: Speak gently\n") }
   expect(statuses().find((item) => item.identity.kind === "audio" && item.identity.id === "pg001_t001")!.updateNeeded).toBe(true)
 })
+
+
+it("whole Speech records item fallback without alignment and skips it on an ordinary rerun", async () => {
+  const run = () => createStageRunner().run(label, { booksDir: root, promptsDir, configPath: configPath(), fromStage: "speech", toStage: "speech",
+    credentials: { gemini: { apiKey: "fixture" } } }, { emit: () => {} })
+  await run()
+  expect(transport).toHaveBeenCalledTimes(2)
+  const before = audio()!
+  expect(before.data.entries).toHaveLength(2)
+  for (const entry of before.data.entries) {
+    expect(entry.pageBatchFallback).toBe("single-item")
+    expect(statuses().find(item => item.identity.kind === "audio" && item.identity.id === entry.textId)).toMatchObject({current: true, updateNeeded: false, signature: entry.speechInputSignature})
+  }
+  await run()
+  expect(transport).toHaveBeenCalledTimes(2)
+  expect(audio()!.data.entries).toEqual(before.data.entries)
+})
+
+it.each(["stage", "retry"])("%s recovers an unavailable legacy recording and preserves manual and usable unknown recordings", async pathKind => {
+  source("Hello", "Neighbor")
+  const db = storage()
+  const entries = [
+    {textId: "pg001_t001", language: "en", fileName: "missing.wav", provider: "gemini", voice: "Kore", model: "old-model", cached: false},
+    {textId: "pg001_t002", language: "en", fileName: "existing.wav", provider: "gemini", voice: "Kore", model: "old-model", cached: false},
+    {textId: "pg001_t003", language: "en", fileName: "manual-missing.wav", provider: "manual", voice: "manual", model: "manual", cached: false},
+  ]
+  db.putNodeData("text-catalog", "book", {entries: [{id: "pg001_t001", text: "Hello"}, {id: "pg001_t002", text: "Neighbor"}, {id: "pg001_t003", text: "Manual"}], generatedAt: "fixture"})
+  db.putNodeData("tts", "en", {entries, generatedAt: "legacy"})
+  fs.mkdirSync(path.join(db.bookDir!, "audio", "en"), {recursive: true})
+  fs.writeFileSync(path.join(db.bookDir!, "audio", "en", "existing.wav"), "Retained legacy bytes")
+  db.close()
+  const missing = statuses().find(item => item.identity.kind === "audio" && item.identity.id === "pg001_t001")!
+  expect(missing).toMatchObject({missing: true, protected: false})
+  if (pathKind === "retry") expect((await generate()).status).toBe(200)
+  else await createStageRunner().run(label, {booksDir: root, promptsDir, configPath: configPath(), fromStage: "speech", toStage: "speech", credentials: {gemini: {apiKey: "fixture"}}}, {emit: () => {}})
+  expect(transport).toHaveBeenCalledTimes(1)
+  const saved = audio()!.data.entries
+  expect(saved.find(entry => entry.textId === "pg001_t001")!.fileName).not.toBe("missing.wav")
+  const retained = saved.find(entry => entry.textId === "pg001_t002")!
+  const { fileName: _legacyName, ...metadata } = entries[1]
+  expect(retained).toMatchObject(metadata)
+  expect(retained.source).toBeUndefined()
+  expect(fs.readFileSync(path.join(root, label, "audio", "en", retained.fileName), "utf8")).toBe("Retained legacy bytes")
+  expect(saved.find(entry => entry.textId === "pg001_t003")).toMatchObject(entries[2])
+  expect(statuses().find(item => item.identity.kind === "audio" && item.identity.id === "pg001_t001")).toMatchObject({current: true, missing: false})
+  expect(statuses().find(item => item.identity.kind === "audio" && item.identity.id === "pg001_t003")).toMatchObject({missing: true, protected: true})
+  const reopened = storage()
+  try {
+    const history = reopened.getAllNodeVersions("tts", "en")
+    expect(history.length).toBeGreaterThan(1)
+    expect(history.find(row => row.version === 1)?.data).toEqual({entries, generatedAt: "legacy"})
+    expect(fs.readFileSync(path.join(reopened.bookDir!, "audio", "en", "existing.wav"), "utf8")).toBe("Retained legacy bytes")
+  } finally { reopened.close() }
+})
