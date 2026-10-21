@@ -22,8 +22,8 @@ This section combines multiple source pages. Use ALL supplied continuation image
 {% endif %}
 {% if section_type == "table_of_contents" %}
 ## TABLE OF CONTENTS
-Each entry needs a left title, an EMPTY flexible dotted-border leader, and a terminal Arabic/Roman page number at the far right. All numbers share one right edge; indent titles, not rows. Reject missing/short leaders or finite dot strings. Preserve source hierarchy, including continuation entries.
-Separate title/number leaves retain their IDs around an `aria-hidden` element marked `data-toc-leader="true"`. A combined leaf retains its parent `data-id`, exact combined text, and direct children marked `data-toc-title="true"`, `data-toc-leader="true"` (empty), and `data-toc-page-number="true"` so translation preserves the row. Keep correct rows intact.
+Each entry needs a left title, a flexible dotted-border leader, and a terminal Arabic/Roman page number at the far right. All numbers share one right edge; indent titles, not rows. Reject missing/short leaders or visible finite dot strings. Preserve source hierarchy, including continuation entries.
+Separate title/number leaves retain their IDs around an `aria-hidden` element marked `data-toc-leader="true"`. A combined leaf retains its parent `data-id`, exact combined text, and direct children marked `data-toc-title="true"`, `data-toc-leader="true"`, and `data-toc-page-number="true"` so translation preserves the row. Preserve original source dots in an `sr-only` child inside the leader; do not remove or reveal them. Keep the leader empty only when there are no source dots. Keep correct rows intact.
 {% endif %}
 
 ## QUESTION INTENT

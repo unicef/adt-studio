@@ -28,8 +28,8 @@ For actual exercises, reject missing, detached, unlabelled or clipped answer con
 
 {% if section_type == "table_of_contents" %}
 ## TABLE OF CONTENTS
-Each entry, including continuation-page entries, needs a left title, an EMPTY flexible dotted-border leader, and a terminal Arabic/Roman page number at the far right. All numbers share one right edge; indent titles, not whole rows. Reject missing/short leaders, finite dot strings, or numbers still appended to titles. Preserve source hierarchy.
-When one leaf owns both title and number, preserve its parent `data-id` and exact combined text while using direct children marked `data-toc-title="true"`, `data-toc-leader="true"` (empty, `aria-hidden`), and `data-toc-page-number="true"`. These markers preserve translation layout. For separate leaves, retain both IDs as siblings around the empty leader. Keep correct rows intact.
+Each entry, including continuation-page entries, needs a left title, a flexible dotted-border leader, and a terminal Arabic/Roman page number at the far right. All numbers share one right edge; indent titles, not whole rows. Reject missing/short leaders, visible finite dot strings, or numbers still appended to titles. Preserve source hierarchy.
+When one leaf owns both title and number, preserve its parent `data-id` and exact combined text while using direct children marked `data-toc-title="true"`, `data-toc-leader="true"` (`aria-hidden`), and `data-toc-page-number="true"`. Preserve original source dots in an `sr-only` child inside the leader so the combined text stays exact; do not remove or reveal them. Keep the leader empty only when there are no source dots. These markers preserve translation layout. For separate leaves, retain both IDs as siblings around the leader. Keep correct rows intact.
 {% endif %}
 
 ## SCOPE
