@@ -459,3 +459,4 @@ export {
   generateActivityFeedback,
   type ActivityFeedbackConfig,
 } from "./activity-feedback.js"
+export { replaceSectioningFigure, replaceRenderedFigure } from "./replace-figure.js"

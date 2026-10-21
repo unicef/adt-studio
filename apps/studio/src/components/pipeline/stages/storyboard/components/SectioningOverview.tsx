@@ -1079,6 +1079,7 @@ function SectionDetail({
           currentImageSrc={`${BASE_URL}/books/${bookLabel}/images/${aiImageTarget}`}
           imageId={aiImageTarget}
           bookLabel={bookLabel}
+          cleanupDisabled={storyboardRunning}
           onSubmit={handleAiImageSubmit}
           onClose={() => setAiImageTarget(null)}
         />

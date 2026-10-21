@@ -540,3 +540,5 @@ export {
 } from "./ai-provider.js"
 export { GOOGLE_IMAGE_MODELS, GoogleImageModelId, DEFAULT_GOOGLE_IMAGE_MODEL, GoogleImageResponse } from "./google-image.js"
 export { imageFileExtension, ImageAspectRatio, GeneratedImagePayload, ValidatedGeneratedImage } from "./image.js"
+export { ImageCleanupRegion, ImageCleanupRequest, ImageCleanupCandidate, ImageCleanupAcceptance } from "./image-cleanup.js"
+export { BACKGROUND_REMOVER_VERSION, BACKGROUND_REMOVER_MODEL, BACKGROUND_REMOVER_MODEL_ID, BACKGROUND_REMOVER_INSTRUCTIONS, ReplicateCredentials, ReplicatePrediction } from "./replicate.js"

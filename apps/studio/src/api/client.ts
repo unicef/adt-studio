@@ -1,4 +1,6 @@
 import { isElectron } from "@/lib/utils"
+import { i18n } from "@lingui/core"
+import { msg } from "@lingui/core/macro"
 import type {
   AccessibilityAssessmentOutput,
   BookDetail,
@@ -24,6 +26,8 @@ import type {
   ProviderCliLoginStatus,
   ProviderHealthResponse,
   AiModality,
+  ImageCleanupRequest,
+  ImageCleanupCandidate,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 import {
@@ -113,7 +117,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const text = await res.text().catch(() => "")
     let message: string | undefined
     try {
-      message = (JSON.parse(text) as { error?: string }).error
+      const body = JSON.parse(text) as { error?: string; code?: string; provider?: string }
+      message = body.code === "payment-required" && body.provider === "replicate"
+        ? i18n._(msg`Replicate requires payment before background removal can run. Check your Replicate credit balance and billing settings, then try again.`)
+        : body.error
     } catch {
       message = text || undefined
     }
@@ -1552,6 +1559,19 @@ export const api = {
       { method: "POST", body: formData }
     )
   },
+
+  cleanExtractedImage: async (label: string, pageId: string, input: ImageCleanupRequest, signal?: AbortSignal) =>
+    request<ImageCleanupCandidate>(`/books/${label}/pages/${pageId}/image-cleanup`, {
+      method: "POST",
+      headers: await buildApiHeaders(""),
+      body: JSON.stringify(input),
+      signal: signal ?? AbortSignal.timeout(200_000),
+    }),
+
+  acceptImageCleanup: (label: string, pageId: string, imageId: string) =>
+    request<{ version: number | null }>(`/books/${label}/pages/${pageId}/image-cleanup/accept`, {
+      method: "POST", body: JSON.stringify({ imageId }),
+    }),
 
   aiGenerateImage: async (
     label: string,

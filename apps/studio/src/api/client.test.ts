@@ -4,9 +4,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 vi.mock("@/lib/utils", () => ({
   isElectron: vi.fn(() => false),
 }))
+vi.mock("@lingui/core/macro", () => ({ msg: (strings: TemplateStringsArray) => strings.join("") }))
+vi.mock("@lingui/core", () => ({ i18n: { _: vi.fn((message: string) => message) } }))
 
 import { isElectron } from "@/lib/utils"
+import { i18n } from "@lingui/core"
 import {
+  api,
   cancelProviderCliLogin,
   logoutProviderCli,
   resolveBaseUrl,
@@ -14,6 +18,18 @@ import {
 } from "./client.js"
 
 const mockedIsElectron = vi.mocked(isElectron)
+afterEach(() => vi.restoreAllMocks())
+
+it("localizes Replicate billing failures instead of displaying a generic server error", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => url === "/api/providers"
+    ? Response.json({ providers: [] }) : Response.json({
+    error: "server fallback", code: "payment-required", provider: "replicate",
+  }, { status: 402 }))
+  await expect(api.cleanExtractedImage("book", "pg001", {
+    sourceImageId: "pg001_im001", expectedVersion: 1, operation: "remove-background", inputSource: "current-image",
+  })).rejects.toThrow("credit balance and billing settings")
+  expect(i18n._).toHaveBeenCalledWith(expect.stringContaining("Replicate requires payment"))
+})
 
 describe("resolveBaseUrl", () => {
   beforeEach(() => {

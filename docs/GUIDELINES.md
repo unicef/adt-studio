@@ -106,9 +106,9 @@ adt/
 | Pipeline step implementations | `packages/pipeline/src/` | Pure functions, one file per step |
 | Pipeline definition (stages/steps/DAG) | `packages/types/src/pipeline.ts` | Single source of truth |
 | Bundle/export logic | `packages/output/src/` | Archive creation |
-| API endpoints | `apps/api/src/index.ts` | Hono routes |
+| API endpoints | `apps/api/src/routes/` | Hono routes, mounted by `apps/api/src/app.ts` |
 | React components | `apps/studio/src/components/` | Reuse existing |
-| React pages | `apps/studio/src/pages/` | One per route |
+| React pages | `apps/studio/src/routes/` | TanStack file routes |
 | API client methods | `apps/studio/src/api/client.ts` | Single file |
 | Utility functions | Within relevant package | Not a utils folder |
 
@@ -1226,7 +1226,7 @@ pnpm lint
 | Type schemas | `packages/types/src/` |
 | Pipeline step implementations | `packages/pipeline/src/` |
 | DAG runner | `packages/pipeline/src/dag.ts` |
-| API stage runners | `apps/api/src/services/step-runner.ts` |
+| API stage runners | `apps/api/src/services/stage-runner.ts` |
 | LLM client | `packages/llm/src/client.ts` |
 | Stage view components | `apps/studio/src/components/pipeline/stages/` |
 | Stage run service (queue, SSE) | `apps/api/src/services/stage-service.ts` |

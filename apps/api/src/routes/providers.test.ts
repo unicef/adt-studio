@@ -49,6 +49,7 @@ describe("GET /providers", () => {
       "azure",
       "elevenlabs",
       "gemini",
+      "replicate",
     ])
   })
 
@@ -81,7 +82,7 @@ describe("GET /providers", () => {
     const body = await getProviders()
     expect(body.defaults["structured-text"]).toBe("openai:gpt-5.4")
     expect(body.defaults.agent).toBe("openai:gpt-5.5")
-    expect(body.defaults.image).toBe("openai:gpt-image-2")
+    expect(body.defaults.image).toBe("openai:gpt-image-2.5-flare")
     expect(body.defaults.tts).toBe("openai:gpt-4o-mini-tts")
     expect(body.defaults.stt).toBe("openai:whisper-1")
   })
