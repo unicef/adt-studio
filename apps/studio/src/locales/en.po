@@ -1523,6 +1523,12 @@ msgstr "ADT Studio"
 msgid "ADT STUDIO"
 msgstr "ADT STUDIO"
 
+msgid "ADT Studio is no longer signed in to {accountName}, so it can't share new books or update shared ones. Books you already shared stay online."
+msgstr "ADT Studio is no longer signed in to {accountName}, so it can't share new books or update shared ones. Books you already shared stay online."
+
+msgid "ADT Studio is no longer signed in to Cloudflare, so it can't share new books or update shared ones. Books you already shared stay online."
+msgstr "ADT Studio is no longer signed in to Cloudflare, so it can't share new books or update shared ones. Books you already shared stay online."
+
 msgid "ADT Studio prepares your account automatically — about a minute."
 msgstr "ADT Studio prepares your account automatically — about a minute."
 
@@ -4726,6 +4732,9 @@ msgstr "Final Page"
 msgid "Finish"
 msgstr "Finish"
 
+msgid "Finish signing in in your browser."
+msgstr "Finish signing in in your browser."
+
 msgid "Finish signing in with ChatGPT in the browser window that just opened."
 msgstr "Finish signing in with ChatGPT in the browser window that just opened."
 
@@ -7853,6 +7862,9 @@ msgstr "Open the shared book"
 msgid "Open the shared book in a new tab"
 msgstr "Open the shared book in a new tab"
 
+msgid "Open the sign-in page"
+msgstr "Open the sign-in page"
+
 msgid "Open this section to tune the model, judge prompt, retry behavior, and exact review thresholds."
 msgstr "Open this section to tune the model, judge prompt, retry behavior, and exact review thresholds."
 
@@ -10692,6 +10704,9 @@ msgstr "Sign"
 msgid "Sign in"
 msgstr "Sign in"
 
+msgid "Sign in again"
+msgstr "Sign in again"
+
 msgid "Sign in at Cloudflare"
 msgstr "Sign in at Cloudflare"
 
@@ -10700,6 +10715,9 @@ msgstr "Sign in at Cloudflare — it's free"
 
 msgid "Sign in outside the app, then Refresh — this screen detects the login automatically:"
 msgstr "Sign in outside the app, then Refresh — this screen detects the login automatically:"
+
+msgid "Sign in to Cloudflare again"
+msgstr "Sign in to Cloudflare again"
 
 msgid "Sign in with ChatGPT"
 msgstr "Sign in with ChatGPT"
@@ -10728,6 +10746,9 @@ msgstr "Sign out"
 #. placeholder {0}: status.detail
 msgid "Sign-in failed: {0}"
 msgstr "Sign-in failed: {0}"
+
+msgid "Sign-in needed"
+msgstr "Sign-in needed"
 
 msgid "Sign-language video linked to each page."
 msgstr "Sign-language video linked to each page."

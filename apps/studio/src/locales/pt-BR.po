@@ -1523,6 +1523,12 @@ msgstr "ADT Studio"
 msgid "ADT STUDIO"
 msgstr "ADT STUDIO"
 
+msgid "ADT Studio is no longer signed in to {accountName}, so it can't share new books or update shared ones. Books you already shared stay online."
+msgstr "O ADT Studio não está mais conectado a {accountName}, então não pode compartilhar novos livros nem atualizar os já compartilhados. Os livros que você já compartilhou continuam no ar."
+
+msgid "ADT Studio is no longer signed in to Cloudflare, so it can't share new books or update shared ones. Books you already shared stay online."
+msgstr "O ADT Studio não está mais conectado ao Cloudflare, então não pode compartilhar novos livros nem atualizar os já compartilhados. Os livros que você já compartilhou continuam no ar."
+
 msgid "ADT Studio prepares your account automatically — about a minute."
 msgstr "ADT Studio prepara sua conta automaticamente — cerca de um minuto."
 
@@ -4725,6 +4731,9 @@ msgstr "Página Final"
 msgid "Finish"
 msgstr "Concluir"
 
+msgid "Finish signing in in your browser."
+msgstr "Conclua o login no seu navegador."
+
 msgid "Finish signing in with ChatGPT in the browser window that just opened."
 msgstr "Conclua o login com o ChatGPT na janela do navegador que acabou de abrir."
 
@@ -7852,6 +7861,9 @@ msgstr "Abrir o livro compartilhado"
 msgid "Open the shared book in a new tab"
 msgstr "Abrir o livro compartilhado em uma nova aba"
 
+msgid "Open the sign-in page"
+msgstr "Abrir a página de login"
+
 msgid "Open this section to tune the model, judge prompt, retry behavior, and exact review thresholds."
 msgstr "Abra esta seção para ajustar o modelo, o prompt do avaliador, o comportamento de novas tentativas e os limites exatos de revisão."
 
@@ -10691,6 +10703,9 @@ msgstr "Sinais"
 msgid "Sign in"
 msgstr "Entrar"
 
+msgid "Sign in again"
+msgstr "Entrar novamente"
+
 msgid "Sign in at Cloudflare"
 msgstr "Entrar no Cloudflare"
 
@@ -10699,6 +10714,9 @@ msgstr "Entre no Cloudflare — é grátis"
 
 msgid "Sign in outside the app, then Refresh — this screen detects the login automatically:"
 msgstr "Faça login fora do aplicativo, depois Atualize — esta tela detecta o login automaticamente:"
+
+msgid "Sign in to Cloudflare again"
+msgstr "Entre no Cloudflare novamente"
 
 msgid "Sign in with ChatGPT"
 msgstr "Entrar com o ChatGPT"
@@ -10727,6 +10745,9 @@ msgstr "Sair"
 #. placeholder {0}: status.detail
 msgid "Sign-in failed: {0}"
 msgstr "Falha ao entrar: {0}"
+
+msgid "Sign-in needed"
+msgstr "Login necessário"
 
 msgid "Sign-language video linked to each page."
 msgstr "Vídeo em linguagem de sinais vinculado a cada página."
