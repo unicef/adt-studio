@@ -287,6 +287,30 @@ export function clearAllPublicationRecords(booksDir: string, deletedAt: string):
 }
 
 /**
+ * The share tokens the books on this machine still know, so deleting the account's sharing setup
+ * can find each book's own Worker: the published link, and the note a share leaves when it could
+ * not confirm its commit — a first share in that state kept its Worker on purpose. Best effort
+ * per book, like clearing the records.
+ */
+export function readAllPublicationTokens(booksDir: string): string[] {
+  const resolved = path.resolve(booksDir)
+  if (!fs.existsSync(resolved)) return []
+  const tokens: string[] = []
+  for (const entry of fs.readdirSync(resolved, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    try {
+      const record = readPublicationRecord(entry.name, resolved)
+      if (record) tokens.push(record.token)
+      const pending = readPendingCommit(entry.name, resolved)
+      if (pending) tokens.push(pending.token)
+    } catch {
+      /* An unreadable book is skipped; the control plane's database still names its token. */
+    }
+  }
+  return tokens
+}
+
+/**
  * The highest `node_data` version across every node except the publication record itself.
  *
  * The exclusion is the point: the record lives in the same table, so counting it would make
@@ -800,17 +824,32 @@ async function deployBookAssets(
 
 /**
  * The files this book's readers are on right now, so the deploy keeps serving them until the
- * new version is committed. A first share has none. Asking is best-effort: an older control
- * plane answers with every book's files, and Cloudflare simply asks for the ones this Worker
- * never had, which the deploy then drops; a failed answer means deploying the new files alone,
- * as before.
+ * new version is committed. A first share has none and does not ask. An older control plane
+ * answers with every book's files, and Cloudflare simply asks for the ones this Worker never
+ * had, which the deploy then drops.
+ *
+ * An update cannot go ahead without the answer. A deploy replaces every file the Worker serves,
+ * so treating a failed lookup as "nothing is live" deployed the new files alone while readers
+ * were still on the old version — and if the commit failed too, the share link stayed broken.
+ * The lookup is a read, so it is retried like an upload; if it still fails, the update stops
+ * before anything is registered or deployed.
  */
-async function liveFiles(client: PublishWorkerClient, token: string): Promise<RetainedStaticAsset[]> {
+async function liveFiles(
+  client: PublishWorkerClient,
+  token: string,
+  emit: PublishEmit,
+  sleep: (ms: number) => Promise<void>,
+): Promise<RetainedStaticAsset[]> {
   try {
-    const { assets } = await client.listStaticAssets(token)
+    const { assets } = await uploadWithRetry(() => client.listStaticAssets(token), emit, sleep)
     return assets.map((asset) => ({ path: asset.path, hash: asset.hash, size: asset.bytes }))
-  } catch {
-    return []
+  } catch (error) {
+    const unreachable = isPublishStepError(error) && error.code === "worker_unreachable"
+    throw new PublishStepError(
+      unreachable ? "worker_unreachable" : "upload_failed",
+      "upload",
+      `Couldn't check which version readers are on, so nothing was changed. Try again in a moment. (${describe(error)})`,
+    )
   }
 }
 
@@ -836,6 +875,7 @@ async function stageAndCommit(
 ): Promise<StagedCommit> {
   return withPublishConfig(bookDir, async () => {
     const declared = declareSnapshotFiles(bookDir, files)
+    const retained = firstShare ? [] : await liveFiles(client, token, emit, sleep)
     const started = await uploadWithRetry(
       () => start(declared),
       emit,
@@ -852,7 +892,7 @@ async function stageAndCommit(
         declared,
         emit,
         sleep,
-        await liveFiles(client, token),
+        retained,
       )
       await emit(stepEvent("upload", "done"))
 

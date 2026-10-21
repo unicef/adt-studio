@@ -168,6 +168,10 @@ msgstr "{0, plural, one {Lidhja u krye me sukses — # model në dispozicion.} o
 msgid "{0, plural, one {day} other {days}}"
 msgstr "{0, plural, one {ditë} other {ditë}}"
 
+#. placeholder {0}: leftover.length
+msgid "{0, plural, one {Disconnected. # shared book Worker may still be in your Cloudflare account. If it's yours, delete it in Workers & Pages (named \"adt-book-…\").} other {Disconnected. # shared book Workers may still be in your Cloudflare account. If they're yours, delete them in Workers & Pages (named \"adt-book-…\").}}"
+msgstr "{0, plural, one {I shkëputur. # Worker i një libri të ndarë mund të jetë ende në llogarinë tuaj Cloudflare. Nëse është i juaji, fshijeni te Workers & Pages (me emrin “adt-book-…”).} other {I shkëputur. # Workers të librave të ndarë mund të jenë ende në llogarinë tuaj Cloudflare. Nëse janë tuajat, fshijini te Workers & Pages (me emrin “adt-book-…”).}}"
+
 #. placeholder {0}: state.hours
 msgid "{0, plural, one {hour} other {hours}}"
 msgstr "{0, plural, one {orë} other {orë}}"
@@ -1535,6 +1539,12 @@ msgstr "ADT Studio"
 
 msgid "ADT STUDIO"
 msgstr "ADT STUDIO"
+
+msgid "ADT Studio is no longer signed in to {accountName}, so it can't share new books or update shared ones. Books you already shared stay online."
+msgstr "ADT Studio nuk është më i lidhur me {accountName}, prandaj nuk mund të ndajë libra të rinj ose të përditësojë ata që janë ndarë. Librat që keni ndarë tashmë mbeten në internet."
+
+msgid "ADT Studio is no longer signed in to Cloudflare, so it can't share new books or update shared ones. Books you already shared stay online."
+msgstr "ADT Studio nuk është më i lidhur me Cloudflare, prandaj nuk mund të ndajë libra të rinj ose të përditësojë ata që janë ndarë. Librat që keni ndarë tashmë mbeten në internet."
 
 msgid "ADT Studio prepares your account automatically — about a minute."
 msgstr "ADT Studio përgatit llogarinë tuaj automatikisht — rreth një minutë."
@@ -3911,6 +3921,9 @@ msgstr "I shkëputur nga Cloudflare."
 msgid "Disconnected. Everything was deleted from your Cloudflare account."
 msgstr "I shkëputur. Gjithçka u fshi nga llogaria juaj Cloudflare."
 
+msgid "Disconnected. The sharing database was already gone, so some shared books may still have their own Worker in your Cloudflare account. Look for Workers named \"adt-book-…\" in Workers & Pages."
+msgstr "I shkëputur. Baza e të dhënave për ndarjen nuk ekzistonte më, prandaj disa libra të ndarë mund të kenë ende Worker-in e tyre në llogarinë tuaj Cloudflare. Kërkoni Workers me emrin “adt-book-…” te Workers & Pages."
+
 msgid "Dismiss"
 msgstr "Hiqe"
 
@@ -4766,6 +4779,9 @@ msgstr "Faqja e fundit"
 
 msgid "Finish"
 msgstr "Përfundo"
+
+msgid "Finish signing in in your browser."
+msgstr "Përfundoni hyrjen në shfletuesin tuaj."
 
 msgid "Finish signing in with ChatGPT in the browser window that just opened."
 msgstr "Përfundoni hyrjen me ChatGPT në dritaren e shfletuesit që sapo u hap."
@@ -7905,6 +7921,9 @@ msgstr "Hap librin e ndarë"
 msgid "Open the shared book in a new tab"
 msgstr "Hap librin e ndarë në një skedë të re"
 
+msgid "Open the sign-in page"
+msgstr "Hap faqen e hyrjes"
+
 msgid "Open this section to tune the model, judge prompt, retry behavior, and exact review thresholds."
 msgstr "Hapni këtë seksion për të rregulluar modelin, nxitjen e gjykatësit, sjelljen e riprovimit dhe pragjet e sakta të rishikimit."
 
@@ -10750,6 +10769,9 @@ msgstr "Shenjë"
 msgid "Sign in"
 msgstr "Hyni"
 
+msgid "Sign in again"
+msgstr "Hyni përsëri"
+
 msgid "Sign in at Cloudflare"
 msgstr "Hyr në Cloudflare"
 
@@ -10758,6 +10780,9 @@ msgstr "Hyni në Cloudflare — është falas"
 
 msgid "Sign in outside the app, then Refresh — this screen detects the login automatically:"
 msgstr "Hyni jashtë aplikacionit, pastaj Rifresko — kjo ekran zbulon hyrjen automatikisht:"
+
+msgid "Sign in to Cloudflare again"
+msgstr "Hyni përsëri në Cloudflare"
 
 msgid "Sign in with ChatGPT"
 msgstr "Hyni me ChatGPT"
@@ -10786,6 +10811,9 @@ msgstr "Dilni"
 #. placeholder {0}: status.detail
 msgid "Sign-in failed: {0}"
 msgstr "Hyrja dështoi: {0}"
+
+msgid "Sign-in needed"
+msgstr "Kërkohet hyrja"
 
 msgid "Sign-language video linked to each page."
 msgstr "Video në gjuhën e shenjave e lidhur me çdo faqe."

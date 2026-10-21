@@ -166,6 +166,10 @@ msgstr "{0, plural, one {Connected successfully — # model available.} other {C
 msgid "{0, plural, one {day} other {days}}"
 msgstr "{0, plural, one {day} other {days}}"
 
+#. placeholder {0}: leftover.length
+msgid "{0, plural, one {Disconnected. # shared book Worker may still be in your Cloudflare account. If it's yours, delete it in Workers & Pages (named \"adt-book-…\").} other {Disconnected. # shared book Workers may still be in your Cloudflare account. If they're yours, delete them in Workers & Pages (named \"adt-book-…\").}}"
+msgstr "{0, plural, one {Disconnected. # shared book Worker may still be in your Cloudflare account. If it's yours, delete it in Workers & Pages (named \"adt-book-…\").} other {Disconnected. # shared book Workers may still be in your Cloudflare account. If they're yours, delete them in Workers & Pages (named \"adt-book-…\").}}"
+
 #. placeholder {0}: state.hours
 msgid "{0, plural, one {hour} other {hours}}"
 msgstr "{0, plural, one {hour} other {hours}}"
@@ -1533,6 +1537,12 @@ msgstr "ADT Studio"
 
 msgid "ADT STUDIO"
 msgstr "ADT STUDIO"
+
+msgid "ADT Studio is no longer signed in to {accountName}, so it can't share new books or update shared ones. Books you already shared stay online."
+msgstr "ADT Studio is no longer signed in to {accountName}, so it can't share new books or update shared ones. Books you already shared stay online."
+
+msgid "ADT Studio is no longer signed in to Cloudflare, so it can't share new books or update shared ones. Books you already shared stay online."
+msgstr "ADT Studio is no longer signed in to Cloudflare, so it can't share new books or update shared ones. Books you already shared stay online."
 
 msgid "ADT Studio prepares your account automatically — about a minute."
 msgstr "ADT Studio prepares your account automatically — about a minute."
@@ -3910,6 +3920,9 @@ msgstr "Disconnected from Cloudflare."
 msgid "Disconnected. Everything was deleted from your Cloudflare account."
 msgstr "Disconnected. Everything was deleted from your Cloudflare account."
 
+msgid "Disconnected. The sharing database was already gone, so some shared books may still have their own Worker in your Cloudflare account. Look for Workers named \"adt-book-…\" in Workers & Pages."
+msgstr "Disconnected. The sharing database was already gone, so some shared books may still have their own Worker in your Cloudflare account. Look for Workers named \"adt-book-…\" in Workers & Pages."
+
 msgid "Dismiss"
 msgstr "Dismiss"
 
@@ -4765,6 +4778,9 @@ msgstr "Final Page"
 
 msgid "Finish"
 msgstr "Finish"
+
+msgid "Finish signing in in your browser."
+msgstr "Finish signing in in your browser."
 
 msgid "Finish signing in with ChatGPT in the browser window that just opened."
 msgstr "Finish signing in with ChatGPT in the browser window that just opened."
@@ -7904,6 +7920,9 @@ msgstr "Open the shared book"
 msgid "Open the shared book in a new tab"
 msgstr "Open the shared book in a new tab"
 
+msgid "Open the sign-in page"
+msgstr "Open the sign-in page"
+
 msgid "Open this section to tune the model, judge prompt, retry behavior, and exact review thresholds."
 msgstr "Open this section to tune the model, judge prompt, retry behavior, and exact review thresholds."
 
@@ -10749,6 +10768,9 @@ msgstr "Sign"
 msgid "Sign in"
 msgstr "Sign in"
 
+msgid "Sign in again"
+msgstr "Sign in again"
+
 msgid "Sign in at Cloudflare"
 msgstr "Sign in at Cloudflare"
 
@@ -10757,6 +10779,9 @@ msgstr "Sign in at Cloudflare — it's free"
 
 msgid "Sign in outside the app, then Refresh — this screen detects the login automatically:"
 msgstr "Sign in outside the app, then Refresh — this screen detects the login automatically:"
+
+msgid "Sign in to Cloudflare again"
+msgstr "Sign in to Cloudflare again"
 
 msgid "Sign in with ChatGPT"
 msgstr "Sign in with ChatGPT"
@@ -10785,6 +10810,9 @@ msgstr "Sign out"
 #. placeholder {0}: status.detail
 msgid "Sign-in failed: {0}"
 msgstr "Sign-in failed: {0}"
+
+msgid "Sign-in needed"
+msgstr "Sign-in needed"
 
 msgid "Sign-language video linked to each page."
 msgstr "Sign-language video linked to each page."

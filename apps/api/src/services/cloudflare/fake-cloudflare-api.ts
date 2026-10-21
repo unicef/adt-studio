@@ -62,6 +62,14 @@ export interface FakeCloudflareOptions {
   workerCreateConflict?: boolean
   /** Refuses every script deletion, for testing a teardown that only half succeeds. */
   workerDeleteFails?: boolean
+  /** Fails deleting only these Workers, every time, until removed from the list. */
+  workerDeleteFailsFor?: string[]
+  /** Share tokens the control plane's database holds, by table. */
+  d1Tokens?: { publications?: string[]; uploads?: string[] }
+  /** Fails every D1 query that reads share tokens, as a transient error. */
+  d1TokenQueryFails?: boolean
+  /** Fails listing the account's Worker scripts. */
+  scriptListFails?: boolean
   /** Cloudflare refuses to register a workers.dev subdomain — reported on some accounts, and
    *  the case that sends the author to the dashboard by hand. */
   subdomainCreateForbidden?: boolean
@@ -308,6 +316,20 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
       const sql = body.sql ?? ""
       state.d1Queries.push(sql)
 
+      if (/SELECT token FROM publications/i.test(sql)) {
+        if (!state.databases.some((entry) => entry.uuid === queryMatch[1])) {
+          return fail(404, 7404, "The database could not be found")
+        }
+        if (options.d1TokenQueryFails) return fail(503, 7500, "D1 is temporarily unavailable")
+        const tokens = [
+          ...new Set([
+            ...(options.d1Tokens?.publications ?? []),
+            ...(options.d1Tokens?.uploads ?? []),
+          ]),
+        ]
+        return ok([{ success: true, results: tokens.map((token) => ({ token })) }])
+      }
+
       if (/CREATE TABLE IF NOT EXISTS _migrations/i.test(sql)) {
         return ok([{ success: true, results: [] }])
       }
@@ -401,6 +423,7 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
       if (denied.has("Workers Scripts:Edit")) {
         return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
       }
+      if (options.scriptListFails) return fail(503, 10013, "Workers could not be listed")
       return ok([...state.scripts.keys()].map((id) => ({ id })))
     }
 
@@ -525,10 +548,11 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
     }
 
     if (scriptMatch && method === "DELETE") {
-      if (options.workerDeleteFails) {
+      const scriptName = decodeURIComponent(scriptMatch[1])
+      if (options.workerDeleteFails || options.workerDeleteFailsFor?.includes(scriptName)) {
         return fail(500, 10001, "Worker could not be deleted")
       }
-      state.scripts.delete(decodeURIComponent(scriptMatch[1]))
+      state.scripts.delete(scriptName)
       return ok(null)
     }
 
