@@ -180,6 +180,26 @@ it("requires the Replicate token for background removal and does not fall back t
   } finally { vi.unstubAllEnvs() }
 })
 
+it("returns an actionable billing error on Replicate 402 without changing images or versions", async () => {
+  provider.mockResolvedValue(Response.json({ detail: "fake-replicate-token" }, { status: 402 }))
+  const response = await post({ sourceImageId, expectedVersion: 1, operation: "remove-background", inputSource: "current-image" },
+    "", pageId, { "X-ADT-Provider-Replicate-API-Token": "fake-replicate-token" })
+  expect(response.status).toBe(402)
+  const body = await response.json()
+  expect(body).toMatchObject({ code: "payment-required", provider: "replicate",
+    error: expect.stringContaining("credit balance and billing settings"),
+  })
+  expect(JSON.stringify(body)).not.toContain("fake-replicate-token")
+  expect(provider).toHaveBeenCalledTimes(1)
+  const storage = createBookStorage(label, root)
+  try {
+    expect(storage.getAllNodeVersions("image-filtering", pageId)).toEqual([{ version: 1, data: classification }])
+    expect(storage.getPageImages(pageId)).toHaveLength(2)
+    expect(storage.getImageBase64(sourceImageId)).toBe(pageBytes.toString("base64"))
+    expect(storage.getLatestNodeData("web-rendering", pageId)).toEqual({ version: 1, data: { edited: "preserve me" } })
+  } finally { storage.close() }
+})
+
 it.each([
   { ...input, operation: "unknown" },
   { ...input, inputSource: "current-image" },

@@ -4,7 +4,7 @@
 **Branch:** `elasticsounds/malformed-images-cleanup` (kept as requested).
 **Question:** Can a user recover or isolate an extracted figure using generative cleanup of a page crop or a dedicated background-removal model?
 **Time box:** 2026-10-19 → 2026-10-20; extended at the user's request for Storyboard synchronization, model switching, and one additional session to implement a dedicated Replicate background-removal comparison route. This remains a feasibility experiment.
-**Demo:** local Studio, Extract → a page → **Clean up figure**. An isolated synthetic demo book is running at `http://localhost:5199/books/figure-cleanup-demo/extract/pg001?lang=en`; it is not a staging deployment. Local comparison screenshot: `.context/figure-cleanup-comparison.jpg`.
+**Demo:** local Studio, Extract → a page → **Clean up figure**. Trials used an isolated synthetic demo book (`figure-cleanup-demo`); the temporary demo server has since stopped. Local comparison screenshot: `.context/figure-cleanup-comparison.jpg`.
 
 ## What we tried
 
@@ -116,3 +116,11 @@ Verification for this extension:
 - **No live Replicate prediction was run: no token was configured in the test environment.** Foreground/label fidelity, actual alpha coverage, latency, and cost remain unmeasured for this alternative. Full-suite, production, and packaged Electron verification were not rerun for this extension.
 
 Recommendation remains a production spec after representative trials. This alternate method supplies a comparison path; it does not establish that background removal will preserve detached labels, thin lines, or every educational detail.
+
+### Billing-error follow-up (2026-10-20)
+
+Four real background-removal attempts in the user's book logs were rejected by Replicate with **HTTP 402 Payment Required**, in 78–816 ms. The adapter recorded the HTTP status, but the API's generic error handler hid it behind “Internal server error.” The observed blocker is Replicate account billing; the user needs to check the token's account credit balance and billing settings. Replicate documents that depleted [prepaid credit](https://replicate.com/docs/topics/billing/prepaid-credit) prevents new work from starting.
+
+The adapter now emits the typed `payment-required` error, which the API returns as HTTP 402 with `provider: replicate`. Studio translates the billing guidance in all five locales. Provider response bodies and credentials remain excluded from client errors and logs. Failed requests create no candidates and leave extraction/Storyboard versions unchanged.
+
+Verification: `pnpm typecheck`, `pnpm lint` (the same eight unrelated warnings), Studio `extract`/`compile` (zero missing translations), and `git diff --check` passed. **124 tests passed across six files**: cleanup routes, Replicate image adapter, provider registry, provider routes, Studio API client, and cleanup dialog. Tests replay the observed HTTP 402 and check safe actionable errors, failure logging, no cached result, unchanged images/versions, and client localization. Credentials were removed from the test environment with the same `env -u` flags as the prior run. No additional live prediction, browser trial, full suite, production build, or Electron build was run for this fix; a successful live Replicate result remains unverified.

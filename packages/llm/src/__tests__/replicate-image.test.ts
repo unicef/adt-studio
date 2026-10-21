@@ -90,6 +90,21 @@ it.each([401, 403, 429, 500])("reports HTTP %s without reflecting provider secre
   expect(fs.readdirSync(cacheDir)).toEqual([])
 })
 
+it("reports Replicate billing failures with an actionable code and no provider body", async () => {
+  fetchMock.mockResolvedValueOnce(Response.json({ detail: "replicate-secret" }, { status: 402 }))
+  const onLog = vi.fn()
+  await expect(generate({ onLog, log: { taskType: "image-cleanup", promptName: "background-removal" } })).rejects.toMatchObject({
+    code: "payment-required", details: { providerId: "replicate" },
+    message: expect.stringContaining("credit balance and billing settings"),
+  })
+  expect(onLog.mock.calls[0][0]).toMatchObject({ success: false,
+    validationErrors: [expect.stringContaining("credit balance and billing settings")],
+  })
+  expect(JSON.stringify(onLog.mock.calls)).not.toContain("replicate-secret")
+  expect(fetchMock).toHaveBeenCalledTimes(1)
+  expect(fs.readdirSync(cacheDir)).toEqual([])
+})
+
 it.each([
   { ...success, status: "failed", error: "replicate-secret" }, { ...success, status: "canceled" },
   { ...success, output: null }, { ...success, id: "../private" }, { ...success, status: "unknown" },

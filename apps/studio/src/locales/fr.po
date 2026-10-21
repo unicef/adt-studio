@@ -8133,6 +8133,9 @@ msgstr "Rejouer l'introduction guidée à ADT Studio."
 msgid "Replicate isolates the foreground and returns a transparent PNG. Review labels and thin lines before accepting."
 msgstr "Replicate isole le premier plan et renvoie un PNG transparent. Vérifiez les libellés et les lignes fines avant d’accepter."
 
+msgid "Replicate requires payment before background removal can run. Check your Replicate credit balance and billing settings, then try again."
+msgstr "Replicate exige un paiement avant de pouvoir supprimer l’arrière-plan. Vérifiez votre solde de crédit et vos paramètres de facturation Replicate, puis réessayez."
+
 msgid "Report an issue"
 msgstr "Signaler un problème"
 

@@ -1,4 +1,6 @@
 import { isElectron } from "@/lib/utils"
+import { i18n } from "@lingui/core"
+import { msg } from "@lingui/core/macro"
 import type {
   AccessibilityAssessmentOutput,
   BookDetail,
@@ -115,7 +117,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const text = await res.text().catch(() => "")
     let message: string | undefined
     try {
-      message = (JSON.parse(text) as { error?: string }).error
+      const body = JSON.parse(text) as { error?: string; code?: string; provider?: string }
+      message = body.code === "payment-required" && body.provider === "replicate"
+        ? i18n._(msg`Replicate requires payment before background removal can run. Check your Replicate credit balance and billing settings, then try again.`)
+        : body.error
     } catch {
       message = text || undefined
     }

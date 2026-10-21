@@ -228,6 +228,7 @@ export const AI_PROVIDER_ERROR_CODES = [
   "missing-credential",
   "invalid-credential",
   "invalid-model-id",
+  "payment-required",
 ] as const
 export const AiProviderErrorCode = z.enum(AI_PROVIDER_ERROR_CODES)
 export type AiProviderErrorCode = z.infer<typeof AiProviderErrorCode>

@@ -16,7 +16,14 @@ async function fetchChecked(url: string, init: RequestInit): Promise<Response> {
     throw new Error("Could not reach Replicate")
   }
   if (!response.ok) {
-    await response.body?.cancel()
+    await response.body?.cancel().catch(() => {})
+    if (response.status === 402) {
+      throw new AiProviderError(
+        "payment-required",
+        "Replicate requires payment before background removal can run. Check your Replicate credit balance and billing settings, then try again.",
+        { providerId: "replicate", modality: "image" },
+      )
+    }
     throw new Error(`Replicate request failed with HTTP ${response.status}`)
   }
   return response
@@ -104,6 +111,7 @@ export function createReplicateBackgroundBackend(apiKey: string): ImageBackend {
           }).then((response) => response.body?.cancel()).catch(() => {})
         }
         if (signal.aborted) signal.throwIfAborted()
+        if (AiProviderError.is(error)) throw error
         // Keep transport/stream errors from reflecting URLs or credentials.
         if (error instanceof Error && /^(Replicate|Background removal|Could not reach Replicate)/.test(error.message)) throw error
         throw new Error("Replicate background removal failed")
